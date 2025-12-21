@@ -322,63 +322,6 @@ def _new_Index(cls, d):
     return cls.__new__(cls, **d)
 
 
-def ignore_caller() -> bool:
-    """
-    Find the first place in the stack that is not inside pandas
-    (tests notwithstanding).
-    """
-    import inspect
-    import os
-
-    import pandas as pd
-
-    pkg_dir = os.path.dirname(pd.__file__)
-    test_dir = os.path.join(pkg_dir, "tests")
-
-    # https://stackoverflow.com/questions/17407119/python-inspect-stack-is-slow
-    frame = inspect.currentframe().f_back.f_back.f_back
-    try:
-        filename = inspect.getfile(frame)
-        if filename.startswith(test_dir):
-            return True
-        caller = frame.f_code.co_name
-        if caller in [
-            "sanitize_array",
-            "_maybe_cast_listlike_indexer",
-            "convert",
-            "_cast_pointwise_result",
-            "isin",
-            "array",
-        ]:
-            # Due to maybe_convert_object
-            return True
-        if frame.f_back.f_code.co_name in ["ndarray_to_mgr"]:
-            # Due to maybe_convert_object + list comp
-            return True
-        if caller in [
-            "map",
-            "_to_datetime_with_unit",
-            "_convert_listlike_datetimes",
-            "to_numeric",
-            "quantile",
-            "ensure_index_from_sequences",
-            "infer_objects",
-            "cut",
-            "_set_grouper",
-            "_convert_can_do_setop",
-            "ensure_index",
-            "set_levels",
-            "from_records",
-        ]:
-            return True
-
-        return False
-    finally:
-        # See note in
-        # https://docs.python.org/3/library/inspect.html#inspect.Traceback
-        del frame
-
-
 @set_module("pandas")
 class Index(IndexOpsMixin, PandasObject):
     """
@@ -5263,13 +5206,6 @@ class Index(IndexOpsMixin, PandasObject):
         if isinstance(data, (ExtensionArray, np.ndarray)):
             if copy is not False:
                 if dtype is None or astype_is_view(data.dtype, pandas_dtype(dtype)):
-                    import os
-
-                    if not ignore_caller() and "PYTEST_CURRENT_TEST" in os.environ:
-                        with open(
-                            "/home/richard/dev/pandas/pytest.out", mode="a"
-                        ) as fh:
-                            fh.write(os.environ["PYTEST_CURRENT_TEST"] + "\n")
                     data = data.copy()
                     copy = False
         return data, bool(copy)

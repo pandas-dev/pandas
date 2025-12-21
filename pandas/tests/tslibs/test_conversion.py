@@ -42,7 +42,6 @@ def _compare_local_to_utc(tz_didx, naive_didx):
     except Exception as err:
         err1 = err
 
-    expected = naive_didx.map(lambda x: x.tz_localize(tz_didx.tz)).asi8
     try:
         expected = naive_didx.map(lambda x: x.tz_localize(tz_didx.tz)).asi8
     except Exception as err:
