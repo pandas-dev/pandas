@@ -2579,6 +2579,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         dtype: float64
         """
         nv.validate_round(args, kwargs)
+
+        # Handle empty Series gracefully
+        if len(self) == 0:
+            return self.copy()
+
         if self.dtype == "object":
             raise TypeError("Expected numeric dtype, got object instead.")
         new_mgr = self._mgr.round(decimals=decimals)

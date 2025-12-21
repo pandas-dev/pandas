@@ -227,3 +227,20 @@ class TestDataFrameRound:
         result = df.round()
         tm.assert_frame_equal(df, result)
         assert df is not result
+
+    def test_round_empty_series(self):
+        """Test that round works on empty Series."""
+        # Empty Series with default object dtype
+        result = Series().round(4)
+        expected = Series()
+        tm.assert_series_equal(result, expected)
+
+        # Empty Series with float dtype
+        result = Series(dtype="float64").round(4)
+        expected = Series(dtype="float64")
+        tm.assert_series_equal(result, expected)
+
+        # Empty Series with int dtype
+        result = Series(dtype="int64").round(4)
+        expected = Series(dtype="int64")
+        tm.assert_series_equal(result, expected)
