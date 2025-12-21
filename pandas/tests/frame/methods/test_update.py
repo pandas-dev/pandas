@@ -215,7 +215,7 @@ class TestDataFrameUpdate:
         with pytest.raises(ValueError, match="duplicate index"):
             df.update(other)
 
-    def test_update_raises_without_intersection(self):
+    def test_update_without_intersection(self):
         # GH#63452
         orig = DataFrame({"a": [1]}, index=[1])
         df = orig.copy()
