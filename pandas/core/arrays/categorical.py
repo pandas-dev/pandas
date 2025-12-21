@@ -670,6 +670,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             to_timedelta,
         )
 
+        # TODO: Here
         cats = Index(inferred_categories)
         known_categories = (
             isinstance(dtype, CategoricalDtype) and dtype.categories is not None
@@ -2397,7 +2398,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         from pandas import Index
 
         # tupleize_cols=False for e.g. test_fillna_iterable_category GH#41914
-        to_add = Index._with_infer(value, tupleize_cols=False).difference(
+        to_add = Index._with_infer(value, tupleize_cols=False, copy=False).difference(
             self.categories
         )
 

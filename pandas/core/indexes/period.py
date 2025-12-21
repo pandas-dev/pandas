@@ -205,17 +205,17 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     @property
     @doc(PeriodArray.hour.fget)
     def hour(self) -> Index:
-        return Index(self._data.hour, name=self.name)
+        return Index(self._data.hour, name=self.name, copy=False)
 
     @property
     @doc(PeriodArray.minute.fget)
     def minute(self) -> Index:
-        return Index(self._data.minute, name=self.name)
+        return Index(self._data.minute, name=self.name, copy=False)
 
     @property
     @doc(PeriodArray.second.fget)
     def second(self) -> Index:
-        return Index(self._data.second, name=self.name)
+        return Index(self._data.second, name=self.name, copy=False)
 
     # ------------------------------------------------------------------------
     # Index Constructors

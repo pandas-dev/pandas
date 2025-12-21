@@ -446,7 +446,7 @@ def _nbins_to_bins(x_idx: Index, nbins: int, right: bool) -> Index:
         else:
             bins[-1] += adj
 
-    return Index(bins)
+    return Index(bins, copy=False)
 
 
 def _bins_to_cuts(
@@ -631,7 +631,7 @@ def _preprocess_for_cut(x) -> Index:
     if x.ndim != 1:
         raise ValueError("Input array must be 1 dimensional")
 
-    return Index(x)
+    return Index(x, copy=False)
 
 
 def _postprocess_for_cut(fac, bins, retbins: bool, original):

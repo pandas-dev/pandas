@@ -1972,6 +1972,7 @@ def relabel_result(
             fun = [
                 com.get_callable_name(f) if not isinstance(f, str) else f for f in fun
             ]
+            # TODO: Does copy=False do anything here?
             col_idx_order = Index(s.index).get_indexer(fun)
             valid_idx = col_idx_order != -1
             if valid_idx.any():

@@ -321,6 +321,30 @@ def _new_Index(cls, d):
     return cls.__new__(cls, **d)
 
 
+def called_from_tests() -> bool:
+    """
+    Find the first place in the stack that is not inside pandas
+    (tests notwithstanding).
+    """
+    import inspect
+    import os
+
+    import pandas as pd
+
+    pkg_dir = os.path.dirname(pd.__file__)
+    test_dir = os.path.join(pkg_dir, "tests")
+
+    # https://stackoverflow.com/questions/17407119/python-inspect-stack-is-slow
+    frame = inspect.currentframe().f_back.f_back.f_back
+    try:
+        filename = inspect.getfile(frame)
+        return filename.startswith(test_dir)
+    finally:
+        # See note in
+        # https://docs.python.org/3/library/inspect.html#inspect.Traceback
+        del frame
+
+
 @set_module("pandas")
 class Index(IndexOpsMixin, PandasObject):
     """
@@ -692,7 +716,7 @@ class Index(IndexOpsMixin, PandasObject):
             # "ndarray[Any, Any]"
             values = lib.maybe_convert_objects(result._values)  # type: ignore[arg-type]
             if values.dtype.kind in "iufb":
-                return Index(values, name=result.name)
+                return Index(values, name=result.name, copy=False)
 
         return result
 
@@ -982,6 +1006,7 @@ class Index(IndexOpsMixin, PandasObject):
             # Reached in plotting tests with e.g. np.nonzero(index)
             return result
 
+        # TODO: Here?
         return Index(result, name=self.name)
 
     @cache_readonly
@@ -2775,7 +2800,7 @@ class Index(IndexOpsMixin, PandasObject):
             # no need to care metadata other than name
             # because it can't have freq if it has NaTs
             # _with_infer needed for test_fillna_categorical
-            return Index._with_infer(result, name=self.name)
+            return Index._with_infer(result, name=self.name, copy=False)
         return self._view()
 
     def dropna(self, how: AnyAll = "any") -> Self:
@@ -3910,8 +3935,8 @@ class Index(IndexOpsMixin, PandasObject):
             if not (self.is_monotonic_increasing or self.is_monotonic_decreasing):
                 raise ValueError("index must be monotonic increasing or decreasing")
             encoded = self.append(target)._engine.values  # type: ignore[union-attr]
-            self_encoded = Index(encoded[: len(self)])
-            target_encoded = Index(encoded[len(self) :])
+            self_encoded = Index(encoded[: len(self)], copy=False)
+            target_encoded = Index(encoded[len(self) :], copy=False)
             return self_encoded._get_fill_indexer(
                 target_encoded, method, limit, tolerance
             )
@@ -4338,7 +4363,7 @@ class Index(IndexOpsMixin, PandasObject):
                 new_indexer[~check] = -1
 
         if not isinstance(self, ABCMultiIndex):
-            new_index = Index(new_labels, name=self.name)
+            new_index = Index(new_labels, name=self.name, copy=False)
         else:
             new_index = type(self).from_tuples(new_labels, names=self.names)
         return new_index, indexer, new_indexer
@@ -4487,7 +4512,7 @@ class Index(IndexOpsMixin, PandasObject):
             and not self.categories.equals(other.categories)
         ):
             # dtypes are "equal" but categories are in different order
-            other = Index(other._values.reorder_categories(self.categories))
+            other = Index(other._values.reorder_categories(self.categories), copy=False)
 
         _validate_join_method(how)
 
@@ -4930,7 +4955,9 @@ class Index(IndexOpsMixin, PandasObject):
         elif ridx is None:
             join_index = other
         else:
-            join_index = self._constructor._with_infer(joined, dtype=self.dtype)
+            join_index = self._constructor._with_infer(
+                joined, dtype=self.dtype, copy=False
+            )
 
         names = other.names if how == "right" else self.names
         if join_index.names != names:
@@ -5203,6 +5230,13 @@ class Index(IndexOpsMixin, PandasObject):
         if isinstance(data, (ExtensionArray, np.ndarray)):
             if copy is not False:
                 if dtype is None or astype_is_view(data.dtype, pandas_dtype(dtype)):
+                    import os
+
+                    if not called_from_tests() and "PYTEST_CURRENT_TEST" in os.environ:
+                        with open(
+                            "/home/richard/dev/pandas/pytest.out", mode="a"
+                        ) as fh:
+                            fh.write(os.environ["PYTEST_CURRENT_TEST"] + "\n")
                     data = data.copy()
                     copy = False
         return data, bool(copy)
@@ -6368,7 +6402,7 @@ class Index(IndexOpsMixin, PandasObject):
                 other = type(self).from_tuples(other)  # type: ignore[attr-defined]
             except (TypeError, ValueError):
                 # let's instead try with a straight Index
-                self = Index(self._values)
+                self = Index(self._values, copy=False)
 
         if not is_object_dtype(self.dtype) and is_object_dtype(other.dtype):
             # Reverse op so we dont need to re-implement on the subclasses
@@ -6747,6 +6781,7 @@ class Index(IndexOpsMixin, PandasObject):
         ):
             # If we started with a list-like, avoid inference to string dtype if self
             # is object dtype (coercing to string dtype will alter the missing values)
+            # TODO: Here?
             target_index = Index(target, dtype=self.dtype)
         elif (
             not hasattr(target, "dtype")
@@ -7124,7 +7159,7 @@ class Index(IndexOpsMixin, PandasObject):
             new_values[loc] = item
 
         # GH#51363 stopped doing dtype inference here
-        out = Index(new_values, dtype=new_values.dtype, name=self.name)
+        out = Index(new_values, dtype=new_values.dtype, name=self.name, copy=False)
         return out
 
     def drop(
@@ -7220,7 +7255,7 @@ class Index(IndexOpsMixin, PandasObject):
         )
         if copy and res_values is values:
             return self.copy()
-        result = Index(res_values, name=self.name)
+        result = Index(res_values, name=self.name, copy=False)
         if not copy and res_values is values and self._references is not None:
             result._references = self._references
             result._references.add_index_reference(result)
@@ -7329,10 +7364,10 @@ class Index(IndexOpsMixin, PandasObject):
     def _construct_result(self, result, name, other):
         if isinstance(result, tuple):
             return (
-                Index(result[0], name=name, dtype=result[0].dtype),
-                Index(result[1], name=name, dtype=result[1].dtype),
+                Index(result[0], name=name, dtype=result[0].dtype, copy=False),
+                Index(result[1], name=name, dtype=result[1].dtype, copy=False),
             )
-        return Index(result, name=name, dtype=result.dtype)
+        return Index(result, name=name, dtype=result.dtype, copy=False)
 
     def _arith_method(self, other, op):
         if (
@@ -7350,7 +7385,7 @@ class Index(IndexOpsMixin, PandasObject):
     @final
     def _unary_method(self, op):
         result = op(self._values)
-        return Index(result, name=self.name)
+        return Index(result, name=self.name, copy=False)
 
     def __abs__(self) -> Index:
         return self._unary_method(operator.abs)

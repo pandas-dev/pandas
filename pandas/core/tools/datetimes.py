@@ -288,8 +288,8 @@ def _box_as_indexlike(
 
     if lib.is_np_dtype(dt_array.dtype, "M"):
         tz = "utc" if utc else None
-        return DatetimeIndex(dt_array, tz=tz, name=name)
-    return Index(dt_array, name=name, dtype=dt_array.dtype)
+        return DatetimeIndex(dt_array, tz=tz, name=name, copy=False)
+    return Index(dt_array, name=name, dtype=dt_array.dtype, copy=False)
 
 
 def _convert_and_box_cache(
@@ -476,13 +476,13 @@ def _array_strptime_with_fallback(
         dta = DatetimeArray._simple_new(result, dtype=dtype)
         if utc:
             dta = dta.tz_convert("UTC")
-        return Index(dta, name=name)
+        return Index(dta, name=name, copy=False)
     elif result.dtype != object and utc:
         unit = np.datetime_data(result.dtype)[0]
         unit = cast("TimeUnit", unit)
-        res = Index(result, dtype=f"M8[{unit}, UTC]", name=name)
+        res = Index(result, dtype=f"M8[{unit}, UTC]", name=name, copy=False)
         return res
-    return Index(result, dtype=result.dtype, name=name)
+    return Index(result, dtype=result.dtype, name=name, copy=False)
 
 
 def _to_datetime_with_unit(arg, unit, name, utc: bool, errors: str) -> Index:
