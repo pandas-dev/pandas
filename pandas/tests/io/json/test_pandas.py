@@ -955,7 +955,7 @@ class TestPandasContainer:
         ],
     )
     def test_date_format_series(self, date, date_unit, datetime_series):
-        ts = Series(Timestamp(date).as_unit("ns"), index=datetime_series.index)
+        ts = Series(Timestamp(date), index=datetime_series.index)
         ts.iloc[1] = pd.NaT
         ts.iloc[5] = pd.NaT
         if date_unit:
@@ -964,7 +964,7 @@ class TestPandasContainer:
             json = ts.to_json(date_format="iso")
 
         result = read_json(StringIO(json), typ="series")
-        expected = ts.copy()
+        expected = ts.copy().dt.as_unit("ns")
         tm.assert_series_equal(result, expected)
 
     def test_date_format_series_raises(self, datetime_series):
