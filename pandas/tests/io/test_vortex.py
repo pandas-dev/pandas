@@ -4,14 +4,17 @@ Tests for Vortex file format support.
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    read_vortex,
-)
+from pandas import DataFrame
 import pandas._testing as tm
 
-# Only run tests if vortex is installed
-pytest.importorskip("vortex")
+# Skip all tests in this module if vortex is not installed
+vortex = pytest.importorskip("vortex", minversion=None)
+
+
+@pytest.fixture
+def setup_vortex():
+    """Fixture to ensure vortex is available."""
+    pytest.importorskip("vortex")
 
 
 class TestVortex:
@@ -19,6 +22,8 @@ class TestVortex:
 
     def test_basic_roundtrip(self, tmp_path):
         """Test basic write and read roundtrip."""
+        from pandas import read_vortex
+
         df = DataFrame({
             "a": [1, 2, 3],
             "b": ["x", "y", "z"],
@@ -33,6 +38,8 @@ class TestVortex:
 
     def test_read_column_subset(self, tmp_path):
         """Test reading only a subset of columns."""
+        from pandas import read_vortex
+
         df = DataFrame({
             "a": [1, 2, 3],
             "b": [4, 5, 6],
@@ -48,6 +55,8 @@ class TestVortex:
 
     def test_empty_dataframe(self, tmp_path):
         """Test reading and writing an empty DataFrame."""
+        from pandas import read_vortex
+
         df = DataFrame({"a": [], "b": []})
         path = tmp_path / "test_empty.vortex"
 
@@ -58,6 +67,8 @@ class TestVortex:
 
     def test_various_dtypes(self, tmp_path):
         """Test DataFrame with various data types."""
+        from pandas import read_vortex
+
         df = DataFrame({
             "int": np.array([1, 2, 3], dtype="int64"),
             "float": np.array([1.0, 2.0, 3.0], dtype="float64"),
@@ -73,6 +84,8 @@ class TestVortex:
 
     def test_with_index(self, tmp_path):
         """Test DataFrame with custom index is preserved as column."""
+        from pandas import read_vortex
+
         df = DataFrame(
             {"a": [1, 2, 3], "b": [4, 5, 6]},
             index=["x", "y", "z"],
@@ -85,10 +98,9 @@ class TestVortex:
         # Vortex saves index as a column, verify it exists and has correct values
         assert "__index_level_0__" in result.columns
         assert list(result["__index_level_0__"]) == list(df.index)
-        
-        # Verify data columns match (reset index for comparison)
+
+        # Verify data columns match (ignoring the index type difference)
         tm.assert_frame_equal(
-            df.reset_index(drop=True), 
+            df.reset_index(drop=True),
             result[["a", "b"]].reset_index(drop=True)
         )
-
