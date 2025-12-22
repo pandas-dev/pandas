@@ -383,7 +383,7 @@ class StringMethods(NoNewAttributesMixin):
                     out = out.get_level_values(0)
                 return out
             else:
-                return Index(result, name=name, dtype=dtype)
+                return Index(result, name=name, dtype=dtype, copy=False)
         else:
             index = self._orig.index
             # This is a mess.
@@ -703,7 +703,7 @@ class StringMethods(NoNewAttributesMixin):
             if isna(result).all():
                 dtype = object  # type: ignore[assignment]
 
-            out = Index(result, dtype=dtype, name=self._orig.name)
+            out = Index(result, dtype=dtype, name=self._orig.name, copy=False)
         else:  # Series
             res_ser = Series(
                 result, dtype=dtype, index=data.index, name=self._orig.name, copy=False

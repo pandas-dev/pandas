@@ -926,7 +926,7 @@ def value_counts_internal(
 
             # Starting in 3.0, we no longer perform dtype inference on the
             #  Index object we construct here, xref GH#56161
-            idx = Index(keys, dtype=keys.dtype, name=index_name)
+            idx = Index(keys, dtype=keys.dtype, name=index_name, copy=False)
 
             if (
                 not sort
