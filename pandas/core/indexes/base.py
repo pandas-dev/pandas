@@ -963,10 +963,10 @@ class Index(IndexOpsMixin, PandasObject):
             return tuple(self.__array_wrap__(x) for x in result)
         elif method == "reduce":
             result = lib.item_from_zerodim(result)
-            return result
+            return maybe_unbox_numpy_scalar(result)
         elif is_scalar(result):
             # e.g. matmul
-            return result
+            return maybe_unbox_numpy_scalar(result)
 
         if result.dtype == np.float16:
             result = result.astype(np.float32)
@@ -6817,7 +6817,7 @@ class Index(IndexOpsMixin, PandasObject):
             pos = self[::-1].searchsorted(
                 label, side="right" if side == "left" else "left"
             )
-            return len(self) - pos
+            return maybe_unbox_numpy_scalar(len(self) - pos)
 
         raise ValueError("index must be monotonic increasing or decreasing")
 
@@ -7007,6 +7007,8 @@ class Index(IndexOpsMixin, PandasObject):
             if start_slice == -1:
                 start_slice -= len(self)
 
+        start_slice = maybe_unbox_numpy_scalar(start_slice)
+        end_slice = maybe_unbox_numpy_scalar(end_slice)
         return start_slice, end_slice
 
     def delete(
@@ -7414,7 +7416,7 @@ class Index(IndexOpsMixin, PandasObject):
             # i.e. EA, call _reduce instead of "any" to get TypeError instead
             #  of AttributeError
             return vals._reduce("any")
-        return np.any(vals)
+        return maybe_unbox_numpy_scalar(np.any(vals))
 
     def all(self, *args, **kwargs):
         """
@@ -7462,7 +7464,7 @@ class Index(IndexOpsMixin, PandasObject):
             # i.e. EA, call _reduce instead of "all" to get TypeError instead
             #  of AttributeError
             return vals._reduce("all")
-        return np.all(vals)
+        return maybe_unbox_numpy_scalar(np.all(vals))
 
     @final
     def _maybe_disable_logical_methods(self, opname: str_t) -> None:
