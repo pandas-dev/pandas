@@ -166,6 +166,7 @@ from pandas.io.api import (
     read_stata,
     read_sas,
     read_spss,
+    read_vortex, 
     read_iceberg,
 )
 
@@ -336,6 +337,7 @@ __all__ = [
     "read_stata",
     "read_table",
     "read_xml",
+    "read_vortex", 
     "reset_option",
     "set_eng_float_format",
     "set_option",

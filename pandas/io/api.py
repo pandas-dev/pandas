@@ -36,6 +36,7 @@ from pandas.io.sql import (
 )
 from pandas.io.stata import read_stata
 from pandas.io.xml import read_xml
+from pandas.io.vortex import read_vortex
 
 __all__ = [
     "ExcelFile",
@@ -61,5 +62,6 @@ __all__ = [
     "read_stata",
     "read_table",
     "read_xml",
+    "read_vortex", 
     "to_pickle",
 ]

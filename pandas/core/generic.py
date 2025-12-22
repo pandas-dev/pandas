@@ -3954,8 +3954,33 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             storage_options=storage_options,
         )
 
-    # ----------------------------------------------------------------------
-    # Indexing Methods
+    @final
+    def to_vortex(
+        self,
+        path,
+        *,
+        storage_options=None,
+        **kwargs,
+    ) -> None:
+        """
+        Write object to the Vortex binary format.
+
+        Parameters
+        ----------
+        path : str or path object
+        storage_options : dict, optional
+        **kwargs
+
+        See Also
+        --------
+        read_vortex : Read a Vortex file.
+        """
+        from pandas.io.vortex import to_vortex
+
+        return to_vortex(self, path, storage_options=storage_options, **kwargs)
+
+        # ----------------------------------------------------------------------
+        # Indexing Methods
 
     @final
     def take(self, indices, axis: Axis = 0, **kwargs) -> Self:
