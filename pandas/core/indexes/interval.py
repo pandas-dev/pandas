@@ -691,7 +691,7 @@ class IntervalIndex(ExtensionIndex):
                 key_i8 = key_i8.view("i8")
         else:
             # DatetimeIndex/TimedeltaIndex
-            key_dtype, key_i8 = key.dtype, Index(key.asi8)
+            key_dtype, key_i8 = key.dtype, Index(key.asi8, copy=False)
             if key.hasnans:
                 # convert NaT from its i8 value to np.nan so it's not viewed
                 # as a valid value, maybe causing errors (e.g. is_overlapping)
