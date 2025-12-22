@@ -2832,7 +2832,7 @@ def _factorize_keys(
         rk = ensure_int64(rk.codes)
 
     elif isinstance(lk, ExtensionArray) and lk.dtype == rk.dtype:
-        if (isinstance(lk.dtype, ArrowDtype) and is_string_dtype(lk.dtype)) or (
+        if isinstance(lk.dtype, ArrowDtype) or (
             isinstance(lk.dtype, StringDtype) and lk.dtype.storage == "pyarrow"
         ):
             import pyarrow as pa
