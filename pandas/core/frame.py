@@ -10082,11 +10082,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         index_intersection = other.index.intersection(self.index)
         if index_intersection.empty:
-            raise ValueError(
-                "Update not allowed when the index on `other` has no intersection "
-                "with this dataframe."
-            )
-
+            return
         other = other.reindex(index_intersection)
         this_data = self.loc[index_intersection]
 
