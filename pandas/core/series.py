@@ -2579,8 +2579,22 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         dtype: float64
         """
         nv.validate_round(args, kwargs)
+        # Handle empty Series gracefully
+        if len(self) == 0:
+            return self.copy()
+
         if self.dtype == "object":
-            raise TypeError("Expected numeric dtype, got object instead.")
+            # Delegate to Python's built-in round() for object dtype
+            # This handles cases like Decimal objects or other roundable types
+            def round_func(x):
+                return round(x, decimals)
+
+            # Apply round to each element, preserving NA values
+            result = self._map_values(round_func, na_action="ignore")
+            return self._constructor(result, index=self.index, copy=False).__finalize__(
+                self, method="round"
+            )
+
         new_mgr = self._mgr.round(decimals=decimals)
         return self._constructor_from_mgr(new_mgr, axes=new_mgr.axes).__finalize__(
             self, method="round"
