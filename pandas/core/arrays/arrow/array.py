@@ -905,7 +905,7 @@ class ArrowExtensionArray(
         pc_func = ARROW_CMP_FUNCS[op.__name__]
         ltype = self._pa_array.type
 
-        if isinstance(other, (ExtensionArray, np.ndarray, list)):
+        if isinstance(other, (ExtensionArray, np.ndarray, list, range)):
             try:
                 boxed = self._box_pa(other)
             except pa.lib.ArrowInvalid:
