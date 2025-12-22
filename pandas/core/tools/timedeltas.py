@@ -241,6 +241,6 @@ def _convert_listlike(
 
     from pandas import TimedeltaIndex
 
-    copy = td64arr is arg
+    copy = td64arr is arg or np.may_share_memory(arg, td64arr)
     value = TimedeltaIndex(td64arr, name=name, copy=copy)
     return value
