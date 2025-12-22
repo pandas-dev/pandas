@@ -44,7 +44,7 @@ def test_select_columns_in_where(setup_path):
         columns=["A", "B", "C"],
     )
 
-    with HDFStore(setup_path, mode="a") as store:
+    with HDFStore(setup_path, mode="w") as store:
         store.put("df", df, format="table")
         expected = df[["A"]]
 
@@ -54,7 +54,7 @@ def test_select_columns_in_where(setup_path):
 
     # With a Series
     s = Series(np.random.default_rng(2).standard_normal(10), index=index, name="A")
-    with HDFStore(setup_path, mode="a") as store:
+    with HDFStore(setup_path, mode="w") as store:
         store.put("s", s, format="table")
         tm.assert_series_equal(store.select("s", where="columns=['A']"), s)
 
@@ -66,7 +66,7 @@ def test_select_with_dups(setup_path):
     )
     df.index = date_range("20130101 9:30", periods=10, freq="min", unit="ns")
 
-    with HDFStore(setup_path, mode="a") as store:
+    with HDFStore(setup_path, mode="w") as store:
         store.append("df", df)
 
         result = store.select("df")
@@ -97,7 +97,7 @@ def test_select_with_dups(setup_path):
     )
     df.index = date_range("20130101 9:30", periods=10, freq="min", unit="ns")
 
-    with HDFStore(setup_path, mode="a") as store:
+    with HDFStore(setup_path, mode="w") as store:
         store.append("df", df)
 
         result = store.select("df")
@@ -117,7 +117,7 @@ def test_select_with_dups(setup_path):
         tm.assert_frame_equal(result, expected, by_blocks=True)
 
     # duplicates on both index and columns
-    with HDFStore(setup_path, mode="a") as store:
+    with HDFStore(setup_path, mode="w") as store:
         store.append("df", df)
         store.append("df", df)
 
@@ -128,7 +128,7 @@ def test_select_with_dups(setup_path):
 
 
 def test_select(setup_path):
-    with HDFStore(setup_path, mode="a") as store:
+    with HDFStore(setup_path, mode="w") as store:
         # select with columns=
         df = DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)),
@@ -169,7 +169,7 @@ def test_select(setup_path):
 
 
 def test_select_dtypes(setup_path, request):
-    with HDFStore(setup_path, mode="a") as store:
+    with HDFStore(setup_path, mode="w") as store:
         # with a Timestamp data column (GH #2637)
         df = DataFrame(
             {
@@ -231,7 +231,7 @@ def test_select_dtypes(setup_path, request):
         expected = df.reindex(index=list(df.index)[0:10], columns=["A"])
         tm.assert_frame_equal(expected, result)
 
-    with HDFStore(setup_path, mode="a") as store:
+    with HDFStore(setup_path, mode="w") as store:
         # floats w/o NaN
         df = DataFrame({"cols": range(11), "values": range(11)}, dtype="float64")
         df["cols"] = (df["cols"] + 10).apply(str)
@@ -269,7 +269,7 @@ def test_select_dtypes(setup_path, request):
 
     # test selection with comparison against numpy scalar
     # GH 11283
-    with HDFStore(setup_path, mode="a") as store:
+    with HDFStore(setup_path, mode="w") as store:
         df = DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
             columns=Index(list("ABCD")),
@@ -292,7 +292,7 @@ def test_select_dtypes(setup_path, request):
 
 
 def test_select_with_many_inputs(setup_path):
-    with HDFStore(setup_path, mode="a") as store:
+    with HDFStore(setup_path, mode="w") as store:
         df = DataFrame(
             {
                 "ts": bdate_range("2012-01-01", periods=300, unit="ns"),
