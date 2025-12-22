@@ -1813,78 +1813,192 @@ class StringMethods(NoNewAttributesMixin):
         result = self._data.array._str_pad(width, side=side, fillchar=fillchar)
         return self._wrap_result(result)
 
-    _shared_docs["str_pad"] = """
-    Pad %(side)s side of strings in the Series/Index.
 
-    Equivalent to :meth:`str.%(method)s`.
 
-    Parameters
-    ----------
-    width : int
-        Minimum width of resulting string; additional characters will be filled
-        with ``fillchar``.
-    fillchar : str
-        Additional character for filling, default is whitespace.
-
-    Returns
-    -------
-    Series/Index of objects.
-        A Series or Index where the strings are modified by :meth:`str.%(method)s`.
-
-    See Also
-    --------
-    Series.str.rjust : Fills the left side of strings with an arbitrary
-        character.
-    Series.str.ljust : Fills the right side of strings with an arbitrary
-        character.
-    Series.str.center : Fills both sides of strings with an arbitrary
-        character.
-    Series.str.zfill : Pad strings in the Series/Index by prepending '0'
-        character.
-
-    Examples
-    --------
-    For Series.str.center:
-
-    >>> ser = pd.Series(['dog', 'bird', 'mouse'])
-    >>> ser.str.center(8, fillchar='.')
-    0   ..dog...
-    1   ..bird..
-    2   .mouse..
-    dtype: str
-
-    For Series.str.ljust:
-
-    >>> ser = pd.Series(['dog', 'bird', 'mouse'])
-    >>> ser.str.ljust(8, fillchar='.')
-    0   dog.....
-    1   bird....
-    2   mouse...
-    dtype: str
-
-    For Series.str.rjust:
-
-    >>> ser = pd.Series(['dog', 'bird', 'mouse'])
-    >>> ser.str.rjust(8, fillchar='.')
-    0   .....dog
-    1   ....bird
-    2   ...mouse
-    dtype: str
-    """
-
-    @Appender(_shared_docs["str_pad"] % {"side": "left and right", "method": "center"})
     @forbid_nonstring_types(["bytes"])
     def center(self, width: int, fillchar: str = " "):
+        """
+        Pad left and right side of strings in the Series/Index.
+
+        Equivalent to :meth:`str.center`.
+
+        Parameters
+        ----------
+        width : int
+            Minimum width of resulting string; additional characters will be filled
+            with ``fillchar``.
+        fillchar : str
+            Additional character for filling, default is whitespace.
+
+        Returns
+        -------
+        Series/Index of objects.
+            A Series or Index where the strings are modified by :meth:`str.center`.
+
+        See Also
+        --------
+        Series.str.rjust : Fills the left side of strings with an arbitrary
+            character.
+        Series.str.ljust : Fills the right side of strings with an arbitrary
+            character.
+        Series.str.center : Fills both sides of strings with an arbitrary
+            character.
+        Series.str.zfill : Pad strings in the Series/Index by prepending '0'
+            character.
+
+        Examples
+        --------
+        For Series.str.center:
+
+        >>> ser = pd.Series(['dog', 'bird', 'mouse'])
+        >>> ser.str.center(8, fillchar='.')
+        0   ..dog...
+        1   ..bird..
+        2   .mouse..
+        dtype: str
+
+        For Series.str.ljust:
+
+        >>> ser = pd.Series(['dog', 'bird', 'mouse'])
+        >>> ser.str.ljust(8, fillchar='.')
+        0   dog.....
+        1   bird....
+        2   mouse...
+        dtype: str
+
+        For Series.str.rjust:
+
+        >>> ser = pd.Series(['dog', 'bird', 'mouse'])
+        >>> ser.str.rjust(8, fillchar='.')
+        0   .....dog
+        1   ....bird
+        2   ...mouse
+        dtype: str
+        """
         return self.pad(width, side="both", fillchar=fillchar)
 
-    @Appender(_shared_docs["str_pad"] % {"side": "right", "method": "ljust"})
     @forbid_nonstring_types(["bytes"])
     def ljust(self, width: int, fillchar: str = " "):
+        """
+        Pad right side of strings in the Series/Index.
+
+        Equivalent to :meth:`str.ljust`.
+
+        Parameters
+        ----------
+        width : int
+            Minimum width of resulting string; additional characters will be filled
+            with ``fillchar``.
+        fillchar : str
+            Additional character for filling, default is whitespace.
+
+        Returns
+        -------
+        Series/Index of objects.
+            A Series or Index where the strings are modified by :meth:`str.ljust`.
+
+        See Also
+        --------
+        Series.str.rjust : Fills the left side of strings with an arbitrary
+            character.
+        Series.str.ljust : Fills the right side of strings with an arbitrary
+            character.
+        Series.str.center : Fills both sides of strings with an arbitrary
+            character.
+        Series.str.zfill : Pad strings in the Series/Index by prepending '0'
+            character.
+
+        Examples
+        --------
+        For Series.str.center:
+
+        >>> ser = pd.Series(['dog', 'bird', 'mouse'])
+        >>> ser.str.center(8, fillchar='.')
+        0   ..dog...
+        1   ..bird..
+        2   .mouse..
+        dtype: str
+
+        For Series.str.ljust:
+
+        >>> ser = pd.Series(['dog', 'bird', 'mouse'])
+        >>> ser.str.ljust(8, fillchar='.')
+        0   dog.....
+        1   bird....
+        2   mouse...
+        dtype: str
+
+        For Series.str.rjust:
+
+        >>> ser = pd.Series(['dog', 'bird', 'mouse'])
+        >>> ser.str.rjust(8, fillchar='.')
+        0   .....dog
+        1   ....bird
+        2   ...mouse
+        dtype: str
+        """
         return self.pad(width, side="right", fillchar=fillchar)
 
-    @Appender(_shared_docs["str_pad"] % {"side": "left", "method": "rjust"})
     @forbid_nonstring_types(["bytes"])
     def rjust(self, width: int, fillchar: str = " "):
+        """
+        Pad left side of strings in the Series/Index.
+
+        Equivalent to :meth:`str.rjust`.
+
+        Parameters
+        ----------
+        width : int
+            Minimum width of resulting string; additional characters will be filled
+            with ``fillchar``.
+        fillchar : str
+            Additional character for filling, default is whitespace.
+
+        Returns
+        -------
+        Series/Index of objects.
+            A Series or Index where the strings are modified by :meth:`str.rjust`.
+
+        See Also
+        --------
+        Series.str.rjust : Fills the left side of strings with an arbitrary
+            character.
+        Series.str.ljust : Fills the right side of strings with an arbitrary
+            character.
+        Series.str.center : Fills both sides of strings with an arbitrary
+            character.
+        Series.str.zfill : Pad strings in the Series/Index by prepending '0'
+            character.
+
+        Examples
+        --------
+        For Series.str.center:
+
+        >>> ser = pd.Series(['dog', 'bird', 'mouse'])
+        >>> ser.str.center(8, fillchar='.')
+        0   ..dog...
+        1   ..bird..
+        2   .mouse..
+        dtype: str
+
+        For Series.str.ljust:
+
+        >>> ser = pd.Series(['dog', 'bird', 'mouse'])
+        >>> ser.str.ljust(8, fillchar='.')
+        0   dog.....
+        1   bird....
+        2   mouse...
+        dtype: str
+
+        For Series.str.rjust:
+
+        >>> ser = pd.Series(['dog', 'bird', 'mouse'])
+        >>> ser.str.rjust(8, fillchar='.')
+        0   .....dog
+        1   ....bird
+        2   ...mouse
+        dtype: str
+        """
         return self.pad(width, side="left", fillchar=fillchar)
 
     @forbid_nonstring_types(["bytes"])
@@ -3359,73 +3473,7 @@ class StringMethods(NoNewAttributesMixin):
         result = self._data.array._str_len()
         return self._wrap_result(result, returns_string=False)
 
-    _shared_docs["casemethods"] = """
-    Convert strings in the Series/Index to %(type)s.
-    %(version)s
-    Equivalent to :meth:`str.%(method)s`.
 
-    Returns
-    -------
-    Series or Index of objects
-        A Series or Index where the strings are modified by :meth:`str.%(method)s`.
-
-    See Also
-    --------
-    Series.str.lower : Converts all characters to lowercase.
-    Series.str.upper : Converts all characters to uppercase.
-    Series.str.title : Converts first character of each word to uppercase and
-        remaining to lowercase.
-    Series.str.capitalize : Converts first character to uppercase and
-        remaining to lowercase.
-    Series.str.swapcase : Converts uppercase to lowercase and lowercase to
-        uppercase.
-    Series.str.casefold: Removes all case distinctions in the string.
-
-    Examples
-    --------
-    >>> s = pd.Series(['lower', 'CAPITALS', 'this is a sentence', 'SwApCaSe'])
-    >>> s
-    0                 lower
-    1              CAPITALS
-    2    this is a sentence
-    3              SwApCaSe
-    dtype: str
-
-    >>> s.str.lower()
-    0                 lower
-    1              capitals
-    2    this is a sentence
-    3              swapcase
-    dtype: str
-
-    >>> s.str.upper()
-    0                 LOWER
-    1              CAPITALS
-    2    THIS IS A SENTENCE
-    3              SWAPCASE
-    dtype: str
-
-    >>> s.str.title()
-    0                 Lower
-    1              Capitals
-    2    This Is A Sentence
-    3              Swapcase
-    dtype: str
-
-    >>> s.str.capitalize()
-    0                 Lower
-    1              Capitals
-    2    This is a sentence
-    3              Swapcase
-    dtype: str
-
-    >>> s.str.swapcase()
-    0                 LOWER
-    1              capitals
-    2    THIS IS A SENTENCE
-    3              sWaPcAsE
-    dtype: str
-    """
     # Types:
     #   cases:
     #       upper, lower, title, capitalize, swapcase, casefold
@@ -3434,58 +3482,437 @@ class StringMethods(NoNewAttributesMixin):
     #     isupper istitle isascii
     # _doc_args holds dict of strings to use in substituting casemethod docs
     _doc_args: dict[str, dict[str, str]] = {}
-    _doc_args["lower"] = {"type": "lowercase", "method": "lower", "version": ""}
-    _doc_args["upper"] = {"type": "uppercase", "method": "upper", "version": ""}
-    _doc_args["title"] = {"type": "titlecase", "method": "title", "version": ""}
-    _doc_args["capitalize"] = {
-        "type": "be capitalized",
-        "method": "capitalize",
-        "version": "",
-    }
-    _doc_args["swapcase"] = {
-        "type": "be swapcased",
-        "method": "swapcase",
-        "version": "",
-    }
-    _doc_args["casefold"] = {
-        "type": "be casefolded",
-        "method": "casefold",
-        "version": "",
-    }
 
-    @Appender(_shared_docs["casemethods"] % _doc_args["lower"])
+
     @forbid_nonstring_types(["bytes"])
     def lower(self):
+        """
+        Convert strings in the Series/Index to lowercase.
+
+        Equivalent to :meth:`str.lower`.
+
+        Returns
+        -------
+        Series or Index of objects
+            A Series or Index where the strings are modified by :meth:`str.lower`.
+
+        See Also
+        --------
+        Series.str.lower : Converts all characters to lowercase.
+        Series.str.upper : Converts all characters to uppercase.
+        Series.str.title : Converts first character of each word to uppercase and
+            remaining to lowercase.
+        Series.str.capitalize : Converts first character to uppercase and
+            remaining to lowercase.
+        Series.str.swapcase : Converts uppercase to lowercase and lowercase to
+            uppercase.
+        Series.str.casefold: Removes all case distinctions in the string.
+
+        Examples
+        --------
+        >>> s = pd.Series(['lower', 'CAPITALS', 'this is a sentence', 'SwApCaSe'])
+        >>> s
+        0                 lower
+        1              CAPITALS
+        2    this is a sentence
+        3              SwApCaSe
+        dtype: str
+
+        >>> s.str.lower()
+        0                 lower
+        1              capitals
+        2    this is a sentence
+        3              swapcase
+        dtype: str
+
+        >>> s.str.upper()
+        0                 LOWER
+        1              CAPITALS
+        2    THIS IS A SENTENCE
+        3              SWAPCASE
+        dtype: str
+
+        >>> s.str.title()
+        0                 Lower
+        1              Capitals
+        2    This Is A Sentence
+        3              Swapcase
+        dtype: str
+
+        >>> s.str.capitalize()
+        0                 Lower
+        1              Capitals
+        2    This is a sentence
+        3              Swapcase
+        dtype: str
+
+        >>> s.str.swapcase()
+        0                 LOWER
+        1              capitals
+        2    THIS IS A SENTENCE
+        3              sWaPcAsE
+        dtype: str
+        """
         result = self._data.array._str_lower()
         return self._wrap_result(result)
 
-    @Appender(_shared_docs["casemethods"] % _doc_args["upper"])
     @forbid_nonstring_types(["bytes"])
     def upper(self):
+        """
+        Convert strings in the Series/Index to uppercase.
+
+        Equivalent to :meth:`str.upper`.
+
+        Returns
+        -------
+        Series or Index of objects
+            A Series or Index where the strings are modified by :meth:`str.upper`.
+
+        See Also
+        --------
+        Series.str.lower : Converts all characters to lowercase.
+        Series.str.upper : Converts all characters to uppercase.
+        Series.str.title : Converts first character of each word to uppercase and
+            remaining to lowercase.
+        Series.str.capitalize : Converts first character to uppercase and
+            remaining to lowercase.
+        Series.str.swapcase : Converts uppercase to lowercase and lowercase to
+            uppercase.
+        Series.str.casefold: Removes all case distinctions in the string.
+
+        Examples
+        --------
+        >>> s = pd.Series(['lower', 'CAPITALS', 'this is a sentence', 'SwApCaSe'])
+        >>> s
+        0                 lower
+        1              CAPITALS
+        2    this is a sentence
+        3              SwApCaSe
+        dtype: str
+
+        >>> s.str.lower()
+        0                 lower
+        1              capitals
+        2    this is a sentence
+        3              swapcase
+        dtype: str
+
+        >>> s.str.upper()
+        0                 LOWER
+        1              CAPITALS
+        2    THIS IS A SENTENCE
+        3              SWAPCASE
+        dtype: str
+
+        >>> s.str.title()
+        0                 Lower
+        1              Capitals
+        2    This Is A Sentence
+        3              Swapcase
+        dtype: str
+
+        >>> s.str.capitalize()
+        0                 Lower
+        1              Capitals
+        2    This is a sentence
+        3              Swapcase
+        dtype: str
+
+        >>> s.str.swapcase()
+        0                 LOWER
+        1              capitals
+        2    THIS IS A SENTENCE
+        3              sWaPcAsE
+        dtype: str
+        """
         result = self._data.array._str_upper()
         return self._wrap_result(result)
 
-    @Appender(_shared_docs["casemethods"] % _doc_args["title"])
     @forbid_nonstring_types(["bytes"])
     def title(self):
+        """
+        Convert strings in the Series/Index to titlecase.
+
+        Equivalent to :meth:`str.title`.
+
+        Returns
+        -------
+        Series or Index of objects
+            A Series or Index where the strings are modified by :meth:`str.title`.
+
+        See Also
+        --------
+        Series.str.lower : Converts all characters to lowercase.
+        Series.str.upper : Converts all characters to uppercase.
+        Series.str.title : Converts first character of each word to uppercase and
+            remaining to lowercase.
+        Series.str.capitalize : Converts first character to uppercase and
+            remaining to lowercase.
+        Series.str.swapcase : Converts uppercase to lowercase and lowercase to
+            uppercase.
+        Series.str.casefold: Removes all case distinctions in the string.
+
+        Examples
+        --------
+        >>> s = pd.Series(['lower', 'CAPITALS', 'this is a sentence', 'SwApCaSe'])
+        >>> s
+        0                 lower
+        1              CAPITALS
+        2    this is a sentence
+        3              SwApCaSe
+        dtype: str
+
+        >>> s.str.lower()
+        0                 lower
+        1              capitals
+        2    this is a sentence
+        3              swapcase
+        dtype: str
+
+        >>> s.str.upper()
+        0                 LOWER
+        1              CAPITALS
+        2    THIS IS A SENTENCE
+        3              SWAPCASE
+        dtype: str
+
+        >>> s.str.title()
+        0                 Lower
+        1              Capitals
+        2    This Is A Sentence
+        3              Swapcase
+        dtype: str
+
+        >>> s.str.capitalize()
+        0                 Lower
+        1              Capitals
+        2    This is a sentence
+        3              Swapcase
+        dtype: str
+
+        >>> s.str.swapcase()
+        0                 LOWER
+        1              capitals
+        2    THIS IS A SENTENCE
+        3              sWaPcAsE
+        dtype: str
+        """
         result = self._data.array._str_title()
         return self._wrap_result(result)
 
-    @Appender(_shared_docs["casemethods"] % _doc_args["capitalize"])
     @forbid_nonstring_types(["bytes"])
     def capitalize(self):
+        """
+        Convert strings in the Series/Index to be capitalized.
+
+        Equivalent to :meth:`str.capitalize`.
+
+        Returns
+        -------
+        Series or Index of objects
+            A Series or Index where the strings are modified by :meth:`str.capitalize`.
+
+        See Also
+        --------
+        Series.str.lower : Converts all characters to lowercase.
+        Series.str.upper : Converts all characters to uppercase.
+        Series.str.title : Converts first character of each word to uppercase and
+            remaining to lowercase.
+        Series.str.capitalize : Converts first character to uppercase and
+            remaining to lowercase.
+        Series.str.swapcase : Converts uppercase to lowercase and lowercase to
+            uppercase.
+        Series.str.casefold: Removes all case distinctions in the string.
+
+        Examples
+        --------
+        >>> s = pd.Series(['lower', 'CAPITALS', 'this is a sentence', 'SwApCaSe'])
+        >>> s
+        0                 lower
+        1              CAPITALS
+        2    this is a sentence
+        3              SwApCaSe
+        dtype: str
+
+        >>> s.str.lower()
+        0                 lower
+        1              capitals
+        2    this is a sentence
+        3              swapcase
+        dtype: str
+
+        >>> s.str.upper()
+        0                 LOWER
+        1              CAPITALS
+        2    THIS IS A SENTENCE
+        3              SWAPCASE
+        dtype: str
+
+        >>> s.str.title()
+        0                 Lower
+        1              Capitals
+        2    This Is A Sentence
+        3              Swapcase
+        dtype: str
+
+        >>> s.str.capitalize()
+        0                 Lower
+        1              Capitals
+        2    This is a sentence
+        3              Swapcase
+        dtype: str
+
+        >>> s.str.swapcase()
+        0                 LOWER
+        1              capitals
+        2    THIS IS A SENTENCE
+        3              sWaPcAsE
+        dtype: str
+        """
         result = self._data.array._str_capitalize()
         return self._wrap_result(result)
 
-    @Appender(_shared_docs["casemethods"] % _doc_args["swapcase"])
     @forbid_nonstring_types(["bytes"])
     def swapcase(self):
+        """
+        Convert strings in the Series/Index to be swapcased.
+
+        Equivalent to :meth:`str.swapcase`.
+
+        Returns
+        -------
+        Series or Index of objects
+            A Series or Index where the strings are modified by :meth:`str.swapcase`.
+
+        See Also
+        --------
+        Series.str.lower : Converts all characters to lowercase.
+        Series.str.upper : Converts all characters to uppercase.
+        Series.str.title : Converts first character of each word to uppercase and
+            remaining to lowercase.
+        Series.str.capitalize : Converts first character to uppercase and
+            remaining to lowercase.
+        Series.str.swapcase : Converts uppercase to lowercase and lowercase to
+            uppercase.
+        Series.str.casefold: Removes all case distinctions in the string.
+
+        Examples
+        --------
+        >>> s = pd.Series(['lower', 'CAPITALS', 'this is a sentence', 'SwApCaSe'])
+        >>> s
+        0                 lower
+        1              CAPITALS
+        2    this is a sentence
+        3              SwApCaSe
+        dtype: str
+
+        >>> s.str.lower()
+        0                 lower
+        1              capitals
+        2    this is a sentence
+        3              swapcase
+        dtype: str
+
+        >>> s.str.upper()
+        0                 LOWER
+        1              CAPITALS
+        2    THIS IS A SENTENCE
+        3              SWAPCASE
+        dtype: str
+
+        >>> s.str.title()
+        0                 Lower
+        1              Capitals
+        2    This Is A Sentence
+        3              Swapcase
+        dtype: str
+
+        >>> s.str.capitalize()
+        0                 Lower
+        1              Capitals
+        2    This is a sentence
+        3              Swapcase
+        dtype: str
+
+        >>> s.str.swapcase()
+        0                 LOWER
+        1              capitals
+        2    THIS IS A SENTENCE
+        3              sWaPcAsE
+        dtype: str
+        """
         result = self._data.array._str_swapcase()
         return self._wrap_result(result)
 
-    @Appender(_shared_docs["casemethods"] % _doc_args["casefold"])
     @forbid_nonstring_types(["bytes"])
     def casefold(self):
+        """
+        Convert strings in the Series/Index to be casefolded.
+
+        Equivalent to :meth:`str.casefold`.
+
+        Returns
+        -------
+        Series or Index of objects
+            A Series or Index where the strings are modified by :meth:`str.casefold`.
+
+        See Also
+        --------
+        Series.str.lower : Converts all characters to lowercase.
+        Series.str.upper : Converts all characters to uppercase.
+        Series.str.title : Converts first character of each word to uppercase and
+            remaining to lowercase.
+        Series.str.capitalize : Converts first character to uppercase and
+            remaining to lowercase.
+        Series.str.swapcase : Converts uppercase to lowercase and lowercase to
+            uppercase.
+        Series.str.casefold: Removes all case distinctions in the string.
+
+        Examples
+        --------
+        >>> s = pd.Series(['lower', 'CAPITALS', 'this is a sentence', 'SwApCaSe'])
+        >>> s
+        0                 lower
+        1              CAPITALS
+        2    this is a sentence
+        3              SwApCaSe
+        dtype: str
+
+        >>> s.str.lower()
+        0                 lower
+        1              capitals
+        2    this is a sentence
+        3              swapcase
+        dtype: str
+
+        >>> s.str.upper()
+        0                 LOWER
+        1              CAPITALS
+        2    THIS IS A SENTENCE
+        3              SWAPCASE
+        dtype: str
+
+        >>> s.str.title()
+        0                 Lower
+        1              Capitals
+        2    This Is A Sentence
+        3              Swapcase
+        dtype: str
+
+        >>> s.str.capitalize()
+        0                 Lower
+        1              Capitals
+        2    This is a sentence
+        3              Swapcase
+        dtype: str
+
+        >>> s.str.swapcase()
+        0                 LOWER
+        1              capitals
+        2    THIS IS A SENTENCE
+        3              sWaPcAsE
+        dtype: str
+        """
         result = self._data.array._str_casefold()
         return self._wrap_result(result)
 
