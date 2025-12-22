@@ -1813,8 +1813,6 @@ class StringMethods(NoNewAttributesMixin):
         result = self._data.array._str_pad(width, side=side, fillchar=fillchar)
         return self._wrap_result(result)
 
-
-
     @forbid_nonstring_types(["bytes"])
     def center(self, width: int, fillchar: str = " "):
         """
@@ -1850,8 +1848,8 @@ class StringMethods(NoNewAttributesMixin):
         --------
         For Series.str.center:
 
-        >>> ser = pd.Series(['dog', 'bird', 'mouse'])
-        >>> ser.str.center(8, fillchar='.')
+        >>> ser = pd.Series(["dog", "bird", "mouse"])
+        >>> ser.str.center(8, fillchar=".")
         0   ..dog...
         1   ..bird..
         2   .mouse..
@@ -1859,8 +1857,8 @@ class StringMethods(NoNewAttributesMixin):
 
         For Series.str.ljust:
 
-        >>> ser = pd.Series(['dog', 'bird', 'mouse'])
-        >>> ser.str.ljust(8, fillchar='.')
+        >>> ser = pd.Series(["dog", "bird", "mouse"])
+        >>> ser.str.ljust(8, fillchar=".")
         0   dog.....
         1   bird....
         2   mouse...
@@ -1868,8 +1866,8 @@ class StringMethods(NoNewAttributesMixin):
 
         For Series.str.rjust:
 
-        >>> ser = pd.Series(['dog', 'bird', 'mouse'])
-        >>> ser.str.rjust(8, fillchar='.')
+        >>> ser = pd.Series(["dog", "bird", "mouse"])
+        >>> ser.str.rjust(8, fillchar=".")
         0   .....dog
         1   ....bird
         2   ...mouse
@@ -1912,8 +1910,8 @@ class StringMethods(NoNewAttributesMixin):
         --------
         For Series.str.center:
 
-        >>> ser = pd.Series(['dog', 'bird', 'mouse'])
-        >>> ser.str.center(8, fillchar='.')
+        >>> ser = pd.Series(["dog", "bird", "mouse"])
+        >>> ser.str.center(8, fillchar=".")
         0   ..dog...
         1   ..bird..
         2   .mouse..
@@ -1921,8 +1919,8 @@ class StringMethods(NoNewAttributesMixin):
 
         For Series.str.ljust:
 
-        >>> ser = pd.Series(['dog', 'bird', 'mouse'])
-        >>> ser.str.ljust(8, fillchar='.')
+        >>> ser = pd.Series(["dog", "bird", "mouse"])
+        >>> ser.str.ljust(8, fillchar=".")
         0   dog.....
         1   bird....
         2   mouse...
@@ -1930,8 +1928,8 @@ class StringMethods(NoNewAttributesMixin):
 
         For Series.str.rjust:
 
-        >>> ser = pd.Series(['dog', 'bird', 'mouse'])
-        >>> ser.str.rjust(8, fillchar='.')
+        >>> ser = pd.Series(["dog", "bird", "mouse"])
+        >>> ser.str.rjust(8, fillchar=".")
         0   .....dog
         1   ....bird
         2   ...mouse
@@ -1974,8 +1972,8 @@ class StringMethods(NoNewAttributesMixin):
         --------
         For Series.str.center:
 
-        >>> ser = pd.Series(['dog', 'bird', 'mouse'])
-        >>> ser.str.center(8, fillchar='.')
+        >>> ser = pd.Series(["dog", "bird", "mouse"])
+        >>> ser.str.center(8, fillchar=".")
         0   ..dog...
         1   ..bird..
         2   .mouse..
@@ -1983,8 +1981,8 @@ class StringMethods(NoNewAttributesMixin):
 
         For Series.str.ljust:
 
-        >>> ser = pd.Series(['dog', 'bird', 'mouse'])
-        >>> ser.str.ljust(8, fillchar='.')
+        >>> ser = pd.Series(["dog", "bird", "mouse"])
+        >>> ser.str.ljust(8, fillchar=".")
         0   dog.....
         1   bird....
         2   mouse...
@@ -1992,8 +1990,8 @@ class StringMethods(NoNewAttributesMixin):
 
         For Series.str.rjust:
 
-        >>> ser = pd.Series(['dog', 'bird', 'mouse'])
-        >>> ser.str.rjust(8, fillchar='.')
+        >>> ser = pd.Series(["dog", "bird", "mouse"])
+        >>> ser.str.rjust(8, fillchar=".")
         0   .....dog
         1   ....bird
         2   ...mouse
@@ -3473,7 +3471,6 @@ class StringMethods(NoNewAttributesMixin):
         result = self._data.array._str_len()
         return self._wrap_result(result, returns_string=False)
 
-
     # Types:
     #   cases:
     #       upper, lower, title, capitalize, swapcase, casefold
@@ -3482,7 +3479,6 @@ class StringMethods(NoNewAttributesMixin):
     #     isupper istitle isascii
     # _doc_args holds dict of strings to use in substituting casemethod docs
     _doc_args: dict[str, dict[str, str]] = {}
-
 
     @forbid_nonstring_types(["bytes"])
     def lower(self):
@@ -3510,7 +3506,7 @@ class StringMethods(NoNewAttributesMixin):
 
         Examples
         --------
-        >>> s = pd.Series(['lower', 'CAPITALS', 'this is a sentence', 'SwApCaSe'])
+        >>> s = pd.Series(["lower", "CAPITALS", "this is a sentence", "SwApCaSe"])
         >>> s
         0                 lower
         1              CAPITALS
@@ -3582,7 +3578,7 @@ class StringMethods(NoNewAttributesMixin):
 
         Examples
         --------
-        >>> s = pd.Series(['lower', 'CAPITALS', 'this is a sentence', 'SwApCaSe'])
+        >>> s = pd.Series(["lower", "CAPITALS", "this is a sentence", "SwApCaSe"])
         >>> s
         0                 lower
         1              CAPITALS
@@ -3654,7 +3650,7 @@ class StringMethods(NoNewAttributesMixin):
 
         Examples
         --------
-        >>> s = pd.Series(['lower', 'CAPITALS', 'this is a sentence', 'SwApCaSe'])
+        >>> s = pd.Series(["lower", "CAPITALS", "this is a sentence", "SwApCaSe"])
         >>> s
         0                 lower
         1              CAPITALS
@@ -3726,7 +3722,7 @@ class StringMethods(NoNewAttributesMixin):
 
         Examples
         --------
-        >>> s = pd.Series(['lower', 'CAPITALS', 'this is a sentence', 'SwApCaSe'])
+        >>> s = pd.Series(["lower", "CAPITALS", "this is a sentence", "SwApCaSe"])
         >>> s
         0                 lower
         1              CAPITALS
@@ -3798,7 +3794,7 @@ class StringMethods(NoNewAttributesMixin):
 
         Examples
         --------
-        >>> s = pd.Series(['lower', 'CAPITALS', 'this is a sentence', 'SwApCaSe'])
+        >>> s = pd.Series(["lower", "CAPITALS", "this is a sentence", "SwApCaSe"])
         >>> s
         0                 lower
         1              CAPITALS
@@ -3870,7 +3866,7 @@ class StringMethods(NoNewAttributesMixin):
 
         Examples
         --------
-        >>> s = pd.Series(['lower', 'CAPITALS', 'this is a sentence', 'SwApCaSe'])
+        >>> s = pd.Series(["lower", "CAPITALS", "this is a sentence", "SwApCaSe"])
         >>> s
         0                 lower
         1              CAPITALS
