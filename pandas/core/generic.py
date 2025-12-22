@@ -6511,37 +6511,22 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         result = self._constructor(result)  # type: ignore[assignment]
         result.columns = self.columns
         result = result.__finalize__(self, method="astype")
-        if isinstance(dtype, dict):
+        if isinstance(dtype, dict) and hasattr(result, "_mgr"):
             try:
-                from pandas.core.dtypes.common import is_dtype_equal
+                mgr = result._mgr
+                current_blocks = len(mgr.blocks)
+                total_cols = len(self.columns)
+                # only when the number of blocks explode do this
+                if current_blocks == total_cols and total_cols > 5:
+                    mgr._consolidate_inplace()
 
-                cols_with_real_change = []
-                for col_name in self.columns:
-                    if col_name in dtype:
-                        original_dtype = self[col_name].dtype
-                        try:
-                            target_dtype = pandas_dtype(dtype[col_name])
-                            if not is_dtype_equal(original_dtype, target_dtype):
-                                cols_with_real_change.append(col_name)
-                        except (TypeError, ValueError):
-                            cols_with_real_change.append(col_name)
-                # only when the number of blocks explode
-                if cols_with_real_change:
-                    current_blocks = len(result._mgr.blocks)
-                    total_cols = len(self.columns)
-
-                    if hasattr(self, "_mgr"):
-                        original_blocks = len(self._mgr.blocks)
-                        if current_blocks > original_blocks * 10:
-                            result._mgr._consolidate_inplace()
-                    else:
-                        if current_blocks > total_cols * 0.3:
-                            result._mgr._consolidate_inplace()
             except Exception as e:
                 import warnings
 
                 warnings.warn(
-                    f"astype block consolidation failed: {e}", UserWarning, stacklevel=2
+                    f"astype block consolidation failed: {type(e).__name__}",
+                    UserWarning,
+                    stacklevel=2,
                 )
         # https://github.com/python/mypy/issues/8354
         return cast(Self, result)
