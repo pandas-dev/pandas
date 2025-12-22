@@ -12,10 +12,9 @@ import pandas._testing as tm
 class TestVortex:
     """Tests for Vortex I/O operations."""
 
-    @pytest.mark.parametrize("engine", ["vortex"])
-    def test_basic_roundtrip(self, tmp_path, engine):
+    def test_basic_roundtrip(self, tmp_path):
         """Test basic write and read roundtrip."""
-        pytest.importorskip(engine)
+        pytest.importorskip("vortex")
         from pandas import read_vortex
 
         df = DataFrame({
@@ -30,10 +29,9 @@ class TestVortex:
 
         tm.assert_frame_equal(df, result)
 
-    @pytest.mark.parametrize("engine", ["vortex"])
-    def test_read_column_subset(self, tmp_path, engine):
+    def test_read_column_subset(self, tmp_path):
         """Test reading only a subset of columns."""
-        pytest.importorskip(engine)
+        pytest.importorskip("vortex")
         from pandas import read_vortex
 
         df = DataFrame({
@@ -49,10 +47,9 @@ class TestVortex:
         expected = df[["a", "c"]]
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("engine", ["vortex"])
-    def test_empty_dataframe(self, tmp_path, engine):
+    def test_empty_dataframe(self, tmp_path):
         """Test reading and writing an empty DataFrame."""
-        pytest.importorskip(engine)
+        pytest.importorskip("vortex")
         from pandas import read_vortex
 
         df = DataFrame({"a": [], "b": []})
@@ -63,10 +60,9 @@ class TestVortex:
 
         tm.assert_frame_equal(df, result)
 
-    @pytest.mark.parametrize("engine", ["vortex"])
-    def test_various_dtypes(self, tmp_path, engine):
+    def test_various_dtypes(self, tmp_path):
         """Test DataFrame with various data types."""
-        pytest.importorskip(engine)
+        pytest.importorskip("vortex")
         from pandas import read_vortex
 
         df = DataFrame({
@@ -82,10 +78,9 @@ class TestVortex:
 
         tm.assert_frame_equal(df, result)
 
-    @pytest.mark.parametrize("engine", ["vortex"])
-    def test_with_index(self, tmp_path, engine):
+    def test_with_index(self, tmp_path):
         """Test DataFrame with custom index is preserved as column."""
-        pytest.importorskip(engine)
+        pytest.importorskip("vortex")
         from pandas import read_vortex
 
         df = DataFrame(

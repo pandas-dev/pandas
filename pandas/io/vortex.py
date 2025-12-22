@@ -3,14 +3,12 @@ Vortex format support for pandas.
 """
 from __future__ import annotations
 
-from typing import (
-    TYPE_CHECKING,
-    Any,
-)
-
-from pandas.compat._optional import import_optional_dependency
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+    from typing import Any
+
     from pandas import DataFrame
     from pandas._typing import (
         FilePath,
@@ -22,7 +20,7 @@ if TYPE_CHECKING:
 
 def read_vortex(
     path: FilePath | ReadBuffer[bytes],
-    columns: list[str] | None = None,
+    columns: Sequence[str] | None = None,
     storage_options: StorageOptions | None = None,
     **kwargs: Any,
 ) -> DataFrame:
@@ -33,7 +31,7 @@ def read_vortex(
     ----------
     path : str, path object, or file-like object
         String or path object (implementing ``os.PathLike[str]``).
-        The string could be a URL. Valid URL schemes include http, ftp, s3, 
+        The string could be a URL. Valid URL schemes include http, ftp, s3,
         gs, and file.
     columns : list, optional
         If not None, only these columns will be read from the file.
@@ -68,12 +66,16 @@ def read_vortex(
     ...     columns=["col1", "col2"]
     ... )  # doctest: +SKIP
     """
+    # Import inside function to avoid import errors when vortex is not installed
+    from pandas.compat._optional import import_optional_dependency
+
     vortex = import_optional_dependency(
         "vortex", extra="vortex is required for Vortex support."
     )
 
     # Convert Path object to string if necessary
     from pathlib import Path
+
     if isinstance(path, Path):
         path = str(path)
 
@@ -100,7 +102,8 @@ def read_vortex(
             arrow_table = pa.Table.from_batches([arrow_obj])
     else:
         raise ValueError(
-            " vortex is properly installed."
+            "Unable to convert Vortex result to Arrow format. "
+            "Please ensure vortex is properly installed."
         )
 
     # Convert Arrow Table to pandas DataFrame
@@ -148,6 +151,9 @@ def to_vortex(
     >>> df = pd.DataFrame({"A": [1, 2, 3], "B": ["x", "y", "z"]})
     >>> df.to_vortex("output.vortex")  # doctest: +SKIP
     """
+    # Import inside function to avoid import errors when vortex is not installed
+    from pandas.compat._optional import import_optional_dependency
+
     vortex = import_optional_dependency(
         "vortex", extra="vortex is required for Vortex support."
     )
@@ -157,6 +163,7 @@ def to_vortex(
 
     # Convert Path object to string if necessary
     from pathlib import Path
+
     if isinstance(path, Path):
         path = str(path)
 
