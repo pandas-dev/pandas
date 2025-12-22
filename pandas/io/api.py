@@ -62,5 +62,6 @@ __all__ = [
     "read_stata",
     "read_table",
     "read_xml",
+    "read_vortex",
     "to_pickle",
 ]
