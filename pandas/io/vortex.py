@@ -27,86 +27,54 @@ def read_vortex(
     """
     Load a Vortex file from the file path, returning a DataFrame.
 
+    .. versionadded:: 3.0.0
+
     Parameters
     ----------
     path : str, path object, or file-like object
         String or path object (implementing ``os.PathLike[str]``).
-        The string could be a URL. Valid URL schemes include http, ftp, s3,
-        gs, and file.
     columns : list, optional
         If not None, only these columns will be read from the file.
     storage_options : dict, optional
-        Extra options that make sense for a particular storage connection, e.g.
-        host, port, username, password, etc. Currently not supported for Vortex.
-
-        .. versionadded:: 3.0.0
+        Extra options that make sense for a particular storage connection.
+        Currently not supported for Vortex.
     **kwargs
         Any additional kwargs are passed to ``vortex.open`` and ``scan``.
 
     Returns
     -------
     DataFrame
-        DataFrame containing the data from the Vortex file.
 
     See Also
     --------
     DataFrame.to_vortex : Write a DataFrame to the Vortex format.
-    read_parquet : Read a Parquet file.
-    read_feather : Read a Feather file.
-    read_orc : Read an ORC file.
 
     Examples
     --------
     >>> df = pd.read_vortex("path/to/file.vortex")  # doctest: +SKIP
-
-    Read only certain columns:
-
-    >>> df = pd.read_vortex(
-    ...     "path/to/file.vortex",
-    ...     columns=["col1", "col2"]
-    ... )  # doctest: +SKIP
     """
-    # Import inside function to avoid import errors when vortex is not installed
     from pandas.compat._optional import import_optional_dependency
 
-    vortex = import_optional_dependency(
-        "vortex", extra="vortex is required for Vortex support."
-    )
-
-    # Convert Path object to string if necessary
+    vortex = import_optional_dependency("vortex", extra="vortex is required.")
     from pathlib import Path
 
     if isinstance(path, Path):
         path = str(path)
 
-    # Open the Vortex file
     v_file = vortex.open(path)
-
-    # Perform scan with optional column projection
     scan = v_file.scan(projection=columns, **kwargs)
-
-    # Read all data and convert to Arrow format
     result_array = scan.read_all()
 
-    # Convert Vortex result to Arrow Table
     if hasattr(result_array, "to_arrow_table"):
         arrow_table = result_array.to_arrow_table()
     elif hasattr(result_array, "to_arrow"):
-        arrow_obj = result_array.to_arrow()
         import pyarrow as pa
 
-        if isinstance(arrow_obj, pa.Table):
-            arrow_table = arrow_obj
-        else:
-            # Construct Table from batches if needed
-            arrow_table = pa.Table.from_batches([arrow_obj])
+        arrow_obj = result_array.to_arrow()
+        arrow_table = arrow_obj if isinstance(arrow_obj, pa.Table) else pa.Table.from_batches([arrow_obj])
     else:
-        raise ValueError(
-            "Unable to convert Vortex result to Arrow format. "
-            "Please ensure vortex is properly installed."
-        )
+        raise ValueError("Unable to convert Vortex result to Arrow format.")
 
-    # Convert Arrow Table to pandas DataFrame
     return arrow_table.to_pandas()
 
 
@@ -120,58 +88,34 @@ def to_vortex(
     """
     Write a DataFrame to the Vortex binary format.
 
+    .. versionadded:: 3.0.0
+
     Parameters
     ----------
     df : DataFrame
-        The DataFrame to write.
     path : str or path object
-        String or path object (implementing ``os.PathLike[str]``).
     storage_options : dict, optional
-        Extra options that make sense for a particular storage connection, e.g.
-        host, port, username, password, etc. Currently not supported for Vortex.
-
-        .. versionadded:: 3.0.0
+        Currently not supported for Vortex.
     **kwargs
         Additional arguments passed to ``vortex.io.write``.
 
     See Also
     --------
     read_vortex : Read a Vortex file.
-    DataFrame.to_parquet : Write a DataFrame to the Parquet format.
-    DataFrame.to_feather : Write a DataFrame to the Feather format.
-    DataFrame.to_orc : Write a DataFrame to the ORC format.
-
-    Notes
-    -----
-    This function writes the DataFrame to the Vortex columnar storage format,
-    which is optimized for analytical workloads.
 
     Examples
     --------
-    >>> df = pd.DataFrame({"A": [1, 2, 3], "B": ["x", "y", "z"]})
     >>> df.to_vortex("output.vortex")  # doctest: +SKIP
     """
-    # Import inside function to avoid import errors when vortex is not installed
     from pandas.compat._optional import import_optional_dependency
 
-    vortex = import_optional_dependency(
-        "vortex", extra="vortex is required for Vortex support."
-    )
-    pa = import_optional_dependency(
-        "pyarrow", extra="pyarrow is required for Vortex support."
-    )
-
-    # Convert Path object to string if necessary
+    vortex = import_optional_dependency("vortex", extra="vortex is required.")
+    pa = import_optional_dependency("pyarrow", extra="pyarrow is required.")
     from pathlib import Path
 
     if isinstance(path, Path):
         path = str(path)
 
-    # Convert DataFrame to Arrow Table
     table = pa.Table.from_pandas(df)
-
-    # Convert Arrow Table to Vortex Array
     v_array = vortex.array(table)
-
-    # Write to file
     vortex.io.write(v_array, path, **kwargs)
