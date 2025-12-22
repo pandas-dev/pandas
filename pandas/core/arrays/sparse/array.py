@@ -961,7 +961,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 counts = np.insert(counts, 0, fcounts)
 
         if not isinstance(keys, ABCIndex):
-            index = Index(keys)
+            index = Index(keys, copy=False)
         else:
             index = keys
         return Series(counts, index=index, copy=False)

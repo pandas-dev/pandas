@@ -2097,8 +2097,8 @@ def get_join_indexers(
         lkey = left_keys[0]
         rkey = right_keys[0]
 
-    left = Index(lkey)
-    right = Index(rkey)
+    left = Index(lkey, copy=False)
+    right = Index(rkey, copy=False)
 
     if (
         left.is_monotonic_increasing
@@ -2529,7 +2529,7 @@ class _AsOfMerge(_OrderedMerge):
         self, values: AnyArrayLike, side: str
     ) -> np.ndarray:
         # we require sortedness and non-null values in the join keys
-        if not Index(values).is_monotonic_increasing:
+        if not Index(values, copy=False).is_monotonic_increasing:
             if isna(values).any():
                 raise ValueError(f"Merge keys contain null values on {side} side")
             raise ValueError(f"{side} keys must be sorted")

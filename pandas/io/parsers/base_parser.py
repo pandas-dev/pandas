@@ -377,7 +377,7 @@ class ParserBase:
             )
             if cast_type is not None:
                 # Don't perform RangeIndex inference
-                idx = Index(arr, name=name, dtype=cast_type)
+                idx = Index(arr, name=name, dtype=cast_type, copy=False)
             else:
                 idx = ensure_index_from_sequences([arr], [name])
             arrays.append(idx)

@@ -490,7 +490,7 @@ def _unstack_multiple(
 
     if not rlocs:
         # Everything is in clocs, so the dummy df has a regular index
-        dummy_index = Index(obs_ids, name="__placeholder__")
+        dummy_index = Index(obs_ids, name="__placeholder__", copy=False)
     else:
         dummy_index = MultiIndex(
             levels=rlevels + [obs_ids],

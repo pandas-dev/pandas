@@ -1330,7 +1330,9 @@ class TestStata:
             if isinstance(ser.dtype, CategoricalDtype):
                 cat = ser._values.remove_unused_categories()
                 if cat.categories.dtype == object:
-                    categories = pd.Index._with_infer(cat.categories._values)
+                    categories = pd.Index._with_infer(
+                        cat.categories._values, copy=False
+                    )
                     cat = cat.set_categories(categories)
                 elif cat.categories.dtype == "string" and len(cat.categories) == 0:
                     # if the read categories are empty, it comes back as object dtype

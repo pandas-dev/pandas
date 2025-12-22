@@ -323,7 +323,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                     dtype='str')
         """
         arr = self._data.strftime(date_format)
-        return Index(arr, name=self.name, dtype=arr.dtype)
+        return Index(arr, name=self.name, dtype=arr.dtype, copy=False)
 
     def tz_convert(self, tz) -> Self:
         """

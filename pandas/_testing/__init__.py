@@ -290,7 +290,7 @@ def box_expected(expected, box_cls, transpose: bool = True):
         else:
             expected = pd.array(expected, copy=False)
     elif box_cls is Index:
-        expected = Index(expected)
+        expected = Index(expected, copy=False)
     elif box_cls is Series:
         expected = Series(expected)
     elif box_cls is DataFrame:

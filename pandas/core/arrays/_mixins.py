@@ -496,7 +496,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         result = value_counts(values, sort=False, dropna=dropna)
 
         index_arr = self._from_backing_data(np.asarray(result.index._data))
-        index = Index(index_arr, name=result.index.name)
+        index = Index(index_arr, name=result.index.name, copy=False)
         return Series(result._values, index=index, name=result.name, copy=False)
 
     def _quantile(

@@ -1505,7 +1505,9 @@ class MultiIndex(Index):
 
         if len(new_levels) == 1:
             # a single-level multi-index
-            return Index(new_levels[0].take(new_codes[0]))._get_values_for_csv()
+            return Index(
+                new_levels[0].take(new_codes[0]), copy=False
+            )._get_values_for_csv()
         else:
             # reconstruct the multi-index
             mi = MultiIndex(
@@ -1732,10 +1734,10 @@ class MultiIndex(Index):
             # int, float, complex, str, bytes, _NestedSequence[Union
             # [bool, int, float, complex, str, bytes]]]"
             sort_order = np.lexsort(values)  # type: ignore[arg-type]
-            return Index(sort_order).is_monotonic_increasing
+            return Index(sort_order, copy=False).is_monotonic_increasing
         except TypeError:
             # we have mixed types and np.lexsort is not happy
-            return Index(self._values).is_monotonic_increasing
+            return Index(self._values, copy=False).is_monotonic_increasing
 
     @cache_readonly
     def is_monotonic_decreasing(self) -> bool:
@@ -1996,7 +1998,7 @@ class MultiIndex(Index):
                ('bar', 'baz'), ('bar', 'qux')],
               dtype='object')
         """
-        return Index(self._values, tupleize_cols=False)
+        return Index(self._values, tupleize_cols=False, copy=False)
 
     def _is_lexsorted(self) -> bool:
         """
@@ -2448,7 +2450,7 @@ class MultiIndex(Index):
             # setting names to None automatically
             return MultiIndex.from_tuples(new_tuples)
         except (TypeError, IndexError):
-            return Index(new_tuples)
+            return Index(new_tuples, copy=False)
 
     def argsort(
         self, *args, na_position: NaPosition = "last", **kwargs
@@ -3077,7 +3079,7 @@ class MultiIndex(Index):
         lev = self.levels[0]
         codes = self._codes[0]
         cat = Categorical.from_codes(codes=codes, categories=lev, validate=False)
-        ci = Index(cat)
+        ci = Index(cat, copy=False)
         return ci.get_indexer_for(target)
 
     def get_slice_bound(
