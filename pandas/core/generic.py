@@ -6511,6 +6511,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         result = self._constructor(result)  # type: ignore[assignment]
         result.columns = self.columns
         result = result.__finalize__(self, method="astype")
+        if isinstance(dtype, dict):
+            try:
+                result._mgr._consolidate_inplace()
+            except Exception as e:
+                import warnings
+
+                warnings.warn(
+                    f"astype block consolidation failed: {e}", UserWarning, stacklevel=2
+                )
         # https://github.com/python/mypy/issues/8354
         return cast(Self, result)
 
