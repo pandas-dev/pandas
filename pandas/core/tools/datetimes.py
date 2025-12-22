@@ -26,11 +26,11 @@ from pandas._libs.tslibs import (
     Timedelta,
     Timestamp,
     astype_overflowsafe,
+    get_supported_dtype,
     is_supported_dtype,
     timezones as libtimezones,
 )
 from pandas._libs.tslibs.conversion import cast_from_unit_vectorized
-from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 from pandas._libs.tslibs.parsing import (
     DateParseError,
     guess_datetime_format,
@@ -503,8 +503,9 @@ def _to_datetime_with_unit(arg, unit, name, utc: bool, errors: str) -> Index:
             # Note we can't do "f" here because that could induce unwanted
             #  rounding GH#14156, GH#20445
             arr = arg.astype(f"datetime64[{unit}]", copy=False)
+            dtype = get_supported_dtype(arr.dtype)
             try:
-                arr = astype_overflowsafe(arr, np.dtype("M8[ns]"), copy=False)
+                arr = astype_overflowsafe(arr, dtype, copy=False)
             except OutOfBoundsDatetime:
                 if errors == "raise":
                     raise
@@ -534,7 +535,6 @@ def _to_datetime_with_unit(arg, unit, name, utc: bool, errors: str) -> Index:
                 utc=utc,
                 errors=errors,
                 unit_for_numerics=unit,
-                creso=cast(int, NpyDatetimeUnit.NPY_FR_ns.value),
             )
 
     result = DatetimeIndex(arr, name=name)
@@ -904,7 +904,7 @@ def to_datetime(
 
     >>> pd.to_datetime([1, 2, 3], unit="D", origin=pd.Timestamp("1960-01-01"))
     DatetimeIndex(['1960-01-02', '1960-01-03', '1960-01-04'],
-                  dtype='datetime64[ns]', freq=None)
+                  dtype='datetime64[s]', freq=None)
 
     **Differences with strptime behavior**
 
