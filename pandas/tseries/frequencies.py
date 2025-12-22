@@ -171,7 +171,7 @@ def infer_freq(
         )
 
     if not isinstance(index, DatetimeIndex):
-        index = DatetimeIndex(index)
+        index = DatetimeIndex(index, copy=False)
 
     inferer = _FrequencyInferer(index)
     return inferer.get_freq()
