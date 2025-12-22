@@ -4829,6 +4829,64 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2       3       5
         3       4       6
         """
+
+    @final
+    def remove_prefix(self, prefix: str) -> Self:
+        """
+        Remove a prefix from labels.
+
+        For Series, the row labels are processed.
+        For DataFrame, the column labels are processed.
+
+        Parameters
+        ----------
+        prefix : str
+            The string to remove from the start of each label.
+
+        Returns
+        -------
+        Series or DataFrame
+            New Series or DataFrame with updated labels.
+
+        See Also
+        --------
+        add_prefix : Add a prefix to labels.
+        """
+        f = lambda x: str(x).removeprefix(prefix)
+
+        if self.ndim == 1:
+            return self.rename(index=f)
+        else:
+            return self.rename(columns=f)
+
+    @final
+    def remove_suffix(self, suffix: str) -> Self:
+        """
+        Remove a suffix from labels.
+
+        For Series, the row labels are processed.
+        For DataFrame, the column labels are processed.
+
+        Parameters
+        ----------
+        suffix : str
+            The string to remove from the end of each label.
+
+        Returns
+        -------
+        Series or DataFrame
+            New Series or DataFrame with updated labels.
+
+        See Also
+        --------
+        add_suffix : Add a suffix to labels.
+        """
+        f = lambda x: str(x).removesuffix(suffix)
+
+        if self.ndim == 1:
+            return self.rename(index=f)
+        else:
+            return self.rename(columns=f)
         f = lambda x: f"{x}{suffix}"
 
         axis_name = self._info_axis_name
