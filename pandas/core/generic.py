@@ -3954,9 +3954,58 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             storage_options=storage_options,
         )
 
+    @final
+    def to_vortex(
+        self,
+        path: FilePath | WriteBuffer[bytes],
+        *,
+        storage_options: StorageOptions | None = None,
+        **kwargs,
+    ) -> None:
+        """
+        Write object to the Vortex binary format.
+
+        Parameters
+        ----------
+        path : str, path object, or file-like object
+            String, path object (implementing ``os.PathLike[str]``), or file-like
+            object implementing a binary ``write()`` function.
+        storage_options : dict, optional
+            Extra options that make sense for a particular storage connection, e.g.
+            host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
+            are forwarded to ``urllib.request.Request`` as header options. For other
+            URLs (e.g. starting with "s3://", and "gcs://") the key-value pairs are
+            forwarded to ``fsspec``. Please see ``fsspec`` and ``urllib`` for more
+            details.
+
+            .. versionadded:: 3.0.0
+        **kwargs
+            Additional arguments passed to :func:`pandas.io.vortex.to_vortex`.
+
+        See Also
+        --------
+        read_vortex : Read a Vortex file.
+        DataFrame.to_parquet : Write a DataFrame to the Parquet format.
+        DataFrame.to_feather : Write a DataFrame to the Feather format.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({"A": [1, 2, 3], "B": ["x", "y", "z"]})
+        >>> df.to_vortex("output.vortex")  # doctest: +SKIP
+        """
+        from pandas.io.vortex import to_vortex
+
+        return to_vortex(
+            self,
+            path,
+            storage_options=storage_options,
+            **kwargs,
+        )
+
     # ----------------------------------------------------------------------
     # Indexing Methods
 
+        
     @final
     def take(self, indices, axis: Axis = 0, **kwargs) -> Self:
         """

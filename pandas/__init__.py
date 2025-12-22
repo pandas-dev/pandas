@@ -167,6 +167,7 @@ from pandas.io.api import (
     read_sas,
     read_spss,
     read_iceberg,
+    read_vortex,
 )
 
 from pandas.io.json._normalize import json_normalize
@@ -335,6 +336,7 @@ __all__ = [
     "read_sql_table",
     "read_stata",
     "read_table",
+    "read_vortex",
     "read_xml",
     "reset_option",
     "set_eng_float_format",
