@@ -409,6 +409,8 @@ In cases with mixed-resolution inputs, the highest resolution is used:
 
 Similarly, the :class:`Timedelta` constructor and :func:`to_timedelta` with a string input now defaults to a microsecond unit, using nanosecond unit only in cases that actually have nanosecond precision.
 
+Moreover, passing an integer to the :class:`Timedelta` constructor or :func:`to_timedelta` along with a ``unit`` will now return an object with that unit when possible, or the closest-supported unit for non-supported units ("W", "D", "h", "m").
+
 .. _whatsnew_300.api_breaking.concat_datetime_sorting:
 
 :func:`concat` no longer ignores ``sort`` when all objects have a :class:`DatetimeIndex`
