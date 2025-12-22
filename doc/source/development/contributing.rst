@@ -19,7 +19,7 @@ Bug reports and enhancement requests
 ====================================
 
 Bug reports and enhancement requests are an important part of making pandas more stable and
-are curated though Github issues. When reporting an issue or request, please select the `appropriate
+are curated through Github issues. When reporting an issue or request, please select the `appropriate
 category and fill out the issue form fully <https://github.com/pandas-dev/pandas/issues/new/choose>`_
 to ensure others and the core development team can fully understand the scope of the issue.
 
@@ -38,12 +38,12 @@ are typically good for newer contributors.
 
 Once you've found an interesting issue, leave a comment with your intention
 to start working on it. If somebody else has
-already commented on issue but they have shown a lack of activity in the issue
+already commented on the issue but they have shown a lack of activity in the issue
 or a pull request in the past 2-3 weeks, you may take it over.
 
 If for whatever reason you are not able to continue working with the issue, please
 leave a comment on an issue, so other people know it's available again. You can check the list of
-assigned issues, since people may not be working in them anymore.
+assigned issues, since people may not be working on them anymore.
 
 We have several :ref:`contributor community <community>` communication channels, which you are
 welcome to join, and ask questions as you figure things out. Among them are regular meetings for
@@ -218,12 +218,12 @@ happen, a pull request needs to be submitted on GitHub.
 Making a pull request
 ---------------------
 
-One you have finished your code changes, your code change will need to follow the
+Once you have finished your code changes, your code change will need to follow the
 :ref:`pandas contribution guidelines <contributing_codebase>` to be successfully accepted.
 
 If everything looks good, you are ready to make a pull request. A pull request is how
 code from your local repository becomes available to the GitHub community to review
-and merged into project to appear the in the next release. To submit a pull request:
+and merged into the project to appear in the next release. To submit a pull request:
 
 #. Navigate to your repository on GitHub
 #. Click on the ``Compare & pull request`` button
@@ -284,7 +284,7 @@ Once the conflicts are resolved, run:
     `stash docs <https://git-scm.com/book/en/v2/Git-Tools-Stashing-and-Cleaning>`__).
     This will effectively store your changes and they can be reapplied after updating.
 
-After the feature branch has been update locally, you can now update your pull
+After the feature branch has been updated locally, you can now update your pull
 request by pushing to the branch on GitHub:
 
 .. code-block:: shell
