@@ -1100,7 +1100,7 @@ def read_xml(
     >>> df = pd.read_xml(
     ...     StringIO(xml),
     ...     xpath="//doc:row",
-    ...     namespaces={{"doc": "https://example.com"}},
+    ...     namespaces={"doc": "https://example.com"},
     ... )
     >>> df
           shape  degrees  sides
