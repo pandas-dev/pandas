@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import decimal
 import operator
-from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
     Literal,
@@ -35,10 +34,7 @@ from pandas._typing import (
     TakeIndexer,
     npt,
 )
-from pandas.util._decorators import (
-    doc,
-    set_module,
-)
+from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
@@ -654,28 +650,6 @@ def factorize_array(
 
 
 @set_module("pandas")
-@doc(
-    values=dedent(
-        """\
-    values : sequence
-        A 1-D sequence. Sequences that aren't pandas objects are
-        coerced to ndarrays before factorization.
-    """
-    ),
-    sort=dedent(
-        """\
-    sort : bool, default False
-        Sort `uniques` and shuffle `codes` to maintain the
-        relationship.
-    """
-    ),
-    size_hint=dedent(
-        """\
-    size_hint : int, optional
-        Hint to the hashtable sizer.
-    """
-    ),
-)
 def factorize(
     values,
     sort: bool = False,
@@ -692,12 +666,18 @@ def factorize(
 
     Parameters
     ----------
-    {values}{sort}
+    values : sequence
+        A 1-D sequence. Sequences that aren't pandas objects are
+        coerced to ndarrays before factorization.
+    sort : bool, default False
+        Sort `uniques` and shuffle `codes` to maintain the
+        relationship.
     use_na_sentinel : bool, default True
         If True, the sentinel -1 will be used for NaN values. If False,
         NaN values will be encoded as non-negative integers and will not drop the
         NaN from the uniques of the values.
-    {size_hint}\
+    size_hint : int, optional
+        Hint to the hashtable sizer.
 
     Returns
     -------
@@ -729,7 +709,7 @@ def factorize(
     ``pd.factorize(values)``. The results are identical for methods like
     :meth:`Series.factorize`.
 
-    >>> codes, uniques = pd.factorize(np.array(['b', 'b', 'a', 'c', 'b'], dtype="O"))
+    >>> codes, uniques = pd.factorize(np.array(["b", "b", "a", "c", "b"], dtype="O"))
     >>> codes
     array([0, 0, 1, 2, 0])
     >>> uniques
@@ -738,8 +718,9 @@ def factorize(
     With ``sort=True``, the `uniques` will be sorted, and `codes` will be
     shuffled so that the relationship is the maintained.
 
-    >>> codes, uniques = pd.factorize(np.array(['b', 'b', 'a', 'c', 'b'], dtype="O"),
-    ...                               sort=True)
+    >>> codes, uniques = pd.factorize(
+    ...     np.array(["b", "b", "a", "c", "b"], dtype="O"), sort=True
+    ... )
     >>> codes
     array([1, 1, 0, 2, 1])
     >>> uniques
@@ -749,7 +730,7 @@ def factorize(
     the `codes` with the sentinel value ``-1`` and missing values are not
     included in `uniques`.
 
-    >>> codes, uniques = pd.factorize(np.array(['b', None, 'a', 'c', 'b'], dtype="O"))
+    >>> codes, uniques = pd.factorize(np.array(["b", None, "a", "c", "b"], dtype="O"))
     >>> codes
     array([ 0, -1,  1,  2,  0])
     >>> uniques
@@ -759,7 +740,7 @@ def factorize(
     NumPy arrays). When factorizing pandas objects, the type of `uniques`
     will differ. For Categoricals, a `Categorical` is returned.
 
-    >>> cat = pd.Categorical(['a', 'a', 'c'], categories=['a', 'b', 'c'])
+    >>> cat = pd.Categorical(["a", "a", "c"], categories=["a", "b", "c"])
     >>> codes, uniques = pd.factorize(cat)
     >>> codes
     array([0, 0, 1])
@@ -773,7 +754,7 @@ def factorize(
     For all other pandas objects, an Index of the appropriate type is
     returned.
 
-    >>> cat = pd.Series(['a', 'a', 'c'])
+    >>> cat = pd.Series(["a", "a", "c"])
     >>> codes, uniques = pd.factorize(cat)
     >>> codes
     array([0, 0, 1])
