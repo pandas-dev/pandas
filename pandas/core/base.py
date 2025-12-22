@@ -1311,8 +1311,8 @@ class IndexOpsMixin(OpsMixin):
 
             .. note::
 
-            Even if there's a missing value in `values`, `uniques` will
-            *not* contain an entry for it.
+                Even if there's a missing value in `values`, `uniques` will
+                *not* contain an entry for it.
 
         See Also
         --------
