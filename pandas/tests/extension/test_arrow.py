@@ -3081,6 +3081,39 @@ def test_dt_components_large_values():
     tm.assert_frame_equal(result, expected)
 
 
+def test_dt_day_remainder_cache_invalidation():
+    # Test that _dt_day_remainder cache is invalidated after __setitem__
+    ser = pd.Series(
+        [pd.Timedelta("1 days 1:02:03"), pd.Timedelta("2 days 4:05:06")],
+        dtype=ArrowDtype(pa.duration("ns")),
+    )
+    arr = ser.array
+
+    # Access to cache the day remainder and verify initial values
+    result_before = pd.Series(arr._dt_seconds, dtype="int32[pyarrow]")
+    expected_before = pd.Series(
+        [1 * 3600 + 2 * 60 + 3, 4 * 3600 + 5 * 60 + 6], dtype="int32[pyarrow]"
+    )
+    tm.assert_series_equal(result_before, expected_before)
+    assert "_dt_day_remainder" in arr.__dict__
+
+    # Modify the array
+    arr[0] = pd.Timedelta("3 days 7:08:09")
+
+    # Cache should be invalidated
+    assert "_dt_day_remainder" not in arr.__dict__
+
+    # Accessing again should give correct (recomputed) values, not stale cached values
+    result_after = pd.Series(arr._dt_seconds, dtype="int32[pyarrow]")
+    expected_after = pd.Series(
+        [7 * 3600 + 8 * 60 + 9, 4 * 3600 + 5 * 60 + 6], dtype="int32[pyarrow]"
+    )
+    tm.assert_series_equal(result_after, expected_after)
+
+    # Verify the first value actually changed (not returning stale cache)
+    assert result_after.iloc[0] != result_before.iloc[0]
+
+
 @pytest.mark.parametrize("skipna", [True, False])
 def test_boolean_reduce_series_all_null(all_boolean_reductions, skipna):
     # GH51624

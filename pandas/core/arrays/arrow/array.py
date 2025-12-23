@@ -2265,6 +2265,8 @@ class ArrowExtensionArray(
         if isinstance(data, pa.Array):
             data = pa.chunked_array([data])
         self._pa_array = data
+        # Invalidate any cached properties that depend on _pa_array
+        self.__dict__.pop("_dt_day_remainder", None)
 
     def _rank_calc(
         self,
@@ -2905,12 +2907,15 @@ class ArrowExtensionArray(
         arr = self._pa_array.cast(pa.int64())
         return self._dt_floor_div_int64(arr, divisor)
 
+    @functools.cached_property
     def _dt_day_remainder(self) -> pa.Array:
         """
         Return the remainder after removing full days, always non-negative.
 
         For negative durations like -22h 57m 57s (= -1 day + 1h 2m 3s),
         this returns the positive offset from the day boundary.
+
+        This is cached because it's used by all sub-day component accessors.
         """
         unit = self._pa_array.type.unit
         divisor = self._DURATION_DIVISORS["day"][unit]
@@ -2936,7 +2941,7 @@ class ArrowExtensionArray(
                     pa.scalar(0, type=pa.int32()),
                 )
             )
-        remainder = self._dt_day_remainder()
+        remainder = self._dt_day_remainder
         # Integer division is fine here since remainder is non-negative
         result = pc.divide(remainder, divisors[unit])
         # result % modulo (PyArrow lacks a modulo kernel, so we use div/mul/sub)
@@ -2972,7 +2977,7 @@ class ArrowExtensionArray(
                     pa.scalar(0, type=pa.int32()),
                 )
             )
-        remainder = self._dt_day_remainder()
+        remainder = self._dt_day_remainder
         # Convert remainder to seconds (no modulo - we want total sub-day seconds)
         result = pc.divide(remainder, divisors["second"][unit])
         return self._from_pyarrow_array(result.cast(pa.int32()))
@@ -2995,7 +3000,7 @@ class ArrowExtensionArray(
                     pa.scalar(0, type=pa.int32()),
                 )
             )
-        remainder = self._dt_day_remainder()
+        remainder = self._dt_day_remainder
         # Get sub-second portion: remainder % (divisor for 1 second)
         second_divisor = divisors["second"][unit]
         second_quotient = pc.divide(remainder, second_divisor)
