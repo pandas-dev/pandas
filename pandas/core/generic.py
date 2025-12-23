@@ -6376,6 +6376,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             timezone-aware dtype will raise an exception.
             Use :meth:`Series.dt.tz_localize` instead.
 
+            Using ``astype`` with a dtype dictionary may be slow when
+            type safety is already ensured.
+            Use :meth:`pandas.DataFrame.assign` instead.
+
         Examples
         --------
         Create a DataFrame:
