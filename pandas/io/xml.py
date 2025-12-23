@@ -963,8 +963,6 @@ def read_xml(
         decompression using a custom compression dictionary:
         ``compression={'method': 'zstd', 'dict_data': my_compression_dict}``.
 
-        .. versionadded:: 1.5.0
-            Added support for `.tar` files.
 
     storage_options : dict, optional
         Extra options that make sense for a particular storage connection,
