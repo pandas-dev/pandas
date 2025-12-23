@@ -149,16 +149,7 @@ def forbid_nonstring_types(
     return _forbid_nonstring_types
 
 
-def _map_and_wrap(name: str | None, docstring: str | None):
-    @forbid_nonstring_types(["bytes"], name=name)
-    def wrapper(self):
-        result = getattr(self._data.array, f"_str_{name}")()
-        return self._wrap_result(
-            result, returns_string=name not in ("isnumeric", "isdecimal")
-        )
 
-    wrapper.__doc__ = docstring
-    return wrapper
 
 
 class StringMethods(NoNewAttributesMixin):
@@ -3471,14 +3462,7 @@ class StringMethods(NoNewAttributesMixin):
         result = self._data.array._str_len()
         return self._wrap_result(result, returns_string=False)
 
-    # Types:
-    #   cases:
-    #       upper, lower, title, capitalize, swapcase, casefold
-    #   boolean:
-    #     isalpha, isnumeric isalnum isdigit isdecimal isspace islower
-    #     isupper istitle isascii
-    # _doc_args holds dict of strings to use in substituting casemethod docs
-    _doc_args: dict[str, dict[str, str]] = {}
+
 
     @forbid_nonstring_types(["bytes"])
     def lower(self):
@@ -3912,373 +3896,462 @@ class StringMethods(NoNewAttributesMixin):
         result = self._data.array._str_casefold()
         return self._wrap_result(result)
 
-    _shared_docs["ismethods"] = """
-    Check whether all characters in each string are %(type)s.
+    @forbid_nonstring_types(["bytes"])
+    def isalnum(self):
+        """
+        Check whether all characters in each string are alphanumeric.
 
-    This is equivalent to running the Python string method
-    :meth:`str.%(method)s` for each element of the Series/Index. If a string
-    has zero characters, ``False`` is returned for that check.
+        This is equivalent to running the Python string method
+        :meth:`str.isalnum` for each element of the Series/Index. If a string
+        has zero characters, ``False`` is returned for that check.
 
-    Returns
-    -------
-    Series or Index of bool
-        Series or Index of boolean values with the same length as the original
-        Series/Index.
-    """
-    _shared_docs["isalpha"] = """
-    See Also
-    --------
-    Series.str.isnumeric : Check whether all characters are numeric.
-    Series.str.isalnum : Check whether all characters are alphanumeric.
-    Series.str.isdigit : Check whether all characters are digits.
-    Series.str.isdecimal : Check whether all characters are decimal.
-    Series.str.isspace : Check whether all characters are whitespace.
-    Series.str.islower : Check whether all characters are lowercase.
-    Series.str.isascii : Check whether all characters are ascii.
-    Series.str.isupper : Check whether all characters are uppercase.
-    Series.str.istitle : Check whether all characters are titlecase.
+        Returns
+        -------
+        Series or Index of bool
+            Series or Index of boolean values with the same length as the original
+            Series/Index.
 
-    Examples
-    --------
+        See Also
+        --------
+        Series.str.isalpha : Check whether all characters are alphabetic.
+        Series.str.isnumeric : Check whether all characters are numeric.
+        Series.str.isdigit : Check whether all characters are digits.
+        Series.str.isdecimal : Check whether all characters are decimal.
+        Series.str.isspace : Check whether all characters are whitespace.
+        Series.str.islower : Check whether all characters are lowercase.
+        Series.str.isascii : Check whether all characters are ascii.
+        Series.str.isupper : Check whether all characters are uppercase.
+        Series.str.istitle : Check whether all characters are titlecase.
 
-    >>> s1 = pd.Series(['one', 'one1', '1', ''])
-    >>> s1.str.isalpha()
-    0     True
-    1    False
-    2    False
-    3    False
-    dtype: bool
-    """
-    _shared_docs["isnumeric"] = """
-    See Also
-    --------
-    Series.str.isalpha : Check whether all characters are alphabetic.
-    Series.str.isalnum : Check whether all characters are alphanumeric.
-    Series.str.isdigit : Check whether all characters are digits.
-    Series.str.isdecimal : Check whether all characters are decimal.
-    Series.str.isspace : Check whether all characters are whitespace.
-    Series.str.islower : Check whether all characters are lowercase.
-    Series.str.isascii : Check whether all characters are ascii.
-    Series.str.isupper : Check whether all characters are uppercase.
-    Series.str.istitle : Check whether all characters are titlecase.
+        Examples
+        --------
+        >>> s1 = pd.Series(['one', 'one1', '1', ''])
+        >>> s1.str.isalnum()
+        0     True
+        1     True
+        2     True
+        3    False
+        dtype: bool
 
-    Examples
-    --------
-    The ``s.str.isnumeric`` method is the same as ``s3.str.isdigit`` but
-    also includes other characters that can represent quantities such as
-    unicode fractions.
+        Note that checks against characters mixed with any additional punctuation
+        or whitespace will evaluate to false for an alphanumeric check.
 
-    >>> s1 = pd.Series(['one', 'one1', '1', '', '³', '⅕'])
-    >>> s1.str.isnumeric()
-    0    False
-    1    False
-    2     True
-    3    False
-    4     True
-    5     True
-    dtype: bool
+        >>> s2 = pd.Series(['A B', '1.5', '3,000'])
+        >>> s2.str.isalnum()
+        0    False
+        1    False
+        2    False
+        dtype: bool
+        """
+        result = self._data.array._str_isalnum()
+        return self._wrap_result(result, returns_string=False)
 
-    For a string to be considered numeric, all its characters must have a Unicode
-    numeric property matching :py:meth:`str.is_numeric`. As a consequence,
-    the following cases are **not** recognized as numeric:
+    @forbid_nonstring_types(["bytes"])
+    def isalpha(self):
+        """
+        Check whether all characters in each string are alphabetic.
 
-    - **Decimal numbers** (e.g., "1.1"): due to period ``"."``
-    - **Negative numbers** (e.g., "-5"):  due to minus sign ``"-"``
-    - **Scientific notation** (e.g., "1e3"): due to characters like ``"e"``
+        This is equivalent to running the Python string method
+        :meth:`str.isalpha` for each element of the Series/Index. If a string
+        has zero characters, ``False`` is returned for that check.
 
-    >>> s2 = pd.Series(["1.1", "-5", "1e3"])
-    >>> s2.str.isnumeric()
-    0    False
-    1    False
-    2    False
-    dtype: bool
-    """
-    _shared_docs["isalnum"] = """
-    See Also
-    --------
-    Series.str.isalpha : Check whether all characters are alphabetic.
-    Series.str.isnumeric : Check whether all characters are numeric.
-    Series.str.isdigit : Check whether all characters are digits.
-    Series.str.isdecimal : Check whether all characters are decimal.
-    Series.str.isspace : Check whether all characters are whitespace.
-    Series.str.islower : Check whether all characters are lowercase.
-    Series.str.isascii : Check whether all characters are ascii.
-    Series.str.isupper : Check whether all characters are uppercase.
-    Series.str.istitle : Check whether all characters are titlecase.
+        Returns
+        -------
+        Series or Index of bool
+            Series or Index of boolean values with the same length as the original
+            Series/Index.
 
-    Examples
-    --------
-    >>> s1 = pd.Series(['one', 'one1', '1', ''])
-    >>> s1.str.isalnum()
-    0     True
-    1     True
-    2     True
-    3    False
-    dtype: bool
+        See Also
+        --------
+        Series.str.isnumeric : Check whether all characters are numeric.
+        Series.str.isalnum : Check whether all characters are alphanumeric.
+        Series.str.isdigit : Check whether all characters are digits.
+        Series.str.isdecimal : Check whether all characters are decimal.
+        Series.str.isspace : Check whether all characters are whitespace.
+        Series.str.islower : Check whether all characters are lowercase.
+        Series.str.isascii : Check whether all characters are ascii.
+        Series.str.isupper : Check whether all characters are uppercase.
+        Series.str.istitle : Check whether all characters are titlecase.
 
-    Note that checks against characters mixed with any additional punctuation
-    or whitespace will evaluate to false for an alphanumeric check.
+        Examples
+        --------
 
-    >>> s2 = pd.Series(['A B', '1.5', '3,000'])
-    >>> s2.str.isalnum()
-    0    False
-    1    False
-    2    False
-    dtype: bool
-    """
-    _shared_docs["isdecimal"] = """
-    See Also
-    --------
-    Series.str.isalpha : Check whether all characters are alphabetic.
-    Series.str.isnumeric : Check whether all characters are numeric.
-    Series.str.isalnum : Check whether all characters are alphanumeric.
-    Series.str.isdigit : Check whether all characters are digits.
-    Series.str.isspace : Check whether all characters are whitespace.
-    Series.str.islower : Check whether all characters are lowercase.
-    Series.str.isascii : Check whether all characters are ascii.
-    Series.str.isupper : Check whether all characters are uppercase.
-    Series.str.istitle : Check whether all characters are titlecase.
+        >>> s1 = pd.Series(['one', 'one1', '1', ''])
+        >>> s1.str.isalpha()
+        0     True
+        1    False
+        2    False
+        3    False
+        dtype: bool
+        """
+        result = self._data.array._str_isalpha()
+        return self._wrap_result(result, returns_string=False)
 
-    Examples
-    --------
-    The ``s3.str.isdecimal`` method checks for characters used to form
-    numbers in base 10.
+    @forbid_nonstring_types(["bytes"])
+    def isdigit(self):
+        """
+        Check whether all characters in each string are digits.
 
-    >>> s3 = pd.Series(['23', '³', '⅕', ''])
-    >>> s3.str.isdecimal()
-    0     True
-    1    False
-    2    False
-    3    False
-    dtype: bool
-    """
-    _shared_docs["isdigit"] = """
-    See Also
-    --------
-    Series.str.isalpha : Check whether all characters are alphabetic.
-    Series.str.isnumeric : Check whether all characters are numeric.
-    Series.str.isalnum : Check whether all characters are alphanumeric.
-    Series.str.isdecimal : Check whether all characters are decimal.
-    Series.str.isspace : Check whether all characters are whitespace.
-    Series.str.islower : Check whether all characters are lowercase.
-    Series.str.isascii : Check whether all characters are ascii.
-    Series.str.isupper : Check whether all characters are uppercase.
-    Series.str.istitle : Check whether all characters are titlecase.
+        This is equivalent to running the Python string method
+        :meth:`str.isdigit` for each element of the Series/Index. If a string
+        has zero characters, ``False`` is returned for that check.
 
-    Notes
-    -----
-    Similar to ``str.isdecimal`` but also includes special digits, like
-    superscripted and subscripted digits in unicode.
+        Returns
+        -------
+        Series or Index of bool
+            Series or Index of boolean values with the same length as the original
+            Series/Index.
 
-    The exact behavior of this method, i.e. which unicode characters are
-    considered as digits, depends on the backend used for string operations,
-    and there can be small differences.
-    For example, Python considers the ³ superscript character as a digit, but
-    not the ⅕ fraction character, while PyArrow considers both as digits. For
-    simple (ascii) decimal numbers, the behaviour is consistent.
+        See Also
+        --------
+        Series.str.isalpha : Check whether all characters are alphabetic.
+        Series.str.isnumeric : Check whether all characters are numeric.
+        Series.str.isalnum : Check whether all characters are alphanumeric.
+        Series.str.isdecimal : Check whether all characters are decimal.
+        Series.str.isspace : Check whether all characters are whitespace.
+        Series.str.islower : Check whether all characters are lowercase.
+        Series.str.isascii : Check whether all characters are ascii.
+        Series.str.isupper : Check whether all characters are uppercase.
+        Series.str.istitle : Check whether all characters are titlecase.
 
-    Examples
-    --------
+        Notes
+        -----
+        Similar to ``str.isdecimal`` but also includes special digits, like
+        superscripted and subscripted digits in unicode.
 
-    >>> s3 = pd.Series(['23', '³', '⅕', ''])
-    >>> s3.str.isdigit()
-    0     True
-    1     True
-    2     True
-    3    False
-    dtype: bool
-    """
+        The exact behavior of this method, i.e. which unicode characters are
+        considered as digits, depends on the backend used for string operations,
+        and there can be small differences.
+        For example, Python considers the ³ superscript character as a digit, but
+        not the ⅕ fraction character, while PyArrow considers both as digits. For
+        simple (ascii) decimal numbers, the behaviour is consistent.
 
-    _shared_docs["isspace"] = """
-    See Also
-    --------
-    Series.str.isalpha : Check whether all characters are alphabetic.
-    Series.str.isnumeric : Check whether all characters are numeric.
-    Series.str.isalnum : Check whether all characters are alphanumeric.
-    Series.str.isdigit : Check whether all characters are digits.
-    Series.str.isdecimal : Check whether all characters are decimal.
-    Series.str.islower : Check whether all characters are lowercase.
-    Series.str.isascii : Check whether all characters are ascii.
-    Series.str.isupper : Check whether all characters are uppercase.
-    Series.str.istitle : Check whether all characters are titlecase.
+        Examples
+        --------
 
-    Examples
-    --------
+        >>> s3 = pd.Series(['23', '³', '⅕', ''])
+        >>> s3.str.isdigit()
+        0     True
+        1     True
+        2     True
+        3    False
+        dtype: bool
+        """
+        result = self._data.array._str_isdigit()
+        return self._wrap_result(result, returns_string=False)
 
-    >>> s4 = pd.Series([' ', '\\t\\r\\n ', ''])
-    >>> s4.str.isspace()
-    0     True
-    1     True
-    2    False
-    dtype: bool
-    """
-    _shared_docs["islower"] = """
-    See Also
-    --------
-    Series.str.isalpha : Check whether all characters are alphabetic.
-    Series.str.isnumeric : Check whether all characters are numeric.
-    Series.str.isalnum : Check whether all characters are alphanumeric.
-    Series.str.isdigit : Check whether all characters are digits.
-    Series.str.isdecimal : Check whether all characters are decimal.
-    Series.str.isspace : Check whether all characters are whitespace.
-    Series.str.isascii : Check whether all characters are ascii.
-    Series.str.isupper : Check whether all characters are uppercase.
-    Series.str.istitle : Check whether all characters are titlecase.
+    @forbid_nonstring_types(["bytes"])
+    def isspace(self):
+        """
+        Check whether all characters in each string are whitespace.
 
-    Examples
-    --------
+        This is equivalent to running the Python string method
+        :meth:`str.isspace` for each element of the Series/Index. If a string
+        has zero characters, ``False`` is returned for that check.
 
-    >>> s5 = pd.Series(['leopard', 'Golden Eagle', 'SNAKE', ''])
-    >>> s5.str.islower()
-    0     True
-    1    False
-    2    False
-    3    False
-    dtype: bool
-    """
+        Returns
+        -------
+        Series or Index of bool
+            Series or Index of boolean values with the same length as the original
+            Series/Index.
 
-    _shared_docs["isupper"] = """
-    See Also
-    --------
-    Series.str.isalpha : Check whether all characters are alphabetic.
-    Series.str.isnumeric : Check whether all characters are numeric.
-    Series.str.isalnum : Check whether all characters are alphanumeric.
-    Series.str.isdigit : Check whether all characters are digits.
-    Series.str.isdecimal : Check whether all characters are decimal.
-    Series.str.isspace : Check whether all characters are whitespace.
-    Series.str.islower : Check whether all characters are lowercase.
-    Series.str.isascii : Check whether all characters are ascii.
-    Series.str.istitle : Check whether all characters are titlecase.
+        See Also
+        --------
+        Series.str.isalpha : Check whether all characters are alphabetic.
+        Series.str.isnumeric : Check whether all characters are numeric.
+        Series.str.isalnum : Check whether all characters are alphanumeric.
+        Series.str.isdigit : Check whether all characters are digits.
+        Series.str.isdecimal : Check whether all characters are decimal.
+        Series.str.islower : Check whether all characters are lowercase.
+        Series.str.isascii : Check whether all characters are ascii.
+        Series.str.isupper : Check whether all characters are uppercase.
+        Series.str.istitle : Check whether all characters are titlecase.
 
-    Examples
-    --------
+        Examples
+        --------
 
-    >>> s5 = pd.Series(['leopard', 'Golden Eagle', 'SNAKE', ''])
-    >>> s5.str.isupper()
-    0    False
-    1    False
-    2     True
-    3    False
-    dtype: bool
-    """
-    _shared_docs["istitle"] = """
-    See Also
-    --------
-    Series.str.isalpha : Check whether all characters are alphabetic.
-    Series.str.isnumeric : Check whether all characters are numeric.
-    Series.str.isalnum : Check whether all characters are alphanumeric.
-    Series.str.isdigit : Check whether all characters are digits.
-    Series.str.isdecimal : Check whether all characters are decimal.
-    Series.str.isspace : Check whether all characters are whitespace.
-    Series.str.islower : Check whether all characters are lowercase.
-    Series.str.isascii : Check whether all characters are ascii.
-    Series.str.isupper : Check whether all characters are uppercase.
+        >>> s4 = pd.Series([' ', '\\t\\r\\n ', ''])
+        >>> s4.str.isspace()
+        0     True
+        1     True
+        2    False
+        dtype: bool
+        """
+        result = self._data.array._str_isspace()
+        return self._wrap_result(result, returns_string=False)
 
-    Examples
-    --------
-    The ``s5.str.istitle`` method checks for whether all words are in title
-    case (whether only the first letter of each word is capitalized). Words are
-    assumed to be as any sequence of non-numeric characters separated by
-    whitespace characters.
+    @forbid_nonstring_types(["bytes"])
+    def islower(self):
+        """
+        Check whether all characters in each string are lowercase.
 
-    >>> s5 = pd.Series(['leopard', 'Golden Eagle', 'SNAKE', ''])
-    >>> s5.str.istitle()
-    0    False
-    1     True
-    2    False
-    3    False
-    dtype: bool
-    """
-    _shared_docs["isascii"] = """
-    See Also
-    --------
-    Series.str.isalpha : Check whether all characters are alphabetic.
-    Series.str.isnumeric : Check whether all characters are numeric.
-    Series.str.isalnum : Check whether all characters are alphanumeric.
-    Series.str.isdigit : Check whether all characters are digits.
-    Series.str.isdecimal : Check whether all characters are decimal.
-    Series.str.isspace : Check whether all characters are whitespace.
-    Series.str.islower : Check whether all characters are lowercase.
-    Series.str.istitle : Check whether all characters are titlecase.
-    Series.str.isupper : Check whether all characters are uppercase.
+        This is equivalent to running the Python string method
+        :meth:`str.islower` for each element of the Series/Index. If a string
+        has zero characters, ``False`` is returned for that check.
 
-    Examples
-    --------
-    The ``s5.str.isascii`` method checks for whether all characters are ascii
-    characters, which includes digits 0-9, capital and lowercase letters A-Z,
-    and some other special characters.
+        Returns
+        -------
+        Series or Index of bool
+            Series or Index of boolean values with the same length as the original
+            Series/Index.
 
-    >>> s5 = pd.Series(['ö', 'see123', 'hello world', ''])
-    >>> s5.str.isascii()
-    0    False
-    1     True
-    2     True
-    3     True
-    dtype: bool
-    """
+        See Also
+        --------
+        Series.str.isalpha : Check whether all characters are alphabetic.
+        Series.str.isnumeric : Check whether all characters are numeric.
+        Series.str.isalnum : Check whether all characters are alphanumeric.
+        Series.str.isdigit : Check whether all characters are digits.
+        Series.str.isdecimal : Check whether all characters are decimal.
+        Series.str.isspace : Check whether all characters are whitespace.
+        Series.str.isascii : Check whether all characters are ascii.
+        Series.str.isupper : Check whether all characters are uppercase.
+        Series.str.istitle : Check whether all characters are titlecase.
 
-    _doc_args["isalnum"] = {"type": "alphanumeric", "method": "isalnum"}
-    _doc_args["isalpha"] = {"type": "alphabetic", "method": "isalpha"}
-    _doc_args["isdigit"] = {"type": "digits", "method": "isdigit"}
-    _doc_args["isspace"] = {"type": "whitespace", "method": "isspace"}
-    _doc_args["islower"] = {"type": "lowercase", "method": "islower"}
-    _doc_args["isascii"] = {"type": "ascii", "method": "isascii"}
-    _doc_args["isupper"] = {"type": "uppercase", "method": "isupper"}
-    _doc_args["istitle"] = {"type": "titlecase", "method": "istitle"}
-    _doc_args["isnumeric"] = {"type": "numeric", "method": "isnumeric"}
-    _doc_args["isdecimal"] = {"type": "decimal", "method": "isdecimal"}
-    # force _noarg_wrapper return type with dtype=np.dtype(bool) (GH 29624)
+        Examples
+        --------
 
-    isalnum = _map_and_wrap(
-        "isalnum",
-        docstring=_shared_docs["ismethods"] % _doc_args["isalnum"]
-        + _shared_docs["isalnum"],
-    )
-    isalpha = _map_and_wrap(
-        "isalpha",
-        docstring=_shared_docs["ismethods"] % _doc_args["isalpha"]
-        + _shared_docs["isalpha"],
-    )
-    isdigit = _map_and_wrap(
-        "isdigit",
-        docstring=_shared_docs["ismethods"] % _doc_args["isdigit"]
-        + _shared_docs["isdigit"],
-    )
-    isspace = _map_and_wrap(
-        "isspace",
-        docstring=_shared_docs["ismethods"] % _doc_args["isspace"]
-        + _shared_docs["isspace"],
-    )
-    islower = _map_and_wrap(
-        "islower",
-        docstring=_shared_docs["ismethods"] % _doc_args["islower"]
-        + _shared_docs["islower"],
-    )
-    isascii = _map_and_wrap(
-        "isascii",
-        docstring=_shared_docs["ismethods"] % _doc_args["isascii"]
-        + _shared_docs["isascii"],
-    )
-    isupper = _map_and_wrap(
-        "isupper",
-        docstring=_shared_docs["ismethods"] % _doc_args["isupper"]
-        + _shared_docs["isupper"],
-    )
-    istitle = _map_and_wrap(
-        "istitle",
-        docstring=_shared_docs["ismethods"] % _doc_args["istitle"]
-        + _shared_docs["istitle"],
-    )
-    isnumeric = _map_and_wrap(
-        "isnumeric",
-        docstring=_shared_docs["ismethods"] % _doc_args["isnumeric"]
-        + _shared_docs["isnumeric"],
-    )
-    isdecimal = _map_and_wrap(
-        "isdecimal",
-        docstring=_shared_docs["ismethods"] % _doc_args["isdecimal"]
-        + _shared_docs["isdecimal"],
-    )
+        >>> s5 = pd.Series(['leopard', 'Golden Eagle', 'SNAKE', ''])
+        >>> s5.str.islower()
+        0     True
+        1    False
+        2    False
+        3    False
+        dtype: bool
+        """
+        result = self._data.array._str_islower()
+        return self._wrap_result(result, returns_string=False)
+    @forbid_nonstring_types(["bytes"])
+    def isascii(self):
+        """
+        Check whether all characters in each string are ascii.
+
+        This is equivalent to running the Python string method
+        :meth:`str.isascii` for each element of the Series/Index. If a string
+        has zero characters, ``False`` is returned for that check.
+
+        Returns
+        -------
+        Series or Index of bool
+            Series or Index of boolean values with the same length as the original
+            Series/Index.
+
+        See Also
+        --------
+        Series.str.isalpha : Check whether all characters are alphabetic.
+        Series.str.isnumeric : Check whether all characters are numeric.
+        Series.str.isalnum : Check whether all characters are alphanumeric.
+        Series.str.isdigit : Check whether all characters are digits.
+        Series.str.isdecimal : Check whether all characters are decimal.
+        Series.str.isspace : Check whether all characters are whitespace.
+        Series.str.islower : Check whether all characters are lowercase.
+        Series.str.isupper : Check whether all characters are uppercase.
+        Series.str.istitle : Check whether all characters are titlecase.
+
+        Examples
+        --------
+        The ``s5.str.isascii`` method checks for whether all characters are ascii
+        characters, which includes digits 0-9, capital and lowercase letters A-Z,
+        and some other special characters.
+
+        >>> s5 = pd.Series(['ö', 'see123', 'hello world', ''])
+        >>> s5.str.isascii()
+        0    False
+        1     True
+        2     True
+        3     True
+        dtype: bool
+        """
+        result = self._data.array._str_isascii()
+        return self._wrap_result(result, returns_string=False)
+    @forbid_nonstring_types(["bytes"])
+    def isupper(self):
+        """
+        Check whether all characters in each string are uppercase.
+
+        This is equivalent to running the Python string method
+        :meth:`str.isupper` for each element of the Series/Index. If a string
+        has zero characters, ``False`` is returned for that check.
+
+        Returns
+        -------
+        Series or Index of bool
+            Series or Index of boolean values with the same length as the original
+            Series/Index.
+
+        See Also
+        --------
+        Series.str.isalpha : Check whether all characters are alphabetic.
+        Series.str.isnumeric : Check whether all characters are numeric.
+        Series.str.isalnum : Check whether all characters are alphanumeric.
+        Series.str.isdigit : Check whether all characters are digits.
+        Series.str.isdecimal : Check whether all characters are decimal.
+        Series.str.isspace : Check whether all characters are whitespace.
+        Series.str.islower : Check whether all characters are lowercase.
+        Series.str.isascii : Check whether all characters are ascii.
+        Series.str.istitle : Check whether all characters are titlecase.
+
+        Examples
+        --------
+
+        >>> s5 = pd.Series(['leopard', 'Golden Eagle', 'SNAKE', ''])
+        >>> s5.str.isupper()
+        0    False
+        1    False
+        2     True
+        3    False
+        dtype: bool
+        """
+        result = self._data.array._str_isupper()
+        return self._wrap_result(result, returns_string=False)
+
+    @forbid_nonstring_types(["bytes"])
+    def istitle(self):
+        """
+        Check whether all characters in each string are titlecase.
+
+        This is equivalent to running the Python string method
+        :meth:`str.istitle` for each element of the Series/Index. If a string
+        has zero characters, ``False`` is returned for that check.
+
+        Returns
+        -------
+        Series or Index of bool
+            Series or Index of boolean values with the same length as the original
+            Series/Index.
+
+        See Also
+        --------
+        Series.str.isalpha : Check whether all characters are alphabetic.
+        Series.str.isnumeric : Check whether all characters are numeric.
+        Series.str.isalnum : Check whether all characters are alphanumeric.
+        Series.str.isdigit : Check whether all characters are digits.
+        Series.str.isdecimal : Check whether all characters are decimal.
+        Series.str.isspace : Check whether all characters are whitespace.
+        Series.str.islower : Check whether all characters are lowercase.
+        Series.str.isascii : Check whether all characters are ascii.
+        Series.str.isupper : Check whether all characters are uppercase.
+
+        Examples
+        --------
+        The ``s5.str.istitle`` method checks for whether all words are in title
+        case (whether only the first letter of each word is capitalized). Words are
+        assumed to be as any sequence of non-numeric characters separated by
+        whitespace characters.
+
+        >>> s5 = pd.Series(['leopard', 'Golden Eagle', 'SNAKE', ''])
+        >>> s5.str.istitle()
+        0    False
+        1     True
+        2    False
+        3    False
+        dtype: bool
+        """
+        result = self._data.array._str_istitle()
+        return self._wrap_result(result, returns_string=False)
+
+    @forbid_nonstring_types(["bytes"])
+    def isnumeric(self):
+        """
+        Check whether all characters in each string are numeric.
+
+        This is equivalent to running the Python string method
+        :meth:`str.isnumeric` for each element of the Series/Index. If a string
+        has zero characters, ``False`` is returned for that check.
+
+        Returns
+        -------
+        Series or Index of bool
+            Series or Index of boolean values with the same length as the original
+            Series/Index.
+
+        See Also
+        --------
+        Series.str.isalpha : Check whether all characters are alphabetic.
+        Series.str.isalnum : Check whether all characters are alphanumeric.
+        Series.str.isdigit : Check whether all characters are digits.
+        Series.str.isdecimal : Check whether all characters are decimal.
+        Series.str.isspace : Check whether all characters are whitespace.
+        Series.str.islower : Check whether all characters are lowercase.
+        Series.str.isascii : Check whether all characters are ascii.
+        Series.str.isupper : Check whether all characters are uppercase.
+        Series.str.istitle : Check whether all characters are titlecase.
+
+        Examples
+        --------
+        The ``s.str.isnumeric`` method is the same as ``s3.str.isdigit`` but
+        also includes other characters that can represent quantities such as
+        unicode fractions.
+
+        >>> s1 = pd.Series(['one', 'one1', '1', '', '³', '⅕'])
+        >>> s1.str.isnumeric()
+        0    False
+        1    False
+        2     True
+        3    False
+        4     True
+        5     True
+        dtype: bool
+
+        For a string to be considered numeric, all its characters must have a Unicode
+        numeric property matching :py:meth:`str.is_numeric`. As a consequence,
+        the following cases are **not** recognized as numeric:
+
+        - **Decimal numbers** (e.g., "1.1"): due to period ``"."``
+        - **Negative numbers** (e.g., "-5"):  due to minus sign ``"-"``
+        - **Scientific notation** (e.g., "1e3"): due to characters like ``"e"``
+
+        >>> s2 = pd.Series(["1.1", "-5", "1e3"])
+        >>> s2.str.isnumeric()
+        0    False
+        1    False
+        2    False
+        dtype: bool
+        """
+        result = self._data.array._str_isnumeric()
+        return self._wrap_result(result, returns_string=False)
+
+    @forbid_nonstring_types(["bytes"])
+    def isdecimal(self):
+        """
+        Check whether all characters in each string are decimal.
+
+        This is equivalent to running the Python string method
+        :meth:`str.isdecimal` for each element of the Series/Index. If a string
+        has zero characters, ``False`` is returned for that check.
+
+        Returns
+        -------
+        Series or Index of bool
+            Series or Index of boolean values with the same length as the original
+            Series/Index.
+
+        See Also
+        --------
+        Series.str.isalpha : Check whether all characters are alphabetic.
+        Series.str.isnumeric : Check whether all characters are numeric.
+        Series.str.isalnum : Check whether all characters are alphanumeric.
+        Series.str.isdigit : Check whether all characters are digits.
+        Series.str.isspace : Check whether all characters are whitespace.
+        Series.str.islower : Check whether all characters are lowercase.
+        Series.str.isascii : Check whether all characters are ascii.
+        Series.str.isupper : Check whether all characters are uppercase.
+        Series.str.istitle : Check whether all characters are titlecase.
+
+        Examples
+        --------
+        The ``s3.str.isdecimal`` method checks for characters used to form
+        numbers in base 10.
+
+        >>> s3 = pd.Series(['23', '³', '⅕', ''])
+        >>> s3.str.isdecimal()
+        0     True
+        1    False
+        2    False
+        3    False
+        dtype: bool
+        """
+        result = self._data.array._str_isdecimal()
+        return self._wrap_result(result, returns_string=False)
 
 
 def cat_safe(list_of_columns: list[npt.NDArray[np.object_]], sep: str):
