@@ -14,6 +14,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import lib
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 from pandas import (
@@ -1043,7 +1044,10 @@ def test_series_varied_multiindex_alignment():
         [1000 * i for i in range(1, 5)],
         index=pd.MultiIndex.from_product([list("xy"), [1, 2]], names=["xy", "num"]),
     )
-    result = s1.loc[pd.IndexSlice[["a"], :, :]] + s2
+    msg = (
+        "The silent alignment on arithmetic operations between "
+        "'Series' with non-aligned MultiIndexes"
+    )
     expected = Series(
         [1000, 2001, 3002, 4003],
         index=pd.MultiIndex.from_tuples(
@@ -1051,6 +1055,8 @@ def test_series_varied_multiindex_alignment():
             names=["ab", "xy", "num"],
         ),
     )
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = s1.loc[pd.IndexSlice[["a"], :, :]] + s2
     tm.assert_series_equal(result, expected)
 
 
@@ -1060,3 +1066,36 @@ def test_rmod_consistent_large_series():
     expected = Series([1] * 10001)
 
     tm.assert_series_equal(result, expected)
+
+
+def test_alignment_on_arithmetic_with_nonaligned_multiindex_deprecated(
+    all_arithmetic_operators,
+):
+    # GH#25891
+    index1 = pd.MultiIndex.from_product([[], []], names=["T", "N"])
+    s1 = Series(index=index1)
+    s1["T.1A", "N.0"] = 0.5
+    s1["T.1B", "N.0"] = 0.5
+    op = tm.get_op_from_name(all_arithmetic_operators)
+
+    index2 = pd.MultiIndex.from_product([[], []], names=["N", "M"])
+    s2 = Series(index=index2)
+    s2["N.0", "M.0"] = 0.5
+
+    expected = Series(
+        [0.25, 0.25],
+        index=pd.MultiIndex.from_tuples(
+            [("T.1A", "N.0", "M.0"), ("T.1B", "N.0", "M.0")],
+            names=["T", "N", "M"],
+        ),
+    )
+    msg = (
+        "The silent alignment on arithmetic operations between "
+        "'Series' with non-aligned MultiIndexes"
+    )
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = s1 * s2
+    tm.assert_series_equal(result, expected)
+
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        op(s1, s2)
