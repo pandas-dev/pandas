@@ -3819,9 +3819,9 @@ def test_ufunc_retains_missing():
     tm.assert_series_equal(result, expected)
 
 
-def test_comparison_with_range():
+def test_comparison_with_range(data):
     # GH#63429
-    df = pd.DataFrame({"a": [0, 1], "b": [2, 3]})
-    result = df.columns == range(len(df.columns))
+    ser = pd.Series(data)
+    result = ser == range(len(ser))
     expected = np.array([False, False])
     tm.assert_numpy_array_equal(result, expected)
