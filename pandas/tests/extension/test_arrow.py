@@ -3817,3 +3817,11 @@ def test_ufunc_retains_missing():
 
     expected = pd.Series([np.sin(0.1), pd.NA], dtype="float64[pyarrow]")
     tm.assert_series_equal(result, expected)
+
+
+def test_comparison_with_range(data):
+    # GH#63429
+    ser = pd.Series(data)
+    result = ser == range(len(ser))
+    expected = np.array([False, False])
+    tm.assert_numpy_array_equal(result, expected)
