@@ -13,7 +13,6 @@ import zipfile
 from pandas.compat._optional import import_optional_dependency
 
 import pandas as pd
-from pandas._testing.contexts import ensure_clean
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -54,7 +53,7 @@ def round_trip_pickle(
     return pd.read_pickle(path)
 
 
-def round_trip_pathlib(writer, reader, path: str | None = None):
+def round_trip_pathlib(writer, reader, path: FilePath):
     """
     Write an object to file specified by a pathlib.Path and read it back
 
@@ -64,7 +63,7 @@ def round_trip_pathlib(writer, reader, path: str | None = None):
         IO writing function (e.g. DataFrame.to_csv )
     reader : callable
         IO reading function (e.g. pd.read_csv )
-    path : str, default None
+    path : str or path object
         The path where the object is written and then read.
 
     Returns
@@ -73,11 +72,8 @@ def round_trip_pathlib(writer, reader, path: str | None = None):
         The original object that was serialized and then re-read.
     """
     Path = pathlib.Path
-    if path is None:
-        path = "___pathlib___"
-    with ensure_clean(path) as path:
-        writer(Path(path))
-        obj = reader(Path(path))
+    writer(Path(path))
+    obj = reader(Path(path))
     return obj
 
 
