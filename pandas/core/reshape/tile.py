@@ -43,6 +43,7 @@ from pandas import (
 )
 import pandas.core.algorithms as algos
 from pandas.core.arrays.datetimelike import dtype_to_unit
+from pandas.core.col import Expression
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -359,6 +360,10 @@ def qcut(
     >>> pd.qcut(range(5), 4, labels=False)
     array([0, 0, 1, 2, 3])
     """
+    if isinstance(x, Expression):
+        return x._call_with_func(
+            qcut, x=x, q=q, labels=labels, retbins=retbins, precision=precision
+        )
     original = x
     x_idx = _preprocess_for_cut(x)
     x_idx, _ = _coerce_to_type(x_idx)
