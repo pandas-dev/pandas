@@ -45,6 +45,9 @@ The pandas I/O API is a set of top level ``reader`` functions accessed like
 
 .. _io.read_csv_table:
 
+
+
+
 CSV & text files
 ----------------
 
@@ -74,6 +77,22 @@ sep : str, defaults to ``','`` for :func:`read_csv`, ``\t`` for :func:`read_tabl
   delimiters are prone to ignoring quoted data. Regex example: ``'\\r\\t'``.
 delimiter : str, default ``None``
   Alternative argument name for sep.
+
+.. note::
+
+    If you are working in Google Colab, you may need to upload your file
+    or mount Google Drive before using ``pd.read_csv``. For example:
+
+    .. code-block:: python
+
+        from google.colab import files
+        uploaded = files.upload()
+
+        import pandas as pd
+        df = pd.read_csv(list(uploaded.keys())[0])
+
+
+
 
 Column and index locations and names
 ++++++++++++++++++++++++++++++++++++
