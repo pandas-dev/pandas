@@ -251,7 +251,7 @@ class ArrowTemporalProperties(PandasDelegate, PandasObject, NoNewAttributesMixin
         # Use _dt_components if available (Arrow arrays) for efficiency
         arr = self._parent.array
         if hasattr(arr, "_dt_components"):
-            return DataFrame(arr._dt_components)
+            return DataFrame(arr._dt_components)  # pyright: ignore[reportAttributeAccessIssue]
 
         components_df = DataFrame(
             {
