@@ -784,7 +784,7 @@ def index_with_missing(request):
         vals = ind.values.copy()
         vals[0] = None
         vals[-1] = None
-        return type(ind)(vals)
+        return type(ind)(vals, copy=False)
 
 
 # ----------------------------------------------------------------

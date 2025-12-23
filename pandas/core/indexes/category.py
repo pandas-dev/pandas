@@ -517,4 +517,4 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         Index(['first', 'second', nan], dtype='str')
         """
         mapped = self._values.map(mapper, na_action=na_action)
-        return Index(mapped, name=self.name)
+        return Index(mapped, name=self.name, copy=False)
