@@ -1804,7 +1804,7 @@ class ArrowExtensionArray(
 
         counts = ArrowExtensionArray(counts)
 
-        index = Index(self._from_pyarrow_array(values))
+        index = Index(self._from_pyarrow_array(values), copy=False)
 
         return Series(counts, index=index, name="count", copy=False)
 
