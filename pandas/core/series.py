@@ -2585,12 +2585,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         if self.dtype == "object":
             # Delegate to Python's built-in round() for object dtype
-            # This handles cases like Decimal objects or other roundable types
-            def round_func(x):
-                return round(x, decimals)
+            values = self._values
 
-            # Apply round to each element, preserving NA values
-            result = self._map_values(round_func, na_action="ignore")
+            # lib.map_infer is the fastest way to apply element-wise operations
+            # convert=False prevents automatic type inference/conversion
+            result = lib.map_infer(values, lambda x: round(x, decimals), convert=False)
+
             return self._constructor(result, index=self.index, copy=False).__finalize__(
                 self, method="round"
             )

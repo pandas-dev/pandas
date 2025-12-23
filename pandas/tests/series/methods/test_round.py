@@ -74,8 +74,13 @@ class TestSeriesRound:
         tm.assert_series_equal(ser, expected)
 
     def test_round_dtype_object(self):
-        # GH#61206
+        # GH#61206 - object dtype now supported
         ser = Series([0.2], dtype="object")
-        msg = "Expected numeric dtype, got object instead."
-        with pytest.raises(TypeError, match=msg):
-            ser.round()
+        result = ser.round()
+        expected = Series([0.0], dtype="object")
+        tm.assert_series_equal(result, expected)
+
+        ser = Series([1.234, 2.567], dtype="object")
+        result = ser.round(1)
+        expected = Series([1.2, 2.6], dtype="object")
+        tm.assert_series_equal(result, expected)
