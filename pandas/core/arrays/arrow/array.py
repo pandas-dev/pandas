@@ -3045,7 +3045,7 @@ class ArrowExtensionArray(
                     )
                 )
             result = pc.divide(from_remainder, divisors[component][unit])
-            # result % modulo (PyArrow lacks a modulo kernel)
+            # TODO: revisit once Arrow has a modulo kernel
             quotient = pc.divide(result, modulo)
             result = pc.subtract(result, pc.multiply(quotient, modulo))
             return self._from_pyarrow_array(result.cast(pa.int32()))
