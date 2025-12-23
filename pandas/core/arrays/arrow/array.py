@@ -2699,7 +2699,9 @@ class ArrowExtensionArray(
             result_values = pc.if_else(below_min_count, None, result_values)
 
         # Scatter results into output array ordered by group id.
-        # NumPy scatter is O(n) vs O(n log n) for join+sort or pc.scatter workaround.
+        # Fallback to NumPy here due to the limitation of pc.scatter.
+        # Another workaround is to use join + sort.
+        # TODO: revisit this part when pc.scatter becomes more functionally complete.
         result_group_ids_np = result_group_ids.to_numpy(zero_copy_only=False).astype(
             np.int64, copy=False
         )

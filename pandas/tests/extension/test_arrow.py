@@ -3286,17 +3286,8 @@ class TestGroupbyAggPyArrowNative:
         assert result.index.tolist() == [1, 2, 3]
         assert isinstance(result.dtype, ArrowDtype)
 
-    @pytest.mark.parametrize(
-        "dtype,agg_func",
-        [
-            (pa.string(), "min"),
-            (pa.string(), "max"),
-            (pa.string(), "count"),
-            (pa.large_string(), "min"),
-            (pa.large_string(), "max"),
-            (pa.large_string(), "count"),
-        ],
-    )
+    @pytest.mark.parametrize("agg_func", ["min", "max", "count"])
+    @pytest.mark.parametrize("dtype", [pa.string(), pa.large_string()])
     def test_groupby_string_aggregations(self, dtype, agg_func):
         """Test string types use PyArrow-native groupby path."""
         ser = pd.Series(list("abcde"), dtype=ArrowDtype(dtype))
@@ -3326,49 +3317,46 @@ class TestGroupbyAggPyArrowNative:
         assert result.iloc[0] == expected[0]
         assert result.iloc[1] == expected[1]
 
-    def test_groupby_sem_returns_float(self):
-        """Test that sem returns float dtype."""
-        values = [Decimal(str(i)) for i in range(4)]
-        ser = pd.Series(values, dtype=ArrowDtype(pa.decimal128(10, 2)))
-        result = ser.groupby([1, 1, 2, 2]).sem()
+    @pytest.mark.parametrize(
+        "values,keys,expected_na",
+        [
+            # Multiple values per group - sem is computable
+            ([0, 1, 2, 3], [1, 1, 2, 2], [False, False]),
+            # Single value per group - sem is NA (stddev undefined)
+            ([1, 2], [1, 2], [True, True]),
+            # All nulls in group 2 - sem is NA for that group
+            ([1, 2, None, None], [1, 1, 2, 2], [False, True]),
+        ],
+    )
+    def test_groupby_sem(self, values, keys, expected_na):
+        """Test that sem returns float64 and handles edge cases correctly."""
+        ser = pd.Series(
+            [Decimal(str(v)) if v is not None else None for v in values],
+            dtype=ArrowDtype(pa.decimal128(10, 2)),
+        )
+        result = ser.groupby(keys).sem()
         assert result.dtype == ArrowDtype(pa.float64())
+        assert pd.isna(result).tolist() == expected_na
 
-    def test_groupby_sem_single_value(self):
-        """Test that sem returns NA for single-value groups (stddev undefined)."""
-        values = [Decimal("1.0"), Decimal("2.0")]
-        ser = pd.Series(values, dtype=ArrowDtype(pa.decimal128(10, 2)))
-        result = ser.groupby([1, 2]).sem()
-        assert pd.isna(result.iloc[0])
-        assert pd.isna(result.iloc[1])
-
-    def test_groupby_sem_all_nulls(self):
-        """Test that sem returns NA for all-null groups."""
-        ser = pd.Series(
-            [Decimal("1.0"), Decimal("2.0"), None, None],
-            dtype=ArrowDtype(pa.decimal128(10, 2)),
-        )
-        result = ser.groupby([1, 1, 2, 2]).sem()
-        assert not pd.isna(result.iloc[0])  # Group 1 has values
-        assert pd.isna(result.iloc[1])  # Group 2 all nulls
-
+    @pytest.mark.parametrize(
+        "values,keys,expected_na",
+        [
+            # Group 1 has 2 values >= min_count, Group 2 has 1 < min_count
+            ([0, 1, 2], [1, 1, 2], [False, True]),
+            # With nulls: min_count uses non-null count, not group size
+            # Group 1: 1 non-null < min_count=2, Group 2: 2 non-null >= min_count
+            ([1, None, 2, 3, None], [1, 1, 2, 2, 2], [True, False]),
+        ],
+    )
     @pytest.mark.parametrize("agg_func", ["sum", "prod"])
-    def test_groupby_min_count(self, agg_func):
-        """Test min_count parameter."""
-        values = [Decimal(str(i)) for i in range(3)]
-        ser = pd.Series(values, dtype=ArrowDtype(pa.decimal128(10, 2)))
-        result = ser.groupby([1, 1, 2]).agg(agg_func, min_count=2)
-        assert not pd.isna(result.iloc[0])  # Group 1 has 2 values
-        assert pd.isna(result.iloc[1])  # Group 2 has 1 value < min_count
-
-    def test_groupby_min_count_with_nulls(self):
-        """Test that min_count uses non-null count, not group size."""
+    def test_groupby_min_count(self, agg_func, values, keys, expected_na):
+        """Test min_count parameter with and without nulls."""
         ser = pd.Series(
-            [Decimal("1.0"), None, Decimal("2.0"), Decimal("3.0"), None],
+            [Decimal(str(v)) if v is not None else None for v in values],
             dtype=ArrowDtype(pa.decimal128(10, 2)),
         )
-        result = ser.groupby([1, 1, 2, 2, 2]).sum(min_count=2)
-        assert pd.isna(result.iloc[0])  # Only 1 non-null < min_count=2
-        assert result.iloc[1] == Decimal("5.0")  # 2 non-null >= min_count=2
+        result = ser.groupby(keys).agg(agg_func, min_count=2)
+        assert pd.isna(result).tolist() == expected_na
 
     @pytest.mark.parametrize(
         "agg_func,default_value",
@@ -3386,24 +3374,23 @@ class TestGroupbyAggPyArrowNative:
         assert len(result) == 3
         assert result.iloc[1] == Decimal(str(default_value))
 
-    def test_groupby_dropna_true(self):
+    @pytest.mark.parametrize(
+        "dropna, expected_len",
+        [
+            (True, 2),
+            (False, 3),
+        ],
+    )
+    def test_groupby_dropna(self, dropna, expected_len):
         """Test that NA keys are excluded when dropna=True."""
         values = [Decimal(str(i)) for i in range(6)]
         ser = pd.Series(values, dtype=ArrowDtype(pa.decimal128(10, 2)))
-        result = ser.groupby([1, 1, None, 2, 2, None], dropna=True).sum()
-        assert len(result) == 2
+        result = ser.groupby([1, 1, None, 2, 2, None], dropna=dropna).sum()
+        assert len(result) == expected_len
         assert result.iloc[0] == Decimal("1.0")  # 0 + 1
         assert result.iloc[1] == Decimal("7.0")  # 3 + 4
-
-    def test_groupby_dropna_false(self):
-        """Test that NA keys form a group when dropna=False."""
-        values = [Decimal(str(i)) for i in range(6)]
-        ser = pd.Series(values, dtype=ArrowDtype(pa.decimal128(10, 2)))
-        result = ser.groupby([1, 1, None, 2, 2, None], dropna=False).sum()
-        assert len(result) == 3
-        assert result.iloc[0] == Decimal("1.0")  # 0 + 1
-        assert result.iloc[1] == Decimal("7.0")  # 3 + 4
-        assert result.iloc[2] == Decimal("7.0")  # 2 + 5 (NA group)
+        if not dropna:
+            assert result.iloc[2] == Decimal("7.0")  # 2 + 5 (NA group)
 
 
 def test_fixed_size_list():
