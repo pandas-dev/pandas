@@ -246,7 +246,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         if not isinstance(other, Index):
             return False
 
-        if len(self) != len(other):
+        if len(self)!=len(other):
             return False
 
         self_unit = getattr(self, "unit", None)
