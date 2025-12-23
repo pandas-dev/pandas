@@ -55,7 +55,7 @@ def test_col_simple(
     result = df.assign(c=expr)
     expected = pd.DataFrame({"a": [1, 2], "b": [3, 4], "c": expected_values})
     tm.assert_frame_equal(result, expected)
-    assert str(expr) == expected_str
+    assert str(expr) == expected_str, str(expr)
 
 
 def test_frame_getitem() -> None:
