@@ -617,7 +617,7 @@ def test_groupby_as_index_cython(df):
     result = grouped.mean()
     expected = data.groupby(["A", "B"]).mean()
 
-    arrays = list(zip(*expected.index.values))
+    arrays = list(zip(*expected.index.values, strict=True))
     expected.insert(0, "A", arrays[0])
     expected.insert(1, "B", arrays[1])
     expected.index = RangeIndex(len(expected))
@@ -943,7 +943,8 @@ def test_groupby_with_hier_columns():
             *[
                 ["bar", "bar", "baz", "baz", "foo", "foo", "qux", "qux"],
                 ["one", "two", "one", "two", "one", "two", "one", "two"],
-            ]
+            ],
+            strict=True,
         )
     )
     index = MultiIndex.from_tuples(tuples)
@@ -1223,7 +1224,7 @@ def test_groupby_nat_exclude():
     ]
     keys = sorted(grouped.groups.keys())
     assert len(keys) == 2
-    for k, e in zip(keys, expected):
+    for k, e in zip(keys, expected, strict=True):
         # grouped.groups keys are np.datetime64 with system tz
         # not to be affected by tz, only compare values
         tm.assert_index_equal(grouped.groups[k], e)
@@ -1916,7 +1917,7 @@ def test_groupby_multiindex_nat():
 
 def test_groupby_empty_list_raises():
     # GH 5289
-    values = zip(range(10), range(10))
+    values = zip(range(10), range(10), strict=True)
     df = DataFrame(values, columns=["apple", "b"])
     msg = "Grouper and axis must be same length"
     with pytest.raises(ValueError, match=msg):
@@ -1971,12 +1972,14 @@ def test_groups_sort_dropna(sort, dropna):
     gb = df.groupby([0, 1], sort=sort, dropna=dropna)
     result = gb.groups
 
-    for result_key, expected_key in zip(result.keys(), expected.keys()):
+    for result_key, expected_key in zip(result.keys(), expected.keys(), strict=True):
         # Compare as NumPy arrays to handle np.nan
         result_key = np.array(result_key)
         expected_key = np.array(expected_key)
         tm.assert_numpy_array_equal(result_key, expected_key)
-    for result_value, expected_value in zip(result.values(), expected.values()):
+    for result_value, expected_value in zip(
+        result.values(), expected.values(), strict=True
+    ):
         tm.assert_index_equal(result_value, expected_value)
 
 
