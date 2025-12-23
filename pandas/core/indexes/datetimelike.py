@@ -246,7 +246,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         if not isinstance(other, Index):
             return False
 
-        if len(self)!=len(other):
+        if len(self) != len(other):
             return False
 
         self_unit = getattr(self, "unit", None)
@@ -260,7 +260,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
                 return False
         if other.dtype.kind in "iufc":
             return False
-        
+
         elif not isinstance(other, type(self)):
             should_try = False
             inferable = self._data._infer_matches
