@@ -256,7 +256,9 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
             if getattr(self.dtype, "tz", None) == getattr(other.dtype, "tz", None):
                 try:
                     other_values = other._values
-                    if hasattr(other_values, "as_unit") and hasattr(self._values, "equals"):
+                    if hasattr(other_values, "as_unit") and hasattr(
+                        self._values, "equals"
+                    ):
                         return self._values.equals(other_values.as_unit(self_unit))
                 except (ValueError, TypeError, AttributeError):
                     return False
