@@ -3017,7 +3017,7 @@ class ArrowExtensionArray(
         return self._dt_subday_component("nanosecond", modulo=1000)
 
     @property
-    def _dt_components(self) -> dict[str, Self]:
+    def _dt_components(self) -> dict[str, ArrowExtensionArray]:
         """
         Return all duration components efficiently in a single pass.
 
@@ -3038,7 +3038,7 @@ class ArrowExtensionArray(
 
         def extract_component(
             component: str, modulo: int, from_remainder: pa.Array
-        ) -> Self:
+        ) -> ArrowExtensionArray:
             """Extract a component from the given remainder."""
             if unit not in divisors[component]:
                 # Unit is coarser than this component, result is always 0
