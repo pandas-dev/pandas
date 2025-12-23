@@ -50,6 +50,8 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.inference import iterable_not_string
 
+from pandas.core.col import Expression
+
 if TYPE_CHECKING:
     from pandas._typing import (
         AnyArrayLike,
@@ -383,7 +385,9 @@ def apply_if_callable(maybe_callable, obj, **kwargs):
     obj : NDFrame
     **kwargs
     """
-    if callable(maybe_callable):
+    if isinstance(maybe_callable, Expression):
+        return maybe_callable._eval_expression(obj, **kwargs)
+    elif callable(maybe_callable):
         return maybe_callable(obj, **kwargs)
 
     return maybe_callable
