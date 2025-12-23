@@ -390,10 +390,10 @@ class MyTz(datetime.tzinfo):
         pass
 
 
-def test_read_pickle_with_subclass():
+def test_read_pickle_with_subclass(temp_file):
     # GH 12163
     expected = Series(dtype=object), MyTz()
-    result = tm.round_trip_pickle(expected)
+    result = tm.round_trip_pickle(expected, temp_file)
 
     tm.assert_series_equal(result[0], expected[0])
     assert isinstance(result[1], MyTz)
@@ -433,12 +433,13 @@ def test_pickle_binary_object_compression(compression, temp_file):
 def test_pickle_dataframe_with_multilevel_index(
     multiindex_year_month_day_dataframe_random_data,
     multiindex_dataframe_random_data,
+    temp_file,
 ):
     ymd = multiindex_year_month_day_dataframe_random_data
     frame = multiindex_dataframe_random_data
 
     def _test_roundtrip(frame):
-        unpickled = tm.round_trip_pickle(frame)
+        unpickled = tm.round_trip_pickle(frame, temp_file)
         tm.assert_frame_equal(frame, unpickled)
 
     _test_roundtrip(frame)
@@ -447,36 +448,37 @@ def test_pickle_dataframe_with_multilevel_index(
     _test_roundtrip(ymd.T)
 
 
-def test_pickle_timeseries_periodindex():
+def test_pickle_timeseries_periodindex(temp_file):
     # GH#2891
     prng = period_range("1/1/2011", "1/1/2012", freq="M")
     ts = Series(np.random.default_rng(2).standard_normal(len(prng)), prng)
-    new_ts = tm.round_trip_pickle(ts)
+    new_ts = tm.round_trip_pickle(ts, temp_file)
     assert new_ts.index.freqstr == "M"
 
 
 @pytest.mark.parametrize(
     "name", [777, 777.0, "name", datetime.datetime(2001, 11, 11), (1, 2)]
 )
-def test_pickle_preserve_name(name):
-    unpickled = tm.round_trip_pickle(Series(np.arange(10, dtype=np.float64), name=name))
+def test_pickle_preserve_name(name, temp_file):
+    obj = Series(np.arange(10, dtype=np.float64), name=name)
+    unpickled = tm.round_trip_pickle(obj, temp_file)
     assert unpickled.name == name
 
 
-def test_pickle_datetimes(datetime_series):
-    unp_ts = tm.round_trip_pickle(datetime_series)
+def test_pickle_datetimes(datetime_series, temp_file):
+    unp_ts = tm.round_trip_pickle(datetime_series, temp_file)
     tm.assert_series_equal(unp_ts, datetime_series)
 
 
-def test_pickle_strings(string_series):
-    unp_series = tm.round_trip_pickle(string_series)
+def test_pickle_strings(string_series, temp_file):
+    unp_series = tm.round_trip_pickle(string_series, temp_file)
     tm.assert_series_equal(unp_series, string_series)
 
 
-def test_pickle_preserves_block_ndim():
+def test_pickle_preserves_block_ndim(temp_file):
     # GH#37631
     ser = Series(list("abc")).astype("category").iloc[[0]]
-    res = tm.round_trip_pickle(ser)
+    res = tm.round_trip_pickle(ser, temp_file)
 
     assert res._mgr.blocks[0].ndim == 1
     assert res._mgr.blocks[0].shape == (1,)

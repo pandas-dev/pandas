@@ -102,16 +102,16 @@ class TestConversion:
 
 
 class TestRoundTrips:
-    def test_pickle_roundtrip(self, index):
-        result = tm.round_trip_pickle(index)
+    def test_pickle_roundtrip(self, index, temp_file):
+        result = tm.round_trip_pickle(index, temp_file)
         tm.assert_index_equal(result, index, exact=True)
         if result.nlevels > 1:
             # GH#8367 round-trip with timezone
             assert index.equal_levels(result)
 
-    def test_pickle_preserves_name(self, index):
+    def test_pickle_preserves_name(self, index, temp_file):
         original_name, index.name = index.name, "foo"
-        unpickled = tm.round_trip_pickle(index)
+        unpickled = tm.round_trip_pickle(index, temp_file)
         assert index.equals(unpickled)
         index.name = original_name
 
