@@ -16,6 +16,7 @@ from typing import (
     final,
     overload,
 )
+import warnings
 
 import numpy as np
 
@@ -28,7 +29,10 @@ from pandas._libs.json import (
 )
 from pandas._libs.tslibs import iNaT
 from pandas.compat._optional import import_optional_dependency
-from pandas.errors import AbstractMethodError
+from pandas.errors import (
+    AbstractMethodError,
+    OutOfBoundsDatetime,
+)
 from pandas.util._decorators import (
     doc,
     set_module,
@@ -1309,18 +1313,47 @@ class Parser:
             if not in_range.all():
                 return data
 
-        date_units = (self.date_unit,) if self.date_unit else self._STAMP_UNITS
-        for date_unit in date_units:
-            try:
-                # In case of multiple possible units, infer the likely unit
-                # based on the first unit for which the parsed dates fit
-                # within the nanoseconds bounds
-                # -> do as_unit cast to ensure OutOfBounds error
-                return to_datetime(new_data, errors="raise", unit=date_unit).dt.as_unit(
-                    "ns"
-                )
-            except (ValueError, OverflowError, TypeError):
-                continue
+        if new_data.dtype == "object":
+            with warnings.catch_warnings():
+                # ignore "Could not infer format" warnings from to_datetime
+                # which is incorrectly raised for non-date strings
+                warnings.simplefilter("ignore", UserWarning)
+                for format in (None, "iso8601", "mixed"):
+                    try:
+                        return to_datetime(new_data, errors="raise", format=format)
+                    except Exception:
+                        pass
+        else:
+            # TODO this if block can be removed when to_datetime handles this
+            # currently tries to convert floats consisting of ints with NaN
+            # to int64 for consistent behaviour with integers
+            if issubclass(new_data.dtype.type, np.floating):
+                mask = isna(new_data._values)
+                if mask.any():
+                    new_data_int = new_data.copy()
+                    new_data_int._values[mask] = iNaT
+                    try:
+                        new_data_int = new_data_int.astype("int64")
+                        assert ((new_data_int == new_data) | mask).all()
+                    except Exception:
+                        pass
+                    else:
+                        new_data = new_data_int
+
+            date_units = (self.date_unit,) if self.date_unit else self._STAMP_UNITS
+            for date_unit in date_units:
+                try:
+                    # In case of multiple possible units, infer the likely unit
+                    # based on the first unit for which the parsed dates fit
+                    # within the nanoseconds bounds
+                    # -> do as_unit cast to ensure OutOfBounds error
+                    data = to_datetime(new_data, errors="raise", unit=date_unit)
+                    _ = data.dt.as_unit("ns")
+                    break
+                except OutOfBoundsDatetime:
+                    continue
+                except (ValueError, OverflowError, TypeError):
+                    pass
         return data
 
 
