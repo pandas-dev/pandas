@@ -963,7 +963,6 @@ def read_xml(
         decompression using a custom compression dictionary:
         ``compression={'method': 'zstd', 'dict_data': my_compression_dict}``.
 
-
     storage_options : dict, optional
         Extra options that make sense for a particular storage connection,
         e.g. host, port, username, password, etc. For HTTP(S) URLs the
