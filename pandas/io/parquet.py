@@ -24,6 +24,8 @@ from pandas.errors import (
 from pandas.util._decorators import set_module
 from pandas.util._validators import check_dtype_backend
 
+from pandas.core.dtypes.common import is_file_like
+
 from pandas import (
     DataFrame,
     get_option,
@@ -664,6 +666,13 @@ def read_parquet(
     0    3    8
     1    4    9
     """
+    # gh-62922: validate path type early to match documented API expectations
+    # and provide a consistent, clear user error immediately.
+    if not (isinstance(path, (str, os.PathLike)) or is_file_like(path)):
+        raise TypeError(
+            f"read_parquet expected str/os.PathLike or file-like object, "
+            f"got {type(path).__name__} type"
+        )
 
     impl = get_engine(engine)
     check_dtype_backend(dtype_backend)
