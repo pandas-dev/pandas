@@ -962,6 +962,118 @@ class TestIndex:
         result = expected.get_level_values(level)
         tm.assert_index_equal(result, expected)
 
+    def test_get_level_values_boolean_name(self):
+        # GH#62175
+        idx = Index([1, 2, 3], name=True)
+        result = idx.get_level_values(True)
+        tm.assert_index_equal(result, idx)
+
+        idx = Index([1, 2, 3], name=False)
+        result = idx.get_level_values(False)
+        tm.assert_index_equal(result, idx)
+
+        idx = Index([1, 2, 3], name=True)
+        msg = r"Requested level \(False\) does not match index name \(True\)"
+        with pytest.raises(KeyError, match=msg):
+            idx.get_level_values(False)
+
+        msg = r"Too many levels: Index has only 1 level"
+        with pytest.raises(IndexError, match=msg):
+            idx.get_level_values(1)
+
+    def test_get_level_values_na_types(self):
+        # GH#62175
+        idx = Index([1, 2, 3], name=pd.NA)
+        result = idx.get_level_values(pd.NA)
+        tm.assert_index_equal(result, idx)
+
+        msg = r"Requested level \(.+\) does not match index name \(.+\)"
+        with pytest.raises(KeyError, match=msg):
+            idx.get_level_values(np.nan)
+
+        with pytest.raises(KeyError, match=msg):
+            idx.get_level_values(None)
+
+        idx = Index([1, 2, 3], name=np.nan)
+        result = idx.get_level_values(np.nan)
+        tm.assert_index_equal(result, idx)
+
+        with pytest.raises(KeyError, match=msg):
+            idx.get_level_values(pd.NA)
+
+        with pytest.raises(KeyError, match=msg):
+            idx.get_level_values(None)
+
+        idx = Index([1, 2, 3], name=None)
+        result = idx.get_level_values(0)
+        tm.assert_index_equal(result, idx)
+
+        result = idx.get_level_values(-1)
+        tm.assert_index_equal(result, idx)
+
+        with pytest.raises(KeyError, match=msg):
+            idx.get_level_values(pd.NA)
+
+        with pytest.raises(KeyError, match=msg):
+            idx.get_level_values(np.nan)
+
+        idx = Index([1, 2, 3], name=pd.NaT)
+        result = idx.get_level_values(pd.NaT)
+        tm.assert_index_equal(result, idx)
+
+        with pytest.raises(KeyError, match=msg):
+            idx.get_level_values(np.nan)
+
+        with pytest.raises(KeyError, match=msg):
+            idx.get_level_values(pd.NA)
+
+    def test_get_level_values_integer_name_vs_position(self):
+        # GH#62175
+        idx = Index([1, 2, 3], name=0)
+        result = idx.get_level_values(0)
+        tm.assert_index_equal(result, idx)
+
+        result = idx.get_level_values(-1)
+        tm.assert_index_equal(result, idx)
+
+        idx = Index([1, 2, 3], name=5)
+        result = idx.get_level_values(5)
+        tm.assert_index_equal(result, idx)
+
+        result = idx.get_level_values(0)
+        tm.assert_index_equal(result, idx)
+
+        msg = r"Too many levels: Index has only 1 level, not 2"
+        with pytest.raises(IndexError, match=msg):
+            idx.get_level_values(1)
+
+        msg = r"Too many levels: Index has only 1 level, not 1"
+        with pytest.raises(IndexError, match=msg):
+            idx.get_level_values(-2)
+
+    def test_get_level_values_error_messages(self):
+        # GH#62175
+        idx = Index([1, 2, 3], name="foo")
+
+        msg = r"Requested level \(bar\) does not match index name \(foo\)"
+        with pytest.raises(KeyError, match=msg):
+            idx.get_level_values("bar")
+
+        msg = r"Too many levels: Index has only 1 level, not 2"
+        with pytest.raises(IndexError, match=msg):
+            idx.get_level_values(1)
+
+        msg = r"Too many levels: Index has only 1 level, not 1"
+        with pytest.raises(IndexError, match=msg):
+            idx.get_level_values(-2)
+
+        msg = r"Requested level \(.+\) does not match index name \(foo\)"
+        with pytest.raises(KeyError, match=msg):
+            idx.get_level_values(pd.NA)
+
+        with pytest.raises(KeyError, match=msg):
+            idx.get_level_values(np.nan)
+
     def test_slice_keep_name(self):
         index = Index(["a", "b"], name="asdf")
         assert index.name == index[1:].name

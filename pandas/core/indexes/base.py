@@ -39,6 +39,7 @@ from pandas._libs.lib import (
     is_datetime_array,
     no_default,
 )
+from pandas._libs.missing import is_matching_na
 from pandas._libs.tslibs import (
     OutOfBoundsDatetime,
     Timestamp,
@@ -2129,6 +2130,30 @@ class Index(IndexOpsMixin, PandasObject):
         return self
 
     @final
+    def _validate_positional_level(self, level: int) -> None:
+        """
+        Validate that level is 0 or -1 for single-level Index.
+
+        Parameters
+        ----------
+        level : int
+            The positional level to validate.
+
+        Raises
+        ------
+        IndexError
+            If level is not 0 or -1.
+        """
+        if level < 0 and level != -1:
+            raise IndexError(
+                f"Too many levels: Index has only 1 level, not {level + 1}"
+            )
+        elif level > 0:
+            raise IndexError(
+                f"Too many levels: Index has only 1 level, not {level + 1}"
+            )
+
+    @final
     def _validate_index_level(self, level) -> None:
         """
         Validate index level.
@@ -2137,20 +2162,58 @@ class Index(IndexOpsMixin, PandasObject):
         verification must be done like in MultiIndex.
 
         """
-        if isinstance(level, int):
-            if level < 0 and level != -1:
-                raise IndexError(
-                    "Too many levels: Index has only 1 level, "
-                    f"{level} is not a valid level number"
-                )
-            if level > 0:
-                raise IndexError(
-                    f"Too many levels: Index has only 1 level, not {level + 1}"
-                )
-        elif level != self.name:
+        level_is_na = isna(level)
+        name_is_na = isna(self.name)
+
+        if level_is_na and name_is_na:
+            if is_matching_na(level, self.name):
+                return
             raise KeyError(
                 f"Requested level ({level}) does not match index name ({self.name})"
             )
+
+        if level_is_na:
+            raise KeyError(
+                f"Requested level ({level}) does not match index name ({self.name})"
+            )
+
+        if name_is_na:
+            if lib.is_integer(level):
+                self._validate_positional_level(level)
+                return
+            raise KeyError(
+                f"Requested level ({level}) does not match index name ({self.name})"
+            )
+
+        if isinstance(level, bool) and isinstance(self.name, bool):
+            if level == self.name:
+                return
+            raise KeyError(
+                f"Requested level ({level}) does not match index name ({self.name})"
+            )
+
+        if lib.is_integer(level):
+            if (
+                isinstance(self.name, int)
+                and not isinstance(self.name, bool)
+                and level == self.name
+            ):
+                return
+
+            self._validate_positional_level(level)
+            return
+
+        if isinstance(self.name, bool):
+            raise KeyError(
+                f"Requested level ({level}) does not match index name ({self.name})"
+            )
+
+        if level == self.name:
+            return
+
+        raise KeyError(
+            f"Requested level ({level}) does not match index name ({self.name})"
+        )
 
     def _get_level_number(self, level) -> int:
         self._validate_index_level(level)
