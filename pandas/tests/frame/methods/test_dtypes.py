@@ -1,7 +1,7 @@
-from datetime import timedelta
-
 import numpy as np
 import pytest
+
+pa = pytest.importorskip("pyarrow")
 
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
@@ -139,3 +139,41 @@ class TestDataFrameDataTypes:
         result = df.apply(lambda col: np.array("bar"))
         expected = Series(np.array("bar"))
         tm.assert_series_equal(result, expected)
+
+    def test_apply_axis_columns_pyarrow_backend_does_not_preserve_arrowdtype(self):
+    # GH#63317
+        df = DataFrame(
+        {
+            "year": [2020, 2021, 2022],
+            "make": ["Ford", "Toyota", "Honda"],
+            "city08": [20, 30, 25],
+            "highway08": [30, 40, 35],
+        }
+        ).convert_dtypes(dtype_backend="pyarrow")
+
+        result = df.apply(
+        lambda row: (row["city08"] + row["highway08"]) / 2,
+        axis="columns",
+        )
+
+    # Row-wise UDF apply returns Python / NumPy scalars, so the result
+    # dtype is inferred from those scalars and does not preserve the
+    # pyarrow-backed dtype backend.
+        assert result.dtype == "float64"
+        assert not isinstance(result.dtype, pd.ArrowDtype)
+
+
+    def test_apply_named_reduction_pyarrow_backend_preserved(self):
+    # GH#63317 - contrast with a known reduction
+        df = DataFrame(
+        {
+            "city08": [20, 30, 25],
+            "highway08": [30, 40, 35],
+        }
+        ).convert_dtypes(dtype_backend="pyarrow")
+
+        result = df.apply("mean", axis="columns")
+
+    # For a named reduction, pandas knows the operation ahead of time
+    # and can keep a pyarrow-backed result.
+        assert isinstance(result.dtype, pd.ArrowDtype)
