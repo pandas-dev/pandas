@@ -1165,3 +1165,17 @@ def test_to_html_empty_complex_array():
         "</table>"
     )
     assert result == expected
+
+
+def test_to_html_datetime_columns_no_time():
+    # GH 10640
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((5, 2)),
+        columns=["a", "b"],
+        index=pd.to_datetime(
+            ["2015-01-05", "2015-01-04", "2015-01-03", "2015-01-02", "2015-01-01"]
+        ),
+    )
+    result = df.T.to_html()
+    assert "2015-01-05 00:00:00" not in result
+    assert "2015-01-05" in result
