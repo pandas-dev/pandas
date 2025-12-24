@@ -2962,8 +2962,7 @@ class MultiIndex(Index):
         # error: Item "Hashable" of "Union[Hashable, Sequence[Hashable]]" has
         # no attribute "__iter__" (not iterable)
         level = [
-            self._get_level_number(lev)
-            for lev in level  # type: ignore[union-attr]
+            self._get_level_number(lev) for lev in level  # type: ignore[union-attr]
         ]
         sortorder = None
 
@@ -3271,52 +3270,42 @@ class MultiIndex(Index):
         else:
             return level_index.get_loc(key)
 
-    def get_loc(self, key):
+    def get_loc(self, key, method=None):
         """
-        Get location for a label or a tuple of labels. The location is returned \
-        as an integer/slice or boolean mask.
-
-        This method returns the integer location, slice object, or boolean mask
-        corresponding to the specified key, which can be a single label or a tuple
-        of labels. The key represents a position in the MultiIndex, and the location
-        indicates where the key is found within the index.
+        Get location for a label or a tuple of labels.
 
         Parameters
         ----------
         key : label or tuple of labels (one for each level)
-            A label or tuple of labels that correspond to the levels of the MultiIndex.
-            The key must match the structure of the MultiIndex.
+        The key to locate.
+        method : str or None, optional
+        Method for getting the location (see Index.get_loc).
 
         Returns
         -------
-        int, slice object or boolean mask
-            If the key is past the lexsort depth, the return may be a
-            boolean mask array, otherwise it is always a slice or int.
-
-        See Also
-        --------
-        Index.get_loc : The get_loc method for (single-level) index.
-        MultiIndex.slice_locs : Get slice location given start label(s) and
-                                end label(s).
-        MultiIndex.get_locs : Get location for a label/slice/list/mask or a
-                              sequence of such.
-
-        Notes
-        -----
-        The key cannot be a slice, list of same-level labels, a boolean mask,
-        or a sequence of such. If you want to use those, use
-        :meth:`MultiIndex.get_locs` instead.
-
-        Examples
-        --------
-        >>> mi = pd.MultiIndex.from_arrays([list("abb"), list("def")])
-
-        >>> mi.get_loc("b")
-        slice(1, 3, None)
-
-        >>> mi.get_loc(("b", "e"))
-        1
+        int, slice, or boolean mask
+        Location(s) of the key.
         """
+        # GH#55969: If key has np.datetime64 but level is object-dtype
+        # (python objects), strict lookups/binary search can fail.
+        # Convert to python objects to match.
+        if isinstance(key, tuple):
+            new_key = list(key)
+            modified = False
+            # Use strict=False as key len might be < levels len
+            for i, (k, level) in enumerate(zip(new_key, self.levels, strict=False)):
+                if isinstance(k, np.datetime64) and level.dtype == object:
+                    try:
+                        new_key[i] = k.item()
+                        modified = True
+                    except (ValueError, TypeError):
+                        pass
+            if modified:
+                key = tuple(new_key)
+
+        if method is not None:
+            return Index.get_loc(self, key, method=method)
+
         self._check_indexing_error(key)
 
         def _maybe_to_slice(loc):
