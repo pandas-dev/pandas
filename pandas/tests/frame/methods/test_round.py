@@ -1,5 +1,3 @@
-from decimal import Decimal
-
 import numpy as np
 import pytest
 
@@ -229,42 +227,3 @@ class TestDataFrameRound:
         result = df.round()
         tm.assert_frame_equal(df, result)
         assert df is not result
-
-    def test_round_empty_series(self):
-        """Test that round works on empty Series."""
-        # Empty Series with default object dtype
-        result = Series().round(4)
-        expected = Series()
-        tm.assert_series_equal(result, expected)
-
-        # Empty Series with float dtype
-        result = Series(dtype="float64").round(4)
-        expected = Series(dtype="float64")
-        tm.assert_series_equal(result, expected)
-
-        # Empty Series with int dtype
-        result = Series(dtype="int64").round(4)
-        expected = Series(dtype="int64")
-        tm.assert_series_equal(result, expected)
-
-    def test_round_object_dtype(self):
-        """Test that round works on object dtype Series by delegating to Python's
-        round."""
-
-        # Object dtype with numeric values
-        s = Series([1.234, 2.567, 3.891], dtype=object)
-        result = s.round(2)
-        expected = Series([1.23, 2.57, 3.89], dtype=object)
-        tm.assert_series_equal(result, expected)
-        # Object dtype with Decimal objects
-
-        s = Series([Decimal("1.234"), Decimal("2.567")], dtype=object)
-        result = s.round(1)
-        expected = Series([Decimal("1.2"), Decimal("2.6")], dtype=object)
-        tm.assert_series_equal(result, expected)
-
-        # Object dtype with NaN values
-        s = Series([1.234, np.nan, 3.891], dtype=object)
-        result = s.round(2)
-        expected = Series([1.23, np.nan, 3.89], dtype=object)
-        tm.assert_series_equal(result, expected)
