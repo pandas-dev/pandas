@@ -161,7 +161,7 @@ before-build = "PACKAGE_DIR={package} bash {package}/scripts/cibw_before_build.s
 # Repair wheel and inject SBOM (PEP 770)
 # auditwheel 6.5.0+ auto-generates SBOM for bundled .so files
 # Our script adds the vendored code SBOM on top of that
-repair-wheel-command = "python {package}/scripts/cibw_repair_wheel.py {wheel} {dest_dir}"
+repair-wheel-command = "python ./scripts/cibw_repair_wheel.py {wheel} {dest_dir}"
 
 [tool.cibuildwheel.windows]
 environment = {}
@@ -171,7 +171,7 @@ test-command = """
   python -c "import pandas as pd; \
   pd.test(extra_args=['--no-strict-data-files', '-m not clipboard and not single_cpu and not slow and not network and not db']);" \
   """
-repair-wheel-command = "python {package}/scripts/cibw_repair_wheel.py {wheel} {dest_dir}"
+repair-wheel-command = "python ./scripts/cibw_repair_wheel.py {wheel} {dest_dir}"
 
 [[tool.cibuildwheel.overrides]]
 select = "*-manylinux_aarch64*"
@@ -191,14 +191,14 @@ before-test = "apk update && apk add musl-locales"
 # https://github.com/MacPython/numpy-wheels/pull/87#issuecomment-624878264
 select = "*-macosx*"
 environment = {CFLAGS="-g0"}
-repair-wheel-command = "python {package}/scripts/cibw_repair_wheel.py {wheel} {dest_dir}"
+repair-wheel-command = "python ./scripts/cibw_repair_wheel.py {wheel} {dest_dir}"
 
 [[tool.cibuildwheel.overrides]]
 select = "*pyodide*"
 test-requires = "pytest>=8.3.4 hypothesis>=6.116.0"
 # Pyodide repairs wheels on its own, using auditwheel-emscripten
 # We just inject SBOM using the macos path (copy + inject, no repair tool)
-repair-wheel-command = "python {package}/scripts/cibw_repair_wheel.py {wheel} {dest_dir}"
+repair-wheel-command = "python ./scripts/cibw_repair_wheel.py {wheel} {dest_dir}"
 # https://github.com/pyodide/pyodide/issues/5805
 build-verbosity = 1
 test-command = """
