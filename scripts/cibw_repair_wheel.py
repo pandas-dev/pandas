@@ -165,6 +165,9 @@ def main() -> None:
 
     final_sbom = sbom_path.parent / "pandas.cdx.json"
     try:
+        print(
+            f"Running: {sys.executable} {sbom_script} {sbom_path} --version {version}"
+        )
         subprocess.run(
             [sys.executable, str(sbom_script), str(sbom_path), "--version", version],
             check=True,
