@@ -165,6 +165,42 @@ class TestReaders:
         df2 = pd.read_excel(tmp_excel, dtype={"bool_column": "boolean"})
         tm.assert_frame_equal(df, df2)
 
+    def test_read_excel_int_bool_mix_type_check(self, tmp_excel, read_ext):
+        # GH 60088
+        if read_ext in (".xlsb", ".xls"):
+            pytest.skip(f"No engine for filetype: '{read_ext}'")
+
+        df1 = DataFrame(
+            {
+                "a": [True, True],
+                "b": [1, True],
+                "c": [True, 1],
+                "d": [False, 0],
+                "e": [0, False],
+                "f": [False, False],
+            },
+            dtype=object,
+        )
+        df1.to_excel(tmp_excel, index=False)
+
+        df2 = pd.read_excel(tmp_excel, dtype=object)
+
+        tm.assert_frame_equal(df1, df2)
+
+        for idx, row in df2.iterrows():
+            for col in df2.columns:
+                val = row[col]
+                exp_val = df1.iloc[idx][col]
+                # Check if values match
+                assert val == exp_val, (
+                    f"Mismatch at Row {idx} Column {col}: {val} != {exp_val}"
+                )
+                # Check if types match
+                assert type(val) == type(exp_val), (
+                    f"Type mismatch at Row {idx} Column {col}: "
+                    f"{type(val)} != {type(exp_val)}"
+                )
+
     def test_pass_none_type(self, datapath):
         # GH 58159
         f_path = datapath("io", "data", "excel", "test_none_type.xlsx")
