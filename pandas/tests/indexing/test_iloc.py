@@ -87,7 +87,12 @@ class TestiLocBaseIndependent:
         df = frame.copy()
         orig_vals = df.values
 
-        indexer_li(df)[key, 0] = cat
+        msg = r"Setting `df.loc\[:, col\] = values` does \*not\* change"
+        err = None
+        if isinstance(key, slice) and key == slice(None):
+            err = UserWarning
+        with tm.assert_produces_warning(err, match=msg):
+            indexer_li(df)[key, 0] = cat
 
         expected = DataFrame({0: cat}).astype(object)
         assert np.shares_memory(df[0].values, orig_vals)
@@ -103,7 +108,8 @@ class TestiLocBaseIndependent:
         #  we retain the object dtype.
         frame = DataFrame({0: np.array([0, 1, 2], dtype=object), 1: range(3)})
         df = frame.copy()
-        indexer_li(df)[key, 0] = cat
+        with tm.assert_produces_warning(err, match=msg):
+            indexer_li(df)[key, 0] = cat
         expected = DataFrame({0: Series(cat.astype(object), dtype=object), 1: range(3)})
         tm.assert_frame_equal(df, expected)
 
@@ -1521,10 +1527,12 @@ class TestILocSeries:
     def test_iloc_nullable_int64_size_1_nan(self):
         # GH 31861
         result = DataFrame({"a": ["test"], "b": [np.nan]})
+        msg = r"Setting `df.loc\[:, col\] = values` does \*not\* change"
 
         ser = Series([NA], name="b", dtype="Int64")
         with pytest.raises(TypeError, match="Invalid value"):
-            result.loc[:, "b"] = ser
+            with tm.assert_produces_warning(UserWarning, match=msg):
+                result.loc[:, "b"] = ser
 
     def test_iloc_arrow_extension_array(self):
         # GH#61311
