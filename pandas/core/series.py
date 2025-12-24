@@ -1876,7 +1876,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Returns
         -------
         Series
-
         """
         pa = import_optional_dependency("pyarrow", min_version="14.0.0")
         if not isinstance(data, (pa.Array, pa.ChunkedArray)):
