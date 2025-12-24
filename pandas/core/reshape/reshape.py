@@ -234,7 +234,15 @@ class _Unstacker:
         self.group_index = comp_index
         self.mask = mask
         if self.sort:
-            self.compressor = comp_index.searchsorted(np.arange(ngroups))
+            from pandas.compat import PY314
+            from pandas.compat.numpy import np_version_gt2
+
+            # GH 63314: avoid searchsorted bug with py3.14 + numpy < 2.0
+            if PY314 and not np_version_gt2:
+                # use manual approach instead of buggy searchsorted
+                self.compressor = np.sort(np.unique(comp_index, return_index=True)[1])
+            else:
+                self.compressor = comp_index.searchsorted(np.arange(ngroups))
         else:
             self.compressor = np.sort(np.unique(comp_index, return_index=True)[1])
 
