@@ -19,7 +19,6 @@ if TYPE_CHECKING:
 
     from pandas._typing import (
         FilePath,
-        ReadPickleBuffer,
     )
 
     from pandas import (
@@ -31,9 +30,7 @@ if TYPE_CHECKING:
 # File-IO
 
 
-def round_trip_pickle(
-    obj: Any, path: FilePath | ReadPickleBuffer
-) -> DataFrame | Series:
+def round_trip_pickle(obj: Any, path: FilePath) -> DataFrame | Series:
     """
     Pickle an object and then read it again.
 
@@ -41,7 +38,7 @@ def round_trip_pickle(
     ----------
     obj : any object
         The object to pickle and then re-read.
-    path : str, path object or file-like object
+    path : str, path object
         The path where the pickled object is written and then read.
 
     Returns
