@@ -135,6 +135,19 @@ class TestDatetimeIndexEquals(EqualsTests):
         assert not idx.equals(oob2)
         assert not idx2.equals(oob2)
         assert not idx3.equals(oob2)
+        
+    def test_equals_different_units(self):
+        # GH#63459
+        idx1 = date_range("2013-01-01", periods=5).as_unit("ns")
+        idx2 = idx1.as_unit("us")
+        
+        assert idx1.equals(idx2) is True
+        assert idx2.equals(idx1) is True
+        
+        # Test with mismatching values but same units to ensure we don't 
+        # get false positives
+        idx3 = date_range("2013-01-02", periods=5).as_unit("us")
+        assert not idx1.equals(idx3)
 
     @pytest.mark.parametrize("freq", ["B", "C"])
     def test_not_equals_bday(self, freq):
@@ -183,3 +196,16 @@ class TestTimedeltaIndexEquals(EqualsTests):
         assert (oob3 == oob).all()
         assert not idx.equals(oob3)
         assert not idx2.equals(oob3)
+    
+    def test_equals_different_units(self):
+        # GH#63459
+        idx1 = timedelta_range("1 day", periods=10).as_unit("ns")
+        idx2 = idx1.as_unit("us")
+        
+        assert idx1.equals(idx2) is True
+        assert idx2.equals(idx1) is True
+
+        # Ensure that NaT equality still holds across units
+        idx3 = TimedeltaIndex(["1 days", "NaT"]).as_unit("ns")
+        idx4 = TimedeltaIndex(["1 days", "NaT"]).as_unit("us")
+        assert idx3.equals(idx4) is True
