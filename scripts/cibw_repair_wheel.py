@@ -140,8 +140,17 @@ def main() -> None:
     print(f"Platform: {sys.platform}")
     print(f"Destination: {args.dest_dir}")
 
+    # Check if this is a Pyodide wheel (built in Linux container but for wasm32)
+    wheel_name = args.wheel.name.lower()
+    is_pyodide = "pyodide" in wheel_name or "wasm32" in wheel_name
+
     # Step 1: Run platform-specific repair
-    if sys.platform == "linux":
+    if is_pyodide:
+        # Pyodide wheels are already repaired by auditwheel-emscripten
+        # Just copy and inject SBOM
+        print("Detected Pyodide wheel, skipping native repair")
+        repaired_wheel = repair_wheel_macos(args.wheel, args.dest_dir)
+    elif sys.platform == "linux":
         repaired_wheel = repair_wheel_linux(args.wheel, args.dest_dir)
     elif sys.platform in ["win32", "cygwin"]:
         repaired_wheel = repair_wheel_windows(args.wheel, args.dest_dir)
