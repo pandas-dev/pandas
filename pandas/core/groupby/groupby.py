@@ -1250,7 +1250,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             return result
 
         # row order is scrambled => sort the rows by position in original index
-        original_positions = Index(self._grouper.result_ilocs)
+        original_positions = Index(self._grouper.result_ilocs, copy=False)
         result = result.set_axis(original_positions, axis=0)
         result = result.sort_index(axis=0)
         if self._grouper.has_dropped_na:
@@ -1298,7 +1298,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 if qs is None:
                     result.insert(0, name, lev)
                 else:
-                    result.insert(0, name, Index(np.repeat(lev, len(qs))))
+                    result.insert(0, name, Index(np.repeat(lev, len(qs)), copy=False))
 
         return result
 
@@ -4392,7 +4392,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 # error: No overload variant of "where" matches argument types
                 #        "Any", "NAType", "Any"
                 values = np.where(nulls, NA, grouper)  # type: ignore[call-overload]
-                grouper = Index(values, dtype="Int64")
+                grouper = Index(values, dtype="Int64", copy=False)
 
         grb = dropped.groupby(grouper, as_index=self.as_index, sort=self.sort)
         return grb.nth(n)
@@ -5806,7 +5806,7 @@ def _insert_quantile_level(idx: Index, qs: npt.NDArray[np.float64]) -> MultiInde
     MultiIndex
     """
     nqs = len(qs)
-    lev_codes, lev = Index(qs).factorize()
+    lev_codes, lev = Index(qs, copy=False).factorize()
     lev_codes = coerce_indexer_dtype(lev_codes, lev)
 
     if idx._is_multi:
