@@ -30,6 +30,7 @@ from pandas._libs.tslibs import (
 import pandas._libs.window.aggregations as window_aggregations
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import DataError
+from pandas.util._validators import validate_bool_kwarg
 from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.common import (
@@ -238,6 +239,16 @@ class BaseWindow(SelectionMixin):
         numeric_only : bool
             Value passed by user.
         """
+        # validate numeric_only argument type
+        # Deprecate passing None to numeric_only: warn now, error in a future
+        # release. See GH#53098.
+        from pandas.util._validators import deprecate_numeric_only_none
+
+        deprecate_numeric_only_none(numeric_only, "numeric_only")
+        validate_bool_kwarg(
+            numeric_only, "numeric_only", none_allowed=True, int_allowed=False
+        )
+
         if (
             self._selected_obj.ndim == 1
             and numeric_only

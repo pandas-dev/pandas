@@ -69,6 +69,7 @@ from pandas.util._decorators import (
     doc,
 )
 from pandas.util._exceptions import find_stack_level
+from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
     coerce_indexer_dtype,
@@ -1793,8 +1794,15 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         # Note: we never get here with how="ohlc" for DataFrameGroupBy;
         #  that goes through SeriesGroupBy
 
-        if not is_bool(numeric_only):
-            raise ValueError("numeric_only accepts only Boolean values")
+        # validate numeric_only is strictly a bool (disallow None, ints, etc.)
+        # Deprecate passing None to numeric_only: warn now, error in a future
+        # release. See GH#53098.
+        from pandas.util._validators import deprecate_numeric_only_none
+
+        deprecate_numeric_only_none(numeric_only, "numeric_only")
+        validate_bool_kwarg(
+            numeric_only, "numeric_only", none_allowed=True, int_allowed=False
+        )
 
         data = self._get_data_to_aggregate(numeric_only=numeric_only, name=how)
 
