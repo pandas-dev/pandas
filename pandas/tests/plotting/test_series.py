@@ -1003,3 +1003,18 @@ class TestSeriesPlots:
         x_limits = ax.get_xlim()
         assert x_limits[0] <= bar_xticks[0].get_position()[0]
         assert x_limits[1] >= bar_xticks[-1].get_position()[0]
+
+    def test_tseries_plot_dst_transition(self):
+        """
+        Test that plotting tz-aware timeseries works during DST fall-back transition.
+        """
+        # GH62936
+        tind = date_range(
+            "2025-10-26T00:00:00Z",
+            "2025-10-26T03:00:00Z",
+            freq="5min",
+            tz="utc",
+        ).tz_convert("MET")[12:]
+
+        myts = DataFrame({"a": 1}, index=tind)
+        _check_plot_works(myts.plot)
