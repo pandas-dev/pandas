@@ -90,6 +90,7 @@ from pandas.core.dtypes.cast import (
     infer_dtype_from_scalar,
     invalidate_string_dtypes,
     maybe_downcast_to_dtype,
+    maybe_unbox_numpy_scalar,
 )
 from pandas.core.dtypes.common import (
     infer_dtype_from_object,
@@ -10082,11 +10083,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         index_intersection = other.index.intersection(self.index)
         if index_intersection.empty:
-            raise ValueError(
-                "Update not allowed when the index on `other` has no intersection "
-                "with this dataframe."
-            )
-
+            return
         other = other.reindex(index_intersection)
         this_data = self.loc[index_intersection]
 
@@ -12828,7 +12825,7 @@ class DataFrame(NDFrame, OpsMixin):
                 df = df.astype(dtype)
                 arr = concat_compat(list(df._iter_column_arrays()))
                 return arr._reduce(name, skipna=skipna, keepdims=False, **kwds)
-            return func(df.values)
+            return maybe_unbox_numpy_scalar(func(df.values))
         elif axis == 1:
             if len(df.index) == 0:
                 # Taking a transpose would result in no columns, losing the dtype.

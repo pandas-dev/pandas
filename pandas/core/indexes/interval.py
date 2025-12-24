@@ -40,6 +40,7 @@ from pandas.core.dtypes.cast import (
     infer_dtype_from_scalar,
     maybe_box_datetimelike,
     maybe_downcast_numeric,
+    maybe_unbox_numpy_scalar,
     maybe_upcast_numeric_to_64bit,
 )
 from pandas.core.dtypes.common import (
@@ -691,7 +692,7 @@ class IntervalIndex(ExtensionIndex):
                 key_i8 = key_i8.view("i8")
         else:
             # DatetimeIndex/TimedeltaIndex
-            key_dtype, key_i8 = key.dtype, Index(key.asi8)
+            key_dtype, key_i8 = key.dtype, Index(key.asi8, copy=False)
             if key.hasnans:
                 # convert NaT from its i8 value to np.nan so it's not viewed
                 # as a valid value, maybe causing errors (e.g. is_overlapping)
@@ -812,7 +813,7 @@ class IntervalIndex(ExtensionIndex):
         if matches == 0:
             raise KeyError(key)
         if matches == 1:
-            return mask.argmax()
+            return maybe_unbox_numpy_scalar(mask.argmax())
 
         res = lib.maybe_booleans_to_slice(mask.view("u1"))
         if isinstance(res, slice) and res.stop is None:
