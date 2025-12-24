@@ -87,13 +87,13 @@ if TYPE_CHECKING:
 
 @overload
 def read_excel(
-    io,
+    io: Any,
     # sheet name is str or int -> DataFrame
     sheet_name: str | int = ...,
     *,
     header: int | Sequence[int] | None = ...,
     names: SequenceNotStr[Hashable] | range | None = ...,
-    index_col: int | str | Sequence[int] | None = ...,
+    index_col: int | Sequence[int] | None = ...,
     usecols: int
     | str
     | Sequence[int]
@@ -102,16 +102,18 @@ def read_excel(
     | None = ...,
     dtype: DtypeArg | None = ...,
     engine: Literal["xlrd", "openpyxl", "odf", "pyxlsb", "calamine"] | None = ...,
-    converters: dict[str, Callable] | dict[int, Callable] | None = ...,
+    converters: dict[str, Callable[..., Any]] \
+                | dict[int, Callable[..., Any]] \
+                | None = ...,
     true_values: Iterable[Hashable] | None = ...,
     false_values: Iterable[Hashable] | None = ...,
     skiprows: Sequence[int] | int | Callable[[int], object] | None = ...,
     nrows: int | None = ...,
-    na_values=...,
+    na_values: Any =...,
     keep_default_na: bool = ...,
     na_filter: bool = ...,
     verbose: bool = ...,
-    parse_dates: list | dict | bool = ...,
+    parse_dates: list[Any] | dict[Any, Any] | bool = ...,
     date_format: dict[Hashable, str] | str | None = ...,
     thousands: str | None = ...,
     decimal: str = ...,
@@ -124,13 +126,13 @@ def read_excel(
 
 @overload
 def read_excel(
-    io,
+    io: Any,
     # sheet name is list or None -> dict[IntStrT, DataFrame]
     sheet_name: list[IntStrT] | None,
     *,
     header: int | Sequence[int] | None = ...,
     names: SequenceNotStr[Hashable] | range | None = ...,
-    index_col: int | str | Sequence[int] | None = ...,
+    index_col: int | Sequence[int] | None = ...,
     usecols: int
     | str
     | Sequence[int]
@@ -139,16 +141,18 @@ def read_excel(
     | None = ...,
     dtype: DtypeArg | None = ...,
     engine: Literal["xlrd", "openpyxl", "odf", "pyxlsb", "calamine"] | None = ...,
-    converters: dict[str, Callable] | dict[int, Callable] | None = ...,
+    converters: dict[str, Callable[..., Any]] \
+                | dict[int, Callable[..., Any]] \
+                | None = ...,
     true_values: Iterable[Hashable] | None = ...,
     false_values: Iterable[Hashable] | None = ...,
     skiprows: Sequence[int] | int | Callable[[int], object] | None = ...,
     nrows: int | None = ...,
-    na_values=...,
+    na_values: Any =...,
     keep_default_na: bool = ...,
     na_filter: bool = ...,
     verbose: bool = ...,
-    parse_dates: list | dict | bool = ...,
+    parse_dates: list[Any] | dict[Any, Any] | bool = ...,
     date_format: dict[Hashable, str] | str | None = ...,
     thousands: str | None = ...,
     decimal: str = ...,
@@ -161,12 +165,12 @@ def read_excel(
 
 @set_module("pandas")
 def read_excel(
-    io,
+    io: Any,
     sheet_name: str | int | list[IntStrT] | None = 0,
     *,
     header: int | Sequence[int] | None = 0,
     names: SequenceNotStr[Hashable] | range | None = None,
-    index_col: int | str | Sequence[int] | None = None,
+    index_col: int | Sequence[int] | None = None,
     usecols: int
     | str
     | Sequence[int]
@@ -175,16 +179,18 @@ def read_excel(
     | None = None,
     dtype: DtypeArg | None = None,
     engine: Literal["xlrd", "openpyxl", "odf", "pyxlsb", "calamine"] | None = None,
-    converters: dict[str, Callable] | dict[int, Callable] | None = None,
+    converters: dict[str, Callable[..., Any]] \
+                | dict[int, Callable[..., Any]] \
+                | None = None,
     true_values: Iterable[Hashable] | None = None,
     false_values: Iterable[Hashable] | None = None,
     skiprows: Sequence[int] | int | Callable[[int], object] | None = None,
     nrows: int | None = None,
-    na_values=None,
+    na_values: Any = None,
     keep_default_na: bool = True,
     na_filter: bool = True,
     verbose: bool = False,
-    parse_dates: list | dict | bool = False,
+    parse_dates: list[Any] | dict[Any, Any] | bool = False,
     date_format: dict[Hashable, str] | str | None = None,
     thousands: str | None = None,
     decimal: str = ".",
@@ -192,7 +198,7 @@ def read_excel(
     skipfooter: int = 0,
     storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
-    engine_kwargs: dict | None = None,
+    engine_kwargs: dict[Any, Any] | None = None,
 ) -> DataFrame | dict[IntStrT, DataFrame]:
     """
     Read an Excel file into a ``DataFrame``.
@@ -1629,7 +1635,7 @@ class ExcelFile:
 
     def parse(
         self,
-        sheet_name: str | int | list[int] | list[str] | None = 0,
+        sheet_name: str | int | list[IntStrT] | None = 0,
         header: int | Sequence[int] | None = 0,
         names: SequenceNotStr[Hashable] | range | None = None,
         index_col: int | Sequence[int] | None = None,
@@ -1647,7 +1653,7 @@ class ExcelFile:
         skipfooter: int = 0,
         dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
         **kwds,
-    ) -> DataFrame | dict[str, DataFrame] | dict[int, DataFrame]:
+    ) -> DataFrame | dict[IntStrT, DataFrame]:
         """
         Parse specified sheet(s) into a DataFrame.
 
