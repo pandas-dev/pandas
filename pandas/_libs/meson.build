@@ -133,6 +133,7 @@ libs_sources = {
     'reshape': {'sources': ['reshape.pyx']},
     'sas': {'sources': ['sas.pyx']},
     'byteswap': {'sources': ['byteswap.pyx']},
+    'double_double': {'sources': ['double_double.pyx']},
     'sparse': {'sources': ['sparse.pyx', _sparse_op_helper]},
     'tslib': {'sources': ['tslib.pyx']},
     'testing': {'sources': ['testing.pyx']},
