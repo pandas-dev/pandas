@@ -1329,7 +1329,7 @@ class Parser:
             # to int64 for consistent behaviour with integers
             if issubclass(new_data.dtype.type, np.floating):
                 mask = isna(new_data._values)
-                if mask.any():
+                if mask.any():  # type: ignore[attr-defined]
                     new_data_int = new_data.copy()
                     new_data_int._values[mask] = iNaT
                     try:
