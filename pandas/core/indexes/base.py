@@ -281,6 +281,16 @@ def _maybe_return_indexers(meth: F) -> F:
         sort: bool = False,
     ):
         join_index, lidx, ridx = meth(self, other, how=how, level=level, sort=sort)
+
+        # Preserve StringDtype on left join without overlap
+        if (
+            how == "left"
+            and isinstance(self.dtype, StringDtype)
+            and not isinstance(other.dtype, StringDtype)
+            and join_index.equals(self)
+        ):
+            join_index = join_index.astype(self.dtype)
+
         if not return_indexers:
             return join_index
 
