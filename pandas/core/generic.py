@@ -6376,6 +6376,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             timezone-aware dtype will raise an exception.
             Use :meth:`Series.dt.tz_localize` instead.
 
+            Using ``astype`` with a dtype dictionary may be slow when
+            type safety is already ensured.
+            Use :meth:`pandas.DataFrame.assign` instead.
+
         Examples
         --------
         Create a DataFrame:
@@ -6511,6 +6515,23 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         result = self._constructor(result)  # type: ignore[assignment]
         result.columns = self.columns
         result = result.__finalize__(self, method="astype")
+        if isinstance(dtype, dict) and hasattr(result, "_mgr"):
+            try:
+                mgr = result._mgr
+                current_blocks = len(mgr.blocks)
+                total_cols = len(self.columns)
+                # only when the number of blocks explode do this
+                if current_blocks == total_cols and total_cols > 5:
+                    mgr._consolidate_inplace()
+
+            except Exception as e:
+                import warnings
+
+                warnings.warn(
+                    f"astype block consolidation failed: {type(e).__name__}",
+                    UserWarning,
+                    stacklevel=2,
+                )
         # https://github.com/python/mypy/issues/8354
         return cast(Self, result)
 
