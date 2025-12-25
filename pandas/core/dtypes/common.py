@@ -1886,7 +1886,6 @@ def pandas_dtype(dtype) -> DtypeObj:
     except TypeError:
         raise
     except Exception as err:
-        # np.dtype uses `eval` which can raise SyntaxError
         raise TypeError(f"data type '{dtype}' not understood") from err
 
     # Any invalid dtype (such as pd.Timestamp) should raise an error.
