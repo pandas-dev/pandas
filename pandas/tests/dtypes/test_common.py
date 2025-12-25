@@ -713,7 +713,7 @@ def test_get_dtype(input_param, result):
         (pd.DataFrame([1, 2]), "data type not understood"),
         (
             np.typing.NDArray[np.float32],
-            "data type not understood|Cannot interpret.*numpy.ndarray.*as a data type",
+            "data type not understood|Cannot interpret.*NDArray.*as a data type",
         ),
     ],
 )
