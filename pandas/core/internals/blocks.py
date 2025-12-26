@@ -652,11 +652,10 @@ class Block(PandasObject, libinternals.Block):
     # ---------------------------------------------------------------------
     # Copy-on-Write Helpers
 
-    def _maybe_copy(self, inplace: bool) -> Self:
+    def _maybe_copy(self, inplace: bool, deep: bool = True) -> Self:
         if inplace and not self.refs.has_reference():
-            # TODO(CoW) should we avoid the view taken in a shallow copy?
-            return self.copy(deep=False)
-        return self.copy(deep=True)
+            return self
+        return self.copy(deep=deep)
 
     @final
     def _get_refs_and_copy(self, inplace: bool):
@@ -696,14 +695,14 @@ class Block(PandasObject, libinternals.Block):
             #  replacing it is a no-op.
             # Note: If to_replace were a list, NDFrame.replace would call
             #  replace_list instead of replace.
-            return [self.copy(deep=False)]
+            return [self._maybe_copy(inplace, deep=False)]
 
         if mask is None:
             mask = missing.mask_missing(values, to_replace)
         if not mask.any():
             # Note: we get here with test_replace_extension_other incorrectly
             #  bc _can_hold_element is incorrect.
-            return [self.copy(deep=False)]
+            return [self._maybe_copy(inplace, deep=False)]
 
         elif self._can_hold_element(value) or (self.dtype == "string" and is_re(value)):
             # TODO(CoW): Maybe split here as well into columns where mask has True
@@ -868,7 +867,7 @@ class Block(PandasObject, libinternals.Block):
                     for b in result:
                         if b.refs is self.refs:
                             # We are still sharing memory with self
-                            if id(b) in self_blk_ids:
+                            if id(b) in self_blk_ids and b is not self:
                                 # Remove ourselves from the refs; we are temporary
                                 self.refs.referenced_blocks.pop(self_blk_ids[id(b)])
                         else:
