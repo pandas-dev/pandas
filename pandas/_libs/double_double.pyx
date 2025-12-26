@@ -36,6 +36,10 @@ cdef inline void two_sum(
 # DoubleDouble Class
 # ---------------------------------------------------------------------------
 
+# Theoretically we could support float128 on all platforms with this
+# I do not wish to open that pandora's box just yet
+# !Therefore, all DD x DD ops are NOT IMPLEMENTED
+# ?Actually, could cause awkward usage, tbd
 cdef class DoubleDouble:
     """
     Double-double floating point number.
@@ -45,7 +49,7 @@ cdef class DoubleDouble:
 
     Parameters
     ----------
-    hi : float
+    hi : float, default 0.0
         High-order component.
     lo : float, default 0.0
         Low-order component.
@@ -54,7 +58,7 @@ cdef class DoubleDouble:
         public double hi
         public double lo
 
-    def __init__(self, double hi, double lo=0.0):
+    def __init__(self, double hi = 0.0, double lo=0.0):
         self.hi = hi
         self.lo = lo
 
@@ -84,6 +88,10 @@ cdef class DoubleDouble:
             double s, e, v, res_hi, res_lo
 
         if isinstance(other, DoubleDouble):
+            # !Currently not allowed due to logistical complications
+            # return NotImplemented
+
+            # TODO JUST FOR TESTING
             a_hi = self.hi
             a_lo = self.lo
             b_hi = (<DoubleDouble>other).hi
@@ -97,7 +105,6 @@ cdef class DoubleDouble:
             return NotImplemented
 
         two_sum(a_hi, b_hi, &s, &e)
-
         # This is the 'sloppy' version due to this line
         # Could use two_sum here for more precision in future
         v = a_lo + b_lo + e
@@ -107,3 +114,36 @@ cdef class DoubleDouble:
 
     def __radd__(self, other):
         return self.__add__(other)
+
+    def __sub__(self, other):
+        cdef:
+            double a_hi, a_lo, b_hi, b_lo
+            double s, e, v, res_hi, res_lo
+
+        if isinstance(other, DoubleDouble):
+            # !Currently not allowed due to logistical complications
+            # return NotImplemented
+
+            # TODO JUST FOR TESTING
+            a_hi = self.hi
+            a_lo = self.lo
+            b_hi = -(<DoubleDouble>other).hi
+            b_lo = -(<DoubleDouble>other).lo
+        elif isinstance(other, (int, float)):
+            a_hi = self.hi
+            a_lo = self.lo
+            b_hi = -<double>other
+            b_lo = 0.0
+        else:
+            return NotImplemented
+
+        two_sum(a_hi, b_hi, &s, &e)
+        # This is the 'sloppy' version due to this line
+        # Could use two_sum here for more precision in future
+        v = a_lo + b_lo + e
+        two_sum(s, v, &res_hi, &res_lo)
+
+        return DoubleDouble(res_hi, res_lo)
+
+    def __rsub__(self, other):
+        return self.__sub__(other)
