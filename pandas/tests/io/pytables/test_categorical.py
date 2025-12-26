@@ -139,7 +139,7 @@ def test_categorical(tmp_path):
             store.select("df3/meta/s/meta")
 
 
-def test_categorical_conversion(tmp_path, setup_path):
+def test_categorical_conversion(temp_h5_path):
     # GH13322
     # Check that read_hdf with categorical columns doesn't return rows if
     # where criteria isn't met.
@@ -152,9 +152,8 @@ def test_categorical_conversion(tmp_path, setup_path):
 
     # We are expecting an empty DataFrame matching types of df
     expected = df.iloc[[], :]
-    path = tmp_path / setup_path
-    df.to_hdf(path, key="df", format="table", data_columns=True)
-    result = read_hdf(path, "df", where="obsids=B")
+    df.to_hdf(temp_h5_path, key="df", format="table", data_columns=True)
+    result = read_hdf(temp_h5_path, "df", where="obsids=B")
     tm.assert_frame_equal(result, expected)
 
     # Test with categories
@@ -163,13 +162,12 @@ def test_categorical_conversion(tmp_path, setup_path):
 
     # We are expecting an empty DataFrame matching types of df
     expected = df.iloc[[], :]
-    path = tmp_path / setup_path
-    df.to_hdf(path, key="df", format="table", data_columns=True)
-    result = read_hdf(path, "df", where="obsids=B")
+    df.to_hdf(temp_h5_path, key="df", format="table", data_columns=True)
+    result = read_hdf(temp_h5_path, "df", where="obsids=B")
     tm.assert_frame_equal(result, expected)
 
 
-def test_categorical_nan_only_columns(tmp_path, setup_path):
+def test_categorical_nan_only_columns(temp_h5_path):
     # GH18413
     # Check that read_hdf with categorical columns with NaN-only values can
     # be read back.
@@ -185,14 +183,13 @@ def test_categorical_nan_only_columns(tmp_path, setup_path):
     df["b"] = df.b.astype("category")
     df["d"] = df.b.astype("category")
     expected = df
-    path = tmp_path / setup_path
-    df.to_hdf(path, key="df", format="table", data_columns=True)
-    result = read_hdf(path, "df")
+    df.to_hdf(temp_h5_path, key="df", format="table", data_columns=True)
+    result = read_hdf(temp_h5_path, "df")
     tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("where, expected", [["q", []], ["a", ["a"]]])
-def test_convert_value(tmp_path, setup_path, where: str, expected):
+def test_convert_value(temp_h5_path, where: str, expected):
     # GH39420
     # Check that read_hdf with categorical columns can filter by where condition.
     df = DataFrame({"col": ["a", "b", "s"]})
@@ -203,7 +200,6 @@ def test_convert_value(tmp_path, setup_path, where: str, expected):
     expected.col = expected.col.astype("category")
     expected.col = expected.col.cat.set_categories(categorical_values)
 
-    path = tmp_path / setup_path
-    df.to_hdf(path, key="df", format="table", min_itemsize=max_widths)
-    result = read_hdf(path, where=f'col=="{where}"')
+    df.to_hdf(temp_h5_path, key="df", format="table", min_itemsize=max_widths)
+    result = read_hdf(temp_h5_path, where=f'col=="{where}"')
     tm.assert_frame_equal(result, expected)
