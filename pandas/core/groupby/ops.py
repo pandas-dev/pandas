@@ -730,7 +730,7 @@ class BaseGrouper:
     @cache_readonly
     def is_monotonic(self) -> bool:
         # return if my group orderings are monotonic
-        return Index(self.ids).is_monotonic_increasing
+        return Index(self.ids, copy=False).is_monotonic_increasing
 
     @final
     @cache_readonly
@@ -760,7 +760,9 @@ class BaseGrouper:
 
     @cache_readonly
     def result_index_and_ids(self) -> tuple[Index, npt.NDArray[np.intp]]:
-        levels = [Index._with_infer(ping.uniques) for ping in self.groupings]
+        levels = [
+            Index._with_infer(ping.uniques, copy=False) for ping in self.groupings
+        ]
         obs = [
             ping._observed or not ping._passed_categorical for ping in self.groupings
         ]

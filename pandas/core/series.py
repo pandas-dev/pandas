@@ -73,6 +73,7 @@ from pandas.core.dtypes.cast import (
     find_common_type,
     infer_dtype_from,
     maybe_box_native,
+    maybe_unbox_numpy_scalar,
 )
 from pandas.core.dtypes.common import (
     is_dict_like,
@@ -2079,7 +2080,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         >>> s.count()
         2
         """
-        return notna(self._values).sum().astype("int64")
+        return maybe_unbox_numpy_scalar(notna(self._values).sum().astype("int64"))
 
     def mode(self, dropna: bool = True) -> Series:
         """
@@ -2666,7 +2667,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             return self._constructor(result, index=idx, name=self.name)
         else:
             # scalar
-            return result.iloc[0]
+            return maybe_unbox_numpy_scalar(result.iloc[0])
 
     def corr(
         self,
@@ -2753,9 +2754,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         other_values = other.to_numpy(dtype=float, na_value=np.nan, copy=False)
 
         if method in ["pearson", "spearman", "kendall"] or callable(method):
-            return nanops.nancorr(
+            result = nanops.nancorr(
                 this_values, other_values, method=method, min_periods=min_periods
             )
+            result = maybe_unbox_numpy_scalar(result)
+            return result
 
         raise ValueError(
             "method must be either 'pearson', "
@@ -2807,9 +2810,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             return np.nan
         this_values = this.to_numpy(dtype=float, na_value=np.nan, copy=False)
         other_values = other.to_numpy(dtype=float, na_value=np.nan, copy=False)
-        return nanops.nancov(
+        result = nanops.nancov(
             this_values, other_values, min_periods=min_periods, ddof=ddof
         )
+        result = maybe_unbox_numpy_scalar(result)
+        return result
 
     @doc(
         klass="Series",
@@ -3022,11 +3027,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 np.dot(lvals, rvals), index=other.columns, copy=False, dtype=common_type
             ).__finalize__(self, method="dot")
         elif isinstance(other, Series):
-            return np.dot(lvals, rvals)
+            result = np.dot(lvals, rvals)
         elif isinstance(rvals, np.ndarray):
-            return np.dot(lvals, rvals)
+            result = np.dot(lvals, rvals)
         else:  # pragma: no cover
             raise TypeError(f"unsupported type: {type(other)}")
+        return maybe_unbox_numpy_scalar(result)
 
     def __matmul__(self, other):
         """
@@ -5700,7 +5706,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2    3
         dtype: int64
         """
-        return super().pop(item=item)
+        return maybe_unbox_numpy_scalar(super().pop(item=item))
 
     def info(
         self,
@@ -7402,7 +7408,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         if isinstance(delegate, ExtensionArray):
             # dispatch to ExtensionArray interface
-            return delegate._reduce(name, skipna=skipna, **kwds)
+            result = delegate._reduce(name, skipna=skipna, **kwds)
 
         else:
             # dispatch to numpy arrays
@@ -7416,7 +7422,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     f"Series.{name} does not allow {kwd_name}={numeric_only} "
                     "with non-numeric dtypes."
                 )
-            return op(delegate, skipna=skipna, **kwds)
+            result = op(delegate, skipna=skipna, **kwds)
+
+        result = maybe_unbox_numpy_scalar(result)
+        return result
 
     @Appender(make_doc("any", ndim=1))
     # error: Signature of "any" incompatible with supertype "NDFrame"

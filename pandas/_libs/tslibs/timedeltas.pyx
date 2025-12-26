@@ -290,22 +290,24 @@ cpdef int64_t delta_to_nanoseconds(
         ) from err
 
 
-cdef _numeric_to_td64ns(object item, str unit):
+cdef int64_t _numeric_to_td64ns(
+    object item, str unit, NPY_DATETIMEUNIT out_reso=NPY_FR_ns
+):
     # caller is responsible for checking
     #  assert unit not in ["Y", "y", "M"]
     #  assert is_integer_object(item) or is_float_object(item)
     if is_integer_object(item) and item == NPY_NAT:
-        return np.timedelta64(NPY_NAT, "ns")
+        return NPY_NAT
 
     try:
-        item = cast_from_unit(item, unit)
+        ival = cast_from_unit(item, unit, out_reso)
     except OutOfBoundsDatetime as err:
+        abbrev = npy_unit_to_abbrev(out_reso)
         raise OutOfBoundsTimedelta(
-            f"Cannot cast {item} from {unit} to 'ns' without overflow."
+            f"Cannot cast {item} from {unit} to '{abbrev}' without overflow."
         ) from err
 
-    ts = np.timedelta64(item, "ns")
-    return ts
+    return ival
 
 
 # TODO: de-duplicate with DatetimeParseState
@@ -352,7 +354,7 @@ def array_to_timedelta64(
     cdef:
         Py_ssize_t i, n = values.size
         ndarray result = np.empty((<object>values).shape, dtype="m8[ns]")
-        object item, td64ns_obj
+        object item
         int64_t ival
         cnp.broadcast mi = cnp.PyArray_MultiIterNew2(result, values)
         cnp.flatiter it
@@ -471,8 +473,7 @@ def array_to_timedelta64(
                 ival = delta_to_nanoseconds(item, reso=creso)
 
             elif is_integer_object(item) or is_float_object(item):
-                td64ns_obj = _numeric_to_td64ns(item, parsed_unit)
-                ival = cnp.get_timedelta64_value(td64ns_obj)
+                ival = _numeric_to_td64ns(item, parsed_unit, NPY_FR_ns)
 
                 item_reso = NPY_FR_ns
                 state.update_creso(item_reso)
@@ -1022,9 +1023,23 @@ cdef _timedelta_from_value_and_reso(cls, int64_t value, NPY_DATETIMEUNIT reso):
     elif reso == NPY_DATETIMEUNIT.NPY_FR_us:
         td_base = _Timedelta.__new__(cls, microseconds=int(value))
     elif reso == NPY_DATETIMEUNIT.NPY_FR_ms:
-        td_base = _Timedelta.__new__(cls, milliseconds=0)
+        if -86_399_999_913_600_000 <= value < 86_400_000_000_000_000:
+            # i.e. we are in range for pytimedelta. By passing the
+            #  'correct' value here we can
+            #   make pydatetime + Timedelta operations work correctly,
+            #  xref GH#53643
+            td_base = _Timedelta.__new__(cls, milliseconds=value)
+        else:
+            td_base = _Timedelta.__new__(cls, milliseconds=0)
     elif reso == NPY_DATETIMEUNIT.NPY_FR_s:
-        td_base = _Timedelta.__new__(cls, seconds=0)
+        if -86_399_999_913_600 <= value < 86_400_000_000_000:
+            # i.e. we are in range for pytimedelta. By passing the
+            #  'correct' value here we can
+            #   make pydatetime + Timedelta operations work correctly,
+            #  xref GH#53643
+            td_base = _Timedelta.__new__(cls, seconds=value)
+        else:
+            td_base = _Timedelta.__new__(cls, seconds=0)
     # Other resolutions are disabled but could potentially be implemented here:
     # elif reso == NPY_DATETIMEUNIT.NPY_FR_m:
     #    td_base = _Timedelta.__new__(Timedelta, minutes=int(value))
@@ -2216,7 +2231,18 @@ class Timedelta(_Timedelta):
         elif checknull_with_nat_and_na(value):
             return NaT
 
-        elif is_integer_object(value) or is_float_object(value):
+        elif is_integer_object(value):
+            # unit=None is de-facto 'ns'
+            if value != NPY_NAT:
+                unit = parse_timedelta_unit(unit)
+                if unit != "ns":
+                    # Return with the closest-to-supported unit by going through
+                    #  the timedelta64 path
+                    td = np.timedelta64(value, unit)
+                    return cls(td)
+                value = _numeric_to_td64ns(value, unit)
+
+        elif is_float_object(value):
             # unit=None is de-facto 'ns'
             unit = parse_timedelta_unit(unit)
             value = _numeric_to_td64ns(value, unit)

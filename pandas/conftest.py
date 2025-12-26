@@ -769,7 +769,7 @@ def index_with_missing(request):
         vals = ind.values.copy()
         vals[0] = None
         vals[-1] = None
-        return type(ind)(vals)
+        return type(ind)(vals, copy=False)
 
 
 # ----------------------------------------------------------------
@@ -2092,6 +2092,11 @@ def using_infer_string() -> bool:
     Fixture to check if infer string option is enabled.
     """
     return pd.options.future.infer_string is True
+
+
+@pytest.fixture
+def using_python_scalars() -> bool:
+    return pd.options.future.python_scalars is True
 
 
 _warsaws: list[Any] = ["Europe/Warsaw", "dateutil/Europe/Warsaw"]

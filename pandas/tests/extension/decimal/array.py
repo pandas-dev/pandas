@@ -111,15 +111,15 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
     def _from_factorized(cls, values, original):
         return cls(values)
 
-    def _cast_pointwise_result(self, values):
-        result = super()._cast_pointwise_result(values)
-        try:
-            # If this were ever made a non-test EA, special-casing could
-            #  be avoided by handling Decimal in maybe_convert_objects
-            res = type(self)._from_sequence(result, dtype=self.dtype)
-        except (ValueError, TypeError):
-            return result
-        return res
+    # test to ensure that the base class _cast_pointwise_result works as expected
+    # def _cast_pointwise_result(self, values):
+    #     try:
+    #         # If this were ever made a non-test EA, special-casing could
+    #         #  be avoided by handling Decimal in maybe_convert_objects
+    #         res = type(self)._from_sequence(values, dtype=self.dtype)
+    #     except (ValueError, TypeError):
+    #         return values
+    #     return res
 
     _HANDLED_TYPES = (decimal.Decimal, numbers.Number, np.ndarray)
 
