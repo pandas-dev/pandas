@@ -907,7 +907,7 @@ def test_select_filter_corner(setup_path, request):
         tm.assert_frame_equal(result, df.loc[:, df.columns[:75:2]])
 
 
-def test_path_pathlib(tmp_path):
+def test_path_pathlib(temp_file):
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
         columns=Index(list("ABCD")),
@@ -915,7 +915,7 @@ def test_path_pathlib(tmp_path):
     )
 
     result = tm.round_trip_pathlib(
-        lambda p: df.to_hdf(p, key="df"), lambda p: read_hdf(p, "df"), tmp_path
+        lambda p: df.to_hdf(p, key="df"), lambda p: read_hdf(p, "df"), temp_file
     )
     tm.assert_frame_equal(df, result)
 
@@ -937,7 +937,7 @@ def test_contiguous_mixed_data_table(start, stop, setup_path):
         tm.assert_frame_equal(df[start:stop], result)
 
 
-def test_path_pathlib_hdfstore(tmp_path):
+def test_path_pathlib_hdfstore(temp_file):
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
         columns=Index(list("ABCD")),
@@ -952,18 +952,18 @@ def test_path_pathlib_hdfstore(tmp_path):
         with HDFStore(path) as store:
             return read_hdf(store, "df")
 
-    result = tm.round_trip_pathlib(writer, reader, tmp_path)
+    result = tm.round_trip_pathlib(writer, reader, temp_file)
     tm.assert_frame_equal(df, result)
 
 
-def test_pickle_path_localpath(tmp_path):
+def test_pickle_path_localpath(temp_file):
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
         columns=Index(list("ABCD")),
         index=Index([f"i-{i}" for i in range(30)]),
     )
     result = tm.round_trip_pathlib(
-        lambda p: df.to_hdf(p, key="df"), lambda p: read_hdf(p, "df"), tmp_path
+        lambda p: df.to_hdf(p, key="df"), lambda p: read_hdf(p, "df"), temp_file
     )
     tm.assert_frame_equal(df, result)
 

@@ -187,13 +187,13 @@ def test_round_trip_current(typ, expected, pickle_writer, writer, temp_file):
     compare_element(result, expected, typ)
 
 
-def test_pickle_path_pathlib(tmp_path):
+def test_pickle_path_pathlib(temp_file):
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
         columns=Index(list("ABCD"), dtype=object),
         index=Index([f"i-{i}" for i in range(30)], dtype=object),
     )
-    result = tm.round_trip_pathlib(df.to_pickle, pd.read_pickle, tmp_path)
+    result = tm.round_trip_pathlib(df.to_pickle, pd.read_pickle, temp_file)
     tm.assert_frame_equal(df, result)
 
 
@@ -489,13 +489,13 @@ def test_pickle_preserves_block_ndim(temp_file):
 
 
 @pytest.mark.parametrize("protocol", [pickle.DEFAULT_PROTOCOL, pickle.HIGHEST_PROTOCOL])
-def test_pickle_big_dataframe_compression(protocol, compression, tmp_path):
+def test_pickle_big_dataframe_compression(protocol, compression, temp_file):
     # GH#39002
     df = DataFrame(range(100000))
     result = tm.round_trip_pathlib(
         partial(df.to_pickle, protocol=protocol, compression=compression),
         partial(pd.read_pickle, compression=compression),
-        tmp_path,
+        temp_file,
     )
     tm.assert_frame_equal(df, result)
 

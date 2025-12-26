@@ -46,7 +46,7 @@ def round_trip_pickle(obj: Any, tmp_path: Path) -> DataFrame | Series:
     return pd.read_pickle(tmp_path)
 
 
-def round_trip_pathlib(writer, reader, tmp_path, path: str | None = None):
+def round_trip_pathlib(writer, reader, tmp_path: Path):
     """
     Write an object to file specified by a pathlib.Path and read it back
 
@@ -64,11 +64,8 @@ def round_trip_pathlib(writer, reader, tmp_path, path: str | None = None):
     pandas object
         The original object that was serialized and then re-read.
     """
-    if path is None:
-        path = "___pathlib___"
-    path = tmp_path / path
-    writer(path)
-    obj = reader(path)
+    writer(tmp_path)
+    obj = reader(tmp_path)
     return obj
 
 
