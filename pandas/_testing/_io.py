@@ -7,7 +7,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
 )
-import uuid
 import zipfile
 
 from pandas.compat._optional import import_optional_dependency
@@ -16,11 +15,7 @@ import pandas as pd
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-
-    from pandas._typing import (
-        FilePath,
-        ReadPickleBuffer,
-    )
+    from pathlib import Path
 
     from pandas import (
         DataFrame,
@@ -31,9 +26,7 @@ if TYPE_CHECKING:
 # File-IO
 
 
-def round_trip_pickle(
-    obj: Any, tmp_path, path: FilePath | ReadPickleBuffer | None = None
-) -> DataFrame | Series:
+def round_trip_pickle(obj: Any, tmp_path: Path) -> DataFrame | Series:
     """
     Pickle an object and then read it again.
 
@@ -49,12 +42,8 @@ def round_trip_pickle(
     pandas object
         The original object that was pickled and then re-read.
     """
-    _path = path
-    if _path is None:
-        _path = f"__{uuid.uuid4()}__.pickle"
-    temp_path = tmp_path / _path
-    pd.to_pickle(obj, temp_path)
-    return pd.read_pickle(temp_path)
+    pd.to_pickle(obj, tmp_path)
+    return pd.read_pickle(tmp_path)
 
 
 def round_trip_pathlib(writer, reader, tmp_path, path: str | None = None):
