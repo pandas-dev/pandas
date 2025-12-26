@@ -261,9 +261,9 @@ class TestBlock:
             ["bool", [5]],
         ],
     )
-    def test_pickle(self, typ, data):
+    def test_pickle(self, typ, data, tmp_path):
         blk = create_block(typ, data)
-        assert_block_equal(tm.round_trip_pickle(blk), blk)
+        assert_block_equal(tm.round_trip_pickle(blk, tmp_path), blk)
 
     def test_mgr_locs(self, fblock):
         assert isinstance(fblock.mgr_locs, BlockPlacement)
@@ -391,8 +391,8 @@ class TestBlockManager:
         mgr = BlockManager(blocks, axes)
         mgr.iget(1)
 
-    def test_pickle(self, mgr):
-        mgr2 = tm.round_trip_pickle(mgr)
+    def test_pickle(self, mgr, tmp_path):
+        mgr2 = tm.round_trip_pickle(mgr, tmp_path)
         tm.assert_frame_equal(
             DataFrame._from_mgr(mgr, axes=mgr.axes),
             DataFrame._from_mgr(mgr2, axes=mgr2.axes),
@@ -407,24 +407,24 @@ class TestBlockManager:
         assert not mgr2._known_consolidated
 
     @pytest.mark.parametrize("mgr_string", ["a,a,a:f8", "a: f8; a: i8"])
-    def test_non_unique_pickle(self, mgr_string):
+    def test_non_unique_pickle(self, mgr_string, tmp_path):
         mgr = create_mgr(mgr_string)
-        mgr2 = tm.round_trip_pickle(mgr)
+        mgr2 = tm.round_trip_pickle(mgr, tmp_path)
         tm.assert_frame_equal(
             DataFrame._from_mgr(mgr, axes=mgr.axes),
             DataFrame._from_mgr(mgr2, axes=mgr2.axes),
         )
 
-    def test_categorical_block_pickle(self):
+    def test_categorical_block_pickle(self, tmp_path):
         mgr = create_mgr("a: category")
-        mgr2 = tm.round_trip_pickle(mgr)
+        mgr2 = tm.round_trip_pickle(mgr, tmp_path)
         tm.assert_frame_equal(
             DataFrame._from_mgr(mgr, axes=mgr.axes),
             DataFrame._from_mgr(mgr2, axes=mgr2.axes),
         )
 
         smgr = create_single_mgr("category")
-        smgr2 = tm.round_trip_pickle(smgr)
+        smgr2 = tm.round_trip_pickle(smgr, tmp_path)
         tm.assert_series_equal(
             Series()._constructor_from_mgr(smgr, axes=smgr.axes),
             Series()._constructor_from_mgr(smgr2, axes=smgr2.axes),

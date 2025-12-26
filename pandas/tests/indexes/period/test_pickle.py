@@ -13,14 +13,14 @@ from pandas.tseries import offsets
 
 class TestPickle:
     @pytest.mark.parametrize("freq", ["D", "M", "Y"])
-    def test_pickle_round_trip(self, freq):
+    def test_pickle_round_trip(self, freq, tmp_path):
         idx = PeriodIndex(["2016-05-16", "NaT", NaT, np.nan], freq=freq)
-        result = tm.round_trip_pickle(idx)
+        result = tm.round_trip_pickle(idx, tmp_path)
         tm.assert_index_equal(result, idx)
 
-    def test_pickle_freq(self):
+    def test_pickle_freq(self, tmp_path):
         # GH#2891
         prng = period_range("1/1/2011", "1/1/2012", freq="M")
-        new_prng = tm.round_trip_pickle(prng)
+        new_prng = tm.round_trip_pickle(prng, tmp_path)
         assert new_prng.freq == offsets.MonthEnd()
         assert new_prng.freqstr == "M"

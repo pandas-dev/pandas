@@ -239,20 +239,20 @@ class TestDataFrameBlockInternals:
         with pytest.raises(ValueError, match=msg):
             f("M8[ns]")
 
-    def test_pickle_float_string_frame(self, float_string_frame):
-        unpickled = tm.round_trip_pickle(float_string_frame)
+    def test_pickle_float_string_frame(self, float_string_frame, tmp_path):
+        unpickled = tm.round_trip_pickle(float_string_frame, tmp_path)
         tm.assert_frame_equal(float_string_frame, unpickled)
 
         # buglet
         float_string_frame._mgr.ndim
 
-    def test_pickle_empty(self):
+    def test_pickle_empty(self, tmp_path):
         empty_frame = DataFrame()
-        unpickled = tm.round_trip_pickle(empty_frame)
+        unpickled = tm.round_trip_pickle(empty_frame, tmp_path)
         repr(unpickled)
 
-    def test_pickle_empty_tz_frame(self, timezone_frame):
-        unpickled = tm.round_trip_pickle(timezone_frame)
+    def test_pickle_empty_tz_frame(self, timezone_frame, tmp_path):
+        unpickled = tm.round_trip_pickle(timezone_frame, tmp_path)
         tm.assert_frame_equal(timezone_frame, unpickled)
 
     def test_consolidate_datetime64(self):

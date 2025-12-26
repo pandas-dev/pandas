@@ -1422,7 +1422,7 @@ class TestExcelWriter:
         result = pd.read_excel(tmp_excel, index_col=0)
         tm.assert_frame_equal(result, expected)
 
-    def test_path_path_lib(self, engine, ext):
+    def test_path_path_lib(self, engine, ext, tmp_path):
         df = DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
             columns=Index(list("ABCD")),
@@ -1431,7 +1431,7 @@ class TestExcelWriter:
         writer = partial(df.to_excel, engine=engine)
 
         reader = partial(pd.read_excel, index_col=0)
-        result = tm.round_trip_pathlib(writer, reader, path=f"foo{ext}")
+        result = tm.round_trip_pathlib(writer, reader, tmp_path, path=f"foo{ext}")
         tm.assert_frame_equal(result, df)
 
     def test_merged_cell_custom_objects(self, tmp_excel):

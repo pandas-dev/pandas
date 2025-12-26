@@ -380,11 +380,11 @@ def test_inplace_raises(method, frame_only):
             method(s)
 
 
-def test_pickle():
+def test_pickle(tmp_path):
     a = pd.Series([1, 2]).set_flags(allows_duplicate_labels=False)
-    b = tm.round_trip_pickle(a)
+    b = tm.round_trip_pickle(a, tmp_path)
     tm.assert_series_equal(a, b)
 
     a = pd.DataFrame({"A": []}).set_flags(allows_duplicate_labels=False)
-    b = tm.round_trip_pickle(a)
+    b = tm.round_trip_pickle(a, tmp_path)
     tm.assert_frame_equal(a, b)
