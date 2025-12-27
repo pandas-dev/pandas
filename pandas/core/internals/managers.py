@@ -1595,7 +1595,6 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         nbs = self._slice_take_blocks_ax0(taker, only_slice=True, ref_inplace_op=True)
         new_columns = self.items[~is_deleted]
-        # TODO shallow copy index?
         axes = [new_columns, self.axes[1]]
         return type(self)(tuple(nbs), axes, verify_integrity=False)
 
