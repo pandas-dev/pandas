@@ -143,38 +143,34 @@ def test_append_with_timezones_as_index(temp_hdfstore, gettz):
     tm.assert_frame_equal(result, df)
 
 
-def test_roundtrip_tz_aware_index(tmp_path, unit):
+def test_roundtrip_tz_aware_index(temp_hdfstore, unit):
     # GH 17618
     ts = Timestamp("2000-01-01 01:00:00", tz="US/Eastern")
     dti = DatetimeIndex([ts]).as_unit(unit)
     df = DataFrame(data=[0], index=dti)
 
-    path = tmp_path / "test_roundtrip_tz_aware_index.h5"
-    with pd.HDFStore(path) as store:
-        store.put("frame", df, format="fixed")
-        recons = store["frame"]
-        tm.assert_frame_equal(recons, df)
+    temp_hdfstore.put("frame", df, format="fixed")
+    recons = temp_hdfstore["frame"]
+    tm.assert_frame_equal(recons, df)
 
     value = recons.index[0]._value
     denom = {"ns": 1, "us": 1000, "ms": 10**6, "s": 10**9}[unit]
     assert value == 946706400000000000 // denom
 
 
-def test_store_index_name_with_tz(tmp_path):
+def test_store_index_name_with_tz(temp_hdfstore):
     # GH 13884
     df = DataFrame({"A": [1, 2]})
     df.index = DatetimeIndex([1234567890123456787, 1234567890123456788])
     df.index = df.index.tz_localize("UTC")
     df.index.name = "foo"
 
-    path = tmp_path / "test_store_index_name_with_tz.h5"
-    with pd.HDFStore(path) as store:
-        store.put("frame", df, format="table")
-        recons = store["frame"]
-        tm.assert_frame_equal(recons, df)
+    temp_hdfstore.put("frame", df, format="table")
+    recons = temp_hdfstore["frame"]
+    tm.assert_frame_equal(recons, df)
 
 
-def test_tseries_select_index_column(tmp_path):
+def test_tseries_select_index_column(temp_hdfstore):
     # GH7777
     # selecting a UTC datetimeindex column did
     # not preserve UTC tzinfo set before storing
@@ -185,11 +181,9 @@ def test_tseries_select_index_column(tmp_path):
         np.random.default_rng(2).standard_normal((len(rng), 4)), index=rng
     )
 
-    path1 = tmp_path / "test_tseries_select_index_column1.h5"
-    with pd.HDFStore(path1) as store:
-        store.append("frame", frame)
-        result = store.select_column("frame", "index")
-        assert rng.tz == DatetimeIndex(result.values).tz
+    temp_hdfstore.append("frame", frame)
+    result = temp_hdfstore.select_column("frame", "index")
+    assert rng.tz == DatetimeIndex(result.values).tz
 
     # check utc
     rng = date_range("1/1/2000", "1/30/2000", tz="UTC")
@@ -197,11 +191,10 @@ def test_tseries_select_index_column(tmp_path):
         np.random.default_rng(2).standard_normal((len(rng), 4)), index=rng
     )
 
-    path2 = tmp_path / "test_tseries_select_index_column2.h5"
-    with pd.HDFStore(path2) as store:
-        store.append("frame", frame)
-        result = store.select_column("frame", "index")
-        assert rng.tz == result.dt.tz
+    temp_hdfstore.remove("frame")
+    temp_hdfstore.append("frame", frame)
+    result = temp_hdfstore.select_column("frame", "index")
+    assert rng.tz == result.dt.tz
 
     # double check non-utc
     rng = date_range("1/1/2000", "1/30/2000", tz="US/Eastern")
@@ -209,11 +202,10 @@ def test_tseries_select_index_column(tmp_path):
         np.random.default_rng(2).standard_normal((len(rng), 4)), index=rng
     )
 
-    path3 = tmp_path / "test_tseries_select_index_column3.h5"
-    with pd.HDFStore(path3) as store:
-        store.append("frame", frame)
-        result = store.select_column("frame", "index")
-        assert rng.tz == result.dt.tz
+    temp_hdfstore.remove("frame")
+    temp_hdfstore.append("frame", frame)
+    result = temp_hdfstore.select_column("frame", "index")
+    assert rng.tz == result.dt.tz
 
 
 def test_timezones_fixed_format_frame_non_empty(temp_hdfstore):
@@ -244,7 +236,7 @@ def test_timezones_fixed_format_frame_non_empty_as_data(temp_hdfstore):
     tm.assert_frame_equal(result, df)
 
 
-def test_timezones_fixed_format_empty(tmp_path, tz_aware_fixture, frame_or_series):
+def test_timezones_fixed_format_empty(temp_hdfstore, tz_aware_fixture, frame_or_series):
     # GH 20594
 
     dtype = pd.DatetimeTZDtype(tz=tz_aware_fixture)
@@ -253,67 +245,57 @@ def test_timezones_fixed_format_empty(tmp_path, tz_aware_fixture, frame_or_serie
     if frame_or_series is DataFrame:
         obj = obj.to_frame()
 
-    path = tmp_path / "test_timezones_fixed_format_empty.h5"
-    with pd.HDFStore(path) as store:
-        store["obj"] = obj
-        result = store["obj"]
-        tm.assert_equal(result, obj)
+    temp_hdfstore["obj"] = obj
+    result = temp_hdfstore["obj"]
+    tm.assert_equal(result, obj)
 
 
-def test_timezones_fixed_format_series_nonempty(tmp_path, tz_aware_fixture):
+def test_timezones_fixed_format_series_nonempty(temp_hdfstore, tz_aware_fixture):
     # GH 20594
 
     dtype = pd.DatetimeTZDtype(tz=tz_aware_fixture)
 
-    path = tmp_path / "test_timezones_fixed_format_series_nonempty.h5"
-    with pd.HDFStore(path) as store:
-        s = Series([0], dtype=dtype)
-        store["s"] = s
-        result = store["s"]
-        tm.assert_series_equal(result, s)
+    s = Series([0], dtype=dtype)
+    temp_hdfstore["s"] = s
+    result = temp_hdfstore["s"]
+    tm.assert_series_equal(result, s)
 
 
-def test_fixed_offset_tz(tmp_path):
+def test_fixed_offset_tz(temp_hdfstore):
     rng = date_range("1/1/2000 00:00:00-07:00", "1/30/2000 00:00:00-07:00")
     frame = DataFrame(
         np.random.default_rng(2).standard_normal((len(rng), 4)), index=rng
     )
 
-    path = tmp_path / "test_fixed_offset_tz.h5"
-    with pd.HDFStore(path) as store:
-        store["frame"] = frame
-        recons = store["frame"]
-        tm.assert_index_equal(recons.index, rng)
-        assert rng.tz == recons.index.tz
+    temp_hdfstore["frame"] = frame
+    recons = temp_hdfstore["frame"]
+    tm.assert_index_equal(recons.index, rng)
+    assert rng.tz == recons.index.tz
 
 
 @td.skip_if_windows
-def test_store_timezone(tmp_path):
+def test_store_timezone(temp_hdfstore):
     # GH2852
     # issue storing datetime.date with a timezone as it resets when read
     # back in a new timezone
 
     # original method
-    path1 = tmp_path / "test_store_timezone1.h5"
-    with pd.HDFStore(path1) as store:
-        today = date(2013, 9, 10)
-        df = DataFrame([1, 2, 3], index=[today, today, today])
-        store["obj1"] = df
-        result = store["obj1"]
-        tm.assert_frame_equal(result, df)
+    today = date(2013, 9, 10)
+    df = DataFrame([1, 2, 3], index=[today, today, today])
+    temp_hdfstore["obj1"] = df
+    result = temp_hdfstore["obj1"]
+    tm.assert_frame_equal(result, df)
 
     # with tz setting
-    path2 = tmp_path / "test_store_timezone2.h5"
-    with pd.HDFStore(path2) as store:
-        with tm.set_timezone("EST5EDT"):
-            today = date(2013, 9, 10)
-            df = DataFrame([1, 2, 3], index=[today, today, today])
-            store["obj1"] = df
+    with tm.set_timezone("EST5EDT"):
+        today = date(2013, 9, 10)
+        df = DataFrame([1, 2, 3], index=[today, today, today])
+        temp_hdfstore["obj2"] = df
 
-        with tm.set_timezone("CST6CDT"):
-            result = store["obj1"]
+    with tm.set_timezone("CST6CDT"):
+        result = temp_hdfstore["obj2"]
 
-        tm.assert_frame_equal(result, df)
+    tm.assert_frame_equal(result, df)
 
 
 def test_dst_transitions(temp_hdfstore):

@@ -14,25 +14,23 @@ tables = pytest.importorskip("tables")
 pytestmark = [pytest.mark.single_cpu]
 
 
-def test_keys(tmp_path):
-    path = tmp_path / "test_keys.h5"
-    with HDFStore(path) as store:
-        store["a"] = Series(
-            np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
-        )
-        store["b"] = Series(
-            range(10), dtype="float64", index=[f"i_{i}" for i in range(10)]
-        )
-        store["c"] = DataFrame(
-            1.1 * np.arange(120).reshape((30, 4)),
-            columns=Index(list("ABCD"), dtype=object),
-            index=Index([f"i-{i}" for i in range(30)], dtype=object),
-        )
+def test_keys(temp_hdfstore):
+    temp_hdfstore["a"] = Series(
+        np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
+    )
+    temp_hdfstore["b"] = Series(
+        range(10), dtype="float64", index=[f"i_{i}" for i in range(10)]
+    )
+    temp_hdfstore["c"] = DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+    )
 
-        assert len(store) == 3
-        expected = {"/a", "/b", "/c"}
-        assert set(store.keys()) == expected
-        assert set(store) == expected
+    assert len(temp_hdfstore) == 3
+    expected = {"/a", "/b", "/c"}
+    assert set(temp_hdfstore.keys()) == expected
+    assert set(temp_hdfstore) == expected
 
 
 def test_non_pandas_keys(temp_h5_path):
@@ -60,27 +58,23 @@ def test_non_pandas_keys(temp_h5_path):
             assert len(df.columns) == 1
 
 
-def test_keys_illegal_include_keyword_value(tmp_path):
-    path = tmp_path / "test_keys_illegal_include_keyword_value.h5"
-    with HDFStore(path) as store:
-        with pytest.raises(
-            ValueError,
-            match="`include` should be either 'pandas' or 'native' but is 'illegal'",
-        ):
-            store.keys(include="illegal")
+def test_keys_illegal_include_keyword_value(temp_hdfstore):
+    with pytest.raises(
+        ValueError,
+        match="`include` should be either 'pandas' or 'native' but is 'illegal'",
+    ):
+        temp_hdfstore.keys(include="illegal")
 
 
-def test_keys_ignore_hdf_softlink(tmp_path):
+def test_keys_ignore_hdf_softlink(temp_hdfstore):
     # GH 20523
     # Puts a softlink into HDF file and rereads
-    path = tmp_path / "test_keys_ignore_hdf_softlink.h5"
-    with HDFStore(path) as store:
-        df = DataFrame({"A": range(5), "B": range(5)})
-        store.put("df", df)
+    df = DataFrame({"A": range(5), "B": range(5)})
+    temp_hdfstore.put("df", df)
 
-        assert store.keys() == ["/df"]
+    assert temp_hdfstore.keys() == ["/df"]
 
-        store._handle.create_soft_link(store._handle.root, "symlink", "df")
+    temp_hdfstore._handle.create_soft_link(temp_hdfstore._handle.root, "symlink", "df")
 
-        # Should ignore the softlink
-        assert store.keys() == ["/df"]
+    # Should ignore the softlink
+    assert temp_hdfstore.keys() == ["/df"]

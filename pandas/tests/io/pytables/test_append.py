@@ -11,7 +11,6 @@ from pandas.compat import PY312
 import pandas as pd
 from pandas import (
     DataFrame,
-    HDFStore,
     Index,
     Series,
     _testing as tm,
@@ -91,54 +90,52 @@ def test_append(temp_hdfstore):
     tm.assert_frame_equal(temp_hdfstore["uints"], uint_data, check_index_type=True)
 
 
-def test_append_series(tmp_path):
-    path = tmp_path / "test_append_series.h5"
-    with HDFStore(path) as store:
-        # basic
-        ss = Series(range(20), dtype=np.float64, index=[f"i_{i}" for i in range(20)])
-        ts = Series(
-            np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
-        )
-        ns = Series(np.arange(100))
+def test_append_series(temp_hdfstore):
+    # basic
+    ss = Series(range(20), dtype=np.float64, index=[f"i_{i}" for i in range(20)])
+    ts = Series(
+        np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
+    )
+    ns = Series(np.arange(100))
 
-        store.append("ss", ss)
-        result = store["ss"]
-        tm.assert_series_equal(result, ss)
-        assert result.name is None
+    temp_hdfstore.append("ss", ss)
+    result = temp_hdfstore["ss"]
+    tm.assert_series_equal(result, ss)
+    assert result.name is None
 
-        store.append("ts", ts)
-        result = store["ts"]
-        tm.assert_series_equal(result, ts)
-        assert result.name is None
+    temp_hdfstore.append("ts", ts)
+    result = temp_hdfstore["ts"]
+    tm.assert_series_equal(result, ts)
+    assert result.name is None
 
-        ns.name = "foo"
-        store.append("ns", ns)
-        result = store["ns"]
-        tm.assert_series_equal(result, ns)
-        assert result.name == ns.name
+    ns.name = "foo"
+    temp_hdfstore.append("ns", ns)
+    result = temp_hdfstore["ns"]
+    tm.assert_series_equal(result, ns)
+    assert result.name == ns.name
 
-        # select on the values
-        expected = ns[ns > 60]
-        result = store.select("ns", "foo>60")
-        tm.assert_series_equal(result, expected)
+    # select on the values
+    expected = ns[ns > 60]
+    result = temp_hdfstore.select("ns", "foo>60")
+    tm.assert_series_equal(result, expected)
 
-        # select on the index and values
-        expected = ns[(ns > 70) & (ns.index < 90)]
-        # Reading/writing RangeIndex info is not supported yet
-        expected.index = Index(expected.index._data)
-        result = store.select("ns", "foo>70 and index<90")
-        tm.assert_series_equal(result, expected, check_index_type=True)
+    # select on the index and values
+    expected = ns[(ns > 70) & (ns.index < 90)]
+    # Reading/writing RangeIndex info is not supported yet
+    expected.index = Index(expected.index._data)
+    result = temp_hdfstore.select("ns", "foo>70 and index<90")
+    tm.assert_series_equal(result, expected, check_index_type=True)
 
-        # multi-index
-        mi = DataFrame(np.random.default_rng(2).standard_normal((5, 1)), columns=["A"])
-        mi["B"] = np.arange(len(mi))
-        mi["C"] = "foo"
-        mi.loc[3:5, "C"] = "bar"
-        mi.set_index(["C", "B"], inplace=True)
-        s = mi.stack()
-        s.index = s.index.droplevel(2)
-        store.append("mi", s)
-        tm.assert_series_equal(store["mi"], s, check_index_type=True)
+    # multi-index
+    mi = DataFrame(np.random.default_rng(2).standard_normal((5, 1)), columns=["A"])
+    mi["B"] = np.arange(len(mi))
+    mi["C"] = "foo"
+    mi.loc[3:5, "C"] = "bar"
+    mi.set_index(["C", "B"], inplace=True)
+    s = mi.stack()
+    s.index = s.index.droplevel(2)
+    temp_hdfstore.append("mi", s)
+    tm.assert_series_equal(temp_hdfstore["mi"], s, check_index_type=True)
 
 
 def test_append_some_nans(temp_hdfstore):
@@ -647,47 +644,42 @@ def test_append_with_data_columns(temp_hdfstore):
     tm.assert_frame_equal(result, expected)
 
 
-def test_append_hierarchical(tmp_path, multiindex_dataframe_random_data):
+def test_append_hierarchical(temp_hdfstore, multiindex_dataframe_random_data):
     df = multiindex_dataframe_random_data
     df.columns.name = None
 
-    path = tmp_path / "test_append_hierarchical.h5"
-    with HDFStore(path) as store:
-        store.append("mi", df)
-        result = store.select("mi")
-        tm.assert_frame_equal(result, df)
+    temp_hdfstore.append("mi", df)
+    result = temp_hdfstore.select("mi")
+    tm.assert_frame_equal(result, df)
 
-        # GH 3748
-        result = store.select("mi", columns=["A", "B"])
-        expected = df.reindex(columns=["A", "B"])
-        tm.assert_frame_equal(result, expected)
+    # GH 3748
+    result = temp_hdfstore.select("mi", columns=["A", "B"])
+    expected = df.reindex(columns=["A", "B"])
+    tm.assert_frame_equal(result, expected)
 
-    path = tmp_path / "test.hdf"
-    df.to_hdf(path, key="df", format="table")
-    result = read_hdf(path, "df", columns=["A", "B"])
+    df.to_hdf(temp_hdfstore, key="df", format="table")
+    result = read_hdf(temp_hdfstore, "df", columns=["A", "B"])
     expected = df.reindex(columns=["A", "B"])
     tm.assert_frame_equal(result, expected)
 
 
-def test_append_misc(tmp_path):
-    path = tmp_path / "test_append_misc.h5"
-    with HDFStore(path) as store:
-        df = DataFrame(
-            1.1 * np.arange(120).reshape((30, 4)),
-            columns=Index(list("ABCD")),
-            index=Index([f"i-{i}" for i in range(30)]),
-        )
-        store.append("df", df, chunksize=1)
-        result = store.select("df")
-        tm.assert_frame_equal(result, df)
+def test_append_misc(temp_hdfstore):
+    df = DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=Index(list("ABCD")),
+        index=Index([f"i-{i}" for i in range(30)]),
+    )
+    temp_hdfstore.append("df", df, chunksize=1)
+    result = temp_hdfstore.select("df")
+    tm.assert_frame_equal(result, df)
 
-        store.append("df1", df, expectedrows=10)
-        result = store.select("df1")
-        tm.assert_frame_equal(result, df)
+    temp_hdfstore.append("df1", df, expectedrows=10)
+    result = temp_hdfstore.select("df1")
+    tm.assert_frame_equal(result, df)
 
 
 @pytest.mark.parametrize("chunksize", [10, 200, 1000])
-def test_append_misc_chunksize(tmp_path, chunksize):
+def test_append_misc_chunksize(temp_hdfstore, chunksize):
     # more chunksize in append tests
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
@@ -700,34 +692,30 @@ def test_append_misc_chunksize(tmp_path, chunksize):
     df["bool"] = df["float322"] > 0
     df["time1"] = Timestamp("20130101").as_unit("ns")
     df["time2"] = Timestamp("20130102").as_unit("ns")
-    path = tmp_path / "test_append_misc_chunksize.h5"
-    with HDFStore(path) as store:
-        store.append("obj", df, chunksize=chunksize)
-        result = store.select("obj")
-        tm.assert_frame_equal(result, df)
+    temp_hdfstore.append("obj", df, chunksize=chunksize)
+    result = temp_hdfstore.select("obj")
+    tm.assert_frame_equal(result, df)
 
 
-def test_append_misc_empty_frame(tmp_path):
-    path = tmp_path / "test_append_misc_empty_frame.h5"
+def test_append_misc_empty_frame(temp_hdfstore):
     # empty frame, GH4273
-    with HDFStore(path) as store:
-        # 0 len
-        df_empty = DataFrame(columns=list("ABC"))
-        store.append("df", df_empty)
-        with pytest.raises(KeyError, match="'No object named df in the file'"):
-            store.select("df")
+    # 0 len
+    df_empty = DataFrame(columns=list("ABC"))
+    temp_hdfstore.append("df", df_empty)
+    with pytest.raises(KeyError, match="'No object named df in the file'"):
+        temp_hdfstore.select("df")
 
-        # repeated append of 0/non-zero frames
-        df = DataFrame(np.random.default_rng(2).random((10, 3)), columns=list("ABC"))
-        store.append("df", df)
-        tm.assert_frame_equal(store.select("df"), df)
-        store.append("df", df_empty)
-        tm.assert_frame_equal(store.select("df"), df)
+    # repeated append of 0/non-zero frames
+    df = DataFrame(np.random.default_rng(2).random((10, 3)), columns=list("ABC"))
+    temp_hdfstore.append("df", df)
+    tm.assert_frame_equal(temp_hdfstore.select("df"), df)
+    temp_hdfstore.append("df", df_empty)
+    tm.assert_frame_equal(temp_hdfstore.select("df"), df)
 
-        # store
-        df = DataFrame(columns=list("ABC"))
-        store.put("df2", df)
-        tm.assert_frame_equal(store.select("df2"), df)
+    # store
+    df = DataFrame(columns=list("ABC"))
+    temp_hdfstore.put("df2", df)
+    tm.assert_frame_equal(temp_hdfstore.select("df2"), df)
 
 
 def test_append_raise(temp_hdfstore, using_infer_string):
@@ -858,7 +846,7 @@ def test_append_with_timedelta(temp_hdfstore, unit):
     tm.assert_frame_equal(result, df)
 
 
-def test_append_to_multiple(tmp_path):
+def test_append_to_multiple(temp_hdfstore):
     df1 = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
         columns=Index(list("ABCD")),
@@ -868,35 +856,35 @@ def test_append_to_multiple(tmp_path):
     df2["foo"] = "bar"
     df = concat([df1, df2], axis=1)
 
-    path = tmp_path / "test_append_to_multiple.h5"
-    with HDFStore(path) as store:
-        # exceptions
-        msg = "append_to_multiple requires a selector that is in passed dict"
-        with pytest.raises(ValueError, match=msg):
-            store.append_to_multiple(
-                {"df1": ["A", "B"], "df2": None}, df, selector="df3"
-            )
-
-        with pytest.raises(ValueError, match=msg):
-            store.append_to_multiple({"df1": None, "df2": None}, df, selector="df3")
-
-        msg = (
-            "append_to_multiple must have a dictionary specified as the way to "
-            "split the value"
+    # exceptions
+    msg = "append_to_multiple requires a selector that is in passed dict"
+    with pytest.raises(ValueError, match=msg):
+        temp_hdfstore.append_to_multiple(
+            {"df1": ["A", "B"], "df2": None}, df, selector="df3"
         )
-        with pytest.raises(ValueError, match=msg):
-            store.append_to_multiple("df1", df, "df1")
 
-        # regular operation
-        store.append_to_multiple({"df1": ["A", "B"], "df2": None}, df, selector="df1")
-        result = store.select_as_multiple(
-            ["df1", "df2"], where=["A>0", "B>0"], selector="df1"
-        )
-        expected = df[(df.A > 0) & (df.B > 0)]
-        tm.assert_frame_equal(result, expected)
+    with pytest.raises(ValueError, match=msg):
+        temp_hdfstore.append_to_multiple({"df1": None, "df2": None}, df, selector="df3")
+
+    msg = (
+        "append_to_multiple must have a dictionary specified as the way to "
+        "split the value"
+    )
+    with pytest.raises(ValueError, match=msg):
+        temp_hdfstore.append_to_multiple("df1", df, "df1")
+
+    # regular operation
+    temp_hdfstore.append_to_multiple(
+        {"df1": ["A", "B"], "df2": None}, df, selector="df1"
+    )
+    result = temp_hdfstore.select_as_multiple(
+        ["df1", "df2"], where=["A>0", "B>0"], selector="df1"
+    )
+    expected = df[(df.A > 0) & (df.B > 0)]
+    tm.assert_frame_equal(result, expected)
 
 
-def test_append_to_multiple_dropna(tmp_path):
+def test_append_to_multiple_dropna(temp_hdfstore):
     df1 = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
         columns=Index(list("ABCD")),
@@ -910,19 +898,19 @@ def test_append_to_multiple_dropna(tmp_path):
     df1.iloc[1, df1.columns.get_indexer(["A", "B"])] = np.nan
     df = concat([df1, df2], axis=1)
 
-    path = tmp_path / "test_append_to_multiple_dropna.h5"
-    with HDFStore(path) as store:
-        # dropna=True should guarantee rows are synchronized
-        store.append_to_multiple(
-            {"df1": ["A", "B"], "df2": None}, df, selector="df1", dropna=True
-        )
-        result = store.select_as_multiple(["df1", "df2"])
-        expected = df.dropna()
-        tm.assert_frame_equal(result, expected, check_index_type=True)
-        tm.assert_index_equal(store.select("df1").index, store.select("df2").index)
+    # dropna=True should guarantee rows are synchronized
+    temp_hdfstore.append_to_multiple(
+        {"df1": ["A", "B"], "df2": None}, df, selector="df1", dropna=True
+    )
+    result = temp_hdfstore.select_as_multiple(["df1", "df2"])
+    expected = df.dropna()
+    tm.assert_frame_equal(result, expected, check_index_type=True)
+    tm.assert_index_equal(
+        temp_hdfstore.select("df1").index, temp_hdfstore.select("df2").index
+    )
 
 
-def test_append_to_multiple_dropna_false(tmp_path):
+def test_append_to_multiple_dropna_false(temp_hdfstore):
     df1 = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
         columns=Index(list("ABCD")),
@@ -932,24 +920,22 @@ def test_append_to_multiple_dropna_false(tmp_path):
     df1.iloc[1, df1.columns.get_indexer(["A", "B"])] = np.nan
     df = concat([df1, df2], axis=1)
 
-    path = tmp_path / "test_append_to_multiple_dropna_false.h5"
-    with (
-        HDFStore(path) as store,
-        pd.option_context("io.hdf.dropna_table", True),
-    ):
+    with pd.option_context("io.hdf.dropna_table", True):
         # dropna=False shouldn't synchronize row indexes
-        store.append_to_multiple(
+        temp_hdfstore.append_to_multiple(
             {"df1a": ["A", "B"], "df2a": None}, df, selector="df1a", dropna=False
         )
 
         msg = "all tables must have exactly the same nrows!"
         with pytest.raises(ValueError, match=msg):
-            store.select_as_multiple(["df1a", "df2a"])
+            temp_hdfstore.select_as_multiple(["df1a", "df2a"])
 
-        assert not store.select("df1a").index.equals(store.select("df2a").index)
+        assert not temp_hdfstore.select("df1a").index.equals(
+            temp_hdfstore.select("df2a").index
+        )
 
 
-def test_append_to_multiple_min_itemsize(tmp_path):
+def test_append_to_multiple_min_itemsize(temp_hdfstore):
     # GH 11238
     df = DataFrame(
         {
@@ -964,44 +950,40 @@ def test_append_to_multiple_min_itemsize(tmp_path):
     # Reading/writing RangeIndex info is not supported yet
     expected.index = Index(list(range(len(expected.index))))
 
-    path = tmp_path / "test_append_to_multiple_min_itemsize.h5"
-    with HDFStore(path) as store:
-        store.append_to_multiple(
-            {
-                "index": ["IX"],
-                "nums": ["Num", "BigNum"],
-                "strs": ["Str", "LongStr"],
-            },
-            df.iloc[[0]],
-            "index",
-            min_itemsize={"Str": 10, "LongStr": 100, "Num": 2},
-        )
-        result = store.select_as_multiple(["index", "nums", "strs"])
-        tm.assert_frame_equal(result, expected, check_index_type=True)
+    temp_hdfstore.append_to_multiple(
+        {
+            "index": ["IX"],
+            "nums": ["Num", "BigNum"],
+            "strs": ["Str", "LongStr"],
+        },
+        df.iloc[[0]],
+        "index",
+        min_itemsize={"Str": 10, "LongStr": 100, "Num": 2},
+    )
+    result = temp_hdfstore.select_as_multiple(["index", "nums", "strs"])
+    tm.assert_frame_equal(result, expected, check_index_type=True)
 
 
-def test_append_string_nan_rep(tmp_path):
+def test_append_string_nan_rep(temp_hdfstore):
     # GH 16300
     df = DataFrame({"A": "a", "B": "foo"}, index=np.arange(10))
     df_nan = df.copy()
     df_nan.loc[0:4, :] = np.nan
     msg = "NaN representation is too large for existing column size"
 
-    path = tmp_path / "test_append_string_nan_rep.h5"
-    with HDFStore(path) as store:
-        # string column too small
-        store.append("sa", df["A"])
-        with pytest.raises(ValueError, match=msg):
-            store.append("sa", df_nan["A"])
+    # string column too small
+    temp_hdfstore.append("sa", df["A"])
+    with pytest.raises(ValueError, match=msg):
+        temp_hdfstore.append("sa", df_nan["A"])
 
-        # nan_rep too big
-        store.append("sb", df["B"], nan_rep="bars")
-        with pytest.raises(ValueError, match=msg):
-            store.append("sb", df_nan["B"])
+    # nan_rep too big
+    temp_hdfstore.append("sb", df["B"], nan_rep="bars")
+    with pytest.raises(ValueError, match=msg):
+        temp_hdfstore.append("sb", df_nan["B"])
 
-        # smaller modified nan_rep
-        store.append("sc", df["A"], nan_rep="n")
-        store.append("sc", df_nan["A"])
-        result = store["sc"]
-        expected = concat([df["A"], df_nan["A"]])
-        tm.assert_series_equal(result, expected)
+    # smaller modified nan_rep
+    temp_hdfstore.append("sc", df["A"], nan_rep="n")
+    temp_hdfstore.append("sc", df_nan["A"])
+    result = temp_hdfstore["sc"]
+    expected = concat([df["A"], df_nan["A"]])
+    tm.assert_series_equal(result, expected)

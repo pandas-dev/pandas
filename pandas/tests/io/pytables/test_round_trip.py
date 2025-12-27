@@ -24,10 +24,10 @@ from pandas.util import _test_decorators as td
 pytestmark = [pytest.mark.single_cpu]
 
 
-def test_conv_read_write(temp_file):
+def test_conv_read_write(temp_h5_path):
     def roundtrip(key, obj, **kwargs):
-        obj.to_hdf(temp_file, key=key, **kwargs)
-        return read_hdf(temp_file, key)
+        obj.to_hdf(temp_h5_path, key=key, **kwargs)
+        return read_hdf(temp_h5_path, key)
 
     o = Series(
         np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
@@ -46,21 +46,20 @@ def test_conv_read_write(temp_file):
 
     # table
     df = DataFrame({"A": range(5), "B": range(5)})
-    df.to_hdf(temp_file, key="table", append=True)
-    result = read_hdf(temp_file, "table", where=["index>2"])
+    df.to_hdf(temp_h5_path, key="table", append=True)
+    result = read_hdf(temp_h5_path, "table", where=["index>2"])
     tm.assert_frame_equal(df[df.index > 2], result)
 
 
-def test_long_strings(temp_file):
+def test_long_strings(temp_hdfstore):
     # GH6166
     data = ["a" * 50] * 10
     df = DataFrame({"a": data}, index=data)
 
-    with HDFStore(temp_file) as store:
-        store.append("df", df, data_columns=["a"])
+    temp_hdfstore.append("df", df, data_columns=["a"])
 
-        result = store.select("df")
-        tm.assert_frame_equal(df, result)
+    result = temp_hdfstore.select("df")
+    tm.assert_frame_equal(df, result)
 
 
 def test_api(temp_h5_path):
@@ -93,21 +92,19 @@ def test_api_append(temp_h5_path):
     tm.assert_frame_equal(read_hdf(path, "df"), df)
 
 
-def test_api_2(tmp_path, temp_file):
-    path = tmp_path / temp_file
-
+def test_api_2(temp_h5_path):
     df = DataFrame(range(20))
-    df.to_hdf(path, key="df", append=False, format="fixed")
-    tm.assert_frame_equal(read_hdf(path, "df"), df)
+    df.to_hdf(temp_h5_path, key="df", append=False, format="fixed")
+    tm.assert_frame_equal(read_hdf(temp_h5_path, "df"), df)
 
-    df.to_hdf(path, key="df", append=False, format="f")
-    tm.assert_frame_equal(read_hdf(path, "df"), df)
+    df.to_hdf(temp_h5_path, key="df", append=False, format="f")
+    tm.assert_frame_equal(read_hdf(temp_h5_path, "df"), df)
 
-    df.to_hdf(path, key="df", append=False)
-    tm.assert_frame_equal(read_hdf(path, "df"), df)
+    df.to_hdf(temp_h5_path, key="df", append=False)
+    tm.assert_frame_equal(read_hdf(temp_h5_path, "df"), df)
 
-    df.to_hdf(path, key="df")
-    tm.assert_frame_equal(read_hdf(path, "df"), df)
+    df.to_hdf(temp_h5_path, key="df")
+    tm.assert_frame_equal(read_hdf(temp_h5_path, "df"), df)
 
 
 def test_api_3(temp_hdfstore):
@@ -168,21 +165,20 @@ def test_api_invalid(temp_h5_path):
         read_hdf(path, "df")
 
 
-def test_get(temp_file):
-    with HDFStore(temp_file) as store:
-        store["a"] = Series(
-            np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
-        )
-        left = store.get("a")
-        right = store["a"]
-        tm.assert_series_equal(left, right)
+def test_get(temp_hdfstore):
+    temp_hdfstore["a"] = Series(
+        np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
+    )
+    left = temp_hdfstore.get("a")
+    right = temp_hdfstore["a"]
+    tm.assert_series_equal(left, right)
 
-        left = store.get("/a")
-        right = store["/a"]
-        tm.assert_series_equal(left, right)
+    left = temp_hdfstore.get("/a")
+    right = temp_hdfstore["/a"]
+    tm.assert_series_equal(left, right)
 
-        with pytest.raises(KeyError, match="'No object named b in the file'"):
-            store.get("b")
+    with pytest.raises(KeyError, match="'No object named b in the file'"):
+        temp_hdfstore.get("b")
 
 
 def test_put_integer(temp_h5_path):
@@ -191,71 +187,70 @@ def test_put_integer(temp_h5_path):
     _check_roundtrip(df, tm.assert_frame_equal, temp_h5_path)
 
 
-def test_table_values_dtypes_roundtrip(temp_file, using_infer_string):
-    with HDFStore(temp_file) as store:
-        df1 = DataFrame({"a": [1, 2, 3]}, dtype="f8")
-        store.append("df_f8", df1)
-        tm.assert_series_equal(df1.dtypes, store["df_f8"].dtypes)
+def test_table_values_dtypes_roundtrip(temp_hdfstore, using_infer_string):
+    df1 = DataFrame({"a": [1, 2, 3]}, dtype="f8")
+    temp_hdfstore.append("df_f8", df1)
+    tm.assert_series_equal(df1.dtypes, temp_hdfstore["df_f8"].dtypes)
 
-        df2 = DataFrame({"a": [1, 2, 3]}, dtype="i8")
-        store.append("df_i8", df2)
-        tm.assert_series_equal(df2.dtypes, store["df_i8"].dtypes)
+    df2 = DataFrame({"a": [1, 2, 3]}, dtype="i8")
+    temp_hdfstore.append("df_i8", df2)
+    tm.assert_series_equal(df2.dtypes, temp_hdfstore["df_i8"].dtypes)
 
-        # incompatible dtype
-        msg = re.escape(
-            "Cannot serialize the column [a] "
-            "because its data contents are not [float] "
-            "but [integer] object dtype"
-        )
-        with pytest.raises(ValueError, match=msg):
-            store.append("df_i8", df1)
+    # incompatible dtype
+    msg = re.escape(
+        "Cannot serialize the column [a] "
+        "because its data contents are not [float] "
+        "but [integer] object dtype"
+    )
+    with pytest.raises(ValueError, match=msg):
+        temp_hdfstore.append("df_i8", df1)
 
-        # check creation/storage/retrieval of float32 (a bit hacky to
-        # actually create them thought)
-        df1 = DataFrame(np.array([[1], [2], [3]], dtype="f4"), columns=["A"])
-        store.append("df_f4", df1)
-        tm.assert_series_equal(df1.dtypes, store["df_f4"].dtypes)
-        assert df1.dtypes.iloc[0] == "float32"
+    # check creation/storage/retrieval of float32 (a bit hacky to
+    # actually create them thought)
+    df1 = DataFrame(np.array([[1], [2], [3]], dtype="f4"), columns=["A"])
+    temp_hdfstore.append("df_f4", df1)
+    tm.assert_series_equal(df1.dtypes, temp_hdfstore["df_f4"].dtypes)
+    assert df1.dtypes.iloc[0] == "float32"
 
-        # check with mixed dtypes
-        df1 = DataFrame(
-            {
-                c: Series(np.random.default_rng(2).integers(5), dtype=c)
-                for c in ["float32", "float64", "int32", "int64", "int16", "int8"]
-            }
-        )
-        df1["string"] = "foo"
-        df1["float322"] = 1.0
-        df1["float322"] = df1["float322"].astype("float32")
-        df1["bool"] = df1["float32"] > 0
-        df1["time_s_1"] = Timestamp("20130101").as_unit("s")
-        df1["time_s_2"] = Timestamp("20130101 00:00:00").as_unit("s")
-        df1["time_ms"] = Timestamp("20130101 00:00:00.000").as_unit("ms")
-        df1["time_ns"] = Timestamp("20130102 00:00:00.000000000")
+    # check with mixed dtypes
+    df1 = DataFrame(
+        {
+            c: Series(np.random.default_rng(2).integers(5), dtype=c)
+            for c in ["float32", "float64", "int32", "int64", "int16", "int8"]
+        }
+    )
+    df1["string"] = "foo"
+    df1["float322"] = 1.0
+    df1["float322"] = df1["float322"].astype("float32")
+    df1["bool"] = df1["float32"] > 0
+    df1["time_s_1"] = Timestamp("20130101").as_unit("s")
+    df1["time_s_2"] = Timestamp("20130101 00:00:00").as_unit("s")
+    df1["time_ms"] = Timestamp("20130101 00:00:00.000").as_unit("ms")
+    df1["time_ns"] = Timestamp("20130102 00:00:00.000000000")
 
-        store.append("df_mixed_dtypes1", df1)
-        result = store.select("df_mixed_dtypes1").dtypes.value_counts()
-        result.index = [str(i) for i in result.index]
-        str_dtype = "str" if using_infer_string else "object"
-        expected = Series(
-            {
-                "float32": 2,
-                "float64": 1,
-                "int32": 1,
-                "bool": 1,
-                "int16": 1,
-                "int8": 1,
-                "int64": 1,
-                str_dtype: 1,
-                "datetime64[s]": 2,
-                "datetime64[ms]": 1,
-                "datetime64[ns]": 1,
-            },
-            name="count",
-        )
-        result = result.sort_index()
-        expected = expected.sort_index()
-        tm.assert_series_equal(result, expected)
+    temp_hdfstore.append("df_mixed_dtypes1", df1)
+    result = temp_hdfstore.select("df_mixed_dtypes1").dtypes.value_counts()
+    result.index = [str(i) for i in result.index]
+    str_dtype = "str" if using_infer_string else "object"
+    expected = Series(
+        {
+            "float32": 2,
+            "float64": 1,
+            "int32": 1,
+            "bool": 1,
+            "int16": 1,
+            "int8": 1,
+            "int64": 1,
+            str_dtype: 1,
+            "datetime64[s]": 2,
+            "datetime64[ms]": 1,
+            "datetime64[ns]": 1,
+        },
+        name="count",
+    )
+    result = result.sort_index()
+    expected = expected.sort_index()
+    tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.filterwarnings("ignore::pandas.errors.PerformanceWarning")
@@ -358,7 +353,7 @@ def test_timeseries_preepoch(temp_h5_path, request):
 @pytest.mark.parametrize(
     "compression", [False, pytest.param(True, marks=td.skip_if_windows)]
 )
-def test_frame(compression, temp_file):
+def test_frame(compression, temp_h5_path):
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
         columns=Index(list("ABCD")),
@@ -370,9 +365,11 @@ def test_frame(compression, temp_file):
     df.iloc[5, 3] = np.nan
 
     _check_roundtrip_table(
-        df, tm.assert_frame_equal, path=temp_file, compression=compression
+        df, tm.assert_frame_equal, path=temp_h5_path, compression=compression
     )
-    _check_roundtrip(df, tm.assert_frame_equal, path=temp_file, compression=compression)
+    _check_roundtrip(
+        df, tm.assert_frame_equal, path=temp_h5_path, compression=compression
+    )
 
     tdf = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
@@ -380,10 +377,10 @@ def test_frame(compression, temp_file):
         index=date_range("2000-01-01", periods=10, freq="B"),
     )
     _check_roundtrip(
-        tdf, tm.assert_frame_equal, path=temp_file, compression=compression
+        tdf, tm.assert_frame_equal, path=temp_h5_path, compression=compression
     )
 
-    with HDFStore(temp_file) as store:
+    with HDFStore(temp_h5_path) as store:
         # not consolidated
         df["foo"] = np.random.default_rng(2).standard_normal(len(df))
         store["df"] = df
@@ -394,7 +391,7 @@ def test_frame(compression, temp_file):
     df2 = df[:0]
     # Prevent df2 from having index with inferred_type as string
     df2.index = Index([])
-    _check_roundtrip(df2[:0], tm.assert_frame_equal, path=temp_file)
+    _check_roundtrip(df2[:0], tm.assert_frame_equal, path=temp_h5_path)
 
 
 def test_empty_series_frame(temp_h5_path):
@@ -427,16 +424,16 @@ def test_can_serialize_dates(temp_h5_path):
 
 
 def test_store_hierarchical(
-    temp_file, using_infer_string, multiindex_dataframe_random_data
+    temp_h5_path, using_infer_string, multiindex_dataframe_random_data
 ):
     frame = multiindex_dataframe_random_data
 
-    _check_roundtrip(frame, tm.assert_frame_equal, path=temp_file)
-    _check_roundtrip(frame.T, tm.assert_frame_equal, path=temp_file)
-    _check_roundtrip(frame["A"], tm.assert_series_equal, path=temp_file)
+    _check_roundtrip(frame, tm.assert_frame_equal, path=temp_h5_path)
+    _check_roundtrip(frame.T, tm.assert_frame_equal, path=temp_h5_path)
+    _check_roundtrip(frame["A"], tm.assert_series_equal, path=temp_h5_path)
 
     # check that the names are stored
-    with HDFStore(temp_file) as store:
+    with HDFStore(temp_h5_path) as store:
         store["frame"] = frame
         recons = store["frame"]
         tm.assert_frame_equal(recons, frame)
@@ -445,7 +442,7 @@ def test_store_hierarchical(
 @pytest.mark.parametrize(
     "compression", [False, pytest.param(True, marks=td.skip_if_windows)]
 )
-def test_store_mixed(compression, temp_file):
+def test_store_mixed(compression, temp_h5_path):
     def _make_one():
         df = DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
@@ -463,10 +460,10 @@ def test_store_mixed(compression, temp_file):
     df1 = _make_one()
     df2 = _make_one()
 
-    _check_roundtrip(df1, tm.assert_frame_equal, path=temp_file)
-    _check_roundtrip(df2, tm.assert_frame_equal, path=temp_file)
+    _check_roundtrip(df1, tm.assert_frame_equal, path=temp_h5_path)
+    _check_roundtrip(df2, tm.assert_frame_equal, path=temp_h5_path)
 
-    with HDFStore(temp_file) as store:
+    with HDFStore(temp_h5_path) as store:
         store["obj"] = df1
         tm.assert_frame_equal(store["obj"], df1)
         store["obj"] = df2
@@ -476,19 +473,19 @@ def test_store_mixed(compression, temp_file):
     _check_roundtrip(
         df1["obj1"],
         tm.assert_series_equal,
-        path=temp_file,
+        path=temp_h5_path,
         compression=compression,
     )
     _check_roundtrip(
         df1["bool1"],
         tm.assert_series_equal,
-        path=temp_file,
+        path=temp_h5_path,
         compression=compression,
     )
     _check_roundtrip(
         df1["int1"],
         tm.assert_series_equal,
-        path=temp_file,
+        path=temp_h5_path,
         compression=compression,
     )
 
@@ -526,20 +523,19 @@ def test_unicode_index(temp_h5_path):
     _check_roundtrip(s, tm.assert_series_equal, path=temp_h5_path)
 
 
-def test_unicode_longer_encoded(temp_file):
+def test_unicode_longer_encoded(temp_hdfstore):
     # GH 11234
     char = "\u0394"
     df = DataFrame({"A": [char]})
-    with HDFStore(temp_file) as store:
-        store.put("df", df, format="table", encoding="utf-8")
-        result = store.get("df")
-        tm.assert_frame_equal(result, df)
+    temp_hdfstore.put("df", df, format="table", encoding="utf-8")
+    result = temp_hdfstore.get("df")
+    tm.assert_frame_equal(result, df)
 
     df = DataFrame({"A": ["a", char], "B": ["b", "b"]})
-    with HDFStore(temp_file) as store:
-        store.put("df", df, format="table", encoding="utf-8")
-        result = store.get("df")
-        tm.assert_frame_equal(result, df)
+    temp_hdfstore.remove("df")
+    temp_hdfstore.put("df", df, format="table", encoding="utf-8")
+    result = temp_hdfstore.get("df")
+    tm.assert_frame_equal(result, df)
 
 
 def test_store_datetime_mixed(temp_h5_path):
