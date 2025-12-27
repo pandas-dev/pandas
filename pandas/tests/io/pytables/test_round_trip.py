@@ -66,10 +66,10 @@ def test_long_strings(temp_file):
         tm.assert_frame_equal(df, result)
 
 
-def test_api(tmp_path, setup_path):
+def test_api(temp_h5_path):
     # GH4584
     # API issue when to_hdf doesn't accept append AND format args
-    path = tmp_path / setup_path
+    path = temp_h5_path
 
     df = DataFrame(range(20))
     df.iloc[:10].to_hdf(path, key="df", append=True, format="table")
@@ -82,8 +82,8 @@ def test_api(tmp_path, setup_path):
     tm.assert_frame_equal(read_hdf(path, "df"), df)
 
 
-def test_api_append(tmp_path, setup_path):
-    path = tmp_path / setup_path
+def test_api_append(temp_h5_path):
+    path = temp_h5_path
 
     df = DataFrame(range(20))
     df.iloc[:10].to_hdf(path, key="df", append=True)
@@ -138,8 +138,8 @@ def test_api_2(tmp_path, temp_file):
         tm.assert_frame_equal(store.select("df"), df)
 
 
-def test_api_invalid(tmp_path, setup_path):
-    path = tmp_path / setup_path
+def test_api_invalid(temp_h5_path):
+    path = temp_h5_path
     # Invalid.
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
@@ -188,10 +188,10 @@ def test_get(temp_file):
             store.get("b")
 
 
-def test_put_integer(setup_path):
+def test_put_integer(temp_h5_path):
     # non-date, non-string index
     df = DataFrame(np.random.default_rng(2).standard_normal((50, 100)))
-    _check_roundtrip(df, tm.assert_frame_equal, setup_path)
+    _check_roundtrip(df, tm.assert_frame_equal, temp_h5_path)
 
 
 def test_table_values_dtypes_roundtrip(temp_file, using_infer_string):
@@ -262,32 +262,32 @@ def test_table_values_dtypes_roundtrip(temp_file, using_infer_string):
 
 
 @pytest.mark.filterwarnings("ignore::pandas.errors.PerformanceWarning")
-def test_series(setup_path):
+def test_series(temp_h5_path):
     s = Series(range(10), dtype="float64", index=[f"i_{i}" for i in range(10)])
-    _check_roundtrip(s, tm.assert_series_equal, path=setup_path)
+    _check_roundtrip(s, tm.assert_series_equal, path=temp_h5_path)
 
     ts = Series(
         np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
     )
-    _check_roundtrip(ts, tm.assert_series_equal, path=setup_path)
+    _check_roundtrip(ts, tm.assert_series_equal, path=temp_h5_path)
 
     ts2 = Series(ts.index, Index(ts.index))
-    _check_roundtrip(ts2, tm.assert_series_equal, path=setup_path)
+    _check_roundtrip(ts2, tm.assert_series_equal, path=temp_h5_path)
 
     ts3 = Series(ts.values, Index(np.asarray(ts.index)))
     _check_roundtrip(
-        ts3, tm.assert_series_equal, path=setup_path, check_index_type=False
+        ts3, tm.assert_series_equal, path=temp_h5_path, check_index_type=False
     )
 
 
-def test_float_index(setup_path):
+def test_float_index(temp_h5_path):
     # GH #454
     index = np.random.default_rng(2).standard_normal(10)
     s = Series(np.random.default_rng(2).standard_normal(10), index=index)
-    _check_roundtrip(s, tm.assert_series_equal, path=setup_path)
+    _check_roundtrip(s, tm.assert_series_equal, path=temp_h5_path)
 
 
-def test_tuple_index(setup_path, performance_warning):
+def test_tuple_index(temp_h5_path, performance_warning):
     # GH #492
     col = np.arange(10)
     idx = [(0.0, 1.0), (2.0, 3.0), (4.0, 5.0)]
@@ -295,61 +295,61 @@ def test_tuple_index(setup_path, performance_warning):
     DF = DataFrame(data, index=idx, columns=col)
 
     with tm.assert_produces_warning(performance_warning):
-        _check_roundtrip(DF, tm.assert_frame_equal, path=setup_path)
+        _check_roundtrip(DF, tm.assert_frame_equal, path=temp_h5_path)
 
 
 @pytest.mark.filterwarnings("ignore::pandas.errors.PerformanceWarning")
-def test_index_types(setup_path):
+def test_index_types(temp_h5_path):
     values = np.random.default_rng(2).standard_normal(2)
 
     func = lambda lhs, rhs: tm.assert_series_equal(lhs, rhs, check_index_type=True)
 
     ser = Series(values, [0, "y"])
-    _check_roundtrip(ser, func, path=setup_path)
+    _check_roundtrip(ser, func, path=temp_h5_path)
 
     ser = Series(values, [datetime.datetime.today(), 0])
-    _check_roundtrip(ser, func, path=setup_path)
+    _check_roundtrip(ser, func, path=temp_h5_path)
 
     ser = Series(values, ["y", 0])
-    _check_roundtrip(ser, func, path=setup_path)
+    _check_roundtrip(ser, func, path=temp_h5_path)
 
     ser = Series(values, [datetime.date.today(), "a"])
-    _check_roundtrip(ser, func, path=setup_path)
+    _check_roundtrip(ser, func, path=temp_h5_path)
 
     ser = Series(values, [0, "y"])
-    _check_roundtrip(ser, func, path=setup_path)
+    _check_roundtrip(ser, func, path=temp_h5_path)
 
     ser = Series(values, [datetime.datetime.today(), 0])
-    _check_roundtrip(ser, func, path=setup_path)
+    _check_roundtrip(ser, func, path=temp_h5_path)
 
     ser = Series(values, ["y", 0])
-    _check_roundtrip(ser, func, path=setup_path)
+    _check_roundtrip(ser, func, path=temp_h5_path)
 
     ser = Series(values, [datetime.date.today(), "a"])
-    _check_roundtrip(ser, func, path=setup_path)
+    _check_roundtrip(ser, func, path=temp_h5_path)
 
     ser = Series(values, [1.23, "b"])
-    _check_roundtrip(ser, func, path=setup_path)
+    _check_roundtrip(ser, func, path=temp_h5_path)
 
     ser = Series(values, [1, 1.53])
-    _check_roundtrip(ser, func, path=setup_path)
+    _check_roundtrip(ser, func, path=temp_h5_path)
 
     ser = Series(values, [1, 5])
-    _check_roundtrip(ser, func, path=setup_path)
+    _check_roundtrip(ser, func, path=temp_h5_path)
 
     dti = DatetimeIndex(["2012-01-01", "2012-01-02"], dtype="M8[ns]")
     ser = Series(values, index=dti)
-    _check_roundtrip(ser, func, path=setup_path)
+    _check_roundtrip(ser, func, path=temp_h5_path)
 
     ser.index = ser.index.as_unit("s")
-    _check_roundtrip(ser, func, path=setup_path)
+    _check_roundtrip(ser, func, path=temp_h5_path)
 
 
-def test_timeseries_preepoch(setup_path, request):
+def test_timeseries_preepoch(temp_h5_path, request):
     dr = bdate_range("1/1/1940", "1/1/1960")
     ts = Series(np.random.default_rng(2).standard_normal(len(dr)), index=dr)
     try:
-        _check_roundtrip(ts, tm.assert_series_equal, path=setup_path)
+        _check_roundtrip(ts, tm.assert_series_equal, path=temp_h5_path)
     except OverflowError:
         if is_platform_windows():
             request.applymarker(
@@ -400,33 +400,33 @@ def test_frame(compression, temp_file):
     _check_roundtrip(df2[:0], tm.assert_frame_equal, path=temp_file)
 
 
-def test_empty_series_frame(setup_path):
+def test_empty_series_frame(temp_h5_path):
     s0 = Series(dtype=object)
     s1 = Series(name="myseries", dtype=object)
     df0 = DataFrame()
     df1 = DataFrame(index=["a", "b", "c"])
     df2 = DataFrame(columns=["d", "e", "f"])
 
-    _check_roundtrip(s0, tm.assert_series_equal, path=setup_path)
-    _check_roundtrip(s1, tm.assert_series_equal, path=setup_path)
-    _check_roundtrip(df0, tm.assert_frame_equal, path=setup_path)
-    _check_roundtrip(df1, tm.assert_frame_equal, path=setup_path)
-    _check_roundtrip(df2, tm.assert_frame_equal, path=setup_path)
+    _check_roundtrip(s0, tm.assert_series_equal, path=temp_h5_path)
+    _check_roundtrip(s1, tm.assert_series_equal, path=temp_h5_path)
+    _check_roundtrip(df0, tm.assert_frame_equal, path=temp_h5_path)
+    _check_roundtrip(df1, tm.assert_frame_equal, path=temp_h5_path)
+    _check_roundtrip(df2, tm.assert_frame_equal, path=temp_h5_path)
 
 
 @pytest.mark.parametrize("dtype", [np.int64, np.float64, object, "m8[ns]", "M8[ns]"])
-def test_empty_series(dtype, setup_path):
+def test_empty_series(dtype, temp_h5_path):
     s = Series(dtype=dtype)
-    _check_roundtrip(s, tm.assert_series_equal, path=setup_path)
+    _check_roundtrip(s, tm.assert_series_equal, path=temp_h5_path)
 
 
-def test_can_serialize_dates(setup_path):
+def test_can_serialize_dates(temp_h5_path):
     rng = [x.date() for x in bdate_range("1/1/2000", "1/30/2000")]
     frame = DataFrame(
         np.random.default_rng(2).standard_normal((len(rng), 4)), index=rng
     )
 
-    _check_roundtrip(frame, tm.assert_frame_equal, path=setup_path)
+    _check_roundtrip(frame, tm.assert_frame_equal, path=temp_h5_path)
 
 
 def test_store_hierarchical(
@@ -519,14 +519,14 @@ def _check_roundtrip_table(obj, comparator, path, compression=False):
         comparator(retrieved, obj)
 
 
-def test_unicode_index(setup_path):
+def test_unicode_index(temp_h5_path):
     unicode_values = ["\u03c3", "\u03c3\u03c3"]
 
     s = Series(
         np.random.default_rng(2).standard_normal(len(unicode_values)),
         unicode_values,
     )
-    _check_roundtrip(s, tm.assert_series_equal, path=setup_path)
+    _check_roundtrip(s, tm.assert_series_equal, path=temp_h5_path)
 
 
 def test_unicode_longer_encoded(temp_file):
@@ -545,37 +545,35 @@ def test_unicode_longer_encoded(temp_file):
         tm.assert_frame_equal(result, df)
 
 
-def test_store_datetime_mixed(setup_path):
+def test_store_datetime_mixed(temp_h5_path):
     df = DataFrame({"a": [1, 2, 3], "b": [1.0, 2.0, 3.0], "c": ["a", "b", "c"]})
     ts = Series(
         np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
     )
     df["d"] = ts.index[:3]
-    _check_roundtrip(df, tm.assert_frame_equal, path=setup_path)
+    _check_roundtrip(df, tm.assert_frame_equal, path=temp_h5_path)
 
 
-def test_round_trip_equals(tmp_path, setup_path):
+def test_round_trip_equals(temp_h5_path):
     # GH 9330
     df = DataFrame({"B": [1, 2], "A": ["x", "y"]})
 
-    path = tmp_path / setup_path
-    df.to_hdf(path, key="df", format="table")
-    other = read_hdf(path, "df")
+    df.to_hdf(temp_h5_path, key="df", format="table")
+    other = read_hdf(temp_h5_path, "df")
     tm.assert_frame_equal(df, other)
     assert df.equals(other)
     assert other.equals(df)
 
 
-def test_infer_string_columns(tmp_path, setup_path):
+def test_infer_string_columns(temp_h5_path):
     # GH#
     pytest.importorskip("pyarrow")
-    path = tmp_path / setup_path
     with pd.option_context("future.infer_string", True):
         df = DataFrame(1, columns=list("ABCD"), index=list(range(10))).set_index(
             ["A", "B"]
         )
         expected = df.copy()
-        df.to_hdf(path, key="df", format="table")
+        df.to_hdf(temp_h5_path, key="df", format="table")
 
-        result = read_hdf(path, "df")
+        result = read_hdf(temp_h5_path, "df")
         tm.assert_frame_equal(result, expected)

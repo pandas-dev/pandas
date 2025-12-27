@@ -355,7 +355,7 @@ def test_dst_transitions(tmp_path):
 @pytest.mark.filterwarnings(
     "ignore:`alltrue` is deprecated as of NumPy 1.25.0:DeprecationWarning"
 )
-def test_read_with_where_tz_aware_index(tmp_path, setup_path):
+def test_read_with_where_tz_aware_index(temp_hdfstore):
     # GH 11926
     periods = 10
     dts = date_range("20151201", periods=periods, freq="D", tz="UTC", unit="ns")
@@ -363,8 +363,7 @@ def test_read_with_where_tz_aware_index(tmp_path, setup_path):
     expected = DataFrame({"MYCOL": 0}, index=mi)
 
     key = "mykey"
-    path = tmp_path / setup_path
-    with pd.HDFStore(path) as store:
+    with pd.HDFStore(temp_hdfstore) as store:
         store.append(key, expected, format="table", append=True)
-    result = pd.read_hdf(path, key, where="DATE > 20151130")
+    result = pd.read_hdf(temp_hdfstore, key, where="DATE > 20151130")
     tm.assert_frame_equal(result, expected)

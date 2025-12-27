@@ -62,44 +62,41 @@ def test_retain_index_attributes(temp_file, unit):
         store.append("df2", df3)
 
 
-def test_retain_index_attributes2(tmp_path, setup_path):
-    path = tmp_path / setup_path
-
+def test_retain_index_attributes2(temp_h5_path):
     with tm.assert_produces_warning(errors.AttributeConflictWarning):
         df = DataFrame(
             {"A": Series(range(3), index=date_range("2000-1-1", periods=3, freq="h"))}
         )
-        df.to_hdf(path, key="data", mode="w", append=True)
+        df.to_hdf(temp_h5_path, key="data", mode="w", append=True)
         df2 = DataFrame(
             {"A": Series(range(3), index=date_range("2002-1-1", periods=3, freq="D"))}
         )
 
-        df2.to_hdf(path, key="data", append=True)
+        df2.to_hdf(temp_h5_path, key="data", append=True)
 
         idx = date_range("2000-1-1", periods=3, freq="h")
         idx.name = "foo"
         df = DataFrame({"A": Series(range(3), index=idx)})
-        df.to_hdf(path, key="data", mode="w", append=True)
+        df.to_hdf(temp_h5_path, key="data", mode="w", append=True)
 
-    assert read_hdf(path, key="data").index.name == "foo"
+    assert read_hdf(temp_h5_path, key="data").index.name == "foo"
 
     with tm.assert_produces_warning(errors.AttributeConflictWarning):
         idx2 = date_range("2001-1-1", periods=3, freq="h")
         idx2.name = "bar"
         df2 = DataFrame({"A": Series(range(3), index=idx2)})
-        df2.to_hdf(path, key="data", append=True)
+        df2.to_hdf(temp_h5_path, key="data", append=True)
 
-    assert read_hdf(path, "data").index.name is None
+    assert read_hdf(temp_h5_path, "data").index.name is None
 
 
-def test_retain_datetime_attribute(tmp_path, setup_path):
-    path = tmp_path / setup_path
+def test_retain_datetime_attribute(temp_h5_path):
     ser = Series(
         ["2024-08-26 15:13:14", "2024-08-26 15:14:14"],
         dtype="datetime64[us, UTC]",
     )
     dataframe = DataFrame(ser)
-    dataframe.to_hdf(path, key="Annotations", mode="w")
+    dataframe.to_hdf(temp_h5_path, key="Annotations", mode="w")
 
-    recovered_dataframe = read_hdf(path, key="Annotations")
+    recovered_dataframe = read_hdf(temp_h5_path, key="Annotations")
     tm.assert_frame_equal(dataframe, recovered_dataframe)
