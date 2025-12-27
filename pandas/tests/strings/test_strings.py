@@ -544,7 +544,12 @@ def test_strip_lstrip_rstrip_args(any_string_dtype, method, exp):
 
 
 @pytest.mark.parametrize(
-    "prefix, expected", [("a", ["b", " b c", "bc"]), ("ab", ["", "a b c", "bc"])]
+    "prefix, expected",
+    [
+        ("a", ["b", " b c", "bc"]),
+        ("ab", ["", "a b c", "bc"]),
+        ("", ["ab", "a b c", "bc"]),
+    ],
 )
 def test_removeprefix(any_string_dtype, prefix, expected):
     ser = Series(["ab", "a b c", "bc"], dtype=any_string_dtype)
@@ -554,7 +559,12 @@ def test_removeprefix(any_string_dtype, prefix, expected):
 
 
 @pytest.mark.parametrize(
-    "suffix, expected", [("c", ["ab", "a b ", "b"]), ("bc", ["ab", "a b c", ""])]
+    "suffix, expected",
+    [
+        ("c", ["ab", "a b ", "b"]),
+        ("bc", ["ab", "a b c", ""]),
+        ("", ["ab", "a b c", "bc"]),
+    ],
 )
 def test_removesuffix(any_string_dtype, suffix, expected):
     ser = Series(["ab", "a b c", "bc"], dtype=any_string_dtype)
@@ -757,7 +767,7 @@ def test_cat_on_bytes_raises():
 
 def test_str_accessor_in_apply_func():
     # https://github.com/pandas-dev/pandas/issues/38979
-    df = DataFrame(zip("abc", "def"))
+    df = DataFrame(zip("abc", "def", strict=True))
     expected = Series(["A/D", "B/E", "C/F"])
     result = df.apply(lambda f: "/".join(f.str.upper()), axis=1)
     tm.assert_series_equal(result, expected)

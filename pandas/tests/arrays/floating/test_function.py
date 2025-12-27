@@ -171,7 +171,7 @@ def test_floating_array_numpy_sum(values, expected):
 
 
 @pytest.mark.parametrize("op", ["sum", "min", "max", "prod"])
-def test_preserve_dtypes(op):
+def test_preserve_dtypes(op, using_python_scalars):
     df = pd.DataFrame(
         {
             "A": ["a", "b", "b"],
@@ -182,7 +182,10 @@ def test_preserve_dtypes(op):
 
     # op
     result = getattr(df.C, op)()
-    assert isinstance(result, np.float64)
+    if using_python_scalars:
+        assert type(result) == float
+    else:
+        assert isinstance(result, np.float64)
 
     # groupby
     result = getattr(df.groupby("A"), op)()

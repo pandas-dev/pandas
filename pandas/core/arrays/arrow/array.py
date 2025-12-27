@@ -442,7 +442,8 @@ class ArrowExtensionArray(
             # e.g. test_by_column_values_with_same_starting_value with nested
             #  values, one entry of which is an ArrowStringArray
             #  or test_agg_lambda_complex128_dtype_conversion for complex values
-            return super()._cast_pointwise_result(values)
+            values = np.asarray(values, dtype=object)
+            return lib.maybe_convert_objects(values, convert_non_numeric=True)
 
         if pa.types.is_null(arr.type):
             if lib.infer_dtype(values) == "decimal":
@@ -498,7 +499,8 @@ class ArrowExtensionArray(
             if self.dtype.na_value is np.nan:
                 # ArrowEA has different semantics, so we return numpy-based
                 #  result instead
-                return super()._cast_pointwise_result(values)
+                values = np.asarray(values, dtype=object)
+                return lib.maybe_convert_objects(values, convert_non_numeric=True)
             return ArrowExtensionArray(arr)
         return self._from_pyarrow_array(arr)
 
@@ -1802,7 +1804,7 @@ class ArrowExtensionArray(
 
         counts = ArrowExtensionArray(counts)
 
-        index = Index(self._from_pyarrow_array(values))
+        index = Index(self._from_pyarrow_array(values), copy=False)
 
         return Series(counts, index=index, name="count", copy=False)
 
@@ -2915,7 +2917,9 @@ class ArrowExtensionArray(
         return np.array(data, dtype=object)
 
     def _dt_total_seconds(self) -> Self:
-        result = pa.array(self._to_timedeltaarray().total_seconds(), from_pandas=True)
+        unit = self._pa_array.type.unit
+        unit_per_second = {"s": 1.0, "ms": 1e3, "us": 1e6, "ns": 1e9}
+        result = pc.divide(pc.cast(self._pa_array, pa.int64()), unit_per_second[unit])
         return self._from_pyarrow_array(result)
 
     def _dt_as_unit(self, unit: str) -> Self:

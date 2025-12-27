@@ -549,9 +549,9 @@ class TestCommon:
             result = offset_s + dta
         tm.assert_equal(result, dta)
 
-    def test_pickle_roundtrip(self, offset_types):
+    def test_pickle_roundtrip(self, offset_types, tmp_path):
         off = _create_offset(offset_types)
-        res = tm.round_trip_pickle(off)
+        res = tm.round_trip_pickle(off, tmp_path)
         assert off == res
         if type(off) is not DateOffset:
             for attr in off._attributes:
@@ -562,10 +562,10 @@ class TestCommon:
                 # Make sure nothings got lost from _params (which __eq__) is based on
                 assert getattr(off, attr) == getattr(res, attr)
 
-    def test_pickle_dateoffset_odd_inputs(self):
+    def test_pickle_dateoffset_odd_inputs(self, tmp_path):
         # GH#34511
         off = DateOffset(months=12)
-        res = tm.round_trip_pickle(off)
+        res = tm.round_trip_pickle(off, tmp_path)
         assert off == res
 
         base_dt = datetime(2020, 1, 1)
