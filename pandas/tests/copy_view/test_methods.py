@@ -34,6 +34,9 @@ def test_copy():
     assert not df_copy._mgr.blocks[0].refs.has_reference()
     assert not df_copy._mgr.blocks[1].refs.has_reference()
 
+    assert df_copy.index is not df.index
+    assert df_copy.columns is not df.columns
+
     # mutating copy doesn't mutate original
     df_copy.iloc[0, 0] = 0
     assert df.iloc[0, 0] == 1
@@ -403,6 +406,8 @@ def test_shift_no_op():
     df_orig = df.copy()
     df2 = df.shift(periods=0)
     assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    assert df2.index is not df.index
+    assert df2.columns is not df.columns
 
     df.iloc[0, 0] = 0
     assert not np.shares_memory(get_array(df, "a"), get_array(df2, "a"))
@@ -419,6 +424,8 @@ def test_shift_index():
     df2 = df.shift(periods=1, axis=0)
 
     assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    assert df2.index is not df.index
+    assert df2.columns is not df.columns
 
 
 def test_shift_rows_freq():
@@ -937,6 +944,8 @@ def test_round(decimals):
         assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
     else:
         assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    assert df2.index is not df.index
+    assert df2.columns is not df.columns
 
     df2.iloc[0, 1] = "d"
     df2.iloc[0, 0] = 4
@@ -1169,6 +1178,7 @@ def test_where_mask_noop(dtype, func):
 
     result = func(ser)
     assert np.shares_memory(get_array(ser), get_array(result))
+    assert result.index is not ser.index
 
     result.iloc[0] = 10
     assert not np.shares_memory(get_array(ser), get_array(result))
@@ -1190,6 +1200,7 @@ def test_where_mask(dtype, func):
     result = func(ser)
 
     assert not np.shares_memory(get_array(ser), get_array(result))
+    assert result.index is not ser.index
     tm.assert_series_equal(ser, ser_orig)
 
 
@@ -1345,6 +1356,10 @@ def test_xs(axis, key, dtype):
         assert np.shares_memory(get_array(df, "a"), get_array(result))
     else:
         assert result._mgr._has_no_reference(0)
+    if axis == 0:
+        assert result.index is not df.columns
+    else:
+        assert result.index is not df.index
 
     result.iloc[0] = 0
     tm.assert_frame_equal(df, df_orig)
@@ -1366,8 +1381,10 @@ def test_xs_multiindex(key, level, axis):
         assert np.shares_memory(
             get_array(df, df.columns[0]), get_array(result, result.columns[0])
         )
-    result.iloc[0, 0] = 0
+    assert result.index is not df.index
+    assert result.columns is not df.columns
 
+    result.iloc[0, 0] = 0
     tm.assert_frame_equal(df, df_orig)
 
 
