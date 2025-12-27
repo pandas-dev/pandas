@@ -25,6 +25,9 @@ dependencies:
   - python-dateutil
   - numpy<3
 
+  # SBOM validation
+  - jsonschema
+
   # optional dependencies
   - adbc-driver-postgresql>=1.2.0
   - adbc-driver-sqlite>=1.2.0
