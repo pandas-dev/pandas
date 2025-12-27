@@ -180,7 +180,7 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
         else:
             # array, slice.
             item = pd.api.indexers.check_array_indexer(self, item)
-            result = type(self)(self._data[item])
+            result = type(self)(self._data[item], context=self.dtype.context)
             if getitem_returns_view(self, item):
                 result._readonly = self._readonly
             return result
