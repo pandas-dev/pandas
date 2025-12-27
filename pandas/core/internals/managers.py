@@ -1138,8 +1138,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 ndim=1,
                 refs=self.blocks[0].refs,
             )
-            # TODO shallow copy columns
-            return SingleBlockManager(block, self.axes[0])
+            return SingleBlockManager(block, self.axes[0].view())
 
         dtype = interleaved_dtype([blk.dtype for blk in self.blocks])
 
@@ -1184,8 +1183,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         bp = BlockPlacement(slice(0, len(result)))
         block = new_block(result, placement=bp, ndim=1)
-        # TODO shallow copy columns
-        return SingleBlockManager(block, self.axes[0])
+        return SingleBlockManager(block, self.axes[0].view())
 
     def iget(self, i: int, track_ref: bool = True) -> SingleBlockManager:
         """

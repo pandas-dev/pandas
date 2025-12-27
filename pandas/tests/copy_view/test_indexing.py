@@ -592,6 +592,7 @@ def test_series_getitem_slice(backend):
 
     subset = s[:]
     assert np.shares_memory(get_array(subset), get_array(s))
+    assert subset.index is not s.index
 
     subset.iloc[0] = 0
 
@@ -611,6 +612,7 @@ def test_series_getitem_ellipsis():
 
     subset = s[...]
     assert np.shares_memory(get_array(subset), get_array(s))
+    assert subset.index is not s.index
 
     subset.iloc[0] = 0
 

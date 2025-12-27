@@ -1356,6 +1356,10 @@ def test_xs(axis, key, dtype):
         assert np.shares_memory(get_array(df, "a"), get_array(result))
     else:
         assert result._mgr._has_no_reference(0)
+    if axis == 0:
+        assert result.index is not df.columns
+    else:
+        assert result.index is not df.index
 
     result.iloc[0] = 0
     tm.assert_frame_equal(df, df_orig)
@@ -1377,8 +1381,10 @@ def test_xs_multiindex(key, level, axis):
         assert np.shares_memory(
             get_array(df, df.columns[0]), get_array(result, result.columns[0])
         )
-    result.iloc[0, 0] = 0
+    assert result.index is not df.index
+    assert result.columns is not df.columns
 
+    result.iloc[0, 0] = 0
     tm.assert_frame_equal(df, df_orig)
 
 
