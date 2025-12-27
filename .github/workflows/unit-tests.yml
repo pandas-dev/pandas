@@ -124,7 +124,7 @@ jobs:
           - 3306:3306
 
       postgres:
-        image: postgres:17
+        image: postgres:18
         env:
           PGUSER: postgres
           POSTGRES_USER: postgres
@@ -139,7 +139,7 @@ jobs:
           - 5432:5432
 
       moto:
-        image: motoserver/moto:5.0.27
+        image: motoserver/moto:5.1.18
         ports:
           - 5000:5000
 
