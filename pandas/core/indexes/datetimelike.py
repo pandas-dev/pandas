@@ -246,6 +246,9 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         if not isinstance(other, Index):
             return False
 
+        if hasattr(other, "dtype") and other.dtype.kind in "iufc":
+            return False
+
         if len(self) != len(other):
             return False
 
@@ -262,8 +265,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
                         return self._values.equals(other_values.as_unit(self_unit))
                 except (ValueError, TypeError, AttributeError):
                     return False
-        if other.dtype.kind in "iufc":
-            return False
 
         elif not isinstance(other, type(self)):
             should_try = False
@@ -285,6 +286,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
                     return False
 
         if self.dtype != other.dtype:
+            # have different timezone
             return False
 
         return np.array_equal(self.asi8, other.asi8)
