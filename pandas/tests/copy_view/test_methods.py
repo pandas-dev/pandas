@@ -406,6 +406,8 @@ def test_shift_no_op():
     df_orig = df.copy()
     df2 = df.shift(periods=0)
     assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    assert df2.index is not df.index
+    assert df2.columns is not df.columns
 
     df.iloc[0, 0] = 0
     assert not np.shares_memory(get_array(df, "a"), get_array(df2, "a"))
@@ -422,6 +424,8 @@ def test_shift_index():
     df2 = df.shift(periods=1, axis=0)
 
     assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    assert df2.index is not df.index
+    assert df2.columns is not df.columns
 
 
 def test_shift_rows_freq():
@@ -940,6 +944,8 @@ def test_round(decimals):
         assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
     else:
         assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    assert df2.index is not df.index
+    assert df2.columns is not df.columns
 
     df2.iloc[0, 1] = "d"
     df2.iloc[0, 0] = 4
@@ -1172,6 +1178,7 @@ def test_where_mask_noop(dtype, func):
 
     result = func(ser)
     assert np.shares_memory(get_array(ser), get_array(result))
+    assert result.index is not ser.index
 
     result.iloc[0] = 10
     assert not np.shares_memory(get_array(ser), get_array(result))
@@ -1193,6 +1200,7 @@ def test_where_mask(dtype, func):
     result = func(ser)
 
     assert not np.shares_memory(get_array(ser), get_array(result))
+    assert result.index is not ser.index
     tm.assert_series_equal(ser, ser_orig)
 
 

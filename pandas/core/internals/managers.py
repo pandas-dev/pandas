@@ -442,8 +442,7 @@ class BaseBlockManager(PandasObject):
                 applied = getattr(b, f)(**kwargs)
             result_blocks = extend_blocks(applied, result_blocks)
 
-        # TODO shallow copy axes (in from_blocks or here?)
-        out = type(self).from_blocks(result_blocks, self.axes)
+        out = type(self).from_blocks(result_blocks, [ax.view() for ax in self.axes])
         return out
 
     @final
@@ -860,7 +859,7 @@ class BaseBlockManager(PandasObject):
         new_axes = list(self.axes)
         new_axes[axis] = new_axis
         if self.ndim == 2:
-            new_axes[1 - axis] = self.axes[1 - axis]._view()
+            new_axes[1 - axis] = self.axes[1 - axis].view()
 
         new_mgr = type(self).from_blocks(new_blocks, new_axes)
         if axis == 1:
