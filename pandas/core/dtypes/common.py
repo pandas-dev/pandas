@@ -1883,9 +1883,10 @@ def pandas_dtype(dtype) -> DtypeObj:
             # Hence enabling DeprecationWarning
             warnings.simplefilter("always", DeprecationWarning)
             npdtype = np.dtype(dtype)
-    except SyntaxError as err:
-        # np.dtype uses `eval` which can raise SyntaxError
-        raise TypeError(f"data type '{dtype}' not understood") from err
+    except Exception:
+    # Catch any error and always raise TypeError
+    raise TypeError(f"data type '{dtype}' not understood") from None
+
 
     # Any invalid dtype (such as pd.Timestamp) should raise an error.
     # np.dtype(invalid_type).kind = 0 for such objects. However, this will
