@@ -18,9 +18,6 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.tests.io.pytables.common import (
-    _maybe_remove,
-)
 
 
 def _compare_with_tz(a, b):
@@ -45,7 +42,7 @@ gettz_pytz = lambda x: x
     "ignore:`alltrue` is deprecated as of NumPy 1.25.0:DeprecationWarning"
 )
 @pytest.mark.parametrize("gettz", [gettz_dateutil, gettz_pytz])
-def test_append_with_timezones(tmp_path, gettz):
+def test_append_with_timezones(temp_hdfstore, gettz):
     # as columns
 
     # Single-tzinfo, no DST transition
@@ -85,53 +82,50 @@ def test_append_with_timezones(tmp_path, gettz):
         index=range(5),
     )
 
-    path = tmp_path / "test_append_with_timezones.h5"
-    with pd.HDFStore(path) as store:
-        _maybe_remove(store, "df_tz")
-        store.append("df_tz", df_est, data_columns=["A"])
-        result = store["df_tz"]
-        _compare_with_tz(result, df_est)
-        tm.assert_frame_equal(result, df_est)
+    temp_hdfstore.append("df_tz", df_est, data_columns=["A"])
+    result = temp_hdfstore["df_tz"]
+    _compare_with_tz(result, df_est)
+    tm.assert_frame_equal(result, df_est)
 
-        # select with tz aware
-        expected = df_est[df_est.A >= df_est.A[3]]
-        result = store.select("df_tz", where="A>=df_est.A[3]")
-        _compare_with_tz(result, expected)
+    # select with tz aware
+    expected = df_est[df_est.A >= df_est.A[3]]
+    result = temp_hdfstore.select("df_tz", where="A>=df_est.A[3]")
+    _compare_with_tz(result, expected)
 
-        # ensure we include dates in DST and STD time here.
-        _maybe_remove(store, "df_tz")
-        store.append("df_tz", df_crosses_dst)
-        result = store["df_tz"]
-        _compare_with_tz(result, df_crosses_dst)
-        tm.assert_frame_equal(result, df_crosses_dst)
+    # ensure we include dates in DST and STD time here.
+    temp_hdfstore.remove("df_tz")
+    temp_hdfstore.append("df_tz", df_crosses_dst)
+    result = temp_hdfstore["df_tz"]
+    _compare_with_tz(result, df_crosses_dst)
+    tm.assert_frame_equal(result, df_crosses_dst)
 
-        msg = (
-            r"invalid info for \[values_block_1\] for \[tz\], "
-            r"existing_value \[(dateutil/.*)?(US/Eastern|America/New_York)\] "
-            r"conflicts with new value \[(dateutil/.*)?EET\]"
-        )
-        with pytest.raises(ValueError, match=msg):
-            store.append("df_tz", df_mixed_tz)
+    msg = (
+        r"invalid info for \[values_block_1\] for \[tz\], "
+        r"existing_value \[(dateutil/.*)?(US/Eastern|America/New_York)\] "
+        r"conflicts with new value \[(dateutil/.*)?EET\]"
+    )
+    with pytest.raises(ValueError, match=msg):
+        temp_hdfstore.append("df_tz", df_mixed_tz)
 
-        # this is ok
-        _maybe_remove(store, "df_tz")
-        store.append("df_tz", df_mixed_tz, data_columns=["A", "B"])
-        result = store["df_tz"]
-        _compare_with_tz(result, df_mixed_tz)
-        tm.assert_frame_equal(result, df_mixed_tz)
+    # this is ok
+    temp_hdfstore.remove("df_tz")
+    temp_hdfstore.append("df_tz", df_mixed_tz, data_columns=["A", "B"])
+    result = temp_hdfstore["df_tz"]
+    _compare_with_tz(result, df_mixed_tz)
+    tm.assert_frame_equal(result, df_mixed_tz)
 
-        # can't append with diff timezone
-        msg = (
-            r"invalid info for \[B\] for \[tz\], "
-            r"existing_value \[(dateutil/.*)?EET\] "
-            r"conflicts with new value \[(dateutil/.*)?CET\]"
-        )
-        with pytest.raises(ValueError, match=msg):
-            store.append("df_tz", df_different_tz)
+    # can't append with diff timezone
+    msg = (
+        r"invalid info for \[B\] for \[tz\], "
+        r"existing_value \[(dateutil/.*)?EET\] "
+        r"conflicts with new value \[(dateutil/.*)?CET\]"
+    )
+    with pytest.raises(ValueError, match=msg):
+        temp_hdfstore.append("df_tz", df_different_tz)
 
 
 @pytest.mark.parametrize("gettz", [gettz_dateutil, gettz_pytz])
-def test_append_with_timezones_as_index(tmp_path, gettz):
+def test_append_with_timezones_as_index(temp_hdfstore, gettz):
     # GH#4098 example
 
     dti = date_range("2000-1-1", periods=3, freq="h", tz=gettz("US/Eastern"))
@@ -139,17 +133,14 @@ def test_append_with_timezones_as_index(tmp_path, gettz):
 
     df = DataFrame({"A": Series(range(3), index=dti)})
 
-    path = tmp_path / "test_append_with_timezones_as_index.h5"
-    with pd.HDFStore(path) as store:
-        _maybe_remove(store, "df")
-        store.put("df", df)
-        result = store.select("df")
-        tm.assert_frame_equal(result, df)
+    temp_hdfstore.put("df", df)
+    result = temp_hdfstore.select("df")
+    tm.assert_frame_equal(result, df)
 
-        _maybe_remove(store, "df")
-        store.append("df", df)
-        result = store.select("df")
-        tm.assert_frame_equal(result, df)
+    temp_hdfstore.remove("df")
+    temp_hdfstore.append("df", df)
+    result = temp_hdfstore.select("df")
+    tm.assert_frame_equal(result, df)
 
 
 def test_roundtrip_tz_aware_index(tmp_path, unit):
@@ -225,38 +216,32 @@ def test_tseries_select_index_column(tmp_path):
         assert rng.tz == result.dt.tz
 
 
-def test_timezones_fixed_format_frame_non_empty(tmp_path):
-    path1 = tmp_path / "test_timezones_fixed_format_frame_non_empty1.h5"
-    with pd.HDFStore(path1) as store:
-        # index
-        rng = date_range("1/1/2000", "1/30/2000", tz="US/Eastern")
-        rng = rng._with_freq(None)  # freq doesn't round-trip
-        df = DataFrame(
-            np.random.default_rng(2).standard_normal((len(rng), 4)), index=rng
-        )
-        store["df"] = df
-        result = store["df"]
-        tm.assert_frame_equal(result, df)
+def test_timezones_fixed_format_frame_non_empty(temp_hdfstore):
+    # index
+    rng = date_range("1/1/2000", "1/30/2000", tz="US/Eastern")
+    rng = rng._with_freq(None)  # freq doesn't round-trip
+    df = DataFrame(np.random.default_rng(2).standard_normal((len(rng), 4)), index=rng)
+    temp_hdfstore["df"] = df
+    result = temp_hdfstore["df"]
+    tm.assert_frame_equal(result, df)
 
-    # as data
+
+def test_timezones_fixed_format_frame_non_empty_as_data(temp_hdfstore):
     # GH11411
-    path2 = tmp_path / "test_timezones_fixed_format_frame_non_empty2.h5"
-    with pd.HDFStore(path2) as store:
-        rng = date_range("1/1/2000", "1/30/2000", tz="US/Eastern")
-        rng = rng._with_freq(None)  # freq doesn't round-trip
-        df = DataFrame(
-            {
-                "A": rng,
-                "B": rng.tz_convert("UTC").tz_localize(None),
-                "C": rng.tz_convert("CET"),
-                "D": range(len(rng)),
-            },
-            index=rng,
-        )
-        _maybe_remove(store, "df")
-        store["df"] = df
-        result = store["df"]
-        tm.assert_frame_equal(result, df)
+    rng = date_range("1/1/2000", "1/30/2000", tz="US/Eastern")
+    rng = rng._with_freq(None)  # freq doesn't round-trip
+    df = DataFrame(
+        {
+            "A": rng,
+            "B": rng.tz_convert("UTC").tz_localize(None),
+            "C": rng.tz_convert("CET"),
+            "D": range(len(rng)),
+        },
+        index=rng,
+    )
+    temp_hdfstore["df"] = df
+    result = temp_hdfstore["df"]
+    tm.assert_frame_equal(result, df)
 
 
 def test_timezones_fixed_format_empty(tmp_path, tz_aware_fixture, frame_or_series):
@@ -331,25 +316,23 @@ def test_store_timezone(tmp_path):
         tm.assert_frame_equal(result, df)
 
 
-def test_dst_transitions(tmp_path):
+def test_dst_transitions(temp_hdfstore):
     # make sure we are not failing on transitions
-    path = tmp_path / "test_dst_transitions.h5"
-    with pd.HDFStore(path) as store:
-        times = date_range(
-            "2013-10-26 23:00",
-            "2013-10-27 01:00",
-            tz="Europe/London",
-            freq="h",
-            ambiguous="infer",
-        )
-        times = times._with_freq(None)  # freq doesn't round-trip
+    times = date_range(
+        "2013-10-26 23:00",
+        "2013-10-27 01:00",
+        tz="Europe/London",
+        freq="h",
+        ambiguous="infer",
+    )
+    times = times._with_freq(None)  # freq doesn't round-trip
 
-        for i in [times, times + pd.Timedelta("10min")]:
-            _maybe_remove(store, "df")
-            df = DataFrame({"A": range(len(i)), "B": i}, index=i)
-            store.append("df", df)
-            result = store.select("df")
-            tm.assert_frame_equal(result, df)
+    for i in [times, times + pd.Timedelta("10min")]:
+        df = DataFrame({"A": range(len(i)), "B": i}, index=i)
+        temp_hdfstore.append("df", df)
+        result = temp_hdfstore.select("df")
+        tm.assert_frame_equal(result, df)
+        temp_hdfstore.remove("df")
 
 
 @pytest.mark.filterwarnings(

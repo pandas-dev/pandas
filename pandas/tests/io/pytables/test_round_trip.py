@@ -19,9 +19,6 @@ from pandas import (
     date_range,
     read_hdf,
 )
-from pandas.tests.io.pytables.common import (
-    _maybe_remove,
-)
 from pandas.util import _test_decorators as td
 
 pytestmark = [pytest.mark.single_cpu]
@@ -112,30 +109,30 @@ def test_api_2(tmp_path, temp_file):
     df.to_hdf(path, key="df")
     tm.assert_frame_equal(read_hdf(path, "df"), df)
 
-    with HDFStore(temp_file) as store:
-        df = DataFrame(range(20))
 
-        _maybe_remove(store, "df")
-        store.append("df", df.iloc[:10], append=True, format="table")
-        store.append("df", df.iloc[10:], append=True, format="table")
-        tm.assert_frame_equal(store.select("df"), df)
+def test_api_3(temp_hdfstore):
+    df = DataFrame(range(20))
 
-        # append to False
-        _maybe_remove(store, "df")
-        store.append("df", df.iloc[:10], append=False, format="table")
-        store.append("df", df.iloc[10:], append=True, format="table")
-        tm.assert_frame_equal(store.select("df"), df)
+    temp_hdfstore.append("df", df.iloc[:10], append=True, format="table")
+    temp_hdfstore.append("df", df.iloc[10:], append=True, format="table")
+    tm.assert_frame_equal(temp_hdfstore.select("df"), df)
 
-        # formats
-        _maybe_remove(store, "df")
-        store.append("df", df.iloc[:10], append=False, format="table")
-        store.append("df", df.iloc[10:], append=True, format="table")
-        tm.assert_frame_equal(store.select("df"), df)
+    # append to False
+    temp_hdfstore.remove("df")
+    temp_hdfstore.append("df", df.iloc[:10], append=False, format="table")
+    temp_hdfstore.append("df", df.iloc[10:], append=True, format="table")
+    tm.assert_frame_equal(temp_hdfstore.select("df"), df)
 
-        _maybe_remove(store, "df")
-        store.append("df", df.iloc[:10], append=False, format="table")
-        store.append("df", df.iloc[10:], append=True, format=None)
-        tm.assert_frame_equal(store.select("df"), df)
+    # formats
+    temp_hdfstore.remove("df")
+    temp_hdfstore.append("df", df.iloc[:10], append=False, format="table")
+    temp_hdfstore.append("df", df.iloc[10:], append=True, format="table")
+    tm.assert_frame_equal(temp_hdfstore.select("df"), df)
+
+    temp_hdfstore.remove("df")
+    temp_hdfstore.append("df", df.iloc[:10], append=False, format="table")
+    temp_hdfstore.append("df", df.iloc[10:], append=True, format=None)
+    tm.assert_frame_equal(temp_hdfstore.select("df"), df)
 
 
 def test_api_invalid(temp_h5_path):
