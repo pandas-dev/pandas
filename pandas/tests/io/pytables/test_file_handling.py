@@ -23,13 +23,11 @@ from pandas import (
     date_range,
     read_hdf,
 )
-from pandas.tests.io.pytables.common import (
-    tables,
-)
 
 from pandas.io import pytables
 from pandas.io.pytables import Term
 
+tables = pytest.importorskip("tables")
 pytestmark = [pytest.mark.single_cpu]
 
 

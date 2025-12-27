@@ -8,7 +8,8 @@ from pandas import (
     Series,
     date_range,
 )
-from pandas.tests.io.pytables.common import tables
+
+tables = pytest.importorskip("tables")
 
 pytestmark = [pytest.mark.single_cpu]
 
