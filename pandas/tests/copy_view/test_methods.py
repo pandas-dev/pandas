@@ -569,6 +569,9 @@ def test_to_frame():
 
     tm.assert_frame_equal(df, ser_orig.to_frame())
 
+    df = ser.to_frame()
+    assert df.index is not ser.index
+
 
 @pytest.mark.parametrize(
     "method, idx",

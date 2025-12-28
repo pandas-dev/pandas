@@ -2029,8 +2029,7 @@ class SingleBlockManager(BaseBlockManager):
         arr = ensure_block_shape(blk.values, ndim=2)
         bp = BlockPlacement(0)
         new_blk = type(blk)(arr, placement=bp, ndim=2, refs=blk.refs)
-        # TODO shallow copy index
-        axes = [columns, self.axes[0]]
+        axes = [columns, self.axes[0].view()]
         return BlockManager([new_blk], axes=axes, verify_integrity=False)
 
     def _has_no_reference(self, i: int = 0) -> bool:
