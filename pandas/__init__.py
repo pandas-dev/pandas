@@ -43,6 +43,10 @@ from pandas._config import (
 # let init-time option registration happen
 import pandas.core.config_init  # pyright: ignore[reportUnusedImport] # noqa: F401
 
+# modern pandas extension
+import pandas.core.modern  # pyright: ignore[reportUnusedImport] # noqa: F401
+
+
 from pandas.core.api import (
     # dtype
     ArrowDtype,
