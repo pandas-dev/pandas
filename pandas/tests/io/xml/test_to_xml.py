@@ -174,7 +174,7 @@ def test_file_output_str_read(xml_books, parser, from_file_expected, temp_file):
     df_file = read_xml(xml_books, parser=parser)
 
     df_file.to_xml(temp_file, parser=parser)
-    output = temp_file.read_text().strip()
+    output = temp_file.read_text(encoding="utf-8").strip()
 
     output = equalize_decl(output)
 
@@ -185,7 +185,7 @@ def test_file_output_bytes_read(xml_books, parser, from_file_expected, temp_file
     df_file = read_xml(xml_books, parser=parser)
 
     df_file.to_xml(temp_file, parser=parser)
-    output = temp_file.read_text().strip()
+    output = temp_file.read_text(encoding="utf-8").strip()
 
     output = equalize_decl(output)
 
@@ -244,7 +244,7 @@ def test_index_false(xml_books, parser, temp_file):
     df_file = read_xml(xml_books, parser=parser)
 
     df_file.to_xml(temp_file, index=False, parser=parser)
-    output = temp_file.read_text().strip()
+    output = temp_file.read_text(encoding="utf-8").strip()
 
     output = equalize_decl(output)
 
@@ -283,7 +283,7 @@ def test_index_false_rename_row_root(xml_books, parser, temp_file):
     df_file.to_xml(
         temp_file, index=False, root_name="books", row_name="book", parser=parser
     )
-    output = temp_file.read_text().strip()
+    output = temp_file.read_text(encoding="utf-8").strip()
 
     output = equalize_decl(output)
 
