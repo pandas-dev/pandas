@@ -1120,21 +1120,19 @@ class TestParquetPyArrow(Base):
         df = pd.DataFrame(index=pd.Index(["a", "b", "c"], name="custom name"))
         check_round_trip(df, temp_file, pa)
 
-    def test_df_attrs_persistence(self, tmp_path, pa):
-        path = tmp_path / "test_df_metadata.p"
+    def test_df_attrs_persistence(self, temp_file, pa):
         df = pd.DataFrame(data={1: [1]})
         df.attrs = {"test_attribute": 1}
-        df.to_parquet(path, engine=pa)
-        new_df = read_parquet(path, engine=pa)
+        df.to_parquet(temp_file, engine=pa)
+        new_df = read_parquet(temp_file, engine=pa)
         assert new_df.attrs == df.attrs
 
-    def test_string_inference(self, tmp_path, pa, using_infer_string):
+    def test_string_inference(self, temp_file, pa, using_infer_string):
         # GH#54431
-        path = tmp_path / "test_string_inference.p"
         df = pd.DataFrame(data={"a": ["x", "y"]}, index=["a", "b"])
-        df.to_parquet(path, engine=pa)
+        df.to_parquet(temp_file, engine=pa)
         with pd.option_context("future.infer_string", True):
-            result = read_parquet(path, engine=pa)
+            result = read_parquet(temp_file, engine=pa)
         dtype = pd.StringDtype(na_value=np.nan)
         expected = pd.DataFrame(
             data={"a": ["x", "y"]},
@@ -1149,32 +1147,29 @@ class TestParquetPyArrow(Base):
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_roundtrip_decimal(self, tmp_path, pa):
+    def test_roundtrip_decimal(self, temp_file, pa):
         # GH#54768
         import pyarrow as pa
 
-        path = tmp_path / "decimal.p"
         df = pd.DataFrame({"a": [Decimal("123.00")]}, dtype="string[pyarrow]")
-        df.to_parquet(path, schema=pa.schema([("a", pa.decimal128(5))]))
-        result = read_parquet(path)
+        df.to_parquet(temp_file, schema=pa.schema([("a", pa.decimal128(5))]))
+        result = read_parquet(temp_file)
         if pa_version_under19p0:
             expected = pd.DataFrame({"a": ["123"]}, dtype="string")
         else:
             expected = pd.DataFrame({"a": [Decimal("123.00")]}, dtype="object")
         tm.assert_frame_equal(result, expected)
 
-    def test_infer_string_large_string_type(self, tmp_path, pa):
+    def test_infer_string_large_string_type(self, temp_file, pa):
         # GH#54798
         import pyarrow as pa
         import pyarrow.parquet as pq
 
-        path = tmp_path / "large_string.p"
-
         table = pa.table({"a": pa.array([None, "b", "c"], pa.large_string())})
-        pq.write_table(table, path)
+        pq.write_table(table, temp_file)
 
         with pd.option_context("future.infer_string", True):
-            result = read_parquet(path)
+            result = read_parquet(temp_file)
         expected = pd.DataFrame(
             data={"a": [None, "b", "c"]},
             dtype=pd.StringDtype(na_value=np.nan),

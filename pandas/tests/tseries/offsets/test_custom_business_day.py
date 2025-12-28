@@ -82,9 +82,9 @@ class TestCustomBusinessDay:
         dt = datetime(2014, 1, 17)
         assert_offset_equal(CDay(calendar=calendar), dt, datetime(2014, 1, 21))
 
-    def test_roundtrip_pickle(self, offset, offset2, tmp_path):
+    def test_roundtrip_pickle(self, offset, offset2, temp_file):
         def _check_roundtrip(obj):
-            unpickled = tm.round_trip_pickle(obj, tmp_path)
+            unpickled = tm.round_trip_pickle(obj, temp_file)
             assert unpickled == obj
 
         _check_roundtrip(offset)
