@@ -48,6 +48,71 @@ The pandas I/O API is a set of top level ``reader`` functions accessed like
 CSV & text files
 ----------------
 
+.. _io-colab:
+
+Loading data in Google Colab
+----------------------------
+
+Google Colab is a commonly used runtime for pandas users. Below are concise, copy-pasteable ways to load data into pandas while working in Colab.
+
+Uploading files from your local machine
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Use the Colab file upload widget and then read the uploaded file with :func:`pandas.read_csv`:
+
+.. code-block:: python
+
+    from google.colab import files
+    import pandas as pd
+
+    uploaded = files.upload()  # pick file(s) from your machine
+    df = pd.read_csv('your_file.csv')
+
+
+Mounting Google Drive
+^^^^^^^^^^^^^^^^^^^^^^
+
+To access files you stored in Google Drive:
+
+.. code-block:: python
+
+    from google.colab import drive
+    import pandas as pd
+
+    drive.mount('/content/drive')
+    df = pd.read_csv('/content/drive/MyDrive/path/to/your_file.csv')
+
+
+Downloading public files (gdown)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+For files shared via Google Drive links or hosted online, ``gdown`` is handy:
+
+.. code-block:: python
+
+    !pip install gdown
+    import gdown
+    import pandas as pd
+
+    url = 'https://drive.google.com/uc?id=<FILE_ID>'
+    output = 'file.csv'
+    gdown.download(url, output, quiet=False)
+    df = pd.read_csv(output)
+
+
+Reading Google Sheets
+^^^^^^^^^^^^^^^^^^^^^
+
+If a Google Sheet is published to CSV you can read it directly:
+
+.. code-block:: python
+
+    import pandas as pd
+
+    csv_url = 'https://docs.google.com/spreadsheets/d/<SHEET_ID>/export?format=csv&gid=<GID>'
+    df = pd.read_csv(csv_url)
+
+
 The workhorse function for reading text files (a.k.a. flat files) is
 :func:`read_csv`. See the :ref:`cookbook<cookbook.csv>` for some advanced strategies.
 
