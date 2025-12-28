@@ -81,7 +81,6 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_iterator,
     is_list_like,
-    is_numeric_dtype,
     is_object_dtype,
     is_scalar,
     pandas_dtype,
@@ -2579,15 +2578,20 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         4    3.0
         dtype: float64
         """
+        from pandas.api.types import (
+            is_numeric_dtype,
+            is_object_dtype,
+        )
+
         nv.validate_round(args, kwargs)
 
         if len(self) == 0:
             return self.copy()
 
-        if not is_numeric_dtype(self.dtype) and self.dtype != "object":
+        if not is_numeric_dtype(self.dtype) and not is_object_dtype(self.dtype):
             raise TypeError(f"Cannot round with non-numeric dtype '{self.dtype}'")
 
-        if self.dtype == "object":
+        if is_object_dtype(self.dtype):
             values = self._values
             result = lib.map_infer(values, lambda x: round(x, decimals), convert=False)
             return self._constructor(result, index=self.index, copy=False).__finalize__(

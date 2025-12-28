@@ -83,6 +83,7 @@ class TestRound:
         ],
     )
     def test_round_dtype_object(self, data, decimals, expected_data):
+        # GH#63444
         """Test round() with object dtype Series."""
         ser = Series(data, dtype="object")
         result = ser.round(decimals)
@@ -98,6 +99,7 @@ class TestRound:
         ],
     )
     def test_round_empty_series(self, dtype):
+        # GH#63444
         """Test that round works on empty Series."""
         result = Series(dtype=dtype).round(4)
         expected = Series(dtype=dtype)
@@ -120,6 +122,7 @@ class TestRound:
         ],
     )
     def test_round_numeric_dtypes(self, dtype, data, decimals, expected_data):
+        # GH#63444
         """Test round() with numeric dtypes (float32, float64)."""
         ser = Series(data, dtype=dtype)
         result = ser.round(decimals)
@@ -134,6 +137,7 @@ class TestRound:
         ],
     )
     def test_round_with_nan(self, dtype):
+        # GH#63444
         """Test round() handles NaN values correctly for numeric dtypes."""
         ser = Series([1.234, np.nan, 2.567], dtype=dtype)
         result = ser.round(2)
@@ -149,8 +153,9 @@ class TestRound:
         ],
     )
     def test_round_non_numeric_dtype_raises(self, dtype, data):
+        # GH#63444
         """Test that round() raises for non-numeric dtypes."""
         ser = Series(data, dtype=dtype)
 
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match="Cannot round with non-numeric dtype"):
             ser.round(2)
