@@ -3,7 +3,6 @@
 #pragma once
 
 #include <Python.h>
-
 #include <pymem.h>
 #include <string.h>
 
@@ -192,7 +191,16 @@ static inline int tupleobject_cmp(PyTupleObject *a, PyTupleObject *b) {
   return 1;
 }
 
+static inline int _is_pandas_NA_type(PyObject *o) {
+  // TODO compare PyTypeObject* C_NA, not strings!
+  PyObject *type_name = PyType_GetName(Py_TYPE(o));
+  return PyUnicode_CompareWithASCIIString(type_name, "NAType") == 0;
+}
+
 static inline int pyobject_cmp(PyObject *a, PyObject *b) {
+  if (PyErr_Occurred() != NULL) {
+    return 0;
+  }
   if (a == b) {
     return 1;
   }
@@ -211,11 +219,12 @@ static inline int pyobject_cmp(PyObject *a, PyObject *b) {
       return tupleobject_cmp((PyTupleObject *)a, (PyTupleObject *)b);
     }
     // frozenset isn't yet supported
+  } else if (_is_pandas_NA_type(a) || _is_pandas_NA_type(b)) {
+    return 0;
   }
 
   int result = PyObject_RichCompareBool(a, b, Py_EQ);
   if (result < 0) {
-    PyErr_Clear();
     return 0;
   }
   return result;
@@ -292,6 +301,9 @@ static inline Py_hash_t tupleobject_hash(PyTupleObject *key) {
 }
 
 static inline khuint32_t kh_python_hash_func(PyObject *key) {
+  if (PyErr_Occurred() != NULL) {
+    return 0;
+  }
   Py_hash_t hash;
   // For PyObject_Hash holds:
   //    hash(0.0) == 0 == hash(-0.0)
@@ -310,12 +322,19 @@ static inline khuint32_t kh_python_hash_func(PyObject *key) {
   } else if (PyTuple_Check(key)) {
     // hash tuple subclasses as builtin tuples
     hash = tupleobject_hash((PyTupleObject *)key);
+  } else if (PyDict_Check(key) || PyList_Check(key)) {
+    // Before GH 57052 was fixed, all exceptions raised from PyObject_Hash were
+    // suppressed. Existing code that relies on this behaviour is for example:
+    //   * _libs.hashtable.value_count_object via DataFrame.describe
+    //   * _libs.hashtable.ismember_object via Series.isin
+    // Using hash = 0 puts all dict and list objects in the same bucket,
+    // which is bad for performance but that is how it worked before.
+    hash = 0;
   } else {
     hash = PyObject_Hash(key);
   }
 
   if (hash == -1) {
-    PyErr_Clear();
     return 0;
   }
 #if SIZEOF_PY_HASH_T == 4

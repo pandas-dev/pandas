@@ -1944,3 +1944,27 @@ class TestSetitemValidation:
     def test_setitem_validation_scalar_float(self, invalid, float_numpy_dtype, indexer):
         df = DataFrame({"a": [1, 2, None]}, dtype=float_numpy_dtype)
         self._check_setitem_invalid(df, invalid, indexer)
+
+
+def test_error_raised_from_custom_hash_method():
+    # GH 57052
+    class testkey:
+        def __init__(self, value):
+            self.value = value
+
+        def __hash__(self):
+            raise RuntimeError(f"exception in {self!r}.__hash__")
+
+        def __eq__(self, other):
+            return self.value == other.value
+
+        def __repr__(self):
+            return f"testkey({self.value})"
+
+    df = DataFrame({"i": map(testkey, range(10))}).set_index("i")
+    for i in range(len(df.index)):
+        key = testkey(i)
+        with pytest.raises(
+            RuntimeError, match=re.escape(f"exception in {key!r}.__hash__")
+        ):
+            df.loc[key]
