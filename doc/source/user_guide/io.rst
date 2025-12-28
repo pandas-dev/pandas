@@ -43,6 +43,73 @@ The pandas I/O API is a set of top level ``reader`` functions accessed like
    For examples that use the ``StringIO`` class, make sure you import it
    with ``from io import StringIO`` for Python 3.
 
+
+Loading data in Google Colab
+----------------------------
+
+Google Colab is a hosted Jupyter notebook environment that is commonly
+used with pandas. Since Colab runs on a remote machine, loading data
+differs slightly from working in a local environment.
+
+This section describes the most common ways to load data into pandas
+when using Google Colab.
+
+Upload files from your local computer
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Files can be uploaded directly from your local machine using Colab's
+``files.upload`` helper. Uploaded files are placed in the current
+working directory (``/content``).
+
+.. code-block:: python
+
+   from google.colab import files
+   uploaded = files.upload()
+
+   import pandas as pd
+   df = pd.read_csv("data.csv")
+   df.head()
+
+.. note::
+
+   Files uploaded this way are stored temporarily and are removed when
+   the Colab runtime is reset.
+
+Load files from Google Drive
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Google Drive can be mounted in Colab to provide persistent storage
+across sessions.
+
+.. code-block:: python
+
+   from google.colab import drive
+   drive.mount("/content/drive")
+
+   import pandas as pd
+   df = pd.read_csv("/content/drive/MyDrive/data.csv")
+   df.head()
+
+.. note::
+
+   Files stored in Google Drive persist across Colab sessions. The drive
+   must be mounted before files can be accessed.
+
+Load data from a URL
+~~~~~~~~~~~~~~~~~~~
+
+Pandas can also load data directly from a URL without uploading files
+or mounting external storage.
+
+.. code-block:: python
+
+   import pandas as pd
+
+   url = "https://raw.githubusercontent.com/mwaskom/seaborn-data/master/iris.csv"
+   df = pd.read_csv(url)
+   df.head()
+
+
 .. _io.read_csv_table:
 
 CSV & text files
