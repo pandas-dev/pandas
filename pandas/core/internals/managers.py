@@ -1633,7 +1633,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         index = default_index(nrows)
 
         # TODO shallow copy columns?
-        return type(self).from_blocks(result_blocks, [self.axes[0], index])
+        return type(self).from_blocks(result_blocks, [self.axes[0].view(), index])
 
     def reduce(self, func: Callable) -> Self:
         """
@@ -1652,7 +1652,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         res_blocks = [blk.reduce(func) for blk in self.blocks]
         index = default_index(1)  # placeholder
-        # TODO shallow copy self.items?
+        # shallow copy self.items not needed because DataFrame._reduce does a getitem
         new_mgr = type(self).from_blocks(res_blocks, [self.items, index])
         return new_mgr
 
@@ -1694,9 +1694,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         assert self.ndim >= 2
         assert is_list_like(qs)  # caller is responsible for this
 
-        # TODO shallow copy axes
-        new_axes = list(self.axes)
-        new_axes[1] = Index(qs, dtype=np.float64)
+        new_axes = [self.axes[0].view(), Index(qs, dtype=np.float64)]
 
         blocks = [
             blk.quantile(qs=qs, interpolation=interpolation) for blk in self.blocks

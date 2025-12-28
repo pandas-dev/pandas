@@ -1569,3 +1569,18 @@ def test_apply_modify_row():
         df.apply(transform, axis=1)
 
     tm.assert_frame_equal(df, df_orig)
+
+
+def test_reduce():
+    df = DataFrame({"a": [1, 2, 3], "b": 1.5})
+
+    result = df.sum()
+    assert result.index is not df.columns
+
+    result = df.groupby([0, 0, 1]).sum()
+    assert result.columns is not df.columns
+
+    result = df.quantile(0.5)
+    assert result.index is not df.columns
+    result = df.quantile([0.25, 0.5, 0.75])
+    assert result.columns is not df.columns
