@@ -1274,17 +1274,20 @@ def test_check_bottleneck_disallow(any_real_numpy_dtype, func):
 
 
 @pytest.mark.parametrize("val", [2**55, -(2**55), 20150515061816532])
-def test_nanmean_overflow(disable_bottleneck, val):
+def test_nanmean_overflow(disable_bottleneck, val, using_python_scalars):
     # GH 10155
     # In the previous implementation mean can overflow for int dtypes, it
     # is now consistent with numpy
 
     ser = Series(val, index=range(500), dtype=np.int64)
     result = ser.mean()
-    np_result = ser.values.mean()
     assert result == val
-    assert result == np_result
-    assert result.dtype == np.float64
+    if using_python_scalars:
+        assert type(result) == float
+    else:
+        np_result = ser.values.mean()
+        assert result == np_result
+        assert result.dtype == np.float64
 
 
 @pytest.mark.parametrize(
@@ -1299,13 +1302,18 @@ def test_nanmean_overflow(disable_bottleneck, val):
     ],
 )
 @pytest.mark.parametrize("method", ["mean", "std", "var", "skew", "kurt", "min", "max"])
-def test_returned_dtype(disable_bottleneck, dtype, method):
+def test_returned_dtype(disable_bottleneck, dtype, method, using_python_scalars):
     if dtype is None:
         pytest.skip("np.float128 not available")
 
     ser = Series(range(10), dtype=dtype)
     result = getattr(ser, method)()
-    if is_integer_dtype(dtype) and method not in ["min", "max"]:
+    if using_python_scalars:
+        if is_integer_dtype(dtype) and method in ["min", "max"]:
+            assert isinstance(result, int)
+        else:
+            assert type(result) == float
+    elif is_integer_dtype(dtype) and method not in ["min", "max"]:
         assert result.dtype == np.float64
     else:
         assert result.dtype == dtype

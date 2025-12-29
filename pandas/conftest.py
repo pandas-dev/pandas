@@ -769,7 +769,7 @@ def index_with_missing(request):
         vals = ind.values.copy()
         vals[0] = None
         vals[-1] = None
-        return type(ind)(vals)
+        return type(ind)(vals, copy=False)
 
 
 # ----------------------------------------------------------------
@@ -935,10 +935,10 @@ def rand_series_with_duplicate_datetimeindex() -> Series:
         (Period("2012-01", freq="M"), "period[M]"),
         (Period("2012-02-01", freq="D"), "period[D]"),
         (
-            Timestamp("2011-01-01", tz="US/Eastern"),
+            Timestamp("2011-01-01", tz="US/Eastern").as_unit("s"),
             DatetimeTZDtype(unit="s", tz="US/Eastern"),
         ),
-        (Timedelta(seconds=500), "timedelta64[ns]"),
+        (Timedelta(seconds=500), "timedelta64[us]"),
     ]
 )
 def ea_scalar_and_dtype(request):
@@ -2094,6 +2094,11 @@ def using_infer_string() -> bool:
     return pd.options.future.infer_string is True
 
 
+@pytest.fixture
+def using_python_scalars() -> bool:
+    return pd.options.future.python_scalars is True
+
+
 _warsaws: list[Any] = ["Europe/Warsaw", "dateutil/Europe/Warsaw"]
 if pytz is not None:
     _warsaws.append(pytz.timezone("Europe/Warsaw"))
@@ -2127,5 +2132,5 @@ def monkeysession():
 @pytest.fixture(params=[True, False])
 def using_nan_is_na(request):
     opt = request.param
-    with pd.option_context("mode.nan_is_na", opt):
+    with pd.option_context("future.distinguish_nan_and_na", not opt):
         yield opt

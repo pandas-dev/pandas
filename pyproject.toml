@@ -29,7 +29,9 @@ requires-python = '>=3.11'
 dependencies = [
   "numpy>=1.26.0",
   "python-dateutil>=2.8.2",
-  "tzdata>=2023.3"
+  "tzdata; sys_platform == 'win32'",
+  # Emscripten is the platform system for Pyodide.
+  "tzdata; sys_platform == 'emscripten'",
 ]
 classifiers = [
     'Development Status :: 5 - Production/Stable',
@@ -453,7 +455,6 @@ exclude = [
 "pandas/core/groupby/grouper.py" = ["B905"]
 "pandas/core/groupby/ops.py" = ["B905"]
 "pandas/core/methods/to_dict.py" = ["B905"]
-"pandas/core/reshape/concat.py" = ["B905"]
 "pandas/core/reshape/encoding.py" = ["B905"]
 "pandas/core/reshape/melt.py" = ["B905"]
 "pandas/core/reshape/merge.py" = ["B905"]
@@ -463,16 +464,6 @@ exclude = [
 "pandas/_testing/asserters.py" = ["B905"]
 "pandas/_testing/_warnings.py" = ["B905"]
 "pandas/tests/apply/test_series_apply.py" = ["B905"]
-"pandas/tests/arithmetic/test_interval.py" = ["B905"]
-"pandas/tests/arithmetic/test_numeric.py" = ["B905"]
-"pandas/tests/arithmetic/test_period.py" = ["B905"]
-"pandas/tests/arrays/categorical/test_map.py" = ["B905"]
-"pandas/tests/arrays/integer/test_construction.py" = ["B905"]
-"pandas/tests/arrays/integer/test_function.py" = ["B905"]
-"pandas/tests/arrays/masked/test_arithmetic.py" = ["B905"]
-"pandas/tests/arrays/sparse/test_constructors.py" = ["B905"]
-"pandas/tests/arrays/test_datetimes.py" = ["B905"]
-"pandas/tests/base/test_conversion.py" = ["B905"]
 "pandas/tests/computation/test_eval.py" = ["B905"]
 "pandas/tests/copy_view/test_functions.py" = ["B905"]
 "pandas/tests/dtypes/test_inference.py" = ["B905"]
@@ -588,8 +579,6 @@ exclude = [
 "pandas/tests/strings/test_strings.py" = ["B905"]
 "pandas/tests/test_algos.py" = ["B905"]
 "pandas/tests/test_sorting.py" = ["B905"]
-"pandas/tests/tseries/offsets/test_month.py" = ["B905"]
-"pandas/tests/tseries/offsets/test_offsets.py" = ["B905"]
 "pandas/tests/util/test_validate_kwargs.py" = ["B905"]
 "scripts/validate_unwanted_patterns.py" = ["B905"]
 

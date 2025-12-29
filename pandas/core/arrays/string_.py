@@ -119,7 +119,8 @@ class StringDtype(StorageExtensionDtype):
 
     Attributes
     ----------
-    None
+    storage
+    na_value
 
     Methods
     -------
@@ -149,7 +150,39 @@ class StringDtype(StorageExtensionDtype):
     # follows NumPy semantics, which uses nan.
     @property
     def na_value(self) -> libmissing.NAType | float:  # type: ignore[override]
+        """
+        The missing value representation for this dtype.
+
+        This value indicates which missing value semantics are used by this dtype.
+        Returns ``np.nan`` for the default string dtype with NumPy semantics,
+        and ``pd.NA`` for the opt-in string dtype with pandas NA semantics.
+
+        Examples
+        --------
+        >>> ser = pd.Series(["a", "b"])
+        >>> ser.dtype
+        <StringDtype(na_value=nan)>
+        >>> ser.dtype.na_value
+        nan
+        """
         return self._na_value
+
+    @property
+    def storage(self) -> str:
+        """
+        The storage backend for this dtype.
+
+        Can be either "pyarrow" or "python".
+
+        Examples
+        --------
+        >>> ser = pd.Series(["a", "b"])
+        >>> ser.dtype
+        <StringDtype(na_value=nan)>
+        >>> ser.dtype.storage
+        'pyarrow'
+        """
+        return self._storage
 
     _metadata = ("storage", "_na_value")  # type: ignore[assignment]
 
@@ -185,7 +218,7 @@ class StringDtype(StorageExtensionDtype):
         elif na_value is not libmissing.NA:
             raise ValueError(f"'na_value' must be np.nan or pd.NA, got {na_value}")
 
-        self.storage = cast(str, storage)
+        self._storage = cast(str, storage)
         self._na_value = na_value
 
     def __repr__(self) -> str:
@@ -211,7 +244,7 @@ class StringDtype(StorageExtensionDtype):
 
     def __setstate__(self, state: MutableMapping[str, Any]) -> None:
         # back-compat for pandas < 2.3, where na_value did not yet exist
-        self.storage = state.pop("storage", "python")
+        self._storage = state.pop("storage", "python")
         self._na_value = state.pop("_na_value", libmissing.NA)
 
     def __hash__(self) -> int:
@@ -306,7 +339,7 @@ class StringDtype(StorageExtensionDtype):
             # if both python and pyarrow storage -> priority to pyarrow
             storage = "pyarrow"
         else:
-            storage = next(iter(storages))  # type: ignore[assignment]
+            storage = next(iter(storages))
 
         na_value: libmissing.NAType | float
         if len(na_values) == 2:
@@ -548,6 +581,7 @@ class BaseStringArray(ExtensionArray):
         return super().view()
 
 
+@set_module("pandas.arrays")
 # error: Definition of "_concat_same_type" in base class "NDArrayBacked" is
 # incompatible with definition in base class "ExtensionArray"
 class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
@@ -630,8 +664,6 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
     [True, <NA>, False]
     Length: 3, dtype: boolean
     """
-
-    __module__ = "pandas.arrays"
 
     # undo the NumpyExtensionArray hack
     _typ = "extension"

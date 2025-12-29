@@ -140,7 +140,7 @@ class TestDataFrameSelectReindex:
         # GH#52586
         df = DataFrame([[1]])
 
-        ts = pd.Timestamp("2023-04-10 17:32", tz="US/Pacific")
+        ts = pd.Timestamp("2023-04-10 17:32", tz="US/Pacific").as_unit("s")
         res = df.reindex([0, 1], axis=1, fill_value=ts)
         assert res.dtypes[1] == pd.DatetimeTZDtype(unit="s", tz="US/Pacific")
         expected = DataFrame({0: [1], 1: [ts]})
@@ -162,7 +162,7 @@ class TestDataFrameSelectReindex:
 
     def test_reindex_date_fill_value(self):
         # passing date to dt64 is deprecated; enforced in 2.0 to cast to object
-        arr = date_range("2016-01-01", periods=6).values.reshape(3, 2)
+        arr = date_range("2016-01-01", periods=6, unit="ns").values.reshape(3, 2)
         df = DataFrame(arr, columns=["A", "B"], index=range(3))
 
         ts = df.iloc[0, 0]

@@ -490,7 +490,7 @@ def _unstack_multiple(
 
     if not rlocs:
         # Everything is in clocs, so the dummy df has a regular index
-        dummy_index = Index(obs_ids, name="__placeholder__")
+        dummy_index = Index(obs_ids, name="__placeholder__", copy=False)
     else:
         dummy_index = MultiIndex(
             levels=rlevels + [obs_ids],
@@ -778,7 +778,7 @@ def _stack_multi_column_index(columns: MultiIndex) -> MultiIndex | Index:
 
     levs = (
         [lev[c] if c >= 0 else None for c in codes]
-        for lev, codes in zip(columns.levels[:-1], columns.codes[:-1])
+        for lev, codes in zip(columns.levels[:-1], columns.codes[:-1], strict=True)
     )
 
     # Remove duplicate tuples in the MultiIndex.

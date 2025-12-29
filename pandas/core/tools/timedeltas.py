@@ -113,18 +113,14 @@ def to_timedelta(
 
         * 'W'
         * 'D' / 'days' / 'day'
-        * 'hours' / 'hour' / 'hr' / 'h' / 'H'
+        * 'hours' / 'hour' / 'hr' / 'h'
         * 'm' / 'minute' / 'min' / 'minutes'
-        * 's' / 'seconds' / 'sec' / 'second' / 'S'
+        * 's' / 'seconds' / 'sec' / 'second'
         * 'ms' / 'milliseconds' / 'millisecond' / 'milli' / 'millis'
         * 'us' / 'microseconds' / 'microsecond' / 'micro' / 'micros'
         * 'ns' / 'nanoseconds' / 'nano' / 'nanos' / 'nanosecond'
 
         Must not be specified when `arg` contains strings and ``errors="raise"``.
-
-        .. deprecated:: 2.2.0
-            Units 'H'and 'S' are deprecated and will be removed
-            in a future version. Please use 'h' and 's'.
 
     errors : {'raise', 'coerce'}, default 'raise'
         - If 'raise', then invalid parsing will raise an exception.
@@ -245,5 +241,6 @@ def _convert_listlike(
 
     from pandas import TimedeltaIndex
 
-    value = TimedeltaIndex(td64arr, name=name)
+    copy = td64arr is arg or np.may_share_memory(arg, td64arr)
+    value = TimedeltaIndex(td64arr, name=name, copy=copy)
     return value

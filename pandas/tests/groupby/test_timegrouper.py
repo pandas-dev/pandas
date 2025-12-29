@@ -433,7 +433,7 @@ class TestGroupBy:
 
         for df in [df_original, df_reordered]:
             grouped = df.groupby(Grouper(freq="ME", key="Date"))
-            for t, expected in zip(dt_list, expected_list):
+            for t, expected in zip(dt_list, expected_list, strict=True):
                 dt = Timestamp(t)
                 result = grouped.get_group(dt)
                 tm.assert_frame_equal(result, expected)
@@ -448,7 +448,7 @@ class TestGroupBy:
 
         for df in [df_original, df_reordered]:
             grouped = df.groupby(["Buyer", Grouper(freq="ME", key="Date")])
-            for (b, t), expected in zip(g_list, expected_list):
+            for (b, t), expected in zip(g_list, expected_list, strict=True):
                 dt = Timestamp(t)
                 result = grouped.get_group((b, dt))
                 tm.assert_frame_equal(result, expected)
@@ -465,7 +465,7 @@ class TestGroupBy:
 
         for df in [df_original, df_reordered]:
             grouped = df.groupby(Grouper(freq="ME"))
-            for t, expected in zip(dt_list, expected_list):
+            for t, expected in zip(dt_list, expected_list, strict=True):
                 dt = Timestamp(t)
                 result = grouped.get_group(dt)
                 tm.assert_frame_equal(result, expected)
@@ -738,7 +738,7 @@ class TestGroupBy:
     def test_groupby_max_datetime64(self):
         # GH 5869
         # datetimelike dtype conversion from int
-        df = DataFrame({"A": Timestamp("20130101"), "B": np.arange(5)})
+        df = DataFrame({"A": Timestamp("20130101").as_unit("s"), "B": np.arange(5)})
         # TODO: can we retain second reso in .apply here?
         expected = df.groupby("A")["A"].apply(lambda x: x.max()).astype("M8[s]")
         result = df.groupby("A")["A"].max()

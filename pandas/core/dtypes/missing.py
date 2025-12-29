@@ -150,7 +150,7 @@ def isna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
     >>> index = pd.DatetimeIndex(["2017-07-05", "2017-07-06", None, "2017-07-08"])
     >>> index
     DatetimeIndex(['2017-07-05', '2017-07-06', 'NaT', '2017-07-08'],
-                  dtype='datetime64[s]', freq=None)
+                  dtype='datetime64[us]', freq=None)
     >>> pd.isna(index)
     array([False, False,  True, False])
 
@@ -365,7 +365,7 @@ def notna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
     >>> index = pd.DatetimeIndex(["2017-07-05", "2017-07-06", None, "2017-07-08"])
     >>> index
     DatetimeIndex(['2017-07-05', '2017-07-06', 'NaT', '2017-07-08'],
-                  dtype='datetime64[s]', freq=None)
+                  dtype='datetime64[us]', freq=None)
     >>> pd.notna(index)
     array([ True,  True, False,  True])
 
@@ -593,7 +593,7 @@ def construct_1d_array_from_inferred_fill_value(
 
 def maybe_fill(arr: np.ndarray) -> np.ndarray:
     """
-    Fill numpy.ndarray with NaN, unless we have a integer or boolean dtype.
+    Fill numpy.ndarray with NaN, unless we have an integer or boolean dtype.
     """
     if arr.dtype.kind not in "iub":
         arr.fill(np.nan)
