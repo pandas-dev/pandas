@@ -91,6 +91,41 @@ See :ref:`text.four_string_variants` section below for details.
 
 .. _text.string_methods:
 
+String storage: pyarrow vs python
+---------------------------------
+
+Pandas supports different storage backends for string data.
+Depending on the configuration and installed dependencies,
+string data may be stored using either a Python object-based
+implementation or a pyarrow-backed implementation.
+
+In general, the pyarrow-backed string storage is recommended
+for most users, as it provides better performance and a more
+compact memory representation.
+
+**pyarrow-backed string storage**
+
+- Pros:
+  - More compact memory footprint
+  - Faster vectorized string operations
+- Cons:
+  - Strings are immutable; modifying values results in new arrays
+  - Some edge-case behavior differences compared to Python strings
+
+**Python object string storage**
+
+- Pros:
+  - Uses Python string objects (mutable at the array level)
+  - Behavior consistent with standard Python string semantics
+- Cons:
+  - Higher memory usage
+  - Slower performance due to lack of vectorization
+
+While pandas aims to provide identical results regardless of
+the underlying string storage, some behavior differences may
+exist in edge cases (for example, certain Unicode operations).
+These differences are documented where relevant.
+
 String methods
 ==============
 
