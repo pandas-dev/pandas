@@ -46,6 +46,7 @@ from pandas.io.sql import (
     SQLAlchemyEngine,
     SQLDatabase,
     SQLiteDatabase,
+    _convert_arrays_to_dataframe,
     get_engine,
     pandasSQL_builder,
     read_sql_query,
@@ -4392,3 +4393,26 @@ def test_xsqlite_if_exists(sqlite_buildin):
         (5, "E"),
     ]
     drop_table(table_name, sqlite_buildin)
+
+
+def test_convert_arrays_to_dataframe_with_dictcursor():
+    """
+    Test for GH#53028: DictCursor returns dictionaries which cause
+    _convert_arrays_to_dataframe to populate DataFrame with column names
+    instead of actual values.
+    """
+    # Simulate DictCursor output (e.g., from pymysql with DictCursor)
+    dict_data = [
+        {"id": 117, "value": "ABCDEF", "state_id": 5},
+        {"id": 163, "value": "DEFRDC", "state_id": 5},
+    ]
+    columns = ["id", "value", "state_id"]
+
+    result = _convert_arrays_to_dataframe(dict_data, columns)
+
+    expected = DataFrame(
+        [[117, "ABCDEF", 5], [163, "DEFRDC", 5]],
+        columns=columns,
+    )
+
+    tm.assert_frame_equal(result, expected)
