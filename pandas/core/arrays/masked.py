@@ -1422,7 +1422,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             self.dtype.construct_array_type()(
                 keys,  # type: ignore[arg-type]
                 mask_index,
-            )
+            ),
+            copy=False,
         )
         return Series(arr, index=index, name="count", copy=False)
 

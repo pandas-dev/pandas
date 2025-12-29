@@ -677,7 +677,7 @@ def test_nat_addsub_tdlike_scalar(obj):
     assert NaT - obj is NaT
 
 
-def test_pickle():
+def test_pickle(tmp_path):
     # GH#4606
-    p = tm.round_trip_pickle(NaT)
+    p = tm.round_trip_pickle(NaT, tmp_path)
     assert p is NaT
