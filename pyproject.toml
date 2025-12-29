@@ -28,7 +28,7 @@ license = {file = 'LICENSE'}
 requires-python = '>=3.11'
 dependencies = [
   "numpy>=1.26.0; python_version < '3.14'",
-  # NumPy 2.x is fundamentally broken on 3.14
+  # NumPy 1.x is fundamentally broken on 3.14
   "numpy>=2.0.0; python_version >= '3.14'",
   "python-dateutil>=2.8.2",
   "tzdata; sys_platform == 'win32'",
