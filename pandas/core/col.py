@@ -96,26 +96,9 @@ class Expression:
     def _eval_expression(self, df: DataFrame) -> Any:
         return self._func(df)
 
-    def _with_op(self, op: str, other: Any) -> Expression:
-        op_symbol = _OP_SYMBOLS.get(op, op)
-
-        if op == "__getitem__":
-            needs_parentheses = False
-            repr_str = f"{self!r}[{other!r}]"
-        else:
-            needs_parentheses = True
-            self_repr = f"{self!r}"
-            if self._needs_parentheses:
-                self_repr = f"({self_repr})"
-            other_repr = f"{other!r}"
-            if isinstance(other, Expression) and other._needs_parentheses:
-                other_repr = f"({other_repr})"
-
-            if op.startswith("__r"):
-                repr_str = f"{other_repr} {op_symbol} {self_repr}"
-            else:
-                repr_str = f"{self_repr} {op_symbol} {other_repr}"
-
+    def _with_op(
+        self, op: str, other: Any, repr_str: str, needs_parentheses: bool = True
+    ) -> Expression:
         if isinstance(other, Expression):
             return Expression(
                 lambda df: getattr(self._eval_expression(df), op)(
@@ -131,79 +114,114 @@ class Expression:
                 needs_parenthese=needs_parentheses,
             )
 
+    def _maybe_wrap_parentheses(self, other: Any) -> tuple[str, str]:
+        if self._needs_parentheses:
+            self_repr = f"({self!r})"
+        else:
+            self_repr = f"{self!r}"
+        if isinstance(other, Expression) and other._needs_parentheses:
+            other_repr = f"({other!r})"
+        else:
+            other_repr = f"{other!r}"
+        return self_repr, other_repr
+
     # Binary ops
     def __add__(self, other: Any) -> Expression:
-        return self._with_op("__add__", other)
+        self_repr, other_repr = self._maybe_wrap_parentheses(other)
+        return self._with_op("__add__", other, f"{self_repr} + {other_repr}")
 
     def __radd__(self, other: Any) -> Expression:
-        return self._with_op("__radd__", other)
+        self_repr, other_repr = self._maybe_wrap_parentheses(other)
+        return self._with_op("__radd__", other, f"{other_repr} + {self_repr}")
 
     def __sub__(self, other: Any) -> Expression:
-        return self._with_op("__sub__", other)
+        self_repr, other_repr = self._maybe_wrap_parentheses(other)
+        return self._with_op("__sub__", other, f"{self_repr} - {other_repr}")
 
     def __rsub__(self, other: Any) -> Expression:
-        return self._with_op("__rsub__", other)
+        self_repr, other_repr = self._maybe_wrap_parentheses(other)
+        return self._with_op("__rsub__", other, f"{other_repr} - {self_repr}")
 
     def __mul__(self, other: Any) -> Expression:
-        return self._with_op("__mul__", other)
+        self_repr, other_repr = self._maybe_wrap_parentheses(other)
+        return self._with_op("__mul__", other, f"{self_repr} * {other_repr}")
 
     def __rmul__(self, other: Any) -> Expression:
-        return self._with_op("__rmul__", other)
+        self_repr, other_repr = self._maybe_wrap_parentheses(other)
+        return self._with_op("__rmul__", other, f"{other_repr} * {self_repr}")
 
     def __truediv__(self, other: Any) -> Expression:
-        return self._with_op("__truediv__", other)
+        self_repr, other_repr = self._maybe_wrap_parentheses(other)
+        return self._with_op("__truediv__", other, f"{self_repr} / {other_repr}")
 
     def __rtruediv__(self, other: Any) -> Expression:
-        return self._with_op("__rtruediv__", other)
+        self_repr, other_repr = self._maybe_wrap_parentheses(other)
+        return self._with_op("__rtruediv__", other, f"{other_repr} / {self_repr}")
 
     def __floordiv__(self, other: Any) -> Expression:
-        return self._with_op("__floordiv__", other)
+        self_repr, other_repr = self._maybe_wrap_parentheses(other)
+        return self._with_op("__floordiv__", other, f"{self_repr} // {other_repr}")
 
     def __rfloordiv__(self, other: Any) -> Expression:
-        return self._with_op("__rfloordiv__", other)
+        self_repr, other_repr = self._maybe_wrap_parentheses(other)
+        return self._with_op("__rfloordiv__", other, f"{other_repr} // {self_repr}")
 
     def __ge__(self, other: Any) -> Expression:
-        return self._with_op("__ge__", other)
+        self_repr, other_repr = self._maybe_wrap_parentheses(other)
+        return self._with_op("__ge__", other, f"{self_repr} >= {other_repr}")
 
     def __gt__(self, other: Any) -> Expression:
-        return self._with_op("__gt__", other)
+        self_repr, other_repr = self._maybe_wrap_parentheses(other)
+        return self._with_op("__gt__", other, f"{self_repr} > {other_repr}")
 
     def __le__(self, other: Any) -> Expression:
-        return self._with_op("__le__", other)
+        self_repr, other_repr = self._maybe_wrap_parentheses(other)
+        return self._with_op("__le__", other, f"{self_repr} <= {other_repr}")
 
     def __lt__(self, other: Any) -> Expression:
-        return self._with_op("__lt__", other)
+        self_repr, other_repr = self._maybe_wrap_parentheses(other)
+        return self._with_op("__lt__", other, f"{self_repr} < {other_repr}")
 
     def __eq__(self, other: object) -> Expression:  # type: ignore[override]
-        return self._with_op("__eq__", other)
+        self_repr, other_repr = self._maybe_wrap_parentheses(other)
+        return self._with_op("__eq__", other, f"{self_repr} == {other_repr}")
 
     def __ne__(self, other: object) -> Expression:  # type: ignore[override]
-        return self._with_op("__ne__", other)
+        self_repr, other_repr = self._maybe_wrap_parentheses(other)
+        return self._with_op("__ne__", other, f"{self_repr} != {other_repr}")
 
     def __mod__(self, other: Any) -> Expression:
-        return self._with_op("__mod__", other)
+        self_repr, other_repr = self._maybe_wrap_parentheses(other)
+        return self._with_op("__mod__", other, f"{self_repr} % {other_repr}")
 
     def __rmod__(self, other: Any) -> Expression:
-        return self._with_op("__rmod__", other)
+        self_repr, other_repr = self._maybe_wrap_parentheses(other)
+        return self._with_op("__rmod__", other, f"{other_repr} % {self_repr}")
 
     # Logical ops
     def __and__(self, other: Any) -> Expression:
-        return self._with_op("__and__", other)
+        self_repr, other_repr = self._maybe_wrap_parentheses(other)
+        return self._with_op("__and__", other, f"{self_repr} & {other_repr}")
 
     def __rand__(self, other: Any) -> Expression:
-        return self._with_op("__rand__", other)
+        self_repr, other_repr = self._maybe_wrap_parentheses(other)
+        return self._with_op("__rand__", other, f"{other_repr} & {self_repr}")
 
     def __or__(self, other: Any) -> Expression:
-        return self._with_op("__or__", other)
+        self_repr, other_repr = self._maybe_wrap_parentheses(other)
+        return self._with_op("__or__", other, f"{self_repr} | {other_repr}")
 
     def __ror__(self, other: Any) -> Expression:
-        return self._with_op("__ror__", other)
+        self_repr, other_repr = self._maybe_wrap_parentheses(other)
+        return self._with_op("__ror__", other, f"{other_repr} | {self_repr}")
 
     def __xor__(self, other: Any) -> Expression:
-        return self._with_op("__xor__", other)
+        self_repr, other_repr = self._maybe_wrap_parentheses(other)
+        return self._with_op("__xor__", other, f"{self_repr} ^ {other_repr}")
 
     def __rxor__(self, other: Any) -> Expression:
-        return self._with_op("__rxor__", other)
+        self_repr, other_repr = self._maybe_wrap_parentheses(other)
+        return self._with_op("__rxor__", other, f"{other_repr} ^ {self_repr}")
 
     def __invert__(self) -> Expression:
         return Expression(
@@ -226,7 +244,9 @@ class Expression:
         return Expression(func, repr_str)
 
     def __getitem__(self, item: Any) -> Expression:
-        return self._with_op("__getitem__", item)
+        return self._with_op(
+            "__getitem__", item, f"{self!r}[{item!r}]", needs_parentheses=True
+        )
 
     def _call_with_func(self, func: Callable, **kwargs: Any) -> Expression:
         def wrapped(df: DataFrame) -> Any:
