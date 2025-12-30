@@ -2194,8 +2194,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Multiple sheets may be written to by specifying unique `sheet_name`.
         With all data written to the file it is necessary to save the changes.
-        Note that creating an `ExcelWriter` object with a file name that already
-        exists will result in the contents of the existing file being erased.
+        Note that creating an `ExcelWriter` object with a file name that already exists
+        will overwrite the existing file because the default mode is write.
 
         Parameters
         ----------
