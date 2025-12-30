@@ -175,6 +175,8 @@ import pandas  # isort:skip
 
 # version = '%s r%s' % (pandas.__version__, svn_version())
 version = str(pandas.__version__)
+if version_override := os.environ.get("PANDAS_VERSION_OVERRIDE"):
+    version = version_override
 
 # The full version, including alpha/beta/rc tags.
 release = version
