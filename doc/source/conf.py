@@ -234,7 +234,7 @@ html_theme = "pydata_sphinx_theme"
 # further.  For a list of options available for each theme, see the
 # documentation.
 
-if ".dev" in version:
+if ".dev" in version or ("rc" in version and "+" in version):
     switcher_version = "dev"
 elif "rc" in version:
     switcher_version = version.split("rc", maxsplit=1)[0] + " (rc)"
