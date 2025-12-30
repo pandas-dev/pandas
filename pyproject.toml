@@ -27,7 +27,9 @@ authors = [
 license = {file = 'LICENSE'}
 requires-python = '>=3.11'
 dependencies = [
-  "numpy>=1.26.0",
+  "numpy>=1.26.0; python_version < '3.14'",
+  # NumPy 1.x is fundamentally broken on 3.14
+  "numpy>=2.0.0; python_version >= '3.14'",
   "python-dateutil>=2.8.2",
   "tzdata; sys_platform == 'win32'",
   # Emscripten is the platform system for Pyodide.
@@ -465,7 +467,6 @@ exclude = [
 "pandas/_testing/_warnings.py" = ["B905"]
 "pandas/tests/apply/test_series_apply.py" = ["B905"]
 "pandas/tests/computation/test_eval.py" = ["B905"]
-"pandas/tests/copy_view/test_functions.py" = ["B905"]
 "pandas/tests/dtypes/test_inference.py" = ["B905"]
 "pandas/tests/extension/base/methods.py" = ["B905"]
 "pandas/tests/extension/date/array.py" = ["B905"]

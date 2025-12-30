@@ -68,7 +68,6 @@ from pandas._testing.compat import (
 )
 from pandas._testing.contexts import (
     decompress_file,
-    ensure_clean,
     raises_chained_assignment_error,
     set_timezone,
     with_csv_dialect,
@@ -587,7 +586,6 @@ __all__ = [
     "can_set_locale",
     "convert_rows_list_to_csv_str",
     "decompress_file",
-    "ensure_clean",
     "external_error_raised",
     "get_cython_table_params",
     "get_dtype",
