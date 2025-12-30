@@ -455,8 +455,20 @@ npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT base,
   }
 
   int64_t microseconds;
-  PD_CHECK_OVERFLOW(scaleSecondsToMicroseconds(seconds, &microseconds));
-  PD_CHECK_OVERFLOW(checked_add(microseconds, dts->us, &microseconds));
+  const int64_t us_per_second = 1000000L;
+  const int64_t min_scalable_seconds = NPY_MIN_INT64 / us_per_second;
+  if (seconds < min_scalable_seconds) {
+    const int64_t seconds_below_threshold = seconds - min_scalable_seconds;
+    // split y = a * x + b, where a * x underflows into two parts.
+    // y = a * (x + k - k) + b = a * (x + k) + (b - a * k), where k > 0.
+    int64_t scaled_us = us_per_second * (seconds - seconds_below_threshold);
+    PD_CHECK_OVERFLOW(checked_add(us_per_second * seconds_below_threshold,
+                                  dts->us, &microseconds));
+    PD_CHECK_OVERFLOW(checked_add(scaled_us, microseconds, &microseconds));
+  } else {
+    PD_CHECK_OVERFLOW(scaleSecondsToMicroseconds(seconds, &microseconds));
+    PD_CHECK_OVERFLOW(checked_add(microseconds, dts->us, &microseconds));
+  }
 
   if (base == NPY_FR_us) {
     return microseconds;
