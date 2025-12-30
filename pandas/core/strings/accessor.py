@@ -1027,7 +1027,8 @@ class StringMethods(NoNewAttributesMixin):
         This method splits the string at the first occurrence of `sep`,
         and returns 3 elements containing the part before the separator,
         the separator itself, and the part after the separator.
-        If the separator is not found, return 3 elements containing the string itself, followed by two empty strings.
+        If the separator is not found, return 3 elements containing the string itself,
+        followed by two empty strings.
 
         Parameters
         ----------
