@@ -850,7 +850,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         >>> tdelta_idx = pd.to_timedelta([1, 2, 3], unit="D")
         >>> tdelta_idx
         TimedeltaIndex(['1 days', '2 days', '3 days'],
-                        dtype='timedelta64[ns]', freq=None)
+                        dtype='timedelta64[s]', freq=None)
         >>> tdelta_idx.to_pytimedelta()
         array([datetime.timedelta(days=1), datetime.timedelta(days=2),
                datetime.timedelta(days=3)], dtype=object)
@@ -883,7 +883,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     0   1 days
     1   2 days
     2   3 days
-    dtype: timedelta64[ns]
+    dtype: timedelta64[s]
     >>> ser.dt.days
     0    1
     1    2
@@ -918,7 +918,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     0   0 days 00:00:01
     1   0 days 00:00:02
     2   0 days 00:00:03
-    dtype: timedelta64[ns]
+    dtype: timedelta64[s]
     >>> ser.dt.seconds
     0    1
     1    2
@@ -930,7 +930,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     >>> tdelta_idx = pd.to_timedelta([1, 2, 3], unit='s')
     >>> tdelta_idx
     TimedeltaIndex(['0 days 00:00:01', '0 days 00:00:02', '0 days 00:00:03'],
-                   dtype='timedelta64[ns]', freq=None)
+                   dtype='timedelta64[s]', freq=None)
     >>> tdelta_idx.seconds
     Index([1, 2, 3], dtype='int32')"""
     )
@@ -958,7 +958,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     0   0 days 00:00:00.000001
     1   0 days 00:00:00.000002
     2   0 days 00:00:00.000003
-    dtype: timedelta64[ns]
+    dtype: timedelta64[us]
     >>> ser.dt.microseconds
     0    1
     1    2
@@ -971,7 +971,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     >>> tdelta_idx
     TimedeltaIndex(['0 days 00:00:00.000001', '0 days 00:00:00.000002',
                     '0 days 00:00:00.000003'],
-                   dtype='timedelta64[ns]', freq=None)
+                   dtype='timedelta64[us]', freq=None)
     >>> tdelta_idx.microseconds
     Index([1, 2, 3], dtype='int32')"""
     )
@@ -1208,10 +1208,12 @@ def _ints_to_td64ns(data, unit: str = "ns") -> tuple[np.ndarray, bool]:
         dtype_str = f"timedelta64[{unit}]"
         data = data.view(dtype_str)
 
-        data = astype_overflowsafe(data, dtype=TD64NS_DTYPE)
+        new_dtype = get_supported_dtype(data.dtype)
+        if new_dtype != data.dtype:
+            data = astype_overflowsafe(data, dtype=new_dtype)
 
-        # the astype conversion makes a copy, so we can avoid re-copying later
-        copy_made = True
+            # the astype conversion makes a copy, so we can avoid re-copying later
+            copy_made = True
 
     else:
         data = data.view("timedelta64[ns]")
