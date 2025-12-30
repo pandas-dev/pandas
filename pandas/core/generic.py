@@ -12419,9 +12419,20 @@ Name: legs, dtype: int64
 >>> s.{stat_func}()
 {default_output}"""
 
-_sum_examples = _shared_docs["stat_func_example"].format(
-    stat_func="sum", verb="Sum", default_output=14, level_output_0=6, level_output_1=8
-)
+_sum_examples = """
+Examples
+--------
+>>> s = pd.Series([1, 2, 3])
+>>> s.sum()
+6
+
+>>> s = pd.Series([1, 2, np.nan])
+>>> s.sum()
+3.0
+
+>>> s.sum(skipna=False)
+nan
+"""
 
 _sum_examples += """
 
@@ -12554,12 +12565,18 @@ def make_doc(name: str, ndim: int) -> str:
 
     elif name == "sum":
         base_doc = _sum_prod_doc
-        desc = (
-            "Return the sum of the values over the requested axis.\n\n"
-            "This is equivalent to the method ``numpy.sum``."
-        )
+        if ndim == 1:
+            desc = "Return the sum of the values."
+            # You can also define a specific Series-only example string here
+            examples = _sum_examples 
+        else:
+            desc = (
+                "Return the sum of the values over the requested axis.\n\n"
+                "This is equivalent to the method ``numpy.sum``."
+            )
+            examples = _sum_examples # Or a separate _sum_df_examples
+        
         see_also = _stat_func_see_also
-        examples = _sum_examples
         kwargs = {"min_count": _min_count_stub}
 
     elif name == "prod":
