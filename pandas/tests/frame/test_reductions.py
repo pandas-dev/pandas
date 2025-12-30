@@ -2255,12 +2255,12 @@ def test_numeric_only_non_bool_raises(method):
     # GH#53098
     df = DataFrame({"x": [1], "y": [4]})
     msg = 'For argument "numeric_only" expected type bool'
-    
+
     with pytest.raises(ValueError, match=msg):
         getattr(df, method)(numeric_only=None)
-    
+
     with pytest.raises(ValueError, match=msg):
         getattr(df, method)(numeric_only="True")
-    
+
     with pytest.raises(ValueError, match=msg):
         getattr(df, method)(numeric_only=1)
