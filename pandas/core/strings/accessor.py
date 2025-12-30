@@ -1038,17 +1038,87 @@ class StringMethods(NoNewAttributesMixin):
             result, expand=expand, returns_string=expand, dtype=dtype
         )
 
-    @Appender(
-        _shared_docs["str_partition"]
-        % {
-            "side": "last",
-            "return": "3 elements containing two empty strings, followed by the "
-            "string itself",
-            "also": "partition : Split the string at the first occurrence of `sep`.",
-        }
-    )
+   
     @forbid_nonstring_types(["bytes"])
     def rpartition(self, sep: str = " ", expand: bool = True):
+        '''Split the string at the last occurrence of `sep`.
+
+        This method splits the string at the last occurrence of `sep`,
+        and returns 3 elements containing the part before the separator,
+        the separator itself, and the part after the separator.
+        If the separator is not found, return 3 elements containing two empty strings,
+        followed by the string itself.
+
+        Parameters
+        ----------
+        sep : str, default whitespace
+            String to split on.
+        expand : bool, default True
+            If True, return DataFrame/MultiIndex expanding dimensionality.
+            If False, return Series/Index.
+
+        Returns
+        -------
+        DataFrame/MultiIndex or Series/Index of objects
+
+        See Also
+        --------
+        partition : Split the string at the first occurrence of `sep`.
+        Series.str.split : Split strings around given separators.
+        str.partition : Standard library version.
+
+        Examples
+        --------
+
+        >>> s = pd.Series(['Linda van der Berg', 'George Pitt-Rivers'])
+        >>> s
+        0    Linda van der Berg
+        1    George Pitt-Rivers
+        dtype: object
+
+        >>> s.str.partition()
+                0  1             2
+        0   Linda     van der Berg
+        1  George      Pitt-Rivers
+
+        To partition by the last space instead of the first one:
+
+        >>> s.str.rpartition()
+                       0  1            2
+        0  Linda van der            Berg
+        1         George     Pitt-Rivers
+
+        To partition by something different than a space:
+
+        >>> s.str.partition('-')
+                            0  1       2
+        0  Linda van der Berg
+        1         George Pitt  -  Rivers
+
+        To return a Series containing tuples instead of a DataFrame:
+
+        >>> s.str.partition('-', expand=False)
+        0    (Linda van der Berg, , )
+        1    (George Pitt, -, Rivers)
+        dtype: object
+
+        Also available on indices:
+
+        >>> idx = pd.Index(['X 123', 'Y 999'])
+        >>> idx
+        Index(['X 123', 'Y 999'], dtype='object')
+
+        Which will create a MultiIndex:
+
+        >>> idx.str.partition()
+        MultiIndex([('X', ' ', '123'),
+                    ('Y', ' ', '999')],
+                   )
+
+        Or an index with tuples with ``expand=False``:
+
+        >>> idx.str.partition(expand=False)
+        Index([('X', ' ', '123'), ('Y', ' ', '999')], dtype='object')'''
         result = self._data.array._str_rpartition(sep, expand)
         if self._data.dtype == "category":
             dtype = self._data.dtype.categories.dtype
