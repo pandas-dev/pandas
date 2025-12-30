@@ -60,7 +60,6 @@ def _reductions(
         # When skipna=True, we need to mask both the explicit mask
         # and any NaN values in the data itself (GH#59965)
         if np.issubdtype(values.dtype, np.floating):
-            # Combine the mask with NaN positions
             combined_mask = mask | np.isnan(values)
         else:
             combined_mask = mask
