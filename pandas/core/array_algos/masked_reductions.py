@@ -57,16 +57,24 @@ def _reductions(
         else:
             return func(values, axis=axis, **kwargs)
     else:
-        if check_below_min_count(values.shape, mask, min_count) and (
+        # When skipna=True, we need to mask both the explicit mask
+        # and any NaN values in the data itself (GH#59965)
+        if np.issubdtype(values.dtype, np.floating):
+            # Combine the mask with NaN positions
+            combined_mask = mask | np.isnan(values)
+        else:
+            combined_mask = mask
+
+        if check_below_min_count(values.shape, combined_mask, min_count) and (
             axis is None or values.ndim == 1
         ):
             return libmissing.NA
 
         if values.dtype == np.dtype(object):
             # object dtype does not support `where` without passing an initial
-            values = values[~mask]
+            values = values[~combined_mask]
             return func(values, axis=axis, **kwargs)
-        return func(values, where=~mask, axis=axis, **kwargs)
+        return func(values, where=~combined_mask, axis=axis, **kwargs)
 
 
 def sum(
