@@ -149,9 +149,6 @@ def forbid_nonstring_types(
     return _forbid_nonstring_types
 
 
-
-
-
 class StringMethods(NoNewAttributesMixin):
     """
     Vectorized string functions for Series and Index.
@@ -3462,8 +3459,6 @@ class StringMethods(NoNewAttributesMixin):
         result = self._data.array._str_len()
         return self._wrap_result(result, returns_string=False)
 
-
-
     @forbid_nonstring_types(["bytes"])
     def lower(self):
         """
@@ -3925,7 +3920,7 @@ class StringMethods(NoNewAttributesMixin):
 
         Examples
         --------
-        >>> s1 = pd.Series(['one', 'one1', '1', ''])
+        >>> s1 = pd.Series(["one", "one1", "1", ""])
         >>> s1.str.isalnum()
         0     True
         1     True
@@ -3936,7 +3931,7 @@ class StringMethods(NoNewAttributesMixin):
         Note that checks against characters mixed with any additional punctuation
         or whitespace will evaluate to false for an alphanumeric check.
 
-        >>> s2 = pd.Series(['A B', '1.5', '3,000'])
+        >>> s2 = pd.Series(["A B", "1.5", "3,000"])
         >>> s2.str.isalnum()
         0    False
         1    False
@@ -3976,7 +3971,7 @@ class StringMethods(NoNewAttributesMixin):
         Examples
         --------
 
-        >>> s1 = pd.Series(['one', 'one1', '1', ''])
+        >>> s1 = pd.Series(["one", "one1", "1", ""])
         >>> s1.str.isalpha()
         0     True
         1    False
@@ -4029,7 +4024,7 @@ class StringMethods(NoNewAttributesMixin):
         Examples
         --------
 
-        >>> s3 = pd.Series(['23', '³', '⅕', ''])
+        >>> s3 = pd.Series(["23", "³", "⅕", ""])
         >>> s3.str.isdigit()
         0     True
         1     True
@@ -4070,7 +4065,7 @@ class StringMethods(NoNewAttributesMixin):
         Examples
         --------
 
-        >>> s4 = pd.Series([' ', '\\t\\r\\n ', ''])
+        >>> s4 = pd.Series([" ", "\\t\\r\\n ", ""])
         >>> s4.str.isspace()
         0     True
         1     True
@@ -4110,7 +4105,7 @@ class StringMethods(NoNewAttributesMixin):
         Examples
         --------
 
-        >>> s5 = pd.Series(['leopard', 'Golden Eagle', 'SNAKE', ''])
+        >>> s5 = pd.Series(["leopard", "Golden Eagle", "SNAKE", ""])
         >>> s5.str.islower()
         0     True
         1    False
@@ -4120,6 +4115,7 @@ class StringMethods(NoNewAttributesMixin):
         """
         result = self._data.array._str_islower()
         return self._wrap_result(result, returns_string=False)
+
     @forbid_nonstring_types(["bytes"])
     def isascii(self):
         """
@@ -4153,7 +4149,7 @@ class StringMethods(NoNewAttributesMixin):
         characters, which includes digits 0-9, capital and lowercase letters A-Z,
         and some other special characters.
 
-        >>> s5 = pd.Series(['ö', 'see123', 'hello world', ''])
+        >>> s5 = pd.Series(["ö", "see123", "hello world", ""])
         >>> s5.str.isascii()
         0    False
         1     True
@@ -4163,6 +4159,7 @@ class StringMethods(NoNewAttributesMixin):
         """
         result = self._data.array._str_isascii()
         return self._wrap_result(result, returns_string=False)
+
     @forbid_nonstring_types(["bytes"])
     def isupper(self):
         """
@@ -4193,7 +4190,7 @@ class StringMethods(NoNewAttributesMixin):
         Examples
         --------
 
-        >>> s5 = pd.Series(['leopard', 'Golden Eagle', 'SNAKE', ''])
+        >>> s5 = pd.Series(["leopard", "Golden Eagle", "SNAKE", ""])
         >>> s5.str.isupper()
         0    False
         1    False
@@ -4238,7 +4235,7 @@ class StringMethods(NoNewAttributesMixin):
         assumed to be as any sequence of non-numeric characters separated by
         whitespace characters.
 
-        >>> s5 = pd.Series(['leopard', 'Golden Eagle', 'SNAKE', ''])
+        >>> s5 = pd.Series(["leopard", "Golden Eagle", "SNAKE", ""])
         >>> s5.str.istitle()
         0    False
         1     True
@@ -4282,7 +4279,7 @@ class StringMethods(NoNewAttributesMixin):
         also includes other characters that can represent quantities such as
         unicode fractions.
 
-        >>> s1 = pd.Series(['one', 'one1', '1', '', '³', '⅕'])
+        >>> s1 = pd.Series(["one", "one1", "1", "", "³", "⅕"])
         >>> s1.str.isnumeric()
         0    False
         1    False
@@ -4342,7 +4339,7 @@ class StringMethods(NoNewAttributesMixin):
         The ``s3.str.isdecimal`` method checks for characters used to form
         numbers in base 10.
 
-        >>> s3 = pd.Series(['23', '³', '⅕', ''])
+        >>> s3 = pd.Series(["23", "³", "⅕", ""])
         >>> s3.str.isdecimal()
         0     True
         1    False
