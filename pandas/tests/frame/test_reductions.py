@@ -2233,3 +2233,34 @@ def test_mean_nullable_int_axis_1():
     result = df.mean(axis=1, skipna=False)
     expected = Series([1.0, 2.0, 3.5, pd.NA], dtype="Float64")
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "method",
+    [
+        "sum",
+        "prod",
+        "min",
+        "max",
+        "mean",
+        "median",
+        "var",
+        "std",
+        "sem",
+        "skew",
+        "kurt",
+    ],
+)
+def test_numeric_only_non_bool_raises(method):
+    # GH#53098
+    df = DataFrame({"x": [1], "y": [4]})
+    msg = 'For argument "numeric_only" expected type bool'
+    
+    with pytest.raises(ValueError, match=msg):
+        getattr(df, method)(numeric_only=None)
+    
+    with pytest.raises(ValueError, match=msg):
+        getattr(df, method)(numeric_only="True")
+    
+    with pytest.raises(ValueError, match=msg):
+        getattr(df, method)(numeric_only=1)
