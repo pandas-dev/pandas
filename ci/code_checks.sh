@@ -57,7 +57,8 @@ fi
 if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
 
     MSG='Python and Cython Doctests' ; echo "$MSG"
-    python -c 'import pandas as pd; pd.test(run_doctests=True)'
+    # Using future.python_scalars=True avoids NumPy scalar reprs in docstrings.
+    PANDAS_FUTURE_PYTHON_SCALARS="1" python -c 'import pandas as pd; pd.test(run_doctests=True)'
     RET=$(($RET + $?)) ; echo "$MSG" "DONE"
 
 fi
