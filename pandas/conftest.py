@@ -113,10 +113,18 @@ def pytest_sessionstart(session):
     import doctest
     import inspect
 
+    # https://github.com/pandas-dev/pandas/pull/62988
+    # When we modify the __module__ of a class, the __module__ on the methods
+    # of that class do not change. When these two disagree, doctests would not
+    # typically run. We hack `DocTestFinder` to avoid this.
     orig = doctest.DocTestFinder._from_module  # type: ignore[attr-defined]
 
     def _from_module(self, module, object):
+        # When . is in __qualname__, object is a method of a class.
         if inspect.isfunction(object) and "." in object.__qualname__:
+            # We only get here when the class that the method is on is from the
+            # appropriate module. So ignore checking the __module__ of the method
+            # itself and run the doctest.
             return True
         return orig(self, module, object)
 
