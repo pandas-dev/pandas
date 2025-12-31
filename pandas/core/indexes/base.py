@@ -3061,6 +3061,18 @@ class Index(IndexOpsMixin, PandasObject):
         Index.intersection : Form the intersection of two Index objects.
         Index.difference : Return a new Index with elements of index not in `other`.
 
+        Notes
+        -----
+        For Index objects that contain duplicate values, ``Index.union`` behaves
+        like a *multiset union*. The resulting Index may include repeated
+        values, and the multiplicity of each value is equal to the maximum
+        multiplicity from either input Index (rather than removing duplicates
+        completely as in a traditional set union).
+
+        This behaviour differs from other set operations such as
+        ``difference`` or ``symmetric_difference``, which operate on the
+        carrier sets.
+
         Examples
         --------
         Union matching dtypes
