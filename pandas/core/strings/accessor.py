@@ -1071,6 +1071,7 @@ class StringMethods(NoNewAttributesMixin):
 
         Examples
         --------
+        >>> import pandas as pd
         >>> s = pd.Series(["Linda van der Berg", "George Pitt-Rivers"])
         >>> s
         0    Linda van der Berg
@@ -1078,23 +1079,23 @@ class StringMethods(NoNewAttributesMixin):
         dtype: object
 
         >>> s.str.partition()
-            0  1             2
+               0  1             2
         0  Linda     van der Berg
         1  George     Pitt-Rivers
 
         To partition by the last space instead of the first one:
 
         >>> s.str.rpartition()
-               0  1            2
-        0  Linda van der      Berg
-        1        George  Pitt-Rivers
+                       0  1            2
+        0  Linda van der            Berg
+        1         George     Pitt-Rivers
 
         To partition by something different than a space:
 
         >>> s.str.partition("-")
-                     0  1       2
+                            0  1       2
         0  Linda van der Berg
-        1     George Pitt  -  Rivers
+        1         George Pitt  -  Rivers
 
         To return a Series containing tuples instead of a DataFrame:
 
