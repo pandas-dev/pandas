@@ -1051,7 +1051,6 @@ class StringMethods(NoNewAttributesMixin):
 
         Examples
         --------
-        >>> import pandas as pd
         >>> s = pd.Series(["Linda van der Berg", "George Pitt-Rivers"])
         >>> s
         0    Linda van der Berg
