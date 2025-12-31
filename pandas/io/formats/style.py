@@ -79,16 +79,6 @@ if TYPE_CHECKING:
     from pandas.core.generic import NDFrame
 
 
-####
-# Shared Doc Strings
-
-coloring_args = """color : str, default '{default}'
-           Background color to use for highlighting."""
-
-#
-###
-
-
 class Styler(StylerRenderer):
     r"""
     Helps style a DataFrame or Series according to the data with HTML and CSS.
