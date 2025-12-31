@@ -78,10 +78,10 @@ frame_examples_sub = dedent(
      #   Column     Non-Null Count  Dtype
     ---  ------     --------------  -----
      0   int_col    5 non-null      int64
-     1   text_col   5 non-null      object
+     1   text_col   5 non-null      str
      2   float_col  5 non-null      float64
-    dtypes: float64(1), int64(1), object(1)
-    memory usage: 248.0+ bytes
+    dtypes: float64(1), int64(1), str(1)
+    memory usage: 278.0 bytes
 
     Prints a summary of columns count and its dtypes but not per column
     information:
@@ -90,8 +90,8 @@ frame_examples_sub = dedent(
     <class 'pandas.DataFrame'>
     RangeIndex: 5 entries, 0 to 4
     Columns: 3 entries, int_col to float_col
-    dtypes: float64(1), int64(1), object(1)
-    memory usage: 248.0+ bytes
+    dtypes: float64(1), int64(1), str(1)
+    memory usage: 278.0 bytes
 
     Pipe output of DataFrame.info to buffer instead of sys.stdout, get
     buffer content and writes to a text file:
@@ -120,11 +120,11 @@ frame_examples_sub = dedent(
     Data columns (total 3 columns):
      #   Column    Non-Null Count    Dtype
     ---  ------    --------------    -----
-     0   column_1  1000000 non-null  object
-     1   column_2  1000000 non-null  object
-     2   column_3  1000000 non-null  object
-    dtypes: object(3)
-    memory usage: 22.9+ MB
+     0   column_1  1000000 non-null  str
+     1   column_2  1000000 non-null  str
+     2   column_3  1000000 non-null  str
+    dtypes: str(3)
+    memory usage: 25.7 MB
 
     >>> df.info(memory_usage='deep')
     <class 'pandas.DataFrame'>
@@ -132,11 +132,11 @@ frame_examples_sub = dedent(
     Data columns (total 3 columns):
      #   Column    Non-Null Count    Dtype
     ---  ------    --------------    -----
-     0   column_1  1000000 non-null  object
-     1   column_2  1000000 non-null  object
-     2   column_3  1000000 non-null  object
-    dtypes: object(3)
-    memory usage: 165.9 MB"""
+     0   column_1  1000000 non-null  str
+     1   column_2  1000000 non-null  str
+     2   column_3  1000000 non-null  str
+    dtypes: str(3)
+    memory usage: 25.7 MB"""
 )
 
 
