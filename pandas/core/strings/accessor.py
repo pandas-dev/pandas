@@ -1041,7 +1041,8 @@ class StringMethods(NoNewAttributesMixin):
    
     @forbid_nonstring_types(["bytes"])
     def rpartition(self, sep: str = " ", expand: bool = True):
-        '''Split the string at the last occurrence of `sep`.
+        """
+        Split the string at the last occurrence of `sep`.
 
         This method splits the string at the last occurrence of `sep`,
         and returns 3 elements containing the part before the separator,
@@ -1051,7 +1052,7 @@ class StringMethods(NoNewAttributesMixin):
 
         Parameters
         ----------
-        sep : str, default whitespace
+        sep : str, default " "
             String to split on.
         expand : bool, default True
             If True, return DataFrame/MultiIndex expanding dimensionality.
@@ -1060,6 +1061,8 @@ class StringMethods(NoNewAttributesMixin):
         Returns
         -------
         DataFrame/MultiIndex or Series/Index of objects
+            Returns appropriate type based on `expand` parameter with strings
+            split based on the `sep` parameter.
 
         See Also
         --------
@@ -1069,7 +1072,6 @@ class StringMethods(NoNewAttributesMixin):
 
         Examples
         --------
-
         >>> s = pd.Series(['Linda van der Berg', 'George Pitt-Rivers'])
         >>> s
         0    Linda van der Berg
@@ -1077,23 +1079,23 @@ class StringMethods(NoNewAttributesMixin):
         dtype: object
 
         >>> s.str.partition()
-                0  1             2
-        0   Linda     van der Berg
-        1  George      Pitt-Rivers
+            0  1             2
+        0  Linda     van der Berg
+        1  George     Pitt-Rivers
 
         To partition by the last space instead of the first one:
 
         >>> s.str.rpartition()
-                       0  1            2
-        0  Linda van der            Berg
-        1         George     Pitt-Rivers
+               0  1            2
+        0  Linda van der      Berg
+        1        George  Pitt-Rivers
 
         To partition by something different than a space:
 
         >>> s.str.partition('-')
-                            0  1       2
+                     0  1       2
         0  Linda van der Berg
-        1         George Pitt  -  Rivers
+        1     George Pitt  -  Rivers
 
         To return a Series containing tuples instead of a DataFrame:
 
@@ -1118,7 +1120,8 @@ class StringMethods(NoNewAttributesMixin):
         Or an index with tuples with ``expand=False``:
 
         >>> idx.str.partition(expand=False)
-        Index([('X', ' ', '123'), ('Y', ' ', '999')], dtype='object')'''
+        Index([('X', ' ', '123'), ('Y', ' ', '999')], dtype='object')
+        """
         result = self._data.array._str_rpartition(sep, expand)
         if self._data.dtype == "category":
             dtype = self._data.dtype.categories.dtype
