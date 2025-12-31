@@ -833,7 +833,7 @@ class CSSWarning(UserWarning):
 
 class PossibleDataLossError(Exception):
     """
-    Exception raised when trying to open a HDFStore file when already opened.
+    Exception raised when trying to open an HDFStore file when already opened.
 
     This error is triggered when there is a potential risk of data loss due to
     conflicting operations on an HDFStore file. It serves to prevent unintended

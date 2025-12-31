@@ -387,7 +387,7 @@ def read_hdf(
 
     See Also
     --------
-    DataFrame.to_hdf : Write a HDF file from a DataFrame.
+    DataFrame.to_hdf : Write an HDF file from a DataFrame.
     HDFStore : Low-level access to HDF files.
 
     Notes
@@ -3272,7 +3272,7 @@ class GenericFixed(Fixed):
 
         if isinstance(value.dtype, CategoricalDtype):
             raise NotImplementedError(
-                "Cannot store a category dtype in a HDF5 dataset that uses format="
+                "Cannot store a category dtype in an HDF5 dataset that uses format="
                 '"fixed". Use format="table".'
             )
         if not empty_array:

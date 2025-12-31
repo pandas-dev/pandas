@@ -865,7 +865,7 @@ class TestIndex:
 
         if nulls_fixture is pd.NaT or nulls_fixture is pd.NA:
             # Check 1) that we cannot construct a float64 Index with this value
-            #  and 2) that with an NaN we do not have .isin(nulls_fixture)
+            #  and 2) that with a NaN we do not have .isin(nulls_fixture)
             msg = (
                 r"float\(\) argument must be a string or a (real )?number, "
                 f"not {type(nulls_fixture).__name__!r}"

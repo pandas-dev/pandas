@@ -630,7 +630,7 @@ def array_equivalent_object(ndarray left, ndarray right) -> bool:
                 # Check if non-scalars have the same type
                 return False
             elif check_na_tuples_nonequal(x, y):
-                # We have tuples where one Side has a NA and the other side does not
+                # We have tuples where one Side has an NA and the other side does not
                 # Only condition we may end up with a TypeError
                 return False
             raise
