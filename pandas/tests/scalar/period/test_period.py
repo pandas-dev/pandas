@@ -169,6 +169,22 @@ class TestPeriodConstruction:
         rt2 = per2.to_timestamp()
         assert rt2.asm8 == dt64
 
+    def test_construction_from_min_timestamp(self):
+        # GH-63278
+        ts = Timestamp(Timestamp.min.value, unit="us")
+        per = Period(ts, freq="us")
+
+        # pandas.errors.OutOfBoundsDatetime: Out of bounds nanosecond timestamp:
+        # -290308-12-21 19:59:05
+        # rt = per.to_timestamp()
+
+        assert per.year == ts.year
+        assert per.month == ts.month
+        assert per.day == ts.day
+        assert per.hour == ts.hour
+        assert per.minute == ts.minute
+        assert per.second == ts.second
+
     def test_construction_bday(self):
         # Biz day construction, roll forward if non-weekday
         with tm.assert_produces_warning(
