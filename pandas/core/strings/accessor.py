@@ -1043,7 +1043,7 @@ class StringMethods(NoNewAttributesMixin):
         DataFrame/MultiIndex or Series/Index of objects
             Returns appropriate type based on `expand` parameter with strings
             split based on the `sep` parameter.
-        
+
         See Also
         --------
         rpartition : Split the string at the last occurrence of `sep`.
@@ -1073,9 +1073,9 @@ class StringMethods(NoNewAttributesMixin):
         To partition by something different than a space:
 
         >>> s.str.partition('-')
-                            0  1       2
+                     0  1       2
         0  Linda van der Berg
-        1         George Pitt  -  Rivers
+        1     George Pitt  -  Rivers
 
         To return a Series containing tuples instead of a DataFrame:
 
