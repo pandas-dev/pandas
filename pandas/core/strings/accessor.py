@@ -1038,7 +1038,6 @@ class StringMethods(NoNewAttributesMixin):
             result, expand=expand, returns_string=expand, dtype=dtype
         )
 
-   
     @forbid_nonstring_types(["bytes"])
     def rpartition(self, sep: str = " ", expand: bool = True):
         """
@@ -1072,7 +1071,7 @@ class StringMethods(NoNewAttributesMixin):
 
         Examples
         --------
-        >>> s = pd.Series(['Linda van der Berg', 'George Pitt-Rivers'])
+        >>> s = pd.Series(["Linda van der Berg", "George Pitt-Rivers"])
         >>> s
         0    Linda van der Berg
         1    George Pitt-Rivers
@@ -1092,21 +1091,21 @@ class StringMethods(NoNewAttributesMixin):
 
         To partition by something different than a space:
 
-        >>> s.str.partition('-')
+        >>> s.str.partition("-")
                      0  1       2
         0  Linda van der Berg
         1     George Pitt  -  Rivers
 
         To return a Series containing tuples instead of a DataFrame:
 
-        >>> s.str.partition('-', expand=False)
+        >>> s.str.partition("-", expand=False)
         0    (Linda van der Berg, , )
         1    (George Pitt, -, Rivers)
         dtype: object
 
         Also available on indices:
 
-        >>> idx = pd.Index(['X 123', 'Y 999'])
+        >>> idx = pd.Index(["X 123", "Y 999"])
         >>> idx
         Index(['X 123', 'Y 999'], dtype='object')
 
