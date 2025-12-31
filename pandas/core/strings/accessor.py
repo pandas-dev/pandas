@@ -1041,7 +1041,9 @@ class StringMethods(NoNewAttributesMixin):
         Returns
         -------
         DataFrame/MultiIndex or Series/Index of objects
-
+            Returns appropriate type based on `expand` parameter with strings
+            split based on the `sep` parameter.
+        
         See Also
         --------
         rpartition : Split the string at the last occurrence of `sep`.
