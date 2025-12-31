@@ -653,7 +653,7 @@ cdef int64_t parse_timedelta_string(str ts) except? -1:
             have_dot = 0
 
     # we had a dot, but we have a fractional
-    # value since we have an unit
+    # value since we have a unit
     if have_dot and len(unit):
         r = timedelta_from_spec(number, frac, unit)
         result += timedelta_as_neg(r, neg)
