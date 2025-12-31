@@ -801,7 +801,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         2   2 days
         3   3 days
         4   4 days
-        dtype: timedelta64[ns]
+        dtype: timedelta64[s]
 
         >>> s.dt.total_seconds()
         0         0.0
@@ -816,7 +816,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         >>> idx = pd.to_timedelta(np.arange(5), unit="D")
         >>> idx
         TimedeltaIndex(['0 days', '1 days', '2 days', '3 days', '4 days'],
-                       dtype='timedelta64[ns]', freq=None)
+                       dtype='timedelta64[s]', freq=None)
 
         >>> idx.total_seconds()
         Index([0.0, 86400.0, 172800.0, 259200.0, 345600.0], dtype='float64')
