@@ -11,6 +11,8 @@ from datetime import (
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -957,6 +959,7 @@ class TestGroupBy:
         expected_df = gb[["Quantity"]].aggregate("mean")
         tm.assert_frame_equal(result_df, expected_df)
 
+    @td.skip_if_no("pyarrow")
     def test_pyarrow_index_retention(self):
         # https://github.com/pandas-dev/pandas/issues/63518
         df = DataFrame(
