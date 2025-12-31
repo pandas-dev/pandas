@@ -1077,21 +1077,21 @@ class StringMethods(NoNewAttributesMixin):
         1    George Pitt-Rivers
         dtype: object
 
-        >>> s.str.partition() # doctest: +SKIP
+        >>> s.str.partition()  # doctest: +SKIP
                0  1             2
         0  Linda     van der Berg
         1  George     Pitt-Rivers
 
         To partition by the last space instead of the first one:
 
-        >>> s.str.rpartition() # doctest: +SKIP
+        >>> s.str.rpartition()  # doctest: +SKIP
                        0  1            2
         0  Linda van der            Berg
         1         George     Pitt-Rivers
 
         To partition by something different than a space:
 
-        >>> s.str.partition("-") # doctest: +SKIP
+        >>> s.str.partition("-")  # doctest: +SKIP
                             0  1       2
         0  Linda van der Berg
         1         George Pitt  -  Rivers
@@ -1111,14 +1111,14 @@ class StringMethods(NoNewAttributesMixin):
 
         Which will create a MultiIndex:
 
-        >>> idx.str.partition() # doctest: +SKIP
+        >>> idx.str.partition()  # doctest: +SKIP
         MultiIndex([('X', ' ', '123'),
                     ('Y', ' ', '999')],
                    )
 
         Or an index with tuples with ``expand=False``:
 
-        >>> idx.str.partition(expand=False) # doctest: +SKIP
+        >>> idx.str.partition(expand=False)  # doctest: +SKIP
         Index([('X', ' ', '123'), ('Y', ' ', '999')], dtype='object')
         """
         result = self._data.array._str_rpartition(sep, expand)
