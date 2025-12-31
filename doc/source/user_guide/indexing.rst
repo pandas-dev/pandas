@@ -94,6 +94,10 @@ well). Any of the axes accessors may be the null slice ``:``. Axes left out of
 the specification are assumed to be ``:``, e.g. ``p.loc['a']`` is equivalent to
 ``p.loc['a', :]``.
 
+For performance-critical or production code, we recommend using the optimized
+pandas data access methods (such as ``.loc`` and ``.iloc``) described in this
+chapter.
+
 
 .. ipython:: python
 
