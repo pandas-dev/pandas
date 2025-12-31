@@ -20,15 +20,17 @@ this area.
 
 .. note::
 
-   The Python and NumPy indexing operators ``[]`` and attribute operator ``.``
-   provide quick and easy access to pandas data structures across a wide range
-   of use cases. This makes interactive work intuitive, as there's little new
-   to learn if you already know how to deal with Python dictionaries and NumPy
+   The Python and NumPy indexing operators ``[]`` and the attribute operator ``.``
+   provide quick and easy access to pandas data structures across a wide range of
+   use cases. This makes interactive work intuitive, as there's little new to
+   learn if you already know how to deal with Python dictionaries and NumPy
    arrays. However, since the type of the data to be accessed isn't known in
-   advance, directly using standard operators has some optimization limits. For
-   production code, we recommended that you take advantage of the optimized
-   pandas data access methods exposed in this chapter.
+   advance, directly using these standard operators has some optimization limits.
 
+   For performance-critical or production code, we recommend using the optimized
+   pandas data access methods (such as ``.loc`` and ``.iloc``) described in this
+   chapter.
+   
 See the :ref:`MultiIndex / Advanced Indexing <advanced>` for ``MultiIndex`` and more advanced indexing documentation.
 
 See the :ref:`cookbook<cookbook.selection>` for some advanced strategies.
