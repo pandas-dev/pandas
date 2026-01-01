@@ -100,6 +100,10 @@ from pandas.core.sorting import (
     get_group_index,
     is_int64_overflow_possible,
 )
+from pandas.diagnostics.collector import (
+    collector,
+    phase,
+)
 
 if TYPE_CHECKING:
     from pandas import DataFrame
@@ -989,6 +993,8 @@ class _MergeOperation:
 
         self.indicator = indicator
 
+        diag = collector()
+
         if not is_bool(left_index):
             raise ValueError(
                 f"left_index parameter must be of type bool, not {type(left_index)}"
@@ -1007,34 +1013,73 @@ class _MergeOperation:
             )
             raise MergeError(msg)
 
-        self.left_on, self.right_on = self._validate_left_right_on(left_on, right_on)
+        if diag is not None:
+            with diag.phase(
+                "merge.validate_left_right_on",
+                how=self.how,
+                left_index=self.left_index,
+                right_index=self.right_index,
+            ):
+                self.left_on, self.right_on = self._validate_left_right_on(
+                    left_on, right_on
+                )
+        else:
+            self.left_on, self.right_on = self._validate_left_right_on(
+                left_on, right_on
+            )
 
-        (
-            self.left_join_keys,
-            self.right_join_keys,
-            self.join_names,
-            left_drop,
-            right_drop,
-        ) = self._get_merge_keys()
+        if diag is not None:
+            with diag.phase("merge.get_merge_keys"):
+                (
+                    self.left_join_keys,
+                    self.right_join_keys,
+                    self.join_names,
+                    left_drop,
+                    right_drop,
+                ) = self._get_merge_keys()
+        else:
+            (
+                self.left_join_keys,
+                self.right_join_keys,
+                self.join_names,
+                left_drop,
+                right_drop,
+            ) = self._get_merge_keys()
 
         if left_drop:
-            self.left = self.left._drop_labels_or_levels(left_drop)
+            if diag is not None:
+                with diag.phase("merge.drop_left", n=len(left_drop)):
+                    self.left = self.left._drop_labels_or_levels(left_drop)
+            else:
+                self.left = self.left._drop_labels_or_levels(left_drop)
 
         if right_drop:
-            self.right = self.right._drop_labels_or_levels(right_drop)
+            if diag is not None:
+                with diag.phase("merge.drop_right", n=len(right_drop)):
+                    self.right = self.right._drop_labels_or_levels(right_drop)
+            else:
+                self.right = self.right._drop_labels_or_levels(right_drop)
 
         self._maybe_require_matching_dtypes(self.left_join_keys, self.right_join_keys)
         self._validate_tolerance(self.left_join_keys)
 
         # validate the merge keys dtypes. We may need to coerce
         # to avoid incompatible dtypes
-        self._maybe_coerce_merge_keys()
+        if diag is not None:
+            with diag.phase("merge.coerce_merge_keys"):
+                self._maybe_coerce_merge_keys()
+        else:
+            self._maybe_coerce_merge_keys()
 
         # If argument passed to validate,
         # check if columns specified as unique
         # are in fact unique.
         if validate is not None:
-            self._validate_validate_kwd(validate)
+            if diag is not None:
+                with diag.phase("merge.validate_validate_kwd", validate=validate):
+                    self._validate_validate_kwd(validate)
+            else:
+                self._validate_validate_kwd(validate)
 
     @final
     def _validate_how(
@@ -1135,26 +1180,78 @@ class _MergeOperation:
         """
         Execute the merge.
         """
+        diag = collector()
+
+        if diag is not None:
+            # Optional: lightweight metadata to make reports more useful.
+            # Keep it cheap: no copying, no conversions.
+            try:
+                diag.set_meta(
+                    operation="merge",
+                    how=getattr(self, "how", None),
+                    left_rows=len(self.left),
+                    right_rows=len(self.right),
+                    left_cols=getattr(self.left, "shape", (None, None))[1],
+                    right_cols=getattr(self.right, "shape", (None, None))[1],
+                    indicator=bool(self.indicator),
+                )
+            except Exception:
+                pass
+
         if self.indicator:
-            self.left, self.right = self._indicator_pre_merge(self.left, self.right)
+            with phase(diag, "merge.indicator_pre_merge"):
+                self.left, self.right = self._indicator_pre_merge(self.left, self.right)
 
-        join_index, left_indexer, right_indexer = self._get_join_info()
+        with phase(diag, "merge.get_join_info"):
+            join_index, left_indexer, right_indexer = self._get_join_info()
 
-        result = self._reindex_and_concat(join_index, left_indexer, right_indexer)
+        if diag is not None:
+            try:
+                diag.inc("join_len", len(join_index))
+
+                if left_indexer is not None:
+                    diag.inc("left_indexer_len", len(left_indexer))
+                    if hasattr(left_indexer, "nbytes"):
+                        diag.inc("left_indexer_nbytes", int(left_indexer.nbytes))
+
+                if right_indexer is not None:
+                    diag.inc("right_indexer_len", len(right_indexer))
+                    if hasattr(right_indexer, "nbytes"):
+                        diag.inc("right_indexer_nbytes", int(right_indexer.nbytes))
+
+                # Join index backing data (best-effort)
+                jv = getattr(join_index, "_values", None)
+                if hasattr(jv, "nbytes"):
+                    diag.inc("join_index_values_nbytes", int(jv.nbytes))
+            except Exception:
+                pass
+
+        with phase(
+            diag,
+            "merge.reindex_and_concat",
+            join_len=len(join_index),
+            left_indexer_len=None if left_indexer is None else len(left_indexer),
+            right_indexer_len=None if right_indexer is None else len(right_indexer),
+        ):
+            result = self._reindex_and_concat(join_index, left_indexer, right_indexer)
 
         if self.indicator:
-            result = self._indicator_post_merge(result)
+            with phase(diag, "merge.indicator_post_merge"):
+                result = self._indicator_post_merge(result)
 
-        self._maybe_add_join_keys(result, left_indexer, right_indexer)
+        with phase(diag, "merge.maybe_add_join_keys"):
+            self._maybe_add_join_keys(result, left_indexer, right_indexer)
 
-        self._maybe_restore_index_levels(result)
+        with phase(diag, "merge.maybe_restore_index_levels"):
+            self._maybe_restore_index_levels(result)
 
-        return result.__finalize__(
-            types.SimpleNamespace(
-                input_objs=[self.left, self.right], left=self.left, right=self.right
-            ),
-            method="merge",
-        )
+        with phase(diag, "merge.finalize"):
+            return result.__finalize__(
+                types.SimpleNamespace(
+                    input_objs=[self.left, self.right], left=self.left, right=self.right
+                ),
+                method="merge",
+            )
 
     @final
     @cache_readonly

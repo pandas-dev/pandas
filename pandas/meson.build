@@ -38,6 +38,7 @@ subdirs_list = [
     'tests',
     'tseries',
     'util',
+    'diagnostics',
 ]
 foreach subdir : subdirs_list
     install_subdir(subdir, install_dir: py.get_install_dir() / 'pandas')
