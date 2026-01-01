@@ -12684,7 +12684,7 @@ def make_doc(name: str, ndim: int) -> str:
             Examples
             --------
             >>> s = pd.Series([1, 2, 3])
-            >>> s.sem().round(6)
+            >>> round(s.sem(), 6)
             0.57735
 
             With a DataFrame
@@ -12802,8 +12802,8 @@ def make_doc(name: str, ndim: int) -> str:
 
             With axis=None
 
-            >>> df.kurt(axis=None).round(6)
-            -0.988693
+            >>> df.kurt(axis=None)
+            -0.9886927196984727
 
             Using axis=1
 
