@@ -2872,7 +2872,36 @@ class TestPivot:
         result = df.unstack(sort=False)
         result.iloc[0, 0] = -1
         tm.assert_frame_equal(df, df_orig)
+        
+    def test_unstack_sort_false(self):
+        # GH#62816
 
+        index = pd.MultiIndex.from_tuples([
+            ("Finance", "M", "B"),
+            ("Finance", "F", "A"),
+            ("IT", "M", "B"),
+            ("HR", "F", "A"),
+            ("HR", "M", "B"),
+            ("IT", "F", "A"),
+            ("HR", "F", "B")
+            ], names=["Department", "Gender", "Location"])
+            
+        data = pd.Series([2, 2, 2, 1, 1, 1, 1], index = index)
+        
+        result = data.unstack(fill_value=0, sort=False)
+        
+        expected = pd.DataFrame(
+            [[0, 2], [2, 0], [1, 1], [1, 0], [0, 1], [2, 0]],
+            index=pd.MultiIndex.from_tuples([
+                ("Finance", "F"), ("Finance", "M"),
+                ("HR", "F"), ("HR", "M"),
+                ("IT", "F"), ("IT", "M")
+            ], names=["Department", "Gender"]),
+            columns=pd.Index(["B", "A"], name="Location")
+        )
+
+        tm.assert_frame_equal(result, expected)
+        
     def test_pivot_empty_with_datetime(self):
         # GH#59126
         df = DataFrame(
