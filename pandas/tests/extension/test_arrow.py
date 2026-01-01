@@ -3823,5 +3823,5 @@ def test_comparison_with_range(data):
     # GH#63429
     ser = pd.Series(data)
     result = ser == range(len(ser))
-    expected = np.array([False, False])
-    tm.assert_numpy_array_equal(result, expected)
+    expected = pd.Series([False, False])
+    tm.assert_series_equal(result, expected)
