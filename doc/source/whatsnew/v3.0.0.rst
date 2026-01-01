@@ -1358,6 +1358,7 @@ Groupby/resample/rolling
 - Bug in :meth:`.Rolling.var` and :meth:`.Rolling.std` computing incorrect results due to numerical instability. (:issue:`47721`, :issue:`52407`, :issue:`54518`, :issue:`55343`)
 - Bug in :meth:`DataFrame.groupby` methods when operating on NumPy-nullable data failing when the NA mask was not C-contiguous (:issue:`61031`)
 - Bug in :meth:`DataFrame.groupby` when grouping by a Series and that Series was modified after calling :meth:`DataFrame.groupby` but prior to the groupby operation (:issue:`63219`)
+- Bug in :meth:`DataFrame.groupby` with a :class:`TimeGrouper` (e.g. ``pd.Grouper(freq="D")``) not retaining PyArrow index dtype (:issue:`63518`)
 
 Reshaping
 ^^^^^^^^^
