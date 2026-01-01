@@ -594,7 +594,6 @@ class Styler(StylerRenderer):
             <https://pandas.pydata.org/docs/user_guide/io.html?
             highlight=storage_options#reading-writing-remote-files>`_.
 
-            .. versionadded:: 1.5.0
         autofilter : bool, default False
             If True, add automatic filters to all columns.
 
