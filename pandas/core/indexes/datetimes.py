@@ -1613,3 +1613,111 @@ def bdate_range(
 def _time_to_micros(time_obj: dt.time) -> int:
     seconds = time_obj.hour * 60 * 60 + 60 * time_obj.minute + time_obj.second
     return 1_000_000 * seconds + time_obj.microsecond
+
+    @property
+    def day(self) -> Index:
+        """
+        The day of the month.
+        """
+        return self._maybe_mask_results(
+            self._data.day, fill_value=None, name=self.name
+        )
+
+    @property
+    def hour(self) -> Index:
+        """
+        The hours of the datetime.
+        """
+        return self._maybe_mask_results(
+            self._data.hour, fill_value=None, name=self.name
+        )
+
+    @property
+    def minute(self) -> Index:
+        """
+        The minutes of the datetime.
+        """
+        return self._maybe_mask_results(
+            self._data.minute, fill_value=None, name=self.name
+        )
+
+    @property
+    def second(self) -> Index:
+        """
+        The seconds of the datetime.
+        """
+        return self._maybe_mask_results(
+            self._data.second, fill_value=None, name=self.name
+        )
+
+    @property
+    def microsecond(self) -> Index:
+        """
+        The microseconds of the datetime.
+        """
+        return self._maybe_mask_results(
+            self._data.microsecond, fill_value=None, name=self.name
+        )
+
+    @property
+    def nanosecond(self) -> Index:
+        """
+        The nanoseconds of the datetime.
+        """
+        return self._maybe_mask_results(
+            self._data.nanosecond, fill_value=None, name=self.name
+        )
+
+    @property
+    def dayofyear(self) -> Index:
+        """
+        The ordinal day of the year.
+        """
+        return self._maybe_mask_results(
+            self._data.dayofyear, fill_value=None, name=self.name
+        )
+
+    @property
+    def day_of_year(self) -> Index:
+        """
+        The ordinal day of the year.
+        """
+        return self._maybe_mask_results(
+            self._data.day_of_year, fill_value=None, name=self.name
+        )
+
+    @property
+    def dayofweek(self) -> Index:
+        """
+        The day of the week with Monday=0, Sunday=6.
+        """
+        return self._maybe_mask_results(
+            self._data.dayofweek, fill_value=None, name=self.name
+        )
+
+    @property
+    def day_of_week(self) -> Index:
+        """
+        The day of the week with Monday=0, Sunday=6.
+        """
+        return self._maybe_mask_results(
+            self._data.day_of_week, fill_value=None, name=self.name
+        )
+
+    @property
+    def weekday(self) -> Index:
+        """
+        The day of the week with Monday=0, Sunday=6.
+        """
+        return self._maybe_mask_results(
+            self._data.weekday, fill_value=None, name=self.name
+        )
+
+    @property
+    def quarter(self) -> Index:
+        """
+        The quarter of the date.
+        """
+        return self._maybe_mask_results(
+            self._data.quarter, fill_value=None, name=self.name
+        )
