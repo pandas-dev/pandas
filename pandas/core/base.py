@@ -749,7 +749,6 @@ class IndexOpsMixin(OpsMixin):
         """
         return not self.size
 
-
     def argmax(
         self, axis: AxisInt | None = None, skipna: bool = True, *args, **kwargs
     ) -> int:
@@ -822,7 +821,6 @@ class IndexOpsMixin(OpsMixin):
             # error: Incompatible return value type (got "Union[int, ndarray]", expected
             # "int")
             return result  # type: ignore[return-value]
-
 
     def argmin(
         self, axis: AxisInt | None = None, skipna: bool = True, *args, **kwargs
