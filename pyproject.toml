@@ -436,7 +436,6 @@ exclude = [
 # to be enabled gradually
 "pandas/core/*" = ["PLR5501"]
 "pandas/tests/*" = ["B028", "FLY"]
-"scripts/*" = ["B028"]
 # Keep this one enabled
 "pandas/_typing.py" = ["TC"]
 

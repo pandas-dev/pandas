@@ -13,7 +13,7 @@ pd_version = getattr(pd, "__version__", "")
 # fail early if pandas is not installed
 if not pd_version:
     # fail on the CI, soft fail during local development
-    warnings.warn("You need to install the development version of pandas")
+    warnings.warn("You need to install the development version of pandas", stacklevel=1)
     if pd.compat.is_ci_environment():
         sys.exit(1)
     else:
@@ -25,7 +25,8 @@ if "dev" not in pd_version:
         f"stubtest may fail as {pd_version} is not a dev version. "
         f"Please install a pandas dev version or see https://pandas.pydata.org/"
         f"pandas-docs/stable/development/contributing_codebase.html"
-        f"#validating-type-hints on how to skip the stubtest"
+        f"#validating-type-hints on how to skip the stubtest",
+        stacklevel=1,
     )
 
 
