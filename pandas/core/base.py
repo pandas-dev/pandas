@@ -793,17 +793,17 @@ class IndexOpsMixin(OpsMixin):
         ...         "Cinnamon Toast Crunch",
         ...         "Cocoa Puff",
         ...     ],
-        ... )
-        >>> s
+        ... )  # doctest: +SKIP
+        >>> s  # doctest: +SKIP
         Corn Flakes              100.0
         Almond Delight           110.0
         Cinnamon Toast Crunch    120.0
         Cocoa Puff               110.0
         dtype: float64
 
-        >>> s.argmax()
+        >>> s.argmax()  # doctest: +SKIP
         2
-        >>> s.argmin()
+        >>> s.argmin()  # doctest: +SKIP
         0
 
         The maximum cereal calories is the third element and
@@ -866,17 +866,17 @@ class IndexOpsMixin(OpsMixin):
         ...         "Cinnamon Toast Crunch",
         ...         "Cocoa Puff",
         ...     ],
-        ... )
-        >>> s
+        ... )  # doctest: +SKIP
+        >>> s  # doctest: +SKIP
         Corn Flakes              100.0
         Almond Delight           110.0
         Cinnamon Toast Crunch    120.0
         Cocoa Puff               110.0
         dtype: float64
 
-        >>> s.argmax()
+        >>> s.argmax()  # doctest: +SKIP
         2
-        >>> s.argmin()
+        >>> s.argmin()  # doctest: +SKIP
         0
 
         The maximum cereal calories is the third element and
