@@ -20,14 +20,21 @@ T = TypeVar("T")
 
 
 def report(
-    func: Callable[..., T], *args: Any, memory: bool = False, **kwargs: Any
+    func: Callable[..., T],
+    *args: Any,
+    memory: bool = False,
+    phase_memory: bool = False,
+    **kwargs: Any,
 ) -> T:
     """
     Run a callable with pandas diagnostics enabled for the duration of the call.
     The resulting DiagnosticsReport is attached to the returned object (when possible).
-    Retrieve it via obj.explain().
+    Retrieve it via ``pd.diagnostics.explain(obj)``
+    or ``getattr(obj, "_diagnostics_report", None)``.
     """
-    collector = DiagnosticsCollector(track_memory=memory)
+    collector = DiagnosticsCollector(
+        track_memory=memory, track_phase_memory=phase_memory
+    )
 
     with collector.activate():
         result = collector.run(func, *args, **kwargs)

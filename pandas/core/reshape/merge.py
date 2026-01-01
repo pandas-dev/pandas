@@ -100,10 +100,6 @@ from pandas.core.sorting import (
     get_group_index,
     is_int64_overflow_possible,
 )
-from pandas.diagnostics.collector import (
-    collector,
-    phase,
-)
 
 if TYPE_CHECKING:
     from pandas import DataFrame
@@ -992,6 +988,7 @@ class _MergeOperation:
         self.right_index = right_index
 
         self.indicator = indicator
+        from pandas.diagnostics.collector import collector
 
         diag = collector()
 
@@ -1180,6 +1177,11 @@ class _MergeOperation:
         """
         Execute the merge.
         """
+        from pandas.diagnostics.collector import (
+            collector,
+            phase,
+        )
+
         diag = collector()
 
         if diag is not None:

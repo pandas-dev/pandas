@@ -2,15 +2,24 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import json
-from typing import (
-    Any,
-)
+from typing import Any
+
+
+def _fmt_bytes(n: int) -> str:
+    # human-friendly bytes formatter
+    n_f = float(n)
+    for unit in ("B", "KB", "MB", "GB", "TB", "PB"):
+        if abs(n_f) < 1024.0:
+            return f"{n_f:.2f}{unit}"
+        n_f /= 1024.0
+    return f"{n_f:.2f}EB"
 
 
 @dataclass(frozen=True)
 class PhaseRecord:
     name: str
     seconds: float
+    mem_bytes_net: int | None = None
 
 
 @dataclass(frozen=True)
@@ -27,19 +36,17 @@ class DiagnosticsReport:
             "memory_bytes_net": self.memory_bytes_net,
             "metadata": self.metadata,
             "counters": self.counters,
-            "phases": [{"name": p.name, "seconds": p.seconds} for p in self.phases],
+            "phases": [
+                {
+                    "name": p.name,
+                    "seconds": p.seconds,
+                    "memory_bytes_net": p.mem_bytes_net,
+                }
+                for p in self.phases
+            ],
         }
 
     def to_text(self) -> str:
-        def _fmt_bytes(n: int) -> str:
-            # human-friendly bytes formatter
-            n_f = float(n)
-            for unit in ("B", "KB", "MB", "GB", "TB", "PB"):
-                if abs(n_f) < 1024.0:
-                    return f"{n_f:.2f}{unit}"
-                n_f /= 1024.0
-            return f"{n_f:.2f}EB"
-
         lines: list[str] = []
         op = self.metadata.get("operation", "operation")
         lines.append(f"pandas diagnostics report: {op}")
@@ -50,7 +57,6 @@ class DiagnosticsReport:
             lines.append(f"net tracemalloc bytes: {mem} ({_fmt_bytes(mem)})")
 
         if self.metadata:
-            # Keep metadata compact.
             keys = (
                 "how",
                 "left_rows",
@@ -66,14 +72,23 @@ class DiagnosticsReport:
         if self.counters:
             lines.append("counters:")
             for k, v in sorted(self.counters.items()):
-                if isinstance(v, int) and (k.endswith(("_nbytes", "_bytes"))):
+                if isinstance(v, int) and k.endswith(("_nbytes", "_bytes")):
                     lines.append(f"  - {k}: {v} ({_fmt_bytes(v)})")
                 else:
                     lines.append(f"  - {k}: {v}")
 
         if self.phases:
             lines.append("phases:")
-            lines.extend([f"  - {p.name}: {p.seconds:.6f}s" for p in self.phases])
+            phase_lines: list[str] = []
+            for p in self.phases:
+                if p.mem_bytes_net is None:
+                    phase_lines.append(f"  - {p.name}: {p.seconds:.6f}s")
+                else:
+                    m = int(p.mem_bytes_net)
+                    phase_lines.append(
+                        f"  - {p.name}: {p.seconds:.6f}s, mem: {m} ({_fmt_bytes(m)})"
+                    )
+            lines.extend(phase_lines)
 
         return "\n".join(lines)
 
@@ -85,7 +100,6 @@ def attach_report(obj: Any, report: DiagnosticsReport) -> None:
     try:
         setattr(obj, "_diagnostics_report", report)
     except Exception:
-        # scalar / extension object / frozen object etc
         return
 
 
