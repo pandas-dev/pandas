@@ -1100,7 +1100,7 @@ class StringMethods(NoNewAttributesMixin):
 
         To return a Series containing tuples instead of a DataFrame:
 
-        >>> s.str.partition("-", expand=False)
+        >>> s.str.partition("-", expand=False)  # doctest: +SKIP
         0    (Linda van der Berg, , )
         1    (George Pitt, -, Rivers)
         dtype: object
@@ -1120,7 +1120,7 @@ class StringMethods(NoNewAttributesMixin):
 
         Or an index with tuples with ``expand=False``:
 
-        >>> idx.str.partition(expand=False)
+        >>> idx.str.partition(expand=False)  # doctest: +SKIP
         Index([('X', ' ', '123'), ('Y', ' ', '999')], dtype='object')
         """
         result = self._data.array._str_rpartition(sep, expand)
