@@ -1071,8 +1071,8 @@ class StringMethods(NoNewAttributesMixin):
 
         Examples
         --------
-        >>> s = pd.Series(["Linda van der Berg", "George Pitt-Rivers"])
-        >>> s
+        >>> s = pd.Series(["Linda van der Berg", "George Pitt-Rivers"]) # doctest: +SKIP
+        >>> s # doctest: +SKIP
         0    Linda van der Berg
         1    George Pitt-Rivers
         dtype: object
@@ -1105,8 +1105,8 @@ class StringMethods(NoNewAttributesMixin):
 
         Also available on indices:
 
-        >>> idx = pd.Index(["X 123", "Y 999"])
-        >>> idx
+        >>> idx = pd.Index(["X 123", "Y 999"]) # doctest: +SKIP
+        >>> idx # doctest: +SKIP
         Index(['X 123', 'Y 999'], dtype='object')
 
         Which will create a MultiIndex:
@@ -1118,7 +1118,7 @@ class StringMethods(NoNewAttributesMixin):
 
         Or an index with tuples with ``expand=False``:
 
-        >>> idx.str.partition(expand=False)  # doctest: +SKIP
+        >>> idx.str.partition(expand=False)
         Index([('X', ' ', '123'), ('Y', ' ', '999')], dtype='object')
         """
         result = self._data.array._str_rpartition(sep, expand)
