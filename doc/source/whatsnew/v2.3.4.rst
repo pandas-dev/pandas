@@ -10,6 +10,11 @@ including other versions of pandas.
 
 .. ---------------------------------------------------------------------------
 
+Deprecations
+~~~~~~~~~~~~
+
+- :meth:`Series.astype` and :meth:`DataFrame.astype` now raise a ``FutureWarning`` when converting data containing NaN values to ``bool`` dtype. In a future version, this will raise a ``ValueError``.
+
 Bug fixes
 ^^^^^^^^^
 - Bug in :meth:`DataFrame.__getitem__` returning modified columns when called with ``slice`` in Python 3.12 (:issue:`57500`)

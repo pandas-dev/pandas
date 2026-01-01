@@ -17,6 +17,7 @@ import numpy as np
 from pandas._libs import lib
 from pandas._libs.tslibs.timedeltas import array_to_timedelta64
 from pandas.errors import IntCastingNaNError
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_object_dtype,
@@ -31,6 +32,8 @@ from pandas.core.dtypes.dtypes import (
     NumpyEADtype,
     PeriodDtype,
 )
+
+from pandas.core.dtypes.missing import isna
 
 if TYPE_CHECKING:
     from pandas._typing import (
@@ -97,6 +100,18 @@ def _astype_nansafe(
         return lib.ensure_string_array(
             arr, skipna=skipna, convert_na_value=False
         ).reshape(shape)
+
+    elif dtype == np.dtype(np.bool_) and isna(arr).any():
+        warnings.warn(
+            "Converting a Series with NaN values to bool will raise a ValueError "
+            "in a future version. Remove NaN values before converting to bool.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        # Uncomment in future version (3.0+):
+        # raise ValueError(
+        #     "Cannot convert non-finite values (NA or NaN) to bool."
+        # )
 
     elif np.issubdtype(arr.dtype, np.floating) and dtype.kind in "iu":
         return _astype_float_to_int_nansafe(arr, dtype, copy)
