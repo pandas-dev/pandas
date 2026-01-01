@@ -323,7 +323,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                     dtype='str')
         """
         arr = self._data.strftime(date_format)
-        return Index(arr, name=self.name, dtype=arr.dtype)
+        return Index(arr, name=self.name, dtype=arr.dtype, copy=False)
 
     def tz_convert(self, tz) -> Self:
         """
@@ -365,13 +365,13 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         DatetimeIndex(['2014-08-01 09:00:00+02:00',
                        '2014-08-01 10:00:00+02:00',
                        '2014-08-01 11:00:00+02:00'],
-                      dtype='datetime64[ns, Europe/Berlin]', freq='h')
+                      dtype='datetime64[us, Europe/Berlin]', freq='h')
 
         >>> dti.tz_convert("US/Central")
         DatetimeIndex(['2014-08-01 02:00:00-05:00',
                        '2014-08-01 03:00:00-05:00',
                        '2014-08-01 04:00:00-05:00'],
-                      dtype='datetime64[ns, US/Central]', freq='h')
+                      dtype='datetime64[us, US/Central]', freq='h')
 
         With the ``tz=None``, we can remove the timezone (after converting
         to UTC if necessary):
@@ -384,13 +384,13 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         DatetimeIndex(['2014-08-01 09:00:00+02:00',
                        '2014-08-01 10:00:00+02:00',
                        '2014-08-01 11:00:00+02:00'],
-                        dtype='datetime64[ns, Europe/Berlin]', freq='h')
+                        dtype='datetime64[us, Europe/Berlin]', freq='h')
 
         >>> dti.tz_convert(None)
         DatetimeIndex(['2014-08-01 07:00:00',
                        '2014-08-01 08:00:00',
                        '2014-08-01 09:00:00'],
-                        dtype='datetime64[ns]', freq='h')
+                        dtype='datetime64[us]', freq='h')
         """  # noqa: E501
         arr = self._data.tz_convert(tz)
         return type(self)._simple_new(arr, name=self.name, refs=self._references)
@@ -468,7 +468,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         >>> tz_naive
         DatetimeIndex(['2018-03-01 09:00:00', '2018-03-02 09:00:00',
                        '2018-03-03 09:00:00'],
-                      dtype='datetime64[ns]', freq='D')
+                      dtype='datetime64[us]', freq='D')
 
         Localize DatetimeIndex in US/Eastern time zone:
 
@@ -477,7 +477,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         DatetimeIndex(['2018-03-01 09:00:00-05:00',
                        '2018-03-02 09:00:00-05:00',
                        '2018-03-03 09:00:00-05:00'],
-                      dtype='datetime64[ns, US/Eastern]', freq=None)
+                      dtype='datetime64[us, US/Eastern]', freq=None)
 
         With the ``tz=None``, we can remove the time zone information
         while keeping the local time (not converted to UTC):
@@ -485,7 +485,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         >>> tz_aware.tz_localize(None)
         DatetimeIndex(['2018-03-01 09:00:00', '2018-03-02 09:00:00',
                        '2018-03-03 09:00:00'],
-                      dtype='datetime64[ns]', freq=None)
+                      dtype='datetime64[us]', freq=None)
 
         Be careful with DST changes. When there is sequential data, pandas can
         infer the DST time:
@@ -505,7 +505,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         4   2018-10-28 02:30:00+01:00
         5   2018-10-28 03:00:00+01:00
         6   2018-10-28 03:30:00+01:00
-        dtype: datetime64[s, CET]
+        dtype: datetime64[us, CET]
 
         In some cases, inferring the DST is impossible. In such cases, you can
         pass an ndarray to the ambiguous parameter to set the DST explicitly
@@ -517,7 +517,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         0   2018-10-28 01:20:00+02:00
         1   2018-10-28 02:36:00+02:00
         2   2018-10-28 03:46:00+01:00
-        dtype: datetime64[s, CET]
+        dtype: datetime64[us, CET]
 
         If the DST transition causes nonexistent times, you can shift these
         dates forward or backwards with a timedelta object or `'shift_forward'`

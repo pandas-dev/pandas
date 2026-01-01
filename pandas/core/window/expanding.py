@@ -900,9 +900,9 @@ class Expanding(RollingAndExpandingMixin):
 
         >>> s.expanding().sem()
         0         NaN
-        1    0.707107
-        2    0.707107
-        3    0.745356
+        1    0.500000
+        2    0.577350
+        3    0.645497
         dtype: float64
         """
         return super().sem(ddof=ddof, numeric_only=numeric_only)

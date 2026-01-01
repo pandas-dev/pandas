@@ -884,7 +884,7 @@ class ExcelFormatter:
         Parameters
         ----------
         index : int
-            The numeric column index to convert to a Excel column name.
+            The numeric column index to convert to an Excel column name.
 
         Returns
         -------

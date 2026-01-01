@@ -636,7 +636,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         return self._grouper.indices
 
     @final
-    def _get_indices(self, names):
+    def _get_index(self, name):
         """
         Safe get multiple indices, translate keys for
         datelike to underlying repr.
@@ -652,23 +652,24 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
             else:
                 return lambda key: key
 
-        if len(names) == 0:
-            return []
+        if isna(name):
+            return self.indices.get(np.nan, [])
+        if isinstance(name, tuple):
+            name = tuple(np.nan if isna(comp) else comp for comp in name)
 
         if len(self.indices) > 0:
             index_sample = next(iter(self.indices))
         else:
             index_sample = None  # Dummy sample
 
-        name_sample = names[0]
         if isinstance(index_sample, tuple):
-            if not isinstance(name_sample, tuple):
+            if not isinstance(name, tuple):
                 msg = "must supply a tuple to get_group with multiple grouping keys"
                 raise ValueError(msg)
-            if not len(name_sample) == len(index_sample):
+            if not len(name) == len(index_sample):
                 try:
                     # If the original grouper was a tuple
-                    return [self.indices[name] for name in names]
+                    return self.indices[name]
                 except KeyError as err:
                     # turns out it wasn't a tuple
                     msg = (
@@ -678,23 +679,12 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
                     raise ValueError(msg) from err
 
             converters = (get_converter(s) for s in index_sample)
-            names = (
-                tuple(f(n) for f, n in zip(converters, name, strict=True))
-                for name in names
-            )
-
+            name = tuple(f(n) for f, n in zip(converters, name, strict=True))
         else:
             converter = get_converter(index_sample)
-            names = (converter(name) for name in names)
+            name = converter(name)
 
-        return [self.indices.get(name, []) for name in names]
-
-    @final
-    def _get_index(self, name):
-        """
-        Safe get index, translate keys for datelike to underlying repr.
-        """
-        return self._get_indices([name])[0]
+        return self.indices.get(name, [])
 
     @final
     @cache_readonly
@@ -1250,7 +1240,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             return result
 
         # row order is scrambled => sort the rows by position in original index
-        original_positions = Index(self._grouper.result_ilocs)
+        original_positions = Index(self._grouper.result_ilocs, copy=False)
         result = result.set_axis(original_positions, axis=0)
         result = result.sort_index(axis=0)
         if self._grouper.has_dropped_na:
@@ -1298,7 +1288,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 if qs is None:
                     result.insert(0, name, lev)
                 else:
-                    result.insert(0, name, Index(np.repeat(lev, len(qs))))
+                    result.insert(0, name, Index(np.repeat(lev, len(qs)), copy=False))
 
         return result
 
@@ -4392,7 +4382,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 # error: No overload variant of "where" matches argument types
                 #        "Any", "NAType", "Any"
                 values = np.where(nulls, NA, grouper)  # type: ignore[call-overload]
-                grouper = Index(values, dtype="Int64")
+                grouper = Index(values, dtype="Int64", copy=False)
 
         grb = dropped.groupby(grouper, as_index=self.as_index, sort=self.sort)
         return grb.nth(n)
@@ -5806,7 +5796,7 @@ def _insert_quantile_level(idx: Index, qs: npt.NDArray[np.float64]) -> MultiInde
     MultiIndex
     """
     nqs = len(qs)
-    lev_codes, lev = Index(qs).factorize()
+    lev_codes, lev = Index(qs, copy=False).factorize()
     lev_codes = coerce_indexer_dtype(lev_codes, lev)
 
     if idx._is_multi:

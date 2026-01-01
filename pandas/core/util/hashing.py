@@ -324,7 +324,9 @@ def _hash_ndarray(
             )
 
             codes, categories = factorize(vals, sort=False)
-            tdtype = CategoricalDtype(categories=Index(categories), ordered=False)
+            tdtype = CategoricalDtype(
+                categories=Index(categories, copy=False), ordered=False
+            )
             cat = Categorical._simple_new(codes, tdtype)
             return cat._hash_pandas_object(
                 encoding=encoding, hash_key=hash_key, categorize=False

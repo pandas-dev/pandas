@@ -300,6 +300,7 @@ def _new_Index(cls, d):
     """
     # required for backward compat, because PI can't be instantiated with
     # ordinals through __new__ GH #13277
+    d["copy"] = False
     if issubclass(cls, ABCPeriodIndex):
         from pandas.core.indexes.period import _new_PeriodIndex
 
@@ -692,7 +693,7 @@ class Index(IndexOpsMixin, PandasObject):
             # "ndarray[Any, Any]"
             values = lib.maybe_convert_objects(result._values)  # type: ignore[arg-type]
             if values.dtype.kind in "iufb":
-                return Index(values, name=result.name)
+                return Index(values, name=result.name, copy=False)
 
         return result
 
@@ -962,10 +963,10 @@ class Index(IndexOpsMixin, PandasObject):
             return tuple(self.__array_wrap__(x) for x in result)
         elif method == "reduce":
             result = lib.item_from_zerodim(result)
-            return result
+            return maybe_unbox_numpy_scalar(result)
         elif is_scalar(result):
             # e.g. matmul
-            return result
+            return maybe_unbox_numpy_scalar(result)
 
         if result.dtype == np.float16:
             result = result.astype(np.float32)
@@ -1027,7 +1028,7 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         >>> s = pd.Series([1, 2, 3], index=["a", "b", "c"])
         >>> s.index.ravel()
-        Index(['a', 'b', 'c'], dtype='object')
+        Index(['a', 'b', 'c'], dtype='str')
         """
         return self[:]
 
@@ -1357,11 +1358,11 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         >>> idx = pd.Index(["a", "b", "c"])
         >>> idx
-        Index(['a', 'b', 'c'], dtype='object')
+        Index(['a', 'b', 'c'], dtype='str')
         >>> idx.repeat(2)
-        Index(['a', 'a', 'b', 'b', 'c', 'c'], dtype='object')
+        Index(['a', 'a', 'b', 'b', 'c', 'c'], dtype='str')
         >>> idx.repeat([1, 2, 3])
-        Index(['a', 'b', 'b', 'c', 'c', 'c'], dtype='object')
+        Index(['a', 'b', 'b', 'c', 'c', 'c'], dtype='str')
         """
         repeats = ensure_platform_int(repeats)
         nv.validate_repeat((), {"axis": axis})
@@ -1682,7 +1683,7 @@ class Index(IndexOpsMixin, PandasObject):
         Ant      Ant
         Bear    Bear
         Cow      Cow
-        Name: animal, dtype: object
+        Name: animal, dtype: str
 
         To enforce a new index, specify new labels to ``index``:
 
@@ -1690,7 +1691,7 @@ class Index(IndexOpsMixin, PandasObject):
         0     Ant
         1    Bear
         2     Cow
-        Name: animal, dtype: object
+        Name: animal, dtype: str
 
         To override the name of the resulting column, specify ``name``:
 
@@ -1699,7 +1700,7 @@ class Index(IndexOpsMixin, PandasObject):
         Ant      Ant
         Bear    Bear
         Cow      Cow
-        Name: zoo, dtype: object
+        Name: zoo, dtype: str
         """
         from pandas import Series
 
@@ -2088,7 +2089,7 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         >>> idx = pd.Index(["A", "C", "A", "B"], name="score")
         >>> idx.rename("grade")
-        Index(['A', 'C', 'A', 'B'], dtype='object', name='grade')
+        Index(['A', 'C', 'A', 'B'], dtype='str', name='grade')
 
         >>> idx = pd.MultiIndex.from_product(
         ...     [["python", "cobra"], [2018, 2019]], names=["kind", "year"]
@@ -2230,12 +2231,12 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         >>> idx = pd.Index(list("abc"))
         >>> idx
-        Index(['a', 'b', 'c'], dtype='object')
+        Index(['a', 'b', 'c'], dtype='str')
 
         Get level values by supplying `level` as integer:
 
         >>> idx.get_level_values(0)
-        Index(['a', 'b', 'c'], dtype='object')
+        Index(['a', 'b', 'c'], dtype='str')
         """
         self._validate_index_level(level)
         return self
@@ -2676,7 +2677,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         >>> idx = pd.Index(["black", "", "red", None])
         >>> idx
-        Index(['black', '', 'red', None], dtype='object')
+        Index(['black', '', 'red', nan], dtype='str')
         >>> idx.isna()
         array([False, False, False,  True])
 
@@ -2687,7 +2688,7 @@ class Index(IndexOpsMixin, PandasObject):
         ... )
         >>> idx
         DatetimeIndex(['1940-04-25', 'NaT', 'NaT', 'NaT'],
-                      dtype='datetime64[s]', freq=None)
+                      dtype='datetime64[us]', freq=None)
         >>> idx.isna()
         array([False,  True,  True,  True])
         """
@@ -2733,7 +2734,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         >>> idx = pd.Index(["black", "", "red", None])
         >>> idx
-        Index(['black', '', 'red', None], dtype='object')
+        Index(['black', '', 'red', nan], dtype='str')
         >>> idx.notna()
         array([ True,  True,  True, False])
         """
@@ -2775,7 +2776,7 @@ class Index(IndexOpsMixin, PandasObject):
             # no need to care metadata other than name
             # because it can't have freq if it has NaTs
             # _with_infer needed for test_fillna_categorical
-            return Index._with_infer(result, name=self.name)
+            return Index._with_infer(result, name=self.name, copy=False)
         return self._view()
 
     def dropna(self, how: AnyAll = "any") -> Self:
@@ -2886,18 +2887,18 @@ class Index(IndexOpsMixin, PandasObject):
         set of duplicated entries. The default value of keep is 'first'.
 
         >>> idx.drop_duplicates(keep="first")
-        Index(['llama', 'cow', 'beetle', 'hippo'], dtype='object')
+        Index(['llama', 'cow', 'beetle', 'hippo'], dtype='str')
 
         The value 'last' keeps the last occurrence for each set of duplicated
         entries.
 
         >>> idx.drop_duplicates(keep="last")
-        Index(['cow', 'beetle', 'llama', 'hippo'], dtype='object')
+        Index(['cow', 'beetle', 'llama', 'hippo'], dtype='str')
 
         The value ``False`` discards all sets of duplicated entries.
 
         >>> idx.drop_duplicates(keep=False)
-        Index(['cow', 'beetle', 'hippo'], dtype='object')
+        Index(['cow', 'beetle', 'hippo'], dtype='str')
         """
         if self.is_unique:
             return self._view()
@@ -3910,8 +3911,8 @@ class Index(IndexOpsMixin, PandasObject):
             if not (self.is_monotonic_increasing or self.is_monotonic_decreasing):
                 raise ValueError("index must be monotonic increasing or decreasing")
             encoded = self.append(target)._engine.values  # type: ignore[union-attr]
-            self_encoded = Index(encoded[: len(self)])
-            target_encoded = Index(encoded[len(self) :])
+            self_encoded = Index(encoded[: len(self)], copy=False)
+            target_encoded = Index(encoded[len(self) :], copy=False)
             return self_encoded._get_fill_indexer(
                 target_encoded, method, limit, tolerance
             )
@@ -4208,9 +4209,9 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         >>> idx = pd.Index(["car", "bike", "train", "tractor"])
         >>> idx
-        Index(['car', 'bike', 'train', 'tractor'], dtype='object')
+        Index(['car', 'bike', 'train', 'tractor'], dtype='str')
         >>> idx.reindex(["car", "bike"])
-        (Index(['car', 'bike'], dtype='object'), array([0, 1]))
+        (Index(['car', 'bike'], dtype='str'), array([0, 1]))
         """
         # GH6552: preserve names when reindexing to non-named target
         # (i.e. neither Index nor Series).
@@ -4338,7 +4339,7 @@ class Index(IndexOpsMixin, PandasObject):
                 new_indexer[~check] = -1
 
         if not isinstance(self, ABCMultiIndex):
-            new_index = Index(new_labels, name=self.name)
+            new_index = Index(new_labels, name=self.name, copy=False)
         else:
             new_index = type(self).from_tuples(new_labels, names=self.names)
         return new_index, indexer, new_indexer
@@ -4487,7 +4488,7 @@ class Index(IndexOpsMixin, PandasObject):
             and not self.categories.equals(other.categories)
         ):
             # dtypes are "equal" but categories are in different order
-            other = Index(other._values.reorder_categories(self.categories))
+            other = Index(other._values.reorder_categories(self.categories), copy=False)
 
         _validate_join_method(how)
 
@@ -4930,7 +4931,9 @@ class Index(IndexOpsMixin, PandasObject):
         elif ridx is None:
             join_index = other
         else:
-            join_index = self._constructor._with_infer(joined, dtype=self.dtype)
+            join_index = self._constructor._with_infer(
+                joined, dtype=self.dtype, copy=False
+            )
 
         names = other.names if how == "right" else self.names
         if join_index.names != names:
@@ -5169,9 +5172,9 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         >>> idx = pd.Index(["car", "bike", "train", "tractor"])
         >>> idx
-        Index(['car', 'bike', 'train', 'tractor'], dtype='object')
+        Index(['car', 'bike', 'train', 'tractor'], dtype='str')
         >>> idx.where(idx.isin(["car", "train"]), "other")
-        Index(['car', 'other', 'train', 'other'], dtype='object')
+        Index(['car', 'other', 'train', 'other'], dtype='str')
         """
         if isinstance(self, ABCMultiIndex):
             raise NotImplementedError(
@@ -5528,7 +5531,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         >>> idx2 = pd.Index(["1", "2", "3"])
         >>> idx2
-        Index(['1', '2', '3'], dtype='object')
+        Index(['1', '2', '3'], dtype='str')
 
         >>> idx1.equals(idx2)
         False
@@ -5935,14 +5938,14 @@ class Index(IndexOpsMixin, PandasObject):
         >>> month_starts
         DatetimeIndex(['2011-01-01', '2011-02-01', '2011-03-01', '2011-04-01',
                        '2011-05-01'],
-                      dtype='datetime64[ns]', freq='MS')
+                      dtype='datetime64[us]', freq='MS')
 
         Shift the index by 10 days.
 
         >>> month_starts.shift(10, freq="D")
         DatetimeIndex(['2011-01-11', '2011-02-11', '2011-03-11', '2011-04-11',
                        '2011-05-11'],
-                      dtype='datetime64[ns]', freq=None)
+                      dtype='datetime64[us]', freq=None)
 
         The default value of `freq` is the `freq` attribute of the index,
         which is 'MS' (month start) in this example.
@@ -5950,7 +5953,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> month_starts.shift(10)
         DatetimeIndex(['2011-11-01', '2011-12-01', '2012-01-01', '2012-02-01',
                        '2012-03-01'],
-                      dtype='datetime64[ns]', freq='MS')
+                      dtype='datetime64[us]', freq='MS')
         """
         raise NotImplementedError(
             f"This method is only implemented for DatetimeIndex, PeriodIndex and "
@@ -5983,14 +5986,14 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         >>> idx = pd.Index(["b", "a", "d", "c"])
         >>> idx
-        Index(['b', 'a', 'd', 'c'], dtype='object')
+        Index(['b', 'a', 'd', 'c'], dtype='str')
 
         >>> order = idx.argsort()
         >>> order
         array([1, 0, 3, 2])
 
         >>> idx[order]
-        Index(['a', 'b', 'c', 'd'], dtype='object')
+        Index(['a', 'b', 'c', 'd'], dtype='str')
         """
         # This works for either ndarray or EA, is overridden
         #  by RangeIndex, MultIIndex
@@ -6368,7 +6371,7 @@ class Index(IndexOpsMixin, PandasObject):
                 other = type(self).from_tuples(other)  # type: ignore[attr-defined]
             except (TypeError, ValueError):
                 # let's instead try with a straight Index
-                self = Index(self._values)
+                self = Index(self._values, copy=False)
 
         if not is_object_dtype(self.dtype) and is_object_dtype(other.dtype):
             # Reverse op so we dont need to re-implement on the subclasses
@@ -6513,17 +6516,17 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         >>> idx = pd.Index([1, 2, 3])
         >>> idx.map({1: "a", 2: "b", 3: "c"})
-        Index(['a', 'b', 'c'], dtype='object')
+        Index(['a', 'b', 'c'], dtype='str')
 
         Using `map` with a function:
 
         >>> idx = pd.Index([1, 2, 3])
         >>> idx.map("I am a {}".format)
-        Index(['I am a 1', 'I am a 2', 'I am a 3'], dtype='object')
+        Index(['I am a 1', 'I am a 2', 'I am a 3'], dtype='str')
 
         >>> idx = pd.Index(["a", "b", "c"])
         >>> idx.map(lambda x: x.upper())
-        Index(['A', 'B', 'C'], dtype='object')
+        Index(['A', 'B', 'C'], dtype='str')
         """
         from pandas.core.indexes.multi import MultiIndex
 
@@ -6814,7 +6817,7 @@ class Index(IndexOpsMixin, PandasObject):
             pos = self[::-1].searchsorted(
                 label, side="right" if side == "left" else "left"
             )
-            return len(self) - pos
+            return maybe_unbox_numpy_scalar(len(self) - pos)
 
         raise ValueError("index must be monotonic increasing or decreasing")
 
@@ -7004,6 +7007,8 @@ class Index(IndexOpsMixin, PandasObject):
             if start_slice == -1:
                 start_slice -= len(self)
 
+        start_slice = maybe_unbox_numpy_scalar(start_slice)
+        end_slice = maybe_unbox_numpy_scalar(end_slice)
         return start_slice, end_slice
 
     def delete(
@@ -7124,7 +7129,7 @@ class Index(IndexOpsMixin, PandasObject):
             new_values[loc] = item
 
         # GH#51363 stopped doing dtype inference here
-        out = Index(new_values, dtype=new_values.dtype, name=self.name)
+        out = Index(new_values, dtype=new_values.dtype, name=self.name, copy=False)
         return out
 
     def drop(
@@ -7162,7 +7167,7 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         >>> idx = pd.Index(["a", "b", "c"])
         >>> idx.drop(["a"])
-        Index(['b', 'c'], dtype='object')
+        Index(['b', 'c'], dtype='str')
         """
         if not isinstance(labels, Index):
             # avoid materializing e.g. RangeIndex
@@ -7200,7 +7205,7 @@ class Index(IndexOpsMixin, PandasObject):
         Examples
         --------
         >>> pd.Index(["a", 1]).infer_objects()
-        Index(['a', '1'], dtype='object')
+        Index(['a', 1], dtype='object')
         >>> pd.Index([1, 2], dtype="object").infer_objects()
         Index([1, 2], dtype='int64')
         """
@@ -7220,7 +7225,7 @@ class Index(IndexOpsMixin, PandasObject):
         )
         if copy and res_values is values:
             return self.copy()
-        result = Index(res_values, name=self.name)
+        result = Index(res_values, name=self.name, copy=False)
         if not copy and res_values is values and self._references is not None:
             result._references = self._references
             result._references.add_index_reference(result)
@@ -7329,10 +7334,10 @@ class Index(IndexOpsMixin, PandasObject):
     def _construct_result(self, result, name, other):
         if isinstance(result, tuple):
             return (
-                Index(result[0], name=name, dtype=result[0].dtype),
-                Index(result[1], name=name, dtype=result[1].dtype),
+                Index(result[0], name=name, dtype=result[0].dtype, copy=False),
+                Index(result[1], name=name, dtype=result[1].dtype, copy=False),
             )
-        return Index(result, name=name, dtype=result.dtype)
+        return Index(result, name=name, dtype=result.dtype, copy=False)
 
     def _arith_method(self, other, op):
         if (
@@ -7350,7 +7355,7 @@ class Index(IndexOpsMixin, PandasObject):
     @final
     def _unary_method(self, op):
         result = op(self._values)
-        return Index(result, name=self.name)
+        return Index(result, name=self.name, copy=False)
 
     def __abs__(self) -> Index:
         return self._unary_method(operator.abs)
@@ -7411,7 +7416,7 @@ class Index(IndexOpsMixin, PandasObject):
             # i.e. EA, call _reduce instead of "any" to get TypeError instead
             #  of AttributeError
             return vals._reduce("any")
-        return np.any(vals)
+        return maybe_unbox_numpy_scalar(np.any(vals))
 
     def all(self, *args, **kwargs):
         """
@@ -7459,7 +7464,7 @@ class Index(IndexOpsMixin, PandasObject):
             # i.e. EA, call _reduce instead of "all" to get TypeError instead
             #  of AttributeError
             return vals._reduce("all")
-        return np.all(vals)
+        return maybe_unbox_numpy_scalar(np.all(vals))
 
     @final
     def _maybe_disable_logical_methods(self, opname: str_t) -> None:
