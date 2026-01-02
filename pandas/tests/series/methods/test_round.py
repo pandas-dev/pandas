@@ -95,6 +95,7 @@ class TestSeriesRound:
             None,
             "float64",
             "int64",
+            "object",
         ],
     )
     def test_round_empty_series(self, dtype):
