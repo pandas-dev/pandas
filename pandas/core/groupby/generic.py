@@ -1514,8 +1514,22 @@ class SeriesGroupBy(GroupBy[Series]):
         )
 
     @property
-    @doc(Series.plot.__doc__)
     def plot(self) -> GroupByPlot:
+        """
+        Make plots of SeriesGroupBy.
+
+        Uses the backend specified by the option ``plotting.backend``.
+        By default, matplotlib is used.
+
+        Returns
+        -------
+        GroupByPlot
+            A plotting object that can be used to create plots for each group.
+
+        See Also
+        --------
+        Series.plot : Make plots of Series.
+        """
         result = GroupByPlot(self)
         return result
 
@@ -3528,8 +3542,22 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         )
 
     @property
-    @doc(DataFrame.plot.__doc__)
     def plot(self) -> GroupByPlot:
+        """
+        Make plots of DataFrameGroupBy.
+
+        Uses the backend specified by the option ``plotting.backend``.
+        By default, matplotlib is used.
+
+        Returns
+        -------
+        GroupByPlot
+            A plotting object that can be used to create plots for each group.
+
+        See Also
+        --------
+        DataFrame.plot : Make plots of DataFrame.
+        """
         result = GroupByPlot(self)
         return result
 
