@@ -199,6 +199,7 @@ class TestPDApi(Base):
         "_pandas_parser_CAPI",
         "_testing",
         "_typing",
+        "_diagnostics",
     ]
     if not pd._built_with_meson:
         private_modules.append("_version")
