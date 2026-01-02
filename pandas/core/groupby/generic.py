@@ -1529,6 +1529,12 @@ class SeriesGroupBy(GroupBy[Series]):
         See Also
         --------
         Series.plot : Make plots of Series.
+
+        Examples
+        --------
+        >>> ser = pd.Series([1, 2, 3, 4, 5], index=['a', 'a', 'b', 'b', 'c'])
+        >>> g = ser.groupby(level=0)
+        >>> g.plot()  # doctest: +SKIP
         """
         result = GroupByPlot(self)
         return result
@@ -3557,6 +3563,13 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         See Also
         --------
         DataFrame.plot : Make plots of DataFrame.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'A': [1, 2, 3, 4], 'B': [5, 6, 7, 8]},
+        ...                   index=['a', 'a', 'b', 'b'])
+        >>> g = df.groupby(level=0)
+        >>> g.plot()  # doctest: +SKIP
         """
         result = GroupByPlot(self)
         return result
