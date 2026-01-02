@@ -324,7 +324,7 @@ def merge(
     Traceback (most recent call last):
     ...
     ValueError: columns overlap but no suffix specified:
-        Index(['value'], dtype='str')
+        Index(['value'], dtype='object')
 
     >>> df1 = pd.DataFrame({"a": ["foo", "bar"], "b": [1, 2]})
     >>> df2 = pd.DataFrame({"a": ["foo", "baz"], "c": [3, 4]})
