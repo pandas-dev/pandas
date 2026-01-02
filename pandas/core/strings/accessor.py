@@ -1051,56 +1051,54 @@ class StringMethods(NoNewAttributesMixin):
 
         Examples
         --------
-        >>> s = pd.Series(
-        ...     ["Linda van der Berg", "George Pitt-Rivers"]
-        ... )  # doctest: +SKIP
-        >>> s  # doctest: +SKIP
+        >>> s = pd.Series(['Linda van der Berg', 'George Pitt-Rivers'])
+        >>> s
         0    Linda van der Berg
         1    George Pitt-Rivers
-        dtype: object
+        dtype: str
 
-        >>> s.str.partition()  # doctest: +SKIP
-               0  1             2
-        0  Linda     van der Berg
-        1  George     Pitt-Rivers
+        >>> s.str.partition()
+                0  1             2
+        0   Linda     van der Berg
+        1  George      Pitt-Rivers
 
         To partition by the last space instead of the first one:
 
-        >>> s.str.rpartition()  # doctest: +SKIP
+        >>> s.str.rpartition()
                        0  1            2
         0  Linda van der            Berg
         1         George     Pitt-Rivers
 
         To partition by something different than a space:
 
-        >>> s.str.partition("-")  # doctest: +SKIP
+        >>> s.str.partition('-')
                             0  1       2
         0  Linda van der Berg
         1         George Pitt  -  Rivers
 
         To return a Series containing tuples instead of a DataFrame:
 
-        >>> s.str.partition("-", expand=False)  # doctest: +SKIP
+        >>> s.str.partition('-', expand=False)
         0    (Linda van der Berg, , )
         1    (George Pitt, -, Rivers)
         dtype: object
 
         Also available on indices:
 
-        >>> idx = pd.Index(["X 123", "Y 999"])  # doctest: +SKIP
-        >>> idx  # doctest: +SKIP
-        Index(['X 123', 'Y 999'], dtype='object')
+        >>> idx = pd.Index(['X 123', 'Y 999'])
+        >>> idx
+        Index(['X 123', 'Y 999'], dtype='str')
 
         Which will create a MultiIndex:
 
-        >>> idx.str.partition()  # doctest: +SKIP
+        >>> idx.str.partition()
         MultiIndex([('X', ' ', '123'),
                     ('Y', ' ', '999')],
                    )
 
         Or an index with tuples with ``expand=False``:
 
-        >>> idx.str.partition(expand=False)  # doctest: +SKIP
+        >>> idx.str.partition(expand=False)
         Index([('X', ' ', '123'), ('Y', ' ', '999')], dtype='object')
         """
         result = self._data.array._str_partition(sep, expand)
