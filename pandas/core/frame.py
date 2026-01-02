@@ -1871,9 +1871,9 @@ class DataFrame(NDFrame, OpsMixin):
 
         Examples
         --------
-        >>> import pyarrow as pa  # doctest: +SKIP
-        >>> table = pa.table({"a": [1, 2, 3], "b": ["x", "y", "z"]})  # doctest: +SKIP
-        >>> pd.DataFrame.from_arrow(table)  # doctest: +SKIP
+        >>> import pyarrow as pa
+        >>> table = pa.table({"a": [1, 2, 3], "b": ["x", "y", "z"]})
+        >>> pd.DataFrame.from_arrow(table)
            a  b
         0  1  x
         1  2  y
