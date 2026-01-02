@@ -1864,6 +1864,20 @@ class DataFrame(NDFrame, OpsMixin):
         Returns
         -------
         DataFrame
+
+        See Also
+        --------
+        Series.from_arrow : Construct a Series from an Arrow object.
+
+        Examples
+        --------
+        >>> import pyarrow as pa  # doctest: +SKIP
+        >>> table = pa.table({"a": [1, 2, 3], "b": ["x", "y", "z"]})  # doctest: +SKIP
+        >>> pd.DataFrame.from_arrow(table)  # doctest: +SKIP
+           a  b
+        0  1  x
+        1  2  y
+        2  3  z
         """
         pa = import_optional_dependency("pyarrow", min_version="14.0.0")
         if not isinstance(data, pa.Table):
