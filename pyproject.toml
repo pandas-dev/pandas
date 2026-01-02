@@ -444,20 +444,6 @@ exclude = [
 # For contributors working on this issue:
 # After adding strict={True,False} to zip() calls in a file,
 # remove its line from this section
-"asv_bench/benchmarks/ctors.py" = ["B905"]
-"asv_bench/benchmarks/series_methods.py" = ["B905"]
-"pandas/_config/config.py" = ["B905"]
-"pandas/conftest.py" = ["B905"]
-"pandas/core/array_algos/quantile.py" = ["B905"]
-"pandas/core/computation/align.py" = ["B905"]
-"pandas/core/computation/expr.py" = ["B905"]
-"pandas/core/computation/ops.py" = ["B905"]
-"pandas/core/groupby/generic.py" = ["B905"]
-"pandas/core/groupby/groupby.py" = ["B905"]
-"pandas/core/groupby/grouper.py" = ["B905"]
-"pandas/core/groupby/ops.py" = ["B905"]
-"pandas/core/methods/to_dict.py" = ["B905"]
-"pandas/core/reshape/reshape.py" = ["B905"]
 "pandas/tests/frame/conftest.py" = ["B905"]
 "pandas/tests/frame/constructors/test_from_dict.py" = ["B905"]
 "pandas/tests/frame/indexing/test_delitem.py" = ["B905"]
