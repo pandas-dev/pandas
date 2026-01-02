@@ -760,7 +760,7 @@ class IndexOpsMixin(OpsMixin):
 
         Parameters
         ----------
-        axis : {None}
+        axis : None
             Unused. Parameter needed for compatibility with DataFrame.
         skipna : bool, default True
             Exclude NA/null values. If the entire Series is NA, or if ``skipna=False``
@@ -833,7 +833,7 @@ class IndexOpsMixin(OpsMixin):
 
         Parameters
         ----------
-        axis : {None}
+        axis : None
             Unused. Parameter needed for compatibility with DataFrame.
         skipna : bool, default True
             Exclude NA/null values. If the entire Series is NA, or if ``skipna=False``
