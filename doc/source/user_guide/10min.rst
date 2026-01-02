@@ -463,6 +463,10 @@ code snippet below. See more at :ref:`Vectorized String Methods
 
 Merge
 -----
+pandas provides various facilities for combining :class:`Series` and :class:`DataFrame` objects. This includes set-logic for combining indexes and relational algebra functionality for SQL-style join or merge operations.
+
+   * **Concatenation**: Stacks objects along a particular axis using :func:`concat`.
+   * **Database-style joining**: Merges objects based on common keys using :func:`merge`.
 
 Concat
 ~~~~~~
@@ -515,6 +519,14 @@ Join
    left
    right
    pd.merge(left, right, on="key")
+
+:func:`merge` with a left join to preserve all keys from the left :class:`DataFrame`, even if they don't have a match in the right :class:`DataFrame`:
+
+.. ipython:: python
+
+   left = pd.DataFrame({"name": ["Alice", "Bob", "Charlie"], "id": [1, 2, 3]})
+   right = pd.DataFrame({"id": [1, 2, 4], "score": [95, 88, 70]})
+   pd.merge(left, right, on="id", how="left")
 
 Grouping
 --------
