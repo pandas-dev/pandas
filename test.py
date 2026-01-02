@@ -26,12 +26,12 @@ def test_basic_ops():
 
     for case_name, data in test_cases.items():
         a, b = data["a"], data["b"]
-        print(f"\n======= {case_name} (a={a}, b={b}) =======")
+        print(f"\n  ======= {case_name} (a={a}, b={b}) =======")
         print(
-            f"{'Op':<6} | {'Float64 (µs)':<14} | "
+            f"    {'Op':<6} | {'Float64 (µs)':<14} | "
             f"{'DoubleDouble (µs)':<18} | {'DD/F64':>6}"
         )
-        print("-" * 55)
+        print("  " + "-" * 55)
 
         for op_name, op in ops.items():
             f64_val = run_float64(op, a, b)
@@ -43,7 +43,7 @@ def test_basic_ops():
             dd_time = timeit.timeit(lambda: run_dd(op, a, b), number=1000) / 1000
 
             print(
-                f"{op_name:<6} | {f64_time * 1e6:<14.3f} | "
+                f"    {op_name:<6} | {f64_time * 1e6:<14.3f} | "
                 f"{dd_time * 1e6:<18.3f} | {dd_time / f64_time:>5.1f}x"
             )
 
@@ -69,14 +69,18 @@ def test_precision():
 
     methods = {"Float64": float64_sum, "DoubleDouble": dd_sum}
 
-    print(f"Expected: {expected:.20f}")
+    print(f"\n  ======= Precision Test (large={large}, small={small}, n={n}) =======")
+    print(f"  Expected: {expected:.20f}")
+    print(f"{'  Method':<12} | {'Result':<24} | {'Error':<12} | {'Time (µs)':<10}")
+    print("  " + "-" * 65)
 
     for name, func in methods.items():
         result = func()
         elapsed = timeit.timeit(func, number=1000) / 1000
         error = abs(result - expected)
-        print(f"{name}: {result:.20f}")
-        print(f"    Error: {error:.6e} | Time: {elapsed * 1e6:.3f} µs")
+        print(
+            f"  {name:<12} | {result:<24.20f} |{error:<12.6e} | {elapsed * 1e6:<10.3f}"
+        )
 
 
 def test_catastrophic_collision():
@@ -97,10 +101,14 @@ def test_catastrophic_collision():
 
     result_f64 = f64_op()
     result_dd = dd_op()
-    DoubleDouble(a)
-    print("Catastrophic Collision ((1e17 + 1) - 1e17)")
-    print(f"Float64: {result_f64} ({time_f64 * 1e6:.3f} µs)")
-    print(f"DoubleDouble: {result_dd.collapse()} ({time_dd * 1e6:.3f} µs)")
+
+    print(f"  {'Method':<12} | {'Result':<12} |{'Time (µs)':<10}")
+    print("  " + "-" * 40)
+    print(f"  {'Float64':<12} | {result_f64:<12f} | {time_f64 * 1e6:<10.3f}")
+    print(
+        f"  {'DoubleDouble':<12} | {result_dd.collapse():<12.0f} | "
+        f"{time_dd * 1e6:<10.3f}"
+    )
 
 
 def test_welford():
@@ -141,7 +149,7 @@ def test_welford():
         var_x, var_y = f(s["m2_x"]) / count, f(s["m2_y"]) / count
         denom = f(s["m2_x"]) * f(s["m2_y"])
         corr = f(s["co_moment"]) / denom**0.5 if denom > 0 else 0.0
-        return {"var_x": var_x, "var_y": var_y, "corr": corr}
+        return {"corr": corr, "var_x": var_x, "var_y": var_y}
 
     methods = {
         "Float64": lambda xs, ys: welford(xs, ys, use_dd=False),
@@ -158,20 +166,30 @@ def test_welford():
             "corr": np.corrcoef(x_f128, y_f128)[0, 1],
         }
 
-        print(f"\n=== {case_name} ===")
+        print(f"\n  === {case_name} ===")
         for k, v in true.items():
-            print(f"True {k}: {v:.20f}")
+            print(f"  True {k}: {v:.20f}")
+
+        print(
+            f"\n  {'Method':<12} | {'Metric':<8} | {'Value':<24} | "
+            f"{'Error %':<12} | {'Time (µs)':<10}"
+        )
 
         for name, func in methods.items():
             results = func(data_x, data_y)
-            elapsed = timeit.timeit(lambda: func(data_x, data_y), number=100) / 100
-            print(f"{name}:")
-            for k, v in results.items():
+            elapsed = timeit.timeit(lambda f=func: f(data_x, data_y), number=100) / 100
+            for i, (k, v) in enumerate(results.items()):
                 pct_err = (
                     (np.float128(v) - true[k]) * 100 / true[k] if true[k] != 0 else 0
                 )
-                print(f"    {k}: {v:.20f} (err: {pct_err:.6f}%)")
-            print(f"    Time: {elapsed * 1e6:.3f} µs")
+                if i == 0:
+                    print("  " + "-" * 77)
+                    print(
+                        f"  {name:<12} | {k:<8} | {v:<24.20f} | "
+                        f"{pct_err:<12.6f} | {elapsed * 1e6:<10.3f}"
+                    )
+                else:
+                    print(f"  {'':<12} | {k:<8} | {v:<24.20f} | {pct_err:<12.6f} |")
 
 
 if __name__ == "__main__":
@@ -183,9 +201,9 @@ if __name__ == "__main__":
     }
 
     for name, func in tests.items():
-        print("=" * 40)
+        print("=" * 60)
         print(f"{name}:")
-        print("=" * 40)
+        print("=" * 60)
         func()
 
         print()
