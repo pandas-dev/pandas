@@ -1516,7 +1516,7 @@ class SeriesGroupBy(GroupBy[Series]):
     @property
     def plot(self) -> GroupByPlot:
         """
-        Make plots of SeriesGroupBy.
+        Make plots of groups from a Series.
 
         Uses the backend specified by the option ``plotting.backend``.
         By default, matplotlib is used.
@@ -3550,7 +3550,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     @property
     def plot(self) -> GroupByPlot:
         """
-        Make plots of DataFrameGroupBy.
+        Make plots of groups from a DataFrame.
 
         Uses the backend specified by the option ``plotting.backend``.
         By default, matplotlib is used.
