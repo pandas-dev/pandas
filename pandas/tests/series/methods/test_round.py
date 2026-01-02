@@ -56,8 +56,8 @@ class TestSeriesRound:
 
     @pytest.mark.parametrize("method", ["round", "floor", "ceil"])
     @pytest.mark.parametrize("freq", ["s", "5s", "min", "5min", "h", "5h"])
-    # GH14940, GH#56158
     def test_round_nat(self, method, freq, unit):
+        # GH14940, GH#56158
         ser = Series([pd.NaT], dtype=f"M8[{unit}]")
         expected = Series(pd.NaT, dtype=f"M8[{unit}]")
         round_method = getattr(ser.dt, method)
@@ -65,6 +65,7 @@ class TestSeriesRound:
         tm.assert_series_equal(result, expected)
 
     def test_round_ea_boolean(self):
+        # GH#55936
         ser = Series([True, False], dtype="boolean")
         expected = ser.copy()
         result = ser.round(2)
@@ -72,8 +73,6 @@ class TestSeriesRound:
         result.iloc[0] = False
         tm.assert_series_equal(ser, expected)
 
-
-class TestRound:
     @pytest.mark.parametrize(
         "data,decimals,expected_data",
         [
