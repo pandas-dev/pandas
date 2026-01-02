@@ -7,6 +7,10 @@ Plotting
 ========
 .. currentmodule:: pandas.plotting
 
+.. note::
+
+   For more information on plotting, see the :ref:`User Guide <visualization>`.
+
 The following functions are contained in the ``pandas.plotting`` module.
 
 .. autosummary::

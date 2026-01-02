@@ -9,6 +9,10 @@ Series
 
 Constructor
 -----------
+
+.. note::
+
+   For an introduction to Series, see the :ref:`User Guide <basics.series>`.
 .. autosummary::
    :toctree: api/
 

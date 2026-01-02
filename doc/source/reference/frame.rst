@@ -9,6 +9,10 @@ DataFrame
 
 Constructor
 ~~~~~~~~~~~
+
+.. note::
+
+   For an introduction to DataFrame, see the :ref:`User Guide <basics.dataframe>`.
 .. autosummary::
    :toctree: api/
 
