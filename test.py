@@ -193,12 +193,22 @@ def test_welford():
 
 
 if __name__ == "__main__":
+    # Put print statements into file -> 1
+    STDOUT2FILE = 0
+
     tests = {
         "Basic Ops (exclu div)": test_basic_ops,
         "Simple Precision Calculation": test_precision,
         "Catastriphic Collision": test_catastrophic_collision,
         "Welford Calculation": test_welford,
     }
+
+    if STDOUT2FILE:
+        import sys
+
+        orig_stdout = sys.stdout
+        f = open("test_out.md", "w+")
+        sys.stdout = f
 
     for name, func in tests.items():
         print("=" * 60)
@@ -207,3 +217,8 @@ if __name__ == "__main__":
         func()
 
         print()
+
+    if STDOUT2FILE:
+        sys.stdout = orig_stdout
+        f.close()
+        print('Output written to "test_out.md"')
