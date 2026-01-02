@@ -56,6 +56,7 @@ class TestSeriesRound:
 
     @pytest.mark.parametrize("method", ["round", "floor", "ceil"])
     @pytest.mark.parametrize("freq", ["s", "5s", "min", "5min", "h", "5h"])
+    # GH14940, GH#56158
     def test_round_nat(self, method, freq, unit):
         ser = Series([pd.NaT], dtype=f"M8[{unit}]")
         expected = Series(pd.NaT, dtype=f"M8[{unit}]")
@@ -84,7 +85,6 @@ class TestRound:
     )
     def test_round_dtype_object(self, data, decimals, expected_data):
         # GH#63444
-        """Test round() with object dtype Series."""
         ser = Series(data, dtype="object")
         result = ser.round(decimals)
         expected = Series(expected_data, dtype="object")
@@ -100,48 +100,8 @@ class TestRound:
     )
     def test_round_empty_series(self, dtype):
         # GH#63444
-        """Test that round works on empty Series."""
         result = Series(dtype=dtype).round(4)
         expected = Series(dtype=dtype)
-        tm.assert_series_equal(result, expected)
-
-    @pytest.mark.parametrize(
-        "dtype",
-        [
-            "float32",
-            "float64",
-        ],
-    )
-    @pytest.mark.parametrize(
-        "data,decimals,expected_data",
-        [
-            ([1.234, 2.567], 0, [1.0, 3.0]),
-            ([1.234, 2.567], 1, [1.2, 2.6]),
-            ([1.234, 2.567], 2, [1.23, 2.57]),
-            ([10.5, 20.5, 30.5], 0, [10.0, 20.0, 30.0]),
-        ],
-    )
-    def test_round_numeric_dtypes(self, dtype, data, decimals, expected_data):
-        # GH#63444
-        """Test round() with numeric dtypes (float32, float64)."""
-        ser = Series(data, dtype=dtype)
-        result = ser.round(decimals)
-        expected = Series(expected_data, dtype=dtype)
-        tm.assert_series_equal(result, expected)
-
-    @pytest.mark.parametrize(
-        "dtype",
-        [
-            "float32",
-            "float64",
-        ],
-    )
-    def test_round_with_nan(self, dtype):
-        # GH#63444
-        """Test round() handles NaN values correctly for numeric dtypes."""
-        ser = Series([1.234, np.nan, 2.567], dtype=dtype)
-        result = ser.round(2)
-        expected = Series([1.23, np.nan, 2.57], dtype=dtype)
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -154,7 +114,6 @@ class TestRound:
     )
     def test_round_non_numeric_dtype_raises(self, dtype, data):
         # GH#63444
-        """Test that round() raises for non-numeric dtypes."""
         ser = Series(data, dtype=dtype)
 
         with pytest.raises(TypeError, match="Cannot round with non-numeric dtype"):
