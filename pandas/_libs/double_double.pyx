@@ -19,12 +19,15 @@ However, that requires |a| >= |b| so we'll keep it
 concise for now.
 """
 
+from libc.math cimport fma
+
+
 cdef inline void two_sum(
     double a,
     double b,
     double* out_sum,
     double* out_err,
-) noexcept nogil:
+) noexcept:
     cdef:
         double s = a + b
         double v = s - a
@@ -32,13 +35,23 @@ cdef inline void two_sum(
     out_sum[0] = s
     out_err[0] = (a - (s - v)) + (b - v)
 
+cdef inline void two_prod(
+    double a,
+    double b,
+    double* out_prod,
+    double* out_err,
+) noexcept:
+
+    out_prod[0] = a * b
+    out_err[0] = fma(a, b, -out_prod[0])
+
 # ---------------------------------------------------------------------------
 # DoubleDouble Class
 # ---------------------------------------------------------------------------
 
 # Theoretically we could support float128 on all platforms with this
 # I do not wish to open that pandora's box just yet
-# !Therefore, all DD x DD ops are NOT IMPLEMENTED
+# !Therefore, a decision has to be made here before merge
 # ?Actually, could cause awkward usage, tbd
 cdef class DoubleDouble:
     """
@@ -87,18 +100,13 @@ cdef class DoubleDouble:
             double a_hi, a_lo, b_hi, b_lo
             double s, e, v, res_hi, res_lo
 
+        a_hi = self.hi
+        a_lo = self.lo
         if isinstance(other, DoubleDouble):
-            # !Currently not allowed due to logistical complications
-            # return NotImplemented
-
-            # TODO JUST FOR TESTING
-            a_hi = self.hi
-            a_lo = self.lo
+            # !I dont know if we should allow this due to logistical complications
             b_hi = (<DoubleDouble>other).hi
             b_lo = (<DoubleDouble>other).lo
         elif isinstance(other, (int, float)):
-            a_hi = self.hi
-            a_lo = self.lo
             b_hi = <double>other
             b_lo = 0.0
         else:
@@ -120,18 +128,13 @@ cdef class DoubleDouble:
             double a_hi, a_lo, b_hi, b_lo
             double s, e, v, res_hi, res_lo
 
+        a_hi = self.hi
+        a_lo = self.lo
         if isinstance(other, DoubleDouble):
-            # !Currently not allowed due to logistical complications
-            # return NotImplemented
-
-            # TODO JUST FOR TESTING
-            a_hi = self.hi
-            a_lo = self.lo
+            # !I dont know if we should allow this due to logistical complications
             b_hi = -(<DoubleDouble>other).hi
             b_lo = -(<DoubleDouble>other).lo
         elif isinstance(other, (int, float)):
-            a_hi = self.hi
-            a_lo = self.lo
             b_hi = -<double>other
             b_lo = 0.0
         else:
@@ -147,3 +150,29 @@ cdef class DoubleDouble:
 
     def __rsub__(self, other):
         return self.__sub__(other)
+
+    def __mul__(self, other):
+        cdef:
+            double a_hi, a_lo, b_hi, b_lo
+            double p, e, rh, rl
+
+        a_hi = self.hi
+        a_lo = self.lo
+        if isinstance(other, DoubleDouble):
+            b_hi = (<DoubleDouble>other).hi
+            b_lo = (<DoubleDouble>other).lo
+        elif isinstance(other, (int, float)):
+            b_hi = <double>other
+            b_lo = 0.0
+        else:
+            return NotImplemented
+
+        two_prod(a_hi, b_hi, &p, &e)
+        e = fma(a_hi, b_lo, e)
+        e = fma(a_lo, b_hi, e)
+        two_sum(p, e, &rh, &rl)
+
+        return DoubleDouble(rh, rl)
+
+    def __rmul__(self, other):
+        return self.__mul__(other)
