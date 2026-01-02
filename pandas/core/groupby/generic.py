@@ -1532,7 +1532,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
         Examples
         --------
-        >>> ser = pd.Series([1, 2, 3, 4, 5], index=['a', 'a', 'b', 'b', 'c'])
+        >>> ser = pd.Series([1, 2, 3, 4, 5], index=["a", "a", "b", "b", "c"])
         >>> g = ser.groupby(level=0)
         >>> g.plot()  # doctest: +SKIP
         """
@@ -3566,8 +3566,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         Examples
         --------
-        >>> df = pd.DataFrame({'A': [1, 2, 3, 4], 'B': [5, 6, 7, 8]},
-        ...                   index=['a', 'a', 'b', 'b'])
+        >>> df = pd.DataFrame(
+        ...     {"A": [1, 2, 3, 4], "B": [5, 6, 7, 8]}, index=["a", "a", "b", "b"]
+        ... )
         >>> g = df.groupby(level=0)
         >>> g.plot()  # doctest: +SKIP
         """
