@@ -96,9 +96,6 @@ class _BaseXMLFormatter:
         create a reproducible gzip archive:
         ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
 
-        .. versionadded:: 1.5.0
-            Added support for `.tar` files.
-
     storage_options : dict, optional
         Extra options that make sense for a particular storage connection, e.g.
         host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
