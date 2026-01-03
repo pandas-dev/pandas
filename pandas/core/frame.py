@@ -132,6 +132,7 @@ from pandas.core import (
     common as com,
     nanops,
     ops,
+    outliers,
     roperator,
 )
 from pandas.core.accessor import Accessor
@@ -7625,7 +7626,169 @@ class DataFrame(NDFrame, OpsMixin):
             ids = get_group_index(labels, tuple(shape), sort=False, xnull=False)
             result = self._constructor_sliced(duplicated(ids, keep), index=self.index)
         return result.__finalize__(self, method="duplicated")
+    
+    # ----------------------------------------------------------------------
+    # Outlier detection and removal methods
+    def drop_outliers(
+            self,
+            method: str = 'iqr', 
+            axis: int | None = None,
+            **kwargs
+            ) -> DataFrame:
+        """
+        Remove outliers from a pandas DataFrame.
+        
+        Parameters
+        ----------
+       method : {'iqr', 'zscore'}, default 'iqr'
+            Outlier detection method
+        axis : {0, 1, None}, default None
+            - 0 or None: drop rows with outliers
+            - 1: drop columns with outliers
+        **kwargs
+            threshold : float
+                For 'iqr': IQR multiplier, default 1.5
+                For 'zscore': z-score threshold, default 3.0
+                
+        Returns
+        -------
+        The pandas DataFrame with outliers removed
+            
+        Example
+        --------
+        >>> import pandas as pd        
+        >>> df = pd.DataFrame({'A': [1, 2, 3, 4, 5, 100], 'B': [10, 20, 30, 40, 50, 60]})
+        >>> df.drop_outliers()
+             A   B
+        0    1  10
+        1    2  20
+        2    3  30
+        3    4  40
+        4    5  50
+        """
+        return outliers._drop_outliers_dataframe(
+                self, 
+                method = method, 
+                axis = axis, 
+                **kwargs
+                )    
+    
+    def is_outlier(self, method: str = 'iqr', **kwargs) -> DataFrame[bool]:
+        """
+        Detect outliers element-wise.
+        
+        Parameters
+        ----------
+        method : {'iqr', 'zscore'}, default 'iqr'
+            Detection method
+        **kwargs
+            threshold parameter
+            
+        Returns
+        -------
+        DataFrame of boolean mask indicating outlier positions
+            
+        Example
+        --------
+        >>> import pandas as pd
+        >>> A_values = [1, 2, 3, 4, 100]
+        >>> B_values = [100, 110, 120, 4, 130]
+        >>> df = pd.DataFrame({'A': A_values, 'B': B_values})
+        >>> df.is_outlier()
+               A       B
+        0    False   False
+        1    False   False
+        2    False   False
+        3    False   True
+        4    True    False
+        """
+        return self.apply(
+                lambda col: outliers._detect_outliers_series(
+                    col, method = method, **kwargs
+                    )
+                )    
+    
+    def has_outliers(self, method: str = 'iqr', **kwargs) -> bool:
+        """
+        Check if the DataFrame contains any outliers.
+        
+        Parameters
+        ----------
+        method : str
+        axis : {0, 1, None}
+            - None: check if ANY value is outlier
+            - 0: check each column
+            - 1: check each row
+            
+        Returns
+        -------
+        bool
+            
+        Example
+        --------
+        >>> import pandas as pd, numpy as np        
+        >>> value_a = np.linspace(2, 3.5, num = 49).tolist() + [55]
+        >>> value_b = np.linspace(100, 120).tolist()
+        >>> df = DataFrame({'A': value_a, 'B': value_b})
+        >>> df.has_outliers()
+        True
+        """
+        return outliers.has_outliers(self, method = method, **kwargs)
 
+    def fill_outliers(
+            self,
+            value = None,
+            method: dict[str | None, str] = {'filling': None, 'detection': 'iqr'},
+            **kwargs
+            ) -> DataFrame:
+        """
+        Fill outliers with a specified value or method.
+        
+        Parameters
+        ----------
+        value : scalar, dict, Series, or DataFrame, optional
+            Value to use to fill outliers. Ignored if method is specified.
+            - scalar: Fill all outliers with this value
+            - dict/Series: Fill each column with different values (DataFrame only)
+            - DataFrame: Use corresponding values from this DataFrame
+        method : dict
+            Method to use for "filling": {'mean', 'median', 'clip', 'ffill', 'bfill'}, optional
+            - 'mean': Replace with mean of non-outlier values
+            - 'median': Replace with median of non-outlier values
+            - 'clip': Clip to outlier detection boundaries
+            - 'ffill': Forward fill from last non-outlier value
+            - 'bfill': Backward fill from next non-outlier value
+            If None, must provide value.
+        Method to use for outlier "detection": {'iqr', 'zscore'}, default 'iqr'        
+        **kwargs
+            threshold : float
+                Threshold for outlier detection
+                
+        Returns
+        -------
+        DataFrame with outliers filled
+            
+        Example
+        --------
+        Fill DataFrame with different values per column:
+        >>> import pandas as pd        
+        >>> df = pd.DataFrame({'A': [1, 2, 3, 4, 5, 100], 'B': [10, 20, 30, 40, 50, 60]})
+        >>> df.fill_outliers(value = {'A': 0, 'B': 999})
+             A    B
+        0    1   10
+        1    2   20
+        2    3   30
+        3    4   40
+        4    5   50
+        5    0   60
+        """
+        return outliers._fill_outliers_dataframe(
+                self,
+                value = value,
+                method = method,
+                **kwargs
+                )
+  
     # ----------------------------------------------------------------------
     # Sorting
     # error: Signature of "sort_values" incompatible with supertype "NDFrame"

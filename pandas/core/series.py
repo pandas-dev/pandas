@@ -107,6 +107,7 @@ from pandas.core import (
     common as com,
     nanops,
     ops,
+    outliers,
     roperator,
 )
 from pandas.core.accessor import Accessor
@@ -6440,7 +6441,157 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             return self._update_inplace(result)
         else:
             return result
-
+        
+    # ----------------------------------------------------------------------
+    # Outlier detection and removal methods
+    def drop_outliers(
+            self,
+            method: str = 'iqr', 
+            **kwargs
+            ) -> Series:
+        """
+        Remove outliers from a pandas Series.
+        
+        Parameters
+        ----------
+        method : {'iqr', 'zscore'}, default 'iqr'
+            Outlier detection method
+        **kwargs
+            threshold : float
+                For 'iqr': IQR multiplier, default 1.5
+                For 'zscore': z-score threshold, default 3.0
+                
+        Returns
+        -------
+        The pandas Series with outliers removed
+            
+        Example
+        --------       
+        >>> s = pd.Series([1, 2, 3, 4, 5, 100], name = 'A')
+        >>> s.drop_outliers()
+        0    1
+        1    2
+        2    3
+        3    4
+        4    5
+        Name: A, dtype: int64
+        """
+        return outliers._drop_outliers_series(
+                self, 
+                method = method, 
+                **kwargs
+                )    
+    
+    def is_outlier(self, method: str = 'iqr', **kwargs) -> Series[bool]:
+        """
+        Detect outliers element-wise.
+        
+        Parameters
+        ----------
+        method : {'iqr', 'zscore'}, default 'iqr'
+            Detection method
+        **kwargs
+            threshold parameter
+            
+        Returns
+        -------
+        Series of boolean mask indicating outlier positions
+            
+        Example
+        --------
+        >>> A_values = [1, 2, 3, 4, 100]
+        >>> df = pd.Series(A_values, name = 'A')
+        >>> df.is_outlier()
+        0    False
+        1    False
+        2    False
+        3    False
+        4    True        
+        Name: A, dtype: bool
+        """
+        return outliers.is_outlier(self, method = method, **kwargs) 
+    
+    def has_outliers(self, method: str = 'iqr', **kwargs) -> bool:
+        """
+        Check if the Series contains any outliers.
+        
+        Parameters
+        ----------
+        method : str
+        axis : {{0, 1, None}}
+            - None: check if ANY value is outlier
+            - 0: check each column
+            - 1: check each row
+            
+        Returns
+        -------
+        bool
+            
+        Example
+        --------      
+        >>> value_a = np.linspace(2, 3.5, num = 49).tolist() + [55]
+        >>> value_b = np.linspace(100, 120).tolist()
+        >>> s = DataFrame({{'A': value_a, 'B': value_b}})
+        >>> s.has_outliers()
+        True
+        """
+        return outliers.has_outliers(self, method = method, **kwargs)
+    
+    def fill_outliers(
+            self,
+            value = None,
+            method: dict[str | None, str] = {'filling': None, 'detection': 'iqr'},
+            **kwargs
+            ) -> DataFrame:
+        """
+        Fill outliers with a specified value or method.
+        
+        Parameters
+        ----------
+        value : scalar, dict, Series, or DataFrame, optional
+            Value to use to fill outliers. Ignored if method is specified.
+            - scalar: Fill all outliers with this value
+            - dict/Series: Fill each column with different values (DataFrame only)
+            - DataFrame: Use corresponding values from this DataFrame
+        method : dict
+            Method to use for "filling": {{'mean', 'median', 'clip', 'ffill', 'bfill'}}, optional
+            - 'mean': Replace with mean of non-outlier values
+            - 'median': Replace with median of non-outlier values
+            - 'clip': Clip to outlier detection boundaries
+            - 'ffill': Forward fill from last non-outlier value
+            - 'bfill': Backward fill from next non-outlier value
+            If None, must provide value.
+        Method to use for outlier "detection": {{'iqr', 'zscore'}}, default 'iqr'        
+        **kwargs
+            threshold : float
+                Threshold for outlier detection
+                
+        Returns
+        -------
+        Series with outliers filled
+            
+        Example
+        --------
+        Fill Series with different values per column:
+        >>> import pandas as pd 
+        >>> A_values = [1, 2, 3, 4, 100]
+        >>> s = Series({'A': A_values})
+        >>> s.fill_outliers(value = 6)    
+        0    1
+        1    2
+        2    3
+        3    4
+        4    5
+        5    6
+        Name: A, dtype: int64
+        """
+        return outliers.fill_outliers(
+                self,
+                value = value,
+                method = method,
+                **kwargs
+                )
+    
     # ----------------------------------------------------------------------
     # Time series-oriented methods
 
