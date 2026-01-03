@@ -2156,6 +2156,8 @@ class ArrowExtensionArray(
             pa_type = pa_result.type
             if pa.types.is_duration(pa_type) and pa_type.unit != "ns":
                 return Timedelta(result).as_unit(pa_type.unit)
+            elif pa.types.is_timestamp(pa_type) and pa_type.unit != "ns":
+                return Timestamp(result).as_unit(pa_type.unit)
             return result
         else:
             return pa_result
