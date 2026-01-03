@@ -732,9 +732,6 @@ def get_handle(
         create a reproducible gzip archive:
         ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
 
-        .. versionadded:: 1.5.0
-            Added support for `.tar` files.
-
            May be a dict with key 'method' as compression mode
            and other keys as compression options if compression
            mode is 'zip'.
