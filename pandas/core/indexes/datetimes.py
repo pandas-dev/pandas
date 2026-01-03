@@ -625,6 +625,26 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         arr = self._data.to_julian_date()
         return Index._simple_new(arr, name=self.name)
 
+    @property
+    def month(self) -> Index:
+        """
+        The month of the datetime.
+
+        Returns
+        -------
+        Index
+            An Index of integers representing the month.
+
+        Examples
+        --------
+        >>> idx = pd.date_range("2000-01-01", periods=3, freq="ME")
+        >>> idx.month
+        Index([1, 1, 1], dtype='int64')
+        """
+        # Delegate to underlying data's month property
+        # self._data can be either DatetimeArray or ArrowExtensionArray
+        return Index(self._data.month, name=self.name)
+
     def isocalendar(self) -> DataFrame:
         """
         Calculate year, week, and day according to the ISO 8601 standard.

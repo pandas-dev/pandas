@@ -7288,6 +7288,28 @@ class Index(IndexOpsMixin, PandasObject):
     # --------------------------------------------------------------------
     # Generated Arithmetic, Comparison, and Unary Methods
 
+    @property
+    def month(self):
+        """
+        The month of the datetime.
+
+        For datetime-like data, returns the month component.
+
+        Returns
+        -------
+        Index
+            An Index of integers representing the month.
+
+        Raises
+        ------
+        AttributeError
+            If the index data doesn't support month extraction.
+        """
+        # Delegate to underlying data if it has month attribute
+        if hasattr(self._data, "month"):
+            return Index(self._data.month, name=self.name)
+        raise AttributeError(f"'{type(self).__name__}' object has no attribute 'month'")
+
     def _cmp_method(self, other, op):
         """
         Wrapper used to dispatch comparison operations.

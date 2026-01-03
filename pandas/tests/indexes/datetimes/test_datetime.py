@@ -153,3 +153,17 @@ class TestDatetimeIndex:
 
         with pytest.raises(ValueError, match=msg):
             date_range(start="2016-02-21", end="2016-08-21", freq=freq)
+
+
+class TestDatetimeIndexAccessorsPyArrow:
+    """Test datetime accessors (.month, etc.) with PyArrow backend."""
+
+    def test_month_accessor(self):
+        idx = pd.DatetimeIndex(["2020-01-15", "2021-02-20", "2022-03-25"]).astype(
+            "timestamp[ns][pyarrow]"
+        )
+
+        result = idx.month
+        expected = pd.Index([1, 2, 3], dtype="int64[pyarrow]")
+
+        tm.assert_index_equal(result, expected)

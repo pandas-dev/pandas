@@ -3043,7 +3043,6 @@ class ArrowExtensionArray(
         result = pc.minute(self._pa_array)
         return self._from_pyarrow_array(result)
 
-    @property
     def _dt_month(self) -> Self:
         result = pc.month(self._pa_array)
         return self._from_pyarrow_array(result)
@@ -3215,6 +3214,23 @@ class ArrowExtensionArray(
         current_unit = self.dtype.pyarrow_dtype.unit
         result = self._pa_array.cast(pa.timestamp(current_unit, tz))
         return self._from_pyarrow_array(result)
+
+    @property
+    def month(self) -> Self:
+        """
+        The month of the datetime.
+        """
+        # Validate that this is temporal data before delegating
+        if not pa.types.is_temporal(self._pa_array.type):
+            raise AttributeError(
+                f"'ArrowExtensionArray' with dtype '{self.dtype}' "
+                "does not support 'month' attribute"
+            )
+        # Delegate to private computation method
+        return self._dt_month()
+
+    # TODO: expose additional datetime accessors (year, day, hour, ...)
+    # to align with DatetimeArray API
 
 
 def transpose_homogeneous_pyarrow(
