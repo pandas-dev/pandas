@@ -598,9 +598,6 @@ def infer_compression(
         create a reproducible gzip archive:
         ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
 
-        .. versionadded:: 1.5.0
-            Added support for `.tar` files.
-
     Returns
     -------
     string or None
