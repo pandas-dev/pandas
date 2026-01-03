@@ -1514,8 +1514,28 @@ class SeriesGroupBy(GroupBy[Series]):
         )
 
     @property
-    @doc(Series.plot.__doc__)
     def plot(self) -> GroupByPlot:
+        """
+        Make plots of groups from a Series.
+
+        Uses the backend specified by the option ``plotting.backend``.
+        By default, matplotlib is used.
+
+        Returns
+        -------
+        GroupByPlot
+            A plotting object that can be used to create plots for each group.
+
+        See Also
+        --------
+        Series.plot : Make plots of Series.
+
+        Examples
+        --------
+        >>> ser = pd.Series([1, 2, 3, 4, 5], index=["a", "a", "b", "b", "c"])
+        >>> g = ser.groupby(level=0)
+        >>> g.plot()  # doctest: +SKIP
+        """
         result = GroupByPlot(self)
         return result
 
@@ -3528,8 +3548,30 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         )
 
     @property
-    @doc(DataFrame.plot.__doc__)
     def plot(self) -> GroupByPlot:
+        """
+        Make plots of groups from a DataFrame.
+
+        Uses the backend specified by the option ``plotting.backend``.
+        By default, matplotlib is used.
+
+        Returns
+        -------
+        GroupByPlot
+            A plotting object that can be used to create plots for each group.
+
+        See Also
+        --------
+        DataFrame.plot : Make plots of DataFrame.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+        ...     {"A": [1, 2, 3, 4], "B": [5, 6, 7, 8]}, index=["a", "a", "b", "b"]
+        ... )
+        >>> g = df.groupby(level=0)
+        >>> g.plot()  # doctest: +SKIP
+        """
         result = GroupByPlot(self)
         return result
 
