@@ -7729,7 +7729,7 @@ class DataFrame(NDFrame, OpsMixin):
         >>> import pandas as pd, numpy as np        
         >>> value_a = np.linspace(2, 3.5, num = 49).tolist() + [55]
         >>> value_b = np.linspace(100, 120).tolist()
-        >>> df = DataFrame({'A': value_a, 'B': value_b})
+        >>> df = pd.DataFrame({'A': value_a, 'B': value_b})
         >>> df.has_outliers()
         True
         """

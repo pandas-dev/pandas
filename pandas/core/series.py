@@ -6466,7 +6466,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         The pandas Series with outliers removed
             
         Example
-        --------       
+        --------   
+        >>> import pandas as pd    
         >>> s = pd.Series([1, 2, 3, 4, 5, 100], name = 'A')
         >>> s.drop_outliers()
         0    1
@@ -6499,8 +6500,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             
         Example
         --------
-        >>> A_values = [1, 2, 3, 4, 100]
-        >>> df = pd.Series(A_values, name = 'A')
+        >>> import pandas as pd 
+        >>> df = pd.Series([1, 2, 3, 4, 100], name = 'A')
         >>> df.is_outlier()
         0    False
         1    False
@@ -6529,9 +6530,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             
         Example
         --------      
-        >>> value_a = np.linspace(2, 3.5, num = 49).tolist() + [55]
-        >>> value_b = np.linspace(100, 120).tolist()
-        >>> s = DataFrame({{'A': value_a, 'B': value_b}})
+        >>> import pandas as pd, numpy as np
+        >>> values = np.linspace(2, 3.5, num = 49).tolist() + [55]
+        >>> s = pd.Series(values, name = 'A')
         >>> s.has_outliers()
         True
         """
@@ -6574,8 +6575,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         --------
         Fill Series with different values per column:
         >>> import pandas as pd 
-        >>> A_values = [1, 2, 3, 4, 100]
-        >>> s = Series({'A': A_values})
+        >>> s = pd.Series([1, 2, 3, 4, 100], name = 'A')
         >>> s.fill_outliers(value = 6)    
         0    1
         1    2
