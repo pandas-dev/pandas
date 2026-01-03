@@ -968,7 +968,7 @@ class DataFrame(NDFrame, OpsMixin):
         >>> df_not_necessarily_pandas = pd.DataFrame({"A": [1, 2], "B": [3, 4]})
         >>> interchange_object = df_not_necessarily_pandas.__dataframe__()
         >>> interchange_object.column_names()
-        Index(['A', 'B'], dtype='object')
+        Index(['A', 'B'], dtype='str')
         >>> df_pandas = pd.api.interchange.from_dataframe(
         ...     interchange_object.select_columns_by_name(["A"])
         ... )
@@ -1480,7 +1480,7 @@ class DataFrame(NDFrame, OpsMixin):
         panda         bear
         polar         bear
         koala    marsupial
-        Name: species, dtype: object
+        Name: species, dtype: str
         label: population
         content:
         panda     1864
@@ -1532,7 +1532,7 @@ class DataFrame(NDFrame, OpsMixin):
         panda         bear
         polar         bear
         koala    marsupial
-        Name: species, dtype: object
+        Name: species, dtype: str
         label: population
         content:
         panda     1864
@@ -3836,7 +3836,7 @@ class DataFrame(NDFrame, OpsMixin):
         4      1      1.0              1.0+0.0j       1  True
 
         >>> df.memory_usage()
-        Index           128
+        Index           132
         int64         40000
         float64       40000
         complex128    80000
@@ -3855,7 +3855,7 @@ class DataFrame(NDFrame, OpsMixin):
         The memory footprint of `object` dtype columns is ignored by default:
 
         >>> df.memory_usage(deep=True)
-        Index            128
+        Index            132
         int64          40000
         float64        40000
         complex128     80000
@@ -3867,7 +3867,7 @@ class DataFrame(NDFrame, OpsMixin):
         many repeated values.
 
         >>> df["object"].astype("category").memory_usage(deep=True)
-        5136
+        5140
         """
         result = self._constructor_sliced(
             [c.memory_usage(index=False, deep=deep) for col, c in self.items()],
@@ -3983,7 +3983,7 @@ class DataFrame(NDFrame, OpsMixin):
         the `object` dtype:
 
         >>> df2.dtypes
-        name         object
+        name            str
         score       float64
         employed       bool
         kids          int64
@@ -4420,10 +4420,10 @@ class DataFrame(NDFrame, OpsMixin):
         >>> s = pd.Series([10, 20], index=[1, 3])  # Note: index 3 doesn't exist in df
         >>> df["B"] = s  # Assigns by index label, not position
         >>> df
-            A   B
-        0  1 NaN
-        1  2  10
-        2  3 NaN
+           A     B
+        0  1   NaN
+        1  2  10.0
+        2  3   NaN
 
         Series assignment with partial index match:
 
@@ -4431,11 +4431,11 @@ class DataFrame(NDFrame, OpsMixin):
         >>> s = pd.Series([100, 200], index=["b", "d"])
         >>> df["B"] = s
         >>> df
-            A    B
-        a  1  NaN
-        b  2  100
-        c  3  NaN
-        d  4  200
+           A      B
+        a  1    NaN
+        b  2  100.0
+        c  3    NaN
+        d  4  200.0
 
         Series index labels NOT in DataFrame, ignored:
 
@@ -4447,7 +4447,6 @@ class DataFrame(NDFrame, OpsMixin):
         x  1  10
         y  2  20
         z  3  50
-        # Values for 'a' and 'b' are completely ignored!
         """
         if not CHAINED_WARNING_DISABLED:
             if sys.getrefcount(self) <= REF_COUNT and not com.is_local_in_caller_frame(
@@ -5156,6 +5155,7 @@ class DataFrame(NDFrame, OpsMixin):
         2     48
         3     28
         4     12
+        dtype: int64
 
         Local variables shall be explicitly referenced using ``@``
         character in front of the name:
@@ -5167,6 +5167,7 @@ class DataFrame(NDFrame, OpsMixin):
         2     6
         3     8
         4    10
+        Name: A, dtype: int64
         """
         from pandas.core.computation.eval import eval as _eval
 
@@ -6256,7 +6257,7 @@ class DataFrame(NDFrame, OpsMixin):
         >>> df.index
         RangeIndex(start=0, stop=3, step=1)
         >>> df.rename(index=str).index
-        Index(['0', '1', '2'], dtype='object')
+        Index(['0', '1', '2'], dtype='str')
 
         >>> df.rename(columns={"A": "a", "B": "b", "C": "c"}, errors="raise")
         Traceback (most recent call last):
@@ -6329,7 +6330,7 @@ class DataFrame(NDFrame, OpsMixin):
         1      bird
         2    mammal
         3    mammal
-        Name: class, dtype: object
+        Name: class, dtype: str
 
         >>> df
              name  max_speed
@@ -8189,22 +8190,22 @@ class DataFrame(NDFrame, OpsMixin):
         >>> df
           first_name middle_name
         0       John       Smith
-        1       Anne        <NA>
-        2       John        <NA>
+        1       Anne         NaN
+        2       John         NaN
         3       Beth      Louise
 
         >>> df.value_counts()
         first_name  middle_name
-        Beth        Louise         1
         John        Smith          1
+        Beth        Louise         1
         Name: count, dtype: int64
 
         >>> df.value_counts(dropna=False)
         first_name  middle_name
-        Anne        NaN            1
-        Beth        Louise         1
         John        Smith          1
-                    NaN            1
+        Anne        NaN            1
+        John        NaN            1
+        Beth        Louise         1
         Name: count, dtype: int64
 
         >>> df.value_counts("first_name")
@@ -9785,16 +9786,16 @@ class DataFrame(NDFrame, OpsMixin):
         ...     index=[1, 2],
         ... )
         >>> df2.combine(df1, take_smaller)
-           A    B   C
-        0  0.0  NaN NaN
-        1  0.0  3.0 NaN
-        2  NaN  3.0 NaN
+             B    C   A
+        0  NaN  NaN 0.0
+        1  3.0  NaN 0.0
+        2  3.0  NaN NaN
 
         >>> df2.combine(df1, take_smaller, overwrite=False)
-             A    B   C
-        0  0.0  NaN NaN
-        1  0.0  3.0 1.0
-        2  NaN  3.0 1.0
+             B    C   A
+        0  NaN  NaN 0.0
+        1  3.0  1.0 0.0
+        2  3.0  1.0 NaN
         """
         other_idxlen = len(other.index)  # save for compare
         other_columns = other.columns
@@ -11489,6 +11490,11 @@ class DataFrame(NDFrame, OpsMixin):
               If you are just applying a NumPy reduction function this will
               achieve much better performance.
 
+         .. note::
+
+                When ``raw=True``, the result dtype is inferred from the **first**
+                returned value.
+
         result_type : {'expand', 'reduce', 'broadcast', None}, default None
             These only act when ``axis=1`` (columns):
 
@@ -11648,8 +11654,8 @@ class DataFrame(NDFrame, OpsMixin):
         ``apply`` has type stability (variables in the function do not change their
         type during the execution).
 
-        >>> import bodo
-        >>> df.apply(lambda x: x.A + x.B, axis=1, engine=bodo.jit)
+        >>> import bodo  # doctest: +SKIP
+        >>> df.apply(lambda x: x.A + x.B, axis=1, engine=bodo.jit)  # doctest: +SKIP
 
         Note that JIT compilation is only recommended for functions that take a
         significant amount of time to run. Fast functions are unlikely to run faster
@@ -13470,7 +13476,7 @@ class DataFrame(NDFrame, OpsMixin):
         Examples
         --------
         >>> s = pd.Series([1, 2, 3])
-        >>> s.sem().round(6)
+        >>> round(s.sem(), 6)
         0.57735
 
         With a DataFrame
@@ -13976,8 +13982,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         With axis=None
 
-        >>> df.kurt(axis=None).round(6)
-        -0.988693
+        >>> df.kurt(axis=None)
+        -0.9886927196984727
 
         Using axis=1
 
@@ -14133,10 +14139,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         >>> df = pd.DataFrame(
         ...     {
-        ...         {
-        ...             "consumption": [10.51, 103.11, 55.48],
-        ...             "co2_emissions": [37.2, 19.66, 1712],
-        ...         }
+        ...         "consumption": [10.51, 103.11, 55.48],
+        ...         "co2_emissions": [37.2, 19.66, 1712],
         ...     },
         ...     index=["Pork", "Wheat Products", "Beef"],
         ... )
@@ -14152,7 +14156,7 @@ class DataFrame(NDFrame, OpsMixin):
         >>> df.idxmin()
         consumption                Pork
         co2_emissions    Wheat Products
-        dtype: object
+        dtype: str
 
         To return the index for the minimum value in each row, use ``axis="columns"``.
 
@@ -14160,7 +14164,7 @@ class DataFrame(NDFrame, OpsMixin):
         Pork                consumption
         Wheat Products    co2_emissions
         Beef                consumption
-        dtype: object
+        dtype: str
         """
         axis = self._get_axis_number(axis)
 
@@ -14236,10 +14240,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         >>> df = pd.DataFrame(
         ...     {
-        ...         {
-        ...             "consumption": [10.51, 103.11, 55.48],
-        ...             "co2_emissions": [37.2, 19.66, 1712],
-        ...         }
+        ...         "consumption": [10.51, 103.11, 55.48],
+        ...         "co2_emissions": [37.2, 19.66, 1712],
         ...     },
         ...     index=["Pork", "Wheat Products", "Beef"],
         ... )
@@ -14253,9 +14255,9 @@ class DataFrame(NDFrame, OpsMixin):
         By default, it returns the index for the maximum value in each column.
 
         >>> df.idxmax()
-        consumption     Wheat Products
-        co2_emissions             Beef
-        dtype: object
+        consumption      Wheat Products
+        co2_emissions              Beef
+        dtype: str
 
         To return the index for the maximum value in each row, use ``axis="columns"``.
 
@@ -14263,7 +14265,7 @@ class DataFrame(NDFrame, OpsMixin):
         Pork              co2_emissions
         Wheat Products     consumption
         Beef              co2_emissions
-        dtype: object
+        dtype: str
         """
         axis = self._get_axis_number(axis)
 
@@ -14753,7 +14755,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         >>> idx
         DatetimeIndex(['2001-03-31', '2002-05-31', '2003-08-31'],
-        dtype='datetime64[s]', freq=None)
+                      dtype='datetime64[us]', freq=None)
 
         >>> idx.to_period("M")
         PeriodIndex(['2001-03', '2002-05', '2003-08'], dtype='period[M]')
@@ -14982,7 +14984,7 @@ class DataFrame(NDFrame, OpsMixin):
         0    1  3
         1    2  4
         >>> df.columns
-        Index(['A', 'B'], dtype='object')
+        Index(['A', 'B'], dtype='str')
         """,
     )
 

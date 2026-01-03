@@ -1234,7 +1234,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         0    a
         1    b
         2    c
-        dtype: object
+        dtype: str
         >>> s.repeat(2)
         0    a
         0    a
@@ -1242,7 +1242,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         1    b
         2    c
         2    c
-        dtype: object
+        dtype: str
         >>> s.repeat([1, 2, 3])
         0    a
         1    b
@@ -1250,7 +1250,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2    c
         2    c
         2    c
-        dtype: object
+        dtype: str
         """
         nv.validate_repeat((), {"axis": axis})
         new_index = self.index.repeat(repeats)
@@ -1876,7 +1876,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Returns
         -------
         Series
-
         """
         pa = import_optional_dependency("pyarrow", min_version="14.0.0")
         if not isinstance(data, (pa.Array, pa.ChunkedArray)):
@@ -2292,7 +2291,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         3    beetle
         4     llama
         5     hippo
-        Name: animal, dtype: object
+        Name: animal, dtype: str
 
         With the 'keep' parameter, the selection behavior of duplicated values
         can be changed. The value 'first' keeps the first occurrence for each
@@ -2303,7 +2302,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         1       cow
         3    beetle
         5     hippo
-        Name: animal, dtype: object
+        Name: animal, dtype: str
 
         The value 'last' for parameter 'keep' keeps the last occurrence for
         each set of duplicated entries.
@@ -2313,7 +2312,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         3    beetle
         4     llama
         5     hippo
-        Name: animal, dtype: object
+        Name: animal, dtype: str
 
         The value ``False`` for parameter 'keep' discards all sets of
         duplicated entries.
@@ -2322,7 +2321,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         1       cow
         3    beetle
         5     hippo
-        Name: animal, dtype: object
+        Name: animal, dtype: str
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         result = super().drop_duplicates(keep=keep)
@@ -3145,7 +3144,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
            other    a
         3  self     d
            other    b
-        dtype: object
+        dtype: str
 
         Keep all original rows
 
@@ -3391,7 +3390,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         0    d
         1    b
         2    e
-        dtype: object
+        dtype: str
 
         >>> s = pd.Series([1, 2, 3])
         >>> s.update(pd.Series([4, 5, 6, 7, 8]))
@@ -3592,7 +3591,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2    d
         3    a
         4    c
-        dtype: object
+        dtype: str
 
         >>> s.sort_values()
         3    a
@@ -3600,7 +3599,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         4    c
         2    d
         0    z
-        dtype: object
+        dtype: str
 
         Sort using a key function. Your `key` function will be
         given the ``Series`` of values and should return an array-like.
@@ -3612,14 +3611,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         0    a
         2    c
         4    e
-        dtype: object
+        dtype: str
         >>> s.sort_values(key=lambda x: x.str.lower())
         0    a
         1    B
         2    c
         3    D
         4    e
-        dtype: object
+        dtype: str
 
         NumPy ufuncs work well here. For example, we can
         sort by the ``sin`` of the value
@@ -3799,7 +3798,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2    b
         3    a
         4    d
-        dtype: object
+        dtype: str
 
         Sort Descending
 
@@ -3808,7 +3807,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         3    a
         2    b
         1    c
-        dtype: object
+        dtype: str
 
         By default NaNs are put at the end, but use `na_position` to place
         them at the beginning
@@ -3819,7 +3818,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
          1.0    c
          2.0    b
          3.0    a
-        dtype: object
+        dtype: str
 
         Specify index level to sort
 
@@ -4190,11 +4189,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ...     ],
         ... )
         >>> s
-        Final exam  History     January      A
-                    Geography   February     B
-        Coursework  History     March        A
-                    Geography   April        C
-        dtype: object
+        Final exam  History    January     A
+                    Geography  February    B
+        Coursework  History    March       A
+                    Geography  April       C
+        dtype: str
 
         In the following example, we will swap the levels of the indices.
         Here, we will swap the levels column-wise, but levels can be swapped row-wise
@@ -4203,11 +4202,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         last indices.
 
         >>> s.swaplevel()
-        Final exam  January     History         A
-                    February    Geography       B
-        Coursework  March       History         A
-                    April       Geography       C
-        dtype: object
+        Final exam  January   History       A
+                    February  Geography     B
+        Coursework  March     History       A
+                    April     Geography     C
+        dtype: str
 
         By supplying one argument, we can choose which index to swap the last
         index with. We can for example swap the first index with the last one as
@@ -4218,7 +4217,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         February    Geography   Final exam      B
         March       History     Coursework      A
         April       Geography   Coursework      C
-        dtype: object
+        dtype: str
 
         We can also define explicitly which indices we want to swap by supplying values
         for both i and j. Here, we for example swap the first and second indices.
@@ -4228,7 +4227,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Geography   Final exam  February        B
         History     Coursework  March           A
         Geography   Coursework  April           C
-        dtype: object
+        dtype: str
         """
         self._check_copy_deprecation(copy)
         assert isinstance(self.index, MultiIndex)
@@ -4492,7 +4491,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         1      dog
         2      NaN
         3   rabbit
-        dtype: object
+        dtype: str
 
         ``map`` accepts a ``dict`` or a ``Series``. Values that are not found
         in the ``dict`` are converted to ``NaN``, unless the dict has a default
@@ -4503,7 +4502,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         1    puppy
         2      NaN
         3      NaN
-        dtype: object
+        dtype: str
 
         It also accepts a function:
 
@@ -4512,7 +4511,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         1       I am a dog
         2       I am a nan
         3    I am a rabbit
-        dtype: object
+        dtype: str
 
         To avoid applying the function to missing values (and keep them as
         ``NaN``) ``na_action='ignore'`` can be used:
@@ -4522,7 +4521,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         1     I am a dog
         2            NaN
         3  I am a rabbit
-        dtype: object
+        dtype: str
 
         For categorical data, the function is only applied to the categories:
 
@@ -4775,7 +4774,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Examples
         --------
-        >>> df = pd.DataFrame({{"A": range(3), "B": range(1, 4)}})
+        >>> df = pd.DataFrame({"A": range(3), "B": range(1, 4)})
         >>> df
         A  B
         0  0  1
@@ -4806,19 +4805,17 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         >>> df = pd.DataFrame(
         ...     {
-        ...         {
-        ...             "Date": [
-        ...                 "2015-05-08",
-        ...                 "2015-05-07",
-        ...                 "2015-05-06",
-        ...                 "2015-05-05",
-        ...                 "2015-05-08",
-        ...                 "2015-05-07",
-        ...                 "2015-05-06",
-        ...                 "2015-05-05",
-        ...             ],
-        ...             "Data": [5, 8, 6, 1, 50, 100, 60, 120],
-        ...         }
+        ...         "Date": [
+        ...             "2015-05-08",
+        ...             "2015-05-07",
+        ...             "2015-05-06",
+        ...             "2015-05-05",
+        ...             "2015-05-08",
+        ...             "2015-05-07",
+        ...             "2015-05-06",
+        ...             "2015-05-05",
+        ...         ],
+        ...         "Data": [5, 8, 6, 1, 50, 100, 60, 120],
         ...     }
         ... )
         >>> df
@@ -4844,10 +4841,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         >>> df = pd.DataFrame(
         ...     {
-        ...         {
-        ...             "c": [1, 1, 1, 2, 2, 2, 2],
-        ...             "type": ["m", "n", "o", "m", "m", "n", "n"],
-        ...         }
+        ...         "c": [1, 1, 1, 2, 2, 2, 2],
+        ...         "type": ["m", "n", "o", "m", "m", "n", "n"],
         ...     }
         ... )
         >>> df
@@ -5361,7 +5356,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         >>> date_index = pd.date_range("1/1/2010", periods=6, freq="D")
         >>> df2 = pd.DataFrame(
-        ...     {{"prices": [100, 101, np.nan, 100, 89, 88]}}, index=date_index
+        ...     {"prices": [100, 101, np.nan, 100, 89, 88]}, index=date_index
         ... )
         >>> df2
                     prices
@@ -5523,13 +5518,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         0       dog
         1       cat
         2    monkey
-        dtype: object
+        dtype: str
         >>> s.rename_axis("animal")
         animal
         0    dog
         1    cat
         2    monkey
-        dtype: object
+        dtype: str
         """
         return super().rename_axis(
             mapper=mapper,
@@ -5785,17 +5780,17 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Series name: None
         Non-Null Count  Dtype
         --------------  -----
-        5 non-null      object
-        dtypes: object(1)
-        memory usage: 80.0+ bytes
+        5 non-null      str
+        dtypes: str(1)
+        memory usage: 106.0 bytes
 
         Prints a summary excluding information about its values:
 
         >>> s.info(verbose=False)
         <class 'pandas.Series'>
         Index: 5 entries, 1 to 5
-        dtypes: object(1)
-        memory usage: 80.0+ bytes
+        dtypes: str(1)
+        memory usage: 106.0 bytes
 
         Pipe output of Series.info to buffer instead of sys.stdout, get
         buffer content and writes to a text file:
@@ -5819,9 +5814,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Series name: None
         Non-Null Count    Dtype
         --------------    -----
-        1000000 non-null  object
-        dtypes: object(1)
-        memory usage: 7.6+ MB
+        1000000 non-null  str
+        dtypes: str(1)
+        memory usage: 8.6 MB
 
         >>> s.info(memory_usage="deep")
         <class 'pandas.Series'>
@@ -5829,9 +5824,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Series name: None
         Non-Null Count    Dtype
         --------------    -----
-        1000000 non-null  object
-        dtypes: object(1)
-        memory usage: 55.3 MB
+        1000000 non-null  str
+        dtypes: str(1)
+        memory usage: 8.6 MB
         """
         return SeriesInfo(self, memory_usage).render(
             buf=buf,
@@ -5871,7 +5866,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         --------
         >>> s = pd.Series(range(3))
         >>> s.memory_usage()
-        152
+        156
 
         Not including the index gives the size of the rest of the data, which
         is necessarily smaller:
@@ -5883,11 +5878,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         >>> s = pd.Series(["a", "b"])
         >>> s.values
-        array(['a', 'b'], dtype=object)
+        <ArrowStringArray>
+        ['a', 'b']
+        Length: 2, dtype: str
         >>> s.memory_usage()
-        144
+        150
         >>> s.memory_usage(deep=True)
-        244
+        150
         """
         v = self._memory_usage(deep=deep)
         if index:
