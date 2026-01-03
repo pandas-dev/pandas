@@ -721,31 +721,28 @@ def read_json(
     Examples
     --------
     >>> from io import StringIO
-    >>> df = pd.DataFrame([['a', 'b'], ['c', 'd']],
-    ...                   index=['row 1', 'row 2'],
-    ...                   columns=['col 1', 'col 2'])
+    >>> df = pd.DataFrame(
+    ...     [["a", "b"], ["c", "d"]],
+    ...     index=["row 1", "row 2"],
+    ...     columns=["col 1", "col 2"],
+    ... )
 
     Encoding/decoding a Dataframe using ``'split'`` formatted JSON:
 
-    >>> df.to_json(orient='split')
-        '\
-{{\
-"columns":["col 1","col 2"],\
-"index":["row 1","row 2"],\
-"data":[["a","b"],["c","d"]]\
-}}\
-'
-    >>> pd.read_json(StringIO(_), orient='split')  # noqa: F821
+    >>> df.to_json(orient="split")
+    '{"columns":["col 1","col 2"],"index":["row 1","row 2"],"data":[["a","b"],["c","d"]]}'
+
+    >>> pd.read_json(StringIO(_), orient="split")  # noqa: F821
           col 1 col 2
     row 1     a     b
     row 2     c     d
 
     Encoding/decoding a Dataframe using ``'index'`` formatted JSON:
 
-    >>> df.to_json(orient='index')
-    '{{"row 1":{{"col 1":"a","col 2":"b"}},"row 2":{{"col 1":"c","col 2":"d"}}}}'
+    >>> df.to_json(orient="index")
+    '{"row 1":{"col 1":"a","col 2":"b"},"row 2":{"col 1":"c","col 2":"d"}}'
 
-    >>> pd.read_json(StringIO(_), orient='index')  # noqa: F821
+    >>> pd.read_json(StringIO(_), orient="index")  # noqa: F821
           col 1 col 2
     row 1     a     b
     row 2     c     d
@@ -753,42 +750,32 @@ def read_json(
     Encoding/decoding a Dataframe using ``'records'`` formatted JSON.
     Note that index labels are not preserved with this encoding.
 
-    >>> df.to_json(orient='records')
-    '[{{"col 1":"a","col 2":"b"}},{{"col 1":"c","col 2":"d"}}]'
-    >>> pd.read_json(StringIO(_), orient='records')  # noqa: F821
+    >>> df.to_json(orient="records")
+    '[{"col 1":"a","col 2":"b"},{"col 1":"c","col 2":"d"}]'
+
+    >>> pd.read_json(StringIO(_), orient="records")  # noqa: F821
       col 1 col 2
     0     a     b
     1     c     d
 
     Encoding with Table Schema
 
-    >>> df.to_json(orient='table')
-        '\
-{{"schema":{{"fields":[\
-{{"name":"index","type":"string","extDtype":"str"}},\
-{{"name":"col 1","type":"string","extDtype":"str"}},\
-{{"name":"col 2","type":"string","extDtype":"str"}}],\
-"primaryKey":["index"],\
-"pandas_version":"1.4.0"}},\
-"data":[\
-{{"index":"row 1","col 1":"a","col 2":"b"}},\
-{{"index":"row 2","col 1":"c","col 2":"d"}}]\
-}}\
-'
+    >>> df.to_json(orient="table")
+    '{"schema":{"fields":[{"name":"index","type":"string"},{"name":"col 1","type":"string"},{"name":"col 2","type":"string"}],"primaryKey":["index"],"pandas_version":"1.4.0"},"data":[{"index":"row 1","col 1":"a","col 2":"b"},{"index":"row 2","col 1":"c","col 2":"d"}]}'
 
     The following example uses ``dtype_backend="numpy_nullable"``
 
-    >>> data = '''{{"index": {{"0": 0, "1": 1}},
-    ...        "a": {{"0": 1, "1": null}},
-    ...        "b": {{"0": 2.5, "1": 4.5}},
-    ...        "c": {{"0": true, "1": false}},
-    ...        "d": {{"0": "a", "1": "b"}},
-    ...        "e": {{"0": 1577.2, "1": 1577.1}}}}'''
+    >>> data = '''{"index": {"0": 0, "1": 1},
+    ...        "a": {"0": 1, "1": null},
+    ...        "b": {"0": 2.5, "1": 4.5},
+    ...        "c": {"0": true, "1": false},
+    ...        "d": {"0": "a", "1": "b"},
+    ...        "e": {"0": 1577.2, "1": 1577.1}}'''
     >>> pd.read_json(StringIO(data), dtype_backend="numpy_nullable")
        index     a    b      c  d       e
     0      0     1  2.5   True  a  1577.2
     1      1  <NA>  4.5  False  b  1577.1
-    """
+    """  # noqa: E501
     if orient == "table" and dtype:
         raise ValueError("cannot pass both dtype and orient='table'")
     if orient == "table" and convert_axes:
