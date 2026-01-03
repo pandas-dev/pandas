@@ -1984,9 +1984,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         See Also
         --------
-        Series.groupby : Apply a function groupby to a Series.
-        DataFrame.groupby : Apply a function groupby
-            to each row or column of a DataFrame.
+        Series.any : Apply function any to a Series.
+        DataFrame.any : Apply function any to each row or column of a DataFrame.
 
         Examples
         --------
@@ -2045,9 +2044,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         See Also
         --------
-        Series.groupby : Apply a function groupby to a Series.
-        DataFrame.groupby : Apply a function groupby
-            to each row or column of a DataFrame.
+        Series.all : Apply function all to a Series.
+        DataFrame.all : Apply function all to each row or column of a DataFrame.
 
         Examples
         --------
@@ -2101,9 +2099,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         See Also
         --------
-        Series.groupby : Apply a function groupby to a Series.
-        DataFrame.groupby : Apply a function groupby
-            to each row or column of a DataFrame.
+        Series.count : Apply function count to a Series.
+        DataFrame.count : Apply function count to each row or column of a DataFrame.
 
         Examples
         --------
@@ -2237,9 +2234,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         See Also
         --------
-        Series.groupby : Apply a function groupby to a Series.
-        DataFrame.groupby : Apply a function groupby
-            to each row or column of a DataFrame.
+        Series.mean : Apply function mean to a Series.
+        DataFrame.mean : Apply function mean to each row or column of a DataFrame.
 
         Examples
         --------
@@ -2326,9 +2322,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         See Also
         --------
-        Series.groupby : Apply a function groupby to a Series.
-        DataFrame.groupby : Apply a function groupby to each row or column of a
-            DataFrame.
+        Series.median : Apply function median to a Series.
+        DataFrame.median : Apply function median to each row or column of a DataFrame.
 
         Examples
         --------
@@ -2451,9 +2446,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         See Also
         --------
-        Series.groupby : Apply a function groupby to a Series.
-        DataFrame.groupby : Apply a function groupby
-            to each row or column of a DataFrame.
+        Series.std : Apply function std to a Series.
+        DataFrame.std : Apply function std to each row or column of a DataFrame.
 
         Examples
         --------
@@ -2567,9 +2561,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         See Also
         --------
-        Series.groupby : Apply a function groupby to a Series.
-        DataFrame.groupby : Apply a function groupby
-            to each row or column of a DataFrame.
+        Series.var : Apply function var to a Series.
+        DataFrame.var : Apply function var to each row or column of a DataFrame.
 
         Examples
         --------
@@ -2874,9 +2867,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         See Also
         --------
-        Series.groupby : Apply a function groupby to a Series.
-        DataFrame.groupby : Apply a function groupby
-            to each row or column of a DataFrame.
+        Series.size : Apply function size to a Series.
+        DataFrame.size : Apply function size to each row or column of a DataFrame.
 
         Examples
         --------
@@ -4290,9 +4282,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         See Also
         --------
-        Series.groupby : Apply a function groupby to a Series.
-        DataFrame.groupby : Apply a function groupby
-            to each row or column of a DataFrame.
+        Series.nth : Apply function nth to a Series.
+        DataFrame.nth : Apply function nth to each row or column of a DataFrame.
 
         Examples
         --------
@@ -4809,9 +4800,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         See Also
         --------
-        Series.groupby : Apply a function groupby to a Series.
-        DataFrame.groupby : Apply a function groupby
-            to each row or column of a DataFrame.
+        Series.rank : Apply function rank to a Series.
+        DataFrame.rank : Apply function rank to each row or column of a DataFrame.
 
         Examples
         --------
@@ -4887,9 +4877,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         See Also
         --------
-        Series.groupby : Apply a function groupby to a Series.
-        DataFrame.groupby : Apply a function groupby
-            to each row or column of a DataFrame.
+        Series.cumprod : Apply function cumprod to a Series.
+        DataFrame.cumprod : Apply function cumprod to each row or column of a DataFrame.
 
         Examples
         --------
@@ -4952,9 +4941,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         See Also
         --------
-        Series.groupby : Apply a function groupby to a Series.
-        DataFrame.groupby : Apply a function groupby
-            to each row or column of a DataFrame.
+        Series.cumsum : Apply function cumsum to a Series.
+        DataFrame.cumsum : Apply function cumsum to each row or column of a DataFrame.
 
         Examples
         --------
@@ -5019,9 +5007,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         See Also
         --------
-        Series.groupby : Apply a function groupby to a Series.
-        DataFrame.groupby : Apply a function groupby
-            to each row or column of a DataFrame.
+        Series.cummin : Apply function cummin to a Series.
+        DataFrame.cummin : Apply function cummin to each row or column of a DataFrame.
 
         Examples
         --------
@@ -5094,9 +5081,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         See Also
         --------
-        Series.groupby : Apply a function groupby to a Series.
-        DataFrame.groupby : Apply a function groupby
-            to each row or column of a DataFrame.
+        Series.cummax : Apply function cummax to a Series.
+        DataFrame.cummax : Apply function cummax to each row or column of a DataFrame.
 
         Examples
         --------
@@ -5313,9 +5299,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         See Also
         --------
-        Series.groupby : Apply a function groupby to a Series.
-        DataFrame.groupby : Apply a function groupby
-            to each row or column of a DataFrame.
+        Series.diff : Apply function diff to a Series.
+        DataFrame.diff : Apply function diff to each row or column of a DataFrame.
 
         Examples
         --------
@@ -5413,9 +5398,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         See Also
         --------
-        Series.groupby : Apply a function groupby to a Series.
-        DataFrame.groupby : Apply a function groupby
-            to each row or column of a DataFrame.
+        Series.pct_change : Apply function pct_change to a Series.
+        DataFrame.pct_change : Apply function pct_change to each row or column of
+            a DataFrame.
 
         Examples
         --------
@@ -5503,9 +5488,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         See Also
         --------
-        Series.groupby : Apply a function groupby to a Series.
-        DataFrame.groupby : Apply a function groupby
-            to each row or column of a DataFrame.
+        Series.head : Apply function head to a Series.
+        DataFrame.head : Apply function head to each row or column of a DataFrame.
 
         Examples
         --------
@@ -5544,9 +5528,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         See Also
         --------
-        Series.groupby : Apply a function groupby to a Series.
-        DataFrame.groupby : Apply a function groupby
-            to each row or column of a DataFrame.
+        Series.tail : Apply function tail to a Series.
+        DataFrame.tail : Apply function tail to each row or column of a DataFrame.
 
         Examples
         --------
