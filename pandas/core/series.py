@@ -2578,13 +2578,36 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         dtype: float64
         """
         nv.validate_round(args, kwargs)
-        if self.dtype == "object":
-            raise TypeError("Expected numeric dtype, got object instead.")
+        
+        from pandas.util._exceptions import find_stack_level
+        import warnings
+        
+        if not (self.dtype.kind in "iufcb"):
+            warnings.warn(
+                f"{type(self).__name__}.round with non-numeric dtype is deprecated "
+                "and will raise in a future version.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+        
         new_mgr = self._mgr.round(decimals=decimals)
         return self._constructor_from_mgr(new_mgr, axes=new_mgr.axes).__finalize__(
             self, method="round"
         )
 
+    def clip(self, lower=None, upper=None, *args, **kwargs) -> Series:
+        from pandas.util._exceptions import find_stack_level
+        import warnings
+
+        if not (self.dtype.kind in "iufcb"):
+            warnings.warn(
+                f"{type(self).__name__}.clip with non-numeric dtype is deprecated "
+                "and will raise in a future version.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+        return super().clip(lower=lower, upper=upper, *args, **kwargs)
+    
     @overload
     def quantile(
         self, q: float = ..., interpolation: QuantileInterpolation = ...
