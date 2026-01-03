@@ -326,9 +326,6 @@ def _get_filepath_or_buffer(
         create a reproducible gzip archive:
         ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
 
-        .. versionadded:: 1.5.0
-            Added support for `.tar` files.
-
     encoding : the encoding to use to decode bytes, default is 'utf-8'
     mode : str, optional
 
