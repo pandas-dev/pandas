@@ -82,7 +82,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.api.typing.SeriesGroupBy.plot PR02" \
         -i "pandas.api.typing.Resampler.quantile PR01,PR07" \
         -i "pandas.StringDtype.storage SA01" \
-        -i "pandas.StringDtype.na_value SA01" \
         -i "pandas.tseries.offsets.BDay PR02,SA01" \
         -i "pandas.tseries.offsets.BHalfYearBegin.is_on_offset GL08" \
         -i "pandas.tseries.offsets.BHalfYearBegin.n GL08" \
