@@ -761,7 +761,7 @@ def read_json(
     Encoding with Table Schema
 
     >>> df.to_json(orient="table")
-    '{"schema":{"fields":[{"name":"index","type":"string"},{"name":"col 1","type":"string"},{"name":"col 2","type":"string"}],"primaryKey":["index"],"pandas_version":"1.4.0"},"data":[{"index":"row 1","col 1":"a","col 2":"b"},{"index":"row 2","col 1":"c","col 2":"d"}]}'
+    '{"schema":{"fields":[{"name":"index","type":"string","extDtype":"str"},{"name":"col 1","type":"string","extDtype":"str"},{"name":"col 2","type":"string","extDtype":"str"}],"primaryKey":["index"],"pandas_version":"1.4.0"},"data":[{"index":"row 1","col 1":"a","col 2":"b"},{"index":"row 2","col 1":"c","col 2":"d"}]}'
 
     The following example uses ``dtype_backend="numpy_nullable"``
 
