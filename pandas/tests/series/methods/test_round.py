@@ -112,9 +112,8 @@ class TestSeriesRound:
             (pd.StringDtype(), ["x", "y", "z"]),
         ],
     )
-    def test_round_non_numeric_dtype_raises(self, dtype, data):
-        # GH#63444
+    def test_round_non_numeric_dtype_noop(self, dtype, data):
+        # GH#63444, GH#63559
         ser = Series(data, dtype=dtype)
-
-        with pytest.raises(TypeError, match="Cannot round with non-numeric dtype"):
-            ser.round(2)
+        result = ser.round(2)
+        tm.assert_series_equal(result, ser)
