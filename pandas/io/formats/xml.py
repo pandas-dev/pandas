@@ -81,8 +81,8 @@ class _BaseXMLFormatter:
     compression : str or dict, default 'infer'
         For on-the-fly compression of the output data. If 'infer' and 'path_or_buffer' is
         path-like, then detect compression from the following extensions: '.gz',
-        '.bz2', '.zip', '.xz', '.zst', '.tar', '.tar.gz', '.tar.xz' or '.tar.bz2'
-        (otherwise no compression).
+        '.bz2', '.zip', '.xz', '.zst', '.tar', '.tar.gz', '.tar.xz' or
+        '.tar.bz2' (otherwise no compression).
         Set to ``None`` for no compression.
         Can also be a dict with key ``'method'`` set
         to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'xz'``, ``'tar'``} and
