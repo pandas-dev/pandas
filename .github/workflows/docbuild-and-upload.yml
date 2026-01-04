@@ -51,8 +51,8 @@ jobs:
 
     - name: Show environment variables
       run: |
-        echo "PANDAS_VERSION=${{ env.PANDAS_VERSION }}
-        echo "PANDAS_VERSION_OVERRIDE=${{ env.PANDAS_VERSION_OVERRIDE }}
+        echo "PANDAS_VERSION=${{ env.PANDAS_VERSION }}"
+        echo "PANDAS_VERSION_OVERRIDE=${{ env.PANDAS_VERSION_OVERRIDE }}"
 
 #    - name: Checkout
 #      uses: actions/checkout@v6
