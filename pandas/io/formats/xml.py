@@ -81,20 +81,20 @@ class _BaseXMLFormatter:
         A URL, file, file-like object, or a raw string containing XSLT.
 
     compression : str or dict, default 'infer'
-        For on-the-fly compression of the output data. If 'infer' and 'path_or_buffer' is
-        path-like, then detect compression from the following extensions: '.gz',
-        '.bz2', '.zip', '.xz', '.zst', '.tar', '.tar.gz', '.tar.xz' or
-        '.tar.bz2' (otherwise no compression).
-        Set to ``None`` for no compression.
-        Can also be a dict with key ``'method'`` set
-        to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'xz'``, ``'tar'``} and
-        other key-value pairs are forwarded to
-        ``zipfile.ZipFile``, ``gzip.GzipFile``,
-        ``bz2.BZ2File``, ``zstandard.ZstdCompressor``, ``lzma.LZMAFile`` or
-        ``tarfile.TarFile``, respectively.
-        As an example, the following could be passed for faster compression and to create
-        a reproducible gzip archive:
-        ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
+            For on-the-fly compression of the output data. If 'infer' and 'path_or_buffer'
+            is path-like, then detect compression from the following extensions: '.gz',
+            '.bz2', '.zip', '.xz', '.zst', '.tar', '.tar.gz', '.tar.xz' or '.tar.bz2'
+            (otherwise no compression).
+            Set to ``None`` for no compression.
+            Can also be a dict with key ``'method'`` set
+            to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'xz'``, ``'tar'``}
+            and other key-value pairs are forwarded to
+            ``zipfile.ZipFile``, ``gzip.GzipFile``,
+            ``bz2.BZ2File``, ``zstandard.ZstdCompressor``, ``lzma.LZMAFile`` or
+            ``tarfile.TarFile``, respectively.
+            As an example, the following could be passed for faster compression and to
+            create a reproducible gzip archive:
+            ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
 
         .. versionadded:: 1.5.0
             Added support for `.tar` files.
