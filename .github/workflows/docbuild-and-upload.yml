@@ -22,7 +22,7 @@ env:
   ENV_FILE: environment.yml
   PANDAS_CI: 1
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  PANDAS_VERSION: "${{ github.event_name == 'workflow_dispatch' && github.event.inputs.version }}"
+  PANDAS_VERSION: "${{ github.event_name == 'workflow_dispatch' && github.event.inputs.version || '' }}"
   PANDAS_VERSION_OVERRIDE: "${{ github.event_name == 'workflow_dispatch' && github.event.inputs.version || '' }}"
 
 permissions:
