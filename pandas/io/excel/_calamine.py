@@ -14,7 +14,6 @@ from typing import (
 
 from pandas.compat._optional import import_optional_dependency
 
-
 from pandas.io.excel._base import BaseExcelReader
 
 if TYPE_CHECKING:
