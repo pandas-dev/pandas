@@ -31,6 +31,8 @@ if TYPE_CHECKING:
     )
 
     from pandas import DataFrame
+
+
 class _BaseXMLFormatter:
     """
     Subclass for formatting data in XML.
@@ -114,6 +116,7 @@ class _BaseXMLFormatter:
     pandas.io.formats.xml.EtreeXMLFormatter
     pandas.io.formats.xml.LxmlXMLFormatter
     """
+
     def __init__(
         self,
         frame: DataFrame,
