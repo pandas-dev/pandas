@@ -22,7 +22,7 @@ env:
   ENV_FILE: environment.yml
   PANDAS_CI: 1
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  PANDAS_VERSION: "${{ github.event_name == 'workflow_dispatch' && github.event.inputs.version || ${GITHUB_REF_NAME:1} }}"
+  PANDAS_VERSION: "${{ github.event_name == 'workflow_dispatch' && github.event.inputs.version || '' }}"
   PANDAS_VERSION_OVERRIDE: "${{ github.event_name == 'workflow_dispatch' && github.event.inputs.version || '' }}"
 
 permissions:
@@ -43,6 +43,16 @@ jobs:
         shell: bash -el {0}
 
     steps:
+    - name: Set pandas version
+      run: |
+        echo "PANDAS_VERSION=${GITHUB_REF_NAME:1}" >> "$GITHUB_ENV"
+      if: github.event_name != 'workflow_dispatch'
+
+    - name: Show environment variables
+      run: |
+        echo "PANDAS_VERSION=${{ env.PANDAS_VERSION }}"
+        echo "PANDAS_VERSION_OVERRIDE=${{ env.PANDAS_VERSION_OVERRIDE }}"
+
     - name: Checkout
       uses: actions/checkout@v6
       with:
