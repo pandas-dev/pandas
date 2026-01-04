@@ -1,0 +1,44 @@
+# Import necessary libraries
+import pandas as pd
+import numpy as np
+from sklearn.datasets import load_iris
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+from sklearn import tree
+import matplotlib.pyplot as plt
+
+# Load the Iris dataset
+iris = load_iris()
+X = iris.data  # Features (sepal length, sepal width, petal length, petal width)
+y = iris.target  # Target labels (species)
+
+# Split the data into training and testing sets (80% training, 20% testing)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Initialize the Decision Tree Classifier
+dt_classifier = DecisionTreeClassifier(criterion='gini', max_depth=3, random_state=42)
+
+# Train the model on the data
+dt_classifier.fit(X_train, y_train)
+
+# Predict the results on the test data
+y_pred_dt = dt_classifier.predict(X_test)
+
+# Evaluate the model
+accuracy_dt = accuracy_score(y_test, y_pred_dt)
+print(f"Accuracy of Decision Tree: {accuracy_dt * 100:.2f}%")
+
+# Display the classification report
+print("\nClassification Report (Decision Tree):")
+print(classification_report(y_test, y_pred_dt))
+
+# Display the confusion matrix
+print("\nConfusion Matrix (Decision Tree):")
+print(confusion_matrix(y_test, y_pred_dt))
+
+# Plot the decision tree
+plt.figure(figsize=(12,8))
+tree.plot_tree(dt_classifier, feature_names=iris.feature_names, class_names=iris.target_names, filled=True)
+plt.title("Decision Tree Classifier - Iris Dataset")
+plt.show()
