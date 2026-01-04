@@ -17,7 +17,6 @@ from typing import (
 
 from pandas.util._decorators import set_module
 
-
 from pandas.io.common import stringify_path
 
 if TYPE_CHECKING:
