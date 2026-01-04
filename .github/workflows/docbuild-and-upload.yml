@@ -45,8 +45,7 @@ jobs:
     steps:
     - name: Set pandas version
       run: |
-        ref_name=${{ github.ref_name }}
-        echo "PANDAS_VERSION=${ref_name:1}" >> "$GITHUB_ENV"
+        echo "PANDAS_VERSION=${GITHUB_REF_NAME:1}" >> "$GITHUB_ENV"
       if: github.event_name != 'workflow_dispatch'
 
     - name: Show environment variables
