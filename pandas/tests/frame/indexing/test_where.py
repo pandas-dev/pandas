@@ -1073,3 +1073,14 @@ def test_where_other_nullable_dtype():
     result = df.where(df > 1, other, axis=0)
     expected = DataFrame({0: Series([pd.NA, 2, 3], dtype="Int64")})
     tm.assert_frame_equal(result, expected)
+
+
+def test_where_inplace_string_array_consistency():
+    # GH#46512
+    df = DataFrame({"A": ["1", "", "3"]}, dtype="string")
+    df_inplace = df.copy()
+
+    result = df.where(df != "", np.nan)
+    df_inplace.where(df_inplace != "", np.nan, inplace=True)
+
+    tm.assert_frame_equal(result, df_inplace)
