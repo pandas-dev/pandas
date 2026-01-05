@@ -357,9 +357,8 @@ def maybe_downcast_numeric(
                 # np.allclose may raise TypeError on object-dtype
                 if (new_result == result).all():
                     return new_result
-            else:
-                if np.allclose(new_result, result, rtol=0):
-                    return new_result
+            elif np.allclose(new_result, result, rtol=0):
+                return new_result
 
     elif (
         issubclass(dtype.type, np.floating)
