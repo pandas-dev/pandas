@@ -2194,8 +2194,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Multiple sheets may be written to by specifying unique `sheet_name`.
         With all data written to the file it is necessary to save the changes.
-        Note that creating an `ExcelWriter` object with a file name that already
-        exists will result in the contents of the existing file being erased.
+        Note that creating an `ExcelWriter` object with a file name that already exists
+        will overwrite the existing file because the default mode is write.
 
         Parameters
         ----------
@@ -12684,7 +12684,7 @@ def make_doc(name: str, ndim: int) -> str:
             Examples
             --------
             >>> s = pd.Series([1, 2, 3])
-            >>> s.sem().round(6)
+            >>> round(s.sem(), 6)
             0.57735
 
             With a DataFrame
@@ -12802,8 +12802,8 @@ def make_doc(name: str, ndim: int) -> str:
 
             With axis=None
 
-            >>> df.kurt(axis=None).round(6)
-            -0.988693
+            >>> df.kurt(axis=None)
+            -0.9886927196984727
 
             Using axis=1
 

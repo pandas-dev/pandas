@@ -17,7 +17,7 @@ This file is derived from NumPy 1.7. See NUMPY_LICENSE.txt
 // Licence at LICENSES/NUMPY_LICENSE
 
 #ifndef NPY_NO_DEPRECATED_API
-#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
+#  define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #endif // NPY_NO_DEPRECATED_API
 
 #include "pandas/vendored/numpy/datetime/np_datetime.h"
@@ -455,8 +455,20 @@ npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT base,
   }
 
   int64_t microseconds;
-  PD_CHECK_OVERFLOW(scaleSecondsToMicroseconds(seconds, &microseconds));
-  PD_CHECK_OVERFLOW(checked_add(microseconds, dts->us, &microseconds));
+  const int64_t us_per_second = 1000000L;
+  const int64_t min_scalable_seconds = NPY_MIN_INT64 / us_per_second;
+  if (seconds < min_scalable_seconds) {
+    const int64_t seconds_below_threshold = seconds - min_scalable_seconds;
+    // split y = a * x + b, where a * x underflows into two parts.
+    // y = a * (x + k - k) + b = a * (x + k) + (b - a * k), where k > 0.
+    int64_t scaled_us = us_per_second * (seconds - seconds_below_threshold);
+    PD_CHECK_OVERFLOW(checked_add(us_per_second * seconds_below_threshold,
+                                  dts->us, &microseconds));
+    PD_CHECK_OVERFLOW(checked_add(scaled_us, microseconds, &microseconds));
+  } else {
+    PD_CHECK_OVERFLOW(scaleSecondsToMicroseconds(seconds, &microseconds));
+    PD_CHECK_OVERFLOW(checked_add(microseconds, dts->us, &microseconds));
+  }
 
   if (base == NPY_FR_us) {
     return microseconds;
@@ -818,7 +830,7 @@ void pandas_timedelta_to_timedeltastruct(npy_timedelta td,
 PyArray_DatetimeMetaData
 get_datetime_metadata_from_dtype(PyArray_Descr *dtype) {
 #if NPY_ABI_VERSION < 0x02000000
-#define PyDataType_C_METADATA(dtype) ((dtype)->c_metadata)
+#  define PyDataType_C_METADATA(dtype) ((dtype)->c_metadata)
 #endif
   return ((PyArray_DatetimeDTypeMetaData *)PyDataType_C_METADATA(dtype))->meta;
 }
