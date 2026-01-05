@@ -264,8 +264,8 @@ Other enhancements
 - Support reading Stata 102-format (Stata 1) dta files (:issue:`58978`)
 - Support reading Stata 110-format (Stata 7) dta files (:issue:`47176`)
 - Switched wheel upload to **PyPI Trusted Publishing** (OIDC) for release-tag pushes in ``wheels.yml``. (:issue:`61718`)
-- Added a new :meth:`DataFrame.from_arrow` method to import any Arrow-compatible
-  tabular data object into a pandas :class:`DataFrame` through the
+- Added :meth:`DataFrame.from_arrow` and :meth:`Series.from_arrow` to import any Arrow-compatible
+  data object into a pandas object through the
   `Arrow PyCapsule Protocol <https://arrow.apache.org/docs/format/CDataInterface/PyCapsuleInterface.html>`__ (:issue:`59631`)
 
 .. ---------------------------------------------------------------------------
@@ -1307,6 +1307,7 @@ I/O
 Period
 ^^^^^^
 - Fixed error message when passing invalid period alias to :meth:`PeriodIndex.to_timestamp` (:issue:`58974`)
+- Fixed recoverable overflow for near-minimum timestamps with microsecond resolution (:issue:`63278`)
 
 Plotting
 ^^^^^^^^
@@ -1357,6 +1358,7 @@ Groupby/resample/rolling
 - Bug in :meth:`.Rolling.var` and :meth:`.Rolling.std` computing incorrect results due to numerical instability. (:issue:`47721`, :issue:`52407`, :issue:`54518`, :issue:`55343`)
 - Bug in :meth:`DataFrame.groupby` methods when operating on NumPy-nullable data failing when the NA mask was not C-contiguous (:issue:`61031`)
 - Bug in :meth:`DataFrame.groupby` when grouping by a Series and that Series was modified after calling :meth:`DataFrame.groupby` but prior to the groupby operation (:issue:`63219`)
+- Bug in :meth:`DataFrame.groupby` with a :class:`TimeGrouper` (e.g. ``pd.Grouper(freq="D")``) not retaining PyArrow index dtype (:issue:`63518`)
 
 Reshaping
 ^^^^^^^^^
@@ -1422,6 +1424,7 @@ Other
 - Bug in :meth:`DataFrame.apply` where passing ``engine="numba"`` ignored ``args`` passed to the applied function (:issue:`58712`)
 - Bug in :meth:`DataFrame.eval` and :meth:`DataFrame.query` which caused an exception when using NumPy attributes via ``@`` notation, e.g., ``df.eval("@np.floor(a)")``. (:issue:`58041`)
 - Bug in :meth:`DataFrame.eval` and :meth:`DataFrame.query` which did not allow to use ``tan`` function. (:issue:`55091`)
+- Bug in :meth:`DataFrame.groupby` with ``None`` values with filter (:issue:`62501`)
 - Bug in :meth:`DataFrame.query` where using duplicate column names led to a ``TypeError``. (:issue:`59950`)
 - Bug in :meth:`DataFrame.query` which raised an exception or produced incorrect results when expressions contained backtick-quoted column names containing the hash character ``#``, backticks, or characters that fall outside the ASCII range (U+0001..U+007F). (:issue:`59285`) (:issue:`49633`)
 - Bug in :meth:`DataFrame.query` which raised an exception when querying integer column names using backticks. (:issue:`60494`)

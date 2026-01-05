@@ -423,7 +423,7 @@ def unique(values):
     >>> pd.unique(pd.Series([("a", "b"), ("b", "a"), ("a", "c"), ("b", "a")]).values)
     array([('a', 'b'), ('b', 'a'), ('a', 'c')], dtype=object)
 
-    An NumpyExtensionArray of complex
+    A NumpyExtensionArray of complex
 
     >>> pd.unique(pd.array([1 + 1j, 2, 3]))
     <NumpyExtensionArray>

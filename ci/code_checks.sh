@@ -57,7 +57,8 @@ fi
 if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
 
     MSG='Python and Cython Doctests' ; echo "$MSG"
-    python -c 'import pandas as pd; pd.test(run_doctests=True)'
+    # Using future.python_scalars=True avoids NumPy scalar reprs in docstrings.
+    PANDAS_FUTURE_PYTHON_SCALARS="1" python -c 'import pandas as pd; pd.test(run_doctests=True)'
     RET=$(($RET + $?)) ; echo "$MSG" "DONE"
 
 fi
@@ -70,14 +71,13 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         --format=actions \
         -i ES01 `# For now it is ok if docstrings are missing the extended summary` \
         -i "pandas.DataFrame.from_arrow SA01,EX01" \
+        -i "pandas.Series.from_arrow SA01,EX01" \
         -i "pandas.Series.dt PR01" `# Accessors are implemented as classes, but we do not document the Parameters section` \
         -i "pandas.Period.freq GL08" \
         -i "pandas.Period.ordinal GL08" \
         -i "pandas.errors.ChainedAssignmentError SA01" \
         -i "pandas.errors.IncompatibleFrequency SA01,SS06,EX01" \
         -i "pandas.api.extensions.ExtensionArray.value_counts EX01,RT03,SA01" \
-        -i "pandas.api.typing.DataFrameGroupBy.plot PR02" \
-        -i "pandas.api.typing.SeriesGroupBy.plot PR02" \
         -i "pandas.api.typing.Resampler.quantile PR01,PR07" \
         -i "pandas.StringDtype.storage SA01" \
         -i "pandas.StringDtype.na_value SA01" \
