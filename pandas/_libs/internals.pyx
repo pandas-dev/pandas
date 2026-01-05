@@ -865,7 +865,7 @@ cdef class BlockManager:
             nb = blk.slice_block_rows(slobj)
             nbs.append(nb)
 
-        new_axes = [self.axes[0], self.axes[1]._getitem_slice(slobj)]
+        new_axes = [self.axes[0].view(), self.axes[1]._getitem_slice(slobj)]
         mgr = type(self)(tuple(nbs), new_axes, verify_integrity=False)
 
         # We can avoid having to rebuild blklocs/blknos
@@ -887,6 +887,7 @@ cdef class BlockManager:
 
         new_axes = list(self.axes)
         new_axes[axis] = new_axes[axis]._getitem_slice(slobj)
+        new_axes[1 - axis] = self.axes[1 - axis].view()
 
         return type(self)(tuple(new_blocks), new_axes, verify_integrity=False)
 
