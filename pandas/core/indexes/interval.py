@@ -40,6 +40,7 @@ from pandas.core.dtypes.cast import (
     infer_dtype_from_scalar,
     maybe_box_datetimelike,
     maybe_downcast_numeric,
+    maybe_unbox_numpy_scalar,
     maybe_upcast_numeric_to_64bit,
 )
 from pandas.core.dtypes.common import (
@@ -169,8 +170,13 @@ class IntervalIndex(ExtensionIndex):
         neither.
     dtype : dtype or None, default None
         If None, dtype will be inferred.
-    copy : bool, default False
-        Copy the input data.
+    copy : bool, default None
+        Whether to copy input data, only relevant for array, Series, and Index
+        inputs (for other input, e.g. a list, a new array is created anyway).
+        Defaults to True for array input and False for Index/Series.
+        Set to False to avoid copying array input at your own risk (if you
+        know the input data won't be modified elsewhere).
+        Set to True to force copying Series/Index input up front.
     name : object, optional
          Name to be stored in the index.
     verify_integrity : bool, default True
@@ -252,11 +258,14 @@ class IntervalIndex(ExtensionIndex):
         data,
         closed: IntervalClosedType | None = None,
         dtype: Dtype | None = None,
-        copy: bool = False,
+        copy: bool | None = None,
         name: Hashable | None = None,
         verify_integrity: bool = True,
     ) -> Self:
         name = maybe_extract_name(name, data, cls)
+
+        # GH#63388
+        data, copy = cls._maybe_copy_array_input(data, copy, dtype)
 
         with rewrite_exception("IntervalArray", cls.__name__):
             array = IntervalArray(
@@ -683,7 +692,7 @@ class IntervalIndex(ExtensionIndex):
                 key_i8 = key_i8.view("i8")
         else:
             # DatetimeIndex/TimedeltaIndex
-            key_dtype, key_i8 = key.dtype, Index(key.asi8)
+            key_dtype, key_i8 = key.dtype, Index(key.asi8, copy=False)
             if key.hasnans:
                 # convert NaT from its i8 value to np.nan so it's not viewed
                 # as a valid value, maybe causing errors (e.g. is_overlapping)
@@ -804,7 +813,7 @@ class IntervalIndex(ExtensionIndex):
         if matches == 0:
             raise KeyError(key)
         if matches == 1:
-            return mask.argmax()
+            return maybe_unbox_numpy_scalar(mask.argmax())
 
         res = lib.maybe_booleans_to_slice(mask.view("u1"))
         if isinstance(res, slice) and res.stop is None:
@@ -1339,7 +1348,7 @@ def interval_range(
     IntervalIndex([(2017-01-01 00:00:00, 2017-01-02 00:00:00],
                    (2017-01-02 00:00:00, 2017-01-03 00:00:00],
                    (2017-01-03 00:00:00, 2017-01-04 00:00:00]],
-                  dtype='interval[datetime64[ns], right]')
+                  dtype='interval[datetime64[us], right]')
 
     The ``freq`` parameter specifies the frequency between the left and right.
     endpoints of the individual intervals within the ``IntervalIndex``.  For
@@ -1356,7 +1365,7 @@ def interval_range(
     IntervalIndex([(2017-01-01 00:00:00, 2017-02-01 00:00:00],
                    (2017-02-01 00:00:00, 2017-03-01 00:00:00],
                    (2017-03-01 00:00:00, 2017-04-01 00:00:00]],
-                  dtype='interval[datetime64[ns], right]')
+                  dtype='interval[datetime64[us], right]')
 
     Specify ``start``, ``end``, and ``periods``; the frequency is generated
     automatically (linearly spaced).
@@ -1420,17 +1429,17 @@ def interval_range(
         dtype: np.dtype = np.dtype("int64")
         if com.all_not_none(start, end, freq):
             if (
-                isinstance(start, (float, np.float16))
-                or isinstance(end, (float, np.float16))
-                or isinstance(freq, (float, np.float16))
-            ):
-                dtype = np.dtype("float64")
-            elif (
                 isinstance(start, (np.integer, np.floating))
                 and isinstance(end, (np.integer, np.floating))
                 and start.dtype == end.dtype
             ):
                 dtype = start.dtype
+            elif (
+                isinstance(start, (float, np.floating))
+                or isinstance(end, (float, np.floating))
+                or isinstance(freq, (float, np.floating))
+            ):
+                dtype = np.dtype("float64")
             # 0.1 ensures we capture end
             breaks = np.arange(start, end + (freq * 0.1), freq)
             breaks = maybe_downcast_numeric(breaks, dtype)

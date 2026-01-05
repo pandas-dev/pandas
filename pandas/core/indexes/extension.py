@@ -74,7 +74,7 @@ def _inherit_from_data(
                         return type(self)._simple_new(result, name=self.name)
                     elif isinstance(result, ABCDataFrame):
                         return result.set_index(self)
-                    return Index(result, name=self.name, dtype=result.dtype)
+                    return Index(result, name=self.name, dtype=result.dtype, copy=False)
                 return result
 
             def fset(self, value) -> None:
@@ -101,7 +101,7 @@ def _inherit_from_data(
                     return type(self)._simple_new(result, name=self.name)
                 elif isinstance(result, ABCDataFrame):
                     return result.set_index(self)
-                return Index(result, name=self.name, dtype=result.dtype)
+                return Index(result, name=self.name, dtype=result.dtype, copy=False)
             return result
 
         # error: "property" has no attribute "__name__"
@@ -115,7 +115,7 @@ def inherit_names(
     names: list[str], delegate: type, cache: bool = False, wrap: bool = False
 ) -> Callable[[type[_ExtensionIndexT]], type[_ExtensionIndexT]]:
     """
-    Class decorator to pin attributes from an ExtensionArray to a Index subclass.
+    Class decorator to pin attributes from an ExtensionArray to an Index subclass.
 
     Parameters
     ----------

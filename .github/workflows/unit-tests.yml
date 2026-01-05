@@ -31,6 +31,7 @@ jobs:
         # Prevent the include jobs from overriding other jobs
         pattern: [""]
         pandas_future_infer_string: ["1"]
+        pandas_future_python_scalars: ["0"]
         include:
           - name: "Downstream Compat"
             env_file: actions-313-downstream_compat.yaml
@@ -75,6 +76,10 @@ jobs:
             env_file: actions-313.yaml
             pandas_future_infer_string: "0"
             platform: ubuntu-24.04
+          - name: "PANDAS_FUTURE_PYTHON_SCALARS=1"
+            env_file: actions-313.yaml
+            pandas_future_python_scalars: "1"
+            platform: ubuntu-24.04
           - name: "Numpy Dev"
             env_file: actions-313-numpydev.yaml
             pattern: "not slow and not network and not single_cpu"
@@ -92,6 +97,7 @@ jobs:
       LC_ALL: ${{ matrix.lc_all || '' }}
       PANDAS_CI: '1'
       PANDAS_FUTURE_INFER_STRING: ${{ matrix.pandas_future_infer_string || '1' }}
+      PANDAS_FUTURE_PYTHON_SCALARS: ${{ matrix.pandas_future_python_scalars || '0' }}
       TEST_ARGS: ${{ matrix.test_args || '' }}
       PYTEST_WORKERS: 'auto'
       PYTEST_TARGET: ${{ matrix.pytest_target || 'pandas' }}
@@ -118,7 +124,7 @@ jobs:
           - 3306:3306
 
       postgres:
-        image: postgres:17
+        image: postgres:18
         env:
           PGUSER: postgres
           POSTGRES_USER: postgres
@@ -133,13 +139,13 @@ jobs:
           - 5432:5432
 
       moto:
-        image: motoserver/moto:5.0.27
+        image: motoserver/moto:5.1.18
         ports:
           - 5000:5000
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
       with:
         fetch-depth: 0
 
@@ -198,7 +204,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -216,7 +222,7 @@ jobs:
   Linux-32-bit:
     runs-on: ubuntu-24.04
     container:
-      image: quay.io/pypa/manylinux2014_i686
+      image: quay.io/pypa/manylinux_2_28_i686
       options: --platform linux/386
     steps:
       - name: Checkout pandas Repo
@@ -336,7 +342,7 @@ jobs:
       PYTEST_TARGET: pandas
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -373,7 +379,7 @@ jobs:
       cancel-in-progress: true
     steps:
       - name: Checkout pandas Repo
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 

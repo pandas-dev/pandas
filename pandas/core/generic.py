@@ -82,10 +82,9 @@ from pandas._typing import (
     WriteExcelBuffer,
     npt,
 )
-from pandas.compat import PYPY
+from pandas.compat import CHAINED_WARNING_DISABLED
 from pandas.compat._constants import (
-    REF_COUNT,
-    WARNING_CHECK_DISABLED,
+    REF_COUNT_METHOD,
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
@@ -220,7 +219,7 @@ _shared_doc_kwargs = {
     "axes_single_arg": "{0 or 'index'} for Series, {0 or 'index', 1 or 'columns'} for DataFrame",  # noqa: E501
     "inplace": """
     inplace : bool, default False
-        If True, performs operation inplace and returns None.""",
+        If True, performs operation inplace.""",
     "optional_by": """
         by : str or list of str
             Name or list of names to sort by""",
@@ -419,21 +418,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Parameters
         ----------
         copy : bool, default False
-            Specify if a copy of the object should be made.
-
-            .. note::
-                The `copy` keyword will change behavior in pandas 3.0.
-                `Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
-                will be enabled by default, which means that all methods with a
-                `copy` keyword will use a lazy copy mechanism to defer the copy and
-                ignore the `copy` keyword. The `copy` keyword will be removed in a
-                future version of pandas.
-
-                You can already get the future behavior and improvements through
-                enabling copy on write ``pd.options.mode.copy_on_write = True``
+            This keyword is now ignored; changing its value will have no
+            impact on the method.
 
             .. deprecated:: 3.0.0
+
+                This keyword is ignored and will be removed in pandas 4.0. Since
+                pandas 3.0, this method always returns a new object using a lazy
+                copy mechanism that defers copies until necessary
+                (Copy-on-Write). See the `user guide on Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                for more details.
+
         allows_duplicate_labels : bool, optional
             Whether the returned object allows duplicate labels.
 
@@ -717,21 +713,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             this parameter is unused and defaults to 0.
 
         copy : bool, default False
-            Whether to make a copy of the underlying data.
-
-            .. note::
-                The `copy` keyword will change behavior in pandas 3.0.
-                `Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
-                will be enabled by default, which means that all methods with a
-                `copy` keyword will use a lazy copy mechanism to defer the copy and
-                ignore the `copy` keyword. The `copy` keyword will be removed in a
-                future version of pandas.
-
-                You can already get the future behavior and improvements through
-                enabling copy on write ``pd.options.mode.copy_on_write = True``
+            This keyword is now ignored; changing its value will have no
+            impact on the method.
 
             .. deprecated:: 3.0.0
+
+                This keyword is ignored and will be removed in pandas 4.0. Since
+                pandas 3.0, this method always returns a new object using a lazy
+                copy mechanism that defers copies until necessary
+                (Copy-on-Write). See the `user guide on Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                for more details.
 
         Returns
         -------
@@ -1148,21 +1140,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis : {0 or 'index', 1 or 'columns'}, default 0
             The axis to rename.
         copy : bool, default False
-            Also copy underlying data.
-
-            .. note::
-                The `copy` keyword will change behavior in pandas 3.0.
-                `Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
-                will be enabled by default, which means that all methods with a
-                `copy` keyword will use a lazy copy mechanism to defer the copy and
-                ignore the `copy` keyword. The `copy` keyword will be removed in a
-                future version of pandas.
-
-                You can already get the future behavior and improvements through
-                enabling copy on write ``pd.options.mode.copy_on_write = True``
+            This keyword is now ignored; changing its value will have no
+            impact on the method.
 
             .. deprecated:: 3.0.0
+
+                This keyword is ignored and will be removed in pandas 4.0. Since
+                pandas 3.0, this method always returns a new object using a lazy
+                copy mechanism that defers copies until necessary
+                (Copy-on-Write). See the `user guide on Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                for more details.
+
         inplace : bool, default False
             Modifies the object directly, instead of creating a new Series
             or DataFrame.
@@ -1457,6 +1446,19 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         0  10.0  20.0
         >>> df.equals(different_data_type)
         False
+
+        DataFrames with NaN in the same locations compare equal.
+
+        >>> df_nan1 = pd.DataFrame({"a": [1, np.nan], "b": [3, np.nan]})
+        >>> df_nan2 = pd.DataFrame({"a": [1, np.nan], "b": [3, np.nan]})
+        >>> df_nan1.equals(df_nan2)
+        True
+
+        If the NaN values are not in the same locations, they compare unequal.
+
+        >>> df_nan3 = pd.DataFrame({"a": [1, np.nan], "b": [3, 4]})
+        >>> df_nan1.equals(df_nan3)
+        False
         """
         if not (isinstance(other, type(self)) or isinstance(self, type(other))):
             return False
@@ -1561,7 +1563,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> s = pd.Series([pd.Timedelta("1 days")])
         >>> s.abs()
         0   1 days
-        dtype: timedelta64[ns]
+        dtype: timedelta64[us]
 
         Select rows with data closest to certain value using argsort (from
         `StackOverflow <https://stackoverflow.com/a/17758115>`__).
@@ -2180,6 +2182,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         freeze_panes: tuple[int, int] | None = None,
         storage_options: StorageOptions | None = None,
         engine_kwargs: dict[str, Any] | None = None,
+        autofilter: bool = False,
     ) -> None:
         """
         Write {klass} to an Excel sheet.
@@ -2191,8 +2194,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Multiple sheets may be written to by specifying unique `sheet_name`.
         With all data written to the file it is necessary to save the changes.
-        Note that creating an `ExcelWriter` object with a file name that already
-        exists will result in the contents of the existing file being erased.
+        Note that creating an `ExcelWriter` object with a file name that already exists
+        will overwrite the existing file because the default mode is write.
 
         Parameters
         ----------
@@ -2240,6 +2243,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             .. versionadded:: {storage_options_versionadded}
         {extra_parameters}
+        autofilter : bool, default False
+            If True, add automatic filters to all columns.
+
         See Also
         --------
         to_csv : Write DataFrame to a comma-separated values (csv) file.
@@ -2312,6 +2318,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             index_label=index_label,
             merge_cells=merge_cells,
             inf_rep=inf_rep,
+            autofilter=autofilter,
         )
         formatter.write(
             excel_writer,
@@ -4422,21 +4429,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             * nearest: use nearest valid observations to fill gap.
 
         copy : bool, default False
-            Return a new object, even if the passed indexes are the same.
-
-            .. note::
-                The `copy` keyword will change behavior in pandas 3.0.
-                `Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
-                will be enabled by default, which means that all methods with a
-                `copy` keyword will use a lazy copy mechanism to defer the copy and
-                ignore the `copy` keyword. The `copy` keyword will be removed in a
-                future version of pandas.
-
-                You can already get the future behavior and improvements through
-                enabling copy on write ``pd.options.mode.copy_on_write = True``
+            This keyword is now ignored; changing its value will have no
+            impact on the method.
 
             .. deprecated:: 3.0.0
+
+                This keyword is ignored and will be removed in pandas 4.0. Since
+                pandas 3.0, this method always returns a new object using a lazy
+                copy mechanism that defers copies until necessary
+                (Copy-on-Write). See the `user guide on Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                for more details.
+
         limit : int, default None
             Maximum number of consecutive labels to fill for inexact matches.
         tolerance : optional
@@ -5184,21 +5188,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             * nearest: Use nearest valid observations to fill gap.
 
         copy : bool, default False
-            Return a new object, even if the passed indexes are the same.
-
-            .. note::
-                The `copy` keyword will change behavior in pandas 3.0.
-                `Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
-                will be enabled by default, which means that all methods with a
-                `copy` keyword will use a lazy copy mechanism to defer the copy and
-                ignore the `copy` keyword. The `copy` keyword will be removed in a
-                future version of pandas.
-
-                You can already get the future behavior and improvements through
-                enabling copy on write ``pd.options.mode.copy_on_write = True``
+            This keyword is now ignored; changing its value will have no
+            impact on the method.
 
             .. deprecated:: 3.0.0
+
+                This keyword is ignored and will be removed in pandas 4.0. Since
+                pandas 3.0, this method always returns a new object using a lazy
+                copy mechanism that defers copies until necessary
+                (Copy-on-Write). See the `user guide on Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                for more details.
+
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
@@ -6306,7 +6307,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> df.dtypes
         float              float64
         int                  int64
-        datetime    datetime64[s]
+        datetime    datetime64[us]
         string              str
         dtype: object
         """
@@ -6337,23 +6338,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             a numpy.dtype or Python type to cast one or more of the DataFrame's
             columns to column-specific types.
         copy : bool, default False
-            Return a copy when ``copy=True`` (be very careful setting
-            ``copy=False`` as changes to values then may propagate to other
-            pandas objects).
-
-            .. note::
-                The `copy` keyword will change behavior in pandas 3.0.
-                `Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
-                will be enabled by default, which means that all methods with a
-                `copy` keyword will use a lazy copy mechanism to defer the copy and
-                ignore the `copy` keyword. The `copy` keyword will be removed in a
-                future version of pandas.
-
-                You can already get the future behavior and improvements through
-                enabling copy on write ``pd.options.mode.copy_on_write = True``
+            This keyword is now ignored; changing its value will have no
+            impact on the method.
 
             .. deprecated:: 3.0.0
+
+                This keyword is ignored and will be removed in pandas 4.0. Since
+                pandas 3.0, this method always returns a new object using a lazy
+                copy mechanism that defers copies until necessary
+                (Copy-on-Write). See the `user guide on Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                for more details.
+
         errors : {'raise', 'ignore'}, default 'raise'
             Control raising of exceptions on invalid data for provided dtype.
 
@@ -6442,7 +6438,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         0   2020-01-01
         1   2020-01-02
         2   2020-01-03
-        dtype: datetime64[ns]
+        dtype: datetime64[us]
         """
         self._check_copy_deprecation(copy)
         if is_dict_like(dtype):
@@ -6530,23 +6526,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         When ``deep=False``, a new object will be created without copying
         the calling object's data or index (only references to the data
-        and index are copied). Any changes to the data of the original
-        will be reflected in the shallow copy (and vice versa).
+        and index are copied). With Copy-on-Write, changes to the original
+        will *not* be reflected in the shallow copy (and vice versa). The
+        shallow copy uses a lazy (deferred) copy mechanism that copies the
+        data only when any changes to the original or shallow copy are made,
+        ensuring memory efficiency while maintaining data integrity.
 
         .. note::
-            The ``deep=False`` behaviour as described above will change
-            in pandas 3.0. `Copy-on-Write
-            <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
-            will be enabled by default, which means that the "shallow" copy
-            is that is returned with ``deep=False`` will still avoid making
-            an eager copy, but changes to the data of the original will *no*
-            longer be reflected in the shallow copy (or vice versa). Instead,
-            it makes use of a lazy (deferred) copy mechanism that will copy
-            the data only when any changes to the original or shallow copy is
-            made.
-
-            You can already get the future behavior and improvements through
-            enabling copy on write ``pd.options.mode.copy_on_write = True``
+            In pandas versions prior to 3.0, the default behavior without
+            Copy-on-Write was different: changes to the original *were* reflected
+            in the shallow copy (and vice versa). See the :ref:`Copy-on-Write
+            user guide <copy_on_write>` for more information.
 
         Parameters
         ----------
@@ -6689,22 +6679,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Parameters
         ----------
         copy : bool, default False
-            Whether to make a copy for non-object or non-inferable columns
-            or Series.
-
-            .. note::
-                The `copy` keyword will change behavior in pandas 3.0.
-                `Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
-                will be enabled by default, which means that all methods with a
-                `copy` keyword will use a lazy copy mechanism to defer the copy and
-                ignore the `copy` keyword. The `copy` keyword will be removed in a
-                future version of pandas.
-
-                You can already get the future behavior and improvements through
-                enabling copy on write ``pd.options.mode.copy_on_write = True``
+            This keyword is now ignored; changing its value will have no
+            impact on the method.
 
             .. deprecated:: 3.0.0
+
+                This keyword is ignored and will be removed in pandas 4.0. Since
+                pandas 3.0, this method always returns a new object using a lazy
+                copy mechanism that defers copies until necessary
+                (Copy-on-Write). See the `user guide on Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                for more details.
 
         Returns
         -------
@@ -6927,39 +6912,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
         result = self._constructor_from_mgr(new_mgr, axes=new_mgr.axes)
         if inplace:
-            return self._update_inplace(result)
+            self._update_inplace(result)
+            return self
         else:
             return result.__finalize__(self, method="fillna")
-
-    @overload
-    def fillna(
-        self,
-        value: Hashable | Mapping | Series | DataFrame,
-        *,
-        axis: Axis | None = ...,
-        inplace: Literal[False] = ...,
-        limit: int | None = ...,
-    ) -> Self: ...
-
-    @overload
-    def fillna(
-        self,
-        value: Hashable | Mapping | Series | DataFrame,
-        *,
-        axis: Axis | None = ...,
-        inplace: Literal[True],
-        limit: int | None = ...,
-    ) -> None: ...
-
-    @overload
-    def fillna(
-        self,
-        value: Hashable | Mapping | Series | DataFrame,
-        *,
-        axis: Axis | None = ...,
-        inplace: bool = ...,
-        limit: int | None = ...,
-    ) -> Self | None: ...
 
     @final
     @doc(
@@ -6973,7 +6929,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: Axis | None = None,
         inplace: bool = False,
         limit: int | None = None,
-    ) -> Self | None:
+    ) -> Self:
         """
         Fill NA/NaN values with `value`.
 
@@ -6998,8 +6954,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Returns
         -------
-        {klass} or None
-            Object with missing values filled or None if ``inplace=True``.
+        {klass}
+            Object with missing values filled.
 
         See Also
         --------
@@ -7077,8 +7033,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         if inplace:
-            if not PYPY and not WARNING_CHECK_DISABLED:
-                if sys.getrefcount(self) <= REF_COUNT:
+            if not CHAINED_WARNING_DISABLED:
+                if sys.getrefcount(
+                    self
+                ) <= REF_COUNT_METHOD and not common.is_local_in_caller_frame(self):
                     warnings.warn(
                         _chained_assignment_method_msg,
                         ChainedAssignmentError,
@@ -7101,9 +7059,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if isinstance(value, (dict, ABCSeries)):
                 if not len(value):
                     # test_fillna_nonscalar
-                    if inplace:
-                        return None
-                    return self.copy(deep=False)
+                    return self if inplace else self.copy(deep=False)
                 from pandas import Series
 
                 value = Series(value)
@@ -7139,6 +7095,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         f"{value} not a suitable type to fill into {frame_dtype}"
                     )
                 result = result.T.fillna(value=value).T
+                if inplace:
+                    self._update_inplace(result)
+                    result = self
             else:
                 for k, v in value.items():
                     if k not in result:
@@ -7184,10 +7143,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                                     result.iloc[:, loc] = res_loc
                                 else:
                                     result.isetitem(loc, res_loc)
-            if inplace:
-                return self._update_inplace(result)
-            else:
-                return result
+            return result
 
         elif not is_list_like(value):
             if axis == 1:
@@ -7202,39 +7158,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         result = self._constructor_from_mgr(new_data, axes=new_data.axes)
         if inplace:
-            return self._update_inplace(result)
+            self._update_inplace(result)
+            return self
         else:
             return result.__finalize__(self, method="fillna")
-
-    @overload
-    def ffill(
-        self,
-        *,
-        axis: None | Axis = ...,
-        inplace: Literal[False] = ...,
-        limit: None | int = ...,
-        limit_area: Literal["inside", "outside"] | None = ...,
-    ) -> Self: ...
-
-    @overload
-    def ffill(
-        self,
-        *,
-        axis: None | Axis = ...,
-        inplace: Literal[True],
-        limit: None | int = ...,
-        limit_area: Literal["inside", "outside"] | None = ...,
-    ) -> None: ...
-
-    @overload
-    def ffill(
-        self,
-        *,
-        axis: None | Axis = ...,
-        inplace: bool = ...,
-        limit: None | int = ...,
-        limit_area: Literal["inside", "outside"] | None = ...,
-    ) -> Self | None: ...
 
     @final
     @doc(
@@ -7248,7 +7175,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace: bool = False,
         limit: None | int = None,
         limit_area: Literal["inside", "outside"] | None = None,
-    ) -> Self | None:
+    ) -> Self:
         """
         Fill NA/NaN values by propagating the last valid observation to next valid.
 
@@ -7281,8 +7208,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Returns
         -------
-        {klass} or None
-            Object with missing values filled or None if ``inplace=True``.
+        {klass}
+            Object with missing values filled.
 
         See Also
         --------
@@ -7324,8 +7251,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         if inplace:
-            if not PYPY and not WARNING_CHECK_DISABLED:
-                if sys.getrefcount(self) <= REF_COUNT:
+            if not CHAINED_WARNING_DISABLED:
+                if sys.getrefcount(
+                    self
+                ) <= REF_COUNT_METHOD and not common.is_local_in_caller_frame(self):
                     warnings.warn(
                         _chained_assignment_method_msg,
                         ChainedAssignmentError,
@@ -7340,35 +7269,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             limit_area=limit_area,
         )
 
-    @overload
-    def bfill(
-        self,
-        *,
-        axis: None | Axis = ...,
-        inplace: Literal[False] = ...,
-        limit: None | int = ...,
-        limit_area: Literal["inside", "outside"] | None = ...,
-    ) -> Self: ...
-
-    @overload
-    def bfill(
-        self,
-        *,
-        axis: None | Axis = ...,
-        inplace: Literal[True],
-        limit: None | int = ...,
-    ) -> None: ...
-
-    @overload
-    def bfill(
-        self,
-        *,
-        axis: None | Axis = ...,
-        inplace: bool = ...,
-        limit: None | int = ...,
-        limit_area: Literal["inside", "outside"] | None = ...,
-    ) -> Self | None: ...
-
     @final
     @doc(
         klass=_shared_doc_kwargs["klass"],
@@ -7381,7 +7281,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace: bool = False,
         limit: None | int = None,
         limit_area: Literal["inside", "outside"] | None = None,
-    ) -> Self | None:
+    ) -> Self:
         """
         Fill NA/NaN values by using the next valid observation to fill the gap.
 
@@ -7414,8 +7314,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Returns
         -------
-        {klass} or None
-            Object with missing values filled or None if ``inplace=True``.
+        {klass}
+            Object with missing values filled.
 
         See Also
         --------
@@ -7464,8 +7364,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         if inplace:
-            if not PYPY and not WARNING_CHECK_DISABLED:
-                if sys.getrefcount(self) <= REF_COUNT:
+            if not CHAINED_WARNING_DISABLED:
+                if sys.getrefcount(
+                    self
+                ) <= REF_COUNT_METHOD and not common.is_local_in_caller_frame(self):
                     warnings.warn(
                         _chained_assignment_method_msg,
                         ChainedAssignmentError,
@@ -7480,36 +7382,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             limit_area=limit_area,
         )
 
-    @overload
-    def replace(
-        self,
-        to_replace=...,
-        value=...,
-        *,
-        inplace: Literal[False] = ...,
-        regex: bool = ...,
-    ) -> Self: ...
-
-    @overload
-    def replace(
-        self,
-        to_replace=...,
-        value=...,
-        *,
-        inplace: Literal[True],
-        regex: bool = ...,
-    ) -> None: ...
-
-    @overload
-    def replace(
-        self,
-        to_replace=...,
-        value=...,
-        *,
-        inplace: bool = ...,
-        regex: bool = ...,
-    ) -> Self | None: ...
-
     @final
     @doc(
         _shared_docs["replace"],
@@ -7523,7 +7395,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         *,
         inplace: bool = False,
         regex: bool = False,
-    ) -> Self | None:
+    ) -> Self:
         if not is_bool(regex) and to_replace is not None:
             raise ValueError("'to_replace' must be 'None' if 'regex' is not a bool")
 
@@ -7549,8 +7421,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         inplace = validate_bool_kwarg(inplace, "inplace")
         if inplace:
-            if not PYPY and not WARNING_CHECK_DISABLED:
-                if sys.getrefcount(self) <= REF_COUNT:
+            if not CHAINED_WARNING_DISABLED:
+                if sys.getrefcount(
+                    self
+                ) <= REF_COUNT_METHOD and not common.is_local_in_caller_frame(self):
                     warnings.warn(
                         _chained_assignment_method_msg,
                         ChainedAssignmentError,
@@ -7601,9 +7475,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         else:
             # need a non-zero len on all axes
             if not self.size:
-                if inplace:
-                    return None
-                return self.copy(deep=False)
+                return self if inplace else self.copy(deep=False)
             if is_dict_like(to_replace):
                 if is_dict_like(value):  # {'A' : NA} -> {'A' : 0}
                     if isinstance(self, ABCSeries):
@@ -7697,48 +7569,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         result = self._constructor_from_mgr(new_data, axes=new_data.axes)
         if inplace:
-            return self._update_inplace(result)
+            self._update_inplace(result)
+            return self
         else:
             return result.__finalize__(self, method="replace")
-
-    @overload
-    def interpolate(
-        self,
-        method: InterpolateOptions = ...,
-        *,
-        axis: Axis = ...,
-        limit: int | None = ...,
-        inplace: Literal[False] = ...,
-        limit_direction: Literal["forward", "backward", "both"] | None = ...,
-        limit_area: Literal["inside", "outside"] | None = ...,
-        **kwargs,
-    ) -> Self: ...
-
-    @overload
-    def interpolate(
-        self,
-        method: InterpolateOptions = ...,
-        *,
-        axis: Axis = ...,
-        limit: int | None = ...,
-        inplace: Literal[True],
-        limit_direction: Literal["forward", "backward", "both"] | None = ...,
-        limit_area: Literal["inside", "outside"] | None = ...,
-        **kwargs,
-    ) -> None: ...
-
-    @overload
-    def interpolate(
-        self,
-        method: InterpolateOptions = ...,
-        *,
-        axis: Axis = ...,
-        limit: int | None = ...,
-        inplace: bool = ...,
-        limit_direction: Literal["forward", "backward", "both"] | None = ...,
-        limit_area: Literal["inside", "outside"] | None = ...,
-        **kwargs,
-    ) -> Self | None: ...
 
     @final
     def interpolate(
@@ -7751,7 +7585,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         limit_direction: Literal["forward", "backward", "both"] | None = None,
         limit_area: Literal["inside", "outside"] | None = None,
         **kwargs,
-    ) -> Self | None:
+    ) -> Self:
         """
         Fill NaN values using an interpolation method.
 
@@ -7812,9 +7646,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Returns
         -------
-        Series or DataFrame or None
+        Series or DataFrame
             Returns the same object type as the caller, interpolated at
-            some or all ``NaN`` values or None if ``inplace=True``.
+            some or all ``NaN`` values.
 
         See Also
         --------
@@ -7912,8 +7746,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace = validate_bool_kwarg(inplace, "inplace")
 
         if inplace:
-            if not PYPY and not WARNING_CHECK_DISABLED:
-                if sys.getrefcount(self) <= REF_COUNT:
+            if not CHAINED_WARNING_DISABLED:
+                if sys.getrefcount(
+                    self
+                ) <= REF_COUNT_METHOD and not common.is_local_in_caller_frame(self):
                     warnings.warn(
                         _chained_assignment_method_msg,
                         ChainedAssignmentError,
@@ -7923,9 +7759,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis = self._get_axis_number(axis)
 
         if self.empty:
-            if inplace:
-                return None
-            return self.copy()
+            return self if inplace else self.copy()
 
         if not isinstance(method, str):
             raise ValueError("'method' should be a string, not None.")
@@ -7954,7 +7788,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if should_transpose:
             result = result.T
         if inplace:
-            return self._update_inplace(result)
+            self._update_inplace(result)
+            return self
         else:
             return result.__finalize__(self, method="interpolate")
 
@@ -8372,11 +8207,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         if lower is not None:
             cond = mask | (self >= lower)
-            result = result.where(cond, lower, inplace=inplace)  # type: ignore[assignment]
+            result = result.where(cond, lower, inplace=inplace)
         if upper is not None:
             cond = mask | (self <= upper)
-            result = self if inplace else result
-            result = result.where(cond, upper, inplace=inplace)  # type: ignore[assignment]
+            result = result.where(cond, upper, inplace=inplace)
 
         return result
 
@@ -8413,39 +8247,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # GH 40420
         return self.where(subset, threshold, axis=axis, inplace=inplace)
 
-    @overload
-    def clip(
-        self,
-        lower=...,
-        upper=...,
-        *,
-        axis: Axis | None = ...,
-        inplace: Literal[False] = ...,
-        **kwargs,
-    ) -> Self: ...
-
-    @overload
-    def clip(
-        self,
-        lower=...,
-        upper=...,
-        *,
-        axis: Axis | None = ...,
-        inplace: Literal[True],
-        **kwargs,
-    ) -> None: ...
-
-    @overload
-    def clip(
-        self,
-        lower=...,
-        upper=...,
-        *,
-        axis: Axis | None = ...,
-        inplace: bool = ...,
-        **kwargs,
-    ) -> Self | None: ...
-
     @final
     def clip(
         self,
@@ -8455,7 +8256,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: Axis | None = None,
         inplace: bool = False,
         **kwargs,
-    ) -> Self | None:
+    ) -> Self:
         """
         Trim values at input threshold(s).
 
@@ -8484,9 +8285,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Returns
         -------
-        Series or DataFrame or None
+        Series or DataFrame
             Same type as calling object with the values outside the
-            clip boundaries replaced or None if ``inplace=True``.
+            clip boundaries replaced.
 
         See Also
         --------
@@ -8567,8 +8368,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace = validate_bool_kwarg(inplace, "inplace")
 
         if inplace:
-            if not PYPY and not WARNING_CHECK_DISABLED:
-                if sys.getrefcount(self) <= REF_COUNT:
+            if not CHAINED_WARNING_DISABLED:
+                if sys.getrefcount(
+                    self
+                ) <= REF_COUNT_METHOD and not common.is_local_in_caller_frame(self):
                     warnings.warn(
                         _chained_assignment_method_msg,
                         ChainedAssignmentError,
@@ -9557,22 +9360,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
         copy : bool, default False
-            Always returns new objects. If copy=False and no reindexing is
-            required then original objects are returned.
-
-            .. note::
-                The `copy` keyword will change behavior in pandas 3.0.
-                `Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
-                will be enabled by default, which means that all methods with a
-                `copy` keyword will use a lazy copy mechanism to defer the copy and
-                ignore the `copy` keyword. The `copy` keyword will be removed in a
-                future version of pandas.
-
-                You can already get the future behavior and improvements through
-                enabling copy on write ``pd.options.mode.copy_on_write = True``
+            This keyword is now ignored; changing its value will have no
+            impact on the method.
 
             .. deprecated:: 3.0.0
+
+                This keyword is ignored and will be removed in pandas 4.0. Since
+                pandas 3.0, this method always returns a new object using a lazy
+                copy mechanism that defers copies until necessary
+                (Copy-on-Write). See the `user guide on Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                for more details.
+
         fill_value : scalar, default np.nan
             Value to use for missing values. Defaults to NaN, but can be any
             "compatible" value.
@@ -9804,39 +9603,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         return left, right, join_index
 
-    @overload
-    def _where(
-        self,
-        cond,
-        other=...,
-        *,
-        inplace: Literal[False] = ...,
-        axis: Axis | None = ...,
-        level=...,
-    ) -> Self: ...
-
-    @overload
-    def _where(
-        self,
-        cond,
-        other=...,
-        *,
-        inplace: Literal[True],
-        axis: Axis | None = ...,
-        level=...,
-    ) -> None: ...
-
-    @overload
-    def _where(
-        self,
-        cond,
-        other=...,
-        *,
-        inplace: bool,
-        axis: Axis | None = ...,
-        level=...,
-    ) -> Self | None: ...
-
     @final
     def _where(
         self,
@@ -9846,7 +9612,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace: bool = False,
         axis: Axis | None = None,
         level=None,
-    ) -> Self | None:
+    ) -> Self:
         """
         Equivalent to public method `where`, except that `other` is not
         applied as a function even if callable. Used in __setitem__.
@@ -9953,7 +9719,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         res.index = self.index
                         res.columns = self.columns
                         if inplace:
-                            return self._update_inplace(res)
+                            self._update_inplace(res)
+                            return self
                         return res.__finalize__(self)
 
             # slice me out of the other
@@ -9997,7 +9764,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             new_data = self._mgr.putmask(mask=cond, new=other, align=align)
             result = self._constructor_from_mgr(new_data, axes=new_data.axes)
-            return self._update_inplace(result)
+            self._update_inplace(result)
+            return self
 
         else:
             new_data = self._mgr.where(
@@ -10007,39 +9775,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             )
             result = self._constructor_from_mgr(new_data, axes=new_data.axes)
             return result.__finalize__(self)
-
-    @overload
-    def where(
-        self,
-        cond,
-        other=...,
-        *,
-        inplace: Literal[False] = ...,
-        axis: Axis | None = ...,
-        level: Level = ...,
-    ) -> Self: ...
-
-    @overload
-    def where(
-        self,
-        cond,
-        other=...,
-        *,
-        inplace: Literal[True],
-        axis: Axis | None = ...,
-        level: Level = ...,
-    ) -> None: ...
-
-    @overload
-    def where(
-        self,
-        cond,
-        other=...,
-        *,
-        inplace: bool = ...,
-        axis: Axis | None = ...,
-        level: Level = ...,
-    ) -> Self | None: ...
 
     @final
     @doc(
@@ -10057,7 +9792,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace: bool = False,
         axis: Axis | None = None,
         level: Level | None = None,
-    ) -> Self | None:
+    ) -> Self:
         """
         Replace values where the condition is {cond_rev}.
 
@@ -10088,10 +9823,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Returns
         -------
-        Series or DataFrame or None
+        Series or DataFrame
             When applied to a Series, the function will return a Series,
-            and when applied to a DataFrame, it will return a DataFrame;
-            if ``inplace=True``, it will return None.
+            and when applied to a DataFrame, it will return a DataFrame.
 
         See Also
         --------
@@ -10202,8 +9936,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         if inplace:
-            if not PYPY and not WARNING_CHECK_DISABLED:
-                if sys.getrefcount(self) <= REF_COUNT:
+            if not CHAINED_WARNING_DISABLED:
+                if sys.getrefcount(
+                    self
+                ) <= REF_COUNT_METHOD and not common.is_local_in_caller_frame(self):
                     warnings.warn(
                         _chained_assignment_method_msg,
                         ChainedAssignmentError,
@@ -10212,39 +9948,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         other = common.apply_if_callable(other, self)
         return self._where(cond, other, inplace=inplace, axis=axis, level=level)
-
-    @overload
-    def mask(
-        self,
-        cond,
-        other=...,
-        *,
-        inplace: Literal[False] = ...,
-        axis: Axis | None = ...,
-        level: Level = ...,
-    ) -> Self: ...
-
-    @overload
-    def mask(
-        self,
-        cond,
-        other=...,
-        *,
-        inplace: Literal[True],
-        axis: Axis | None = ...,
-        level: Level = ...,
-    ) -> None: ...
-
-    @overload
-    def mask(
-        self,
-        cond,
-        other=...,
-        *,
-        inplace: bool = ...,
-        axis: Axis | None = ...,
-        level: Level = ...,
-    ) -> Self | None: ...
 
     @final
     @doc(
@@ -10263,11 +9966,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace: bool = False,
         axis: Axis | None = None,
         level: Level | None = None,
-    ) -> Self | None:
+    ) -> Self:
         inplace = validate_bool_kwarg(inplace, "inplace")
         if inplace:
-            if not PYPY and not WARNING_CHECK_DISABLED:
-                if sys.getrefcount(self) <= REF_COUNT:
+            if not CHAINED_WARNING_DISABLED:
+                if sys.getrefcount(
+                    self
+                ) <= REF_COUNT_METHOD and not common.is_local_in_caller_frame(self):
                     warnings.warn(
                         _chained_assignment_method_msg,
                         ChainedAssignmentError,
@@ -10499,22 +10204,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis : {0 or 'index', 1 or 'columns'}, optional
             Axis to truncate. Truncates the index (rows) by default.
             For `Series` this parameter is unused and defaults to 0.
-        copy : bool, default is False,
-            Return a copy of the truncated section.
-
-            .. note::
-                The `copy` keyword will change behavior in pandas 3.0.
-                `Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
-                will be enabled by default, which means that all methods with a
-                `copy` keyword will use a lazy copy mechanism to defer the copy and
-                ignore the `copy` keyword. The `copy` keyword will be removed in a
-                future version of pandas.
-
-                You can already get the future behavior and improvements through
-                enabling copy on write ``pd.options.mode.copy_on_write = True``
+        copy : bool, default False
+            This keyword is now ignored; changing its value will have no
+            impact on the method.
 
             .. deprecated:: 3.0.0
+
+                This keyword is ignored and will be removed in pandas 4.0. Since
+                pandas 3.0, this method always returns a new object using a lazy
+                copy mechanism that defers copies until necessary
+                (Copy-on-Write). See the `user guide on Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                for more details.
 
         Returns
         -------
@@ -10685,21 +10386,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             If axis is a MultiIndex, convert a specific level. Otherwise
             must be None.
         copy : bool, default False
-            Also make a copy of the underlying data.
-
-            .. note::
-                The `copy` keyword will change behavior in pandas 3.0.
-                `Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
-                will be enabled by default, which means that all methods with a
-                `copy` keyword will use a lazy copy mechanism to defer the copy and
-                ignore the `copy` keyword. The `copy` keyword will be removed in a
-                future version of pandas.
-
-                You can already get the future behavior and improvements through
-                enabling copy on write ``pd.options.mode.copy_on_write = True``
+            This keyword is now ignored; changing its value will have no
+            impact on the method.
 
             .. deprecated:: 3.0.0
+
+                This keyword is ignored and will be removed in pandas 4.0. Since
+                pandas 3.0, this method always returns a new object using a lazy
+                copy mechanism that defers copies until necessary
+                (Copy-on-Write). See the `user guide on Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                for more details.
 
         Returns
         -------
@@ -10794,21 +10491,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             If axis ia a MultiIndex, localize a specific level. Otherwise
             must be None.
         copy : bool, default False
-            Also make a copy of the underlying data.
-
-            .. note::
-                The `copy` keyword will change behavior in pandas 3.0.
-                `Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
-                will be enabled by default, which means that all methods with a
-                `copy` keyword will use a lazy copy mechanism to defer the copy and
-                ignore the `copy` keyword. The `copy` keyword will be removed in a
-                future version of pandas.
-
-                You can already get the future behavior and improvements through
-                enabling copy on write ``pd.options.mode.copy_on_write = True``
+            This keyword is now ignored; changing its value will have no
+            impact on the method.
 
             .. deprecated:: 3.0.0
+
+                This keyword is ignored and will be removed in pandas 4.0. Since
+                pandas 3.0, this method always returns a new object using a lazy
+                copy mechanism that defers copies until necessary
+                (Copy-on-Write). See the `user guide on Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                for more details.
+
         ambiguous : 'infer', bool, bool-ndarray, 'NaT', default 'raise'
             When clocks moved backward due to DST, ambiguous times may arise.
             For example in Central European Time (UTC+01), when going from
@@ -11265,10 +10959,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Periods to shift for forming percent change.
         fill_method : None
             Must be None. This argument will be removed in a future version of pandas.
-
-            .. deprecated:: 2.1
-                All options of `fill_method` are deprecated except `fill_method=None`.
-
         freq : DateOffset, timedelta, or str, optional
             Increment to use from time series API (e.g. 'ME' or BDay()).
         **kwargs
@@ -12994,7 +12684,7 @@ def make_doc(name: str, ndim: int) -> str:
             Examples
             --------
             >>> s = pd.Series([1, 2, 3])
-            >>> s.sem().round(6)
+            >>> round(s.sem(), 6)
             0.57735
 
             With a DataFrame
@@ -13112,8 +12802,8 @@ def make_doc(name: str, ndim: int) -> str:
 
             With axis=None
 
-            >>> df.kurt(axis=None).round(6)
-            -0.988693
+            >>> df.kurt(axis=None)
+            -0.9886927196984727
 
             Using axis=1
 

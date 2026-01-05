@@ -117,7 +117,7 @@ def _astype_nansafe(
             # bc we know arr.dtype == object, this is equivalent to
             #  `np.asarray(to_timedelta(arr))`, but using a lower-level API that
             #  does not require a circular import.
-            tdvals = array_to_timedelta64(arr).view("m8[ns]")
+            tdvals = array_to_timedelta64(arr)
 
             tda = ensure_wrapped_if_datetimelike(tdvals)
             return tda.astype(dtype, copy=False)._ndarray
@@ -140,7 +140,7 @@ def _astype_float_to_int_nansafe(
     values: np.ndarray, dtype: np.dtype, copy: bool
 ) -> np.ndarray:
     """
-    astype with a check preventing converting NaN to an meaningless integer value.
+    astype with a check preventing converting NaN to a meaningless integer value.
     """
     if not np.isfinite(values).all():
         raise IntCastingNaNError(

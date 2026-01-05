@@ -58,7 +58,10 @@ from pandas.util._decorators import (
 )
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.cast import coerce_indexer_dtype
+from pandas.core.dtypes.cast import (
+    coerce_indexer_dtype,
+    maybe_unbox_numpy_scalar,
+)
 from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_platform_int,
@@ -1505,7 +1508,9 @@ class MultiIndex(Index):
 
         if len(new_levels) == 1:
             # a single-level multi-index
-            return Index(new_levels[0].take(new_codes[0]))._get_values_for_csv()
+            return Index(
+                new_levels[0].take(new_codes[0]), copy=False
+            )._get_values_for_csv()
         else:
             # reconstruct the multi-index
             mi = MultiIndex(
@@ -1732,10 +1737,10 @@ class MultiIndex(Index):
             # int, float, complex, str, bytes, _NestedSequence[Union
             # [bool, int, float, complex, str, bytes]]]"
             sort_order = np.lexsort(values)  # type: ignore[arg-type]
-            return Index(sort_order).is_monotonic_increasing
+            return Index(sort_order, copy=False).is_monotonic_increasing
         except TypeError:
             # we have mixed types and np.lexsort is not happy
-            return Index(self._values).is_monotonic_increasing
+            return Index(self._values, copy=False).is_monotonic_increasing
 
     @cache_readonly
     def is_monotonic_decreasing(self) -> bool:
@@ -1851,9 +1856,9 @@ class MultiIndex(Index):
         Get level values by supplying level as either integer or name:
 
         >>> mi.get_level_values(0)
-        Index(['a', 'b', 'c'], dtype='object', name='level_1')
+        Index(['a', 'b', 'c'], dtype='str', name='level_1')
         >>> mi.get_level_values("level_2")
-        Index(['d', 'e', 'f'], dtype='object', name='level_2')
+        Index(['d', 'e', 'f'], dtype='str', name='level_2')
 
         If a level contains missing values, the return type of the level
         may be cast to ``float``.
@@ -1996,7 +2001,7 @@ class MultiIndex(Index):
                ('bar', 'baz'), ('bar', 'qux')],
               dtype='object')
         """
-        return Index(self._values, tupleize_cols=False)
+        return Index(self._values, tupleize_cols=False, copy=False)
 
     def _is_lexsorted(self) -> bool:
         """
@@ -2303,8 +2308,8 @@ class MultiIndex(Index):
         ----------
         indices : array-like
             Indices to be taken.
-        axis : int, optional
-            The axis over which to select values, always 0.
+        axis : {0 or 'index'}, optional
+            The axis over which to select values, always 0 or 'index'.
         allow_fill : bool, default True
             How to handle negative values in `indices`.
 
@@ -2448,7 +2453,7 @@ class MultiIndex(Index):
             # setting names to None automatically
             return MultiIndex.from_tuples(new_tuples)
         except (TypeError, IndexError):
-            return Index(new_tuples)
+            return Index(new_tuples, copy=False)
 
     def argsort(
         self, *args, na_position: NaPosition = "last", **kwargs
@@ -2481,7 +2486,9 @@ class MultiIndex(Index):
         --------
         >>> midx = pd.MultiIndex.from_arrays([[3, 2], ["e", "c"]])
         >>> midx
-        MultiIndex([(3, 'e'), (2, 'c')])
+        MultiIndex([(3, 'e'),
+                    (2, 'c')],
+                   )
 
         >>> order = midx.argsort()
         >>> order
@@ -2706,14 +2713,18 @@ class MultiIndex(Index):
 
         Calling this method does not change the ordering of the values.
 
+        Default is to swap the last two levels of the MultiIndex.
+
         Parameters
         ----------
         i : int, str, default -2
             First level of index to be swapped. Can pass level name as string.
-            Type of parameters can be mixed.
+            Type of parameters can be mixed. If i is a negative int, the first
+            level is indexed relative to the end of the MultiIndex.
         j : int, str, default -1
             Second level of index to be swapped. Can pass level name as string.
-            Type of parameters can be mixed.
+            Type of parameters can be mixed. If j is a negative int, the second
+            level is indexed relative to the end of the MultiIndex.
 
         Returns
         -------
@@ -2729,20 +2740,33 @@ class MultiIndex(Index):
         Examples
         --------
         >>> mi = pd.MultiIndex(
-        ...     levels=[["a", "b"], ["bb", "aa"]], codes=[[0, 0, 1, 1], [0, 1, 0, 1]]
+        ...     levels=[["a", "b"], ["bb", "aa"], ["aaa", "bbb"]],
+        ...     codes=[[0, 0, 1, 1], [0, 1, 0, 1], [1, 0, 1, 0]],
         ... )
         >>> mi
-        MultiIndex([('a', 'bb'),
-                    ('a', 'aa'),
-                    ('b', 'bb'),
-                    ('b', 'aa')],
+        MultiIndex([('a', 'bb', 'bbb'),
+                    ('a', 'aa', 'aaa'),
+                    ('b', 'bb', 'bbb'),
+                    ('b', 'aa', 'aaa')],
+                   )
+        >>> mi.swaplevel()
+        MultiIndex([('a', 'bbb', 'bb'),
+                    ('a', 'aaa', 'aa'),
+                    ('b', 'bbb', 'bb'),
+                    ('b', 'aaa', 'aa')],
+                   )
+        >>> mi.swaplevel(0)
+        MultiIndex([('bbb', 'bb', 'a'),
+                    ('aaa', 'aa', 'a'),
+                    ('bbb', 'bb', 'b'),
+                    ('aaa', 'aa', 'b')],
                    )
         >>> mi.swaplevel(0, 1)
-        MultiIndex([('bb', 'a'),
-                    ('aa', 'a'),
-                    ('bb', 'b'),
-                    ('aa', 'b')],
-                   )
+        MultiIndex([('bb', 'a', 'bbb'),
+                    ('aa', 'a', 'aaa'),
+                    ('bb', 'b', 'bbb'),
+                    ('aa', 'b', 'aaa')],
+                )
         """
         new_levels = list(self.levels)
         new_codes = list(self.codes)
@@ -3060,7 +3084,7 @@ class MultiIndex(Index):
         lev = self.levels[0]
         codes = self._codes[0]
         cat = Categorical.from_codes(codes=codes, categories=lev, validate=False)
-        ci = Index(cat)
+        ci = Index(cat, copy=False)
         return ci.get_indexer_for(target)
 
     def get_slice_bound(
@@ -3113,7 +3137,9 @@ class MultiIndex(Index):
         """
         if not isinstance(label, tuple):
             label = (label,)
-        return self._partial_tup_index(label, side=side)
+        result = self._partial_tup_index(label, side=side)
+        result = maybe_unbox_numpy_scalar(result)
+        return result
 
     def slice_locs(self, start=None, end=None, step=None) -> tuple[int, int]:
         """
@@ -3418,10 +3444,10 @@ class MultiIndex(Index):
         >>> mi = pd.MultiIndex.from_arrays([list("abb"), list("def")], names=["A", "B"])
 
         >>> mi.get_loc_level("b")
-        (slice(1, 3, None), Index(['e', 'f'], dtype='object', name='B'))
+        (slice(1, 3, None), Index(['e', 'f'], dtype='str', name='B'))
 
         >>> mi.get_loc_level("e", level="B")
-        (array([False,  True, False]), Index(['b'], dtype='object', name='A'))
+        (array([False,  True, False]), Index(['b'], dtype='str', name='A'))
 
         >>> mi.get_loc_level(["b", "e"])
         (1, None)
@@ -3700,7 +3726,7 @@ class MultiIndex(Index):
             if start == end:
                 # The label is present in self.levels[level] but unused:
                 raise KeyError(key)
-            return slice(start, end)
+            return slice(maybe_unbox_numpy_scalar(start), maybe_unbox_numpy_scalar(end))
 
     def get_locs(self, seq) -> npt.NDArray[np.intp]:
         """
@@ -4082,13 +4108,12 @@ class MultiIndex(Index):
     def _get_reconciled_name_object(self, other) -> MultiIndex:
         """
         If the result of a set operation will be self,
-        return self, unless the names change, in which
-        case make a shallow copy of self.
+        return a shallow copy of self.
         """
         names = self._maybe_match_names(other)
         if self.names != names:
             return self.rename(names)
-        return self
+        return self.copy(deep=False)
 
     def _maybe_match_names(self, other):
         """

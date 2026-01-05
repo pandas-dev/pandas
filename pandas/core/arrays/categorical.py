@@ -26,6 +26,7 @@ from pandas._libs import (
 from pandas._libs.arrays import NDArrayBacked
 from pandas.compat.numpy import function as nv
 from pandas.errors import Pandas4Warning
+from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
@@ -245,6 +246,7 @@ def contains(cat, key, container) -> bool:
         return any(loc_ in container for loc_ in loc)
 
 
+@set_module("pandas")
 class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMixin):
     """
     Represent a categorical variable in classic R / S-plus fashion.
@@ -360,8 +362,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     >>> c.min()
     'c'
     """
-
-    __module__ = "pandas"
 
     # For comparisons, so that numpy uses our implementation if the compare
     # ops, which raise
@@ -670,7 +670,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             to_timedelta,
         )
 
-        cats = Index(inferred_categories)
+        cats = Index(inferred_categories, copy=False)
         known_categories = (
             isinstance(dtype, CategoricalDtype) and dtype.categories is not None
         )
@@ -2280,7 +2280,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         from pandas.io.formats import format as fmt
 
         formatter = None
-        if self.categories.dtype == "str":
+        if self.categories.dtype == "str" or self.categories.dtype == "string":
             # the extension array formatter defaults to boxed=True in format_array
             # override here to boxed=False to be consistent with QUOTE_NONNUMERIC
             formatter = cast(ExtensionArray, self.categories._values)._formatter(
@@ -2397,7 +2397,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         from pandas import Index
 
         # tupleize_cols=False for e.g. test_fillna_iterable_category GH#41914
-        to_add = Index._with_infer(value, tupleize_cols=False).difference(
+        to_add = Index._with_infer(value, tupleize_cols=False, copy=False).difference(
             self.categories
         )
 

@@ -210,14 +210,21 @@ class TestInsertIndexCoercion(CoercionBase):
     @pytest.mark.parametrize(
         "fill_val,exp_dtype",
         [
-            (pd.Timestamp("2012-01-01"), "datetime64[ns]"),
-            (pd.Timestamp("2012-01-01", tz="US/Eastern"), "datetime64[ns, US/Eastern]"),
+            (pd.Timestamp("2012-01-01").as_unit("s"), "datetime64[ns]"),
+            (
+                pd.Timestamp("2012-01-01", tz="US/Eastern").as_unit("s"),
+                "datetime64[ns, US/Eastern]",
+            ),
         ],
         ids=["datetime64", "datetime64tz"],
     )
     @pytest.mark.parametrize(
         "insert_value",
-        [pd.Timestamp("2012-01-01"), pd.Timestamp("2012-01-01", tz="Asia/Tokyo"), 1],
+        [
+            pd.Timestamp("2012-01-01").as_unit("s"),
+            pd.Timestamp("2012-01-01", tz="Asia/Tokyo").as_unit("s"),
+            1,
+        ],
     )
     def test_insert_index_datetimes(self, fill_val, exp_dtype, insert_value):
         obj = pd.DatetimeIndex(
@@ -233,13 +240,13 @@ class TestInsertIndexCoercion(CoercionBase):
 
         if fill_val.tz:
             # mismatched tzawareness
-            ts = pd.Timestamp("2012-01-01")
+            ts = pd.Timestamp("2012-01-01").as_unit("s")
             result = obj.insert(1, ts)
             expected = obj.astype(object).insert(1, ts)
             assert expected.dtype == object
             tm.assert_index_equal(result, expected)
 
-            ts = pd.Timestamp("2012-01-01", tz="Asia/Tokyo")
+            ts = pd.Timestamp("2012-01-01", tz="Asia/Tokyo").as_unit("s")
             result = obj.insert(1, ts)
             # once deprecation is enforced:
             expected = obj.insert(1, ts.tz_convert(obj.dtype.tz))
@@ -248,7 +255,7 @@ class TestInsertIndexCoercion(CoercionBase):
 
         else:
             # mismatched tzawareness
-            ts = pd.Timestamp("2012-01-01", tz="Asia/Tokyo")
+            ts = pd.Timestamp("2012-01-01", tz="Asia/Tokyo").as_unit("s")
             result = obj.insert(1, ts)
             expected = obj.astype(object).insert(1, ts)
             assert expected.dtype == object
@@ -263,15 +270,15 @@ class TestInsertIndexCoercion(CoercionBase):
 
     def test_insert_index_timedelta64(self):
         obj = pd.TimedeltaIndex(["1 day", "2 day", "3 day", "4 day"])
-        assert obj.dtype == "timedelta64[ns]"
+        assert obj.dtype == "timedelta64[us]"
 
         # timedelta64 + timedelta64 => timedelta64
         exp = pd.TimedeltaIndex(["1 day", "10 day", "2 day", "3 day", "4 day"])
         self._assert_insert_conversion(
-            obj, pd.Timedelta("10 day"), exp, "timedelta64[ns]"
+            obj, pd.Timedelta("10 day"), exp, "timedelta64[us]"
         )
 
-        for item in [pd.Timestamp("2012-01-01"), 1]:
+        for item in [pd.Timestamp("2012-01-01").as_unit("s"), 1]:
             result = obj.insert(1, item)
             expected = obj.astype(object).insert(1, item)
             assert expected.dtype == object
@@ -281,7 +288,11 @@ class TestInsertIndexCoercion(CoercionBase):
         "insert, coerced_val, coerced_dtype",
         [
             (pd.Period("2012-01", freq="M"), "2012-01", "period[M]"),
-            (pd.Timestamp("2012-01-01"), pd.Timestamp("2012-01-01"), object),
+            (
+                pd.Timestamp("2012-01-01").as_unit("s"),
+                pd.Timestamp("2012-01-01").as_unit("s"),
+                object,
+            ),
             (1, 1, object),
             ("x", "x", object),
         ],
@@ -420,15 +431,17 @@ class TestWhereCoercion(CoercionBase):
     @pytest.mark.parametrize(
         "fill_val,exp_dtype",
         [
-            (pd.Timestamp("2012-01-01"), "datetime64[ns]"),
-            (pd.Timestamp("2012-01-01", tz="US/Eastern"), object),
+            (pd.Timestamp("2012-01-01").as_unit("s"), "datetime64[ns]"),
+            (pd.Timestamp("2012-01-01", tz="US/Eastern").as_unit("s"), object),
         ],
         ids=["datetime64", "datetime64tz"],
     )
     def test_where_datetime64(self, index_or_series, fill_val, exp_dtype):
         klass = index_or_series
 
-        obj = klass(pd.date_range("2011-01-01", periods=4, freq="D")._with_freq(None))
+        obj = klass(
+            pd.date_range("2011-01-01", periods=4, freq="D", unit="ns")._with_freq(None)
+        )
         assert obj.dtype == "datetime64[ns]"
 
         fv = fill_val
@@ -457,7 +470,8 @@ class TestWhereCoercion(CoercionBase):
         raise NotImplementedError
 
     @pytest.mark.parametrize(
-        "value", [pd.Timedelta(days=9), timedelta(days=9), np.timedelta64(9, "D")]
+        "value",
+        [pd.Timedelta(days=9).as_unit("us"), timedelta(days=9), np.timedelta64(9, "D")],
     )
     def test_where_index_timedelta64(self, value):
         tdi = pd.timedelta_range("1 Day", periods=4)
@@ -561,8 +575,8 @@ class TestFillnaSeriesCoercion(CoercionBase):
     @pytest.mark.parametrize(
         "fill_val,fill_dtype",
         [
-            (pd.Timestamp("2012-01-01"), "datetime64[s]"),
-            (pd.Timestamp("2012-01-01", tz="US/Eastern"), object),
+            (pd.Timestamp("2012-01-01").as_unit("s"), "datetime64[s]"),
+            (pd.Timestamp("2012-01-01", tz="US/Eastern").as_unit("s"), object),
             (1, object),
             ("x", object),
         ],
@@ -572,20 +586,20 @@ class TestFillnaSeriesCoercion(CoercionBase):
         klass = index_or_series
         obj = klass(
             [
-                pd.Timestamp("2011-01-01"),
+                pd.Timestamp("2011-01-01").as_unit("s"),
                 pd.NaT,
-                pd.Timestamp("2011-01-03"),
-                pd.Timestamp("2011-01-04"),
+                pd.Timestamp("2011-01-03").as_unit("s"),
+                pd.Timestamp("2011-01-04").as_unit("s"),
             ]
         )
         assert obj.dtype == "datetime64[s]"
 
         exp = klass(
             [
-                pd.Timestamp("2011-01-01"),
+                pd.Timestamp("2011-01-01").as_unit("s"),
                 fill_val,
-                pd.Timestamp("2011-01-03"),
-                pd.Timestamp("2011-01-04"),
+                pd.Timestamp("2011-01-03").as_unit("s"),
+                pd.Timestamp("2011-01-04").as_unit("s"),
             ]
         )
         self._assert_fillna_conversion(obj, fill_val, exp, fill_dtype)
@@ -593,10 +607,16 @@ class TestFillnaSeriesCoercion(CoercionBase):
     @pytest.mark.parametrize(
         "fill_val,fill_dtype",
         [
-            (pd.Timestamp("2012-01-01", tz="US/Eastern"), "datetime64[s, US/Eastern]"),
-            (pd.Timestamp("2012-01-01"), object),
+            (
+                pd.Timestamp("2012-01-01", tz="US/Eastern").as_unit("s"),
+                "datetime64[s, US/Eastern]",
+            ),
+            (pd.Timestamp("2012-01-01").as_unit("s"), object),
             # pre-2.0 with a mismatched tz we would get object result
-            (pd.Timestamp("2012-01-01", tz="Asia/Tokyo"), "datetime64[s, US/Eastern]"),
+            (
+                pd.Timestamp("2012-01-01", tz="Asia/Tokyo").as_unit("s"),
+                "datetime64[s, US/Eastern]",
+            ),
             (1, object),
             ("x", object),
         ],
@@ -607,10 +627,10 @@ class TestFillnaSeriesCoercion(CoercionBase):
 
         obj = klass(
             [
-                pd.Timestamp("2011-01-01", tz=tz),
+                pd.Timestamp("2011-01-01", tz=tz).as_unit("s"),
                 pd.NaT,
-                pd.Timestamp("2011-01-03", tz=tz),
-                pd.Timestamp("2011-01-04", tz=tz),
+                pd.Timestamp("2011-01-03", tz=tz).as_unit("s"),
+                pd.Timestamp("2011-01-04", tz=tz).as_unit("s"),
             ]
         )
         assert obj.dtype == "datetime64[s, US/Eastern]"
@@ -621,10 +641,10 @@ class TestFillnaSeriesCoercion(CoercionBase):
             fv = fill_val.tz_convert(tz)
         exp = klass(
             [
-                pd.Timestamp("2011-01-01", tz=tz),
+                pd.Timestamp("2011-01-01", tz=tz).as_unit("s"),
                 fv,
-                pd.Timestamp("2011-01-03", tz=tz),
-                pd.Timestamp("2011-01-04", tz=tz),
+                pd.Timestamp("2011-01-03", tz=tz).as_unit("s"),
+                pd.Timestamp("2011-01-04", tz=tz).as_unit("s"),
             ]
         )
         self._assert_fillna_conversion(obj, fill_val, exp, fill_dtype)
@@ -637,8 +657,8 @@ class TestFillnaSeriesCoercion(CoercionBase):
             1 + 1j,
             True,
             pd.Interval(1, 2, closed="left"),
-            pd.Timestamp("2012-01-01", tz="US/Eastern"),
-            pd.Timestamp("2012-01-01"),
+            pd.Timestamp("2012-01-01", tz="US/Eastern").as_unit("s"),
+            pd.Timestamp("2012-01-01").as_unit("s"),
             pd.Timedelta(days=1),
             pd.Period("2016-01-01", "D"),
         ],
@@ -681,8 +701,8 @@ class TestFillnaSeriesCoercion(CoercionBase):
             1 + 1j,
             True,
             pd.Interval(1, 2, closed="left"),
-            pd.Timestamp("2012-01-01", tz="US/Eastern"),
-            pd.Timestamp("2012-01-01"),
+            pd.Timestamp("2012-01-01", tz="US/Eastern").as_unit("s"),
+            pd.Timestamp("2012-01-01").as_unit("s"),
             pd.Timedelta(days=1),
             pd.Period("2016-01-01", "W"),
         ],
@@ -716,17 +736,20 @@ class TestReplaceSeriesCoercion(CoercionBase):
     rep["float64"] = [1.1, 2.2]
     rep["complex128"] = [1 + 1j, 2 + 2j]
     rep["bool"] = [True, False]
-    rep["datetime64[ns]"] = [pd.Timestamp("2011-01-01"), pd.Timestamp("2011-01-03")]
+    rep["datetime64[ns]"] = [
+        pd.Timestamp("2011-01-01").as_unit("s"),
+        pd.Timestamp("2011-01-03").as_unit("s"),
+    ]
 
     for tz in ["UTC", "US/Eastern"]:
         # to test tz => different tz replacement
         key = f"datetime64[ns, {tz}]"
         rep[key] = [
-            pd.Timestamp("2011-01-01", tz=tz),
-            pd.Timestamp("2011-01-03", tz=tz),
+            pd.Timestamp("2011-01-01", tz=tz).as_unit("s"),
+            pd.Timestamp("2011-01-03", tz=tz).as_unit("s"),
         ]
 
-    rep["timedelta64[ns]"] = [pd.Timedelta("1 day"), pd.Timedelta("2 day")]
+    rep["timedelta64[us]"] = [pd.Timedelta("1 day"), pd.Timedelta("2 day")]
 
     @pytest.fixture(params=["dict", "series"])
     def how(self, request):
@@ -742,7 +765,7 @@ class TestReplaceSeriesCoercion(CoercionBase):
             "datetime64[ns]",
             "datetime64[ns, UTC]",
             "datetime64[ns, US/Eastern]",
-            "timedelta64[ns]",
+            "timedelta64[us]",
         ]
     )
     def from_key(self, request):
@@ -758,7 +781,7 @@ class TestReplaceSeriesCoercion(CoercionBase):
             "datetime64[ns]",
             "datetime64[ns, UTC]",
             "datetime64[ns, US/Eastern]",
-            "timedelta64[ns]",
+            "timedelta64[us]",
         ],
         ids=[
             "object",
@@ -818,7 +841,7 @@ class TestReplaceSeriesCoercion(CoercionBase):
 
     @pytest.mark.parametrize(
         "to_key",
-        ["timedelta64[ns]", "bool", "object", "complex128", "float64", "int64"],
+        ["timedelta64[us]", "bool", "object", "complex128", "float64", "int64"],
         indirect=True,
     )
     @pytest.mark.parametrize(

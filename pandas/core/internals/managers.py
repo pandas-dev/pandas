@@ -807,7 +807,7 @@ class BaseBlockManager(PandasObject):
         only_slice : bool, default False
             Whether to take views, not copies, along columns.
         use_na_proxy : bool, default False
-            Whether to use a np.void ndarray for newly introduced columns.
+            Whether to use an np.void ndarray for newly introduced columns.
 
         pandas-indexer with -1's only.
         """
@@ -883,7 +883,7 @@ class BaseBlockManager(PandasObject):
             If True, we always return views on existing arrays, never copies.
             This is used when called from ops.blockwise.operate_blockwise.
         use_na_proxy : bool, default False
-            Whether to use a np.void ndarray for newly introduced columns.
+            Whether to use an np.void ndarray for newly introduced columns.
         ref_inplace_op: bool, default False
             Don't track refs if True because we operate inplace
 
@@ -1777,7 +1777,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         na_value: object = lib.no_default,
     ) -> np.ndarray:
         """
-        Convert the blockmanager data into an numpy array.
+        Convert the blockmanager data into a numpy array.
 
         Parameters
         ----------

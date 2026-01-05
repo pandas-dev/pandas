@@ -652,9 +652,25 @@ class BaseGrouper:
         """dict {group name -> group indices}"""
         if len(self.groupings) == 1 and isinstance(self.result_index, CategoricalIndex):
             # This shows unused categories in indices GH#38642
-            return self.groupings[0].indices
-        codes_list = [ping.codes for ping in self.groupings]
-        return get_indexer_dict(codes_list, self.levels)
+            result = self.groupings[0].indices
+        else:
+            codes_list = [ping.codes for ping in self.groupings]
+            result = get_indexer_dict(codes_list, self.levels)
+        if not self.dropna:
+            has_mi = isinstance(self.result_index, MultiIndex)
+            if not has_mi and self.result_index.hasnans:
+                result = {
+                    np.nan if isna(key) else key: value for key, value in result.items()
+                }
+            elif has_mi:
+                # MultiIndex has no efficient way to tell if there are NAs
+                result = {
+                    # error: "Hashable" has no attribute "__iter__" (not iterable)
+                    tuple(np.nan if isna(comp) else comp for comp in key): value  # type: ignore[attr-defined]
+                    for key, value in result.items()
+                }
+
+        return result
 
     @final
     @cache_readonly
@@ -730,7 +746,7 @@ class BaseGrouper:
     @cache_readonly
     def is_monotonic(self) -> bool:
         # return if my group orderings are monotonic
-        return Index(self.ids).is_monotonic_increasing
+        return Index(self.ids, copy=False).is_monotonic_increasing
 
     @final
     @cache_readonly
@@ -760,7 +776,9 @@ class BaseGrouper:
 
     @cache_readonly
     def result_index_and_ids(self) -> tuple[Index, npt.NDArray[np.intp]]:
-        levels = [Index._with_infer(ping.uniques) for ping in self.groupings]
+        levels = [
+            Index._with_infer(ping.uniques, copy=False) for ping in self.groupings
+        ]
         obs = [
             ping._observed or not ping._passed_categorical for ping in self.groupings
         ]

@@ -40,6 +40,7 @@ from pandas._libs.tslibs.timedeltas import (
     truediv_object_array,
 )
 from pandas.compat.numpy import function as nv
+from pandas.util._decorators import set_module
 from pandas.util._validators import validate_endpoints
 
 from pandas.core.dtypes.common import (
@@ -107,6 +108,7 @@ def _field_accessor(name: str, alias: str, docstring: str):
     return property(f)
 
 
+@set_module("pandas.arrays")
 class TimedeltaArray(dtl.TimelikeOps):
     """
     Pandas ExtensionArray for timedelta data.
@@ -148,16 +150,17 @@ class TimedeltaArray(dtl.TimelikeOps):
     >>> pd.arrays.TimedeltaArray._from_sequence(pd.TimedeltaIndex(["1h", "2h"]))
     <TimedeltaArray>
     ['0 days 01:00:00', '0 days 02:00:00']
-    Length: 2, dtype: timedelta64[ns]
+    Length: 2, dtype: timedelta64[us]
     """
 
-    __module__ = "pandas.arrays"
-
     _typ = "timedeltaarray"
-    _internal_fill_value = np.timedelta64("NaT", "ns")
     _recognized_scalars = (timedelta, np.timedelta64, Tick)
     _is_recognized_dtype: Callable[[DtypeObj], bool] = lambda x: lib.is_np_dtype(x, "m")
     _infer_matches = ("timedelta", "timedelta64")
+
+    @property
+    def _internal_fill_value(self) -> np.timedelta64:
+        return np.timedelta64("NaT", self.unit)
 
     @property
     def _scalar_type(self) -> type[Timedelta]:
@@ -798,7 +801,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         2   2 days
         3   3 days
         4   4 days
-        dtype: timedelta64[ns]
+        dtype: timedelta64[s]
 
         >>> s.dt.total_seconds()
         0         0.0
@@ -813,7 +816,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         >>> idx = pd.to_timedelta(np.arange(5), unit="D")
         >>> idx
         TimedeltaIndex(['0 days', '1 days', '2 days', '3 days', '4 days'],
-                       dtype='timedelta64[ns]', freq=None)
+                       dtype='timedelta64[s]', freq=None)
 
         >>> idx.total_seconds()
         Index([0.0, 86400.0, 172800.0, 259200.0, 345600.0], dtype='float64')
@@ -847,7 +850,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         >>> tdelta_idx = pd.to_timedelta([1, 2, 3], unit="D")
         >>> tdelta_idx
         TimedeltaIndex(['1 days', '2 days', '3 days'],
-                        dtype='timedelta64[ns]', freq=None)
+                        dtype='timedelta64[s]', freq=None)
         >>> tdelta_idx.to_pytimedelta()
         array([datetime.timedelta(days=1), datetime.timedelta(days=2),
                datetime.timedelta(days=3)], dtype=object)
@@ -855,7 +858,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         >>> tidx = pd.TimedeltaIndex(data=["1 days 02:30:45", "3 days 04:15:10"])
         >>> tidx
         TimedeltaIndex(['1 days 02:30:45', '3 days 04:15:10'],
-               dtype='timedelta64[ns]', freq=None)
+               dtype='timedelta64[us]', freq=None)
         >>> tidx.to_pytimedelta()
         array([datetime.timedelta(days=1, seconds=9045),
                 datetime.timedelta(days=3, seconds=15310)], dtype=object)
@@ -880,7 +883,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     0   1 days
     1   2 days
     2   3 days
-    dtype: timedelta64[ns]
+    dtype: timedelta64[s]
     >>> ser.dt.days
     0    1
     1    2
@@ -892,7 +895,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     >>> tdelta_idx = pd.to_timedelta(["0 days", "10 days", "20 days"])
     >>> tdelta_idx
     TimedeltaIndex(['0 days', '10 days', '20 days'],
-                    dtype='timedelta64[ns]', freq=None)
+                    dtype='timedelta64[us]', freq=None)
     >>> tdelta_idx.days
     Index([0, 10, 20], dtype='int64')"""
     )
@@ -915,7 +918,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     0   0 days 00:00:01
     1   0 days 00:00:02
     2   0 days 00:00:03
-    dtype: timedelta64[ns]
+    dtype: timedelta64[s]
     >>> ser.dt.seconds
     0    1
     1    2
@@ -927,7 +930,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     >>> tdelta_idx = pd.to_timedelta([1, 2, 3], unit='s')
     >>> tdelta_idx
     TimedeltaIndex(['0 days 00:00:01', '0 days 00:00:02', '0 days 00:00:03'],
-                   dtype='timedelta64[ns]', freq=None)
+                   dtype='timedelta64[s]', freq=None)
     >>> tdelta_idx.seconds
     Index([1, 2, 3], dtype='int32')"""
     )
@@ -955,7 +958,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     0   0 days 00:00:00.000001
     1   0 days 00:00:00.000002
     2   0 days 00:00:00.000003
-    dtype: timedelta64[ns]
+    dtype: timedelta64[us]
     >>> ser.dt.microseconds
     0    1
     1    2
@@ -968,7 +971,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     >>> tdelta_idx
     TimedeltaIndex(['0 days 00:00:00.000001', '0 days 00:00:00.000002',
                     '0 days 00:00:00.000003'],
-                   dtype='timedelta64[ns]', freq=None)
+                   dtype='timedelta64[us]', freq=None)
     >>> tdelta_idx.microseconds
     Index([1, 2, 3], dtype='int32')"""
     )
@@ -1205,10 +1208,12 @@ def _ints_to_td64ns(data, unit: str = "ns") -> tuple[np.ndarray, bool]:
         dtype_str = f"timedelta64[{unit}]"
         data = data.view(dtype_str)
 
-        data = astype_overflowsafe(data, dtype=TD64NS_DTYPE)
+        new_dtype = get_supported_dtype(data.dtype)
+        if new_dtype != data.dtype:
+            data = astype_overflowsafe(data, dtype=new_dtype)
 
-        # the astype conversion makes a copy, so we can avoid re-copying later
-        copy_made = True
+            # the astype conversion makes a copy, so we can avoid re-copying later
+            copy_made = True
 
     else:
         data = data.view("timedelta64[ns]")
@@ -1251,7 +1256,7 @@ def _objects_to_td64ns(
     values = np.asarray(data, dtype=np.object_)
 
     result = array_to_timedelta64(values, unit=unit, errors=errors)
-    return result.view("timedelta64[ns]")
+    return result
 
 
 def _validate_td64_dtype(dtype) -> DtypeObj:

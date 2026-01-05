@@ -160,7 +160,7 @@ Categories (20, int64): [0 < 1 < 2 < 3 ... 16 < 17 < 18 < 19]"""
         assert repr(c) == exp
 
     def test_categorical_repr_datetime(self):
-        idx = date_range("2011-01-01 09:00", freq="h", periods=5)
+        idx = date_range("2011-01-01 09:00", freq="h", periods=5, unit="ns")
         c = Categorical(idx)
 
         exp = (
@@ -188,7 +188,9 @@ Categories (20, int64): [0 < 1 < 2 < 3 ... 16 < 17 < 18 < 19]"""
 
         assert repr(c) == exp
 
-        idx = date_range("2011-01-01 09:00", freq="h", periods=5, tz="US/Eastern")
+        idx = date_range(
+            "2011-01-01 09:00", freq="h", periods=5, tz="US/Eastern", unit="ns"
+        )
         c = Categorical(idx)
         exp = (
             "[2011-01-01 09:00:00-05:00, 2011-01-01 10:00:00-05:00, "
@@ -222,7 +224,7 @@ Categories (20, int64): [0 < 1 < 2 < 3 ... 16 < 17 < 18 < 19]"""
         assert repr(c) == exp
 
     def test_categorical_repr_datetime_ordered(self):
-        idx = date_range("2011-01-01 09:00", freq="h", periods=5)
+        idx = date_range("2011-01-01 09:00", freq="h", periods=5, unit="ns")
         c = Categorical(idx, ordered=True)
         exp = """[2011-01-01 09:00:00, 2011-01-01 10:00:00, 2011-01-01 11:00:00, 2011-01-01 12:00:00, 2011-01-01 13:00:00]
 Categories (5, datetime64[ns]): [2011-01-01 09:00:00 < 2011-01-01 10:00:00 < 2011-01-01 11:00:00 <
@@ -237,7 +239,9 @@ Categories (5, datetime64[ns]): [2011-01-01 09:00:00 < 2011-01-01 10:00:00 < 201
 
         assert repr(c) == exp
 
-        idx = date_range("2011-01-01 09:00", freq="h", periods=5, tz="US/Eastern")
+        idx = date_range(
+            "2011-01-01 09:00", freq="h", periods=5, tz="US/Eastern", unit="ns"
+        )
         c = Categorical(idx, ordered=True)
         exp = """[2011-01-01 09:00:00-05:00, 2011-01-01 10:00:00-05:00, 2011-01-01 11:00:00-05:00, 2011-01-01 12:00:00-05:00, 2011-01-01 13:00:00-05:00]
 Categories (5, datetime64[ns, US/Eastern]): [2011-01-01 09:00:00-05:00 < 2011-01-01 10:00:00-05:00 <
@@ -327,13 +331,13 @@ Categories (5, period[M]): [2011-01 < 2011-02 < 2011-03 < 2011-04 < 2011-05]""" 
         idx = timedelta_range("1 days", periods=5)
         c = Categorical(idx)
         exp = """[1 days, 2 days, 3 days, 4 days, 5 days]
-Categories (5, timedelta64[ns]): [1 days, 2 days, 3 days, 4 days, 5 days]"""
+Categories (5, timedelta64[us]): [1 days, 2 days, 3 days, 4 days, 5 days]"""
 
         assert repr(c) == exp
 
         c = Categorical(idx.append(idx), categories=idx)
         exp = """[1 days, 2 days, 3 days, 4 days, 5 days, 1 days, 2 days, 3 days, 4 days, 5 days]
-Categories (5, timedelta64[ns]): [1 days, 2 days, 3 days, 4 days, 5 days]"""  # noqa: E501
+Categories (5, timedelta64[us]): [1 days, 2 days, 3 days, 4 days, 5 days]"""  # noqa: E501
 
         assert repr(c) == exp
 
@@ -341,7 +345,7 @@ Categories (5, timedelta64[ns]): [1 days, 2 days, 3 days, 4 days, 5 days]"""  # 
         c = Categorical(idx)
         exp = """[0 days 01:00:00, 1 days 01:00:00, 2 days 01:00:00, 3 days 01:00:00, 4 days 01:00:00, ..., 15 days 01:00:00, 16 days 01:00:00, 17 days 01:00:00, 18 days 01:00:00, 19 days 01:00:00]
 Length: 20
-Categories (20, timedelta64[ns]): [0 days 01:00:00, 1 days 01:00:00, 2 days 01:00:00,
+Categories (20, timedelta64[us]): [0 days 01:00:00, 1 days 01:00:00, 2 days 01:00:00,
                                    3 days 01:00:00, ..., 16 days 01:00:00, 17 days 01:00:00,
                                    18 days 01:00:00, 19 days 01:00:00]"""  # noqa: E501
 
@@ -350,7 +354,7 @@ Categories (20, timedelta64[ns]): [0 days 01:00:00, 1 days 01:00:00, 2 days 01:0
         c = Categorical(idx.append(idx), categories=idx)
         exp = """[0 days 01:00:00, 1 days 01:00:00, 2 days 01:00:00, 3 days 01:00:00, 4 days 01:00:00, ..., 15 days 01:00:00, 16 days 01:00:00, 17 days 01:00:00, 18 days 01:00:00, 19 days 01:00:00]
 Length: 40
-Categories (20, timedelta64[ns]): [0 days 01:00:00, 1 days 01:00:00, 2 days 01:00:00,
+Categories (20, timedelta64[us]): [0 days 01:00:00, 1 days 01:00:00, 2 days 01:00:00,
                                    3 days 01:00:00, ..., 16 days 01:00:00, 17 days 01:00:00,
                                    18 days 01:00:00, 19 days 01:00:00]"""  # noqa: E501
 
@@ -360,13 +364,13 @@ Categories (20, timedelta64[ns]): [0 days 01:00:00, 1 days 01:00:00, 2 days 01:0
         idx = timedelta_range("1 days", periods=5)
         c = Categorical(idx, ordered=True)
         exp = """[1 days, 2 days, 3 days, 4 days, 5 days]
-Categories (5, timedelta64[ns]): [1 days < 2 days < 3 days < 4 days < 5 days]"""
+Categories (5, timedelta64[us]): [1 days < 2 days < 3 days < 4 days < 5 days]"""
 
         assert repr(c) == exp
 
         c = Categorical(idx.append(idx), categories=idx, ordered=True)
         exp = """[1 days, 2 days, 3 days, 4 days, 5 days, 1 days, 2 days, 3 days, 4 days, 5 days]
-Categories (5, timedelta64[ns]): [1 days < 2 days < 3 days < 4 days < 5 days]"""  # noqa: E501
+Categories (5, timedelta64[us]): [1 days < 2 days < 3 days < 4 days < 5 days]"""  # noqa: E501
 
         assert repr(c) == exp
 
@@ -374,7 +378,7 @@ Categories (5, timedelta64[ns]): [1 days < 2 days < 3 days < 4 days < 5 days]"""
         c = Categorical(idx, ordered=True)
         exp = """[0 days 01:00:00, 1 days 01:00:00, 2 days 01:00:00, 3 days 01:00:00, 4 days 01:00:00, ..., 15 days 01:00:00, 16 days 01:00:00, 17 days 01:00:00, 18 days 01:00:00, 19 days 01:00:00]
 Length: 20
-Categories (20, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01:00:00 <
+Categories (20, timedelta64[us]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01:00:00 <
                                    3 days 01:00:00 ... 16 days 01:00:00 < 17 days 01:00:00 <
                                    18 days 01:00:00 < 19 days 01:00:00]"""  # noqa: E501
 
@@ -383,7 +387,7 @@ Categories (20, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         c = Categorical(idx.append(idx), categories=idx, ordered=True)
         exp = """[0 days 01:00:00, 1 days 01:00:00, 2 days 01:00:00, 3 days 01:00:00, 4 days 01:00:00, ..., 15 days 01:00:00, 16 days 01:00:00, 17 days 01:00:00, 18 days 01:00:00, 19 days 01:00:00]
 Length: 40
-Categories (20, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01:00:00 <
+Categories (20, timedelta64[us]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01:00:00 <
                                    3 days 01:00:00 ... 16 days 01:00:00 < 17 days 01:00:00 <
                                    18 days 01:00:00 < 19 days 01:00:00]"""  # noqa: E501
 
@@ -544,4 +548,14 @@ Categories (20, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         # GH 33676
         result = repr(Categorical([1, "2", 3, 4]))
         expected = "[1, '2', 3, 4]\nCategories (4, object): [1, 3, 4, '2']"
+        assert result == expected
+
+    def test_categorical_with_string_dtype(self, string_dtype_no_object):
+        # GH 63045 - ensure categories are quoted for string dtypes
+        s = Series(
+            ["apple", "banana", "cherry", "cherry"], dtype=string_dtype_no_object
+        )
+        result = repr(Categorical(s))
+        expected = f"['apple', 'banana', 'cherry', 'cherry']\nCategories (3, {string_dtype_no_object!s}): ['apple', 'banana', 'cherry']"  # noqa: E501
+
         assert result == expected

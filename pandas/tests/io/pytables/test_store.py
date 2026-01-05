@@ -587,7 +587,7 @@ def test_same_name_scoping(setup_path):
     with ensure_clean_store(setup_path) as store:
         df = DataFrame(
             np.random.default_rng(2).standard_normal((20, 2)),
-            index=date_range("20130101", periods=20),
+            index=date_range("20130101", periods=20, unit="ns"),
         )
         store.put("df", df, format="table")
         expected = df[df.index > Timestamp("20130105")]
@@ -907,7 +907,7 @@ def test_select_filter_corner(setup_path, request):
         tm.assert_frame_equal(result, df.loc[:, df.columns[:75:2]])
 
 
-def test_path_pathlib():
+def test_path_pathlib(tmp_path):
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
         columns=Index(list("ABCD")),
@@ -915,7 +915,7 @@ def test_path_pathlib():
     )
 
     result = tm.round_trip_pathlib(
-        lambda p: df.to_hdf(p, key="df"), lambda p: read_hdf(p, "df")
+        lambda p: df.to_hdf(p, key="df"), lambda p: read_hdf(p, "df"), tmp_path
     )
     tm.assert_frame_equal(df, result)
 
@@ -937,7 +937,7 @@ def test_contiguous_mixed_data_table(start, stop, setup_path):
         tm.assert_frame_equal(df[start:stop], result)
 
 
-def test_path_pathlib_hdfstore():
+def test_path_pathlib_hdfstore(tmp_path):
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
         columns=Index(list("ABCD")),
@@ -952,18 +952,18 @@ def test_path_pathlib_hdfstore():
         with HDFStore(path) as store:
             return read_hdf(store, "df")
 
-    result = tm.round_trip_pathlib(writer, reader)
+    result = tm.round_trip_pathlib(writer, reader, tmp_path)
     tm.assert_frame_equal(df, result)
 
 
-def test_pickle_path_localpath():
+def test_pickle_path_localpath(tmp_path):
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
         columns=Index(list("ABCD")),
         index=Index([f"i-{i}" for i in range(30)]),
     )
     result = tm.round_trip_pathlib(
-        lambda p: df.to_hdf(p, key="df"), lambda p: read_hdf(p, "df")
+        lambda p: df.to_hdf(p, key="df"), lambda p: read_hdf(p, "df"), tmp_path
     )
     tm.assert_frame_equal(df, result)
 
@@ -1017,10 +1017,12 @@ def test_duplicate_column_name(tmp_path, setup_path):
     assert other.equals(df)
 
 
-def test_preserve_timedeltaindex_type(setup_path):
+def test_preserve_timedeltaindex_type(setup_path, unit):
     # GH9635
     df = DataFrame(np.random.default_rng(2).normal(size=(10, 5)))
-    df.index = timedelta_range(start="0s", periods=10, freq="1s", name="example")
+    df.index = timedelta_range(
+        start="0s", periods=10, freq="1s", name="example", unit=unit
+    )
 
     with ensure_clean_store(setup_path) as store:
         store["df"] = df
@@ -1127,3 +1129,13 @@ def test_select_categorical_string_columns(tmp_path, model):
         result = store.select("df", "modelId == model")
         expected = df[df["modelId"] == model]
         tm.assert_frame_equal(result, expected)
+
+
+def test_to_hdf_multiindex_string_dtype_crash(tmp_path):
+    # GH#63412
+    path = tmp_path / "test.h5"
+    index = MultiIndex.from_tuples([("a", "x"), ("b", "y")], names=["level1", "level2"])
+    df = DataFrame({"value": [1, 2]}, index=index)
+    df.to_hdf(path, key="test")
+    result = read_hdf(path, key="test")
+    tm.assert_frame_equal(df, result, check_dtype=False)

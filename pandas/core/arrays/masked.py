@@ -12,7 +12,10 @@ import warnings
 
 import numpy as np
 
-from pandas._config import is_nan_na
+from pandas._config import (
+    is_nan_na,
+    using_python_scalars,
+)
 
 from pandas._libs import (
     algos as libalgos,
@@ -28,7 +31,9 @@ from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.astype import astype_is_view
 from pandas.core.dtypes.base import ExtensionDtype
-from pandas.core.dtypes.cast import maybe_downcast_to_dtype
+from pandas.core.dtypes.cast import (
+    maybe_downcast_to_dtype,
+)
 from pandas.core.dtypes.common import (
     is_bool,
     is_integer_dtype,
@@ -1017,6 +1022,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
             return IntegerArray(result, mask, copy=False)
 
+        elif result.dtype == object:
+            result[mask] = self.dtype.na_value
+            return result
         else:
             result[mask] = np.nan
             return result
@@ -1414,7 +1422,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             self.dtype.construct_array_type()(
                 keys,  # type: ignore[arg-type]
                 mask_index,
-            )
+            ),
+            copy=False,
         )
         return Series(arr, index=index, name="count", copy=False)
 
@@ -1534,7 +1543,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             if isna(result):
                 return self._wrap_na_result(name=name, axis=0, mask_size=(1,))
             else:
-                result = result.reshape(1)
+                if using_python_scalars():
+                    result = np.array([result])
+                else:
+                    result = result.reshape(1)
                 mask = np.zeros(1, dtype=bool)
                 return self._maybe_mask_result(result, mask)
 

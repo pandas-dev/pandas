@@ -231,9 +231,9 @@ def test_table_values_dtypes_roundtrip(temp_file, using_infer_string):
         df1["float322"] = 1.0
         df1["float322"] = df1["float322"].astype("float32")
         df1["bool"] = df1["float32"] > 0
-        df1["time_s_1"] = Timestamp("20130101")
-        df1["time_s_2"] = Timestamp("20130101 00:00:00")
-        df1["time_ms"] = Timestamp("20130101 00:00:00.000")
+        df1["time_s_1"] = Timestamp("20130101").as_unit("s")
+        df1["time_s_2"] = Timestamp("20130101 00:00:00").as_unit("s")
+        df1["time_ms"] = Timestamp("20130101 00:00:00.000").as_unit("ms")
         df1["time_ns"] = Timestamp("20130102 00:00:00.000000000")
 
         store.append("df_mixed_dtypes1", df1)
@@ -434,12 +434,6 @@ def test_store_hierarchical(
 ):
     frame = multiindex_dataframe_random_data
 
-    if using_infer_string:
-        # TODO(infer_string) make this work for string dtype
-        msg = "Saving a MultiIndex with an extension dtype is not supported."
-        with pytest.raises(NotImplementedError, match=msg):
-            _check_roundtrip(frame, tm.assert_frame_equal, path=temp_file)
-        return
     _check_roundtrip(frame, tm.assert_frame_equal, path=temp_file)
     _check_roundtrip(frame.T, tm.assert_frame_equal, path=temp_file)
     _check_roundtrip(frame["A"], tm.assert_series_equal, path=temp_file)

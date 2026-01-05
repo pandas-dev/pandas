@@ -139,13 +139,13 @@ class TestFeather:
         self.check_round_trip(df, temp_file, use_threads=True)
         self.check_round_trip(df, temp_file, use_threads=False)
 
-    def test_path_pathlib(self):
+    def test_path_pathlib(self, tmp_path):
         df = pd.DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
             columns=pd.Index(list("ABCD")),
             index=pd.Index([f"i-{i}" for i in range(30)]),
         ).reset_index()
-        result = tm.round_trip_pathlib(df.to_feather, read_feather)
+        result = tm.round_trip_pathlib(df.to_feather, read_feather, tmp_path)
         tm.assert_frame_equal(df, result)
 
     def test_passthrough_keywords(self, temp_file):

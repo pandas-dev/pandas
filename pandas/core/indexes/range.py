@@ -136,8 +136,6 @@ class RangeIndex(Index):
     []
     """
 
-    __module__ = "pandas"
-
     _typ = "rangeindex"
     _dtype_validation_metadata = (is_signed_integer_dtype, "signed integer")
     _range: range
@@ -606,7 +604,7 @@ class RangeIndex(Index):
         name = self._name if name is no_default else name
 
         if values.dtype.kind == "f":
-            return Index(values, name=name, dtype=np.float64)
+            return Index(values, name=name, dtype=np.float64, copy=False)
         if values.dtype.kind == "i" and values.ndim == 1:
             # GH 46675 & 43885: If values is equally spaced, return a
             # more memory-compact RangeIndex instead of Index with 64-bit dtype
@@ -923,7 +921,7 @@ class RangeIndex(Index):
         sort : bool or None, default None
             Whether to sort (monotonically increasing) the resulting index.
             ``sort=None|True`` returns a ``RangeIndex`` if possible or a sorted
-            ``Index`` with a int64 dtype if not.
+            ``Index`` with an int64 dtype if not.
             ``sort=False`` can return a ``RangeIndex`` if self is monotonically
             increasing and other is fully contained in self. Otherwise, returns
             an unsorted ``Index`` with an int64 dtype.
@@ -1186,7 +1184,7 @@ class RangeIndex(Index):
         Overriding parent method for the case of all RangeIndex instances.
 
         When all members of "indexes" are of type RangeIndex: result will be
-        RangeIndex if possible, Index with a int64 dtype otherwise. E.g.:
+        RangeIndex if possible, Index with an int64 dtype otherwise. E.g.:
         indexes = [RangeIndex(3), RangeIndex(3, 6)] -> RangeIndex(6)
         indexes = [RangeIndex(3), RangeIndex(4, 6)] -> Index([0,1,2,4,5], dtype='int64')
         """
@@ -1233,7 +1231,7 @@ class RangeIndex(Index):
                         )
                     else:
                         values = np.concatenate([x._values for x in rng_indexes])
-                    result = self._constructor(values)
+                    result = self._constructor(values, copy=False)
                     return result.rename(name)
 
                 step = rng.start - start
@@ -1248,7 +1246,7 @@ class RangeIndex(Index):
                     )
                 else:
                     values = np.concatenate([x._values for x in rng_indexes])
-                result = self._constructor(values)
+                result = self._constructor(values, copy=False)
                 return result.rename(name)
 
             if step is not None:

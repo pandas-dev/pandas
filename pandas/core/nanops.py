@@ -176,7 +176,7 @@ def _bn_ok_dtype(dtype: DtypeObj, name: str) -> bool:
 def _has_infs(result) -> bool:
     if isinstance(result, np.ndarray):
         if result.dtype in ("f8", "f4"):
-            # Note: outside of an nanops-specific test, we always have
+            # Note: outside of a nanops-specific test, we always have
             #  result.ndim == 1, so there is no risk of this ravel making a copy.
             return lib.has_infs(result.ravel("K"))
     try:
@@ -944,8 +944,9 @@ def nanstd(
     >>> nanops.nanstd(s.values)
     1.0
     """
-    if values.dtype == "M8[ns]":
-        values = values.view("m8[ns]")
+    if values.dtype.kind == "M":
+        unit = np.datetime_data(values.dtype)[0]
+        values = values.view(f"m8[{unit}]")
 
     orig_dtype = values.dtype
     values, mask = _get_values(values, skipna, mask=mask)

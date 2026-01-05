@@ -30,6 +30,7 @@ from pandas.errors import (
     AbstractMethodError,
     Pandas4Warning,
 )
+from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.dtypes import (
@@ -115,6 +116,7 @@ if TYPE_CHECKING:
 _shared_docs_kwargs: dict[str, str] = {}
 
 
+@set_module("pandas.api.typing")
 class Resampler(BaseGroupBy, PandasObject):
     """
     Class for resampling datetimelike data, a groupby-like operation.
@@ -135,8 +137,6 @@ class Resampler(BaseGroupBy, PandasObject):
     -----
     After resampling, see aggregate, apply, and transform functions.
     """
-
-    __module__ = "pandas.api.typing"
 
     _grouper: BinGrouper
     _timegrouper: TimeGrouper
@@ -242,6 +242,8 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         binner, bins, binlabels = self._get_binner_for_time()
         assert len(bins) == len(binlabels)
+        if self._timegrouper._arrow_dtype is not None:
+            binlabels = binlabels.astype(self._timegrouper._arrow_dtype)
         bin_grouper = BinGrouper(bins, binlabels, indexer=self._indexer)
         return binner, bin_grouper
 
@@ -2166,6 +2168,7 @@ class DatetimeIndexResampler(Resampler):
         return result
 
 
+@set_module("pandas.api.typing")
 # error: Definition of "ax" in base class "_GroupByMixin" is incompatible
 # with definition in base class "DatetimeIndexResampler"
 class DatetimeIndexResamplerGroupby(  # type: ignore[misc]
@@ -2174,8 +2177,6 @@ class DatetimeIndexResamplerGroupby(  # type: ignore[misc]
     """
     Provides a resample of a groupby implementation
     """
-
-    __module__ = "pandas.api.typing"
 
     @property
     def _resampler_cls(self):
@@ -2269,6 +2270,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         return self._wrap_result(new_obj)
 
 
+@set_module("pandas.api.typing")
 # error: Definition of "ax" in base class "_GroupByMixin" is incompatible with
 # definition in base class "PeriodIndexResampler"
 class PeriodIndexResamplerGroupby(  # type: ignore[misc]
@@ -2277,8 +2279,6 @@ class PeriodIndexResamplerGroupby(  # type: ignore[misc]
     """
     Provides a resample of a groupby implementation.
     """
-
-    __module__ = "pandas.api.typing"
 
     @property
     def _resampler_cls(self):
@@ -2307,6 +2307,7 @@ class TimedeltaIndexResampler(DatetimeIndexResampler):
         return binner
 
 
+@set_module("pandas.api.typing")
 # error: Definition of "ax" in base class "_GroupByMixin" is incompatible with
 # definition in base class "DatetimeIndexResampler"
 class TimedeltaIndexResamplerGroupby(  # type: ignore[misc]
@@ -2315,8 +2316,6 @@ class TimedeltaIndexResamplerGroupby(  # type: ignore[misc]
     """
     Provides a resample of a groupby implementation.
     """
-
-    __module__ = "pandas.api.typing"
 
     @property
     def _resampler_cls(self):
@@ -2352,6 +2351,7 @@ def get_resampler_for_grouping(
     return resampler._get_resampler_for_grouping(groupby=groupby, key=tg.key)
 
 
+@set_module("pandas.api.typing")
 class TimeGrouper(Grouper):
     """
     Custom groupby class for time-interval grouping.
@@ -2364,8 +2364,6 @@ class TimeGrouper(Grouper):
     convention : {'start', 'end', 'e', 's'}
         If axis is PeriodIndex
     """
-
-    __module__ = "pandas.api.typing"
 
     _attributes = Grouper._attributes + (
         "closed",
