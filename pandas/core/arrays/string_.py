@@ -157,6 +157,11 @@ class StringDtype(StorageExtensionDtype):
         Returns ``np.nan`` for the default string dtype with NumPy semantics,
         and ``pd.NA`` for the opt-in string dtype with pandas NA semantics.
 
+        See Also
+        --------
+        isna : Detect missing values.
+        NA : Missing value indicator for nullable dtypes.
+
         Examples
         --------
         >>> ser = pd.Series(["a", "b"])
