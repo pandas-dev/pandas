@@ -337,7 +337,7 @@ class SharedTests:
                 TypeError,
                 match=re.escape(
                     f"value should be a '{arr1d._scalar_type.__name__}', 'NaT', "
-                    "or array of those. Got string array instead."
+                    "or array of those. Got str array instead."
                 ),
             ):
                 arr.searchsorted([str(arr[1]), "baz"])
@@ -432,6 +432,11 @@ class SharedTests:
         arr[:2] = arr[-2:]
         expected[:2] = expected[-2:]
         tm.assert_numpy_array_equal(arr.asi8, expected)
+
+    def test_setitem_list_of_nats(self, arr1d):
+        # GH#63420
+        arr1d[:] = [NaT] * len(arr1d)
+        assert arr1d.isna().all()
 
     @pytest.mark.parametrize(
         "box",
