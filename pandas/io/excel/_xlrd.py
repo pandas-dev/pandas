@@ -101,9 +101,7 @@ class XlrdReader(BaseExcelReader["Book"]):
             if cell_typ == XL_CELL_DATE:
                 # Use the newer xlrd datetime handling.
                 try:
-                    cell_contents = xldate.xldate_as_datetime(
-                        cell_contents, epoch1904
-                        )
+                    cell_contents = xldate.xldate_as_datetime(cell_contents, epoch1904)
                 except OverflowError:
                     return cell_contents
 
