@@ -1351,7 +1351,7 @@ class SeriesGroupBy(GroupBy[Series]):
            3    parrot
         2  2      lion
            1    monkey
-        Name: name, dtype: object
+        Name: name, dtype: str
 
         We may take elements using negative integers for positive indices,
         starting from the end of the object, just like with Python lists.
@@ -1361,7 +1361,7 @@ class SeriesGroupBy(GroupBy[Series]):
            4    falcon
         2  0    rabbit
            1    monkey
-        Name: name, dtype: object
+        Name: name, dtype: str
         """
         result = self._op_via_apply("take", indices=indices, **kwargs)
         return result
@@ -1514,8 +1514,28 @@ class SeriesGroupBy(GroupBy[Series]):
         )
 
     @property
-    @doc(Series.plot.__doc__)
     def plot(self) -> GroupByPlot:
+        """
+        Make plots of groups from a Series.
+
+        Uses the backend specified by the option ``plotting.backend``.
+        By default, matplotlib is used.
+
+        Returns
+        -------
+        GroupByPlot
+            A plotting object that can be used to create plots for each group.
+
+        See Also
+        --------
+        Series.plot : Make plots of Series.
+
+        Examples
+        --------
+        >>> ser = pd.Series([1, 2, 3, 4, 5], index=["a", "a", "b", "b", "c"])
+        >>> g = ser.groupby(level=0)
+        >>> g.plot()  # doctest: +SKIP
+        """
         result = GroupByPlot(self)
         return result
 
@@ -3044,19 +3064,19 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         ... )
 
         >>> df
-                        consumption  co2_emissions
-        Pork                  10.51         37.20
-        Wheat Products       103.11         19.66
-        Beef                  55.48       1712.00
+                        consumption  co2_emissions food_type
+        Pork                  10.51         37.20       meat
+        Wheat Products       103.11         19.66      plant
+        Beef                  55.48       1712.00       meat
 
         By default, it returns the index for the maximum value in each column
         according to the group.
 
         >>> df.groupby("food_type").idxmax()
-                        consumption   co2_emissions
+                      consumption   co2_emissions
         food_type
-        animal                 Beef            Beef
-        plant        Wheat Products  Wheat Products
+        meat                 Beef            Beef
+        plant      Wheat Products  Wheat Products
         """
         return self._idxmax_idxmin("idxmax", numeric_only=numeric_only, skipna=skipna)
 
@@ -3116,19 +3136,19 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         ... )
 
         >>> df
-                        consumption  co2_emissions
-        Pork                  10.51         37.20
-        Wheat Products       103.11         19.66
-        Beef                  55.48       1712.00
+                        consumption  co2_emissions food_type
+        Pork                  10.51         37.20       meat
+        Wheat Products       103.11         19.66      plant
+        Beef                  55.48       1712.00       meat
 
         By default, it returns the index for the minimum value in each column
         according to the group.
 
         >>> df.groupby("food_type").idxmin()
-                        consumption   co2_emissions
+                      consumption   co2_emissions
         food_type
-        animal                 Pork            Pork
-        plant        Wheat Products  Wheat Products
+        meat                 Pork            Pork
+        plant      Wheat Products  Wheat Products
         """
         return self._idxmax_idxmin("idxmin", numeric_only=numeric_only, skipna=skipna)
 
@@ -3528,8 +3548,30 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         )
 
     @property
-    @doc(DataFrame.plot.__doc__)
     def plot(self) -> GroupByPlot:
+        """
+        Make plots of groups from a DataFrame.
+
+        Uses the backend specified by the option ``plotting.backend``.
+        By default, matplotlib is used.
+
+        Returns
+        -------
+        GroupByPlot
+            A plotting object that can be used to create plots for each group.
+
+        See Also
+        --------
+        DataFrame.plot : Make plots of DataFrame.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+        ...     {"A": [1, 2, 3, 4], "B": [5, 6, 7, 8]}, index=["a", "a", "b", "b"]
+        ... )
+        >>> g = df.groupby(level=0)
+        >>> g.plot()  # doctest: +SKIP
+        """
         result = GroupByPlot(self)
         return result
 

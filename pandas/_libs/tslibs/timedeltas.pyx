@@ -44,6 +44,7 @@ from pandas._libs.tslibs.conversion cimport (
     cast_from_unit,
 )
 from pandas._libs.tslibs.dtypes cimport (
+    abbrev_to_npy_unit,
     c_DEPR_UNITS,
     get_supported_reso,
     is_supported_unit,
@@ -359,10 +360,15 @@ def array_to_timedelta64(
         cnp.broadcast mi = cnp.PyArray_MultiIterNew2(result, values)
         cnp.flatiter it
         str parsed_unit = parse_timedelta_unit(unit or "ns")
-        NPY_DATETIMEUNIT item_reso
+        NPY_DATETIMEUNIT item_reso, int_reso
         ResoState state = ResoState(creso)
         bint infer_reso = creso == NPY_DATETIMEUNIT.NPY_FR_GENERIC
         ndarray iresult = result.view("i8")
+
+    if unit is None:
+        int_reso = NPY_FR_ns
+    else:
+        int_reso = get_supported_reso(abbrev_to_npy_unit(parsed_unit))
 
     if values.descr.type_num != cnp.NPY_OBJECT:
         # raise here otherwise we segfault below
@@ -472,7 +478,18 @@ def array_to_timedelta64(
                     creso = state.creso
                 ival = delta_to_nanoseconds(item, reso=creso)
 
-            elif is_integer_object(item) or is_float_object(item):
+            elif is_integer_object(item):
+                if item == NPY_NAT:
+                    ival = NPY_NAT
+                else:
+                    ival = _numeric_to_td64ns(item, parsed_unit, int_reso)
+                    item_reso = int_reso
+
+                    state.update_creso(item_reso)
+                    if infer_reso:
+                        creso = state.creso
+
+            elif is_float_object(item):
                 ival = _numeric_to_td64ns(item, parsed_unit, NPY_FR_ns)
 
                 item_reso = NPY_FR_ns
@@ -636,7 +653,7 @@ cdef int64_t parse_timedelta_string(str ts) except? -1:
             have_dot = 0
 
     # we had a dot, but we have a fractional
-    # value since we have an unit
+    # value since we have a unit
     if have_dot and len(unit):
         r = timedelta_from_spec(number, frac, unit)
         result += timedelta_as_neg(r, neg)
