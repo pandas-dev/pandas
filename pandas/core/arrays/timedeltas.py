@@ -1152,6 +1152,18 @@ def sequence_to_td64ns(
         else:
             mask = np.isnan(data)
 
+        if unit is not None and unit != "ns":
+            # if all non-NaN entries are round, treat these like ints and give
+            #  back the requested unit (or closest-supported)
+            int_data = data.astype(np.int64)
+            all_round = (mask | (data == int_data)).all()
+            if all_round:
+                result, _ = sequence_to_td64ns(
+                    int_data, copy=False, unit=unit, errors=errors
+                )
+                result[mask] = iNaT
+                return result, inferred_freq
+
         data = cast_from_unit_vectorized(data, unit or "ns")
         data[mask] = iNaT
         data = data.view("m8[ns]")
