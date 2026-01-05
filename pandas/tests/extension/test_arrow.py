@@ -2803,6 +2803,92 @@ def test_as_unit(dtype):
 
 
 @pytest.mark.parametrize(
+    "from_unit,to_unit",
+    [
+        ("ns", "us"),
+        ("ns", "ms"),
+        ("ns", "s"),
+        ("us", "ms"),
+        ("us", "s"),
+        ("ms", "s"),
+        ("s", "ms"),
+        ("s", "us"),
+        ("s", "ns"),
+        ("ms", "us"),
+        ("ms", "ns"),
+        ("us", "ns"),
+    ],
+)
+def test_as_unit_duration_truncation(from_unit, to_unit):
+    # Test that as_unit truncates correctly (matches NumPy behavior)
+    # Value with sub-unit precision to test truncation
+    ser_numpy = pd.Series(
+        pd.to_timedelta([93784567890123, None], unit="ns").as_unit(from_unit)
+    )
+    ser_arrow = ser_numpy.astype(f"duration[{from_unit}][pyarrow]")
+
+    result = ser_arrow.dt.as_unit(to_unit)
+    expected = ser_numpy.dt.as_unit(to_unit).astype(f"duration[{to_unit}][pyarrow]")
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "from_unit,to_unit",
+    [
+        ("ns", "us"),
+        ("ns", "ms"),
+        ("ns", "s"),
+        ("s", "ns"),
+        ("ms", "ns"),
+        ("us", "ns"),
+    ],
+)
+def test_as_unit_timestamp(from_unit, to_unit):
+    # Test timestamp as_unit matches NumPy behavior
+    # Create Arrow series directly to preserve nulls correctly
+    ser_arrow = pd.Series(
+        [pd.Timestamp("2024-01-15 12:30:45.123456789"), None],
+        dtype=f"timestamp[{from_unit}][pyarrow]",
+    )
+    ser_numpy = ser_arrow.astype(f"datetime64[{from_unit}]")
+
+    result = ser_arrow.dt.as_unit(to_unit)
+    expected_numpy = ser_numpy.dt.as_unit(to_unit)
+    # Compare values (excluding null handling differences)
+    tm.assert_almost_equal(
+        result.dropna().to_numpy(dtype=f"datetime64[{to_unit}]"),
+        expected_numpy.dropna().to_numpy(),
+    )
+    # Verify nulls are preserved
+    assert result.isna().sum() == ser_arrow.isna().sum()
+
+
+@pytest.mark.parametrize("to_unit", ["s", "ms", "us", "ns"])
+def test_as_unit_timestamp_with_timezone(to_unit):
+    # Test that timezone is preserved
+    ser_numpy = pd.Series(
+        pd.to_datetime(["2024-01-15 12:30:45.123456789"])
+        .tz_localize("US/Eastern")
+        .as_unit("ns")
+    )
+    ser_arrow = ser_numpy.astype("timestamp[ns, US/Eastern][pyarrow]")
+
+    result = ser_arrow.dt.as_unit(to_unit)
+    expected = ser_numpy.dt.as_unit(to_unit).astype(
+        f"timestamp[{to_unit}, US/Eastern][pyarrow]"
+    )
+    tm.assert_series_equal(result, expected)
+    assert str(result.dtype) == f"timestamp[{to_unit}, tz=US/Eastern][pyarrow]"
+
+
+def test_as_unit_date_raises():
+    # as_unit should raise for date types
+    ser = pd.Series([1, 2], dtype=ArrowDtype(pa.date32()))
+    with pytest.raises(NotImplementedError, match="as_unit not implemented"):
+        ser.dt.as_unit("ns")
+
+
+@pytest.mark.parametrize(
     "prop, expected",
     [
         ["days", 1],
