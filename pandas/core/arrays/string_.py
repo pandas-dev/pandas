@@ -430,7 +430,7 @@ class BaseStringArray(ExtensionArray):
 
     def tolist(self) -> list:
         """
-        Return a liat of the value.
+        Return a list of the value.
 
         These are each a scalar type, which is a Python scalar
         (for str, int, float) or pandas scalar
