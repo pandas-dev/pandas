@@ -157,6 +157,11 @@ class StringDtype(StorageExtensionDtype):
         Returns ``np.nan`` for the default string dtype with NumPy semantics,
         and ``pd.NA`` for the opt-in string dtype with pandas NA semantics.
 
+        See Also
+        --------
+        isna : Detect missing values.
+        NA : Missing value indicator for nullable dtypes.
+
         Examples
         --------
         >>> ser = pd.Series(["a", "b"])
@@ -736,11 +741,10 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         if dtype and not (isinstance(dtype, str) and dtype == "string"):
             dtype = pandas_dtype(dtype)
             assert isinstance(dtype, StringDtype) and dtype.storage == "python"
+        elif using_string_dtype():
+            dtype = StringDtype(storage="python", na_value=np.nan)
         else:
-            if using_string_dtype():
-                dtype = StringDtype(storage="python", na_value=np.nan)
-            else:
-                dtype = StringDtype(storage="python")
+            dtype = StringDtype(storage="python")
 
         from pandas.core.arrays.masked import BaseMaskedArray
 
