@@ -32,7 +32,6 @@ from pandas.compat import (
 from pandas.compat.numpy import function as nv
 from pandas.errors import Pandas4Warning
 from pandas.util._decorators import (
-    doc,
     set_module,
 )
 from pandas.util._exceptions import find_stack_level
@@ -429,12 +428,11 @@ class BaseStringArray(ExtensionArray):
             return op(other, self.astype(bool))
         return NotImplemented
 
-
     def tolist(self) -> list:
         """
         Return a liat of the value.
 
-        These are each a scalar type, which is a Python scalar 
+        These are each a scalar type, which is a Python scalar
         (for str, int, float) or pandas scalar
         (for Timestamp/Timedelta/Interval/Period)
 
