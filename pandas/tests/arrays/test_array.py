@@ -134,6 +134,11 @@ def test_dt64_array(dtype_unit):
             np.dtype("datetime64[ns]"),
             DatetimeArray._from_sequence(["2000", "2001"], dtype="M8[ns]"),
         ),
+        (
+            [pd.NaT, pd.NaT],
+            None,
+            DatetimeArray._from_sequence([pd.NaT, pd.NaT], dtype="M8[s]"),
+        ),
         # Datetime (tz-aware)
         (
             ["2000", "2001"],
