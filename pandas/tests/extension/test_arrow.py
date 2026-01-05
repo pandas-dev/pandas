@@ -3819,61 +3819,25 @@ def test_ufunc_retains_missing():
     tm.assert_series_equal(result, expected)
 
 
-def test_duration_reduction_consistency():
+@pytest.mark.parametrize("method", ["sum", "min", "max", "mean", "median"])
+def test_duration_reduction_consistency(unit, method):
     # GH#63170
-    for unit in ["ns", "us", "ms", "s"]:
-        dtype = f"duration[{unit}][pyarrow]"
-        ser = pd.Series([timedelta(seconds=1)], dtype=dtype)
-        result = ser.sum()
-        assert isinstance(result, pd.Timedelta), (
-            f"sum for {unit} returned {type(result)}"
-        )
-        assert result.unit == unit
-
-        result = ser.min()
-        assert isinstance(result, pd.Timedelta), (
-            f"min for {unit} returned {type(result)}"
-        )
-        assert result.unit == unit
-
-        result = ser.max()
-        assert isinstance(result, pd.Timedelta), (
-            f"max for {unit} returned {type(result)}"
-        )
-        assert result.unit == unit
-
-        result = ser.mean()
-        assert isinstance(result, pd.Timedelta), (
-            f"mean for {unit} returned {type(result)}"
-        )
-        assert result.unit == unit
-
-        result = ser.median()
-        assert isinstance(result, pd.Timedelta), (
-            f"median for {unit} returned {type(result)}"
-        )
-        assert result.unit == unit
+    dtype = f"duration[{unit}][pyarrow]"
+    ser = pd.Series([timedelta(seconds=1), timedelta(seconds=2)], dtype=dtype)
+    result = getattr(ser, method)()
+    assert isinstance(result, pd.Timedelta), (
+        f"{method} for {unit} returned {type(result)}"
+    )
+    assert result.unit == unit
 
 
-def test_timestamp_reduction_consistency():
+@pytest.mark.parametrize("method", ["min", "max", "median"])
+def test_timestamp_reduction_consistency(unit, method):
     # GH#63170
-    for unit in ["ns", "us", "ms", "s"]:
-        dtype = f"timestamp[{unit}][pyarrow]"
-        ser = pd.Series([datetime(2024, 1, 1), datetime(2024, 1, 3)], dtype=dtype)
-        result = ser.min()
-        assert isinstance(result, pd.Timestamp), (
-            f"min for {unit} returned {type(result)}"
-        )
-        assert result.unit == unit
-
-        result = ser.max()
-        assert isinstance(result, pd.Timestamp), (
-            f"max for {unit} returned {type(result)}"
-        )
-        assert result.unit == unit
-
-        result = ser.median()
-        assert isinstance(result, pd.Timestamp), (
-            f"median for {unit} returned {type(result)}"
-        )
-        assert result.unit == unit
+    dtype = f"timestamp[{unit}][pyarrow]"
+    ser = pd.Series([datetime(2024, 1, 1), datetime(2024, 1, 3)], dtype=dtype)
+    result = getattr(ser, method)()
+    assert isinstance(result, pd.Timestamp), (
+        f"{method} for {unit} returned {type(result)}"
+    )
+    assert result.unit == unit
