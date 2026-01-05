@@ -900,9 +900,9 @@ class Expanding(RollingAndExpandingMixin):
 
         >>> s.expanding().sem()
         0         NaN
-        1    0.707107
-        2    0.707107
-        3    0.745356
+        1    0.500000
+        2    0.577350
+        3    0.645497
         dtype: float64
         """
         return super().sem(ddof=ddof, numeric_only=numeric_only)
@@ -1078,8 +1078,6 @@ class Expanding(RollingAndExpandingMixin):
         q : float
             Quantile to compute. 0 <= quantile <= 1.
 
-            .. deprecated:: 2.1.0
-                This was renamed from 'quantile' to 'q' in version 2.1.0.
         interpolation : {'linear', 'lower', 'higher', 'midpoint', 'nearest'}
             This optional parameter specifies the interpolation method to use,
             when the desired quantile lies between two data points `i` and `j`:

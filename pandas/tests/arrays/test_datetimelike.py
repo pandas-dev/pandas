@@ -707,7 +707,7 @@ class TestDatetimeArray(SharedTests):
     def test_array_tz(self, arr1d):
         # GH#23524
         arr = arr1d
-        dti = self.index_cls(arr1d)
+        dti = self.index_cls(arr1d, copy=False)
         copy_false = None if np_version_gt2 else False
 
         expected = dti.asi8.view("M8[ns]")
@@ -845,7 +845,7 @@ class TestDatetimeArray(SharedTests):
 
         value = np.timedelta64("NaT", "ns")
         with pytest.raises(TypeError, match=msg):
-            # require appropriate-dtype if we have a NA value
+            # require appropriate-dtype if we have an NA value
             arr.take([-1, 1], allow_fill=True, fill_value=value)
 
         if arr.tz is not None:
@@ -1032,7 +1032,7 @@ class TestTimedeltaArray(SharedTests):
 
         value = np.datetime64("NaT", "ns")
         with pytest.raises(TypeError, match=msg):
-            # require appropriate-dtype if we have a NA value
+            # require appropriate-dtype if we have an NA value
             arr.take([-1, 1], allow_fill=True, fill_value=value)
 
 
@@ -1080,7 +1080,7 @@ class TestPeriodArray(SharedTests):
 
         value = np.timedelta64("NaT", "ns")
         with pytest.raises(TypeError, match=msg):
-            # require appropriate-dtype if we have a NA value
+            # require appropriate-dtype if we have an NA value
             arr.take([-1, 1], allow_fill=True, fill_value=value)
 
     @pytest.mark.parametrize("how", ["S", "E"])

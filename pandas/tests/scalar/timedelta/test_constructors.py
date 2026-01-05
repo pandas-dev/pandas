@@ -35,6 +35,23 @@ class TestTimedeltaConstructorKeywordBased:
 
 
 class TestTimedeltaConstructorUnitKeyword:
+    def test_result_unit(self):
+        # For supported units, we get result.unit == unit
+        for unit in ["s", "ms", "us", "ns"]:
+            td = Timedelta(1, unit=unit)
+            assert td.unit == unit
+
+            td = to_timedelta(1, unit=unit)
+            assert td.unit == unit
+
+        # For non-supported units we get the closest-supported unit
+        for unit in ["W", "D", "h", "m"]:
+            td = Timedelta(1, unit=unit)
+            assert td.unit == "s"
+
+            td = to_timedelta(1, unit=unit)
+            assert td.unit == "s"
+
     @pytest.mark.parametrize("unit", ["Y", "y", "M"])
     def test_unit_m_y_raises(self, unit):
         msg = "Units 'M', 'Y', and 'y' are no longer supported"
@@ -144,9 +161,10 @@ class TestTimedeltaConstructorUnitKeyword:
     def test_unit_parser(self, unit, np_unit, wrapper):
         # validate all units, GH 6855, GH 21762
         # array-likes
+        exp_unit = np_unit if np_unit not in ["W", "D", "m"] else "s"
         expected = TimedeltaIndex(
             [np.timedelta64(i, np_unit) for i in np.arange(5).tolist()],
-            dtype="m8[ns]",
+            dtype=f"m8[{exp_unit}]",
         )
 
         result = to_timedelta(wrapper(range(5)), unit=unit)
@@ -196,7 +214,8 @@ def test_construct_from_kwargs_overflow():
 
 def test_construct_with_weeks_unit_overflow():
     # GH#47268 don't silently wrap around
-    with pytest.raises(OutOfBoundsTimedelta, match="without overflow"):
+    msg = "1000000000000000000 weeks"
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
         Timedelta(1000000000000000000, unit="W")
 
     with pytest.raises(OutOfBoundsTimedelta, match="without overflow"):
@@ -284,7 +303,7 @@ def test_from_tick_reso():
 
 def test_construction():
     expected = np.timedelta64(10, "D").astype("m8[ns]").view("i8")
-    assert Timedelta(10, unit="D")._value == expected
+    assert Timedelta(10, unit="D")._value == expected // 10**9
     assert Timedelta(10.0, unit="D")._value == expected
     assert Timedelta("10 days")._value == expected // 1000
     assert Timedelta(days=10)._value == expected // 1000
@@ -464,9 +483,9 @@ def test_overflow_on_construction():
         Timedelta(value)
 
     # xref GH#17637
-    msg = "Cannot cast 139993 from D to 'ns' without overflow"
-    with pytest.raises(OutOfBoundsTimedelta, match=msg):
-        Timedelta(7 * 19999, unit="D")
+    # used to overflows before we changed output unit to "s"
+    td = Timedelta(7 * 19999, unit="D")
+    assert td.unit == "s"
 
     # used to overflow before non-ns support
     td = Timedelta(timedelta(days=13 * 19999))

@@ -43,6 +43,7 @@ from pandas import (
 )
 import pandas.core.algorithms as algos
 from pandas.core.arrays.datetimelike import dtype_to_unit
+from pandas.core.col import Expression
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -108,7 +109,7 @@ def cut(
         The precision at which to store and display the bins labels.
     include_lowest : bool, default False
         Whether the first interval should be left-inclusive or not.
-    duplicates : {default 'raise', 'drop'}, optional
+    duplicates : {'raise', 'drop'}, default 'raise'
         If bin edges are not unique, raise ValueError or drop non-uniques.
     ordered : bool, default True
         Whether the labels are ordered or not. Applies to returned types
@@ -359,6 +360,10 @@ def qcut(
     >>> pd.qcut(range(5), 4, labels=False)
     array([0, 0, 1, 2, 3])
     """
+    if isinstance(x, Expression):
+        return x._call_with_func(
+            qcut, x=x, q=q, labels=labels, retbins=retbins, precision=precision
+        )
     original = x
     x_idx = _preprocess_for_cut(x)
     x_idx, _ = _coerce_to_type(x_idx)
@@ -446,7 +451,7 @@ def _nbins_to_bins(x_idx: Index, nbins: int, right: bool) -> Index:
         else:
             bins[-1] += adj
 
-    return Index(bins)
+    return Index(bins, copy=False)
 
 
 def _bins_to_cuts(
@@ -571,7 +576,7 @@ def _coerce_to_type(x: Index) -> tuple[Index, DtypeObj | None]:
     # https://github.com/pandas-dev/pandas/issues/31389
     elif isinstance(x.dtype, ExtensionDtype) and is_numeric_dtype(x.dtype):
         x_arr = x.to_numpy(dtype=np.float64, na_value=np.nan)
-        x = Index(x_arr)
+        x = Index(x_arr, copy=False)
 
     return Index(x), dtype
 
@@ -631,7 +636,7 @@ def _preprocess_for_cut(x) -> Index:
     if x.ndim != 1:
         raise ValueError("Input array must be 1 dimensional")
 
-    return Index(x)
+    return Index(x, copy=False)
 
 
 def _postprocess_for_cut(fac, bins, retbins: bool, original):
