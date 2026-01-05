@@ -691,6 +691,14 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                     msg = self._validation_error_message(value, True)
                     raise TypeError(msg) from err
 
+        if isinstance(value, list):
+            value = construct_1d_object_array_from_listlike(value)
+        if isinstance(value, np.ndarray) and value.dtype == object:
+            # We need to call maybe_convert_objects here instead of in pd_array
+            #  so we can specify dtype_if_all_nat.
+            value = lib.maybe_convert_objects(
+                value, convert_non_numeric=True, dtype_if_all_nat=self.dtype
+            )
         # Do type inference if necessary up front (after unpacking
         # NumpyExtensionArray)
         # e.g. we passed PeriodIndex.values and got an ndarray of Periods
