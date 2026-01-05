@@ -2928,11 +2928,15 @@ class ArrowExtensionArray(
         return self._from_pyarrow_array(result)
 
     def _dt_as_unit(self, unit: str) -> Self:
-        if pa.types.is_date(self.dtype.pyarrow_dtype):
-            raise NotImplementedError("as_unit not implemented for date types")
-        pd_array = self._maybe_convert_datelike_array()
-        # Don't just cast _pa_array in order to follow pandas unit conversion rules
-        result = pa.array(pd_array.as_unit(unit), from_pandas=True)
+        pa_type = self._pa_array.type
+        if pa.types.is_timestamp(pa_type):
+            target_type = pa.timestamp(unit, tz=pa_type.tz)
+        elif pa.types.is_duration(pa_type):
+            target_type = pa.duration(unit)
+        else:
+            raise NotImplementedError(f"as_unit not implemented for {pa_type}")
+        # Use safe=False to allow truncation, matching pandas as_unit behavior
+        result = pc.cast(self._pa_array, target_type, safe=False)
         return self._from_pyarrow_array(result)
 
     @property
