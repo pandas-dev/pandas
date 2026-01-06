@@ -5,7 +5,7 @@ from pandas._libs.sparse import IntIndex
 
 from pandas import (
     SparseDtype,
-    Timestamp,
+    Timestamp, Series,
 )
 import pandas._testing as tm
 from pandas.core.arrays.sparse import SparseArray
@@ -131,3 +131,12 @@ class TestAstype:
         arr3 = SparseArray(values, dtype=dtype)
         result3 = arr3.astype("int64")
         tm.assert_numpy_array_equal(result3, expected)
+
+    def test_astype_bool_with_nan_warning(self):
+        ser = Series([1.0, 2.0, np.nan])
+
+        with tm.assert_produces_warning(FutureWarning, match="Converting a Series with NaN values to bool"):
+            result = ser.astype(np.bool_)
+
+        expected = Series([True, True, True])
+        tm.assert_series_equal(expected, result)
