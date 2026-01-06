@@ -2231,8 +2231,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             <https://pandas.pydata.org/docs/user_guide/io.html?
             highlight=storage_options#reading-writing-remote-files>`_.
 
-            .. versionadded:: 1.2.0
-
         engine_kwargs : dict, optional
             Arbitrary keyword arguments passed to excel engine.
         autofilter : bool, default False
