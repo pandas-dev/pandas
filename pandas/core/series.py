@@ -2576,9 +2576,18 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         4    3.0
         dtype: float64
         """
+
         nv.validate_round(args, kwargs)
-        if self.dtype == "object":
-            raise TypeError("Expected numeric dtype, got object instead.")
+
+        if len(self) == 0:
+            return self.copy()
+
+        if is_object_dtype(self.dtype):
+            values = self._values
+            result = lib.map_infer(values, lambda x: round(x, decimals), convert=False)
+            return self._constructor(result, index=self.index, copy=False).__finalize__(
+                self, method="round"
+            )
         new_mgr = self._mgr.round(decimals=decimals)
         return self._constructor_from_mgr(new_mgr, axes=new_mgr.axes).__finalize__(
             self, method="round"
