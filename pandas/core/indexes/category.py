@@ -525,5 +525,5 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         value=None,
         *,
         regex=False,
-    ) -> Self:
+    ) -> CategoricalIndex:
         raise NotImplementedError("CategoricalIndex.replace is not supported")

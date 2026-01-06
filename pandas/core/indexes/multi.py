@@ -3959,7 +3959,7 @@ class MultiIndex(Index):
         value=lib.no_default,
         *,
         regex=False,
-    ) -> Self:
+    ) -> MultiIndex:
         names = self.names
 
         result = self.to_frame().replace(
