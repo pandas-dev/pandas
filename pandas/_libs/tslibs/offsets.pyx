@@ -1248,6 +1248,18 @@ cdef class Day(SingleConstructorOffset):
         """
         Return a string representing the frequency.
 
+        The frequency string is composed of a multiplier (if greater than 1)
+        followed by the offset alias 'D' for days.
+
+        See Also
+        --------
+        tseries.offsets.Hour.freqstr :
+            Return a string representing an offset frequency in hours.
+        tseries.offsets.Minute.freqstr :
+            Return a string representing an offset frequency in minutes.
+        tseries.offsets.Second.freqstr :
+            Return a string representing an offset frequency in seconds.
+
         Examples
         --------
         >>> pd.Day(5).freqstr
