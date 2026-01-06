@@ -2,10 +2,12 @@ import numpy as np
 import pytest
 
 from pandas._libs.sparse import IntIndex
+from pandas.errors import PandasFutureWarning
 
 from pandas import (
+    Series,
     SparseDtype,
-    Timestamp, Series,
+    Timestamp,
 )
 import pandas._testing as tm
 from pandas.core.arrays.sparse import SparseArray
@@ -135,7 +137,10 @@ class TestAstype:
     def test_astype_bool_with_nan_warning(self):
         ser = Series([1.0, 2.0, np.nan])
 
-        with tm.assert_produces_warning(FutureWarning, match="Converting a Series with NaN values to bool"):
+        with tm.assert_produces_warning(
+            PandasFutureWarning,
+            match="Converting a Series with NaN values to bool",
+        ):
             result = ser.astype(np.bool_)
 
         expected = Series([True, True, True])

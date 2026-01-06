@@ -16,7 +16,10 @@ import numpy as np
 
 from pandas._libs import lib
 from pandas._libs.tslibs.timedeltas import array_to_timedelta64
-from pandas.errors import IntCastingNaNError
+from pandas.errors import (
+    IntCastingNaNError,
+    PandasFutureWarning,
+)
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
@@ -32,7 +35,6 @@ from pandas.core.dtypes.dtypes import (
     NumpyEADtype,
     PeriodDtype,
 )
-
 from pandas.core.dtypes.missing import isna
 
 if TYPE_CHECKING:
@@ -105,7 +107,7 @@ def _astype_nansafe(
         warnings.warn(
             "Converting a Series with NaN values to bool will raise a ValueError "
             "in a future version. Remove NaN values before converting to bool.",
-            FutureWarning,
+            PandasFutureWarning,
             stacklevel=find_stack_level(),
         )
         # Uncomment in future version (3.0+):
