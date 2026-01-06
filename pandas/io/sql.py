@@ -163,9 +163,7 @@ def _convert_arrays_to_dataframe(
     coerce_float: bool = True,
     dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
 ) -> DataFrame:
-    # Fix for GH#53028: DictCursor returns dictionaries which cause
-    # to_object_array_tuples to populate DataFrame with column names instead
-    # of actual values. Convert dictionaries to tuples in column order.
+    # GH#53028 - handle cursors that return dictionaries
     if data and len(data) > 0 and is_dict_like(data[0]):
         data = [tuple(row[col] for col in columns) for row in data]
     content = lib.to_object_array_tuples(data)

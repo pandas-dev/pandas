@@ -12,7 +12,10 @@ from decimal import Decimal
 from io import StringIO
 from pathlib import Path
 import sqlite3
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 import uuid
 
 import numpy as np
@@ -46,7 +49,6 @@ from pandas.io.sql import (
     SQLAlchemyEngine,
     SQLDatabase,
     SQLiteDatabase,
-    _convert_arrays_to_dataframe,
     get_engine,
     pandasSQL_builder,
     read_sql_query,
@@ -4395,24 +4397,33 @@ def test_xsqlite_if_exists(sqlite_buildin):
     drop_table(table_name, sqlite_buildin)
 
 
-def test_convert_arrays_to_dataframe_with_dictcursor():
+def test_read_sql_query_dictcursor():
     """
     Test for GH#53028: DictCursor returns dictionaries which cause
-    _convert_arrays_to_dataframe to populate DataFrame with column names
-    instead of actual values.
+    read_sql_query to populate DataFrame with column names instead of actual values.
     """
-    # Simulate DictCursor output (e.g., from pymysql with DictCursor)
-    dict_data = [
-        {"id": 117, "value": "ABCDEF", "state_id": 5},
-        {"id": 163, "value": "DEFRDC", "state_id": 5},
-    ]
-    columns = ["id", "value", "state_id"]
 
-    result = _convert_arrays_to_dataframe(dict_data, columns)
+    def sqlite3_factory(cursor: Any, row: Any) -> Any:
+        """Convert SQL row into a Dict rather than Tuple"""
+        d = {}
+        for idx, col in enumerate(cursor.description):
+            d[col[0]] = row[idx]
+        return d
+
+    conn = sqlite3.connect(":memory:")
+    conn.row_factory = sqlite3_factory
+
+    df_input = DataFrame(
+        {"id": [117, 163], "value": ["ABCDEF", "DEFRDC"], "state_id": [5, 5]}
+    )
+
+    df_input.to_sql(name="example", con=conn, if_exists="replace", index=False)
+
+    result = read_sql_query("SELECT * FROM example", conn)
 
     expected = DataFrame(
-        [[117, "ABCDEF", 5], [163, "DEFRDC", 5]],
-        columns=columns,
+        {"id": [117, 163], "value": ["ABCDEF", "DEFRDC"], "state_id": [5, 5]}
     )
 
     tm.assert_frame_equal(result, expected)
+    conn.close()
