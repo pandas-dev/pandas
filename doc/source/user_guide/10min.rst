@@ -463,16 +463,15 @@ code snippet below. See more at :ref:`Vectorized String Methods
 
 Merge
 -----
-
-Concat
-~~~~~~
-
 pandas provides various facilities for easily combining together :class:`Series` and
 :class:`DataFrame` objects with various kinds of set logic for the indexes
 and relational algebra functionality in the case of join / merge-type
 operations.
 
 See the :ref:`Merging section <merging>`.
+
+Concat
+~~~~~~
 
 Concatenating pandas objects together row-wise with :func:`concat`:
 
