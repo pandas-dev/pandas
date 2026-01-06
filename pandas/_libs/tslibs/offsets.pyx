@@ -3165,6 +3165,44 @@ cdef class HalfYearOffset(SingleConstructorOffset):
         return f"{self._prefix}-{month}"
 
     def is_on_offset(self, dt: datetime) -> bool:
+        """
+        Return boolean whether a timestamp intersects with this frequency.
+
+        This method checks if a given datetime falls on a valid half-year
+        boundary as defined by this offset.
+
+        Parameters
+        ----------
+        dt : datetime
+            Timestamp to check intersections with frequency.
+
+        Returns
+        -------
+        bool
+            True if the timestamp is on the offset, False otherwise.
+
+        See Also
+        --------
+        HalfYearEnd.is_on_offset : Check if a timestamp is at the end of a
+            half-year.
+        HalfYearBegin.is_on_offset : Check if a timestamp is at the start of a
+            half-year.
+        BHalfYearEnd.is_on_offset : Check if a timestamp is at the end of a
+            business half-year.
+        BHalfYearBegin.is_on_offset : Check if a timestamp is at the start of a
+            business half-year.
+
+        Examples
+        --------
+        >>> freq = pd.offsets.BHalfYearBegin()
+        >>> ts = pd.Timestamp(2022, 1, 1)
+        >>> freq.is_on_offset(ts)
+        False
+
+        >>> ts = pd.Timestamp(2022, 1, 3)
+        >>> freq.is_on_offset(ts)
+        True
+        """
         if self.normalize and not _is_normalized(dt):
             return False
         mod_month = (dt.month - self.startingMonth) % 6
