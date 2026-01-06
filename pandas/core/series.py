@@ -4,6 +4,10 @@ Data structure for 1-dimensional cross-sectional and time series data
 
 from __future__ import annotations
 
+import functools
+import operator
+import sys
+import warnings
 from collections.abc import (
     Callable,
     Hashable,
@@ -11,9 +15,6 @@ from collections.abc import (
     Mapping,
     Sequence,
 )
-import functools
-import operator
-import sys
 from textwrap import dedent
 from typing import (
     IO,
@@ -24,10 +25,12 @@ from typing import (
     cast,
     overload,
 )
-import warnings
 
 import numpy as np
 
+import pandas.core.indexes.base as ibase
+import pandas.io.formats.format as fmt
+import pandas.plotting
 from pandas._libs import (
     lib,
     properties,
@@ -41,31 +44,32 @@ from pandas.compat._constants import (
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
-from pandas.errors import (
-    ChainedAssignmentError,
-    InvalidIndexError,
-    Pandas4Warning,
+from pandas.core import (
+    algorithms,
+    base,
+    nanops,
+    ops,
+    roperator,
 )
-from pandas.errors.cow import (
-    _chained_assignment_method_msg,
-    _chained_assignment_msg,
+from pandas.core import (
+    common as com,
 )
-from pandas.util._decorators import (
-    Appender,
-    Substitution,
-    deprecate_nonkeyword_arguments,
-    doc,
-    set_module,
+from pandas.core.accessor import Accessor
+from pandas.core.apply import SeriesApply
+from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays.arrow import (
+    ListAccessor,
+    StructAccessor,
 )
-from pandas.util._exceptions import (
-    find_stack_level,
+from pandas.core.arrays.categorical import CategoricalAccessor
+from pandas.core.arrays.sparse import SparseAccessor
+from pandas.core.construction import (
+    array as pd_array,
 )
-from pandas.util._validators import (
-    validate_ascending,
-    validate_bool_kwarg,
-    validate_percentile,
+from pandas.core.construction import (
+    extract_array,
+    sanitize_array,
 )
-
 from pandas.core.dtypes.astype import astype_is_view
 from pandas.core.dtypes.cast import (
     LossySetitemError,
@@ -100,29 +104,6 @@ from pandas.core.dtypes.missing import (
     notna,
     remove_na_arraylike,
 )
-
-from pandas.core import (
-    algorithms,
-    base,
-    common as com,
-    nanops,
-    ops,
-    roperator,
-)
-from pandas.core.accessor import Accessor
-from pandas.core.apply import SeriesApply
-from pandas.core.arrays import ExtensionArray
-from pandas.core.arrays.arrow import (
-    ListAccessor,
-    StructAccessor,
-)
-from pandas.core.arrays.categorical import CategoricalAccessor
-from pandas.core.arrays.sparse import SparseAccessor
-from pandas.core.construction import (
-    array as pd_array,
-    extract_array,
-    sanitize_array,
-)
 from pandas.core.generic import (
     NDFrame,
     make_doc,
@@ -141,7 +122,6 @@ from pandas.core.indexes.api import (
     ensure_index,
     maybe_sequence_to_range,
 )
-import pandas.core.indexes.base as ibase
 from pandas.core.indexes.multi import maybe_droplevels
 from pandas.core.indexing import (
     check_bool_indexer,
@@ -156,12 +136,33 @@ from pandas.core.sorting import (
 )
 from pandas.core.strings.accessor import StringMethods
 from pandas.core.tools.datetimes import to_datetime
-
-import pandas.io.formats.format as fmt
+from pandas.errors import (
+    ChainedAssignmentError,
+    InvalidIndexError,
+    Pandas4Warning,
+)
+from pandas.errors.cow import (
+    _chained_assignment_method_msg,
+    _chained_assignment_msg,
+)
 from pandas.io.formats.info import (
     SeriesInfo,
 )
-import pandas.plotting
+from pandas.util._decorators import (
+    Appender,
+    Substitution,
+    deprecate_nonkeyword_arguments,
+    doc,
+    set_module,
+)
+from pandas.util._exceptions import (
+    find_stack_level,
+)
+from pandas.util._validators import (
+    validate_ascending,
+    validate_bool_kwarg,
+    validate_percentile,
+)
 
 if TYPE_CHECKING:
     from pandas._libs.internals import BlockValuesRefs
@@ -200,7 +201,6 @@ if TYPE_CHECKING:
         WriteBuffer,
         npt,
     )
-
     from pandas.core.frame import DataFrame
     from pandas.core.groupby.generic import SeriesGroupBy
 
@@ -1875,6 +1875,20 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Returns
         -------
         Series
+
+        See Also
+        --------
+        DataFrame.from_arrow : Construct a DataFrame from an Arrow object.
+
+        Examples
+        --------
+        >>> import pyarrow as pa
+        >>> arrow_array = pa.array([1, 2, 3])
+        >>> pd.Series.from_arrow(arrow_array)
+        0    1
+        1    2
+        2    3
+        dtype: int64
         """
         pa = import_optional_dependency("pyarrow", min_version="14.0.0")
         if not isinstance(data, (pa.Array, pa.ChunkedArray)):
