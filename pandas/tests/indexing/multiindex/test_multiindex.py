@@ -249,3 +249,46 @@ class TestMultiIndexBasic:
         expected = getattr(a, operation)(b.sort_index(ascending=False))
 
         tm.assert_series_equal(result, expected)
+
+    def test_multiindex_assign_aligns_as_implicit_tuple(self):
+        # GH 61841
+        cols = MultiIndex.from_tuples([("A", "B")])
+        df1 = DataFrame([[i] for i in range(3)], columns=cols)
+        df2 = df1.copy()
+        df3 = df1.copy()
+        s1 = df1["A"].rolling(2).mean()
+        s2 = s1.copy()
+        s3 = s1.copy()
+
+        df2["C"] = s2
+        df3[("C", "")] = s3
+        tm.assert_frame_equal(df2, df3)
+
+        df1["C"] = s1
+        tm.assert_frame_equal(df1, df2)
+        tm.assert_frame_equal(df1, df3)
+
+        df1["C"] = s1
+        tm.assert_frame_equal(df1, df2)
+        tm.assert_frame_equal(df1, df3)
+
+    def test_multiindex_assign_alignment_with_non_string_dtype(self):
+        # GH 62518
+        columns = MultiIndex.from_arrays(
+            [["a", "a", "z", "z"], pd.Categorical([1, 2, 1, 2])]
+        )
+
+        meta = DataFrame(columns=columns, dtype=object)
+        meta["z"] = meta["z"].astype("int64")
+
+        result = DataFrame(
+            data={
+                ("a", 1): Series([], dtype=object),
+                ("a", 2): Series([], dtype=object),
+                ("z", 1): Series([], dtype="int64"),
+                ("z", 2): Series([], dtype="int64"),
+            },
+            columns=columns,
+        )
+
+        tm.assert_frame_equal(meta, result)

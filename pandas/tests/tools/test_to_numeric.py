@@ -192,7 +192,7 @@ def test_numeric_df_columns(columns):
     # see gh-14827
     df = DataFrame(
         {
-            "a": [1.2, decimal.Decimal(3.14), decimal.Decimal("infinity"), "0.1"],
+            "a": [1.2, decimal.Decimal("3.14"), decimal.Decimal("infinity"), "0.1"],
             "b": [1.0, 2.0, 3.0, 4.0],
         }
     )
@@ -207,10 +207,10 @@ def test_numeric_df_columns(columns):
     "data,exp_data",
     [
         (
-            [[decimal.Decimal(3.14), 1.0], decimal.Decimal(1.6), 0.1],
+            [[decimal.Decimal("3.14"), 1.0], decimal.Decimal("1.6"), 0.1],
             [[3.14, 1.0], 1.6, 0.1],
         ),
-        ([np.array([decimal.Decimal(3.14), 1.0]), 0.1], [[3.14, 1.0], 0.1]),
+        ([np.array([decimal.Decimal("3.14"), 1.0]), 0.1], [[3.14, 1.0], 0.1]),
     ],
 )
 def test_numeric_embedded_arr_likes(data, exp_data):
@@ -250,15 +250,9 @@ def test_really_large_scalar(large_val, signed, transform, errors):
     val = -large_val if signed else large_val
 
     val = transform(val)
-    val_is_string = isinstance(val, str)
 
-    if val_is_string and errors in (None, "raise"):
-        msg = "Integer out of range. at position 0"
-        with pytest.raises(ValueError, match=msg):
-            to_numeric(val, **kwargs)
-    else:
-        expected = float(val) if (errors == "coerce" and val_is_string) else val
-        tm.assert_almost_equal(to_numeric(val, **kwargs), expected)
+    expected = float(val) if errors == "coerce" else int(val)
+    tm.assert_almost_equal(to_numeric(val, **kwargs), expected)
 
 
 def test_really_large_in_arr(large_val, signed, transform, multiple_elts, errors):
@@ -270,21 +264,17 @@ def test_really_large_in_arr(large_val, signed, transform, multiple_elts, errors
     extra_elt = "string"
     arr = [val] + multiple_elts * [extra_elt]
 
-    val_is_string = isinstance(val, str)
     coercing = errors == "coerce"
 
-    if errors in (None, "raise") and (val_is_string or multiple_elts):
-        if val_is_string:
-            msg = "Integer out of range. at position 0"
-        else:
-            msg = 'Unable to parse string "string" at position 1'
+    if errors in (None, "raise") and multiple_elts:
+        msg = 'Unable to parse string "string" at position 1'
 
         with pytest.raises(ValueError, match=msg):
             to_numeric(arr, **kwargs)
     else:
         result = to_numeric(arr, **kwargs)
 
-        exp_val = float(val) if (coercing and val_is_string) else val
+        exp_val = float(val) if (coercing) else int(val)
         expected = [exp_val]
 
         if multiple_elts:
@@ -295,7 +285,7 @@ def test_really_large_in_arr(large_val, signed, transform, multiple_elts, errors
                 expected.append(extra_elt)
                 exp_dtype = object
         else:
-            exp_dtype = float if isinstance(exp_val, (int, float)) else object
+            exp_dtype = float if isinstance(exp_val, float) else object
 
         tm.assert_almost_equal(result, np.array(expected, dtype=exp_dtype))
 
@@ -311,18 +301,11 @@ def test_really_large_in_arr_consistent(large_val, signed, multiple_elts, errors
     if multiple_elts:
         arr.insert(0, large_val)
 
-    if errors in (None, "raise"):
-        index = int(multiple_elts)
-        msg = f"Integer out of range. at position {index}"
+    result = to_numeric(arr, **kwargs)
+    expected = [float(i) if errors == "coerce" else int(i) for i in arr]
+    exp_dtype = float if errors == "coerce" else object
 
-        with pytest.raises(ValueError, match=msg):
-            to_numeric(arr, **kwargs)
-    else:
-        result = to_numeric(arr, **kwargs)
-        expected = [float(i) for i in arr]
-        exp_dtype = float
-
-        tm.assert_almost_equal(result, np.array(expected, dtype=exp_dtype))
+    tm.assert_almost_equal(result, np.array(expected, dtype=exp_dtype))
 
 
 @pytest.mark.parametrize(
@@ -703,11 +686,11 @@ def test_precision_float_conversion(strrep):
 @pytest.mark.parametrize(
     "values, expected",
     [
-        (["1", "2", None], Series([1, 2, np.nan], dtype="Int64")),
+        (["1", "2", None], Series([1, 2, pd.NA], dtype="Int64")),
         (["1", "2", "3"], Series([1, 2, 3], dtype="Int64")),
         (["1", "2", 3], Series([1, 2, 3], dtype="Int64")),
         (["1", "2", 3.5], Series([1, 2, 3.5], dtype="Float64")),
-        (["1", None, 3.5], Series([1, np.nan, 3.5], dtype="Float64")),
+        (["1", None, 3.5], Series([1, pd.NA, 3.5], dtype="Float64")),
         (["1", "2", "3.5"], Series([1, 2, 3.5], dtype="Float64")),
     ],
 )
@@ -898,7 +881,7 @@ def test_to_numeric_dtype_backend_error(dtype_backend):
         dtype = "double[pyarrow]"
     else:
         dtype = "Float64"
-    expected = Series([np.nan, np.nan, np.nan], dtype=dtype)
+    expected = Series([pd.NA, pd.NA, pd.NA], dtype=dtype)
     tm.assert_series_equal(result, expected)
 
 

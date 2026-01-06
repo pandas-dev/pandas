@@ -113,6 +113,7 @@ from pandas._libs.tslibs.offsets cimport (
 from pandas._libs.tslibs.offsets import (
     INVALID_FREQ_ERR_MSG,
     BDay,
+    Day,
 )
 from pandas.util._decorators import set_module
 
@@ -679,7 +680,7 @@ cdef char* c_strftime(npy_datetimestruct *dts, char *fmt):
     c_date.tm_yday = get_day_of_year(dts.year, dts.month, dts.day) - 1
     c_date.tm_isdst = -1
 
-    result = <char*>malloc(result_len * sizeof(char))
+    result = <char*>malloc(result_len)
     if result is NULL:
         raise MemoryError()
 
@@ -1625,7 +1626,12 @@ DIFFERENT_FREQ = ("Input has different freq={other_freq} "
                   "from {cls}(freq={own_freq})")
 
 
-class IncompatibleFrequency(ValueError):
+@set_module("pandas.errors")
+class IncompatibleFrequency(TypeError):
+    """
+    Raised when trying to compare or operate between Periods with different
+    frequencies.
+    """
     pass
 
 
@@ -1752,9 +1758,6 @@ cdef class _Period(PeriodMixin):
     def __cinit__(self, int64_t ordinal, BaseOffset freq):
         self.ordinal = ordinal
         self.freq = freq
-        # Note: this is more performant than PeriodDtype.from_date_offset(freq)
-        #  because from_date_offset cannot be made a cdef method (until cython
-        #  supported cdef classmethods)
         self._dtype = PeriodDtypeBase(freq._period_dtype_code, freq.n)
 
     @classmethod
@@ -1824,6 +1827,10 @@ cdef class _Period(PeriodMixin):
             # i.e. np.timedelta64("nat")
             return NaT
 
+        if isinstance(other, Day):
+            # Periods are timezone-naive, so we treat Day as Tick-like
+            other = np.timedelta64(other.n, "D")
+
         try:
             inc = delta_to_nanoseconds(other, reso=self._dtype._creso, round_ok=False)
         except ValueError as err:
@@ -1845,7 +1852,7 @@ cdef class _Period(PeriodMixin):
 
     @cython.overflowcheck(True)
     def __add__(self, other):
-        if is_any_td_scalar(other):
+        if is_any_td_scalar(other) or isinstance(other, Day):
             return self._add_timedeltalike_scalar(other)
         elif is_offset_object(other):
             return self._add_offset(other)
@@ -1913,7 +1920,7 @@ cdef class _Period(PeriodMixin):
 
         Parameters
         ----------
-        freq : str, BaseOffset
+        freq : str, DateOffset
             The target frequency to convert the Period object to.
             If a string is provided,
             it must be a valid :ref:`period alias <timeseries.period_aliases>`.
@@ -2139,6 +2146,12 @@ cdef class _Period(PeriodMixin):
     def day(self) -> int:
         """
         Get day of the month that a Period falls on.
+
+        The `day` property provides a simple way to access the day component
+        of a `Period` object, which represents time spans in various frequencies
+        (e.g., daily, hourly, monthly). If the period's frequency does not include
+        a day component (e.g., yearly or quarterly periods), the returned day
+        corresponds to the first day of that period.
 
         Returns
         -------
@@ -2593,7 +2606,7 @@ cdef class _Period(PeriodMixin):
 
         Parameters
         ----------
-        freq : str, BaseOffset
+        freq : str, DateOffset
             Frequency to use for the returned period.
 
         See Also
@@ -2836,6 +2849,11 @@ class Period(_Period):
     """
     Represents a period of time.
 
+    A `Period` represents a specific time span rather than a point in time.
+    Unlike `Timestamp`, which represents a single instant, a `Period` defines a
+    duration, such as a month, quarter, or year. The exact representation is
+    determined by the `freq` parameter.
+
     Parameters
     ----------
     value : Period, str, datetime, date or pandas.Timestamp, default None
@@ -3001,6 +3019,7 @@ class Period(_Period):
             # GH#53446
             import warnings
 
+            # TODO: Enforce in 3.0 (#53511)
             from pandas.util._exceptions import find_stack_level
             warnings.warn(
                 "Period with BDay freq is deprecated and will be removed "

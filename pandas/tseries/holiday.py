@@ -4,7 +4,11 @@ from datetime import (
     datetime,
     timedelta,
 )
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Literal,
+    overload,
+)
 import warnings
 
 from dateutil.relativedelta import (
@@ -169,6 +173,7 @@ class Holiday:
         start_date=None,
         end_date=None,
         days_of_week: tuple | None = None,
+        exclude_dates: DatetimeIndex | None = None,
     ) -> None:
         """
         Parameters
@@ -191,8 +196,11 @@ class Holiday:
         end_date : datetime-like, default None
             Last date the holiday is observed
         days_of_week : tuple of int or dateutil.relativedelta weekday strs, default None
-            Provide a tuple of days e.g  (0,1,2,3,) for Monday Through Thursday
+            Provide a tuple of days e.g  (0,1,2,3,) for Monday through Thursday
             Monday=0,..,Sunday=6
+            Only instances of the holiday included in days_of_week will be computed
+        exclude_dates : DatetimeIndex or default None
+            Specific dates to exclude e.g. skipping a specific year's holiday
 
         Examples
         --------
@@ -255,8 +263,12 @@ class Holiday:
         )
         self.end_date = Timestamp(end_date) if end_date is not None else end_date
         self.observance = observance
-        assert days_of_week is None or type(days_of_week) == tuple
+        if not (days_of_week is None or isinstance(days_of_week, tuple)):
+            raise ValueError("days_of_week must be None or tuple.")
         self.days_of_week = days_of_week
+        if not (exclude_dates is None or isinstance(exclude_dates, DatetimeIndex)):
+            raise ValueError("exclude_dates must be None or of type DatetimeIndex.")
+        self.exclude_dates = exclude_dates
 
     def __repr__(self) -> str:
         info = ""
@@ -272,6 +284,17 @@ class Holiday:
 
         repr = f"Holiday: {self.name} ({info})"
         return repr
+
+    @overload
+    def dates(self, start_date, end_date, return_name: Literal[True]) -> Series: ...
+
+    @overload
+    def dates(
+        self, start_date, end_date, return_name: Literal[False]
+    ) -> DatetimeIndex: ...
+
+    @overload
+    def dates(self, start_date, end_date) -> DatetimeIndex: ...
 
     def dates(
         self, start_date, end_date, return_name: bool = False
@@ -328,6 +351,9 @@ class Holiday:
         holiday_dates = holiday_dates[
             (holiday_dates >= filter_start_date) & (holiday_dates <= filter_end_date)
         ]
+
+        if self.exclude_dates is not None:
+            holiday_dates = holiday_dates.difference(self.exclude_dates)
         if return_name:
             return Series(self.name, index=holiday_dates)
         return holiday_dates
@@ -400,7 +426,7 @@ class Holiday:
         return dates
 
 
-holiday_calendars = {}
+holiday_calendars: dict[str, type[AbstractHolidayCalendar]] = {}
 
 
 def register(cls) -> None:
@@ -438,7 +464,7 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
     rules: list[Holiday] = []
     start_date = Timestamp(datetime(1970, 1, 1))
     end_date = Timestamp(datetime(2200, 12, 31))
-    _cache = None
+    _cache: tuple[Timestamp, Timestamp, Series] | None = None
 
     def __init__(self, name: str = "", rules=None) -> None:
         """
@@ -467,7 +493,9 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
 
         return None
 
-    def holidays(self, start=None, end=None, return_name: bool = False):
+    def holidays(
+        self, start=None, end=None, return_name: bool = False
+    ) -> DatetimeIndex | Series:
         """
         Returns a curve with holidays between start_date and end_date
 
@@ -504,14 +532,9 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
                 rule.dates(start, end, return_name=True) for rule in self.rules
             ]
             if pre_holidays:
-                # error: Argument 1 to "concat" has incompatible type
-                # "List[Union[Series, DatetimeIndex]]"; expected
-                # "Union[Iterable[DataFrame], Mapping[<nothing>, DataFrame]]"
-                holidays = concat(pre_holidays)  # type: ignore[arg-type]
+                holidays = concat(pre_holidays)
             else:
-                # error: Incompatible types in assignment (expression has type
-                # "Series", variable has type "DataFrame")
-                holidays = Series(index=DatetimeIndex([]), dtype=object)  # type: ignore[assignment]
+                holidays = Series(index=DatetimeIndex([]), dtype=object)
 
             self._cache = (start, end, holidays.sort_index())
 

@@ -6,6 +6,8 @@ from datetime import (
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -1109,7 +1111,7 @@ def test_apply_is_unchanged_when_other_methods_are_called_first(reduction_func):
     grp = df.groupby(by="a")
     args = get_groupby_method_args(reduction_func, df)
     if reduction_func == "corrwith":
-        warn = FutureWarning
+        warn = Pandas4Warning
         msg = "DataFrameGroupBy.corrwith is deprecated"
     else:
         warn = None
@@ -1381,6 +1383,7 @@ def test_result_name_when_one_group(name):
         ("apply", lambda gb: gb.values[-1]),
         ("apply", lambda gb: gb["b"].iloc[0]),
         ("agg", "skew"),
+        ("agg", "kurt"),
         ("agg", "prod"),
         ("agg", "sum"),
     ],
@@ -1389,7 +1392,7 @@ def test_empty_df(method, op):
     # GH 47985
     empty_df = DataFrame({"a": [], "b": []})
     gb = empty_df.groupby("a", group_keys=True)
-    group = getattr(gb, "b")
+    group = gb.b
 
     result = getattr(group, method)(op)
     expected = Series(
@@ -1513,3 +1516,28 @@ def test_nonreducer_nonstransform():
     ).set_index(["cat1", "cat2"])["rank"]
     result = df.groupby("cat1").apply(f)
     tm.assert_series_equal(result, expected)
+
+
+def test_groupby_apply_store_copy():
+    # GH40673
+    rng = np.random.default_rng(seed=42)
+
+    df = DataFrame(
+        {
+            "A": rng.normal(10, 12, size=(4,)),
+            "B": [1, 2, 1, 2],
+        }
+    )
+
+    store = {}
+
+    def addstore(x):
+        store[len(store)] = x.copy()
+
+    df.groupby("B").apply(addstore)
+
+    expected_out_0 = df.iloc[[0, 2], [0]]
+    expected_out_1 = df.iloc[[1, 3], [0]]
+
+    tm.assert_frame_equal(store[0], expected_out_0)
+    tm.assert_frame_equal(store[1], expected_out_1)

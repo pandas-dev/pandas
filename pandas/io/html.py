@@ -24,7 +24,7 @@ from pandas.errors import (
     AbstractMethodError,
     EmptyDataError,
 )
-from pandas.util._decorators import doc
+from pandas.util._decorators import set_module
 from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.common import is_list_like
@@ -33,7 +33,6 @@ from pandas import isna
 from pandas.core.indexes.base import Index
 from pandas.core.indexes.multi import MultiIndex
 from pandas.core.series import Series
-from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.common import (
     get_handle,
@@ -170,8 +169,6 @@ class _HtmlFrameParser:
         Table elements in the specified section(s) with <a> tags will have their
         href extracted.
 
-        .. versionadded:: 1.5.0
-
     Attributes
     ----------
     io : str or file-like
@@ -193,8 +190,6 @@ class _HtmlFrameParser:
     extract_links : {None, "all", "header", "body", "footer"}
         Table elements in the specified section(s) with <a> tags will have their
         href extracted.
-
-        .. versionadded:: 1.5.0
 
     Notes
     -----
@@ -220,7 +215,7 @@ class _HtmlFrameParser:
         attrs: dict[str, str] | None,
         encoding: str,
         displayed_only: bool,
-        extract_links: Literal[None, "header", "footer", "body", "all"],
+        extract_links: Literal["header", "footer", "body", "all"] | None,
         storage_options: StorageOptions = None,
     ) -> None:
         self.io = io
@@ -264,7 +259,7 @@ class _HtmlFrameParser:
 
     def _href_getter(self, obj) -> str | None:
         """
-        Return a href if the DOM node contains a child <a> or None.
+        Return an href if the DOM node contains a child <a> or None.
 
         Parameters
         ----------
@@ -1024,7 +1019,7 @@ def _parse(
     return ret
 
 
-@doc(storage_options=_shared_docs["storage_options"])
+@set_module("pandas")
 def read_html(
     io: FilePath | ReadBuffer[str],
     *,
@@ -1042,7 +1037,7 @@ def read_html(
     na_values: Iterable[object] | None = None,
     keep_default_na: bool = True,
     displayed_only: bool = True,
-    extract_links: Literal[None, "header", "footer", "body", "all"] = None,
+    extract_links: Literal["header", "footer", "body", "all"] | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     storage_options: StorageOptions = None,
 ) -> list[DataFrame]:
@@ -1052,15 +1047,11 @@ def read_html(
     Parameters
     ----------
     io : str, path object, or file-like object
-        String, path object (implementing ``os.PathLike[str]``), or file-like
+        String path, path object (implementing ``os.PathLike[str]``), or file-like
         object implementing a string ``read()`` function.
         The string can represent a URL. Note that
         lxml only accepts the http, ftp and file url protocols. If you have a
         URL that starts with ``'https'`` you might try removing the ``'s'``.
-
-        .. deprecated:: 2.1.0
-            Passing html literal strings is deprecated.
-            Wrap literal string/bytes input in ``io.StringIO``/``io.BytesIO`` instead.
 
     match : str or compiled regular expression, optional
         The set of tables containing text matching this regex or string will be
@@ -1147,8 +1138,6 @@ def read_html(
         Table elements in the specified section(s) with <a> tags will have their
         href extracted.
 
-        .. versionadded:: 1.5.0
-
     dtype_backend : {{'numpy_nullable', 'pyarrow'}}
         Back-end data type applied to the resultant :class:`DataFrame`
         (still experimental). If not specified, the default behavior
@@ -1161,7 +1150,15 @@ def read_html(
 
         .. versionadded:: 2.0
 
-    {storage_options}
+    storage_options : dict, optional
+        Extra options that make sense for a particular storage connection, e.g.
+        host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
+        are forwarded to ``urllib.request.Request`` as header options. For other
+        URLs (e.g. starting with "s3://", and "gcs://") the key-value pairs are
+        forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more
+        details, and for more examples on storage options refer `here
+        <https://pandas.pydata.org/docs/user_guide/io.html?
+        highlight=storage_options#reading-writing-remote-files>`_.
 
         .. versionadded:: 2.1.0
 

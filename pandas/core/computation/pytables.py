@@ -12,10 +12,13 @@ from typing import (
     TYPE_CHECKING,
     Any,
     ClassVar,
+    Self,
+    cast,
 )
 
 import numpy as np
 
+from pandas._libs import lib
 from pandas._libs.tslibs import (
     Timedelta,
     Timestamp,
@@ -43,7 +46,7 @@ from pandas.io.formats.printing import (
 
 if TYPE_CHECKING:
     from pandas._typing import (
-        Self,
+        TimeUnit,
         npt,
     )
 
@@ -226,20 +229,27 @@ class BinOp(ops.BinOp):
             if conv_val.tz is not None:
                 conv_val = conv_val.tz_convert("UTC")
             return TermValue(conv_val, conv_val._value, kind)
-        elif kind in ("timedelta64", "timedelta"):
+        elif kind.startswith("timedelta"):
+            unit = "ns"
+            if "[" in kind:
+                unit = cast("TimeUnit", kind.split("[")[-1][:-1])
             if isinstance(conv_val, str):
                 conv_val = Timedelta(conv_val)
-            else:
+            elif lib.is_integer(conv_val) or lib.is_float(conv_val):
                 conv_val = Timedelta(conv_val, unit="s")
-            conv_val = conv_val.as_unit("ns")._value
+            else:
+                conv_val = Timedelta(conv_val)
+            conv_val = conv_val.as_unit(unit)._value
             return TermValue(int(conv_val), conv_val, kind)
+
         elif meta == "category":
             metadata = extract_array(self.metadata, extract_numpy=True)
             result: npt.NDArray[np.intp] | np.intp | int
             if conv_val not in metadata:
                 result = -1
             else:
-                result = metadata.searchsorted(conv_val, side="left")
+                # Find the index of the first match of conv_val in metadata
+                result = np.flatnonzero(metadata == conv_val)[0]
             return TermValue(result, result, "integer")
         elif kind == "integer":
             try:

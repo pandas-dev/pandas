@@ -613,7 +613,7 @@ class TestDataFrameAnalytics:
                     "D": Series([np.nan], dtype="str"),
                     "E": Categorical([np.nan], categories=["a"]),
                     "F": DatetimeIndex([pd.NaT], dtype="M8[ns]"),
-                    "G": to_timedelta([pd.NaT]),
+                    "G": to_timedelta([pd.NaT]).as_unit("us"),
                 },
             ),
             (
@@ -672,23 +672,10 @@ class TestDataFrameAnalytics:
         expected = DataFrame(expected)
         tm.assert_frame_equal(result, expected)
 
-    def test_mode_sortwarning(self, using_infer_string):
-        # Check for the warning that is raised when the mode
-        # results cannot be sorted
-
+    def test_mode_sort_with_na(self, using_infer_string):
         df = DataFrame({"A": [np.nan, np.nan, "a", "a"]})
         expected = DataFrame({"A": ["a", np.nan]})
-
-        # TODO(infer_string) avoid this UserWarning for python storage
-        warning = (
-            None
-            if using_infer_string and df.A.dtype.storage == "pyarrow"
-            else UserWarning
-        )
-        with tm.assert_produces_warning(warning, match="Unable to sort modes"):
-            result = df.mode(dropna=False)
-            result = result.sort_values(by="A").reset_index(drop=True)
-
+        result = df.mode(dropna=False)
         tm.assert_frame_equal(result, expected)
 
     def test_mode_empty_df(self):
@@ -700,8 +687,8 @@ class TestDataFrameAnalytics:
     def test_operators_timedelta64(self):
         df = DataFrame(
             {
-                "A": date_range("2012-1-1", periods=3, freq="D"),
-                "B": date_range("2012-1-2", periods=3, freq="D"),
+                "A": date_range("2012-1-1", periods=3, freq="D", unit="ns"),
+                "B": date_range("2012-1-2", periods=3, freq="D", unit="ns"),
                 "C": Timestamp("20120101") - timedelta(minutes=5, seconds=5),
             }
         )
@@ -760,20 +747,22 @@ class TestDataFrameAnalytics:
 
         # works when only those columns are selected
         result = mixed[["A", "B"]].min(axis=1)
-        expected = Series([timedelta(days=-1)] * 3)
+        expected = Series([timedelta(days=-1)] * 3, dtype="m8[ns]")
         tm.assert_series_equal(result, expected)
 
         result = mixed[["A", "B"]].min()
         expected = Series(
-            [timedelta(seconds=5 * 60 + 5), timedelta(days=-1)], index=["A", "B"]
+            [timedelta(seconds=5 * 60 + 5), timedelta(days=-1)],
+            index=["A", "B"],
+            dtype="m8[ns]",
         )
         tm.assert_series_equal(result, expected)
 
         # GH 3106
         df = DataFrame(
             {
-                "time": date_range("20130102", periods=5),
-                "time2": date_range("20130105", periods=5),
+                "time": date_range("20130102", periods=5, unit="ns"),
+                "time2": date_range("20130105", periods=5, unit="ns"),
             }
         )
         df["off1"] = df["time2"] - df["time"]
@@ -792,12 +781,14 @@ class TestDataFrameAnalytics:
 
         result = df.std(skipna=False)
         expected = Series(
-            [df["A"].std(), pd.NaT], index=["A", "B"], dtype="timedelta64[ns]"
+            [df["A"].std(), pd.NaT], index=["A", "B"], dtype="timedelta64[us]"
         )
         tm.assert_series_equal(result, expected)
 
         result = df.std(axis=1, skipna=False)
-        expected = Series([pd.Timedelta(0)] * 8 + [pd.NaT, pd.Timedelta(0)])
+        expected = Series(
+            [pd.Timedelta(0)] * 8 + [pd.NaT, pd.Timedelta(0)], dtype="m8[us]"
+        )
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -846,6 +837,16 @@ class TestDataFrameAnalytics:
         else:
             expected_dtype = "object"
         expected = Series([], index=index, dtype=expected_dtype)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("min_count", [0, 1])
+    def test_axis_1_sum_na(self, string_dtype_no_object, skipna, min_count):
+        # https://github.com/pandas-dev/pandas/issues/60229
+        dtype = string_dtype_no_object
+        df = DataFrame({"a": [pd.NA]}, dtype=dtype)
+        result = df.sum(axis=1, skipna=skipna, min_count=min_count)
+        value = "" if skipna and min_count == 0 else pd.NA
+        expected = Series([value], dtype=dtype)
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("method, unit", [("sum", 0), ("prod", 1)])
@@ -1041,6 +1042,26 @@ class TestDataFrameAnalytics:
         df = DataFrame(index=range(1), columns=range(10))
         bools = isna(df)
         assert bools.sum(axis=1)[0] == 10
+
+    @pytest.mark.parametrize(
+        "input_data, expected_data",
+        [
+            ({"a": ["483", "3"], "b": ["94", "759"]}, ["48394", "3759"]),
+            (
+                {"a": ["483.948", "3.0"], "b": ["94.2", "759.93"]},
+                ["483.94894.2", "3.0759.93"],
+            ),
+            ({"a": ["483", "3.0"], "b": ["94.2", "79"]}, ["48394.2", "3.079"]),
+        ],
+    )
+    def test_sum_string_dtype_coercion(self, input_data, expected_data):
+        # GH#22642
+        # Check that summing numeric strings results in concatenation
+        # and not conversion to dtype int64 or float64
+        df = DataFrame(input_data)
+        expected = Series(expected_data)
+        result = df.sum(axis=1)
+        tm.assert_series_equal(result, expected)
 
     # ----------------------------------------------------------------------
     # Index of max / min
@@ -1301,7 +1322,7 @@ class TestDataFrameAnalytics:
             assert r0.all()
             assert r1.all()
 
-    def test_any_all_extra(self):
+    def test_any_all_extra(self, using_python_scalars):
         df = DataFrame(
             {
                 "A": [True, False, False],
@@ -1325,13 +1346,19 @@ class TestDataFrameAnalytics:
         tm.assert_series_equal(result, expected)
 
         # Axis is None
-        result = df.all(axis=None).item()
+        result = df.all(axis=None)
+        if not using_python_scalars:
+            result = result.item()
         assert result is False
 
-        result = df.any(axis=None).item()
+        result = df.any(axis=None)
+        if not using_python_scalars:
+            result = result.item()
         assert result is True
 
-        result = df[["C"]].all(axis=None).item()
+        result = df[["C"]].all(axis=None)
+        if not using_python_scalars:
+            result = result.item()
         assert result is True
 
     @pytest.mark.parametrize("axis", [0, 1])
@@ -1439,7 +1466,7 @@ class TestDataFrameAnalytics:
             ),
         ],
     )
-    def test_any_all_np_func(self, func, data, expected):
+    def test_any_all_np_func(self, func, data, expected, using_python_scalars):
         # GH 19976
         data = DataFrame(data)
 
@@ -1466,20 +1493,30 @@ class TestDataFrameAnalytics:
 
         elif data.dtypes.apply(lambda x: x != "category").any():
             result = func(data)
-            assert isinstance(result, np.bool_)
-            assert result.item() is expected
+            if using_python_scalars:
+                assert result is expected
+            else:
+                assert isinstance(result, np.bool_)
+                assert result.item() is expected
 
             # method version
             result = getattr(DataFrame(data), func.__name__)(axis=None)
-            assert isinstance(result, np.bool_)
-            assert result.item() is expected
+            if using_python_scalars:
+                assert result is expected
+            else:
+                assert isinstance(result, np.bool_)
+                assert result.item() is expected
 
-    def test_any_all_object(self):
+    def test_any_all_object(self, using_python_scalars):
         # GH 19976
-        result = np.all(DataFrame(columns=["a", "b"])).item()
+        result = np.all(DataFrame(columns=["a", "b"]))
+        if not using_python_scalars:
+            result = result.item()
         assert result is True
 
-        result = np.any(DataFrame(columns=["a", "b"])).item()
+        result = np.any(DataFrame(columns=["a", "b"]))
+        if not using_python_scalars:
+            result = result.item()
         assert result is False
 
     def test_any_all_object_bool_only(self):
@@ -1555,6 +1592,44 @@ class TestDataFrameReductions:
 
         res = df.max()
         exp = Series([pd.NaT], index=["foo"])
+        tm.assert_series_equal(res, exp)
+
+    def test_min_max_dt64_with_NaT_precision(self):
+        # GH#60646 Make sure the reduction doesn't cast input timestamps to
+        # float and lose precision.
+        df = DataFrame(
+            {"foo": [pd.NaT, pd.NaT, Timestamp("2012-05-01 09:20:00.123456789")]},
+            dtype="datetime64[ns]",
+        )
+
+        res = df.min(axis=1)
+        exp = df.foo.rename(None)
+        tm.assert_series_equal(res, exp)
+
+        res = df.max(axis=1)
+        exp = df.foo.rename(None)
+        tm.assert_series_equal(res, exp)
+
+    def test_min_max_td64_with_NaT_precision(self):
+        # GH#60646 Make sure the reduction doesn't cast input timedeltas to
+        # float and lose precision.
+        df = DataFrame(
+            {
+                "foo": [
+                    pd.NaT,
+                    pd.NaT,
+                    to_timedelta("10000 days 06:05:01.123456789"),
+                ],
+            },
+            dtype="timedelta64[ns]",
+        )
+
+        res = df.min(axis=1)
+        exp = df.foo.rename(None)
+        tm.assert_series_equal(res, exp)
+
+        res = df.max(axis=1)
+        exp = df.foo.rename(None)
         tm.assert_series_equal(res, exp)
 
     def test_min_max_dt64_with_NaT_skipna_false(self, request, tz_naive_fixture):
@@ -1882,6 +1957,39 @@ class TestEmptyDataFrameReductions:
         expected = Series([pd.NA, pd.NA], dtype=exp_dtype, index=Index([0, 1]))
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "data",
+        [
+            {"a": [0, 1, 2], "b": [pd.NaT, pd.NaT, pd.NaT]},
+            {"a": [0, 1, 2], "b": [Timestamp("1990-01-01"), pd.NaT, pd.NaT]},
+            {
+                "a": [0, 1, 2],
+                "b": [
+                    Timestamp("1990-01-01"),
+                    Timestamp("1991-01-01"),
+                    Timestamp("1992-01-01"),
+                ],
+            },
+            {
+                "a": [0, 1, 2],
+                "b": [pd.Timedelta("1 days"), pd.Timedelta("2 days"), pd.NaT],
+            },
+            {
+                "a": [0, 1, 2],
+                "b": [
+                    pd.Timedelta("1 days"),
+                    pd.Timedelta("2 days"),
+                    pd.Timedelta("3 days"),
+                ],
+            },
+        ],
+    )
+    def test_df_cov_pd_nat(self, data):
+        # GH #53115
+        df = DataFrame(data)
+        with pytest.raises(TypeError, match="not supported for cov"):
+            df.cov()
+
 
 def test_sum_timedelta64_skipna_false():
     # GH#17235
@@ -2053,7 +2161,9 @@ def test_fails_on_non_numeric(kernel):
     ],
 )
 @pytest.mark.parametrize("min_count", [0, 2])
-def test_numeric_ea_axis_1(method, skipna, min_count, any_numeric_ea_dtype):
+def test_numeric_ea_axis_1(
+    method, skipna, min_count, any_numeric_ea_dtype, using_nan_is_na
+):
     # GH 54341
     df = DataFrame(
         {
@@ -2092,9 +2202,7 @@ def test_numeric_ea_axis_1(method, skipna, min_count, any_numeric_ea_dtype):
         kwargs["min_count"] = min_count
 
     if not skipna and method in ("idxmax", "idxmin"):
-        # GH#57745 - EAs use groupby for axis=1 which still needs a proper deprecation.
-        msg = f"The behavior of DataFrame.{method} with all-NA values"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with pytest.raises(ValueError, match="encountered an NA value"):
             getattr(df, method)(axis=1, **kwargs)
         with pytest.raises(ValueError, match="Encountered an NA value"):
             getattr(expected_df, method)(axis=1, **kwargs)
@@ -2102,5 +2210,26 @@ def test_numeric_ea_axis_1(method, skipna, min_count, any_numeric_ea_dtype):
     result = getattr(df, method)(axis=1, **kwargs)
     expected = getattr(expected_df, method)(axis=1, **kwargs)
     if method not in ("idxmax", "idxmin"):
-        expected = expected.astype(expected_dtype)
+        if using_nan_is_na:
+            expected = expected.astype(expected_dtype)
+        else:
+            mask = np.isnan(expected)
+            expected[mask] = 0
+            expected = expected.astype(expected_dtype)
+            expected[mask] = pd.NA
+    tm.assert_series_equal(result, expected)
+
+
+def test_mean_nullable_int_axis_1():
+    # GH##36585
+    df = DataFrame(
+        {"a": [1, 2, 3, 4], "b": Series([1, 2, 4, None], dtype=pd.Int64Dtype())}
+    )
+
+    result = df.mean(axis=1, skipna=True)
+    expected = Series([1.0, 2.0, 3.5, 4.0], dtype="Float64")
+    tm.assert_series_equal(result, expected)
+
+    result = df.mean(axis=1, skipna=False)
+    expected = Series([1.0, 2.0, 3.5, pd.NA], dtype="Float64")
     tm.assert_series_equal(result, expected)

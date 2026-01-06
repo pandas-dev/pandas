@@ -302,11 +302,11 @@ _cmp_ops_funcs = (
     _in,
     _not_in,
 )
-_cmp_ops_dict = dict(zip(CMP_OPS_SYMS, _cmp_ops_funcs))
+_cmp_ops_dict = dict(zip(CMP_OPS_SYMS, _cmp_ops_funcs, strict=True))
 
 BOOL_OPS_SYMS = ("&", "|", "and", "or")
 _bool_ops_funcs = (operator.and_, operator.or_, operator.and_, operator.or_)
-_bool_ops_dict = dict(zip(BOOL_OPS_SYMS, _bool_ops_funcs))
+_bool_ops_dict = dict(zip(BOOL_OPS_SYMS, _bool_ops_funcs, strict=True))
 
 ARITH_OPS_SYMS = ("+", "-", "*", "/", "**", "//", "%")
 _arith_ops_funcs = (
@@ -318,7 +318,7 @@ _arith_ops_funcs = (
     operator.floordiv,
     operator.mod,
 )
-_arith_ops_dict = dict(zip(ARITH_OPS_SYMS, _arith_ops_funcs))
+_arith_ops_dict = dict(zip(ARITH_OPS_SYMS, _arith_ops_funcs, strict=True))
 
 _binary_ops_dict = {}
 
@@ -484,7 +484,7 @@ class BinOp(Op):
 
 UNARY_OPS_SYMS = ("+", "-", "~", "not")
 _unary_ops_funcs = (operator.pos, operator.neg, operator.invert, operator.invert)
-_unary_ops_dict = dict(zip(UNARY_OPS_SYMS, _unary_ops_funcs))
+_unary_ops_dict = dict(zip(UNARY_OPS_SYMS, _unary_ops_funcs, strict=True))
 
 
 class UnaryOp(Op):
@@ -512,8 +512,7 @@ class UnaryOp(Op):
             self.func = _unary_ops_dict[op]
         except KeyError as err:
             raise ValueError(
-                f"Invalid unary operator {op!r}, "
-                f"valid operators are {UNARY_OPS_SYMS}"
+                f"Invalid unary operator {op!r}, valid operators are {UNARY_OPS_SYMS}"
             ) from err
 
     def __call__(self, env) -> MathCall:

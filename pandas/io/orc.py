@@ -11,6 +11,7 @@ from typing import (
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
+from pandas.util._decorators import set_module
 from pandas.util._validators import check_dtype_backend
 
 from pandas.core.indexes.api import default_index
@@ -35,6 +36,7 @@ if TYPE_CHECKING:
     from pandas.core.frame import DataFrame
 
 
+@set_module("pandas")
 def read_orc(
     path: FilePath | ReadBuffer[bytes],
     columns: list[str] | None = None,
@@ -44,6 +46,13 @@ def read_orc(
 ) -> DataFrame:
     """
     Load an ORC object from the file path, returning a DataFrame.
+
+    This method reads an ORC (Optimized Row Columnar) file into a pandas
+    DataFrame using the `pyarrow.orc` library. ORC is a columnar storage format
+    that provides efficient compression and fast retrieval for analytical workloads.
+    It allows reading specific columns, handling different filesystem
+    types (such as local storage, cloud storage via fsspec, or pyarrow filesystem),
+    and supports different data type backends, including `numpy_nullable` and `pyarrow`.
 
     Parameters
     ----------
@@ -138,8 +147,6 @@ def to_orc(
     """
     Write a DataFrame to the ORC format.
 
-    .. versionadded:: 1.5.0
-
     Parameters
     ----------
     df : DataFrame
@@ -211,7 +218,6 @@ def to_orc(
 
     if engine != "pyarrow":
         raise ValueError("engine must be 'pyarrow'")
-    pyarrow = import_optional_dependency(engine, min_version="10.0.1")
     pa = import_optional_dependency("pyarrow")
     orc = import_optional_dependency("pyarrow.orc")
 
@@ -222,7 +228,7 @@ def to_orc(
     with get_handle(path, "wb", is_text=False) as handles:
         try:
             orc.write_table(
-                pyarrow.Table.from_pandas(df, preserve_index=index),
+                pa.Table.from_pandas(df, preserve_index=index),
                 handles.handle,
                 **engine_kwargs,
             )

@@ -12,7 +12,6 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from pandas.compat import PY311
 from pandas.errors import (
     EmptyDataError,
     ParserError,
@@ -131,8 +130,7 @@ def test_catch_too_many_names(all_parsers):
     msg = (
         "Too many columns specified: expected 4 and found 3"
         if parser.engine == "c"
-        else "Number of passed names did not match "
-        "number of header fields in the file"
+        else "Number of passed names did not match number of header fields in the file"
     )
 
     with pytest.raises(ValueError, match=msg):
@@ -228,12 +226,10 @@ def test_null_byte_char(request, all_parsers):
     names = ["a", "b"]
     parser = all_parsers
 
-    if parser.engine == "c" or (parser.engine == "python" and PY311):
-        if parser.engine == "python" and PY311:
+    if parser.engine in ["c", "python"]:
+        if parser.engine == "python":
             request.applymarker(
-                pytest.mark.xfail(
-                    reason="In Python 3.11, this is read as an empty character not null"
-                )
+                pytest.mark.xfail(reason="This is read as an empty character not null")
             )
         expected = DataFrame([[np.nan, "foo"]], columns=names)
         out = parser.read_csv(StringIO(data), names=names)
@@ -250,7 +246,7 @@ def test_null_byte_char(request, all_parsers):
 
 
 @pytest.mark.filterwarnings("always::ResourceWarning")
-def test_open_file(all_parsers):
+def test_open_file(all_parsers, temp_file):
     # GH 39024
     parser = all_parsers
 
@@ -263,14 +259,13 @@ def test_open_file(all_parsers):
         msg = "'utf-8' codec can't decode byte 0xe4"
         err = ValueError
 
-    with tm.ensure_clean() as path:
-        file = Path(path)
-        file.write_bytes(b"\xe4\na\n1")
+    file = Path(temp_file)
+    file.write_bytes(b"\xe4\na\n1")
 
-        with tm.assert_produces_warning(None):
-            # should not trigger a ResourceWarning
-            with pytest.raises(err, match=msg):
-                parser.read_csv(file, sep=None, encoding_errors="replace")
+    with tm.assert_produces_warning(None):
+        # should not trigger a ResourceWarning
+        with pytest.raises(err, match=msg):
+            parser.read_csv(file, sep=None, encoding_errors="replace")
 
 
 def test_invalid_on_bad_line(all_parsers):

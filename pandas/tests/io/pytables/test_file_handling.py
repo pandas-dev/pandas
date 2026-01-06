@@ -3,11 +3,7 @@ import os
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas.compat import (
-    PY311,
-    is_ci_environment,
     is_platform_linux,
     is_platform_little_endian,
     is_platform_mac,
@@ -28,16 +24,13 @@ from pandas import (
 )
 from pandas.tests.io.pytables.common import (
     _maybe_remove,
-    ensure_clean_store,
     tables,
 )
 
 from pandas.io import pytables
 from pandas.io.pytables import Term
 
-pytestmark = [
-    pytest.mark.single_cpu,
-]
+pytestmark = [pytest.mark.single_cpu]
 
 
 @pytest.mark.parametrize("mode", ["r", "r+", "a", "w"])
@@ -167,37 +160,36 @@ def test_reopen_handle(tmp_path, setup_path):
     assert not store.is_open
 
 
-def test_open_args(setup_path, using_infer_string):
-    with tm.ensure_clean(setup_path) as path:
-        df = DataFrame(
-            1.1 * np.arange(120).reshape((30, 4)),
-            columns=Index(list("ABCD"), dtype=object),
-            index=Index([f"i-{i}" for i in range(30)], dtype=object),
-        )
+def test_open_args(tmp_path, setup_path, using_infer_string):
+    path = tmp_path / setup_path
+    df = DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+    )
 
-        # create an in memory store
-        store = HDFStore(
-            path, mode="a", driver="H5FD_CORE", driver_core_backing_store=0
-        )
-        store["df"] = df
-        store.append("df2", df)
+    # create an in memory store
+    store = HDFStore(path, mode="a", driver="H5FD_CORE", driver_core_backing_store=0)
+    store["df"] = df
+    store.append("df2", df)
 
-        expected = df.copy()
-        if using_infer_string:
-            expected.index = expected.index.astype("str")
-            expected.columns = expected.columns.astype("str")
+    expected = df.copy()
+    if using_infer_string:
+        expected.index = expected.index.astype("str")
+        expected.columns = expected.columns.astype("str")
 
-        tm.assert_frame_equal(store["df"], expected)
-        tm.assert_frame_equal(store["df2"], expected)
+    tm.assert_frame_equal(store["df"], expected)
+    tm.assert_frame_equal(store["df2"], expected)
 
-        store.close()
+    store.close()
 
     # the file should not have actually been written
     assert not os.path.exists(path)
 
 
-def test_flush(setup_path):
-    with ensure_clean_store(setup_path) as store:
+def test_flush(tmp_path, setup_path):
+    path = tmp_path / setup_path
+    with HDFStore(path, mode="w") as store:
         store["a"] = Series(range(5))
         store.flush()
         store.flush(fsync=True)
@@ -283,18 +275,10 @@ def test_complibs_default_settings_override(tmp_path, setup_path):
 @pytest.mark.parametrize("lvl", range(10))
 @pytest.mark.parametrize("lib", tables.filters.all_complibs)
 @pytest.mark.filterwarnings("ignore:object name is not a valid")
-@pytest.mark.skipif(
-    not PY311 and is_ci_environment() and is_platform_linux(),
-    reason="Segfaulting in a CI environment",
-    # with xfail, would sometimes raise UnicodeDecodeError
-    # invalid state byte
-)
 def test_complibs(tmp_path, lvl, lib, request):
     # GH14478
-    if PY311 and is_platform_linux() and lib == "blosc2" and lvl != 0:
-        request.applymarker(
-            pytest.mark.xfail(reason=f"Fails for {lib} on Linux and PY > 3.11")
-        )
+    if is_platform_linux() and lib == "blosc2" and lvl != 0:
+        request.applymarker(pytest.mark.xfail(reason=f"Fails for {lib} on Linux"))
     df = DataFrame(
         np.ones((30, 4)), columns=list("ABCD"), index=np.arange(30).astype(np.str_)
     )
@@ -329,12 +313,12 @@ def test_complibs(tmp_path, lvl, lib, request):
                 assert node.filters.complib == lib
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.skipif(
     not is_platform_little_endian(), reason="reason platform is not little endian"
 )
-def test_encoding(setup_path):
-    with ensure_clean_store(setup_path) as store:
+def test_encoding(tmp_path, setup_path):
+    path = tmp_path / setup_path
+    with HDFStore(path, mode="w") as store:
         df = DataFrame({"A": "foo", "B": "bar"}, index=range(5))
         df.loc[2, "A"] = np.nan
         df.loc[3, "B"] = np.nan
@@ -347,7 +331,6 @@ def test_encoding(setup_path):
         tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize(
     "val",
     [
@@ -362,7 +345,7 @@ def test_encoding(setup_path):
         [b"A\xf8\xfc", np.nan, b"", b"b", b"c"],
     ],
 )
-@pytest.mark.parametrize("dtype", ["category", object])
+@pytest.mark.parametrize("dtype", ["category", None])
 def test_latin_encoding(tmp_path, setup_path, dtype, val):
     enc = "latin-1"
     nan_rep = ""
@@ -523,7 +506,7 @@ def test_multiple_open_close(tmp_path, setup_path):
         store.df
 
 
-def test_fspath():
-    with tm.ensure_clean("foo.h5") as path:
-        with HDFStore(path) as store:
-            assert os.fspath(store) == str(path)
+def test_fspath(tmp_path):
+    path = tmp_path / "foo.h5"
+    with HDFStore(path) as store:
+        assert os.fspath(store) == str(path)

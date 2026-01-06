@@ -10,6 +10,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import lib
+import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.cast import find_common_type
 
@@ -530,7 +531,7 @@ class TestSetOps:
 @pytest.mark.parametrize(
     "method", ["intersection", "union", "difference", "symmetric_difference"]
 )
-def test_setop_with_categorical(index_flat, sort, method):
+def test_setop_with_categorical(index_flat, sort, method, using_infer_string):
     # MultiIndex tested separately in tests.indexes.multi.test_setops
     index = index_flat
 
@@ -539,10 +540,22 @@ def test_setop_with_categorical(index_flat, sort, method):
 
     result = getattr(index, method)(other, sort=sort)
     expected = getattr(index, method)(index, sort=sort)
+    if (
+        using_infer_string
+        and index.empty
+        and method in ("union", "symmetric_difference")
+    ):
+        expected = expected.astype("category")
     tm.assert_index_equal(result, expected, exact=exact)
 
     result = getattr(index, method)(other[:5], sort=sort)
     expected = getattr(index, method)(index[:5], sort=sort)
+    if (
+        using_infer_string
+        and index.empty
+        and method in ("union", "symmetric_difference")
+    ):
+        expected = expected.astype("category")
     tm.assert_index_equal(result, expected, exact=exact)
 
 
@@ -714,7 +727,7 @@ class TestSetOpsUnsorted:
 
         # Corner cases
         inter = first.intersection(first, sort=sort)
-        assert inter is first
+        assert inter is not first
 
     @pytest.mark.parametrize(
         "index2_name,keeps_name",
@@ -799,16 +812,16 @@ class TestSetOpsUnsorted:
         first = index[5:20]
 
         union = first.union(first, sort=sort)
-        # i.e. identity is not preserved when sort is True
-        assert (union is first) is (not sort)
+        # GH#63169 - identity is not preserved to prevent shared mutable state
+        assert union is not first
 
         # This should no longer be the same object, since [] is not consistent,
         # both objects will be recast to dtype('O')
         union = first.union(Index([], dtype=first.dtype), sort=sort)
-        assert (union is first) is (not sort)
+        assert union is not first
 
         union = Index([], dtype=first.dtype).union(first, sort=sort)
-        assert (union is first) is (not sort)
+        assert union is not first
 
     @pytest.mark.parametrize("index", ["string"], indirect=True)
     @pytest.mark.parametrize("second_name,expected", [(None, None), ("name", "name")])
@@ -961,3 +974,93 @@ class TestSetOpsUnsorted:
         result = idx1.union(idx2)
         expected = Index(["a", "b"], dtype=any_string_dtype)
         tm.assert_index_equal(result, expected)
+
+    @td.skip_if_no("pyarrow")
+    def test_union_pyarrow_timestamp(self):
+        # GH#58421
+        left = Index(["2020-01-01"], dtype="timestamp[s][pyarrow]")
+        right = Index(["2020-01-02"], dtype="timestamp[s][pyarrow]")
+
+        res = left.union(right)
+        expected = Index(["2020-01-01", "2020-01-02"], dtype=left.dtype)
+        tm.assert_index_equal(res, expected)
+
+
+def test_intersection_mutation_safety():
+    # GH#63169
+    index1 = Index([0, 1], name="original")
+    index2 = Index([0, 1], name="original")
+
+    result = index1.intersection(index2)
+
+    assert result is not index1
+    assert result is not index2
+
+    tm.assert_index_equal(result, index1)
+    assert result.name == "original"
+
+    index1.name = "changed"
+
+    assert result.name == "original"
+    assert index1.name == "changed"
+
+
+def test_union_mutation_safety():
+    # GH#63169
+    index1 = Index([0, 1], name="original")
+    index2 = Index([0, 1], name="original")
+
+    result = index1.union(index2)
+
+    assert result is not index1
+    assert result is not index2
+
+    tm.assert_index_equal(result, index1)
+    assert result.name == "original"
+
+    index1.name = "changed"
+
+    assert result.name == "original"
+    assert index1.name == "changed"
+
+
+def test_union_mutation_safety_other():
+    # GH#63169
+    index1 = Index([0, 1], name="original")
+    index2 = Index([0, 1], name="original")
+
+    result = index1.union(index2)
+
+    assert result is not index2
+
+    tm.assert_index_equal(result, index2)
+    assert result.name == "original"
+
+    index2.name = "changed"
+
+    assert result.name == "original"
+    assert index2.name == "changed"
+
+
+def test_multiindex_intersection_mutation_safety():
+    # GH#63169
+    mi1 = MultiIndex.from_tuples([("a", 1), ("b", 2)], names=["x", "y"])
+    mi2 = MultiIndex.from_tuples([("a", 1), ("b", 2)], names=["x", "y"])
+
+    result = mi1.intersection(mi2)
+    assert result is not mi1
+
+    mi1.names = ["changed1", "changed2"]
+    assert result.names == ["x", "y"]
+
+
+def test_multiindex_union_mutation_safety():
+    # GH#63169
+    mi1 = MultiIndex.from_tuples([("a", 1), ("b", 2)], names=["x", "y"])
+    mi2 = MultiIndex.from_tuples([("a", 1), ("b", 2)], names=["x", "y"])
+
+    result = mi1.union(mi2)
+    assert result is not mi1
+
+    mi1.names = ["changed1", "changed2"]
+    assert result.names == ["x", "y"]

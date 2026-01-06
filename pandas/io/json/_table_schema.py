@@ -13,6 +13,8 @@ from typing import (
 )
 import warnings
 
+from pandas._config import option_context
+
 from pandas._libs import lib
 from pandas._libs.json import ujson_loads
 from pandas._libs.tslibs import timezones
@@ -90,8 +92,6 @@ def as_json_table_type(x: DtypeObj) -> str:
         return "datetime"
     elif lib.is_np_dtype(x, "m"):
         return "duration"
-    elif isinstance(x, ExtensionDtype):
-        return "any"
     elif is_string_dtype(x):
         return "string"
     else:
@@ -185,7 +185,7 @@ def convert_json_field_to_pandas_type(field) -> str | CategoricalDtype:
     ...         "ordered": True,
     ...     }
     ... )
-    CategoricalDtype(categories=['a', 'b', 'c'], ordered=True, categories_dtype=object)
+    CategoricalDtype(categories=['a', 'b', 'c'], ordered=True, categories_dtype=str)
 
     >>> convert_json_field_to_pandas_type({"name": "a_datetime", "type": "datetime"})
     'datetime64[ns]'
@@ -197,7 +197,7 @@ def convert_json_field_to_pandas_type(field) -> str | CategoricalDtype:
     """
     typ = field["type"]
     if typ == "string":
-        return "object"
+        return field.get("extDtype", None)
     elif typ == "integer":
         return field.get("extDtype", "int64")
     elif typ == "number":
@@ -294,7 +294,7 @@ def build_table_schema(
     {'fields': \
 [{'name': 'idx', 'type': 'integer'}, \
 {'name': 'A', 'type': 'integer'}, \
-{'name': 'B', 'type': 'string'}, \
+{'name': 'B', 'type': 'string', 'extDtype': 'str'}, \
 {'name': 'C', 'type': 'datetime'}], \
 'primaryKey': ['idx'], \
 'pandas_version': '1.4.0'}
@@ -308,7 +308,7 @@ def build_table_schema(
     if index:
         if data.index.nlevels > 1:
             data.index = cast("MultiIndex", data.index)
-            for level, name in zip(data.index.levels, data.index.names):
+            for level, name in zip(data.index.levels, data.index.names, strict=True):
                 new_field = convert_pandas_type_to_json_field(level)
                 new_field["name"] = name
                 fields.append(new_field)
@@ -386,7 +386,8 @@ def parse_table_schema(json, precise_float: bool) -> DataFrame:
             'table="orient" can not yet read ISO-formatted Timedelta data'
         )
 
-    df = df.astype(dtypes)
+    with option_context("future.distinguish_nan_and_na", False):
+        df = df.astype(dtypes)
 
     if "primaryKey" in table["schema"]:
         df = df.set_index(table["schema"]["primaryKey"])

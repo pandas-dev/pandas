@@ -3,6 +3,7 @@ import re
 import pytest
 
 from pandas._libs import lib
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 from pandas import (
@@ -244,6 +245,7 @@ class TestNumericOnly:
         ("quantile", True),
         ("sem", True),
         ("skew", True),
+        ("kurt", True),
         ("std", True),
         ("sum", True),
         ("var", True),
@@ -265,7 +267,7 @@ def test_numeric_only(kernel, has_arg, numeric_only, keys):
     if has_arg and numeric_only is True:
         # Cases where b does not appear in the result
         if kernel == "corrwith":
-            warn = FutureWarning
+            warn = Pandas4Warning
             msg = "DataFrameGroupBy.corrwith is deprecated"
         else:
             warn = None
@@ -310,7 +312,7 @@ def test_numeric_only(kernel, has_arg, numeric_only, keys):
             msg = "'>' not supported between instances of 'type' and 'type'"
         with pytest.raises(exception, match=msg):
             if kernel == "corrwith":
-                warn = FutureWarning
+                warn = Pandas4Warning
                 msg = "DataFrameGroupBy.corrwith is deprecated"
             else:
                 warn = None
@@ -378,6 +380,7 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
         "max",
         "prod",
         "skew",
+        "kurt",
     )
 
     # Test default behavior; kernels that fail may be enabled in the future but kernels
@@ -407,6 +410,7 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
         "quantile",
         "sem",
         "skew",
+        "kurt",
         "std",
         "sum",
         "var",

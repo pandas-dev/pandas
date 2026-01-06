@@ -165,7 +165,6 @@ class TestTimestampRound:
         # GH 18946 round near "fall back" DST
         ts = Timestamp("2017-10-29 00:00:00", tz="UTC").tz_convert("Europe/Madrid")
         ts = ts.as_unit(unit)
-        #
         result = getattr(ts, method)("h", ambiguous=True)
         assert result == ts
         assert result._creso == getattr(NpyDatetimeUnit, f"NPY_FR_{unit}").value
@@ -289,6 +288,7 @@ class TestTimestampRound:
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             Timestamp.max.round("s")
 
+    @pytest.mark.slow
     @given(val=st.integers(iNaT + 1, lib.i8max))
     @pytest.mark.parametrize(
         "method", [Timestamp.round, Timestamp.floor, Timestamp.ceil]

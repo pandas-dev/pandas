@@ -29,7 +29,7 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core import nanops
-from pandas.core.arrays.string_arrow import ArrowStringArrayNumpySemantics
+from pandas.core.arrays.string_arrow import ArrowStringArray
 
 
 def get_objs():
@@ -37,10 +37,10 @@ def get_objs():
         Index([True, False] * 5, name="a"),
         Index(np.arange(10), dtype=np.int64, name="a"),
         Index(np.arange(10), dtype=np.float64, name="a"),
-        DatetimeIndex(date_range("2020-01-01", periods=10), name="a"),
-        DatetimeIndex(date_range("2020-01-01", periods=10), name="a").tz_localize(
-            tz="US/Eastern"
-        ),
+        DatetimeIndex(date_range("2020-01-01", periods=10, unit="ns"), name="a"),
+        DatetimeIndex(
+            date_range("2020-01-01", periods=10, unit="ns"), name="a"
+        ).tz_localize(tz="US/Eastern"),
         PeriodIndex(period_range("2020-01-01", periods=10, freq="D"), name="a"),
         Index([str(i) for i in range(10)], name="a"),
     ]
@@ -61,7 +61,7 @@ class TestReductions:
     def test_ops(self, opname, obj):
         result = getattr(obj, opname)()
         if not isinstance(obj, PeriodIndex):
-            if isinstance(obj.values, ArrowStringArrayNumpySemantics):
+            if isinstance(obj.values, ArrowStringArray):
                 # max not on the interface
                 expected = getattr(np.array(obj.values), opname)()
             else:
@@ -198,7 +198,8 @@ class TestReductions:
     def test_same_tz_min_max_axis_1(self, op, expected_col):
         # GH 10390
         df = DataFrame(
-            date_range("2016-01-01 00:00:00", periods=3, tz="UTC"), columns=["a"]
+            date_range("2016-01-01 00:00:00", periods=3, tz="UTC", unit="ns"),
+            columns=["a"],
         )
         df["b"] = df.a.subtract(Timedelta(seconds=3600))
         result = getattr(df, op)(axis=1)
@@ -219,7 +220,7 @@ class TestReductions:
         df = DataFrame(
             {
                 "A": Series([1, 2, NaT], dtype="timedelta64[ns]"),
-                "B": Series([1, 2, np.nan], dtype="Int64"),
+                "B": Series([1, 2, pd.NA], dtype="Int64"),
             }
         )
         expected = Series({"A": Timedelta(3), "B": 3})
@@ -229,7 +230,7 @@ class TestReductions:
 
 class TestIndexReductions:
     # Note: the name TestIndexReductions indicates these tests
-    #  were moved from a Index-specific test file, _not_ that these tests are
+    #  were moved from an Index-specific test file, _not_ that these tests are
     #  intended long-term to be Index-specific
 
     @pytest.mark.parametrize(
@@ -587,6 +588,7 @@ class TestSeriesReductions:
     @pytest.mark.parametrize("use_bottleneck", [True, False])
     @pytest.mark.parametrize("method, unit", [("sum", 0.0), ("prod", 1.0)])
     def test_empty(self, method, unit, use_bottleneck, dtype):
+        item = pd.NA if dtype in ["Float32", "Int64"] else np.nan
         with pd.option_context("use_bottleneck", use_bottleneck):
             # GH#9422 / GH#18921
             # Entirely empty
@@ -620,7 +622,7 @@ class TestSeriesReductions:
             assert isna(result)
 
             # All-NA
-            s = Series([np.nan], dtype=dtype)
+            s = Series([item], dtype=dtype)
             # NA by default
             result = getattr(s, method)()
             assert result == unit
@@ -644,7 +646,7 @@ class TestSeriesReductions:
             assert isna(result)
 
             # Mix of valid, empty
-            s = Series([np.nan, 1], dtype=dtype)
+            s = Series([item, 1], dtype=dtype)
             # Default
             result = getattr(s, method)()
             assert result == 1.0
@@ -674,11 +676,11 @@ class TestSeriesReductions:
             result = getattr(s, method)(skipna=False, min_count=2)
             assert isna(result)
 
-            s = Series([np.nan], dtype=dtype)
+            s = Series([item], dtype=dtype)
             result = getattr(s, method)(min_count=2)
             assert isna(result)
 
-            s = Series([np.nan, 1], dtype=dtype)
+            s = Series([item, 1], dtype=dtype)
             result = getattr(s, method)(min_count=2)
             assert isna(result)
 
@@ -694,7 +696,7 @@ class TestSeriesReductions:
         assert result is pd.NA
 
         # ALL-NA series
-        nser = Series([np.nan], dtype=dtype)
+        nser = Series([pd.NA], dtype=dtype)
         result = getattr(nser, method)()
         assert result is pd.NA
 
@@ -779,6 +781,12 @@ class TestSeriesReductions:
         result_numpy_dtype = ser_numpy_dtype.var(ddof=ddof)
         assert result == result_numpy_dtype
         assert result == exp
+
+    def test_var_complex_array(self):
+        # GH#61645
+        ser = Series([-1j, 0j, 1j], dtype=complex)
+        assert ser.var(ddof=1) == 1.0
+        assert ser.std(ddof=1) == 1.0
 
     @pytest.mark.parametrize("dtype", ("m8[ns]", "M8[ns]", "M8[ns, UTC]"))
     def test_empty_timeseries_reductions_return_nat(self, dtype, skipna):
@@ -1261,11 +1269,15 @@ class TestSeriesReductions:
         expected = np.uint64(10000000000000000000)
         tm.assert_almost_equal(result, expected)
 
-    def test_signedness_preserved_after_sum(self):
+    def test_signedness_preserved_after_sum(self, using_python_scalars):
         # GH 37491
         ser = Series([1, 2, 3, 4])
 
-        assert ser.astype("uint8").sum().dtype == "uint64"
+        result = ser.astype("uint8").sum()
+        if using_python_scalars:
+            assert isinstance(result, int)
+        else:
+            assert isinstance(result, np.uint64)
 
 
 class TestDatetime64SeriesReductions:
@@ -1607,17 +1619,10 @@ class TestSeriesMode:
         expected2 = Series(expected2, dtype=np.uint64)
         tm.assert_series_equal(result, expected2)
 
-    def test_mode_sortwarning(self):
-        # Check for the warning that is raised when the mode
-        # results cannot be sorted
-
-        expected = Series(["foo", np.nan], dtype=object)
+    def test_mode_sort_with_na(self):
         s = Series([1, "foo", "foo", np.nan, np.nan])
-
-        with tm.assert_produces_warning(UserWarning, match="Unable to sort modes"):
-            result = s.mode(dropna=False)
-            result = result.sort_values().reset_index(drop=True)
-
+        expected = Series(["foo", np.nan], dtype=object)
+        result = s.mode(dropna=False)
         tm.assert_series_equal(result, expected)
 
     def test_mode_boolean_with_na(self):

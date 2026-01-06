@@ -24,15 +24,15 @@ else
 fi
 
 [[ -z "$CHECK" || "$CHECK" == "code" || "$CHECK" == "doctests" || "$CHECK" == "docstrings" || "$CHECK" == "single-docs" || "$CHECK" == "notebooks" ]] || \
-    { echo "Unknown command $1. Usage: $0 [code|doctests|docstrings|single-docs|notebooks]"; exit 9999; }
+    { echo "Unknown command $1. Usage: $0 [code|doctests|docstrings|single-docs|notebooks]"; exit 1; }
 
-BASE_DIR="$(dirname $0)/.."
+BASE_DIR="$(dirname "$0")/.."
 RET=0
 
 ### CODE ###
 if [[ -z "$CHECK" || "$CHECK" == "code" ]]; then
 
-    MSG='Check import. No warnings, and blocklist some optional dependencies' ; echo $MSG
+    MSG='Check import. No warnings, and blocklist some optional dependencies' ; echo "$MSG"
     python -W error -c "
 import sys
 import pandas
@@ -49,53 +49,47 @@ if mods:
     sys.stderr.write('err: pandas should not import: {}\n'.format(', '.join(mods)))
     sys.exit(len(mods))
     "
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
+    RET=$(($RET + $?)) ; echo "$MSG" "DONE"
 
 fi
 
 ### DOCTESTS ###
 if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
 
-    MSG='Python and Cython Doctests' ; echo $MSG
-    python -c 'import pandas as pd; pd.test(run_doctests=True)'
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
+    MSG='Python and Cython Doctests' ; echo "$MSG"
+    # Using future.python_scalars=True avoids NumPy scalar reprs in docstrings.
+    PANDAS_FUTURE_PYTHON_SCALARS="1" python -c 'import pandas as pd; pd.test(run_doctests=True)'
+    RET=$(($RET + $?)) ; echo "$MSG" "DONE"
 
 fi
 
 ### DOCSTRINGS ###
 if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
-    MSG='Validate Docstrings' ; echo $MSG
-    $BASE_DIR/scripts/validate_docstrings.py \
+    MSG='Validate Docstrings' ; echo "$MSG"
+    "$BASE_DIR"/scripts/validate_docstrings.py \
         --format=actions \
         -i ES01 `# For now it is ok if docstrings are missing the extended summary` \
+        -i "pandas.Series.from_arrow SA01,EX01" \
         -i "pandas.Series.dt PR01" `# Accessors are implemented as classes, but we do not document the Parameters section` \
         -i "pandas.Period.freq GL08" \
         -i "pandas.Period.ordinal GL08" \
-        -i "pandas.RangeIndex.from_range PR01,SA01" \
-        -i "pandas.Timedelta.max PR02" \
-        -i "pandas.Timedelta.min PR02" \
-        -i "pandas.Timedelta.resolution PR02" \
-        -i "pandas.Timestamp.max PR02" \
-        -i "pandas.Timestamp.min PR02" \
-        -i "pandas.Timestamp.resolution PR02" \
-        -i "pandas.Timestamp.tzinfo GL08" \
-        -i "pandas.arrays.ArrowExtensionArray PR07,SA01" \
-        -i "pandas.arrays.NumpyExtensionArray SA01" \
-        -i "pandas.arrays.TimedeltaArray PR07,SA01" \
-        -i "pandas.core.groupby.DataFrameGroupBy.plot PR02" \
-        -i "pandas.core.groupby.SeriesGroupBy.plot PR02" \
-        -i "pandas.core.resample.Resampler.max PR01,RT03,SA01" \
-        -i "pandas.core.resample.Resampler.mean SA01" \
-        -i "pandas.core.resample.Resampler.min PR01,RT03,SA01" \
-        -i "pandas.core.resample.Resampler.prod SA01" \
-        -i "pandas.core.resample.Resampler.quantile PR01,PR07" \
-        -i "pandas.core.resample.Resampler.std SA01" \
-        -i "pandas.core.resample.Resampler.transform PR01,RT03,SA01" \
-        -i "pandas.core.resample.Resampler.var SA01" \
-        -i "pandas.errors.ValueLabelTypeMismatch SA01" \
-        -i "pandas.plotting.andrews_curves RT03,SA01" \
+        -i "pandas.errors.ChainedAssignmentError SA01" \
+        -i "pandas.errors.IncompatibleFrequency SA01,SS06,EX01" \
+        -i "pandas.api.extensions.ExtensionArray.value_counts EX01,RT03,SA01" \
+        -i "pandas.api.typing.Resampler.quantile PR01,PR07" \
+        -i "pandas.StringDtype.storage SA01" \
         -i "pandas.tseries.offsets.BDay PR02,SA01" \
+        -i "pandas.tseries.offsets.BHalfYearBegin.is_on_offset GL08" \
+        -i "pandas.tseries.offsets.BHalfYearBegin.n GL08" \
+        -i "pandas.tseries.offsets.BHalfYearBegin.normalize GL08" \
+        -i "pandas.tseries.offsets.BHalfYearBegin.rule_code GL08" \
+        -i "pandas.tseries.offsets.BHalfYearBegin.startingMonth GL08" \
+        -i "pandas.tseries.offsets.BHalfYearEnd.is_on_offset GL08" \
+        -i "pandas.tseries.offsets.BHalfYearEnd.n GL08" \
+        -i "pandas.tseries.offsets.BHalfYearEnd.normalize GL08" \
+        -i "pandas.tseries.offsets.BHalfYearEnd.rule_code GL08" \
+        -i "pandas.tseries.offsets.BHalfYearEnd.startingMonth GL08" \
         -i "pandas.tseries.offsets.BQuarterBegin.is_on_offset GL08" \
         -i "pandas.tseries.offsets.BQuarterBegin.n GL08" \
         -i "pandas.tseries.offsets.BQuarterBegin.normalize GL08" \
@@ -158,7 +152,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.CustomBusinessMonthBegin PR02" \
         -i "pandas.tseries.offsets.CustomBusinessMonthBegin.calendar GL08" \
         -i "pandas.tseries.offsets.CustomBusinessMonthBegin.holidays GL08" \
-        -i "pandas.tseries.offsets.CustomBusinessMonthBegin.is_on_offset SA01" \
         -i "pandas.tseries.offsets.CustomBusinessMonthBegin.m_offset GL08" \
         -i "pandas.tseries.offsets.CustomBusinessMonthBegin.n GL08" \
         -i "pandas.tseries.offsets.CustomBusinessMonthBegin.normalize GL08" \
@@ -166,7 +159,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.CustomBusinessMonthEnd PR02" \
         -i "pandas.tseries.offsets.CustomBusinessMonthEnd.calendar GL08" \
         -i "pandas.tseries.offsets.CustomBusinessMonthEnd.holidays GL08" \
-        -i "pandas.tseries.offsets.CustomBusinessMonthEnd.is_on_offset SA01" \
         -i "pandas.tseries.offsets.CustomBusinessMonthEnd.m_offset GL08" \
         -i "pandas.tseries.offsets.CustomBusinessMonthEnd.n GL08" \
         -i "pandas.tseries.offsets.CustomBusinessMonthEnd.normalize GL08" \
@@ -174,6 +166,9 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.DateOffset.is_on_offset GL08" \
         -i "pandas.tseries.offsets.DateOffset.n GL08" \
         -i "pandas.tseries.offsets.DateOffset.normalize GL08" \
+        -i "pandas.tseries.offsets.DateOffset.rollback SA01,EX01" \
+        -i "pandas.tseries.offsets.DateOffset.rollforward SA01,EX01" \
+        -i "pandas.tseries.offsets.Day.freqstr SA01" \
         -i "pandas.tseries.offsets.Day.is_on_offset GL08" \
         -i "pandas.tseries.offsets.Day.n GL08" \
         -i "pandas.tseries.offsets.Day.normalize GL08" \
@@ -200,10 +195,19 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.FY5253Quarter.variation GL08" \
         -i "pandas.tseries.offsets.FY5253Quarter.weekday GL08" \
         -i "pandas.tseries.offsets.FY5253Quarter.year_has_extra_week GL08" \
+        -i "pandas.tseries.offsets.HalfYearBegin.is_on_offset GL08" \
+        -i "pandas.tseries.offsets.HalfYearBegin.n GL08" \
+        -i "pandas.tseries.offsets.HalfYearBegin.normalize GL08" \
+        -i "pandas.tseries.offsets.HalfYearBegin.rule_code GL08" \
+        -i "pandas.tseries.offsets.HalfYearBegin.startingMonth GL08" \
+        -i "pandas.tseries.offsets.HalfYearEnd.is_on_offset GL08" \
+        -i "pandas.tseries.offsets.HalfYearEnd.n GL08" \
+        -i "pandas.tseries.offsets.HalfYearEnd.normalize GL08" \
+        -i "pandas.tseries.offsets.HalfYearEnd.rule_code GL08" \
+        -i "pandas.tseries.offsets.HalfYearEnd.startingMonth GL08" \
         -i "pandas.tseries.offsets.Hour.is_on_offset GL08" \
         -i "pandas.tseries.offsets.Hour.n GL08" \
         -i "pandas.tseries.offsets.Hour.normalize GL08" \
-        -i "pandas.tseries.offsets.LastWeekOfMonth SA01" \
         -i "pandas.tseries.offsets.LastWeekOfMonth.is_on_offset GL08" \
         -i "pandas.tseries.offsets.LastWeekOfMonth.n GL08" \
         -i "pandas.tseries.offsets.LastWeekOfMonth.normalize GL08" \
@@ -270,8 +274,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.YearEnd.is_on_offset GL08" \
         -i "pandas.tseries.offsets.YearEnd.month GL08" \
         -i "pandas.tseries.offsets.YearEnd.n GL08" \
-        -i "pandas.tseries.offsets.YearEnd.normalize GL08" \
-        -i "pandas.util.hash_pandas_object PR07,SA01" # There should be no backslash in the final line, please keep this comment in the last ignored function
+        -i "pandas.tseries.offsets.YearEnd.normalize GL08" # There should be no backslash in the final line, please keep this comment in the last ignored function
 
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
@@ -281,7 +284,7 @@ fi
 if [[ -z "$CHECK" || "$CHECK" == "notebooks" ]]; then
 
     MSG='Notebooks' ; echo $MSG
-    jupyter nbconvert --execute $(find doc/source -name '*.ipynb') --to notebook
+    jupyter nbconvert --execute "$(find doc/source -name '*.ipynb')" --to notebook
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi

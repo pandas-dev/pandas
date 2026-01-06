@@ -13,6 +13,15 @@ def _isnan(val):
         return False
 
 
+def _equivalent_na(dtype, null):
+    if dtype.na_value is pd.NA and null is pd.NA:
+        return True
+    elif _isnan(dtype.na_value) and _isnan(null):
+        return True
+    else:
+        return False
+
+
 class TestGetLoc:
     def test_get_loc(self, any_string_dtype):
         index = Index(["a", "b", "c"], dtype=any_string_dtype)
@@ -41,14 +50,7 @@ class TestGetLoc:
 
     def test_get_loc_missing(self, any_string_dtype, nulls_fixture):
         index = Index(["a", "b", nulls_fixture], dtype=any_string_dtype)
-        if any_string_dtype == "string" and (
-            (any_string_dtype.na_value is pd.NA and nulls_fixture is not pd.NA)
-            or (_isnan(any_string_dtype.na_value) and not _isnan(nulls_fixture))
-        ):
-            with pytest.raises(KeyError):
-                index.get_loc(nulls_fixture)
-        else:
-            assert index.get_loc(nulls_fixture) == 2
+        assert index.get_loc(nulls_fixture) == 2
 
 
 class TestGetIndexer:
@@ -93,9 +95,8 @@ class TestGetIndexer:
         result = index.get_indexer(["a", null, "c"])
         if using_infer_string:
             expected = np.array([0, 2, -1], dtype=np.intp)
-        elif any_string_dtype == "string" and (
-            (any_string_dtype.na_value is pd.NA and null is not pd.NA)
-            or (_isnan(any_string_dtype.na_value) and not _isnan(null))
+        elif any_string_dtype == "string" and not _equivalent_na(
+            any_string_dtype, null
         ):
             expected = np.array([0, -1, -1], dtype=np.intp)
         else:
@@ -115,9 +116,8 @@ class TestGetIndexerNonUnique:
         if using_infer_string:
             expected_indexer = np.array([0, 2], dtype=np.intp)
             expected_missing = np.array([], dtype=np.intp)
-        elif any_string_dtype == "string" and (
-            (any_string_dtype.na_value is pd.NA and null is not pd.NA)
-            or (_isnan(any_string_dtype.na_value) and not _isnan(null))
+        elif any_string_dtype == "string" and not _equivalent_na(
+            any_string_dtype, null
         ):
             expected_indexer = np.array([0, -1], dtype=np.intp)
             expected_missing = np.array([1], dtype=np.intp)
@@ -133,9 +133,8 @@ class TestGetIndexerNonUnique:
 
         if using_infer_string:
             expected_indexer = np.array([0, 1, 3], dtype=np.intp)
-        elif any_string_dtype == "string" and (
-            (any_string_dtype.na_value is pd.NA and null is not pd.NA)
-            or (_isnan(any_string_dtype.na_value) and not _isnan(null))
+        elif any_string_dtype == "string" and not _equivalent_na(
+            any_string_dtype, null
         ):
             pass
         else:

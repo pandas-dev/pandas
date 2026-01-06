@@ -111,24 +111,19 @@ def assert_invalid_comparison(left, right, box):
             return x.astype(bool)
         return x
 
-    # rev_box: box to use for reversed comparisons
-    rev_box = xbox
-    if isinstance(right, Index) and isinstance(left, Series):
-        rev_box = np.array
-
     result = xbox2(left == right)
     expected = xbox(np.zeros(result.shape, dtype=np.bool_))
 
     tm.assert_equal(result, expected)
 
     result = xbox2(right == left)
-    tm.assert_equal(result, rev_box(expected))
+    tm.assert_equal(result, xbox(expected))
 
     result = xbox2(left != right)
     tm.assert_equal(result, ~expected)
 
     result = xbox2(right != left)
-    tm.assert_equal(result, rev_box(~expected))
+    tm.assert_equal(result, xbox(~expected))
 
     msg = "|".join(
         [

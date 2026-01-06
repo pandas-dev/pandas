@@ -21,8 +21,6 @@ from numpy import ma
 from numpy.ma import mrecords
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas._libs import lib
 from pandas.compat.numpy import np_version_gt2
 from pandas.errors import IntCastingNaNError
@@ -881,24 +879,25 @@ class TestDataFrameConstructors:
         )
 
         result_datetime64 = DataFrame(data_datetime64)
+        assert result_datetime64.index.unit == "s"
+        result_datetime64.index = result_datetime64.index.as_unit("us")
         result_datetime = DataFrame(data_datetime)
         assert result_datetime.index.unit == "us"
-        result_datetime.index = result_datetime.index.as_unit("s")
         result_Timestamp = DataFrame(data_Timestamp)
         tm.assert_frame_equal(result_datetime64, expected)
         tm.assert_frame_equal(result_datetime, expected)
         tm.assert_frame_equal(result_Timestamp, expected)
 
     @pytest.mark.parametrize(
-        "klass,name",
+        "klass,exp_dtype",
         [
-            (lambda x: np.timedelta64(x, "D"), "timedelta64"),
-            (lambda x: timedelta(days=x), "pytimedelta"),
-            (lambda x: Timedelta(x, "D"), "Timedelta[ns]"),
-            (lambda x: Timedelta(x, "D").as_unit("s"), "Timedelta[s]"),
+            (lambda x: np.timedelta64(x, "D"), "m8[s]"),
+            (lambda x: timedelta(days=x), "m8[us]"),
+            (lambda x: Timedelta(x, "D"), "m8[s]"),
+            (lambda x: Timedelta(x, "D").as_unit("ms"), "m8[ms]"),
         ],
     )
-    def test_constructor_dict_timedelta64_index(self, klass, name):
+    def test_constructor_dict_timedelta64_index(self, klass, exp_dtype):
         # GH 10160
         td_as_int = [1, 2, 3, 4]
 
@@ -913,6 +912,7 @@ class TestDataFrameConstructors:
             ],
             index=[Timedelta(td, "D") for td in td_as_int],
         )
+        expected.index = expected.index.astype(exp_dtype)
 
         result = DataFrame(data)
 
@@ -946,7 +946,7 @@ class TestDataFrameConstructors:
             (Period("2020-01"), PeriodDtype("M")),
             (Interval(left=0, right=5), IntervalDtype("int64", "right")),
             (
-                Timestamp("2011-01-01", tz="US/Eastern"),
+                Timestamp("2011-01-01", tz="US/Eastern").as_unit("s"),
                 DatetimeTZDtype(unit="s", tz="US/Eastern"),
             ),
         ],
@@ -1851,7 +1851,7 @@ class TestDataFrameConstructors:
                 "A": 1,
                 "B": "foo",
                 "C": "bar",
-                "D": Timestamp("20010101"),
+                "D": Timestamp("20010101").as_unit("s"),
                 "E": datetime(2001, 1, 2, 0, 0),
             },
             index=np.arange(10),
@@ -1870,7 +1870,7 @@ class TestDataFrameConstructors:
         )
         tm.assert_series_equal(result, expected)
 
-        # check with ndarray construction ndim==0 (e.g. we are passing a ndim 0
+        # check with ndarray construction ndim==0 (e.g. we are passing an ndim 0
         # ndarray with a dtype specified)
         df = DataFrame(
             {
@@ -1974,7 +1974,6 @@ class TestDataFrameConstructors:
         df = DataFrame({"value": dr})
         assert str(df.iat[0, 0].tz) == "US/Eastern"
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_constructor_with_datetimes5(self):
         # GH 7822
         # preserver an index with a tz on dict construction
@@ -2783,6 +2782,19 @@ class TestDataFrameConstructors:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_dataframe_from_array_like_with_name_attribute(self):
+        # GH#61443
+        class DummyArray(np.ndarray):
+            def __new__(cls, input_array):
+                obj = np.asarray(input_array).view(cls)
+                obj.name = "foo"
+                return obj
+
+        dummy = DummyArray(np.eye(3))
+        df = DataFrame(dummy)
+        expected = DataFrame(np.eye(3))
+        tm.assert_frame_equal(df, expected)
+
 
 class TestDataFrameConstructorIndexInference:
     def test_frame_from_dict_of_series_overlapping_monthly_period_indexes(self):
@@ -2896,7 +2908,7 @@ class TestDataFrameConstructorWithDatetimeTZ:
     def test_construction_preserves_tzaware_dtypes(self, tz):
         # after GH#7822
         # these retain the timezones on dict construction
-        dr = date_range("2011/1/1", "2012/1/1", freq="W-FRI")
+        dr = date_range("2011/1/1", "2012/1/1", freq="W-FRI", unit="ns")
         dr_tz = dr.tz_localize(tz)
         df = DataFrame({"A": "foo", "B": dr_tz}, index=dr)
         tz_expected = DatetimeTZDtype("ns", dr_tz.tzinfo)
@@ -3002,7 +3014,7 @@ class TestDataFrameConstructorWithDatetimeTZ:
     def test_frame_timeseries_column(self):
         # GH19157
         dr = date_range(
-            start="20130101T10:00:00", periods=3, freq="min", tz="US/Eastern"
+            start="20130101T10:00:00", periods=3, freq="min", tz="US/Eastern", unit="ns"
         )
         result = DataFrame(dr, columns=["timestamps"])
         expected = DataFrame(
@@ -3066,9 +3078,9 @@ class TestDataFrameConstructorWithDatetimeTZ:
         res = DataFrame(arr, columns=["A", "B", "C"])
 
         expected_dtypes = [
-            "datetime64[s]",
-            "datetime64[s, US/Eastern]",
-            "datetime64[s, CET]",
+            "datetime64[us]",
+            "datetime64[us, US/Eastern]",
+            "datetime64[us, CET]",
         ]
         assert (res.dtypes == expected_dtypes).all()
 
@@ -3237,7 +3249,6 @@ class TestFromScalar:
         assert item.asm8.dtype == exp_dtype
         assert dtype == exp_dtype
 
-    @pytest.mark.skip_ubsan
     def test_out_of_s_bounds_datetime64(self, constructor):
         scalar = np.datetime64(np.iinfo(np.int64).max, "D")
         result = constructor(scalar)
@@ -3248,17 +3259,8 @@ class TestFromScalar:
 
     @pytest.mark.parametrize("cls", [timedelta, np.timedelta64])
     def test_from_out_of_bounds_ns_timedelta(
-        self, constructor, cls, request, box, frame_or_series
+        self, constructor, cls, box, frame_or_series
     ):
-        # scalar that won't fit in nanosecond td64, but will fit in microsecond
-        if box is list or (frame_or_series is Series and box is dict):
-            mark = pytest.mark.xfail(
-                reason="TimedeltaArray constructor has been updated to cast td64 "
-                "to non-nano, but TimedeltaArray._from_sequence has not",
-                strict=True,
-            )
-            request.applymarker(mark)
-
         scalar = datetime(9999, 1, 1) - datetime(1970, 1, 1)
         exp_dtype = "m8[us]"  # smallest reso that fits
         if cls is np.timedelta64:
@@ -3273,7 +3275,6 @@ class TestFromScalar:
         assert item.asm8.dtype == exp_dtype
         assert dtype == exp_dtype
 
-    @pytest.mark.skip_ubsan
     @pytest.mark.parametrize("cls", [np.datetime64, np.timedelta64])
     def test_out_of_s_bounds_timedelta64(self, constructor, cls):
         scalar = cls(np.iinfo(np.int64).max, "D")

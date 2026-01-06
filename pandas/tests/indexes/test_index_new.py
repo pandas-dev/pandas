@@ -141,6 +141,9 @@ class TestIndexConstructorInference:
         if dtype[0] == "d":
             # we infer all-NaT as second resolution
             expected = expected.astype("M8[ns]")
+        if dtype[0] == "t":
+            # we infer all-NaT as second resolution
+            expected = expected.astype("m8[ns]")
         assert expected.dtype == dtype
         data = [ctor]
         data.insert(pos, nulls_fixture)
@@ -419,8 +422,7 @@ class TestIndexConstructionErrors:
     def test_constructor_overflow_int64(self):
         # see GH#15832
         msg = (
-            "The elements provided in the data cannot "
-            "all be casted to the dtype int64"
+            "The elements provided in the data cannot all be casted to the dtype int64"
         )
         with pytest.raises(OverflowError, match=msg):
             Index([np.iinfo(np.uint64).max - 1], dtype="int64")

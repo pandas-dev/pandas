@@ -135,7 +135,7 @@ class TestDataFrameQuantile:
     def test_quantile_date_range(self, interp_method):
         # GH 2460
         interpolation, method = interp_method
-        dti = pd.date_range("2016-01-01", periods=3, tz="US/Pacific")
+        dti = pd.date_range("2016-01-01", periods=3, tz="US/Pacific", unit="ns")
         ser = Series(dti)
         df = DataFrame(ser)
 
@@ -721,22 +721,6 @@ class TestDataFrameQuantile:
         expected.columns.name = "captain tightpants"
         tm.assert_frame_equal(result, expected)
 
-    def test_quantile_item_cache(self, interp_method):
-        # previous behavior incorrect retained an invalid _item_cache entry
-        interpolation, method = interp_method
-        df = DataFrame(
-            np.random.default_rng(2).standard_normal((4, 3)), columns=["A", "B", "C"]
-        )
-        df["D"] = df["A"] * 2
-        ser = df["A"]
-        assert len(df._mgr.blocks) == 2
-
-        df.quantile(numeric_only=False, interpolation=interpolation, method=method)
-
-        ser.iloc[0] = 99
-        assert df.iloc[0, 0] == df["A"][0]
-        assert df.iloc[0, 0] != 99
-
     def test_invalid_method(self):
         with pytest.raises(ValueError, match="Invalid method: foo"):
             DataFrame(range(1)).quantile(0.5, method="foo")
@@ -944,3 +928,12 @@ def test_multi_quantile_numeric_only_retains_columns():
     tm.assert_frame_equal(
         result, expected, check_index_type=True, check_column_type=True
     )
+
+
+@pytest.mark.parametrize("typ", ["datetime64", "timedelta64"])
+def test_quantile_empty_datetimelike(typ, unit):
+    dtype = f"{typ}[{unit}]"
+    df = DataFrame(np.array([], dtype=dtype))
+    result = df.quantile()
+    expected = Series([pd.NaT], name=0.5, dtype=dtype)
+    tm.assert_series_equal(result, expected)

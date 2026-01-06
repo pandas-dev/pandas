@@ -11,7 +11,7 @@ from datetime import (
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
+import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -76,10 +76,7 @@ def groupby_with_truncated_bingrouper(frame_for_truncated_bingrouper):
 
 
 class TestGroupBy:
-    # TODO(infer_string) resample sum introduces 0's
-    # https://github.com/pandas-dev/pandas/issues/60229
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
-    def test_groupby_with_timegrouper(self):
+    def test_groupby_with_timegrouper(self, using_infer_string):
         # GH 4161
         # TimeGrouper requires a sorted index
         # also verifies that the resultant index has the correct name
@@ -113,11 +110,14 @@ class TestGroupBy:
                 unit=df.index.unit,
             )
             expected = DataFrame(
-                {"Buyer": 0, "Quantity": 0},
+                {"Buyer": "" if using_infer_string else 0, "Quantity": 0},
                 index=exp_dti,
             )
-            # Cast to object to avoid implicit cast when setting entry to "CarlCarlCarl"
+            # Cast to object/str to avoid implicit cast when setting
+            #  entry to "CarlCarlCarl"
             expected = expected.astype({"Buyer": object})
+            if using_infer_string:
+                expected = expected.astype({"Buyer": "str"})
             expected.iloc[0, 0] = "CarlCarlCarl"
             expected.iloc[6, 0] = "CarlCarl"
             expected.iloc[18, 0] = "Joe"
@@ -435,7 +435,7 @@ class TestGroupBy:
 
         for df in [df_original, df_reordered]:
             grouped = df.groupby(Grouper(freq="ME", key="Date"))
-            for t, expected in zip(dt_list, expected_list):
+            for t, expected in zip(dt_list, expected_list, strict=True):
                 dt = Timestamp(t)
                 result = grouped.get_group(dt)
                 tm.assert_frame_equal(result, expected)
@@ -450,7 +450,7 @@ class TestGroupBy:
 
         for df in [df_original, df_reordered]:
             grouped = df.groupby(["Buyer", Grouper(freq="ME", key="Date")])
-            for (b, t), expected in zip(g_list, expected_list):
+            for (b, t), expected in zip(g_list, expected_list, strict=True):
                 dt = Timestamp(t)
                 result = grouped.get_group((b, dt))
                 tm.assert_frame_equal(result, expected)
@@ -467,7 +467,7 @@ class TestGroupBy:
 
         for df in [df_original, df_reordered]:
             grouped = df.groupby(Grouper(freq="ME"))
-            for t, expected in zip(dt_list, expected_list):
+            for t, expected in zip(dt_list, expected_list, strict=True):
                 dt = Timestamp(t)
                 result = grouped.get_group(dt)
                 tm.assert_frame_equal(result, expected)
@@ -740,7 +740,7 @@ class TestGroupBy:
     def test_groupby_max_datetime64(self):
         # GH 5869
         # datetimelike dtype conversion from int
-        df = DataFrame({"A": Timestamp("20130101"), "B": np.arange(5)})
+        df = DataFrame({"A": Timestamp("20130101").as_unit("s"), "B": np.arange(5)})
         # TODO: can we retain second reso in .apply here?
         expected = df.groupby("A")["A"].apply(lambda x: x.max()).astype("M8[s]")
         result = df.groupby("A")["A"].max()
@@ -958,3 +958,27 @@ class TestGroupBy:
         )
         expected_df = gb[["Quantity"]].aggregate("mean")
         tm.assert_frame_equal(result_df, expected_df)
+
+    @td.skip_if_no("pyarrow")
+    def test_pyarrow_index_retention(self):
+        # https://github.com/pandas-dev/pandas/issues/63518
+        df = DataFrame(
+            {
+                "a": [1, 2, 3],
+            },
+            index=Index(
+                [
+                    Timestamp("2013-01-01"),
+                    Timestamp("2013-01-01"),
+                    Timestamp("2013-01-02"),
+                ],
+                dtype="timestamp[ns, America/Denver][pyarrow]",
+            ),
+        )
+        gb = df.groupby(Grouper(freq="D"))
+        result = gb._grouper.result_index
+        expected = Index(
+            [Timestamp("2013-01-01"), Timestamp("2013-01-02")],
+            dtype="timestamp[ns, America/Denver][pyarrow]",
+        )
+        tm.assert_index_equal(result, expected)

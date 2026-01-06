@@ -16,7 +16,10 @@ from pandas._libs import (
 )
 from pandas.compat import HAS_PYARROW
 from pandas.compat.numpy import np_version_gt2
-from pandas.errors import IntCastingNaNError
+from pandas.errors import (
+    IntCastingNaNError,
+    Pandas4Warning,
+)
 
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
@@ -89,6 +92,13 @@ class TestSeriesConstructors:
 
         with pytest.raises(ValueError, match=msg):
             Series(np.array(vals, dtype=object), dtype="datetime64[ns]")
+
+    def test_invalid_dtype_conversion_datetime_to_timedelta(self):
+        # GH#60728
+        vals = Series([NaT, Timestamp(2025, 1, 1)], dtype="datetime64[ns]")
+        msg = r"^Cannot cast DatetimeArray to dtype timedelta64\[ns\]$"
+        with pytest.raises(TypeError, match=msg):
+            Series(vals, dtype="timedelta64[ns]")
 
     @pytest.mark.parametrize(
         "constructor",
@@ -385,7 +395,9 @@ class TestSeriesConstructors:
         tm.assert_series_equal(result, exp)
 
     def test_constructor_categorical(self):
-        cat = Categorical([0, 1, 2, 0, 1, 2], ["a", "b", "c"])
+        msg = "Constructing a Categorical with a dtype and values containing"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            cat = Categorical([0, 1, 2, 0, 1, 2], ["a", "b", "c"])
         res = Series(cat)
         tm.assert_categorical_equal(res.values, cat)
 
@@ -518,9 +530,9 @@ class TestSeriesConstructors:
         # so this WILL change values
         cat = Categorical(["a", "b", "c", "a"])
         s = Series(cat, copy=False)
-        assert s.values is cat
+        assert s._values is cat
         s = s.cat.rename_categories([1, 2, 3])
-        assert s.values is not cat
+        assert s._values is not cat
         exp_s = np.array([1, 2, 3, 1], dtype=np.int64)
         tm.assert_numpy_array_equal(s.__array__(), exp_s)
 
@@ -529,7 +541,7 @@ class TestSeriesConstructors:
         tm.assert_numpy_array_equal(s.__array__(), exp_s2)
 
     def test_unordered_compare_equal(self):
-        left = Series(["a", "b", "c"], dtype=CategoricalDtype(["a", "b"]))
+        left = Series(["a", "b", None], dtype=CategoricalDtype(["a", "b"]))
         right = Series(Categorical(["a", "b", np.nan], categories=["a", "b"]))
         tm.assert_series_equal(left, right)
 
@@ -625,7 +637,7 @@ class TestSeriesConstructors:
 
     def test_series_ctor_plus_datetimeindex(self):
         rng = date_range("20090415", "20090519", freq="B")
-        data = {k: 1 for k in rng}
+        data = dict.fromkeys(rng, 1)
 
         result = Series(data, index=rng)
         assert result.index.is_(rng)
@@ -1100,7 +1112,7 @@ class TestSeriesConstructors:
         # 8260
         # support datetime64 with tz
 
-        dr = date_range("20130101", periods=3, tz="US/Eastern")
+        dr = date_range("20130101", periods=3, tz="US/Eastern", unit="ns")
         s = Series(dr)
         assert s.dtype.name == "datetime64[ns, US/Eastern]"
         assert s.dtype == "datetime64[ns, US/Eastern]"
@@ -1145,15 +1157,15 @@ class TestSeriesConstructors:
 
     def test_constructor_with_datetime_tz5(self):
         # long str
-        ser = Series(date_range("20130101", periods=1000, tz="US/Eastern"))
+        ser = Series(date_range("20130101", periods=1000, tz="US/Eastern", unit="ns"))
         assert "datetime64[ns, US/Eastern]" in str(ser)
 
     def test_constructor_with_datetime_tz4(self):
         # inference
         ser = Series(
             [
-                Timestamp("2013-01-01 13:00:00-0800", tz="US/Pacific"),
-                Timestamp("2013-01-02 14:00:00-0800", tz="US/Pacific"),
+                Timestamp("2013-01-01 13:00:00-0800", tz="US/Pacific").as_unit("s"),
+                Timestamp("2013-01-02 14:00:00-0800", tz="US/Pacific").as_unit("s"),
             ]
         )
         assert ser.dtype == "datetime64[s, US/Pacific]"
@@ -1401,10 +1413,10 @@ class TestSeriesConstructors:
         result_datetime = Series(data_datetime)
         result_Timestamp = Series(data_Timestamp)
 
-        tm.assert_series_equal(result_datetime64, expected)
         tm.assert_series_equal(
-            result_datetime, expected.set_axis(expected.index.as_unit("us"))
+            result_datetime64, expected.set_axis(expected.index.as_unit("s"))
         )
+        tm.assert_series_equal(result_datetime, expected)
         tm.assert_series_equal(result_Timestamp, expected)
 
     def test_constructor_dict_tuple_indexer(self):
@@ -1434,10 +1446,17 @@ class TestSeriesConstructors:
         s = Series(data)
         assert tuple(s) == data
 
-    def test_constructor_dict_of_tuples(self):
-        data = {(1, 2): 3, (None, 5): 6}
+    @pytest.mark.parametrize(
+        "data, expected_values, expected_index",
+        [
+            ({(1, 2): 3, (None, 5): 6}, [3, 6], [(1, 2), (None, 5)]),
+            ({(1,): 3, (4, 5): 6}, [3, 6], [(1, None), (4, 5)]),
+        ],
+    )
+    def test_constructor_dict_of_tuples(self, data, expected_values, expected_index):
+        # GH 60695
         result = Series(data).sort_values()
-        expected = Series([3, 6], index=MultiIndex.from_tuples([(1, 2), (None, 5)]))
+        expected = Series(expected_values, index=MultiIndex.from_tuples(expected_index))
         tm.assert_series_equal(result, expected)
 
     # https://github.com/pandas-dev/pandas/issues/22698
@@ -1485,14 +1504,14 @@ class TestSeriesConstructors:
     def test_constructor_dtype_timedelta64(self):
         # basic
         td = Series([timedelta(days=i) for i in range(3)])
-        assert td.dtype == "timedelta64[ns]"
+        assert td.dtype == "timedelta64[us]"
 
         td = Series([timedelta(days=1)])
-        assert td.dtype == "timedelta64[ns]"
+        assert td.dtype == "timedelta64[us]"
 
         td = Series([timedelta(days=1), timedelta(days=2), np.timedelta64(1, "s")])
 
-        assert td.dtype == "timedelta64[ns]"
+        assert td.dtype == "timedelta64[us]"
 
         # mixed with NaT
         td = Series([timedelta(days=1), NaT], dtype="m8[ns]")
@@ -1520,13 +1539,13 @@ class TestSeriesConstructors:
         assert td.dtype == "timedelta64[ns]"
 
         td = Series([np.timedelta64(1, "s")])
-        assert td.dtype == "timedelta64[ns]"
+        assert td.dtype == "timedelta64[s]"
 
         # valid astype
         td.astype("int64")
 
         # invalid casting
-        msg = r"Converting from timedelta64\[ns\] to int32 is not supported"
+        msg = r"Converting from timedelta64\[s\] to int32 is not supported"
         with pytest.raises(TypeError, match=msg):
             td.astype("int32")
 
@@ -1596,7 +1615,7 @@ class TestSeriesConstructors:
                     Series(data, name=n)
 
     def test_auto_conversion(self):
-        series = Series(list(date_range("1/1/2000", periods=10)))
+        series = Series(list(date_range("1/1/2000", periods=10, unit="ns")))
         assert series.dtype == "M8[ns]"
 
     def test_convert_non_ns(self):
@@ -1853,23 +1872,30 @@ class TestSeriesConstructors:
         series = Series(A(data))
         tm.assert_series_equal(series, expected)
 
-    def test_constructor_dict_multiindex(self):
-        d = {("a", "a"): 0.0, ("b", "a"): 1.0, ("b", "c"): 2.0}
-        _d = sorted(d.items())
-        result = Series(d)
-        expected = Series(
-            [x[1] for x in _d], index=MultiIndex.from_tuples([x[0] for x in _d])
-        )
-        tm.assert_series_equal(result, expected)
+    @pytest.mark.parametrize(
+        "data, expected_index_multi",
+        [
+            ({("a", "a"): 0.0, ("b", "a"): 1.0, ("b", "c"): 2.0}, True),
+            ({("a",): 0.0, ("a", "b"): 1.0}, True),
+            ({"z": 111.0, ("a", "a"): 0.0, ("b", "a"): 1.0, ("b", "c"): 2.0}, False),
+        ],
+    )
+    def test_constructor_dict_multiindex(self, data, expected_index_multi):
+        # GH#60695
+        result = Series(data)
 
-        d["z"] = 111.0
-        _d.insert(0, ("z", d["z"]))
-        result = Series(d)
-        expected = Series(
-            [x[1] for x in _d], index=Index([x[0] for x in _d], tupleize_cols=False)
-        )
-        result = result.reindex(index=expected.index)
-        tm.assert_series_equal(result, expected)
+        if expected_index_multi:
+            expected = Series(
+                list(data.values()),
+                index=MultiIndex.from_tuples(list(data.keys())),
+            )
+            tm.assert_series_equal(result, expected)
+        else:
+            expected = Series(
+                list(data.values()),
+                index=Index(list(data.keys())),
+            )
+            tm.assert_series_equal(result, expected)
 
     def test_constructor_dict_multiindex_reindex_flat(self):
         # construction involves reindexing with a MultiIndex corner case
@@ -2045,7 +2071,7 @@ class TestSeriesConstructors:
     def test_series_constructor_overflow_uint_with_nan(self):
         # GH#38798
         max_val = np.iinfo(np.uint64).max - 1
-        result = Series([max_val, np.nan], dtype="UInt64")
+        result = Series([max_val, pd.NA], dtype="UInt64")
         expected = Series(
             IntegerArray(
                 np.array([max_val, 1], dtype="uint64"),
@@ -2056,7 +2082,7 @@ class TestSeriesConstructors:
 
     def test_series_constructor_ea_all_na(self):
         # GH#38798
-        result = Series([np.nan, np.nan], dtype="UInt64")
+        result = Series([pd.NA, pd.NA], dtype="UInt64")
         expected = Series(
             IntegerArray(
                 np.array([1, 1], dtype="uint64"),
@@ -2116,7 +2142,9 @@ class TestSeriesConstructors:
         # but after PDEP-14 (string dtype), it was decided to keep dtype="string"
         # returning the NA string dtype, so expected is changed from
         # "string[pyarrow_numpy]" to "string[python]"
-        expected = Series(["a", "b"], dtype="string[python]")
+        expected = Series(
+            ["a", "b"], dtype="string[pyarrow]" if HAS_PYARROW else "string[python]"
+        )
         with pd.option_context("future.infer_string", True):
             result = Series(["a", "b"], dtype="string")
         tm.assert_series_equal(result, expected)
@@ -2188,7 +2216,16 @@ class TestSeriesConstructorIndexCoercion:
         arr = np.array(data, dtype=StringDType())
         res = Series(arr)
         assert res.dtype == np.object_
-        assert (res == data).all()
+
+        if data[-1] is np.nan:
+            # as of GH#62522 the comparison op for `res==data` casts data
+            #  using sanitize_array, which casts to 'str' dtype, which does not
+            #  consider string 'nan' to be equal to np.nan,
+            #  (which apparently numpy does?  weird.)
+            assert (res.iloc[:-1] == data[:-1]).all()
+            assert res.iloc[-1] == "nan"
+        else:
+            assert (res == data).all()
 
 
 class TestSeriesConstructorInternals:

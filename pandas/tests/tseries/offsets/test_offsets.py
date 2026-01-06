@@ -47,6 +47,7 @@ from pandas.tseries.offsets import (
     CustomBusinessMonthBegin,
     CustomBusinessMonthEnd,
     DateOffset,
+    Day,
     Easter,
     FY5253Quarter,
     LastWeekOfMonth,
@@ -160,6 +161,10 @@ def expecteds():
         "BQuarterBegin": Timestamp("2011-03-01 09:00:00"),
         "QuarterEnd": Timestamp("2011-03-31 09:00:00"),
         "BQuarterEnd": Timestamp("2011-03-31 09:00:00"),
+        "HalfYearBegin": Timestamp("2011-07-01 09:00:00"),
+        "HalfYearEnd": Timestamp("2011-06-30 09:00:00"),
+        "BHalfYearBegin": Timestamp("2011-01-03 09:00:00"),
+        "BHalfYearEnd": Timestamp("2011-06-30 09:00:00"),
         "BusinessHour": Timestamp("2011-01-03 10:00:00"),
         "CustomBusinessHour": Timestamp("2011-01-03 10:00:00"),
         "WeekOfMonth": Timestamp("2011-01-08 09:00:00"),
@@ -235,12 +240,12 @@ class TestCommon:
         offset = _create_offset(offset_types)
 
         freqstr = offset.freqstr
-        if freqstr not in ("<Easter>", "<DateOffset: days=1>", "LWOM-SAT"):
+        if freqstr not in ("<Easter: method=3>", "<DateOffset: days=1>", "LWOM-SAT"):
             code = _get_offset(freqstr)
             assert offset.rule_code == code
 
     def _check_offsetfunc_works(self, offset, funcname, dt, expected, normalize=False):
-        if normalize and issubclass(offset, Tick):
+        if normalize and issubclass(offset, (Tick, Day)):
             # normalize=True disallowed for Tick subclasses GH#21427
             return
 
@@ -325,6 +330,7 @@ class TestCommon:
             "MonthBegin",
             "SemiMonthBegin",
             "YearBegin",
+            "HalfYearBegin",
             "Week",
             "Hour",
             "Minute",
@@ -351,6 +357,7 @@ class TestCommon:
             "MonthBegin": Timestamp("2011-02-01 00:00:00"),
             "SemiMonthBegin": Timestamp("2011-01-15 00:00:00"),
             "YearBegin": Timestamp("2012-01-01 00:00:00"),
+            "HalfYearBegin": Timestamp("2011-07-01 00:00:00"),
             "Week": Timestamp("2011-01-08 00:00:00"),
             "Hour": Timestamp("2011-01-01 00:00:00"),
             "Minute": Timestamp("2011-01-01 00:00:00"),
@@ -388,6 +395,10 @@ class TestCommon:
             "BQuarterBegin": Timestamp("2010-12-01 09:00:00"),
             "QuarterEnd": Timestamp("2010-12-31 09:00:00"),
             "BQuarterEnd": Timestamp("2010-12-31 09:00:00"),
+            "HalfYearBegin": Timestamp("2010-07-01 09:00:00"),
+            "HalfYearEnd": Timestamp("2010-12-31 09:00:00"),
+            "BHalfYearBegin": Timestamp("2010-07-01 09:00:00"),
+            "BHalfYearEnd": Timestamp("2010-12-31 09:00:00"),
             "BusinessHour": Timestamp("2010-12-31 17:00:00"),
             "CustomBusinessHour": Timestamp("2010-12-31 17:00:00"),
             "WeekOfMonth": Timestamp("2010-12-11 09:00:00"),
@@ -403,6 +414,7 @@ class TestCommon:
             "MonthBegin",
             "SemiMonthBegin",
             "YearBegin",
+            "HalfYearBegin",
             "Week",
             "Hour",
             "Minute",
@@ -418,21 +430,6 @@ class TestCommon:
         norm_expected = expecteds.copy()
         for k in norm_expected:
             norm_expected[k] = Timestamp(norm_expected[k].date())
-
-        normalized = {
-            "Day": Timestamp("2010-12-31 00:00:00"),
-            "DateOffset": Timestamp("2010-12-31 00:00:00"),
-            "MonthBegin": Timestamp("2010-12-01 00:00:00"),
-            "SemiMonthBegin": Timestamp("2010-12-15 00:00:00"),
-            "YearBegin": Timestamp("2010-01-01 00:00:00"),
-            "Week": Timestamp("2010-12-25 00:00:00"),
-            "Hour": Timestamp("2011-01-01 00:00:00"),
-            "Minute": Timestamp("2011-01-01 00:00:00"),
-            "Second": Timestamp("2011-01-01 00:00:00"),
-            "Milli": Timestamp("2011-01-01 00:00:00"),
-            "Micro": Timestamp("2011-01-01 00:00:00"),
-        }
-        norm_expected.update(normalized)
 
         sdt = datetime(2011, 1, 1, 9, 0)
         ndt = np.datetime64("2011-01-01 09:00")
@@ -452,7 +449,7 @@ class TestCommon:
         assert offset_s.is_on_offset(dt)
 
         # when normalize=True, is_on_offset checks time is 00:00:00
-        if issubclass(offset_types, Tick):
+        if issubclass(offset_types, (Tick, Day)):
             # normalize=True disallowed for Tick subclasses GH#21427
             return
         offset_n = _create_offset(offset_types, normalize=True)
@@ -484,7 +481,7 @@ class TestCommon:
         assert result == expected_localize
 
         # normalize=True, disallowed for Tick subclasses GH#21427
-        if issubclass(offset_types, Tick):
+        if issubclass(offset_types, (Tick, Day)):
             return
         offset_s = _create_offset(offset_types, normalize=True)
         expected = Timestamp(expected.date())
@@ -552,9 +549,9 @@ class TestCommon:
             result = offset_s + dta
         tm.assert_equal(result, dta)
 
-    def test_pickle_roundtrip(self, offset_types):
+    def test_pickle_roundtrip(self, offset_types, tmp_path):
         off = _create_offset(offset_types)
-        res = tm.round_trip_pickle(off)
+        res = tm.round_trip_pickle(off, tmp_path)
         assert off == res
         if type(off) is not DateOffset:
             for attr in off._attributes:
@@ -565,10 +562,10 @@ class TestCommon:
                 # Make sure nothings got lost from _params (which __eq__) is based on
                 assert getattr(off, attr) == getattr(res, attr)
 
-    def test_pickle_dateoffset_odd_inputs(self):
+    def test_pickle_dateoffset_odd_inputs(self, tmp_path):
         # GH#34511
         off = DateOffset(months=12)
-        res = tm.round_trip_pickle(off)
+        res = tm.round_trip_pickle(off, tmp_path)
         assert off == res
 
         base_dt = datetime(2020, 1, 1)
@@ -652,6 +649,7 @@ class TestDateOffset:
                 "2008-01-02 00:00:00.001000000",
                 "2008-01-02 00:00:00.000001000",
             ],
+            strict=True,
         ),
     )
     def test_add(self, arithmatic_offset_type, expected, dt):
@@ -673,6 +671,7 @@ class TestDateOffset:
                 "2008-01-01 23:59:59.999000000",
                 "2008-01-01 23:59:59.999999000",
             ],
+            strict=True,
         ),
     )
     def test_sub(self, arithmatic_offset_type, expected, dt):
@@ -696,6 +695,7 @@ class TestDateOffset:
                 "2008-01-02 00:00:00.008000000",
                 "2008-01-02 00:00:00.000009000",
             ],
+            strict=True,
         ),
     )
     def test_mul_add(self, arithmatic_offset_type, n, expected, dt):
@@ -720,6 +720,7 @@ class TestDateOffset:
                 "2008-01-01 23:59:59.992000000",
                 "2008-01-01 23:59:59.999991000",
             ],
+            strict=True,
         ),
     )
     def test_mul_sub(self, arithmatic_offset_type, n, expected, dt):
@@ -798,9 +799,9 @@ def test_get_offset():
 
     for name, expected in pairs:
         offset = _get_offset(name)
-        assert (
-            offset == expected
-        ), f"Expected {name!r} to yield {expected!r} (actual: {offset!r})"
+        assert offset == expected, (
+            f"Expected {name!r} to yield {expected!r} (actual: {offset!r})"
+        )
 
 
 def test_get_offset_legacy():
@@ -849,7 +850,20 @@ class TestOffsetAliases:
             "NOV",
             "DEC",
         ]
-        base_lst = ["YE", "YS", "BYE", "BYS", "QE", "QS", "BQE", "BQS"]
+        base_lst = [
+            "YE",
+            "YS",
+            "BYE",
+            "BYS",
+            "QE",
+            "QS",
+            "BQE",
+            "BQS",
+            "HYE",
+            "HYS",
+            "BHYE",
+            "BHYS",
+        ]
         for base in base_lst:
             for v in suffix_lst:
                 alias = "-".join([base, v])
@@ -868,7 +882,20 @@ def test_freq_offsets():
 class TestReprNames:
     def test_str_for_named_is_name(self):
         # look at all the amazing combinations!
-        month_prefixes = ["YE", "YS", "BYE", "BYS", "QE", "BQE", "BQS", "QS"]
+        month_prefixes = [
+            "YE",
+            "YS",
+            "BYE",
+            "BYS",
+            "QE",
+            "BQE",
+            "BQS",
+            "QS",
+            "HYE",
+            "HYS",
+            "BHYE",
+            "BHYS",
+        ]
         names = [
             prefix + "-" + month
             for prefix in month_prefixes
@@ -1116,6 +1143,11 @@ def test_offset_multiplication(
     assert resultscalar == expectedscalar
 
     tm.assert_series_equal(resultarray, expectedarray)
+
+
+def test_offset_deprecated_error():
+    with pytest.raises(ValueError, match="Did you mean h"):
+        date_range("2012-01-01", periods=3, freq="H")
 
 
 def test_dateoffset_operations_on_dataframes(performance_warning):

@@ -3,6 +3,8 @@ import re
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays import IntervalArray
@@ -56,8 +58,8 @@ class TestSeriesReplace:
         ser[6:10] = 0
 
         # replace list with a single value
-        return_value = ser.replace([np.nan], -1, inplace=True)
-        assert return_value is None
+        result = ser.replace([np.nan], -1, inplace=True)
+        assert result is ser
 
         exp = ser.fillna(-1)
         tm.assert_series_equal(ser, exp)
@@ -97,8 +99,8 @@ class TestSeriesReplace:
         tm.assert_series_equal(rs, rs2)
 
         # replace inplace
-        return_value = ser.replace([np.nan, "foo", "bar"], -1, inplace=True)
-        assert return_value is None
+        result = ser.replace([np.nan, "foo", "bar"], -1, inplace=True)
+        assert result is ser
 
         assert (ser[:5] == -1).all()
         assert (ser[6:10] == -1).all()
@@ -192,8 +194,8 @@ class TestSeriesReplace:
         def check_replace(to_rep, val, expected):
             sc = ser.copy()
             result = ser.replace(to_rep, val)
-            return_value = sc.replace(to_rep, val, inplace=True)
-            assert return_value is None
+            result = sc.replace(to_rep, val, inplace=True)
+            assert result is sc
             tm.assert_series_equal(expected, result)
             tm.assert_series_equal(expected, sc)
 
@@ -259,7 +261,8 @@ class TestSeriesReplace:
         expected = pd.Series([pd.NA, pd.NA], dtype=any_int_ea_dtype)
         tm.assert_series_equal(result, expected)
         result = pd.Series([0, 1], dtype=any_int_ea_dtype).replace(0, pd.NA)
-        result.replace(1, pd.NA, inplace=True)
+        result2 = result.replace(1, pd.NA, inplace=True)
+        assert result2 is result
         tm.assert_series_equal(result, expected)
 
     def test_replace2(self):
@@ -294,8 +297,8 @@ class TestSeriesReplace:
         tm.assert_series_equal(rs, rs2)
 
         # replace inplace
-        return_value = ser.replace([np.nan, "foo", "bar"], -1, inplace=True)
-        assert return_value is None
+        result = ser.replace([np.nan, "foo", "bar"], -1, inplace=True)
+        assert result is ser
         assert (ser[:5] == -1).all()
         assert (ser[6:10] == -1).all()
         assert (ser[20:30] == -1).all()
@@ -379,10 +382,11 @@ class TestSeriesReplace:
         # GH 53358
         data = ["a", "b", "c"]
         data_exp = ["b", "b", "c"]
-        result = pd.Series(data, dtype="category")
-        result.replace(to_replace="a", value="b", inplace=True)
+        ser = pd.Series(data, dtype="category")
+        result = ser.replace(to_replace="a", value="b", inplace=True)
+        assert result is ser
         expected = pd.Series(pd.Categorical(data_exp, categories=data))
-        tm.assert_series_equal(result, expected)
+        tm.assert_series_equal(ser, expected)
 
     def test_replace_categorical_single(self):
         # GH 26988
@@ -472,7 +476,7 @@ class TestSeriesReplace:
             obj = obj.to_frame()
 
         res = obj.replace(4, 5, inplace=True)
-        assert res is None
+        assert res is obj
 
         res = obj.replace(4, 5, inplace=False)
         tm.assert_equal(res, obj)
@@ -484,7 +488,9 @@ class TestSeriesReplace:
         ser = pd.Series([1, 2, "A", fixed_now_ts, True])
         to_replace = {0: 1, 2: "A"}
         value = "foo"
-        msg = "Series.replace cannot use dict-like to_replace and non-None value"
+        msg = (
+            "Series.replace cannot specify both a dict-like 'to_replace' and a 'value'"
+        )
         with pytest.raises(ValueError, match=msg):
             ser.replace(to_replace, value)
 
@@ -646,7 +652,7 @@ class TestSeriesReplace:
         labs = pd.Series([1, 1, 1, 0, 0, 2, 2, 2], dtype=any_int_numpy_dtype)
 
         maps = pd.Series([0, 2, 1], dtype=any_int_numpy_dtype)
-        map_dict = dict(zip(maps.values, maps.index))
+        map_dict = dict(zip(maps.values, maps.index, strict=True))
 
         result = labs.replace(map_dict)
         expected = labs.replace({0: 0, 2: 1, 1: 2})
@@ -683,7 +689,8 @@ class TestSeriesReplace:
         result = ser.replace(to_replace=1, value=2)
         tm.assert_series_equal(result, expected)
 
-        ser.replace(to_replace=1, value=2, inplace=True)
+        result = ser.replace(to_replace=1, value=2, inplace=True)
+        assert result is ser
         tm.assert_series_equal(ser, expected)
 
     @pytest.mark.parametrize("val", [0, 0.5])
@@ -694,7 +701,8 @@ class TestSeriesReplace:
         result = ser.replace(to_replace=1, value=pd.NA)
         tm.assert_series_equal(result, expected)
 
-        ser.replace(to_replace=1, value=pd.NA, inplace=True)
+        result = ser.replace(to_replace=1, value=pd.NA, inplace=True)
+        assert result is ser
         tm.assert_series_equal(ser, expected)
 
     def test_replace_ea_float_with_bool(self):
@@ -708,3 +716,26 @@ class TestSeriesReplace:
         expected = ser.copy()
         result = ser.replace(0.0, True)
         tm.assert_series_equal(result, expected)
+
+    def test_replace_all_NA(self):
+        # GH#60688
+        df = pd.Series([pd.NA, pd.NA])
+        result = df.replace({r"^#": "$"}, regex=True)
+        expected = pd.Series([pd.NA, pd.NA])
+        tm.assert_series_equal(result, expected)
+
+    def test_replace_mixed_types_with_none(self):
+        # GH#29813
+        df = pd.Series([np.nan, 1, "foo"])
+        result = df.replace({np.nan: None})
+        expected = pd.Series([None, 1, "foo"])
+        tm.assert_series_equal(result, expected)
+
+
+@td.skip_if_no("pyarrow")
+def test_replace_from_index():
+    # https://github.com/pandas-dev/pandas/issues/61622
+    idx = pd.Index(["a", "b", "c"], dtype="string[pyarrow]")
+    expected = pd.Series(["d", "b", "c"], dtype="string[pyarrow]")
+    result = pd.Series(idx).replace({"z": "b", "a": "d"})
+    tm.assert_series_equal(result, expected)

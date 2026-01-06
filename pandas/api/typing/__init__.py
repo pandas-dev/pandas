@@ -3,8 +3,10 @@ Public API classes that store intermediate results useful for type-hinting.
 """
 
 from pandas._libs import NaTType
+from pandas._libs.lib import NoDefault
 from pandas._libs.missing import NAType
 
+from pandas.core.col import Expression
 from pandas.core.groupby import (
     DataFrameGroupBy,
     SeriesGroupBy,
@@ -40,10 +42,12 @@ __all__ = [
     "ExpandingGroupby",
     "ExponentialMovingWindow",
     "ExponentialMovingWindowGroupby",
+    "Expression",
     "FrozenList",
     "JsonReader",
     "NAType",
     "NaTType",
+    "NoDefault",
     "PeriodIndexResamplerGroupby",
     "Resampler",
     "Rolling",

@@ -8,6 +8,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas import (
     Categorical,
     DataFrame,
@@ -27,7 +29,7 @@ from pandas.tests.groupby import get_groupby_method_args
         lambda x: x % 2,
         [0, 0, 0, 1, 2, 2, 2, 3, 3],
         np.array([0, 0, 0, 1, 2, 2, 2, 3, 3]),
-        dict(zip(range(9), [0, 0, 0, 1, 2, 2, 2, 3, 3])),
+        dict(zip(range(9), [0, 0, 0, 1, 2, 2, 2, 3, 3], strict=True)),
         Series([1, 1, 1, 1, 1, 2, 2, 2, 2]),
         [Series([1, 1, 1, 1, 1, 2, 2, 2, 2]), Series([3, 3, 4, 4, 4, 4, 4, 3, 3])],
     ]
@@ -84,9 +86,12 @@ def df_with_cat_col():
     return df
 
 
-def _call_and_check(klass, msg, how, gb, groupby_func, args, warn_msg=""):
-    warn_klass = None if warn_msg == "" else FutureWarning
-    with tm.assert_produces_warning(warn_klass, match=warn_msg, check_stacklevel=False):
+def _call_and_check(
+    klass, msg, how, gb, groupby_func, args, warn_category=None, warn_msg=""
+):
+    with tm.assert_produces_warning(
+        warn_category, match=warn_msg, check_stacklevel=False
+    ):
         if klass is None:
             if how == "method":
                 getattr(gb, groupby_func)(*args)
@@ -171,6 +176,7 @@ def test_groupby_raises_string(
         "shift": (None, ""),
         "size": (None, ""),
         "skew": (ValueError, "could not convert string to float"),
+        "kurt": (ValueError, "could not convert string to float"),
         "std": (ValueError, "could not convert string to float"),
         "sum": (None, ""),
         "var": (
@@ -190,10 +196,11 @@ def test_groupby_raises_string(
             "sem",
             "var",
             "skew",
+            "kurt",
             "quantile",
         ]:
             msg = f"dtype 'str' does not support operation '{groupby_func}'"
-            if groupby_func in ["sem", "std", "skew"]:
+            if groupby_func in ["sem", "std", "skew", "kurt"]:
                 # The object-dtype raises ValueError when trying to convert to numeric.
                 klass = TypeError
         elif groupby_func == "pct_change" and df["d"].dtype.storage == "pyarrow":
@@ -211,10 +218,12 @@ def test_groupby_raises_string(
             msg = "Cannot perform reduction 'mean' with string dtype"
 
     if groupby_func == "corrwith":
+        warn_category = Pandas4Warning
         warn_msg = "DataFrameGroupBy.corrwith is deprecated"
     else:
+        warn_category = None
         warn_msg = ""
-    _call_and_check(klass, msg, how, gb, groupby_func, args, warn_msg)
+    _call_and_check(klass, msg, how, gb, groupby_func, args, warn_category, warn_msg)
 
 
 @pytest.mark.parametrize("how", ["agg", "transform"])
@@ -261,10 +270,7 @@ def test_groupby_raises_string_np(
     if using_infer_string:
         if groupby_func_np is np.mean:
             klass = TypeError
-        msg = (
-            f"Cannot perform reduction '{groupby_func_np.__name__}' "
-            "with string dtype"
-        )
+        msg = f"Cannot perform reduction '{groupby_func_np.__name__}' with string dtype"
 
     _call_and_check(klass, msg, how, gb, groupby_func_np, ())
 
@@ -323,16 +329,27 @@ def test_groupby_raises_datetime(
                 ]
             ),
         ),
+        "kurt": (
+            TypeError,
+            "|".join(
+                [
+                    r"dtype datetime64\[ns\] does not support operation",
+                    "datetime64 type does not support operation 'kurt'",
+                ]
+            ),
+        ),
         "std": (None, ""),
         "sum": (TypeError, "datetime64 type does not support operation 'sum"),
         "var": (TypeError, "datetime64 type does not support operation 'var'"),
     }[groupby_func]
 
     if groupby_func == "corrwith":
+        warn_category = Pandas4Warning
         warn_msg = "DataFrameGroupBy.corrwith is deprecated"
     else:
+        warn_category = None
         warn_msg = ""
-    _call_and_check(klass, msg, how, gb, groupby_func, args, warn_msg=warn_msg)
+    _call_and_check(klass, msg, how, gb, groupby_func, args, warn_category, warn_msg)
 
 
 @pytest.mark.parametrize("how", ["agg", "transform"])
@@ -372,7 +389,7 @@ def test_groupby_raises_datetime_np(
     _call_and_check(klass, msg, how, gb, groupby_func_np, ())
 
 
-@pytest.mark.parametrize("func", ["prod", "cumprod", "skew", "var"])
+@pytest.mark.parametrize("func", ["prod", "cumprod", "skew", "kurt", "var"])
 def test_groupby_raises_timedelta(func):
     df = DataFrame(
         {
@@ -502,6 +519,15 @@ def test_groupby_raises_category(
                 ]
             ),
         ),
+        "kurt": (
+            TypeError,
+            "|".join(
+                [
+                    "dtype category does not support operation 'kurt'",
+                    "category type does not support kurt operations",
+                ]
+            ),
+        ),
         "std": (
             TypeError,
             "|".join(
@@ -524,10 +550,12 @@ def test_groupby_raises_category(
     }[groupby_func]
 
     if groupby_func == "corrwith":
+        warn_category = Pandas4Warning
         warn_msg = "DataFrameGroupBy.corrwith is deprecated"
     else:
+        warn_category = None
         warn_msg = ""
-    _call_and_check(klass, msg, how, gb, groupby_func, args, warn_msg)
+    _call_and_check(klass, msg, how, gb, groupby_func, args, warn_category, warn_msg)
 
 
 @pytest.mark.parametrize("how", ["agg", "transform"])
@@ -654,7 +682,7 @@ def test_groupby_raises_category_on_category(
         "nunique": (None, ""),
         "pct_change": (TypeError, "unsupported operand type"),
         "prod": (TypeError, "category type does not support prod operations"),
-        "quantile": (TypeError, ""),
+        "quantile": (TypeError, "No matching signature found"),
         "rank": (None, ""),
         "sem": (
             TypeError,
@@ -673,6 +701,15 @@ def test_groupby_raises_category_on_category(
                 [
                     "category type does not support skew operations",
                     "dtype category does not support operation 'skew'",
+                ]
+            ),
+        ),
+        "kurt": (
+            TypeError,
+            "|".join(
+                [
+                    "category type does not support kurt operations",
+                    "dtype category does not support operation 'kurt'",
                 ]
             ),
         ),
@@ -698,7 +735,9 @@ def test_groupby_raises_category_on_category(
     }[groupby_func]
 
     if groupby_func == "corrwith":
+        warn_category = Pandas4Warning
         warn_msg = "DataFrameGroupBy.corrwith is deprecated"
     else:
+        warn_category = None
         warn_msg = ""
-    _call_and_check(klass, msg, how, gb, groupby_func, args, warn_msg)
+    _call_and_check(klass, msg, how, gb, groupby_func, args, warn_category, warn_msg)

@@ -5,7 +5,7 @@
 =======
 GroupBy
 =======
-.. currentmodule:: pandas.core.groupby
+.. currentmodule:: pandas.api.typing
 
 :class:`pandas.api.typing.DataFrameGroupBy` and :class:`pandas.api.typing.SeriesGroupBy`
 instances are returned by groupby calls :func:`pandas.DataFrame.groupby` and
@@ -40,7 +40,7 @@ Function application helper
 
    NamedAgg
 
-.. currentmodule:: pandas.core.groupby
+.. currentmodule:: pandas.api.typing
 
 Function application
 --------------------
@@ -79,6 +79,8 @@ Function application
    DataFrameGroupBy.cumsum
    DataFrameGroupBy.describe
    DataFrameGroupBy.diff
+   DataFrameGroupBy.ewm
+   DataFrameGroupBy.expanding
    DataFrameGroupBy.ffill
    DataFrameGroupBy.first
    DataFrameGroupBy.head
@@ -104,6 +106,7 @@ Function application
    DataFrameGroupBy.shift
    DataFrameGroupBy.size
    DataFrameGroupBy.skew
+   DataFrameGroupBy.kurt
    DataFrameGroupBy.std
    DataFrameGroupBy.sum
    DataFrameGroupBy.var
@@ -129,6 +132,8 @@ Function application
    SeriesGroupBy.cumsum
    SeriesGroupBy.describe
    SeriesGroupBy.diff
+   SeriesGroupBy.ewm
+   SeriesGroupBy.expanding
    SeriesGroupBy.ffill
    SeriesGroupBy.first
    SeriesGroupBy.head
@@ -159,6 +164,7 @@ Function application
    SeriesGroupBy.shift
    SeriesGroupBy.size
    SeriesGroupBy.skew
+   SeriesGroupBy.kurt
    SeriesGroupBy.std
    SeriesGroupBy.sum
    SeriesGroupBy.var

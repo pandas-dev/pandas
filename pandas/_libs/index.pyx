@@ -58,7 +58,7 @@ cdef bint is_definitely_invalid_key(object val):
 
 cdef ndarray _get_bool_indexer(ndarray values, object val, ndarray mask = None):
     """
-    Return a ndarray[bool] of locations where val matches self.values.
+    Return an ndarray[bool] of locations where val matches self.values.
 
     If val is not NA, this is equivalent to `self.values == val`
     """
@@ -321,6 +321,9 @@ cdef class IndexEngine:
             if is_strict_monotonic:
                 self.unique = 1
                 self.need_unique_check = 0
+            elif self.monotonic_inc == 1 or self.monotonic_dec == 1:
+                self.unique = 0
+                self.need_unique_check = 0
 
     cdef _call_monotonic(self, values):
         return algos.is_monotonic(values, timelike=False)
@@ -561,23 +564,15 @@ cdef class StringObjectEngine(ObjectEngine):
 
     cdef:
         object na_value
-        bint uses_na
 
     def __init__(self, ndarray values, na_value):
         super().__init__(values)
         self.na_value = na_value
-        self.uses_na = na_value is C_NA
-
-    cdef bint _checknull(self, object val):
-        if self.uses_na:
-            return val is C_NA
-        else:
-            return util.is_nan(val)
 
     cdef _check_type(self, object val):
         if isinstance(val, str):
             return val
-        elif self._checknull(val):
+        elif checknull(val):
             return self.na_value
         else:
             raise KeyError(val)
@@ -811,7 +806,7 @@ cdef class BaseMultiIndexCodesEngine:
         int_keys : 1-dimensional array of dtype uint64 or object
             Integers representing one combination each
         """
-        level_codes = list(target._recode_for_new_levels(self.levels))
+        level_codes = list(target._recode_for_new_levels(self.levels, copy=True))
         for i, codes in enumerate(level_codes):
             if self.levels[i].hasnans:
                 na_index = self.levels[i].isna().nonzero()[0][0]
@@ -846,7 +841,7 @@ cdef class BaseMultiIndexCodesEngine:
             raise KeyError(key)
         try:
             indices = [1 if checknull(v) else lev.get_loc(v) + multiindex_nulls_shift
-                       for lev, v in zip(self.levels, key)]
+                       for lev, v in zip(self.levels, key, strict=True)]
         except KeyError:
             raise KeyError(key)
 

@@ -16,6 +16,8 @@ from pandas._libs.tslibs.ccalendar import (
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 from pandas._libs.tslibs.parsing import DateParseError
 from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
+from pandas.compat import PY314
+from pandas.errors import Pandas4Warning
 
 from pandas import (
     NaT,
@@ -109,7 +111,7 @@ class TestPeriodConstruction:
 
         i1 = Period("1982", freq="min")
         msg = "'MIN' is deprecated and will be removed in a future version."
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             i2 = Period("1982", freq="MIN")
         assert i1 == i2
 
@@ -118,7 +120,7 @@ class TestPeriodConstruction:
         assert i1 == i2
 
         msg = "'d' is deprecated and will be removed in a future version."
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             i3 = Period(year=2005, month=3, day=1, freq="d")
         assert i1 == i3
 
@@ -167,9 +169,27 @@ class TestPeriodConstruction:
         rt2 = per2.to_timestamp()
         assert rt2.asm8 == dt64
 
+    def test_construction_from_min_timestamp(self):
+        # GH-63278
+        ts = Timestamp(Timestamp.min.value, unit="us")
+        per = Period(ts, freq="us")
+
+        # pandas.errors.OutOfBoundsDatetime: Out of bounds nanosecond timestamp:
+        # -290308-12-21 19:59:05
+        # rt = per.to_timestamp()
+
+        assert per.year == ts.year
+        assert per.month == ts.month
+        assert per.day == ts.day
+        assert per.hour == ts.hour
+        assert per.minute == ts.minute
+        assert per.second == ts.second
+
     def test_construction_bday(self):
         # Biz day construction, roll forward if non-weekday
-        with tm.assert_produces_warning(FutureWarning, match=bday_msg):
+        with tm.assert_produces_warning(
+            Pandas4Warning, match="'b' is deprecated", raise_on_extra_warnings=False
+        ):
             i1 = Period("3/10/12", freq="B")
             i2 = Period("3/10/12", freq="D")
             assert i1 == i2.asfreq("B")
@@ -344,7 +364,10 @@ class TestPeriodConstruction:
         msg = '^Given date string "-2000" not likely a datetime$'
         with pytest.raises(ValueError, match=msg):
             Period("-2000", "Y")
-        msg = "day is out of range for month"
+        if PY314:
+            msg = "day 0 must be in range 1..31 for month 1 in year 1: 0"
+        else:
+            msg = "day is out of range for month"
         with pytest.raises(DateParseError, match=msg):
             Period("0", "Y")
         msg = "Unknown datetime string format, unable to parse"
@@ -628,7 +651,9 @@ class TestPeriodConstruction:
             f"'{freq_depr[1:]}' is deprecated and will be removed in a future version."
         )
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(
+            Pandas4Warning, match=msg, raise_on_extra_warnings=False
+        ):
             result = Period("2016-03-01 09:00", freq=freq_depr)
 
         expected = Period("2016-03-01 09:00", freq=freq)
@@ -636,9 +661,9 @@ class TestPeriodConstruction:
 
 
 class TestPeriodMethods:
-    def test_round_trip(self):
+    def test_round_trip(self, tmp_path):
         p = Period("2000Q1")
-        new_p = tm.round_trip_pickle(p)
+        new_p = tm.round_trip_pickle(p, tmp_path)
         assert new_p == p
 
     def test_hash(self):
@@ -991,7 +1016,6 @@ class TestPeriodProperties:
         qedec_date = Period(freq="Q-DEC", year=2007, quarter=1)
         qejan_date = Period(freq="Q-JAN", year=2007, quarter=1)
         qejun_date = Period(freq="Q-JUN", year=2007, quarter=1)
-        #
         for x in range(3):
             for qd in (qedec_date, qejan_date, qejun_date):
                 assert (qd + x).qyear == 2007
@@ -1016,7 +1040,6 @@ class TestPeriodProperties:
     def test_properties_weekly(self):
         # Test properties on Periods with daily frequency.
         w_date = Period(freq="W", year=2007, month=1, day=7)
-        #
         assert w_date.year == 2007
         assert w_date.quarter == 1
         assert w_date.month == 1
@@ -1046,7 +1069,6 @@ class TestPeriodProperties:
         # Test properties on Periods with daily frequency.
         with tm.assert_produces_warning(FutureWarning, match=bday_msg):
             b_date = Period(freq="B", year=2007, month=1, day=1)
-        #
         assert b_date.year == 2007
         assert b_date.quarter == 1
         assert b_date.month == 1
@@ -1089,7 +1111,6 @@ class TestPeriodProperties:
     def test_properties_minutely(self):
         # Test properties on Periods with minutely frequency.
         t_date = Period(freq="Min", year=2007, month=1, day=1, hour=0, minute=0)
-        #
         assert t_date.quarter == 1
         assert t_date.month == 1
         assert t_date.day == 1
@@ -1108,7 +1129,6 @@ class TestPeriodProperties:
         s_date = Period(
             freq="Min", year=2007, month=1, day=1, hour=0, minute=0, second=0
         )
-        #
         assert s_date.year == 2007
         assert s_date.quarter == 1
         assert s_date.month == 1

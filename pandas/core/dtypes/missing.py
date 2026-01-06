@@ -150,7 +150,7 @@ def isna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
     >>> index = pd.DatetimeIndex(["2017-07-05", "2017-07-06", None, "2017-07-08"])
     >>> index
     DatetimeIndex(['2017-07-05', '2017-07-06', 'NaT', '2017-07-08'],
-                  dtype='datetime64[s]', freq=None)
+                  dtype='datetime64[us]', freq=None)
     >>> pd.isna(index)
     array([False, False,  True, False])
 
@@ -158,9 +158,9 @@ def isna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
 
     >>> df = pd.DataFrame([["ant", "bee", "cat"], ["dog", None, "fly"]])
     >>> df
-         0     1    2
-    0  ant   bee  cat
-    1  dog  None  fly
+         0    1    2
+    0  ant  bee  cat
+    1  dog  NaN  fly
     >>> pd.isna(df)
            0      1      2
     0  False  False  False
@@ -263,13 +263,12 @@ def _isna_string_dtype(values: np.ndarray) -> npt.NDArray[np.bool_]:
 
     if dtype.kind in ("S", "U"):
         result = np.zeros(values.shape, dtype=bool)
+    elif values.ndim in {1, 2}:
+        result = libmissing.isnaobj(values)
     else:
-        if values.ndim in {1, 2}:
-            result = libmissing.isnaobj(values)
-        else:
-            # 0-D, reached via e.g. mask_missing
-            result = libmissing.isnaobj(values.ravel())
-            result = result.reshape(values.shape)
+        # 0-D, reached via e.g. mask_missing
+        result = libmissing.isnaobj(values.ravel())
+        result = result.reshape(values.shape)
 
     return result
 
@@ -365,7 +364,7 @@ def notna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
     >>> index = pd.DatetimeIndex(["2017-07-05", "2017-07-06", None, "2017-07-08"])
     >>> index
     DatetimeIndex(['2017-07-05', '2017-07-06', 'NaT', '2017-07-08'],
-                  dtype='datetime64[s]', freq=None)
+                  dtype='datetime64[us]', freq=None)
     >>> pd.notna(index)
     array([ True,  True, False,  True])
 
@@ -373,9 +372,9 @@ def notna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
 
     >>> df = pd.DataFrame([["ant", "bee", "cat"], ["dog", None, "fly"]])
     >>> df
-         0     1    2
-    0  ant   bee  cat
-    1  dog  None  fly
+         0    1    2
+    0  ant  bee  cat
+    1  dog  NaN  fly
     >>> pd.notna(df)
           0      1     2
     0  True   True  True
@@ -428,9 +427,9 @@ def array_equivalent(
     Examples
     --------
     >>> array_equivalent(np.array([1, 2, np.nan]), np.array([1, 2, np.nan]))
-    True
+    np.True_
     >>> array_equivalent(np.array([1, np.nan, 2]), np.array([1, 2, np.nan]))
-    False
+    np.False_
     """
     left, right = np.asarray(left), np.asarray(right)
 
@@ -514,7 +513,7 @@ def _array_equivalent_object(
         left_remaining = left
         right_remaining = right
 
-    for left_value, right_value in zip(left_remaining, right_remaining):
+    for left_value, right_value in zip(left_remaining, right_remaining, strict=True):
         if left_value is NaT and right_value is not NaT:
             return False
 
@@ -593,7 +592,7 @@ def construct_1d_array_from_inferred_fill_value(
 
 def maybe_fill(arr: np.ndarray) -> np.ndarray:
     """
-    Fill numpy.ndarray with NaN, unless we have a integer or boolean dtype.
+    Fill numpy.ndarray with NaN, unless we have an integer or boolean dtype.
     """
     if arr.dtype.kind not in "iub":
         arr.fill(np.nan)
@@ -626,7 +625,7 @@ def na_value_for_dtype(dtype: DtypeObj, compat: bool = True):
     >>> na_value_for_dtype(np.dtype("bool"))
     False
     >>> na_value_for_dtype(np.dtype("datetime64[ns]"))
-    numpy.datetime64('NaT')
+    np.datetime64('NaT')
     """
 
     if isinstance(dtype, ExtensionDtype):

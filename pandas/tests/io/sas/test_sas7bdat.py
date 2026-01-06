@@ -7,8 +7,6 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas.compat._constants import (
     IS64,
     WASM,
@@ -19,10 +17,6 @@ import pandas as pd
 import pandas._testing as tm
 
 from pandas.io.sas.sas7bdat import SAS7BDATReader
-
-pytestmark = pytest.mark.xfail(
-    using_string_dtype(), reason="TODO(infer_string)", strict=False
-)
 
 
 @pytest.fixture
@@ -246,11 +240,13 @@ def test_zero_variables(datapath):
         pd.read_sas(fname)
 
 
-def test_zero_rows(datapath):
+@pytest.mark.parametrize("encoding", [None, "utf8"])
+def test_zero_rows(datapath, encoding):
     # GH 18198
     fname = datapath("io", "sas", "data", "zero_rows.sas7bdat")
-    result = pd.read_sas(fname)
-    expected = pd.DataFrame([{"char_field": "a", "num_field": 1.0}]).iloc[:0]
+    result = pd.read_sas(fname, encoding=encoding)
+    str_value = b"a" if encoding is None else "a"
+    expected = pd.DataFrame([{"char_field": str_value, "num_field": 1.0}]).iloc[:0]
     tm.assert_frame_equal(result, expected)
 
 
@@ -409,7 +405,7 @@ def test_0x40_control_byte(datapath):
     fname = datapath("io", "sas", "data", "0x40controlbyte.sas7bdat")
     df = pd.read_sas(fname, encoding="ascii")
     fname = datapath("io", "sas", "data", "0x40controlbyte.csv")
-    df0 = pd.read_csv(fname, dtype="object")
+    df0 = pd.read_csv(fname, dtype="str")
     tm.assert_frame_equal(df, df0)
 
 

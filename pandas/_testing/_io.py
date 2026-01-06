@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import gzip
 import io
-import pathlib
 import tarfile
 from typing import (
     TYPE_CHECKING,
@@ -14,7 +13,6 @@ import zipfile
 from pandas.compat._optional import import_optional_dependency
 
 import pandas as pd
-from pandas._testing.contexts import ensure_clean
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -34,7 +32,7 @@ if TYPE_CHECKING:
 
 
 def round_trip_pickle(
-    obj: Any, path: FilePath | ReadPickleBuffer | None = None
+    obj: Any, tmp_path, path: FilePath | ReadPickleBuffer | None = None
 ) -> DataFrame | Series:
     """
     Pickle an object and then read it again.
@@ -54,12 +52,12 @@ def round_trip_pickle(
     _path = path
     if _path is None:
         _path = f"__{uuid.uuid4()}__.pickle"
-    with ensure_clean(_path) as temp_path:
-        pd.to_pickle(obj, temp_path)
-        return pd.read_pickle(temp_path)
+    temp_path = tmp_path / _path
+    pd.to_pickle(obj, temp_path)
+    return pd.read_pickle(temp_path)
 
 
-def round_trip_pathlib(writer, reader, path: str | None = None):
+def round_trip_pathlib(writer, reader, tmp_path, path: str | None = None):
     """
     Write an object to file specified by a pathlib.Path and read it back
 
@@ -77,16 +75,15 @@ def round_trip_pathlib(writer, reader, path: str | None = None):
     pandas object
         The original object that was serialized and then re-read.
     """
-    Path = pathlib.Path
     if path is None:
         path = "___pathlib___"
-    with ensure_clean(path) as path:
-        writer(Path(path))  # type: ignore[arg-type]
-        obj = reader(Path(path))  # type: ignore[arg-type]
+    path = tmp_path / path
+    writer(path)
+    obj = reader(path)
     return obj
 
 
-def write_to_compressed(compression, path, data, dest: str = "test") -> None:
+def write_to_compressed(compression, path: str, data, dest: str = "test") -> None:
     """
     Write data to a compressed file.
 
@@ -138,5 +135,9 @@ def write_to_compressed(compression, path, data, dest: str = "test") -> None:
     else:
         raise ValueError(f"Unrecognized compression type: {compression}")
 
-    with compress_method(path, mode=mode) as f:
+    # error: No overload variant of "ZipFile" matches argument types "str", "str"
+    # error: No overload variant of "BZ2File" matches argument types "str", "str"
+    # error: Argument "mode" to "TarFile" has incompatible type "str";
+    #  expected "Literal['r', 'a', 'w', 'x']
+    with compress_method(path, mode=mode) as f:  # type: ignore[call-overload, arg-type]
         getattr(f, method)(*args)

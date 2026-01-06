@@ -30,6 +30,7 @@ from pandas._libs.tslibs.timezones import (
     tz_compare,
 )
 from pandas.compat import IS64
+from pandas.errors import Pandas4Warning
 
 from pandas import (
     NaT,
@@ -239,6 +240,7 @@ class TestTimestampProperties:
         dow = ts.weekday()
         assert dow == expected
 
+    @pytest.mark.slow
     @given(
         ts=st.datetimes(),
         sign=st.sampled_from(["-", ""]),
@@ -268,7 +270,7 @@ class TestTimestamp:
 
     def test_default_to_stdlib_utc(self):
         msg = "Timestamp.utcnow is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             assert Timestamp.utcnow().tz is timezone.utc
         assert Timestamp.now("UTC").tz is timezone.utc
         assert Timestamp("2016-01-01", tz="UTC").tz is timezone.utc
@@ -313,13 +315,13 @@ class TestTimestamp:
         compare(Timestamp.now("UTC"), datetime.now(timezone.utc))
         compare(Timestamp.now("UTC"), datetime.now(tzutc()))
         msg = "Timestamp.utcnow is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             compare(Timestamp.utcnow(), datetime.now(timezone.utc))
         compare(Timestamp.today(), datetime.today())
         current_time = calendar.timegm(datetime.now().utctimetuple())
 
         msg = "Timestamp.utcfromtimestamp is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             ts_utc = Timestamp.utcfromtimestamp(current_time)
         assert ts_utc.timestamp() == current_time
         compare(
@@ -365,11 +367,11 @@ class TestTimestamp:
         # further test accessors
         base = Timestamp("20140101 00:00:00").as_unit("ns")
 
-        result = Timestamp(base._value + Timedelta("5ms")._value)
+        result = Timestamp(base._value + Timedelta("5ms").value)
         assert result == Timestamp(f"{base}.005000")
         assert result.microsecond == 5000
 
-        result = Timestamp(base._value + Timedelta("5us")._value)
+        result = Timestamp(base._value + Timedelta("5us").value)
         assert result == Timestamp(f"{base}.000005")
         assert result.microsecond == 5
 
@@ -378,11 +380,11 @@ class TestTimestamp:
         assert result.nanosecond == 5
         assert result.microsecond == 0
 
-        result = Timestamp(base._value + Timedelta("6ms 5us")._value)
+        result = Timestamp(base._value + Timedelta("6ms 5us").value)
         assert result == Timestamp(f"{base}.006005")
         assert result.microsecond == 5 + 6 * 1000
 
-        result = Timestamp(base._value + Timedelta("200ms 5us")._value)
+        result = Timestamp(base._value + Timedelta("200ms 5us").value)
         assert result == Timestamp(f"{base}.200005")
         assert result.microsecond == 5 + 200 * 1000
 
@@ -655,11 +657,11 @@ class TestNonNano:
 
         assert other.asm8 < ts
 
-    def test_pickle(self, ts, tz_aware_fixture):
+    def test_pickle(self, ts, tz_aware_fixture, tmp_path):
         tz = tz_aware_fixture
         tz = maybe_get_tz(tz)
         ts = Timestamp._from_value_and_reso(ts._value, ts._creso, tz)
-        rt = tm.round_trip_pickle(ts)
+        rt = tm.round_trip_pickle(ts, tmp_path)
         assert rt._creso == ts._creso
         assert rt == ts
 
