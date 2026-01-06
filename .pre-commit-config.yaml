@@ -96,7 +96,7 @@ repos:
     hooks:
     - id: clang-format
       files: ^pandas/_libs/src|^pandas/_libs/include
-      args: [-i]
+      args: ['-i', '--style', '{IndentPPDirectives: AfterHash}']
       types_or: [c, c++]
 -   repo: https://github.com/trim21/pre-commit-mirror-meson
     rev: v1.10.0
