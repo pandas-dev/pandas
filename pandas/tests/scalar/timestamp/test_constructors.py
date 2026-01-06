@@ -52,7 +52,7 @@ class TestTimestampConstructorUnitKeyword:
         # GH#50870  make sure we get an OutOfBoundsDatetime instead of OverflowError
         val = typ(150000000000000)
 
-        msg = f"cannot convert input {val} with the unit 'D'"
+        msg = f"cannot convert input {int(val)} with the unit 'D'"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             Timestamp(val, unit="D")
 
