@@ -70,7 +70,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
     "$BASE_DIR"/scripts/validate_docstrings.py \
         --format=actions \
         -i ES01 `# For now it is ok if docstrings are missing the extended summary` \
-        -i "pandas.DataFrame.from_arrow SA01,EX01" \
         -i "pandas.Series.from_arrow SA01,EX01" \
         -i "pandas.Series.dt PR01" `# Accessors are implemented as classes, but we do not document the Parameters section` \
         -i "pandas.Period.freq GL08" \
@@ -80,7 +79,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.api.extensions.ExtensionArray.value_counts EX01,RT03,SA01" \
         -i "pandas.api.typing.Resampler.quantile PR01,PR07" \
         -i "pandas.StringDtype.storage SA01" \
-        -i "pandas.StringDtype.na_value SA01" \
         -i "pandas.tseries.offsets.BDay PR02,SA01" \
         -i "pandas.tseries.offsets.BHalfYearBegin.is_on_offset GL08" \
         -i "pandas.tseries.offsets.BHalfYearBegin.n GL08" \
@@ -276,8 +274,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.YearEnd.is_on_offset GL08" \
         -i "pandas.tseries.offsets.YearEnd.month GL08" \
         -i "pandas.tseries.offsets.YearEnd.n GL08" \
-        -i "pandas.tseries.offsets.YearEnd.normalize GL08" \
-        -i "pandas.util.hash_pandas_object PR07,SA01" # There should be no backslash in the final line, please keep this comment in the last ignored function
+        -i "pandas.tseries.offsets.YearEnd.normalize GL08" # There should be no backslash in the final line, please keep this comment in the last ignored function
 
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 

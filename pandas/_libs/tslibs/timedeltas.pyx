@@ -490,12 +490,28 @@ def array_to_timedelta64(
                         creso = state.creso
 
             elif is_float_object(item):
-                ival = _numeric_to_td64ns(item, parsed_unit, NPY_FR_ns)
+                int_item = int(item)
+                if item == int_item:
+                    # round float -> treat this like an int, giving
+                    #  int_reso where possible
+                    item = int_item
 
-                item_reso = NPY_FR_ns
-                state.update_creso(item_reso)
-                if infer_reso:
-                    creso = state.creso
+                    if item == NPY_NAT:
+                        ival = NPY_NAT
+                    else:
+                        ival = _numeric_to_td64ns(item, parsed_unit, int_reso)
+                        item_reso = int_reso
+
+                        state.update_creso(item_reso)
+                        if infer_reso:
+                            creso = state.creso
+                else:
+                    ival = _numeric_to_td64ns(item, parsed_unit, NPY_FR_ns)
+
+                    item_reso = NPY_FR_ns
+                    state.update_creso(item_reso)
+                    if infer_reso:
+                        creso = state.creso
 
             else:
                 raise TypeError(f"Invalid type for timedelta scalar: {type(item)}")
@@ -2260,6 +2276,11 @@ class Timedelta(_Timedelta):
                 value = _numeric_to_td64ns(value, unit)
 
         elif is_float_object(value):
+            int_item = int(value)
+            if value == int_item:
+                # round float -> treat like a int, try to preserve unit
+                return cls(int_item, unit=unit)
+
             # unit=None is de-facto 'ns'
             unit = parse_timedelta_unit(unit)
             value = _numeric_to_td64ns(value, unit)
