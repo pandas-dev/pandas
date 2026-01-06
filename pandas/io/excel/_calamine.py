@@ -13,9 +13,6 @@ from typing import (
 )
 
 from pandas.compat._optional import import_optional_dependency
-from pandas.util._decorators import doc
-
-from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.excel._base import BaseExcelReader
 
@@ -37,7 +34,6 @@ _CellValue: TypeAlias = int | float | str | bool | time | date | datetime | time
 
 
 class CalamineReader(BaseExcelReader["CalamineWorkbook"]):
-    @doc(storage_options=_shared_docs["storage_options"])
     def __init__(
         self,
         filepath_or_buffer: FilePath | ReadBuffer[bytes],
@@ -51,7 +47,15 @@ class CalamineReader(BaseExcelReader["CalamineWorkbook"]):
         ----------
         filepath_or_buffer : str, path to be parsed or
             an open readable stream.
-        {storage_options}
+        storage_options : dict, optional
+            Extra options that make sense for a particular storage connection, e.g.
+            host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
+            are forwarded to ``urllib.request.Request`` as header options. For other
+            URLs (e.g. starting with "s3://", and "gcs://") the key-value pairs are
+            forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more
+            details, and for more examples on storage options refer `here
+            <https://pandas.pydata.org/docs/user_guide/io.html?
+            highlight=storage_options#reading-writing-remote-files>`_.
         engine_kwargs : dict, optional
             Arbitrary keyword arguments passed to excel engine.
         """
