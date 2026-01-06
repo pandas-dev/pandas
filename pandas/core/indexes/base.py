@@ -2116,11 +2116,10 @@ class Index(IndexOpsMixin, PandasObject):
         self,
         to_replace=None,
         value=lib.no_default,
-        limit=None,
         regex=False,
     ):
         result = self.to_series().replace(
-            to_replace=to_replace, value=value, limit=limit, regex=regex
+            to_replace=to_replace, value=value, regex=regex
         )
         return Index(result)
 
