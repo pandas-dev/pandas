@@ -659,9 +659,6 @@ def read_json(
         custom compression dictionary:
         ``compression={'method': 'zstd', 'dict_data': my_compression_dict}``.
 
-        .. versionadded:: 1.5.0
-            Added support for `.tar` files.
-
     nrows : int, optional
         The number of lines from the line-delimited jsonfile that has to be read.
         This can only be passed if `lines=True`.
