@@ -2112,6 +2112,18 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self.set_names([name], inplace=inplace)
 
+    def replace(
+        self,
+        to_replace=None,
+        value=lib.no_default,
+        limit=None,
+        regex=False,
+    ):
+        result = self.to_series().replace(
+            to_replace=to_replace, value=value, limit=limit, regex=regex
+        )
+        return Index(result)
+
     # --------------------------------------------------------------------
     # Level-Centric Methods
 
