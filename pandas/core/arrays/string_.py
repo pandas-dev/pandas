@@ -442,9 +442,9 @@ class BaseStringArray(ExtensionArray):
 
         Examples
         ----------
-        >>> arr = pd.array([1, 2, 3])
+        >>> arr = pd.array(["a", "b", "c"])
         >>> arr.tolist()
-        [1, 2, 3]
+        ['a', 'b', 'c']
         """
         if self.ndim > 1:
             return [x.tolist() for x in self]
