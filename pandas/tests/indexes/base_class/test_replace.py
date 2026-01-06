@@ -56,3 +56,9 @@ class TestReplace:
 
         tm.assert_index_equal(result, expected)
         assert isinstance(result, DatetimeIndex)
+
+    def test_index_replace_preserves_subclass(self):
+        idx = DatetimeIndex(["2020-01-01", "2020-01-02"])
+        result = idx.replace("2020", "2021")
+
+        assert isinstance(result, DatetimeIndex)

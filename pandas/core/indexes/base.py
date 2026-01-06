@@ -2116,12 +2116,13 @@ class Index(IndexOpsMixin, PandasObject):
         self,
         to_replace=None,
         value=lib.no_default,
+        *,
         regex=False,
     ) -> Self:
         result = self.to_series().replace(
             to_replace=to_replace, value=value, regex=regex
         )
-        return Index(result)
+        return self._constructor(result)
 
     # --------------------------------------------------------------------
     # Level-Centric Methods

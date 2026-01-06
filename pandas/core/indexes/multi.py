@@ -3957,6 +3957,7 @@ class MultiIndex(Index):
         self,
         to_replace=None,
         value=lib.no_default,
+        *,
         regex=False,
     ) -> Self:
         names = self.names
