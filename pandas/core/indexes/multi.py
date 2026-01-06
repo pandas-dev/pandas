@@ -3953,6 +3953,20 @@ class MultiIndex(Index):
         ind = np.lexsort(keys)
         return indexer[ind]
 
+    def replace(
+        self,
+        to_replace=None,
+        value=lib.no_default,
+        regex=False,
+    ) -> Self:
+        names = self.names
+
+        result = self.to_frame().replace(
+            to_replace=to_replace, value=value, regex=regex
+        )
+
+        return self.from_frame(result, names=names)
+
     def truncate(self, before=None, after=None) -> MultiIndex:
         """
         Slice index between two labels / tuples, return new MultiIndex.

@@ -2117,7 +2117,7 @@ class Index(IndexOpsMixin, PandasObject):
         to_replace=None,
         value=lib.no_default,
         regex=False,
-    ):
+    ) -> Self:
         result = self.to_series().replace(
             to_replace=to_replace, value=value, regex=regex
         )
