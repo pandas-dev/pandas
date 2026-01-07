@@ -369,22 +369,14 @@ class ArrowStringArrayMixin:
         """
         Partition each string around the first occurrence of sep.
 
-        Uses PyArrow compute functions for optimized performance when expand=True.
+        Optimized implementation for expand=True using PyArrow compute functions.
         For expand=False, falls back to element-wise processing.
         """
-        if expand:
-            return self._str_partition_expand(sep)
-        else:
-            # Fall back to element-wise for expand=False (returns tuples)
-            # This delegates to the default implementation which uses _apply_elementwise
+        if not expand:
             predicate = lambda val: val.partition(sep)
             result = self._apply_elementwise(predicate)
-            return np.asarray(result[0], dtype=object)
+            return self._from_pyarrow_array(pa.chunked_array(result))
 
-    def _str_partition_expand(self, sep: str):
-        """
-        Optimized partition implementation for expand=True using PyArrow compute.
-        """
         pa_array = self._pa_array
         str_type = pa_array.type
 
