@@ -518,3 +518,12 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         """
         mapped = self._values.map(mapper, na_action=na_action)
         return Index(mapped, name=self.name, copy=False)
+
+    def replace(
+        self,
+        to_replace=None,
+        value=None,
+        *,
+        regex=False,
+    ) -> CategoricalIndex:
+        raise NotImplementedError("CategoricalIndex.replace is not supported")
