@@ -932,7 +932,9 @@ class Index(IndexOpsMixin, PandasObject):
                     except (AttributeError, TypeError):
                         pass
 
-            raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
+            raise AttributeError(
+                f"'{type(self).__name__}' object has no attribute '{name}'"
+            )
 
     # --------------------------------------------------------------------
     # Array-Like Methods

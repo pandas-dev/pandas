@@ -50,6 +50,10 @@ def test_pyarrow_index_groupby_functionality():
     expected_index = pd.Index([1, 2])
     expected_data = [30, 30] 
     
-    tm.assert_numpy_array_equal(np.asarray(result.index), np.asarray(expected_index), check_dtype=False)
+    tm.assert_numpy_array_equal(
+    np.asarray(result.index),
+    np.asarray(expected_index),
+    check_dtype=False,
+    )
     
     assert result.tolist() == expected_data
