@@ -2119,6 +2119,60 @@ class Index(IndexOpsMixin, PandasObject):
         *,
         regex=False,
     ) -> Index:
+        """
+        Replace values in the Index.
+
+        Return a new Index with values replaced according to ``to_replace`` and
+        ``value``. This method mirrors :meth:`Series.replace` but preserves the
+        immutability and type of the Index.
+
+        Parameters
+        ----------
+        to_replace : scalar, list-like, dict, or None
+            How to find the values to replace.
+
+            * scalar: values equal to ``to_replace`` will be replaced
+            * list-like: values in the list will be replaced
+            * dict: keys are replaced by values
+            * None: only valid if ``value`` is dict-like
+
+        value : scalar, dict, list-like, or lib.no_default
+            Replacement value(s). If ``to_replace`` is dict-like, ``value`` must
+            be ``lib.no_default``.
+
+        regex : bool, default False
+            Whether to interpret ``to_replace`` as a regular expression.
+
+        Returns
+        -------
+        Index
+            A new Index with replaced values.
+
+        See Also
+        --------
+        Series.replace : Replace values in a Series.
+        Index.map : Map values using a function or mapping.
+        Index.where : Replace values conditionally.
+
+        Notes
+        -----
+        This method converts the Index to a Series internally and applies
+        :meth:`Series.replace`, then reconstructs an Index from the result.
+        The original Index is not modified.
+
+        Examples
+        --------
+        >>> idx = pd.Index(["a", "b", "c", "b"])
+        >>> idx.replace("b", "x")
+        Index(['a', 'x', 'c', 'x'], dtype='str')
+
+        >>> idx.replace({"a": "foo", "c": "bar"})
+        Index(['foo', 'b', 'bar', 'b'], dtype='str')
+
+        >>> idx = pd.Index(["cat", "dog", "cow"])
+        >>> idx.replace("c.*", "animal", regex=True)
+        Index(['animal', 'dog', 'animal'], dtype='str')
+        """
         result = self.to_series().replace(
             to_replace=to_replace, value=value, regex=regex
         )
