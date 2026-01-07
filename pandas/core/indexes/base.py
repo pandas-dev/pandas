@@ -221,6 +221,16 @@ __all__ = ["Index"]
 
 _unsortable_types = frozenset(("mixed", "mixed-integer"))
 
+_ARROW_DATETIME_FIELDS = frozenset([
+    "year", "month", "day", "hour", "minute", "second",
+    "microsecond", "nanosecond", "date", "time", "timetz",
+    "dayofyear", "day_name", "month_name", "is_leap_year",
+    "is_month_start", "is_month_end", "is_quarter_start",
+    "is_quarter_end", "is_year_start", "is_year_end",
+    "quarter", "week", "weekofyear", "days_in_month",
+    "daysinmonth"
+])
+
 _index_doc_kwargs: dict[str, str] = {
     "klass": "Index",
     "inplace": "",
@@ -902,6 +912,27 @@ class Index(IndexOpsMixin, PandasObject):
             for c in self.unique(level=0)[: get_option("display.max_dir_items")]
             if isinstance(c, str) and c.isidentifier()
         }
+
+    def __getattr__(self, name: str):
+            """
+            Override to support datetime properties on PyArrow-backed Indexes.
+            """
+            if name in _ARROW_DATETIME_FIELDS:
+                if hasattr(self.dtype, "pyarrow_dtype") and self.dtype.kind == "M":
+                    try:
+                        from pandas import Series
+                    
+                        ser = Series(self)
+                        result = getattr(ser.dt, name)
+                    
+                        if hasattr(result, "values"):
+                            result = result.values
+                    
+                        return Index(result, name=self.name)
+                    except (AttributeError, TypeError):
+                        pass
+
+            raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
 
     # --------------------------------------------------------------------
     # Array-Like Methods
