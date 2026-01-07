@@ -377,6 +377,8 @@ class ArrowStringArrayMixin:
             result = self._apply_elementwise(predicate)
             return self._from_pyarrow_array(pa.chunked_array(result))
 
+        from pandas.core.arrays.arrow import ArrowExtensionArray
+
         pa_array = self._pa_array
         str_type = pa_array.type
 
@@ -390,7 +392,7 @@ class ArrowStringArrayMixin:
         # Extract before part (always first element)
         before = pc.list_element(split, 0)
 
-        # Extract after part (join remaining elements)
+        # Extract after part (join remaining elements after separator)
         after_list = pc.list_slice(split, 1)
         if pa.types.is_large_string(str_type):
             after_list = pc.cast(after_list, pa.list_(pa.string()))
@@ -403,18 +405,10 @@ class ArrowStringArrayMixin:
         empty_scalar = pa.scalar("", type=str_type)
         sep_col = pc.if_else(found, sep_scalar, empty_scalar)
 
-        # Combine chunks for array operations
-        before_arr = (
-            before.combine_chunks() if isinstance(before, pa.ChunkedArray) else before
-        )
-        sep_arr = (
-            sep_col.combine_chunks()
-            if isinstance(sep_col, pa.ChunkedArray)
-            else sep_col
-        )
-        after_arr = (
-            after.combine_chunks() if isinstance(after, pa.ChunkedArray) else after
-        )
+        # Combine into flat array then interleave
+        before_arr = before.combine_chunks()
+        sep_arr = sep_col.combine_chunks()
+        after_arr = after.combine_chunks()
 
         n = len(before_arr)
 
@@ -433,8 +427,5 @@ class ArrowStringArrayMixin:
         offsets = pa.arange(0, n * 3 + 1, 3)
         result = pa.chunked_array([pa.ListArray.from_arrays(offsets, values)])
 
-        # Must use ArrowExtensionArray (not self._from_pyarrow_array) because
-        # the result is list<string> type, not string type
-        from pandas.core.arrays.arrow import ArrowExtensionArray
-
+        # Return ArrowExtensionArray (result is list<string>, not string type)
         return ArrowExtensionArray(result)
