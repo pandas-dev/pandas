@@ -8523,7 +8523,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         >>> index = pd.date_range("1/1/2000", periods=4, freq="min")
         >>> series = pd.Series([0.0, None, 2.0, 3.0], index=index)
-        >>> df = pd.DataFrame({{"s": series}})
+        >>> df = pd.DataFrame({"s": series})
         >>> df
                                s
         2000-01-01 00:00:00    0.0
@@ -11785,7 +11785,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         For DataFrame:
 
-        >>> df = pd.DataFrame({{"A": [None, None, 2], "B": [None, 3, 4]}})
+        >>> df = pd.DataFrame({"A": [None, None, 2], "B": [None, 3, 4]})
         >>> df
              A      B
         0  NaN    NaN
@@ -11796,7 +11796,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> df.last_valid_index()
         2
 
-        >>> df = pd.DataFrame({{"A": [None, None, None], "B": [None, None, None]}})
+        >>> df = pd.DataFrame({"A": [None, None, None], "B": [None, None, None]})
         >>> df
              A      B
         0  None   None
@@ -11872,7 +11872,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         For DataFrame:
 
-        >>> df = pd.DataFrame({{"A": [None, None, 2], "B": [None, 3, 4]}})
+        >>> df = pd.DataFrame({"A": [None, None, 2], "B": [None, 3, 4]})
         >>> df
              A      B
         0  NaN    NaN
@@ -11883,7 +11883,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> df.last_valid_index()
         2
 
-        >>> df = pd.DataFrame({{"A": [None, None, None], "B": [None, None, None]}})
+        >>> df = pd.DataFrame({"A": [None, None, None], "B": [None, None, None]})
         >>> df
              A      B
         0  None   None
