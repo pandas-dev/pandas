@@ -5,7 +5,7 @@ import pandas._testing as tm
 
 def test_pyarrow_index_datetime_properties_delegation():
     """
-    Test that PyArrow-backed Index delegates datetime properties 
+    Test that PyArrow-backed Index delegates datetime properties
     (like .year, .month) correctly.
     GH#63527
     """
