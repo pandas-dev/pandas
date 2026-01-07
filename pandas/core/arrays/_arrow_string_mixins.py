@@ -425,7 +425,7 @@ class ArrowStringArrayMixin:
 
         # Create list array with fixed size 3
         offsets = pa.arange(0, n * 3 + 1, 3)
-        result = pa.chunked_array([pa.ListArray.from_arrays(offsets, values)])
+        result = pa.ListArray.from_arrays(offsets, values)
 
         # Return ArrowExtensionArray (result is list<string>, not string type)
         return ArrowExtensionArray(result)
