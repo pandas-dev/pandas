@@ -89,7 +89,7 @@ def test_pickles(datapath):
 
         for typ, dv in data.items():
             for dt, result in dv.items():
-                expected = data[typ][dt]
+                expected = result
 
                 if typ == "series" and dt == "ts":
                     # GH 7748
