@@ -3958,7 +3958,7 @@ class MultiIndex(Index):
         to_replace=None,
         value=lib.no_default,
         *,
-        regex=False,
+        regex: bool = False,
     ) -> MultiIndex:
         """
         Replace values in a MultiIndex.

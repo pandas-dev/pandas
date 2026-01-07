@@ -2117,7 +2117,7 @@ class Index(IndexOpsMixin, PandasObject):
         to_replace=None,
         value=lib.no_default,
         *,
-        regex=False,
+        regex: bool = False,
     ) -> Index:
         """
         Replace values in the Index.
