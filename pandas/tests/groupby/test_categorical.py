@@ -1511,7 +1511,7 @@ def test_dataframe_groupby_on_2_categoricals_when_observed_is_true(reduction_fun
 
 @pytest.mark.parametrize("observed", [False, None])
 def test_dataframe_groupby_on_2_categoricals_when_observed_is_false(
-    reduction_func, observed
+    reduction_func, observed, using_python_scalars
 ):
     # GH 23865
     # GH 27075
@@ -1553,7 +1553,9 @@ def test_dataframe_groupby_on_2_categoricals_when_observed_is_false(
 
     expected = _results_for_groupbys_with_missing_categories[reduction_func]
 
-    if expected is np.nan:
+    if using_python_scalars and reduction_func == "size":
+        assert (res.loc[unobserved_cats] == expected).all() is True
+    elif expected is np.nan:
         assert res.loc[unobserved_cats].isnull().all().all()
     else:
         assert (res.loc[unobserved_cats] == expected).all().all()

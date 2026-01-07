@@ -776,7 +776,7 @@ NA values in this array are represented and behave as ``np.nan``.
    )
 
 Notice that the last three values are all inferred by pandas as being
-an NA values, and hence stored as ``np.nan``.
+NA values, and hence stored as ``np.nan``.
 
 PyArrow storage with ``np.nan`` values
 --------------------------------------
@@ -795,7 +795,7 @@ are represented and behave as ``np.nan``.
    )
 
 Notice that the last three values are all inferred by pandas as being
-an NA values, and hence stored as ``np.nan``.
+NA values, and hence stored as ``np.nan``.
 
 Python storage with ``pd.NA`` values
 ------------------------------------

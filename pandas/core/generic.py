@@ -188,8 +188,8 @@ from pandas.io.formats.format import (
 from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
     from collections.abc import (
+        Callable,
         Hashable,
         Iterator,
         Mapping,
@@ -208,7 +208,6 @@ if TYPE_CHECKING:
     from pandas.core.indexers.objects import BaseIndexer
     from pandas.core.resample import Resampler
 
-import textwrap
 
 # goal is to be able to define the docs close to function, while still being
 # able to share
@@ -767,10 +766,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self._mgr.set_axis(axis, labels)
 
     @final
-    @doc(klass=_shared_doc_kwargs["klass"])
     def droplevel(self, level: IndexLabel, axis: Axis = 0) -> Self:
         """
-        Return {klass} with requested index / column level(s) removed.
+        Return Series/DataFrame with requested index / column level(s) removed.
 
         Parameters
         ----------
@@ -789,8 +787,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Returns
         -------
-        {klass}
-            {klass} with requested index / column level(s) removed.
+        Series/DataFrame
+            Series/DataFrame with requested index / column level(s) removed.
 
         See Also
         --------
@@ -1026,12 +1024,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 raise TypeError(
                     "Cannot specify both 'mapper' and any of 'index' or 'columns'"
                 )
+        # use the mapper argument
+        elif axis and self._get_axis_number(axis) == 1:
+            columns = mapper
         else:
-            # use the mapper argument
-            if axis and self._get_axis_number(axis) == 1:
-                columns = mapper
-            else:
-                index = mapper
+            index = mapper
 
         self._check_inplace_and_allows_duplicate_labels(inplace)
         result = self if inplace else self.copy(deep=False)
@@ -2150,19 +2147,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     # I/O Methods
 
     @final
-    @doc(
-        klass="object",
-        storage_options=_shared_docs["storage_options"],
-        storage_options_versionadded="1.2.0",
-        encoding_parameter="",
-        verbose_parameter="",
-        extra_parameters=textwrap.dedent(
-            """\
-        engine_kwargs : dict, optional
-            Arbitrary keyword arguments passed to excel engine.
-        """
-        ),
-    )
     def to_excel(
         self,
         excel_writer: FilePath | WriteExcelBuffer | ExcelWriter,
@@ -2185,17 +2169,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         autofilter: bool = False,
     ) -> None:
         """
-        Write {klass} to an Excel sheet.
+        Write object to an Excel sheet.
 
-        To write a single {klass} to an Excel .xlsx file it is only necessary to
+        To write a single object to an Excel .xlsx file it is only necessary to
         specify a target file name. To write to multiple sheets it is necessary to
         create an `ExcelWriter` object with a target file name, and specify a sheet
         in the file to write to.
 
         Multiple sheets may be written to by specifying unique `sheet_name`.
         With all data written to the file it is necessary to save the changes.
-        Note that creating an `ExcelWriter` object with a file name that already
-        exists will result in the contents of the existing file being erased.
+        Note that creating an `ExcelWriter` object with a file name that already exists
+        will overwrite the existing file because the default mode is write.
 
         Parameters
         ----------
@@ -2227,22 +2211,27 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Write engine to use, 'openpyxl' or 'xlsxwriter'. You can also set this
             via the options ``io.excel.xlsx.writer`` or
             ``io.excel.xlsm.writer``.
-
         merge_cells : bool or 'columns', default False
             If True, write MultiIndex index and columns as merged cells.
             If 'columns', merge MultiIndex column cells only.
-        {encoding_parameter}
         inf_rep : str, default 'inf'
             Representation for infinity (there is no native representation for
             infinity in Excel).
-        {verbose_parameter}
         freeze_panes : tuple of int (length 2), optional
             Specifies the one-based bottommost row and rightmost column that
             is to be frozen.
-        {storage_options}
+        storage_options : dict, optional
+            Extra options that make sense for a particular storage connection, e.g.
+            host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
+            are forwarded to ``urllib.request.Request`` as header options. For other
+            URLs (e.g. starting with "s3://", and "gcs://") the key-value pairs are
+            forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more
+            details, and for more examples on storage options refer `here
+            <https://pandas.pydata.org/docs/user_guide/io.html?
+            highlight=storage_options#reading-writing-remote-files>`_.
 
-            .. versionadded:: {storage_options_versionadded}
-        {extra_parameters}
+        engine_kwargs : dict, optional
+            Arbitrary keyword arguments passed to excel engine.
         autofilter : bool, default False
             If True, add automatic filters to all columns.
 
@@ -2332,10 +2321,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
 
     @final
-    @doc(
-        storage_options=_shared_docs["storage_options"],
-        compression_options=_shared_docs["compression_options"] % "path_or_buf",
-    )
     def to_json(
         self,
         path_or_buf: FilePath | WriteBuffer[bytes] | WriteBuffer[str] | None = None,
@@ -2420,7 +2405,23 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             If 'orient' is 'records' write out line-delimited json format. Will
             throw ValueError if incorrect 'orient' since others are not
             list-like.
-        {compression_options}
+
+        compression : str or dict, default 'infer'
+            For on-the-fly compression of the output data. If 'infer' and
+            'path_or_buf' is path-like, then detect compression from the following
+            extensions: '.gz',
+            '.bz2', '.zip', '.xz', '.zst', '.tar', '.tar.gz', '.tar.xz' or '.tar.bz2'
+            (otherwise no compression).
+            Set to ``None`` for no compression.
+            Can also be a dict with key ``'method'`` set to one of
+            {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'xz'``, ``'tar'``} and
+            other key-value pairs are forwarded to
+            ``zipfile.ZipFile``, ``gzip.GzipFile``,
+            ``bz2.BZ2File``, ``zstandard.ZstdCompressor``, ``lzma.LZMAFile`` or
+            ``tarfile.TarFile``, respectively.
+            As an example, the following could be passed for faster compression and
+            to create a reproducible gzip archive:
+            ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
 
         index : bool or None, default None
             The index is only used when 'orient' is 'split', 'index', 'column',
@@ -2431,7 +2432,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         indent : int, optional
            Length of whitespace used to indent each record.
 
-        {storage_options}
+        storage_options : dict, optional
+            Extra options that make sense for a particular storage connection, e.g.
+            host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
+            are forwarded to ``urllib.request.Request`` as header options. For other
+            URLs (e.g. starting with "s3://", and "gcs://") the key-value pairs are
+            forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more
+            details, and for more examples on storage options refer `here
+            <https://pandas.pydata.org/docs/user_guide/io.html?
+            highlight=storage_options#reading-writing-remote-files>`_.
 
         mode : str, default 'w' (writing)
             Specify the IO mode for output when supplying a path_or_buf.
@@ -3054,10 +3063,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
 
     @final
-    @doc(
-        storage_options=_shared_docs["storage_options"],
-        compression_options=_shared_docs["compression_options"] % "path",
-    )
     def to_pickle(
         self,
         path: FilePath | WriteBuffer[bytes],
@@ -3075,7 +3080,24 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             String, path object (implementing ``os.PathLike[str]``), or file-like
             object implementing a binary ``write()`` function. File path where
             the pickled object will be stored.
-        {compression_options}
+
+        compression : str or dict, default 'infer'
+            For on-the-fly compression of the output data. If 'infer' and
+            'path_or_buf' is path-like, then detect compression from the following
+            extensions: '.gz',
+            '.bz2', '.zip', '.xz', '.zst', '.tar', '.tar.gz', '.tar.xz' or '.tar.bz2'
+            (otherwise no compression).
+            Set to ``None`` for no compression.
+            Can also be a dict with key ``'method'`` set to one of
+            {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'xz'``, ``'tar'``} and
+            other key-value pairs are forwarded to
+            ``zipfile.ZipFile``, ``gzip.GzipFile``,
+            ``bz2.BZ2File``, ``zstandard.ZstdCompressor``, ``lzma.LZMAFile`` or
+            ``tarfile.TarFile``, respectively.
+            As an example, the following could be passed for faster compression and
+            to create a reproducible gzip archive:
+            ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
+
         protocol : int
             Int which indicates which protocol should be used by the pickler,
             default HIGHEST_PROTOCOL (see [1]_ paragraph 12.1.2). The possible
@@ -3084,7 +3106,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             .. [1] https://docs.python.org/3/library/pickle.html.
 
-        {storage_options}
+        storage_options : dict, optional
+            Extra options that make sense for a particular storage connection, e.g.
+            host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
+            are forwarded to ``urllib.request.Request`` as header options. For other
+            URLs (e.g. starting with "s3://", and "gcs://") the key-value pairs are
+            forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more
+            details, and for more examples on storage options refer `here
+            <https://pandas.pydata.org/docs/user_guide/io.html?
+            highlight=storage_options#reading-writing-remote-files>`_.
 
         See Also
         --------
@@ -3763,10 +3793,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> None: ...
 
     @final
-    @doc(
-        storage_options=_shared_docs["storage_options"],
-        compression_options=_shared_docs["compression_options"] % "path_or_buf",
-    )
     def to_csv(
         self,
         path_or_buf: FilePath | WriteBuffer[bytes] | WriteBuffer[str] | None = None,
@@ -3835,7 +3861,23 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             A string representing the encoding to use in the output file,
             defaults to 'utf-8'. `encoding` is not supported if `path_or_buf`
             is a non-binary file object.
-        {compression_options}
+
+        compression : str or dict, default 'infer'
+            For on-the-fly compression of the output data. If 'infer' and
+            'path_or_buf' is path-like, then detect compression from the following
+            extensions: '.gz',
+            '.bz2', '.zip', '.xz', '.zst', '.tar', '.tar.gz', '.tar.xz' or '.tar.bz2'
+            (otherwise no compression).
+            Set to ``None`` for no compression.
+            Can also be a dict with key ``'method'`` set to one of
+            {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'xz'``, ``'tar'``} and
+            other key-value pairs are forwarded to
+            ``zipfile.ZipFile``, ``gzip.GzipFile``,
+            ``bz2.BZ2File``, ``zstandard.ZstdCompressor``, ``lzma.LZMAFile`` or
+            ``tarfile.TarFile``, respectively.
+            As an example, the following could be passed for faster compression and
+            to create a reproducible gzip archive:
+            ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
 
                May be a dict with key 'method' as compression mode
                and other entries as additional compression options if
@@ -3870,7 +3912,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             See the errors argument for :func:`open` for a full list
             of options.
 
-        {storage_options}
+        storage_options : dict, optional
+            Extra options that make sense for a particular storage connection, e.g.
+            host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
+            are forwarded to ``urllib.request.Request`` as header options. For other
+            URLs (e.g. starting with "s3://", and "gcs://") the key-value pairs are
+            forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more
+            details, and for more examples on storage options refer `here
+            <https://pandas.pydata.org/docs/user_guide/io.html?
+            highlight=storage_options#reading-writing-remote-files>`_.
 
         Returns
         -------
@@ -5148,10 +5198,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         else:
             return result.__finalize__(self, method="sort_index")
 
-    @doc(
-        klass=_shared_doc_kwargs["klass"],
-        optional_reindex="",
-    )
     def reindex(
         self,
         labels=None,
@@ -5167,7 +5213,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         tolerance=None,
     ) -> Self:
         """
-        Conform {klass} to new index with optional filling logic.
+        Conform Series/DataFrame to new index with optional filling logic.
 
         Places NA/NaN in locations having no value in the previous index. A new object
         is produced unless the new index is equivalent to the current one and
@@ -5175,7 +5221,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Parameters
         ----------
-        {optional_reindex}
         method : {{None, 'backfill'/'bfill', 'pad'/'ffill', 'nearest'}}
             Method to use for filling holes in reindexed DataFrame.
             Please note: this is only applicable to DataFrames/Series with a
@@ -5221,8 +5266,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Returns
         -------
-        {klass}
-            {klass} with changed index.
+        Series/DataFrame
+            Series/DataFrame with changed index.
 
         See Also
         --------
@@ -5318,7 +5363,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         >>> date_index = pd.date_range("1/1/2010", periods=6, freq="D")
         >>> df2 = pd.DataFrame(
-        ...     {{"prices": [100, 101, np.nan, 100, 89, 88]}}, index=date_index
+        ...     {"prices": [100, 101, np.nan, 100, 89, 88]}, index=date_index
         ... )
         >>> df2
                     prices
@@ -5404,11 +5449,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     columns = labels
                 else:
                     index = labels
+        elif axis and self._get_axis_number(axis) == 1:
+            columns = labels
         else:
-            if axis and self._get_axis_number(axis) == 1:
-                columns = labels
-            else:
-                index = labels
+            index = labels
         axes: dict[Literal["index", "columns"], Any] = {
             "index": index,
             "columns": columns,
@@ -5978,7 +6022,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> T: ...
 
     @final
-    @doc(klass=_shared_doc_kwargs["klass"])
     def pipe(
         self,
         func: Callable[Concatenate[Self, P], T] | tuple[Callable[..., T], str],
@@ -5991,11 +6034,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Parameters
         ----------
         func : function
-            Function to apply to the {klass}.
+            Function to apply to the Series/DataFrame.
             ``args``, and ``kwargs`` are passed into ``func``.
             Alternatively a ``(callable, data_keyword)`` tuple where
             ``data_keyword`` is a string indicating the keyword of
-            ``callable`` that expects the {klass}.
+            ``callable`` that expects the Series/DataFrame.
         *args : iterable, optional
             Positional arguments passed into ``func``.
         **kwargs : mapping, optional
@@ -6526,23 +6569,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         When ``deep=False``, a new object will be created without copying
         the calling object's data or index (only references to the data
-        and index are copied). Any changes to the data of the original
-        will be reflected in the shallow copy (and vice versa).
+        and index are copied). With Copy-on-Write, changes to the original
+        will *not* be reflected in the shallow copy (and vice versa). The
+        shallow copy uses a lazy (deferred) copy mechanism that copies the
+        data only when any changes to the original or shallow copy are made,
+        ensuring memory efficiency while maintaining data integrity.
 
         .. note::
-            The ``deep=False`` behaviour as described above will change
-            in pandas 3.0. `Copy-on-Write
-            <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
-            will be enabled by default, which means that the "shallow" copy
-            is that is returned with ``deep=False`` will still avoid making
-            an eager copy, but changes to the data of the original will *no*
-            longer be reflected in the shallow copy (or vice versa). Instead,
-            it makes use of a lazy (deferred) copy mechanism that will copy
-            the data only when any changes to the original or shallow copy is
-            made.
-
-            You can already get the future behavior and improvements through
-            enabling copy on write ``pd.options.mode.copy_on_write = True``
+            In pandas versions prior to 3.0, the default behavior without
+            Copy-on-Write was different: changes to the original *were* reflected
+            in the shallow copy (and vice versa). See the :ref:`Copy-on-Write
+            user guide <copy_on_write>` for more information.
 
         Parameters
         ----------
@@ -6924,10 +6961,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             return result.__finalize__(self, method="fillna")
 
     @final
-    @doc(
-        klass=_shared_doc_kwargs["klass"],
-        axes_single_arg=_shared_doc_kwargs["axes_single_arg"],
-    )
     def fillna(
         self,
         value: Hashable | Mapping | Series | DataFrame,
@@ -6947,7 +6980,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             each index (for a Series) or column (for a DataFrame).  Values not
             in the dict/Series/DataFrame will not be filled. This value cannot
             be a list.
-        axis : {axes_single_arg}
+        axis : {0 or 'index'} for Series, {0 or 'index', 1 or 'columns'} for DataFrame
             Axis along which to fill missing values. For `Series`
             this parameter is unused and defaults to 0.
         inplace : bool, default False
@@ -6960,7 +6993,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Returns
         -------
-        {klass}
+        Series/DataFrame
             Object with missing values filled.
 
         See Also
@@ -7007,7 +7040,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Replace all NaN elements in column 'A', 'B', 'C', and 'D', with 0, 1,
         2, and 3 respectively.
 
-        >>> values = {{"A": 0, "B": 1, "C": 2, "D": 3}}
+        >>> values = {"A": 0, "B": 1, "C": 2, "D": 3}
         >>> df.fillna(value=values)
              A    B    C    D
         0  0.0  2.0  2.0  0.0
@@ -7113,42 +7146,39 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
                     if not inplace:
                         result[k] = res_k
-                    else:
-                        # We can write into our existing column(s) iff dtype
-                        #  was preserved.
-                        if isinstance(res_k, ABCSeries):
-                            # i.e. 'k' only shows up once in self.columns
-                            if res_k.dtype == result[k].dtype:
-                                result.loc[:, k] = res_k
-                            else:
-                                # Different dtype -> no way to do inplace.
-                                result[k] = res_k
+                    # We can write into our existing column(s) iff dtype
+                    #  was preserved.
+                    elif isinstance(res_k, ABCSeries):
+                        # i.e. 'k' only shows up once in self.columns
+                        if res_k.dtype == result[k].dtype:
+                            result.loc[:, k] = res_k
                         else:
-                            # see test_fillna_dict_inplace_nonunique_columns
-                            locs = result.columns.get_loc(k)
-                            if isinstance(locs, slice):
-                                locs = range(self.shape[1])[locs]
-                            elif (
-                                isinstance(locs, np.ndarray) and locs.dtype.kind == "b"
-                            ):
-                                locs = locs.nonzero()[0]
-                            elif not (
-                                isinstance(locs, np.ndarray) and locs.dtype.kind == "i"
-                            ):
-                                # Should never be reached, but let's cover our bases
-                                raise NotImplementedError(
-                                    "Unexpected get_loc result, please report a bug at "
-                                    "https://github.com/pandas-dev/pandas"
-                                )
+                            # Different dtype -> no way to do inplace.
+                            result[k] = res_k
+                    else:
+                        # see test_fillna_dict_inplace_nonunique_columns
+                        locs = result.columns.get_loc(k)
+                        if isinstance(locs, slice):
+                            locs = range(self.shape[1])[locs]
+                        elif isinstance(locs, np.ndarray) and locs.dtype.kind == "b":
+                            locs = locs.nonzero()[0]
+                        elif not (
+                            isinstance(locs, np.ndarray) and locs.dtype.kind == "i"
+                        ):
+                            # Should never be reached, but let's cover our bases
+                            raise NotImplementedError(
+                                "Unexpected get_loc result, please report a bug at "
+                                "https://github.com/pandas-dev/pandas"
+                            )
 
-                            for i, loc in enumerate(locs):
-                                res_loc = res_k.iloc[:, i]
-                                target = self.iloc[:, loc]
+                        for i, loc in enumerate(locs):
+                            res_loc = res_k.iloc[:, i]
+                            target = self.iloc[:, loc]
 
-                                if res_loc.dtype == target.dtype:
-                                    result.iloc[:, loc] = res_loc
-                                else:
-                                    result.isetitem(loc, res_loc)
+                            if res_loc.dtype == target.dtype:
+                                result.iloc[:, loc] = res_loc
+                            else:
+                                result.isetitem(loc, res_loc)
             return result
 
         elif not is_list_like(value):
@@ -7170,10 +7200,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             return result.__finalize__(self, method="fillna")
 
     @final
-    @doc(
-        klass=_shared_doc_kwargs["klass"],
-        axes_single_arg=_shared_doc_kwargs["axes_single_arg"],
-    )
     def ffill(
         self,
         *,
@@ -7187,7 +7213,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Parameters
         ----------
-        axis : {axes_single_arg}
+        axis : {0 or 'index'} for Series, {0 or 'index', 1 or 'columns'} for DataFrame
             Axis along which to fill missing values. For `Series`
             this parameter is unused and defaults to 0.
         inplace : bool, default False
@@ -7214,7 +7240,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Returns
         -------
-        {klass}
+        Series/DataFrame
             Object with missing values filled.
 
         See Also
@@ -7276,10 +7302,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
 
     @final
-    @doc(
-        klass=_shared_doc_kwargs["klass"],
-        axes_single_arg=_shared_doc_kwargs["axes_single_arg"],
-    )
     def bfill(
         self,
         *,
@@ -7293,7 +7315,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Parameters
         ----------
-        axis : {axes_single_arg}
+        axis : {0 or 'index'} for Series, {0 or 'index', 1 or 'columns'} for DataFrame
             Axis along which to fill missing values. For `Series`
             this parameter is unused and defaults to 0.
         inplace : bool, default False
@@ -7320,7 +7342,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Returns
         -------
-        {klass}
+        Series/DataFrame
             Object with missing values filled.
 
         See Also
@@ -7348,7 +7370,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         With DataFrame:
 
-        >>> df = pd.DataFrame({{"A": [1, None, None, 4], "B": [None, 5, None, 7]}})
+        >>> df = pd.DataFrame({"A": [1, None, None, 4], "B": [None, 5, None, 7]})
         >>> df
               A     B
         0   1.0	  NaN
@@ -7544,34 +7566,32 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         f"you passed a {type(regex).__name__!r}"
                     )
                 return self.replace(regex, value, inplace=inplace, regex=True)
-            else:
-                # dest iterable dict-like
-                if is_dict_like(value):  # NA -> {'A' : 0, 'B' : -1}
-                    # Operate column-wise
-                    if self.ndim == 1:
-                        raise ValueError(
-                            "Series.replace cannot use dict-value and "
-                            "non-None to_replace"
-                        )
-                    mapping = {col: (to_replace, val) for col, val in value.items()}
-                    return self._replace_columnwise(mapping, inplace, regex)
-
-                elif not is_list_like(value):  # NA -> 0
-                    regex = should_use_regex(regex, to_replace)
-                    if regex:
-                        new_data = self._mgr.replace_regex(
-                            to_replace=to_replace,
-                            value=value,
-                            inplace=inplace,
-                        )
-                    else:
-                        new_data = self._mgr.replace(
-                            to_replace=to_replace, value=value, inplace=inplace
-                        )
-                else:
-                    raise TypeError(
-                        f'Invalid "to_replace" type: {type(to_replace).__name__!r}'
+            # dest iterable dict-like
+            elif is_dict_like(value):  # NA -> {'A' : 0, 'B' : -1}
+                # Operate column-wise
+                if self.ndim == 1:
+                    raise ValueError(
+                        "Series.replace cannot use dict-value and non-None to_replace"
                     )
+                mapping = {col: (to_replace, val) for col, val in value.items()}
+                return self._replace_columnwise(mapping, inplace, regex)
+
+            elif not is_list_like(value):  # NA -> 0
+                regex = should_use_regex(regex, to_replace)
+                if regex:
+                    new_data = self._mgr.replace_regex(
+                        to_replace=to_replace,
+                        value=value,
+                        inplace=inplace,
+                    )
+                else:
+                    new_data = self._mgr.replace(
+                        to_replace=to_replace, value=value, inplace=inplace
+                    )
+            else:
+                raise TypeError(
+                    f'Invalid "to_replace" type: {type(to_replace).__name__!r}'
+                )
 
         result = self._constructor_from_mgr(new_data, axes=new_data.axes)
         if inplace:
@@ -12690,7 +12710,7 @@ def make_doc(name: str, ndim: int) -> str:
             Examples
             --------
             >>> s = pd.Series([1, 2, 3])
-            >>> s.sem().round(6)
+            >>> round(s.sem(), 6)
             0.57735
 
             With a DataFrame
@@ -12808,8 +12828,8 @@ def make_doc(name: str, ndim: int) -> str:
 
             With axis=None
 
-            >>> df.kurt(axis=None).round(6)
-            -0.988693
+            >>> df.kurt(axis=None)
+            -0.9886927196984727
 
             Using axis=1
 
