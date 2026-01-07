@@ -3958,8 +3958,68 @@ class MultiIndex(Index):
         to_replace=None,
         value=lib.no_default,
         *,
-        regex=False,
+        regex: bool = False,
     ) -> MultiIndex:
+        """
+        Replace values in a MultiIndex.
+
+        Return a new MultiIndex with values replaced according to
+        ``to_replace`` and ``value``. Replacement is applied elementwise
+        across all levels of the MultiIndex.
+
+        Parameters
+        ----------
+        to_replace : scalar, list-like, dict, or None
+            How to find the values to replace.
+
+            * scalar: values equal to ``to_replace`` will be replaced
+            * list-like: values in the list will be replaced
+            * dict: keys are replaced by values
+            * None: only valid if ``value`` is dict-like
+
+        value : scalar, dict, list-like, or lib.no_default
+            Replacement value(s). If ``to_replace`` is dict-like, ``value`` must
+            be ``lib.no_default``.
+
+        regex : bool, default False
+            Whether to interpret ``to_replace`` as a regular expression.
+
+        Returns
+        -------
+        MultiIndex
+            A new MultiIndex with replaced values.
+
+        See Also
+        --------
+        Series.replace : Replace values in a Series.
+        Index.replace : Replace values in an Index.
+        MultiIndex.map : Map values using a function or mapping.
+
+        Notes
+        -----
+        This method operates by converting the MultiIndex to a DataFrame,
+        applying :meth:`DataFrame.replace`, and reconstructing the MultiIndex
+        while preserving level names. The original MultiIndex is not modified.
+
+        Examples
+        --------
+        >>> idx = pd.MultiIndex.from_product(
+        ...     [["a", "b"], [1, 2]], names=["letter", "number"]
+        ... )
+        >>> idx.replace("a", "x")
+        MultiIndex([('x', 1),
+                    ('x', 2),
+                    ('b', 1),
+                    ('b', 2)],
+                   names=['letter', 'number'])
+
+        >>> idx.replace({1: 10})
+        MultiIndex([('a', 10),
+                    ('a', 2),
+                    ('b', 10),
+                    ('b', 2)],
+                   names=['letter', 'number'])
+        """
         names = self.names
 
         result = self.to_frame().replace(
