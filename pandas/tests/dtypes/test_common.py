@@ -711,6 +711,10 @@ def test_get_dtype(input_param, result):
         # numpy dev changed from double-quotes to single quotes
         ("random string", "data type [\"']random string[\"'] not understood"),
         (pd.DataFrame([1, 2]), "data type not understood"),
+        (
+            np.typing.NDArray[np.float32],
+            "data type not understood|Cannot interpret.*numpy.*as a data type",
+        ),
     ],
 )
 def test_get_dtype_fails(input_param, expected_error_message):

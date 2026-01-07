@@ -29,10 +29,7 @@ from pandas._libs.json import (
 from pandas._libs.tslibs import iNaT
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import (
-    doc,
-    set_module,
-)
+from pandas.util._decorators import set_module
 from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.common import (
@@ -53,7 +50,6 @@ from pandas import (
     to_datetime,
 )
 from pandas.core.reshape.concat import concat
-from pandas.core.shared_docs import _shared_docs
 
 from pandas.io._util import arrow_table_to_pandas
 from pandas.io.common import (
@@ -500,10 +496,6 @@ def read_json(
 
 
 @set_module("pandas")
-@doc(
-    storage_options=_shared_docs["storage_options"],
-    decompression_options=_shared_docs["decompression_options"] % "path_or_buf",
-)
 def read_json(
     path_or_buf: FilePath | ReadBuffer[str] | ReadBuffer[bytes],
     *,
@@ -648,14 +640,39 @@ def read_json(
         for more information on ``chunksize``.
         This can only be passed if `lines=True`.
         If this is None, the file will be read into memory all at once.
-    {decompression_options}
+
+    compression : str or dict, default 'infer'
+        For on-the-fly decompression of on-disk data. If 'infer' and 'path_or_buf' is
+        path-like, then detect compression from the following extensions: '.gz',
+        '.bz2', '.zip', '.xz', '.zst', '.tar', '.tar.gz', '.tar.xz' or '.tar.bz2'
+        (otherwise no compression).
+        If using 'zip' or 'tar', the ZIP file must contain only one data file to be
+        read in.
+        Set to ``None`` for no decompression.
+        Can also be a dict with key ``'method'`` set
+        to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'xz'``, ``'tar'``}
+        and other key-value pairs are forwarded to
+        ``zipfile.ZipFile``, ``gzip.GzipFile``,
+        ``bz2.BZ2File``, ``zstandard.ZstdDecompressor``, ``lzma.LZMAFile`` or
+        ``tarfile.TarFile``, respectively.
+        As an example, the following could be passed for Zstandard decompression using a
+        custom compression dictionary:
+        ``compression={'method': 'zstd', 'dict_data': my_compression_dict}``.
 
     nrows : int, optional
         The number of lines from the line-delimited jsonfile that has to be read.
         This can only be passed if `lines=True`.
         If this is None, all the rows will be returned.
 
-    {storage_options}
+    storage_options : dict, optional
+        Extra options that make sense for a particular storage connection, e.g.
+        host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
+        are forwarded to ``urllib.request.Request`` as header options. For other
+        URLs (e.g. starting with "s3://", and "gcs://") the key-value pairs are
+        forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more
+        details, and for more examples on storage options refer `here
+        <https://pandas.pydata.org/docs/user_guide/io.html?
+        highlight=storage_options#reading-writing-remote-files>`_.
 
     dtype_backend : {{'numpy_nullable', 'pyarrow'}}
         Back-end data type applied to the resultant :class:`DataFrame`
@@ -701,31 +718,28 @@ def read_json(
     Examples
     --------
     >>> from io import StringIO
-    >>> df = pd.DataFrame([['a', 'b'], ['c', 'd']],
-    ...                   index=['row 1', 'row 2'],
-    ...                   columns=['col 1', 'col 2'])
+    >>> df = pd.DataFrame(
+    ...     [["a", "b"], ["c", "d"]],
+    ...     index=["row 1", "row 2"],
+    ...     columns=["col 1", "col 2"],
+    ... )
 
     Encoding/decoding a Dataframe using ``'split'`` formatted JSON:
 
-    >>> df.to_json(orient='split')
-        '\
-{{\
-"columns":["col 1","col 2"],\
-"index":["row 1","row 2"],\
-"data":[["a","b"],["c","d"]]\
-}}\
-'
-    >>> pd.read_json(StringIO(_), orient='split')  # noqa: F821
+    >>> df.to_json(orient="split")
+    '{"columns":["col 1","col 2"],"index":["row 1","row 2"],"data":[["a","b"],["c","d"]]}'
+
+    >>> pd.read_json(StringIO(_), orient="split")  # noqa: F821
           col 1 col 2
     row 1     a     b
     row 2     c     d
 
     Encoding/decoding a Dataframe using ``'index'`` formatted JSON:
 
-    >>> df.to_json(orient='index')
-    '{{"row 1":{{"col 1":"a","col 2":"b"}},"row 2":{{"col 1":"c","col 2":"d"}}}}'
+    >>> df.to_json(orient="index")
+    '{"row 1":{"col 1":"a","col 2":"b"},"row 2":{"col 1":"c","col 2":"d"}}'
 
-    >>> pd.read_json(StringIO(_), orient='index')  # noqa: F821
+    >>> pd.read_json(StringIO(_), orient="index")  # noqa: F821
           col 1 col 2
     row 1     a     b
     row 2     c     d
@@ -733,42 +747,32 @@ def read_json(
     Encoding/decoding a Dataframe using ``'records'`` formatted JSON.
     Note that index labels are not preserved with this encoding.
 
-    >>> df.to_json(orient='records')
-    '[{{"col 1":"a","col 2":"b"}},{{"col 1":"c","col 2":"d"}}]'
-    >>> pd.read_json(StringIO(_), orient='records')  # noqa: F821
+    >>> df.to_json(orient="records")
+    '[{"col 1":"a","col 2":"b"},{"col 1":"c","col 2":"d"}]'
+
+    >>> pd.read_json(StringIO(_), orient="records")  # noqa: F821
       col 1 col 2
     0     a     b
     1     c     d
 
     Encoding with Table Schema
 
-    >>> df.to_json(orient='table')
-        '\
-{{"schema":{{"fields":[\
-{{"name":"index","type":"string","extDtype":"str"}},\
-{{"name":"col 1","type":"string","extDtype":"str"}},\
-{{"name":"col 2","type":"string","extDtype":"str"}}],\
-"primaryKey":["index"],\
-"pandas_version":"1.4.0"}},\
-"data":[\
-{{"index":"row 1","col 1":"a","col 2":"b"}},\
-{{"index":"row 2","col 1":"c","col 2":"d"}}]\
-}}\
-'
+    >>> df.to_json(orient="table")
+    '{"schema":{"fields":[{"name":"index","type":"string","extDtype":"str"},{"name":"col 1","type":"string","extDtype":"str"},{"name":"col 2","type":"string","extDtype":"str"}],"primaryKey":["index"],"pandas_version":"1.4.0"},"data":[{"index":"row 1","col 1":"a","col 2":"b"},{"index":"row 2","col 1":"c","col 2":"d"}]}'
 
     The following example uses ``dtype_backend="numpy_nullable"``
 
-    >>> data = '''{{"index": {{"0": 0, "1": 1}},
-    ...        "a": {{"0": 1, "1": null}},
-    ...        "b": {{"0": 2.5, "1": 4.5}},
-    ...        "c": {{"0": true, "1": false}},
-    ...        "d": {{"0": "a", "1": "b"}},
-    ...        "e": {{"0": 1577.2, "1": 1577.1}}}}'''
+    >>> data = '''{"index": {"0": 0, "1": 1},
+    ...        "a": {"0": 1, "1": null},
+    ...        "b": {"0": 2.5, "1": 4.5},
+    ...        "c": {"0": true, "1": false},
+    ...        "d": {"0": "a", "1": "b"},
+    ...        "e": {"0": 1577.2, "1": 1577.1}}'''
     >>> pd.read_json(StringIO(data), dtype_backend="numpy_nullable")
        index     a    b      c  d       e
     0      0     1  2.5   True  a  1577.2
     1      1  <NA>  4.5  False  b  1577.1
-    """
+    """  # noqa: E501
     if orient == "table" and dtype:
         raise ValueError("cannot pass both dtype and orient='table'")
     if orient == "table" and convert_axes:

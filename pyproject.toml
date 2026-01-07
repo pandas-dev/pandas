@@ -27,7 +27,9 @@ authors = [
 license = {file = 'LICENSE'}
 requires-python = '>=3.11'
 dependencies = [
-  "numpy>=1.26.0",
+  "numpy>=1.26.0; python_version < '3.14'",
+  # NumPy 1.x is fundamentally broken on 3.14
+  "numpy>=2.0.0; python_version >= '3.14'",
   "python-dateutil>=2.8.2",
   "tzdata; sys_platform == 'win32'",
   # Emscripten is the platform system for Pyodide.
@@ -432,9 +434,7 @@ exclude = [
 # relative imports allowed for asv_bench
 "asv_bench/*" = ["TID", "NPY002"]
 # to be enabled gradually
-"pandas/core/*" = ["PLR5501"]
 "pandas/tests/*" = ["B028", "FLY"]
-"scripts/*" = ["B028"]
 # Keep this one enabled
 "pandas/_typing.py" = ["TC"]
 
@@ -442,38 +442,6 @@ exclude = [
 # For contributors working on this issue:
 # After adding strict={True,False} to zip() calls in a file,
 # remove its line from this section
-"asv_bench/benchmarks/ctors.py" = ["B905"]
-"asv_bench/benchmarks/series_methods.py" = ["B905"]
-"pandas/_config/config.py" = ["B905"]
-"pandas/conftest.py" = ["B905"]
-"pandas/core/array_algos/quantile.py" = ["B905"]
-"pandas/core/computation/align.py" = ["B905"]
-"pandas/core/computation/expr.py" = ["B905"]
-"pandas/core/computation/ops.py" = ["B905"]
-"pandas/core/groupby/generic.py" = ["B905"]
-"pandas/core/groupby/groupby.py" = ["B905"]
-"pandas/core/groupby/grouper.py" = ["B905"]
-"pandas/core/groupby/ops.py" = ["B905"]
-"pandas/core/methods/to_dict.py" = ["B905"]
-"pandas/core/reshape/encoding.py" = ["B905"]
-"pandas/core/reshape/melt.py" = ["B905"]
-"pandas/core/reshape/merge.py" = ["B905"]
-"pandas/core/reshape/pivot.py" = ["B905"]
-"pandas/core/reshape/reshape.py" = ["B905"]
-"pandas/core/window/rolling.py" = ["B905"]
-"pandas/_testing/asserters.py" = ["B905"]
-"pandas/_testing/_warnings.py" = ["B905"]
-"pandas/tests/apply/test_series_apply.py" = ["B905"]
-"pandas/tests/computation/test_eval.py" = ["B905"]
-"pandas/tests/copy_view/test_functions.py" = ["B905"]
-"pandas/tests/dtypes/test_inference.py" = ["B905"]
-"pandas/tests/extension/base/methods.py" = ["B905"]
-"pandas/tests/extension/date/array.py" = ["B905"]
-"pandas/tests/extension/decimal/array.py" = ["B905"]
-"pandas/tests/extension/json/array.py" = ["B905"]
-"pandas/tests/extension/test_arrow.py" = ["B905"]
-"pandas/tests/extension/test_categorical.py" = ["B905"]
-"pandas/tests/extension/test_interval.py" = ["B905"]
 "pandas/tests/frame/conftest.py" = ["B905"]
 "pandas/tests/frame/constructors/test_from_dict.py" = ["B905"]
 "pandas/tests/frame/indexing/test_delitem.py" = ["B905"]
@@ -528,7 +496,6 @@ exclude = [
 "pandas/tests/indexing/test_coercion.py" = ["B905"]
 "pandas/tests/indexing/test_loc.py" = ["B905"]
 "pandas/tests/internals/test_internals.py" = ["B905"]
-"pandas/tests/io/excel/test_style.py" = ["B905"]
 "pandas/tests/io/excel/test_writers.py" = ["B905"]
 "pandas/tests/io/formats/style/test_style.py" = ["B905"]
 "pandas/tests/io/formats/test_format.py" = ["B905"]
@@ -544,43 +511,21 @@ exclude = [
 "pandas/tests/io/sas/test_sas7bdat.py" = ["B905"]
 "pandas/tests/io/test_gcs.py" = ["B905"]
 "pandas/tests/io/test_html.py" = ["B905"]
-"pandas/tests/io/test_orc.py" = ["B905"]
 "pandas/tests/io/test_sql.py" = ["B905"]
 "pandas/tests/io/test_stata.py" = ["B905"]
 "pandas/tests/plotting/common.py" = ["B905"]
 "pandas/tests/plotting/frame/test_frame_color.py" = ["B905"]
-"pandas/tests/plotting/frame/test_frame_groupby.py" = ["B905"]
-"pandas/tests/plotting/frame/test_frame.py" = ["B905"]
-"pandas/tests/plotting/frame/test_frame_subplots.py" = ["B905"]
-"pandas/tests/plotting/test_boxplot_method.py" = ["B905"]
-"pandas/tests/plotting/test_datetimelike.py" = ["B905"]
-"pandas/tests/plotting/test_groupby.py" = ["B905"]
-"pandas/tests/plotting/test_hist_method.py" = ["B905"]
-"pandas/tests/plotting/test_misc.py" = ["B905"]
-"pandas/tests/plotting/test_series.py" = ["B905"]
 "pandas/tests/resample/test_base.py" = ["B905"]
 "pandas/tests/reshape/concat/test_concat.py" = ["B905"]
 "pandas/tests/reshape/concat/test_index.py" = ["B905"]
-"pandas/tests/reshape/merge/test_merge_asof.py" = ["B905"]
 "pandas/tests/reshape/test_melt.py" = ["B905"]
 "pandas/tests/reshape/test_qcut.py" = ["B905"]
 "pandas/tests/scalar/period/test_asfreq.py" = ["B905"]
 "pandas/tests/series/accessors/test_dt_accessor.py" = ["B905"]
 "pandas/tests/series/indexing/test_get.py" = ["B905"]
-"pandas/tests/series/methods/test_convert_dtypes.py" = ["B905"]
-"pandas/tests/series/methods/test_rename.py" = ["B905"]
-"pandas/tests/series/methods/test_replace.py" = ["B905"]
-"pandas/tests/series/methods/test_reset_index.py" = ["B905"]
-"pandas/tests/series/methods/test_sort_index.py" = ["B905"]
 "pandas/tests/series/test_api.py" = ["B905"]
 "pandas/tests/series/test_constructors.py" = ["B905"]
 "pandas/tests/strings/conftest.py" = ["B905"]
-"pandas/tests/strings/test_api.py" = ["B905"]
-"pandas/tests/strings/test_strings.py" = ["B905"]
-"pandas/tests/test_algos.py" = ["B905"]
-"pandas/tests/test_sorting.py" = ["B905"]
-"pandas/tests/util/test_validate_kwargs.py" = ["B905"]
-"scripts/validate_unwanted_patterns.py" = ["B905"]
 
 [tool.ruff.lint.flake8-pytest-style]
 fixture-parentheses = false
