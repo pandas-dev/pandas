@@ -1308,7 +1308,7 @@ I/O
 Period
 ^^^^^^
 - Fixed error message when passing invalid period alias to :meth:`PeriodIndex.to_timestamp` (:issue:`58974`)
-- Fixed recoverable overflow for near-minimum timestamps with microsecond resolution (:issue:`63278`)
+- Fixed recoverable overflow for near-minimum timestamps with microsecond and millisecond resolutions (:issue:`63278`)
 
 Plotting
 ^^^^^^^^
