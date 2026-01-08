@@ -126,7 +126,7 @@ def check_setitem_lengths(indexer, value, values) -> bool:
     """
     Validate that value and indexer are the same length.
 
-    An special-case is allowed for when the indexer is a boolean array
+    A special-case is allowed for when the indexer is a boolean array
     and the number of true values equals the length of ``value``. In
     this case, no exception is raised.
 
@@ -390,10 +390,9 @@ def check_key_length(columns: Index, key, value: DataFrame) -> None:
     if columns.is_unique:
         if len(value.columns) != len(key):
             raise ValueError("Columns must be same length as key")
-    else:
-        # Missing keys in columns are represented as -1
-        if len(columns.get_indexer_non_unique(key)[0]) != len(value.columns):
-            raise ValueError("Columns must be same length as key")
+    # Missing keys in columns are represented as -1
+    elif len(columns.get_indexer_non_unique(key)[0]) != len(value.columns):
+        raise ValueError("Columns must be same length as key")
 
 
 def unpack_tuple_and_ellipses(item: tuple):
@@ -412,6 +411,27 @@ def unpack_tuple_and_ellipses(item: tuple):
 
     item = item[0]
     return item
+
+
+def getitem_returns_view(arr, key) -> bool:
+    """
+    Check if an ``arr.__getitem__`` call with given ``key`` would return a view
+    or not.
+    """
+    if not isinstance(key, tuple):
+        key = (key,)
+
+    # filter out Ellipsis and np.newaxis
+    key = tuple(k for k in key if k is not Ellipsis and k is not np.newaxis)
+    if not key:
+        return True
+    # single integer gives view if selecting subset of 2D array
+    if arr.ndim == 2 and lib.is_integer(key[0]):
+        return True
+    # slices always give views
+    if all(isinstance(k, slice) for k in key):
+        return True
+    return False
 
 
 # -----------------------------------------------------------

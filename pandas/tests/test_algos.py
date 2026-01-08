@@ -1446,6 +1446,19 @@ class TestValueCounts:
         )
         tm.assert_series_equal(result, expected)
 
+    def test_value_counts_stability(self):
+        # GH 63155
+        arr = np.random.default_rng(2).integers(0, 32, 64)
+        result = algos.value_counts_internal(arr, sort=True)
+
+        value_counts = Series(arr).value_counts(sort=False)
+        expected = value_counts.sort_values(ascending=False, kind="stable")
+        tm.assert_series_equal(result, expected)
+
+        unstable_sorted = value_counts.sort_values(ascending=False, kind="quicksort")
+        with pytest.raises(AssertionError):
+            tm.assert_series_equal(result, unstable_sorted)
+
 
 class TestDuplicated:
     def test_duplicated_with_nas(self):
@@ -1469,7 +1482,7 @@ class TestDuplicated:
 
         keys = np.empty(8, dtype=object)
         for i, t in enumerate(
-            zip([0, 0, np.nan, np.nan] * 2, [0, np.nan, 0, np.nan] * 2)
+            zip([0, 0, np.nan, np.nan] * 2, [0, np.nan, 0, np.nan] * 2, strict=True)
         ):
             keys[i] = t
 

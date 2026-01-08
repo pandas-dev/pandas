@@ -19,7 +19,7 @@ def test_asfreq_bug():
     result = df.resample("1min").asfreq()
     expected = DataFrame(
         data=[1, np.nan, np.nan, 3],
-        index=timedelta_range("0 day", periods=4, freq="1min"),
+        index=timedelta_range("0 day", periods=4, freq="1min", unit="us"),
     )
     tm.assert_frame_equal(result, expected)
 
@@ -53,7 +53,8 @@ def test_resample_with_timedeltas():
     expected.index = timedelta_range("0 days", freq="30min", periods=50)
 
     df = DataFrame(
-        {"A": np.arange(1480)}, index=pd.to_timedelta(np.arange(1480), unit="min")
+        {"A": np.arange(1480)},
+        index=pd.to_timedelta(np.arange(1480), unit="min").as_unit("us"),
     )
     result = df.resample("30min").sum()
 
@@ -100,9 +101,7 @@ def test_resample_categorical_data_with_timedeltaindex():
     df = DataFrame({"Group_obj": "A"}, index=pd.to_timedelta(list(range(20)), unit="s"))
     df["Group"] = df["Group_obj"].astype("category")
     result = df.resample("10s").agg(lambda x: (x.value_counts().index[0]))
-    exp_tdi = pd.TimedeltaIndex(np.array([0, 10], dtype="m8[s]"), freq="10s").as_unit(
-        "ns"
-    )
+    exp_tdi = pd.TimedeltaIndex(np.array([0, 10], dtype="m8[s]"), freq="10s")
     expected = DataFrame(
         {"Group_obj": ["A", "A"], "Group": ["A", "A"]},
         index=exp_tdi,
@@ -170,7 +169,7 @@ def test_resample_with_timedelta_yields_no_empty_groups(duplicates):
 
     expected = DataFrame(
         [[768] * 4] * 12 + [[528] * 4],
-        index=timedelta_range(start="1s", periods=13, freq="3s"),
+        index=timedelta_range(start="1s", periods=13, freq="3s", unit="ns"),
     )
     expected.columns = df.columns
     tm.assert_frame_equal(result, expected)

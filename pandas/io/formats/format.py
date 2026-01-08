@@ -362,8 +362,6 @@ def get_dataframe_repr_params() -> dict[str, Any]:
     Supplying these parameters to DataFrame.to_string is equivalent to calling
     ``repr(DataFrame)``. This is useful if you want to adjust the repr output.
 
-    .. versionadded:: 1.4.0
-
     Example
     -------
     >>> import pandas as pd
@@ -394,8 +392,6 @@ def get_series_repr_params() -> dict[str, Any]:
 
     Supplying these parameters to Series.to_string is equivalent to calling
     ``repr(series)``. This is useful if you want to adjust the series repr output.
-
-    .. versionadded:: 1.4.0
 
     Example
     -------
@@ -911,7 +907,7 @@ class DataFrameRenderer:
         render_links: bool = False,
     ) -> str | None:
         """
-        Render a DataFrame to a html table.
+        Render a DataFrame to an html table.
 
         Parameters
         ----------

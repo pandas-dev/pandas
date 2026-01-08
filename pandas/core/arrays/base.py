@@ -19,6 +19,7 @@ from typing import (
     cast,
     overload,
 )
+import warnings
 
 import numpy as np
 
@@ -31,12 +32,15 @@ from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import (
     cache_readonly,
+    set_module,
 )
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import (
     validate_bool_kwarg,
     validate_insert_loc,
 )
 
+from pandas.core.dtypes.astype import astype_is_view
 from pandas.core.dtypes.common import (
     is_list_like,
     is_scalar,
@@ -84,6 +88,7 @@ if TYPE_CHECKING:
         AstypeArg,
         AxisInt,
         Dtype,
+        DtypeObj,
         FillnaOptions,
         InterpolateOptions,
         NumpySorter,
@@ -105,6 +110,7 @@ if TYPE_CHECKING:
 _extension_array_shared_docs: dict[str, str] = {}
 
 
+@set_module("pandas.api.extensions")
 class ExtensionArray:
     """
     Abstract base class for custom 1-D array types.
@@ -256,8 +262,6 @@ class ExtensionArray:
     https://github.com/pandas-dev/pandas/blob/main/pandas/tests/extension/list/array.py
     """
 
-    __module__ = "pandas.api.extensions"
-
     # '_typ' is for pandas.core.dtypes.generic.ABCExtensionArray.
     # Don't override this.
     _typ = "extension"
@@ -267,6 +271,8 @@ class ExtensionArray:
     #  subclass takes priority. If overriding, the value should always be
     #  strictly less than 2000 to be below Index.__pandas_priority__.
     __pandas_priority__ = 1000
+
+    _readonly = False
 
     # ------------------------------------------------------------------------
     # Constructors
@@ -380,13 +386,67 @@ class ExtensionArray:
         """
         raise AbstractMethodError(cls)
 
+    @classmethod
+    def _from_scalars(cls, scalars, *, dtype: DtypeObj) -> Self:
+        """
+        Strict analogue to _from_sequence, allowing only sequences of scalars
+        that should be specifically inferred to the given dtype.
+
+        Parameters
+        ----------
+        scalars : sequence
+        dtype : ExtensionDtype
+
+        Raises
+        ------
+        TypeError or ValueError
+
+        Notes
+        -----
+        This is called in a try/except block when casting the result of a
+        pointwise operation in ExtensionArray._cast_pointwise_result.
+        """
+        try:
+            return cls._from_sequence(scalars, dtype=dtype, copy=False)
+        except (ValueError, TypeError):
+            raise
+        except Exception:
+            warnings.warn(
+                "_from_scalars should only raise ValueError or TypeError. "
+                "Consider overriding _from_scalars where appropriate.",
+                stacklevel=find_stack_level(),
+            )
+            raise
+
     def _cast_pointwise_result(self, values) -> ArrayLike:
         """
+        Construct an ExtensionArray after a pointwise operation.
+
         Cast the result of a pointwise operation (e.g. Series.map) to an
-        array, preserve dtype_backend if possible.
+        array. This is not required to return an ExtensionArray of the same
+        type as self or of the same dtype. It can also return another
+        ExtensionArray of the same "family" if you implement multiple
+        ExtensionArrays/Dtypes that are interoperable (e.g. if you have float
+        array with units, this method can return an int array with units).
+
+        If converting to your own ExtensionArray is not possible, this method
+        falls back to returning an array with the default type inference.
+        If you only need to cast to `self.dtype`, it is recommended to override
+        `_from_scalars` instead of this method.
+
+        Parameters
+        ----------
+        values : sequence
+
+        Returns
+        -------
+        ExtensionArray or ndarray
         """
-        values = np.asarray(values, dtype=object)
-        return lib.maybe_convert_objects(values, convert_non_numeric=True)
+        try:
+            return type(self)._from_scalars(values, dtype=self.dtype)
+        except (ValueError, TypeError):
+            values = np.asarray(values, dtype=object)
+            return lib.maybe_convert_objects(values, convert_non_numeric=True)
 
     # ------------------------------------------------------------------------
     # Must be a Sequence
@@ -454,6 +514,11 @@ class ExtensionArray:
         Returns
         -------
         None
+
+        Raises
+        ------
+        ValueError
+            If the array is readonly and modification is attempted.
         """
         # Some notes to the ExtensionArray implementer who may have ended up
         # here. While this method is not required for the interface, if you
@@ -473,6 +538,10 @@ class ExtensionArray:
         #   __init__ method coerces that value, then so should __setitem__
         # Note, also, that Series/DataFrame.where internally use __setitem__
         # on a copy of the data.
+        # Check if the array is readonly
+        if self._readonly:
+            raise ValueError("Cannot modify read-only array")
+
         raise NotImplementedError(f"{type(self)} does not implement __setitem__.")
 
     def __len__(self) -> int:
@@ -567,8 +636,14 @@ class ExtensionArray:
         result = np.asarray(self, dtype=dtype)
         if copy or na_value is not lib.no_default:
             result = result.copy()
+        elif self._readonly and astype_is_view(self.dtype, result.dtype):
+            # If the ExtensionArray is readonly, make the numpy array readonly too
+            result = result.view()
+            result.flags.writeable = False
+
         if na_value is not lib.no_default:
             result[self.isna()] = na_value  # type: ignore[index]
+
         return result
 
     # ------------------------------------------------------------------------
@@ -1222,11 +1297,10 @@ class ExtensionArray:
             else:
                 new_values = self.copy()
             new_values[mask] = value
+        elif not copy:
+            new_values = self[:]
         else:
-            if not copy:
-                new_values = self[:]
-            else:
-                new_values = self.copy()
+            new_values = self.copy()
         return new_values
 
     def dropna(self) -> Self:
@@ -1573,8 +1647,6 @@ class ExtensionArray:
             If True, the sentinel -1 will be used for NaN values. If False,
             NaN values will be encoded as non-negative integers and will not drop the
             NaN from the uniques of the values.
-
-            .. versionadded:: 1.5.0
 
         Returns
         -------
@@ -2788,6 +2860,7 @@ class ExtensionOpsMixin:
         setattr(cls, "__rxor__", cls._create_logical_method(roperator.rxor))
 
 
+@set_module("pandas.api.extensions")
 class ExtensionScalarOpsMixin(ExtensionOpsMixin):
     """
     A mixin for defining ops on an ExtensionArray.
@@ -2813,8 +2886,6 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
        implementation to be called when involved in binary operations
        with NumPy arrays.
     """
-
-    __module__ = "pandas.api.extensions"
 
     @classmethod
     def _create_method(cls, op, coerce_to_dtype: bool = True, result_dtype=None):

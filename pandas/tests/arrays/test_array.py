@@ -127,12 +127,17 @@ def test_dt64_array(dtype_unit):
         (
             pd.DatetimeIndex(["2000", "2001"]),
             None,
-            DatetimeArray._from_sequence(["2000", "2001"], dtype="M8[s]"),
+            DatetimeArray._from_sequence(["2000", "2001"], dtype="M8[us]"),
         ),
         (
             ["2000", "2001"],
             np.dtype("datetime64[ns]"),
             DatetimeArray._from_sequence(["2000", "2001"], dtype="M8[ns]"),
+        ),
+        (
+            [pd.NaT, pd.NaT],
+            None,
+            DatetimeArray._from_sequence([pd.NaT, pd.NaT], dtype="M8[s]"),
         ),
         # Datetime (tz-aware)
         (
@@ -163,7 +168,7 @@ def test_dt64_array(dtype_unit):
         (
             pd.TimedeltaIndex(["1h", "2h"]),
             None,
-            TimedeltaArray._from_sequence(["1h", "2h"], dtype="m8[ns]"),
+            TimedeltaArray._from_sequence(["1h", "2h"], dtype="m8[us]"),
         ),
         (
             # preserve non-nano, i.e. don't cast to NumpyExtensionArray
@@ -323,7 +328,7 @@ def test_array_copy():
         ([pd.Interval(0, 1), pd.Interval(1, 2)], IntervalArray.from_breaks([0, 1, 2])),
         # datetime
         (
-            [pd.Timestamp("2000"), pd.Timestamp("2001")],
+            [pd.Timestamp("2000").as_unit("s"), pd.Timestamp("2001").as_unit("s")],
             DatetimeArray._from_sequence(["2000", "2001"], dtype="M8[s]"),
         ),
         (
@@ -342,7 +347,10 @@ def test_array_copy():
         ),
         # datetimetz
         (
-            [pd.Timestamp("2000", tz="CET"), pd.Timestamp("2001", tz="CET")],
+            [
+                pd.Timestamp("2000", tz="CET").as_unit("s"),
+                pd.Timestamp("2001", tz="CET").as_unit("s"),
+            ],
             DatetimeArray._from_sequence(
                 ["2000", "2001"], dtype=pd.DatetimeTZDtype(tz="CET", unit="s")
             ),
@@ -366,7 +374,7 @@ def test_array_copy():
         # timedelta
         (
             [pd.Timedelta("1h"), pd.Timedelta("2h")],
-            TimedeltaArray._from_sequence(["1h", "2h"], dtype="m8[ns]"),
+            TimedeltaArray._from_sequence(["1h", "2h"], dtype="m8[us]"),
         ),
         (
             np.array([1, 2], dtype="m8[ns]"),
