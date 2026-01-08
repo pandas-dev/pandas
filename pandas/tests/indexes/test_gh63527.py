@@ -10,6 +10,7 @@ def test_pyarrow_index_datetime_properties_delegation():
     (like .year, .month) correctly.
     GH#63527
     """
+    pytest.importorskip("pyarrow")
     dates = ["2023-01-01", "2023-06-15", "2023-12-31"]
     dti = pd.to_datetime(dates)
 
@@ -39,6 +40,7 @@ def test_pyarrow_index_groupby_functionality():
     """
     Ensure the properties work inside a groupby operation.
     """
+    pytest.importorskip("pyarrow")
     dates = pd.to_datetime(["2021-01-01", "2021-01-02", "2021-02-01"])
     df = pd.DataFrame({"val": [10, 20, 30]}, index=dates)
 
