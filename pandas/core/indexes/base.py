@@ -222,15 +222,36 @@ __all__ = ["Index"]
 
 _unsortable_types = frozenset(("mixed", "mixed-integer"))
 
-_ARROW_DATETIME_FIELDS = frozenset([
-    "year", "month", "day", "hour", "minute", "second",
-    "microsecond", "nanosecond", "date", "time", "timetz",
-    "dayofyear", "day_name", "month_name", "is_leap_year",
-    "is_month_start", "is_month_end", "is_quarter_start",
-    "is_quarter_end", "is_year_start", "is_year_end",
-    "quarter", "week", "weekofyear", "days_in_month",
-    "daysinmonth"
-])
+_ARROW_DATETIME_FIELDS = frozenset(
+    [
+        "year",
+        "month",
+        "day",
+        "hour",
+        "minute",
+        "second",
+        "microsecond",
+        "nanosecond",
+        "date",
+        "time",
+        "timetz",
+        "dayofyear",
+        "day_name",
+        "month_name",
+        "is_leap_year",
+        "is_month_start",
+        "is_month_end",
+        "is_quarter_start",
+        "is_quarter_end",
+        "is_year_start",
+        "is_year_end",
+        "quarter",
+        "week",
+        "weekofyear",
+        "days_in_month",
+        "daysinmonth",
+    ]
+)
 
 _index_doc_kwargs: dict[str, str] = {
     "klass": "Index",
@@ -932,12 +953,13 @@ class Index(IndexOpsMixin, PandasObject):
             if hasattr(self.dtype, "pyarrow_dtype") and self.dtype.kind == "M":
                 try:
                     from pandas import Series
+
                     ser = Series(self)
                     result = getattr(ser.dt, name)
-                    
+
                     if hasattr(result, "values"):
                         result = result.values
-                    
+
                     return Index(result, name=self.name)
                 except (AttributeError, TypeError):
                     pass
@@ -947,7 +969,7 @@ class Index(IndexOpsMixin, PandasObject):
                 raise AttributeError(
                     "Can only use .str accessor with Index, not MultiIndex"
                 )
-            
+
             raise AttributeError("Can only use .str accessor with string values!")
 
         raise AttributeError(

@@ -4,6 +4,7 @@ import pytest
 import pandas as pd
 import pandas._testing as tm
 
+
 def test_pyarrow_index_datetime_properties_delegation():
     """
     Test that PyArrow-backed Index delegates datetime properties
@@ -34,7 +35,8 @@ def test_pyarrow_index_datetime_properties_delegation():
         tm.assert_numpy_array_equal(res_array, exp_array, check_dtype=False)
 
         if hasattr(result, "dtype"):
-             assert isinstance(result.dtype, pd.ArrowDtype)
+            assert isinstance(result.dtype, pd.ArrowDtype)
+
 
 def test_pyarrow_index_groupby_functionality():
     """
@@ -46,7 +48,7 @@ def test_pyarrow_index_groupby_functionality():
 
     df_pa = df.convert_dtypes(dtype_backend="pyarrow")
     if not isinstance(df_pa.index.dtype, pd.ArrowDtype):
-         df_pa.index = df_pa.index.astype("timestamp[ns][pyarrow]")
+        df_pa.index = df_pa.index.astype("timestamp[ns][pyarrow]")
 
     result = df_pa.groupby(df_pa.index.month)["val"].sum()
 
