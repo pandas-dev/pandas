@@ -922,13 +922,13 @@ class Index(IndexOpsMixin, PandasObject):
             #  elsewhere
             # error: Item "ExtensionArray" of "Union[ExtensionArray,
             # ndarray[Any, Any]]" has no attribute "_ndarray"  [union-attr]
-            target_values = self._data._ndarray  # type: ignore[union-attr]
+            target_values = self._data._ndarray
         elif is_string_dtype(self.dtype) and not is_object_dtype(self.dtype):
             return libindex.StringObjectEngine(target_values, self.dtype.na_value)  # type: ignore[union-attr]
 
         # error: Argument 1 to "ExtensionEngine" has incompatible type
         # "ndarray[Any, Any]"; expected "ExtensionArray"
-        return self._engine_type(target_values)  # type: ignore[arg-type]
+        return self._engine_type(target_values)
 
     @final
     @cache_readonly
@@ -944,7 +944,7 @@ class Index(IndexOpsMixin, PandasObject):
             if isinstance(c, str) and c.isidentifier()
         }
 
-    def __getattr__(self, name: str):
+    def __getattr__(self, name: str_t):
         """
         Override to support datetime properties on PyArrow-backed Indexes.
         GH#63527
