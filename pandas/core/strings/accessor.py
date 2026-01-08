@@ -15,6 +15,7 @@ import numpy as np
 from pandas._config import using_string_dtype
 
 from pandas._libs import lib
+from pandas._libs.missing import NA
 from pandas._typing import (
     AlignJoin,
     DtypeObj,
@@ -48,7 +49,10 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna
 
-from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays import (
+    ArrowStringArray,
+    ExtensionArray,
+)
 from pandas.core.base import NoNewAttributesMixin
 from pandas.core.construction import extract_array
 
@@ -1478,6 +1482,22 @@ class StringMethods(NoNewAttributesMixin):
                 UserWarning,
                 stacklevel=find_stack_level(),
             )
+
+        if regex and isinstance(self._data.array, ArrowStringArray):
+            from re import _parser
+
+            tokens = _parser.parse(pat)
+            if any(
+                op_code in [_parser.ASSERT_NOT, _parser.ASSERT] for op_code, _ in tokens
+            ):
+                # Regex has lookarounds; not supported by PyArrow so fallback to object.
+                result = self._data.astype("object").array._str_contains(
+                    pat, case, flags, na, regex
+                )
+                dtype = "boolean" if self._data.array.dtype.na_value is NA else "bool"
+                return self._wrap_result(
+                    result, fill_value=na, returns_string=False, dtype=dtype
+                )
 
         result = self._data.array._str_contains(pat, case, flags, na, regex)
         return self._wrap_result(result, fill_value=na, returns_string=False)

@@ -329,6 +329,26 @@ def test_contains_compiled_regex_flags(any_string_dtype):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "pat, expected_data",
+    [
+        (r"a(?=b)", [False, True, False, False]),
+        (r"(?<=a)b", [False, True, False, False]),
+        (r"a(?!b)", [True, False, True, False]),
+        (r"(?<!b)a", [True, True, False, False]),
+    ],
+)
+def test_contains_lookarounds(any_string_dtype, pat, expected_data):
+    # https://github.com/pandas-dev/pandas/issues/60833
+    expected_dtype = (
+        np.bool_ if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+    )
+    ser = Series(["aa", "ab", "ba", "bb"], dtype=any_string_dtype)
+    result = ser.str.contains(pat, regex=True)
+    expected = Series(expected_data, dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+
 # --------------------------------------------------------------------------------------
 # str.startswith
 # --------------------------------------------------------------------------------------
