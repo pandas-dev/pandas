@@ -381,8 +381,30 @@ cdef class BaseOffset:
     def __init__(self, n=1, normalize=False):
         n = self._validate_n(n)
         self.n = n
-        self.normalize = normalize
+        self._normalize = normalize
         self._cache = {}
+
+    @property
+    def normalize(self) -> bool:
+        """
+        Return boolean whether the frequency can align with midnight.
+
+        This is True for offsets that round the result of a DateOffset
+        addition down to the previous midnight.
+
+        See Also
+        --------
+        tseries.offsets.DateOffset : The standard kind of date increment.
+
+        Examples
+        --------
+        >>> pd.offsets.Hour(5).normalize
+        False
+
+        >>> pd.offsets.Day(5).normalize
+        False
+        """
+        return self._normalize
 
     def __eq__(self, other) -> bool:
         if isinstance(other, str):
@@ -815,7 +837,7 @@ cdef class BaseOffset:
         Reconstruct an instance from a pickled state
         """
         self.n = state.pop("n")
-        self.normalize = state.pop("normalize")
+        self._normalize = state.pop("normalize")
         self._cache = state.pop("_cache", {})
         # At this point we expect state to be empty
 
@@ -1026,7 +1048,7 @@ cdef class Tick(SingleConstructorOffset):
     def __init__(self, n=1, normalize=False):
         n = self._validate_n(n)
         self.n = n
-        self.normalize = False
+        self._normalize = False
         self._cache = {}
         if normalize:
             # GH#21427
@@ -1182,7 +1204,7 @@ cdef class Tick(SingleConstructorOffset):
 
     def __setstate__(self, state):
         self.n = state["n"]
-        self.normalize = False
+        self._normalize = False
 
 
 cdef class Day(SingleConstructorOffset):
@@ -1247,6 +1269,18 @@ cdef class Day(SingleConstructorOffset):
     def freqstr(self) -> str:
         """
         Return a string representing the frequency.
+
+        The frequency string is composed of a multiplier (if greater than 1)
+        followed by the offset alias 'D' for days.
+
+        See Also
+        --------
+        tseries.offsets.Hour.freqstr :
+            Return a string representing an offset frequency in hours.
+        tseries.offsets.Minute.freqstr :
+            Return a string representing an offset frequency in minutes.
+        tseries.offsets.Second.freqstr :
+            Return a string representing an offset frequency in seconds.
 
         Examples
         --------
@@ -1564,7 +1598,7 @@ cdef class RelativeDeltaOffset(BaseOffset):
             state["kwds"]["offset"] = state["_offset"]
 
         self.n = state.pop("n")
-        self.normalize = state.pop("normalize")
+        self._normalize = state.pop("normalize")
         self._cache = state.pop("_cache", {})
 
         self.__dict__.update(state)
@@ -1944,7 +1978,7 @@ cdef class BusinessDay(BusinessMixin):
 
     cpdef __setstate__(self, state):
         self.n = state.pop("n")
-        self.normalize = state.pop("normalize")
+        self._normalize = state.pop("normalize")
         if "_offset" in state:
             self._offset = state.pop("_offset")
         elif "offset" in state:
@@ -2615,7 +2649,7 @@ cdef class YearOffset(SingleConstructorOffset):
     cpdef __setstate__(self, state):
         self.month = state.pop("month")
         self.n = state.pop("n")
-        self.normalize = state.pop("normalize")
+        self._normalize = state.pop("normalize")
         self._cache = {}
 
     @classmethod
@@ -2884,7 +2918,7 @@ cdef class QuarterOffset(SingleConstructorOffset):
     cpdef __setstate__(self, state):
         self.startingMonth = state.pop("startingMonth")
         self.n = state.pop("n")
-        self.normalize = state.pop("normalize")
+        self._normalize = state.pop("normalize")
 
     @classmethod
     def _from_name(cls, suffix=None):
@@ -3113,7 +3147,7 @@ cdef class HalfYearOffset(SingleConstructorOffset):
     cpdef __setstate__(self, state):
         self.startingMonth = state.pop("startingMonth")
         self.n = state.pop("n")
-        self.normalize = state.pop("normalize")
+        self._normalize = state.pop("normalize")
 
     @classmethod
     def _from_name(cls, suffix=None):
@@ -3131,6 +3165,44 @@ cdef class HalfYearOffset(SingleConstructorOffset):
         return f"{self._prefix}-{month}"
 
     def is_on_offset(self, dt: datetime) -> bool:
+        """
+        Return boolean whether a timestamp intersects with this frequency.
+
+        This method checks if a given datetime falls on a valid half-year
+        boundary as defined by this offset.
+
+        Parameters
+        ----------
+        dt : datetime
+            Timestamp to check intersections with frequency.
+
+        Returns
+        -------
+        bool
+            True if the timestamp is on the offset, False otherwise.
+
+        See Also
+        --------
+        HalfYearEnd.is_on_offset : Check if a timestamp is at the end of a
+            half-year.
+        HalfYearBegin.is_on_offset : Check if a timestamp is at the start of a
+            half-year.
+        BHalfYearEnd.is_on_offset : Check if a timestamp is at the end of a
+            business half-year.
+        BHalfYearBegin.is_on_offset : Check if a timestamp is at the start of a
+            business half-year.
+
+        Examples
+        --------
+        >>> freq = pd.offsets.BHalfYearBegin()
+        >>> ts = pd.Timestamp(2022, 1, 1)
+        >>> freq.is_on_offset(ts)
+        False
+
+        >>> ts = pd.Timestamp(2022, 1, 3)
+        >>> freq.is_on_offset(ts)
+        True
+        """
         if self.normalize and not _is_normalized(dt):
             return False
         mod_month = (dt.month - self.startingMonth) % 6
@@ -3517,7 +3589,7 @@ cdef class SemiMonthOffset(SingleConstructorOffset):
 
     cpdef __setstate__(self, state):
         self.n = state.pop("n")
-        self.normalize = state.pop("normalize")
+        self._normalize = state.pop("normalize")
         self.day_of_month = state.pop("day_of_month")
 
     @classmethod
@@ -3783,7 +3855,7 @@ cdef class Week(SingleConstructorOffset):
 
     cpdef __setstate__(self, state):
         self.n = state.pop("n")
-        self.normalize = state.pop("normalize")
+        self._normalize = state.pop("normalize")
         self.weekday = state.pop("weekday")
         self._cache = state.pop("_cache", {})
 
@@ -3968,7 +4040,7 @@ cdef class WeekOfMonth(WeekOfMonthMixin):
 
     cpdef __setstate__(self, state):
         self.n = state.pop("n")
-        self.normalize = state.pop("normalize")
+        self._normalize = state.pop("normalize")
         self.weekday = state.pop("weekday")
         self.week = state.pop("week")
 
@@ -4051,7 +4123,7 @@ cdef class LastWeekOfMonth(WeekOfMonthMixin):
 
     cpdef __setstate__(self, state):
         self.n = state.pop("n")
-        self.normalize = state.pop("normalize")
+        self._normalize = state.pop("normalize")
         self.weekday = state.pop("weekday")
         self.week = -1
 
@@ -4107,7 +4179,7 @@ cdef class FY5253Mixin(SingleConstructorOffset):
 
     cpdef __setstate__(self, state):
         self.n = state.pop("n")
-        self.normalize = state.pop("normalize")
+        self._normalize = state.pop("normalize")
         self.weekday = state.pop("weekday")
         self.variation = state.pop("variation")
 
@@ -4635,7 +4707,7 @@ cdef class Easter(SingleConstructorOffset):
     cpdef __setstate__(self, state):
         from dateutil.easter import EASTER_WESTERN
         self.n = state.pop("n")
-        self.normalize = state.pop("normalize")
+        self._normalize = state.pop("normalize")
         self.method = state.pop("method", EASTER_WESTERN)
 
     @apply_wraps

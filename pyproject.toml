@@ -359,8 +359,6 @@ ignore = [
   "PLW1641", # 16 errors
   # Bad or misspelled dunder method name
   "PLW3201", # 69 errors, seems to be all false positive
-  # Unnecessary lookup of dictionary value by key
-  "PLR1733", # 5 errors, it seems like we wannt to ignore these
   # Unnecessary lookup of list item by index
   "PLR1736", # 4 errors, we're currently having inline pylint ignore
   # Unpacking a dictionary in iteration without calling `.items()`
@@ -434,7 +432,6 @@ exclude = [
 # relative imports allowed for asv_bench
 "asv_bench/*" = ["TID", "NPY002"]
 # to be enabled gradually
-"pandas/core/*" = ["PLR5501"]
 "pandas/tests/*" = ["B028", "FLY"]
 # Keep this one enabled
 "pandas/_typing.py" = ["TC"]
