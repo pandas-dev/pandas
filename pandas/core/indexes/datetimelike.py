@@ -245,8 +245,27 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
 
         if not isinstance(other, Index):
             return False
-        elif other.dtype.kind in "iufc":
+
+        if hasattr(other, "dtype") and other.dtype.kind in "iufc":
             return False
+
+        if len(self) != len(other):
+            return False
+
+        self_unit = getattr(self, "unit", None)
+        other_unit = getattr(other, "unit", None)
+
+        if self_unit is not None and other_unit is not None and self_unit != other_unit:
+            if getattr(self.dtype, "tz", None) == getattr(other.dtype, "tz", None):
+                try:
+                    other_values = other._values
+                    if hasattr(other_values, "as_unit") and hasattr(
+                        self._values, "equals"
+                    ):
+                        return self._values.equals(other_values.as_unit(self_unit))
+                except (ValueError, TypeError, AttributeError):
+                    return False
+
         elif not isinstance(other, type(self)):
             should_try = False
             inferable = self._data._infer_matches
