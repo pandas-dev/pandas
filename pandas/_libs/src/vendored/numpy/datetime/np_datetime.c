@@ -379,8 +379,8 @@ static bool scale_time_with_underflow_check(int64_t time, int64_t scale_factor,
   if (time < min_scalable_time) {
     const int64_t amount_below_threshold = time - min_scalable_time;
     const int64_t scaled_time = scale_factor * (time - amount_below_threshold);
-    return checked_add(scale_factor * amount_below_threshold, fractional_part,
-                       result) ||
+    return checked_mul(scale_factor, amount_below_threshold, result) ||
+           checked_add(*result, fractional_part, result) ||
            checked_add(scaled_time, *result, result);
   }
 
