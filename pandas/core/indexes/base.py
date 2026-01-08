@@ -950,7 +950,9 @@ class Index(IndexOpsMixin, PandasObject):
             
             raise AttributeError("Can only use .str accessor with string values!")
 
-        raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
+        raise AttributeError(
+            f"'{type(self).__name__}' object has no attribute '{name}'"
+        )
 
     # --------------------------------------------------------------------
     # Array-Like Methods
