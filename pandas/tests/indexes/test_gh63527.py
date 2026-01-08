@@ -62,3 +62,4 @@ def test_pyarrow_index_groupby_functionality():
     )
 
     assert result.tolist() == expected_data
+
