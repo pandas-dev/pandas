@@ -230,6 +230,7 @@ def to_pyarrow_type(
     """
     Convert dtype to a pyarrow type instance.
     """
+    import pyarrow as pa
     from pandas.core.dtypes.dtypes import ArrowDtype
     if isinstance(dtype, ArrowDtype):
         return dtype.pyarrow_dtype
