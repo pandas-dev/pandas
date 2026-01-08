@@ -1571,12 +1571,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         if buf is None:
             return result
+        elif hasattr(buf, "write"):
+            buf.write(result)
         else:
-            if hasattr(buf, "write"):
-                buf.write(result)
-            else:
-                with open(buf, "w", encoding="utf-8") as f:
-                    f.write(result)
+            with open(buf, "w", encoding="utf-8") as f:
+                f.write(result)
         return None
 
     @overload
@@ -1876,6 +1875,20 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Returns
         -------
         Series
+
+        See Also
+        --------
+        DataFrame.from_arrow : Construct a DataFrame from an Arrow object.
+
+        Examples
+        --------
+        >>> import pyarrow as pa
+        >>> arrow_array = pa.array([1, 2, 3])
+        >>> pd.Series.from_arrow(arrow_array)
+        0    1
+        1    2
+        2    3
+        dtype: int64
         """
         pa = import_optional_dependency("pyarrow", min_version="14.0.0")
         if not isinstance(data, (pa.Array, pa.ChunkedArray)):
@@ -2577,9 +2590,18 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         4    3.0
         dtype: float64
         """
+
         nv.validate_round(args, kwargs)
-        if self.dtype == "object":
-            raise TypeError("Expected numeric dtype, got object instead.")
+
+        if len(self) == 0:
+            return self.copy()
+
+        if is_object_dtype(self.dtype):
+            values = self._values
+            result = lib.map_infer(values, lambda x: round(x, decimals), convert=False)
+            return self._constructor(result, index=self.index, copy=False).__finalize__(
+                self, method="round"
+            )
         new_mgr = self._mgr.round(decimals=decimals)
         return self._constructor_from_mgr(new_mgr, axes=new_mgr.axes).__finalize__(
             self, method="round"
@@ -6427,11 +6449,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         if self._can_hold_na:
             result = remove_na_arraylike(self)
+        elif not inplace:
+            result = self.copy(deep=False)
         else:
-            if not inplace:
-                result = self.copy(deep=False)
-            else:
-                result = self
+            result = self
 
         if ignore_index:
             result.index = default_index(len(result))

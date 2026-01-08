@@ -328,6 +328,28 @@ class TestTimedeltas:
         expected = pd.Timedelta("0 days 00:19:59.999999998")
         assert result == expected
 
+    def test_to_timedelta_unit_round_floats(self):
+        # When the float is round, we give the requested unit
+        #  (or nearest-supported) like we do with integers
+        arr = np.array([45.0], dtype=object)
+        result = to_timedelta(arr, unit="s")
+        expected = to_timedelta([45], unit="s")
+        tm.assert_index_equal(result, expected)
+
+        arr2 = arr.astype(np.float64)
+        result2 = to_timedelta(arr2, unit="s")
+        tm.assert_index_equal(result2, expected)
+
+    def test_to_timedelta_unit_non_round_floats(self):
+        # With non-round floats, we have to give nanosecond
+        arr = np.array([45.5], dtype=object)
+        result = to_timedelta(arr, unit="s")
+        assert result.unit == "ns"
+
+        arr2 = arr.astype(np.float64)
+        result2 = to_timedelta(arr2, unit="s")
+        assert result2.unit == "ns"
+
 
 def test_from_numeric_arrow_dtype(any_numeric_ea_dtype):
     # GH 52425
