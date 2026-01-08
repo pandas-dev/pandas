@@ -928,17 +928,13 @@ class Index(IndexOpsMixin, PandasObject):
         Override to support datetime properties on PyArrow-backed Indexes.
         GH#63527
         """
-        # 1. ALLOWLIST: Only run logic for known Arrow datetime fields
         if name in _ARROW_DATETIME_FIELDS:
-            # Only run for PyArrow-backed datetime indexes (kind 'M' = datetime)
             if hasattr(self.dtype, "pyarrow_dtype") and self.dtype.kind == "M":
                 try:
                     from pandas import Series
-                    # Delegate to Series.dt accessor
                     ser = Series(self)
                     result = getattr(ser.dt, name)
                     
-                    # Unwrap Series back to Index if needed
                     if hasattr(result, "values"):
                         result = result.values
                     
@@ -946,19 +942,14 @@ class Index(IndexOpsMixin, PandasObject):
                 except (AttributeError, TypeError):
                     pass
 
-        # 2. RESTORE .str ACCESSOR ERRORS (Crucial for passing existing tests)
-        # If we reach here with name="str", it means the normal .str accessor failed.
-        # We must re-raise the specific error messages expected by existing tests.
         if name == "str":
-            # Error 1: MultiIndex usage (Test: test_index_str_accessor_multiindex_raises)
             if type(self).__name__ == "MultiIndex":
-                raise AttributeError("Can only use .str accessor with Index, not MultiIndex")
+                raise AttributeError(
+                    "Can only use .str accessor with Index, not MultiIndex"
+                )
             
-            # Error 2: Non-string usage (Test: test_index_str_accessor_non_string_values_raises)
-            # If it were valid string data, the accessor would have worked and skipped __getattr__.
             raise AttributeError("Can only use .str accessor with string values!")
 
-        # 3. FALLBACK: Generic error for everything else
         raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
 
     # --------------------------------------------------------------------
