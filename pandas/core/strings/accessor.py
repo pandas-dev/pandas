@@ -1484,7 +1484,8 @@ class StringMethods(NoNewAttributesMixin):
             )
 
         if regex and isinstance(self._data.array, ArrowStringArray):
-            from re import _parser
+            # error: Module "re" has no attribute "_parser"
+            from re import _parser  # type: ignore[attr-defined]
 
             tokens = _parser.parse(pat)
             if any(
