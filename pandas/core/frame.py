@@ -2741,7 +2741,7 @@ class DataFrame(NDFrame, OpsMixin):
             8 characters and values are repeated.
 
         compression : str or dict, default 'infer'
-            For on-the-fly compression of the output data. If 'infer' and '%s' is
+            For on-the-fly compression of the output data. If 'infer' and 'path' is
             path-like, then detect compression from the following extensions: '.gz',
             '.bz2', '.zip', '.xz', '.zst', '.tar', '.tar.gz', '.tar.xz' or '.tar.bz2'
             (otherwise no compression).
@@ -3615,7 +3615,8 @@ class DataFrame(NDFrame, OpsMixin):
             argument requires ``lxml`` to be installed. Only XSLT 1.0
             scripts and not later versions is currently supported.
         compression : str or dict, default 'infer'
-            For on-the-fly compression of the output data. If 'infer' and '%s' is
+            For on-the-fly compression of the output data. If 'infer' and
+            'path_or_buffer' is
             path-like, then detect compression from the following extensions: '.gz',
             '.bz2', '.zip', '.xz', '.zst', '.tar', '.tar.gz', '.tar.xz' or '.tar.bz2'
             (otherwise no compression).
