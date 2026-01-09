@@ -77,7 +77,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.errors.IncompatibleFrequency SA01,SS06,EX01" \
         -i "pandas.api.extensions.ExtensionArray.value_counts EX01,RT03,SA01" \
         -i "pandas.api.typing.Resampler.quantile PR01,PR07" \
-        -i "pandas.StringDtype.storage SA01" \
         -i "pandas.tseries.offsets.BDay PR02,SA01" \
         -i "pandas.tseries.offsets.BHalfYearBegin.n GL08" \
         -i "pandas.tseries.offsets.BHalfYearBegin.rule_code GL08" \
