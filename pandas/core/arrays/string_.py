@@ -178,6 +178,10 @@ class StringDtype(StorageExtensionDtype):
 
         Can be either "pyarrow" or "python".
 
+        See Also
+        --------
+        StringDtype.na_value : The missing value for this dtype.
+
         Examples
         --------
         >>> ser = pd.Series(["a", "b"])
