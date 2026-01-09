@@ -4199,6 +4199,34 @@ cdef class FY5253Mixin(SingleConstructorOffset):
             return "L"
 
     def get_rule_code_suffix(self) -> str:
+        """
+        Return the suffix component of the rule code.
+
+        The suffix combines the variation prefix, starting month abbreviation,
+        and weekday abbreviation into a string format.
+
+        Returns
+        -------
+        str
+            Suffix string in the format "{variation}-{month}-{weekday}".
+            The variation is "N" for nearest or "L" for last.
+
+        See Also
+        --------
+        FY5253.rule_code : Return the complete rule code string.
+        FY5253Quarter.rule_code : Return the complete rule code string for
+            FY5253Quarter.
+
+        Examples
+        --------
+        >>> offset = pd.offsets.FY5253(weekday=4, startingMonth=12, variation="nearest")
+        >>> offset.get_rule_code_suffix()
+        'N-DEC-FRI'
+
+        >>> offset = pd.offsets.FY5253(weekday=0, startingMonth=1, variation="last")
+        >>> offset.get_rule_code_suffix()
+        'L-JAN-MON'
+        """
         prefix = self._get_suffix_prefix()
         month = MONTH_ALIASES[self.startingMonth]
         weekday = int_to_weekday[self.weekday]
