@@ -544,7 +544,7 @@ class Block(PandasObject, libinternals.Block):
         for blk in blks:
             # Determine dtype column by column
             sub_blks = (
-                [blk] if blk.ndim == 1 or self.shape[0] == 1 else list(blk._split())
+                [blk] if blk.ndim == 1 or blk.shape[0] == 1 else list(blk._split())
             )
             dtypes = [
                 convert_dtypes(
