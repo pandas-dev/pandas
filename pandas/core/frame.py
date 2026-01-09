@@ -3121,7 +3121,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame(data={{"col1": [1, 2], "col2": [3, 4]}})
+        >>> df = pd.DataFrame(data={"col1": [1, 2], "col2": [3, 4]})
         >>> df.to_parquet("df.parquet.gzip", compression="gzip")  # doctest: +SKIP
         >>> pd.read_parquet("df.parquet.gzip")  # doctest: +SKIP
            col1  col2
