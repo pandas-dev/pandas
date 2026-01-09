@@ -8454,7 +8454,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return result
 
     @final
-    @doc(klass=_shared_doc_kwargs["klass"])
     def asfreq(
         self,
         freq: Frequency,
@@ -8469,8 +8468,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Returns the original data conformed to a new index with the specified
         frequency.
 
-        If the index of this {klass} is a :class:`~pandas.PeriodIndex`, the new index
-        is the result of transforming the original index with
+        If the index of this Series/DataFrame is a :class:`~pandas.PeriodIndex`, the
+        new index is the result of transforming the original index with
         :meth:`PeriodIndex.asfreq <pandas.PeriodIndex.asfreq>` (so the original index
         will map one-to-one to the new index).
 
@@ -8506,8 +8505,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Returns
         -------
-        {klass}
-            {klass} object reindexed to the specified frequency.
+        Series/DataFrame
+            Series/DataFrame object reindexed to the specified frequency.
 
         See Also
         --------
@@ -8524,7 +8523,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         >>> index = pd.date_range("1/1/2000", periods=4, freq="min")
         >>> series = pd.Series([0.0, None, 2.0, 3.0], index=index)
-        >>> df = pd.DataFrame({{"s": series}})
+        >>> df = pd.DataFrame({"s": series})
         >>> df
                                s
         2000-01-01 00:00:00    0.0
@@ -8725,7 +8724,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return self.take(indexer, axis=axis)
 
     @final
-    @doc(klass=_shared_doc_kwargs["klass"])
     def resample(
         self,
         rule,
@@ -8803,8 +8801,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         --------
         Series.resample : Resample a Series.
         DataFrame.resample : Resample a DataFrame.
-        groupby : Group {klass} by mapping, function, label, or list of labels.
-        asfreq : Reindex a {klass} with the given frequency without grouping.
+        groupby : Group Series/DataFrame by mapping, function, label, or list of labels.
+        asfreq : Reindex a Series/DataFrame with the given frequency without grouping.
 
         Notes
         -----
@@ -9349,10 +9347,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return diff
 
     @final
-    @doc(
-        klass=_shared_doc_kwargs["klass"],
-        axes_single_arg=_shared_doc_kwargs["axes_single_arg"],
-    )
     def align(
         self,
         other: NDFrameT,
@@ -9404,7 +9398,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Returns
         -------
-        tuple of ({klass}, type of other)
+        tuple of (Series/DataFrame, type of other)
             Aligned objects.
 
         See Also
@@ -9803,13 +9797,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             return result.__finalize__(self)
 
     @final
-    @doc(
-        klass=_shared_doc_kwargs["klass"],
-        cond="True",
-        cond_rev="False",
-        name="where",
-        name_other="mask",
-    )
     def where(
         self,
         cond,
@@ -9820,22 +9807,22 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         level: Level | None = None,
     ) -> Self:
         """
-        Replace values where the condition is {cond_rev}.
+        Replace values where the condition is False.
 
         Parameters
         ----------
-        cond : bool {klass}, array-like, or callable
-            Where `cond` is {cond}, keep the original value. Where
-            {cond_rev}, replace with corresponding value from `other`.
-            If `cond` is callable, it is computed on the {klass} and
-            should return boolean {klass} or array. The callable must
-            not change input {klass} (though pandas doesn't check it).
-        other : scalar, {klass}, or callable
-            Entries where `cond` is {cond_rev} are replaced with
+        cond : bool Series/DataFrame, array-like, or callable
+            Where `cond` is True, keep the original value. Where
+            False, replace with corresponding value from `other`.
+            If `cond` is callable, it is computed on the Series/DataFrame and
+            should return boolean Series/DataFrame or array. The callable must
+            not change input Series/DataFrame (though pandas doesn't check it).
+        other : scalar, Series/DataFrame, or callable
+            Entries where `cond` is False are replaced with
             corresponding value from `other`.
-            If other is callable, it is computed on the {klass} and
-            should return scalar or {klass}. The callable must not
-            change input {klass} (though pandas doesn't check it).
+            If other is callable, it is computed on the Series/DataFrame and
+            should return scalar or Series/DataFrame. The callable must not
+            change input Series/DataFrame (though pandas doesn't check it).
             If not specified, entries will be filled with the corresponding
             NULL value (``np.nan`` for numpy dtypes, ``pd.NA`` for extension
             dtypes).
@@ -9855,25 +9842,23 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         See Also
         --------
-        :func:`DataFrame.{name_other}` : Return an object of same shape as
-            caller.
-        :func:`Series.{name_other}` : Return an object of same shape as
-            caller.
+        :func:`DataFrame.mask` : Return an object of same shape as caller.
+        :func:`Series.mask` : Return an object of same shape as caller.
 
         Notes
         -----
-        The {name} method is an application of the if-then idiom. For each
-        element in the caller, if ``cond`` is ``{cond}`` the
+        The where method is an application of the if-then idiom. For each
+        element in the caller, if ``cond`` is ``True`` the
         element is used; otherwise the corresponding element from
         ``other`` is used. If the axis of ``other`` does not align with axis of
-        ``cond`` {klass}, the values of ``cond`` on misaligned index positions
-        will be filled with {cond_rev}.
+        ``cond`` Series/DataFrame, the values of ``cond`` on misaligned index positions
+        will be filled with False.
 
         The signature for :func:`Series.where` or
         :func:`DataFrame.where` differs from :func:`numpy.where`.
         Roughly ``df1.where(m, df2)`` is equivalent to ``np.where(m, df1, df2)``.
 
-        For further details and examples see the ``{name}`` documentation in
+        For further details and examples see the ``where`` documentation in
         :ref:`indexing <indexing.where_mask>`.
 
         The dtype of the object takes precedence. The fill value is casted to
@@ -9976,14 +9961,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return self._where(cond, other, inplace=inplace, axis=axis, level=level)
 
     @final
-    @doc(
-        where,
-        klass=_shared_doc_kwargs["klass"],
-        cond="False",
-        cond_rev="True",
-        name="mask",
-        name_other="where",
-    )
     def mask(
         self,
         cond,
@@ -9993,6 +9970,145 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: Axis | None = None,
         level: Level | None = None,
     ) -> Self:
+        """
+        Replace values where the condition is True.
+
+        Parameters
+        ----------
+        cond : bool Series/DataFrame, array-like, or callable
+            Where `cond` is False, keep the original value. Where
+            True, replace with corresponding value from `other`.
+            If `cond` is callable, it is computed on the Series/DataFrame and
+            should return boolean Series/DataFrame or array. The callable must
+            not change input Series/DataFrame (though pandas doesn't check it).
+        other : scalar, Series/DataFrame, or callable
+            Entries where `cond` is True are replaced with
+            corresponding value from `other`.
+            If other is callable, it is computed on the Series/DataFrame and
+            should return scalar or Series/DataFrame. The callable must not
+            change input Series/DataFrame (though pandas doesn't check it).
+            If not specified, entries will be filled with the corresponding
+            NULL value (``np.nan`` for numpy dtypes, ``pd.NA`` for extension
+            dtypes).
+        inplace : bool, default False
+            Whether to perform the operation in place on the data.
+        axis : int, default None
+            Alignment axis if needed. For `Series` this parameter is
+            unused and defaults to 0.
+        level : int, default None
+            Alignment level if needed.
+
+        Returns
+        -------
+        Series or DataFrame
+            When applied to a Series, the function will return a Series,
+            and when applied to a DataFrame, it will return a DataFrame.
+
+        See Also
+        --------
+        :func:`DataFrame.where` : Return an object of same shape as caller.
+        :func:`Series.where` : Return an object of same shape as caller.
+
+        Notes
+        -----
+        The mask method is an application of the if-then idiom. For each
+        element in the caller, if ``cond`` is ``False`` the
+        element is used; otherwise the corresponding element from
+        ``other`` is used. If the axis of ``other`` does not align with axis of
+        ``cond`` Series/DataFrame, the values of ``cond`` on misaligned index positions
+        will be filled with True.
+
+        The signature for :func:`Series.where` or
+        :func:`DataFrame.where` differs from :func:`numpy.where`.
+        Roughly ``df1.where(m, df2)`` is equivalent to ``np.where(m, df1, df2)``.
+
+        For further details and examples see the ``mask`` documentation in
+        :ref:`indexing <indexing.where_mask>`.
+
+        The dtype of the object takes precedence. The fill value is casted to
+        the object's dtype, if this can be done losslessly.
+
+        Examples
+        --------
+        >>> s = pd.Series(range(5))
+        >>> s.where(s > 0)
+        0    NaN
+        1    1.0
+        2    2.0
+        3    3.0
+        4    4.0
+        dtype: float64
+        >>> s.mask(s > 0)
+        0    0.0
+        1    NaN
+        2    NaN
+        3    NaN
+        4    NaN
+        dtype: float64
+
+        >>> s = pd.Series(range(5))
+        >>> t = pd.Series([True, False])
+        >>> s.where(t, 99)
+        0     0
+        1    99
+        2    99
+        3    99
+        4    99
+        dtype: int64
+        >>> s.mask(t, 99)
+        0    99
+        1     1
+        2    99
+        3    99
+        4    99
+        dtype: int64
+
+        >>> s.where(s > 1, 10)
+        0    10
+        1    10
+        2    2
+        3    3
+        4    4
+        dtype: int64
+        >>> s.mask(s > 1, 10)
+        0     0
+        1     1
+        2    10
+        3    10
+        4    10
+        dtype: int64
+
+        >>> df = pd.DataFrame(np.arange(10).reshape(-1, 2), columns=["A", "B"])
+        >>> df
+           A  B
+        0  0  1
+        1  2  3
+        2  4  5
+        3  6  7
+        4  8  9
+        >>> m = df % 3 == 0
+        >>> df.where(m, -df)
+           A  B
+        0  0 -1
+        1 -2  3
+        2 -4 -5
+        3  6 -7
+        4 -8  9
+        >>> df.where(m, -df) == np.where(m, df, -df)
+              A     B
+        0  True  True
+        1  True  True
+        2  True  True
+        3  True  True
+        4  True  True
+        >>> df.where(m, -df) == df.mask(~m, -df)
+              A     B
+        0  True  True
+        1  True  True
+        2  True  True
+        3  True  True
+        4  True  True
+        """
         inplace = validate_bool_kwarg(inplace, "inplace")
         if inplace:
             if not CHAINED_WARNING_DISABLED:
@@ -10020,7 +10136,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             level=level,
         )
 
-    @doc(klass=_shared_doc_kwargs["klass"])
     def shift(
         self,
         periods: int | Sequence[int] = 1,
@@ -10071,7 +10186,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Returns
         -------
-        {klass}
+        Series/DataFrame
             Copy of input object, shifted.
 
         See Also
@@ -10390,7 +10505,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return result
 
     @final
-    @doc(klass=_shared_doc_kwargs["klass"])
     def tz_convert(
         self,
         tz,
@@ -10426,7 +10540,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Returns
         -------
-        {klass}
+        Series/DataFrame
             Object with time zone converted axis.
 
         Raises
@@ -10490,7 +10604,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return result.__finalize__(self, method="tz_convert")
 
     @final
-    @doc(klass=_shared_doc_kwargs["klass"])
     def tz_localize(
         self,
         tz,
@@ -10560,7 +10673,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Returns
         -------
-        {klass}
+        Series/DataFrame
             Same type as the input, with time zone naive or aware index, depending on
             ``tz``.
 
@@ -11624,10 +11737,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return self.index[idxpos]
 
     @final
-    @doc(position="first", klass=_shared_doc_kwargs["klass"])
     def first_valid_index(self) -> Hashable:
         """
-        Return index for {position} non-missing value or None, if no value is found.
+        Return index for first non-missing value or None, if no value is found.
 
         See the :ref:`User Guide <missing_data>` for more information
         on which values are considered missing.
@@ -11635,7 +11747,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Returns
         -------
         type of index
-            Index of {position} non-missing value.
+            Index of first non-missing value.
 
         See Also
         --------
@@ -11673,7 +11785,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         For DataFrame:
 
-        >>> df = pd.DataFrame({{"A": [None, None, 2], "B": [None, 3, 4]}})
+        >>> df = pd.DataFrame({"A": [None, None, 2], "B": [None, 3, 4]})
         >>> df
              A      B
         0  NaN    NaN
@@ -11684,7 +11796,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> df.last_valid_index()
         2
 
-        >>> df = pd.DataFrame({{"A": [None, None, None], "B": [None, None, None]}})
+        >>> df = pd.DataFrame({"A": [None, None, None], "B": [None, None, None]})
         >>> df
              A      B
         0  None   None
@@ -11712,8 +11824,90 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return self._find_valid_index(how="first")
 
     @final
-    @doc(first_valid_index, position="last", klass=_shared_doc_kwargs["klass"])
     def last_valid_index(self) -> Hashable:
+        """
+        Return index for last non-missing value or None, if no value is found.
+
+        See the :ref:`User Guide <missing_data>` for more information
+        on which values are considered missing.
+
+        Returns
+        -------
+        type of index
+            Index of last non-missing value.
+
+        See Also
+        --------
+        DataFrame.first_valid_index : Return index for first non-NA value or None, if
+            no non-NA value is found.
+        Series.first_valid_index : Return index for first non-NA value or None, if no
+            non-NA value is found.
+        DataFrame.isna : Detect missing values.
+
+        Examples
+        --------
+        For Series:
+
+        >>> s = pd.Series([None, 3, 4])
+        >>> s.first_valid_index()
+        1
+        >>> s.last_valid_index()
+        2
+
+        >>> s = pd.Series([None, None])
+        >>> print(s.first_valid_index())
+        None
+        >>> print(s.last_valid_index())
+        None
+
+        If all elements in Series are NA/null, returns None.
+
+        >>> s = pd.Series()
+        >>> print(s.first_valid_index())
+        None
+        >>> print(s.last_valid_index())
+        None
+
+        If Series is empty, returns None.
+
+        For DataFrame:
+
+        >>> df = pd.DataFrame({"A": [None, None, 2], "B": [None, 3, 4]})
+        >>> df
+             A      B
+        0  NaN    NaN
+        1  NaN    3.0
+        2  2.0    4.0
+        >>> df.first_valid_index()
+        1
+        >>> df.last_valid_index()
+        2
+
+        >>> df = pd.DataFrame({"A": [None, None, None], "B": [None, None, None]})
+        >>> df
+             A      B
+        0  None   None
+        1  None   None
+        2  None   None
+        >>> print(df.first_valid_index())
+        None
+        >>> print(df.last_valid_index())
+        None
+
+        If all elements in DataFrame are NA/null, returns None.
+
+        >>> df = pd.DataFrame()
+        >>> df
+        Empty DataFrame
+        Columns: []
+        Index: []
+        >>> print(df.first_valid_index())
+        None
+        >>> print(df.last_valid_index())
+        None
+
+        If DataFrame is empty, returns None.
+        """
         return self._find_valid_index(how="last")
 
 
