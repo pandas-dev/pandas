@@ -11188,9 +11188,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             For datetime, timedelta, or period data, etc. :attr:`NaT` is used.
             For extension dtypes, ``self.dtype.na_value`` is used.
         suffix : str, optional
-            If str and periods is an iterable, this is added after the column
+            If str and `periods` is an iterable, this is added after the column
             name and before the shift value for each shifted column name.
-            For example, if `suffix='_shift', periods=[1, -1]`, and the column is
+            For example, if ``suffix='_shift', periods=[1, -1]``, and the column is
             named `n`, the resulting columns will be named `n_shift_1`
             and `n_shift_-1`.
 
