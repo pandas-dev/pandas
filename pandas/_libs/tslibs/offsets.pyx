@@ -2198,7 +2198,47 @@ cdef class BusinessHour(BusinessMixin):
     _adjust_dst = False
 
     cdef readonly:
-        tuple start, end
+        tuple _start, _end
+
+    @property
+    def start(self):
+        """
+        Return the start time(s) of the business hour.
+
+        This property returns a tuple of `datetime.time` objects representing
+        the start times of business hours.
+
+        See Also
+        --------
+        BusinessHour.end : Return the end time(s) of the business hour.
+        CustomBusinessHour.end : Return the end time(s) of the custom business hour.
+
+        Examples
+        --------
+        >>> pd.offsets.BusinessHour().start
+        (datetime.time(9, 0),)
+        """
+        return self._start
+
+    @property
+    def end(self):
+        """
+        Return the end time(s) of the business hour.
+
+        This property returns a tuple of `datetime.time` objects representing
+        the end times of business hours.
+
+        See Also
+        --------
+        BusinessHour.start : Return the start time(s) of the business hour.
+        CustomBusinessHour.start : Return the start time(s) of the custom business hour.
+
+        Examples
+        --------
+        >>> pd.offsets.BusinessHour().end
+        (datetime.time(17, 0),)
+        """
+        return self._end
 
     def __init__(
             self, n=1, normalize=False, start="09:00", end="17:00", offset=timedelta(0)
@@ -2246,16 +2286,16 @@ cdef class BusinessHour(BusinessMixin):
                 "one another"
             )
 
-        self.start = start
-        self.end = end
+        self._start = start
+        self._end = end
 
     cpdef __setstate__(self, state):
         start = state.pop("start")
         start = (start,) if np.ndim(start) == 0 else tuple(start)
         end = state.pop("end")
         end = (end,) if np.ndim(end) == 0 else tuple(end)
-        self.start = start
-        self.end = end
+        self._start = start
+        self._end = end
 
         state.pop("kwds", {})
         state.pop("next_bday", None)
@@ -2266,7 +2306,7 @@ cdef class BusinessHour(BusinessMixin):
         # Use python string formatting to be faster than strftime
         hours = ",".join(
             f"{st.hour:02d}:{st.minute:02d}-{en.hour:02d}:{en.minute:02d}"
-            for st, en in zip(self.start, self.end, strict=True)
+            for st, en in zip(self._start, self._end, strict=True)
         )
         attrs = [f"{self._prefix}={hours}"]
         out += ": " + ", ".join(attrs)
@@ -2296,10 +2336,10 @@ cdef class BusinessHour(BusinessMixin):
         result : datetime
             Corresponding closing time.
         """
-        for i, st in enumerate(self.start):
+        for i, st in enumerate(self._start):
             if st.hour == dt.hour and st.minute == dt.minute:
                 return dt + timedelta(
-                    seconds=self._get_business_hours_by_sec(st, self.end[i])
+                    seconds=self._get_business_hours_by_sec(st, self._end[i])
                 )
         assert False
 
@@ -2346,8 +2386,8 @@ cdef class BusinessHour(BusinessMixin):
         result : datetime
             Next opening time.
         """
-        earliest_start = self.start[0]
-        latest_start = self.start[-1]
+        earliest_start = self._start[0]
+        latest_start = self._start[-1]
 
         if self.n == 0:
             is_same_sign = sign > 0
@@ -2369,7 +2409,7 @@ cdef class BusinessHour(BusinessMixin):
                     hour, minute = earliest_start.hour, earliest_start.minute
                 else:
                     # find earliest starting time no earlier than current time
-                    for st in self.start:
+                    for st in self._start:
                         if other.time() <= st:
                             hour, minute = st.hour, st.minute
                             break
@@ -2380,7 +2420,7 @@ cdef class BusinessHour(BusinessMixin):
                     hour, minute = latest_start.hour, latest_start.minute
                 else:
                     # find latest starting time no later than current time
-                    for st in reversed(self.start):
+                    for st in reversed(self._start):
                         if other.time() >= st:
                             hour, minute = st.hour, st.minute
                             break
@@ -2450,10 +2490,10 @@ cdef class BusinessHour(BusinessMixin):
 
         # adjust other to reduce number of cases to handle
         if n >= 0:
-            if other.time() in self.end or not self._is_on_offset(other):
+            if other.time() in self._end or not self._is_on_offset(other):
                 other = self._next_opening_time(other)
         else:
-            if other.time() in self.start:
+            if other.time() in self._start:
                 # adjustment to move to previous business day
                 other = other - timedelta(seconds=1)
             if not self._is_on_offset(other):
@@ -2463,7 +2503,7 @@ cdef class BusinessHour(BusinessMixin):
         # get total business hours by sec in one business day
         businesshours = sum(
             self._get_business_hours_by_sec(st, en)
-            for st, en in zip(self.start, self.end, strict=True)
+            for st, en in zip(self._start, self._end, strict=True)
         )
 
         bd, r = divmod(abs(n * 60), businesshours // 60)
@@ -2556,9 +2596,9 @@ cdef class BusinessHour(BusinessMixin):
             op = self._next_opening_time(dt)
         span = (dt - op).total_seconds()
         businesshours = 0
-        for i, st in enumerate(self.start):
+        for i, st in enumerate(self._start):
             if op.hour == st.hour and op.minute == st.minute:
-                businesshours = self._get_business_hours_by_sec(st, self.end[i])
+                businesshours = self._get_business_hours_by_sec(st, self._end[i])
         if span <= businesshours:
             return True
         else:
