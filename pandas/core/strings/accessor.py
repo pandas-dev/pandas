@@ -1487,7 +1487,8 @@ class StringMethods(NoNewAttributesMixin):
             # error: Module "re" has no attribute "_parser"
             from re import _parser  # type: ignore[attr-defined]
 
-            tokens = _parser.parse(pat)
+            str_pat = pat.pattern if isinstance(pat, re.Pattern) else pat
+            tokens = _parser.parse(str_pat)
             if any(
                 op_code in [_parser.ASSERT_NOT, _parser.ASSERT] for op_code, _ in tokens
             ):
