@@ -6,11 +6,17 @@ import pandas._testing as tm
 
 
 def no_nans(x):
-    return x.notna().all().all()
+    if isinstance(x, Series):
+        return x.notna().all()
+    else:
+        return x.notna().all().all()
 
 
 def all_na(x):
-    return x.isnull().all().all()
+    if isinstance(x, Series):
+        return x.isnull().all()
+    else:
+        return x.isnull().all().all()
 
 
 @pytest.mark.parametrize("f", [lambda v: Series(v).sum(), np.nansum, np.sum])
@@ -32,7 +38,7 @@ def test_expanding_apply_consistency_sum_nans(request, all_data, min_periods, f)
 @pytest.mark.parametrize("ddof", [0, 1])
 def test_moments_consistency_var(all_data, min_periods, ddof):
     var_x = all_data.expanding(min_periods=min_periods).var(ddof=ddof)
-    assert not (var_x < 0).any().any()
+    assert not (var_x < 0).any(axis=None)
 
     if ddof == 0:
         # check that biased var(x) == mean(x^2) - mean(x)^2
@@ -47,7 +53,7 @@ def test_moments_consistency_var_constant(consistent_data, min_periods, ddof):
     var_x = consistent_data.expanding(min_periods=min_periods).var(ddof=ddof)
 
     # check that variance of constant series is identically 0
-    assert not (var_x > 0).any().any()
+    assert not (var_x > 0).any(axis=None)
     expected = consistent_data * np.nan
     expected[count_x >= max(min_periods, 1)] = 0.0
     if ddof == 1:
@@ -58,16 +64,16 @@ def test_moments_consistency_var_constant(consistent_data, min_periods, ddof):
 @pytest.mark.parametrize("ddof", [0, 1])
 def test_expanding_consistency_var_std_cov(all_data, min_periods, ddof):
     var_x = all_data.expanding(min_periods=min_periods).var(ddof=ddof)
-    assert not (var_x < 0).any().any()
+    assert not (var_x < 0).any(axis=None)
 
     std_x = all_data.expanding(min_periods=min_periods).std(ddof=ddof)
-    assert not (std_x < 0).any().any()
+    assert not (std_x < 0).any(axis=None)
 
     # check that var(x) == std(x)^2
     tm.assert_equal(var_x, std_x * std_x)
 
     cov_x_x = all_data.expanding(min_periods=min_periods).cov(all_data, ddof=ddof)
-    assert not (cov_x_x < 0).any().any()
+    assert not (cov_x_x < 0).any(axis=None)
 
     # check that var(x) == cov(x, x)
     tm.assert_equal(var_x, cov_x_x)

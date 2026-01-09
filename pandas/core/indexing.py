@@ -894,7 +894,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         ):
             # GH#38148
             keys = self.obj.columns.union(key, sort=False)
-            diff = Index(key).difference(self.obj.columns, sort=False)
+            diff = Index(key, copy=False).difference(self.obj.columns, sort=False)
 
             if len(diff):
                 # e.g. if we are doing df.loc[:, ["A", "B"]] = 7 and "B"

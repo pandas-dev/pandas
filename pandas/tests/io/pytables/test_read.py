@@ -181,12 +181,6 @@ def test_read_hdf_open_store(tmp_path, setup_path, using_infer_string):
     df = df.set_index(keys="E", append=True)
 
     path = tmp_path / setup_path
-    if using_infer_string:
-        # TODO(infer_string) make this work for string dtype
-        msg = "Saving a MultiIndex with an extension dtype is not supported."
-        with pytest.raises(NotImplementedError, match=msg):
-            df.to_hdf(path, key="df", mode="w")
-        return
     df.to_hdf(path, key="df", mode="w")
     direct = read_hdf(path, "df")
     with HDFStore(path, mode="r") as store:

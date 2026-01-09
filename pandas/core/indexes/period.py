@@ -101,8 +101,13 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         One of pandas period strings or corresponding objects.
     dtype : str or PeriodDtype, default None
         A dtype from which to extract a freq.
-    copy : bool
-        Make a copy of input ndarray.
+    copy : bool, default None
+        Whether to copy input data, only relevant for array, Series, and Index
+        inputs (for other input, e.g. a list, a new array is created anyway).
+        Defaults to True for array input and False for Index/Series.
+        Set to False to avoid copying array input at your own risk (if you
+        know the input data won't be modified elsewhere).
+        Set to True to force copying Series/Index input up front.
     name : str, default None
         Name of the resulting PeriodIndex.
 
@@ -200,17 +205,17 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     @property
     @doc(PeriodArray.hour.fget)
     def hour(self) -> Index:
-        return Index(self._data.hour, name=self.name)
+        return Index(self._data.hour, name=self.name, copy=False)
 
     @property
     @doc(PeriodArray.minute.fget)
     def minute(self) -> Index:
-        return Index(self._data.minute, name=self.name)
+        return Index(self._data.minute, name=self.name, copy=False)
 
     @property
     @doc(PeriodArray.second.fget)
     def second(self) -> Index:
-        return Index(self._data.second, name=self.name)
+        return Index(self._data.second, name=self.name, copy=False)
 
     # ------------------------------------------------------------------------
     # Index Constructors
@@ -220,7 +225,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         data=None,
         freq=None,
         dtype: Dtype | None = None,
-        copy: bool = False,
+        copy: bool | None = None,
         name: Hashable | None = None,
     ) -> Self:
         refs = None
@@ -230,6 +235,9 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         name = maybe_extract_name(name, data, cls)
 
         freq = validate_dtype_freq(dtype, freq)
+
+        # GH#63388
+        data, copy = cls._maybe_copy_array_input(data, copy, dtype)
 
         # PeriodIndex allow PeriodIndex(period_index, freq=different)
         # Let's not encourage that kind of behavior in PeriodArray.
@@ -402,7 +410,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
             Array of booleans where data is not NA.
         """
         if isinstance(where, DatetimeIndex):
-            where = PeriodIndex(where._values, freq=self.freq)
+            where = PeriodIndex(where._values, freq=self.freq, copy=False)
         elif not isinstance(where, PeriodIndex):
             raise TypeError("asof_locs `where` must be DatetimeIndex or PeriodIndex")
 
@@ -617,4 +625,4 @@ def period_range(
     data, freq = PeriodArray._generate_range(start, end, periods, freq)
     dtype = PeriodDtype(freq)
     data = PeriodArray(data, dtype=dtype)
-    return PeriodIndex(data, name=name)
+    return PeriodIndex(data, name=name, copy=False)
