@@ -154,7 +154,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.Day.n GL08" \
         -i "pandas.tseries.offsets.Easter.is_on_offset GL08" \
         -i "pandas.tseries.offsets.Easter.n GL08" \
-        -i "pandas.tseries.offsets.FY5253.get_rule_code_suffix GL08" \
         -i "pandas.tseries.offsets.FY5253.get_year_end GL08" \
         -i "pandas.tseries.offsets.FY5253.is_on_offset GL08" \
         -i "pandas.tseries.offsets.FY5253.n GL08" \
@@ -162,7 +161,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.FY5253.startingMonth GL08" \
         -i "pandas.tseries.offsets.FY5253.variation GL08" \
         -i "pandas.tseries.offsets.FY5253.weekday GL08" \
-        -i "pandas.tseries.offsets.FY5253Quarter.get_rule_code_suffix GL08" \
         -i "pandas.tseries.offsets.FY5253Quarter.get_weeks GL08" \
         -i "pandas.tseries.offsets.FY5253Quarter.is_on_offset GL08" \
         -i "pandas.tseries.offsets.FY5253Quarter.n GL08" \
