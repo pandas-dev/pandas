@@ -5164,8 +5164,43 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         else:
             return self._set_name(index, inplace=inplace)
 
-    @Appender(
+    def set_axis(
+        self,
+        labels,
+        *,
+        axis: Axis = 0,
+        copy: bool | lib.NoDefault = lib.no_default,
+    ) -> Series:
         """
+        Assign desired index to given axis.
+        Indexes for row labels can be changed by assigning
+        a list-like or Index.
+        Parameters
+        ----------
+        labels : list-like, Index
+            The values for the new index.
+        axis : {0 or 'index'}, default 0
+            The axis to update. The value 0 identifies the rows. For `Series`
+            this parameter is unused and defaults to 0.
+        copy : bool, default False
+            This keyword is now ignored; changing its value will have no
+            impact on the method.
+            .. deprecated:: 3.0.0
+                This keyword is ignored and will be removed in pandas 4.0. Since
+                pandas 3.0, this method always returns a new object using a lazy
+                copy mechanism that defers copies until necessary
+                (Copy-on-Write). See the `user guide on Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                for more details.
+
+        Returns
+        -------
+        Series
+            An object of type Series.
+        See Also
+        --------
+        Series.rename_axis : Alter the name of the index.
+
         Examples
         --------
         >>> s = pd.Series([1, 2, 3])
@@ -5174,29 +5209,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         1    2
         2    3
         dtype: int64
-
         >>> s.set_axis(['a', 'b', 'c'], axis=0)
         a    1
         b    2
         c    3
         dtype: int64
-    """
-    )
-    @Substitution(
-        klass=_shared_doc_kwargs["klass"],
-        axes_single_arg=_shared_doc_kwargs["axes_single_arg"],
-        extended_summary_sub="",
-        axis_description_sub="",
-        see_also_sub="",
-    )
-    @Appender(NDFrame.set_axis.__doc__)
-    def set_axis(
-        self,
-        labels,
-        *,
-        axis: Axis = 0,
-        copy: bool | lib.NoDefault = lib.no_default,
-    ) -> Series:
+        """
+
         return super().set_axis(labels, axis=axis, copy=copy)
 
     # error: Cannot determine type of 'reindex'
