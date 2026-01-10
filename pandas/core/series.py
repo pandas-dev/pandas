@@ -53,6 +53,7 @@ from pandas.errors.cow import (
 from pandas.util._decorators import (
     Appender,
     deprecate_nonkeyword_arguments,
+    doc,
     set_module,
 )
 from pandas.util._exceptions import (
@@ -6339,51 +6340,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return NDFrame.isna(self)
 
     # error: Cannot determine type of 'isna'
+    @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])
     def isnull(self) -> Series:
         """
         Series.isnull is an alias for Series.isna.
-
-                Detect missing values.
-
-                Return a boolean same-sized Series indicating if the values are NA.
-                NA values, such as None or :attr:`numpy.NaN`, get mapped to True
-                values.
-                Everything else gets mapped to False values. Characters such as empty
-                strings ``''`` or :attr:`numpy.inf` are not considered NA values.
-
-                Returns
-                -------
-                Series
-                    Mask of bool values for each element in Series that
-                    indicates whether an element is an NA value.
-
-                See Also
-                --------
-                DataFrame.isna : Detect missing values.
-                DataFrame.isnull : Alias of isna.
-                Series.notna : Boolean inverse of isna.
-                DataFrame.notna : Boolean inverse of isna.
-                Series.notnull : Alias of notna.
-                DataFrame.notnull : Alias of notna.
-                Series.dropna : Omit axes labels with missing values.
-                DataFrame.dropna : Omit axes labels with missing values.
-                isna : Top-level isna.
-
-                Examples
-                --------
-                Show which entries in a Series are NA.
-
-                >>> ser = pd.Series([5, 6, np.nan])
-                >>> ser
-                0    5.0
-                1    6.0
-                2    NaN
-                dtype: float64
-                >>> ser.isnull()
-                0    False
-                1    False
-                2     True
-                dtype: bool
         """
         return super().isnull()
 
@@ -6435,51 +6395,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return super().notna()
 
     # error: Cannot determine type of 'notna'
+    @doc(NDFrame.notna, klass=_shared_doc_kwargs["klass"])
     def notnull(self) -> Series:
         """
         Series.notnull is an alias for Series.notna.
-
-                Detect existing (non-missing) values.
-
-                Return a boolean same-sized Series indicating if the values are not NA.
-                Non-missing values get mapped to True. Characters such as empty
-                strings ``''`` or :attr:`numpy.inf` are not considered NA values.
-                NA values, such as None or :attr:`numpy.NaN`, get mapped to False
-                values.
-
-                Returns
-                -------
-                Series
-                    Mask of bool values for each element in Series that
-                    indicates whether an element is not an NA value.
-
-                See Also
-                --------
-                Series.isna : Detect missing values.
-                DataFrame.isna : Detect missing values.
-                Series.isnull : Alias of isna.
-                DataFrame.isnull : Alias of isna.
-                DataFrame.notna : Boolean inverse of isna.
-                DataFrame.notnull : Alias of notna.
-                Series.dropna : Omit axes labels with missing values.
-                DataFrame.dropna : Omit axes labels with missing values.
-                notna : Top-level notna.
-
-                Examples
-                --------
-                Show which entries in a Series are not NA.
-
-                >>> ser = pd.Series([5, 6, np.nan])
-                >>> ser
-                0    5.0
-                1    6.0
-                2    NaN
-                dtype: float64
-                >>> ser.notnull()
-                0     True
-                1     True
-                2    False
-                dtype: bool
         """
         return super().notnull()
 
