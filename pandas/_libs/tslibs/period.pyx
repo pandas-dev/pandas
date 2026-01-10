@@ -1737,13 +1737,13 @@ cdef class PeriodMixin:
     def _require_matching_freq(self, other: BaseOffset, bint base=False):
         # See also arrays.period.raise_on_incompatible
         if base:
-            condition = self._freq.base != other.base
+            condition = self.freq.base != other.base
         else:
-            condition = self._freq != other
+            condition = self.freq != other
 
         if condition:
             freqstr = PeriodDtypeBase(
-                self._freq._period_dtype_code, self._freq.n
+                self.freq._period_dtype_code, self.freq.n
             )._freqstr
             if hasattr(other, "_period_dtype_code"):
                 other_freqstr = PeriodDtypeBase(
