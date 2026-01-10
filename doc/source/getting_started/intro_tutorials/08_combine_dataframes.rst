@@ -1,3 +1,6 @@
+.. Combining datasets is a common task in data analysis workflows.pandas provides powerful tools to merge and join DataFrame objects based on common columns or indexes, similar to SQL-style joins.
+.. In this tutorial, we introduce the basics of combining DataFrames and demonstrate common use cases using simple examples.
+
 .. _10min_tut_08_combine:
 
 {{ header }}
