@@ -8508,7 +8508,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         3   -1.0
         4    0.0
         dtype: float64
+
         By default, NA values are ignored.
+
         >>> s.cummax()
         0    2.0
         1    NaN
@@ -8516,7 +8518,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         3    5.0
         4    5.0
         dtype: float64
+
         To include NA values in the operation, use ``skipna=False``
+
         >>> s.cummax(skipna=False)
         0    2.0
         1    NaN
@@ -8567,7 +8571,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         3   -1.0
         4    0.0
         dtype: float64
+
         By default, NA values are ignored.
+
         >>> s.cumsum()
         0    2.0
         1    NaN
@@ -8575,7 +8581,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         3    6.0
         4    6.0
         dtype: float64
+
         To include NA values in the operation, use ``skipna=False``
+
         >>> s.cumsum(skipna=False)
         0    2.0
         1    NaN
@@ -8627,7 +8635,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         3   -1.0
         4    0.0
         dtype: float64
+
         By default, NA values are ignored.
+
         >>> s.cumprod()
         0     2.0
         1     NaN
@@ -8635,7 +8645,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         3   -10.0
         4    -0.0
         dtype: float64
+
         To include NA values in the operation, use ``skipna=False``
+
         >>> s.cumprod(skipna=False)
         0    2.0
         1    NaN
