@@ -5172,11 +5172,20 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> Series:
         """
         Assign desired index to given axis.
-        Indexes for row labels can be changed by assigning
-        a list-like or Index.
+
+        .. deprecated:: 3.0.0
+            This keyword is ignored and will be removed in pandas 4.0. Since
+            pandas 3.0, this method always returns a new object using a lazy
+            copy mechanism that defers copies until necessary
+            (Copy-on-Write). See the `user guide on Copy-on-Write
+            <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+            for more details.
+
+        Indexes for row labels can be changed by assigning a list-like or Index.
+
         Parameters
         ----------
-        labels : list-like, Index
+        labels : list-like or Index
             The values for the new index.
         axis : {0 or 'index'}, default 0
             The axis to update. The value 0 identifies the rows. For `Series`
@@ -5184,18 +5193,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         copy : bool, default False
             This keyword is now ignored; changing its value will have no
             impact on the method.
-            .. deprecated:: 3.0.0
-                This keyword is ignored and will be removed in pandas 4.0. Since
-                pandas 3.0, this method always returns a new object using a lazy
-                copy mechanism that defers copies until necessary
-                (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
-                for more details.
 
         Returns
         -------
         Series
-            An object of type Series.
+            A shallow copy of the object with axis altered to the given index.
+
         See Also
         --------
         Series.rename_axis : Alter the name of the index.
