@@ -52,7 +52,6 @@ from pandas.errors.cow import (
 )
 from pandas.util._decorators import (
     Appender,
-    Substitution,
     deprecate_nonkeyword_arguments,
     doc,
     set_module,
@@ -5209,7 +5208,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         1    2
         2    3
         dtype: int64
-        >>> s.set_axis(['a', 'b', 'c'], axis=0)
+        >>> s.set_axis(["a", "b", "c"], axis=0)
         a    1
         b    2
         c    3
