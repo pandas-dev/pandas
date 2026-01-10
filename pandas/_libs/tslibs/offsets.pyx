@@ -3224,6 +3224,25 @@ cdef class HalfYearOffset(SingleConstructorOffset):
 
     @property
     def rule_code(self) -> str:
+        """
+        Return a string representing the frequency with month suffix.
+
+        This property generates a rule code string that combines the offset's
+        prefix with the abbreviated month name of the starting month.
+
+        See Also
+        --------
+        FY5253Quarter.get_rule_code_suffix : Return the suffix component of the rule
+            code for FY5253Quarter.
+        FY5253.get_rule_code_suffix : Return the suffix component of the rule code for
+            FY5253.
+
+        Examples
+        --------
+        >>> offset = pd.offsets.BHalfYearEnd(startingMonth=6)
+        >>> offset.rule_code
+        'BHYE-JUN'
+        """
         month = MONTH_ALIASES[self.startingMonth]
         return f"{self._prefix}-{month}"
 
