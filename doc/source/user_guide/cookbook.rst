@@ -246,8 +246,8 @@ Ambiguity arises when an index consists of integers with a non-zero start or non
 
     df = pd.DataFrame({
         'A': range(10),
-		'B': range(10),
-		'C': range(10)
+        'B': range(10),
+        'C': range(10)
     })
 
     window_size = 5
