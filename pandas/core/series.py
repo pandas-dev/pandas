@@ -6341,47 +6341,49 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     # error: Cannot determine type of 'isna'
     def isnull(self) -> Series:
         """
-        Detect missing values.
+        Series.isnull is an alias for Series.isna.
 
-        Return a boolean same-sized Series indicating if the values are NA.
-        NA values, such as None or :attr:`numpy.NaN`, get mapped to True
-        values.
-        Everything else gets mapped to False values. Characters such as empty
-        strings ``''`` or :attr:`numpy.inf` are not considered NA values.
+                Detect missing values.
 
-        Returns
-        -------
-        Series
-            Mask of bool values for each element in Series that
-            indicates whether an element is an NA value.
+                Return a boolean same-sized Series indicating if the values are NA.
+                NA values, such as None or :attr:`numpy.NaN`, get mapped to True
+                values.
+                Everything else gets mapped to False values. Characters such as empty
+                strings ``''`` or :attr:`numpy.inf` are not considered NA values.
 
-        See Also
-        --------
-        DataFrame.isna : Detect missing values.
-        DataFrame.isnull : Alias of isna.
-        Series.notna : Boolean inverse of isna.
-        DataFrame.notna : Boolean inverse of isna.
-        Series.notnull : Alias of notna.
-        DataFrame.notnull : Alias of notna.
-        Series.dropna : Omit axes labels with missing values.
-        DataFrame.dropna : Omit axes labels with missing values.
-        isna : Top-level isna.
+                Returns
+                -------
+                Series
+                    Mask of bool values for each element in Series that
+                    indicates whether an element is an NA value.
 
-        Examples
-        --------
-        Show which entries in a Series are NA.
+                See Also
+                --------
+                DataFrame.isna : Detect missing values.
+                DataFrame.isnull : Alias of isna.
+                Series.notna : Boolean inverse of isna.
+                DataFrame.notna : Boolean inverse of isna.
+                Series.notnull : Alias of notna.
+                DataFrame.notnull : Alias of notna.
+                Series.dropna : Omit axes labels with missing values.
+                DataFrame.dropna : Omit axes labels with missing values.
+                isna : Top-level isna.
 
-        >>> ser = pd.Series([5, 6, np.nan])
-        >>> ser
-        0    5.0
-        1    6.0
-        2    NaN
-        dtype: float64
-        >>> ser.isna()
-        0    False
-        1    False
-        2     True
-        dtype: bool
+                Examples
+                --------
+                Show which entries in a Series are NA.
+
+                >>> ser = pd.Series([5, 6, np.nan])
+                >>> ser
+                0    5.0
+                1    6.0
+                2    NaN
+                dtype: float64
+                >>> ser.isnull()
+                0    False
+                1    False
+                2     True
+                dtype: bool
         """
         return super().isnull()
 
@@ -6435,47 +6437,49 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     # error: Cannot determine type of 'notna'
     def notnull(self) -> Series:
         """
-        Detect existing (non-missing) values.
+        Series.notnull is an alias for Series.notna.
 
-        Return a boolean same-sized Series indicating if the values are not NA.
-        Non-missing values get mapped to True. Characters such as empty
-        strings ``''`` or :attr:`numpy.inf` are not considered NA values.
-        NA values, such as None or :attr:`numpy.NaN`, get mapped to False
-        values.
+                Detect existing (non-missing) values.
 
-        Returns
-        -------
-        Series
-            Mask of bool values for each element in Series that
-            indicates whether an element is not an NA value.
+                Return a boolean same-sized Series indicating if the values are not NA.
+                Non-missing values get mapped to True. Characters such as empty
+                strings ``''`` or :attr:`numpy.inf` are not considered NA values.
+                NA values, such as None or :attr:`numpy.NaN`, get mapped to False
+                values.
 
-        See Also
-        --------
-        Series.isna : Detect missing values.
-        DataFrame.isna : Detect missing values.
-        Series.isnull : Alias of isna.
-        DataFrame.isnull : Alias of isna.
-        DataFrame.notna : Boolean inverse of isna.
-        DataFrame.notnull : Alias of notna.
-        Series.dropna : Omit axes labels with missing values.
-        DataFrame.dropna : Omit axes labels with missing values.
-        notna : Top-level notna.
+                Returns
+                -------
+                Series
+                    Mask of bool values for each element in Series that
+                    indicates whether an element is not an NA value.
 
-        Examples
-        --------
-        Show which entries in a Series are not NA.
+                See Also
+                --------
+                Series.isna : Detect missing values.
+                DataFrame.isna : Detect missing values.
+                Series.isnull : Alias of isna.
+                DataFrame.isnull : Alias of isna.
+                DataFrame.notna : Boolean inverse of isna.
+                DataFrame.notnull : Alias of notna.
+                Series.dropna : Omit axes labels with missing values.
+                DataFrame.dropna : Omit axes labels with missing values.
+                notna : Top-level notna.
 
-        >>> ser = pd.Series([5, 6, np.nan])
-        >>> ser
-        0    5.0
-        1    6.0
-        2    NaN
-        dtype: float64
-        >>> ser.notna()
-        0     True
-        1     True
-        2    False
-        dtype: bool
+                Examples
+                --------
+                Show which entries in a Series are not NA.
+
+                >>> ser = pd.Series([5, 6, np.nan])
+                >>> ser
+                0    5.0
+                1    6.0
+                2    NaN
+                dtype: float64
+                >>> ser.notnull()
+                0     True
+                1     True
+                2    False
+                dtype: bool
         """
         return super().notnull()
 
