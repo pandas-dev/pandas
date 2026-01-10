@@ -6311,7 +6311,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         See Also
         --------
         DataFrame.isna : Detect missing values.
-        Series.isnull: Alias of isna.
         DataFrame.isnull : Alias of isna.
         Series.notna : Boolean inverse of isna.
         DataFrame.notna : Boolean inverse of isna.
@@ -6353,12 +6352,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Returns
         -------
         Series
-            Mask of bool values for each element in the Series
-            that indicates whether an element is an NA value.
+            Mask of bool values for each element in Series that
+            indicates whether an element is an NA value.
 
         See Also
         --------
-        Series.isna : Detect missing values.
         DataFrame.isna : Detect missing values.
         DataFrame.isnull : Alias of isna.
         Series.notna : Boolean inverse of isna.
@@ -6379,7 +6377,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         1    6.0
         2    NaN
         dtype: float64
-        >>> ser.isnull()
+        >>> ser.isna()
         0    False
         1    False
         2     True
@@ -6411,7 +6409,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Series.isnull : Alias of isna.
         DataFrame.isnull : Alias of isna.
         DataFrame.notna : Boolean inverse of isna.
-        Series.notnull : Alias of notna.
         DataFrame.notnull : Alias of notna.
         Series.dropna : Omit axes labels with missing values.
         DataFrame.dropna : Omit axes labels with missing values.
@@ -6449,17 +6446,16 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Returns
         -------
         Series
-            Mask of bool values for each element in Series
-            that indicates whether an element is not an NA value.
+            Mask of bool values for each element in Series that
+            indicates whether an element is not an NA value.
 
         See Also
         --------
-        Series.isna : Boolean inverse of notna.
-        DataFrame.isna : Boolean inverse of notna.
+        Series.isna : Detect missing values.
+        DataFrame.isna : Detect missing values.
         Series.isnull : Alias of isna.
         DataFrame.isnull : Alias of isna.
-        Series.notna : Detect existing (non-missing) values.
-        DataFrame.notna : Detect existing (non-missing) values.
+        DataFrame.notna : Boolean inverse of isna.
         DataFrame.notnull : Alias of notna.
         Series.dropna : Omit axes labels with missing values.
         DataFrame.dropna : Omit axes labels with missing values.
@@ -6468,13 +6464,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Examples
         --------
         Show which entries in a Series are not NA.
+
         >>> ser = pd.Series([5, 6, np.nan])
         >>> ser
         0    5.0
         1    6.0
         2    NaN
         dtype: float64
-        >>> ser.notnull()
+        >>> ser.notna()
         0     True
         1     True
         2    False
