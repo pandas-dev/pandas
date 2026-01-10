@@ -886,13 +886,13 @@ def _match_index_levels(objs: list[Series | DataFrame]) -> list[Series | DataFra
     """
 
     # get MultiIndex objects among inputs
-    multi_indexes = [obj.index for obj in objs]
+    index_names = [obj.index.names for obj in objs]
 
     # detect same set of names but different order
-    base_names = multi_indexes[0].names
+    base_names = index_names[0]
 
-    if all(set(idx.names) == set(base_names) for idx in multi_indexes) and any(
-        idx.names != base_names for idx in multi_indexes
+    if all(set(names) == set(base_names) for names in index_names) and any(
+        names != base_names for names in index_names
     ):
         # reorder input indexes to match first
         new_objs = []
