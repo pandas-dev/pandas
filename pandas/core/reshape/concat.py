@@ -882,7 +882,7 @@ def _match_index_levels(objs: list[Series | DataFrame]) -> list[Series | DataFra
     """Ensure input objects with MultiIndex have consistent level order.
 
     If all inputs have a MultiIndex with the same set of level names,
-    but in a different order, reorder each index to match the first object's level order.
+    but in different order, reorder each index to match the first object's level order.
     """
 
     # get MultiIndex objects among inputs
@@ -892,7 +892,8 @@ def _match_index_levels(objs: list[Series | DataFrame]) -> list[Series | DataFra
     base_names = multi_indexes[0].names
 
     if all(set(idx.names) == set(base_names) for idx in multi_indexes) and any(
-            idx.names != base_names for idx in multi_indexes):
+        idx.names != base_names for idx in multi_indexes
+    ):
         # reorder input indexes to match first
         new_objs = []
 
