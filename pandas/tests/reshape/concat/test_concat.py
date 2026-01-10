@@ -943,6 +943,7 @@ def test_concat_multiindex_with_different_name_order():
     )
     expected = expected.set_index(["c1", "c2"])
     tm.assert_frame_equal(result, expected)
+    assert df2.index.names != expected.index.names  # df2 index names are not mutated
 
 
 def test_concat_ea_upcast():
