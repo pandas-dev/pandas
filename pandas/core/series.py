@@ -7751,7 +7751,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         )
 
     @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="prod")
-    @doc(make_doc("prod", ndim=1))
     def prod(
         self,
         axis: Axis | None = None,
@@ -7760,6 +7759,73 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         min_count: int = 0,
         **kwargs,
     ):
+        """
+        Return the product of the values over the requested axis.
+
+        By default, missing values are skipped. To include them in the calculation,
+        set ``skipna`` parameter to False.
+
+        Parameters
+        ----------
+        axis : {index (0)}
+            Axis for the function to be applied on.
+            For `Series` this parameter is unused and defaults to 0.
+
+            .. warning::
+                The behavior of DataFrame.prod with ``axis=None`` is deprecated,
+                in a future version this will reduce over both axes and return a scalar
+                To retain the old behavior, pass axis=0 (or do not pass axis).
+
+            .. versionadded:: 2.0.0
+        skipna : bool, default True
+            Exclude NA/null values when computing the result.
+        numeric_only : bool, default False
+            Include only float, int, boolean columns. Not implemented for Series.
+        min_count : int, default 0
+            The required number of valid values to perform the operation. If fewer than
+            ``min_count`` non-NA values are present the result will be NA.
+        **kwargs
+            Additional keyword arguments to be passed to the function.
+
+        Returns
+        -------
+        scalar
+            Value containing the calculation referenced in the description.
+
+        See Also
+        --------
+        Series.sum : Return the sum.
+        Series.min : Return the minimum.
+        Series.max : Return the maximum.
+        Series.idxmin : Return the index of the minimum.
+        Series.idxmax : Return the index of the maximum.
+
+        DataFrame.sum : Return the sum over the requested axis.
+        DataFrame.min : Return the minimum over the requested axis.
+        DataFrame.max : Return the maximum over the requested axis.
+        DataFrame.idxmin : Return the index of the minimum over the requested axis.
+        DataFrame.idxmax : Return the index of the maximum over the requested axis.
+
+        Examples
+        --------
+        By default, the product of an empty or all-NA Series is ``1``
+
+        >>> pd.Series([], dtype="float64").prod()
+        1.0
+
+        This can be controlled with the ``min_count`` parameter
+
+        >>> pd.Series([], dtype="float64").prod(min_count=1)
+        nan
+
+        Thanks to the ``skipna`` parameter, ``min_count`` handles all-NA and
+        empty series identically.
+
+        >>> pd.Series([np.nan]).prod()
+        1.0
+        >>> pd.Series([np.nan]).prod(min_count=1)
+        nan
+        """
         return NDFrame.prod(
             self,
             axis=axis,
