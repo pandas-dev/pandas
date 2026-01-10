@@ -3066,7 +3066,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         return self.dot(np.transpose(other))
 
-    @doc(base.IndexOpsMixin.searchsorted, klass="Series")
     # Signature of "searchsorted" incompatible with supertype "IndexOpsMixin"
     def searchsorted(  # type: ignore[override]
         self,
@@ -3074,6 +3073,92 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         side: Literal["left", "right"] = "left",
         sorter: NumpySorter | None = None,
     ) -> npt.NDArray[np.intp] | np.intp:
+        """
+        Find indices where elements should be inserted to maintain order.
+
+        Find the indices into a sorted Series `self` such that, if the
+        corresponding elements in `value` were inserted before the indices,
+        the order of `self` would be preserved.
+
+        .. note::
+            The Series *must* be monotonically sorted, otherwise
+            wrong locations will likely be returned. Pandas does *not*
+            check this for you.
+
+        Parameters
+        ----------
+        value : array-like or scalar
+            Values to insert into `self`.
+        side : {'left', 'right'}, optional
+            If 'left', the index of the first suitable location found is given.
+            If 'right', return the last such index.  If there is no suitable
+            index, return either 0 or N (where N is the length of `self`).
+        sorter : 1-D array-like, optional
+            Optional array of integer indices that sort `self` into ascending
+            order. They are typically the result of ``np.argsort``.
+
+        Returns
+        -------
+        int or array of int
+            A scalar or array of insertion points with the
+            same shape as `value`.
+
+        See Also
+        --------
+        sort_values : Sort by the values along either axis.
+        numpy.searchsorted : Similar method from NumPy.
+
+        Notes
+        -----
+        Binary search is used to find the required insertion points.
+
+        Examples
+        --------
+        >>> ser = pd.Series([1, 2, 3])
+        >>> ser
+        0    1
+        1    2
+        2    3
+        dtype: int64
+        >>> ser.searchsorted(4)
+        np.int64(3)
+        >>> ser.searchsorted([0, 4])
+        array([0, 3])
+        >>> ser.searchsorted([1, 3], side="left")
+        array([0, 2])
+        >>> ser.searchsorted([1, 3], side="right")
+        array([1, 3])
+        >>> ser = pd.Series(pd.to_datetime(["3/11/2000", "3/12/2000", "3/13/2000"]))
+        >>> ser
+        0   2000-03-11
+        1   2000-03-12
+        2   2000-03-13
+        dtype: datetime64[us]
+        >>> ser.searchsorted("3/14/2000")
+        np.int64(3)
+        >>> ser = pd.Categorical(
+        ...     ["apple", "bread", "bread", "cheese", "milk"], ordered=True
+        ... )
+        >>> ser
+        ['apple', 'bread', 'bread', 'cheese', 'milk']
+        Categories (4, str): ['apple' < 'bread' < 'cheese' < 'milk']
+        >>> ser.searchsorted("bread")
+        np.int64(1)
+        >>> ser.searchsorted(["bread"], side="right")
+        array([3])
+
+        If the values are not monotonically sorted, wrong locations
+        may be returned:
+
+        >>> ser = pd.Series([2, 1, 3])
+        >>> ser
+        0    2
+        1    1
+        2    3
+        dtype: int64
+        >>> ser.searchsorted(1)  # doctest: +SKIP
+        0  # wrong result, correct would be 1
+        """
         return base.IndexOpsMixin.searchsorted(self, value, side=side, sorter=sorter)
 
     # -------------------------------------------------------------------
@@ -6220,8 +6305,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Detect missing values.
 
-        Return a boolean same-sized object indicating if the values are NA.
-        NA values, such as None or :attr:`numpy.NaN`, gets mapped to True
+        Return a boolean same-sized Series indicating if the values are NA.
+        NA values, such as None or :attr:`numpy.NaN`, get mapped to True
         values.
         Everything else gets mapped to False values. Characters such as empty
         strings ``''`` or :attr:`numpy.inf` are not considered NA values.
@@ -6234,39 +6319,19 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         See Also
         --------
-        Series.isnull : Alias of isna.
+        DataFrame.isna : Detect missing values.
+        Series.isnull: Alias of isna.
+        DataFrame.isnull : Alias of isna.
         Series.notna : Boolean inverse of isna.
+        DataFrame.notna : Boolean inverse of isna.
+        Series.notnull : Alias of notna.
+        DataFrame.notnull : Alias of notna.
         Series.dropna : Omit axes labels with missing values.
+        DataFrame.dropna : Omit axes labels with missing values.
         isna : Top-level isna.
 
         Examples
         --------
-        Show which entries in a DataFrame are NA.
-
-        >>> df = pd.DataFrame(
-        ...     dict(
-        ...         age=[5, 6, np.nan],
-        ...         born=[
-        ...             pd.NaT,
-        ...             pd.Timestamp("1939-05-27"),
-        ...             pd.Timestamp("1940-04-25"),
-        ...         ],
-        ...         name=["Alfred", "Batman", ""],
-        ...         toy=[None, "Batmobile", "Joker"],
-        ...     )
-        ... )
-        >>> df
-           age       born    name        toy
-        0  5.0        NaT  Alfred        NaN
-        1  6.0 1939-05-27  Batman  Batmobile
-        2  NaN 1940-04-25              Joker
-
-        >>> df.isna()
-             age   born   name    toy
-        0  False   True  False   True
-        1  False  False  False  False
-        2   True  False  False  False
-
         Show which entries in a Series are NA.
 
         >>> ser = pd.Series([5, 6, np.nan])
@@ -6275,7 +6340,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         1    6.0
         2    NaN
         dtype: float64
-
         >>> ser.isna()
         0    False
         1    False
@@ -6285,10 +6349,50 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return NDFrame.isna(self)
 
     # error: Cannot determine type of 'isna'
-    @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])
     def isnull(self) -> Series:
         """
-        Series.isnull is an alias for Series.isna.
+        Detect missing values.
+
+        Return a boolean same-sized Series indicating if the values are NA.
+        NA values, such as None or :attr:`numpy.NaN`, get mapped to True
+        values.
+        Everything else gets mapped to False values. Characters such as empty
+        strings ``''`` or :attr:`numpy.inf` are not considered NA values.
+
+        Returns
+        -------
+        Series
+            Mask of bool values for each element in the Series
+            that indicates whether an element is an NA value.
+
+        See Also
+        --------
+        Series.isna : Detect missing values.
+        DataFrame.isna : Detect missing values.
+        DataFrame.isnull : Alias of isna.
+        Series.notna : Boolean inverse of isna.
+        DataFrame.notna : Boolean inverse of isna.
+        Series.notnull : Alias of notna.
+        DataFrame.notnull : Alias of notna.
+        Series.dropna : Omit axes labels with missing values.
+        DataFrame.dropna : Omit axes labels with missing values.
+        isna : Top-level isna.
+
+        Examples
+        --------
+        Show which entries in a Series are NA.
+
+        >>> ser = pd.Series([5, 6, np.nan])
+        >>> ser
+        0    5.0
+        1    6.0
+        2    NaN
+        dtype: float64
+        >>> ser.isnull()
+        0    False
+        1    False
+        2     True
+        dtype: bool
         """
         return super().isnull()
 
@@ -6297,7 +6401,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Detect existing (non-missing) values.
 
-        Return a boolean same-sized object indicating if the values are not NA.
+        Return a boolean same-sized Series indicating if the values are not NA.
         Non-missing values get mapped to True. Characters such as empty
         strings ``''`` or :attr:`numpy.inf` are not considered NA values.
         NA values, such as None or :attr:`numpy.NaN`, get mapped to False
@@ -6311,39 +6415,19 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         See Also
         --------
+        Series.isna : Detect missing values.
+        DataFrame.isna : Detect missing values.
+        Series.isnull : Alias of isna.
+        DataFrame.isnull : Alias of isna.
+        DataFrame.notna : Boolean inverse of isna.
         Series.notnull : Alias of notna.
-        Series.isna : Boolean inverse of notna.
+        DataFrame.notnull : Alias of notna.
         Series.dropna : Omit axes labels with missing values.
+        DataFrame.dropna : Omit axes labels with missing values.
         notna : Top-level notna.
 
         Examples
         --------
-        Show which entries in a DataFrame are not NA.
-
-        >>> df = pd.DataFrame(
-        ...     dict(
-        ...         age=[5, 6, np.nan],
-        ...         born=[
-        ...             pd.NaT,
-        ...             pd.Timestamp("1939-05-27"),
-        ...             pd.Timestamp("1940-04-25"),
-        ...         ],
-        ...         name=["Alfred", "Batman", ""],
-        ...         toy=[None, "Batmobile", "Joker"],
-        ...     )
-        ... )
-        >>> df
-           age       born    name        toy
-        0  5.0        NaT  Alfred        NaN
-        1  6.0 1939-05-27  Batman  Batmobile
-        2  NaN 1940-04-25              Joker
-
-        >>> df.notna()
-             age   born  name    toy
-        0   True  False  True  False
-        1   True   True  True   True
-        2  False   True  True   True
-
         Show which entries in a Series are not NA.
 
         >>> ser = pd.Series([5, 6, np.nan])
@@ -6352,7 +6436,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         1    6.0
         2    NaN
         dtype: float64
-
         >>> ser.notna()
         0     True
         1     True
@@ -6362,10 +6445,49 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return super().notna()
 
     # error: Cannot determine type of 'notna'
-    @doc(NDFrame.notna, klass=_shared_doc_kwargs["klass"])
     def notnull(self) -> Series:
         """
-        Series.notnull is an alias for Series.notna.
+        Detect existing (non-missing) values.
+
+        Return a boolean same-sized Series indicating if the values are not NA.
+        Non-missing values get mapped to True. Characters such as empty
+        strings ``''`` or :attr:`numpy.inf` are not considered NA values.
+        NA values, such as None or :attr:`numpy.NaN`, get mapped to False
+        values.
+
+        Returns
+        -------
+        Series
+            Mask of bool values for each element in Series
+            that indicates whether an element is not an NA value.
+
+        See Also
+        --------
+        Series.isna : Boolean inverse of notna.
+        DataFrame.isna : Boolean inverse of notna.
+        Series.isnull : Alias of isna.
+        DataFrame.isnull : Alias of isna.
+        Series.notna : Detect existing (non-missing) values.
+        DataFrame.notna : Detect existing (non-missing) values.
+        DataFrame.notnull : Alias of notna.
+        Series.dropna : Omit axes labels with missing values.
+        DataFrame.dropna : Omit axes labels with missing values.
+        notna : Top-level notna.
+
+        Examples
+        --------
+        Show which entries in a Series are not NA.
+        >>> ser = pd.Series([5, 6, np.nan])
+        >>> ser
+        0    5.0
+        1    6.0
+        2    NaN
+        dtype: float64
+        >>> ser.notnull()
+        0     True
+        1     True
+        2    False
+        dtype: bool
         """
         return super().notnull()
 
