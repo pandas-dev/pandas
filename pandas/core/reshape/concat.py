@@ -440,6 +440,24 @@ def concat(
     # select an object to be our result reference
     sample, objs = _get_sample_object(objs, ndims, keys, names, levels, intersect)
 
+    if axis == 0 and all(isinstance(obj.index, MultiIndex) for obj in objs):
+        # get MultiIndex objects among inputs
+        multi_indexes = [obj.index for obj in objs]
+
+        # detect same set of names but different order
+        base_names = multi_indexes[0].names
+
+        if all(set(idx.names) == set(base_names) for idx in multi_indexes) and any(idx.names != base_names for idx in multi_indexes):
+            # reorder input indexes to match first
+            new_objs = []
+
+            for obj in objs:
+                if obj.index.names != base_names:
+                    obj = obj.copy()  # don't mutate the original
+                    obj.index = obj.index.reorder_levels(base_names)
+                new_objs.append(obj)
+            objs = new_objs
+
     # Standardize axis parameter to int
     if sample.ndim == 1:
         from pandas import DataFrame
