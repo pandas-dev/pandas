@@ -879,28 +879,24 @@ def _get_sample_object(
 
 
 def _match_index_levels(objs: list[Series | DataFrame]) -> list[Series | DataFrame]:
-    """Ensure input objects with MultiIndex have consistent level order.
+    """Make MultiIndex objects with consistent level order.
 
-    If all inputs have a MultiIndex with the same set of level names,
-    but in different order, reorder each index to match the first object's level order.
+    If all inputs have the same set of level names, but in different order,
+    reorder each index to match the first object's level order.
     """
-
-    # get MultiIndex objects among inputs
     index_names = [obj.index.names for obj in objs]
+    first_names = index_names[0]
 
     # detect same set of names but different order
-    base_names = index_names[0]
-
-    if all(set(names) == set(base_names) for names in index_names) and any(
-        names != base_names for names in index_names
+    if all(set(names) == set(first_names) for names in index_names) and any(
+        names != first_names for names in index_names
     ):
-        # reorder input indexes to match first
+        # reorder indexes to match first
         new_objs = []
-
         for obj in objs:
-            if obj.index.names != base_names:
+            if obj.index.names != first_names:
                 obj = obj.copy()  # don't mutate any original
-                obj.index = obj.index.reorder_levels(base_names)
+                obj.index = obj.index.reorder_levels(first_names)
             new_objs.append(obj)
         objs = new_objs
     return objs
