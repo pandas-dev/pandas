@@ -440,7 +440,9 @@ def concat(
     # select an object to be our result reference
     sample, objs = _get_sample_object(objs, ndims, keys, names, levels, intersect)
 
-    # ensure input objects with MultiIndex have consistent level order
+    # Ensure input objects with MultiIndex have consistent level order.
+    # Only reorder when all inputs share the same set of index level names.
+    # Inputs with missing or extra index levels are intentionally not coerced.
     if axis == 0 and all(isinstance(obj.index, MultiIndex) for obj in objs):
         objs = _match_index_levels(objs)
 
