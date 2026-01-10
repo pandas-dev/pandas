@@ -53,7 +53,6 @@ from pandas.errors.cow import (
 from pandas.util._decorators import (
     Appender,
     deprecate_nonkeyword_arguments,
-    doc,
     set_module,
 )
 from pandas.util._exceptions import (
@@ -2836,12 +2835,41 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         result = maybe_unbox_numpy_scalar(result)
         return result
 
-    @doc(
-        klass="Series",
-        extra_params="",
-        other_klass="DataFrame",
-        examples=dedent(
-            """
+    def diff(self, periods: int = 1) -> Series:
+        """
+        First discrete difference of Series elements.
+
+        Calculates the difference of a Series element compared with another
+        element in the Series (default is element in previous row).
+
+        Parameters
+        ----------
+        periods : int, default 1
+            Periods to shift for calculating difference, accepts negative
+            values.
+
+        Returns
+        -------
+        Series
+            First differences of the Series.
+
+        See Also
+        --------
+        Series.pct_change: Percent change over given number of periods.
+        Series.shift: Shift index by desired number of periods with an
+            optional time freq.
+        DataFrame.diff: First discrete difference of object.
+
+        Notes
+        -----
+        For boolean dtypes, this uses :meth:`operator.xor` rather than
+        :meth:`operator.sub`.
+        The result is calculated according to current dtype in Series,
+        however dtype of the result is always float64.
+
+        Examples
+        --------
+
         Difference with previous row
 
         >>> s = pd.Series([1, 1, 2, 3, 5, 8])
@@ -2882,44 +2910,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         >>> s.diff()
         0      NaN
         1    255.0
-        dtype: float64"""
-        ),
-    )
-    def diff(self, periods: int = 1) -> Series:
-        """
-        First discrete difference of element.
-
-        Calculates the difference of a {klass} element compared with another
-        element in the {klass} (default is element in previous row).
-
-        Parameters
-        ----------
-        periods : int, default 1
-            Periods to shift for calculating difference, accepts negative
-            values.
-        {extra_params}
-        Returns
-        -------
-        {klass}
-            First differences of the Series.
-
-        See Also
-        --------
-        {klass}.pct_change: Percent change over given number of periods.
-        {klass}.shift: Shift index by desired number of periods with an
-            optional time freq.
-        {other_klass}.diff: First discrete difference of object.
-
-        Notes
-        -----
-        For boolean dtypes, this uses :meth:`operator.xor` rather than
-        :meth:`operator.sub`.
-        The result is calculated according to current dtype in {klass},
-        however dtype of the result is always float64.
-
-        Examples
-        --------
-        {examples}
+        dtype: float64
         """
         if not lib.is_integer(periods):
             if not (is_float(periods) and periods.is_integer()):
@@ -8095,7 +8086,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         )
 
     @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="sem")
-    @doc(make_doc("sem", ndim=1))
     def sem(
         self,
         axis: Axis | None = None,
@@ -8104,6 +8094,47 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         numeric_only: bool = False,
         **kwargs,
     ):
+        """
+        Return unbiased standard error of the mean over requested axis.
+
+        Normalized by N-1 by default. This can be changed using the ddof argument
+
+        Parameters
+        ----------
+        axis : {index (0)}
+            This parameter is unused and defaults to 0.
+        skipna : bool, default True
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be NA.
+        ddof : int, default 1
+            Delta Degrees of Freedom. The divisor used in calculations is N - ddof,
+            where N represents the number of elements.
+        numeric_only : bool, default False
+            Include only float, int, boolean columns. Not implemented for Series.
+        **kwargs :
+            Additional keywords have no effect but might be accepted
+            for compatibility with NumPy.
+
+        Returns
+        -------
+        scalar or Series (if level specified)
+            Unbiased standard error of the mean over requested axis.
+
+        See Also
+        --------
+        scipy.stats.sem : Compute standard error of the mean.
+        Series.std : Return sample standard deviation over requested axis.
+        Series.var : Return unbiased variance over requested axis.
+        Series.mean : Return the mean of the values over the requested axis.
+        Series.median : Return the median of the values over the requested axis.
+        Series.mode : Return the mode(s) of the Series.
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3])
+        >>> round(s.sem(), 6)
+        0.57735
+        """
         return NDFrame.sem(
             self,
             axis=axis,
@@ -8201,7 +8232,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         )
 
     @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="std")
-    @doc(make_doc("std", ndim=1))
     def std(
         self,
         axis: Axis | None = None,
@@ -8210,6 +8240,52 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         numeric_only: bool = False,
         **kwargs,
     ):
+        """
+        Return sample standard deviation.
+
+        Normalized by N-1 by default. This can be changed using the ddof argument.
+
+        Parameters
+        ----------
+        axis : {index (0)}
+            This parameter is unused and defaults to 0.
+        skipna : bool, default True
+            Exclude NA/null values. If Series is NA, the result
+            will be NA.
+        ddof : int, default 1
+            Delta Degrees of Freedom. The divisor used in calculations is N - ddof,
+            where N represents the number of elements.
+        numeric_only : bool, default False
+            Not implemented for Series.
+        **kwargs :
+            Additional keywords have no effect but might be accepted
+            for compatibility with NumPy.
+
+        Returns
+        -------
+        scalar
+            Standard deviation over all values in the Series.
+
+        See Also
+        --------
+        numpy.std : Compute the standard deviation along the specified axis.
+        Series.var : Return unbiased variance over requested axis.
+        Series.sem : Return unbiased standard error of the mean over requested axis.
+        Series.mean : Return the mean of the values over the requested axis.
+        Series.median : Return the median of the values over the requested axis.
+        Series.mode : Return the mode(s) of the Series.
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3])
+        >>> s.std()
+        1.0
+
+        Alternatively, ``ddof=0`` can be set to normalize by $N$ instead of $N-1$:
+
+        >>> s.std(ddof=0)
+        0.816496580927726
+        """
         return NDFrame.std(
             self,
             axis=axis,
@@ -8220,7 +8296,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         )
 
     @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="skew")
-    @doc(make_doc("skew", ndim=1))
     def skew(
         self,
         axis: Axis | None = 0,
@@ -8228,6 +8303,39 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         numeric_only: bool = False,
         **kwargs,
     ):
+        """
+        Return unbiased skew over requested axis.
+
+        Normalized by N-1.
+
+        Parameters
+        ----------
+        axis : {index (0)}
+            This parameter is unused and defaults to 0.
+        skipna : bool, default True
+            Exclude NA/null values when computing the result.
+        numeric_only : bool, default False
+            Unused.
+        **kwargs
+            Additional keyword arguments to be passed to the function.
+
+        Returns
+        -------
+        scalar
+            Unbiased skew of the Series.
+
+        See Also
+        --------
+
+        Series.var : Return unbiased variance over requested axis.
+        Series.std : Return unbiased standard deviation over requested axis.
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3])
+        >>> s.skew()
+        0.0
+        """
         return NDFrame.skew(
             self, axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
@@ -8295,18 +8403,245 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     kurtosis = kurt
     product = prod
 
-    @doc(make_doc("cummin", ndim=1))
     def cummin(self, axis: Axis = 0, skipna: bool = True, *args, **kwargs) -> Self:
+        """
+        Return cumulative minimum over a Series.
+
+        Returns a Series of the same size containing the cumulative
+        minimum.
+
+        Parameters
+        ----------
+        axis : {0 or 'index'}, default 0
+            This parameter is unused and defaults to 0.
+        skipna : bool, default True
+            If the entire series is NA, the result will be NA.
+        *args, **kwargs
+            Additional keywords have no effect but might be accepted for
+            compatibility with NumPy.
+
+        Returns
+        -------
+        Series
+            Return cumulative minimum of the Series.
+
+        See Also
+        --------
+        core.window.expanding.Expanding.min : Similar functionality
+            but ignores ``NaN`` values.
+        Series.min : Return the minimum value of the Series.
+        Series.cummax : Return cumulative maximum.
+        Series.cumsum : Return cumulative sum.
+        Series.cumprod : Return cumulative product.
+
+        Examples
+        --------
+        >>> s = pd.Series([2, np.nan, 5, -1, 0])
+        >>> s
+        0    2.0
+        1    NaN
+        2    5.0
+        3   -1.0
+        4    0.0
+        dtype: float64
+
+        By default, NA values are ignored.
+
+        >>> s.cummin()
+        0    2.0
+        1    NaN
+        2    2.0
+        3   -1.0
+        4   -1.0
+        dtype: float64
+
+        To include NA values in the operation, use ``skipna=False``
+
+        >>> s.cummin(skipna=False)
+        0    2.0
+        1    NaN
+        2    NaN
+        3    NaN
+        4    NaN
+        dtype: float64
+        """
         return NDFrame.cummin(self, axis, skipna, *args, **kwargs)
 
-    @doc(make_doc("cummax", ndim=1))
     def cummax(self, axis: Axis = 0, skipna: bool = True, *args, **kwargs) -> Self:
+        """
+        Return cumulative maximum over a Series.
+
+        Returns a Series of the same size containing the cumulative
+        maximum.
+
+        Parameters
+        ----------
+        axis : {0 or 'index'}, default 0
+            This parameter is unused and defaults to 0.
+        skipna : bool, default True
+            Exclude NA/null values. If the series is NA, the result is NA.
+        *args, **kwargs
+            Additional keywords have no effect but might be accepted for
+            compatibility with NumPy.
+
+        Returns
+        -------
+        Series
+            Return cumulative maximum of Series.
+
+        See Also
+        --------
+        core.window.expanding.Expanding.max : Similar functionality
+            but ignores ``NaN`` values.
+        Series.max : Return the maximum over a Series.
+        Series.cummin : Return cumulative minimum.
+        Series.cumsum : Return cumulative sum.
+        Series.cumprod : Return cumulative product.
+
+        Examples
+        --------
+        >>> s = pd.Series([2, np.nan, 5, -1, 0])
+        >>> s
+        0    2.0
+        1    NaN
+        2    5.0
+        3   -1.0
+        4    0.0
+        dtype: float64
+        By default, NA values are ignored.
+        >>> s.cummax()
+        0    2.0
+        1    NaN
+        2    5.0
+        3    5.0
+        4    5.0
+        dtype: float64
+        To include NA values in the operation, use ``skipna=False``
+        >>> s.cummax(skipna=False)
+        0    2.0
+        1    NaN
+        2    NaN
+        3    NaN
+        4    NaN
+        dtype: float64
+        """
         return NDFrame.cummax(self, axis, skipna, *args, **kwargs)
 
-    @doc(make_doc("cumsum", ndim=1))
     def cumsum(self, axis: Axis = 0, skipna: bool = True, *args, **kwargs) -> Self:
+        """
+        Return cumulative sum over a Series.
+
+        Returns a Series of the same size containing the cumulative sum.
+
+        Parameters
+        ----------
+        axis : {0 or 'index'}, default 0
+            This parameter is unused and defaults to 0.
+        skipna : bool, default True
+            Exclude NA/null values. If entire series is NA, the result will be NA.
+        *args, **kwargs
+            Additional keywords have no effect but might be accepted for
+            compatibility with NumPy.
+
+        Returns
+        -------
+        Series
+            Return cumulative sum of Series.
+
+        See Also
+        --------
+        core.window.expanding.Expanding.sum : Similar functionality
+            but ignores ``NaN`` values.
+        Series.sum : Return the sum over Series.
+        Series.cummax : Return cumulative maximum.
+        Series.cummin : Return cumulative minimum.
+        Series.cumprod : Return cumulative product.
+
+        Examples
+        --------
+        >>> s = pd.Series([2, np.nan, 5, -1, 0])
+        >>> s
+        0    2.0
+        1    NaN
+        2    5.0
+        3   -1.0
+        4    0.0
+        dtype: float64
+        By default, NA values are ignored.
+        >>> s.cumsum()
+        0    2.0
+        1    NaN
+        2    7.0
+        3    6.0
+        4    6.0
+        dtype: float64
+        To include NA values in the operation, use ``skipna=False``
+        >>> s.cumsum(skipna=False)
+        0    2.0
+        1    NaN
+        2    NaN
+        3    NaN
+        4    NaN
+        dtype: float64
+        """
         return NDFrame.cumsum(self, axis, skipna, *args, **kwargs)
 
-    @doc(make_doc("cumprod", 1))
     def cumprod(self, axis: Axis = 0, skipna: bool = True, *args, **kwargs) -> Self:
+        """
+        Return cumulative product over a Series.
+
+        Returns a Series of the same size containing the cumulative
+        product.
+
+        Parameters
+        ----------
+        axis : {0 or 'index'}, default 0
+            This parameter is unused and defaults to 0.
+        skipna : bool, default True
+            Exclude NA/null values. If entire Series is NA, the result will be NA.
+        *args, **kwargs
+            Additional keywords have no effect but might be accepted for
+            compatibility with NumPy.
+
+        Returns
+        -------
+        Series
+            Return cumulative product of Series.
+
+        See Also
+        --------
+        core.window.expanding.Expanding.prod : Similar functionality
+            but ignores ``NaN`` values.
+        Series.prod : Return the product over Series.
+        Series.cummax : Return cumulative maximum.
+        Series.cummin : Return cumulative minimum.
+        Series.cumsum : Return cumulative sum.
+
+        Examples
+        --------
+        >>> s = pd.Series([2, np.nan, 5, -1, 0])
+        >>> s
+        0    2.0
+        1    NaN
+        2    5.0
+        3   -1.0
+        4    0.0
+        dtype: float64
+        By default, NA values are ignored.
+        >>> s.cumprod()
+        0     2.0
+        1     NaN
+        2    10.0
+        3   -10.0
+        4    -0.0
+        dtype: float64
+        To include NA values in the operation, use ``skipna=False``
+        >>> s.cumprod(skipna=False)
+        0    2.0
+        1    NaN
+        2    NaN
+        3    NaN
+        4    NaN
+        dtype: float64
+        """
         return NDFrame.cumprod(self, axis, skipna, *args, **kwargs)
