@@ -75,9 +75,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.api.extensions.ExtensionArray.value_counts EX01,RT03,SA01" \
         -i "pandas.api.typing.Resampler.quantile PR01,PR07" \
         -i "pandas.tseries.offsets.BDay PR02,SA01" \
-        -i "pandas.tseries.offsets.BHalfYearBegin.rule_code GL08" \
         -i "pandas.tseries.offsets.BHalfYearBegin.startingMonth GL08" \
-        -i "pandas.tseries.offsets.BHalfYearEnd.rule_code GL08" \
         -i "pandas.tseries.offsets.BHalfYearEnd.startingMonth GL08" \
         -i "pandas.tseries.offsets.BQuarterBegin.is_on_offset GL08" \
         -i "pandas.tseries.offsets.BQuarterBegin.rule_code GL08" \
@@ -143,9 +141,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.FY5253Quarter.variation GL08" \
         -i "pandas.tseries.offsets.FY5253Quarter.weekday GL08" \
         -i "pandas.tseries.offsets.FY5253Quarter.year_has_extra_week GL08" \
-        -i "pandas.tseries.offsets.HalfYearBegin.rule_code GL08" \
         -i "pandas.tseries.offsets.HalfYearBegin.startingMonth GL08" \
-        -i "pandas.tseries.offsets.HalfYearEnd.rule_code GL08" \
         -i "pandas.tseries.offsets.HalfYearEnd.startingMonth GL08" \
         -i "pandas.tseries.offsets.Hour.is_on_offset GL08" \
         -i "pandas.tseries.offsets.LastWeekOfMonth.is_on_offset GL08" \
