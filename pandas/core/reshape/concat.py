@@ -896,9 +896,10 @@ def _match_index_levels(objs: list[Series | DataFrame]) -> list[Series | DataFra
         # reorder indexes to match first
         new_objs = []
         for obj in objs:
-            if obj.index.names != first_names:
+            idx = obj.index
+            if isinstance(idx, MultiIndex) and obj.index.names != first_names:
                 obj = obj.copy()  # don't mutate any original
-                obj.index = obj.index.reorder_levels(first_names)
+                obj.index = idx.reorder_levels(first_names)
             new_objs.append(obj)
         objs = new_objs
     return objs
