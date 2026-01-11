@@ -48,7 +48,8 @@ class ODFReader(BaseExcelReader["OpenDocument"]):
             URLs (e.g. starting with "s3://", and "gcs://") the key-value pairs are
             forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more
             details, and for more examples on storage options refer `here
-            <https://pandas.pydata.org/docs/user_guide/io.html?highlight=storage_options#reading-writing-remote-files>`_.
+            <https://pandas.pydata.org/docs/user_guide/io.html?
+            highlight=storage_options#reading-writing-remote-files>`_.
         engine_kwargs : dict, optional
             Arbitrary keyword arguments passed to excel engine.
         """
@@ -190,7 +191,8 @@ class ODFReader(BaseExcelReader["OpenDocument"]):
     def _get_cell_value(self, cell) -> Scalar | NaTType:
         """
         Convert an ODF TableCell to a Python scalar, Timestamp, or NaN.
-        Handles all ODF cell types: boolean, float, percentage, string, currency, date, time.
+        Handles all ODF cell types: boolean, float, percentage, string, currency,
+        date, time.
         """
 
         from odf.namespaces import OFFICENS
