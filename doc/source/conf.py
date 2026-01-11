@@ -175,6 +175,8 @@ import pandas  # isort:skip
 
 # version = '%s r%s' % (pandas.__version__, svn_version())
 version = str(pandas.__version__)
+if version_override := os.environ.get("PANDAS_VERSION_OVERRIDE"):
+    version = version_override
 
 # The full version, including alpha/beta/rc tags.
 release = version
@@ -232,7 +234,7 @@ html_theme = "pydata_sphinx_theme"
 # further.  For a list of options available for each theme, see the
 # documentation.
 
-if ".dev" in version:
+if ".dev" in version or ("rc" in version and "+" in version):
     switcher_version = "dev"
 elif "rc" in version:
     switcher_version = version.split("rc", maxsplit=1)[0] + " (rc)"
@@ -258,6 +260,7 @@ html_theme_options = {
     # This shows a warning for patch releases since the
     # patch version doesn't compare as equal (e.g. 2.2.1 != 2.2.0 but it should be)
     "show_version_warning_banner": False,
+    "announcement": "https://raw.githubusercontent.com/pandas-dev/pandas/main/doc/_templates/docs-announcement-banner.html",
     "icon_links": [
         {
             "name": "X",
@@ -405,7 +408,7 @@ html_use_modindex = True
 # html_split_index = False
 
 # If true, links to the reST sources are added to the pages.
-# html_show_sourcelink = True
+html_show_sourcelink = False
 
 # If true, an OpenSearch description file will be output, and all pages will
 # contain a <link> tag referring to it.  The value of this option must be the

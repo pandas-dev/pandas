@@ -104,7 +104,7 @@ class TestTimedeltas:
         result = TimedeltaIndex(
             [np.timedelta64(0, "ns"), np.timedelta64(10, "s").astype("m8[ns]")]
         )
-        expected = to_timedelta([0, 10], unit="s")
+        expected = to_timedelta([0, 10], unit="s").as_unit("ns")
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -121,7 +121,7 @@ class TestTimedeltas:
         # arrays of various dtypes
         arr = np.array([1] * 5, dtype=dtype)
         result = to_timedelta(arr, unit=unit)
-        exp_dtype = "m8[ns]" if dtype == "int64" else "m8[s]"
+        exp_dtype = "m8[s]"
         expected = TimedeltaIndex([np.timedelta64(1, unit)] * 5, dtype=exp_dtype)
         tm.assert_index_equal(result, expected)
 
@@ -277,7 +277,7 @@ class TestTimedeltas:
     )
     def test_to_timedelta_nullable_int64_dtype(self, expected_val, result_val):
         # GH 35574
-        expected = Series([timedelta(days=1), expected_val], dtype="m8[ns]")
+        expected = Series([timedelta(days=1), expected_val], dtype="m8[s]")
         result = to_timedelta(Series([1, result_val], dtype="Int64"), unit="days")
 
         tm.assert_series_equal(result, expected)
@@ -327,6 +327,28 @@ class TestTimedeltas:
         result = to_timedelta(1.0 / 3, unit="h")
         expected = pd.Timedelta("0 days 00:19:59.999999998")
         assert result == expected
+
+    def test_to_timedelta_unit_round_floats(self):
+        # When the float is round, we give the requested unit
+        #  (or nearest-supported) like we do with integers
+        arr = np.array([45.0], dtype=object)
+        result = to_timedelta(arr, unit="s")
+        expected = to_timedelta([45], unit="s")
+        tm.assert_index_equal(result, expected)
+
+        arr2 = arr.astype(np.float64)
+        result2 = to_timedelta(arr2, unit="s")
+        tm.assert_index_equal(result2, expected)
+
+    def test_to_timedelta_unit_non_round_floats(self):
+        # With non-round floats, we have to give nanosecond
+        arr = np.array([45.5], dtype=object)
+        result = to_timedelta(arr, unit="s")
+        assert result.unit == "ns"
+
+        arr2 = arr.astype(np.float64)
+        result2 = to_timedelta(arr2, unit="s")
+        assert result2.unit == "ns"
 
 
 def test_from_numeric_arrow_dtype(any_numeric_ea_dtype):

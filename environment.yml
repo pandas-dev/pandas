@@ -86,7 +86,8 @@ dependencies:
   - natsort  # DataFrame.sort_values doctest
   - pickleshare  # Needed for IPython Sphinx directive in the docs GH#60429
   - numpydoc
-  - pydata-sphinx-theme=0.16
+  # temporary installed with pip with custom patch until released
+  # - pydata-sphinx-theme=0.16
   - pytest-cython  # doctest
   - sphinx
   - sphinx-design
@@ -126,3 +127,4 @@ dependencies:
 
   - pip:
       - tzdata>=2023.3
+      - https://github.com/jorisvandenbossche/pydata-sphinx-theme/archive/refs/heads/v0.16.1+dismissable-announcement-banner.zip

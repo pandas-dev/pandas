@@ -46,9 +46,9 @@ class TestCommonCBM:
         assert hash(offset2) == hash(offset2)
 
     @pytest.mark.parametrize("_offset", [CBMonthBegin, CBMonthEnd])
-    def test_roundtrip_pickle(self, _offset):
+    def test_roundtrip_pickle(self, _offset, tmp_path):
         def _check_roundtrip(obj):
-            unpickled = tm.round_trip_pickle(obj)
+            unpickled = tm.round_trip_pickle(obj, tmp_path)
             assert unpickled == obj
 
         _check_roundtrip(_offset())
