@@ -65,6 +65,7 @@ Guides
     basics
     io
     pyarrow
+    arrow_string_fallbacks
     indexing
     advanced
     copy_on_write
