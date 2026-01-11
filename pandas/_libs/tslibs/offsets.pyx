@@ -1957,6 +1957,8 @@ cdef class BusinessMixin(SingleConstructorOffset):
         CustomBusinessMonthEnd.holidays : Holidays for custom business month end offset.
         CustomBusinessMonthBegin.holidays : Holidays for custom business month begin
             offset.
+        CustomBusinessDay.weekmask : Weekmask for custom business day offset.
+        CustomBusinessDay.calendar : Calendar for custom business day offset.
 
         Examples
         --------
