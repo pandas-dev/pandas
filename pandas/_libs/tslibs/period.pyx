@@ -1629,8 +1629,25 @@ DIFFERENT_FREQ = ("Input has different freq={other_freq} "
 @set_module("pandas.errors")
 class IncompatibleFrequency(TypeError):
     """
-    Raised when trying to compare or operate between Periods with different
-    frequencies.
+    Raised when trying to compare or operate between Periods with different frequencies.
+
+    This error occurs when performing operations between Period objects or
+    PeriodArrays that have different frequencies that cannot be aligned,
+    such as comparing or doing arithmetic on periods with mismatched frequencies.
+
+    See Also
+    --------
+    Period : Represents a period of time.
+    PeriodIndex : Immutable ndarray holding ordinal values.
+    PeriodDtype : An ExtensionDtype for Period data.
+
+    Examples
+    --------
+    Trying to compare Period objects with different frequencies:
+
+    >>> pd.Period("2024-01", freq="M") - pd.Period("2024-01-01", freq="D")
+    Traceback (most recent call last):
+    IncompatibleFrequency: Input has different freq=D from Period(freq=M)
     """
     pass
 
@@ -1747,7 +1764,28 @@ cdef class _Period(PeriodMixin):
     cdef readonly:
         int64_t ordinal
         PeriodDtypeBase _dtype
-        BaseOffset freq
+        BaseOffset _freq
+
+    @property
+    def freq(self):
+        """
+        Return the frequency object for this Period.
+
+        The frequency object represents the span of time that this Period covers.
+        It is a DateOffset that defines the interval type (e.g., daily, monthly).
+
+        See Also
+        --------
+        Period.freqstr : Return a string representation of the frequency.
+        Period.asfreq : Convert Period to desired frequency.
+
+        Examples
+        --------
+        >>> period = pd.Period('2020-01', freq='M')
+        >>> period.freq
+        <MonthEnd>
+        """
+        return self._freq
 
     # higher than np.ndarray, np.matrix, np.timedelta64
     __array_priority__ = 100
@@ -1757,7 +1795,7 @@ cdef class _Period(PeriodMixin):
 
     def __cinit__(self, int64_t ordinal, BaseOffset freq):
         self.ordinal = ordinal
-        self.freq = freq
+        self._freq = freq
         self._dtype = PeriodDtypeBase(freq._period_dtype_code, freq.n)
 
     @classmethod
@@ -1838,7 +1876,7 @@ cdef class _Period(PeriodMixin):
                                         f"Period(freq={self.freqstr})") from err
         with cython.overflowcheck(True):
             ordinal = self.ordinal + inc
-        return Period(ordinal=ordinal, freq=self.freq)
+        return Period(ordinal=ordinal, freq=self._freq)
 
     def _add_offset(self, other) -> "Period":
         # Non-Tick DateOffset other
@@ -1848,7 +1886,7 @@ cdef class _Period(PeriodMixin):
         self._require_matching_freq(other, base=True)
 
         ordinal = self.ordinal + other.n
-        return Period(ordinal=ordinal, freq=self.freq)
+        return Period(ordinal=ordinal, freq=self._freq)
 
     @cython.overflowcheck(True)
     def __add__(self, other):
@@ -1860,7 +1898,7 @@ cdef class _Period(PeriodMixin):
             return NaT
         elif util.is_integer_object(other):
             ordinal = self.ordinal + other * self._dtype._n
-            return Period(ordinal=ordinal, freq=self.freq)
+            return Period(ordinal=ordinal, freq=self._freq)
 
         elif is_period_object(other):
             # can't add datetime-like
@@ -1892,7 +1930,7 @@ cdef class _Period(PeriodMixin):
         elif is_period_object(other):
             self._require_matching_freq(other.freq)
             # GH 23915 - mul by base freq since __add__ is agnostic of n
-            return (self.ordinal - other.ordinal) * self.freq.base
+            return (self.ordinal - other.ordinal) * self._freq.base
         elif other is NaT:
             return NaT
 
@@ -1999,7 +2037,7 @@ cdef class _Period(PeriodMixin):
         Parameters
         ----------
         freq : str or DateOffset
-            Target frequency. Default is 'D' if self.freq is week or
+            Target frequency. Default is 'D' if self._freq is week or
             longer and 'S' otherwise.
         how : str, default 'S' (start)
             One of 'S', 'E'. Can be aliased as case insensitive
@@ -2026,11 +2064,11 @@ cdef class _Period(PeriodMixin):
 
         end = how == "E"
         if end:
-            if freq == "B" or self.freq == "B":
+            if freq == "B" or self._freq == "B":
                 # roll forward to ensure we land on B date
                 adjust = np.timedelta64(1, "D") - np.timedelta64(1, "ns")
                 return self.to_timestamp(how="start") + adjust
-            endpoint = (self + self.freq).to_timestamp(how="start")
+            endpoint = (self + self._freq).to_timestamp(how="start")
             return endpoint - np.timedelta64(1, "ns")
 
         if freq is None:
@@ -2643,7 +2681,7 @@ cdef class _Period(PeriodMixin):
         >>> pd.Period('2020-01', 'D').freqstr
         'D'
         """
-        freqstr = PeriodDtypeBase(self.freq._period_dtype_code, self.freq.n)._freqstr
+        freqstr = PeriodDtypeBase(self._freq._period_dtype_code, self._freq.n)._freqstr
         return freqstr
 
     def __repr__(self) -> str:
@@ -2661,11 +2699,11 @@ cdef class _Period(PeriodMixin):
         return value
 
     def __setstate__(self, state):
-        self.freq = state[1]
+        self._freq = state[1]
         self.ordinal = state[2]
 
     def __reduce__(self):
-        object_state = None, self.freq, self.ordinal
+        object_state = None, self._freq, self.ordinal
         return (Period, object_state)
 
     def strftime(self, fmt: str | None) -> str:

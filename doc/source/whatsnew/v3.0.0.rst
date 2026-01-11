@@ -264,9 +264,10 @@ Other enhancements
 - Support reading Stata 102-format (Stata 1) dta files (:issue:`58978`)
 - Support reading Stata 110-format (Stata 7) dta files (:issue:`47176`)
 - Switched wheel upload to **PyPI Trusted Publishing** (OIDC) for release-tag pushes in ``wheels.yml``. (:issue:`61718`)
-- Added a new :meth:`DataFrame.from_arrow` method to import any Arrow-compatible
-  tabular data object into a pandas :class:`DataFrame` through the
+- Added :meth:`DataFrame.from_arrow` and :meth:`Series.from_arrow` to import any Arrow-compatible
+  data object into a pandas object through the
   `Arrow PyCapsule Protocol <https://arrow.apache.org/docs/format/CDataInterface/PyCapsuleInterface.html>`__ (:issue:`59631`)
+- :meth:`Series.round` now supports object dtypes when the underlying Python objects implement ``__round__`` (:issue:`63444`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.notable_bug_fixes:
@@ -408,6 +409,8 @@ In cases with mixed-resolution inputs, the highest resolution is used:
 .. warning:: Many users will now get "M8[us]" dtype data in cases when they used to get "M8[ns]". For most use cases they should not notice a difference. One big exception is converting to integers, which will give integers 1000x smaller.
 
 Similarly, the :class:`Timedelta` constructor and :func:`to_timedelta` with a string input now defaults to a microsecond unit, using nanosecond unit only in cases that actually have nanosecond precision.
+
+Moreover, passing an integer to the :class:`Timedelta` constructor or :func:`to_timedelta` along with a ``unit`` will now return an object with that unit when possible, or the closest-supported unit for non-supported units ("W", "D", "h", "m").
 
 .. _whatsnew_300.api_breaking.concat_datetime_sorting:
 
@@ -686,8 +689,6 @@ The following required dependencies were updated:
 +=================+======================+
 | numpy           | 1.26.0               |
 +-----------------+----------------------+
-| tzdata          | 2023.3               |
-+-----------------+----------------------+
 
 For `optional libraries <https://pandas.pydata.org/docs/getting_started/install.html>`_ the general recommendation is to use the latest version.
 The following table lists the lowest version per library that is currently being tested throughout the development of pandas.
@@ -820,6 +821,7 @@ Other API changes
   :meth:`~DataFrame.ffill`, :meth:`~DataFrame.bfill`, :meth:`~DataFrame.interpolate`,
   :meth:`~DataFrame.where`, :meth:`~DataFrame.mask`, :meth:`~DataFrame.clip`) now return
   the modified DataFrame or Series (``self``) instead of ``None`` when ``inplace=True`` (:issue:`63207`)
+- All Index constructors now copy ``numpy.ndarray`` and ``ExtensionArray`` inputs by default when ``copy=None``, consistent with :class:`Series` behavior (:issue:`63388`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.deprecations:
@@ -1092,12 +1094,14 @@ Performance improvements
 - Performance improvement in :meth:`CategoricalDtype.update_dtype` when ``dtype`` is a :class:`CategoricalDtype` with non ``None`` categories and ordered (:issue:`59647`)
 - Performance improvement in :meth:`DataFrame.__getitem__` when ``key`` is a :class:`DataFrame` with many columns (:issue:`61010`)
 - Performance improvement in :meth:`DataFrame.astype` when converting to extension floating dtypes, e.g. "Float64" (:issue:`60066`)
+- Performance improvement in :meth:`DataFrame.merge` by using Arrow-native path for all Arrow-backed dtypes (:issue:`63435`)
 - Performance improvement in :meth:`DataFrame.stack` when using ``future_stack=True`` and the DataFrame does not have a :class:`MultiIndex` (:issue:`58391`)
 - Performance improvement in :meth:`DataFrame.to_hdf` avoid unnecessary reopenings of the HDF5 file to speedup data addition to files with a very large number of groups . (:issue:`58248`)
 - Performance improvement in :meth:`DataFrame.where` when ``cond`` is a :class:`DataFrame` with many columns (:issue:`61010`)
 - Performance improvement in ``DataFrameGroupBy.__len__`` and ``SeriesGroupBy.__len__`` (:issue:`57595`)
 - Performance improvement in indexing operations for string dtypes (:issue:`56997`)
 - Performance improvement in unary methods on a :class:`RangeIndex` returning a :class:`RangeIndex` instead of a :class:`Index` when possible. (:issue:`57825`)
+
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.bug_fixes:
@@ -1229,6 +1233,7 @@ Indexing
 - Bug in :meth:`DataFrame.loc.__getitem__` and :meth:`DataFrame.iloc.__getitem__` with a :class:`CategoricalDtype` column with integer categories raising when trying to index a row containing a ``NaN`` entry (:issue:`58954`)
 - Bug in :meth:`Index.__getitem__` incorrectly raising with a 0-dim ``np.ndarray`` key (:issue:`55601`)
 - Bug in :meth:`Index.get_indexer` not casting missing values correctly for new string datatype (:issue:`55833`)
+- Bug in :meth:`Index.intersection`, :meth:`Index.union`, :meth:`MultiIndex.intersection`, and :meth:`MultiIndex.union` returning a reference to the original Index instead of a new instance when operating on identical indexes, which could cause metadata corruption when modifying the result (:issue:`63169`)
 - Bug in adding new rows with :meth:`DataFrame.loc.__setitem__` or :class:`Series.loc.__setitem__` which failed to retain dtype on the object's index in some cases (:issue:`41626`)
 - Bug in indexing on a :class:`DatetimeIndex` with a ``timestamp[pyarrow]`` dtype or on a :class:`TimedeltaIndex` with a ``duration[pyarrow]`` dtype (:issue:`62277`)
 
@@ -1304,6 +1309,7 @@ I/O
 Period
 ^^^^^^
 - Fixed error message when passing invalid period alias to :meth:`PeriodIndex.to_timestamp` (:issue:`58974`)
+- Fixed recoverable overflow for near-minimum timestamps with microsecond and millisecond resolutions (:issue:`63278`)
 
 Plotting
 ^^^^^^^^
@@ -1354,6 +1360,7 @@ Groupby/resample/rolling
 - Bug in :meth:`.Rolling.var` and :meth:`.Rolling.std` computing incorrect results due to numerical instability. (:issue:`47721`, :issue:`52407`, :issue:`54518`, :issue:`55343`)
 - Bug in :meth:`DataFrame.groupby` methods when operating on NumPy-nullable data failing when the NA mask was not C-contiguous (:issue:`61031`)
 - Bug in :meth:`DataFrame.groupby` when grouping by a Series and that Series was modified after calling :meth:`DataFrame.groupby` but prior to the groupby operation (:issue:`63219`)
+- Bug in :meth:`DataFrame.groupby` with a :class:`TimeGrouper` (e.g. ``pd.Grouper(freq="D")``) not retaining PyArrow index dtype (:issue:`63518`)
 
 Reshaping
 ^^^^^^^^^
@@ -1396,6 +1403,7 @@ ExtensionArray
 - Bug in :meth:`ArrowExtensionArray.factorize` where NA values were dropped when input was dictionary-encoded even when dropna was set to False(:issue:`60567`)
 - Bug in :meth:`NDArrayBackedExtensionArray.take` which produced arrays whose dtypes didn't match their underlying data, when called with integer arrays (:issue:`62448`)
 - Bug in :meth:`api.types.is_datetime64_any_dtype` where a custom :class:`ExtensionDtype` would return ``False`` for array-likes (:issue:`57055`)
+- Bug in Arrow-backed duration and timestamp reductions (e.g. ``sum``, ``min``, ``max``, ``median``, ``mean``) incorrectly returning stdlib ``datetime`` objects instead of :class:`Timedelta` and :class:`Timestamp` for resolutions other than nanoseconds (:issue:`63170`)
 - Bug in comparison between object with :class:`ArrowDtype` and incompatible-dtyped (e.g. string vs bool) incorrectly raising instead of returning all-``False`` (for ``==``) or all-``True`` (for ``!=``) (:issue:`59505`)
 - Bug in constructing pandas data structures when passing into ``dtype`` a string of the type followed by ``[pyarrow]`` while PyArrow is not installed would raise ``NameError`` rather than ``ImportError`` (:issue:`57928`)
 - Bug in various :class:`DataFrame` reductions for pyarrow temporal dtypes returning incorrect dtype when result was null (:issue:`59234`)
@@ -1419,6 +1427,7 @@ Other
 - Bug in :meth:`DataFrame.apply` where passing ``engine="numba"`` ignored ``args`` passed to the applied function (:issue:`58712`)
 - Bug in :meth:`DataFrame.eval` and :meth:`DataFrame.query` which caused an exception when using NumPy attributes via ``@`` notation, e.g., ``df.eval("@np.floor(a)")``. (:issue:`58041`)
 - Bug in :meth:`DataFrame.eval` and :meth:`DataFrame.query` which did not allow to use ``tan`` function. (:issue:`55091`)
+- Bug in :meth:`DataFrame.groupby` with ``None`` values with filter (:issue:`62501`)
 - Bug in :meth:`DataFrame.query` where using duplicate column names led to a ``TypeError``. (:issue:`59950`)
 - Bug in :meth:`DataFrame.query` which raised an exception or produced incorrect results when expressions contained backtick-quoted column names containing the hash character ``#``, backticks, or characters that fall outside the ASCII range (U+0001..U+007F). (:issue:`59285`) (:issue:`49633`)
 - Bug in :meth:`DataFrame.query` which raised an exception when querying integer column names using backticks. (:issue:`60494`)
