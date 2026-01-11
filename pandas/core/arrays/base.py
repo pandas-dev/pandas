@@ -1792,7 +1792,7 @@ class ExtensionArray:
         Return a Series containing counts of unique values.
 
         This method returns a Series with unique values as the index and their
-        counts as the values. The counts are sorted in descending order by default.
+        counts as the values.
 
         Parameters
         ----------
@@ -1813,11 +1813,11 @@ class ExtensionArray:
         Examples
         --------
         >>> from pandas.core.arrays import IntegerArray
-        >>> arr = IntegerArray._from_sequence([1, 2, 2, 3, 3, 3])
+        >>> arr = IntegerArray._from_sequence([3, 3, 3, 1, 2, 2])
         >>> arr.value_counts()
         3    3
-        2    2
         1    1
+        2    2
         Name: count, dtype: Int64
         """
         from pandas.core.algorithms import value_counts_internal as value_counts
