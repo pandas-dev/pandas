@@ -1905,7 +1905,7 @@ cdef class BusinessMixin(SingleConstructorOffset):
     cdef readonly:
         timedelta _offset
         # Only Custom subclasses use weekmask, holiday, calendar
-        object weekmask, holidays, calendar
+        object weekmask, _holidays, calendar
 
     def __init__(self, n=1, normalize=False, offset=timedelta(0)):
         BaseOffset.__init__(self, n, normalize)
@@ -1922,7 +1922,7 @@ cdef class BusinessMixin(SingleConstructorOffset):
         # following two attributes. See DateOffset._params()
         # holidays, weekmask
         self.weekmask = weekmask
-        self.holidays = holidays
+        self._holidays = holidays
         self.calendar = calendar
 
     @property
@@ -1932,6 +1932,82 @@ cdef class BusinessMixin(SingleConstructorOffset):
         """
         # Alias for backward compat
         return self._offset
+
+    @property
+    def holidays(self):
+        """
+        Return the holidays used for custom business day calculations.
+
+        This property returns a tuple or list of holidays used when calculating
+        business days for custom business day offsets. For non-custom business
+        offsets (e.g., standard BusinessDay, BusinessHour), this will be None.
+
+        Returns
+        -------
+        tuple, list, or None
+            Holidays used in business day calculations, or None if no custom
+            holidays are specified.
+
+        See Also
+        --------
+        BusinessDay.holidays : Holidays for standard business day offset.
+        BusinessHour.holidays : Holidays for standard business hour offset.
+        CustomBusinessDay.holidays : Holidays for custom business day offset.
+        CustomBusinessHour.holidays : Holidays for custom business hour offset.
+        CustomBusinessMonthEnd.holidays : Holidays for custom business month end offset.
+        CustomBusinessMonthBegin.holidays : Holidays for custom business month begin
+            offset.
+
+        Examples
+        --------
+        For standard business offsets, holidays is None:
+
+        >>> bd = pd.offsets.BusinessDay()
+        >>> bd.holidays is None
+        True
+
+        >>> bh = pd.offsets.BusinessHour()
+        >>> bh.holidays is None
+        True
+
+        For custom business day with explicit holidays:
+
+        >>> holidays = [pd.Timestamp("2023-12-25"), pd.Timestamp("2024-01-01")]
+        >>> cbd = pd.offsets.CustomBusinessDay(holidays=holidays)
+        >>> cbd.holidays  # doctest: +SKIP
+        (Timestamp('2023-12-25 00:00:00'), Timestamp('2024-01-01 00:00:00'))
+
+        For custom business hour with explicit holidays:
+
+        >>> cbh = pd.offsets.CustomBusinessHour(holidays=holidays)
+        >>> cbh.holidays  # doctest: +SKIP
+        (Timestamp('2023-12-25 00:00:00'), Timestamp('2024-01-01 00:00:00'))
+
+        For custom business month end with explicit holidays:
+
+        >>> cbme = pd.offsets.CustomBusinessMonthEnd(holidays=holidays)
+        >>> cbme.holidays  # doctest: +SKIP
+        (Timestamp('2023-12-25 00:00:00'), Timestamp('2024-01-01 00:00:00'))
+
+        For custom business month begin with explicit holidays:
+
+        >>> cbmb = pd.offsets.CustomBusinessMonthBegin(holidays=holidays)
+        >>> cbmb.holidays  # doctest: +SKIP
+        (Timestamp('2023-12-25 00:00:00'), Timestamp('2024-01-01 00:00:00'))
+
+        For custom business offsets with a calendar:
+
+        >>> from pandas.tseries.holiday import USFederalHolidayCalendar
+        >>> cal = USFederalHolidayCalendar()
+        >>> cbd_cal = pd.offsets.CustomBusinessDay(calendar=cal)
+        >>> isinstance(cbd_cal.holidays, tuple)
+        True
+
+        >>> cbh_cal = pd.offsets.CustomBusinessHour(calendar=cal)
+        >>> isinstance(cbh_cal.holidays, tuple)
+        True
+        """
+        return self._holidays
 
     def _repr_attrs(self) -> str:
         if self.offset:
@@ -1960,7 +2036,7 @@ cdef class BusinessMixin(SingleConstructorOffset):
                                                calendar=None)
             self.weekmask = weekmask
             self.calendar = calendar
-            self.holidays = holidays
+            self._holidays = holidays
 
         BaseOffset.__setstate__(self, state)
 
