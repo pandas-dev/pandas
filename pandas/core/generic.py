@@ -6627,56 +6627,26 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         b    2
         dtype: int64
 
-        >>> s_copy = s.copy()
+        >>> s_copy = s.copy(deep=True)
         >>> s_copy
         a    1
         b    2
         dtype: int64
 
-        **Shallow copy versus default (deep) copy:**
+        Due to Copy-on-Write, shallow copies still protect data modifications.
+        Note shallow does not get modified below.
 
         >>> s = pd.Series([1, 2], index=["a", "b"])
-        >>> deep = s.copy()
         >>> shallow = s.copy(deep=False)
-
-        Shallow copy shares index with original, the data is a
-        view of the original.
-
-        >>> s is shallow
-        False
-        >>> s.values is shallow.values
-        False
-        >>> s.index is shallow.index
-        False
-
-        Deep copy has own copy of data and index.
-
-        >>> s is deep
-        False
-        >>> s.values is deep.values or s.index is deep.index
-        False
-
-        The shallow copy is protected against updating the original object
-        as well. Thus, updates will only reflect in one of both objects.
-
-        >>> s.iloc[0] = 3
-        >>> shallow.iloc[1] = 4
-        >>> s
-        a    3
-        b    2
-        dtype: int64
+        >>> s.iloc[1] = 200
         >>> shallow
         a    1
-        b    4
-        dtype: int64
-        >>> deep
-        a    1
         b    2
         dtype: int64
 
-        Note that when copying an object containing Python objects, a deep copy
-        will copy the data, but will not do so recursively. Updating a nested
-        data object will be reflected in the deep copy.
+        When the data has object dtype, even a deep copy does not copy the
+        underlying Python objects. Updating a nested data object will be
+        reflected in the deep copy.
 
         >>> s = pd.Series([[1, 2], [3, 4]])
         >>> deep = s.copy()
