@@ -152,10 +152,7 @@ from pandas.core.construction import (
     sanitize_array,
     sanitize_masked_array,
 )
-from pandas.core.generic import (
-    NDFrame,
-    make_doc,
-)
+from pandas.core.generic import NDFrame
 from pandas.core.indexers import check_key_length
 from pandas.core.indexes.api import (
     DatetimeIndex,
@@ -968,7 +965,7 @@ class DataFrame(NDFrame, OpsMixin):
         >>> df_not_necessarily_pandas = pd.DataFrame({"A": [1, 2], "B": [3, 4]})
         >>> interchange_object = df_not_necessarily_pandas.__dataframe__()
         >>> interchange_object.column_names()
-        Index(['A', 'B'], dtype='object')
+        Index(['A', 'B'], dtype='str')
         >>> df_pandas = pd.api.interchange.from_dataframe(
         ...     interchange_object.select_columns_by_name(["A"])
         ... )
@@ -1480,7 +1477,7 @@ class DataFrame(NDFrame, OpsMixin):
         panda         bear
         polar         bear
         koala    marsupial
-        Name: species, dtype: object
+        Name: species, dtype: str
         label: population
         content:
         panda     1864
@@ -1532,7 +1529,7 @@ class DataFrame(NDFrame, OpsMixin):
         panda         bear
         polar         bear
         koala    marsupial
-        Name: species, dtype: object
+        Name: species, dtype: str
         label: population
         content:
         panda     1864
@@ -1864,6 +1861,20 @@ class DataFrame(NDFrame, OpsMixin):
         Returns
         -------
         DataFrame
+
+        See Also
+        --------
+        Series.from_arrow : Construct a Series from an Arrow object.
+
+        Examples
+        --------
+        >>> import pyarrow as pa
+        >>> table = pa.table({"a": [1, 2, 3], "b": ["x", "y", "z"]})
+        >>> pd.DataFrame.from_arrow(table)
+           a  b
+        0  1  x
+        1  2  y
+        2  3  z
         """
         pa = import_optional_dependency("pyarrow", min_version="14.0.0")
         if not isinstance(data, pa.Table):
@@ -2656,10 +2667,6 @@ class DataFrame(NDFrame, OpsMixin):
         )
         return cls._from_mgr(mgr, axes=mgr.axes)
 
-    @doc(
-        storage_options=_shared_docs["storage_options"],
-        compression_options=_shared_docs["compression_options"] % "path",
-    )
     def to_stata(
         self,
         path: FilePath | WriteBuffer[bytes],
@@ -2729,9 +2736,32 @@ class DataFrame(NDFrame, OpsMixin):
             format. Only available if version is 117.  Storing strings in the
             StrL format can produce smaller dta files if strings have more than
             8 characters and values are repeated.
-        {compression_options}
 
-        {storage_options}
+        compression : str or dict, default 'infer'
+            For on-the-fly compression of the output data. If 'infer' and 'path' is
+            path-like, then detect compression from the following extensions: '.gz',
+            '.bz2', '.zip', '.xz', '.zst', '.tar', '.tar.gz', '.tar.xz' or '.tar.bz2'
+            (otherwise no compression).
+            Set to ``None`` for no compression.
+            Can also be a dict with key ``'method'`` set to one of
+            {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'xz'``, ``'tar'``} and
+            other key-value pairs are forwarded to
+            ``zipfile.ZipFile``, ``gzip.GzipFile``,
+            ``bz2.BZ2File``, ``zstandard.ZstdCompressor``, ``lzma.LZMAFile`` or
+            ``tarfile.TarFile``, respectively.
+            As an example, the following could be passed for faster compression and
+            to create a reproducible gzip archive:
+            ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
+
+        storage_options : dict, optional
+            Extra options that make sense for a particular storage connection, e.g.
+            host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
+            are forwarded to ``urllib.request.Request`` as header options. For other
+            URLs (e.g. starting with "s3://", and "gcs://") the key-value pairs are
+            forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more
+            details, and for more examples on storage options refer `here
+            <https://pandas.pydata.org/docs/user_guide/io.html?
+            highlight=storage_options#reading-writing-remote-files>`_.
 
         value_labels : dict of dicts
             Dictionary containing columns as keys and dictionaries of column value
@@ -2992,7 +3022,6 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> None: ...
 
-    @doc(storage_options=_shared_docs["storage_options"])
     def to_parquet(
         self,
         path: FilePath | WriteBuffer[bytes] | None = None,
@@ -3040,8 +3069,15 @@ class DataFrame(NDFrame, OpsMixin):
             Column names by which to partition the dataset.
             Columns are partitioned in the order they are given.
             Must be None if path is not a string.
-        {storage_options}
-
+        storage_options : dict, optional
+            Extra options that make sense for a particular storage connection, e.g.
+            host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
+            are forwarded to ``urllib.request.Request`` as header options. For other
+            URLs (e.g. starting with "s3://", and "gcs://") the key-value pairs are
+            forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more
+            details, and for more examples on storage options refer `here
+            <https://pandas.pydata.org/docs/user_guide/io.html?
+            highlight=storage_options#reading-writing-remote-files>`_.
         filesystem : fsspec or pyarrow filesystem, default None
             Filesystem object to use when reading the parquet file. Only implemented
             for ``engine="pyarrow"``.
@@ -3082,7 +3118,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame(data={{"col1": [1, 2], "col2": [3, 4]}})
+        >>> df = pd.DataFrame(data={"col1": [1, 2], "col2": [3, 4]})
         >>> df.to_parquet("df.parquet.gzip", compression="gzip")  # doctest: +SKIP
         >>> pd.read_parquet("df.parquet.gzip")  # doctest: +SKIP
            col1  col2
@@ -3500,10 +3536,6 @@ class DataFrame(NDFrame, OpsMixin):
         storage_options: StorageOptions | None = ...,
     ) -> None: ...
 
-    @doc(
-        storage_options=_shared_docs["storage_options"],
-        compression_options=_shared_docs["compression_options"] % "path_or_buffer",
-    )
     def to_xml(
         self,
         path_or_buffer: FilePath | WriteBuffer[bytes] | WriteBuffer[str] | None = None,
@@ -3579,9 +3611,31 @@ class DataFrame(NDFrame, OpsMixin):
             layout of elements and attributes from original output. This
             argument requires ``lxml`` to be installed. Only XSLT 1.0
             scripts and not later versions is currently supported.
-        {compression_options}
-
-        {storage_options}
+        compression : str or dict, default 'infer'
+            For on-the-fly compression of the output data. If 'infer' and
+            'path_or_buffer' is
+            path-like, then detect compression from the following extensions: '.gz',
+            '.bz2', '.zip', '.xz', '.zst', '.tar', '.tar.gz', '.tar.xz' or '.tar.bz2'
+            (otherwise no compression).
+            Set to ``None`` for no compression.
+            Can also be a dict with key ``'method'`` set to one of
+            {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'xz'``, ``'tar'``} and
+            other key-value pairs are forwarded to
+            ``zipfile.ZipFile``, ``gzip.GzipFile``,
+            ``bz2.BZ2File``, ``zstandard.ZstdCompressor``, ``lzma.LZMAFile`` or
+            ``tarfile.TarFile``, respectively.
+            As an example, the following could be passed for faster compression and
+            to create a reproducible gzip archive:
+            ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
+        storage_options : dict, optional
+            Extra options that make sense for a particular storage connection, e.g.
+            host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
+            are forwarded to ``urllib.request.Request`` as header options. For other
+            URLs (e.g. starting with "s3://", and "gcs://") the key-value pairs are
+            forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more
+            details, and for more examples on storage options refer `here
+            <https://pandas.pydata.org/docs/user_guide/io.html?
+            highlight=storage_options#reading-writing-remote-files>`_.
 
         Returns
         -------
@@ -3836,7 +3890,7 @@ class DataFrame(NDFrame, OpsMixin):
         4      1      1.0              1.0+0.0j       1  True
 
         >>> df.memory_usage()
-        Index           128
+        Index           132
         int64         40000
         float64       40000
         complex128    80000
@@ -3855,7 +3909,7 @@ class DataFrame(NDFrame, OpsMixin):
         The memory footprint of `object` dtype columns is ignored by default:
 
         >>> df.memory_usage(deep=True)
-        Index            128
+        Index            132
         int64          40000
         float64        40000
         complex128     80000
@@ -3867,7 +3921,7 @@ class DataFrame(NDFrame, OpsMixin):
         many repeated values.
 
         >>> df["object"].astype("category").memory_usage(deep=True)
-        5136
+        5140
         """
         result = self._constructor_sliced(
             [c.memory_usage(index=False, deep=deep) for col, c in self.items()],
@@ -3983,7 +4037,7 @@ class DataFrame(NDFrame, OpsMixin):
         the `object` dtype:
 
         >>> df2.dtypes
-        name         object
+        name            str
         score       float64
         employed       bool
         kids          int64
@@ -4420,10 +4474,10 @@ class DataFrame(NDFrame, OpsMixin):
         >>> s = pd.Series([10, 20], index=[1, 3])  # Note: index 3 doesn't exist in df
         >>> df["B"] = s  # Assigns by index label, not position
         >>> df
-            A   B
-        0  1 NaN
-        1  2  10
-        2  3 NaN
+           A     B
+        0  1   NaN
+        1  2  10.0
+        2  3   NaN
 
         Series assignment with partial index match:
 
@@ -4431,11 +4485,11 @@ class DataFrame(NDFrame, OpsMixin):
         >>> s = pd.Series([100, 200], index=["b", "d"])
         >>> df["B"] = s
         >>> df
-            A    B
-        a  1  NaN
-        b  2  100
-        c  3  NaN
-        d  4  200
+           A      B
+        a  1    NaN
+        b  2  100.0
+        c  3    NaN
+        d  4  200.0
 
         Series index labels NOT in DataFrame, ignored:
 
@@ -4447,7 +4501,6 @@ class DataFrame(NDFrame, OpsMixin):
         x  1  10
         y  2  20
         z  3  50
-        # Values for 'a' and 'b' are completely ignored!
         """
         if not CHAINED_WARNING_DISABLED:
             if sys.getrefcount(self) <= REF_COUNT and not com.is_local_in_caller_frame(
@@ -4502,29 +4555,28 @@ class DataFrame(NDFrame, OpsMixin):
                 value = value.reindex(self.index.take(indexer))
             self.iloc[indexer] = value
 
+        # Note: unlike self.iloc[:, indexer] = value, this will
+        #  never try to overwrite values inplace
+
+        elif isinstance(value, DataFrame):
+            check_key_length(self.columns, key, value)
+            for k1, k2 in zip(key, value.columns, strict=False):
+                self[k1] = value[k2]
+
+        elif not is_list_like(value):
+            for col in key:
+                self[col] = value
+
+        elif isinstance(value, np.ndarray) and value.ndim == 2:
+            self._iset_not_inplace(key, value)
+
+        elif np.ndim(value) > 1:
+            # list of lists
+            value = DataFrame(value).values
+            self._setitem_array(key, value)
+
         else:
-            # Note: unlike self.iloc[:, indexer] = value, this will
-            #  never try to overwrite values inplace
-
-            if isinstance(value, DataFrame):
-                check_key_length(self.columns, key, value)
-                for k1, k2 in zip(key, value.columns, strict=False):
-                    self[k1] = value[k2]
-
-            elif not is_list_like(value):
-                for col in key:
-                    self[col] = value
-
-            elif isinstance(value, np.ndarray) and value.ndim == 2:
-                self._iset_not_inplace(key, value)
-
-            elif np.ndim(value) > 1:
-                # list of lists
-                value = DataFrame(value).values
-                self._setitem_array(key, value)
-
-            else:
-                self._iset_not_inplace(key, value)
+            self._iset_not_inplace(key, value)
 
     def _iset_not_inplace(self, key, value) -> None:
         # GH#39510 when setting with df[key] = obj with a list-like key and
@@ -5156,6 +5208,7 @@ class DataFrame(NDFrame, OpsMixin):
         2     48
         3     28
         4     12
+        dtype: int64
 
         Local variables shall be explicitly referenced using ``@``
         character in front of the name:
@@ -5167,6 +5220,7 @@ class DataFrame(NDFrame, OpsMixin):
         2     6
         3     8
         4    10
+        Name: A, dtype: int64
         """
         from pandas.core.computation.eval import eval as _eval
 
@@ -6256,7 +6310,7 @@ class DataFrame(NDFrame, OpsMixin):
         >>> df.index
         RangeIndex(start=0, stop=3, step=1)
         >>> df.rename(index=str).index
-        Index(['0', '1', '2'], dtype='object')
+        Index(['0', '1', '2'], dtype='str')
 
         >>> df.rename(columns={"A": "a", "B": "b", "C": "c"}, errors="raise")
         Traceback (most recent call last):
@@ -6329,7 +6383,7 @@ class DataFrame(NDFrame, OpsMixin):
         1      bird
         2    mammal
         3    mammal
-        Name: class, dtype: object
+        Name: class, dtype: str
 
         >>> df
              name  max_speed
@@ -7901,11 +7955,10 @@ class DataFrame(NDFrame, OpsMixin):
             indexer = nargsort(
                 k, kind=kind, ascending=ascending, na_position=na_position, key=key
             )
+        elif inplace:
+            return self._update_inplace(self)
         else:
-            if inplace:
-                return self._update_inplace(self)
-            else:
-                return self.copy(deep=False)
+            return self.copy(deep=False)
 
         if is_range_indexer(indexer, len(indexer)):
             result = self.copy(deep=False)
@@ -8189,22 +8242,22 @@ class DataFrame(NDFrame, OpsMixin):
         >>> df
           first_name middle_name
         0       John       Smith
-        1       Anne        <NA>
-        2       John        <NA>
+        1       Anne         NaN
+        2       John         NaN
         3       Beth      Louise
 
         >>> df.value_counts()
         first_name  middle_name
-        Beth        Louise         1
         John        Smith          1
+        Beth        Louise         1
         Name: count, dtype: int64
 
         >>> df.value_counts(dropna=False)
         first_name  middle_name
-        Anne        NaN            1
-        Beth        Louise         1
         John        Smith          1
-                    NaN            1
+        Anne        NaN            1
+        John        NaN            1
+        Beth        Louise         1
         Name: count, dtype: int64
 
         >>> df.value_counts("first_name")
@@ -9785,16 +9838,16 @@ class DataFrame(NDFrame, OpsMixin):
         ...     index=[1, 2],
         ... )
         >>> df2.combine(df1, take_smaller)
-           A    B   C
-        0  0.0  NaN NaN
-        1  0.0  3.0 NaN
-        2  NaN  3.0 NaN
+             B    C   A
+        0  NaN  NaN 0.0
+        1  3.0  NaN 0.0
+        2  3.0  NaN NaN
 
         >>> df2.combine(df1, take_smaller, overwrite=False)
-             A    B   C
-        0  0.0  NaN NaN
-        1  0.0  3.0 1.0
-        2  NaN  3.0 1.0
+             B    C   A
+        0  NaN  NaN 0.0
+        1  3.0  1.0 0.0
+        2  3.0  1.0 NaN
         """
         other_idxlen = len(other.index)  # save for compare
         other_columns = other.columns
@@ -11489,6 +11542,11 @@ class DataFrame(NDFrame, OpsMixin):
               If you are just applying a NumPy reduction function this will
               achieve much better performance.
 
+         .. note::
+
+                When ``raw=True``, the result dtype is inferred from the **first**
+                returned value.
+
         result_type : {'expand', 'reduce', 'broadcast', None}, default None
             These only act when ``axis=1`` (columns):
 
@@ -11648,8 +11706,8 @@ class DataFrame(NDFrame, OpsMixin):
         ``apply`` has type stability (variables in the function do not change their
         type during the execution).
 
-        >>> import bodo
-        >>> df.apply(lambda x: x.A + x.B, axis=1, engine=bodo.jit)
+        >>> import bodo  # doctest: +SKIP
+        >>> df.apply(lambda x: x.A + x.B, axis=1, engine=bodo.jit)  # doctest: +SKIP
 
         Note that JIT compilation is only recommended for functions that take a
         significant amount of time to run. Fast functions are unlikely to run faster
@@ -12947,7 +13005,6 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | bool: ...
 
-    @doc(make_doc("any", ndim=1))
     def any(
         self,
         *,
@@ -12956,6 +13013,118 @@ class DataFrame(NDFrame, OpsMixin):
         skipna: bool = True,
         **kwargs,
     ) -> Series | bool:
+        """
+        Return whether any element is True, potentially over an axis.
+
+        Returns False unless there is at least one element within a series or
+        along a Dataframe axis that is True or equivalent (e.g. non-zero or
+        non-empty).
+
+        Parameters
+        ----------
+        axis : {0 or 'index', 1 or 'columns', None}, default 0
+            Indicate which axis or axes should be reduced. For `Series` this parameter
+            is unused and defaults to 0.
+
+            * 0 / 'index' : reduce the index, return a Series whose index is the
+              original column labels.
+            * 1 / 'columns' : reduce the columns, return a Series whose index is the
+              original index.
+            * None : reduce all axes, return a scalar.
+
+        bool_only : bool, default False
+            Include only boolean columns. Not implemented for Series.
+        skipna : bool, default True
+            Exclude NA/null values. If the entire row/column is NA and skipna is
+            True, then the result will be False, as for an empty row/column.
+            If skipna is False, then NA are treated as True, because these are not
+            equal to zero.
+        **kwargs : any, default None
+            Additional keywords have no effect but might be accepted for
+            compatibility with NumPy.
+
+        Returns
+        -------
+        Series or scalar
+            If axis=None, then a scalar boolean is returned.
+            Otherwise a Series is returned with index matching the index argument.
+
+        See Also
+        --------
+        numpy.any : Numpy version of this method.
+        Series.any : Return whether any element is True.
+        Series.all : Return whether all elements are True.
+        DataFrame.any : Return whether any element is True over requested axis.
+        DataFrame.all : Return whether all elements are True over requested axis.
+
+        Examples
+        --------
+        **Series**
+
+        For Series input, the output is a scalar indicating whether any element
+        is True.
+
+        >>> pd.Series([False, False]).any()
+        False
+        >>> pd.Series([True, False]).any()
+        True
+        >>> pd.Series([], dtype="float64").any()
+        False
+        >>> pd.Series([np.nan]).any()
+        False
+        >>> pd.Series([np.nan]).any(skipna=False)
+        True
+
+        **DataFrame**
+
+        Whether each column contains at least one True element (the default).
+
+        >>> df = pd.DataFrame({"A": [1, 2], "B": [0, 2], "C": [0, 0]})
+        >>> df
+           A  B  C
+        0  1  0  0
+        1  2  2  0
+
+        >>> df.any()
+        A     True
+        B     True
+        C    False
+        dtype: bool
+
+        Aggregating over the columns.
+
+        >>> df = pd.DataFrame({"A": [True, False], "B": [1, 2]})
+        >>> df
+               A  B
+        0   True  1
+        1  False  2
+
+        >>> df.any(axis="columns")
+        0    True
+        1    True
+        dtype: bool
+
+        >>> df = pd.DataFrame({"A": [True, False], "B": [1, 0]})
+        >>> df
+               A  B
+        0   True  1
+        1  False  0
+
+        >>> df.any(axis="columns")
+        0    True
+        1    False
+        dtype: bool
+
+        Aggregating over the entire DataFrame with ``axis=None``.
+
+        >>> df.any(axis=None)
+        True
+
+        `any` for an empty DataFrame is an empty Series.
+
+        >>> pd.DataFrame([]).any()
+        Series([], dtype: bool)
+        """
         result = self._logical_func(
             "any", nanops.nanany, axis, bool_only, skipna, **kwargs
         )
@@ -12994,7 +13163,6 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> Series | bool: ...
 
     @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="all")
-    @doc(make_doc("all", ndim=1))
     def all(
         self,
         axis: Axis | None = 0,
@@ -13002,6 +13170,91 @@ class DataFrame(NDFrame, OpsMixin):
         skipna: bool = True,
         **kwargs,
     ) -> Series | bool:
+        """
+        Return whether all elements are True, potentially over an axis.
+
+        Returns True unless there at least one element within a series or
+        along a Dataframe axis that is False or equivalent (e.g. zero or
+        empty).
+
+        Parameters
+        ----------
+        axis : {0 or 'index', 1 or 'columns', None}, default 0
+            Indicate which axis or axes should be reduced. For `Series` this parameter
+            is unused and defaults to 0.
+
+            * 0 / 'index' : reduce the index, return a Series whose index is the
+              original column labels.
+            * 1 / 'columns' : reduce the columns, return a Series whose index is the
+              original index.
+            * None : reduce all axes, return a scalar.
+
+        bool_only : bool, default False
+            Include only boolean columns. Not implemented for Series.
+        skipna : bool, default True
+            Exclude NA/null values. If the entire row/column is NA and skipna is
+            True, then the result will be True, as for an empty row/column.
+            If skipna is False, then NA are treated as True, because these are not
+            equal to zero.
+        **kwargs : any, default None
+            Additional keywords have no effect but might be accepted for
+            compatibility with NumPy.
+
+        Returns
+        -------
+        Series or scalar
+            If axis=None, then a scalar boolean is returned.
+            Otherwise a Series is returned with index matching the index argument.
+
+        See Also
+        --------
+        Series.all : Return True if all elements are True.
+        DataFrame.any : Return True if one (or more) elements are True.
+
+        Examples
+        --------
+        **Series**
+
+        >>> pd.Series([True, True]).all()
+        True
+        >>> pd.Series([True, False]).all()
+        False
+        >>> pd.Series([], dtype="float64").all()
+        True
+        >>> pd.Series([np.nan]).all()
+        True
+        >>> pd.Series([np.nan]).all(skipna=False)
+        True
+
+        **DataFrames**
+
+        Create a DataFrame from a dictionary.
+
+        >>> df = pd.DataFrame({"col1": [True, True], "col2": [True, False]})
+        >>> df
+           col1   col2
+        0  True   True
+        1  True  False
+
+        Default behaviour checks if values in each column all return True.
+
+        >>> df.all()
+        col1     True
+        col2    False
+        dtype: bool
+
+        Specify ``axis='columns'`` to check if values in each row all return True.
+
+        >>> df.all(axis="columns")
+        0     True
+        1    False
+        dtype: bool
+
+        Or ``axis=None`` for whether every value is True.
+
+        >>> df.all(axis=None)
+        False
+        """
         result = self._logical_func(
             "all", nanops.nanall, axis, bool_only, skipna, **kwargs
         )
@@ -13041,7 +13294,6 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> Series | Any: ...
 
     @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="min")
-    @doc(make_doc("min", ndim=2))
     def min(
         self,
         axis: Axis | None = 0,
@@ -13049,6 +13301,67 @@ class DataFrame(NDFrame, OpsMixin):
         numeric_only: bool = False,
         **kwargs,
     ) -> Series | Any:
+        """
+        Return the minimum of the values over the requested axis.
+
+        If you want the *index* of the minimum, use ``idxmin``.
+        This is the equivalent of the ``numpy.ndarray`` method ``argmin``.
+
+        Parameters
+        ----------
+        axis : {index (0), columns (1)}
+            Axis for the function to be applied on.
+            For `Series` this parameter is unused and defaults to 0.
+
+            For DataFrames, specifying ``axis=None`` will apply the aggregation
+            across both axes.
+
+            .. versionadded:: 2.0.0
+
+        skipna : bool, default True
+            Exclude NA/null values when computing the result.
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+
+        **kwargs
+            Additional keyword arguments to be passed to the function.
+
+        Returns
+        -------
+        Series or scalar
+            Value containing the calculation referenced in the description.
+
+        See Also
+        --------
+        Series.sum : Return the sum.
+        Series.min : Return the minimum.
+        Series.max : Return the maximum.
+        Series.idxmin : Return the index of the minimum.
+        Series.idxmax : Return the index of the maximum.
+        DataFrame.sum : Return the sum over the requested axis.
+        DataFrame.min : Return the minimum over the requested axis.
+        DataFrame.max : Return the maximum over the requested axis.
+        DataFrame.idxmin : Return the index of the minimum over the requested axis.
+        DataFrame.idxmax : Return the index of the maximum over the requested axis.
+
+        Examples
+        --------
+        >>> idx = pd.MultiIndex.from_arrays(
+        ...     [["warm", "warm", "cold", "cold"], ["dog", "falcon", "fish", "spider"]],
+        ...     names=["blooded", "animal"],
+        ... )
+        >>> s = pd.Series([4, 2, 0, 8], name="legs", index=idx)
+        >>> s
+        blooded  animal
+        warm     dog       4
+                 falcon    2
+        cold     fish      0
+                 spider    8
+        Name: legs, dtype: int64
+
+        >>> s.min()
+        0
+        """
         result = super().min(
             axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
@@ -13088,7 +13401,6 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> Series | Any: ...
 
     @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="max")
-    @doc(make_doc("max", ndim=2))
     def max(
         self,
         axis: Axis | None = 0,
@@ -13096,6 +13408,67 @@ class DataFrame(NDFrame, OpsMixin):
         numeric_only: bool = False,
         **kwargs,
     ) -> Series | Any:
+        """
+        Return the maximum of the values over the requested axis.
+
+        If you want the *index* of the maximum, use ``idxmax``.
+        This is the equivalent of the ``numpy.ndarray`` method ``argmax``.
+
+        Parameters
+        ----------
+        axis : {index (0), columns (1)}
+            Axis for the function to be applied on.
+            For `Series` this parameter is unused and defaults to 0.
+
+            For DataFrames, specifying ``axis=None`` will apply the aggregation
+            across both axes.
+
+            .. versionadded:: 2.0.0
+
+        skipna : bool, default True
+            Exclude NA/null values when computing the result.
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+
+        **kwargs
+            Additional keyword arguments to be passed to the function.
+
+        Returns
+        -------
+        Series or scalar
+            Value containing the calculation referenced in the description.
+
+        See Also
+        --------
+        Series.sum : Return the sum.
+        Series.min : Return the minimum.
+        Series.max : Return the maximum.
+        Series.idxmin : Return the index of the minimum.
+        Series.idxmax : Return the index of the maximum.
+        DataFrame.sum : Return the sum over the requested axis.
+        DataFrame.min : Return the minimum over the requested axis.
+        DataFrame.max : Return the maximum over the requested axis.
+        DataFrame.idxmin : Return the index of the minimum over the requested axis.
+        DataFrame.idxmax : Return the index of the maximum over the requested axis.
+
+        Examples
+        --------
+        >>> idx = pd.MultiIndex.from_arrays(
+        ...     [["warm", "warm", "cold", "cold"], ["dog", "falcon", "fish", "spider"]],
+        ...     names=["blooded", "animal"],
+        ... )
+        >>> s = pd.Series([4, 2, 0, 8], name="legs", index=idx)
+        >>> s
+        blooded  animal
+        warm     dog       4
+                 falcon    2
+        cold     fish      0
+                 spider    8
+        Name: legs, dtype: int64
+
+        >>> s.max()
+        8
+        """
         result = super().max(
             axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
@@ -13323,7 +13696,6 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> Series | Any: ...
 
     @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="mean")
-    @doc(make_doc("mean", ndim=2))
     def mean(
         self,
         axis: Axis | None = 0,
@@ -13331,6 +13703,79 @@ class DataFrame(NDFrame, OpsMixin):
         numeric_only: bool = False,
         **kwargs,
     ) -> Series | Any:
+        """
+        Return the mean of the values over the requested axis.
+
+        Parameters
+        ----------
+        axis : {index (0), columns (1)}
+            Axis for the function to be applied on.
+            For `Series` this parameter is unused and defaults to 0.
+
+            For DataFrames, specifying ``axis=None`` will apply the aggregation
+            across both axes.
+
+            .. versionadded:: 2.0.0
+
+        skipna : bool, default True
+            Exclude NA/null values when computing the result.
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+
+        **kwargs
+            Additional keyword arguments to be passed to the function.
+
+        Returns
+        -------
+        Series or scalar
+            Value containing the calculation referenced in the description.
+
+        See Also
+        --------
+        Series.sum : Return the sum.
+        Series.min : Return the minimum.
+        Series.max : Return the maximum.
+        Series.idxmin : Return the index of the minimum.
+        Series.idxmax : Return the index of the maximum.
+        DataFrame.sum : Return the sum over the requested axis.
+        DataFrame.min : Return the minimum over the requested axis.
+        DataFrame.max : Return the maximum over the requested axis.
+        DataFrame.idxmin : Return the index of the minimum over the requested axis.
+        DataFrame.idxmax : Return the index of the maximum over the requested axis.
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3])
+        >>> s.mean()
+        2.0
+
+        With a DataFrame
+
+        >>> df = pd.DataFrame({"a": [1, 2], "b": [2, 3]}, index=["tiger", "zebra"])
+        >>> df
+               a   b
+        tiger  1   2
+        zebra  2   3
+        >>> df.mean()
+        a   1.5
+        b   2.5
+        dtype: float64
+
+        Using axis=1
+
+        >>> df.mean(axis=1)
+        tiger   1.5
+        zebra   2.5
+        dtype: float64
+
+        In this case, `numeric_only` should be set to `True` to avoid
+        getting an error.
+
+        >>> df = pd.DataFrame({"a": [1, 2], "b": ["T", "Z"]}, index=["tiger", "zebra"])
+        >>> df.mean(numeric_only=True)
+        a   1.5
+        dtype: float64
+        """
         result = super().mean(
             axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
@@ -13372,7 +13817,6 @@ class DataFrame(NDFrame, OpsMixin):
     @deprecate_nonkeyword_arguments(
         Pandas4Warning, allowed_args=["self"], name="median"
     )
-    @doc(make_doc("median", ndim=2))
     def median(
         self,
         axis: Axis | None = 0,
@@ -13380,6 +13824,79 @@ class DataFrame(NDFrame, OpsMixin):
         numeric_only: bool = False,
         **kwargs,
     ) -> Series | Any:
+        """
+        Return the median of the values over the requested axis.
+
+        Parameters
+        ----------
+        axis : {index (0), columns (1)}
+            Axis for the function to be applied on.
+            For `Series` this parameter is unused and defaults to 0.
+
+            For DataFrames, specifying ``axis=None`` will apply the aggregation
+            across both axes.
+
+            .. versionadded:: 2.0.0
+
+        skipna : bool, default True
+            Exclude NA/null values when computing the result.
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+
+        **kwargs
+            Additional keyword arguments to be passed to the function.
+
+        Returns
+        -------
+        Series or scalar
+            Value containing the calculation referenced in the description.
+
+        See Also
+        --------
+        Series.sum : Return the sum.
+        Series.min : Return the minimum.
+        Series.max : Return the maximum.
+        Series.idxmin : Return the index of the minimum.
+        Series.idxmax : Return the index of the maximum.
+        DataFrame.sum : Return the sum over the requested axis.
+        DataFrame.min : Return the minimum over the requested axis.
+        DataFrame.max : Return the maximum over the requested axis.
+        DataFrame.idxmin : Return the index of the minimum over the requested axis.
+        DataFrame.idxmax : Return the index of the maximum over the requested axis.
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3])
+        >>> s.median()
+        2.0
+
+        With a DataFrame
+
+        >>> df = pd.DataFrame({"a": [1, 2], "b": [2, 3]}, index=["tiger", "zebra"])
+        >>> df
+               a   b
+        tiger  1   2
+        zebra  2   3
+        >>> df.median()
+        a   1.5
+        b   2.5
+        dtype: float64
+
+        Using axis=1
+
+        >>> df.median(axis=1)
+        tiger   1.5
+        zebra   2.5
+        dtype: float64
+
+        In this case, `numeric_only` should be set to `True`
+        to avoid getting an error.
+
+        >>> df = pd.DataFrame({"a": [1, 2], "b": ["T", "Z"]}, index=["tiger", "zebra"])
+        >>> df.median(numeric_only=True)
+        a   1.5
+        dtype: float64
+        """
         result = super().median(
             axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
@@ -13470,7 +13987,7 @@ class DataFrame(NDFrame, OpsMixin):
         Examples
         --------
         >>> s = pd.Series([1, 2, 3])
-        >>> s.sem().round(6)
+        >>> round(s.sem(), 6)
         0.57735
 
         With a DataFrame
@@ -13976,8 +14493,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         With axis=None
 
-        >>> df.kurt(axis=None).round(6)
-        -0.988693
+        >>> df.kurt(axis=None)
+        -0.9886927196984727
 
         Using axis=1
 
@@ -14001,7 +14518,6 @@ class DataFrame(NDFrame, OpsMixin):
     kurtosis = kurt  # type: ignore[assignment]
     product = prod
 
-    @doc(make_doc("cummin", ndim=2))
     def cummin(
         self,
         axis: Axis = 0,
@@ -14010,10 +14526,107 @@ class DataFrame(NDFrame, OpsMixin):
         *args,
         **kwargs,
     ) -> Self:
+        """
+        Return cumulative minimum over a DataFrame or Series axis.
+
+        Returns a DataFrame or Series of the same size containing the cumulative
+        minimum.
+
+        Parameters
+        ----------
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+            The index or the name of the axis. 0 is equivalent to None or 'index'.
+            For `Series` this parameter is unused and defaults to 0.
+        skipna : bool, default True
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be NA.
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+        *args, **kwargs
+            Additional keywords have no effect but might be accepted for
+            compatibility with NumPy.
+
+        Returns
+        -------
+        Series or DataFrame
+            Return cumulative minimum of Series or DataFrame.
+
+        See Also
+        --------
+        core.window.expanding.Expanding.min : Similar functionality
+            but ignores ``NaN`` values.
+        DataFrame.min : Return the minimum over
+            DataFrame axis.
+        DataFrame.cummax : Return cumulative maximum over DataFrame axis.
+        DataFrame.cummin : Return cumulative minimum over DataFrame axis.
+        DataFrame.cumsum : Return cumulative sum over DataFrame axis.
+        DataFrame.cumprod : Return cumulative product over DataFrame axis.
+
+        Examples
+        --------
+        **Series**
+
+        >>> s = pd.Series([2, np.nan, 5, -1, 0])
+        >>> s
+        0    2.0
+        1    NaN
+        2    5.0
+        3   -1.0
+        4    0.0
+        dtype: float64
+
+        By default, NA values are ignored.
+
+        >>> s.cummin()
+        0    2.0
+        1    NaN
+        2    2.0
+        3   -1.0
+        4   -1.0
+        dtype: float64
+
+        To include NA values in the operation, use ``skipna=False``
+
+        >>> s.cummin(skipna=False)
+        0    2.0
+        1    NaN
+        2    NaN
+        3    NaN
+        4    NaN
+        dtype: float64
+
+        **DataFrame**
+
+        >>> df = pd.DataFrame(
+        ...     [[2.0, 1.0], [3.0, np.nan], [1.0, 0.0]], columns=list("AB")
+        ... )
+        >>> df
+             A    B
+        0  2.0  1.0
+        1  3.0  NaN
+        2  1.0  0.0
+
+        By default, iterates over rows and finds the minimum
+        in each column. This is equivalent to ``axis=None`` or ``axis='index'``.
+
+        >>> df.cummin()
+             A    B
+        0  2.0  1.0
+        1  2.0  NaN
+        2  1.0  0.0
+
+        To iterate over columns and find the minimum in each row,
+        use ``axis=1``
+
+        >>> df.cummin(axis=1)
+             A    B
+        0  2.0  1.0
+        1  3.0  NaN
+        2  1.0  0.0
+        """
         data = self._get_numeric_data() if numeric_only else self
         return NDFrame.cummin(data, axis, skipna, *args, **kwargs)
 
-    @doc(make_doc("cummax", ndim=2))
     def cummax(
         self,
         axis: Axis = 0,
@@ -14022,10 +14635,107 @@ class DataFrame(NDFrame, OpsMixin):
         *args,
         **kwargs,
     ) -> Self:
+        """
+        Return cumulative maximum over a DataFrame or Series axis.
+
+        Returns a DataFrame or Series of the same size containing the cumulative
+        maximum.
+
+        Parameters
+        ----------
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+            The index or the name of the axis. 0 is equivalent to None or 'index'.
+            For `Series` this parameter is unused and defaults to 0.
+        skipna : bool, default True
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be NA.
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+        *args, **kwargs
+            Additional keywords have no effect but might be accepted for
+            compatibility with NumPy.
+
+        Returns
+        -------
+        Series or DataFrame
+            Return cumulative maximum of Series or DataFrame.
+
+        See Also
+        --------
+        core.window.expanding.Expanding.max : Similar functionality
+            but ignores ``NaN`` values.
+        DataFrame.max : Return the maximum over
+            DataFrame axis.
+        DataFrame.cummax : Return cumulative maximum over DataFrame axis.
+        DataFrame.cummin : Return cumulative minimum over DataFrame axis.
+        DataFrame.cumsum : Return cumulative sum over DataFrame axis.
+        DataFrame.cumprod : Return cumulative product over DataFrame axis.
+
+        Examples
+        --------
+        **Series**
+
+        >>> s = pd.Series([2, np.nan, 5, -1, 0])
+        >>> s
+        0    2.0
+        1    NaN
+        2    5.0
+        3   -1.0
+        4    0.0
+        dtype: float64
+
+        By default, NA values are ignored.
+
+        >>> s.cummax()
+        0    2.0
+        1    NaN
+        2    5.0
+        3    5.0
+        4    5.0
+        dtype: float64
+
+        To include NA values in the operation, use ``skipna=False``
+
+        >>> s.cummax(skipna=False)
+        0    2.0
+        1    NaN
+        2    NaN
+        3    NaN
+        4    NaN
+        dtype: float64
+
+        **DataFrame**
+
+        >>> df = pd.DataFrame(
+        ...     [[2.0, 1.0], [3.0, np.nan], [1.0, 0.0]], columns=list("AB")
+        ... )
+        >>> df
+             A    B
+        0  2.0  1.0
+        1  3.0  NaN
+        2  1.0  0.0
+
+        By default, iterates over rows and finds the maximum
+        in each column. This is equivalent to ``axis=None`` or ``axis='index'``.
+
+        >>> df.cummax()
+             A    B
+        0  2.0  1.0
+        1  3.0  NaN
+        2  3.0  1.0
+
+        To iterate over columns and find the maximum in each row,
+        use ``axis=1``
+
+        >>> df.cummax(axis=1)
+             A    B
+        0  2.0  2.0
+        1  3.0  NaN
+        2  1.0  1.0
+        """
         data = self._get_numeric_data() if numeric_only else self
         return NDFrame.cummax(data, axis, skipna, *args, **kwargs)
 
-    @doc(make_doc("cumsum", ndim=2))
     def cumsum(
         self,
         axis: Axis = 0,
@@ -14034,10 +14744,107 @@ class DataFrame(NDFrame, OpsMixin):
         *args,
         **kwargs,
     ) -> Self:
+        """
+        Return cumulative sum over a DataFrame or Series axis.
+
+        Returns a DataFrame or Series of the same size containing the cumulative
+        sum.
+
+        Parameters
+        ----------
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+            The index or the name of the axis. 0 is equivalent to None or 'index'.
+            For `Series` this parameter is unused and defaults to 0.
+        skipna : bool, default True
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be NA.
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+        *args, **kwargs
+            Additional keywords have no effect but might be accepted for
+            compatibility with NumPy.
+
+        Returns
+        -------
+        Series or DataFrame
+            Return cumulative sum of Series or DataFrame.
+
+        See Also
+        --------
+        core.window.expanding.Expanding.sum : Similar functionality
+            but ignores ``NaN`` values.
+        DataFrame.sum : Return the sum over
+            DataFrame axis.
+        DataFrame.cummax : Return cumulative maximum over DataFrame axis.
+        DataFrame.cummin : Return cumulative minimum over DataFrame axis.
+        DataFrame.cumsum : Return cumulative sum over DataFrame axis.
+        DataFrame.cumprod : Return cumulative product over DataFrame axis.
+
+        Examples
+        --------
+        **Series**
+
+        >>> s = pd.Series([2, np.nan, 5, -1, 0])
+        >>> s
+        0    2.0
+        1    NaN
+        2    5.0
+        3   -1.0
+        4    0.0
+        dtype: float64
+
+        By default, NA values are ignored.
+
+        >>> s.cumsum()
+        0    2.0
+        1    NaN
+        2    7.0
+        3    6.0
+        4    6.0
+        dtype: float64
+
+        To include NA values in the operation, use ``skipna=False``
+
+        >>> s.cumsum(skipna=False)
+        0    2.0
+        1    NaN
+        2    NaN
+        3    NaN
+        4    NaN
+        dtype: float64
+
+        **DataFrame**
+
+        >>> df = pd.DataFrame(
+        ...     [[2.0, 1.0], [3.0, np.nan], [1.0, 0.0]], columns=list("AB")
+        ... )
+        >>> df
+             A    B
+        0  2.0  1.0
+        1  3.0  NaN
+        2  1.0  0.0
+
+        By default, iterates over rows and finds the sum
+        in each column. This is equivalent to ``axis=None`` or ``axis='index'``.
+
+        >>> df.cumsum()
+             A    B
+        0  2.0  1.0
+        1  5.0  NaN
+        2  6.0  1.0
+
+        To iterate over columns and find the sum in each row,
+        use ``axis=1``
+
+        >>> df.cumsum(axis=1)
+             A    B
+        0  2.0  3.0
+        1  3.0  NaN
+        2  1.0  1.0
+        """
         data = self._get_numeric_data() if numeric_only else self
         return NDFrame.cumsum(data, axis, skipna, *args, **kwargs)
 
-    @doc(make_doc("cumprod", 2))
     def cumprod(
         self,
         axis: Axis = 0,
@@ -14046,6 +14853,104 @@ class DataFrame(NDFrame, OpsMixin):
         *args,
         **kwargs,
     ) -> Self:
+        """
+        Return cumulative product over a DataFrame or Series axis.
+
+        Returns a DataFrame or Series of the same size containing the cumulative
+        product.
+
+        Parameters
+        ----------
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+            The index or the name of the axis. 0 is equivalent to None or 'index'.
+            For `Series` this parameter is unused and defaults to 0.
+        skipna : bool, default True
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be NA.
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+        *args, **kwargs
+            Additional keywords have no effect but might be accepted for
+            compatibility with NumPy.
+
+        Returns
+        -------
+        Series or DataFrame
+            Return cumulative product of Series or DataFrame.
+
+        See Also
+        --------
+        core.window.expanding.Expanding.prod : Similar functionality
+            but ignores ``NaN`` values.
+        DataFrame.prod : Return the product over
+            DataFrame axis.
+        DataFrame.cummax : Return cumulative maximum over DataFrame axis.
+        DataFrame.cummin : Return cumulative minimum over DataFrame axis.
+        DataFrame.cumsum : Return cumulative sum over DataFrame axis.
+        DataFrame.cumprod : Return cumulative product over DataFrame axis.
+
+        Examples
+        --------
+        **Series**
+
+        >>> s = pd.Series([2, np.nan, 5, -1, 0])
+        >>> s
+        0    2.0
+        1    NaN
+        2    5.0
+        3   -1.0
+        4    0.0
+        dtype: float64
+
+        By default, NA values are ignored.
+
+        >>> s.cumprod()
+        0     2.0
+        1     NaN
+        2    10.0
+        3   -10.0
+        4    -0.0
+        dtype: float64
+
+        To include NA values in the operation, use ``skipna=False``
+
+        >>> s.cumprod(skipna=False)
+        0    2.0
+        1    NaN
+        2    NaN
+        3    NaN
+        4    NaN
+        dtype: float64
+
+        **DataFrame**
+
+        >>> df = pd.DataFrame(
+        ...     [[2.0, 1.0], [3.0, np.nan], [1.0, 0.0]], columns=list("AB")
+        ... )
+        >>> df
+             A    B
+        0  2.0  1.0
+        1  3.0  NaN
+        2  1.0  0.0
+
+        By default, iterates over rows and finds the product
+        in each column. This is equivalent to ``axis=None`` or ``axis='index'``.
+
+        >>> df.cumprod()
+             A    B
+        0  2.0  1.0
+        1  6.0  NaN
+        2  6.0  0.0
+
+        To iterate over columns and find the product in each row,
+        use ``axis=1``
+
+        >>> df.cumprod(axis=1)
+             A    B
+        0  2.0  2.0
+        1  3.0  NaN
+        2  1.0  0.0
+        """
         data = self._get_numeric_data() if numeric_only else self
         return NDFrame.cumprod(data, axis, skipna, *args, **kwargs)
 
@@ -14133,10 +15038,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         >>> df = pd.DataFrame(
         ...     {
-        ...         {
-        ...             "consumption": [10.51, 103.11, 55.48],
-        ...             "co2_emissions": [37.2, 19.66, 1712],
-        ...         }
+        ...         "consumption": [10.51, 103.11, 55.48],
+        ...         "co2_emissions": [37.2, 19.66, 1712],
         ...     },
         ...     index=["Pork", "Wheat Products", "Beef"],
         ... )
@@ -14152,7 +15055,7 @@ class DataFrame(NDFrame, OpsMixin):
         >>> df.idxmin()
         consumption                Pork
         co2_emissions    Wheat Products
-        dtype: object
+        dtype: str
 
         To return the index for the minimum value in each row, use ``axis="columns"``.
 
@@ -14160,7 +15063,7 @@ class DataFrame(NDFrame, OpsMixin):
         Pork                consumption
         Wheat Products    co2_emissions
         Beef                consumption
-        dtype: object
+        dtype: str
         """
         axis = self._get_axis_number(axis)
 
@@ -14236,10 +15139,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         >>> df = pd.DataFrame(
         ...     {
-        ...         {
-        ...             "consumption": [10.51, 103.11, 55.48],
-        ...             "co2_emissions": [37.2, 19.66, 1712],
-        ...         }
+        ...         "consumption": [10.51, 103.11, 55.48],
+        ...         "co2_emissions": [37.2, 19.66, 1712],
         ...     },
         ...     index=["Pork", "Wheat Products", "Beef"],
         ... )
@@ -14253,9 +15154,9 @@ class DataFrame(NDFrame, OpsMixin):
         By default, it returns the index for the maximum value in each column.
 
         >>> df.idxmax()
-        consumption     Wheat Products
-        co2_emissions             Beef
-        dtype: object
+        consumption      Wheat Products
+        co2_emissions              Beef
+        dtype: str
 
         To return the index for the maximum value in each row, use ``axis="columns"``.
 
@@ -14263,7 +15164,7 @@ class DataFrame(NDFrame, OpsMixin):
         Pork              co2_emissions
         Wheat Products     consumption
         Beef              co2_emissions
-        dtype: object
+        dtype: str
         """
         axis = self._get_axis_number(axis)
 
@@ -14753,7 +15654,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         >>> idx
         DatetimeIndex(['2001-03-31', '2002-05-31', '2003-08-31'],
-        dtype='datetime64[s]', freq=None)
+                      dtype='datetime64[us]', freq=None)
 
         >>> idx.to_period("M")
         PeriodIndex(['2001-03', '2002-05', '2003-08'], dtype='period[M]')
@@ -14982,7 +15883,7 @@ class DataFrame(NDFrame, OpsMixin):
         0    1  3
         1    2  4
         >>> df.columns
-        Index(['A', 'B'], dtype='object')
+        Index(['A', 'B'], dtype='str')
         """,
     )
 
