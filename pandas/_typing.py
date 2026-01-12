@@ -84,8 +84,8 @@ if TYPE_CHECKING:
     # numpy compatible types
     NumpyValueArrayLike: TypeAlias = ScalarLike_co | npt.ArrayLike
 
-    # NumPy does not export _ArrayLikeInt_co; use public ArrayLike instead
-    NumpySorter = Optional[npt.ArrayLike]
+    # NumPy does not export _ArrayLikeInt_co; use public ArrayLike instead not use optional 
+    NumpySorter = npt.ArrayLike | None
 
 
 
