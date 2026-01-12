@@ -377,9 +377,15 @@ class ArrowStringArrayMixin:
             result = self._apply_elementwise(predicate)
             return self._from_pyarrow_array(pa.chunked_array(result))
 
+        from pandas import DataFrame
         from pandas.core.arrays.arrow import ArrowExtensionArray
 
         pa_array = self._pa_array
+
+        # Handle empty array case
+        if len(pa_array) == 0:
+            return DataFrame()
+
         str_type = pa_array.type
 
         # Split on first occurrence
