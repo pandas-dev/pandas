@@ -1616,7 +1616,7 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
   }
 
   double number = 0.;
-  int exponent = 0;
+  long long exponent = 0;
   int num_digits = 0;
   int num_decimals = 0;
 
@@ -1680,7 +1680,7 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
 
     // Process string of digits.
     num_digits = 0;
-    int n = 0;
+    long long n = 0;
     while (num_digits < max_digits && isdigit_ascii(*p)) {
       n = n * 10 + (*p - '0');
       num_digits++;
