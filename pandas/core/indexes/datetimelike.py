@@ -272,11 +272,11 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
             return False
         elif self.dtype == other.dtype:
             return np.array_equal(self.asi8, other.asi8)
-        elif (self.dtype.kind == "M" and self.tz == other.tz) or self.dtype.kind == "m":
+        elif (self.dtype.kind == "M" and self.tz == other.tz) or self.dtype.kind == "m":  # type: ignore[attr-defined]
             # different units, otherwise matching
             try:
                 # TODO: do this at the EA level?
-                left, right = self._data._ensure_matching_resos(other._data)
+                left, right = self._data._ensure_matching_resos(other._data)  # type: ignore[union-attr]
             except (OutOfBoundsDatetime, OutOfBoundsTimedelta):
                 return False
             else:

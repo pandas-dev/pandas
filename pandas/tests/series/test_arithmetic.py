@@ -1060,3 +1060,19 @@ def test_rmod_consistent_large_series():
     expected = Series([1] * 10001)
 
     tm.assert_series_equal(result, expected)
+
+
+def test_comparison_mismatched_datetime_units():
+    # GH#63459
+
+    dti = date_range("2016-01-01", periods=3)
+    ser = Series(1, index=dti)
+    ser2 = Series(1, index=dti.as_unit("ns"))
+
+    result = ser == ser2
+    expected = Series([True, True, True], index=ser.index)
+    tm.assert_series_equal(result, expected)
+
+    result2 = ser2 < ser
+    expected2 = Series([False, False, False], index=ser2.index)
+    tm.assert_series_equal(result2, expected2)
