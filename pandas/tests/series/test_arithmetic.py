@@ -1060,3 +1060,26 @@ def test_rmod_consistent_large_series():
     expected = Series([1] * 10001)
 
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "index",
+    [
+        date_range("2016-01-01", periods=3),
+        date_range("2016-01-01", tz="US/Pacific", periods=3),
+        pd.timedelta_range("1 Day", periods=3),
+    ],
+)
+def test_comparison_mismatched_datetime_units(index):
+    # GH#63459
+
+    ser = Series(1, index=index)
+    ser2 = Series(1, index=index.as_unit("ns"))
+
+    result = ser == ser2
+    expected = Series([True, True, True], index=ser.index)
+    tm.assert_series_equal(result, expected)
+
+    result2 = ser2 < ser
+    expected2 = Series([False, False, False], index=ser2.index)
+    tm.assert_series_equal(result2, expected2)
