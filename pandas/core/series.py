@@ -6807,7 +6807,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             self._get_axis_number(axis)
 
         res_name = ops.get_op_result_name(self, other)
-
+        if isinstance(other,np.ndarray) and other.ndim == 0:
+            other=other.item()
         if isinstance(other, Series):
             return self._binop(other, op, level=level, fill_value=fill_value)
         elif isinstance(other, (np.ndarray, list, tuple, ExtensionArray)):
