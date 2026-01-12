@@ -113,8 +113,7 @@ class TestGroupVarFloat64(GroupVarTestMixin):
 
         out = np.array([[np.nan]], dtype=self.dtype)
         counts = np.array([0], dtype="int64")
-        values = (prng.random(10**6) + 10**12).astype(self.dtype)
-        values.shape = (10**6, 1)
+        values = (prng.random((10**6, 1)) + 10**12).astype(self.dtype)
         labels = np.zeros(10**6, dtype="intp")
 
         self.algo(out, counts, values, labels)
