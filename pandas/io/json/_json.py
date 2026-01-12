@@ -1328,22 +1328,6 @@ class Parser:
                     except Exception:
                         pass
         else:
-            # TODO this if block can be removed when to_datetime handles this
-            # currently tries to convert floats consisting of ints with NaN
-            # to int64 for consistent behaviour with integers
-            if issubclass(new_data.dtype.type, np.floating):
-                mask = isna(new_data._values)
-                if mask.any():  # type: ignore[attr-defined]
-                    new_data_int = new_data.copy()
-                    new_data_int._values[mask] = iNaT
-                    try:
-                        new_data_int = new_data_int.astype("int64")
-                        assert ((new_data_int == new_data) | mask).all()
-                    except Exception:
-                        pass
-                    else:
-                        new_data = new_data_int
-
             date_units = (self.date_unit,) if self.date_unit else self._STAMP_UNITS
             for date_unit in date_units:
                 try:
