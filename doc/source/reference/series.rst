@@ -624,6 +624,7 @@ Serialization / IO / conversion
 .. autosummary::
    :toctree: api/
 
+   Series.from_arrow
    Series.to_pickle
    Series.to_csv
    Series.to_dict

@@ -259,7 +259,7 @@ class _HtmlFrameParser:
 
     def _href_getter(self, obj) -> str | None:
         """
-        Return a href if the DOM node contains a child <a> or None.
+        Return an href if the DOM node contains a child <a> or None.
 
         Parameters
         ----------
