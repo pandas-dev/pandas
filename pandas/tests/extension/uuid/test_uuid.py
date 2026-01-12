@@ -121,56 +121,6 @@ class UuidExtensionArray(ExtensionArray):
     def __len__(self) -> int:
         return len(self._data)
 
-    @unpack_zerodim_and_defer("__eq__")
-    def __eq__(self, other: object) -> BooleanArray:  # type: ignore[override]
-        return self._cmp("eq", other)
-
-    @property
-    def nbytes(self) -> int:
-        return self._data.nbytes
-
-    def isna(self) -> NDArray[np.bool_]:
-        return pd.isna(self._data)
-
-    def take(
-        self, indexer, *, allow_fill: bool = False, fill_value: object = None
-    ) -> Self:
-        if allow_fill and fill_value is None:
-            fill_value = self.dtype.na_value
-
-        result = take(self._data, indexer, allow_fill=allow_fill, fill_value=fill_value)
-        return self._simple_new(result)
-
-    def copy(self) -> Self:
-        return self._simple_new(self._data.copy())
-
-    @classmethod
-    def _concat_same_type(cls, to_concat: Sequence[Self]) -> Self:
-        return cls._simple_new(np.concatenate([x._data for x in to_concat]))
-
-    # Helpers
-
-    @classmethod
-    def _simple_new(cls, values: NDArray[np.void]) -> Self:
-        result = UuidExtensionArray.__new__(cls)
-        result._data = values
-        return result
-
-    def _cmp(self, op: str, other) -> BooleanArray:
-        if isinstance(other, UuidExtensionArray):
-            other = other._data
-        elif isinstance(other, Sequence):
-            other = np.asarray(other)
-            if other.ndim > 1:
-                raise NotImplementedError("can only perform ops with 1-d structures")
-            if len(self) != len(other):
-                raise ValueError("Lengths must match to compare")
-
-        method = getattr(self._data, f"__{op}__")
-        result = method(other)
-
-        return cast("BooleanArray", pd.array(result, dtype="boolean"))
-
 
 def test_construct() -> None:
     """Tests that we can construct UuidExtensionArray from a list of valid values."""
