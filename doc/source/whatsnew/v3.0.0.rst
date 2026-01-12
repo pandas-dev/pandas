@@ -1167,6 +1167,10 @@ Timedelta
 - Bug in adding or subtracting a :class:`Timedelta` object with non-nanosecond unit to a python ``datetime.datetime`` object giving incorrect results; this now works correctly for Timedeltas inside the ``datetime.timedelta`` implementation bounds (:issue:`53643`)
 - Bug in multiplication operations with ``timedelta64`` dtype failing to raise ``TypeError`` when multiplying by ``bool`` objects or dtypes (:issue:`58054`)
 - Bug in multiplication operations with ``timedelta64`` dtype incorrectly raising when multiplying by numpy-nullable dtypes or pyarrow integer dtypes (:issue:`58054`)
+- Bug in the :class:`Series` constructor not honoring the unit of the ``timedelta64[unit]`` dtype
+  when constructing a timedelta series from integers, e.g. ``pd.Series([0, 1, 2], dtype="timedelta64[s]")``
+  still interpreted the numbers as nanoseconds instead of seconds. Now it will interpret the passed
+  integers according to the unit of the specified dtype (:issue:`48312`, :issue:`52457`)
 
 Timezones
 ^^^^^^^^^
