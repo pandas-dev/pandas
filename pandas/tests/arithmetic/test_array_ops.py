@@ -37,3 +37,40 @@ def test_object_comparison_2d():
     right.flags.writeable = False
     result = comparison_op(left, right, operator.ne)
     tm.assert_numpy_array_equal(result, ~expected)
+
+
+@pytest.mark.parametrize("rvalues", [1, [1, 1, 1], np.nan, None])
+@pytest.mark.parametrize(
+    "op", [operator.eq, operator.ne, operator.lt, operator.le, operator.gt, operator.ge]
+)
+def test_comparison_for_subclasses(rvalues, op):
+    # GH#63205 Ensure subclasses of ndarray are correctly handled in comparison_op
+    # Define a custom ndarray subclass
+    class TestArray(np.ndarray):
+        def __new__(cls, input_array):
+            return np.asarray(input_array).view(cls)
+
+        def __array_finalize__(self, obj) -> None:
+            self._is_test_array = True
+
+    def expected_with_none_handling(lvalues, rvalues, op):
+        # Similar to comparison_op, handle zerodim None separately
+        if (rvalues.ndim == 0) and (rvalues.item() is None):
+            # numpy does not like comparisons vs None
+            if op is operator.ne:
+                return np.ones(lvalues.shape, dtype=bool)
+            else:
+                return np.zeros(lvalues.shape, dtype=bool)
+        return op(lvalues, rvalues)
+
+    # Define test data
+    lvalues = [1, 2, 3]
+
+    # Test with both ndarray and TestArray
+    result = comparison_op(np.array(lvalues), np.array(rvalues), op)
+    expected = expected_with_none_handling(np.array(lvalues), np.array(rvalues), op)
+    assert np.array_equal(result, expected)
+
+    result = comparison_op(TestArray(lvalues), TestArray(rvalues), op)
+    expected = expected_with_none_handling(TestArray(lvalues), TestArray(rvalues), op)
+    assert np.array_equal(result, expected)

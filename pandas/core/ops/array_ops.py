@@ -314,13 +314,17 @@ def comparison_op(left: ArrayLike, right: Any, op) -> ArrayLike:
     rvalues = ensure_wrapped_if_datetimelike(right)
 
     rvalues = lib.item_from_zerodim(rvalues)
+
+    # Special handling needed if rvalues is a zerodim np.ndarray subclass, see GH#63205
+    rvalues_is_zerodim: bool = getattr(rvalues, "ndim", None) == 0
+
     if isinstance(rvalues, list):
         # We don't catch tuple here bc we may be comparing e.g. MultiIndex
         #  to a tuple that represents a single entry, see test_compare_tuple_strs
         rvalues = sanitize_array(rvalues, None)
     rvalues = ensure_wrapped_if_datetimelike(rvalues)
 
-    if isinstance(rvalues, (np.ndarray, ABCExtensionArray)):
+    if isinstance(rvalues, (np.ndarray, ABCExtensionArray)) and not rvalues_is_zerodim:
         # TODO: make this treatment consistent across ops and classes.
         #  We are not catching all listlikes here (e.g. frozenset, tuple)
         #  The ambiguous case is object-dtype.  See GH#27803
@@ -336,7 +340,8 @@ def comparison_op(left: ArrayLike, right: Any, op) -> ArrayLike:
         # Call the method on lvalues
         res_values = op(lvalues, rvalues)
 
-    elif is_scalar(rvalues) and isna(rvalues):  # TODO: but not pd.NA?
+    # TODO: but not pd.NA?
+    elif (is_scalar(rvalues) or rvalues_is_zerodim) and isna(rvalues):
         # numpy does not like comparisons vs None
         if op is operator.ne:
             res_values = np.ones(lvalues.shape, dtype=bool)
