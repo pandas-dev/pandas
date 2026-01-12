@@ -169,10 +169,11 @@ class TestPeriodConstruction:
         rt2 = per2.to_timestamp()
         assert rt2.asm8 == dt64
 
-    def test_construction_from_min_timestamp(self):
+    @pytest.mark.parametrize("freq", ["ms", "us", "ns"])
+    def test_construction_from_min_timestamp(self, freq):
         # GH-63278
-        ts = Timestamp(Timestamp.min.value, unit="us")
-        per = Period(ts, freq="us")
+        ts = Timestamp(Timestamp.min.value, unit=freq)
+        per = Period(ts, freq=freq)
 
         # pandas.errors.OutOfBoundsDatetime: Out of bounds nanosecond timestamp:
         # -290308-12-21 19:59:05
