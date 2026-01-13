@@ -244,10 +244,13 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     @classmethod
     def _from_sequence(cls, data, *, dtype=None, copy: bool = False) -> Self:
+        unit = None
         if dtype:
             dtype = _validate_td64_dtype(dtype)
+            if lib.infer_dtype(data) == "integer":
+                unit = np.datetime_data(dtype)[0]
 
-        data, freq = sequence_to_td64ns(data, copy=copy, unit=None)
+        data, freq = sequence_to_td64ns(data, copy=copy, unit=unit)
 
         if dtype is not None:
             data = astype_overflowsafe(data, dtype=dtype, copy=False)
@@ -270,6 +273,8 @@ class TimedeltaArray(dtl.TimelikeOps):
         """
         if dtype:
             dtype = _validate_td64_dtype(dtype)
+            if unit is None and lib.infer_dtype(data) == "integer":
+                unit = np.datetime_data(dtype)[0]
 
         assert unit not in ["Y", "y", "M"]  # caller is responsible for checking
 
@@ -801,7 +806,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         2   2 days
         3   3 days
         4   4 days
-        dtype: timedelta64[ns]
+        dtype: timedelta64[s]
 
         >>> s.dt.total_seconds()
         0         0.0
@@ -816,7 +821,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         >>> idx = pd.to_timedelta(np.arange(5), unit="D")
         >>> idx
         TimedeltaIndex(['0 days', '1 days', '2 days', '3 days', '4 days'],
-                       dtype='timedelta64[us]', freq=None)
+                       dtype='timedelta64[s]', freq=None)
 
         >>> idx.total_seconds()
         Index([0.0, 86400.0, 172800.0, 259200.0, 345600.0], dtype='float64')
@@ -850,7 +855,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         >>> tdelta_idx = pd.to_timedelta([1, 2, 3], unit="D")
         >>> tdelta_idx
         TimedeltaIndex(['1 days', '2 days', '3 days'],
-                        dtype='timedelta64[ns]', freq=None)
+                        dtype='timedelta64[s]', freq=None)
         >>> tdelta_idx.to_pytimedelta()
         array([datetime.timedelta(days=1), datetime.timedelta(days=2),
                datetime.timedelta(days=3)], dtype=object)
@@ -858,7 +863,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         >>> tidx = pd.TimedeltaIndex(data=["1 days 02:30:45", "3 days 04:15:10"])
         >>> tidx
         TimedeltaIndex(['1 days 02:30:45', '3 days 04:15:10'],
-               dtype='timedelta64[ns]', freq=None)
+               dtype='timedelta64[us]', freq=None)
         >>> tidx.to_pytimedelta()
         array([datetime.timedelta(days=1, seconds=9045),
                 datetime.timedelta(days=3, seconds=15310)], dtype=object)
@@ -883,7 +888,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     0   1 days
     1   2 days
     2   3 days
-    dtype: timedelta64[ns]
+    dtype: timedelta64[s]
     >>> ser.dt.days
     0    1
     1    2
@@ -918,7 +923,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     0   0 days 00:00:01
     1   0 days 00:00:02
     2   0 days 00:00:03
-    dtype: timedelta64[ns]
+    dtype: timedelta64[s]
     >>> ser.dt.seconds
     0    1
     1    2
@@ -930,7 +935,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     >>> tdelta_idx = pd.to_timedelta([1, 2, 3], unit='s')
     >>> tdelta_idx
     TimedeltaIndex(['0 days 00:00:01', '0 days 00:00:02', '0 days 00:00:03'],
-                   dtype='timedelta64[ns]', freq=None)
+                   dtype='timedelta64[s]', freq=None)
     >>> tdelta_idx.seconds
     Index([1, 2, 3], dtype='int32')"""
     )
@@ -958,7 +963,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     0   0 days 00:00:00.000001
     1   0 days 00:00:00.000002
     2   0 days 00:00:00.000003
-    dtype: timedelta64[ns]
+    dtype: timedelta64[us]
     >>> ser.dt.microseconds
     0    1
     1    2
@@ -971,7 +976,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     >>> tdelta_idx
     TimedeltaIndex(['0 days 00:00:00.000001', '0 days 00:00:00.000002',
                     '0 days 00:00:00.000003'],
-                   dtype='timedelta64[ns]', freq=None)
+                   dtype='timedelta64[us]', freq=None)
     >>> tdelta_idx.microseconds
     Index([1, 2, 3], dtype='int32')"""
     )
@@ -1152,6 +1157,18 @@ def sequence_to_td64ns(
         else:
             mask = np.isnan(data)
 
+        if unit is not None and unit != "ns":
+            # if all non-NaN entries are round, treat these like ints and give
+            #  back the requested unit (or closest-supported)
+            int_data = data.astype(np.int64)
+            all_round = (mask | (data == int_data)).all()
+            if all_round:
+                result, _ = sequence_to_td64ns(
+                    int_data, copy=False, unit=unit, errors=errors
+                )
+                result[mask] = iNaT
+                return result, inferred_freq
+
         data = cast_from_unit_vectorized(data, unit or "ns")
         data[mask] = iNaT
         data = data.view("m8[ns]")
@@ -1208,10 +1225,12 @@ def _ints_to_td64ns(data, unit: str = "ns") -> tuple[np.ndarray, bool]:
         dtype_str = f"timedelta64[{unit}]"
         data = data.view(dtype_str)
 
-        data = astype_overflowsafe(data, dtype=TD64NS_DTYPE)
+        new_dtype = get_supported_dtype(data.dtype)
+        if new_dtype != data.dtype:
+            data = astype_overflowsafe(data, dtype=new_dtype)
 
-        # the astype conversion makes a copy, so we can avoid re-copying later
-        copy_made = True
+            # the astype conversion makes a copy, so we can avoid re-copying later
+            copy_made = True
 
     else:
         data = data.view("timedelta64[ns]")

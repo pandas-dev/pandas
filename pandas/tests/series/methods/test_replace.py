@@ -724,6 +724,13 @@ class TestSeriesReplace:
         expected = pd.Series([pd.NA, pd.NA])
         tm.assert_series_equal(result, expected)
 
+    def test_replace_mixed_types_with_none(self):
+        # GH#29813
+        df = pd.Series([np.nan, 1, "foo"])
+        result = df.replace({np.nan: None})
+        expected = pd.Series([None, 1, "foo"])
+        tm.assert_series_equal(result, expected)
+
 
 @td.skip_if_no("pyarrow")
 def test_replace_from_index():
