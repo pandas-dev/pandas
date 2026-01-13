@@ -157,6 +157,8 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     DatetimeIndex : Index with datetime64 data.
     TimedeltaIndex : Index of timedelta64 data.
     period_range : Create a fixed-frequency PeriodIndex.
+    :ref:`Time series / date functionality <timeseries>`
+        User guide for working with time series data.
 
     Examples
     --------
