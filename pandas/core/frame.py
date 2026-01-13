@@ -3362,7 +3362,7 @@ class DataFrame(NDFrame, OpsMixin):
           <thead>
             <tr style="text-align: right;">
               <th style="border: 1px solid black;"></th>
-              <th style="border: 1px solid black;"col1</th>
+              <th style="border: 1px solid black;">col1</th>
               <th style="border: 1px solid black;">col2</th>
             </tr>
           </thead>
