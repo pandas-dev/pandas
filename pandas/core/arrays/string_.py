@@ -238,7 +238,7 @@ class StringDtype(StorageExtensionDtype):
         # cannot be checked with normal `==`
         if isinstance(other, str):
             # TODO should dtype == "string" work for the NaN variant?
-            if other == "string" or other == self.name:
+            if other in ("string", self.name):
                 return True
             try:
                 other = self.construct_from_string(other)
