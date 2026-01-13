@@ -249,11 +249,12 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     PeriodIndex : Index of Period data.
     to_datetime : Convert argument to datetime.
     date_range : Create a fixed-frequency DatetimeIndex.
-    :ref:`Time series / date functionality <timeseries>`
-        User guide for working with time series data.
 
     Notes
     -----
+        User Guide section :ref:`Time series / date functionality <timeseries>` for more
+    information and examples.
+
     To learn more about the frequency strings, please see
     :ref:`this link<timeseries.offset_aliases>`.
 

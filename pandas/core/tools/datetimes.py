@@ -754,8 +754,6 @@ def to_datetime(
         localization
         <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html
         #time-zone-handling>`_.
-    :ref:`Time series / date functionality <timeseries>`
-        User guide for working with time series data.
 
     format : str, default None
         The strftime to parse time, e.g. :const:`"%d/%m/%Y"`. See
@@ -886,6 +884,11 @@ def to_datetime(
       time offsets. Note that this happens in the (quite frequent) situation when
       the timezone has a daylight savings policy. In that case you may wish to
       use ``utc=True``.
+
+    Notes
+    -----
+    User Guide section :ref:`Time series / date functionality <timeseries>` for more
+    information and examples.
 
     Examples
     --------
