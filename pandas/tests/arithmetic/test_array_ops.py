@@ -69,8 +69,8 @@ def test_comparison_for_subclasses(rvalues, op):
     # Test with both ndarray and TestArray
     result = comparison_op(np.array(lvalues), np.array(rvalues), op)
     expected = expected_with_none_handling(np.array(lvalues), np.array(rvalues), op)
-    assert np.array_equal(result, expected)
+    tm.assert_numpy_array_equal(result, expected)
 
     result = comparison_op(TestArray(lvalues), TestArray(rvalues), op)
     expected = expected_with_none_handling(TestArray(lvalues), TestArray(rvalues), op)
-    assert np.array_equal(result, expected)
+    tm.assert_numpy_array_equal(result, expected)
