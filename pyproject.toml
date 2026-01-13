@@ -337,8 +337,6 @@ ignore = [
   "RUF012",
   # type-comparison
   "E721",
-  # repeated-equality-comparison
-  "PLR1714",
   # self-or-cls-assignment
   "PLW0642",
   # literal-membership
