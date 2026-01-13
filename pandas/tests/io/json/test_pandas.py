@@ -153,12 +153,10 @@ class TestPandasContainer:
             expected = DataFrame(data)
             if expected.iloc[:, 0].dtype == "datetime64[s]":
                 # orient == "values" by default will write Timestamp objects out
-                # in milliseconds; these are internally stored in nanosecond,
-                # so divide to get where we need
+                # in milliseconds;
                 # TODO: a to_epoch method would also solve; see GH 14772
                 dta = expected.iloc[:, 0]._values
-                dta = dta.as_unit("ns")  # GH#55827
-                expected.isetitem(0, dta.astype(np.int64) // 1_000_000)
+                expected.isetitem(0, dta.as_unit("ms").astype(np.int64))
         elif orient == "split":
             expected = df
             expected.columns = ["x", "x.1"]
@@ -1129,11 +1127,11 @@ class TestPandasContainer:
         result = read_json(httpserver.url, convert_dates=True)
         assert result[field].dtype == dtype
 
-    def test_timedelta(self):
+    def test_timedelta(self, unit):
         converter = lambda x: pd.to_timedelta(x, unit="ms")
 
-        ser = Series([timedelta(23), timedelta(seconds=5)], dtype="m8[ns]")
-        assert ser.dtype == "timedelta64[ns]"
+        ser = Series([timedelta(23), timedelta(seconds=5)], dtype=f"m8[{unit}]")
+        assert ser.dtype == f"timedelta64[{unit}]"
 
         msg = (
             "The default 'epoch' date format is deprecated and will be removed "
@@ -1792,12 +1790,31 @@ class TestPandasContainer:
             read_json(long_json_path)
 
     @pytest.mark.parametrize(
+        "date_format,key", [("epoch", 86400000), ("iso", "1970-01-02T00:00:00.000")]
+    )
+    def test_datetime_as_label(self, date_format, key, unit):
+        df = DataFrame(
+            [[1]], columns=[(Timestamp(0) + pd.Timedelta("1D")).as_unit(unit)]
+        )
+        expected = f'{{"{key}":{{"0":1}}}}'
+
+        expected_warning = None
+        if date_format == "epoch":
+            expected_warning = Pandas4Warning
+
+        msg = (
+            "'epoch' date format is deprecated and will be removed in a future "
+            "version, please use 'iso' date format instead."
+        )
+        with tm.assert_produces_warning(expected_warning, match=msg):
+            result = df.to_json(date_format=date_format)
+
+        assert result == expected
+
+    @pytest.mark.parametrize(
         "date_format,key", [("epoch", 86400000), ("iso", "P1DT0H0M0S")]
     )
-    def test_timedelta_as_label(self, date_format, key, unit, request):
-        if unit != "ns":
-            mark = pytest.mark.xfail(reason="GH#63236 failure to round-trip")
-            request.applymarker(mark)
+    def test_timedelta_as_label(self, date_format, key, unit):
         df = DataFrame([[1]], columns=[pd.Timedelta("1D").as_unit(unit)])
         expected = f'{{"{key}":{{"0":1}}}}'
 
