@@ -3,6 +3,8 @@ import operator
 import numpy as np
 import pytest
 
+from pandas.core.dtypes.missing import isna
+
 import pandas._testing as tm
 from pandas.core.ops.array_ops import (
     comparison_op,
@@ -53,9 +55,9 @@ def test_comparison_for_subclasses(rvalues, op):
         def __array_finalize__(self, obj) -> None:
             self._is_test_array = True
 
-    def expected_with_none_handling(lvalues, rvalues, op):
-        # Similar to comparison_op, handle zerodim None separately
-        if (rvalues.ndim == 0) and (rvalues.item() is None):
+    def expected_with_na_handling(lvalues, rvalues, op):
+        # Similar to comparison_op, handle zerodim arrays with na value separately
+        if (rvalues.ndim == 0) and isna(rvalues.item()):
             # numpy does not like comparisons vs None
             if op is operator.ne:
                 return np.ones(lvalues.shape, dtype=bool)
@@ -68,9 +70,9 @@ def test_comparison_for_subclasses(rvalues, op):
 
     # Test with both ndarray and TestArray
     result = comparison_op(np.array(lvalues), np.array(rvalues), op)
-    expected = expected_with_none_handling(np.array(lvalues), np.array(rvalues), op)
+    expected = expected_with_na_handling(np.array(lvalues), np.array(rvalues), op)
     tm.assert_numpy_array_equal(result, expected)
 
     result = comparison_op(TestArray(lvalues), TestArray(rvalues), op)
-    expected = expected_with_none_handling(TestArray(lvalues), TestArray(rvalues), op)
+    expected = expected_with_na_handling(TestArray(lvalues), TestArray(rvalues), op)
     tm.assert_numpy_array_equal(result, expected)
