@@ -542,9 +542,10 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         """
         if isinstance(self.keys, list) and len(self.keys) == 1:
             warnings.warn(
-                "`groups` by one element list returns scalar is deprecated "
-                "and will be removed. In a future version `groups` by one element "
-                "list will return tuple. Use ``df.groupby(by='a').groups`` "
+                "In a future version, the keys of `groups` will be a "
+                f"tuple with a single element, e.g. ({self.keys[0]},) , "
+                f"instead of a scalar, e.g. {self.keys[0]}, when grouping "
+                "by a list with a single element. Use ``df.groupby(by='a').groups`` "
                 "instead of ``df.groupby(by=['a']).groups`` to avoid this warning",
                 Pandas4Warning,
                 stacklevel=find_stack_level(),
