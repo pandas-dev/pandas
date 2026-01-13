@@ -12147,7 +12147,7 @@ class DataFrame(NDFrame, OpsMixin):
 
             # join indexes only using concat
             if can_concat:
-                if how == "left" or how == "right":
+                if how in {"left", "right"}:
                     res = concat(
                         frames, axis=1, join="outer", verify_integrity=True, sort=sort
                     )

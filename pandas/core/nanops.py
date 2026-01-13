@@ -461,8 +461,7 @@ def maybe_operate_rowwise(func: F) -> F:
             # only takes this path for wide arrays (long dataframes), for threshold see
             # https://github.com/pandas-dev/pandas/pull/43311#issuecomment-974891737
             and (values.shape[1] / 1000) > values.shape[0]
-            and values.dtype != object
-            and values.dtype != bool
+            and values.dtype not in (object, bool)
         ):
             arrs = list(values)
             if kwargs.get("mask") is not None:
