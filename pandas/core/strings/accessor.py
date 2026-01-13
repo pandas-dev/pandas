@@ -2497,7 +2497,7 @@ class StringMethods(NoNewAttributesMixin):
 
         Examples
         --------
-        >>> s = pd.Series(["1. Ant.  ", "2. Bee!\n", "3. Cat?\t", np.nan, 10, True])
+        >>> s = pd.Series(["1. Ant.  ", "2. Bee!\\n", "3. Cat?\\t", np.nan, 10, True])
         >>> s
         0    1. Ant.
         1    2. Bee!\n
@@ -2525,7 +2525,7 @@ class StringMethods(NoNewAttributesMixin):
         5       NaN
         dtype: object
 
-        >>> s.str.rstrip(".!? \n\t")
+        >>> s.str.rstrip(".!? \\n\\t")
         0    1. Ant
         1    2. Bee
         2    3. Cat
@@ -2534,7 +2534,7 @@ class StringMethods(NoNewAttributesMixin):
         5       NaN
         dtype: object
 
-        >>> s.str.strip("123.!? \n\t")
+        >>> s.str.strip("123.!? \\n\\t")
         0    Ant
         1    Bee
         2    Cat
@@ -2576,7 +2576,7 @@ class StringMethods(NoNewAttributesMixin):
 
         Examples
         --------
-        >>> s = pd.Series(["1. Ant.  ", "2. Bee!\n", "3. Cat?\t", np.nan, 10, True])
+        >>> s = pd.Series(["1. Ant.  ", "2. Bee!\\n", "3. Cat?\\t", np.nan, 10, True])
         >>> s
         0    1. Ant.
         1    2. Bee!\n
@@ -2604,7 +2604,7 @@ class StringMethods(NoNewAttributesMixin):
         5       NaN
         dtype: object
 
-        >>> s.str.rstrip(".!? \n\t")
+        >>> s.str.rstrip(".!? \\n\\t")
         0    1. Ant
         1    2. Bee
         2    3. Cat
@@ -2613,7 +2613,7 @@ class StringMethods(NoNewAttributesMixin):
         5       NaN
         dtype: object
 
-        >>> s.str.strip("123.!? \n\t")
+        >>> s.str.strip("123.!? \\n\\t")
         0    Ant
         1    Bee
         2    Cat
@@ -2655,7 +2655,7 @@ class StringMethods(NoNewAttributesMixin):
 
         Examples
         --------
-        >>> s = pd.Series(["1. Ant.  ", "2. Bee!\n", "3. Cat?\t", np.nan, 10, True])
+        >>> s = pd.Series(["1. Ant.  ", "2. Bee!\\n", "3. Cat?\\t", np.nan, 10, True])
         >>> s
         0    1. Ant.
         1    2. Bee!\n
@@ -2683,7 +2683,7 @@ class StringMethods(NoNewAttributesMixin):
         5       NaN
         dtype: object
 
-        >>> s.str.rstrip(".!? \n\t")
+        >>> s.str.rstrip(".!? \\n\\t")
         0    1. Ant
         1    2. Bee
         2    3. Cat
@@ -2692,7 +2692,7 @@ class StringMethods(NoNewAttributesMixin):
         5       NaN
         dtype: object
 
-        >>> s.str.strip("123.!? \n\t")
+        >>> s.str.strip("123.!? \\n\\t")
         0    Ant
         1    Bee
         2    Cat
