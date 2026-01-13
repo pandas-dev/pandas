@@ -2926,9 +2926,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             if not (is_float(periods) and periods.is_integer()):
                 raise ValueError("periods must be an integer")
         result = algorithms.diff(self._values, periods)
-        return self._constructor(result, index=self.index, copy=False).__finalize__(
-            self, method="diff"
-        )
+        return self._constructor(
+            result, index=self.index.view(), copy=False
+        ).__finalize__(self, method="diff")
 
     def autocorr(self, lag: int = 1) -> float:
         """
