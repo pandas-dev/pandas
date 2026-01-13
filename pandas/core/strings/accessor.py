@@ -2500,8 +2500,8 @@ class StringMethods(NoNewAttributesMixin):
         >>> s = pd.Series(["1. Ant.  ", "2. Bee!\\n", "3. Cat?\\t", np.nan, 10, True])
         >>> s
         0    1. Ant.
-        1    2. Bee!\n
-        2    3. Cat?\t
+        1    2. Bee!\\n
+        2    3. Cat?\\t
         3          NaN
         4           10
         5         True
@@ -2518,8 +2518,8 @@ class StringMethods(NoNewAttributesMixin):
 
         >>> s.str.lstrip("123.")
         0    Ant.
-        1    Bee!\n
-        2    Cat?\t
+        1    Bee!\\n
+        2    Cat?\\t
         3       NaN
         4       NaN
         5       NaN
@@ -2579,8 +2579,8 @@ class StringMethods(NoNewAttributesMixin):
         >>> s = pd.Series(["1. Ant.  ", "2. Bee!\\n", "3. Cat?\\t", np.nan, 10, True])
         >>> s
         0    1. Ant.
-        1    2. Bee!\n
-        2    3. Cat?\t
+        1    2. Bee!\\n
+        2    3. Cat?\\t
         3          NaN
         4           10
         5         True
@@ -2597,8 +2597,8 @@ class StringMethods(NoNewAttributesMixin):
 
         >>> s.str.lstrip("123.")
         0    Ant.
-        1    Bee!\n
-        2    Cat?\t
+        1    Bee!\\n
+        2    Cat?\\t
         3       NaN
         4       NaN
         5       NaN
@@ -2658,8 +2658,8 @@ class StringMethods(NoNewAttributesMixin):
         >>> s = pd.Series(["1. Ant.  ", "2. Bee!\\n", "3. Cat?\\t", np.nan, 10, True])
         >>> s
         0    1. Ant.
-        1    2. Bee!\n
-        2    3. Cat?\t
+        1    2. Bee!\\n
+        2    3. Cat?\\t
         3          NaN
         4           10
         5         True
@@ -2676,8 +2676,8 @@ class StringMethods(NoNewAttributesMixin):
 
         >>> s.str.lstrip("123.")
         0    Ant.
-        1    Bee!\n
-        2    Cat?\t
+        1    Bee!\\n
+        2    Cat?\\t
         3       NaN
         4       NaN
         5       NaN
