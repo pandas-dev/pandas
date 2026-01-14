@@ -2995,6 +2995,75 @@ cdef class QuarterOffset(SingleConstructorOffset):
 
     @property
     def rule_code(self) -> str:
+        """
+        Return a string representing the frequency with month suffix.
+
+        This property generates a rule code string that combines the offset's
+        prefix with the abbreviated month name of the starting month.
+
+        Returns
+        -------
+        str
+            Rule code string with format 'PREFIX-MONTH', where PREFIX is the
+            offset's frequency abbreviation and MONTH is the three-letter
+            abbreviation of the starting month.
+
+        See Also
+        --------
+        BQuarterBegin.rule_code : Rule code for business quarter begin offset.
+        BQuarterEnd.rule_code : Rule code for business quarter end offset.
+        QuarterBegin.rule_code : Rule code for quarter begin offset.
+        QuarterEnd.rule_code : Rule code for quarter end offset.
+        FY5253Quarter.get_rule_code_suffix : Suffix component of rule code for
+            FY5253Quarter.
+        FY5253.get_rule_code_suffix : Suffix component of rule code for FY5253.
+
+        Examples
+        --------
+        Business quarter begin with different starting months:
+
+        >>> bqb = pd.offsets.BQuarterBegin(startingMonth=1)
+        >>> bqb.rule_code
+        'BQS-JAN'
+
+        >>> bqb = pd.offsets.BQuarterBegin(startingMonth=2)
+        >>> bqb.rule_code
+        'BQS-FEB'
+
+        >>> bqb = pd.offsets.BQuarterBegin(startingMonth=3)
+        >>> bqb.rule_code
+        'BQS-MAR'
+
+        Business quarter end with different starting months:
+
+        >>> bqe = pd.offsets.BQuarterEnd(startingMonth=1)
+        >>> bqe.rule_code
+        'BQE-JAN'
+
+        >>> bqe = pd.offsets.BQuarterEnd(startingMonth=12)
+        >>> bqe.rule_code
+        'BQE-DEC'
+
+        Quarter begin with different starting months:
+
+        >>> qb = pd.offsets.QuarterBegin(startingMonth=1)
+        >>> qb.rule_code
+        'QS-JAN'
+
+        >>> qb = pd.offsets.QuarterBegin(startingMonth=3)
+        >>> qb.rule_code
+        'QS-MAR'
+
+        Quarter end with different starting months:
+
+        >>> qe = pd.offsets.QuarterEnd(startingMonth=1)
+        >>> qe.rule_code
+        'QE-JAN'
+
+        >>> qe = pd.offsets.QuarterEnd(startingMonth=3)
+        >>> qe.rule_code
+        'QE-MAR'
+        """
         month = MONTH_ALIASES[self.startingMonth]
         return f"{self._prefix}-{month}"
 
