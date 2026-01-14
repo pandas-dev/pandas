@@ -736,8 +736,6 @@ class StringMethods(NoNewAttributesMixin):
               expression.
             - Cannot be set to False if `pat` is a compiled regex
 
-            .. versionadded:: 1.4.0
-
         Returns
         -------
         Series, Index, DataFrame or MultiIndex
