@@ -5031,7 +5031,7 @@ cdef class CustomBusinessDay(BusinessDay):
         self._init_custom(weekmask, holidays, calendar)
 
     cpdef __setstate__(self, state):
-        self.holidays = state.pop("holidays")
+        self._holidays = state.pop("holidays")
         self.weekmask = state.pop("weekmask")
         BusinessDay.__setstate__(self, state)
 
