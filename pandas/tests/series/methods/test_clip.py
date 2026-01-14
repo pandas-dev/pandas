@@ -171,3 +171,9 @@ class TestSeriesClip:
         result = ser.clip(lower=np.array(0), upper=np.array(2))
         expected = Series([0, 2, 2])
         tm.assert_series_equal(result, expected)
+
+        # Test with float 0-d array to ensure type casting is consistent
+        ser_float = Series([-1.5, 2.5, 3.5])
+        result = ser_float.clip(lower=np.array(0.5), upper=np.array(3.0))
+        expected = Series([0.5, 2.5, 3.0])
+        tm.assert_series_equal(result, expected)
