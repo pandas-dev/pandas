@@ -6810,7 +6810,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         if isinstance(other, Series):
             return self._binop(other, op, level=level, fill_value=fill_value)
-        elif isinstance(other, (np.ndarray, list, tuple, ExtensionArray)):
+        elif (
+            isinstance(other, (np.ndarray, list, tuple, ExtensionArray))
+            and np.ndim(other) != 0
+        ):
             if len(other) != len(self):
                 raise ValueError("Lengths must be equal")
             other = self._constructor(other, self.index, copy=False)

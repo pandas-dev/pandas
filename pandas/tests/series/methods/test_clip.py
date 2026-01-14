@@ -100,6 +100,25 @@ class TestSeriesClip:
             assert result is original
         tm.assert_series_equal(result, expected, check_exact=True)
 
+    def test_clip_with_scalar_numpy_array(self):
+        # GH#59053 - 0-d numpy arrays should be treated as scalars
+        ser = Series([-1, 2, 3])
+
+        # Test lower bound with 0-d array
+        result = ser.clip(lower=np.array(0))
+        expected = Series([0, 2, 3])
+        tm.assert_series_equal(result, expected)
+
+        # Test upper bound with 0-d array
+        result = ser.clip(upper=np.array(1))
+        expected = Series([-1, 1, 1])
+        tm.assert_series_equal(result, expected)
+
+        # Test both bounds with 0-d arrays
+        result = ser.clip(lower=np.array(0), upper=np.array(2))
+        expected = Series([0, 2, 2])
+        tm.assert_series_equal(result, expected)
+
     def test_clip_with_datetimes(self):
         # GH#11838
         # naive and tz-aware datetimes
