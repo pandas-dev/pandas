@@ -115,6 +115,36 @@ def test_pickles(datapath):
                     expected = expected.set_levels(
                         [level.astype("object") for level in expected.levels],
                     )
+                if dt == "string" and legacy_version < Version("3.0.0.dev0"):
+                    # we switched from python to pyarrow as default storage in 3.0
+                    expected = expected.astype(pd.StringDtype("python"))
+                if dt in ("dt_mixed_tzs", "dt_mixed2_tzs"):
+                    if legacy_version < Version("2.1"):
+                        # in pandas < 2.0, Timestamp() unit defaulted to 'ns'
+                        expected_unit = "ns"
+                    elif Version("2.1") <= legacy_version < Version("3.0.0.dev0"):
+                        # in pandas 2.x, Timestamp() unit depended on input
+                        expected_unit = "s"
+                    else:
+                        expected_unit = "us"
+                    for col in expected.columns:
+                        expected[col] = expected[col].dt.as_unit(expected_unit)
+                if typ == "index" and dt == "int" and "windows" in legacy_pickle:
+                    expected = expected.astype(np.int32)
+                if dt == "string" and legacy_version == Version("1.5.3"):
+                    # TODO wrongly generated?
+                    if typ == "series":
+                        expected = Series(["a", "b", "c"], dtype="string[python]")
+                    if typ == "frame":
+                        expected = DataFrame(
+                            {
+                                "A": Series(["foo", "bar"], dtype="string[python]"),
+                                "B": Series(["baz", pd.NA], dtype="string[python]"),
+                            }
+                        )
+                        expected.columns = expected.columns.astype("object")
+                    if typ == "index":
+                        expected = Index(["a", "b"], dtype="string[python]")
 
                 if typ == "series" and dt == "ts":
                     # GH 7748

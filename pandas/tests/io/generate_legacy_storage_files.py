@@ -108,7 +108,7 @@ def _create_sp_tsseries():
     arr[7:12] = nan
     arr[-1:] = nan
 
-    date_index = bdate_range("1/1/2011", periods=len(arr))
+    date_index = bdate_range("1/1/2011", periods=len(arr)).as_unit("ns")
     bseries = Series(SparseArray(arr, kind="block"), index=date_index)
     bseries.name = "btsseries"
     return bseries
@@ -124,7 +124,7 @@ def _create_sp_frame():
         "D": [0, 1, 2, 3, 4, 5, nan, nan, nan, nan],
     }
 
-    dates = bdate_range("1/1/2011", periods=10)
+    dates = bdate_range("1/1/2011", periods=10).as_unit("ns")
     return DataFrame(data, index=dates).apply(SparseArray)
 
 
@@ -135,7 +135,7 @@ def create_pickle_data():
         "B": [0, 1, 0, 1, 0],
         # "C": ["foo1", "foo2", "foo3", "foo4", "foo5"],
         "C": Series(["foo1", "foo2", "foo3", "foo4", "foo5"], dtype=object),
-        "D": date_range("1/1/2009", periods=5),
+        "D": date_range("1/1/2009", periods=5).as_unit("ns"),
         "E": [0.0, 1, Timestamp("20100101"), "foo", 2.0],
     }
 
@@ -143,11 +143,13 @@ def create_pickle_data():
 
     index = {
         "int": Index(np.arange(10)),
-        "date": date_range("20130101", periods=10),
+        "date": date_range("20130101", periods=10).as_unit("ns"),
         "period": period_range("2013-01-01", freq="M", periods=10),
         "float": Index(np.arange(10, dtype=np.float64)),
         "uint": Index(np.arange(10, dtype=np.uint64)),
-        "timedelta": timedelta_range("00:00:00", freq="30min", periods=10),
+        "timedelta": timedelta_range("00:00:00", freq="30min", periods=10).as_unit(
+            "ns"
+        ),
         "string": Index(["foo", "bar", "baz", "qux", "quux"], dtype="string"),
     }
 
@@ -174,7 +176,8 @@ def create_pickle_data():
         "int": Series(data["B"]),
         "mixed": Series(data["E"]),
         "ts": Series(
-            np.arange(10).astype(np.int64), index=date_range("20130101", periods=10)
+            np.arange(10).astype(np.int64),
+            index=date_range("20130101", periods=10).as_unit("ns"),
         ),
         "mi": Series(
             np.arange(5).astype(np.float64),
@@ -192,8 +195,10 @@ def create_pickle_data():
                 [2, 0, 1], categories=Index(["bar", "baz", "foo"], dtype="object")
             )
         ),
-        "dt": Series(date_range("20130101", periods=5)),
-        "dt_tz": Series(date_range("20130101", periods=5, tz="US/Eastern")),
+        "dt": Series(date_range("20130101", periods=5).as_unit("ns")),
+        "dt_tz": Series(
+            date_range("20130101", periods=5, tz="US/Eastern").as_unit("ns")
+        ),
         "period": Series([Period("2000Q1")] * 5),
         "string": Series(["foo", "bar", "baz", "qux", "quux"], dtype="string"),
     }
@@ -241,16 +246,16 @@ def create_pickle_data():
         "mixed_dup": mixed_dup_df,
         "dt_mixed_tzs": DataFrame(
             {
-                "A": Timestamp("20130102", tz="US/Eastern").as_unit("ns"),
-                "B": Timestamp("20130603", tz="CET").as_unit("ns"),
+                "A": Timestamp("20130102", tz="US/Eastern"),
+                "B": Timestamp("20130603", tz="CET"),
             },
             index=range(5),
         ),
         "dt_mixed2_tzs": DataFrame(
             {
-                "A": Timestamp("20130102", tz="US/Eastern").as_unit("ns"),
-                "B": Timestamp("20130603", tz="CET").as_unit("ns"),
-                "C": Timestamp("20130603", tz="UTC").as_unit("ns"),
+                "A": Timestamp("20130102", tz="US/Eastern"),
+                "B": Timestamp("20130603", tz="CET"),
+                "C": Timestamp("20130603", tz="UTC"),
             },
             index=range(5),
         ),
