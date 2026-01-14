@@ -83,13 +83,7 @@ if TYPE_CHECKING:
 
     # numpy compatible types
     NumpyValueArrayLike: TypeAlias = ScalarLike_co | npt.ArrayLike
-
-    # NumPy does not export _ArrayLikeInt_co; use public ArrayLike instead
-    NumpySorter = npt.ArrayLike | None
-
-
-
-
+    NumpySorter: TypeAlias = npt._ArrayLikeInt_co | None
 
 P = ParamSpec("P")
 
