@@ -200,12 +200,12 @@ def to_json(
                 if not copied:
                     obj = obj.copy(deep=False)
                     copied = True
-                obj.index = obj.index.as_unit(date_unit)
+                obj.index = obj.index.as_unit(date_unit)  # type: ignore[attr-defined]
             if obj.columns.dtype.kind in ["M", "m"]:
                 if not copied:
                     obj = obj.copy(deep=False)
                     copied = True
-                obj.columns = obj.columns.as_unit(date_unit)
+                obj.columns = obj.columns.as_unit(date_unit)  # type: ignore[attr-defined]
         elif isinstance(obj, Series):
             if obj.dtype.kind in ["M", "m"]:
                 obj = obj.copy(deep=False)
