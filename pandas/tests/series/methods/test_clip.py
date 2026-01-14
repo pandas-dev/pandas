@@ -171,4 +171,3 @@ class TestSeriesClip:
         result = ser.clip(lower=np.array(0), upper=np.array(2))
         expected = Series([0, 2, 2])
         tm.assert_series_equal(result, expected)
-
