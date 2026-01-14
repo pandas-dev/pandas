@@ -456,7 +456,7 @@ class TestBase:
             msg = "slice indices must be integers or None or have an __index__ method"
 
         if using_infer_string:
-            if index.dtype == "string" or index.dtype == "category":
+            if str(index.dtype) in {"str", "string", "category"}:
                 msg = "loc must be an integer between"
             elif index.dtype == "object" and len(index) == 0:
                 msg = "loc must be an integer between"

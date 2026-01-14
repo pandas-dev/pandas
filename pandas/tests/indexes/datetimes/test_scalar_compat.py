@@ -437,6 +437,13 @@ class TestDatetimeIndexOps:
         result = [x.is_quarter_start for x in dr]
         assert all(dr.is_quarter_start)
 
+    def test_dti_is_year_start_freq_two_business_days(self):
+        # GH#58524
+        dr = date_range("2017-01-01", periods=2, freq="2B")
+        result = dr.is_year_start
+        expected = np.array([True, False])
+        tm.assert_numpy_array_equal(result, expected)
+
 
 @given(
     dt=st.datetimes(min_value=datetime(1960, 1, 1), max_value=datetime(1980, 1, 1)),
