@@ -2698,22 +2698,48 @@ cdef class YearOffset(SingleConstructorOffset):
     _default_month: ClassVar[int]
 
     cdef readonly:
-        int month
+        int _month
 
     def __init__(self, n=1, normalize=False, month=None):
         BaseOffset.__init__(self, n, normalize)
 
         month = month if month is not None else self._default_month
-        self.month = month
+        self._month = month
 
         if month < 1 or month > 12:
             raise ValueError("Month must go from 1 to 12")
 
     cpdef __setstate__(self, state):
-        self.month = state.pop("month")
+        self._month = state.pop("month")
         self._n = state.pop("n")
         self._normalize = state.pop("normalize")
         self._cache = {}
+
+    @property
+    def month(self) -> int:
+        """
+        Return the month of the year on which this offset applies.
+
+        Returns an integer representing the month (1-12) that this offset
+        targets. For year-based offsets, this determines which month is used
+        for calculations.
+
+        See Also
+        --------
+        tseries.offsets.YearEnd : Offset to end of year.
+        tseries.offsets.YearBegin : Offset to start of year.
+        tseries.offsets.BYearEnd : Offset to last business day of year.
+        tseries.offsets.BYearBegin : Offset to first business day of year.
+
+        Examples
+        --------
+        >>> pd.offsets.BYearBegin().month
+        1
+
+        >>> pd.offsets.BYearBegin(month=6).month
+        6
+        """
+        return self._month
 
     @classmethod
     def _from_name(cls, suffix=None):
@@ -2742,32 +2768,32 @@ cdef class YearOffset(SingleConstructorOffset):
         >>> pd.tseries.offsets.YearEnd(n=1, month=6).rule_code
         'YE-JUN'
         """
-        month = MONTH_ALIASES[self.month]
+        month = MONTH_ALIASES[self._month]
         return f"{self._prefix}-{month}"
 
     def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
-        return dt.month == self.month and dt.day == self._get_offset_day(dt)
+        return dt.month == self._month and dt.day == self._get_offset_day(dt)
 
     def _get_offset_day(self, other: datetime) -> int:
-        # override BaseOffset method to use self.month instead of other.month
+        # override BaseOffset method to use self._month instead of other.month
         cdef:
             npy_datetimestruct dts
         pydate_to_dtstruct(other, &dts)
-        dts.month = self.month
+        dts.month = self._month
         return get_day_of_month(&dts, self._day_opt)
 
     @apply_wraps
     def _apply(self, other: datetime) -> datetime:
-        years = roll_qtrday(other, self._n, self.month, self._day_opt, modby=12)
-        months = years * 12 + (self.month - other.month)
+        years = roll_qtrday(other, self._n, self._month, self._day_opt, modby=12)
+        months = years * 12 + (self._month - other.month)
         return shift_month(other, months, self._day_opt)
 
     def _apply_array(self, dtarr: np.ndarray) -> np.ndarray:
         reso = get_unit_from_dtype(dtarr.dtype)
         shifted = shift_quarters(
-            dtarr.view("i8"), self._n, self.month, self._day_opt, modby=12, reso=reso
+            dtarr.view("i8"), self._n, self._month, self._day_opt, modby=12, reso=reso
         )
         return shifted
 
@@ -2864,7 +2890,7 @@ cdef class _YearEnd(YearOffset):
         # Because YearEnd can be the freq for a Period, define its
         #  _period_dtype_code at construction for performance
         YearOffset.__init__(self, n, normalize, month)
-        self._period_dtype_code = PeriodDtypeCode.A + self.month % 12
+        self._period_dtype_code = PeriodDtypeCode.A + self._month % 12
 
 
 class YearEnd(_YearEnd):
