@@ -2214,6 +2214,29 @@ class TestMergeCategorical:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_merge_category_index_levels_stay_category(self):
+        # GH#37480
+        df1 = DataFrame(
+            {
+                "x": list(range(1, 100)),
+                "y": list(range(1, 100)),
+                "z": list(range(1, 100)),
+                "d": list(range(1, 100)),
+            }
+        )
+
+        df2 = df1.astype({"x": "category", "y": "category", "z": "category"})
+
+        df3 = df2.iloc[:10, :].groupby(["z", "x"], observed=True).agg({"d": "sum"})
+        df4 = df2.iloc[90:, :].groupby(["z", "x", "y"], observed=True).agg({"d": "sum"})
+        result = (
+            merge(df3, df4, left_index=True, right_index=True, how="outer")
+            .index.to_frame()
+            .dtypes
+        )
+        assert isinstance(result["z"], CategoricalDtype)
+        assert isinstance(result["x"], CategoricalDtype)
+
 
 class TestMergeOnIndexes:
     @pytest.mark.parametrize(
