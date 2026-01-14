@@ -203,12 +203,16 @@ class ArrowStringArrayMixin:
         return self._from_pyarrow_array(pc.utf8_swapcase(self._pa_array))
 
     def _str_removeprefix(self, prefix: str):
+        if prefix == "":
+            return self._from_pyarrow_array(self._pa_array)
         starts_with = pc.starts_with(self._pa_array, pattern=prefix)
         removed = pc.utf8_slice_codeunits(self._pa_array, len(prefix))
         result = pc.if_else(starts_with, removed, self._pa_array)
         return self._from_pyarrow_array(result)
 
     def _str_removesuffix(self, suffix: str):
+        if suffix == "":
+            return self._from_pyarrow_array(self._pa_array)
         ends_with = pc.ends_with(self._pa_array, pattern=suffix)
         removed = pc.utf8_slice_codeunits(self._pa_array, 0, stop=-len(suffix))
         result = pc.if_else(ends_with, removed, self._pa_array)
@@ -219,16 +223,15 @@ class ArrowStringArrayMixin:
     ):
         if isinstance(pat, str):
             result = pc.starts_with(self._pa_array, pattern=pat)
+        elif len(pat) == 0:
+            # For empty tuple we return null for missing values and False
+            #  for valid values.
+            result = pc.if_else(pc.is_null(self._pa_array), None, False)
         else:
-            if len(pat) == 0:
-                # For empty tuple we return null for missing values and False
-                #  for valid values.
-                result = pc.if_else(pc.is_null(self._pa_array), None, False)
-            else:
-                result = pc.starts_with(self._pa_array, pattern=pat[0])
+            result = pc.starts_with(self._pa_array, pattern=pat[0])
 
-                for p in pat[1:]:
-                    result = pc.or_(result, pc.starts_with(self._pa_array, pattern=p))
+            for p in pat[1:]:
+                result = pc.or_(result, pc.starts_with(self._pa_array, pattern=p))
         return self._convert_bool_result(result, na=na, method_name="startswith")
 
     def _str_endswith(
@@ -236,16 +239,15 @@ class ArrowStringArrayMixin:
     ):
         if isinstance(pat, str):
             result = pc.ends_with(self._pa_array, pattern=pat)
+        elif len(pat) == 0:
+            # For empty tuple we return null for missing values and False
+            #  for valid values.
+            result = pc.if_else(pc.is_null(self._pa_array), None, False)
         else:
-            if len(pat) == 0:
-                # For empty tuple we return null for missing values and False
-                #  for valid values.
-                result = pc.if_else(pc.is_null(self._pa_array), None, False)
-            else:
-                result = pc.ends_with(self._pa_array, pattern=pat[0])
+            result = pc.ends_with(self._pa_array, pattern=pat[0])
 
-                for p in pat[1:]:
-                    result = pc.or_(result, pc.ends_with(self._pa_array, pattern=p))
+            for p in pat[1:]:
+                result = pc.or_(result, pc.ends_with(self._pa_array, pattern=p))
         return self._convert_bool_result(result, na=na, method_name="endswith")
 
     def _str_isalnum(self):

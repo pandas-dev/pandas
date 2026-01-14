@@ -802,8 +802,7 @@ class TestDataFrameAnalytics:
         if not skipna or all(value is pd.NaT for value in values):
             expected = Series({"a": pd.NaT}, dtype=f"timedelta64[{unit}]")
         else:
-            # 86400000000000ns == 1 day
-            expected = Series({"a": 86400000000000}, dtype=f"timedelta64[{unit}]")
+            expected = Series({"a": "1 days"}, dtype=f"timedelta64[{unit}]")
         tm.assert_series_equal(result, expected)
 
     def test_sum_corner(self):
@@ -1322,7 +1321,7 @@ class TestDataFrameAnalytics:
             assert r0.all()
             assert r1.all()
 
-    def test_any_all_extra(self):
+    def test_any_all_extra(self, using_python_scalars):
         df = DataFrame(
             {
                 "A": [True, False, False],
@@ -1346,13 +1345,19 @@ class TestDataFrameAnalytics:
         tm.assert_series_equal(result, expected)
 
         # Axis is None
-        result = df.all(axis=None).item()
+        result = df.all(axis=None)
+        if not using_python_scalars:
+            result = result.item()
         assert result is False
 
-        result = df.any(axis=None).item()
+        result = df.any(axis=None)
+        if not using_python_scalars:
+            result = result.item()
         assert result is True
 
-        result = df[["C"]].all(axis=None).item()
+        result = df[["C"]].all(axis=None)
+        if not using_python_scalars:
+            result = result.item()
         assert result is True
 
     @pytest.mark.parametrize("axis", [0, 1])
@@ -1460,7 +1465,7 @@ class TestDataFrameAnalytics:
             ),
         ],
     )
-    def test_any_all_np_func(self, func, data, expected):
+    def test_any_all_np_func(self, func, data, expected, using_python_scalars):
         # GH 19976
         data = DataFrame(data)
 
@@ -1487,20 +1492,30 @@ class TestDataFrameAnalytics:
 
         elif data.dtypes.apply(lambda x: x != "category").any():
             result = func(data)
-            assert isinstance(result, np.bool_)
-            assert result.item() is expected
+            if using_python_scalars:
+                assert result is expected
+            else:
+                assert isinstance(result, np.bool_)
+                assert result.item() is expected
 
             # method version
             result = getattr(DataFrame(data), func.__name__)(axis=None)
-            assert isinstance(result, np.bool_)
-            assert result.item() is expected
+            if using_python_scalars:
+                assert result is expected
+            else:
+                assert isinstance(result, np.bool_)
+                assert result.item() is expected
 
-    def test_any_all_object(self):
+    def test_any_all_object(self, using_python_scalars):
         # GH 19976
-        result = np.all(DataFrame(columns=["a", "b"])).item()
+        result = np.all(DataFrame(columns=["a", "b"]))
+        if not using_python_scalars:
+            result = result.item()
         assert result is True
 
-        result = np.any(DataFrame(columns=["a", "b"])).item()
+        result = np.any(DataFrame(columns=["a", "b"]))
+        if not using_python_scalars:
+            result = result.item()
         assert result is False
 
     def test_any_all_object_bool_only(self):

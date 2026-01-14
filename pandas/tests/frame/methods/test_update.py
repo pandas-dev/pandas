@@ -215,12 +215,13 @@ class TestDataFrameUpdate:
         with pytest.raises(ValueError, match="duplicate index"):
             df.update(other)
 
-    def test_update_raises_without_intersection(self):
-        # GH#55509
-        df = DataFrame({"a": [1]}, index=[1])
+    def test_update_without_intersection(self):
+        # GH#63452
+        orig = DataFrame({"a": [1]}, index=[1])
+        df = orig.copy()
         other = DataFrame({"a": [2]}, index=[2])
-        with pytest.raises(ValueError, match="no intersection"):
-            df.update(other)
+        df.update(other)
+        tm.assert_frame_equal(df, orig)
 
     def test_update_on_duplicate_frame_unique_argument_index(self):
         # GH#55509
