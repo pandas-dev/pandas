@@ -868,7 +868,7 @@ Other Deprecations
 - Deprecated allowing non-keyword arguments in :meth:`DataFrame.groupby` and :meth:`Series.groupby` except ``by`` and ``level``. (:issue:`62102`)
 - Deprecated allowing non-keyword arguments in :meth:`Series.to_markdown` except ``buf``. (:issue:`57280`)
 - Deprecated allowing non-keyword arguments in :meth:`Series.to_string` except ``buf``. (:issue:`57280`)
-- Deprecated behavior of :meth:`.DataFrameGroupBy.groups` and :meth:`.SeriesGroupBy.groups`, in a future version ``groups`` by one element list will return tuple instead of scalar. (:issue:`58858`)
+- Deprecated behavior of :meth:`.DataFrameGroupBy.groups` and :meth:`.SeriesGroupBy.groups` returning scalar dictionary keys when grouping by list with a single element. The dictionary keys return will be tuples in a future version. (:issue:`58858`)
 - Deprecated behavior of :meth:`Series.dt.to_pytimedelta`, in a future version this will return a :class:`Series` containing python ``datetime.timedelta`` objects instead of an ``ndarray`` of timedelta; this matches the behavior of other :meth:`Series.dt` properties. (:issue:`57463`)
 - Deprecated converting object-dtype columns of ``datetime.datetime`` objects to datetime64 when writing to stata (:issue:`56536`)
 - Deprecated lowercase strings ``d``, ``b`` and ``c`` denoting frequencies in :class:`.Day`, :class:`.BusinessDay` and :class:`.CustomBusinessDay` in favour of ``D``, ``B`` and ``C`` (:issue:`58998`)
@@ -1167,6 +1167,10 @@ Timedelta
 - Bug in adding or subtracting a :class:`Timedelta` object with non-nanosecond unit to a python ``datetime.datetime`` object giving incorrect results; this now works correctly for Timedeltas inside the ``datetime.timedelta`` implementation bounds (:issue:`53643`)
 - Bug in multiplication operations with ``timedelta64`` dtype failing to raise ``TypeError`` when multiplying by ``bool`` objects or dtypes (:issue:`58054`)
 - Bug in multiplication operations with ``timedelta64`` dtype incorrectly raising when multiplying by numpy-nullable dtypes or pyarrow integer dtypes (:issue:`58054`)
+- Bug in the :class:`Series` constructor not honoring the unit of the ``timedelta64[unit]`` dtype
+  when constructing a timedelta series from integers, e.g. ``pd.Series([0, 1, 2], dtype="timedelta64[s]")``
+  still interpreted the numbers as nanoseconds instead of seconds. Now it will interpret the passed
+  integers according to the unit of the specified dtype (:issue:`48312`, :issue:`52457`)
 
 Timezones
 ^^^^^^^^^
