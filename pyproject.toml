@@ -301,8 +301,6 @@ ignore = [
   "PYI041",
   # incorrect-dict-iterator, flags valid Series.items usage
   "PERF102",
-  # try-except-in-loop, becomes useless in Python 3.11
-  "PERF203",
   # pytest-parametrize-names-wrong-type
   "PT006",
   # pytest-parametrize-values-wrong-type
@@ -339,8 +337,6 @@ ignore = [
   "RUF012",
   # type-comparison
   "E721",
-  # repeated-equality-comparison
-  "PLR1714",
   # self-or-cls-assignment
   "PLW0642",
   # literal-membership
