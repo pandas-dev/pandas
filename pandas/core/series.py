@@ -6812,7 +6812,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             return self._binop(other, op, level=level, fill_value=fill_value)
         elif (
             isinstance(other, (np.ndarray, list, tuple, ExtensionArray))
-            and np.ndim(other) != 0
+            and np.ndim(other) != 0  # type: ignore[arg-type]
         ):
             if len(other) != len(self):
                 raise ValueError("Lengths must be equal")
