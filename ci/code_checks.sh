@@ -79,8 +79,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.BQuarterBegin.startingMonth GL08" \
         -i "pandas.tseries.offsets.BQuarterEnd.is_on_offset GL08" \
         -i "pandas.tseries.offsets.BQuarterEnd.startingMonth GL08" \
-        -i "pandas.tseries.offsets.BYearBegin.is_on_offset GL08" \
-        -i "pandas.tseries.offsets.BYearEnd.is_on_offset GL08" \
         -i "pandas.tseries.offsets.BusinessDay PR02,SA01" \
         -i "pandas.tseries.offsets.BusinessDay.calendar GL08" \
         -i "pandas.tseries.offsets.BusinessDay.is_on_offset GL08" \
