@@ -72,28 +72,21 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i ES01 `# For now it is ok if docstrings are missing the extended summary` \
         -i "pandas.Series.dt PR01" `# Accessors are implemented as classes, but we do not document the Parameters section` \
         -i "pandas.Period.ordinal GL08" \
-        -i "pandas.api.typing.Resampler.quantile PR01,PR07" \
         -i "pandas.tseries.offsets.BDay PR02,SA01" \
         -i "pandas.tseries.offsets.BHalfYearBegin.startingMonth GL08" \
         -i "pandas.tseries.offsets.BHalfYearEnd.startingMonth GL08" \
         -i "pandas.tseries.offsets.BQuarterBegin.is_on_offset GL08" \
-        -i "pandas.tseries.offsets.BQuarterBegin.rule_code GL08" \
         -i "pandas.tseries.offsets.BQuarterBegin.startingMonth GL08" \
         -i "pandas.tseries.offsets.BQuarterEnd.is_on_offset GL08" \
-        -i "pandas.tseries.offsets.BQuarterEnd.rule_code GL08" \
         -i "pandas.tseries.offsets.BQuarterEnd.startingMonth GL08" \
         -i "pandas.tseries.offsets.BYearBegin.is_on_offset GL08" \
-        -i "pandas.tseries.offsets.BYearBegin.month GL08" \
         -i "pandas.tseries.offsets.BYearEnd.is_on_offset GL08" \
-        -i "pandas.tseries.offsets.BYearEnd.month GL08" \
         -i "pandas.tseries.offsets.BusinessDay PR02,SA01" \
         -i "pandas.tseries.offsets.BusinessDay.calendar GL08" \
-        -i "pandas.tseries.offsets.BusinessDay.holidays GL08" \
         -i "pandas.tseries.offsets.BusinessDay.is_on_offset GL08" \
         -i "pandas.tseries.offsets.BusinessDay.weekmask GL08" \
         -i "pandas.tseries.offsets.BusinessHour PR02,SA01" \
         -i "pandas.tseries.offsets.BusinessHour.calendar GL08" \
-        -i "pandas.tseries.offsets.BusinessHour.holidays GL08" \
         -i "pandas.tseries.offsets.BusinessHour.is_on_offset GL08" \
         -i "pandas.tseries.offsets.BusinessHour.weekmask GL08" \
         -i "pandas.tseries.offsets.BusinessMonthBegin.is_on_offset GL08" \
@@ -103,22 +96,18 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.CDay PR02,SA01" \
         -i "pandas.tseries.offsets.CustomBusinessDay PR02,SA01" \
         -i "pandas.tseries.offsets.CustomBusinessDay.calendar GL08" \
-        -i "pandas.tseries.offsets.CustomBusinessDay.holidays GL08" \
         -i "pandas.tseries.offsets.CustomBusinessDay.is_on_offset GL08" \
         -i "pandas.tseries.offsets.CustomBusinessDay.weekmask GL08" \
         -i "pandas.tseries.offsets.CustomBusinessHour PR02,SA01" \
         -i "pandas.tseries.offsets.CustomBusinessHour.calendar GL08" \
-        -i "pandas.tseries.offsets.CustomBusinessHour.holidays GL08" \
         -i "pandas.tseries.offsets.CustomBusinessHour.is_on_offset GL08" \
         -i "pandas.tseries.offsets.CustomBusinessHour.weekmask GL08" \
         -i "pandas.tseries.offsets.CustomBusinessMonthBegin PR02" \
         -i "pandas.tseries.offsets.CustomBusinessMonthBegin.calendar GL08" \
-        -i "pandas.tseries.offsets.CustomBusinessMonthBegin.holidays GL08" \
         -i "pandas.tseries.offsets.CustomBusinessMonthBegin.m_offset GL08" \
         -i "pandas.tseries.offsets.CustomBusinessMonthBegin.weekmask GL08" \
         -i "pandas.tseries.offsets.CustomBusinessMonthEnd PR02" \
         -i "pandas.tseries.offsets.CustomBusinessMonthEnd.calendar GL08" \
-        -i "pandas.tseries.offsets.CustomBusinessMonthEnd.holidays GL08" \
         -i "pandas.tseries.offsets.CustomBusinessMonthEnd.m_offset GL08" \
         -i "pandas.tseries.offsets.CustomBusinessMonthEnd.weekmask GL08" \
         -i "pandas.tseries.offsets.DateOffset.is_on_offset GL08" \
@@ -153,10 +142,8 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.MonthEnd.is_on_offset GL08" \
         -i "pandas.tseries.offsets.Nano.is_on_offset GL08" \
         -i "pandas.tseries.offsets.QuarterBegin.is_on_offset GL08" \
-        -i "pandas.tseries.offsets.QuarterBegin.rule_code GL08" \
         -i "pandas.tseries.offsets.QuarterBegin.startingMonth GL08" \
         -i "pandas.tseries.offsets.QuarterEnd.is_on_offset GL08" \
-        -i "pandas.tseries.offsets.QuarterEnd.rule_code GL08" \
         -i "pandas.tseries.offsets.QuarterEnd.startingMonth GL08" \
         -i "pandas.tseries.offsets.Second.is_on_offset GL08" \
         -i "pandas.tseries.offsets.SemiMonthBegin.day_of_month GL08" \
@@ -173,9 +160,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.WeekOfMonth.week GL08" \
         -i "pandas.tseries.offsets.WeekOfMonth.weekday GL08" \
         -i "pandas.tseries.offsets.YearBegin.is_on_offset GL08" \
-        -i "pandas.tseries.offsets.YearBegin.month GL08" \
-        -i "pandas.tseries.offsets.YearEnd.is_on_offset GL08" \
-        -i "pandas.tseries.offsets.YearEnd.month GL08" # There should be no backslash in the final line, please keep this comment in the last ignored function
+        -i "pandas.tseries.offsets.YearEnd.is_on_offset GL08" # There should be no backslash in the final line, please keep this comment in the last ignored function
 
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
