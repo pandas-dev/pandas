@@ -4,6 +4,7 @@ import re
 import numpy as np
 import pytest
 
+from pandas._libs import lib
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -336,15 +337,37 @@ def test_contains_compiled_regex_flags(any_string_dtype):
         (r"(?<=a)b", [False, True, False, False]),
         (r"a(?!b)", [True, False, True, False]),
         (r"(?<!b)a", [True, True, False, False]),
+        ("ab", [False, True, False, False]),
     ],
 )
-def test_contains_lookarounds(any_string_dtype, pat, expected_data):
+@pytest.mark.parametrize("na", [lib.no_default, True, False, np.nan, None, pd.NA])
+def test_contains_lookarounds(any_string_dtype, pat, expected_data, na):
     # https://github.com/pandas-dev/pandas/issues/60833
-    expected_dtype = (
-        np.bool_ if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
-    )
-    ser = Series(["aa", "ab", "ba", "bb"], dtype=any_string_dtype)
-    result = ser.str.contains(pat, regex=True)
+    if any_string_dtype == "object" and not isinstance(na, bool):
+        expected_dtype = "object"
+    else:
+        expected_dtype = (
+            np.bool_ if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+        )
+    if any_string_dtype == "object":
+        # The behavior here for `na=pd.NA` looks wrong.
+        if (na is lib.no_default or pd.isna(na)) and na is not pd.NA:
+            v = None
+        else:
+            v = na
+    elif na is lib.no_default or pd.isna(na):
+        if any_string_dtype == "str":
+            v = False
+        elif any_string_dtype == "string":
+            v = pd.NA
+        else:
+            raise ValueError(f"Unrecognized string dtype {any_string_dtype}")
+    else:
+        v = na
+    expected_data = expected_data.copy()
+    expected_data.append(v)
+    ser = Series(["aa", "ab", "ba", "bb", None], dtype=any_string_dtype)
+    result = ser.str.contains(pat, regex=True, na=na)
     expected = Series(expected_data, dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
