@@ -139,6 +139,7 @@ cdef class BlockPlacement:
             return self._as_array
 
     @property
+    @cython.critical_section
     def as_array(self) -> np.ndarray:
         cdef:
             Py_ssize_t start, stop, _
@@ -222,10 +223,13 @@ cdef class BlockPlacement:
         return self.iadd(other)
 
     cdef slice _ensure_has_slice(self):
-        if not self._has_slice:
-            self._as_slice = indexer_as_slice(self._as_array)
-            self._has_slice = True
-
+        with cython.critical_section(self):
+            if not self._has_slice:
+                as_slice = indexer_as_slice(self._as_array)
+                # check again after indexer_as_slice call
+                if not self._has_slice:
+                    self._as_slice = as_slice
+                    self._has_slice = True
         return self._as_slice
 
     cpdef BlockPlacement increment_above(self, Py_ssize_t loc):
@@ -759,6 +763,7 @@ cdef class BlockManager:
     # -------------------------------------------------------------------
     # Block Placement
 
+    @cython.critical_section
     cpdef _rebuild_blknos_and_blklocs(self):
         """
         Update mgr._blknos / mgr._blklocs.
@@ -796,8 +801,9 @@ cdef class BlockManager:
             if blkno == -1:
                 raise AssertionError("Gaps in blk ref_locs")
 
-        self._blknos = new_blknos
-        self._blklocs = new_blklocs
+        if self._blknos is None:
+            self._blknos = new_blknos
+            self._blklocs = new_blklocs
 
     # -------------------------------------------------------------------
     # Pickle
