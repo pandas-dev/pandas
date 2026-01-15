@@ -2229,13 +2229,21 @@ class TestMergeCategorical:
 
         df3 = df2.iloc[:10, :].groupby(["z", "x"], observed=True).agg({"d": "sum"})
         df4 = df2.iloc[90:, :].groupby(["z", "x", "y"], observed=True).agg({"d": "sum"})
-        result = (
-            merge(df3, df4, left_index=True, right_index=True, how="outer")
-            .index.to_frame()
-            .dtypes
+        result = merge(df3, df4, left_index=True, right_index=True, how="outer")
+
+        cats = list(range(1, 100))
+        z = Categorical(list(range(1, 11)) + list(range(91, 100)), categories=cats)
+        x = Categorical(list(range(1, 11)) + list(range(91, 100)), categories=cats)
+        y = Categorical([np.nan] * 10 + list(range(91, 100)), categories=cats)
+        idx = MultiIndex.from_arrays([z, x, y], names=["z", "x", "y"])
+        expected = DataFrame(
+            {
+                "d_x": list(map(float, range(1, 11))) + [np.nan] * 9,
+                "d_y": [np.nan] * 10 + list(map(float, range(91, 100))),
+            },
+            index=idx,
         )
-        assert isinstance(result["z"], CategoricalDtype)
-        assert isinstance(result["x"], CategoricalDtype)
+        tm.assert_frame_equal(result, expected)
 
 
 class TestMergeOnIndexes:
