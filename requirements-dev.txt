@@ -4,8 +4,8 @@
 pip
 versioneer[toml]
 cython<4.0.0a0
-meson[ninja]==1.2.1
-meson-python==0.13.1
+meson[ninja]>=1.2.1,<2
+meson-python>=0.17.1,<1
 pytest>=8.3.4
 pytest-cov
 pytest-xdist>=3.6.1
