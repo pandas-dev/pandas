@@ -1905,7 +1905,7 @@ cdef class BusinessMixin(SingleConstructorOffset):
     cdef readonly:
         timedelta _offset
         # Only Custom subclasses use weekmask, holiday, calendar
-        object weekmask, holidays, calendar
+        object weekmask, _holidays, calendar
 
     def __init__(self, n=1, normalize=False, offset=timedelta(0)):
         BaseOffset.__init__(self, n, normalize)
@@ -1922,7 +1922,7 @@ cdef class BusinessMixin(SingleConstructorOffset):
         # following two attributes. See DateOffset._params()
         # holidays, weekmask
         self.weekmask = weekmask
-        self.holidays = holidays
+        self._holidays = holidays
         self.calendar = calendar
 
     @property
@@ -1932,6 +1932,84 @@ cdef class BusinessMixin(SingleConstructorOffset):
         """
         # Alias for backward compat
         return self._offset
+
+    @property
+    def holidays(self):
+        """
+        Return the holidays used for custom business day calculations.
+
+        This property returns a tuple or list of holidays used when calculating
+        business days for custom business day offsets. For non-custom business
+        offsets (e.g., standard BusinessDay, BusinessHour), this will be None.
+
+        Returns
+        -------
+        tuple, list, or None
+            Holidays used in business day calculations, or None if no custom
+            holidays are specified.
+
+        See Also
+        --------
+        BusinessDay.holidays : Holidays for standard business day offset.
+        BusinessHour.holidays : Holidays for standard business hour offset.
+        CustomBusinessDay.holidays : Holidays for custom business day offset.
+        CustomBusinessHour.holidays : Holidays for custom business hour offset.
+        CustomBusinessMonthEnd.holidays : Holidays for custom business month end offset.
+        CustomBusinessMonthBegin.holidays : Holidays for custom business month begin
+            offset.
+        CustomBusinessDay.weekmask : Weekmask for custom business day offset.
+        CustomBusinessDay.calendar : Calendar for custom business day offset.
+
+        Examples
+        --------
+        For standard business offsets, holidays is None:
+
+        >>> bd = pd.offsets.BusinessDay()
+        >>> bd.holidays is None
+        True
+
+        >>> bh = pd.offsets.BusinessHour()
+        >>> bh.holidays is None
+        True
+
+        For custom business day with explicit holidays:
+
+        >>> holidays = [pd.Timestamp("2023-12-25"), pd.Timestamp("2024-01-01")]
+        >>> cbd = pd.offsets.CustomBusinessDay(holidays=holidays)
+        >>> cbd.holidays  # doctest: +SKIP
+        (Timestamp('2023-12-25 00:00:00'), Timestamp('2024-01-01 00:00:00'))
+
+        For custom business hour with explicit holidays:
+
+        >>> cbh = pd.offsets.CustomBusinessHour(holidays=holidays)
+        >>> cbh.holidays  # doctest: +SKIP
+        (Timestamp('2023-12-25 00:00:00'), Timestamp('2024-01-01 00:00:00'))
+
+        For custom business month end with explicit holidays:
+
+        >>> cbme = pd.offsets.CustomBusinessMonthEnd(holidays=holidays)
+        >>> cbme.holidays  # doctest: +SKIP
+        (Timestamp('2023-12-25 00:00:00'), Timestamp('2024-01-01 00:00:00'))
+
+        For custom business month begin with explicit holidays:
+
+        >>> cbmb = pd.offsets.CustomBusinessMonthBegin(holidays=holidays)
+        >>> cbmb.holidays  # doctest: +SKIP
+        (Timestamp('2023-12-25 00:00:00'), Timestamp('2024-01-01 00:00:00'))
+
+        For custom business offsets with a calendar:
+
+        >>> from pandas.tseries.holiday import USFederalHolidayCalendar
+        >>> cal = USFederalHolidayCalendar()
+        >>> cbd_cal = pd.offsets.CustomBusinessDay(calendar=cal)
+        >>> isinstance(cbd_cal.holidays, tuple)
+        True
+
+        >>> cbh_cal = pd.offsets.CustomBusinessHour(calendar=cal)
+        >>> isinstance(cbh_cal.holidays, tuple)
+        True
+        """
+        return self._holidays
 
     def _repr_attrs(self) -> str:
         if self.offset:
@@ -1960,7 +2038,7 @@ cdef class BusinessMixin(SingleConstructorOffset):
                                                calendar=None)
             self.weekmask = weekmask
             self.calendar = calendar
-            self.holidays = holidays
+            self._holidays = holidays
 
         BaseOffset.__setstate__(self, state)
 
@@ -2698,22 +2776,48 @@ cdef class YearOffset(SingleConstructorOffset):
     _default_month: ClassVar[int]
 
     cdef readonly:
-        int month
+        int _month
 
     def __init__(self, n=1, normalize=False, month=None):
         BaseOffset.__init__(self, n, normalize)
 
         month = month if month is not None else self._default_month
-        self.month = month
+        self._month = month
 
         if month < 1 or month > 12:
             raise ValueError("Month must go from 1 to 12")
 
     cpdef __setstate__(self, state):
-        self.month = state.pop("month")
+        self._month = state.pop("month")
         self._n = state.pop("n")
         self._normalize = state.pop("normalize")
         self._cache = {}
+
+    @property
+    def month(self) -> int:
+        """
+        Return the month of the year on which this offset applies.
+
+        Returns an integer representing the month (1-12) that this offset
+        targets. For year-based offsets, this determines which month is used
+        for calculations.
+
+        See Also
+        --------
+        tseries.offsets.YearEnd : Offset to end of year.
+        tseries.offsets.YearBegin : Offset to start of year.
+        tseries.offsets.BYearEnd : Offset to last business day of year.
+        tseries.offsets.BYearBegin : Offset to first business day of year.
+
+        Examples
+        --------
+        >>> pd.offsets.BYearBegin().month
+        1
+
+        >>> pd.offsets.BYearBegin(month=6).month
+        6
+        """
+        return self._month
 
     @classmethod
     def _from_name(cls, suffix=None):
@@ -2742,32 +2846,32 @@ cdef class YearOffset(SingleConstructorOffset):
         >>> pd.tseries.offsets.YearEnd(n=1, month=6).rule_code
         'YE-JUN'
         """
-        month = MONTH_ALIASES[self.month]
+        month = MONTH_ALIASES[self._month]
         return f"{self._prefix}-{month}"
 
     def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
-        return dt.month == self.month and dt.day == self._get_offset_day(dt)
+        return dt.month == self._month and dt.day == self._get_offset_day(dt)
 
     def _get_offset_day(self, other: datetime) -> int:
-        # override BaseOffset method to use self.month instead of other.month
+        # override BaseOffset method to use self._month instead of other.month
         cdef:
             npy_datetimestruct dts
         pydate_to_dtstruct(other, &dts)
-        dts.month = self.month
+        dts.month = self._month
         return get_day_of_month(&dts, self._day_opt)
 
     @apply_wraps
     def _apply(self, other: datetime) -> datetime:
-        years = roll_qtrday(other, self._n, self.month, self._day_opt, modby=12)
-        months = years * 12 + (self.month - other.month)
+        years = roll_qtrday(other, self._n, self._month, self._day_opt, modby=12)
+        months = years * 12 + (self._month - other.month)
         return shift_month(other, months, self._day_opt)
 
     def _apply_array(self, dtarr: np.ndarray) -> np.ndarray:
         reso = get_unit_from_dtype(dtarr.dtype)
         shifted = shift_quarters(
-            dtarr.view("i8"), self._n, self.month, self._day_opt, modby=12, reso=reso
+            dtarr.view("i8"), self._n, self._month, self._day_opt, modby=12, reso=reso
         )
         return shifted
 
@@ -2864,7 +2968,7 @@ cdef class _YearEnd(YearOffset):
         # Because YearEnd can be the freq for a Period, define its
         #  _period_dtype_code at construction for performance
         YearOffset.__init__(self, n, normalize, month)
-        self._period_dtype_code = PeriodDtypeCode.A + self.month % 12
+        self._period_dtype_code = PeriodDtypeCode.A + self._month % 12
 
 
 class YearEnd(_YearEnd):
@@ -5022,7 +5126,7 @@ cdef class CustomBusinessDay(BusinessDay):
         self._init_custom(weekmask, holidays, calendar)
 
     cpdef __setstate__(self, state):
-        self.holidays = state.pop("holidays")
+        self._holidays = state.pop("holidays")
         self.weekmask = state.pop("weekmask")
         BusinessDay.__setstate__(self, state)
 
