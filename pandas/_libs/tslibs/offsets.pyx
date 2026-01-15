@@ -2850,6 +2850,46 @@ cdef class YearOffset(SingleConstructorOffset):
         return f"{self._prefix}-{month}"
 
     def is_on_offset(self, dt: datetime) -> bool:
+        """
+        Return boolean whether a timestamp intersects with this frequency.
+
+        This method checks if a given datetime falls on a valid year
+        boundary as defined by this offset.
+
+        Parameters
+        ----------
+        dt : datetime
+            Timestamp to check intersections with frequency.
+
+        Returns
+        -------
+        bool
+            True if the timestamp is on the offset, False otherwise.
+
+        See Also
+        --------
+        YearEnd.is_on_offset : Check if a timestamp is at the end of a year.
+        YearBegin.is_on_offset : Check if a timestamp is at the start of a year.
+        BYearEnd.is_on_offset : Check if a timestamp is at the end of a
+            business year.
+        BYearBegin.is_on_offset : Check if a timestamp is at the start of a
+            business year.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2022, 1, 1)
+        >>> freq = pd.offsets.YearBegin()
+        >>> freq.is_on_offset(ts)
+        True
+
+        >>> freq = pd.offsets.BYearBegin()
+        >>> freq.is_on_offset(ts)
+        False
+
+        >>> ts = pd.Timestamp(2022, 1, 3)
+        >>> freq.is_on_offset(ts)
+        True
+        """
         if self.normalize and not _is_normalized(dt):
             return False
         return dt.month == self._month and dt.day == self._get_offset_day(dt)
@@ -3371,19 +3411,45 @@ cdef class HalfYearOffset(SingleConstructorOffset):
     _from_name_starting_month: ClassVar[int]
 
     cdef readonly:
-        int startingMonth
+        int _startingMonth
 
     def __init__(self, n=1, normalize=False, startingMonth=None):
         BaseOffset.__init__(self, n, normalize)
 
         if startingMonth is None:
             startingMonth = self._default_starting_month
-        self.startingMonth = startingMonth
+        self._startingMonth = startingMonth
 
     cpdef __setstate__(self, state):
-        self.startingMonth = state.pop("startingMonth")
+        self._startingMonth = state.pop("startingMonth")
         self._n = state.pop("n")
         self._normalize = state.pop("normalize")
+
+    @property
+    def startingMonth(self) -> int:
+        """
+        Return the month of the year from which half-years start.
+
+        This value determines which month marks the beginning of a half-year period.
+        For example, with startingMonth=1, half-years start in January and July.
+
+        See Also
+        --------
+        HalfYearOffset.rule_code : Return the rule code for the half-year offset.
+        QuarterOffset.startingMonth : Similar property for quarter-based offsets.
+
+        Examples
+        --------
+        >>> pd.offsets.BHalfYearBegin().startingMonth
+        1
+
+        >>> pd.offsets.BHalfYearEnd().startingMonth
+        6
+
+        >>> pd.offsets.HalfYearBegin(startingMonth=3).startingMonth
+        3
+        """
+        return self._startingMonth
 
     @classmethod
     def _from_name(cls, suffix=None):
