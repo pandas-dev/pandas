@@ -2050,11 +2050,8 @@ cdef class BusinessMixin(SingleConstructorOffset):
 
         >>> holidays = [pd.Timestamp("2023-12-25"), pd.Timestamp("2024-01-01")]
         >>> cbd = pd.offsets.CustomBusinessDay(holidays=holidays)
-        >>> cbd.calendar  # doctest: +SKIP
-        busdaycalendar(
-        weekmask='Mon Tue Wed Thu Fri',
-        holidays=['2023-12-25', '2024-01-01']
-        )
+        >>> isinstance(cbd.calendar, np.busdaycalendar)
+        True
         """
         return self._calendar
 
