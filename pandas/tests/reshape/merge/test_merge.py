@@ -2218,28 +2218,28 @@ class TestMergeCategorical:
         # GH#37480
         df1 = DataFrame(
             {
-                "x": list(range(1, 100)),
-                "y": list(range(1, 100)),
-                "z": list(range(1, 100)),
-                "d": list(range(1, 100)),
+                "x": list(range(1, 10)),
+                "y": list(range(1, 10)),
+                "z": list(range(1, 10)),
+                "d": list(range(1, 10)),
             }
         )
 
         df2 = df1.astype({"x": "category", "y": "category", "z": "category"})
 
-        df3 = df2.iloc[:10, :].groupby(["z", "x"], observed=True).agg({"d": "sum"})
-        df4 = df2.iloc[90:, :].groupby(["z", "x", "y"], observed=True).agg({"d": "sum"})
+        df3 = df2.iloc[:4, :].groupby(["z", "x"], observed=True).agg({"d": "sum"})
+        df4 = df2.iloc[7:, :].groupby(["z", "x", "y"], observed=True).agg({"d": "sum"})
         result = merge(df3, df4, left_index=True, right_index=True, how="outer")
 
-        cats = list(range(1, 100))
-        z = Categorical(list(range(1, 11)) + list(range(91, 100)), categories=cats)
-        x = Categorical(list(range(1, 11)) + list(range(91, 100)), categories=cats)
-        y = Categorical([np.nan] * 10 + list(range(91, 100)), categories=cats)
+        cats = list(range(1, 10))
+        z = Categorical(list(range(1, 5)) + list(range(8, 10)), categories=cats)
+        x = Categorical(list(range(1, 5)) + list(range(8, 10)), categories=cats)
+        y = Categorical([np.nan] * 4 + list(range(8, 10)), categories=cats)
         idx = MultiIndex.from_arrays([z, x, y], names=["z", "x", "y"])
         expected = DataFrame(
             {
-                "d_x": list(map(float, range(1, 11))) + [np.nan] * 9,
-                "d_y": [np.nan] * 10 + list(map(float, range(91, 100))),
+                "d_x": list(map(float, range(1, 5))) + [np.nan] * 2,
+                "d_y": [np.nan] * 4 + list(map(float, range(8, 10))),
             },
             index=idx,
         )
