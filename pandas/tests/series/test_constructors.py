@@ -992,7 +992,7 @@ class TestSeriesConstructors:
         expected = Series(
             [NaT, datetime(2013, 1, 2), datetime(2013, 1, 3)], dtype="datetime64[ns]"
         )
-        result = Series([np.nan] + dates[1:], dtype="datetime64[ns]")
+        result = Series([np.nan, *dates[1:]], dtype="datetime64[ns]")
         tm.assert_series_equal(result, expected)
 
     def test_constructor_dtype_datetime64_11(self):
@@ -2012,7 +2012,7 @@ class TestSeriesConstructors:
             ]
         )
 
-        for null in tm.NP_NAT_OBJECTS + [NaT]:
+        for null in [*tm.NP_NAT_OBJECTS, NaT]:
             with pytest.raises(TypeError, match=msg):
                 func([null, 1.0, 3.0], dtype=any_numeric_ea_dtype)
 

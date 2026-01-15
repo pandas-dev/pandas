@@ -138,7 +138,7 @@ class TestDatetimeIndexOps:
     # error: Unsupported operand types for + ("List[None]" and "List[str]")
     @pytest.mark.parametrize(
         "time_locale",
-        [None] + tm.get_locales(),  # type: ignore[operator]
+        [None, *tm.get_locales()],  # type: ignore[operator]
     )
     def test_day_name_month_name(self, time_locale):
         # Test Monday -> Sunday and January -> December, in that sequence

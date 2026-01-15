@@ -1627,7 +1627,8 @@ def test_rolling_mean_all_nan_window_floating_artifacts(start, exp_values):
         ]
     )
 
-    values = exp_values + [
+    values = [
+        *exp_values,
         0.00366666,
         0.005,
         0.005,
@@ -1635,7 +1636,7 @@ def test_rolling_mean_all_nan_window_floating_artifacts(start, exp_values):
         np.nan,
         np.nan,
         0.005,
-        0.102500,
+        0.1025,
     ]
     expected = DataFrame(
         values,

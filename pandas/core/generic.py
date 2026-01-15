@@ -9297,7 +9297,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ax.names = np.arange(len(ax_names))
 
         # bring self-other to inner level
-        order = list(range(1, ax.nlevels)) + [0]
+        order = [*list(range(1, ax.nlevels)), 0]
         if isinstance(diff, ABCDataFrame):
             diff = diff.reorder_levels(order, axis=axis)
         else:
