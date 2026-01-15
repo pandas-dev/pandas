@@ -237,7 +237,7 @@ html_theme = "pydata_sphinx_theme"
 if ".dev" in version or ("rc" in version and "+" in version):
     switcher_version = "dev"
 elif "rc" in version:
-    switcher_version = version.split("rc", maxsplit=1)[0] + " (rc)"
+    switcher_version = ".".join(version.split(".")[:2]) + " (rc)"
 else:
     # only keep major.minor version number to match versions.json
     switcher_version = ".".join(version.split(".")[:2])
