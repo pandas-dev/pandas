@@ -449,7 +449,7 @@ exclude = [
 # "pandas/tests/frame/indexing/test_getitem.py" = ["B905"]
 # "pandas/tests/frame/indexing/test_indexing.py" = ["B905"]
 # "pandas/tests/frame/indexing/test_setitem.py" = ["B905"]
-# "pandas/tests/frame/indexing/test_xs.py" = ["B905"]
+
 # "pandas/tests/frame/methods/test_drop.py" = ["B905"]
 # "pandas/tests/frame/methods/test_isin.py" = ["B905"]
 # "pandas/tests/frame/methods/test_pop.py" = ["B905"]
