@@ -1905,7 +1905,7 @@ cdef class BusinessMixin(SingleConstructorOffset):
     cdef readonly:
         timedelta _offset
         # Only Custom subclasses use weekmask, holiday, calendar
-        object weekmask, _holidays, calendar
+        object weekmask, _holidays, _calendar
 
     def __init__(self, n=1, normalize=False, offset=timedelta(0)):
         BaseOffset.__init__(self, n, normalize)
@@ -1923,7 +1923,7 @@ cdef class BusinessMixin(SingleConstructorOffset):
         # holidays, weekmask
         self.weekmask = weekmask
         self._holidays = holidays
-        self.calendar = calendar
+        self._calendar = calendar
 
     @property
     def offset(self):
@@ -2011,6 +2011,53 @@ cdef class BusinessMixin(SingleConstructorOffset):
         """
         return self._holidays
 
+    @property
+    def calendar(self):
+        """
+        Return the calendar used for business day calculations.
+
+        This property returns the numpy busdaycalendar object used for
+        determining valid business days. For standard business day offsets
+        (e.g., BusinessDay, BusinessHour), this returns None. For custom
+        business day offsets, this returns the calendar that was either
+        passed directly or constructed from weekmask and holidays.
+
+        Returns
+        -------
+        np.busdaycalendar or None
+            The business day calendar used for calculations, or None if
+            using default business day rules.
+
+        See Also
+        --------
+        BusinessDay.holidays : Holidays for standard business day offset.
+        CustomBusinessDay.holidays : Holidays for custom business day offset.
+        CustomBusinessDay.weekmask : Weekmask for custom business day offset.
+
+        Examples
+        --------
+        For standard business offsets, calendar is None:
+
+        >>> bd = pd.offsets.BusinessDay()
+        >>> bd.calendar is None
+        True
+
+        >>> bh = pd.offsets.BusinessHour()
+        >>> bh.calendar is None
+        True
+
+        For custom business day with explicit holidays:
+
+        >>> holidays = [pd.Timestamp("2023-12-25"), pd.Timestamp("2024-01-01")]
+        >>> cbd = pd.offsets.CustomBusinessDay(holidays=holidays)
+        >>> cbd.calendar  # doctest: +SKIP
+        busdaycalendar(
+        weekmask='Mon Tue Wed Thu Fri',
+        holidays=['2023-12-25', '2024-01-01']
+        )
+        """
+        return self._calendar
+
     def _repr_attrs(self) -> str:
         if self.offset:
             attrs = [f"offset={repr(self.offset)}"]
@@ -2037,7 +2084,7 @@ cdef class BusinessMixin(SingleConstructorOffset):
                                                holidays=holidays,
                                                calendar=None)
             self.weekmask = weekmask
-            self.calendar = calendar
+            self._calendar = calendar
             self._holidays = holidays
 
         BaseOffset.__setstate__(self, state)
