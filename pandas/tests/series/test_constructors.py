@@ -1978,26 +1978,10 @@ class TestSeriesConstructors:
 
     def test_constructor_dtype_timedelta_alternative_construct(self):
         # GH#35465
-        result = Series([1000000, 200000, 3000000], dtype="timedelta64[ns]")
-        expected = Series(pd.to_timedelta([1000000, 200000, 3000000], unit="ns"))
+        result = Series([1000000, 200000, 3000000], dtype="timedelta64[us]")
+        expected = Series(pd.to_timedelta([1000000, 200000, 3000000], unit="us"))
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.xfail(
-        reason="Not clear what the correct expected behavior should be with "
-        "integers now that we support non-nano. ATM (2022-10-08) we treat ints "
-        "as nanoseconds, then cast to the requested dtype. xref #48312"
-    )
-    def test_constructor_dtype_timedelta_ns_s(self):
-        # GH#35465
-        result = Series([1000000, 200000, 3000000], dtype="timedelta64[ns]")
-        expected = Series([1000000, 200000, 3000000], dtype="timedelta64[s]")
-        tm.assert_series_equal(result, expected)
-
-    @pytest.mark.xfail(
-        reason="Not clear what the correct expected behavior should be with "
-        "integers now that we support non-nano. ATM (2022-10-08) we treat ints "
-        "as nanoseconds, then cast to the requested dtype. xref #48312"
-    )
     def test_constructor_dtype_timedelta_ns_s_astype_int64(self):
         # GH#35465
         result = Series([1000000, 200000, 3000000], dtype="timedelta64[ns]").astype(

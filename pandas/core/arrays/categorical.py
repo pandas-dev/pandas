@@ -2280,7 +2280,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         from pandas.io.formats import format as fmt
 
         formatter = None
-        if self.categories.dtype == "str" or self.categories.dtype == "string":
+        if self.categories.dtype == "str" or self.categories.dtype == "string":  # noqa: PLR1714 (repeated-equality-comparison)
             # the extension array formatter defaults to boxed=True in format_array
             # override here to boxed=False to be consistent with QUOTE_NONNUMERIC
             formatter = cast(ExtensionArray, self.categories._values)._formatter(

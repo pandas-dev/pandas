@@ -14,8 +14,8 @@ Pandas 2.3.3 is now compatible with Python 3.14
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Pandas 2.3.3 is the first version of pandas that is generally compatible with the upcoming
-Python 3.14, and both wheels for free-threaded and normal Python 3.14 will be uploaded for
-this release.
+Python 3.14. For this release, wheels will be uploaded for normal Python 3.14 across all
+platforms, while wheels for free-threaded Python 3.14 will be available for Linux and macOS only.
 
 As usual please report any bugs discovered to our `issue tracker <https://github.com/pandas-dev/pandas/issues/new/choose>`_
 
