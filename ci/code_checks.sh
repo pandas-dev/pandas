@@ -77,8 +77,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.BQuarterBegin.startingMonth GL08" \
         -i "pandas.tseries.offsets.BQuarterEnd.is_on_offset GL08" \
         -i "pandas.tseries.offsets.BQuarterEnd.startingMonth GL08" \
-        -i "pandas.tseries.offsets.BYearBegin.is_on_offset GL08" \
-        -i "pandas.tseries.offsets.BYearEnd.is_on_offset GL08" \
         -i "pandas.tseries.offsets.BusinessDay PR02,SA01" \
         -i "pandas.tseries.offsets.BusinessDay.calendar GL08" \
         -i "pandas.tseries.offsets.BusinessDay.is_on_offset GL08" \
@@ -154,9 +152,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.Week.weekday GL08" \
         -i "pandas.tseries.offsets.WeekOfMonth.is_on_offset GL08" \
         -i "pandas.tseries.offsets.WeekOfMonth.week GL08" \
-        -i "pandas.tseries.offsets.WeekOfMonth.weekday GL08" \
-        -i "pandas.tseries.offsets.YearBegin.is_on_offset GL08" \
-        -i "pandas.tseries.offsets.YearEnd.is_on_offset GL08" # There should be no backslash in the final line, please keep this comment in the last ignored function
+        -i "pandas.tseries.offsets.WeekOfMonth.weekday GL08" # There should be no backslash in the final line, please keep this comment in the last ignored function
 
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 

@@ -2850,6 +2850,46 @@ cdef class YearOffset(SingleConstructorOffset):
         return f"{self._prefix}-{month}"
 
     def is_on_offset(self, dt: datetime) -> bool:
+        """
+        Return boolean whether a timestamp intersects with this frequency.
+
+        This method checks if a given datetime falls on a valid year
+        boundary as defined by this offset.
+
+        Parameters
+        ----------
+        dt : datetime
+            Timestamp to check intersections with frequency.
+
+        Returns
+        -------
+        bool
+            True if the timestamp is on the offset, False otherwise.
+
+        See Also
+        --------
+        YearEnd.is_on_offset : Check if a timestamp is at the end of a year.
+        YearBegin.is_on_offset : Check if a timestamp is at the start of a year.
+        BYearEnd.is_on_offset : Check if a timestamp is at the end of a
+            business year.
+        BYearBegin.is_on_offset : Check if a timestamp is at the start of a
+            business year.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2022, 1, 1)
+        >>> freq = pd.offsets.YearBegin()
+        >>> freq.is_on_offset(ts)
+        True
+
+        >>> freq = pd.offsets.BYearBegin()
+        >>> freq.is_on_offset(ts)
+        False
+
+        >>> ts = pd.Timestamp(2022, 1, 3)
+        >>> freq.is_on_offset(ts)
+        True
+        """
         if self.normalize and not _is_normalized(dt):
             return False
         return dt.month == self._month and dt.day == self._get_offset_day(dt)
