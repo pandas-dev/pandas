@@ -3371,19 +3371,45 @@ cdef class HalfYearOffset(SingleConstructorOffset):
     _from_name_starting_month: ClassVar[int]
 
     cdef readonly:
-        int startingMonth
+        int _startingMonth
 
     def __init__(self, n=1, normalize=False, startingMonth=None):
         BaseOffset.__init__(self, n, normalize)
 
         if startingMonth is None:
             startingMonth = self._default_starting_month
-        self.startingMonth = startingMonth
+        self._startingMonth = startingMonth
 
     cpdef __setstate__(self, state):
-        self.startingMonth = state.pop("startingMonth")
+        self._startingMonth = state.pop("startingMonth")
         self._n = state.pop("n")
         self._normalize = state.pop("normalize")
+
+    @property
+    def startingMonth(self) -> int:
+        """
+        Return the month of the year from which half-years start.
+
+        This value determines which month marks the beginning of a half-year period.
+        For example, with startingMonth=1, half-years start in January and July.
+
+        See Also
+        --------
+        HalfYearOffset.rule_code : Return the rule code for the half-year offset.
+        QuarterOffset.startingMonth : Similar property for quarter-based offsets.
+
+        Examples
+        --------
+        >>> pd.offsets.BHalfYearBegin().startingMonth
+        1
+
+        >>> pd.offsets.BHalfYearEnd().startingMonth
+        6
+
+        >>> pd.offsets.HalfYearBegin(startingMonth=3).startingMonth
+        3
+        """
+        return self._startingMonth
 
     @classmethod
     def _from_name(cls, suffix=None):
