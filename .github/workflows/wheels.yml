@@ -156,7 +156,7 @@ jobs:
 
       - name: Determine NumPy pkg-config location
         run: |
-          echo "PKG_CONFIG_PATH=$(python -c 'import site; print(site.getsitepackages()[0])')/numpy/_core/lib/pkgconfig" >> $GITHUB_ENV
+          echo "CIBW_ENVIRONMENT=PKG_CONFIG_PATH=$(python -c 'import site; print(site.getsitepackages()[0])')/numpy/_core/lib/pkgconfig" >> $GITHUB_ENV
 
       # Python version used to build sdist doesn't matter
       # wheel will be built from sdist with the correct version
