@@ -1119,6 +1119,32 @@ def test_str_match_extra_cases(any_string_dtype, pat, case, exp):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "pat, expected_data",
+    [
+        (r"a(?=b)", [False, True, False, False]),
+        (r"(?<=a)b", [False, False, False, False]),
+        (r"a(?!b)", [True, False, False, False]),
+        (r"(?<!b)a", [True, True, False, False]),
+        ("ab", [False, True, False, False]),
+    ],
+)
+def test_match_lookarounds(any_string_dtype, pat, expected_data):
+    # https://github.com/pandas-dev/pandas/issues/60833
+    if any_string_dtype == "object":
+        expected_dtype, null_result = "object", None
+    elif any_string_dtype == "str":
+        expected_dtype, null_result = "bool", False
+    elif any_string_dtype == "string":
+        expected_dtype, null_result = "boolean", pd.NA
+    else:
+        raise ValueError(f"Unrecognized dtype: {any_string_dtype}")
+    ser = Series(["aa", "ab", "ba", "bb", None], dtype=any_string_dtype)
+    result = ser.str.match(pat)
+    expected = Series(expected_data + [null_result], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+
 # --------------------------------------------------------------------------------------
 # str.fullmatch
 # --------------------------------------------------------------------------------------
@@ -1255,6 +1281,30 @@ def test_str_fullmatch_extra_cases(any_string_dtype, pat, case, na, exp):
             "object" if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
         )
     expected = Series(exp, dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "pat",
+    [(r"a(?=b)"), (r"(?<=a)b"), (r"a(?!b)"), (r"(?<!b)a"), ("ab")],
+)
+def test_fullmatch_lookarounds(any_string_dtype, pat):
+    # https://github.com/pandas-dev/pandas/issues/60833
+    # Note: By definition, any match with a lookaround is not a full match.
+    if any_string_dtype == "object":
+        expected_dtype, null_result = "object", None
+    elif any_string_dtype == "str":
+        expected_dtype, null_result = "bool", False
+    elif any_string_dtype == "string":
+        expected_dtype, null_result = "boolean", pd.NA
+    else:
+        raise ValueError(f"Unrecognized dtype: {any_string_dtype}")
+    ser = Series(["aa", "ab", "ba", "bb", None], dtype=any_string_dtype)
+    result = ser.str.fullmatch(pat)
+    expected = Series(
+        [False, True if pat == "ab" else False, False, False, null_result],
+        dtype=expected_dtype,
+    )
     tm.assert_series_equal(result, expected)
 
 

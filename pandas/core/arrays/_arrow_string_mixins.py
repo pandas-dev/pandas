@@ -300,11 +300,23 @@ class ArrowStringArrayMixin:
         # error: Module "re" has no attribute "_parser"
         from re import _parser  # type: ignore[attr-defined]
 
+        def has_assert(tokens):
+            # For certain op codes we need to recurse.
+            for op_code, argument in tokens:
+                if (
+                    (op_code == _parser.SUBPATTERN and has_assert(argument[3]))
+                    or (
+                        op_code == _parser.BRANCH
+                        and any(has_assert(tokens) for tokens in argument[1])
+                    )
+                    or (op_code in [_parser.ASSERT_NOT, _parser.ASSERT])
+                ):
+                    return True
+            return False
+
         str_pat = pat.pattern if isinstance(pat, re.Pattern) else pat
         tokens = _parser.parse(str_pat)
-        return any(
-            op_code in [_parser.ASSERT_NOT, _parser.ASSERT] for op_code, _ in tokens
-        )
+        return has_assert(tokens)
 
     def _str_contains(
         self,
