@@ -3168,6 +3168,8 @@ cdef class QuarterOffset(SingleConstructorOffset):
 
     cpdef __setstate__(self, state):
         self._startingMonth = state.pop("startingMonth")
+        self._n = state.pop("n")
+        self._normalize = state.pop("normalize")
 
     @property
     def startingMonth(self) -> int:
@@ -3195,8 +3197,6 @@ cdef class QuarterOffset(SingleConstructorOffset):
         1
         """
         return self._startingMonth
-        self._n = state.pop("n")
-        self._normalize = state.pop("normalize")
 
     @classmethod
     def _from_name(cls, suffix=None):
