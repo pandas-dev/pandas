@@ -3190,19 +3190,46 @@ cdef class QuarterOffset(SingleConstructorOffset):
     _from_name_starting_month: ClassVar[int]
 
     cdef readonly:
-        int startingMonth
+        int _startingMonth
 
     def __init__(self, n=1, normalize=False, startingMonth=None):
         BaseOffset.__init__(self, n, normalize)
 
         if startingMonth is None:
             startingMonth = self._default_starting_month
-        self.startingMonth = startingMonth
+        self._startingMonth = startingMonth
 
     cpdef __setstate__(self, state):
-        self.startingMonth = state.pop("startingMonth")
+        self._startingMonth = state.pop("startingMonth")
         self._n = state.pop("n")
         self._normalize = state.pop("normalize")
+
+    @property
+    def startingMonth(self) -> int:
+        """
+        Return the month of the year from which quarters start.
+
+        This value determines which month marks the beginning of a quarterly period.
+        For example, with startingMonth=1, quarters start in January, April, July,
+        and October.
+
+        See Also
+        --------
+        QuarterOffset.rule_code : Return the rule code for the quarter offset.
+        HalfYearOffset.startingMonth : Similar property for half-year-based offsets.
+
+        Examples
+        --------
+        >>> pd.offsets.BQuarterBegin().startingMonth
+        3
+
+        >>> pd.offsets.QuarterEnd().startingMonth
+        3
+
+        >>> pd.offsets.QuarterBegin(startingMonth=1).startingMonth
+        1
+        """
+        return self._startingMonth
 
     @classmethod
     def _from_name(cls, suffix=None):
