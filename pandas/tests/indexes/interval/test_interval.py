@@ -49,7 +49,7 @@ class TestIntervalIndex:
 
         ivs = [
             Interval(left, right, closed)
-            for left, right in zip(range(10), range(1, 11))
+            for left, right in zip(range(10), range(1, 11), strict=False)
         ]
         expected = np.array(ivs, dtype=object)
         tm.assert_numpy_array_equal(np.asarray(index), expected)
@@ -71,7 +71,7 @@ class TestIntervalIndex:
 
         ivs = [
             Interval(left, right, closed) if notna(left) else np.nan
-            for left, right in zip(expected_left, expected_right)
+            for left, right in zip(expected_left, expected_right, strict=False)
         ]
         expected = np.array(ivs, dtype=object)
         tm.assert_numpy_array_equal(np.asarray(index), expected)
@@ -789,7 +789,7 @@ class TestIntervalIndex:
     @pytest.mark.parametrize(
         "tuples",
         [
-            zip(range(10), range(1, 11)),
+            zip(range(10), range(1, 11), strict=False),
             zip(
                 date_range("20170101", periods=10),
                 date_range("20170101", periods=10),
@@ -811,7 +811,7 @@ class TestIntervalIndex:
     @pytest.mark.parametrize(
         "tuples",
         [
-            list(zip(range(10), range(1, 11))) + [np.nan],
+            list(zip(range(10), range(1, 11), strict=False)) + [np.nan],
             list(
                 zip(
                     date_range("20170101", periods=10),

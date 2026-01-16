@@ -29,7 +29,7 @@ class TestFromDict:
 
         result = DataFrame(data)
         expected = DataFrame.from_dict(
-            dict(zip(range(len(data)), data)), orient="index"
+            dict(zip(range(len(data)), data, strict=False)), orient="index"
         )
         tm.assert_frame_equal(result, expected.reindex(result.index))
 
@@ -37,7 +37,7 @@ class TestFromDict:
         data = [OrderedDict([["a", 1.5], ["b", 3], ["c", 4], ["d", 6]])]
 
         result = DataFrame(data)
-        expected = DataFrame.from_dict(dict(zip([0], data)), orient="index").reindex(
+        expected = DataFrame.from_dict(dict(zip([0], data, strict=False)), orient="index").reindex(
             result.index
         )
         tm.assert_frame_equal(result, expected)
@@ -47,7 +47,7 @@ class TestFromDict:
             OrderedDict([["a", 1.5], ["b", 3.0], ["c", 4.0]]),
             OrderedDict([["a", 1.5], ["b", 3.0], ["c", 6.0]]),
         ]
-        sdict = OrderedDict(zip(["x", "y"], data))
+        sdict = OrderedDict(zip(["x", "y"], data, strict=False))
         idx = Index(["a", "b", "c"])
 
         # all named
@@ -66,7 +66,7 @@ class TestFromDict:
         ]
         result = DataFrame(data2)
 
-        sdict = OrderedDict(zip(["x", "Unnamed 0"], data))
+        sdict = OrderedDict(zip(["x", "Unnamed 0"], data, strict=False))
         expected = DataFrame.from_dict(sdict, orient="index")
         tm.assert_frame_equal(result, expected)
 
@@ -82,7 +82,7 @@ class TestFromDict:
         data = [Series(d) for d in data]
 
         result = DataFrame(data)
-        sdict = OrderedDict(zip(range(len(data)), data))
+        sdict = OrderedDict(zip(range(len(data)), data, strict=False))
         expected = DataFrame.from_dict(sdict, orient="index")
         tm.assert_frame_equal(result, expected.reindex(result.index))
 
@@ -97,7 +97,7 @@ class TestFromDict:
             OrderedDict([["a", 1.5], ["b", 3.0], ["c", 4.0]]),
             OrderedDict([["a", 1.5], ["b", 3.0], ["c", 6.0]]),
         ]
-        sdict = OrderedDict(zip(range(len(data)), data))
+        sdict = OrderedDict(zip(range(len(data)), data, strict=False))
 
         idx = Index(["a", "b", "c"])
         data2 = [Series([1.5, 3, 4], idx, dtype="O"), Series([1.5, 3, 6], idx)]

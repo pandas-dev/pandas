@@ -161,7 +161,8 @@ def create_pickle_data():
                     *[
                         ["bar", "bar", "baz", "baz", "foo", "foo", "qux", "qux"],
                         ["one", "two", "one", "two", "one", "two", "one", "two"],
-                    ]
+                    ],
+                    strict=False,
                 )
             ),
             names=["first", "second"],
@@ -178,7 +179,7 @@ def create_pickle_data():
         "mi": Series(
             np.arange(5).astype(np.float64),
             index=MultiIndex.from_tuples(
-                tuple(zip(*[[1, 1, 2, 2, 2], [3, 4, 3, 4, 5]])), names=["one", "two"]
+                tuple(zip(*[[1, 1, 2, 2, 2], [3, 4, 3, 4, 5]], strict=False)), names=["one", "two"]
             ),
         ),
         "dup": Series(np.arange(5).astype(np.float64), index=["A", "B", "C", "D", "A"]),
@@ -203,7 +204,8 @@ def create_pickle_data():
                         *[
                             ["bar", "bar", "baz", "baz", "baz"],
                             ["one", "two", "one", "two", "three"],
-                        ]
+                        ],
+                        strict=False,
                     )
                 ),
                 names=["first", "second"],
