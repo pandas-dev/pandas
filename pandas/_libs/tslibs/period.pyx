@@ -1762,9 +1762,36 @@ cdef class PeriodMixin:
 cdef class _Period(PeriodMixin):
 
     cdef readonly:
-        int64_t ordinal
+        int64_t _ordinal
         PeriodDtypeBase _dtype
         BaseOffset _freq
+
+    @property
+    def ordinal(self) -> int:
+        """
+        Return the integer ordinal for this Period.
+
+        The ordinal is the internal integer representation of the Period,
+        representing its position in the sequence of periods of the given
+        frequency. It counts from an epoch (e.g., for daily frequency,
+        ordinal 0 corresponds to January 1, 1970).
+
+        See Also
+        --------
+        Period.freq : Return the frequency of the Period.
+        Period.start_time : Return the start time of the Period.
+
+        Examples
+        --------
+        >>> period = pd.Period('2020-01', freq='M')
+        >>> period.ordinal
+        600
+
+        >>> period = pd.Period('2020-01-01', freq='D')
+        >>> period.ordinal
+        18262
+        """
+        return self._ordinal
 
     @property
     def freq(self):
@@ -1794,7 +1821,7 @@ cdef class _Period(PeriodMixin):
     dayofyear = _Period.day_of_year
 
     def __cinit__(self, int64_t ordinal, BaseOffset freq):
-        self.ordinal = ordinal
+        self._ordinal = ordinal
         self._freq = freq
         self._dtype = PeriodDtypeBase(freq._period_dtype_code, freq.n)
 
@@ -1835,7 +1862,7 @@ cdef class _Period(PeriodMixin):
                 elif op == Py_NE:
                     return True
                 self._require_matching_freq(other.freq)
-            return PyObject_RichCompareBool(self.ordinal, other.ordinal, op)
+            return PyObject_RichCompareBool(self._ordinal, other._ordinal, op)
         elif other is NaT:
             return op == Py_NE
         elif util.is_array(other):
@@ -1875,7 +1902,7 @@ cdef class _Period(PeriodMixin):
             raise IncompatibleFrequency("Input cannot be converted to "
                                         f"Period(freq={self.freqstr})") from err
         with cython.overflowcheck(True):
-            ordinal = self.ordinal + inc
+            ordinal = self._ordinal + inc
         return Period(ordinal=ordinal, freq=self._freq)
 
     def _add_offset(self, other) -> "Period":
@@ -1885,7 +1912,7 @@ cdef class _Period(PeriodMixin):
 
         self._require_matching_freq(other, base=True)
 
-        ordinal = self.ordinal + other.n
+        ordinal = self._ordinal + other.n
         return Period(ordinal=ordinal, freq=self._freq)
 
     @cython.overflowcheck(True)
@@ -1897,7 +1924,7 @@ cdef class _Period(PeriodMixin):
         elif other is NaT:
             return NaT
         elif util.is_integer_object(other):
-            ordinal = self.ordinal + other * self._dtype._n
+            ordinal = self._ordinal + other * self._dtype._n
             return Period(ordinal=ordinal, freq=self._freq)
 
         elif is_period_object(other):
@@ -1930,7 +1957,7 @@ cdef class _Period(PeriodMixin):
         elif is_period_object(other):
             self._require_matching_freq(other.freq)
             # GH 23915 - mul by base freq since __add__ is agnostic of n
-            return (self.ordinal - other.ordinal) * self._freq.base
+            return (self._ordinal - other._ordinal) * self._freq.base
         elif other is NaT:
             return NaT
 
@@ -2020,9 +2047,9 @@ cdef class _Period(PeriodMixin):
         # self.n can't be negative or 0
         end = how == "E"
         if end:
-            ordinal = self.ordinal + self._dtype._n - 1
+            ordinal = self._ordinal + self._dtype._n - 1
         else:
-            ordinal = self.ordinal
+            ordinal = self._ordinal
         ordinal = period_asfreq(ordinal, base1, base2, end)
 
         return Period(ordinal=ordinal, freq=freq)
@@ -2700,7 +2727,7 @@ cdef class _Period(PeriodMixin):
 
     def __setstate__(self, state):
         self._freq = state[1]
-        self.ordinal = state[2]
+        self._ordinal = state[2]
 
     def __reduce__(self):
         object_state = None, self._freq, self.ordinal
