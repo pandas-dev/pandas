@@ -15,7 +15,6 @@ Index
    For a conceptual overview and practical examples of indexing and selecting data,
    see the user guide section :ref:`indexing`.
 
-
 **Many of these methods or variants thereof are available on the objects
 that contain an index (Series/DataFrame) and those should most likely be
 used before calling these methods directly.**
