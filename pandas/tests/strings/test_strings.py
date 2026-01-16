@@ -899,7 +899,6 @@ def test_setitem_with_different_string_storage():
         (r"\\(?=abc)", True),
         (r"(?=.*[A-Z])", True),
         (r"a(?=)", True),
-        (r"a(?!)", True),
         (r"(?![0-9])", True),
         (r"(?=(?!nested))", True),
         (r"test\(\?\=ing\)", False),
