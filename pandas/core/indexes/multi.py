@@ -1445,13 +1445,14 @@ class MultiIndex(Index):
 
         Examples
         --------
-        >>> idx = pd.Index([1, 2, 3, 4])
-        >>> idx
-        Index([1, 2, 3, 4], dtype='int64')
+        >>> mi = pd.MultiIndex.from_arrays([["a"], ["b"], ["c"]])
+        >>> mi
+        MultiIndex([('a', 'b', 'c')],
+                   )
 
-        >>> 2 in idx
+        >>> "a" in mi
         True
-        >>> 6 in idx
+        >>> "x" in mi
         False
         """
         hash(key)
@@ -1504,9 +1505,9 @@ class MultiIndex(Index):
 
         Examples
         --------
-        >>> idx = pd.Index([1, 2, 3])
-        >>> idx.memory_usage()
-        24
+        >>> mi = pd.MultiIndex.from_arrays([["a"], ["b"], ["c"]])
+        >>> mi.memory_usage()
+        399
         """
         # we are overwriting our base class to avoid
         # computing .values here which could materialize
@@ -1852,25 +1853,25 @@ class MultiIndex(Index):
         By default, for each set of duplicated values, the first occurrence is
         set to False and all others to True:
 
-        >>> idx = pd.Index(["llama", "cow", "llama", "beetle", "llama"])
-        >>> idx.duplicated()
-        array([False, False,  True, False,  True])
+        >>> mi = pd.MultiIndex.from_arrays((list("abca"), list("defd")))
+        >>> mi.duplicated()
+        array([False, False, False,  True])
 
         which is equivalent to
 
-        >>> idx.duplicated(keep="first")
-        array([False, False,  True, False,  True])
+        >>> mi.duplicated(keep="first")
+        array([False, False, False,  True])
 
         By using 'last', the last occurrence of each set of duplicated values
         is set on False and all others on True:
 
-        >>> idx.duplicated(keep="last")
-        array([ True, False,  True, False, False])
+        >>> mi.duplicated(keep="last")
+        array([ True, False, False, False])
 
         By setting keep on ``False``, all duplicates are True:
 
-        >>> idx.duplicated(keep=False)
-        array([ True, False,  True, False,  True])
+        >>> mi.duplicated(keep=False)
+        array([ True, False, False,  True])
         """
         shape = tuple(len(lev) for lev in self.levels)
         ids = get_group_index(self.codes, shape, sort=False, xnull=False)
@@ -1889,18 +1890,17 @@ class MultiIndex(Index):
 
     def dropna(self, how: AnyAll = "any") -> MultiIndex:
         """
-        Return Index without NA/NaN values.
+        Return MultiIndex without NA/NaN values.
 
         Parameters
         ----------
         how : {'any', 'all'}, default 'any'
-            If the Index is a MultiIndex, drop the value when any or all levels
-            are NaN.
+            Drop the value when any or all levels are NaN.
 
         Returns
         -------
         Index
-            Returns an Index object after removing NA/NaN values.
+            Returns an MultiIndex object after removing NA/NaN values.
 
         See Also
         --------
@@ -1909,9 +1909,14 @@ class MultiIndex(Index):
 
         Examples
         --------
-        >>> idx = pd.Index([1, np.nan, 3])
-        >>> idx.dropna()
-        Index([1.0, 3.0], dtype='float64')
+        >>> mi = pd.MultiIndex.from_arrays(([np.nan, np.nan, 2.0], [3.0, np.nan, 4.0]))
+        >>> mi.dropna()
+        MultiIndex([(2.0, 4.0)],
+                   )
+        >>> mi.dropna(how="all")
+        MultiIndex([(nan, 3.0),
+                    (2.0, 4.0)],
+                   )
         """
         nans = [level_codes == -1 for level_codes in self.codes]
         if how == "any":
@@ -2032,8 +2037,8 @@ class MultiIndex(Index):
 
         Returns
         -------
-        Index
-            Unique values in the index.
+        MultiIndex
+            Unique values in the MultiIndex.
 
         See Also
         --------
@@ -2042,9 +2047,18 @@ class MultiIndex(Index):
 
         Examples
         --------
-        >>> idx = pd.Index([1, 1, 2, 3, 3])
-        >>> idx.unique()
-        Index([1, 2, 3], dtype='int64')
+        >>> mi = pd.MultiIndex.from_arrays((list("abca"), list("defd")))
+        >>> mi
+        MultiIndex([('a', 'd'),
+                    ('b', 'e'),
+                    ('c', 'f'),
+                    ('a', 'd')],
+                   )
+        >>> mi.unique()
+        MultiIndex([('a', 'd'),
+                    ('b', 'e'),
+                    ('c', 'f')],
+                   )
         """
         if level is None:
             return self.drop_duplicates()
@@ -4337,7 +4351,7 @@ class MultiIndex(Index):
 
     def astype(self, dtype, copy: bool = True):
         """
-        Create an Index with values cast to dtypes.
+        Create an MultiIndex with values cast to dtypes.
 
         The class of a new Index is determined by dtype. When conversion is
         impossible, a TypeError exception is raised.
@@ -4356,8 +4370,8 @@ class MultiIndex(Index):
 
         Returns
         -------
-        Index
-            Index with values cast to specified dtype.
+        MultiIndex
+            MultiIndex with values cast to specified dtype.
 
         See Also
         --------
@@ -4367,11 +4381,17 @@ class MultiIndex(Index):
 
         Examples
         --------
-        >>> idx = pd.Index([1, 2, 3])
-        >>> idx
-        Index([1, 2, 3], dtype='int64')
-        >>> idx.astype("float")
-        Index([1.0, 2.0, 3.0], dtype='float64')
+        >>> mi = pd.MultiIndex.from_arrays(([1, 2, 3], [4, 5, 6]))
+        >>> mi
+        MultiIndex([(1, 4),
+                    (2, 5),
+                    (3, 6)],
+                   )
+        >>> mi.astype("object")
+        MultiIndex([(1, 4),
+                    (2, 5),
+                    (3, 6)],
+                   )
         """
         dtype = pandas_dtype(dtype)
         if isinstance(dtype, CategoricalDtype):
@@ -4542,10 +4562,10 @@ class MultiIndex(Index):
         >>> idx.isin([1, 4])
         array([ True, False, False])
 
-        >>> midx = pd.MultiIndex.from_arrays(
+        >>> mi = pd.MultiIndex.from_arrays(
         ...     [[1, 2, 3], ["red", "blue", "green"]], names=["number", "color"]
         ... )
-        >>> midx
+        >>> mi
         MultiIndex([(1,   'red'),
                     (2,  'blue'),
                     (3, 'green')],
@@ -4554,12 +4574,12 @@ class MultiIndex(Index):
         Check whether the strings in the 'color' level of the MultiIndex
         are in a list of colors.
 
-        >>> midx.isin(["red", "orange", "yellow"], level="color")
+        >>> mi.isin(["red", "orange", "yellow"], level="color")
         array([ True, False, False])
 
         To check across the levels of a MultiIndex, pass a list of tuples:
 
-        >>> midx.isin([(1, "red"), (3, "red")])
+        >>> mi.isin([(1, "red"), (3, "red")])
         array([ True, False, False])
         """
         if isinstance(values, Generator):
