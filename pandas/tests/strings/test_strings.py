@@ -914,4 +914,5 @@ def test_setitem_with_different_string_storage():
     ],
 )
 def test_has_regex_lookaround(pat, expected):
+    # https://github.com/pandas-dev/pandas/issues/60833
     assert ArrowStringArrayMixin._has_regex_lookaround(pat) == expected
