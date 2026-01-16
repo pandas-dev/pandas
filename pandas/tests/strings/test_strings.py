@@ -18,6 +18,7 @@ from pandas import (
     option_context,
 )
 import pandas._testing as tm
+from pandas.core.arrays._arrow_string_mixins import ArrowStringArrayMixin
 from pandas.core.strings.accessor import StringMethods
 from pandas.tests.strings import is_object_or_nan_string_dtype
 
@@ -879,3 +880,38 @@ def test_setitem_with_different_string_storage():
     ser_python[1:4] = ser_pyarrow
     expected = Series(["a", "X", "Y", NA, "e"], dtype="string[python]")
     tm.assert_series_equal(ser_python, expected)
+
+
+@pytest.mark.parametrize(
+    "pat, expected",
+    [
+        (r"(?=abc)", True),
+        (r"(?<=123)", True),
+        (r"(?!xyz)", True),
+        (r"(?<!\d)", True),
+        (r"(?=a|b)(?<=c)", True),
+        (r"abc", False),
+        (r"\d+", False),
+        (r"(abc)", False),
+        (r"a|b", False),
+        (r"a*", False),
+        (r"", False),
+        (r"\\(?=abc)", True),
+        (r"(?=.*[A-Z])", True),
+        (r"a(?=)", True),
+        (r"a(?!)", True),
+        (r"(?![0-9])", True),
+        (r"(?=(?!nested))", True),
+        (r"test\(\?\=ing\)", False),
+        (r"[(?=)]", False),
+        (r"(?#(?=comment)", False),
+        (r"(test # (?=comment))", True),
+        (r"(?=test)+", False),
+        (r"(?=test)*", False),
+        (r"(?=test)?", False),
+        (r"abc|(?=test)", True),
+        (r"^(?=test)$", True),
+    ],
+)
+def test_has_regex_lookaround(pat, expected):
+    assert ArrowStringArrayMixin._has_regex_lookaround(pat) == expected

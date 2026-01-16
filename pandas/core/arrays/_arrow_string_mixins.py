@@ -48,6 +48,42 @@ class ArrowStringArrayMixin:
     def _apply_elementwise(self, func: Callable) -> list[list[Any]]:
         raise NotImplementedError
 
+    @staticmethod
+    def _has_regex_lookaround(pat: str | re.Pattern) -> bool:
+        """
+        Determine if regex pattern contains a lookahead or lookbehind.
+
+        Parameters
+        ----------
+        pat: str | re.Pattern
+            Regex pattern.
+
+        Returns
+        -------
+        bool
+            Whether `pat` contains a lookahead or lookbehind.
+        """
+        # error: Module "re" has no attribute "_parser"
+        from re import _parser  # type: ignore[attr-defined]
+
+        def has_assert(tokens):
+            # For certain op codes we need to recurse.
+            for op_code, argument in tokens:
+                if (
+                    (op_code == _parser.SUBPATTERN and has_assert(argument[3]))
+                    or (
+                        op_code == _parser.BRANCH
+                        and any(has_assert(tokens) for tokens in argument[1])
+                    )
+                    or (op_code in [_parser.ASSERT_NOT, _parser.ASSERT])
+                ):
+                    return True
+            return False
+
+        str_pat = pat.pattern if isinstance(pat, re.Pattern) else pat
+        tokens = _parser.parse(str_pat)
+        return has_assert(tokens)
+
     def _str_len(self):
         result = pc.utf8_length(self._pa_array)
         return self._convert_int_result(result)
@@ -295,28 +331,6 @@ class ArrowStringArrayMixin:
     def _str_isupper(self):
         result = pc.utf8_is_upper(self._pa_array)
         return self._convert_bool_result(result)
-
-    def _has_regex_lookaround(self, pat: str | re.Pattern) -> bool:
-        # error: Module "re" has no attribute "_parser"
-        from re import _parser  # type: ignore[attr-defined]
-
-        def has_assert(tokens):
-            # For certain op codes we need to recurse.
-            for op_code, argument in tokens:
-                if (
-                    (op_code == _parser.SUBPATTERN and has_assert(argument[3]))
-                    or (
-                        op_code == _parser.BRANCH
-                        and any(has_assert(tokens) for tokens in argument[1])
-                    )
-                    or (op_code in [_parser.ASSERT_NOT, _parser.ASSERT])
-                ):
-                    return True
-            return False
-
-        str_pat = pat.pattern if isinstance(pat, re.Pattern) else pat
-        tokens = _parser.parse(str_pat)
-        return has_assert(tokens)
 
     def _str_contains(
         self,

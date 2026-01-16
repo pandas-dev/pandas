@@ -726,11 +726,11 @@ def test_extractall_preserves_dtype():
 @pytest.mark.parametrize(
     "pat, expected_data",
     [
-        (r"(a(?=b))", [None, "a", None, None, None]),
-        (r"((?<=a)b)", [None, "b", None, None, None]),
-        (r"(a(?!b))", ["a", None, "a", None, None]),
-        (r"((?<!b)a)", ["a", "a", None, None, None]),
-        ("(ab)", [None, "ab", None, None, None]),
+        (r"(a(?=b))", [None, "a", None, None]),
+        (r"((?<=a)b)", [None, "b", None, None]),
+        (r"(a(?!b))", ["a", None, "a", None]),
+        (r"((?<!b)a)", ["a", "a", None, None]),
+        ("(ab)", [None, "ab", None, None]),
     ],
 )
 def test_extract_lookarounds(any_string_dtype, pat, expected_data):
@@ -739,8 +739,8 @@ def test_extract_lookarounds(any_string_dtype, pat, expected_data):
     result = ser.str.extract(pat, expand=False)
     if any_string_dtype == "object":
         # object input will preserve None but any result with no matches gets NaN
-        expected_data[:-1] = [{None: np.nan}.get(e, e) for e in expected_data[:-1]]
-    expected = Series(expected_data, dtype=any_string_dtype)
+        expected_data = [np.nan if e is None else e for e in expected_data]
+    expected = Series(expected_data + [None], dtype=any_string_dtype)
     tm.assert_series_equal(result, expected)
 
 
