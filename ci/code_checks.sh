@@ -135,7 +135,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.SemiMonthEnd.day_of_month GL08" \
         -i "pandas.tseries.offsets.SemiMonthEnd.is_on_offset GL08" \
         -i "pandas.tseries.offsets.SemiMonthEnd.rule_code GL08" \
-        -i "pandas.tseries.offsets.Tick GL08" \
         -i "pandas.tseries.offsets.Tick.is_on_offset GL08" \
         -i "pandas.tseries.offsets.Week.is_on_offset GL08" \
         -i "pandas.tseries.offsets.Week.weekday GL08" \

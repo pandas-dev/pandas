@@ -1064,6 +1064,39 @@ cdef class SingleConstructorOffset(BaseOffset):
 # Tick Offsets
 
 cdef class Tick(SingleConstructorOffset):
+    """
+    Base class for fixed frequency offsets (Milli, Micro, Second, Minute, Hour).
+
+    This class should not be instantiated directly. Use one of the specific
+    Tick subclasses for a concrete offset.
+
+    Attributes
+    ----------
+    n : int, default 1
+        The number of units (hours, minutes, etc.) the offset represents.
+
+    See Also
+    --------
+    Hour : Offset ``n`` hours.
+    Minute : Offset ``n`` minutes.
+    Second : Offset ``n`` seconds.
+    Milli : Offset ``n`` milliseconds.
+    Micro : Offset ``n`` microseconds.
+    Nano : Offset ``n`` nanoseconds.
+
+    Examples
+    --------
+    >>> from pandas.tseries.offsets import Hour, Minute
+    >>> ts = pd.Timestamp(2022, 12, 9, 15)
+    >>> ts
+    Timestamp('2022-12-09 15:00:00')
+
+    >>> ts + Hour(1)
+    Timestamp('2022-12-09 16:00:00')
+
+    >>> ts + Minute(30)
+    Timestamp('2022-12-09 15:30:00')
+    """
     _adjust_dst = False
     _prefix = "undefined"
     _attributes = tuple(["n", "normalize"])
