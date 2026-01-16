@@ -10,6 +10,7 @@ import pytest
 
 from pandas._libs.internals import BlockPlacement
 from pandas.compat import IS64
+from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.common import is_scalar
 
@@ -260,9 +261,9 @@ class TestBlock:
             ["bool", [5]],
         ],
     )
-    def test_pickle(self, typ, data):
+    def test_pickle(self, typ, data, tmp_path):
         blk = create_block(typ, data)
-        assert_block_equal(tm.round_trip_pickle(blk), blk)
+        assert_block_equal(tm.round_trip_pickle(blk, tmp_path), blk)
 
     def test_mgr_locs(self, fblock):
         assert isinstance(fblock.mgr_locs, BlockPlacement)
@@ -276,12 +277,12 @@ class TestBlock:
         assert len(fblock) == len(fblock.values)
 
     def test_copy(self, fblock):
-        cop = fblock.copy()
+        cop = fblock.copy(deep=True)
         assert cop is not fblock
         assert_block_equal(fblock, cop)
 
     def test_delete(self, fblock):
-        newb = fblock.copy()
+        newb = fblock.copy(deep=True)
         locs = newb.mgr_locs
         nb = newb.delete(0)[0]
         assert newb.mgr_locs is locs
@@ -294,7 +295,7 @@ class TestBlock:
         assert not (newb.values[0] == 1).all()
         assert (nb.values[0] == 1).all()
 
-        newb = fblock.copy()
+        newb = fblock.copy(deep=True)
         locs = newb.mgr_locs
         nb = newb.delete(1)
         assert len(nb) == 2
@@ -309,7 +310,7 @@ class TestBlock:
         assert not (newb.values[1] == 2).all()
         assert (nb[1].values[0] == 2).all()
 
-        newb = fblock.copy()
+        newb = fblock.copy(deep=True)
         nb = newb.delete(2)
         assert len(nb) == 1
         tm.assert_numpy_array_equal(
@@ -317,7 +318,7 @@ class TestBlock:
         )
         assert (nb[0].values[1] == 1).all()
 
-        newb = fblock.copy()
+        newb = fblock.copy(deep=True)
 
         with pytest.raises(IndexError, match=None):
             newb.delete(3)
@@ -390,8 +391,8 @@ class TestBlockManager:
         mgr = BlockManager(blocks, axes)
         mgr.iget(1)
 
-    def test_pickle(self, mgr):
-        mgr2 = tm.round_trip_pickle(mgr)
+    def test_pickle(self, mgr, tmp_path):
+        mgr2 = tm.round_trip_pickle(mgr, tmp_path)
         tm.assert_frame_equal(
             DataFrame._from_mgr(mgr, axes=mgr.axes),
             DataFrame._from_mgr(mgr2, axes=mgr2.axes),
@@ -406,24 +407,24 @@ class TestBlockManager:
         assert not mgr2._known_consolidated
 
     @pytest.mark.parametrize("mgr_string", ["a,a,a:f8", "a: f8; a: i8"])
-    def test_non_unique_pickle(self, mgr_string):
+    def test_non_unique_pickle(self, mgr_string, tmp_path):
         mgr = create_mgr(mgr_string)
-        mgr2 = tm.round_trip_pickle(mgr)
+        mgr2 = tm.round_trip_pickle(mgr, tmp_path)
         tm.assert_frame_equal(
             DataFrame._from_mgr(mgr, axes=mgr.axes),
             DataFrame._from_mgr(mgr2, axes=mgr2.axes),
         )
 
-    def test_categorical_block_pickle(self):
+    def test_categorical_block_pickle(self, tmp_path):
         mgr = create_mgr("a: category")
-        mgr2 = tm.round_trip_pickle(mgr)
+        mgr2 = tm.round_trip_pickle(mgr, tmp_path)
         tm.assert_frame_equal(
             DataFrame._from_mgr(mgr, axes=mgr.axes),
             DataFrame._from_mgr(mgr2, axes=mgr2.axes),
         )
 
         smgr = create_single_mgr("category")
-        smgr2 = tm.round_trip_pickle(smgr)
+        smgr2 = tm.round_trip_pickle(smgr, tmp_path)
         tm.assert_series_equal(
             Series()._constructor_from_mgr(smgr, axes=smgr.axes),
             Series()._constructor_from_mgr(smgr2, axes=smgr2.axes),
@@ -488,7 +489,7 @@ class TestBlockManager:
             # view assertion
             tm.assert_equal(cp_blk.values, blk.values)
             if isinstance(blk.values, np.ndarray):
-                assert cp_blk.values.base is blk.values.base
+                assert cp_blk.values.base.base is blk.values.base
             else:
                 # DatetimeTZBlock has DatetimeIndex values
                 assert cp_blk.values._ndarray.base is blk.values._ndarray.base
@@ -735,8 +736,6 @@ class TestBlockManager:
         mgr = create_mgr("a: f8; b: i8; c: f8; d: i8; e: f8; f: bool; g: f8-2")
 
         reindexed = mgr.reindex_axis(["g", "c", "a", "d"], axis=0)
-        # reindex_axis does not consolidate_inplace, as that risks failing to
-        #  invalidate _item_cache
         assert not reindexed.is_consolidated()
 
         tm.assert_index_equal(reindexed.items, Index(["g", "c", "a", "d"]))
@@ -1320,6 +1319,16 @@ class TestCanHoldElement:
         with pytest.raises(TypeError, match="Invalid value"):
             self.check_series_setitem(elem, pi, False)
 
+    def test_period_reindex_axis(self):
+        # GH#60273 Test reindexing of block with PeriodDtype
+        pi = period_range("2020", periods=5, freq="Y")
+        blk = new_block(pi._data.reshape(5, 1), BlockPlacement(slice(5)), ndim=2)
+        mgr = BlockManager(blocks=(blk,), axes=[Index(np.arange(5)), Index(["a"])])
+        reindexed = mgr.reindex_axis(Index([0, 2, 4]), axis=0)
+        result = DataFrame._from_mgr(reindexed, axes=reindexed.axes)
+        expected = DataFrame([[pi[0], pi[2], pi[4]]], columns=[0, 2, 4], index=["a"])
+        tm.assert_frame_equal(result, expected)
+
     def check_can_hold_element(self, obj, elem, inplace: bool):
         blk = obj._mgr.blocks[0]
         if inplace:
@@ -1339,7 +1348,7 @@ class TestCanHoldElement:
             ser[: len(elem)] = elem
 
         if inplace:
-            assert ser.array is arr  # i.e. setting was done inplace
+            assert ser._values is arr  # i.e. setting was done inplace
         else:
             assert ser.dtype == object
 
@@ -1368,7 +1377,7 @@ def test_validate_ndim():
 
     depr_msg = "make_block is deprecated"
     with pytest.raises(ValueError, match=msg):
-        with tm.assert_produces_warning(DeprecationWarning, match=depr_msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
             make_block(values, placement, ndim=2)
 
 

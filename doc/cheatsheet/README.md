@@ -12,7 +12,7 @@ This cheat sheet, originally written by Irv Lustig, [Princeton Consultants](http
 | Pandas_Cheat_Sheet_JA  | Japanese    | <a href="https://github.com/pandas-dev/pandas/blob/main/doc/cheatsheet/Pandas_Cheat_Sheet_JA.pdf" target="_parent"><img src="https://img.shields.io/badge/Open in PDF-%23FF0000.svg?style=flat-square&logo=adobe&logoColor=white"/></a> | <a href="https://github.com/pandas-dev/pandas/blob/main/doc/cheatsheet/Pandas_Cheat_Sheet_JA.pptx" target="_parent"><img  src="https://img.shields.io/badge/Open in PPT-B7472A?style=flat-square&logo=microsoft-powerpoint&logoColor=white"/></a> |
 | Pandas_Cheat_Sheet_FA  | Persian     | <a href="https://github.com/pandas-dev/pandas/blob/main/doc/cheatsheet/Pandas_Cheat_Sheet_FA.pdf" target="_parent"><img src="https://img.shields.io/badge/Open in PDF-%23FF0000.svg?style=flat-square&logo=adobe&logoColor=white"/></a> | <a href="https://github.com/pandas-dev/pandas/blob/main/doc/cheatsheet/Pandas_Cheat_Sheet_FA.pptx" target="_parent"><img  src="https://img.shields.io/badge/Open in PPT-B7472A?style=flat-square&logo=microsoft-powerpoint&logoColor=white"/></a> |
 
-
+The English version has additional material that is not in the versions in other languages.
 
 **Alternative**
 

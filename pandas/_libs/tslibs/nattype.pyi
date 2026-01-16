@@ -1,13 +1,12 @@
 from datetime import (
-    date as date_,
     datetime,
-    time as time_,
     timedelta,
     tzinfo as _tzinfo,
 )
 from typing import (
     Literal,
     NoReturn,
+    Self,
     TypeAlias,
     overload,
 )
@@ -17,8 +16,8 @@ import numpy as np
 from pandas._libs.tslibs.period import Period
 from pandas._typing import (
     Frequency,
-    Self,
     TimestampNonexistent,
+    TimeUnit,
 )
 
 NaT: NaTType
@@ -99,7 +98,6 @@ class NaTType:
         ambiguous: bool | Literal["raise"] | NaTType = ...,
         nonexistent: TimestampNonexistent = ...,
     ) -> NaTType: ...
-    def combine(cls, date: date_, time: time_) -> NoReturn: ...
     @property
     def tzinfo(self) -> None: ...
     @property
@@ -183,4 +181,4 @@ class NaTType:
     def __floordiv__(self, other: float, /) -> Self: ...
     # other
     def __hash__(self) -> int: ...
-    def as_unit(self, unit: str, round_ok: bool = ...) -> NaTType: ...
+    def as_unit(self, unit: TimeUnit, round_ok: bool = ...) -> NaTType: ...

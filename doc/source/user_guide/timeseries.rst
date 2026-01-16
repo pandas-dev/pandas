@@ -241,6 +241,19 @@ inferred frequency upon creation:
 
     pd.DatetimeIndex(["2018-01-01", "2018-01-03", "2018-01-05"], freq="infer")
 
+In most cases, parsing strings to datetimes (with any of :func:`to_datetime`, :class:`DatetimeIndex`, or :class:`Timestamp`) will produce objects with microsecond ("us") unit. The exception to this rule is if your strings have nanosecond precision, in which case the result will have "ns" unit:
+
+.. ipython:: python
+
+   pd.to_datetime(["2016-01-01 02:03:04"]).unit
+   pd.to_datetime(["2016-01-01 02:03:04.123"]).unit
+   pd.to_datetime(["2016-01-01 02:03:04.123456"]).unit
+   pd.to_datetime(["2016-01-01 02:03:04.123456789"]).unit
+
+.. versionchanged:: 3.0.0
+
+        Previously, :func:`to_datetime` and :class:`DatetimeIndex` would always parse strings to "ns" unit. During pandas 2.x, :class:`Timestamp` could give any of "s", "ms", "us", or "ns" depending on the specificity of the input string.
+
 .. _timeseries.converting.format:
 
 Providing a format argument
@@ -378,6 +391,16 @@ We subtract the epoch (midnight at January 1, 1970 UTC) and then floor divide by
 .. ipython:: python
 
    (stamps - pd.Timestamp("1970-01-01")) // pd.Timedelta("1s")
+
+Another common way to perform this conversion is to convert directly to an integer dtype. Note that the exact integers this produces will depend on the specific unit
+or resolution of the datetime64 dtype:
+
+.. ipython:: python
+
+   stamps.astype(np.int64)
+   stamps.astype("datetime64[s]").astype(np.int64)
+   stamps.astype("datetime64[ms]").astype(np.int64)
+
 
 .. _timeseries.origin:
 
@@ -891,6 +914,10 @@ into ``freq`` keyword arguments. The available date offsets and associated frequ
     :class:`~pandas.tseries.offsets.BQuarterEnd`, ``'BQE``, "business quarter end"
     :class:`~pandas.tseries.offsets.BQuarterBegin`, ``'BQS'``, "business quarter begin"
     :class:`~pandas.tseries.offsets.FY5253Quarter`, ``'REQ'``, "retail (aka 52-53 week) quarter"
+    :class:`~pandas.tseries.offsets.HalfYearEnd`, ``'HYE'``, "calendar half year end"
+    :class:`~pandas.tseries.offsets.HalfYearBegin`, ``'HYS'``, "calendar half year begin"
+    :class:`~pandas.tseries.offsets.BHalfYearEnd`, ``'BHYE``, "business half year end"
+    :class:`~pandas.tseries.offsets.BHalfYearBegin`, ``'BHYS'``, "business half year begin"
     :class:`~pandas.tseries.offsets.YearEnd`, ``'YE'``, "calendar year end"
     :class:`~pandas.tseries.offsets.YearBegin`, ``'YS'`` or ``'BYS'``,"calendar year begin"
     :class:`~pandas.tseries.offsets.BYearEnd`, ``'BYE'``, "business year end"
@@ -899,7 +926,7 @@ into ``freq`` keyword arguments. The available date offsets and associated frequ
     :class:`~pandas.tseries.offsets.Easter`, None, "Easter holiday"
     :class:`~pandas.tseries.offsets.BusinessHour`, ``'bh'``, "business hour"
     :class:`~pandas.tseries.offsets.CustomBusinessHour`, ``'cbh'``, "custom business hour"
-    :class:`~pandas.tseries.offsets.Day`, ``'D'``, "one absolute day"
+    :class:`~pandas.tseries.offsets.Day`, ``'D'``, "one calendar day"
     :class:`~pandas.tseries.offsets.Hour`, ``'h'``, "one hour"
     :class:`~pandas.tseries.offsets.Minute`, ``'min'``,"one minute"
     :class:`~pandas.tseries.offsets.Second`, ``'s'``, "one second"
@@ -996,7 +1023,7 @@ apply the offset to each element.
    s + pd.DateOffset(months=2)
    s - pd.DateOffset(months=2)
 
-If the offset class maps directly to a ``Timedelta`` (``Day``, ``Hour``,
+If the offset class maps directly to a ``Timedelta`` (``Hour``,
 ``Minute``, ``Second``, ``Micro``, ``Milli``, ``Nano``) it can be
 used exactly like a ``Timedelta`` - see the
 :ref:`Timedelta section<timedeltas.operations>` for more examples.
@@ -1267,15 +1294,6 @@ frequencies. We will refer to these aliases as *offset aliases*.
     "us", "microseconds"
     "ns", "nanoseconds"
 
-.. deprecated:: 2.2.0
-
-   Aliases ``H``, ``BH``, ``CBH``, ``T``, ``S``, ``L``, ``U``, and ``N``
-   are deprecated in favour of the aliases ``h``, ``bh``, ``cbh``,
-   ``min``, ``s``, ``ms``, ``us``, and ``ns``.
-
-   Aliases ``Y``, ``M``, and ``Q`` are deprecated in favour of the aliases
-   ``YE``, ``ME``, ``QE``.
-
 
 .. note::
 
@@ -1330,11 +1348,6 @@ frequencies. We will refer to these aliases as *period aliases*.
     "ms", "milliseconds"
     "us", "microseconds"
     "ns", "nanoseconds"
-
-.. deprecated:: 2.2.0
-
-   Aliases ``H``, ``T``, ``S``, ``L``, ``U``, and ``N`` are deprecated in favour of the aliases
-   ``h``, ``min``, ``s``, ``ms``, ``us``, and ``ns``.
 
 
 Combining aliases
@@ -1960,8 +1973,6 @@ Note the use of ``'start'`` for ``origin`` on the last example. In that case, ``
 Backward resample
 ~~~~~~~~~~~~~~~~~
 
-.. versionadded:: 1.3.0
-
 Instead of adjusting the beginning of bins, sometimes we need to fix the end of the bins to make a backward resample with a given ``freq``. The backward resample sets ``closed`` to ``'right'`` by default since the last value should be considered as the edge point for the last bin.
 
 We can set ``origin`` to ``'end'``. The value for a specific ``Timestamp`` index stands for the resample result from the current ``Timestamp`` minus ``freq`` to the current ``Timestamp`` with a right close.
@@ -2454,7 +2465,7 @@ you can use the ``tz_convert`` method.
 
     For ``pytz`` time zones, it is incorrect to pass a time zone object directly into
     the ``datetime.datetime`` constructor
-    (e.g., ``datetime.datetime(2011, 1, 1, tzinfo=pytz.timezone('US/Eastern'))``.
+    (e.g., ``datetime.datetime(2011, 1, 1, tzinfo=pytz.timezone('US/Eastern'))``).
     Instead, the datetime needs to be localized using the ``localize`` method
     on the ``pytz`` time zone object.
 
@@ -2537,7 +2548,7 @@ Fold is supported only for constructing from naive ``datetime.datetime``
 or for constructing from components (see below). Only ``dateutil`` timezones are supported
 (see `dateutil documentation <https://dateutil.readthedocs.io/en/stable/tz.html#dateutil.tz.enfold>`__
 for ``dateutil`` methods that deal with ambiguous datetimes) as ``pytz``
-timezones do not support fold (see `pytz documentation <http://pytz.sourceforge.net/index.html>`__
+timezones do not support fold (see `pytz documentation <https://pythonhosted.org/pytz/>`__
 for details on how ``pytz`` deals with ambiguous datetimes). To localize an ambiguous datetime
 with ``pytz``, please use :meth:`Timestamp.tz_localize`. In general, we recommend to rely
 on :meth:`Timestamp.tz_localize` when localizing ambiguous datetimes if you need direct

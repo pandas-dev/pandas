@@ -15,6 +15,7 @@ import numpy as np
 from pandas._libs import lib
 from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op
 
+from pandas.core.dtypes.cast import maybe_unbox_numpy_scalar
 from pandas.core.dtypes.generic import ABCNDFrame
 
 from pandas.core import roperator
@@ -298,7 +299,9 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
 
     # align all the inputs.
     types = tuple(type(x) for x in inputs)
-    alignable = [x for x, t in zip(inputs, types) if issubclass(t, NDFrame)]
+    alignable = [
+        x for x, t in zip(inputs, types, strict=True) if issubclass(t, NDFrame)
+    ]
 
     if len(alignable) > 1:
         # This triggers alignment.
@@ -317,16 +320,16 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
         for obj in alignable[1:]:
             # this relies on the fact that we aren't handling mixed
             # series / frame ufuncs.
-            for i, (ax1, ax2) in enumerate(zip(axes, obj.axes)):
+            for i, (ax1, ax2) in enumerate(zip(axes, obj.axes, strict=True)):
                 axes[i] = ax1.union(ax2)
 
-        reconstruct_axes = dict(zip(self._AXIS_ORDERS, axes))
+        reconstruct_axes = dict(zip(self._AXIS_ORDERS, axes, strict=True))
         inputs = tuple(
             x.reindex(**reconstruct_axes) if issubclass(t, NDFrame) else x
-            for x, t in zip(inputs, types)
+            for x, t in zip(inputs, types, strict=True)
         )
     else:
-        reconstruct_axes = dict(zip(self._AXIS_ORDERS, self.axes))
+        reconstruct_axes = dict(zip(self._AXIS_ORDERS, self.axes, strict=True))
 
     if self.ndim == 1:
         names = {x.name for x in inputs if hasattr(x, "name")}
@@ -397,19 +400,18 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
         # ufunc(series, ...)
         inputs = tuple(extract_array(x, extract_numpy=True) for x in inputs)
         result = getattr(ufunc, method)(*inputs, **kwargs)
+    # ufunc(dataframe)
+    elif method == "__call__" and not kwargs:
+        # for np.<ufunc>(..) calls
+        # kwargs cannot necessarily be handled block-by-block, so only
+        # take this path if there are no kwargs
+        mgr = inputs[0]._mgr  # pyright: ignore[reportGeneralTypeIssues]
+        result = mgr.apply(getattr(ufunc, method))
     else:
-        # ufunc(dataframe)
-        if method == "__call__" and not kwargs:
-            # for np.<ufunc>(..) calls
-            # kwargs cannot necessarily be handled block-by-block, so only
-            # take this path if there are no kwargs
-            mgr = inputs[0]._mgr  # pyright: ignore[reportGeneralTypeIssues]
-            result = mgr.apply(getattr(ufunc, method))
-        else:
-            # otherwise specific ufunc methods (eg np.<ufunc>.accumulate(..))
-            # Those can have an axis keyword and thus can't be called block-by-block
-            result = default_array_ufunc(inputs[0], ufunc, method, *inputs, **kwargs)  # pyright: ignore[reportGeneralTypeIssues]
-            # e.g. np.negative (only one reached), with "where" and "out" in kwargs
+        # otherwise specific ufunc methods (eg np.<ufunc>.accumulate(..))
+        # Those can have an axis keyword and thus can't be called block-by-block
+        result = default_array_ufunc(inputs[0], ufunc, method, *inputs, **kwargs)  # pyright: ignore[reportGeneralTypeIssues]
+        # e.g. np.negative (only one reached), with "where" and "out" in kwargs
 
     result = reconstruct(result)
     return result
@@ -450,7 +452,7 @@ def dispatch_ufunc_with_out(self, ufunc: np.ufunc, method: str, *inputs, **kwarg
         if not isinstance(out, tuple) or len(out) != len(result):
             raise NotImplementedError
 
-        for arr, res in zip(out, result):
+        for arr, res in zip(out, result, strict=True):
             _assign_where(arr, res, where)
 
         return out
@@ -527,4 +529,6 @@ def dispatch_reduction_ufunc(self, ufunc: np.ufunc, method: str, *inputs, **kwar
 
     # By default, numpy's reductions do not skip NaNs, so we have to
     #  pass skipna=False
-    return getattr(self, method_name)(skipna=False, **kwargs)
+    result = getattr(self, method_name)(skipna=False, **kwargs)
+    result = maybe_unbox_numpy_scalar(result)
+    return result

@@ -424,6 +424,7 @@ strings and apply several methods to it. These can be accessed like
    Series.str.fullmatch
    Series.str.get
    Series.str.index
+   Series.str.isascii
    Series.str.join
    Series.str.len
    Series.str.ljust
@@ -623,6 +624,7 @@ Serialization / IO / conversion
 .. autosummary::
    :toctree: api/
 
+   Series.from_arrow
    Series.to_pickle
    Series.to_csv
    Series.to_dict

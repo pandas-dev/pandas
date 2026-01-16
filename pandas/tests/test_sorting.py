@@ -89,6 +89,7 @@ class TestSorting:
         grouped = data.groupby(["a", "b", "c", "d"])
         assert len(grouped) == len(values)
 
+    @pytest.mark.slow
     @pytest.mark.parametrize("agg", ["mean", "median"])
     def test_int64_overflow_groupby_large_df_shuffled(self, agg):
         rs = np.random.default_rng(2)
@@ -357,7 +358,7 @@ def test_decons(codes_list, shape):
     group_index = get_group_index(codes_list, shape, sort=True, xnull=True)
     codes_list2 = _decons_group_index(group_index, shape)
 
-    for a, b in zip(codes_list, codes_list2):
+    for a, b in zip(codes_list, codes_list2, strict=True):
         tm.assert_numpy_array_equal(a, b)
 
 
@@ -450,7 +451,7 @@ class TestSafeSort:
             safe_sort(values=arg, codes=codes)
 
     @pytest.mark.parametrize(
-        "arg, exp", [[[1, 3, 2], [1, 2, 3]], [[1, 3, np.nan, 2], [1, 2, 3, np.nan]]]
+        "arg, exp", [[[1, 3, 2], [1, 2, 3]], [[1, 3, NA, 2], [1, 2, 3, NA]]]
     )
     def test_extension_array(self, arg, exp):
         a = array(arg, dtype="Int64")

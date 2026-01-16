@@ -16,6 +16,7 @@ import pytest
 
 from pandas._libs import index as libindex
 from pandas.errors import IndexingError
+import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -58,6 +59,14 @@ def test_not_change_nan_loc(series, new_series, expected_ser):
     expected = DataFrame({"A": expected_ser})
     tm.assert_frame_equal(df.isna(), expected)
     tm.assert_frame_equal(df.notna(), ~expected)
+
+
+def test_loc_dtype():
+    # GH 60600
+    df = DataFrame([["a", 1.0, 2.0], ["b", 3.0, 4.0]])
+    result = df.loc[0, [1, 2]]
+    expected = Series([1.0, 2.0], index=[1, 2], dtype=float, name=0)
+    tm.assert_series_equal(result, expected)
 
 
 class TestLoc:
@@ -249,6 +258,25 @@ class TestLoc:
         else:
             assert res == exp
 
+    @pytest.mark.parametrize(
+        "data",
+        [
+            [datetime(2025, 10, 30)],
+            [Timestamp(2025, 10, 30)] * 2,
+            [Timedelta(1)],
+            [Timedelta(1), Timedelta(2)],
+        ],
+    )
+    def test_loc_empty_slice_assignment_with_datetime(self, data):
+        # issue #50942
+        # empty slice assignment with datetime or timedelta should not raise exceptions
+        mask = [False] * len(data)
+
+        df = DataFrame(data=data, columns=["A"])
+        expected = df.copy()
+        df.loc[mask] = df
+        tm.assert_frame_equal(df, expected)
+
 
 class TestLocBaseIndependent:
     # Tests for loc that do not depend on subclassing Base
@@ -305,7 +333,7 @@ class TestLocBaseIndependent:
 
     def test_loc_getitem_dups(self):
         # GH 5678
-        # repeated getitems on a dup index returning a ndarray
+        # repeated getitems on a dup index returning an ndarray
         df = DataFrame(
             np.random.default_rng(2).random((20, 5)),
             index=["ABCDE"[x % 5] for x in range(20)],
@@ -441,7 +469,7 @@ class TestLocBaseIndependent:
 
         msg = (
             rf"\"None of \[Index\(\[1, 2\], dtype='{np.dtype(int)}'\)\] are "
-            r"in the \[index\]\""
+            r"in the \[columns\]\""
         )
         with pytest.raises(KeyError, match=msg):
             df.loc[[1, 2], [1, 2]]
@@ -693,7 +721,7 @@ class TestLocBaseIndependent:
             {"date": [1485264372711, 1485265925110, 1540215845888, 1540282121025]}
         )
 
-        df["date_dt"] = to_datetime(df["date"], unit="ms", cache=True).dt.as_unit("ms")
+        df["date_dt"] = to_datetime(df["date"], unit="ms", cache=True).dt.as_unit("us")
 
         df.loc[:, "date_dt_cp"] = df.loc[:, "date_dt"]
         df.loc[[2, 3], "date_dt_cp"] = df.loc[[2, 3], "date_dt"]
@@ -713,9 +741,12 @@ class TestLocBaseIndependent:
 
         tm.assert_frame_equal(df, expected)
 
-    def test_loc_setitem_frame_with_reindex(self):
+    @pytest.mark.parametrize("has_ref", [True, False])
+    def test_loc_setitem_frame_with_reindex(self, has_ref):
         # GH#6254 setting issue
         df = DataFrame(index=[3, 5, 4], columns=["A"], dtype=float)
+        if has_ref:
+            view = df[:]  # noqa: F841
         df.loc[[4, 3, 5], "A"] = np.array([1, 2, 3], dtype="int64")
 
         # setting integer values into a float dataframe with loc is inplace,
@@ -746,7 +777,8 @@ class TestLocBaseIndependent:
         expected = DataFrame({"A": [3.0, 2.0, 1.0], "B": "string"}, index=[1, 2, 3])
         tm.assert_frame_equal(df, expected)
 
-    def test_loc_setitem_empty_frame(self):
+    @pytest.mark.parametrize("has_ref", [True, False])
+    def test_loc_setitem_empty_frame(self, has_ref):
         # GH#6252 setting with an empty frame
         keys1 = ["@" + str(i) for i in range(5)]
         val1 = np.arange(5, dtype="int64")
@@ -757,6 +789,8 @@ class TestLocBaseIndependent:
         index = list(set(keys1).union(keys2))
         df = DataFrame(index=index)
         df["A"] = np.nan
+        if has_ref:
+            view = df[:]  # noqa: F841
         df.loc[keys1, "A"] = val1
 
         df["B"] = np.nan
@@ -771,12 +805,15 @@ class TestLocBaseIndependent:
         )
         tm.assert_frame_equal(df, expected)
 
-    def test_loc_setitem_frame(self):
+    @pytest.mark.parametrize("has_ref", [True, False])
+    def test_loc_setitem_frame(self, has_ref):
         df = DataFrame(
             np.random.default_rng(2).standard_normal((4, 4)),
             index=list("abcd"),
             columns=list("ABCD"),
         )
+        if has_ref:
+            view = df[:]  # noqa: F841
 
         result = df.iloc[0, 0]
 
@@ -807,7 +844,7 @@ class TestLocBaseIndependent:
 
         result = df.loc[0, [1, 2]]
         expected = Series(
-            [1, 3], index=Index([1, 2], dtype=object), dtype=object, name=0
+            [1, 3], index=Index([1, 2], dtype=object), dtype="int64", name=0
         )
         tm.assert_series_equal(result, expected)
 
@@ -831,7 +868,7 @@ class TestLocBaseIndependent:
         # multiple setting with frame on rhs (with M8)
         df = DataFrame(
             {
-                "date": date_range("2000-01-01", "2000-01-5"),
+                "date": date_range("2000-01-01", "2000-01-5", unit="ns"),
                 "val": Series(range(5), dtype=np.int64),
             }
         )
@@ -1009,6 +1046,7 @@ class TestLocBaseIndependent:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.arm_slow
+    @pytest.mark.slow
     @pytest.mark.parametrize("length, l2", [[900, 100], [900000, 100000]])
     def test_loc_non_unique_memory_error(self, length, l2):
         # GH 4280
@@ -1393,7 +1431,7 @@ class TestLocBaseIndependent:
         tm.assert_frame_equal(expected, df)
 
     def test_loc_setitem_categorical_values_partial_column_slice(self):
-        # Assigning a Category to parts of a int/... column uses the values of
+        # Assigning a Category to parts of an int/... column uses the values of
         # the Categorical
         df = DataFrame({"a": [1, 1, 1, 1, 1], "b": list("aaaaa")})
         with pytest.raises(TypeError, match="Invalid value"):
@@ -1621,6 +1659,31 @@ class TestLocBaseIndependent:
         expected = DataFrame({"a": [1, 2, 2, 1, 1], "b": ["a", "a", "a", "a", "a"]})
         tm.assert_frame_equal(df, expected)
 
+    def test_loc_with_nat_in_tzaware_index(self):
+        # GH#54409
+        timestamp = to_datetime("2023-01-01", utc=True)
+        df = DataFrame(
+            {
+                "index": Series([pd.NaT, timestamp]),
+                "value": Series([0, 1]),
+            }
+        ).set_index("index")
+
+        # Works fine when mixing NaT and valid values
+        result = df.loc[
+            Series([pd.NaT, timestamp, timestamp], dtype=df.index.dtype),
+            "value",
+        ]
+        expected = [0, 1, 1]
+        assert result.tolist() == expected
+
+        # Regression check: all-NaT lookup should return [0], not raise
+        result = df.loc[
+            Series([pd.NaT], dtype=df.index.dtype),
+            "value",
+        ]
+        assert result.tolist() == [0]
+
 
 class TestLocWithEllipsis:
     @pytest.fixture
@@ -1781,7 +1844,7 @@ class TestLocWithMultiIndex:
         # GH 16710
         df = DataFrame(
             {"a": range(10), "b": range(10)},
-            index=date_range("2010-01-01", "2010-01-10"),
+            index=date_range("2010-01-01", "2010-01-10", unit="ns"),
         )
         result = df.loc[["2010-01-01", "2010-01-05"], ["a", "b"]]
         expected = DataFrame(
@@ -1930,6 +1993,22 @@ class TestLocWithMultiIndex:
 
 
 class TestLocSetitemWithExpansion:
+    @td.skip_if_no("pyarrow")
+    def test_loc_setitem_with_expansion_preserves_ea_dtype(self):
+        # GH#41626 retain index.dtype in setitem-with-expansion
+        idx = Index([Timestamp(0).date()], dtype="date32[pyarrow]")
+        df = DataFrame({"A": range(1)}, index=idx)
+        item = Timestamp("1970-01-02").date()
+
+        df.loc[item] = 1
+
+        exp_index = Index([idx[0], item], dtype=idx.dtype)
+        tm.assert_index_equal(df.index, exp_index)
+
+        ser = df["A"].iloc[:-1]
+        ser.loc[item] = 1
+        tm.assert_index_equal(ser.index, exp_index)
+
     def test_loc_setitem_with_expansion_large_dataframe(self, monkeypatch):
         # GH#10692
         size_cutoff = 50
@@ -2068,7 +2147,8 @@ class TestLocSetitemWithExpansion:
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.filterwarnings("ignore:indexing past lexsort depth")
-    def test_loc_setitem_with_expansion_nonunique_index(self, index):
+    @pytest.mark.parametrize("has_ref", [True, False])
+    def test_loc_setitem_with_expansion_nonunique_index(self, index, has_ref):
         # GH#40096
         if not len(index):
             pytest.skip("Not relevant for empty Index")
@@ -2094,11 +2174,15 @@ class TestLocSetitemWithExpansion:
 
         # Add new row, but no new columns
         df = orig.copy()
+        if has_ref:
+            view = df[:]
         df.loc[key, 0] = N
         tm.assert_frame_equal(df, expected)
 
         # add new row on a Series
         ser = orig.copy()[0]
+        if has_ref:
+            view = ser[:]
         ser.loc[key] = N
         # the series machinery lets us preserve int dtype instead of float
         expected = expected[0].astype(np.int64)
@@ -2106,6 +2190,8 @@ class TestLocSetitemWithExpansion:
 
         # add new row and new column
         df = orig.copy()
+        if has_ref:
+            view = df[:]  # noqa: F841
         df.loc[key, 1] = N
         expected = DataFrame(
             {0: list(arr) + [np.nan], 1: [np.nan] * N + [float(N)]},
@@ -2921,7 +3007,7 @@ def test_loc_getitem_multiindex_tuple_level():
 def test_loc_getitem_nullable_index_with_duplicates():
     # GH#34497
     df = DataFrame(
-        data=np.array([[1, 2, 3, 4], [5, 6, 7, 8], [1, 2, np.nan, np.nan]]).T,
+        data=np.array([[1, 2, 3, 4], [5, 6, 7, 8], [1, 2, pd.NA, pd.NA]]).T,
         columns=["a", "b", "c"],
         dtype="Int64",
     )
@@ -3076,9 +3162,10 @@ class TestLocSeries:
 
         # non-monotonic, raise KeyError
         s2 = ser.iloc[list(range(5)) + list(range(9, 4, -1))]
-        with pytest.raises(KeyError, match=r"^3$"):
+        msg = "non-monotonic index with a missing label 3"
+        with pytest.raises(KeyError, match=msg):
             s2.loc[3:11]
-        with pytest.raises(KeyError, match=r"^3$"):
+        with pytest.raises(KeyError, match=msg):
             s2.loc[3:11] = 0
 
     def test_loc_getitem_iterator(self, string_series):
@@ -3289,11 +3376,12 @@ class TestLocSeries:
         expected = DataFrame({"a": [999, 200], "b": [3, 4]})
         tm.assert_frame_equal(expected, df)
 
-    def test_loc_reindexing_of_empty_index(self):
+    @pytest.mark.parametrize("dtype", ["str", object])
+    def test_loc_reindexing_of_empty_index(self, dtype):
         # GH 57735
-        df = DataFrame(index=[1, 1, 2, 2], data=["1", "1", "2", "2"])
+        df = DataFrame(index=[1, 1, 2, 2], data=["1", "1", "2", "2"], dtype=dtype)
         df.loc[Series([False] * 4, index=df.index, name=0), 0] = df[0]
-        expected = DataFrame(index=[1, 1, 2, 2], data=["1", "1", "2", "2"])
+        expected = DataFrame(index=[1, 1, 2, 2], data=["1", "1", "2", "2"], dtype=dtype)
         tm.assert_frame_equal(df, expected)
 
     @pytest.mark.parametrize(

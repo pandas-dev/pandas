@@ -7,12 +7,12 @@ About the Copyright Holders
     led by Wes McKinney. AQR released the source under this license in 2009.
 *   Copyright (c) 2011-2012, Lambda Foundry, Inc.
 
-    Wes is now an employee of Lambda Foundry, and remains the pandas project
+    Wes became an employee of Lambda Foundry, and remained the pandas project
     lead.
 *   Copyright (c) 2011-2012, PyData Development Team
 
     The PyData Development Team is the collection of developers of the PyData
-    project. This includes all of the PyData sub-projects, including pandas. The
+    project. This includes all of the PyData sub-projects, such as pandas. The
     core team that coordinates development on GitHub can be found here:
     https://github.com/pydata.
 
@@ -23,11 +23,11 @@ Our Copyright Policy
 
 PyData uses a shared copyright model. Each contributor maintains copyright
 over their contributions to PyData. However, it is important to note that
-these contributions are typically only changes to the repositories. Thus,
+these contributions are typically limited to changes to the repositories. Thus,
 the PyData source code, in its entirety, is not the copyright of any single
 person or institution. Instead, it is the collective copyright of the
 entire PyData Development Team. If individual contributors want to maintain
-a record of what changes/contributions they have specific copyright on,
+a record of the specific changes or contributions they hold copyright to,
 they should indicate their copyright in the commit message of the change
 when they commit the change to one of the PyData repositories.
 
@@ -50,7 +50,7 @@ Other licenses can be found in the LICENSES directory.
 License
 =======
 
-pandas is distributed under a 3-clause ("Simplified" or "New") BSD
+pandas is distributed under the 3-clause ("Simplified" or "New") BSD
 license. Parts of NumPy, SciPy, numpydoc, bottleneck, which all have
-BSD-compatible licenses, are included. Their licenses follow the pandas
+BSD-compatible licenses, are included. Their licenses are compatible with the pandas
 license.

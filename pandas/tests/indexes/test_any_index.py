@@ -9,6 +9,7 @@ import pytest
 
 from pandas.errors import InvalidIndexError
 
+from pandas import StringDtype
 import pandas._testing as tm
 
 
@@ -36,11 +37,18 @@ def test_mutability(index):
 
 
 @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
-def test_map_identity_mapping(index, request):
+def test_map_identity_mapping(index, request, using_infer_string):
     # GH#12766
+    if (
+        not using_infer_string
+        and isinstance(index.dtype, StringDtype)
+        and index.dtype.storage == "python"
+    ):
+        mark = pytest.mark.xfail(reason="Does not preserve dtype")
+        request.applymarker(mark)
 
     result = index.map(lambda x: x)
-    if index.dtype == object and (result.dtype == bool or result.dtype == "string"):
+    if index.dtype == object and (result.dtype in (bool, "string")):
         assert (index == result).all()
         # TODO: could work that into the 'exact="equiv"'?
         return  # FIXME: doesn't belong in this file anymore!
@@ -94,21 +102,30 @@ class TestConversion:
 
 
 class TestRoundTrips:
-    def test_pickle_roundtrip(self, index):
-        result = tm.round_trip_pickle(index)
+    def test_pickle_roundtrip(self, index, tmp_path):
+        result = tm.round_trip_pickle(index, tmp_path)
         tm.assert_index_equal(result, index, exact=True)
         if result.nlevels > 1:
             # GH#8367 round-trip with timezone
             assert index.equal_levels(result)
 
-    def test_pickle_preserves_name(self, index):
+    def test_pickle_preserves_name(self, index, tmp_path):
         original_name, index.name = index.name, "foo"
-        unpickled = tm.round_trip_pickle(index)
+        unpickled = tm.round_trip_pickle(index, tmp_path)
         assert index.equals(unpickled)
         index.name = original_name
 
 
 class TestIndexing:
+    def test_getitem_0d_ndarray(self, index):
+        # GH#55601
+        if len(index) == 0:
+            pytest.skip(reason="Test assumes non-empty index")
+        key = np.array(0)
+        result = index[key]
+
+        assert result == index[0]
+
     def test_get_loc_listlike_raises_invalid_index_error(self, index):
         # and never TypeError
         key = np.array([0, 1], dtype=np.intp)

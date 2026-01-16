@@ -1,4 +1,3 @@
-import codecs
 from datetime import datetime
 from textwrap import dedent
 
@@ -9,7 +8,6 @@ from pandas import (
     DataFrame,
     Series,
 )
-import pandas._testing as tm
 
 pytest.importorskip("jinja2")
 
@@ -31,27 +29,24 @@ def df_short():
 
 
 class TestToLatex:
-    def test_to_latex_to_file(self, float_frame):
-        with tm.ensure_clean("test.tex") as path:
-            float_frame.to_latex(path)
-            with open(path, encoding="utf-8") as f:
-                assert float_frame.to_latex() == f.read()
+    def test_to_latex_to_file(self, float_frame, temp_file):
+        float_frame.to_latex(temp_file)
+        with open(temp_file, encoding="utf-8") as f:
+            assert float_frame.to_latex() == f.read()
 
-    def test_to_latex_to_file_utf8_with_encoding(self):
+    def test_to_latex_to_file_utf8_with_encoding(self, temp_file):
         # test with utf-8 and encoding option (GH 7061)
         df = DataFrame([["au\xdfgangen"]])
-        with tm.ensure_clean("test.tex") as path:
-            df.to_latex(path, encoding="utf-8")
-            with codecs.open(path, "r", encoding="utf-8") as f:
-                assert df.to_latex() == f.read()
+        df.to_latex(temp_file, encoding="utf-8")
+        with open(temp_file, encoding="utf-8") as f:
+            assert df.to_latex() == f.read()
 
-    def test_to_latex_to_file_utf8_without_encoding(self):
+    def test_to_latex_to_file_utf8_without_encoding(self, temp_file):
         # test with utf-8 without encoding option
         df = DataFrame([["au\xdfgangen"]])
-        with tm.ensure_clean("test.tex") as path:
-            df.to_latex(path)
-            with codecs.open(path, "r", encoding="utf-8") as f:
-                assert df.to_latex() == f.read()
+        df.to_latex(temp_file)
+        with open(temp_file, encoding="utf-8") as f:
+            assert df.to_latex() == f.read()
 
     def test_to_latex_tabular_with_index(self):
         df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
@@ -818,6 +813,46 @@ class TestToLatexEscape:
             7 & \textasciitilde  \\
             8 & \textasciicircum  \\
             9 & \textbackslash  \\
+            \bottomrule
+            \end{tabular}
+            """
+        )
+        assert result == expected
+
+    def test_to_latex_escape_special_chars_in_index_names(self):
+        # https://github.com/pandas-dev/pandas/issues/61309
+        # https://github.com/pandas-dev/pandas/issues/57362
+        index = "&%$#_{}}~^\\"
+        df = DataFrame({index: [1, 2, 3]}).set_index(index)
+        result = df.to_latex(escape=True)
+        expected = _dedent(
+            r"""
+            \begin{tabular}{l}
+            \toprule
+            \&\%\$\#\_\{\}\}\textasciitilde \textasciicircum \textbackslash  \\
+            \midrule
+            1 \\
+            2 \\
+            3 \\
+            \bottomrule
+            \end{tabular}
+            """
+        )
+        assert result == expected
+
+    def test_to_latex_escape_special_chars_in_column_name(self):
+        df = DataFrame({"A": [1, 2, 3], "B": ["a", "b", "c"]})
+        df.columns.name = "_^~"
+        result = df.to_latex(escape=True)
+        expected = _dedent(
+            r"""
+            \begin{tabular}{lrl}
+            \toprule
+            \_\textasciicircum \textasciitilde  & A & B \\
+            \midrule
+            0 & 1 & a \\
+            1 & 2 & b \\
+            2 & 3 & c \\
             \bottomrule
             \end{tabular}
             """

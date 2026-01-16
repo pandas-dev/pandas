@@ -11,6 +11,7 @@ from collections.abc import (
 from typing import (
     TYPE_CHECKING,
     Generic,
+    Literal,
     cast,
     final,
 )
@@ -54,7 +55,9 @@ else:
 
 
 class SelectN(Generic[NDFrameT]):
-    def __init__(self, obj: NDFrameT, n: int, keep: str) -> None:
+    def __init__(
+        self, obj: NDFrameT, n: int, keep: Literal["first", "last", "all"]
+    ) -> None:
         self.obj = obj
         self.n = n
         self.keep = keep
@@ -111,15 +114,25 @@ class SelectNSeries(SelectN[Series]):
         if n <= 0:
             return self.obj[[]]
 
-        dropped = self.obj.dropna()
-        nan_index = self.obj.drop(dropped.index)
+        # Save index and reset to default index to avoid performance impact
+        # from when index contains duplicates
+        original_index: Index = self.obj.index
+        default_index = self.obj.reset_index(drop=True)
 
-        # slow method
-        if n >= len(self.obj):
+        # Slower method used when taking the full length of the series
+        # In this case, it is equivalent to a sort.
+        if n >= len(default_index):
             ascending = method == "nsmallest"
-            return self.obj.sort_values(ascending=ascending).head(n)
+            result = default_index.sort_values(ascending=ascending, kind="stable").head(
+                n
+            )
+            result.index = original_index.take(result.index)
+            return result
 
-        # fast method
+        # Fast method used in the general case
+        dropped = default_index.dropna()
+        nan_index = default_index.drop(dropped.index)
+
         new_dtype = dropped.dtype
 
         # Similar to algorithms._ensure_data
@@ -158,22 +171,23 @@ class SelectNSeries(SelectN[Series]):
         else:
             kth_val = np.nan
         (ns,) = np.nonzero(arr <= kth_val)
-        inds = ns[arr[ns].argsort(kind="mergesort")]
+        inds = ns[arr[ns].argsort(kind="stable")]
 
         if self.keep != "all":
             inds = inds[:n]
             findex = nbase
+        elif len(inds) < nbase <= len(nan_index) + len(inds):
+            findex = len(nan_index) + len(inds)
         else:
-            if len(inds) < nbase <= len(nan_index) + len(inds):
-                findex = len(nan_index) + len(inds)
-            else:
-                findex = len(inds)
+            findex = len(inds)
 
         if self.keep == "last":
             # reverse indices
             inds = narr - 1 - inds
 
-        return concat([dropped.iloc[inds], nan_index]).iloc[:findex]
+        result = concat([dropped.iloc[inds], nan_index]).iloc[:findex]
+        result.index = original_index.take(result.index)
+        return result
 
 
 class SelectNFrame(SelectN[DataFrame]):
@@ -192,7 +206,13 @@ class SelectNFrame(SelectN[DataFrame]):
     nordered : DataFrame
     """
 
-    def __init__(self, obj: DataFrame, n: int, keep: str, columns: IndexLabel) -> None:
+    def __init__(
+        self,
+        obj: DataFrame,
+        n: int,
+        keep: Literal["first", "last", "all"],
+        columns: IndexLabel,
+    ) -> None:
         super().__init__(obj, n, keep)
         if not is_list_like(columns) or isinstance(columns, tuple):
             columns = [columns]
@@ -277,4 +297,4 @@ class SelectNFrame(SelectN[DataFrame]):
 
         ascending = method == "nsmallest"
 
-        return frame.sort_values(columns, ascending=ascending, kind="mergesort")
+        return frame.sort_values(columns, ascending=ascending, kind="stable")

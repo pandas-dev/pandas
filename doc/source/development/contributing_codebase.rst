@@ -214,7 +214,8 @@ With custom types and inference this is not always possible so exceptions are ma
 pandas-specific types
 ~~~~~~~~~~~~~~~~~~~~~
 
-Commonly used types specific to pandas will appear in `pandas._typing <https://github.com/pandas-dev/pandas/blob/main/pandas/_typing.py>`_ and you should use these where applicable. This module is private for now but ultimately this should be exposed to third party libraries who want to implement type checking against pandas.
+Commonly used types specific to pandas will appear in `pandas._typing <https://github.com/pandas-dev/pandas/blob/main/pandas/_typing.py>`__ and you should use these where applicable. This module is private and is meant for pandas development.
+Types that are meant for user consumption should be exposed in `pandas.api.typing.aliases <https://github.com/pandas-dev/pandas/blob/main/pandas/api/typing/aliases.py>`__ and ideally added to the `pandas-stubs <https://github.com/pandas-dev/pandas-stubs>`__ project.
 
 For example, quite a few functions in pandas accept a ``dtype`` argument. This can be expressed as a string like ``"object"``, a ``numpy.dtype`` like ``np.int64`` or even a pandas ``ExtensionDtype`` like ``pd.CategoricalDtype``. Rather than burden the user with having to constantly annotate all of those options, this can simply be imported and reused from the pandas._typing module
 
@@ -444,11 +445,11 @@ be located.
                result = ser.loc[[3, 4]]
                tm.assert_series_equal(result, expected)
 
-    In cases like this, the test location should be based on the *underlying*
-    method being tested.  Or in the case of a test for a bugfix, the location
-    of the actual bug.  So in this example, we know that ``Series.__getitem__``
-    calls ``Series.loc.__getitem__``, so this is *really* a test for
-    ``loc.__getitem__``.  So this test belongs in ``tests.indexing.test_loc``.
+      In cases like this, the test location should be based on the *underlying*
+      method being tested.  Or in the case of a test for a bugfix, the location
+      of the actual bug.  So in this example, we know that ``Series.__getitem__``
+      calls ``Series.loc.__getitem__``, so this is *really* a test for
+      ``loc.__getitem__``.  So this test belongs in ``tests.indexing.test_loc``.
 
 6. Is your test for a DataFrame or Series method?
 
@@ -537,7 +538,7 @@ Preferred ``pytest`` idioms
     test and does not check if the test will fail. If this is the behavior you desire, use ``pytest.skip`` instead.
 
 If a test is known to fail but the manner in which it fails
-is not meant to be captured, use ``pytest.mark.xfail`` It is common to use this method for a test that
+is not meant to be captured, use ``pytest.mark.xfail``. It is common to use this method for a test that
 exhibits buggy behavior or a non-implemented feature. If
 the failing test has flaky behavior, use the argument ``strict=False``. This
 will make it so pytest does not fail if the test happens to pass. Using ``strict=False`` is highly undesirable, please use it only as a last resort.

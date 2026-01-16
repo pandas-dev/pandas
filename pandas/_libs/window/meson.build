@@ -1,7 +1,14 @@
+cy_args = ['-X always_allow_keywords=true']
+# Use shared utility code to reduce wheel sizes
+# copied from https://github.com/scikit-learn/scikit-learn/pull/31151/files
+if cy.version().version_compare('>=3.1.0')
+    cython_args += ['--shared=pandas._libs._cyutility']
+endif
+
 py.extension_module(
     'aggregations',
     ['aggregations.pyx'],
-    cython_args: ['-X always_allow_keywords=true'],
+    cython_args: cy_args,
     include_directories: [inc_pd],
     dependencies: [numpy_dep],
     subdir: 'pandas/_libs/window',
@@ -12,7 +19,7 @@ py.extension_module(
 py.extension_module(
     'indexers',
     ['indexers.pyx'],
-    cython_args: ['-X always_allow_keywords=true'],
+    cython_args: cy_args,
     include_directories: [inc_pd],
     dependencies: [numpy_dep],
     subdir: 'pandas/_libs/window',

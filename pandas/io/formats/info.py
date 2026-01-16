@@ -78,10 +78,10 @@ frame_examples_sub = dedent(
      #   Column     Non-Null Count  Dtype
     ---  ------     --------------  -----
      0   int_col    5 non-null      int64
-     1   text_col   5 non-null      object
+     1   text_col   5 non-null      str
      2   float_col  5 non-null      float64
-    dtypes: float64(1), int64(1), object(1)
-    memory usage: 248.0+ bytes
+    dtypes: float64(1), int64(1), str(1)
+    memory usage: 278.0 bytes
 
     Prints a summary of columns count and its dtypes but not per column
     information:
@@ -90,8 +90,8 @@ frame_examples_sub = dedent(
     <class 'pandas.DataFrame'>
     RangeIndex: 5 entries, 0 to 4
     Columns: 3 entries, int_col to float_col
-    dtypes: float64(1), int64(1), object(1)
-    memory usage: 248.0+ bytes
+    dtypes: float64(1), int64(1), str(1)
+    memory usage: 278.0 bytes
 
     Pipe output of DataFrame.info to buffer instead of sys.stdout, get
     buffer content and writes to a text file:
@@ -120,11 +120,11 @@ frame_examples_sub = dedent(
     Data columns (total 3 columns):
      #   Column    Non-Null Count    Dtype
     ---  ------    --------------    -----
-     0   column_1  1000000 non-null  object
-     1   column_2  1000000 non-null  object
-     2   column_3  1000000 non-null  object
-    dtypes: object(3)
-    memory usage: 22.9+ MB
+     0   column_1  1000000 non-null  str
+     1   column_2  1000000 non-null  str
+     2   column_3  1000000 non-null  str
+    dtypes: str(3)
+    memory usage: 25.7 MB
 
     >>> df.info(memory_usage='deep')
     <class 'pandas.DataFrame'>
@@ -132,11 +132,11 @@ frame_examples_sub = dedent(
     Data columns (total 3 columns):
      #   Column    Non-Null Count    Dtype
     ---  ------    --------------    -----
-     0   column_1  1000000 non-null  object
-     1   column_2  1000000 non-null  object
-     2   column_3  1000000 non-null  object
-    dtypes: object(3)
-    memory usage: 165.9 MB"""
+     0   column_1  1000000 non-null  str
+     1   column_2  1000000 non-null  str
+     2   column_3  1000000 non-null  str
+    dtypes: str(3)
+    memory usage: 25.7 MB"""
 )
 
 
@@ -249,7 +249,7 @@ INFO_DOCSTRING = dedent(
     Print a concise summary of a {klass}.
 
     This method prints information about a {klass} including
-    the index dtype{type_sub}, non-null values and memory usage.
+    the index dtype{type_sub}, non-NA values and memory usage.
     {version_added_sub}\
 
     Parameters
@@ -868,12 +868,14 @@ class _TableBuilderVerboseMixin(_TableBuilderAbstract):
         body_column_widths = self._get_body_column_widths()
         return [
             max(*widths)
-            for widths in zip(self.header_column_widths, body_column_widths)
+            for widths in zip(
+                self.header_column_widths, body_column_widths, strict=False
+            )
         ]
 
     def _get_body_column_widths(self) -> Sequence[int]:
         """Get widths of table content columns."""
-        strcols: Sequence[Sequence[str]] = list(zip(*self.strrows))
+        strcols: Sequence[Sequence[str]] = list(zip(*self.strrows, strict=True))
         return [max(len(x) for x in col) for col in strcols]
 
     def _gen_rows(self) -> Iterator[Sequence[str]]:
@@ -899,7 +901,9 @@ class _TableBuilderVerboseMixin(_TableBuilderAbstract):
         header_line = self.SPACING.join(
             [
                 _put_str(header, col_width)
-                for header, col_width in zip(self.headers, self.gross_column_widths)
+                for header, col_width in zip(
+                    self.headers, self.gross_column_widths, strict=True
+                )
             ]
         )
         self._lines.append(header_line)
@@ -909,7 +913,7 @@ class _TableBuilderVerboseMixin(_TableBuilderAbstract):
             [
                 _put_str("-" * header_colwidth, gross_colwidth)
                 for header_colwidth, gross_colwidth in zip(
-                    self.header_column_widths, self.gross_column_widths
+                    self.header_column_widths, self.gross_column_widths, strict=True
                 )
             ]
         )
@@ -920,7 +924,9 @@ class _TableBuilderVerboseMixin(_TableBuilderAbstract):
             body_line = self.SPACING.join(
                 [
                     _put_str(col, gross_colwidth)
-                    for col, gross_colwidth in zip(row, self.gross_column_widths)
+                    for col, gross_colwidth in zip(
+                        row, self.gross_column_widths, strict=True
+                    )
                 ]
             )
             self._lines.append(body_line)
@@ -980,6 +986,7 @@ class _DataFrameTableBuilderVerbose(_DataFrameTableBuilder, _TableBuilderVerbose
             self._gen_line_numbers(),
             self._gen_columns(),
             self._gen_dtypes(),
+            strict=True,
         )
 
     def _gen_rows_with_counts(self) -> Iterator[Sequence[str]]:
@@ -989,6 +996,7 @@ class _DataFrameTableBuilderVerbose(_DataFrameTableBuilder, _TableBuilderVerbose
             self._gen_columns(),
             self._gen_non_null_counts(),
             self._gen_dtypes(),
+            strict=True,
         )
 
     def _gen_line_numbers(self) -> Iterator[str]:
@@ -1088,14 +1096,11 @@ class _SeriesTableBuilderVerbose(_SeriesTableBuilder, _TableBuilderVerboseMixin)
 
     def _gen_rows_without_counts(self) -> Iterator[Sequence[str]]:
         """Iterator with string representation of body data without counts."""
-        yield from self._gen_dtypes()
+        yield from ([dtype] for dtype in self._gen_dtypes())
 
     def _gen_rows_with_counts(self) -> Iterator[Sequence[str]]:
         """Iterator with string representation of body data with counts."""
-        yield from zip(
-            self._gen_non_null_counts(),
-            self._gen_dtypes(),
-        )
+        yield from zip(self._gen_non_null_counts(), self._gen_dtypes(), strict=True)
 
 
 def _get_dataframe_dtype_counts(df: DataFrame) -> Mapping[str, int]:

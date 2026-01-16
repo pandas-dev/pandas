@@ -7,6 +7,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import Timestamp
+from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.common import (
     is_integer_dtype,
@@ -455,7 +456,7 @@ class TestBase:
             msg = "slice indices must be integers or None or have an __index__ method"
 
         if using_infer_string:
-            if index.dtype == "string" or index.dtype == "category":
+            if str(index.dtype) in {"str", "string", "category"}:
                 msg = "loc must be an integer between"
             elif index.dtype == "object" and len(index) == 0:
                 msg = "loc must be an integer between"
@@ -560,8 +561,8 @@ class TestBase:
         with pytest.raises(ValueError, match=msg):
             index_a == series_b
 
-        tm.assert_numpy_array_equal(index_a == series_a, expected1)
-        tm.assert_numpy_array_equal(index_a == series_c, expected2)
+        tm.assert_series_equal(index_a == series_a, Series(expected1))
+        tm.assert_series_equal(index_a == series_c, Series(expected2))
 
         # cases where length is 1 for one of them
         with pytest.raises(ValueError, match="Lengths must match"):
@@ -719,8 +720,11 @@ class TestBase:
 
         # non-standard categories
         dtype = CategoricalDtype(idx.unique().tolist()[:-1], ordered)
-        result = idx.astype(dtype, copy=copy)
-        expected = CategoricalIndex(idx, name=name, dtype=dtype)
+        msg = "Constructing a Categorical with a dtype and values containing"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = idx.astype(dtype, copy=copy)
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            expected = CategoricalIndex(idx, name=name, dtype=dtype)
         tm.assert_index_equal(result, expected, exact=True)
 
         if ordered is False:

@@ -19,7 +19,7 @@ Bug reports and enhancement requests
 ====================================
 
 Bug reports and enhancement requests are an important part of making pandas more stable and
-are curated though Github issues. When reporting an issue or request, please select the `appropriate
+are curated through Github issues. When reporting an issue or request, please select the `appropriate
 category and fill out the issue form fully <https://github.com/pandas-dev/pandas/issues/new/choose>`_
 to ensure others and the core development team can fully understand the scope of the issue.
 
@@ -36,16 +36,14 @@ and `good first issue
 <https://github.com/pandas-dev/pandas/issues?q=is%3Aopen+sort%3Aupdated-desc+label%3A%22good+first+issue%22+no%3Aassignee>`_
 are typically good for newer contributors.
 
-Once you've found an interesting issue, it's a good idea to assign the issue to yourself,
-so nobody else duplicates the work on it. On the Github issue, a comment with the exact
-text ``take`` to automatically assign you the issue
-(this will take seconds and may require refreshing the page to see it).
+Once you've found an interesting issue, leave a comment with your intention
+to start working on it. If somebody else has
+already commented on the issue but they have shown a lack of activity in the issue
+or a pull request in the past 2-3 weeks, you may take it over.
 
 If for whatever reason you are not able to continue working with the issue, please
-unassign it, so other people know it's available again. You can check the list of
-assigned issues, since people may not be working in them anymore. If you want to work on one
-that is assigned, feel free to kindly ask the current assignee if you can take it
-(please allow at least a week of inactivity before considering work in the issue discontinued).
+leave a comment on an issue, so other people know it's available again. You can check the list of
+assigned issues, since people may not be working on them anymore.
 
 We have several :ref:`contributor community <community>` communication channels, which you are
 welcome to join, and ask questions as you figure things out. Among them are regular meetings for
@@ -220,12 +218,12 @@ happen, a pull request needs to be submitted on GitHub.
 Making a pull request
 ---------------------
 
-One you have finished your code changes, your code change will need to follow the
+Once you have finished your code changes, your code change will need to follow the
 :ref:`pandas contribution guidelines <contributing_codebase>` to be successfully accepted.
 
 If everything looks good, you are ready to make a pull request. A pull request is how
 code from your local repository becomes available to the GitHub community to review
-and merged into project to appear the in the next release. To submit a pull request:
+and merged into the project to appear in the next release. To submit a pull request:
 
 #. Navigate to your repository on GitHub
 #. Click on the ``Compare & pull request`` button
@@ -234,14 +232,14 @@ and merged into project to appear the in the next release. To submit a pull requ
 #. Write a descriptive title that includes prefixes. pandas uses a convention for title
    prefixes. Here are some common ones along with general guidelines for when to use them:
 
-    * ENH: Enhancement, new functionality
-    * BUG: Bug fix
-    * DOC: Additions/updates to documentation
-    * TST: Additions/updates to tests
-    * BLD: Updates to the build process/scripts
-    * PERF: Performance improvement
-    * TYP: Type annotations
-    * CLN: Code cleanup
+   * ENH: Enhancement, new functionality
+   * BUG: Bug fix
+   * DOC: Additions/updates to documentation
+   * TST: Additions/updates to tests
+   * BLD: Updates to the build process/scripts
+   * PERF: Performance improvement
+   * TYP: Type annotations
+   * CLN: Code cleanup
 
 #. Write a description of your changes in the ``Preview Discussion`` tab
 #. Click ``Send Pull Request``.
@@ -286,7 +284,7 @@ Once the conflicts are resolved, run:
     `stash docs <https://git-scm.com/book/en/v2/Git-Tools-Stashing-and-Cleaning>`__).
     This will effectively store your changes and they can be reapplied after updating.
 
-After the feature branch has been update locally, you can now update your pull
+After the feature branch has been updated locally, you can now update your pull
 request by pushing to the branch on GitHub:
 
 .. code-block:: shell

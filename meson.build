@@ -18,6 +18,9 @@ numpy_dep = dependency('numpy', method: 'auto')
 
 add_project_arguments('-DNPY_NO_DEPRECATED_API=0', language: 'c')
 add_project_arguments('-DNPY_NO_DEPRECATED_API=0', language: 'cpp')
+# Enables settings __module__ on cdef classes
+# https://github.com/cython/cython/issues/7231
+add_project_arguments('-DCYTHON_USE_TYPE_SPECS=1', language: 'c')
 
 # Allow supporting older numpys than the version compiled against
 # Set the define to the min supported version of numpy for pandas
@@ -47,6 +50,28 @@ endif
 cy = meson.get_compiler('cython')
 if cy.version().version_compare('>=3.1.0')
     add_project_arguments('-Xfreethreading_compatible=true', language: 'cython')
+
+    # Use shared utility code to reduce wheel sizes
+    # copied from https://github.com/scikit-learn/scikit-learn/pull/31151/files
+    cy = find_program(cy.cmd_array()[0])
+    cython_shared_src = custom_target(
+        install: false,
+        output: '_cyutility.c',
+        command: [
+            cy,
+            '-3',
+            '-Xfreethreading_compatible=true',
+            '--fast-fail',
+            '--generate-shared=' + meson.current_build_dir() / '_cyutility.c',
+        ],
+    )
+
+    py.extension_module(
+        '_cyutility',
+        cython_shared_src,
+        subdir: 'pandas/_libs',
+        install: true,
+    )
 endif
 
 # Needed by pandas.test() when it looks for the pytest ini options

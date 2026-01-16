@@ -158,7 +158,7 @@ def test_apply_box_td64():
     # timedelta
     vals = [pd.Timedelta("1 days"), pd.Timedelta("2 days")]
     ser = Series(vals)
-    assert ser.dtype == "timedelta64[ns]"
+    assert ser.dtype == "timedelta64[us]"
     res = ser.apply(lambda x: f"{type(x).__name__}_{x.days}", by_row="compat")
     exp = Series(["Timedelta_1", "Timedelta_2"])
     tm.assert_series_equal(res, exp)
@@ -376,13 +376,13 @@ def test_demo():
 
 
 @pytest.mark.parametrize("func", [str, lambda x: str(x)])
-def test_apply_map_evaluate_lambdas_the_same(string_series, func, by_row):
+def test_apply_map_evaluate_lambdas_the_same(string_series, func, by_row, engine):
     # test that we are evaluating row-by-row first if by_row="compat"
     # else vectorized evaluation
     result = string_series.apply(func, by_row=by_row)
 
     if by_row:
-        expected = string_series.map(func)
+        expected = string_series.map(func, engine=engine)
         tm.assert_series_equal(result, expected)
     else:
         assert result == str(string_series)
@@ -545,7 +545,9 @@ def test_apply_to_timedelta(by_row):
 )
 def test_apply_listlike_reducer(string_series, ops, names, how, kwargs):
     # GH 39140
-    expected = Series({name: op(string_series) for name, op in zip(names, ops)})
+    expected = Series(
+        {name: op(string_series) for name, op in zip(names, ops, strict=True)}
+    )
     expected.name = "series"
     result = getattr(string_series, how)(ops, **kwargs)
     tm.assert_series_equal(result, expected)

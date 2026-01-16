@@ -3,13 +3,19 @@ from __future__ import annotations
 import datetime
 from functools import partial
 from textwrap import dedent
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    cast,
+)
 
 import numpy as np
 
 from pandas._libs.tslibs import Timedelta
 import pandas._libs.window.aggregations as window_aggregations
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    doc,
+    set_module,
+)
 
 from pandas.core.dtypes.common import (
     is_datetime64_dtype,
@@ -57,6 +63,7 @@ from pandas.core.window.rolling import (
 if TYPE_CHECKING:
     from pandas._typing import (
         TimedeltaConvertibleTypes,
+        TimeUnit,
         npt,
     )
 
@@ -122,6 +129,7 @@ def _calculate_deltas(
         Diff of the times divided by the half-life
     """
     unit = dtype_to_unit(times.dtype)
+    unit = cast("TimeUnit", unit)
     if isinstance(times, ABCSeries):
         times = times._values
     _times = np.asarray(times.view(np.int64), dtype=np.float64)
@@ -129,6 +137,7 @@ def _calculate_deltas(
     return np.diff(_times) / _halflife
 
 
+@set_module("pandas.api.typing")
 class ExponentialMovingWindow(BaseWindow):
     r"""
     Provide exponentially weighted (EW) calculations.
@@ -215,8 +224,6 @@ class ExponentialMovingWindow(BaseWindow):
         If 1-D array like, a sequence with the same shape as the observations.
 
     method : str {'single', 'table'}, default 'single'
-        .. versionadded:: 1.4.0
-
         Execute the rolling operation per single column or row (``'single'``)
         or over the entire object (``'table'``).
 
@@ -423,8 +430,6 @@ class ExponentialMovingWindow(BaseWindow):
         """
         Return an ``OnlineExponentialMovingWindow`` object to calculate
         exponentially moving window aggregations in an online method.
-
-        .. versionadded:: 1.3.0
 
         Parameters
         ----------
@@ -902,6 +907,7 @@ class ExponentialMovingWindow(BaseWindow):
         )
 
 
+@set_module("pandas.api.typing")
 class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow):
     """
     Provide an exponential moving window groupby implementation.

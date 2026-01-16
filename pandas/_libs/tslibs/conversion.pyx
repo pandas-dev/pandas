@@ -5,6 +5,7 @@ import numpy as np
 cimport numpy as cnp
 from libc.math cimport log10
 from numpy cimport (
+    PyDatetimeScalarObject,
     float64_t,
     int32_t,
     int64_t,
@@ -275,7 +276,7 @@ cdef (int64_t, int) precision_from_unit(
 
 cdef int64_t get_datetime64_nanos(object val, NPY_DATETIMEUNIT reso) except? -1:
     """
-    Extract the value and unit from a np.datetime64 object, then convert the
+    Extract the value and unit from an np.datetime64 object, then convert the
     value to nanoseconds if necessary.
     """
     cdef:
@@ -358,6 +359,7 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
     cdef:
         _TSObject obj
         NPY_DATETIMEUNIT reso
+        int64_t num
 
     obj = _TSObject()
 
@@ -367,6 +369,13 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
     if checknull_with_nat_and_na(ts):
         obj.value = NPY_NAT
     elif cnp.is_datetime64_object(ts):
+        num = (<PyDatetimeScalarObject*>ts).obmeta.num
+        if num != 1:
+            raise ValueError(
+                # GH#25611
+                "np.datetime64 objects with units containing a multiplier are "
+                "not supported"
+            )
         reso = get_supported_reso(get_datetime64_unit(ts))
         obj.creso = reso
         obj.value = get_datetime64_nanos(ts, reso)
@@ -377,7 +386,7 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
                 obj.value = tz_localize_to_utc_single(
                     obj.value, tz, ambiguous="raise", nonexistent=None, creso=reso
                 )
-    elif is_integer_object(ts):
+    elif is_integer_object(ts) or (is_float_object(ts) and ts.is_integer()):
         try:
             ts = <int64_t>ts
         except OverflowError:
@@ -614,6 +623,8 @@ cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz,
             )
             if not string_to_dts_failed:
                 reso = get_supported_reso(out_bestunit)
+                if reso < NPY_FR_us:
+                    reso = NPY_FR_us
                 check_dts_bounds(&dts, reso)
                 obj = _TSObject()
                 obj.dts = dts
@@ -652,6 +663,8 @@ cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz,
             nanos=&nanos,
         )
         reso = get_supported_reso(out_bestunit)
+        if reso < NPY_FR_us:
+            reso = NPY_FR_us
         return convert_datetime_to_tsobject(dt, tz, nanos=nanos, reso=reso)
 
 
@@ -797,7 +810,7 @@ cdef int64_t parse_pydatetime(
     dts : *npy_datetimestruct
         Needed to use in pydatetime_to_dt64, which writes to it.
     creso : NPY_DATETIMEUNIT
-        Resolution to store the the result.
+        Resolution to store the result.
 
     Raises
     ------

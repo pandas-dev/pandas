@@ -40,6 +40,7 @@ from pandas.core.indexes.api import (
     ensure_index,
     ensure_index_from_sequences,
 )
+from pandas.testing import assert_series_equal
 
 
 class TestIndex:
@@ -219,7 +220,7 @@ class TestIndex:
         # .asi8 produces integers, so these are considered epoch timestamps
         # ^the above will be true in a later version. Right now we `.view`
         # the i8 values as NS_DTYPE, effectively treating them as wall times.
-        index = date_range("2011-01-01", periods=5)
+        index = date_range("2011-01-01", periods=5, unit="ns")
         arg = getattr(index, attr)
         index = index.tz_localize(tz_naive_fixture)
         dtype = index.dtype
@@ -273,7 +274,7 @@ class TestIndex:
     @pytest.mark.parametrize("attr", ["values", "asi8"])
     @pytest.mark.parametrize("klass", [Index, TimedeltaIndex])
     def test_constructor_dtypes_timedelta(self, attr, klass):
-        index = timedelta_range("1 days", periods=5)
+        index = timedelta_range("1 days", periods=5, unit="ns")
         index = index._with_freq(None)  # won't be preserved by constructors
         dtype = index.dtype
 
@@ -580,12 +581,19 @@ class TestIndex:
         ],
     )
     @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
-    def test_map_dictlike(self, index, mapper, request):
+    def test_map_dictlike(self, index, mapper, request, using_infer_string):
         # GH 12756
         if isinstance(index, CategoricalIndex):
             pytest.skip("Tested in test_categorical")
         elif not index.is_unique:
             pytest.skip("Cannot map duplicated index")
+        if (
+            not using_infer_string
+            and isinstance(index.dtype, pd.StringDtype)
+            and index.dtype.storage == "python"
+        ):
+            mark = pytest.mark.xfail(reason="map does not retain dtype")
+            request.applymarker(mark)
 
         rng = np.arange(len(index), 0, -1, dtype=np.int64)
 
@@ -711,7 +719,7 @@ class TestIndex:
     )
     @pytest.mark.parametrize("keys", [["foo", "bar"], ["1", "bar"]])
     def test_drop_by_str_label_raises_missing_keys(self, index, keys):
-        with pytest.raises(KeyError, match=""):
+        with pytest.raises(KeyError, match=".* not found in axis"):
             index.drop(keys)
 
     @pytest.mark.parametrize(
@@ -740,7 +748,7 @@ class TestIndex:
 
     def test_drop_by_numeric_label_raises_missing_keys(self):
         index = Index([1, 2, 3])
-        with pytest.raises(KeyError, match=""):
+        with pytest.raises(KeyError, match=re.escape("[4] not found in axis")):
             index.drop([3, 4])
 
     @pytest.mark.parametrize(
@@ -857,7 +865,7 @@ class TestIndex:
 
         if nulls_fixture is pd.NaT or nulls_fixture is pd.NA:
             # Check 1) that we cannot construct a float64 Index with this value
-            #  and 2) that with an NaN we do not have .isin(nulls_fixture)
+            #  and 2) that with a NaN we do not have .isin(nulls_fixture)
             msg = (
                 r"float\(\) argument must be a string or a (real )?number, "
                 f"not {type(nulls_fixture).__name__!r}"
@@ -1717,3 +1725,27 @@ def test_is_monotonic_pyarrow_list_type():
     idx = Index([[1], [2, 3]], dtype=pd.ArrowDtype(pa.list_(pa.int64())))
     assert not idx.is_monotonic_increasing
     assert not idx.is_monotonic_decreasing
+
+
+def test_index_equals_different_string_dtype(string_dtype_no_object):
+    # GH 61099
+    idx_obj = Index(["a", "b", "c"])
+    idx_str = Index(["a", "b", "c"], dtype=string_dtype_no_object)
+
+    assert idx_obj.equals(idx_str)
+    assert idx_str.equals(idx_obj)
+
+
+def test_index_comparison_different_string_dtype(string_dtype_no_object):
+    # GH 61099
+    idx = Index(["a", "b", "c"])
+    s_obj = Series([1, 2, 3], index=idx)
+    s_str = Series([4, 5, 6], index=idx.astype(string_dtype_no_object))
+
+    expected = Series([True, True, True], index=["a", "b", "c"])
+    result = s_obj < s_str
+    assert_series_equal(result, expected)
+
+    result = s_str > s_obj
+    expected.index = idx.astype(string_dtype_no_object)
+    assert_series_equal(result, expected)

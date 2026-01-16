@@ -666,7 +666,7 @@ be removed in a future version. Use :func:`pandas.concat` instead (:issue:`35407
 
 .. code-block:: ipython
 
-    In [1]: pd.Series([1, 2]).append(pd.Series([3, 4])
+    In [1]: pd.Series([1, 2]).append(pd.Series([3, 4]))
     Out [1]:
     <stdin>:1: FutureWarning: The series.append method is deprecated and will be removed from pandas in a future version. Use pandas.concat instead.
     0    1
