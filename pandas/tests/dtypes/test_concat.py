@@ -1,3 +1,6 @@
+import datetime as dt
+
+import numpy as np
 import pytest
 
 import pandas.core.dtypes.concat as _concat
@@ -64,3 +67,13 @@ def test_concat_series_between_empty_and_tzaware_series(using_infer_string):
         dtype=float,
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_concat_compat_on_non_ns_datetime_EA():
+    # GH#33331
+    np_datetimes = np.array([dt.date(2010, 1, 1)], dtype="datetime64[D]")
+    other = pd.array(["a", "b"], dtype="category")
+
+    result = _concat.concat_compat([np_datetimes, other])
+    expected = np.array([pd.Timestamp("2010-01-01 00:00:00"), "a", "b"], dtype=object)
+    tm.assert_numpy_array_equal(result, expected)
