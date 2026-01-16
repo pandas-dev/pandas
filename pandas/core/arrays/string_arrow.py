@@ -412,6 +412,9 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         if isinstance(pat, re.Pattern):
             pat, case, flags = self._preprocess_re_pattern(pat, case)
 
+        if pat.endswith("\\Z") and not pat.endswith("\\\\Z"):
+            pat = pat[:-2] + "\\z"
+
         return ArrowStringArrayMixin._str_match(self, pat, case, flags, na)
 
     def _str_fullmatch(
