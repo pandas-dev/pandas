@@ -352,20 +352,20 @@ def test_contains_lookarounds(any_string_dtype, pat, expected_data, na):
     if any_string_dtype == "object":
         # The behavior here for `na=pd.NA` looks wrong.
         if (na is lib.no_default or pd.isna(na)) and na is not pd.NA:
-            v = None
+            na_result = None
         else:
-            v = na
+            na_result = na
     elif na is lib.no_default or pd.isna(na):
         if any_string_dtype == "str":
-            v = False
+            na_result = False
         elif any_string_dtype == "string":
-            v = pd.NA
+            na_result = pd.NA
         else:
             raise ValueError(f"Unrecognized string dtype {any_string_dtype}")
     else:
-        v = na
+        na_result = na
     expected_data = expected_data.copy()
-    expected_data.append(v)
+    expected_data.append(na_result)
     ser = Series(["aa", "ab", "ba", "bb", None], dtype=any_string_dtype)
     result = ser.str.contains(pat, regex=True, na=na)
     expected = Series(expected_data, dtype=expected_dtype)
@@ -935,6 +935,32 @@ def test_replace_regex_single_character(regex, any_string_dtype):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "pat, expected_data",
+    [
+        (r"a(?=b)", ["aa", "xb", "ba", "bb"]),
+        (r"(?<=a)b", ["aa", "ax", "ba", "bb"]),
+        (r"a(?!b)", ["xx", "ab", "bx", "bb"]),
+        (r"(?<!b)a", ["xx", "xb", "ba", "bb"]),
+        ("ab", ["aa", "x", "ba", "bb"]),
+    ],
+)
+def test_replace_lookarounds(any_string_dtype, pat, expected_data):
+    # https://github.com/pandas-dev/pandas/issues/60833
+    ser = Series(["aa", "ab", "ba", "bb", None], dtype=any_string_dtype)
+    result = ser.str.replace(pat, "x", regex=True)
+    if any_string_dtype == "object":
+        null_result = None
+    elif any_string_dtype == "str":
+        null_result = np.nan
+    elif any_string_dtype == "string":
+        null_result = pd.NA
+    else:
+        raise ValueError(f"Unrecognized dtype: {any_string_dtype}")
+    expected = Series(expected_data + [null_result], dtype=any_string_dtype)
+    tm.assert_series_equal(result, expected)
+
+
 # --------------------------------------------------------------------------------------
 # str.match
 # --------------------------------------------------------------------------------------
@@ -1275,6 +1301,32 @@ def test_findall_mixed_object():
         ]
     )
 
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "pat, expected_data",
+    [
+        (r"a(?=b)", [[], ["a"], [], []]),
+        (r"(?<=a)b", [[], ["b"], [], []]),
+        (r"a(?!b)", [["a", "a"], [], ["a"], []]),
+        (r"(?<!b)a", [["a", "a"], ["a"], [], []]),
+        ("ab", [[], ["ab"], [], []]),
+    ],
+)
+def test_findall_lookarounds(any_string_dtype, pat, expected_data):
+    # https://github.com/pandas-dev/pandas/issues/60833
+    ser = Series(["aa", "ab", "ba", "bb", None], dtype=any_string_dtype)
+    result = ser.str.findall(pat)
+    if any_string_dtype == "object":
+        null_result = None
+    elif any_string_dtype == "str":
+        null_result = np.nan
+    elif any_string_dtype == "string":
+        null_result = pd.NA
+    else:
+        raise ValueError(f"Unrecognized dtype: {any_string_dtype}")
+    expected = Series(expected_data + [null_result])
     tm.assert_series_equal(result, expected)
 
 

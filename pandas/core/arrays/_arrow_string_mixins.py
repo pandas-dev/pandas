@@ -12,15 +12,11 @@ from typing import (
 import numpy as np
 
 from pandas._libs import lib
-from pandas._libs.missing import NA
 from pandas.compat import (
     HAS_PYARROW,
     pa_version_under17p0,
     pa_version_under21p0,
 )
-
-from pandas.core.dtypes.common import is_bool
-from pandas.core.dtypes.missing import isna
 
 if HAS_PYARROW:
     import pyarrow as pa
@@ -300,6 +296,16 @@ class ArrowStringArrayMixin:
         result = pc.utf8_is_upper(self._pa_array)
         return self._convert_bool_result(result)
 
+    def _has_regex_lookaround(self, pat: str | re.Pattern) -> bool:
+        # error: Module "re" has no attribute "_parser"
+        from re import _parser  # type: ignore[attr-defined]
+
+        str_pat = pat.pattern if isinstance(pat, re.Pattern) else pat
+        tokens = _parser.parse(str_pat)
+        return any(
+            op_code in [_parser.ASSERT_NOT, _parser.ASSERT] for op_code, _ in tokens
+        )
+
     def _str_contains(
         self,
         pat,
@@ -310,44 +316,6 @@ class ArrowStringArrayMixin:
     ):
         if flags:
             raise NotImplementedError(f"contains not implemented with {flags=}")
-
-        if regex:
-            # error: Module "re" has no attribute "_parser"
-            from re import _parser  # type: ignore[attr-defined]
-
-            str_pat = pat.pattern if isinstance(pat, re.Pattern) else pat
-            tokens = _parser.parse(str_pat)
-            if any(
-                op_code in [_parser.ASSERT_NOT, _parser.ASSERT] for op_code, _ in tokens
-            ):
-                # Regex has lookarounds; not supported by PyArrow so fallback to object.
-                from pandas.core.arrays.numpy_ import NumpyExtensionArray
-
-                if na is lib.no_default or isna(na):
-                    if self.dtype.na_value is NA:
-                        na = np.nan
-                    else:
-                        na = False
-
-                # Object has different NA semantics with _str_contains, so fill in with
-                # a non-NA string and fix it up in post.
-                result = NumpyExtensionArray(self.to_numpy(na_value=""))._str_contains(
-                    pat, case, flags, na, regex
-                )
-
-                # Note: When `na` is an NA value, we always use the NA value for the
-                # dtype regardless of what `na` actually is.
-                if not isna(na):
-                    assert is_bool(na)
-                    result[self.isna()] = na
-
-                if self.dtype.na_value is NA:
-                    from pandas.core.arrays.boolean import BooleanArray
-
-                    mask = self.isna() if isna(na) else np.zeros(self.shape, dtype=bool)
-                    result = BooleanArray(result, mask=mask)
-
-                return result
 
         if regex:
             pa_contains = pc.match_substring_regex

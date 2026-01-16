@@ -721,3 +721,43 @@ def test_extractall_preserves_dtype():
 
     result = Series(["abc", "ab"], dtype=ArrowDtype(pa.string())).str.extractall("(ab)")
     assert result.dtypes[0] == "string[pyarrow]"
+
+
+@pytest.mark.parametrize(
+    "pat, expected_data",
+    [
+        (r"(a(?=b))", [None, "a", None, None, None]),
+        (r"((?<=a)b)", [None, "b", None, None, None]),
+        (r"(a(?!b))", ["a", None, "a", None, None]),
+        (r"((?<!b)a)", ["a", "a", None, None, None]),
+        ("(ab)", [None, "ab", None, None, None]),
+    ],
+)
+def test_extract_lookarounds(any_string_dtype, pat, expected_data):
+    # https://github.com/pandas-dev/pandas/issues/60833
+    ser = Series(["aa", "ab", "ba", "bb", None], dtype=any_string_dtype)
+    result = ser.str.extract(pat, expand=False)
+    if any_string_dtype == "object":
+        # object input will preserve None but any result with no matches gets NaN
+        expected_data[:-1] = [{None: np.nan}.get(e, e) for e in expected_data[:-1]]
+    expected = Series(expected_data, dtype=any_string_dtype)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "pat, expected_data",
+    [
+        (r"(a(?=b))", {(1, 0): "a"}),
+        (r"((?<=a)b)", {(1, 0): "b"}),
+        (r"(a(?!b))", {(0, 0): "a", (0, 1): "a", (2, 0): "a"}),
+        (r"((?<!b)a)", {(0, 0): "a", (0, 1): "a", (1, 0): "a"}),
+        ("(ab)", {(1, 0): "ab"}),
+    ],
+)
+def test_extractall_lookarounds(any_string_dtype, pat, expected_data):
+    # https://github.com/pandas-dev/pandas/issues/60833
+    ser = Series(["aa", "ab", "ba", "bb", None], dtype=any_string_dtype)
+    result = ser.str.extractall(pat)
+    expected = Series(expected_data, dtype=any_string_dtype).to_frame()
+    expected.index.names = [None, "match"]
+    tm.assert_frame_equal(result, expected)

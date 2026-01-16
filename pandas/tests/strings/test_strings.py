@@ -67,6 +67,27 @@ def test_count_mixed_object():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "pat, expected_data",
+    [
+        (r"a(?=b)", [0, 1, 0, 0, None]),
+        (r"(?<=a)b", [0, 1, 0, 0, None]),
+        (r"a(?!b)", [2, 0, 1, 0, None]),
+        (r"(?<!b)a", [2, 1, 0, 0, None]),
+        ("ab", [0, 1, 0, 0, None]),
+    ],
+)
+def test_count_lookarounds(any_string_dtype, pat, expected_data):
+    # https://github.com/pandas-dev/pandas/issues/60833
+    expected_dtype = (
+        "float64" if is_object_or_nan_string_dtype(any_string_dtype) else "Int64"
+    )
+    ser = Series(["aa", "ab", "ba", "bb", None], dtype=any_string_dtype)
+    result = ser.str.count(pat)
+    expected = Series(expected_data, dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+
 def test_repeat(any_string_dtype):
     ser = Series(["a", "b", np.nan, "c", np.nan, "d"], dtype=any_string_dtype)
 
