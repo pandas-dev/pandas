@@ -1862,7 +1862,7 @@ cdef class _Period(PeriodMixin):
                 elif op == Py_NE:
                     return True
                 self._require_matching_freq(other.freq)
-            return PyObject_RichCompareBool(self.ordinal, other.ordinal, op)
+            return PyObject_RichCompareBool(self._ordinal, other._ordinal, op)
         elif other is NaT:
             return op == Py_NE
         elif util.is_array(other):
@@ -1902,7 +1902,7 @@ cdef class _Period(PeriodMixin):
             raise IncompatibleFrequency("Input cannot be converted to "
                                         f"Period(freq={self.freqstr})") from err
         with cython.overflowcheck(True):
-            ordinal = self.ordinal + inc
+            ordinal = self._ordinal + inc
         return Period(ordinal=ordinal, freq=self._freq)
 
     def _add_offset(self, other) -> "Period":
@@ -1912,7 +1912,7 @@ cdef class _Period(PeriodMixin):
 
         self._require_matching_freq(other, base=True)
 
-        ordinal = self.ordinal + other.n
+        ordinal = self._ordinal + other.n
         return Period(ordinal=ordinal, freq=self._freq)
 
     @cython.overflowcheck(True)
@@ -1924,7 +1924,7 @@ cdef class _Period(PeriodMixin):
         elif other is NaT:
             return NaT
         elif util.is_integer_object(other):
-            ordinal = self.ordinal + other * self._dtype._n
+            ordinal = self._ordinal + other * self._dtype._n
             return Period(ordinal=ordinal, freq=self._freq)
 
         elif is_period_object(other):
@@ -1957,7 +1957,7 @@ cdef class _Period(PeriodMixin):
         elif is_period_object(other):
             self._require_matching_freq(other.freq)
             # GH 23915 - mul by base freq since __add__ is agnostic of n
-            return (self.ordinal - other.ordinal) * self._freq.base
+            return (self._ordinal - other._ordinal) * self._freq.base
         elif other is NaT:
             return NaT
 
@@ -2047,9 +2047,9 @@ cdef class _Period(PeriodMixin):
         # self.n can't be negative or 0
         end = how == "E"
         if end:
-            ordinal = self.ordinal + self._dtype._n - 1
+            ordinal = self._ordinal + self._dtype._n - 1
         else:
-            ordinal = self.ordinal
+            ordinal = self._ordinal
         ordinal = period_asfreq(ordinal, base1, base2, end)
 
         return Period(ordinal=ordinal, freq=freq)
