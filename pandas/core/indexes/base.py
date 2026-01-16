@@ -5023,10 +5023,10 @@ class Index(IndexOpsMixin, PandasObject):
     @cache_readonly
     def array(self) -> ExtensionArray:
         """
-        The ExtensionArray of the data backing this Series or Index.
+        The ExtensionArray of the data backing this Index.
 
-        This property provides direct access to the underlying array data of a
-        Series or Index without requiring conversion to a NumPy array. It
+        This property provides direct access to the underlying array data of
+        an Index without requiring conversion to a NumPy array. It
         returns an ExtensionArray, which is the native storage format for
         pandas extension dtypes.
 
@@ -5075,7 +5075,7 @@ class Index(IndexOpsMixin, PandasObject):
         For regular NumPy types like int, and float, a NumpyExtensionArray
         is returned.
 
-        >>> pd.Series([1, 2, 3]).array
+        >>> pd.Index([1, 2, 3]).array
         <NumpyExtensionArray>
         [1, 2, 3]
         Length: 3, dtype: int64
@@ -5083,8 +5083,8 @@ class Index(IndexOpsMixin, PandasObject):
         For extension types, like Categorical, the actual ExtensionArray
         is returned
 
-        >>> ser = pd.Series(pd.Categorical(["a", "b", "a"]))
-        >>> ser.array
+        >>> idx = pd.Index(pd.Categorical(["a", "b", "a"]))
+        >>> idx.array
         ['a', 'b', 'a']
         Categories (2, str): ['a', 'b']
         """
@@ -7565,7 +7565,7 @@ class Index(IndexOpsMixin, PandasObject):
         self, axis: AxisInt | None = None, skipna: bool = True, *args, **kwargs
     ) -> int:
         """
-        Return int position of the smallest value in the Series.
+        Return int position of the smallest value in the Index.
 
         If the minimum is achieved in multiple locations,
         the first row position is returned.
@@ -7597,25 +7597,13 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         Consider dataset containing cereal calories
 
-        >>> s = pd.Series(
-        ...     [100.0, 110.0, 120.0, 110.0],
-        ...     index=[
-        ...         "Corn Flakes",
-        ...         "Almond Delight",
-        ...         "Cinnamon Toast Crunch",
-        ...         "Cocoa Puff",
-        ...     ],
-        ... )
-        >>> s
-        Corn Flakes              100.0
-        Almond Delight           110.0
-        Cinnamon Toast Crunch    120.0
-        Cocoa Puff               110.0
-        dtype: float64
+        >>> idx = pd.Index([100.0, 110.0, 120.0, 110.0])
+        >>> idx
+        Index([100.0, 110.0, 120.0, 110.0], dtype='float64')
 
-        >>> s.argmax()
+        >>> idx.argmax()
         np.int64(2)
-        >>> s.argmin()
+        >>> idx.argmin()
         np.int64(0)
 
         The maximum cereal calories is the third element and
@@ -7637,7 +7625,7 @@ class Index(IndexOpsMixin, PandasObject):
         self, axis: AxisInt | None = None, skipna: bool = True, *args, **kwargs
     ) -> int:
         """
-        Return int position of the largest value in the Series.
+        Return int position of the largest value in the Index.
 
         If the maximum is achieved in multiple locations,
         the first row position is returned.
@@ -7669,25 +7657,13 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         Consider dataset containing cereal calories
 
-        >>> s = pd.Series(
-        ...     [100.0, 110.0, 120.0, 110.0],
-        ...     index=[
-        ...         "Corn Flakes",
-        ...         "Almond Delight",
-        ...         "Cinnamon Toast Crunch",
-        ...         "Cocoa Puff",
-        ...     ],
-        ... )
-        >>> s
-        Corn Flakes              100.0
-        Almond Delight           110.0
-        Cinnamon Toast Crunch    120.0
-        Cocoa Puff               110.0
-        dtype: float64
+        >>> idx = pd.Index([100.0, 110.0, 120.0, 110.0])
+        >>> idx
+        Index([100.0, 110.0, 120.0, 110.0], dtype='float64')
 
-        >>> s.argmax()
+        >>> idx.argmax()
         np.int64(2)
-        >>> s.argmin()
+        >>> idx.argmin()
         np.int64(0)
 
         The maximum cereal calories is the third element and
