@@ -3927,3 +3927,10 @@ def test_timestamp_reduction_consistency(unit, method):
         f"{method} for {unit} returned {type(result)}"
     )
     assert result.unit == unit
+
+def test_comp_range_len(data):
+    # GH#63429
+    ser = pd.Series(data)
+    result = ser == range(len(ser))
+    expected = pd.Series([False, False])
+    tm.assert_series_equal(result, expected)
