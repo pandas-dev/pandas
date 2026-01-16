@@ -20,9 +20,6 @@ defaults:
   run:
     shell: bash -el {0}
 
-env:
-  PKG_CONFIG_PATH: "${{env.PYTHONHOME}}/numpy/_core/lib/pkgconfig"
-
 jobs:
   ubuntu:
     runs-on: ${{ matrix.platform }}
@@ -404,6 +401,10 @@ jobs:
 
       - name: Install pyodide-build
         run: pip install "pyodide-build>=0.29.2"
+
+      - name: Determine NumPy pkg-config location for cross-compilation
+        run: |
+          echo "PKG_CONFIG_PATH=$(numpy-config --pkgconfigdir)" >> $GITHUB_ENV
 
       - name: Build pandas for Pyodide
         run: |
