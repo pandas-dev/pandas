@@ -1762,9 +1762,36 @@ cdef class PeriodMixin:
 cdef class _Period(PeriodMixin):
 
     cdef readonly:
-        int64_t ordinal
+        int64_t _ordinal
         PeriodDtypeBase _dtype
         BaseOffset _freq
+
+    @property
+    def ordinal(self) -> int:
+        """
+        Return the integer ordinal for this Period.
+
+        The ordinal is the internal integer representation of the Period,
+        representing its position in the sequence of periods of the given
+        frequency. It counts from an epoch (e.g., for daily frequency,
+        ordinal 0 corresponds to January 1, 1970).
+
+        See Also
+        --------
+        Period.freq : Return the frequency of the Period.
+        Period.start_time : Return the start time of the Period.
+
+        Examples
+        --------
+        >>> period = pd.Period('2020-01', freq='M')
+        >>> period.ordinal
+        600
+
+        >>> period = pd.Period('2020-01-01', freq='D')
+        >>> period.ordinal
+        18262
+        """
+        return self._ordinal
 
     @property
     def freq(self):
@@ -1794,7 +1821,7 @@ cdef class _Period(PeriodMixin):
     dayofyear = _Period.day_of_year
 
     def __cinit__(self, int64_t ordinal, BaseOffset freq):
-        self.ordinal = ordinal
+        self._ordinal = ordinal
         self._freq = freq
         self._dtype = PeriodDtypeBase(freq._period_dtype_code, freq.n)
 
@@ -2700,7 +2727,7 @@ cdef class _Period(PeriodMixin):
 
     def __setstate__(self, state):
         self._freq = state[1]
-        self.ordinal = state[2]
+        self._ordinal = state[2]
 
     def __reduce__(self):
         object_state = None, self._freq, self.ordinal
