@@ -72,8 +72,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i ES01 `# For now it is ok if docstrings are missing the extended summary` \
         -i "pandas.Series.dt PR01" `# Accessors are implemented as classes, but we do not document the Parameters section` \
         -i "pandas.tseries.offsets.BDay PR02,SA01" \
-        -i "pandas.tseries.offsets.BQuarterBegin.startingMonth GL08" \
-        -i "pandas.tseries.offsets.BQuarterEnd.startingMonth GL08" \
         -i "pandas.tseries.offsets.BusinessDay PR02,SA01" \
         -i "pandas.tseries.offsets.BusinessDay.is_on_offset GL08" \
         -i "pandas.tseries.offsets.BusinessDay.weekmask GL08" \
@@ -126,8 +124,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.MonthBegin.is_on_offset GL08" \
         -i "pandas.tseries.offsets.MonthEnd.is_on_offset GL08" \
         -i "pandas.tseries.offsets.Nano.is_on_offset GL08" \
-        -i "pandas.tseries.offsets.QuarterBegin.startingMonth GL08" \
-        -i "pandas.tseries.offsets.QuarterEnd.startingMonth GL08" \
         -i "pandas.tseries.offsets.Second.is_on_offset GL08" \
         -i "pandas.tseries.offsets.SemiMonthBegin.day_of_month GL08" \
         -i "pandas.tseries.offsets.SemiMonthBegin.is_on_offset GL08" \
