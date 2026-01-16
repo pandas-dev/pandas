@@ -7608,7 +7608,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         The maximum cereal calories is the third element and
         the minimum cereal calories is the first element,
-        since series is zero-indexed.
+        since index is zero-indexed.
         """
         nv.validate_argmin(args, kwargs)
         nv.validate_minmax_axis(axis)
@@ -7668,7 +7668,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         The maximum cereal calories is the third element and
         the minimum cereal calories is the first element,
-        since series is zero-indexed.
+        since index is zero-indexed.
         """
         nv.validate_argmax(args, kwargs)
         nv.validate_minmax_axis(axis)
