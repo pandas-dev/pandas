@@ -196,23 +196,23 @@ def to_json(
                 copied = True
                 for col in cols:
                     obj.isetitem(col, obj.iloc[:, col].dt.as_unit(date_unit))
-            if obj.index.dtype.kind in ["M", "m"]:
+            if obj.index.dtype.kind in "Mm":
                 if not copied:
                     obj = obj.copy(deep=False)
                     copied = True
-                obj.index = obj.index.as_unit(date_unit)  # type: ignore[attr-defined]
-            if obj.columns.dtype.kind in ["M", "m"]:
+                obj.index = Series(obj.index).dt.as_unit(date_unit)
+            if obj.columns.dtype.kind in "Mm":
                 if not copied:
                     obj = obj.copy(deep=False)
                     copied = True
-                obj.columns = obj.columns.as_unit(date_unit)  # type: ignore[attr-defined]
+                obj.columns = Series(obj.columns).dt.as_unit(date_unit)
         elif isinstance(obj, Series):
-            if obj.dtype.kind in ["M", "m"]:
+            if obj.dtype.kind in "Mm":
                 obj = obj.copy(deep=False)
                 obj = obj.dt.as_unit(date_unit)
-            if obj.index.dtype.kind in ["M", "m"]:
+            if obj.index.dtype.kind in "Mm":
                 obj = obj.copy(deep=False)
-                obj.index = obj.index.as_unit(date_unit)
+                obj.index = Series(obj.index).dt.as_unit(date_unit)
 
     writer: type[Writer]
     if orient == "table" and isinstance(obj, DataFrame):

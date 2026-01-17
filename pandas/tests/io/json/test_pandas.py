@@ -271,12 +271,19 @@ class TestPandasContainer:
 
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("dtype_backend", [None, "pyarrow"])
     @pytest.mark.parametrize("convert_axes", [True, False])
-    def test_roundtrip_timestamp(self, orient, convert_axes, datetime_frame):
+    def test_roundtrip_timestamp(
+        self, orient, convert_axes, dtype_backend, datetime_frame
+    ):
         # TODO: improve coverage with date_format parameter
+        expected = datetime_frame.copy()
+        if dtype_backend is not None:
+            datetime_frame.index = Series(datetime_frame.index).convert_dtypes(
+                dtype_backend=dtype_backend
+            )
         data = StringIO(datetime_frame.to_json(orient=orient))
         result = read_json(data, orient=orient, convert_axes=convert_axes)
-        expected = datetime_frame.copy()
 
         if not convert_axes:  # one off for ts handling
             # DTI gets converted to epoch values
@@ -725,11 +732,17 @@ class TestPandasContainer:
 
         tm.assert_series_equal(result, expected)
 
-    def test_series_roundtrip_timeseries(self, orient, datetime_series):
+    @pytest.mark.parametrize("dtype_backend", [None, "pyarrow"])
+    def test_series_roundtrip_timeseries(self, dtype_backend, orient, datetime_series):
+        expected = datetime_series.copy()
+        if dtype_backend is not None:
+            datetime_series.index = Series(datetime_series.index).convert_dtypes(
+                dtype_backend=dtype_backend
+            )
+
         data = StringIO(datetime_series.to_json(orient=orient))
         result = read_json(data, typ="series", orient=orient)
 
-        expected = datetime_series
         if orient in ("values", "records"):
             expected = expected.reset_index(drop=True)
         if orient != "split":
@@ -767,6 +780,7 @@ class TestPandasContainer:
         expected = Series([4] * 3)
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("dtype_backend", [None, "pyarrow"])
     @pytest.mark.parametrize(
         "dtype,expected",
         [
@@ -774,8 +788,10 @@ class TestPandasContainer:
             (False, Series([946684800000])),
         ],
     )
-    def test_series_with_dtype_datetime(self, dtype, expected):
+    def test_series_with_dtype_datetime(self, dtype, expected, dtype_backend):
         s = Series(["2000-01-01"], dtype="datetime64[ns]")
+        if dtype_backend is not None:
+            s = s.convert_dtypes(dtype_backend=dtype_backend)
         msg = (
             "The default 'epoch' date format is deprecated and will be removed "
             "in a future version, please use 'iso' date format instead."
@@ -1022,8 +1038,9 @@ class TestPandasContainer:
         with tm.assert_produces_warning(warn, match=msg):
             df.to_json()
 
+    @pytest.mark.parametrize("dtype_backend", [None, "pyarrow"])
     @pytest.mark.parametrize("unit", ["s", "ms", "us"])
-    def test_iso_non_nano_datetimes(self, unit):
+    def test_iso_non_nano_datetimes(self, dtype_backend, unit):
         # Test that numpy datetimes
         # in an Index or a column with non-nano resolution can be serialized
         # correctly
@@ -1046,17 +1063,19 @@ class TestPandasContainer:
                 ),
             },
         )
+        expected = df.copy()
+        if dtype_backend is not None:
+            df = df.convert_dtypes(dtype_backend=dtype_backend)
 
-        buf = StringIO()
-        df.to_json(buf, date_format="iso", date_unit=unit)
-        buf.seek(0)
+        json = df.to_json(date_format="iso", date_unit=unit)
+        result = read_json(StringIO(json), convert_dates=["date", "date_obj"])
 
         # read_json always reads datetimes in nanosecond resolution
         # TODO: check_dtype/check_index_type should be removable
         # once read_json gets non-nano support
         tm.assert_frame_equal(
-            read_json(buf, convert_dates=["date", "date_obj"]),
-            df,
+            result,
+            expected,
             check_index_type=False,
             check_dtype=False,
         )
