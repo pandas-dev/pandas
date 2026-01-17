@@ -7283,6 +7283,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Fill NA/NaN values by using the next valid observation to fill the gap.
 
+        This method fills missing values in a backward direction along the
+        specified axis, propagating non-null values from later positions to
+        earlier positions containing NaN.
+
         Parameters
         ----------
         axis : {0 or 'index'} for Series, {0 or 'index', 1 or 'columns'} for DataFrame
