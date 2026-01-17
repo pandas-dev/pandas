@@ -1064,6 +1064,39 @@ cdef class SingleConstructorOffset(BaseOffset):
 # Tick Offsets
 
 cdef class Tick(SingleConstructorOffset):
+    """
+    Base class for fixed frequency offsets (Milli, Micro, Second, Minute, Hour).
+
+    This class should not be instantiated directly. Use one of the specific
+    Tick subclasses for a concrete offset.
+
+    Attributes
+    ----------
+    n : int, default 1
+        The number of units (hours, minutes, etc.) the offset represents.
+
+    See Also
+    --------
+    Hour : Offset ``n`` hours.
+    Minute : Offset ``n`` minutes.
+    Second : Offset ``n`` seconds.
+    Milli : Offset ``n`` milliseconds.
+    Micro : Offset ``n`` microseconds.
+    Nano : Offset ``n`` nanoseconds.
+
+    Examples
+    --------
+    >>> from pandas.tseries.offsets import Hour, Minute
+    >>> ts = pd.Timestamp(2022, 12, 9, 15)
+    >>> ts
+    Timestamp('2022-12-09 15:00:00')
+
+    >>> ts + Hour(1)
+    Timestamp('2022-12-09 16:00:00')
+
+    >>> ts + Minute(30)
+    Timestamp('2022-12-09 15:30:00')
+    """
     _adjust_dst = False
     _prefix = "undefined"
     _attributes = tuple(["n", "normalize"])
@@ -1905,7 +1938,7 @@ cdef class BusinessMixin(SingleConstructorOffset):
     cdef readonly:
         timedelta _offset
         # Only Custom subclasses use weekmask, holiday, calendar
-        object weekmask, holidays, calendar
+        object weekmask, _holidays, _calendar
 
     def __init__(self, n=1, normalize=False, offset=timedelta(0)):
         BaseOffset.__init__(self, n, normalize)
@@ -1922,8 +1955,8 @@ cdef class BusinessMixin(SingleConstructorOffset):
         # following two attributes. See DateOffset._params()
         # holidays, weekmask
         self.weekmask = weekmask
-        self.holidays = holidays
-        self.calendar = calendar
+        self._holidays = holidays
+        self._calendar = calendar
 
     @property
     def offset(self):
@@ -1932,6 +1965,128 @@ cdef class BusinessMixin(SingleConstructorOffset):
         """
         # Alias for backward compat
         return self._offset
+
+    @property
+    def holidays(self):
+        """
+        Return the holidays used for custom business day calculations.
+
+        This property returns a tuple or list of holidays used when calculating
+        business days for custom business day offsets. For non-custom business
+        offsets (e.g., standard BusinessDay, BusinessHour), this will be None.
+
+        Returns
+        -------
+        tuple, list, or None
+            Holidays used in business day calculations, or None if no custom
+            holidays are specified.
+
+        See Also
+        --------
+        BusinessDay.holidays : Holidays for standard business day offset.
+        BusinessHour.holidays : Holidays for standard business hour offset.
+        CustomBusinessDay.holidays : Holidays for custom business day offset.
+        CustomBusinessHour.holidays : Holidays for custom business hour offset.
+        CustomBusinessMonthEnd.holidays : Holidays for custom business month end offset.
+        CustomBusinessMonthBegin.holidays : Holidays for custom business month begin
+            offset.
+        CustomBusinessDay.weekmask : Weekmask for custom business day offset.
+        CustomBusinessDay.calendar : Calendar for custom business day offset.
+
+        Examples
+        --------
+        For standard business offsets, holidays is None:
+
+        >>> bd = pd.offsets.BusinessDay()
+        >>> bd.holidays is None
+        True
+
+        >>> bh = pd.offsets.BusinessHour()
+        >>> bh.holidays is None
+        True
+
+        For custom business day with explicit holidays:
+
+        >>> holidays = [pd.Timestamp("2023-12-25"), pd.Timestamp("2024-01-01")]
+        >>> cbd = pd.offsets.CustomBusinessDay(holidays=holidays)
+        >>> cbd.holidays  # doctest: +SKIP
+        (Timestamp('2023-12-25 00:00:00'), Timestamp('2024-01-01 00:00:00'))
+
+        For custom business hour with explicit holidays:
+
+        >>> cbh = pd.offsets.CustomBusinessHour(holidays=holidays)
+        >>> cbh.holidays  # doctest: +SKIP
+        (Timestamp('2023-12-25 00:00:00'), Timestamp('2024-01-01 00:00:00'))
+
+        For custom business month end with explicit holidays:
+
+        >>> cbme = pd.offsets.CustomBusinessMonthEnd(holidays=holidays)
+        >>> cbme.holidays  # doctest: +SKIP
+        (Timestamp('2023-12-25 00:00:00'), Timestamp('2024-01-01 00:00:00'))
+
+        For custom business month begin with explicit holidays:
+
+        >>> cbmb = pd.offsets.CustomBusinessMonthBegin(holidays=holidays)
+        >>> cbmb.holidays  # doctest: +SKIP
+        (Timestamp('2023-12-25 00:00:00'), Timestamp('2024-01-01 00:00:00'))
+
+        For custom business offsets with a calendar:
+
+        >>> from pandas.tseries.holiday import USFederalHolidayCalendar
+        >>> cal = USFederalHolidayCalendar()
+        >>> cbd_cal = pd.offsets.CustomBusinessDay(calendar=cal)
+        >>> isinstance(cbd_cal.holidays, tuple)
+        True
+
+        >>> cbh_cal = pd.offsets.CustomBusinessHour(calendar=cal)
+        >>> isinstance(cbh_cal.holidays, tuple)
+        True
+        """
+        return self._holidays
+
+    @property
+    def calendar(self):
+        """
+        Return the calendar used for business day calculations.
+
+        This property returns the numpy busdaycalendar object used for
+        determining valid business days. For standard business day offsets
+        (e.g., BusinessDay, BusinessHour), this returns None. For custom
+        business day offsets, this returns the calendar that was either
+        passed directly or constructed from weekmask and holidays.
+
+        Returns
+        -------
+        np.busdaycalendar or None
+            The business day calendar used for calculations, or None if
+            using default business day rules.
+
+        See Also
+        --------
+        BusinessDay.holidays : Holidays for standard business day offset.
+        CustomBusinessDay.holidays : Holidays for custom business day offset.
+        CustomBusinessDay.weekmask : Weekmask for custom business day offset.
+
+        Examples
+        --------
+        For standard business offsets, calendar is None:
+
+        >>> bd = pd.offsets.BusinessDay()
+        >>> bd.calendar is None
+        True
+
+        >>> bh = pd.offsets.BusinessHour()
+        >>> bh.calendar is None
+        True
+
+        For custom business day with explicit holidays:
+
+        >>> holidays = [pd.Timestamp("2023-12-25"), pd.Timestamp("2024-01-01")]
+        >>> cbd = pd.offsets.CustomBusinessDay(holidays=holidays)
+        >>> isinstance(cbd.calendar, np.busdaycalendar)
+        True
+        """
+        return self._calendar
 
     def _repr_attrs(self) -> str:
         if self.offset:
@@ -1959,8 +2114,8 @@ cdef class BusinessMixin(SingleConstructorOffset):
                                                holidays=holidays,
                                                calendar=None)
             self.weekmask = weekmask
-            self.calendar = calendar
-            self.holidays = holidays
+            self._calendar = calendar
+            self._holidays = holidays
 
         BaseOffset.__setstate__(self, state)
 
@@ -2698,22 +2853,48 @@ cdef class YearOffset(SingleConstructorOffset):
     _default_month: ClassVar[int]
 
     cdef readonly:
-        int month
+        int _month
 
     def __init__(self, n=1, normalize=False, month=None):
         BaseOffset.__init__(self, n, normalize)
 
         month = month if month is not None else self._default_month
-        self.month = month
+        self._month = month
 
         if month < 1 or month > 12:
             raise ValueError("Month must go from 1 to 12")
 
     cpdef __setstate__(self, state):
-        self.month = state.pop("month")
+        self._month = state.pop("month")
         self._n = state.pop("n")
         self._normalize = state.pop("normalize")
         self._cache = {}
+
+    @property
+    def month(self) -> int:
+        """
+        Return the month of the year on which this offset applies.
+
+        Returns an integer representing the month (1-12) that this offset
+        targets. For year-based offsets, this determines which month is used
+        for calculations.
+
+        See Also
+        --------
+        tseries.offsets.YearEnd : Offset to end of year.
+        tseries.offsets.YearBegin : Offset to start of year.
+        tseries.offsets.BYearEnd : Offset to last business day of year.
+        tseries.offsets.BYearBegin : Offset to first business day of year.
+
+        Examples
+        --------
+        >>> pd.offsets.BYearBegin().month
+        1
+
+        >>> pd.offsets.BYearBegin(month=6).month
+        6
+        """
+        return self._month
 
     @classmethod
     def _from_name(cls, suffix=None):
@@ -2742,32 +2923,72 @@ cdef class YearOffset(SingleConstructorOffset):
         >>> pd.tseries.offsets.YearEnd(n=1, month=6).rule_code
         'YE-JUN'
         """
-        month = MONTH_ALIASES[self.month]
+        month = MONTH_ALIASES[self._month]
         return f"{self._prefix}-{month}"
 
     def is_on_offset(self, dt: datetime) -> bool:
+        """
+        Return boolean whether a timestamp intersects with this frequency.
+
+        This method checks if a given datetime falls on a valid year
+        boundary as defined by this offset.
+
+        Parameters
+        ----------
+        dt : datetime
+            Timestamp to check intersections with frequency.
+
+        Returns
+        -------
+        bool
+            True if the timestamp is on the offset, False otherwise.
+
+        See Also
+        --------
+        YearEnd.is_on_offset : Check if a timestamp is at the end of a year.
+        YearBegin.is_on_offset : Check if a timestamp is at the start of a year.
+        BYearEnd.is_on_offset : Check if a timestamp is at the end of a
+            business year.
+        BYearBegin.is_on_offset : Check if a timestamp is at the start of a
+            business year.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2022, 1, 1)
+        >>> freq = pd.offsets.YearBegin()
+        >>> freq.is_on_offset(ts)
+        True
+
+        >>> freq = pd.offsets.BYearBegin()
+        >>> freq.is_on_offset(ts)
+        False
+
+        >>> ts = pd.Timestamp(2022, 1, 3)
+        >>> freq.is_on_offset(ts)
+        True
+        """
         if self.normalize and not _is_normalized(dt):
             return False
-        return dt.month == self.month and dt.day == self._get_offset_day(dt)
+        return dt.month == self._month and dt.day == self._get_offset_day(dt)
 
     def _get_offset_day(self, other: datetime) -> int:
-        # override BaseOffset method to use self.month instead of other.month
+        # override BaseOffset method to use self._month instead of other.month
         cdef:
             npy_datetimestruct dts
         pydate_to_dtstruct(other, &dts)
-        dts.month = self.month
+        dts.month = self._month
         return get_day_of_month(&dts, self._day_opt)
 
     @apply_wraps
     def _apply(self, other: datetime) -> datetime:
-        years = roll_qtrday(other, self._n, self.month, self._day_opt, modby=12)
-        months = years * 12 + (self.month - other.month)
+        years = roll_qtrday(other, self._n, self._month, self._day_opt, modby=12)
+        months = years * 12 + (self._month - other.month)
         return shift_month(other, months, self._day_opt)
 
     def _apply_array(self, dtarr: np.ndarray) -> np.ndarray:
         reso = get_unit_from_dtype(dtarr.dtype)
         shifted = shift_quarters(
-            dtarr.view("i8"), self._n, self.month, self._day_opt, modby=12, reso=reso
+            dtarr.view("i8"), self._n, self._month, self._day_opt, modby=12, reso=reso
         )
         return shifted
 
@@ -2864,7 +3085,7 @@ cdef class _YearEnd(YearOffset):
         # Because YearEnd can be the freq for a Period, define its
         #  _period_dtype_code at construction for performance
         YearOffset.__init__(self, n, normalize, month)
-        self._period_dtype_code = PeriodDtypeCode.A + self.month % 12
+        self._period_dtype_code = PeriodDtypeCode.A + self._month % 12
 
 
 class YearEnd(_YearEnd):
@@ -2969,19 +3190,46 @@ cdef class QuarterOffset(SingleConstructorOffset):
     _from_name_starting_month: ClassVar[int]
 
     cdef readonly:
-        int startingMonth
+        int _startingMonth
 
     def __init__(self, n=1, normalize=False, startingMonth=None):
         BaseOffset.__init__(self, n, normalize)
 
         if startingMonth is None:
             startingMonth = self._default_starting_month
-        self.startingMonth = startingMonth
+        self._startingMonth = startingMonth
 
     cpdef __setstate__(self, state):
-        self.startingMonth = state.pop("startingMonth")
+        self._startingMonth = state.pop("startingMonth")
         self._n = state.pop("n")
         self._normalize = state.pop("normalize")
+
+    @property
+    def startingMonth(self) -> int:
+        """
+        Return the month of the year from which quarters start.
+
+        This value determines which month marks the beginning of a quarterly period.
+        For example, with startingMonth=1, quarters start in January, April, July,
+        and October.
+
+        See Also
+        --------
+        QuarterOffset.rule_code : Return the rule code for the quarter offset.
+        HalfYearOffset.startingMonth : Similar property for half-year-based offsets.
+
+        Examples
+        --------
+        >>> pd.offsets.BQuarterBegin().startingMonth
+        3
+
+        >>> pd.offsets.QuarterEnd().startingMonth
+        3
+
+        >>> pd.offsets.QuarterBegin(startingMonth=1).startingMonth
+        1
+        """
+        return self._startingMonth
 
     @classmethod
     def _from_name(cls, suffix=None):
@@ -2995,10 +3243,109 @@ cdef class QuarterOffset(SingleConstructorOffset):
 
     @property
     def rule_code(self) -> str:
+        """
+        Return a string representing the frequency with month suffix.
+
+        This property generates a rule code string that combines the offset's
+        prefix with the abbreviated month name of the starting month.
+
+        Returns
+        -------
+        str
+            Rule code string with format 'PREFIX-MONTH', where PREFIX is the
+            offset's frequency abbreviation and MONTH is the three-letter
+            abbreviation of the starting month.
+
+        See Also
+        --------
+        BQuarterBegin.rule_code : Rule code for business quarter begin offset.
+        BQuarterEnd.rule_code : Rule code for business quarter end offset.
+        QuarterBegin.rule_code : Rule code for quarter begin offset.
+        QuarterEnd.rule_code : Rule code for quarter end offset.
+        FY5253Quarter.get_rule_code_suffix : Suffix component of rule code for
+            FY5253Quarter.
+        FY5253.get_rule_code_suffix : Suffix component of rule code for FY5253.
+
+        Examples
+        --------
+        Business quarter begin with different starting months:
+
+        >>> bqb = pd.offsets.BQuarterBegin(startingMonth=1)
+        >>> bqb.rule_code
+        'BQS-JAN'
+
+        >>> bqb = pd.offsets.BQuarterBegin(startingMonth=2)
+        >>> bqb.rule_code
+        'BQS-FEB'
+
+        >>> bqb = pd.offsets.BQuarterBegin(startingMonth=3)
+        >>> bqb.rule_code
+        'BQS-MAR'
+
+        Business quarter end with different starting months:
+
+        >>> bqe = pd.offsets.BQuarterEnd(startingMonth=1)
+        >>> bqe.rule_code
+        'BQE-JAN'
+
+        >>> bqe = pd.offsets.BQuarterEnd(startingMonth=12)
+        >>> bqe.rule_code
+        'BQE-DEC'
+
+        Quarter begin with different starting months:
+
+        >>> qb = pd.offsets.QuarterBegin(startingMonth=1)
+        >>> qb.rule_code
+        'QS-JAN'
+
+        >>> qb = pd.offsets.QuarterBegin(startingMonth=3)
+        >>> qb.rule_code
+        'QS-MAR'
+
+        Quarter end with different starting months:
+
+        >>> qe = pd.offsets.QuarterEnd(startingMonth=1)
+        >>> qe.rule_code
+        'QE-JAN'
+
+        >>> qe = pd.offsets.QuarterEnd(startingMonth=3)
+        >>> qe.rule_code
+        'QE-MAR'
+        """
         month = MONTH_ALIASES[self.startingMonth]
         return f"{self._prefix}-{month}"
 
     def is_on_offset(self, dt: datetime) -> bool:
+        """
+        Return boolean whether a timestamp intersects with this frequency.
+
+        This method checks if the given datetime falls on a quarter boundary
+        as defined by the offset's ``startingMonth`` and day option.
+
+        Parameters
+        ----------
+        dt : datetime
+            Timestamp to check intersections with frequency.
+
+        Returns
+        -------
+        bool
+            True if the timestamp is on the offset, False otherwise.
+
+        See Also
+        --------
+        QuarterOffset : Parent class with quarterly offset logic.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2022, 1, 1)
+        >>> freq = pd.offsets.BQuarterBegin()
+        >>> freq.is_on_offset(ts)
+        False
+        >>> ts = pd.Timestamp(2022, 3, 1)
+        >>> freq.is_on_offset(ts)
+        True
+        """
         if self.normalize and not _is_normalized(dt):
             return False
         mod_month = (dt.month - self.startingMonth) % 3
@@ -3198,19 +3545,45 @@ cdef class HalfYearOffset(SingleConstructorOffset):
     _from_name_starting_month: ClassVar[int]
 
     cdef readonly:
-        int startingMonth
+        int _startingMonth
 
     def __init__(self, n=1, normalize=False, startingMonth=None):
         BaseOffset.__init__(self, n, normalize)
 
         if startingMonth is None:
             startingMonth = self._default_starting_month
-        self.startingMonth = startingMonth
+        self._startingMonth = startingMonth
 
     cpdef __setstate__(self, state):
-        self.startingMonth = state.pop("startingMonth")
+        self._startingMonth = state.pop("startingMonth")
         self._n = state.pop("n")
         self._normalize = state.pop("normalize")
+
+    @property
+    def startingMonth(self) -> int:
+        """
+        Return the month of the year from which half-years start.
+
+        This value determines which month marks the beginning of a half-year period.
+        For example, with startingMonth=1, half-years start in January and July.
+
+        See Also
+        --------
+        HalfYearOffset.rule_code : Return the rule code for the half-year offset.
+        QuarterOffset.startingMonth : Similar property for quarter-based offsets.
+
+        Examples
+        --------
+        >>> pd.offsets.BHalfYearBegin().startingMonth
+        1
+
+        >>> pd.offsets.BHalfYearEnd().startingMonth
+        6
+
+        >>> pd.offsets.HalfYearBegin(startingMonth=3).startingMonth
+        3
+        """
+        return self._startingMonth
 
     @classmethod
     def _from_name(cls, suffix=None):
@@ -4953,7 +5326,7 @@ cdef class CustomBusinessDay(BusinessDay):
         self._init_custom(weekmask, holidays, calendar)
 
     cpdef __setstate__(self, state):
-        self.holidays = state.pop("holidays")
+        self._holidays = state.pop("holidays")
         self.weekmask = state.pop("weekmask")
         BusinessDay.__setstate__(self, state)
 
