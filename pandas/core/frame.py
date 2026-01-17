@@ -1792,7 +1792,7 @@ class DataFrame(NDFrame, OpsMixin):
                 dtype=common_type,
             )
         elif isinstance(other, Series):
-            common_type = find_common_type(list(self.dtypes) + [other.dtypes])
+            common_type = find_common_type([*list(self.dtypes), other.dtypes])
             return self._constructor_sliced(
                 np.dot(lvals, rvals), index=left.index, copy=False, dtype=common_type
             )
@@ -12141,7 +12141,7 @@ class DataFrame(NDFrame, OpsMixin):
             # "Union[DataFrame, Series, Iterable[Union[DataFrame, Series]]]" whereas
             # the LHS is an "Iterable[DataFrame]", but in reality both types are
             # "Iterable[Union[DataFrame, Series]]" due to the if statements
-            frames = [cast("DataFrame | Series", self)] + list(other)
+            frames = [cast("DataFrame | Series", self), *list(other)]
 
             can_concat = all(df.index.is_unique for df in frames)
 

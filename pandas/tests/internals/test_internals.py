@@ -103,7 +103,7 @@ def create_block(typestr, placement, item_shape=None, num_offset=0, maker=new_bl
     if item_shape is None:
         item_shape = (N,)
 
-    shape = (num_items,) + item_shape
+    shape = (num_items, *item_shape)
 
     mat = get_numeric_mat(shape)
 

@@ -2628,7 +2628,7 @@ class MultiIndex(Index):
                 codes=codes, levels=levels, names=names, verify_integrity=False
             )
 
-        to_concat = (self._values,) + tuple(k._values for k in other)
+        to_concat = (self._values, *tuple(k._values for k in other))
         new_tuples = np.concatenate(to_concat)
 
         # if all(isinstance(x, MultiIndex) for x in other):
@@ -4131,7 +4131,7 @@ class MultiIndex(Index):
             else:
                 # For all other case, use the same order as the level
                 new_order = np.arange(n)[indexer]
-            keys = (new_order,) + keys
+            keys = (new_order, *keys)
 
         # Find the reordering using lexsort on the keys mapping
         ind = np.lexsort(keys)
