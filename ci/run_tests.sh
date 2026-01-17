@@ -8,9 +8,9 @@ export PYTHONHASHSEED=$(python -c 'import random; print(random.randint(1, 429496
 # May help reproduce flaky CI builds if set in subsequent runs
 echo PYTHONHASHSEED=$PYTHONHASHSEED
 
-COVERAGE="-s --cov=pandas --cov-report=xml --cov-append --cov-config=pyproject.toml"
+# COVERAGE="-s --cov=pandas --cov-report=xml --cov-append --cov-config=pyproject.toml"
 
-PYTEST_CMD="MESONPY_EDITABLE_VERBOSE=1 PYTHONDEVMODE=1 PYTHONWARNDEFAULTENCODING=1 pytest -r fE -n $PYTEST_WORKERS --dist=loadfile $TEST_ARGS $COVERAGE $PYTEST_TARGET"
+PYTEST_CMD="MESONPY_EDITABLE_VERBOSE=1 PYTHONDEVMODE=1 PYTHONWARNDEFAULTENCODING=1 pytest -r fE -n $PYTEST_WORKERS --dist=loadfile $TEST_ARGS $PYTEST_TARGET"
 
 if [[ "$PATTERN" ]]; then
   PYTEST_CMD="$PYTEST_CMD -m \"$PATTERN\""
