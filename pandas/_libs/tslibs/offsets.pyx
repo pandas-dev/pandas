@@ -4615,15 +4615,36 @@ cdef class LastWeekOfMonth(WeekOfMonthMixin):
 cdef class FY5253Mixin(SingleConstructorOffset):
     cdef readonly:
         int startingMonth
-        int weekday
+        int _weekday
         str variation
+
+    @property
+    def weekday(self):
+        """
+        Return the weekday used by the fiscal year.
+
+        This is the day of the week on which the fiscal year ends.
+        The value is an integer from 0 (Monday) to 6 (Sunday).
+
+        See Also
+        --------
+        FY5253.startingMonth : Return the starting month of the fiscal year.
+        FY5253.variation : Return the variation of the fiscal year.
+
+        Examples
+        --------
+        >>> offset = pd.offsets.FY5253(weekday=4, startingMonth=12, variation="nearest")
+        >>> offset.weekday
+        4
+        """
+        return self._weekday
 
     def __init__(
         self, n=1, normalize=False, weekday=0, startingMonth=1, variation="nearest"
     ):
         BaseOffset.__init__(self, n, normalize)
         self.startingMonth = startingMonth
-        self.weekday = weekday
+        self._weekday = weekday
         self.variation = variation
 
         if self._n == 0:
@@ -4635,7 +4656,7 @@ cdef class FY5253Mixin(SingleConstructorOffset):
     cpdef __setstate__(self, state):
         self._n = state.pop("n")
         self._normalize = state.pop("normalize")
-        self.weekday = state.pop("weekday")
+        self._weekday = state.pop("weekday")
         self.variation = state.pop("variation")
 
     # --------------------------------------------------------------------
@@ -4684,7 +4705,7 @@ cdef class FY5253Mixin(SingleConstructorOffset):
         """
         prefix = self._get_suffix_prefix()
         month = MONTH_ALIASES[self.startingMonth]
-        weekday = int_to_weekday[self.weekday]
+        weekday = int_to_weekday[self._weekday]
         return f"{prefix}-{month}-{weekday}"
 
 
