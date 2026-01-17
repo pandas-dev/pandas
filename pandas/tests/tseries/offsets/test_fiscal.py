@@ -121,8 +121,8 @@ class TestFY5253LastOfMonth:
         tests = [
             (offset_lom_aug_sat, date_seq_lom_aug_sat),
             (offset_lom_aug_sat_1, date_seq_lom_aug_sat),
-            (offset_lom_aug_sat, [datetime(2006, 8, 25)] + date_seq_lom_aug_sat),
-            (offset_lom_aug_sat_1, [datetime(2006, 8, 27)] + date_seq_lom_aug_sat[1:]),
+            (offset_lom_aug_sat, [datetime(2006, 8, 25), *date_seq_lom_aug_sat]),
+            (offset_lom_aug_sat_1, [datetime(2006, 8, 27), *date_seq_lom_aug_sat[1:]]),
             (
                 makeFY5253LastOfMonth(n=-1, startingMonth=8, weekday=WeekDay.SAT),
                 list(reversed(date_seq_lom_aug_sat)),
@@ -258,11 +258,11 @@ class TestFY5253NearestEndMonth:
             ),
             (
                 makeFY5253NearestEndMonth(startingMonth=8, weekday=WeekDay.SAT),
-                [datetime(2006, 9, 1)] + date_seq_nem_8_sat,
+                [datetime(2006, 9, 1), *date_seq_nem_8_sat],
             ),
             (
                 makeFY5253NearestEndMonth(n=1, startingMonth=8, weekday=WeekDay.SAT),
-                [datetime(2006, 9, 3)] + date_seq_nem_8_sat[1:],
+                [datetime(2006, 9, 3), *date_seq_nem_8_sat[1:]],
             ),
             (
                 makeFY5253NearestEndMonth(n=-1, startingMonth=8, weekday=WeekDay.SAT),

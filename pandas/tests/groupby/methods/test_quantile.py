@@ -142,7 +142,7 @@ def test_groupby_quantile_with_arraylike_q_and_int_columns(frame_size, groupby, 
         list(range(len(q))) * min(nrow, 4)
     ]
     expected_index = pd.MultiIndex(
-        levels=idx_levels, codes=idx_codes, names=groupby + [None]
+        levels=idx_levels, codes=idx_codes, names=[*groupby, None]
     )
     expected_values = [
         [float(x)] * (ncol - len(groupby)) for x in range(min(nrow, 4)) for _ in q

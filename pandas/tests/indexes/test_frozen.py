@@ -74,26 +74,26 @@ class TestFrozenList:
         str(unicode_container)
 
     def test_add(self, container, lst):
-        result = container + (1, 2, 3)
-        expected = FrozenList(lst + [1, 2, 3])
+        result = container + (1, 2, 3)  # noqa: RUF005
+        expected = FrozenList(lst + [1, 2, 3])  # noqa: RUF005
         self.check_result(result, expected)
 
-        result = (1, 2, 3) + container
-        expected = FrozenList([1, 2, 3] + lst)
+        result = (1, 2, 3) + container  # noqa: RUF005
+        expected = FrozenList([1, 2, 3] + lst)  # noqa: RUF005
         self.check_result(result, expected)
 
     def test_iadd(self, container, lst):
         q = r = container
 
         q += [5]
-        self.check_result(q, lst + [5])
+        self.check_result(q, lst + [5])  # noqa: RUF005
 
         # Other shouldn't be mutated.
         self.check_result(r, lst)
 
     def test_union(self, container, lst):
         result = container.union((1, 2, 3))
-        expected = FrozenList(lst + [1, 2, 3])
+        expected = FrozenList(lst + [1, 2, 3])  # noqa: RUF005
         self.check_result(result, expected)
 
     def test_difference(self, container):

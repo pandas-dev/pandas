@@ -222,7 +222,7 @@ class TestSetIndex:
 
         keys = keys if isinstance(keys, list) else [keys]
         idx = MultiIndex.from_arrays(
-            [df.index] + [df[x] for x in keys], names=[None] + keys
+            [df.index] + [df[x] for x in keys], names=[None, *keys]
         )
         expected = df.drop(keys, axis=1) if drop else df.copy()
         expected.index = idx
@@ -239,7 +239,7 @@ class TestSetIndex:
         df = frame_of_index_cols.set_index(["D"], drop=drop, append=True)
 
         keys = keys if isinstance(keys, list) else [keys]
-        expected = frame_of_index_cols.set_index(["D"] + keys, drop=drop, append=True)
+        expected = frame_of_index_cols.set_index(["D", *keys], drop=drop, append=True)
 
         result = df.set_index(keys, drop=drop, append=True)
 
@@ -294,7 +294,7 @@ class TestSetIndex:
             # only valid column keys are dropped
             # since B is always passed as array above, nothing is dropped
             expected = df.set_index(["B"], drop=False, append=append)
-            expected.index.names = [index_name] + name if append else name
+            expected.index.names = [index_name, *name] if append else name
 
             tm.assert_frame_equal(result, expected)
 
@@ -324,7 +324,7 @@ class TestSetIndex:
         # since B is always passed as array above, only A is dropped, if at all
         expected = df.set_index(["A", "B"], drop=False, append=append)
         expected = expected.drop("A", axis=1) if drop else expected
-        expected.index.names = [index_name] + names if append else names
+        expected.index.names = [index_name, *names] if append else names
 
         tm.assert_frame_equal(result, expected)
 

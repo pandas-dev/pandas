@@ -1134,7 +1134,7 @@ class SeriesGroupBy(GroupBy[Series]):
         ids = self._grouper.ids
         val = self.obj._values
 
-        index_names = self._grouper.names + [self.obj.name]
+        index_names = [*self._grouper.names, self.obj.name]
 
         if isinstance(val.dtype, CategoricalDtype) or (
             bins is not None and not np.iterable(bins)
@@ -1212,7 +1212,7 @@ class SeriesGroupBy(GroupBy[Series]):
                 )[0]
             ]
         codes = [rep(level_codes) for level_codes in codes] + [llab(lab, inc)]
-        levels = self._grouper.levels + [lev]
+        levels = [*self._grouper.levels, lev]
 
         if dropna:
             mask = codes[-1] != -1

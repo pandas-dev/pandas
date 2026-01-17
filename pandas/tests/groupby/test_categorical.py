@@ -2145,6 +2145,6 @@ def test_agg_list(request, as_index, observed, reduction_func, test_series, keys
             [(ind, "") for ind in expected.columns[:-1]] + [("b", reduction_func)]
         )
     elif not as_index:
-        expected.columns = keys + [reduction_func]
+        expected.columns = [*keys, reduction_func]
 
     tm.assert_equal(result, expected)

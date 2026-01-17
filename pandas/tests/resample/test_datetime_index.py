@@ -1335,10 +1335,8 @@ dates1: list[DatetimeNaTType] = [
     datetime(2014, 7, 15),
 ]
 
-dates2: list[DatetimeNaTType] = (
-    dates1[:2] + [pd.NaT] + dates1[2:4] + [pd.NaT] + dates1[4:]
-)
-dates3 = [pd.NaT] + dates1 + [pd.NaT]
+dates2: list[DatetimeNaTType] = [*dates1[:2], pd.NaT, *dates1[2:4], pd.NaT, *dates1[4:]]
+dates3 = [pd.NaT, *dates1, pd.NaT]
 
 
 @pytest.mark.parametrize("dates", [dates1, dates2, dates3])

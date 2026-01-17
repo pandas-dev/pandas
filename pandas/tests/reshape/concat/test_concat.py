@@ -172,9 +172,9 @@ class TestConcatenate:
         )
         expected = concat([df, df2, df, df2])
         exp_index = MultiIndex(
-            levels=levels + [[0]],
+            levels=[*levels, [0]],
             codes=[[0, 0, 1, 1], [0, 1, 0, 1], [0, 0, 0, 0]],
-            names=names + [None],
+            names=[*names, None],
         )
         expected.index = exp_index
 

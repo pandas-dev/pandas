@@ -134,8 +134,8 @@ def _new_DatetimeIndex(cls, d):
         "time",
         "timetz",
         "std",
-    ]
-    + DatetimeArray._bool_ops,
+        *DatetimeArray._bool_ops,
+    ],
     DatetimeArray,
 )
 @set_module("pandas")

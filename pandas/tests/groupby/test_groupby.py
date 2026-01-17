@@ -2424,7 +2424,7 @@ def test_datetime_categorical_multikey_groupby_indices():
 def test_rolling_wrong_param_min_period():
     # GH34037
     name_l = ["Alice"] * 5 + ["Bob"] * 5
-    val_l = [np.nan, np.nan, 1, 2, 3] + [np.nan, 1, 2, 3, 4]
+    val_l = [np.nan, np.nan, 1, 2, 3, np.nan, 1, 2, 3, 4]
     test_df = DataFrame([name_l, val_l]).T
     test_df.columns = ["name", "val"]
 

@@ -80,7 +80,7 @@ def _new_PeriodIndex(cls, **d):
 
 
 @inherit_names(
-    ["strftime", "start_time", "end_time"] + PeriodArray._field_ops,
+    ["strftime", "start_time", "end_time", *PeriodArray._field_ops],
     PeriodArray,
     wrap=True,
 )

@@ -440,7 +440,7 @@ class TestWhere:
         result = index.where(listlike_box(cond))
 
         cond = [False] + [True] * (len(index) - 1)
-        expected = Index([index._na_value] + index[1:].tolist(), dtype=np.float64)
+        expected = Index([index._na_value, *index[1:].tolist()], dtype=np.float64)
         result = index.where(listlike_box(cond))
         tm.assert_index_equal(result, expected)
 

@@ -178,7 +178,7 @@ class TestDataFrameBlockInternals:
                 np.dtype("datetime64[us]"),
                 np.dtype("timedelta64[us]"),
             ],
-            index=list("ABCD") + ["foo", "datetime", "timedelta"],
+            index=[*list("ABCD"), "foo", "datetime", "timedelta"],
         )
         tm.assert_series_equal(result, expected)
 

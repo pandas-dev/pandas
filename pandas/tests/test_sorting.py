@@ -36,7 +36,7 @@ def left_right():
     right = left.sample(
         frac=1, random_state=np.random.default_rng(2), ignore_index=True
     )
-    right.columns = right.columns[:-1].tolist() + ["right"]
+    right.columns = [*right.columns[:-1].tolist(), "right"]
     right["right"] *= -1
     return left, right
 
@@ -198,11 +198,11 @@ class TestMerge:
         # #2690, combinatorial explosion
         df1 = DataFrame(
             np.random.default_rng(2).standard_normal((1000, 7)),
-            columns=list("ABCDEF") + ["G1"],
+            columns=[*list("ABCDEF"), "G1"],
         )
         df2 = DataFrame(
             np.random.default_rng(3).standard_normal((1000, 7)),
-            columns=list("ABCDEF") + ["G2"],
+            columns=[*list("ABCDEF"), "G2"],
         )
         result = merge(df1, df2, how="outer")
         assert len(result) == 2000
@@ -287,26 +287,13 @@ class TestMerge:
         for k, lval in ldict.items():
             rval = rdict.get(k, [np.nan])
             for lv, rv in product(lval, rval):
-                vals.append(
-                    k
-                    + (
-                        lv,
-                        rv,
-                    )
-                )
+                vals.append((*k, lv, rv))
 
         for k, rval in rdict.items():
             if k not in ldict:
-                vals.extend(
-                    k
-                    + (
-                        np.nan,
-                        rv,
-                    )
-                    for rv in rval
-                )
+                vals.extend((*k, np.nan, rv) for rv in rval)
 
-        out = DataFrame(vals, columns=list("ABCDEFG") + ["left", "right"])
+        out = DataFrame(vals, columns=[*list("ABCDEFG"), "left", "right"])
         out = out.sort_values(out.columns.to_list(), ignore_index=True)
 
         jmask = {

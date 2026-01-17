@@ -177,7 +177,7 @@ class TestDataFrameLogicalOperators:
         data = DataFrame(
             [[1, np.nan], [2, np.nan]],
             columns=CategoricalIndex(
-                intervals, categories=intervals + [Interval(5, 6)]
+                intervals, categories=[*intervals, Interval(5, 6)]
             ),
         )
         mask = DataFrame(
@@ -187,7 +187,7 @@ class TestDataFrameLogicalOperators:
         expected = DataFrame(
             [[False, True], [False, True]],
             columns=CategoricalIndex(
-                intervals, categories=intervals + [Interval(5, 6)]
+                intervals, categories=[*intervals, Interval(5, 6)]
             ),
         )
         tm.assert_frame_equal(result, expected)
