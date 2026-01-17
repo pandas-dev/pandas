@@ -3,6 +3,9 @@ runs:
   using: composite
   steps:
     - name: Test
+      env:
+        PYTEST_TARGET="pandas/tests/tools/test_to_numeric.py::test_to_numeric_exponent_overflow"
+        TEST_ARGS="-v"
       run: ci/run_tests.sh
       shell: bash -el {0}
 

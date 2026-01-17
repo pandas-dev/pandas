@@ -976,3 +976,11 @@ def test_coerce_pyarrow_backend():
     result = to_numeric(ser, errors="coerce", dtype_backend="pyarrow")
     expected = Series([1, 2, None], dtype=ArrowDtype(pa.int64()))
     tm.assert_series_equal(result, expected)
+
+
+def test_to_numeric_exponent_overflow():
+    # GH#63650
+    s = Series(["1E3000000000"])
+    result = to_numeric(s, errors="coerce")
+    expected = Series([0.0])
+    tm.assert_series_equal(result, expected)
