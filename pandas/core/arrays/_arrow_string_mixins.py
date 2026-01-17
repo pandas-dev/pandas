@@ -63,8 +63,16 @@ class ArrowStringArrayMixin:
         bool
             Whether `pat` contains a lookahead or lookbehind.
         """
-        # error: Module "re" has no attribute "_parser"
-        from re import _parser  # type: ignore[attr-defined]
+        try:
+            # error: Module "re" has no attribute "_parser"
+            from re import _parser  # type: ignore[attr-defined]
+
+            regex_parser = _parser.parse
+        except Exception as err:
+            raise type(err)(
+                "Incompatible version for regex; you will need to upgrade pandas "
+                "or downgrade Python"
+            ) from err
 
         def has_assert(tokens):
             # For certain op codes we need to recurse.
@@ -81,7 +89,7 @@ class ArrowStringArrayMixin:
             return False
 
         str_pat = pat.pattern if isinstance(pat, re.Pattern) else pat
-        tokens = _parser.parse(str_pat)
+        tokens = regex_parser(str_pat)
         return has_assert(tokens)
 
     def _str_len(self):
