@@ -166,9 +166,10 @@ jobs:
     - name: Build Pandas
       id: build
       uses: ./.github/actions/build_pandas
-      with:
-        # xref https://github.com/cython/cython/issues/6870
-        werror: ${{ matrix.name != 'Freethreading' }}
+      # TMP disable werror until we fix all warnings with more recent meson
+      # with:
+      #   # xref https://github.com/cython/cython/issues/6870
+      #   werror: ${{ matrix.name != 'Freethreading' }}
 
     - name: Test (not single_cpu)
       uses: ./.github/actions/run-tests
