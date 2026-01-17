@@ -668,6 +668,9 @@ cdef class BaseOffset:
         """
         Return a string representing the frequency.
 
+        The string representation typically consists of the offset multiplier
+        and a frequency alias (e.g., ``'D'`` for daily, ``'h'`` for hourly).
+
         See Also
         --------
         tseries.offsets.BusinessDay.freqstr :
