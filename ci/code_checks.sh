@@ -96,7 +96,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.CustomBusinessMonthEnd.m_offset GL08" \
         -i "pandas.tseries.offsets.CustomBusinessMonthEnd.weekmask GL08" \
         -i "pandas.tseries.offsets.DateOffset.is_on_offset GL08" \
-        -i "pandas.tseries.offsets.DateOffset.rollback SA01,EX01" \
         -i "pandas.tseries.offsets.DateOffset.rollforward SA01,EX01" \
         -i "pandas.tseries.offsets.Day.is_on_offset GL08" \
         -i "pandas.tseries.offsets.Easter.is_on_offset GL08" \
