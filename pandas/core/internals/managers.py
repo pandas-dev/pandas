@@ -2325,7 +2325,7 @@ def raise_construction_error(
     e: ValueError | None = None,
 ) -> NoReturn:
     """raise a helpful message about our construction"""
-    passed = tuple(map(int, [tot_items, *list(block_shape)]))
+    passed = tuple(map(int, [tot_items, *block_shape]))
     # Correcting the user facing error message during dataframe construction
     if len(passed) <= 2:
         passed = passed[::-1]
