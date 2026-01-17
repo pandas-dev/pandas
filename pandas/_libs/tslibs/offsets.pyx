@@ -735,6 +735,9 @@ cdef class BaseOffset:
         """
         Roll provided date backward to next offset only if not on offset.
 
+        If the provided date is already on an offset, it is returned unchanged.
+        Otherwise, the date is rolled backward to the previous offset boundary.
+
         Parameters
         ----------
         dt : datetime or Timestamp
@@ -742,8 +745,30 @@ cdef class BaseOffset:
 
         Returns
         -------
-        TimeStamp
+        Timestamp
             Rolled timestamp if not on offset, otherwise unchanged timestamp.
+
+        See Also
+        --------
+        rollforward : Roll provided date forward to next offset only if not on offset.
+        is_on_offset : Return boolean whether a timestamp intersects with this
+            frequency.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp("2025-01-15 09:00:00")
+        >>> offset = pd.tseries.offsets.MonthEnd()
+
+        Timestamp is not on the offset (not a month end), so it rolls backward:
+
+        >>> offset.rollback(ts)
+        Timestamp('2024-12-31 00:00:00')
+
+        If the timestamp is already on the offset, it remains unchanged:
+
+        >>> ts_on_offset = pd.Timestamp("2025-01-31")
+        >>> offset.rollback(ts_on_offset)
+        Timestamp('2025-01-31 00:00:00')
         """
         dt = Timestamp(dt)
         if self.normalize and (dt - dt.normalize())._value != 0:
