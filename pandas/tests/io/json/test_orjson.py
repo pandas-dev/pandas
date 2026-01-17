@@ -1,5 +1,7 @@
 from io import StringIO
 
+import pytest
+
 from pandas import (
     DataFrame,
     Series,
@@ -9,6 +11,8 @@ from pandas.testing import (
     assert_frame_equal,
     assert_series_equal,
 )
+
+pytest.importorskip("orjson")
 
 
 class TestOrjson:
