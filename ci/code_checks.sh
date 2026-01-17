@@ -73,7 +73,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.dt PR01" `# Accessors are implemented as classes, but we do not document the Parameters section` \
         -i "pandas.tseries.offsets.BDay PR02,SA01" \
         -i "pandas.tseries.offsets.BusinessDay PR02,SA01" \
-        -i "pandas.tseries.offsets.BusinessDay.is_on_offset GL08" \
         -i "pandas.tseries.offsets.BusinessDay.weekmask GL08" \
         -i "pandas.tseries.offsets.BusinessHour PR02,SA01" \
         -i "pandas.tseries.offsets.BusinessHour.is_on_offset GL08" \
