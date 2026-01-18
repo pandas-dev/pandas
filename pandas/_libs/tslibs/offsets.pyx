@@ -964,6 +964,9 @@ cdef class BaseOffset:
         """
         Return boolean whether a timestamp occurs on the month start.
 
+        This method determines if a given timestamp falls on the first day
+        of a month, considering the frequency of the offset.
+
         Parameters
         ----------
         ts : Timestamp
