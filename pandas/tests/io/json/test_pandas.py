@@ -1092,21 +1092,16 @@ class TestPandasContainer:
             },
         )
         expected = df.copy()
+        expected.index = expected.index.as_unit("us")
+        expected["date"] = expected["date"].dt.as_unit("us")
+        expected["date_obj"] = expected["date_obj"].astype("datetime64[us]")
+
         if dtype_backend is not None:
             df = df.convert_dtypes(dtype_backend=dtype_backend)
 
         json = df.to_json(date_format="iso", date_unit=unit)
         result = read_json(StringIO(json), convert_dates=["date", "date_obj"])
-
-        # read_json always reads datetimes in nanosecond resolution
-        # TODO: check_dtype/check_index_type should be removable
-        # once read_json gets non-nano support
-        tm.assert_frame_equal(
-            result,
-            expected,
-            check_index_type=False,
-            check_dtype=False,
-        )
+        tm.assert_frame_equal(result, expected)
 
     def test_weird_nested_json(self):
         # this used to core dump the parser
