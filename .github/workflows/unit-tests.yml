@@ -212,6 +212,11 @@ jobs:
 
       - name: Build Pandas
         uses: ./.github/actions/build_pandas
+        with:
+          # Windows contains a lot of warnings regarding unsafe type conversion.
+          # It's possible to replicate some of them in clang with the `-Wconversion` flag.
+          # Tracking issue: https://github.com/pandas-dev/pandas/issues/63701
+          werror: ${{ runner.os != 'Windows' }}
 
       - name: Test
         uses: ./.github/actions/run-tests
