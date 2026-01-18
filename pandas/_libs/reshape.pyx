@@ -60,7 +60,7 @@ def unstack(const numeric_object_t[:, :] values, const uint8_t[:] mask,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def explode(object[:] values):
+def explode(ndarray[object, ndim=1] values):
     """
     transform array list-likes to long form
     preserve non-list entries
