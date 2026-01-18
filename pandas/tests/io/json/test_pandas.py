@@ -271,8 +271,9 @@ class TestPandasContainer:
 
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("dtype_backend", [None, "pyarrow"])
-    @pytest.mark.parametrize("convert_axes", [True, False])
+    @pytest.mark.parametrize(
+        "dtype_backend", [None, pytest.param("pyarrow", marks=td.skip_if_no("pyarrow"))]
+    )
     def test_roundtrip_timestamp(
         self, orient, convert_axes, dtype_backend, datetime_frame
     ):
@@ -741,7 +742,9 @@ class TestPandasContainer:
 
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize("dtype_backend", [None, "pyarrow"])
+    @pytest.mark.parametrize(
+        "dtype_backend", [None, pytest.param("pyarrow", marks=td.skip_if_no("pyarrow"))]
+    )
     def test_series_roundtrip_timeseries(self, dtype_backend, orient, datetime_series):
         expected = datetime_series.copy()
         if dtype_backend is not None:
@@ -791,7 +794,9 @@ class TestPandasContainer:
         expected = Series([4] * 3)
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize("dtype_backend", [None, "pyarrow"])
+    @pytest.mark.parametrize(
+        "dtype_backend", [None, pytest.param("pyarrow", marks=td.skip_if_no("pyarrow"))]
+    )
     @pytest.mark.parametrize(
         "dtype,expected",
         [
@@ -1066,7 +1071,9 @@ class TestPandasContainer:
         with tm.assert_produces_warning(warn, match=msg):
             df.to_json()
 
-    @pytest.mark.parametrize("dtype_backend", [None, "pyarrow"])
+    @pytest.mark.parametrize(
+        "dtype_backend", [None, pytest.param("pyarrow", marks=td.skip_if_no("pyarrow"))]
+    )
     @pytest.mark.parametrize("unit", ["s", "ms", "us"])
     def test_iso_non_nano_datetimes(self, dtype_backend, unit):
         # Test that numpy datetimes
