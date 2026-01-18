@@ -280,7 +280,7 @@ class TestDataFrameToCSV:
             recons.columns = df.columns
         if rnlvl and not cnlvl:
             delta_lvl = [recons.iloc[:, i].values for i in range(rnlvl - 1)]
-            ix = MultiIndex.from_arrays([list(recons.index)] + delta_lvl)
+            ix = MultiIndex.from_arrays([list(recons.index), *delta_lvl])
             recons.index = ix
             recons = recons.iloc[:, rnlvl - 1 :]
 
