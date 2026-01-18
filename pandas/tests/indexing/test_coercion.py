@@ -84,7 +84,7 @@ class TestSetitemCoercion(CoercionBase):
         obj = pd.Series([1, 2, 3, 4], index=pd.Index(list("abcd"), dtype=object))
         assert obj.index.dtype == object
 
-        exp_index = pd.Index(list("abcd") + [val], dtype=object)
+        exp_index = pd.Index([*list("abcd"), val], dtype=object)
         self._assert_setitem_index_conversion(obj, val, exp_index, exp_dtype)
 
     @pytest.mark.parametrize(
