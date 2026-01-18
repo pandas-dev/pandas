@@ -48,6 +48,50 @@ class ArrowStringArrayMixin:
     def _apply_elementwise(self, func: Callable) -> list[list[Any]]:
         raise NotImplementedError
 
+    @staticmethod
+    def _has_regex_lookaround(pat: str | re.Pattern) -> bool:
+        """
+        Determine if regex pattern contains a lookahead or lookbehind.
+
+        Parameters
+        ----------
+        pat: str | re.Pattern
+            Regex pattern.
+
+        Returns
+        -------
+        bool
+            Whether `pat` contains a lookahead or lookbehind.
+        """
+        try:
+            # error: Module "re" has no attribute "_parser"
+            from re import _parser  # type: ignore[attr-defined]
+
+            regex_parser = _parser.parse
+        except Exception as err:
+            raise type(err)(
+                "Incompatible version for regex; you will need to upgrade pandas "
+                "or downgrade Python"
+            ) from err
+
+        def has_assert(tokens):
+            # For certain op codes we need to recurse.
+            for op_code, argument in tokens:
+                if (
+                    (op_code == _parser.SUBPATTERN and has_assert(argument[3]))
+                    or (
+                        op_code == _parser.BRANCH
+                        and any(has_assert(tokens) for tokens in argument[1])
+                    )
+                    or (op_code in [_parser.ASSERT_NOT, _parser.ASSERT])
+                ):
+                    return True
+            return False
+
+        str_pat = pat.pattern if isinstance(pat, re.Pattern) else pat
+        tokens = regex_parser(str_pat)
+        return has_assert(tokens)
+
     def _str_len(self):
         result = pc.utf8_length(self._pa_array)
         return self._convert_int_result(result)
