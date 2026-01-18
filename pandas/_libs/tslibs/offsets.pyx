@@ -478,6 +478,10 @@ cdef class BaseOffset:
         """
         Return a dict of extra parameters for the offset.
 
+        These parameters exclude ``n`` and ``normalize``, which are common
+        to all offsets. The returned dictionary can be passed to the offset
+        constructor to recreate the offset with the same settings.
+
         See Also
         --------
         tseries.offsets.DateOffset : The base class for all pandas date offsets.
