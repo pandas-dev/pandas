@@ -62,10 +62,7 @@ from pandas.errors import (
     DataError,
     Pandas4Warning,
 )
-from pandas.util._decorators import (
-    Substitution,
-    cache_readonly,
-)
+from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
@@ -4462,7 +4459,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return new_obj
 
     @final
-    @Substitution(name="groupby")
     def ffill(self, limit: int | None = None):
         """
         Forward fill the values.
@@ -4555,7 +4551,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return self._fill("ffill", limit=limit)
 
     @final
-    @Substitution(name="groupby")
     def bfill(self, limit: int | None = None):
         """
         Backward fill the values.
@@ -4998,7 +4993,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return self._wrap_aggregated_output(res, qs=pass_qs)
 
     @final
-    @Substitution(name="groupby")
     def ngroup(self, ascending: bool = True):
         """
         Number each group from 0 to the number of groups - 1.
@@ -5082,7 +5076,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return result
 
     @final
-    @Substitution(name="groupby")
     def cumcount(self, ascending: bool = True):
         """
         Number each item in each group from 0 to the length of that group - 1.
