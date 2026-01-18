@@ -4148,7 +4148,30 @@ cdef class SemiMonthOffset(SingleConstructorOffset):
     _attributes = tuple(["n", "normalize", "day_of_month"])
 
     cdef readonly:
-        int day_of_month
+        int _day_of_month
+
+    @property
+    def day_of_month(self):
+        """
+        Return the day of the month for the semi-monthly offset.
+
+        This specifies the day of the month on which the offset falls,
+        in addition to the start (1st) or end (last day) of the month.
+
+        See Also
+        --------
+        SemiMonthBegin : Offset at the start of the month and mid-month.
+        SemiMonthEnd : Offset at mid-month and end of month.
+
+        Examples
+        --------
+        >>> pd.offsets.SemiMonthBegin().day_of_month
+        15
+
+        >>> pd.offsets.SemiMonthBegin(day_of_month=20).day_of_month
+        20
+        """
+        return self._day_of_month
 
     def __init__(self, n=1, normalize=False, day_of_month=None):
         BaseOffset.__init__(self, n, normalize)
@@ -4156,18 +4179,18 @@ cdef class SemiMonthOffset(SingleConstructorOffset):
         if day_of_month is None:
             day_of_month = self._default_day_of_month
 
-        self.day_of_month = int(day_of_month)
-        if not self._min_day_of_month <= self.day_of_month <= 27:
+        self._day_of_month = int(day_of_month)
+        if not self._min_day_of_month <= self._day_of_month <= 27:
             raise ValueError(
                 "day_of_month must be "
                 f"{self._min_day_of_month}<=day_of_month<=27, "
-                f"got {self.day_of_month}"
+                f"got {self._day_of_month}"
             )
 
     cpdef __setstate__(self, state):
         self._n = state.pop("n")
         self._normalize = state.pop("normalize")
-        self.day_of_month = state.pop("day_of_month")
+        self._day_of_month = state.pop("day_of_month")
 
     @classmethod
     def _from_name(cls, suffix=None):
@@ -4175,20 +4198,20 @@ cdef class SemiMonthOffset(SingleConstructorOffset):
 
     @property
     def rule_code(self) -> str:
-        suffix = f"-{self.day_of_month}"
+        suffix = f"-{self._day_of_month}"
         return self._prefix + suffix
 
     @apply_wraps
     def _apply(self, other: datetime) -> datetime:
         is_start = isinstance(self, SemiMonthBegin)
 
-        # shift `other` to self.day_of_month, incrementing `n` if necessary
-        n = roll_convention(other.day, self._n, self.day_of_month)
+        # shift `other` to self._day_of_month, incrementing `n` if necessary
+        n = roll_convention(other.day, self._n, self._day_of_month)
 
         days_in_month = get_days_in_month(other.year, other.month)
         # For SemiMonthBegin on other.day == 1 and
         # SemiMonthEnd on other.day == days_in_month,
-        # shifting `other` to `self.day_of_month` _always_ requires
+        # shifting `other` to `self._day_of_month` _always_ requires
         # incrementing/decrementing `n`, regardless of whether it is
         # initially positive.
         if is_start and (self._n <= 0 and other.day == 1):
@@ -4198,10 +4221,10 @@ cdef class SemiMonthOffset(SingleConstructorOffset):
 
         if is_start:
             months = n // 2 + n % 2
-            to_day = 1 if n % 2 else self.day_of_month
+            to_day = 1 if n % 2 else self._day_of_month
         else:
             months = n // 2
-            to_day = 31 if n % 2 else self.day_of_month
+            to_day = 31 if n % 2 else self._day_of_month
 
         return shift_month(other, months, to_day)
 
@@ -4217,7 +4240,7 @@ cdef class SemiMonthOffset(SingleConstructorOffset):
             )
             npy_datetimestruct dts
             int months, to_day, nadj, n = self._n
-            int days_in_month, day, anchor_dom = self.day_of_month
+            int days_in_month, day, anchor_dom = self._day_of_month
             bint is_start = isinstance(self, SemiMonthBegin)
             NPY_DATETIMEUNIT reso = get_unit_from_dtype(dtarr.dtype)
             cnp.broadcast mi = cnp.PyArray_MultiIterNew2(out, i8other)
@@ -4234,14 +4257,14 @@ cdef class SemiMonthOffset(SingleConstructorOffset):
                     pandas_datetime_to_datetimestruct(val, reso, &dts)
                     day = dts.day
 
-                    # Adjust so that we are always looking at self.day_of_month,
+                    # Adjust so that we are always looking at self._day_of_month,
                     #  incrementing/decrementing n if necessary.
                     nadj = roll_convention(day, n, anchor_dom)
 
                     days_in_month = get_days_in_month(dts.year, dts.month)
                     # For SemiMonthBegin on other.day == 1 and
                     #  SemiMonthEnd on other.day == days_in_month,
-                    #  shifting `other` to `self.day_of_month` _always_ requires
+                    #  shifting `other` to `self._day_of_month` _always_ requires
                     #  incrementing/decrementing `n`, regardless of whether it is
                     #  initially positive.
                     if is_start and (n <= 0 and day == 1):
@@ -4326,7 +4349,7 @@ cdef class SemiMonthEnd(SemiMonthOffset):
         if self.normalize and not _is_normalized(dt):
             return False
         days_in_month = get_days_in_month(dt.year, dt.month)
-        return dt.day in (self.day_of_month, days_in_month)
+        return dt.day in (self._day_of_month, days_in_month)
 
 
 cdef class SemiMonthBegin(SemiMonthOffset):
@@ -4365,7 +4388,7 @@ cdef class SemiMonthBegin(SemiMonthOffset):
     def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
-        return dt.day in (1, self.day_of_month)
+        return dt.day in (1, self._day_of_month)
 
 
 # ---------------------------------------------------------------------
