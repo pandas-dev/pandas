@@ -1966,7 +1966,7 @@ cdef class BusinessMixin(SingleConstructorOffset):
     cdef readonly:
         timedelta _offset
         # Only Custom subclasses use weekmask, holiday, calendar
-        object weekmask, _holidays, _calendar
+        object _weekmask, _holidays, _calendar
 
     def __init__(self, n=1, normalize=False, offset=timedelta(0)):
         BaseOffset.__init__(self, n, normalize)
@@ -1982,7 +1982,7 @@ cdef class BusinessMixin(SingleConstructorOffset):
         # Custom offset instances are identified by the
         # following two attributes. See DateOffset._params()
         # holidays, weekmask
-        self.weekmask = weekmask
+        self._weekmask = weekmask
         self._holidays = holidays
         self._calendar = calendar
 
@@ -2116,6 +2116,55 @@ cdef class BusinessMixin(SingleConstructorOffset):
         """
         return self._calendar
 
+    @property
+    def weekmask(self):
+        """
+        Return the weekmask used for custom business day calculations.
+
+        This property returns the weekmask string that defines which days of the
+        week are considered business days. For non-custom business offsets (e.g.,
+        standard BusinessDay, BusinessHour), this will be None. For custom business
+        day offsets, this returns the weekmask that was specified or the default
+        'Mon Tue Wed Thu Fri'.
+
+        Returns
+        -------
+        str or None
+            String representing valid business days (e.g., 'Mon Tue Wed Thu Fri'),
+            or None if using default business day rules.
+
+        See Also
+        --------
+        BusinessDay.holidays : Holidays for standard business day offset.
+        CustomBusinessDay.holidays : Holidays for custom business day offset.
+        CustomBusinessDay.calendar : Calendar for custom business day offset.
+
+        Examples
+        --------
+        For standard business offsets, weekmask is None:
+
+        >>> bd = pd.offsets.BusinessDay()
+        >>> bd.weekmask is None
+        True
+
+        >>> bh = pd.offsets.BusinessHour()
+        >>> bh.weekmask is None
+        True
+
+        For custom business day with default weekmask:
+
+        >>> cbd = pd.offsets.CustomBusinessDay()
+        >>> cbd.weekmask
+        'Mon Tue Wed Thu Fri'
+
+        For custom business day with custom weekmask:
+
+        >>> cbd = pd.offsets.CustomBusinessDay(weekmask="Mon Wed Fri")
+        >>> cbd.weekmask
+        'Mon Wed Fri'
+        """
+        return self._weekmask
+
     def _repr_attrs(self) -> str:
         if self.offset:
             attrs = [f"offset={repr(self.offset)}"]
@@ -2141,7 +2190,7 @@ cdef class BusinessMixin(SingleConstructorOffset):
             calendar, holidays = _get_calendar(weekmask=weekmask,
                                                holidays=holidays,
                                                calendar=None)
-            self.weekmask = weekmask
+            self._weekmask = weekmask
             self._calendar = calendar
             self._holidays = holidays
 
@@ -5421,7 +5470,7 @@ cdef class CustomBusinessDay(BusinessDay):
 
     cpdef __setstate__(self, state):
         self._holidays = state.pop("holidays")
-        self.weekmask = state.pop("weekmask")
+        self._weekmask = state.pop("weekmask")
         BusinessDay.__setstate__(self, state)
 
     @apply_wraps
