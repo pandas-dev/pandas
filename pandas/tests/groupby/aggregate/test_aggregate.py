@@ -2011,4 +2011,3 @@ def test_agg_relabel_with_name_match_and_namedagg():
 
     expected = DataFrame({"B": [3, 7]}, index=Index([0, 1], name="A"))
     tm.assert_frame_equal(result, expected)
-

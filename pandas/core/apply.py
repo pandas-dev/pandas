@@ -1800,8 +1800,7 @@ def reconstruct_func(
             # When names match, convert to dict format {column: aggfunc}
             # and disable relabeling since no reordering is needed
             func = {
-                column: aggfunc
-                for key, (column, aggfunc) in converted_kwargs.items()
+                column: aggfunc for key, (column, aggfunc) in converted_kwargs.items()
             }
             relabeling = False
 
