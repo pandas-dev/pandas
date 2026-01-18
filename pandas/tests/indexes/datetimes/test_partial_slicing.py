@@ -382,6 +382,13 @@ class TestSlicing:
         result = df2.loc[Timestamp("2000-1-4")]
         tm.assert_frame_equal(result, expected)
 
+        # GH#19451 after sort_index, .xs should
+        # return the same result as .loc
+        df3 = DataFrame(ser).sort_index()
+        expected = df3.loc["2000-01", slice(None)]
+        result = df3.xs("2000-01", level=0)
+        tm.assert_frame_equal(result, expected)
+
     def test_partial_slice_requires_monotonicity(self):
         # Disallowed since 2.0 (GH 37819)
         ser = Series(np.arange(10), date_range("2014-01-01", periods=10))
