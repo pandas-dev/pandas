@@ -1296,10 +1296,7 @@ class Parser:
 
         new_data = data
 
-        if new_data.dtype == "string":
-            new_data = new_data.astype(object)
-
-        if new_data.dtype == "object":
+        if new_data.dtype == "object" or new_data.dtype == "string":  # noqa: PLR1714
             try:
                 new_data = data.astype("int64")
             except OverflowError:
@@ -1317,7 +1314,7 @@ class Parser:
             if not in_range.all():
                 return data
 
-        if new_data.dtype == "object":
+        if new_data.dtype == "string":
             with warnings.catch_warnings():
                 # ignore "Could not infer format" warnings from to_datetime
                 # which is incorrectly raised for non-date strings
@@ -1328,6 +1325,7 @@ class Parser:
                     except Exception:
                         pass
         else:
+            # numeric or mixed objects
             date_units = (self.date_unit,) if self.date_unit else self._STAMP_UNITS
             for date_unit in date_units:
                 try:
