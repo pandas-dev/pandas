@@ -75,7 +75,7 @@ _cpython_optimized_encoders = (
     "mbcs",
     "ascii",
 )
-_cpython_optimized_decoders = _cpython_optimized_encoders + ("utf-16", "utf-32")
+_cpython_optimized_decoders = (*_cpython_optimized_encoders, "utf-16", "utf-32")
 
 
 def forbid_nonstring_types(
@@ -655,7 +655,7 @@ class StringMethods(NoNewAttributesMixin):
             data, others = data.align(others, join=join)
             others = [others[x] for x in others]  # again list of Series
 
-        all_cols = [ensure_object(x) for x in [data] + others]
+        all_cols = [ensure_object(x) for x in [data, *others]]
         na_masks = np.array([isna(x) for x in all_cols])
         union_mask = np.logical_or.reduce(na_masks, axis=0)
 
@@ -4863,12 +4863,12 @@ def str_extractall(arr, pat, flags: int = 0) -> DataFrame:
                     match_tuple = (match_tuple,)
                 na_tuple = [np.nan if group == "" else group for group in match_tuple]
                 match_list.append(na_tuple)
-                result_key = tuple(subject_key + (match_i,))
+                result_key = (*subject_key, match_i)
                 index_list.append(result_key)
 
     from pandas import MultiIndex
 
-    index = MultiIndex.from_tuples(index_list, names=arr.index.names + ["match"])
+    index = MultiIndex.from_tuples(index_list, names=[*arr.index.names, "match"])
     dtype = _result_dtype(arr)
 
     result = arr._constructor_expanddim(
