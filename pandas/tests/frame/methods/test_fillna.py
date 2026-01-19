@@ -258,17 +258,18 @@ class TestFillNA:
         tm.assert_frame_equal(df.fillna(value=NaT), df)
 
     def test_fillna_with_categorical_series(self):
+        # https://github.com/pandas-dev/pandas/issues/56329
         df = DataFrame(
             {"cats": Categorical(["A", "B", "C"]), "ints": [1.0, 2.0, np.nan]}
         )
 
         filler = Series(Categorical([10.0, 20.0, 30.0]))
-        df.fillna({"ints": filler}, inplace=True)
+        result = df.fillna({"ints": filler})
 
         expected = DataFrame(
             {"cats": Categorical(["A", "B", "C"]), "ints": [1.0, 2.0, 30.0]}
         )
-        tm.assert_frame_equal(df, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_fillna_no_downcast(self, frame_or_series):
         # GH#45603 preserve object dtype
