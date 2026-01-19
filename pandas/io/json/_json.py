@@ -817,7 +817,10 @@ def read_json(
     Using the ``orjson`` engine with very large integers:
 
     >>> from io import StringIO
-    >>> json_str = '[{"composition":"Nb:100","n_atoms":128000,"space_group":229,"time":1000000000000000000000000}]'
+    >>> json_str = (
+    ...     '[{"composition":"Nb:100","n_atoms":128000,'
+    ...     '"space_group":229,"time":1000000000000000000000000}]'
+    ... )
     >>> pd.read_json(StringIO(json_str), engine="orjson")  # doctest: +SKIP
     composition  n_atoms  space_group          time
     0      Nb:100   128000          229  1.000000e+24
