@@ -298,7 +298,8 @@ class ArrowStringArrayMixin:
 
     def _has_regex_lookaround(self, pat: str) -> bool:
         """
-        Check if pattern contains lookarounds (e.g. (?=...), (?!...), (?<=...), (?<!...)).
+        Check if pattern contains lookarounds.
+        e.g. (?=...), (?!...), (?<=...), (?<!...)
         """
         import re
         return bool(re.search(r"\(\?(=|!|<=|<!)", pat))
@@ -345,13 +346,13 @@ class ArrowStringArrayMixin:
             return self._str_contains_fallback(pat, case, flags, na, regex)
 
         if regex:
-            # 1. Proactive Detection
             if self._has_regex_lookaround(pat) or self._has_regex_backref(pat):
                 return self._str_contains_fallback(pat, case, flags, na, regex)
 
-            # 2. Safety Net
             try:
-                result = pc.match_substring_regex(self._pa_array, pat, ignore_case=not case)
+                result = pc.match_substring_regex(
+                    self._pa_array, pat, ignore_case=not case
+                )
             except (NotImplementedError, pa.ArrowInvalid):
                 return self._str_contains_fallback(pat, case, flags, na, regex)
 
