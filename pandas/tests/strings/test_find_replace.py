@@ -328,29 +328,28 @@ def test_contains_compiled_regex_flags(any_string_dtype):
     expected = Series([False, True, True], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
+
 @pytest.mark.parametrize(
-        "values, pat, expected_values",
-        [
-            (
-                ["hello hello", "world world", "foo bar"],
-                r"(\w+)\s\1",
-                [True, True, False],
-            ),
-            (
-                ["aa bb", "cc dd", "ab cd"],
-                r"((\w)\2)\s((\w)\4)",
-                [True, True, False],
-            ),
-            (
-                ["hello hello", "foo bar"],
-                r"(?P<word>\w+)\s(?P=word)",
-                [True, False],
-            ),
-        ],
-    )
-def test_contains_backreferences(
-        nullable_string_dtype, values, pat, expected_values
-    ):
+    "values, pat, expected_values",
+    [
+        (
+            ["hello hello", "world world", "foo bar"],
+            r"(\w+)\s\1",
+            [True, True, False],
+        ),
+        (
+            ["aa bb", "cc dd", "ab cd"],
+            r"((\w)\2)\s((\w)\4)",
+            [True, True, False],
+        ),
+        (
+            ["hello hello", "foo bar"],
+            r"(?P<word>\w+)\s(?P=word)",
+            [True, False],
+        ),
+    ],
+)
+def test_contains_backreferences(nullable_string_dtype, values, pat, expected_values):
     import warnings
 
     ser = Series(values, dtype=nullable_string_dtype)
@@ -366,6 +365,7 @@ def test_contains_backreferences(
     expected = Series(expected_values, dtype=object)
 
     tm.assert_series_equal(result, expected, check_dtype=False)
+
 
 # --------------------------------------------------------------------------------------
 # str.startswith
