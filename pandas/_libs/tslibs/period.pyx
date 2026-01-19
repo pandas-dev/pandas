@@ -993,7 +993,7 @@ def periodarr_to_dt64arr(const int64_t[:] periodarr, int freq):
             dta = periodarr.base.view("M8[h]")
         elif freq == FR_DAY:
             dta = periodarr.base.view("M8[D]")
-        # GH#??? give microseconds for everything other than freq="ns"
+        # GH#63760 give microseconds for everything other than freq="ns"
         return astype_overflowsafe(dta, dtype=np.dtype("M8[us]"))
 
 

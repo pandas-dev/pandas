@@ -8,6 +8,7 @@ from pandas import (
     DatetimeIndex,
     PeriodIndex,
     Series,
+    Timedelta,
     date_range,
     period_range,
     to_datetime,
@@ -36,7 +37,7 @@ class TestToTimestamp:
         obj = tm.get_obj(obj, frame_or_series)
 
         exp_index = date_range("1/1/2001", end="12/31/2009", freq="YE-DEC")
-        exp_index = exp_index + np.timedelta64(1, "D") - np.timedelta64(1, "us")
+        exp_index = exp_index + Timedelta(1, "D") - Timedelta(1, "us")
         result = obj.to_timestamp("D", "end")
         tm.assert_index_equal(result.index, exp_index)
         tm.assert_numpy_array_equal(result.values, obj.values)
@@ -53,19 +54,19 @@ class TestToTimestamp:
         delta = timedelta(hours=23)
         result = obj.to_timestamp("H", "end")
         exp_index = _get_with_delta(delta)
-        exp_index = exp_index + np.timedelta64(1, "h") - np.timedelta64(1, "us")
+        exp_index = exp_index + Timedelta(1, "h") - Timedelta(1, "us")
         tm.assert_index_equal(result.index, exp_index)
 
         delta = timedelta(hours=23, minutes=59)
         result = obj.to_timestamp("T", "end")
         exp_index = _get_with_delta(delta)
-        exp_index = exp_index + np.timedelta64(1, "m") - np.timedelta64(1, "us")
+        exp_index = exp_index + Timedelta(1, "m") - Timedelta(1, "us")
         tm.assert_index_equal(result.index, exp_index)
 
         result = obj.to_timestamp("S", "end")
         delta = timedelta(hours=23, minutes=59, seconds=59)
         exp_index = _get_with_delta(delta)
-        exp_index = exp_index + np.timedelta64(1, "s") - np.timedelta64(1, "us")
+        exp_index = exp_index + Timedelta(1, "s") - Timedelta(1, "us")
         tm.assert_index_equal(result.index, exp_index)
 
     def test_to_timestamp_columns(self):

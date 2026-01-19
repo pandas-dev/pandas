@@ -824,7 +824,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
                 adjust = np.timedelta64(1, "D") - np.timedelta64(1, unit)
                 return self.to_timestamp(how="start") + adjust
             else:
-                adjust = Timedelta(1, unit=unit).as_unit(unit)
+                adjust = Timedelta(1, unit=unit)
                 return (self + self.freq).to_timestamp(how="start") - adjust
 
         if freq is None:
