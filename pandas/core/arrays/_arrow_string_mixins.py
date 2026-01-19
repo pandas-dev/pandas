@@ -299,77 +299,68 @@ class ArrowStringArrayMixin:
     @staticmethod
     def _has_regex_backref(pat: str | re.Pattern) -> bool:
         """
-        Determine if regex pattern contains a backreference.
+        Check if regex pattern contains backreferences.
 
         Parameters
         ----------
-        pat: str | re.Pattern
-            Regex pattern.
+        pat : str | re.Pattern
+            Regex pattern to check.
 
         Returns
         -------
         bool
-            Whether `pat` contains a backreference.
+            True if pattern contains backreferences.
         """
         try:
             from re import _parser  # type: ignore[attr-defined]
-
-            regex_parser = _parser.parse
-        except Exception as err:
-            raise type(err)(
-                "Incompatible version for regex; you will need to upgrade pandas "
-                "or downgrade Python"
+        except ImportError as err:
+            raise ImportError(
+                "Regex parsing requires Python's re._parser module"
             ) from err
 
-        def has_backref(tokens):
-            for op_code, argument in tokens:
-                if (
-                    (op_code == _parser.SUBPATTERN and has_backref(argument[3]))
-                    or (
-                        op_code == _parser.BRANCH
-                        and any(has_backref(t) for t in argument[1])
-                    )
-                    or (op_code in [_parser.GROUPREF, _parser.GROUPREF_EXISTS])
-                ):
+        def check_tokens(tokens):
+            for op, av in tokens:
+                if op in (_parser.GROUPREF, _parser.GROUPREF_EXISTS):
                     return True
+                elif op == _parser.SUBPATTERN:
+                    if check_tokens(av[3]):  # av[3] contains nested tokens
+                        return True
+                elif op == _parser.BRANCH:
+                    for branch_tokens in av[1]:
+                        if check_tokens(branch_tokens):
+                            return True
             return False
 
         str_pat = pat.pattern if isinstance(pat, re.Pattern) else pat
-        tokens = regex_parser(str_pat)
-        return has_backref(tokens)
+        parsed = _parser.parse(str_pat)
+        return check_tokens(parsed)
 
-    def _str_contains_fallback(self, pat, case, flags, na, regex):
-        """
-        Fallback for unsupported regex features.
-        """
+    def _str_contains(
+        self, pat, case: bool = True, flags: int = 0, na=None, regex: bool = True
+    ):
         import numpy as np
         import pyarrow as pa
 
         from pandas import Series
         from pandas.core.arrays.arrow import ArrowExtensionArray
 
-        arr = np.array(self, dtype=object)
-        result = Series(arr, dtype=object).str.contains(
-            pat, case=case, flags=flags, na=na, regex=regex
-        )
+        def _fallback():
+            arr = np.array(self, dtype=object)
+            result = Series(arr, dtype=object).str.contains(
+                pat, case=case, flags=flags, na=na, regex=regex
+            )
+            try:
+                pa_result = pa.array(result, from_pandas=True)
+            except Exception:
+                pa_result = pa.array(result)
+            return ArrowExtensionArray(pa_result)
 
-        try:
-            pa_result = pa.array(result, from_pandas=True)
-        except Exception:
-            pa_result = pa.array(result)
-
-        return ArrowExtensionArray(pa_result)
-
-    def _str_contains(
-        self, pat, case: bool = True, flags: int = 0, na=None, regex: bool = True
-    ):
         if flags:
-            return self._str_contains_fallback(pat, case, flags, na, regex)
+            return _fallback()
 
         if regex:
-            # Use the existing lookaround check and our new backref check
             if self._has_regex_lookaround(pat) or self._has_regex_backref(pat):
-                return self._str_contains_fallback(pat, case, flags, na, regex)
+                return _fallback()
 
             import pyarrow.compute as pc
 
@@ -378,8 +369,7 @@ class ArrowStringArrayMixin:
                     self._pa_array, pat, ignore_case=not case
                 )
             except (NotImplementedError, pa.ArrowInvalid):
-                return self._str_contains_fallback(pat, case, flags, na, regex)
-
+                return _fallback()
         else:
             import pyarrow.compute as pc
 
