@@ -7,6 +7,9 @@ inputs:
   werror:
     description: Enable werror flag for build
     default: true
+  extra-args:
+    description: Extra arguments passed to `pip install`
+    default: ""
 runs:
   using: composite
   steps:
@@ -29,9 +32,11 @@ runs:
       run: |
         if [[ ${{ inputs.editable }} == "true" ]]; then
           pip install -e . --no-build-isolation -v --no-deps \
-            ${{ inputs.werror == 'true' && '-Csetup-args="--werror"' || '' }}
+            ${{ inputs.werror == 'true' && '-Csetup-args="--werror"' || '' }} \
+            ${{ inputs.extra-args }}
         else
           pip install . --no-build-isolation -v --no-deps \
-            ${{ inputs.werror == 'true' && '-Csetup-args="--werror"' || '' }}
+            ${{ inputs.werror == 'true' && '-Csetup-args="--werror"' || '' }} \
+            ${{ inputs.extra-args }}
         fi
       shell: bash -el {0}
