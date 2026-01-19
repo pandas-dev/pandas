@@ -740,7 +740,7 @@ def test_extract_lookarounds(any_string_dtype, pat, expected_data):
     if any_string_dtype == "object":
         # object input will preserve None but any result with no matches gets NaN
         expected_data = [np.nan if e is None else e for e in expected_data]
-    expected = Series(expected_data + [None], dtype=any_string_dtype)
+    expected = Series([*expected_data, None], dtype=any_string_dtype)
     tm.assert_series_equal(result, expected)
 
 
