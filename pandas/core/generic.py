@@ -9783,6 +9783,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Replace values where the condition is False.
 
+        This method allows conditional replacement of values. Where the
+        condition evaluates to True, the original values are retained; where
+        it evaluates to False, values are replaced with corresponding entries
+        from ``other``.
+
         Parameters
         ----------
         cond : bool Series/DataFrame, array-like, or callable
