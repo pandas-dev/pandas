@@ -155,19 +155,19 @@ class TestGH63739:
         self, nullable_string_dtype, values, pat, expected_values
     ):
         import warnings
-        
+
         ser = Series(values, dtype=nullable_string_dtype)
-        
+
         # Ignore warning about capture groups (required for backrefs)
         with warnings.catch_warnings():
             warnings.filterwarnings(
-                "ignore", 
-                message="This pattern is interpreted as a regular expression", 
+                "ignore",
+                message="This pattern is interpreted as a regular expression",
                 category=UserWarning
             )
             result = ser.str.contains(pat, regex=True)
-        
+
         expected = Series(expected_values, dtype=object)
-        
+
         tm.assert_series_equal(result, expected, check_dtype=False)
 

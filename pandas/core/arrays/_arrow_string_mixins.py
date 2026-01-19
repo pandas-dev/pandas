@@ -314,17 +314,17 @@ class ArrowStringArrayMixin:
                 )
             except pa.ArrowInvalid:
                 from pandas import Series
-                
+
                 obj_arr = self.astype(object, copy=False)
-                
+
                 return Series(obj_arr, dtype=object).str.contains(
                     pat, case=case, flags=flags, na=na, regex=regex
                 ).array
         else:
             result = pc.match_substring(self._pa_array, pat, ignore_case=not case)
-            
+
         return self._convert_bool_result(result, na=na, method_name="contains")
-    
+
     def _str_match(
         self,
         pat: str,
