@@ -987,7 +987,7 @@ def test_replace_lookarounds(any_string_dtype, pat, expected_data):
         null_result = pd.NA
     else:
         raise ValueError(f"Unrecognized dtype: {any_string_dtype}")
-    expected = Series(expected_data + [null_result], dtype=any_string_dtype)
+    expected = Series([*expected_data, null_result], dtype=any_string_dtype)
     tm.assert_series_equal(result, expected)
 
 
@@ -1171,7 +1171,7 @@ def test_match_lookarounds(any_string_dtype, pat, expected_data):
         raise ValueError(f"Unrecognized dtype: {any_string_dtype}")
     ser = Series(["aa", "ab", "ba", "bb", None], dtype=any_string_dtype)
     result = ser.str.match(pat)
-    expected = Series(expected_data + [null_result], dtype=expected_dtype)
+    expected = Series([*expected_data, null_result], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
 
@@ -1460,7 +1460,7 @@ def test_findall_lookarounds(any_string_dtype, pat, expected_data):
         null_result = pd.NA
     else:
         raise ValueError(f"Unrecognized dtype: {any_string_dtype}")
-    expected = Series(expected_data + [null_result])
+    expected = Series([*expected_data, null_result])
     tm.assert_series_equal(result, expected)
 
 

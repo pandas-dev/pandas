@@ -328,7 +328,7 @@ def test_split_lookarounds(any_string_dtype, pat, expected_data):
         null_result = pd.NA
     else:
         raise ValueError(f"Unrecognized dtype: {any_string_dtype}")
-    expected = Series(expected_data + [null_result])
+    expected = Series([*expected_data, null_result])
     tm.assert_series_equal(result, expected)
 
 
