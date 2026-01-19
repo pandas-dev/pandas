@@ -74,7 +74,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.BDay PR02,SA01" \
         -i "pandas.tseries.offsets.BusinessDay PR02,SA01" \
         -i "pandas.tseries.offsets.BusinessHour PR02,SA01" \
-        -i "pandas.tseries.offsets.BusinessHour.is_on_offset GL08" \
         -i "pandas.tseries.offsets.BusinessMonthBegin.is_on_offset GL08" \
         -i "pandas.tseries.offsets.BusinessMonthEnd.is_on_offset GL08" \
         -i "pandas.tseries.offsets.CBMonthBegin PR02" \
@@ -83,7 +82,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.CustomBusinessDay PR02,SA01" \
         -i "pandas.tseries.offsets.CustomBusinessDay.is_on_offset GL08" \
         -i "pandas.tseries.offsets.CustomBusinessHour PR02,SA01" \
-        -i "pandas.tseries.offsets.CustomBusinessHour.is_on_offset GL08" \
         -i "pandas.tseries.offsets.CustomBusinessMonthBegin PR02" \
         -i "pandas.tseries.offsets.CustomBusinessMonthEnd PR02" \
         -i "pandas.tseries.offsets.DateOffset.is_on_offset GL08" \
