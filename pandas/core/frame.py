@@ -5717,8 +5717,8 @@ class DataFrame(NDFrame, OpsMixin):
         DataFrame
             DataFrame with transformed column name
         """
-        self.columns = self.columns.map(func)
-        return self
+
+        return self.rename(columns=func)
 
     def reindex(
         self,
