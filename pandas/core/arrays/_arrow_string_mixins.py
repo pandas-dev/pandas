@@ -295,13 +295,12 @@ class ArrowStringArrayMixin:
     def _str_isupper(self):
         result = pc.utf8_is_upper(self._pa_array)
         return self._convert_bool_result(result)
-    
+
     def _has_regex_lookaround(self, pat: str) -> bool:
         """
         Check if pattern contains lookarounds (e.g. (?=...), (?!...), (?<=...), (?<!...)).
         """
         import re
-        # Escape parenthesis to match literally.
         return bool(re.search(r"\(\?(=|!|<=|<!)", pat))
 
     def _has_regex_backref(self, pat: str) -> bool:
@@ -310,13 +309,10 @@ class ArrowStringArrayMixin:
         """
         import re
         try:
-            # Check for numbered backreferences like \1, \2, etc.
             has_numbered = bool(re.search(r"\\[1-9]\d*", pat))
-            # Check for named backreferences like (?P=name)
             has_named = "(?P=" in pat
             return has_numbered or has_named
         except Exception:
-            # If pattern check fails, assume it might have backrefs (Fail Safe)
             return True
 
     def _str_contains_fallback(self, pat, case, flags, na, regex):
@@ -329,15 +325,12 @@ class ArrowStringArrayMixin:
         from pandas import Series
         from pandas.core.arrays.arrow import ArrowExtensionArray
 
-        # 1. Convert to numpy object array
         arr = np.array(self, dtype=object)
         
-        # 2. Run Python Regex via Series.str accessor
         result = Series(arr, dtype=object).str.contains(
             pat, case=case, flags=flags, na=na, regex=regex
         )
 
-        # 3. Convert back to Arrow BooleanArray
         try:
             pa_result = pa.array(result, from_pandas=True)
         except Exception:
