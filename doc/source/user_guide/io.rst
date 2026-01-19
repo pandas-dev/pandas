@@ -1915,8 +1915,15 @@ is ``None``. To explicitly force ``Series`` parsing, pass ``typ=series``
 * ``lines`` : reads file as one json object per line.
 * ``encoding`` : The encoding to use to decode py3 bytes.
 * ``chunksize`` : when used in combination with ``lines=True``, return a ``pandas.api.typing.JsonReader`` which reads in ``chunksize`` lines per iteration.
-* ``engine``: Either ``"ujson"``, the built-in JSON parser, or ``"pyarrow"`` which dispatches to pyarrow's ``pyarrow.json.read_json``.
-  The ``"pyarrow"`` is only available when ``lines=True``
+* ``engine``: ``"ujson"`` or ``"orjson"`` or ``"pyarrow"``, default ``"ujson"``
+
+    * ``"ujson"`` is the default built-in parser.
+    * ``"orjson"`` enables parsing of very large integers that may fail with
+      ``"ujson"``. Requires the optional dependency ``orjson`` to be installed.
+      Very large integers may be decoded as floating point values, following
+      orjson semantics.
+    * ``"pyarrow"`` dispatches to ``pyarrow.json.read_json`` and is only
+      available when ``lines=True``.
 
 The parser will raise one of ``ValueError/TypeError/AssertionError`` if the JSON is not parseable.
 

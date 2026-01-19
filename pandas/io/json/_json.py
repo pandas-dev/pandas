@@ -722,9 +722,14 @@ def read_json(
 
         .. versionadded:: 2.0
 
-    engine : {{"ujson", "pyarrow"}}, default "ujson"
+    engine : {{"ujson", "orjson", "pyarrow"}}, default "ujson"
         Parser engine to use. The ``"pyarrow"`` engine is only available when
         ``lines=True``.
+
+        ``"orjson"`` enables parsing of very large integer values that may fail
+        with ``"ujson"``. Requires the optional dependency ``orjson`` to be
+        installed. Extremely large integers may be decoded as floating point
+        values, following orjson semantics.
 
         .. versionadded:: 2.0
 
@@ -808,6 +813,14 @@ def read_json(
        index     a    b      c  d       e
     0      0     1  2.5   True  a  1577.2
     1      1  <NA>  4.5  False  b  1577.1
+
+    Using the ``orjson`` engine with very large integers:
+
+    >>> from io import StringIO
+    >>> json_str = '[{"composition":"Nb:100","n_atoms":128000,"space_group":229,"time":1000000000000000000000000}]'
+    >>> pd.read_json(StringIO(json_str), engine="orjson")
+    composition  n_atoms  space_group          time
+    0      Nb:100   128000          229  1.000000e+24
     """  # noqa: E501
     if orient == "table" and dtype:
         raise ValueError("cannot pass both dtype and orient='table'")
