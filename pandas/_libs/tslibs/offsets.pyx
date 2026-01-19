@@ -2904,6 +2904,49 @@ cdef class BusinessHour(BusinessMixin):
         return other
 
     def is_on_offset(self, dt: datetime) -> bool:
+        """
+        Return boolean whether a timestamp intersects with this frequency.
+
+        This method determines if a given timestamp falls within business hours.
+        Business hours are defined by the ``start`` and ``end`` parameters
+        (default 09:00 to 17:00). The timestamp must also fall on a business day
+        (Monday through Friday). If ``normalize`` is True, it also checks that
+        the time component is midnight.
+
+        Parameters
+        ----------
+        dt : datetime
+            Timestamp to check intersection with frequency.
+
+        Returns
+        -------
+        bool
+            True if the timestamp is within business hours, False otherwise.
+
+        See Also
+        --------
+        tseries.offsets.BusinessHour : Represents business hour offset.
+        tseries.offsets.BusinessDay.is_on_offset : Check if a timestamp is on
+            a business day.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2022, 8, 5, 10)
+        >>> ts.day_name()
+        'Friday'
+        >>> pd.offsets.BusinessHour().is_on_offset(ts)
+        True
+
+        >>> ts = pd.Timestamp(2022, 8, 5, 20)
+        >>> pd.offsets.BusinessHour().is_on_offset(ts)
+        False
+
+        >>> ts = pd.Timestamp(2022, 8, 6, 10)
+        >>> ts.day_name()
+        'Saturday'
+        >>> pd.offsets.BusinessHour().is_on_offset(ts)
+        False
+        """
         if self.normalize and not _is_normalized(dt):
             return False
 
