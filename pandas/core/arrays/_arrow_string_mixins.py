@@ -309,7 +309,9 @@ class ArrowStringArrayMixin:
 
         if regex:
             try:
-                result = pc.match_substring_regex(self._pa_array, pat, ignore_case=not case)
+                result = pc.match_substring_regex(
+                    self._pa_array, pat, ignore_case=not case
+                )
             except pa.ArrowInvalid:
                 from pandas import Series
                 

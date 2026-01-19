@@ -134,19 +134,16 @@ class TestGH63739:
     @pytest.mark.parametrize(
         "values, pat, expected_values",
         [
-            # Case 1: Simple backreference \1
             (
                 ["hello hello", "world world", "foo bar"],
                 r"(\w+)\s\1",
                 [True, True, False],
             ),
-            # Case 2: Nested backreference (Tuple wall / SubPattern)
             (
                 ["aa bb", "cc dd", "ab cd"],
                 r"((\w)\2)\s((\w)\4)",
                 [True, True, False],
             ),
-            # Case 3: Named backreference (?P=name)
             (
                 ["hello hello", "foo bar"],
                 r"(?P<word>\w+)\s(?P=word)",
@@ -161,7 +158,7 @@ class TestGH63739:
         
         ser = Series(values, dtype=nullable_string_dtype)
         
-        # We catch and ignore the UserWarning because backreferences REQUIRE match groups.
+        # Ignore warning about capture groups (required for backrefs)
         with warnings.catch_warnings():
             warnings.filterwarnings(
                 "ignore", 
@@ -170,8 +167,7 @@ class TestGH63739:
             )
             result = ser.str.contains(pat, regex=True)
         
-        # Fallback results are object-dtype (Python bools)
         expected = Series(expected_values, dtype=object)
         
         tm.assert_series_equal(result, expected, check_dtype=False)
-        
+
