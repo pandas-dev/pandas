@@ -5433,6 +5433,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         Cumulative max for each group.
 
+        Returns the cumulative maximum of values within each group. The result
+        has the same size as the input, with each element representing the
+        maximum of all preceding elements (including itself) within its group.
+
         Parameters
         ----------
         numeric_only : bool, default False
