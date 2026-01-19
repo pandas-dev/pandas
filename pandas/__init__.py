@@ -351,4 +351,3 @@ __all__ = [
     "unique",
     "wide_to_long",
 ]
-__version__ = "3.0.0"
