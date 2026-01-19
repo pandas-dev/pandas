@@ -221,7 +221,10 @@ jobs:
           # Windows contains a lot of warnings regarding unsafe type conversion.
           # It's possible to replicate some of them in clang with the `-Wconversion` flag.
           # Tracking issue: https://github.com/pandas-dev/pandas/issues/63701
-          extra-args: ${{ runner.os == 'Windows' && '-Csetup-args=-Dc_args="-wd4244 -wd4267 -wd4244 -wd4551"' || '' }}
+          extra-args: >-
+            ${{ runner.os == 'Windows'
+              && '-Csetup-args=-Dc_args="-wd4244 -wd4267" -Csetup-args=-Dcpp_args="-wd4244 -wd4551"'
+              || '' }}
 
       - name: Test
         uses: ./.github/actions/run-tests
