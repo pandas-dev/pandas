@@ -295,7 +295,7 @@ class ArrowStringArrayMixin:
     def _str_isupper(self):
         result = pc.utf8_is_upper(self._pa_array)
         return self._convert_bool_result(result)
-    
+
     def _str_contains(
         self,
         pat,
