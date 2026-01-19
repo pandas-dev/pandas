@@ -432,7 +432,11 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         flags: int = 0,
         na: Scalar | lib.NoDefault = lib.no_default,
     ):
-        if flags or self._is_re_pattern_with_flags(pat):
+        if (
+            flags
+            or self._is_re_pattern_with_flags(pat)
+            or self._has_regex_lookaround(pat)
+        ):
             return super()._str_fullmatch(pat, case, flags, na)
         if isinstance(pat, re.Pattern):
             pat, case, flags = self._preprocess_re_pattern(pat, case)
