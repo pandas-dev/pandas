@@ -295,38 +295,78 @@ class ArrowStringArrayMixin:
     def _str_isupper(self):
         result = pc.utf8_is_upper(self._pa_array)
         return self._convert_bool_result(result)
+    
+    def _has_regex_lookaround(self, pat: str) -> bool:
+        """
+        Check if pattern contains lookarounds (e.g. (?=...), (?!...), (?<=...), (?<!...)).
+        """
+        import re
+        # Escape parenthesis to match literally.
+        return bool(re.search(r"\(\?(=|!|<=|<!)", pat))
+
+    def _has_regex_backref(self, pat: str) -> bool:
+        """
+        Check if pattern contains backreferences (e.g. \1, (?P=name)).
+        """
+        import re
+        try:
+            # Check for numbered backreferences like \1, \2, etc.
+            has_numbered = bool(re.search(r"\\[1-9]\d*", pat))
+            # Check for named backreferences like (?P=name)
+            has_named = "(?P=" in pat
+            return has_numbered or has_named
+        except Exception:
+            # If pattern check fails, assume it might have backrefs (Fail Safe)
+            return True
+
+    def _str_contains_fallback(self, pat, case, flags, na, regex):
+        """
+        Fallback for unsupported regex features.
+        Converts to object dtype, runs Python regex, and converts back.
+        """
+        import numpy as np
+        import pyarrow as pa
+        from pandas import Series
+        from pandas.core.arrays.arrow import ArrowExtensionArray
+
+        # 1. Convert to numpy object array
+        arr = np.array(self, dtype=object)
+        
+        # 2. Run Python Regex via Series.str accessor
+        result = Series(arr, dtype=object).str.contains(
+            pat, case=case, flags=flags, na=na, regex=regex
+        )
+
+        # 3. Convert back to Arrow BooleanArray
+        try:
+            pa_result = pa.array(result, from_pandas=True)
+        except Exception:
+            pa_result = pa.array(result)
+            
+        return ArrowExtensionArray(pa_result)
 
     def _str_contains(
-        self,
-        pat,
-        case: bool = True,
-        flags: int = 0,
-        na: Scalar | lib.NoDefault = lib.no_default,
-        regex: bool = True,
+        self, pat, case: bool = True, flags: int = 0, na=None, regex: bool = True
     ):
         if flags:
-            raise NotImplementedError(f"contains not implemented with {flags=}")
+            return self._str_contains_fallback(pat, case, flags, na, regex)
 
         if regex:
+            # 1. Proactive Detection
+            if self._has_regex_lookaround(pat) or self._has_regex_backref(pat):
+                return self._str_contains_fallback(pat, case, flags, na, regex)
+
+            # 2. Safety Net
             try:
-                result = pc.match_substring_regex(
-                    self._pa_array, pat, ignore_case=not case
-                )
-            except pa.ArrowInvalid:
-                from pandas import Series
+                result = pc.match_substring_regex(self._pa_array, pat, ignore_case=not case)
+            except (NotImplementedError, pa.ArrowInvalid):
+                return self._str_contains_fallback(pat, case, flags, na, regex)
 
-                obj_arr = self.astype(object, copy=False)
-
-                return (
-                    Series(obj_arr, dtype=object)
-                    .str.contains(pat, case=case, flags=flags, na=na, regex=regex)
-                    .array
-                )
         else:
             result = pc.match_substring(self._pa_array, pat, ignore_case=not case)
 
         return self._convert_bool_result(result, na=na, method_name="contains")
-
+    
     def _str_match(
         self,
         pat: str,
