@@ -317,9 +317,11 @@ class ArrowStringArrayMixin:
 
                 obj_arr = self.astype(object, copy=False)
 
-                return Series(obj_arr, dtype=object).str.contains(
-                    pat, case=case, flags=flags, na=na, regex=regex
-                ).array
+                return (
+                    Series(obj_arr, dtype=object)
+                    .str.contains(pat, case=case, flags=flags, na=na, regex=regex)
+                    .array
+                )
         else:
             result = pc.match_substring(self._pa_array, pat, ignore_case=not case)
 

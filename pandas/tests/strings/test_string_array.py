@@ -125,6 +125,7 @@ def test_string_array_zfill(nullable_string_dtype, values, width, expected):
     expected = Series(expected, dtype=nullable_string_dtype)
     tm.assert_series_equal(result, expected)
 
+
 class TestGH63739:
     """
     Test that backreferences trigger fallback from RE2 to Python regex.
@@ -163,11 +164,10 @@ class TestGH63739:
             warnings.filterwarnings(
                 "ignore",
                 message="This pattern is interpreted as a regular expression",
-                category=UserWarning
+                category=UserWarning,
             )
             result = ser.str.contains(pat, regex=True)
 
         expected = Series(expected_values, dtype=object)
 
         tm.assert_series_equal(result, expected, check_dtype=False)
-
