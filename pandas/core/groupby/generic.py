@@ -1647,6 +1647,7 @@ class SeriesGroupBy(GroupBy[Series]):
            1    2
         2  5    6
            4    5
+        dtype: int64
         """
         f = partial(Series.nlargest, n=n, keep=keep)
         data = self._obj_with_exclusions
@@ -1710,6 +1711,7 @@ class SeriesGroupBy(GroupBy[Series]):
            1    2
         2  3    4
            4    5
+        dtype: int64
         """
         f = partial(Series.nsmallest, n=n, keep=keep)
         data = self._obj_with_exclusions
