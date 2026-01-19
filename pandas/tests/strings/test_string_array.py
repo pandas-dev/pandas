@@ -124,3 +124,54 @@ def test_string_array_zfill(nullable_string_dtype, values, width, expected):
     result = s.str.zfill(width)
     expected = Series(expected, dtype=nullable_string_dtype)
     tm.assert_series_equal(result, expected)
+
+class TestGH63739:
+    """
+    Test that backreferences trigger fallback from RE2 to Python regex.
+    GH#63739
+    """
+
+    @pytest.mark.parametrize(
+        "values, pat, expected_values",
+        [
+            # Case 1: Simple backreference \1
+            (
+                ["hello hello", "world world", "foo bar"],
+                r"(\w+)\s\1",
+                [True, True, False],
+            ),
+            # Case 2: Nested backreference (Tuple wall / SubPattern)
+            (
+                ["aa bb", "cc dd", "ab cd"],
+                r"((\w)\2)\s((\w)\4)",
+                [True, True, False],
+            ),
+            # Case 3: Named backreference (?P=name)
+            (
+                ["hello hello", "foo bar"],
+                r"(?P<word>\w+)\s(?P=word)",
+                [True, False],
+            ),
+        ],
+    )
+    def test_contains_backreferences(
+        self, nullable_string_dtype, values, pat, expected_values
+    ):
+        import warnings
+        
+        ser = Series(values, dtype=nullable_string_dtype)
+        
+        # We catch and ignore the UserWarning because backreferences REQUIRE match groups.
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore", 
+                message="This pattern is interpreted as a regular expression", 
+                category=UserWarning
+            )
+            result = ser.str.contains(pat, regex=True)
+        
+        # Fallback results are object-dtype (Python bools)
+        expected = Series(expected_values, dtype=object)
+        
+        tm.assert_series_equal(result, expected, check_dtype=False)
+        
