@@ -295,7 +295,7 @@ class ArrowStringArrayMixin:
     def _str_isupper(self):
         result = pc.utf8_is_upper(self._pa_array)
         return self._convert_bool_result(result)
-    
+
     @staticmethod
     def _has_regex_backref(pat: str | re.Pattern) -> bool:
         """
@@ -313,6 +313,7 @@ class ArrowStringArrayMixin:
         """
         try:
             from re import _parser  # type: ignore[attr-defined]
+
             regex_parser = _parser.parse
         except Exception as err:
             raise type(err)(
@@ -343,6 +344,7 @@ class ArrowStringArrayMixin:
         """
         import numpy as np
         import pyarrow as pa
+
         from pandas import Series
         from pandas.core.arrays.arrow import ArrowExtensionArray
 
@@ -355,7 +357,7 @@ class ArrowStringArrayMixin:
             pa_result = pa.array(result, from_pandas=True)
         except Exception:
             pa_result = pa.array(result)
-            
+
         return ArrowExtensionArray(pa_result)
 
     def _str_contains(
@@ -370,6 +372,7 @@ class ArrowStringArrayMixin:
                 return self._str_contains_fallback(pat, case, flags, na, regex)
 
             import pyarrow.compute as pc
+
             try:
                 result = pc.match_substring_regex(
                     self._pa_array, pat, ignore_case=not case
@@ -379,6 +382,7 @@ class ArrowStringArrayMixin:
 
         else:
             import pyarrow.compute as pc
+
             result = pc.match_substring(self._pa_array, pat, ignore_case=not case)
 
         return self._convert_bool_result(result, na=na, method_name="contains")
