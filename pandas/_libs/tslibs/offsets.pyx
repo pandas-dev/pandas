@@ -5747,6 +5747,25 @@ cdef class _CustomBusinessMonth(BusinessMixin):
 
     @cache_readonly
     def m_offset(self):
+        """
+        Return a MonthBegin or MonthEnd offset.
+
+        This is used internally to compute the month-based component
+        of the custom business month offset calculation.
+
+        See Also
+        --------
+        tseries.offsets.MonthBegin : Represents the start of the month.
+        tseries.offsets.MonthEnd : Represents the end of the month.
+
+        Examples
+        --------
+        >>> pd.offsets.CustomBusinessMonthBegin().m_offset
+        <MonthBegin>
+
+        >>> pd.offsets.CustomBusinessMonthEnd().m_offset
+        <MonthEnd>
+        """
         if self._prefix.endswith("S"):
             # MonthBegin
             moff = MonthBegin(n=1, normalize=False)
