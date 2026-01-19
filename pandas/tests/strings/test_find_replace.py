@@ -372,6 +372,45 @@ def test_contains_lookarounds(any_string_dtype, pat, expected_data, na):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "values, pat, expected_values",
+    [
+        (
+            ["hello hello", "world world", "foo bar"],
+            r"(\w+)\s\1",
+            [True, True, False],
+        ),
+        (
+            ["aa bb", "cc dd", "ab cd"],
+            r"((\w)\2)\s((\w)\4)",
+            [True, True, False],
+        ),
+        (
+            ["hello hello", "foo bar"],
+            r"(?P<word>\w+)\s(?P=word)",
+            [True, False],
+        ),
+    ],
+)
+def test_contains_backreferences(nullable_string_dtype, values, pat, expected_values):
+    # https://github.com/pandas-dev/pandas/issues/63739
+    import warnings
+
+    ser = Series(values, dtype=nullable_string_dtype)
+
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore",
+            message="This pattern is interpreted as a regular expression",
+            category=UserWarning,
+        )
+        result = ser.str.contains(pat, regex=True)
+
+    expected = Series(expected_values, dtype=object)
+
+    tm.assert_series_equal(result, expected, check_dtype=False)
+
+
 # --------------------------------------------------------------------------------------
 # str.startswith
 # --------------------------------------------------------------------------------------
