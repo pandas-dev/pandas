@@ -5703,6 +5703,25 @@ class DataFrame(NDFrame, OpsMixin):
         """
         return super().set_axis(labels, axis=axis, copy=copy)
 
+    def colmap(self,func) -> DataFrame:
+        '''
+        apply a function to all column names
+
+        parameters
+        -----------
+        func: function
+            function to transform each column name
+
+        returns
+        -------
+        DataFrame
+            DataFrame with transformed column name
+        '''
+        self.columns = self.columns.map(func)
+        return self
+
+
+
     def reindex(
         self,
         labels=None,
