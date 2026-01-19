@@ -484,6 +484,8 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     def _str_count(self, pat: str, flags: int = 0):
         if flags or self._has_regex_lookaround(pat):
             return super()._str_count(pat, flags)
+
+        pat, _, _ = self._preprocess_re_pattern(pat, True, 0)
         result = pc.count_substring_regex(self._pa_array, pat)
         return self._convert_int_result(result)
 
