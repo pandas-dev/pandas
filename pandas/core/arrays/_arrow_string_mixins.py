@@ -302,6 +302,7 @@ class ArrowStringArrayMixin:
         e.g. (?=...), (?!...), (?<=...), (?<!...)
         """
         import re
+
         return bool(re.search(r"\(\?(=|!|<=|<!)", pat))
 
     def _has_regex_backref(self, pat: str) -> bool:
@@ -309,6 +310,7 @@ class ArrowStringArrayMixin:
         Check if pattern contains backreferences (e.g. \1, (?P=name)).
         """
         import re
+
         try:
             has_numbered = bool(re.search(r"\\[1-9]\d*", pat))
             has_named = "(?P=" in pat
@@ -323,11 +325,12 @@ class ArrowStringArrayMixin:
         """
         import numpy as np
         import pyarrow as pa
+
         from pandas import Series
         from pandas.core.arrays.arrow import ArrowExtensionArray
 
         arr = np.array(self, dtype=object)
-        
+
         result = Series(arr, dtype=object).str.contains(
             pat, case=case, flags=flags, na=na, regex=regex
         )
@@ -336,7 +339,7 @@ class ArrowStringArrayMixin:
             pa_result = pa.array(result, from_pandas=True)
         except Exception:
             pa_result = pa.array(result)
-            
+
         return ArrowExtensionArray(pa_result)
 
     def _str_contains(
@@ -360,7 +363,7 @@ class ArrowStringArrayMixin:
             result = pc.match_substring(self._pa_array, pat, ignore_case=not case)
 
         return self._convert_bool_result(result, na=na, method_name="contains")
-    
+
     def _str_match(
         self,
         pat: str,
