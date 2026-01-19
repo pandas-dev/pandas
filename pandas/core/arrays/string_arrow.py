@@ -468,6 +468,9 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         ):
             return super()._str_replace(pat, repl, n, case, flags, regex)
 
+        if regex:
+            pat, case, flags = self._preprocess_re_pattern(pat, case, flags)
+
         return ArrowStringArrayMixin._str_replace(
             self, pat, repl, n, case, flags, regex
         )
