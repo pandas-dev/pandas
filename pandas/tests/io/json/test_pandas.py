@@ -1371,10 +1371,12 @@ class TestPandasContainer:
 
     @pytest.mark.network
     @pytest.mark.single_cpu
-    def test_url(self, httpserver):
+    def test_url(self, httpserver, json_engines_no_ndjson):
         data = '{"created_at": ["2023-06-23T18:21:36Z"], "closed_at": ["2023-06-23T18:21:36"], "updated_at": ["2023-06-23T18:21:36Z"]}\n'  # noqa: E501
         httpserver.serve_content(content=data)
-        result = read_json(httpserver.url, convert_dates=True, engine=json_engines_no_ndjson)
+        result = read_json(
+            httpserver.url, convert_dates=True, engine=json_engines_no_ndjson
+        )
         for field, dtype in [
             ["created_at", pd.DatetimeTZDtype("us", tz="UTC")],
             ["closed_at", "datetime64[us]"],
