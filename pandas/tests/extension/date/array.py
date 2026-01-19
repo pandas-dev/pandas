@@ -167,6 +167,9 @@ class DateArray(ExtensionArray):
     def copy(self) -> DateArray:
         return DateArray((self._year.copy(), self._month.copy(), self._day.copy()))
 
+    def view(self, dtype: Dtype | None = None) -> DateArray:
+        return DateArray((self._year.view(), self._month.view(), self._day.view()))
+
     def isna(self) -> np.ndarray:
         return np.logical_and(
             np.logical_and(

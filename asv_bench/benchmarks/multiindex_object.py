@@ -328,7 +328,7 @@ class Unique:
 
     def setup(self, dtype_val):
         level = Series(
-            [1, 2, dtype_val[1], dtype_val[1]] + list(range(1_000_000)),
+            [1, 2, dtype_val[1], dtype_val[1], *list(range(1000000))],
             dtype=dtype_val[0],
         )
         self.midx = MultiIndex.from_arrays([level, level])

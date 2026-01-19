@@ -167,7 +167,9 @@ jobs:
       id: build
       uses: ./.github/actions/build_pandas
       with:
-        # xref https://github.com/cython/cython/issues/6870
+        # python3.14t/cpython/pyatomic_gcc.h:63:10:
+        #   error: ‘__atomic_fetch_add_8’
+        #   writing 8 bytes into a region of size 0 overflows the destination [-Werror=stringop-overflow=]
         werror: ${{ matrix.name != 'Freethreading' }}
 
     - name: Test (not single_cpu)
@@ -215,6 +217,11 @@ jobs:
 
       - name: Build Pandas
         uses: ./.github/actions/build_pandas
+        with:
+          # Windows contains a lot of warnings regarding unsafe type conversion.
+          # It's possible to replicate some of them in clang with the `-Wconversion` flag.
+          # Tracking issue: https://github.com/pandas-dev/pandas/issues/63701
+          werror: ${{ runner.os != 'Windows' }}
 
       - name: Test
         uses: ./.github/actions/run-tests

@@ -2917,9 +2917,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             if not (is_float(periods) and periods.is_integer()):
                 raise ValueError("periods must be an integer")
         result = algorithms.diff(self._values, periods)
-        return self._constructor(result, index=self.index, copy=False).__finalize__(
-            self, method="diff"
-        )
+        return self._constructor(
+            result, index=self.index.view(), copy=False
+        ).__finalize__(self, method="diff")
 
     def autocorr(self, lag: int = 1) -> float:
         """
@@ -3034,7 +3034,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 )
 
         if isinstance(other, ABCDataFrame):
-            common_type = find_common_type([self.dtypes] + list(other.dtypes))
+            common_type = find_common_type([self.dtypes, *list(other.dtypes)])
             return self._constructor(
                 np.dot(lvals, rvals), index=other.columns, copy=False, dtype=common_type
             ).__finalize__(self, method="dot")
