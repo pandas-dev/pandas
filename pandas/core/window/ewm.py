@@ -532,7 +532,7 @@ class ExponentialMovingWindow(BaseWindow):
         engine_kwargs=None,
     ):
         """
-        template_headerCalculate the ewm (exponential weighted moment) mean
+        Calculate the ewm (exponential weighted moment) mean.
 
         Parameters
         ----------
