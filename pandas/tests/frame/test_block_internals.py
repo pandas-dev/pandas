@@ -383,3 +383,34 @@ def test_update_inplace_sets_valid_block_values():
 
     # check we haven't put a Series into any block.values
     assert isinstance(df._mgr.blocks[0].values, Categorical)
+
+
+def test_multithreaded_reading(float_frame):
+    def numpy_assert(b):
+        b.wait()
+        # See gh-63685, numpy asserts led to data races under TSan
+        np.testing.assert_array_equal(float_frame, float_frame)
+        np.testing.assert_array_almost_equal((float_frame + 1) - 1, float_frame)
+
+    tm.run_multithreaded(numpy_assert, max_workers=8, pass_barrier=True)
+
+    def safe_is_const(s):
+        try:
+            return np.ptp(s) == 0.0 and np.any(s != 0.0)
+        except Exception:
+            return False
+
+    def concat(b):
+        # based on a test from statsmodels that triggered races in Pandas
+        # under pytest-run-parallel
+        b.wait()
+        x = float_frame.copy()
+        nobs = len(x)
+        trendarr = np.fliplr(np.vander(np.arange(1, nobs + 1, dtype=np.float64), 1))
+        col_const = x.apply(safe_is_const, 0)
+        trendarr = pd.DataFrame(trendarr, index=x.index, columns=['const'])
+        x = [trendarr, x]
+        x = pd.concat(x[::1], axis=1)
+        np.testing.assert_array_equal(x, x)
+
+    tm.run_multithreaded(concat, max_workers=8, pass_barrier=True)
