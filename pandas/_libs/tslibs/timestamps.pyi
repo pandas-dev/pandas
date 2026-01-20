@@ -24,6 +24,7 @@ from pandas._libs.tslibs import (
     Timedelta,
 )
 from pandas._typing import (
+    Frequency,
     TimestampNonexistent,
     TimeUnit,
 )
@@ -198,19 +199,19 @@ class Timestamp(datetime):
     # TODO: round/floor/ceil could return NaT?
     def round(
         self,
-        freq: str,
+        freq: Frequency | timedelta,
         ambiguous: bool | Literal["raise", "NaT"] = ...,
         nonexistent: TimestampNonexistent = ...,
     ) -> Self: ...
     def floor(
         self,
-        freq: str,
+        freq: Frequency | timedelta,
         ambiguous: bool | Literal["raise", "NaT"] = ...,
         nonexistent: TimestampNonexistent = ...,
     ) -> Self: ...
     def ceil(
         self,
-        freq: str,
+        freq: Frequency | timedelta,
         ambiguous: bool | Literal["raise", "NaT"] = ...,
         nonexistent: TimestampNonexistent = ...,
     ) -> Self: ...
