@@ -274,6 +274,7 @@ class TestPandasContainer:
     @pytest.mark.parametrize(
         "dtype_backend", [None, pytest.param("pyarrow", marks=td.skip_if_no("pyarrow"))]
     )
+    @pytest.mark.parametrize("convert_axes", [True, False])
     def test_roundtrip_timestamp(
         self, orient, convert_axes, dtype_backend, datetime_frame
     ):
