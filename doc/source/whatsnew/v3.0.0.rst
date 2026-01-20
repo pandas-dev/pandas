@@ -401,9 +401,10 @@ This is also a change for the :class:`Timestamp` constructor with a string input
     converting to integers, which will give integers 1000x smaller.
 
     When converting datetime-like data to integers, it is recommended to avoid
-    ``astype("int64")`` to make your code agnostic to the exact unit.
+    ``astype("int64")`` to make your code agnostic to the exact unit, or ensure
+    the desired unit with :func:`~Series.dt.as_unit` before casting.
 
-    See :ref:`timeseries.converting.epoch_inverse`.
+    See :ref:`timeseries.converting.epoch_inverse` for more details.
 
 .. _whatsnew_300.api_breaking.concat_datetime_sorting:
 
