@@ -4397,20 +4397,17 @@ def test_xsqlite_if_exists(sqlite_buildin):
     drop_table(table_name, sqlite_buildin)
 
 
-def test_read_sql_query_dictcursor():
-    """
-    Test for GH#53028: DictCursor returns dictionaries which cause
-    read_sql_query to populate DataFrame with column names instead of actual values.
-    """
+@pytest.mark.parametrize("conn", ["sqlite_buildin"])
+def test_read_sql_query_dictcursor(conn, request):
+    # GH#53028
+    conn = request.getfixturevalue(conn)
 
     def sqlite3_factory(cursor: Any, row: Any) -> Any:
-        """Convert SQL row into a Dict rather than Tuple"""
         d = {}
         for idx, col in enumerate(cursor.description):
             d[col[0]] = row[idx]
         return d
 
-    conn = sqlite3.connect(":memory:")
     conn.row_factory = sqlite3_factory
 
     df_input = DataFrame(
@@ -4426,4 +4423,3 @@ def test_read_sql_query_dictcursor():
     )
 
     tm.assert_frame_equal(result, expected)
-    conn.close()
