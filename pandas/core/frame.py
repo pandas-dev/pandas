@@ -10080,8 +10080,9 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Get Addition of dataframe and other, element-wise (binary operator `add`).
 
-        Equivalent to ``dataframe + other``, but with support to substitute a fill_value
-        for missing data in one of the inputs. With reverse version, `radd`.
+        Equivalent to ``dataframe + other``, but with support to substitute a
+        fill_value for missing data in one of the inputs. With reverse version,
+        `radd`.
 
         Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`)
         to arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
@@ -10278,8 +10279,9 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Get Addition of dataframe and other, element-wise (binary operator `radd`).
 
-        Equivalent to ``other + dataframe``, but with support to substitute a fill_value
-        for missing data in one of the inputs. With reverse version, `add`.
+        Equivalent to ``other + dataframe``, but with support to substitute a
+        fill_value for missing data in one of the inputs. With reverse version,
+        `add`.
 
         Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`)
         to arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
