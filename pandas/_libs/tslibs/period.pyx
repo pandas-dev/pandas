@@ -1688,7 +1688,7 @@ cdef class PeriodMixin:
         Timestamp('2012-01-01 00:00:00')
 
         >>> period.end_time
-        Timestamp('2012-01-01 23:59:59.999999999')
+        Timestamp('2012-01-01 23:59:59.999999')
         """
         return self.to_timestamp(how="start")
 
@@ -1725,19 +1725,19 @@ cdef class PeriodMixin:
         2   2020-03
         dtype: period[M]
         >>> s.dt.end_time
-        0   2020-01-31 23:59:59.999999999
-        1   2020-02-29 23:59:59.999999999
-        2   2020-03-31 23:59:59.999999999
-        dtype: datetime64[ns]
+        0   2020-01-31 23:59:59.999999
+        1   2020-02-29 23:59:59.999999
+        2   2020-03-31 23:59:59.999999
+        dtype: datetime64[us]
 
         For PeriodIndex:
 
         >>> idx = pd.PeriodIndex(["2023-01", "2023-02", "2023-03"], freq="M")
         >>> idx.end_time
-        DatetimeIndex(['2023-01-31 23:59:59.999999999',
-                       '2023-02-28 23:59:59.999999999',
-                       '2023-03-31 23:59:59.999999999'],
-                       dtype='datetime64[ns]', freq=None)
+        DatetimeIndex(['2023-01-31 23:59:59.999999',
+                       '2023-02-28 23:59:59.999999',
+                       '2023-03-31 23:59:59.999999'],
+                       dtype='datetime64[us]', freq=None)
         """
         return self.to_timestamp(how="end")
 
