@@ -7624,8 +7624,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     def rmul(self, other, level=None, fill_value=None, axis: Axis = 0) -> Series:
         """
-        Return Multiplication of series and other, element-wise (binary operator
-        `rmul`).
+        Return Multiplication of series and other, \
+        element-wise (binary operator `rmul`).
 
         Equivalent to ``other * series``, but with support to substitute a
         fill_value for missing data in either one of the inputs.
@@ -7755,8 +7755,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     def rtruediv(self, other, level=None, fill_value=None, axis: Axis = 0) -> Series:
         """
-        Return Floating division of series and other, element-wise (binary operator
-        `rtruediv`).
+        Return Floating division of series and other, \
+        element-wise (binary operator `rtruediv`).
 
         Equivalent to ``other / series``, but with support to substitute a
         fill_value for missing data in either one of the inputs.
@@ -7822,8 +7822,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     def floordiv(self, other, level=None, fill_value=None, axis: Axis = 0) -> Series:
         """
-        Return Integer division of series and other, element-wise (binary operator
-        `floordiv`).
+        Return Integer division of series and other, \
+        element-wise (binary operator `floordiv`).
 
         Equivalent to ``series // other``, but with support to substitute a
         fill_value for missing data in either one of the inputs.
@@ -7887,8 +7887,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     def rfloordiv(self, other, level=None, fill_value=None, axis: Axis = 0) -> Series:
         """
-        Return Integer division of series and other, element-wise (binary operator
-        `rfloordiv`).
+        Return Integer division of series and other, \
+        element-wise (binary operator `rfloordiv`).
 
         Equivalent to ``other // series``, but with support to substitute a
         fill_value for missing data in either one of the inputs.
@@ -8014,8 +8014,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     def rmod(self, other, level=None, fill_value=None, axis: Axis = 0) -> Series:
         """
-        Return Modulo of series and other, element-wise (binary operator
-        `rmod`).
+        Return Modulo of series and other, \
+        element-wise (binary operator `rmod`).
 
         Equivalent to ``other % series``, but with support to substitute a
         fill_value for missing data in either one of the inputs.
@@ -8079,8 +8079,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     def pow(self, other, level=None, fill_value=None, axis: Axis = 0) -> Series:
         """
-        Return Exponential power of series and other, element-wise (binary operator
-        `pow`).
+        Return Exponential power of series and other, \
+        element-wise (binary operator `pow`).
 
         Equivalent to ``series ** other``, but with support to substitute a
         fill_value for missing data in either one of the inputs.
@@ -8144,8 +8144,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     def rpow(self, other, level=None, fill_value=None, axis: Axis = 0) -> Series:
         """
-        Return Exponential power of series and other, element-wise (binary operator
-        `rpow`).
+        Return Exponential power of series and other, \
+        element-wise (binary operator `rpow`).
 
         Equivalent to ``other ** series``, but with support to substitute a
         fill_value for missing data in either one of the inputs.
@@ -8209,8 +8209,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     def divmod(self, other, level=None, fill_value=None, axis: Axis = 0) -> Series:
         """
-        Return Integer division and modulo of series and other, element-wise (binary
-        operator `divmod`).
+        Return Integer division and modulo of series and other, \
+        element-wise (binary operator `divmod`).
 
         Equivalent to ``divmod(series, other)``, but with support to substitute a
         fill_value for missing data in either one of the inputs.
@@ -8280,8 +8280,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     def rdivmod(self, other, level=None, fill_value=None, axis: Axis = 0) -> Series:
         """
-        Return Integer division and modulo of series and other, element-wise (binary
-        operator `rdivmod`).
+        Return Integer division and modulo of series and other, \
+        element-wise (binary operator `rdivmod`).
 
         Equivalent to ``other divmod series``, but with support to substitute a
         fill_value for missing data in either one of the inputs.
