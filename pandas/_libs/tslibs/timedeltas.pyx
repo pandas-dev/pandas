@@ -2337,8 +2337,8 @@ class Timedelta(_Timedelta):
 
         Parameters
         ----------
-        freq : str or Timedelta
-            Frequency string indicating the rounding resolution or a timedelta value.
+        freq : str or timedelta
+            Frequency string or timedelta value indicating the rounding resolution.
             It uses the same units as class constructor :class:`~pandas.Timedelta`.
 
         Returns
@@ -2376,8 +2376,8 @@ class Timedelta(_Timedelta):
 
         Parameters
         ----------
-        freq : str or Timedelta
-            Frequency string indicating the flooring resolution or a timedelta value.
+        freq : str or timedelta
+            Frequency string or timedelta value indicating the flooring resolution.
             It uses the same units as class constructor :class:`~pandas.Timedelta`.
 
         Returns
@@ -2412,8 +2412,8 @@ class Timedelta(_Timedelta):
 
         Parameters
         ----------
-        freq : str or Timedelta
-            Frequency string indicating the ceiling resolution or a timedelta value.
+        freq : str or timedelta
+            Frequency string or timedelta value indicating the ceiling resolution.
             Must be a fixed frequency like 's' (second) not 'ME' (month end). See
             :ref:`frequency aliases <timeseries.offset_aliases>` for
             a list of possible `freq` values.

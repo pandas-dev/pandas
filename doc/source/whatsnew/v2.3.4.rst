@@ -12,7 +12,7 @@ including other versions of pandas.
 
 Enhancements
 ^^^^^^^^^^^^
-- :meth:`Timestamp.round`, :meth:`Timestamp.floor`, :meth:`Timestamp.ceil`, :meth:`Timedelta.round`, :meth:`Timedelta.floor`, and :meth:`Timedelta.ceil` now officially accept :class:`Timedelta` arguments (:issue:`63687`)
+- :meth:`Timestamp.round`, :meth:`Timestamp.floor`, :meth:`Timestamp.ceil`, :meth:`Timedelta.round`, :meth:`Timedelta.floor`, and :meth:`Timedelta.ceil` now officially accept :class:`Timedelta` and ``datetime.timedelta`` arguments (:issue:`63687`)
 
 .. ---------------------------------------------------------------------------
 

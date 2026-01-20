@@ -1335,8 +1335,8 @@ class NaTType(_NaT):
 
         Parameters
         ----------
-        freq : str or Timedelta
-            Frequency string indicating the rounding resolution or a timedelta value.
+        freq : str or timedelta
+            Frequency string or timedelta value indicating the rounding resolution.
         ambiguous : bool or {'raise', 'NaT'}, default 'raise'
             The behavior is as follows:
 
@@ -1441,8 +1441,8 @@ timedelta}, default 'raise'
 
         Parameters
         ----------
-        freq : str or Timedelta
-            Frequency string indicating the flooring resolution or a timedelta value.
+        freq : str or timedelta
+            Frequency string or timedelta value indicating the flooring resolution.
         ambiguous : bool or {'raise', 'NaT'}, default 'raise'
             The behavior is as follows:
 
@@ -1541,8 +1541,8 @@ timedelta}, default 'raise'
 
         Parameters
         ----------
-        freq : str or Timedelta
-            Frequency string indicating the ceiling resolution or a timedelta value.
+        freq : str or timedelta
+            Frequency string or timedelta value indicating the ceiling resolution.
         ambiguous : bool or {'raise', 'NaT'}, default 'raise'
             The behavior is as follows:
 
