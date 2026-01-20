@@ -27,6 +27,11 @@ if TYPE_CHECKING:
     from pandas import Index
     from pandas.core.generic import NDFrame
 
+from importlib.metadata import (
+    EntryPoints,
+    entry_points,
+)
+
 
 class DirNamesMixin:
     _accessors: set[str] = set()
@@ -586,3 +591,122 @@ def register_index_accessor(name: str) -> Callable[[TypeT], TypeT]:
     from pandas import Index
 
     return _register_accessor(name, Index)
+
+
+def accessor_entry_point_loader() -> None:
+    """
+    Load and register pandas accessors declared via entry points.
+
+    This function scans the 'pandas.<pd_obj>.accessor' entry point group for
+    accessors registered by third-party packages. These accessors extend
+    core pandas objects (`DataFrame`, `Series`, `Index`).
+
+    Each entry point is expected to follow the format:
+
+        # setup.py
+        entry_points={
+            'pandas.DataFrame.accessor': [ <name> = <module>:<AccessorClass>, ... ],
+            'pandas.Series.accessor':    [ <name> = <module>:<AccessorClass>, ... ],
+            'pandas.Index.accessor':     [ <name> = <module>:<AccessorClass>, ... ],
+        }
+
+    OR using pyproject.toml file:
+
+        # pyproject.toml
+        [project.entry-points."pandas.DataFrame.accessor"]
+        <name> = "<module>:<AccessorClass>"
+
+        [project.entry-points."pandas.Series.accessor"]
+        <name> = "<module>:<AccessorClass>"
+
+        [project.entry-points."pandas.Index.accessor"]
+        <name> = "<module>:<AccessorClass>"
+
+
+    For each valid entry point:
+    - The accessor class is dynamically imported and registered using
+      the appropriate registration decorator function
+      (e.g. register_dataframe_accessor).
+    - If two packages declare the same accessor name, a warning is issued,
+      and only the first one is used.
+
+    Notes
+    -----
+    - This function is only intended to be called at pandas startup.
+    - For more information about accessors, refer to:
+        - Pandas documentation on extending accessors:
+          https://pandas.pydata.org/docs/development/extending.html#registering-custom-accessors
+        - Series accessor API reference:
+          https://pandas.pydata.org/docs/reference/series.html#accessors
+        - Note: DataFrame and Index accessors (e.g., `.sparse`, `.str`) use the same
+          mechanism but are not listed in separate reference pages as of now.
+
+    - For background on Python plugin entry points:
+    https://packaging.python.org/en/latest/guides/creating-and-discovering-plugins/#plugin-entry-points
+
+    Raises
+    ------
+    UserWarning
+        If two accessors share the same name, the second one is ignored.
+
+    Examples
+    --------
+        # setup.py
+        entry_points={
+            'pandas.DataFrame.accessor': [
+                'myplugin = myplugin.accessor:MyPluginAccessor',
+            ],
+        }
+        # END setup.py
+
+        - That entrypoint would allow the following code:
+
+        import pandas as pd
+
+        df = pd.DataFrame({"A": [1, 2, 3]})
+        df.myplugin.do_something() # Calls MyPluginAccessor.do_something()
+    """
+
+    ACCESSOR_REGISTRY_FUNCTIONS: dict[str, Callable] = {
+        "pandas.DataFrame.accessor": register_dataframe_accessor,
+        "pandas.Series.accessor": register_series_accessor,
+        "pandas.Index.accessor": register_index_accessor,
+    }
+
+    PD_OBJ_ENTRYPOINTS: tuple[str, ...] = tuple(ACCESSOR_REGISTRY_FUNCTIONS.keys())
+
+    for pd_obj_entrypoint in PD_OBJ_ENTRYPOINTS:
+        accessors: EntryPoints = entry_points(group=pd_obj_entrypoint)
+        accessor_package_dict: dict[str, str] = {}
+
+        for new_accessor in accessors:
+            dist = getattr(new_accessor, "dist", None)
+            new_pkg_name = getattr(dist, "name", "Unknown") if dist else "Unknown"
+
+            # Verifies duplicated accessor names
+            if new_accessor.name in accessor_package_dict:
+                loaded_pkg_name: str = accessor_package_dict.get(
+                    new_accessor.name, "Unknown"
+                )
+
+                warnings.warn(
+                    "Warning: you have two accessors with the same name:"
+                    f" '{new_accessor.name}' has already been registered"
+                    f" by the package '{new_pkg_name}'. The "
+                    f"'{new_accessor.name}' provided by the package "
+                    f"'{loaded_pkg_name}' is not being used. "
+                    "Uninstall the package you don't want"
+                    "to use if you want to get rid of this warning.\n",
+                    UserWarning,
+                    stacklevel=2,
+                )
+
+            accessor_package_dict.update({new_accessor.name: new_pkg_name})
+
+            def make_accessor(ep):
+                return lambda self, ep=ep: ep.load()(self)
+
+            register_fn = ACCESSOR_REGISTRY_FUNCTIONS.get(pd_obj_entrypoint)
+
+            if register_fn is not None:
+                register_fn(new_accessor.name)(make_accessor(new_accessor))
