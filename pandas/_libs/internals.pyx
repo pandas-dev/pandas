@@ -148,8 +148,10 @@ cdef class BlockPlacement:
             start, stop, step, _ = slice_get_indices_ex(self._as_slice)
             # NOTE: this is the C-optimized equivalent of
             #  `np.arange(start, stop, step, dtype=np.intp)`
-            self._as_array = cnp.PyArray_Arange(start, stop, step, NPY_INTP)
-            self._has_array = True
+            as_array = cnp.PyArray_Arange(start, stop, step, NPY_INTP)
+            if not self._has_array:
+                self._as_array = as_array
+                self._has_array = True
 
         return self._as_array
 
@@ -775,6 +777,8 @@ cdef class BlockManager:
             BlockPlacement bp
             ndarray[intp_t, ndim=1] new_blknos, new_blklocs
 
+        if self._blknos is not None:
+            return
         # equiv: np.empty(length, dtype=np.intp)
         new_blknos = cnp.PyArray_EMPTY(1, &length, cnp.NPY_INTP, 0)
         new_blklocs = cnp.PyArray_EMPTY(1, &length, cnp.NPY_INTP, 0)
