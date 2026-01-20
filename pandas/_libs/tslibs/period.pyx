@@ -1713,7 +1713,7 @@ cdef class PeriodMixin:
         For Period:
 
         >>> pd.Period('2020-01', 'D').end_time
-        Timestamp('2020-01-01 23:59:59.999999999')
+        Timestamp('2020-01-01 23:59:59.999999')
 
         For Series:
 
