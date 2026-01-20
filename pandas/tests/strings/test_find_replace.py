@@ -1000,6 +1000,30 @@ def test_replace_lookarounds(any_string_dtype, pat, expected_data):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "pat, expected_data",
+    [
+        (r"(\w+)\s\1", ["aa", "x", "ba", "x"]),
+        (r"((\w)\2)\s((\w)\4)", ["aa", "x", "ba", "bb bb"]),
+        (r"(?P<word>\w+)\s(?P=word)", ["aa", "x", "ba", "x"]),
+    ],
+)
+def test_replace_backreferences(any_string_dtype, pat, expected_data):
+    # GH#63739
+    ser = Series(["aa", "ab ab", "ba", "bb bb", None], dtype=any_string_dtype)
+    result = ser.str.replace(pat, "x", regex=True)
+    if any_string_dtype == "object":
+        null_result = None
+    elif any_string_dtype == "str":
+        null_result = np.nan
+    elif any_string_dtype == "string":
+        null_result = pd.NA
+    else:
+        raise ValueError(f"Unrecognized dtype: {any_string_dtype}")
+    expected = Series(expected_data + [null_result], dtype=any_string_dtype)
+    tm.assert_series_equal(result, expected)
+
+
 # --------------------------------------------------------------------------------------
 # str.match
 # --------------------------------------------------------------------------------------
@@ -1184,6 +1208,30 @@ def test_match_lookarounds(any_string_dtype, pat, expected_data):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "pat, expected_data",
+    [
+        (r"(\w+)\s\1", [False, True, False, True]),
+        (r"((\w)\2)\s((\w)\4)", [False, True, False, False]),
+        (r"(?P<word>\w+)\s(?P=word)", [False, True, False, True]),
+    ],
+)
+def test_match_backreferences(any_string_dtype, pat, expected_data):
+    # GH#63739
+    if any_string_dtype == "object":
+        expected_dtype, null_result = "object", None
+    elif any_string_dtype == "str":
+        expected_dtype, null_result = "bool", False
+    elif any_string_dtype == "string":
+        expected_dtype, null_result = "boolean", pd.NA
+    else:
+        raise ValueError(f"Unrecognized dtype: {any_string_dtype}")
+    ser = Series(["aa", "ab ab", "ba", "bb bb", None], dtype=any_string_dtype)
+    result = ser.str.match(pat)
+    expected = Series(expected_data + [null_result], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+
 # --------------------------------------------------------------------------------------
 # str.fullmatch
 # --------------------------------------------------------------------------------------
@@ -1347,6 +1395,30 @@ def test_fullmatch_lookarounds(any_string_dtype, pat):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "pat, expected_data",
+    [
+        (r"(\w+)\s\1", [False, True, False, True]),
+        (r"((\w)\2)\s((\w)\4)", [False, True, False, False]),
+        (r"(?P<word>\w+)\s(?P=word)", [False, True, False, True]),
+    ],
+)
+def test_fullmatch_backreferences(any_string_dtype, pat, expected_data):
+    # GH#63739
+    if any_string_dtype == "object":
+        expected_dtype, null_result = "object", None
+    elif any_string_dtype == "str":
+        expected_dtype, null_result = "bool", False
+    elif any_string_dtype == "string":
+        expected_dtype, null_result = "boolean", pd.NA
+    else:
+        raise ValueError(f"Unrecognized dtype: {any_string_dtype}")
+    ser = Series(["aa", "ab ab", "ba", "bb bb", None], dtype=any_string_dtype)
+    result = ser.str.fullmatch(pat)
+    expected = Series(expected_data + [null_result], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+
 # --------------------------------------------------------------------------------------
 # str.findall
 # --------------------------------------------------------------------------------------
@@ -1416,6 +1488,29 @@ def test_findall_lookarounds(any_string_dtype, pat, expected_data):
     else:
         raise ValueError(f"Unrecognized dtype: {any_string_dtype}")
     expected = Series([*expected_data, null_result])
+    tm.assert_series_equal(result, expected)
+
+@pytest.mark.parametrize(
+    "pat, expected_data",
+    [
+        (r"(\w+)\s\1", [[], ["ab ab"], [], ["bb bb"]]),
+        (r"((\w)\2)\s((\w)\4)", [[], ["aa bb"], [], []]),
+        (r"(?P<word>\w+)\s(?P=word)", [[], ["ab ab"], [], ["bb bb"]]),
+    ],
+)
+def test_findall_backreferences(any_string_dtype, pat, expected_data):
+    # GH#63739
+    ser = Series(["aa", "ab ab", "ba", "bb bb", None], dtype=any_string_dtype)
+    result = ser.str.findall(pat)
+    if any_string_dtype == "object":
+        null_result = None
+    elif any_string_dtype == "str":
+        null_result = np.nan
+    elif any_string_dtype == "string":
+        null_result = pd.NA
+    else:
+        raise ValueError(f"Unrecognized dtype: {any_string_dtype}")
+    expected = Series(expected_data + [null_result])
     tm.assert_series_equal(result, expected)
 
 
