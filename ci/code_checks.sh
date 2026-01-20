@@ -74,7 +74,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.BDay PR02,SA01" \
         -i "pandas.tseries.offsets.BusinessDay PR02,SA01" \
         -i "pandas.tseries.offsets.BusinessHour PR02,SA01" \
-        -i "pandas.tseries.offsets.BusinessHour.is_on_offset GL08" \
         -i "pandas.tseries.offsets.BusinessMonthBegin.is_on_offset GL08" \
         -i "pandas.tseries.offsets.BusinessMonthEnd.is_on_offset GL08" \
         -i "pandas.tseries.offsets.CBMonthBegin PR02" \
@@ -83,11 +82,8 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.CustomBusinessDay PR02,SA01" \
         -i "pandas.tseries.offsets.CustomBusinessDay.is_on_offset GL08" \
         -i "pandas.tseries.offsets.CustomBusinessHour PR02,SA01" \
-        -i "pandas.tseries.offsets.CustomBusinessHour.is_on_offset GL08" \
         -i "pandas.tseries.offsets.CustomBusinessMonthBegin PR02" \
-        -i "pandas.tseries.offsets.CustomBusinessMonthBegin.m_offset GL08" \
         -i "pandas.tseries.offsets.CustomBusinessMonthEnd PR02" \
-        -i "pandas.tseries.offsets.CustomBusinessMonthEnd.m_offset GL08" \
         -i "pandas.tseries.offsets.DateOffset.is_on_offset GL08" \
         -i "pandas.tseries.offsets.Day.is_on_offset GL08" \
         -i "pandas.tseries.offsets.Easter.is_on_offset GL08" \
@@ -120,7 +116,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.SemiMonthEnd.rule_code GL08" \
         -i "pandas.tseries.offsets.Tick.is_on_offset GL08" \
         -i "pandas.tseries.offsets.Week.is_on_offset GL08" \
-        -i "pandas.tseries.offsets.Week.weekday GL08" \
         -i "pandas.tseries.offsets.WeekOfMonth.is_on_offset GL08" \
         -i "pandas.tseries.offsets.WeekOfMonth.week GL08" \
         -i "pandas.tseries.offsets.WeekOfMonth.weekday GL08" # There should be no backslash in the final line, please keep this comment in the last ignored function

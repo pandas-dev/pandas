@@ -2904,6 +2904,49 @@ cdef class BusinessHour(BusinessMixin):
         return other
 
     def is_on_offset(self, dt: datetime) -> bool:
+        """
+        Return boolean whether a timestamp intersects with this frequency.
+
+        This method determines if a given timestamp falls within business hours.
+        Business hours are defined by the ``start`` and ``end`` parameters
+        (default 09:00 to 17:00). The timestamp must also fall on a business day
+        (Monday through Friday). If ``normalize`` is True, it also checks that
+        the time component is midnight.
+
+        Parameters
+        ----------
+        dt : datetime
+            Timestamp to check intersection with frequency.
+
+        Returns
+        -------
+        bool
+            True if the timestamp is within business hours, False otherwise.
+
+        See Also
+        --------
+        tseries.offsets.BusinessHour : Represents business hour offset.
+        tseries.offsets.BusinessDay.is_on_offset : Check if a timestamp is on
+            a business day.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2022, 8, 5, 10)
+        >>> ts.day_name()
+        'Friday'
+        >>> pd.offsets.BusinessHour().is_on_offset(ts)
+        True
+
+        >>> ts = pd.Timestamp(2022, 8, 5, 20)
+        >>> pd.offsets.BusinessHour().is_on_offset(ts)
+        False
+
+        >>> ts = pd.Timestamp(2022, 8, 6, 10)
+        >>> ts.day_name()
+        'Saturday'
+        >>> pd.offsets.BusinessHour().is_on_offset(ts)
+        False
+        """
         if self.normalize and not _is_normalized(dt):
             return False
 
@@ -4473,23 +4516,52 @@ cdef class Week(SingleConstructorOffset):
     _attributes = tuple(["n", "normalize", "weekday"])
 
     cdef readonly:
-        object weekday  # int or None
+        object _weekday  # int or None
         int _period_dtype_code
+
+    @property
+    def weekday(self):
+        """
+        Return the day of the week on which the offset is applied.
+
+        This is the weekday on which the weekly offset is anchored.
+        The value is an integer representing the day of the week,
+        where Monday is 0 and Sunday is 6, or None if no specific
+        weekday is set.
+
+        See Also
+        --------
+        Week : The weekly offset class.
+        tseries.offsets.WeekOfMonth : Describes monthly dates like the Tuesday
+            of the 2nd week of each month.
+
+        Examples
+        --------
+        >>> pd.offsets.Week(weekday=0).weekday
+        0
+
+        >>> pd.offsets.Week(weekday=6).weekday
+        6
+
+        >>> pd.offsets.Week().weekday is None
+        True
+        """
+        return self._weekday
 
     def __init__(self, n=1, normalize=False, weekday=None):
         BaseOffset.__init__(self, n, normalize)
-        self.weekday = weekday
+        self._weekday = weekday
 
-        if self.weekday is not None:
-            if self.weekday < 0 or self.weekday > 6:
-                raise ValueError(f"Day must be 0<=day<=6, got {self.weekday}")
+        if self._weekday is not None:
+            if self._weekday < 0 or self._weekday > 6:
+                raise ValueError(f"Day must be 0<=day<=6, got {self._weekday}")
 
             self._period_dtype_code = PeriodDtypeCode.W_SUN + (weekday + 1) % 7
 
     cpdef __setstate__(self, state):
         self._n = state.pop("n")
         self._normalize = state.pop("normalize")
-        self.weekday = state.pop("weekday")
+        self._weekday = state.pop("weekday")
         self._cache = state.pop("_cache", {})
 
     @apply_wraps
@@ -5718,6 +5790,25 @@ cdef class _CustomBusinessMonth(BusinessMixin):
 
     @cache_readonly
     def m_offset(self):
+        """
+        Return a MonthBegin or MonthEnd offset.
+
+        This is used internally to compute the month-based component
+        of the custom business month offset calculation.
+
+        See Also
+        --------
+        tseries.offsets.MonthBegin : Represents the start of the month.
+        tseries.offsets.MonthEnd : Represents the end of the month.
+
+        Examples
+        --------
+        >>> pd.offsets.CustomBusinessMonthBegin().m_offset
+        <MonthBegin>
+
+        >>> pd.offsets.CustomBusinessMonthEnd().m_offset
+        <MonthEnd>
+        """
         if self._prefix.endswith("S"):
             # MonthBegin
             moff = MonthBegin(n=1, normalize=False)

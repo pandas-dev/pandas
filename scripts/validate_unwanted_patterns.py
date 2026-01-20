@@ -59,6 +59,7 @@ PRIVATE_IMPORTS_TO_IGNORE: set[str] = {
     "_make_block",
     "_DatetimeTZBlock",
     "_check_pyarrow_available",
+    "_parser",  # https://github.com/pandas-dev/pandas/issues/60833
 }
 
 
