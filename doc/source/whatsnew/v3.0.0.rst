@@ -268,6 +268,7 @@ Other enhancements
   data object into a pandas object through the
   `Arrow PyCapsule Protocol <https://arrow.apache.org/docs/format/CDataInterface/PyCapsuleInterface.html>`__ (:issue:`59631`)
 - :meth:`Series.round` now supports object dtypes when the underlying Python objects implement ``__round__`` (:issue:`63444`)
+- :meth:`Timestamp.round`, :meth:`Timestamp.floor`, and :meth:`Timestamp.ceil` now officially accept :class:`Timedelta` arguments (:issue:`63687`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.notable_bug_fixes:
