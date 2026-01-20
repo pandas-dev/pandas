@@ -33,6 +33,7 @@ add_project_arguments(
 
 cc = meson.get_compiler('c')
 if cc.get_id() == 'msvc'
+    # Tracking issue: https://github.com/pandas-dev/pandas/issues/63701
     # Ignore some MSVC specific warnings:
     # C4244: possible loss of data in conversion. Reproductible with `-Wconversion`.
     # C4267: conversion from `size_t` to smaller type.
