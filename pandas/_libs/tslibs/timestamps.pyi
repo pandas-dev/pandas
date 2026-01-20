@@ -198,19 +198,19 @@ class Timestamp(datetime):
     # TODO: round/floor/ceil could return NaT?
     def round(
         self,
-        freq: str,
+        freq: str | Timedelta,
         ambiguous: bool | Literal["raise", "NaT"] = ...,
         nonexistent: TimestampNonexistent = ...,
     ) -> Self: ...
     def floor(
         self,
-        freq: str,
+        freq: str | Timedelta,
         ambiguous: bool | Literal["raise", "NaT"] = ...,
         nonexistent: TimestampNonexistent = ...,
     ) -> Self: ...
     def ceil(
         self,
-        freq: str,
+        freq: str | Timedelta,
         ambiguous: bool | Literal["raise", "NaT"] = ...,
         nonexistent: TimestampNonexistent = ...,
     ) -> Self: ...

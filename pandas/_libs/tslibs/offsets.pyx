@@ -6233,7 +6233,9 @@ cpdef to_offset(freq, bint is_period=False):
     Parameters
     ----------
     freq : str, datetime.timedelta, BaseOffset or None
-        The frequency represented.
+        The frequency represented. If a string, can be either a pandas
+        Timedelta string (e.g., "1 days 2 hours 30 minutes") or an offset
+        string (e.g., "5min", "1D1h", "2W").
     is_period : bool, default False
         Convert string denoting period frequency to corresponding offsets
         frequency if is_period=True.
@@ -6250,6 +6252,7 @@ cpdef to_offset(freq, bint is_period=False):
     See Also
     --------
     BaseOffset : Standard kind of date increment used for a date range.
+    Timedelta : Immutable timedelta object.
 
     Examples
     --------
@@ -6271,6 +6274,14 @@ cpdef to_offset(freq, bint is_period=False):
 
     >>> to_offset(pd.offsets.Hour())
     <Hour>
+
+    String Timedelta arguments are now supported and take precedence:
+
+    >>> to_offset("1 days 2 hours")
+    <26 * Hours>
+
+    >>> to_offset("1h30min")
+    <90 * Minutes>
 
     Passing the parameter ``is_period`` equal to True, you can use a string
     denoting period frequency:
@@ -6300,59 +6311,61 @@ cpdef to_offset(freq, bint is_period=False):
     elif isinstance(freq, str):
         result = None
         stride_sign = None
-
         try:
-            split = opattern.split(freq)
-            if split[-1] != "" and not split[-1].isspace():
-                # the last element must be blank
-                raise ValueError("last element must be blank")
+            result = delta_to_tick(Timedelta(freq))
+        except (ValueError, TypeError) as exc:
+            try:
+                split = opattern.split(freq)
+                if split[-1] != "" and not split[-1].isspace():
+                    # the last element must be blank
+                    raise ValueError("last element must be blank")
 
-            tups = zip(split[0::4], split[1::4], split[2::4], strict=False)
-            for n, (sep, stride, name) in enumerate(tups):
-                name = _warn_about_deprecated_aliases(name, is_period)
-                _validate_to_offset_alias(name, is_period)
-                if is_period:
-                    if name.upper() in c_PERIOD_TO_OFFSET_FREQSTR:
-                        if name.upper() != name:
-                            raise ValueError(
-                                f"\'{name}\' is no longer supported, "
-                                f"please use \'{name.upper()}\' instead.",
-                            )
-                        name = c_PERIOD_TO_OFFSET_FREQSTR[name.upper()]
-                name = _lite_rule_alias.get(name, name)
+                tups = zip(split[0::4], split[1::4], split[2::4], strict=False)
+                for n, (sep, stride, name) in enumerate(tups):
+                    name = _warn_about_deprecated_aliases(name, is_period)
+                    _validate_to_offset_alias(name, is_period)
+                    if is_period:
+                        if name.upper() in c_PERIOD_TO_OFFSET_FREQSTR:
+                            if name.upper() != name:
+                                raise ValueError(
+                                    f"\'{name}\' is no longer supported, "
+                                    f"please use \'{name.upper()}\' instead.",
+                                )
+                            name = c_PERIOD_TO_OFFSET_FREQSTR[name.upper()]
+                    name = _lite_rule_alias.get(name, name)
 
-                if sep != "" and not sep.isspace():
-                    raise ValueError("separator must be spaces")
-                if stride_sign is None:
-                    stride_sign = -1 if stride.startswith("-") else 1
-                if not stride:
-                    stride = 1
+                    if sep != "" and not sep.isspace():
+                        raise ValueError("separator must be spaces")
+                    if stride_sign is None:
+                        stride_sign = -1 if stride.startswith("-") else 1
+                    if not stride:
+                        stride = 1
 
-                if name in {"D", "h", "min", "s", "ms", "us", "ns"}:
-                    # For these prefixes, we have something like "3h" or
-                    #  "2.5min", so we can construct a Timedelta with the
-                    #  matching unit and get our offset from delta_to_tick
-                    td = Timedelta(1, unit=name)
-                    off = delta_to_tick(td)
-                    offset = off * float(stride)
-                    if n != 0:
-                        # If n==0, then stride_sign is already incorporated
-                        #  into the offset
-                        offset *= stride_sign
-                else:
-                    stride = int(stride)
-                    offset = _get_offset(name)
-                    offset = offset * int(np.fabs(stride) * stride_sign)
+                    if name in {"D", "h", "min", "s", "ms", "us", "ns"}:
+                        # For these prefixes, we have something like "3h" or
+                        #  "2.5min", so we can construct a Timedelta with the
+                        #  matching unit and get our offset from delta_to_tick
+                        td = Timedelta(1, unit=name)
+                        off = delta_to_tick(td)
+                        offset = off * float(stride)
+                        if n != 0:
+                            # If n==0, then stride_sign is already incorporated
+                            #  into the offset
+                            offset *= stride_sign
+                    else:
+                        stride = int(stride)
+                        offset = _get_offset(name)
+                        offset = offset * int(np.fabs(stride) * stride_sign)
 
-                if result is None:
-                    result = offset
-                else:
-                    result = result + offset
-        except (ValueError, TypeError) as err:
-            raise_invalid_freq(
-                freq=freq,
-                extra_message=f"Failed to parse with error message: {repr(err)}"
-            )
+                    if result is None:
+                        result = offset
+                    else:
+                        result = result + offset
+            except (ValueError, TypeError) as err:
+                raise_invalid_freq(
+                    freq=freq,
+                    extra_message=f"Failed to parse with error message: {repr(err)}"
+                )
 
         # TODO(3.0?) once deprecation of "d" is enforced, the check for it here
         #  can be removed
