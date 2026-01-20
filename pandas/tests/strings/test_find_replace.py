@@ -1490,6 +1490,7 @@ def test_findall_lookarounds(any_string_dtype, pat, expected_data):
     expected = Series([*expected_data, null_result])
     tm.assert_series_equal(result, expected)
 
+
 @pytest.mark.parametrize(
     "pat, expected_data",
     [

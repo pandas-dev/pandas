@@ -901,7 +901,6 @@ def test_setitem_with_different_string_storage():
     tm.assert_series_equal(ser_python, expected)
 
 
-
 @pytest.mark.parametrize(
     "pat, expected",
     [
