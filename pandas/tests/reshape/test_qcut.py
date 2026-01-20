@@ -44,6 +44,38 @@ def test_qcut():
     tm.assert_categorical_equal(labels, ex_levels)
 
 
+def test_qcut_right():
+    arr = np.random.default_rng(2).standard_normal(1000)
+
+    labels, _ = qcut(arr, 4, retbins=True, right=True)
+    ex_bins = np.quantile(arr, [0, 0.25, 0.5, 0.75, 1.0])
+
+    result = labels.categories.left.values
+    assert np.allclose(result, ex_bins[:-1], atol=1e-2)
+
+    result = labels.categories.right.values
+    assert np.allclose(result, ex_bins[1:], atol=1e-2)
+
+    ex_levels = cut(arr, ex_bins, include_lowest=True, right=True)
+    tm.assert_categorical_equal(labels, ex_levels)
+
+
+def test_qcut_no_right():
+    arr = np.random.default_rng(2).standard_normal(1000)
+
+    labels, _ = qcut(arr, 4, retbins=True, right=False)
+    ex_bins = np.quantile(arr, [0, 0.25, 0.5, 0.75, 1.0])
+
+    lefts = labels.categories.left.values
+    assert np.allclose(lefts, ex_bins[:-1], atol=1e-2)
+
+    rights = labels.categories.right.values
+    assert np.allclose(rights, ex_bins[1:], atol=1e-2)
+
+    ex_levels = cut(arr, ex_bins, include_lowest=True, right=False)
+    tm.assert_categorical_equal(labels, ex_levels)
+
+
 def test_qcut_bounds():
     arr = np.random.default_rng(2).standard_normal(1000)
 

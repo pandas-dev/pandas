@@ -297,6 +297,7 @@ def qcut(
     x,
     q,
     labels=None,
+    right: bool = True,
     retbins: bool = False,
     precision: int = 3,
     duplicates: str = "raise",
@@ -319,6 +320,11 @@ def qcut(
         Used as labels for the resulting bins. Must be of the same length as
         the resulting bins. If False, return only integer indicators of the
         bins. If True, raises an error.
+    right : bool, default True
+        Indicates whether `bins` includes the rightmost edge or not. If
+        ``right == True`` (the default), then the `bins` ``[1, 2, 3, 4]``
+        indicate (1,2], (2,3], (3,4]. This argument is ignored when
+        `bins` is an IntervalIndex.
     retbins : bool, optional
         Whether to return the (bins, labels) or not. Can be useful if bins
         is given as a scalar.
@@ -385,6 +391,7 @@ def qcut(
         x_idx,
         Index(bins),
         labels=labels,
+        right=right,
         precision=precision,
         include_lowest=True,
         duplicates=duplicates,
