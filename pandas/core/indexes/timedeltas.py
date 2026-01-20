@@ -48,8 +48,16 @@ if TYPE_CHECKING:
 
 
 @inherit_names(
-    ["__neg__", "__pos__", "__abs__", "total_seconds", "round", "floor", "ceil"]
-    + TimedeltaArray._field_ops,
+    [
+        "__neg__",
+        "__pos__",
+        "__abs__",
+        "total_seconds",
+        "round",
+        "floor",
+        "ceil",
+        *TimedeltaArray._field_ops,
+    ],
     TimedeltaArray,
     wrap=True,
 )

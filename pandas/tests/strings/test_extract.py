@@ -559,7 +559,7 @@ def test_extractall_no_matches(data, names, any_string_dtype):
         tuples = (tuple([i] * (n - 1)) for i in range(n))
         index = MultiIndex.from_tuples(tuples, names=names)
     s = Series(data, name="series_name", index=index, dtype=any_string_dtype)
-    expected_index = MultiIndex.from_tuples([], names=(names + ("match",)))
+    expected_index = MultiIndex.from_tuples([], names=((*names, "match")))
 
     # one un-named group.
     result = s.str.extractall("(z)")

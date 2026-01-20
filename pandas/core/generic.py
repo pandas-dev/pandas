@@ -7283,6 +7283,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Fill NA/NaN values by using the next valid observation to fill the gap.
 
+        This method fills missing values in a backward direction along the
+        specified axis, propagating non-null values from later positions to
+        earlier positions containing NaN.
+
         Parameters
         ----------
         axis : {0 or 'index'} for Series, {0 or 'index', 1 or 'columns'} for DataFrame
@@ -9297,7 +9301,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ax.names = np.arange(len(ax_names))
 
         # bring self-other to inner level
-        order = list(range(1, ax.nlevels)) + [0]
+        order = [*range(1, ax.nlevels), 0]
         if isinstance(diff, ABCDataFrame):
             diff = diff.reorder_levels(order, axis=axis)
         else:
@@ -9778,6 +9782,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> Self:
         """
         Replace values where the condition is False.
+
+        This method allows conditional replacement of values. Where the
+        condition evaluates to True, the original values are retained; where
+        it evaluates to False, values are replaced with corresponding entries
+        from ``other``.
 
         Parameters
         ----------
