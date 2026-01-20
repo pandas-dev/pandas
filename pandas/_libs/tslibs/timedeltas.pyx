@@ -2337,8 +2337,8 @@ class Timedelta(_Timedelta):
 
         Parameters
         ----------
-        freq : str
-            Frequency string indicating the rounding resolution.
+        freq : str or Timedelta
+            Frequency string indicating the rounding resolution or a timedelta value.
             It uses the same units as class constructor :class:`~pandas.Timedelta`.
 
         Returns
@@ -2351,9 +2351,9 @@ class Timedelta(_Timedelta):
 
         See Also
         --------
-            Timedelta.floor : Floor the Timedelta to the specified resolution.
-            Timedelta.round : Round the Timedelta to the nearest specified resolution.
-            Timestamp.ceil : Similar method for Timestamp objects.
+        Timedelta.floor : Floor the Timedelta to the specified resolution.
+        Timedelta.ceil : Ceil the Timedelta to the specified resolution.
+        Timestamp.round : Similar method for Timestamp objects.
 
         Examples
         --------
@@ -2361,6 +2361,11 @@ class Timedelta(_Timedelta):
         >>> td
         Timedelta('0 days 00:00:01.001000')
         >>> td.round('s')
+        Timedelta('0 days 00:00:01')
+
+        ``freq`` can also be a timedelta value:
+
+        >>> td.round(freq=pd.Timedelta('1s'))
         Timedelta('0 days 00:00:01')
         """
         return self._round(freq, RoundTo.NEAREST_HALF_EVEN)
@@ -2371,8 +2376,8 @@ class Timedelta(_Timedelta):
 
         Parameters
         ----------
-        freq : str
-            Frequency string indicating the flooring resolution.
+        freq : str or Timedelta
+            Frequency string indicating the flooring resolution or a timedelta value.
             It uses the same units as class constructor :class:`~pandas.Timedelta`.
 
         Returns
@@ -2382,8 +2387,9 @@ class Timedelta(_Timedelta):
 
         See Also
         --------
-            Timestamp.ceil : Round the Timestamp up to the nearest specified resolution.
-            Timestamp.round : Round the Timestamp to the nearest specified resolution.
+        Timedelta.ceil : Ceil the Timedelta to the specified resolution.
+        Timedelta.round : Round the Timedelta to the specified resolution.
+        Timestamp.floor : Similar method for Timestamp objects.
 
         Examples
         --------
@@ -2391,6 +2397,11 @@ class Timedelta(_Timedelta):
         >>> td
         Timedelta('0 days 00:00:01.001000')
         >>> td.floor('s')
+        Timedelta('0 days 00:00:01')
+
+        ``freq`` can also be a timedelta value:
+
+        >>> td.floor(freq=pd.Timedelta('1s'))
         Timedelta('0 days 00:00:01')
         """
         return self._round(freq, RoundTo.MINUS_INFTY)
@@ -2401,9 +2412,9 @@ class Timedelta(_Timedelta):
 
         Parameters
         ----------
-        freq : str
-            Frequency string indicating the ceiling resolution. Must be a fixed
-            frequency like 's' (second) not 'ME' (month end). See
+        freq : str or Timedelta
+            Frequency string indicating the ceiling resolution or a timedelta value.
+            Must be a fixed frequency like 's' (second) not 'ME' (month end). See
             :ref:`frequency aliases <timeseries.offset_aliases>` for
             a list of possible `freq` values.
 
@@ -2414,8 +2425,9 @@ class Timedelta(_Timedelta):
 
         See Also
         --------
-            Timedelta.floor : Floor the Timedelta to the specified resolution.
-            Timedelta.round : Round the Timedelta to the nearest specified resolution.
+        Timedelta.floor : Floor the Timedelta to the specified resolution.
+        Timedelta.round : Round the Timedelta to the specified resolution.
+        Timestamp.ceil : Similar method for Timestamp objects.
 
         Examples
         --------
@@ -2423,6 +2435,11 @@ class Timedelta(_Timedelta):
         >>> td
         Timedelta('0 days 00:00:01.001000')
         >>> td.ceil('s')
+        Timedelta('0 days 00:00:02')
+
+        ``freq`` can also be a timedelta value:
+
+        >>> td.ceil(freq=pd.Timedelta('1s'))
         Timedelta('0 days 00:00:02')
         """
         return self._round(freq, RoundTo.PLUS_INFTY)

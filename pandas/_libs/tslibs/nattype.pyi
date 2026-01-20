@@ -82,19 +82,19 @@ class NaTType:
     def date(self) -> NaTType: ...
     def round(
         self,
-        freq: Frequency,
+        freq: Frequency | timedelta,
         ambiguous: bool | Literal["raise"] | NaTType = ...,
         nonexistent: TimestampNonexistent = ...,
     ) -> NaTType: ...
     def floor(
         self,
-        freq: Frequency,
+        freq: Frequency | timedelta,
         ambiguous: bool | Literal["raise"] | NaTType = ...,
         nonexistent: TimestampNonexistent = ...,
     ) -> NaTType: ...
     def ceil(
         self,
-        freq: Frequency,
+        freq: Frequency | timedelta,
         ambiguous: bool | Literal["raise"] | NaTType = ...,
         nonexistent: TimestampNonexistent = ...,
     ) -> NaTType: ...

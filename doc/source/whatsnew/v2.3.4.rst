@@ -10,6 +10,12 @@ including other versions of pandas.
 
 .. ---------------------------------------------------------------------------
 
+Enhancements
+^^^^^^^^^^^^
+- :meth:`Timestamp.round`, :meth:`Timestamp.floor`, :meth:`Timestamp.ceil`, :meth:`Timedelta.round`, :meth:`Timedelta.floor`, and :meth:`Timedelta.ceil` now officially accept :class:`Timedelta` arguments (:issue:`63687`)
+
+.. ---------------------------------------------------------------------------
+
 Bug fixes
 ^^^^^^^^^
 - Bug in :meth:`DataFrame.__getitem__` returning modified columns when called with ``slice`` in Python 3.12 (:issue:`57500`)
