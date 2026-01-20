@@ -2153,3 +2153,24 @@ def test_find_result_type_int_int(right, result):
 def test_find_result_type_floats(right, result):
     left_dtype = np.dtype("float16")
     assert find_result_type(left_dtype, right) == result
+
+
+def test_is_list_like_sequence_protocol():
+    # GH#42549
+    class SequenceProtocol:
+        def __init__(self, data):
+            self.data = data
+
+        def __getitem__(self, index):
+            return self.data[index]
+
+        def __len__(self):
+            return len(self.data)
+
+    obj = SequenceProtocol([1, 2, 3])
+    assert inference.is_list_like(obj)
+
+    # Verify strict DataFrame construction handling
+    df = DataFrame(index=range(3), data={"a": obj})
+    expected = DataFrame({"a": [1, 2, 3]})
+    tm.assert_frame_equal(df, expected)
