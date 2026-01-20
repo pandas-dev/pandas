@@ -879,8 +879,9 @@ cdef class BlockManager:
         mgr = type(self)(tuple(nbs), new_axes, verify_integrity=False)
 
         # We can avoid having to rebuild blklocs/blknos
-        blklocs = self._blklocs
-        blknos = self._blknos
+        with cython.critical_section(self):
+            blklocs = self._blklocs
+            blknos = self._blknos
         if blknos is not None:
             mgr._blknos = blknos.copy()
             mgr._blklocs = blklocs.copy()
