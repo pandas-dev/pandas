@@ -122,10 +122,7 @@ from pandas.core.construction import (
     extract_array,
     sanitize_array,
 )
-from pandas.core.generic import (
-    NDFrame,
-    make_doc,
-)
+from pandas.core.generic import NDFrame
 from pandas.core.indexers import (
     disallow_ndim_indexing,
     unpack_1tuple,
@@ -7499,7 +7496,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         result = maybe_unbox_numpy_scalar(result)
         return result
 
-    @Appender(make_doc("any", ndim=1))
     # error: Signature of "any" incompatible with supertype "NDFrame"
     def any(  # type: ignore[override]
         self,
@@ -7509,6 +7505,118 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         skipna: bool = True,
         **kwargs,
     ) -> bool:
+        """
+        Return whether any element is True, potentially over an axis.
+
+        Returns False unless there is at least one element within a series or
+        along a Dataframe axis that is True or equivalent (e.g. non-zero or
+        non-empty).
+
+        Parameters
+        ----------
+        axis : {0 or 'index', 1 or 'columns', None}, default 0
+            Indicate which axis or axes should be reduced. For `Series` this parameter
+            is unused and defaults to 0.
+
+            * 0 / 'index' : reduce the index, return a Series whose index is the
+              original column labels.
+            * 1 / 'columns' : reduce the columns, return a Series whose index is the
+              original index.
+            * None : reduce all axes, return a scalar.
+
+        bool_only : bool, default False
+            Include only boolean columns. Not implemented for Series.
+        skipna : bool, default True
+            Exclude NA/null values. If the entire row/column is NA and skipna is
+            True, then the result will be False, as for an empty row/column.
+            If skipna is False, then NA are treated as True, because these are not
+            equal to zero.
+        **kwargs : any, default None
+            Additional keywords have no effect but might be accepted for
+            compatibility with NumPy.
+
+        Returns
+        -------
+        Series or scalar
+            If axis=None, then a scalar boolean is returned.
+            Otherwise a Series is returned with index matching the index argument.
+
+        See Also
+        --------
+        numpy.any : Numpy version of this method.
+        Series.any : Return whether any element is True.
+        Series.all : Return whether all elements are True.
+        DataFrame.any : Return whether any element is True over requested axis.
+        DataFrame.all : Return whether all elements are True over requested axis.
+
+        Examples
+        --------
+        **Series**
+
+        For Series input, the output is a scalar indicating whether any element
+        is True.
+
+        >>> pd.Series([False, False]).any()
+        False
+        >>> pd.Series([True, False]).any()
+        True
+        >>> pd.Series([], dtype="float64").any()
+        False
+        >>> pd.Series([np.nan]).any()
+        False
+        >>> pd.Series([np.nan]).any(skipna=False)
+        True
+
+        **DataFrame**
+
+        Whether each column contains at least one True element (the default).
+
+        >>> df = pd.DataFrame({"A": [1, 2], "B": [0, 2], "C": [0, 0]})
+        >>> df
+           A  B  C
+        0  1  0  0
+        1  2  2  0
+
+        >>> df.any()
+        A     True
+        B     True
+        C    False
+        dtype: bool
+
+        Aggregating over the columns.
+
+        >>> df = pd.DataFrame({"A": [True, False], "B": [1, 2]})
+        >>> df
+               A  B
+        0   True  1
+        1  False  2
+
+        >>> df.any(axis="columns")
+        0    True
+        1    True
+        dtype: bool
+
+        >>> df = pd.DataFrame({"A": [True, False], "B": [1, 0]})
+        >>> df
+               A  B
+        0   True  1
+        1  False  0
+
+        >>> df.any(axis="columns")
+        0    True
+        1    False
+        dtype: bool
+
+        Aggregating over the entire DataFrame with ``axis=None``.
+
+        >>> df.any(axis=None)
+        True
+
+        `any` for an empty DataFrame is an empty Series.
+
+        >>> pd.DataFrame([]).any()
+        Series([], dtype: bool)
+        """
         nv.validate_logical_func((), kwargs, fname="any")
         validate_bool_kwarg(skipna, "skipna", none_allowed=False)
         return self._reduce(
@@ -7521,7 +7629,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         )
 
     @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="all")
-    @Appender(make_doc("all", ndim=1))
     def all(
         self,
         axis: Axis = 0,
@@ -7529,6 +7636,91 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         skipna: bool = True,
         **kwargs,
     ) -> bool:
+        """
+        Return whether all elements are True, potentially over an axis.
+
+        Returns True unless there at least one element within a series or
+        along a Dataframe axis that is False or equivalent (e.g. zero or
+        empty).
+
+        Parameters
+        ----------
+        axis : {0 or 'index', 1 or 'columns', None}, default 0
+            Indicate which axis or axes should be reduced. For `Series` this parameter
+            is unused and defaults to 0.
+
+            * 0 / 'index' : reduce the index, return a Series whose index is the
+              original column labels.
+            * 1 / 'columns' : reduce the columns, return a Series whose index is the
+              original index.
+            * None : reduce all axes, return a scalar.
+
+        bool_only : bool, default False
+            Include only boolean columns. Not implemented for Series.
+        skipna : bool, default True
+            Exclude NA/null values. If the entire row/column is NA and skipna is
+            True, then the result will be True, as for an empty row/column.
+            If skipna is False, then NA are treated as True, because these are not
+            equal to zero.
+        **kwargs : any, default None
+            Additional keywords have no effect but might be accepted for
+            compatibility with NumPy.
+
+        Returns
+        -------
+        Series or scalar
+            If axis=None, then a scalar boolean is returned.
+            Otherwise a Series is returned with index matching the index argument.
+
+        See Also
+        --------
+        Series.all : Return True if all elements are True.
+        DataFrame.any : Return True if one (or more) elements are True.
+
+        Examples
+        --------
+        **Series**
+
+        >>> pd.Series([True, True]).all()
+        True
+        >>> pd.Series([True, False]).all()
+        False
+        >>> pd.Series([], dtype="float64").all()
+        True
+        >>> pd.Series([np.nan]).all()
+        True
+        >>> pd.Series([np.nan]).all(skipna=False)
+        True
+
+        **DataFrames**
+
+        Create a DataFrame from a dictionary.
+
+        >>> df = pd.DataFrame({"col1": [True, True], "col2": [True, False]})
+        >>> df
+           col1   col2
+        0  True   True
+        1  True  False
+
+        Default behaviour checks if values in each column all return True.
+
+        >>> df.all()
+        col1     True
+        col2    False
+        dtype: bool
+
+        Specify ``axis='columns'`` to check if values in each row all return True.
+
+        >>> df.all(axis="columns")
+        0     True
+        1    False
+        dtype: bool
+
+        Or ``axis=None`` for whether every value is True.
+
+        >>> df.all(axis=None)
+        False
+        """
         nv.validate_logical_func((), kwargs, fname="all")
         validate_bool_kwarg(skipna, "skipna", none_allowed=False)
         return self._reduce(
