@@ -4041,6 +4041,48 @@ cdef class HalfYearBegin(HalfYearOffset):
 
 cdef class MonthOffset(SingleConstructorOffset):
     def is_on_offset(self, dt: datetime) -> bool:
+        """
+        Return boolean whether a timestamp intersects with this frequency.
+
+        This method determines if a given timestamp aligns with the specific
+        day of the month defined by this offset. For month-based offsets,
+        it checks whether the timestamp's day matches the expected day
+        according to the offset's configuration (e.g., start of month,
+        end of month, or first/last business day).
+
+        Parameters
+        ----------
+        dt : datetime
+            Timestamp to check intersection with frequency.
+
+        Returns
+        -------
+        bool
+            True if the timestamp is on the offset, False otherwise.
+
+        See Also
+        --------
+        tseries.offsets.MonthBegin : DateOffset of one month at beginning.
+        tseries.offsets.MonthEnd : DateOffset of one month end.
+        tseries.offsets.BusinessMonthBegin : DateOffset of one month at the first
+            business day.
+        tseries.offsets.BusinessMonthEnd : DateOffset of one month at the last
+            business day.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2022, 1, 1)
+        >>> pd.offsets.MonthBegin().is_on_offset(ts)
+        True
+
+        >>> ts = pd.Timestamp(2022, 1, 15)
+        >>> pd.offsets.MonthBegin().is_on_offset(ts)
+        False
+
+        >>> ts = pd.Timestamp(2022, 1, 31)
+        >>> pd.offsets.MonthEnd().is_on_offset(ts)
+        True
+        """
         if self.normalize and not _is_normalized(dt):
             return False
         return dt.day == self._get_offset_day(dt)
