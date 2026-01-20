@@ -395,7 +395,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         if (
             flags
             or self._is_re_pattern_with_flags(pat)
-            or (regex and self._has_regex_lookaround(pat))
+            or (regex and self._has_unsupported_regex(pat))
         ):
             return super()._str_contains(pat, case, flags, na, regex)
         if isinstance(pat, re.Pattern):
@@ -414,7 +414,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         if (
             flags
             or self._is_re_pattern_with_flags(pat)
-            or self._has_regex_lookaround(pat)
+            or self._has_unsupported_regex(pat)
         ):
             return super()._str_match(pat, case, flags, na)
         if isinstance(pat, re.Pattern):
@@ -454,7 +454,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
                 # https://docs.python.org/3/library/re.html
                 isinstance(repl, str) and r"\g<" in repl
             )
-            or (regex and self._has_regex_lookaround(pat))
+            or (regex and self._has_unsupported_regex(pat))
         ):
             return super()._str_replace(pat, repl, n, case, flags, regex)
 
@@ -469,7 +469,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             return ArrowExtensionArray._str_repeat(self, repeats=repeats)
 
     def _str_count(self, pat: str, flags: int = 0):
-        if flags or self._has_regex_lookaround(pat):
+        if flags or self._has_unsupported_regex(pat):
             return super()._str_count(pat, flags)
         result = pc.count_substring_regex(self._pa_array, pat)
         return self._convert_int_result(result)
