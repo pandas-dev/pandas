@@ -128,7 +128,8 @@ if __name__ == "__main__":
             allow.write("\n".join(_ALLOWLIST))
             allow.flush()
 
-        args = pyi_modules + [
+        args = [
+            *pyi_modules,
             "--ignore-missing-stub",
             "--concise",
             "--mypy-config-file",

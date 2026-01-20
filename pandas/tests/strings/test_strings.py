@@ -18,6 +18,7 @@ from pandas import (
     option_context,
 )
 import pandas._testing as tm
+from pandas.core.arrays._arrow_string_mixins import ArrowStringArrayMixin
 from pandas.core.strings.accessor import StringMethods
 from pandas.tests.strings import is_object_or_nan_string_dtype
 
@@ -64,6 +65,27 @@ def test_count_mixed_object():
     )
     result = ser.str.count("a")
     expected = Series([1, np.nan, 0, np.nan, np.nan, 0, np.nan, np.nan, np.nan])
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "pat, expected_data",
+    [
+        (r"a(?=b)", [0, 1, 0, 0, None]),
+        (r"(?<=a)b", [0, 1, 0, 0, None]),
+        (r"a(?!b)", [2, 0, 1, 0, None]),
+        (r"(?<!b)a", [2, 1, 0, 0, None]),
+        ("ab", [0, 1, 0, 0, None]),
+    ],
+)
+def test_count_lookarounds(any_string_dtype, pat, expected_data):
+    # https://github.com/pandas-dev/pandas/issues/60833
+    expected_dtype = (
+        "float64" if is_object_or_nan_string_dtype(any_string_dtype) else "Int64"
+    )
+    ser = Series(["aa", "ab", "ba", "bb", None], dtype=any_string_dtype)
+    result = ser.str.count(pat)
+    expected = Series(expected_data, dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
 
@@ -423,7 +445,7 @@ def test_index_missing(any_string_dtype, method, exp):
         item = NA
 
     result = getattr(ser.str, method)("b")
-    expected = Series(exp + [item], dtype=expected_dtype)
+    expected = Series([*exp, item], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
 
@@ -523,7 +545,7 @@ def test_strip_lstrip_rstrip_mixed_object(method, exp):
     ser = Series(["  aa  ", np.nan, " bb \t\n", True, datetime.today(), None, 1, 2.0])
 
     result = getattr(ser.str, method)()
-    expected = Series(exp + [np.nan, np.nan, None, np.nan, np.nan], dtype=object)
+    expected = Series([*exp, np.nan, np.nan, None, np.nan, np.nan], dtype=object)
     tm.assert_series_equal(result, expected)
 
 
@@ -858,3 +880,38 @@ def test_setitem_with_different_string_storage():
     ser_python[1:4] = ser_pyarrow
     expected = Series(["a", "X", "Y", NA, "e"], dtype="string[python]")
     tm.assert_series_equal(ser_python, expected)
+
+
+@pytest.mark.parametrize(
+    "pat, expected",
+    [
+        (r"(?=abc)", True),
+        (r"(?<=123)", True),
+        (r"(?!xyz)", True),
+        (r"(?<!\d)", True),
+        (r"(?=a|b)(?<=c)", True),
+        (r"abc", False),
+        (r"\d+", False),
+        (r"(abc)", False),
+        (r"a|b", False),
+        (r"a*", False),
+        (r"", False),
+        (r"\\(?=abc)", True),
+        (r"(?=.*[A-Z])", True),
+        (r"a(?=)", True),
+        (r"(?![0-9])", True),
+        (r"(?=(?!nested))", True),
+        (r"test\(\?\=ing\)", False),
+        (r"[(?=)]", False),
+        (r"(?#(?=comment)", False),
+        (r"(test # (?=comment))", True),
+        (r"(?=test)+", False),
+        (r"(?=test)*", False),
+        (r"(?=test)?", False),
+        (r"abc|(?=test)", True),
+        (r"^(?=test)$", True),
+    ],
+)
+def test_has_regex_lookaround(pat, expected):
+    # https://github.com/pandas-dev/pandas/issues/60833
+    assert ArrowStringArrayMixin._has_regex_lookaround(pat) == expected
