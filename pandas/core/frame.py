@@ -11068,7 +11068,11 @@ class DataFrame(NDFrame, OpsMixin):
         return result.__finalize__(self, method="explode")
 
     def unstack(
-        self, level: IndexLabel = -1, fill_value=None, sort: bool = True
+        self,
+        level: IndexLabel = -1,
+        fill_value=None,
+        sort: bool = True,
+        no_fill: bool = False,
     ) -> DataFrame | Series:
         """
         Pivot a level of the (necessarily hierarchical) index labels.
@@ -11087,12 +11091,24 @@ class DataFrame(NDFrame, OpsMixin):
             Replace NaN with this value if the unstack produces missing values.
         sort : bool, default True
             Sort the level(s) in the resulting MultiIndex columns.
+        no_fill : bool, default False
+            If True, raise a ValueError if any missing values would need to be filled.
+            This is useful to ensure data integrity when you expect a complete
+            1:1 mapping between stacked and unstacked representations.
+
+            .. versionadded:: 3.0.0
 
         Returns
         -------
         Series or DataFrame
             If index is a MultiIndex: DataFrame with pivoted index labels as new
             inner-most level column labels, else Series.
+
+        Raises
+        ------
+        ValueError
+            If `no_fill` is True and the unstacking operation would require filling
+            missing values.
 
         See Also
         --------
@@ -11137,7 +11153,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         from pandas.core.reshape.reshape import unstack
 
-        result = unstack(self, level, fill_value, sort)
+        result = unstack(self, level, fill_value, sort, no_fill)
 
         return result.__finalize__(self, method="unstack")
 

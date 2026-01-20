@@ -119,10 +119,16 @@ class _Unstacker:
     """
 
     def __init__(
-        self, index: MultiIndex, level: Level, constructor, sort: bool = True
+        self,
+        index: MultiIndex,
+        level: Level,
+        constructor,
+        sort: bool = True,
+        no_fill: bool = False,
     ) -> None:
         self.constructor = constructor
         self.sort = sort
+        self.no_fill = no_fill
 
         self.index = index.remove_unused_levels()
 
@@ -289,6 +295,29 @@ class _Unstacker:
         result_shape = (length, result_width)
         mask = self.mask
         mask_all = self.mask_all
+
+        if self.no_fill and not mask_all:
+            missing_positions = np.where(~mask)[0]
+            if len(missing_positions) > 0:
+                first_missing = missing_positions[0]
+                row_idx = first_missing // width
+                col_idx = first_missing % width
+
+                index_label = (
+                    self.new_index[row_idx]
+                    if row_idx < len(self.new_index)
+                    else row_idx
+                )
+                col_label = (
+                    self.removed_level[col_idx]
+                    if col_idx < len(self.removed_level)
+                    else col_idx
+                )
+
+                raise ValueError(
+                    f"Cannot unstack with no_fill=True because filling is required. "
+                    f"Missing value at index {index_label}, column {col_label}."
+                )
 
         # we can simply reshape if we don't have a mask
         if mask_all and len(values):
@@ -457,7 +486,11 @@ class _Unstacker:
 
 
 def _unstack_multiple(
-    data: Series | DataFrame, clocs, fill_value=None, sort: bool = True
+    data: Series | DataFrame,
+    clocs,
+    fill_value=None,
+    sort: bool = True,
+    no_fill: bool = False,
 ):
     if len(clocs) == 0:
         return data
@@ -503,7 +536,9 @@ def _unstack_multiple(
         dummy = data.copy(deep=False)
         dummy.index = dummy_index
 
-        unstacked = dummy.unstack("__placeholder__", fill_value=fill_value, sort=sort)
+        unstacked = dummy.unstack(
+            "__placeholder__", fill_value=fill_value, sort=sort, no_fill=no_fill
+        )
         new_levels = clevels
         new_names = cnames
         new_codes = recons_codes
@@ -515,7 +550,7 @@ def _unstack_multiple(
                 # error: Incompatible types in assignment (expression has type
                 # "DataFrame | Series", variable has type "DataFrame")
                 result = result.unstack(  # type: ignore[assignment]
-                    val, fill_value=fill_value, sort=sort
+                    val, fill_value=fill_value, sort=sort, no_fill=no_fill
                 )
                 clocs = [v if v < val else v - 1 for v in clocs]
 
@@ -528,7 +563,7 @@ def _unstack_multiple(
         # error: Incompatible types in assignment (expression has type "DataFrame |
         # Series", variable has type "DataFrame")
         unstacked = dummy_df.unstack(  # type: ignore[assignment]
-            "__placeholder__", fill_value=fill_value, sort=sort
+            "__placeholder__", fill_value=fill_value, sort=sort, no_fill=no_fill
         )
         if isinstance(unstacked, Series):
             unstcols = unstacked.index
@@ -554,23 +589,35 @@ def _unstack_multiple(
 
 
 @overload
-def unstack(obj: Series, level, fill_value=..., sort: bool = ...) -> DataFrame: ...
+def unstack(
+    obj: Series, level, fill_value=..., sort: bool = ..., no_fill: bool = ...
+) -> DataFrame: ...
 
 
 @overload
 def unstack(
-    obj: Series | DataFrame, level, fill_value=..., sort: bool = ...
+    obj: Series | DataFrame,
+    level,
+    fill_value=...,
+    sort: bool = ...,
+    no_fill: bool = ...,
 ) -> Series | DataFrame: ...
 
 
 def unstack(
-    obj: Series | DataFrame, level, fill_value=None, sort: bool = True
+    obj: Series | DataFrame,
+    level,
+    fill_value=None,
+    sort: bool = True,
+    no_fill: bool = False,
 ) -> Series | DataFrame:
     if isinstance(level, (tuple, list)):
         if len(level) != 1:
             # _unstack_multiple only handles MultiIndexes,
             # and isn't needed for a single level
-            return _unstack_multiple(obj, level, fill_value=fill_value, sort=sort)
+            return _unstack_multiple(
+                obj, level, fill_value=fill_value, sort=sort, no_fill=no_fill
+            )
         else:
             level = level[0]
 
@@ -580,7 +627,9 @@ def unstack(
 
     if isinstance(obj, DataFrame):
         if isinstance(obj.index, MultiIndex):
-            return _unstack_frame(obj, level, fill_value=fill_value, sort=sort)
+            return _unstack_frame(
+                obj, level, fill_value=fill_value, sort=sort, no_fill=no_fill
+            )
         else:
             return obj.T.stack()
     elif not isinstance(obj.index, MultiIndex):
@@ -592,19 +641,25 @@ def unstack(
         )
     else:
         if is_1d_only_ea_dtype(obj.dtype):
-            return _unstack_extension_series(obj, level, fill_value, sort=sort)
+            return _unstack_extension_series(
+                obj, level, fill_value, sort=sort, no_fill=no_fill
+            )
         unstacker = _Unstacker(
-            obj.index, level=level, constructor=obj._constructor_expanddim, sort=sort
+            obj.index,
+            level=level,
+            constructor=obj._constructor_expanddim,
+            sort=sort,
+            no_fill=no_fill,
         )
         return unstacker.get_result(obj, value_columns=None, fill_value=fill_value)
 
 
 def _unstack_frame(
-    obj: DataFrame, level, fill_value=None, sort: bool = True
+    obj: DataFrame, level, fill_value=None, sort: bool = True, no_fill: bool = False
 ) -> DataFrame:
     assert isinstance(obj.index, MultiIndex)  # checked by caller
     unstacker = _Unstacker(
-        obj.index, level=level, constructor=obj._constructor, sort=sort
+        obj.index, level=level, constructor=obj._constructor, sort=sort, no_fill=no_fill
     )
 
     if not obj._can_fast_transpose:
@@ -617,7 +672,7 @@ def _unstack_frame(
 
 
 def _unstack_extension_series(
-    series: Series, level, fill_value, sort: bool
+    series: Series, level, fill_value, sort: bool, no_fill: bool = False
 ) -> DataFrame:
     """
     Unstack an ExtensionArray-backed Series.
@@ -636,6 +691,8 @@ def _unstack_extension_series(
         ``series.values.take``.
     sort : bool
         Whether to sort the resulting MuliIndex levels
+    no_fill : bool, default False
+        Whether to raise an error if any missing values are encountered
 
     Returns
     -------
@@ -645,7 +702,7 @@ def _unstack_extension_series(
     """
     # Defer to the logic in ExtensionBlock._unstack
     df = series.to_frame()
-    result = df.unstack(level=level, fill_value=fill_value, sort=sort)
+    result = df.unstack(level=level, fill_value=fill_value, sort=sort, no_fill=no_fill)
 
     # equiv: result.droplevel(level=0, axis=1)
     #  but this avoids an extra copy
