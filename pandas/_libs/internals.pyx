@@ -222,14 +222,14 @@ cdef class BlockPlacement:
         # We can get here with int or ndarray
         return self.iadd(other)
 
+    @cython.critical_section
     cdef slice _ensure_has_slice(self):
-        with cython.critical_section(self):
+        if not self._has_slice:
+            as_slice = indexer_as_slice(self._as_array)
+            # check again after indexer_as_slice call
             if not self._has_slice:
-                as_slice = indexer_as_slice(self._as_array)
-                # check again after indexer_as_slice call
-                if not self._has_slice:
-                    self._as_slice = as_slice
-                    self._has_slice = True
+                self._as_slice = as_slice
+                self._has_slice = True
         return self._as_slice
 
     cpdef BlockPlacement increment_above(self, Py_ssize_t loc):

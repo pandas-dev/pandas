@@ -339,22 +339,22 @@ cdef class IndexEngine:
     def is_mapping_populated(self) -> bool:
         return self.mapping is not None
 
+    @cython.critical_section
     cdef _ensure_mapping_populated(self):
         # this populates the mapping
         # if its not already populated
         # also satisfies the need_unique_check
-        with cython.critical_section(self):
-            if not self.is_mapping_populated:
-                values = self.values
-                mapping = self._make_hash_table(len(values))
-                mapping.map_locations(values, self.mask)
-                unique = len(mapping) == len(values)
-            # check again after creating the mapping
-            # which could have released the critical_section
-            if not self.is_mapping_populated:
-                self.mapping = mapping
-                self.unique = unique
-                self.need_unique_check = 0
+        if not self.is_mapping_populated:
+            values = self.values
+            mapping = self._make_hash_table(len(values))
+            mapping.map_locations(values, self.mask)
+            unique = len(mapping) == len(values)
+        # check again after creating the mapping
+        # which could have released the critical_section
+        if not self.is_mapping_populated:
+            self.mapping = mapping
+            self.unique = unique
+            self.need_unique_check = 0
 
     def clear_mapping(self):
         self.mapping = None
