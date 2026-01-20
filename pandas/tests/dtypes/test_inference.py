@@ -261,6 +261,27 @@ def test_is_list_like_native_container_types():
     assert not inference.is_list_like(tuple[str])
 
 
+def test_is_list_like_sequence_protocol():
+    # GH 42549
+    class SequenceProtocol:
+        def __init__(self, data):
+            self.data = data
+
+        def __getitem__(self, index):
+            return self.data[index]
+
+        def __len__(self):
+            return len(self.data)
+
+    obj = SequenceProtocol([1, 2, 3])
+    assert inference.is_list_like(obj)
+
+    # Verify strict DataFrame construction handling
+    df = DataFrame(index=range(3), data={"a": obj})
+    expected = DataFrame({"a": [1, 2, 3]})
+    tm.assert_frame_equal(df, expected)
+
+
 def test_is_sequence():
     is_seq = inference.is_sequence
     assert is_seq((1, 2))
