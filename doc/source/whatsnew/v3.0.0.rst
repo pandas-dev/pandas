@@ -347,17 +347,17 @@ Datetime/timedelta resolution inference
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Prior to pandas 3.0, whenever converting a sequence of of strings, stdlib ``datetime``
-objects, ``np.datetime64`` objects, or integers to a ``datetime64``/``timedelta64``
+objects, ``np.datetime64`` objects, or integers to a ``datetime64`` / ``timedelta64``
 dtype, this would always have resulted in nanosecond resolution (or raised an
 out-of-bounds error).
-Now it performs inference on the appropriate resolution (AKA ``unit``) for the output dtype. This affects both the generric constructors (:class:`Series`, :class:`DataFrame`, :class:`Index`, :class:`DatetimeIndex`) as specific conversion or creation functions (:func:`to_datetime`, :func:`to_timedelta`, :func:`date_range`, :func:`timedelta_range`, :class:`Timestamp`, :class:`Timedelta`).
+Now it performs inference on the appropriate resolution (a.k.a. ``unit``) for the output dtype. This affects both the generric constructors (:class:`Series`, :class:`DataFrame`, :class:`Index`, :class:`DatetimeIndex`) as specific conversion or creation functions (:func:`to_datetime`, :func:`to_timedelta`, :func:`date_range`, :func:`timedelta_range`, :class:`Timestamp`, :class:`Timedelta`).
 
 The general rules for the various types of input:
 
-- The new default resolution is microseconds, whenever the input object has no
-  inherent resolution (when parsing strings, converting stdlib ``datetime`` objects),
-  falling back to nanoseconds when the precision of the string requires it.
-- The unit of the input is preserved for ``np.datetime64`` objects (or capped to
+- The new default resolution when parsing strings is microseconds, falling back
+  to nanoseconds when the precision of the string requires it.
+- The resolution of the input is preserved for stdlib  ``datetime`` objects (i.e. microseconds)
+  or ``np.datetime64``/``np.timedelta64`` objects (i.e. the unit, capped to
   the supported range of seconds to nanoseconds).
 - For integer input, the resolution how the integer value is interpreted is used
   as the resulting resolution (or capped to the supported range of seconds to nanoseconds).
@@ -368,16 +368,16 @@ but now infer:
 .. ipython:: python
 
     # parsing strings
-    pd.to_datetime(["2024-03-22 11:36"]).dtype
+    print(pd.to_datetime(["2024-03-22 11:36"]).dtype)
     # converting integers
-    pd.to_datetime([0], unit="s").dtype
+    print(pd.to_datetime([0], unit="s").dtype)
     # converting stdlib datetime object
     dt = pd.Timestamp("2024-03-22 11:36").to_pydatetime()
-    pd.to_datetime([dt]).dtype
+    print(pd.to_datetime([dt]).dtype)
     # the same when inferring a datetime dtype in the generic constructors
-    pd.Series([dt]).dtype
+    print(pd.Series([dt]).dtype)
     # converting numpy objects
-    pd.Series([np.datetime64("2024-03-22", "ms")]).dtype
+    print(pd.Series([np.datetime64("2024-03-22", "ms")]).dtype)
 
 Similar when passed a sequence of ``np.datetime64`` objects, the resolution of the passed objects will be retained (or for lower-than-second resolution, second resolution will be used).
 
@@ -387,31 +387,23 @@ Except when the string has nanosecond precision, in which case nanosecond resolu
 
 .. ipython:: python
 
-    pd.to_datetime(["2024-03-22 11:43:01.123456"]).dtype
-    pd.to_datetime(["2024-03-22 11:43:01.123456789"]).dtype
+    print(pd.to_datetime(["2024-03-22 11:43:01.123"]).dtype)
+    print(pd.to_datetime(["2024-03-22 11:43:01.123456"]).dtype)
+    print(pd.to_datetime(["2024-03-22 11:43:01.123456789"]).dtype)
 
 This is also a change for the :class:`Timestamp` constructor with a string input, which in version 2.x.y could give second or millisecond unit (:issue:`52653`).
 
-In cases with mixed-resolution inputs, the highest resolution is used:
-
-.. code-block:: ipython
-
-    In [2]: pd.to_datetime([pd.Timestamp("2024-03-22 11:43:01"), "2024-03-22 11:43:01.002"]).dtype
-    Out[2]: dtype('<M8[ns]')
-
 .. warning::
 
-    Many users will now get "M8[us]" dtype data in cases when they used to get "M8[ns]".
+    Many users will now get "datetime64[us]" dtype data in cases when they used
+    to get "datetime64[ns]".
     For most use cases they should not notice a difference. One big exception is
     converting to integers, which will give integers 1000x smaller.
 
     When converting datetime-like data to integers, it is recommended to avoid
     ``astype("int64")`` to make your code agnostic to the exact unit.
 
-
-Similarly, the :class:`Timedelta` constructor and :func:`to_timedelta` with a string input now defaults to a microsecond unit, using nanosecond unit only in cases that actually have nanosecond precision.
-
-Moreover, passing an integer to the :class:`Timedelta` constructor or :func:`to_timedelta` along with a ``unit`` will now return an object with that unit when possible, or the closest-supported unit for non-supported units ("W", "D", "h", "m").
+    See :ref:`timeseries.converting.epoch_inverse`.
 
 .. _whatsnew_300.api_breaking.concat_datetime_sorting:
 
