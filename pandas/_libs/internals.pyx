@@ -736,7 +736,7 @@ cdef class BlockManager:
         public tuple blocks
         public list axes
         public bint _known_consolidated, _is_consolidated
-        public ndarray _blknos, _blklocs
+        ndarray __blknos, __blklocs
 
     def __cinit__(
         self,
@@ -764,6 +764,25 @@ cdef class BlockManager:
 
     # -------------------------------------------------------------------
     # Block Placement
+    @property
+    @cython.critical_section
+    def _blknos(self):
+        return self.__blknos
+
+    @_blknos.setter
+    @cython.critical_section
+    def _blknos(self, ndarray val):
+        self.__blknos = val
+
+    @property
+    @cython.critical_section
+    def _blklocs(self):
+        return self.__blklocs
+
+    @_blklocs.setter
+    @cython.critical_section
+    def _blklocs(self, ndarray val):
+        self.__blklocs = val
 
     @cython.critical_section
     cpdef _rebuild_blknos_and_blklocs(self):
@@ -803,8 +822,8 @@ cdef class BlockManager:
             if blkno == -1:
                 raise AssertionError("Gaps in blk ref_locs")
 
-        self._blknos = new_blknos
-        self._blklocs = new_blklocs
+        self.__blknos = new_blknos
+        self.__blklocs = new_blklocs
 
     # -------------------------------------------------------------------
     # Pickle
@@ -877,8 +896,8 @@ cdef class BlockManager:
 
         # We can avoid having to rebuild blklocs/blknos
         with cython.critical_section(self):
-            blklocs = self._blklocs
-            blknos = self._blknos
+            blklocs = self.__blklocs
+            blknos = self.__blknos
         if blknos is not None:
             mgr._blknos = blknos.copy()
             mgr._blklocs = blklocs.copy()
