@@ -1672,7 +1672,7 @@ The repeated labels are:\n-+\nwolof
             path = temp_file
             df.to_stata(path)
 
-    def test_path_pathlib(self, tmp_path):
+    def test_path_pathlib(self, temp_file):
         df = DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
             columns=pd.Index(list("ABCD")),
@@ -1680,7 +1680,7 @@ The repeated labels are:\n-+\nwolof
         )
         df.index.name = "index"
         reader = lambda x: read_stata(x).set_index("index")
-        result = tm.round_trip_pathlib(df.to_stata, reader, tmp_path)
+        result = tm.round_trip_pathlib(df.to_stata, reader, temp_file)
         tm.assert_frame_equal(df, result)
 
     @pytest.mark.parametrize("write_index", [True, False])
