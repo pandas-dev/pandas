@@ -1476,4 +1476,4 @@ Other
 Contributors
 ~~~~~~~~~~~~
 
-.. contributors:: v2.3.3..v3.0.0
+.. contributors:: v2.3.3..v3.0.0|HEAD
