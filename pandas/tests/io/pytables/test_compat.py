@@ -7,7 +7,7 @@ tables = pytest.importorskip("tables")
 
 
 @pytest.fixture
-def pytables_hdf5_file(tmp_path):
+def pytables_hdf5_file(temp_h5_path):
     """
     Use PyTables to create a simple HDF5 file.
     """
@@ -28,15 +28,14 @@ def pytables_hdf5_file(tmp_path):
 
     objname = "pandas_test_timeseries"
 
-    path = tmp_path / "written_with_pytables.h5"
-    with tables.open_file(path, mode="w") as f:
+    with tables.open_file(temp_h5_path, mode="w") as f:
         t = f.create_table("/", name=objname, description=table_schema)
         for sample in testsamples:
             for key, value in sample.items():
                 t.row[key] = value
             t.row.append()
 
-    return path, objname, pd.DataFrame(testsamples)
+    return temp_h5_path, objname, pd.DataFrame(testsamples)
 
 
 class TestReadPyTablesHDF5:
