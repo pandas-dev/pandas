@@ -1210,6 +1210,7 @@ Conversion
 Strings
 ^^^^^^^
 - Bug in :meth:`Series.str.match` failing to raise when given a compiled ``re.Pattern`` object and conflicting ``case`` or ``flags`` arguments (:issue:`62240`)
+- Bug in :meth:`Series.str.replace` raising an error on valid group references (``\1``, ``\2``, etc.) on series converted to PyArrow backend dtype (:issue:`62653`)
 - Bug in :meth:`Series.str.zfill` raising ``AttributeError`` for :class:`ArrowDtype` (:issue:`61485`)
 - Bug in :meth:`Series.value_counts` would not respect ``sort=False`` for series having ``string`` dtype (:issue:`55224`)
 - Bug in :ref:`Series.str methods <api.series.str>` would fail when using regex with lookaheads or lookbehinds, backreferences, or ``\Z`` on data backed by PyArrow (:issue:`60833`, :issue:`63683`)
@@ -1238,6 +1239,7 @@ Indexing
 - Bug in indexing ``obj.loc[start:stop]`` with a :class:`DatetimeIndex` and :class:`Timestamp` endpoints with higher resolution than the index (:issue:`63262`)
 - Bug in printing :attr:`Index.names` and :attr:`MultiIndex.levels` would not escape single quotes (:issue:`60190`)
 - Bug in reindexing of :class:`DataFrame` with :class:`PeriodDtype` columns in case of consolidated block (:issue:`60980`, :issue:`60273`)
+- Bug in :meth:`DataFrame.__getitem__` returning modified columns when called with ``slice`` in Python 3.12 (:issue:`57500`)
 - Bug in :meth:`DataFrame.loc.__getitem__` and :meth:`DataFrame.iloc.__getitem__` with a :class:`CategoricalDtype` column with integer categories raising when trying to index a row containing a ``NaN`` entry (:issue:`58954`)
 - Bug in :meth:`Index.__getitem__` incorrectly raising with a 0-dim ``np.ndarray`` key (:issue:`55601`)
 - Bug in :meth:`Index.get_indexer` not casting missing values correctly for new string datatype (:issue:`55833`)
