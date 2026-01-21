@@ -38,7 +38,10 @@ from libc.time cimport (
     tm,
 )
 
-from pandas._libs.tslibs.dtypes cimport c_OFFSET_TO_PERIOD_FREQSTR
+from pandas._libs.tslibs.dtypes cimport (
+    PeriodDtypeCode,
+    c_OFFSET_TO_PERIOD_FREQSTR,
+)
 
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 
@@ -69,13 +72,6 @@ from pandas._libs.tslibs.ccalendar cimport (
     get_week_of_year,
     is_leapyear,
 )
-from pandas._libs.tslibs.timedeltas cimport (
-    delta_to_nanoseconds,
-    is_any_td_scalar,
-)
-
-from pandas._libs.tslibs.conversion import DT64NS_DTYPE
-
 from pandas._libs.tslibs.dtypes cimport (
     FR_ANN,
     FR_BUS,
@@ -95,6 +91,10 @@ from pandas._libs.tslibs.dtypes cimport (
     freq_group_code_to_npy_unit,
 )
 from pandas._libs.tslibs.parsing cimport quarter_to_myear
+from pandas._libs.tslibs.timedeltas cimport (
+    delta_to_nanoseconds,
+    is_any_td_scalar,
+)
 
 from pandas._libs.tslibs.parsing import parse_datetime_string_with_reso
 
@@ -973,13 +973,13 @@ def periodarr_to_dt64arr(const int64_t[:] periodarr, int freq):
         for i in range(N):
             out[i] = period_ordinal_to_dt64(periodarr[i], freq)
 
-        return out.base  # .base to access underlying np.ndarray
+        return out.base.view("M8[us]")  # .base to access underlying np.ndarray
 
     else:
         # Short-circuit for performance
         if freq == FR_NS:
             # TODO: copy?
-            return periodarr.base
+            return periodarr.base.view("M8[ns]")
 
         if freq == FR_US:
             dta = periodarr.base.view("M8[us]")
@@ -993,7 +993,8 @@ def periodarr_to_dt64arr(const int64_t[:] periodarr, int freq):
             dta = periodarr.base.view("M8[h]")
         elif freq == FR_DAY:
             dta = periodarr.base.view("M8[D]")
-        return astype_overflowsafe(dta, dtype=DT64NS_DTYPE)
+        # GH#63760 give microseconds for everything other than freq="ns"
+        return astype_overflowsafe(dta, dtype=np.dtype("M8[us]"))
 
 
 cdef void get_asfreq_info(int from_freq, int to_freq,
@@ -1161,13 +1162,19 @@ cdef int64_t period_ordinal_to_dt64(int64_t ordinal, int freq) except? -1:
     if ordinal == NPY_NAT:
         return NPY_NAT
 
+    if freq == PeriodDtypeCode.N:
+        # We have to return nanosecond unit, but this is a no-op
+        return ordinal
+
     get_date_info(ordinal, freq, &dts)
 
     try:
-        result = npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT.NPY_FR_ns, &dts)
+        result = npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT.NPY_FR_us, &dts)
     except OverflowError as err:
         fmt = dts_to_iso_string(&dts)
-        raise OutOfBoundsDatetime(f"Out of bounds nanosecond timestamp: {fmt}") from err
+        raise OutOfBoundsDatetime(
+            f"Out of bounds microsecond timestamp: {fmt}"
+        ) from err
 
     return result
 
@@ -1681,7 +1688,7 @@ cdef class PeriodMixin:
         Timestamp('2012-01-01 00:00:00')
 
         >>> period.end_time
-        Timestamp('2012-01-01 23:59:59.999999999')
+        Timestamp('2012-01-01 23:59:59.999999')
         """
         return self.to_timestamp(how="start")
 
@@ -1706,7 +1713,7 @@ cdef class PeriodMixin:
         For Period:
 
         >>> pd.Period('2020-01', 'D').end_time
-        Timestamp('2020-01-01 23:59:59.999999999')
+        Timestamp('2020-01-01 23:59:59.999999')
 
         For Series:
 
@@ -1718,19 +1725,19 @@ cdef class PeriodMixin:
         2   2020-03
         dtype: period[M]
         >>> s.dt.end_time
-        0   2020-01-31 23:59:59.999999999
-        1   2020-02-29 23:59:59.999999999
-        2   2020-03-31 23:59:59.999999999
-        dtype: datetime64[ns]
+        0   2020-01-31 23:59:59.999999
+        1   2020-02-29 23:59:59.999999
+        2   2020-03-31 23:59:59.999999
+        dtype: datetime64[us]
 
         For PeriodIndex:
 
         >>> idx = pd.PeriodIndex(["2023-01", "2023-02", "2023-03"], freq="M")
         >>> idx.end_time
-        DatetimeIndex(['2023-01-31 23:59:59.999999999',
-                       '2023-02-28 23:59:59.999999999',
-                       '2023-03-31 23:59:59.999999999'],
-                       dtype='datetime64[ns]', freq=None)
+        DatetimeIndex(['2023-01-31 23:59:59.999999',
+                       '2023-02-28 23:59:59.999999',
+                       '2023-03-31 23:59:59.999999'],
+                       dtype='datetime64[us]', freq=None)
         """
         return self.to_timestamp(how="end")
 
@@ -2061,6 +2068,9 @@ cdef class _Period(PeriodMixin):
         Uses the target frequency specified at the part of the period specified
         by `how`, which is either `Start` or `Finish`.
 
+        If possible, gives microsecond-unit Timestamp. Otherwise gives nanosecond
+        unit.
+
         Parameters
         ----------
         freq : str or DateOffset
@@ -2089,14 +2099,19 @@ cdef class _Period(PeriodMixin):
         """
         how = validate_end_alias(how)
 
+        if self._dtype._dtype_code == PeriodDtypeCode.N or freq == "ns":
+            unit = "ns"
+        else:
+            unit = "us"
+
         end = how == "E"
         if end:
             if freq == "B" or self._freq == "B":
                 # roll forward to ensure we land on B date
-                adjust = np.timedelta64(1, "D") - np.timedelta64(1, "ns")
+                adjust = np.timedelta64(1, "D") - np.timedelta64(1, unit)
                 return self.to_timestamp(how="start") + adjust
             endpoint = (self + self._freq).to_timestamp(how="start")
-            return endpoint - np.timedelta64(1, "ns")
+            return endpoint - np.timedelta64(1, unit)
 
         if freq is None:
             freq_code = self._dtype._get_to_timestamp_base()
@@ -2110,7 +2125,7 @@ cdef class _Period(PeriodMixin):
         val = self.asfreq(freq, how)
 
         dt64 = period_ordinal_to_dt64(val.ordinal, base)
-        return Timestamp(dt64)
+        return Timestamp(dt64, unit=unit)
 
     @property
     def year(self) -> int:

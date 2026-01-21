@@ -759,6 +759,9 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         """
         Cast to DatetimeArray/Index.
 
+        If possible, gives microsecond-unit DatetimeArray/Index. Otherwise
+        gives nanosecond unit.
+
         Parameters
         ----------
         freq : str or DateOffset, optional
@@ -789,34 +792,39 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         >>> idx = pd.PeriodIndex(["2023-01", "2023-02", "2023-03"], freq="M")
         >>> idx.to_timestamp()
         DatetimeIndex(['2023-01-01', '2023-02-01', '2023-03-01'],
-        dtype='datetime64[ns]', freq='MS')
+        dtype='datetime64[us]', freq='MS')
 
         The frequency will not be inferred if the index contains less than
         three elements, or if the values of index are not strictly monotonic:
 
         >>> idx = pd.PeriodIndex(["2023-01", "2023-02"], freq="M")
         >>> idx.to_timestamp()
-        DatetimeIndex(['2023-01-01', '2023-02-01'], dtype='datetime64[ns]', freq=None)
+        DatetimeIndex(['2023-01-01', '2023-02-01'], dtype='datetime64[us]', freq=None)
 
         >>> idx = pd.PeriodIndex(
         ...     ["2023-01", "2023-02", "2023-02", "2023-03"], freq="2M"
         ... )
         >>> idx.to_timestamp()
         DatetimeIndex(['2023-01-01', '2023-02-01', '2023-02-01', '2023-03-01'],
-        dtype='datetime64[ns]', freq=None)
+        dtype='datetime64[us]', freq=None)
         """
         from pandas.core.arrays import DatetimeArray
 
         how = libperiod.validate_end_alias(how)
 
+        if self.freq.base == "ns" or freq == "ns":
+            unit = "ns"
+        else:
+            unit = "us"
+
         end = how == "E"
         if end:
             if freq == "B" or self.freq == "B":
                 # roll forward to ensure we land on B date
-                adjust = Timedelta(1, "D") - Timedelta(1, "ns")
+                adjust = Timedelta(1, unit="D") - Timedelta(1, unit=unit)
                 return self.to_timestamp(how="start") + adjust
             else:
-                adjust = Timedelta(1, "ns")
+                adjust = Timedelta(1, unit=unit)
                 return (self + self.freq).to_timestamp(how="start") - adjust
 
         if freq is None:
@@ -831,7 +839,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         new_parr = self.asfreq(freq, how=how)
 
         new_data = libperiod.periodarr_to_dt64arr(new_parr.asi8, base)
-        dta = DatetimeArray._from_sequence(new_data, dtype=np.dtype("M8[ns]"))
+        dta = DatetimeArray._from_sequence(new_data, dtype=new_data.dtype)
+        assert dta.unit == unit
 
         if self.freq.name == "B":
             # See if we can retain BDay instead of Day in cases where

@@ -8,7 +8,6 @@ import pytest
 
 from pandas._libs import (
     NaT,
-    OutOfBoundsDatetime,
     Timestamp,
 )
 from pandas._libs.tslibs import to_offset
@@ -1110,28 +1109,25 @@ class TestPeriodArray(SharedTests):
         parr = dta.to_period()
         result = parr.to_timestamp()
         assert result.freq == "B"
-        tm.assert_extension_array_equal(result, dta)
+        tm.assert_extension_array_equal(result, dta.as_unit("us"))
 
         dta2 = dta[::2]
         parr2 = dta2.to_period()
         result2 = parr2.to_timestamp()
         assert result2.freq == "2B"
-        tm.assert_extension_array_equal(result2, dta2)
+        tm.assert_extension_array_equal(result2, dta2.as_unit("us"))
 
         parr3 = dta.to_period("2B")
         result3 = parr3.to_timestamp()
         assert result3.freq == "B"
-        tm.assert_extension_array_equal(result3, dta)
+        tm.assert_extension_array_equal(result3, dta.as_unit("us"))
 
     def test_to_timestamp_out_of_bounds(self):
         # GH#19643 previously overflowed silently
         pi = pd.period_range("1500", freq="Y", periods=3)
-        msg = "Out of bounds nanosecond timestamp: 1500-01-01 00:00:00"
-        with pytest.raises(OutOfBoundsDatetime, match=msg):
-            pi.to_timestamp()
-
-        with pytest.raises(OutOfBoundsDatetime, match=msg):
-            pi._data.to_timestamp()
+        pi.to_timestamp()
+        dta = pi._data.to_timestamp()
+        assert dta[0] == Timestamp(1500, 1, 1)
 
     @pytest.mark.parametrize("propname", PeriodArray._bool_ops)
     def test_bool_properties(self, arr1d, propname):

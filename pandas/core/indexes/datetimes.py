@@ -896,7 +896,10 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         """
         freq = OFFSET_TO_PERIOD_FREQSTR.get(reso.attr_abbrev, reso.attr_abbrev)
         per = Period(parsed, freq=freq)
-        start, end = per.start_time, per.end_time
+        start = per.start_time
+        # Can't use end_time here bc that will subtract a microsecond
+        #  instead of a nanosecond
+        end = (per + 1).start_time - np.timedelta64(1, "ns")
         start = start.as_unit(self.unit)
         end = end.as_unit(self.unit)
 
