@@ -13,7 +13,7 @@ Index
 .. note::
 
    For a conceptual overview and practical examples of indexing and selecting data,
-   see the user guide section :ref:`indexing`.
+   see :ref:`indexing` in the User Guide.
 
 **Many of these methods or variants thereof are available on the objects
 that contain an index (Series/DataFrame) and those should most likely be
