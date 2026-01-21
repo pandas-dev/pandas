@@ -35,12 +35,17 @@ if cy.version().version_compare('>=3.1.0')
 endif
 
 foreach ext_name, ext_dict : tslibs_sources
+    dependencies = [numpy_dep]
+    if ext_dict.has_key('deps')
+        dependencies += ext_dict.get('deps')
+    endif
+
     py.extension_module(
         ext_name,
         ext_dict.get('sources'),
         cython_args: cython_args,
-        include_directories: [inc_np, inc_pd],
-        dependencies: ext_dict.get('deps', []),
+        include_directories: [inc_pd],
+        dependencies: dependencies,
         subdir: 'pandas/_libs/tslibs',
         install: true,
     )

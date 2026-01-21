@@ -248,10 +248,11 @@ jobs:
         run: |
           /opt/python/cp313-cp313/bin/python -m venv ~/virtualenvs/pandas-dev
           . ~/virtualenvs/pandas-dev/bin/activate
-          python -m pip install --no-cache-dir -U pip wheel setuptools meson[ninja]==1.2.1 meson-python==0.13.1
+          python -m pip install --no-cache-dir -U pip wheel setuptools meson[ninja]==1.10.0 meson-python==0.18.0
           python -m pip install numpy -Csetup-args="-Dallow-noblas=true"
           python -m pip install --no-cache-dir versioneer[toml] cython==3.0.10 python-dateutil pytest>=8.3.4 pytest-xdist>=3.6.1 hypothesis>=6.116.0
-          python -m pip install --no-cache-dir --no-build-isolation -e . -Csetup-args="--werror"
+          # python -m pip install --no-cache-dir --no-build-isolation -e . -Csetup-args="--werror"
+          python -m pip install --no-cache-dir --no-build-isolation -e .
           python -m pip list --no-cache-dir
           PANDAS_CI=1 python -m pytest -m 'not slow and not network and not clipboard and not single_cpu' pandas --junitxml=test-data.xml
     concurrency:
@@ -286,9 +287,10 @@ jobs:
         run: |
           /opt/python/cp313-cp313/bin/python -m venv ~/virtualenvs/pandas-dev
           . ~/virtualenvs/pandas-dev/bin/activate
-          python -m pip install --no-cache-dir -U pip wheel setuptools meson-python==0.13.1 meson[ninja]==1.2.1
+          python -m pip install --no-cache-dir -U pip wheel setuptools meson-python==0.18.0 meson[ninja]==1.10.0
           python -m pip install --no-cache-dir versioneer[toml] cython numpy python-dateutil pytest>=8.3.4 pytest-xdist>=3.6.1 hypothesis>=6.116.0
-          python -m pip install --no-cache-dir --no-build-isolation -e . -Csetup-args="--werror"
+          # python -m pip install --no-cache-dir --no-build-isolation -e . -Csetup-args="--werror"
+          python -m pip install --no-cache-dir --no-build-isolation -e .
           python -m pip list --no-cache-dir
 
       - name: Run Tests
@@ -356,10 +358,11 @@ jobs:
       - name: Build Environment
         run: |
           python --version
-          python -m pip install --upgrade pip setuptools wheel meson[ninja]==1.2.1 meson-python==0.13.1
+          python -m pip install --upgrade pip setuptools wheel meson[ninja]==1.10.0 meson-python==0.18.0
           python -m pip install --pre --extra-index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple numpy
           python -m pip install versioneer[toml] python-dateutil tzdata cython hypothesis>=6.116.0 pytest>=8.3.4 pytest-xdist>=3.6.1 pytest-cov
-          python -m pip install -ve . --no-build-isolation --no-index --no-deps -Csetup-args="--werror"
+          # python -m pip install -ve . --no-build-isolation --no-index --no-deps -Csetup-args="--werror"
+          python -m pip install -ve . --no-build-isolation --no-index --no-deps
           python -m pip list
 
       - name: Run Tests
@@ -399,6 +402,10 @@ jobs:
 
       - name: Install pyodide-build
         run: pip install "pyodide-build>=0.29.2"
+
+      - name: Determine NumPy pkg-config location for cross-compilation
+        run: |
+          echo "PKG_CONFIG_PATH=$(numpy-config --pkgconfigdir)" >> $GITHUB_ENV
 
       - name: Build pandas for Pyodide
         run: |

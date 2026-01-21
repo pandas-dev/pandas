@@ -150,6 +150,11 @@ jobs:
         shell: bash -el {0}
         run: echo "sdist_name=$(ls ./dist)" >> "$GITHUB_ENV"
 
+      - name: Determine NumPy pkg-config location for cross-compilation
+        if: matrix.buildplat[1] == 'pyodide_wasm32'
+        run: |
+          echo "CIBW_ENVIRONMENT=PKG_CONFIG_PATH=$(numpy-config --pkgconfigdir)" >> $GITHUB_ENV
+
       # Python version used to build sdist doesn't matter
       # wheel will be built from sdist with the correct version
       - name: Unzip sdist (macOS)
