@@ -5740,7 +5740,30 @@ class DataFrame(NDFrame, OpsMixin):
 
         if is_list_like(value):
             com.require_length_match(value, self.index)
-        return sanitize_array(value, self.index, copy=True, allow_2d=True), None
+
+        # GH#61026: special-case 2D inputs for single-column assignment.
+        # - accept shape (n, 1) by flattening to 1D
+        # - disallow 2D *object* arrays with more than one column, since those
+        # correspond to a single column key and should be rejected
+        arr = value
+
+        # np.matrix is always 2D; gonna convert to regular ndarray
+        if isinstance(arr, np.matrix):
+            arr = np.asarray(arr)
+
+        if isinstance(arr, np.ndarray) and arr.ndim == 2:
+            if arr.shape[1] == 1:
+                # treating (n, 1) as a length-n 1D array
+                arr = arr[:, 0]
+            elif arr.dtype == object:
+                # single-column setitem with a 2D object array is not allowed.
+                msg = (
+                    "Setting a DataFrame column with a 2D array requires "
+                    f"shape (n, 1); got shape {arr.shape}."
+                )
+                raise ValueError(msg)
+        subarr = sanitize_array(arr, self.index, copy=True, allow_2d=True)
+        return subarr, None
 
     @property
     def _series(self):
