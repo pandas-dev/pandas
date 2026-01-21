@@ -295,11 +295,11 @@ class TestArrowArray(base.ExtensionTests):
         ser = pd.Series(data)
         self._compare_other(ser, data, comparison_op, data[0])
 
-    def test_compare_range_len(self, data):
+    def test_compare_range_len(self, data, comparison_op):
         # GH#63429
         ser = pd.Series(data)
         range_test = range(len(ser))
-        self._compare_other(ser, range_test, operator.eq, range_test)
+        self._compare_other(ser, range_test, comparison_op, range_test)
 
     @pytest.mark.parametrize("na_action", [None, "ignore"])
     def test_map(self, data_missing, na_action, using_nan_is_na):
