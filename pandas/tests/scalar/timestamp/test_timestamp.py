@@ -119,10 +119,9 @@ class TestTimestampProperties:
 
     # GH 12806
     @pytest.mark.parametrize("tz", [None, "EST"])
-    # error: Unsupported operand types for + ("List[None]" and "List[str]")
     @pytest.mark.parametrize(
         "time_locale",
-        [None] + tm.get_locales(),  # type: ignore[operator]
+        [None, *tm.get_locales()],
     )
     def test_names(self, tz, time_locale):
         # GH 17354

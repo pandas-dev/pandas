@@ -222,7 +222,7 @@ def coerce_to_array(
 
         inferred_dtype = lib.infer_dtype(values_object, skipna=True)
         integer_like = ("floating", "integer", "mixed-integer-float")
-        if inferred_dtype not in ("boolean", "empty") + integer_like:
+        if inferred_dtype not in ("boolean", "empty", *integer_like):
             raise TypeError("Need to pass bool-like values")
 
         # mypy does not narrow the type of mask_values to npt.NDArray[np.bool_]

@@ -390,7 +390,7 @@ def test_rolling_max_resample(step):
     # So that we can have 3 datapoints on last day (4, 10, and 20)
     indices.append(datetime(1975, 1, 5, 1))
     indices.append(datetime(1975, 1, 5, 2))
-    series = Series(list(range(5)) + [10, 20], index=indices)
+    series = Series([*list(range(5)), 10, 20], index=indices)
     # Use floats instead of ints as values
     series = series.map(lambda x: float(x))
     # Sort chronologically
@@ -427,7 +427,7 @@ def test_rolling_min_resample(step):
     # So that we can have 3 datapoints on last day (4, 10, and 20)
     indices.append(datetime(1975, 1, 5, 1))
     indices.append(datetime(1975, 1, 5, 2))
-    series = Series(list(range(5)) + [10, 20], index=indices)
+    series = Series([*list(range(5)), 10, 20], index=indices)
     # Use floats instead of ints as values
     series = series.map(lambda x: float(x))
     # Sort chronologically
@@ -447,7 +447,7 @@ def test_rolling_median_resample():
     # So that we can have 3 datapoints on last day (4, 10, and 20)
     indices.append(datetime(1975, 1, 5, 1))
     indices.append(datetime(1975, 1, 5, 2))
-    series = Series(list(range(5)) + [10, 20], index=indices)
+    series = Series([*list(range(5)), 10, 20], index=indices)
     # Use floats instead of ints as values
     series = series.map(lambda x: float(x))
     # Sort chronologically
