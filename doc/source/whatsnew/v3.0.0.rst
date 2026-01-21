@@ -242,6 +242,7 @@ Other enhancements
 - :meth:`DataFrame.apply` supports using third-party execution engines like the Bodo.ai JIT compiler (:issue:`60668`)
 - :meth:`DataFrame.iloc` and :meth:`Series.iloc` now support boolean masks in ``__getitem__`` for more consistent indexing behavior (:issue:`60994`)
 - :meth:`DataFrame.to_csv` and :meth:`Series.to_csv` now support f-strings (e.g., ``"{:.6f}"``) for the ``float_format`` parameter, in addition to the ``%`` format strings and callables (:issue:`49580`)
+- :meth:`Series.corr`, :meth:`DataFrame.corr`, :meth:`DataFrame.corrwith` with ``method="kendall"`` and ``method="spearman"`` now work with ordered categorical data types (:issue:`60306`)
 - :meth:`Series.map` can now accept kwargs to pass on to func (:issue:`59814`)
 - :meth:`Series.map` now accepts an ``engine`` parameter to allow execution with a third-party execution engine (:issue:`61125`)
 - :meth:`Series.nlargest` uses stable sort internally and will preserve original ordering in the case of equality (:issue:`55767`)
