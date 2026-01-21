@@ -550,3 +550,33 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         """
         mapped = self._values.map(mapper, na_action=na_action)
         return Index(mapped, name=self.name, copy=False)
+
+    def replace(
+        self,
+        to_replace=None,
+        value=None,
+        *,
+        regex: bool = False,
+    ) -> CategoricalIndex:
+        """
+        Replace values in a CategoricalIndex.
+
+        This method is not supported for ``CategoricalIndex`` and will always
+        raise ``NotImplementedError``.
+
+        Parameters
+        ----------
+        to_replace : scalar, list-like, dict, or None
+            Values to replace.
+        value : scalar, list-like, dict, or None
+            Replacement value(s).
+        regex : bool, default False
+            Whether to interpret ``to_replace`` as a regular expression.
+
+        Raises
+        ------
+        NotImplementedError
+            Always raised. Use ``CategoricalIndex.rename_categories`` or
+            ``CategoricalIndex.map`` to modify category values.
+        """
+        raise NotImplementedError("CategoricalIndex.replace is not supported")
