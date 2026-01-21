@@ -62,7 +62,7 @@ from pandas.errors import (
     Pandas4Warning,
 )
 from pandas.errors.cow import (
-    _chained_assignment_method_msg,
+    _chained_assignment_method_update_msg,
     _chained_assignment_msg,
 )
 from pandas.util._decorators import (
@@ -10540,7 +10540,7 @@ class DataFrame(NDFrame, OpsMixin):
                 self
             ) <= REF_COUNT_METHOD and not com.is_local_in_caller_frame(self):
                 warnings.warn(
-                    _chained_assignment_method_msg,
+                    _chained_assignment_method_update_msg,
                     ChainedAssignmentError,
                     stacklevel=2,
                 )
