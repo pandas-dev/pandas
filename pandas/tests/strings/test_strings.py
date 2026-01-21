@@ -915,6 +915,7 @@ def test_setitem_with_different_string_storage():
 @pytest.mark.parametrize(
     "pat, expected",
     [
+        # lookaround assertions
         (r"(?=abc)", True),
         (r"(?<=123)", True),
         (r"(?!xyz)", True),
@@ -940,8 +941,12 @@ def test_setitem_with_different_string_storage():
         (r"(?=test)?", False),
         (r"abc|(?=test)", True),
         (r"^(?=test)$", True),
+        # backreferences
+        (r"(abc)\1", True),
+        (r"\b(\w+)\s+\1\b", True),
+        (r"\b(?P<word>\w+)\s+(?P=word)\b", True),
     ],
 )
-def test_has_regex_lookaround(pat, expected):
+def test_has_regex_unsupported_code(pat, expected):
     # https://github.com/pandas-dev/pandas/issues/60833
-    assert ArrowStringArrayMixin._has_regex_lookaround(pat) == expected
+    assert ArrowStringArrayMixin._has_unsupported_regex(pat) == expected
