@@ -409,7 +409,7 @@ Backwards incompatible API changes
 Datetime/timedelta resolution inference
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Prior to pandas 3.0, whenever converting a sequence of of strings, stdlib ``datetime``
+Prior to pandas 3.0, whenever converting a sequence of strings, stdlib ``datetime``
 objects, ``np.datetime64`` objects, or integers to a ``datetime64`` / ``timedelta64``
 dtype, this would always have resulted in nanosecond resolution (or raised an
 out-of-bounds error).
