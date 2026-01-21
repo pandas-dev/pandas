@@ -172,6 +172,25 @@ This includes :meth:`DataFrame.assign`, :meth:`DataFrame.loc`, and getitem/setit
 It is expected that the support for ``pd.col()`` will be expanded to more methods
 in future releases.
 
+Support for the Arrow PyCapsule Interface
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The Arrow C data interface allows moving data between different DataFrame libraries
+through the Arrow format, and is designed to be zero-copy where possible. In Python,
+this interface is exposed through the `Arrow PyCapsule Protocol <https://arrow.apache.org/docs/format/CDataInterface/PyCapsuleInterface.html>`__.
+
+:class:`DataFrame` and :class:`Series` now support the Arrow PyCapsule Interface
+for both export and import of data (:issue:`56587`, :issue:`63208`, :issue:`59518`, :issue:`59631`).
+
+The dedicated :meth:`DataFrame.from_arrow` and :meth:`Series.from_arrow` methods are
+added to import any Arrow-compatible data object into a pandas object through the interface.
+
+For export, the :class:`DataFrame` and :class:`Series` implement the C stream
+interface (``__arrow_c_stream__``) method.
+
+Those methods currently rely on ``pyarrow`` to convert the tabular object in
+Arrow format to/from pandas.
+
 Updated deprecation policy
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 pandas 3.0.0 updates the deprecation policy to clarify which deprecation warnings will be issued, using a new 3-stage policy: using ``DeprecationWarning`` initially, then switching to ``FutureWarning`` for broader visibility in the last minor version before the next major release, and then removal of the deprecated functionality in the major release. This was done to give downstream packages more time to adjust to pandas deprecations, which should reduce the amount of warnings that a user gets from code that isn't theirs. See `PDEP 17 <https://pandas.pydata.org/pdeps/0017-backwards-compatibility-and-deprecation-policy.html>`_ for more details.
@@ -298,19 +317,12 @@ ExtensionArray:
 - :meth:`Series.rank` and :meth:`DataFrame.rank` with numpy-nullable dtypes preserve ``NA`` values and return ``UInt64`` dtype where appropriate instead of casting ``NA`` to ``NaN`` with ``float64`` dtype (:issue:`62043`)
 - Improve the resulting dtypes in :meth:`DataFrame.where` and :meth:`DataFrame.mask` with :class:`ExtensionDtype` ``other`` (:issue:`62038`)
 
-Conversion:
-
-- :class:`Series` now supports the Arrow PyCapsule Interface for export (:issue:`59518`)
-- Support passing a :class:`Series` input to :func:`json_normalize` that retains the :class:`Index` (:issue:`51452`)
-- Added :meth:`DataFrame.from_arrow` and :meth:`Series.from_arrow` to import any Arrow-compatible
-  data object into a pandas object through the
-  `Arrow PyCapsule Protocol <https://arrow.apache.org/docs/format/CDataInterface/PyCapsuleInterface.html>`__ (:issue:`59631`)
-
 Other:
 
 - :func:`set_option` now accepts a dictionary of options, simplifying configuration of multiple settings at once (:issue:`61093`)
 - :meth:`DataFrame.apply` supports using third-party execution engines like the Bodo.ai JIT compiler (:issue:`60668`)
 - :meth:`Series.map` now accepts an ``engine`` parameter to allow execution with a third-party execution engine (:issue:`61125`)
+- Support passing a :class:`Series` input to :func:`json_normalize` that retains the :class:`Index` (:issue:`51452`)
 - Users can globally disable any ``PerformanceWarning`` by setting the option ``mode.performance_warnings`` to ``False`` (:issue:`56920`)
 
 Packaging:
