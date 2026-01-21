@@ -114,8 +114,8 @@ class TestGetitemListLike:
             iter,
             Index,
             set,
-            lambda keys: dict(zip(keys, range(len(keys)))),
-            lambda keys: dict(zip(keys, range(len(keys)))).keys(),
+            lambda keys: dict(zip(keys, range(len(keys)), strict=True)),
+            lambda keys: dict(zip(keys, range(len(keys)), strict=True)).keys(),
         ],
         ids=["list", "iter", "Index", "set", "dict", "dict_keys"],
     )

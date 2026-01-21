@@ -132,7 +132,7 @@ class TestDataFrameToDict:
         ]
         assert isinstance(recons_data, list)
         assert len(recons_data) == 3
-        for left, right in zip(recons_data, expected_records):
+        for left, right in zip(recons_data, expected_records, strict=True):
             tm.assert_dict_equal(left, right)
 
         # GH#10844
