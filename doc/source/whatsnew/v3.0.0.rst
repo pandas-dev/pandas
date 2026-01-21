@@ -1,7 +1,7 @@
 .. _whatsnew_300:
 
-What's new in 3.0.0 (Month XX, 2025)
-------------------------------------
+What's new in 3.0.0 (January 21, 2026)
+--------------------------------------
 
 These are the changes in pandas 3.0.0. See :ref:`release` for a full changelog
 including other versions of pandas.
@@ -1535,3 +1535,5 @@ Other
 
 Contributors
 ~~~~~~~~~~~~
+
+.. contributors:: v2.3.3..v3.0.0|HEAD
