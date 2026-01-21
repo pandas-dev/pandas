@@ -90,6 +90,25 @@ Data structures
     1, "Series", "1D labeled homogeneously-typed array"
     2, "DataFrame", "General 2D labeled, size-mutable tabular structure with potentially heterogeneously-typed column"
 
+Who is pandas for?
+
+pandas is designed to support a broad range of users and use cases, from those
+new to data analysis to experienced practitioners working in data science,
+engineering and research
+
+- **Beginners** can use pandas to learn fundamental data manipulation concepts
+  using intuitive, high-level APIs built around real-world tabular data.
+
+- **Data analysts and scientists** rely on pandas for exploratory data analysis,
+  data cleaning, feature engineering, and integration with libraries such as 
+  NumPy, SciPy, scikit-learn, and matplotlib.
+
+- **Engineers and researchers** use pandas for processing structured data,
+  working with time series, and building reproducible data pipelines.
+
+This flexibility makes pandas suitable both as a learning tool and as a
+production-grade library for data-driven applications.
+
 Why more than one data structure?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
