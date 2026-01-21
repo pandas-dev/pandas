@@ -1175,7 +1175,7 @@ class TestToDatetime:
         tm.assert_index_equal(result, expected)
 
         # A list of datetimes where the last one is out of bounds
-        dts_with_oob = dts + [np.datetime64("9999-01-01")]
+        dts_with_oob = [*dts, np.datetime64("9999-01-01")]
 
         # As of GH#51978 we do not raise in this case
         to_datetime(dts_with_oob, errors="raise")
@@ -1782,7 +1782,7 @@ class TestToDatetimeUnit:
     def test_to_datetime_month_or_year_unit_int(self, cache, unit, item, request):
         # GH#50870 Note we have separate tests that pd.Timestamp gets these right
         ts = Timestamp(item, unit=unit)
-        dtype = "M8[ns]" if isinstance(item, float) else "M8[s]"
+        dtype = "M8[s]"
         expected = DatetimeIndex([ts], dtype=dtype)
 
         result = to_datetime([item], unit=unit, cache=cache)
@@ -1797,7 +1797,7 @@ class TestToDatetimeUnit:
         # with a nan!
         result = to_datetime(np.array([item, np.nan]), unit=unit, cache=cache)
         assert result.isna()[1]
-        tm.assert_index_equal(result[:1], expected.astype("M8[ns]"))
+        tm.assert_index_equal(result[:1], expected.astype("M8[s]"))
 
     @pytest.mark.parametrize("unit", ["Y", "M"])
     def test_to_datetime_month_or_year_unit_non_round_float(self, cache, unit):
@@ -1824,9 +1824,10 @@ class TestToDatetimeUnit:
         expected = to_datetime([NaT])
         tm.assert_index_equal(res, expected)
 
-        # round floats are OK
+        # round floats are OK; treated like integers to give
+        #  closest-to-supported unit
         res = to_datetime([1.0], unit=unit)
-        expected = to_datetime([1], unit=unit).as_unit("ns")
+        expected = to_datetime([1], unit=unit).as_unit("s")
         tm.assert_index_equal(res, expected)
 
     def test_unit(self, cache):
@@ -1842,7 +1843,7 @@ class TestToDatetimeUnit:
         result = to_datetime(values, unit="D", errors="coerce", cache=cache)
         expected = DatetimeIndex(
             ["NaT", "1970-01-02", "1970-01-02", "NaT", "NaT", "NaT", "NaT", "NaT"],
-            dtype="M8[ns]",
+            dtype="M8[s]",
         )
         tm.assert_index_equal(result, expected)
 
@@ -1951,7 +1952,7 @@ class TestToDatetimeUnit:
         epoch = 1370745748
         ser = Series([epoch + t for t in range(20)]).astype(dtype)
         result = to_datetime(ser, unit="s")
-        unit = "s" if dtype is int else "ns"
+        unit = "s"
         expected = Series(
             [
                 Timestamp("2013-06-09 02:42:28") + timedelta(seconds=t)
@@ -1968,7 +1969,7 @@ class TestToDatetimeUnit:
         result = to_datetime(ser, unit="s")
         # With np.nan, the list gets cast to a float64 array, which always
         #  gets ns unit.
-        unit = "ns" if null is np.nan else "s"
+        unit = "s"
         expected = Series(
             [Timestamp("2013-06-09 02:42:28") + timedelta(seconds=t) for t in range(20)]
             + [NaT],
@@ -2116,7 +2117,7 @@ class TestToDatetimeDataFrame:
         result = to_datetime(df[list(unit.keys())].rename(columns=unit), cache=cache)
         expected = Series(
             [Timestamp("20150204 06:58:10"), Timestamp("20160305 07:59:11")],
-            dtype="M8[ns]",
+            dtype="M8[us]",
         )
         tm.assert_series_equal(result, expected)
 
@@ -2568,7 +2569,7 @@ class TestToDatetimeMisc:
         ser = Series([np.nan] * 1000 + [1712219033.0], dtype=np.float64)
         result = to_datetime(ser, unit="s", errors="coerce")
         expected = Series(
-            [NaT] * 1000 + [Timestamp("2024-04-04 08:23:53")], dtype="datetime64[ns]"
+            [NaT] * 1000 + [Timestamp("2024-04-04 08:23:53")], dtype="datetime64[s]"
         )
         tm.assert_series_equal(result, expected)
 

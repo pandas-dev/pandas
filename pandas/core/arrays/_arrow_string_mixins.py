@@ -48,6 +48,59 @@ class ArrowStringArrayMixin:
     def _apply_elementwise(self, func: Callable) -> list[list[Any]]:
         raise NotImplementedError
 
+    @staticmethod
+    def _has_unsupported_regex(pat: str | re.Pattern) -> bool:
+        """
+        Determine if regex pattern contains features not supported by RE2 / pyarrow.
+
+        This includes lookaround (lookahead or lookbehind) assertions and
+        backreferences.
+
+        Parameters
+        ----------
+        pat: str | re.Pattern
+            Regex pattern.
+
+        Returns
+        -------
+        bool
+            Whether `pat` contains a lookahead or lookbehind.
+        """
+        try:
+            # error: Module "re" has no attribute "_parser"
+            from re import _parser  # type: ignore[attr-defined]
+
+            regex_parser = _parser.parse
+        except Exception as err:
+            raise type(err)(
+                "Incompatible version for regex; you will need to upgrade pandas "
+                "or downgrade Python"
+            ) from err
+
+        def has_unsupported_code(tokens):
+            # For certain op codes we need to recurse.
+            for op_code, argument in tokens:
+                if (
+                    (
+                        op_code == _parser.SUBPATTERN
+                        and has_unsupported_code(argument[3])
+                    )
+                    or (
+                        op_code == _parser.BRANCH
+                        and any(has_unsupported_code(tokens) for tokens in argument[1])
+                    )
+                    or (
+                        op_code
+                        in [_parser.ASSERT_NOT, _parser.ASSERT, _parser.GROUPREF]
+                    )
+                ):
+                    return True
+            return False
+
+        str_pat = pat.pattern if isinstance(pat, re.Pattern) else pat
+        tokens = regex_parser(str_pat)
+        return has_unsupported_code(tokens)
+
     def _str_len(self):
         result = pc.utf8_length(self._pa_array)
         return self._convert_int_result(result)
@@ -223,16 +276,15 @@ class ArrowStringArrayMixin:
     ):
         if isinstance(pat, str):
             result = pc.starts_with(self._pa_array, pattern=pat)
+        elif len(pat) == 0:
+            # For empty tuple we return null for missing values and False
+            #  for valid values.
+            result = pc.if_else(pc.is_null(self._pa_array), None, False)
         else:
-            if len(pat) == 0:
-                # For empty tuple we return null for missing values and False
-                #  for valid values.
-                result = pc.if_else(pc.is_null(self._pa_array), None, False)
-            else:
-                result = pc.starts_with(self._pa_array, pattern=pat[0])
+            result = pc.starts_with(self._pa_array, pattern=pat[0])
 
-                for p in pat[1:]:
-                    result = pc.or_(result, pc.starts_with(self._pa_array, pattern=p))
+            for p in pat[1:]:
+                result = pc.or_(result, pc.starts_with(self._pa_array, pattern=p))
         return self._convert_bool_result(result, na=na, method_name="startswith")
 
     def _str_endswith(
@@ -240,16 +292,15 @@ class ArrowStringArrayMixin:
     ):
         if isinstance(pat, str):
             result = pc.ends_with(self._pa_array, pattern=pat)
+        elif len(pat) == 0:
+            # For empty tuple we return null for missing values and False
+            #  for valid values.
+            result = pc.if_else(pc.is_null(self._pa_array), None, False)
         else:
-            if len(pat) == 0:
-                # For empty tuple we return null for missing values and False
-                #  for valid values.
-                result = pc.if_else(pc.is_null(self._pa_array), None, False)
-            else:
-                result = pc.ends_with(self._pa_array, pattern=pat[0])
+            result = pc.ends_with(self._pa_array, pattern=pat[0])
 
-                for p in pat[1:]:
-                    result = pc.or_(result, pc.ends_with(self._pa_array, pattern=p))
+            for p in pat[1:]:
+                result = pc.or_(result, pc.ends_with(self._pa_array, pattern=p))
         return self._convert_bool_result(result, na=na, method_name="endswith")
 
     def _str_isalnum(self):

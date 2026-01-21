@@ -103,7 +103,7 @@ def create_block(typestr, placement, item_shape=None, num_offset=0, maker=new_bl
     if item_shape is None:
         item_shape = (N,)
 
-    shape = (num_items,) + item_shape
+    shape = (num_items, *item_shape)
 
     mat = get_numeric_mat(shape)
 
@@ -489,7 +489,7 @@ class TestBlockManager:
             # view assertion
             tm.assert_equal(cp_blk.values, blk.values)
             if isinstance(blk.values, np.ndarray):
-                assert cp_blk.values.base is blk.values.base
+                assert cp_blk.values.base.base is blk.values.base
             else:
                 # DatetimeTZBlock has DatetimeIndex values
                 assert cp_blk.values._ndarray.base is blk.values._ndarray.base

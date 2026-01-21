@@ -29,10 +29,7 @@ from pandas._typing import (
 from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import (
-    cache_readonly,
-    doc,
-)
+from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.cast import can_hold_element
 from pandas.core.dtypes.common import (
@@ -82,9 +79,6 @@ if TYPE_CHECKING:
         Index,
         Series,
     )
-
-
-_shared_docs: dict[str, str] = {}
 
 
 class PandasObject(DirNamesMixin):
@@ -749,19 +743,18 @@ class IndexOpsMixin(OpsMixin):
         """
         return not self.size
 
-    @doc(op="max", oppose="min", value="largest")
     def argmax(
         self, axis: AxisInt | None = None, skipna: bool = True, *args, **kwargs
     ) -> int:
         """
-        Return int position of the {value} value in the Series.
+        Return int position of the largest value in the Series.
 
-        If the {op}imum is achieved in multiple locations,
+        If the maximum is achieved in multiple locations,
         the first row position is returned.
 
         Parameters
         ----------
-        axis : {{None}}
+        axis : None
             Unused. Parameter needed for compatibility with DataFrame.
         skipna : bool, default True
             Exclude NA/null values. If the entire Series is NA, or if ``skipna=False``
@@ -772,13 +765,13 @@ class IndexOpsMixin(OpsMixin):
         Returns
         -------
         int
-            Row position of the {op}imum value.
+            Row position of the maximum value.
 
         See Also
         --------
-        Series.arg{op} : Return position of the {op}imum value.
-        Series.arg{oppose} : Return position of the {oppose}imum value.
-        numpy.ndarray.arg{op} : Equivalent method for numpy arrays.
+        Series.argmax : Return position of the maximum value.
+        Series.argmin : Return position of the minimum value.
+        numpy.ndarray.argmax : Equivalent method for numpy arrays.
         Series.idxmax : Return index label of the maximum values.
         Series.idxmin : Return index label of the minimum values.
 
@@ -823,10 +816,67 @@ class IndexOpsMixin(OpsMixin):
             # "int")
             return result  # type: ignore[return-value]
 
-    @doc(argmax, op="min", oppose="max", value="smallest")
     def argmin(
         self, axis: AxisInt | None = None, skipna: bool = True, *args, **kwargs
     ) -> int:
+        """
+        Return int position of the smallest value in the Series.
+
+        If the minimum is achieved in multiple locations,
+        the first row position is returned.
+
+        Parameters
+        ----------
+        axis : None
+            Unused. Parameter needed for compatibility with DataFrame.
+        skipna : bool, default True
+            Exclude NA/null values. If the entire Series is NA, or if ``skipna=False``
+            and there is an NA value, this method will raise a ``ValueError``.
+        *args, **kwargs
+            Additional arguments and keywords for compatibility with NumPy.
+
+        Returns
+        -------
+        int
+            Row position of the minimum value.
+
+        See Also
+        --------
+        Series.argmin : Return position of the minimum value.
+        Series.argmax : Return position of the maximum value.
+        numpy.ndarray.argmin : Equivalent method for numpy arrays.
+        Series.idxmin : Return index label of the minimum values.
+        Series.idxmax : Return index label of the maximum values.
+
+        Examples
+        --------
+        Consider dataset containing cereal calories
+
+        >>> s = pd.Series(
+        ...     [100.0, 110.0, 120.0, 110.0],
+        ...     index=[
+        ...         "Corn Flakes",
+        ...         "Almond Delight",
+        ...         "Cinnamon Toast Crunch",
+        ...         "Cocoa Puff",
+        ...     ],
+        ... )
+        >>> s
+        Corn Flakes              100.0
+        Almond Delight           110.0
+        Cinnamon Toast Crunch    120.0
+        Cocoa Puff               110.0
+        dtype: float64
+
+        >>> s.argmax()
+        np.int64(2)
+        >>> s.argmin()
+        np.int64(0)
+
+        The maximum cereal calories is the third element and
+        the minimum cereal calories is the first element,
+        since series is zero-indexed.
+        """
         delegate = self._values
         nv.validate_minmax_axis(axis)
         skipna = nv.validate_argmax_with_skipna(skipna, args, kwargs)
@@ -1425,16 +1475,43 @@ class IndexOpsMixin(OpsMixin):
                 uniques = Index(uniques, copy=False)
         return codes, uniques
 
-    _shared_docs["searchsorted"] = """
+    # This overload is needed so that the call to searchsorted in
+    # pandas.core.resample.TimeGrouper._get_period_bins picks the correct result
+
+    # error: Overloaded function signatures 1 and 2 overlap with incompatible
+    # return types
+    @overload
+    def searchsorted(  # type: ignore[overload-overlap]
+        self,
+        value: ScalarLike_co,
+        side: Literal["left", "right"] = ...,
+        sorter: NumpySorter = ...,
+    ) -> np.intp: ...
+
+    @overload
+    def searchsorted(
+        self,
+        value: npt.ArrayLike | ExtensionArray,
+        side: Literal["left", "right"] = ...,
+        sorter: NumpySorter = ...,
+    ) -> npt.NDArray[np.intp]: ...
+
+    def searchsorted(
+        self,
+        value: NumpyValueArrayLike | ExtensionArray,
+        side: Literal["left", "right"] = "left",
+        sorter: NumpySorter | None = None,
+    ) -> npt.NDArray[np.intp] | np.intp:
+        """
         Find indices where elements should be inserted to maintain order.
 
-        Find the indices into a sorted {klass} `self` such that, if the
+        Find the indices into a sorted Index `self` such that, if the
         corresponding elements in `value` were inserted before the indices,
         the order of `self` would be preserved.
 
         .. note::
 
-            The {klass} *must* be monotonically sorted, otherwise
+            The Index *must* be monotonically sorted, otherwise
             wrong locations will likely be returned. Pandas does *not*
             check this for you.
 
@@ -1480,33 +1557,33 @@ class IndexOpsMixin(OpsMixin):
         >>> ser.searchsorted([0, 4])
         array([0, 3])
 
-        >>> ser.searchsorted([1, 3], side='left')
+        >>> ser.searchsorted([1, 3], side="left")
         array([0, 2])
 
-        >>> ser.searchsorted([1, 3], side='right')
+        >>> ser.searchsorted([1, 3], side="right")
         array([1, 3])
 
-        >>> ser = pd.Series(pd.to_datetime(['3/11/2000', '3/12/2000', '3/13/2000']))
+        >>> ser = pd.Series(pd.to_datetime(["3/11/2000", "3/12/2000", "3/13/2000"]))
         >>> ser
         0   2000-03-11
         1   2000-03-12
         2   2000-03-13
         dtype: datetime64[us]
 
-        >>> ser.searchsorted('3/14/2000')
+        >>> ser.searchsorted("3/14/2000")
         np.int64(3)
 
         >>> ser = pd.Categorical(
-        ...     ['apple', 'bread', 'bread', 'cheese', 'milk'], ordered=True
+        ...     ["apple", "bread", "bread", "cheese", "milk"], ordered=True
         ... )
         >>> ser
         ['apple', 'bread', 'bread', 'cheese', 'milk']
         Categories (4, str): ['apple' < 'bread' < 'cheese' < 'milk']
 
-        >>> ser.searchsorted('bread')
+        >>> ser.searchsorted("bread")
         np.int64(1)
 
-        >>> ser.searchsorted(['bread'], side='right')
+        >>> ser.searchsorted(["bread"], side="right")
         array([3])
 
         If the values are not monotonically sorted, wrong locations
@@ -1522,35 +1599,6 @@ class IndexOpsMixin(OpsMixin):
         >>> ser.searchsorted(1)  # doctest: +SKIP
         0  # wrong result, correct would be 1
         """
-
-    # This overload is needed so that the call to searchsorted in
-    # pandas.core.resample.TimeGrouper._get_period_bins picks the correct result
-
-    # error: Overloaded function signatures 1 and 2 overlap with incompatible
-    # return types
-    @overload
-    def searchsorted(  # type: ignore[overload-overlap]
-        self,
-        value: ScalarLike_co,
-        side: Literal["left", "right"] = ...,
-        sorter: NumpySorter = ...,
-    ) -> np.intp: ...
-
-    @overload
-    def searchsorted(
-        self,
-        value: npt.ArrayLike | ExtensionArray,
-        side: Literal["left", "right"] = ...,
-        sorter: NumpySorter = ...,
-    ) -> npt.NDArray[np.intp]: ...
-
-    @doc(_shared_docs["searchsorted"], klass="Index")
-    def searchsorted(
-        self,
-        value: NumpyValueArrayLike | ExtensionArray,
-        side: Literal["left", "right"] = "left",
-        sorter: NumpySorter | None = None,
-    ) -> npt.NDArray[np.intp] | np.intp:
         if isinstance(value, ABCDataFrame):
             msg = (
                 "Value must be 1-D array-like or scalar, "

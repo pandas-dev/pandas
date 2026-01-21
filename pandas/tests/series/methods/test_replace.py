@@ -228,7 +228,7 @@ class TestSeriesReplace:
         # test an object with dates + floats + integers + strings
         dr = pd.Series(pd.date_range("1/1/2001", "1/10/2001", freq="D"))
         result = dr.astype(object).replace([dr[0], dr[1], dr[2]], [1.0, 2, "a"])
-        expected = pd.Series([1.0, 2, "a"] + dr[3:].tolist(), dtype=object)
+        expected = pd.Series([1.0, 2, "a", *dr[3:].tolist()], dtype=object)
         tm.assert_series_equal(result, expected)
 
     def test_replace_bool_with_string_no_op(self):
@@ -722,6 +722,13 @@ class TestSeriesReplace:
         df = pd.Series([pd.NA, pd.NA])
         result = df.replace({r"^#": "$"}, regex=True)
         expected = pd.Series([pd.NA, pd.NA])
+        tm.assert_series_equal(result, expected)
+
+    def test_replace_mixed_types_with_none(self):
+        # GH#29813
+        df = pd.Series([np.nan, 1, "foo"])
+        result = df.replace({np.nan: None})
+        expected = pd.Series([None, 1, "foo"])
         tm.assert_series_equal(result, expected)
 
 

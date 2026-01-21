@@ -444,7 +444,7 @@ def wide_to_long(
     ...         "A1980": {0: "d", 1: "e", 2: "f"},
     ...         "B1970": {0: 2.5, 1: 1.2, 2: 0.7},
     ...         "B1980": {0: 3.2, 1: 1.3, 2: 0.1},
-    ...         "X": dict(zip(range(3), np.random.randn(3))),
+    ...         "X": dict(zip(range(3), np.random.randn(3), strict=True)),
     ...     }
     ... )
     >>> df["id"] = df.index
@@ -641,7 +641,7 @@ def wide_to_long(
             # TODO: anything else to catch?
             pass
 
-        return newdf.set_index(i + [j])
+        return newdf.set_index([*i, j])
 
     if not is_list_like(stubnames):
         stubnames = [stubnames]
@@ -673,4 +673,4 @@ def wide_to_long(
     if len(i) == 1:
         return new.set_index(i).join(melted)
     else:
-        return new.merge(melted.reset_index(), on=i).set_index(i + [j])
+        return new.merge(melted.reset_index(), on=i).set_index([*i, j])

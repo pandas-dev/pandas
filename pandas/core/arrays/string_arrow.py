@@ -271,9 +271,8 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             else:
                 values = values.fill_null(na)
             return values.to_numpy()
-        else:
-            if na is not lib.no_default and not isna(na):  # pyright: ignore [reportGeneralTypeIssues]
-                values = values.fill_null(na)
+        elif na is not lib.no_default and not isna(na):  # pyright: ignore [reportGeneralTypeIssues]
+            values = values.fill_null(na)
         return BooleanDtype().__from_arrow__(values)
 
     def _maybe_convert_setitem_value(self, value):
@@ -393,7 +392,11 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         na=lib.no_default,
         regex: bool = True,
     ):
-        if flags or self._is_re_pattern_with_flags(pat):
+        if (
+            flags
+            or self._is_re_pattern_with_flags(pat)
+            or (regex and self._has_unsupported_regex(pat))
+        ):
             return super()._str_contains(pat, case, flags, na, regex)
         if isinstance(pat, re.Pattern):
             # TODO flags passed separately by user are ignored
@@ -408,7 +411,11 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         flags: int = 0,
         na: Scalar | lib.NoDefault = lib.no_default,
     ):
-        if flags or self._is_re_pattern_with_flags(pat):
+        if (
+            flags
+            or self._is_re_pattern_with_flags(pat)
+            or self._has_unsupported_regex(pat)
+        ):
             return super()._str_match(pat, case, flags, na)
         if isinstance(pat, re.Pattern):
             pat, case, flags = self._preprocess_re_pattern(pat, case)
@@ -447,6 +454,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
                 # https://docs.python.org/3/library/re.html
                 isinstance(repl, str) and r"\g<" in repl
             )
+            or (regex and self._has_unsupported_regex(pat))
         ):
             return super()._str_replace(pat, repl, n, case, flags, regex)
 
@@ -461,7 +469,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             return ArrowExtensionArray._str_repeat(self, repeats=repeats)
 
     def _str_count(self, pat: str, flags: int = 0):
-        if flags:
+        if flags or self._has_unsupported_regex(pat):
             return super()._str_count(pat, flags)
         result = pc.count_substring_regex(self._pa_array, pat)
         return self._convert_int_result(result)

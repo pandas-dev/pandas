@@ -242,6 +242,8 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         binner, bins, binlabels = self._get_binner_for_time()
         assert len(bins) == len(binlabels)
+        if self._timegrouper._arrow_dtype is not None:
+            binlabels = binlabels.astype(self._timegrouper._arrow_dtype)
         bin_grouper = BinGrouper(bins, binlabels, indexer=self._indexer)
         return binner, bin_grouper
 
@@ -1896,9 +1898,14 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         Return value at the given quantile.
 
+        Computes the quantile of values within each resampled group.
+
         Parameters
         ----------
         q : float or array-like, default 0.5 (50% quantile)
+            Value between 0 <= q <= 1, the quantile(s) to compute.
+        **kwargs
+            Additional keyword arguments to be passed to the function.
 
         Returns
         -------
@@ -2363,7 +2370,8 @@ class TimeGrouper(Grouper):
         If axis is PeriodIndex
     """
 
-    _attributes = Grouper._attributes + (
+    _attributes = (
+        *Grouper._attributes,
         "closed",
         "label",
         "how",
@@ -2434,23 +2442,22 @@ class TimeGrouper(Grouper):
                 closed = "right"
             if label is None:
                 label = "right"
+        # The backward resample sets ``closed`` to ``'right'`` by default
+        # since the last value should be considered as the edge point for
+        # the last bin. When origin in "end" or "end_day", the value for a
+        # specific ``Timestamp`` index stands for the resample result from
+        # the current ``Timestamp`` minus ``freq`` to the current
+        # ``Timestamp`` with a right close.
+        elif origin in ["end", "end_day"]:
+            if closed is None:
+                closed = "right"
+            if label is None:
+                label = "right"
         else:
-            # The backward resample sets ``closed`` to ``'right'`` by default
-            # since the last value should be considered as the edge point for
-            # the last bin. When origin in "end" or "end_day", the value for a
-            # specific ``Timestamp`` index stands for the resample result from
-            # the current ``Timestamp`` minus ``freq`` to the current
-            # ``Timestamp`` with a right close.
-            if origin in ["end", "end_day"]:
-                if closed is None:
-                    closed = "right"
-                if label is None:
-                    label = "right"
-            else:
-                if closed is None:
-                    closed = "left"
-                if label is None:
-                    label = "left"
+            if closed is None:
+                closed = "left"
+            if label is None:
+                label = "left"
 
         self.closed = closed
         self.label = label
