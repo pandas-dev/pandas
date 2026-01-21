@@ -85,7 +85,7 @@ def read_iceberg(
     if columns is None:
         selected_fields = ("*",)
     else:
-        selected_fields = columns
+        selected_fields = tuple(columns)
     if scan_properties is None:
         scan_properties = {}
     result = table.scan(
