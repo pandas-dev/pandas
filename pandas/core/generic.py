@@ -2613,7 +2613,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         elif date_format is None:
             date_format = "epoch"
             dtypes = self.dtypes if self.ndim == 2 else [self.dtype]
-            if any(lib.is_np_dtype(dtype, "mM") for dtype in dtypes):
+            if any(dtype.kind in "mM" for dtype in dtypes):
                 warnings.warn(
                     "The default 'epoch' date format is deprecated and will be removed "
                     "in a future version, please use 'iso' date format instead.",
