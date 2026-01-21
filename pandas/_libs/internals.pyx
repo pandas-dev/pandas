@@ -777,8 +777,6 @@ cdef class BlockManager:
             BlockPlacement bp
             ndarray[intp_t, ndim=1] new_blknos, new_blklocs
 
-        if self._blknos is not None:
-            return
         # equiv: np.empty(length, dtype=np.intp)
         new_blknos = cnp.PyArray_EMPTY(1, &length, cnp.NPY_INTP, 0)
         new_blklocs = cnp.PyArray_EMPTY(1, &length, cnp.NPY_INTP, 0)
@@ -805,9 +803,8 @@ cdef class BlockManager:
             if blkno == -1:
                 raise AssertionError("Gaps in blk ref_locs")
 
-        if self._blknos is None:
-            self._blknos = new_blknos
-            self._blklocs = new_blklocs
+        self._blknos = new_blknos
+        self._blklocs = new_blklocs
 
     # -------------------------------------------------------------------
     # Pickle
