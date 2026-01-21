@@ -166,10 +166,11 @@ jobs:
     - name: Build Pandas
       id: build
       uses: ./.github/actions/build_pandas
-      # TMP disable werror until we fix all warnings with more recent meson
-      # with:
-      #   # xref https://github.com/cython/cython/issues/6870
-      #   werror: ${{ matrix.name != 'Freethreading' }}
+      with:
+        # python3.14t/cpython/pyatomic_gcc.h:63:10:
+        #   error: ‘__atomic_fetch_add_8’
+        #   writing 8 bytes into a region of size 0 overflows the destination [-Werror=stringop-overflow=]
+        werror: ${{ matrix.name != 'Freethreading' }}
 
     - name: Test (not single_cpu)
       uses: ./.github/actions/run-tests
