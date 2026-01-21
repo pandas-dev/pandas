@@ -70,7 +70,7 @@ Some other notes
 
  - pandas is **fast**. Many of the low-level algorithmic bits have been
    extensively tweaked in `Cython <https://cython.org>`__ code. However, as with
-   anything else generalization usually sacrifices performance. So if you focus
+   most things, generalization usually comes at the cost of performance. So if you focus
    on one feature for your application you may be able to create a faster
    specialized tool.
 
