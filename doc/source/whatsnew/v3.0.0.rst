@@ -328,6 +328,8 @@ Other:
 Packaging:
 
 - Switched wheel upload to **PyPI Trusted Publishing** (OIDC) for release-tag pushes in ``wheels.yml``. (:issue:`61718`)
+- Wheels are now available for Windows ARM64 architecture (:issue:`61462`)
+- Wheels are now available for free-threading Python builds on Windows (in addition to the other platforms) (:issue:`61463`)
 
 
 .. ---------------------------------------------------------------------------
