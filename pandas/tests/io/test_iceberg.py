@@ -115,7 +115,7 @@ class TestIceberg:
         result = read_iceberg(
             "ns.my_table",
             catalog_properties={"uri": catalog.uri},
-            selected_fields=["a"],
+            columns=["a"],
             case_sensitive=False,
         )
         tm.assert_frame_equal(result, expected)
@@ -124,7 +124,7 @@ class TestIceberg:
             read_iceberg(
                 "ns.my_table",
                 catalog_properties={"uri": catalog.uri},
-                selected_fields=["a"],
+                columns=["a"],
                 case_sensitive=True,
             )
 
