@@ -108,7 +108,7 @@ def _create_sp_tsseries():
     arr[7:12] = nan
     arr[-1:] = nan
 
-    date_index = bdate_range("1/1/2011", periods=len(arr)).as_unit("ns")
+    date_index = bdate_range("1/1/2011", periods=len(arr))
     bseries = Series(SparseArray(arr, kind="block"), index=date_index)
     bseries.name = "btsseries"
     return bseries
@@ -124,7 +124,7 @@ def _create_sp_frame():
         "D": [0, 1, 2, 3, 4, 5, nan, nan, nan, nan],
     }
 
-    dates = bdate_range("1/1/2011", periods=10).as_unit("ns")
+    dates = bdate_range("1/1/2011", periods=10)
     return DataFrame(data, index=dates).apply(SparseArray)
 
 
@@ -133,9 +133,8 @@ def create_pickle_data():
     data = {
         "A": [0.0, 1.0, 2.0, 3.0, np.nan],
         "B": [0, 1, 0, 1, 0],
-        # "C": ["foo1", "foo2", "foo3", "foo4", "foo5"],
-        "C": Series(["foo1", "foo2", "foo3", "foo4", "foo5"], dtype=object),
-        "D": date_range("1/1/2009", periods=5).as_unit("ns"),
+        "C": ["foo1", "foo2", "foo3", "foo4", "foo5"],
+        "D": date_range("1/1/2009", periods=5),
         "E": [0.0, 1, Timestamp("20100101"), "foo", 2.0],
     }
 
@@ -143,13 +142,11 @@ def create_pickle_data():
 
     index = {
         "int": Index(np.arange(10)),
-        "date": date_range("20130101", periods=10).as_unit("ns"),
+        "date": date_range("20130101", periods=10),
         "period": period_range("2013-01-01", freq="M", periods=10),
         "float": Index(np.arange(10, dtype=np.float64)),
         "uint": Index(np.arange(10, dtype=np.uint64)),
-        "timedelta": timedelta_range("00:00:00", freq="30min", periods=10).as_unit(
-            "ns"
-        ),
+        "timedelta": timedelta_range("00:00:00", freq="30min", periods=10),
         "string": Index(["foo", "bar", "baz", "qux", "quux"], dtype="string"),
     }
 
@@ -177,7 +174,7 @@ def create_pickle_data():
         "mixed": Series(data["E"]),
         "ts": Series(
             np.arange(10).astype(np.int64),
-            index=date_range("20130101", periods=10).as_unit("ns"),
+            index=date_range("20130101", periods=10),
         ),
         "mi": Series(
             np.arange(5).astype(np.float64),
@@ -185,20 +182,10 @@ def create_pickle_data():
                 tuple(zip(*[[1, 1, 2, 2, 2], [3, 4, 3, 4, 5]])), names=["one", "two"]
             ),
         ),
-        "dup": Series(
-            np.arange(5).astype(np.float64),
-            index=Index(["A", "B", "C", "D", "A"], dtype=object),
-        ),
-        # "cat": Series(Categorical(["foo", "bar", "baz"])),
-        "cat": Series(
-            Categorical.from_codes(
-                [2, 0, 1], categories=Index(["bar", "baz", "foo"], dtype="object")
-            )
-        ),
-        "dt": Series(date_range("20130101", periods=5).as_unit("ns")),
-        "dt_tz": Series(
-            date_range("20130101", periods=5, tz="US/Eastern").as_unit("ns")
-        ),
+        "dup": Series(np.arange(5).astype(np.float64), index=["A", "B", "C", "D", "A"]),
+        "cat": Series(Categorical(["foo", "bar", "baz"])),
+        "dt": Series(date_range("20130101", periods=5)),
+        "dt_tz": Series(date_range("20130101", periods=5, tz="US/Eastern")),
         "period": Series([Period("2000Q1")] * 5),
         "string": Series(["foo", "bar", "baz", "qux", "quux"], dtype="string"),
     }
@@ -226,20 +213,10 @@ def create_pickle_data():
         "dup": DataFrame(
             np.arange(15).reshape(5, 3).astype(np.float64), columns=["A", "B", "A"]
         ),
-        # "cat_onecol": DataFrame({"A": Categorical(["foo", "bar"])}),
-        "cat_onecol": DataFrame(
-            {
-                "A": Categorical.from_codes(
-                    [1, 0], categories=Index(["bar", "foo"], dtype="object")
-                )
-            }
-        ),
+        "cat_onecol": DataFrame({"A": Categorical(["foo", "bar"])}),
         "cat_and_float": DataFrame(
             {
-                # "A": Categorical(["foo", "bar", "baz"]),
-                "A": Categorical.from_codes(
-                    [2, 0, 1], categories=Index(["bar", "baz", "foo"], dtype="object")
-                ),
+                "A": Categorical(["foo", "bar", "baz"]),
                 "B": np.arange(3).astype(np.int64),
             }
         ),

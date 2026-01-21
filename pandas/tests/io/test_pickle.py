@@ -104,20 +104,53 @@ def test_pickles(datapath):
                     # (bug since pandas 2.0 that tz gets dropped for older pickle files)
                     expected = expected.tz_convert(None)
 
-                if typ in ("frame", "sp_frame"):
-                    expected.columns = expected.columns.astype("object")
+                if legacy_version < Version("3.0.0.dev0"):
+                    # before 3.0, we had:
+                    # - object dtype instead of string
+                    # - ns instead of us as the default unit
+                    if typ in ("frame", "sp_frame"):
+                        expected.columns = expected.columns.astype("object")
+                        if dt in ("mixed", "mixed_dup"):
+                            expected["C"] = expected["C"].astype(object)
+                            expected["D"] = expected["D"].dt.as_unit("ns")
+                        elif dt in ("cat_onecol", "cat_and_float"):
+                            expected["A"] = expected["A"].astype(
+                                pd.CategoricalDtype(
+                                    expected["A"].cat.categories.astype(object)
+                                )
+                            )
+                        elif typ == "sp_frame" and dt == "float":
+                            expected.index = expected.index.as_unit("ns")
+                        elif dt == "mi":
+                            expected.index = expected.index.set_levels(
+                                [
+                                    level.astype("object")
+                                    for level in expected.index.levels
+                                ],
+                            )
+                    elif typ in ("series", "sp_series"):
+                        if dt == "ts":
+                            expected.index = expected.index.as_unit("ns")
+                        elif dt in ("dt", "dt_tz"):
+                            expected = expected.dt.as_unit("ns")
+                        elif dt == "cat":
+                            expected = expected.astype(
+                                pd.CategoricalDtype(
+                                    expected.cat.categories.astype(object)
+                                )
+                            )
+                        elif dt == "dup":
+                            expected.index = expected.index.astype(object)
+                    elif typ == "index" and dt in ("date", "timedelta"):
+                        expected = expected.as_unit("ns")
+                    elif typ == "mi":
+                        expected = expected.set_levels(
+                            [level.astype("object") for level in expected.levels],
+                        )
+                    if dt == "string":
+                        # we switched from python to pyarrow as default storage in 3.0
+                        expected = expected.astype(pd.StringDtype("python"))
 
-                if typ == "frame" and dt == "mi":
-                    expected.index = expected.index.set_levels(
-                        [level.astype("object") for level in expected.index.levels],
-                    )
-                if typ == "mi":
-                    expected = expected.set_levels(
-                        [level.astype("object") for level in expected.levels],
-                    )
-                if dt == "string" and legacy_version < Version("3.0.0.dev0"):
-                    # we switched from python to pyarrow as default storage in 3.0
-                    expected = expected.astype(pd.StringDtype("python"))
                 if dt in ("dt_mixed_tzs", "dt_mixed2_tzs"):
                     if legacy_version < Version("2.1"):
                         # in pandas < 2.0, Timestamp() unit defaulted to 'ns'
