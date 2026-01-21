@@ -401,11 +401,23 @@ class TestSeriesArithmetic:
 
     def test_subtraction_index_name_type_mismatch_regression(self):
         # GH#57524
-        s1 = Series([1, 2], index=Index([0, 1], name="a"))
-        s2 = Series([1, 1], index=Index([0, 1], name=0))
+        s1 = Series(
+            [23, 22, 21],
+            index=Index(["a", "b", "c"], name="index a"),
+            dtype="Int64",
+        )
+        s2 = Series(
+            [21, 22, 23],
+            index=Index(
+                ["a", "b", "c"],
+                name="index b",
+                dtype="string",
+            ),
+            dtype="Int64",
+        )
 
         result = s1 - s2
-        expected = Series([0, 1], index=s1.index)
+        expected = Series([2, 0, -2], index=s1.index, dtype="Int64")
 
         tm.assert_series_equal(result, expected)
 
