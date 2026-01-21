@@ -3928,10 +3928,11 @@ def test_timestamp_reduction_consistency(unit, method):
     )
     assert result.unit == unit
 
+
 def test_comp_range_len(data):
     # GH#63429
     ser = pd.Series(data)
-    result = (ser == range(len(ser)))
+    result = ser == range(len(ser))
     expected_list = []
     for i in range(len(ser)):
         if pd.isnull(ser[i]):
@@ -3939,5 +3940,5 @@ def test_comp_range_len(data):
         else:
             expected_list.append(ser[i] == i)
     expected = pd.Series(expected_list, dtype="bool[pyarrow]")
-    
+
     tm.assert_series_equal(result, expected)
