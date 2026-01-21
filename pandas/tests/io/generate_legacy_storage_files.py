@@ -128,7 +128,7 @@ def _create_sp_frame():
     return DataFrame(data, index=dates).apply(SparseArray)
 
 
-def create_pickle_data():
+def create_pickle_data(test: bool = True):
     """create the pickle data"""
     data = {
         "A": [0.0, 1.0, 2.0, 3.0, np.nan],
@@ -173,8 +173,7 @@ def create_pickle_data():
         "int": Series(data["B"]),
         "mixed": Series(data["E"]),
         "ts": Series(
-            np.arange(10).astype(np.int64),
-            index=date_range("20130101", periods=10),
+            np.arange(10).astype(np.int64), index=date_range("20130101", periods=10)
         ),
         "mi": Series(
             np.arange(5).astype(np.float64),
@@ -254,10 +253,11 @@ def create_pickle_data():
         "normal": Timestamp("2011-01-01"),
         "nat": NaT,
         "tz": Timestamp("2011-01-01", tz="US/Eastern"),
-        # kept because those are present in the legacy pickles (<= 1.4)
-        "freq": Timestamp("2011-01-01"),
-        "both": Timestamp("2011-01-01", tz="Asia/Tokyo"),
     }
+    if test:
+        # kept because those are present in the legacy pickles (<= 1.4)
+        timestamp["freq"] = Timestamp("2011-01-01")
+        timestamp["both"] = Timestamp("2011-01-01", tz="Asia/Tokyo")
 
     off = {
         "DateOffset": DateOffset(years=1),
@@ -323,7 +323,7 @@ def write_legacy_pickles(output_dir):
     pth = f"{platform_name()}.pickle"
 
     with open(os.path.join(output_dir, pth), "wb") as fh:
-        pickle.dump(create_pickle_data(), fh, pickle.DEFAULT_PROTOCOL)
+        pickle.dump(create_pickle_data(test=False), fh, pickle.DEFAULT_PROTOCOL)
 
     print(f"created pickle file: {pth}")
 
