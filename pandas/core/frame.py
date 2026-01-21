@@ -9875,7 +9875,7 @@ class DataFrame(NDFrame, OpsMixin):
         Among flexible wrappers (`eq`, `ne`, `le`, `lt`, `ge`, `gt`) to comparison
         operators.
 
-        Equivalent to `==`, `!=`, `<=`, `<`, `>=`, `>` with support to choose axis
+        Equivalent to ``<=`` with support to choose axis
         (rows or columns) and level for comparison.
 
         Parameters
@@ -9925,13 +9925,13 @@ class DataFrame(NDFrame, OpsMixin):
 
         Comparison with a scalar, using either the operator or method:
 
-        >>> df == 100
+        >>> df <= 100
             cost  revenue
         A  False     True
         B  False    False
         C   True    False
 
-        >>> df.eq(100)
+        >>> df.le(100)
             cost  revenue
         A  False     True
         B  False    False
@@ -9940,37 +9940,37 @@ class DataFrame(NDFrame, OpsMixin):
         When `other` is a :class:`Series`, the columns of a DataFrame are aligned
         with the index of `other` and broadcast:
 
-        >>> df != pd.Series([100, 250], index=["cost", "revenue"])
+        >>> df <= pd.Series([100, 250], index=["cost", "revenue"])
             cost  revenue
-        A   True     True
-        B   True    False
-        C  False     True
+        A  False     True
+        B  False     True
+        C   True    False
 
         Use the method to control the broadcast axis:
 
-        >>> df.ne(pd.Series([100, 300], index=["A", "D"]), axis='index')
-           cost  revenue
-        A  True    False
-        B  True     True
-        C  True     True
-        D  True     True
+        >>> df.le(pd.Series([100, 300], index=["A", "D"]), axis='index')
+            cost  revenue
+        A  False     True
+        B  False    False
+        C  False    False
+        D  False    False
 
         When comparing to an arbitrary sequence, the number of columns must
         match the number elements in `other`:
 
-        >>> df == [250, 100]
-            cost  revenue
-        A   True     True
-        B  False    False
-        C  False    False
+        >>> df <= [250, 100]
+           cost  revenue
+        A  True     True
+        B  True    False
+        C  True    False
 
         Use the method to control the axis:
 
-        >>> df.eq([250, 250, 100], axis='index')
-            cost  revenue
-        A   True    False
-        B  False     True
-        C   True    False
+        >>> df.le([250, 250, 100], axis='index')
+           cost  revenue
+        A  True     True
+        B  True     True
+        C  True    False
 
         Compare to a DataFrame of different shape.
 
@@ -9983,11 +9983,11 @@ class DataFrame(NDFrame, OpsMixin):
         C      100
         D      150
 
-        >>> df.gt(other)
+        >>> df.le(other)
             cost  revenue
-        A  False    False
-        B  False    False
-        C  False     True
+        A  False     True
+        B  False     True
+        C  False    False
         D  False    False
 
         Compare to a MultiIndex by level.
@@ -10023,7 +10023,7 @@ class DataFrame(NDFrame, OpsMixin):
         Among flexible wrappers (`eq`, `ne`, `le`, `lt`, `ge`, `gt`) to comparison
         operators.
 
-        Equivalent to `==`, `!=`, `<=`, `<`, `>=`, `>` with support to choose axis
+        Equivalent to ``<`` with support to choose axis
         (rows or columns) and level for comparison.
 
         Parameters
@@ -10074,52 +10074,52 @@ class DataFrame(NDFrame, OpsMixin):
 
         Comparison with a scalar, using either the operator or method:
 
-        >>> df == 100
+        >>> df < 100
             cost  revenue
-        A  False     True
+        A  False    False
         B  False    False
-        C   True    False
+        C  False    False
 
-        >>> df.eq(100)
+        >>> df.lt(100)
             cost  revenue
-        A  False     True
+        A  False    False
         B  False    False
-        C   True    False
+        C  False    False
 
         When `other` is a :class:`Series`, the columns of a DataFrame are aligned
         with the index of `other` and broadcast:
 
-        >>> df != pd.Series([100, 250], index=["cost", "revenue"])
+        >>> df < pd.Series([100, 250], index=["cost", "revenue"])
             cost  revenue
-        A   True     True
-        B   True    False
-        C  False     True
+        A  False     True
+        B  False    False
+        C  False    False
 
         Use the method to control the broadcast axis:
 
-        >>> df.ne(pd.Series([100, 300], index=["A", "D"]), axis="index")
-           cost  revenue
-        A  True    False
-        B  True     True
-        C  True     True
-        D  True     True
+        >>> df.lt(pd.Series([100, 300], index=["A", "D"]), axis="index")
+            cost  revenue
+        A  False    False
+        B  False    False
+        C  False    False
+        D  False    False
 
         When comparing to an arbitrary sequence, the number of columns must
         match the number elements in `other`:
 
-        >>> df == [250, 100]
+        >>> df < [250, 100]
             cost  revenue
-        A   True     True
-        B  False    False
-        C  False    False
+        A  False    False
+        B   True    False
+        C   True    False
 
         Use the method to control the axis:
 
-        >>> df.eq([250, 250, 100], axis="index")
+        >>> df.lt([250, 250, 100], axis="index")
             cost  revenue
-        A   True    False
-        B  False     True
-        C   True    False
+        A  False     True
+        B   True    False
+        C  False    False
 
         Compare to a DataFrame of different shape.
 
@@ -10133,11 +10133,11 @@ class DataFrame(NDFrame, OpsMixin):
         C      100
         D      150
 
-        >>> df.gt(other)
+        >>> df.lt(other)
             cost  revenue
-        A  False    False
+        A  False     True
         B  False    False
-        C  False     True
+        C  False    False
         D  False    False
 
         Compare to a MultiIndex by level.
@@ -10161,11 +10161,11 @@ class DataFrame(NDFrame, OpsMixin):
            B   300      175
            C   220      225
 
-        >>> df.le(df_multindex, level=1)
+        >>> df.lt(df_multindex, level=1)
                cost  revenue
-        Q1 A   True     True
-           B   True     True
-           C   True     True
+        Q1 A  False    False
+           B  False    False
+           C  False    False
         Q2 A  False     True
            B   True    False
            C   True    False
@@ -10180,7 +10180,7 @@ class DataFrame(NDFrame, OpsMixin):
         Among flexible wrappers (`eq`, `ne`, `le`, `lt`, `ge`, `gt`) to comparison
         operators.
 
-        Equivalent to `==`, `!=`, `<=`, `<`, `>=`, `>` with support to choose axis
+        Equivalent to ``>=`` with support to choose axis
         (rows or columns) and level for comparison.
 
         Parameters
@@ -10230,52 +10230,52 @@ class DataFrame(NDFrame, OpsMixin):
 
         Comparison with a scalar, using either the operator or method:
 
-        >>> df == 100
-            cost  revenue
-        A  False     True
-        B  False    False
-        C   True    False
+        >>> df >= 100
+           cost  revenue
+        A  True     True
+        B  True     True
+        C  True     True
 
-        >>> df.eq(100)
-            cost  revenue
-        A  False     True
-        B  False    False
-        C   True    False
+        >>> df.ge(100)
+           cost  revenue
+        A  True     True
+        B  True     True
+        C  True     True
 
         When `other` is a :class:`Series`, the columns of a DataFrame are aligned
         with the index of `other` and broadcast:
 
-        >>> df != pd.Series([100, 250], index=["cost", "revenue"])
-            cost  revenue
-        A   True     True
-        B   True    False
-        C  False     True
-
-        Use the method to control the broadcast axis:
-
-        >>> df.ne(pd.Series([100, 300], index=["A", "D"]), axis='index')
+        >>> df >= pd.Series([100, 250], index=["cost", "revenue"])
            cost  revenue
         A  True    False
         B  True     True
         C  True     True
-        D  True     True
 
-        When comparing to an arbitrary sequence, the number of columns must
-        match the number elements in `other`:
+        Use the method to control the broadcast axis:
 
-        >>> df == [250, 100]
+        >>> df.ge(pd.Series([100, 300], index=["A", "D"]), axis='index')
             cost  revenue
         A   True     True
         B  False    False
         C  False    False
+        D  False    False
+
+        When comparing to an arbitrary sequence, the number of columns must
+        match the number elements in `other`:
+
+        >>> df >= [250, 100]
+            cost  revenue
+        A   True     True
+        B  False     True
+        C  False     True
 
         Use the method to control the axis:
 
-        >>> df.eq([250, 250, 100], axis='index')
+        >>> df.ge([250, 250, 100], axis='index')
             cost  revenue
         A   True    False
         B  False     True
-        C   True    False
+        C   True     True
 
         Compare to a DataFrame of different shape.
 
@@ -10288,10 +10288,10 @@ class DataFrame(NDFrame, OpsMixin):
         C      100
         D      150
 
-        >>> df.gt(other)
+        >>> df.ge(other)
             cost  revenue
         A  False    False
-        B  False    False
+        B  False     True
         C  False     True
         D  False    False
 
@@ -10310,14 +10310,14 @@ class DataFrame(NDFrame, OpsMixin):
            B   300      175
            C   220      225
 
-        >>> df.le(df_multindex, level=1)
+        >>> df.ge(df_multindex, level=1)
                cost  revenue
         Q1 A   True     True
            B   True     True
            C   True     True
-        Q2 A  False     True
-           B   True    False
-           C   True    False
+        Q2 A   True    False
+           B  False     True
+           C  False     True
         """
         return self._flex_cmp_method(other, operator.ge, axis=axis, level=level)
 
@@ -10328,7 +10328,7 @@ class DataFrame(NDFrame, OpsMixin):
         Among flexible wrappers (`eq`, `ne`, `le`, `lt`, `ge`, `gt`) to comparison
         operators.
 
-        Equivalent to `==`, `!=`, `<=`, `<`, `>=`, `>` with support to choose axis
+        Equivalent to ``>`` with support to choose axis
         (rows or columns) and level for comparison.
 
         Parameters
@@ -10379,52 +10379,52 @@ class DataFrame(NDFrame, OpsMixin):
 
         Comparison with a scalar, using either the operator or method:
 
-        >>> df == 100
+        >>> df > 100
             cost  revenue
-        A  False     True
-        B  False    False
-        C   True    False
+        A   True    False
+        B   True     True
+        C  False     True
 
-        >>> df.eq(100)
+        >>> df.gt(100)
             cost  revenue
-        A  False     True
-        B  False    False
-        C   True    False
+        A   True    False
+        B   True     True
+        C  False     True
 
         When `other` is a :class:`Series`, the columns of a DataFrame are aligned
         with the index of `other` and broadcast:
 
-        >>> df != pd.Series([100, 250], index=["cost", "revenue"])
+        >>> df > pd.Series([100, 250], index=["cost", "revenue"])
             cost  revenue
-        A   True     True
+        A   True    False
         B   True    False
         C  False     True
 
         Use the method to control the broadcast axis:
 
-        >>> df.ne(pd.Series([100, 300], index=["A", "D"]), axis="index")
-           cost  revenue
-        A  True    False
-        B  True     True
-        C  True     True
-        D  True     True
+        >>> df.gt(pd.Series([100, 300], index=["A", "D"]), axis="index")
+            cost  revenue
+        A   True    False
+        B  False    False
+        C  False    False
+        D  False    False
 
         When comparing to an arbitrary sequence, the number of columns must
         match the number elements in `other`:
 
-        >>> df == [250, 100]
+        >>> df > [250, 100]
             cost  revenue
-        A   True     True
-        B  False    False
-        C  False    False
+        A  False    False
+        B  False     True
+        C  False     True
 
         Use the method to control the axis:
 
-        >>> df.eq([250, 250, 100], axis="index")
+        >>> df.gt([250, 250, 100], axis="index")
             cost  revenue
-        A   True    False
-        B  False     True
-        C   True    False
+        A  False    False
+        B  False    False
+        C  False     True
 
         Compare to a DataFrame of different shape.
 
@@ -10466,14 +10466,14 @@ class DataFrame(NDFrame, OpsMixin):
            B   300      175
            C   220      225
 
-        >>> df.le(df_multindex, level=1)
+        >>> df.gt(df_multindex, level=1)
                cost  revenue
-        Q1 A   True     True
-           B   True     True
-           C   True     True
-        Q2 A  False     True
-           B   True    False
-           C   True    False
+        Q1 A  False    False
+           B  False    False
+           C  False    False
+        Q2 A   True    False
+           B  False     True
+           C  False     True
         """
         return self._flex_cmp_method(other, operator.gt, axis=axis, level=level)
 
@@ -10553,124 +10553,42 @@ class DataFrame(NDFrame, OpsMixin):
         triangle        4      181
         rectangle       5      361
 
-        Divide by constant with reverse version.
+        Add a list and Series by axis with operator version.
 
-        >>> df.div(10)
+        >>> df + [1, 2]
                    angles  degrees
-        circle        0.0     36.0
-        triangle      0.3     18.0
-        rectangle     0.4     36.0
+        circle          1      362
+        triangle        4      182
+        rectangle       5      362
 
-        >>> df.rdiv(10)
-                     angles   degrees
-        circle          inf  0.027778
-        triangle   3.333333  0.055556
-        rectangle  2.500000  0.027778
-
-        Subtract a list and Series by axis with operator version.
-
-        >>> df - [1, 2]
+        >>> df.add([1, 2], axis="columns")
                    angles  degrees
-        circle         -1      358
-        triangle        2      178
-        rectangle       3      358
+        circle          1      362
+        triangle        4      182
+        rectangle       5      362
 
-        >>> df.sub([1, 2], axis="columns")
-                   angles  degrees
-        circle         -1      358
-        triangle        2      178
-        rectangle       3      358
-
-        >>> df.sub(
+        >>> df.add(
         ...     pd.Series([1, 1, 1], index=["circle", "triangle", "rectangle"]),
         ...     axis="index",
         ... )
                    angles  degrees
-        circle         -1      359
-        triangle        2      179
-        rectangle       3      359
+        circle          1      361
+        triangle        4      181
+        rectangle       5      361
 
-        Multiply a dictionary by axis.
+        Add a dictionary by axis.
 
-        >>> df.mul({"angles": 0, "degrees": 2})
-                    angles  degrees
-        circle           0      720
-        triangle         0      360
-        rectangle        0      720
-
-        >>> df.mul({"circle": 0, "triangle": 2, "rectangle": 3}, axis="index")
-                    angles  degrees
-        circle           0        0
-        triangle         6      360
-        rectangle       12     1080
-
-        Multiply a DataFrame of different shape with operator version.
-
-        >>> other = pd.DataFrame(
-        ...     {"angles": [0, 3, 4]}, index=["circle", "triangle", "rectangle"]
-        ... )
-        >>> other
-                   angles
-        circle          0
-        triangle        3
-        rectangle       4
-
-        >>> df * other
+        >>> df.add({"angles": 0, "degrees": 2})
                    angles  degrees
-        circle          0      NaN
-        triangle        9      NaN
-        rectangle      16      NaN
+        circle          0      362
+        triangle        3      182
+        rectangle       4      362
 
-        >>> df.mul(other, fill_value=0)
+        >>> df.add({"circle": 0, "triangle": 2, "rectangle": 3}, axis="index")
                    angles  degrees
-        circle          0      0.0
-        triangle        9      0.0
-        rectangle      16      0.0
-
-        Divide by a MultiIndex by level.
-
-        >>> df_multindex = pd.DataFrame(
-        ...     {
-        ...         "angles": [0, 3, 4, 4, 5, 6],
-        ...         "degrees": [360, 180, 360, 360, 540, 720],
-        ...     },
-        ...     index=[
-        ...         ["A", "A", "A", "B", "B", "B"],
-        ...         [
-        ...             "circle",
-        ...             "triangle",
-        ...             "rectangle",
-        ...             "square",
-        ...             "pentagon",
-        ...             "hexagon",
-        ...         ],
-        ...     ],
-        ... )
-        >>> df_multindex
-                     angles  degrees
-        A circle          0      360
-          triangle        3      180
-          rectangle       4      360
-        B square          4      360
-          pentagon        5      540
-          hexagon         6      720
-
-        >>> df.div(df_multindex, level=1, fill_value=0)
-                     angles  degrees
-        A circle        NaN      1.0
-          triangle      1.0      1.0
-          rectangle     1.0      1.0
-        B square        0.0      0.0
-          pentagon      0.0      0.0
-          hexagon       0.0      0.0
-
-        >>> df_pow = pd.DataFrame({"A": [2, 3, 4, 5], "B": [6, 7, 8, 9]})
-        >>> df_pow.pow(2)
-            A   B
-        0   4  36
-        1   9  49
-        2  16  64
-        3  25  81
+        circle          0      360
+        triangle        5      182
+        rectangle       7      363
         """
         return self._flex_arith_method(
             other, operator.add, level=level, fill_value=fill_value, axis=axis
@@ -10740,136 +10658,54 @@ class DataFrame(NDFrame, OpsMixin):
         Add a scalar with operator version which return the same
         results.
 
-        >>> df + 1
+        >>> 1 + df
                    angles  degrees
         circle          1      361
         triangle        4      181
         rectangle       5      361
 
-        >>> df.add(1)
+        >>> df.radd(1)
                    angles  degrees
         circle          1      361
         triangle        4      181
         rectangle       5      361
 
-        Divide by constant with reverse version.
+        Add a list and Series by axis with operator version.
 
-        >>> df.div(10)
+        >>> [1, 2] + df
                    angles  degrees
-        circle        0.0     36.0
-        triangle      0.3     18.0
-        rectangle     0.4     36.0
+        circle          1      362
+        triangle        4      182
+        rectangle       5      362
 
-        >>> df.rdiv(10)
-                     angles   degrees
-        circle          inf  0.027778
-        triangle   3.333333  0.055556
-        rectangle  2.500000  0.027778
-
-        Subtract a list and Series by axis with operator version.
-
-        >>> df - [1, 2]
+        >>> df.radd([1, 2], axis="columns")
                    angles  degrees
-        circle         -1      358
-        triangle        2      178
-        rectangle       3      358
+        circle          1      362
+        triangle        4      182
+        rectangle       5      362
 
-        >>> df.sub([1, 2], axis="columns")
-                   angles  degrees
-        circle         -1      358
-        triangle        2      178
-        rectangle       3      358
-
-        >>> df.sub(
+        >>> df.radd(
         ...     pd.Series([1, 1, 1], index=["circle", "triangle", "rectangle"]),
         ...     axis="index",
         ... )
                    angles  degrees
-        circle         -1      359
-        triangle        2      179
-        rectangle       3      359
+        circle          1      361
+        triangle        4      181
+        rectangle       5      361
 
-        Multiply a dictionary by axis.
+        Add a dictionary by axis.
 
-        >>> df.mul({"angles": 0, "degrees": 2})
-                    angles  degrees
-        circle           0      720
-        triangle         0      360
-        rectangle        0      720
-
-        >>> df.mul({"circle": 0, "triangle": 2, "rectangle": 3}, axis="index")
-                    angles  degrees
-        circle           0        0
-        triangle         6      360
-        rectangle       12     1080
-
-        Multiply a DataFrame of different shape with operator version.
-
-        >>> other = pd.DataFrame(
-        ...     {"angles": [0, 3, 4]}, index=["circle", "triangle", "rectangle"]
-        ... )
-        >>> other
-                   angles
-        circle          0
-        triangle        3
-        rectangle       4
-
-        >>> df * other
+        >>> df.radd({"angles": 0, "degrees": 2})
                    angles  degrees
-        circle          0      NaN
-        triangle        9      NaN
-        rectangle      16      NaN
+        circle          0      362
+        triangle        3      182
+        rectangle       4      362
 
-        >>> df.mul(other, fill_value=0)
+        >>> df.radd({"circle": 0, "triangle": 2, "rectangle": 3}, axis="index")
                    angles  degrees
-        circle          0      0.0
-        triangle        9      0.0
-        rectangle      16      0.0
-
-        Divide by a MultiIndex by level.
-
-        >>> df_multindex = pd.DataFrame(
-        ...     {
-        ...         "angles": [0, 3, 4, 4, 5, 6],
-        ...         "degrees": [360, 180, 360, 360, 540, 720],
-        ...     },
-        ...     index=[
-        ...         ["A", "A", "A", "B", "B", "B"],
-        ...         [
-        ...             "circle",
-        ...             "triangle",
-        ...             "rectangle",
-        ...             "square",
-        ...             "pentagon",
-        ...             "hexagon",
-        ...         ],
-        ...     ],
-        ... )
-        >>> df_multindex
-                     angles  degrees
-        A circle          0      360
-          triangle        3      180
-          rectangle       4      360
-        B square          4      360
-          pentagon        5      540
-          hexagon         6      720
-
-        >>> df.div(df_multindex, level=1, fill_value=0)
-                     angles  degrees
-        A circle        NaN      1.0
-          triangle      1.0      1.0
-          rectangle     1.0      1.0
-        B square        0.0      0.0
-          pentagon      0.0      0.0
-          hexagon       0.0      0.0
-
-        >>> df_pow = pd.DataFrame({"A": [2, 3, 4, 5], "B": [6, 7, 8, 9]})
-        >>> df_pow.pow(2)
-            A   B
-        0   4  36
-        1   9  49
-        2  16  64
-        3  25  81
+        circle          0      360
+        triangle        5      182
+        rectangle       7      363
         """
         return self._flex_arith_method(
             other, roperator.radd, level=level, fill_value=fill_value, axis=axis
@@ -10935,34 +10771,20 @@ class DataFrame(NDFrame, OpsMixin):
         triangle        3      180
         rectangle       4      360
 
-        Add a scalar with operator version which return the same
+        Subtract a scalar with operator version which return the same
         results.
 
-        >>> df + 1
+        >>> df - 1
                    angles  degrees
-        circle          1      361
-        triangle        4      181
-        rectangle       5      361
+        circle         -1      359
+        triangle        2      179
+        rectangle       3      359
 
-        >>> df.add(1)
+        >>> df.sub(1)
                    angles  degrees
-        circle          1      361
-        triangle        4      181
-        rectangle       5      361
-
-        Divide by constant with reverse version.
-
-        >>> df.div(10)
-                   angles  degrees
-        circle        0.0     36.0
-        triangle      0.3     18.0
-        rectangle     0.4     36.0
-
-        >>> df.rdiv(10)
-                     angles   degrees
-        circle          inf  0.027778
-        triangle   3.333333  0.055556
-        rectangle  2.500000  0.027778
+        circle         -1      359
+        triangle        2      179
+        rectangle       3      359
 
         Subtract a list and Series by axis with operator version.
 
@@ -10987,87 +10809,19 @@ class DataFrame(NDFrame, OpsMixin):
         triangle        2      179
         rectangle       3      359
 
-        Multiply a dictionary by axis.
+        Subtract a dictionary by axis.
 
-        >>> df.mul({"angles": 0, "degrees": 2})
-                    angles  degrees
-        circle           0      720
-        triangle         0      360
-        rectangle        0      720
-
-        >>> df.mul({"circle": 0, "triangle": 2, "rectangle": 3}, axis="index")
-                    angles  degrees
-        circle           0        0
-        triangle         6      360
-        rectangle       12     1080
-
-        Multiply a DataFrame of different shape with operator version.
-
-        >>> other = pd.DataFrame(
-        ...     {"angles": [0, 3, 4]}, index=["circle", "triangle", "rectangle"]
-        ... )
-        >>> other
-                   angles
-        circle          0
-        triangle        3
-        rectangle       4
-
-        >>> df * other
+        >>> df.sub({"angles": 0, "degrees": 2})
                    angles  degrees
-        circle          0      NaN
-        triangle        9      NaN
-        rectangle      16      NaN
+        circle          0      358
+        triangle        3      178
+        rectangle       4      358
 
-        >>> df.mul(other, fill_value=0)
+        >>> df.sub({"circle": 0, "triangle": 2, "rectangle": 3}, axis="index")
                    angles  degrees
-        circle          0      0.0
-        triangle        9      0.0
-        rectangle      16      0.0
-
-        Divide by a MultiIndex by level.
-
-        >>> df_multindex = pd.DataFrame(
-        ...     {
-        ...         "angles": [0, 3, 4, 4, 5, 6],
-        ...         "degrees": [360, 180, 360, 360, 540, 720],
-        ...     },
-        ...     index=[
-        ...         ["A", "A", "A", "B", "B", "B"],
-        ...         [
-        ...             "circle",
-        ...             "triangle",
-        ...             "rectangle",
-        ...             "square",
-        ...             "pentagon",
-        ...             "hexagon",
-        ...         ],
-        ...     ],
-        ... )
-        >>> df_multindex
-                     angles  degrees
-        A circle          0      360
-          triangle        3      180
-          rectangle       4      360
-        B square          4      360
-          pentagon        5      540
-          hexagon         6      720
-
-        >>> df.div(df_multindex, level=1, fill_value=0)
-                     angles  degrees
-        A circle        NaN      1.0
-          triangle      1.0      1.0
-          rectangle     1.0      1.0
-        B square        0.0      0.0
-          pentagon      0.0      0.0
-          hexagon       0.0      0.0
-
-        >>> df_pow = pd.DataFrame({"A": [2, 3, 4, 5], "B": [6, 7, 8, 9]})
-        >>> df_pow.pow(2)
-            A   B
-        0   4  36
-        1   9  49
-        2  16  64
-        3  25  81
+        circle          0      360
+        triangle        1      178
+        rectangle       1      357
         """
         return self._flex_arith_method(
             other, operator.sub, level=level, fill_value=fill_value, axis=axis
@@ -11135,139 +10889,57 @@ class DataFrame(NDFrame, OpsMixin):
         triangle        3      180
         rectangle       4      360
 
-        Add a scalar with operator version which return the same
+        Subtract by a scalar with operator version which return the same
         results.
 
-        >>> df + 1
+        >>> 1 - df
                    angles  degrees
-        circle          1      361
-        triangle        4      181
-        rectangle       5      361
+        circle          1     -359
+        triangle       -2     -179
+        rectangle      -3     -359
 
-        >>> df.add(1)
+        >>> df.rsub(1)
                    angles  degrees
-        circle          1      361
-        triangle        4      181
-        rectangle       5      361
+        circle          1     -359
+        triangle       -2     -179
+        rectangle      -3     -359
 
-        Divide by constant with reverse version.
+        Subtract by a list and Series by axis with operator version.
 
-        >>> df.div(10)
+        >>> [1, 2] - df
                    angles  degrees
-        circle        0.0     36.0
-        triangle      0.3     18.0
-        rectangle     0.4     36.0
+        circle          1     -358
+        triangle       -2     -178
+        rectangle      -3     -358
 
-        >>> df.rdiv(10)
-                     angles   degrees
-        circle          inf  0.027778
-        triangle   3.333333  0.055556
-        rectangle  2.500000  0.027778
-
-        Subtract a list and Series by axis with operator version.
-
-        >>> df - [1, 2]
+        >>> df.rsub([1, 2], axis="columns")
                    angles  degrees
-        circle         -1      358
-        triangle        2      178
-        rectangle       3      358
+        circle          1     -358
+        triangle       -2     -178
+        rectangle      -3     -358
 
-        >>> df.sub([1, 2], axis="columns")
-                   angles  degrees
-        circle         -1      358
-        triangle        2      178
-        rectangle       3      358
-
-        >>> df.sub(
+        >>> df.rsub(
         ...     pd.Series([1, 1, 1], index=["circle", "triangle", "rectangle"]),
         ...     axis="index",
         ... )
                    angles  degrees
-        circle         -1      359
-        triangle        2      179
-        rectangle       3      359
+        circle          1     -359
+        triangle       -2     -179
+        rectangle      -3     -359
 
-        Multiply a dictionary by axis.
+        Subtract by a dictionary by axis.
 
-        >>> df.mul({"angles": 0, "degrees": 2})
-                    angles  degrees
-        circle           0      720
-        triangle         0      360
-        rectangle        0      720
-
-        >>> df.mul({"circle": 0, "triangle": 2, "rectangle": 3}, axis="index")
-                    angles  degrees
-        circle           0        0
-        triangle         6      360
-        rectangle       12     1080
-
-        Multiply a DataFrame of different shape with operator version.
-
-        >>> other = pd.DataFrame(
-        ...     {"angles": [0, 3, 4]}, index=["circle", "triangle", "rectangle"]
-        ... )
-        >>> other
-                   angles
-        circle          0
-        triangle        3
-        rectangle       4
-
-        >>> df * other
+        >>> df.rsub({"angles": 0, "degrees": 2})
                    angles  degrees
-        circle          0      NaN
-        triangle        9      NaN
-        rectangle      16      NaN
+        circle          0     -358
+        triangle       -3     -178
+        rectangle      -4     -358
 
-        >>> df.mul(other, fill_value=0)
+        >>> df.rsub({"circle": 0, "triangle": 2, "rectangle": 3}, axis="index")
                    angles  degrees
-        circle          0      0.0
-        triangle        9      0.0
-        rectangle      16      0.0
-
-        Divide by a MultiIndex by level.
-
-        >>> df_multindex = pd.DataFrame(
-        ...     {
-        ...         "angles": [0, 3, 4, 4, 5, 6],
-        ...         "degrees": [360, 180, 360, 360, 540, 720],
-        ...     },
-        ...     index=[
-        ...         ["A", "A", "A", "B", "B", "B"],
-        ...         [
-        ...             "circle",
-        ...             "triangle",
-        ...             "rectangle",
-        ...             "square",
-        ...             "pentagon",
-        ...             "hexagon",
-        ...         ],
-        ...     ],
-        ... )
-        >>> df_multindex
-                     angles  degrees
-        A circle          0      360
-          triangle        3      180
-          rectangle       4      360
-        B square          4      360
-          pentagon        5      540
-          hexagon         6      720
-
-        >>> df.div(df_multindex, level=1, fill_value=0)
-                     angles  degrees
-        A circle        NaN      1.0
-          triangle      1.0      1.0
-          rectangle     1.0      1.0
-        B square        0.0      0.0
-          pentagon      0.0      0.0
-          hexagon       0.0      0.0
-
-        >>> df_pow = pd.DataFrame({"A": [2, 3, 4, 5], "B": [6, 7, 8, 9]})
-        >>> df_pow.pow(2)
-            A   B
-        0   4  36
-        1   9  49
-        2  16  64
-        3  25  81
+        circle          0     -360
+        triangle       -1     -178
+        rectangle      -1     -357
         """
         return self._flex_arith_method(
             other, roperator.rsub, level=level, fill_value=fill_value, axis=axis
@@ -11335,57 +11007,43 @@ class DataFrame(NDFrame, OpsMixin):
         triangle        3      180
         rectangle       4      360
 
-        Add a scalar with operator version which return the same
+        Multiply a scalar with operator version which return the same
         results.
 
-        >>> df + 1
+        >>> df * 2
                    angles  degrees
-        circle          1      361
-        triangle        4      181
-        rectangle       5      361
+        circle          0      720
+        triangle        6      360
+        rectangle       8      720
 
-        >>> df.add(1)
+        >>> df.mul(2)
                    angles  degrees
-        circle          1      361
-        triangle        4      181
-        rectangle       5      361
+        circle          0      720
+        triangle        6      360
+        rectangle       8      720
 
-        Divide by constant with reverse version.
+        Multiply a list and Series by axis with operator version.
 
-        >>> df.div(10)
+        >>> df * [1, 2]
                    angles  degrees
-        circle        0.0     36.0
-        triangle      0.3     18.0
-        rectangle     0.4     36.0
+        circle          0      720
+        triangle        3      360
+        rectangle       4      720
 
-        >>> df.rdiv(10)
-                     angles   degrees
-        circle          inf  0.027778
-        triangle   3.333333  0.055556
-        rectangle  2.500000  0.027778
-
-        Subtract a list and Series by axis with operator version.
-
-        >>> df - [1, 2]
+        >>> df.mul([1, 2], axis="columns")
                    angles  degrees
-        circle         -1      358
-        triangle        2      178
-        rectangle       3      358
+        circle          0      720
+        triangle        3      360
+        rectangle       4      720
 
-        >>> df.sub([1, 2], axis="columns")
-                   angles  degrees
-        circle         -1      358
-        triangle        2      178
-        rectangle       3      358
-
-        >>> df.sub(
-        ...     pd.Series([1, 1, 1], index=["circle", "triangle", "rectangle"]),
+        >>> df.mul(
+        ...     pd.Series([1, 2, 3], index=["circle", "triangle", "rectangle"]),
         ...     axis="index",
         ... )
                    angles  degrees
-        circle         -1      359
-        triangle        2      179
-        rectangle       3      359
+        circle          0      360
+        triangle        6      360
+        rectangle      12     1080
 
         Multiply a dictionary by axis.
 
@@ -11400,74 +11058,6 @@ class DataFrame(NDFrame, OpsMixin):
         circle           0        0
         triangle         6      360
         rectangle       12     1080
-
-        Multiply a DataFrame of different shape with operator version.
-
-        >>> other = pd.DataFrame(
-        ...     {"angles": [0, 3, 4]}, index=["circle", "triangle", "rectangle"]
-        ... )
-        >>> other
-                   angles
-        circle          0
-        triangle        3
-        rectangle       4
-
-        >>> df * other
-                   angles  degrees
-        circle          0      NaN
-        triangle        9      NaN
-        rectangle      16      NaN
-
-        >>> df.mul(other, fill_value=0)
-                   angles  degrees
-        circle          0      0.0
-        triangle        9      0.0
-        rectangle      16      0.0
-
-        Divide by a MultiIndex by level.
-
-        >>> df_multindex = pd.DataFrame(
-        ...     {
-        ...         "angles": [0, 3, 4, 4, 5, 6],
-        ...         "degrees": [360, 180, 360, 360, 540, 720],
-        ...     },
-        ...     index=[
-        ...         ["A", "A", "A", "B", "B", "B"],
-        ...         [
-        ...             "circle",
-        ...             "triangle",
-        ...             "rectangle",
-        ...             "square",
-        ...             "pentagon",
-        ...             "hexagon",
-        ...         ],
-        ...     ],
-        ... )
-        >>> df_multindex
-                     angles  degrees
-        A circle          0      360
-          triangle        3      180
-          rectangle       4      360
-        B square          4      360
-          pentagon        5      540
-          hexagon         6      720
-
-        >>> df.div(df_multindex, level=1, fill_value=0)
-                     angles  degrees
-        A circle        NaN      1.0
-          triangle      1.0      1.0
-          rectangle     1.0      1.0
-        B square        0.0      0.0
-          pentagon      0.0      0.0
-          hexagon       0.0      0.0
-
-        >>> df_pow = pd.DataFrame({"A": [2, 3, 4, 5], "B": [6, 7, 8, 9]})
-        >>> df_pow.pow(2)
-            A   B
-        0   4  36
-        1   9  49
-        2  16  64
-        3  25  81
         """
         return self._flex_arith_method(
             other, operator.mul, level=level, fill_value=fill_value, axis=axis
@@ -11536,125 +11126,40 @@ class DataFrame(NDFrame, OpsMixin):
         triangle        3      180
         rectangle       4      360
 
-        Add a scalar with operator version which return the same
-        results.
+        Multiply by a scalar.
 
-        >>> df + 1
+        >>> 2 * df
                    angles  degrees
-        circle          1      361
-        triangle        4      181
-        rectangle       5      361
+        circle          0      720
+        triangle        6      360
+        rectangle       8      720
 
-        >>> df.add(1)
+        >>> df.rmul(2)
                    angles  degrees
-        circle          1      361
-        triangle        4      181
-        rectangle       5      361
+        circle          0      720
+        triangle        6      360
+        rectangle       8      720
 
-        Divide by constant with reverse version.
+        Multiply by a list and Series.
 
-        >>> df.div(10)
+        >>> [1, 2] * df
                    angles  degrees
-        circle        0.0     36.0
-        triangle      0.3     18.0
-        rectangle     0.4     36.0
+        circle          0      720
+        triangle        3      360
+        rectangle       4      720
 
-        >>> df.rdiv(10)
-                     angles   degrees
-        circle          inf  0.027778
-        triangle   3.333333  0.055556
-        rectangle  2.500000  0.027778
-
-        Subtract a list and Series by axis with operator version.
-
-        >>> df - [1, 2]
+        >>> df.rmul([1, 2], axis='columns')
                    angles  degrees
-        circle         -1      358
-        triangle        2      178
-        rectangle       3      358
+        circle          0      720
+        triangle        3      360
+        rectangle       4      720
 
-        >>> df.sub([1, 2], axis='columns')
+        >>> df.rmul(pd.Series([1, 2, 3], index=['circle', 'triangle', 'rectangle']),
+        ...         axis='index')
                    angles  degrees
-        circle         -1      358
-        triangle        2      178
-        rectangle       3      358
-
-        >>> df.sub(pd.Series([1, 1, 1], index=['circle', 'triangle', 'rectangle']),
-        ...        axis='index')
-                   angles  degrees
-        circle         -1      359
-        triangle        2      179
-        rectangle       3      359
-
-        Multiply a dictionary by axis.
-
-        >>> df.mul({'angles': 0, 'degrees': 2})
-                    angles  degrees
-        circle           0      720
-        triangle         0      360
-        rectangle        0      720
-
-        >>> df.mul({'circle': 0, 'triangle': 2, 'rectangle': 3}, axis='index')
-                    angles  degrees
-        circle           0        0
-        triangle         6      360
-        rectangle       12     1080
-
-        Multiply a DataFrame of different shape with operator version.
-
-        >>> other = pd.DataFrame({'angles': [0, 3, 4]},
-        ...                      index=['circle', 'triangle', 'rectangle'])
-        >>> other
-                   angles
-        circle          0
-        triangle        3
-        rectangle       4
-
-        >>> df * other
-                   angles  degrees
-        circle          0      NaN
-        triangle        9      NaN
-        rectangle      16      NaN
-
-        >>> df.mul(other, fill_value=0)
-                   angles  degrees
-        circle          0      0.0
-        triangle        9      0.0
-        rectangle      16      0.0
-
-        Divide by a MultiIndex by level.
-
-        >>> df_multindex = pd.DataFrame({'angles': [0, 3, 4, 4, 5, 6],
-        ...                              'degrees': [360, 180, 360, 360, 540, 720]},
-        ...                             index=[['A', 'A', 'A', 'B', 'B', 'B'],
-        ...                                    ['circle', 'triangle', 'rectangle',
-        ...                                     'square', 'pentagon', 'hexagon']])
-        >>> df_multindex
-                     angles  degrees
-        A circle          0      360
-          triangle        3      180
-          rectangle       4      360
-        B square          4      360
-          pentagon        5      540
-          hexagon         6      720
-
-        >>> df.div(df_multindex, level=1, fill_value=0)
-                     angles  degrees
-        A circle        NaN      1.0
-          triangle      1.0      1.0
-          rectangle     1.0      1.0
-        B square        0.0      0.0
-          pentagon      0.0      0.0
-          hexagon       0.0      0.0
-
-        >>> df_pow = pd.DataFrame({'A': [2, 3, 4, 5],
-        ...                        'B': [6, 7, 8, 9]})
-        >>> df_pow.pow(2)
-            A   B
-        0   4  36
-        1   9  49
-        2  16  64
-        3  25  81
+        circle          0      360
+        triangle        6      360
+        rectangle      12     1080
         """
         return self._flex_arith_method(
             other, roperator.rmul, level=level, fill_value=fill_value, axis=axis
@@ -11721,125 +11226,54 @@ class DataFrame(NDFrame, OpsMixin):
         triangle        3      180
         rectangle       4      360
 
-        Add a scalar with operator version which return the same
-        results.
+        Divide by a scalar.
 
-        >>> df + 1
+        >>> df / 2
                    angles  degrees
-        circle          1      361
-        triangle        4      181
-        rectangle       5      361
+        circle        0.0    180.0
+        triangle      1.5     90.0
+        rectangle     2.0    180.0
 
-        >>> df.add(1)
+        >>> df.truediv(2)
                    angles  degrees
-        circle          1      361
-        triangle        4      181
-        rectangle       5      361
+        circle        0.0    180.0
+        triangle      1.5     90.0
+        rectangle     2.0    180.0
 
-        Divide by constant with reverse version.
+        Divide by a list and Series.
 
-        >>> df.div(10)
+        >>> df / [1, 2]
                    angles  degrees
-        circle        0.0     36.0
-        triangle      0.3     18.0
-        rectangle     0.4     36.0
+        circle        0.0    180.0
+        triangle      3.0     90.0
+        rectangle     4.0    180.0
 
-        >>> df.rdiv(10)
-                     angles   degrees
-        circle          inf  0.027778
-        triangle   3.333333  0.055556
-        rectangle  2.500000  0.027778
-
-        Subtract a list and Series by axis with operator version.
-
-        >>> df - [1, 2]
+        >>> df.truediv([1, 2], axis='columns')
                    angles  degrees
-        circle         -1      358
-        triangle        2      178
-        rectangle       3      358
+        circle        0.0    180.0
+        triangle      3.0     90.0
+        rectangle     4.0    180.0
 
-        >>> df.sub([1, 2], axis='columns')
-                   angles  degrees
-        circle         -1      358
-        triangle        2      178
-        rectangle       3      358
-
-        >>> df.sub(pd.Series([1, 1, 1], index=['circle', 'triangle', 'rectangle']),
-        ...        axis='index')
-                   angles  degrees
-        circle         -1      359
-        triangle        2      179
-        rectangle       3      359
-
-        Multiply a dictionary by axis.
-
-        >>> df.mul({'angles': 0, 'degrees': 2})
-                    angles  degrees
-        circle           0      720
-        triangle         0      360
-        rectangle        0      720
-
-        >>> df.mul({'circle': 0, 'triangle': 2, 'rectangle': 3}, axis='index')
-                    angles  degrees
-        circle           0        0
-        triangle         6      360
-        rectangle       12     1080
-
-        Multiply a DataFrame of different shape with operator version.
-
-        >>> other = pd.DataFrame({'angles': [0, 3, 4]},
-        ...                      index=['circle', 'triangle', 'rectangle'])
-        >>> other
-                   angles
-        circle          0
-        triangle        3
-        rectangle       4
-
-        >>> df * other
-                   angles  degrees
-        circle          0      NaN
-        triangle        9      NaN
-        rectangle      16      NaN
-
-        >>> df.mul(other, fill_value=0)
-                   angles  degrees
-        circle          0      0.0
-        triangle        9      0.0
-        rectangle      16      0.0
-
-        Divide by a MultiIndex by level.
-
-        >>> df_multindex = pd.DataFrame({'angles': [0, 3, 4, 4, 5, 6],
-        ...                              'degrees': [360, 180, 360, 360, 540, 720]},
-        ...                             index=[['A', 'A', 'A', 'B', 'B', 'B'],
-        ...                                    ['circle', 'triangle', 'rectangle',
-        ...                                     'square', 'pentagon', 'hexagon']])
-        >>> df_multindex
+        >>> df.truediv(pd.Series([1, 2, 3], index=['circle', 'triangle', 'rectangle']),
+        ...            axis='index')
                      angles  degrees
-        A circle          0      360
-          triangle        3      180
-          rectangle       4      360
-        B square          4      360
-          pentagon        5      540
-          hexagon         6      720
+        circle     0.000000    360.0
+        triangle   1.500000     90.0
+        rectangle  1.333333    120.0
 
-        >>> df.div(df_multindex, level=1, fill_value=0)
+        Divide by a dictionary by axis.
+
+        >>> df.truediv({'angles': 2, 'degrees': 3})
+                   angles  degrees
+        circle        0.0    120.0
+        triangle      1.5     60.0
+        rectangle     2.0    120.0
+
+        >>> df.truediv({'circle': 1, 'triangle': 2, 'rectangle': 3}, axis='index')
                      angles  degrees
-        A circle        NaN      1.0
-          triangle      1.0      1.0
-          rectangle     1.0      1.0
-        B square        0.0      0.0
-          pentagon      0.0      0.0
-          hexagon       0.0      0.0
-
-        >>> df_pow = pd.DataFrame({'A': [2, 3, 4, 5],
-        ...                        'B': [6, 7, 8, 9]})
-        >>> df_pow.pow(2)
-            A   B
-        0   4  36
-        1   9  49
-        2  16  64
-        3  25  81
+        circle     0.000000    360.0
+        triangle   1.500000     90.0
+        rectangle  1.333333    120.0
         """
         return self._flex_arith_method(
             other, operator.truediv, level=level, fill_value=fill_value, axis=axis
@@ -11909,125 +11343,33 @@ class DataFrame(NDFrame, OpsMixin):
         triangle        3      180
         rectangle       4      360
 
-        Add a scalar with operator version which return the same
-        results.
+        Divide a scalar.
 
-        >>> df + 1
-                   angles  degrees
-        circle          1      361
-        triangle        4      181
-        rectangle       5      361
-
-        >>> df.add(1)
-                   angles  degrees
-        circle          1      361
-        triangle        4      181
-        rectangle       5      361
-
-        Divide by constant with reverse version.
-
-        >>> df.div(10)
-                   angles  degrees
-        circle        0.0     36.0
-        triangle      0.3     18.0
-        rectangle     0.4     36.0
-
-        >>> df.rdiv(10)
+        >>> 1 / df
                      angles   degrees
-        circle          inf  0.027778
-        triangle   3.333333  0.055556
-        rectangle  2.500000  0.027778
+        circle          inf  0.002778
+        triangle   0.333333  0.005556
+        rectangle  0.250000  0.002778
 
-        Subtract a list and Series by axis with operator version.
+        >>> df.rtruediv(1)
+                     angles   degrees
+        circle          inf  0.002778
+        triangle   0.333333  0.005556
+        rectangle  0.250000  0.002778
 
-        >>> df - [1, 2]
-                   angles  degrees
-        circle         -1      358
-        triangle        2      178
-        rectangle       3      358
+        Divide a list.
 
-        >>> df.sub([1, 2], axis='columns')
-                   angles  degrees
-        circle         -1      358
-        triangle        2      178
-        rectangle       3      358
+        >>> [1, 2] / df
+                     angles   degrees
+        circle          inf  0.005556
+        triangle   0.333333  0.011111
+        rectangle  0.250000  0.005556
 
-        >>> df.sub(pd.Series([1, 1, 1], index=['circle', 'triangle', 'rectangle']),
-        ...        axis='index')
-                   angles  degrees
-        circle         -1      359
-        triangle        2      179
-        rectangle       3      359
-
-        Multiply a dictionary by axis.
-
-        >>> df.mul({'angles': 0, 'degrees': 2})
-                    angles  degrees
-        circle           0      720
-        triangle         0      360
-        rectangle        0      720
-
-        >>> df.mul({'circle': 0, 'triangle': 2, 'rectangle': 3}, axis='index')
-                    angles  degrees
-        circle           0        0
-        triangle         6      360
-        rectangle       12     1080
-
-        Multiply a DataFrame of different shape with operator version.
-
-        >>> other = pd.DataFrame({'angles': [0, 3, 4]},
-        ...                      index=['circle', 'triangle', 'rectangle'])
-        >>> other
-                   angles
-        circle          0
-        triangle        3
-        rectangle       4
-
-        >>> df * other
-                   angles  degrees
-        circle          0      NaN
-        triangle        9      NaN
-        rectangle      16      NaN
-
-        >>> df.mul(other, fill_value=0)
-                   angles  degrees
-        circle          0      0.0
-        triangle        9      0.0
-        rectangle      16      0.0
-
-        Divide by a MultiIndex by level.
-
-        >>> df_multindex = pd.DataFrame({'angles': [0, 3, 4, 4, 5, 6],
-        ...                              'degrees': [360, 180, 360, 360, 540, 720]},
-        ...                             index=[['A', 'A', 'A', 'B', 'B', 'B'],
-        ...                                    ['circle', 'triangle', 'rectangle',
-        ...                                     'square', 'pentagon', 'hexagon']])
-        >>> df_multindex
-                     angles  degrees
-        A circle          0      360
-          triangle        3      180
-          rectangle       4      360
-        B square          4      360
-          pentagon        5      540
-          hexagon         6      720
-
-        >>> df.div(df_multindex, level=1, fill_value=0)
-                     angles  degrees
-        A circle        NaN      1.0
-          triangle      1.0      1.0
-          rectangle     1.0      1.0
-        B square        0.0      0.0
-          pentagon      0.0      0.0
-          hexagon       0.0      0.0
-
-        >>> df_pow = pd.DataFrame({'A': [2, 3, 4, 5],
-        ...                        'B': [6, 7, 8, 9]})
-        >>> df_pow.pow(2)
-            A   B
-        0   4  36
-        1   9  49
-        2  16  64
-        3  25  81
+        >>> df.rtruediv([1, 2], axis='columns')
+                     angles   degrees
+        circle          inf  0.005556
+        triangle   0.333333  0.011111
+        rectangle  0.250000  0.005556
         """
         return self._flex_arith_method(
             other, roperator.rtruediv, level=level, fill_value=fill_value, axis=axis
@@ -12096,125 +11438,33 @@ class DataFrame(NDFrame, OpsMixin):
         triangle        3      180
         rectangle       4      360
 
-        Add a scalar with operator version which return the same
-        results.
+        Divide by a scalar.
 
-        >>> df + 1
+        >>> df // 2
                    angles  degrees
-        circle          1      361
-        triangle        4      181
-        rectangle       5      361
+        circle          0      180
+        triangle        1       90
+        rectangle       2      180
 
-        >>> df.add(1)
+        >>> df.floordiv(2)
                    angles  degrees
-        circle          1      361
-        triangle        4      181
-        rectangle       5      361
+        circle          0      180
+        triangle        1       90
+        rectangle       2      180
 
-        Divide by constant with reverse version.
+        Divide by a list and Series.
 
-        >>> df.div(10)
+        >>> df // [1, 2]
                    angles  degrees
-        circle        0.0     36.0
-        triangle      0.3     18.0
-        rectangle     0.4     36.0
+        circle          0      180
+        triangle        3       90
+        rectangle       4      180
 
-        >>> df.rdiv(10)
-                     angles   degrees
-        circle          inf  0.027778
-        triangle   3.333333  0.055556
-        rectangle  2.500000  0.027778
-
-        Subtract a list and Series by axis with operator version.
-
-        >>> df - [1, 2]
+        >>> df.floordiv([1, 2], axis='columns')
                    angles  degrees
-        circle         -1      358
-        triangle        2      178
-        rectangle       3      358
-
-        >>> df.sub([1, 2], axis='columns')
-                   angles  degrees
-        circle         -1      358
-        triangle        2      178
-        rectangle       3      358
-
-        >>> df.sub(pd.Series([1, 1, 1], index=['circle', 'triangle', 'rectangle']),
-        ...        axis='index')
-                   angles  degrees
-        circle         -1      359
-        triangle        2      179
-        rectangle       3      359
-
-        Multiply a dictionary by axis.
-
-        >>> df.mul({'angles': 0, 'degrees': 2})
-                    angles  degrees
-        circle           0      720
-        triangle         0      360
-        rectangle        0      720
-
-        >>> df.mul({'circle': 0, 'triangle': 2, 'rectangle': 3}, axis='index')
-                    angles  degrees
-        circle           0        0
-        triangle         6      360
-        rectangle       12     1080
-
-        Multiply a DataFrame of different shape with operator version.
-
-        >>> other = pd.DataFrame({'angles': [0, 3, 4]},
-        ...                      index=['circle', 'triangle', 'rectangle'])
-        >>> other
-                   angles
-        circle          0
-        triangle        3
-        rectangle       4
-
-        >>> df * other
-                   angles  degrees
-        circle          0      NaN
-        triangle        9      NaN
-        rectangle      16      NaN
-
-        >>> df.mul(other, fill_value=0)
-                   angles  degrees
-        circle          0      0.0
-        triangle        9      0.0
-        rectangle      16      0.0
-
-        Divide by a MultiIndex by level.
-
-        >>> df_multindex = pd.DataFrame({'angles': [0, 3, 4, 4, 5, 6],
-        ...                              'degrees': [360, 180, 360, 360, 540, 720]},
-        ...                             index=[['A', 'A', 'A', 'B', 'B', 'B'],
-        ...                                    ['circle', 'triangle', 'rectangle',
-        ...                                     'square', 'pentagon', 'hexagon']])
-        >>> df_multindex
-                     angles  degrees
-        A circle          0      360
-          triangle        3      180
-          rectangle       4      360
-        B square          4      360
-          pentagon        5      540
-          hexagon         6      720
-
-        >>> df.div(df_multindex, level=1, fill_value=0)
-                     angles  degrees
-        A circle        NaN      1.0
-          triangle      1.0      1.0
-          rectangle     1.0      1.0
-        B square        0.0      0.0
-          pentagon      0.0      0.0
-          hexagon       0.0      0.0
-
-        >>> df_pow = pd.DataFrame({'A': [2, 3, 4, 5],
-        ...                        'B': [6, 7, 8, 9]})
-        >>> df_pow.pow(2)
-            A   B
-        0   4  36
-        1   9  49
-        2  16  64
-        3  25  81
+        circle          0      180
+        triangle        3       90
+        rectangle       4      180
         """
         return self._flex_arith_method(
             other, operator.floordiv, level=level, fill_value=fill_value, axis=axis
@@ -12281,125 +11531,33 @@ class DataFrame(NDFrame, OpsMixin):
         triangle        3      180
         rectangle       4      360
 
-        Add a scalar with operator version which return the same
-        results.
+        Divide a scalar.
 
-        >>> df + 1
+        >>> 10 // df
                    angles  degrees
-        circle          1      361
-        triangle        4      181
-        rectangle       5      361
+        circle        inf      0.0
+        triangle      3.0      0.0
+        rectangle     2.0      0.0
 
-        >>> df.add(1)
+        >>> df.rfloordiv(10)
                    angles  degrees
-        circle          1      361
-        triangle        4      181
-        rectangle       5      361
+        circle        inf      0.0
+        triangle      3.0      0.0
+        rectangle     2.0      0.0
 
-        Divide by constant with reverse version.
+        Divide a list.
 
-        >>> df.div(10)
+        >>> [10, 20] // df
                    angles  degrees
-        circle        0.0     36.0
-        triangle      0.3     18.0
-        rectangle     0.4     36.0
+        circle        inf      0.0
+        triangle      3.0      0.0
+        rectangle     2.0      0.0
 
-        >>> df.rdiv(10)
-                     angles   degrees
-        circle          inf  0.027778
-        triangle   3.333333  0.055556
-        rectangle  2.500000  0.027778
-
-        Subtract a list and Series by axis with operator version.
-
-        >>> df - [1, 2]
+        >>> df.rfloordiv([10, 20], axis='columns')
                    angles  degrees
-        circle         -1      358
-        triangle        2      178
-        rectangle       3      358
-
-        >>> df.sub([1, 2], axis='columns')
-                   angles  degrees
-        circle         -1      358
-        triangle        2      178
-        rectangle       3      358
-
-        >>> df.sub(pd.Series([1, 1, 1], index=['circle', 'triangle', 'rectangle']),
-        ...        axis='index')
-                   angles  degrees
-        circle         -1      359
-        triangle        2      179
-        rectangle       3      359
-
-        Multiply a dictionary by axis.
-
-        >>> df.mul({'angles': 0, 'degrees': 2})
-                    angles  degrees
-        circle           0      720
-        triangle         0      360
-        rectangle        0      720
-
-        >>> df.mul({'circle': 0, 'triangle': 2, 'rectangle': 3}, axis='index')
-                    angles  degrees
-        circle           0        0
-        triangle         6      360
-        rectangle       12     1080
-
-        Multiply a DataFrame of different shape with operator version.
-
-        >>> other = pd.DataFrame({'angles': [0, 3, 4]},
-        ...                      index=['circle', 'triangle', 'rectangle'])
-        >>> other
-                   angles
-        circle          0
-        triangle        3
-        rectangle       4
-
-        >>> df * other
-                   angles  degrees
-        circle          0      NaN
-        triangle        9      NaN
-        rectangle      16      NaN
-
-        >>> df.mul(other, fill_value=0)
-                   angles  degrees
-        circle          0      0.0
-        triangle        9      0.0
-        rectangle      16      0.0
-
-        Divide by a MultiIndex by level.
-
-        >>> df_multindex = pd.DataFrame({'angles': [0, 3, 4, 4, 5, 6],
-        ...                              'degrees': [360, 180, 360, 360, 540, 720]},
-        ...                             index=[['A', 'A', 'A', 'B', 'B', 'B'],
-        ...                                    ['circle', 'triangle', 'rectangle',
-        ...                                     'square', 'pentagon', 'hexagon']])
-        >>> df_multindex
-                     angles  degrees
-        A circle          0      360
-          triangle        3      180
-          rectangle       4      360
-        B square          4      360
-          pentagon        5      540
-          hexagon         6      720
-
-        >>> df.div(df_multindex, level=1, fill_value=0)
-                     angles  degrees
-        A circle        NaN      1.0
-          triangle      1.0      1.0
-          rectangle     1.0      1.0
-        B square        0.0      0.0
-          pentagon      0.0      0.0
-          hexagon       0.0      0.0
-
-        >>> df_pow = pd.DataFrame({'A': [2, 3, 4, 5],
-        ...                        'B': [6, 7, 8, 9]})
-        >>> df_pow.pow(2)
-            A   B
-        0   4  36
-        1   9  49
-        2  16  64
-        3  25  81
+        circle        inf      0.0
+        triangle      3.0      0.0
+        rectangle     2.0      0.0
         """
         return self._flex_arith_method(
             other, roperator.rfloordiv, level=level, fill_value=fill_value, axis=axis
@@ -12466,139 +11624,33 @@ class DataFrame(NDFrame, OpsMixin):
         triangle        3      180
         rectangle       4      360
 
-        Add a scalar with operator version which return the same
-        results.
+        Calculate modulo with a scalar.
 
-        >>> df + 1
+        >>> df % 2
                    angles  degrees
-        circle          1      361
-        triangle        4      181
-        rectangle       5      361
+        circle          0        0
+        triangle        1        0
+        rectangle       0        0
 
-        >>> df.add(1)
+        >>> df.mod(2)
                    angles  degrees
-        circle          1      361
-        triangle        4      181
-        rectangle       5      361
+        circle          0        0
+        triangle        1        0
+        rectangle       0        0
 
-        Divide by constant with reverse version.
+        Calculate modulo with a list.
 
-        >>> df.div(10)
+        >>> df % [2, 3]
                    angles  degrees
-        circle        0.0     36.0
-        triangle      0.3     18.0
-        rectangle     0.4     36.0
+        circle          0        0
+        triangle        1        0
+        rectangle       0        0
 
-        >>> df.rdiv(10)
-                     angles   degrees
-        circle          inf  0.027778
-        triangle   3.333333  0.055556
-        rectangle  2.500000  0.027778
-
-        Subtract a list and Series by axis with operator version.
-
-        >>> df - [1, 2]
+        >>> df.mod([2, 3], axis="columns")
                    angles  degrees
-        circle         -1      358
-        triangle        2      178
-        rectangle       3      358
-
-        >>> df.sub([1, 2], axis="columns")
-                   angles  degrees
-        circle         -1      358
-        triangle        2      178
-        rectangle       3      358
-
-        >>> df.sub(
-        ...     pd.Series([1, 1, 1], index=["circle", "triangle", "rectangle"]),
-        ...     axis="index",
-        ... )
-                   angles  degrees
-        circle         -1      359
-        triangle        2      179
-        rectangle       3      359
-
-        Multiply a dictionary by axis.
-
-        >>> df.mul({"angles": 0, "degrees": 2})
-                    angles  degrees
-        circle           0      720
-        triangle         0      360
-        rectangle        0      720
-
-        >>> df.mul({"circle": 0, "triangle": 2, "rectangle": 3}, axis="index")
-                    angles  degrees
-        circle           0        0
-        triangle         6      360
-        rectangle       12     1080
-
-        Multiply a DataFrame of different shape with operator version.
-
-        >>> other = pd.DataFrame(
-        ...     {"angles": [0, 3, 4]}, index=["circle", "triangle", "rectangle"]
-        ... )
-        >>> other
-                   angles
-        circle          0
-        triangle        3
-        rectangle       4
-
-        >>> df * other
-                   angles  degrees
-        circle          0      NaN
-        triangle        9      NaN
-        rectangle      16      NaN
-
-        >>> df.mul(other, fill_value=0)
-                   angles  degrees
-        circle          0      0.0
-        triangle        9      0.0
-        rectangle      16      0.0
-
-        Divide by a MultiIndex by level.
-
-        >>> df_multindex = pd.DataFrame(
-        ...     {
-        ...         "angles": [0, 3, 4, 4, 5, 6],
-        ...         "degrees": [360, 180, 360, 360, 540, 720],
-        ...     },
-        ...     index=[
-        ...         ["A", "A", "A", "B", "B", "B"],
-        ...         [
-        ...             "circle",
-        ...             "triangle",
-        ...             "rectangle",
-        ...             "square",
-        ...             "pentagon",
-        ...             "hexagon",
-        ...         ],
-        ...     ],
-        ... )
-        >>> df_multindex
-                     angles  degrees
-        A circle          0      360
-          triangle        3      180
-          rectangle       4      360
-        B square          4      360
-          pentagon        5      540
-          hexagon         6      720
-
-        >>> df.div(df_multindex, level=1, fill_value=0)
-                     angles  degrees
-        A circle        NaN      1.0
-          triangle      1.0      1.0
-          rectangle     1.0      1.0
-        B square        0.0      0.0
-          pentagon      0.0      0.0
-          hexagon       0.0      0.0
-
-        >>> df_pow = pd.DataFrame({"A": [2, 3, 4, 5], "B": [6, 7, 8, 9]})
-        >>> df_pow.pow(2)
-            A   B
-        0   4  36
-        1   9  49
-        2  16  64
-        3  25  81
+        circle          0        0
+        triangle        1        0
+        rectangle       0        0
         """
         return self._flex_arith_method(
             other, operator.mod, level=level, fill_value=fill_value, axis=axis
@@ -12665,125 +11717,33 @@ class DataFrame(NDFrame, OpsMixin):
         triangle        3      180
         rectangle       4      360
 
-        Add a scalar with operator version which return the same
-        results.
+        Calculate modulo with a scalar.
 
-        >>> df + 1
+        >>> 1000 % df
                    angles  degrees
-        circle          1      361
-        triangle        4      181
-        rectangle       5      361
+        circle        NaN    280.0
+        triangle      1.0    100.0
+        rectangle     0.0    280.0
 
-        >>> df.add(1)
+        >>> df.rmod(1000)
                    angles  degrees
-        circle          1      361
-        triangle        4      181
-        rectangle       5      361
+        circle        NaN    280.0
+        triangle      1.0    100.0
+        rectangle     0.0    280.0
 
-        Divide by constant with reverse version.
+        Calculate modulo with a list.
 
-        >>> df.div(10)
+        >>> [1000, 2000] % df
                    angles  degrees
-        circle        0.0     36.0
-        triangle      0.3     18.0
-        rectangle     0.4     36.0
+        circle        NaN    200.0
+        triangle      1.0     20.0
+        rectangle     0.0    200.0
 
-        >>> df.rdiv(10)
-                     angles   degrees
-        circle          inf  0.027778
-        triangle   3.333333  0.055556
-        rectangle  2.500000  0.027778
-
-        Subtract a list and Series by axis with operator version.
-
-        >>> df - [1, 2]
+        >>> df.rmod([1000, 2000], axis='columns')
                    angles  degrees
-        circle         -1      358
-        triangle        2      178
-        rectangle       3      358
-
-        >>> df.sub([1, 2], axis='columns')
-                   angles  degrees
-        circle         -1      358
-        triangle        2      178
-        rectangle       3      358
-
-        >>> df.sub(pd.Series([1, 1, 1], index=['circle', 'triangle', 'rectangle']),
-        ...        axis='index')
-                   angles  degrees
-        circle         -1      359
-        triangle        2      179
-        rectangle       3      359
-
-        Multiply a dictionary by axis.
-
-        >>> df.mul({'angles': 0, 'degrees': 2})
-                    angles  degrees
-        circle           0      720
-        triangle         0      360
-        rectangle        0      720
-
-        >>> df.mul({'circle': 0, 'triangle': 2, 'rectangle': 3}, axis='index')
-                    angles  degrees
-        circle           0        0
-        triangle         6      360
-        rectangle       12     1080
-
-        Multiply a DataFrame of different shape with operator version.
-
-        >>> other = pd.DataFrame({'angles': [0, 3, 4]},
-        ...                      index=['circle', 'triangle', 'rectangle'])
-        >>> other
-                   angles
-        circle          0
-        triangle        3
-        rectangle       4
-
-        >>> df * other
-                   angles  degrees
-        circle          0      NaN
-        triangle        9      NaN
-        rectangle      16      NaN
-
-        >>> df.mul(other, fill_value=0)
-                   angles  degrees
-        circle          0      0.0
-        triangle        9      0.0
-        rectangle      16      0.0
-
-        Divide by a MultiIndex by level.
-
-        >>> df_multindex = pd.DataFrame({'angles': [0, 3, 4, 4, 5, 6],
-        ...                              'degrees': [360, 180, 360, 360, 540, 720]},
-        ...                             index=[['A', 'A', 'A', 'B', 'B', 'B'],
-        ...                                    ['circle', 'triangle', 'rectangle',
-        ...                                     'square', 'pentagon', 'hexagon']])
-        >>> df_multindex
-                     angles  degrees
-        A circle          0      360
-          triangle        3      180
-          rectangle       4      360
-        B square          4      360
-          pentagon        5      540
-          hexagon         6      720
-
-        >>> df.div(df_multindex, level=1, fill_value=0)
-                     angles  degrees
-        A circle        NaN      1.0
-          triangle      1.0      1.0
-          rectangle     1.0      1.0
-        B square        0.0      0.0
-          pentagon      0.0      0.0
-          hexagon       0.0      0.0
-
-        >>> df_pow = pd.DataFrame({'A': [2, 3, 4, 5],
-        ...                        'B': [6, 7, 8, 9]})
-        >>> df_pow.pow(2)
-            A   B
-        0   4  36
-        1   9  49
-        2  16  64
-        3  25  81
+        circle        NaN    200.0
+        triangle      1.0     20.0
+        rectangle     0.0    200.0
         """
         return self._flex_arith_method(
             other, roperator.rmod, level=level, fill_value=fill_value, axis=axis
@@ -12850,125 +11810,33 @@ class DataFrame(NDFrame, OpsMixin):
         triangle        3      180
         rectangle       4      360
 
-        Add a scalar with operator version which return the same
-        results.
+        Calculate exponential power with a scalar.
 
-        >>> df + 1
+        >>> df ** 2
                    angles  degrees
-        circle          1      361
-        triangle        4      181
-        rectangle       5      361
+        circle          0   129600
+        triangle        9    32400
+        rectangle      16   129600
 
-        >>> df.add(1)
+        >>> df.pow(2)
                    angles  degrees
-        circle          1      361
-        triangle        4      181
-        rectangle       5      361
+        circle          0   129600
+        triangle        9    32400
+        rectangle      16   129600
 
-        Divide by constant with reverse version.
+        Calculate exponential power with a list.
 
-        >>> df.div(10)
+        >>> df ** [1, 2]
                    angles  degrees
-        circle        0.0     36.0
-        triangle      0.3     18.0
-        rectangle     0.4     36.0
+        circle          0   129600
+        triangle        3    32400
+        rectangle       4   129600
 
-        >>> df.rdiv(10)
-                     angles   degrees
-        circle          inf  0.027778
-        triangle   3.333333  0.055556
-        rectangle  2.500000  0.027778
-
-        Subtract a list and Series by axis with operator version.
-
-        >>> df - [1, 2]
+        >>> df.pow([1, 2], axis='columns')
                    angles  degrees
-        circle         -1      358
-        triangle        2      178
-        rectangle       3      358
-
-        >>> df.sub([1, 2], axis='columns')
-                   angles  degrees
-        circle         -1      358
-        triangle        2      178
-        rectangle       3      358
-
-        >>> df.sub(pd.Series([1, 1, 1], index=['circle', 'triangle', 'rectangle']),
-        ...        axis='index')
-                   angles  degrees
-        circle         -1      359
-        triangle        2      179
-        rectangle       3      359
-
-        Multiply a dictionary by axis.
-
-        >>> df.mul({'angles': 0, 'degrees': 2})
-                    angles  degrees
-        circle           0      720
-        triangle         0      360
-        rectangle        0      720
-
-        >>> df.mul({'circle': 0, 'triangle': 2, 'rectangle': 3}, axis='index')
-                    angles  degrees
-        circle           0        0
-        triangle         6      360
-        rectangle       12     1080
-
-        Multiply a DataFrame of different shape with operator version.
-
-        >>> other = pd.DataFrame({'angles': [0, 3, 4]},
-        ...                      index=['circle', 'triangle', 'rectangle'])
-        >>> other
-                   angles
-        circle          0
-        triangle        3
-        rectangle       4
-
-        >>> df * other
-                   angles  degrees
-        circle          0      NaN
-        triangle        9      NaN
-        rectangle      16      NaN
-
-        >>> df.mul(other, fill_value=0)
-                   angles  degrees
-        circle          0      0.0
-        triangle        9      0.0
-        rectangle      16      0.0
-
-        Divide by a MultiIndex by level.
-
-        >>> df_multindex = pd.DataFrame({'angles': [0, 3, 4, 4, 5, 6],
-        ...                              'degrees': [360, 180, 360, 360, 540, 720]},
-        ...                             index=[['A', 'A', 'A', 'B', 'B', 'B'],
-        ...                                    ['circle', 'triangle', 'rectangle',
-        ...                                     'square', 'pentagon', 'hexagon']])
-        >>> df_multindex
-                     angles  degrees
-        A circle          0      360
-          triangle        3      180
-          rectangle       4      360
-        B square          4      360
-          pentagon        5      540
-          hexagon         6      720
-
-        >>> df.div(df_multindex, level=1, fill_value=0)
-                     angles  degrees
-        A circle        NaN      1.0
-          triangle      1.0      1.0
-          rectangle     1.0      1.0
-        B square        0.0      0.0
-          pentagon      0.0      0.0
-          hexagon       0.0      0.0
-
-        >>> df_pow = pd.DataFrame({'A': [2, 3, 4, 5],
-        ...                        'B': [6, 7, 8, 9]})
-        >>> df_pow.pow(2)
-            A   B
-        0   4  36
-        1   9  49
-        2  16  64
-        3  25  81
+        circle          0   129600
+        triangle        3    32400
+        rectangle       4   129600
         """
         return self._flex_arith_method(
             other, operator.pow, level=level, fill_value=fill_value, axis=axis
@@ -13027,133 +11895,41 @@ class DataFrame(NDFrame, OpsMixin):
         Examples
         --------
         >>> df = pd.DataFrame({'angles': [0, 3, 4],
-        ...                    'degrees': [360, 180, 360]},
+        ...                    'degrees': [3, 1, 3]},
         ...                   index=['circle', 'triangle', 'rectangle'])
         >>> df
                    angles  degrees
-        circle          0      360
-        triangle        3      180
-        rectangle       4      360
+        circle          0        3
+        triangle        3        1
+        rectangle       4        3
 
-        Add a scalar with operator version which return the same
-        results.
+        Calculate exponential power with a scalar.
 
-        >>> df + 1
+        >>> 2 ** df
                    angles  degrees
-        circle          1      361
-        triangle        4      181
-        rectangle       5      361
+        circle          1        8
+        triangle        8        2
+        rectangle      16        8
 
-        >>> df.add(1)
+        >>> df.rpow(1)
                    angles  degrees
-        circle          1      361
-        triangle        4      181
-        rectangle       5      361
+        circle          1        8
+        triangle        8        2
+        rectangle      16        8
 
-        Divide by constant with reverse version.
+        Calculate exponential power with a list.
 
-        >>> df.div(10)
+        >>> [2, 3] ** df
                    angles  degrees
-        circle        0.0     36.0
-        triangle      0.3     18.0
-        rectangle     0.4     36.0
+        circle          1       27
+        triangle        8        3
+        rectangle      16       27
 
-        >>> df.rdiv(10)
-                     angles   degrees
-        circle          inf  0.027778
-        triangle   3.333333  0.055556
-        rectangle  2.500000  0.027778
-
-        Subtract a list and Series by axis with operator version.
-
-        >>> df - [1, 2]
+        >>> df.rpow([2, 3], axis='columns')
                    angles  degrees
-        circle         -1      358
-        triangle        2      178
-        rectangle       3      358
-
-        >>> df.sub([1, 2], axis='columns')
-                   angles  degrees
-        circle         -1      358
-        triangle        2      178
-        rectangle       3      358
-
-        >>> df.sub(pd.Series([1, 1, 1], index=['circle', 'triangle', 'rectangle']),
-        ...        axis='index')
-                   angles  degrees
-        circle         -1      359
-        triangle        2      179
-        rectangle       3      359
-
-        Multiply a dictionary by axis.
-
-        >>> df.mul({'angles': 0, 'degrees': 2})
-                    angles  degrees
-        circle           0      720
-        triangle         0      360
-        rectangle        0      720
-
-        >>> df.mul({'circle': 0, 'triangle': 2, 'rectangle': 3}, axis='index')
-                    angles  degrees
-        circle           0        0
-        triangle         6      360
-        rectangle       12     1080
-
-        Multiply a DataFrame of different shape with operator version.
-
-        >>> other = pd.DataFrame({'angles': [0, 3, 4]},
-        ...                      index=['circle', 'triangle', 'rectangle'])
-        >>> other
-                   angles
-        circle          0
-        triangle        3
-        rectangle       4
-
-        >>> df * other
-                   angles  degrees
-        circle          0      NaN
-        triangle        9      NaN
-        rectangle      16      NaN
-
-        >>> df.mul(other, fill_value=0)
-                   angles  degrees
-        circle          0      0.0
-        triangle        9      0.0
-        rectangle      16      0.0
-
-        Divide by a MultiIndex by level.
-
-        >>> df_multindex = pd.DataFrame({'angles': [0, 3, 4, 4, 5, 6],
-        ...                              'degrees': [360, 180, 360, 360, 540, 720]},
-        ...                             index=[['A', 'A', 'A', 'B', 'B', 'B'],
-        ...                                    ['circle', 'triangle', 'rectangle',
-        ...                                     'square', 'pentagon', 'hexagon']])
-        >>> df_multindex
-                     angles  degrees
-        A circle          0      360
-          triangle        3      180
-          rectangle       4      360
-        B square          4      360
-          pentagon        5      540
-          hexagon         6      720
-
-        >>> df.div(df_multindex, level=1, fill_value=0)
-                     angles  degrees
-        A circle        NaN      1.0
-          triangle      1.0      1.0
-          rectangle     1.0      1.0
-        B square        0.0      0.0
-          pentagon      0.0      0.0
-          hexagon       0.0      0.0
-
-        >>> df_pow = pd.DataFrame({'A': [2, 3, 4, 5],
-        ...                        'B': [6, 7, 8, 9]})
-        >>> df_pow.pow(2)
-            A   B
-        0   4  36
-        1   9  49
-        2  16  64
-        3  25  81
+        circle          1       27
+        triangle        8        3
+        rectangle      16       27
         """
         return self._flex_arith_method(
             other, roperator.rpow, level=level, fill_value=fill_value, axis=axis
