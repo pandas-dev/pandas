@@ -6963,7 +6963,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ----------
         other : object
             When a Series is provided, will align on indexes. For all other types,
-            will behave the same as ``==`` but with possibly different results due
+            will behave the same as ``!=`` but with possibly different results due
             to the other arguments.
         level : int or name
             Broadcast across a level, matching Index values on the
@@ -7028,7 +7028,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ----------
         other : object
             When a Series is provided, will align on indexes. For all other types,
-            will behave the same as ``==`` but with possibly different results due
+            will behave the same as ``<=`` but with possibly different results due
             to the other arguments.
         level : int or name
             Broadcast across a level, matching Index values on the
@@ -7095,7 +7095,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ----------
         other : object
             When a Series is provided, will align on indexes. For all other types,
-            will behave the same as ``==`` but with possibly different results due
+            will behave the same as ``<`` but with possibly different results due
             to the other arguments.
         level : int or name
             Broadcast across a level, matching Index values on the
@@ -7163,7 +7163,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ----------
         other : object
             When a Series is provided, will align on indexes. For all other types,
-            will behave the same as ``==`` but with possibly different results due
+            will behave the same as ``>=`` but with possibly different results due
             to the other arguments.
         level : int or name
             Broadcast across a level, matching Index values on the
@@ -7231,7 +7231,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ----------
         other : object
             When a Series is provided, will align on indexes. For all other types,
-            will behave the same as ``==`` but with possibly different results due
+            will behave the same as ``>`` but with possibly different results due
             to the other arguments.
         level : int or name
             Broadcast across a level, matching Index values on the
@@ -7360,7 +7360,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ----------
         other : object
             When a Series is provided, will align on indexes. For all other types,
-            will behave the same as ``==`` but with possibly different results due
+            will behave the same as ``+`` but with possibly different results due
             to the other arguments.
         level : int or name
             Broadcast across a level, matching Index values on the
@@ -7424,7 +7424,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ----------
         other : object
             When a Series is provided, will align on indexes. For all other types,
-            will behave the same as ``==`` but with possibly different results due
+            will behave the same as ``-`` but with possibly different results due
             to the other arguments.
         level : int or name
             Broadcast across a level, matching Index values on the
@@ -7490,7 +7490,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ----------
         other : object
             When a Series is provided, will align on indexes. For all other types,
-            will behave the same as ``==`` but with possibly different results due
+            will behave the same as ``-`` but with possibly different results due
             to the other arguments.
         level : int or name
             Broadcast across a level, matching Index values on the
@@ -7631,7 +7631,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ----------
         other : object
             When a Series is provided, will align on indexes. For all other types,
-            will behave the same as ``==`` but with possibly different results due
+            will behave the same as ``*`` but with possibly different results due
             to the other arguments.
         level : int or name
             Broadcast across a level, matching Index values on the
@@ -7762,7 +7762,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ----------
         other : object
             When a Series is provided, will align on indexes. For all other types,
-            will behave the same as ``==`` but with possibly different results due
+            will behave the same as ``/`` but with possibly different results due
             to the other arguments.
         level : int or name
             Broadcast across a level, matching Index values on the
@@ -7829,7 +7829,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ----------
         other : object
             When a Series is provided, will align on indexes. For all other types,
-            will behave the same as ``==`` but with possibly different results due
+            will behave the same as ``//`` but with possibly different results due
             to the other arguments.
         level : int or name
             Broadcast across a level, matching Index values on the
@@ -7894,7 +7894,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ----------
         other : object
             When a Series is provided, will align on indexes. For all other types,
-            will behave the same as ``==`` but with possibly different results due
+            will behave the same as ``//`` but with possibly different results due
             to the other arguments.
         level : int or name
             Broadcast across a level, matching Index values on the
@@ -8021,7 +8021,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ----------
         other : object
             When a Series is provided, will align on indexes. For all other types,
-            will behave the same as ``==`` but with possibly different results due
+            will behave the same as ``%`` but with possibly different results due
             to the other arguments.
         level : int or name
             Broadcast across a level, matching Index values on the
@@ -8086,7 +8086,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ----------
         other : object
             When a Series is provided, will align on indexes. For all other types,
-            will behave the same as ``==`` but with possibly different results due
+            will behave the same as ``**`` but with possibly different results due
             to the other arguments.
         level : int or name
             Broadcast across a level, matching Index values on the
@@ -8151,7 +8151,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ----------
         other : object
             When a Series is provided, will align on indexes. For all other types,
-            will behave the same as ``==`` but with possibly different results due
+            will behave the same as ``**`` but with possibly different results due
             to the other arguments.
         level : int or name
             Broadcast across a level, matching Index values on the
@@ -8216,8 +8216,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ----------
         other : object
             When a Series is provided, will align on indexes. For all other types,
-            will behave the same as ``==`` but with possibly different results due
-            to the other arguments.
+            will behave the same as ``//`` and ``%`` but with possibly different
+            results due to the other arguments.
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
@@ -8287,8 +8287,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ----------
         other : object
             When a Series is provided, will align on indexes. For all other types,
-            will behave the same as ``==`` but with possibly different results due
-            to the other arguments.
+            will behave the same as ``//`` and ``%`` but with possibly different
+            results due to the other arguments.
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
