@@ -682,6 +682,7 @@ class TestTSPlot:
         axes = fig.get_axes()
         line = ax.get_lines()[0]
         xp = Series(line.get_ydata(), line.get_xdata()).to_timestamp()
+        xp.index = xp.index.as_unit("ns")
         tm.assert_series_equal(ser, xp)
         assert ax.get_yaxis().get_ticks_position() == "right"
         assert not axes[0].get_yaxis().get_visible()

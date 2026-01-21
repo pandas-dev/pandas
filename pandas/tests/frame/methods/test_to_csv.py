@@ -393,11 +393,11 @@ class TestDataFrameToCSV:
         if r_idx_type == "dt":
             expected.index = expected.index.astype("M8[us]")
         elif r_idx_type == "p":
-            expected.index = expected.index.astype("M8[ns]")
+            expected.index = expected.index.astype("M8[us]")
         if c_idx_type == "dt":
             expected.columns = expected.columns.astype("M8[us]")
         elif c_idx_type == "p":
-            expected.columns = expected.columns.astype("M8[ns]")
+            expected.columns = expected.columns.astype("M8[us]")
         tm.assert_frame_equal(result, expected, check_names=False)
 
     @pytest.mark.slow
