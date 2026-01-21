@@ -9,7 +9,7 @@ pandas arrays, scalars, and data types
 .. note::
 
    For an overview of array-like data and related reshaping operations,
-   see the user guide section :ref:`reshaping`.
+   see :ref:`reshaping` in the User Guide.
 
 *******
 Objects
