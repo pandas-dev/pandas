@@ -102,7 +102,6 @@ class TestToTimestamp:
         result = df.to_timestamp("min", "end", axis=1)
         exp_index = _get_with_delta(delta)
         exp_index = exp_index + Timedelta(1, "m") - Timedelta(1, "us")
-
         tm.assert_index_equal(result.columns, exp_index)
 
         result = df.to_timestamp("S", "end", axis=1)
