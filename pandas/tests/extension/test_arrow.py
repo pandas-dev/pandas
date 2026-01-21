@@ -295,6 +295,12 @@ class TestArrowArray(base.ExtensionTests):
         ser = pd.Series(data)
         self._compare_other(ser, data, comparison_op, data[0])
 
+    def test_compare_range_len(self, data):
+        # GH#63429
+        ser = pd.Series(data)
+        range_test = range(len(ser))
+        self._compare_other(ser, range_test, operator.eq, range_test)
+
     @pytest.mark.parametrize("na_action", [None, "ignore"])
     def test_map(self, data_missing, na_action, using_nan_is_na):
         if data_missing.dtype.kind in "mM":
@@ -3927,18 +3933,3 @@ def test_timestamp_reduction_consistency(unit, method):
         f"{method} for {unit} returned {type(result)}"
     )
     assert result.unit == unit
-
-
-def test_comp_range_len(data):
-    # GH#63429
-    ser = pd.Series(data)
-    result = ser == range(len(ser))
-    expected_list = []
-    for i in range(len(ser)):
-        if pd.isnull(ser[i]):
-            expected_list.append(False)
-        else:
-            expected_list.append(ser[i] == i)
-    expected = pd.Series(expected_list, dtype="bool[pyarrow]")
-
-    tm.assert_series_equal(result, expected)
