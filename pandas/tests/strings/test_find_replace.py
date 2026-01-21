@@ -372,6 +372,48 @@ def test_contains_lookarounds(any_string_dtype, pat, expected_data, na):
     tm.assert_series_equal(result, expected)
 
 
+def test_contains_end_of_string(any_string_dtype):
+    # https://github.com/pandas-dev/pandas/pull/63613
+    expected_dtype = (
+        np.bool_ if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+    )
+
+    ser = Series(["baz", "bar", "bars", "bar\n"], dtype=any_string_dtype)
+
+    # with dollar sign
+    result = ser.str.contains("bar$")
+    if any_string_dtype == "string" and any_string_dtype.storage == "pyarrow":
+        # pyarrow (RE2) only matches $ at the very end of the line
+        expected = Series([False, True, False, False], dtype=expected_dtype)
+    else:
+        # python matches $ before or after an ending newline
+        expected = Series([False, True, False, True], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+    # with \Z (ensure this is translated to \z for pyarrow)
+    result = ser.str.contains(r"bar\Z")
+    expected = Series([False, True, False, False], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+    # ensure finding a literal \Z still works
+    ser = Series(
+        ["bar", r"bar{}".format("\\"), r"bar\Z", r"bar\\Z", "bars", "bar\n"],
+        dtype=any_string_dtype,
+    )
+
+    result = ser.str.contains(r"bar\\Z")
+    expected = Series([False, False, True, False, False, False], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+    result = ser.str.contains(r"bar\\\Z")
+    expected = Series([False, True, False, False, False, False], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+    result = ser.str.contains(r"bar\\\\Z")
+    expected = Series([False, False, False, True, False, False], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+
 # --------------------------------------------------------------------------------------
 # str.startswith
 # --------------------------------------------------------------------------------------
@@ -961,6 +1003,32 @@ def test_replace_lookarounds(any_string_dtype, pat, expected_data):
     tm.assert_series_equal(result, expected)
 
 
+def test_replace_end_of_string(any_string_dtype):
+    # https://github.com/pandas-dev/pandas/pull/63613
+    ser = Series(["baz", "bar", "bars", "bar\n"], dtype=any_string_dtype)
+
+    # with dollar sign
+    result = ser.str.replace("bar$", "x", regex=True)
+    if any_string_dtype == "string" and any_string_dtype.storage == "pyarrow":
+        # pyarrow (RE2) only matches $ at the very end of the line
+        expected = Series(["baz", "x", "bars", "bar\n"], dtype=any_string_dtype)
+    else:
+        # python matches $ before or after an ending newline
+        expected = Series(["baz", "x", "bars", "x\n"], dtype=any_string_dtype)
+    tm.assert_series_equal(result, expected)
+
+    # with \Z (ensure this is translated to \z for pyarrow)
+    result = ser.str.replace(r"bar\Z", "x", regex=True)
+    expected = Series(["baz", "x", "bars", "bar\n"], dtype=any_string_dtype)
+    tm.assert_series_equal(result, expected)
+
+    # ensure finding a literal \Z still works
+    ser = Series([r"bar\Z", "bar", "bars", "bar\n"], dtype=any_string_dtype)
+    result = ser.str.replace(r"bar\\Z", "x", regex=True)
+    expected = Series(["x", "bar", "bars", "bar\n"], dtype=any_string_dtype)
+    tm.assert_series_equal(result, expected)
+
+
 # --------------------------------------------------------------------------------------
 # str.match
 # --------------------------------------------------------------------------------------
@@ -1145,6 +1213,36 @@ def test_match_lookarounds(any_string_dtype, pat, expected_data):
     tm.assert_series_equal(result, expected)
 
 
+def test_match_end_of_string(any_string_dtype):
+    # https://github.com/pandas-dev/pandas/pull/63613
+    expected_dtype = (
+        np.bool_ if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+    )
+
+    ser = Series(["baz", "bar", "bars", "bar\n"], dtype=any_string_dtype)
+
+    # with dollar sign
+    result = ser.str.match("bar$")
+    if any_string_dtype == "string" and any_string_dtype.storage == "pyarrow":
+        # pyarrow (RE2) only matches $ at the very end of the line
+        expected = Series([False, True, False, False], dtype=expected_dtype)
+    else:
+        # python matches $ before or after an ending newline
+        expected = Series([False, True, False, True], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+    # with \Z (ensure this is translated to \z for pyarrow)
+    result = ser.str.match(r"bar\Z")
+    expected = Series([False, True, False, False], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+    # ensure finding a literal \Z still works
+    ser = Series([r"bar\Z", "bar", "bars", "bar\n"], dtype=any_string_dtype)
+    result = ser.str.match(r"bar\\Z")
+    expected = Series([True, False, False, False], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+
 # --------------------------------------------------------------------------------------
 # str.fullmatch
 # --------------------------------------------------------------------------------------
@@ -1308,6 +1406,30 @@ def test_fullmatch_lookarounds(any_string_dtype, pat):
     tm.assert_series_equal(result, expected)
 
 
+def test_fullmatch_end_of_string(any_string_dtype):
+    # https://github.com/pandas-dev/pandas/pull/63613
+    expected_dtype = (
+        np.bool_ if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+    )
+
+    ser = Series(["baz", "bar", "bars", "bar\n"], dtype=any_string_dtype)
+
+    # with dollar sign (for fullmatch, no difference between python and pyarrow)
+    result = ser.str.fullmatch("bar$")
+    expected = Series([False, True, False, False], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+    # with \Z (ensure this is translated to \z for pyarrow)
+    result = ser.str.fullmatch(r"bar\Z")
+    tm.assert_series_equal(result, expected)
+
+    # ensure finding a literal \Z still works
+    ser = Series([r"bar\Z", "bar", "bars", "bar\n"], dtype=any_string_dtype)
+    result = ser.str.fullmatch(r"bar\\Z")
+    expected = Series([True, False, False, False], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+
 # --------------------------------------------------------------------------------------
 # str.findall
 # --------------------------------------------------------------------------------------
@@ -1377,6 +1499,27 @@ def test_findall_lookarounds(any_string_dtype, pat, expected_data):
     else:
         raise ValueError(f"Unrecognized dtype: {any_string_dtype}")
     expected = Series([*expected_data, null_result])
+    tm.assert_series_equal(result, expected)
+
+
+def test_findall_end_of_string(any_string_dtype):
+    # https://github.com/pandas-dev/pandas/pull/63613
+    ser = Series(["baz", "bar", "bars", "bar\n"], dtype=any_string_dtype)
+
+    # with dollar sign
+    result = ser.str.findall("bar$")
+    expected = Series([[], ["bar"], [], ["bar"]], dtype=object)
+    tm.assert_series_equal(result, expected)
+
+    # with \Z (ensure this is translated to \z for pyarrow)
+    result = ser.str.findall(r"bar\Z")
+    expected = Series([[], ["bar"], [], []], dtype=object)
+    tm.assert_series_equal(result, expected)
+
+    # ensure finding a literal \Z still works
+    ser = Series([r"bar\Z", "bar", "bars", "bar\n"], dtype=any_string_dtype)
+    result = ser.str.findall(r"bar\\Z")
+    expected = Series([["bar\\Z"], [], [], []], dtype=object)
     tm.assert_series_equal(result, expected)
 
 

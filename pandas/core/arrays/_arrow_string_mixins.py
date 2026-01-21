@@ -376,7 +376,9 @@ class ArrowStringArrayMixin:
     ):
         if not pat.startswith("^"):
             pat = f"^({pat})"
-        return self._str_contains(pat, case, flags, na, regex=True)
+        return ArrowStringArrayMixin._str_contains(
+            self, pat, case, flags, na, regex=True
+        )
 
     def _str_fullmatch(
         self,
@@ -391,7 +393,7 @@ class ArrowStringArrayMixin:
             pat = f"^({pat[1:]})$"
         elif not pat.startswith("^"):
             pat = f"^({pat[0:-1]})$"
-        return self._str_match(pat, case, flags, na)
+        return ArrowStringArrayMixin._str_match(self, pat, case, flags, na)
 
     def _str_find(self, sub: str, start: int = 0, end: int | None = None):
         if (start == 0 or start is None) and end is None:
