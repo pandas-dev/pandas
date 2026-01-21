@@ -1,5 +1,5 @@
 _chained_assignment_msg = (
-    "A value is trying to be set on a copy of a DataFrame or Series "
+    "A value is being set on a copy of a DataFrame or Series "
     "through chained assignment.\n"
     "Such chained assignment never works to update the original DataFrame or "
     "Series, because the intermediate object on which we are setting values "
@@ -13,7 +13,7 @@ _chained_assignment_msg = (
 
 
 _chained_assignment_method_msg = (
-    "A value is trying to be set on a copy of a DataFrame or Series "
+    "A value is being set on a copy of a DataFrame or Series "
     "through chained assignment using an inplace method.\n"
     "Such inplace method never works to update the original DataFrame or Series, "
     "because the intermediate object on which we are setting values always "
@@ -29,7 +29,7 @@ _chained_assignment_method_msg = (
 
 
 _chained_assignment_method_update_msg = (
-    "A value is trying to be set on a copy of a DataFrame or Series "
+    "A value is being set on a copy of a DataFrame or Series "
     "through chained assignment using an inplace method.\n"
     "Such inplace method never works to update the original DataFrame or Series, "
     "because the intermediate object on which we are setting values always "
