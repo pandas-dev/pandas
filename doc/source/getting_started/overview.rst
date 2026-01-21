@@ -100,7 +100,7 @@ engineering and research
   using intuitive, high-level APIs built around real-world tabular data.
 
 - **Data analysts and scientists** rely on pandas for exploratory data analysis,
-  data cleaning, feature engineering, and integration with libraries such as 
+  data cleaning, feature engineering, and integration with libraries such as
   NumPy, SciPy, scikit-learn, and matplotlib.
 
 - **Engineers and researchers** use pandas for processing structured data,
