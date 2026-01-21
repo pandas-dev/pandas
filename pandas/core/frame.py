@@ -16256,7 +16256,7 @@ class DataFrame(NDFrame, OpsMixin):
         2023-01-01     1      3
         2024-01-01     2      4
         >>> df1.index
-        DatetimeIndex(['2023-01-01', '2024-01-01'], dtype='datetime64[ns]', freq=None)
+        DatetimeIndex(['2023-01-01', '2024-01-01'], dtype='datetime64[us]', freq=None)
 
         Using `freq` which is the offset that the Timestamps will have
 
@@ -16267,7 +16267,7 @@ class DataFrame(NDFrame, OpsMixin):
         2023-01-31     1      3
         2024-01-31     2      4
         >>> df2.index
-        DatetimeIndex(['2023-01-31', '2024-01-31'], dtype='datetime64[ns]', freq=None)
+        DatetimeIndex(['2023-01-31', '2024-01-31'], dtype='datetime64[us]', freq=None)
         """
         self._check_copy_deprecation(copy)
         new_obj = self.copy(deep=False)
