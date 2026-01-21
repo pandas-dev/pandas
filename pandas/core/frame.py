@@ -11911,7 +11911,7 @@ class DataFrame(NDFrame, OpsMixin):
         triangle        8        2
         rectangle      16        8
 
-        >>> df.rpow(1)
+        >>> df.rpow(2)
                    angles  degrees
         circle          1        8
         triangle        8        2
