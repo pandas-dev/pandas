@@ -717,7 +717,7 @@ class TestPeriodMethods:
 
         def _ex(p):
             if p.freq == "B":
-                return p.start_time + np.timedelta64(1, "D") - np.timedelta64(1, "us")
+                return p.start_time + Timedelta(days=1) - Timedelta(microseconds=1)
             return Timestamp((p + p.freq).start_time._value - 1, unit="us")
 
         for fcode in from_lst:
@@ -925,7 +925,7 @@ class TestPeriodProperties:
     def test_outer_bounds_start_and_end_time(self, bound, offset, period_property):
         # GH #13346
         period = TestPeriodProperties._period_constructor(bound, offset)
-        # post-GH#??? this no longer raises OutOfBoundsDatetime
+        # post-GH#63760 this no longer raises OutOfBoundsDatetime
         getattr(period, period_property)
 
         per = Period._from_ordinal(bound.value, freq=to_offset("ms"))

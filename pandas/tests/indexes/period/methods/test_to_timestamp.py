@@ -7,6 +7,7 @@ from pandas import (
     DatetimeIndex,
     NaT,
     PeriodIndex,
+    Timedelta,
     Timestamp,
     date_range,
     period_range,
@@ -108,7 +109,7 @@ class TestToTimestamp:
         expected = DatetimeIndex(
             ["2011-02-28", "NaT", "2011-03-31"], dtype="M8[us]", name="idx"
         )
-        expected = expected + np.timedelta64(1, "D") - np.timedelta64(1, "us")
+        expected = expected + Timedelta(1, "D") - Timedelta(1, "us")
         tm.assert_index_equal(result, expected)
 
     def test_to_timestamp_pi_combined(self):
@@ -124,14 +125,14 @@ class TestToTimestamp:
         expected = DatetimeIndex(
             ["2011-01-02 00:59:59", "2011-01-03 01:59:59"], name="idx", dtype="M8[us]"
         )
-        expected = expected + np.timedelta64(1, "s") - np.timedelta64(1, "us")
+        expected = expected + Timedelta(1, "s") - Timedelta(1, "us")
         tm.assert_index_equal(result, expected)
 
         result = idx.to_timestamp(how="E", freq="h")
         expected = DatetimeIndex(
             ["2011-01-02 00:00", "2011-01-03 01:00"], dtype="M8[us]", name="idx"
         )
-        expected = expected + np.timedelta64(1, "h") - np.timedelta64(1, "us")
+        expected = expected + Timedelta(1, "h") - Timedelta(1, "us")
         tm.assert_index_equal(result, expected)
 
     def test_to_timestamp_1703(self):
