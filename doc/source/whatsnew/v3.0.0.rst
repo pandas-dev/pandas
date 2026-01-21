@@ -172,6 +172,25 @@ This includes :meth:`DataFrame.assign`, :meth:`DataFrame.loc`, and getitem/setit
 It is expected that the support for ``pd.col()`` will be expanded to more methods
 in future releases.
 
+Support for the Arrow PyCapsule Interface
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The Arrow C data interface allows moving data between different DataFrame libraries
+through the Arrow format, and is designed to be zero-copy where possible. In Python,
+this interface is exposed through the `Arrow PyCapsule Protocol <https://arrow.apache.org/docs/format/CDataInterface/PyCapsuleInterface.html>`__.
+
+:class:`DataFrame` and :class:`Series` now support the Arrow PyCapsule Interface
+for both export and import of data (:issue:`56587`, :issue:`63208`, :issue:`59518`, :issue:`59631`).
+
+The dedicated :meth:`DataFrame.from_arrow` and :meth:`Series.from_arrow` methods are
+added to import any Arrow-compatible data object into a pandas object through the interface.
+
+For export, the :class:`DataFrame` and :class:`Series` implement the C stream
+interface (``__arrow_c_stream__``) method.
+
+Those methods currently rely on ``pyarrow`` to convert the tabular object in
+Arrow format to/from pandas.
+
 Updated deprecation policy
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 pandas 3.0.0 updates the deprecation policy to clarify which deprecation warnings will be issued, using a new 3-stage policy: using ``DeprecationWarning`` initially, then switching to ``FutureWarning`` for broader visibility in the last minor version before the next major release, and then removal of the deprecated functionality in the major release. This was done to give downstream packages more time to adjust to pandas deprecations, which should reduce the amount of warnings that a user gets from code that isn't theirs. See `PDEP 17 <https://pandas.pydata.org/pdeps/0017-backwards-compatibility-and-deprecation-policy.html>`_ for more details.
@@ -191,86 +210,127 @@ In the last minor release of the 3.x series, these deprecations will switch to i
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
-- :class:`pandas.NamedAgg` now supports passing ``*args`` and ``**kwargs``
-  to calls of ``aggfunc`` (:issue:`58283`)
-- :func:`pandas.merge` propagates the ``attrs`` attribute to the result if all
-  inputs have identical ``attrs``, as has so far already been the case for
-  :func:`pandas.concat`.
-- :class:`pandas.api.typing.FrozenList` is available for typing the outputs of :attr:`MultiIndex.names`, :attr:`MultiIndex.codes` and :attr:`MultiIndex.levels` (:issue:`58237`)
-- :class:`pandas.api.typing.NoDefault` is available for typing ``no_default`` (:issue:`60696`)
-- :class:`pandas.api.typing.SASReader` is available for typing the output of :func:`read_sas` (:issue:`55689`)
+
+I/O:
+
+- :class:`.errors.DtypeWarning` improved to include column names when mixed data types are detected (:issue:`58174`)
+- :func:`DataFrame.to_excel` argument ``merge_cells`` now accepts a value of ``"columns"`` to only merge :class:`MultiIndex` column header header cells (:issue:`35384`)
+- :func:`DataFrame.to_excel` has a new ``autofilter`` parameter to add automatic filters to all columns  (:issue:`61194`)
 - :func:`DataFrame.to_excel` now raises a ``UserWarning`` when the character count in a cell exceeds Excel's limitation of 32767 characters (:issue:`56954`)
-- :func:`pandas.merge` now validates the ``how`` parameter input (merge type) (:issue:`59435`)
-- :func:`pandas.merge`, :meth:`DataFrame.merge` and :meth:`DataFrame.join` now support anti joins (``left_anti`` and ``right_anti``) in the ``how`` parameter (:issue:`42916`)
+- :func:`read_parquet` accepts ``to_pandas_kwargs`` which are forwarded to :meth:`pyarrow.Table.to_pandas` which enables passing additional keywords to customize the conversion to pandas, such as ``maps_as_pydicts`` to read the Parquet map data type as python dictionaries (:issue:`56842`)
 - :func:`read_spss` now supports kwargs to be passed to ``pyreadstat`` (:issue:`56356`)
 - :func:`read_stata` now returns ``datetime64`` resolutions better matching those natively stored in the stata format (:issue:`55642`)
-- :meth:`.Styler.set_tooltips` provides alternative method to storing tooltips by using title attribute of td elements. (:issue:`56981`)
-- :meth:`DataFrame.agg` called with ``axis=1`` and a ``func`` which relabels the result index now raises a ``NotImplementedError`` (:issue:`58807`).
-- :meth:`Index.get_loc` now accepts also subclasses of ``tuple`` as keys (:issue:`57922`)
-- Added :meth:`.Styler.to_typst` to write Styler objects to file, buffer or string in Typst format (:issue:`57617`)
-- Added missing :meth:`pandas.Series.info` to API reference (:issue:`60926`)
-- Added missing parameter ``weights`` in :meth:`DataFrame.plot.kde` for the estimation of the PDF (:issue:`59337`)
-- Allow dictionaries to be passed to :meth:`Series.str.replace` via ``pat`` parameter (:issue:`51748`)
-- Support passing a :class:`Series` input to :func:`json_normalize` that retains the :class:`Index` (:issue:`51452`)
-- Support reading value labels from Stata 108-format (Stata 6) and earlier files (:issue:`58154`)
-- Users can globally disable any ``PerformanceWarning`` by setting the option ``mode.performance_warnings`` to ``False`` (:issue:`56920`)
-- :meth:`.Styler.format_index_names` can now be used to format the index and column names (:issue:`48936` and :issue:`47489`)
-- :class:`.errors.DtypeWarning` improved to include column names when mixed data types are detected (:issue:`58174`)
-- :class:`Series` now supports the Arrow PyCapsule Interface for export (:issue:`59518`)
-- :func:`DataFrame.to_excel` argument ``merge_cells`` now accepts a value of ``"columns"`` to only merge :class:`MultiIndex` column header header cells (:issue:`35384`)
-- :func:`set_option` now accepts a dictionary of options, simplifying configuration of multiple settings at once (:issue:`61093`)
-- :meth:`DataFrame.corrwith` now accepts ``min_periods`` as optional arguments, as in :meth:`DataFrame.corr` and :meth:`Series.corr` (:issue:`9490`)
-- :meth:`DataFrame.cummin`, :meth:`DataFrame.cummax`, :meth:`DataFrame.cumprod` and :meth:`DataFrame.cumsum` methods now have a ``numeric_only`` parameter (:issue:`53072`)
-- :meth:`DataFrame.ewm` now allows ``adjust=False`` when ``times`` is provided (:issue:`54328`)
-- :meth:`DataFrame.fillna` and :meth:`Series.fillna` can now accept ``value=None``; for non-object dtype the corresponding NA value will be used (:issue:`57723`)
-- :meth:`DataFrame.pivot_table` and :func:`pivot_table` now allow the passing of keyword arguments to ``aggfunc`` through ``**kwargs`` (:issue:`57884`)
+- :meth:`DataFrame.to_csv` and :meth:`Series.to_csv` now support f-strings (e.g., ``"{:.6f}"``) for the ``float_format`` parameter, in addition to the ``%`` format strings and callables (:issue:`49580`)
 - :meth:`DataFrame.to_json` now encodes ``Decimal`` as strings instead of floats (:issue:`60698`)
-- :meth:`Series.cummin` and :meth:`Series.cummax` now supports :class:`CategoricalDtype` (:issue:`52335`)
-- :meth:`Series.plot` now correctly handle the ``ylabel`` parameter for pie charts, allowing for explicit control over the y-axis label (:issue:`58239`)
-- Added :meth:`.Rolling.pipe` and :meth:`.Expanding.pipe` (:issue:`57076`)
-- :meth:`DataFrame.plot.scatter` argument ``c`` now accepts a column of strings, where rows with the same string are colored identically (:issue:`16827` and :issue:`16485`)
-- :class:`.Easter` has gained a new constructor argument ``method`` which specifies the method used to calculate Easter — for example, Orthodox Easter (:issue:`61665`)
-- :class:`ArrowDtype` now supports ``pyarrow.JsonType`` (:issue:`60958`)
+- Added ``"delete_rows"`` option to ``if_exists`` argument in :meth:`DataFrame.to_sql` deleting all records of the table before inserting data (:issue:`37210`).
+- Added support to read and write from and to Apache Iceberg tables with the new :func:`read_iceberg` and :meth:`DataFrame.to_iceberg` functions (:issue:`61383`)
+- Errors occurring during SQL I/O will now throw a generic :class:`.DatabaseError` instead of the raw Exception type from the underlying driver manager library (:issue:`60748`)
+- Restore support for reading Stata 104-format and enable reading 103-format dta files (:issue:`58554`)
+- Support reading Stata 102-format (Stata 1) dta files (:issue:`58978`)
+- Support reading Stata 110-format (Stata 7) dta files (:issue:`47176`)
+- Support reading value labels from Stata 108-format (Stata 6) and earlier files (:issue:`58154`)
+
+Groupby/resample/rolling:
+
+- :class:`pandas.NamedAgg` now supports passing ``*args`` and ``**kwargs``
+  to calls of ``aggfunc`` (:issue:`58283`)
 - :class:`DataFrameGroupBy` and :class:`SeriesGroupBy` methods ``sum``, ``mean``, ``median``, ``prod``, ``min``, ``max``, ``std``, ``var`` and ``sem`` now accept ``skipna`` parameter (:issue:`15675`)
-- :class:`Holiday` constructor argument ``days_of_week`` will raise a ``ValueError`` when type is something other than ``None`` or ``tuple`` (:issue:`61658`)
-- :class:`Holiday` has gained the constructor argument and field ``exclude_dates`` to exclude specific datetimes from a custom holiday calendar (:issue:`54382`)
-- :func:`DataFrame.to_excel` has a new ``autofilter`` parameter to add automatic filters to all columns  (:issue:`61194`)
-- :func:`read_parquet` accepts ``to_pandas_kwargs`` which are forwarded to :meth:`pyarrow.Table.to_pandas` which enables passing additional keywords to customize the conversion to pandas, such as ``maps_as_pydicts`` to read the Parquet map data type as python dictionaries (:issue:`56842`)
 - :meth:`.DataFrameGroupBy.transform`, :meth:`.SeriesGroupBy.transform`, :meth:`.DataFrameGroupBy.agg`, :meth:`.SeriesGroupBy.agg`, :meth:`.RollingGroupby.apply`, :meth:`.ExpandingGroupby.apply`, :meth:`.Rolling.apply`, :meth:`.Expanding.apply`, :meth:`.DataFrame.apply` with ``engine="numba"`` now supports positional arguments passed as kwargs (:issue:`58995`)
 - :meth:`.DataFrameGroupBy.transform`, :meth:`.SeriesGroupBy.transform`, :meth:`.DataFrameGroupBy.agg`, :meth:`.SeriesGroupBy.agg`, :meth:`.SeriesGroupBy.apply`, :meth:`.DataFrameGroupBy.apply` now support ``kurt`` (:issue:`40139`)
 - :meth:`.Rolling.aggregate`, :meth:`.Expanding.aggregate` and :meth:`.ExponentialMovingWindow.aggregate` now accept :class:`NamedAgg` aggregations through ``**kwargs`` (:issue:`28333`)
-- :meth:`DataFrame.apply` supports using third-party execution engines like the Bodo.ai JIT compiler (:issue:`60668`)
-- :meth:`DataFrame.iloc` and :meth:`Series.iloc` now support boolean masks in ``__getitem__`` for more consistent indexing behavior (:issue:`60994`)
-- :meth:`DataFrame.to_csv` and :meth:`Series.to_csv` now support f-strings (e.g., ``"{:.6f}"``) for the ``float_format`` parameter, in addition to the ``%`` format strings and callables (:issue:`49580`)
-- :meth:`Series.map` can now accept kwargs to pass on to func (:issue:`59814`)
-- :meth:`Series.map` now accepts an ``engine`` parameter to allow execution with a third-party execution engine (:issue:`61125`)
-- :meth:`Series.nlargest` uses stable sort internally and will preserve original ordering in the case of equality (:issue:`55767`)
-- :meth:`Series.rank` and :meth:`DataFrame.rank` with numpy-nullable dtypes preserve ``NA`` values and return ``UInt64`` dtype where appropriate instead of casting ``NA`` to ``NaN`` with ``float64`` dtype (:issue:`62043`)
-- :meth:`Series.str.get_dummies` now accepts a  ``dtype`` parameter to specify the dtype of the resulting DataFrame (:issue:`47872`)
-- :meth:`pandas.concat` will raise a ``ValueError`` when ``ignore_index=True`` and ``keys`` is not ``None`` (:issue:`59274`)
-- :py:class:`frozenset` elements in pandas objects are now natively printed (:issue:`60690`)
 - Added :meth:`.Rolling.first`, :meth:`.Rolling.last`, :meth:`.Expanding.first`, and :meth:`.Expanding.last` (:issue:`33155`)
 - Added :meth:`.Rolling.nunique` and :meth:`.Expanding.nunique` (:issue:`26958`)
-- Added :meth:`Series.str.isascii` (:issue:`59091`)
-- Added ``"delete_rows"`` option to ``if_exists`` argument in :meth:`DataFrame.to_sql` deleting all records of the table before inserting data (:issue:`37210`).
-- Added half-year offset classes :class:`.HalfYearBegin`, :class:`.HalfYearEnd`, :class:`.BHalfYearBegin` and :class:`.BHalfYearEnd` (:issue:`60928`)
-- Added support for ``axis=1`` with ``dict`` or :class:`Series` arguments in :meth:`DataFrame.fillna` (:issue:`4514`)
-- Added support to read and write from and to Apache Iceberg tables with the new :func:`read_iceberg` and :meth:`DataFrame.to_iceberg` functions (:issue:`61383`)
-- Errors occurring during SQL I/O will now throw a generic :class:`.DatabaseError` instead of the raw Exception type from the underlying driver manager library (:issue:`60748`)
+- Added :meth:`.Rolling.pipe` and :meth:`.Expanding.pipe` (:issue:`57076`)
+
+Reshaping:
+
+- :func:`pandas.merge` propagates the ``attrs`` attribute to the result if all
+  inputs have identical ``attrs``, as has so far already been the case for
+  :func:`pandas.concat`.
+- :func:`pandas.merge` now validates the ``how`` parameter input (merge type) (:issue:`59435`)
+- :func:`pandas.merge`, :meth:`DataFrame.merge` and :meth:`DataFrame.join` now support anti joins (``left_anti`` and ``right_anti``) in the ``how`` parameter (:issue:`42916`)
+- :meth:`DataFrame.pivot_table` and :func:`pivot_table` now allow the passing of keyword arguments to ``aggfunc`` through ``**kwargs`` (:issue:`57884`)
+- :meth:`pandas.concat` will raise a ``ValueError`` when ``ignore_index=True`` and ``keys`` is not ``None`` (:issue:`59274`)
 - Improve error reporting through outputting the first few duplicates when :func:`merge` validation fails (:issue:`62742`)
-- Improve the resulting dtypes in :meth:`DataFrame.where` and :meth:`DataFrame.mask` with :class:`ExtensionDtype` ``other`` (:issue:`62038`)
-- Improved deprecation message for offset aliases (:issue:`60820`)
-- Many type aliases are now exposed in the new submodule :py:mod:`pandas.api.typing.aliases` (:issue:`55231`)
-- Multiplying two :class:`DateOffset` objects will now raise a ``TypeError`` instead of a ``RecursionError`` (:issue:`59442`)
-- Restore support for reading Stata 104-format and enable reading 103-format dta files (:issue:`58554`)
-- Support passing a :class:`Iterable[Hashable]` input to :meth:`DataFrame.drop_duplicates` (:issue:`59237`)
-- Support reading Stata 102-format (Stata 1) dta files (:issue:`58978`)
-- Support reading Stata 110-format (Stata 7) dta files (:issue:`47176`)
-- Switched wheel upload to **PyPI Trusted Publishing** (OIDC) for release-tag pushes in ``wheels.yml``. (:issue:`61718`)
-- Added :meth:`DataFrame.from_arrow` and :meth:`Series.from_arrow` to import any Arrow-compatible
-  data object into a pandas object through the
-  `Arrow PyCapsule Protocol <https://arrow.apache.org/docs/format/CDataInterface/PyCapsuleInterface.html>`__ (:issue:`59631`)
+
+Missing:
+
+- :meth:`DataFrame.fillna` and :meth:`Series.fillna` can now accept ``value=None``; for non-object dtype the corresponding NA value will be used (:issue:`57723`)
+- Added support for ``axis=1`` with ``dict`` or :class:`Series` arguments in :meth:`DataFrame.fillna` (:issue:`4514`)
+
+
+Numeric:
+
+- :meth:`DataFrame.agg` called with ``axis=1`` and a ``func`` which relabels the result index now raises a ``NotImplementedError`` (:issue:`58807`).
+- :meth:`DataFrame.corrwith` now accepts ``min_periods`` as optional arguments, as in :meth:`DataFrame.corr` and :meth:`Series.corr` (:issue:`9490`)
+- :meth:`DataFrame.cummin`, :meth:`DataFrame.cummax`, :meth:`DataFrame.cumprod` and :meth:`DataFrame.cumsum` methods now have a ``numeric_only`` parameter (:issue:`53072`)
+- :meth:`DataFrame.ewm` now allows ``adjust=False`` when ``times`` is provided (:issue:`54328`)
+- :meth:`Series.cummin` and :meth:`Series.cummax` now supports :class:`CategoricalDtype` (:issue:`52335`)
+- :meth:`Series.map` can now accept kwargs to pass on to func (:issue:`59814`)
+- :meth:`Series.nlargest` uses stable sort internally and will preserve original ordering in the case of equality (:issue:`55767`)
 - :meth:`Series.round` now supports object dtypes when the underlying Python objects implement ``__round__`` (:issue:`63444`)
+- Support passing a :class:`Iterable[Hashable]` input to :meth:`DataFrame.drop_duplicates` (:issue:`59237`)
+
+Strings:
+
+- :meth:`Series.str.get_dummies` now accepts a  ``dtype`` parameter to specify the dtype of the resulting DataFrame (:issue:`47872`)
+- Added :meth:`Series.str.isascii` (:issue:`59091`)
+- Allow dictionaries to be passed to :meth:`Series.str.replace` via ``pat`` parameter (:issue:`51748`)
+
+Datetimelike:
+
+- :class:`.Easter` has gained a new constructor argument ``method`` which specifies the method used to calculate Easter — for example, Orthodox Easter (:issue:`61665`)
+- :class:`Holiday` constructor argument ``days_of_week`` will raise a ``ValueError`` when type is something other than ``None`` or ``tuple`` (:issue:`61658`)
+- :class:`Holiday` has gained the constructor argument and field ``exclude_dates`` to exclude specific datetimes from a custom holiday calendar (:issue:`54382`)
+- Added half-year offset classes :class:`.HalfYearBegin`, :class:`.HalfYearEnd`, :class:`.BHalfYearBegin` and :class:`.BHalfYearEnd` (:issue:`60928`)
+- Improved deprecation message for offset aliases (:issue:`60820`)
+- Multiplying two :class:`DateOffset` objects will now raise a ``TypeError`` instead of a ``RecursionError`` (:issue:`59442`)
+
+Indexing:
+
+- :meth:`DataFrame.iloc` and :meth:`Series.iloc` now support boolean masks in ``__getitem__`` for more consistent indexing behavior (:issue:`60994`)
+- :meth:`Index.get_loc` now accepts also subclasses of ``tuple`` as keys (:issue:`57922`)
+
+Styler / output formatting:
+
+- :meth:`.Styler.set_tooltips` provides alternative method to storing tooltips by using title attribute of td elements. (:issue:`56981`)
+- Added :meth:`.Styler.to_typst` to write Styler objects to file, buffer or string in Typst format (:issue:`57617`)
+- :meth:`.Styler.format_index_names` can now be used to format the index and column names (:issue:`48936` and :issue:`47489`)
+- :py:class:`frozenset` elements in pandas objects are now natively printed (:issue:`60690`)
+
+Typing:
+
+- :class:`pandas.api.typing.FrozenList` is available for typing the outputs of :attr:`MultiIndex.names`, :attr:`MultiIndex.codes` and :attr:`MultiIndex.levels` (:issue:`58237`)
+- :class:`pandas.api.typing.NoDefault` is available for typing ``no_default`` (:issue:`60696`)
+- :class:`pandas.api.typing.SASReader` is available for typing the output of :func:`read_sas` (:issue:`55689`)
+- Many type aliases are now exposed in the new submodule :py:mod:`pandas.api.typing.aliases` (:issue:`55231`)
+
+Plotting:
+
+- :meth:`Series.plot` now correctly handle the ``ylabel`` parameter for pie charts, allowing for explicit control over the y-axis label (:issue:`58239`)
+- Added missing parameter ``weights`` in :meth:`DataFrame.plot.kde` for the estimation of the PDF (:issue:`59337`)
+- :meth:`DataFrame.plot.scatter` argument ``c`` now accepts a column of strings, where rows with the same string are colored identically (:issue:`16827` and :issue:`16485`)
+
+ExtensionArray:
+
+- :class:`ArrowDtype` now supports ``pyarrow.JsonType`` (:issue:`60958`)
+- :meth:`Series.rank` and :meth:`DataFrame.rank` with numpy-nullable dtypes preserve ``NA`` values and return ``UInt64`` dtype where appropriate instead of casting ``NA`` to ``NaN`` with ``float64`` dtype (:issue:`62043`)
+- Improve the resulting dtypes in :meth:`DataFrame.where` and :meth:`DataFrame.mask` with :class:`ExtensionDtype` ``other`` (:issue:`62038`)
+
+Other:
+
+- :func:`set_option` now accepts a dictionary of options, simplifying configuration of multiple settings at once (:issue:`61093`)
+- :meth:`DataFrame.apply` supports using third-party execution engines like the Bodo.ai JIT compiler (:issue:`60668`)
+- :meth:`Series.map` now accepts an ``engine`` parameter to allow execution with a third-party execution engine (:issue:`61125`)
+- Support passing a :class:`Series` input to :func:`json_normalize` that retains the :class:`Index` (:issue:`51452`)
+- Users can globally disable any ``PerformanceWarning`` by setting the option ``mode.performance_warnings`` to ``False`` (:issue:`56920`)
+
+Packaging:
+
+- Switched wheel upload to **PyPI Trusted Publishing** (OIDC) for release-tag pushes in ``wheels.yml``. (:issue:`61718`)
+- Wheels are now available for Windows ARM64 architecture (:issue:`61462`)
+- Wheels are now available for free-threading Python builds on Windows (in addition to the other platforms) (:issue:`61463`)
+
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.notable_bug_fixes:
