@@ -667,9 +667,9 @@ class TestPeriodConstruction:
 
 
 class TestPeriodMethods:
-    def test_round_trip(self, tmp_path):
+    def test_round_trip(self, temp_file):
         p = Period("2000Q1")
-        new_p = tm.round_trip_pickle(p, tmp_path)
+        new_p = tm.round_trip_pickle(p, temp_file)
         assert new_p == p
 
     def test_hash(self):
