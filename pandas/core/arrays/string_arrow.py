@@ -389,7 +389,12 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         else:
             pattern = pat
 
-        if pattern.endswith("\\Z") and not pattern.endswith("\\\\Z"):
+        if (
+            pattern.endswith("\\Z")
+            # Second condition counts the number of `\` that patterns ends with
+            # prior to Z -> needs to be odd to end with an unescaped \Z
+            and (len(pattern) - len(pattern[:-1].rstrip("\\")) + 1) % 2 == 1
+        ):
             pattern = pattern[:-2] + "\\z"
 
         return pattern, case, flags
@@ -439,7 +444,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         if (
             flags
             or self._is_re_pattern_with_flags(pat)
-            or self._has_regex_lookaround(pat)
+            or self._has_unsupported_regex(pat)
         ):
             return super()._str_fullmatch(pat, case, flags, na)
 

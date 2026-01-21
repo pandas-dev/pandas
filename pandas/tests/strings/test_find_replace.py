@@ -396,9 +396,21 @@ def test_contains_end_of_string(any_string_dtype):
     tm.assert_series_equal(result, expected)
 
     # ensure finding a literal \Z still works
-    ser = Series([r"bar\Z", "bar", "bars", "bar\n"], dtype=any_string_dtype)
+    ser = Series(
+        ["bar", r"bar{}".format("\\"), r"bar\Z", r"bar\\Z", "bars", "bar\n"],
+        dtype=any_string_dtype,
+    )
+
     result = ser.str.contains(r"bar\\Z")
-    expected = Series([True, False, False, False], dtype=expected_dtype)
+    expected = Series([False, False, True, False, False, False], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+    result = ser.str.contains(r"bar\\\Z")
+    expected = Series([False, True, False, False, False, False], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+    result = ser.str.contains(r"bar\\\\Z")
+    expected = Series([False, False, False, True, False, False], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
 
