@@ -89,6 +89,36 @@ def test_count_lookarounds(any_string_dtype, pat, expected_data):
     tm.assert_series_equal(result, expected)
 
 
+def test_count_end_of_string(any_string_dtype):
+    # https://github.com/pandas-dev/pandas/pull/63613
+    expected_dtype = (
+        "int64" if is_object_or_nan_string_dtype(any_string_dtype) else "Int64"
+    )
+
+    ser = Series(["baz", "bar", "bars", "bar\n"], dtype=any_string_dtype)
+
+    # with dollar sign
+    result = ser.str.count("bar$")
+    if any_string_dtype == "string" and any_string_dtype.storage == "pyarrow":
+        # pyarrow (RE2) only matches $ at the very end of the line
+        expected = Series([0, 1, 0, 0], dtype=expected_dtype)
+    else:
+        # python matches $ before or after an ending newline
+        expected = Series([0, 1, 0, 1], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+    # with \Z (ensure this is translated to \z for pyarrow)
+    result = ser.str.count(r"bar\Z")
+    expected = Series([0, 1, 0, 0], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+    # ensure finding a literal \Z still works
+    ser = Series([r"bar\Z", "bar", "bars", "bar\n"], dtype=any_string_dtype)
+    result = ser.str.count(r"bar\\Z")
+    expected = Series([1, 0, 0, 0], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+
 def test_repeat(any_string_dtype):
     ser = Series(["a", "b", np.nan, "c", np.nan, "d"], dtype=any_string_dtype)
 
@@ -885,6 +915,7 @@ def test_setitem_with_different_string_storage():
 @pytest.mark.parametrize(
     "pat, expected",
     [
+        # lookaround assertions
         (r"(?=abc)", True),
         (r"(?<=123)", True),
         (r"(?!xyz)", True),
@@ -910,8 +941,12 @@ def test_setitem_with_different_string_storage():
         (r"(?=test)?", False),
         (r"abc|(?=test)", True),
         (r"^(?=test)$", True),
+        # backreferences
+        (r"(abc)\1", True),
+        (r"\b(\w+)\s+\1\b", True),
+        (r"\b(?P<word>\w+)\s+(?P=word)\b", True),
     ],
 )
-def test_has_regex_lookaround(pat, expected):
+def test_has_regex_unsupported_code(pat, expected):
     # https://github.com/pandas-dev/pandas/issues/60833
-    assert ArrowStringArrayMixin._has_regex_lookaround(pat) == expected
+    assert ArrowStringArrayMixin._has_unsupported_regex(pat) == expected

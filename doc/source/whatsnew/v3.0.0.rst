@@ -172,9 +172,9 @@ This includes :meth:`DataFrame.assign`, :meth:`DataFrame.loc`, and getitem/setit
 It is expected that the support for ``pd.col()`` will be expanded to more methods
 in future releases.
 
-New Deprecation Policy
-^^^^^^^^^^^^^^^^^^^^^^
-pandas 3.0.0 introduces a new 3-stage deprecation policy: using ``DeprecationWarning`` initially, then switching to ``FutureWarning`` for broader visibility in the last minor version before the next major release, and then removal of the deprecated functionality in the major release. This was done to give downstream packages more time to adjust to pandas deprecations, which should reduce the amount of warnings that a user gets from code that isn't theirs. See `PDEP 17 <https://pandas.pydata.org/pdeps/0017-backwards-compatibility-and-deprecation-policy.html>`_ for more details.
+Updated deprecation policy
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+pandas 3.0.0 updates the deprecation policy to clarify which deprecation warnings will be issued, using a new 3-stage policy: using ``DeprecationWarning`` initially, then switching to ``FutureWarning`` for broader visibility in the last minor version before the next major release, and then removal of the deprecated functionality in the major release. This was done to give downstream packages more time to adjust to pandas deprecations, which should reduce the amount of warnings that a user gets from code that isn't theirs. See `PDEP 17 <https://pandas.pydata.org/pdeps/0017-backwards-compatibility-and-deprecation-policy.html>`_ for more details.
 
 All warnings for upcoming changes in pandas will have the base class :class:`pandas.errors.PandasChangeWarning`. Users may also use the following subclasses to control warnings.
 
@@ -183,6 +183,9 @@ All warnings for upcoming changes in pandas will have the base class :class:`pan
 - :class:`pandas.errors.PandasPendingDeprecationWarning`: Base class of all warnings which emit a ``PendingDeprecationWarning``, independent of the version they will be enforced.
 - :class:`pandas.errors.PandasDeprecationWarning`: Base class of all warnings which emit a ``DeprecationWarning``, independent of the version they will be enforced.
 - :class:`pandas.errors.PandasFutureWarning`: Base class of all warnings which emit a ``FutureWarning``, independent of the version they will be enforced.
+
+Deprecations added in 3.x using :class:`pandas.errors.Pandas4Warning` will initially inherit from :class:`pandas.errors.PandasDeprecationWarning`.
+In the last minor release of the 3.x series, these deprecations will switch to inherit from :class:`pandas.errors.PandasFutureWarning` for broader visibility.
 
 .. _whatsnew_300.enhancements.other:
 
@@ -797,6 +800,7 @@ Other API changes
 ^^^^^^^^^^^^^^^^^
 - 3rd party ``py.path`` objects are no longer explicitly supported in IO methods. Use :py:class:`pathlib.Path` objects instead (:issue:`57091`)
 - :func:`read_table`'s ``parse_dates`` argument defaults to ``None`` to improve consistency with :func:`read_csv` (:issue:`57476`)
+- :meth:`Period.to_timestamp` and :meth:`PeriodIndex.to_timestamp` now give microsecond-unit objects when possible, and nanosecond-unit objects in other cases. This affects the actual value of :meth:`Period.end_time` and :meth:`PeriodIndex.end_time` (:issue:`56164`)
 - All classes inheriting from builtin ``tuple`` (including types created with :func:`collections.namedtuple`) are now hashed and compared as builtin ``tuple`` during indexing operations (:issue:`57922`)
 - Made ``dtype`` a required argument in :meth:`ExtensionArray._from_sequence_of_strings` (:issue:`56519`)
 - Passing a :class:`Series` input to :func:`json_normalize` will now retain the :class:`Series` :class:`Index`, previously output had a new :class:`RangeIndex` (:issue:`51452`)
@@ -1208,7 +1212,7 @@ Strings
 - Bug in :meth:`Series.str.match` failing to raise when given a compiled ``re.Pattern`` object and conflicting ``case`` or ``flags`` arguments (:issue:`62240`)
 - Bug in :meth:`Series.str.zfill` raising ``AttributeError`` for :class:`ArrowDtype` (:issue:`61485`)
 - Bug in :meth:`Series.value_counts` would not respect ``sort=False`` for series having ``string`` dtype (:issue:`55224`)
-- Bug in :ref:`Series.str methods <api.series.str>` would fail when using regex with lookaheads or lookbehinds on data backed by PyArrow (:issue:`60833`)
+- Bug in :ref:`Series.str methods <api.series.str>` would fail when using regex with lookaheads or lookbehinds, backreferences, or ``\Z`` on data backed by PyArrow (:issue:`60833`, :issue:`63683`)
 - Bug in multiplication with a :class:`StringDtype` incorrectly allowing multiplying by bools; explicitly cast to integers instead (:issue:`62595`)
 
 Interval
