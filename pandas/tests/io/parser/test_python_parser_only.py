@@ -574,7 +574,7 @@ def test_on_bad_lines_callable_warns_and_truncates_with_index_col(
     data = "id,field_1,field_2\n101,A,B\n102,C,D,E\n103,F,G\n"
 
     def fixer(bad_line):
-        return list(bad_line) + ["EXTRA1", "EXTRA2"]
+        return [*list(bad_line), "EXTRA1", "EXTRA2"]
 
     result = parser.read_csv_check_warnings(
         ParserWarning,
@@ -599,3 +599,45 @@ def test_on_bad_lines_callable_warns_and_truncates_with_index_col(
         )
 
     tm.assert_frame_equal(result, expected)
+
+
+def test_read_csv_leading_quote_skip(python_parser_only):
+    # GH 62739
+    tbl = """\
+    "
+a b
+1 3
+"""
+    parser = python_parser_only
+    result = parser.read_csv(
+        StringIO(tbl),
+        delimiter=" ",
+        skiprows=1,
+    )
+    expected = DataFrame({"a": [1], "b": [3]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_read_csv_unclosed_double_quote_in_data_still_errors(python_parser_only):
+    # GH 62739
+    tbl = """\
+a b
+"
+1 3
+"""
+    parser = python_parser_only
+    with pytest.raises(ParserError, match="unexpected end of data"):
+        parser.read_csv(StringIO(tbl), delimiter=" ", skiprows=1)
+
+
+def test_read_csv_skiprows_zero(python_parser_only):
+    # GH 62739
+    tbl = """\
+"
+a b
+1 3
+"""
+    parser = python_parser_only
+    # don't skip anything
+    with pytest.raises(ParserError, match="unexpected end of data"):
+        parser.read_csv(StringIO(tbl), delimiter=" ", skiprows=0, engine="python")

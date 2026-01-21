@@ -2,27 +2,20 @@ from __future__ import annotations
 
 import gzip
 import io
-import pathlib
 import tarfile
 from typing import (
     TYPE_CHECKING,
     Any,
 )
-import uuid
 import zipfile
 
 from pandas.compat._optional import import_optional_dependency
 
 import pandas as pd
-from pandas._testing.contexts import ensure_clean
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-
-    from pandas._typing import (
-        FilePath,
-        ReadPickleBuffer,
-    )
+    from pathlib import Path
 
     from pandas import (
         DataFrame,
@@ -33,9 +26,7 @@ if TYPE_CHECKING:
 # File-IO
 
 
-def round_trip_pickle(
-    obj: Any, path: FilePath | ReadPickleBuffer | None = None
-) -> DataFrame | Series:
+def round_trip_pickle(obj: Any, tmp_path: Path) -> DataFrame | Series:
     """
     Pickle an object and then read it again.
 
@@ -51,15 +42,11 @@ def round_trip_pickle(
     pandas object
         The original object that was pickled and then re-read.
     """
-    _path = path
-    if _path is None:
-        _path = f"__{uuid.uuid4()}__.pickle"
-    with ensure_clean(_path) as temp_path:
-        pd.to_pickle(obj, temp_path)
-        return pd.read_pickle(temp_path)
+    pd.to_pickle(obj, tmp_path)
+    return pd.read_pickle(tmp_path)
 
 
-def round_trip_pathlib(writer, reader, path: str | None = None):
+def round_trip_pathlib(writer, reader, tmp_path: Path):
     """
     Write an object to file specified by a pathlib.Path and read it back
 
@@ -77,12 +64,8 @@ def round_trip_pathlib(writer, reader, path: str | None = None):
     pandas object
         The original object that was serialized and then re-read.
     """
-    Path = pathlib.Path
-    if path is None:
-        path = "___pathlib___"
-    with ensure_clean(path) as path:
-        writer(Path(path))
-        obj = reader(Path(path))
+    writer(tmp_path)
+    obj = reader(tmp_path)
     return obj
 
 

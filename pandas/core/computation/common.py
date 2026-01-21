@@ -43,6 +43,6 @@ def result_type_many(*arrays_and_dtypes):
                 np_dtype = np.result_type(*non_ea_dtypes)
             except ValueError:
                 np_dtype = reduce(np.result_type, arrays_and_dtypes)
-            return find_common_type(ea_dtypes + [np_dtype])
+            return find_common_type([*ea_dtypes, np_dtype])
 
         return find_common_type(ea_dtypes)

@@ -55,15 +55,15 @@ def test_value_counts(index_or_series_obj):
 @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 def test_value_counts_null(null_obj, index_or_series_obj):
     orig = index_or_series_obj
-    obj = orig.copy()
 
-    if not allow_na_ops(obj):
+    if not allow_na_ops(orig):
         pytest.skip("type doesn't allow for NA operations")
-    elif len(obj) < 1:
+    elif len(orig) < 1:
         pytest.skip("Test doesn't make sense on empty data")
     elif isinstance(orig, MultiIndex):
         pytest.skip(f"MultiIndex can't hold '{null_obj}'")
 
+    obj = orig.copy(deep=True)
     values = obj._values
     values[0:2] = null_obj
 
@@ -280,7 +280,7 @@ def test_value_counts_datetime64(index_or_series, unit):
 
     # numpy_array_equal cannot compare pd.NaT
     if isinstance(s, Index):
-        exp_idx = DatetimeIndex(expected.tolist() + [pd.NaT]).as_unit(unit)
+        exp_idx = DatetimeIndex([*expected.tolist(), pd.NaT]).as_unit(unit)
         tm.assert_index_equal(unique, exp_idx)
     else:
         tm.assert_extension_array_equal(unique[:3], expected)
@@ -346,8 +346,8 @@ def test_value_counts_object_inference_deprecated():
     ("index", "expected_index"),
     [
         [
-            pd.date_range("2016-01-01", periods=5, freq="D"),
-            pd.date_range("2016-01-01", periods=5, freq="D"),
+            pd.date_range("2016-01-01", periods=5, freq="D", unit="ns"),
+            pd.date_range("2016-01-01", periods=5, freq="D", unit="ns"),
         ],
         [
             pd.timedelta_range(Timedelta(0), periods=5, freq="h"),
@@ -359,7 +359,7 @@ def test_value_counts_object_inference_deprecated():
                 + [Timestamp("2016-01-02")]
                 + [Timestamp("2016-01-01") + Timedelta(days=i) for i in range(1, 5)]
             ),
-            DatetimeIndex(pd.date_range("2016-01-01", periods=5, freq="D")),
+            DatetimeIndex(pd.date_range("2016-01-01", periods=5, freq="D", unit="us")),
         ],
         [
             TimedeltaIndex(
@@ -367,7 +367,7 @@ def test_value_counts_object_inference_deprecated():
                 + [Timedelta(hours=1)]
                 + [Timedelta(hours=i) for i in range(1, 5)],
             ),
-            TimedeltaIndex(pd.timedelta_range(Timedelta(0), periods=5, freq="h")),
+            TimedeltaIndex(pd.timedelta_range(Timedelta(hours=0), periods=5, freq="h")),
         ],
         [
             DatetimeIndex(

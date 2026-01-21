@@ -30,6 +30,7 @@ from pandas.errors import (
     AbstractMethodError,
     Pandas4Warning,
 )
+from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.dtypes import (
@@ -115,6 +116,7 @@ if TYPE_CHECKING:
 _shared_docs_kwargs: dict[str, str] = {}
 
 
+@set_module("pandas.api.typing")
 class Resampler(BaseGroupBy, PandasObject):
     """
     Class for resampling datetimelike data, a groupby-like operation.
@@ -135,8 +137,6 @@ class Resampler(BaseGroupBy, PandasObject):
     -----
     After resampling, see aggregate, apply, and transform functions.
     """
-
-    __module__ = "pandas.api.typing"
 
     _grouper: BinGrouper
     _timegrouper: TimeGrouper
@@ -242,6 +242,8 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         binner, bins, binlabels = self._get_binner_for_time()
         assert len(bins) == len(binlabels)
+        if self._timegrouper._arrow_dtype is not None:
+            binlabels = binlabels.astype(self._timegrouper._arrow_dtype)
         bin_grouper = BinGrouper(bins, binlabels, indexer=self._indexer)
         return binner, bin_grouper
 
@@ -1545,8 +1547,6 @@ class Resampler(BaseGroupBy, PandasObject):
         numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
 
-            .. versionadded:: 1.5.0
-
             .. versionchanged:: 2.0.0
 
                 numeric_only now defaults to ``False``.
@@ -1603,8 +1603,6 @@ class Resampler(BaseGroupBy, PandasObject):
 
         numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
-
-            .. versionadded:: 1.5.0
 
             .. versionchanged:: 2.0.0
 
@@ -1669,8 +1667,6 @@ class Resampler(BaseGroupBy, PandasObject):
 
         numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
-
-            .. versionadded:: 1.5.0
 
             .. versionchanged:: 2.0.0
 
@@ -1902,9 +1898,14 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         Return value at the given quantile.
 
+        Computes the quantile of values within each resampled group.
+
         Parameters
         ----------
         q : float or array-like, default 0.5 (50% quantile)
+            Value between 0 <= q <= 1, the quantile(s) to compute.
+        **kwargs
+            Additional keyword arguments to be passed to the function.
 
         Returns
         -------
@@ -2136,11 +2137,12 @@ class DatetimeIndexResampler(Resampler):
         binner = self.binner
         res_index = self._adjust_binner_for_upsample(binner)
 
-        # if we have the same frequency as our axis, then we are equal sampling
+        # if index exactly matches target grid (same freq & alignment), use fast path
         if (
             limit is None
             and to_offset(ax.inferred_freq) == self.freq
             and len(obj) == len(res_index)
+            and obj.index.equals(res_index)
         ):
             result = obj.copy()
             result.index = res_index
@@ -2171,6 +2173,7 @@ class DatetimeIndexResampler(Resampler):
         return result
 
 
+@set_module("pandas.api.typing")
 # error: Definition of "ax" in base class "_GroupByMixin" is incompatible
 # with definition in base class "DatetimeIndexResampler"
 class DatetimeIndexResamplerGroupby(  # type: ignore[misc]
@@ -2179,8 +2182,6 @@ class DatetimeIndexResamplerGroupby(  # type: ignore[misc]
     """
     Provides a resample of a groupby implementation
     """
-
-    __module__ = "pandas.api.typing"
 
     @property
     def _resampler_cls(self):
@@ -2274,6 +2275,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         return self._wrap_result(new_obj)
 
 
+@set_module("pandas.api.typing")
 # error: Definition of "ax" in base class "_GroupByMixin" is incompatible with
 # definition in base class "PeriodIndexResampler"
 class PeriodIndexResamplerGroupby(  # type: ignore[misc]
@@ -2282,8 +2284,6 @@ class PeriodIndexResamplerGroupby(  # type: ignore[misc]
     """
     Provides a resample of a groupby implementation.
     """
-
-    __module__ = "pandas.api.typing"
 
     @property
     def _resampler_cls(self):
@@ -2312,6 +2312,7 @@ class TimedeltaIndexResampler(DatetimeIndexResampler):
         return binner
 
 
+@set_module("pandas.api.typing")
 # error: Definition of "ax" in base class "_GroupByMixin" is incompatible with
 # definition in base class "DatetimeIndexResampler"
 class TimedeltaIndexResamplerGroupby(  # type: ignore[misc]
@@ -2320,8 +2321,6 @@ class TimedeltaIndexResamplerGroupby(  # type: ignore[misc]
     """
     Provides a resample of a groupby implementation.
     """
-
-    __module__ = "pandas.api.typing"
 
     @property
     def _resampler_cls(self):
@@ -2357,6 +2356,7 @@ def get_resampler_for_grouping(
     return resampler._get_resampler_for_grouping(groupby=groupby, key=tg.key)
 
 
+@set_module("pandas.api.typing")
 class TimeGrouper(Grouper):
     """
     Custom groupby class for time-interval grouping.
@@ -2370,9 +2370,8 @@ class TimeGrouper(Grouper):
         If axis is PeriodIndex
     """
 
-    __module__ = "pandas.api.typing"
-
-    _attributes = Grouper._attributes + (
+    _attributes = (
+        *Grouper._attributes,
         "closed",
         "label",
         "how",
@@ -2443,23 +2442,22 @@ class TimeGrouper(Grouper):
                 closed = "right"
             if label is None:
                 label = "right"
+        # The backward resample sets ``closed`` to ``'right'`` by default
+        # since the last value should be considered as the edge point for
+        # the last bin. When origin in "end" or "end_day", the value for a
+        # specific ``Timestamp`` index stands for the resample result from
+        # the current ``Timestamp`` minus ``freq`` to the current
+        # ``Timestamp`` with a right close.
+        elif origin in ["end", "end_day"]:
+            if closed is None:
+                closed = "right"
+            if label is None:
+                label = "right"
         else:
-            # The backward resample sets ``closed`` to ``'right'`` by default
-            # since the last value should be considered as the edge point for
-            # the last bin. When origin in "end" or "end_day", the value for a
-            # specific ``Timestamp`` index stands for the resample result from
-            # the current ``Timestamp`` minus ``freq`` to the current
-            # ``Timestamp`` with a right close.
-            if origin in ["end", "end_day"]:
-                if closed is None:
-                    closed = "right"
-                if label is None:
-                    label = "right"
-            else:
-                if closed is None:
-                    closed = "left"
-                if label is None:
-                    label = "left"
+            if closed is None:
+                closed = "left"
+            if label is None:
+                label = "left"
 
         self.closed = closed
         self.label = label

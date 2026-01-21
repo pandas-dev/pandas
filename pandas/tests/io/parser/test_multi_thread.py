@@ -155,5 +155,5 @@ def test_multi_thread_path_multipart_read_csv(tmp_path, all_parsers):
     result = _generate_multi_thread_dataframe(parser, path, num_rows, num_tasks)
 
     expected = df[:]
-    expected["date"] = expected["date"].astype("M8[s]")
+    expected["date"] = expected["date"].astype("M8[us]")
     tm.assert_frame_equal(result, expected)

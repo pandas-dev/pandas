@@ -34,6 +34,9 @@ def test_copy():
     assert not df_copy._mgr.blocks[0].refs.has_reference()
     assert not df_copy._mgr.blocks[1].refs.has_reference()
 
+    assert df_copy.index is not df.index
+    assert df_copy.columns is not df.columns
+
     # mutating copy doesn't mutate original
     df_copy.iloc[0, 0] = 0
     assert df.iloc[0, 0] == 1
@@ -226,6 +229,19 @@ def test_groupby_column_index_in_references():
     tm.assert_frame_equal(result, expected)
 
 
+def test_groupby_modify_series():
+    # https://github.com/pandas-dev/pandas/issues/63219
+    # Modifying a Series after using it to groupby should not impact
+    # the groupby operation.
+    ser = Series([1, 2, 1])
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    gb = df.groupby(ser)
+    ser.iloc[0] = 100
+    result = gb.sum()
+    expected = DataFrame({"a": [4, 2], "b": [10, 5]}, index=[1, 2])
+    tm.assert_frame_equal(result, expected)
+
+
 def test_rename_columns():
     # Case: renaming columns returns a new dataframe
     # + afterwards modifying the result
@@ -390,6 +406,8 @@ def test_shift_no_op():
     df_orig = df.copy()
     df2 = df.shift(periods=0)
     assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    assert df2.index is not df.index
+    assert df2.columns is not df.columns
 
     df.iloc[0, 0] = 0
     assert not np.shares_memory(get_array(df, "a"), get_array(df2, "a"))
@@ -406,6 +424,8 @@ def test_shift_index():
     df2 = df.shift(periods=1, axis=0)
 
     assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    assert df2.index is not df.index
+    assert df2.columns is not df.columns
 
 
 def test_shift_rows_freq():
@@ -549,6 +569,9 @@ def test_to_frame():
 
     tm.assert_frame_equal(df, ser_orig.to_frame())
 
+    df = ser.to_frame()
+    assert df.index is not ser.index
+
 
 @pytest.mark.parametrize(
     "method, idx",
@@ -560,7 +583,7 @@ def test_to_frame():
     ],
     ids=["shallow-copy", "reset_index", "rename", "select_dtypes"],
 )
-def test_chained_methods(request, method, idx):
+def test_chained_methods(method, idx):
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
     df_orig = df.copy()
 
@@ -924,6 +947,8 @@ def test_round(decimals):
         assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
     else:
         assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    assert df2.index is not df.index
+    assert df2.columns is not df.columns
 
     df2.iloc[0, 1] = "d"
     df2.iloc[0, 0] = 4
@@ -1156,6 +1181,7 @@ def test_where_mask_noop(dtype, func):
 
     result = func(ser)
     assert np.shares_memory(get_array(ser), get_array(result))
+    assert result.index is not ser.index
 
     result.iloc[0] = 10
     assert not np.shares_memory(get_array(ser), get_array(result))
@@ -1177,6 +1203,7 @@ def test_where_mask(dtype, func):
     result = func(ser)
 
     assert not np.shares_memory(get_array(ser), get_array(result))
+    assert result.index is not ser.index
     tm.assert_series_equal(ser, ser_orig)
 
 
@@ -1332,6 +1359,10 @@ def test_xs(axis, key, dtype):
         assert np.shares_memory(get_array(df, "a"), get_array(result))
     else:
         assert result._mgr._has_no_reference(0)
+    if axis == 0:
+        assert result.index is not df.columns
+    else:
+        assert result.index is not df.index
 
     result.iloc[0] = 0
     tm.assert_frame_equal(df, df_orig)
@@ -1353,8 +1384,10 @@ def test_xs_multiindex(key, level, axis):
         assert np.shares_memory(
             get_array(df, df.columns[0]), get_array(result, result.columns[0])
         )
-    result.iloc[0, 0] = 0
+    assert result.index is not df.index
+    assert result.columns is not df.columns
 
+    result.iloc[0, 0] = 0
     tm.assert_frame_equal(df, df_orig)
 
 
@@ -1539,3 +1572,30 @@ def test_apply_modify_row():
         df.apply(transform, axis=1)
 
     tm.assert_frame_equal(df, df_orig)
+
+
+def test_reduce():
+    df = DataFrame({"a": [1, 2, 3], "b": 1.5})
+
+    result = df.sum()
+    assert result.index is not df.columns
+
+    result = df.groupby([0, 0, 1]).sum()
+    assert result.columns is not df.columns
+
+    result = df.quantile(0.5)
+    assert result.index is not df.columns
+    result = df.quantile([0.25, 0.5, 0.75])
+    assert result.columns is not df.columns
+
+
+def test_diff():
+    df = DataFrame({"a": [1, 2, 3], "b": 1.5})
+
+    result = df.diff()
+    assert result.index is not df.index
+    assert result.columns is not df.columns
+
+    ser = Series([1, 2, 3])
+    result = ser.diff()
+    assert result.index is not ser.index

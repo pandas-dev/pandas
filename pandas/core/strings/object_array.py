@@ -152,12 +152,11 @@ class ObjectStringArrayMixin:
             pat = re.compile(pat, flags=flags)
 
             f = lambda x: pat.search(x) is not None
+        elif case:
+            f = lambda x: pat in x
         else:
-            if case:
-                f = lambda x: pat in x
-            else:
-                upper_pat = pat.upper()
-                f = lambda x: upper_pat in x.upper()
+            upper_pat = pat.upper()
+            f = lambda x: upper_pat in x.upper()
         return self._str_map(f, na, dtype=np.dtype("bool"))
 
     def _str_startswith(self, pat, na=lib.no_default):
@@ -238,7 +237,17 @@ class ObjectStringArrayMixin:
         if not case:
             flags |= re.IGNORECASE
 
-        regex = re.compile(pat, flags=flags)
+        if isinstance(pat, re.Pattern):
+            # We need to check that flags matches pat.flags.
+            # pat.flags will have re.U regardless, so we need to add it here
+            # before checking for a match
+            flags = flags | re.U
+
+            if flags != pat.flags:
+                raise ValueError("Cannot pass flags that do not match pat.flags")
+            regex = pat
+        else:
+            regex = re.compile(pat, flags=flags)
 
         f = lambda x: regex.match(x) is not None
         return self._str_map(f, na_value=na, dtype=np.dtype(bool))
@@ -364,11 +373,10 @@ class ObjectStringArrayMixin:
             elif regex is False:
                 new_pat = pat
             # regex is None so link to old behavior #43563
+            elif len(pat) == 1:
+                new_pat = pat
             else:
-                if len(pat) == 1:
-                    new_pat = pat
-                else:
-                    new_pat = re.compile(pat)
+                new_pat = re.compile(pat)
 
             if isinstance(new_pat, re.Pattern):
                 if n is None or n == -1:
