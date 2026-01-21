@@ -31,8 +31,15 @@ find the complete list of changes in our
 
 ## Upgrading to pandas 3.0
 
-As a major release, pandas 3.0 includes some breaking changes that may require
-updates to your code. The two most significant changes are:
+The pandas 3.0 release removed functionality that was deprecated in previous releases
+(see [here](https://pandas.pydata.org/docs/whatsnew/v3.0.0.html#whatsnew-300-prior-deprecations))
+for an overview). It is recommended to first upgrade to pandas 2.3 and to ensure
+your code is working without warnings, before upgrading to pandas 3.0.
+
+Further, as a major release, pandas 3.0 includes some breaking changes that may require
+updates to your code. The two most significant changes are the new string dtype
+and the copy/view behaviour changes, detailed below. A overview of all potentially
+breaking changes can be found in the [Backwards incompatible API changes](https://pandas.pydata.org/docs/whatsnew/v3.0.0.html#backwards-incompatible-api-changes) section.
 
 ### 1. Dedicated string data type by default
 
@@ -90,31 +97,6 @@ DataFrame.
 
 For more details, see the
 [Copy-on-Write migration guide](https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html#migrating-to-copy-on-write).
-
-
-## Call to Action: test the Release Candidate
-
-We need your help to ensure a smooth pandas 3.0 release!
-
-Especially if you have pandas code in production or maintain a library with
-pandas as a dependency, it is strongly recommended to run your test suites with
-the release candidate, and report any issue to our issue tracker before the
-official 3.0.0 release.
-
-How can you best test the release candidate?
-
-1. **First update to the latest released pandas 2.3** (if you are not already
-   running that version) and test it with your codebase. It is recommended to
-   resolve any deprecation warning before upgrading to pandas 3.0.
-2. Optionally, you can already enable the new string dtype and Copy-on-Write
-   mode using pandas 2.3 (`pd.options.future.infer_string = True` and
-   `pd.options.mode.copy_on_write = True`).
-3. **Install the release candidate** (see below) and test it with your codebase
-4. **Run your existing code** to identify any issues or needed updates
-5. **Report any problems** you encounter on our [GitHub repository issue tracker](https://github.com/pandas-dev/pandas/issues)
-
-The more testing we get now, the smoother the final pandas 3.0 release will be
-for everyone. Your feedback is crucial for making this a successful release!
 
 ### Getting pandas 3.0
 
