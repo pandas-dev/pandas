@@ -337,9 +337,9 @@ the name ``anonymous`` to the first 3 elements of the fourth column:
 .. ipython:: python
 
     # Create a temporary column to clearly show assignment
-    titanic['TestColumn'] = titanic['Pclass']
-    titanic.iloc[0:3, titanic.columns.get_loc('TestColumn')] = "anonymous"
-    titanic.iloc[:5, titanic.columns.get_loc('TestColumn')]
+    titanic["TestColumn"] = titanic["Pclass"]
+    titanic.loc[0:2, "TestColumn"] = "anonymous"
+    titanic.loc[:4, "TestColumn"]
 
 .. raw:: html
 
