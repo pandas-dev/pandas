@@ -1218,6 +1218,39 @@ cdef class Tick(SingleConstructorOffset):
         return self._n * self._nanos_inc
 
     def is_on_offset(self, dt: datetime) -> bool:
+        """
+        Return boolean whether a timestamp intersects with this frequency.
+
+        For fixed-frequency Tick offsets (Hour, Minute, Second, Milli, Micro, Nano),
+        this method always returns True because any timestamp can be represented
+        at these granular time resolutions.
+
+        Parameters
+        ----------
+        dt : datetime.datetime
+            Timestamp to check intersections with frequency.
+
+        Returns
+        -------
+        bool
+            Always True for Tick offsets.
+
+        See Also
+        --------
+        DateOffset.is_on_offset : General offset frequency checking.
+
+        Examples
+        --------
+        >>> from pandas.tseries.offsets import Milli
+        >>> ts = pd.Timestamp(2022, 1, 1)
+        >>> freq = Milli()
+        >>> freq.is_on_offset(ts)
+        True
+
+        >>> ts = pd.Timestamp(2022, 8, 6, 12, 30, 45, 123456)
+        >>> freq.is_on_offset(ts)
+        True
+        """
         return True
 
     # This is identical to BaseOffset.__hash__, but has to be redefined here
