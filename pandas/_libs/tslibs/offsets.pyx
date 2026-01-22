@@ -5150,6 +5150,43 @@ cdef class FY5253(FY5253Mixin):
         return result
 
     def get_year_end(self, dt: datetime) -> datetime:
+        """
+        Get the fiscal year end date for the given datetime.
+
+        This method calculates the fiscal year end date based on the offset's
+        weekday, starting month, and variation parameters. The fiscal year end
+        is determined as either the last occurrence of the specified weekday in
+        the starting month, or the occurrence of the specified weekday nearest
+        to the last day of the starting month.
+
+        Parameters
+        ----------
+        dt : datetime
+            A timezone-naive datetime for which to determine the fiscal year end.
+            The year component of this datetime is used to determine which fiscal
+            year end to calculate.
+
+        Returns
+        -------
+        datetime
+            The fiscal year end datetime for the year specified in the input.
+
+        See Also
+        --------
+        FY5253 : Describes 52-53 week fiscal year.
+        FY5253.is_on_offset : Check if a date is on the offset.
+
+        Examples
+        --------
+        >>> from datetime import datetime
+        >>> offset = pd.offsets.FY5253(weekday=4, startingMonth=12, variation="last")
+        >>> offset.get_year_end(datetime(2022, 6, 15))
+        datetime.datetime(2022, 12, 30, 0, 0)
+
+        >>> offset = pd.offsets.FY5253(weekday=0, startingMonth=1, variation="nearest")
+        >>> offset.get_year_end(datetime(2022, 6, 15))
+        datetime.datetime(2022, 1, 31, 0, 0)
+        """
         assert dt.tzinfo is None
 
         dim = get_days_in_month(dt.year, self.startingMonth)
