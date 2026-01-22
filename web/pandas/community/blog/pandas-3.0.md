@@ -36,10 +36,12 @@ The pandas 3.0 release removed functionality that was deprecated in previous rel
 for an overview). It is recommended to first upgrade to pandas 2.3 and to ensure
 your code is working without warnings, before upgrading to pandas 3.0.
 
-Further, as a major release, pandas 3.0 includes some breaking changes that may require
-updates to your code. The two most significant changes are the new string dtype
-and the copy/view behaviour changes, detailed below. An overview of all potentially
-breaking changes can be found in the [Backwards incompatible API changes](https://pandas.pydata.org/docs/whatsnew/v3.0.0.html#backwards-incompatible-api-changes) section.
+Further, as a major release, pandas 3.0 includes some breaking changes that may
+require updates to your code. The two most significant changes are the new
+string dtype and the copy/view behaviour changes, detailed below. An overview of
+all potentially breaking changes can be found in the [Backwards incompatible API
+changes](https://pandas.pydata.org/docs/whatsnew/v3.0.0.html#backwards-incompatible-api-changes)
+section of the release notes.
 
 ### 1. Dedicated string data type by default
 
@@ -71,11 +73,16 @@ expecting string data.
 For more details, see the
 [migration guide for the new string data type](https://pandas.pydata.org/docs/dev/user_guide/migration-3-strings.html).
 
+This new data type will use the `pyarrow` library under the hood, if installed,
+to provide the performance improvements. Therefore we recommend strongly to
+install `pyarrow` alongside pandas (but `pyarrow` is not a required dependency
+installed by default).
+
 ### 2. Consistent copy/view behaviour with Copy-on-Write (CoW)
 
 Copy-on-Write is now the default and only mode in pandas 3.0. This makes
-behavior more consistent and predictable, but requires updates to certain coding
-patterns.
+behavior more consistent and predictable, and avoids a lot of defensive copying
+(improving performance), but requires updates to certain coding patterns.
 
 The most impactfull change is that **chained assignment will no longer work**.
 As a result, the `SettingWithCopyWarning` is also removed (since there is no
@@ -98,7 +105,7 @@ DataFrame.
 For more details, see the
 [Copy-on-Write migration guide](https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html#migrating-to-copy-on-write).
 
-### Obtaining pandas 3.0
+## Obtaining pandas 3.0
 
 You can install the latest pandas 3.0 release from PyPI:
 
@@ -111,3 +118,9 @@ Or from conda-forge using conda/mamba:
 ```bash
 conda install -c conda-forge pandas=3.0
 ```
+
+## Running into an issue or regression?
+
+Please report any problem you encounter with the release on the pandas [issue tracker](https://github.com/pandas-dev/pandas/issues).
+
+Thanks to all the contributors who made this release possible!
