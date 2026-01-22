@@ -5675,6 +5675,68 @@ cdef class CustomBusinessDay(BusinessDay):
             )
 
     def is_on_offset(self, dt: datetime) -> bool:
+        """
+        Return boolean whether a timestamp intersects with this frequency.
+
+        This method determines if a given timestamp falls on a custom business day,
+        as defined by the ``weekmask``, ``holidays``, and ``calendar`` parameters.
+        If ``normalize`` is True, it also checks that the time component is midnight.
+
+        Parameters
+        ----------
+        dt : datetime
+            Timestamp to check intersection with frequency.
+
+        Returns
+        -------
+        bool
+            True if the timestamp is on a custom business day, False otherwise.
+
+        See Also
+        --------
+        tseries.offsets.BusinessDay.is_on_offset : Check if timestamp is on a
+            standard business day.
+        tseries.offsets.CustomBusinessDay : Represents custom business day offset.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2022, 8, 5)
+        >>> ts.day_name()
+        'Friday'
+        >>> pd.offsets.CustomBusinessDay().is_on_offset(ts)
+        True
+
+        >>> ts = pd.Timestamp(2022, 8, 6)
+        >>> ts.day_name()
+        'Saturday'
+        >>> pd.offsets.CustomBusinessDay().is_on_offset(ts)
+        False
+
+        With a custom weekmask including Saturday:
+
+        >>> ts = pd.Timestamp(2022, 8, 6)
+        >>> freq = pd.offsets.CustomBusinessDay(weekmask="Mon Tue Wed Thu Fri Sat")
+        >>> freq.is_on_offset(ts)
+        True
+
+        With custom holidays:
+
+        >>> import datetime as dt
+        >>> holiday = dt.datetime(2022, 8, 5)
+        >>> ts = pd.Timestamp(2022, 8, 5)
+        >>> pd.offsets.CustomBusinessDay(holidays=[holiday]).is_on_offset(ts)
+        False
+
+        With ``normalize=True``, the timestamp must also be at midnight:
+
+        >>> ts = pd.Timestamp(2022, 8, 5, 12, 0)
+        >>> pd.offsets.CustomBusinessDay(normalize=True).is_on_offset(ts)
+        False
+
+        >>> ts = pd.Timestamp(2022, 8, 5)
+        >>> pd.offsets.CustomBusinessDay(normalize=True).is_on_offset(ts)
+        True
+        """
         if self.normalize and not _is_normalized(dt):
             return False
         day64 = _to_dt64D(dt)
