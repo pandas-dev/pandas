@@ -15,12 +15,12 @@ pandas 3.0 introduces several major enhancements:
   the new `str` dtype instead of `object`, providing better performance and type
   safety
 - **Consistent copy/view behaviour with Copy-on-Write (CoW)** (a.k.a. getting
-  rid of the SettingWithCopyWarning): more predictable and consistent behavior
+  rid of the `SettingWithCopyWarning`): more predictable and consistent behavior
   for all operations, with improved performance through avoiding unnecessary
   copies
 - **New default resolution for datetime-like data**: no longer defaulting to
   nanoseconds, but generally microseconds (or the resolution of the input), when
-  when constructing datetime or timedelta data (avoiding out-of-bounds errors
+  constructing datetime or timedelta data (avoiding out-of-bounds errors
   for dates with a year before 1678 or after 2262)
 - **New `pd.col` syntax**: initial support for `pd.col()` as a simplified syntax
   for creating callables in `DataFrame.assign`
@@ -32,13 +32,13 @@ find the complete list of changes in our
 ## Upgrading to pandas 3.0
 
 The pandas 3.0 release removed functionality that was deprecated in previous releases
-(see [here](https://pandas.pydata.org/docs/whatsnew/v3.0.0.html#whatsnew-300-prior-deprecations))
+(see [here](https://pandas.pydata.org/docs/whatsnew/v3.0.0.html#whatsnew-300-prior-deprecations)
 for an overview). It is recommended to first upgrade to pandas 2.3 and to ensure
 your code is working without warnings, before upgrading to pandas 3.0.
 
 Further, as a major release, pandas 3.0 includes some breaking changes that may require
 updates to your code. The two most significant changes are the new string dtype
-and the copy/view behaviour changes, detailed below. A overview of all potentially
+and the copy/view behaviour changes, detailed below. An overview of all potentially
 breaking changes can be found in the [Backwards incompatible API changes](https://pandas.pydata.org/docs/whatsnew/v3.0.0.html#backwards-incompatible-api-changes) section.
 
 ### 1. Dedicated string data type by default
@@ -98,7 +98,7 @@ DataFrame.
 For more details, see the
 [Copy-on-Write migration guide](https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html#migrating-to-copy-on-write).
 
-### Getting pandas 3.0
+### Obtaining pandas 3.0
 
 You can install the latest pandas 3.0 release from PyPI:
 
