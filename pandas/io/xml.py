@@ -429,6 +429,14 @@ class _XMLFrameParser:
         """
         raise AbstractMethodError(self)
 
+def _get_default_namespace(root):
+    """
+    Extract default XML namespace URI if present.
+    """
+    if root is not None and isinstance(root.tag, str) and root.tag.startswith("{"):
+        return root.tag.split("}")[0].lstrip("{")
+    return None
+
 
 class _EtreeFrameParser(_XMLFrameParser):
     """
@@ -587,22 +595,35 @@ class _LxmlFrameParser(_XMLFrameParser):
             "use them in xpath."
         )
 
-        elems = self.xml_doc.xpath(self.xpath, namespaces=self.namespaces)
+        namespaces = self.namespaces
+
+        if namespaces is None:
+            default_ns = _get_default_namespace(self.xml_doc)
+            if default_ns is not None:
+                namespaces = {"_default": default_ns}
+                xpath = self.xpath.replace("//", "//_default:")
+            else:
+                xpath = self.xpath
+        else:
+            xpath = self.xpath
+
+        elems = self.xml_doc.xpath(xpath, namespaces=namespaces)
+
         children = [ch for el in elems for ch in el.xpath("*")]
         attrs = {k: v for el in elems for k, v in el.attrib.items()}
 
         if elems == []:
             raise ValueError(msg)
 
-        if elems != []:
-            if self.elems_only and children == []:
-                raise ValueError(msg)
-            if self.attrs_only and attrs == {}:
-                raise ValueError(msg)
-            if children == [] and attrs == {}:
-                raise ValueError(msg)
+        if self.elems_only and children == []:
+            raise ValueError(msg)
+        if self.attrs_only and attrs == {}:
+            raise ValueError(msg)
+        if children == [] and attrs == {}:
+            raise ValueError(msg)
 
         return elems
+
 
     def _validate_names(self) -> None:
         children: list[Any]
@@ -695,11 +716,12 @@ def get_data_from_filepath(
         compression=compression,
         storage_options=storage_options,
     ) as handle_obj:
-        return (
+        data = (
             preprocess_data(handle_obj.handle.read())
             if hasattr(handle_obj.handle, "read")
             else handle_obj.handle
         )
+    return data
 
 
 def preprocess_data(
