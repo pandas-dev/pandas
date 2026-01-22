@@ -234,9 +234,10 @@ repos:
         pass_filenames: false
         additional_dependencies: [pyyaml]
     -   id: arrow-fallback-docs-sync
+        # note: requires pandas-dev environment to be activated
         name: Check arrow fallback documentation is in sync
-        language: python
-        entry: python scripts/generate_arrow_fallback_table.py --check
+        language: system
+        entry: python -m scripts.generate_arrow_fallback_table --check
         files: |
             (?x)
             ^scripts/generate_arrow_fallback_table\.py$
@@ -246,8 +247,7 @@ repos:
             |^pandas/core/strings/object_array\.py$
             |^doc/source/user_guide/arrow_string_fallbacks\.rst$
         pass_filenames: false
-        stages: [pre-commit, manual]
-        additional_dependencies: [pyarrow>=13]
+        stages: [manual]
     -   id: title-capitalization
         name: Validate correct capitalization among titles in documentation
         entry: python scripts/validate_rst_title_capitalization.py

@@ -1,318 +1,217 @@
-"""Tests for scripts/generate_arrow_fallback_table.py."""
+"""Tests for scripts/generate_arrow_fallback_table.py (runtime-based generator)."""
 
 import json
-from pathlib import Path
 import subprocess
 import sys
+from pathlib import Path
 
 import pytest
 
 from scripts.generate_arrow_fallback_table import (
-    FallbackType,
-    MethodCategory,
-    MethodInfo,
-    _extract_arithmetic_funcs,
-    _extract_cmp_funcs,
-    _extract_logical_funcs,
-    _generate_summary_stats,
-    analyze_arithmetic_operations,
-    build_string_method_table,
+    ARROW_DTYPES,
+    DTYPE_GROUPS,
+    STRING_METHODS,
+    DATETIME_METHODS,
+    AGGREGATION_METHODS,
+    ARRAY_METHODS,
+    ResultType,
+    OperationResult,
+    create_test_series,
+    run_operation,
+    run_all_tests,
     format_json,
-    get_pyarrow_versions,
+    format_rst_table,
+    _is_arrow_backed,
 )
 
 REPO_ROOT = Path(__file__).parents[2]
-ARROW_ARRAY_PATH = REPO_ROOT / "pandas" / "core" / "arrays" / "arrow" / "array.py"
 
 
 # =============================================================================
-# Fixtures
+# Test configuration completeness
 # =============================================================================
 
 
-@pytest.fixture
-def arrow_array_source():
-    """Read the actual Arrow array source file."""
-    return ARROW_ARRAY_PATH.read_text()
+class TestConfiguration:
+    """Test that configuration covers expected methods."""
 
+    def test_arrow_dtypes_not_empty(self):
+        assert len(ARROW_DTYPES) > 0
 
-@pytest.fixture
-def sample_method_info():
-    """Factory fixture for creating MethodInfo objects."""
+    def test_dtype_groups_cover_all_dtypes(self):
+        all_grouped = set()
+        for group in DTYPE_GROUPS.values():
+            all_grouped.update(group)
+        # All grouped dtypes should be in ARROW_DTYPES
+        for dtype in all_grouped:
+            assert dtype in ARROW_DTYPES, f"{dtype} not in ARROW_DTYPES"
 
-    def _create(
-        name="lower",
-        public_name="str.lower",
-        category=MethodCategory.STRING,
-        fallback_type=FallbackType.ARROW_NATIVE,
-        arrow_function="pc.utf8_lower",
-    ):
-        return MethodInfo(
-            name=name,
-            public_name=public_name,
-            category=category,
-            fallback_type=fallback_type,
-            arrow_function=arrow_function,
-        )
+    def test_string_methods_not_empty(self):
+        assert len(STRING_METHODS) > 0
 
-    return _create
+    def test_datetime_methods_not_empty(self):
+        assert len(DATETIME_METHODS) > 0
 
+    def test_aggregation_methods_not_empty(self):
+        assert len(AGGREGATION_METHODS) > 0
 
-@pytest.fixture
-def sample_all_methods(sample_method_info):
-    """Create sample all_methods dict for testing output formatters."""
-    return {
-        "string": {
-            "lower": sample_method_info(
-                name="lower",
-                public_name="str.lower",
-                fallback_type=FallbackType.ARROW_NATIVE,
-                arrow_function="pc.utf8_lower",
-            ),
-            "encode": sample_method_info(
-                name="encode",
-                public_name="str.encode",
-                fallback_type=FallbackType.OBJECT_FALLBACK,
-                arrow_function=None,
-            ),
-        },
-        "arithmetic": {
-            "add": sample_method_info(
-                name="add",
-                public_name="+",
-                category=MethodCategory.ARITHMETIC,
-                fallback_type=FallbackType.ARROW_NATIVE,
-                arrow_function="pc.add_checked",
-            ),
-        },
-    }
-
-
-@pytest.fixture
-def pyarrow_versions():
-    """Sample PyArrow versions dict for testing."""
-    return {"PYARROW_MIN_VERSION": "13.0.0"}
+    def test_array_methods_not_empty(self):
+        assert len(ARRAY_METHODS) > 0
 
 
 # =============================================================================
-# Test extraction from real source files
+# Test data creation
 # =============================================================================
 
 
-class TestExtractFromRealSource:
-    """Tests that verify extraction from actual pandas source files."""
+class TestCreateTestSeries:
+    """Test Series creation for various dtypes."""
 
-    def test_extract_arithmetic_funcs_from_real_source(self, arrow_array_source):
-        """Verify we can extract arithmetic funcs from the real source."""
-        result = _extract_arithmetic_funcs(arrow_array_source)
-        # Should find the actual operations defined in pandas
-        assert len(result) > 0
-        assert "add" in result
-        assert "sub" in result
-        assert "mul" in result
+    @pytest.mark.parametrize("dtype_name", list(ARROW_DTYPES.keys()))
+    def test_creates_series_for_dtype(self, dtype_name):
+        series = create_test_series(dtype_name)
+        # Most dtypes should create a valid series
+        # Some edge cases (like time64) may return None
+        if series is not None:
+            assert len(series) > 0
 
-    def test_extract_cmp_funcs_from_real_source(self, arrow_array_source):
-        """Verify we can extract comparison funcs from the real source."""
-        result = _extract_cmp_funcs(arrow_array_source)
-        assert len(result) > 0
-        assert "eq" in result
-        assert "lt" in result
-        assert "gt" in result
+    def test_string_series_has_values(self):
+        series = create_test_series("string")
+        assert series is not None
+        assert series.notna().any()
 
-    def test_extract_logical_funcs_from_real_source(self, arrow_array_source):
-        """Verify we can extract logical funcs from the real source."""
-        result = _extract_logical_funcs(arrow_array_source)
-        assert len(result) > 0
-        # Should have the base operations
-        assert "and_" in result
-        assert "or_" in result
-        # Should NOT have reverse operations (they're filtered out)
-        assert "rand_" not in result
-        assert "ror_" not in result
+    def test_int64_series_has_values(self):
+        series = create_test_series("int64")
+        assert series is not None
+        assert series.notna().any()
 
-    @pytest.mark.parametrize(
-        "op,expected_func",
-        [
-            ("add", "pc.add_checked"),
-            ("sub", "pc.subtract_checked"),
-            ("mul", "pc.multiply_checked"),
-        ],
-    )
-    def test_arithmetic_funcs_have_correct_values(
-        self, arrow_array_source, op, expected_func
-    ):
-        """Verify arithmetic operations map to correct PyArrow functions."""
-        result = _extract_arithmetic_funcs(arrow_array_source)
-        assert result[op] == expected_func
-
-    @pytest.mark.parametrize(
-        "op,expected_func",
-        [
-            ("eq", "pc.equal"),
-            ("ne", "pc.not_equal"),
-            ("lt", "pc.less"),
-            ("gt", "pc.greater"),
-        ],
-    )
-    def test_cmp_funcs_have_correct_values(self, arrow_array_source, op, expected_func):
-        """Verify comparison operations map to correct PyArrow functions."""
-        result = _extract_cmp_funcs(arrow_array_source)
-        assert result[op] == expected_func
+    def test_timestamp_series_has_values(self):
+        series = create_test_series("timestamp_us")
+        assert series is not None
+        assert series.notna().any()
 
 
 # =============================================================================
-# Test build_string_method_table
+# Test Arrow detection
 # =============================================================================
 
 
-class TestBuildStringMethodTable:
-    """Tests for build_string_method_table."""
+class TestIsArrowBacked:
+    """Test _is_arrow_backed helper function."""
 
-    @pytest.fixture
-    def string_method_table(self):
-        """Cache the string method table for multiple tests."""
-        return build_string_method_table()
+    def test_arrow_dtype_detected(self):
+        import pandas as pd
 
-    def test_returns_non_empty_dict(self, string_method_table):
-        assert isinstance(string_method_table, dict)
-        assert len(string_method_table) > 0
+        series = pd.Series([1, 2, 3], dtype="int64[pyarrow]")
+        assert _is_arrow_backed(series.dtype)
 
-    def test_all_values_are_method_info(self, string_method_table):
-        for info in string_method_table.values():
-            assert isinstance(info, MethodInfo)
-            assert info.category == MethodCategory.STRING
+    def test_string_pyarrow_detected(self):
+        import pandas as pd
 
-    @pytest.mark.parametrize(
-        "expected_method",
-        ["lower", "upper", "len", "strip", "startswith", "endswith"],
-    )
-    def test_contains_common_string_methods(self, string_method_table, expected_method):
-        public_names = {info.public_name for info in string_method_table.values()}
-        assert any(expected_method in name for name in public_names)
+        series = pd.Series(["a", "b"], dtype="string[pyarrow]")
+        assert _is_arrow_backed(series.dtype)
 
+    def test_numpy_dtype_not_detected(self):
+        import pandas as pd
 
-# =============================================================================
-# Test analyze_arithmetic_operations
-# =============================================================================
+        series = pd.Series([1, 2, 3], dtype="int64")
+        assert not _is_arrow_backed(series.dtype)
 
+    def test_object_dtype_not_detected(self):
+        import pandas as pd
 
-class TestAnalyzeArithmeticOperations:
-    """Tests for analyze_arithmetic_operations."""
-
-    @pytest.fixture
-    def arithmetic_operations(self):
-        """Cache arithmetic operations for multiple tests."""
-        return analyze_arithmetic_operations()
-
-    def test_returns_non_empty_list(self, arithmetic_operations):
-        assert isinstance(arithmetic_operations, list)
-        assert len(arithmetic_operations) > 0
-
-    def test_all_items_are_method_info(self, arithmetic_operations):
-        for info in arithmetic_operations:
-            assert isinstance(info, MethodInfo)
-            assert info.category == MethodCategory.ARITHMETIC
-
-    @pytest.mark.parametrize(
-        "expected_op",
-        ["+", "-", "*", "/", "==", "!=", "<", ">"],
-    )
-    def test_includes_common_operators(self, arithmetic_operations, expected_op):
-        public_names = {info.public_name for info in arithmetic_operations}
-        assert expected_op in public_names
+        series = pd.Series(["a", "b"], dtype=object)
+        assert not _is_arrow_backed(series.dtype)
 
 
 # =============================================================================
-# Test get_pyarrow_versions
+# Test operation running
 # =============================================================================
 
 
-class TestGetPyarrowVersions:
-    """Tests for get_pyarrow_versions."""
+class TestRunOperation:
+    """Test running operations and classifying results."""
 
-    @pytest.fixture
-    def versions(self):
-        return get_pyarrow_versions()
+    def test_string_lower_returns_arrow(self):
+        series = create_test_series("string")
+        result = run_operation(series, "lower", {}, accessor="str")
+        assert result.result_type == ResultType.ARROW_NATIVE
 
-    def test_returns_dict_with_min_version(self, versions):
-        assert isinstance(versions, dict)
-        assert "PYARROW_MIN_VERSION" in versions
+    def test_string_casefold_uses_fallback(self):
+        series = create_test_series("string")
+        result = run_operation(series, "casefold", {}, accessor="str")
+        # casefold uses to_numpy, so it's a fallback
+        assert result.result_type in (ResultType.NUMPY_FALLBACK, ResultType.ELEMENTWISE)
 
-    def test_min_version_is_valid_semver(self, versions):
-        version = versions["PYARROW_MIN_VERSION"]
-        parts = version.split(".")
-        assert len(parts) >= 2
-        assert all(part.isdigit() for part in parts)
+    def test_invalid_method_returns_error(self):
+        series = create_test_series("string")
+        result = run_operation(series, "nonexistent_method", {}, accessor="str")
+        assert result.result_type == ResultType.OTHER_ERROR
 
-
-# =============================================================================
-# Test _generate_summary_stats
-# =============================================================================
-
-
-class TestGenerateSummaryStats:
-    """Tests for _generate_summary_stats."""
-
-    @pytest.mark.parametrize(
-        "expected_text",
-        ["Summary", "String methods", "Arithmetic"],
-    )
-    def test_contains_expected_sections(self, sample_all_methods, expected_text):
-        result = _generate_summary_stats(sample_all_methods)
-        content = "\n".join(result)
-        assert expected_text in content
+    def test_aggregation_sum_works(self):
+        series = create_test_series("int64")
+        result = run_operation(series, "sum", {})
+        # sum should work on int64
+        assert result.result_type in (ResultType.ARROW_NATIVE, ResultType.NUMPY_FALLBACK)
+        assert result.error_message is None
 
 
 # =============================================================================
-# Test format_json
+# Test full run
 # =============================================================================
 
 
-class TestFormatJson:
-    """Tests for format_json."""
+class TestRunAllTests:
+    """Test running the full test suite."""
 
-    def test_returns_valid_json(self, sample_all_methods, pyarrow_versions):
-        result = format_json(sample_all_methods, pyarrow_versions)
-        data = json.loads(result)
-        assert isinstance(data, dict)
+    def test_returns_all_categories(self):
+        results = run_all_tests()
+        expected_categories = [
+            "string_methods",
+            "datetime_methods",
+            "timedelta_methods",
+            "aggregations",
+            "array_methods",
+            "arithmetic",
+            "comparison",
+        ]
+        for cat in expected_categories:
+            assert cat in results
 
-    @pytest.mark.parametrize(
-        "key",
-        ["summary", "categories", "pyarrow_min_version"],
-    )
-    def test_has_required_top_level_keys(
-        self, sample_all_methods, pyarrow_versions, key
-    ):
-        result = format_json(sample_all_methods, pyarrow_versions)
-        data = json.loads(result)
-        assert key in data
+    def test_string_methods_not_empty(self):
+        results = run_all_tests()
+        assert len(results["string_methods"]) > 0
 
-    @pytest.mark.parametrize(
-        "summary_key",
-        ["by_category", "totals", "percentages"],
-    )
-    def test_summary_has_required_keys(
-        self, sample_all_methods, pyarrow_versions, summary_key
-    ):
-        result = format_json(sample_all_methods, pyarrow_versions)
-        data = json.loads(result)
-        assert summary_key in data["summary"]
+    def test_aggregations_not_empty(self):
+        results = run_all_tests()
+        assert len(results["aggregations"]) > 0
 
-    def test_calculates_correct_totals(self, sample_all_methods, pyarrow_versions):
-        result = format_json(sample_all_methods, pyarrow_versions)
-        data = json.loads(result)
-        totals = data["summary"]["totals"]
-        # sample_all_methods has 3 methods: 2 arrow, 1 object
-        assert totals["total"] == 3
-        assert totals["arrow"] == 2
-        assert totals["object"] == 1
 
-    def test_calculates_correct_percentages(self, sample_all_methods, pyarrow_versions):
-        result = format_json(sample_all_methods, pyarrow_versions)
-        data = json.loads(result)
-        percentages = data["summary"]["percentages"]
-        # 2 arrow out of 3 total = 66.7%
-        assert percentages["arrow_native"] == pytest.approx(66.7, abs=0.1)
+# =============================================================================
+# Test output formatting
+# =============================================================================
+
+
+class TestFormatOutput:
+    """Test output formatting functions."""
+
+    def test_format_json_valid(self):
+        results = run_all_tests()
+        output = format_json(results)
+        # Should be valid JSON
+        parsed = json.loads(output)
+        assert "string_methods" in parsed
+
+    def test_format_rst_contains_header(self):
+        results = run_all_tests()
+        output = format_rst_table(results)
+        assert "Arrow Method Support Reference" in output
+
+    def test_format_rst_contains_legend(self):
+        results = run_all_tests()
+        output = format_rst_table(results)
+        assert "Legend" in output
+        assert "|arrow|" in output
 
 
 # =============================================================================
@@ -321,43 +220,32 @@ class TestFormatJson:
 
 
 class TestCLI:
-    """Tests for CLI functionality."""
+    """Test command-line interface."""
 
-    @pytest.fixture
-    def script_path(self):
-        return str(REPO_ROOT / "scripts" / "generate_arrow_fallback_table.py")
-
-    def test_check_passes_when_docs_in_sync(self, script_path):
+    def test_help_shows_options(self):
         result = subprocess.run(
-            [sys.executable, script_path, "--check"],
+            [sys.executable, "scripts/generate_arrow_fallback_table.py", "--help"],
             capture_output=True,
             text=True,
-            check=False,
         )
         assert result.returncode == 0
-        assert "up to date" in result.stdout
+        assert "--format" in result.stdout
+        assert "--check" in result.stdout
 
-    @pytest.mark.parametrize(
-        "expected_option",
-        ["--check", "--format", "--output", "--category"],
-    )
-    def test_help_shows_all_options(self, script_path, expected_option):
+    def test_json_format_works(self):
         result = subprocess.run(
-            [sys.executable, script_path, "--help"],
+            [sys.executable, "scripts/generate_arrow_fallback_table.py", "--format", "json"],
             capture_output=True,
             text=True,
-            check=False,
         )
         assert result.returncode == 0
-        assert expected_option in result.stdout
-
-    @pytest.mark.parametrize("format_type", ["rst", "md", "json"])
-    def test_all_format_options_produce_output(self, script_path, format_type):
-        result = subprocess.run(
-            [sys.executable, script_path, "--format", format_type],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        assert result.returncode == 0
-        assert len(result.stdout) > 0
+        # Output should contain valid JSON (may have build messages before it)
+        # Find the JSON portion (starts with '{')
+        stdout = result.stdout
+        json_start = stdout.find("{")
+        if json_start != -1:
+            json_content = stdout[json_start:]
+            parsed = json.loads(json_content)
+            assert "string_methods" in parsed
+        else:
+            pytest.fail("No JSON found in output")

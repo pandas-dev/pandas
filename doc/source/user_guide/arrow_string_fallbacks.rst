@@ -6,11 +6,8 @@
 Arrow Method Support Reference
 ******************************
 
-This document provides a comprehensive reference of which pandas methods
-use native PyArrow compute functions vs. falling back to Python/NumPy
-implementations when using Arrow-backed arrays.
-
-Minimum PyArrow version: **13.0.0**
+This document shows the runtime behavior of pandas methods on Arrow-backed arrays.
+Results are determined by actually running each operation and observing the outcome.
 
 Legend
 ======
@@ -22,842 +19,1387 @@ Legend
    * - Status
      - Description
    * - |arrow|
-     - Uses native PyArrow compute kernel
-   * - |conditional|
-     - Uses Arrow by default, falls back to Python for certain parameters
-   * - |version|
-     - Behavior depends on PyArrow version
-   * - |pyfallback|
-     - Python fallback (combines |elementwise| + |object| in summary table)
+     - Operation returns Arrow-backed result
+   * - |numpy|
+     - Operation falls back to NumPy
    * - |elementwise|
-     - Processes elements one-by-one in Python (not vectorized)
+     - Uses element-wise Python processing
    * - |object|
-     - Converts to Python objects, then processes element-by-element
+     - Returns object dtype
    * - |notimpl|
-     - Not implemented for Arrow arrays
+     - Raises NotImplementedError
+   * - |typeerror|
+     - Not supported for this dtype
+   * - |error|
+     - Other error
 
-.. |arrow| replace:: Arrow
-.. |conditional| replace:: Conditional
-.. |version| replace:: Version-gated
-.. |pyfallback| replace:: Py fallback
-.. |elementwise| replace:: Element-wise
-.. |object| replace:: Object fallback
-.. |notimpl| replace:: Not implemented
-
-
-Summary
-=======
-
-.. list-table::
-   :widths: 30 12 12 12 12 12 10
-   :header-rows: 1
-
-   * - Category
-     - |arrow|
-     - |conditional|
-     - |version|
-     - |pyfallback|
-     - |notimpl|
-     - Total
-   * - String methods
-     - 25
-     - 4
-     - 2
-     - 24
-     - 0
-     - 55
-   * - Arithmetic & comparison
-     - 15
-     - 6
-     - 0
-     - 0
-     - 4
-     - 25
-   * - Datetime methods
-     - 35
-     - 0
-     - 0
-     - 9
-     - 0
-     - 44
-   * - Aggregation methods
-     - 9
-     - 2
-     - 1
-     - 0
-     - 1
-     - 13
-   * - Array methods
-     - 9
-     - 7
-     - 0
-     - 3
-     - 0
-     - 19
-   * - List accessor
-     - 2
-     - 1
-     - 0
-     - 0
-     - 0
-     - 3
-   * - Struct accessor
-     - 3
-     - 0
-     - 0
-     - 0
-     - 0
-     - 3
-   * - **Total**
-     - **98**
-     - **20**
-     - **3**
-     - **36**
-     - **5**
-     - **162**
-
-**98** methods (60%) use native Arrow.
-**20** methods (12%) use Arrow with conditional fallbacks.
-Overall, **73%** have Arrow-native code paths.
+.. |arrow| replace:: ✓ Arrow
+.. |numpy| replace:: → NumPy
+.. |elementwise| replace:: ⟳ Elem
+.. |object| replace:: → Object
+.. |notimpl| replace:: ✗ N/I
+.. |typeerror| replace:: ✗ Type
+.. |error| replace:: ✗ Err
 
 
 String Methods (Series.str.*)
 =============================
 
 .. list-table::
-   :widths: 20 12 25 43
+   :widths: 20 10 10
    :header-rows: 1
 
    * - Method
-     - Status
-     - Arrow Function
-     - Notes
-   * - ``str.accumulate``
-     - |object|
-     - ``pc.all``
-     - Falls back for dtype='string[pyarrow]'; ArrowDtype uses _apply_elementwise()
-   * - ``str.capitalize``
+     - large_string
+     - string
+   * - ``capitalize``
      - |arrow|
-     - ``pc.utf8_capitalize``
-     - -
-   * - ``str.casefold``
-     - |object|
-     - -
-     - Falls back for dtype='string[pyarrow]'; ArrowDtype uses _apply_elementwise()
-   * - ``str.contains``
-     - |conditional|
-     - -
-     - Falls back: case-insensitive matching; compiled regex pattern (+1 more)
-   * - ``str.count``
-     - |conditional|
-     - ``pc.count_substring_regex``
-     - Falls back: regex flags used
-   * - ``str.encode``
-     - |object|
-     - -
-     - Falls back for dtype='string[pyarrow]'; ArrowDtype uses _apply_elementwise()
-   * - ``str.endswith``
      - |arrow|
-     - ``pc.ends_with``
-     - -
-   * - ``str.extract``
-     - |object|
-     - ``pc.extract_regex``
-     - Falls back: regex flags used | Falls back for dtype='string[pyarrow]'; ArrowDtype uses _apply_elementwise()
-   * - ``str.find``
-     - |conditional|
-     - ``pc.find_substring``
-     - Falls back: start/end parameters with edge cases | _apply_elementwise() fallback; Related: GH#56792
-   * - ``str.find_``
-     - |object|
-     - -
-     - Object fallback
-   * - ``str.findall``
-     - |object|
-     - -
-     - Falls back: regex flags used | Falls back for dtype='string[pyarrow]'; ArrowDtype uses _apply_elementwise()
-   * - ``str.fullmatch``
-     - |object|
-     - -
-     - Falls back: compiled regex pattern; regex flags used | via ObjectStringArrayMixin
-   * - ``str.get``
+   * - ``casefold``
+     - |elementwise|
+     - |numpy|
+   * - ``center``
      - |arrow|
-     - ``pc.utf8_length``
-     - -
-   * - ``str.get_dummies``
-     - |object|
-     - ``pc.split_pattern``
-     - Falls back for dtype='string[pyarrow]'; ArrowDtype uses _apply_elementwise()
-   * - ``str.getitem``
-     - |object|
-     - -
-     - Object fallback
-   * - ``str.index``
-     - |object|
-     - -
-     - Falls back: start/end parameters with edge cases | Falls back for dtype='string[pyarrow]'; ArrowDtype uses _apply_elementwise()
-   * - ``str.isalnum``
      - |arrow|
-     - ``pc.utf8_is_alnum``
-     - -
-   * - ``str.isalpha``
+   * - ``contains``
      - |arrow|
-     - ``pc.utf8_is_alpha``
-     - -
-   * - ``str.isascii``
+     - |numpy|
+   * - ``count``
      - |arrow|
-     - ``pc.string_is_ascii``
-     - -
-   * - ``str.isdecimal``
+     - |numpy|
+   * - ``encode``
+     - |elementwise|
+     - |numpy|
+   * - ``endswith``
      - |arrow|
-     - ``pc.utf8_is_decimal``
-     - -
-   * - ``str.isdigit``
-     - |version|
-     - ``pc.utf8_is_digit``
-     - Requires PyArrow >= 21.0.0 | Falls back: PyArrow < 21.0.0
-   * - ``str.islower``
+     - |numpy|
+   * - ``extract``
+     - |error|
+     - |numpy|
+   * - ``extractall``
      - |arrow|
-     - ``pc.utf8_is_lower``
-     - -
-   * - ``str.isnumeric``
      - |arrow|
-     - ``pc.utf8_is_numeric``
-     - -
-   * - ``str.isspace``
+   * - ``find``
      - |arrow|
-     - ``pc.utf8_is_space``
-     - -
-   * - ``str.istitle``
+     - |numpy|
+   * - ``findall``
+     - |elementwise|
+     - |numpy|
+   * - ``fullmatch``
      - |arrow|
-     - ``pc.utf8_is_title``
-     - -
-   * - ``str.isupper``
+     - |numpy|
+   * - ``get``
      - |arrow|
-     - ``pc.utf8_is_upper``
-     - -
-   * - ``str.join``
-     - |object|
-     - ``pc.binary_join``
-     - Falls back for dtype='string[pyarrow]'; ArrowDtype uses _apply_elementwise()
-   * - ``str.len``
      - |arrow|
-     - ``pc.utf8_length``
-     - -
-   * - ``str.lower``
+   * - ``get_dummies``
+     - |numpy|
+     - |numpy|
+   * - ``index``
+     - |error|
+     - |error|
+   * - ``isalnum``
      - |arrow|
-     - ``pc.utf8_lower``
-     - -
-   * - ``str.lstrip``
+     - |numpy|
+   * - ``isalpha``
      - |arrow|
-     - ``pc.utf8_ltrim_whitespace``
-     - -
-   * - ``str.map``
-     - |object|
-     - -
-     - Object fallback
-   * - ``str.match``
-     - |object|
-     - -
-     - Falls back: compiled regex pattern; regex flags used | via ObjectStringArrayMixin
-   * - ``str.normalize``
-     - |object|
-     - -
-     - Falls back for dtype='string[pyarrow]'; ArrowDtype uses _apply_elementwise()
-   * - ``str.pad/center/ljust/rjust``
-     - |version|
-     - -
-     - Requires PyArrow >= 17.0.0 | Falls back: PyArrow < 17.0.0 | Converts to object dtype; Related: GH#59624
-   * - ``str.partition``
-     - |object|
-     - -
-     - Falls back for dtype='string[pyarrow]'; ArrowDtype uses _apply_elementwise()
-   * - ``str.removeprefix``
+     - |numpy|
+   * - ``isascii``
      - |arrow|
-     - ``pc.starts_with``
-     - -
-   * - ``str.removesuffix``
+     - |numpy|
+   * - ``isdecimal``
      - |arrow|
-     - ``pc.ends_with``
-     - -
-   * - ``str.repeat``
-     - |object|
-     - -
-     - Falls back: array-like repeats | via ObjectStringArrayMixin
-   * - ``str.replace``
-     - |conditional|
-     - -
-     - Falls back: callable replacement; case-insensitive matching (+3 more) | Raises: replace is not supported with a re.Pattern, cal...
-   * - ``str.rfind``
-     - |object|
-     - -
-     - Falls back: start/end parameters with edge cases | Falls back for dtype='string[pyarrow]'; ArrowDtype uses _apply_elementwise()
-   * - ``str.rindex``
-     - |object|
-     - -
-     - Falls back: start/end parameters with edge cases | Falls back for dtype='string[pyarrow]'; ArrowDtype uses _apply_elementwise()
-   * - ``str.rpartition``
-     - |object|
-     - -
-     - Falls back for dtype='string[pyarrow]'; ArrowDtype uses _apply_elementwise()
-   * - ``str.rsplit``
-     - |object|
-     - ``pc.utf8_split_whitespace``
-     - Falls back for dtype='string[pyarrow]'; ArrowDtype uses _apply_elementwise()
-   * - ``str.rstrip``
+     - |numpy|
+   * - ``isdigit``
      - |arrow|
-     - ``pc.utf8_rtrim_whitespace``
-     - -
-   * - ``str.slice``
+     - |numpy|
+   * - ``islower``
      - |arrow|
-     - ``pc.utf8_slice_codeunits``
-     - Related: GH#59710
-   * - ``str.slice_replace``
+     - |numpy|
+   * - ``isnumeric``
      - |arrow|
-     - ``pc.utf8_replace_slice``
-     - -
-   * - ``str.split``
-     - |object|
-     - -
-     - Falls back for dtype='string[pyarrow]'; ArrowDtype uses _apply_elementwise()
-   * - ``str.startswith``
+     - |numpy|
+   * - ``isspace``
      - |arrow|
-     - ``pc.starts_with``
-     - -
-   * - ``str.strip``
+     - |numpy|
+   * - ``istitle``
      - |arrow|
-     - ``pc.utf8_trim_whitespace``
-     - -
-   * - ``str.swapcase``
+     - |numpy|
+   * - ``isupper``
      - |arrow|
-     - ``pc.utf8_swapcase``
-     - -
-   * - ``str.title``
+     - |numpy|
+   * - ``join``
+     - |elementwise|
+     - |numpy|
+   * - ``len``
      - |arrow|
-     - ``pc.utf8_title``
-     - -
-   * - ``str.translate``
-     - |object|
-     - -
-     - Falls back for dtype='string[pyarrow]'; ArrowDtype uses _apply_elementwise()
-   * - ``str.upper``
+     - |numpy|
+   * - ``ljust``
      - |arrow|
-     - ``pc.utf8_upper``
-     - -
-   * - ``str.wrap``
-     - |object|
-     - -
-     - Falls back for dtype='string[pyarrow]'; ArrowDtype uses _apply_elementwise()
-   * - ``str.zfill``
-     - |object|
-     - ``pc.utf8_zfill``
-     - Falls back: PyArrow < 21.0.0 | Falls back for dtype='string[pyarrow]'; ArrowDtype uses _apply_elementwise()
-
-Arithmetic & Comparison Operations
-==================================
-
-.. list-table::
-   :widths: 20 12 25 43
-   :header-rows: 1
-
-   * - Method
-     - Status
-     - Arrow Function
-     - Notes
-   * - ``!=``
-     - |conditional|
-     - ``pc.not_equal``
-     - Falls back: ArrowNotImplementedError for unsupported type combinations
-   * - ``%``
-     - |notimpl|
-     - -
-     - Not supported for Arrow arrays, raises TypeError
-   * - ``% (right)``
-     - |notimpl|
-     - -
-     - Not supported for Arrow arrays, raises TypeError
-   * - ``&``
      - |arrow|
-     - ``pc.and_kleene``
-     - Uses Kleene logic for boolean, bit_wise for integers
-   * - ``*``
+   * - ``lower``
      - |arrow|
-     - ``pc.multiply_checked``
-     - -
-   * - ``* (right)``
      - |arrow|
-     - ``pc.multiply_checked``
-     - -
-   * - ``**``
+   * - ``lstrip``
      - |arrow|
-     - ``pc.power_checked``
-     - -
-   * - ``** (right)``
      - |arrow|
-     - ``pc.power_checked``
-     - -
-   * - ``+``
+   * - ``match``
      - |arrow|
-     - ``pc.add_checked``
-     - -
-   * - ``+ (right)``
+     - |numpy|
+   * - ``normalize``
+     - |elementwise|
+     - |numpy|
+   * - ``pad``
      - |arrow|
-     - ``pc.add_checked``
-     - -
-   * - ``-``
      - |arrow|
-     - ``pc.subtract_checked``
-     - -
-   * - ``- (right)``
+   * - ``partition``
+     - |elementwise|
+     - |numpy|
+   * - ``removeprefix``
      - |arrow|
-     - ``pc.subtract_checked``
-     - -
-   * - ``/``
      - |arrow|
-     - ``pc.divide``
-     - -
-   * - ``/ (right)``
+   * - ``removesuffix``
      - |arrow|
-     - ``pc.divide``
-     - -
-   * - ``//``
      - |arrow|
-     - ``floordiv_compat``
-     - -
-   * - ``// (right)``
+   * - ``repeat``
      - |arrow|
-     - ``floordiv_compat``
-     - -
-   * - ``<``
-     - |conditional|
-     - ``pc.less``
-     - Falls back: ArrowNotImplementedError for unsupported type combinations
-   * - ``<=``
-     - |conditional|
-     - ``pc.less_equal``
-     - Falls back: ArrowNotImplementedError for unsupported type combinations
-   * - ``==``
-     - |conditional|
-     - ``pc.equal``
-     - Falls back: ArrowNotImplementedError for unsupported type combinations
-   * - ``>``
-     - |conditional|
-     - ``pc.greater``
-     - Falls back: ArrowNotImplementedError for unsupported type combinations
-   * - ``>=``
-     - |conditional|
-     - ``pc.greater_equal``
-     - Falls back: ArrowNotImplementedError for unsupported type combinations
-   * - ``^``
      - |arrow|
-     - ``pc.xor``
-     - Uses Kleene logic for boolean, bit_wise for integers
-   * - ``divmod``
-     - |notimpl|
-     - -
-     - Not supported for Arrow arrays, raises TypeError
-   * - ``divmod (right)``
-     - |notimpl|
-     - -
-     - Not supported for Arrow arrays, raises TypeError
-   * - ``|``
+   * - ``replace``
      - |arrow|
-     - ``pc.or_kleene``
-     - Uses Kleene logic for boolean, bit_wise for integers
+     - |arrow|
+   * - ``rfind``
+     - |elementwise|
+     - |numpy|
+   * - ``rindex``
+     - |error|
+     - |error|
+   * - ``rjust``
+     - |arrow|
+     - |arrow|
+   * - ``rpartition``
+     - |elementwise|
+     - |numpy|
+   * - ``rsplit``
+     - |arrow|
+     - |numpy|
+   * - ``rstrip``
+     - |arrow|
+     - |arrow|
+   * - ``slice``
+     - |arrow|
+     - |arrow|
+   * - ``slice_replace``
+     - |arrow|
+     - |arrow|
+   * - ``split``
+     - |arrow|
+     - |numpy|
+   * - ``startswith``
+     - |arrow|
+     - |numpy|
+   * - ``strip``
+     - |arrow|
+     - |arrow|
+   * - ``swapcase``
+     - |arrow|
+     - |arrow|
+   * - ``title``
+     - |arrow|
+     - |arrow|
+   * - ``translate``
+     - |elementwise|
+     - |numpy|
+   * - ``upper``
+     - |arrow|
+     - |arrow|
+   * - ``wrap``
+     - |elementwise|
+     - |numpy|
+   * - ``zfill``
+     - |arrow|
+     - |numpy|
 
 Datetime Methods (Series.dt.*)
 ==============================
 
 .. list-table::
-   :widths: 20 12 25 43
+   :widths: 20 10 10 10
    :header-rows: 1
 
    * - Method
-     - Status
-     - Arrow Function
-     - Notes
-   * - ``dt.as_unit``
+     - timestamp[ns]
+     - timestamp[us_tz]
+     - timestamp[us]
+   * - ``as_unit``
      - |arrow|
-     - ``pc.cast``
-     - -
-   * - ``dt.ceil``
      - |arrow|
-     - -
-     - -
-   * - ``dt.date``
      - |arrow|
-     - ``ChunkedArray.cast``
-     - -
-   * - ``dt.day``
+   * - ``ceil``
      - |arrow|
-     - ``pc.day``
-     - -
-   * - ``dt.day_name``
      - |arrow|
-     - ``pc.strftime``
-     - -
-   * - ``dt.day_of_week/dayofweek/weekday``
      - |arrow|
-     - ``pc.day_of_week``
-     - -
-   * - ``dt.day_of_year/dayofyear``
+   * - ``date``
      - |arrow|
-     - ``pc.day_of_year``
-     - -
-   * - ``dt.days``
+     - |arrow|
+     - |arrow|
+   * - ``day``
+     - |arrow|
+     - |arrow|
+     - |arrow|
+   * - ``day_name``
+     - |arrow|
+     - |arrow|
+     - |arrow|
+   * - ``day_of_week``
+     - |arrow|
+     - |arrow|
+     - |arrow|
+   * - ``day_of_year``
+     - |arrow|
+     - |arrow|
+     - |arrow|
+   * - ``dayofweek``
+     - |arrow|
+     - |arrow|
+     - |arrow|
+   * - ``dayofyear``
+     - |arrow|
+     - |arrow|
+     - |arrow|
+   * - ``days_in_month``
+     - |arrow|
+     - |arrow|
+     - |arrow|
+   * - ``daysinmonth``
+     - |arrow|
+     - |arrow|
+     - |arrow|
+   * - ``floor``
+     - |arrow|
+     - |arrow|
+     - |arrow|
+   * - ``hour``
+     - |arrow|
+     - |arrow|
+     - |arrow|
+   * - ``is_leap_year``
+     - |arrow|
+     - |arrow|
+     - |arrow|
+   * - ``is_month_end``
+     - |arrow|
+     - |arrow|
+     - |arrow|
+   * - ``is_month_start``
+     - |arrow|
+     - |arrow|
+     - |arrow|
+   * - ``is_quarter_end``
+     - |arrow|
+     - |arrow|
+     - |arrow|
+   * - ``is_quarter_start``
+     - |arrow|
+     - |arrow|
+     - |arrow|
+   * - ``is_year_end``
+     - |arrow|
+     - |arrow|
+     - |arrow|
+   * - ``is_year_start``
+     - |arrow|
+     - |arrow|
+     - |arrow|
+   * - ``isocalendar``
+     - |arrow|
+     - |arrow|
+     - |arrow|
+   * - ``microsecond``
+     - |arrow|
+     - |arrow|
+     - |arrow|
+   * - ``minute``
+     - |arrow|
+     - |arrow|
+     - |arrow|
+   * - ``month``
+     - |arrow|
+     - |arrow|
+     - |arrow|
+   * - ``month_name``
+     - |arrow|
+     - |arrow|
+     - |arrow|
+   * - ``nanosecond``
+     - |arrow|
+     - |arrow|
+     - |arrow|
+   * - ``normalize``
+     - |arrow|
+     - |arrow|
+     - |arrow|
+   * - ``quarter``
+     - |arrow|
+     - |arrow|
+     - |arrow|
+   * - ``round``
+     - |arrow|
+     - |arrow|
+     - |arrow|
+   * - ``second``
+     - |arrow|
+     - |arrow|
+     - |arrow|
+   * - ``strftime``
+     - |typeerror|
+     - |typeerror|
+     - |typeerror|
+   * - ``time``
+     - |arrow|
+     - |arrow|
+     - |arrow|
+   * - ``to_pydatetime``
      - |object|
-     - -
-     - via to_numpy(); via TimedeltaArray; .components.days
-   * - ``dt.days_in_month/daysinmonth``
-     - |arrow|
-     - ``pc.days_between``
-     - -
-   * - ``dt.floor``
-     - |arrow|
-     - -
-     - -
-   * - ``dt.hour``
-     - |arrow|
-     - ``pc.hour``
-     - -
-   * - ``dt.hours (td)``
      - |object|
-     - -
-     - via to_numpy(); via TimedeltaArray; .components.hours
-   * - ``dt.is_leap_year``
-     - |arrow|
-     - ``pc.is_leap_year``
-     - -
-   * - ``dt.is_month_end``
-     - |arrow|
-     - ``pc.equal``
-     - -
-   * - ``dt.is_month_start``
-     - |arrow|
-     - ``pc.equal``
-     - -
-   * - ``dt.is_quarter_end``
-     - |arrow|
-     - ``pc.equal``
-     - -
-   * - ``dt.is_quarter_start``
-     - |arrow|
-     - ``pc.equal``
-     - -
-   * - ``dt.is_year_end``
-     - |arrow|
-     - ``pc.and_``
-     - -
-   * - ``dt.is_year_start``
-     - |arrow|
-     - ``pc.and_``
-     - -
-   * - ``dt.isocalendar``
-     - |arrow|
-     - ``pc.iso_calendar``
-     - -
-   * - ``dt.microsecond``
-     - |arrow|
-     - ``pc.microsecond``
-     - -
-   * - ``dt.microseconds (td)``
      - |object|
-     - -
-     - via to_numpy(); via TimedeltaArray; .components.microseconds
-   * - ``dt.milliseconds``
-     - |object|
-     - -
-     - via to_numpy(); via TimedeltaArray; .components.milliseconds
-   * - ``dt.minute``
+   * - ``tz``
      - |arrow|
-     - ``pc.minute``
-     - -
-   * - ``dt.minutes (td)``
-     - |object|
-     - -
-     - via to_numpy(); via TimedeltaArray; .components.minutes
-   * - ``dt.month``
      - |arrow|
-     - ``pc.month``
-     - -
-   * - ``dt.month_name``
      - |arrow|
-     - ``pc.strftime``
-     - -
-   * - ``dt.nanosecond``
+   * - ``tz_convert``
+     - |error|
      - |arrow|
-     - ``pc.nanosecond``
-     - -
-   * - ``dt.nanoseconds (td)``
-     - |object|
-     - -
-     - via to_numpy(); via TimedeltaArray; .components.nanoseconds
-   * - ``dt.normalize``
+     - |error|
+   * - ``tz_localize``
      - |arrow|
-     - ``pc.floor_temporal``
-     - -
-   * - ``dt.quarter``
+     - |error|
      - |arrow|
-     - ``pc.quarter``
-     - -
-   * - ``dt.round``
+   * - ``unit``
      - |arrow|
-     - -
-     - -
-   * - ``dt.second``
      - |arrow|
-     - ``pc.second``
-     - -
-   * - ``dt.seconds (td)``
-     - |object|
-     - -
-     - via to_numpy(); via TimedeltaArray; .components.seconds
-   * - ``dt.strftime``
      - |arrow|
-     - ``pc.strftime``
-     - -
-   * - ``dt.time``
+   * - ``weekday``
      - |arrow|
-     - ``ChunkedArray.cast``
-     - -
-   * - ``dt.to_pydatetime``
-     - |object|
-     - -
-     - via to_numpy(); via pylist
-   * - ``dt.to_pytimedelta``
-     - |object|
-     - -
-     - via to_numpy(); via pylist
-   * - ``dt.total_seconds``
      - |arrow|
-     - ``pc.divide``
-     - -
-   * - ``dt.tz``
      - |arrow|
-     - -
-     - -
-   * - ``dt.tz_convert``
+   * - ``year``
      - |arrow|
-     - ``ChunkedArray.cast``
-     - -
-   * - ``dt.tz_localize``
      - |arrow|
-     - ``pc.local_timestamp``
-     - -
-   * - ``dt.unit``
      - |arrow|
-     - -
-     - -
-   * - ``dt.year``
-     - |arrow|
-     - ``pc.year``
-     - -
 
-Series Aggregation Methods (Series.sum(), etc.)
-===============================================
+Timedelta Methods (Series.dt.*)
+===============================
 
 .. list-table::
-   :widths: 20 12 25 43
+   :widths: 20 10 10
    :header-rows: 1
 
    * - Method
-     - Status
-     - Arrow Function
-     - Notes
+     - duration[ns]
+     - duration[us]
+   * - ``as_unit``
+     - |arrow|
+     - |arrow|
+   * - ``days``
+     - |numpy|
+     - |numpy|
+   * - ``microseconds``
+     - |numpy|
+     - |numpy|
+   * - ``nanoseconds``
+     - |numpy|
+     - |numpy|
+   * - ``seconds``
+     - |numpy|
+     - |numpy|
+   * - ``to_pytimedelta``
+     - |arrow|
+     - |arrow|
+   * - ``total_seconds``
+     - |arrow|
+     - |arrow|
+
+Aggregation Methods
+===================
+
+.. list-table::
+   :widths: 20 10 10 10 10 10 10 10 10 10 10
+   :header-rows: 1
+
+   * - Method
+     - double
+     - float
+     - int16
+     - int32
+     - int64
+     - int8
+     - uint16
+     - uint32
+     - uint64
+     - uint8
    * - ``all``
-     - |conditional|
-     - ``pc.all``
-     - Series-level only; converts non-bool to bool first; special handling for temporal types
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
    * - ``any``
-     - |conditional|
-     - ``pc.any``
-     - Series-level only; converts non-bool to bool first; special handling for temporal types
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+   * - ``count``
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
    * - ``kurt``
-     - |notimpl|
-     - -
-     - Not supported for Arrow arrays
+     - |typeerror|
+     - |typeerror|
+     - |typeerror|
+     - |typeerror|
+     - |typeerror|
+     - |typeerror|
+     - |typeerror|
+     - |typeerror|
+     - |typeerror|
+     - |typeerror|
    * - ``max``
      - |arrow|
-     - ``pc.max``
-     - Series-level only; special handling for temporal types
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
    * - ``mean``
      - |arrow|
-     - ``pc.mean``
-     - Series-level only; special handling for temporal types
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
    * - ``median``
      - |arrow|
-     - ``pc.quantile``
-     - Series-level only; special handling for temporal types
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
    * - ``min``
      - |arrow|
-     - ``pc.min``
-     - Series-level only; special handling for temporal types
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
    * - ``prod``
      - |arrow|
-     - ``pc.product``
-     - Series-level only; special handling for temporal types
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
    * - ``sem``
      - |arrow|
-     - ``pc.stddev / pc.sqrt_checked / pc.count / pc.divide_checked``
-     - Series-level only; computed from stddev, sqrt_checked, count, divide_checked; special handling for temporal types
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
    * - ``skew``
-     - |version|
-     - ``pc.skew``
-     - Series-level only; requires PyArrow >= 20.0
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
    * - ``std``
      - |arrow|
-     - ``pc.stddev``
-     - Series-level only; special handling for temporal types
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
    * - ``sum``
      - |arrow|
-     - ``pc.sum``
-     - Series-level only; special handling for temporal types
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
    * - ``var``
      - |arrow|
-     - ``pc.variance``
-     - Series-level only; special handling for temporal types
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
 
-.. note::
+Array Methods
+=============
 
-   The aggregation methods above apply to **Series-level** operations
-   only (e.g., ``ser.sum()``). As of this pandas version, **GroupBy**
-   **aggregations** (``df.groupby(...).sum()``) use the standard
-   pandas implementation rather than Arrow compute kernels. This may
-   change in future versions.
+.. list-table::
+   :widths: 20 10 10 10 10 10 10 10 10 10 10 10 10 10 10 10 10 10 10 10 10 10 10 10
+   :header-rows: 1
 
+   * - Method
+     - binary
+     - bool
+     - date32[day]
+     - date64[ms]
+     - double
+     - duration[ns]
+     - duration[us]
+     - float
+     - int16
+     - int32
+     - int64
+     - int8
+     - large_binary
+     - large_string
+     - string
+     - time64[us]
+     - timestamp[ns]
+     - timestamp[us_tz]
+     - timestamp[us]
+     - uint16
+     - uint32
+     - uint64
+     - uint8
+   * - ``abs``
+     - |notimpl|
+     - |notimpl|
+     - |notimpl|
+     - |notimpl|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |notimpl|
+     - |notimpl|
+     - |notimpl|
+     - |notimpl|
+     - |notimpl|
+     - |notimpl|
+     - |notimpl|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+   * - ``argsort``
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+   * - ``bfill``
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+   * - ``clip``
+     - |error|
+     - |error|
+     - |typeerror|
+     - |typeerror|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |error|
+     - |error|
+     - |error|
+     - |numpy|
+     - |numpy|
+     - |typeerror|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+   * - ``cummax``
+     - |typeerror|
+     - |typeerror|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |typeerror|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+   * - ``cummin``
+     - |typeerror|
+     - |typeerror|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |typeerror|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+   * - ``cumprod``
+     - |typeerror|
+     - |typeerror|
+     - |typeerror|
+     - |typeerror|
+     - |arrow|
+     - |typeerror|
+     - |typeerror|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |typeerror|
+     - |typeerror|
+     - |typeerror|
+     - |typeerror|
+     - |typeerror|
+     - |typeerror|
+     - |typeerror|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+   * - ``cumsum``
+     - |typeerror|
+     - |typeerror|
+     - |typeerror|
+     - |typeerror|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |typeerror|
+     - |arrow|
+     - |arrow|
+     - |typeerror|
+     - |typeerror|
+     - |typeerror|
+     - |typeerror|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+   * - ``diff``
+     - |typeerror|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |typeerror|
+     - |typeerror|
+     - |typeerror|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+   * - ``drop_duplicates``
+     - |arrow|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+   * - ``dropna``
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+   * - ``duplicated``
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+   * - ``factorize``
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+   * - ``ffill``
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+   * - ``fillna``
+     - |arrow|
+     - |arrow|
+     - |error|
+     - |error|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+   * - ``interpolate``
+     - |typeerror|
+     - |typeerror|
+     - |typeerror|
+     - |typeerror|
+     - |arrow|
+     - |typeerror|
+     - |typeerror|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |typeerror|
+     - |typeerror|
+     - |typeerror|
+     - |typeerror|
+     - |typeerror|
+     - |typeerror|
+     - |typeerror|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+   * - ``isna``
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+   * - ``notna``
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+   * - ``rank``
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |numpy|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+   * - ``round``
+     - |error|
+     - |error|
+     - |error|
+     - |error|
+     - |arrow|
+     - |error|
+     - |error|
+     - |arrow|
+     - |error|
+     - |error|
+     - |error|
+     - |error|
+     - |error|
+     - |error|
+     - |error|
+     - |error|
+     - |error|
+     - |error|
+     - |error|
+     - |error|
+     - |error|
+     - |error|
+     - |error|
+   * - ``searchsorted``
+     - |error|
+     - |error|
+     - |error|
+     - |error|
+     - |error|
+     - |error|
+     - |error|
+     - |error|
+     - |error|
+     - |error|
+     - |error|
+     - |error|
+     - |error|
+     - |error|
+     - |error|
+     - |error|
+     - |error|
+     - |error|
+     - |error|
+     - |error|
+     - |error|
+     - |error|
+     - |error|
+   * - ``shift``
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+   * - ``sort_values``
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+   * - ``unique``
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+   * - ``value_counts``
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
 
-General Array Methods
+Arithmetic Operations
 =====================
 
 .. list-table::
-   :widths: 20 12 25 43
+   :widths: 20 10 10 10 10 10 10 10 10 10 10
    :header-rows: 1
 
    * - Method
-     - Status
-     - Arrow Function
-     - Notes
-   * - ``argsort()``
+     - double
+     - float
+     - int16
+     - int32
+     - int64
+     - int8
+     - uint16
+     - uint32
+     - uint64
+     - uint8
+   * - ``add``
      - |arrow|
-     - ``pc.array_sort_indices``
-     - -
-   * - ``bfill() / backfill()``
-     - |conditional|
-     - ``pc.fill_null_backward``
-     - Falls back: limit parameter specified; limit_area parameter specified | Falls back if limit parameter specified or limit_area parameter specified
-   * - ``copy()``
      - |arrow|
-     - -
-     - -
-   * - ``cummax()``
-     - |conditional|
-     - ``pc.cumulative_max``
-     - String dtype uses NumPy fallback
-   * - ``cummin()``
-     - |conditional|
-     - ``pc.cumulative_min``
-     - String dtype uses NumPy fallback
-   * - ``cumprod()``
-     - |conditional|
-     - ``pc.cumulative_prod_checked``
-     - Not supported for string dtype
-   * - ``cumsum()``
-     - |conditional|
-     - ``pc.cumulative_sum_checked``
-     - String dtype uses NumPy fallback
-   * - ``dropna()``
      - |arrow|
-     - ``pc.drop_null``
-     - -
-   * - ``duplicated()``
-     - |object|
-     - -
-     - Falls back: temporal types have special handling | via to_numpy()
-   * - ``factorize()``
      - |arrow|
-     - ``pc.fill_null``
-     - -
-   * - ``ffill() / pad()``
-     - |conditional|
-     - ``pc.fill_null_forward``
-     - Falls back: limit parameter specified; limit_area parameter specified | Falls back if limit parameter specified or limit_area parameter specified
-   * - ``fillna(value)``
-     - |conditional|
-     - ``pc.fill_null``
-     - Falls back: falls back to base implementation for some cases; limit parameter specified
-   * - ``interpolate()``
      - |arrow|
-     - ``pc.fill_null_backward / pc.pairwise_diff_checked``
-     - Falls back: limit_area parameter specified
-   * - ``isna() / isnull()``
-     - |object|
-     - -
-     - via to_numpy(); fast null path
-   * - ``round(decimals)``
      - |arrow|
-     - ``pc.round``
-     - -
-   * - ``searchsorted(value)``
-     - |object|
-     - -
-     - Falls back: duration types have special handling | via to_numpy()
-   * - ``take(indices)``
      - |arrow|
-     - ``pc.fill_null``
-     - -
-   * - ``unique()``
      - |arrow|
-     - ``pc.unique``
-     - -
-   * - ``value_counts()``
      - |arrow|
-     - ``ChunkedArray.value_counts``
-     - -
+     - |arrow|
+   * - ``floordiv``
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+   * - ``mod``
+     - |notimpl|
+     - |notimpl|
+     - |notimpl|
+     - |notimpl|
+     - |notimpl|
+     - |notimpl|
+     - |notimpl|
+     - |notimpl|
+     - |notimpl|
+     - |notimpl|
+   * - ``mul``
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+   * - ``pow``
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+   * - ``sub``
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+   * - ``truediv``
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
 
-List Accessor Methods (Series.list.*)
-=====================================
+Comparison Operations
+=====================
 
 .. list-table::
-   :widths: 20 12 25 43
+   :widths: 20 10 10 10 10 10 10 10 10 10 10
    :header-rows: 1
 
    * - Method
-     - Status
-     - Arrow Function
-     - Notes
-   * - ``list.[index] / [slice]``
-     - |conditional|
-     - ``pc.add / pc.list_value_length``
-     - Negative indices not supported; Different handling for int vs slice
-   * - ``list.flatten()``
+     - double
+     - float
+     - int16
+     - int32
+     - int64
+     - int8
+     - uint16
+     - uint32
+     - uint64
+     - uint8
+   * - ``eq``
      - |arrow|
-     - ``pa.compute.list_flatten``
-     - -
-   * - ``list.len()``
      - |arrow|
-     - ``pc.list_value_length``
-     - -
-
-Struct Accessor Methods (Series.struct.*)
-=========================================
-
-.. list-table::
-   :widths: 20 12 25 43
-   :header-rows: 1
-
-   * - Method
-     - Status
-     - Arrow Function
-     - Notes
-   * - ``struct.dtypes (property)``
      - |arrow|
-     - -
-     - Returns dtype info (property)
-   * - ``struct.explode()``
      - |arrow|
-     - -
-     - Returns all fields as DataFrame
-   * - ``struct.field(name_or_index)``
      - |arrow|
-     - ``pc.field / pc.struct_field``
-     - Supports nested field access via list
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+   * - ``ge``
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+   * - ``gt``
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+   * - ``le``
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+   * - ``lt``
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+   * - ``ne``
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
