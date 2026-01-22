@@ -245,7 +245,7 @@ repos:
             |^pandas/core/arrays/string_arrow\.py$
             |^pandas/core/arrays/_arrow_string_mixins\.py$
             |^pandas/core/strings/object_array\.py$
-            |^doc/source/user_guide/arrow_string_fallbacks\.rst$
+            |^doc/source/user_guide/arrow_fallbacks\.rst$
         pass_filenames: false
         stages: [manual]
     -   id: title-capitalization

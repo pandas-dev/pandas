@@ -9,8 +9,19 @@ This script runs all operations on all Arrow-backed dtypes and observes:
 This is more accurate than AST analysis because it observes actual behavior.
 
 Usage:
+    # Generate RST documentation
     python scripts/generate_arrow_fallback_table.py
+
+    # Generate detailed JSON (grouped by category)
     python scripts/generate_arrow_fallback_table.py --format json
+
+    # Generate JSON lookup table for downstream libs: method -> dtype -> status
+    python scripts/generate_arrow_fallback_table.py --format json-lookup
+
+    # Generate JSON by dtype for downstream libs: dtype -> method -> status
+    python scripts/generate_arrow_fallback_table.py --format json-by-dtype
+
+    # Check if docs are up to date
     python scripts/generate_arrow_fallback_table.py --check
 """
 
@@ -773,14 +784,15 @@ def summarize_results(
 
 def format_rst_table(all_results: dict[str, list[OperationResult]]) -> str:
     """Format results as RST tables."""
+    title = "Arrow Fallbacks"
     lines = [
         ".. _arrow-fallbacks:",
         "",
         "{{ header }}",
         "",
-        "*" * 30,
-        "Arrow Method Support Reference",
-        "*" * 30,
+        "*" * len(title),
+        title,
+        "*" * len(title),
         "",
         "This document shows the runtime behavior of pandas methods on",
         "Arrow-backed arrays. Results are determined by actually running",
@@ -964,7 +976,7 @@ def _format_method_table(
 
 
 def format_json(all_results: dict[str, list[OperationResult]]) -> str:
-    """Format results as JSON."""
+    """Format results as JSON (detailed, grouped by category)."""
     import json
 
     output = {}
@@ -985,18 +997,110 @@ def format_json(all_results: dict[str, list[OperationResult]]) -> str:
     return json.dumps(output, indent=2)
 
 
+def format_json_lookup(all_results: dict[str, list[OperationResult]]) -> str:
+    """
+    Format results as JSON lookup table for downstream consumption.
+
+    Structure: {method: {dtype: status}}
+    Allows O(1) lookup: data["str.lower"]["string[pyarrow]"] -> "arrow"
+    """
+    import json
+
+    # Map category to accessor prefix
+    accessor_map = {
+        "string_methods": "str",
+        "datetime_methods": "dt",
+        "timedelta_methods": "dt",
+        "aggregations": None,
+        "array_methods": None,
+        "arithmetic": None,
+        "comparison": None,
+    }
+
+    output: dict[str, Any] = {
+        "schema_version": 1,
+        "pandas_version": pd.__version__,
+        "methods": {},
+    }
+
+    for category, results in all_results.items():
+        accessor = accessor_map.get(category)
+        for r in results:
+            # Build method key with accessor prefix
+            if accessor:
+                method_key = f"{accessor}.{r.method}"
+            else:
+                method_key = r.method
+
+            if method_key not in output["methods"]:
+                output["methods"][method_key] = {}
+
+            output["methods"][method_key][r.dtype] = r.result_type.value
+
+    return json.dumps(output, indent=2)
+
+
+def format_json_by_dtype(all_results: dict[str, list[OperationResult]]) -> str:
+    """
+    Format results as JSON grouped by dtype for downstream consumption.
+
+    Structure: {dtype: {method: status}}
+    Useful for checking all methods for a specific dtype.
+    """
+    import json
+
+    # Map category to accessor prefix
+    accessor_map = {
+        "string_methods": "str",
+        "datetime_methods": "dt",
+        "timedelta_methods": "dt",
+        "aggregations": None,
+        "array_methods": None,
+        "arithmetic": None,
+        "comparison": None,
+    }
+
+    output: dict[str, Any] = {
+        "schema_version": 1,
+        "pandas_version": pd.__version__,
+        "dtypes": {},
+    }
+
+    for category, results in all_results.items():
+        accessor = accessor_map.get(category)
+        for r in results:
+            # Build method key with accessor prefix
+            if accessor:
+                method_key = f"{accessor}.{r.method}"
+            else:
+                method_key = r.method
+
+            if r.dtype not in output["dtypes"]:
+                output["dtypes"][r.dtype] = {}
+
+            output["dtypes"][r.dtype][method_key] = r.result_type.value
+
+    return json.dumps(output, indent=2)
+
+
 # =============================================================================
 # Main
 # =============================================================================
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     parser.add_argument(
         "--format",
-        choices=["rst", "json"],
+        choices=["rst", "json", "json-lookup", "json-by-dtype"],
         default="rst",
-        help="Output format (default: rst)",
+        help=(
+            "Output format: rst (documentation), json (detailed), "
+            "json-lookup (method->dtype->status), json-by-dtype (dtype->method->status)"
+        ),
     )
     parser.add_argument(
         "--output",
@@ -1021,12 +1125,18 @@ def main():
     # Format output
     if args.format == "rst":
         output = format_rst_table(all_results)
-    else:
+    elif args.format == "json":
         output = format_json(all_results)
+    elif args.format == "json-lookup":
+        output = format_json_lookup(all_results)
+    elif args.format == "json-by-dtype":
+        output = format_json_by_dtype(all_results)
+    else:
+        output = format_rst_table(all_results)
 
     # Check mode
     if args.check:
-        target = Path("doc/source/user_guide/arrow_string_fallbacks.rst")
+        target = Path("doc/source/user_guide/arrow_fallbacks.rst")
         if not target.exists():
             print(f"ERROR: {target} does not exist.", file=sys.stderr)
             sys.exit(1)

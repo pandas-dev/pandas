@@ -2,9 +2,9 @@
 
 {{ header }}
 
-******************************
-Arrow Method Support Reference
-******************************
+***************
+Arrow Fallbacks
+***************
 
 This document shows the runtime behavior of pandas methods on
 Arrow-backed arrays. Results are determined by actually running

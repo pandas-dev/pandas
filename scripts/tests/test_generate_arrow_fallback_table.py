@@ -1,27 +1,28 @@
 """Tests for scripts/generate_arrow_fallback_table.py (runtime-based generator)."""
 
 import json
+from pathlib import Path
 import subprocess
 import sys
-from pathlib import Path
 
 import pytest
 
 from scripts.generate_arrow_fallback_table import (
-    ARROW_DTYPES,
-    DTYPE_GROUPS,
-    STRING_METHODS,
-    DATETIME_METHODS,
     AGGREGATION_METHODS,
     ARRAY_METHODS,
+    ARROW_DTYPES,
+    DATETIME_METHODS,
+    DTYPE_GROUPS,
+    STRING_METHODS,
     ResultType,
-    OperationResult,
-    create_test_series,
-    run_operation,
-    run_all_tests,
-    format_json,
-    format_rst_table,
     _is_arrow_backed,
+    create_test_series,
+    format_json,
+    format_json_by_dtype,
+    format_json_lookup,
+    format_rst_table,
+    run_all_tests,
+    run_operation,
 )
 
 REPO_ROOT = Path(__file__).parents[2]
@@ -152,7 +153,10 @@ class TestRunOperation:
         series = create_test_series("int64")
         result = run_operation(series, "sum", {})
         # sum should work on int64
-        assert result.result_type in (ResultType.ARROW_NATIVE, ResultType.NUMPY_FALLBACK)
+        assert result.result_type in (
+            ResultType.ARROW_NATIVE,
+            ResultType.NUMPY_FALLBACK,
+        )
         assert result.error_message is None
 
 
@@ -205,13 +209,38 @@ class TestFormatOutput:
     def test_format_rst_contains_header(self):
         results = run_all_tests()
         output = format_rst_table(results)
-        assert "Arrow Method Support Reference" in output
+        assert "Arrow Fallbacks" in output
 
     def test_format_rst_contains_legend(self):
         results = run_all_tests()
         output = format_rst_table(results)
         assert "Legend" in output
         assert "|arrow|" in output
+
+    def test_format_json_lookup_valid(self):
+        results = run_all_tests()
+        output = format_json_lookup(results)
+        parsed = json.loads(output)
+        # Should have schema info
+        assert "schema_version" in parsed
+        assert "pandas_version" in parsed
+        assert "methods" in parsed
+        # Check structure: method -> dtype -> status
+        assert "str.lower" in parsed["methods"]
+        assert isinstance(parsed["methods"]["str.lower"], dict)
+
+    def test_format_json_by_dtype_valid(self):
+        results = run_all_tests()
+        output = format_json_by_dtype(results)
+        parsed = json.loads(output)
+        # Should have schema info
+        assert "schema_version" in parsed
+        assert "pandas_version" in parsed
+        assert "dtypes" in parsed
+        # Check structure: dtype -> method -> status
+        assert isinstance(parsed["dtypes"], dict)
+        # Should have at least one dtype entry
+        assert len(parsed["dtypes"]) > 0
 
 
 # =============================================================================
@@ -225,6 +254,7 @@ class TestCLI:
     def test_help_shows_options(self):
         result = subprocess.run(
             [sys.executable, "scripts/generate_arrow_fallback_table.py", "--help"],
+            check=False,
             capture_output=True,
             text=True,
         )
@@ -234,7 +264,13 @@ class TestCLI:
 
     def test_json_format_works(self):
         result = subprocess.run(
-            [sys.executable, "scripts/generate_arrow_fallback_table.py", "--format", "json"],
+            [
+                sys.executable,
+                "scripts/generate_arrow_fallback_table.py",
+                "--format",
+                "json",
+            ],
+            check=False,
             capture_output=True,
             text=True,
         )
