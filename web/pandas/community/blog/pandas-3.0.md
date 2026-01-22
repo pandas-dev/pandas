@@ -26,7 +26,7 @@ pandas 3.0 introduces several major enhancements:
   for creating callables in `DataFrame.assign`
 
 Further, pandas 3.0 includes a lot of other improvements and bug fixes. You can
-find the complete list of changes in our
+find the complete list of changes in the
 [release notes](https://pandas.pydata.org/docs/dev/whatsnew/v3.0.0.html).
 
 ## Upgrading to pandas 3.0
@@ -74,7 +74,7 @@ For more details, see the
 [migration guide for the new string data type](https://pandas.pydata.org/docs/dev/user_guide/migration-3-strings.html).
 
 This new data type will use the `pyarrow` library under the hood, if installed,
-to provide the performance improvements. Therefore we recommend strongly to
+to provide the performance improvements. Therefore we strongly recommend to
 install `pyarrow` alongside pandas (but `pyarrow` is not a required dependency
 installed by default).
 
