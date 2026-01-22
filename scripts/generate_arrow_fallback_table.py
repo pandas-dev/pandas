@@ -17,19 +17,19 @@ Usage:
 from __future__ import annotations
 
 import argparse
-from collections.abc import Callable
 from contextlib import contextmanager
-from dataclasses import dataclass, field
+from dataclasses import (
+    dataclass,
+    field,
+)
 from enum import Enum
 from pathlib import Path
 import sys
 from typing import Any
-from unittest.mock import patch
 
 import numpy as np
-import pandas as pd
-import pyarrow as pa
 
+import pandas as pd
 
 # =============================================================================
 # Configuration: All Arrow dtypes to test
@@ -70,7 +70,16 @@ ARROW_DTYPES: dict[str, str] = {
 # Simplified dtype groups for documentation
 DTYPE_GROUPS: dict[str, list[str]] = {
     "string": ["string", "large_string"],
-    "integer": ["int8", "int16", "int32", "int64", "uint8", "uint16", "uint32", "uint64"],
+    "integer": [
+        "int8",
+        "int16",
+        "int32",
+        "int64",
+        "uint8",
+        "uint16",
+        "uint32",
+        "uint64",
+    ],
     "float": ["float32", "float64"],
     "bool": ["bool"],
     "timestamp": ["timestamp_us", "timestamp_ns", "timestamp_us_tz"],
@@ -275,8 +284,10 @@ COMPARISON_OPS: dict[str, tuple[str, Any]] = {
 # Result classification
 # =============================================================================
 
+
 class ResultType(Enum):
     """Classification of operation result."""
+
     ARROW_NATIVE = "arrow"  # Result is Arrow-backed, no fallback detected
     NUMPY_FALLBACK = "numpy"  # Result fell back to NumPy dtype
     ELEMENTWISE = "elementwise"  # Used _apply_elementwise
@@ -289,6 +300,7 @@ class ResultType(Enum):
 @dataclass
 class OperationResult:
     """Result of running an operation."""
+
     method: str
     dtype: str
     result_type: ResultType
@@ -302,6 +314,7 @@ class OperationResult:
 # =============================================================================
 # Instrumentation for detecting fallback paths
 # =============================================================================
+
 
 class FallbackTracker:
     """Track fallback calls during operation execution."""
@@ -336,14 +349,20 @@ def track_fallbacks():
         tracker.elementwise_called = True
         return original_elementwise(self, *args, **kwargs)
 
-    with patch.object(ArrowExtensionArray, "to_numpy", patched_to_numpy):
-        with patch.object(ArrowExtensionArray, "_apply_elementwise", patched_elementwise):
-            yield tracker
+    # Manual monkey-patching (avoiding unittest.mock which is banned)
+    ArrowExtensionArray.to_numpy = patched_to_numpy
+    ArrowExtensionArray._apply_elementwise = patched_elementwise
+    try:
+        yield tracker
+    finally:
+        ArrowExtensionArray.to_numpy = original_to_numpy
+        ArrowExtensionArray._apply_elementwise = original_elementwise
 
 
 # =============================================================================
 # Test data creation
 # =============================================================================
+
 
 def create_test_series(dtype_name: str) -> pd.Series | None:
     """Create a test Series for the given dtype."""
@@ -363,15 +382,21 @@ def create_test_series(dtype_name: str) -> pd.Series | None:
         elif "float" in dtype_name:
             data = [1.5, 2.5, 3.5, None, 5.5]
         elif "timestamp" in dtype_name:
-            data = pd.to_datetime(["2024-01-01", "2024-01-02", "2024-01-03", None, "2024-01-05"])
+            data = pd.to_datetime(
+                ["2024-01-01", "2024-01-02", "2024-01-03", None, "2024-01-05"]
+            )
             if "tz" in dtype_name or "UTC" in dtype_str:
                 data = data.tz_localize("UTC")
         elif "date" in dtype_name:
-            data = pd.to_datetime(["2024-01-01", "2024-01-02", "2024-01-03", None, "2024-01-05"]).date
+            data = pd.to_datetime(
+                ["2024-01-01", "2024-01-02", "2024-01-03", None, "2024-01-05"]
+            ).date
         elif "duration" in dtype_name:
             data = pd.to_timedelta(["1 day", "2 days", "3 days", None, "5 days"])
         elif "time" in dtype_name:
-            data = pd.to_datetime(["2024-01-01 10:00", "2024-01-01 11:00", "2024-01-01 12:00"]).time
+            data = pd.to_datetime(
+                ["2024-01-01 10:00", "2024-01-01 11:00", "2024-01-01 12:00"]
+            ).time
             # time64 is tricky, use strings and convert
             return pd.Series([None, None, None, None, None], dtype=dtype_str)
         else:
@@ -418,6 +443,7 @@ def get_searchsorted_value(dtype_name: str) -> Any:
 # Run operations and classify results
 # =============================================================================
 
+
 def _is_arrow_backed(dtype) -> bool:
     """Check if a dtype is Arrow-backed."""
     # ArrowDtype has pyarrow_dtype attribute
@@ -452,8 +478,7 @@ def classify_result(
         if isinstance(result, pd.DataFrame):
             # For DataFrames, check if any column is Arrow-backed
             has_arrow = any(
-                _is_arrow_backed(result[col].dtype)
-                for col in result.columns
+                _is_arrow_backed(result[col].dtype) for col in result.columns
             )
         else:
             has_arrow = _is_arrow_backed(result.dtype)
@@ -566,7 +591,9 @@ def run_arithmetic_op(
                 method=op_name,
                 dtype=dtype_name,
                 result_type=result_type,
-                result_dtype=str(result.dtype) if isinstance(result, pd.Series) else type(result).__name__,
+                result_dtype=str(result.dtype)
+                if isinstance(result, pd.Series)
+                else type(result).__name__,
                 used_to_numpy=tracker.to_numpy_called,
                 used_elementwise=tracker.elementwise_called,
             )
@@ -596,6 +623,7 @@ def run_arithmetic_op(
 # =============================================================================
 # Run all tests
 # =============================================================================
+
 
 def run_all_tests() -> dict[str, list[OperationResult]]:
     """Run all operations on all dtypes and collect results."""
@@ -627,10 +655,16 @@ def run_all_tests() -> dict[str, list[OperationResult]]:
 
         for method, kwargs in DATETIME_METHODS.items():
             # Skip tz_convert for non-tz-aware
-            if method == "tz_convert" and "tz" not in dtype_name and "UTC" not in ARROW_DTYPES[dtype_name]:
+            if (
+                method == "tz_convert"
+                and "tz" not in dtype_name
+                and "UTC" not in ARROW_DTYPES[dtype_name]
+            ):
                 continue
             # Skip tz_localize for tz-aware
-            if method == "tz_localize" and ("tz" in dtype_name or "UTC" in ARROW_DTYPES[dtype_name]):
+            if method == "tz_localize" and (
+                "tz" in dtype_name or "UTC" in ARROW_DTYPES[dtype_name]
+            ):
                 continue
 
             result = run_operation(series, method, kwargs, accessor="dt")
@@ -670,12 +704,24 @@ def run_all_tests() -> dict[str, list[OperationResult]]:
             elif method == "searchsorted":
                 actual_kwargs["value"] = get_searchsorted_value(dtype_name)
             elif method == "clip":
-                if dtype_name in ["string", "large_string", "binary", "large_binary", "bool"]:
+                if dtype_name in [
+                    "string",
+                    "large_string",
+                    "binary",
+                    "large_binary",
+                    "bool",
+                ]:
                     continue  # clip doesn't make sense for these
                 if "timestamp" in dtype_name or "date" in dtype_name:
-                    actual_kwargs = {"lower": pd.Timestamp("2024-01-02"), "upper": pd.Timestamp("2024-01-04")}
+                    actual_kwargs = {
+                        "lower": pd.Timestamp("2024-01-02"),
+                        "upper": pd.Timestamp("2024-01-04"),
+                    }
                 elif "duration" in dtype_name:
-                    actual_kwargs = {"lower": pd.Timedelta("2 days"), "upper": pd.Timedelta("4 days")}
+                    actual_kwargs = {
+                        "lower": pd.Timedelta("2 days"),
+                        "upper": pd.Timedelta("4 days"),
+                    }
             elif method == "round":
                 if dtype_name not in DTYPE_GROUPS["float"]:
                     continue  # round only for float
@@ -710,7 +756,10 @@ def run_all_tests() -> dict[str, list[OperationResult]]:
 # Format output
 # =============================================================================
 
-def summarize_results(results: list[OperationResult]) -> dict[str, dict[str, ResultType]]:
+
+def summarize_results(
+    results: list[OperationResult],
+) -> dict[str, dict[str, ResultType]]:
     """Summarize results by method and dtype."""
     summary: dict[str, dict[str, ResultType]] = {}
 
@@ -733,8 +782,9 @@ def format_rst_table(all_results: dict[str, list[OperationResult]]) -> str:
         "Arrow Method Support Reference",
         "*" * 30,
         "",
-        "This document shows the runtime behavior of pandas methods on Arrow-backed arrays.",
-        "Results are determined by actually running each operation and observing the outcome.",
+        "This document shows the runtime behavior of pandas methods on",
+        "Arrow-backed arrays. Results are determined by actually running",
+        "each operation and observing the outcome.",
         "",
         "Legend",
         "======",
@@ -782,72 +832,86 @@ def format_rst_table(all_results: dict[str, list[OperationResult]]) -> str:
 
     # String methods table
     if all_results["string_methods"]:
-        lines.extend([
-            "",
-            "String Methods (Series.str.*)",
-            "=============================",
-            "",
-        ])
+        lines.extend(
+            [
+                "",
+                "String Methods (Series.str.*)",
+                "=============================",
+                "",
+            ]
+        )
         lines.extend(_format_method_table(all_results["string_methods"], status_map))
 
     # Datetime methods table
     if all_results["datetime_methods"]:
-        lines.extend([
-            "",
-            "Datetime Methods (Series.dt.*)",
-            "==============================",
-            "",
-        ])
+        lines.extend(
+            [
+                "",
+                "Datetime Methods (Series.dt.*)",
+                "==============================",
+                "",
+            ]
+        )
         lines.extend(_format_method_table(all_results["datetime_methods"], status_map))
 
     # Timedelta methods table
     if all_results["timedelta_methods"]:
-        lines.extend([
-            "",
-            "Timedelta Methods (Series.dt.*)",
-            "===============================",
-            "",
-        ])
+        lines.extend(
+            [
+                "",
+                "Timedelta Methods (Series.dt.*)",
+                "===============================",
+                "",
+            ]
+        )
         lines.extend(_format_method_table(all_results["timedelta_methods"], status_map))
 
     # Aggregation methods table
     if all_results["aggregations"]:
-        lines.extend([
-            "",
-            "Aggregation Methods",
-            "===================",
-            "",
-        ])
+        lines.extend(
+            [
+                "",
+                "Aggregation Methods",
+                "===================",
+                "",
+            ]
+        )
         lines.extend(_format_method_table(all_results["aggregations"], status_map))
 
     # Array methods table
     if all_results["array_methods"]:
-        lines.extend([
-            "",
-            "Array Methods",
-            "=============",
-            "",
-        ])
+        lines.extend(
+            [
+                "",
+                "Array Methods",
+                "=============",
+                "",
+            ]
+        )
         lines.extend(_format_method_table(all_results["array_methods"], status_map))
 
     # Arithmetic operations table
     if all_results["arithmetic"]:
-        lines.extend([
-            "",
-            "Arithmetic Operations",
-            "=====================",
-            "",
-        ])
+        lines.extend(
+            [
+                "",
+                "Arithmetic Operations",
+                "=====================",
+                "",
+            ]
+        )
         lines.extend(_format_method_table(all_results["arithmetic"], status_map))
 
     # Comparison operations table
     if all_results["comparison"]:
-        lines.extend([
-            "",
-            "Comparison Operations",
-            "=====================",
-            "",
-        ])
+        lines.extend(
+            [
+                "",
+                "Comparison Operations",
+                "=====================",
+                "",
+            ]
+        )
         lines.extend(_format_method_table(all_results["comparison"], status_map))
 
     return "\n".join(lines) + "\n"
@@ -884,11 +948,10 @@ def _format_method_table(
         f"   :widths: 20 {' '.join(['10'] * len(dtypes))}",
         "   :header-rows: 1",
         "",
-        f"   * - Method",
+        "   * - Method",
     ]
 
-    for d in dtypes:
-        lines.append(f"     - {short_dtype(d)}")
+    lines.extend(f"     - {short_dtype(d)}" for d in dtypes)
 
     for method in sorted(by_method.keys()):
         lines.append(f"   * - ``{method}``")
@@ -925,6 +988,7 @@ def format_json(all_results: dict[str, list[OperationResult]]) -> str:
 # =============================================================================
 # Main
 # =============================================================================
+
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)

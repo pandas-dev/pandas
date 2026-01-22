@@ -6,8 +6,9 @@
 Arrow Method Support Reference
 ******************************
 
-This document shows the runtime behavior of pandas methods on Arrow-backed arrays.
-Results are determined by actually running each operation and observing the outcome.
+This document shows the runtime behavior of pandas methods on
+Arrow-backed arrays. Results are determined by actually running
+each operation and observing the outcome.
 
 Legend
 ======
