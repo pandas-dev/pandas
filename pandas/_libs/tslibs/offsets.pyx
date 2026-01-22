@@ -4908,7 +4908,7 @@ cdef class FY5253Mixin(SingleConstructorOffset):
     cdef readonly:
         int startingMonth
         int _weekday
-        str variation
+        str _variation
 
     @property
     def weekday(self):
@@ -4931,25 +4931,51 @@ cdef class FY5253Mixin(SingleConstructorOffset):
         """
         return self._weekday
 
+    @property
+    def variation(self):
+        """
+        Return the variation of the fiscal year.
+
+        The variation determines how the fiscal year end is calculated.
+        It can be either "nearest" or "last".
+
+        Returns
+        -------
+        str
+            Either "nearest" or "last".
+
+        See Also
+        --------
+        FY5253.weekday : Return the weekday used by the fiscal year.
+        FY5253.startingMonth : Return the starting month of the fiscal year.
+
+        Examples
+        --------
+        >>> offset = pd.offsets.FY5253(weekday=4, startingMonth=12, variation="nearest")
+        >>> offset.variation
+        'nearest'
+        """
+        return self._variation
+
     def __init__(
         self, n=1, normalize=False, weekday=0, startingMonth=1, variation="nearest"
     ):
         BaseOffset.__init__(self, n, normalize)
         self.startingMonth = startingMonth
         self._weekday = weekday
-        self.variation = variation
+        self._variation = variation
 
         if self._n == 0:
             raise ValueError("N cannot be 0")
 
-        if self.variation not in ["nearest", "last"]:
-            raise ValueError(f"{self.variation} is not a valid variation")
+        if self._variation not in ["nearest", "last"]:
+            raise ValueError(f"{self._variation} is not a valid variation")
 
     cpdef __setstate__(self, state):
         self._n = state.pop("n")
         self._normalize = state.pop("normalize")
         self._weekday = state.pop("weekday")
-        self.variation = state.pop("variation")
+        self._variation = state.pop("variation")
 
     # --------------------------------------------------------------------
     # Name-related methods
@@ -4961,7 +4987,7 @@ cdef class FY5253Mixin(SingleConstructorOffset):
         return f"{prefix}-{suffix}"
 
     def _get_suffix_prefix(self) -> str:
-        if self.variation == "nearest":
+        if self._variation == "nearest":
             return "N"
         else:
             return "L"
@@ -5087,7 +5113,7 @@ cdef class FY5253(FY5253Mixin):
         dt = datetime(dt.year, dt.month, dt.day)
         year_end = self.get_year_end(dt)
 
-        if self.variation == "nearest":
+        if self._variation == "nearest":
             # We have to check the year end of "this" cal year AND the previous
             return year_end == dt or self.get_year_end(shift_month(dt, -1, None)) == dt
         else:
@@ -5196,7 +5222,7 @@ cdef class FY5253(FY5253Mixin):
             # year_end is the same for "last" and "nearest" cases
             return target_date
 
-        if self.variation == "last":
+        if self._variation == "last":
             days_forward = (wkday_diff % 7) - 7
 
             # days_forward is always negative, so we always end up
