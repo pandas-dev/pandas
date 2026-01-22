@@ -5335,7 +5335,7 @@ cdef class FY5253Quarter(FY5253Mixin):
     )
 
     cdef readonly:
-        int qtr_with_extra_week
+        int _qtr_with_extra_week
 
     def __init__(
         self,
@@ -5349,11 +5349,41 @@ cdef class FY5253Quarter(FY5253Mixin):
         FY5253Mixin.__init__(
             self, n, normalize, weekday, startingMonth, variation
         )
-        self.qtr_with_extra_week = qtr_with_extra_week
+        self._qtr_with_extra_week = qtr_with_extra_week
 
     cpdef __setstate__(self, state):
         FY5253Mixin.__setstate__(self, state)
-        self.qtr_with_extra_week = state.pop("qtr_with_extra_week")
+        self._qtr_with_extra_week = state.pop("qtr_with_extra_week")
+
+    @property
+    def qtr_with_extra_week(self) -> int:
+        """
+        Return the quarter number that has the leap or 14 week when needed.
+
+        In a 52-53 week fiscal year, when a year has 53 weeks, one quarter
+        will have 14 weeks instead of the standard 13 weeks. This property
+        indicates which quarter (1, 2, 3, or 4) receives the extra week.
+
+        Returns
+        -------
+        int
+            The quarter number (1, 2, 3, or 4) that contains the extra week
+            in 53-week years.
+
+        See Also
+        --------
+        FY5253Quarter.get_weeks : Get the number of weeks in each quarter.
+        FY5253Quarter.year_has_extra_week : Check if a given year has 53 weeks.
+
+        Examples
+        --------
+        >>> offset = pd.offsets.FY5253Quarter(
+        ...     weekday=5, startingMonth=12, qtr_with_extra_week=4
+        ... )
+        >>> offset.qtr_with_extra_week
+        4
+        """
+        return self._qtr_with_extra_week
 
     @cache_readonly
     def _offset(self):
@@ -5447,7 +5477,7 @@ cdef class FY5253Quarter(FY5253Mixin):
         year_has_extra_week = self.year_has_extra_week(dt)
 
         if year_has_extra_week:
-            ret[self.qtr_with_extra_week - 1] = 14
+            ret[self._qtr_with_extra_week - 1] = 14
 
         return ret
 
