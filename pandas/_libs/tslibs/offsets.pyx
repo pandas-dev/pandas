@@ -4842,6 +4842,35 @@ cdef class WeekOfMonth(WeekOfMonthMixin):
         shift_days = (self.weekday - wday) % 7
         return 1 + shift_days + self.week * 7
 
+    @property
+    def week(self) -> int:
+        """
+        Return the week of the month on which this offset applies.
+
+        Returns an integer representing the week of the month (0-3) that this
+        offset targets. The week is zero-indexed, where 0 corresponds to the
+        first week of the month.
+
+        Returns
+        -------
+        int
+            An integer representing the week of the month (0-3).
+
+        See Also
+        --------
+        tseries.offsets.WeekOfMonth : Describes monthly dates in a specific week.
+        tseries.offsets.LastWeekOfMonth : Describes monthly dates in last week.
+
+        Examples
+        --------
+        >>> pd.offsets.WeekOfMonth(week=0, weekday=0).week
+        0
+
+        >>> pd.offsets.WeekOfMonth(week=2, weekday=3).week
+        2
+        """
+        return self.week
+
     @classmethod
     def _from_name(cls, suffix=None):
         if not suffix:
