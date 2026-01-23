@@ -31,6 +31,7 @@ import pandas._testing as tm
 from pandas.api.types import is_string_dtype
 from pandas.core.arrays import ArrowStringArray
 from pandas.core.arrays.string_ import StringDtype
+from pandas.tests.arithmetic.test_string import string_dtype_highest_priority
 from pandas.tests.extension import base
 
 
@@ -48,7 +49,7 @@ def maybe_split_array(arr, chunked):
         [*arrow_array[:split].chunks, *arrow_array[split:].chunks]
     )
     assert arrow_array.num_chunks == 2
-    return type(arr)(arrow_array)
+    return arr._from_pyarrow_array(arrow_array)
 
 
 @pytest.fixture(params=[True, False])
@@ -64,9 +65,9 @@ def dtype(string_dtype_arguments):
 
 @pytest.fixture
 def data(dtype, chunked):
-    strings = np.random.default_rng(2).choice(list(string.ascii_letters), size=100)
+    strings = np.random.default_rng(2).choice(list(string.ascii_letters), size=10)
     while strings[0] == strings[1]:
-        strings = np.random.default_rng(2).choice(list(string.ascii_letters), size=100)
+        strings = np.random.default_rng(2).choice(list(string.ascii_letters), size=10)
 
     arr = dtype.construct_array_type()._from_sequence(strings, dtype=dtype)
     return maybe_split_array(arr, chunked)
@@ -100,6 +101,14 @@ def data_for_grouping(dtype, chunked):
 
 
 class TestStringArray(base.ExtensionTests):
+    def test_combine_le(self, data_repeated):
+        dtype = next(iter(data_repeated(2))).dtype
+        if dtype.storage == "pyarrow" and dtype.na_value is pd.NA:
+            self._combine_le_expected_dtype = "bool[pyarrow]"
+        else:
+            self._combine_le_expected_dtype = "bool"
+        return super().test_combine_le(data_repeated)
+
     def test_eq_with_str(self, dtype):
         super().test_eq_with_str(dtype)
 
@@ -107,8 +116,7 @@ class TestStringArray(base.ExtensionTests):
             # only the NA-variant supports parametrized string alias
             assert dtype == f"string[{dtype.storage}]"
         elif dtype.storage == "pyarrow":
-            with tm.assert_produces_warning(FutureWarning):
-                assert dtype == "string[pyarrow_numpy]"
+            assert dtype == "str"
 
     def test_is_not_string_type(self, dtype):
         # Different from BaseDtypeTests.test_is_not_string_type
@@ -161,6 +169,25 @@ class TestStringArray(base.ExtensionTests):
         assert result is not data
         tm.assert_extension_array_equal(result, data)
 
+    def test_fillna_readonly(self, data_missing):
+        data = data_missing.copy()
+        data._readonly = True
+
+        # by default fillna(copy=True), then this works fine
+        result = data.fillna(data_missing[1])
+        assert result[0] == data_missing[1]
+        tm.assert_extension_array_equal(data, data_missing)
+
+        # fillna(copy=False) is generally not honored by Arrow-backed array,
+        # but always returns new data -> same result as above
+        if data.dtype.storage == "pyarrow":
+            result = data.fillna(data_missing[1])
+            assert result[0] == data_missing[1]
+        else:
+            with pytest.raises(ValueError, match="Cannot modify read-only array"):
+                data.fillna(data_missing[1], copy=False)
+        tm.assert_extension_array_equal(data, data_missing)
+
     def _get_expected_exception(
         self, op_name: str, obj, other
     ) -> type[Exception] | tuple[type[Exception], ...] | None:
@@ -196,20 +223,19 @@ class TestStringArray(base.ExtensionTests):
 
     def _supports_accumulation(self, ser: pd.Series, op_name: str) -> bool:
         assert isinstance(ser.dtype, StorageExtensionDtype)
-        return ser.dtype.storage == "pyarrow" and op_name in [
-            "cummin",
-            "cummax",
-            "cumsum",
-        ]
+        return op_name in ["cummin", "cummax", "cumsum"]
 
     def _cast_pointwise_result(self, op_name: str, obj, other, pointwise_result):
         dtype = cast(StringDtype, tm.get_dtype(obj))
         if op_name in ["__add__", "__radd__"]:
             cast_to = dtype
+            dtype_other = tm.get_dtype(other) if not isinstance(other, str) else None
+            if isinstance(dtype_other, StringDtype):
+                cast_to = string_dtype_highest_priority(dtype, dtype_other)
         elif dtype.na_value is np.nan:
             cast_to = np.bool_  # type: ignore[assignment]
         elif dtype.storage == "pyarrow":
-            cast_to = "boolean[pyarrow]"  # type: ignore[assignment]
+            cast_to = "bool[pyarrow]"  # type: ignore[assignment]
         else:
             cast_to = "boolean"  # type: ignore[assignment]
         return pointwise_result.astype(cast_to)
@@ -223,9 +249,7 @@ class TestStringArray(base.ExtensionTests):
 
     def test_combine_add(self, data_repeated, using_infer_string, request):
         dtype = next(data_repeated(1)).dtype
-        if using_infer_string and (
-            (dtype.na_value is pd.NA) and dtype.storage == "python"
-        ):
+        if not using_infer_string and dtype.storage == "python":
             mark = pytest.mark.xfail(
                 reason="The pointwise operation result will be inferred to "
                 "string[nan, pyarrow], which does not match the input dtype"
@@ -240,16 +264,24 @@ class TestStringArray(base.ExtensionTests):
         if (
             using_infer_string
             and all_arithmetic_operators == "__radd__"
-            and (
-                (dtype.na_value is pd.NA) or (dtype.storage == "python" and HAS_PYARROW)
-            )
+            and dtype.na_value is pd.NA
+            and (HAS_PYARROW or dtype.storage == "pyarrow")
         ):
+            # TODO(infer_string)
             mark = pytest.mark.xfail(
                 reason="The pointwise operation result will be inferred to "
                 "string[nan, pyarrow], which does not match the input dtype"
             )
             request.applymarker(mark)
         super().test_arith_series_with_array(data, all_arithmetic_operators)
+
+    def test_loc_setitem_with_expansion_preserves_ea_index_dtype(
+        self, data, request, using_infer_string
+    ):
+        if not using_infer_string and data.dtype.storage == "python":
+            mark = pytest.mark.xfail(reason="Casts to object")
+            request.applymarker(mark)
+        super().test_loc_setitem_with_expansion_preserves_ea_index_dtype(data)
 
 
 class Test2DCompat(base.Dim2CompatTests):

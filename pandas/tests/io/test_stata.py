@@ -13,6 +13,7 @@ import zipfile
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -1030,7 +1031,13 @@ class TestStata:
         # {c : c[-2:] for c in columns}
         path = temp_file
         expected.index.name = "index"
-        expected.to_stata(path, convert_dates=date_conversion)
+        msg = (
+            "Converting object-dtype columns of datetimes to datetime64 "
+            "when writing to stata is deprecated"
+        )
+        exp_object = expected.astype(object)
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            exp_object.to_stata(path, convert_dates=date_conversion)
         written_and_read_again = self.read_dta(path)
 
         tm.assert_frame_equal(
@@ -1323,7 +1330,9 @@ class TestStata:
             if isinstance(ser.dtype, CategoricalDtype):
                 cat = ser._values.remove_unused_categories()
                 if cat.categories.dtype == object:
-                    categories = pd.Index._with_infer(cat.categories._values)
+                    categories = pd.Index._with_infer(
+                        cat.categories._values, copy=False
+                    )
                     cat = cat.set_categories(categories)
                 elif cat.categories.dtype == "string" and len(cat.categories) == 0:
                     # if the read categories are empty, it comes back as object dtype
@@ -1333,25 +1342,26 @@ class TestStata:
         return from_frame
 
     def test_iterator(self, datapath):
-        fname = datapath("io", "data", "stata", "stata3_117.dta")
+        fname = datapath("io", "data", "stata", "stata12_117.dta")
 
         parsed = read_stata(fname)
+        expected = parsed.iloc[0:5, :]
 
         with read_stata(fname, iterator=True) as itr:
             chunk = itr.read(5)
-            tm.assert_frame_equal(parsed.iloc[0:5, :], chunk)
+            tm.assert_frame_equal(expected, chunk)
 
         with read_stata(fname, chunksize=5) as itr:
-            chunk = list(itr)
-            tm.assert_frame_equal(parsed.iloc[0:5, :], chunk[0])
+            chunk = next(itr)
+            tm.assert_frame_equal(expected, chunk)
 
         with read_stata(fname, iterator=True) as itr:
             chunk = itr.get_chunk(5)
-            tm.assert_frame_equal(parsed.iloc[0:5, :], chunk)
+            tm.assert_frame_equal(expected, chunk)
 
         with read_stata(fname, chunksize=5) as itr:
             chunk = itr.get_chunk()
-            tm.assert_frame_equal(parsed.iloc[0:5, :], chunk)
+            tm.assert_frame_equal(expected, chunk)
 
         # GH12153
         with read_stata(fname, chunksize=4) as itr:
@@ -1662,7 +1672,7 @@ The repeated labels are:\n-+\nwolof
             path = temp_file
             df.to_stata(path)
 
-    def test_path_pathlib(self):
+    def test_path_pathlib(self, temp_file):
         df = DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
             columns=pd.Index(list("ABCD")),
@@ -1670,7 +1680,7 @@ The repeated labels are:\n-+\nwolof
         )
         df.index.name = "index"
         reader = lambda x: read_stata(x).set_index("index")
-        result = tm.round_trip_pathlib(df.to_stata, reader)
+        result = tm.round_trip_pathlib(df.to_stata, reader, temp_file)
         tm.assert_frame_equal(df, result)
 
     @pytest.mark.parametrize("write_index", [True, False])
@@ -2050,9 +2060,10 @@ the string values returned are correct."""
         ["numpy_nullable", pytest.param("pyarrow", marks=td.skip_if_no("pyarrow"))],
     )
     def test_read_write_ea_dtypes(self, dtype_backend, temp_file, tmp_path):
+        dtype = "Int64" if dtype_backend == "numpy_nullable" else "int64[pyarrow]"
         df = DataFrame(
             {
-                "a": [1, 2, None],
+                "a": pd.array([1, 2, None], dtype=dtype),
                 "b": ["a", "b", "c"],
                 "c": [True, False, None],
                 "d": [1.5, 2.5, 3.5],
@@ -2587,3 +2598,27 @@ def test_many_strl(temp_file, version):
     lbls = ["".join(v) for v in itertools.product(*([string.ascii_letters] * 3))]
     value_labels = {"col": {i: lbls[i] for i in range(n)}}
     df.to_stata(temp_file, value_labels=value_labels, version=version)
+
+
+@pytest.mark.parametrize("version", [117, 118, 119, None])
+def test_strl_missings(temp_file, version):
+    # GH 23633
+    # Check that strl supports None and pd.NA
+    df = DataFrame(
+        [
+            {"str1": "string" * 500, "number": 0},
+            {"str1": None, "number": 1},
+            {"str1": pd.NA, "number": 1},
+        ]
+    )
+    df.to_stata(temp_file, version=version)
+
+
+@pytest.mark.parametrize("version", [117, 118, 119, None])
+def test_ascii_error(temp_file, version):
+    # GH #61583
+    # Check that 2 byte long unicode characters doesn't cause export error
+    df = DataFrame({"doubleByteCol": ["§" * 1500]})
+    df.to_stata(temp_file, write_index=0, version=version)
+    df_input = read_stata(temp_file)
+    tm.assert_frame_equal(df, df_input)

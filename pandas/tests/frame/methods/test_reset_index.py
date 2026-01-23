@@ -4,8 +4,6 @@ from itertools import product
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas.core.dtypes.common import (
     is_float_dtype,
     is_integer_dtype,
@@ -59,7 +57,9 @@ class TestResetIndex:
         tm.assert_index_equal(df.index, idx)
 
     def test_set_index_reset_index_dt64tz(self):
-        idx = Index(date_range("20130101", periods=3, tz="US/Eastern"), name="foo")
+        idx = Index(
+            date_range("20130101", periods=3, tz="US/Eastern", unit="ns"), name="foo"
+        )
 
         # set/reset
         df = DataFrame({"A": [0, 1, 2]}, index=idx)
@@ -352,7 +352,7 @@ class TestResetIndex:
         # GH#5818
         df = DataFrame(
             [[1, 2], [3, 4]],
-            columns=date_range("1/1/2013", "1/2/2013"),
+            columns=date_range("1/1/2013", "1/2/2013", unit="ns"),
             index=["A", "B"],
         )
         df.index.name = name
@@ -644,7 +644,6 @@ class TestResetIndex:
         tm.assert_frame_equal(res, expected)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string) - GH#60338")
 @pytest.mark.parametrize(
     "array, dtype",
     [
@@ -702,7 +701,7 @@ def test_reset_index_empty_frame_with_datetime64_multiindex_from_groupby(
 def test_reset_index_multiindex_nat():
     # GH 11479
     idx = range(3)
-    tstamp = date_range("2015-07-01", freq="D", periods=3)
+    tstamp = date_range("2015-07-01", freq="D", periods=3, unit="ns")
     df = DataFrame({"id": idx, "tstamp": tstamp, "a": list("abc")})
     df.loc[2, "tstamp"] = pd.NaT
     result = df.set_index(["id", "tstamp"]).reset_index("id")
@@ -781,3 +780,34 @@ def test_reset_index_false_index_name():
     result_frame.reset_index()
     expected_frame = DataFrame(range(5, 10), RangeIndex(range(5), name=False))
     tm.assert_frame_equal(result_frame, expected_frame)
+
+
+@pytest.mark.parametrize("columns", [None, Index([])])
+def test_reset_index_with_empty_frame(columns):
+    # Currently empty DataFrame has RangeIndex or object dtype Index, but when
+    # resetting the index we still want to end up with the default string dtype
+    # https://github.com/pandas-dev/pandas/issues/60338
+
+    index = Index([], name="foo")
+    df = DataFrame(index=index, columns=columns)
+    result = df.reset_index()
+    expected = DataFrame(columns=["foo"])
+    tm.assert_frame_equal(result, expected)
+
+    index = Index([1, 2, 3], name="foo")
+    df = DataFrame(index=index, columns=columns)
+    result = df.reset_index()
+    expected = DataFrame({"foo": [1, 2, 3]})
+    tm.assert_frame_equal(result, expected)
+
+    index = MultiIndex.from_tuples([], names=["foo", "bar"])
+    df = DataFrame(index=index, columns=columns)
+    result = df.reset_index()
+    expected = DataFrame(columns=["foo", "bar"])
+    tm.assert_frame_equal(result, expected)
+
+    index = MultiIndex.from_tuples([(1, 2), (2, 3)], names=["foo", "bar"])
+    df = DataFrame(index=index, columns=columns)
+    result = df.reset_index()
+    expected = DataFrame({"foo": [1, 2], "bar": [2, 3]})
+    tm.assert_frame_equal(result, expected)

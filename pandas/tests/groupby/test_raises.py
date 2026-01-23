@@ -8,6 +8,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas import (
     Categorical,
     DataFrame,
@@ -27,7 +29,7 @@ from pandas.tests.groupby import get_groupby_method_args
         lambda x: x % 2,
         [0, 0, 0, 1, 2, 2, 2, 3, 3],
         np.array([0, 0, 0, 1, 2, 2, 2, 3, 3]),
-        dict(zip(range(9), [0, 0, 0, 1, 2, 2, 2, 3, 3])),
+        dict(zip(range(9), [0, 0, 0, 1, 2, 2, 2, 3, 3], strict=True)),
         Series([1, 1, 1, 1, 1, 2, 2, 2, 2]),
         [Series([1, 1, 1, 1, 1, 2, 2, 2, 2]), Series([3, 3, 4, 4, 4, 4, 4, 3, 3])],
     ]
@@ -84,9 +86,12 @@ def df_with_cat_col():
     return df
 
 
-def _call_and_check(klass, msg, how, gb, groupby_func, args, warn_msg=""):
-    warn_klass = None if warn_msg == "" else FutureWarning
-    with tm.assert_produces_warning(warn_klass, match=warn_msg, check_stacklevel=False):
+def _call_and_check(
+    klass, msg, how, gb, groupby_func, args, warn_category=None, warn_msg=""
+):
+    with tm.assert_produces_warning(
+        warn_category, match=warn_msg, check_stacklevel=False
+    ):
         if klass is None:
             if how == "method":
                 getattr(gb, groupby_func)(*args)
@@ -213,10 +218,12 @@ def test_groupby_raises_string(
             msg = "Cannot perform reduction 'mean' with string dtype"
 
     if groupby_func == "corrwith":
+        warn_category = Pandas4Warning
         warn_msg = "DataFrameGroupBy.corrwith is deprecated"
     else:
+        warn_category = None
         warn_msg = ""
-    _call_and_check(klass, msg, how, gb, groupby_func, args, warn_msg)
+    _call_and_check(klass, msg, how, gb, groupby_func, args, warn_category, warn_msg)
 
 
 @pytest.mark.parametrize("how", ["agg", "transform"])
@@ -337,10 +344,12 @@ def test_groupby_raises_datetime(
     }[groupby_func]
 
     if groupby_func == "corrwith":
+        warn_category = Pandas4Warning
         warn_msg = "DataFrameGroupBy.corrwith is deprecated"
     else:
+        warn_category = None
         warn_msg = ""
-    _call_and_check(klass, msg, how, gb, groupby_func, args, warn_msg=warn_msg)
+    _call_and_check(klass, msg, how, gb, groupby_func, args, warn_category, warn_msg)
 
 
 @pytest.mark.parametrize("how", ["agg", "transform"])
@@ -541,10 +550,12 @@ def test_groupby_raises_category(
     }[groupby_func]
 
     if groupby_func == "corrwith":
+        warn_category = Pandas4Warning
         warn_msg = "DataFrameGroupBy.corrwith is deprecated"
     else:
+        warn_category = None
         warn_msg = ""
-    _call_and_check(klass, msg, how, gb, groupby_func, args, warn_msg)
+    _call_and_check(klass, msg, how, gb, groupby_func, args, warn_category, warn_msg)
 
 
 @pytest.mark.parametrize("how", ["agg", "transform"])
@@ -585,9 +596,7 @@ def test_groupby_raises_category_np(
     _call_and_check(klass, msg, how, gb, groupby_func_np, ())
 
 
-@pytest.mark.filterwarnings(
-    "ignore:`groups` by one element list returns scalar is deprecated"
-)
+@pytest.mark.filterwarnings("ignore:In a future version, the keys")
 @pytest.mark.parametrize("how", ["method", "agg", "transform"])
 def test_groupby_raises_category_on_category(
     how,
@@ -671,7 +680,7 @@ def test_groupby_raises_category_on_category(
         "nunique": (None, ""),
         "pct_change": (TypeError, "unsupported operand type"),
         "prod": (TypeError, "category type does not support prod operations"),
-        "quantile": (TypeError, ""),
+        "quantile": (TypeError, "No matching signature found"),
         "rank": (None, ""),
         "sem": (
             TypeError,
@@ -724,7 +733,9 @@ def test_groupby_raises_category_on_category(
     }[groupby_func]
 
     if groupby_func == "corrwith":
+        warn_category = Pandas4Warning
         warn_msg = "DataFrameGroupBy.corrwith is deprecated"
     else:
+        warn_category = None
         warn_msg = ""
-    _call_and_check(klass, msg, how, gb, groupby_func, args, warn_msg)
+    _call_and_check(klass, msg, how, gb, groupby_func, args, warn_category, warn_msg)

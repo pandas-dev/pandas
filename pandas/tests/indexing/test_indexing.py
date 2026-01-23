@@ -339,7 +339,7 @@ class TestFancy:
     def test_multitype_list_index_access(self):
         # GH 10610
         df = DataFrame(
-            np.random.default_rng(2).random((10, 5)), columns=["a"] + [20, 21, 22, 23]
+            np.random.default_rng(2).random((10, 5)), columns=["a", 20, 21, 22, 23]
         )
 
         with pytest.raises(KeyError, match=re.escape("'[26, -8] not in index'")):
@@ -599,7 +599,7 @@ class TestFancy:
             indexer(s2)[0.0] = 0
             exp = s.index
             if 0 not in s:
-                exp = Index(s.index.tolist() + [0])
+                exp = Index([*s.index.tolist(), 0])
             tm.assert_index_equal(s2.index, exp)
 
             s2 = s.copy()
@@ -760,6 +760,27 @@ class TestMisc:
             np.array([[0.0, 1.0, np.nan], [3.0, 4.0, np.nan], [np.nan] * 3]),
             index=list("abc"),
             columns=list("ABC"),
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_period_column_slicing(self):
+        # GH#60273 The transpose operation creates a single 5x1 block of PeriodDtype
+        # Make sure it is reindexed correctly
+        df = DataFrame(
+            pd.period_range("2021-01-01", periods=5, freq="D"),
+            columns=["A"],
+        ).T
+        result = df[[0, 1, 2]]
+        expected = DataFrame(
+            [
+                [
+                    pd.Period("2021-01-01", freq="D"),
+                    pd.Period("2021-01-02", freq="D"),
+                    pd.Period("2021-01-03", freq="D"),
+                ]
+            ],
+            index=["A"],
+            columns=[0, 1, 2],
         )
         tm.assert_frame_equal(result, expected)
 

@@ -10,6 +10,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    TypeAlias,
     cast,
 )
 
@@ -28,7 +29,10 @@ from pandas._typing import (
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import SpecificationError
-from pandas.util._decorators import cache_readonly
+from pandas.util._decorators import (
+    cache_readonly,
+    set_module,
+)
 
 from pandas.core.dtypes.cast import is_nested_object
 from pandas.core.dtypes.common import (
@@ -71,7 +75,112 @@ if TYPE_CHECKING:
     from pandas.core.resample import Resampler
     from pandas.core.window.rolling import BaseWindow
 
-ResType = dict[int, Any]
+ResType: TypeAlias = dict[int, Any]
+
+
+@set_module("pandas.api.executors")
+class BaseExecutionEngine(abc.ABC):
+    """
+    Base class for execution engines for map and apply methods.
+
+    An execution engine receives all the parameters of a call to
+    ``apply`` or ``map``, such as the data container, the function,
+    etc. and takes care of running the execution.
+
+    Supporting different engines allows functions to be JIT compiled,
+    run in parallel, and others. Besides the default executor which
+    simply runs the code with the Python interpreter and pandas.
+    """
+
+    @staticmethod
+    @abc.abstractmethod
+    def map(
+        data: Series | DataFrame | np.ndarray,
+        func: AggFuncType,
+        args: tuple,
+        kwargs: dict[str, Any],
+        decorator: Callable | None,
+        skip_na: bool,
+    ):
+        """
+        Executor method to run functions elementwise.
+
+        In general, pandas uses ``map`` for running functions elementwise,
+        but ``Series.apply`` with the default ``by_row='compat'`` will also
+        call this executor function.
+
+        Parameters
+        ----------
+        data : Series, DataFrame or NumPy ndarray
+            The object to use for the data. Some methods implement a ``raw``
+            parameter which will convert the original pandas object to a
+            NumPy array, which will then be passed here to the executor.
+        func : function or NumPy ufunc
+            The function to execute.
+        args : tuple
+            Positional arguments to be passed to ``func``.
+        kwargs : dict
+            Keyword arguments to be passed to ``func``.
+        decorator : function, optional
+            For JIT compilers and other engines that need to decorate the
+            function ``func``, this is the decorator to use. While the
+            executor may already know which is the decorator to use, this
+            is useful as for a single executor the user can specify for
+            example ``numba.jit`` or ``numba.njit(nogil=True)``, and this
+            decorator parameter will contain the exact decorator from the
+            executor the user wants to use.
+        skip_na : bool
+            Whether the function should be called for missing values or not.
+            This is specified by the pandas user as ``map(na_action=None)``
+            or ``map(na_action='ignore')``.
+        """
+
+    @staticmethod
+    @abc.abstractmethod
+    def apply(
+        data: Series | DataFrame | np.ndarray,
+        func: AggFuncType,
+        args: tuple,
+        kwargs: dict[str, Any],
+        decorator: Callable,
+        axis: Axis,
+    ):
+        """
+        Executor method to run functions by an axis.
+
+        While we can see ``map`` as executing the function for each cell
+        in a ``DataFrame`` (or ``Series``), ``apply`` will execute the
+        function for each column (or row).
+
+        Parameters
+        ----------
+        data : Series, DataFrame or NumPy ndarray
+            The object to use for the data. Some methods implement a ``raw``
+            parameter which will convert the original pandas object to a
+            NumPy array, which will then be passed here to the executor.
+        func : function or NumPy ufunc
+            The function to execute.
+        args : tuple
+            Positional arguments to be passed to ``func``.
+        kwargs : dict
+            Keyword arguments to be passed to ``func``.
+        decorator : function, optional
+            For JIT compilers and other engines that need to decorate the
+            function ``func``, this is the decorator to use. While the
+            executor may already know which is the decorator to use, this
+            is useful as for a single executor the user can specify for
+            example ``numba.jit`` or ``numba.njit(nogil=True)``, and this
+            decorator parameter will contain the exact decorator from the
+            executor the user wants to use.
+        axis : {0 or 'index', 1 or 'columns'}
+            0 or 'index' should execute the function passing each column as
+            parameter. 1 or 'columns' should execute the function passing
+            each row as parameter. The default executor engine passes rows
+            as pandas ``Series``. Other executor engines should probably
+            expect functions to be implemented this way for compatibility.
+            But passing rows as other data structures is technically possible
+            as far as the function ``func`` is implemented accordingly.
+        """
 
 
 def frame_apply(
@@ -223,7 +332,7 @@ class Apply(metaclass=abc.ABCMeta):
             if is_series:
                 func = {com.get_callable_name(v) or v: v for v in func}
             else:
-                func = {col: func for col in obj}
+                func = dict.fromkeys(obj, func)
 
         if is_dict_like(func):
             func = cast(AggFuncTypeDict, func)
@@ -459,7 +568,7 @@ class Apply(metaclass=abc.ABCMeta):
                 indices = selected_obj.columns.get_indexer_for([key])
                 labels = selected_obj.columns.take(indices)
                 label_to_indices = defaultdict(list)
-                for index, label in zip(indices, labels):
+                for index, label in zip(indices, labels, strict=True):
                     label_to_indices[label].append(index)
 
                 key_data = [
@@ -513,7 +622,9 @@ class Apply(metaclass=abc.ABCMeta):
         if all(is_ndframe):
             results = [result for result in result_data if not result.empty]
             keys_to_use: Iterable[Hashable]
-            keys_to_use = [k for k, v in zip(result_index, result_data) if not v.empty]
+            keys_to_use = [
+                k for k, v in zip(result_index, result_data, strict=True) if not v.empty
+            ]
             # Have to check, if at least one DataFrame is not empty.
             if keys_to_use == []:
                 keys_to_use = result_index
@@ -530,6 +641,7 @@ class Apply(metaclass=abc.ABCMeta):
                 results,
                 axis=axis,
                 keys=keys_to_use,
+                sort=False,
             )
         elif any(is_ndframe):
             # There is a mix of NDFrames and scalars
@@ -1254,7 +1366,7 @@ class FrameColumnApply(FrameApply):
                 yield obj._ixs(i, axis=0)
 
         else:
-            for arr, name in zip(values, self.index):
+            for arr, name in zip(values, self.index, strict=True):
                 # GH#35462 re-pin mgr in case setitem changed it
                 ser._mgr = mgr
                 mgr.set_values(arr)
@@ -1540,7 +1652,7 @@ class GroupByApply(Apply):
         assert op_name in ["agg", "apply"]
 
         obj = self.obj
-        kwargs = {}
+        kwargs: dict[str, Any] = {}
         if op_name == "apply":
             by_row = "_compat" if self.by_row else False
             kwargs.update({"by_row": by_row})
@@ -1636,7 +1748,13 @@ def reconstruct_func(
     >>> reconstruct_func("min")
     (False, 'min', None, None)
     """
-    relabeling = func is None and is_multi_agg_with_relabel(**kwargs)
+    from pandas.core.groupby.generic import NamedAgg
+
+    relabeling = func is None and (
+        is_multi_agg_with_relabel(**kwargs)
+        or any(isinstance(v, NamedAgg) for v in kwargs.values())
+    )
+
     columns: tuple[str, ...] | None = None
     order: npt.NDArray[np.intp] | None = None
 
@@ -1657,9 +1775,22 @@ def reconstruct_func(
         # "Callable[..., Any] | str | list[Callable[..., Any] | str] |
         # MutableMapping[Hashable, Callable[..., Any] | str | list[Callable[..., Any] |
         # str]] | None")
+        converted_kwargs = {}
+        for key, val in kwargs.items():
+            if isinstance(val, NamedAgg):
+                aggfunc = val.aggfunc
+                if val.args or val.kwargs:
+                    aggfunc = lambda x, func=aggfunc, a=val.args, kw=val.kwargs: func(
+                        x, *a, **kw
+                    )
+                converted_kwargs[key] = (val.column, aggfunc)
+            else:
+                converted_kwargs[key] = val
+
         func, columns, order = normalize_keyword_aggregation(  # type: ignore[assignment]
-            kwargs
+            converted_kwargs
         )
+
     assert func is not None
 
     return relabeling, func, columns, order
@@ -1808,7 +1939,7 @@ def relabel_result(
     from pandas.core.indexes.base import Index
 
     reordered_indexes = [
-        pair[0] for pair in sorted(zip(columns, order), key=lambda t: t[1])
+        pair[0] for pair in sorted(zip(columns, order, strict=True), key=lambda t: t[1])
     ]
     reordered_result_in_dict: dict[Hashable, Series] = {}
     idx = 0
@@ -1841,7 +1972,7 @@ def relabel_result(
             fun = [
                 com.get_callable_name(f) if not isinstance(f, str) else f for f in fun
             ]
-            col_idx_order = Index(s.index).get_indexer(fun)
+            col_idx_order = Index(s.index, copy=False).get_indexer(fun)
             valid_idx = col_idx_order != -1
             if valid_idx.any():
                 s = s.iloc[col_idx_order[valid_idx]]
@@ -1907,7 +2038,8 @@ def _managle_lambda_list(aggfuncs: Sequence[Any]) -> Sequence[Any]:
     for aggfunc in aggfuncs:
         if com.get_callable_name(aggfunc) == "<lambda>":
             aggfunc = partial(aggfunc)
-            aggfunc.__name__ = f"<lambda_{i}>"
+            # error: "partial[Any]" has no attribute "__name__"; maybe "__new__"?
+            aggfunc.__name__ = f"<lambda_{i}>"  # type: ignore[attr-defined]
             i += 1
         mangled_aggfuncs.append(aggfunc)
 

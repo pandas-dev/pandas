@@ -2,14 +2,16 @@ from __future__ import annotations
 
 import datetime
 from functools import partial
-from textwrap import dedent
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    cast,
+)
 
 import numpy as np
 
 from pandas._libs.tslibs import Timedelta
 import pandas._libs.window.aggregations as window_aggregations
-from pandas.util._decorators import doc
+from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.common import (
     is_datetime64_dtype,
@@ -31,16 +33,6 @@ from pandas.core.util.numba_ import (
     maybe_use_numba,
 )
 from pandas.core.window.common import zsqrt
-from pandas.core.window.doc import (
-    _shared_docs,
-    create_section_header,
-    kwargs_numeric_only,
-    numba_notes,
-    template_header,
-    template_returns,
-    template_see_also,
-    window_agg_numba_parameters,
-)
 from pandas.core.window.numba_ import (
     generate_numba_ewm_func,
     generate_numba_ewm_table_func,
@@ -57,6 +49,7 @@ from pandas.core.window.rolling import (
 if TYPE_CHECKING:
     from pandas._typing import (
         TimedeltaConvertibleTypes,
+        TimeUnit,
         npt,
     )
 
@@ -122,6 +115,7 @@ def _calculate_deltas(
         Diff of the times divided by the half-life
     """
     unit = dtype_to_unit(times.dtype)
+    unit = cast("TimeUnit", unit)
     if isinstance(times, ABCSeries):
         times = times._values
     _times = np.asarray(times.view(np.int64), dtype=np.float64)
@@ -129,6 +123,7 @@ def _calculate_deltas(
     return np.diff(_times) / _halflife
 
 
+@set_module("pandas.api.typing")
 class ExponentialMovingWindow(BaseWindow):
     r"""
     Provide exponentially weighted (EW) calculations.
@@ -215,8 +210,6 @@ class ExponentialMovingWindow(BaseWindow):
         If 1-D array like, a sequence with the same shape as the observations.
 
     method : str {'single', 'table'}, default 'single'
-        .. versionadded:: 1.4.0
-
         Execute the rolling operation per single column or row (``'single'``)
         or over the entire object (``'table'``).
 
@@ -424,8 +417,6 @@ class ExponentialMovingWindow(BaseWindow):
         Return an ``OnlineExponentialMovingWindow`` object to calculate
         exponentially moving window aggregations in an online method.
 
-        .. versionadded:: 1.3.0
-
         Parameters
         ----------
         engine: str, default ``'numba'``
@@ -460,17 +451,61 @@ class ExponentialMovingWindow(BaseWindow):
             selection=self._selection,
         )
 
-    @doc(
-        _shared_docs["aggregate"],
-        see_also=dedent(
-            """
+    def aggregate(self, func=None, *args, **kwargs):
+        """
+        Aggregate using one or more operations over the specified axis.
+
+        Parameters
+        ----------
+        func : function, str, list or dict
+            Function to use for aggregating the data. If a function, must either
+            work when passed a Series/Dataframe or when passed to
+            Series/Dataframe.apply.
+
+            Accepted combinations are:
+
+            - function
+            - string function name
+            - list of functions and/or function names, e.g. ``[np.sum, 'mean']``
+            - dict of axis labels -> functions, function names or list of such.
+        *args
+            Positional arguments to pass to `func`.
+        **kwargs
+            Keyword arguments to pass to `func`.
+
+        Returns
+        -------
+        scalar, Series or DataFrame
+
+            The return can be:
+
+            * scalar : when Series.agg is called with single function
+            * Series : when DataFrame.agg is called with a single function
+            * DataFrame : when DataFrame.agg is called with several functions
+
         See Also
         --------
         pandas.DataFrame.rolling.aggregate
-        """
-        ),
-        examples=dedent(
-            """
+
+        Notes
+        -----
+        The aggregation operations are always performed over an axis, either the
+        index (default) or the column axis. This behavior is different from
+        `numpy` aggregation functions (`mean`, `median`, `prod`, `sum`, `std`,
+        `var`), where the default is to compute the aggregation of the flattened
+        array, e.g., ``numpy.mean(arr_2d)`` as opposed to
+        ``numpy.mean(arr_2d, axis=0)``.
+
+        `agg` is an alias for `aggregate`. Use the alias.
+
+        Functions that mutate the passed object can produce unexpected
+        behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
+        for more details.
+
+        A passed user-defined-function will be passed a Series for evaluation.
+
+        If ``func`` defines an index relabeling, ``axis`` must be ``0`` or ``index``.
+
         Examples
         --------
         >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
@@ -486,48 +521,64 @@ class ExponentialMovingWindow(BaseWindow):
         1  1.666667  4.666667  7.666667
         2  2.428571  5.428571  8.428571
         """
-        ),
-        klass="Series/Dataframe",
-        axis="",
-    )
-    def aggregate(self, func=None, *args, **kwargs):
         return super().aggregate(func, *args, **kwargs)
 
     agg = aggregate
 
-    @doc(
-        template_header,
-        create_section_header("Parameters"),
-        kwargs_numeric_only,
-        window_agg_numba_parameters(),
-        create_section_header("Returns"),
-        template_returns,
-        create_section_header("See Also"),
-        template_see_also,
-        create_section_header("Notes"),
-        numba_notes,
-        create_section_header("Examples"),
-        dedent(
-            """\
-        >>> ser = pd.Series([1, 2, 3, 4])
-        >>> ser.ewm(alpha=.2).mean()
-        0    1.000000
-        1    1.555556
-        2    2.147541
-        3    2.775068
-        dtype: float64
-        """
-        ),
-        window_method="ewm",
-        aggregation_description="(exponential weighted moment) mean",
-        agg_method="mean",
-    )
     def mean(
         self,
         numeric_only: bool = False,
         engine=None,
         engine_kwargs=None,
     ):
+        """
+        Calculate the ewm (exponential weighted moment) mean.
+
+        Parameters
+        ----------
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+
+        engine : str, default None
+            * ``'cython'`` : Runs the operation through C-extensions from cython.
+            * ``'numba'`` : Runs the operation through JIT compiled code from numba.
+            * ``None`` : Defaults to ``'cython'`` or globally setting
+              ``compute.use_numba``
+
+        engine_kwargs : dict, default None
+            * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
+            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+              and ``parallel`` dictionary keys. The values must either be ``True`` or
+              ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+              ``{{'nopython': True, 'nogil': False, 'parallel': False}}``
+
+        Returns
+        -------
+        Series or DataFrame
+            Return type is the same as the original object with ``np.float64`` dtype.
+
+        See Also
+        --------
+        Series.ewm : Calling ewm with Series data.
+        DataFrame.ewm : Calling ewm with DataFrames.
+        Series.mean : Aggregating mean for Series.
+        DataFrame.mean : Aggregating mean for DataFrame.
+
+        Notes
+        -----
+        See :ref:`window.numba_engine` and :ref:`enhancingperf.numba` for
+        extended documentation and performance considerations for the Numba engine.
+
+        Examples
+        --------
+        >>> ser = pd.Series([1, 2, 3, 4])
+        >>> ser.ewm(alpha=0.2).mean()
+        0    1.000000
+        1    1.555556
+        2    2.147541
+        3    2.775068
+        dtype: float64
+        """
         if maybe_use_numba(engine):
             if self.method == "single":
                 func = generate_numba_ewm_func
@@ -559,39 +610,58 @@ class ExponentialMovingWindow(BaseWindow):
         else:
             raise ValueError("engine must be either 'numba' or 'cython'")
 
-    @doc(
-        template_header,
-        create_section_header("Parameters"),
-        kwargs_numeric_only,
-        window_agg_numba_parameters(),
-        create_section_header("Returns"),
-        template_returns,
-        create_section_header("See Also"),
-        template_see_also,
-        create_section_header("Notes"),
-        numba_notes,
-        create_section_header("Examples"),
-        dedent(
-            """\
-        >>> ser = pd.Series([1, 2, 3, 4])
-        >>> ser.ewm(alpha=.2).sum()
-        0    1.000
-        1    2.800
-        2    5.240
-        3    8.192
-        dtype: float64
-        """
-        ),
-        window_method="ewm",
-        aggregation_description="(exponential weighted moment) sum",
-        agg_method="sum",
-    )
     def sum(
         self,
         numeric_only: bool = False,
         engine=None,
         engine_kwargs=None,
     ):
+        """
+        Calculate the ewm (exponential weighted moment) sum.
+
+        Parameters
+        ----------
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+        engine : str, default None
+            * ``'cython'`` : Runs the operation through C-extensions from cython.
+            * ``'numba'`` : Runs the operation through JIT compiled code from numba.
+            * ``None`` : Defaults to ``'cython'`` or globally setting
+              ``compute.use_numba``
+        engine_kwargs : dict, default None
+            * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
+            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+              and ``parallel`` dictionary keys. The values must either be ``True`` or
+              ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+              ``{'nopython': True, 'nogil': False, 'parallel': False}``
+
+        Returns
+        -------
+        Series or DataFrame
+            Return type is the same as the original object with ``np.float64`` dtype.
+
+        See Also
+        --------
+        Series.ewm : Calling ewm with Series data.
+        DataFrame.ewm : Calling ewm with DataFrames.
+        Series.sum : Aggregating sum for Series.
+        DataFrame.sum : Aggregating sum for DataFrame.
+
+        Notes
+        -----
+        See :ref:`window.numba_engine` and :ref:`enhancingperf.numba` for extended
+        documentation and performance considerations for the Numba engine.
+
+        Examples
+        --------
+        >>> ser = pd.Series([1, 2, 3, 4])
+        >>> ser.ewm(alpha=0.2).sum()
+        0    1.000
+        1    2.800
+        2    5.240
+        3    8.192
+        dtype: float64
+        """
         if not self.adjust:
             raise NotImplementedError("sum is not implemented with adjust=False")
         if self.times is not None:
@@ -627,37 +697,39 @@ class ExponentialMovingWindow(BaseWindow):
         else:
             raise ValueError("engine must be either 'numba' or 'cython'")
 
-    @doc(
-        template_header,
-        create_section_header("Parameters"),
-        dedent(
-            """\
+    def std(self, bias: bool = False, numeric_only: bool = False):
+        """
+        Calculate the ewm (exponential weighted moment) standard deviation.
+
+        Parameters
+        ----------
         bias : bool, default False
             Use a standard estimation bias correction.
-        """
-        ),
-        kwargs_numeric_only,
-        create_section_header("Returns"),
-        template_returns,
-        create_section_header("See Also"),
-        template_see_also,
-        create_section_header("Examples"),
-        dedent(
-            """\
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+
+        Returns
+        -------
+        Series or DataFrame
+            Return type is the same as the original object with ``np.float64`` dtype.
+
+        See Also
+        --------
+        Series.ewm : Calling ewm with Series data.
+        DataFrame.ewm : Calling ewm with DataFrames.
+        Series.std : Aggregating std for Series.
+        DataFrame.std : Aggregating std for DataFrame.
+
+        Examples
+        --------
         >>> ser = pd.Series([1, 2, 3, 4])
-        >>> ser.ewm(alpha=.2).std()
+        >>> ser.ewm(alpha=0.2).std()
         0         NaN
         1    0.707107
         2    0.995893
         3    1.277320
         dtype: float64
         """
-        ),
-        window_method="ewm",
-        aggregation_description="(exponential weighted moment) standard deviation",
-        agg_method="std",
-    )
-    def std(self, bias: bool = False, numeric_only: bool = False):
         if (
             numeric_only
             and self._selected_obj.ndim == 1
@@ -671,37 +743,39 @@ class ExponentialMovingWindow(BaseWindow):
             raise NotImplementedError("std is not implemented with times")
         return zsqrt(self.var(bias=bias, numeric_only=numeric_only))
 
-    @doc(
-        template_header,
-        create_section_header("Parameters"),
-        dedent(
-            """\
+    def var(self, bias: bool = False, numeric_only: bool = False):
+        """
+        Calculate the ewm (exponential weighted moment) variance.
+
+        Parameters
+        ----------
         bias : bool, default False
             Use a standard estimation bias correction.
-        """
-        ),
-        kwargs_numeric_only,
-        create_section_header("Returns"),
-        template_returns,
-        create_section_header("See Also"),
-        template_see_also,
-        create_section_header("Examples"),
-        dedent(
-            """\
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+
+        Returns
+        -------
+        Series or DataFrame
+            Return type is the same as the original object with ``np.float64`` dtype.
+
+        See Also
+        --------
+        Series.ewm : Calling ewm with Series data.
+        DataFrame.ewm : Calling ewm with DataFrames.
+        Series.var : Aggregating var for Series.
+        DataFrame.var : Aggregating var for DataFrame.
+
+        Examples
+        --------
         >>> ser = pd.Series([1, 2, 3, 4])
-        >>> ser.ewm(alpha=.2).var()
+        >>> ser.ewm(alpha=0.2).var()
         0         NaN
         1    0.500000
         2    0.991803
         3    1.631547
         dtype: float64
         """
-        ),
-        window_method="ewm",
-        aggregation_description="(exponential weighted moment) variance",
-        agg_method="var",
-    )
-    def var(self, bias: bool = False, numeric_only: bool = False):
         if self.times is not None:
             raise NotImplementedError("var is not implemented with times")
         window_func = window_aggregations.ewmcov
@@ -718,11 +792,18 @@ class ExponentialMovingWindow(BaseWindow):
 
         return self._apply(var_func, name="var", numeric_only=numeric_only)
 
-    @doc(
-        template_header,
-        create_section_header("Parameters"),
-        dedent(
-            """\
+    def cov(
+        self,
+        other: DataFrame | Series | None = None,
+        pairwise: bool | None = None,
+        bias: bool = False,
+        numeric_only: bool = False,
+    ):
+        """
+        Calculate the ewm (exponential weighted moment) sample covariance.
+
+        Parameters
+        ----------
         other : Series or DataFrame , optional
             If not supplied then will default to self and produce pairwise
             output.
@@ -735,37 +816,32 @@ class ExponentialMovingWindow(BaseWindow):
             observations will be used.
         bias : bool, default False
             Use a standard estimation bias correction.
-        """
-        ),
-        kwargs_numeric_only,
-        create_section_header("Returns"),
-        template_returns,
-        create_section_header("See Also"),
-        template_see_also,
-        create_section_header("Examples"),
-        dedent(
-            """\
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+
+        Returns
+        -------
+        Series or DataFrame
+            Return type is the same as the original object with ``np.float64`` dtype.
+
+        See Also
+        --------
+        Series.ewm : Calling ewm with Series data.
+        DataFrame.ewm : Calling ewm with DataFrames.
+        Series.cov : Aggregating cov for Series.
+        DataFrame.cov : Aggregating cov for DataFrame.
+
+        Examples
+        --------
         >>> ser1 = pd.Series([1, 2, 3, 4])
         >>> ser2 = pd.Series([10, 11, 13, 16])
-        >>> ser1.ewm(alpha=.2).cov(ser2)
+        >>> ser1.ewm(alpha=0.2).cov(ser2)
         0         NaN
         1    0.500000
         2    1.524590
         3    3.408836
         dtype: float64
         """
-        ),
-        window_method="ewm",
-        aggregation_description="(exponential weighted moment) sample covariance",
-        agg_method="cov",
-    )
-    def cov(
-        self,
-        other: DataFrame | Series | None = None,
-        pairwise: bool | None = None,
-        bias: bool = False,
-        numeric_only: bool = False,
-    ):
         if self.times is not None:
             raise NotImplementedError("cov is not implemented with times")
 
@@ -808,11 +884,17 @@ class ExponentialMovingWindow(BaseWindow):
             self._selected_obj, other, pairwise, cov_func, numeric_only
         )
 
-    @doc(
-        template_header,
-        create_section_header("Parameters"),
-        dedent(
-            """\
+    def corr(
+        self,
+        other: DataFrame | Series | None = None,
+        pairwise: bool | None = None,
+        numeric_only: bool = False,
+    ):
+        """
+        Calculate the ewm (exponential weighted moment) sample correlation.
+
+        Parameters
+        ----------
         other : Series or DataFrame, optional
             If not supplied then will default to self and produce pairwise
             output.
@@ -823,36 +905,32 @@ class ExponentialMovingWindow(BaseWindow):
             output will be a MultiIndex DataFrame in the case of DataFrame
             inputs. In the case of missing elements, only complete pairwise
             observations will be used.
-        """
-        ),
-        kwargs_numeric_only,
-        create_section_header("Returns"),
-        template_returns,
-        create_section_header("See Also"),
-        template_see_also,
-        create_section_header("Examples"),
-        dedent(
-            """\
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+
+        Returns
+        -------
+        Series or DataFrame
+            Return type is the same as the original object with ``np.float64`` dtype.
+
+        See Also
+        --------
+        Series.ewm : Calling ewm with Series data.
+        DataFrame.ewm : Calling ewm with DataFrames.
+        Series.corr : Aggregating corr for Series.
+        DataFrame.corr : Aggregating corr for DataFrame.
+
+        Examples
+        --------
         >>> ser1 = pd.Series([1, 2, 3, 4])
         >>> ser2 = pd.Series([10, 11, 13, 16])
-        >>> ser1.ewm(alpha=.2).corr(ser2)
+        >>> ser1.ewm(alpha=0.2).corr(ser2)
         0         NaN
         1    1.000000
         2    0.982821
         3    0.977802
         dtype: float64
         """
-        ),
-        window_method="ewm",
-        aggregation_description="(exponential weighted moment) sample correlation",
-        agg_method="corr",
-    )
-    def corr(
-        self,
-        other: DataFrame | Series | None = None,
-        pairwise: bool | None = None,
-        numeric_only: bool = False,
-    ):
         if self.times is not None:
             raise NotImplementedError("corr is not implemented with times")
 
@@ -902,6 +980,7 @@ class ExponentialMovingWindow(BaseWindow):
         )
 
 
+@set_module("pandas.api.typing")
 class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow):
     """
     Provide an exponential moving window groupby implementation.

@@ -4,6 +4,9 @@ inputs:
   editable:
     description: Whether to build pandas in editable mode (default true)
     default: true
+  werror:
+    description: Enable werror flag for build
+    default: true
 runs:
   using: composite
   steps:
@@ -26,9 +29,9 @@ runs:
       run: |
         if [[ ${{ inputs.editable }} == "true" ]]; then
           pip install -e . --no-build-isolation -v --no-deps \
-            -Csetup-args="--werror"
+            ${{ inputs.werror == 'true' && '-Csetup-args="--werror"' || '' }}
         else
           pip install . --no-build-isolation -v --no-deps \
-            -Csetup-args="--werror"
+            ${{ inputs.werror == 'true' && '-Csetup-args="--werror"' || '' }}
         fi
       shell: bash -el {0}

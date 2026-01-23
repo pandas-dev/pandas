@@ -342,7 +342,7 @@ by supplying the ``var_name`` and ``value_name`` parameters.
    cheese.melt(id_vars=["first", "last"], var_name="quantity")
 
 When transforming a DataFrame using :func:`~pandas.melt`, the index will be ignored.
-The original index values can be kept by setting the ``ignore_index=False`` parameter to ``False`` (default is ``True``).
+The original index values can be kept by setting the ``ignore_index`` parameter to ``False`` (default is ``True``).
 ``ignore_index=False`` will however duplicate index values.
 
 .. ipython:: python
@@ -395,7 +395,7 @@ variables and the values representing the presence of those variables per row.
    pd.get_dummies(df["key"])
    df["key"].str.get_dummies()
 
-``prefix`` adds a prefix to the the column names which is useful for merging the result
+``prefix`` adds a prefix to the column names which is useful for merging the result
 with the original :class:`DataFrame`:
 
 .. ipython:: python
@@ -477,8 +477,6 @@ The values can be cast to a different type using the ``dtype`` argument.
     df = pd.DataFrame({"A": list("abc"), "B": [1.1, 2.2, 3.3]})
 
     pd.get_dummies(df, dtype=np.float32).dtypes
-
-.. versionadded:: 1.5.0
 
 :func:`~pandas.from_dummies` converts the output of :func:`~pandas.get_dummies` back into
 a :class:`Series` of categorical values from indicator values.

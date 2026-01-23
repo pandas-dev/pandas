@@ -6,6 +6,8 @@ from typing import (
     Any,
 )
 
+from pandas.util._decorators import set_module
+
 from pandas.plotting._core import _get_plot_backend
 
 if TYPE_CHECKING:
@@ -26,6 +28,7 @@ if TYPE_CHECKING:
     )
 
 
+@set_module("pandas.plotting")
 def table(ax: Axes, data: DataFrame | Series, **kwargs) -> Table:
     """
     Helper function to convert DataFrame and Series to matplotlib.table.
@@ -68,7 +71,7 @@ def table(ax: Axes, data: DataFrame | Series, **kwargs) -> Table:
             >>> df = pd.DataFrame({"A": [1, 2], "B": [3, 4]})
             >>> fig, ax = plt.subplots()
             >>> ax.axis("off")
-            (0.0, 1.0, 0.0, 1.0)
+            (np.float64(0.0), np.float64(1.0), np.float64(0.0), np.float64(1.0))
             >>> table = pd.plotting.table(
             ...     ax, df, loc="center", cellLoc="center", colWidths=[0.2, 0.2]
             ... )
@@ -79,6 +82,7 @@ def table(ax: Axes, data: DataFrame | Series, **kwargs) -> Table:
     )
 
 
+@set_module("pandas.plotting")
 def register() -> None:
     """
     Register pandas formatters and converters with matplotlib.
@@ -125,6 +129,7 @@ def register() -> None:
     plot_backend.register()
 
 
+@set_module("pandas.plotting")
 def deregister() -> None:
     """
     Remove pandas formatters and converters.
@@ -169,6 +174,7 @@ def deregister() -> None:
     plot_backend.deregister()
 
 
+@set_module("pandas.plotting")
 def scatter_matrix(
     frame: DataFrame,
     alpha: float = 0.5,
@@ -264,6 +270,7 @@ def scatter_matrix(
     )
 
 
+@set_module("pandas.plotting")
 def radviz(
     frame: DataFrame,
     class_column: str,
@@ -275,12 +282,12 @@ def radviz(
     """
     Plot a multidimensional dataset in 2D.
 
-    Each Series in the DataFrame is represented as a evenly distributed
+    Each Series in the DataFrame is represented as an evenly distributed
     slice on a circle. Each data point is rendered in the circle according to
     the value on each Series. Highly correlated `Series` in the `DataFrame`
     are placed closer on the unit circle.
 
-    RadViz allow to project a N-dimensional data set into a 2D space where the
+    RadViz allow to project an N-dimensional data set into a 2D space where the
     influence of each dimension can be interpreted as a balance between the
     influence of all dimensions.
 
@@ -352,6 +359,7 @@ def radviz(
     )
 
 
+@set_module("pandas.plotting")
 def andrews_curves(
     frame: DataFrame,
     class_column: str,
@@ -412,7 +420,7 @@ def andrews_curves(
         >>> df = pd.read_csv(
         ...     "https://raw.githubusercontent.com/pandas-dev/"
         ...     "pandas/main/pandas/tests/io/data/csv/iris.csv"
-        ... )
+        ... )  # doctest: +SKIP
         >>> pd.plotting.andrews_curves(df, "Name")  # doctest: +SKIP
     """
     plot_backend = _get_plot_backend("matplotlib")
@@ -427,6 +435,7 @@ def andrews_curves(
     )
 
 
+@set_module("pandas.plotting")
 def bootstrap_plot(
     series: Series,
     fig: Figure | None = None,
@@ -487,6 +496,7 @@ def bootstrap_plot(
     )
 
 
+@set_module("pandas.plotting")
 def parallel_coordinates(
     frame: DataFrame,
     class_column: str,
@@ -551,7 +561,7 @@ def parallel_coordinates(
         >>> df = pd.read_csv(
         ...     "https://raw.githubusercontent.com/pandas-dev/"
         ...     "pandas/main/pandas/tests/io/data/csv/iris.csv"
-        ... )
+        ... )  # doctest: +SKIP
         >>> pd.plotting.parallel_coordinates(
         ...     df, "Name", color=("#556270", "#4ECDC4", "#C7F464")
         ... )  # doctest: +SKIP
@@ -573,6 +583,7 @@ def parallel_coordinates(
     )
 
 
+@set_module("pandas.plotting")
 def lag_plot(series: Series, lag: int = 1, ax: Axes | None = None, **kwds) -> Axes:
     """
     Lag plot for time series.
@@ -622,16 +633,25 @@ def lag_plot(series: Series, lag: int = 1, ax: Axes | None = None, **kwds) -> Ax
     .. plot::
         :context: close-figs
 
-        >>> pd.plotting.lag_plot(s, lag=1)
-        <Axes: xlabel='y(t)', ylabel='y(t + 1)'>
+        >>> _ = pd.plotting.lag_plot(s, lag=1)
     """
     plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.lag_plot(series=series, lag=lag, ax=ax, **kwds)
 
 
+@set_module("pandas.plotting")
 def autocorrelation_plot(series: Series, ax: Axes | None = None, **kwargs) -> Axes:
     """
     Autocorrelation plot for time series.
+
+    This method generates an autocorrelation plot for a given time series,
+    which helps to identify any periodic structure or correlation within the
+    data across various lags. It shows the correlation of a time series with a
+    delayed copy of itself as a function of delay. Autocorrelation plots are useful for
+    checking randomness in a data set. If the data are random, the autocorrelations
+    should be near zero for any and all time-lag separations. If the data are not
+    random, then one or more of the autocorrelations will be significantly
+    non-zero.
 
     Parameters
     ----------
@@ -757,3 +777,4 @@ class _Options(dict):
 
 
 plot_params = _Options()
+plot_params.__module__ = "pandas.plotting"

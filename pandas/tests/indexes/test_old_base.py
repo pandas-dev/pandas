@@ -7,6 +7,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import Timestamp
+from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.common import (
     is_integer_dtype,
@@ -427,7 +428,7 @@ class TestBase:
         tm.assert_index_equal(result, expected)
 
         cond = [False] + [True] * len(idx[1:])
-        expected = Index([idx._na_value] + idx[1:].tolist(), dtype=idx.dtype)
+        expected = Index([idx._na_value, *idx[1:].tolist()], dtype=idx.dtype)
         result = idx.where(klass(cond))
         tm.assert_index_equal(result, expected)
 
@@ -454,10 +455,12 @@ class TestBase:
         else:
             msg = "slice indices must be integers or None or have an __index__ method"
 
-        if using_infer_string and (
-            index.dtype == "string" or index.dtype == "category"
-        ):
-            msg = "loc must be an integer between"
+        if using_infer_string:
+            if str(index.dtype) in {"str", "string", "category"}:
+                msg = "loc must be an integer between"
+            elif index.dtype == "object" and len(index) == 0:
+                msg = "loc must be an integer between"
+                err = TypeError
 
         with pytest.raises(err, match=msg):
             index.insert(0.5, "foo")
@@ -558,8 +561,8 @@ class TestBase:
         with pytest.raises(ValueError, match=msg):
             index_a == series_b
 
-        tm.assert_numpy_array_equal(index_a == series_a, expected1)
-        tm.assert_numpy_array_equal(index_a == series_c, expected2)
+        tm.assert_series_equal(index_a == series_a, Series(expected1))
+        tm.assert_series_equal(index_a == series_c, Series(expected2))
 
         # cases where length is 1 for one of them
         with pytest.raises(ValueError, match="Lengths must match"):
@@ -595,7 +598,7 @@ class TestBase:
             pytest.skip(f"Not relevant for Index with {index.dtype}")
         elif isinstance(index, MultiIndex):
             idx = index.copy(deep=True)
-            msg = "isna is not defined for MultiIndex"
+            msg = "fillna is not defined for MultiIndex"
             with pytest.raises(NotImplementedError, match=msg):
                 idx.fillna(idx[0])
         else:
@@ -717,8 +720,11 @@ class TestBase:
 
         # non-standard categories
         dtype = CategoricalDtype(idx.unique().tolist()[:-1], ordered)
-        result = idx.astype(dtype, copy=copy)
-        expected = CategoricalIndex(idx, name=name, dtype=dtype)
+        msg = "Constructing a Categorical with a dtype and values containing"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = idx.astype(dtype, copy=copy)
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            expected = CategoricalIndex(idx, name=name, dtype=dtype)
         tm.assert_index_equal(result, expected, exact=True)
 
         if ordered is False:
@@ -919,7 +925,7 @@ class TestNumericBase:
 
         result = index.insert(0, index[0])
 
-        expected = Index([index[0]] + list(index), dtype=index.dtype)
+        expected = Index([index[0], *list(index)], dtype=index.dtype)
         tm.assert_index_equal(result, expected, exact=True)
 
     def test_insert_na(self, nulls_fixture, simple_index):
@@ -928,9 +934,9 @@ class TestNumericBase:
         na_val = nulls_fixture
 
         if na_val is pd.NaT:
-            expected = Index([index[0], pd.NaT] + list(index[1:]), dtype=object)
+            expected = Index([index[0], pd.NaT, *list(index[1:])], dtype=object)
         else:
-            expected = Index([index[0], np.nan] + list(index[1:]))
+            expected = Index([index[0], np.nan, *list(index[1:])])
             # GH#43921 we preserve float dtype
             if index.dtype.kind == "f":
                 expected = Index(expected, dtype=index.dtype)

@@ -4,11 +4,13 @@ Expose public exceptions & warnings
 
 from __future__ import annotations
 
+import abc
 import ctypes
 
 from pandas._config.config import OptionError
 
 from pandas._libs.tslibs import (
+    IncompatibleFrequency,
     OutOfBoundsDatetime,
     OutOfBoundsTimedelta,
 )
@@ -89,6 +91,138 @@ class PerformanceWarning(Warning):
     jim  joe
     1    z        3
     """
+
+
+class PandasChangeWarning(Warning):
+    """
+    Warning raised for any upcoming change.
+
+    See Also
+    --------
+    errors.PandasPendingDeprecationWarning : Class for deprecations that will raise a
+        PendingDeprecationWarning.
+    errors.PandasDeprecationWarning : Class for deprecations that will raise a
+        DeprecationWarning.
+    errors.PandasFutureWarning : Class for deprecations that will raise a FutureWarning.
+
+    Examples
+    --------
+    >>> pd.errors.PandasChangeWarning
+    <class 'pandas.errors.PandasChangeWarning'>
+    """
+
+    @classmethod
+    @abc.abstractmethod
+    def version(cls) -> str:
+        """Version where change will be enforced."""
+
+
+class PandasPendingDeprecationWarning(PandasChangeWarning, PendingDeprecationWarning):
+    """
+    Warning raised for an upcoming change that is a PendingDeprecationWarning.
+
+    See Also
+    --------
+    errors.PandasChangeWarning: Class for deprecations that will raise any warning.
+    errors.PandasDeprecationWarning : Class for deprecations that will raise a
+        DeprecationWarning.
+    errors.PandasFutureWarning : Class for deprecations that will raise a FutureWarning.
+
+    Examples
+    --------
+    >>> pd.errors.PandasPendingDeprecationWarning
+    <class 'pandas.errors.PandasPendingDeprecationWarning'>
+    """
+
+
+class PandasDeprecationWarning(PandasChangeWarning, DeprecationWarning):
+    """
+    Warning raised for an upcoming change that is a DeprecationWarning.
+
+    See Also
+    --------
+    errors.PandasChangeWarning: Class for deprecations that will raise any warning.
+    errors.PandasPendingDeprecationWarning : Class for deprecations that will raise a
+        PendingDeprecationWarning.
+    errors.PandasFutureWarning : Class for deprecations that will raise a FutureWarning.
+
+    Examples
+    --------
+    >>> pd.errors.PandasDeprecationWarning
+    <class 'pandas.errors.PandasDeprecationWarning'>
+    """
+
+
+class PandasFutureWarning(PandasChangeWarning, FutureWarning):
+    """
+    Warning raised for an upcoming change that is a FutureWarning.
+
+    See Also
+    --------
+    errors.PandasChangeWarning: Class for deprecations that will raise any warning.
+    errors.PandasPendingDeprecationWarning : Class for deprecations that will raise a
+        PendingDeprecationWarning.
+    errors.PandasDeprecationWarning : Class for deprecations that will raise a
+        DeprecationWarning.
+
+    Examples
+    --------
+    >>> pd.errors.PandasFutureWarning
+    <class 'pandas.errors.PandasFutureWarning'>
+    """
+
+
+class Pandas4Warning(PandasDeprecationWarning):
+    """
+    Warning raised for an upcoming change that will be enforced in pandas 4.0.
+
+    See Also
+    --------
+    errors.PandasChangeWarning: Class for deprecations that will raise any warning.
+    errors.PandasPendingDeprecationWarning : Class for deprecations that will raise a
+        PendingDeprecationWarning.
+    errors.PandasDeprecationWarning : Class for deprecations that will raise a
+        DeprecationWarning.
+    errors.PandasFutureWarning : Class for deprecations that will raise a FutureWarning.
+
+    Examples
+    --------
+    >>> pd.errors.Pandas4Warning
+    <class 'pandas.errors.Pandas4Warning'>
+    """
+
+    @classmethod
+    def version(cls) -> str:
+        """Version where change will be enforced."""
+        return "4.0"
+
+
+class Pandas5Warning(PandasPendingDeprecationWarning):
+    """
+    Warning raised for an upcoming change that will be enforced in pandas 5.0.
+
+    See Also
+    --------
+    errors.PandasChangeWarning: Class for deprecations that will raise any warning.
+    errors.PandasPendingDeprecationWarning : Class for deprecations that will raise a
+        PendingDeprecationWarning.
+    errors.PandasDeprecationWarning : Class for deprecations that will raise a
+        DeprecationWarning.
+    errors.PandasFutureWarning : Class for deprecations that will raise a FutureWarning.
+
+    Examples
+    --------
+    >>> pd.errors.Pandas5Warning
+    <class 'pandas.errors.Pandas5Warning'>
+    """
+
+    @classmethod
+    def version(cls) -> str:
+        """Version where change will be enforced."""
+        return "5.0"
+
+
+_CurrentDeprecationWarning = Pandas4Warning
 
 
 class UnsupportedFunctionCall(ValueError):
@@ -379,7 +513,7 @@ class AbstractMethodError(NotImplementedError):
         types = {"method", "classmethod", "staticmethod", "property"}
         if methodtype not in types:
             raise ValueError(
-                f"methodtype must be one of {methodtype}, got {types} instead."
+                f"methodtype must be one of {types}, got {methodtype} instead."
             )
         self.methodtype = methodtype
         self.class_instance = class_instance
@@ -534,7 +668,7 @@ class ChainedAssignmentError(Warning):
     """
     Warning raised when trying to set using chained assignment.
 
-    When the ``mode.copy_on_write`` option is enabled, chained assignment can
+    With Copy-on-Write now always enabled, chained assignment can
     never work. In such a situation, we are always setting into a temporary
     object that is the result of an indexing operation (getitem), which under
     Copy-on-Write always behaves as a copy. Thus, assigning through a chain
@@ -545,16 +679,15 @@ class ChainedAssignmentError(Warning):
 
     See Also
     --------
-    options.mode.copy_on_write : Global setting for enabling or disabling
-        Copy-on-Write behavior.
+    DataFrame.loc : Access a group of rows and columns by label(s) or a boolean array.
+    DataFrame.iloc : Purely integer-location based indexing for selection by position.
+    Series.loc : Access a group of rows by label(s) or a boolean array.
 
     Examples
     --------
-    >>> pd.options.mode.copy_on_write = True
     >>> df = pd.DataFrame({"A": [1, 1, 1, 2, 2]}, columns=["A"])
     >>> df["A"][0:3] = 10  # doctest: +SKIP
     ... # ChainedAssignmentError: ...
-    >>> pd.options.mode.copy_on_write = False
     """
 
 
@@ -706,7 +839,7 @@ class CSSWarning(UserWarning):
 
 class PossibleDataLossError(Exception):
     """
-    Exception raised when trying to open a HDFStore file when already opened.
+    Exception raised when trying to open an HDFStore file when already opened.
 
     This error is triggered when there is a potential risk of data loss due to
     conflicting operations on an HDFStore file. It serves to prevent unintended
@@ -857,7 +990,7 @@ class InvalidColumnName(Warning):
 
 class CategoricalConversionWarning(Warning):
     """
-    Warning is raised when reading a partial labeled Stata file using a iterator.
+    Warning is raised when reading a partial labeled Stata file using an iterator.
 
     This warning helps ensure data integrity and alerts users to potential issues
     during the incremental reading of Stata files with labeled data, allowing for
@@ -917,6 +1050,7 @@ __all__ = [
     "DuplicateLabelError",
     "EmptyDataError",
     "IncompatibilityWarning",
+    "IncompatibleFrequency",
     "IndexingError",
     "IntCastingNaNError",
     "InvalidColumnName",
@@ -932,6 +1066,12 @@ __all__ = [
     "OptionError",
     "OutOfBoundsDatetime",
     "OutOfBoundsTimedelta",
+    "Pandas4Warning",
+    "Pandas5Warning",
+    "PandasChangeWarning",
+    "PandasDeprecationWarning",
+    "PandasFutureWarning",
+    "PandasPendingDeprecationWarning",
     "ParserError",
     "ParserWarning",
     "PerformanceWarning",

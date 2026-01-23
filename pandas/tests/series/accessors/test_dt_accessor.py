@@ -11,6 +11,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs.timezones import maybe_get_tz
+from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.common import (
     is_integer_dtype,
@@ -193,7 +194,7 @@ class TestSeriesDatetimeValues:
             tm.assert_index_equal(result.index, ser.index)
 
             msg = "The behavior of TimedeltaProperties.to_pytimedelta is deprecated"
-            with tm.assert_produces_warning(FutureWarning, match=msg):
+            with tm.assert_produces_warning(Pandas4Warning, match=msg):
                 result = ser.dt.to_pytimedelta()
             assert isinstance(result, np.ndarray)
             assert result.dtype == object
@@ -363,9 +364,11 @@ class TestSeriesDatetimeValues:
     )
     def test_dt_round_tz_nonexistent(self, method, ts_str, freq):
         # GH 23324 round near "spring forward" DST
-        ser = Series([pd.Timestamp(ts_str, tz="America/Chicago")])
+        ser = Series([pd.Timestamp(ts_str, tz="America/Chicago").as_unit("s")])
         result = getattr(ser.dt, method)(freq, nonexistent="shift_forward")
-        expected = Series([pd.Timestamp("2018-03-11 03:00:00", tz="America/Chicago")])
+        expected = Series(
+            [pd.Timestamp("2018-03-11 03:00:00", tz="America/Chicago").as_unit("s")]
+        )
         tm.assert_series_equal(result, expected)
 
         result = getattr(ser.dt, method)(freq, nonexistent="NaT")
@@ -435,10 +438,9 @@ class TestSeriesDatetimeValues:
         with pytest.raises(AttributeError, match="You cannot add any new attribute"):
             ser.dt.xlabel = "a"
 
-    # error: Unsupported operand types for + ("List[None]" and "List[str]")
     @pytest.mark.parametrize(
         "time_locale",
-        [None] + tm.get_locales(),  # type: ignore[operator]
+        [None, *tm.get_locales()],
     )
     def test_dt_accessor_datetime_name_accessors(self, time_locale):
         # Test Monday -> Sunday and January -> December, in that sequence
@@ -698,8 +700,8 @@ class TestSeriesDatetimeValues:
     def test_dt_accessor_updates_on_inplace(self):
         ser = Series(date_range("2018-01-01", periods=10))
         ser[2] = None
-        return_value = ser.fillna(pd.Timestamp("2018-01-01"), inplace=True)
-        assert return_value is None
+        result = ser.fillna(pd.Timestamp("2018-01-01"), inplace=True)
+        assert result is ser
         result = ser.dt.date
         assert result[0] == result[2]
 
@@ -732,9 +734,9 @@ class TestSeriesDatetimeValues:
         "input_series, expected_output",
         [
             [["2020-01-01"], [[2020, 1, 3]]],
-            [[pd.NaT], [[np.nan, np.nan, np.nan]]],
+            [[pd.NaT], [[None, None, None]]],
             [["2019-12-31", "2019-12-29"], [[2020, 1, 2], [2019, 52, 7]]],
-            [["2010-01-01", pd.NaT], [[2009, 53, 5], [np.nan, np.nan, np.nan]]],
+            [["2010-01-01", pd.NaT], [[2009, 53, 5], [None, None, None]]],
             # see GH#36032
             [["2016-01-08", "2016-01-04"], [[2016, 1, 5], [2016, 1, 1]]],
             [["2016-01-07", "2016-01-01"], [[2016, 1, 4], [2015, 53, 5]]],

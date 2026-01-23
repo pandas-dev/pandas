@@ -6,6 +6,7 @@ import pytest
 from pandas._config import using_string_dtype
 
 from pandas.compat import HAS_PYARROW
+from pandas.compat.pyarrow import pa_version_under14p0
 
 from pandas import (
     DataFrame,
@@ -77,7 +78,7 @@ def test_read_csv(cleared_fs, df1):
     df2 = read_csv("memory://test/test.csv", parse_dates=["dt"])
 
     expected = df1.copy()
-    expected["dt"] = expected["dt"].astype("M8[s]")
+    expected["dt"] = expected["dt"].astype("M8[us]")
     tm.assert_frame_equal(df2, expected)
 
 
@@ -102,7 +103,7 @@ def test_to_csv(cleared_fs, df1):
     df2 = read_csv("memory://test/test.csv", parse_dates=["dt"], index_col=0)
 
     expected = df1.copy()
-    expected["dt"] = expected["dt"].astype("M8[s]")
+    expected["dt"] = expected["dt"].astype("M8[us]")
     tm.assert_frame_equal(df2, expected)
 
 
@@ -115,7 +116,7 @@ def test_to_excel(cleared_fs, df1):
     df2 = read_excel(path, parse_dates=["dt"], index_col=0)
 
     expected = df1.copy()
-    expected["dt"] = expected["dt"].astype("M8[s]")
+    expected["dt"] = expected["dt"].astype("M8[us]")
     tm.assert_frame_equal(df2, expected)
 
 
@@ -139,7 +140,7 @@ def test_to_csv_fsspec_object(cleared_fs, binary_mode, df1):
         assert not fsspec_object.closed
 
     expected = df1.copy()
-    expected["dt"] = expected["dt"].astype("M8[s]")
+    expected["dt"] = expected["dt"].astype("M8[us]")
     tm.assert_frame_equal(df2, expected)
 
 
@@ -179,7 +180,8 @@ def test_excel_options(fsspectest):
 
 
 @pytest.mark.xfail(
-    using_string_dtype() and HAS_PYARROW, reason="TODO(infer_string) fastparquet"
+    using_string_dtype() and HAS_PYARROW and not pa_version_under14p0,
+    reason="TODO(infer_string) fastparquet",
 )
 def test_to_parquet_new_file(cleared_fs, df1):
     """Regression test for writing to a not-yet-existent GCS Parquet file."""
@@ -230,49 +232,36 @@ def test_fastparquet_options(fsspectest):
 
 
 @pytest.mark.single_cpu
-def test_from_s3_csv(s3_public_bucket_with_data, tips_file, s3so):
+@pytest.mark.parametrize("compression_suffix", ["", ".gz", ".bz2"])
+def test_from_s3_csv(s3_bucket_public_with_data, s3so, tips_file, compression_suffix):
     pytest.importorskip("s3fs")
-    tm.assert_equal(
-        read_csv(
-            f"s3://{s3_public_bucket_with_data.name}/tips.csv", storage_options=s3so
-        ),
-        read_csv(tips_file),
+    df_from_s3 = read_csv(
+        f"s3://{s3_bucket_public_with_data.name}/tips.csv{compression_suffix}",
+        storage_options=s3so,
     )
-    # the following are decompressed by pandas, not fsspec
-    tm.assert_equal(
-        read_csv(
-            f"s3://{s3_public_bucket_with_data.name}/tips.csv.gz", storage_options=s3so
-        ),
-        read_csv(tips_file),
-    )
-    tm.assert_equal(
-        read_csv(
-            f"s3://{s3_public_bucket_with_data.name}/tips.csv.bz2", storage_options=s3so
-        ),
-        read_csv(tips_file),
-    )
+    df_from_local = read_csv(tips_file)
+    tm.assert_equal(df_from_s3, df_from_local)
 
 
 @pytest.mark.single_cpu
 @pytest.mark.parametrize("protocol", ["s3", "s3a", "s3n"])
-def test_s3_protocols(s3_public_bucket_with_data, tips_file, protocol, s3so):
+def test_s3_protocols(s3_bucket_public_with_data, s3so, tips_file, protocol):
     pytest.importorskip("s3fs")
-    tm.assert_equal(
-        read_csv(
-            f"{protocol}://{s3_public_bucket_with_data.name}/tips.csv",
-            storage_options=s3so,
-        ),
-        read_csv(tips_file),
+    df_from_s3 = read_csv(
+        f"{protocol}://{s3_bucket_public_with_data.name}/tips.csv",
+        storage_options=s3so,
     )
+    df_from_local = read_csv(tips_file)
+    tm.assert_equal(df_from_s3, df_from_local)
 
 
 @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string) fastparquet")
 @pytest.mark.single_cpu
-def test_s3_parquet(s3_public_bucket, s3so, df1):
+def test_s3_parquet(s3_bucket_public, s3so, df1):
     pytest.importorskip("fastparquet")
     pytest.importorskip("s3fs")
 
-    fn = f"s3://{s3_public_bucket.name}/test.parquet"
+    fn = f"s3://{s3_bucket_public.name}/test.parquet"
     df1.to_parquet(
         fn, index=False, engine="fastparquet", compression=None, storage_options=s3so
     )
@@ -282,7 +271,7 @@ def test_s3_parquet(s3_public_bucket, s3so, df1):
 
 @td.skip_if_installed("fsspec")
 def test_not_present_exception():
-    msg = "Missing optional dependency 'fsspec'|fsspec library is required"
+    msg = "`Import fsspec` failed.  Use pip or conda to install the fsspec package."
     with pytest.raises(ImportError, match=msg):
         read_csv("memory://test/test.csv")
 

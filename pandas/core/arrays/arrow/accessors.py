@@ -11,14 +11,11 @@ from typing import (
     cast,
 )
 
-from pandas.compat import (
-    pa_version_under10p1,
-    pa_version_under11p0,
-)
+from pandas.compat import HAS_PYARROW
 
 from pandas.core.dtypes.common import is_list_like
 
-if not pa_version_under10p1:
+if HAS_PYARROW:
     import pyarrow as pa
     import pyarrow.compute as pc
 
@@ -46,7 +43,7 @@ class ArrowAccessor(metaclass=ABCMeta):
 
     def _validate(self, data) -> None:
         dtype = data.dtype
-        if pa_version_under10p1 or not isinstance(dtype, ArrowDtype):
+        if not HAS_PYARROW or not isinstance(dtype, ArrowDtype):
             # Raise AttributeError so that inspect can handle non-struct Series.
             raise AttributeError(self._validation_msg.format(dtype=dtype))
 
@@ -171,11 +168,6 @@ class ListAccessor(ArrowAccessor):
                 name=self._data.name,
             )
         elif isinstance(key, slice):
-            if pa_version_under11p0:
-                raise NotImplementedError(
-                    f"List slice not supported by pyarrow {pa.__version__}."
-                )
-
             # TODO: Support negative start/stop/step, ideally this would be added
             # upstream in pyarrow.
             start, stop, step = key.start, key.stop, key.step

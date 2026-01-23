@@ -18,7 +18,7 @@ from pandas._config.localization import (
     set_locale,
 )
 
-from pandas.compat import pa_version_under10p1
+from pandas.compat import HAS_PYARROW
 
 import pandas as pd
 from pandas import (
@@ -68,7 +68,6 @@ from pandas._testing.compat import (
 )
 from pandas._testing.contexts import (
     decompress_file,
-    ensure_clean,
     raises_chained_assignment_error,
     set_timezone,
     with_csv_dialect,
@@ -183,7 +182,7 @@ NP_NAT_OBJECTS = [
     ]
 ]
 
-if not pa_version_under10p1:
+if HAS_PYARROW:
     import pyarrow as pa
 
     UNSIGNED_INT_PYARROW_DTYPES = [pa.uint8(), pa.uint16(), pa.uint32(), pa.uint64()]
@@ -290,7 +289,7 @@ def box_expected(expected, box_cls, transpose: bool = True):
         else:
             expected = pd.array(expected, copy=False)
     elif box_cls is Index:
-        expected = Index(expected)
+        expected = Index(expected, copy=False)
     elif box_cls is Series:
         expected = Series(expected)
     elif box_cls is DataFrame:
@@ -348,8 +347,9 @@ class SubclassedDataFrame(DataFrame):
     def _constructor(self):
         return lambda *args, **kwargs: SubclassedDataFrame(*args, **kwargs)
 
+    # error: Cannot override writeable attribute with read-only property
     @property
-    def _constructor_sliced(self):
+    def _constructor_sliced(self):  # type: ignore[override]
         return lambda *args, **kwargs: SubclassedSeries(*args, **kwargs)
 
 
@@ -401,7 +401,7 @@ def get_cython_table_params(ndframe, func_names_and_expected):
     ----------
     ndframe : DataFrame or Series
     func_names_and_expected : Sequence of two items
-        The first item is a name of a NDFrame method ('sum', 'prod') etc.
+        The first item is a name of an NDFrame method ('sum', 'prod') etc.
         The second item is the expected return value.
 
     Returns
@@ -586,7 +586,6 @@ __all__ = [
     "can_set_locale",
     "convert_rows_list_to_csv_str",
     "decompress_file",
-    "ensure_clean",
     "external_error_raised",
     "get_cython_table_params",
     "get_dtype",

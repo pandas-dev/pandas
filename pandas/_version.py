@@ -84,11 +84,11 @@ def run_command(commands, args, cwd=None, verbose=False, hide_stderr=False, env=
         popen_kwargs["startupinfo"] = startupinfo
 
     for command in commands:
-        dispcmd = str([command] + args)
+        dispcmd = str([command, *args])
         try:
             # remember shell=False, so use git.cmd on windows, not just git
             process = subprocess.Popen(
-                [command] + args,
+                [command, *args],
                 cwd=cwd,
                 env=env,
                 stdout=subprocess.PIPE,
@@ -581,7 +581,7 @@ def render_git_describe(pieces):
 def render_git_describe_long(pieces):
     """TAG-DISTANCE-gHEX[-dirty].
 
-    Like 'git describe --tags --dirty --always -long'.
+    Like 'git describe --tags --dirty --always --long'.
     The distance/hash is unconditional.
 
     Exceptions:
@@ -640,7 +640,7 @@ def render(pieces, style):
     }
 
 
-def get_versions():
+def get_versions() -> dict:
     """Get version information or return default if unable to do so."""
     # I am in _version.py, which lives at ROOT/VERSIONFILE_SOURCE. If we have
     # __file__, we can work backwards from there to the root. Some

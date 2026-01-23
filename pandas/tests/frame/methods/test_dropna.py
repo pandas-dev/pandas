@@ -182,12 +182,9 @@ class TestDataFrameMissingData:
         with pytest.raises(TypeError, match="supplying multiple axes"):
             inp.dropna(how="all", axis=(0, 1), inplace=True)
 
-    def test_dropna_tz_aware_datetime(self, using_infer_string):
+    def test_dropna_tz_aware_datetime(self):
         # GH13407
-
         df = DataFrame()
-        if using_infer_string:
-            df.columns = df.columns.astype("str")
         dt1 = datetime.datetime(2015, 1, 1, tzinfo=dateutil.tz.tzutc())
         dt2 = datetime.datetime(2015, 2, 2, tzinfo=dateutil.tz.tzutc())
         df["Time"] = [dt1]

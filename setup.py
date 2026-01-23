@@ -364,7 +364,7 @@ if is_platform_mac():
 # enable coverage by building cython files by setting the environment variable
 # "PANDAS_CYTHON_COVERAGE" (with a Truthy value) or by running build_ext
 # with `--with-cython-coverage`enabled
-linetrace = os.environ.get("PANDAS_CYTHON_COVERAGE", False)
+linetrace = os.environ.get("PANDAS_CYTHON_COVERAGE", False)  # noqa: PLW1508
 if "--with-cython-coverage" in sys.argv:
     linetrace = True
     sys.argv.remove("--with-cython-coverage")
@@ -403,7 +403,7 @@ def maybe_cythonize(extensions, *args, **kwargs):
         return extensions
 
     elif not _CYTHON_INSTALLED:
-        # GH#28836 raise a helfpul error message
+        # GH#28836 raise a helpful error message
         if _CYTHON_VERSION:
             raise RuntimeError(
                 f"Cannot cythonize with old Cython version ({_CYTHON_VERSION} "

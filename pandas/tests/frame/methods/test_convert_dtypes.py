@@ -3,6 +3,8 @@ import datetime
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -35,6 +37,19 @@ class TestConvertDtypes:
         empty_df = pd.DataFrame()
         tm.assert_frame_equal(empty_df, empty_df.convert_dtypes())
 
+    @td.skip_if_no("pyarrow")
+    def test_convert_empty_categorical_to_pyarrow(self):
+        # GH#59934
+        df = pd.DataFrame(
+            {
+                "A": pd.Categorical([None] * 5),
+                "B": pd.Categorical([None] * 5, categories=["B1", "B2"]),
+            }
+        )
+        converted = df.convert_dtypes(dtype_backend="pyarrow")
+        expected = df
+        tm.assert_frame_equal(converted, expected)
+
     def test_convert_dtypes_retain_column_names(self):
         # GH#41435
         df = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
@@ -44,7 +59,7 @@ class TestConvertDtypes:
         tm.assert_index_equal(result.columns, df.columns)
         assert result.columns.name == "cols"
 
-    def test_pyarrow_dtype_backend(self):
+    def test_pyarrow_dtype_backend(self, using_nan_is_na):
         pa = pytest.importorskip("pyarrow")
         df = pd.DataFrame(
             {
@@ -52,12 +67,14 @@ class TestConvertDtypes:
                 "b": pd.Series(["x", "y", None], dtype=np.dtype("O")),
                 "c": pd.Series([True, False, None], dtype=np.dtype("O")),
                 "d": pd.Series([np.nan, 100.5, 200], dtype=np.dtype("float")),
-                "e": pd.Series(pd.date_range("2022", periods=3)),
+                "e": pd.Series(pd.date_range("2022", periods=3, unit="ns")),
                 "f": pd.Series(pd.date_range("2022", periods=3, tz="UTC").as_unit("s")),
                 "g": pd.Series(pd.timedelta_range("1D", periods=3)),
             }
         )
         result = df.convert_dtypes(dtype_backend="pyarrow")
+
+        item = None if using_nan_is_na else np.nan
         expected = pd.DataFrame(
             {
                 "a": pd.arrays.ArrowExtensionArray(
@@ -65,7 +82,7 @@ class TestConvertDtypes:
                 ),
                 "b": pd.arrays.ArrowExtensionArray(pa.array(["x", "y", None])),
                 "c": pd.arrays.ArrowExtensionArray(pa.array([True, False, None])),
-                "d": pd.arrays.ArrowExtensionArray(pa.array([None, 100.5, 200.0])),
+                "d": pd.arrays.ArrowExtensionArray(pa.array([item, 100.5, 200.0])),
                 "e": pd.arrays.ArrowExtensionArray(
                     pa.array(
                         [
@@ -93,7 +110,7 @@ class TestConvertDtypes:
                             datetime.timedelta(2),
                             datetime.timedelta(3),
                         ],
-                        type=pa.duration("ns"),
+                        type=pa.duration("us"),
                     )
                 ),
             }
@@ -184,7 +201,7 @@ class TestConvertDtypes:
             {
                 "a": [1, 2, 3],
                 "b": [4, 5, 6],
-                "c": pd.Series(["a"] * 3, dtype="string[python]"),
+                "c": pd.Series(["a"] * 3, dtype="string"),
             }
         )
         tm.assert_frame_equal(result, expected)
@@ -194,5 +211,32 @@ class TestConvertDtypes:
         # GH#56581
         df = pd.DataFrame([["a", datetime.time(18, 12)]], columns=["a", "b"])
         result = df.convert_dtypes()
-        expected = df.astype({"a": "string[python]"})
+        expected = df.astype({"a": "string"})
+        tm.assert_frame_equal(result, expected)
+
+    def test_convert_dtype_pyarrow_timezone_preserve(self):
+        # GH 60237
+        pytest.importorskip("pyarrow")
+        df = pd.DataFrame(
+            {
+                "timestamps": pd.Series(
+                    pd.to_datetime(range(5), utc=True, unit="h"),
+                    dtype="timestamp[ns, tz=UTC][pyarrow]",
+                )
+            }
+        )
+        result = df.convert_dtypes(dtype_backend="pyarrow")
+        expected = df.copy()
+        tm.assert_frame_equal(result, expected)
+
+    def test_convert_dtypes_complex(self):
+        # GH 60129
+        df = pd.DataFrame({"a": [1.0 + 5.0j, 1.5 - 3.0j], "b": [1, 2]})
+        expected = pd.DataFrame(
+            {
+                "a": pd.array([1.0 + 5.0j, 1.5 - 3.0j], dtype="complex128"),
+                "b": pd.array([1, 2], dtype="Int64"),
+            }
+        )
+        result = df.convert_dtypes()
         tm.assert_frame_equal(result, expected)

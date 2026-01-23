@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.compat import PY311
-
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
@@ -17,7 +15,7 @@ def assert_matching(actual, expected, check_dtype=False):
     # avoid specifying internal representation
     # as much as possible
     assert len(actual) == len(expected)
-    for act, exp in zip(actual, expected):
+    for act, exp in zip(actual, expected, strict=True):
         act = np.asarray(act)
         exp = np.asarray(exp)
         tm.assert_numpy_array_equal(act, exp, check_dtype=check_dtype)
@@ -37,7 +35,11 @@ def test_get_level_number_integer(idx):
 def test_get_dtypes(using_infer_string):
     # Test MultiIndex.dtypes (# Gh37062)
     idx_multitype = MultiIndex.from_product(
-        [[1, 2, 3], ["a", "b", "c"], pd.date_range("20200101", periods=2, tz="UTC")],
+        [
+            [1, 2, 3],
+            ["a", "b", "c"],
+            pd.date_range("20200101", periods=2, tz="UTC", unit="ns"),
+        ],
         names=["int", "string", "dt"],
     )
 
@@ -58,7 +60,7 @@ def test_get_dtypes_no_level_name(using_infer_string):
         [
             [1, 2, 3],
             ["a", "b", "c"],
-            pd.date_range("20200101", periods=2, tz="UTC"),
+            pd.date_range("20200101", periods=2, tz="UTC", unit="ns"),
         ],
     )
     exp = "object" if not using_infer_string else pd.StringDtype(na_value=np.nan)
@@ -78,7 +80,7 @@ def test_get_dtypes_duplicate_level_names(using_infer_string):
         [
             [1, 2, 3],
             ["a", "b", "c"],
-            pd.date_range("20200101", periods=2, tz="UTC"),
+            pd.date_range("20200101", periods=2, tz="UTC", unit="ns"),
         ],
         names=["A", "A", "A"],
     ).dtypes
@@ -150,11 +152,7 @@ def test_set_levels_codes_directly(idx):
     with pytest.raises(AttributeError, match=msg):
         idx.levels = new_levels
 
-    msg = (
-        "property 'codes' of 'MultiIndex' object has no setter"
-        if PY311
-        else "can't set attribute"
-    )
+    msg = "property 'codes' of 'MultiIndex' object has no setter"
     with pytest.raises(AttributeError, match=msg):
         idx.codes = new_codes
 

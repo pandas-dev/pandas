@@ -65,14 +65,12 @@ pandas/_version.py export-subst
 asv_bench export-ignore
 ci export-ignore
 doc export-ignore
-gitpod export-ignore
 MANIFEST.in export-ignore
 scripts/** export-ignore
 typings export-ignore
 web export-ignore
 CITATION.cff export-ignore
 codecov.yml export-ignore
-Dockerfile export-ignore
 environment.yml export-ignore
 setup.py export-ignore
 
@@ -84,5 +82,3 @@ pandas/tests/io/parser/data export-ignore
 
 # Include cibw script in sdist since it's needed for building wheels
 scripts/cibw_before_build.sh -export-ignore
-scripts/cibw_before_build_windows.sh -export-ignore
-scripts/cibw_before_test_windows.sh -export-ignore

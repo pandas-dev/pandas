@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import codecs
 import json
 import locale
 import os
@@ -8,6 +7,8 @@ import platform
 import struct
 import sys
 from typing import TYPE_CHECKING
+
+from pandas.util._decorators import set_module
 
 if TYPE_CHECKING:
     from pandas._typing import JSONSerializable
@@ -33,7 +34,7 @@ def _get_commit_hash() -> str | None:
     except ImportError:
         from pandas._version import get_versions
 
-        versions = get_versions()  # type: ignore[no-untyped-call]
+        versions = get_versions()
         return versions["full-revisionid"]
 
 
@@ -91,6 +92,7 @@ def _get_dependency_info() -> dict[str, JSONSerializable]:
     return result
 
 
+@set_module("pandas")
 def show_versions(as_json: str | bool = False) -> None:
     """
     Provide useful information, important for bug reports.
@@ -143,7 +145,7 @@ def show_versions(as_json: str | bool = False) -> None:
             sys.stdout.writelines(json.dumps(j, indent=2))
         else:
             assert isinstance(as_json, str)  # needed for mypy
-            with codecs.open(as_json, "wb", encoding="utf8") as f:
+            with open(as_json, "w", encoding="utf-8") as f:
                 json.dump(j, f, indent=2)
 
     else:

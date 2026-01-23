@@ -7,6 +7,8 @@ import itertools
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -44,14 +46,14 @@ class TestDataFrameBlockInternals:
     def test_cast_internals(self, float_frame):
         msg = "Passing a BlockManager to DataFrame"
         with tm.assert_produces_warning(
-            DeprecationWarning, match=msg, check_stacklevel=False
+            Pandas4Warning, match=msg, check_stacklevel=False
         ):
             casted = DataFrame(float_frame._mgr, dtype=int)
         expected = DataFrame(float_frame._series, dtype=int)
         tm.assert_frame_equal(casted, expected)
 
         with tm.assert_produces_warning(
-            DeprecationWarning, match=msg, check_stacklevel=False
+            Pandas4Warning, match=msg, check_stacklevel=False
         ):
             casted = DataFrame(float_frame._mgr, dtype=np.int32)
         expected = DataFrame(float_frame._series, dtype=np.int32)
@@ -176,7 +178,7 @@ class TestDataFrameBlockInternals:
                 np.dtype("datetime64[us]"),
                 np.dtype("timedelta64[us]"),
             ],
-            index=list("ABCD") + ["foo", "datetime", "timedelta"],
+            index=[*list("ABCD"), "foo", "datetime", "timedelta"],
         )
         tm.assert_series_equal(result, expected)
 
@@ -192,7 +194,7 @@ class TestDataFrameBlockInternals:
 
         expected = DataFrame(
             {
-                "dt1": Timestamp("20130101"),
+                "dt1": Timestamp("20130101").as_unit("s"),
                 "dt2": date_range("20130101", periods=3).astype("M8[s]"),
                 # 'dt3' : date_range('20130101 00:00:01',periods=3,freq='s'),
                 # FIXME: don't leave commented-out
@@ -237,20 +239,20 @@ class TestDataFrameBlockInternals:
         with pytest.raises(ValueError, match=msg):
             f("M8[ns]")
 
-    def test_pickle_float_string_frame(self, float_string_frame):
-        unpickled = tm.round_trip_pickle(float_string_frame)
+    def test_pickle_float_string_frame(self, float_string_frame, temp_file):
+        unpickled = tm.round_trip_pickle(float_string_frame, temp_file)
         tm.assert_frame_equal(float_string_frame, unpickled)
 
         # buglet
         float_string_frame._mgr.ndim
 
-    def test_pickle_empty(self):
+    def test_pickle_empty(self, temp_file):
         empty_frame = DataFrame()
-        unpickled = tm.round_trip_pickle(empty_frame)
+        unpickled = tm.round_trip_pickle(empty_frame, temp_file)
         repr(unpickled)
 
-    def test_pickle_empty_tz_frame(self, timezone_frame):
-        unpickled = tm.round_trip_pickle(timezone_frame)
+    def test_pickle_empty_tz_frame(self, timezone_frame, temp_file):
+        unpickled = tm.round_trip_pickle(timezone_frame, temp_file)
         tm.assert_frame_equal(timezone_frame, unpickled)
 
     def test_consolidate_datetime64(self):
@@ -381,30 +383,3 @@ def test_update_inplace_sets_valid_block_values():
 
     # check we haven't put a Series into any block.values
     assert isinstance(df._mgr.blocks[0].values, Categorical)
-
-
-def test_nonconsolidated_item_cache_take():
-    # https://github.com/pandas-dev/pandas/issues/35521
-
-    # create non-consolidated dataframe with object dtype columns
-    df = DataFrame(
-        {
-            "col1": Series(["a"], dtype=object),
-        }
-    )
-    df["col2"] = Series([0], dtype=object)
-    assert not df._mgr.is_consolidated()
-
-    # access column (item cache)
-    df["col1"] == "A"
-    # take operation
-    # (regression was that this consolidated but didn't reset item cache,
-    # resulting in an invalid cache and the .at operation not working properly)
-    df[df["col2"] == 0]
-
-    # now setting value should update actual dataframe
-    df.at[0, "col1"] = "A"
-
-    expected = DataFrame({"col1": ["A"], "col2": [0]}, dtype=object)
-    tm.assert_frame_equal(df, expected)
-    assert df.at[0, "col1"] == "A"

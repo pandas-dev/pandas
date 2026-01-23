@@ -28,13 +28,19 @@ if get_option('buildtype') == 'debug'
     cython_args += ['--gdb']
 endif
 
+# Use shared utility code to reduce wheel sizes
+# copied from https://github.com/scikit-learn/scikit-learn/pull/31151/files
+if cy.version().version_compare('>=3.1.0')
+    cython_args += ['--shared=pandas._libs._cyutility']
+endif
+
 foreach ext_name, ext_dict : tslibs_sources
     py.extension_module(
         ext_name,
         ext_dict.get('sources'),
         cython_args: cython_args,
         include_directories: [inc_np, inc_pd],
-        dependencies: ext_dict.get('deps', ''),
+        dependencies: ext_dict.get('deps', []),
         subdir: 'pandas/_libs/tslibs',
         install: true,
     )

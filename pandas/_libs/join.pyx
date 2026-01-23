@@ -225,7 +225,10 @@ def full_outer_join(const intp_t[:] left, const intp_t[:] right,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cdef void _get_result_indexer(intp_t[::1] sorter, intp_t[::1] indexer) noexcept nogil:
+cdef void _get_result_indexer(
+    const intp_t[::1] sorter,
+    intp_t[::1] indexer,
+) noexcept nogil:
     """NOTE: overwrites indexer with the result to avoid allocating another array"""
     cdef:
         Py_ssize_t i, n, idx
@@ -681,8 +684,8 @@ def outer_join_indexer(ndarray[numeric_object_t] left, ndarray[numeric_object_t]
 from pandas._libs.hashtable cimport Int64HashTable
 
 
-def asof_join_backward_on_X_by_Y(ndarray[numeric_t] left_values,
-                                 ndarray[numeric_t] right_values,
+def asof_join_backward_on_X_by_Y(const numeric_t[:] left_values,
+                                 const numeric_t[:] right_values,
                                  const int64_t[:] left_by_values,
                                  const int64_t[:] right_by_values,
                                  bint allow_exact_matches=True,
@@ -752,8 +755,8 @@ def asof_join_backward_on_X_by_Y(ndarray[numeric_t] left_values,
     return left_indexer, right_indexer
 
 
-def asof_join_forward_on_X_by_Y(ndarray[numeric_t] left_values,
-                                ndarray[numeric_t] right_values,
+def asof_join_forward_on_X_by_Y(const numeric_t[:] left_values,
+                                const numeric_t[:] right_values,
                                 const int64_t[:] left_by_values,
                                 const int64_t[:] right_by_values,
                                 bint allow_exact_matches=1,
@@ -824,8 +827,8 @@ def asof_join_forward_on_X_by_Y(ndarray[numeric_t] left_values,
     return left_indexer, right_indexer
 
 
-def asof_join_nearest_on_X_by_Y(ndarray[numeric_t] left_values,
-                                ndarray[numeric_t] right_values,
+def asof_join_nearest_on_X_by_Y(const numeric_t[:] left_values,
+                                const numeric_t[:] right_values,
                                 const int64_t[:] left_by_values,
                                 const int64_t[:] right_by_values,
                                 bint allow_exact_matches=True,

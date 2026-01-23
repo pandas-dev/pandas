@@ -11,7 +11,10 @@ import operator
 import numpy as np
 import pytest
 
-from pandas.errors import OutOfBoundsTimedelta
+from pandas.errors import (
+    OutOfBoundsTimedelta,
+    Pandas4Warning,
+)
 
 import pandas as pd
 from pandas import (
@@ -31,6 +34,21 @@ class TestTimedeltaAdditionSubtraction:
         __add__, __radd__,
         __sub__, __rsub__
     """
+
+    def test_td_add_sub_pydatetime(self, unit):
+        # GH#53643
+        td = Timedelta(hours=23).as_unit(unit)
+        dt = datetime(2016, 1, 1)
+
+        expected = datetime(2016, 1, 1, 23)
+        result = dt + td
+        assert result == expected
+        result = td + dt
+        assert result == expected
+
+        expected = datetime(2015, 12, 31, 1)
+        result = dt - td
+        assert result == expected
 
     @pytest.mark.parametrize(
         "ten_seconds",
@@ -101,7 +119,7 @@ class TestTimedeltaAdditionSubtraction:
 
     def test_td_add_timestamp_overflow(self):
         ts = Timestamp("1700-01-01").as_unit("ns")
-        msg = "Cannot cast 259987 from D to 'ns' without overflow."
+        msg = "Cannot cast 259987 days 00:00:00 to unit='ns' without overflow."
         with pytest.raises(OutOfBoundsTimedelta, match=msg):
             ts + Timedelta(13 * 19999, unit="D")
 
@@ -437,7 +455,7 @@ class TestTimedeltaMultiplicationDivision:
 
         msg = (
             "ufunc '?multiply'? cannot use operands with types "
-            rf"dtype\('{tm.ENDIAN}m8\[ns\]'\) and dtype\('{tm.ENDIAN}m8\[ns\]'\)"
+            rf"dtype\('{tm.ENDIAN}m8\[us\]'\) and dtype\('{tm.ENDIAN}m8\[us\]'\)"
         )
         with pytest.raises(TypeError, match=msg):
             td * other
@@ -815,11 +833,11 @@ class TestTimedeltaMultiplicationDivision:
         assert isinstance(result, Timedelta)
         assert result == Timedelta(0)
 
-        result = td % 1e12
+        result = td % 1e9
         assert isinstance(result, Timedelta)
         assert result == Timedelta(minutes=3, seconds=20)
 
-        result = td % int(1e12)
+        result = td % int(1e9)
         assert isinstance(result, Timedelta)
         assert result == Timedelta(minutes=3, seconds=20)
 
@@ -873,8 +891,8 @@ class TestTimedeltaMultiplicationDivision:
         # GH#19365
         td = Timedelta(days=2, hours=6)
 
-        result = divmod(td, 53 * 3600 * 1e9)
-        assert result[0] == Timedelta(1, unit="ns")
+        result = divmod(td, 53 * 3600 * 1e6)
+        assert result[0] == Timedelta(1, unit="us").as_unit("us")
         assert isinstance(result[1], Timedelta)
         assert result[1] == Timedelta(hours=1)
 
@@ -967,9 +985,14 @@ class TestTimedeltaMultiplicationDivision:
         with pytest.raises(TypeError, match=msg):
             op(arr, Timedelta("1D"))
 
+    def test_mul_bool_invalid(self):
+        # GH#62316
+        msg = "Cannot multiply Timedelta by bool. Explicitly cast to integer"
+        with pytest.raises(TypeError, match=msg):
+            Timedelta("1 day") * True
+
 
 class TestTimedeltaComparison:
-    @pytest.mark.skip_ubsan
     def test_compare_pytimedelta_bounds(self):
         # GH#49021 don't overflow on comparison with very large pytimedeltas
 
@@ -1183,3 +1206,46 @@ def test_ops_error_str():
 
         assert not left == right
         assert left != right
+
+
+@pytest.mark.parametrize("box", [True, False])
+def test_ops_str_deprecated(box):
+    # GH#59653
+    td = Timedelta("1 day")
+    item = "1"
+    if box:
+        item = np.array([item], dtype=object)
+
+    msg = "Scalar operations between Timedelta and string are deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        td + item
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        item + td
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        td - item
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        item - td
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        item / td
+    if not box:
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            td / item
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            item // td
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            td // item
+    else:
+        msg = "|".join(
+            [
+                "ufunc 'divide' cannot use operands",
+                "Invalid dtype object for __floordiv__",
+                r"unsupported operand type\(s\) for /: 'int' and 'str'",
+                r"unsupported operand type\(s\) for /: 'datetime.timedelta' and 'str'",
+            ]
+        )
+        with pytest.raises(TypeError, match=msg):
+            td / item
+        with pytest.raises(TypeError, match=msg):
+            item // td
+        with pytest.raises(TypeError, match=msg):
+            td // item

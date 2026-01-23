@@ -4,6 +4,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas import (
     Index,
     NaT,
@@ -22,7 +24,7 @@ class TestGetItem:
     def test_getitem_slice_keeps_name(self):
         # GH#4226, GH#59051
         msg = "'d' is deprecated and will be removed in a future version."
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             tdi = timedelta_range("1d", "5d", freq="h", name="timebucket")
         assert tdi[1:].name == tdi.name
 
@@ -143,26 +145,26 @@ class TestWhere:
         tdi = timedelta_range("1 day", periods=3, freq="D", name="idx")
 
         tail = tdi[2:].tolist()
-        i2 = Index([NaT, NaT] + tail)
+        i2 = Index([NaT, NaT, *tail])
         mask = notna(i2)
 
-        expected = Index([NaT._value, NaT._value] + tail, dtype=object, name="idx")
+        expected = Index([NaT._value, NaT._value, *tail], dtype=object, name="idx")
         assert isinstance(expected[0], int)
         result = tdi.where(mask, i2.asi8)
         tm.assert_index_equal(result, expected)
 
         ts = i2 + fixed_now_ts
-        expected = Index([ts[0], ts[1]] + tail, dtype=object, name="idx")
+        expected = Index([ts[0], ts[1], *tail], dtype=object, name="idx")
         result = tdi.where(mask, ts)
         tm.assert_index_equal(result, expected)
 
         per = (i2 + fixed_now_ts).to_period("D")
-        expected = Index([per[0], per[1]] + tail, dtype=object, name="idx")
+        expected = Index([per[0], per[1], *tail], dtype=object, name="idx")
         result = tdi.where(mask, per)
         tm.assert_index_equal(result, expected)
 
         ts = fixed_now_ts
-        expected = Index([ts, ts] + tail, dtype=object, name="idx")
+        expected = Index([ts, ts, *tail], dtype=object, name="idx")
         result = tdi.where(mask, ts)
         tm.assert_index_equal(result, expected)
 
@@ -340,7 +342,7 @@ class TestContains:
         # Checking for any NaT-like objects
         # GH#13603, GH#59051
         msg = "'d' is deprecated and will be removed in a future version."
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             td = to_timedelta(range(5), unit="d") + offsets.Hour(1)
         for v in [NaT, None, float("nan"), np.nan]:
             assert v not in td

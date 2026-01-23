@@ -48,8 +48,7 @@ class DateDtype(ExtensionDtype):
         else:
             raise TypeError(f"Cannot construct a '{cls.__name__}' from '{string}'")
 
-    @classmethod
-    def construct_array_type(cls):
+    def construct_array_type(self):
         return DateArray
 
     @property
@@ -113,7 +112,7 @@ class DateArray(ExtensionArray):
 
             # error: "object_" object is not iterable
             obj = np.char.split(dates, sep="-")
-            for (i,), (y, m, d) in np.ndenumerate(obj):  # type: ignore[misc]
+            for (i,), (y, m, d) in np.ndenumerate(obj):
                 self._year[i] = int(y)
                 self._month[i] = int(m)
                 self._day[i] = int(d)
@@ -149,6 +148,9 @@ class DateArray(ExtensionArray):
             raise NotImplementedError("only ints are supported as indexes")
 
     def __setitem__(self, key: int | slice | np.ndarray, value: Any) -> None:
+        if self._readonly:
+            raise ValueError("Cannot modify read-only array")
+
         if not isinstance(key, int):
             raise NotImplementedError("only ints are supported as indexes")
 
@@ -160,10 +162,13 @@ class DateArray(ExtensionArray):
         self._day[key] = value.day
 
     def __repr__(self) -> str:
-        return f"DateArray{list(zip(self._year, self._month, self._day))}"
+        return f"DateArray{list(zip(self._year, self._month, self._day, strict=True))}"
 
     def copy(self) -> DateArray:
         return DateArray((self._year.copy(), self._month.copy(), self._day.copy()))
+
+    def view(self, dtype: Dtype | None = None) -> DateArray:
+        return DateArray((self._year.view(), self._month.view(), self._day.view()))
 
     def isna(self) -> np.ndarray:
         return np.logical_and(

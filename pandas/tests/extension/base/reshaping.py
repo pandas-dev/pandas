@@ -3,6 +3,8 @@ import itertools
 import numpy as np
 import pytest
 
+from pandas.core.dtypes.dtypes import NumpyEADtype
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.api.extensions import ExtensionArray
@@ -86,7 +88,7 @@ class BaseReshapingTests:
         df2 = pd.DataFrame({"B": [1, 2, 3]}, index=[1, 2, 3])
         expected = pd.DataFrame(
             {
-                "A": data._from_sequence(list(data[:3]) + [na_value], dtype=data.dtype),
+                "A": data._from_sequence([*list(data[:3]), na_value], dtype=data.dtype),
                 "B": [np.nan, 1, 2, 3],
             }
         )
@@ -102,7 +104,7 @@ class BaseReshapingTests:
         df2 = pd.DataFrame({"B": data[3:7]})
         expected = pd.DataFrame(
             {
-                "A": data._from_sequence(list(data[:3]) + [na_value], dtype=data.dtype),
+                "A": data._from_sequence([*list(data[:3]), na_value], dtype=data.dtype),
                 "B": data[3:7],
             }
         )
@@ -128,8 +130,8 @@ class BaseReshapingTests:
         r1, r2 = pd.Series(a).align(pd.Series(b, index=[1, 2, 3]))
 
         # Assumes that the ctor can take a list of scalars of the type
-        e1 = pd.Series(data._from_sequence(list(a) + [na_value], dtype=data.dtype))
-        e2 = pd.Series(data._from_sequence([na_value] + list(b), dtype=data.dtype))
+        e1 = pd.Series(data._from_sequence([*list(a), na_value], dtype=data.dtype))
+        e2 = pd.Series(data._from_sequence([na_value, *list(b)], dtype=data.dtype))
         tm.assert_series_equal(r1, e1)
         tm.assert_series_equal(r2, e2)
 
@@ -140,10 +142,10 @@ class BaseReshapingTests:
 
         # Assumes that the ctor can take a list of scalars of the type
         e1 = pd.DataFrame(
-            {"A": data._from_sequence(list(a) + [na_value], dtype=data.dtype)}
+            {"A": data._from_sequence([*list(a), na_value], dtype=data.dtype)}
         )
         e2 = pd.DataFrame(
-            {"A": data._from_sequence([na_value] + list(b), dtype=data.dtype)}
+            {"A": data._from_sequence([na_value, *list(b)], dtype=data.dtype)}
         )
         tm.assert_frame_equal(r1, e1)
         tm.assert_frame_equal(r2, e2)
@@ -155,7 +157,7 @@ class BaseReshapingTests:
         r1, r2 = ser.align(df)
 
         e1 = pd.Series(
-            data._from_sequence(list(data) + [na_value], dtype=data.dtype),
+            data._from_sequence([*list(data), na_value], dtype=data.dtype),
             name=ser.name,
         )
 
@@ -266,7 +268,13 @@ class BaseReshapingTests:
         expected = expected.astype(object)
 
         if isinstance(expected, pd.Series):
-            assert result.dtype == df.iloc[:, 0].dtype
+            if future_stack and isinstance(data.dtype, NumpyEADtype):
+                # GH#58817 future_stack=True constructs the result specifying the dtype
+                # using the dtype of the input; we thus get the underlying
+                # NumPy dtype as the result instead of the NumpyExtensionArray
+                assert result.dtype == df.iloc[:, 0].to_numpy().dtype
+            else:
+                assert result.dtype == df.iloc[:, 0].dtype
         else:
             assert all(result.dtypes == df.iloc[:, 0].dtype)
 
@@ -295,7 +303,9 @@ class BaseReshapingTests:
     )
     @pytest.mark.parametrize("obj", ["series", "frame"])
     def test_unstack(self, data, index, obj):
-        data = data[: len(index)]
+        final_length = min(len(index), len(data))
+        index = index[:final_length]
+        data = data[:final_length]
         if obj == "series":
             ser = pd.Series(data, index=index)
         else:

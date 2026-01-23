@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from functools import partial
 import operator
+from pathlib import Path
 from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    Self,
     cast,
 )
 import warnings
@@ -25,11 +27,11 @@ from pandas._libs.arrays import NDArrayBacked
 from pandas._libs.lib import ensure_string_array
 from pandas.compat import (
     HAS_PYARROW,
-    pa_version_under10p1,
+    PYARROW_MIN_VERSION,
 )
 from pandas.compat.numpy import function as nv
+from pandas.errors import Pandas4Warning
 from pandas.util._decorators import (
-    doc,
     set_module,
 )
 from pandas.util._exceptions import find_stack_level
@@ -49,8 +51,10 @@ from pandas.core.dtypes.common import (
 )
 
 from pandas.core import (
+    missing,
     nanops,
     ops,
+    roperator,
 )
 from pandas.core.algorithms import isin
 from pandas.core.array_algos import masked_reductions
@@ -70,7 +74,13 @@ from pandas.core.missing import isna
 
 from pandas.io.formats import printing
 
+if HAS_PYARROW:
+    import pyarrow as pa
+    import pyarrow.compute as pc
+
 if TYPE_CHECKING:
+    from collections.abc import MutableMapping
+
     import pyarrow
 
     from pandas._typing import (
@@ -81,7 +91,6 @@ if TYPE_CHECKING:
         NumpySorter,
         NumpyValueArrayLike,
         Scalar,
-        Self,
         npt,
         type_t,
     )
@@ -109,7 +118,8 @@ class StringDtype(StorageExtensionDtype):
 
     Attributes
     ----------
-    None
+    storage
+    na_value
 
     Methods
     -------
@@ -122,10 +132,10 @@ class StringDtype(StorageExtensionDtype):
     Examples
     --------
     >>> pd.StringDtype()
-    string[python]
+    <StringDtype(na_value=<NA>)>
 
-    >>> pd.StringDtype(storage="pyarrow")
-    string[pyarrow]
+    >>> pd.StringDtype(storage="python")
+    <StringDtype(storage='python', na_value=<NA>)>
     """
 
     @property
@@ -139,7 +149,48 @@ class StringDtype(StorageExtensionDtype):
     # follows NumPy semantics, which uses nan.
     @property
     def na_value(self) -> libmissing.NAType | float:  # type: ignore[override]
+        """
+        The missing value representation for this dtype.
+
+        This value indicates which missing value semantics are used by this dtype.
+        Returns ``np.nan`` for the default string dtype with NumPy semantics,
+        and ``pd.NA`` for the opt-in string dtype with pandas NA semantics.
+
+        See Also
+        --------
+        isna : Detect missing values.
+        NA : Missing value indicator for nullable dtypes.
+
+        Examples
+        --------
+        >>> ser = pd.Series(["a", "b"])
+        >>> ser.dtype
+        <StringDtype(na_value=nan)>
+        >>> ser.dtype.na_value
+        nan
+        """
         return self._na_value
+
+    @property
+    def storage(self) -> str:
+        """
+        The storage backend for this dtype.
+
+        Can be either "pyarrow" or "python".
+
+        See Also
+        --------
+        StringDtype.na_value : The missing value for this dtype.
+
+        Examples
+        --------
+        >>> ser = pd.Series(["a", "b"])
+        >>> ser.dtype
+        <StringDtype(na_value=nan)>
+        >>> ser.dtype.storage
+        'pyarrow'
+        """
+        return self._storage
 
     _metadata = ("storage", "_na_value")  # type: ignore[assignment]
 
@@ -150,40 +201,22 @@ class StringDtype(StorageExtensionDtype):
     ) -> None:
         # infer defaults
         if storage is None:
-            if na_value is not libmissing.NA:
-                storage = get_option("mode.string_storage")
-                if storage == "auto":
-                    if HAS_PYARROW:
-                        storage = "pyarrow"
-                    else:
-                        storage = "python"
-            else:
-                storage = get_option("mode.string_storage")
-                if storage == "auto":
+            storage = get_option("mode.string_storage")
+            if storage == "auto":
+                if HAS_PYARROW:
+                    storage = "pyarrow"
+                else:
                     storage = "python"
-
-        if storage == "pyarrow_numpy":
-            warnings.warn(
-                "The 'pyarrow_numpy' storage option name is deprecated and will be "
-                'removed in pandas 3.0. Use \'pd.StringDtype(storage="pyarrow", '
-                "na_value-np.nan)' to construct the same dtype.\nOr enable the "
-                "'pd.options.future.infer_string = True' option globally and use "
-                'the "str" alias as a shorthand notation to specify a dtype '
-                '(instead of "string[pyarrow_numpy]").',
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            storage = "pyarrow"
-            na_value = np.nan
 
         # validate options
         if storage not in {"python", "pyarrow"}:
             raise ValueError(
                 f"Storage must be 'python' or 'pyarrow'. Got {storage} instead."
             )
-        if storage == "pyarrow" and pa_version_under10p1:
+        if storage == "pyarrow" and not HAS_PYARROW:
             raise ImportError(
-                "pyarrow>=10.0.1 is required for PyArrow backed StringArray."
+                f"pyarrow>={PYARROW_MIN_VERSION} is required for PyArrow "
+                "backed StringArray."
             )
 
         if isinstance(na_value, float) and np.isnan(na_value):
@@ -193,22 +226,19 @@ class StringDtype(StorageExtensionDtype):
         elif na_value is not libmissing.NA:
             raise ValueError(f"'na_value' must be np.nan or pd.NA, got {na_value}")
 
-        self.storage = cast(str, storage)
+        self._storage = cast(str, storage)
         self._na_value = na_value
 
     def __repr__(self) -> str:
-        if self._na_value is libmissing.NA:
-            return f"{self.name}[{self.storage}]"
-        else:
-            # TODO add more informative repr
-            return self.name
+        storage = "" if self.storage == "pyarrow" else "storage='python', "
+        return f"<StringDtype({storage}na_value={self._na_value})>"
 
     def __eq__(self, other: object) -> bool:
         # we need to override the base class __eq__ because na_value (NA or NaN)
         # cannot be checked with normal `==`
         if isinstance(other, str):
             # TODO should dtype == "string" work for the NaN variant?
-            if other == "string" or other == self.name:
+            if other == "string" or other == self.name:  # noqa: PLR1714 (repeated-equality-comparison)
                 return True
             try:
                 other = self.construct_from_string(other)
@@ -219,6 +249,11 @@ class StringDtype(StorageExtensionDtype):
         if isinstance(other, type(self)):
             return self.storage == other.storage and self.na_value is other.na_value
         return False
+
+    def __setstate__(self, state: MutableMapping[str, Any]) -> None:
+        # back-compat for pandas < 2.3, where na_value did not yet exist
+        self._storage = state.pop("storage", "python")
+        self._na_value = state.pop("_na_value", libmissing.NA)
 
     def __hash__(self) -> int:
         # need to override __hash__ as well because of overriding __eq__
@@ -271,18 +306,10 @@ class StringDtype(StorageExtensionDtype):
             return cls(storage="python")
         elif string == "string[pyarrow]":
             return cls(storage="pyarrow")
-        elif string == "string[pyarrow_numpy]":
-            # this is deprecated in the dtype __init__, remove this in pandas 3.0
-            return cls(storage="pyarrow_numpy")
         else:
             raise TypeError(f"Cannot construct a '{cls.__name__}' from '{string}'")
 
-    # https://github.com/pandas-dev/pandas/issues/36126
-    # error: Signature of "construct_array_type" incompatible with supertype
-    # "ExtensionDtype"
-    def construct_array_type(  # type: ignore[override]
-        self,
-    ) -> type_t[BaseStringArray]:
+    def construct_array_type(self) -> type_t[BaseStringArray]:
         """
         Return the array type associated with this dtype.
 
@@ -292,7 +319,6 @@ class StringDtype(StorageExtensionDtype):
         """
         from pandas.core.arrays.string_arrow import (
             ArrowStringArray,
-            ArrowStringArrayNumpySemantics,
         )
 
         if self.storage == "python" and self._na_value is libmissing.NA:
@@ -300,9 +326,9 @@ class StringDtype(StorageExtensionDtype):
         elif self.storage == "pyarrow" and self._na_value is libmissing.NA:
             return ArrowStringArray
         elif self.storage == "python":
-            return StringArrayNumpySemantics
+            return StringArray
         else:
-            return ArrowStringArrayNumpySemantics
+            return ArrowStringArray
 
     def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
         storages = set()
@@ -321,7 +347,7 @@ class StringDtype(StorageExtensionDtype):
             # if both python and pyarrow storage -> priority to pyarrow
             storage = "pyarrow"
         else:
-            storage = next(iter(storages))  # type: ignore[assignment]
+            storage = next(iter(storages))
 
         na_value: libmissing.NAType | float
         if len(na_values) == 2:
@@ -339,16 +365,17 @@ class StringDtype(StorageExtensionDtype):
         Construct StringArray from pyarrow Array/ChunkedArray.
         """
         if self.storage == "pyarrow":
-            if self._na_value is libmissing.NA:
-                from pandas.core.arrays.string_arrow import ArrowStringArray
+            from pandas.core.arrays.string_arrow import (
+                ArrowStringArray,
+                _check_pyarrow_available,
+            )
 
-                return ArrowStringArray(array)
-            else:
-                from pandas.core.arrays.string_arrow import (
-                    ArrowStringArrayNumpySemantics,
-                )
+            _check_pyarrow_available()
 
-                return ArrowStringArrayNumpySemantics(array)
+            if not pa.types.is_large_string(array.type):
+                array = pc.cast(array, pa.large_string())
+
+            return ArrowStringArray(array, dtype=self)
 
         else:
             import pyarrow
@@ -385,18 +412,47 @@ class BaseStringArray(ExtensionArray):
 
     dtype: StringDtype
 
-    @doc(ExtensionArray.tolist)
+    # TODO(4.0): Once the deprecation here is enforced, this method can be
+    #  removed and we use the parent class method instead.
+    def _logical_method(self, other, op):
+        if (
+            op in (roperator.ror_, roperator.rand_, roperator.rxor)
+            and isinstance(other, np.ndarray)
+            and other.dtype == bool
+        ):
+            # GH#60234 backward compatibility for the move to StringDtype in 3.0
+            op_name = op.__name__[1:].strip("_")
+            warnings.warn(
+                f"'{op_name}' operations between boolean dtype and {self.dtype} are "
+                "deprecated and will raise in a future version. Explicitly "
+                "cast the strings to a boolean dtype before operating instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+            return op(other, self.astype(bool))
+        return NotImplemented
+
     def tolist(self) -> list:
+        """
+        Return a list of the value.
+
+        These are each a scalar type, which is a Python scalar
+        (for str, int, float) or pandas scalar
+        (for Timestamp/Timedelta/Interval/Period)
+
+        Returns
+        ----------
+        list
+
+        Examples
+        ----------
+        >>> arr = pd.array(["a", "b", "c"])
+        >>> arr.tolist()
+        ['a', 'b', 'c']
+        """
         if self.ndim > 1:
             return [x.tolist() for x in self]
         return list(self.to_numpy())
-
-    @classmethod
-    def _from_scalars(cls, scalars, dtype: DtypeObj) -> Self:
-        if lib.infer_dtype(scalars, skipna=True) not in ["string", "empty"]:
-            # TODO: require any NAs be valid-for-string
-            raise ValueError
-        return cls._from_sequence(scalars, dtype=dtype)
 
     def _formatter(self, boxed: bool = False):
         formatter = partial(
@@ -476,11 +532,21 @@ class BaseStringArray(ExtensionArray):
             if self.dtype.storage == "pyarrow":
                 import pyarrow as pa
 
+                # TODO: shouldn't this already be caught my passed mask?
+                #  it isn't in test_extract_expand_capture_groups_index
+                # mask = mask | np.array(
+                #    [x is libmissing.NA for x in result], dtype=bool
+                #    )
+
                 result = pa.array(
                     result, mask=mask, type=pa.large_string(), from_pandas=True
                 )
-            # error: Too many arguments for "BaseStringArray"
-            return type(self)(result)  # type: ignore[call-arg]
+                # error: "BaseStringArray" has no attribute "_from_pyarrow_array"
+                return self._from_pyarrow_array(result)  # type: ignore[attr-defined]
+            else:
+                # StringArray
+                # error: Too many arguments for "BaseStringArray"
+                return type(self)(result, dtype=self.dtype)  # type: ignore[call-arg]
 
         else:
             # This is when the result type is object. We reach this when
@@ -533,12 +599,13 @@ class BaseStringArray(ExtensionArray):
         else:
             return self._str_map_str_or_object(dtype, na_value, arr, f, mask)
 
-    def view(self, dtype: Dtype | None = None) -> ArrayLike:
+    def view(self, dtype: Dtype | None = None) -> Self:
         if dtype is not None:
             raise TypeError("Cannot change data-type for string array.")
-        return super().view(dtype=dtype)
+        return super().view()
 
 
+@set_module("pandas.arrays")
 # error: Definition of "_concat_same_type" in base class "NDArrayBacked" is
 # incompatible with definition in base class "ExtensionArray"
 class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
@@ -564,12 +631,12 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
            :meth:`pandas.array` with ``dtype="string"`` for a stable way of
            creating a `StringArray` from any sequence.
 
-        .. versionchanged:: 1.5.0
-
-           StringArray now accepts array-likes containing
+           StringArray accepts array-likes containing
            nan-likes(``None``, ``np.nan``) for the ``values`` parameter
            in addition to strings and :attr:`pandas.NA`
 
+    dtype : StringDtype
+        Dtype for the array.
     copy : bool, default False
         Whether to copy the array of data.
 
@@ -596,7 +663,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
     Examples
     --------
     >>> pd.array(["This is", "some text", None, "data."], dtype="string")
-    <StringArray>
+    <ArrowStringArray>
     ['This is', 'some text', <NA>, 'data.']
     Length: 4, dtype: string
 
@@ -608,7 +675,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
     ['1', 1]
     Length: 2, dtype: object
     >>> pd.array(["1", 1], dtype="string")
-    <StringArray>
+    <ArrowStringArray>
     ['1', '1']
     Length: 2, dtype: string
 
@@ -616,7 +683,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
 
     For comparison methods, `StringArray` returns a :class:`pandas.BooleanArray`:
 
-    >>> pd.array(["a", None, "c"], dtype="string") == "a"
+    >>> pd.array(["a", None, "c"], dtype="string[python]") == "a"
     <BooleanArray>
     [True, <NA>, False]
     Length: 3, dtype: boolean
@@ -624,36 +691,56 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
 
     # undo the NumpyExtensionArray hack
     _typ = "extension"
-    _storage = "python"
-    _na_value: libmissing.NAType | float = libmissing.NA
 
-    def __init__(self, values, copy: bool = False) -> None:
+    def __init__(
+        self, values, *, dtype: StringDtype | None = None, copy: bool = False
+    ) -> None:
+        if dtype is None:
+            dtype = StringDtype()
         values = extract_array(values)
 
         super().__init__(values, copy=copy)
         if not isinstance(values, type(self)):
-            self._validate()
+            self._validate(dtype)
         NDArrayBacked.__init__(
             self,
             self._ndarray,
-            StringDtype(storage=self._storage, na_value=self._na_value),
+            dtype,
         )
 
-    def _validate(self) -> None:
+    def _validate(self, dtype: StringDtype) -> None:
         """Validate that we only store NA or strings."""
-        if len(self._ndarray) and not lib.is_string_array(self._ndarray, skipna=True):
-            raise ValueError("StringArray requires a sequence of strings or pandas.NA")
-        if self._ndarray.dtype != "object":
-            raise ValueError(
-                "StringArray requires a sequence of strings or pandas.NA. Got "
-                f"'{self._ndarray.dtype}' dtype instead."
-            )
-        # Check to see if need to convert Na values to pd.NA
-        if self._ndarray.ndim > 2:
-            # Ravel if ndims > 2 b/c no cythonized version available
-            lib.convert_nans_to_NA(self._ndarray.ravel("K"))
+
+        if dtype._na_value is libmissing.NA:
+            if len(self._ndarray) and not lib.is_string_array(
+                self._ndarray, skipna=True
+            ):
+                raise ValueError(
+                    "StringArray requires a sequence of strings or pandas.NA"
+                )
+            if self._ndarray.dtype != "object":
+                raise ValueError(
+                    "StringArray requires a sequence of strings or pandas.NA. Got "
+                    f"'{self._ndarray.dtype}' dtype instead."
+                )
+            # Check to see if need to convert Na values to pd.NA
+            if self._ndarray.ndim > 2:
+                # Ravel if ndims > 2 b/c no cythonized version available
+                lib.convert_nans_to_NA(self._ndarray.ravel("K"))
+            else:
+                lib.convert_nans_to_NA(self._ndarray)
         else:
-            lib.convert_nans_to_NA(self._ndarray)
+            # Validate that we only store NaN or strings.
+            if len(self._ndarray) and not lib.is_string_array(
+                self._ndarray, skipna=True
+            ):
+                raise ValueError("StringArray requires a sequence of strings or NaN")
+            if self._ndarray.dtype != "object":
+                raise ValueError(
+                    "StringArray requires a sequence of strings "
+                    "or NaN. Got '{self._ndarray.dtype}' dtype instead."
+                )
+            # TODO validate or force NA/None to NaN
 
     def _validate_scalar(self, value):
         # used by NDArrayBackedExtensionIndex.insert
@@ -673,11 +760,10 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         if dtype and not (isinstance(dtype, str) and dtype == "string"):
             dtype = pandas_dtype(dtype)
             assert isinstance(dtype, StringDtype) and dtype.storage == "python"
+        elif using_string_dtype():
+            dtype = StringDtype(storage="python", na_value=np.nan)
         else:
-            if using_string_dtype():
-                dtype = StringDtype(storage="python", na_value=np.nan)
-            else:
-                dtype = StringDtype(storage="python")
+            dtype = StringDtype(storage="python")
 
         from pandas.core.arrays.masked import BaseMaskedArray
 
@@ -711,11 +797,18 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
     ) -> Self:
         return cls._from_sequence(strings, dtype=dtype, copy=copy)
 
+    def _cast_pointwise_result(self, values) -> ArrayLike:
+        result = super()._cast_pointwise_result(values)
+        if isinstance(result.dtype, StringDtype):
+            # Ensure we retain our same na_value/storage
+            result = result.astype(self.dtype)
+        return result
+
     @classmethod
     def _empty(cls, shape, dtype) -> StringArray:
         values = np.empty(shape, dtype=object)
-        values[:] = libmissing.NA
-        return cls(values).astype(dtype, copy=False)
+        values[:] = dtype.na_value
+        return cls(values, dtype=dtype).astype(dtype, copy=False)
 
     def __arrow_array__(self, type=None):
         """
@@ -728,7 +821,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
 
         values = self._ndarray.copy()
         values[self.isna()] = None
-        return pa.array(values, type=type, from_pandas=True)
+        return pa.array(values, type=type)
 
     def _values_for_factorize(self) -> tuple[np.ndarray, libmissing.NAType | float]:  # type: ignore[override]
         arr = self._ndarray
@@ -764,6 +857,9 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         return value
 
     def __setitem__(self, key, value) -> None:
+        if self._readonly:
+            raise ValueError("Cannot modify read-only array")
+
         value = self._maybe_convert_setitem_value(value)
 
         key = check_array_indexer(self, key)
@@ -870,6 +966,88 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
 
         raise TypeError(f"Cannot perform reduction '{name}' with string dtype")
 
+    def _accumulate(self, name: str, *, skipna: bool = True, **kwargs) -> StringArray:
+        """
+        Return an ExtensionArray performing an accumulation operation.
+
+        The underlying data type might change.
+
+        Parameters
+        ----------
+        name : str
+            Name of the function, supported values are:
+            - cummin
+            - cummax
+            - cumsum
+            - cumprod
+        skipna : bool, default True
+            If True, skip NA values.
+        **kwargs
+            Additional keyword arguments passed to the accumulation function.
+            Currently, there is no supported kwarg.
+
+        Returns
+        -------
+        array
+
+        Raises
+        ------
+        NotImplementedError : subclass does not define accumulations
+        """
+        if name == "cumprod":
+            msg = f"operation '{name}' not supported for dtype '{self.dtype}'"
+            raise TypeError(msg)
+
+        # We may need to strip out trailing NA values
+        tail: np.ndarray | None = None
+        na_mask: np.ndarray | None = None
+        ndarray = self._ndarray
+        np_func = {
+            "cumsum": np.cumsum,
+            "cummin": np.minimum.accumulate,
+            "cummax": np.maximum.accumulate,
+        }[name]
+
+        if self._hasna:
+            na_mask = cast("npt.NDArray[np.bool_]", isna(ndarray))
+            if np.all(na_mask):
+                return type(self)(ndarray, dtype=self.dtype)
+            if skipna:
+                if name == "cumsum":
+                    ndarray = np.where(na_mask, "", ndarray)
+                else:
+                    # We can retain the running min/max by forward/backward filling.
+                    ndarray = ndarray.copy()
+                    missing.pad_or_backfill_inplace(
+                        ndarray,
+                        method="pad",
+                        axis=0,
+                    )
+                    missing.pad_or_backfill_inplace(
+                        ndarray,
+                        method="backfill",
+                        axis=0,
+                    )
+            else:
+                # When not skipping NA values, the result should be null from
+                # the first NA value onward.
+                idx = np.argmax(na_mask)
+                tail = np.empty(len(ndarray) - idx, dtype="object")
+                tail[:] = self.dtype.na_value
+                ndarray = ndarray[:idx]
+
+        # mypy: Cannot call function of unknown type
+        np_result = np_func(ndarray)  # type: ignore[operator]
+
+        if tail is not None:
+            np_result = np.hstack((np_result, tail))
+        elif na_mask is not None:
+            # Argument 2 to "where" has incompatible type "NAType | float"
+            np_result = np.where(na_mask, self.dtype.na_value, np_result)  # type: ignore[arg-type]
+
+        result = type(self)(np_result, dtype=self.dtype)
+        return result
+
     def _wrap_reduction_result(self, axis: AxisInt | None, result) -> Any:
         if self.dtype.na_value is np.nan and result is libmissing.NA:
             # the masked_reductions use pd.NA -> convert to np.nan
@@ -905,10 +1083,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         return self._wrap_reduction_result(axis, result)
 
     def value_counts(self, dropna: bool = True) -> Series:
-        from pandas.core.algorithms import value_counts_internal as value_counts
-
-        result = value_counts(self._ndarray, sort=False, dropna=dropna)
-        result.index = result.index.astype(self.dtype)
+        result = super().value_counts(dropna=dropna)
 
         if self.dtype.na_value is libmissing.NA:
             result = result.astype("Int64")
@@ -920,13 +1095,56 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             return result + lib.memory_usage_of_objects(self._ndarray)
         return result
 
-    @doc(ExtensionArray.searchsorted)
     def searchsorted(
         self,
         value: NumpyValueArrayLike | ExtensionArray,
         side: Literal["left", "right"] = "left",
         sorter: NumpySorter | None = None,
     ) -> npt.NDArray[np.intp] | np.intp:
+        """
+        Find indices where elements should be inserted to maintain order.
+
+        Find the indices into a sorted array `self` (a) such that, if the
+        corresponding elements in `value` were inserted before the indices,
+        the order of `self` would be preserved.
+
+        Assuming that `self` is sorted:
+
+        ======  ================================
+        `side`  returned index `i` satisfies
+        ======  ================================
+        left    ``self[i-1] < value <= self[i]``
+        right   ``self[i-1] <= value < self[i]``
+        ======  ================================
+
+        Parameters
+        ----------
+        value : array-like, list or scalar
+            Value(s) to insert into `self`.
+        side : {'left', 'right'}, optional
+            If 'left', the index of the first suitable location found is given.
+            If 'right', return the last such index.  If there is no suitable
+            index, return either 0 or N (where N is the length of `self`).
+        sorter : 1-D array-like, optional
+            Optional array of integer indices that sort array a into ascending
+            order. They are typically the result of argsort.
+
+        Returns
+        -------
+        array of ints or int
+            If value is array-like, array of insertion points.
+            If value is scalar, a single integer.
+
+        See Also
+        --------
+        numpy.searchsorted : Similar method from NumPy.
+
+        Examples
+        --------
+        >>> arr = pd.array([1, 2, 3, 5])
+        >>> arr.searchsorted([4])
+        array([3])
+        """
         if self._hasna:
             raise ValueError(
                 "searchsorted requires array to be sorted, which is impossible "
@@ -935,7 +1153,30 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         return super().searchsorted(value=value, side=side, sorter=sorter)
 
     def _cmp_method(self, other, op):
-        from pandas.arrays import BooleanArray
+        from pandas.arrays import (
+            ArrowExtensionArray,
+            BooleanArray,
+        )
+
+        if (
+            isinstance(other, BaseStringArray)
+            and self.dtype.na_value is not libmissing.NA
+            and other.dtype.na_value is libmissing.NA
+        ):
+            # NA has priority of NaN semantics
+            return op(self.astype(other.dtype, copy=False), other)
+
+        if isinstance(other, ArrowExtensionArray):
+            if isinstance(other, BaseStringArray):
+                # pyarrow storage has priority over python storage
+                # (except if we have NA semantics and other not)
+                if not (
+                    self.dtype.na_value is libmissing.NA
+                    and other.dtype.na_value is not libmissing.NA
+                ):
+                    return NotImplemented
+            else:
+                return NotImplemented
 
         if isinstance(other, StringArray):
             other = other._ndarray
@@ -943,7 +1184,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         mask = isna(self) | isna(other)
         valid = ~mask
 
-        if not lib.is_scalar(other):
+        if lib.is_list_like(other):
             if len(other) != len(self):
                 # prevent improper broadcasting when other is 2D
                 raise ValueError(
@@ -955,10 +1196,23 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
                 other = np.asarray(other)
             other = other[valid]
 
+        other_dtype = getattr(other, "dtype", None)
+        if op.__name__.strip("_") in ["mul", "rmul"] and (
+            lib.is_bool(other) or lib.is_np_dtype(other_dtype, "b")
+        ):
+            # GH#62595
+            raise TypeError(
+                "Cannot multiply StringArray by bools. "
+                "Explicitly cast to integers instead."
+            )
+
         if op.__name__ in ops.ARITHMETIC_BINOPS:
             result = np.empty_like(self._ndarray, dtype="object")
             result[mask] = self.dtype.na_value
             result[valid] = op(self._ndarray[valid], other)
+            if isinstance(other, Path):
+                # GH#61940
+                return result
             return self._from_backing_data(result)
         else:
             # logical
@@ -974,28 +1228,5 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
 
     _arith_method = _cmp_method
 
-
-class StringArrayNumpySemantics(StringArray):
-    _storage = "python"
-    _na_value = np.nan
-
-    def _validate(self) -> None:
-        """Validate that we only store NaN or strings."""
-        if len(self._ndarray) and not lib.is_string_array(self._ndarray, skipna=True):
-            raise ValueError(
-                "StringArrayNumpySemantics requires a sequence of strings or NaN"
-            )
-        if self._ndarray.dtype != "object":
-            raise ValueError(
-                "StringArrayNumpySemantics requires a sequence of strings or NaN. Got "
-                f"'{self._ndarray.dtype}' dtype instead."
-            )
-        # TODO validate or force NA/None to NaN
-
-    @classmethod
-    def _from_sequence(
-        cls, scalars, *, dtype: Dtype | None = None, copy: bool = False
-    ) -> Self:
-        if dtype is None:
-            dtype = StringDtype(storage="python", na_value=np.nan)
-        return super()._from_sequence(scalars, dtype=dtype, copy=copy)
+    def _str_zfill(self, width: int) -> Self:
+        return self._str_map(lambda x: x.zfill(width))

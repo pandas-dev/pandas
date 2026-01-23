@@ -1,3 +1,4 @@
+import pathlib
 from textwrap import (
     dedent,
     indent,
@@ -18,7 +19,9 @@ from pandas.io.formats.style import Styler
 
 @pytest.fixture
 def env():
-    loader = jinja2.PackageLoader("pandas", "io/formats/templates")
+    project_dir = pathlib.Path(__file__).parent.parent.parent.parent.parent.resolve()
+    template_dir = project_dir / "io" / "formats" / "templates"
+    loader = jinja2.FileSystemLoader(template_dir)
     env = jinja2.Environment(loader=loader, trim_blocks=True)
     return env
 
@@ -54,10 +57,11 @@ def tpl_table(env):
     return env.get_template("html_table.tpl")
 
 
-def test_html_template_extends_options():
+def test_html_template_extends_options(datapath):
     # make sure if templates are edited tests are updated as are setup fixtures
     # to understand the dependency
-    with open("pandas/io/formats/templates/html.tpl", encoding="utf-8") as file:
+    path = datapath("..", "io", "formats", "templates", "html.tpl")
+    with open(path, encoding="utf-8") as file:
         result = file.read()
     assert "{% include html_style_tpl %}" in result
     assert "{% include html_table_tpl %}" in result

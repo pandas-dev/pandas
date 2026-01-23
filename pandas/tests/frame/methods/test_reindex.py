@@ -13,6 +13,7 @@ from pandas.compat import (
     is_platform_windows,
 )
 from pandas.compat.numpy import np_version_gt2
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 from pandas import (
@@ -139,7 +140,7 @@ class TestDataFrameSelectReindex:
         # GH#52586
         df = DataFrame([[1]])
 
-        ts = pd.Timestamp("2023-04-10 17:32", tz="US/Pacific")
+        ts = pd.Timestamp("2023-04-10 17:32", tz="US/Pacific").as_unit("s")
         res = df.reindex([0, 1], axis=1, fill_value=ts)
         assert res.dtypes[1] == pd.DatetimeTZDtype(unit="s", tz="US/Pacific")
         expected = DataFrame({0: [1], 1: [ts]})
@@ -161,7 +162,7 @@ class TestDataFrameSelectReindex:
 
     def test_reindex_date_fill_value(self):
         # passing date to dt64 is deprecated; enforced in 2.0 to cast to object
-        arr = date_range("2016-01-01", periods=6).values.reshape(3, 2)
+        arr = date_range("2016-01-01", periods=6, unit="ns").values.reshape(3, 2)
         df = DataFrame(arr, columns=["A", "B"], index=range(3))
 
         ts = df.iloc[0, 0]
@@ -170,7 +171,7 @@ class TestDataFrameSelectReindex:
         res = df.reindex(index=range(4), columns=["A", "B", "C"], fill_value=fv)
 
         expected = DataFrame(
-            {"A": df["A"].tolist() + [fv], "B": df["B"].tolist() + [fv], "C": [fv] * 4},
+            {"A": [*df["A"].tolist(), fv], "B": [*df["B"].tolist(), fv], "C": [fv] * 4},
             dtype=object,
         )
         tm.assert_frame_equal(res, expected)
@@ -184,7 +185,7 @@ class TestDataFrameSelectReindex:
             index=range(4), columns=["A", "B", "C"], fill_value="2016-01-01"
         )
         expected = DataFrame(
-            {"A": df["A"].tolist() + [ts], "B": df["B"].tolist() + [ts], "C": [ts] * 4},
+            {"A": [*df["A"].tolist(), ts], "B": [*df["B"].tolist(), ts], "C": [ts] * 4},
         )
         tm.assert_frame_equal(res, expected)
 
@@ -538,7 +539,7 @@ class TestDataFrameSelectReindex:
         dr = date_range("2013-08-01", periods=6, freq="B")
         data = np.random.default_rng(2).standard_normal((6, 1))
         df = DataFrame(data, index=dr, columns=list("A"))
-        df_rev = DataFrame(data, index=dr[[3, 4, 5] + [0, 1, 2]], columns=list("A"))
+        df_rev = DataFrame(data, index=dr[[3, 4, 5, 0, 1, 2]], columns=list("A"))
         # index is not monotonic increasing or decreasing
         msg = "index must be monotonic increasing or decreasing"
         with pytest.raises(ValueError, match=msg):
@@ -756,7 +757,7 @@ class TestDataFrameSelectReindex:
         )
 
         msg = "'d' is deprecated and will be removed in a future version."
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             time_freq = date_range("2012-01-01", "2012-01-03", freq="d")
         some_cols = ["a", "b"]
 
@@ -1230,8 +1231,8 @@ class TestDataFrameSelectReindex:
 
         expected = DataFrame(
             {
-                0: df[0].tolist() + [fv],
-                1: df[1].tolist() + [fv],
+                0: [*df[0].tolist(), fv],
+                1: [*df[1].tolist(), fv],
                 "foo": np.array(["NaT"] * 6, dtype=fv.dtype),
             },
             index=index,
@@ -1258,3 +1259,31 @@ class TestDataFrameSelectReindex:
         msg = "Invalid fill method"
         with pytest.raises(ValueError, match=msg):
             df.reindex([1, 0, 2], method="asfreq")
+
+    def test_reindex_index_name_matches_multiindex_level(self):
+        df = DataFrame(
+            {"value": [1, 2], "other": ["A", "B"]},
+            index=Index([10, 20], name="a"),
+        )
+        target = MultiIndex.from_product(
+            [[10, 20], ["x", "y"]],
+            names=["a", "b"],
+        )
+
+        result = df.reindex(index=target)
+        expected = DataFrame(
+            data={"value": [1, 1, 2, 2], "other": ["A", "A", "B", "B"]},
+            index=MultiIndex.from_product([[10, 20], ["x", "y"]], names=["a", "b"]),
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_reindex_index_name_no_match_multiindex_level(self):
+        df = DataFrame({"value": [1, 2]}, index=Index([10, 20], name="different_name"))
+        target = MultiIndex.from_product([[10, 20], ["x", "y"]], names=["a", "b"])
+
+        result = df.reindex(index=target)
+        expected = DataFrame(
+            data={"value": [np.nan] * 4},
+            index=MultiIndex.from_product([[10, 20], ["x", "y"]], names=["a", "b"]),
+        )
+        tm.assert_frame_equal(result, expected)

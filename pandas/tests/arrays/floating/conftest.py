@@ -1,4 +1,3 @@
-import numpy as np
 import pytest
 
 import pandas as pd
@@ -18,11 +17,7 @@ def dtype(request):
 def data(dtype):
     """Fixture returning 'data' array according to parametrized float 'dtype'"""
     return pd.array(
-        list(np.arange(0.1, 0.9, 0.1))
-        + [pd.NA]
-        + list(np.arange(1, 9.8, 0.1))
-        + [pd.NA]
-        + [9.9, 10.0],
+        [0.1, 0.2, 0.3, 0.4, pd.NA, 1.0, 1.1, pd.NA, 9.9, 10.0],
         dtype=dtype,
     )
 
@@ -33,7 +28,7 @@ def data_missing(dtype):
     Fixture returning array with missing data according to parametrized float
     'dtype'.
     """
-    return pd.array([np.nan, 0.1], dtype=dtype)
+    return pd.array([pd.NA, 0.1], dtype=dtype)
 
 
 @pytest.fixture(params=["data", "data_missing"])

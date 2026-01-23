@@ -99,7 +99,7 @@ class TestDatetimeIndex:
 
     def test_asarray_tz_naive(self):
         # This shouldn't produce a warning.
-        idx = date_range("2000", periods=2)
+        idx = date_range("2000", periods=2, unit="ns")
         # M8[ns] by default
         result = np.asarray(idx)
 
@@ -114,7 +114,7 @@ class TestDatetimeIndex:
 
     def test_asarray_tz_aware(self):
         tz = "US/Central"
-        idx = date_range("2000", periods=2, tz=tz)
+        idx = date_range("2000", periods=2, tz=tz, unit="ns")
         expected = np.array(["2000-01-01T06", "2000-01-02T06"], dtype="M8[ns]")
         result = np.asarray(idx, dtype="datetime64[ns]")
 

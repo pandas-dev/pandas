@@ -6,13 +6,19 @@ from datetime import (
 import numpy as np
 import pytest
 
+from pandas.compat import pa_version_under21p0
+
 from pandas import (
+    NA,
     DataFrame,
     Index,
     MultiIndex,
     Series,
+    StringDtype,
+    option_context,
 )
 import pandas._testing as tm
+from pandas.core.arrays._arrow_string_mixins import ArrowStringArrayMixin
 from pandas.core.strings.accessor import StringMethods
 from pandas.tests.strings import is_object_or_nan_string_dtype
 
@@ -41,10 +47,14 @@ def test_iter_raises():
 def test_count(any_string_dtype):
     ser = Series(["foo", "foofoo", np.nan, "foooofooofommmfoo"], dtype=any_string_dtype)
     result = ser.str.count("f[o]+")
-    expected_dtype = (
-        np.float64 if is_object_or_nan_string_dtype(any_string_dtype) else "Int64"
-    )
-    expected = Series([1, 2, np.nan, 4], dtype=expected_dtype)
+    if is_object_or_nan_string_dtype(any_string_dtype):
+        expected_dtype = np.float64
+        item = np.nan
+    else:
+        expected_dtype = "Int64"
+        item = NA
+
+    expected = Series([1, 2, item, 4], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
 
@@ -55,6 +65,57 @@ def test_count_mixed_object():
     )
     result = ser.str.count("a")
     expected = Series([1, np.nan, 0, np.nan, np.nan, 0, np.nan, np.nan, np.nan])
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "pat, expected_data",
+    [
+        (r"a(?=b)", [0, 1, 0, 0, None]),
+        (r"(?<=a)b", [0, 1, 0, 0, None]),
+        (r"a(?!b)", [2, 0, 1, 0, None]),
+        (r"(?<!b)a", [2, 1, 0, 0, None]),
+        ("ab", [0, 1, 0, 0, None]),
+    ],
+)
+def test_count_lookarounds(any_string_dtype, pat, expected_data):
+    # https://github.com/pandas-dev/pandas/issues/60833
+    expected_dtype = (
+        "float64" if is_object_or_nan_string_dtype(any_string_dtype) else "Int64"
+    )
+    ser = Series(["aa", "ab", "ba", "bb", None], dtype=any_string_dtype)
+    result = ser.str.count(pat)
+    expected = Series(expected_data, dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+
+def test_count_end_of_string(any_string_dtype):
+    # https://github.com/pandas-dev/pandas/pull/63613
+    expected_dtype = (
+        "int64" if is_object_or_nan_string_dtype(any_string_dtype) else "Int64"
+    )
+
+    ser = Series(["baz", "bar", "bars", "bar\n"], dtype=any_string_dtype)
+
+    # with dollar sign
+    result = ser.str.count("bar$")
+    if any_string_dtype == "string" and any_string_dtype.storage == "pyarrow":
+        # pyarrow (RE2) only matches $ at the very end of the line
+        expected = Series([0, 1, 0, 0], dtype=expected_dtype)
+    else:
+        # python matches $ before or after an ending newline
+        expected = Series([0, 1, 0, 1], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+    # with \Z (ensure this is translated to \z for pyarrow)
+    result = ser.str.count(r"bar\Z")
+    expected = Series([0, 1, 0, 0], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+    # ensure finding a literal \Z still works
+    ser = Series([r"bar\Z", "bar", "bars", "bar\n"], dtype=any_string_dtype)
+    result = ser.str.count(r"bar\\Z")
+    expected = Series([1, 0, 0, 0], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
 
@@ -240,8 +301,9 @@ def test_ismethods(method, expected, any_string_dtype):
 @pytest.mark.parametrize(
     "method, expected",
     [
-        ("isnumeric", [False, True, True, False, True, True, False]),
-        ("isdecimal", [False, True, False, False, False, True, False]),
+        ("isnumeric", [False, True, True, True, False, True, True, False]),
+        ("isdecimal", [False, True, False, False, False, False, True, False]),
+        ("isdigit", [False, True, True, False, False, False, True, False]),
     ],
 )
 def test_isnumeric_unicode(method, expected, any_string_dtype):
@@ -250,19 +312,35 @@ def test_isnumeric_unicode(method, expected, any_string_dtype):
     # 0x1378: ፸ ETHIOPIC NUMBER SEVENTY
     # 0xFF13: ３ Em 3  # noqa: RUF003
     ser = Series(
-        ["A", "3", "¼", "★", "፸", "３", "four"],  # noqa: RUF001
+        ["A", "3", "³", "¼", "★", "፸", "３", "four"],  # noqa: RUF001
         dtype=any_string_dtype,
     )
     expected_dtype = (
         "bool" if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
     )
     expected = Series(expected, dtype=expected_dtype)
+    if (
+        method == "isdigit"
+        and isinstance(ser.dtype, StringDtype)
+        and ser.dtype.storage == "pyarrow"
+        and not pa_version_under21p0
+    ):
+        # known difference in behavior between python and pyarrow unicode handling
+        # pyarrow 21+ considers ¼ and ፸ as a digit, while python does not
+        expected.iloc[3] = True
+        expected.iloc[5] = True
+
     result = getattr(ser.str, method)()
     tm.assert_series_equal(result, expected)
 
     # compare with standard library
-    expected = [getattr(item, method)() for item in ser]
-    assert list(result) == expected
+    # (only for non-pyarrow storage given the above differences)
+    if any_string_dtype == "object" or (
+        isinstance(any_string_dtype, StringDtype)
+        and any_string_dtype.storage == "python"
+    ):
+        expected = [getattr(item, method)() for item in ser]
+        assert list(result) == expected
 
 
 @pytest.mark.parametrize(
@@ -287,14 +365,14 @@ def test_isnumeric_unicode_missing(method, expected, any_string_dtype):
     tm.assert_series_equal(result, expected)
 
 
-def test_spilt_join_roundtrip(any_string_dtype):
+def test_split_join_roundtrip(any_string_dtype):
     ser = Series(["a_b_c", "c_d_e", np.nan, "f_g_h"], dtype=any_string_dtype)
     result = ser.str.split("_").str.join("_")
     expected = ser.astype(object)
     tm.assert_series_equal(result, expected)
 
 
-def test_spilt_join_roundtrip_mixed_object():
+def test_split_join_roundtrip_mixed_object():
     ser = Series(
         ["a_b", np.nan, "asdf_cas_asdf", True, datetime.today(), "foo", None, 1, 2.0]
     )
@@ -312,10 +390,13 @@ def test_len(any_string_dtype):
         dtype=any_string_dtype,
     )
     result = ser.str.len()
-    expected_dtype = (
-        "float64" if is_object_or_nan_string_dtype(any_string_dtype) else "Int64"
-    )
-    expected = Series([3, 4, 6, np.nan, 8, 4, 1], dtype=expected_dtype)
+    if is_object_or_nan_string_dtype(any_string_dtype):
+        expected_dtype = "float64"
+        item = np.nan
+    else:
+        expected_dtype = "Int64"
+        item = NA
+    expected = Series([3, 4, 6, item, 8, 4, 1], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
 
@@ -386,12 +467,15 @@ def test_index_wrong_type_raises(index_or_series, any_string_dtype, method):
 )
 def test_index_missing(any_string_dtype, method, exp):
     ser = Series(["abcb", "ab", "bcbe", np.nan], dtype=any_string_dtype)
-    expected_dtype = (
-        np.float64 if is_object_or_nan_string_dtype(any_string_dtype) else "Int64"
-    )
+    if is_object_or_nan_string_dtype(any_string_dtype):
+        expected_dtype = np.float64
+        item = np.nan
+    else:
+        expected_dtype = "Int64"
+        item = NA
 
     result = getattr(ser.str, method)("b")
-    expected = Series(exp + [np.nan], dtype=expected_dtype)
+    expected = Series([*exp, item], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
 
@@ -491,7 +575,7 @@ def test_strip_lstrip_rstrip_mixed_object(method, exp):
     ser = Series(["  aa  ", np.nan, " bb \t\n", True, datetime.today(), None, 1, 2.0])
 
     result = getattr(ser.str, method)()
-    expected = Series(exp + [np.nan, np.nan, None, np.nan, np.nan], dtype=object)
+    expected = Series([*exp, np.nan, np.nan, None, np.nan, np.nan], dtype=object)
     tm.assert_series_equal(result, expected)
 
 
@@ -512,7 +596,12 @@ def test_strip_lstrip_rstrip_args(any_string_dtype, method, exp):
 
 
 @pytest.mark.parametrize(
-    "prefix, expected", [("a", ["b", " b c", "bc"]), ("ab", ["", "a b c", "bc"])]
+    "prefix, expected",
+    [
+        ("a", ["b", " b c", "bc"]),
+        ("ab", ["", "a b c", "bc"]),
+        ("", ["ab", "a b c", "bc"]),
+    ],
 )
 def test_removeprefix(any_string_dtype, prefix, expected):
     ser = Series(["ab", "a b c", "bc"], dtype=any_string_dtype)
@@ -522,7 +611,12 @@ def test_removeprefix(any_string_dtype, prefix, expected):
 
 
 @pytest.mark.parametrize(
-    "suffix, expected", [("c", ["ab", "a b ", "b"]), ("bc", ["ab", "a b c", ""])]
+    "suffix, expected",
+    [
+        ("c", ["ab", "a b ", "b"]),
+        ("bc", ["ab", "a b c", ""]),
+        ("", ["ab", "a b c", "bc"]),
+    ],
 )
 def test_removesuffix(any_string_dtype, suffix, expected):
     ser = Series(["ab", "a b c", "bc"], dtype=any_string_dtype)
@@ -599,6 +693,30 @@ def test_decode_errors_kwarg():
     result = ser.str.decode("cp1252", "ignore")
     expected = ser.map(lambda x: x.decode("cp1252", "ignore")).astype("str")
     tm.assert_series_equal(result, expected)
+
+
+def test_decode_string_dtype(string_dtype):
+    # https://github.com/pandas-dev/pandas/pull/60940
+    ser = Series([b"a", b"b"])
+    result = ser.str.decode("utf-8", dtype=string_dtype)
+    expected = Series(["a", "b"], dtype=string_dtype)
+    tm.assert_series_equal(result, expected)
+
+
+def test_decode_object_dtype(object_dtype):
+    # https://github.com/pandas-dev/pandas/pull/60940
+    ser = Series([b"a", rb"\ud800"])
+    result = ser.str.decode("utf-8", dtype=object_dtype)
+    expected = Series(["a", r"\ud800"], dtype=object_dtype)
+    tm.assert_series_equal(result, expected)
+
+
+def test_decode_bad_dtype():
+    # https://github.com/pandas-dev/pandas/pull/60940
+    ser = Series([b"a", b"b"])
+    msg = "dtype must be string or object, got dtype='int64'"
+    with pytest.raises(ValueError, match=msg):
+        ser.str.decode("utf-8", dtype="int64")
 
 
 @pytest.mark.parametrize(
@@ -701,7 +819,7 @@ def test_cat_on_bytes_raises():
 
 def test_str_accessor_in_apply_func():
     # https://github.com/pandas-dev/pandas/issues/38979
-    df = DataFrame(zip("abc", "def"))
+    df = DataFrame(zip("abc", "def", strict=True))
     expected = Series(["A/D", "B/E", "C/F"])
     result = df.apply(lambda f: "/".join(f.str.upper()), axis=1)
     tm.assert_series_equal(result, expected)
@@ -754,3 +872,81 @@ def test_series_str_decode():
     result = Series([b"x", b"y"]).str.decode(encoding="UTF-8", errors="strict")
     expected = Series(["x", "y"], dtype="str")
     tm.assert_series_equal(result, expected)
+
+
+def test_decode_with_dtype_none():
+    with option_context("future.infer_string", True):
+        ser = Series([b"a", b"b", b"c"])
+        result = ser.str.decode("utf-8", dtype=None)
+        expected = Series(["a", "b", "c"], dtype="str")
+        tm.assert_series_equal(result, expected)
+
+
+def test_setitem_with_different_string_storage():
+    # GH#52987
+    # Test setitem with values from different string storage type
+    pytest.importorskip("pyarrow")
+
+    # Test Series[string[python]].__setitem__(Series[string[pyarrow]])
+    ser_python = Series(range(5), dtype="string[python]")
+    ser_pyarrow = ser_python.astype("string[pyarrow]")
+
+    ser_python[:2] = ser_pyarrow[:2]
+    expected = Series(["0", "1", "2", "3", "4"], dtype="string[python]")
+    tm.assert_series_equal(ser_python, expected)
+
+    # Test Series[string[pyarrow]].__setitem__(Series[string[python]])
+    ser_pyarrow = Series(range(5), dtype="string[pyarrow]")
+    ser_python = ser_pyarrow.astype("string[python]")
+
+    ser_pyarrow[:2] = ser_python[:2]
+    expected = Series(["0", "1", "2", "3", "4"], dtype="string[pyarrow]")
+    tm.assert_series_equal(ser_pyarrow, expected)
+
+    # Test with slice and missing values
+    ser_python = Series(["a", "b", None, "d", "e"], dtype="string[python]")
+    ser_pyarrow = Series(["X", "Y", None], dtype="string[pyarrow]")
+
+    ser_python[1:4] = ser_pyarrow
+    expected = Series(["a", "X", "Y", NA, "e"], dtype="string[python]")
+    tm.assert_series_equal(ser_python, expected)
+
+
+@pytest.mark.parametrize(
+    "pat, expected",
+    [
+        # lookaround assertions
+        (r"(?=abc)", True),
+        (r"(?<=123)", True),
+        (r"(?!xyz)", True),
+        (r"(?<!\d)", True),
+        (r"(?=a|b)(?<=c)", True),
+        (r"abc", False),
+        (r"\d+", False),
+        (r"(abc)", False),
+        (r"a|b", False),
+        (r"a*", False),
+        (r"", False),
+        (r"\\(?=abc)", True),
+        (r"(?=.*[A-Z])", True),
+        (r"a(?=)", True),
+        (r"(?![0-9])", True),
+        (r"(?=(?!nested))", True),
+        (r"test\(\?\=ing\)", False),
+        (r"[(?=)]", False),
+        (r"(?#(?=comment)", False),
+        (r"(test # (?=comment))", True),
+        (r"(?=test)+", False),
+        (r"(?=test)*", False),
+        (r"(?=test)?", False),
+        (r"abc|(?=test)", True),
+        (r"^(?=test)$", True),
+        # backreferences
+        (r"(abc)\1", True),
+        (r"\b(\w+)\s+\1\b", True),
+        (r"\b(?P<word>\w+)\s+(?P=word)\b", True),
+    ],
+)
+def test_has_regex_unsupported_code(pat, expected):
+    # https://github.com/pandas-dev/pandas/issues/60833
+    assert ArrowStringArrayMixin._has_unsupported_regex(pat) == expected

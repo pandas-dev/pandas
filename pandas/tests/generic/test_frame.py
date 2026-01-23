@@ -1,5 +1,6 @@
 from copy import deepcopy
 from operator import methodcaller
+from typing import Literal
 
 import numpy as np
 import pytest
@@ -77,15 +78,24 @@ class TestDataFrame:
         # merging with override
         # GH 6923
 
-        def finalize(self, other, method=None, **kwargs):
+        def finalize(
+            self: DataFrame,
+            other: DataFrame,
+            method: Literal["merge", "concat"] | None = None,
+            **kwargs,
+        ):
             for name in self._metadata:
                 if method == "merge":
-                    left, right = other.left, other.right
+                    left, right = other.input_objs
                     value = getattr(left, name, "") + "|" + getattr(right, name, "")
                     object.__setattr__(self, name, value)
                 elif method == "concat":
                     value = "+".join(
-                        [getattr(o, name) for o in other.objs if getattr(o, name, None)]
+                        [
+                            getattr(o, name)
+                            for o in other.input_objs
+                            if getattr(o, name, None)
+                        ]
                     )
                     object.__setattr__(self, name, value)
                 else:

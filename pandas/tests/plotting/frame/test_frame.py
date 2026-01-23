@@ -4,11 +4,9 @@ from datetime import (
     date,
     datetime,
 )
-import gc
 import itertools
 import re
 import string
-import weakref
 
 import numpy as np
 import pytest
@@ -51,6 +49,15 @@ from pandas.io.formats.printing import pprint_thing
 
 mpl = pytest.importorskip("matplotlib")
 plt = pytest.importorskip("matplotlib.pyplot")
+
+pytestmark = [
+    pytest.mark.filterwarnings(
+        "ignore:divide by zero encountered in scalar divide:RuntimeWarning"
+    ),
+    pytest.mark.filterwarnings(
+        "ignore:invalid value encountered in scalar multiply:RuntimeWarning"
+    ),
+]
 
 
 class TestDataFramePlots:
@@ -174,7 +181,7 @@ class TestDataFramePlots:
 
     @pytest.mark.slow
     def test_plot_multiindex(self):
-        tuples = zip(string.ascii_letters[:10], range(10))
+        tuples = zip(string.ascii_letters[:10], range(10), strict=True)
         df = DataFrame(
             np.random.default_rng(2).random((10, 3)),
             index=MultiIndex.from_tuples(tuples),
@@ -504,7 +511,7 @@ class TestDataFramePlots:
 
     def _compare_stacked_y_cood(self, normal_lines, stacked_lines):
         base = np.zeros(len(normal_lines[0].get_data()[1]))
-        for nl, sl in zip(normal_lines, stacked_lines):
+        for nl, sl in zip(normal_lines, stacked_lines, strict=True):
             base += nl.get_data()[1]  # get y coordinates
             sy = sl.get_data()[1]
             tm.assert_numpy_array_equal(base, sy)
@@ -840,14 +847,26 @@ class TestDataFramePlots:
         axes = df.plot(x="x", y="y", kind="scatter", subplots=True)
         _check_axes_shape(axes, axes_num=1, layout=(1, 1))
 
-    def test_raise_error_on_datetime_time_data(self):
-        # GH 8113, datetime.time type is not supported by matplotlib in scatter
+    def test_scatter_on_datetime_time_data(self):
+        # datetime.time type is now supported in scatter, since a converter
+        # is implemented in ScatterPlot
         df = DataFrame(np.random.default_rng(2).standard_normal(10), columns=["a"])
         df["dtime"] = date_range(start="2014-01-01", freq="h", periods=10).time
-        msg = "must be a string or a (real )?number, not 'datetime.time'"
+        df.plot(kind="scatter", x="dtime", y="a")
 
-        with pytest.raises(TypeError, match=msg):
-            df.plot(kind="scatter", x="dtime", y="a")
+    def test_scatter_line_xticks(self):
+        # GH#61005
+        df = DataFrame(
+            [(datetime(year=2025, month=1, day=1, hour=n), n) for n in range(3)],
+            columns=["datetime", "y"],
+        )
+        fig, ax = plt.subplots(2, sharex=True)
+        df.plot.scatter(x="datetime", y="y", ax=ax[0])
+        scatter_xticks = ax[0].get_xticks()
+        df.plot(x="datetime", y="y", ax=ax[1])
+        line_xticks = ax[1].get_xticks()
+        assert scatter_xticks[0] == line_xticks[0]
+        assert scatter_xticks[-1] == line_xticks[-1]
 
     @pytest.mark.parametrize("x, y", [("dates", "vals"), (0, 1)])
     def test_scatterplot_datetime_data(self, x, y):
@@ -899,7 +918,10 @@ class TestDataFramePlots:
 
         expected_yticklabels = categories
         result_yticklabels = [i.get_text() for i in colorbar.ax.get_ymajorticklabels()]
-        assert all(i == j for i, j in zip(result_yticklabels, expected_yticklabels))
+        assert all(
+            i == j
+            for i, j in zip(result_yticklabels, expected_yticklabels, strict=True)
+        )
 
     @pytest.mark.parametrize("x, y", [("x", "y"), ("y", "x"), ("y", "y")])
     def test_plot_scatter_with_categorical_data(self, x, y):
@@ -1110,7 +1132,7 @@ class TestDataFramePlots:
         )
         _check_axes_shape(axes, axes_num=3, layout=(1, 3))
         _check_ax_scales(axes, xaxis="log")
-        for ax, label in zip(axes, labels):
+        for ax, label in zip(axes, labels, strict=True):
             _check_text_labels(ax.get_yticklabels(), [label])
             assert len(ax.lines) == 7
 
@@ -1237,7 +1259,13 @@ class TestDataFramePlots:
         # GH 33173
         weights = 0.1 * np.ones(shape=weight_shape)
         df = DataFrame(
-            dict(zip(["A", "B"], np.random.default_rng(2).standard_normal((2, 100))))
+            dict(
+                zip(
+                    ["A", "B"],
+                    np.random.default_rng(2).standard_normal((2, 100)),
+                    strict=True,
+                )
+            )
         )
 
         ax1 = _check_plot_works(df.plot, kind="hist", weights=weights)
@@ -1495,7 +1523,7 @@ class TestDataFramePlots:
             df.plot(kind=kind)
 
     @pytest.mark.parametrize(
-        "kind", list(plotting.PlotAccessor._common_kinds) + ["area"]
+        "kind", [*list(plotting.PlotAccessor._common_kinds), "area"]
     )
     def test_partially_invalid_plot_data_numeric(self, kind):
         df = DataFrame(
@@ -1658,7 +1686,7 @@ class TestDataFramePlots:
         assert len(axes) == len(df.columns)
         for ax in axes:
             _check_text_labels(ax.texts, df.index)
-        for ax, ylabel in zip(axes, df.columns):
+        for ax, ylabel in zip(axes, df.columns, strict=True):
             assert ax.get_ylabel() == ""
 
     def test_pie_df_labels_colors(self):
@@ -2143,15 +2171,15 @@ class TestDataFramePlots:
                 index=date_range("2000-01-01", periods=10, freq="B"),
             )
 
-        # Use a weakref so we can see if the object gets collected without
-        # also preventing it from being collected
-        ref = weakref.ref(df.plot(kind=kind, **args))
-
-        # have matplotlib delete all the figures
-        plt.close("all")
-        # force a garbage collection
-        gc.collect()
-        assert ref() is None
+        ax = df.plot(kind=kind, **args)
+        # https://github.com/pandas-dev/pandas/issues/9003#issuecomment-70544889
+        if kind in ["line", "area"]:
+            for i, (cached_data, _, _) in enumerate(ax._plot_data):
+                ser = df.iloc[:, i]
+                assert not tm.shares_memory(ser, cached_data)
+                tm.assert_numpy_array_equal(ser._values, cached_data._values)
+        else:
+            assert not hasattr(ax, "_plot_data")
 
     def test_df_gridspec_patterns_vert_horiz(self):
         # GH 10819
@@ -2360,7 +2388,7 @@ class TestDataFramePlots:
         ax = df.plot.area(x="day")
         ax.set_xlim(-1, 3)
         xticklabels = [t.get_text() for t in ax.get_xticklabels()]
-        labels_position = dict(zip(xticklabels, ax.get_xticks()))
+        labels_position = dict(zip(xticklabels, ax.get_xticks(), strict=False))
         # Testing if the label stayed at the right position
         assert labels_position["Monday"] == 0.0
         assert labels_position["Tuesday"] == 1.0
@@ -2378,7 +2406,7 @@ class TestDataFramePlots:
         ax = df.plot()
         ax.set_xlim(-1, 4)
         xticklabels = [t.get_text() for t in ax.get_xticklabels()]
-        labels_position = dict(zip(xticklabels, ax.get_xticks()))
+        labels_position = dict(zip(xticklabels, ax.get_xticks(), strict=False))
         # Testing if the label stayed at the right position
         assert labels_position["(2012, 1)"] == 0.0
         assert labels_position["(2012, 2)"] == 1.0
@@ -2454,7 +2482,7 @@ class TestDataFramePlots:
         assert len(axes) == 3  # 2 groups + single column a
 
         expected_labels = (["b", "e"], ["c", "d"], ["a"])
-        for ax, labels in zip(axes, expected_labels):
+        for ax, labels in zip(axes, expected_labels, strict=True):
             if kind != "pie":
                 _check_legend_labels(ax, labels=labels)
             if kind == "line":
