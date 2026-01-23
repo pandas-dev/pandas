@@ -8,7 +8,7 @@ General functions
 .. currentmodule:: pandas
 
 .. note::
-   For more information on general data manipulation functions, see the :ref:`Reshaping and pivot tables <reshaping>` section of the User Guide.
+   For an overview, see :ref:`reshaping`.
 
 Data manipulations
 ~~~~~~~~~~~~~~~~~~
