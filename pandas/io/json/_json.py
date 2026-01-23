@@ -731,6 +731,9 @@ def read_json(
         installed. Extremely large integers may be decoded as floating point
         values, following orjson semantics.
 
+        This engine is stricter about JSON compliance. In particular, unquoted
+        ``NaN``, ``Infinity``, and ``-Infinity`` values are not supported.
+
         .. versionadded:: 2.0
 
     Returns

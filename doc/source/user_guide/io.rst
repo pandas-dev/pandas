@@ -1918,10 +1918,12 @@ is ``None``. To explicitly force ``Series`` parsing, pass ``typ=series``
 * ``engine``: ``"ujson"`` or ``"orjson"`` or ``"pyarrow"``, default ``"ujson"``
 
     * ``"ujson"`` is the default built-in parser.
-    * ``"orjson"`` enables parsing of very large integers that may fail with
-      ``"ujson"``. Requires the optional dependency ``orjson`` to be installed.
-      Very large integers may be decoded as floating point values, following
-      orjson semantics.
+    * ``"orjson"`` enables parsing of very large integer values that may fail
+      with ``"ujson"``. This engine requires the optional dependency
+      ``orjson`` to be installed. Very large integers may be decoded as
+      floating point values, following ``orjson`` semantics. This engine is
+      stricter about JSON compliance; in particular, unquoted ``NaN`` ,
+      ``Infinity``, and ``-Infinity`` values are not supported.
     * ``"pyarrow"`` dispatches to ``pyarrow.json.read_json`` and is only
       available when ``lines=True``.
 
