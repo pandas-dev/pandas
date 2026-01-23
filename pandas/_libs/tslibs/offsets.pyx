@@ -3054,7 +3054,7 @@ cdef class WeekOfMonthMixin(SingleConstructorOffset):
     """
 
     cdef readonly:
-        int weekday, week
+        int weekday, _week
 
     def __init__(self, n=1, normalize=False, weekday=0):
         BaseOffset.__init__(self, n, normalize)
@@ -3080,6 +3080,38 @@ cdef class WeekOfMonthMixin(SingleConstructorOffset):
         return dt.day == self._get_offset_day(dt)
 
     @property
+    def week(self) -> int:
+        """
+        Return the week of the month on which this offset applies.
+
+        Returns an integer representing the week of the month (0-3) that this
+        offset targets. The week is zero-indexed, where 0 corresponds to the
+        first week of the month.
+
+        Returns
+        -------
+        int
+            An integer representing the week of the month (0-3).
+
+        See Also
+        --------
+        tseries.offsets.WeekOfMonth : Describes monthly dates in a specific week.
+        tseries.offsets.LastWeekOfMonth : Describes monthly dates in last week.
+
+        Examples
+        --------
+        >>> pd.offsets.WeekOfMonth(week=0, weekday=0).week
+        0
+
+        >>> pd.offsets.WeekOfMonth(week=2, weekday=3).week
+        2
+
+        >>> pd.offsets.LastWeekOfMonth(weekday=0).week
+        -1
+        """
+        return self._week
+
+    @property
     def rule_code(self) -> str:
         """
         Return a string representing the base frequency.
@@ -3100,10 +3132,10 @@ cdef class WeekOfMonthMixin(SingleConstructorOffset):
         'WOM-1MON'
         """
         weekday = int_to_weekday.get(self.weekday, "")
-        if self.week == -1:
+        if self._week == -1:
             # LastWeekOfMonth
             return f"{self._prefix}-{weekday}"
-        return f"{self._prefix}-{self.week + 1}{weekday}"
+        return f"{self._prefix}-{self._week + 1}{weekday}"
 
 
 # ----------------------------------------------------------------------
@@ -4847,21 +4879,21 @@ cdef class WeekOfMonth(WeekOfMonthMixin):
 
     def __init__(self, n=1, normalize=False, week=0, weekday=0):
         WeekOfMonthMixin.__init__(self, n, normalize, weekday)
-        self.week = week
+        self._week = week
 
-        if self.week < 0 or self.week > 3:
-            raise ValueError(f"Week must be 0<=week<=3, got {self.week}")
+        if self._week < 0 or self._week > 3:
+            raise ValueError(f"Week must be 0<=week<=3, got {self._week}")
 
     cpdef __setstate__(self, state):
         self._n = state.pop("n")
         self._normalize = state.pop("normalize")
         self.weekday = state.pop("weekday")
-        self.week = state.pop("week")
+        self._week = state.pop("week")
 
     def _get_offset_day(self, other: datetime) -> int:
         """
         Find the day in the same month as other that has the same
-        weekday as self.weekday and is the self.week'th such day in the month.
+        weekday as self.weekday and is the self._week'th such day in the month.
 
         Parameters
         ----------
@@ -4874,7 +4906,7 @@ cdef class WeekOfMonth(WeekOfMonthMixin):
         mstart = datetime(other.year, other.month, 1)
         wday = mstart.weekday()
         shift_days = (self.weekday - wday) % 7
-        return 1 + shift_days + self.week * 7
+        return 1 + shift_days + self._week * 7
 
     @classmethod
     def _from_name(cls, suffix=None):
@@ -4930,7 +4962,7 @@ cdef class LastWeekOfMonth(WeekOfMonthMixin):
 
     def __init__(self, n=1, normalize=False, weekday=0):
         WeekOfMonthMixin.__init__(self, n, normalize, weekday)
-        self.week = -1
+        self._week = -1
 
         if self._n == 0:
             raise ValueError("N cannot be 0")
@@ -4939,7 +4971,7 @@ cdef class LastWeekOfMonth(WeekOfMonthMixin):
         self._n = state.pop("n")
         self._normalize = state.pop("normalize")
         self.weekday = state.pop("weekday")
-        self.week = -1
+        self._week = -1
 
     def _get_offset_day(self, other: datetime) -> int:
         """

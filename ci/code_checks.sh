@@ -88,7 +88,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.FY5253Quarter.rule_code GL08" \
         -i "pandas.tseries.offsets.FY5253Quarter.startingMonth GL08" \
         -i "pandas.tseries.offsets.LastWeekOfMonth.is_on_offset GL08" \
-        -i "pandas.tseries.offsets.LastWeekOfMonth.week GL08" \
         -i "pandas.tseries.offsets.LastWeekOfMonth.weekday GL08" \
         -i "pandas.tseries.offsets.SemiMonthBegin.is_on_offset GL08" \
         -i "pandas.tseries.offsets.SemiMonthBegin.rule_code GL08" \
@@ -96,7 +95,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.SemiMonthEnd.rule_code GL08" \
         -i "pandas.tseries.offsets.Week.is_on_offset GL08" \
         -i "pandas.tseries.offsets.WeekOfMonth.is_on_offset GL08" \
-        -i "pandas.tseries.offsets.WeekOfMonth.week GL08" \
         -i "pandas.tseries.offsets.WeekOfMonth.weekday GL08" # There should be no backslash in the final line, please keep this comment in the last ignored function
 
     RET=$(($RET + $?)) ; echo $MSG "DONE"
