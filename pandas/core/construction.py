@@ -23,6 +23,7 @@ from pandas._libs.tslibs import (
     get_supported_dtype,
     is_supported_dtype,
 )
+from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import (
@@ -72,6 +73,7 @@ if TYPE_CHECKING:
     )
 
 
+@set_module("pandas")
 def array(
     data: Sequence[object] | AnyArrayLike,
     dtype: Dtype | None = None,
@@ -332,7 +334,7 @@ def array(
                 ensure_object(data),
                 convert_non_numeric=True,
                 convert_to_nullable_dtype=True,
-                dtype_if_all_nat=None,
+                dtype_if_all_nat=np.dtype("M8[s]"),
             )
             result = ensure_wrapped_if_datetimelike(result)
             if isinstance(result, np.ndarray):

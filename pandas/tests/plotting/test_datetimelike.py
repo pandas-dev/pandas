@@ -324,7 +324,7 @@ class TestTSPlot:
         ret = ser.plot(ax=ax)
         assert ret is not None
 
-        for rs, xp in zip(ax.get_lines()[0].get_xdata(), ser.index):
+        for rs, xp in zip(ax.get_lines()[0].get_xdata(), ser.index, strict=True):
             assert rs == xp
 
     def test_business_freq(self):
@@ -673,7 +673,7 @@ class TestTSPlot:
         assert not hasattr(ax2, "right_ax")
 
     def test_secondary_y_ts(self):
-        idx = date_range("1/1/2000", periods=10)
+        idx = date_range("1/1/2000", periods=10, unit="ns")
         ser = Series(np.random.default_rng(2).standard_normal(10), idx)
         fig, _ = mpl.pyplot.subplots()
         ax = ser.plot(secondary_y=True)
@@ -682,6 +682,7 @@ class TestTSPlot:
         axes = fig.get_axes()
         line = ax.get_lines()[0]
         xp = Series(line.get_ydata(), line.get_xdata()).to_timestamp()
+        xp.index = xp.index.as_unit("ns")
         tm.assert_series_equal(ser, xp)
         assert ax.get_yaxis().get_ticks_position() == "right"
         assert not axes[0].get_yaxis().get_visible()
@@ -1150,7 +1151,7 @@ class TestTSPlot:
         # verify tick labels
         ticks = ax.get_xticks()
         labels = ax.get_xticklabels()
-        for _tick, _label in zip(ticks, labels):
+        for _tick, _label in zip(ticks, labels, strict=True):
             m, s = divmod(int(_tick), 60)
             h, m = divmod(m, 60)
             rs = _label.get_text()
@@ -1178,7 +1179,7 @@ class TestTSPlot:
         # verify tick labels
         ticks = ax.get_xticks()
         labels = ax.get_xticklabels()
-        for _tick, _label in zip(ticks, labels):
+        for _tick, _label in zip(ticks, labels, strict=True):
             m, s = divmod(int(_tick), 60)
             h, m = divmod(m, 60)
             rs = _label.get_text()
@@ -1195,7 +1196,7 @@ class TestTSPlot:
         # check tick labels again
         ticks = ax.get_xticks()
         labels = ax.get_xticklabels()
-        for _tick, _label in zip(ticks, labels):
+        for _tick, _label in zip(ticks, labels, strict=True):
             m, s = divmod(int(_tick), 60)
             h, m = divmod(m, 60)
             rs = _label.get_text()
@@ -1223,7 +1224,7 @@ class TestTSPlot:
         # verify tick labels
         ticks = ax.get_xticks()
         labels = ax.get_xticklabels()
-        for _tick, _label in zip(ticks, labels):
+        for _tick, _label in zip(ticks, labels, strict=True):
             m, s = divmod(int(_tick), 60)
 
             us = round((_tick - int(_tick)) * 1e6)
@@ -1531,7 +1532,7 @@ class TestTSPlot:
         assert len(result_labels) == len(expected_labels)
         assert result_labels == expected_labels
 
-    def test_format_timedelta_ticks_wide(self):
+    def test_format_timedelta_ticks_wide(self, unit):
         expected_labels = [
             "00:00:00",
             "1 days 03:46:40",
@@ -1544,7 +1545,7 @@ class TestTSPlot:
             "9 days 06:13:20",
         ]
 
-        rng = timedelta_range("0", periods=10, freq="1 D")
+        rng = timedelta_range("0", periods=10, freq="1 D", unit=unit)
         df = DataFrame(np.random.default_rng(2).standard_normal((len(rng), 3)), rng)
         _, ax = mpl.pyplot.subplots()
         ax = df.plot(fontsize=2, ax=ax)

@@ -119,6 +119,17 @@ class TestGetItem:
 
 
 class TestWhere:
+    @pytest.mark.parametrize("is_td", [True, False])
+    def test_where_freq_invalidation(self, is_td):
+        # GH#24555
+        index = date_range("20130101", periods=3, tz="US/Eastern")
+        if is_td:
+            index = index - index[0]
+        other = Index([pd.NaT, pd.NaT, *index[2:].tolist()])
+
+        result = index.where(notna(other), other)
+        assert result.freq is None
+
     def test_where_doesnt_retain_freq(self):
         dti = date_range("20130101", periods=3, freq="D", name="idx")
         cond = [True, True, False]
@@ -137,54 +148,54 @@ class TestWhere:
             tm.assert_index_equal(result, expected)
 
         i2 = i.copy()
-        i2 = Index([pd.NaT, pd.NaT] + i[2:].tolist())
+        i2 = Index([pd.NaT, pd.NaT, *i[2:].tolist()])
         result = i.where(notna(i2), i2)
         tm.assert_index_equal(result, i2)
 
         i2 = i.copy()
-        i2 = Index([pd.NaT, pd.NaT] + i[2:].tolist())
+        i2 = Index([pd.NaT, pd.NaT, *i[2:].tolist()])
         result = i.where(notna(i2), i2._values)
         tm.assert_index_equal(result, i2)
 
     def test_where_invalid_dtypes(self):
-        dti = date_range("20130101", periods=3, tz="US/Eastern")
+        dti = date_range("20130101", periods=3, tz="US/Eastern", unit="ns")
 
         tail = dti[2:].tolist()
-        i2 = Index([pd.NaT, pd.NaT] + tail)
+        i2 = Index([pd.NaT, pd.NaT, *tail])
 
         mask = notna(i2)
 
         # passing tz-naive ndarray to tzaware DTI
         result = dti.where(mask, i2.values)
-        expected = Index([pd.NaT.asm8, pd.NaT.asm8] + tail, dtype=object)
+        expected = Index([pd.NaT.asm8, pd.NaT.asm8, *tail], dtype=object)
         tm.assert_index_equal(result, expected)
 
         # passing tz-aware DTI to tznaive DTI
         naive = dti.tz_localize(None)
         result = naive.where(mask, i2)
-        expected = Index([i2[0], i2[1]] + naive[2:].tolist(), dtype=object)
+        expected = Index([i2[0], i2[1], *naive[2:].tolist()], dtype=object)
         tm.assert_index_equal(result, expected)
 
         pi = i2.tz_localize(None).to_period("D")
         result = dti.where(mask, pi)
-        expected = Index([pi[0], pi[1]] + tail, dtype=object)
+        expected = Index([pi[0], pi[1], *tail], dtype=object)
         tm.assert_index_equal(result, expected)
 
         tda = i2.asi8.view("timedelta64[ns]")
         result = dti.where(mask, tda)
-        expected = Index([tda[0], tda[1]] + tail, dtype=object)
+        expected = Index([tda[0], tda[1], *tail], dtype=object)
         assert isinstance(expected[0], np.timedelta64)
         tm.assert_index_equal(result, expected)
 
         result = dti.where(mask, i2.asi8)
-        expected = Index([pd.NaT._value, pd.NaT._value] + tail, dtype=object)
+        expected = Index([pd.NaT._value, pd.NaT._value, *tail], dtype=object)
         assert isinstance(expected[0], int)
         tm.assert_index_equal(result, expected)
 
         # non-matching scalar
         td = pd.Timedelta(days=4)
         result = dti.where(mask, td)
-        expected = Index([td, td] + tail, dtype=object)
+        expected = Index([td, td, *tail], dtype=object)
         assert expected[0] is td
         tm.assert_index_equal(result, expected)
 
@@ -207,7 +218,7 @@ class TestWhere:
         tm.assert_index_equal(result, expected)
 
         i2 = i.copy()
-        i2 = Index([pd.NaT, pd.NaT] + i[2:].tolist())
+        i2 = Index([pd.NaT, pd.NaT, *i[2:].tolist()])
         result = i.where(notna(i2))
         expected = i2
         tm.assert_index_equal(result, expected)
@@ -626,7 +637,7 @@ class TestGetIndexer:
 class TestMaybeCastSliceBound:
     def test_maybe_cast_slice_bounds_empty(self):
         # GH#14354
-        empty_idx = date_range(freq="1h", periods=0, end="2015")
+        empty_idx = date_range(freq="1h", periods=0, end="2015", unit="ns")
 
         right = empty_idx._maybe_cast_slice_bound("2015-01-02", "right")
         exp = Timestamp("2015-01-02 23:59:59.999999999")
@@ -645,6 +656,32 @@ class TestMaybeCastSliceBound:
 
 
 class TestGetSliceBounds:
+    @pytest.mark.parametrize("as_td", [True, False])
+    def test_get_slice_bound_mismatched_unit(self, as_td):
+        # GH#63262
+        index = date_range(start="2000-01-01", freq="h", periods=8)
+
+        td = pd.Timedelta(1)
+        ts = Timestamp("2000-01-01 01:00:00")
+        start = ts - td
+        stop = ts + td
+        if as_td:
+            index = index - Timestamp(0).as_unit("us")
+            start = start - Timestamp(0).as_unit("us")
+            stop = stop - Timestamp(0).as_unit("us")
+
+        left = index.get_slice_bound(start, side="left")
+        assert left == 1
+        right = index.get_slice_bound(stop, side="right")
+        assert right == 2
+
+        # The user-facing behavior is slicing with .loc, so let's test that
+        #  explicitly while we're here.
+        ser = pd.Series(1, index=index)
+        result = ser.loc[start:stop]
+        expected = ser.iloc[1:2]
+        tm.assert_series_equal(result, expected)
+
     @pytest.mark.parametrize("box", [date, datetime, Timestamp])
     @pytest.mark.parametrize("side, expected", [("left", 4), ("right", 5)])
     def test_get_slice_bounds_datetime_within(

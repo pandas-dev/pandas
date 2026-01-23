@@ -5,7 +5,7 @@
 =======
 GroupBy
 =======
-.. currentmodule:: pandas.core.groupby
+.. currentmodule:: pandas.api.typing
 
 .. note::
    For an overview, see :ref:`groupby`.
@@ -43,7 +43,7 @@ Function application helper
 
    NamedAgg
 
-.. currentmodule:: pandas.core.groupby
+.. currentmodule:: pandas.api.typing
 
 Function application
 --------------------

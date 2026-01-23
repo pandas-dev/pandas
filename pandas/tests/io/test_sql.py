@@ -966,15 +966,19 @@ adbc_connectable_types = [
 ]
 
 
-all_connectable = sqlalchemy_connectable + ["sqlite_buildin"] + adbc_connectable
+all_connectable = [*sqlalchemy_connectable, "sqlite_buildin", *adbc_connectable]
 
-all_connectable_iris = (
-    sqlalchemy_connectable_iris + ["sqlite_buildin_iris"] + adbc_connectable_iris
-)
+all_connectable_iris = [
+    *sqlalchemy_connectable_iris,
+    "sqlite_buildin_iris",
+    *adbc_connectable_iris,
+]
 
-all_connectable_types = (
-    sqlalchemy_connectable_types + ["sqlite_buildin_types"] + adbc_connectable_types
-)
+all_connectable_types = [
+    *sqlalchemy_connectable_types,
+    "sqlite_buildin_types",
+    *adbc_connectable_types,
+]
 
 
 @pytest.mark.parametrize("conn", all_connectable)
@@ -1831,7 +1835,7 @@ def test_api_custom_dateparsing_error(
             pytest.mark.xfail(reason="failing combination of arguments")
         )
 
-    expected = types_data_frame.astype({"DateCol": "datetime64[s]"})
+    expected = types_data_frame.astype({"DateCol": "datetime64[us]"})
 
     result = read_sql(
         text,
@@ -1854,12 +1858,6 @@ def test_api_custom_dateparsing_error(
             }
         )
 
-    if conn_name == "postgresql_adbc_types" and pa_version_under14p1:
-        expected["DateCol"] = expected["DateCol"].astype("datetime64[ns]")
-    elif "postgres" in conn_name or "mysql" in conn_name:
-        expected["DateCol"] = expected["DateCol"].astype("datetime64[us]")
-    else:
-        expected["DateCol"] = expected["DateCol"].astype("datetime64[s]")
     tm.assert_frame_equal(result, expected)
 
 

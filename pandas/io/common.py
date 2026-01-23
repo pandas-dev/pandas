@@ -56,7 +56,6 @@ from pandas._typing import (
     ReadCsvBuffer,
 )
 from pandas.compat._optional import import_optional_dependency
-from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
@@ -66,8 +65,6 @@ from pandas.core.dtypes.common import (
     is_list_like,
 )
 from pandas.core.dtypes.generic import ABCMultiIndex
-
-from pandas.core.shared_docs import _shared_docs
 
 _VALID_URLS = set(uses_relative + uses_netloc + uses_params)
 _VALID_URLS.discard("")
@@ -296,10 +293,6 @@ def is_fsspec_url(url: FilePath | BaseBuffer) -> bool:
     )
 
 
-@doc(
-    storage_options=_shared_docs["storage_options"],
-    compression_options=_shared_docs["compression_options"] % "filepath_or_buffer",
-)
 def _get_filepath_or_buffer(
     filepath_or_buffer: FilePath | BaseBuffer,
     encoding: str = "utf-8",
@@ -315,14 +308,36 @@ def _get_filepath_or_buffer(
     ----------
     filepath_or_buffer : a url, filepath (str or pathlib.Path),
                          or buffer
-    {compression_options}
 
-        .. versionchanged:: 1.4.0 Zstandard support.
+    compression : str or dict, default 'infer'
+        For on-the-fly compression of the output data. If 'infer' and
+        'filepath_or_buffer' is path-like, then detect compression from the
+        following extensions: '.gz',
+        '.bz2', '.zip', '.xz', '.zst', '.tar', '.tar.gz', '.tar.xz' or '.tar.bz2'
+        (otherwise no compression).
+        Set to ``None`` for no compression.
+        Can also be a dict with key ``'method'`` set
+        to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'xz'``, ``'tar'``}
+        and other key-value pairs are forwarded to
+        ``zipfile.ZipFile``, ``gzip.GzipFile``,
+        ``bz2.BZ2File``, ``zstandard.ZstdCompressor``, ``lzma.LZMAFile`` or
+        ``tarfile.TarFile``, respectively.
+        As an example, the following could be passed for faster compression and to
+        create a reproducible gzip archive:
+        ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
 
     encoding : the encoding to use to decode bytes, default is 'utf-8'
     mode : str, optional
 
-    {storage_options}
+    storage_options : dict, optional
+        Extra options that make sense for a particular storage connection, e.g.
+        host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
+        are forwarded to ``urllib.request.Request`` as header options. For other
+        URLs (e.g. starting with "s3://", and "gcs://") the key-value pairs are
+        forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more
+        details, and for more examples on storage options refer `here
+        <https://pandas.pydata.org/docs/user_guide/io.html?
+        highlight=storage_options#reading-writing-remote-files>`_.
 
 
     Returns the dataclass IOArgs.
@@ -552,7 +567,6 @@ def get_compression_method(
     return compression_method, compression_args
 
 
-@doc(compression_options=_shared_docs["compression_options"] % "filepath_or_buffer")
 def infer_compression(
     filepath_or_buffer: FilePath | BaseBuffer, compression: str | None
 ) -> str | None:
@@ -566,9 +580,23 @@ def infer_compression(
     ----------
     filepath_or_buffer : str or file handle
         File path or object.
-    {compression_options}
 
-        .. versionchanged:: 1.4.0 Zstandard support.
+    compression : str or dict, default 'infer'
+        For on-the-fly compression of the output data. If 'infer' and
+        'filepath_or_buffer' is path-like, then detect compression from the
+        following extensions: '.gz',
+        '.bz2', '.zip', '.xz', '.zst', '.tar', '.tar.gz', '.tar.xz' or '.tar.bz2'
+        (otherwise no compression).
+        Set to ``None`` for no compression.
+        Can also be a dict with key ``'method'`` set
+        to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'xz'``, ``'tar'``}
+        and other key-value pairs are forwarded to
+        ``zipfile.ZipFile``, ``gzip.GzipFile``,
+        ``bz2.BZ2File``, ``zstandard.ZstdCompressor``, ``lzma.LZMAFile`` or
+        ``tarfile.TarFile``, respectively.
+        As an example, the following could be passed for faster compression and to
+        create a reproducible gzip archive:
+        ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
 
     Returns
     -------
@@ -602,7 +630,7 @@ def infer_compression(
     if compression in _supported_compressions:
         return compression
 
-    valid = ["infer", None] + sorted(_supported_compressions)
+    valid = ["infer", None, *sorted(_supported_compressions)]
     msg = (
         f"Unrecognized compression type: {compression}\n"
         f"Valid compression types are {valid}"
@@ -666,7 +694,6 @@ def get_handle(
 ) -> IOHandles[str] | IOHandles[bytes]: ...
 
 
-@doc(compression_options=_shared_docs["compression_options"] % "path_or_buf")
 def get_handle(
     path_or_buf: FilePath | BaseBuffer,
     mode: str,
@@ -689,7 +716,21 @@ def get_handle(
         Mode to open path_or_buf with.
     encoding : str or None
         Encoding to use.
-    {compression_options}
+    compression : str or dict, default 'infer'
+        For on-the-fly compression of the output data. If 'infer' and 'path_or_buf'
+        is path-like, then detect compression from the following extensions: '.gz',
+        '.bz2', '.zip', '.xz', '.zst', '.tar', '.tar.gz', '.tar.xz' or '.tar.bz2'
+        (otherwise no compression).
+        Set to ``None`` for no compression.
+        Can also be a dict with key ``'method'`` set
+        to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'xz'``, ``'tar'``}
+        and other key-value pairs are forwarded to
+        ``zipfile.ZipFile``, ``gzip.GzipFile``,
+        ``bz2.BZ2File``, ``zstandard.ZstdCompressor``, ``lzma.LZMAFile`` or
+        ``tarfile.TarFile``, respectively.
+        As an example, the following could be passed for faster compression and to
+        create a reproducible gzip archive:
+        ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
 
            May be a dict with key 'method' as compression mode
            and other keys as compression options if compression
@@ -697,8 +738,6 @@ def get_handle(
 
            Passing compression options as keys in dict is
            supported for compression modes 'gzip', 'bz2', 'zstd' and 'zip'.
-
-        .. versionchanged:: 1.4.0 Zstandard support.
 
     memory_map : bool, default False
         See parsers._parser_params for more information. Only used by read_csv.
@@ -1277,7 +1316,7 @@ def dedup_names(
             if is_potential_multiindex:
                 # for mypy
                 assert isinstance(col, tuple)
-                col = col[:-1] + (f"{col[-1]}.{cur_count}",)
+                col = (*col[:-1], f"{col[-1]}.{cur_count}")
             else:
                 col = f"{col}.{cur_count}"
             cur_count = counts[col]

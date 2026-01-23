@@ -3,6 +3,8 @@ from datetime import datetime
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas.core.dtypes.common import is_extension_array_dtype
 
 import pandas as pd
@@ -96,9 +98,9 @@ def test_asfreq_fill_value(index):
 @pytest.mark.parametrize(
     "index",
     [
-        timedelta_range("1 day", "10 day", freq="D"),
-        date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D"),
-        period_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D"),
+        timedelta_range("1 day", "3 day", freq="D"),
+        date_range(datetime(2005, 1, 1), datetime(2005, 1, 3), freq="D"),
+        period_range(datetime(2005, 1, 1), datetime(2005, 1, 3), freq="D"),
     ],
 )
 def test_resample_interpolate(index):
@@ -107,6 +109,22 @@ def test_resample_interpolate(index):
     result = df.resample("1min").asfreq().interpolate()
     expected = df.resample("1min").interpolate()
     tm.assert_frame_equal(result, expected)
+
+
+def test_resample_interpolate_inplace_deprecated():
+    # GH#58690
+    dti = date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D")
+
+    df = DataFrame(range(len(dti)), index=dti)
+    rs = df.resample("1min")
+    msg = "The 'inplace' keyword in DatetimeIndexResampler.interpolate"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        rs.interpolate(inplace=False)
+
+    msg2 = "Cannot interpolate inplace on a resampled object"
+    with pytest.raises(ValueError, match=msg2):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            rs.interpolate(inplace=True)
 
 
 def test_resample_interpolate_regular_sampling_off_grid(
@@ -232,7 +250,7 @@ def test_resample_empty_sum_string(string_dtype_no_object, min_count):
     result = rs.sum(min_count=min_count)
 
     value = "" if min_count == 0 else pd.NA
-    index = date_range(start="2000-01-01", freq="20s", periods=2, unit="s")
+    index = date_range(start="2000-01-01", freq="20s", periods=2, unit="us")
     expected = Series(value, index=index, dtype=dtype)
     tm.assert_series_equal(result, expected)
 
@@ -522,7 +540,7 @@ def test_first_last_skipna(any_real_nullable_dtype, skipna, how):
             "b": [na_value, 3.0, na_value, 4.0],
             "c": [na_value, 3.0, na_value, 4.0],
         },
-        index=date_range("2020-01-01", periods=4, freq="D"),
+        index=date_range("2020-01-01", periods=4, freq="D", unit="ns"),
         dtype=any_real_nullable_dtype,
     )
     rs = df.resample("ME")

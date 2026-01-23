@@ -5,7 +5,7 @@
 ==========
 Resampling
 ==========
-.. currentmodule:: pandas.core.resample
+.. currentmodule:: pandas.api.typing
 
 .. note::
    For an overview, see :ref:`timeseries`.

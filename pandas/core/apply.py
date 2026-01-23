@@ -29,7 +29,10 @@ from pandas._typing import (
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import SpecificationError
-from pandas.util._decorators import cache_readonly
+from pandas.util._decorators import (
+    cache_readonly,
+    set_module,
+)
 
 from pandas.core.dtypes.cast import is_nested_object
 from pandas.core.dtypes.common import (
@@ -75,6 +78,7 @@ if TYPE_CHECKING:
 ResType: TypeAlias = dict[int, Any]
 
 
+@set_module("pandas.api.executors")
 class BaseExecutionEngine(abc.ABC):
     """
     Base class for execution engines for map and apply methods.
@@ -637,6 +641,7 @@ class Apply(metaclass=abc.ABCMeta):
                 results,
                 axis=axis,
                 keys=keys_to_use,
+                sort=False,
             )
         elif any(is_ndframe):
             # There is a mix of NDFrames and scalars
@@ -1743,7 +1748,13 @@ def reconstruct_func(
     >>> reconstruct_func("min")
     (False, 'min', None, None)
     """
-    relabeling = func is None and is_multi_agg_with_relabel(**kwargs)
+    from pandas.core.groupby.generic import NamedAgg
+
+    relabeling = func is None and (
+        is_multi_agg_with_relabel(**kwargs)
+        or any(isinstance(v, NamedAgg) for v in kwargs.values())
+    )
+
     columns: tuple[str, ...] | None = None
     order: npt.NDArray[np.intp] | None = None
 
@@ -1764,9 +1775,22 @@ def reconstruct_func(
         # "Callable[..., Any] | str | list[Callable[..., Any] | str] |
         # MutableMapping[Hashable, Callable[..., Any] | str | list[Callable[..., Any] |
         # str]] | None")
+        converted_kwargs = {}
+        for key, val in kwargs.items():
+            if isinstance(val, NamedAgg):
+                aggfunc = val.aggfunc
+                if val.args or val.kwargs:
+                    aggfunc = lambda x, func=aggfunc, a=val.args, kw=val.kwargs: func(
+                        x, *a, **kw
+                    )
+                converted_kwargs[key] = (val.column, aggfunc)
+            else:
+                converted_kwargs[key] = val
+
         func, columns, order = normalize_keyword_aggregation(  # type: ignore[assignment]
-            kwargs
+            converted_kwargs
         )
+
     assert func is not None
 
     return relabeling, func, columns, order
@@ -1948,7 +1972,7 @@ def relabel_result(
             fun = [
                 com.get_callable_name(f) if not isinstance(f, str) else f for f in fun
             ]
-            col_idx_order = Index(s.index).get_indexer(fun)
+            col_idx_order = Index(s.index, copy=False).get_indexer(fun)
             valid_idx = col_idx_order != -1
             if valid_idx.any():
                 s = s.iloc[col_idx_order[valid_idx]]

@@ -63,6 +63,7 @@ class FloatingDtype(NumericDtype):
         return values.astype(dtype, copy=copy)
 
 
+@set_module("pandas.arrays")
 class FloatingArray(NumericArray):
     """
     Array of floating (optional missing) values.
@@ -78,7 +79,7 @@ class FloatingArray(NumericArray):
     - data: contains a numpy float array of the appropriate dtype
     - mask: a boolean array holding a mask on the data, True is missing
 
-    To construct an FloatingArray from generic array-like input, use
+    To construct a FloatingArray from generic array-like input, use
     :func:`pandas.array` with one of the float dtypes (see examples).
 
     See :ref:`integer_na` for more.
@@ -114,7 +115,7 @@ class FloatingArray(NumericArray):
 
     Examples
     --------
-    Create an FloatingArray with :func:`pandas.array`:
+    Create a FloatingArray with :func:`pandas.array`:
 
     >>> pd.array([0.1, None, 0.3], dtype=pd.Float32Dtype())
     <FloatingArray>

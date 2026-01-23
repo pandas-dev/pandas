@@ -115,7 +115,7 @@ class TestFrameComparisons:
             [
                 {
                     "a": np.random.default_rng(2).integers(10, size=10),
-                    "b": pd.date_range("20010101", periods=10),
+                    "b": pd.date_range("20010101", periods=10, unit="ns"),
                 },
                 {
                     "a": np.random.default_rng(2).integers(10, size=10),
@@ -129,13 +129,13 @@ class TestFrameComparisons:
                 },
                 {
                     "a": np.random.default_rng(2).integers(10, size=10),
-                    "b": pd.date_range("20010101", periods=10),
+                    "b": pd.date_range("20010101", periods=10, unit="ns"),
                 },
             ],
             [
                 {
-                    "a": pd.date_range("20010101", periods=10),
-                    "b": pd.date_range("20010101", periods=10),
+                    "a": pd.date_range("20010101", periods=10, unit="ns"),
+                    "b": pd.date_range("20010101", periods=10, unit="ns"),
                 },
                 {
                     "a": np.random.default_rng(2).integers(10, size=10),
@@ -145,11 +145,11 @@ class TestFrameComparisons:
             [
                 {
                     "a": np.random.default_rng(2).integers(10, size=10),
-                    "b": pd.date_range("20010101", periods=10),
+                    "b": pd.date_range("20010101", periods=10, unit="ns"),
                 },
                 {
-                    "a": pd.date_range("20010101", periods=10),
-                    "b": pd.date_range("20010101", periods=10),
+                    "a": pd.date_range("20010101", periods=10, unit="ns"),
+                    "b": pd.date_range("20010101", periods=10, unit="ns"),
                 },
             ],
         ],
@@ -307,7 +307,7 @@ class TestFrameFlexComparisons:
         other_data = np.random.default_rng(2).standard_normal((5, 3))
         df = DataFrame(data)
         other = DataFrame(other_data)
-        ndim_5 = np.ones(df.shape + (1, 3))
+        ndim_5 = np.ones((*df.shape, 1, 3))
 
         # DataFrame
         assert df.eq(df).values.all()
@@ -444,7 +444,7 @@ class TestFrameFlexComparisons:
         df = DataFrame([pd.NaT])
 
         result = df == pd.NaT
-        # result.iloc[0, 0] is a np.bool_ object
+        # result.iloc[0, 0] is an np.bool_ object
         assert result.iloc[0, 0].item() is False
 
         result = df.eq(pd.NaT)
@@ -1559,7 +1559,7 @@ class TestFrameArithmeticUnsorted:
         df2 = df1.copy()
 
         row = simple_frame.xs("a")
-        ndim_5 = np.ones(df1.shape + (1, 1, 1))
+        ndim_5 = np.ones((*df1.shape, 1, 1, 1))
 
         result = func(df1, df2)
         tm.assert_numpy_array_equal(result.values, func(df1.values, df2.values))

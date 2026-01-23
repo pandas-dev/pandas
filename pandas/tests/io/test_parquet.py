@@ -138,7 +138,7 @@ def df_full():
             "float": np.arange(4.0, 7.0, dtype="float64"),
             "float_with_nan": [2.0, np.nan, 3.0],
             "bool": [True, False, True],
-            "datetime": pd.date_range("20130101", periods=3),
+            "datetime": pd.date_range("20130101", periods=3, unit="ns"),
             "datetime_with_nat": [
                 pd.Timestamp("20130101"),
                 pd.NaT,
@@ -443,7 +443,7 @@ class TestBasic(Base):
 
         indexes = [
             [2, 3, 4],
-            pd.date_range("20130101", periods=3),
+            pd.date_range("20130101", periods=3, unit="ns"),
             list("abc"),
             [1, 3, 4],
         ]
@@ -470,7 +470,7 @@ class TestBasic(Base):
 
     def test_multiindex_with_columns(self, pa, temp_file):
         engine = pa
-        dates = pd.date_range("01-Jan-2018", "01-Dec-2018", freq="MS")
+        dates = pd.date_range("01-Jan-2018", "01-Dec-2018", freq="MS", unit="ns")
         df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((2 * len(dates), 3)),
             columns=list("ABC"),
@@ -709,7 +709,6 @@ class TestBasic(Base):
 
 
 class TestParquetPyArrow(Base):
-    @pytest.mark.xfail(reason="datetime_with_nat unit doesn't round-trip")
     def test_basic(self, pa, df_full, temp_file):
         df = df_full
         pytest.importorskip("pyarrow", "11.0.0")
@@ -747,7 +746,7 @@ class TestParquetPyArrow(Base):
 
         expected = df_full.copy()
         expected.loc[1, "string_with_nan"] = None
-        expected["datetime_with_nat"] = expected["datetime_with_nat"].astype("M8[ms]")
+        expected["datetime_with_nat"] = expected["datetime_with_nat"].astype("M8[us]")
         tm.assert_frame_equal(res, expected)
 
     def test_duplicate_columns(self, pa, temp_file):
@@ -1052,7 +1051,7 @@ class TestParquetPyArrow(Base):
         df = df_full
 
         # additional supported types for pyarrow
-        dti = pd.date_range("20130101", periods=3, tz="Europe/Brussels")
+        dti = pd.date_range("20130101", periods=3, tz="Europe/Brussels", unit="ns")
         dti = dti._with_freq(None)  # freq doesn't round-trip
         df["datetime_tz"] = dti
         df["bool_with_none"] = [True, None, True]
@@ -1060,7 +1059,7 @@ class TestParquetPyArrow(Base):
         pa_table = pyarrow.Table.from_pandas(df)
         expected = pa_table.to_pandas(types_mapper=pd.ArrowDtype)
         expected["datetime_with_nat"] = expected["datetime_with_nat"].astype(
-            "timestamp[ms][pyarrow]"
+            "timestamp[us][pyarrow]"
         )
 
         check_round_trip(
@@ -1121,21 +1120,19 @@ class TestParquetPyArrow(Base):
         df = pd.DataFrame(index=pd.Index(["a", "b", "c"], name="custom name"))
         check_round_trip(df, temp_file, pa)
 
-    def test_df_attrs_persistence(self, tmp_path, pa):
-        path = tmp_path / "test_df_metadata.p"
+    def test_df_attrs_persistence(self, temp_file, pa):
         df = pd.DataFrame(data={1: [1]})
         df.attrs = {"test_attribute": 1}
-        df.to_parquet(path, engine=pa)
-        new_df = read_parquet(path, engine=pa)
+        df.to_parquet(temp_file, engine=pa)
+        new_df = read_parquet(temp_file, engine=pa)
         assert new_df.attrs == df.attrs
 
-    def test_string_inference(self, tmp_path, pa, using_infer_string):
+    def test_string_inference(self, temp_file, pa, using_infer_string):
         # GH#54431
-        path = tmp_path / "test_string_inference.p"
         df = pd.DataFrame(data={"a": ["x", "y"]}, index=["a", "b"])
-        df.to_parquet(path, engine=pa)
+        df.to_parquet(temp_file, engine=pa)
         with pd.option_context("future.infer_string", True):
-            result = read_parquet(path, engine=pa)
+            result = read_parquet(temp_file, engine=pa)
         dtype = pd.StringDtype(na_value=np.nan)
         expected = pd.DataFrame(
             data={"a": ["x", "y"]},
@@ -1150,32 +1147,29 @@ class TestParquetPyArrow(Base):
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_roundtrip_decimal(self, tmp_path, pa):
+    def test_roundtrip_decimal(self, temp_file, pa):
         # GH#54768
         import pyarrow as pa
 
-        path = tmp_path / "decimal.p"
         df = pd.DataFrame({"a": [Decimal("123.00")]}, dtype="string[pyarrow]")
-        df.to_parquet(path, schema=pa.schema([("a", pa.decimal128(5))]))
-        result = read_parquet(path)
+        df.to_parquet(temp_file, schema=pa.schema([("a", pa.decimal128(5))]))
+        result = read_parquet(temp_file)
         if pa_version_under19p0:
             expected = pd.DataFrame({"a": ["123"]}, dtype="string")
         else:
             expected = pd.DataFrame({"a": [Decimal("123.00")]}, dtype="object")
         tm.assert_frame_equal(result, expected)
 
-    def test_infer_string_large_string_type(self, tmp_path, pa):
+    def test_infer_string_large_string_type(self, temp_file, pa):
         # GH#54798
         import pyarrow as pa
         import pyarrow.parquet as pq
 
-        path = tmp_path / "large_string.p"
-
         table = pa.table({"a": pa.array([None, "b", "c"], pa.large_string())})
-        pq.write_table(table, path)
+        pq.write_table(table, temp_file)
 
         with pd.option_context("future.infer_string", True):
-            result = read_parquet(path)
+            result = read_parquet(temp_file)
         expected = pd.DataFrame(
             data={"a": [None, "b", "c"]},
             dtype=pd.StringDtype(na_value=np.nan),

@@ -257,7 +257,7 @@ class TestAstype:
         assert ser.dtype == np.object_
 
     def test_astype_datetime64tz(self):
-        ser = Series(date_range("20130101", periods=3, tz="US/Eastern"))
+        ser = Series(date_range("20130101", periods=3, tz="US/Eastern", unit="ns"))
 
         # astype
         result = ser.astype(object)
@@ -283,7 +283,9 @@ class TestAstype:
             Series(ser.values).astype(ser.dtype)
 
         result = ser.astype("datetime64[ns, CET]")
-        expected = Series(date_range("20130101 06:00:00", periods=3, tz="CET"))
+        expected = Series(
+            date_range("20130101 06:00:00", periods=3, tz="CET", unit="ns")
+        )
         tm.assert_series_equal(result, expected)
 
     def test_astype_str_cast_dt64(self):
@@ -508,7 +510,7 @@ class TestAstypeString:
             ([1, None], "UInt16"),
             (["1/1/2021", "2/1/2021"], "period[M]"),
             (["1/1/2021", "2/1/2021", NaT], "period[M]"),
-            (["1 Day", "59 Days", NaT], "timedelta64[ns]"),
+            (["1 Day", "59 Days", NaT], "timedelta64[us]"),
             # currently no way to parse IntervalArray from a list of strings
         ],
     )
@@ -579,10 +581,7 @@ class TestAstypeCategorical:
         ser = Series(np.random.default_rng(2).integers(0, 10000, 100)).sort_values()
         ser = cut(ser, range(0, 10500, 500), right=False, labels=cat)
 
-        msg = (
-            "dtype '<class 'pandas.core.arrays.categorical.Categorical'>' "
-            "not understood"
-        )
+        msg = "dtype '<class 'pandas.Categorical'>' not understood"
         with pytest.raises(TypeError, match=msg):
             ser.astype(Categorical)
         with pytest.raises(TypeError, match=msg):

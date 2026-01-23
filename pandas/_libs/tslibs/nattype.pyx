@@ -372,7 +372,7 @@ class NaTType(_NaT):
     1         NaT
     """
 
-    __module__ = "pandas"
+    __module__ = "pandas.api.typing"
 
     def __new__(cls):
         cdef _NaT base
@@ -1168,7 +1168,7 @@ class NaTType(_NaT):
     fromordinal = _make_error_func(
         "fromordinal",
         """
-        Construct a timestamp from a a proleptic Gregorian ordinal.
+        Construct a timestamp from a proleptic Gregorian ordinal.
 
         This method creates a `Timestamp` object corresponding to the given
         proleptic Gregorian ordinal, which is a count of days from January 1,
@@ -1260,7 +1260,9 @@ class NaTType(_NaT):
         Return new Timestamp object representing current time local to tz.
 
         This method returns a new `Timestamp` object that represents the current time.
-        If a timezone is provided, the current time will be localized to that timezone.
+        If a timezone is provided, either through a timezone object or an IANA
+        standard timezone identifier, the current time will be localized to that
+        timezone.
         Otherwise, it returns the current local time.
 
         Parameters
@@ -1278,6 +1280,11 @@ class NaTType(_NaT):
         --------
         >>> pd.Timestamp.now()  # doctest: +SKIP
         Timestamp('2020-11-16 22:06:16.378782')
+
+        If you want a specific timezone, in this case 'Brazil/East':
+
+        >>> pd.Timestamp.now('Brazil/East')  # doctest: +SKIP
+        Timestamp('2025-11-11 22:17:59.609943-03:00)
 
         Analogous for ``pd.NaT``:
 
@@ -1871,6 +1878,7 @@ default 'raise'
 
 c_NaT = NaTType()  # C-visible
 NaT = c_NaT        # Python-visible
+NaT.__module__ = "pandas"
 
 
 # ----------------------------------------------------------------------
@@ -1884,7 +1892,7 @@ cdef bint checknull_with_nat(object val):
 
 cdef bint is_dt64nat(object val):
     """
-    Is this a np.datetime64 object np.datetime64("NaT").
+    Is this an np.datetime64 object np.datetime64("NaT").
     """
     if cnp.is_datetime64_object(val):
         return cnp.get_datetime64_value(val) == NPY_NAT
@@ -1893,7 +1901,7 @@ cdef bint is_dt64nat(object val):
 
 cdef bint is_td64nat(object val):
     """
-    Is this a np.timedelta64 object np.timedelta64("NaT").
+    Is this an np.timedelta64 object np.timedelta64("NaT").
     """
     if cnp.is_timedelta64_object(val):
         return cnp.get_timedelta64_value(val) == NPY_NAT

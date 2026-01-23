@@ -105,7 +105,7 @@ def test_series_groupby_value_counts(
 
     gr = df.groupby(keys, sort=isort)
     right = gr["3rd"].apply(Series.value_counts, **kwargs)
-    right.index.names = right.index.names[:-1] + ["3rd"]
+    right.index.names = [*right.index.names[:-1], "3rd"]
     # https://github.com/pandas-dev/pandas/issues/49909
     right = right.rename(name)
 
@@ -347,6 +347,10 @@ def test_against_frame_and_seriesgroupby(
             index_frame = expected.index.to_frame(index=False)
             index_frame["gender"] = index_frame["both"].str.split("-").str.get(0)
             index_frame["education"] = index_frame["both"].str.split("-").str.get(1)
+            both_dtype = index_frame["both"].dtype
+            index_frame = index_frame.astype(
+                {"gender": both_dtype, "education": both_dtype}
+            )
             del index_frame["both"]
             index_frame2 = index_frame.rename({0: None}, axis=1)
             expected.index = MultiIndex.from_frame(index_frame2)
@@ -355,7 +359,7 @@ def test_against_frame_and_seriesgroupby(
                 # with using_infer_string, the columns in index_frame as string
                 #  dtype, which makes the rename({0: None}) above use np.nan
                 #  instead of None, so we need to set None more explicitly.
-                expected.index.names = [None] + expected.index.names[1:]
+                expected.index.names = [None, *expected.index.names[1:]]
             tm.assert_series_equal(result, expected)
         else:
             expected.insert(1, "gender", expected["both"].str.split("-").str.get(0))
@@ -1002,7 +1006,7 @@ def test_mixed_groupings(normalize, expected_label, expected_values):
     "test, columns, expected_names",
     [
         ("repeat", list("abbde"), ["a", None, "d", "b", "b", "e"]),
-        ("level", list("abcd") + ["level_1"], ["a", None, "d", "b", "c", "level_1"]),
+        ("level", [*list("abcd"), "level_1"], ["a", None, "d", "b", "c", "level_1"]),
     ],
 )
 def test_column_label_duplicates(test, columns, expected_names, as_index):
@@ -1023,7 +1027,7 @@ def test_column_label_duplicates(test, columns, expected_names, as_index):
         )
         tm.assert_series_equal(result, expected)
     else:
-        expected_data = [list(row) + [1] for row in expected_data]
+        expected_data = [[*list(row), 1] for row in expected_data]
         expected_columns = list(expected_names)
         expected_columns[1] = "level_1"
         expected_columns.append("count")

@@ -129,7 +129,7 @@ class TestConfig:
 
         cf.deprecate_option("KanBan", category)
         msg = "'kanban' is deprecated, please refrain from using it."
-        with pytest.raises(category, match=msg):
+        with tm.assert_produces_warning(category, match=msg):
             cf.get_option("kAnBaN")
 
     def test_get_option(self):
@@ -491,3 +491,9 @@ def test_no_silent_downcasting_deprecated():
         cf.get_option("future.no_silent_downcasting")
     with tm.assert_produces_warning(Pandas4Warning, match="is deprecated"):
         cf.set_option("future.no_silent_downcasting", True)
+
+
+def test_option_context_invalid_option():
+    with pytest.raises(OptionError, match="No such keys"):
+        with cf.option_context("invalid", True):
+            pass

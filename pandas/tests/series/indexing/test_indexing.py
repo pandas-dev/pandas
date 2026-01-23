@@ -253,17 +253,17 @@ def test_timedelta_assignment():
     # GH 8209
     s = Series([], dtype=object)
     s.loc["B"] = timedelta(1)
-    expected = Series(Timedelta("1 days"), dtype="timedelta64[ns]", index=["B"])
+    expected = Series(Timedelta("1 days"), dtype="timedelta64[us]", index=["B"])
     tm.assert_series_equal(s, expected)
 
     s = s.reindex(s.index.insert(0, "A"))
     expected = Series(
-        [np.nan, Timedelta("1 days")], dtype="timedelta64[ns]", index=["A", "B"]
+        [np.nan, Timedelta("1 days")], dtype="timedelta64[us]", index=["A", "B"]
     )
     tm.assert_series_equal(s, expected)
 
     s.loc["A"] = timedelta(1)
-    expected = Series(Timedelta("1 days"), dtype="timedelta64[ns]", index=["A", "B"])
+    expected = Series(Timedelta("1 days"), dtype="timedelta64[us]", index=["A", "B"])
     tm.assert_series_equal(s, expected)
 
 
@@ -404,6 +404,13 @@ def test_setitem_empty_indexer(indexer, val):
     tm.assert_frame_equal(df, expected)
 
 
+def test_loc_non_monotonic_index_with_a_missing_label():
+    msg = "Cannot get left slice bound for non-monotonic index with a missing label 4"
+    ser = Series([3, 6, 7, 6], index=[3, 8, 7, 6])
+    with pytest.raises(KeyError, match=msg):
+        ser.loc[4:7]
+
+
 class TestDeprecatedIndexers:
     @pytest.mark.parametrize("key", [{1}, {1: 1}])
     def test_getitem_dict_and_set_deprecated(self, key):
@@ -480,14 +487,14 @@ class TestSetitemValidation:
     _indexers = [0, [0], slice(0, 1), [True, False, False], slice(None, None, None)]
 
     @pytest.mark.parametrize(
-        "invalid", _invalid_scalars + [1, 1.0, np.int64(1), np.float64(1)]
+        "invalid", [*_invalid_scalars, 1, 1.0, np.int64(1), np.float64(1)]
     )
     @pytest.mark.parametrize("indexer", _indexers)
     def test_setitem_validation_scalar_bool(self, invalid, indexer):
         ser = Series([True, False, False], dtype="bool")
         self._check_setitem_invalid(ser, invalid, indexer)
 
-    @pytest.mark.parametrize("invalid", _invalid_scalars + [True, 1.5, np.float64(1.5)])
+    @pytest.mark.parametrize("invalid", [*_invalid_scalars, True, 1.5, np.float64(1.5)])
     @pytest.mark.parametrize("indexer", _indexers)
     def test_setitem_validation_scalar_int(self, invalid, any_int_numpy_dtype, indexer):
         ser = Series([1, 2, 3], dtype=any_int_numpy_dtype)
@@ -496,7 +503,7 @@ class TestSetitemValidation:
         else:
             self._check_setitem_invalid(ser, invalid, indexer)
 
-    @pytest.mark.parametrize("invalid", _invalid_scalars + [True])
+    @pytest.mark.parametrize("invalid", [*_invalid_scalars, True])
     @pytest.mark.parametrize("indexer", _indexers)
     def test_setitem_validation_scalar_float(self, invalid, float_numpy_dtype, indexer):
         ser = Series([1, 2, None], dtype=float_numpy_dtype)

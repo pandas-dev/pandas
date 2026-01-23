@@ -50,6 +50,7 @@ PRIVATE_IMPORTS_TO_IGNORE: set[str] = {
     "_global_config",
     "_chained_assignment_msg",
     "_chained_assignment_method_msg",
+    "_chained_assignment_method_update_msg",
     "_version_meson",
     # The numba extensions need this to mock the iloc object
     "_iLocIndexer",
@@ -59,6 +60,7 @@ PRIVATE_IMPORTS_TO_IGNORE: set[str] = {
     "_make_block",
     "_DatetimeTZBlock",
     "_check_pyarrow_available",
+    "_parser",  # https://github.com/pandas-dev/pandas/issues/60833
 }
 
 
@@ -266,7 +268,9 @@ def strings_with_wrong_placed_whitespace(
 
     tokens: list = list(tokenize.generate_tokens(file_obj.readline))
 
-    for first_token, second_token, third_token in zip(tokens, tokens[1:], tokens[2:]):
+    for first_token, second_token, third_token in zip(
+        tokens, tokens[1:], tokens[2:], strict=False
+    ):
         # Checking if we are in a block of concated string
         if (
             first_token.type == third_token.type == token.STRING
