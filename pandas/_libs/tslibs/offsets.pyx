@@ -5541,6 +5541,42 @@ cdef class FY5253Quarter(FY5253Mixin):
         return ret
 
     def year_has_extra_week(self, dt: datetime) -> bool:
+        """
+        Return whether the fiscal year containing the given date has 53 weeks.
+
+        In a 52-53 week fiscal year, most years have 52 weeks (4 quarters of
+        13 weeks each), but occasionally a year will have 53 weeks. When this
+        occurs, one quarter will have 14 weeks instead of the standard 13 weeks.
+        This method determines whether the fiscal year containing the given date
+        is a 53-week year.
+
+        Parameters
+        ----------
+        dt : datetime
+            The date to check, which falls within some fiscal year.
+
+        Returns
+        -------
+        bool
+            True if the fiscal year containing `dt` has 53 weeks, False if it
+            has 52 weeks.
+
+        See Also
+        --------
+        FY5253Quarter.get_weeks : Get the number of weeks in each quarter.
+        FY5253Quarter.qtr_with_extra_week : Get the quarter number that receives
+            the extra week in 53-week years.
+
+        Examples
+        --------
+        >>> offset = pd.offsets.FY5253Quarter(
+        ...     weekday=5, startingMonth=12, qtr_with_extra_week=1
+        ... )
+        >>> offset.year_has_extra_week(pd.Timestamp("2011-04-02"))
+        True
+        >>> offset.year_has_extra_week(pd.Timestamp("2010-04-02"))
+        False
+        """
         # Avoid round-down errors --> normalize to get
         # e.g. '370D' instead of '360D23H'
         norm = Timestamp(dt).normalize().tz_localize(None)
