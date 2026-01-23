@@ -66,7 +66,6 @@ from pandas.errors.cow import (
     _chained_assignment_msg,
 )
 from pandas.util._decorators import (
-    Appender,
     Substitution,
     deprecate_nonkeyword_arguments,
     set_module,
@@ -263,249 +262,6 @@ if TYPE_CHECKING:
     from pandas.core.internals.managers import SingleBlockManager
 
     from pandas.io.formats.style import Styler
-
-# ---------------------------------------------------------------------
-# Docstring templates
-
-_shared_doc_kwargs = {
-    "axes": "index, columns",
-    "klass": "DataFrame",
-    "axes_single_arg": "{0 or 'index', 1 or 'columns'}",
-    "axis": """axis : {0 or 'index', 1 or 'columns'}, default 0
-        If 0 or 'index': apply function to each column.
-        If 1 or 'columns': apply function to each row.""",
-    "inplace": """
-    inplace : bool, default False
-        Whether to modify the DataFrame rather than creating a new one.""",
-    "optional_by": """
-by : str or list of str
-    Name or list of names to sort by.
-
-    - if `axis` is 0 or `'index'` then `by` may contain index
-      levels and/or column labels.
-    - if `axis` is 1 or `'columns'` then `by` may contain column
-      levels and/or index labels.""",
-    "optional_reindex": """
-labels : array-like, optional
-    New labels / index to conform the axis specified by 'axis' to.
-index : array-like, optional
-    New labels for the index. Preferably an Index object to avoid
-    duplicating data.
-columns : array-like, optional
-    New labels for the columns. Preferably an Index object to avoid
-    duplicating data.
-axis : int or str, optional
-    Axis to target. Can be either the axis name ('index', 'columns')
-    or number (0, 1).""",
-}
-
-_merge_doc = """
-Merge DataFrame or named Series objects with a database-style join.
-
-A named Series object is treated as a DataFrame with a single named column.
-
-The join is done on columns or indexes. If joining columns on
-columns, the DataFrame indexes *will be ignored*. Otherwise if joining indexes
-on indexes or indexes on a column or columns, the index will be passed on.
-When performing a cross merge, no column specifications to merge on are
-allowed.
-
-.. warning::
-
-    If both key columns contain rows where the key is a null value, those
-    rows will be matched against each other. This is different from usual SQL
-    join behaviour and can lead to unexpected results.
-
-Parameters
-----------%s
-right : DataFrame or named Series
-    Object to merge with.
-how : {'left', 'right', 'outer', 'inner', 'cross', 'left_anti', 'right_anti'},
-    default 'inner'
-    Type of merge to be performed.
-
-    * left: use only keys from left frame, similar to a SQL left outer join;
-      preserve key order.
-    * right: use only keys from right frame, similar to a SQL right outer join;
-      preserve key order.
-    * outer: use union of keys from both frames, similar to a SQL full outer
-      join; sort keys lexicographically.
-    * inner: use intersection of keys from both frames, similar to a SQL inner
-      join; preserve the order of the left keys.
-    * cross: creates the cartesian product from both frames, preserves the order
-      of the left keys.
-    * left_anti: use only keys from left frame that are not in right frame, similar
-      to SQL left anti join; preserve key order.
-
-      .. versionadded:: 3.0
-    * right_anti: use only keys from right frame that are not in left frame, similar
-      to SQL right anti join; preserve key order.
-
-      .. versionadded:: 3.0
-on : Hashable or a sequence of the previous
-    Column or index level names to join on. These must be found in both
-    DataFrames. If `on` is None and not merging on indexes then this defaults
-    to the intersection of the columns in both DataFrames.
-left_on : Hashable or a sequence of the previous, or array-like
-    Column or index level names to join on in the left DataFrame. Can also
-    be an array or list of arrays of the length of the left DataFrame.
-    These arrays are treated as if they are columns.
-right_on : Hashable or a sequence of the previous, or array-like
-    Column or index level names to join on in the right DataFrame. Can also
-    be an array or list of arrays of the length of the right DataFrame.
-    These arrays are treated as if they are columns.
-left_index : bool, default False
-    Use the index from the left DataFrame as the join key(s). If it is a
-    MultiIndex, the number of keys in the other DataFrame (either the index
-    or a number of columns) must match the number of levels.
-right_index : bool, default False
-    Use the index from the right DataFrame as the join key. Same caveats as
-    left_index.
-sort : bool, default False
-    Sort the join keys lexicographically in the result DataFrame. If False,
-    the order of the join keys depends on the join type (how keyword).
-suffixes : list-like, default is ("_x", "_y")
-    A length-2 sequence where each element is optionally a string
-    indicating the suffix to add to overlapping column names in
-    `left` and `right` respectively. Pass a value of `None` instead
-    of a string to indicate that the column name from `left` or
-    `right` should be left as-is, with no suffix. At least one of the
-    values must not be None.
-copy : bool, default False
-    This keyword is now ignored; changing its value will have no
-    impact on the method.
-
-    .. deprecated:: 3.0.0
-
-        This keyword is ignored and will be removed in pandas 4.0. Since
-        pandas 3.0, this method always returns a new object using a lazy
-        copy mechanism that defers copies until necessary
-        (Copy-on-Write). See the `user guide on Copy-on-Write
-        <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
-        for more details.
-
-indicator : bool or str, default False
-    If True, adds a column to the output DataFrame called "_merge" with
-    information on the source of each row. The column can be given a different
-    name by providing a string argument. The column will have a Categorical
-    type with the value of "left_only" for observations whose merge key only
-    appears in the left DataFrame, "right_only" for observations
-    whose merge key only appears in the right DataFrame, and "both"
-    if the observation's merge key is found in both DataFrames.
-
-validate : str, optional
-    If specified, checks if merge is of specified type.
-
-    * "one_to_one" or "1:1": check if merge keys are unique in both
-      left and right datasets.
-    * "one_to_many" or "1:m": check if merge keys are unique in left
-      dataset.
-    * "many_to_one" or "m:1": check if merge keys are unique in right
-      dataset.
-    * "many_to_many" or "m:m": allowed, but does not result in checks.
-
-Returns
--------
-DataFrame
-    A DataFrame of the two merged objects.
-
-See Also
---------
-merge_ordered : Merge with optional filling/interpolation.
-merge_asof : Merge on nearest keys.
-DataFrame.join : Similar method using indices.
-
-Examples
---------
->>> df1 = pd.DataFrame({'lkey': ['foo', 'bar', 'baz', 'foo'],
-...                     'value': [1, 2, 3, 5]})
->>> df2 = pd.DataFrame({'rkey': ['foo', 'bar', 'baz', 'foo'],
-...                     'value': [5, 6, 7, 8]})
->>> df1
-    lkey value
-0   foo      1
-1   bar      2
-2   baz      3
-3   foo      5
->>> df2
-    rkey value
-0   foo      5
-1   bar      6
-2   baz      7
-3   foo      8
-
-Merge df1 and df2 on the lkey and rkey columns. The value columns have
-the default suffixes, _x and _y, appended.
-
->>> df1.merge(df2, left_on='lkey', right_on='rkey')
-  lkey  value_x rkey  value_y
-0  foo        1  foo        5
-1  foo        1  foo        8
-2  bar        2  bar        6
-3  baz        3  baz        7
-4  foo        5  foo        5
-5  foo        5  foo        8
-
-Merge DataFrames df1 and df2 with specified left and right suffixes
-appended to any overlapping columns.
-
->>> df1.merge(df2, left_on='lkey', right_on='rkey',
-...           suffixes=('_left', '_right'))
-  lkey  value_left rkey  value_right
-0  foo           1  foo            5
-1  foo           1  foo            8
-2  bar           2  bar            6
-3  baz           3  baz            7
-4  foo           5  foo            5
-5  foo           5  foo            8
-
-Merge DataFrames df1 and df2, but raise an exception if the DataFrames have
-any overlapping columns.
-
->>> df1.merge(df2, left_on='lkey', right_on='rkey', suffixes=(False, False))
-Traceback (most recent call last):
-...
-ValueError: columns overlap but no suffix specified:
-    Index(['value'], dtype='object')
-
->>> df1 = pd.DataFrame({'a': ['foo', 'bar'], 'b': [1, 2]})
->>> df2 = pd.DataFrame({'a': ['foo', 'baz'], 'c': [3, 4]})
->>> df1
-      a  b
-0   foo  1
-1   bar  2
->>> df2
-      a  c
-0   foo  3
-1   baz  4
-
->>> df1.merge(df2, how='inner', on='a')
-      a  b  c
-0   foo  1  3
-
->>> df1.merge(df2, how='left', on='a')
-      a  b  c
-0   foo  1  3.0
-1   bar  2  NaN
-
->>> df1 = pd.DataFrame({'left': ['foo', 'bar']})
->>> df2 = pd.DataFrame({'right': [7, 8]})
->>> df1
-    left
-0   foo
-1   bar
->>> df2
-    right
-0   7
-1   8
-
->>> df1.merge(df2, how='cross')
-   left  right
-0   foo      7
-1   foo      8
-2   bar      7
-3   bar      8
-"""
 
 
 # -----------------------------------------------------------------------
@@ -12756,7 +12512,10 @@ class DataFrame(NDFrame, OpsMixin):
             dropna=dropna,
         )
 
-    _shared_docs["pivot"] = """
+    def pivot(
+        self, *, columns, index=lib.no_default, values=lib.no_default
+    ) -> DataFrame:
+        """
         Return reshaped DataFrame organized by given index / column values.
 
         Reshape data (produce a "pivot" table) based on column values. Uses
@@ -12766,7 +12525,7 @@ class DataFrame(NDFrame, OpsMixin):
         columns. See the :ref:`User Guide <reshaping>` for more on reshaping.
 
         Parameters
-        ----------%s
+        ----------
         columns : Hashable or a sequence of the previous
             Column to use to make new frame's columns.
         index : Hashable or a sequence of the previous, optional
@@ -12805,11 +12564,14 @@ class DataFrame(NDFrame, OpsMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame({'foo': ['one', 'one', 'one', 'two', 'two',
-        ...                            'two'],
-        ...                    'bar': ['A', 'B', 'C', 'A', 'B', 'C'],
-        ...                    'baz': [1, 2, 3, 4, 5, 6],
-        ...                    'zoo': ['x', 'y', 'z', 'q', 'w', 't']})
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "foo": ["one", "one", "one", "two", "two", "two"],
+        ...         "bar": ["A", "B", "C", "A", "B", "C"],
+        ...         "baz": [1, 2, 3, 4, 5, 6],
+        ...         "zoo": ["x", "y", "z", "q", "w", "t"],
+        ...     }
+        ... )
         >>> df
             foo   bar  baz  zoo
         0   one   A    1    x
@@ -12819,19 +12581,19 @@ class DataFrame(NDFrame, OpsMixin):
         4   two   B    5    w
         5   two   C    6    t
 
-        >>> df.pivot(index='foo', columns='bar', values='baz')
+        >>> df.pivot(index="foo", columns="bar", values="baz")
         bar  A   B   C
         foo
         one  1   2   3
         two  4   5   6
 
-        >>> df.pivot(index='foo', columns='bar')['baz']
+        >>> df.pivot(index="foo", columns="bar")["baz"]
         bar  A   B   C
         foo
         one  1   2   3
         two  4   5   6
 
-        >>> df.pivot(index='foo', columns='bar', values=['baz', 'zoo'])
+        >>> df.pivot(index="foo", columns="bar", values=["baz", "zoo"])
               baz       zoo
         bar   A  B  C   A  B  C
         foo
@@ -12840,12 +12602,15 @@ class DataFrame(NDFrame, OpsMixin):
 
         You could also assign a list of column names or a list of index names.
 
-        >>> df = pd.DataFrame({
-        ...                   "lev1": [1, 1, 1, 2, 2, 2],
-        ...                   "lev2": [1, 1, 2, 1, 1, 2],
-        ...                   "lev3": [1, 2, 1, 2, 1, 2],
-        ...                   "lev4": [1, 2, 3, 4, 5, 6],
-        ...                   "values": [0, 1, 2, 3, 4, 5]})
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "lev1": [1, 1, 1, 2, 2, 2],
+        ...         "lev2": [1, 1, 2, 1, 1, 2],
+        ...         "lev3": [1, 2, 1, 2, 1, 2],
+        ...         "lev4": [1, 2, 3, 4, 5, 6],
+        ...         "values": [0, 1, 2, 3, 4, 5],
+        ...     }
+        ... )
         >>> df
             lev1 lev2 lev3 lev4 values
         0   1    1    1    1    0
@@ -12872,9 +12637,13 @@ class DataFrame(NDFrame, OpsMixin):
 
         A ValueError is raised if there are any duplicates.
 
-        >>> df = pd.DataFrame({"foo": ['one', 'one', 'two', 'two'],
-        ...                    "bar": ['A', 'A', 'B', 'C'],
-        ...                    "baz": [1, 2, 3, 4]})
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "foo": ["one", "one", "two", "two"],
+        ...         "bar": ["A", "A", "B", "C"],
+        ...         "baz": [1, 2, 3, 4],
+        ...     }
+        ... )
         >>> df
            foo bar  baz
         0  one   A    1
@@ -12885,29 +12654,37 @@ class DataFrame(NDFrame, OpsMixin):
         Notice that the first two rows are the same for our `index`
         and `columns` arguments.
 
-        >>> df.pivot(index='foo', columns='bar', values='baz')
+        >>> df.pivot(index="foo", columns="bar", values="baz")
         Traceback (most recent call last):
            ...
         ValueError: Index contains duplicate entries, cannot reshape
         """
-
-    @Substitution("")
-    @Appender(_shared_docs["pivot"])
-    def pivot(
-        self, *, columns, index=lib.no_default, values=lib.no_default
-    ) -> DataFrame:
         from pandas.core.reshape.pivot import pivot
 
         return pivot(self, index=index, columns=columns, values=values)
 
-    _shared_docs["pivot_table"] = """
+    def pivot_table(
+        self,
+        values=None,
+        index=None,
+        columns=None,
+        aggfunc: AggFuncType = "mean",
+        fill_value=None,
+        margins: bool = False,
+        dropna: bool = True,
+        margins_name: Level = "All",
+        observed: bool = True,
+        sort: bool = True,
+        **kwargs,
+    ) -> DataFrame:
+        """
         Create a spreadsheet-style pivot table as a DataFrame.
 
         The levels in the pivot table will be stored in MultiIndex objects
         (hierarchical indexes) on the index and columns of the result DataFrame.
 
         Parameters
-        ----------%s
+        ----------
         values : list-like or scalar, optional
             Column or columns to aggregate.
         index : column, Grouper, array, or sequence of the previous
@@ -12980,15 +12757,45 @@ class DataFrame(NDFrame, OpsMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame({"A": ["foo", "foo", "foo", "foo", "foo",
-        ...                          "bar", "bar", "bar", "bar"],
-        ...                    "B": ["one", "one", "one", "two", "two",
-        ...                          "one", "one", "two", "two"],
-        ...                    "C": ["small", "large", "large", "small",
-        ...                          "small", "large", "small", "small",
-        ...                          "large"],
-        ...                    "D": [1, 2, 2, 3, 3, 4, 5, 6, 7],
-        ...                    "E": [2, 4, 5, 5, 6, 6, 8, 9, 9]})
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "A": [
+        ...             "foo",
+        ...             "foo",
+        ...             "foo",
+        ...             "foo",
+        ...             "foo",
+        ...             "bar",
+        ...             "bar",
+        ...             "bar",
+        ...             "bar",
+        ...         ],
+        ...         "B": [
+        ...             "one",
+        ...             "one",
+        ...             "one",
+        ...             "two",
+        ...             "two",
+        ...             "one",
+        ...             "one",
+        ...             "two",
+        ...             "two",
+        ...         ],
+        ...         "C": [
+        ...             "small",
+        ...             "large",
+        ...             "large",
+        ...             "small",
+        ...             "small",
+        ...             "large",
+        ...             "small",
+        ...             "small",
+        ...             "large",
+        ...         ],
+        ...         "D": [1, 2, 2, 3, 3, 4, 5, 6, 7],
+        ...         "E": [2, 4, 5, 5, 6, 6, 8, 9, 9],
+        ...     }
+        ... )
         >>> df
              A    B      C  D  E
         0  foo  one  small  1  2
@@ -13003,8 +12810,9 @@ class DataFrame(NDFrame, OpsMixin):
 
         This first example aggregates values by taking the sum.
 
-        >>> table = pd.pivot_table(df, values='D', index=['A', 'B'],
-        ...                        columns=['C'], aggfunc="sum")
+        >>> table = pd.pivot_table(
+        ...     df, values="D", index=["A", "B"], columns=["C"], aggfunc="sum"
+        ... )
         >>> table
         C        large  small
         A   B
@@ -13015,8 +12823,14 @@ class DataFrame(NDFrame, OpsMixin):
 
         We can also fill missing values using the `fill_value` parameter.
 
-        >>> table = pd.pivot_table(df, values='D', index=['A', 'B'],
-        ...                        columns=['C'], aggfunc="sum", fill_value=0)
+        >>> table = pd.pivot_table(
+        ...     df,
+        ...     values="D",
+        ...     index=["A", "B"],
+        ...     columns=["C"],
+        ...     aggfunc="sum",
+        ...     fill_value=0,
+        ... )
         >>> table
         C        large  small
         A   B
@@ -13027,8 +12841,12 @@ class DataFrame(NDFrame, OpsMixin):
 
         The next example aggregates by taking the mean across multiple columns.
 
-        >>> table = pd.pivot_table(df, values=['D', 'E'], index=['A', 'C'],
-        ...                        aggfunc={'D': "mean", 'E': "mean"})
+        >>> table = pd.pivot_table(
+        ...     df,
+        ...     values=["D", "E"],
+        ...     index=["A", "C"],
+        ...     aggfunc={"D": "mean", "E": "mean"},
+        ... )
         >>> table
                         D         E
         A   C
@@ -13040,9 +12858,12 @@ class DataFrame(NDFrame, OpsMixin):
         We can also calculate multiple types of aggregations for any given
         value column.
 
-        >>> table = pd.pivot_table(df, values=['D', 'E'], index=['A', 'C'],
-        ...                        aggfunc={'D': "mean",
-        ...                                 'E': ["min", "max", "mean"]})
+        >>> table = pd.pivot_table(
+        ...     df,
+        ...     values=["D", "E"],
+        ...     index=["A", "C"],
+        ...     aggfunc={"D": "mean", "E": ["min", "max", "mean"]},
+        ... )
         >>> table
                           D   E
                        mean max      mean  min
@@ -13052,23 +12873,6 @@ class DataFrame(NDFrame, OpsMixin):
         foo large  2.000000   5  4.500000    4
             small  2.333333   6  4.333333    2
         """
-
-    @Substitution("")
-    @Appender(_shared_docs["pivot_table"])
-    def pivot_table(
-        self,
-        values=None,
-        index=None,
-        columns=None,
-        aggfunc: AggFuncType = "mean",
-        fill_value=None,
-        margins: bool = False,
-        dropna: bool = True,
-        margins_name: Level = "All",
-        observed: bool = True,
-        sort: bool = True,
-        **kwargs,
-    ) -> DataFrame:
         from pandas.core.reshape.pivot import pivot_table
 
         return pivot_table(
@@ -14791,8 +14595,6 @@ class DataFrame(NDFrame, OpsMixin):
 
             return joined
 
-    @Substitution("")
-    @Appender(_merge_doc, indents=2)
     def merge(
         self,
         right: DataFrame | Series,
@@ -14808,6 +14610,216 @@ class DataFrame(NDFrame, OpsMixin):
         indicator: str | bool = False,
         validate: MergeValidate | None = None,
     ) -> DataFrame:
+        """
+        Merge DataFrame or named Series objects with a database-style join.
+
+        A named Series object is treated as a DataFrame with a single named column.
+
+        The join is done on columns or indexes. If joining columns on
+        columns, the DataFrame indexes *will be ignored*. Otherwise if joining indexes
+        on indexes or indexes on a column or columns, the index will be passed on.
+        When performing a cross merge, no column specifications to merge on are
+        allowed.
+
+        .. warning::
+
+            If both key columns contain rows where the key is a null value, those
+            rows will be matched against each other. This is different from usual SQL
+            join behaviour and can lead to unexpected results.
+
+        Parameters
+        ----------
+        right : DataFrame or named Series
+            Object to merge with.
+        how : {'left', 'right', 'outer', 'inner', 'cross', 'left_anti', 'right_anti'},
+            default 'inner'
+            Type of merge to be performed.
+
+            * left: use only keys from left frame, similar to a SQL left outer join;
+              preserve key order.
+            * right: use only keys from right frame, similar to a SQL right outer join;
+              preserve key order.
+            * outer: use union of keys from both frames, similar to a SQL full outer
+              join; sort keys lexicographically.
+            * inner: use intersection of keys from both frames, similar to a SQL inner
+              join; preserve the order of the left keys.
+            * cross: creates the cartesian product from both frames, preserves the order
+              of the left keys.
+            * left_anti: use only keys from left frame that are not in right frame,
+              similar to SQL left anti join; preserve key order.
+
+              .. versionadded:: 3.0
+            * right_anti: use only keys from right frame that are not in left frame,
+              similar to SQL right anti join; preserve key order.
+
+              .. versionadded:: 3.0
+        on : Hashable or a sequence of the previous
+            Column or index level names to join on. These must be found in both
+            DataFrames. If `on` is None and not merging on indexes then this defaults
+            to the intersection of the columns in both DataFrames.
+        left_on : Hashable or a sequence of the previous, or array-like
+            Column or index level names to join on in the left DataFrame. Can also
+            be an array or list of arrays of the length of the left DataFrame.
+            These arrays are treated as if they are columns.
+        right_on : Hashable or a sequence of the previous, or array-like
+            Column or index level names to join on in the right DataFrame. Can also
+            be an array or list of arrays of the length of the right DataFrame.
+            These arrays are treated as if they are columns.
+        left_index : bool, default False
+            Use the index from the left DataFrame as the join key(s). If it is a
+            MultiIndex, the number of keys in the other DataFrame (either the index
+            or a number of columns) must match the number of levels.
+        right_index : bool, default False
+            Use the index from the right DataFrame as the join key. Same caveats as
+            left_index.
+        sort : bool, default False
+            Sort the join keys lexicographically in the result DataFrame. If False,
+            the order of the join keys depends on the join type (how keyword).
+        suffixes : list-like, default is ("_x", "_y")
+            A length-2 sequence where each element is optionally a string
+            indicating the suffix to add to overlapping column names in
+            `left` and `right` respectively. Pass a value of `None` instead
+            of a string to indicate that the column name from `left` or
+            `right` should be left as-is, with no suffix. At least one of the
+            values must not be None.
+        copy : bool, default False
+            This keyword is now ignored; changing its value will have no
+            impact on the method.
+
+            .. deprecated:: 3.0.0
+
+                This keyword is ignored and will be removed in pandas 4.0. Since
+                pandas 3.0, this method always returns a new object using a lazy
+                copy mechanism that defers copies until necessary
+                (Copy-on-Write). See the `user guide on Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                for more details.
+
+        indicator : bool or str, default False
+            If True, adds a column to the output DataFrame called "_merge" with
+            information on the source of each row. The column can be given a different
+            name by providing a string argument. The column will have a Categorical
+            type with the value of "left_only" for observations whose merge key only
+            appears in the left DataFrame, "right_only" for observations
+            whose merge key only appears in the right DataFrame, and "both"
+            if the observation's merge key is found in both DataFrames.
+
+        validate : str, optional
+            If specified, checks if merge is of specified type.
+
+            * "one_to_one" or "1:1": check if merge keys are unique in both
+              left and right datasets.
+            * "one_to_many" or "1:m": check if merge keys are unique in left
+              dataset.
+            * "many_to_one" or "m:1": check if merge keys are unique in right
+              dataset.
+            * "many_to_many" or "m:m": allowed, but does not result in checks.
+
+        Returns
+        -------
+        DataFrame
+            A DataFrame of the two merged objects.
+
+        See Also
+        --------
+        merge_ordered : Merge with optional filling/interpolation.
+        merge_asof : Merge on nearest keys.
+        DataFrame.join : Similar method using indices.
+
+        Examples
+        --------
+        >>> df1 = pd.DataFrame(
+        ...     {"lkey": ["foo", "bar", "baz", "foo"], "value": [1, 2, 3, 5]}
+        ... )
+        >>> df2 = pd.DataFrame(
+        ...     {"rkey": ["foo", "bar", "baz", "foo"], "value": [5, 6, 7, 8]}
+        ... )
+        >>> df1
+            lkey value
+        0   foo      1
+        1   bar      2
+        2   baz      3
+        3   foo      5
+        >>> df2
+            rkey value
+        0   foo      5
+        1   bar      6
+        2   baz      7
+        3   foo      8
+
+        Merge df1 and df2 on the lkey and rkey columns. The value columns have
+        the default suffixes, _x and _y, appended.
+
+        >>> df1.merge(df2, left_on="lkey", right_on="rkey")
+          lkey  value_x rkey  value_y
+        0  foo        1  foo        5
+        1  foo        1  foo        8
+        2  bar        2  bar        6
+        3  baz        3  baz        7
+        4  foo        5  foo        5
+        5  foo        5  foo        8
+
+        Merge DataFrames df1 and df2 with specified left and right suffixes
+        appended to any overlapping columns.
+
+        >>> df1.merge(
+        ...     df2, left_on="lkey", right_on="rkey", suffixes=("_left", "_right")
+        ... )
+          lkey  value_left rkey  value_right
+        0  foo           1  foo            5
+        1  foo           1  foo            8
+        2  bar           2  bar            6
+        3  baz           3  baz            7
+        4  foo           5  foo            5
+        5  foo           5  foo            8
+
+        Merge DataFrames df1 and df2, but raise an exception if the DataFrames have
+        any overlapping columns.
+
+        >>> df1.merge(df2, left_on="lkey", right_on="rkey", suffixes=(False, False))
+        Traceback (most recent call last):
+        ...
+        ValueError: columns overlap but no suffix specified:
+            Index(['value'], dtype='object')
+
+        >>> df1 = pd.DataFrame({"a": ["foo", "bar"], "b": [1, 2]})
+        >>> df2 = pd.DataFrame({"a": ["foo", "baz"], "c": [3, 4]})
+        >>> df1
+              a  b
+        0   foo  1
+        1   bar  2
+        >>> df2
+              a  c
+        0   foo  3
+        1   baz  4
+
+        >>> df1.merge(df2, how="inner", on="a")
+              a  b  c
+        0   foo  1  3
+
+        >>> df1.merge(df2, how="left", on="a")
+              a  b  c
+        0   foo  1  3.0
+        1   bar  2  NaN
+
+        >>> df1 = pd.DataFrame({"left": ["foo", "bar"]})
+        >>> df2 = pd.DataFrame({"right": [7, 8]})
+        >>> df1
+            left
+        0   foo
+        1   bar
+        >>> df2
+            right
+        0   7
+        1   8
+
+        >>> df1.merge(df2, how="cross")
+           left  right
+        0   foo      7
+        1   foo      8
+        2   bar      7
+        3   bar      8
+        """
         self._check_copy_deprecation(copy)
 
         from pandas.core.reshape.merge import merge
