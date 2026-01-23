@@ -3,6 +3,8 @@ from datetime import (
     timedelta,
 )
 import itertools
+from io import StringIO
+from textwrap import dedent
 
 import numpy as np
 import pytest
@@ -385,17 +387,47 @@ def test_update_inplace_sets_valid_block_values():
     assert isinstance(df._mgr.blocks[0].values, Categorical)
 
 
-def test_multithreaded_reading(float_frame):
-    def numpy_assert(b):
-        b.wait()
-        # See gh-63685, numpy asserts led to data races under TSan
-        tm.assert_almost_equal(np.array(float_frame), np.array(float_frame))
-        tm.assert_almost_equal(
-            np.array((float_frame + 1) - 1),
-            np.array(float_frame)
+def get_longley_data():
+    # From statsmodels.datasets.longley
+    # This specific dataset seems to trigger races in Pandas 3.0.0 more readily
+    # than data frames used elsewhere in the tests
+    longley_csv = StringIO(
+        dedent(
+            """"Obs","GNPDEFL","GNP","UNEMP","ARMED","POP","YEAR"
+            1,83,234289,2356,1590,107608,1947
+            2,88.5,259426,2325,1456,108632,1948
+            3,88.2,258054,3682,1616,109773,1949
+            4,89.5,284599,3351,1650,110929,1950
+            5,96.2,328975,2099,3099,112075,1951
+            6,98.1,346999,1932,3594,113270,1952
+            7,99,365385,1870,3547,115094,1953
+            8,100,363112,3578,3350,116219,1954
+            9,101.2,397469,2904,3048,117388,1955
+            10,104.6,419180,2822,2857,118734,1956
+            11,108.4,442769,2936,2798,120445,1957
+            12,110.8,444546,4681,2637,121950,1958
+            13,112.6,482704,3813,2552,123366,1959
+            14,114.2,502601,3931,2514,125368,1960
+            15,115.7,518173,4806,2572,127852,1961
+            16,116.9,554894,4007,2827,130081,1962
+            """
         )
+    )
 
-    tm.run_multithreaded(numpy_assert, max_workers=8, pass_barrier=True)
+    return pd.read_csv(longley_csv).iloc[:, [1, 2, 3, 4, 5, 6]].astype(float)
+
+def test_multithreaded_reading():
+    def numpy_assert(data, b):
+        b.wait()
+        # See gh-63685, comparisons and copying led to races seen with
+        tm.assert_almost_equal((data + 1) - 1, data.copy())
+
+    tm.run_multithreaded(
+        numpy_assert,
+        max_workers=8,
+        arguments=(get_longley_data(),),
+        pass_barrier=True
+    )
 
     def safe_is_const(s):
         try:
@@ -403,17 +435,22 @@ def test_multithreaded_reading(float_frame):
         except Exception:
             return False
 
-    def concat(b):
+    def concat(data, b):
         # based on a test from statsmodels that triggered races in Pandas
         # under pytest-run-parallel
         b.wait()
-        x = float_frame.copy()
+        x = data.copy()
         nobs = len(x)
         trendarr = np.fliplr(np.vander(np.arange(1, nobs + 1, dtype=np.float64), 1))
         col_const = x.apply(safe_is_const, 0)
         trendarr = pd.DataFrame(trendarr, index=x.index, columns=['const'])
         x = [trendarr, x]
         x = pd.concat(x[::1], axis=1)
-        tm.assert_almost_equal(np.array(x), np.array(x))
+        tm.assert_frame_equal(x, x)
 
-    tm.run_multithreaded(concat, max_workers=8, pass_barrier=True)
+    tm.run_multithreaded(
+        concat,
+        max_workers=8,
+        arguments=(get_longley_data(),),
+        pass_barrier=True
+    )
