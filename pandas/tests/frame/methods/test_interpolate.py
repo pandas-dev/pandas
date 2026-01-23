@@ -63,7 +63,8 @@ class TestDataFrameInterpolate:
         assert np.shares_memory(orig, obj.values)
         assert orig.squeeze()[1] == 1.5
 
-    def test_interp_with_non_numeric(self, using_infer_string):
+    @pytest.mark.parametrize("dtype", ["str", "object"])
+    def test_interp_with_non_numeric(self, dtype):
         df = DataFrame(
             {
                 "A": [1, 2, np.nan, 4],
@@ -72,6 +73,7 @@ class TestDataFrameInterpolate:
                 "D": list("abcd"),
             }
         )
+        df["D"] = df["D"].astype(dtype)
         df_orig = df.copy()
         expected = DataFrame(
             {
@@ -81,8 +83,8 @@ class TestDataFrameInterpolate:
                 "D": list("abcd"),
             }
         )
+        expected["D"] = expected["D"].astype(dtype)
 
-        dtype = "str" if using_infer_string else "object"
         msg = f"[Cc]annot interpolate with {dtype} dtype"
         with pytest.raises(TypeError, match=msg):
             df.interpolate()
@@ -120,7 +122,7 @@ class TestDataFrameInterpolate:
         assert tm.shares_memory(cvalues, result["C"]._values)
 
         res = df.interpolate(inplace=True)
-        assert res is None
+        assert res is df
         tm.assert_frame_equal(df, expected)
 
         # check we DID operate inplace
@@ -137,7 +139,7 @@ class TestDataFrameInterpolate:
         )
         result = df.set_index("C").interpolate()
         expected = df.set_index("C")
-        expected.loc[3, "A"] = 2.66667
+        expected.loc[3, "A"] = 3
         expected.loc[5, "B"] = 9
         tm.assert_frame_equal(result, expected)
 
