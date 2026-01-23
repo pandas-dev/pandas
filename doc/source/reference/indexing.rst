@@ -11,7 +11,7 @@ Index
 .. currentmodule:: pandas
 
 .. note::
-   For more information on using Index, see the :ref:`Essential basic functionality <basics>` section of the User Guide.
+   For an overview, see :ref:`indexing.class`.
 
 **Many of these methods or variants thereof are available on the objects
 that contain an index (Series/DataFrame) and those should most likely be
