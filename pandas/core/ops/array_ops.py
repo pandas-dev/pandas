@@ -129,6 +129,7 @@ def comp_method_OBJECT_ARRAY(op, x, y):
         result = libops.vec_compare(x.ravel(), y.ravel(), op)
     else:
         result = libops.scalar_compare(x.ravel(), y, op)
+        result = np.where(isna(x), x, result)
     return result.reshape(x.shape)
 
 
