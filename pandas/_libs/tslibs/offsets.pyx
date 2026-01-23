@@ -5596,6 +5596,39 @@ cdef class FY5253Quarter(FY5253Mixin):
         return res
 
     def get_weeks(self, dt: datetime):
+        """
+        Get the number of weeks in each quarter for the fiscal year containing dt.
+
+        In a 52-53 week fiscal year, most years have 52 weeks (13 weeks per quarter).
+        In years with 53 weeks, one quarter will have 14 weeks as determined by the
+        `qtr_with_extra_week` attribute.
+
+        Parameters
+        ----------
+        dt : datetime
+            The date within the fiscal year to determine quarter week counts.
+
+        Returns
+        -------
+        list of int
+            A list of 4 integers representing the number of weeks in each quarter
+            (Q1, Q2, Q3, Q4). Values are typically [13, 13, 13, 13] for 52-week
+            years, with one value being 14 in 53-week years.
+
+        See Also
+        --------
+        FY5253Quarter.qtr_with_extra_week : The quarter that receives the extra week.
+        FY5253Quarter.year_has_extra_week : Check if a given year has 53 weeks.
+
+        Examples
+        --------
+        >>> offset = pd.offsets.FY5253Quarter(
+        ...     weekday=5, startingMonth=12, qtr_with_extra_week=4
+        ... )
+        >>> dt = pd.Timestamp("2024-01-15")
+        >>> offset.get_weeks(dt)
+        [13, 13, 13, 13]
+        """
         ret = [13] * 4
 
         year_has_extra_week = self.year_has_extra_week(dt)
