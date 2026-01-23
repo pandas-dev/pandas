@@ -537,16 +537,21 @@ def shares_memory(left, right) -> bool:
     raise NotImplementedError(type(left), type(right))
 
 
-def run_multithreaded(closure, max_workers, pass_barrier=False):
+def run_multithreaded(closure, max_workers, arguments=None, pass_barrier=False):
     with ThreadPoolExecutor(max_workers=max_workers) as tpe:
-        args = []
+        if arguments is None:
+            arguments = []
+        else:
+            arguments = list(arguments)
+
         if pass_barrier:
             barrier = threading.Barrier(max_workers)
-            args.append(barrier)
+            arguments.append(barrier)
+
         try:
             futures = []
             for _ in range(max_workers):
-                futures.append(tpe.submit(closure, *args))
+                futures.append(tpe.submit(closure, *arguments))
         except RuntimeError as e:
             import pytest
             pytest.skip(f"Spawning {max_workers} threads failed with "
