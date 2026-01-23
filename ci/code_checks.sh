@@ -70,7 +70,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
     "$BASE_DIR"/scripts/validate_docstrings.py \
         --format=actions \
         -i ES01 `# For now it is ok if docstrings are missing the extended summary` \
-        -i "pandas.Series.dt PR01" `# Accessors are implemented as classes, but we do not document the Parameters section` \
         -i "pandas.tseries.offsets.BDay PR02,SA01" \
         -i "pandas.tseries.offsets.BusinessDay PR02,SA01" \
         -i "pandas.tseries.offsets.BusinessHour PR02,SA01" \
