@@ -53,7 +53,6 @@ from pandas.errors.cow import (
 from pandas.util._decorators import (
     Appender,
     deprecate_nonkeyword_arguments,
-    doc,
     set_module,
 )
 from pandas.util._exceptions import (
@@ -145,7 +144,6 @@ from pandas.core.indexing import (
 )
 from pandas.core.internals import SingleBlockManager
 from pandas.core.methods import selectn
-from pandas.core.shared_docs import _shared_docs
 from pandas.core.sorting import (
     ensure_key_mapped,
     nargsort,
@@ -201,25 +199,6 @@ if TYPE_CHECKING:
     from pandas.core.groupby.generic import SeriesGroupBy
 
 __all__ = ["Series"]
-
-_shared_doc_kwargs = {
-    "axes": "index",
-    "klass": "Series",
-    "axes_single_arg": "{0 or 'index'}",
-    "axis": """axis : {0 or 'index'}
-        Unused. Parameter needed for compatibility with DataFrame.""",
-    "inplace": """inplace : bool, default False
-        If True, performs operation inplace and returns None.""",
-    "unique": "np.ndarray",
-    "duplicated": "Series",
-    "optional_by": "",
-    "optional_reindex": """
-index : array-like, optional
-    New labels for the index. Preferably an Index object to avoid
-    duplicating data.
-axis : int or str, optional
-    Unused.""",
-}
 
 # ----------------------------------------------------------------------
 # Series class
@@ -1922,14 +1901,125 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ser.name = name
         return ser
 
-    @Appender(
-        dedent(
-            """
+    @deprecate_nonkeyword_arguments(
+        Pandas4Warning, allowed_args=["self", "by", "level"], name="groupby"
+    )
+    def groupby(
+        self,
+        by=None,
+        level: IndexLabel | None = None,
+        as_index: bool = True,
+        sort: bool = True,
+        group_keys: bool = True,
+        observed: bool = True,
+        dropna: bool = True,
+    ) -> SeriesGroupBy:
+        """
+        Group Series using a mapper or by a Series of columns.
+
+        A groupby operation involves some combination of splitting the
+        object, applying a function, and combining the results. This can be
+        used to group large amounts of data and compute operations on these
+        groups.
+
+        Parameters
+        ----------
+        by : mapping, function, label, pd.Grouper or list of such
+            Used to determine the groups for the groupby.
+            If ``by`` is a function, it's called on each value of the object's
+            index. If a dict or Series is passed, the Series or dict VALUES
+            will be used to determine the groups (the Series' values are first
+            aligned; see ``.align()`` method). If a list or ndarray of length
+            equal to the selected axis is passed (see the `groupby user guide
+            <https://pandas.pydata.org/pandas-docs/stable/user_guide/groupby.html#splitting-an-object-into-groups>`_),
+            the values are used as-is to determine the groups. A label or list
+            of labels may be passed to group by the columns in ``self``.
+            Notice that a tuple is interpreted as a (single) key.
+        level : int, level name, or sequence of such, default None
+            If the axis is a MultiIndex (hierarchical), group by a particular
+            level or levels. Do not specify both ``by`` and ``level``.
+        as_index : bool, default True
+            Return object with group labels as the
+            index. Only relevant for DataFrame input. as_index=False is
+            effectively "SQL-style" grouped output. This argument has no effect
+            on filtrations (see the `filtrations in the user guide
+            <https://pandas.pydata.org/docs/dev/user_guide/groupby.html#filtration>`_),
+            such as ``head()``, ``tail()``, ``nth()`` and in transformations
+            (see the `transformations in the user guide
+            <https://pandas.pydata.org/docs/dev/user_guide/groupby.html#transformation>`_).
+        sort : bool, default True
+            Sort group keys. Get better performance by turning this off.
+            Note this does not influence the order of observations within each
+            group. Groupby preserves the order of rows within each group. If False,
+            the groups will appear in the same order as they did in the original
+            DataFrame.
+            This argument has no effect on filtrations (see the `filtrations in the user
+            guide
+            <https://pandas.pydata.org/docs/dev/user_guide/groupby.html#filtration>`_),
+            such as ``head()``, ``tail()``, ``nth()`` and in transformations
+            (see the `transformations in the user guide
+            <https://pandas.pydata.org/docs/dev/user_guide/groupby.html#transformation>`_).
+
+            .. versionchanged:: 2.0.0
+
+                Specifying ``sort=False`` with an ordered categorical grouper will no
+                longer sort the values.
+
+        group_keys : bool, default True
+            When calling apply and the ``by`` argument produces a like-indexed
+            (i.e. :ref:`a transform <groupby.transform>`) result, add group keys to
+            index to identify pieces. By default group keys are not included
+            when the result's index (and column) labels match the inputs, and
+            are included otherwise.
+
+            .. versionchanged:: 2.0.0
+
+               ``group_keys`` now defaults to ``True``.
+
+        observed : bool, default True
+            This only applies if any of the groupers are Categoricals.
+            If True: only show observed values for categorical groupers.
+            If False: show all values for categorical groupers.
+
+            .. versionchanged:: 3.0.0
+
+                The default value is now ``True``.
+
+        dropna : bool, default True
+            If True, and if group keys contain NA values, NA values together
+            with row/column will be dropped.
+            If False, NA values will also be treated as the key in groups.
+
+        Returns
+        -------
+        pandas.api.typing.SeriesGroupBy
+            Returns a groupby object that contains information about the groups.
+
+        See Also
+        --------
+        resample : Convenience method for frequency conversion and resampling
+            of time series.
+
+        Notes
+        -----
+        See the `user guide
+        <https://pandas.pydata.org/pandas-docs/stable/groupby.html>`__ for more
+        detailed usage and examples, including splitting an object into groups,
+        iterating through groups, selecting a group, aggregation, and more.
+
+        The implementation of groupby is hash-based, meaning in particular that
+        objects that compare as equal will be considered to be in the same group.
+        An exception to this is that pandas has special handling of NA values:
+        any NA values will be collapsed to a single group, regardless of how
+        they compare. See the user guide linked above for more details.
+
         Examples
         --------
-        >>> ser = pd.Series([390., 350., 30., 20.],
-        ...                 index=['Falcon', 'Falcon', 'Parrot', 'Parrot'],
-        ...                 name="Max Speed")
+        >>> ser = pd.Series(
+        ...     [390.0, 350.0, 30.0, 20.0],
+        ...     index=["Falcon", "Falcon", "Parrot", "Parrot"],
+        ...     name="Max Speed",
+        ... )
         >>> ser
         Falcon    390.0
         Falcon    350.0
@@ -1971,10 +2061,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         We can groupby different levels of a hierarchical index
         using the `level` parameter:
 
-        >>> arrays = [['Falcon', 'Falcon', 'Parrot', 'Parrot'],
-        ...           ['Captive', 'Wild', 'Captive', 'Wild']]
-        >>> index = pd.MultiIndex.from_arrays(arrays, names=('Animal', 'Type'))
-        >>> ser = pd.Series([390., 350., 30., 20.], index=index, name="Max Speed")
+        >>> arrays = [
+        ...     ["Falcon", "Falcon", "Parrot", "Parrot"],
+        ...     ["Captive", "Wild", "Captive", "Wild"],
+        ... ]
+        >>> index = pd.MultiIndex.from_arrays(arrays, names=("Animal", "Type"))
+        >>> ser = pd.Series([390.0, 350.0, 30.0, 20.0], index=index, name="Max Speed")
         >>> ser
         Animal  Type
         Falcon  Captive    390.0
@@ -2001,7 +2093,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         We can also choose to include `NA` in group keys or not by defining
         `dropna` parameter, the default setting is `True`.
 
-        >>> ser = pd.Series([1, 2, 3, 3], index=["a", 'a', 'b', np.nan])
+        >>> ser = pd.Series([1, 2, 3, 3], index=["a", "a", "b", np.nan])
         >>> ser.groupby(level=0).sum()
         a    3
         b    3
@@ -2018,8 +2110,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         We can also group by a custom list with NaN values to handle
         missing group labels:
 
-        >>> arrays = ['Falcon', 'Falcon', 'Parrot', 'Parrot']
-        >>> ser = pd.Series([390., 350., 30., 20.], index=arrays, name="Max Speed")
+        >>> arrays = ["Falcon", "Falcon", "Parrot", "Parrot"]
+        >>> ser = pd.Series([390.0, 350.0, 30.0, 20.0], index=arrays, name="Max Speed")
         >>> ser.groupby(["a", "b", "a", np.nan]).mean()
         a    210.0
         b    350.0
@@ -2031,22 +2123,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         NaN   20.0
         Name: Max Speed, dtype: float64
         """
-        )
-    )
-    @Appender(_shared_docs["groupby"] % _shared_doc_kwargs)
-    @deprecate_nonkeyword_arguments(
-        Pandas4Warning, allowed_args=["self", "by", "level"], name="groupby"
-    )
-    def groupby(
-        self,
-        by=None,
-        level: IndexLabel | None = None,
-        as_index: bool = True,
-        sort: bool = True,
-        group_keys: bool = True,
-        observed: bool = True,
-        dropna: bool = True,
-    ) -> SeriesGroupBy:
         from pandas.core.groupby.generic import SeriesGroupBy
 
         if level is None and by is None:
@@ -6337,10 +6413,48 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return NDFrame.isna(self)
 
     # error: Cannot determine type of 'isna'
-    @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])
     def isnull(self) -> Series:
         """
         Series.isnull is an alias for Series.isna.
+
+        Detect missing values.
+
+        Return a boolean same-sized object indicating if the values are NA.
+        NA values, such as None or :attr:`numpy.NaN`, gets mapped to True
+        values.
+        Everything else gets mapped to False values. Characters such as empty
+        strings ``''`` or :attr:`numpy.inf` are not considered NA values.
+
+        Returns
+        -------
+        Series
+            Mask of bool values for each element in Series
+            that indicates whether an element is an NA value.
+
+        See Also
+        --------
+        Series.isnull : Alias of isna.
+        DataFrame.isnull : Alias of isna.
+        Series.notna : Boolean inverse of isna.
+        DataFrame.notna : Boolean inverse of isna.
+        Series.dropna : Omit axes labels with missing values.
+        DataFrame.dropna : Omit axes labels with missing values.
+        isna : Top-level isna.
+
+        Examples
+        --------
+        >>> ser = pd.Series([5, 6, np.nan])
+        >>> ser
+        0    5.0
+        1    6.0
+        2    NaN
+        dtype: float64
+
+        >>> ser.isnull()
+        0    False
+        1    False
+        2     True
+        dtype: bool
         """
         return super().isnull()
 
@@ -6392,10 +6506,50 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return super().notna()
 
     # error: Cannot determine type of 'notna'
-    @doc(NDFrame.notna, klass=_shared_doc_kwargs["klass"])
     def notnull(self) -> Series:
         """
         Series.notnull is an alias for Series.notna.
+
+        Detect existing (non-missing) values.
+
+        Return a boolean same-sized object indicating if the values are not NA.
+        Non-missing values get mapped to True. Characters such as empty
+        strings ``''`` or :attr:`numpy.inf` are not considered NA values.
+        NA values, such as None or :attr:`numpy.NaN`, get mapped to False
+        values.
+
+        Returns
+        -------
+        Series
+            Mask of bool values for each element in Series
+            that indicates whether an element is not an NA value.
+
+        See Also
+        --------
+        Series.notnull : Alias of notna.
+        DataFrame.notnull : Alias of notna.
+        Series.isna : Boolean inverse of notna.
+        DataFrame.isna : Boolean inverse of notna.
+        Series.dropna : Omit axes labels with missing values.
+        DataFrame.dropna : Omit axes labels with missing values.
+        notna : Top-level notna.
+
+        Examples
+        --------
+        Show which entries in a Series are not NA.
+
+        >>> ser = pd.Series([5, 6, np.nan])
+        >>> ser
+        0    5.0
+        1    6.0
+        2    NaN
+        dtype: float64
+
+        >>> ser.notnull()
+        0     True
+        1     True
+        2    False
+        dtype: bool
         """
         return super().notnull()
 

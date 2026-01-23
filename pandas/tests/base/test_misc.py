@@ -24,9 +24,9 @@ def test_isnull_notnull_docstrings():
     assert doc.strip().startswith("DataFrame.isnull is an alias for DataFrame.isna.")
 
     doc = Series.notnull.__doc__
-    assert doc.startswith("\nSeries.notnull is an alias for Series.notna.\n")
+    assert doc.strip().startswith("Series.notnull is an alias for Series.notna.")
     doc = Series.isnull.__doc__
-    assert doc.startswith("\nSeries.isnull is an alias for Series.isna.\n")
+    assert doc.strip().startswith("Series.isnull is an alias for Series.isna.")
 
 
 @pytest.mark.parametrize(
