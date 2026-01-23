@@ -1869,6 +1869,40 @@ cdef class RelativeDeltaOffset(BaseOffset):
         return dt64other + delta
 
     def is_on_offset(self, dt: datetime) -> bool:
+        """
+        Return boolean whether a timestamp intersects with this frequency.
+
+        For DateOffset, the check is straightforward: it returns True for any
+        timestamp, unless normalize is True, in which case it verifies that
+        the timestamp is at midnight (normalized to the start of the day).
+
+        Parameters
+        ----------
+        dt : datetime
+            Timestamp to check.
+
+        Returns
+        -------
+        bool
+            True if the timestamp intersects with this frequency.
+
+        See Also
+        --------
+        DateOffset.rollforward : Roll provided date forward to next offset.
+        DateOffset.rollback : Roll provided date backward to previous offset.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2022, 1, 1)
+        >>> freq = pd.DateOffset(months=2)
+        >>> freq.is_on_offset(ts)
+        True
+
+        >>> ts = pd.Timestamp(2022, 1, 1, 12, 0, 0)
+        >>> freq = pd.DateOffset(months=2, normalize=True)
+        >>> freq.is_on_offset(ts)
+        False
+        """
         if self.normalize and not _is_normalized(dt):
             return False
         return True
