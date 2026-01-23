@@ -9867,78 +9867,1414 @@ class DataFrame(NDFrame, OpsMixin):
         """
         return self._flex_cmp_method(other, operator.ne, axis=axis, level=level)
 
-    @Appender(ops.make_flex_doc("le", "dataframe"))
     def le(self, other, axis: Axis = "columns", level=None) -> DataFrame:
+        """
+        Get Less than or equal to of dataframe and other, \
+        element-wise (binary operator `le`).
+
+        Among flexible wrappers (`eq`, `ne`, `le`, `lt`, `ge`, `gt`) to comparison
+        operators.
+
+        Equivalent to ``<=`` with support to choose axis
+        (rows or columns) and level for comparison.
+
+        Parameters
+        ----------
+        other : scalar, sequence, Series, or DataFrame
+            Any single or multiple element data structure, or list-like object.
+        axis : {0 or 'index', 1 or 'columns'}, default 'columns'
+            Whether to compare by the index (0 or 'index') or columns
+            (1 or 'columns').
+        level : int or label
+            Broadcast across a level, matching Index values on the passed
+            MultiIndex level.
+
+        Returns
+        -------
+        DataFrame of bool
+            Result of the comparison.
+
+        See Also
+        --------
+        DataFrame.eq : Compare DataFrames for equality elementwise.
+        DataFrame.ne : Compare DataFrames for inequality elementwise.
+        DataFrame.le : Compare DataFrames for less than inequality
+            or equality elementwise.
+        DataFrame.lt : Compare DataFrames for strictly less than
+            inequality elementwise.
+        DataFrame.ge : Compare DataFrames for greater than inequality
+            or equality elementwise.
+        DataFrame.gt : Compare DataFrames for strictly greater than
+            inequality elementwise.
+
+        Notes
+        -----
+        Mismatched indices will be unioned together.
+        `NaN` values are considered different (i.e. `NaN` != `NaN`).
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'cost': [250, 150, 100],
+        ...                    'revenue': [100, 250, 300]},
+        ...                   index=['A', 'B', 'C'])
+        >>> df
+           cost  revenue
+        A   250      100
+        B   150      250
+        C   100      300
+
+        Comparison with a scalar, using either the operator or method:
+
+        >>> df <= 100
+            cost  revenue
+        A  False     True
+        B  False    False
+        C   True    False
+
+        >>> df.le(100)
+            cost  revenue
+        A  False     True
+        B  False    False
+        C   True    False
+
+        When `other` is a :class:`Series`, the columns of a DataFrame are aligned
+        with the index of `other` and broadcast:
+
+        >>> df <= pd.Series([100, 250], index=["cost", "revenue"])
+            cost  revenue
+        A  False     True
+        B  False     True
+        C   True    False
+
+        Use the method to control the broadcast axis:
+
+        >>> df.le(pd.Series([100, 300], index=["A", "D"]), axis='index')
+            cost  revenue
+        A  False     True
+        B  False    False
+        C  False    False
+        D  False    False
+
+        When comparing to an arbitrary sequence, the number of columns must
+        match the number elements in `other`:
+
+        >>> df <= [250, 100]
+           cost  revenue
+        A  True     True
+        B  True    False
+        C  True    False
+
+        Use the method to control the axis:
+
+        >>> df.le([250, 250, 100], axis='index')
+           cost  revenue
+        A  True     True
+        B  True     True
+        C  True    False
+
+        Compare to a DataFrame of different shape.
+
+        >>> other = pd.DataFrame({'revenue': [300, 250, 100, 150]},
+        ...                      index=['A', 'B', 'C', 'D'])
+        >>> other
+           revenue
+        A      300
+        B      250
+        C      100
+        D      150
+
+        >>> df.le(other)
+            cost  revenue
+        A  False     True
+        B  False     True
+        C  False    False
+        D  False    False
+
+        Compare to a MultiIndex by level.
+
+        >>> df_multindex = pd.DataFrame({'cost': [250, 150, 100, 150, 300, 220],
+        ...                              'revenue': [100, 250, 300, 200, 175, 225]},
+        ...                             index=[['Q1', 'Q1', 'Q1', 'Q2', 'Q2', 'Q2'],
+        ...                                    ['A', 'B', 'C', 'A', 'B', 'C']])
+        >>> df_multindex
+              cost  revenue
+        Q1 A   250      100
+           B   150      250
+           C   100      300
+        Q2 A   150      200
+           B   300      175
+           C   220      225
+
+        >>> df.le(df_multindex, level=1)
+               cost  revenue
+        Q1 A   True     True
+           B   True     True
+           C   True     True
+        Q2 A  False     True
+           B   True    False
+           C   True    False
+        """
         return self._flex_cmp_method(other, operator.le, axis=axis, level=level)
 
-    @Appender(ops.make_flex_doc("lt", "dataframe"))
     def lt(self, other, axis: Axis = "columns", level=None) -> DataFrame:
+        """
+        Get Less than of dataframe and other, element-wise (binary operator `lt`).
+
+        Among flexible wrappers (`eq`, `ne`, `le`, `lt`, `ge`, `gt`) to comparison
+        operators.
+
+        Equivalent to ``<`` with support to choose axis
+        (rows or columns) and level for comparison.
+
+        Parameters
+        ----------
+        other : scalar, sequence, Series, or DataFrame
+            Any single or multiple element data structure, or list-like object.
+        axis : {0 or 'index', 1 or 'columns'}, default 'columns'
+            Whether to compare by the index (0 or 'index') or columns
+            (1 or 'columns').
+        level : int or label
+            Broadcast across a level, matching Index values on the passed
+            MultiIndex level.
+
+        Returns
+        -------
+        DataFrame of bool
+            Result of the comparison.
+
+        See Also
+        --------
+        DataFrame.eq : Compare DataFrames for equality elementwise.
+        DataFrame.ne : Compare DataFrames for inequality elementwise.
+        DataFrame.le : Compare DataFrames for less than inequality
+            or equality elementwise.
+        DataFrame.lt : Compare DataFrames for strictly less than
+            inequality elementwise.
+        DataFrame.ge : Compare DataFrames for greater than inequality
+            or equality elementwise.
+        DataFrame.gt : Compare DataFrames for strictly greater than
+            inequality elementwise.
+
+        Notes
+        -----
+        Mismatched indices will be unioned together.
+        `NaN` values are considered different (i.e. `NaN` != `NaN`).
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+        ...     {"cost": [250, 150, 100], "revenue": [100, 250, 300]},
+        ...     index=["A", "B", "C"],
+        ... )
+        >>> df
+           cost  revenue
+        A   250      100
+        B   150      250
+        C   100      300
+
+        Comparison with a scalar, using either the operator or method:
+
+        >>> df < 100
+            cost  revenue
+        A  False    False
+        B  False    False
+        C  False    False
+
+        >>> df.lt(100)
+            cost  revenue
+        A  False    False
+        B  False    False
+        C  False    False
+
+        When `other` is a :class:`Series`, the columns of a DataFrame are aligned
+        with the index of `other` and broadcast:
+
+        >>> df < pd.Series([100, 250], index=["cost", "revenue"])
+            cost  revenue
+        A  False     True
+        B  False    False
+        C  False    False
+
+        Use the method to control the broadcast axis:
+
+        >>> df.lt(pd.Series([100, 300], index=["A", "D"]), axis="index")
+            cost  revenue
+        A  False    False
+        B  False    False
+        C  False    False
+        D  False    False
+
+        When comparing to an arbitrary sequence, the number of columns must
+        match the number elements in `other`:
+
+        >>> df < [250, 100]
+            cost  revenue
+        A  False    False
+        B   True    False
+        C   True    False
+
+        Use the method to control the axis:
+
+        >>> df.lt([250, 250, 100], axis="index")
+            cost  revenue
+        A  False     True
+        B   True    False
+        C  False    False
+
+        Compare to a DataFrame of different shape.
+
+        >>> other = pd.DataFrame(
+        ...     {"revenue": [300, 250, 100, 150]}, index=["A", "B", "C", "D"]
+        ... )
+        >>> other
+           revenue
+        A      300
+        B      250
+        C      100
+        D      150
+
+        >>> df.lt(other)
+            cost  revenue
+        A  False     True
+        B  False    False
+        C  False    False
+        D  False    False
+
+        Compare to a MultiIndex by level.
+
+        >>> df_multindex = pd.DataFrame(
+        ...     {
+        ...         "cost": [250, 150, 100, 150, 300, 220],
+        ...         "revenue": [100, 250, 300, 200, 175, 225],
+        ...     },
+        ...     index=[
+        ...         ["Q1", "Q1", "Q1", "Q2", "Q2", "Q2"],
+        ...         ["A", "B", "C", "A", "B", "C"],
+        ...     ],
+        ... )
+        >>> df_multindex
+              cost  revenue
+        Q1 A   250      100
+           B   150      250
+           C   100      300
+        Q2 A   150      200
+           B   300      175
+           C   220      225
+
+        >>> df.lt(df_multindex, level=1)
+               cost  revenue
+        Q1 A  False    False
+           B  False    False
+           C  False    False
+        Q2 A  False     True
+           B   True    False
+           C   True    False
+        """
         return self._flex_cmp_method(other, operator.lt, axis=axis, level=level)
 
-    @Appender(ops.make_flex_doc("ge", "dataframe"))
     def ge(self, other, axis: Axis = "columns", level=None) -> DataFrame:
+        """
+        Get Greater than or equal to of dataframe and other, \
+        element-wise (binary operator `ge`).
+
+        Among flexible wrappers (`eq`, `ne`, `le`, `lt`, `ge`, `gt`) to comparison
+        operators.
+
+        Equivalent to ``>=`` with support to choose axis
+        (rows or columns) and level for comparison.
+
+        Parameters
+        ----------
+        other : scalar, sequence, Series, or DataFrame
+            Any single or multiple element data structure, or list-like object.
+        axis : {0 or 'index', 1 or 'columns'}, default 'columns'
+            Whether to compare by the index (0 or 'index') or columns
+            (1 or 'columns').
+        level : int or label
+            Broadcast across a level, matching Index values on the passed
+            MultiIndex level.
+
+        Returns
+        -------
+        DataFrame of bool
+            Result of the comparison.
+
+        See Also
+        --------
+        DataFrame.eq : Compare DataFrames for equality elementwise.
+        DataFrame.ne : Compare DataFrames for inequality elementwise.
+        DataFrame.le : Compare DataFrames for less than inequality
+            or equality elementwise.
+        DataFrame.lt : Compare DataFrames for strictly less than
+            inequality elementwise.
+        DataFrame.ge : Compare DataFrames for greater than inequality
+            or equality elementwise.
+        DataFrame.gt : Compare DataFrames for strictly greater than
+            inequality elementwise.
+
+        Notes
+        -----
+        Mismatched indices will be unioned together.
+        `NaN` values are considered different (i.e. `NaN` != `NaN`).
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'cost': [250, 150, 100],
+        ...                    'revenue': [100, 250, 300]},
+        ...                   index=['A', 'B', 'C'])
+        >>> df
+           cost  revenue
+        A   250      100
+        B   150      250
+        C   100      300
+
+        Comparison with a scalar, using either the operator or method:
+
+        >>> df >= 100
+           cost  revenue
+        A  True     True
+        B  True     True
+        C  True     True
+
+        >>> df.ge(100)
+           cost  revenue
+        A  True     True
+        B  True     True
+        C  True     True
+
+        When `other` is a :class:`Series`, the columns of a DataFrame are aligned
+        with the index of `other` and broadcast:
+
+        >>> df >= pd.Series([100, 250], index=["cost", "revenue"])
+           cost  revenue
+        A  True    False
+        B  True     True
+        C  True     True
+
+        Use the method to control the broadcast axis:
+
+        >>> df.ge(pd.Series([100, 300], index=["A", "D"]), axis='index')
+            cost  revenue
+        A   True     True
+        B  False    False
+        C  False    False
+        D  False    False
+
+        When comparing to an arbitrary sequence, the number of columns must
+        match the number elements in `other`:
+
+        >>> df >= [250, 100]
+            cost  revenue
+        A   True     True
+        B  False     True
+        C  False     True
+
+        Use the method to control the axis:
+
+        >>> df.ge([250, 250, 100], axis='index')
+            cost  revenue
+        A   True    False
+        B  False     True
+        C   True     True
+
+        Compare to a DataFrame of different shape.
+
+        >>> other = pd.DataFrame({'revenue': [300, 250, 100, 150]},
+        ...                      index=['A', 'B', 'C', 'D'])
+        >>> other
+           revenue
+        A      300
+        B      250
+        C      100
+        D      150
+
+        >>> df.ge(other)
+            cost  revenue
+        A  False    False
+        B  False     True
+        C  False     True
+        D  False    False
+
+        Compare to a MultiIndex by level.
+
+        >>> df_multindex = pd.DataFrame({'cost': [250, 150, 100, 150, 300, 220],
+        ...                              'revenue': [100, 250, 300, 200, 175, 225]},
+        ...                             index=[['Q1', 'Q1', 'Q1', 'Q2', 'Q2', 'Q2'],
+        ...                                    ['A', 'B', 'C', 'A', 'B', 'C']])
+        >>> df_multindex
+              cost  revenue
+        Q1 A   250      100
+           B   150      250
+           C   100      300
+        Q2 A   150      200
+           B   300      175
+           C   220      225
+
+        >>> df.ge(df_multindex, level=1)
+               cost  revenue
+        Q1 A   True     True
+           B   True     True
+           C   True     True
+        Q2 A   True    False
+           B  False     True
+           C  False     True
+        """
         return self._flex_cmp_method(other, operator.ge, axis=axis, level=level)
 
-    @Appender(ops.make_flex_doc("gt", "dataframe"))
     def gt(self, other, axis: Axis = "columns", level=None) -> DataFrame:
+        """
+        Get Greater than of dataframe and other, element-wise (binary operator `gt`).
+
+        Among flexible wrappers (`eq`, `ne`, `le`, `lt`, `ge`, `gt`) to comparison
+        operators.
+
+        Equivalent to ``>`` with support to choose axis
+        (rows or columns) and level for comparison.
+
+        Parameters
+        ----------
+        other : scalar, sequence, Series, or DataFrame
+            Any single or multiple element data structure, or list-like object.
+        axis : {0 or 'index', 1 or 'columns'}, default 'columns'
+            Whether to compare by the index (0 or 'index') or columns
+            (1 or 'columns').
+        level : int or label
+            Broadcast across a level, matching Index values on the passed
+            MultiIndex level.
+
+        Returns
+        -------
+        DataFrame of bool
+            Result of the comparison.
+
+        See Also
+        --------
+        DataFrame.eq : Compare DataFrames for equality elementwise.
+        DataFrame.ne : Compare DataFrames for inequality elementwise.
+        DataFrame.le : Compare DataFrames for less than inequality
+            or equality elementwise.
+        DataFrame.lt : Compare DataFrames for strictly less than
+            inequality elementwise.
+        DataFrame.ge : Compare DataFrames for greater than inequality
+            or equality elementwise.
+        DataFrame.gt : Compare DataFrames for strictly greater than
+            inequality elementwise.
+
+        Notes
+        -----
+        Mismatched indices will be unioned together.
+        `NaN` values are considered different (i.e. `NaN` != `NaN`).
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+        ...     {"cost": [250, 150, 100], "revenue": [100, 250, 300]},
+        ...     index=["A", "B", "C"],
+        ... )
+        >>> df
+           cost  revenue
+        A   250      100
+        B   150      250
+        C   100      300
+
+        Comparison with a scalar, using either the operator or method:
+
+        >>> df > 100
+            cost  revenue
+        A   True    False
+        B   True     True
+        C  False     True
+
+        >>> df.gt(100)
+            cost  revenue
+        A   True    False
+        B   True     True
+        C  False     True
+
+        When `other` is a :class:`Series`, the columns of a DataFrame are aligned
+        with the index of `other` and broadcast:
+
+        >>> df > pd.Series([100, 250], index=["cost", "revenue"])
+            cost  revenue
+        A   True    False
+        B   True    False
+        C  False     True
+
+        Use the method to control the broadcast axis:
+
+        >>> df.gt(pd.Series([100, 300], index=["A", "D"]), axis="index")
+            cost  revenue
+        A   True    False
+        B  False    False
+        C  False    False
+        D  False    False
+
+        When comparing to an arbitrary sequence, the number of columns must
+        match the number elements in `other`:
+
+        >>> df > [250, 100]
+            cost  revenue
+        A  False    False
+        B  False     True
+        C  False     True
+
+        Use the method to control the axis:
+
+        >>> df.gt([250, 250, 100], axis="index")
+            cost  revenue
+        A  False    False
+        B  False    False
+        C  False     True
+
+        Compare to a DataFrame of different shape.
+
+        >>> other = pd.DataFrame(
+        ...     {"revenue": [300, 250, 100, 150]}, index=["A", "B", "C", "D"]
+        ... )
+        >>> other
+           revenue
+        A      300
+        B      250
+        C      100
+        D      150
+
+        >>> df.gt(other)
+            cost  revenue
+        A  False    False
+        B  False    False
+        C  False     True
+        D  False    False
+
+        Compare to a MultiIndex by level.
+
+        >>> df_multindex = pd.DataFrame(
+        ...     {
+        ...         "cost": [250, 150, 100, 150, 300, 220],
+        ...         "revenue": [100, 250, 300, 200, 175, 225],
+        ...     },
+        ...     index=[
+        ...         ["Q1", "Q1", "Q1", "Q2", "Q2", "Q2"],
+        ...         ["A", "B", "C", "A", "B", "C"],
+        ...     ],
+        ... )
+        >>> df_multindex
+              cost  revenue
+        Q1 A   250      100
+           B   150      250
+           C   100      300
+        Q2 A   150      200
+           B   300      175
+           C   220      225
+
+        >>> df.gt(df_multindex, level=1)
+               cost  revenue
+        Q1 A  False    False
+           B  False    False
+           C  False    False
+        Q2 A   True    False
+           B  False     True
+           C  False     True
+        """
         return self._flex_cmp_method(other, operator.gt, axis=axis, level=level)
 
-    @Appender(ops.make_flex_doc("add", "dataframe"))
     def add(
         self, other, axis: Axis = "columns", level=None, fill_value=None
     ) -> DataFrame:
+        """
+        Get Addition of dataframe and other, element-wise (binary operator `add`).
+
+        Equivalent to ``dataframe + other``, but with support to substitute a
+        fill_value for missing data in one of the inputs. With reverse version,
+        `radd`.
+
+        Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`)
+        to arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
+
+        Parameters
+        ----------
+        other : scalar, sequence, Series, dict or DataFrame
+            Any single or multiple element data structure, or list-like object.
+        axis : {0 or 'index', 1 or 'columns'}
+            Whether to compare by the index (0 or 'index') or columns.
+            (1 or 'columns'). For Series input, axis to match Series index on.
+        level : int or label
+            Broadcast across a level, matching Index values on the
+            passed MultiIndex level.
+        fill_value : float or None, default None
+            Fill existing missing (NaN) values, and any new element needed for
+            successful DataFrame alignment, with this value before computation.
+            If data in both corresponding DataFrame locations is missing
+            the result will be missing.
+
+        Returns
+        -------
+        DataFrame
+            Result of the arithmetic operation.
+
+        See Also
+        --------
+        DataFrame.add : Add DataFrames.
+        DataFrame.sub : Subtract DataFrames.
+        DataFrame.mul : Multiply DataFrames.
+        DataFrame.div : Divide DataFrames (float division).
+        DataFrame.truediv : Divide DataFrames (float division).
+        DataFrame.floordiv : Divide DataFrames (integer division).
+        DataFrame.mod : Calculate modulo (remainder after division).
+        DataFrame.pow : Calculate exponential power.
+
+        Notes
+        -----
+        Mismatched indices will be unioned together.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+        ...     {"angles": [0, 3, 4], "degrees": [360, 180, 360]},
+        ...     index=["circle", "triangle", "rectangle"],
+        ... )
+        >>> df
+                   angles  degrees
+        circle          0      360
+        triangle        3      180
+        rectangle       4      360
+
+        Add a scalar with operator version which return the same
+        results.
+
+        >>> df + 1
+                   angles  degrees
+        circle          1      361
+        triangle        4      181
+        rectangle       5      361
+
+        >>> df.add(1)
+                   angles  degrees
+        circle          1      361
+        triangle        4      181
+        rectangle       5      361
+
+        Add a list and Series by axis with operator version.
+
+        >>> df + [1, 2]
+                   angles  degrees
+        circle          1      362
+        triangle        4      182
+        rectangle       5      362
+
+        >>> df.add([1, 2], axis="columns")
+                   angles  degrees
+        circle          1      362
+        triangle        4      182
+        rectangle       5      362
+
+        >>> df.add(
+        ...     pd.Series([1, 1, 1], index=["circle", "triangle", "rectangle"]),
+        ...     axis="index",
+        ... )
+                   angles  degrees
+        circle          1      361
+        triangle        4      181
+        rectangle       5      361
+
+        Add a dictionary by axis.
+
+        >>> df.add({"angles": 0, "degrees": 2})
+                   angles  degrees
+        circle          0      362
+        triangle        3      182
+        rectangle       4      362
+
+        >>> df.add({"circle": 0, "triangle": 2, "rectangle": 3}, axis="index")
+                   angles  degrees
+        circle          0      360
+        triangle        5      182
+        rectangle       7      363
+        """
         return self._flex_arith_method(
             other, operator.add, level=level, fill_value=fill_value, axis=axis
         )
 
-    @Appender(ops.make_flex_doc("radd", "dataframe"))
     def radd(
         self, other, axis: Axis = "columns", level=None, fill_value=None
     ) -> DataFrame:
+        """
+        Get Addition of dataframe and other, element-wise (binary operator `radd`).
+
+        Equivalent to ``other + dataframe``, but with support to substitute a
+        fill_value for missing data in one of the inputs. With reverse version,
+        `add`.
+
+        Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`)
+        to arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
+
+        Parameters
+        ----------
+        other : scalar, sequence, Series, dict or DataFrame
+            Any single or multiple element data structure, or list-like object.
+        axis : {0 or 'index', 1 or 'columns'}
+            Whether to compare by the index (0 or 'index') or columns.
+            (1 or 'columns'). For Series input, axis to match Series index on.
+        level : int or label
+            Broadcast across a level, matching Index values on the
+            passed MultiIndex level.
+        fill_value : float or None, default None
+            Fill existing missing (NaN) values, and any new element needed for
+            successful DataFrame alignment, with this value before computation.
+            If data in both corresponding DataFrame locations is missing
+            the result will be missing.
+
+        Returns
+        -------
+        DataFrame
+            Result of the arithmetic operation.
+
+        See Also
+        --------
+        DataFrame.add : Add DataFrames.
+        DataFrame.sub : Subtract DataFrames.
+        DataFrame.mul : Multiply DataFrames.
+        DataFrame.div : Divide DataFrames (float division).
+        DataFrame.truediv : Divide DataFrames (float division).
+        DataFrame.floordiv : Divide DataFrames (integer division).
+        DataFrame.mod : Calculate modulo (remainder after division).
+        DataFrame.pow : Calculate exponential power.
+
+        Notes
+        -----
+        Mismatched indices will be unioned together.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+        ...     {"angles": [0, 3, 4], "degrees": [360, 180, 360]},
+        ...     index=["circle", "triangle", "rectangle"],
+        ... )
+        >>> df
+                   angles  degrees
+        circle          0      360
+        triangle        3      180
+        rectangle       4      360
+
+        Add a scalar with operator version which return the same
+        results.
+
+        >>> 1 + df
+                   angles  degrees
+        circle          1      361
+        triangle        4      181
+        rectangle       5      361
+
+        >>> df.radd(1)
+                   angles  degrees
+        circle          1      361
+        triangle        4      181
+        rectangle       5      361
+
+        Add a list and Series by axis with operator version.
+
+        >>> [1, 2] + df
+                   angles  degrees
+        circle          1      362
+        triangle        4      182
+        rectangle       5      362
+
+        >>> df.radd([1, 2], axis="columns")
+                   angles  degrees
+        circle          1      362
+        triangle        4      182
+        rectangle       5      362
+
+        >>> df.radd(
+        ...     pd.Series([1, 1, 1], index=["circle", "triangle", "rectangle"]),
+        ...     axis="index",
+        ... )
+                   angles  degrees
+        circle          1      361
+        triangle        4      181
+        rectangle       5      361
+
+        Add a dictionary by axis.
+
+        >>> df.radd({"angles": 0, "degrees": 2})
+                   angles  degrees
+        circle          0      362
+        triangle        3      182
+        rectangle       4      362
+
+        >>> df.radd({"circle": 0, "triangle": 2, "rectangle": 3}, axis="index")
+                   angles  degrees
+        circle          0      360
+        triangle        5      182
+        rectangle       7      363
+        """
         return self._flex_arith_method(
             other, roperator.radd, level=level, fill_value=fill_value, axis=axis
         )
 
-    @Appender(ops.make_flex_doc("sub", "dataframe"))
     def sub(
         self, other, axis: Axis = "columns", level=None, fill_value=None
     ) -> DataFrame:
+        """
+        Get Subtraction of dataframe and other, element-wise (binary operator `sub`).
+
+        Equivalent to ``dataframe - other``, but with support to substitute a
+        fill_value for missing data in one of the inputs. With reverse version, `rsub`.
+
+        Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`)
+        to arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
+
+        Parameters
+        ----------
+        other : scalar, sequence, Series, dict or DataFrame
+            Any single or multiple element data structure, or list-like object.
+        axis : {0 or 'index', 1 or 'columns'}
+            Whether to compare by the index (0 or 'index') or columns.
+            (1 or 'columns'). For Series input, axis to match Series index on.
+        level : int or label
+            Broadcast across a level, matching Index values on the
+            passed MultiIndex level.
+        fill_value : float or None, default None
+            Fill existing missing (NaN) values, and any new element needed for
+            successful DataFrame alignment, with this value before computation.
+            If data in both corresponding DataFrame locations is missing
+            the result will be missing.
+
+        Returns
+        -------
+        DataFrame
+            Result of the arithmetic operation.
+
+        See Also
+        --------
+        DataFrame.add : Add DataFrames.
+        DataFrame.sub : Subtract DataFrames.
+        DataFrame.mul : Multiply DataFrames.
+        DataFrame.div : Divide DataFrames (float division).
+        DataFrame.truediv : Divide DataFrames (float division).
+        DataFrame.floordiv : Divide DataFrames (integer division).
+        DataFrame.mod : Calculate modulo (remainder after division).
+        DataFrame.pow : Calculate exponential power.
+
+        Notes
+        -----
+        Mismatched indices will be unioned together.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+        ...     {"angles": [0, 3, 4], "degrees": [360, 180, 360]},
+        ...     index=["circle", "triangle", "rectangle"],
+        ... )
+        >>> df
+                   angles  degrees
+        circle          0      360
+        triangle        3      180
+        rectangle       4      360
+
+        Subtract a scalar with operator version which return the same
+        results.
+
+        >>> df - 1
+                   angles  degrees
+        circle         -1      359
+        triangle        2      179
+        rectangle       3      359
+
+        >>> df.sub(1)
+                   angles  degrees
+        circle         -1      359
+        triangle        2      179
+        rectangle       3      359
+
+        Subtract a list and Series by axis with operator version.
+
+        >>> df - [1, 2]
+                   angles  degrees
+        circle         -1      358
+        triangle        2      178
+        rectangle       3      358
+
+        >>> df.sub([1, 2], axis="columns")
+                   angles  degrees
+        circle         -1      358
+        triangle        2      178
+        rectangle       3      358
+
+        >>> df.sub(
+        ...     pd.Series([1, 1, 1], index=["circle", "triangle", "rectangle"]),
+        ...     axis="index",
+        ... )
+                   angles  degrees
+        circle         -1      359
+        triangle        2      179
+        rectangle       3      359
+
+        Subtract a dictionary by axis.
+
+        >>> df.sub({"angles": 0, "degrees": 2})
+                   angles  degrees
+        circle          0      358
+        triangle        3      178
+        rectangle       4      358
+
+        >>> df.sub({"circle": 0, "triangle": 2, "rectangle": 3}, axis="index")
+                   angles  degrees
+        circle          0      360
+        triangle        1      178
+        rectangle       1      357
+        """
         return self._flex_arith_method(
             other, operator.sub, level=level, fill_value=fill_value, axis=axis
         )
 
     subtract = sub
 
-    @Appender(ops.make_flex_doc("rsub", "dataframe"))
     def rsub(
         self, other, axis: Axis = "columns", level=None, fill_value=None
     ) -> DataFrame:
+        """
+        Get Subtraction of dataframe and other, element-wise (binary operator `rsub`).
+
+        Equivalent to ``other - dataframe``, but with support to substitute a
+        fill_value for missing data in one of the inputs. With reverse version, `sub`.
+
+        Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`)
+        to arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
+
+        Parameters
+        ----------
+        other : scalar, sequence, Series, dict or DataFrame
+            Any single or multiple element data structure, or list-like object.
+        axis : {0 or 'index', 1 or 'columns'}
+            Whether to compare by the index (0 or 'index') or columns.
+            (1 or 'columns'). For Series input, axis to match Series index on.
+        level : int or label
+            Broadcast across a level, matching Index values on the
+            passed MultiIndex level.
+        fill_value : float or None, default None
+            Fill existing missing (NaN) values, and any new element needed for
+            successful DataFrame alignment, with this value before computation.
+            If data in both corresponding DataFrame locations is missing
+            the result will be missing.
+
+        Returns
+        -------
+        DataFrame
+            Result of the arithmetic operation.
+
+        See Also
+        --------
+        DataFrame.add : Add DataFrames.
+        DataFrame.sub : Subtract DataFrames.
+        DataFrame.mul : Multiply DataFrames.
+        DataFrame.div : Divide DataFrames (float division).
+        DataFrame.truediv : Divide DataFrames (float division).
+        DataFrame.floordiv : Divide DataFrames (integer division).
+        DataFrame.mod : Calculate modulo (remainder after division).
+        DataFrame.pow : Calculate exponential power.
+
+        Notes
+        -----
+        Mismatched indices will be unioned together.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+        ...     {"angles": [0, 3, 4], "degrees": [360, 180, 360]},
+        ...     index=["circle", "triangle", "rectangle"],
+        ... )
+        >>> df
+                   angles  degrees
+        circle          0      360
+        triangle        3      180
+        rectangle       4      360
+
+        Subtract by a scalar with operator version which return the same
+        results.
+
+        >>> 1 - df
+                   angles  degrees
+        circle          1     -359
+        triangle       -2     -179
+        rectangle      -3     -359
+
+        >>> df.rsub(1)
+                   angles  degrees
+        circle          1     -359
+        triangle       -2     -179
+        rectangle      -3     -359
+
+        Subtract by a list and Series by axis with operator version.
+
+        >>> [1, 2] - df
+                   angles  degrees
+        circle          1     -358
+        triangle       -2     -178
+        rectangle      -3     -358
+
+        >>> df.rsub([1, 2], axis="columns")
+                   angles  degrees
+        circle          1     -358
+        triangle       -2     -178
+        rectangle      -3     -358
+
+        >>> df.rsub(
+        ...     pd.Series([1, 1, 1], index=["circle", "triangle", "rectangle"]),
+        ...     axis="index",
+        ... )
+                   angles  degrees
+        circle          1     -359
+        triangle       -2     -179
+        rectangle      -3     -359
+
+        Subtract by a dictionary by axis.
+
+        >>> df.rsub({"angles": 0, "degrees": 2})
+                   angles  degrees
+        circle          0     -358
+        triangle       -3     -178
+        rectangle      -4     -358
+
+        >>> df.rsub({"circle": 0, "triangle": 2, "rectangle": 3}, axis="index")
+                   angles  degrees
+        circle          0     -360
+        triangle       -1     -178
+        rectangle      -1     -357
+        """
         return self._flex_arith_method(
             other, roperator.rsub, level=level, fill_value=fill_value, axis=axis
         )
 
-    @Appender(ops.make_flex_doc("mul", "dataframe"))
     def mul(
         self, other, axis: Axis = "columns", level=None, fill_value=None
     ) -> DataFrame:
+        """
+        Get Multiplication of dataframe and other, \
+        element-wise (binary operator `mul`).
+
+        Equivalent to ``dataframe * other``, but with support to substitute a
+        fill_value for missing data in one of the inputs. With reverse version,
+        `rmul`.
+
+        Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`)
+        to arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
+
+        Parameters
+        ----------
+        other : scalar, sequence, Series, dict or DataFrame
+            Any single or multiple element data structure, or list-like object.
+        axis : {0 or 'index', 1 or 'columns'}
+            Whether to compare by the index (0 or 'index') or columns.
+            (1 or 'columns'). For Series input, axis to match Series index on.
+        level : int or label
+            Broadcast across a level, matching Index values on the
+            passed MultiIndex level.
+        fill_value : float or None, default None
+            Fill existing missing (NaN) values, and any new element needed for
+            successful DataFrame alignment, with this value before computation.
+            If data in both corresponding DataFrame locations is missing
+            the result will be missing.
+
+        Returns
+        -------
+        DataFrame
+            Result of the arithmetic operation.
+
+        See Also
+        --------
+        DataFrame.add : Add DataFrames.
+        DataFrame.sub : Subtract DataFrames.
+        DataFrame.mul : Multiply DataFrames.
+        DataFrame.div : Divide DataFrames (float division).
+        DataFrame.truediv : Divide DataFrames (float division).
+        DataFrame.floordiv : Divide DataFrames (integer division).
+        DataFrame.mod : Calculate modulo (remainder after division).
+        DataFrame.pow : Calculate exponential power.
+
+        Notes
+        -----
+        Mismatched indices will be unioned together.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+        ...     {"angles": [0, 3, 4], "degrees": [360, 180, 360]},
+        ...     index=["circle", "triangle", "rectangle"],
+        ... )
+        >>> df
+                   angles  degrees
+        circle          0      360
+        triangle        3      180
+        rectangle       4      360
+
+        Multiply a scalar with operator version which return the same
+        results.
+
+        >>> df * 2
+                   angles  degrees
+        circle          0      720
+        triangle        6      360
+        rectangle       8      720
+
+        >>> df.mul(2)
+                   angles  degrees
+        circle          0      720
+        triangle        6      360
+        rectangle       8      720
+
+        Multiply a list and Series by axis with operator version.
+
+        >>> df * [1, 2]
+                   angles  degrees
+        circle          0      720
+        triangle        3      360
+        rectangle       4      720
+
+        >>> df.mul([1, 2], axis="columns")
+                   angles  degrees
+        circle          0      720
+        triangle        3      360
+        rectangle       4      720
+
+        >>> df.mul(
+        ...     pd.Series([1, 2, 3], index=["circle", "triangle", "rectangle"]),
+        ...     axis="index",
+        ... )
+                   angles  degrees
+        circle          0      360
+        triangle        6      360
+        rectangle      12     1080
+
+        Multiply a dictionary by axis.
+
+        >>> df.mul({"angles": 0, "degrees": 2})
+                    angles  degrees
+        circle           0      720
+        triangle         0      360
+        rectangle        0      720
+
+        >>> df.mul({"circle": 0, "triangle": 2, "rectangle": 3}, axis="index")
+                    angles  degrees
+        circle           0        0
+        triangle         6      360
+        rectangle       12     1080
+        """
         return self._flex_arith_method(
             other, operator.mul, level=level, fill_value=fill_value, axis=axis
         )
 
     multiply = mul
 
-    @Appender(ops.make_flex_doc("rmul", "dataframe"))
     def rmul(
         self, other, axis: Axis = "columns", level=None, fill_value=None
     ) -> DataFrame:
+        """
+        Get Multiplication of dataframe and other, \
+        element-wise (binary operator `rmul`).
+
+        Equivalent to ``other * dataframe``, but with support to substitute a
+        fill_value for missing data in one of the inputs. With reverse version,
+        `mul`.
+
+        Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`)
+        to arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
+
+        Parameters
+        ----------
+        other : scalar, sequence, Series, dict or DataFrame
+            Any single or multiple element data structure, or list-like object.
+        axis : {0 or 'index', 1 or 'columns'}
+            Whether to compare by the index (0 or 'index') or columns.
+            (1 or 'columns'). For Series input, axis to match Series index on.
+        level : int or label
+            Broadcast across a level, matching Index values on the
+            passed MultiIndex level.
+        fill_value : float or None, default None
+            Fill existing missing (NaN) values, and any new element needed for
+            successful DataFrame alignment, with this value before computation.
+            If data in both corresponding DataFrame locations is missing
+            the result will be missing.
+
+        Returns
+        -------
+        DataFrame
+            Result of the arithmetic operation.
+
+        See Also
+        --------
+        DataFrame.add : Add DataFrames.
+        DataFrame.sub : Subtract DataFrames.
+        DataFrame.mul : Multiply DataFrames.
+        DataFrame.div : Divide DataFrames (float division).
+        DataFrame.truediv : Divide DataFrames (float division).
+        DataFrame.floordiv : Divide DataFrames (integer division).
+        DataFrame.mod : Calculate modulo (remainder after division).
+        DataFrame.pow : Calculate exponential power.
+
+        Notes
+        -----
+        Mismatched indices will be unioned together.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'angles': [0, 3, 4],
+        ...                    'degrees': [360, 180, 360]},
+        ...                   index=['circle', 'triangle', 'rectangle'])
+        >>> df
+                   angles  degrees
+        circle          0      360
+        triangle        3      180
+        rectangle       4      360
+
+        Multiply by a scalar.
+
+        >>> 2 * df
+                   angles  degrees
+        circle          0      720
+        triangle        6      360
+        rectangle       8      720
+
+        >>> df.rmul(2)
+                   angles  degrees
+        circle          0      720
+        triangle        6      360
+        rectangle       8      720
+
+        Multiply by a list and Series.
+
+        >>> [1, 2] * df
+                   angles  degrees
+        circle          0      720
+        triangle        3      360
+        rectangle       4      720
+
+        >>> df.rmul([1, 2], axis='columns')
+                   angles  degrees
+        circle          0      720
+        triangle        3      360
+        rectangle       4      720
+
+        >>> df.rmul(pd.Series([1, 2, 3], index=['circle', 'triangle', 'rectangle']),
+        ...         axis='index')
+                   angles  degrees
+        circle          0      360
+        triangle        6      360
+        rectangle      12     1080
+        """
         return self._flex_arith_method(
             other, roperator.rmul, level=level, fill_value=fill_value, axis=axis
         )
 
-    @Appender(ops.make_flex_doc("truediv", "dataframe"))
     def truediv(
         self, other, axis: Axis = "columns", level=None, fill_value=None
     ) -> DataFrame:
+        """
+        Get Floating division of dataframe and other, \
+        element-wise (binary operator `truediv`).
+
+        Equivalent to ``dataframe / other``, but with support to substitute a
+        fill_value for missing data in one of the inputs. With reverse version,
+        `rtruediv`.
+
+        Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`)
+        to arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
+
+        Parameters
+        ----------
+        other : scalar, sequence, Series, dict or DataFrame
+            Any single or multiple element data structure, or list-like object.
+        axis : {0 or 'index', 1 or 'columns'}
+            Whether to compare by the index (0 or 'index') or columns.
+            (1 or 'columns'). For Series input, axis to match Series index on.
+        level : int or label
+            Broadcast across a level, matching Index values on the
+            passed MultiIndex level.
+        fill_value : float or None, default None
+            Fill existing missing (NaN) values, and any new element needed for
+            successful DataFrame alignment, with this value before computation.
+            If data in both corresponding DataFrame locations is missing
+            the result will be missing.
+
+        Returns
+        -------
+        DataFrame
+            Result of the arithmetic operation.
+
+        See Also
+        --------
+        DataFrame.add : Add DataFrames.
+        DataFrame.sub : Subtract DataFrames.
+        DataFrame.mul : Multiply DataFrames.
+        DataFrame.div : Divide DataFrames (float division).
+        DataFrame.truediv : Divide DataFrames (float division).
+        DataFrame.floordiv : Divide DataFrames (integer division).
+        DataFrame.mod : Calculate modulo (remainder after division).
+        DataFrame.pow : Calculate exponential power.
+
+        Notes
+        -----
+        Mismatched indices will be unioned together.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'angles': [0, 3, 4],
+        ...                    'degrees': [360, 180, 360]},
+        ...                   index=['circle', 'triangle', 'rectangle'])
+        >>> df
+                   angles  degrees
+        circle          0      360
+        triangle        3      180
+        rectangle       4      360
+
+        Divide by a scalar.
+
+        >>> df / 2
+                   angles  degrees
+        circle        0.0    180.0
+        triangle      1.5     90.0
+        rectangle     2.0    180.0
+
+        >>> df.truediv(2)
+                   angles  degrees
+        circle        0.0    180.0
+        triangle      1.5     90.0
+        rectangle     2.0    180.0
+
+        Divide by a list and Series.
+
+        >>> df / [1, 2]
+                   angles  degrees
+        circle        0.0    180.0
+        triangle      3.0     90.0
+        rectangle     4.0    180.0
+
+        >>> df.truediv([1, 2], axis='columns')
+                   angles  degrees
+        circle        0.0    180.0
+        triangle      3.0     90.0
+        rectangle     4.0    180.0
+
+        >>> df.truediv(pd.Series([1, 2, 3], index=['circle', 'triangle', 'rectangle']),
+        ...            axis='index')
+                     angles  degrees
+        circle     0.000000    360.0
+        triangle   1.500000     90.0
+        rectangle  1.333333    120.0
+
+        Divide by a dictionary by axis.
+
+        >>> df.truediv({'angles': 2, 'degrees': 3})
+                   angles  degrees
+        circle        0.0    120.0
+        triangle      1.5     60.0
+        rectangle     2.0    120.0
+
+        >>> df.truediv({'circle': 1, 'triangle': 2, 'rectangle': 3}, axis='index')
+                     angles  degrees
+        circle     0.000000    360.0
+        triangle   1.500000     90.0
+        rectangle  1.333333    120.0
+        """
         return self._flex_arith_method(
             other, operator.truediv, level=level, fill_value=fill_value, axis=axis
         )
@@ -9946,60 +11282,655 @@ class DataFrame(NDFrame, OpsMixin):
     div = truediv
     divide = truediv
 
-    @Appender(ops.make_flex_doc("rtruediv", "dataframe"))
     def rtruediv(
         self, other, axis: Axis = "columns", level=None, fill_value=None
     ) -> DataFrame:
+        """
+        Get Floating division of dataframe and other, \
+        element-wise (binary operator `rtruediv`).
+
+        Equivalent to ``other / dataframe``, but with support to substitute a
+        fill_value for missing data in one of the inputs. With reverse version,
+        `truediv`.
+
+        Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`)
+        to arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
+
+        Parameters
+        ----------
+        other : scalar, sequence, Series, dict or DataFrame
+            Any single or multiple element data structure, or list-like object.
+        axis : {0 or 'index', 1 or 'columns'}
+            Whether to compare by the index (0 or 'index') or columns.
+            (1 or 'columns'). For Series input, axis to match Series index on.
+        level : int or label
+            Broadcast across a level, matching Index values on the
+            passed MultiIndex level.
+        fill_value : float or None, default None
+            Fill existing missing (NaN) values, and any new element needed for
+            successful DataFrame alignment, with this value before computation.
+            If data in both corresponding DataFrame locations is missing
+            the result will be missing.
+
+        Returns
+        -------
+        DataFrame
+            Result of the arithmetic operation.
+
+        See Also
+        --------
+        DataFrame.add : Add DataFrames.
+        DataFrame.sub : Subtract DataFrames.
+        DataFrame.mul : Multiply DataFrames.
+        DataFrame.div : Divide DataFrames (float division).
+        DataFrame.truediv : Divide DataFrames (float division).
+        DataFrame.floordiv : Divide DataFrames (integer division).
+        DataFrame.mod : Calculate modulo (remainder after division).
+        DataFrame.pow : Calculate exponential power.
+
+        Notes
+        -----
+        Mismatched indices will be unioned together.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'angles': [0, 3, 4],
+        ...                    'degrees': [360, 180, 360]},
+        ...                   index=['circle', 'triangle', 'rectangle'])
+        >>> df
+                   angles  degrees
+        circle          0      360
+        triangle        3      180
+        rectangle       4      360
+
+        Divide a scalar.
+
+        >>> 1 / df
+                     angles   degrees
+        circle          inf  0.002778
+        triangle   0.333333  0.005556
+        rectangle  0.250000  0.002778
+
+        >>> df.rtruediv(1)
+                     angles   degrees
+        circle          inf  0.002778
+        triangle   0.333333  0.005556
+        rectangle  0.250000  0.002778
+
+        Divide a list.
+
+        >>> [1, 2] / df
+                     angles   degrees
+        circle          inf  0.005556
+        triangle   0.333333  0.011111
+        rectangle  0.250000  0.005556
+
+        >>> df.rtruediv([1, 2], axis='columns')
+                     angles   degrees
+        circle          inf  0.005556
+        triangle   0.333333  0.011111
+        rectangle  0.250000  0.005556
+        """
         return self._flex_arith_method(
             other, roperator.rtruediv, level=level, fill_value=fill_value, axis=axis
         )
 
     rdiv = rtruediv
 
-    @Appender(ops.make_flex_doc("floordiv", "dataframe"))
     def floordiv(
         self, other, axis: Axis = "columns", level=None, fill_value=None
     ) -> DataFrame:
+        """
+        Get Integer division of dataframe and other, \
+        element-wise (binary operator `floordiv`).
+
+        Equivalent to ``dataframe // other``, but with support to substitute a
+        fill_value for missing data in one of the inputs. With reverse version,
+        `rfloordiv`.
+
+        Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`)
+        to arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
+
+        Parameters
+        ----------
+        other : scalar, sequence, Series, dict or DataFrame
+            Any single or multiple element data structure, or list-like object.
+        axis : {0 or 'index', 1 or 'columns'}
+            Whether to compare by the index (0 or 'index') or columns.
+            (1 or 'columns'). For Series input, axis to match Series index on.
+        level : int or label
+            Broadcast across a level, matching Index values on the
+            passed MultiIndex level.
+        fill_value : float or None, default None
+            Fill existing missing (NaN) values, and any new element needed for
+            successful DataFrame alignment, with this value before computation.
+            If data in both corresponding DataFrame locations is missing
+            the result will be missing.
+
+        Returns
+        -------
+        DataFrame
+            Result of the arithmetic operation.
+
+        See Also
+        --------
+        DataFrame.add : Add DataFrames.
+        DataFrame.sub : Subtract DataFrames.
+        DataFrame.mul : Multiply DataFrames.
+        DataFrame.div : Divide DataFrames (float division).
+        DataFrame.truediv : Divide DataFrames (float division).
+        DataFrame.floordiv : Divide DataFrames (integer division).
+        DataFrame.mod : Calculate modulo (remainder after division).
+        DataFrame.pow : Calculate exponential power.
+
+        Notes
+        -----
+        Mismatched indices will be unioned together.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'angles': [0, 3, 4],
+        ...                    'degrees': [360, 180, 360]},
+        ...                   index=['circle', 'triangle', 'rectangle'])
+        >>> df
+                   angles  degrees
+        circle          0      360
+        triangle        3      180
+        rectangle       4      360
+
+        Divide by a scalar.
+
+        >>> df // 2
+                   angles  degrees
+        circle          0      180
+        triangle        1       90
+        rectangle       2      180
+
+        >>> df.floordiv(2)
+                   angles  degrees
+        circle          0      180
+        triangle        1       90
+        rectangle       2      180
+
+        Divide by a list and Series.
+
+        >>> df // [1, 2]
+                   angles  degrees
+        circle          0      180
+        triangle        3       90
+        rectangle       4      180
+
+        >>> df.floordiv([1, 2], axis='columns')
+                   angles  degrees
+        circle          0      180
+        triangle        3       90
+        rectangle       4      180
+        """
         return self._flex_arith_method(
             other, operator.floordiv, level=level, fill_value=fill_value, axis=axis
         )
 
-    @Appender(ops.make_flex_doc("rfloordiv", "dataframe"))
     def rfloordiv(
         self, other, axis: Axis = "columns", level=None, fill_value=None
     ) -> DataFrame:
+        """
+        Get Integer division of dataframe and other, \
+        element-wise (binary operator `rfloordiv`).
+
+        Equivalent to ``other // dataframe``, but with support to substitute a
+        fill_value for missing data in one of the inputs. With reverse version,
+        `floordiv`.
+
+        Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`)
+        to arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
+
+        Parameters
+        ----------
+        other : scalar, sequence, Series, dict or DataFrame
+            Any single or multiple element data structure, or list-like object.
+        axis : {0 or 'index', 1 or 'columns'}
+            Whether to compare by the index (0 or 'index') or columns.
+            (1 or 'columns'). For Series input, axis to match Series index on.
+        level : int or label
+            Broadcast across a level, matching Index values on the
+            passed MultiIndex level.
+        fill_value : float or None, default None
+            Fill existing missing (NaN) values, and any new element needed for
+            successful DataFrame alignment, with this value before computation.
+            If data in both corresponding DataFrame locations is missing
+            the result will be missing.
+
+        Returns
+        -------
+        DataFrame
+            Result of the arithmetic operation.
+
+        See Also
+        --------
+        DataFrame.add : Add DataFrames.
+        DataFrame.sub : Subtract DataFrames.
+        DataFrame.mul : Multiply DataFrames.
+        DataFrame.div : Divide DataFrames (float division).
+        DataFrame.truediv : Divide DataFrames (float division).
+        DataFrame.floordiv : Divide DataFrames (integer division).
+        DataFrame.mod : Calculate modulo (remainder after division).
+        DataFrame.pow : Calculate exponential power.
+
+        Notes
+        -----
+        Mismatched indices will be unioned together.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'angles': [0, 3, 4],
+        ...                    'degrees': [360, 180, 360]},
+        ...                   index=['circle', 'triangle', 'rectangle'])
+        >>> df
+                   angles  degrees
+        circle          0      360
+        triangle        3      180
+        rectangle       4      360
+
+        Divide a scalar.
+
+        >>> 10 // df
+                   angles  degrees
+        circle        inf      0.0
+        triangle      3.0      0.0
+        rectangle     2.0      0.0
+
+        >>> df.rfloordiv(10)
+                   angles  degrees
+        circle        inf      0.0
+        triangle      3.0      0.0
+        rectangle     2.0      0.0
+
+        Divide a list.
+
+        >>> [10, 20] // df
+                   angles  degrees
+        circle        inf      0.0
+        triangle      3.0      0.0
+        rectangle     2.0      0.0
+
+        >>> df.rfloordiv([10, 20], axis='columns')
+                   angles  degrees
+        circle        inf      0.0
+        triangle      3.0      0.0
+        rectangle     2.0      0.0
+        """
         return self._flex_arith_method(
             other, roperator.rfloordiv, level=level, fill_value=fill_value, axis=axis
         )
 
-    @Appender(ops.make_flex_doc("mod", "dataframe"))
     def mod(
         self, other, axis: Axis = "columns", level=None, fill_value=None
     ) -> DataFrame:
+        """
+        Get Modulo of dataframe and other, element-wise (binary operator `mod`).
+
+        Equivalent to ``dataframe % other``, but with support to substitute a
+        fill_value for missing data in one of the inputs. With reverse version,
+        `rmod`.
+
+        Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`)
+        to arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
+
+        Parameters
+        ----------
+        other : scalar, sequence, Series, dict or DataFrame
+            Any single or multiple element data structure, or list-like object.
+        axis : {0 or 'index', 1 or 'columns'}
+            Whether to compare by the index (0 or 'index') or columns.
+            (1 or 'columns'). For Series input, axis to match Series index on.
+        level : int or label
+            Broadcast across a level, matching Index values on the
+            passed MultiIndex level.
+        fill_value : float or None, default None
+            Fill existing missing (NaN) values, and any new element needed for
+            successful DataFrame alignment, with this value before computation.
+            If data in both corresponding DataFrame locations is missing
+            the result will be missing.
+
+        Returns
+        -------
+        DataFrame
+            Result of the arithmetic operation.
+
+        See Also
+        --------
+        DataFrame.add : Add DataFrames.
+        DataFrame.sub : Subtract DataFrames.
+        DataFrame.mul : Multiply DataFrames.
+        DataFrame.div : Divide DataFrames (float division).
+        DataFrame.truediv : Divide DataFrames (float division).
+        DataFrame.floordiv : Divide DataFrames (integer division).
+        DataFrame.mod : Calculate modulo (remainder after division).
+        DataFrame.pow : Calculate exponential power.
+
+        Notes
+        -----
+        Mismatched indices will be unioned together.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+        ...     {"angles": [0, 3, 4], "degrees": [360, 180, 360]},
+        ...     index=["circle", "triangle", "rectangle"],
+        ... )
+        >>> df
+                   angles  degrees
+        circle          0      360
+        triangle        3      180
+        rectangle       4      360
+
+        Calculate modulo with a scalar.
+
+        >>> df % 2
+                   angles  degrees
+        circle          0        0
+        triangle        1        0
+        rectangle       0        0
+
+        >>> df.mod(2)
+                   angles  degrees
+        circle          0        0
+        triangle        1        0
+        rectangle       0        0
+
+        Calculate modulo with a list.
+
+        >>> df % [2, 3]
+                   angles  degrees
+        circle          0        0
+        triangle        1        0
+        rectangle       0        0
+
+        >>> df.mod([2, 3], axis="columns")
+                   angles  degrees
+        circle          0        0
+        triangle        1        0
+        rectangle       0        0
+        """
         return self._flex_arith_method(
             other, operator.mod, level=level, fill_value=fill_value, axis=axis
         )
 
-    @Appender(ops.make_flex_doc("rmod", "dataframe"))
     def rmod(
         self, other, axis: Axis = "columns", level=None, fill_value=None
     ) -> DataFrame:
+        """
+        Get Modulo of dataframe and other, \
+        element-wise (binary operator `rmod`).
+
+        Equivalent to ``other % dataframe``, but with support to substitute a
+        fill_value for missing data in one of the inputs. With reverse version,
+        `mod`.
+
+        Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`)
+        to arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
+
+        Parameters
+        ----------
+        other : scalar, sequence, Series, dict or DataFrame
+            Any single or multiple element data structure, or list-like object.
+        axis : {0 or 'index', 1 or 'columns'}
+            Whether to compare by the index (0 or 'index') or columns.
+            (1 or 'columns'). For Series input, axis to match Series index on.
+        level : int or label
+            Broadcast across a level, matching Index values on the
+            passed MultiIndex level.
+        fill_value : float or None, default None
+            Fill existing missing (NaN) values, and any new element needed for
+            successful DataFrame alignment, with this value before computation.
+            If data in both corresponding DataFrame locations is missing
+            the result will be missing.
+
+        Returns
+        -------
+        DataFrame
+            Result of the arithmetic operation.
+
+        See Also
+        --------
+        DataFrame.add : Add DataFrames.
+        DataFrame.sub : Subtract DataFrames.
+        DataFrame.mul : Multiply DataFrames.
+        DataFrame.div : Divide DataFrames (float division).
+        DataFrame.truediv : Divide DataFrames (float division).
+        DataFrame.floordiv : Divide DataFrames (integer division).
+        DataFrame.mod : Calculate modulo (remainder after division).
+        DataFrame.pow : Calculate exponential power.
+
+        Notes
+        -----
+        Mismatched indices will be unioned together.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'angles': [0, 3, 4],
+        ...                    'degrees': [360, 180, 360]},
+        ...                   index=['circle', 'triangle', 'rectangle'])
+        >>> df
+                   angles  degrees
+        circle          0      360
+        triangle        3      180
+        rectangle       4      360
+
+        Calculate modulo with a scalar.
+
+        >>> 1000 % df
+                   angles  degrees
+        circle        NaN    280.0
+        triangle      1.0    100.0
+        rectangle     0.0    280.0
+
+        >>> df.rmod(1000)
+                   angles  degrees
+        circle        NaN    280.0
+        triangle      1.0    100.0
+        rectangle     0.0    280.0
+
+        Calculate modulo with a list.
+
+        >>> [1000, 2000] % df
+                   angles  degrees
+        circle        NaN    200.0
+        triangle      1.0     20.0
+        rectangle     0.0    200.0
+
+        >>> df.rmod([1000, 2000], axis='columns')
+                   angles  degrees
+        circle        NaN    200.0
+        triangle      1.0     20.0
+        rectangle     0.0    200.0
+        """
         return self._flex_arith_method(
             other, roperator.rmod, level=level, fill_value=fill_value, axis=axis
         )
 
-    @Appender(ops.make_flex_doc("pow", "dataframe"))
     def pow(
         self, other, axis: Axis = "columns", level=None, fill_value=None
     ) -> DataFrame:
+        """
+        Get Exponential power of dataframe and other, \
+        element-wise (binary operator `pow`).
+
+        Equivalent to ``dataframe ** other``, but with support to substitute a
+        fill_value for missing data in one of the inputs. With reverse version,
+        `rpow`.
+
+        Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`)
+        to arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
+
+        Parameters
+        ----------
+        other : scalar, sequence, Series, dict or DataFrame
+            Any single or multiple element data structure, or list-like object.
+        axis : {0 or 'index', 1 or 'columns'}
+            Whether to compare by the index (0 or 'index') or columns.
+            (1 or 'columns'). For Series input, axis to match Series index on.
+        level : int or label
+            Broadcast across a level, matching Index values on the
+            passed MultiIndex level.
+        fill_value : float or None, default None
+            Fill existing missing (NaN) values, and any new element needed for
+            successful DataFrame alignment, with this value before computation.
+            If data in both corresponding DataFrame locations is missing
+            the result will be missing.
+
+        Returns
+        -------
+        DataFrame
+            Result of the arithmetic operation.
+
+        See Also
+        --------
+        DataFrame.add : Add DataFrames.
+        DataFrame.sub : Subtract DataFrames.
+        DataFrame.mul : Multiply DataFrames.
+        DataFrame.div : Divide DataFrames (float division).
+        DataFrame.truediv : Divide DataFrames (float division).
+        DataFrame.floordiv : Divide DataFrames (integer division).
+        DataFrame.mod : Calculate modulo (remainder after division).
+        DataFrame.pow : Calculate exponential power.
+
+        Notes
+        -----
+        Mismatched indices will be unioned together.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'angles': [0, 3, 4],
+        ...                    'degrees': [360, 180, 360]},
+        ...                   index=['circle', 'triangle', 'rectangle'])
+        >>> df
+                   angles  degrees
+        circle          0      360
+        triangle        3      180
+        rectangle       4      360
+
+        Calculate exponential power with a scalar.
+
+        >>> df ** 2
+                   angles  degrees
+        circle          0   129600
+        triangle        9    32400
+        rectangle      16   129600
+
+        >>> df.pow(2)
+                   angles  degrees
+        circle          0   129600
+        triangle        9    32400
+        rectangle      16   129600
+
+        Calculate exponential power with a list.
+
+        >>> df ** [1, 2]
+                   angles  degrees
+        circle          0   129600
+        triangle        3    32400
+        rectangle       4   129600
+
+        >>> df.pow([1, 2], axis='columns')
+                   angles  degrees
+        circle          0   129600
+        triangle        3    32400
+        rectangle       4   129600
+        """
         return self._flex_arith_method(
             other, operator.pow, level=level, fill_value=fill_value, axis=axis
         )
 
-    @Appender(ops.make_flex_doc("rpow", "dataframe"))
     def rpow(
         self, other, axis: Axis = "columns", level=None, fill_value=None
     ) -> DataFrame:
+        """
+        Get Exponential power of dataframe and other, \
+        element-wise (binary operator `rpow`).
+
+        Equivalent to ``other ** dataframe``, but with support to substitute a
+        fill_value for missing data in one of the inputs. With reverse version,
+        `pow`.
+
+        Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`)
+        to arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
+
+        Parameters
+        ----------
+        other : scalar, sequence, Series, dict or DataFrame
+            Any single or multiple element data structure, or list-like object.
+        axis : {0 or 'index', 1 or 'columns'}
+            Whether to compare by the index (0 or 'index') or columns.
+            (1 or 'columns'). For Series input, axis to match Series index on.
+        level : int or label
+            Broadcast across a level, matching Index values on the
+            passed MultiIndex level.
+        fill_value : float or None, default None
+            Fill existing missing (NaN) values, and any new element needed for
+            successful DataFrame alignment, with this value before computation.
+            If data in both corresponding DataFrame locations is missing
+            the result will be missing.
+
+        Returns
+        -------
+        DataFrame
+            Result of the arithmetic operation.
+
+        See Also
+        --------
+        DataFrame.add : Add DataFrames.
+        DataFrame.sub : Subtract DataFrames.
+        DataFrame.mul : Multiply DataFrames.
+        DataFrame.div : Divide DataFrames (float division).
+        DataFrame.truediv : Divide DataFrames (float division).
+        DataFrame.floordiv : Divide DataFrames (integer division).
+        DataFrame.mod : Calculate modulo (remainder after division).
+        DataFrame.pow : Calculate exponential power.
+
+        Notes
+        -----
+        Mismatched indices will be unioned together.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'angles': [0, 3, 4],
+        ...                    'degrees': [3, 1, 3]},
+        ...                   index=['circle', 'triangle', 'rectangle'])
+        >>> df
+                   angles  degrees
+        circle          0        3
+        triangle        3        1
+        rectangle       4        3
+
+        Calculate exponential power with a scalar.
+
+        >>> 2 ** df
+                   angles  degrees
+        circle          1        8
+        triangle        8        2
+        rectangle      16        8
+
+        >>> df.rpow(2)
+                   angles  degrees
+        circle          1        8
+        triangle        8        2
+        rectangle      16        8
+
+        Calculate exponential power with a list.
+
+        >>> [2, 3] ** df
+                   angles  degrees
+        circle          1       27
+        triangle        8        3
+        rectangle      16       27
+
+        >>> df.rpow([2, 3], axis='columns')
+                   angles  degrees
+        circle          1       27
+        triangle        8        3
+        rectangle      16       27
+        """
         return self._flex_arith_method(
             other, roperator.rpow, level=level, fill_value=fill_value, axis=axis
         )
