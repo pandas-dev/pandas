@@ -373,6 +373,8 @@ See Also
 %(klass)s.transform : Call ``func`` on self producing a %(klass)s with the
     same axis shape as self.
 
+:ref:`User Guide <groupby.transform>` for more details and examples.
+
 Notes
 -----
 Each group is endowed the attribute 'name' in case you need to know
@@ -1538,6 +1540,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         transform : Apply function column-by-column to the GroupBy object.
         Series.apply : Apply a function to a Series.
         DataFrame.apply : Apply a function to each row or column of a DataFrame.
+
+        :ref:`User Guide <groupby.apply>` for more details and examples.
 
         Notes
         -----

@@ -380,6 +380,8 @@ class SeriesGroupBy(GroupBy[Series]):
             based on the given function.
         Series.aggregate : Aggregate using one or more operations.
 
+        :ref:`User Guide <groupby.aggregate>` for more details and examples.
+
         Notes
         -----
         When using ``engine='numba'``, there will be no "fall back" behavior internally.
@@ -2177,6 +2179,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         DataFrame.groupby.transform : Transforms the Series on each group
             based on the given function.
         DataFrame.aggregate : Aggregate using one or more operations.
+
+        :ref:`User Guide <groupby.aggregate>` for more details and examples.
 
         Notes
         -----
