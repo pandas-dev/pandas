@@ -380,10 +380,11 @@ class SeriesGroupBy(GroupBy[Series]):
             based on the given function.
         Series.aggregate : Aggregate using one or more operations.
 
-        :ref:`User Guide <groupby.aggregate>` for more details and examples.
-
         Notes
         -----
+        See :ref:`groupby.aggregate` in the User Guide for more details
+        and examples.
+
         When using ``engine='numba'``, there will be no "fall back" behavior internally.
         The group data and group index will be passed as numpy arrays to the JITed
         user defined function, and no alternative execution attempts will be tried.
@@ -2180,10 +2181,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             based on the given function.
         DataFrame.aggregate : Aggregate using one or more operations.
 
-        :ref:`User Guide <groupby.aggregate>` for more details and examples.
-
         Notes
         -----
+        See :ref:`groupby.aggregate` in the User Guide for more details
+        and examples.
+
         When using ``engine='numba'``, there will be no "fall back" behavior internally.
         The group data and group index will be passed as numpy arrays to the JITed
         user defined function, and no alternative execution attempts will be tried.

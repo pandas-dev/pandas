@@ -373,10 +373,10 @@ See Also
 %(klass)s.transform : Call ``func`` on self producing a %(klass)s with the
     same axis shape as self.
 
-:ref:`User Guide <groupby.transform>` for more details and examples.
-
 Notes
 -----
+See :ref:`groupby.transform` in the User Guide for more details and examples.
+
 Each group is endowed the attribute 'name' in case you need to know
 which group you are working on.
 
@@ -1541,10 +1541,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Series.apply : Apply a function to a Series.
         DataFrame.apply : Apply a function to each row or column of a DataFrame.
 
-        :ref:`User Guide <groupby.apply>` for more details and examples.
-
         Notes
         -----
+        See :ref:`groupby.apply` in the User Guide for more details and examples.
+
         The resulting dtype will reflect the return value of the passed ``func``,
         see the examples below.
 
