@@ -48,6 +48,59 @@ class ArrowStringArrayMixin:
     def _apply_elementwise(self, func: Callable) -> list[list[Any]]:
         raise NotImplementedError
 
+    @staticmethod
+    def _has_unsupported_regex(pat: str | re.Pattern) -> bool:
+        """
+        Determine if regex pattern contains features not supported by RE2 / pyarrow.
+
+        This includes lookaround (lookahead or lookbehind) assertions and
+        backreferences.
+
+        Parameters
+        ----------
+        pat: str | re.Pattern
+            Regex pattern.
+
+        Returns
+        -------
+        bool
+            Whether `pat` contains a lookahead or lookbehind.
+        """
+        try:
+            # error: Module "re" has no attribute "_parser"
+            from re import _parser  # type: ignore[attr-defined]
+
+            regex_parser = _parser.parse
+        except Exception as err:
+            raise type(err)(
+                "Incompatible version for regex; you will need to upgrade pandas "
+                "or downgrade Python"
+            ) from err
+
+        def has_unsupported_code(tokens):
+            # For certain op codes we need to recurse.
+            for op_code, argument in tokens:
+                if (
+                    (
+                        op_code == _parser.SUBPATTERN
+                        and has_unsupported_code(argument[3])
+                    )
+                    or (
+                        op_code == _parser.BRANCH
+                        and any(has_unsupported_code(tokens) for tokens in argument[1])
+                    )
+                    or (
+                        op_code
+                        in [_parser.ASSERT_NOT, _parser.ASSERT, _parser.GROUPREF]
+                    )
+                ):
+                    return True
+            return False
+
+        str_pat = pat.pattern if isinstance(pat, re.Pattern) else pat
+        tokens = regex_parser(str_pat)
+        return has_unsupported_code(tokens)
+
     def _str_len(self):
         result = pc.utf8_length(self._pa_array)
         return self._convert_int_result(result)
@@ -323,7 +376,9 @@ class ArrowStringArrayMixin:
     ):
         if not pat.startswith("^"):
             pat = f"^({pat})"
-        return self._str_contains(pat, case, flags, na, regex=True)
+        return ArrowStringArrayMixin._str_contains(
+            self, pat, case, flags, na, regex=True
+        )
 
     def _str_fullmatch(
         self,
@@ -338,7 +393,7 @@ class ArrowStringArrayMixin:
             pat = f"^({pat[1:]})$"
         elif not pat.startswith("^"):
             pat = f"^({pat[0:-1]})$"
-        return self._str_match(pat, case, flags, na)
+        return ArrowStringArrayMixin._str_match(self, pat, case, flags, na)
 
     def _str_find(self, sub: str, start: int = 0, end: int | None = None):
         if (start == 0 or start is None) and end is None:

@@ -153,7 +153,7 @@ class TestGetitemListLike:
 
         tm.assert_frame_equal(result, expected)
 
-        idx = idx_type(keys + [missing])
+        idx = idx_type([*keys, missing])
         with pytest.raises(KeyError, match="not in index"):
             frame[idx]
 

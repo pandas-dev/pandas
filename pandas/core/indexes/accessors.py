@@ -267,12 +267,12 @@ class ArrowTemporalProperties(PandasDelegate, PandasObject, NoNewAttributesMixin
 
 @delegate_names(
     delegate=DatetimeArray,
-    accessors=DatetimeArray._datetimelike_ops + ["unit"],
+    accessors=[*DatetimeArray._datetimelike_ops, "unit"],
     typ="property",
 )
 @delegate_names(
     delegate=DatetimeArray,
-    accessors=DatetimeArray._datetimelike_methods + ["as_unit"],
+    accessors=[*DatetimeArray._datetimelike_methods, "as_unit"],
     typ="method",
 )
 class DatetimeProperties(Properties):

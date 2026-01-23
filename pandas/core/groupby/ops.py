@@ -264,7 +264,7 @@ class WrappedCythonOp:
         elif kind == "transform":
             out_shape = values.shape
         else:
-            out_shape = (ngroups,) + values.shape[1:]
+            out_shape = (ngroups, *values.shape[1:])
         return out_shape
 
     def _get_out_dtype(self, dtype: np.dtype) -> np.dtype:

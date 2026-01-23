@@ -202,8 +202,8 @@ def get_group_index(
         # to retain lexical ranks, obs_ids should be sorted
         comp_ids, obs_ids = compress_group_index(out, sort=sort)
 
-        labels = [comp_ids] + labels[nlev:]
-        lshape = [len(obs_ids)] + lshape[nlev:]
+        labels = [comp_ids, *labels[nlev:]]
+        lshape = [len(obs_ids), *lshape[nlev:]]
 
     return out
 

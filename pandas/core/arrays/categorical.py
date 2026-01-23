@@ -2294,7 +2294,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             num = max_categories // 2
             head = format_array(self.categories[:num]._values)
             tail = format_array(self.categories[-num:]._values)
-            category_strs = head + ["..."] + tail
+            category_strs = [*head, "...", *tail]
         else:
             category_strs = format_array(self.categories._values)
 

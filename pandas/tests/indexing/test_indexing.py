@@ -339,7 +339,7 @@ class TestFancy:
     def test_multitype_list_index_access(self):
         # GH 10610
         df = DataFrame(
-            np.random.default_rng(2).random((10, 5)), columns=["a"] + [20, 21, 22, 23]
+            np.random.default_rng(2).random((10, 5)), columns=["a", 20, 21, 22, 23]
         )
 
         with pytest.raises(KeyError, match=re.escape("'[26, -8] not in index'")):
@@ -599,7 +599,7 @@ class TestFancy:
             indexer(s2)[0.0] = 0
             exp = s.index
             if 0 not in s:
-                exp = Index(s.index.tolist() + [0])
+                exp = Index([*s.index.tolist(), 0])
             tm.assert_index_equal(s2.index, exp)
 
             s2 = s.copy()

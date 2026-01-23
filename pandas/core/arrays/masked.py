@@ -724,7 +724,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         out = kwargs.get("out", ())
 
         for x in inputs + out:
-            if not isinstance(x, self._HANDLED_TYPES + (BaseMaskedArray,)):
+            if not isinstance(x, (*self._HANDLED_TYPES, BaseMaskedArray)):
                 return NotImplemented
 
         # for binary ops, use our custom dunder methods

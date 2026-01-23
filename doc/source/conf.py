@@ -567,7 +567,7 @@ class AccessorLevelDocumenter(Documenter):
                 else:
                     modname = self.env.temp_data.get("py:module")
             # ... else, it stays None, which means invalid
-        return modname, parents + [base]
+        return modname, [*parents, base]
 
 
 class AccessorAttributeDocumenter(AccessorLevelDocumenter, AttributeDocumenter):

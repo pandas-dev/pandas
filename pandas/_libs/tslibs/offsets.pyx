@@ -478,6 +478,10 @@ cdef class BaseOffset:
         """
         Return a dict of extra parameters for the offset.
 
+        These parameters exclude ``n`` and ``normalize``, which are common
+        to all offsets. The returned dictionary can be passed to the offset
+        constructor to recreate the offset with the same settings.
+
         See Also
         --------
         tseries.offsets.DateOffset : The base class for all pandas date offsets.
@@ -668,6 +672,9 @@ cdef class BaseOffset:
         """
         Return a string representing the frequency.
 
+        The string representation typically consists of the offset multiplier
+        and a frequency alias (e.g., ``'D'`` for daily, ``'h'`` for hourly).
+
         See Also
         --------
         tseries.offsets.BusinessDay.freqstr :
@@ -732,6 +739,9 @@ cdef class BaseOffset:
         """
         Roll provided date backward to next offset only if not on offset.
 
+        If the provided date is already on an offset, it is returned unchanged.
+        Otherwise, the date is rolled backward to the previous offset boundary.
+
         Parameters
         ----------
         dt : datetime or Timestamp
@@ -739,8 +749,30 @@ cdef class BaseOffset:
 
         Returns
         -------
-        TimeStamp
+        Timestamp
             Rolled timestamp if not on offset, otherwise unchanged timestamp.
+
+        See Also
+        --------
+        rollforward : Roll provided date forward to next offset only if not on offset.
+        is_on_offset : Return boolean whether a timestamp intersects with this
+            frequency.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp("2025-01-15 09:00:00")
+        >>> offset = pd.tseries.offsets.MonthEnd()
+
+        Timestamp is not on the offset (not a month end), so it rolls backward:
+
+        >>> offset.rollback(ts)
+        Timestamp('2024-12-31 00:00:00')
+
+        If the timestamp is already on the offset, it remains unchanged:
+
+        >>> ts_on_offset = pd.Timestamp("2025-01-31")
+        >>> offset.rollback(ts_on_offset)
+        Timestamp('2025-01-31 00:00:00')
         """
         dt = Timestamp(dt)
         if self.normalize and (dt - dt.normalize())._value != 0:
@@ -754,15 +786,41 @@ cdef class BaseOffset:
         """
         Roll provided date forward to next offset only if not on offset.
 
+        If the provided date is already on an offset, it is returned unchanged.
+        Otherwise, the date is rolled forward to the next offset boundary.
+
         Parameters
         ----------
         dt : datetime or Timestamp
-            Timestamp to rollback.
+            Timestamp to roll forward.
 
         Returns
         -------
-        TimeStamp
+        Timestamp
             Rolled timestamp if not on offset, otherwise unchanged timestamp.
+
+        See Also
+        --------
+        rollback : Roll provided date backward to previous offset only if not
+            on offset.
+        is_on_offset : Return boolean whether a timestamp intersects with this
+            frequency.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp("2025-01-15 09:00:00")
+        >>> offset = pd.tseries.offsets.MonthEnd()
+
+        Timestamp is not on the offset (not a month end), so it rolls forward:
+
+        >>> offset.rollforward(ts)
+        Timestamp('2025-01-31 00:00:00')
+
+        If the timestamp is already on the offset, it remains unchanged:
+
+        >>> ts_on_offset = pd.Timestamp("2025-01-31")
+        >>> offset.rollforward(ts_on_offset)
+        Timestamp('2025-01-31 00:00:00')
         """
         dt = Timestamp(dt)
         if not self.is_on_offset(dt):
@@ -909,6 +967,9 @@ cdef class BaseOffset:
     def is_month_start(self, _Timestamp ts):
         """
         Return boolean whether a timestamp occurs on the month start.
+
+        This method determines if a given timestamp falls on the first day
+        of a month, considering the frequency of the offset.
 
         Parameters
         ----------
@@ -1064,6 +1125,39 @@ cdef class SingleConstructorOffset(BaseOffset):
 # Tick Offsets
 
 cdef class Tick(SingleConstructorOffset):
+    """
+    Base class for fixed frequency offsets (Milli, Micro, Second, Minute, Hour).
+
+    This class should not be instantiated directly. Use one of the specific
+    Tick subclasses for a concrete offset.
+
+    Attributes
+    ----------
+    n : int, default 1
+        The number of units (hours, minutes, etc.) the offset represents.
+
+    See Also
+    --------
+    Hour : Offset ``n`` hours.
+    Minute : Offset ``n`` minutes.
+    Second : Offset ``n`` seconds.
+    Milli : Offset ``n`` milliseconds.
+    Micro : Offset ``n`` microseconds.
+    Nano : Offset ``n`` nanoseconds.
+
+    Examples
+    --------
+    >>> from pandas.tseries.offsets import Hour, Minute
+    >>> ts = pd.Timestamp(2022, 12, 9, 15)
+    >>> ts
+    Timestamp('2022-12-09 15:00:00')
+
+    >>> ts + Hour(1)
+    Timestamp('2022-12-09 16:00:00')
+
+    >>> ts + Minute(30)
+    Timestamp('2022-12-09 15:30:00')
+    """
     _adjust_dst = False
     _prefix = "undefined"
     _attributes = tuple(["n", "normalize"])
@@ -1124,6 +1218,39 @@ cdef class Tick(SingleConstructorOffset):
         return self._n * self._nanos_inc
 
     def is_on_offset(self, dt: datetime) -> bool:
+        """
+        Return boolean whether a timestamp intersects with this frequency.
+
+        For fixed-frequency Tick offsets (Hour, Minute, Second, Milli, Micro, Nano),
+        this method always returns True because any timestamp can be represented
+        at these granular time resolutions.
+
+        Parameters
+        ----------
+        dt : datetime.datetime
+            Timestamp to check intersections with frequency.
+
+        Returns
+        -------
+        bool
+            Always True for Tick offsets.
+
+        See Also
+        --------
+        DateOffset.is_on_offset : General offset frequency checking.
+
+        Examples
+        --------
+        >>> from pandas.tseries.offsets import Milli
+        >>> ts = pd.Timestamp(2022, 1, 1)
+        >>> freq = Milli()
+        >>> freq.is_on_offset(ts)
+        True
+
+        >>> ts = pd.Timestamp(2022, 8, 6, 12, 30, 45, 123456)
+        >>> freq.is_on_offset(ts)
+        True
+        """
         return True
 
     # This is identical to BaseOffset.__hash__, but has to be redefined here
@@ -1905,7 +2032,7 @@ cdef class BusinessMixin(SingleConstructorOffset):
     cdef readonly:
         timedelta _offset
         # Only Custom subclasses use weekmask, holiday, calendar
-        object weekmask, _holidays, _calendar
+        object _weekmask, _holidays, _calendar
 
     def __init__(self, n=1, normalize=False, offset=timedelta(0)):
         BaseOffset.__init__(self, n, normalize)
@@ -1921,7 +2048,7 @@ cdef class BusinessMixin(SingleConstructorOffset):
         # Custom offset instances are identified by the
         # following two attributes. See DateOffset._params()
         # holidays, weekmask
-        self.weekmask = weekmask
+        self._weekmask = weekmask
         self._holidays = holidays
         self._calendar = calendar
 
@@ -2055,6 +2182,55 @@ cdef class BusinessMixin(SingleConstructorOffset):
         """
         return self._calendar
 
+    @property
+    def weekmask(self):
+        """
+        Return the weekmask used for custom business day calculations.
+
+        This property returns the weekmask string that defines which days of the
+        week are considered business days. For non-custom business offsets (e.g.,
+        standard BusinessDay, BusinessHour), this will be None. For custom business
+        day offsets, this returns the weekmask that was specified or the default
+        'Mon Tue Wed Thu Fri'.
+
+        Returns
+        -------
+        str or None
+            String representing valid business days (e.g., 'Mon Tue Wed Thu Fri'),
+            or None if using default business day rules.
+
+        See Also
+        --------
+        BusinessDay.holidays : Holidays for standard business day offset.
+        CustomBusinessDay.holidays : Holidays for custom business day offset.
+        CustomBusinessDay.calendar : Calendar for custom business day offset.
+
+        Examples
+        --------
+        For standard business offsets, weekmask is None:
+
+        >>> bd = pd.offsets.BusinessDay()
+        >>> bd.weekmask is None
+        True
+
+        >>> bh = pd.offsets.BusinessHour()
+        >>> bh.weekmask is None
+        True
+
+        For custom business day with default weekmask:
+
+        >>> cbd = pd.offsets.CustomBusinessDay()
+        >>> cbd.weekmask
+        'Mon Tue Wed Thu Fri'
+
+        For custom business day with custom weekmask:
+
+        >>> cbd = pd.offsets.CustomBusinessDay(weekmask="Mon Wed Fri")
+        >>> cbd.weekmask
+        'Mon Wed Fri'
+        """
+        return self._weekmask
+
     def _repr_attrs(self) -> str:
         if self.offset:
             attrs = [f"offset={repr(self.offset)}"]
@@ -2080,7 +2256,7 @@ cdef class BusinessMixin(SingleConstructorOffset):
             calendar, holidays = _get_calendar(weekmask=weekmask,
                                                holidays=holidays,
                                                calendar=None)
-            self.weekmask = weekmask
+            self._weekmask = weekmask
             self._calendar = calendar
             self._holidays = holidays
 
@@ -2274,6 +2450,51 @@ cdef class BusinessDay(BusinessMixin):
         return res
 
     def is_on_offset(self, dt: datetime) -> bool:
+        """
+        Return boolean whether a timestamp intersects with this frequency.
+
+        This method determines if a given timestamp falls on a business day
+        (Monday through Friday). If ``normalize`` is True, it also checks that
+        the time component is midnight.
+
+        Parameters
+        ----------
+        dt : datetime
+            Timestamp to check intersection with frequency.
+
+        Returns
+        -------
+        bool
+            True if the timestamp is on a business day, False otherwise.
+
+        See Also
+        --------
+        tseries.offsets.BusinessDay : Represents business day offset.
+        tseries.offsets.CustomBusinessDay : Represents custom business day offset.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2022, 8, 5)
+        >>> ts.day_name()
+        'Friday'
+        >>> pd.offsets.BusinessDay().is_on_offset(ts)
+        True
+
+        >>> ts = pd.Timestamp(2022, 8, 6)
+        >>> ts.day_name()
+        'Saturday'
+        >>> pd.offsets.BusinessDay().is_on_offset(ts)
+        False
+
+        With ``normalize=True``, the timestamp must also be at midnight:
+
+        >>> ts = pd.Timestamp(2022, 8, 5, 12, 0)
+        >>> pd.offsets.BusinessDay(normalize=True).is_on_offset(ts)
+        False
+        >>> ts = pd.Timestamp(2022, 8, 5, 0, 0)
+        >>> pd.offsets.BusinessDay(normalize=True).is_on_offset(ts)
+        True
+        """
         if self.normalize and not _is_normalized(dt):
             return False
         return dt.weekday() < 5
@@ -2716,6 +2937,49 @@ cdef class BusinessHour(BusinessMixin):
         return other
 
     def is_on_offset(self, dt: datetime) -> bool:
+        """
+        Return boolean whether a timestamp intersects with this frequency.
+
+        This method determines if a given timestamp falls within business hours.
+        Business hours are defined by the ``start`` and ``end`` parameters
+        (default 09:00 to 17:00). The timestamp must also fall on a business day
+        (Monday through Friday). If ``normalize`` is True, it also checks that
+        the time component is midnight.
+
+        Parameters
+        ----------
+        dt : datetime
+            Timestamp to check intersection with frequency.
+
+        Returns
+        -------
+        bool
+            True if the timestamp is within business hours, False otherwise.
+
+        See Also
+        --------
+        tseries.offsets.BusinessHour : Represents business hour offset.
+        tseries.offsets.BusinessDay.is_on_offset : Check if a timestamp is on
+            a business day.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2022, 8, 5, 10)
+        >>> ts.day_name()
+        'Friday'
+        >>> pd.offsets.BusinessHour().is_on_offset(ts)
+        True
+
+        >>> ts = pd.Timestamp(2022, 8, 5, 20)
+        >>> pd.offsets.BusinessHour().is_on_offset(ts)
+        False
+
+        >>> ts = pd.Timestamp(2022, 8, 6, 10)
+        >>> ts.day_name()
+        'Saturday'
+        >>> pd.offsets.BusinessHour().is_on_offset(ts)
+        False
+        """
         if self.normalize and not _is_normalized(dt):
             return False
 
@@ -3157,19 +3421,46 @@ cdef class QuarterOffset(SingleConstructorOffset):
     _from_name_starting_month: ClassVar[int]
 
     cdef readonly:
-        int startingMonth
+        int _startingMonth
 
     def __init__(self, n=1, normalize=False, startingMonth=None):
         BaseOffset.__init__(self, n, normalize)
 
         if startingMonth is None:
             startingMonth = self._default_starting_month
-        self.startingMonth = startingMonth
+        self._startingMonth = startingMonth
 
     cpdef __setstate__(self, state):
-        self.startingMonth = state.pop("startingMonth")
+        self._startingMonth = state.pop("startingMonth")
         self._n = state.pop("n")
         self._normalize = state.pop("normalize")
+
+    @property
+    def startingMonth(self) -> int:
+        """
+        Return the month of the year from which quarters start.
+
+        This value determines which month marks the beginning of a quarterly period.
+        For example, with startingMonth=1, quarters start in January, April, July,
+        and October.
+
+        See Also
+        --------
+        QuarterOffset.rule_code : Return the rule code for the quarter offset.
+        HalfYearOffset.startingMonth : Similar property for half-year-based offsets.
+
+        Examples
+        --------
+        >>> pd.offsets.BQuarterBegin().startingMonth
+        3
+
+        >>> pd.offsets.QuarterEnd().startingMonth
+        3
+
+        >>> pd.offsets.QuarterBegin(startingMonth=1).startingMonth
+        1
+        """
+        return self._startingMonth
 
     @classmethod
     def _from_name(cls, suffix=None):
@@ -3256,6 +3547,36 @@ cdef class QuarterOffset(SingleConstructorOffset):
         return f"{self._prefix}-{month}"
 
     def is_on_offset(self, dt: datetime) -> bool:
+        """
+        Return boolean whether a timestamp intersects with this frequency.
+
+        This method checks if the given datetime falls on a quarter boundary
+        as defined by the offset's ``startingMonth`` and day option.
+
+        Parameters
+        ----------
+        dt : datetime
+            Timestamp to check intersections with frequency.
+
+        Returns
+        -------
+        bool
+            True if the timestamp is on the offset, False otherwise.
+
+        See Also
+        --------
+        QuarterOffset : Parent class with quarterly offset logic.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2022, 1, 1)
+        >>> freq = pd.offsets.BQuarterBegin()
+        >>> freq.is_on_offset(ts)
+        False
+        >>> ts = pd.Timestamp(2022, 3, 1)
+        >>> freq.is_on_offset(ts)
+        True
+        """
         if self.normalize and not _is_normalized(dt):
             return False
         mod_month = (dt.month - self.startingMonth) % 3
@@ -3753,6 +4074,48 @@ cdef class HalfYearBegin(HalfYearOffset):
 
 cdef class MonthOffset(SingleConstructorOffset):
     def is_on_offset(self, dt: datetime) -> bool:
+        """
+        Return boolean whether a timestamp intersects with this frequency.
+
+        This method determines if a given timestamp aligns with the specific
+        day of the month defined by this offset. For month-based offsets,
+        it checks whether the timestamp's day matches the expected day
+        according to the offset's configuration (e.g., start of month,
+        end of month, or first/last business day).
+
+        Parameters
+        ----------
+        dt : datetime
+            Timestamp to check intersection with frequency.
+
+        Returns
+        -------
+        bool
+            True if the timestamp is on the offset, False otherwise.
+
+        See Also
+        --------
+        tseries.offsets.MonthBegin : DateOffset of one month at beginning.
+        tseries.offsets.MonthEnd : DateOffset of one month end.
+        tseries.offsets.BusinessMonthBegin : DateOffset of one month at the first
+            business day.
+        tseries.offsets.BusinessMonthEnd : DateOffset of one month at the last
+            business day.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2022, 1, 1)
+        >>> pd.offsets.MonthBegin().is_on_offset(ts)
+        True
+
+        >>> ts = pd.Timestamp(2022, 1, 15)
+        >>> pd.offsets.MonthBegin().is_on_offset(ts)
+        False
+
+        >>> ts = pd.Timestamp(2022, 1, 31)
+        >>> pd.offsets.MonthEnd().is_on_offset(ts)
+        True
+        """
         if self.normalize and not _is_normalized(dt):
             return False
         return dt.day == self._get_offset_day(dt)
@@ -3936,7 +4299,30 @@ cdef class SemiMonthOffset(SingleConstructorOffset):
     _attributes = tuple(["n", "normalize", "day_of_month"])
 
     cdef readonly:
-        int day_of_month
+        int _day_of_month
+
+    @property
+    def day_of_month(self):
+        """
+        Return the day of the month for the semi-monthly offset.
+
+        This specifies the day of the month on which the offset falls,
+        in addition to the start (1st) or end (last day) of the month.
+
+        See Also
+        --------
+        SemiMonthBegin : Offset at the start of the month and mid-month.
+        SemiMonthEnd : Offset at mid-month and end of month.
+
+        Examples
+        --------
+        >>> pd.offsets.SemiMonthBegin().day_of_month
+        15
+
+        >>> pd.offsets.SemiMonthBegin(day_of_month=20).day_of_month
+        20
+        """
+        return self._day_of_month
 
     def __init__(self, n=1, normalize=False, day_of_month=None):
         BaseOffset.__init__(self, n, normalize)
@@ -3944,18 +4330,18 @@ cdef class SemiMonthOffset(SingleConstructorOffset):
         if day_of_month is None:
             day_of_month = self._default_day_of_month
 
-        self.day_of_month = int(day_of_month)
-        if not self._min_day_of_month <= self.day_of_month <= 27:
+        self._day_of_month = int(day_of_month)
+        if not self._min_day_of_month <= self._day_of_month <= 27:
             raise ValueError(
                 "day_of_month must be "
                 f"{self._min_day_of_month}<=day_of_month<=27, "
-                f"got {self.day_of_month}"
+                f"got {self._day_of_month}"
             )
 
     cpdef __setstate__(self, state):
         self._n = state.pop("n")
         self._normalize = state.pop("normalize")
-        self.day_of_month = state.pop("day_of_month")
+        self._day_of_month = state.pop("day_of_month")
 
     @classmethod
     def _from_name(cls, suffix=None):
@@ -3963,20 +4349,20 @@ cdef class SemiMonthOffset(SingleConstructorOffset):
 
     @property
     def rule_code(self) -> str:
-        suffix = f"-{self.day_of_month}"
+        suffix = f"-{self._day_of_month}"
         return self._prefix + suffix
 
     @apply_wraps
     def _apply(self, other: datetime) -> datetime:
         is_start = isinstance(self, SemiMonthBegin)
 
-        # shift `other` to self.day_of_month, incrementing `n` if necessary
-        n = roll_convention(other.day, self._n, self.day_of_month)
+        # shift `other` to self._day_of_month, incrementing `n` if necessary
+        n = roll_convention(other.day, self._n, self._day_of_month)
 
         days_in_month = get_days_in_month(other.year, other.month)
         # For SemiMonthBegin on other.day == 1 and
         # SemiMonthEnd on other.day == days_in_month,
-        # shifting `other` to `self.day_of_month` _always_ requires
+        # shifting `other` to `self._day_of_month` _always_ requires
         # incrementing/decrementing `n`, regardless of whether it is
         # initially positive.
         if is_start and (self._n <= 0 and other.day == 1):
@@ -3986,10 +4372,10 @@ cdef class SemiMonthOffset(SingleConstructorOffset):
 
         if is_start:
             months = n // 2 + n % 2
-            to_day = 1 if n % 2 else self.day_of_month
+            to_day = 1 if n % 2 else self._day_of_month
         else:
             months = n // 2
-            to_day = 31 if n % 2 else self.day_of_month
+            to_day = 31 if n % 2 else self._day_of_month
 
         return shift_month(other, months, to_day)
 
@@ -4005,7 +4391,7 @@ cdef class SemiMonthOffset(SingleConstructorOffset):
             )
             npy_datetimestruct dts
             int months, to_day, nadj, n = self._n
-            int days_in_month, day, anchor_dom = self.day_of_month
+            int days_in_month, day, anchor_dom = self._day_of_month
             bint is_start = isinstance(self, SemiMonthBegin)
             NPY_DATETIMEUNIT reso = get_unit_from_dtype(dtarr.dtype)
             cnp.broadcast mi = cnp.PyArray_MultiIterNew2(out, i8other)
@@ -4022,14 +4408,14 @@ cdef class SemiMonthOffset(SingleConstructorOffset):
                     pandas_datetime_to_datetimestruct(val, reso, &dts)
                     day = dts.day
 
-                    # Adjust so that we are always looking at self.day_of_month,
+                    # Adjust so that we are always looking at self._day_of_month,
                     #  incrementing/decrementing n if necessary.
                     nadj = roll_convention(day, n, anchor_dom)
 
                     days_in_month = get_days_in_month(dts.year, dts.month)
                     # For SemiMonthBegin on other.day == 1 and
                     #  SemiMonthEnd on other.day == days_in_month,
-                    #  shifting `other` to `self.day_of_month` _always_ requires
+                    #  shifting `other` to `self._day_of_month` _always_ requires
                     #  incrementing/decrementing `n`, regardless of whether it is
                     #  initially positive.
                     if is_start and (n <= 0 and day == 1):
@@ -4114,7 +4500,7 @@ cdef class SemiMonthEnd(SemiMonthOffset):
         if self.normalize and not _is_normalized(dt):
             return False
         days_in_month = get_days_in_month(dt.year, dt.month)
-        return dt.day in (self.day_of_month, days_in_month)
+        return dt.day in (self._day_of_month, days_in_month)
 
 
 cdef class SemiMonthBegin(SemiMonthOffset):
@@ -4153,7 +4539,7 @@ cdef class SemiMonthBegin(SemiMonthOffset):
     def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
-        return dt.day in (1, self.day_of_month)
+        return dt.day in (1, self._day_of_month)
 
 
 # ---------------------------------------------------------------------
@@ -4205,23 +4591,52 @@ cdef class Week(SingleConstructorOffset):
     _attributes = tuple(["n", "normalize", "weekday"])
 
     cdef readonly:
-        object weekday  # int or None
+        object _weekday  # int or None
         int _period_dtype_code
+
+    @property
+    def weekday(self):
+        """
+        Return the day of the week on which the offset is applied.
+
+        This is the weekday on which the weekly offset is anchored.
+        The value is an integer representing the day of the week,
+        where Monday is 0 and Sunday is 6, or None if no specific
+        weekday is set.
+
+        See Also
+        --------
+        Week : The weekly offset class.
+        tseries.offsets.WeekOfMonth : Describes monthly dates like the Tuesday
+            of the 2nd week of each month.
+
+        Examples
+        --------
+        >>> pd.offsets.Week(weekday=0).weekday
+        0
+
+        >>> pd.offsets.Week(weekday=6).weekday
+        6
+
+        >>> pd.offsets.Week().weekday is None
+        True
+        """
+        return self._weekday
 
     def __init__(self, n=1, normalize=False, weekday=None):
         BaseOffset.__init__(self, n, normalize)
-        self.weekday = weekday
+        self._weekday = weekday
 
-        if self.weekday is not None:
-            if self.weekday < 0 or self.weekday > 6:
-                raise ValueError(f"Day must be 0<=day<=6, got {self.weekday}")
+        if self._weekday is not None:
+            if self._weekday < 0 or self._weekday > 6:
+                raise ValueError(f"Day must be 0<=day<=6, got {self._weekday}")
 
             self._period_dtype_code = PeriodDtypeCode.W_SUN + (weekday + 1) % 7
 
     cpdef __setstate__(self, state):
         self._n = state.pop("n")
         self._normalize = state.pop("normalize")
-        self.weekday = state.pop("weekday")
+        self._weekday = state.pop("weekday")
         self._cache = state.pop("_cache", {})
 
     @apply_wraps
@@ -4525,28 +4940,75 @@ cdef class LastWeekOfMonth(WeekOfMonthMixin):
 cdef class FY5253Mixin(SingleConstructorOffset):
     cdef readonly:
         int startingMonth
-        int weekday
-        str variation
+        int _weekday
+        str _variation
+
+    @property
+    def weekday(self):
+        """
+        Return the weekday used by the fiscal year.
+
+        This is the day of the week on which the fiscal year ends.
+        The value is an integer from 0 (Monday) to 6 (Sunday).
+
+        See Also
+        --------
+        FY5253.startingMonth : Return the starting month of the fiscal year.
+        FY5253.variation : Return the variation of the fiscal year.
+
+        Examples
+        --------
+        >>> offset = pd.offsets.FY5253(weekday=4, startingMonth=12, variation="nearest")
+        >>> offset.weekday
+        4
+        """
+        return self._weekday
+
+    @property
+    def variation(self):
+        """
+        Return the variation of the fiscal year.
+
+        The variation determines how the fiscal year end is calculated.
+        It can be either "nearest" or "last".
+
+        Returns
+        -------
+        str
+            Either "nearest" or "last".
+
+        See Also
+        --------
+        FY5253.weekday : Return the weekday used by the fiscal year.
+        FY5253.startingMonth : Return the starting month of the fiscal year.
+
+        Examples
+        --------
+        >>> offset = pd.offsets.FY5253(weekday=4, startingMonth=12, variation="nearest")
+        >>> offset.variation
+        'nearest'
+        """
+        return self._variation
 
     def __init__(
         self, n=1, normalize=False, weekday=0, startingMonth=1, variation="nearest"
     ):
         BaseOffset.__init__(self, n, normalize)
         self.startingMonth = startingMonth
-        self.weekday = weekday
-        self.variation = variation
+        self._weekday = weekday
+        self._variation = variation
 
         if self._n == 0:
             raise ValueError("N cannot be 0")
 
-        if self.variation not in ["nearest", "last"]:
-            raise ValueError(f"{self.variation} is not a valid variation")
+        if self._variation not in ["nearest", "last"]:
+            raise ValueError(f"{self._variation} is not a valid variation")
 
     cpdef __setstate__(self, state):
         self._n = state.pop("n")
         self._normalize = state.pop("normalize")
-        self.weekday = state.pop("weekday")
-        self.variation = state.pop("variation")
+        self._weekday = state.pop("weekday")
+        self._variation = state.pop("variation")
 
     # --------------------------------------------------------------------
     # Name-related methods
@@ -4558,7 +5020,7 @@ cdef class FY5253Mixin(SingleConstructorOffset):
         return f"{prefix}-{suffix}"
 
     def _get_suffix_prefix(self) -> str:
-        if self.variation == "nearest":
+        if self._variation == "nearest":
             return "N"
         else:
             return "L"
@@ -4594,7 +5056,7 @@ cdef class FY5253Mixin(SingleConstructorOffset):
         """
         prefix = self._get_suffix_prefix()
         month = MONTH_ALIASES[self.startingMonth]
-        weekday = int_to_weekday[self.weekday]
+        weekday = int_to_weekday[self._weekday]
         return f"{prefix}-{month}-{weekday}"
 
 
@@ -4684,7 +5146,7 @@ cdef class FY5253(FY5253Mixin):
         dt = datetime(dt.year, dt.month, dt.day)
         year_end = self.get_year_end(dt)
 
-        if self.variation == "nearest":
+        if self._variation == "nearest":
             # We have to check the year end of "this" cal year AND the previous
             return year_end == dt or self.get_year_end(shift_month(dt, -1, None)) == dt
         else:
@@ -4747,6 +5209,43 @@ cdef class FY5253(FY5253Mixin):
         return result
 
     def get_year_end(self, dt: datetime) -> datetime:
+        """
+        Get the fiscal year end date for the given datetime.
+
+        This method calculates the fiscal year end date based on the offset's
+        weekday, starting month, and variation parameters. The fiscal year end
+        is determined as either the last occurrence of the specified weekday in
+        the starting month, or the occurrence of the specified weekday nearest
+        to the last day of the starting month.
+
+        Parameters
+        ----------
+        dt : datetime
+            A timezone-naive datetime for which to determine the fiscal year end.
+            The year component of this datetime is used to determine which fiscal
+            year end to calculate.
+
+        Returns
+        -------
+        datetime
+            The fiscal year end datetime for the year specified in the input.
+
+        See Also
+        --------
+        FY5253 : Describes 52-53 week fiscal year.
+        FY5253.is_on_offset : Check if a date is on the offset.
+
+        Examples
+        --------
+        >>> from datetime import datetime
+        >>> offset = pd.offsets.FY5253(weekday=4, startingMonth=12, variation="last")
+        >>> offset.get_year_end(datetime(2022, 6, 15))
+        datetime.datetime(2022, 12, 30, 0, 0)
+
+        >>> offset = pd.offsets.FY5253(weekday=0, startingMonth=1, variation="nearest")
+        >>> offset.get_year_end(datetime(2022, 6, 15))
+        datetime.datetime(2022, 1, 31, 0, 0)
+        """
         assert dt.tzinfo is None
 
         dim = get_days_in_month(dt.year, self.startingMonth)
@@ -4756,7 +5255,7 @@ cdef class FY5253(FY5253Mixin):
             # year_end is the same for "last" and "nearest" cases
             return target_date
 
-        if self.variation == "last":
+        if self._variation == "last":
             days_forward = (wkday_diff % 7) - 7
 
             # days_forward is always negative, so we always end up
@@ -4895,7 +5394,7 @@ cdef class FY5253Quarter(FY5253Mixin):
     )
 
     cdef readonly:
-        int qtr_with_extra_week
+        int _qtr_with_extra_week
 
     def __init__(
         self,
@@ -4909,11 +5408,41 @@ cdef class FY5253Quarter(FY5253Mixin):
         FY5253Mixin.__init__(
             self, n, normalize, weekday, startingMonth, variation
         )
-        self.qtr_with_extra_week = qtr_with_extra_week
+        self._qtr_with_extra_week = qtr_with_extra_week
 
     cpdef __setstate__(self, state):
         FY5253Mixin.__setstate__(self, state)
-        self.qtr_with_extra_week = state.pop("qtr_with_extra_week")
+        self._qtr_with_extra_week = state.pop("qtr_with_extra_week")
+
+    @property
+    def qtr_with_extra_week(self) -> int:
+        """
+        Return the quarter number that has the leap or 14 week when needed.
+
+        In a 52-53 week fiscal year, when a year has 53 weeks, one quarter
+        will have 14 weeks instead of the standard 13 weeks. This property
+        indicates which quarter (1, 2, 3, or 4) receives the extra week.
+
+        Returns
+        -------
+        int
+            The quarter number (1, 2, 3, or 4) that contains the extra week
+            in 53-week years.
+
+        See Also
+        --------
+        FY5253Quarter.get_weeks : Get the number of weeks in each quarter.
+        FY5253Quarter.year_has_extra_week : Check if a given year has 53 weeks.
+
+        Examples
+        --------
+        >>> offset = pd.offsets.FY5253Quarter(
+        ...     weekday=5, startingMonth=12, qtr_with_extra_week=4
+        ... )
+        >>> offset.qtr_with_extra_week
+        4
+        """
+        return self._qtr_with_extra_week
 
     @cache_readonly
     def _offset(self):
@@ -5007,7 +5536,7 @@ cdef class FY5253Quarter(FY5253Mixin):
         year_has_extra_week = self.year_has_extra_week(dt)
 
         if year_has_extra_week:
-            ret[self.qtr_with_extra_week - 1] = 14
+            ret[self._qtr_with_extra_week - 1] = 14
 
         return ret
 
@@ -5237,7 +5766,7 @@ cdef class CustomBusinessDay(BusinessDay):
 
     cpdef __setstate__(self, state):
         self._holidays = state.pop("holidays")
-        self.weekmask = state.pop("weekmask")
+        self._weekmask = state.pop("weekmask")
         BusinessDay.__setstate__(self, state)
 
     @apply_wraps
@@ -5272,6 +5801,68 @@ cdef class CustomBusinessDay(BusinessDay):
             )
 
     def is_on_offset(self, dt: datetime) -> bool:
+        """
+        Return boolean whether a timestamp intersects with this frequency.
+
+        This method determines if a given timestamp falls on a custom business day,
+        as defined by the ``weekmask``, ``holidays``, and ``calendar`` parameters.
+        If ``normalize`` is True, it also checks that the time component is midnight.
+
+        Parameters
+        ----------
+        dt : datetime
+            Timestamp to check intersection with frequency.
+
+        Returns
+        -------
+        bool
+            True if the timestamp is on a custom business day, False otherwise.
+
+        See Also
+        --------
+        tseries.offsets.BusinessDay.is_on_offset : Check if timestamp is on a
+            standard business day.
+        tseries.offsets.CustomBusinessDay : Represents custom business day offset.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2022, 8, 5)
+        >>> ts.day_name()
+        'Friday'
+        >>> pd.offsets.CustomBusinessDay().is_on_offset(ts)
+        True
+
+        >>> ts = pd.Timestamp(2022, 8, 6)
+        >>> ts.day_name()
+        'Saturday'
+        >>> pd.offsets.CustomBusinessDay().is_on_offset(ts)
+        False
+
+        With a custom weekmask including Saturday:
+
+        >>> ts = pd.Timestamp(2022, 8, 6)
+        >>> freq = pd.offsets.CustomBusinessDay(weekmask="Mon Tue Wed Thu Fri Sat")
+        >>> freq.is_on_offset(ts)
+        True
+
+        With custom holidays:
+
+        >>> import datetime as dt
+        >>> holiday = dt.datetime(2022, 8, 5)
+        >>> ts = pd.Timestamp(2022, 8, 5)
+        >>> pd.offsets.CustomBusinessDay(holidays=[holiday]).is_on_offset(ts)
+        False
+
+        With ``normalize=True``, the timestamp must also be at midnight:
+
+        >>> ts = pd.Timestamp(2022, 8, 5, 12, 0)
+        >>> pd.offsets.CustomBusinessDay(normalize=True).is_on_offset(ts)
+        False
+
+        >>> ts = pd.Timestamp(2022, 8, 5)
+        >>> pd.offsets.CustomBusinessDay(normalize=True).is_on_offset(ts)
+        True
+        """
         if self.normalize and not _is_normalized(dt):
             return False
         day64 = _to_dt64D(dt)
@@ -5429,6 +6020,25 @@ cdef class _CustomBusinessMonth(BusinessMixin):
 
     @cache_readonly
     def m_offset(self):
+        """
+        Return a MonthBegin or MonthEnd offset.
+
+        This is used internally to compute the month-based component
+        of the custom business month offset calculation.
+
+        See Also
+        --------
+        tseries.offsets.MonthBegin : Represents the start of the month.
+        tseries.offsets.MonthEnd : Represents the end of the month.
+
+        Examples
+        --------
+        >>> pd.offsets.CustomBusinessMonthBegin().m_offset
+        <MonthBegin>
+
+        >>> pd.offsets.CustomBusinessMonthEnd().m_offset
+        <MonthEnd>
+        """
         if self._prefix.endswith("S"):
             # MonthBegin
             moff = MonthBegin(n=1, normalize=False)

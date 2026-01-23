@@ -630,7 +630,7 @@ def infer_compression(
     if compression in _supported_compressions:
         return compression
 
-    valid = ["infer", None] + sorted(_supported_compressions)
+    valid = ["infer", None, *sorted(_supported_compressions)]
     msg = (
         f"Unrecognized compression type: {compression}\n"
         f"Valid compression types are {valid}"
@@ -1316,7 +1316,7 @@ def dedup_names(
             if is_potential_multiindex:
                 # for mypy
                 assert isinstance(col, tuple)
-                col = col[:-1] + (f"{col[-1]}.{cur_count}",)
+                col = (*col[:-1], f"{col[-1]}.{cur_count}")
             else:
                 col = f"{col}.{cur_count}"
             cur_count = counts[col]

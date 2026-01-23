@@ -953,7 +953,7 @@ def test_where_nullable_invalid_na(frame_or_series, any_numeric_ea_dtype):
 
     msg = r"Invalid value '.*' for dtype '(U?Int|Float)\d{1,2}'"
 
-    for null in tm.NP_NAT_OBJECTS + [pd.NaT]:
+    for null in [*tm.NP_NAT_OBJECTS, pd.NaT]:
         # NaT is an NA value that we should *not* cast to pd.NA dtype
         with pytest.raises(TypeError, match=msg):
             obj.where(mask, null)

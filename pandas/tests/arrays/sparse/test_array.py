@@ -120,9 +120,9 @@ class TestSparseArray:
         tm.assert_numpy_array_equal(res, vals)
 
     @pytest.mark.parametrize("fix", ["arr", "zarr"])
-    def test_pickle(self, fix, request, tmp_path):
+    def test_pickle(self, fix, request, temp_file):
         obj = request.getfixturevalue(fix)
-        unpickled = tm.round_trip_pickle(obj, tmp_path)
+        unpickled = tm.round_trip_pickle(obj, temp_file)
         tm.assert_sp_array_equal(unpickled, obj)
 
     def test_generator_warnings(self):
