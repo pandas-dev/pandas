@@ -8,7 +8,7 @@ DataFrame
 .. currentmodule:: pandas
 
 .. note::
-   For more information on using DataFrame, see the :ref:`Essential basic functionality <basics>` section of the User Guide.
+   For an introduction to using DataFrames, see :ref:`basics`.
 
 Constructor
 ~~~~~~~~~~~
