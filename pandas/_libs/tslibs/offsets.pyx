@@ -5049,6 +5049,37 @@ cdef class FY5253Mixin(SingleConstructorOffset):
 
     @property
     def rule_code(self) -> str:
+        """
+        Return a string representing the frequency with fiscal year suffix.
+
+        This property generates a rule code string that combines the offset's
+        prefix with the fiscal year suffix containing the variation, starting
+        month, and weekday information.
+
+        Returns
+        -------
+        str
+            Rule code string with format 'PREFIX-SUFFIX', where PREFIX is the
+            offset's frequency abbreviation and SUFFIX contains the variation
+            (N for nearest or L for last), the three-letter month abbreviation,
+            and the three-letter weekday abbreviation.
+
+        See Also
+        --------
+        FY5253.get_rule_code_suffix : Return the suffix component of the rule code.
+        FY5253Quarter.rule_code : Return the complete rule code string for
+            FY5253Quarter.
+
+        Examples
+        --------
+        >>> offset = pd.offsets.FY5253(weekday=4, startingMonth=12, variation="nearest")
+        >>> offset.rule_code
+        'RE-N-DEC-FRI'
+
+        >>> offset = pd.offsets.FY5253(weekday=0, startingMonth=1, variation="last")
+        >>> offset.rule_code
+        'RE-L-JAN-MON'
+        """
         prefix = self._prefix
         suffix = self.get_rule_code_suffix()
         return f"{prefix}-{suffix}"
