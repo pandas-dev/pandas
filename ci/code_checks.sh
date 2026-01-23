@@ -87,7 +87,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.FY5253.is_on_offset GL08" \
         -i "pandas.tseries.offsets.FY5253.rule_code GL08" \
         -i "pandas.tseries.offsets.FY5253.startingMonth GL08" \
-        -i "pandas.tseries.offsets.FY5253Quarter.get_weeks GL08" \
         -i "pandas.tseries.offsets.FY5253Quarter.is_on_offset GL08" \
         -i "pandas.tseries.offsets.FY5253Quarter.rule_code GL08" \
         -i "pandas.tseries.offsets.FY5253Quarter.startingMonth GL08" \
