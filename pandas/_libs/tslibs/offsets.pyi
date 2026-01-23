@@ -280,7 +280,16 @@ class CustomBusinessHour(BusinessHour):
         offset: timedelta = ...,
     ) -> None: ...
 
-class CustomBusinessMonthEnd(_CustomBusinessMonth): ...
+class CustomBusinessMonthEnd(_CustomBusinessMonth):
+    def __init__(
+        self,
+        n: int = ...,
+        normalize: bool = ...,
+        weekmask: str = ...,
+        holidays: list = ...,
+        calendar: np.busdaycalendar = ...,
+        offset: timedelta = ...,
+    ) -> None: ...
 class CustomBusinessMonthBegin(_CustomBusinessMonth):
     def __init__(
         self,
