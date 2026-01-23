@@ -1,0 +1,22 @@
+.. _whatsnew_301:
+
+What's new in 3.0.1 (February XX, 2026)
+----------------------------------------
+
+These are the changes in pandas 3.0.1. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_301.bugs:
+
+Bug fixes
+^^^^^^^^^
+
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_301.contributors:
+
+Contributors
+~~~~~~~~~~~~
