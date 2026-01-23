@@ -8,7 +8,7 @@ Plotting
 .. currentmodule:: pandas.plotting
 
 .. note::
-   For more information on plotting, see the :ref:`Visualization <visualization>` section of the User Guide.
+   For an overview, see :ref:`visualization`.
 
 The following functions are contained in the ``pandas.plotting`` module.
 
