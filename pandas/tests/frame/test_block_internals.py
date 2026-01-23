@@ -389,8 +389,11 @@ def test_multithreaded_reading(float_frame):
     def numpy_assert(b):
         b.wait()
         # See gh-63685, numpy asserts led to data races under TSan
-        np.testing.assert_array_equal(float_frame, float_frame)
-        np.testing.assert_array_almost_equal((float_frame + 1) - 1, float_frame)
+        tm.assert_almost_equal(np.array(float_frame), np.array(float_frame))
+        tm.assert_almost_equal(
+            np.array((float_frame + 1) - 1),
+            np.array(float_frame)
+        )
 
     tm.run_multithreaded(numpy_assert, max_workers=8, pass_barrier=True)
 
@@ -411,6 +414,6 @@ def test_multithreaded_reading(float_frame):
         trendarr = pd.DataFrame(trendarr, index=x.index, columns=['const'])
         x = [trendarr, x]
         x = pd.concat(x[::1], axis=1)
-        np.testing.assert_array_equal(x, x)
+        tm.assert_almost_equal(np.array(x), np.array(x))
 
     tm.run_multithreaded(concat, max_workers=8, pass_barrier=True)
