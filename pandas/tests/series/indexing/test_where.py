@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas.core.dtypes.common import is_integer
 
 import pandas as pd
@@ -445,3 +447,25 @@ def test_where_datetimelike_categorical(tz_naive_fixture):
     res = pd.DataFrame(lvals).where(mask[:, None], pd.DataFrame(rvals))
 
     tm.assert_frame_equal(res, pd.DataFrame(dr))
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        "Int64",
+        pytest.param("int64[pyarrow]", marks=td.skip_if_no("pyarrow")),
+    ],
+)
+@pytest.mark.parametrize("cond_type", [["series", "list", "numpy"]])
+def test_where_na(dtype, cond_type):
+    series = Series([None, 1, 2, None, 3, 4, None], dtype=dtype)
+    expected = Series([None, 1, 2, None, -99, -99, None], dtype=dtype)
+    cond = series <= 2
+
+    if cond_type == "list":
+        cond = cond.to_list()
+    elif cond_type == "numpy":
+        cond = cond.to_numpy()
+
+    result = series.where(cond, -99)
+    tm.assert_series_equal(result, expected)
