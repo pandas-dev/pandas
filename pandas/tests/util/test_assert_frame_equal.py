@@ -423,3 +423,59 @@ def test_assert_frame_equal_nested_df_na(na_value):
     df1 = DataFrame({"df": [inner]})
     df2 = DataFrame({"df": [inner]})
     tm.assert_frame_equal(df1, df2)
+
+def test_assert_frame_equal_reports_all_different_columns():
+    df1 = pd.DataFrame({
+        "a": [1, 2, 3],
+        "b": [4, 5, 6],
+        "c": [7, 8, 9]
+    })
+    df2 = pd.DataFrame({
+        "a": [1, 99, 3],
+        "b": [4, 5, 6],
+        "c": [7, 8, 99]
+    })
+
+    with pytest.raises(AssertionError) as exc_info:
+        tm.assert_frame_equal(df1, df2)
+
+    error_msg = str(exc_info.value)
+    
+    assert "Columns with differences" in error_msg
+    
+    assert "'a'" in error_msg or '"a"' in error_msg
+    assert "'c'" in error_msg or '"c"' in error_msg
+    
+    assert "[0, 2]" in error_msg or "0, 2" in error_msg
+    
+    lines = error_msg.split('\n')
+    for i, line in enumerate(lines):
+        if "Columns with differences" in line:
+            if i + 1 < len(lines):
+                column_list_line = lines[i + 1]
+                assert "'a'" in column_list_line or '"a"' in column_list_line
+                assert "'c'" in column_list_line or '"c"' in column_list_line
+                assert not ("'b'" in column_list_line or '"b"' in column_list_line)
+
+def test_assert_frame_equal_all_columns_different():
+    df1 = pd.DataFrame({
+        "a": [1, 2],
+        "b": [3, 4],
+        "c": [5, 6]
+    })
+    df2 = pd.DataFrame({
+        "a": [10, 20],
+        "b": [30, 40],
+        "c": [50, 60]
+    })
+
+    with pytest.raises(AssertionError) as exc_info:
+        tm.assert_frame_equal(df1, df2)
+
+    error_msg = str(exc_info.value)
+    
+    assert "'a'" in error_msg or '"a"' in error_msg
+    assert "'b'" in error_msg or '"b"' in error_msg
+    assert "'c'" in error_msg or '"c"' in error_msg
+    
+    assert "[0, 1, 2]" in error_msg or "0, 1, 2" in error_msg
