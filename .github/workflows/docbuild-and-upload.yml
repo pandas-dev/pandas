@@ -104,7 +104,7 @@ jobs:
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     - name: Upload prod docs
-      # Revert before merging; making sure this step does not run as intended when putting up this PR.
+      # Revert before merging; allows for testing this PR.
       # run: rsync -az --delete doc/build/html/ web@${{ secrets.server_ip }}:/var/www/html/pandas-docs/version/${{ env.PANDAS_VERSION }}
       run: echo "Upload prod docs ran!"
       if: (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')) || github.event.inputs.publish_prod
