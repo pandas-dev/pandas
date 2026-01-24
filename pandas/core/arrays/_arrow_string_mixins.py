@@ -427,7 +427,7 @@ class ArrowStringArrayMixin:
         Optimized implementation for expand=True using PyArrow compute functions.
         For expand=False, falls back to element-wise processing.
         """
-        if not expand:
+        if not expand or pa_version_under21p0:
             predicate = lambda val: val.partition(sep)
             result = self._apply_elementwise(predicate)
             return self._from_pyarrow_array(pa.chunked_array(result))
