@@ -8,10 +8,6 @@ def __getattr__(key: str):
         from pandas.core.util.hashing import hash_pandas_object
 
         return hash_pandas_object
-    if key == "Appender":
-        from pandas.util._decorators import Appender
-
-        return Appender
     if key == "Substitution":
         from pandas.util._decorators import Substitution
 
