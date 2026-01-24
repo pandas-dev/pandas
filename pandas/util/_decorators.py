@@ -11,9 +11,7 @@ from typing import (
 import warnings
 
 from pandas._libs.properties import cache_readonly
-from pandas._typing import (
-    F,
-)
+from pandas._typing import F
 from pandas.util._exceptions import find_stack_level
 
 if TYPE_CHECKING:
