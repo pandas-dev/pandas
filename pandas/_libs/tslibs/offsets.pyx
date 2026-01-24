@@ -5005,9 +5005,35 @@ cdef class LastWeekOfMonth(WeekOfMonthMixin):
 
 cdef class FY5253Mixin(SingleConstructorOffset):
     cdef readonly:
-        int startingMonth
+        int _startingMonth
         int _weekday
         str _variation
+
+    @property
+    def startingMonth(self):
+        """
+        Return the starting month of the fiscal year.
+
+        The starting month is the month in which the fiscal year begins.
+        The value is an integer from 1 (January) to 12 (December).
+
+        Returns
+        -------
+        int
+            The starting month of the fiscal year (1-12).
+
+        See Also
+        --------
+        FY5253.weekday : Return the weekday used by the fiscal year.
+        FY5253.variation : Return the variation of the fiscal year.
+
+        Examples
+        --------
+        >>> offset = pd.offsets.FY5253(weekday=4, startingMonth=12, variation="nearest")
+        >>> offset.startingMonth
+        12
+        """
+        return self._startingMonth
 
     @property
     def weekday(self):
@@ -5060,7 +5086,7 @@ cdef class FY5253Mixin(SingleConstructorOffset):
         self, n=1, normalize=False, weekday=0, startingMonth=1, variation="nearest"
     ):
         BaseOffset.__init__(self, n, normalize)
-        self.startingMonth = startingMonth
+        self._startingMonth = startingMonth
         self._weekday = weekday
         self._variation = variation
 
@@ -5073,6 +5099,7 @@ cdef class FY5253Mixin(SingleConstructorOffset):
     cpdef __setstate__(self, state):
         self._n = state.pop("n")
         self._normalize = state.pop("normalize")
+        self._startingMonth = state.pop("startingMonth")
         self._weekday = state.pop("weekday")
         self._variation = state.pop("variation")
 
@@ -5152,7 +5179,7 @@ cdef class FY5253Mixin(SingleConstructorOffset):
         'L-JAN-MON'
         """
         prefix = self._get_suffix_prefix()
-        month = MONTH_ALIASES[self.startingMonth]
+        month = MONTH_ALIASES[self._startingMonth]
         weekday = int_to_weekday[self._weekday]
         return f"{prefix}-{month}-{weekday}"
 
@@ -5254,9 +5281,9 @@ cdef class FY5253(FY5253Mixin):
         norm = Timestamp(other).normalize()
 
         n = self._n
-        prev_year = self.get_year_end(datetime(other.year - 1, self.startingMonth, 1))
-        cur_year = self.get_year_end(datetime(other.year, self.startingMonth, 1))
-        next_year = self.get_year_end(datetime(other.year + 1, self.startingMonth, 1))
+        prev_year = self.get_year_end(datetime(other.year - 1, self._startingMonth, 1))
+        cur_year = self.get_year_end(datetime(other.year, self._startingMonth, 1))
+        next_year = self.get_year_end(datetime(other.year + 1, self._startingMonth, 1))
 
         prev_year = localize_pydatetime(prev_year, other.tzinfo)
         cur_year = localize_pydatetime(cur_year, other.tzinfo)
@@ -5292,7 +5319,7 @@ cdef class FY5253(FY5253Mixin):
             else:
                 assert False
 
-        shifted = datetime(other.year + n, self.startingMonth, 1)
+        shifted = datetime(other.year + n, self._startingMonth, 1)
         result = self.get_year_end(shifted)
         result = datetime(
             result.year,
@@ -5345,8 +5372,8 @@ cdef class FY5253(FY5253Mixin):
         """
         assert dt.tzinfo is None
 
-        dim = get_days_in_month(dt.year, self.startingMonth)
-        target_date = datetime(dt.year, self.startingMonth, dim)
+        dim = get_days_in_month(dt.year, self._startingMonth)
+        target_date = datetime(dt.year, self._startingMonth, dim)
         wkday_diff = self.weekday - target_date.weekday()
         if wkday_diff == 0:
             # year_end is the same for "last" and "nearest" cases
@@ -5544,7 +5571,7 @@ cdef class FY5253Quarter(FY5253Mixin):
     @cache_readonly
     def _offset(self):
         return FY5253(
-            startingMonth=self.startingMonth,
+            startingMonth=self._startingMonth,
             weekday=self.weekday,
             variation=self.variation,
         )
