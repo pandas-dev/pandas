@@ -3083,11 +3083,11 @@ cdef class WeekOfMonthMixin(SingleConstructorOffset):
     """
 
     cdef readonly:
-        int weekday, _week
+        int _weekday, _week
 
     def __init__(self, n=1, normalize=False, weekday=0):
         BaseOffset.__init__(self, n, normalize)
-        self.weekday = weekday
+        self._weekday = weekday
 
         if weekday < 0 or weekday > 6:
             raise ValueError(f"Day must be 0<=day<=6, got {weekday}")
@@ -3139,6 +3139,40 @@ cdef class WeekOfMonthMixin(SingleConstructorOffset):
         -1
         """
         return self._week
+
+    @property
+    def weekday(self) -> int:
+        """
+        Return the day of the week on which this offset applies.
+
+        The weekday is represented as an integer where 0 is Monday and 6 is
+        Sunday. This is the specific day of the week targeted within the
+        specified week of the month.
+
+        Returns
+        -------
+        int
+            An integer from 0 (Monday) to 6 (Sunday) representing the day
+            of the week.
+
+        See Also
+        --------
+        tseries.offsets.WeekOfMonth : Describes monthly dates in a specific week.
+        tseries.offsets.LastWeekOfMonth : Describes monthly dates in last week.
+        tseries.offsets.Week.weekday : Return the day of the week for Week offset.
+
+        Examples
+        --------
+        >>> pd.offsets.WeekOfMonth(week=0, weekday=0).weekday
+        0
+
+        >>> pd.offsets.WeekOfMonth(week=2, weekday=3).weekday
+        3
+
+        >>> pd.offsets.LastWeekOfMonth(weekday=5).weekday
+        5
+        """
+        return self._weekday
 
     @property
     def rule_code(self) -> str:
@@ -4916,7 +4950,7 @@ cdef class WeekOfMonth(WeekOfMonthMixin):
     cpdef __setstate__(self, state):
         self._n = state.pop("n")
         self._normalize = state.pop("normalize")
-        self.weekday = state.pop("weekday")
+        self._weekday = state.pop("weekday")
         self._week = state.pop("week")
 
     def _get_offset_day(self, other: datetime) -> int:
@@ -4999,7 +5033,7 @@ cdef class LastWeekOfMonth(WeekOfMonthMixin):
     cpdef __setstate__(self, state):
         self._n = state.pop("n")
         self._normalize = state.pop("normalize")
-        self.weekday = state.pop("weekday")
+        self._weekday = state.pop("weekday")
         self._week = -1
 
     def _get_offset_day(self, other: datetime) -> int:
