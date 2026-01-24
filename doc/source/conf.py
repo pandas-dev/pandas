@@ -20,7 +20,10 @@ import warnings
 
 import jinja2
 from numpydoc.docscrape import NumpyDocString
-from sphinx.ext.autosummary import _import_by_name
+from sphinx.ext.autosummary import (
+    Autosummary,
+    _import_by_name,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -421,6 +424,13 @@ html_show_sourcelink = False
 # Output file base name for HTML help builder.
 htmlhelp_basename = "pandas"
 
+# -- Options for HTMLHelp output -----------------------------------------
+
+# Avoid hard-coded html_baseurl to ensure search works in offline docs.
+# Online builds can set PANDAS_DOCS_BASEURL explicitly.
+html_baseurl = os.environ.get("PANDAS_DOCS_BASEURL", "")
+
+
 # -- Options for nbsphinx ------------------------------------------------
 
 nbsphinx_allow_errors = True
@@ -501,7 +511,6 @@ from sphinx.ext.autodoc import (  # isort:skip
     Documenter,
     MethodDocumenter,
 )
-from sphinx.ext.autosummary import Autosummary  # isort:skip
 
 
 class AccessorDocumenter(MethodDocumenter):
