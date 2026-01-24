@@ -53,6 +53,11 @@ jobs:
           echo "PANDAS_VERSION=${GITHUB_REF_NAME:1}" >> "$GITHUB_ENV"
         fi
 
+    - name: Show value
+      run: |
+        echo "${{ github.event.inputs.publish_prod }}
+        echo "${{ inputs.publish_prod }}
+
     - name: Test upload prod docs
       run: |
         echo "Upload prod docs ran!"
