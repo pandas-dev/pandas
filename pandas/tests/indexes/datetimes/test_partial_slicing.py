@@ -14,6 +14,7 @@ from pandas import (
     Timedelta,
     Timestamp,
     date_range,
+    to_datetime,
 )
 import pandas._testing as tm
 
@@ -387,15 +388,23 @@ class TestSlicing:
         # after sort_index, .xs should
         # return the same result as .loc
         df = DataFrame(
-            Series(
-                range(250),
-                index=MultiIndex.from_product(
-                    [date_range("2000-1-1", periods=50), range(5)]
-                ),
-            )
-        ).sort_index()
-        expected = df.loc["2000-01", slice(None)]
-        result = df.xs("2000-01", level=0)
+            [
+                ["2017-01-01", "000001", "a", 4, 5],
+                ["2017-01-02", "000001", "b", 4, 5],
+                ["2017-01-01", "000002", "b", 4, 5],
+                ["2017-01-02", "000002", "b", 4, 5],
+                ["2017-02-02", "000001", "b", 4, 5],
+                ["2017-02-03", "000002", "b", 4, 5],
+            ],
+            columns=["date", "code", "c", "d", "e"],
+        )
+        df = (
+            df.assign(date=to_datetime(df.date))
+            .set_index(["date", "code"])
+            .sort_index()
+        )
+        expected = df.loc["2017-01", slice(None)]
+        result = df.xs("2017-01", level=0)
         tm.assert_frame_equal(result, expected)
 
     def test_partial_slice_requires_monotonicity(self):
