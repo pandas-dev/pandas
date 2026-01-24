@@ -6793,17 +6793,20 @@ cpdef to_offset(freq, bint is_period=False):
                 else:
                     result = result + offset
         except (ValueError, TypeError) as err:
-            raise_invalid_freq(
-                freq=freq,
-                extra_message=f"Failed to parse with error message: {repr(err)}"
-            )
+            # --- FALLBACK---
+            try:
+                td = Timedelta(freq)
+                result = delta_to_tick(td)
+            except (ValueError, TypeError):
+                # If Timedelta parsing also fails, raise the original error
+                raise_invalid_freq(
+                    freq=freq,
+                    extra_message=f"Failed to parse with error message: {repr(err)}"
+                )
 
-        # TODO(3.0?) once deprecation of "d" is enforced, the check for it here
-        #  can be removed
         if (
                 isinstance(result, Hour)
                 and result.n % 24 == 0
-                and ("d" in freq or "D" in freq)
         ):
             # Since Day is no longer a Tick, delta_to_tick returns Hour above,
             #  so we convert back here.
