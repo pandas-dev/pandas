@@ -432,10 +432,9 @@ class BaseBlockManager(PandasObject):
                             kwargs[k] = obj.iloc[b.mgr_locs.indexer]._values
                         else:
                             kwargs[k] = obj.iloc[:, b.mgr_locs.indexer]._values
-                    else:
+                    elif isinstance(obj, (np.ndarray, list)):
                         # otherwise we have an ndarray
                         kwargs[k] = obj[b.mgr_locs.indexer]
-
             if callable(f):
                 applied = b.apply(f, **kwargs)
             else:
