@@ -66,7 +66,6 @@ from pandas.errors.cow import (
     _chained_assignment_msg,
 )
 from pandas.util._decorators import (
-    Substitution,
     deprecate_nonkeyword_arguments,
     set_module,
 )
@@ -1051,17 +1050,6 @@ class DataFrame(NDFrame, OpsMixin):
         encoding: str | None = ...,
     ) -> None: ...
 
-    @Substitution(
-        header_type="bool or list of str",
-        header="Write out the column names. If a list of columns "
-        "is given, it is assumed to be aliases for the "
-        "column names",
-        col_space_type="int, list or dict of int",
-        col_space="The minimum width of each column. If a list of ints is given "
-        "every integers corresponds with one column. If a dict is given, the key "
-        "references the column, while the value defines the space to use.",
-    )
-    @Substitution(shared_params=fmt.common_docstring, returns=fmt.return_docstring)
     def to_string(
         self,
         buf: FilePath | WriteBuffer[str] | None = None,
@@ -1087,7 +1075,63 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> str | None:
         """
         Render a DataFrame to a console-friendly tabular output.
-        %(shared_params)s
+
+        Parameters
+        ----------
+        buf : str, Path or StringIO-like, optional, default None
+            Buffer to write to. If None, the output is returned as a string.
+        columns : array-like, optional, default None
+            The subset of columns to write. Writes all columns by default.
+        col_space : int, list or dict of int, optional
+            The minimum width of each column. If a list of ints is given every
+            integers corresponds with one column. If a dict is given, the key
+            references the column, while the value defines the space to use.
+        header : bool or list of str, optional
+            Write out the column names. If a list of columns is given, it is
+            assumed to be aliases for the column names.
+        index : bool, optional, default True
+            Whether to print index (row) labels.
+        na_rep : str, optional, default 'NaN'
+            String representation of ``NaN`` to use.
+        formatters : list, tuple or dict of one-param. functions, optional
+            Formatter functions to apply to columns' elements by position or
+            name.
+            The result of each function must be a unicode string.
+            List/tuple must be of length equal to the number of columns.
+        float_format : one-parameter function, optional, default None
+            Formatter function to apply to columns' elements if they are
+            floats. This function must return a unicode string and will be
+            applied only to the non-``NaN`` elements, with ``NaN`` being
+            handled by ``na_rep``.
+        sparsify : bool, optional, default True
+            Set to False for a DataFrame with a hierarchical index to print
+            every multiindex key at each row.
+        index_names : bool, optional, default True
+            Prints the names of the indexes.
+        justify : str, default None
+            How to justify the column labels. If None uses the option from
+            the print configuration (controlled by set_option), 'right' out
+            of the box. Valid values are
+
+            * left
+            * right
+            * center
+            * justify
+            * justify-all
+            * start
+            * end
+            * inherit
+            * match-parent
+            * initial
+            * unset.
+        max_rows : int, optional
+            Maximum number of rows to display in the console.
+        max_cols : int, optional
+            Maximum number of columns to display in the console.
+        show_dimensions : bool, default False
+            Display DataFrame dimensions (number of rows by number of columns).
+        decimal : str, default '.'
+            Character recognized as decimal separator, e.g. ',' in Europe.
         line_width : int, optional
             Width to wrap a line in characters.
         min_rows : int, optional
@@ -1097,7 +1141,13 @@ class DataFrame(NDFrame, OpsMixin):
             Max width to truncate each column in characters. By default, no limit.
         encoding : str, default "utf-8"
             Set character encoding.
-        %(returns)s
+
+        Returns
+        -------
+        str or None
+            If buf is None, returns the result as a string. Otherwise returns
+            None.
+
         See Also
         --------
         to_html : Convert DataFrame to HTML.
@@ -3077,14 +3127,6 @@ class DataFrame(NDFrame, OpsMixin):
         encoding: str | None = ...,
     ) -> str: ...
 
-    @Substitution(
-        header_type="bool",
-        header="Whether to print column labels, default True",
-        col_space_type="str or int, list or dict of int or str",
-        col_space="The minimum width of each column in CSS length "
-        "units.  An int is assumed to be px units.",
-    )
-    @Substitution(shared_params=fmt.common_docstring, returns=fmt.return_docstring)
     def to_html(
         self,
         buf: FilePath | WriteBuffer[str] | None = None,
@@ -3114,7 +3156,62 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> str | None:
         """
         Render a DataFrame as an HTML table.
-        %(shared_params)s
+
+        Parameters
+        ----------
+        buf : str, Path or StringIO-like, optional, default None
+            Buffer to write to. If None, the output is returned as a string.
+        columns : array-like, optional, default None
+            The subset of columns to write. Writes all columns by default.
+        col_space : str or int, list or dict of int or str, optional
+            The minimum width of each column in CSS length units.  An int is
+            assumed to be px units.
+        header : bool, optional
+            Whether to print column labels, default True.
+        index : bool, optional, default True
+            Whether to print index (row) labels.
+        na_rep : str, optional, default 'NaN'
+            String representation of ``NaN`` to use.
+        formatters : list, tuple or dict of one-param. functions, optional
+            Formatter functions to apply to columns' elements by position or
+            name.
+            The result of each function must be a unicode string.
+            List/tuple must be of length equal to the number of columns.
+        float_format : one-parameter function, optional, default None
+            Formatter function to apply to columns' elements if they are
+            floats. This function must return a unicode string and will be
+            applied only to the non-``NaN`` elements, with ``NaN`` being
+            handled by ``na_rep``.
+        sparsify : bool, optional, default True
+            Set to False for a DataFrame with a hierarchical index to print
+            every multiindex key at each row.
+        index_names : bool, optional, default True
+            Prints the names of the indexes.
+        justify : str, default None
+            How to justify the column labels. If None uses the option from
+            the print configuration (controlled by set_option), 'right' out
+            of the box. Valid values are
+
+            * left
+            * right
+            * center
+            * justify
+            * justify-all
+            * start
+            * end
+            * inherit
+            * match-parent
+            * initial
+            * unset.
+        max_rows : int, optional
+            Maximum number of rows to display in the console.
+        max_cols : int, optional
+            Maximum number of columns to display in the console.
+        show_dimensions : bool, default False
+            Display DataFrame dimensions (number of rows by number of columns).
+        decimal : str, default '.'
+            Character recognized as decimal separator, e.g. ',' in Europe.
+
         bold_rows : bool, default True
             Make the row labels bold in the output.
         classes : str or list or tuple, default None
@@ -3136,7 +3233,13 @@ class DataFrame(NDFrame, OpsMixin):
             Convert URLs to HTML links.
         encoding : str, default "utf-8"
             Set character encoding.
-        %(returns)s
+
+        Returns
+        -------
+        str or None
+            If buf is None, returns the result as a string. Otherwise returns
+            None.
+
         See Also
         --------
         to_string : Convert DataFrame to a string.
