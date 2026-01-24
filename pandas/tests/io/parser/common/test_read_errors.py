@@ -313,3 +313,119 @@ a,b
     ):
         result = parser.read_csv(StringIO(data), on_bad_lines="warn")
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "on_bad_lines,should_warn",
+    [
+        ("skip", False),
+        ("warn", True),
+    ],
+)
+def test_on_bad_lines_dtype_conversion_skip(c_parser_only, on_bad_lines, should_warn):
+    # GH#63168 - on_bad_lines should handle dtype conversion failures
+    parser = c_parser_only
+    data = "col1,col2,col3\n1,2,3\na,4,5\n4,5,6"
+
+    if should_warn:
+        with tm.assert_produces_warning(
+            ParserWarning,
+            match="Could not convert column|Skipped .* line",
+            check_stacklevel=False,
+        ):
+            result = parser.read_csv(
+                StringIO(data),
+                dtype={"col1": np.int64, "col2": np.int64, "col3": np.int64},
+                on_bad_lines=on_bad_lines,
+            )
+    else:
+        result = parser.read_csv(
+            StringIO(data),
+            dtype={"col1": np.int64, "col2": np.int64, "col3": np.int64},
+            on_bad_lines=on_bad_lines,
+        )
+
+    # Row with 'a' cannot convert to int, should be skipped
+    expected = DataFrame(
+        {"col1": [1, 4], "col2": [2, 5], "col3": [3, 6]}, dtype=np.int64
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_on_bad_lines_dtype_conversion_error(c_parser_only):
+    # GH#63168 - on_bad_lines='error' should raise on dtype conversion failure
+    parser = c_parser_only
+    data = "col1,col2\n1,2\na,3"
+
+    with pytest.raises(ValueError, match="invalid literal for int"):
+        parser.read_csv(
+            StringIO(data),
+            dtype={"col1": np.int64, "col2": np.int64},
+            on_bad_lines="error",
+        )
+
+
+def test_on_bad_lines_dtype_float_conversion(c_parser_only):
+    # GH#63168 - Float dtype with non-numeric values
+    parser = c_parser_only
+    data = "a,b\n1.5,2.5\nfoo,3.5\n4.5,5.5"
+
+    result = parser.read_csv(
+        StringIO(data),
+        dtype={"a": float, "b": float},
+        on_bad_lines="skip",
+    )
+
+    expected = DataFrame({"a": [1.5, 4.5], "b": [2.5, 5.5]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_on_bad_lines_dtype_partial_columns(c_parser_only):
+    # GH#63168 - Only some columns have dtype specified
+    parser = c_parser_only
+    data = "a,b,c\n1,hello,3\nfoo,world,6\n4,test,9"
+
+    result = parser.read_csv(
+        StringIO(data),
+        dtype={"a": np.int64, "c": np.int64},
+        on_bad_lines="skip",
+    )
+
+    expected = DataFrame(
+        {
+            "a": np.array([1, 4], dtype=np.int64),
+            "b": ["hello", "test"],
+            "c": np.array([3, 9], dtype=np.int64),
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_on_bad_lines_dtype_mixed_errors(c_parser_only):
+    # GH#63168 - Mix of structural errors (wrong field count) and dtype errors
+    parser = c_parser_only
+    data = "a,b,c\n1,2,3\nwrong_field_count\nfoo,4,5\n6,7,8"
+
+    result = parser.read_csv(
+        StringIO(data),
+        dtype={"a": np.int64, "b": np.int64, "c": np.int64},
+        on_bad_lines="skip",
+    )
+
+    expected = DataFrame({"a": [1, 6], "b": [2, 7], "c": [3, 8]}, dtype=np.int64)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_on_bad_lines_dtype_all_bad_rows(c_parser_only):
+    # GH#63168 - All data rows fail conversion
+    parser = c_parser_only
+    data = "a,b\nfoo,bar\nbaz,qux"
+
+    result = parser.read_csv(
+        StringIO(data),
+        dtype={"a": np.int64, "b": np.int64},
+        on_bad_lines="skip",
+    )
+
+    expected = DataFrame({"a": [], "b": []}).astype(np.int64)
+    tm.assert_frame_equal(result, expected)
