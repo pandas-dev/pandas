@@ -244,10 +244,13 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     @classmethod
     def _from_sequence(cls, data, *, dtype=None, copy: bool = False) -> Self:
+        unit = None
         if dtype:
             dtype = _validate_td64_dtype(dtype)
+            if lib.infer_dtype(data) == "integer":
+                unit = np.datetime_data(dtype)[0]
 
-        data, freq = sequence_to_td64ns(data, copy=copy, unit=None)
+        data, freq = sequence_to_td64ns(data, copy=copy, unit=unit)
 
         if dtype is not None:
             data = astype_overflowsafe(data, dtype=dtype, copy=False)
@@ -270,6 +273,8 @@ class TimedeltaArray(dtl.TimelikeOps):
         """
         if dtype:
             dtype = _validate_td64_dtype(dtype)
+            if unit is None and lib.infer_dtype(data) == "integer":
+                unit = np.datetime_data(dtype)[0]
 
         assert unit not in ["Y", "y", "M"]  # caller is responsible for checking
 
@@ -1151,6 +1156,18 @@ def sequence_to_td64ns(
             data = data._data
         else:
             mask = np.isnan(data)
+
+        if unit is not None and unit != "ns":
+            # if all non-NaN entries are round, treat these like ints and give
+            #  back the requested unit (or closest-supported)
+            int_data = data.astype(np.int64)
+            all_round = (mask | (data == int_data)).all()
+            if all_round:
+                result, _ = sequence_to_td64ns(
+                    int_data, copy=False, unit=unit, errors=errors
+                )
+                result[mask] = iNaT
+                return result, inferred_freq
 
         data = cast_from_unit_vectorized(data, unit or "ns")
         data[mask] = iNaT

@@ -641,7 +641,7 @@ def wide_to_long(
             # TODO: anything else to catch?
             pass
 
-        return newdf.set_index(i + [j])
+        return newdf.set_index([*i, j])
 
     if not is_list_like(stubnames):
         stubnames = [stubnames]
@@ -673,4 +673,4 @@ def wide_to_long(
     if len(i) == 1:
         return new.set_index(i).join(melted)
     else:
-        return new.merge(melted.reset_index(), on=i).set_index(i + [j])
+        return new.merge(melted.reset_index(), on=i).set_index([*i, j])
