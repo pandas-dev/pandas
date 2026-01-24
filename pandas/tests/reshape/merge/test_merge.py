@@ -2437,6 +2437,77 @@ def test_merge_suffix(col1, col2, kwargs, expected_cols):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("force_suffixes", [False, True])
+def test_merge_suffix_with_force_simple(force_suffixes):
+    df1 = pd.DataFrame({
+                'ID': [1, 2, 3],
+                'Value': ['A', 'B', 'C']
+                })
+
+    df2 = pd.DataFrame({
+                    'ID': [2, 3, 4],
+                    'Value': ['D', 'E', 'F']
+                })
+
+    if force_suffixes:
+        expected = DataFrame([[2, "B", "D"], [3, "C", "E"]],
+                             columns=["ID", "Value_left", "Value_right"])
+    else:
+        expected = DataFrame([[2, "B", "D"], [3, "C", "E"]],
+                             columns=["ID", "Value_left", "Value_right"])
+
+    result = merge(df1, df2, on="ID", suffixes=("_left", "_right"),
+                   force_suffixes=force_suffixes)
+    tm.assert_frame_equal(result, expected)
+
+@pytest.mark.parametrize("force_suffixes", [False, True])
+def test_merge_suffix_with_force_multi_column(force_suffixes):
+    a = DataFrame({"A": [1, 2, 3, 98], "B": [4, 5, 6, 99], "ALPHABET": ["A", "B", "C", "Z"]})
+    b = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "alphabet": ["a", "b", "c"]})
+
+    if force_suffixes:
+        expected = DataFrame([[1, 4, "A", 1, 4, "a"], [2, 5, "B", 2, 5, "b"], [3, 6, "C", 3, 6, "c"]],
+                             columns=["A", "B", "ALPHABET_x", "a", "b", "alphabet_y"])
+    else:
+        expected = DataFrame([[1, 4, "A", 1, 4, "a"], [2, 5, "B", 2, 5, "b"], [3, 6, "C", 3, 6, "c"]],
+                             columns=["A", "B", "ALPHABET", "a", "b", "alphabet"])
+
+    result = merge(a, b, left_on=["A", "B"], right_on=["a", "b"],
+                   force_suffixes=force_suffixes)
+    tm.assert_frame_equal(result, expected)
+
+@pytest.mark.parametrize(
+    "col1, col2, kwargs, expected_cols",
+    [
+        (0, 0, {"suffixes": ("", "_dup")}, ["0", "0_dup"]),
+        (0, 0, {"suffixes": (None, "_dup")}, [0, "0_dup"]),
+        (0, 0, {"suffixes": ("_x", "_y")}, ["0_x", "0_y"]),
+        (0, 0, {"suffixes": ["_x", "_y"]}, ["0_x", "0_y"]),
+        ("a", 0, {"suffixes": (None, "_y")}, ["a", "0_y"]),
+        (0.0, 0.0, {"suffixes": ("_x", None)}, ["0.0_x", 0.0]),
+        ("b", "b", {"suffixes": (None, "_y")}, ["b", "b_y"]),
+        ("a", "a", {"suffixes": ("_x", None)}, ["a_x", "a"]),
+        ("a", "b", {"suffixes": ("_x", None)}, ["a_x", "b"]),
+        ("a", "a", {"suffixes": (None, "_x")}, ["a", "a_x"]),
+        (0, 0, {"suffixes": ("_a", None)}, ["0_a", 0]),
+        ("a", "a", {}, ["a_x", "a_y"]),
+        (0, 0, {}, ["0_x", "0_y"]),
+    ],
+)
+def test_merge_suffix_with_force(col1, col2, kwargs, expected_cols):
+    # issue: 24782
+    a = DataFrame({col1: [1, 2, 3]})
+    b = DataFrame({col2: [4, 5, 6]})
+
+    expected = DataFrame([[1, 4], [2, 5], [3, 6]], columns=expected_cols)
+
+    result = a.merge(b, left_index=True, right_index=True, force_suffixes=True, **kwargs)
+    tm.assert_frame_equal(result, expected)
+
+    result = merge(a, b, left_index=True, right_index=True, force_suffixes=True, **kwargs)
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "how,expected",
     [
@@ -2651,6 +2722,7 @@ def test_categorical_non_unique_monotonic(n_categories):
         index=left_index,
     )
     tm.assert_frame_equal(expected, result)
+
 
 
 def test_merge_join_categorical_multiindex():
