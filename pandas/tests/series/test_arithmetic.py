@@ -887,6 +887,8 @@ class TestTimeSeriesArithmetic:
         tm.assert_series_equal(result, expected)
 
     def test_align_date_objects_with_datetimeindex(self):
+        # GH#62158: v3.0.0 - DatetimeIndex no longer matches Python date labels.
+        # The result is always all-NaN and the union index.
         rng = date_range("1/1/2000", periods=20)
         ts = Series(np.random.default_rng(2).standard_normal(20), index=rng)
 
@@ -896,10 +898,20 @@ class TestTimeSeriesArithmetic:
 
         result = ts + ts2
         result2 = ts2 + ts
-        expected = ts + ts[5:]
-        expected.index = expected.index._with_freq(None)
-        tm.assert_series_equal(result, expected)
-        tm.assert_series_equal(result2, expected)
+
+        date_labels = [x.date() for x in rng[5:]]
+        expected_index_result = Index(list(rng) + date_labels, dtype=object)
+        expected_index_result2 = Index(date_labels + list(rng), dtype=object)
+
+        # Length and index checks
+        assert len(result) == 35
+        tm.assert_index_equal(result.index, expected_index_result)
+        tm.assert_index_equal(result2.index, expected_index_result2)
+        assert result.index.dtype == object
+
+        # All NaN because there are no matching labels now
+        assert result.isna().all()
+        assert result2.isna().all()
 
 
 class TestNamePreservation:
