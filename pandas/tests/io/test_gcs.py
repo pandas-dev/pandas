@@ -8,7 +8,6 @@ import numpy as np
 import pytest
 
 from pandas.compat.pyarrow import pa_version_under17p0
-from pandas.errors import Pandas4Warning
 
 from pandas import (
     DataFrame,
@@ -81,12 +80,7 @@ def test_to_read_gcs(gcs_buffer, format, monkeypatch, capsys, request):
         df1.to_excel(path)
         df2 = read_excel(path, parse_dates=["dt"], index_col=0)
     elif format == "json":
-        msg = (
-            "The default 'epoch' date format is deprecated and will be removed "
-            "in a future version, please use 'iso' date format instead."
-        )
-        with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            df1.to_json(path)
+        df1.to_json(path, date_format="iso")
         df2 = read_json(path, convert_dates=["dt"])
     elif format == "parquet":
         pytest.importorskip("pyarrow")
@@ -118,7 +112,7 @@ def test_to_read_gcs(gcs_buffer, format, monkeypatch, capsys, request):
         df2 = df1
 
     expected = df1[:]
-    if format in ["csv", "excel"]:
+    if format in ["csv", "excel", "json"]:
         expected["dt"] = expected["dt"].dt.as_unit("us")
 
     tm.assert_frame_equal(df2, expected)

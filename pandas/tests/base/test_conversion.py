@@ -114,7 +114,7 @@ class TestToIterable:
         assert isinstance(result, rdtype)
 
     @pytest.mark.parametrize(
-        "dtype, rdtype", dtypes + [("object", int), ("category", int)]
+        "dtype, rdtype", [*dtypes, ("object", int), ("category", int)]
     )
     def test_iterable_map(self, index_or_series, dtype, rdtype):
         # gh-13236

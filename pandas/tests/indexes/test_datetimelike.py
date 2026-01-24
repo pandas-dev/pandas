@@ -103,7 +103,7 @@ class TestDatetimeLike:
 
         # map to NaT
         result = index.map(lambda x: pd.NaT if x == index[0] else x)
-        expected = pd.Index([pd.NaT] + index[1:].tolist())
+        expected = pd.Index([pd.NaT, *index[1:].tolist()])
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -125,7 +125,7 @@ class TestDatetimeLike:
         result = index.map(mapper(expected, index))
         tm.assert_index_equal(result, expected)
 
-        expected = pd.Index([pd.NaT] + index[1:].tolist())
+        expected = pd.Index([pd.NaT, *index[1:].tolist()])
         result = index.map(mapper(expected, index))
         tm.assert_index_equal(result, expected)
 

@@ -2,13 +2,13 @@
 # Minimum requirements for the build system to execute.
 # See https://github.com/scipy/scipy/pull/12940 for the AIX issue.
 requires = [
-    "meson-python>=0.13.1",
+    "meson-python>=0.17.1,<1",
     "meson>=1.2.1,<2",
     "wheel",
     "Cython<4.0.0a0",  # Note: sync with setup.py, environment.yml and asv.conf.json
-    # Force numpy higher than 2.0rc1, so that built wheels are compatible
+    # Force numpy higher than 2.0, so that built wheels are compatible
     # with both numpy 1 and 2
-    "numpy>=2.0.0rc1",
+    "numpy>=2.0.0",
     "versioneer[toml]"
 ]
 
@@ -28,8 +28,8 @@ license = {file = 'LICENSE'}
 requires-python = '>=3.11'
 dependencies = [
   "numpy>=1.26.0; python_version < '3.14'",
-  # NumPy 1.x is fundamentally broken on 3.14
-  "numpy>=2.0.0; python_version >= '3.14'",
+  # Earlier versions of NumPy are fundamentally broken on 3.14
+  "numpy>=2.3.3; python_version >= '3.14'",
   "python-dateutil>=2.8.2",
   "tzdata; sys_platform == 'win32'",
   # Emscripten is the platform system for Pyodide.
@@ -308,8 +308,6 @@ ignore = [
   "PYI041",
   # incorrect-dict-iterator, flags valid Series.items usage
   "PERF102",
-  # try-except-in-loop, becomes useless in Python 3.11
-  "PERF203",
   # pytest-parametrize-names-wrong-type
   "PT006",
   # pytest-parametrize-values-wrong-type
@@ -338,16 +336,12 @@ ignore = [
   "PLR2004",
   # comparison-with-itself
   "PLR0124",
-  # collection-literal-concatenation
-  "RUF005",
   # pairwise-over-zipped
   "RUF007",
   # mutable-class-default
   "RUF012",
   # type-comparison
   "E721",
-  # repeated-equality-comparison
-  "PLR1714",
   # self-or-cls-assignment
   "PLW0642",
   # literal-membership
@@ -366,10 +360,6 @@ ignore = [
   "PLW1641", # 16 errors
   # Bad or misspelled dunder method name
   "PLW3201", # 69 errors, seems to be all false positive
-  # Unnecessary lookup of dictionary value by key
-  "PLR1733", # 5 errors, it seems like we wannt to ignore these
-  # Unnecessary lookup of list item by index
-  "PLR1736", # 4 errors, we're currently having inline pylint ignore
   # Unpacking a dictionary in iteration without calling `.items()`
   "PLE1141", # autofixable
   # import-outside-toplevel
@@ -441,7 +431,6 @@ exclude = [
 # relative imports allowed for asv_bench
 "asv_bench/*" = ["TID", "NPY002"]
 # to be enabled gradually
-"pandas/core/*" = ["PLR5501"]
 "pandas/tests/*" = ["B028", "FLY"]
 # Keep this one enabled
 "pandas/_typing.py" = ["TC"]

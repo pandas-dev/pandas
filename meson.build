@@ -31,6 +31,19 @@ add_project_arguments(
     language: 'cpp',
 )
 
+cc = meson.get_compiler('c')
+if cc.get_id() == 'msvc'
+    # Tracking issue: https://github.com/pandas-dev/pandas/issues/63701
+    # Ignore some MSVC specific warnings:
+    # C4244: possible loss of data in conversion. Reproductible with `-Wconversion`.
+    # C4267: conversion from `size_t` to smaller type.
+    # C4551: occurs due to Cython generating code with (void)func.
+    #        https://github.com/cython/cython/issues/3579
+    add_project_arguments(
+        ['/wd4244', '/wd4267', '/wd4551'],
+        language: ['c', 'cpp'],
+    )
+endif
 
 if fs.exists('_version_meson.py')
     py.install_sources('_version_meson.py', subdir: 'pandas')
