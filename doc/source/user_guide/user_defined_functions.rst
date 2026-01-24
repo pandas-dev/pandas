@@ -302,7 +302,7 @@ a scalar value on each input.
 :meth:`Series.transform` and :meth:`DataFrame.transform`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The ``transform``` method is similar to an aggregation, with the difference that the result is broadcasted
+The ``transform`` method is similar to an aggregation, with the difference that the result is broadcasted
 to the original data.
 
 .. ipython:: python
