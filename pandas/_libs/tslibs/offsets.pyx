@@ -2079,6 +2079,10 @@ cdef class BusinessMixin(SingleConstructorOffset):
         calendar, holidays = _get_calendar(
             weekmask=weekmask, holidays=holidays, calendar=calendar
         )
+        if not isinstance(calendar, np.busdaycalendar):
+            raise TypeError(
+                "Custom subclasses only accept np.busdaycalendar."
+            )
         # Custom offset instances are identified by the
         # following two attributes. See DateOffset._params()
         # holidays, weekmask
