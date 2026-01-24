@@ -201,7 +201,7 @@ Reindexing / selection / label manipulation
    Series.mask
    Series.add_prefix
    Series.add_suffix
-   Series.filter
+   Series.select
 
 Missing data handling
 ---------------------
