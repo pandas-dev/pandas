@@ -6,26 +6,24 @@ WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 
 {{py:
 
-# name, dtype, ttype, c_type, to_c_type
-dtypes = [('Complex128', 'complex128', 'complex128',
-                         'khcomplex128_t', 'to_khcomplex128_t'),
-          ('Complex64', 'complex64', 'complex64',
-                        'khcomplex64_t', 'to_khcomplex64_t'),
-          ('Float64', 'float64', 'float64', 'float64_t', ''),
-          ('Float32', 'float32', 'float32', 'float32_t', ''),
-          ('UInt64', 'uint64', 'uint64', 'uint64_t', ''),
-          ('UInt32', 'uint32', 'uint32', 'uint32_t', ''),
-          ('UInt16', 'uint16', 'uint16', 'uint16_t', ''),
-          ('UInt8', 'uint8', 'uint8', 'uint8_t', ''),
-          ('Object', 'object', 'pymap', 'object', '<PyObject*>'),
-          ('Int64', 'int64', 'int64', 'int64_t', ''),
-          ('Int32', 'int32', 'int32', 'int32_t', ''),
-          ('Int16', 'int16', 'int16', 'int16_t', ''),
-          ('Int8', 'int8', 'int8', 'int8_t', '')]
+# name, dtype, ttype, tfunc, c_type, to_c_type
+dtypes = [('Complex128', 'complex128', 'complex128', 'complex128', 'khcomplex128_t', 'to_khcomplex128_t'),
+          ('Complex64', 'complex64', 'complex64', 'complex64', 'khcomplex64_t', 'to_khcomplex64_t'),
+          ('Float64', 'float64', 'float64', 'float64', 'float64_t', ''),
+          ('Float32', 'float32', 'float32', 'float32', 'float32_t', ''),
+          ('UInt64', 'uint64', 'uint64', 'uint64', 'uint64_t', ''),
+          ('UInt32', 'uint32', 'uint32', 'uint32', 'uint32_t', ''),
+          ('UInt16', 'uint16', 'uint16', 'uint16', 'uint16_t', ''),
+          ('UInt8', 'uint8', 'uint8', 'uint8', 'uint8_t', ''),
+          ('Object', 'object', 'pymap', 'pymap_checked', 'object', '<PyObject*>'),
+          ('Int64', 'int64', 'int64', 'int64', 'int64_t', ''),
+          ('Int32', 'int32', 'int32', 'int32', 'int32_t', ''),
+          ('Int16', 'int16', 'int16', 'int16', 'int16_t', ''),
+          ('Int8', 'int8', 'int8', 'int8', 'int8_t', '')]
 
 }}
 
-{{for name, dtype, ttype, c_type, to_c_type in dtypes}}
+{{for name, dtype, ttype, tfunc, c_type, to_c_type in dtypes}}
 
 
 @cython.wraparound(False)
@@ -55,26 +53,26 @@ cdef value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna, const uint8
     #    result_keys remembers the original order of keys
 
     result_keys = {{name}}Vector()
-    table = kh_init_{{ttype}}()
+    table = kh_init_{{tfunc}}()
 
     {{if dtype == 'object'}}
     if uses_mask:
         raise NotImplementedError("uses_mask not implemented with object dtype")
 
-    kh_resize_{{ttype}}(table, n // 10)
+    kh_resize_{{tfunc}}(table, n // 10)
 
     for i in range(n):
         val = values[i]
         if not dropna or not checknull(val):
-            k = kh_get_{{ttype}}(table, {{to_c_type}}val)
+            k = kh_get_{{tfunc}}(table, {{to_c_type}}val)
             if k != table.n_buckets:
                 table.vals[k] += 1
             else:
-                k = kh_put_{{ttype}}(table, {{to_c_type}}val, &ret)
+                k = kh_put_{{tfunc}}(table, {{to_c_type}}val, &ret)
                 table.vals[k] = 1
                 result_keys.append(val)
     {{else}}
-    kh_resize_{{ttype}}(table, n)
+    kh_resize_{{tfunc}}(table, n)
 
     for i in range(n):
         val = {{to_c_type}}(values[i])
@@ -90,11 +88,11 @@ cdef value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna, const uint8
             if uses_mask and isna_entry:
                 na_counter += 1
             else:
-                k = kh_get_{{ttype}}(table, val)
+                k = kh_get_{{tfunc}}(table, val)
                 if k != table.n_buckets:
                     table.vals[k] += 1
                 else:
-                    k = kh_put_{{ttype}}(table, val, &ret)
+                    k = kh_put_{{tfunc}}(table, val, &ret)
                     table.vals[k] = 1
                     result_keys.append(val)
     {{endif}}
@@ -107,9 +105,9 @@ cdef value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna, const uint8
 
     for i in range(table.size):
         {{if dtype == 'object'}}
-        k = kh_get_{{ttype}}(table, result_keys.data[i])
+        k = kh_get_{{tfunc}}(table, result_keys.data[i])
         {{else}}
-        k = kh_get_{{ttype}}(table, result_keys.data.data[i])
+        k = kh_get_{{tfunc}}(table, result_keys.data.data[i])
         {{endif}}
         result_counts[i] = table.vals[k]
 
@@ -117,7 +115,7 @@ cdef value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna, const uint8
         result_counts[table.size] = na_counter
         result_keys.append(val)
 
-    kh_destroy_{{ttype}}(table)
+    kh_destroy_{{tfunc}}(table)
 
     return result_keys.to_array(), result_counts.base, na_counter
 
@@ -138,12 +136,12 @@ cdef duplicated_{{dtype}}(const {{dtype}}_t[:] values, object keep='first', cons
         {{endif}}
         Py_ssize_t i, n = len(values), first_na = -1
         khiter_t k
-        kh_{{ttype}}_t *table = kh_init_{{ttype}}()
+        kh_{{ttype}}_t *table = kh_init_{{tfunc}}()
         ndarray[uint8_t, ndim=1, cast=True] out = np.empty(n, dtype='bool')
         bint seen_na = False, uses_mask = mask is not None
         bint seen_multiple_na = False
 
-    kh_resize_{{ttype}}(table, min(kh_needed_n_buckets(n), SIZE_HINT_LIMIT))
+    kh_resize_{{tfunc}}(table, min(kh_needed_n_buckets(n), SIZE_HINT_LIMIT))
 
     if keep not in ('last', 'first', False):
         raise ValueError('keep must be either "first", "last" or False')
@@ -168,7 +166,7 @@ cdef duplicated_{{dtype}}(const {{dtype}}_t[:] values, object keep='first', cons
                         seen_na = True
                 else:
                     value = {{to_c_type}}(values[i])
-                    kh_put_{{ttype}}(table, value, &ret)
+                    kh_put_{{tfunc}}(table, value, &ret)
                     out[i] = ret == 0
     {{endfor}}
 
@@ -193,16 +191,16 @@ cdef duplicated_{{dtype}}(const {{dtype}}_t[:] values, object keep='first', cons
 
                 else:
                     value = {{to_c_type}}(values[i])
-                    k = kh_get_{{ttype}}(table, value)
+                    k = kh_get_{{tfunc}}(table, value)
                     if k != table.n_buckets:
                         out[table.vals[k]] = 1
                         out[i] = 1
                     else:
-                        k = kh_put_{{ttype}}(table, value, &ret)
+                        k = kh_put_{{tfunc}}(table, value, &ret)
                         table.vals[k] = i
                         out[i] = 0
 
-    kh_destroy_{{ttype}}(table)
+    kh_destroy_{{tfunc}}(table)
     return out
 
 
@@ -243,11 +241,11 @@ cdef ismember_{{dtype}}(const {{dtype}}_t[:] arr, const {{dtype}}_t[:] values):
         {{c_type}} val
         {{endif}}
 
-        kh_{{ttype}}_t *table = kh_init_{{ttype}}()
+        kh_{{ttype}}_t *table = kh_init_{{tfunc}}()
 
     # construct the table
     n = len(values)
-    kh_resize_{{ttype}}(table, n)
+    kh_resize_{{tfunc}}(table, n)
 
     {{if dtype == 'object'}}
     if True:
@@ -256,7 +254,7 @@ cdef ismember_{{dtype}}(const {{dtype}}_t[:] arr, const {{dtype}}_t[:] values):
     {{endif}}
         for i in range(n):
             val = {{to_c_type}}(values[i])
-            kh_put_{{ttype}}(table, val, &ret)
+            kh_put_{{tfunc}}(table, val, &ret)
 
     # test membership
     n = len(arr)
@@ -269,10 +267,10 @@ cdef ismember_{{dtype}}(const {{dtype}}_t[:] arr, const {{dtype}}_t[:] values):
     {{endif}}
         for i in range(n):
             val = {{to_c_type}}(arr[i])
-            k = kh_get_{{ttype}}(table, val)
+            k = kh_get_{{tfunc}}(table, val)
             result[i] = (k != table.n_buckets)
 
-    kh_destroy_{{ttype}}(table)
+    kh_destroy_{{tfunc}}(table)
     return result.view(np.bool_)
 
 # ----------------------------------------------------------------------
