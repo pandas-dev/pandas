@@ -34,6 +34,7 @@ from pandas._libs.tslibs import (
 from pandas.compat import (
     HAS_PYARROW,
     PYARROW_MIN_VERSION,
+    pa_version_under21p0,
 )
 from pandas.errors import Pandas4Warning
 from pandas.util._decorators import (
@@ -2028,11 +2029,10 @@ class ArrowExtensionArray(
                         # binary_join returns null if there is any null ->
                         # have to filter out any nulls
                         data = data.filter(pc.invert(mask))
-                else:
-                    if mask is not None or check_below_min_count(
-                        (len(data),), None, min_count
-                    ):
-                        return pa.scalar(None, type=data.type)
+                elif mask is not None or check_below_min_count(
+                    (len(data),), None, min_count
+                ):
+                    return pa.scalar(None, type=data.type)
 
                 if pa.types.is_large_string(data.type):
                     # binary_join only supports string, not large_string
@@ -2152,7 +2152,13 @@ class ArrowExtensionArray(
         if pc.is_null(pa_result).as_py():
             return self.dtype.na_value
         elif isinstance(pa_result, pa.Scalar):
-            return pa_result.as_py()
+            result = pa_result.as_py()
+            pa_type = pa_result.type
+            if pa.types.is_duration(pa_type) and pa_type.unit != "ns":
+                return Timedelta(result).as_unit(pa_type.unit)
+            elif pa.types.is_timestamp(pa_type) and pa_type.unit != "ns":
+                return Timestamp(result).as_unit(pa_type.unit)
+            return result
         else:
             return pa_result
 
@@ -2979,11 +2985,11 @@ class ArrowExtensionArray(
         return self._from_pyarrow_array(pa.chunked_array(result))
 
     def _str_zfill(self, width: int) -> Self:
-        # TODO: Replace with pc.utf8_zfill when supported by arrow
-        # Arrow ENH - https://github.com/apache/arrow/issues/46683
-        predicate = lambda val: val.zfill(width)
-        result = self._apply_elementwise(predicate)
-        return type(self)(pa.chunked_array(result))
+        if pa_version_under21p0:
+            predicate = lambda val: val.zfill(width)
+            result = self._apply_elementwise(predicate)
+            return type(self)(pa.chunked_array(result))
+        return type(self)(pc.utf8_zfill(self._pa_array, width))
 
     @property
     def _dt_days(self) -> Self:
@@ -3068,11 +3074,15 @@ class ArrowExtensionArray(
         return self._from_pyarrow_array(result)
 
     def _dt_as_unit(self, unit: str) -> Self:
-        if pa.types.is_date(self.dtype.pyarrow_dtype):
-            raise NotImplementedError("as_unit not implemented for date types")
-        pd_array = self._maybe_convert_datelike_array()
-        # Don't just cast _pa_array in order to follow pandas unit conversion rules
-        result = pa.array(pd_array.as_unit(unit), from_pandas=True)
+        pa_type = self._pa_array.type
+        if pa.types.is_timestamp(pa_type):
+            target_type = pa.timestamp(unit, tz=pa_type.tz)
+        elif pa.types.is_duration(pa_type):
+            target_type = pa.duration(unit)
+        else:
+            raise NotImplementedError(f"as_unit not implemented for {pa_type}")
+        # Use safe=False to allow truncation, matching pandas as_unit behavior
+        result = pc.cast(self._pa_array, target_type, safe=False)
         return self._from_pyarrow_array(result)
 
     @property

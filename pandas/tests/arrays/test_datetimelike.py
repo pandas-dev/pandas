@@ -8,7 +8,6 @@ import pytest
 
 from pandas._libs import (
     NaT,
-    OutOfBoundsDatetime,
     Timestamp,
 )
 from pandas._libs.tslibs import to_offset
@@ -301,7 +300,9 @@ class SharedTests:
         assert result == 10
 
     @pytest.mark.parametrize("box", [None, "index", "series"])
-    def test_searchsorted_castable_strings(self, arr1d, box, string_storage):
+    def test_searchsorted_castable_strings(
+        self, arr1d, box, string_storage, using_infer_string
+    ):
         arr = arr1d
         if box is None:
             pass
@@ -332,13 +333,16 @@ class SharedTests:
         ):
             arr.searchsorted("foo")
 
+        msg = re.escape(
+            f"value should be a '{arr1d._scalar_type.__name__}', 'NaT', "
+            "or array of those. Got str array instead."
+        )
+        if not using_infer_string:
+            msg = msg.replace("str", "string")
         with pd.option_context("string_storage", string_storage):
             with pytest.raises(
                 TypeError,
-                match=re.escape(
-                    f"value should be a '{arr1d._scalar_type.__name__}', 'NaT', "
-                    "or array of those. Got string array instead."
-                ),
+                match=msg,
             ):
                 arr.searchsorted([str(arr[1]), "baz"])
 
@@ -432,6 +436,11 @@ class SharedTests:
         arr[:2] = arr[-2:]
         expected[:2] = expected[-2:]
         tm.assert_numpy_array_equal(arr.asi8, expected)
+
+    def test_setitem_list_of_nats(self, arr1d):
+        # GH#63420
+        arr1d[:] = [NaT] * len(arr1d)
+        assert arr1d.isna().all()
 
     @pytest.mark.parametrize(
         "box",
@@ -1100,28 +1109,25 @@ class TestPeriodArray(SharedTests):
         parr = dta.to_period()
         result = parr.to_timestamp()
         assert result.freq == "B"
-        tm.assert_extension_array_equal(result, dta)
+        tm.assert_extension_array_equal(result, dta.as_unit("us"))
 
         dta2 = dta[::2]
         parr2 = dta2.to_period()
         result2 = parr2.to_timestamp()
         assert result2.freq == "2B"
-        tm.assert_extension_array_equal(result2, dta2)
+        tm.assert_extension_array_equal(result2, dta2.as_unit("us"))
 
         parr3 = dta.to_period("2B")
         result3 = parr3.to_timestamp()
         assert result3.freq == "B"
-        tm.assert_extension_array_equal(result3, dta)
+        tm.assert_extension_array_equal(result3, dta.as_unit("us"))
 
     def test_to_timestamp_out_of_bounds(self):
         # GH#19643 previously overflowed silently
         pi = pd.period_range("1500", freq="Y", periods=3)
-        msg = "Out of bounds nanosecond timestamp: 1500-01-01 00:00:00"
-        with pytest.raises(OutOfBoundsDatetime, match=msg):
-            pi.to_timestamp()
-
-        with pytest.raises(OutOfBoundsDatetime, match=msg):
-            pi._data.to_timestamp()
+        pi.to_timestamp()
+        dta = pi._data.to_timestamp()
+        assert dta[0] == Timestamp(1500, 1, 1)
 
     @pytest.mark.parametrize("propname", PeriodArray._bool_ops)
     def test_bool_properties(self, arr1d, propname):

@@ -42,8 +42,8 @@ _common_mismatch = [
         Timedelta(minutes=30).to_pytimedelta(),
         np.timedelta64(30, "s"),
         Timedelta(seconds=30),
+        *_common_mismatch,
     ]
-    + _common_mismatch
 )
 def not_hourly(request):
     """
@@ -58,8 +58,8 @@ def not_hourly(request):
         np.timedelta64(365, "D"),
         Timedelta(days=365).to_pytimedelta(),
         Timedelta(days=365),
+        *_common_mismatch,
     ]
-    + _common_mismatch
 )
 def mismatched_freq(request):
     """

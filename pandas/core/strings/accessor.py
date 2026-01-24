@@ -22,7 +22,6 @@ from pandas._typing import (
     Scalar,
     npt,
 )
-from pandas.util._decorators import Appender
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
@@ -67,7 +66,6 @@ if TYPE_CHECKING:
         Series,
     )
 
-_shared_docs: dict[str, str] = {}
 _cpython_optimized_encoders = (
     "utf-8",
     "utf8",
@@ -77,7 +75,7 @@ _cpython_optimized_encoders = (
     "mbcs",
     "ascii",
 )
-_cpython_optimized_decoders = _cpython_optimized_encoders + ("utf-16", "utf-32")
+_cpython_optimized_decoders = (*_cpython_optimized_encoders, "utf-16", "utf-32")
 
 
 def forbid_nonstring_types(
@@ -657,7 +655,7 @@ class StringMethods(NoNewAttributesMixin):
             data, others = data.align(others, join=join)
             others = [others[x] for x in others]  # again list of Series
 
-        all_cols = [ensure_object(x) for x in [data] + others]
+        all_cols = [ensure_object(x) for x in [data, *others]]
         na_masks = np.array([isna(x) for x in all_cols])
         union_mask = np.logical_or.reduce(na_masks, axis=0)
 
@@ -699,198 +697,6 @@ class StringMethods(NoNewAttributesMixin):
             out = res_ser.__finalize__(self._orig, method="str_cat")
         return out
 
-    _shared_docs["str_split"] = r"""
-    Split strings around given separator/delimiter.
-
-    Splits the string in the Series/Index from the %(side)s,
-    at the specified delimiter string.
-
-    Parameters
-    ----------
-    pat : str%(pat_regex)s, optional
-        %(pat_description)s.
-        If not specified, split on whitespace.
-    n : int, default -1 (all)
-        Limit number of splits in output.
-        ``None``, 0 and -1 will be interpreted as return all splits.
-    expand : bool, default False
-        Expand the split strings into separate columns.
-
-        - If ``True``, return DataFrame/MultiIndex expanding dimensionality.
-        - If ``False``, return Series/Index, containing lists of strings.
-    %(regex_argument)s
-    Returns
-    -------
-    Series, Index, DataFrame or MultiIndex
-        Type matches caller unless ``expand=True`` (see Notes).
-    %(raises_split)s
-    See Also
-    --------
-    Series.str.split : Split strings around given separator/delimiter.
-    Series.str.rsplit : Splits string around given separator/delimiter,
-        starting from the right.
-    Series.str.join : Join lists contained as elements in the Series/Index
-        with passed delimiter.
-    str.split : Standard library version for split.
-    str.rsplit : Standard library version for rsplit.
-
-    Notes
-    -----
-    The handling of the `n` keyword depends on the number of found splits:
-
-    - If found splits > `n`,  make first `n` splits only
-    - If found splits <= `n`, make all splits
-    - If for a certain row the number of found splits < `n`,
-      append `None` for padding up to `n` if ``expand=True``
-
-    If using ``expand=True``, Series and Index callers return DataFrame and
-    MultiIndex objects, respectively.
-    %(regex_pat_note)s
-    Examples
-    --------
-    >>> s = pd.Series(
-    ...     [
-    ...         "this is a regular sentence",
-    ...         "https://docs.python.org/3/tutorial/index.html",
-    ...         np.nan
-    ...     ]
-    ... )
-    >>> s
-    0                       this is a regular sentence
-    1    https://docs.python.org/3/tutorial/index.html
-    2                                              NaN
-    dtype: str
-
-    In the default setting, the string is split by whitespace.
-
-    >>> s.str.split()
-    0                   [this, is, a, regular, sentence]
-    1    [https://docs.python.org/3/tutorial/index.html]
-    2                                                NaN
-    dtype: object
-
-    Without the `n` parameter, the outputs of `rsplit` and `split`
-    are identical.
-
-    >>> s.str.rsplit()
-    0                   [this, is, a, regular, sentence]
-    1    [https://docs.python.org/3/tutorial/index.html]
-    2                                                NaN
-    dtype: object
-
-    The `n` parameter can be used to limit the number of splits on the
-    delimiter. The outputs of `split` and `rsplit` are different.
-
-    >>> s.str.split(n=2)
-    0                     [this, is, a regular sentence]
-    1    [https://docs.python.org/3/tutorial/index.html]
-    2                                                NaN
-    dtype: object
-
-    >>> s.str.rsplit(n=2)
-    0                     [this is a, regular, sentence]
-    1    [https://docs.python.org/3/tutorial/index.html]
-    2                                                NaN
-    dtype: object
-
-    The `pat` parameter can be used to split by other characters.
-
-    >>> s.str.split(pat="/")
-    0                         [this is a regular sentence]
-    1    [https:, , docs.python.org, 3, tutorial, index...
-    2                                                  NaN
-    dtype: object
-
-    When using ``expand=True``, the split elements will expand out into
-    separate columns. If NaN is present, it is propagated throughout
-    the columns during the split.
-
-    >>> s.str.split(expand=True)
-                                                   0    1    2        3         4
-    0                                           this   is    a  regular  sentence
-    1  https://docs.python.org/3/tutorial/index.html  NaN  NaN      NaN       NaN
-    2                                            NaN  NaN  NaN      NaN       NaN
-
-    For slightly more complex use cases like splitting the html document name
-    from a url, a combination of parameter settings can be used.
-
-    >>> s.str.rsplit("/", n=1, expand=True)
-                                        0           1
-    0          this is a regular sentence         NaN
-    1  https://docs.python.org/3/tutorial  index.html
-    2                                 NaN         NaN
-    %(regex_examples)s"""
-
-    @Appender(
-        _shared_docs["str_split"]
-        % {
-            "side": "beginning",
-            "pat_regex": " or compiled regex",
-            "pat_description": "String or regular expression to split on",
-            "regex_argument": """
-    regex : bool, default None
-        Determines if the passed-in pattern is a regular expression:
-
-        - If ``True``, assumes the passed-in pattern is a regular expression
-        - If ``False``, treats the pattern as a literal string.
-        - If ``None`` and `pat` length is 1, treats `pat` as a literal string.
-        - If ``None`` and `pat` length is not 1, treats `pat` as a regular expression.
-        - Cannot be set to False if `pat` is a compiled regex
-
-        .. versionadded:: 1.4.0
-         """,
-            "raises_split": """
-                      Raises
-                      ------
-                      ValueError
-                          * if `regex` is False and `pat` is a compiled regex
-                      """,
-            "regex_pat_note": """
-    Use of `regex =False` with a `pat` as a compiled regex will raise an error.
-            """,
-            "method": "split",
-            "regex_examples": r"""
-    Remember to escape special characters when explicitly using regular expressions.
-
-    >>> s = pd.Series(["foo and bar plus baz"])
-    >>> s.str.split(r"and|plus", expand=True)
-        0   1   2
-    0 foo bar baz
-
-    Regular expressions can be used to handle urls or file names.
-    When `pat` is a string and ``regex=None`` (the default), the given `pat` is compiled
-    as a regex only if ``len(pat) != 1``.
-
-    >>> s = pd.Series(['foojpgbar.jpg'])
-    >>> s.str.split(r".", expand=True)
-               0    1
-    0  foojpgbar  jpg
-
-    >>> s.str.split(r"\.jpg", expand=True)
-               0 1
-    0  foojpgbar
-
-    When ``regex=True``, `pat` is interpreted as a regex
-
-    >>> s.str.split(r"\.jpg", regex=True, expand=True)
-               0 1
-    0  foojpgbar
-
-    A compiled regex can be passed as `pat`
-
-    >>> import re
-    >>> s.str.split(re.compile(r"\.jpg"), expand=True)
-               0 1
-    0  foojpgbar
-
-    When ``regex=False``, `pat` is interpreted as the string itself
-
-    >>> s.str.split(r"\.jpg", regex=False, expand=True)
-                   0
-    0  foojpgbar.jpg
-    """,
-        }
-    )
     @forbid_nonstring_types(["bytes"])
     def split(
         self,
@@ -900,6 +706,183 @@ class StringMethods(NoNewAttributesMixin):
         expand: bool = False,
         regex: bool | None = None,
     ):
+        r"""
+        Split strings around given separator/delimiter.
+
+        Splits the string in the Series/Index from the beginning,
+        at the specified delimiter string.
+
+        Parameters
+        ----------
+        pat : str or compiled regex, optional
+            String or regular expression to split on.
+            If not specified, split on whitespace.
+        n : int, default -1 (all)
+            Limit number of splits in output.
+            ``None``, 0 and -1 will be interpreted as return all splits.
+        expand : bool, default False
+            Expand the split strings into separate columns.
+
+            - If ``True``, return DataFrame/MultiIndex expanding dimensionality.
+            - If ``False``, return Series/Index, containing lists of strings.
+
+        regex : bool, default None
+            Determines if the passed-in pattern is a regular expression:
+
+            - If ``True``, assumes the passed-in pattern is a regular expression
+            - If ``False``, treats the pattern as a literal string.
+            - If ``None`` and `pat` length is 1, treats `pat` as a literal string.
+            - If ``None`` and `pat` length is not 1, treats `pat` as a regular
+              expression.
+            - Cannot be set to False if `pat` is a compiled regex
+
+        Returns
+        -------
+        Series, Index, DataFrame or MultiIndex
+            Type matches caller unless ``expand=True`` (see Notes).
+
+        Raises
+        ------
+        ValueError
+            * if `regex` is False and `pat` is a compiled regex
+
+        See Also
+        --------
+        Series.str.split : Split strings around given separator/delimiter.
+        Series.str.rsplit : Splits string around given separator/delimiter,
+            starting from the right.
+        Series.str.join : Join lists contained as elements in the Series/Index
+            with passed delimiter.
+        str.split : Standard library version for split.
+        str.rsplit : Standard library version for rsplit.
+
+        Notes
+        -----
+        The handling of the `n` keyword depends on the number of found splits:
+
+        - If found splits > `n`,  make first `n` splits only
+        - If found splits <= `n`, make all splits
+        - If for a certain row the number of found splits < `n`,
+          append `None` for padding up to `n` if ``expand=True``
+
+        If using ``expand=True``, Series and Index callers return DataFrame and
+        MultiIndex objects, respectively.
+
+        Use of `regex =False` with a `pat` as a compiled regex will raise an error.
+
+        Examples
+        --------
+        >>> s = pd.Series(
+        ...     [
+        ...         "this is a regular sentence",
+        ...         "https://docs.python.org/3/tutorial/index.html",
+        ...         np.nan,
+        ...     ]
+        ... )
+        >>> s
+        0                       this is a regular sentence
+        1    https://docs.python.org/3/tutorial/index.html
+        2                                              NaN
+        dtype: str
+
+        In the default setting, the string is split by whitespace.
+
+        >>> s.str.split()
+        0                   [this, is, a, regular, sentence]
+        1    [https://docs.python.org/3/tutorial/index.html]
+        2                                                NaN
+        dtype: object
+
+        Without the `n` parameter, the outputs of `rsplit` and `split`
+        are identical.
+
+        >>> s.str.rsplit()
+        0                   [this, is, a, regular, sentence]
+        1    [https://docs.python.org/3/tutorial/index.html]
+        2                                                NaN
+        dtype: object
+
+        The `n` parameter can be used to limit the number of splits on the
+        delimiter. The outputs of `split` and `rsplit` are different.
+
+        >>> s.str.split(n=2)
+        0                     [this, is, a regular sentence]
+        1    [https://docs.python.org/3/tutorial/index.html]
+        2                                                NaN
+        dtype: object
+
+        >>> s.str.rsplit(n=2)
+        0                     [this is a, regular, sentence]
+        1    [https://docs.python.org/3/tutorial/index.html]
+        2                                                NaN
+        dtype: object
+
+        The `pat` parameter can be used to split by other characters.
+
+        >>> s.str.split(pat="/")
+        0                         [this is a regular sentence]
+        1    [https:, , docs.python.org, 3, tutorial, index...
+        2                                                  NaN
+        dtype: object
+
+        When using ``expand=True``, the split elements will expand out into
+        separate columns. If NaN is present, it is propagated throughout
+        the columns during the split.
+
+        >>> s.str.split(expand=True)
+                                                       0    1    2        3         4
+        0                                           this   is    a  regular  sentence
+        1  https://docs.python.org/3/tutorial/index.html  NaN  NaN      NaN       NaN
+        2                                            NaN  NaN  NaN      NaN       NaN
+
+        For slightly more complex use cases like splitting the html document name
+        from a url, a combination of parameter settings can be used.
+
+        >>> s.str.rsplit("/", n=1, expand=True)
+                                            0           1
+        0          this is a regular sentence         NaN
+        1  https://docs.python.org/3/tutorial  index.html
+        2                                 NaN         NaN
+
+        Remember to escape special characters when explicitly using regular expressions.
+
+        >>> s = pd.Series(["foo and bar plus baz"])
+        >>> s.str.split(r"and|plus", expand=True)
+            0   1   2
+        0 foo bar baz
+
+        Regular expressions can be used to handle urls or file names.
+        When `pat` is a string and ``regex=None`` (the default), the given `pat` is
+        compiled as a regex only if ``len(pat) != 1``.
+
+        >>> s = pd.Series(["foojpgbar.jpg"])
+        >>> s.str.split(r".", expand=True)
+                   0    1
+        0  foojpgbar  jpg
+
+        >>> s.str.split(r"\.jpg", expand=True)
+                   0 1
+        0  foojpgbar
+
+        When ``regex=True``, `pat` is interpreted as a regex
+
+        >>> s.str.split(r"\.jpg", regex=True, expand=True)
+                   0 1
+        0  foojpgbar
+
+        A compiled regex can be passed as `pat`
+
+        >>> import re
+        >>> s.str.split(re.compile(r"\.jpg"), expand=True)
+                   0 1
+        0  foojpgbar
+
+        When ``regex=False``, `pat` is interpreted as the string itself
+
+        >>> s.str.split(r"\.jpg", regex=False, expand=True)
+                       0
+        0  foojpgbar.jpg
+        """
         if regex is False and is_re(pat):
             raise ValueError(
                 "Cannot use a compiled regex as replacement pattern with regex=False"
@@ -915,108 +898,134 @@ class StringMethods(NoNewAttributesMixin):
             result, expand=expand, returns_string=expand, dtype=dtype
         )
 
-    @Appender(
-        _shared_docs["str_split"]
-        % {
-            "side": "end",
-            "pat_regex": "",
-            "pat_description": "String to split on",
-            "regex_argument": "",
-            "raises_split": "",
-            "regex_pat_note": "",
-            "method": "rsplit",
-            "regex_examples": "",
-        }
-    )
     @forbid_nonstring_types(["bytes"])
     def rsplit(self, pat=None, *, n=-1, expand: bool = False):
+        """
+        Split strings around given separator/delimiter.
+
+        Splits the string in the Series/Index from the end,
+        at the specified delimiter string.
+
+        Parameters
+        ----------
+        pat : str, optional
+            String to split on.
+            If not specified, split on whitespace.
+        n : int, default -1 (all)
+            Limit number of splits in output.
+            ``None``, 0 and -1 will be interpreted as return all splits.
+        expand : bool, default False
+            Expand the split strings into separate columns.
+
+            - If ``True``, return DataFrame/MultiIndex expanding dimensionality.
+            - If ``False``, return Series/Index, containing lists of strings.
+
+        Returns
+        -------
+        Series, Index, DataFrame or MultiIndex
+            Type matches caller unless ``expand=True`` (see Notes).
+
+        See Also
+        --------
+        Series.str.split : Split strings around given separator/delimiter.
+        Series.str.rsplit : Splits string around given separator/delimiter,
+            starting from the right.
+        Series.str.join : Join lists contained as elements in the Series/Index
+            with passed delimiter.
+        str.split : Standard library version for split.
+        str.rsplit : Standard library version for rsplit.
+
+        Notes
+        -----
+        The handling of the `n` keyword depends on the number of found splits:
+
+        - If found splits > `n`,  make first `n` splits only
+        - If found splits <= `n`, make all splits
+        - If for a certain row the number of found splits < `n`,
+          append `None` for padding up to `n` if ``expand=True``
+
+        If using ``expand=True``, Series and Index callers return DataFrame and
+        MultiIndex objects, respectively.
+
+        Examples
+        --------
+        >>> s = pd.Series(
+        ...     [
+        ...         "this is a regular sentence",
+        ...         "https://docs.python.org/3/tutorial/index.html",
+        ...         np.nan,
+        ...     ]
+        ... )
+        >>> s
+        0                       this is a regular sentence
+        1    https://docs.python.org/3/tutorial/index.html
+        2                                              NaN
+        dtype: str
+
+        In the default setting, the string is split by whitespace.
+
+        >>> s.str.split()
+        0                   [this, is, a, regular, sentence]
+        1    [https://docs.python.org/3/tutorial/index.html]
+        2                                                NaN
+        dtype: object
+
+        Without the `n` parameter, the outputs of `rsplit` and `split`
+        are identical.
+
+        >>> s.str.rsplit()
+        0                   [this, is, a, regular, sentence]
+        1    [https://docs.python.org/3/tutorial/index.html]
+        2                                                NaN
+        dtype: object
+
+        The `n` parameter can be used to limit the number of splits on the
+        delimiter. The outputs of `split` and `rsplit` are different.
+
+        >>> s.str.split(n=2)
+        0                     [this, is, a regular sentence]
+        1    [https://docs.python.org/3/tutorial/index.html]
+        2                                                NaN
+        dtype: object
+
+        >>> s.str.rsplit(n=2)
+        0                     [this is a, regular, sentence]
+        1    [https://docs.python.org/3/tutorial/index.html]
+        2                                                NaN
+        dtype: object
+
+        The `pat` parameter can be used to split by other characters.
+
+        >>> s.str.split(pat="/")
+        0                         [this is a regular sentence]
+        1    [https:, , docs.python.org, 3, tutorial, index...
+        2                                                  NaN
+        dtype: object
+
+        When using ``expand=True``, the split elements will expand out into
+        separate columns. If NaN is present, it is propagated throughout
+        the columns during the split.
+
+        >>> s.str.split(expand=True)
+                                                       0    1    2        3         4
+        0                                           this   is    a  regular  sentence
+        1  https://docs.python.org/3/tutorial/index.html  NaN  NaN      NaN       NaN
+        2                                            NaN  NaN  NaN      NaN       NaN
+
+        For slightly more complex use cases like splitting the html document name
+        from a url, a combination of parameter settings can be used.
+
+        >>> s.str.rsplit("/", n=1, expand=True)
+                                            0           1
+        0          this is a regular sentence         NaN
+        1  https://docs.python.org/3/tutorial  index.html
+        2                                 NaN         NaN
+        """
         result = self._data.array._str_rsplit(pat, n=n)
         dtype = object if self._data.dtype == object else None
         return self._wrap_result(
             result, expand=expand, returns_string=expand, dtype=dtype
         )
-
-    _shared_docs["str_partition"] = """
-    Split the string at the %(side)s occurrence of `sep`.
-
-    This method splits the string at the %(side)s occurrence of `sep`,
-    and returns 3 elements containing the part before the separator,
-    the separator itself, and the part after the separator.
-    If the separator is not found, return %(return)s.
-
-    Parameters
-    ----------
-    sep : str, default whitespace
-        String to split on.
-    expand : bool, default True
-        If True, return DataFrame/MultiIndex expanding dimensionality.
-        If False, return Series/Index.
-
-    Returns
-    -------
-    DataFrame/MultiIndex or Series/Index of objects
-        Returns appropriate type based on `expand` parameter with strings
-        split based on the `sep` parameter.
-
-    See Also
-    --------
-    %(also)s
-    Series.str.split : Split strings around given separators.
-    str.partition : Standard library version.
-
-    Examples
-    --------
-
-    >>> s = pd.Series(['Linda van der Berg', 'George Pitt-Rivers'])
-    >>> s
-    0    Linda van der Berg
-    1    George Pitt-Rivers
-    dtype: str
-
-    >>> s.str.partition()
-            0  1             2
-    0   Linda     van der Berg
-    1  George      Pitt-Rivers
-
-    To partition by the last space instead of the first one:
-
-    >>> s.str.rpartition()
-                   0  1            2
-    0  Linda van der            Berg
-    1         George     Pitt-Rivers
-
-    To partition by something different than a space:
-
-    >>> s.str.partition('-')
-                        0  1       2
-    0  Linda van der Berg
-    1         George Pitt  -  Rivers
-
-    To return a Series containing tuples instead of a DataFrame:
-
-    >>> s.str.partition('-', expand=False)
-    0    (Linda van der Berg, , )
-    1    (George Pitt, -, Rivers)
-    dtype: object
-
-    Also available on indices:
-
-    >>> idx = pd.Index(['X 123', 'Y 999'])
-    >>> idx
-    Index(['X 123', 'Y 999'], dtype='str')
-
-    Which will create a MultiIndex:
-
-    >>> idx.str.partition()
-    MultiIndex([('X', ' ', '123'),
-                ('Y', ' ', '999')],
-               )
-
-    Or an index with tuples with ``expand=False``:
-
-    >>> idx.str.partition(expand=False)
-    Index([('X', ' ', '123'), ('Y', ' ', '999')], dtype='object')
-    """
 
     @forbid_nonstring_types(["bytes"])
     def partition(self, sep: str = " ", expand: bool = True):
@@ -2455,171 +2464,341 @@ class StringMethods(NoNewAttributesMixin):
         result = self._data.array._str_encode(encoding, errors)
         return self._wrap_result(result, returns_string=False)
 
-    _shared_docs["str_strip"] = r"""
-    Remove %(position)s characters.
-
-    Strip whitespaces (including newlines) or a set of specified characters
-    from each string in the Series/Index from %(side)s.
-    Replaces any non-strings in Series with NaNs.
-    Equivalent to :meth:`str.%(method)s`.
-
-    Parameters
-    ----------
-    to_strip : str or None, default None
-        Specifying the set of characters to be removed.
-        All combinations of this set of characters will be stripped.
-        If None then whitespaces are removed.
-
-    Returns
-    -------
-    Series or Index of object
-        Series or Index with the strings being stripped from the %(side)s.
-
-    See Also
-    --------
-    Series.str.strip : Remove leading and trailing characters in Series/Index.
-    Series.str.lstrip : Remove leading characters in Series/Index.
-    Series.str.rstrip : Remove trailing characters in Series/Index.
-
-    Examples
-    --------
-    >>> s = pd.Series(['1. Ant.  ', '2. Bee!\n', '3. Cat?\t', np.nan, 10, True])
-    >>> s
-    0    1. Ant.
-    1    2. Bee!\n
-    2    3. Cat?\t
-    3          NaN
-    4           10
-    5         True
-    dtype: object
-
-    >>> s.str.strip()
-    0    1. Ant.
-    1    2. Bee!
-    2    3. Cat?
-    3        NaN
-    4        NaN
-    5        NaN
-    dtype: object
-
-    >>> s.str.lstrip('123.')
-    0    Ant.
-    1    Bee!\n
-    2    Cat?\t
-    3       NaN
-    4       NaN
-    5       NaN
-    dtype: object
-
-    >>> s.str.rstrip('.!? \n\t')
-    0    1. Ant
-    1    2. Bee
-    2    3. Cat
-    3       NaN
-    4       NaN
-    5       NaN
-    dtype: object
-
-    >>> s.str.strip('123.!? \n\t')
-    0    Ant
-    1    Bee
-    2    Cat
-    3    NaN
-    4    NaN
-    5    NaN
-    dtype: object
-    """
-
-    @Appender(
-        _shared_docs["str_strip"]
-        % {
-            "side": "left and right sides",
-            "method": "strip",
-            "position": "leading and trailing",
-        }
-    )
     @forbid_nonstring_types(["bytes"])
     def strip(self, to_strip=None):
+        """
+        Remove leading and trailing characters.
+
+        Strip whitespaces (including newlines) or a set of specified characters
+        from each string in the Series/Index from left and right sides.
+        Replaces any non-strings in Series with NaNs.
+        Equivalent to :meth:`str.strip`.
+
+        Parameters
+        ----------
+        to_strip : str or None, default None
+            Specifying the set of characters to be removed.
+            All combinations of this set of characters will be stripped.
+            If None then whitespaces are removed.
+
+        Returns
+        -------
+        Series or Index of object
+            Series or Index with the strings being stripped from the left and
+            right sides.
+
+        See Also
+        --------
+        Series.str.strip : Remove leading and trailing characters in Series/Index.
+        Series.str.lstrip : Remove leading characters in Series/Index.
+        Series.str.rstrip : Remove trailing characters in Series/Index.
+
+        Examples
+        --------
+        >>> s = pd.Series(["1. Ant.  ", "2. Bee!\\n", "3. Cat?\\t", np.nan, 10, True])
+        >>> s
+        0    1. Ant.
+        1    2. Bee!\\n
+        2    3. Cat?\\t
+        3          NaN
+        4           10
+        5         True
+        dtype: object
+
+        >>> s.str.strip()
+        0    1. Ant.
+        1    2. Bee!
+        2    3. Cat?
+        3        NaN
+        4        NaN
+        5        NaN
+        dtype: object
+
+        >>> s.str.lstrip("123.")
+        0    Ant.
+        1    Bee!\\n
+        2    Cat?\\t
+        3       NaN
+        4       NaN
+        5       NaN
+        dtype: object
+
+        >>> s.str.rstrip(".!? \\n\\t")
+        0    1. Ant
+        1    2. Bee
+        2    3. Cat
+        3       NaN
+        4       NaN
+        5       NaN
+        dtype: object
+
+        >>> s.str.strip("123.!? \\n\\t")
+        0    Ant
+        1    Bee
+        2    Cat
+        3    NaN
+        4    NaN
+        5    NaN
+        dtype: object
+        """
         result = self._data.array._str_strip(to_strip)
         return self._wrap_result(result)
 
-    @Appender(
-        _shared_docs["str_strip"]
-        % {"side": "left side", "method": "lstrip", "position": "leading"}
-    )
     @forbid_nonstring_types(["bytes"])
     def lstrip(self, to_strip=None):
+        """
+        Remove leading characters.
+
+        Strip whitespaces (including newlines) or a set of specified characters
+        from each string in the Series/Index from left side.
+        Replaces any non-strings in Series with NaNs.
+        Equivalent to :meth:`str.lstrip`.
+
+        Parameters
+        ----------
+        to_strip : str or None, default None
+            Specifying the set of characters to be removed.
+            All combinations of this set of characters will be stripped.
+            If None then whitespaces are removed.
+
+        Returns
+        -------
+        Series or Index of object
+            Series or Index with the strings being stripped from the left side.
+
+        See Also
+        --------
+        Series.str.strip : Remove leading and trailing characters in Series/Index.
+        Series.str.lstrip : Remove leading characters in Series/Index.
+        Series.str.rstrip : Remove trailing characters in Series/Index.
+
+        Examples
+        --------
+        >>> s = pd.Series(["1. Ant.  ", "2. Bee!\\n", "3. Cat?\\t", np.nan, 10, True])
+        >>> s
+        0    1. Ant.
+        1    2. Bee!\\n
+        2    3. Cat?\\t
+        3          NaN
+        4           10
+        5         True
+        dtype: object
+
+        >>> s.str.strip()
+        0    1. Ant.
+        1    2. Bee!
+        2    3. Cat?
+        3        NaN
+        4        NaN
+        5        NaN
+        dtype: object
+
+        >>> s.str.lstrip("123.")
+        0    Ant.
+        1    Bee!\\n
+        2    Cat?\\t
+        3       NaN
+        4       NaN
+        5       NaN
+        dtype: object
+
+        >>> s.str.rstrip(".!? \\n\\t")
+        0    1. Ant
+        1    2. Bee
+        2    3. Cat
+        3       NaN
+        4       NaN
+        5       NaN
+        dtype: object
+
+        >>> s.str.strip("123.!? \\n\\t")
+        0    Ant
+        1    Bee
+        2    Cat
+        3    NaN
+        4    NaN
+        5    NaN
+        dtype: object
+        """
         result = self._data.array._str_lstrip(to_strip)
         return self._wrap_result(result)
 
-    @Appender(
-        _shared_docs["str_strip"]
-        % {"side": "right side", "method": "rstrip", "position": "trailing"}
-    )
     @forbid_nonstring_types(["bytes"])
     def rstrip(self, to_strip=None):
+        """
+        Remove trailing characters.
+
+        Strip whitespaces (including newlines) or a set of specified characters
+        from each string in the Series/Index from right side.
+        Replaces any non-strings in Series with NaNs.
+        Equivalent to :meth:`str.rstrip`.
+
+        Parameters
+        ----------
+        to_strip : str or None, default None
+            Specifying the set of characters to be removed.
+            All combinations of this set of characters will be stripped.
+            If None then whitespaces are removed.
+
+        Returns
+        -------
+        Series or Index of object
+            Series or Index with the strings being stripped from the right side.
+
+        See Also
+        --------
+        Series.str.strip : Remove leading and trailing characters in Series/Index.
+        Series.str.lstrip : Remove leading characters in Series/Index.
+        Series.str.rstrip : Remove trailing characters in Series/Index.
+
+        Examples
+        --------
+        >>> s = pd.Series(["1. Ant.  ", "2. Bee!\\n", "3. Cat?\\t", np.nan, 10, True])
+        >>> s
+        0    1. Ant.
+        1    2. Bee!\\n
+        2    3. Cat?\\t
+        3          NaN
+        4           10
+        5         True
+        dtype: object
+
+        >>> s.str.strip()
+        0    1. Ant.
+        1    2. Bee!
+        2    3. Cat?
+        3        NaN
+        4        NaN
+        5        NaN
+        dtype: object
+
+        >>> s.str.lstrip("123.")
+        0    Ant.
+        1    Bee!\\n
+        2    Cat?\\t
+        3       NaN
+        4       NaN
+        5       NaN
+        dtype: object
+
+        >>> s.str.rstrip(".!? \\n\\t")
+        0    1. Ant
+        1    2. Bee
+        2    3. Cat
+        3       NaN
+        4       NaN
+        5       NaN
+        dtype: object
+
+        >>> s.str.strip("123.!? \\n\\t")
+        0    Ant
+        1    Bee
+        2    Cat
+        3    NaN
+        4    NaN
+        5    NaN
+        dtype: object
+        """
         result = self._data.array._str_rstrip(to_strip)
         return self._wrap_result(result)
 
-    _shared_docs["str_removefix"] = r"""
-    Remove a %(side)s from an object series.
-
-    If the %(side)s is not present, the original string will be returned.
-
-    Parameters
-    ----------
-    %(side)s : str
-        Remove the %(side)s of the string.
-
-    Returns
-    -------
-    Series/Index: object
-        The Series or Index with given %(side)s removed.
-
-    See Also
-    --------
-    Series.str.remove%(other_side)s : Remove a %(other_side)s from an object series.
-
-    Examples
-    --------
-    >>> s = pd.Series(["str_foo", "str_bar", "no_prefix"])
-    >>> s
-    0    str_foo
-    1    str_bar
-    2    no_prefix
-    dtype: str
-    >>> s.str.removeprefix("str_")
-    0    foo
-    1    bar
-    2    no_prefix
-    dtype: str
-
-    >>> s = pd.Series(["foo_str", "bar_str", "no_suffix"])
-    >>> s
-    0    foo_str
-    1    bar_str
-    2    no_suffix
-    dtype: str
-    >>> s.str.removesuffix("_str")
-    0    foo
-    1    bar
-    2    no_suffix
-    dtype: str
-    """
-
-    @Appender(
-        _shared_docs["str_removefix"] % {"side": "prefix", "other_side": "suffix"}
-    )
     @forbid_nonstring_types(["bytes"])
     def removeprefix(self, prefix: str):
+        """
+        Remove a prefix from an object series.
+
+        If the prefix is not present, the original string will be returned.
+
+        Parameters
+        ----------
+        prefix : str
+            Remove the prefix of the string.
+
+        Returns
+        -------
+        Series/Index: object
+            The Series or Index with given prefix removed.
+
+        See Also
+        --------
+        Series.str.removesuffix : Remove a suffix from an object series.
+
+        Examples
+        --------
+        >>> s = pd.Series(["str_foo", "str_bar", "no_prefix"])
+        >>> s
+        0    str_foo
+        1    str_bar
+        2    no_prefix
+        dtype: str
+        >>> s.str.removeprefix("str_")
+        0    foo
+        1    bar
+        2    no_prefix
+        dtype: str
+
+        >>> s = pd.Series(["foo_str", "bar_str", "no_suffix"])
+        >>> s
+        0    foo_str
+        1    bar_str
+        2    no_suffix
+        dtype: str
+        >>> s.str.removesuffix("_str")
+        0    foo
+        1    bar
+        2    no_suffix
+        dtype: str
+        """
         result = self._data.array._str_removeprefix(prefix)
         return self._wrap_result(result)
 
-    @Appender(
-        _shared_docs["str_removefix"] % {"side": "suffix", "other_side": "prefix"}
-    )
     @forbid_nonstring_types(["bytes"])
     def removesuffix(self, suffix: str):
+        """
+        Remove a suffix from an object series.
+
+        If the suffix is not present, the original string will be returned.
+
+        Parameters
+        ----------
+        suffix : str
+            Remove the suffix of the string.
+
+        Returns
+        -------
+        Series/Index: object
+            The Series or Index with given suffix removed.
+
+        See Also
+        --------
+        Series.str.removeprefix : Remove a prefix from an object series.
+
+        Examples
+        --------
+        >>> s = pd.Series(["str_foo", "str_bar", "no_prefix"])
+        >>> s
+        0    str_foo
+        1    str_bar
+        2    no_prefix
+        dtype: str
+        >>> s.str.removeprefix("str_")
+        0    foo
+        1    bar
+        2    no_prefix
+        dtype: str
+
+        >>> s = pd.Series(["foo_str", "bar_str", "no_suffix"])
+        >>> s
+        0    foo_str
+        1    bar_str
+        2    no_suffix
+        dtype: str
+        >>> s.str.removesuffix("_str")
+        0    foo
+        1    bar
+        2    no_suffix
+        dtype: str
+        """
         result = self._data.array._str_removesuffix(suffix)
         return self._wrap_result(result)
 
@@ -3350,64 +3529,55 @@ class StringMethods(NoNewAttributesMixin):
         # TODO: dispatch
         return str_extractall(self._orig, pat, flags)
 
-    _shared_docs["find"] = """
-    Return %(side)s indexes in each strings in the Series/Index.
-
-    Each of returned indexes corresponds to the position where the
-    substring is fully contained between [start:end]. Return -1 on
-    failure. Equivalent to standard :meth:`str.%(method)s`.
-
-    Parameters
-    ----------
-    sub : str
-        Substring being searched.
-    start : int
-        Left edge index.
-    end : int
-        Right edge index.
-
-    Returns
-    -------
-    Series or Index of int.
-        A Series (if the input is a Series) or an Index (if the input is an
-        Index) of the %(side)s indexes corresponding to the positions where the
-        substring is found in each string of the input.
-
-    See Also
-    --------
-    %(also)s
-
-    Examples
-    --------
-    For Series.str.find:
-
-    >>> ser = pd.Series(["_cow_", "duck_", "do_v_e"])
-    >>> ser.str.find("_")
-    0   0
-    1   4
-    2   2
-    dtype: int64
-
-    For Series.str.rfind:
-
-    >>> ser = pd.Series(["_cow_", "duck_", "do_v_e"])
-    >>> ser.str.rfind("_")
-    0   4
-    1   4
-    2   4
-    dtype: int64
-    """
-
-    @Appender(
-        _shared_docs["find"]
-        % {
-            "side": "lowest",
-            "method": "find",
-            "also": "rfind : Return highest indexes in each strings.",
-        }
-    )
     @forbid_nonstring_types(["bytes"])
     def find(self, sub, start: int = 0, end=None):
+        """
+        Return lowest indexes in each strings in the Series/Index.
+
+        Each of returned indexes corresponds to the position where the
+        substring is fully contained between [start:end]. Return -1 on
+        failure. Equivalent to standard :meth:`str.find`.
+
+        Parameters
+        ----------
+        sub : str
+            Substring being searched.
+        start : int
+            Left edge index.
+        end : int
+            Right edge index.
+
+        Returns
+        -------
+        Series or Index of int.
+            A Series (if the input is a Series) or an Index (if the input is an
+            Index) of the lowest indexes corresponding to the positions where the
+            substring is found in each string of the input.
+
+        See Also
+        --------
+        rfind : Return highest indexes in each strings.
+
+        Examples
+        --------
+        For Series.str.find:
+
+        >>> ser = pd.Series(["_cow_", "duck_", "do_v_e"])
+        >>> ser.str.find("_")
+        0   0
+        1   4
+        2   2
+        dtype: int64
+
+        For Series.str.rfind:
+
+        >>> ser = pd.Series(["_cow_", "duck_", "do_v_e"])
+        >>> ser.str.rfind("_")
+        0   4
+        1   4
+        2   4
+        dtype: int64
+        """
         if not isinstance(sub, str):
             msg = f"expected a string object, not {type(sub).__name__}"
             raise TypeError(msg)
@@ -3415,16 +3585,55 @@ class StringMethods(NoNewAttributesMixin):
         result = self._data.array._str_find(sub, start, end)
         return self._wrap_result(result, returns_string=False)
 
-    @Appender(
-        _shared_docs["find"]
-        % {
-            "side": "highest",
-            "method": "rfind",
-            "also": "find : Return lowest indexes in each strings.",
-        }
-    )
     @forbid_nonstring_types(["bytes"])
     def rfind(self, sub, start: int = 0, end=None):
+        """
+        Return highest indexes in each strings in the Series/Index.
+
+        Each of returned indexes corresponds to the position where the
+        substring is fully contained between [start:end]. Return -1 on
+        failure. Equivalent to standard :meth:`str.rfind`.
+
+        Parameters
+        ----------
+        sub : str
+            Substring being searched.
+        start : int
+            Left edge index.
+        end : int
+            Right edge index.
+
+        Returns
+        -------
+        Series or Index of int.
+            A Series (if the input is a Series) or an Index (if the input is an
+            Index) of the highest indexes corresponding to the positions where the
+            substring is found in each string of the input.
+
+        See Also
+        --------
+        find : Return lowest indexes in each strings.
+
+        Examples
+        --------
+        For Series.str.find:
+
+        >>> ser = pd.Series(["_cow_", "duck_", "do_v_e"])
+        >>> ser.str.find("_")
+        0   0
+        1   4
+        2   2
+        dtype: int64
+
+        For Series.str.rfind:
+
+        >>> ser = pd.Series(["_cow_", "duck_", "do_v_e"])
+        >>> ser.str.rfind("_")
+        0   4
+        1   4
+        2   4
+        dtype: int64
+        """
         if not isinstance(sub, str):
             msg = f"expected a string object, not {type(sub).__name__}"
             raise TypeError(msg)
@@ -3472,66 +3681,56 @@ class StringMethods(NoNewAttributesMixin):
         result = self._data.array._str_normalize(form)
         return self._wrap_result(result)
 
-    _shared_docs["index"] = """
-    Return %(side)s indexes in each string in Series/Index.
-
-    Each of the returned indexes corresponds to the position where the
-    substring is fully contained between [start:end]. This is the same
-    as ``str.%(similar)s`` except instead of returning -1, it raises a
-    ValueError when the substring is not found. Equivalent to standard
-    ``str.%(method)s``.
-
-    Parameters
-    ----------
-    sub : str
-        Substring being searched.
-    start : int
-        Left edge index.
-    end : int
-        Right edge index.
-
-    Returns
-    -------
-    Series or Index of object
-        Returns a Series or an Index of the %(side)s indexes
-        in each string of the input.
-
-    See Also
-    --------
-    %(also)s
-
-    Examples
-    --------
-    For Series.str.index:
-
-    >>> ser = pd.Series(["horse", "eagle", "donkey"])
-    >>> ser.str.index("e")
-    0   4
-    1   0
-    2   4
-    dtype: int64
-
-    For Series.str.rindex:
-
-    >>> ser = pd.Series(["Deer", "eagle", "Sheep"])
-    >>> ser.str.rindex("e")
-    0   2
-    1   4
-    2   3
-    dtype: int64
-    """
-
-    @Appender(
-        _shared_docs["index"]
-        % {
-            "side": "lowest",
-            "similar": "find",
-            "method": "index",
-            "also": "rindex : Return highest indexes in each strings.",
-        }
-    )
     @forbid_nonstring_types(["bytes"])
     def index(self, sub, start: int = 0, end=None):
+        """
+        Return lowest indexes in each string in Series/Index.
+
+        Each of the returned indexes corresponds to the position where the
+        substring is fully contained between [start:end]. This is the same
+        as ``str.find`` except instead of returning -1, it raises a
+        ValueError when the substring is not found. Equivalent to standard
+        ``str.index``.
+
+        Parameters
+        ----------
+        sub : str
+            Substring being searched.
+        start : int
+            Left edge index.
+        end : int
+            Right edge index.
+
+        Returns
+        -------
+        Series or Index of object
+            Returns a Series or an Index of the lowest indexes
+            in each string of the input.
+
+        See Also
+        --------
+        rindex : Return highest indexes in each strings.
+
+        Examples
+        --------
+        For Series.str.index:
+
+        >>> ser = pd.Series(["horse", "eagle", "donkey"])
+        >>> ser.str.index("e")
+        0   4
+        1   0
+        2   4
+        dtype: int64
+
+        For Series.str.rindex:
+
+        >>> ser = pd.Series(["Deer", "eagle", "Sheep"])
+        >>> ser.str.rindex("e")
+        0   2
+        1   4
+        2   3
+        dtype: int64
+        """
         if not isinstance(sub, str):
             msg = f"expected a string object, not {type(sub).__name__}"
             raise TypeError(msg)
@@ -3539,17 +3738,56 @@ class StringMethods(NoNewAttributesMixin):
         result = self._data.array._str_index(sub, start=start, end=end)
         return self._wrap_result(result, returns_string=False)
 
-    @Appender(
-        _shared_docs["index"]
-        % {
-            "side": "highest",
-            "similar": "rfind",
-            "method": "rindex",
-            "also": "index : Return lowest indexes in each strings.",
-        }
-    )
     @forbid_nonstring_types(["bytes"])
     def rindex(self, sub, start: int = 0, end=None):
+        """
+        Return highest indexes in each string in Series/Index.
+
+        Each of the returned indexes corresponds to the position where the
+        substring is fully contained between [start:end]. This is the same
+        as ``str.rfind`` except instead of returning -1, it raises a
+        ValueError when the substring is not found. Equivalent to standard
+        ``str.rindex``.
+
+        Parameters
+        ----------
+        sub : str
+            Substring being searched.
+        start : int
+            Left edge index.
+        end : int
+            Right edge index.
+
+        Returns
+        -------
+        Series or Index of object
+            Returns a Series or an Index of the highest indexes
+            in each string of the input.
+
+        See Also
+        --------
+        index : Return lowest indexes in each strings.
+
+        Examples
+        --------
+        For Series.str.index:
+
+        >>> ser = pd.Series(["horse", "eagle", "donkey"])
+        >>> ser.str.index("e")
+        0   4
+        1   0
+        2   4
+        dtype: int64
+
+        For Series.str.rindex:
+
+        >>> ser = pd.Series(["Deer", "eagle", "Sheep"])
+        >>> ser.str.rindex("e")
+        0   2
+        1   4
+        2   3
+        dtype: int64
+        """
         if not isinstance(sub, str):
             msg = f"expected a string object, not {type(sub).__name__}"
             raise TypeError(msg)
@@ -4625,12 +4863,12 @@ def str_extractall(arr, pat, flags: int = 0) -> DataFrame:
                     match_tuple = (match_tuple,)
                 na_tuple = [np.nan if group == "" else group for group in match_tuple]
                 match_list.append(na_tuple)
-                result_key = tuple(subject_key + (match_i,))
+                result_key = (*subject_key, match_i)
                 index_list.append(result_key)
 
     from pandas import MultiIndex
 
-    index = MultiIndex.from_tuples(index_list, names=arr.index.names + ["match"])
+    index = MultiIndex.from_tuples(index_list, names=[*arr.index.names, "match"])
     dtype = _result_dtype(arr)
 
     result = arr._constructor_expanddim(

@@ -101,7 +101,7 @@ def flex_binary_moment(arg1, arg2, f, pairwise: bool = False):
                             )
                             for i in range(arg2.columns.nlevels)
                         )
-                        result_names = list(arg2.columns.names) + [result_index.name]
+                        result_names = [*arg2.columns.names, result_index.name]
                         result.index = MultiIndex.from_arrays(
                             [*arg2_levels, result_level], names=result_names
                         )
@@ -109,7 +109,7 @@ def flex_binary_moment(arg1, arg2, f, pairwise: bool = False):
                         num_levels = len(
                             result.index.levels  # pyright: ignore[reportAttributeAccessIssue]
                         )
-                        new_order = [num_levels - 1] + list(range(num_levels - 1))
+                        new_order = [num_levels - 1, *range(num_levels - 1)]
                         result = result.reorder_levels(new_order).sort_index()
                     else:
                         result.index = MultiIndex.from_product(
@@ -117,7 +117,7 @@ def flex_binary_moment(arg1, arg2, f, pairwise: bool = False):
                         )
                         result = result.swaplevel(1, 0).sort_index()
                         result.index = MultiIndex.from_product(
-                            [result_index] + [arg2.columns]
+                            [result_index, arg2.columns]
                         )
                 else:
                     # empty result
@@ -157,9 +157,8 @@ def zsqrt(x):
     if isinstance(x, ABCDataFrame):
         if mask._values.any():
             result[mask] = 0
-    else:
-        if mask.any():
-            result[mask] = 0
+    elif mask.any():
+        result[mask] = 0
 
     return result
 

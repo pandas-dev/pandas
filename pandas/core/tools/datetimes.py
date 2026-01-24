@@ -382,12 +382,11 @@ def _convert_listlike_datetimes(
                 else:
                     arg_array = arg_array._dt_tz_localize("UTC")
                 arg = Index(arg_array, copy=False)
+            # ArrowExtensionArray
+            elif arg_dtype.pyarrow_dtype.tz is not None:
+                arg = arg._dt_tz_convert("UTC")
             else:
-                # ArrowExtensionArray
-                if arg_dtype.pyarrow_dtype.tz is not None:
-                    arg = arg._dt_tz_convert("UTC")
-                else:
-                    arg = arg._dt_tz_localize("UTC")
+                arg = arg._dt_tz_localize("UTC")
         return arg
 
     elif lib.is_np_dtype(arg_dtype, "M"):
@@ -514,6 +513,17 @@ def _to_datetime_with_unit(arg, unit, name, utc: bool, errors: str) -> Index:
             tz_parsed = None
 
         elif arg.dtype.kind == "f":
+            with np.errstate(invalid="ignore"):
+                int_values = arg.astype(np.int64)
+            mask = np.isnan(arg)
+            if (mask | (arg == int_values)).all():
+                # With all-round-or-NaN entries, we give the requested unit
+                #  back like with integers
+                result = _to_datetime_with_unit(
+                    int_values, unit=unit, name=name, utc=utc, errors=errors
+                )
+                result._data[mask] = NaT
+                return result
             with np.errstate(over="raise"):
                 try:
                     arr = cast_from_unit_vectorized(arg, unit=unit)
