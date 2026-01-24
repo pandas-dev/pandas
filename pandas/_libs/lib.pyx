@@ -134,7 +134,7 @@ except ImportError:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def memory_usage_of_objects(arr: object[:]) -> int64_t:
+def memory_usage_of_objects(ndarray[object, ndim=1] arr) -> int64_t:
     """
     Return the memory usage of an object array in bytes.
 
@@ -3190,7 +3190,9 @@ def to_object_array_tuples(rows: object) -> np.ndarray:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def fast_multiget(dict mapping, object[:] keys, default=np.nan) -> "ArrayLike":
+def fast_multiget(
+    dict mapping, ndarray[object, ndim=1] keys, default=np.nan
+) -> "ArrayLike":
     cdef:
         Py_ssize_t i, n = len(keys)
         object val

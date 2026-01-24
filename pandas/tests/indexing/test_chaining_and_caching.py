@@ -14,8 +14,6 @@ from pandas import (
 )
 import pandas._testing as tm
 
-msg = "A value is trying to be set on a copy of a slice from a DataFrame"
-
 
 class TestCaching:
     @pytest.mark.parametrize("do_ref", [True, False])
