@@ -1403,6 +1403,35 @@ cdef class Day(SingleConstructorOffset):
             )
 
     def is_on_offset(self, dt) -> bool:
+        """
+        Return boolean whether a timestamp intersects with this frequency.
+
+        For Day offset, this method always returns True, since every timestamp
+        can be considered as intersecting with a day-based frequency.
+
+        Parameters
+        ----------
+        dt : datetime
+            Timestamp to check.
+
+        Returns
+        -------
+        bool
+            Always True for Day offset.
+
+        See Also
+        --------
+        DateOffset.is_on_offset : Check if timestamp intersects with frequency.
+        BusinessDay.is_on_offset : Check if timestamp is on business day.
+
+        Examples
+        --------
+        >>> from pandas.tseries.offsets import Day
+        >>> ts = pd.Timestamp(2022, 8, 5, 15, 30)
+        >>> day = Day()
+        >>> day.is_on_offset(ts)
+        True
+        """
         return True
 
     @apply_wraps
