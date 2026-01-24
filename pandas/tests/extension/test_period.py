@@ -80,7 +80,7 @@ class TestPeriodArray(base.ExtensionTests):
         return op_name in ["cummin", "cummax"]
 
     def _supports_reduction(self, obj, op_name: str) -> bool:
-        return op_name in ["min", "max", "median"]
+        return op_name in ["count", "min", "max", "median"]
 
     def check_reduce(self, ser: pd.Series, op_name: str, skipna: bool):
         if op_name == "median":
