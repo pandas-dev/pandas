@@ -2237,9 +2237,10 @@ def restore_dropped_levels_multijoin(
         else:
             restore_codes = algos.take_nd(codes, indexer, fill_value=-1)
 
-        join_levels = join_levels + [restore_levels]
-        join_codes = join_codes + [restore_codes]
-        join_names = join_names + [dropped_level_name]
+        # Use + operator: FrozenList.__add__ returns FrozenList, unpacking returns list
+        join_levels = join_levels + [restore_levels]  # noqa: RUF005
+        join_codes = join_codes + [restore_codes]  # noqa: RUF005
+        join_names = join_names + [dropped_level_name]  # noqa: RUF005
 
     return join_levels, join_codes, join_names
 
@@ -3033,9 +3034,9 @@ def _get_join_keys(
     # densify current keys to avoid overflow
     lkey, rkey, count = _factorize_keys(lkey, rkey, sort=sort)
 
-    llab = [lkey] + llab[nlev:]
-    rlab = [rkey] + rlab[nlev:]
-    shape = (count,) + shape[nlev:]
+    llab = [lkey, *llab[nlev:]]
+    rlab = [rkey, *rlab[nlev:]]
+    shape = (count, *shape[nlev:])
 
     return _get_join_keys(llab, rlab, shape, sort)
 
