@@ -398,8 +398,8 @@ or resolution of the datetime64 dtype:
 .. ipython:: python
 
    stamps.astype(np.int64)
-   stamps.astype("datetime64[s]").astype(np.int64)
-   stamps.astype("datetime64[ms]").astype(np.int64)
+   stamps.as_unit("s").astype(np.int64)
+   stamps.as_unit("ns").astype(np.int64)
 
 
 .. _timeseries.origin:
