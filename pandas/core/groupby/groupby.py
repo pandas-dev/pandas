@@ -375,8 +375,6 @@ See Also
 
 Notes
 -----
-See :ref:`groupby.transform` in the User Guide for more details and examples.
-
 Each group is endowed the attribute 'name' in case you need to know
 which group you are working on.
 

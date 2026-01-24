@@ -251,6 +251,8 @@ class SeriesGroupBy(GroupBy[Series]):
 
         Notes
         -----
+        See :ref:`groupby.apply` in the User Guide for more details and examples.
+
         The resulting dtype will reflect the return value of the passed ``func``,
         see the examples below.
 
@@ -714,6 +716,8 @@ class SeriesGroupBy(GroupBy[Series]):
 
         Notes
         -----
+        See :ref:`groupby.transform` in the User Guide for more details and examples.
+
         Each group is endowed the attribute 'name' in case you need to know
         which group you are working on.
 
@@ -2712,6 +2716,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         Notes
         -----
+        See :ref:`groupby.transform` in the User Guide for more details and examples.
+
         Each group is endowed the attribute 'name' in case you need to know
         which group you are working on.
 
