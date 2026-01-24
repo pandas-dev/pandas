@@ -57,7 +57,7 @@ jobs:
       run: |
         echo "Upload prod docs ran!"
         echo "${{ github.event.inputs.publish_prod }}"
-      if: (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')) || github.event.inputs.publish_prod
+      if: (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')) || ${{ github.event.inputs.publish_prod == true }}
 
 #    - name: Checkout
 #      uses: actions/checkout@v6
