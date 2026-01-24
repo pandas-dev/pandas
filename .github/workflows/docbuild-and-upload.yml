@@ -54,7 +54,9 @@ jobs:
         fi
 
     - name: Test upload prod docs
-      run: echo "Upload prod docs ran!"
+      run: |
+        echo "Upload prod docs ran!"
+        echo "${{ github.event.inputs.publish_prod }}"
       if: (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')) || github.event.inputs.publish_prod
 
 #    - name: Checkout
