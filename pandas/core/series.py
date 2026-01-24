@@ -51,7 +51,6 @@ from pandas.errors.cow import (
     _chained_assignment_msg,
 )
 from pandas.util._decorators import (
-    Appender,
     deprecate_nonkeyword_arguments,
     set_module,
 )
@@ -803,9 +802,74 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def _references(self) -> BlockValuesRefs:
         return self._mgr._block.refs
 
-    @Appender(base.IndexOpsMixin.array.__doc__)  # type: ignore[prop-decorator]
     @property
     def array(self) -> ExtensionArray:
+        """
+        The ExtensionArray of the data backing this Series or Index.
+
+        This property provides direct access to the underlying array data of a
+        Series or Index without requiring conversion to a NumPy array. It
+        returns an ExtensionArray, which is the native storage format for
+        pandas extension dtypes.
+
+        Returns
+        -------
+        ExtensionArray
+            An ExtensionArray of the values stored within. For extension
+            types, this is the actual array. For NumPy native types, this
+            is a thin (no copy) wrapper around :class:`numpy.ndarray`.
+
+            ``.array`` differs from ``.values``, which may require converting
+            the data to a different form.
+
+        See Also
+        --------
+        Index.to_numpy : Similar method that always returns a NumPy array.
+        Series.to_numpy : Similar method that always returns a NumPy array.
+
+        Notes
+        -----
+        This table lays out the different array types for each extension
+        dtype within pandas.
+
+        ================== =============================
+        dtype              array type
+        ================== =============================
+        category           Categorical
+        period             PeriodArray
+        interval           IntervalArray
+        IntegerNA          IntegerArray
+        string             StringArray
+        boolean            BooleanArray
+        datetime64[ns, tz] DatetimeArray
+        ================== =============================
+
+        For any 3rd-party extension types, the array type will be an
+        ExtensionArray.
+
+        For all remaining dtypes ``.array`` will be a
+        :class:`arrays.NumpyExtensionArray` wrapping the actual ndarray
+        stored within. If you absolutely need a NumPy array (possibly with
+        copying / coercing data), then use :meth:`Series.to_numpy` instead.
+
+        Examples
+        --------
+        For regular NumPy types like int, and float, a NumpyExtensionArray
+        is returned.
+
+        >>> pd.Series([1, 2, 3]).array
+        <NumpyExtensionArray>
+        [1, 2, 3]
+        Length: 3, dtype: int64
+
+        For extension types, like Categorical, the actual ExtensionArray
+        is returned
+
+        >>> ser = pd.Series(pd.Categorical(["a", "b", "a"]))
+        >>> ser.array
+        ['a', 'b', 'a']
+        Categories (2, str): ['a', 'b']
+        """
         arr = self._mgr.array_values()
         # TODO decide on read-only https://github.com/pandas-dev/pandas/issues/63099
         # arr = arr.view()
