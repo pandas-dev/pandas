@@ -6,7 +6,7 @@
 10 minutes to pandas
 ********************
 
-This is a short introduction to pandas, geared mainly for new users.
+This is a short introduction to pandas, intended primarily for new users.
 You can see more complex recipes in the :ref:`Cookbook<cookbook>`.
 
 Customarily, we import as follows:
