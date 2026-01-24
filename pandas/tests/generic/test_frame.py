@@ -150,6 +150,12 @@ class TestDataFrame:
 
         tm.assert_frame_equal(empty_frame_copy, empty_frame)
 
+    def test_data_type(self):
+        pdf = DataFrame({"A": ["a", "bc", "cde", "fghi"]})
+        pdf_mask = DataFrame({"A": [True, False, True, False]})
+        result = pdf.where(pdf_mask, [["xyz"]])
+        assert pdf.dtypes.iloc[0] == result.dtypes.iloc[0]
+
 
 # formerly in Generic but only test DataFrame
 class TestDataFrame2:

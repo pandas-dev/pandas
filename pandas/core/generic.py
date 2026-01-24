@@ -10125,6 +10125,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     other, **self._construct_axes_dict(), copy=False
                 )
 
+        # To avoid the data type always being object (GH#63842)
+        if isinstance(other, (list, tuple)):
+            curr = other
+            while not lib.is_scalar(curr[0]):
+                curr = curr[0]
+            other = curr[0]
+
         if axis is None:
             axis = 0
 
