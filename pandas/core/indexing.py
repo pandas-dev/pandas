@@ -894,7 +894,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         ):
             # GH#38148
             keys = self.obj.columns.union(key, sort=False)
-            diff = Index(key).difference(self.obj.columns, sort=False)
+            diff = Index(key, copy=False).difference(self.obj.columns, sort=False)
 
             if len(diff):
                 # e.g. if we are doing df.loc[:, ["A", "B"]] = 7 and "B"
@@ -974,7 +974,7 @@ class _LocationIndexer(NDFrameIndexerBase):
                 #  treat as a single null slice.
                 i = tup.index(Ellipsis)
                 # FIXME: this assumes only one Ellipsis
-                new_key = tup[:i] + (_NS,) + tup[i + 1 :]
+                new_key = (*tup[:i], _NS, *tup[i + 1 :])
                 return new_key
 
             # TODO: other cases?  only one test gets here, and that is covered
@@ -1098,7 +1098,7 @@ class _LocationIndexer(NDFrameIndexerBase):
                 if section.ndim == self.ndim:
                     # we're in the middle of slicing through a MultiIndex
                     # revise the key wrt to `section` by inserting an _NS
-                    new_key = tup[:i] + (_NS,) + tup[i + 1 :]
+                    new_key = (*tup[:i], _NS, *tup[i + 1 :])
 
                 else:
                     # Note: the section.ndim == self.ndim check above

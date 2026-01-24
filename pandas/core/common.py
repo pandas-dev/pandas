@@ -45,9 +45,12 @@ from pandas.core.dtypes.generic import (
     ABCExtensionArray,
     ABCIndex,
     ABCMultiIndex,
+    ABCNumpyExtensionArray,
     ABCSeries,
 )
 from pandas.core.dtypes.inference import iterable_not_string
+
+from pandas.core.col import Expression
 
 if TYPE_CHECKING:
     from pandas._typing import (
@@ -128,7 +131,8 @@ def is_bool_indexer(key: Any) -> bool:
         and convert to an ndarray.
     """
     if isinstance(
-        key, (ABCSeries, np.ndarray, ABCIndex, ABCExtensionArray)
+        key,
+        (ABCSeries, np.ndarray, ABCIndex, ABCExtensionArray, ABCNumpyExtensionArray),
     ) and not isinstance(key, ABCMultiIndex):
         if key.dtype == np.object_:
             key_array = np.asarray(key)
@@ -381,7 +385,9 @@ def apply_if_callable(maybe_callable, obj, **kwargs):
     obj : NDFrame
     **kwargs
     """
-    if callable(maybe_callable):
+    if isinstance(maybe_callable, Expression):
+        return maybe_callable._eval_expression(obj, **kwargs)
+    elif callable(maybe_callable):
         return maybe_callable(obj, **kwargs)
 
     return maybe_callable

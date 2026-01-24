@@ -893,8 +893,8 @@ class TestDataFrameConstructors:
         [
             (lambda x: np.timedelta64(x, "D"), "m8[s]"),
             (lambda x: timedelta(days=x), "m8[us]"),
-            (lambda x: Timedelta(x, "D"), "m8[ns]"),
-            (lambda x: Timedelta(x, "D").as_unit("s"), "m8[s]"),
+            (lambda x: Timedelta(x, "D"), "m8[s]"),
+            (lambda x: Timedelta(x, "D").as_unit("ms"), "m8[ms]"),
         ],
     )
     def test_constructor_dict_timedelta64_index(self, klass, exp_dtype):
@@ -1884,15 +1884,15 @@ class TestDataFrameConstructors:
         )
         result = df.dtypes
         expected = Series(
-            [np.dtype("float64")]
-            + [np.dtype("int64")]
-            + [
+            [
+                np.dtype("float64"),
+                np.dtype("int64"),
                 np.dtype("object")
                 if not using_infer_string
-                else pd.StringDtype(na_value=np.nan)
-            ]
-            + [np.dtype("float64")]
-            + [np.dtype(intname)],
+                else pd.StringDtype(na_value=np.nan),
+                np.dtype("float64"),
+                np.dtype(intname),
+            ],
             index=["a", "b", "c", floatname, intname],
         )
         tm.assert_series_equal(result, expected)
@@ -1910,15 +1910,15 @@ class TestDataFrameConstructors:
         )
         result = df.dtypes
         expected = Series(
-            [np.dtype("float64")]
-            + [np.dtype("int64")]
-            + [
+            [
+                np.dtype("float64"),
+                np.dtype("int64"),
                 np.dtype("object")
                 if not using_infer_string
-                else pd.StringDtype(na_value=np.nan)
-            ]
-            + [np.dtype("float64")]
-            + [np.dtype(intname)],
+                else pd.StringDtype(na_value=np.nan),
+                np.dtype("float64"),
+                np.dtype(intname),
+            ],
             index=["a", "b", "c", floatname, intname],
         )
         tm.assert_series_equal(result, expected)

@@ -398,8 +398,8 @@ or resolution of the datetime64 dtype:
 .. ipython:: python
 
    stamps.astype(np.int64)
-   stamps.astype("datetime64[s]").astype(np.int64)
-   stamps.astype("datetime64[ms]").astype(np.int64)
+   stamps.as_unit("s").astype(np.int64)
+   stamps.as_unit("ns").astype(np.int64)
 
 
 .. _timeseries.origin:
@@ -1294,15 +1294,6 @@ frequencies. We will refer to these aliases as *offset aliases*.
     "us", "microseconds"
     "ns", "nanoseconds"
 
-.. deprecated:: 2.2.0
-
-   Aliases ``H``, ``BH``, ``CBH``, ``T``, ``S``, ``L``, ``U``, and ``N``
-   are deprecated in favour of the aliases ``h``, ``bh``, ``cbh``,
-   ``min``, ``s``, ``ms``, ``us``, and ``ns``.
-
-   Aliases ``Y``, ``M``, and ``Q`` are deprecated in favour of the aliases
-   ``YE``, ``ME``, ``QE``.
-
 
 .. note::
 
@@ -1357,11 +1348,6 @@ frequencies. We will refer to these aliases as *period aliases*.
     "ms", "milliseconds"
     "us", "microseconds"
     "ns", "nanoseconds"
-
-.. deprecated:: 2.2.0
-
-   Aliases ``H``, ``T``, ``S``, ``L``, ``U``, and ``N`` are deprecated in favour of the aliases
-   ``h``, ``min``, ``s``, ``ms``, ``us``, and ``ns``.
 
 
 Combining aliases

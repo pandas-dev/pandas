@@ -317,8 +317,8 @@ def test_pickle_roundtrip():
     assert result is NA
 
 
-def test_pickle_roundtrip_pandas():
-    result = tm.round_trip_pickle(NA)
+def test_pickle_roundtrip_pandas(temp_file):
+    result = tm.round_trip_pickle(NA, temp_file)
     assert result is NA
 
 
@@ -326,9 +326,9 @@ def test_pickle_roundtrip_pandas():
     "values, dtype", [([1, 2, NA], "Int64"), (["A", "B", NA], "string")]
 )
 @pytest.mark.parametrize("as_frame", [True, False])
-def test_pickle_roundtrip_containers(as_frame, values, dtype):
+def test_pickle_roundtrip_containers(as_frame, values, dtype, temp_file):
     s = pd.Series(pd.array(values, dtype=dtype))
     if as_frame:
         s = s.to_frame(name="A")
-    result = tm.round_trip_pickle(s)
+    result = tm.round_trip_pickle(s, temp_file)
     tm.assert_equal(result, s)

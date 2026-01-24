@@ -186,7 +186,7 @@ def test_apply_datetimetz(by_row):
     tm.assert_series_equal(result, exp)
 
     result = s.apply(lambda x: x.hour if by_row else x.dt.hour, by_row=by_row)
-    exp = Series(list(range(24)) + [0], name="XX", dtype="int64" if by_row else "int32")
+    exp = Series([*list(range(24)), 0], name="XX", dtype="int64" if by_row else "int32")
     tm.assert_series_equal(result, exp)
 
     # not vectorized
@@ -545,7 +545,9 @@ def test_apply_to_timedelta(by_row):
 )
 def test_apply_listlike_reducer(string_series, ops, names, how, kwargs):
     # GH 39140
-    expected = Series({name: op(string_series) for name, op in zip(names, ops)})
+    expected = Series(
+        {name: op(string_series) for name, op in zip(names, ops, strict=True)}
+    )
     expected.name = "series"
     result = getattr(string_series, how)(ops, **kwargs)
     tm.assert_series_equal(result, expected)

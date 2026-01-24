@@ -73,9 +73,47 @@ class TestSeriesRound:
         result.iloc[0] = False
         tm.assert_series_equal(ser, expected)
 
-    def test_round_dtype_object(self):
-        # GH#61206
-        ser = Series([0.2], dtype="object")
-        msg = "Expected numeric dtype, got object instead."
-        with pytest.raises(TypeError, match=msg):
-            ser.round()
+    @pytest.mark.parametrize(
+        "data,decimals,expected_data",
+        [
+            ([0.2], 0, [0.0]),
+            ([1.234, 2.567], 1, [1.2, 2.6]),
+            ([1.234, 2.567], 2, [1.23, 2.57]),
+            ([1.234, 2.567], 0, [1.0, 3.0]),
+        ],
+    )
+    def test_round_dtype_object(self, data, decimals, expected_data):
+        # GH#63444
+        ser = Series(data, dtype="object")
+        result = ser.round(decimals)
+        expected = Series(expected_data, dtype="object")
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            None,
+            "float64",
+            "int64",
+            "object",
+        ],
+    )
+    def test_round_empty_series(self, dtype):
+        # GH#63444
+        result = Series(dtype=dtype).round(4)
+        expected = Series(dtype=dtype)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "dtype,data",
+        [
+            ("string", ["a", "b", "c"]),
+            ("category", ["cat1", "cat2", "cat3"]),
+            (pd.StringDtype(), ["x", "y", "z"]),
+        ],
+    )
+    def test_round_non_numeric_dtype_noop(self, dtype, data):
+        # GH#63444, GH#63559
+        ser = Series(data, dtype=dtype)
+        result = ser.round(2)
+        tm.assert_series_equal(result, ser)

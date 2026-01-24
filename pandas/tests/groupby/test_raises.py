@@ -29,7 +29,7 @@ from pandas.tests.groupby import get_groupby_method_args
         lambda x: x % 2,
         [0, 0, 0, 1, 2, 2, 2, 3, 3],
         np.array([0, 0, 0, 1, 2, 2, 2, 3, 3]),
-        dict(zip(range(9), [0, 0, 0, 1, 2, 2, 2, 3, 3])),
+        dict(zip(range(9), [0, 0, 0, 1, 2, 2, 2, 3, 3], strict=True)),
         Series([1, 1, 1, 1, 1, 2, 2, 2, 2]),
         [Series([1, 1, 1, 1, 1, 2, 2, 2, 2]), Series([3, 3, 4, 4, 4, 4, 4, 3, 3])],
     ]
@@ -596,9 +596,7 @@ def test_groupby_raises_category_np(
     _call_and_check(klass, msg, how, gb, groupby_func_np, ())
 
 
-@pytest.mark.filterwarnings(
-    "ignore:`groups` by one element list returns scalar is deprecated"
-)
+@pytest.mark.filterwarnings("ignore:In a future version, the keys")
 @pytest.mark.parametrize("how", ["method", "agg", "transform"])
 def test_groupby_raises_category_on_category(
     how,

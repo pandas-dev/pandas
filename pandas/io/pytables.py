@@ -387,7 +387,7 @@ def read_hdf(
 
     See Also
     --------
-    DataFrame.to_hdf : Write a HDF file from a DataFrame.
+    DataFrame.to_hdf : Write an HDF file from a DataFrame.
     HDFStore : Low-level access to HDF files.
 
     Notes
@@ -2841,7 +2841,7 @@ class Fixed:
         if isinstance(version, str):
             version_tup = tuple(int(x) for x in version.split("."))
             if len(version_tup) == 2:
-                version_tup = version_tup + (0,)
+                version_tup = (*version_tup, 0)
             assert len(version_tup) == 3  # needed for mypy
             return version_tup
         else:
@@ -2990,6 +2990,7 @@ class GenericFixed(Fixed):
 
         factory: Callable
 
+        kwargs = {}
         if index_class == DatetimeIndex:
 
             def f(values, freq=None, tz=None):
@@ -3013,8 +3014,8 @@ class GenericFixed(Fixed):
             factory = f
         else:
             factory = index_class
+            kwargs["copy"] = False
 
-        kwargs = {}
         if "freq" in attrs:
             kwargs["freq"] = attrs["freq"]
             if index_class is Index:
@@ -3147,7 +3148,9 @@ class GenericFixed(Fixed):
             zip(index.levels, index.codes, index.names, strict=True)
         ):
             # write the level
-            if isinstance(lev.dtype, ExtensionDtype):
+            if isinstance(lev.dtype, ExtensionDtype) and not isinstance(
+                lev.dtype, StringDtype
+            ):
                 raise NotImplementedError(
                     "Saving a MultiIndex with an extension dtype is not supported."
                 )
@@ -3269,7 +3272,7 @@ class GenericFixed(Fixed):
 
         if isinstance(value.dtype, CategoricalDtype):
             raise NotImplementedError(
-                "Cannot store a category dtype in a HDF5 dataset that uses format="
+                "Cannot store a category dtype in an HDF5 dataset that uses format="
                 '"fixed". Use format="table".'
             )
         if not empty_array:
@@ -4449,7 +4452,7 @@ class Table(Fixed):
                 )
                 coords = coords[op(data.iloc[coords - coords.min()], filt).values]
 
-        return Index(coords)
+        return Index(coords, copy=False)
 
     def read_column(
         self,
@@ -4629,7 +4632,7 @@ class AppendableTable(Table):
         values = [v.transpose(np.roll(np.arange(v.ndim), v.ndim - 1)) for v in values]
         bvalues = []
         for i, v in enumerate(values):
-            new_shape = (nrows,) + self.dtype[names[nindexes + i]].shape
+            new_shape = (nrows, *self.dtype[names[nindexes + i]].shape)
             bvalues.append(v.reshape(new_shape))
 
         # write the chunks
@@ -5181,15 +5184,15 @@ def _unconvert_index(data, kind: str, encoding: str, errors: str) -> np.ndarray 
     if kind.startswith("datetime64"):
         if kind == "datetime64":
             # created before we stored resolution information
-            index = DatetimeIndex(data)
+            index = DatetimeIndex(data, copy=False)
         else:
-            index = DatetimeIndex(data.view(kind))
+            index = DatetimeIndex(data.view(kind), copy=False)
     elif kind.startswith("timedelta64"):
         if kind == "timedelta64":
             # created before we stored resolution information
-            index = TimedeltaIndex(data)
+            index = TimedeltaIndex(data, copy=False)
         else:
-            index = TimedeltaIndex(data.view(kind))
+            index = TimedeltaIndex(data.view(kind), copy=False)
     elif kind == "date":
         try:
             index = np.asarray([date.fromordinal(v) for v in data], dtype=object)

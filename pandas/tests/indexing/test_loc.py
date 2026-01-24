@@ -2194,7 +2194,7 @@ class TestLocSetitemWithExpansion:
             view = df[:]  # noqa: F841
         df.loc[key, 1] = N
         expected = DataFrame(
-            {0: list(arr) + [np.nan], 1: [np.nan] * N + [float(N)]},
+            {0: [*list(arr), np.nan], 1: [np.nan] * N + [float(N)]},
             index=exp_index,
         )
         tm.assert_frame_equal(df, expected)
@@ -2643,7 +2643,7 @@ class TestLocBooleanMask:
             index=date_range("1/1/2000", periods=3, freq="1h"),
         )
         expected = df.copy()
-        expected["C"] = [expected.index[0]] + [pd.NaT, pd.NaT]
+        expected["C"] = [expected.index[0], pd.NaT, pd.NaT]
 
         mask = df.A < 1
         df.loc[mask, "C"] = df.loc[mask].index
@@ -3162,9 +3162,10 @@ class TestLocSeries:
 
         # non-monotonic, raise KeyError
         s2 = ser.iloc[list(range(5)) + list(range(9, 4, -1))]
-        with pytest.raises(KeyError, match=r"^3$"):
+        msg = "non-monotonic index with a missing label 3"
+        with pytest.raises(KeyError, match=msg):
             s2.loc[3:11]
-        with pytest.raises(KeyError, match=r"^3$"):
+        with pytest.raises(KeyError, match=msg):
             s2.loc[3:11] = 0
 
     def test_loc_getitem_iterator(self, string_series):
@@ -3186,7 +3187,7 @@ class TestLocSeries:
         string_series.loc[inds] = 5
         msg = r"\['foo'\] not in index"
         with pytest.raises(KeyError, match=msg):
-            string_series.loc[inds + ["foo"]] = 5
+            string_series.loc[[*inds, "foo"]] = 5
 
     def test_basic_setitem_with_labels(self, datetime_series):
         indices = datetime_series.index[[5, 10, 15]]

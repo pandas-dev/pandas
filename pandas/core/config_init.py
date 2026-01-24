@@ -423,7 +423,7 @@ with cf.config_prefix("mode"):
         # to False. This environment variable can be set for testing.
         "warn"
         if os.environ.get("PANDAS_COPY_ON_WRITE", "0") == "warn"
-        else os.environ.get("PANDAS_COPY_ON_WRITE", "0") == "1",
+        else os.environ.get("PANDAS_COPY_ON_WRITE", "1") == "1",
         copy_on_write_doc,
         validator=is_one_of_factory([True, False, "warn"]),
     )
@@ -500,7 +500,7 @@ with cf.config_prefix("io.excel.xls"):
         "reader",
         "auto",
         reader_engine_doc.format(ext="xls", others=", ".join(_xls_options)),
-        validator=is_one_of_factory(_xls_options + ["auto"]),
+        validator=is_one_of_factory([*_xls_options, "auto"]),
     )
 
 with cf.config_prefix("io.excel.xlsm"):
@@ -508,7 +508,7 @@ with cf.config_prefix("io.excel.xlsm"):
         "reader",
         "auto",
         reader_engine_doc.format(ext="xlsm", others=", ".join(_xlsm_options)),
-        validator=is_one_of_factory(_xlsm_options + ["auto"]),
+        validator=is_one_of_factory([*_xlsm_options, "auto"]),
     )
 
 
@@ -517,7 +517,7 @@ with cf.config_prefix("io.excel.xlsx"):
         "reader",
         "auto",
         reader_engine_doc.format(ext="xlsx", others=", ".join(_xlsx_options)),
-        validator=is_one_of_factory(_xlsx_options + ["auto"]),
+        validator=is_one_of_factory([*_xlsx_options, "auto"]),
     )
 
 
@@ -526,7 +526,7 @@ with cf.config_prefix("io.excel.ods"):
         "reader",
         "auto",
         reader_engine_doc.format(ext="ods", others=", ".join(_ods_options)),
-        validator=is_one_of_factory(_ods_options + ["auto"]),
+        validator=is_one_of_factory([*_ods_options, "auto"]),
     )
 
 with cf.config_prefix("io.excel.xlsb"):
@@ -534,7 +534,7 @@ with cf.config_prefix("io.excel.xlsb"):
         "reader",
         "auto",
         reader_engine_doc.format(ext="xlsb", others=", ".join(_xlsb_options)),
-        validator=is_one_of_factory(_xlsb_options + ["auto"]),
+        validator=is_one_of_factory([*_xlsb_options, "auto"]),
     )
 
 # Set up the io.excel specific writer configuration.
@@ -901,6 +901,14 @@ with cf.config_prefix("future"):
         validator=is_one_of_factory([True, False]),
     )
 
+    cf.register_option(
+        "python_scalars",
+        False if os.environ.get("PANDAS_FUTURE_PYTHON_SCALARS", "0") == "0" else True,
+        "Whether to return Python scalars instead of NumPy or PyArrow scalars. "
+        "Currently experimental, setting to True is not recommended for end users.",
+        validator=is_one_of_factory([True, False]),
+    )
+
 
 # GH#59502
 cf.deprecate_option("future.no_silent_downcasting", Pandas4Warning)
@@ -908,7 +916,8 @@ cf.deprecate_option(
     "mode.copy_on_write",
     Pandas4Warning,
     msg=(
-        "Copy-on-Write can no longer be disabled, setting to False has no impact. "
-        "This option will be removed in pandas 4.0."
+        "The 'mode.copy_on_write' option is deprecated. Copy-on-Write can no longer "
+        "be disabled (it is always enabled with pandas >= 3.0), and setting the option "
+        "has no impact. This option will be removed in pandas 4.0."
     ),
 )

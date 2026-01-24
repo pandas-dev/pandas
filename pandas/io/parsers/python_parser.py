@@ -509,7 +509,7 @@ class PythonParser(ParserBase):
                     values, skipna=False, convert_na_value=False
                 )
 
-            cats = Index(values).unique().dropna()
+            cats = Index(values, copy=False).unique().dropna()
             values = Categorical._from_inferred_categories(
                 cats, cats.get_indexer(values), cast_type, true_values=self.true_values
             )
@@ -581,7 +581,7 @@ class PythonParser(ParserBase):
             if isinstance(header, (list, tuple, np.ndarray)):
                 # we have a mi columns, so read an extra line
                 if have_mi_columns:
-                    header = list(header) + [header[-1] + 1]
+                    header = [*list(header), header[-1] + 1]
             else:
                 header = [header]
 
