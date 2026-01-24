@@ -34,6 +34,7 @@ authors to coordinate on the namespace.
   | [gurobipy-pandas](https://github.com/Gurobi/gurobipy-pandas)         | `gppd`     | `Series`, `DataFrame` |
   | [staircase](https://www.staircase.dev/)                              | `sc`       | `Series`, `DataFrame` |
   | [woodwork](https://github.com/alteryx/woodwork)                      | `slice`    | `Series`, `DataFrame` |
+  | [pd-money](https://github.com/aalhajmee/pd-money)                     | `money`    | `Series`              |
 
 ### Data types
 
@@ -414,6 +415,10 @@ Pandera provides a flexible and expressive API for performing data validation on
 to make data processing pipelines more readable and robust.
 Dataframes contain information that pandera explicitly validates at runtime. This is useful in
 production-critical data pipelines or reproducible research settings.
+
+#### [pd-money](https://github.com/aalhajmee/pd-money)
+
+A comprehensive extension for financial data cleaning, performance analysis, and valuation.
 
 #### [pyjanitor](https://github.com/pyjanitor-devs/pyjanitor)
 
