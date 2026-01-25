@@ -481,6 +481,23 @@ with cf.config_prefix("mode"):
     )
 
 
+arrow_rechunk_doc = """
+: bool
+    When True, automatically rechunk PyArrow-backed arrays after concatenation
+    if the average chunk size falls below a threshold. This improves performance
+    for subsequent operations at the cost of a memory copy during concat.
+"""
+
+
+with cf.config_prefix("mode"):
+    cf.register_option(
+        "arrow_rechunk_on_concat",
+        True,
+        arrow_rechunk_doc,
+        validator=is_bool,
+    )
+
+
 # Set up the io.excel specific reader configuration.
 reader_engine_doc = """
 : string
