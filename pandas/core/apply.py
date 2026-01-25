@@ -1179,8 +1179,13 @@ class FrameApply(NDFrameApply):
 
         results = {}
 
+        func_name = com.get_cython_func(self.func)
+
         for i, v in enumerate(series_gen):
-            results[i] = self.func(v, *self.args, **self.kwargs)
+            if func_name and not self.args and not self.kwargs:
+                results[i] = getattr(v, func_name)()
+            else:
+                results[i] = self.func(v, *self.args, **self.kwargs)
             if isinstance(results[i], ABCSeries):
                 # If we have a view on v, we need to make a copy because
                 #  series_generator will swap out the underlying data
