@@ -27,7 +27,6 @@ if TYPE_CHECKING:
     from pandas._libs.tslibs.nattype import NaTType
 
 
-@doc(storage_options=_shared_docs["storage_options"])
 class ODFReader(BaseExcelReader["OpenDocument"]):
     def __init__(
         self,
@@ -42,7 +41,15 @@ class ODFReader(BaseExcelReader["OpenDocument"]):
         ----------
         filepath_or_buffer : str, path to be parsed or
             an open readable stream.
-        {storage_options}
+        storage_options : dict, optional
+            Extra options that make sense for a particular storage connection, e.g.
+            host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
+            are forwarded to ``urllib.request.Request`` as header options. For other
+            URLs (e.g. starting with "s3://", and "gcs://") the key-value pairs are
+            forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more
+            details, and for more examples on storage options refer `here
+            <https://pandas.pydata.org/docs/user_guide/io.html?
+            highlight=storage_options#reading-writing-remote-files>`_.
         engine_kwargs : dict, optional
             Arbitrary keyword arguments passed to excel engine.
         """
@@ -60,7 +67,7 @@ class ODFReader(BaseExcelReader["OpenDocument"]):
         return OpenDocument
 
     def load_workbook(
-        self, filepath_or_buffer: FilePath | ReadBuffer[bytes], engine_kwargs
+        self, filepath_or_buffer: FilePath | ReadBuffer[bytes], engine_kwargs: dict
     ) -> OpenDocument:
         from odf.opendocument import load
 
@@ -174,11 +181,20 @@ class ODFReader(BaseExcelReader["OpenDocument"]):
         return int(row.attributes.get((TABLENS, "number-rows-repeated"), 1))
 
     def _get_column_repeat(self, cell) -> int:
+        """
+        Return the number of times this column was repeated.
+        """
         from odf.namespaces import TABLENS
 
         return int(cell.attributes.get((TABLENS, "number-columns-repeated"), 1))
 
     def _get_cell_value(self, cell) -> Scalar | NaTType:
+        """
+        Convert an ODF TableCell to a Python scalar, Timestamp, or NaN.
+        Handles all ODF cell types: boolean, float, percentage, string, currency,
+        date, time.
+        """
+
         from odf.namespaces import OFFICENS
 
         if str(cell) == "#N/A":
