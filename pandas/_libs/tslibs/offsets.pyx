@@ -5614,6 +5614,9 @@ cdef class CustomBusinessMonthEnd(_CustomBusinessMonth):
     DatetimeIndex(['2022-07-29', '2022-08-31', '2022-09-29', '2022-10-28'],
                    dtype='datetime64[ns]', freq='CBME')
     """
+    _attributes = tuple(
+        ["n", "normalize", "weekmask", "holidays", "calendar", "offset"]
+    )
 
     _prefix = "CBME"
 
