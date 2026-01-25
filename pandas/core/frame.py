@@ -13026,7 +13026,11 @@ class DataFrame(NDFrame, OpsMixin):
             .. deprecated:: 3.0
                This parameter is deprecated and no longer has any effect.
                It will be removed in a future version.
-        future_stack : bool, default True
+        future_stack : bool, default False
+            Whether to use the future stacking behavior, where only existing
+            combinations of column levels are included in the result. When False,
+            missing combinations may be generated in the stacked output.
+
             .. deprecated:: 3.0
                This parameter is deprecated and no longer has any effect.
                It will be removed in a future version.
