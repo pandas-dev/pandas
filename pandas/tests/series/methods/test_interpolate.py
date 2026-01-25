@@ -806,3 +806,10 @@ class TestSeriesInterpolateData:
         result = ser.interpolate(method="nearest", fill_value=0)
         expected = Series([np.nan, 0, 1, 1, 3, 0])
         tm.assert_series_equal(result, expected)
+
+    def test_interpolate_int64_linear(self):
+        # GH#41565
+        ser = Series([1, np.nan, 3], dtype="Int64")
+        result = ser.interpolate(method="linear")
+        expected = Series([1.0, 2.0, 3.0], dtype="Float64")
+        tm.assert_series_equal(result, expected)
