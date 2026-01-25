@@ -2887,6 +2887,13 @@ def test_get_group_len_1_list_likes(test_series, kwarg, value, name, warn):
     tm.assert_equal(result, expected)
 
 
+def test_get_group_missing_group_error_message():
+    df = DataFrame({"a": [1, 2], "b": [3, 4]})
+
+    with pytest.raises(KeyError, match="Group 3 not found"):
+        df.groupby("a").get_group(3)
+
+
 def test_groupby_ngroup_with_nan():
     # GH#50100
     df = DataFrame({"a": Categorical([np.nan]), "b": [1]})
