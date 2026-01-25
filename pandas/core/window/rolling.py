@@ -1777,8 +1777,23 @@ class RollingAndExpandingMixin(BaseWindow):
             name="skew",
             numeric_only=numeric_only,
         )
-
     def sem(self, ddof: int = 1, numeric_only: bool = False):
+        """
+        Compute unbiased rolling standard error.
+
+        Parameters
+        ----------
+        ddof : int, default 1
+            Delta degrees of freedom.
+        numeric_only : bool, default False
+            Include only float, int or boolean data.
+
+        Returns
+        -------
+        Series or DataFrame
+            Unbiased rolling standard error.
+        """
+
         # Raise here so error message says sem instead of std
         self._validate_numeric_only("sem", numeric_only)
         return self.std(numeric_only=numeric_only, ddof=ddof) / (
