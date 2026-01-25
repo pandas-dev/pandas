@@ -40,11 +40,11 @@ jobs:
     - name: Set up Conda
       uses: ./.github/actions/setup-conda
 
-    - name: Build Pandas
-      id: build
+    - name: Install pandas in editable mode
+      id: build-editable
       uses: ./.github/actions/build_pandas
       with:
-        editable: false
+        editable: true
 
     # The following checks are independent of each other and should still be run if one fails
 
@@ -59,13 +59,6 @@ jobs:
     - name: Run doctests
       run: cd ci && ./code_checks.sh doctests
       if: ${{ steps.build.outcome == 'success' && always() }}
-
-    - name: Install pandas in editable mode
-      id: build-editable
-      if: ${{ steps.build.outcome == 'success' && always() }}
-      uses: ./.github/actions/build_pandas
-      with:
-        editable: true
 
     - name: Check for no warnings when building single-page docs
       run: ci/code_checks.sh single-docs
