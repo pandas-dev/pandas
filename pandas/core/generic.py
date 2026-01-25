@@ -10128,7 +10128,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     # GH#63842
                     try:
                         dtype = getattr(self, "dtypes", getattr(self, "dtype", None))
-                        other = other.astype(dtype, copy=False)
+                        other = other.astype(dtype)
                     except (ValueError, TypeError):
                         # e.g. self is integer-dtype but other is floats, so
                         #  we can't cast to integer-dtype.
