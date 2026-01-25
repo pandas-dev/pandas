@@ -122,6 +122,7 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
     is_re_compilable,
     is_scalar,
+    is_string_dtype,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
@@ -10128,7 +10129,22 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     # GH#63842
                     try:
                         dtype = getattr(self, "dtypes", getattr(self, "dtype", None))
-                        other = other.astype(dtype)
+                        do_cast = False
+
+                        do_cast = False
+
+                        if isinstance(self, ABCSeries):
+                            if is_string_dtype(dtype):
+                                do_cast = True
+                        elif isinstance(self, ABCDataFrame):
+                            if all(is_string_dtype(dt) for dt in dtype):
+                                do_cast = True
+                        
+                        # Fallback to old broad check (which was causing issues but allows import verification)
+                        # do_cast = True 
+
+                        if do_cast:
+                            other = other.astype(dtype)
                     except (ValueError, TypeError):
                         # e.g. self is integer-dtype but other is floats, so
                         #  we can't cast to integer-dtype.
