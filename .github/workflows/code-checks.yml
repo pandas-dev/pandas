@@ -58,40 +58,40 @@ jobs:
 
     - name: Run doctests
       run: cd ci && ./code_checks.sh doctests
-      if: ${{ steps.build.outcome == 'success' && always() }}
+      if: ${{ steps.build-editable.outcome == 'success' && always() }}
 
     - name: Check for no warnings when building single-page docs
       run: ci/code_checks.sh single-docs
-      if: ${{ steps.build.outcome == 'success' && always() }}
+      if: ${{ steps.build-editable.outcome == 'success' && always() }}
 
     - name: Run checks on imported code
       run: ci/code_checks.sh code
-      if: ${{ steps.build.outcome == 'success' && always() }}
+      if: ${{ steps.build-editable.outcome == 'success' && always() }}
 
     - name: Run docstring validation
       run: ci/code_checks.sh docstrings
-      if: ${{ steps.build.outcome == 'success' && always() }}
+      if: ${{ steps.build-editable.outcome == 'success' && always() }}
 
     - name: Run check of documentation notebooks
       run: ci/code_checks.sh notebooks
-      if: ${{ steps.build.outcome == 'success' && always() }}
+      if: ${{ steps.build-editable.outcome == 'success' && always() }}
 
     - name: Use existing environment for type checking
       run: |
         echo $PATH >> $GITHUB_PATH
         echo "PYTHONHOME=$PYTHONHOME" >> $GITHUB_ENV
         echo "PYTHONPATH=$PYTHONPATH" >> $GITHUB_ENV
-      if: ${{ steps.build.outcome == 'success' && always() }}
+      if: ${{ steps.build-editable.outcome == 'success' && always() }}
 
     - name: Typing
       uses: pre-commit/action@v3.0.1
       with:
         extra_args: --verbose --hook-stage manual --all-files
-      if: ${{ steps.build.outcome == 'success' && always() }}
+      if: ${{ steps.build-editable.outcome == 'success' && always() }}
 
     - name: Run docstring validation script tests
       run: pytest scripts
-      if: ${{ steps.build.outcome == 'success' && always() }}
+      if: ${{ steps.build-editable.outcome == 'success' && always() }}
 
   asv-benchmarks:
     name: ASV Benchmarks
