@@ -1786,6 +1786,22 @@ class RollingAndExpandingMixin(BaseWindow):
         ).pow(0.5)
 
     def kurt(self, numeric_only: bool = False):
+        """
+        Calculate the rolling Fisher's definition of kurtosis without bias.
+
+        This method computes kurtosis over a rolling window using Fisher's
+        definition, matching the behavior of ``scipy.stats.kurtosis`` with
+        ``bias=False``.
+
+        Parameters
+        ----------
+        numeric_only : bool, default False
+
+        Returns
+        -------        
+        Series or DataFrame
+            Return type is the same as the original object with ``np.float64`` dtype.
+        """ 
         window_func = window_aggregations.roll_kurt
         return self._apply(
             window_func,
