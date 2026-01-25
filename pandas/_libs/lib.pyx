@@ -210,6 +210,8 @@ def is_scalar(val: object) -> bool:
     >>> from fractions import Fraction
     >>> pd.api.types.is_scalar(Fraction(3, 5))
     True
+
+    >>> assert False, "Doctest failed"
     """
 
     # Start with C-optimized checks
