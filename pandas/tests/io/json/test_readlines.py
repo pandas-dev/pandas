@@ -28,10 +28,12 @@ def lines_json_df():
     return df.to_json(lines=True, orient="records")
 
 
-@pytest.fixture(params=["ujson", "pyarrow"])
+@pytest.fixture(params=["ujson", "orjson", "pyarrow"])
 def engine(request):
     if request.param == "pyarrow":
         pytest.importorskip("pyarrow.json")
+    elif request.param == "orjson":
+        pytest.importorskip("orjson")
     return request.param
 
 
