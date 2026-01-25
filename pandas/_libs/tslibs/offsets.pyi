@@ -290,6 +290,7 @@ class CustomBusinessMonthEnd(_CustomBusinessMonth):
         calendar: np.busdaycalendar = ...,
         offset: timedelta = ...,
     ) -> None: ...
+
 class CustomBusinessMonthBegin(_CustomBusinessMonth):
     def __init__(
         self,
@@ -300,6 +301,7 @@ class CustomBusinessMonthBegin(_CustomBusinessMonth):
         calendar: np.busdaycalendar = ...,
         offset: timedelta = ...,
     ) -> None: ...
+
 class OffsetMeta(type): ...
 class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta): ...
 
