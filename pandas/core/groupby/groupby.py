@@ -445,6 +445,11 @@ _KeysArgType: TypeAlias = (
 
 
 class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
+    """
+    
+    Base Class for GroupBy implementations.
+    """
+
     _hidden_attrs = PandasObject._hidden_attrs | {
         "as_index",
         "dropna",
@@ -569,13 +574,9 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
 
         See Also
         --------
-        core.groupby.DataFrameGroupBy.indices : Provides a mapping of group rows to
-            positions of the elements.
-        core.groupby.SeriesGroupBy.indices : Provides a mapping of group rows to
-            positions of the elements.
-        core.resample.Resampler.indices : Provides a mapping of group rows to
-            positions of the elements.
-
+        GroupBy.apply : Apply a funtion to each group.
+        GroupBy.transform : Transform each group.
+       
         Examples
         --------
 
