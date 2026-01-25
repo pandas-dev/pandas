@@ -382,21 +382,43 @@ class TestSeriesArithmetic:
     def test_add_list_to_masked_array(self, val):
         # GH#22962, behavior changed by GH#62552
         ser = Series([1, None, 3], dtype="Int64")
-        result = ser + [1, None, val]
+        result = ser + [1, None, val]  # noqa: RUF005
         expected = Series([2, pd.NA, 3 + val], dtype="Float64")
         tm.assert_series_equal(result, expected)
 
-        result = [1, None, val] + ser
+        result = [1, None, val] + ser  # noqa: RUF005
         tm.assert_series_equal(result, expected)
 
     def test_add_list_to_masked_array_boolean(self):
         # GH#22962
         ser = Series([True, None, False], dtype="boolean")
-        result = ser + [True, None, True]
+        result = ser + [True, None, True]  # noqa: RUF005
         expected = Series([2, pd.NA, 1], dtype=object)
         tm.assert_series_equal(result, expected)
 
-        result = [True, None, True] + ser
+        result = [True, None, True] + ser  # noqa: RUF005
+        tm.assert_series_equal(result, expected)
+
+    def test_subtraction_index_name_type_mismatch_regression(self):
+        # GH#57524
+        s1 = Series(
+            [23, 22, 21],
+            index=Index(["a", "b", "c"], name="index a"),
+            dtype="Int64",
+        )
+        s2 = Series(
+            [21, 22, 23],
+            index=Index(
+                ["a", "b", "c"],
+                name="index b",
+                dtype="string",
+            ),
+            dtype="Int64",
+        )
+
+        result = s1 - s2
+        expected = Series([2, 0, -2], index=s1.index, dtype="Int64")
+
         tm.assert_series_equal(result, expected)
 
 

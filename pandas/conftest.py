@@ -785,8 +785,8 @@ def index_with_missing(request):
     if request.param in ["tuples", "mi-with-dt64tz-level", "multi"]:
         # For setting missing values in the top level of MultiIndex
         vals = ind.tolist()
-        vals[0] = (None,) + vals[0][1:]
-        vals[-1] = (None,) + vals[-1][1:]
+        vals[0] = (None, *vals[0][1:])
+        vals[-1] = (None, *vals[-1][1:])
         return MultiIndex.from_tuples(vals)
     else:
         vals = ind.values.copy()

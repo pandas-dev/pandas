@@ -1716,7 +1716,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         out = kwargs.get("out", ())
 
         for x in inputs + out:
-            if not isinstance(x, self._HANDLED_TYPES + (SparseArray,)):
+            if not isinstance(x, (*self._HANDLED_TYPES, SparseArray)):
                 return NotImplemented
 
         # for binary ops, use our custom dunder methods
