@@ -7080,6 +7080,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if isinstance(other, Series):
             return self._binop(other, op, level=level, fill_value=fill_value)
         elif isinstance(other, (np.ndarray, list, tuple, ExtensionArray)):
+            # Handle 0-dimensional numpy arrays as scalars (GH#59053)
+            if isinstance(other, np.ndarray) and other.ndim == 0:
+                return op(self, other.item())
             if len(other) != len(self):
                 raise ValueError("Lengths must be equal")
             other = self._constructor(other, self.index, copy=False)
