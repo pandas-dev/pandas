@@ -11,6 +11,18 @@ Typing aliases
 **************
 
 .. currentmodule:: pandas.api.typing.aliases
+.. py:type:: AggFuncType
+   Type of functions that can be passed to :meth:`agg` methods
+
+.. py:type:: AlignJoin
+   Argument type for ``join`` in :meth:`DataFrame.join`
+
+.. py:type:: AnyAll
+   Argument type for ``how`` in :meth:`dropna`
+
+.. py:type:: AnyArrayLike
+   Used to represent :class:`ExtensionArray`, ``numpy`` arrays, :class:`Index` and :class:`Series
+
 
 The typing declarations in ``pandas/_typing.py`` are considered private, and used
 by pandas developers for type checking of the pandas code base.  For users, it is
