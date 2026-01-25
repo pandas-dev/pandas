@@ -340,6 +340,8 @@ def qcut(
     --------
     cut : Bin values into discrete intervals.
     Series.quantile : Return value at the given quantile.
+    :ref:`User guide <reshaping.tile.qcut>` :
+        Covers quantile-based discretization in the official documentation.
 
     Notes
     -----
