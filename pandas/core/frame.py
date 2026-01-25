@@ -13019,10 +13019,15 @@ class DataFrame(NDFrame, OpsMixin):
             axis, defined as one index or label, or a list of indices
             or labels.
         dropna : bool, default True
+            Whether to drop rows in the resulting stacked output that contain
+            all missing values.
+
             .. deprecated:: 3.0
                This parameter is deprecated and no longer has any effect.
                It will be removed in a future version.
         sort : bool, default True
+            Whether to sort the index after stacking.
+
             .. deprecated:: 3.0
                This parameter is deprecated and no longer has any effect.
                It will be removed in a future version.
