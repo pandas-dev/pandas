@@ -1873,3 +1873,18 @@ def test_agg_dist_like_and_nonunique_columns():
 def test_wrong_engine(engine_name):
     with pytest.raises(ValueError, match="Unknown engine "):
         DataFrame().apply(lambda x: x, engine=engine_name)
+
+
+def test_apply_min_max_with_nan_first_element():
+    # GH#54182
+    # Case 1: First element is NaN
+    data = {"a": [1, 2, 3, 4], "b": [np.nan, -0.475, 13.795, -574]}
+    df = DataFrame(data)
+
+    result_min = df.apply(min, axis=0)
+    expected_min = df.min(axis=0)
+    tm.assert_series_equal(result_min, expected_min)
+
+    result_max = df.apply(max, axis=0)
+    expected_max = df.max(axis=0)
+    tm.assert_series_equal(result_max, expected_max)
