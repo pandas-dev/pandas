@@ -10124,6 +10124,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 other = self._constructor(
                     other, **self._construct_axes_dict(), copy=False
                 )
+                if self._mgr.any_extension_types:
+                    # GH#63842
+                    try:
+                        dtype = getattr(self, "dtypes", getattr(self, "dtype", None))
+                        other = other.astype(dtype, copy=False)
+                    except (ValueError, TypeError):
+                        # e.g. self is integer-dtype but other is floats, so
+                        #  we can't cast to integer-dtype.
+                        pass
 
         if axis is None:
             axis = 0
