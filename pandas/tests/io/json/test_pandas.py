@@ -34,6 +34,7 @@ import pandas._testing as tm
 
 from pandas.io.json import ujson_dumps
 
+
 @pytest.fixture(params=["ujson", "orjson"])
 def engine(request):
     if request.param == "orjson":
@@ -272,7 +273,9 @@ class TestPandasContainer:
         data["sort"] = np.arange(30, dtype="int64")
         categorical_frame = DataFrame(data, index=pd.CategoricalIndex(cat, name="E"))
         data = StringIO(categorical_frame.to_json(orient=orient))
-        result = read_json(data, orient=orient, convert_axes=convert_axes, engine=engine)
+        result = read_json(
+            data, orient=orient, convert_axes=convert_axes, engine=engine
+        )
 
         expected = categorical_frame.copy()
         expected.index = expected.index.astype(
@@ -316,7 +319,9 @@ class TestPandasContainer:
                 dtype_backend=dtype_backend
             )
         data = StringIO(datetime_frame.to_json(orient=orient))
-        result = read_json(data, orient=orient, convert_axes=convert_axes, engine=engine)
+        result = read_json(
+            data, orient=orient, convert_axes=convert_axes, engine=engine
+        )
 
         if not convert_axes:  # one off for ts handling
             # DTI gets converted to epoch values
@@ -740,7 +745,9 @@ class TestPandasContainer:
     def test_series_default_orient(self, string_series):
         assert string_series.to_json() == string_series.to_json(orient="index")
 
-    def test_series_roundtrip_simple(self, orient, string_series, using_infer_string, engine):
+    def test_series_roundtrip_simple(
+        self, orient, string_series, using_infer_string, engine
+    ):
         data = StringIO(string_series.to_json(orient=orient))
         result = read_json(
             data,
@@ -801,7 +808,9 @@ class TestPandasContainer:
     @pytest.mark.parametrize(
         "dtype_backend", [None, pytest.param("pyarrow", marks=td.skip_if_no("pyarrow"))]
     )
-    def test_series_roundtrip_timeseries(self, dtype_backend, orient, datetime_series, engine):
+    def test_series_roundtrip_timeseries(
+        self, dtype_backend, orient, datetime_series, engine
+    ):
         expected = datetime_series.copy()
         if dtype_backend is not None:
             datetime_series.index = Series(datetime_series.index).convert_dtypes(
@@ -1577,11 +1586,12 @@ class TestPandasContainer:
 
     @pytest.mark.parametrize("bigNum", [-(2**63) - 1, 2**64])
     def test_read_json_large_numbers(self, bigNum, engine):
-        json = StringIO('{"articleId":' + '[' + str(bigNum) + ']' + "}")
+        json = StringIO('{"articleId":' + "[" + str(bigNum) + "]" + "}")
 
         if engine == "orjson":
             # orjson parses large ints; failure happens at pandas validation
-            with pytest.raises(ValueError, match=""):
+            msg = "If using all scalar values, you must pass an index"
+            with pytest.raises(ValueError, match=msg):
                 read_json(json, engine=engine)
 
         else:

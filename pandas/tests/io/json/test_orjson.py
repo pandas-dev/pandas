@@ -61,7 +61,8 @@ class TestOrjson:
         )  # orjson parses very large integers as float
 
         assert_series_equal(result, expected)
-    @pytest.mark.xfail(reason="orjson is strict JSON and does not allow trailing commas")
+
+    @pytest.mark.xfail(reason="orjson does not allow trailing commas")
     def test_read_json_trailing_comma_orjson(self):
         data = StringIO(
             """
