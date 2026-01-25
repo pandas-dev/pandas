@@ -1182,7 +1182,7 @@ class FrameApply(NDFrameApply):
         func_name = com.get_cython_func(self.func)
 
         for i, v in enumerate(series_gen):
-            if func_name and not self.args and not self.kwargs:
+            if func_name and not self.args and not self.kwargs and func_name in ["min", "max"]:
                 results[i] = getattr(v, func_name)()
             else:
                 results[i] = self.func(v, *self.args, **self.kwargs)
