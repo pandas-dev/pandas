@@ -1044,10 +1044,11 @@ def assert_series_equal(
         else:
             # convert both to NumPy if not, check_dtype would raise earlier
             lv, rv = left_values, right_values
+            dtype = object if not check_dtype else None
             if isinstance(left_values, ExtensionArray):
-                lv = left_values.to_numpy()
+                lv = left_values.to_numpy(dtype=dtype)
             if isinstance(right_values, ExtensionArray):
-                rv = right_values.to_numpy()
+                rv = right_values.to_numpy(dtype=dtype)
             assert_numpy_array_equal(
                 lv,
                 rv,
