@@ -340,13 +340,14 @@ def qcut(
     --------
     cut : Bin values into discrete intervals.
     Series.quantile : Return value at the given quantile.
-    :ref:`User guide <reshaping.tile.qcut>` :
-        Covers quantile-based discretization in the official documentation.
+    
 
     Notes
     -----
     Out of bounds values will be NA in the resulting Categorical object
+    Reference :ref:`the user guide <reshaping.tile.qcut>` for more examples.
 
+    
     Examples
     --------
     >>> pd.qcut(range(5), 4)
