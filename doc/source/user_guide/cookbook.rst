@@ -869,8 +869,10 @@ where observations are not evenly spaced in time. This example demonstrates how 
 pandas functionality to calculate a decay-weighted rolling mean.
 
 .. ipython:: python
+
    import pandas as pd
    import numpy as np
+
    df = pd.DataFrame(
        {
            "timestamp": [
@@ -884,28 +886,35 @@ pandas functionality to calculate a decay-weighted rolling mean.
            "value": [12, 13, 20, 26, 24, 27],
        }
    )
+
    df["timestamp"] = pd.to_datetime(df["timestamp"])
    df = df.set_index("timestamp")
+
 If multiple observations share the same timestamp, they can be treated as simultaneous
 events by aggregating them first:
 
 .. ipython:: python
+
    df_clean = df.groupby(level=0).mean()
+
 A decay-weighted aggregation can then be applied inside a time-based rolling window.
 Here the weight depends on how far each observation is from the most recent timestamp
 in the window:
 
 .. ipython:: python
+
    def decay_weighted_mean(values, alpha=0.1):
        timestamps = values.index
        age_hours = (timestamps.max() - timestamps).total_seconds() / 3600
        weights = np.exp(-alpha * age_hours)
        return (weights * values).sum() / weights.sum()
+
    result = (
        df_clean["value"]
        .rolling("7h")
        .apply(decay_weighted_mean)
    )
+
 This approach relies on ``rolling.apply`` and recomputes weights for each window, so it
 may be slow for large datasets.
 
