@@ -537,3 +537,45 @@ def test_array_to_numpy_na():
     result = arr.to_numpy(na_value=True, dtype=bool)
     expected = np.array([True, True])
     tm.assert_numpy_array_equal(result, expected)
+
+
+def test_pd_array_from_masked_array_preserves_mask_integer():
+    # GH#63879
+    from numpy import ma
+
+    # Integer masked array should produce Int64 with pd.NA where mask=True
+    ma_arr = ma.array([1, 2, 3, 4], mask=[False, True, False, True])
+    result = pd.array(ma_arr)
+    expected = pd.array([1, pd.NA, 3, pd.NA], dtype="Int64")
+    tm.assert_extension_array_equal(result, expected)
+
+
+def test_pd_array_from_masked_array_preserves_mask_string():
+    # GH#63879
+    from numpy import ma
+
+    # String masked array should produce StringArray with pd.NA where mask=True
+    ma_arr = ma.array(["a", "b", "c", "d"], mask=[False, True, False, True])
+    result = pd.array(ma_arr)
+    expected = pd.array(["a", pd.NA, "c", pd.NA], dtype="string")
+    tm.assert_extension_array_equal(result, expected)
+
+
+def test_pd_array_from_masked_array_no_mask():
+    # GH#63879 - edge case: mask is all False
+    from numpy import ma
+
+    ma_arr = ma.array([1, 2, 3], mask=[False, False, False])
+    result = pd.array(ma_arr)
+    expected = pd.array([1, 2, 3], dtype="Int64")
+    tm.assert_extension_array_equal(result, expected)
+
+
+def test_pd_array_from_masked_array_nomask():
+    # GH#63879 - edge case: mask is nomask
+    from numpy import ma
+
+    ma_arr = ma.array([1, 2, 3], mask=ma.nomask)
+    result = pd.array(ma_arr)
+    expected = pd.array([1, 2, 3], dtype="Int64")
+    tm.assert_extension_array_equal(result, expected)

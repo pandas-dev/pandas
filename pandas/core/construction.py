@@ -19,6 +19,7 @@ from numpy import ma
 from pandas._config import using_string_dtype
 
 from pandas._libs import lib
+from pandas._libs.missing import NA
 from pandas._libs.tslibs import (
     get_supported_dtype,
     is_supported_dtype,
@@ -310,6 +311,23 @@ def array(
         dtype = data.dtype
 
     data = extract_array(data, extract_numpy=True)
+
+    # Handle numpy masked arrays: convert masked values to NA
+    # GH#63879
+    if isinstance(data, ma.MaskedArray):
+        mask = ma.getmaskarray(data)
+        if mask.any():
+            # Convert masked array to list with NA for masked positions
+            data_list = []
+            for i, val in enumerate(data):
+                if mask[i]:
+                    data_list.append(NA)
+                else:
+                    data_list.append(val)
+            data = data_list
+        else:
+            # No mask, convert to regular array
+            data = np.asarray(data)
 
     # this returns None for not-found dtypes.
     if dtype is not None:
