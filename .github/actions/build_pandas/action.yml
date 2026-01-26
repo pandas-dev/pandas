@@ -6,7 +6,8 @@ inputs:
     default: true
   werror:
     description: Enable werror flag for build
-    default: true
+    # TMP disable werror until we fix all warnings with more recent meson
+    default: false
 runs:
   using: composite
   steps:

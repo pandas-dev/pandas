@@ -604,7 +604,7 @@ class RangeIndex(Index):
         name = self._name if name is no_default else name
 
         if values.dtype.kind == "f":
-            return Index(values, name=name, dtype=np.float64)
+            return Index(values, name=name, dtype=np.float64, copy=False)
         if values.dtype.kind == "i" and values.ndim == 1:
             # GH 46675 & 43885: If values is equally spaced, return a
             # more memory-compact RangeIndex instead of Index with 64-bit dtype
@@ -825,10 +825,9 @@ class RangeIndex(Index):
                 if self.step < 0:
                     sorted_index = self[::-1]
                     inverse_indexer = True
-            else:
-                if self.step > 0:
-                    sorted_index = self[::-1]
-                    inverse_indexer = True
+            elif self.step > 0:
+                sorted_index = self[::-1]
+                inverse_indexer = True
 
         if return_indexer:
             if inverse_indexer:
@@ -1231,7 +1230,7 @@ class RangeIndex(Index):
                         )
                     else:
                         values = np.concatenate([x._values for x in rng_indexes])
-                    result = self._constructor(values)
+                    result = self._constructor(values, copy=False)
                     return result.rename(name)
 
                 step = rng.start - start
@@ -1246,7 +1245,7 @@ class RangeIndex(Index):
                     )
                 else:
                     values = np.concatenate([x._values for x in rng_indexes])
-                result = self._constructor(values)
+                result = self._constructor(values, copy=False)
                 return result.rename(name)
 
             if step is not None:
