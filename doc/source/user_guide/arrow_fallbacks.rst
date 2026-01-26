@@ -10,6 +10,18 @@ This document shows the runtime behavior of pandas methods on
 Arrow-backed arrays. Results are determined by actually running
 each operation and observing the outcome.
 
+.. note::
+
+   Results may vary based on method parameters. For example, some string
+   methods like ``split(expand=True)`` use Arrow, while
+   ``split(expand=False)`` may fall back to NumPy. This table shows
+   results for default or common parameter values only.
+
+.. note::
+
+   Some methods have version-gated behavior that depends on your PyArrow
+   version. See :ref:`arrow-version-gated` below for details.
+
 Legend
 ======
 
@@ -33,6 +45,8 @@ Legend
      - Not supported for this dtype
    * - |error|
      - Other error
+   * - |mixed|
+     - Mixed results within dtype group
 
 .. |arrow| replace:: ✓ Arrow
 .. |numpy| replace:: → NumPy
@@ -41,554 +55,317 @@ Legend
 .. |notimpl| replace:: ✗ N/I
 .. |typeerror| replace:: ✗ Type
 .. |error| replace:: ✗ Err
+.. |mixed| replace:: ~ Mixed
 
 
 String Methods (Series.str.*)
 =============================
 
 .. list-table::
-   :widths: 20 10 10
+   :widths: 25 10
    :header-rows: 1
 
    * - Method
-     - large_string
      - string
    * - ``capitalize``
      - |arrow|
-     - |arrow|
    * - ``casefold``
-     - |elementwise|
-     - |numpy|
+     - |mixed|
    * - ``center``
      - |arrow|
-     - |arrow|
-   * - ``contains``
-     - |arrow|
-     - |numpy|
-   * - ``count``
-     - |arrow|
-     - |numpy|
+   * - ``contains(flags=0)``
+     - |mixed|
+   * - ``contains(flags=re.I)``
+     - |mixed|
+   * - ``count(flags=0)``
+     - |mixed|
+   * - ``count(flags=re.I)``
+     - |mixed|
    * - ``encode``
-     - |elementwise|
-     - |numpy|
+     - |mixed|
    * - ``endswith``
+     - |mixed|
+   * - ``extract(expand=False)``
      - |arrow|
-     - |numpy|
-   * - ``extract``
-     - |error|
-     - |numpy|
+   * - ``extract(expand=True)``
+     - |arrow|
    * - ``extractall``
      - |arrow|
-     - |arrow|
    * - ``find``
-     - |arrow|
-     - |numpy|
-   * - ``findall``
-     - |elementwise|
-     - |numpy|
-   * - ``fullmatch``
-     - |arrow|
-     - |numpy|
+     - |mixed|
+   * - ``findall(flags=0)``
+     - |mixed|
+   * - ``findall(flags=re.I)``
+     - |mixed|
+   * - ``fullmatch(flags=0)``
+     - |mixed|
+   * - ``fullmatch(flags=re.I)``
+     - |mixed|
    * - ``get``
      - |arrow|
-     - |arrow|
    * - ``get_dummies``
-     - |numpy|
-     - |numpy|
+     - |mixed|
    * - ``index``
      - |error|
-     - |error|
    * - ``isalnum``
-     - |arrow|
-     - |numpy|
+     - |mixed|
    * - ``isalpha``
-     - |arrow|
-     - |numpy|
+     - |mixed|
    * - ``isascii``
-     - |arrow|
-     - |numpy|
+     - |mixed|
    * - ``isdecimal``
-     - |arrow|
-     - |numpy|
+     - |mixed|
    * - ``isdigit``
-     - |arrow|
-     - |numpy|
+     - |mixed|
    * - ``islower``
-     - |arrow|
-     - |numpy|
+     - |mixed|
    * - ``isnumeric``
-     - |arrow|
-     - |numpy|
+     - |mixed|
    * - ``isspace``
-     - |arrow|
-     - |numpy|
+     - |mixed|
    * - ``istitle``
-     - |arrow|
-     - |numpy|
+     - |mixed|
    * - ``isupper``
-     - |arrow|
-     - |numpy|
+     - |mixed|
    * - ``join``
-     - |elementwise|
-     - |numpy|
+     - |mixed|
    * - ``len``
-     - |arrow|
-     - |numpy|
+     - |mixed|
    * - ``ljust``
-     - |arrow|
      - |arrow|
    * - ``lower``
      - |arrow|
-     - |arrow|
    * - ``lstrip``
      - |arrow|
-     - |arrow|
-   * - ``match``
-     - |arrow|
-     - |numpy|
+   * - ``match(flags=0)``
+     - |mixed|
+   * - ``match(flags=re.I)``
+     - |mixed|
    * - ``normalize``
-     - |elementwise|
-     - |numpy|
-   * - ``pad``
+     - |mixed|
+   * - ``pad(side=both)``
      - |arrow|
+   * - ``pad(side=left)``
+     - |arrow|
+   * - ``pad(side=right)``
      - |arrow|
    * - ``partition``
-     - |elementwise|
-     - |numpy|
+     - |mixed|
    * - ``removeprefix``
-     - |arrow|
      - |arrow|
    * - ``removesuffix``
      - |arrow|
-     - |arrow|
    * - ``repeat``
      - |arrow|
+   * - ``replace(case=False)``
+     - |mixed|
+   * - ``replace(case=True)``
      - |arrow|
-   * - ``replace``
-     - |arrow|
-     - |arrow|
+   * - ``replace(repl=callable)``
+     - |mixed|
    * - ``rfind``
-     - |elementwise|
-     - |numpy|
+     - |mixed|
    * - ``rindex``
-     - |error|
      - |error|
    * - ``rjust``
      - |arrow|
-     - |arrow|
    * - ``rpartition``
-     - |elementwise|
-     - |numpy|
-   * - ``rsplit``
+     - |mixed|
+   * - ``rsplit(expand=False)``
+     - |mixed|
+   * - ``rsplit(expand=True)``
      - |arrow|
-     - |numpy|
    * - ``rstrip``
-     - |arrow|
      - |arrow|
    * - ``slice``
      - |arrow|
-     - |arrow|
    * - ``slice_replace``
      - |arrow|
+   * - ``split(expand=False)``
+     - |mixed|
+   * - ``split(expand=True)``
      - |arrow|
-   * - ``split``
-     - |arrow|
-     - |numpy|
    * - ``startswith``
-     - |arrow|
-     - |numpy|
+     - |mixed|
    * - ``strip``
-     - |arrow|
      - |arrow|
    * - ``swapcase``
      - |arrow|
-     - |arrow|
    * - ``title``
      - |arrow|
-     - |arrow|
    * - ``translate``
-     - |elementwise|
-     - |numpy|
+     - |mixed|
    * - ``upper``
      - |arrow|
-     - |arrow|
    * - ``wrap``
-     - |elementwise|
-     - |numpy|
+     - |mixed|
    * - ``zfill``
      - |arrow|
-     - |numpy|
 
 Datetime Methods (Series.dt.*)
 ==============================
 
 .. list-table::
-   :widths: 20 10 10 10
+   :widths: 25 10
    :header-rows: 1
 
    * - Method
-     - timestamp[ns]
-     - timestamp[us_tz]
-     - timestamp[us]
+     - timestamp
    * - ``as_unit``
-     - |arrow|
-     - |arrow|
      - |arrow|
    * - ``ceil``
      - |arrow|
-     - |arrow|
-     - |arrow|
    * - ``date``
-     - |arrow|
-     - |arrow|
      - |arrow|
    * - ``day``
      - |arrow|
-     - |arrow|
-     - |arrow|
    * - ``day_name``
-     - |arrow|
-     - |arrow|
      - |arrow|
    * - ``day_of_week``
      - |arrow|
-     - |arrow|
-     - |arrow|
    * - ``day_of_year``
-     - |arrow|
-     - |arrow|
      - |arrow|
    * - ``dayofweek``
      - |arrow|
-     - |arrow|
-     - |arrow|
    * - ``dayofyear``
-     - |arrow|
-     - |arrow|
      - |arrow|
    * - ``days_in_month``
      - |arrow|
-     - |arrow|
-     - |arrow|
    * - ``daysinmonth``
-     - |arrow|
-     - |arrow|
      - |arrow|
    * - ``floor``
      - |arrow|
-     - |arrow|
-     - |arrow|
    * - ``hour``
-     - |arrow|
-     - |arrow|
      - |arrow|
    * - ``is_leap_year``
      - |arrow|
-     - |arrow|
-     - |arrow|
    * - ``is_month_end``
-     - |arrow|
-     - |arrow|
      - |arrow|
    * - ``is_month_start``
      - |arrow|
-     - |arrow|
-     - |arrow|
    * - ``is_quarter_end``
-     - |arrow|
-     - |arrow|
      - |arrow|
    * - ``is_quarter_start``
      - |arrow|
-     - |arrow|
-     - |arrow|
    * - ``is_year_end``
-     - |arrow|
-     - |arrow|
      - |arrow|
    * - ``is_year_start``
      - |arrow|
-     - |arrow|
-     - |arrow|
    * - ``isocalendar``
-     - |arrow|
-     - |arrow|
      - |arrow|
    * - ``microsecond``
      - |arrow|
-     - |arrow|
-     - |arrow|
    * - ``minute``
-     - |arrow|
-     - |arrow|
      - |arrow|
    * - ``month``
      - |arrow|
-     - |arrow|
-     - |arrow|
    * - ``month_name``
-     - |arrow|
-     - |arrow|
      - |arrow|
    * - ``nanosecond``
      - |arrow|
-     - |arrow|
-     - |arrow|
    * - ``normalize``
-     - |arrow|
-     - |arrow|
      - |arrow|
    * - ``quarter``
      - |arrow|
-     - |arrow|
-     - |arrow|
    * - ``round``
-     - |arrow|
-     - |arrow|
      - |arrow|
    * - ``second``
      - |arrow|
-     - |arrow|
-     - |arrow|
    * - ``strftime``
-     - |typeerror|
-     - |typeerror|
      - |typeerror|
    * - ``time``
      - |arrow|
-     - |arrow|
-     - |arrow|
    * - ``to_pydatetime``
-     - |object|
-     - |object|
      - |object|
    * - ``tz``
      - |arrow|
-     - |arrow|
-     - |arrow|
    * - ``tz_convert``
-     - |error|
      - |arrow|
-     - |error|
-   * - ``tz_localize``
-     - |arrow|
-     - |error|
+   * - ``tz_localize(ambiguous=NaT)``
+     - |notimpl|
+   * - ``tz_localize(ambiguous=raise)``
      - |arrow|
    * - ``unit``
      - |arrow|
-     - |arrow|
-     - |arrow|
    * - ``weekday``
      - |arrow|
-     - |arrow|
-     - |arrow|
    * - ``year``
-     - |arrow|
-     - |arrow|
      - |arrow|
 
 Timedelta Methods (Series.dt.*)
 ===============================
 
 .. list-table::
-   :widths: 20 10 10
+   :widths: 25 10
    :header-rows: 1
 
    * - Method
-     - duration[ns]
-     - duration[us]
+     - duration
    * - ``as_unit``
      - |arrow|
-     - |arrow|
    * - ``days``
-     - |numpy|
-     - |numpy|
+     - |arrow|
    * - ``microseconds``
-     - |numpy|
-     - |numpy|
+     - |arrow|
    * - ``nanoseconds``
-     - |numpy|
-     - |numpy|
+     - |arrow|
    * - ``seconds``
-     - |numpy|
-     - |numpy|
+     - |arrow|
    * - ``to_pytimedelta``
      - |arrow|
-     - |arrow|
    * - ``total_seconds``
-     - |arrow|
      - |arrow|
 
 Aggregation Methods
 ===================
 
 .. list-table::
-   :widths: 20 10 10 10 10 10 10 10 10 10 10
+   :widths: 25 10 10
    :header-rows: 1
 
    * - Method
-     - double
+     - integer
      - float
-     - int16
-     - int32
-     - int64
-     - int8
-     - uint16
-     - uint32
-     - uint64
-     - uint8
    * - ``all``
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
      - |arrow|
      - |arrow|
    * - ``any``
      - |arrow|
      - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
    * - ``count``
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
      - |arrow|
      - |arrow|
    * - ``kurt``
      - |typeerror|
      - |typeerror|
-     - |typeerror|
-     - |typeerror|
-     - |typeerror|
-     - |typeerror|
-     - |typeerror|
-     - |typeerror|
-     - |typeerror|
-     - |typeerror|
    * - ``max``
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
      - |arrow|
      - |arrow|
    * - ``mean``
      - |arrow|
      - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
    * - ``median``
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
      - |arrow|
      - |arrow|
    * - ``min``
      - |arrow|
      - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
    * - ``prod``
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
      - |arrow|
      - |arrow|
    * - ``sem``
      - |arrow|
      - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
    * - ``skew``
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
      - |arrow|
      - |arrow|
    * - ``std``
      - |arrow|
      - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
    * - ``sum``
      - |arrow|
      - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
    * - ``var``
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
      - |arrow|
      - |arrow|
 
@@ -596,72 +373,30 @@ Array Methods
 =============
 
 .. list-table::
-   :widths: 20 10 10 10 10 10 10 10 10 10 10 10 10 10 10 10 10 10 10 10 10 10 10 10
+   :widths: 25 10 10 10 10 10 10 10 10 10
    :header-rows: 1
 
    * - Method
-     - binary
-     - bool
-     - date32[day]
-     - date64[ms]
-     - double
-     - duration[ns]
-     - duration[us]
-     - float
-     - int16
-     - int32
-     - int64
-     - int8
-     - large_binary
-     - large_string
      - string
-     - time64[us]
-     - timestamp[ns]
-     - timestamp[us_tz]
-     - timestamp[us]
-     - uint16
-     - uint32
-     - uint64
-     - uint8
+     - integer
+     - float
+     - bool
+     - timestamp
+     - date
+     - duration
+     - time
+     - binary
    * - ``abs``
-     - |notimpl|
-     - |notimpl|
-     - |notimpl|
-     - |notimpl|
+     -
      - |arrow|
      - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |notimpl|
-     - |notimpl|
-     - |notimpl|
-     - |notimpl|
-     - |notimpl|
+     -
      - |notimpl|
      - |notimpl|
      - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
+     - |notimpl|
+     -
    * - ``argsort``
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
      - |numpy|
      - |numpy|
      - |numpy|
@@ -681,54 +416,17 @@ Array Methods
      - |arrow|
      - |arrow|
      - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
    * - ``clip``
-     - |error|
-     - |error|
+     -
+     - |arrow|
+     - |arrow|
+     -
+     - |mixed|
      - |typeerror|
+     - |arrow|
      - |typeerror|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |error|
-     - |error|
-     - |error|
-     - |numpy|
-     - |numpy|
-     - |typeerror|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
+     -
    * - ``cummax``
-     - |typeerror|
-     - |typeerror|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
      - |arrow|
      - |arrow|
      - |arrow|
@@ -737,22 +435,8 @@ Array Methods
      - |arrow|
      - |arrow|
      - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
+     - |typeerror|
    * - ``cummin``
-     - |typeerror|
-     - |typeerror|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
      - |arrow|
      - |arrow|
      - |arrow|
@@ -761,23 +445,9 @@ Array Methods
      - |arrow|
      - |arrow|
      - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
+     - |typeerror|
    * - ``cumprod``
-     - |typeerror|
-     - |typeerror|
-     - |typeerror|
-     - |typeerror|
-     - |arrow|
-     - |typeerror|
-     - |typeerror|
-     - |arrow|
-     - |arrow|
-     - |arrow|
+     -
      - |arrow|
      - |arrow|
      - |typeerror|
@@ -785,38 +455,19 @@ Array Methods
      - |typeerror|
      - |typeerror|
      - |typeerror|
-     - |typeerror|
-     - |typeerror|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
+     -
    * - ``cumsum``
-     - |typeerror|
-     - |typeerror|
-     - |typeerror|
-     - |typeerror|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |typeerror|
+     -
      - |arrow|
      - |arrow|
      - |typeerror|
      - |typeerror|
      - |typeerror|
+     - |arrow|
      - |typeerror|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
+     -
    * - ``diff``
-     - |typeerror|
+     -
      - |arrow|
      - |arrow|
      - |arrow|
@@ -824,60 +475,18 @@ Array Methods
      - |arrow|
      - |arrow|
      - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |typeerror|
-     - |typeerror|
-     - |typeerror|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
+     -
    * - ``drop_duplicates``
      - |arrow|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
      - |arrow|
      - |arrow|
      - |arrow|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
+     - |arrow|
    * - ``dropna``
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
      - |arrow|
      - |arrow|
      - |arrow|
@@ -897,44 +506,6 @@ Array Methods
      - |numpy|
      - |numpy|
      - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-   * - ``factorize``
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
    * - ``ffill``
      - |arrow|
      - |arrow|
@@ -945,83 +516,47 @@ Array Methods
      - |arrow|
      - |arrow|
      - |arrow|
+   * - ``fillna(limit=1)``
      - |arrow|
      - |arrow|
      - |arrow|
      - |arrow|
      - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-   * - ``fillna``
-     - |arrow|
-     - |arrow|
-     - |error|
      - |error|
      - |arrow|
      - |arrow|
      - |arrow|
+   * - ``fillna(limit=None)``
      - |arrow|
      - |arrow|
      - |arrow|
      - |arrow|
      - |arrow|
+     - |error|
      - |arrow|
      - |arrow|
      - |arrow|
+   * - ``interpolate(method=linear)``
+     -
      - |arrow|
      - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-   * - ``interpolate``
+     -
      - |typeerror|
      - |typeerror|
      - |typeerror|
      - |typeerror|
-     - |arrow|
-     - |typeerror|
-     - |typeerror|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |typeerror|
-     - |typeerror|
-     - |typeerror|
-     - |typeerror|
-     - |typeerror|
-     - |typeerror|
-     - |typeerror|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
+     -
+   * - ``interpolate(method=pad)``
+     -
+     - |error|
+     - |error|
+     -
+     - |error|
+     - |error|
+     - |error|
+     - |error|
+     -
    * - ``isna``
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
      - |numpy|
      - |numpy|
      - |numpy|
@@ -1041,107 +576,27 @@ Array Methods
      - |numpy|
      - |numpy|
      - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-     - |numpy|
-   * - ``rank``
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |numpy|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
    * - ``round``
-     - |error|
-     - |error|
-     - |error|
-     - |error|
+     -
+     -
      - |arrow|
-     - |error|
-     - |error|
-     - |arrow|
-     - |error|
-     - |error|
-     - |error|
-     - |error|
-     - |error|
-     - |error|
-     - |error|
-     - |error|
-     - |error|
-     - |error|
-     - |error|
-     - |error|
-     - |error|
-     - |error|
-     - |error|
+     -
+     -
+     -
+     -
+     -
+     -
    * - ``searchsorted``
-     - |error|
-     - |error|
-     - |error|
-     - |error|
-     - |error|
-     - |error|
-     - |error|
-     - |error|
-     - |error|
-     - |error|
-     - |error|
-     - |error|
-     - |error|
-     - |error|
-     - |error|
-     - |error|
-     - |error|
-     - |error|
-     - |error|
-     - |error|
-     - |error|
-     - |error|
-     - |error|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |mixed|
+     - |typeerror|
+     - |numpy|
+     - |typeerror|
+     - |numpy|
    * - ``shift``
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
      - |arrow|
      - |arrow|
      - |arrow|
@@ -1161,20 +616,6 @@ Array Methods
      - |arrow|
      - |arrow|
      - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
    * - ``unique``
      - |arrow|
      - |arrow|
@@ -1185,12 +626,39 @@ Array Methods
      - |arrow|
      - |arrow|
      - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
+
+Algorithmic Methods
+===================
+
+These methods have behavior that may vary across versions.
+Explicit kwargs are used for deterministic results.
+
+.. list-table::
+   :widths: 25 10 10 10 10 10 10 10 10 10
+   :header-rows: 1
+
+   * - Method
+     - string
+     - integer
+     - float
+     - bool
+     - timestamp
+     - date
+     - duration
+     - time
+     - binary
+   * - ``factorize``
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+     - |numpy|
+   * - ``rank``
+     - |mixed|
      - |arrow|
      - |arrow|
      - |arrow|
@@ -1209,114 +677,36 @@ Array Methods
      - |arrow|
      - |arrow|
      - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
 
 Arithmetic Operations
 =====================
 
 .. list-table::
-   :widths: 20 10 10 10 10 10 10 10 10 10 10
+   :widths: 25 10 10
    :header-rows: 1
 
    * - Method
-     - double
+     - integer
      - float
-     - int16
-     - int32
-     - int64
-     - int8
-     - uint16
-     - uint32
-     - uint64
-     - uint8
    * - ``add``
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
      - |arrow|
      - |arrow|
    * - ``floordiv``
      - |arrow|
      - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
    * - ``mod``
-     - |notimpl|
-     - |notimpl|
-     - |notimpl|
-     - |notimpl|
-     - |notimpl|
-     - |notimpl|
-     - |notimpl|
-     - |notimpl|
      - |notimpl|
      - |notimpl|
    * - ``mul``
      - |arrow|
      - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
    * - ``pow``
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
      - |arrow|
      - |arrow|
    * - ``sub``
      - |arrow|
      - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
    * - ``truediv``
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
      - |arrow|
      - |arrow|
 
@@ -1324,83 +714,56 @@ Comparison Operations
 =====================
 
 .. list-table::
-   :widths: 20 10 10 10 10 10 10 10 10 10 10
+   :widths: 25 10 10
    :header-rows: 1
 
    * - Method
-     - double
+     - integer
      - float
-     - int16
-     - int32
-     - int64
-     - int8
-     - uint16
-     - uint32
-     - uint64
-     - uint8
    * - ``eq``
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
      - |arrow|
      - |arrow|
    * - ``ge``
      - |arrow|
      - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
    * - ``gt``
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
      - |arrow|
      - |arrow|
    * - ``le``
      - |arrow|
      - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
    * - ``lt``
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
      - |arrow|
      - |arrow|
    * - ``ne``
      - |arrow|
      - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
-     - |arrow|
+
+.. _arrow-version-gated:
+
+Version-Gated Methods
+=====================
+
+The following methods have behavior that depends on your installed PyArrow
+version. The table above shows results for the current environment; if you
+have an older PyArrow version, some methods may fall back to slower paths.
+
+.. list-table::
+   :widths: 25 15 60
+   :header-rows: 1
+
+   * - Method
+     - Min PyArrow
+     - Notes
+   * - ``str.center``
+     - 17.0
+     - Uses pc.utf8_center for side='both' padding. Below 17.0: object; 17.0+: arrow.
+   * - ``str.isdigit``
+     - 21.0
+     - PyArrow < 21.0 has incorrect utf8_is_digit for some digits. Below 21.0: elementwise; 21.0+: arrow.
+   * - ``str.pad(side=both)``
+     - 17.0
+     - Uses pc.utf8_center for side='both' padding. Below 17.0: object; 17.0+: arrow.
+   * - ``str.zfill``
+     - 21.0
+     - pc.utf8_zfill was added in PyArrow 21.0. Below 21.0: elementwise; 21.0+: arrow.

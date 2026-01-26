@@ -29,10 +29,7 @@ from __future__ import annotations
 
 import argparse
 from contextlib import contextmanager
-from dataclasses import (
-    dataclass,
-    field,
-)
+from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 import sys
@@ -101,6 +98,49 @@ DTYPE_GROUPS: dict[str, list[str]] = {
 }
 
 
+def validate_dtypes() -> set[str]:
+    """
+    Validate that all configured Arrow dtypes are supported.
+
+    Returns a set of dtype names that failed validation (should be skipped).
+    """
+    import datetime
+    import warnings
+
+    # Test values appropriate for each dtype category
+    test_values: dict[str, list] = {
+        "string": ["a"],
+        "large_string": ["a"],
+        "binary": [b"a"],
+        "large_binary": [b"a"],
+        "bool": [True],
+    }
+
+    invalid_dtypes: set[str] = set()
+    for dtype_name, dtype_str in ARROW_DTYPES.items():
+        # Get appropriate test value
+        if dtype_name in test_values:
+            data = test_values[dtype_name]
+        elif "timestamp" in dtype_name or "duration" in dtype_name:
+            data = [1]  # integers work for these
+        elif "date" in dtype_name:
+            data = [datetime.date(2024, 1, 1)]
+        elif dtype_name.startswith("time"):  # time64, not timestamp
+            data = [datetime.time(10, 0, 0)]
+        else:
+            data = [1]  # numeric default
+
+        try:
+            pd.Series(data, dtype=dtype_str)
+        except Exception as e:
+            warnings.warn(
+                f"Skipping dtype '{dtype_name}' ({dtype_str}): {e}",
+                stacklevel=2,
+            )
+            invalid_dtypes.add(dtype_name)
+    return invalid_dtypes
+
+
 # =============================================================================
 # Configuration: Methods to test with their required arguments
 # =============================================================================
@@ -164,6 +204,67 @@ STRING_METHODS: dict[str, dict[str, Any]] = {
     "extract": {"pat": r"(\w)(\w)"},
     "extractall": {"pat": r"(\w)"},
     "get_dummies": {"sep": "|"},
+}
+
+# Methods with parameter-dependent fallback behavior
+# These are tested with multiple parameter combinations
+STRING_PARAMETER_VARIANTS: dict[str, list[tuple[str, dict[str, Any]]]] = {
+    # split: expand=True returns DataFrame (Arrow), expand=False returns list Series
+    "split": [
+        ("split(expand=False)", {"pat": " ", "expand": False}),
+        ("split(expand=True)", {"pat": " ", "expand": True}),
+    ],
+    "rsplit": [
+        ("rsplit(expand=False)", {"pat": " ", "expand": False}),
+        ("rsplit(expand=True)", {"pat": " ", "expand": True}),
+    ],
+    # extract: expand=True returns DataFrame, expand=False returns Series
+    # ArrowExtensionArray requires named groups, so use them for consistent testing
+    "extract": [
+        ("extract(expand=False)", {"pat": r"(?P<first>\w)", "expand": False}),
+        (
+            "extract(expand=True)",
+            {"pat": r"(?P<first>\w)(?P<second>\w)", "expand": True},
+        ),
+    ],
+    # replace: case=False falls back to object dtype, callable repl also falls back
+    "replace": [
+        ("replace(case=True)", {"pat": "a", "repl": "b", "case": True}),
+        ("replace(case=False)", {"pat": "a", "repl": "b", "case": False}),
+        # callable repl requires regex=True
+        ("replace(repl=callable)", {"pat": "a", "repl": lambda _: "b", "regex": True}),
+    ],
+    # contains: flags!=0 falls back to object dtype
+    "contains": [
+        ("contains(flags=0)", {"pat": "a", "flags": 0}),
+        ("contains(flags=re.I)", {"pat": "a", "flags": 2}),  # re.IGNORECASE = 2
+    ],
+    # match: flags!=0 falls back to object dtype
+    "match": [
+        ("match(flags=0)", {"pat": "a", "flags": 0}),
+        ("match(flags=re.I)", {"pat": "a", "flags": 2}),
+    ],
+    # fullmatch: flags!=0 falls back to object dtype
+    "fullmatch": [
+        ("fullmatch(flags=0)", {"pat": ".*", "flags": 0}),
+        ("fullmatch(flags=re.I)", {"pat": ".*", "flags": 2}),
+    ],
+    # count: flags!=0 falls back to object dtype
+    "count": [
+        ("count(flags=0)", {"pat": "a", "flags": 0}),
+        ("count(flags=re.I)", {"pat": "a", "flags": 2}),
+    ],
+    # findall: flags parameter changes behavior
+    "findall": [
+        ("findall(flags=0)", {"pat": r"\w+", "flags": 0}),
+        ("findall(flags=re.I)", {"pat": r"\w+", "flags": 2}),
+    ],
+    # pad: side='both' needs PyArrow 17+ for utf8_center
+    "pad": [
+        ("pad(side=left)", {"width": 10, "side": "left"}),
+        ("pad(side=right)", {"width": 10, "side": "right"}),
+        ("pad(side=both)", {"width": 10, "side": "both"}),
+    ],
 }
 
 # Datetime methods (Series.dt.*)
@@ -249,10 +350,8 @@ ARRAY_METHODS: dict[str, dict[str, Any]] = {
     "notna": {},
     "argsort": {},
     "sort_values": {},
-    "value_counts": {},
     "duplicated": {},
     "drop_duplicates": {},
-    "factorize": {},
     "searchsorted": {"value": 0},  # value depends on dtype
     "round": {"decimals": 2},
     "diff": {},
@@ -263,10 +362,80 @@ ARRAY_METHODS: dict[str, dict[str, Any]] = {
     "cummax": {},
     "ffill": {},
     "bfill": {},
-    "interpolate": {},
-    "rank": {},
     "abs": {},
     "clip": {"lower": 0, "upper": 10},
+}
+
+# Algorithmic methods - separated due to behavior that may vary across versions
+# These have explicit kwargs for deterministic results
+ALGORITHMIC_METHODS: dict[str, dict[str, Any]] = {
+    "value_counts": {"dropna": True, "sort": True},
+    "factorize": {"sort": False, "use_na_sentinel": True},
+    "rank": {"method": "average", "na_option": "keep"},
+}
+
+# Array methods with parameter-dependent fallback behavior
+ARRAY_PARAMETER_VARIANTS: dict[str, list[tuple[str, dict[str, Any]]]] = {
+    # fillna: limit=None uses Arrow, limit=N falls back
+    "fillna": [
+        ("fillna(limit=None)", {"value": 0}),  # value adjusted per dtype later
+        ("fillna(limit=1)", {"value": 0, "limit": 1}),
+    ],
+    # interpolate: method="linear" with defaults uses Arrow, others fall back
+    "interpolate": [
+        ("interpolate(method=linear)", {"method": "linear"}),
+        ("interpolate(method=pad)", {"method": "pad"}),
+    ],
+}
+
+# Datetime methods with parameter-dependent fallback behavior
+DATETIME_PARAMETER_VARIANTS: dict[str, list[tuple[str, dict[str, Any]]]] = {
+    # tz_localize: ambiguous="raise" is required, others raise NotImplementedError
+    "tz_localize": [
+        ("tz_localize(ambiguous=raise)", {"tz": "UTC", "ambiguous": "raise"}),
+        ("tz_localize(ambiguous=NaT)", {"tz": "UTC", "ambiguous": "NaT"}),
+    ],
+}
+
+# =============================================================================
+# Version-gated methods: behavior changes based on PyArrow version
+# =============================================================================
+
+# Maps method -> {accessor, min_version, description, below_behavior,
+#                 at_or_above_behavior}
+# These methods have different fallback behavior depending on PyArrow version
+VERSION_GATED_METHODS: dict[str, dict[str, Any]] = {
+    # _str_pad with side="both" needs PyArrow 17.0 for utf8_center
+    "center": {
+        "accessor": "str",
+        "min_version": "17.0",
+        "description": "Uses pc.utf8_center for side='both' padding",
+        "below_behavior": "object",  # Falls back to object dtype
+        "at_or_above_behavior": "arrow",  # Native Arrow
+    },
+    "pad(side=both)": {
+        "accessor": "str",
+        "min_version": "17.0",
+        "description": "Uses pc.utf8_center for side='both' padding",
+        "below_behavior": "object",
+        "at_or_above_behavior": "arrow",
+    },
+    # _str_isdigit needs PyArrow 21.0 for correct utf8_is_digit behavior
+    "isdigit": {
+        "accessor": "str",
+        "min_version": "21.0",
+        "description": "PyArrow < 21.0 has incorrect utf8_is_digit for some digits",
+        "below_behavior": "elementwise",  # Uses _apply_elementwise
+        "at_or_above_behavior": "arrow",
+    },
+    # _str_zfill needs PyArrow 21.0 for utf8_zfill
+    "zfill": {
+        "accessor": "str",
+        "min_version": "21.0",
+        "description": "pc.utf8_zfill was added in PyArrow 21.0",
+        "below_behavior": "elementwise",
+        "at_or_above_behavior": "arrow",
+    },
 }
 
 # Arithmetic operations
@@ -319,7 +488,6 @@ class OperationResult:
     error_message: str | None = None
     used_to_numpy: bool = False
     used_elementwise: bool = False
-    pc_functions: list[str] = field(default_factory=list)
 
 
 # =============================================================================
@@ -333,12 +501,10 @@ class FallbackTracker:
     def __init__(self):
         self.to_numpy_called = False
         self.elementwise_called = False
-        self.pc_functions: list[str] = []
 
     def reset(self):
         self.to_numpy_called = False
         self.elementwise_called = False
-        self.pc_functions = []
 
 
 @contextmanager
@@ -346,11 +512,22 @@ def track_fallbacks():
     """Context manager to track fallback calls."""
     tracker = FallbackTracker()
 
-    # Store originals
-    from pandas.core.arrays.arrow import ArrowExtensionArray
+    # Try to import ArrowExtensionArray for instrumentation
+    # If pandas layout changes or Arrow is unavailable, skip instrumentation
+    try:
+        from pandas.core.arrays.arrow import ArrowExtensionArray
+    except (ImportError, AttributeError):
+        # Can't instrument, just yield tracker without patching
+        yield tracker
+        return
 
     original_to_numpy = ArrowExtensionArray.to_numpy
-    original_elementwise = ArrowExtensionArray._apply_elementwise
+    original_elementwise = getattr(ArrowExtensionArray, "_apply_elementwise", None)
+
+    # If _apply_elementwise doesn't exist, skip that instrumentation
+    if original_elementwise is None:
+        yield tracker
+        return
 
     def patched_to_numpy(self, *args, **kwargs):
         tracker.to_numpy_called = True
@@ -399,19 +576,82 @@ def create_test_series(dtype_name: str) -> pd.Series | None:
             if "tz" in dtype_name or "UTC" in dtype_str:
                 data = data.tz_localize("UTC")
         elif "date" in dtype_name:
-            data = pd.to_datetime(
-                ["2024-01-01", "2024-01-02", "2024-01-03", None, "2024-01-05"]
-            ).date
+            import datetime
+
+            data = [
+                datetime.date(2024, 1, 1),
+                datetime.date(2024, 1, 2),
+                datetime.date(2024, 1, 3),
+                None,
+                datetime.date(2024, 1, 5),
+            ]
         elif "duration" in dtype_name:
             data = pd.to_timedelta(["1 day", "2 days", "3 days", None, "5 days"])
         elif "time" in dtype_name:
-            data = pd.to_datetime(
-                ["2024-01-01 10:00", "2024-01-01 11:00", "2024-01-01 12:00"]
-            ).time
-            # time64 is tricky, use strings and convert
-            return pd.Series([None, None, None, None, None], dtype=dtype_str)
+            import datetime
+
+            data = [
+                datetime.time(10, 0, 0),
+                datetime.time(11, 30, 0),
+                datetime.time(12, 45, 30),
+                None,
+                datetime.time(14, 0, 0),
+            ]
         else:
             data = [1, 2, 3, None, 5]
+
+        return pd.Series(data, dtype=dtype_str)
+    except Exception:
+        return None
+
+
+def create_test_series_no_na(dtype_name: str) -> pd.Series | None:
+    """Create a test Series without NA values for methods that require sorted data."""
+    dtype_str = ARROW_DTYPES.get(dtype_name)
+    if dtype_str is None:
+        return None
+
+    try:
+        if dtype_name in ["string", "large_string"]:
+            data = ["apple", "banana", "cherry", "date", "elderberry"]
+        elif dtype_name in ["binary", "large_binary"]:
+            data = [b"apple", b"banana", b"cherry", b"date", b"elderberry"]
+        elif dtype_name == "bool":
+            data = [False, False, True, True, True]
+        elif "int" in dtype_name or "uint" in dtype_name:
+            data = [1, 2, 3, 4, 5]
+        elif "float" in dtype_name:
+            data = [1.5, 2.5, 3.5, 4.5, 5.5]
+        elif "timestamp" in dtype_name:
+            data = pd.to_datetime(
+                ["2024-01-01", "2024-01-02", "2024-01-03", "2024-01-04", "2024-01-05"]
+            )
+            if "tz" in dtype_name or "UTC" in dtype_str:
+                data = data.tz_localize("UTC")
+        elif "date" in dtype_name:
+            import datetime
+
+            data = [
+                datetime.date(2024, 1, 1),
+                datetime.date(2024, 1, 2),
+                datetime.date(2024, 1, 3),
+                datetime.date(2024, 1, 4),
+                datetime.date(2024, 1, 5),
+            ]
+        elif "duration" in dtype_name:
+            data = pd.to_timedelta(["1 day", "2 days", "3 days", "4 days", "5 days"])
+        elif "time" in dtype_name:
+            import datetime
+
+            data = [
+                datetime.time(10, 0, 0),
+                datetime.time(11, 0, 0),
+                datetime.time(12, 0, 0),
+                datetime.time(13, 0, 0),
+                datetime.time(14, 0, 0),
+            ]
+        else:
+            data = [1, 2, 3, 4, 5]
 
         return pd.Series(data, dtype=dtype_str)
     except Exception:
@@ -476,18 +716,16 @@ def classify_result(
     tracker: FallbackTracker,
 ) -> ResultType:
     """Classify the result of an operation."""
-    # Check if elementwise was used
+    # Check if elementwise was used (definitive fallback indicator)
     if tracker.elementwise_called:
         return ResultType.ELEMENTWISE
 
-    # Check if to_numpy was used (strong indicator of fallback)
-    if tracker.to_numpy_called:
-        return ResultType.NUMPY_FALLBACK
-
-    # Check result dtype
+    # For Series/DataFrame results, prioritize checking the result dtype
+    # This avoids false positives from incidental to_numpy calls in pandas internals
+    # (e.g., DataFrame construction may call to_numpy on Index objects)
     if isinstance(result, (pd.Series, pd.DataFrame)):
         if isinstance(result, pd.DataFrame):
-            # For DataFrames, check if any column is Arrow-backed
+            # For DataFrames, check if all columns are Arrow-backed
             has_arrow = any(
                 _is_arrow_backed(result[col].dtype) for col in result.columns
             )
@@ -496,16 +734,26 @@ def classify_result(
 
         if has_arrow:
             return ResultType.ARROW_NATIVE
-        elif result.dtype == object:
+        elif isinstance(result, pd.Series) and result.dtype == object:
             return ResultType.OBJECT_FALLBACK
         else:
+            # Result is numpy-backed; to_numpy may or may not have been called
             return ResultType.NUMPY_FALLBACK
 
-    # Scalar results or other types - check if we used Arrow path
-    if not tracker.to_numpy_called and not tracker.elementwise_called:
+    # Handle tuple results (e.g., factorize returns (codes, uniques))
+    # If any element is a numpy array, classify as numpy fallback
+    # This is because the numpy array indicates data was converted from Arrow
+    if isinstance(result, tuple):
+        for item in result:
+            if isinstance(item, np.ndarray):
+                return ResultType.NUMPY_FALLBACK
         return ResultType.ARROW_NATIVE
 
-    return ResultType.NUMPY_FALLBACK
+    # For scalar/array results, use instrumentation as indicator
+    if tracker.to_numpy_called:
+        return ResultType.NUMPY_FALLBACK
+
+    return ResultType.ARROW_NATIVE
 
 
 def run_operation(
@@ -513,9 +761,12 @@ def run_operation(
     method_name: str,
     kwargs: dict[str, Any],
     accessor: str | None = None,
+    display_name: str | None = None,
 ) -> OperationResult:
     """Run an operation and return the result classification."""
     dtype_name = str(series.dtype)
+    # Use display_name for results if provided (for parameter variants)
+    result_name = display_name if display_name else method_name
 
     with track_fallbacks() as tracker:
         try:
@@ -551,7 +802,7 @@ def run_operation(
                 result_dtype = type(result).__name__
 
             return OperationResult(
-                method=method_name,
+                method=result_name,
                 dtype=dtype_name,
                 result_type=result_type,
                 result_dtype=result_dtype,
@@ -561,21 +812,21 @@ def run_operation(
 
         except NotImplementedError as e:
             return OperationResult(
-                method=method_name,
+                method=result_name,
                 dtype=dtype_name,
                 result_type=ResultType.NOT_IMPLEMENTED,
                 error_message=str(e),
             )
         except TypeError as e:
             return OperationResult(
-                method=method_name,
+                method=result_name,
                 dtype=dtype_name,
                 result_type=ResultType.TYPE_ERROR,
                 error_message=str(e),
             )
         except Exception as e:
             return OperationResult(
-                method=method_name,
+                method=result_name,
                 dtype=dtype_name,
                 result_type=ResultType.OTHER_ERROR,
                 error_message=f"{type(e).__name__}: {e}",
@@ -638,12 +889,23 @@ def run_arithmetic_op(
 
 def run_all_tests() -> dict[str, list[OperationResult]]:
     """Run all operations on all dtypes and collect results."""
+    # Validate dtypes upfront and warn about any that won't work
+    invalid_dtypes = validate_dtypes()
+    if invalid_dtypes:
+        import warnings
+
+        warnings.warn(
+            f"Skipping {len(invalid_dtypes)} unsupported dtypes: {invalid_dtypes}",
+            stacklevel=2,
+        )
+
     results: dict[str, list[OperationResult]] = {
         "string_methods": [],
         "datetime_methods": [],
         "timedelta_methods": [],
         "aggregations": [],
         "array_methods": [],
+        "algorithmic_methods": [],
         "arithmetic": [],
         "comparison": [],
     }
@@ -655,8 +917,19 @@ def run_all_tests() -> dict[str, list[OperationResult]]:
             continue
 
         for method, kwargs in STRING_METHODS.items():
+            # Skip methods that have parameter variants (tested separately below)
+            if method in STRING_PARAMETER_VARIANTS:
+                continue
             result = run_operation(series, method, kwargs, accessor="str")
             results["string_methods"].append(result)
+
+        # Test parameter variants
+        for method, variants in STRING_PARAMETER_VARIANTS.items():
+            for display_name, kwargs in variants:
+                result = run_operation(
+                    series, method, kwargs, accessor="str", display_name=display_name
+                )
+                results["string_methods"].append(result)
 
     # Datetime methods - on timestamp dtypes
     for dtype_name in DTYPE_GROUPS["timestamp"]:
@@ -665,6 +938,9 @@ def run_all_tests() -> dict[str, list[OperationResult]]:
             continue
 
         for method, kwargs in DATETIME_METHODS.items():
+            # Skip methods that have parameter variants (tested separately below)
+            if method in DATETIME_PARAMETER_VARIANTS:
+                continue
             # Skip tz_convert for non-tz-aware
             if (
                 method == "tz_convert"
@@ -680,6 +956,19 @@ def run_all_tests() -> dict[str, list[OperationResult]]:
 
             result = run_operation(series, method, kwargs, accessor="dt")
             results["datetime_methods"].append(result)
+
+        # Test datetime parameter variants (only on non-tz-aware for tz_localize)
+        for method, variants in DATETIME_PARAMETER_VARIANTS.items():
+            # Skip tz_localize for tz-aware
+            if method == "tz_localize" and (
+                "tz" in dtype_name or "UTC" in ARROW_DTYPES[dtype_name]
+            ):
+                continue
+            for display_name, kwargs in variants:
+                result = run_operation(
+                    series, method, kwargs, accessor="dt", display_name=display_name
+                )
+                results["datetime_methods"].append(result)
 
     # Timedelta methods - on duration dtypes
     for dtype_name in DTYPE_GROUPS["duration"]:
@@ -707,21 +996,38 @@ def run_all_tests() -> dict[str, list[OperationResult]]:
         if series is None:
             continue
 
+        # Define dtype categories for skip rules
+        non_numeric = [
+            "string",
+            "large_string",
+            "binary",
+            "large_binary",
+            "bool",
+        ]
+        unsigned = ["uint8", "uint16", "uint32", "uint64"]
+
         for method, kwargs in ARRAY_METHODS.items():
+            # Skip methods that have parameter variants (tested separately below)
+            if method in ARRAY_PARAMETER_VARIANTS:
+                continue
+
             # Adjust kwargs for dtype
             actual_kwargs = kwargs.copy()
+
+            # Skip rules for incompatible dtype/method combinations
             if method == "fillna":
                 actual_kwargs["value"] = get_fillna_value(dtype_name)
             elif method == "searchsorted":
+                # searchsorted requires sorted data without NAs
+                series_no_na = create_test_series_no_na(dtype_name)
+                if series_no_na is None:
+                    continue
                 actual_kwargs["value"] = get_searchsorted_value(dtype_name)
+                result = run_operation(series_no_na, method, actual_kwargs)
+                results["array_methods"].append(result)
+                continue  # Skip the normal run_operation below
             elif method == "clip":
-                if dtype_name in [
-                    "string",
-                    "large_string",
-                    "binary",
-                    "large_binary",
-                    "bool",
-                ]:
+                if dtype_name in non_numeric:
                     continue  # clip doesn't make sense for these
                 if "timestamp" in dtype_name or "date" in dtype_name:
                     actual_kwargs = {
@@ -736,9 +1042,45 @@ def run_all_tests() -> dict[str, list[OperationResult]]:
             elif method == "round":
                 if dtype_name not in DTYPE_GROUPS["float"]:
                     continue  # round only for float
+            elif method == "diff":
+                if dtype_name in ["string", "large_string", "binary", "large_binary"]:
+                    continue  # diff doesn't make sense for string/binary
+            elif method in ("cumsum", "cumprod"):
+                if dtype_name in ["string", "large_string", "binary", "large_binary"]:
+                    continue  # cumulative ops don't make sense for string/binary
+            elif method == "abs":
+                # abs doesn't make sense for non-numeric or unsigned types
+                if dtype_name in non_numeric or dtype_name in unsigned:
+                    continue
 
             result = run_operation(series, method, actual_kwargs)
             results["array_methods"].append(result)
+
+        # Test array parameter variants
+        for method, variants in ARRAY_PARAMETER_VARIANTS.items():
+            # Skip interpolate for non-numeric types (always errors)
+            if method == "interpolate" and dtype_name in non_numeric:
+                continue
+
+            for display_name, kwargs in variants:
+                actual_kwargs = kwargs.copy()
+                # Adjust fillna value for dtype
+                if method == "fillna" and "value" in actual_kwargs:
+                    actual_kwargs["value"] = get_fillna_value(dtype_name)
+                result = run_operation(
+                    series, method, actual_kwargs, display_name=display_name
+                )
+                results["array_methods"].append(result)
+
+    # Algorithmic methods - on all dtypes (may error on some)
+    for dtype_name in ARROW_DTYPES:
+        series = create_test_series(dtype_name)
+        if series is None:
+            continue
+
+        for method, kwargs in ALGORITHMIC_METHODS.items():
+            result = run_operation(series, method, kwargs)
+            results["algorithmic_methods"].append(result)
 
     # Arithmetic - on numeric dtypes
     for dtype_name in DTYPE_GROUPS["integer"] + DTYPE_GROUPS["float"]:
@@ -768,20 +1110,6 @@ def run_all_tests() -> dict[str, list[OperationResult]]:
 # =============================================================================
 
 
-def summarize_results(
-    results: list[OperationResult],
-) -> dict[str, dict[str, ResultType]]:
-    """Summarize results by method and dtype."""
-    summary: dict[str, dict[str, ResultType]] = {}
-
-    for r in results:
-        if r.method not in summary:
-            summary[r.method] = {}
-        summary[r.method][r.dtype] = r.result_type
-
-    return summary
-
-
 def format_rst_table(all_results: dict[str, list[OperationResult]]) -> str:
     """Format results as RST tables."""
     title = "Arrow Fallbacks"
@@ -797,6 +1125,18 @@ def format_rst_table(all_results: dict[str, list[OperationResult]]) -> str:
         "This document shows the runtime behavior of pandas methods on",
         "Arrow-backed arrays. Results are determined by actually running",
         "each operation and observing the outcome.",
+        "",
+        ".. note::",
+        "",
+        "   Results may vary based on method parameters. For example, some string",
+        "   methods like ``split(expand=True)`` use Arrow, while",
+        "   ``split(expand=False)`` may fall back to NumPy. This table shows",
+        "   results for default or common parameter values only.",
+        "",
+        ".. note::",
+        "",
+        "   Some methods have version-gated behavior that depends on your PyArrow",
+        "   version. See :ref:`arrow-version-gated` below for details.",
         "",
         "Legend",
         "======",
@@ -821,6 +1161,8 @@ def format_rst_table(all_results: dict[str, list[OperationResult]]) -> str:
         "     - Not supported for this dtype",
         "   * - |error|",
         "     - Other error",
+        "   * - |mixed|",
+        "     - Mixed results within dtype group",
         "",
         ".. |arrow| replace:: ✓ Arrow",
         ".. |numpy| replace:: → NumPy",
@@ -829,6 +1171,7 @@ def format_rst_table(all_results: dict[str, list[OperationResult]]) -> str:
         ".. |notimpl| replace:: ✗ N/I",
         ".. |typeerror| replace:: ✗ Type",
         ".. |error| replace:: ✗ Err",
+        ".. |mixed| replace:: ~ Mixed",
         "",
     ]
 
@@ -902,6 +1245,23 @@ def format_rst_table(all_results: dict[str, list[OperationResult]]) -> str:
         )
         lines.extend(_format_method_table(all_results["array_methods"], status_map))
 
+    # Algorithmic methods table
+    if all_results["algorithmic_methods"]:
+        lines.extend(
+            [
+                "",
+                "Algorithmic Methods",
+                "===================",
+                "",
+                "These methods have behavior that may vary across versions.",
+                "Explicit kwargs are used for deterministic results.",
+                "",
+            ]
+        )
+        lines.extend(
+            _format_method_table(all_results["algorithmic_methods"], status_map)
+        )
+
     # Arithmetic operations table
     if all_results["arithmetic"]:
         lines.extend(
@@ -926,50 +1286,144 @@ def format_rst_table(all_results: dict[str, list[OperationResult]]) -> str:
         )
         lines.extend(_format_method_table(all_results["comparison"], status_map))
 
+    # Version-gated methods section
+    lines.extend(_format_version_gated_section())
+
     return "\n".join(lines) + "\n"
+
+
+def _format_version_gated_section() -> list[str]:
+    """Format the version-gated methods section for RST."""
+    lines = [
+        "",
+        ".. _arrow-version-gated:",
+        "",
+        "Version-Gated Methods",
+        "=====================",
+        "",
+        "The following methods have behavior that depends on your installed PyArrow",
+        "version. The table above shows results for the current environment; if you",
+        "have an older PyArrow version, some methods may fall back to slower paths.",
+        "",
+        ".. list-table::",
+        "   :widths: 25 15 60",
+        "   :header-rows: 1",
+        "",
+        "   * - Method",
+        "     - Min PyArrow",
+        "     - Notes",
+    ]
+
+    for method_name, info in sorted(VERSION_GATED_METHODS.items()):
+        accessor = info["accessor"]
+        if accessor:
+            method_key = f"{accessor}.{method_name}"
+        else:
+            method_key = method_name
+
+        min_ver = info["min_version"]
+        below = info["below_behavior"]
+        above = info["at_or_above_behavior"]
+        desc = info["description"]
+
+        lines.append(f"   * - ``{method_key}``")
+        lines.append(f"     - {min_ver}")
+        lines.append(f"     - {desc}. Below {min_ver}: {below}; {min_ver}+: {above}.")
+
+    return lines
 
 
 def _format_method_table(
     results: list[OperationResult],
     status_map: dict[ResultType, str],
 ) -> list[str]:
-    """Format a single method table."""
+    """Format a single method table with dtype groups for readability."""
+    # Build reverse mapping: dtype_str -> group_name
+    # Include both the ARROW_DTYPES values and the actual str(dtype) representations
+    dtype_to_group: dict[str, str] = {}
+    for group_name, dtype_keys in DTYPE_GROUPS.items():
+        for dtype_key in dtype_keys:
+            dtype_str = ARROW_DTYPES.get(dtype_key)
+            if dtype_str:
+                dtype_to_group[dtype_str] = group_name
+                # Also add the actual str(dtype) representation which may differ
+                # e.g., "string[pyarrow]" -> "string", "bool[pyarrow]" -> "bool"
+                try:
+                    actual_dtype_str = str(pd.Series([None], dtype=dtype_str).dtype)
+                    if actual_dtype_str != dtype_str:
+                        dtype_to_group[actual_dtype_str] = group_name
+                except Exception:
+                    pass
+
     # Group by method
     by_method: dict[str, dict[str, ResultType]] = {}
-    all_dtypes: set[str] = set()
+    groups_seen: set[str] = set()
 
     for r in results:
         if r.method not in by_method:
             by_method[r.method] = {}
         by_method[r.method][r.dtype] = r.result_type
-        all_dtypes.add(r.dtype)
+        group = dtype_to_group.get(r.dtype, "other")
+        groups_seen.add(group)
 
-    # Sort dtypes for consistent column order
-    dtypes = sorted(all_dtypes)
+    # Define group order for consistent columns
+    group_order = [
+        "string",
+        "integer",
+        "float",
+        "bool",
+        "timestamp",
+        "date",
+        "duration",
+        "time",
+        "binary",
+    ]
+    # Only include groups that have data
+    groups = [g for g in group_order if g in groups_seen]
 
-    # Simplify dtype names for header
-    def short_dtype(d: str) -> str:
-        # Remove [pyarrow] suffix
-        name = d.replace("[pyarrow]", "")
-        # Shorten timezone notation for readability
-        name = name.replace(", tz=UTC", "_tz")
-        return name
+    def get_group_status(method_results: dict[str, ResultType], group: str) -> str:
+        """Get status for a dtype group. Returns unified status or 'mixed'."""
+        dtype_keys = DTYPE_GROUPS.get(group, [])
+        statuses: set[ResultType] = set()
+
+        for dtype_key in dtype_keys:
+            dtype_str = ARROW_DTYPES.get(dtype_key)
+            if not dtype_str:
+                continue
+            # Check both the ARROW_DTYPES value and actual str(dtype) representation
+            if dtype_str in method_results:
+                statuses.add(method_results[dtype_str])
+            else:
+                # Try the actual dtype string representation
+                try:
+                    actual_str = str(pd.Series([None], dtype=dtype_str).dtype)
+                    if actual_str in method_results:
+                        statuses.add(method_results[actual_str])
+                except Exception:
+                    pass
+
+        if not statuses:
+            return ""  # No data for this group
+        if len(statuses) == 1:
+            # All dtypes in group have same status
+            return status_map.get(statuses.pop(), "|error|")
+        # Mixed results within group
+        return "|mixed|"
 
     lines = [
         ".. list-table::",
-        f"   :widths: 20 {' '.join(['10'] * len(dtypes))}",
+        f"   :widths: 25 {' '.join(['10'] * len(groups))}",
         "   :header-rows: 1",
         "",
         "   * - Method",
     ]
 
-    lines.extend(f"     - {short_dtype(d)}" for d in dtypes)
+    lines.extend(f"     - {g}" for g in groups)
 
     for method in sorted(by_method.keys()):
         lines.append(f"   * - ``{method}``")
-        for d in dtypes:
-            result_type = by_method[method].get(d, ResultType.OTHER_ERROR)
-            status = status_map.get(result_type, "|error|")
+        for g in groups:
+            status = get_group_status(by_method[method], g)
             lines.append(f"     - {status}")
 
     return lines
@@ -997,6 +1451,35 @@ def format_json(all_results: dict[str, list[OperationResult]]) -> str:
     return json.dumps(output, indent=2)
 
 
+def _get_current_pyarrow_version() -> str:
+    """Get current PyArrow version as string."""
+    try:
+        import pyarrow as pa
+
+        return pa.__version__
+    except ImportError:
+        return "unknown"
+
+
+def _build_version_notes() -> dict[str, dict[str, Any]]:
+    """Build version notes for version-gated methods."""
+    version_notes = {}
+    for method_name, info in VERSION_GATED_METHODS.items():
+        accessor = info["accessor"]
+        if accessor:
+            method_key = f"{accessor}.{method_name}"
+        else:
+            method_key = method_name
+
+        version_notes[method_key] = {
+            "min_pyarrow_version": info["min_version"],
+            "description": info["description"],
+            "below_version_behavior": info["below_behavior"],
+            "at_or_above_version_behavior": info["at_or_above_behavior"],
+        }
+    return version_notes
+
+
 def format_json_lookup(all_results: dict[str, list[OperationResult]]) -> str:
     """
     Format results as JSON lookup table for downstream consumption.
@@ -1013,14 +1496,17 @@ def format_json_lookup(all_results: dict[str, list[OperationResult]]) -> str:
         "timedelta_methods": "dt",
         "aggregations": None,
         "array_methods": None,
+        "algorithmic_methods": None,
         "arithmetic": None,
         "comparison": None,
     }
 
     output: dict[str, Any] = {
-        "schema_version": 1,
+        "schema_version": 2,  # Bumped for version_gated addition
         "pandas_version": pd.__version__,
+        "pyarrow_version": _get_current_pyarrow_version(),
         "methods": {},
+        "version_gated": _build_version_notes(),
     }
 
     for category, results in all_results.items():
@@ -1056,14 +1542,17 @@ def format_json_by_dtype(all_results: dict[str, list[OperationResult]]) -> str:
         "timedelta_methods": "dt",
         "aggregations": None,
         "array_methods": None,
+        "algorithmic_methods": None,
         "arithmetic": None,
         "comparison": None,
     }
 
     output: dict[str, Any] = {
-        "schema_version": 1,
+        "schema_version": 2,  # Bumped for version_gated addition
         "pandas_version": pd.__version__,
+        "pyarrow_version": _get_current_pyarrow_version(),
         "dtypes": {},
+        "version_gated": _build_version_notes(),
     }
 
     for category, results in all_results.items():
