@@ -647,6 +647,16 @@ For getting *multiple* indexers, using ``.get_indexer``:
 
 
 Reindexing
+
+Example
+-------
+
+.. code-block:: python
+
+    df = pd.DataFrame({"A": [1, 2]}, index=[0, 1])
+    df["B"] = [3, 4]
+      df.reindex([1, 2, 3])
+           A    B 
 ~~~~~~~~~~
 
 The idiomatic way to achieve selecting potentially not-found elements is via ``.reindex()``. See also the section on :ref:`reindexing <basics.reindexing>`.
