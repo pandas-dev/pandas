@@ -1921,7 +1921,7 @@ def is_all_strings(value: ArrayLike) -> bool:
 
     if isinstance(dtype, np.dtype):
         if len(value) == 0:
-            return False
+            return dtype == np.dtype("object")
         else:
             return dtype == np.dtype("object") and lib.is_string_array(
                 np.asarray(value), skipna=False

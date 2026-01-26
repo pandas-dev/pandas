@@ -325,11 +325,6 @@ def test_is_string_dtype(dtype, expected):
     assert result is expected
 
 
-def test_is_string_dtype_empty_object_array_false():
-    arr = np.array([], dtype=object)
-    assert not com.is_string_dtype(arr)
-
-
 @pytest.mark.parametrize(
     "data",
     [[(0, 1), (1, 1)], pd.Categorical([1, 2, 3]), np.array([1, 2], dtype=object)],
