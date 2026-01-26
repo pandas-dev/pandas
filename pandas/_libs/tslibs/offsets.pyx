@@ -6494,6 +6494,34 @@ CBMonthEnd = CustomBusinessMonthEnd
 CBMonthBegin = CustomBusinessMonthBegin
 CDay = CustomBusinessDay
 
+# Add __signature__ for Cython classes to enable docstring parameter validation
+from inspect import (
+    Parameter,
+    Signature,
+)
+
+CBMonthBegin.__signature__ = Signature([
+    Parameter("n", Parameter.POSITIONAL_OR_KEYWORD, default=1),
+    Parameter("normalize", Parameter.POSITIONAL_OR_KEYWORD, default=False),
+    Parameter(
+        "weekmask", Parameter.POSITIONAL_OR_KEYWORD, default="Mon Tue Wed Thu Fri"
+    ),
+    Parameter("holidays", Parameter.POSITIONAL_OR_KEYWORD, default=None),
+    Parameter("calendar", Parameter.POSITIONAL_OR_KEYWORD, default=None),
+    Parameter("offset", Parameter.POSITIONAL_OR_KEYWORD, default=timedelta(0)),
+])
+
+CBMonthEnd.__signature__ = Signature([
+    Parameter("n", Parameter.POSITIONAL_OR_KEYWORD, default=1),
+    Parameter("normalize", Parameter.POSITIONAL_OR_KEYWORD, default=False),
+    Parameter(
+        "weekmask", Parameter.POSITIONAL_OR_KEYWORD, default="Mon Tue Wed Thu Fri"
+    ),
+    Parameter("holidays", Parameter.POSITIONAL_OR_KEYWORD, default=None),
+    Parameter("calendar", Parameter.POSITIONAL_OR_KEYWORD, default=None),
+    Parameter("offset", Parameter.POSITIONAL_OR_KEYWORD, default=timedelta(0)),
+])
+
 # ----------------------------------------------------------------------
 # to_offset helpers
 
