@@ -537,3 +537,60 @@ def test_array_to_numpy_na():
     result = arr.to_numpy(na_value=True, dtype=bool)
     expected = np.array([True, True])
     tm.assert_numpy_array_equal(result, expected)
+
+class TestMaskedArrays:
+    def test_masked_array_integer(self):
+        data = np.ma.array([1, 2, 3, 4], mask=[False, True, False, True]) 
+        result = pd.array(data)
+        expected = IntegerArray._from_sequence([1, None, 3, None], dtype="Int64")
+        tm.assert_extension_array_equal(result, expected)
+        
+    def test_masked_array_float(self):
+        data = np.ma.array([1.1, 2.2, 3.3, 4.4], mask=[False, True, False, True]) 
+        result = pd.array(data)
+        expected = FloatingArray._from_sequence([1.1, None, 3.3, None], dtype="Float64")
+        tm.assert_extension_array_equal(result, expected)    
+        
+    def test_masked_array_string(self):
+        data = np.ma.array(["foo", "bar", "baz", "qux"], mask=[False, True, False, True]) 
+        result = pd.array(data)
+        expected = pd.StringDtype().construct_array_type()._from_sequence(
+            ["foo", None, "baz", None], dtype=pd.StringDtype())
+        tm.assert_extension_array_equal(result, expected)
+        
+    def test_masked_array_boolean(self):
+        data = np.ma.array([True, False, True, False], mask=[False, True, False, True]) 
+        result = pd.array(data)
+        expected = BooleanArray._from_sequence([True, None, True, None], dtype="boolean")
+        tm.assert_extension_array_equal(result, expected)
+    
+    def test_masked_array_no_mask(self):
+        data = np.ma.array([1, 2, 3, 4], mask=[False, False, False, False]) 
+        result = pd.array(data)
+        expected = IntegerArray._from_sequence([1, 2, 3, 4], dtype="Int64")
+        tm.assert_extension_array_equal(result, expected)
+        
+    def test_masked_array_all_masked(self):
+        data = np.ma.array([1, 2, 3, 4], mask=[True, True, True, True]) 
+        result = pd.array(data)
+        expected = NumpyExtensionArray(np.array([None, None, None, None],dtype=object))
+        tm.assert_extension_array_equal(result, expected)
+    
+    def test_masked_array_with_explicit_dtype(self):
+        data = np.ma.array([1, 2, 3, 4], mask=[False, True, False, True]) 
+        result = pd.array(data, dtype="Float64")
+        expected = FloatingArray._from_sequence([1, None, 3, None], dtype="Float64")
+        tm.assert_extension_array_equal(result, expected)
+    
+    def test_masked_array_copy(self):
+        data = np.ma.array([1, 2, 3, 4], mask=[False, True, False, True])
+        result = pd.array(data, copy=True)
+        expected = IntegerArray._from_sequence(
+            [1, None, 3, None], dtype="Int64")
+        tm.assert_extension_array_equal(result, expected)
+    
+    def test_masked_array_mixed_dtype(self):
+        data = np.ma.array([1, 2.5, 3.0, 4], mask=[False, False, True, True]) 
+        result = pd.array(data)
+        expected = FloatingArray._from_sequence([1.0, 2.5, None, None], dtype="Float64")   
+        tm.assert_extension_array_equal(result, expected)
