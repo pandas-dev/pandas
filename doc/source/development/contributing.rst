@@ -51,9 +51,9 @@ the `GitHub "issues" tab <https://github.com/pandas-dev/pandas/issues>`_
 to find issues that interest you and are available to work on. Issues available to work on are:
 
 * Issues without the label ``Needs Triage`` or ``Needs Discussion``. These issues require clarification and confirmation
-from a maintainer before proceeding.
+  from a maintainer before proceeding.
 * Issues that have not been started by another contributor. Please check that another contributor has not commented their intent
-to work on the issue or already submitted an open pull request to address the issue before proceeding.
+  to work on the issue or already submitted an open pull request to address the issue before proceeding.
 
 .. tip::
     We recommend issues labeled `Docs
