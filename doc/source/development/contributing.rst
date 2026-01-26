@@ -11,7 +11,25 @@ Contributing to pandas
 
 
 All contributions, bug reports, bug fixes, documentation improvements,
-enhancements, and ideas are welcome.
+enhancements, and ideas are welcome. We ask that contributors follow
+all contribution guidelines when participating with pandas.
+
+.. _contributing.ai:
+
+Automated contributions policy
+==============================
+
+Contributors may use automated tools such as AI coding assistants while contributing
+to pandas as long as it's used **responsibly**. Any use of these tools in a contribution must abide by all of the
+following guidelines:
+
+* You must disclose that you used an automated tool in the contribution.
+* You must fully review and modify the result of the automated tool.
+* You must ensure the contribution fully abides by all documented, contribution conventions in pandas.
+
+This policy applies to any contribution made to pandas, including submitted issues or pull requests. Maintainers
+reserve the right to discern whether automated tooling was used and reject contributions that do not follow all of
+the above guidelines. Maintainers may also ban users from contributing to pandas who violate these guidelines 2 or more times.
 
 .. _contributing.bug_reports:
 
@@ -30,20 +48,27 @@ Finding an issue to contribute to
 
 If you are brand new to pandas or open-source development, we recommend searching
 the `GitHub "issues" tab <https://github.com/pandas-dev/pandas/issues>`_
-to find issues that interest you. Unassigned issues labeled `Docs
-<https://github.com/pandas-dev/pandas/issues?q=is%3Aopen+sort%3Aupdated-desc+label%3ADocs+no%3Aassignee>`_
-and `good first issue
-<https://github.com/pandas-dev/pandas/issues?q=is%3Aopen+sort%3Aupdated-desc+label%3A%22good+first+issue%22+no%3Aassignee>`_
-are typically good for newer contributors.
+to find issues that interest you and are available to work on. Issues available to work on are:
 
-Once you've found an interesting issue, leave a comment with your intention
+* Issues without the label ``Needs Triage`` or ``Needs Discussion``. These issues require clarification and confirmation
+from a maintainer before proceeding.
+* Issues that have not been started by another contributor. Please check that another contributor has not commented their intent
+to work on the issue or already submitted an open pull request to address the issue before proceeding.
+
+.. tip::
+    We recommend issues labeled `Docs
+    <https://github.com/pandas-dev/pandas/issues?q=is%3Aopen+sort%3Aupdated-desc+label%3ADocs+no%3Aassignee>`_
+    and `good first issue
+    <https://github.com/pandas-dev/pandas/issues?q=is%3Aopen+sort%3Aupdated-desc+label%3A%22good+first+issue%22+no%3Aassignee>`_
+    for newer contributors.
+
+Once you've found an interesting, available issue, leave a comment with your intention
 to start working on it. If somebody else has
 already commented on the issue but they have shown a lack of activity in the issue
 or a pull request in the past 2-3 weeks, you may take it over.
 
 If for whatever reason you are not able to continue working with the issue, please
-leave a comment on an issue, so other people know it's available again. You can check the list of
-assigned issues, since people may not be working on them anymore.
+leave a comment on an issue, so other people know it's available again.
 
 We have several :ref:`contributor community <community>` communication channels, which you are
 welcome to join, and ask questions as you figure things out. Among them are regular meetings for
