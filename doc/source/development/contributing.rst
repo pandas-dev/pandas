@@ -266,11 +266,15 @@ and merged into the project to appear in the next release. To submit a pull requ
    * TYP: Type annotations
    * CLN: Code cleanup
 
-#. Write a description of your changes in the ``Preview Discussion`` tab
+#. Complete the checklist template in the body of the pull request and write an additional description below the checklist if necessary.
 #. Click ``Send Pull Request``.
 
 This request then goes to the repository maintainers, and they will review
 the code.
+
+.. note::
+    A pull request should be associated with an open Github issue except if the change is trivial such as fixing a typo.
+    Pull requests that do not abide by all the applicable contribution guidelines may be closed by a maintainer.
 
 .. _contributing.update-pr:
 
