@@ -22,6 +22,7 @@ from pandas._libs import (
     lib,
     ops as libops,
 )
+from pandas._libs.missing import NA
 from pandas._libs.tslibs import (
     BaseOffset,
     get_supported_dtype,
@@ -129,7 +130,9 @@ def comp_method_OBJECT_ARRAY(op, x, y):
         result = libops.vec_compare(x.ravel(), y.ravel(), op)
     else:
         result = libops.scalar_compare(x.ravel(), y, op)
-        result = np.where(isna(x), x, result)
+        is_pdna = [var is NA for var in x]
+        if any(is_pdna):
+            result = np.where(is_pdna, NA, result)
     return result.reshape(x.shape)
 
 
