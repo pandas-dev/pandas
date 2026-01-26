@@ -385,8 +385,9 @@ class TestPandasContainer:
         "data,msg,orient",
         [
             (
-            '{"key":b:a:d}', r"(Expected object or value|unexpected character)",
-             "columns"
+                '{"key":b:a:d}',
+                r"(Expected object or value|unexpected character)",
+                "columns",
             ),
             # too few indices
             (
