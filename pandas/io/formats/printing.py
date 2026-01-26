@@ -21,7 +21,10 @@ from unicodedata import east_asian_width
 
 from pandas._config import get_option
 
-from pandas.core.dtypes.inference import is_sequence
+from pandas.core.dtypes.inference import (
+    is_float,
+    is_sequence,
+)
 
 from pandas.io.formats.console import get_console_size
 
@@ -129,6 +132,10 @@ def _pprint_seq(
         if (max_items is not None) and (i >= max_items):
             max_items_reached = True
             break
+        if is_float(item):
+            # GH#60503
+            precision = get_option("display.precision")
+            item = f"{item:.{precision}f}"
         r.append(pprint_thing(item, _nest_lvl + 1, max_seq_items=max_seq_items, **kwds))
     body = ", ".join(r)
 
