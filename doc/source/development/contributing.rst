@@ -277,6 +277,10 @@ the code.
     Pull requests that do not abide by all the applicable contribution guidelines may be closed by a maintainer. Contributors
     who have shown continued, quality pull requests may be exempt from following all guidelines strictly.
 
+.. warning::
+    pandas will not accept low quality pull requests that do not meaningfully contribute to the project. Maintainers reserve
+    their right to close these pull requests and ban users who repeatedly submit low quality pull requests.
+
 .. _contributing.update-pr:
 
 Updating your pull request
