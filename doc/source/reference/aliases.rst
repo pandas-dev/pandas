@@ -10,6 +10,13 @@ Typing aliases
 
 .. module:: pandas.api.typing.aliases
 
+..  raw:: html
+
+    <!-- Hide long module name in the table -->
+    <style>
+    td > .py.type .descclassname { display: none; }
+    </style>
+
 The typing declarations in ``pandas/_typing.py`` are considered private, and used
 by pandas developers for type checking of the pandas code base.  For users, it is
 highly recommended to use the ``pandas-stubs`` package that represents the officially
