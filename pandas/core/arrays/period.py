@@ -53,7 +53,6 @@ from pandas._libs.tslibs.period import (
 )
 from pandas.util._decorators import (
     cache_readonly,
-    doc,
     set_module,
 )
 
@@ -103,11 +102,6 @@ if TYPE_CHECKING:
 
 
 BaseOffsetT = TypeVar("BaseOffsetT", bound=BaseOffset)
-
-
-_shared_doc_kwargs = {
-    "klass": "PeriodArray",
-}
 
 
 def _field_accessor(name: str, docstring: str | None = None):
@@ -871,19 +865,18 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
     def _box_func(self, x) -> Period | NaTType:
         return Period._from_ordinal(ordinal=x, freq=self.freq)
 
-    @doc(**_shared_doc_kwargs, other="PeriodIndex", other_name="PeriodIndex")
     def asfreq(self, freq=None, how: str = "E") -> Self:
         """
-        Convert the {klass} to the specified frequency `freq`.
+        Convert the PeriodArray to the specified frequency `freq`.
 
         Equivalent to applying :meth:`pandas.Period.asfreq` with the given arguments
-        to each :class:`~pandas.Period` in this {klass}.
+        to each :class:`~pandas.Period` in this PeriodArray.
 
         Parameters
         ----------
         freq : str
             A frequency.
-        how : str {{'E', 'S'}}, default 'E'
+        how : str {'E', 'S'}, default 'E'
             Whether the elements should be aligned to the end
             or start within pa period.
 
@@ -894,12 +887,12 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
 
         Returns
         -------
-        {klass}
-            The transformed {klass} with the new frequency.
+        PeriodArray
+            The transformed PeriodArray with the new frequency.
 
         See Also
         --------
-        {other}.asfreq: Convert each Period in a {other_name} to the given frequency.
+        PeriodIndex.asfreq: Convert each Period in a PeriodIndex to the given frequency.
         Period.asfreq : Convert a :class:`~pandas.Period` object to the given frequency.
 
         Examples

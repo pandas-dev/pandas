@@ -1403,6 +1403,35 @@ cdef class Day(SingleConstructorOffset):
             )
 
     def is_on_offset(self, dt) -> bool:
+        """
+        Return boolean whether a timestamp intersects with this frequency.
+
+        For Day offset, this method always returns True, since every timestamp
+        can be considered as intersecting with a day-based frequency.
+
+        Parameters
+        ----------
+        dt : datetime
+            Timestamp to check.
+
+        Returns
+        -------
+        bool
+            Always True for Day offset.
+
+        See Also
+        --------
+        DateOffset.is_on_offset : Check if timestamp intersects with frequency.
+        BusinessDay.is_on_offset : Check if timestamp is on business day.
+
+        Examples
+        --------
+        >>> from pandas.tseries.offsets import Day
+        >>> ts = pd.Timestamp(2022, 8, 5, 15, 30)
+        >>> day = Day()
+        >>> day.is_on_offset(ts)
+        True
+        """
         return True
 
     @apply_wraps
@@ -1869,6 +1898,40 @@ cdef class RelativeDeltaOffset(BaseOffset):
         return dt64other + delta
 
     def is_on_offset(self, dt: datetime) -> bool:
+        """
+        Return boolean whether a timestamp intersects with this frequency.
+
+        For DateOffset, the check is straightforward: it returns True for any
+        timestamp, unless normalize is True, in which case it verifies that
+        the timestamp is at midnight (normalized to the start of the day).
+
+        Parameters
+        ----------
+        dt : datetime
+            Timestamp to check.
+
+        Returns
+        -------
+        bool
+            True if the timestamp intersects with this frequency.
+
+        See Also
+        --------
+        DateOffset.rollforward : Roll provided date forward to next offset.
+        DateOffset.rollback : Roll provided date backward to previous offset.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2022, 1, 1)
+        >>> freq = pd.DateOffset(months=2)
+        >>> freq.is_on_offset(ts)
+        True
+
+        >>> ts = pd.Timestamp(2022, 1, 1, 12, 0, 0)
+        >>> freq = pd.DateOffset(months=2, normalize=True)
+        >>> freq.is_on_offset(ts)
+        False
+        """
         if self.normalize and not _is_normalized(dt):
             return False
         return True
@@ -3020,11 +3083,11 @@ cdef class WeekOfMonthMixin(SingleConstructorOffset):
     """
 
     cdef readonly:
-        int weekday, week
+        int _weekday, _week
 
     def __init__(self, n=1, normalize=False, weekday=0):
         BaseOffset.__init__(self, n, normalize)
-        self.weekday = weekday
+        self._weekday = weekday
 
         if weekday < 0 or weekday > 6:
             raise ValueError(f"Day must be 0<=day<=6, got {weekday}")
@@ -3044,6 +3107,72 @@ cdef class WeekOfMonthMixin(SingleConstructorOffset):
         if self.normalize and not _is_normalized(dt):
             return False
         return dt.day == self._get_offset_day(dt)
+
+    @property
+    def week(self) -> int:
+        """
+        Return the week of the month on which this offset applies.
+
+        Returns an integer representing the week of the month (0-3) that this
+        offset targets. The week is zero-indexed, where 0 corresponds to the
+        first week of the month.
+
+        Returns
+        -------
+        int
+            An integer representing the week of the month (0-3).
+
+        See Also
+        --------
+        tseries.offsets.WeekOfMonth : Describes monthly dates in a specific week.
+        tseries.offsets.LastWeekOfMonth : Describes monthly dates in last week.
+
+        Examples
+        --------
+        >>> pd.offsets.WeekOfMonth(week=0, weekday=0).week
+        0
+
+        >>> pd.offsets.WeekOfMonth(week=2, weekday=3).week
+        2
+
+        >>> pd.offsets.LastWeekOfMonth(weekday=0).week
+        -1
+        """
+        return self._week
+
+    @property
+    def weekday(self) -> int:
+        """
+        Return the day of the week on which this offset applies.
+
+        The weekday is represented as an integer where 0 is Monday and 6 is
+        Sunday. This is the specific day of the week targeted within the
+        specified week of the month.
+
+        Returns
+        -------
+        int
+            An integer from 0 (Monday) to 6 (Sunday) representing the day
+            of the week.
+
+        See Also
+        --------
+        tseries.offsets.WeekOfMonth : Describes monthly dates in a specific week.
+        tseries.offsets.LastWeekOfMonth : Describes monthly dates in last week.
+        tseries.offsets.Week.weekday : Return the day of the week for Week offset.
+
+        Examples
+        --------
+        >>> pd.offsets.WeekOfMonth(week=0, weekday=0).weekday
+        0
+
+        >>> pd.offsets.WeekOfMonth(week=2, weekday=3).weekday
+        3
+
+        >>> pd.offsets.LastWeekOfMonth(weekday=5).weekday
+        5
+        """
+        return self._weekday
 
     @property
     def rule_code(self) -> str:
@@ -3066,10 +3195,10 @@ cdef class WeekOfMonthMixin(SingleConstructorOffset):
         'WOM-1MON'
         """
         weekday = int_to_weekday.get(self.weekday, "")
-        if self.week == -1:
+        if self._week == -1:
             # LastWeekOfMonth
             return f"{self._prefix}-{weekday}"
-        return f"{self._prefix}-{self.week + 1}{weekday}"
+        return f"{self._prefix}-{self._week + 1}{weekday}"
 
 
 # ----------------------------------------------------------------------
@@ -4813,21 +4942,21 @@ cdef class WeekOfMonth(WeekOfMonthMixin):
 
     def __init__(self, n=1, normalize=False, week=0, weekday=0):
         WeekOfMonthMixin.__init__(self, n, normalize, weekday)
-        self.week = week
+        self._week = week
 
-        if self.week < 0 or self.week > 3:
-            raise ValueError(f"Week must be 0<=week<=3, got {self.week}")
+        if self._week < 0 or self._week > 3:
+            raise ValueError(f"Week must be 0<=week<=3, got {self._week}")
 
     cpdef __setstate__(self, state):
         self._n = state.pop("n")
         self._normalize = state.pop("normalize")
-        self.weekday = state.pop("weekday")
-        self.week = state.pop("week")
+        self._weekday = state.pop("weekday")
+        self._week = state.pop("week")
 
     def _get_offset_day(self, other: datetime) -> int:
         """
         Find the day in the same month as other that has the same
-        weekday as self.weekday and is the self.week'th such day in the month.
+        weekday as self.weekday and is the self._week'th such day in the month.
 
         Parameters
         ----------
@@ -4840,7 +4969,7 @@ cdef class WeekOfMonth(WeekOfMonthMixin):
         mstart = datetime(other.year, other.month, 1)
         wday = mstart.weekday()
         shift_days = (self.weekday - wday) % 7
-        return 1 + shift_days + self.week * 7
+        return 1 + shift_days + self._week * 7
 
     @classmethod
     def _from_name(cls, suffix=None):
@@ -4896,7 +5025,7 @@ cdef class LastWeekOfMonth(WeekOfMonthMixin):
 
     def __init__(self, n=1, normalize=False, weekday=0):
         WeekOfMonthMixin.__init__(self, n, normalize, weekday)
-        self.week = -1
+        self._week = -1
 
         if self._n == 0:
             raise ValueError("N cannot be 0")
@@ -4904,8 +5033,8 @@ cdef class LastWeekOfMonth(WeekOfMonthMixin):
     cpdef __setstate__(self, state):
         self._n = state.pop("n")
         self._normalize = state.pop("normalize")
-        self.weekday = state.pop("weekday")
-        self.week = -1
+        self._weekday = state.pop("weekday")
+        self._week = -1
 
     def _get_offset_day(self, other: datetime) -> int:
         """
@@ -4939,9 +5068,35 @@ cdef class LastWeekOfMonth(WeekOfMonthMixin):
 
 cdef class FY5253Mixin(SingleConstructorOffset):
     cdef readonly:
-        int startingMonth
+        int _startingMonth
         int _weekday
         str _variation
+
+    @property
+    def startingMonth(self):
+        """
+        Return the starting month of the fiscal year.
+
+        The starting month is the month in which the fiscal year begins.
+        The value is an integer from 1 (January) to 12 (December).
+
+        Returns
+        -------
+        int
+            The starting month of the fiscal year (1-12).
+
+        See Also
+        --------
+        FY5253.weekday : Return the weekday used by the fiscal year.
+        FY5253.variation : Return the variation of the fiscal year.
+
+        Examples
+        --------
+        >>> offset = pd.offsets.FY5253(weekday=4, startingMonth=12, variation="nearest")
+        >>> offset.startingMonth
+        12
+        """
+        return self._startingMonth
 
     @property
     def weekday(self):
@@ -4994,7 +5149,7 @@ cdef class FY5253Mixin(SingleConstructorOffset):
         self, n=1, normalize=False, weekday=0, startingMonth=1, variation="nearest"
     ):
         BaseOffset.__init__(self, n, normalize)
-        self.startingMonth = startingMonth
+        self._startingMonth = startingMonth
         self._weekday = weekday
         self._variation = variation
 
@@ -5007,6 +5162,7 @@ cdef class FY5253Mixin(SingleConstructorOffset):
     cpdef __setstate__(self, state):
         self._n = state.pop("n")
         self._normalize = state.pop("normalize")
+        self._startingMonth = state.pop("startingMonth")
         self._weekday = state.pop("weekday")
         self._variation = state.pop("variation")
 
@@ -5015,6 +5171,37 @@ cdef class FY5253Mixin(SingleConstructorOffset):
 
     @property
     def rule_code(self) -> str:
+        """
+        Return a string representing the frequency with fiscal year suffix.
+
+        This property generates a rule code string that combines the offset's
+        prefix with the fiscal year suffix containing the variation, starting
+        month, and weekday information.
+
+        Returns
+        -------
+        str
+            Rule code string with format 'PREFIX-SUFFIX', where PREFIX is the
+            offset's frequency abbreviation and SUFFIX contains the variation
+            (N for nearest or L for last), the three-letter month abbreviation,
+            and the three-letter weekday abbreviation.
+
+        See Also
+        --------
+        FY5253.get_rule_code_suffix : Return the suffix component of the rule code.
+        FY5253Quarter.rule_code : Return the complete rule code string for
+            FY5253Quarter.
+
+        Examples
+        --------
+        >>> offset = pd.offsets.FY5253(weekday=4, startingMonth=12, variation="nearest")
+        >>> offset.rule_code
+        'RE-N-DEC-FRI'
+
+        >>> offset = pd.offsets.FY5253(weekday=0, startingMonth=1, variation="last")
+        >>> offset.rule_code
+        'RE-L-JAN-MON'
+        """
         prefix = self._prefix
         suffix = self.get_rule_code_suffix()
         return f"{prefix}-{suffix}"
@@ -5055,7 +5242,7 @@ cdef class FY5253Mixin(SingleConstructorOffset):
         'L-JAN-MON'
         """
         prefix = self._get_suffix_prefix()
-        month = MONTH_ALIASES[self.startingMonth]
+        month = MONTH_ALIASES[self._startingMonth]
         weekday = int_to_weekday[self._weekday]
         return f"{prefix}-{month}-{weekday}"
 
@@ -5157,9 +5344,9 @@ cdef class FY5253(FY5253Mixin):
         norm = Timestamp(other).normalize()
 
         n = self._n
-        prev_year = self.get_year_end(datetime(other.year - 1, self.startingMonth, 1))
-        cur_year = self.get_year_end(datetime(other.year, self.startingMonth, 1))
-        next_year = self.get_year_end(datetime(other.year + 1, self.startingMonth, 1))
+        prev_year = self.get_year_end(datetime(other.year - 1, self._startingMonth, 1))
+        cur_year = self.get_year_end(datetime(other.year, self._startingMonth, 1))
+        next_year = self.get_year_end(datetime(other.year + 1, self._startingMonth, 1))
 
         prev_year = localize_pydatetime(prev_year, other.tzinfo)
         cur_year = localize_pydatetime(cur_year, other.tzinfo)
@@ -5195,7 +5382,7 @@ cdef class FY5253(FY5253Mixin):
             else:
                 assert False
 
-        shifted = datetime(other.year + n, self.startingMonth, 1)
+        shifted = datetime(other.year + n, self._startingMonth, 1)
         result = self.get_year_end(shifted)
         result = datetime(
             result.year,
@@ -5248,8 +5435,8 @@ cdef class FY5253(FY5253Mixin):
         """
         assert dt.tzinfo is None
 
-        dim = get_days_in_month(dt.year, self.startingMonth)
-        target_date = datetime(dt.year, self.startingMonth, dim)
+        dim = get_days_in_month(dt.year, self._startingMonth)
+        target_date = datetime(dt.year, self._startingMonth, dim)
         wkday_diff = self.weekday - target_date.weekday()
         if wkday_diff == 0:
             # year_end is the same for "last" and "nearest" cases
@@ -5447,7 +5634,7 @@ cdef class FY5253Quarter(FY5253Mixin):
     @cache_readonly
     def _offset(self):
         return FY5253(
-            startingMonth=self.startingMonth,
+            startingMonth=self._startingMonth,
             weekday=self.weekday,
             variation=self.variation,
         )
@@ -5531,6 +5718,39 @@ cdef class FY5253Quarter(FY5253Mixin):
         return res
 
     def get_weeks(self, dt: datetime):
+        """
+        Get the number of weeks in each quarter for the fiscal year containing dt.
+
+        In a 52-53 week fiscal year, most years have 52 weeks (13 weeks per quarter).
+        In years with 53 weeks, one quarter will have 14 weeks as determined by the
+        `qtr_with_extra_week` attribute.
+
+        Parameters
+        ----------
+        dt : datetime
+            The date within the fiscal year to determine quarter week counts.
+
+        Returns
+        -------
+        list of int
+            A list of 4 integers representing the number of weeks in each quarter
+            (Q1, Q2, Q3, Q4). Values are typically [13, 13, 13, 13] for 52-week
+            years, with one value being 14 in 53-week years.
+
+        See Also
+        --------
+        FY5253Quarter.qtr_with_extra_week : The quarter that receives the extra week.
+        FY5253Quarter.year_has_extra_week : Check if a given year has 53 weeks.
+
+        Examples
+        --------
+        >>> offset = pd.offsets.FY5253Quarter(
+        ...     weekday=5, startingMonth=12, qtr_with_extra_week=4
+        ... )
+        >>> dt = pd.Timestamp("2024-01-15")
+        >>> offset.get_weeks(dt)
+        [13, 13, 13, 13]
+        """
         ret = [13] * 4
 
         year_has_extra_week = self.year_has_extra_week(dt)
@@ -5541,6 +5761,42 @@ cdef class FY5253Quarter(FY5253Mixin):
         return ret
 
     def year_has_extra_week(self, dt: datetime) -> bool:
+        """
+        Return whether the fiscal year containing the given date has 53 weeks.
+
+        In a 52-53 week fiscal year, most years have 52 weeks (4 quarters of
+        13 weeks each), but occasionally a year will have 53 weeks. When this
+        occurs, one quarter will have 14 weeks instead of the standard 13 weeks.
+        This method determines whether the fiscal year containing the given date
+        is a 53-week year.
+
+        Parameters
+        ----------
+        dt : datetime
+            The date to check, which falls within some fiscal year.
+
+        Returns
+        -------
+        bool
+            True if the fiscal year containing `dt` has 53 weeks, False if it
+            has 52 weeks.
+
+        See Also
+        --------
+        FY5253Quarter.get_weeks : Get the number of weeks in each quarter.
+        FY5253Quarter.qtr_with_extra_week : Get the quarter number that receives
+            the extra week in 53-week years.
+
+        Examples
+        --------
+        >>> offset = pd.offsets.FY5253Quarter(
+        ...     weekday=5, startingMonth=12, qtr_with_extra_week=1
+        ... )
+        >>> offset.year_has_extra_week(pd.Timestamp("2011-04-02"))
+        True
+        >>> offset.year_has_extra_week(pd.Timestamp("2010-04-02"))
+        False
+        """
         # Avoid round-down errors --> normalize to get
         # e.g. '370D' instead of '360D23H'
         norm = Timestamp(dt).normalize().tz_localize(None)
