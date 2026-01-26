@@ -274,7 +274,8 @@ the code.
 
 .. note::
     A pull request should be associated with an open Github issue except if the change is trivial such as fixing a typo.
-    Pull requests that do not abide by all the applicable contribution guidelines may be closed by a maintainer.
+    Pull requests that do not abide by all the applicable contribution guidelines may be closed by a maintainer. Contributors
+    who have shown continued, quality pull requests may be exempt from following all guidelines strictly.
 
 .. _contributing.update-pr:
 
