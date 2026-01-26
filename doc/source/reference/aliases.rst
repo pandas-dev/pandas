@@ -51,8 +51,8 @@ Alias                                Meaning
 .. type:: DtypeArg                   Argument type for ``dtype`` in various methods
 .. type:: DtypeBackend               Argument type for ``dtype_backend`` in various methods
 .. type:: DtypeObj                   Numpy dtypes and Extension dtypes
-.. type:: ExcelWriterIfSheetExists   Argument type for ``if_sheet_exists`` in :class:`ExcelWriter`
-.. type:: ExcelWriterMergeCells      Argument type for ``merge_cells`` in :meth:`to_excel`
+.. type:: ExcelWriterIfSheetExists   Argument type for ``if_sheet_exists`` in :class:`~pandas.ExcelWriter`
+.. type:: ExcelWriterMergeCells      Argument type for ``merge_cells`` in :meth:`~pandas.DataFrame.to_excel`
 .. type:: FilePath                   Type of paths for files for I/O methods
 .. type:: FillnaOptions              Argument type for ``method`` in various methods where NA values are filled
 .. type:: FloatFormatType            Argument type for ``float_format`` in :meth:`to_string`
@@ -89,13 +89,13 @@ Alias                                Meaning
 .. type:: TimeGrouperOrigin          Argument type for ``origin`` in :meth:`resample` and :class:`TimeGrouper`
 .. type:: TimeNonexistent            Argument type for ``nonexistent`` in time operations
 .. type:: TimeUnit                   Time unit argument and return type for :py:attr:`unit`, arguments ``unit`` and ``date_unit``
-.. type:: TimedeltaConvertibleTypes  Argument type for ``offset`` in :meth:`~pandas.DataFrame.resample`, ``halflife`` in :meth:`~pandas.DataFrame.ewm` and ``start`` and ``end`` in :meth:`pandas.timedelta_range`
-.. type:: TimestampConvertibleTypes  Argument type for ``origin`` in :meth:`~pandas.DataFrame.resample` and :meth:`pandas.to_datetime`
+.. type:: TimedeltaConvertibleTypes  Argument type for ``offset`` in various methods, such as :meth:`DataFrame’s <pandas.DataFrame.resample>` and :meth:`Series’ <pandas.Series.resample>` ``resample()``, ``halflife`` in :meth:`DataFrame’s <pandas.DataFrame.ewm>`, :meth:`DataFrameGroupBy’s <pandas.DataFrameGroupBy.ewm>`, and :meth:`Series’ <pandas.Series.ewm>` ``ewm()``, and ``start`` and ``end`` in :meth:`pandas.timedelta_range`
+.. type:: TimestampConvertibleTypes  Argument type for ``origin`` in :meth:`DataFrame’s <pandas.DataFrame.resample>` and :meth:`Series’ <pandas.Series.resample>` ``resample()``, and in :meth:`pandas.to_datetime`
 .. type:: ToStataByteorder           Argument type for ``byteorder`` in :meth:`~pandas.DataFrame.to_stata`
-.. type:: ToTimestampHow             Argument type for ``how`` in :meth:`~pandas.DataFrame.to_timestamp` and ``convention`` in :meth:`~pandas.DataFrame.resample`
+.. type:: ToTimestampHow             Argument type for ``how`` in :meth:`~pandas.DataFrame.to_timestamp` and ``convention`` in :meth:`DataFrame’s <pandas.DataFrame.resample>` and :meth:`Series’ <pandas.Series.resample>` ``resample()``
 .. type:: UpdateJoin                 Argument type for ``join`` in :meth:`~pandas.DataFrame.update`
 .. type:: UsecolsArgType             Argument type for ``usecols`` in :meth:`pandas.read_clipboard`, :meth:`pandas.read_csv` and :meth:`pandas.read_excel`
-.. type:: WindowingRankType          Argument type for ``method`` in :meth:`~pandas.DataFrame.rank` in rolling and expanding window operations
+.. type:: WindowingRankType          Argument type for ``method`` in :meth:`DataFrame’s <pandas.DataFrame.rank>` and :meth:`Series’ <pandas.Series.rank>` ``rank()`` in rolling and expanding window operations
 .. type:: WriteBuffer                Additional argument type corresponding to buffers for various file output methods
 .. type:: WriteExcelBuffer           Additional argument type corresponding to buffers for :meth:`to_excel`
 .. type:: XMLParsers                 Argument type for ``parser`` in :meth:`~pandas.DataFrame.to_xml` and :meth:`pandas.read_xml`
