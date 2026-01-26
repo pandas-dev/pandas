@@ -12,9 +12,10 @@ Typing aliases
 
 ..  raw:: html
 
-    <!-- Hide long module name in the table -->
+    <!-- Make aliases in the table narrow and hide their long module name -->
     <style>
-    td > .py.type .descclassname { display: none; }
+    td > dl.py.type { margin-bottom: 0; }
+    td > dl.py.type .descclassname { display: none; }
     </style>
 
 The typing declarations in ``pandas/_typing.py`` are considered private, and used
