@@ -1583,6 +1583,7 @@ class TestPandasContainer:
 
     @pytest.mark.parametrize("bigNum", [-(2**63) - 1, 2**64])
     def test_read_json_large_numbers(self, bigNum, engine):
+        # GH20599, 26068
         json = StringIO('{"articleId":' + str(bigNum) + "}")
 
         if engine == "orjson":
@@ -1590,12 +1591,6 @@ class TestPandasContainer:
             msg = "If using all scalar values, you must pass an index"
             with pytest.raises(ValueError, match=msg):
                 result = read_json(json, engine=engine)
-                # expected = DataFrame({"articleId": [bigNum]})
-                # print('{"articleId":' + str(bigNum) + "}")
-                # print(result)
-                # print(expected)
-                # tm.assert_frame_equal(result,expected)
-
         else:
             msg = r"Value is too small|Value is too big"
             with pytest.raises(ValueError, match=msg):
@@ -2145,6 +2140,7 @@ class TestPandasContainer:
         ],
     )
     def test_emca_262_nan_inf_support(self, engine):
+        # GH 12213
         data = StringIO(
             '["a", NaN, "NaN", Infinity, "Infinity", -Infinity, "-Infinity"]'
         )
