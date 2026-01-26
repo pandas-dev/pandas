@@ -2,8 +2,8 @@ from datetime import (
     datetime,
     timedelta,
 )
-import itertools
 from io import StringIO
+import itertools
 from textwrap import dedent
 
 import numpy as np
@@ -416,6 +416,7 @@ def get_longley_data():
 
     return pd.read_csv(longley_csv).iloc[:, [1, 2, 3, 4, 5, 6]].astype(float)
 
+
 def test_multithreaded_reading():
     def numpy_assert(data, b):
         b.wait()
@@ -423,10 +424,7 @@ def test_multithreaded_reading():
         tm.assert_almost_equal((data + 1) - 1, data.copy())
 
     tm.run_multithreaded(
-        numpy_assert,
-        max_workers=8,
-        arguments=(get_longley_data(),),
-        pass_barrier=True
+        numpy_assert, max_workers=8, arguments=(get_longley_data(),), pass_barrier=True
     )
 
     def safe_is_const(s):
@@ -442,15 +440,12 @@ def test_multithreaded_reading():
         x = data.copy()
         nobs = len(x)
         trendarr = np.fliplr(np.vander(np.arange(1, nobs + 1, dtype=np.float64), 1))
-        col_const = x.apply(safe_is_const, 0)
-        trendarr = pd.DataFrame(trendarr, index=x.index, columns=['const'])
+        x.apply(safe_is_const, 0)
+        trendarr = DataFrame(trendarr, index=x.index, columns=["const"])
         x = [trendarr, x]
         x = pd.concat(x[::1], axis=1)
         tm.assert_frame_equal(x, x)
 
     tm.run_multithreaded(
-        concat,
-        max_workers=8,
-        arguments=(get_longley_data(),),
-        pass_barrier=True
+        concat, max_workers=8, arguments=(get_longley_data(),), pass_barrier=True
     )
