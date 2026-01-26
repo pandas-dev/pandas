@@ -149,7 +149,7 @@ def test_get_with_default():
 
     for data, index in ((d0, d1), (d1, d0)):
         s = Series(data, index=index)
-        for i, d in zip(index, data):
+        for i, d in zip(index, data, strict=True):
             assert s.get(i) == d
             assert s.get(i, d) == d
             assert s.get(i, "z") == d
