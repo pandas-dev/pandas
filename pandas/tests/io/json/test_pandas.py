@@ -384,7 +384,10 @@ class TestPandasContainer:
     @pytest.mark.parametrize(
         "data,msg,orient",
         [
-            ('{"key":b:a:d}', r"(Expected object or value|unexpected character)", "columns"),
+            (
+            '{"key":b:a:d}', r"(Expected object or value|unexpected character)",
+             "columns"
+            ),
             # too few indices
             (
                 '{"columns":["A","B"],'
@@ -1590,7 +1593,7 @@ class TestPandasContainer:
             # orjson parses large ints; failure happens at pandas validation
             msg = "If using all scalar values, you must pass an index"
             with pytest.raises(ValueError, match=msg):
-                result = read_json(json, engine=engine)
+                read_json(json, engine=engine)
         else:
             msg = r"Value is too small|Value is too big"
             with pytest.raises(ValueError, match=msg):
