@@ -25,6 +25,7 @@ from pandas.core.dtypes.inference import (
     is_float,
     is_sequence,
 )
+from pandas.core.dtypes.missing import notna
 
 from pandas.io.formats.console import get_console_size
 
@@ -103,6 +104,18 @@ def _adj_justify(texts: Iterable[str], max_len: int, mode: str = "right") -> lis
 #    working with straight ascii.
 
 
+def _trim_zeros_single_float(str_float: str) -> str:
+    """
+    Trims trailing zeros after a decimal point,
+    leaving just one if necessary.
+    """
+    str_float = str_float.rstrip("0")
+    if str_float.endswith("."):
+        str_float += "0"
+
+    return str_float
+
+
 def _pprint_seq(
     seq: ListLike, _nest_lvl: int = 0, max_seq_items: int | None = None, **kwds: Any
 ) -> str:
@@ -132,10 +145,10 @@ def _pprint_seq(
         if (max_items is not None) and (i >= max_items):
             max_items_reached = True
             break
-        if is_float(item):
+        if is_float(item) and notna(item):
             # GH#60503
             precision = get_option("display.precision")
-            item = f"{item:.{precision}f}"
+            item = _trim_zeros_single_float(f"{item:.{precision}f}")
         r.append(pprint_thing(item, _nest_lvl + 1, max_seq_items=max_seq_items, **kwds))
     body = ", ".join(r)
 
