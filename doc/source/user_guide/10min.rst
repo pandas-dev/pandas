@@ -745,7 +745,7 @@ The ``plt.close`` method is used to `close <https://matplotlib.org/stable/api/_a
    @savefig frame_plot_basic.png
    plt.legend(loc='best');
 
-Importing and exporting Datas
+Importing and exporting Data
 ----------------------------
 
 See the :ref:`IO Tools <io>` section.
