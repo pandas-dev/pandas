@@ -644,19 +644,16 @@ For getting *multiple* indexers, using ``.get_indexer``:
 .. ipython:: python
 
   dfd.iloc[[0, 2], dfd.columns.get_indexer(['A', 'B'])]
+.. _indexing.basics.partial_selection:    
 
+Partial selection
+-----------------
+
+When using ``.loc``, if any of the requested labels are not found in the index,                                               
+
+a ``KeyError`` will be raised.                                                            
 
 Reindexing
-
-Example
--------
-
-.. code-block:: python
-
-    df = pd.DataFrame({"A": [1, 2]}, index=[0, 1])
-    df["B"] = [3, 4]
-      df.reindex([1, 2, 3])
-           A    B 
 ~~~~~~~~~~
 
 The idiomatic way to achieve selecting potentially not-found elements is via ``.reindex()``. See also the section on :ref:`reindexing <basics.reindexing>`.
@@ -821,7 +818,8 @@ Similarly to ``loc``, ``at`` provides **label** based scalar lookups, while, ``i
 
 .. ipython:: python
 
-   s.iat[5]
+   s.iat[5]                // Its A s.iat [5] is equivalent to s.loc[s.index[5]]
+   s.at[dates[5]]          // Its A s.at [dates[5]] is equivalent to s.loc[dates[5]]   
    df.at[dates[5], 'A']
    df.iat[3, 0]
 
