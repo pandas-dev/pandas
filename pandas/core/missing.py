@@ -189,7 +189,18 @@ def clean_fill_method(
         valid_methods.append("nearest")
         expecting = "pad (ffill), backfill (bfill) or nearest"
     if method not in valid_methods:
-        raise ValueError(f"Invalid fill method. Expecting {expecting}. Got {method}")
+        msg = f"Invalid fill method. Expecting {expecting}. Got {method}"
+        if method in ("linear", "time", "index", "values", "nearest", "zero", 
+                      "slinear", "quadratic", "cubic", "barycentric", "krogh",
+                      "spline", "polynomial", "from_derivatives", 
+                      "piecewise_polynomial", "pchip", "akima", "cubicspline"):
+            msg += (
+                ". Note: interpolation methods like 'linear' are not supported "
+                "for integer dtypes. Integer columns only support 'pad' (ffill) "
+                "and 'backfill' (bfill) methods. Consider converting to float dtype "
+                "if you need to use interpolation."
+            )
+        raise ValueError(msg)
     return method
 
 
