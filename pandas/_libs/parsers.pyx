@@ -1223,9 +1223,11 @@ cdef class TextReader:
             # unicode variable width
             return self._string_convert(i, start, end, na_filter,
                                         na_hashset)
-        elif dtype == object:
-            return self._string_convert(i, start, end, na_filter,
-                                        na_hashset)
+        # Special handling for dtype=object or decimal.Decimal
+        elif dtype == object or (
+            hasattr(dtype, 'type') and getattr(dtype, 'type', None).__name__ == 'Decimal'):
+            # If dtype is object or decimal.Decimal, preserve string and convert in Python
+            return self._string_convert(i, start, end, na_filter, na_hashset)
         elif dtype.kind == "M":
             raise TypeError(f"the dtype {dtype} is not supported "
                             f"for parsing, pass this column "
