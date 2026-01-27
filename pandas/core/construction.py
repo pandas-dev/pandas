@@ -755,7 +755,7 @@ def _sanitize_ndim(
             # error: Argument "dtype" to "asarray_tuplesafe" has incompatible type
             # "Union[dtype[Any], ExtensionDtype, None]"; expected "Union[str,
             # dtype[Any], None]"
-            result = com.asarray_tuplesafe(data, dtype=dtype)  # type: ignore[arg-type]
+            result = com.asarray_tuplesafe(data, dtype=dtype)
     return result
 
 
