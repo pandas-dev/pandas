@@ -6457,10 +6457,6 @@ cdef class CustomBusinessMonthBegin(_CustomBusinessMonth):
                    dtype='datetime64[ns]', freq='CBMS')
     """
 
-    _attributes = tuple(
-        ["n", "normalize", "weekmask", "holidays", "calendar", "offset"]
-    )
-
     _prefix = "CBMS"
 
 
