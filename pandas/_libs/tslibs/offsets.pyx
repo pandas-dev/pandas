@@ -6339,24 +6339,7 @@ cdef class CustomBusinessMonthEnd(_CustomBusinessMonth):
 
     Increments between end of month dates.
 
-    Parameters
-    ----------
-    n : int, default 1
-        The number of months represented.
-    **kwds
-        Optional arguments that are passed to the constructor.
-
-        * normalize : bool, default False
-            Normalize end dates to midnight before generating date range.
-        * weekmask : str, Default 'Mon Tue Wed Thu Fri'
-            Weekmask of valid business days, passed to ``numpy.busdaycalendar``.
-        * holidays : list
-            List/array of dates to exclude from the set of valid business days,
-            passed to ``numpy.busdaycalendar``.
-        * calendar : np.busdaycalendar
-            Calendar to integrate.
-        * offset : timedelta, default timedelta(0)
-            Time offset to apply.
+    
 
     See Also
     --------
@@ -6368,7 +6351,21 @@ cdef class CustomBusinessMonthEnd(_CustomBusinessMonth):
 
     >>> ts = pd.Timestamp(2022, 8, 5)
     >>> ts + pd.offsets.CustomBusinessMonthEnd()
-    Timestamp('2022-08-31 00:00:00')
+    Parameters
+    ----------
+    n : int, default 1
+        The number of months represented.
+    normalize : bool, default False
+        Normalize start dates to midnight before generating date range.
+    weekmask : str, Default 'Mon Tue Wed Thu Fri'
+        Weekmask of valid business days, passed to ``numpy.busdaycalendar``.
+    holidays : list
+        List/array of dates to exclude from the set of valid business days,
+        passed to ``numpy.busdaycalendar``.
+    calendar : np.busdaycalendar
+        Calendar to integrate.
+    offset : timedelta, default timedelta(0)
+        Time offset to apply.
 
     Custom business month end can be specified by ``weekmask`` parameter.
     To convert the returned datetime object to its string representation
@@ -6394,6 +6391,8 @@ cdef class CustomBusinessMonthEnd(_CustomBusinessMonth):
                    dtype='datetime64[ns]', freq='CBME')
     """
 
+    _attributes = ["n", "normalize", "weekmask", "holidays", "calendar", "offset"]
+    
     _prefix = "CBME"
 
 
@@ -6407,20 +6406,17 @@ cdef class CustomBusinessMonthBegin(_CustomBusinessMonth):
     ----------
     n : int, default 1
         The number of months represented.
-    **kwds
-        Optional arguments that are passed to the constructor.
-
-        * normalize : bool, default False
-            Normalize start dates to midnight before generating date range.
-        * weekmask : str, Default 'Mon Tue Wed Thu Fri'
-            Weekmask of valid business days, passed to ``numpy.busdaycalendar``.
-        * holidays : list
-            List/array of dates to exclude from the set of valid business days,
-            passed to ``numpy.busdaycalendar``.
-        * calendar : np.busdaycalendar
-            Calendar to integrate.
-        * offset : timedelta, default timedelta(0)
-            Time offset to apply.
+    normalize : bool, default False
+        Normalize start dates to midnight before generating date range.
+    weekmask : str, Default 'Mon Tue Wed Thu Fri'
+        Weekmask of valid business days, passed to ``numpy.busdaycalendar``.
+    holidays : list
+        List/array of dates to exclude from the set of valid business days,
+        passed to ``numpy.busdaycalendar``.
+    calendar : np.busdaycalendar
+        Calendar to integrate.
+    offset : timedelta, default timedelta(0)
+        Time offset to apply.
 
     See Also
     --------
@@ -6458,6 +6454,8 @@ cdef class CustomBusinessMonthBegin(_CustomBusinessMonth):
                    dtype='datetime64[ns]', freq='CBMS')
     """
 
+    _attributes = ["n", "normalize", "weekmask", "holidays", "calendar", "offset"]
+    
     _prefix = "CBMS"
 
 
