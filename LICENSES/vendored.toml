@@ -1,0 +1,97 @@
+# Vendored components manifest for SBOM generation
+# This file documents code that pandas has derived from or incorporates from other projects.
+# Used by scripts/generate_sbom.py to generate CycloneDX SBOM for PEP 770 compliance.
+#
+# License field supports:
+#   - Single SPDX ID: "MIT"
+#   - SPDX expression for dual-license: "Apache-2.0 OR BSD-3-Clause"
+
+[[component]]
+name = "numpy"
+license = "BSD-3-Clause"
+license_file = "NUMPY_LICENSE"
+description = "Derived algorithms and array handling code"
+purl = "pkg:pypi/numpy"
+website = "https://numpy.org"
+
+[[component]]
+name = "bottleneck"
+license = "BSD-2-Clause"
+license_file = "BOTTLENECK_LICENCE"
+description = "Derived reduction algorithms"
+purl = "pkg:pypi/bottleneck"
+website = "https://github.com/pydata/bottleneck"
+
+[[component]]
+name = "python-dateutil"
+# BSD applies to all code; Apache applies to contributions after 2017-12-01
+license = "Apache-2.0 AND BSD-3-Clause"
+license_file = "DATEUTIL_LICENSE"
+description = "Derived date parsing routines"
+purl = "pkg:pypi/python-dateutil"
+website = "https://github.com/dateutil/dateutil"
+
+[[component]]
+name = "klib"
+license = "MIT"
+license_file = "KLIB_LICENSE"
+description = "Derived hash table implementation (khash)"
+purl = "pkg:github/attractivechaos/klib"
+website = "https://github.com/attractivechaos/klib"
+
+[[component]]
+name = "musl"
+license = "MIT"
+license_file = "MUSL_LICENSE"
+description = "Derived ASCII character classification functions (isdigit, isspace, etc.)"
+purl = "pkg:generic/musl"
+website = "https://musl.libc.org"
+
+[[component]]
+name = "pyperclip"
+license = "BSD-3-Clause"
+license_file = "PYPERCLIP_LICENSE"
+description = "Derived clipboard utilities"
+purl = "pkg:pypi/pyperclip"
+website = "https://github.com/asweigart/pyperclip"
+
+[[component]]
+name = "sas7bdat"
+license = "MIT"
+license_file = "SAS7BDAT_LICENSE"
+description = "Derived SAS file reader code"
+purl = "pkg:pypi/sas7bdat"
+website = "https://github.com/jaredhobbs/sas7bdat"
+
+[[component]]
+name = "ultrajson"
+license = "BSD-3-Clause"
+license_file = "ULTRAJSON_LICENSE"
+description = "Derived JSON parsing code"
+purl = "pkg:pypi/ujson"
+website = "https://github.com/ultrajson/ultrajson"
+
+[[component]]
+name = "haven"
+license = "MIT"
+license_file = "HAVEN_LICENSE"
+description = "Derived SPSS/Stata reader code"
+purl = "pkg:cran/haven"
+website = "https://github.com/tidyverse/haven"
+
+[[component]]
+name = "packaging"
+# Dual-licensed: user can choose either license
+license = "Apache-2.0 OR BSD-2-Clause"
+license_file = "PACKAGING_LICENSE"
+description = "Derived version parsing code"
+purl = "pkg:pypi/packaging"
+website = "https://github.com/pypa/packaging"
+
+[[component]]
+name = "cpython"
+license = "PSF-2.0"
+license_file = "PSF_LICENSE"
+description = "Derived Python standard library code"
+purl = "pkg:generic/cpython"
+website = "https://github.com/python/cpython"
