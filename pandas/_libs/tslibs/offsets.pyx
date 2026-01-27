@@ -6339,16 +6339,7 @@ cdef class CustomBusinessMonthEnd(_CustomBusinessMonth):
 
     Increments between end of month dates.
 
-    See Also
-    --------
-    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
 
-    Examples
-    --------
-    In the example below we use the default parameters.
-
-    >>> ts = pd.Timestamp(2022, 8, 5)
-    >>> ts + pd.offsets.CustomBusinessMonthEnd()
     Parameters
     ----------
     n : int, default 1
@@ -6364,7 +6355,17 @@ cdef class CustomBusinessMonthEnd(_CustomBusinessMonth):
         Calendar to integrate.
     offset : timedelta, default timedelta(0)
         Time offset to apply.
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
 
+    Examples
+    --------
+    In the example below we use the default parameters.
+
+    >>> ts = pd.Timestamp(2022, 8, 5)
+    >>> ts + pd.offsets.CustomBusinessMonthEnd()
+    
     Custom business month end can be specified by ``weekmask`` parameter.
     To convert the returned datetime object to its string representation
     the function strftime() is used in the next example.
