@@ -2256,7 +2256,7 @@ cdef class BusinessMixin(SingleConstructorOffset):
         day offsets, this returns the weekmask that was specified or the default
         'Mon Tue Wed Thu Fri'.
 
-        Returns
+        Returnsq
         -------
         str or None
             String representing valid business days (e.g., 'Mon Tue Wed Thu Fri'),
@@ -6395,6 +6395,23 @@ cdef class CustomBusinessMonthEnd(_CustomBusinessMonth):
 
     _prefix = "CBME"
 
+    def __init__(
+        self,
+        n=1,
+        normalize=False,
+        weekmask="Mon Tue Wed Thu Fri",
+        holidays=None,
+        calendar=None,
+        offset=timedelta(0),
+    ):
+        super().__init__(
+            n=n,
+            normalize=normalize,
+            weekmask=weekmask,
+            holidays=holidays,
+            calendar=calendar,
+            offset=offset,
+        )
 
 cdef class CustomBusinessMonthBegin(_CustomBusinessMonth):
     """
@@ -6458,6 +6475,23 @@ cdef class CustomBusinessMonthBegin(_CustomBusinessMonth):
 
     _prefix = "CBMS"
 
+    def __init__(
+        self,
+        n=1,
+        normalize=False,
+        weekmask="Mon Tue Wed Thu Fri",
+        holidays=None,
+        calendar=None,
+        offset=timedelta(0),
+    ):
+        super().__init__(
+            n=n,
+            normalize=normalize,
+            weekmask=weekmask,
+            holidays=holidays,
+            calendar=calendar,
+            offset=offset,
+        )
 
 BDay = BusinessDay
 BMonthEnd = BusinessMonthEnd
