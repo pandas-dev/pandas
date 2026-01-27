@@ -6357,6 +6357,7 @@ cdef class CustomBusinessMonthEnd(_CustomBusinessMonth):
             Calendar to integrate.
         * offset : timedelta, default timedelta(0)
             Time offset to apply.
+
     See Also
     --------
     :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
