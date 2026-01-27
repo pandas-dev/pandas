@@ -217,6 +217,10 @@ cdef _get_calendar(weekmask, holidays, calendar):
             pass
         return calendar, holidays
 
+    if calendar is not None:
+        if getattr(calendar, "holidays", None) is None:
+            raise TypeError("Custom subclasses only accept np.busdaycalendar.")
+
     if holidays is None:
         holidays = []
     try:
@@ -2076,13 +2080,6 @@ cdef class BusinessMixin(SingleConstructorOffset):
         """
         Additional __init__ for Custom subclasses.
         """
-        if (
-            calendar is not None
-            and not isinstance(calendar, np.busdaycalendar)
-        ):
-            raise TypeError(
-                "Custom subclasses only accept np.busdaycalendar."
-            )
         calendar, holidays = _get_calendar(
             weekmask=weekmask, holidays=holidays, calendar=calendar
         )
