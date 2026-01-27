@@ -9,11 +9,11 @@ including other versions of pandas.
 {{ header }}
 
 .. ---------------------------------------------------------------------------
-.. _whatsnew_301.bugs:
+.. _whatsnew_301.bug_fixes:
 
 Bug fixes
 ^^^^^^^^^
-
+- Bug in indexing a MultiIndex-ed DataFrame (only) with a scalar on a level and a slice on another doesn't drop a level (:issue:`62926`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_301.contributors:

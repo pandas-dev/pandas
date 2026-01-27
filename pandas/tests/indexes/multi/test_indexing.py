@@ -871,7 +871,7 @@ def test_timestamp_multiindex_indexer():
         ]
     )
     df = DataFrame({"foo": np.arange(len(idx))}, idx)
-    result = df.loc[pd.IndexSlice["2019-1-2":, "x", :], "foo"]
+    result = df.loc[pd.IndexSlice["2019-1-2":, ["x"], :], "foo"]
     qidx = MultiIndex.from_product(
         [
             date_range(

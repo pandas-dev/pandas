@@ -113,7 +113,7 @@ class TestMultiIndexPartial:
         expected = df.loc[("a", "y")][[1, 0]]
         tm.assert_frame_equal(result, expected)
 
-        with pytest.raises(KeyError, match=r"\('a', 'foo'\)"):
+        with pytest.raises(KeyError, match=r"'foo'"):
             df.loc[("a", "foo"), :]
 
     def test_partial_set(

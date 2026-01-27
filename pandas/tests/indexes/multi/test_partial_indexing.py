@@ -42,7 +42,6 @@ def test_partial_string_matching_single_index(df):
         just_a = df_swap.loc["a"]
         result = just_a.loc["2016-01-01"]
         expected = df.loc[IndexSlice[:, "a"], :].iloc[0:2]
-        expected.index = expected.index.droplevel(1)
         tm.assert_frame_equal(result, expected)
 
 
@@ -122,7 +121,6 @@ def test_partial_string_timestamp_multiindex(df):
     # tuple selector with partial string match on date
     # "2016-01-01" has daily resolution, so _is_ a slice on the first level.
     result = df.loc[("2016-01-01", "a"), :]
-    expected = df.iloc[[0, 3]]
     expected = df.iloc[[0, 3]].droplevel(1)
     tm.assert_frame_equal(result, expected)
 
