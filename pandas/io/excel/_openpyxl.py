@@ -34,6 +34,23 @@ if TYPE_CHECKING:
         WriteExcelBuffer,
     )
 
+def _fill_merged_cells(ws):
+    for merged in ws.merged_cells.ranges:
+        min_row, min_col, max_row, max_col = (
+            merged.min_row,
+            merged.min_col,
+            merged.max_row,
+            merged.max_col,
+        )
+        value = ws.cell(row=min_row, column=min_col).value
+        for row in ws.iter_rows(
+            min_row=min_row,
+            max_row=max_row,
+            min_col=min_col,
+            max_col=max_col,
+        ):
+            for cell in row:
+                cell.value = value
 
 class OpenpyxlWriter(ExcelWriter):
     _engine = "openpyxl"
@@ -616,8 +633,10 @@ class OpenpyxlReader(BaseExcelReader["Workbook"]):
         return cell.value
 
     def get_sheet_data(
-        self, sheet, file_rows_needed: int | None = None
+        self, sheet, file_rows_needed: int | None = None, fill_merged_cells: bool = False, 
     ) -> list[list[Scalar]]:
+        if fill_merged_cells and sheet.merged_cells.ranges:
+            _fill_merged_cells(sheet) 
         if self.book.read_only:
             sheet.reset_dimensions()
 
