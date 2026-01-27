@@ -319,6 +319,7 @@ def length_of_indexer(indexer, target=None) -> int:
     elif isinstance(indexer, (ABCSeries, ABCIndex, np.ndarray, list)):
         if isinstance(indexer, list):
             indexer = np.array(indexer)
+
         if indexer.dtype == bool:
             # GH#25774
             return indexer.sum()
