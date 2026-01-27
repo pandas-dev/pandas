@@ -6343,18 +6343,20 @@ cdef class CustomBusinessMonthEnd(_CustomBusinessMonth):
     ----------
     n : int, default 1
         The number of months represented.
-    normalize : bool, default False
-        Normalize end dates to midnight before generating date range.
-    weekmask : str, Default 'Mon Tue Wed Thu Fri'
-        Weekmask of valid business days, passed to ``numpy.busdaycalendar``.
-    holidays : list
-        List/array of dates to exclude from the set of valid business days,
-        passed to ``numpy.busdaycalendar``.
-    calendar : np.busdaycalendar
-        Calendar to integrate.
-    offset : timedelta, default timedelta(0)
-        Time offset to apply.
+    **kwds
+        Optional arguments that are passed to the constructor.
 
+        * normalize : bool, default False
+            Normalize end dates to midnight before generating date range.
+        * weekmask : str, Default 'Mon Tue Wed Thu Fri'
+            Weekmask of valid business days, passed to ``numpy.busdaycalendar``.
+        * holidays : list
+            List/array of dates to exclude from the set of valid business days,
+            passed to ``numpy.busdaycalendar``.
+        * calendar : np.busdaycalendar
+            Calendar to integrate.
+        * offset : timedelta, default timedelta(0)
+            Time offset to apply.
     See Also
     --------
     :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
@@ -6391,10 +6393,6 @@ cdef class CustomBusinessMonthEnd(_CustomBusinessMonth):
                    dtype='datetime64[ns]', freq='CBME')
     """
 
-    _attributes = tuple(
-        ["n", "normalize", "weekmask", "holidays", "calendar", "offset"]
-    )
-
     _prefix = "CBME"
 
 
@@ -6408,17 +6406,20 @@ cdef class CustomBusinessMonthBegin(_CustomBusinessMonth):
     ----------
     n : int, default 1
         The number of months represented.
-    normalize : bool, default False
-        Normalize start dates to midnight before generating date range.
-    weekmask : str, Default 'Mon Tue Wed Thu Fri'
-        Weekmask of valid business days, passed to ``numpy.busdaycalendar``.
-    holidays : list
-        List/array of dates to exclude from the set of valid business days,
-        passed to ``numpy.busdaycalendar``.
-    calendar : np.busdaycalendar
-        Calendar to integrate.
-    offset : timedelta, default timedelta(0)
-        Time offset to apply.
+    **kwds
+        Optional arguments that are passed to the constructor.
+
+        * normalize : bool, default False
+            Normalize start dates to midnight before generating date range.
+        * weekmask : str, Default 'Mon Tue Wed Thu Fri'
+            Weekmask of valid business days, passed to ``numpy.busdaycalendar``.
+        * holidays : list
+            List/array of dates to exclude from the set of valid business days,
+            passed to ``numpy.busdaycalendar``.
+        * calendar : np.busdaycalendar
+            Calendar to integrate.
+        * offset : timedelta, default timedelta(0)
+            Time offset to apply.
 
     See Also
     --------
