@@ -6365,7 +6365,15 @@ cdef class _CustomBusinessMonth(BusinessMixin):
         return result
 
 
-cdef class CustomBusinessMonthEnd(_CustomBusinessMonth):
+cdef class _CustomBusinessMonthEnd(_CustomBusinessMonth):
+    _prefix = "CBME"
+
+
+cdef class _CustomBusinessMonthBegin(_CustomBusinessMonth):
+    _prefix = "CBMS"
+
+
+class CustomBusinessMonthEnd(_CustomBusinessMonthEnd):
     """
     DateOffset subclass representing custom business month(s).
 
@@ -6423,10 +6431,26 @@ cdef class CustomBusinessMonthEnd(_CustomBusinessMonth):
                    dtype='datetime64[ns]', freq='CBME')
     """
 
-    _prefix = "CBME"
+    def __init__(
+        self,
+        n=1,
+        normalize=False,
+        weekmask="Mon Tue Wed Thu Fri",
+        holidays=None,
+        calendar=None,
+        offset=timedelta(0),
+    ):
+        super().__init__(
+            n=n,
+            normalize=normalize,
+            weekmask=weekmask,
+            holidays=holidays,
+            calendar=calendar,
+            offset=offset,
+        )
 
 
-cdef class CustomBusinessMonthBegin(_CustomBusinessMonth):
+class CustomBusinessMonthBegin(_CustomBusinessMonthBegin):
     """
     DateOffset subclass representing custom business month(s).
 
@@ -6484,7 +6508,23 @@ cdef class CustomBusinessMonthBegin(_CustomBusinessMonth):
                    dtype='datetime64[ns]', freq='CBMS')
     """
 
-    _prefix = "CBMS"
+    def __init__(
+        self,
+        n=1,
+        normalize=False,
+        weekmask="Mon Tue Wed Thu Fri",
+        holidays=None,
+        calendar=None,
+        offset=timedelta(0),
+    ):
+        super().__init__(
+            n=n,
+            normalize=normalize,
+            weekmask=weekmask,
+            holidays=holidays,
+            calendar=calendar,
+            offset=offset,
+        )
 
 
 BDay = BusinessDay
@@ -6493,34 +6533,6 @@ BMonthBegin = BusinessMonthBegin
 CBMonthEnd = CustomBusinessMonthEnd
 CBMonthBegin = CustomBusinessMonthBegin
 CDay = CustomBusinessDay
-
-# Add __signature__ for Cython classes to enable docstring parameter validation
-from inspect import (
-    Parameter,
-    Signature,
-)
-
-CBMonthBegin.__signature__ = Signature([
-    Parameter("n", Parameter.POSITIONAL_OR_KEYWORD, default=1),
-    Parameter("normalize", Parameter.POSITIONAL_OR_KEYWORD, default=False),
-    Parameter(
-        "weekmask", Parameter.POSITIONAL_OR_KEYWORD, default="Mon Tue Wed Thu Fri"
-    ),
-    Parameter("holidays", Parameter.POSITIONAL_OR_KEYWORD, default=None),
-    Parameter("calendar", Parameter.POSITIONAL_OR_KEYWORD, default=None),
-    Parameter("offset", Parameter.POSITIONAL_OR_KEYWORD, default=timedelta(0)),
-])
-
-CBMonthEnd.__signature__ = Signature([
-    Parameter("n", Parameter.POSITIONAL_OR_KEYWORD, default=1),
-    Parameter("normalize", Parameter.POSITIONAL_OR_KEYWORD, default=False),
-    Parameter(
-        "weekmask", Parameter.POSITIONAL_OR_KEYWORD, default="Mon Tue Wed Thu Fri"
-    ),
-    Parameter("holidays", Parameter.POSITIONAL_OR_KEYWORD, default=None),
-    Parameter("calendar", Parameter.POSITIONAL_OR_KEYWORD, default=None),
-    Parameter("offset", Parameter.POSITIONAL_OR_KEYWORD, default=timedelta(0)),
-])
 
 # ----------------------------------------------------------------------
 # to_offset helpers
