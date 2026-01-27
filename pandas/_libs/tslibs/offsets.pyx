@@ -6356,7 +6356,7 @@ cdef class CustomBusinessMonthEnd(_CustomBusinessMonth):
     n : int, default 1
         The number of months represented.
     normalize : bool, default False
-        Normalize start dates to midnight before generating date range.
+        Normalize end dates to midnight before generating date range.
     weekmask : str, Default 'Mon Tue Wed Thu Fri'
         Weekmask of valid business days, passed to ``numpy.busdaycalendar``.
     holidays : list
