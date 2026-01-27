@@ -153,6 +153,21 @@ def memory_usage_of_objects(ndarray[object, ndim=1] arr) -> int64_t:
 
 # ----------------------------------------------------------------------
 
+def some_internal_function() -> bool:
+    """
+    Some docstring
+
+    Returns
+    -------
+    bool
+        Returns True.
+
+    Examples
+    --------
+    >>> assert False, "Doctest failed"
+    """
+    return True
+
 
 @set_module("pandas.api.types")
 def is_scalar(val: object) -> bool:
@@ -210,6 +225,8 @@ def is_scalar(val: object) -> bool:
     >>> from fractions import Fraction
     >>> pd.api.types.is_scalar(Fraction(3, 5))
     True
+
+    >>> assert False, "Doctest failed"
     """
 
     # Start with C-optimized checks
