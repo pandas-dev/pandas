@@ -512,7 +512,6 @@ exclude = [
 "pandas/tests/reshape/test_qcut.py" = ["B905"]
 "pandas/tests/scalar/period/test_asfreq.py" = ["B905"]
 "pandas/tests/series/accessors/test_dt_accessor.py" = ["B905"]
-"pandas/tests/series/indexing/test_get.py" = ["B905"]
 "pandas/tests/series/test_api.py" = ["B905"]
 "pandas/tests/series/test_constructors.py" = ["B905"]
 "pandas/tests/strings/conftest.py" = ["B905"]
