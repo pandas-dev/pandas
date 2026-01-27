@@ -132,7 +132,8 @@ def comp_method_OBJECT_ARRAY(op, x, y):
         result = libops.scalar_compare(x.ravel(), y, op)
         is_pdna = [var is NA for var in x]
         if any(is_pdna):
-            result = np.where(is_pdna, NA, result)
+            arr_pdna = np.asarray([NA])
+            result = np.where(is_pdna, arr_pdna, result)
     return result.reshape(x.shape)
 
 
