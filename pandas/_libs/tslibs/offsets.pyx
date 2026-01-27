@@ -6369,10 +6369,6 @@ cdef class _CustomBusinessMonthEnd(_CustomBusinessMonth):
     _prefix = "CBME"
 
 
-cdef class _CustomBusinessMonthBegin(_CustomBusinessMonth):
-    _prefix = "CBMS"
-
-
 class CustomBusinessMonthEnd(_CustomBusinessMonthEnd):
     """
     DateOffset subclass representing custom business month(s).
@@ -6448,6 +6444,10 @@ class CustomBusinessMonthEnd(_CustomBusinessMonthEnd):
             calendar=calendar,
             offset=offset,
         )
+
+
+cdef class _CustomBusinessMonthBegin(_CustomBusinessMonth):
+    _prefix = "CBMS"
 
 
 class CustomBusinessMonthBegin(_CustomBusinessMonthBegin):
