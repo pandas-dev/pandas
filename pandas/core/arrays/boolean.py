@@ -394,7 +394,7 @@ class BooleanArray(BaseMaskedArray):
         if isinstance(other, BooleanArray):
             other, mask = other._data, other._mask
         elif is_list_like(other):
-            other = np.asarray(other, dtype="bool")
+            other = np.asarray(other, dtype=object)
             if other.ndim > 1:
                 return NotImplemented
             other, mask = coerce_to_array(other, copy=False)
