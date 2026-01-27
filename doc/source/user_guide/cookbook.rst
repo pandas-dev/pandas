@@ -901,7 +901,7 @@ may be slow for large datasets.
        return (weights * values).sum() / weights.sum()
 
    result = (
-       df_clean["value"]
+       df["value"]
        .rolling("7h")
        .apply(decay_weighted_mean)
    )
