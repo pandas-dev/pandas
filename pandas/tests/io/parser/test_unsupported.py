@@ -13,6 +13,7 @@ from pathlib import Path
 
 import pytest
 
+from pandas.compat import HAS_PYARROW
 from pandas.errors import ParserError
 
 import pandas._testing as tm
@@ -205,3 +206,26 @@ def test_invalid_dtype_backend(all_parsers):
     )
     with pytest.raises(ValueError, match=msg):
         parser.read_csv("test", dtype_backend="numpy")
+
+
+@pytest.mark.parametrize("engine", ["c", "python"])
+def test_to_pandas_kwargs_non_pyarrow_engine(engine):
+    data = "a,b\n1,2\n3,4"
+    msg = "The 'to_pandas_kwargs' option is only supported with the 'pyarrow' engine"
+
+    with pytest.raises(ValueError, match=msg):
+        read_csv(
+            StringIO(data), engine=engine, to_pandas_kwargs={"self_destruct": False}
+        )
+
+
+@pytest.mark.skipif(not HAS_PYARROW, reason="pyarrow is not installed")
+def test_to_pandas_kwargs_invalid():
+    data = "a,b\n1,2\n3,4"
+
+    with pytest.raises(TypeError, match="unexpected keyword argument"):
+        read_csv(
+            StringIO(data),
+            engine="pyarrow",
+            to_pandas_kwargs={"invalid_kwarg": True},
+        )
