@@ -43,7 +43,7 @@ dependencies:
   - pyqt>=5.15.9
   - openpyxl>=3.1.5
   - psycopg2>=2.9.10
-  - pyarrow>=13.0.0,<=22.0.0 # https://github.com/apache/arrow/issues/49003
+  - pyarrow>=13.0.0
   - pymysql>=1.1.1
   - pyreadstat>=1.2.8
   - pytables>=3.10.1
