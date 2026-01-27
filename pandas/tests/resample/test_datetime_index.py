@@ -8,7 +8,6 @@ import pytest
 from pandas._libs import lib
 from pandas._libs.tslibs import Day
 from pandas._typing import DatetimeNaTType
-from pandas.compat import is_platform_windows
 from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
@@ -2138,16 +2137,7 @@ def test_resample_b_55282(unit):
 @td.skip_if_no("pyarrow")
 @pytest.mark.parametrize(
     "tz",
-    [
-        None,
-        pytest.param(
-            "UTC",
-            marks=pytest.mark.xfail(
-                condition=is_platform_windows(),
-                reason="TODO: Set ARROW_TIMEZONE_DATABASE env var in CI",
-            ),
-        ),
-    ],
+    [None, "UTC"],
 )
 def test_arrow_timestamp_resample(tz):
     # GH 56371
