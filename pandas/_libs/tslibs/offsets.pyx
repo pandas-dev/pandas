@@ -6339,7 +6339,6 @@ cdef class CustomBusinessMonthEnd(_CustomBusinessMonth):
 
     Increments between end of month dates.
 
-
     Parameters
     ----------
     n : int, default 1
@@ -6365,7 +6364,8 @@ cdef class CustomBusinessMonthEnd(_CustomBusinessMonth):
 
     >>> ts = pd.Timestamp(2022, 8, 5)
     >>> ts + pd.offsets.CustomBusinessMonthEnd()
-    
+    Timestamp('2022-08-31 00:00:00')
+
     Custom business month end can be specified by ``weekmask`` parameter.
     To convert the returned datetime object to its string representation
     the function strftime() is used in the next example.
