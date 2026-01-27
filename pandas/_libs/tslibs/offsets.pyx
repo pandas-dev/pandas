@@ -6392,7 +6392,7 @@ cdef class CustomBusinessMonthEnd(_CustomBusinessMonth):
     """
 
     _attributes = ["n", "normalize", "weekmask", "holidays", "calendar", "offset"]
-    
+
     _prefix = "CBME"
 
 
@@ -6455,7 +6455,7 @@ cdef class CustomBusinessMonthBegin(_CustomBusinessMonth):
     """
 
     _attributes = ["n", "normalize", "weekmask", "holidays", "calendar", "offset"]
-    
+
     _prefix = "CBMS"
 
 
