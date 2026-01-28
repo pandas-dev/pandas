@@ -7,6 +7,10 @@ Style
 =====
 .. currentmodule:: pandas.io.formats.style
 
+.. note::
+
+   For more information on styling, see the :ref:`User Guide <style>`.
+
 ``Styler`` objects are returned by :attr:`pandas.DataFrame.style`.
 
 Styler constructor

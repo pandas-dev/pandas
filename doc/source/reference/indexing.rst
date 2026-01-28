@@ -10,6 +10,10 @@ Index
 -----
 .. currentmodule:: pandas
 
+.. note::
+
+   For more information on indexing, see the :ref:`User Guide <indexing>`.
+
 **Many of these methods or variants thereof are available on the objects
 that contain an index (Series/DataFrame) and those should most likely be
 used before calling these methods directly.**

@@ -11,6 +11,10 @@ GroupBy
 instances are returned by groupby calls :func:`pandas.DataFrame.groupby` and
 :func:`pandas.Series.groupby` respectively.
 
+.. note::
+
+   For more information on GroupBy, see the :ref:`User Guide <groupby>`.
+
 Indexing, iteration
 -------------------
 .. autosummary::
