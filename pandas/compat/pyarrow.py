@@ -30,4 +30,5 @@ except ImportError:
     pa_version_under19p0 = True
     pa_version_under20p0 = True
     pa_version_under21p0 = True
+    pa_version_under22p0 = True
     HAS_PYARROW = False
