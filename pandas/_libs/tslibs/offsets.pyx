@@ -217,6 +217,11 @@ cdef _get_calendar(weekmask, holidays, calendar):
             pass
         return calendar, holidays
 
+    elif calendar is not None:
+        from pandas.tseries.holiday import AbstractHolidayCalendar
+        if not isinstance(calendar, AbstractHolidayCalendar):
+            raise TypeError("Custom subclasses only accept np.busdaycalendar.")
+
     if holidays is None:
         holidays = []
     try:
@@ -6365,7 +6370,11 @@ cdef class _CustomBusinessMonth(BusinessMixin):
         return result
 
 
-cdef class CustomBusinessMonthEnd(_CustomBusinessMonth):
+cdef class _CustomBusinessMonthEnd(_CustomBusinessMonth):
+    _prefix = "CBME"
+
+
+class CustomBusinessMonthEnd(_CustomBusinessMonthEnd):
     """
     DateOffset subclass representing custom business month(s).
 
@@ -6423,10 +6432,30 @@ cdef class CustomBusinessMonthEnd(_CustomBusinessMonth):
                    dtype='datetime64[ns]', freq='CBME')
     """
 
-    _prefix = "CBME"
+    def __init__(
+        self,
+        n=1,
+        normalize=False,
+        weekmask="Mon Tue Wed Thu Fri",
+        holidays=None,
+        calendar=None,
+        offset=timedelta(0),
+    ):
+        super().__init__(
+            n=n,
+            normalize=normalize,
+            weekmask=weekmask,
+            holidays=holidays,
+            calendar=calendar,
+            offset=offset,
+        )
 
 
-cdef class CustomBusinessMonthBegin(_CustomBusinessMonth):
+cdef class _CustomBusinessMonthBegin(_CustomBusinessMonth):
+    _prefix = "CBMS"
+
+
+class CustomBusinessMonthBegin(_CustomBusinessMonthBegin):
     """
     DateOffset subclass representing custom business month(s).
 
@@ -6484,7 +6513,23 @@ cdef class CustomBusinessMonthBegin(_CustomBusinessMonth):
                    dtype='datetime64[ns]', freq='CBMS')
     """
 
-    _prefix = "CBMS"
+    def __init__(
+        self,
+        n=1,
+        normalize=False,
+        weekmask="Mon Tue Wed Thu Fri",
+        holidays=None,
+        calendar=None,
+        offset=timedelta(0),
+    ):
+        super().__init__(
+            n=n,
+            normalize=normalize,
+            weekmask=weekmask,
+            holidays=holidays,
+            calendar=calendar,
+            offset=offset,
+        )
 
 
 BDay = BusinessDay

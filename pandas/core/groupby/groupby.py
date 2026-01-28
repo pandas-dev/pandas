@@ -1541,6 +1541,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Notes
         -----
+        See :ref:`groupby.apply` in the User Guide for more details and examples.
+
         The resulting dtype will reflect the return value of the passed ``func``,
         see the examples below.
 
