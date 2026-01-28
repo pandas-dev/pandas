@@ -272,6 +272,7 @@ cdef class IndexEngine:
                 self.monotonic_dec = 1
 
     @property
+    @cython.critical_section
     def is_unique(self) -> bool:
         # for why we check is_monotonic_increasing here, see
         # https://github.com/pandas-dev/pandas/pull/55342#discussion_r1361405781
@@ -286,6 +287,7 @@ cdef class IndexEngine:
         self._ensure_mapping_populated()
 
     @property
+    @cython.critical_section
     def is_monotonic_increasing(self) -> bool:
         if self.need_monotonic_check:
             self._do_monotonic_check()
@@ -293,6 +295,7 @@ cdef class IndexEngine:
         return self.monotonic_inc == 1
 
     @property
+    @cython.critical_section
     def is_monotonic_decreasing(self) -> bool:
         if self.need_monotonic_check:
             self._do_monotonic_check()
@@ -336,6 +339,7 @@ cdef class IndexEngine:
         return val
 
     @property
+    @cython.critical_section
     def is_mapping_populated(self) -> bool:
         return self.mapping is not None
 
