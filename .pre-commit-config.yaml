@@ -233,6 +233,21 @@ repos:
         files: ^(environment.yml|requirements-dev.txt)$
         pass_filenames: false
         additional_dependencies: [pyyaml]
+    -   id: arrow-fallback-docs-sync
+        # note: requires pandas-dev environment to be activated
+        name: Check arrow fallback documentation is in sync
+        language: system
+        entry: python -m scripts.generate_arrow_fallback_table --check
+        files: |
+            (?x)
+            ^scripts/generate_arrow_fallback_table\.py$
+            |^pandas/core/arrays/arrow/.*\.py$
+            |^pandas/core/arrays/string_arrow\.py$
+            |^pandas/core/arrays/_arrow_string_mixins\.py$
+            |^pandas/core/strings/object_array\.py$
+            |^doc/source/user_guide/arrow_fallbacks\.rst$
+        pass_filenames: false
+        stages: [manual]
     -   id: title-capitalization
         name: Validate correct capitalization among titles in documentation
         entry: python scripts/validate_rst_title_capitalization.py
@@ -252,7 +267,7 @@ repos:
         types: [python]
         exclude: |
             (?x)
-            ^(asv_bench|pandas/tests|doc)/
+            ^(asv_bench|pandas/tests|doc|scripts/tests)/
             |scripts/validate_min_versions_in_sync\.py$
     -   id: unwanted-patterns-strings-with-misplaced-whitespace
         name: Check for strings with misplaced spaces
