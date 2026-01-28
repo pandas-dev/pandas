@@ -13,7 +13,7 @@ including other versions of pandas.
 
 Bug fixes
 ^^^^^^^^^
-
+- Comparison operators now supported between :class:`Series` and :class:`range` (:issue:`63429`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_301.contributors:
