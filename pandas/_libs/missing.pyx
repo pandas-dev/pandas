@@ -251,7 +251,7 @@ cdef bint checknull_with_nat_and_na(object obj):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def is_pdna_or_none(values: ndarray) -> ndarray:
+def is_pdna_or_none(object[:] values) -> ndarray:
     cdef:
         ndarray[uint8_t] result
         Py_ssize_t i, N
