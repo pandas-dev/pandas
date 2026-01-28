@@ -34,9 +34,7 @@ def test_drop_na_arrow_index():
         df.drop(index=[pd.NA])
 
     # Case where NA IS in the index (should verify it drops correctly)
-    df = pd.DataFrame(
-        {"A": [1, 2]}, index=pd.Index([1, pd.NA], dtype="int64[pyarrow]")
-    )
+    df = pd.DataFrame({"A": [1, 2]}, index=pd.Index([1, pd.NA], dtype="int64[pyarrow]"))
     result = df.drop(index=[pd.NA])
     expected = pd.DataFrame({"A": [1]}, index=pd.Index([1], dtype="int64[pyarrow]"))
     tm.assert_frame_equal(result, expected)
@@ -45,7 +43,5 @@ def test_drop_na_arrow_index():
         {"A": [1, 2]}, index=pd.Index(["a", pd.NA], dtype="string[pyarrow]")
     )
     result = df.drop(index=[pd.NA])
-    expected = pd.DataFrame(
-        {"A": [1]}, index=pd.Index(["a"], dtype="string[pyarrow]")
-    )
+    expected = pd.DataFrame({"A": [1]}, index=pd.Index(["a"], dtype="string[pyarrow]"))
     tm.assert_frame_equal(result, expected)
