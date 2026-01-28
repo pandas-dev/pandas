@@ -410,7 +410,7 @@ WindowingRankType: TypeAlias = Literal["average", "min", "max"]
 CSVEngine: TypeAlias = Literal["c", "python", "pyarrow", "python-fwf"]
 
 # read_json engines
-JSONEngine: TypeAlias = Literal["ujson", "pyarrow"]
+JSONEngine: TypeAlias = Literal["ujson", "orjson", "pyarrow"]
 
 # read_xml parsers
 XMLParsers: TypeAlias = Literal["lxml", "etree"]
