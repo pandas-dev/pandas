@@ -13,6 +13,9 @@ including other versions of pandas.
 
 Bug fixes
 ^^^^^^^^^
+- Fixed bug in :class:`Series` construction where a 2D list-like with an explicit
+  dtype could silently produce an object-dtype result instead of raising
+  ``ValueError`` for non-1D data.
 
 
 .. ---------------------------------------------------------------------------
