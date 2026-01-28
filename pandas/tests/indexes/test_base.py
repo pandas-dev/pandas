@@ -1749,3 +1749,135 @@ def test_index_comparison_different_string_dtype(string_dtype_no_object):
     result = s_str > s_obj
     expected.index = idx.astype(string_dtype_no_object)
     assert_series_equal(result, expected)
+
+
+
+class TestIndexEqualsCheckDtype:
+    """Tests for Index.equals() check_dtype parameter."""
+
+    def test_equals_check_dtype_default_true(self):
+        """Test that check_dtype=True is the default behavior."""
+        idx1 = pd.Index([1, 2, 3], dtype='int32')
+        idx2 = pd.Index([1, 2, 3], dtype='int64')
+
+        # Different dtypes should not be equal with default
+        assert idx1.equals(idx2) is False
+        assert idx1.equals(idx2, check_dtype=True) is False
+
+    def test_equals_check_dtype_false_int(self):
+        """Test check_dtype=False with integer indexes."""
+        idx1 = pd.Index([1, 2, 3], dtype='int32')
+        idx2 = pd.Index([1, 2, 3], dtype='int64')
+
+        assert idx1.equals(idx2, check_dtype=False) is True
+
+    def test_equals_check_dtype_false_uint_int(self):
+        """Test check_dtype=False with signed/unsigned integers."""
+        idx1 = pd.Index([1, 2, 3], dtype='int64')
+        idx2 = pd.Index([1, 2, 3], dtype='uint64')
+
+        assert idx1.equals(idx2, check_dtype=False) is True
+
+    def test_equals_check_dtype_false_different_values(self):
+        """Even with check_dtype=False, different values return False."""
+        idx1 = pd.Index([1, 2, 3])
+        idx2 = pd.Index([1, 2, 4])
+
+        assert idx1.equals(idx2, check_dtype=False) is False
+
+    def test_equals_check_dtype_false_float_int(self):
+        """Test check_dtype=False with float and int indexes."""
+        idx1 = pd.Index([1, 2, 3], dtype='int64')
+        idx2 = pd.Index([1.0, 2.0, 3.0], dtype='float64')
+
+        assert idx1.equals(idx2, check_dtype=False) is True
+
+    def test_equals_check_dtype_false_different_lengths(self):
+        """Different lengths should return False regardless of check_dtype."""
+        idx1 = pd.Index([1, 2, 3])
+        idx2 = pd.Index([1, 2])
+
+        assert idx1.equals(idx2, check_dtype=False) is False
+        assert idx1.equals(idx2, check_dtype=True) is False
+
+    def test_equals_check_dtype_true_strict(self):
+        """check_dtype=True should be strict about dtypes."""
+        idx1 = pd.Index([1, 2, 3], dtype='int32')
+        idx2 = pd.Index([1, 2, 3], dtype='int32')
+        idx3 = pd.Index([1, 2, 3], dtype='int64')
+
+        assert idx1.equals(idx2, check_dtype=True) is True
+        assert idx1.equals(idx3, check_dtype=True) is False
+
+    def test_equals_check_dtype_with_none_values(self):
+        """Test equals with None/NaN values."""
+        idx1 = pd.Index([1, 2, None], dtype=object)
+        idx2 = pd.Index([1, 2, None], dtype=object)
+
+        assert idx1.equals(idx2, check_dtype=True) is True
+        assert idx1.equals(idx2, check_dtype=False) is True
+
+class TestIndexEqualsCheckDtype:
+    """Tests for Index.equals() check_dtype parameter."""
+
+    def test_equals_check_dtype_default_true(self):
+        """Test that check_dtype=True is the default behavior."""
+        idx1 = pd.Index([1, 2, 3], dtype='int32')
+        idx2 = pd.Index([1, 2, 3], dtype='int64')
+
+        # Different dtypes should not be equal with default
+        assert idx1.equals(idx2) is False
+        assert idx1.equals(idx2, check_dtype=True) is False
+
+    def test_equals_check_dtype_false_int(self):
+        """Test check_dtype=False with integer indexes."""
+        idx1 = pd.Index([1, 2, 3], dtype='int32')
+        idx2 = pd.Index([1, 2, 3], dtype='int64')
+
+        assert idx1.equals(idx2, check_dtype=False) is True
+
+    def test_equals_check_dtype_false_uint_int(self):
+        """Test check_dtype=False with signed/unsigned integers."""
+        idx1 = pd.Index([1, 2, 3], dtype='int64')
+        idx2 = pd.Index([1, 2, 3], dtype='uint64')
+
+        assert idx1.equals(idx2, check_dtype=False) is True
+
+    def test_equals_check_dtype_false_different_values(self):
+        """Even with check_dtype=False, different values return False."""
+        idx1 = pd.Index([1, 2, 3])
+        idx2 = pd.Index([1, 2, 4])
+
+        assert idx1.equals(idx2, check_dtype=False) is False
+
+    def test_equals_check_dtype_false_float_int(self):
+        """Test check_dtype=False with float and int indexes."""
+        idx1 = pd.Index([1, 2, 3], dtype='int64')
+        idx2 = pd.Index([1.0, 2.0, 3.0], dtype='float64')
+
+        assert idx1.equals(idx2, check_dtype=False) is True
+
+    def test_equals_check_dtype_false_different_lengths(self):
+        """Different lengths should return False regardless of check_dtype."""
+        idx1 = pd.Index([1, 2, 3])
+        idx2 = pd.Index([1, 2])
+
+        assert idx1.equals(idx2, check_dtype=False) is False
+        assert idx1.equals(idx2, check_dtype=True) is False
+
+    def test_equals_check_dtype_true_strict(self):
+        """check_dtype=True should be strict about dtypes."""
+        idx1 = pd.Index([1, 2, 3], dtype='int32')
+        idx2 = pd.Index([1, 2, 3], dtype='int32')
+        idx3 = pd.Index([1, 2, 3], dtype='int64')
+
+        assert idx1.equals(idx2, check_dtype=True) is True
+        assert idx1.equals(idx3, check_dtype=True) is False
+
+    def test_equals_check_dtype_with_none_values(self):
+        """Test equals with None/NaN values."""
+        idx1 = pd.Index([1, 2, None], dtype=object)
+        idx2 = pd.Index([1, 2, None], dtype=object)
+
+        assert idx1.equals(idx2, check_dtype=True) is True
+        assert idx1.equals(idx2, check_dtype=False) is True

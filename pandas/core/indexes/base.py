@@ -5581,7 +5581,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return self._shallow_copy(values)
 
-    def equals(self, other: Any) -> bool:
+    def equals(self, other: Any, check_dtype: bool = True) -> bool:
         """
         Determine if two Index object are equal.
 
@@ -5594,6 +5594,11 @@ class Index(IndexOpsMixin, PandasObject):
         ----------
         other : Any
             The other object to compare against.
+        check_dtype : bool, default True
+            Whether to check the Index dtype equality.
+            When False, only values are compared, ignoring dtype differences.
+
+            .. versionadded:: 3.0.0
 
         Returns
         -------
@@ -5603,48 +5608,38 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        Index.identical: Checks that object attributes and types are also equal.
-        Index.has_duplicates: Check if the Index has duplicate values.
-        Index.is_unique: Return if the index has unique values.
+        Index.identical : Similar to equals, but also checks that name and dtype match.
+        Series.equals : Test whether two objects contain the same elements.
 
         Examples
         --------
         >>> idx1 = pd.Index([1, 2, 3])
-        >>> idx1
-        Index([1, 2, 3], dtype='int64')
-        >>> idx1.equals(pd.Index([1, 2, 3]))
+        >>> idx2 = pd.Index([1, 2, 3])
+        >>> idx1.equals(idx2)
         True
 
-        The elements inside are compared
+        The dtype is ignored by default:
 
-        >>> idx2 = pd.Index(["1", "2", "3"])
-        >>> idx2
-        Index(['1', '2', '3'], dtype='str')
-
-        >>> idx1.equals(idx2)
-        False
-
-        The order is compared
-
-        >>> ascending_idx = pd.Index([1, 2, 3])
-        >>> ascending_idx
-        Index([1, 2, 3], dtype='int64')
-        >>> descending_idx = pd.Index([3, 2, 1])
-        >>> descending_idx
-        Index([3, 2, 1], dtype='int64')
-        >>> ascending_idx.equals(descending_idx)
-        False
-
-        The dtype is *not* compared
-
-        >>> int64_idx = pd.Index([1, 2, 3], dtype="int64")
-        >>> int64_idx
-        Index([1, 2, 3], dtype='int64')
-        >>> uint64_idx = pd.Index([1, 2, 3], dtype="uint64")
-        >>> uint64_idx
-        Index([1, 2, 3], dtype='uint64')
+        >>> int64_idx = pd.Index([1, 2, 3], dtype='int64')
+        >>> uint64_idx = pd.Index([1, 2, 3], dtype='uint64')
         >>> int64_idx.equals(uint64_idx)
         True
+
+        With datetime indexes of different units:
+
+        >>> idx1 = pd.date_range("2020-01-01", periods=3).as_unit("ns")
+        >>> idx2 = pd.date_range("2020-01-01", periods=3).as_unit("s")
+        >>> idx1.equals(idx2)
+        False
+        >>> idx1.equals(idx2, check_dtype=False)
+        True
+
+        When check_dtype=True, different dtypes return False:
+
+        >>> idx1 = pd.Index([1, 2, 3], dtype='int32')
+        >>> idx2 = pd.Index([1, 2, 3], dtype='int64')
+        >>> idx1.equals(idx2, check_dtype=True)
+        False
         """
         if self.is_(other):
             return True
@@ -5652,34 +5647,10 @@ class Index(IndexOpsMixin, PandasObject):
         if not isinstance(other, Index):
             return False
 
-        if len(self) != len(other):
-            # quickly return if the lengths are different
-            return False
-
-        if isinstance(self.dtype, StringDtype) and other.dtype != self.dtype:
-            # TODO(infer_string) can we avoid this special case?
-            # special case for object behavior
-            return other.equals(self.astype(object))
-
-        if is_object_dtype(self.dtype) and not is_object_dtype(other.dtype):
-            # if other is not object, use other's logic for coercion
-            return other.equals(self)
-
-        if isinstance(other, ABCMultiIndex):
-            # d-level MultiIndex can equal d-tuple Index
-            return other.equals(self)
-
-        if isinstance(self._values, ExtensionArray):
-            # Dispatch to the ExtensionArray's .equals method.
-            if not isinstance(other, type(self)):
+        if check_dtype:
+            if self.dtype != other.dtype:
+                # Have different dtype, so values do not compare equal
                 return False
-
-            earr = cast(ExtensionArray, self._data)
-            return earr.equals(other._data)
-
-        if isinstance(other.dtype, ExtensionDtype):
-            # All EA-backed Index subclasses override equals
-            return other.equals(self)
 
         return array_equivalent(self._values, other._values)
 

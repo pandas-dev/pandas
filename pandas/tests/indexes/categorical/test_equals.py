@@ -94,3 +94,56 @@ class TestEquals:
         idx = CategoricalIndex(list("abc"), name="B")
         other = Index(["a", "b", "c"], name="B", dtype=any_string_dtype)
         assert idx.equals(other)
+
+
+class TestCategoricalIndexEqualsCheckDtype:
+    """Tests for CategoricalIndex.equals() with check_dtype parameter."""
+
+    def test_equals_categorical_ordered_check_dtype(self):
+        """Test categorical indexes with ordered=True/False."""
+        idx1 = pd.CategoricalIndex(["a", "b", "c"], ordered=True)
+        idx2 = pd.CategoricalIndex(["a", "b", "c"], ordered=False)
+
+        # Different ordered flags mean different dtypes
+        assert idx1.equals(idx2, check_dtype=True) is False
+        # But values are the same
+        assert idx1.equals(idx2, check_dtype=False) is True
+
+    def test_equals_categorical_different_categories_order(self):
+        """Test categorical indexes with same categories but different order."""
+        idx1 = pd.CategoricalIndex(
+            ["a", "b"], categories=["a", "b", "c"]
+        )
+        idx2 = pd.CategoricalIndex(
+            ["a", "b"], categories=["c", "b", "a"]
+        )
+
+        # Different category ordering is a dtype difference
+        assert idx1.equals(idx2, check_dtype=True) is False
+        # Values are the same
+        assert idx1.equals(idx2, check_dtype=False) is True
+
+    def test_equals_categorical_vs_object(self):
+        """Test categorical index vs object index with same values."""
+        idx1 = pd.CategoricalIndex(["a", "b", "c"])
+        idx2 = pd.Index(["a", "b", "c"], dtype=object)
+
+        # Different types
+        assert idx1.equals(idx2, check_dtype=True) is False
+        # Same values
+        assert idx1.equals(idx2, check_dtype=False) is True
+
+    def test_equals_categorical_same_dtype(self):
+        """Test categorical indexes with identical dtype."""
+        idx1 = pd.CategoricalIndex(["a", "b", "c"], categories=["a", "b", "c"])
+        idx2 = pd.CategoricalIndex(["a", "b", "c"], categories=["a", "b", "c"])
+
+        assert idx1.equals(idx2, check_dtype=True) is True
+        assert idx1.equals(idx2, check_dtype=False) is True
+
+    def test_equals_categorical_different_values(self):
+        """Even with check_dtype=False, different values should not be equal."""
+        idx1 = pd.CategoricalIndex(["a", "b", "c"])
+        idx2 = pd.CategoricalIndex(["a", "b", "d"])
+
+        assert idx1.equals(idx2, check_dtype=False) is False
