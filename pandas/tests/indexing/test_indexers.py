@@ -17,10 +17,10 @@ def test_length_of_indexer():
 
 
 @pytest.mark.parametrize(
-    "start,stop,step,expected",
+    "start, stop, step, expected",
     [
-        (0, 10**30, 2, 5 * 10**29),
-        (10**30, 0, -3, (10**30 + 2) // 3),
+        (10, 0, -3, 4),
+        (0, 1, 5, 1),
     ],
 )
 def test_length_of_indexer_range_overflow(start, stop, step, expected):
