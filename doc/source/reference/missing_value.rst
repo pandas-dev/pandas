@@ -8,7 +8,7 @@ Missing values
 .. currentmodule:: pandas
 
 .. note::
-   For more information on working with missing values, see the :ref:`Working with missing data <missing_data>` section of the User Guide.
+   For an overview, see :ref:`missing_data`.
 
 NA is the way to represent missing values for nullable dtypes (see below):
 
