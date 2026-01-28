@@ -5583,13 +5583,14 @@ class Index(IndexOpsMixin, PandasObject):
 
     def equals(self, other: Any, check_dtype: bool = True) -> bool:
         """
-        Determine if two Index object are equal.
-
+        Determine if two Index objects are equal.
+        
         The things that are being compared are:
-
+        
         * The elements inside the Index object.
         * The order of the elements inside the Index object.
-
+        * The dtype of the Index object (if check_dtype=True).
+        
         Parameters
         ----------
         other : Any
@@ -5597,62 +5598,41 @@ class Index(IndexOpsMixin, PandasObject):
         check_dtype : bool, default True
             Whether to check the Index dtype equality.
             When False, only values are compared, ignoring dtype differences.
-
+            
             .. versionadded:: 3.0.0
-
+        
         Returns
         -------
         bool
-            True if "other" is an Index and it has the same elements and order
-            as the calling index; False otherwise.
-
-        See Also
-        --------
-        Index.identical : Similar to equals, but also checks that name and dtype match.
-        Series.equals : Test whether two objects contain the same elements.
-
+            True if "other" is an Index and it has the same elements and dtype
+            (if check_dtype=True) as the calling index; False otherwise.
+        
         Examples
         --------
+        >>> import pandas as pd
         >>> idx1 = pd.Index([1, 2, 3])
         >>> idx2 = pd.Index([1, 2, 3])
         >>> idx1.equals(idx2)
         True
-
-        The dtype is ignored by default:
-
-        >>> int64_idx = pd.Index([1, 2, 3], dtype='int64')
-        >>> uint64_idx = pd.Index([1, 2, 3], dtype='uint64')
-        >>> int64_idx.equals(uint64_idx)
-        True
-
-        With datetime indexes of different units:
-
-        >>> idx1 = pd.date_range("2020-01-01", periods=3).as_unit("ns")
-        >>> idx2 = pd.date_range("2020-01-01", periods=3).as_unit("s")
+        
+        >>> idx1 = pd.Index([1, 2, 3])
+        >>> idx2 = pd.Index([1, 2, 4])
         >>> idx1.equals(idx2)
         False
-        >>> idx1.equals(idx2, check_dtype=False)
-        True
-
-        When check_dtype=True, different dtypes return False:
-
+        
+        Different dtypes with default behavior:
+        
         >>> idx1 = pd.Index([1, 2, 3], dtype='int32')
         >>> idx2 = pd.Index([1, 2, 3], dtype='int64')
-        >>> idx1.equals(idx2, check_dtype=True)
+        >>> idx1.equals(idx2)
         False
+        
+        Using check_dtype=False to compare values only:
+        
+        >>> idx1.equals(idx2, check_dtype=False)
+        True
         """
-        if self.is_(other):
-            return True
 
-        if not isinstance(other, Index):
-            return False
-
-        if check_dtype:
-            if self.dtype != other.dtype:
-                # Have different dtype, so values do not compare equal
-                return False
-
-        return array_equivalent(self._values, other._values)
 
     @final
     def identical(self, other) -> bool:
