@@ -13,7 +13,7 @@ including other versions of pandas.
 
 Bug fixes
 ^^^^^^^^^
-
+- Bug in :func:`to_datetime` when parameter ``origin`` was passed with time specified, time will now be preserved instead of truncated (:issue:`63419`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_301.contributors:
