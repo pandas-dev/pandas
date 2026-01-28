@@ -7,6 +7,9 @@ Input/output
 ============
 .. currentmodule:: pandas
 
+.. seealso::
+   :ref:`io`- User Guide: Reading and writing data
+
 Pickling
 ~~~~~~~~
 .. autosummary::
