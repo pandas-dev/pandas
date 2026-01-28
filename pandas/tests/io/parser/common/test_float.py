@@ -60,9 +60,17 @@ def test_scientific_no_exponent(all_parsers_all_precisions):
         ("-50060e8007123400", -np.inf),
     ],
 )
-def test_large_exponent(all_parsers_all_precisions, value, expected_value):
+def test_large_exponent(request, all_parsers_all_precisions, value, expected_value):
     # GH#38753; GH#38794; GH#62740
     parser, precision = all_parsers_all_precisions
+
+    if (
+        parser.engine == "pyarrow"
+        and precision is None
+        and value[:2] not in ["0E", "-0"]
+    ):
+        reason = "https://github.com/apache/arrow/issues/49003"
+        request.applymarker(pytest.mark.xfail(reason=reason, raises=AssertionError))
 
     data = f"data\n{value}"
     result = parser.read_csv(StringIO(data), float_precision=precision)
