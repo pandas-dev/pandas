@@ -250,6 +250,11 @@ Combining / comparing / joining / merging
    DataFrame.merge
    DataFrame.update
 
+See also
+~~~~~~~~
+User Guide section :ref:`merging joining and concatenating <merging>` for more
+information and examples.
+
 Time Series-related
 ~~~~~~~~~~~~~~~~~~~
 .. autosummary::
