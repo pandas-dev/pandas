@@ -2902,6 +2902,20 @@ For example, below XML contains a namespace with prefix, ``doc``, and URI at
 
 Similarly, an XML document can have a default namespace without prefix. Failing
 to assign a temporary prefix will return no nodes and raise a ``ValueError``.
+For example, the following will fail because the default namespace
+is not bound to a prefix in the XPath expression:
+
+.. ipython:: python
+
+   try:
+       pd.read_xml(
+           StringIO(xml),
+           xpath="//row"
+       )
+   except ValueError as err:
+       print(err)
+
+
 But assigning *any* temporary name to correct URI allows parsing by nodes.
 
 .. ipython:: python
