@@ -176,8 +176,8 @@ def _post_convert_dtypes(
         for col, dtype in zip(df.columns, df.dtypes, strict=True):
             if isinstance(dtype, pd.StringDtype) and dtype.na_value is np.nan:
                 df[col] = df[col].astype("object").fillna(None)
-            if dtype == "category":
-                cat_dtype = dtype.categories.dtype  # type: ignore[union-attr]
+            if isinstance(dtype, pd.CategoricalDtype):
+                cat_dtype = dtype.categories.dtype
                 if (
                     isinstance(cat_dtype, pd.StringDtype)
                     and cat_dtype.na_value is np.nan
