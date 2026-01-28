@@ -286,6 +286,68 @@ class TestDatetimeConcat:
         result = concat([first, second])
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
+    def test_concat_series_columns_nonoverlap_5min_units(self, unit):
+        # GH#58471
+        idx1 = date_range("2024-01-01", periods=3, freq="5min", unit=unit)
+        idx2 = date_range("2024-01-02", periods=3, freq="5min", unit=unit)
+        s1 = Series(np.arange(len(idx1)), index=idx1, name="a")
+        s2 = Series(np.arange(len(idx2)), index=idx2, name="b")
+        result = concat([s1, s2], axis=1)
+        expected_index = DatetimeIndex(
+            [
+                Timestamp("2024-01-01 00:00:00"),
+                Timestamp("2024-01-01 00:05:00"),
+                Timestamp("2024-01-01 00:10:00"),
+                Timestamp("2024-01-02 00:00:00"),
+                Timestamp("2024-01-02 00:05:00"),
+                Timestamp("2024-01-02 00:10:00"),
+            ],
+            dtype=f"datetime64[{unit}]",
+        )
+        expected_data = np.full((6, 2), np.nan)
+        expected_data[:3, 0] = np.arange(3)
+        expected_data[3:, 1] = np.arange(3)
+        expected = DataFrame(expected_data, index=expected_index, columns=["a", "b"])
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
+    def test_concat_series_columns_month_end_units_order_insensitive(self, unit):
+        # GH#58471
+        idx1 = date_range("2015-01-31", periods=3, freq="ME", unit=unit)
+        idx2 = date_range("2015-02-28", periods=3, freq="ME", unit=unit)
+        s1 = Series(np.arange(len(idx1)), index=idx1, name="m1")
+        s2 = Series(np.arange(len(idx2)), index=idx2, name="m2")
+        result1 = concat([s1, s2], axis=1)
+        result2 = concat([s2, s1], axis=1)
+
+        expected_index = DatetimeIndex(
+            [
+                Timestamp("2015-01-31"),
+                Timestamp("2015-02-28"),
+                Timestamp("2015-03-31"),
+                Timestamp("2015-04-30"),
+            ],
+            dtype=f"datetime64[{unit}]",
+        )
+        expected_data = np.full((4, 2), np.nan)
+        expected_data[0, 0] = 0
+        expected_data[1, 0] = 1
+        expected_data[1, 1] = 0
+        expected_data[2, 0] = 2
+        expected_data[2, 1] = 1
+        expected_data[3, 1] = 2
+
+        expected1 = DataFrame(expected_data, index=expected_index, columns=["m1", "m2"])
+        tm.assert_frame_equal(result1, expected1, check_freq=False)
+
+        expected2 = DataFrame(
+            expected_data[:, [1, 0]],
+            index=expected_index,
+            columns=["m2", "m1"],
+        )
+        tm.assert_frame_equal(result2, expected2, check_freq=False)
+
     def test_concat_compat_on_non_ns_datetime_EA(self):
         # GH#33331
         first = Series(np.array([datetime(2010, 1, 1)], dtype="datetime64[D]"))
