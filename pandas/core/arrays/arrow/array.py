@@ -1427,7 +1427,8 @@ class ArrowExtensionArray(
             # on crashing to trigger fallback (e.g. in parsers).
             has_pd_na = False
             for x in values:
-                if x is lib.missing.NA:
+                # GH#63304: Check for pd.NA (NAType) specifically
+                if isna(x) and not isinstance(x, (float, np.floating, type(None))):
                     has_pd_na = True
                     break
 
