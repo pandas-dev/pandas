@@ -104,18 +104,6 @@ def _adj_justify(texts: Iterable[str], max_len: int, mode: str = "right") -> lis
 #    working with straight ascii.
 
 
-def _trim_zeros_single_float(str_float: str) -> str:
-    """
-    Trims trailing zeros after a decimal point,
-    leaving just one if necessary.
-    """
-    str_float = str_float.rstrip("0")
-    if str_float.endswith("."):
-        str_float += "0"
-
-    return str_float
-
-
 def _pprint_seq(
     seq: ListLike, _nest_lvl: int = 0, max_seq_items: int | None = None, **kwds: Any
 ) -> str:
@@ -148,7 +136,9 @@ def _pprint_seq(
         if is_float(item) and notna(item):
             # GH#60503
             precision = get_option("display.precision")
-            item = _trim_zeros_single_float(f"{item:.{precision}f}")
+            item = f"{item:.{precision}f}".rstrip("0")
+            if item.endswith("."):
+                item += "0"
         r.append(pprint_thing(item, _nest_lvl + 1, max_seq_items=max_seq_items, **kwds))
     body = ", ".join(r)
 
