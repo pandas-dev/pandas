@@ -413,3 +413,41 @@ def test_cython_agg_EA_known_dtypes(data, op_name, action, with_na):
 
     result = grouped["col"].aggregate(op_name)
     assert result.dtype == expected_dtype
+
+
+@pytest.mark.parametrize(
+    "op_name",
+    [
+        "var",
+        "std",
+        "sem",
+        "mean",
+    ],
+)
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        "int64[pyarrow]",
+        "float64[pyarrow]",
+    ],
+)
+def test_cython_agg_pyarrow_dtype_retention(op_name, dtype):
+    # GH#54627 - groupby.var() should return arrow types with arrow backed input
+    pa = pytest.importorskip("pyarrow")
+
+    arr = pd.array([1, 2, 3, 4], dtype=dtype)
+    df = DataFrame({"key": ["a", "a", "b", "b"], "col": arr})
+    grouped = df.groupby("key")
+
+    result = getattr(grouped, op_name)()
+    # var/std/sem/mean of numeric pyarrow types should return double[pyarrow]
+    assert result["col"].dtype == pd.ArrowDtype(pa.float64())
+
+    result = grouped.aggregate(op_name)
+    assert result["col"].dtype == pd.ArrowDtype(pa.float64())
+
+    result = getattr(grouped["col"], op_name)()
+    assert result.dtype == pd.ArrowDtype(pa.float64())
+
+    result = grouped["col"].aggregate(op_name)
+    assert result.dtype == pd.ArrowDtype(pa.float64())
