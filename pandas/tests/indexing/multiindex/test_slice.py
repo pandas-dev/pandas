@@ -87,7 +87,7 @@ class TestMultiIndexSlicers:
         tm.assert_frame_equal(result, expected)
 
         result = df.loc[(slice(None), 1), :]
-        expected = df.iloc[[0, 3]]
+        expected = df.iloc[[0, 3]].droplevel(1)
         tm.assert_frame_equal(result, expected)
 
         # columns
@@ -97,7 +97,7 @@ class TestMultiIndexSlicers:
 
         # both
         result = df.loc[(slice(None), 1), (slice(None), ["foo"])]
-        expected = df.iloc[[0, 3], [1, 3]]
+        expected = df.iloc[[0, 3], [1, 3]].droplevel(1)
         tm.assert_frame_equal(result, expected)
 
         result = df.loc["A", "a"]
@@ -166,6 +166,9 @@ class TestMultiIndexSlicers:
     def test_multiindex_slicers_non_unique(self):
         # GH 7106
         # non-unique mi index support
+        # GH 62926
+        # Indexing a MultiIndex-ed DataFrame (only) with a scalar
+        # on a level and a slice on another doesn't drop a level
         df = (
             DataFrame(
                 {
@@ -180,15 +183,15 @@ class TestMultiIndexSlicers:
         )
         assert not df.index.is_unique
         expected = (
-            DataFrame({"A": ["foo", "foo"], "B": ["a", "a"], "C": [1, 1], "D": [1, 3]})
-            .set_index(["A", "B", "C"])
+            DataFrame({"A": ["foo", "foo"], "B": ["a", "a"], "D": [1, 3]})
+            .set_index(["A", "B"])
             .sort_index()
         )
         result = df.loc[(slice(None), slice(None), 1), :]
         tm.assert_frame_equal(result, expected)
 
         # this is equivalent of an xs expression
-        result = df.xs(1, level=2, drop_level=False)
+        result = df.xs(1, level=2, drop_level=True)
         tm.assert_frame_equal(result, expected)
 
         df = (
@@ -205,8 +208,8 @@ class TestMultiIndexSlicers:
         )
         assert not df.index.is_unique
         expected = (
-            DataFrame({"A": ["foo", "foo"], "B": ["a", "a"], "C": [1, 1], "D": [1, 3]})
-            .set_index(["A", "B", "C"])
+            DataFrame({"A": ["foo", "foo"], "B": ["a", "a"], "D": [1, 3]})
+            .set_index(["A", "B"])
             .sort_index()
         )
         result = df.loc[(slice(None), slice(None), 1), :]
@@ -290,7 +293,7 @@ class TestMultiIndexSlicers:
                 slice(
                     Timestamp("2012-01-01 12:12:12"), Timestamp("2012-01-03 12:12:12")
                 ),
-                1,
+                [1],
             ),
             slice("A", "B"),
         ]
@@ -304,7 +307,7 @@ class TestMultiIndexSlicers:
         tm.assert_frame_equal(result, expected)
 
         result = df.loc[
-            (idx["2012-01-01 12:12:12":"2012-01-03 12:12:12"], 1), idx["A", "B"]
+            (idx["2012-01-01 12:12:12":"2012-01-03 12:12:12"], [1]), idx["A", "B"]
         ]
         tm.assert_frame_equal(result, expected)
 

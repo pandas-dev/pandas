@@ -1406,7 +1406,7 @@ class TestDataFrameIndexing:
             )
         )
         indexer_tuple = namedtuple("Indexer", df.index.names)
-        idxr = indexer_tuple(first="A", second=["a", "b"])
+        idxr = indexer_tuple(first=["A"], second=["a", "b"])
         result = df.loc[idxr, :]
         expected = DataFrame(
             index=MultiIndex.from_tuples(

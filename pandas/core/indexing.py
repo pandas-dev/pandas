@@ -1442,7 +1442,12 @@ class _LocIndexer(_LocationIndexer):
                 locs = labels.get_locs(key)
                 indexer: list[slice | npt.NDArray[np.intp]] = [slice(None)] * self.ndim
                 indexer[axis] = locs
-                return self.obj.iloc[tuple(indexer)]
+                obj = self.obj.iloc[tuple(indexer)]
+
+                if axis == 0:
+                    obj = _drop_scalar_levels(key, obj)
+
+                return obj
 
         # fall thru to straight lookup
         self._validate_key(key, axis)
@@ -2613,6 +2618,17 @@ class _iAtIndexer(_ScalarAccessIndexer):
                 )
 
         return super().__setitem__(key, value)
+
+
+def _drop_scalar_levels(key, obj):
+    scalars = [slice(None)] * len(key)
+    for i, k in enumerate(key):
+        if not isinstance(k, slice) and is_hashable(k):
+            idx = obj.index.get_level_values(i)
+            if k in set(idx):
+                scalars[i] = k
+
+    return obj.xs(tuple(scalars))
 
 
 def _tuplify(ndim: int, loc: Hashable) -> tuple[Hashable | slice, ...]:

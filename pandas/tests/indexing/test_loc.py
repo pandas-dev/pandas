@@ -3101,6 +3101,79 @@ def test_loc_setitem_pyarrow_strings():
     tm.assert_frame_equal(df, expected_df)
 
 
+def test_indexing_multi_index_dataframe_with_scalar_and_slice():
+    # GH#62926
+    index = MultiIndex.from_product(
+        [
+            ["A", "B", "C"],
+            [1, 2, 3],
+            ["x", "y", "z"],
+        ],
+        names=["letter", "number", "char"],
+    )
+    data = np.arange(2 * len(index)).reshape(len(index), 2)
+    df = DataFrame(data, columns=["val1", "val2"], index=index)
+
+    mask = (slice(None), 2)
+
+    result = df.loc[mask, "val1"]
+    expected = df["val1"].loc[mask]
+    assert result.equals(expected)
+
+    expected_index = MultiIndex.from_product(
+        [["A", "B", "C"], ["x", "y", "z"]], names=["letter", "char"]
+    )
+    assert result.index.equals(expected_index)
+
+    mask = ("A", 1, slice(None))
+
+    result = df.loc[mask, "val1"]
+    expected = df["val1"].loc[mask]
+    assert result.equals(expected)
+
+    expected_index = Index(["x", "y", "z"], name="char")
+    assert result.index.equals(expected_index)
+
+    mask = (slice(None), 1, ["x"])
+
+    result = df.loc[mask, "val1"]
+    expected = df["val1"].loc[mask]
+    assert result.equals(expected)
+
+    expected_index = MultiIndex.from_product(
+        [["A", "B", "C"], ["x"]], names=["number", "char"]
+    )
+    assert result.index.equals(expected_index)
+
+    index = MultiIndex.from_product(
+        [
+            ["A", "B", "C"],
+            [(1, 2), (3, 4), (5)],
+            ["x", "y", "z"],
+        ],
+        names=["letter", "number", "char"],
+    )
+
+    data = np.arange(2 * len(index)).reshape(len(index), 2)
+    df = DataFrame(data, columns=["val1", "val2"], index=index)
+
+    mask = (slice(None), (1, 2))
+
+    result = df["val1"].loc[mask]
+    expected = df.loc[mask, "val1"]
+    assert result.equals(expected)
+
+    expected_index = MultiIndex.from_product(
+        [["A", "B", "C"], ["x", "y", "z"]], names=["number", "char"]
+    )
+    assert result.index.equals(expected_index)
+
+    mask = ("A", (1, 2), "z")
+    result = df["val1"].loc[mask]
+    expected = df.loc[mask, "val1"]
+    assert result == expected
+
+
 class TestLocSeries:
     @pytest.mark.parametrize("val,expected", [(2**63 - 1, 3), (2**63, 4)])
     def test_loc_uint64(self, val, expected):

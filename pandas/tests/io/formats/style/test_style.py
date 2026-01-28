@@ -709,7 +709,7 @@ class TestStyler:
             IndexSlice[:, IndexSlice[:, "A"]],
             IndexSlice[:, IndexSlice[:, ["A", "C"]]],  # missing col element
             IndexSlice[IndexSlice["a", 1], :],
-            IndexSlice[IndexSlice[:, 1], :],
+            IndexSlice[IndexSlice[:, [1]], :],
             IndexSlice[IndexSlice[:, [1, 3]], :],  # missing row element
             IndexSlice[:, ("x", "A")],
             IndexSlice[("a", 1), :],
@@ -738,7 +738,8 @@ class TestStyler:
         df = DataFrame(np.random.default_rng(2).random((4, 4)), columns=col, index=idx)
 
         with ctx:
-            df.style.map(lambda x: "color: red;", subset=slice_).to_html()
+            html = df.style.map(lambda x: "color: red;", subset=slice_).to_html()
+            assert "color: red" in html
 
     def test_map_subset_multiindex_code(self):
         # https://github.com/pandas-dev/pandas/issues/25858
