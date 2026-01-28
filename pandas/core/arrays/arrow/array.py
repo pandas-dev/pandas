@@ -1418,7 +1418,10 @@ class ArrowExtensionArray(
         if not len(values):
             return np.zeros(len(self), dtype=bool)
 
-        result = pc.is_in(self._pa_array, value_set=pa.array(values))
+        value_set = pa.array(values, from_pandas=True)
+        if pa.types.is_null(value_set.type):
+            value_set = value_set.cast(self._pa_array.type)
+        result = pc.is_in(self._pa_array, value_set=value_set)
         # pyarrow 2.0.0 returned nulls, so we explicitly specify dtype to convert nulls
         # to False
         return np.array(result, dtype=np.bool_)
