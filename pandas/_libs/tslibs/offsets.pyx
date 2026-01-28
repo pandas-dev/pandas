@@ -2256,7 +2256,7 @@ cdef class BusinessMixin(SingleConstructorOffset):
         day offsets, this returns the weekmask that was specified or the default
         'Mon Tue Wed Thu Fri'.
 
-        Returnsq
+        Returns
         -------
         str or None
             String representing valid business days (e.g., 'Mon Tue Wed Thu Fri'),
