@@ -24,6 +24,7 @@ def test_length_of_indexer():
     ],
 )
 def test_length_of_indexer_range_overflow(start, stop, step):
+    # https://github.com/pandas-dev/pandas/pull/63872
     indexer = range(start, stop, step)
     result = length_of_indexer(indexer)
     step_ = step
