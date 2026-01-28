@@ -322,7 +322,7 @@ def test_dataframe_from_dict_of_series_with_dtype(index):
 
 
 @pytest.mark.parametrize("copy", [False, None, True])
-def test_frame_from_numpy_array(copy):
+def test_dataframe_from_numpy_array(copy):
     arr = np.array([[1, 2], [3, 4]])
     df = DataFrame(arr, copy=copy)
 
@@ -330,6 +330,35 @@ def test_frame_from_numpy_array(copy):
         assert not np.shares_memory(get_array(df, 0), arr)
     else:
         assert np.shares_memory(get_array(df, 0), arr)
+
+
+@pytest.mark.parametrize(
+    "data, dtype",
+    [
+        # 1D-only EA
+        ([1, 2], "Int64"),
+        # 2D EA
+        (
+            [Timestamp("2020", tz="UTC"), Timestamp("2021", tz="UTC")],
+            "datetime64[ns, UTC]",
+        ),
+    ],
+    ids=["int-ea", "datetime64tz"],
+)
+@pytest.mark.parametrize("copy", [False, None, True])
+def test_dataframe_from_extension_array(copy, data, dtype):
+    arr = pd.array(data, dtype=dtype)
+    df = DataFrame(arr, copy=copy)
+
+    if arr.dtype == "Int64":
+        # to ensure tm.shares_memory works correctly
+        # TODO fix in tm.shares_memory or get_array?
+        arr = arr._data
+
+    if copy is None or copy is True:
+        assert not tm.shares_memory(get_array(df, 0), arr)
+    else:
+        assert tm.shares_memory(get_array(df, 0), arr)
 
 
 def test_frame_from_dict_of_index():

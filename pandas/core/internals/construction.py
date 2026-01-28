@@ -230,7 +230,7 @@ def ndarray_to_mgr(
         # be copied when consolidating the blocks
         if copy:
             values = [
-                x.copy(deep=True)
+                (x.copy(deep=True) if isinstance(x, Index) else x.copy())
                 if isinstance(x, (ExtensionArray, Index, ABCSeries))
                 and is_1d_only_ea_dtype(x.dtype)
                 else x
