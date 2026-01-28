@@ -61,10 +61,11 @@ def test_not_change_nan_loc(series, new_series, expected_ser):
     tm.assert_frame_equal(df.notna(), ~expected)
 
 
-def test_loc_dtype():
+@pytest.mark.parametrize("key", [[1, 2], slice(1, 3)])
+def test_loc_dtype(key):
     # GH 60600
     df = DataFrame([["a", 1.0, 2.0], ["b", 3.0, 4.0]])
-    result = df.loc[0, [1, 2]]
+    result = df.loc[0, key]
     expected = Series([1.0, 2.0], index=[1, 2], dtype=float, name=0)
     tm.assert_series_equal(result, expected)
 
