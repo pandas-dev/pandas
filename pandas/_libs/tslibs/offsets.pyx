@@ -217,6 +217,11 @@ cdef _get_calendar(weekmask, holidays, calendar):
             pass
         return calendar, holidays
 
+    elif calendar is not None:
+        from pandas.tseries.holiday import AbstractHolidayCalendar
+        if not isinstance(calendar, AbstractHolidayCalendar):
+            raise TypeError("Custom subclasses only accept np.busdaycalendar.")
+
     if holidays is None:
         holidays = []
     try:
