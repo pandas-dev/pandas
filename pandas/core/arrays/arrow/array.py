@@ -1434,6 +1434,16 @@ class ArrowExtensionArray(
 
             if has_pd_na:
                 value_set = value_set.cast(self._pa_array.type)
+            else:
+                 # GH#63304: If we have nulls but NOT pd.NA (e.g. np.nan, None),
+                 # we must preserve legacy behavior where this raises an error
+                 # (ArrowInvalid/ArrowTypeError) so that parsers and other components
+                 # relying on this exception for fallback (e.g. to object dtype) will
+                 # continue to work. pc.is_in might return False for null vs string
+                 # in some versions, preventing the fallback.
+                 raise TypeError(
+                     f"Invalid value set type {value_set.type} for isin with {self.dtype}"
+                 )
 
         result = pc.is_in(self._pa_array, value_set=value_set)
         # pyarrow 2.0.0 returned nulls, so we explicitly specify dtype to convert nulls
