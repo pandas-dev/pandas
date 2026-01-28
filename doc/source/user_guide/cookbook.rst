@@ -864,13 +864,9 @@ Timeseries
 Time-distance weighted rolling aggregations
 *******************************************
 
-A decay-weighted aggregation can then be applied inside a time-based rolling window.
-Here the weight depends on how far each observation is from the most recent timestamp
-in the window:
-
-More recent values should contribute more to rolling statistics than older ones in some time series
-where observations are not evenly spaced in time. This example demonstrates how to use the built-in
-pandas functionality to calculate a decay-weighted rolling mean.
+A decay-weighted aggregation can be applied inside a time-based rolling window.
+The weight depends on how far each observation is from the most recent timestamp
+in the window. This is useful when more recent values should contribute more to rolling statistics than older ones, particularly where observations are not evenly spaced in time.
 
 This approach relies on ``rolling.apply`` and recomputes weights for each window, so it
 may be slow for large datasets.
