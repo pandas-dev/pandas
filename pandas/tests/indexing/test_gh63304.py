@@ -2,6 +2,8 @@ import pytest
 import pandas as pd
 import pandas._testing as tm
 
+pa = pytest.importorskip("pyarrow", minversion="13.0.0")
+
 def test_drop_na_arrow_index():
     # GH#63304
     # Test that dropping pd.NA from PyArrow-backed Index does not raise ArrowInvalid
