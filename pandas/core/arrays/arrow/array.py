@@ -906,7 +906,7 @@ class ArrowExtensionArray(
         pc_func = ARROW_CMP_FUNCS[op.__name__]
         ltype = self._pa_array.type
 
-        if isinstance(other, (ExtensionArray, np.ndarray, list)):
+        if isinstance(other, (ExtensionArray, np.ndarray, list, range)):
             try:
                 boxed = self._box_pa(other)
             except pa.lib.ArrowInvalid:
@@ -915,8 +915,10 @@ class ArrowExtensionArray(
                 result = pa.array(res_values, type=pa.bool_(), from_pandas=True)
             else:
                 rtype = boxed.type
-                if (pa.types.is_timestamp(ltype) and pa.types.is_date(rtype)) or (
-                    pa.types.is_timestamp(rtype) and pa.types.is_date(ltype)
+                if (
+                    (pa.types.is_timestamp(ltype) and pa.types.is_date(rtype))
+                    or (pa.types.is_timestamp(rtype) and pa.types.is_date(ltype))
+                    or isinstance(other, range)
                 ):
                     # GH#62157 match non-pyarrow behavior
                     result = ops.invalid_comparison(self, other, op)
