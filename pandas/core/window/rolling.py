@@ -1585,10 +1585,19 @@ class RollingAndExpandingMixin(BaseWindow):
             function=function,
         )
 
+        apply_index = self._on
+        if not raw and isinstance(self, BaseWindowGroupby):
+            # Groupby rolling reorders values by group; align the index to match.
+            groupby_order = self._grouper.result_ilocs
+            if len(groupby_order) > 0:
+                apply_index = self._on.take(groupby_order)
+            else:
+                apply_index = self._on[:0]
+
         def apply_func(values, begin, end, min_periods, raw=raw):
             if not raw:
                 # GH 45912
-                values = Series(values, index=self._on, copy=False)
+                values = Series(values, index=apply_index, copy=False)
             return window_func(values, begin, end, min_periods)
 
         return apply_func
