@@ -1430,7 +1430,7 @@ class ArrowExtensionArray(
                 if x is lib.missing.NA:
                     has_pd_na = True
                     break
-            
+
             if has_pd_na:
                 value_set = value_set.cast(self._pa_array.type)
 
