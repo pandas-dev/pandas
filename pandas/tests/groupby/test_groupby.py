@@ -3009,3 +3009,15 @@ def test_groupby_datetime_with_nat():
     grouped = df.groupby("a", dropna=False)
     result = len(grouped)
     assert result == 3
+def test_groupby_indices_mutation_does_not_crash_get_group():
+    df = DataFrame({"A": [1, 1, 2], "B": [10, 20, 30]})
+    g = df.groupby("A")
+
+    idx = g.indices[1]
+    idx[0] = 999
+
+    result = g.get_group(1).index.to_numpy()
+    expected = np.array([0, 1])
+
+    tm.assert_numpy_array_equal(result, expected)
+
