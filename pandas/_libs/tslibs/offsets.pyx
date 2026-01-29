@@ -5863,6 +5863,42 @@ cdef class FY5253Quarter(FY5253Mixin):
 
     @property
     def rule_code(self) -> str:
+        """
+        Return a string representing the frequency with fiscal year quarter suffix.
+
+        This property generates a rule code string that combines the offset's
+        prefix with the fiscal year suffix containing the variation, starting
+        month, weekday, and quarter with extra week.
+
+        Returns
+        -------
+        str
+            The rule code string in the format
+            "{prefix}-{variation}-{month}-{weekday}-{qtr}" where prefix is the
+            offset type prefix ("REQ"), variation is "N" for nearest or "L" for
+            last, month is the three-letter month abbreviation, weekday is the
+            three-letter weekday abbreviation, and qtr is the quarter number
+            with extra week.
+
+        See Also
+        --------
+        FY5253.rule_code : Return the complete rule code string for FY5253.
+        FY5253.get_rule_code_suffix : Return the suffix component of the rule code.
+
+        Examples
+        --------
+        >>> offset = pd.offsets.FY5253Quarter(
+        ...     weekday=4, startingMonth=12, variation="nearest", qtr_with_extra_week=1
+        ... )
+        >>> offset.rule_code
+        'REQ-N-DEC-FRI-1'
+
+        >>> offset = pd.offsets.FY5253Quarter(
+        ...     weekday=0, startingMonth=1, variation="last", qtr_with_extra_week=4
+        ... )
+        >>> offset.rule_code
+        'REQ-L-JAN-MON-4'
+        """
         suffix = FY5253Mixin.rule_code.__get__(self)
         qtr = self.qtr_with_extra_week
         return f"{suffix}-{qtr}"
