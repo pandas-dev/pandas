@@ -64,7 +64,9 @@ class TestDataFrameInterpolate:
         assert orig.squeeze()[1] == 1.5
 
     @pytest.mark.parametrize("dtype", ["str", "object"])
-    def test_interp_with_non_numeric(self, dtype):
+    def test_interp_with_non_numeric(self, dtype, using_infer_string):
+        if not using_infer_string:
+            dtype = "object"
         df = DataFrame(
             {
                 "A": [1, 2, np.nan, 4],
