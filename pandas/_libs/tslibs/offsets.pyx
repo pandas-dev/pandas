@@ -4671,6 +4671,44 @@ cdef class SemiMonthBegin(SemiMonthOffset):
     _prefix = "SMS"
 
     def is_on_offset(self, dt: datetime) -> bool:
+        """
+        Return boolean whether a timestamp intersects with this frequency.
+
+        This method checks if the given timestamp falls on the first day of
+        the month or on the specified ``day_of_month``. It is used to determine
+        if a date aligns with the semi-monthly frequency starting at the
+        beginning of the month.
+
+        Parameters
+        ----------
+        dt : datetime
+            Timestamp to check intersections with frequency.
+
+        Returns
+        -------
+        bool
+            True if the date is on the first day of the month or the
+            ``day_of_month``, False otherwise.
+
+        See Also
+        --------
+        SemiMonthEnd.is_on_offset : Check if a date falls on a SemiMonthEnd offset.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2022, 1, 1)
+        >>> freq = pd.offsets.SemiMonthBegin()
+        >>> freq.is_on_offset(ts)
+        True
+
+        >>> ts = pd.Timestamp(2022, 1, 15)
+        >>> freq.is_on_offset(ts)
+        True
+
+        >>> ts = pd.Timestamp(2022, 1, 16)
+        >>> freq.is_on_offset(ts)
+        False
+        """
         if self.normalize and not _is_normalized(dt):
             return False
         return dt.day in (1, self._day_of_month)
