@@ -582,9 +582,11 @@ class DataFrame(NDFrame, OpsMixin):
                 ):
                     if isinstance(data, ABCSeries):
                         mgr.add_references(data._mgr)
-                    elif getattr(data, "_references", None) is not None:
-                        data._references.add_reference(mgr.blocks[0])
-                        mgr.blocks[0].refs = data._references
+                    else:
+                        data_refs = getattr(data, "_references", None)
+                        if data_refs is not None:
+                            data_refs.add_reference(mgr.blocks[0])
+                            mgr.blocks[0].refs = data_refs
 
         # For data is list-like, or Iterable (will consume into list)
         elif is_list_like(data):
