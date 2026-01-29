@@ -325,7 +325,18 @@ def length_of_indexer(indexer, target=None) -> int:
             return indexer.sum()
         return len(indexer)
     elif isinstance(indexer, range):
-        return (indexer.stop - indexer.start) // indexer.step
+        try:
+            return len(indexer)
+        except OverflowError:
+            step = indexer.step
+            if step > 0:
+                low, high = indexer.start, indexer.stop
+            else:
+                low, high = indexer.stop, indexer.start
+                step = -step
+            if low >= high:
+                return 0
+            return (high - low - 1) // step + 1
     elif not is_list_like_indexer(indexer):
         return 1
     raise AssertionError("cannot find the length of the indexer")
