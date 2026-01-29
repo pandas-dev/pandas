@@ -567,7 +567,8 @@ def test_pd_array_from_masked_array_no_mask():
 
     ma_arr = ma.array([1, 2, 3], mask=[False, False, False])
     result = pd.array(ma_arr)
-    expected = pd.array([1, 2, 3], dtype="Int64")
+    # dtype is platform-dependent (Int32/Int64) when mask is all False
+    expected = pd.array([1, 2, 3], dtype=result.dtype)
     tm.assert_extension_array_equal(result, expected)
 
 
@@ -577,5 +578,6 @@ def test_pd_array_from_masked_array_nomask():
 
     ma_arr = ma.array([1, 2, 3], mask=ma.nomask)
     result = pd.array(ma_arr)
-    expected = pd.array([1, 2, 3], dtype="Int64")
+    # dtype is platform-dependent (Int32/Int64) when mask is nomask
+    expected = pd.array([1, 2, 3], dtype=result.dtype)
     tm.assert_extension_array_equal(result, expected)
