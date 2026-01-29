@@ -4631,6 +4631,44 @@ cdef class SemiMonthEnd(SemiMonthOffset):
     _min_day_of_month = 1
 
     def is_on_offset(self, dt: datetime) -> bool:
+        """
+        Return boolean whether a timestamp intersects with this frequency.
+
+        This method determines if a given timestamp falls on either the
+        ``day_of_month`` (default 15) or the last day of the month, which
+        are the two dates per month that this offset represents.
+
+        Parameters
+        ----------
+        dt : datetime
+            Timestamp to check intersection with frequency.
+
+        Returns
+        -------
+        bool
+            True if the timestamp is on the offset, False otherwise.
+
+        See Also
+        --------
+        tseries.offsets.SemiMonthBegin.is_on_offset : Check if a timestamp falls
+            on a SemiMonthBegin offset.
+        tseries.offsets.MonthEnd.is_on_offset : Check if a timestamp falls
+            on a MonthEnd offset.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2022, 1, 15)
+        >>> pd.offsets.SemiMonthEnd().is_on_offset(ts)
+        True
+
+        >>> ts = pd.Timestamp(2022, 1, 31)
+        >>> pd.offsets.SemiMonthEnd().is_on_offset(ts)
+        True
+
+        >>> ts = pd.Timestamp(2022, 1, 14)
+        >>> pd.offsets.SemiMonthEnd().is_on_offset(ts)
+        False
+        """
         if self.normalize and not _is_normalized(dt):
             return False
         days_in_month = get_days_in_month(dt.year, dt.month)
