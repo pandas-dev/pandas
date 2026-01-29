@@ -14,6 +14,9 @@ including other versions of pandas.
 Bug fixes
 ^^^^^^^^^
 
+Conversion
+++++++++++++++
+- Bug fix in `pandas.array` to handle `numpy.ma.MaskedArray` correctly, converting masked values to `None` when appropriate.
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_301.contributors:

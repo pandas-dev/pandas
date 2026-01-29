@@ -304,7 +304,15 @@ def array(
         raise ValueError(msg)
     elif isinstance(data, ABCDataFrame):
         raise TypeError("Cannot pass DataFrame to 'pandas.array'")
-
+    
+    if isinstance(data, ma.MaskedArray):
+        mask = ma.getmaskarray(data)
+        if mask.any():
+            data = np.asarray(data,dtype=object)
+            data[mask] = None
+        else:
+            data = np.asarray(data)
+                
     if dtype is None and isinstance(data, (ABCSeries, ABCIndex, ExtensionArray)):
         # Note: we exclude np.ndarray here, will do type inference on it
         dtype = data.dtype
