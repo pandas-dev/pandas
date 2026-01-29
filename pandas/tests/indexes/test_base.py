@@ -1749,3 +1749,72 @@ def test_index_comparison_different_string_dtype(string_dtype_no_object):
     result = s_str > s_obj
     expected.index = idx.astype(string_dtype_no_object)
     assert_series_equal(result, expected)
+
+
+def test_get_level_values_boolean_names():
+    # GH#62169
+    idx = Index(["a", "b"], name=True)
+    result = idx.get_level_values(True)
+    tm.assert_index_equal(idx, result)
+
+    idx = Index(["a", "b"], name=False)
+    result = idx.get_level_values(False)
+    tm.assert_index_equal(idx, result)
+
+    msg = r"Requested level \(False\) does not match index name \(True\)"
+    with pytest.raises(KeyError, match=msg):
+        Index(["a", "b"], name=True).get_level_values(False)
+
+    idx = Index(["a", "b"], name=True)
+    result = idx.get_level_values(0)
+    tm.assert_index_equal(idx, result)
+
+
+def test_get_level_values_na_type_matching():
+    # GH#62169
+    idx = Index(["a", "b"], name=np.nan)
+    result = idx.get_level_values(np.nan)
+    tm.assert_index_equal(idx, result)
+
+    idx = Index(["a", "b"], name=pd.NA)
+    result = idx.get_level_values(pd.NA)
+    tm.assert_index_equal(idx, result)
+
+    idx = Index(["a", "b"], name=pd.NaT)
+    result = idx.get_level_values(pd.NaT)
+    tm.assert_index_equal(idx, result)
+
+    msg = r"Requested level \(.+\) does not match index name \(.+\)"
+    with pytest.raises(KeyError, match=msg):
+        Index(["a", "b"], name=np.nan).get_level_values(pd.NA)
+
+    with pytest.raises(KeyError, match=msg):
+        Index(["a", "b"], name=pd.NA).get_level_values(np.nan)
+
+    with pytest.raises(KeyError, match=msg):
+        Index(["a", "b"], name=pd.NaT).get_level_values(np.nan)
+
+
+def test_get_level_values_integer_names():
+    # GH#62169
+    idx = Index(["a", "b"], name=5)
+    result = idx.get_level_values(5)
+    tm.assert_index_equal(idx, result)
+
+    result = idx.get_level_values(0)
+    tm.assert_index_equal(idx, result)
+
+    result = idx.get_level_values(-1)
+    tm.assert_index_equal(idx, result)
+
+    idx = Index(["a", "b"], name=0)
+    result = idx.get_level_values(0)
+    tm.assert_index_equal(idx, result)
+
+    idx = Index(["a", "b"], name=-1)
+    result = idx.get_level_values(-1)
+    tm.assert_index_equal(idx, result)
+
+    msg = r"Too many levels: Index has only 1 level"
+    with pytest.raises(IndexError, match=msg):
+        Index(["a", "b"], name=5).get_level_values(1)
