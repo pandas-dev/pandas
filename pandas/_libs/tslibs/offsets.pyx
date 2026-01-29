@@ -6031,6 +6031,37 @@ cdef class Easter(SingleConstructorOffset):
         return new
 
     def is_on_offset(self, dt: datetime) -> bool:
+        """
+        Return boolean whether a timestamp intersects with this frequency.
+
+        This method determines if a given timestamp falls on Easter Sunday,
+        as defined by the calculation method specified in the offset.
+        If ``normalize`` is True, it also checks that the time component is midnight.
+
+        Parameters
+        ----------
+        dt : datetime
+            Timestamp to check intersection with frequency.
+
+        Returns
+        -------
+        bool
+            True if the timestamp falls on Easter Sunday, False otherwise.
+
+        See Also
+        --------
+        tseries.offsets.Easter : DateOffset for the Easter holiday.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2022, 4, 17)
+        >>> pd.offsets.Easter().is_on_offset(ts)
+        True
+
+        >>> ts = pd.Timestamp(2022, 4, 18)
+        >>> pd.offsets.Easter().is_on_offset(ts)
+        False
+        """
         if self.normalize and not _is_normalized(dt):
             return False
 
