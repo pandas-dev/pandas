@@ -451,12 +451,17 @@ def test_array_equivalent_dti(dtype_equal):
     assert not array_equivalent(DatetimeIndex([0, np.nan]), TimedeltaIndex([0, np.nan]))
 
 
-@pytest.mark.parametrize(
-    "val", [1, 1.1, 1 + 1j, True, "abc", [1, 2], (1, 2), {1, 2}, {"a": 1}, None]
-)
+@pytest.mark.parametrize("val", [1, 1.1, 1 + 1j, True, "abc", {1, 2}, {"a": 1}, None])
 def test_array_equivalent_series(val):
     arr = np.array([1, 2])
     assert not array_equivalent(Series([arr, arr]), Series([arr, val]))
+
+
+@pytest.mark.parametrize("val", [[1, 2], (1, 2)])
+def test_array_equivalent_series_list_tuple_vs_ndarray(val):
+    # GH#63904: list/tuple vs ndarray with same values should be equivalent
+    arr = np.array([1, 2])
+    assert array_equivalent(Series([arr, arr]), Series([arr, val]))
 
 
 def test_array_equivalent_array_mismatched_shape():
