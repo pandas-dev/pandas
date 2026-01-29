@@ -803,7 +803,7 @@ def should_warn(*args):
 
 class TestAlignment:
     index_types = ["i", "s", "dt"]
-    lhs_index_types = index_types + ["s"]  # 'p'
+    lhs_index_types = [*index_types, "s"]  # 'p'
 
     def test_align_nested_unary_op(self, engine, parser):
         s = "df * ~2"
@@ -917,7 +917,7 @@ class TestAlignment:
     @pytest.mark.parametrize("index_name", ["index", "columns"])
     @pytest.mark.parametrize(
         "r_idx_type, c_idx_type",
-        list(product(["i", "s"], ["i", "s"])) + [("dt", "dt")],
+        [*list(product(["i", "s"], ["i", "s"])), ("dt", "dt")],
     )
     @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     def test_basic_series_frame_alignment(
@@ -1197,7 +1197,7 @@ class TestOperations:
         expec3 = df.a + df.b + df.c[df.b < 0]
         exprs = expr1, expr2, expr3
         expecs = expec1, expec2, expec3
-        for e, expec in zip(exprs, expecs):
+        for e, expec in zip(exprs, expecs, strict=True):
             tm.assert_series_equal(expec, self.eval(e, local_dict={"df": df}))
 
     def test_assignment_fails(self):

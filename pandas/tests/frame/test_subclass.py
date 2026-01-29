@@ -82,7 +82,7 @@ class TestDataFrameSubclassing:
         cdf_multi2 = CustomDataFrame([[0, 1], [2, 3]], columns=mcol)
         assert isinstance(cdf_multi2["A"], CustomSeries)
 
-    def test_dataframe_metadata(self):
+    def test_dataframe_metadata(self, temp_file):
         df = tm.SubclassedDataFrame(
             {"X": [1, 2, 3], "Y": [1, 2, 3]}, index=["a", "b", "c"]
         )
@@ -97,7 +97,7 @@ class TestDataFrameSubclassing:
         assert df.iloc[0:1, :].testattr == "XXX"
 
         # see gh-10553
-        unpickled = tm.round_trip_pickle(df)
+        unpickled = tm.round_trip_pickle(df, temp_file)
         tm.assert_frame_equal(df, unpickled)
         assert df._metadata == unpickled._metadata
         assert df.testattr == unpickled.testattr

@@ -138,7 +138,7 @@ Look,a snake,🐍"""
             assert result == data.encode("utf-8")
 
     # Test that pyarrow can handle a file opened with get_handle
-    def test_get_handle_pyarrow_compat(self):
+    def test_get_handle_pyarrow_compat(sel, using_infer_string):
         pa_csv = pytest.importorskip("pyarrow.csv")
 
         # Test latin1, ucs-2, and ucs-4 chars
@@ -154,6 +154,8 @@ Look,a snake,🐍"""
             df = pa_csv.read_csv(handles.handle).to_pandas()
             if pa_version_under19p0:
                 expected = expected.astype("object")
+            elif not using_infer_string:
+                expected = expected.astype(pd.StringDtype(na_value=np.nan))
             tm.assert_frame_equal(df, expected)
             assert not s.closed
 
@@ -641,9 +643,9 @@ def test_close_on_error():
 
 @td.skip_if_no("fsspec")
 @pytest.mark.parametrize("compression", [None, "infer"])
-def test_read_csv_chained_url_no_error(compression):
+def test_read_csv_chained_url_no_error(datapath, compression):
     # GH 60100
-    tar_file_path = "pandas/tests/io/data/tar/test-csv.tar"
+    tar_file_path = datapath("io", "data", "tar", "test-csv.tar")
     chained_file_url = f"tar://test.csv::file://{tar_file_path}"
 
     result = pd.read_csv(chained_file_url, compression=compression, sep=";")

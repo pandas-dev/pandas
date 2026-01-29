@@ -47,7 +47,7 @@ to significantly increase the performance and lower the memory overhead of
 
    The default when pandas infers the dtype of a collection of
    strings is to use ``dtype='str'``. This will use ``np.nan``
-   as it's NA value and be backed by a PyArrow string array when
+   as its NA value and be backed by a PyArrow string array when
    PyArrow is installed, or backed by NumPy ``object`` array
    when PyArrow is not installed.
 
@@ -753,7 +753,10 @@ Differences in behavior will be primarily due to the kind of NA value.
 The four :class:`StringDtype` variants
 ======================================
 
-There are four :class:`StringDtype` variants that are available to users.
+There are four :class:`StringDtype` variants that are available to users,
+controlled by the ``storage`` and ``na_value`` parameters of :class:`StringDtype`.
+At runtime, these can be checked via the :attr:`StringDtype.storage`
+and :attr:`StringDtype.na_value` attributes.
 
 Python storage with ``np.nan`` values
 -------------------------------------
@@ -773,7 +776,7 @@ NA values in this array are represented and behave as ``np.nan``.
    )
 
 Notice that the last three values are all inferred by pandas as being
-an NA values, and hence stored as ``np.nan``.
+NA values, and hence stored as ``np.nan``.
 
 PyArrow storage with ``np.nan`` values
 --------------------------------------
@@ -792,7 +795,7 @@ are represented and behave as ``np.nan``.
    )
 
 Notice that the last three values are all inferred by pandas as being
-an NA values, and hence stored as ``np.nan``.
+NA values, and hence stored as ``np.nan``.
 
 Python storage with ``pd.NA`` values
 ------------------------------------

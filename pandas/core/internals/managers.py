@@ -250,7 +250,8 @@ class BaseBlockManager(PandasObject):
     def make_empty(self, axes=None) -> Self:
         """return an empty BlockManager with the items axis of len 0"""
         if axes is None:
-            axes = [default_index(0)] + self.axes[1:]
+            # TODO shallow copy remaining axis?
+            axes = [default_index(0), *self.axes[1:]]
 
         # preserve dtype if possible
         if self.ndim == 1:
@@ -441,7 +442,7 @@ class BaseBlockManager(PandasObject):
                 applied = getattr(b, f)(**kwargs)
             result_blocks = extend_blocks(applied, result_blocks)
 
-        out = type(self).from_blocks(result_blocks, self.axes)
+        out = type(self).from_blocks(result_blocks, [ax.view() for ax in self.axes])
         return out
 
     @final
@@ -676,6 +677,7 @@ class BaseBlockManager(PandasObject):
         numeric_blocks = [blk for blk in self.blocks if blk.is_numeric]
         if len(numeric_blocks) == len(self.blocks):
             # Avoid somewhat expensive _combine
+            # TODO(CoW) need to return a shallow copy here?
             return self
         return self._combine(numeric_blocks)
 
@@ -687,7 +689,7 @@ class BaseBlockManager(PandasObject):
                 if index is not None:
                     axes = [self.items[:0], index]
                 else:
-                    axes = [self.items[:0]] + self.axes[1:]
+                    axes = [self.items[:0], *self.axes[1:]]
                 return self.make_empty(axes)
             return self.make_empty()
 
@@ -702,6 +704,7 @@ class BaseBlockManager(PandasObject):
             new_blocks.append(nb)
 
         axes = list(self.axes)
+        # TODO shallow copy of axes?
         if index is not None:
             axes[-1] = index
         axes[0] = self.items.take(indexer)
@@ -756,6 +759,7 @@ class BaseBlockManager(PandasObject):
         if self.is_consolidated():
             return self
 
+        # TODO shallow copy is not needed here?
         bm = type(self)(self.blocks, self.axes, verify_integrity=False)
         bm._is_consolidated = False
         bm._consolidate_inplace()
@@ -807,12 +811,13 @@ class BaseBlockManager(PandasObject):
         only_slice : bool, default False
             Whether to take views, not copies, along columns.
         use_na_proxy : bool, default False
-            Whether to use a np.void ndarray for newly introduced columns.
+            Whether to use an np.void ndarray for newly introduced columns.
 
         pandas-indexer with -1's only.
         """
         if indexer is None:
             if new_axis is self.axes[axis]:
+                # TODO(CoW) need to handle CoW?
                 return self
 
             result = self.copy(deep=False)
@@ -853,6 +858,8 @@ class BaseBlockManager(PandasObject):
 
         new_axes = list(self.axes)
         new_axes[axis] = new_axis
+        if self.ndim == 2:
+            new_axes[1 - axis] = self.axes[1 - axis].view()
 
         new_mgr = type(self).from_blocks(new_blocks, new_axes)
         if axis == 1:
@@ -883,7 +890,7 @@ class BaseBlockManager(PandasObject):
             If True, we always return views on existing arrays, never copies.
             This is used when called from ops.blockwise.operate_blockwise.
         use_na_proxy : bool, default False
-            Whether to use a np.void ndarray for newly introduced columns.
+            Whether to use an np.void ndarray for newly introduced columns.
         ref_inplace_op: bool, default False
             Don't track refs if True because we operate inplace
 
@@ -1131,7 +1138,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 ndim=1,
                 refs=self.blocks[0].refs,
             )
-            return SingleBlockManager(block, self.axes[0])
+            return SingleBlockManager(block, self.axes[0].view())
 
         dtype = interleaved_dtype([blk.dtype for blk in self.blocks])
 
@@ -1176,7 +1183,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         bp = BlockPlacement(slice(0, len(result)))
         block = new_block(result, placement=bp, ndim=1)
-        return SingleBlockManager(block, self.axes[0])
+        return SingleBlockManager(block, self.axes[0].view())
 
     def iget(self, i: int, track_ref: bool = True) -> SingleBlockManager:
         """
@@ -1190,7 +1197,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         nb = type(block)(
             values, placement=bp, ndim=1, refs=block.refs if track_ref else None
         )
-        return SingleBlockManager(nb, self.axes[1])
+        return SingleBlockManager(nb, self.axes[1].view())
 
     def iget_values(self, i: int) -> ArrayLike:
         """
@@ -1417,7 +1424,10 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         nr_blocks = len(self.blocks)
         blocks_tup = (
-            self.blocks[:blkno_l] + (first_nb,) + self.blocks[blkno_l + 1 :] + nbs_tup
+            *self.blocks[:blkno_l],
+            first_nb,
+            *self.blocks[blkno_l + 1 :],
+            *nbs_tup,
         )
         self.blocks = blocks_tup
 
@@ -1457,7 +1467,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         nb = new_block_2d(value, placement=blk._mgr_locs, refs=refs)
         old_blocks = self.blocks
-        new_blocks = old_blocks[:blkno] + (nb,) + old_blocks[blkno + 1 :]
+        new_blocks = (*old_blocks[:blkno], nb, *old_blocks[blkno + 1 :])
         self.blocks = new_blocks
         return
 
@@ -1625,7 +1635,8 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             nrows = result_blocks[0].values.shape[-1]
         index = default_index(nrows)
 
-        return type(self).from_blocks(result_blocks, [self.axes[0], index])
+        # TODO shallow copy columns?
+        return type(self).from_blocks(result_blocks, [self.axes[0].view(), index])
 
     def reduce(self, func: Callable) -> Self:
         """
@@ -1644,6 +1655,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         res_blocks = [blk.reduce(func) for blk in self.blocks]
         index = default_index(1)  # placeholder
+        # shallow copy self.items not needed because DataFrame._reduce does a getitem
         new_mgr = type(self).from_blocks(res_blocks, [self.items, index])
         return new_mgr
 
@@ -1685,8 +1697,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         assert self.ndim >= 2
         assert is_list_like(qs)  # caller is responsible for this
 
-        new_axes = list(self.axes)
-        new_axes[1] = Index(qs, dtype=np.float64)
+        new_axes = [self.axes[0].view(), Index(qs, dtype=np.float64)]
 
         blocks = [
             blk.quantile(qs=qs, interpolation=interpolation) for blk in self.blocks
@@ -1777,7 +1788,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         na_value: object = lib.no_default,
     ) -> np.ndarray:
         """
-        Convert the blockmanager data into an numpy array.
+        Convert the blockmanager data into a numpy array.
 
         Parameters
         ----------
@@ -1951,6 +1962,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
             offset += len(mgr.items)
 
+        # TODO relevant axis already shallow-copied at caller?
         new_mgr = cls(tuple(blocks), axes)
         return new_mgr
 
@@ -2020,7 +2032,7 @@ class SingleBlockManager(BaseBlockManager):
         arr = ensure_block_shape(blk.values, ndim=2)
         bp = BlockPlacement(0)
         new_blk = type(blk)(arr, placement=bp, ndim=2, refs=blk.refs)
-        axes = [columns, self.axes[0]]
+        axes = [columns, self.axes[0].view()]
         return BlockManager([new_blk], axes=axes, verify_integrity=False)
 
     def _has_no_reference(self, i: int = 0) -> bool:
@@ -2313,7 +2325,7 @@ def raise_construction_error(
     e: ValueError | None = None,
 ) -> NoReturn:
     """raise a helpful message about our construction"""
-    passed = tuple(map(int, [tot_items] + list(block_shape)))
+    passed = tuple(map(int, [tot_items, *block_shape]))
     # Correcting the user facing error message during dataframe construction
     if len(passed) <= 2:
         passed = passed[::-1]
@@ -2408,7 +2420,7 @@ def _stack_arrays(tuples, dtype: np.dtype):
     placement, arrays = zip(*tuples, strict=True)
 
     first = arrays[0]
-    shape = (len(arrays),) + first.shape
+    shape = (len(arrays), *first.shape)
 
     stacked = np.empty(shape, dtype=dtype)
     for i, arr in enumerate(arrays):

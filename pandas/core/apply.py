@@ -29,7 +29,10 @@ from pandas._typing import (
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import SpecificationError
-from pandas.util._decorators import cache_readonly
+from pandas.util._decorators import (
+    cache_readonly,
+    set_module,
+)
 
 from pandas.core.dtypes.cast import is_nested_object
 from pandas.core.dtypes.common import (
@@ -75,6 +78,7 @@ if TYPE_CHECKING:
 ResType: TypeAlias = dict[int, Any]
 
 
+@set_module("pandas.api.executors")
 class BaseExecutionEngine(abc.ABC):
     """
     Base class for execution engines for map and apply methods.
@@ -87,8 +91,6 @@ class BaseExecutionEngine(abc.ABC):
     run in parallel, and others. Besides the default executor which
     simply runs the code with the Python interpreter and pandas.
     """
-
-    __module__ = "pandas.api.executors"
 
     @staticmethod
     @abc.abstractmethod
@@ -1970,7 +1972,7 @@ def relabel_result(
             fun = [
                 com.get_callable_name(f) if not isinstance(f, str) else f for f in fun
             ]
-            col_idx_order = Index(s.index).get_indexer(fun)
+            col_idx_order = Index(s.index, copy=False).get_indexer(fun)
             valid_idx = col_idx_order != -1
             if valid_idx.any():
                 s = s.iloc[col_idx_order[valid_idx]]

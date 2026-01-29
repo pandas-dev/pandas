@@ -509,7 +509,7 @@ class PythonParser(ParserBase):
                     values, skipna=False, convert_na_value=False
                 )
 
-            cats = Index(values).unique().dropna()
+            cats = Index(values, copy=False).unique().dropna()
             values = Categorical._from_inferred_categories(
                 cats, cats.get_indexer(values), cast_type, true_values=self.true_values
             )
@@ -581,7 +581,7 @@ class PythonParser(ParserBase):
             if isinstance(header, (list, tuple, np.ndarray)):
                 # we have a mi columns, so read an extra line
                 if have_mi_columns:
-                    header = list(header) + [header[-1] + 1]
+                    header = [*list(header), header[-1] + 1]
             else:
                 header = [header]
 
@@ -669,8 +669,8 @@ class PythonParser(ParserBase):
                         this_columns[i] = col
                         counts[col] = cur_count + 1
                 elif have_mi_columns:
-                    # if we have grabbed an extra line, but its not in our
-                    # format so save in the buffer, and create an blank extra
+                    # if we have grabbed an extra line, but it's not in our
+                    # format so save in the buffer, and create a blank extra
                     # line for the rest of the parsing code
                     if hr == header[-1]:
                         lc = len(this_columns)

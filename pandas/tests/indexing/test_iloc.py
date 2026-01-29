@@ -1257,7 +1257,7 @@ class TestiLocBaseIndependent:
         # GH#45241
         # TODO: make an extension interface test for this?
         arr = interval_range(1, 10.0)._values
-        df = DataFrame(arr)
+        df = DataFrame(arr, copy=False)
 
         # ser should be a *view* on the DataFrame data
         ser = df.iloc[2]

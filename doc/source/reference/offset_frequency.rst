@@ -40,6 +40,8 @@ Methods
     DateOffset.is_quarter_end
     DateOffset.is_year_start
     DateOffset.is_year_end
+    DateOffset.rollback
+    DateOffset.rollforward
 
 BusinessDay
 -----------
@@ -69,6 +71,7 @@ Properties
     BusinessDay.normalize
     BusinessDay.rule_code
     BusinessDay.n
+    BusinessDay.offset
     BusinessDay.weekmask
     BusinessDay.holidays
     BusinessDay.calendar
@@ -157,6 +160,7 @@ Properties
     CustomBusinessDay.weekmask
     CustomBusinessDay.calendar
     CustomBusinessDay.holidays
+    CustomBusinessDay.offset
 
 Methods
 ~~~~~~~

@@ -303,7 +303,7 @@ def test_wrap_agg_out(three_group):
     grouped = three_group.groupby(["A", "B"])
 
     def func(ser):
-        if ser.dtype == object or ser.dtype == "string":
+        if ser.dtype in (object, "string"):
             raise TypeError("Test error message")
         return ser.sum()
 
@@ -1736,7 +1736,7 @@ def test_groupby_agg_extension_timedelta_cumsum_with_named_aggregation():
         {
             "td": Series(
                 ["0 days 01:00:00", "0 days 00:15:00", "0 days 01:15:00"],
-                dtype="timedelta64[ns]",
+                dtype="timedelta64[us]",
             ),
             "grps": ["a", "a", "b"],
         }
