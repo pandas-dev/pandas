@@ -243,7 +243,13 @@ def test_map_empty(request, index):
     s = Series(index)
     result = s.map({})
 
-    expected = Series(np.nan, index=s.index)
+    # GH#63903 - nullable masked dtypes now preserve dtype in map
+    from pandas.core.arrays.masked import BaseMaskedDtype
+
+    if isinstance(s.dtype, BaseMaskedDtype):
+        expected = Series(pd.NA, index=s.index, dtype=s.dtype)
+    else:
+        expected = Series(np.nan, index=s.index)
     tm.assert_series_equal(result, expected)
 
 
@@ -677,3 +683,18 @@ def test_map_pyarrow_timestamp(as_td):
     #  we don't for Series.map
     expected_index = Index(expected).astype("int64[pyarrow]")
     tm.assert_index_equal(res_index, expected_index)
+
+
+@pytest.mark.parametrize("dtype", ["Int64", "UInt64"])
+def test_map_nullable_integer_precision(dtype):
+    # GH#63903 - map should preserve precision for large integers
+    # with nullable integer dtype
+    large_int = 10000000000000001  # above float64 integer precision limit
+    ser = Series([large_int, None], dtype=dtype)
+
+    result = ser.map(lambda x: x + 2 if pd.notna(x) else x)
+    expected = Series([large_int + 2, None], dtype=dtype)
+    tm.assert_series_equal(result, expected)
+
+    # Verify exact value preserved (not rounded due to float conversion)
+    assert result.iloc[0] == large_int + 2
