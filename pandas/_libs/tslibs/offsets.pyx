@@ -4897,6 +4897,44 @@ cdef class Week(SingleConstructorOffset):
         return out
 
     def is_on_offset(self, dt: datetime) -> bool:
+        """
+        Return boolean whether a timestamp intersects with this frequency.
+
+        This method determines if a given timestamp falls on a valid week offset.
+        If a specific weekday is set (via the ``weekday`` parameter), it checks
+        whether the timestamp falls on that day. If no weekday is specified,
+        all timestamps are considered on the offset. If ``normalize`` is True,
+        it also checks that the time component is midnight.
+
+        Parameters
+        ----------
+        dt : datetime
+            Timestamp to check.
+
+        Returns
+        -------
+        bool
+            True if the timestamp is on the offset, False otherwise.
+
+        See Also
+        --------
+        BusinessDay.is_on_offset : Check if timestamp is on a business day.
+        DateOffset.is_on_offset : Check if timestamp intersects with frequency.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2022, 1, 3)  # Monday
+        >>> ts.day_name()
+        'Monday'
+        >>> pd.offsets.Week().is_on_offset(ts)
+        True
+
+        >>> pd.offsets.Week(weekday=0).is_on_offset(ts)  # weekday=0 is Monday
+        True
+
+        >>> pd.offsets.Week(weekday=6).is_on_offset(ts)  # weekday=6 is Sunday
+        False
+        """
         if self.normalize and not _is_normalized(dt):
             return False
         elif self.weekday is None:
