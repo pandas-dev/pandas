@@ -1430,8 +1430,9 @@ class ArrowExtensionArray(
 
             if has_pd_na:
                 value_set = value_set.cast(self._pa_array.type)
-             # else: pass-through to pc.is_in below, ensuring legacy behavior (crash or otherwise)
-             # is preserved for non-pd.NA nulls (e.g. [None], [np.nan])
+             # else: pass-through to pc.is_in below, ensuring legacy behavior
+             # (crash or otherwise) is preserved for non-pd.NA nulls (e.g. [None], [np.nan])
+
 
         result = pc.is_in(self._pa_array, value_set=value_set)
         # pyarrow 2.0.0 returned nulls, so we explicitly specify dtype to convert nulls
