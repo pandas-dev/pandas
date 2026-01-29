@@ -71,8 +71,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         --format=actions \
         -i ES01 `# For now it is ok if docstrings are missing the extended summary` \
         -i "pandas.tseries.offsets.BusinessHour PR02,SA01" \
-        -i "pandas.tseries.offsets.CDay PR02,SA01" \
-        -i "pandas.tseries.offsets.CustomBusinessDay PR02,SA01" \
         -i "pandas.tseries.offsets.CustomBusinessHour PR02,SA01" \
         -i "pandas.tseries.offsets.FY5253Quarter.is_on_offset GL08" \
         -i "pandas.tseries.offsets.LastWeekOfMonth.is_on_offset GL08" \
