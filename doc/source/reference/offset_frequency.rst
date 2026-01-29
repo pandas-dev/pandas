@@ -160,6 +160,7 @@ Properties
     CustomBusinessDay.weekmask
     CustomBusinessDay.calendar
     CustomBusinessDay.holidays
+    CustomBusinessDay.offset
 
 Methods
 ~~~~~~~
