@@ -5975,7 +5975,7 @@ cdef class CustomBusinessDay(BusinessDay):
 
     In CustomBusinessDay we can use custom weekmask, holidays, and calendar.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of days represented.
@@ -5990,6 +5990,10 @@ cdef class CustomBusinessDay(BusinessDay):
         Calendar to integrate.
     offset : timedelta, default timedelta(0)
         Time offset to apply.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
 
     Examples
     --------
