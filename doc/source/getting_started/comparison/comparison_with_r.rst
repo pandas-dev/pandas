@@ -92,6 +92,20 @@ R                                               pandas
 ``summarise(gdf, avg=mean(col1, na.rm=TRUE))``  ``df.groupby('col1').agg({'col1': 'mean'})``
 ``summarise(gdf, total=sum(col1))``             ``df.groupby('col1').sum()``
 ==============================================  ===========================================
+Example: groupby aggregation (common analytics use case)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Compute total sales per category using pandas:
+
+.. code-block:: python
+
+   import pandas as pd
+
+   df = pd.DataFrame(
+       {"category": ["A", "A", "B"], "sales": [10, 20, 7]}
+   )
+
+   df.groupby("category")["sales"].sum()
 
 
 Base R
