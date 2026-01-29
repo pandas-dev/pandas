@@ -585,6 +585,8 @@ class ArrowExtensionArray(
         -------
         pa.Array or pa.ChunkedArray
         """
+        from pandas.core.dtypes.missing import isna
+
         value = extract_array(value, extract_numpy=True)
         if isinstance(value, cls):
             pa_array = value._pa_array
@@ -907,6 +909,8 @@ class ArrowExtensionArray(
         self.__dict__.update(state)
 
     def _cmp_method(self, other, op) -> ArrowExtensionArray:
+        from pandas.core.dtypes.missing import isna
+
         pc_func = ARROW_CMP_FUNCS[op.__name__]
         ltype = self._pa_array.type
 
@@ -1691,6 +1695,8 @@ class ArrowExtensionArray(
         copy: bool = False,
         na_value: object = lib.no_default,
     ) -> np.ndarray:
+        from pandas.core.dtypes.missing import isna
+
         original_na_value = na_value
         dtype, na_value = to_numpy_dtype_inference(self, dtype, na_value, self._hasna)
         pa_type = self._pa_array.type
