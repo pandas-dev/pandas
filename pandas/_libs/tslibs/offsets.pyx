@@ -2335,7 +2335,11 @@ cdef class BusinessDay(BusinessMixin):
     """
     DateOffset subclass representing possibly n business days.
 
-    Parameters
+    BusinessDay, also known as BDay, is a date offset representing a single
+    business day or a number of business days. Business days exclude weekends
+    (Saturday and Sunday) by default.
+
+    Attributes
     ----------
     n : int, default 1
         The number of days represented.
@@ -2343,6 +2347,10 @@ cdef class BusinessDay(BusinessMixin):
         Normalize start/end dates to midnight.
     offset : timedelta, default timedelta(0)
         Time offset to apply.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
 
     Examples
     --------
