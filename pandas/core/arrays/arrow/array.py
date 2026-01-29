@@ -1427,7 +1427,7 @@ class ArrowExtensionArray(
                 if isna(x) and not isinstance(x, (float, np.floating, type(None))):
                     has_pd_na = True
                     break
-            
+
             if has_pd_na:
                 value_set = value_set.cast(self._pa_array.type)
              # else: pass-through to pc.is_in below, ensuring legacy behavior (crash or otherwise)
