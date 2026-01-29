@@ -573,6 +573,18 @@ class DataFrame(NDFrame, OpsMixin):
                     dtype=dtype,
                     copy=copy,
                 )
+                # Ensure CoW refs only when actually sharing memory
+                if (
+                    not copy
+                    and isinstance(data, (ABCSeries, ABCIndex))
+                    and len(mgr.blocks) == 1
+                    and np.shares_memory(data._values, mgr.blocks[0].values)
+                ):
+                    if isinstance(data, ABCSeries):
+                        mgr.add_references(data._mgr)
+                    elif getattr(data, "_references", None) is not None:
+                        data._references.add_reference(mgr.blocks[0])
+                        mgr.blocks[0].refs = data._references
 
         # For data is list-like, or Iterable (will consume into list)
         elif is_list_like(data):
