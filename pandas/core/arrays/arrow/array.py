@@ -1120,6 +1120,8 @@ class ArrowExtensionArray(
         return len(self._pa_array)
 
     def __contains__(self, key) -> bool:
+        from pandas.core.dtypes.missing import isna
+
         # https://github.com/pandas-dev/pandas/pull/51307#issuecomment-1426372604
         if isna(key) and key is not self.dtype.na_value:
             if lib.is_float(key) and is_nan_na():
@@ -1623,6 +1625,8 @@ class ArrowExtensionArray(
             raise IndexError("out of bounds value in 'indices'.")
 
         if allow_fill:
+            from pandas.core.dtypes.missing import isna
+
             fill_mask = indices_array < 0
             if fill_mask.any():
                 validate_indices(indices_array, len(self._pa_array))
