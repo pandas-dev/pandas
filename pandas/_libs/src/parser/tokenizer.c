@@ -110,6 +110,9 @@ void parser_set_default_options(parser_t *self) {
   self->skipfunc = NULL;
   self->skip_first_N_rows = -1;
   self->skip_footer = 0;
+
+  self->strip_bom = 1;
+  self->bom_found = 0;
 }
 
 parser_t *parser_new(void) { return (parser_t *)calloc(1, sizeof(parser_t)); }
@@ -204,6 +207,9 @@ int parser_init(parser_t *self) {
   self->warn_msg = NULL;
 
   self->commentchar = '\0';
+
+  self->strip_bom = 1;
+  self->bom_found = 0;
 
   return 0;
 }
@@ -644,8 +650,11 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes,
 
 #define CHECK_FOR_BOM()                                                        \
   if (*buf == '\xef' && *(buf + 1) == '\xbb' && *(buf + 2) == '\xbf') {        \
-    buf += 3;                                                                  \
-    self->datapos += 3;                                                        \
+    self->bom_found = 1;                                                       \
+    if (self->strip_bom) {                                                     \
+      buf += 3;                                                                \
+      self->datapos += 3;                                                      \
+    }                                                                          \
   }
 
 static int skip_this_line(parser_t *self, int64_t rownum) {

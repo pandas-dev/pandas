@@ -128,7 +128,19 @@ def test_utf8_bom(all_parsers, data, kwargs, expected):
         # CSV parse error: Empty CSV file or block: cannot infer number of columns
         pytest.skip(reason="https://github.com/apache/arrow/issues/38676")
 
-    result = parser.read_csv(_encode_data_with_bom(data), encoding=utf8, **kwargs)
+    # We only implemented the warning for the C engine so far.
+    # Python/Pyarrow engines will still silently strip the BOM (warn_type=None).
+    if parser.engine in ["c", "c_high", "c_low"]:
+        warn_type = FutureWarning
+        warn_msg = "UTF-8 BOM"
+    else:
+        warn_type = None
+        warn_msg = None
+
+    # We use check_stacklevel=False to avoid errors with compiled Cython paths
+    with tm.assert_produces_warning(warn_type, match=warn_msg, check_stacklevel=False):
+        result = parser.read_csv(_encode_data_with_bom(data), encoding=utf8, **kwargs)
+
     expected = DataFrame({"a": expected})
     tm.assert_frame_equal(result, expected)
 
@@ -331,3 +343,55 @@ def test_not_readable(all_parsers, mode):
         df = parser.read_csv(handle)
     expected = DataFrame([], columns=["abcd"])
     tm.assert_frame_equal(df, expected)
+
+
+@pytest.mark.parametrize(
+    "data, encoding, warning_type, warning_match, expected_col",
+    [
+        # GH 63787: Case 1 - UTF-8 with BOM
+        (
+            b"\xef\xbb\xbfName,Age\nJohn,25",
+            "utf-8",
+            FutureWarning,
+            "UTF-8 BOM",
+            "Name",
+        ),
+        # GH 63787: Case 2 - Latin1 with bytes matching BOM
+        (
+            b"\xef\xbb\xbfName,Age\nJohn,25",
+            "latin1",
+            None,
+            None,
+            "ï»¿Name",
+        ),
+        # GH 63787: Case 3 - Literal ISO-8859-1 chars matching BOM bytes
+        (
+            "ï»¿ABC,Value\n1,2\n".encode("iso-8859-1"),
+            "utf-8",
+            FutureWarning,
+            "UTF-8 BOM",
+            "ABC",
+        ),
+    ],
+)
+def test_bom_handling_deprecation(
+    all_parsers, data, encoding, warning_type, warning_match, expected_col
+):
+    """
+    Test BOM handling during the deprecation period (GH#63787).
+
+    We want to:
+    1. Warn if users use 'utf-8' with a BOM (deprecation).
+    2. NOT warn/strip if the encoding is not UTF-8 (even if bytes match).
+    """
+    parser = all_parsers
+
+    if parser.engine not in ["c", "c_high", "c_low"]:
+        pytest.skip("BOM warning not yet implemented for Python/PyArrow engines")
+
+    with tm.assert_produces_warning(
+        warning_type, match=warning_match, check_stacklevel=False
+    ):
+        result = parser.read_csv(BytesIO(data), encoding=encoding)
+
+    assert result.columns[0] == expected_col

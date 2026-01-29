@@ -78,6 +78,32 @@ class CParserWrapper(ParserBase):
         # Have to pass int, would break tests using TextReader directly otherwise :(
         kwds["on_bad_lines"] = self.on_bad_lines.value
 
+        # Decision logic for BOM deprecation (GH#63787)
+        # We strip BOM by default (backward compatibility),
+        # but warn if user explicitly asked for 'utf-8' and a BOM exists.
+        encoding = kwds.get("encoding", None)
+
+        if encoding is None:
+            strip_bom = True
+            warn_bom = False
+        else:
+            encoding_lower = encoding.lower().replace("_", "-")
+
+            is_utf8_variant = encoding_lower in ("utf-8", "utf8")
+
+            if encoding_lower.endswith("-sig"):
+                strip_bom = True
+                warn_bom = False
+            elif is_utf8_variant:
+                strip_bom = True
+                warn_bom = True
+            else:
+                strip_bom = False
+                warn_bom = False
+
+        kwds["_strip_bom"] = strip_bom
+        kwds["_warn_bom"] = warn_bom
+
         for key in (
             "storage_options",
             "encoding",

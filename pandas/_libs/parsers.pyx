@@ -189,6 +189,7 @@ cdef extern from "pandas/parser/tokenizer.h":
         # Tokenizing stuff
         ParserState state
         int doublequote            # is " represented by ""? */
+        int strip_bom              # strip UTF-8 BOM if found
         char delimiter             # field separator */
         int delim_whitespace       # consume tabs / spaces instead
         char quotechar             # quote character */
@@ -230,6 +231,7 @@ cdef extern from "pandas/parser/tokenizer.h":
         char *error_msg
 
         int64_t skip_empty_lines
+        int bom_found
 
     ctypedef struct coliter_t:
         char **words
@@ -335,6 +337,7 @@ cdef class TextReader:
         parser_t *parser
         object na_fvalues
         list true_values, false_values
+        bint warn_bom_with_explicit_utf8
         object handle
         object orig_header
         bint na_filter, keep_default_na, has_usecols, has_mi_columns
@@ -395,7 +398,11 @@ cdef class TextReader:
                   float_precision=None,
                   bint skip_blank_lines=True,
                   encoding_errors=b"strict",
-                  dtype_backend="numpy"):
+                  dtype_backend="numpy",
+                  **kwds):
+
+        cdef bint strip_bom = kwds.pop("_strip_bom", True)
+        cdef bint warn_bom = kwds.pop("_warn_bom", False)
 
         # set encoding for native Python and C library
         if isinstance(encoding_errors, str):
@@ -412,6 +419,9 @@ cdef class TextReader:
 
         self._setup_parser_source(source)
         parser_set_default_options(self.parser)
+
+        self.parser.strip_bom = 1 if strip_bom else 0
+        self.warn_bom_with_explicit_utf8 = warn_bom
 
         parser_init(self.parser)
 
@@ -880,6 +890,20 @@ cdef class TextReader:
             )
             free(self.parser.warn_msg)
             self.parser.warn_msg = NULL
+
+        # NEW: Check for BOM warning (only for UTF-8 with BOM)
+        if self.warn_bom_with_explicit_utf8 and self.parser.bom_found:
+            warnings.warn(
+                "A UTF-8 BOM was detected in the file. In a future version of "
+                "pandas, specifying encoding='utf-8' will preserve the BOM as a "
+                "'\\ufeff' character to align with Python's standard codec behavior. "
+                "To suppress this warning and strip the BOM, use encoding='utf-8-sig'. "
+                "To prepare for the future behavior, you can manually handle the BOM "
+                "in your code.",
+                FutureWarning,
+                stacklevel=find_stack_level()
+            )
+            self.warn_bom_with_explicit_utf8 = False
 
         if status < 0:
             raise_parser_error("Error tokenizing data", self.parser)

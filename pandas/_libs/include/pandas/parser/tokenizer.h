@@ -157,6 +157,10 @@ typedef struct parser_t {
   char *error_msg;
 
   int skip_empty_lines;
+
+  int strip_bom;
+  int bom_found;
+
 } parser_t;
 
 typedef struct coliter_t {
