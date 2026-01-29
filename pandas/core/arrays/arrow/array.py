@@ -62,7 +62,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna
 
-
 from pandas.core import (
     algorithms as algos,
     missing,
