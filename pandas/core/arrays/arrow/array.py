@@ -1418,7 +1418,22 @@ class ArrowExtensionArray(
         if not len(values):
             return np.zeros(len(self), dtype=bool)
 
-        result = pc.is_in(self._pa_array, value_set=pa.array(values))
+        value_set = pa.array(values, from_pandas=True)
+        # Fix for GH#63304
+        if pa.types.is_null(value_set.type):
+            has_pd_na = False
+            for x in values:
+                # GH#63304: Check for pd.NA (NAType) specifically
+                if isna(x) and not isinstance(x, (float, np.floating, type(None))):
+                    has_pd_na = True
+                    break
+
+            if has_pd_na:
+                value_set = value_set.cast(self._pa_array.type)
+             # else: pass-through to pc.is_in below, ensuring legacy behavior (crash or otherwise)
+             # is preserved for non-pd.NA nulls (e.g. [None], [np.nan])
+
+        result = pc.is_in(self._pa_array, value_set=value_set)
         # pyarrow 2.0.0 returned nulls, so we explicitly specify dtype to convert nulls
         # to False
         return np.array(result, dtype=np.bool_)
