@@ -60,7 +60,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
-from pandas.core.dtypes.missing import isna
+
 
 from pandas.core import (
     algorithms as algos,
@@ -1424,7 +1424,7 @@ class ArrowExtensionArray(
             has_pd_na = False
             for x in values:
                 # GH#63304: Check for pd.NA (NAType) specifically
-                if isna(x) and not isinstance(x, (float, np.floating, type(None))):
+                if is_pdna_or_none(x) and x is not None:
                     has_pd_na = True
                     break
 
