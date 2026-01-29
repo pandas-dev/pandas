@@ -60,7 +60,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
-from pandas.core.dtypes.missing import isna
+
 
 from pandas.core import (
     algorithms as algos,
@@ -341,6 +341,8 @@ class ArrowExtensionArray(
         """
         Construct a new ExtensionArray from a sequence of strings.
         """
+        from pandas.core.dtypes.missing import isna
+
         mask = isna(strings)
 
         if isinstance(strings, cls):
@@ -539,6 +541,8 @@ class ArrowExtensionArray(
         -------
         pa.Scalar
         """
+        from pandas.core.dtypes.missing import isna
+
         if isinstance(value, pa.Scalar):
             pa_scalar = value
         elif isna(value) and not (lib.is_float(value) and not is_nan_na()):
@@ -2698,6 +2702,8 @@ class ArrowExtensionArray(
         ]
 
     def _convert_bool_result(self, result, na=lib.no_default, method_name=None):
+        from pandas.core.dtypes.missing import isna
+
         if na is not lib.no_default and not isna(na):  # pyright: ignore [reportGeneralTypeIssues]
             result = result.fill_null(na)
         return self._from_pyarrow_array(result)
