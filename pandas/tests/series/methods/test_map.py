@@ -685,14 +685,15 @@ def test_map_pyarrow_timestamp(as_td):
     tm.assert_index_equal(res_index, expected_index)
 
 
-def test_map_nullable_integer_precision():
+@pytest.mark.parametrize("dtype", ["Int64", "UInt64"])
+def test_map_nullable_integer_precision(dtype):
     # GH#63903 - map should preserve precision for large integers
     # with nullable integer dtype
     large_int = 10000000000000001  # above float64 integer precision limit
-    ser = Series([large_int, None], dtype="Int64")
+    ser = Series([large_int, None], dtype=dtype)
 
-    result = ser.map(lambda x: x + 2 if not isna(x) else x)
-    expected = Series([large_int + 2, None], dtype="Int64")
+    result = ser.map(lambda x: x + 2 if pd.notna(x) else x)
+    expected = Series([large_int + 2, None], dtype=dtype)
     tm.assert_series_equal(result, expected)
 
     # Verify exact value preserved (not rounded due to float conversion)
