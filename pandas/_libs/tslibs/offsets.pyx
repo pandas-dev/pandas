@@ -2123,7 +2123,32 @@ cdef class BusinessMixin(SingleConstructorOffset):
     @property
     def offset(self):
         """
-        Alias for self._offset.
+        Return the time offset applied to the business day.
+
+        This property returns the timedelta offset that is added to the
+        business day calculation result. It allows for shifting the result
+        by a fixed time amount.
+
+        Returns
+        -------
+        timedelta
+            The time offset applied to the business day.
+
+        See Also
+        --------
+        BusinessDay : Represents a single business day offset.
+        CustomBusinessDay : Custom business day offset with configurable weekmask.
+
+        Examples
+        --------
+        >>> bd = pd.offsets.BusinessDay()
+        >>> bd.offset
+        datetime.timedelta(0)
+
+        >>> import datetime as dt
+        >>> bd = pd.offsets.BusinessDay(offset=dt.timedelta(hours=2))
+        >>> bd.offset
+        datetime.timedelta(seconds=7200)
         """
         # Alias for backward compat
         return self._offset
@@ -2335,7 +2360,11 @@ cdef class BusinessDay(BusinessMixin):
     """
     DateOffset subclass representing possibly n business days.
 
-    Parameters
+    BusinessDay, also known as BDay, is a date offset representing a single
+    business day or a number of business days. Business days exclude weekends
+    (Saturday and Sunday) by default.
+
+    Attributes
     ----------
     n : int, default 1
         The number of days represented.
@@ -2343,6 +2372,10 @@ cdef class BusinessDay(BusinessMixin):
         Normalize start/end dates to midnight.
     offset : timedelta, default timedelta(0)
         Time offset to apply.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
 
     Examples
     --------
