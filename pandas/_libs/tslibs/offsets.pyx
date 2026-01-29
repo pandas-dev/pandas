@@ -2123,7 +2123,32 @@ cdef class BusinessMixin(SingleConstructorOffset):
     @property
     def offset(self):
         """
-        Alias for self._offset.
+        Return the time offset applied to the business day.
+
+        This property returns the timedelta that is added to the result
+        after calculating the business day offset. It allows shifting
+        the resulting timestamp by a fixed time duration.
+
+        Returns
+        -------
+        timedelta
+            The time offset applied after business day calculation.
+
+        See Also
+        --------
+        BusinessDay : Standard business day offset.
+        CustomBusinessDay : Custom business day offset with configurable parameters.
+
+        Examples
+        --------
+        >>> import datetime as dt
+        >>> cbd = pd.offsets.CustomBusinessDay()
+        >>> cbd.offset
+        datetime.timedelta(0)
+
+        >>> cbd_with_offset = pd.offsets.CustomBusinessDay(offset=dt.timedelta(hours=9))
+        >>> cbd_with_offset.offset
+        datetime.timedelta(seconds=32400)
         """
         # Alias for backward compat
         return self._offset
