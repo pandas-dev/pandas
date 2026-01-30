@@ -300,12 +300,6 @@ cdef int64_t _numeric_to_td64ns(
     if is_integer_object(item) and item == NPY_NAT:
         return NPY_NAT
 
-    # Early overflow guard for scalar numeric input
-    if unit=="ns" and is_integer_object(item):
-        if item>9223372036854775807 or item <-9223372036854775808:
-            raise OutOfBoundsTimedelta(
-                f"Cannot cast {item} from {unit} to 'ns' without overflow."
-            )
     try:
         ival = cast_from_unit(item, unit, out_reso)
     except OutOfBoundsDatetime as err:
