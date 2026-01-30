@@ -882,7 +882,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
             if isinstance(name, tuple) and len(name) == 1:
                 name = name[0]
             else:
-                raise KeyError(f"Group {name} not found")
+                raise KeyError(name)
 
         inds = self._get_index(name)
         if not len(inds):
@@ -1541,6 +1541,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Notes
         -----
+        See :ref:`groupby.apply` in the User Guide for more details and examples.
+
         The resulting dtype will reflect the return value of the passed ``func``,
         see the examples below.
 
