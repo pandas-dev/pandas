@@ -3157,6 +3157,46 @@ cdef class WeekOfMonthMixin(SingleConstructorOffset):
         return _shift_day(shifted, to_day - shifted.day)
 
     def is_on_offset(self, dt: datetime) -> bool:
+        """
+        Return boolean whether a timestamp intersects with this frequency.
+
+        This method checks if the given timestamp falls on the expected day
+        of the month for this offset. For WeekOfMonth, this is the specified
+        weekday of the specified week of the month. For LastWeekOfMonth, this
+        is the specified weekday of the last week of the month.
+
+        Parameters
+        ----------
+        dt : datetime
+            Timestamp to check intersection with frequency.
+
+        Returns
+        -------
+        bool
+            True if the timestamp is on the offset, False otherwise.
+
+        See Also
+        --------
+        tseries.offsets.WeekOfMonth : Describes monthly dates in a specific week.
+        tseries.offsets.LastWeekOfMonth : Describes monthly dates in the last week.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2022, 1, 3)
+        >>> ts.day_name()
+        'Monday'
+        >>> pd.offsets.WeekOfMonth(week=0, weekday=0).is_on_offset(ts)
+        True
+
+        >>> ts = pd.Timestamp(2022, 1, 10)
+        >>> ts.day_name()
+        'Monday'
+        >>> pd.offsets.WeekOfMonth(week=0, weekday=0).is_on_offset(ts)
+        False
+
+        >>> pd.offsets.WeekOfMonth(week=1, weekday=0).is_on_offset(ts)
+        True
+        """
         if self.normalize and not _is_normalized(dt):
             return False
         return dt.day == self._get_offset_day(dt)
