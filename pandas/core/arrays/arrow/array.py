@@ -1631,7 +1631,7 @@ class ArrowExtensionArray(
 
         Examples
         --------
-        >>> arr = pd.array([1, 2, 3, 5])
+        >>> arr = pd.array([1, 2, 3, 5], dtype="int64[pyarrow]")
         >>> arr.searchsorted([4])
         array([3])
         """
