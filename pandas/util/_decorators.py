@@ -15,7 +15,6 @@ from pandas._typing import (
     F,
     T,
 )
-from pandas.errors import Pandas4Warning
 from pandas.util._exceptions import find_stack_level
 
 if TYPE_CHECKING:
@@ -439,6 +438,8 @@ class Substitution:
     """
 
     def __init__(self, *args, **kwargs) -> None:
+        from pandas.errors import Pandas4Warning
+
         warnings.warn(
             "Substitution is deprecated and will be removed in a future version.",
             Pandas4Warning,
@@ -484,6 +485,8 @@ class Appender:
     addendum: str | None
 
     def __init__(self, addendum: str | None, join: str = "", indents: int = 0) -> None:
+        from pandas.errors import Pandas4Warning
+
         warnings.warn(
             "Appender is deprecated and will be removed in a future version.",
             Pandas4Warning,
