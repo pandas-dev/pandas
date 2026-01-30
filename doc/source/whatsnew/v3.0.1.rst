@@ -18,7 +18,7 @@ Bug fixes
 
 - Fixed a bug when comparing between ``pd.NA`` in :class:`Series` with other values,
   now return ``pd.NA`` instead of ``False`` (:issue:`63328`)
-  
+
 .. ---------------------------------------------------------------------------
 .. _whatsnew_301.contributors:
 
