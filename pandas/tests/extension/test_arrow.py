@@ -43,6 +43,7 @@ from pandas.compat import (
     pa_version_under20p0,
     pa_version_under21p0,
 )
+from pandas.compat.pyarrow import pa_version_under22p0
 from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.common import pandas_dtype
@@ -73,7 +74,7 @@ from pandas.core.arrays.arrow.extension_types import ArrowPeriodType
 
 
 def _require_timezone_database(request):
-    if is_platform_windows() and is_ci_environment():
+    if is_platform_windows() and is_ci_environment() and pa_version_under22p0:
         mark = pytest.mark.xfail(
             raises=pa.ArrowInvalid,
             reason=(
@@ -3131,7 +3132,7 @@ def test_describe_timedelta_data(pa_type):
     data = pd.Series(range(1, 10), dtype=ArrowDtype(pa_type))
     result = data.describe()
     expected = pd.Series(
-        [9] + pd.to_timedelta([5, 2, 1, 3, 5, 7, 9], unit=pa_type.unit).tolist(),
+        [9, *pd.to_timedelta([5, 2, 1, 3, 5, 7, 9], unit=pa_type.unit).tolist()],
         dtype=object,
         index=["count", "mean", "std", "min", "25%", "50%", "75%", "max"],
     )
