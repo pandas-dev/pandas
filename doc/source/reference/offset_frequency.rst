@@ -201,6 +201,7 @@ Properties
     CustomBusinessHour.holidays
     CustomBusinessHour.start
     CustomBusinessHour.end
+    CustomBusinessHour.offset
 
 Methods
 ~~~~~~~
