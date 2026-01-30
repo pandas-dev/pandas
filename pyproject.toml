@@ -2,13 +2,13 @@
 # Minimum requirements for the build system to execute.
 # See https://github.com/scipy/scipy/pull/12940 for the AIX issue.
 requires = [
-    "meson-python>=0.13.1",
+    "meson-python>=0.17.1,<1",
     "meson>=1.2.1,<2",
     "wheel",
     "Cython<4.0.0a0",  # Note: sync with setup.py, environment.yml and asv.conf.json
-    # Force numpy higher than 2.0rc1, so that built wheels are compatible
+    # Force numpy higher than 2.0, so that built wheels are compatible
     # with both numpy 1 and 2
-    "numpy>=2.0.0rc1",
+    "numpy>=2.0.0",
     "versioneer[toml]"
 ]
 
@@ -28,8 +28,8 @@ license = {file = 'LICENSE'}
 requires-python = '>=3.11'
 dependencies = [
   "numpy>=1.26.0; python_version < '3.14'",
-  # NumPy 1.x is fundamentally broken on 3.14
-  "numpy>=2.0.0; python_version >= '3.14'",
+  # Earlier versions of NumPy are fundamentally broken on 3.14
+  "numpy>=2.3.3; python_version >= '3.14'",
   "python-dateutil>=2.8.2",
   "tzdata; sys_platform == 'win32'",
   # Emscripten is the platform system for Pyodide.
@@ -301,8 +301,6 @@ ignore = [
   "PYI041",
   # incorrect-dict-iterator, flags valid Series.items usage
   "PERF102",
-  # try-except-in-loop, becomes useless in Python 3.11
-  "PERF203",
   # pytest-parametrize-names-wrong-type
   "PT006",
   # pytest-parametrize-values-wrong-type
@@ -331,16 +329,12 @@ ignore = [
   "PLR2004",
   # comparison-with-itself
   "PLR0124",
-  # collection-literal-concatenation
-  "RUF005",
   # pairwise-over-zipped
   "RUF007",
   # mutable-class-default
   "RUF012",
   # type-comparison
   "E721",
-  # repeated-equality-comparison
-  "PLR1714",
   # self-or-cls-assignment
   "PLW0642",
   # literal-membership
@@ -518,7 +512,6 @@ exclude = [
 "pandas/tests/reshape/test_qcut.py" = ["B905"]
 "pandas/tests/scalar/period/test_asfreq.py" = ["B905"]
 "pandas/tests/series/accessors/test_dt_accessor.py" = ["B905"]
-"pandas/tests/series/indexing/test_get.py" = ["B905"]
 "pandas/tests/series/test_api.py" = ["B905"]
 "pandas/tests/series/test_constructors.py" = ["B905"]
 "pandas/tests/strings/conftest.py" = ["B905"]

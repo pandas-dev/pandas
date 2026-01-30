@@ -315,7 +315,7 @@ class TestWhere:
         tm.assert_index_equal(result, expected)
 
         cond = [False] + [True] * (len(i) - 1)
-        expected = CategoricalIndex([np.nan] + i[1:].tolist(), categories=i.categories)
+        expected = CategoricalIndex([np.nan, *i[1:].tolist()], categories=i.categories)
         result = i.where(klass(cond))
         tm.assert_index_equal(result, expected)
 
@@ -347,7 +347,7 @@ class TestContains:
         assert 1 not in ci
 
     def test_contains_nan(self):
-        ci = CategoricalIndex(list("aabbca") + [np.nan], categories=list("cabdef"))
+        ci = CategoricalIndex([*list("aabbca"), np.nan], categories=list("cabdef"))
         assert np.nan in ci
 
     @pytest.mark.parametrize("unwrap", [True, False])

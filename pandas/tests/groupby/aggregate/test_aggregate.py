@@ -303,7 +303,7 @@ def test_wrap_agg_out(three_group):
     grouped = three_group.groupby(["A", "B"])
 
     def func(ser):
-        if ser.dtype == object or ser.dtype == "string":
+        if ser.dtype in (object, "string"):
             raise TypeError("Test error message")
         return ser.sum()
 

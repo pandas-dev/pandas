@@ -519,7 +519,7 @@ def test_map_categorical(na_action, using_infer_string):
 )
 def test_map_categorical_na_action(na_action, expected):
     dtype = pd.CategoricalDtype(list("DCBA"), ordered=True)
-    values = pd.Categorical(list("AB") + [np.nan], dtype=dtype)
+    values = pd.Categorical([*list("AB"), np.nan], dtype=dtype)
     s = Series(values, name="XX")
     result = s.map(str, na_action=na_action)
     tm.assert_series_equal(result, expected)
@@ -538,7 +538,7 @@ def test_map_datetimetz():
     tm.assert_series_equal(result, exp)
 
     result = s.map(lambda x: x.hour)
-    exp = Series(list(range(24)) + [0], name="XX", dtype=np.int64)
+    exp = Series([*list(range(24)), 0], name="XX", dtype=np.int64)
     tm.assert_series_equal(result, exp)
 
     # not vectorized
@@ -562,7 +562,7 @@ def test_map_datetimetz():
 )
 def test_map_missing_mixed(vals, mapping, exp):
     # GH20495
-    s = Series(vals + [np.nan])
+    s = Series([*vals, np.nan])
     result = s.map(mapping)
     exp = Series(exp)
     tm.assert_series_equal(result, exp)

@@ -89,7 +89,7 @@ class TestTimedeltaIndexInsert:
         item = np.datetime64("NaT")
         result = idx.insert(0, item)
 
-        expected = Index([item] + list(idx), dtype=object, name="idx")
+        expected = Index([item, *list(idx)], dtype=object, name="idx")
         tm.assert_index_equal(result, expected)
 
         # Also works if we pass a different dt64nat object
@@ -107,7 +107,7 @@ class TestTimedeltaIndexInsert:
         result = tdi.insert(1, item)
 
         expected = Index(
-            [tdi[0], lib.item_from_zerodim(item)] + list(tdi[1:]),
+            [tdi[0], lib.item_from_zerodim(item), *list(tdi[1:])],
             dtype=object,
             name="idx",
         )
@@ -118,7 +118,7 @@ class TestTimedeltaIndexInsert:
 
         result = idx.insert(0, "1 Day")
 
-        expected = TimedeltaIndex([idx[0]] + list(idx))
+        expected = TimedeltaIndex([idx[0], *list(idx)])
         tm.assert_index_equal(result, expected)
 
     def test_insert_non_castable_str(self):
@@ -126,7 +126,7 @@ class TestTimedeltaIndexInsert:
 
         result = idx.insert(0, "foo")
 
-        expected = Index(["foo"] + list(idx), dtype=object)
+        expected = Index(["foo", *list(idx)], dtype=object)
         tm.assert_index_equal(result, expected)
 
     def test_insert_empty(self):

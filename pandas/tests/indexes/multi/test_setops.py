@@ -632,7 +632,7 @@ def test_union_duplicates(index, request):
 
     values = index.unique().values.tolist()
     mi1 = MultiIndex.from_arrays([values, [1] * len(values)])
-    mi2 = MultiIndex.from_arrays([[values[0]] + values, [1] * (len(values) + 1)])
+    mi2 = MultiIndex.from_arrays([[values[0], *values], [1] * (len(values) + 1)])
     result = mi2.union(mi1)
     expected = mi2.sort_values()
     tm.assert_index_equal(result, expected)

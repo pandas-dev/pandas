@@ -297,7 +297,7 @@ class TestContains:
         assert 0 not in cat
         assert 1 not in cat
 
-        cat = Categorical(list("aabbca") + [np.nan], categories=list("cab"))
+        cat = Categorical([*list("aabbca"), np.nan], categories=list("cab"))
         assert np.nan in cat
 
     @pytest.mark.parametrize(
