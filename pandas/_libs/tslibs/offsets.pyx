@@ -4528,6 +4528,30 @@ cdef class SemiMonthOffset(SingleConstructorOffset):
 
     @property
     def rule_code(self) -> str:
+        """
+        Return a string representing the base frequency.
+
+        This returns the frequency code with the day of month suffix,
+        such as "SMS-15" for SemiMonthBegin or "SME-15" for SemiMonthEnd.
+
+        See Also
+        --------
+        tseries.offsets.SemiMonthBegin : Two DateOffset's per month repeating on
+            the first day of the month & day_of_month.
+        tseries.offsets.SemiMonthEnd : Two DateOffset's per month repeating on
+            the last day of the month & day_of_month.
+
+        Examples
+        --------
+        >>> pd.offsets.SemiMonthBegin().rule_code
+        'SMS-15'
+
+        >>> pd.offsets.SemiMonthEnd().rule_code
+        'SME-15'
+
+        >>> pd.offsets.SemiMonthBegin(day_of_month=10).rule_code
+        'SMS-10'
+        """
         suffix = f"-{self._day_of_month}"
         return self._prefix + suffix
 
