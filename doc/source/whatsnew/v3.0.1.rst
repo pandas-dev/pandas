@@ -13,6 +13,7 @@ including other versions of pandas.
 
 Bug fixes
 ^^^^^^^^^
+
 - When comparing between ``pd.NA`` in :class:`Series` with other values, will now return ``pd.NA`` instead of ``False`` (:issue:`63328`)
 
 .. ---------------------------------------------------------------------------
