@@ -13,8 +13,8 @@ including other versions of pandas.
 
 Bug fixes
 ^^^^^^^^^
-
-- When comparing between ``pd.NA`` in :class:`Series` with other values, will now return ``pd.NA`` instead of ``False`` (:issue:`63328`)
+- Fixed a bug in the :class:`DataFrame` constructor when passed a :class:`Series` or
+  :class:`Index` correctly handling Copy-on-Write (:issue:`63899`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_301.contributors:
