@@ -6004,6 +6004,40 @@ cdef class FY5253Quarter(FY5253Mixin):
         return weeks_in_year == 53
 
     def is_on_offset(self, dt: datetime) -> bool:
+        """
+        Return boolean whether a timestamp intersects with this frequency.
+
+        This method checks if a given datetime falls on a fiscal quarter end date
+        as defined by the 52-53 week fiscal year calendar.
+
+        Parameters
+        ----------
+        dt : datetime
+            Timestamp to check.
+
+        Returns
+        -------
+        bool
+            True if the timestamp is on a fiscal quarter end, False otherwise.
+
+        See Also
+        --------
+        FY5253.is_on_offset : Check if timestamp is on fiscal year end.
+        DateOffset.is_on_offset : Check if timestamp intersects with frequency.
+
+        Examples
+        --------
+        >>> offset = pd.offsets.FY5253Quarter(
+        ...     weekday=4, startingMonth=12, variation="last"
+        ... )
+        >>> ts = pd.Timestamp(2022, 4, 1)
+        >>> offset.is_on_offset(ts)
+        True
+
+        >>> ts = pd.Timestamp(2022, 4, 3)
+        >>> offset.is_on_offset(ts)
+        False
+        """
         if self.normalize and not _is_normalized(dt):
             return False
         if self._offset.is_on_offset(dt):
