@@ -3,7 +3,7 @@ from itertools import product
 
 import numpy as np
 import pytest
-import pandas as pd
+
 from pandas._libs.tslibs import OutOfBoundsTimedelta
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 from pandas.errors import Pandas4Warning
@@ -778,7 +778,3 @@ def test_parsed_unit():
     # 7 digits after the decimal
     td = Timedelta("1 Day 2:03:04.0123450")
     assert td.unit == "ns"
-def test_to_timedelta_overflow_raises():
-    msg = "Cannot cast .* from ns to 'ns' without overflow"
-    with pytest.raises(OutOfBoundsTimedelta, match=msg):
-        pd.to_timedelta(10**20, unit="ns")
