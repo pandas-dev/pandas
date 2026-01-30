@@ -1389,10 +1389,9 @@ class ArrowExtensionArray(
         limit : int, default None
             The maximum number of entries where NA values will be filled.
         copy : bool, default True
-            Whether to make a copy of the data before filling. If False, then
-            the original should be modified and no new memory should be allocated.
-            For ExtensionArray subclasses that cannot do this, it is at the
-            author's discretion whether to ignore "copy=False" or to raise.
+            Whether to make a copy of the data before filling. This parameter
+            is inherited from pandas.ExtensionArray and should be left at its
+            default value (Arrow arrays cannot be altered in place).
 
         Returns
         -------
