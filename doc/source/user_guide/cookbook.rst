@@ -872,7 +872,7 @@ ones, particularly where observations are not evenly spaced in time.
 This approach relies on ``rolling.apply`` and recomputes weights for each window, so it
 may be slow for large datasets.
 
-.. ipython:: python
+.. code-block:: python
 
    df = pd.DataFrame(
        {
