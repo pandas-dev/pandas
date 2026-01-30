@@ -231,16 +231,24 @@ class Expression:
         )
 
     def __neg__(self) -> Expression:
+        if self._needs_parentheses:
+            repr_str = f"-({self._repr_str})"
+        else:
+            repr_str = f"-{self._repr_str}"
         return Expression(
             lambda df: -self._eval_expression(df),
-            f"-{self._repr_str}",
+            repr_str,
             needs_parenthese=True,
         )
 
     def __pos__(self) -> Expression:
+        if self._needs_parentheses:
+            repr_str = f"+({self._repr_str})"
+        else:
+            repr_str = f"+{self._repr_str}"
         return Expression(
             lambda df: +self._eval_expression(df),
-            f"+{self._repr_str}",
+            repr_str,
             needs_parenthese=True,
         )
 

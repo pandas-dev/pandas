@@ -50,7 +50,7 @@ from pandas.tests.test_register_accessor import ensure_removed
         (-pd.col("a"), [-1, -2], "-col('a')"),
         (+pd.col("a"), [1, 2], "+col('a')"),
         (-(pd.col("a") + 1), [-2, -3], "-(col('a') + 1)"),
-        (-pd.col("a") * 2, [-2, -4], "-col('a') * 2"),
+        (-pd.col("a") * 2, [-2, -4], "(-col('a')) * 2"),
     ],
 )
 def test_col_simple(
