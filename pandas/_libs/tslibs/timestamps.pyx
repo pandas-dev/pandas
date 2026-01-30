@@ -1602,7 +1602,7 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Convert a Timestamp object to a native Python datetime object.
 
-        This method is useful when you need to utilize a pandas Timestamp.
+        This method is useful for when you need to utilize a pandas Timestamp
         object in contexts where native Python datetime objects are expected
         or required. The conversion discards the nanoseconds component, and a
         warning can be issued in such cases if desired.
