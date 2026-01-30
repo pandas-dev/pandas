@@ -2605,7 +2605,12 @@ cdef class BusinessHour(BusinessMixin):
     """
     DateOffset subclass representing possibly n business hours.
 
-    Parameters
+    BusinessHour is a date offset that advances time by a number of business
+    hours. By default, business hours are from 9:00 AM to 5:00 PM on weekdays.
+    The ``start`` and ``end`` parameters can be used to customize the business
+    hours window, and multiple intervals can be specified by passing lists.
+
+    Attributes
     ----------
     n : int, default 1
         The number of hours represented.
@@ -2617,6 +2622,13 @@ cdef class BusinessHour(BusinessMixin):
         End time of your custom business hour in 24h format.
     offset : timedelta, default timedelta(0)
         Time offset to apply.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.CustomBusinessHour` :
+        DateOffset subclass with custom weekmask and holidays.
+    :class:`~pandas.tseries.offsets.BusinessDay` :
+        DateOffset subclass representing possibly n business days.
 
     Examples
     --------
