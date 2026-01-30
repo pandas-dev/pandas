@@ -135,10 +135,10 @@ def _pprint_seq(
             break
         if is_float(item) and notna(item):
             # GH#60503
+            from pandas.io.formats.format import _trim_zeros_single_float
+
             precision = get_option("display.precision")
-            item = f"{item:.{precision}f}".rstrip("0")
-            if item.endswith("."):
-                item += "0"
+            item = _trim_zeros_single_float(f"{item:.{precision}f}")
         r.append(pprint_thing(item, _nest_lvl + 1, max_seq_items=max_seq_items, **kwds))
     body = ", ".join(r)
 
