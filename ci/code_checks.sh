@@ -69,8 +69,8 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
     MSG='Validate Docstrings' ; echo "$MSG"
     "$BASE_DIR"/scripts/validate_docstrings.py \
         --format=actions \
-        -i ES01 `# For now it is ok if docstrings are missing the extended summary` 
-        
+        -i ES01 `# For now it is ok if docstrings are missing the extended summary`
+
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi
