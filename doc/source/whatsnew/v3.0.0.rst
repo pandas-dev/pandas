@@ -1472,7 +1472,6 @@ ExtensionArray
 - Bug in constructing pandas data structures when passing into ``dtype`` a string of the type followed by ``[pyarrow]`` while PyArrow is not installed would raise ``NameError`` rather than ``ImportError`` (:issue:`57928`)
 - Bug in various :class:`DataFrame` reductions for pyarrow temporal dtypes returning incorrect dtype when result was null (:issue:`59234`)
 - Fixed flex arithmetic with :class:`.ExtensionArray` operands raising when ``fill_value`` was passed. (:issue:`62467`)
-- Fix assumption that :class:`numpy.void` dtypes are always structured (:issue:`#54810`)
 
 Styler
 ^^^^^^

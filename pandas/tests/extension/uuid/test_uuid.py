@@ -68,7 +68,7 @@ class UuidExtensionArray(ExtensionArray):
             dtype = UuidDtype()
         return cls(scalars, copy=copy)
 
-    def __getitem__(self, index: ScalarIndexer) -> UUID:
+    def __getitem__(self, index: ScalarIndexer) -> UUID:  # type: ignore[override]
         assert isinstance(index, int | np.integer)
         return UUID(bytes=self._data[index].tobytes())
 

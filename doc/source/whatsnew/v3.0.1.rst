@@ -15,6 +15,7 @@ Bug fixes
 ^^^^^^^^^
 - Fixed a bug in the :class:`DataFrame` constructor when passed a :class:`Series` or
   :class:`Index` correctly handling Copy-on-Write (:issue:`63899`)
+- Fix assumption that :class:`numpy.void` dtypes are always structured (:issue:`54810`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_301.contributors:
