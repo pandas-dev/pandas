@@ -1602,7 +1602,7 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Convert a Timestamp object to a native Python datetime object.
 
-        This method is useful for when you need to utilize a pandas Timestamp
+        This method is useful when you need to utilize a pandas Timestamp.
         object in contexts where native Python datetime objects are expected
         or required. The conversion discards the nanoseconds component, and a
         warning can be issued in such cases if desired.
@@ -3117,7 +3117,7 @@ timedelta}, default 'raise'
         """
         Localize the Timestamp to a timezone.
 
-        Convert naive Timestamp to local time zone or remove
+        Convert a naive Timestamp to the local time zone or remove the time zone information.
         timezone from timezone-aware Timestamp.
 
         Parameters
@@ -3475,7 +3475,7 @@ default 'raise'
 
     def to_julian_date(self) -> np.float64:
         """
-        Convert TimeStamp to a Julian Date.
+        Convert Timestamp to a Julian Date.
 
         This method returns the number of days as a float since
         0 Julian date, which is noon January 1, 4713 BC.
