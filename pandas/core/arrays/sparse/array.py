@@ -912,7 +912,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         Examples
         --------
-        >>> pd.array([1, 1, 2, 3, 3], dtype=SparseDtype(np.int64)).duplicated()
+        >>> pd.array([1, 1, 2, 3, 3], dtype=pd.SparseDtype(np.int64)).duplicated()
         array([False,  True, False, False,  True])
         """
 
