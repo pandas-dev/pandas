@@ -230,6 +230,20 @@ class Expression:
             needs_parenthese=True,
         )
 
+    def __neg__(self) -> Expression:
+        return Expression(
+            lambda df: -self._eval_expression(df),
+            f"-{self._repr_str}",
+            needs_parenthese=True,
+        )
+
+    def __pos__(self) -> Expression:
+        return Expression(
+            lambda df: +self._eval_expression(df),
+            f"+{self._repr_str}",
+            needs_parenthese=True,
+        )
+
     def __array_ufunc__(
         self, ufunc: Callable[..., Any], method: str, *inputs: Any, **kwargs: Any
     ) -> Expression:
