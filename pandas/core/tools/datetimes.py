@@ -611,7 +611,20 @@ def _adjust_to_origin(arg, origin, unit):
                 "it must be numeric with a unit specified"
             )
 
-        return Timestamp(origin) + to_timedelta(arg, unit=unit)
+        # we are going to offset back to unix / epoch time
+        try:
+            if lib.is_integer(origin) or lib.is_float(origin):
+                offset = Timestamp(origin, unit=unit)
+            else:
+                offset = Timestamp(origin)
+        except OutOfBoundsDatetime as err:
+            raise OutOfBoundsDatetime(f"origin {origin} is Out of Bounds") from err
+        except ValueError as err:
+            raise ValueError(
+                f"origin {origin} cannot be converted to a Timestamp"
+            ) from err
+
+        return to_timedelta(arg, unit=unit) + offset
     return arg
 
 
@@ -988,7 +1001,9 @@ def to_datetime(
         return NaT
 
     if origin != "unix":
-        return _adjust_to_origin(arg, origin, unit)
+        arg = _adjust_to_origin(arg, origin, unit)
+        if origin != "julian":
+            return arg
 
     convert_listlike = partial(
         _convert_listlike_datetimes,

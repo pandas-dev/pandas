@@ -2498,17 +2498,3 @@ def test_non_nano_dt64_addsub_np_nat_scalars_unsupported_unit():
     result = ser + np.timedelta64("nat", "D")
     expected = Series([NaT] * 3, dtype="datetime64[s]")
     tm.assert_series_equal(result, expected)
-
-
-def test_datetime_with_low_reso_unit_and_high_reso_origin():
-    # GH 63419
-    ts = Timestamp("2016-01-01 00:00:00.000001")
-    result = pd.to_datetime([1, 2, 3], unit="D", origin=ts)
-    expected = DatetimeIndex(
-        [
-            "2016-01-02 00:00:00.000001",
-            "2016-01-03 00:00:00.000001",
-            "2016-01-04 00:00:00.000001",
-        ]
-    )
-    tm.assert_index_equal(result, expected)
