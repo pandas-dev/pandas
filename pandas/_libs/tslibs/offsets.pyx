@@ -628,6 +628,9 @@ cdef class BaseOffset:
         """
         Return a string representing the base frequency.
 
+        This is typically a short string alias (e.g., 'h' for hourly, 'D' for daily)
+        used to identify the offset type, regardless of the `n` multiplier.
+
         See Also
         --------
         tseries.offsets.Week : Represents a weekly offset.
