@@ -6499,7 +6499,7 @@ cdef class CustomBusinessHour(BusinessHour):
 
     In CustomBusinessHour we can use custom weekmask, holidays, and calendar.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of hours represented.
@@ -6518,6 +6518,13 @@ cdef class CustomBusinessHour(BusinessHour):
         End time of your custom business hour in 24h format.
     offset : timedelta, default timedelta(0)
         Time offset to apply.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.BusinessHour` :
+        DateOffset subclass representing possibly n business hours.
+    :class:`~pandas.tseries.offsets.CustomBusinessDay` :
+        DateOffset subclass representing custom business days.
 
     Examples
     --------

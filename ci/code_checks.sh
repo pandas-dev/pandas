@@ -69,8 +69,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
     MSG='Validate Docstrings' ; echo "$MSG"
     "$BASE_DIR"/scripts/validate_docstrings.py \
         --format=actions \
-        -i ES01 `# For now it is ok if docstrings are missing the extended summary` \
-        -i "pandas.tseries.offsets.CustomBusinessHour PR02,SA01" # There should be no backslash in the final line, please keep this comment in the last ignored function
+        -i ES01 `# For now it is ok if docstrings are missing the extended summary`
 
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
