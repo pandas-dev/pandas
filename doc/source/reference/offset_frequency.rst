@@ -71,6 +71,7 @@ Properties
     BusinessDay.normalize
     BusinessDay.rule_code
     BusinessDay.n
+    BusinessDay.offset
     BusinessDay.weekmask
     BusinessDay.holidays
     BusinessDay.calendar
@@ -159,6 +160,7 @@ Properties
     CustomBusinessDay.weekmask
     CustomBusinessDay.calendar
     CustomBusinessDay.holidays
+    CustomBusinessDay.offset
 
 Methods
 ~~~~~~~
