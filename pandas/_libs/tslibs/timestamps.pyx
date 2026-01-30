@@ -3117,7 +3117,7 @@ timedelta}, default 'raise'
         """
         Localize the Timestamp to a timezone.
 
-        Convert a naive Timestamp to the local time zone or remove the time zone information.
+        Convert naive Timestamp to local time zone or remove
         timezone from timezone-aware Timestamp.
 
         Parameters
