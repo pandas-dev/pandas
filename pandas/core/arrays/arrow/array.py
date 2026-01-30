@@ -1408,11 +1408,13 @@ class ArrowExtensionArray(
 
         Examples
         --------
-        >>> arr = pd.array([np.nan, np.nan, 2, 3, np.nan, np.nan])
+        >>> arr = pd.array(
+        ...     [np.nan, np.nan, 2, 3, np.nan, np.nan], dtype="int64[pyarrow]"
+        ... )
         >>> arr.fillna(0)
-        <IntegerArray>
+        <ArrowExtensionArray>
         [0, 0, 2, 3, 0, 0]
-        Length: 6, dtype: Int64
+        Length: 6, dtype: int64[pyarrow]
         """
         if not self._hasna:
             return self.copy()
@@ -1480,7 +1482,7 @@ class ArrowExtensionArray(
         use_na_sentinel: bool = True,
     ) -> tuple[np.ndarray, ExtensionArray]:
         """
-        Encode the extension array as an enumerated type.
+        Encode the arrow array as an enumerated type.
 
         Parameters
         ----------
@@ -1493,14 +1495,14 @@ class ArrowExtensionArray(
         -------
         codes : ndarray
             An integer NumPy array that's an indexer into the original
-            ExtensionArray.
-        uniques : ExtensionArray
-            An ExtensionArray containing the unique values of `self`.
+            ArrowArray.
+        uniques : ArrowArray
+            An ArrowArray containing the unique values of `self`.
 
             .. note::
 
                uniques will *not* contain an entry for the NA value of
-               the ExtensionArray if there are any missing values present
+               the ArrowArray if there are any missing values present
                in `self`.
 
         See Also
