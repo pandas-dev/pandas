@@ -70,12 +70,8 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
     "$BASE_DIR"/scripts/validate_docstrings.py \
         --format=actions \
         -i ES01 `# For now it is ok if docstrings are missing the extended summary` \
-        -i "pandas.tseries.offsets.BusinessHour PR02,SA01" \
         -i "pandas.tseries.offsets.CustomBusinessHour PR02,SA01" \
-        -i "pandas.tseries.offsets.FY5253Quarter.is_on_offset GL08" \
         -i "pandas.tseries.offsets.LastWeekOfMonth.is_on_offset GL08" \
-        -i "pandas.tseries.offsets.SemiMonthBegin.rule_code GL08" \
-        -i "pandas.tseries.offsets.SemiMonthEnd.rule_code GL08" \
         -i "pandas.tseries.offsets.WeekOfMonth.is_on_offset GL08" # There should be no backslash in the final line, please keep this comment in the last ignored function
 
     RET=$(($RET + $?)) ; echo $MSG "DONE"
