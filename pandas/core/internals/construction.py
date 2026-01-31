@@ -562,7 +562,10 @@ def _homogenize(
             orig_refs = getattr(val, "_references", None)
             orig_values = val._values
             if dtype is not None:
-                val = val.astype(dtype)
+                if isinstance(val, Index):
+                    val = val.astype(dtype, copy=False)
+                else:
+                    val = val.astype(dtype)
             if isinstance(val, ABCSeries) and val.index is not index:
                 # Forces alignment. No need to copy data since we
                 # are putting it into an ndarray later
