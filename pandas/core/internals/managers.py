@@ -2390,9 +2390,10 @@ def _form_blocks(arrays: list[ArrayLike], consolidate: bool, refs: list) -> list
 
         elif is_1d_only_ea_dtype(dtype):
             dtype_blocks = [
-                new_block_2d(
+                block_type(
                     ensure_block_shape(x[1], 2),
                     placement=BlockPlacement(x[0]),
+                    ndim=2,
                     refs=refs[x[0]],
                 )
                 for x in tup_block
