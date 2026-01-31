@@ -19,7 +19,6 @@ from numpy import ma
 from pandas._config import using_string_dtype
 
 from pandas._libs import lib
-from pandas._libs.missing import NA
 from pandas._libs.tslibs import (
     get_supported_dtype,
     is_supported_dtype,
@@ -30,6 +29,7 @@ from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
     construct_1d_object_array_from_listlike,
+    ensure_dtype_can_hold_na,
     maybe_cast_to_datetime,
     maybe_cast_to_integer_array,
     maybe_convert_platform,
@@ -317,14 +317,10 @@ def array(
     if isinstance(data, ma.MaskedArray):
         mask = ma.getmaskarray(data)
         if mask.any():
-            # Convert masked array to list with NA for masked positions
-            data_list = []
-            for i, val in enumerate(data):
-                if mask[i]:
-                    data_list.append(NA)
-                else:
-                    data_list.append(val)
-            data = data_list
+            na_dtype = ensure_dtype_can_hold_na(data.dtype)
+            if hasattr(na_dtype, "char") and na_dtype.char in "SU":
+                na_dtype = np.dtype("object")
+            data = np.asarray(data.astype(na_dtype).filled(np.nan))
         else:
             # No mask, convert to regular array
             data = np.asarray(data)

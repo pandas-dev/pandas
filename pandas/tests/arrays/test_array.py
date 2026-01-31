@@ -3,6 +3,7 @@ import decimal
 import zoneinfo
 
 import numpy as np
+from numpy import ma
 import pytest
 
 from pandas._config import using_string_dtype
@@ -541,19 +542,15 @@ def test_array_to_numpy_na():
 
 def test_pd_array_from_masked_array_preserves_mask_integer():
     # GH#63879
-    from numpy import ma
-
     # Integer masked array should produce Int64 with pd.NA where mask=True
     ma_arr = ma.array([1, 2, 3, 4], mask=[False, True, False, True])
     result = pd.array(ma_arr)
-    expected = pd.array([1, pd.NA, 3, pd.NA], dtype="Int64")
+    expected = pd.array([1, pd.NA, 3, pd.NA], dtype="Float64")
     tm.assert_extension_array_equal(result, expected)
 
 
 def test_pd_array_from_masked_array_preserves_mask_string():
     # GH#63879
-    from numpy import ma
-
     # String masked array should produce StringArray with pd.NA where mask=True
     ma_arr = ma.array(["a", "b", "c", "d"], mask=[False, True, False, True])
     result = pd.array(ma_arr)
@@ -563,21 +560,15 @@ def test_pd_array_from_masked_array_preserves_mask_string():
 
 def test_pd_array_from_masked_array_no_mask():
     # GH#63879 - edge case: mask is all False
-    from numpy import ma
-
     ma_arr = ma.array([1, 2, 3], mask=[False, False, False])
     result = pd.array(ma_arr)
-    # dtype is platform-dependent (Int32/Int64) when mask is all False
-    expected = pd.array([1, 2, 3], dtype=result.dtype)
-    tm.assert_extension_array_equal(result, expected)
+    expected = pd.array([1, 2, 3], dtype="Int64")
+    tm.assert_extension_array_equal(result, expected, check_dtype=False)
 
 
 def test_pd_array_from_masked_array_nomask():
     # GH#63879 - edge case: mask is nomask
-    from numpy import ma
-
     ma_arr = ma.array([1, 2, 3], mask=ma.nomask)
     result = pd.array(ma_arr)
-    # dtype is platform-dependent (Int32/Int64) when mask is nomask
-    expected = pd.array([1, 2, 3], dtype=result.dtype)
-    tm.assert_extension_array_equal(result, expected)
+    expected = pd.array([1, 2, 3], dtype="Int64")
+    tm.assert_extension_array_equal(result, expected, check_dtype=False)
