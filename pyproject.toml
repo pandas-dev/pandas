@@ -856,16 +856,16 @@ numpy = "<3"
 tzdata = ">=2023.3"
 
 [tool.pixi.feature.py311.dependencies]
-python = "3.11.*"
+python = "==3.11"
 
 [tool.pixi.feature.py312.dependencies]
-python = "3.12.*"
+python = "==3.12"
 
 [tool.pixi.feature.py313.dependencies]
-python = "3.13.*"
+python = "==3.13"
 
 [tool.pixi.feature.freethreading.dependencies]
-python-freethreading = "3.13.*"
+python-freethreading = "==3.13"
 
 [tool.pixi.feature.test.dependencies]
 pytest = ">=8.3.4"
@@ -875,7 +875,7 @@ hypothesis = ">=6.116.0"
 
 [tool.pixi.feature.test-network.dependencies]
 pytest-localserver = ">=0.9.0"
-boto3 = "1.37.3"
+boto3 = "==1.37.3"
 
 [tool.pixi.feature.test-clipboard.dependencies]
 pytest-qt = ">=4.4.0"
