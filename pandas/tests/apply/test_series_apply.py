@@ -671,13 +671,11 @@ def test_series_apply_unpack_nested_data():
 
 @pytest.mark.parametrize("dtype", ["Int64", "UInt64"])
 def test_apply_nullable_integer_precision(dtype):
-    # GH#63903 - apply should preserve precision for large integers
-    # with nullable integer dtype
     large_int = 10000000000000001  # above float64 integer precision limit
     ser = Series([large_int, None], dtype=dtype)
 
     result = ser.apply(lambda x: x + 2 if pd.notna(x) else x)
-    expected = Series([large_int + 2, None], dtype=dtype)
+    expected = Series([large_int + 2, pd.NA], dtype=object)
     tm.assert_series_equal(result, expected)
 
     # Verify exact value preserved (not rounded due to float conversion)

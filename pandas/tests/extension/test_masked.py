@@ -173,16 +173,15 @@ class TestMaskedArrays(base.ExtensionTests):
 
     @pytest.mark.parametrize("na_action", [None, "ignore"])
     def test_map(self, data_missing, na_action, using_nan_is_na):
-        # GH#63903 - map preserves nullable masked dtype (returns ExtensionArray)
         result = data_missing.map(lambda x: x, na_action=na_action)
-        tm.assert_extension_array_equal(result, data_missing)
+        expected = np.array(list(data_missing), dtype=object)
+        tm.assert_equal(result, expected)
 
     def test_map_na_action_ignore(self, data_missing_for_sorting, using_nan_is_na):
-        # GH#63903 - map preserves nullable masked dtype (returns ExtensionArray)
         zero = data_missing_for_sorting[2]
         result = data_missing_for_sorting.map(lambda x: zero, na_action="ignore")
-        expected = pd.array([zero, pd.NA, zero], dtype=data_missing_for_sorting.dtype)
-        tm.assert_extension_array_equal(result, expected)
+        expected = np.array([zero, pd.NA, zero], dtype=object)
+        tm.assert_equal(result, expected)
 
     def _get_expected_exception(self, op_name, obj, other):
         try:
