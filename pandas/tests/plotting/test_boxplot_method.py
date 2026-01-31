@@ -403,7 +403,7 @@ class TestDataFramePlots:
         for subplot in ax:
             target_label = (
                 subplot.get_xlabel()
-                if vert == {"vert": True} or vert == {"orientation": "vertical"}
+                if vert in ({"vert": True}, {"orientation": "vertical"})
                 else subplot.get_ylabel()
             )
             assert target_label == pprint_thing(["group"])

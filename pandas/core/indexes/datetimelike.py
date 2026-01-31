@@ -37,6 +37,8 @@ from pandas.compat.numpy import function as nv
 from pandas.errors import (
     InvalidIndexError,
     NullFrequencyError,
+    OutOfBoundsDatetime,
+    OutOfBoundsTimedelta,
 )
 from pandas.util._decorators import (
     cache_readonly,
@@ -132,7 +134,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         >>> tdelta_idx = pd.to_timedelta([1, 2, 3], unit="D")
         >>> tdelta_idx
         TimedeltaIndex(['1 days', '2 days', '3 days'],
-                        dtype='timedelta64[ns]', freq=None)
+                        dtype='timedelta64[s]', freq=None)
         >>> tdelta_idx.mean()
         Timedelta('2 days 00:00:00')
         """
@@ -266,11 +268,20 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
                     #  OverflowError -> Index([very_large_timedeltas])
                     return False
 
-        if self.dtype != other.dtype:
-            # have different timezone
+        if type(self) != type(other):
             return False
-
-        return np.array_equal(self.asi8, other.asi8)
+        elif self.dtype == other.dtype:
+            return np.array_equal(self.asi8, other.asi8)
+        elif (self.dtype.kind == "M" and self.tz == other.tz) or self.dtype.kind == "m":  # type: ignore[attr-defined]
+            # different units, otherwise matching
+            try:
+                # TODO: do this at the EA level?
+                left, right = self._data._ensure_matching_resos(other._data)  # type: ignore[union-attr]
+            except (OutOfBoundsDatetime, OutOfBoundsTimedelta):
+                return False
+            else:
+                return np.array_equal(left.view("i8"), right.view("i8"))
+        return False
 
     def __contains__(self, key: Any) -> bool:
         """
@@ -994,14 +1005,13 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
                     freq = self.freq
                 elif (loc == len(self)) and item - self.freq == self[-1]:
                     freq = self.freq
-            else:
-                # Adding a single item to an empty index may preserve freq
-                if isinstance(self.freq, Tick):
-                    # all TimedeltaIndex cases go through here; is_on_offset
-                    #  would raise TypeError
-                    freq = self.freq
-                elif self.freq.is_on_offset(item):
-                    freq = self.freq
+            # Adding a single item to an empty index may preserve freq
+            elif isinstance(self.freq, Tick):
+                # all TimedeltaIndex cases go through here; is_on_offset
+                #  would raise TypeError
+                freq = self.freq
+            elif self.freq.is_on_offset(item):
+                freq = self.freq
         return freq
 
     def delete(self, loc) -> Self:

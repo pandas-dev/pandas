@@ -17,15 +17,10 @@ from pandas.errors import (
     AbstractMethodError,
     ParserError,
 )
-from pandas.util._decorators import (
-    doc,
-    set_module,
-)
+from pandas.util._decorators import set_module
 from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.common import is_list_like
-
-from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.common import (
     get_handle,
@@ -60,10 +55,6 @@ if TYPE_CHECKING:
     from pandas import DataFrame
 
 
-@doc(
-    storage_options=_shared_docs["storage_options"],
-    decompression_options=_shared_docs["decompression_options"] % "path_or_buffer",
-)
 class _XMLFrameParser:
     """
     Internal subclass to parse XML into DataFrames.
@@ -114,9 +105,32 @@ class _XMLFrameParser:
         and/or attributes as value to be retrieved in iterparsing of
         XML document.
 
-    {decompression_options}
+    compression : str or dict, default 'infer'
+        For on-the-fly decompression of on-disk data. If 'infer' and
+        'path_or_buffer' is path-like, then detect compression from the
+        following extensions: '.gz', '.bz2', '.zip', '.xz', '.zst', '.tar',
+        '.tar.gz', '.tar.xz' or '.tar.bz2' (otherwise no compression).
+        If using 'zip' or 'tar', the ZIP file must contain only one data
+        file to be read in. Set to ``None`` for no decompression.
+        Can also be a dict with key ``'method'`` set to one of
+        {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'xz'``, ``'tar'``}
+        and other key-value pairs are forwarded to ``zipfile.ZipFile``,
+        ``gzip.GzipFile``, ``bz2.BZ2File``, ``zstandard.ZstdDecompressor``,
+        ``lzma.LZMAFile`` or ``tarfile.TarFile``, respectively.
+        As an example, the following could be passed for Zstandard
+        decompression using a custom compression dictionary:
+        ``compression={'method': 'zstd', 'dict_data': my_compression_dict}``.
 
-    {storage_options}
+    storage_options : dict, optional
+        Extra options that make sense for a particular storage connection,
+        e.g. host, port, username, password, etc. For HTTP(S) URLs the
+        key-value pairs are forwarded to ``urllib.request.Request`` as header
+        options. For other URLs (e.g. starting with "s3://", and "gcs://")
+        the key-value pairs are forwarded to ``fsspec.open``. Please see
+        ``fsspec`` and ``urllib`` for more details, and for more examples on
+        storage options refer `here <https://pandas.pydata.org/docs/
+        user_guide/io.html?highlight=storage_options#reading-writing-remote-
+        files>`_.
 
     See also
     --------
@@ -823,10 +837,6 @@ def _parse(
 
 
 @set_module("pandas")
-@doc(
-    storage_options=_shared_docs["storage_options"],
-    decompression_options=_shared_docs["decompression_options"] % "path_or_buffer",
-)
 def read_xml(
     path_or_buffer: FilePath | ReadBuffer[bytes] | ReadBuffer[str],
     *,
@@ -937,9 +947,32 @@ def read_xml(
         efficient method should be used for very large XML files (500MB, 1GB, or 5GB+).
         For example, ``{{"row_element": ["child_elem", "attr", "grandchild_elem"]}}``.
 
-    {decompression_options}
+    compression : str or dict, default 'infer'
+        For on-the-fly decompression of on-disk data. If 'infer' and
+        'path_or_buffer' is path-like, then detect compression from the
+        following extensions: '.gz', '.bz2', '.zip', '.xz', '.zst', '.tar',
+        '.tar.gz', '.tar.xz' or '.tar.bz2' (otherwise no compression).
+        If using 'zip' or 'tar', the ZIP file must contain only one data
+        file to be read in. Set to ``None`` for no decompression.
+        Can also be a dict with key ``'method'`` set to one of
+        {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'xz'``, ``'tar'``}
+        and other key-value pairs are forwarded to ``zipfile.ZipFile``,
+        ``gzip.GzipFile``, ``bz2.BZ2File``, ``zstandard.ZstdDecompressor``,
+        ``lzma.LZMAFile`` or ``tarfile.TarFile``, respectively.
+        As an example, the following could be passed for Zstandard
+        decompression using a custom compression dictionary:
+        ``compression={'method': 'zstd', 'dict_data': my_compression_dict}``.
 
-    {storage_options}
+    storage_options : dict, optional
+        Extra options that make sense for a particular storage connection,
+        e.g. host, port, username, password, etc. For HTTP(S) URLs the
+        key-value pairs are forwarded to ``urllib.request.Request`` as header
+        options. For other URLs (e.g. starting with "s3://", and "gcs://")
+        the key-value pairs are forwarded to ``fsspec.open``. Please see
+        ``fsspec`` and ``urllib`` for more details, and for more examples on
+        storage options refer `here <https://pandas.pydata.org/docs/
+        user_guide/io.html?highlight=storage_options#reading-writing-remote-
+        files>`_.
 
     dtype_backend : {{'numpy_nullable', 'pyarrow'}}
         Back-end data type applied to the resultant :class:`DataFrame`
@@ -1064,7 +1097,7 @@ def read_xml(
     >>> df = pd.read_xml(
     ...     StringIO(xml),
     ...     xpath="//doc:row",
-    ...     namespaces={{"doc": "https://example.com"}},
+    ...     namespaces={"doc": "https://example.com"},
     ... )
     >>> df
           shape  degrees  sides

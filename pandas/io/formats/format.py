@@ -903,7 +903,7 @@ class DataFrameRenderer:
         render_links: bool = False,
     ) -> str | None:
         """
-        Render a DataFrame to a html table.
+        Render a DataFrame to an html table.
 
         Parameters
         ----------

@@ -222,7 +222,7 @@ def coerce_to_array(
 
         inferred_dtype = lib.infer_dtype(values_object, skipna=True)
         integer_like = ("floating", "integer", "mixed-integer-float")
-        if inferred_dtype not in ("boolean", "empty") + integer_like:
+        if inferred_dtype not in ("boolean", "empty", *integer_like):
             raise TypeError("Need to pass bool-like values")
 
         # mypy does not narrow the type of mask_values to npt.NDArray[np.bool_]
@@ -244,17 +244,15 @@ def coerce_to_array(
         mask = np.zeros(values.shape, dtype=bool)
     elif mask is None:
         mask = mask_values
+    elif isinstance(mask, np.ndarray) and mask.dtype == np.bool_:
+        if mask_values is not None:
+            mask = mask | mask_values
+        elif copy:
+            mask = mask.copy()
     else:
-        if isinstance(mask, np.ndarray) and mask.dtype == np.bool_:
-            if mask_values is not None:
-                mask = mask | mask_values
-            else:
-                if copy:
-                    mask = mask.copy()
-        else:
-            mask = np.array(mask, dtype=bool)
-            if mask_values is not None:
-                mask = mask | mask_values
+        mask = np.array(mask, dtype=bool)
+        if mask_values is not None:
+            mask = mask | mask_values
 
     if values.shape != mask.shape:
         raise ValueError("values.shape and mask.shape must match")

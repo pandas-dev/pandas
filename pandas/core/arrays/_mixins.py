@@ -208,6 +208,10 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
             values, encoding=encoding, hash_key=hash_key, categorize=categorize
         )
 
+    def _cast_pointwise_result(self, values: ArrayLike) -> ArrayLike:
+        values = np.asarray(values, dtype=object)
+        return lib.maybe_convert_objects(values, convert_non_numeric=True)
+
     # Signature of "argmin" incompatible with supertype "ExtensionArray"
     def argmin(self, axis: AxisInt = 0, skipna: bool = True):  # type: ignore[override]
         # override base class by adding axis keyword
@@ -331,11 +335,10 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
             else:
                 new_values = self
 
+        elif copy:
+            new_values = self.copy()
         else:
-            if copy:
-                new_values = self.copy()
-            else:
-                new_values = self
+            new_values = self
         return new_values
 
     @doc(ExtensionArray.fillna)
@@ -492,7 +495,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         result = value_counts(values, sort=False, dropna=dropna)
 
         index_arr = self._from_backing_data(np.asarray(result.index._data))
-        index = Index(index_arr, name=result.index.name)
+        index = Index(index_arr, name=result.index.name, copy=False)
         return Series(result._values, index=index, name=result.name, copy=False)
 
     def _quantile(

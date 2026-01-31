@@ -24,7 +24,6 @@ import warnings
 import numpy as np
 
 from pandas._libs.lib import is_list_like
-from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes import missing
@@ -41,7 +40,6 @@ from pandas import (
     PeriodIndex,
 )
 import pandas.core.common as com
-from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.formats._color_data import CSS4_COLORS
 from pandas.io.formats.css import (
@@ -884,7 +882,7 @@ class ExcelFormatter:
         Parameters
         ----------
         index : int
-            The numeric column index to convert to a Excel column name.
+            The numeric column index to convert to an Excel column name.
 
         Returns
         -------
@@ -905,7 +903,6 @@ class ExcelFormatter:
             column_name = chr(65 + remainder) + column_name
         return column_name
 
-    @doc(storage_options=_shared_docs["storage_options"])
     def write(
         self,
         writer: FilePath | WriteExcelBuffer | ExcelWriter,
@@ -934,7 +931,15 @@ class ExcelFormatter:
             via the options ``io.excel.xlsx.writer``,
             or ``io.excel.xlsm.writer``.
 
-        {storage_options}
+        storage_options : dict, optional
+            Extra options that make sense for a particular storage connection, e.g.
+            host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
+            are forwarded to ``urllib.request.Request`` as header options. For other
+            URLs (e.g. starting with "s3://", and "gcs://") the key-value pairs are
+            forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more
+            details, and for more examples on storage options refer `here
+            <https://pandas.pydata.org/docs/user_guide/io.html?
+            highlight=storage_options#reading-writing-remote-files>`_.
 
         engine_kwargs: dict, optional
             Arbitrary keyword arguments passed to excel engine.

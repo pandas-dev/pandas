@@ -677,6 +677,12 @@ class ChainedAssignmentError(Warning):
     For more information on Copy-on-Write,
     see :ref:`the user guide<copy_on_write>`.
 
+    See Also
+    --------
+    DataFrame.loc : Access a group of rows and columns by label(s) or a boolean array.
+    DataFrame.iloc : Purely integer-location based indexing for selection by position.
+    Series.loc : Access a group of rows by label(s) or a boolean array.
+
     Examples
     --------
     >>> df = pd.DataFrame({"A": [1, 1, 1, 2, 2]}, columns=["A"])
@@ -833,7 +839,7 @@ class CSSWarning(UserWarning):
 
 class PossibleDataLossError(Exception):
     """
-    Exception raised when trying to open a HDFStore file when already opened.
+    Exception raised when trying to open an HDFStore file when already opened.
 
     This error is triggered when there is a potential risk of data loss due to
     conflicting operations on an HDFStore file. It serves to prevent unintended

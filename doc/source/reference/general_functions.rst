@@ -7,6 +7,9 @@ General functions
 =================
 .. currentmodule:: pandas
 
+.. note::
+   For an overview, see :ref:`reshaping`.
+
 Data manipulations
 ~~~~~~~~~~~~~~~~~~
 .. autosummary::

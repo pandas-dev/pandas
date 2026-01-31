@@ -32,7 +32,6 @@ from pandas.compat import (
 from pandas.compat.numpy import function as nv
 from pandas.errors import Pandas4Warning
 from pandas.util._decorators import (
-    doc,
     set_module,
 )
 from pandas.util._exceptions import find_stack_level
@@ -157,6 +156,11 @@ class StringDtype(StorageExtensionDtype):
         Returns ``np.nan`` for the default string dtype with NumPy semantics,
         and ``pd.NA`` for the opt-in string dtype with pandas NA semantics.
 
+        See Also
+        --------
+        isna : Detect missing values.
+        NA : Missing value indicator for nullable dtypes.
+
         Examples
         --------
         >>> ser = pd.Series(["a", "b"])
@@ -173,6 +177,10 @@ class StringDtype(StorageExtensionDtype):
         The storage backend for this dtype.
 
         Can be either "pyarrow" or "python".
+
+        See Also
+        --------
+        StringDtype.na_value : The missing value for this dtype.
 
         Examples
         --------
@@ -230,7 +238,7 @@ class StringDtype(StorageExtensionDtype):
         # cannot be checked with normal `==`
         if isinstance(other, str):
             # TODO should dtype == "string" work for the NaN variant?
-            if other == "string" or other == self.name:
+            if other == "string" or other == self.name:  # noqa: PLR1714 (repeated-equality-comparison)
                 return True
             try:
                 other = self.construct_from_string(other)
@@ -424,8 +432,24 @@ class BaseStringArray(ExtensionArray):
             return op(other, self.astype(bool))
         return NotImplemented
 
-    @doc(ExtensionArray.tolist)
     def tolist(self) -> list:
+        """
+        Return a list of the value.
+
+        These are each a scalar type, which is a Python scalar
+        (for str, int, float) or pandas scalar
+        (for Timestamp/Timedelta/Interval/Period)
+
+        Returns
+        ----------
+        list
+
+        Examples
+        ----------
+        >>> arr = pd.array(["a", "b", "c"])
+        >>> arr.tolist()
+        ['a', 'b', 'c']
+        """
         if self.ndim > 1:
             return [x.tolist() for x in self]
         return list(self.to_numpy())
@@ -736,11 +760,10 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         if dtype and not (isinstance(dtype, str) and dtype == "string"):
             dtype = pandas_dtype(dtype)
             assert isinstance(dtype, StringDtype) and dtype.storage == "python"
+        elif using_string_dtype():
+            dtype = StringDtype(storage="python", na_value=np.nan)
         else:
-            if using_string_dtype():
-                dtype = StringDtype(storage="python", na_value=np.nan)
-            else:
-                dtype = StringDtype(storage="python")
+            dtype = StringDtype(storage="python")
 
         from pandas.core.arrays.masked import BaseMaskedArray
 
@@ -1072,13 +1095,56 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             return result + lib.memory_usage_of_objects(self._ndarray)
         return result
 
-    @doc(ExtensionArray.searchsorted)
     def searchsorted(
         self,
         value: NumpyValueArrayLike | ExtensionArray,
         side: Literal["left", "right"] = "left",
         sorter: NumpySorter | None = None,
     ) -> npt.NDArray[np.intp] | np.intp:
+        """
+        Find indices where elements should be inserted to maintain order.
+
+        Find the indices into a sorted array `self` (a) such that, if the
+        corresponding elements in `value` were inserted before the indices,
+        the order of `self` would be preserved.
+
+        Assuming that `self` is sorted:
+
+        ======  ================================
+        `side`  returned index `i` satisfies
+        ======  ================================
+        left    ``self[i-1] < value <= self[i]``
+        right   ``self[i-1] <= value < self[i]``
+        ======  ================================
+
+        Parameters
+        ----------
+        value : array-like, list or scalar
+            Value(s) to insert into `self`.
+        side : {'left', 'right'}, optional
+            If 'left', the index of the first suitable location found is given.
+            If 'right', return the last such index.  If there is no suitable
+            index, return either 0 or N (where N is the length of `self`).
+        sorter : 1-D array-like, optional
+            Optional array of integer indices that sort array a into ascending
+            order. They are typically the result of argsort.
+
+        Returns
+        -------
+        array of ints or int
+            If value is array-like, array of insertion points.
+            If value is scalar, a single integer.
+
+        See Also
+        --------
+        numpy.searchsorted : Similar method from NumPy.
+
+        Examples
+        --------
+        >>> arr = pd.array([1, 2, 3, 5])
+        >>> arr.searchsorted([4])
+        array([3])
+        """
         if self._hasna:
             raise ValueError(
                 "searchsorted requires array to be sorted, which is impossible "

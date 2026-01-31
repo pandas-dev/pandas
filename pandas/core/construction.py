@@ -334,7 +334,7 @@ def array(
                 ensure_object(data),
                 convert_non_numeric=True,
                 convert_to_nullable_dtype=True,
-                dtype_if_all_nat=None,
+                dtype_if_all_nat=np.dtype("M8[s]"),
             )
             result = ensure_wrapped_if_datetimelike(result)
             if isinstance(result, np.ndarray):

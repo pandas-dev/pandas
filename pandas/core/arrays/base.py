@@ -19,6 +19,7 @@ from typing import (
     cast,
     overload,
 )
+import warnings
 
 import numpy as np
 
@@ -33,6 +34,7 @@ from pandas.util._decorators import (
     cache_readonly,
     set_module,
 )
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import (
     validate_bool_kwarg,
     validate_insert_loc,
@@ -86,6 +88,7 @@ if TYPE_CHECKING:
         AstypeArg,
         AxisInt,
         Dtype,
+        DtypeObj,
         FillnaOptions,
         InterpolateOptions,
         NumpySorter,
@@ -383,13 +386,67 @@ class ExtensionArray:
         """
         raise AbstractMethodError(cls)
 
+    @classmethod
+    def _from_scalars(cls, scalars, *, dtype: DtypeObj) -> Self:
+        """
+        Strict analogue to _from_sequence, allowing only sequences of scalars
+        that should be specifically inferred to the given dtype.
+
+        Parameters
+        ----------
+        scalars : sequence
+        dtype : ExtensionDtype
+
+        Raises
+        ------
+        TypeError or ValueError
+
+        Notes
+        -----
+        This is called in a try/except block when casting the result of a
+        pointwise operation in ExtensionArray._cast_pointwise_result.
+        """
+        try:
+            return cls._from_sequence(scalars, dtype=dtype, copy=False)
+        except (ValueError, TypeError):
+            raise
+        except Exception:
+            warnings.warn(
+                "_from_scalars should only raise ValueError or TypeError. "
+                "Consider overriding _from_scalars where appropriate.",
+                stacklevel=find_stack_level(),
+            )
+            raise
+
     def _cast_pointwise_result(self, values) -> ArrayLike:
         """
+        Construct an ExtensionArray after a pointwise operation.
+
         Cast the result of a pointwise operation (e.g. Series.map) to an
-        array, preserve dtype_backend if possible.
+        array. This is not required to return an ExtensionArray of the same
+        type as self or of the same dtype. It can also return another
+        ExtensionArray of the same "family" if you implement multiple
+        ExtensionArrays/Dtypes that are interoperable (e.g. if you have float
+        array with units, this method can return an int array with units).
+
+        If converting to your own ExtensionArray is not possible, this method
+        falls back to returning an array with the default type inference.
+        If you only need to cast to `self.dtype`, it is recommended to override
+        `_from_scalars` instead of this method.
+
+        Parameters
+        ----------
+        values : sequence
+
+        Returns
+        -------
+        ExtensionArray or ndarray
         """
-        values = np.asarray(values, dtype=object)
-        return lib.maybe_convert_objects(values, convert_non_numeric=True)
+        try:
+            return type(self)._from_scalars(values, dtype=self.dtype)
+        except (ValueError, TypeError):
+            values = np.asarray(values, dtype=object)
+            return lib.maybe_convert_objects(values, convert_non_numeric=True)
 
     # ------------------------------------------------------------------------
     # Must be a Sequence
@@ -1240,11 +1297,10 @@ class ExtensionArray:
             else:
                 new_values = self.copy()
             new_values[mask] = value
+        elif not copy:
+            new_values = self[:]
         else:
-            if not copy:
-                new_values = self[:]
-            else:
-                new_values = self.copy()
+            new_values = self.copy()
         return new_values
 
     def dropna(self) -> Self:
@@ -1735,6 +1791,9 @@ class ExtensionArray:
         """
         Return a Series containing counts of unique values.
 
+        This method returns a Series with unique values as the index and their
+        counts as the values.
+
         Parameters
         ----------
         dropna : bool, default True
@@ -1743,6 +1802,23 @@ class ExtensionArray:
         Returns
         -------
         Series
+            A Series with unique values as index and counts as values.
+
+        See Also
+        --------
+        Series.value_counts : Equivalent method on Series.
+        DataFrame.value_counts : Equivalent method on DataFrame.
+        Index.value_counts : Equivalent method on Index.
+
+        Examples
+        --------
+        >>> from pandas.core.arrays import IntegerArray
+        >>> arr = IntegerArray._from_sequence([3, 3, 3, 1, 2, 2])
+        >>> arr.value_counts()
+        3    3
+        1    1
+        2    2
+        Name: count, dtype: Int64
         """
         from pandas.core.algorithms import value_counts_internal as value_counts
 

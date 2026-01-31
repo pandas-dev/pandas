@@ -691,6 +691,14 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                     msg = self._validation_error_message(value, True)
                     raise TypeError(msg) from err
 
+        if isinstance(value, list):
+            value = construct_1d_object_array_from_listlike(value)
+        if isinstance(value, np.ndarray) and value.dtype == object:
+            # We need to call maybe_convert_objects here instead of in pd_array
+            #  so we can specify dtype_if_all_nat.
+            value = lib.maybe_convert_objects(
+                value, convert_non_numeric=True, dtype_if_all_nat=self.dtype
+            )
         # Do type inference if necessary up front (after unpacking
         # NumpyExtensionArray)
         # e.g. we passed PeriodIndex.values and got an ndarray of Periods
@@ -1656,7 +1664,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         >>> tdelta_idx = pd.to_timedelta([1, 2, 3], unit="D")
         >>> tdelta_idx
         TimedeltaIndex(['1 days', '2 days', '3 days'],
-                        dtype='timedelta64[ns]', freq=None)
+                        dtype='timedelta64[s]', freq=None)
         >>> tdelta_idx.mean()
         Timedelta('2 days 00:00:00')
         """
@@ -1728,10 +1736,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                     f"'{how}' with PeriodDtype is no longer supported. "
                     f"Use (obj != pd.Period(0, freq)).{how}() instead."
                 )
-        else:
-            # timedeltas we can add but not multiply
-            if how in ["prod", "cumprod", "skew", "kurt", "var"]:
-                raise TypeError(f"timedelta64 type does not support {how} operations")
+        # timedeltas we can add but not multiply
+        elif how in ["prod", "cumprod", "skew", "kurt", "var"]:
+            raise TypeError(f"timedelta64 type does not support {how} operations")
 
         # All of the functions implemented here are ordinal, so we can
         #  operate on the tz-naive equivalents
@@ -2472,9 +2479,6 @@ class TimelikeOps(DatetimeLikeArrayMixin):
 
     def _values_for_json(self) -> np.ndarray:
         # Small performance bump vs the base class which calls np.asarray(self)
-        if self.unit != "ns":
-            # GH#55827
-            return self.as_unit("ns")._values_for_json()
         if isinstance(self.dtype, np.dtype):
             return self._ndarray
         return super()._values_for_json()

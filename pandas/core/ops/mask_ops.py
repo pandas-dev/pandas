@@ -67,14 +67,13 @@ def kleene_or(
             | (right_false & left_mask)
             | (left_mask & right_mask)
         )
+    elif right is True:
+        mask = np.zeros_like(left_mask)
+    elif right is libmissing.NA:
+        mask = (~left & ~left_mask) | left_mask
     else:
-        if right is True:
-            mask = np.zeros_like(left_mask)
-        elif right is libmissing.NA:
-            mask = (~left & ~left_mask) | left_mask
-        else:
-            # False
-            mask = left_mask.copy()
+        # False
+        mask = left_mask.copy()
 
     return result, mask
 

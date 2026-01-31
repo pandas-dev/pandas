@@ -245,3 +245,10 @@ class TestSeriesQuantile:
         result = ser.quantile([0.1, 0.5])
         expected = Series([1, 1], dtype=any_int_ea_dtype, index=[0.1, 0.5])
         tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("typ", ["datetime64", "timedelta64"])
+def test_quantile_empty_datetimelike(typ, unit):
+    ser = Series([], dtype=f"{typ}[{unit}]")
+    result = ser.quantile()
+    assert result is pd.NaT

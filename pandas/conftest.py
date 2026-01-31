@@ -109,6 +109,28 @@ def pytest_addoption(parser) -> None:
     )
 
 
+def pytest_sessionstart(session):
+    import doctest
+    import inspect
+
+    # https://github.com/pandas-dev/pandas/pull/62988
+    # When we modify the __module__ of a class, the __module__ on the methods
+    # of that class do not change. When these two disagree, doctests would not
+    # typically run. We hack `DocTestFinder` to avoid this.
+    orig = doctest.DocTestFinder._from_module  # type: ignore[attr-defined]
+
+    def _from_module(self, module, object):
+        # When . is in __qualname__, object is a method of a class.
+        if inspect.isfunction(object) and "." in object.__qualname__:
+            # We only get here when the class that the method is on is from the
+            # appropriate module. So ignore checking the __module__ of the method
+            # itself and run the doctest.
+            return True
+        return orig(self, module, object)
+
+    doctest.DocTestFinder._from_module = _from_module  # type: ignore[attr-defined]
+
+
 def ignore_doctest_warning(item: pytest.Item, path: str, message: str) -> None:
     """Ignore doctest warning.
 
@@ -135,14 +157,15 @@ def pytest_collection_modifyitems(items, config) -> None:
     # Warnings from doctests that can be ignored; place reason in comment above.
     # Each entry specifies (path, message) - see the ignore_doctest_warning function
     ignored_doctest_warnings = [
-        ("api.interchange.from_dataframe", ".*Interchange Protocol is deprecated"),
+        ("api.interchange.from_dataframe", "The DataFrame Interchange Protocol"),
         ("is_int64_dtype", "is_int64_dtype is deprecated"),
         ("is_interval_dtype", "is_interval_dtype is deprecated"),
         ("is_period_dtype", "is_period_dtype is deprecated"),
         ("is_datetime64tz_dtype", "is_datetime64tz_dtype is deprecated"),
         ("is_categorical_dtype", "is_categorical_dtype is deprecated"),
         ("is_sparse", "is_sparse is deprecated"),
-        ("DataFrame.__dataframe__", "Interchange Protocol is deprecated"),
+        ("CategoricalDtype._from_values_or_dtype", "Constructing a Categorical"),
+        ("DataFrame.__dataframe__", "The DataFrame Interchange Protocol"),
         ("DataFrameGroupBy.fillna", "DataFrameGroupBy.fillna is deprecated"),
         ("DataFrameGroupBy.corrwith", "DataFrameGroupBy.corrwith is deprecated"),
         ("NDFrame.replace", "Series.replace without 'value'"),
@@ -762,14 +785,14 @@ def index_with_missing(request):
     if request.param in ["tuples", "mi-with-dt64tz-level", "multi"]:
         # For setting missing values in the top level of MultiIndex
         vals = ind.tolist()
-        vals[0] = (None,) + vals[0][1:]
-        vals[-1] = (None,) + vals[-1][1:]
+        vals[0] = (None, *vals[0][1:])
+        vals[-1] = (None, *vals[-1][1:])
         return MultiIndex.from_tuples(vals)
     else:
         vals = ind.values.copy()
         vals[0] = None
         vals[-1] = None
-        return type(ind)(vals)
+        return type(ind)(vals, copy=False)
 
 
 # ----------------------------------------------------------------

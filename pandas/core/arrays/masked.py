@@ -263,11 +263,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 return self._simple_new(npvalues.T, new_mask.T)
             else:
                 return self
+        elif copy:
+            new_values = self.copy()
         else:
-            if copy:
-                new_values = self.copy()
-            else:
-                new_values = self
+            new_values = self
         return new_values
 
     def fillna(self, value, limit: int | None = None, copy: bool = True) -> Self:
@@ -325,11 +324,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             else:
                 new_values = self[:]
             new_values[mask] = value
+        elif copy:
+            new_values = self.copy()
         else:
-            if copy:
-                new_values = self.copy()
-            else:
-                new_values = self[:]
+            new_values = self[:]
         return new_values
 
     @classmethod
@@ -356,9 +354,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             if lib.is_integer(value) or lib.is_float(value):
                 return value
 
-        else:
-            if lib.is_integer(value) or (lib.is_float(value) and value.is_integer()):
-                return value
+        elif lib.is_integer(value) or (lib.is_float(value) and value.is_integer()):
+            return value
             # TODO: unsigned checks
 
         # Note: without the "str" here, the f-string rendering raises in
@@ -727,7 +724,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         out = kwargs.get("out", ())
 
         for x in inputs + out:
-            if not isinstance(x, self._HANDLED_TYPES + (BaseMaskedArray,)):
+            if not isinstance(x, (*self._HANDLED_TYPES, BaseMaskedArray)):
                 return NotImplemented
 
         # for binary ops, use our custom dunder methods
@@ -1422,7 +1419,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             self.dtype.construct_array_type()(
                 keys,  # type: ignore[arg-type]
                 mask_index,
-            )
+            ),
+            copy=False,
         )
         return Series(arr, index=index, name="count", copy=False)
 
@@ -1772,11 +1770,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         result = values.any()
         if skipna:
             return result
+        elif result or len(self) == 0 or not self._mask.any():
+            return result
         else:
-            if result or len(self) == 0 or not self._mask.any():
-                return result
-            else:
-                return self.dtype.na_value
+            return self.dtype.na_value
 
     @overload
     def all(
@@ -1859,11 +1856,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         if skipna:
             return result  # type: ignore[return-value]
+        elif not result or len(self) == 0 or not self._mask.any():
+            return result  # type: ignore[return-value]
         else:
-            if not result or len(self) == 0 or not self._mask.any():
-                return result  # type: ignore[return-value]
-            else:
-                return self.dtype.na_value
+            return self.dtype.na_value
 
     def interpolate(
         self,

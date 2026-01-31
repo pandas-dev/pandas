@@ -314,14 +314,16 @@ class HTMLFormatter:
                                 recs_new[tag] = span + 1
                                 if lnum == inner_lvl:
                                     values = (
-                                        values[:ins_col] + ("...",) + values[ins_col:]
+                                        *values[:ins_col],
+                                        "...",
+                                        *values[ins_col:],
                                     )
                                 else:
                                     # sparse col headers do not receive a ...
                                     values = (
-                                        values[:ins_col]
-                                        + (values[ins_col - 1],)
-                                        + values[ins_col:]
+                                        *values[:ins_col],
+                                        values[ins_col - 1],
+                                        *values[ins_col:],
                                     )
                             else:
                                 recs_new[tag] = span
@@ -329,7 +331,7 @@ class HTMLFormatter:
                             # get ...
                             if tag + span == ins_col:
                                 recs_new[ins_col] = 1
-                                values = values[:ins_col] + ("...",) + values[ins_col:]
+                                values = (*values[:ins_col], "...", *values[ins_col:])
                         records = recs_new
                         inner_lvl = len(level_lengths) - 1
                         if lnum == inner_lvl:
@@ -343,7 +345,7 @@ class HTMLFormatter:
                                 recs_new[tag] = span
                         recs_new[ins_col] = 1
                         records = recs_new
-                        values = values[:ins_col] + ["..."] + values[ins_col:]
+                        values = [*values[:ins_col], "...", *values[ins_col:]]
 
                 # see gh-22579
                 # Column Offset Bug with to_html(index=False) with
