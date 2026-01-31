@@ -13,6 +13,7 @@ including other versions of pandas.
 
 Bug fixes
 ^^^^^^^^^
+- Fixed a bug for comparison operators between :py:class:`range` and objects with :class:`StringDtype` with ``storage="pyarrow"`` (:issue:`63429`)
 - Fixed a bug in the :class:`DataFrame` constructor when passed a :class:`Series` or
   :class:`Index` correctly handling Copy-on-Write (:issue:`63899`)
 - Allow :class:`.ExtensionArray` to have dtypes involving :class:`numpy.void` (:issue:`54810`)
