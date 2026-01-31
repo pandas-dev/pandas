@@ -28,8 +28,8 @@ license = {file = 'LICENSE'}
 requires-python = '>=3.11'
 dependencies = [
   "numpy>=1.26.0; python_version < '3.14'",
-  # NumPy 1.x is fundamentally broken on 3.14
-  "numpy>=2.0.0; python_version >= '3.14'",
+  # Earlier versions of NumPy are fundamentally broken on 3.14
+  "numpy>=2.3.3; python_version >= '3.14'",
   "python-dateutil>=2.8.2",
   "tzdata; sys_platform == 'win32'",
   # Emscripten is the platform system for Pyodide.
@@ -329,8 +329,6 @@ ignore = [
   "PLR2004",
   # comparison-with-itself
   "PLR0124",
-  # collection-literal-concatenation
-  "RUF005",
   # pairwise-over-zipped
   "RUF007",
   # mutable-class-default
@@ -514,7 +512,6 @@ exclude = [
 "pandas/tests/reshape/test_qcut.py" = ["B905"]
 "pandas/tests/scalar/period/test_asfreq.py" = ["B905"]
 "pandas/tests/series/accessors/test_dt_accessor.py" = ["B905"]
-"pandas/tests/series/indexing/test_get.py" = ["B905"]
 "pandas/tests/series/test_api.py" = ["B905"]
 "pandas/tests/series/test_constructors.py" = ["B905"]
 "pandas/tests/strings/conftest.py" = ["B905"]

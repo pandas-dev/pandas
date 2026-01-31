@@ -59,10 +59,9 @@ _any_string_method = [
     ("translate", ({97: 100},), {}),
     ("wrap", (2,), {}),
     ("zfill", (10,), {}),
-] + list(
-    zip(
+    # methods without positional arguments: zip with empty tuple and empty dict
+    *zip(
         [
-            # methods without positional arguments: zip with empty tuple and empty dict
             "capitalize",
             "cat",
             "get_dummies",
@@ -94,8 +93,8 @@ _any_string_method = [
         ],
         [()] * 100,
         [{}] * 100,
-    )
-)
+    ),
+]
 ids, _, _ = zip(*_any_string_method)  # use method name as fixture-id
 missing_methods = {f for f in dir(StringMethods) if not f.startswith("_")} - set(ids)
 

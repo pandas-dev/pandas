@@ -12,8 +12,10 @@ Index
 
 .. note::
 
-   For a conceptual overview and practical examples of indexing and selecting data,
-   see :ref:`indexing` in the User Guide.
+For a conceptual overview and practical examples of indexing and selecting data,
+see :ref:`indexing` in the User Guide.
+
+For an overview of the indexing classes, see :ref:`indexing.class`.
 
 **Many of these methods or variants thereof are available on the objects
 that contain an index (Series/DataFrame) and those should most likely be

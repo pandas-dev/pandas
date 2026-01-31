@@ -1,7 +1,6 @@
 import pytest
 
 from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
-from pandas.errors import OutOfBoundsDatetime
 
 from pandas import (
     Period,
@@ -42,10 +41,8 @@ class TestFreqConversion:
         # GH#19643, used to incorrectly give Timestamp in 1754
         with tm.assert_produces_warning(FutureWarning, match=bday_msg):
             per = Period("0001-01-01", freq="B")
-        msg = "Out of bounds nanosecond timestamp"
-        with pytest.raises(OutOfBoundsDatetime, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match=bday_msg):
-                per.to_timestamp()
+        with tm.assert_produces_warning(FutureWarning, match=bday_msg):
+            per.to_timestamp()
 
     def test_asfreq_corner(self):
         val = Period(freq="Y", year=2007)
@@ -694,14 +691,7 @@ class TestFreqConversion:
         start = per.start_time
         expected = Timestamp("2020-01-30 15:57:27.576166")
         assert start == expected
-        assert start._value == per.ordinal * 1000
-
-        per2 = Period("2300-01-01", "us")
-        msg = "2300-01-01"
-        with pytest.raises(OutOfBoundsDatetime, match=msg):
-            per2.start_time
-        with pytest.raises(OutOfBoundsDatetime, match=msg):
-            per2.end_time
+        assert start._value == per.ordinal
 
     def test_asfreq_mult(self):
         # normal freq to mult freq

@@ -70,11 +70,12 @@ char *int64ToIso(int64_t value, NPY_DATETIMEUNIT valueUnit,
 }
 
 /* Converts the int64_t representation of a duration to ISO; mutates len */
-char *int64ToIsoDuration(int64_t value, size_t *len) {
+char *int64ToIsoDuration(int64_t value, NPY_DATETIMEUNIT valueUnit,
+                         size_t *len) {
   pandas_timedeltastruct tds;
   int ret_code;
 
-  pandas_timedelta_to_timedeltastruct(value, NPY_FR_ns, &tds);
+  pandas_timedelta_to_timedeltastruct(value, valueUnit, &tds);
 
   // Max theoretical length of ISO Duration with 64 bit day
   // as the largest unit is 70 characters + 1 for a null terminator

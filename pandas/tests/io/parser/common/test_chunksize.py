@@ -218,7 +218,7 @@ def test_chunks_have_consistent_numerical_type(all_parsers, monkeypatch):
     heuristic = 2**3
     parser = all_parsers
     integers = [str(i) for i in range(heuristic - 1)]
-    data = "a\n" + "\n".join(integers + ["1.0", "2.0"] + integers)
+    data = "a\n" + "\n".join([*integers, "1.0", "2.0", *integers])
 
     # Coercions should work without warnings.
     with monkeypatch.context() as m:
@@ -246,7 +246,7 @@ def test_warn_if_chunks_have_mismatched_type(
         size = heuristic - 1
 
     integers = [str(i) for i in range(size)]
-    data = "a\n" + "\n".join(integers + ["a", "b"] + integers)
+    data = "a\n" + "\n".join([*integers, "a", "b", *integers])
 
     buf = StringIO(data)
 
