@@ -950,12 +950,12 @@ pyyaml = "*"
 pyiceberg = ">=0.8.1"
 
 [tool.pixi.environments]
-py311 = { features = ["py311", "pyarrow", "test", "test-clipboard", "test-network", "optional-dependencies"], solve-group = "default" }
-py312 = { features = ["py312", "pyarrow", "test", "test-clipboard", "test-network", "optional-dependencies"], solve-group = "default" }
-py313 = { features = ["py313", "pyarrow", "test", "test-clipboard", "test-network", "optional-dependencies"], solve-group = "default" }
-no-pyarrow = { features = ["py313", "test", "test-clipboard", "test-network", "optional-dependencies"], solve-group = "default" }
-minimum-versions = { features = ["py311", "pyarrow", "test", "test-clipboard", "test-network", "optional-dependencies", "minimum-versions"], solve-group = "default" }
-freethreading = { features = ["freethreading", "test"], solve-group = "default" }
-numpy-nightly = { features = ["py313", "test", "numpydev"], solve-group = "default" }
-pyarrow-nightly = { features = ["py313", "test", "pyarrownightly"], solve-group = "default" }
-downstream = { features = ["py313", "test", "downstream"], solve-group = "default" }
+py311 = { features = ["py311", "pyarrow", "test", "test-clipboard", "test-network", "optional-dependencies"] }
+py312 = { features = ["py312", "pyarrow", "test", "test-clipboard", "test-network", "optional-dependencies"] }
+py313 = { features = ["py313", "pyarrow", "test", "test-clipboard", "test-network", "optional-dependencies"] }
+no-pyarrow = { features = ["py313", "test", "test-clipboard", "test-network", "optional-dependencies"] }
+minimum-versions = { features = ["py311", "pyarrow", "test", "test-clipboard", "test-network", "optional-dependencies", "minimum-versions"] }
+freethreading = { features = ["freethreading", "test"] }
+numpy-nightly = { features = ["py313", "test", "numpydev"]}
+pyarrow-nightly = { features = ["py313", "test", "pyarrownightly"] }
+downstream = { features = ["py313", "test", "downstream"] }
