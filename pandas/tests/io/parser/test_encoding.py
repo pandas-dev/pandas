@@ -14,9 +14,6 @@ import numpy as np
 import pytest
 
 from pandas.errors import (
-    EmptyDataError,
-    ParserError,
-    ParserWarning,
     Pandas4Warning,
 )
 
