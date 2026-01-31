@@ -1270,7 +1270,7 @@ def searchsorted(
     numpy.searchsorted : Similar method from NumPy.
     """
     from pandas.core.arrays.masked import BaseMaskedArray
-    
+
     if sorter is not None:
         sorter = ensure_platform_int(sorter)
 
@@ -1280,19 +1280,19 @@ def searchsorted(
             # Extract valid (non-NA) values and their positions
             valid_mask = ~value._mask
             valid_values = value._data[valid_mask]
-            
+
             # Search using only valid values
             result_valid = searchsorted(arr, valid_values, side=side, sorter=sorter)
-            
+
             # Handle scalar NA case
             if np.ndim(value) == 0:
                 return len(arr)
-            
+
             # Reconstruct result array, placing NAs at the end
             result = np.empty(len(value), dtype=np.intp)
             result[valid_mask] = result_valid
             result[~valid_mask] = len(arr)
-            
+
             return result
         else:
             # No NA values present, extract underlying data
