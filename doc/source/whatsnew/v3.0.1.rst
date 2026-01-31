@@ -9,6 +9,13 @@ including other versions of pandas.
 {{ header }}
 
 .. ---------------------------------------------------------------------------
+.. _whatsnew_301.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+- Fixed regression in :meth:`DataFrame.groupby` and :meth:`Series.groupby` when grouping on categorical data with NA values, ``observed=False``, and ``dropna=True`` (:issue:`52445`)
+
+.. ---------------------------------------------------------------------------
 .. _whatsnew_301.bugs:
 
 Bug fixes
