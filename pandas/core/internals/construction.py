@@ -559,7 +559,7 @@ def _homogenize(
 
     for val in data:
         if isinstance(val, (ABCSeries, Index)):
-            orig_refs = val._references
+            orig_refs = getattr(val, "_references", None)
             orig_values = val._values
             if dtype is not None:
                 val = val.astype(dtype)
