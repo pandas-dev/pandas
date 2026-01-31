@@ -1802,6 +1802,8 @@ def reconstruct_func(
             func = {
                 column: aggfunc for key, (column, aggfunc) in converted_kwargs.items()
             }
+            # Normalization is skipped if all kwargs keys are the same as their
+            # corresponding column name.
             relabeling = False
 
     assert func is not None
