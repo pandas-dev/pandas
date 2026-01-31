@@ -1529,14 +1529,6 @@ Other
   through ``.array`` (or ``.values`` depending on the dtype) as well (:issue:`61925`).
 
 
-.. ---------------------------------------------------------------------------
-.. _whatsnew_300.documentation:
-
-Documentation
-~~~~~~~~~~~~~
-
-- Fixed broken Sphinx reference targets for type aliases in :mod:`pandas.api.typing.aliases` (:issue:`63810`)
-
 
 .. ***DO NOT USE THIS SECTION***
 
