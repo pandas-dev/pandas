@@ -166,7 +166,7 @@ MultiIndex
 
 I/O
 ^^^
--
+- Bug in :meth:`DataFrame.to_html` using deprecated HTML ``border`` attribute instead of CSS styling (:issue:`61949`)
 -
 
 Period

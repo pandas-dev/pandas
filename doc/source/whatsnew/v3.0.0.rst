@@ -1327,7 +1327,6 @@ I/O
 ^^^
 - Bug in :class:`DataFrame` and :class:`Series` ``repr`` of :py:class:`collections.abc.Mapping` elements. (:issue:`57915`)
 - Bug in :meth:`DataFrame.to_hdf` and :func:`read_hdf` with ``timedelta64`` dtypes with non-nanosecond resolution failing to round-trip correctly (:issue:`63239`)
-- Bug in :meth:`DataFrame.to_html` using deprecated HTML ``border`` attribute instead of CSS styling (:issue:`61949`)
 - Fix bug in ``on_bad_lines`` callable when returning too many fields: now emits
   ``ParserWarning`` and truncates extra fields regardless of ``index_col`` (:issue:`61837`)
 - Bug in :func:`pandas.json_normalize` inconsistently handling non-dict items in ``data`` when ``max_level`` was set. The function will now raise a ``TypeError`` if ``data`` is a list containing non-dict items (:issue:`62829`)
