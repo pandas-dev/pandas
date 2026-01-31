@@ -787,7 +787,7 @@ The simplest case is to just pass in ``parse_dates=True``:
    df.index
 
 It is often the case that we may want to store date and time data separately,
-or store various date fields separately. the ``parse_dates`` keyword can be
+or store various date fields separately. The ``parse_dates`` keyword can be
 used to specify columns to parse the dates and/or times.
 
 
@@ -4308,7 +4308,7 @@ storing/selecting from homogeneous index ``DataFrames``.
    store.select("df_mi", "foo=bar")
 
 .. note::
-   The ``index`` keyword is reserved and cannot be use as a level name.
+   The ``index`` keyword is reserved and cannot be used as a level name.
 
 .. _io.hdf5-query:
 
@@ -6175,7 +6175,7 @@ is lost when exporting.
 
     *Stata* only supports string value labels, and so ``str`` is called on the
     categories when exporting data.  Exporting ``Categorical`` variables with
-    non-string categories produces a warning, and can result a loss of
+    non-string categories produces a warning, and can result in a loss of
     information if the ``str`` representations of the categories are not unique.
 
 Labeled data can similarly be imported from *Stata* data files as ``Categorical``
