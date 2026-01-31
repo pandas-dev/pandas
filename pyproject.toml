@@ -882,6 +882,9 @@ pytest-qt = ">=4.4.0"
 pyqt = ">=5.15.9"
 qtpy = ">=2.4.2"
 
+[tool.pixi.feature.pyarrow.dependencies]
+pyarrow = ">=13.0.0"
+
 [tool.pixi.feature.optional-dependencies.dependencies]
 adbc-driver-postgresql = ">=1.2.0"
 adbc-driver-sqlite = ">=1.2.0"
@@ -900,7 +903,6 @@ numexpr = ">=2.10.2"
 odfpy = ">=1.4.1"
 openpyxl = ">=3.1.5"
 psycopg2 = ">=2.9.10"
-pyarrow = ">=13.0.0"
 pymysql = ">=1.1.1"
 pyreadstat = ">=1.2.8"
 pytables = ">=3.10.1"
@@ -948,11 +950,12 @@ pyyaml = "*"
 pyiceberg = ">=0.8.1"
 
 [tool.pixi.environments]
-py311 = { features = ["py311", "test", "test-clipboard", "test-network", "optional-dependencies"], solve-group = "default" }
-py312 = { features = ["py312", "test", "test-clipboard", "test-network", "optional-dependencies"], solve-group = "default" }
-py313 = { features = ["py313", "test", "test-clipboard", "test-network", "optional-dependencies"], solve-group = "default" }
-minimum-versions = { features = ["py311", "test", "test-clipboard", "test-network", "optional-dependencies", "minimum-versions"], solve-group = "default" }
+py311 = { features = ["py311", "pyarrow", "test", "test-clipboard", "test-network", "optional-dependencies"], solve-group = "default" }
+py312 = { features = ["py312", "pyarrow", "test", "test-clipboard", "test-network", "optional-dependencies"], solve-group = "default" }
+py313 = { features = ["py313", "pyarrow", "test", "test-clipboard", "test-network", "optional-dependencies"], solve-group = "default" }
+no-pyarrow = { features = ["py313", "test", "test-clipboard", "test-network", "optional-dependencies"], solve-group = "default" }
+minimum-versions = { features = ["py311", "pyarrow", "test", "test-clipboard", "test-network", "optional-dependencies", "minimum-versions"], solve-group = "default" }
 freethreading = { features = ["freethreading", "test"], solve-group = "default" }
-numpynightly = { features = ["py313", "test", "numpydev"], solve-group = "default" }
-pyarrownightly = { features = ["py313", "test", "pyarrownightly"], solve-group = "default" }
+numpy-nightly = { features = ["py313", "test", "numpydev"], solve-group = "default" }
+pyarrow-nightly = { features = ["py313", "test", "pyarrownightly"], solve-group = "default" }
 downstream = { features = ["py313", "test", "downstream"], solve-group = "default" }
