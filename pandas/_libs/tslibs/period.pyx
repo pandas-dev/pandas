@@ -2132,6 +2132,9 @@ cdef class _Period(PeriodMixin):
         """
         Return the year this Period falls on.
 
+        The year is derived from the internal representation of the Period
+        based on its ordinal value and frequency.
+
         Returns
         -------
         int

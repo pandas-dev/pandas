@@ -9,6 +9,13 @@ including other versions of pandas.
 {{ header }}
 
 .. ---------------------------------------------------------------------------
+.. _whatsnew_301.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+- Fixed regression in :meth:`DataFrame.groupby` and :meth:`Series.groupby` when grouping on categorical data with NA values, ``observed=False``, and ``dropna=True`` (:issue:`52445`)
+
+.. ---------------------------------------------------------------------------
 .. _whatsnew_301.bugs:
 
 Bug fixes
@@ -16,6 +23,8 @@ Bug fixes
 - Fixed :func:`pandas.array` to preserve mask information when converting NumPy masked arrays, converting masked values to missing values (:issue:`63879`).
 - Fixed a bug in the :class:`DataFrame` constructor when passed a :class:`Series` or
   :class:`Index` correctly handling Copy-on-Write (:issue:`63899`)
+- Allow :class:`.ExtensionArray` to have dtypes involving :class:`numpy.void` (:issue:`54810`)
+- Fixed a bug in :func:`col` where unary operators (``-``, ``+``, ``abs``) were not supported (:issue:`63939`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_301.contributors:
