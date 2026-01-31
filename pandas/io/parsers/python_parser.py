@@ -581,7 +581,7 @@ class PythonParser(ParserBase):
             if isinstance(header, (list, tuple, np.ndarray)):
                 # we have a mi columns, so read an extra line
                 if have_mi_columns:
-                    header = list(header) + [header[-1] + 1]
+                    header = [*list(header), header[-1] + 1]
             else:
                 header = [header]
 

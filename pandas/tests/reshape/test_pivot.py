@@ -104,7 +104,7 @@ class TestPivotTable:
         else:
             assert table.columns.name == columns[0]
 
-        expected = data.groupby(index + [columns])["D"].agg("mean").unstack()
+        expected = data.groupby([*index, columns])["D"].agg("mean").unstack()
         tm.assert_frame_equal(table, expected)
 
     def test_pivot_table_categorical_observed_equal(self, observed):
@@ -353,7 +353,7 @@ class TestPivotTable:
         index = ["A", "B"]
         columns = "C"
         table = pivot_table(data, index=index, columns=columns)
-        expected = data.groupby(index + [columns]).agg("mean").unstack()
+        expected = data.groupby([*index, columns]).agg("mean").unstack()
         tm.assert_frame_equal(table, expected)
 
     def test_pivot_dtypes(self):
@@ -1034,7 +1034,7 @@ class TestPivotTable:
         df = data.copy()
         df[["D", "E", "F"]] = np.arange(len(df) * 3).reshape(len(df), 3).astype("i8")
 
-        mi_val = list(product(["bar", "foo"], ["one", "two"])) + [("All", "")]
+        mi_val = [*list(product(["bar", "foo"], ["one", "two"])), ("All", "")]
         mi = MultiIndex.from_tuples(mi_val, names=("A", "B"))
         expected = DataFrame(
             {"dull": [12, 21, 3, 9, 45], "shiny": [33, 0, 36, 51, 120]}, index=mi
@@ -1053,7 +1053,7 @@ class TestPivotTable:
         tm.assert_frame_equal(expected, result)
 
     def test_margins_dtype_len(self, data):
-        mi_val = list(product(["bar", "foo"], ["one", "two"])) + [("All", "")]
+        mi_val = [*list(product(["bar", "foo"], ["one", "two"])), ("All", "")]
         mi = MultiIndex.from_tuples(mi_val, names=("A", "B"))
         expected = DataFrame(
             {"dull": [1, 1, 2, 1, 5], "shiny": [2, 0, 2, 2, 6]}, index=mi

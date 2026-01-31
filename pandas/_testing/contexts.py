@@ -140,7 +140,7 @@ def raises_chained_assignment_error(extra_warnings=(), extra_match=()):
     else:
         warning = ChainedAssignmentError
         match = (
-            "A value is trying to be set on a copy of a DataFrame or Series "
+            "A value is being set on a copy of a DataFrame or Series "
             "through chained assignment"
         )
         if extra_warnings:

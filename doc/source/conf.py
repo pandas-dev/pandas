@@ -174,9 +174,7 @@ copyright = f"{datetime.now().year},"
 import pandas  # isort:skip
 
 # version = '%s r%s' % (pandas.__version__, svn_version())
-version = str(pandas.__version__)
-if version_override := os.environ.get("PANDAS_VERSION_OVERRIDE"):
-    version = version_override
+version = os.environ.get("PANDAS_VERSION", str(pandas.__version__))
 
 # The full version, including alpha/beta/rc tags.
 release = version
@@ -237,7 +235,7 @@ html_theme = "pydata_sphinx_theme"
 if ".dev" in version or ("rc" in version and "+" in version):
     switcher_version = "dev"
 elif "rc" in version:
-    switcher_version = version.split("rc", maxsplit=1)[0] + " (rc)"
+    switcher_version = ".".join(version.split(".")[:2]) + " (rc)"
 else:
     # only keep major.minor version number to match versions.json
     switcher_version = ".".join(version.split(".")[:2])
@@ -567,7 +565,7 @@ class AccessorLevelDocumenter(Documenter):
                 else:
                     modname = self.env.temp_data.get("py:module")
             # ... else, it stays None, which means invalid
-        return modname, parents + [base]
+        return modname, [*parents, base]
 
 
 class AccessorAttributeDocumenter(AccessorLevelDocumenter, AttributeDocumenter):
