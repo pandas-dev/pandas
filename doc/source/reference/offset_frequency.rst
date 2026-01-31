@@ -109,6 +109,7 @@ Properties
     BusinessHour.normalize
     BusinessHour.rule_code
     BusinessHour.n
+    BusinessHour.offset
     BusinessHour.start
     BusinessHour.end
     BusinessHour.weekmask
@@ -200,6 +201,7 @@ Properties
     CustomBusinessHour.holidays
     CustomBusinessHour.start
     CustomBusinessHour.end
+    CustomBusinessHour.offset
 
 Methods
 ~~~~~~~

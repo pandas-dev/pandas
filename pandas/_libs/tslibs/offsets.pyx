@@ -628,6 +628,9 @@ cdef class BaseOffset:
         """
         Return a string representing the base frequency.
 
+        This is typically a short string alias (e.g., 'h' for hourly, 'D' for daily)
+        used to identify the offset type, regardless of the `n` multiplier.
+
         See Also
         --------
         tseries.offsets.Week : Represents a weekly offset.
@@ -2605,7 +2608,12 @@ cdef class BusinessHour(BusinessMixin):
     """
     DateOffset subclass representing possibly n business hours.
 
-    Parameters
+    BusinessHour is a date offset that advances time by a number of business
+    hours. By default, business hours are from 9:00 AM to 5:00 PM on weekdays.
+    The ``start`` and ``end`` parameters can be used to customize the business
+    hours window, and multiple intervals can be specified by passing lists.
+
+    Attributes
     ----------
     n : int, default 1
         The number of hours represented.
@@ -2617,6 +2625,13 @@ cdef class BusinessHour(BusinessMixin):
         End time of your custom business hour in 24h format.
     offset : timedelta, default timedelta(0)
         Time offset to apply.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.CustomBusinessHour` :
+        DateOffset subclass with custom weekmask and holidays.
+    :class:`~pandas.tseries.offsets.BusinessDay` :
+        DateOffset subclass representing possibly n business days.
 
     Examples
     --------
@@ -3142,6 +3157,46 @@ cdef class WeekOfMonthMixin(SingleConstructorOffset):
         return _shift_day(shifted, to_day - shifted.day)
 
     def is_on_offset(self, dt: datetime) -> bool:
+        """
+        Return boolean whether a timestamp intersects with this frequency.
+
+        This method checks if the given timestamp falls on the expected day
+        of the month for this offset. For WeekOfMonth, this is the specified
+        weekday of the specified week of the month. For LastWeekOfMonth, this
+        is the specified weekday of the last week of the month.
+
+        Parameters
+        ----------
+        dt : datetime
+            Timestamp to check intersection with frequency.
+
+        Returns
+        -------
+        bool
+            True if the timestamp is on the offset, False otherwise.
+
+        See Also
+        --------
+        tseries.offsets.WeekOfMonth : Describes monthly dates in a specific week.
+        tseries.offsets.LastWeekOfMonth : Describes monthly dates in the last week.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2022, 1, 3)
+        >>> ts.day_name()
+        'Monday'
+        >>> pd.offsets.WeekOfMonth(week=0, weekday=0).is_on_offset(ts)
+        True
+
+        >>> ts = pd.Timestamp(2022, 1, 10)
+        >>> ts.day_name()
+        'Monday'
+        >>> pd.offsets.WeekOfMonth(week=0, weekday=0).is_on_offset(ts)
+        False
+
+        >>> pd.offsets.WeekOfMonth(week=1, weekday=0).is_on_offset(ts)
+        True
+        """
         if self.normalize and not _is_normalized(dt):
             return False
         return dt.day == self._get_offset_day(dt)
@@ -4516,6 +4571,30 @@ cdef class SemiMonthOffset(SingleConstructorOffset):
 
     @property
     def rule_code(self) -> str:
+        """
+        Return a string representing the base frequency.
+
+        This returns the frequency code with the day of month suffix,
+        such as "SMS-15" for SemiMonthBegin or "SME-15" for SemiMonthEnd.
+
+        See Also
+        --------
+        tseries.offsets.SemiMonthBegin : Two DateOffset's per month repeating on
+            the first day of the month & day_of_month.
+        tseries.offsets.SemiMonthEnd : Two DateOffset's per month repeating on
+            the last day of the month & day_of_month.
+
+        Examples
+        --------
+        >>> pd.offsets.SemiMonthBegin().rule_code
+        'SMS-15'
+
+        >>> pd.offsets.SemiMonthEnd().rule_code
+        'SME-15'
+
+        >>> pd.offsets.SemiMonthBegin(day_of_month=10).rule_code
+        'SMS-10'
+        """
         suffix = f"-{self._day_of_month}"
         return self._prefix + suffix
 
@@ -5992,6 +6071,40 @@ cdef class FY5253Quarter(FY5253Mixin):
         return weeks_in_year == 53
 
     def is_on_offset(self, dt: datetime) -> bool:
+        """
+        Return boolean whether a timestamp intersects with this frequency.
+
+        This method checks if a given datetime falls on a fiscal quarter end date
+        as defined by the 52-53 week fiscal year calendar.
+
+        Parameters
+        ----------
+        dt : datetime
+            Timestamp to check.
+
+        Returns
+        -------
+        bool
+            True if the timestamp is on a fiscal quarter end, False otherwise.
+
+        See Also
+        --------
+        FY5253.is_on_offset : Check if timestamp is on fiscal year end.
+        DateOffset.is_on_offset : Check if timestamp intersects with frequency.
+
+        Examples
+        --------
+        >>> offset = pd.offsets.FY5253Quarter(
+        ...     weekday=4, startingMonth=12, variation="last"
+        ... )
+        >>> ts = pd.Timestamp(2022, 4, 1)
+        >>> offset.is_on_offset(ts)
+        True
+
+        >>> ts = pd.Timestamp(2022, 4, 3)
+        >>> offset.is_on_offset(ts)
+        False
+        """
         if self.normalize and not _is_normalized(dt):
             return False
         if self._offset.is_on_offset(dt):
@@ -6386,7 +6499,7 @@ cdef class CustomBusinessHour(BusinessHour):
 
     In CustomBusinessHour we can use custom weekmask, holidays, and calendar.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of hours represented.
@@ -6405,6 +6518,13 @@ cdef class CustomBusinessHour(BusinessHour):
         End time of your custom business hour in 24h format.
     offset : timedelta, default timedelta(0)
         Time offset to apply.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.BusinessHour` :
+        DateOffset subclass representing possibly n business hours.
+    :class:`~pandas.tseries.offsets.CustomBusinessDay` :
+        DateOffset subclass representing custom business days.
 
     Examples
     --------
