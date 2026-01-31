@@ -1693,7 +1693,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             mapper,
             na_action=na_action,
         )
-        return self._cast_pointwise_result(result)
+        return result
 
     @overload
     def any(
