@@ -319,7 +319,8 @@ def array(
         na_dtype = ensure_dtype_can_hold_na(data.dtype)
         if hasattr(na_dtype, "char") and na_dtype.char in "SU":
             na_dtype = np.dtype("object")
-        data = np.asarray(data.astype(na_dtype).filled(np.nan))
+        filled = cast(ma.MaskedArray, data.astype(na_dtype)).filled(np.nan)
+        data = np.asarray(filled)
         if orig_dtype.kind in "iu":
             int_dtype_map = IntegerArray._dtype_cls._get_dtype_mapping()
             if orig_dtype in int_dtype_map:
