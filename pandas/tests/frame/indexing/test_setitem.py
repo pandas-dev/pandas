@@ -1158,6 +1158,25 @@ class TestDataFrameSetItemBooleanMask:
         # category c is kept in .categories
         tm.assert_frame_equal(df, exp_fancy)
 
+    def test_setitem_mask_assign_NaT_with_datetime(self):
+        # GH 46294
+        # after boolean masking assignment, NaT should align column-wise
+        df = DataFrame(
+            [pd.to_datetime(["2000", "2001"]), pd.to_datetime(["2000", "2002"])],
+            index=pd.to_datetime(["2000", "2000"]),
+        )
+        mask = df > df.index.to_numpy().reshape(-1, 1)
+        df[mask] = NaT
+        expected = DataFrame(
+            [
+                pd.to_datetime(["2000", NaT]),
+                pd.to_datetime(["2000", NaT]),
+            ],
+            index=pd.to_datetime(["2000", "2000"]),
+            dtype="datetime64[us]",
+        )
+        tm.assert_frame_equal(df, expected)
+
     @pytest.mark.parametrize("dtype", ["float", "int64"])
     @pytest.mark.parametrize("kwargs", [{}, {"index": [1]}, {"columns": ["A"]}])
     def test_setitem_empty_frame_with_boolean(self, dtype, kwargs):

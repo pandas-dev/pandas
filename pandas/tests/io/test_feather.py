@@ -139,13 +139,13 @@ class TestFeather:
         self.check_round_trip(df, temp_file, use_threads=True)
         self.check_round_trip(df, temp_file, use_threads=False)
 
-    def test_path_pathlib(self, tmp_path):
+    def test_path_pathlib(self, temp_file):
         df = pd.DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
             columns=pd.Index(list("ABCD")),
             index=pd.Index([f"i-{i}" for i in range(30)]),
         ).reset_index()
-        result = tm.round_trip_pathlib(df.to_feather, read_feather, tmp_path)
+        result = tm.round_trip_pathlib(df.to_feather, read_feather, temp_file)
         tm.assert_frame_equal(df, result)
 
     def test_passthrough_keywords(self, temp_file):
@@ -239,13 +239,12 @@ class TestFeather:
         with pytest.raises(ValueError, match=msg):
             read_feather(temp_file, dtype_backend="numpy")
 
-    def test_string_inference(self, tmp_path, using_infer_string):
+    def test_string_inference(self, temp_file, using_infer_string):
         # GH#54431
-        path = tmp_path / "test_string_inference.p"
         df = pd.DataFrame(data={"a": ["x", "y"]})
-        df.to_feather(path)
+        df.to_feather(temp_file)
         with pd.option_context("future.infer_string", True):
-            result = read_feather(path)
+            result = read_feather(temp_file)
         dtype = pd.StringDtype(na_value=np.nan)
         expected = pd.DataFrame(
             data={"a": ["x", "y"]}, dtype=pd.StringDtype(na_value=np.nan)
@@ -263,17 +262,16 @@ class TestFeather:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.skipif(pa_version_under18p0, reason="not supported before 18.0")
-    def test_string_inference_string_view_type(self, tmp_path):
+    def test_string_inference_string_view_type(self, temp_file):
         # GH#54798
         import pyarrow as pa
         from pyarrow import feather
 
-        path = tmp_path / "string_view.parquet"
         table = pa.table({"a": pa.array([None, "b", "c"], pa.string_view())})
-        feather.write_feather(table, path)
+        feather.write_feather(table, temp_file)
 
         with pd.option_context("future.infer_string", True):
-            result = read_feather(path)
+            result = read_feather(temp_file)
 
             expected = pd.DataFrame(
                 data={"a": [None, "b", "c"]}, dtype=pd.StringDtype(na_value=np.nan)

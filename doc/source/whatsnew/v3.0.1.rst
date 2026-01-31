@@ -1,0 +1,24 @@
+.. _whatsnew_301:
+
+What's new in 3.0.1 (February XX, 2026)
+----------------------------------------
+
+These are the changes in pandas 3.0.1. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_301.bugs:
+
+Bug fixes
+^^^^^^^^^
+- Fixed a bug in the :class:`DataFrame` constructor when passed a :class:`Series` or
+  :class:`Index` correctly handling Copy-on-Write (:issue:`63899`)
+- Allow :class:`.ExtensionArray` to have dtypes involving :class:`numpy.void` (:issue:`54810`)
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_301.contributors:
+
+Contributors
+~~~~~~~~~~~~

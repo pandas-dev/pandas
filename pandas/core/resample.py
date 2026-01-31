@@ -2370,7 +2370,8 @@ class TimeGrouper(Grouper):
         If axis is PeriodIndex
     """
 
-    _attributes = Grouper._attributes + (
+    _attributes = (
+        *Grouper._attributes,
         "closed",
         "label",
         "how",

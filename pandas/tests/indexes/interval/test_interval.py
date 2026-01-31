@@ -752,7 +752,7 @@ class TestIntervalIndex:
         assert index.is_overlapping is False
 
         # non-overlapping with NA
-        tuples = [(na_value, na_value)] + tuples + [(na_value, na_value)]
+        tuples = [(na_value, na_value), *tuples, (na_value, na_value)]
         index = IntervalIndex.from_tuples(tuples, closed=closed)
         assert index.is_overlapping is False
 
@@ -762,7 +762,7 @@ class TestIntervalIndex:
         assert index.is_overlapping is True
 
         # overlapping with NA
-        tuples = [(na_value, na_value)] + tuples + [(na_value, na_value)]
+        tuples = [(na_value, na_value), *tuples, (na_value, na_value)]
         index = IntervalIndex.from_tuples(tuples, closed=closed)
         assert index.is_overlapping is True
 
@@ -774,7 +774,7 @@ class TestIntervalIndex:
         assert result is expected
 
         # common endpoints with NA
-        tuples = [(na_value, na_value)] + tuples + [(na_value, na_value)]
+        tuples = [(na_value, na_value), *tuples, (na_value, na_value)]
         index = IntervalIndex.from_tuples(tuples, closed=closed)
         result = index.is_overlapping
         assert result is expected
@@ -811,21 +811,25 @@ class TestIntervalIndex:
     @pytest.mark.parametrize(
         "tuples",
         [
-            list(zip(range(10), range(1, 11))) + [np.nan],
-            list(
-                zip(
-                    date_range("20170101", periods=10),
-                    date_range("20170101", periods=10),
-                )
-            )
-            + [np.nan],
-            list(
-                zip(
-                    timedelta_range("0 days", periods=10),
-                    timedelta_range("1 day", periods=10),
-                )
-            )
-            + [np.nan],
+            [*list(zip(range(10), range(1, 11))), np.nan],
+            [
+                *list(
+                    zip(
+                        date_range("20170101", periods=10),
+                        date_range("20170101", periods=10),
+                    )
+                ),
+                np.nan,
+            ],
+            [
+                *list(
+                    zip(
+                        timedelta_range("0 days", periods=10),
+                        timedelta_range("1 day", periods=10),
+                    )
+                ),
+                np.nan,
+            ],
         ],
     )
     @pytest.mark.parametrize("na_tuple", [True, False])
