@@ -849,7 +849,7 @@ cxx-compiler = "*"
 pip = "*"
 
 # Required dependencies
-python-dateutil = "*"
+python-dateutil = ">=2.8.2"
 numpy = "<3"
 
 [tool.pixi.pypi-dependencies]
