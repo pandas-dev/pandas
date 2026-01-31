@@ -136,7 +136,7 @@ Numeric
 
 Conversion
 ^^^^^^^^^^
--
+- Fixed :func:`pandas.array` to preserve mask information when converting NumPy masked arrays, converting masked values to missing values (:issue:`63879`).
 -
 
 Strings

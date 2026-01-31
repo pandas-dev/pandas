@@ -20,7 +20,6 @@ Fixed regressions
 
 Bug fixes
 ^^^^^^^^^
-- Fixed :func:`pandas.array` to preserve mask information when converting NumPy masked arrays, converting masked values to missing values (:issue:`63879`).
 - Fixed a bug in the :class:`DataFrame` constructor when passed a :class:`Series` or
   :class:`Index` correctly handling Copy-on-Write (:issue:`63899`)
 - Allow :class:`.ExtensionArray` to have dtypes involving :class:`numpy.void` (:issue:`54810`)
