@@ -107,6 +107,13 @@ from pandas.core.dtypes.inference import is_dict_like
 
 from pandas.core.arrays.boolean import BooleanDtype
 
+from pandas.errors import (
+    EmptyDataError,
+    ParserError,
+    ParserWarning,
+    Pandas4Warning,
+)
+
 cdef:
     float64_t INF = <float64_t>np.inf
     float64_t NEGINF = -INF
