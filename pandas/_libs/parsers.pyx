@@ -404,7 +404,6 @@ cdef class TextReader:
                   bint warn_bom=False,
                   **kwds):
 
-
         # set encoding for native Python and C library
         if isinstance(encoding_errors, str):
             encoding_errors = encoding_errors.encode("utf-8")
@@ -422,7 +421,7 @@ cdef class TextReader:
         parser_set_default_options(self.parser)
 
         self.parser.strip_bom = 1 if strip_bom else 0
-        self.warn_bom_with_explicit_utf8 = warn_bom
+        self.parser.warn_bom = 1 if strip_bom else 0
 
         parser_init(self.parser)
 
