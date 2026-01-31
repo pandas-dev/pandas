@@ -2431,15 +2431,15 @@ cdef class BusinessDay(BusinessMixin):
                 off_str += str(td.microseconds) + "us"
             return off_str
 
-        if PyDelta_Check(self.offset):
+        if PyDelta_Check(self._offset):
             zero = timedelta(0, 0, 0)
-            if self.offset >= zero:
-                off_str = "+" + get_str(self.offset)
+            if self._offset >= zero:
+                off_str = "+" + get_str(self._offset)
             else:
-                off_str = "-" + get_str(-self.offset)
+                off_str = "-" + get_str(-self._offset)
             return off_str
         else:
-            return "+" + repr(self.offset)
+            return "+" + repr(self._offset)
 
     @apply_wraps
     def _apply(self, other):
@@ -2452,14 +2452,14 @@ cdef class BusinessDay(BusinessMixin):
             days = self._adjust_ndays(wday, weeks)
 
             result = other + timedelta(days=7 * weeks + days)
-            if self.offset:
-                result = result + self.offset
+            if self._offset:
+                result = result + self._offset
             return result
 
         elif is_any_td_scalar(other):
-            td = Timedelta(self.offset) + other
+            td = Timedelta(self._offset) + other
             return BusinessDay(
-                self._n, offset=td.to_pytimedelta(), normalize=self.normalize
+                self._n, offset=td.to_pytimedelta(), normalize=self._normalize
             )
         else:
             raise ApplyTypeError(
@@ -2549,8 +2549,8 @@ cdef class BusinessDay(BusinessMixin):
         i8other = dtarr.view("i8")
         reso = get_unit_from_dtype(dtarr.dtype)
         res = self._shift_bdays(i8other, reso=reso)
-        if self.offset:
-            res = res.view(dtarr.dtype) + Timedelta(self.offset)
+        if self._offset:
+            res = res.view(dtarr.dtype) + Timedelta(self._offset)
         return res
 
     def is_on_offset(self, dt: datetime) -> bool:
@@ -2599,7 +2599,7 @@ cdef class BusinessDay(BusinessMixin):
         >>> pd.offsets.BusinessDay(normalize=True).is_on_offset(ts)
         True
         """
-        if self.normalize and not _is_normalized(dt):
+        if self._normalize and not _is_normalized(dt):
             return False
         return dt.weekday() < 5
 
