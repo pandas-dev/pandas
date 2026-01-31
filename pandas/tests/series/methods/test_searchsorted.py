@@ -81,7 +81,7 @@ class TestSearchsortedWithNullableIntegers:
     """Comprehensive tests for searchsorted with nullable integer arrays."""
     def test_series_searchsorted_nullable_int_common_dtype(self):
         base = 2**53
-        s = pd.Series(np.array([base, base+1, base+2, base+3], dtype=np.int64))
+        s = Series(np.array([base, base+1, base+2, base+3], dtype=np.int64))
         value = pd.array([base+1, pd.NA], dtype="Int64")
 
         result = s.searchsorted(value)
@@ -90,7 +90,7 @@ class TestSearchsortedWithNullableIntegers:
     def test_searchsorted_int64_with_single_na(self):
         """Test searchsorted with Int64 array containing one NA."""
         base = 2**53
-        s = pd.Series(np.array([base, base+1, base+2, base+3], dtype=np.int64))
+        s = Series(np.array([base, base+1, base+2, base+3], dtype=np.int64))
         value = pd.array([base+1, pd.NA], dtype="Int64")
         
         result = s.searchsorted(value, side="left")
@@ -100,7 +100,7 @@ class TestSearchsortedWithNullableIntegers:
     def test_searchsorted_int64_with_single_na_right(self):
         """Test searchsorted with side='right'."""
         base = 2**53
-        s = pd.Series(np.array([base, base+1, base+2, base+3], dtype=np.int64))
+        s = Series(np.array([base, base+1, base+2, base+3], dtype=np.int64))
         value = pd.array([base+1, pd.NA], dtype="Int64")
         
         result = s.searchsorted(value, side="right")
@@ -109,7 +109,7 @@ class TestSearchsortedWithNullableIntegers:
 
     def test_searchsorted_all_na_values(self):
         """Test searchsorted when all values are NA."""
-        s = pd.Series([1, 2, 3, 4, 5], dtype="int64")
+        s = Series([1, 2, 3, 4, 5], dtype="int64")
         value = pd.array([pd.NA, pd.NA, pd.NA], dtype="Int64")
         
         result = s.searchsorted(value)
@@ -118,7 +118,7 @@ class TestSearchsortedWithNullableIntegers:
 
     def test_searchsorted_no_na_values(self):
         """Test searchsorted with Int64 array but no NA values."""
-        s = pd.Series([1, 2, 3, 4, 5], dtype="int64")
+        s = Series([1, 2, 3, 4, 5], dtype="int64")
         value = pd.array([2, 4], dtype="Int64")
         
         result = s.searchsorted(value)
@@ -127,7 +127,7 @@ class TestSearchsortedWithNullableIntegers:
 
     def test_searchsorted_mixed_valid_and_na(self):
         """Test searchsorted with mixture of valid values and NAs."""
-        s = pd.Series([10, 20, 30, 40, 50], dtype="int64")
+        s = Series([10, 20, 30, 40, 50], dtype="int64")
         value = pd.array([15, pd.NA, 25, pd.NA, 35], dtype="Int64")
         
         result = s.searchsorted(value)
@@ -136,7 +136,7 @@ class TestSearchsortedWithNullableIntegers:
 
     def test_searchsorted_na_at_start(self):
         """Test searchsorted with NA at the beginning."""
-        s = pd.Series([1, 2, 3, 4, 5], dtype="int64")
+        s = Series([1, 2, 3, 4, 5], dtype="int64")
         value = pd.array([pd.NA, 2, 3], dtype="Int64")
         
         result = s.searchsorted(value)
@@ -145,7 +145,7 @@ class TestSearchsortedWithNullableIntegers:
 
     def test_searchsorted_na_at_end(self):
         """Test searchsorted with NA at the end."""
-        s = pd.Series([1, 2, 3, 4, 5], dtype="int64")
+        s = Series([1, 2, 3, 4, 5], dtype="int64")
         value = pd.array([2, 3, pd.NA], dtype="Int64")
         
         result = s.searchsorted(value)
@@ -154,7 +154,7 @@ class TestSearchsortedWithNullableIntegers:
 
     def test_searchsorted_empty_array_with_na(self):
         """Test searchsorted on empty array with NA values."""
-        s = pd.Series([], dtype="int64")
+        s = Series([], dtype="int64")
         value = pd.array([pd.NA, 1, pd.NA], dtype="Int64")
         
         result = s.searchsorted(value)
@@ -163,7 +163,7 @@ class TestSearchsortedWithNullableIntegers:
 
     def test_searchsorted_single_element_with_na(self):
         """Test searchsorted on single element array."""
-        s = pd.Series([5], dtype="int64")
+        s = Series([5], dtype="int64")
         value = pd.array([pd.NA, 3, 5, 7], dtype="Int64")
         
         result = s.searchsorted(value)
@@ -172,7 +172,7 @@ class TestSearchsortedWithNullableIntegers:
 
     def test_searchsorted_int32_with_na(self):
         """Test searchsorted with Int32 dtype."""
-        s = pd.Series([1, 2, 3, 4, 5], dtype="int32")
+        s = Series([1, 2, 3, 4, 5], dtype="int32")
         value = pd.array([2, pd.NA, 4], dtype="Int32")
         
         result = s.searchsorted(value)
@@ -181,7 +181,7 @@ class TestSearchsortedWithNullableIntegers:
 
     def test_searchsorted_int8_with_na(self):
         """Test searchsorted with Int8 dtype."""
-        s = pd.Series([1, 2, 3, 4, 5], dtype="int8")
+        s = Series([1, 2, 3, 4, 5], dtype="int8")
         value = pd.array([pd.NA, 3], dtype="Int8")
         
         result = s.searchsorted(value)
@@ -190,7 +190,7 @@ class TestSearchsortedWithNullableIntegers:
 
     def test_searchsorted_duplicates_with_na(self):
         """Test searchsorted with duplicate values in array."""
-        s = pd.Series([1, 2, 2, 3, 3, 3, 4], dtype="int64")
+        s = Series([1, 2, 2, 3, 3, 3, 4], dtype="int64")
         value = pd.array([2, pd.NA, 3], dtype="Int64")
         
         # side='left'
@@ -205,7 +205,7 @@ class TestSearchsortedWithNullableIntegers:
 
     def test_searchsorted_uint64_with_na(self):
         """Test searchsorted with UInt64 dtype."""
-        s = pd.Series([1, 2, 3, 4, 5], dtype="uint64")
+        s = Series([1, 2, 3, 4, 5], dtype="uint64")
         value = pd.array([2, pd.NA], dtype="UInt64")
         
         result = s.searchsorted(value)
@@ -214,7 +214,7 @@ class TestSearchsortedWithNullableIntegers:
 
     def test_searchsorted_large_array_with_na(self):
         """Test searchsorted with larger array."""
-        s = pd.Series(range(1000), dtype="int64")
+        s = Series(range(1000), dtype="int64")
         value = pd.array([100, pd.NA, 500, pd.NA, 999], dtype="Int64")
         
         result = s.searchsorted(value)
@@ -223,7 +223,7 @@ class TestSearchsortedWithNullableIntegers:
 
     def test_searchsorted_boundary_values_with_na(self):
         """Test searchsorted with values at boundaries."""
-        s = pd.Series([10, 20, 30, 40, 50], dtype="int64")
+        s = Series([10, 20, 30, 40, 50], dtype="int64")
         value = pd.array([0, pd.NA, 10, 50, 60, pd.NA], dtype="Int64")
         
         result = s.searchsorted(value)
@@ -232,7 +232,7 @@ class TestSearchsortedWithNullableIntegers:
 
     def test_searchsorted_negative_values_with_na(self):
         """Test searchsorted with negative values."""
-        s = pd.Series([-50, -30, -10, 0, 10, 30, 50], dtype="int64")
+        s = Series([-50, -30, -10, 0, 10, 30, 50], dtype="int64")
         value = pd.array([-40, pd.NA, 0, pd.NA, 20], dtype="Int64")
         
         result = s.searchsorted(value)
@@ -241,7 +241,7 @@ class TestSearchsortedWithNullableIntegers:
 
     def test_searchsorted_preserves_regular_behavior(self):
         """Ensure regular searchsorted still works without NA."""
-        s = pd.Series([1, 2, 3, 4, 5], dtype="int64")
+        s = Series([1, 2, 3, 4, 5], dtype="int64")
         
         # Regular list
         result = s.searchsorted([2, 4])
@@ -259,7 +259,7 @@ class TestSearchsortedWithNullableIntegers:
 
     def test_searchsorted_float_array_with_na(self):
         """Test that Float64 arrays with NA also work."""
-        s = pd.Series([1.5, 2.5, 3.5, 4.5, 5.5], dtype="float64")
+        s = Series([1.5, 2.5, 3.5, 4.5, 5.5], dtype="float64")
         value = pd.array([2.5, pd.NA, 4.0], dtype="Float64")
         
         result = s.searchsorted(value)
@@ -267,7 +267,7 @@ class TestSearchsortedWithNullableIntegers:
         tm.assert_numpy_array_equal(result, expected)
     def test_searchsorted_series_with_int64_array(self):
         """Test on Series (not just arrays)."""
-        s = pd.Series([10, 20, 30, 40, 50])
+        s = Series([10, 20, 30, 40, 50])
         value = pd.array([25, pd.NA, 35], dtype="Int64")
         
         result = s.searchsorted(value)
