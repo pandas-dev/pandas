@@ -15,7 +15,7 @@ Bug fixes
 ^^^^^^^^^
 - Fixed a bug in the :class:`DataFrame` constructor when passed a :class:`Series` or
   :class:`Index` correctly handling Copy-on-Write (:issue:`63899`)
-- Fixed a bug in :func:`col` where unary operators (``-`` and ``+``) were not supported (:issue:`63939`)
+- Fixed a bug in :func:`col` where unary operators (``-``, ``+``, ``abs``) were not supported (:issue:`63939`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_301.contributors:
