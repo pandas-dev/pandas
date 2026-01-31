@@ -95,6 +95,7 @@ from pandas._libs.khash cimport (
 
 from pandas.errors import (
     EmptyDataError,
+    Pandas4Warning,
     ParserError,
     ParserWarning,
 )
@@ -106,13 +107,6 @@ from pandas.core.dtypes.dtypes import (
 from pandas.core.dtypes.inference import is_dict_like
 
 from pandas.core.arrays.boolean import BooleanDtype
-
-from pandas.errors import (
-    EmptyDataError,
-    ParserError,
-    ParserWarning,
-    Pandas4Warning,
-)
 
 cdef:
     float64_t INF = <float64_t>np.inf
