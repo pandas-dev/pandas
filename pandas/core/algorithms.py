@@ -1286,7 +1286,7 @@ def searchsorted(
 
             # Handle scalar NA case
             if np.ndim(value) == 0:
-                return len(arr)
+                return np.intp(len(arr))
 
             # Reconstruct result array, placing NAs at the end
             result = np.empty(len(value), dtype=np.intp)
