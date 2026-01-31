@@ -399,8 +399,8 @@ cdef class TextReader:
                   bint skip_blank_lines=True,
                   encoding_errors=b"strict",
                   dtype_backend="numpy",
-                  bint _strip_bom=True,
-                  bint _warn_bom=False,
+                  bint strip_bom=True,
+                  bint warn_bom=False,
                   **kwds):
 
 

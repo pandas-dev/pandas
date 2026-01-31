@@ -13,12 +13,13 @@ import tempfile
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas import (
     DataFrame,
     read_csv,
 )
 import pandas._testing as tm
-from pandas.errors import Pandas4Warning
 
 pytestmark = pytest.mark.filterwarnings(
     "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
