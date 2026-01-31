@@ -18,6 +18,7 @@ from pandas import (
     read_csv,
 )
 import pandas._testing as tm
+from pandas.errors import Pandas4Warning
 
 pytestmark = pytest.mark.filterwarnings(
     "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
@@ -137,7 +138,9 @@ def test_utf8_bom(all_parsers, data, kwargs, expected):
         warn_type = None
         warn_msg = None
 
-    # We use check_stacklevel=False to avoid errors with compiled Cython paths
+    # GH#63787: Cython-compiled code has non-standard stack frames, so we
+    # can't reliably check stacklevel here. The warning points to parsers.pyx
+    # instead of user code, which is a known limitation.
     with tm.assert_produces_warning(warn_type, match=warn_msg, check_stacklevel=False):
         result = parser.read_csv(_encode_data_with_bom(data), encoding=utf8, **kwargs)
 
@@ -346,15 +349,15 @@ def test_not_readable(all_parsers, mode):
 
 
 @pytest.mark.parametrize(
-    "data, encoding, warning_type, warning_match, expected_col",
+    "data, encoding, warning_type, warning_match, expected_data",
     [
         # GH 63787: Case 1 - UTF-8 with BOM
         (
             b"\xef\xbb\xbfName,Age\nJohn,25",
             "utf-8",
-            FutureWarning,
+            Pandas4Warning,
             "UTF-8 BOM",
-            "Name",
+            {"Name": ["John"], "Age": [25]},
         ),
         # GH 63787: Case 2 - Latin1 with bytes matching BOM
         (
@@ -362,34 +365,33 @@ def test_not_readable(all_parsers, mode):
             "latin1",
             None,
             None,
-            "ï»¿Name",
+            {"ï»¿Name": ["John"], "Age": [25]},
         ),
         # GH 63787: Case 3 - Literal ISO-8859-1 chars matching BOM bytes
         (
             "ï»¿ABC,Value\n1,2\n".encode("iso-8859-1"),
             "utf-8",
-            FutureWarning,
+            Pandas4Warning,
             "UTF-8 BOM",
-            "ABC",
+            {"ABC": [1], "Value": [2]},
         ),
     ],
 )
 def test_bom_handling_deprecation(
-    all_parsers, data, encoding, warning_type, warning_match, expected_col
+    all_parsers, data, encoding, warning_type, warning_match, expected_data
 ):
-    """
-    Test BOM handling during the deprecation period (GH#63787).
-
-    We want to:
-    1. Warn if users use 'utf-8' with a BOM (deprecation).
-    2. NOT warn/strip if the encoding is not UTF-8 (even if bytes match).
-    """
     parser = all_parsers
 
     if parser.engine not in ["c", "c_high", "c_low"]:
         pytest.skip("BOM warning not yet implemented for Python/PyArrow engines")
 
-    with tm.assert_produces_warning(warning_type, match=warning_match, check_stacklevel=False):
+    # GH#63787: Cython-compiled code has non-standard stack frames, so we
+    # can't reliably check stacklevel here. The warning points to parsers.pyx
+    # instead of user code, which is a known limitation.
+    with tm.assert_produces_warning(
+        warning_type, match=warning_match, check_stacklevel=False
+    ):
         result = parser.read_csv(BytesIO(data), encoding=encoding)
 
-    assert result.columns[0] == expected_col
+    expected = DataFrame(expected_data)
+    tm.assert_frame_equal(result, expected)

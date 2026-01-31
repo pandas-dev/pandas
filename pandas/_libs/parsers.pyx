@@ -399,10 +399,10 @@ cdef class TextReader:
                   bint skip_blank_lines=True,
                   encoding_errors=b"strict",
                   dtype_backend="numpy",
+                  bint _strip_bom=True,
+                  bint _warn_bom=False,
                   **kwds):
 
-        cdef bint strip_bom = kwds.pop("_strip_bom", True)
-        cdef bint warn_bom = kwds.pop("_warn_bom", False)
 
         # set encoding for native Python and C library
         if isinstance(encoding_errors, str):
@@ -900,7 +900,7 @@ cdef class TextReader:
                 "To suppress this warning and strip the BOM, use encoding='utf-8-sig'. "
                 "To prepare for the future behavior, you can manually handle the BOM "
                 "in your code.",
-                FutureWarning,
+                Pandas4Warning,
                 stacklevel=find_stack_level()
             )
             self.warn_bom_with_explicit_utf8 = False
