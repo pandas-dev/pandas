@@ -137,7 +137,9 @@ def test_utf8_bom(all_parsers, data, kwargs, expected):
     if parser.engine == "pyarrow":
         # PyArrow doesn't warn yet
         with tm.assert_produces_warning(None):
-            result = parser.read_csv(_encode_data_with_bom(data), encoding=utf8, **kwargs)
+            result = parser.read_csv(
+                _encode_data_with_bom(data), encoding=utf8, **kwargs
+            )
     else:
         # Both C-engine and Python engine now warn
         # GH#63787: Cython-compiled code has non-standard stack frames,
@@ -145,7 +147,9 @@ def test_utf8_bom(all_parsers, data, kwargs, expected):
         with tm.assert_produces_warning(
             Pandas4Warning, match="BOM", check_stacklevel=False
         ):
-            result = parser.read_csv(_encode_data_with_bom(data), encoding=utf8, **kwargs)
+            result = parser.read_csv(
+                _encode_data_with_bom(data), encoding=utf8, **kwargs
+            )
 
     expected = DataFrame({"a": expected})
     tm.assert_frame_equal(result, expected)

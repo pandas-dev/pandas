@@ -95,9 +95,9 @@ from pandas._libs.khash cimport (
 
 from pandas.errors import (
     EmptyDataError,
+    Pandas4Warning,
     ParserError,
     ParserWarning,
-    Pandas4Warning,
 )
 
 from pandas.core.dtypes.dtypes import (
@@ -427,7 +427,7 @@ cdef class TextReader:
         self.parser.strip_bom = 1 if _strip_bom else 0
         self.warn_bom_with_explicit_utf8 = _warn_bom
         self.encoding = _encoding
-        
+
 
 
         if delim_whitespace:
@@ -895,13 +895,13 @@ cdef class TextReader:
             )
             free(self.parser.warn_msg)
             self.parser.warn_msg = NULL
-        
+
         # -----------------------------------------------------------
         # BOM Warning Check
         # -----------------------------------------------------------
         if self.warn_bom_with_explicit_utf8 and self.parser.bom_found:
             self.warn_bom_with_explicit_utf8 = False  # Only warn once
-            
+
             # Build the message
             # CRITICAL FIX: Use 'self.encoding', not 'encoding_for_warning'
             if self.encoding is None:
@@ -918,7 +918,7 @@ cdef class TextReader:
                     f"encoding variants (e.g., 'utf-8-sig'). To suppress this "
                     f"warning, use encoding='{self.encoding}-sig' if available."
                 )
-            
+
             # ✅ EMIT THE WARNING!
             warnings.warn(msg, Pandas4Warning, stacklevel=find_stack_level())
 

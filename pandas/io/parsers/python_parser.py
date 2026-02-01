@@ -24,9 +24,9 @@ from pandas._libs import lib
 from pandas._typing import Scalar
 from pandas.errors import (
     EmptyDataError,
+    Pandas4Warning,
     ParserError,
     ParserWarning,
-    Pandas4Warning,
 )
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
@@ -111,11 +111,11 @@ class PythonParser(ParserBase):
         self._bom_found = False
         self._bom_warned = False
         self.encoding = kwds.get("encoding")
-        
+
         # Determine if we should warn about BOM
         if self.encoding is None:
             self._warn_bom = True  # Warn for default encoding
-        elif self.encoding.lower().endswith('-sig'):
+        elif self.encoding.lower().endswith("-sig"):
             self._warn_bom = False  # Don't warn for -sig variants
         else:
             self._warn_bom = True
@@ -863,9 +863,9 @@ class PythonParser(ParserBase):
         first_elt = first_row[0][0]
         if first_elt != _BOM:
             return first_row
-        
+
         self._bom_found = True
-    
+
         if self._warn_bom and not self._bom_warned:
             if self.encoding is None:
                 msg = (
@@ -880,7 +880,7 @@ class PythonParser(ParserBase):
                     f"encoding variants (e.g., 'utf-8-sig'). To suppress this "
                     f"warning, use encoding='{self.encoding}-sig' if available."
                 )
-            
+
             warnings.warn(msg, Pandas4Warning, stacklevel=find_stack_level())
             self._bom_warned = True
 
