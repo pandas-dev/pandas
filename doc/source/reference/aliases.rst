@@ -57,7 +57,7 @@ Each of these aliases listed in the table below can be found by importing them f
    * - .. type:: Axis
      - Argument type for ``axis`` in many methods
    * - .. type:: CSVEngine
-     - Argument type for ``engine`` in :meth:`pandas.DataFrame.read_csv`
+     - Argument type for ``engine`` in :meth:`pandas.read_csv`
    * - .. type:: ColspaceArgType
      - Argument type for ``colspace`` in :meth:`pandas.DataFrame.to_html`
    * - .. type:: CompressionOptions
