@@ -116,10 +116,9 @@ The following code snippet updated both ``df`` and ``subset`` without CoW:
 
 This is not possible anymore with CoW, since the CoW rules explicitly forbid this.
 This includes updating a single column as a :class:`Series` and relying on the change
-propagating back to the parent :class:`DataFrame`.
-This statement can be rewritten into a single statement with ``loc`` or ``iloc`` if
-this behavior is necessary. :meth:`DataFrame.where` is another suitable alternative
-for this case.
+propagating back to the parent :class:`DataFrame`. See the
+:ref:`copy_on_write_chained_assignment` section on how to perform these kinds of
+operations.
 
 Updating a column selected from a :class:`DataFrame` with an inplace method will
 also not work anymore.
@@ -270,6 +269,29 @@ With copy on write this can be done by using ``loc``.
 .. ipython:: python
 
     df.loc[df["bar"] > 5, "foo"] = 100
+
+When the column is given by name (``loc``) and the row by position
+(``iloc``), you either need to convert the column name to its
+position using :meth:`Index.get_loc` or you need to convert the
+row position to its index. Both variants are shown in the following
+example.
+
+.. ipython:: python
+
+    df = pd.DataFrame({"foo": [1, 2, 3], "bar": [4, 5, 6]})
+    df.iloc[0, df.columns.get_loc("foo")] = 100
+    df.loc[df.index[1], "bar"] = 200
+    df
+
+The ``iloc`` variant works as a direct replacement of the chained
+assignment ``df["foo"].iloc[0] = 100`` while the ``loc`` variant first
+translates the position to the index and then finds all positions with that
+index. It does more work and is only equivalent if the DataFrame has a
+unique row index.
+
+Note that many such statements in the code can potentially hurt the performance. If possible,
+prefer to update the whole column at once. If you have boolean mask,
+:meth:`DataFrame.where` could be another suitable alternative for this case.
 
 .. _copy_on_write_read_only_na:
 
