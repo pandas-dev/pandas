@@ -856,16 +856,16 @@ numpy = ">=1.26.0,<3"
 tzdata = ">=2023.3"
 
 [tool.pixi.feature.py311.dependencies]
-python = "==3.11.*"
+python = "3.11.*"
 
 [tool.pixi.feature.py312.dependencies]
-python = "==3.12.*"
+python = "3.12.*"
 
 [tool.pixi.feature.py313.dependencies]
-python = "==3.13.*"
+python = "3.13.*"
 
 [tool.pixi.feature.freethreading.dependencies]
-python-freethreading = "==3.13"
+python-freethreading = "3.13.*"
 
 [tool.pixi.feature.test.dependencies]
 pytest = ">=8.3.4"
