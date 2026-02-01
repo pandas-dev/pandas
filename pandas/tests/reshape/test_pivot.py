@@ -1207,7 +1207,7 @@ class TestPivotTable:
                 codes=[[0, 0, 1, 1, 2], [0, 1, 0, 1, 2]],
                 names=["A", "B"],
             ),
-            columns=Index([]),
+            columns=Index([], dtype="str"),
         )
         tm.assert_frame_equal(result, expected)
 
@@ -1224,7 +1224,7 @@ class TestPivotTable:
                 names=["A", "B"],
             ),
             columns=MultiIndex(
-                levels=[[], ["dull", "shiny"]],
+                levels=[pd.array([], dtype="str"), ["dull", "shiny"]],
                 codes=[[], []],
                 names=[None, "C"],
             ),
@@ -1240,7 +1240,7 @@ class TestPivotTable:
         expected = DataFrame(
             index=Index(["bar", "foo", "All"], name="A"),
             columns=MultiIndex(
-                levels=[[], ["dull", "shiny"]],
+                levels=[pd.array([], dtype="str"), ["dull", "shiny"]],
                 codes=[[], []],
                 names=[None, "B"],
             ),
@@ -1261,7 +1261,11 @@ class TestPivotTable:
                 names=["A", "B"],
             ),
             columns=MultiIndex(
-                levels=[[], ["dull", "shiny"], list("abcdefghijk")],
+                levels=[
+                    pd.array([], dtype="str"),
+                    ["dull", "shiny"],
+                    list("abcdefghijk"),
+                ],
                 codes=[[], [], []],
                 names=[None, "C", "D"],
             ),

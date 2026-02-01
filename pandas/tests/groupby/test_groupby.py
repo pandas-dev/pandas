@@ -2450,14 +2450,11 @@ def test_by_column_values_with_same_starting_value(any_string_dtype):
     result = df.groupby(["Name"]).agg(aggregate_details)
     expected = DataFrame(
         {
-            "Mood": [Series(["happy", "sad"]), Series(["happy"])],
+            "Mood": [Series(["happy", "sad"], dtype=dtype), Series(["happy"])],
             "Credit": [2500, 900],
             "Name": ["Thomas", "Thomas John"],
         },
     ).set_index("Name")
-    if getattr(dtype, "storage", None) == "pyarrow":
-        mood_values = pd.array(["happy", "sad"], dtype=dtype)
-        expected["Mood"] = [mood_values, "happy"]
     tm.assert_frame_equal(result, expected)
 
 
