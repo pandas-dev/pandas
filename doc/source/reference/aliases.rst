@@ -111,7 +111,7 @@ Each of these aliases listed in the table below can be found by importing them f
    * - .. type:: NaPosition
      - Argument type for ``na_position`` in :meth:`DataFrame's <pandas.DataFrame.sort_values>` and :meth:`Series' <pandas.Series.sort_values>` ``sort_values`` method
    * - .. type:: NsmallestNlargestKeep
-     - Argument type for ``keep`` in :meth:`DataFrame's <pandas.DataFrame.nlargest>` and :meth:`Series' <pandas.Series.nlargest>` ``nlargest``, :meth:`DataFrame's <pandas.DataFrame.nsmallest>` and :meth:`Series' <pandas.Series.nsmallest>` ``nsmallest``, and :meth:`SeriesGroupBy's <pandas.core.groupby.SeriesGroupBy.nlargest>` ``nlargest`` methods
+     - Argument type for ``keep`` in :meth:`DataFrame's <pandas.DataFrame.nlargest>` and :meth:`Series' <pandas.Series.nlargest>` ``nlargest``, :meth:`DataFrame's <pandas.DataFrame.nsmallest>` and :meth:`Series' <pandas.Series.nsmallest>` ``nsmallest``, and :meth:`SeriesGroupBy's <pandas.api.typing.SeriesGroupBy.nlargest>` ``nlargest`` methods
    * - .. type:: OpenFileErrors
      - Argument type for ``errors`` in :meth:`to_hdf` and :meth:`to_csv`
    * - .. type:: Ordered
