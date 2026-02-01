@@ -1032,23 +1032,31 @@ def test_groupby_aggregate_empty_key_empty_return():
     tm.assert_frame_equal(result, expected)
 
 
-def test_groupby_aggregate_empty_with_multiindex_frame_single():
+def test_groupby_aggregate_empty_with_multiindex_frame_single(as_index):
     # GH 39178, 51445
     df = DataFrame(columns=["a", "b", "c"])
-    result = df.groupby(["a", "b"], group_keys=False).agg(lambda x: x.sum())
+    gb = df.groupby(["a", "b"], group_keys=False, as_index=as_index)
+    result = gb.agg(lambda x: x.sum())
     expected = DataFrame(
         columns=["c"], index=MultiIndex([[], []], [[], []], names=["a", "b"])
     )
+    if not as_index:
+        expected = expected.reset_index()
     tm.assert_frame_equal(result, expected)
 
 
-def test_groupby_aggregate_empty_with_multiindex_frame_multi():
+def test_groupby_aggregate_empty_with_multiindex_frame_multi(as_index):
     # GH 39178
     df = DataFrame(columns=["a", "b", "c"])
-    result = df.groupby(["a", "b"], group_keys=False).agg(d=("c", list))
+    result = df.groupby(["a", "b"], group_keys=False, as_index=as_index).agg(
+        d=("c", list)
+    )
     expected = DataFrame(
         columns=["d"], index=MultiIndex([[], []], [[], []], names=["a", "b"])
     )
+    if not as_index:
+        expected = expected.reset_index()
+
     tm.assert_frame_equal(result, expected)
 
 
