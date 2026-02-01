@@ -1208,6 +1208,7 @@ class TestPivotTable:
         ],
     )
     def test_reducers_no_values_one_index(self, margins, aggfunc, value):
+        # https://github.com/pandas-dev/pandas/issues/46475
         df = DataFrame({"a": [1, 1, 2]})
         result = pivot_table(df, index=["a"], aggfunc=aggfunc, margins=margins)
         if margins:
@@ -1222,6 +1223,7 @@ class TestPivotTable:
     @pytest.mark.parametrize("index", [["a"], ["a", "b"]])
     @pytest.mark.parametrize("columns", [["c"], ["c", "d"]])
     def test_no_values_no_data(self, margins, index, columns):
+        # https://github.com/pandas-dev/pandas/issues/46475
         df = DataFrame(columns=index + columns)
         result = pivot_table(
             df, index=index, columns=columns, aggfunc=len, margins=margins
