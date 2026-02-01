@@ -15,6 +15,8 @@ Bug fixes
 ^^^^^^^^^
 - Fixed a bug in the :class:`DataFrame` constructor when passed a :class:`Series` or
   :class:`Index` correctly handling Copy-on-Write (:issue:`63899`)
+- Fixed a bug in the :func:`comparison_op` raising a ``TypeError`` for zerodim
+  subclasses of ``np.ndarray`` (:issue:`63205`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_301.contributors:
