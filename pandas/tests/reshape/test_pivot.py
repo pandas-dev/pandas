@@ -1249,23 +1249,6 @@ class TestPivotTable:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_margins_no_values_one_row_one_col_count(self, data):
-        # Regression test on pivot table: no values passed but row and col
-        # defined
-        result = data[["A", "B"]].pivot_table(
-            index="A", columns="B", aggfunc="count", margins=True
-        )
-        expected = DataFrame(
-            data={
-                "one": [0, 0, 0],
-                "two": [0, 0, 0],
-                "All": [0, 0, 0],
-            },
-            index=Index(["bar", "foo", "All"], name="A"),
-            columns=Index(["one", "two", "All"], dtype="str", name="B"),
-        )
-        tm.assert_frame_equal(result, expected)
-
     def test_margins_no_values_two_row_two_cols(self, data):
         # Regression test on pivot table: no values passed but rows and cols
         # are multi-indexed
@@ -1273,7 +1256,36 @@ class TestPivotTable:
         result = data[["A", "B", "C", "D"]].pivot_table(
             index=["A", "B"], columns=["C", "D"], aggfunc=len, margins=True
         )
-        assert result.All.tolist() == [3.0, 1.0, 4.0, 3.0, 11.0]
+        expected = DataFrame(
+            data={
+                ("dull", "a"): [np.nan, np.nan, 1.0, np.nan, 1.0],
+                ("dull", "b"): [np.nan, np.nan, 1.0, np.nan, 1.0],
+                ("dull", "d"): [np.nan, np.nan, np.nan, 1.0, 1.0],
+                ("dull", "e"): [1.0, np.nan, np.nan, np.nan, 1.0],
+                ("dull", "h"): [np.nan, 1.0, np.nan, np.nan, 1.0],
+                ("shiny", "c"): [np.nan, np.nan, 1.0, np.nan, 1.0],
+                ("shiny", "f"): [1.0, np.nan, np.nan, np.nan, 1.0],
+                ("shiny", "g"): [1.0, np.nan, np.nan, np.nan, 1.0],
+                ("shiny", "i"): [np.nan, np.nan, np.nan, 1.0, 1.0],
+                ("shiny", "j"): [np.nan, np.nan, np.nan, 1.0, 1.0],
+                ("shiny", "k"): [np.nan, np.nan, 1.0, np.nan, 1.0],
+                ("All", ""): [3, 1, 4, 3, 11],
+            },
+            index=MultiIndex(
+                levels=[["bar", "foo", "All"], ["one", "two", ""]],
+                codes=[[0, 0, 1, 1, 2], [0, 1, 0, 1, 2]],
+                names=["A", "B"],
+            ),
+            columns=MultiIndex(
+                levels=[["dull", "shiny", "All"], [*list("abcdefghijk"), ""]],
+                codes=[
+                    [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 2],
+                    [0, 1, 3, 4, 7, 2, 5, 6, 8, 9, 10, 11],
+                ],
+                names=["C", "D"],
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("margin_name", ["foo", "one", 666, None, ["a", "b"]])
     def test_pivot_table_with_margins_set_margin_name(self, margin_name, data):
