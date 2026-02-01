@@ -1770,6 +1770,7 @@ def reconstruct_func(
             raise TypeError("Must provide 'func' or tuples of '(column, aggfunc).")
 
     if relabeling:
+        normalization_needed = False
         # error: Incompatible types in assignment (expression has type
         # "MutableMapping[Hashable, list[Callable[..., Any] | str]]", variable has type
         # "Callable[..., Any] | str | list[Callable[..., Any] | str] |
@@ -1778,18 +1779,32 @@ def reconstruct_func(
         converted_kwargs = {}
         for key, val in kwargs.items():
             if isinstance(val, NamedAgg):
+                column = val.column
                 aggfunc = val.aggfunc
                 if val.args or val.kwargs:
                     aggfunc = lambda x, func=aggfunc, a=val.args, kw=val.kwargs: func(
                         x, *a, **kw
                     )
-                converted_kwargs[key] = (val.column, aggfunc)
             else:
-                converted_kwargs[key] = val
+                column, aggfunc = val
 
-        func, columns, order = normalize_keyword_aggregation(  # type: ignore[assignment]
-            converted_kwargs
-        )
+            if column != key:
+                normalization_needed = True
+            converted_kwargs[key] = column, aggfunc
+
+        if normalization_needed:
+            func, columns, order = normalize_keyword_aggregation(  # type: ignore[assignment]
+                converted_kwargs
+            )
+        else:
+            # When names match, convert to dict format {column: aggfunc}
+            # and disable relabeling since no reordering is needed
+            func = {
+                column: aggfunc for key, (column, aggfunc) in converted_kwargs.items()
+            }
+            # Normalization is skipped if all kwargs keys are the same as their
+            # corresponding column name.
+            relabeling = False
 
     assert func is not None
 
