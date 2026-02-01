@@ -68,7 +68,6 @@ Guides
     pyarrow
     indexing
     advanced
-    copy_on_write
     merging
     reshaping
     text
@@ -88,6 +87,6 @@ Guides
     enhancingperf
     scale
     sparse
-    migration-3-strings
     gotchas
+    migration
     cookbook
