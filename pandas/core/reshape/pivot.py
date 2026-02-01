@@ -673,10 +673,6 @@ def _generate_marginal_results_without_values(
                     [data[row] for row in rows], observed=observed, dropna=dropna
                 )
                 margin = gb.agg(aggfunc, **kwargs)
-                all_key = _all_key()
-                table[all_key] = margin
-                result = table
-                margin_keys.append(all_key)
             else:
                 from pandas import Categorical
 
@@ -686,10 +682,10 @@ def _generate_marginal_results_without_values(
                 agged = gb.agg(aggfunc, **kwargs)
                 assert isinstance(agged, Series) and len(agged) == 1
                 margin = agged.iloc[0]
-                all_key = _all_key()
-                table[all_key] = margin
-                result = table
-                margin_keys.append(all_key)
+            all_key = _all_key()
+            table[all_key] = margin
+            result = table
+            margin_keys.append(all_key)
 
         else:
             margin = data.groupby(level=0, observed=observed, dropna=dropna).agg(

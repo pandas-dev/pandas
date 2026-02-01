@@ -931,10 +931,7 @@ class TestPivotTable:
         table = data.pivot_table(
             index=["A", "B"], columns="C", margins=True, aggfunc="mean"
         )
-        print(data)
-        print(table)
         for value_col in table.columns.levels[0]:
-            print(value_col)
             self._check_output(table[value_col], value_col, data)
 
     def test_no_col(self, data, using_infer_string):
@@ -1229,39 +1226,25 @@ class TestPivotTable:
         result = pivot_table(
             df, index=index, columns=columns, aggfunc=len, margins=margins
         )
-        print(result)
-        print(result.index)
-        print(result.columns)
+
         if margins:
-            if index == ["a"]:
-                expected_index = Index(["All"], name="a")
-            else:
-                expected_index = MultiIndex(
-                    levels=[["All"], [""]], codes=[[0], [0]], names=index
-                )
-            if columns == ["c"]:
-                expected_columns = Index(pd.array(["All"], dtype="str"), name="c")
-                data = [0]
-            else:
-                expected_columns = MultiIndex(
-                    levels=[["All"], [""]], codes=[[0], [0]], names=columns
-                )
-                data = [0]
+            level0, level1, codes, data = ["All"], [""], [[0], [0]], [0]
         else:
-            if index == ["a"]:
-                expected_index = Index([], name="a")
-            else:
-                expected_index = MultiIndex(
-                    levels=[[], []], codes=[[], []], names=index
-                )
-            if columns == ["c"]:
-                expected_columns = Index([], name="c")
-                data = []
-            else:
-                expected_columns = MultiIndex(
-                    levels=[[], []], codes=[[], []], names=columns
-                )
-                data = []
+            level0, level1, codes, data = [], [], [[], []], []
+
+        if index == ["a"]:
+            expected_index = Index(level0, name="a")
+        else:
+            expected_index = MultiIndex(
+                levels=[level0, level1], codes=codes, names=index
+            )
+        if columns == ["c"]:
+            expected_columns = Index(level0, name="c")
+        else:
+            expected_columns = MultiIndex(
+                levels=[level0, level1], codes=codes, names=columns
+            )
+
         expected = DataFrame(data, index=expected_index, columns=expected_columns)
         tm.assert_frame_equal(result, expected)
 
@@ -2743,9 +2726,6 @@ class TestPivotTable:
         )
         expected.index.name = "g1"
         expected.columns.name = "g2"
-        print(df)
-        print(result)
-        print(expected)
         tm.assert_frame_equal(result, expected, check_dtype=False)
 
 
