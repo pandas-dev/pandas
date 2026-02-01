@@ -151,7 +151,7 @@ Each of these aliases listed in the table below can be found by importing them f
    * - .. type:: TimeUnit
      - Time unit argument and return type for :py:attr:`unit`, arguments ``unit`` and ``date_unit``
    * - .. type:: TimedeltaConvertibleTypes
-     - Argument type for ``offset`` in various methods, such as :meth:`DataFrame's <pandas.DataFrame.resample>` and :meth:`Series' <pandas.Series.resample>` ``resample()``, ``halflife`` in :meth:`DataFrame's <pandas.DataFrame.ewm>`, :meth:`DataFrameGroupBy's <pandas.core.groupby.DataFrameGroupBy.ewm>`, and :meth:`Series' <pandas.Series.ewm>` ``ewm()``, and ``start`` and ``end`` in :meth:`pandas.timedelta_range`
+     - Argument type for ``offset`` in various methods, such as :meth:`DataFrame's <pandas.DataFrame.resample>` and :meth:`Series' <pandas.Series.resample>` ``resample()``, ``halflife`` in :meth:`DataFrame's <pandas.DataFrame.ewm>`, :meth:`DataFrameGroupBy's <pandas.api.typing.DataFrameGroupBy.ewm>`, and :meth:`Series' <pandas.Series.ewm>` ``ewm()``, and ``start`` and ``end`` in :meth:`pandas.timedelta_range`
    * - .. type:: TimestampConvertibleTypes
      - Argument type for ``origin`` in :meth:`DataFrame's <pandas.DataFrame.resample>` and :meth:`Series' <pandas.Series.resample>` ``resample()``, and in :meth:`pandas.to_datetime`
    * - .. type:: ToStataByteorder
