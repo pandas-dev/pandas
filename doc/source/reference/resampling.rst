@@ -5,7 +5,10 @@
 ==========
 Resampling
 ==========
-.. currentmodule:: pandas.core.resample
+.. currentmodule:: pandas.api.typing
+
+.. note::
+   For an overview, see :ref:`timeseries`.
 
 :class:`pandas.api.typing.Resampler` instances are returned by
 resample calls: :func:`pandas.DataFrame.resample`, :func:`pandas.Series.resample`.

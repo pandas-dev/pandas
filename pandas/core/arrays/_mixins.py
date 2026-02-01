@@ -54,7 +54,10 @@ from pandas.core.array_algos.quantile import quantile_with_mask
 from pandas.core.array_algos.transforms import shift
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.construction import extract_array
-from pandas.core.indexers import check_array_indexer
+from pandas.core.indexers import (
+    check_array_indexer,
+    getitem_returns_view,
+)
 from pandas.core.sorting import nargminmax
 
 if TYPE_CHECKING:
@@ -151,7 +154,9 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
 
             td64_values = arr.view(dtype)
             return TimedeltaArray._simple_new(td64_values, dtype=dtype)
-        return arr.view(dtype=dtype)
+        # error: Argument "dtype" to "view" of "ndarray" has incompatible type
+        # "ExtensionDtype | dtype[Any]"; expected "dtype[Any] | _HasDType[dtype[Any]]"
+        return arr.view(dtype=dtype)  # type: ignore[arg-type]
 
     def take(
         self,
@@ -202,6 +207,10 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         return hash_array(
             values, encoding=encoding, hash_key=hash_key, categorize=categorize
         )
+
+    def _cast_pointwise_result(self, values: ArrayLike) -> ArrayLike:
+        values = np.asarray(values, dtype=object)
+        return lib.maybe_convert_objects(values, convert_non_numeric=True)
 
     # Signature of "argmin" incompatible with supertype "ExtensionArray"
     def argmin(self, axis: AxisInt = 0, skipna: bool = True):  # type: ignore[override]
@@ -256,6 +265,9 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         return self._from_backing_data(new_values)
 
     def __setitem__(self, key, value) -> None:
+        if self._readonly:
+            raise ValueError("Cannot modify read-only array")
+
         key = check_array_indexer(self, key)
         value = self._validate_setitem_value(value)
         self._ndarray[key] = value
@@ -281,7 +293,10 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
             result = self._ndarray[key]
             if self.ndim == 1:
                 return self._box_func(result)
-            return self._from_backing_data(result)
+            result = self._from_backing_data(result)
+            if getitem_returns_view(self, key):
+                result._readonly = self._readonly
+            return result
 
         # error: Incompatible types in assignment (expression has type "ExtensionArray",
         # variable has type "Union[int, slice, ndarray]")
@@ -292,6 +307,8 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
             return self._box_func(result)
 
         result = self._from_backing_data(result)
+        if getitem_returns_view(self, key):
+            result._readonly = self._readonly
         return result
 
     def _pad_or_backfill(
@@ -318,11 +335,10 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
             else:
                 new_values = self
 
+        elif copy:
+            new_values = self.copy()
         else:
-            if copy:
-                new_values = self.copy()
-            else:
-                new_values = self
+            new_values = self
         return new_values
 
     @doc(ExtensionArray.fillna)
@@ -479,7 +495,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         result = value_counts(values, sort=False, dropna=dropna)
 
         index_arr = self._from_backing_data(np.asarray(result.index._data))
-        index = Index(index_arr, name=result.index.name)
+        index = Index(index_arr, name=result.index.name, copy=False)
         return Series(result._values, index=index, name=result.name, copy=False)
 
     def _quantile(

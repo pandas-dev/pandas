@@ -15,6 +15,7 @@ from pandas._libs import lib
 from pandas.compat import (
     HAS_PYARROW,
     pa_version_under17p0,
+    pa_version_under21p0,
 )
 
 if HAS_PYARROW:
@@ -46,6 +47,59 @@ class ArrowStringArrayMixin:
 
     def _apply_elementwise(self, func: Callable) -> list[list[Any]]:
         raise NotImplementedError
+
+    @staticmethod
+    def _has_unsupported_regex(pat: str | re.Pattern) -> bool:
+        """
+        Determine if regex pattern contains features not supported by RE2 / pyarrow.
+
+        This includes lookaround (lookahead or lookbehind) assertions and
+        backreferences.
+
+        Parameters
+        ----------
+        pat: str | re.Pattern
+            Regex pattern.
+
+        Returns
+        -------
+        bool
+            Whether `pat` contains a lookahead or lookbehind.
+        """
+        try:
+            # error: Module "re" has no attribute "_parser"
+            from re import _parser  # type: ignore[attr-defined]
+
+            regex_parser = _parser.parse
+        except Exception as err:
+            raise type(err)(
+                "Incompatible version for regex; you will need to upgrade pandas "
+                "or downgrade Python"
+            ) from err
+
+        def has_unsupported_code(tokens):
+            # For certain op codes we need to recurse.
+            for op_code, argument in tokens:
+                if (
+                    (
+                        op_code == _parser.SUBPATTERN
+                        and has_unsupported_code(argument[3])
+                    )
+                    or (
+                        op_code == _parser.BRANCH
+                        and any(has_unsupported_code(tokens) for tokens in argument[1])
+                    )
+                    or (
+                        op_code
+                        in [_parser.ASSERT_NOT, _parser.ASSERT, _parser.GROUPREF]
+                    )
+                ):
+                    return True
+            return False
+
+        str_pat = pat.pattern if isinstance(pat, re.Pattern) else pat
+        tokens = regex_parser(str_pat)
+        return has_unsupported_code(tokens)
 
     def _str_len(self):
         result = pc.utf8_length(self._pa_array)
@@ -167,10 +221,17 @@ class ArrowStringArrayMixin:
         flags: int = 0,
         regex: bool = True,
     ) -> Self:
-        if isinstance(pat, re.Pattern) or callable(repl) or not case or flags:
+        if (
+            isinstance(pat, re.Pattern)
+            or callable(repl)
+            or not case
+            or flags
+            or (isinstance(repl, str) and r"\g<" in repl)
+        ):
             raise NotImplementedError(
                 "replace is not supported with a re.Pattern, callable repl, "
-                "case=False, or flags!=0"
+                "case=False, flags!=0, or when the replacement string contains "
+                "named group references (\\g<...>)"
             )
 
         func = pc.replace_substring_regex if regex else pc.replace_substring
@@ -195,12 +256,16 @@ class ArrowStringArrayMixin:
         return self._from_pyarrow_array(pc.utf8_swapcase(self._pa_array))
 
     def _str_removeprefix(self, prefix: str):
+        if prefix == "":
+            return self._from_pyarrow_array(self._pa_array)
         starts_with = pc.starts_with(self._pa_array, pattern=prefix)
         removed = pc.utf8_slice_codeunits(self._pa_array, len(prefix))
         result = pc.if_else(starts_with, removed, self._pa_array)
         return self._from_pyarrow_array(result)
 
     def _str_removesuffix(self, suffix: str):
+        if suffix == "":
+            return self._from_pyarrow_array(self._pa_array)
         ends_with = pc.ends_with(self._pa_array, pattern=suffix)
         removed = pc.utf8_slice_codeunits(self._pa_array, 0, stop=-len(suffix))
         result = pc.if_else(ends_with, removed, self._pa_array)
@@ -211,16 +276,15 @@ class ArrowStringArrayMixin:
     ):
         if isinstance(pat, str):
             result = pc.starts_with(self._pa_array, pattern=pat)
+        elif len(pat) == 0:
+            # For empty tuple we return null for missing values and False
+            #  for valid values.
+            result = pc.if_else(pc.is_null(self._pa_array), None, False)
         else:
-            if len(pat) == 0:
-                # For empty tuple we return null for missing values and False
-                #  for valid values.
-                result = pc.if_else(pc.is_null(self._pa_array), None, False)
-            else:
-                result = pc.starts_with(self._pa_array, pattern=pat[0])
+            result = pc.starts_with(self._pa_array, pattern=pat[0])
 
-                for p in pat[1:]:
-                    result = pc.or_(result, pc.starts_with(self._pa_array, pattern=p))
+            for p in pat[1:]:
+                result = pc.or_(result, pc.starts_with(self._pa_array, pattern=p))
         return self._convert_bool_result(result, na=na, method_name="startswith")
 
     def _str_endswith(
@@ -228,16 +292,15 @@ class ArrowStringArrayMixin:
     ):
         if isinstance(pat, str):
             result = pc.ends_with(self._pa_array, pattern=pat)
+        elif len(pat) == 0:
+            # For empty tuple we return null for missing values and False
+            #  for valid values.
+            result = pc.if_else(pc.is_null(self._pa_array), None, False)
         else:
-            if len(pat) == 0:
-                # For empty tuple we return null for missing values and False
-                #  for valid values.
-                result = pc.if_else(pc.is_null(self._pa_array), None, False)
-            else:
-                result = pc.ends_with(self._pa_array, pattern=pat[0])
+            result = pc.ends_with(self._pa_array, pattern=pat[0])
 
-                for p in pat[1:]:
-                    result = pc.or_(result, pc.ends_with(self._pa_array, pattern=p))
+            for p in pat[1:]:
+                result = pc.or_(result, pc.ends_with(self._pa_array, pattern=p))
         return self._convert_bool_result(result, na=na, method_name="endswith")
 
     def _str_isalnum(self):
@@ -257,6 +320,12 @@ class ArrowStringArrayMixin:
         return self._convert_bool_result(result)
 
     def _str_isdigit(self):
+        if pa_version_under21p0:
+            # https://github.com/pandas-dev/pandas/issues/61466
+            res_list = self._apply_elementwise(str.isdigit)
+            return self._convert_bool_result(
+                pa.chunked_array(res_list, type=pa.bool_())
+            )
         result = pc.utf8_is_digit(self._pa_array)
         return self._convert_bool_result(result)
 
@@ -306,8 +375,10 @@ class ArrowStringArrayMixin:
         na: Scalar | lib.NoDefault = lib.no_default,
     ):
         if not pat.startswith("^"):
-            pat = f"^{pat}"
-        return self._str_contains(pat, case, flags, na, regex=True)
+            pat = f"^({pat})"
+        return ArrowStringArrayMixin._str_contains(
+            self, pat, case, flags, na, regex=True
+        )
 
     def _str_fullmatch(
         self,
@@ -316,9 +387,13 @@ class ArrowStringArrayMixin:
         flags: int = 0,
         na: Scalar | lib.NoDefault = lib.no_default,
     ):
-        if not pat.endswith("$") or pat.endswith("\\$"):
-            pat = f"{pat}$"
-        return self._str_match(pat, case, flags, na)
+        if (not pat.endswith("$") or pat.endswith("\\$")) and not pat.startswith("^"):
+            pat = f"^({pat})$"
+        elif not pat.endswith("$") or pat.endswith("\\$"):
+            pat = f"^({pat[1:]})$"
+        elif not pat.startswith("^"):
+            pat = f"^({pat[0:-1]})$"
+        return ArrowStringArrayMixin._str_match(self, pat, case, flags, na)
 
     def _str_find(self, sub: str, start: int = 0, end: int | None = None):
         if (start == 0 or start is None) and end is None:

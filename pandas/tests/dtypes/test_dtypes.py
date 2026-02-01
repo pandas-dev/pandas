@@ -62,7 +62,7 @@ class Base:
         assert not dtype == np.str_
         assert not np.str_ == dtype
 
-    def test_pickle(self, dtype):
+    def test_pickle(self, dtype, temp_file):
         # make sure our cache is NOT pickled
 
         # clear the cache
@@ -70,7 +70,7 @@ class Base:
         assert not len(dtype._cache_dtypes)
 
         # force back to the cache
-        result = tm.round_trip_pickle(dtype)
+        result = tm.round_trip_pickle(dtype, temp_file)
         if not isinstance(dtype, PeriodDtype):
             # Because PeriodDtype has a cython class as a base class,
             #  it has different pickle semantics, and its cache is re-populated
@@ -294,7 +294,6 @@ class TestDatetimeTZDtype(Base):
         a = DatetimeTZDtype.construct_from_string("datetime64[ns, US/Eastern]")
         b = DatetimeTZDtype.construct_from_string("datetime64[ns, CET]")
 
-        assert issubclass(type(a), type(a))
         assert issubclass(type(a), type(b))
 
     def test_compat(self, dtype):
@@ -466,7 +465,6 @@ class TestPeriodDtype(Base):
         a = PeriodDtype("period[D]")
         b = PeriodDtype("period[3D]")
 
-        assert issubclass(type(a), type(a))
         assert issubclass(type(a), type(b))
 
     def test_identity(self):
@@ -721,7 +719,6 @@ class TestIntervalDtype(Base):
         a = IntervalDtype("interval[int64, right]")
         b = IntervalDtype("interval[int64, right]")
 
-        assert issubclass(type(a), type(a))
         assert issubclass(type(a), type(b))
 
     def test_is_dtype(self, dtype):
@@ -851,7 +848,7 @@ class TestIntervalDtype(Base):
             assert not is_interval_dtype(np.int64)
             assert not is_interval_dtype(np.float64)
 
-    def test_caching(self):
+    def test_caching(self, temp_file):
         # GH 54184: Caching not shown to improve performance
         IntervalDtype.reset_cache()
         dtype = IntervalDtype("int64", "right")
@@ -861,20 +858,20 @@ class TestIntervalDtype(Base):
         assert len(IntervalDtype._cache_dtypes) == 0
 
         IntervalDtype.reset_cache()
-        tm.round_trip_pickle(dtype)
+        tm.round_trip_pickle(dtype, temp_file)
         assert len(IntervalDtype._cache_dtypes) == 0
 
     def test_not_string(self):
         # GH30568: though IntervalDtype has object kind, it cannot be string
         assert not is_string_dtype(IntervalDtype())
 
-    def test_unpickling_without_closed(self):
+    def test_unpickling_without_closed(self, temp_file):
         # GH#38394
         dtype = IntervalDtype("interval")
 
         assert dtype._closed is None
 
-        tm.round_trip_pickle(dtype)
+        tm.round_trip_pickle(dtype, temp_file)
 
     def test_dont_keep_ref_after_del(self):
         # GH 54184

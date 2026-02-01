@@ -8,15 +8,21 @@ import re
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import iNaT
+from pandas._libs.tslibs import (
+    iNaT,
+    to_offset,
+)
 from pandas._libs.tslibs.ccalendar import (
     DAYS,
     MONTHS,
 )
-from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 from pandas._libs.tslibs.parsing import DateParseError
 from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
-from pandas.errors import Pandas4Warning
+from pandas.compat import PY314
+from pandas.errors import (
+    OutOfBoundsDatetime,
+    Pandas4Warning,
+)
 
 from pandas import (
     NaT,
@@ -167,6 +173,23 @@ class TestPeriodConstruction:
         per2 = Period(dt64, freq="ns")
         rt2 = per2.to_timestamp()
         assert rt2.asm8 == dt64
+
+    @pytest.mark.parametrize("freq", ["ms", "us", "ns"])
+    def test_construction_from_min_timestamp(self, freq):
+        # GH-63278
+        ts = Timestamp(Timestamp.min.value, unit=freq)
+        per = Period(ts, freq=freq)
+
+        # pandas.errors.OutOfBoundsDatetime: Out of bounds nanosecond timestamp:
+        # -290308-12-21 19:59:05
+        # rt = per.to_timestamp()
+
+        assert per.year == ts.year
+        assert per.month == ts.month
+        assert per.day == ts.day
+        assert per.hour == ts.hour
+        assert per.minute == ts.minute
+        assert per.second == ts.second
 
     def test_construction_bday(self):
         # Biz day construction, roll forward if non-weekday
@@ -347,7 +370,10 @@ class TestPeriodConstruction:
         msg = '^Given date string "-2000" not likely a datetime$'
         with pytest.raises(ValueError, match=msg):
             Period("-2000", "Y")
-        msg = "day is out of range for month"
+        if PY314:
+            msg = "day 0 must be in range 1..31 for month 1 in year 1: 0"
+        else:
+            msg = "day is out of range for month"
         with pytest.raises(DateParseError, match=msg):
             Period("0", "Y")
         msg = "Unknown datetime string format, unable to parse"
@@ -641,9 +667,9 @@ class TestPeriodConstruction:
 
 
 class TestPeriodMethods:
-    def test_round_trip(self):
+    def test_round_trip(self, temp_file):
         p = Period("2000Q1")
-        new_p = tm.round_trip_pickle(p)
+        new_p = tm.round_trip_pickle(p, temp_file)
         assert new_p == p
 
     def test_hash(self):
@@ -661,12 +687,12 @@ class TestPeriodMethods:
     def test_to_timestamp_mult(self):
         p = Period("2011-01", freq="M")
         assert p.to_timestamp(how="S") == Timestamp("2011-01-01")
-        expected = Timestamp("2011-02-01") - Timedelta(1, "ns")
+        expected = Timestamp("2011-02-01") - Timedelta(1, unit="us")
         assert p.to_timestamp(how="E") == expected
 
         p = Period("2011-01", freq="3M")
         assert p.to_timestamp(how="S") == Timestamp("2011-01-01")
-        expected = Timestamp("2011-04-01") - Timedelta(1, "ns")
+        expected = Timestamp("2011-04-01") - Timedelta(1, unit="us")
         assert p.to_timestamp(how="E") == expected
 
     @pytest.mark.filterwarnings(
@@ -691,8 +717,8 @@ class TestPeriodMethods:
 
         def _ex(p):
             if p.freq == "B":
-                return p.start_time + Timedelta(days=1, nanoseconds=-1)
-            return Timestamp((p + p.freq).start_time._value - 1)
+                return p.start_time + Timedelta(days=1) - Timedelta(microseconds=1)
+            return Timestamp((p + p.freq).start_time._value - 1, unit="us")
 
         for fcode in from_lst:
             p = Period("1982", freq=fcode)
@@ -708,19 +734,19 @@ class TestPeriodMethods:
         p = Period("1985", freq="Y")
 
         result = p.to_timestamp("h", how="end")
-        expected = Timestamp(1986, 1, 1) - Timedelta(1, "ns")
+        expected = Timestamp(1986, 1, 1) - Timedelta(1, unit="us")
         assert result == expected
         result = p.to_timestamp("3h", how="end")
         assert result == expected
 
         result = p.to_timestamp("min", how="end")
-        expected = Timestamp(1986, 1, 1) - Timedelta(1, "ns")
+        expected = Timestamp(1986, 1, 1) - Timedelta(1, unit="us")
         assert result == expected
         result = p.to_timestamp("2min", how="end")
         assert result == expected
 
         result = p.to_timestamp(how="end")
-        expected = Timestamp(1986, 1, 1) - Timedelta(1, "ns")
+        expected = Timestamp(1986, 1, 1) - Timedelta(1, unit="us")
         assert result == expected
 
         expected = datetime(1985, 1, 1)
@@ -740,7 +766,7 @@ class TestPeriodMethods:
             per = Period("1990-01-05", "B")  # Friday
             result = per.to_timestamp("B", how="E")
 
-        expected = Timestamp("1990-01-06") - Timedelta(nanoseconds=1)
+        expected = Timestamp("1990-01-06") - Timedelta(1, unit="us")
         assert result == expected
 
     @pytest.mark.parametrize(
@@ -899,8 +925,21 @@ class TestPeriodProperties:
     def test_outer_bounds_start_and_end_time(self, bound, offset, period_property):
         # GH #13346
         period = TestPeriodProperties._period_constructor(bound, offset)
-        with pytest.raises(OutOfBoundsDatetime, match="Out of bounds nanosecond"):
-            getattr(period, period_property)
+        # post-GH#63760 this no longer raises OutOfBoundsDatetime
+        getattr(period, period_property)
+
+        per = Period._from_ordinal(bound.value, freq=to_offset("ms"))
+
+        if period_property == "end_time" and offset == 1:
+            err = OverflowError
+            msg = "value too large"
+        else:
+            err = OutOfBoundsDatetime
+            msg = "Out of bounds microsecond"
+        # But if we do the same thing with a much-more-remote date, we still
+        #  raise OutOfBoundsDatetime (as opposed to silently giving a wrong result)
+        with pytest.raises(err, match=msg):
+            getattr(per, period_property)
 
     @pytest.mark.parametrize("bound, offset", [(Timestamp.min, -1), (Timestamp.max, 1)])
     @pytest.mark.parametrize("period_property", ["start_time", "end_time"])
@@ -925,49 +964,46 @@ class TestPeriodProperties:
     def test_end_time(self):
         p = Period("2012", freq="Y")
 
-        def _ex(*args):
-            return Timestamp(Timestamp(datetime(*args)).as_unit("ns")._value - 1)
-
-        xp = _ex(2013, 1, 1)
-        assert xp == p.end_time
+        exp = Timestamp(2012, 12, 31, 23, 59, 59, 999999)
+        assert p.end_time == exp
 
         p = Period("2012", freq="Q")
-        xp = _ex(2012, 4, 1)
-        assert xp == p.end_time
+        exp = Timestamp(2012, 3, 31, 23, 59, 59, 999999)
+        assert p.end_time == exp
 
         p = Period("2012", freq="M")
-        xp = _ex(2012, 2, 1)
-        assert xp == p.end_time
+        exp = Timestamp(2012, 1, 31, 23, 59, 59, 999999)
+        assert p.end_time == exp
 
         p = Period("2012", freq="D")
-        xp = _ex(2012, 1, 2)
-        assert xp == p.end_time
+        exp = Timestamp(2012, 1, 1, 23, 59, 59, 999999)
+        assert p.end_time == exp
 
         p = Period("2012", freq="h")
-        xp = _ex(2012, 1, 1, 1)
-        assert xp == p.end_time
+        exp = Timestamp(2012, 1, 1, 0, 59, 59, 999999)
+        assert p.end_time == exp
 
         with tm.assert_produces_warning(FutureWarning, match=bday_msg):
             p = Period("2012", freq="B")
-            xp = _ex(2012, 1, 3)
-            assert xp == p.end_time
+            exp = Timestamp(2012, 1, 2, 23, 59, 59, 999999)
+            assert p.end_time == exp
 
         p = Period("2012", freq="W")
-        xp = _ex(2012, 1, 2)
-        assert xp == p.end_time
+        exp = Timestamp(2012, 1, 1, 23, 59, 59, 999999)
+        assert p.end_time == exp
 
         # Test for GH 11738
         p = Period("2012", freq="15D")
-        xp = _ex(2012, 1, 16)
-        assert xp == p.end_time
+        exp = Timestamp(2012, 1, 15, 23, 59, 59, 999999)
+        assert p.end_time == exp
 
         p = Period("2012", freq="1D1h")
-        xp = _ex(2012, 1, 2, 1)
-        assert xp == p.end_time
+        exp = Timestamp(2012, 1, 2, 0, 59, 59, 999999)
+        assert p.end_time == exp
 
         p = Period("2012", freq="1h1D")
-        xp = _ex(2012, 1, 2, 1)
-        assert xp == p.end_time
+        exp = Timestamp(2012, 1, 2, 0, 59, 59, 999999)
+        assert p.end_time == exp
 
     def test_end_time_business_friday(self):
         # GH#34449
@@ -975,16 +1011,13 @@ class TestPeriodProperties:
             per = Period("1990-01-05", "B")
             result = per.end_time
 
-        expected = Timestamp("1990-01-06") - Timedelta(nanoseconds=1)
+        expected = Timestamp("1990-01-06") - Timedelta(1, unit="us")
         assert result == expected
 
     def test_anchor_week_end_time(self):
-        def _ex(*args):
-            return Timestamp(Timestamp(datetime(*args)).as_unit("ns")._value - 1)
-
         p = Period("2013-1-1", "W-SAT")
-        xp = _ex(2013, 1, 6)
-        assert p.end_time == xp
+        exp = Timestamp(2013, 1, 5, 23, 59, 59, 999999)
+        assert p.end_time == exp
 
     def test_properties_annually(self):
         # Test properties on Periods with annually frequency.

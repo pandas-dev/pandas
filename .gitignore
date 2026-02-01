@@ -21,6 +21,7 @@
 .noseids
 .ipynb_checkpoints
 .tags
+tags
 .cache/
 .vscode/
 

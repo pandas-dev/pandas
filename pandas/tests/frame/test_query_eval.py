@@ -160,21 +160,13 @@ class TestDataFrameEval:
             df.query("")
 
     def test_query_duplicate_column_name(self, engine, parser):
-        df = DataFrame(
-            {
-                "A": range(3),
-                "B": range(3),
-                "C": range(3)
-            }
-        ).rename(columns={"B": "A"})
-
-        res = df.query('C == 1', engine=engine, parser=parser)
-
-        expect = DataFrame(
-            [[1, 1, 1]],
-            columns=["A", "A", "C"],
-            index=[1]
+        df = DataFrame({"A": range(3), "B": range(3), "C": range(3)}).rename(
+            columns={"B": "A"}
         )
+
+        res = df.query("C == 1", engine=engine, parser=parser)
+
+        expect = DataFrame([[1, 1, 1]], columns=["A", "A", "C"], index=[1])
 
         tm.assert_frame_equal(res, expect)
 
@@ -529,7 +521,10 @@ class TestDataFrameQueryNumExprPandas:
     def test_date_query_with_non_date(self, engine, parser):
         n = 10
         df = DataFrame(
-            {"dates": date_range("1/1/2012", periods=n), "nondate": np.arange(n)}
+            {
+                "dates": date_range("1/1/2012", periods=n, unit="ns"),
+                "nondate": np.arange(n),
+            }
         )
 
         result = df.query("dates == nondate", parser=parser, engine=engine)
@@ -999,7 +994,7 @@ class TestDataFrameQueryStrings:
             rhs = lhs[::-1]
 
             eq, ne = "==", "!="
-            ops = 2 * ([eq] + [ne])
+            ops = 2 * ([eq, ne])
             msg = r"'(Not)?In' nodes are not implemented"
 
             for lh, op_, rh in zip(lhs, ops, rhs):
@@ -1040,7 +1035,7 @@ class TestDataFrameQueryStrings:
             rhs = lhs[::-1]
 
             eq, ne = "==", "!="
-            ops = 2 * ([eq] + [ne])
+            ops = 2 * ([eq, ne])
             msg = r"'(Not)?In' nodes are not implemented"
 
             for lh, ops_, rh in zip(lhs, ops, rhs):
@@ -1140,9 +1135,7 @@ class TestDataFrameQueryStrings:
             [">=", operator.ge],
         ],
     )
-    def test_query_lex_compare_strings(
-        self, parser, engine, op, func
-    ):
+    def test_query_lex_compare_strings(self, parser, engine, op, func):
         a = Series(np.random.default_rng(2).choice(list("abcde"), 20))
         b = Series(np.arange(a.size))
         df = DataFrame({"X": a, "Y": b})
@@ -1411,7 +1404,7 @@ class TestDataFrameQueryBacktickQuoting:
     def test_expr_with_column_name_with_backtick(self):
         # GH 59285
         df = DataFrame({"a`b": (1, 2, 3), "ab": (4, 5, 6)})
-        result = df.query("`a``b` < 2")  # noqa
+        result = df.query("`a``b` < 2")
         # Note: Formatting checks may wrongly consider the above ``inline code``.
         expected = df[df["a`b"] < 2]
         tm.assert_frame_equal(result, expected)

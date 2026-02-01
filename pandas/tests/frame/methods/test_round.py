@@ -159,12 +159,16 @@ class TestDataFrameRound:
                 "col3": date_range("20111111", periods=4),
             }
         )
-        tm.assert_frame_equal(df.round(), round_0)
-        tm.assert_frame_equal(df.round(1), df)
+        msg = "obj.round has no effect with datetime, timedelta, or period dtypes"
+        with tm.assert_produces_warning(UserWarning, match=msg):
+            tm.assert_frame_equal(df.round(), round_0)
+        with tm.assert_produces_warning(UserWarning, match=msg):
+            tm.assert_frame_equal(df.round(1), df)
         tm.assert_frame_equal(df.round({"col1": 1}), df)
         tm.assert_frame_equal(df.round({"col1": 0}), round_0)
         tm.assert_frame_equal(df.round({"col1": 0, "col2": 1}), round_0)
-        tm.assert_frame_equal(df.round({"col3": 1}), df)
+        with tm.assert_produces_warning(UserWarning, match=msg):
+            tm.assert_frame_equal(df.round({"col3": 1}), df)
 
     def test_round_with_duplicate_columns(self):
         # GH#11611

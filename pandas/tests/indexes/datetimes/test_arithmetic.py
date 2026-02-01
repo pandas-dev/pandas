@@ -32,7 +32,10 @@ class TestDatetimeIndexArithmetic:
         #  is not preserved by subtraction.  Ticks offsets like "24h"
         #  are still preserved
         dti = date_range(
-            "2016-01-01", periods=12, tz=tz_naive_fixture, freq=offsets.Hour(24)
+            "2016-01-01",
+            periods=12,
+            tz=tz_naive_fixture,
+            freq=offsets.Hour(24),
         )
 
         res = dti - dti[0]
@@ -43,7 +46,7 @@ class TestDatetimeIndexArithmetic:
     def test_sub_datetime_preserves_freq_across_dst(self):
         # GH#48818
         ts = Timestamp("2016-03-11", tz="US/Pacific")
-        dti = date_range(ts, periods=4)
+        dti = date_range(ts, periods=4, unit="ns")
 
         res = dti - dti[0]
         expected = TimedeltaIndex(
@@ -52,7 +55,8 @@ class TestDatetimeIndexArithmetic:
                 Timedelta(days=1),
                 Timedelta(days=2),
                 Timedelta(days=2, hours=23),
-            ]
+            ],
+            dtype="m8[ns]",
         )
         tm.assert_index_equal(res, expected)
         assert res.freq == expected.freq
@@ -63,3 +67,14 @@ class TestDatetimeIndexArithmetic:
         result = (dti + dti.freq)[:-1]
         expected = dti[1:]
         tm.assert_index_equal(result, expected)
+
+    def test_sub_timestamp_preserves_day_freq(self):
+        # GH#62094
+        dti = date_range("2021-01-01", periods=5, freq="D")
+        ts = Timestamp("2020-01-01")
+
+        result = dti - ts
+
+        # The one crucial assertion:
+        assert isinstance(result, TimedeltaIndex)
+        assert result.freq == dti.freq

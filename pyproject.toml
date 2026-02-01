@@ -2,13 +2,13 @@
 # Minimum requirements for the build system to execute.
 # See https://github.com/scipy/scipy/pull/12940 for the AIX issue.
 requires = [
-    "meson-python>=0.13.1",
+    "meson-python>=0.17.1,<1",
     "meson>=1.2.1,<2",
     "wheel",
     "Cython<4.0.0a0",  # Note: sync with setup.py, environment.yml and asv.conf.json
-    # Force numpy higher than 2.0rc1, so that built wheels are compatible
+    # Force numpy higher than 2.0, so that built wheels are compatible
     # with both numpy 1 and 2
-    "numpy>=2.0.0rc1",
+    "numpy>=2.0.0",
     "versioneer[toml]"
 ]
 
@@ -27,9 +27,13 @@ authors = [
 license = {file = 'LICENSE'}
 requires-python = '>=3.11'
 dependencies = [
-  "numpy>=1.26.0",
+  "numpy>=1.26.0; python_version < '3.14'",
+  # Earlier versions of NumPy are fundamentally broken on 3.14
+  "numpy>=2.3.3; python_version >= '3.14'",
   "python-dateutil>=2.8.2",
-  "tzdata>=2023.3"
+  "tzdata; sys_platform == 'win32'",
+  # Emscripten is the platform system for Pyodide.
+  "tzdata; sys_platform == 'emscripten'",
 ]
 classifiers = [
     'Development Status :: 5 - Production/Stable',
@@ -44,6 +48,7 @@ classifiers = [
     'Programming Language :: Python :: 3.11',
     'Programming Language :: Python :: 3.12',
     'Programming Language :: Python :: 3.13',
+    'Programming Language :: Python :: 3.14',
     'Topic :: Scientific/Engineering'
 ]
 
@@ -56,7 +61,7 @@ repository = 'https://github.com/pandas-dev/pandas'
 matplotlib = "pandas:plotting._matplotlib"
 
 [project.optional-dependencies]
-test = ['hypothesis>=6.116.0', 'pytest>=7.3.2', 'pytest-xdist>=3.4.0']
+test = ['hypothesis>=6.116.0', 'pytest>=8.3.4', 'pytest-xdist>=3.6.1']
 pyarrow = ['pyarrow>=13.0.0']
 performance = ['bottleneck>=1.4.2', 'numba>=0.60.0', 'numexpr>=2.10.2']
 computation = ['scipy>=1.14.1', 'xarray>=2024.10.0']
@@ -101,8 +106,8 @@ all = ['adbc-driver-postgresql>=1.2.0',
        'pymysql>=1.1.1',
        'PyQt5>=5.15.9',
        'pyreadstat>=1.2.8',
-       'pytest>=7.3.2',
-       'pytest-xdist>=3.4.0',
+       'pytest>=8.3.4',
+       'pytest-xdist>=3.6.1',
        'python-calamine>=0.3.0',
        'pytz>=2024.2',
        'pyxlsb>=1.0.10',
@@ -186,7 +191,7 @@ environment = {CFLAGS="-g0"}
 
 [[tool.cibuildwheel.overrides]]
 select = "*pyodide*"
-test-requires = "pytest>=7.3.2 hypothesis>=6.116.0"
+test-requires = "pytest>=8.3.4 hypothesis>=6.116.0"
 # Pyodide repairs wheels on its own, using auditwheel-emscripten
 repair-wheel-command = ""
 # https://github.com/pyodide/pyodide/issues/5805
@@ -296,8 +301,6 @@ ignore = [
   "PYI041",
   # incorrect-dict-iterator, flags valid Series.items usage
   "PERF102",
-  # try-except-in-loop, becomes useless in Python 3.11
-  "PERF203",
   # pytest-parametrize-names-wrong-type
   "PT006",
   # pytest-parametrize-values-wrong-type
@@ -326,16 +329,12 @@ ignore = [
   "PLR2004",
   # comparison-with-itself
   "PLR0124",
-  # collection-literal-concatenation
-  "RUF005",
   # pairwise-over-zipped
   "RUF007",
   # mutable-class-default
   "RUF012",
   # type-comparison
   "E721",
-  # repeated-equality-comparison
-  "PLR1714",
   # self-or-cls-assignment
   "PLW0642",
   # literal-membership
@@ -354,10 +353,6 @@ ignore = [
   "PLW1641", # 16 errors
   # Bad or misspelled dunder method name
   "PLW3201", # 69 errors, seems to be all false positive
-  # Unnecessary lookup of dictionary value by key
-  "PLR1733", # 5 errors, it seems like we wannt to ignore these
-  # Unnecessary lookup of list item by index
-  "PLR1736", # 4 errors, we're currently having inline pylint ignore
   # Unpacking a dictionary in iteration without calling `.items()`
   "PLE1141", # autofixable
   # import-outside-toplevel
@@ -390,8 +385,10 @@ ignore = [
   "PLW0603",
   # runtime-cast-value
   "TC006",
-  # zip-without-explicit-strict
-  "B905",
+  # unused-unpacked-variable
+  "RUF059",
+  # pytest-raises-ambiguous-pattern
+  "RUF043",
 ]
 
 exclude = [
@@ -427,11 +424,97 @@ exclude = [
 # relative imports allowed for asv_bench
 "asv_bench/*" = ["TID", "NPY002"]
 # to be enabled gradually
-"pandas/core/*" = ["PLR5501"]
 "pandas/tests/*" = ["B028", "FLY"]
-"scripts/*" = ["B028"]
 # Keep this one enabled
 "pandas/_typing.py" = ["TC"]
+
+# TODO: Fix B905 (zip-without-explicit-strict) - Remove files below as they're fixed
+# For contributors working on this issue:
+# After adding strict={True,False} to zip() calls in a file,
+# remove its line from this section
+"pandas/tests/frame/conftest.py" = ["B905"]
+"pandas/tests/frame/constructors/test_from_dict.py" = ["B905"]
+"pandas/tests/frame/indexing/test_delitem.py" = ["B905"]
+"pandas/tests/frame/indexing/test_getitem.py" = ["B905"]
+"pandas/tests/frame/indexing/test_indexing.py" = ["B905"]
+"pandas/tests/frame/indexing/test_setitem.py" = ["B905"]
+"pandas/tests/frame/indexing/test_xs.py" = ["B905"]
+"pandas/tests/frame/methods/test_drop.py" = ["B905"]
+"pandas/tests/frame/methods/test_isin.py" = ["B905"]
+"pandas/tests/frame/methods/test_pop.py" = ["B905"]
+"pandas/tests/frame/methods/test_replace.py" = ["B905"]
+"pandas/tests/frame/methods/test_reset_index.py" = ["B905"]
+"pandas/tests/frame/methods/test_to_dict.py" = ["B905"]
+"pandas/tests/frame/test_api.py" = ["B905"]
+"pandas/tests/frame/test_constructors.py" = ["B905"]
+"pandas/tests/frame/test_iteration.py" = ["B905"]
+"pandas/tests/frame/test_query_eval.py" = ["B905"]
+"pandas/tests/frame/test_stack_unstack.py" = ["B905"]
+"pandas/tests/frame/test_subclass.py" = ["B905"]
+"pandas/tests/frame/test_ufunc.py" = ["B905"]
+"pandas/tests/groupby/test_groupby_dropna.py" = ["B905"]
+"pandas/tests/groupby/test_groupby.py" = ["B905"]
+"pandas/tests/groupby/test_grouping.py" = ["B905"]
+"pandas/tests/groupby/test_raises.py" = ["B905"]
+"pandas/tests/groupby/test_timegrouper.py" = ["B905"]
+"pandas/tests/groupby/transform/test_transform.py" = ["B905"]
+"pandas/tests/indexes/categorical/test_map.py" = ["B905"]
+"pandas/tests/indexes/datetimes/methods/test_astype.py" = ["B905"]
+"pandas/tests/indexes/datetimes/test_formats.py" = ["B905"]
+"pandas/tests/indexes/datetimes/test_partial_slicing.py" = ["B905"]
+"pandas/tests/indexes/datetimes/test_scalar_compat.py" = ["B905"]
+"pandas/tests/indexes/datetimes/test_timezones.py" = ["B905"]
+"pandas/tests/indexes/interval/test_constructors.py" = ["B905"]
+"pandas/tests/indexes/interval/test_formats.py" = ["B905"]
+"pandas/tests/indexes/interval/test_interval.py" = ["B905"]
+"pandas/tests/indexes/period/methods/test_asfreq.py" = ["B905"]
+"pandas/tests/indexes/period/test_constructors.py" = ["B905"]
+"pandas/tests/indexes/period/test_formats.py" = ["B905"]
+"pandas/tests/indexes/period/test_period.py" = ["B905"]
+"pandas/tests/indexes/test_base.py" = ["B905"]
+"pandas/tests/indexes/test_datetimelike.py" = ["B905"]
+"pandas/tests/indexes/test_old_base.py" = ["B905"]
+"pandas/tests/indexes/test_setops.py" = ["B905"]
+"pandas/tests/indexes/timedeltas/test_formats.py" = ["B905"]
+"pandas/tests/indexing/interval/test_interval.py" = ["B905"]
+"pandas/tests/indexing/multiindex/test_getitem.py" = ["B905"]
+"pandas/tests/indexing/multiindex/test_iloc.py" = ["B905"]
+"pandas/tests/indexing/multiindex/test_indexing_slow.py" = ["B905"]
+"pandas/tests/indexing/multiindex/test_loc.py" = ["B905"]
+"pandas/tests/indexing/multiindex/test_setitem.py" = ["B905"]
+"pandas/tests/indexing/multiindex/test_sorted.py" = ["B905"]
+"pandas/tests/indexing/test_coercion.py" = ["B905"]
+"pandas/tests/indexing/test_loc.py" = ["B905"]
+"pandas/tests/internals/test_internals.py" = ["B905"]
+"pandas/tests/io/excel/test_writers.py" = ["B905"]
+"pandas/tests/io/formats/style/test_style.py" = ["B905"]
+"pandas/tests/io/formats/test_format.py" = ["B905"]
+"pandas/tests/io/formats/test_ipython_compat.py" = ["B905"]
+"pandas/tests/io/formats/test_to_string.py" = ["B905"]
+"pandas/tests/io/generate_legacy_storage_files.py" = ["B905"]
+"pandas/tests/io/parser/conftest.py" = ["B905"]
+"pandas/tests/io/parser/dtypes/test_categorical.py" = ["B905"]
+"pandas/tests/io/parser/test_header.py" = ["B905"]
+"pandas/tests/io/parser/test_python_parser_only.py" = ["B905"]
+"pandas/tests/io/pytables/test_complex.py" = ["B905"]
+"pandas/tests/io/pytables/test_select.py" = ["B905"]
+"pandas/tests/io/sas/test_sas7bdat.py" = ["B905"]
+"pandas/tests/io/test_gcs.py" = ["B905"]
+"pandas/tests/io/test_html.py" = ["B905"]
+"pandas/tests/io/test_sql.py" = ["B905"]
+"pandas/tests/io/test_stata.py" = ["B905"]
+"pandas/tests/plotting/common.py" = ["B905"]
+"pandas/tests/plotting/frame/test_frame_color.py" = ["B905"]
+"pandas/tests/resample/test_base.py" = ["B905"]
+"pandas/tests/reshape/concat/test_concat.py" = ["B905"]
+"pandas/tests/reshape/concat/test_index.py" = ["B905"]
+"pandas/tests/reshape/test_melt.py" = ["B905"]
+"pandas/tests/reshape/test_qcut.py" = ["B905"]
+"pandas/tests/scalar/period/test_asfreq.py" = ["B905"]
+"pandas/tests/series/accessors/test_dt_accessor.py" = ["B905"]
+"pandas/tests/series/test_api.py" = ["B905"]
+"pandas/tests/series/test_constructors.py" = ["B905"]
+"pandas/tests/strings/conftest.py" = ["B905"]
 
 [tool.ruff.lint.flake8-pytest-style]
 fixture-parentheses = false
@@ -442,7 +525,7 @@ docstring-code-format = true
 
 [tool.pytest.ini_options]
 # sync minversion with pyproject.toml & install.rst
-minversion = "7.3.2"
+minversion = "8.3.4"
 addopts = "--strict-markers --strict-config --capture=no --durations=30 --junitxml=test-data.xml"
 empty_parameter_set_mark = "fail_at_collect"
 xfail_strict = true
@@ -485,7 +568,6 @@ markers = [
   "db: tests requiring a database (mysql or postgres)",
   "clipboard: mark a pd.read_clipboard test",
   "arm_slow: mark a test as slow for arm64 architecture",
-  "skip_ubsan: Tests known to fail UBSAN check",
   # TODO: someone should investigate this ...
   # these tests only fail in the wheel builder and don't fail in regular
   # ARM CI
@@ -534,7 +616,7 @@ enable_error_code = "ignore-without-code"
 # Miscellaneous strictness flags
 allow_untyped_globals = false
 allow_redefinition = false
-local_partial_types = false
+local_partial_types = true
 implicit_reexport = true
 strict_equality = true
 # Configuring error messages

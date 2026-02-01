@@ -324,7 +324,7 @@ class TestDataFrameColor:
         ax2 = df.plot(color=custom_colors)
         lines2 = ax2.get_lines()
 
-        for l1, l2 in zip(ax.get_lines(), lines2):
+        for l1, l2 in zip(ax.get_lines(), lines2, strict=True):
             assert l1.get_color() == l2.get_color()
 
     @pytest.mark.parametrize("colormap", ["jet", cm.jet])
@@ -380,7 +380,7 @@ class TestDataFrameColor:
         # GH 9894
         df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
         axes = df.plot(color=color, subplots=True)
-        for ax, c in zip(axes, list(color)):
+        for ax, c in zip(axes, list(color), strict=True):
             _check_colors(ax.get_lines(), linecolors=[c])
 
     def test_line_colors_and_styles_subplots_colormap_hex(self):
@@ -389,7 +389,7 @@ class TestDataFrameColor:
         # GH 10299
         custom_colors = ["#FF0000", "#0000FF", "#FFFF00", "#000000", "#FFFFFF"]
         axes = df.plot(color=custom_colors, subplots=True)
-        for ax, c in zip(axes, list(custom_colors)):
+        for ax, c in zip(axes, list(custom_colors), strict=True):
             _check_colors(ax.get_lines(), linecolors=[c])
 
     @pytest.mark.parametrize("cmap", ["jet", cm.jet])
@@ -398,7 +398,7 @@ class TestDataFrameColor:
         df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
         rgba_colors = [cm.jet(n) for n in np.linspace(0, 1, len(df))]
         axes = df.plot(colormap=cmap, subplots=True)
-        for ax, c in zip(axes, rgba_colors):
+        for ax, c in zip(axes, rgba_colors, strict=True):
             _check_colors(ax.get_lines(), linecolors=[c])
 
     def test_line_colors_and_styles_subplots_single_col(self):
@@ -423,7 +423,7 @@ class TestDataFrameColor:
         # list of styles
         styles = list("rgcby")
         axes = df.plot(style=styles, subplots=True)
-        for ax, c in zip(axes, styles):
+        for ax, c in zip(axes, styles, strict=True):
             _check_colors(ax.get_lines(), linecolors=[c])
 
     def test_area_colors(self):
@@ -551,7 +551,7 @@ class TestDataFrameColor:
         df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
         custom_colors = "rgcby"
         axes = df.plot(kind="kde", color=custom_colors, subplots=True)
-        for ax, c in zip(axes, list(custom_colors)):
+        for ax, c in zip(axes, list(custom_colors), strict=True):
             _check_colors(ax.get_lines(), linecolors=[c])
 
     @pytest.mark.parametrize("colormap", ["jet", cm.jet])
@@ -560,7 +560,7 @@ class TestDataFrameColor:
         df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
         rgba_colors = [cm.jet(n) for n in np.linspace(0, 1, len(df))]
         axes = df.plot(kind="kde", colormap=colormap, subplots=True)
-        for ax, c in zip(axes, rgba_colors):
+        for ax, c in zip(axes, rgba_colors, strict=True):
             _check_colors(ax.get_lines(), linecolors=[c])
 
     def test_kde_colors_and_styles_subplots_single_col(self):
@@ -586,7 +586,7 @@ class TestDataFrameColor:
         # list of styles
         styles = list("rgcby")
         axes = df.plot(kind="kde", style=styles, subplots=True)
-        for ax, c in zip(axes, styles):
+        for ax, c in zip(axes, styles, strict=True):
             _check_colors(ax.get_lines(), linecolors=[c])
 
     def test_boxplot_colors(self):
@@ -715,7 +715,7 @@ class TestDataFrameColor:
         result = df_concat.plot()
         legend = result.get_legend()
         handles = legend.legend_handles
-        for legend, line in zip(handles, result.lines):
+        for legend, line in zip(handles, result.lines, strict=True):
             assert legend.get_color() == line.get_color()
 
     def test_invalid_colormap(self):

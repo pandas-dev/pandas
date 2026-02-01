@@ -43,7 +43,7 @@ def test_skip_rows_bug(all_parsers, skiprows):
     )
     index = Index(
         [datetime(2000, 1, 1), datetime(2000, 1, 2), datetime(2000, 1, 3)],
-        dtype="M8[s]",
+        dtype="M8[us]",
         name=0,
     )
 
@@ -88,7 +88,7 @@ def test_skip_rows_blank(all_parsers):
     )
     index = Index(
         [datetime(2000, 1, 1), datetime(2000, 1, 2), datetime(2000, 1, 3)],
-        dtype="M8[s]",
+        dtype="M8[us]",
         name=0,
     )
 

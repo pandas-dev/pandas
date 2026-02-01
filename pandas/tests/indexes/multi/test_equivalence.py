@@ -223,7 +223,7 @@ def test_equals_missing_values_differently_sorted():
 
 
 def test_is_():
-    mi = MultiIndex.from_tuples(zip(range(10), range(10)))
+    mi = MultiIndex.from_tuples(zip(range(10), range(10), strict=True))
     assert mi.is_(mi)
     assert mi.is_(mi.view())
     assert mi.is_(mi.view().view().view().view())

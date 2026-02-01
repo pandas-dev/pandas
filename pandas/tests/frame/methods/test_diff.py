@@ -136,7 +136,7 @@ class TestDataFrameDiff:
         result = df.diff(axis=1)
         expected = DataFrame(
             {
-                0: pd.TimedeltaIndex(["NaT", "NaT"]),
+                0: pd.TimedeltaIndex(["NaT", "NaT"], dtype="m8[us]"),
                 1: pd.TimedeltaIndex(["0 days", "0 days"]),
             }
         )

@@ -53,7 +53,7 @@ from pandas._libs.tslibs.period import (
 )
 from pandas.util._decorators import (
     cache_readonly,
-    doc,
+    set_module,
 )
 
 from pandas.core.dtypes.common import (
@@ -104,11 +104,6 @@ if TYPE_CHECKING:
 BaseOffsetT = TypeVar("BaseOffsetT", bound=BaseOffset)
 
 
-_shared_doc_kwargs = {
-    "klass": "PeriodArray",
-}
-
-
 def _field_accessor(name: str, docstring: str | None = None):
     def f(self):
         base = self.dtype._dtype_code
@@ -120,6 +115,7 @@ def _field_accessor(name: str, docstring: str | None = None):
     return property(f)
 
 
+@set_module("pandas.arrays")
 # error: Definition of "_concat_same_type" in base class "NDArrayBacked" is
 # incompatible with definition in base class "ExtensionArray"
 class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
@@ -395,7 +391,11 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
             # For NumPy 1.x compatibility we cannot use copy=None.  And
             # `copy=False` has the meaning of `copy=None` here:
             if not copy:
-                return np.asarray(self.asi8, dtype=dtype)
+                result = np.asarray(self.asi8, dtype=dtype)
+                if self._readonly:
+                    result = result.view()
+                    result.flags.writeable = False
+                return result
             else:
                 return np.array(self.asi8, dtype=dtype)
 
@@ -753,6 +753,9 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         """
         Cast to DatetimeArray/Index.
 
+        If possible, gives microsecond-unit DatetimeArray/Index. Otherwise
+        gives nanosecond unit.
+
         Parameters
         ----------
         freq : str or DateOffset, optional
@@ -783,34 +786,39 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         >>> idx = pd.PeriodIndex(["2023-01", "2023-02", "2023-03"], freq="M")
         >>> idx.to_timestamp()
         DatetimeIndex(['2023-01-01', '2023-02-01', '2023-03-01'],
-        dtype='datetime64[ns]', freq='MS')
+        dtype='datetime64[us]', freq='MS')
 
         The frequency will not be inferred if the index contains less than
         three elements, or if the values of index are not strictly monotonic:
 
         >>> idx = pd.PeriodIndex(["2023-01", "2023-02"], freq="M")
         >>> idx.to_timestamp()
-        DatetimeIndex(['2023-01-01', '2023-02-01'], dtype='datetime64[ns]', freq=None)
+        DatetimeIndex(['2023-01-01', '2023-02-01'], dtype='datetime64[us]', freq=None)
 
         >>> idx = pd.PeriodIndex(
         ...     ["2023-01", "2023-02", "2023-02", "2023-03"], freq="2M"
         ... )
         >>> idx.to_timestamp()
         DatetimeIndex(['2023-01-01', '2023-02-01', '2023-02-01', '2023-03-01'],
-        dtype='datetime64[ns]', freq=None)
+        dtype='datetime64[us]', freq=None)
         """
         from pandas.core.arrays import DatetimeArray
 
         how = libperiod.validate_end_alias(how)
 
+        if self.freq.base == "ns" or freq == "ns":
+            unit = "ns"
+        else:
+            unit = "us"
+
         end = how == "E"
         if end:
             if freq == "B" or self.freq == "B":
                 # roll forward to ensure we land on B date
-                adjust = Timedelta(1, "D") - Timedelta(1, "ns")
+                adjust = Timedelta(1, unit="D") - Timedelta(1, unit=unit)
                 return self.to_timestamp(how="start") + adjust
             else:
-                adjust = Timedelta(1, "ns")
+                adjust = Timedelta(1, unit=unit)
                 return (self + self.freq).to_timestamp(how="start") - adjust
 
         if freq is None:
@@ -825,7 +833,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         new_parr = self.asfreq(freq, how=how)
 
         new_data = libperiod.periodarr_to_dt64arr(new_parr.asi8, base)
-        dta = DatetimeArray._from_sequence(new_data, dtype=np.dtype("M8[ns]"))
+        dta = DatetimeArray._from_sequence(new_data, dtype=new_data.dtype)
+        assert dta.unit == unit
 
         if self.freq.name == "B":
             # See if we can retain BDay instead of Day in cases where
@@ -856,19 +865,18 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
     def _box_func(self, x) -> Period | NaTType:
         return Period._from_ordinal(ordinal=x, freq=self.freq)
 
-    @doc(**_shared_doc_kwargs, other="PeriodIndex", other_name="PeriodIndex")
     def asfreq(self, freq=None, how: str = "E") -> Self:
         """
-        Convert the {klass} to the specified frequency `freq`.
+        Convert the PeriodArray to the specified frequency `freq`.
 
         Equivalent to applying :meth:`pandas.Period.asfreq` with the given arguments
-        to each :class:`~pandas.Period` in this {klass}.
+        to each :class:`~pandas.Period` in this PeriodArray.
 
         Parameters
         ----------
         freq : str
             A frequency.
-        how : str {{'E', 'S'}}, default 'E'
+        how : str {'E', 'S'}, default 'E'
             Whether the elements should be aligned to the end
             or start within pa period.
 
@@ -879,12 +887,12 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
 
         Returns
         -------
-        {klass}
-            The transformed {klass} with the new frequency.
+        PeriodArray
+            The transformed PeriodArray with the new frequency.
 
         See Also
         --------
-        {other}.asfreq: Convert each Period in a {other_name} to the given frequency.
+        PeriodIndex.asfreq: Convert each Period in a PeriodIndex to the given frequency.
         Period.asfreq : Convert a :class:`~pandas.Period` object to the given frequency.
 
         Examples
@@ -962,7 +970,9 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
             # GH#45038 match PeriodIndex behavior.
             tz = getattr(dtype, "tz", None)
             unit = dtl.dtype_to_unit(dtype)
-            return self.to_timestamp().tz_localize(tz).as_unit(unit)
+            # error: Argument 1 to "as_unit" of "TimelikeOps" has incompatible
+            # type "str"; expected "Literal['s', 'ms', 'us', 'ns']"  [arg-type]
+            return self.to_timestamp().tz_localize(tz).as_unit(unit)  # type: ignore[arg-type]
 
         return super().astype(dtype, copy=copy)
 
@@ -1327,7 +1337,7 @@ def dt64arr_to_periodarr(
     data, freq, tz=None
 ) -> tuple[npt.NDArray[np.int64], BaseOffset]:
     """
-    Convert an datetime-like array to values Period ordinals.
+    Convert a datetime-like array to values Period ordinals.
 
     Parameters
     ----------
@@ -1445,7 +1455,7 @@ def _range_from_fields(
 
         freqstr = freq.freqstr
         year, quarter = _make_field_arrays(year, quarter)
-        for y, q in zip(year, quarter):
+        for y, q in zip(year, quarter, strict=True):
             calendar_year, calendar_month = parsing.quarter_to_myear(y, q, freqstr)
             val = libperiod.period_ordinal(
                 calendar_year, calendar_month, 1, 1, 1, 1, 0, 0, base
@@ -1455,7 +1465,7 @@ def _range_from_fields(
         freq = to_offset(freq, is_period=True)
         base = libperiod.freq_to_dtype_code(freq)
         arrays = _make_field_arrays(year, month, day, hour, minute, second)
-        for y, mth, d, h, mn, s in zip(*arrays):
+        for y, mth, d, h, mn, s in zip(*arrays, strict=True):
             ordinals.append(libperiod.period_ordinal(y, mth, d, h, mn, s, 0, 0, base))
 
     return np.array(ordinals, dtype=np.int64), freq

@@ -4,6 +4,10 @@ from datetime import (
     timezone,
 )
 from decimal import Decimal
+from enum import (
+    Enum,
+    auto,
+)
 import operator
 
 import numpy as np
@@ -25,7 +29,6 @@ from pandas import (
 import pandas._testing as tm
 from pandas.core import ops
 from pandas.core.computation import expressions as expr
-from pandas.core.computation.check import NUMEXPR_INSTALLED
 
 
 @pytest.fixture(autouse=True, params=[0, 1000000], ids=["numexpr", "python"])
@@ -155,6 +158,46 @@ class TestSeriesFlexArithmetic:
         # should accept axis=0 or axis='rows'
         op(a, b, axis=0)
 
+    @pytest.mark.parametrize("kind", ["datetime", "timedelta"])
+    def test_rhs_extension_array_sub_with_fill_value(self, kind):
+        # GH:62467
+        if kind == "datetime":
+            left = Series(
+                [pd.Timestamp("2025-08-20"), pd.Timestamp("2025-08-21")],
+                dtype=np.dtype("datetime64[ns]"),
+            )
+        else:
+            left = Series(
+                [Timedelta(days=1), Timedelta(days=2)],
+                dtype=np.dtype("timedelta64[ns]"),
+            )
+
+        right = (
+            left._values
+        )  # DatetimeArray or TimedeltaArray which is an ExtensionArray
+
+        result = left.sub(right, fill_value=left.iloc[0])
+        expected = Series(np.zeros(len(left), dtype=np.dtype("timedelta64[ns]")))
+        tm.assert_series_equal(result, expected)
+
+    def test_flex_disallows_dataframe(self):
+        # GH#46179
+        df = pd.DataFrame(
+            {2010: [1], 2020: [3]},
+            index=pd.MultiIndex.from_product([["a"], ["b"]], names=["scen", "mod"]),
+        )
+
+        ser = Series(
+            [10.0, 20.0, 30.0],
+            index=pd.MultiIndex.from_product(
+                [["a"], ["b"], [0, 1, 2]], names=["scen", "mod", "id"]
+            ),
+        )
+
+        msg = "Series.add does not support a DataFrame `other`"
+        with pytest.raises(TypeError, match=msg):
+            ser.add(df, axis=0)
+
 
 class TestSeriesArithmetic:
     # Some of these may end up in tests/arithmetic, but are not yet sorted
@@ -258,11 +301,11 @@ class TestSeriesArithmetic:
     def test_sub_datetimelike_align(self):
         # GH#7500
         # datetimelike ops need to align
-        dt = Series(date_range("2012-1-1", periods=3, freq="D"))
+        dt = Series(date_range("2012-1-1", periods=3, freq="D", unit="ns"))
         dt.iloc[2] = np.nan
         dt2 = dt[::-1]
 
-        expected = Series([timedelta(0), timedelta(0), pd.NaT])
+        expected = Series([timedelta(0), timedelta(0), pd.NaT], dtype="m8[ns]")
         # name is reset
         result = dt2 - dt
         tm.assert_series_equal(result, expected)
@@ -310,10 +353,10 @@ class TestSeriesArithmetic:
 
         # GH#8363
         # datetime ops with a non-unique index
-        ser = Series(date_range("20130101 09:00:00", periods=5), index=index)
-        other = Series(date_range("20130101", periods=5), index=index)
+        ser = Series(date_range("20130101 09:00:00", periods=5, unit="ns"), index=index)
+        other = Series(date_range("20130101", periods=5, unit="ns"), index=index)
         result = ser - other
-        expected = Series(Timedelta("9 hours"), index=[2, 2, 3, 3, 4])
+        expected = Series(Timedelta("9 hours"), index=[2, 2, 3, 3, 4], dtype="m8[ns]")
         tm.assert_series_equal(result, expected)
 
     def test_masked_and_non_masked_propagate_na(self):
@@ -335,33 +378,47 @@ class TestSeriesArithmetic:
         result = ser2 / ser1
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize("val, dtype", [(3, "Int64"), (3.5, "Float64")])
-    def test_add_list_to_masked_array(self, val, dtype):
-        # GH#22962
+    @pytest.mark.parametrize("val", [3, 3.5])
+    def test_add_list_to_masked_array(self, val):
+        # GH#22962, behavior changed by GH#62552
         ser = Series([1, None, 3], dtype="Int64")
-        result = ser + [1, None, val]
-        expected = Series([2, None, 3 + val], dtype=dtype)
+        result = ser + [1, None, val]  # noqa: RUF005
+        expected = Series([2, pd.NA, 3 + val], dtype="Float64")
         tm.assert_series_equal(result, expected)
 
-        result = [1, None, val] + ser
+        result = [1, None, val] + ser  # noqa: RUF005
         tm.assert_series_equal(result, expected)
 
-    def test_add_list_to_masked_array_boolean(self, request):
+    def test_add_list_to_masked_array_boolean(self):
         # GH#22962
-        warning = (
-            UserWarning
-            if request.node.callspec.id == "numexpr" and NUMEXPR_INSTALLED
-            else None
-        )
         ser = Series([True, None, False], dtype="boolean")
-        msg = "operator is not supported by numexpr for the bool dtype"
-        with tm.assert_produces_warning(warning, match=msg):
-            result = ser + [True, None, True]
-        expected = Series([True, None, True], dtype="boolean")
+        result = ser + [True, None, True]  # noqa: RUF005
+        expected = Series([2, pd.NA, 1], dtype=object)
         tm.assert_series_equal(result, expected)
 
-        with tm.assert_produces_warning(warning, match=msg):
-            result = [True, None, True] + ser
+        result = [True, None, True] + ser  # noqa: RUF005
+        tm.assert_series_equal(result, expected)
+
+    def test_subtraction_index_name_type_mismatch_regression(self):
+        # GH#57524
+        s1 = Series(
+            [23, 22, 21],
+            index=Index(["a", "b", "c"], name="index a"),
+            dtype="Int64",
+        )
+        s2 = Series(
+            [21, 22, 23],
+            index=Index(
+                ["a", "b", "c"],
+                name="index b",
+                dtype="string",
+            ),
+            dtype="Int64",
+        )
+
+        result = s1 - s2
+        expected = Series([2, 0, -2], index=s1.index, dtype="Int64")
+
         tm.assert_series_equal(result, expected)
 
 
@@ -405,6 +462,22 @@ class TestSeriesFlexComparison:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
+        "left",
+        [
+            Series(Categorical(["a", "b", "a"])),
+            Series(pd.period_range("2020Q1", periods=3, freq="Q")),
+        ],
+        ids=["categorical", "period"],
+    )
+    def test_rhs_extension_array_eq_with_fill_value(self, left):
+        # GH:#62467
+        right = left._values  # this is an ExtensionArray
+
+        result = left.eq(right, fill_value=left.iloc[0])
+        expected = Series([True, True, True])
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
         "values, op, fill_value",
         [
             ([False, False, True, True], "eq", 2),
@@ -420,6 +493,62 @@ class TestSeriesFlexComparison:
         right = Series([2, 2, 2], index=list("bcd"))
         result = getattr(left, op)(right, fill_value=fill_value)
         expected = Series(values, index=list("abcd"))
+        tm.assert_series_equal(result, expected)
+
+    def test_eq_objects(self) -> None:
+        # GH#62191 Test eq with Enum and List elements
+
+        class Thing(Enum):
+            FIRST = auto()
+            SECOND = auto()
+
+        left = Series([Thing.FIRST, Thing.SECOND])
+        py_l = [Thing.FIRST, Thing.SECOND]
+
+        result = left.eq(Thing.FIRST)
+        expected = Series([True, False])
+        tm.assert_series_equal(result, expected)
+
+        result = left.eq(py_l)
+        expected = Series([True, True])
+        tm.assert_series_equal(result, expected)
+
+        result = left.eq(np.asarray(py_l))
+        expected = Series([True, True])
+        tm.assert_series_equal(result, expected)
+
+        result = left.eq(Series(py_l))
+        expected = Series([True, True])
+        tm.assert_series_equal(result, expected)
+
+        result = Series([[1, 2], [3, 4]]).eq([1, 2])
+        expected = Series([True, False])
+        with pytest.raises(AssertionError):
+            tm.assert_series_equal(result, expected)
+        expected = Series([False, False])
+        tm.assert_series_equal(result, expected)
+
+    def test_eq_with_index(self) -> None:
+        # GH#62191 Test eq with non-trivial indices
+        left = Series([1, 2], index=[1, 0])
+        py_l = [1, 2]
+
+        # assuming Python list has the same index as the Series
+        result = left.eq(py_l)
+        expected = Series([True, True], index=[1, 0])
+        tm.assert_series_equal(result, expected)
+
+        # assuming np.ndarray has the same index as the Series
+        result = left.eq(np.asarray(py_l))
+        expected = Series([True, True], index=[1, 0])
+        tm.assert_series_equal(result, expected)
+
+        result = left.eq(Series(py_l))
+        expected = Series([False, False])
+        tm.assert_series_equal(result, expected)
+
+        result = left.eq(Series([2, 1]))
+        expected = Series([True, True])
         tm.assert_series_equal(result, expected)
 
 
@@ -953,3 +1082,26 @@ def test_rmod_consistent_large_series():
     expected = Series([1] * 10001)
 
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "index",
+    [
+        date_range("2016-01-01", periods=3),
+        date_range("2016-01-01", tz="US/Pacific", periods=3),
+        pd.timedelta_range("1 Day", periods=3),
+    ],
+)
+def test_comparison_mismatched_datetime_units(index):
+    # GH#63459
+
+    ser = Series(1, index=index)
+    ser2 = Series(1, index=index.as_unit("ns"))
+
+    result = ser == ser2
+    expected = Series([True, True, True], index=ser.index)
+    tm.assert_series_equal(result, expected)
+
+    result2 = ser2 < ser
+    expected2 = Series([False, False, False], index=ser2.index)
+    tm.assert_series_equal(result2, expected2)

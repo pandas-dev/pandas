@@ -17,7 +17,10 @@ from pandas._libs import (
 )
 from pandas._libs.tslibs import OutOfBoundsDatetime
 from pandas.errors import InvalidIndexError
-from pandas.util._decorators import cache_readonly
+from pandas.util._decorators import (
+    cache_readonly,
+    set_module,
+)
 
 from pandas.core.dtypes.common import (
     ensure_int64,
@@ -63,6 +66,7 @@ if TYPE_CHECKING:
     from pandas.core.generic import NDFrame
 
 
+@set_module("pandas")
 class Grouper:
     """
     A Grouper allows the user to specify a groupby instruction for an object.
@@ -112,8 +116,6 @@ class Grouper:
 
         - 'end': `origin` is the last value of the timeseries
         - 'end_day': `origin` is the ceiling midnight of the last day
-
-        .. versionadded:: 1.3.0
 
     offset : Timedelta or str, default is None
         An offset timedelta added to the origin.
@@ -379,9 +381,8 @@ class Grouper:
                     level = ax._get_level_number(level)
                     ax = Index(ax._get_level_values(level), name=ax.names[level])
 
-                else:
-                    if level not in (0, ax.name):
-                        raise ValueError(f"The level {level} is not valid")
+                elif level not in (0, ax.name):
+                    raise ValueError(f"The level {level} is not valid")
 
         # possibly sort
         indexer: npt.NDArray[np.intp] | None = None
@@ -458,6 +459,8 @@ class Grouping:
         dropna: bool = True,
         uniques: ArrayLike | None = None,
     ) -> None:
+        if isinstance(grouper, Series):
+            grouper = grouper.copy(deep=False)
         self.level = level
         self._orig_grouper = grouper
         grouping_vector = _convert_grouper(index, grouper)
@@ -511,7 +514,9 @@ class Grouping:
                 # error: Cannot determine type of "grouping_vector"  [has-type]
                 ng = newgrouper.groupings[0].grouping_vector  # type: ignore[has-type]
                 # use Index instead of ndarray so we can recover the name
-                grouping_vector = Index(ng, name=newgrouper.result_index.name)
+                grouping_vector = Index(
+                    ng, name=newgrouper.result_index.name, copy=False
+                )
 
         elif not isinstance(
             grouping_vector, (Series, Index, ExtensionArray, np.ndarray)
@@ -680,13 +685,13 @@ class Grouping:
     @cache_readonly
     def groups(self) -> dict[Hashable, Index]:
         codes, uniques = self._codes_and_uniques
-        uniques = Index._with_infer(uniques, name=self.name)
+        uniques = Index._with_infer(uniques, name=self.name, copy=False)
 
         r, counts = libalgos.groupsort_indexer(ensure_platform_int(codes), len(uniques))
         counts = ensure_int64(counts).cumsum()
-        _result = (r[start:end] for start, end in zip(counts, counts[1:]))
+        _result = (r[start:end] for start, end in zip(counts, counts[1:], strict=False))
         # map to the label
-        result = {k: self._index.take(v) for k, v in zip(uniques, _result)}
+        result = {k: self._index.take(v) for k, v in zip(uniques, _result, strict=True)}
 
         return PrettyDict(result)
 
@@ -875,7 +880,7 @@ def get_grouper(
             return gpr._mgr.references_same_values(obj_gpr_column._mgr, 0)
         return False
 
-    for gpr, level in zip(keys, levels):
+    for gpr, level in zip(keys, levels, strict=True):
         if is_in_obj(gpr):  # df.groupby(df['name'])
             in_axis = True
             exclusions.add(gpr.name)

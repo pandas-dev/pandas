@@ -15,7 +15,8 @@ import numpy as np
 
 from pandas._libs.indexing import NDFrameIndexerBase
 from pandas._libs.lib import item_from_zerodim
-from pandas.compat import PYPY
+from pandas.compat import CHAINED_WARNING_DISABLED
+from pandas.compat._constants import REF_COUNT_IDX
 from pandas.errors import (
     AbstractMethodError,
     ChainedAssignmentError,
@@ -24,7 +25,9 @@ from pandas.errors import (
     LossySetitemError,
 )
 from pandas.errors.cow import _chained_assignment_msg
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    doc,
+)
 
 from pandas.core.dtypes.cast import (
     can_hold_element,
@@ -145,6 +148,7 @@ class _IndexSlice:
 
 
 IndexSlice = _IndexSlice()
+IndexSlice.__module__ = "pandas"
 
 
 class IndexingMixin:
@@ -785,8 +789,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         if (
             isinstance(ax, MultiIndex)
             and self.name != "iloc"
-            and is_hashable(key)
-            and not isinstance(key, slice)
+            and is_hashable(key, allow_slice=False)
         ):
             with suppress(KeyError, InvalidIndexError):
                 # TypeError e.g. passed a bool
@@ -891,7 +894,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         ):
             # GH#38148
             keys = self.obj.columns.union(key, sort=False)
-            diff = Index(key).difference(self.obj.columns, sort=False)
+            diff = Index(key, copy=False).difference(self.obj.columns, sort=False)
 
             if len(diff):
                 # e.g. if we are doing df.loc[:, ["A", "B"]] = 7 and "B"
@@ -913,8 +916,8 @@ class _LocationIndexer(NDFrameIndexerBase):
 
     @final
     def __setitem__(self, key, value) -> None:
-        if not PYPY:
-            if sys.getrefcount(self.obj) <= 2:
+        if not CHAINED_WARNING_DISABLED:
+            if sys.getrefcount(self.obj) <= REF_COUNT_IDX:
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
                 )
@@ -971,7 +974,7 @@ class _LocationIndexer(NDFrameIndexerBase):
                 #  treat as a single null slice.
                 i = tup.index(Ellipsis)
                 # FIXME: this assumes only one Ellipsis
-                new_key = tup[:i] + (_NS,) + tup[i + 1 :]
+                new_key = (*tup[:i], _NS, *tup[i + 1 :])
                 return new_key
 
             # TODO: other cases?  only one test gets here, and that is covered
@@ -1083,7 +1086,7 @@ class _LocationIndexer(NDFrameIndexerBase):
 
         # Reverse tuple so that we are indexing along columns before rows
         # and avoid unintended dtype inference. # GH60600
-        for i, key in zip(range(len(tup) - 1, -1, -1), reversed(tup)):
+        for i, key in zip(range(len(tup) - 1, -1, -1), reversed(tup), strict=True):
             if is_label_like(key) or is_list_like(key):
                 # We don't need to check for tuples here because those are
                 #  caught by the _is_nested_tuple_indexer check above.
@@ -1095,7 +1098,7 @@ class _LocationIndexer(NDFrameIndexerBase):
                 if section.ndim == self.ndim:
                     # we're in the middle of slicing through a MultiIndex
                     # revise the key wrt to `section` by inserting an _NS
-                    new_key = tup[:i] + (_NS,) + tup[i + 1 :]
+                    new_key = (*tup[:i], _NS, *tup[i + 1 :])
 
                 else:
                     # Note: the section.ndim == self.ndim check above
@@ -1120,14 +1123,6 @@ class _LocationIndexer(NDFrameIndexerBase):
         # we have a nested tuple so have at least 1 multi-index level
         # we should be able to match up the dimensionality here
 
-        def _contains_slice(x: object) -> bool:
-            # Check if object is a slice or a tuple containing a slice
-            if isinstance(x, tuple):
-                return any(isinstance(v, slice) for v in x)
-            elif isinstance(x, slice):
-                return True
-            return False
-
         for key in tup:
             check_dict_or_set_indexers(key)
 
@@ -1139,8 +1134,7 @@ class _LocationIndexer(NDFrameIndexerBase):
                 # This should never be reached, but let's be explicit about it
                 raise ValueError("Too many indices")  # pragma: no cover
             if all(
-                (is_hashable(x) and not _contains_slice(x)) or com.is_null_slice(x)
-                for x in tup
+                is_hashable(x, allow_slice=False) or com.is_null_slice(x) for x in tup
             ):
                 # GH#10521 Series should reduce MultiIndex dimensions instead of
                 #  DataFrame, IndexingError is not raised when slice(None,None,None)
@@ -1349,7 +1343,7 @@ class _LocIndexer(_LocationIndexer):
         # GH 836
         d = {
             axis: self._get_listlike_indexer(key, axis)
-            for (key, axis) in zip(tup, self.obj._AXIS_ORDERS)
+            for (key, axis) in zip(tup, self.obj._AXIS_ORDERS, strict=True)
         }
         return self.obj._reindex_with_indexers(d, allow_dups=True)
 
@@ -1476,7 +1470,7 @@ class _LocIndexer(_LocationIndexer):
     def _convert_to_indexer(self, key, axis: AxisInt):
         """
         Convert indexing key into something we can use to do actual fancy
-        indexing on a ndarray.
+        indexing on an ndarray.
 
         Examples
         ix[:5] -> slice(0, 5)
@@ -1661,7 +1655,7 @@ class _iLocIndexer(_LocationIndexer):
         if not isinstance(indexer, tuple):
             indexer = _tuplify(self.ndim, indexer)
 
-        for ax, i in zip(self.obj.axes, indexer):
+        for ax, i in zip(self.obj.axes, indexer, strict=False):
             if isinstance(i, slice):
                 # should check the stop slice?
                 pass
@@ -1809,21 +1803,10 @@ class _iLocIndexer(_LocationIndexer):
 
     # -------------------------------------------------------------------
 
-    def _setitem_with_indexer(self, indexer, value, name: str = "iloc") -> None:
+    def _decide_split_path(self, indexer, value) -> bool:
         """
-        _setitem_with_indexer is for setting values on a Series/DataFrame
-        using positional indexers.
-
-        If the relevant keys are not present, the Series/DataFrame may be
-        expanded.
-
-        This method is currently broken when dealing with non-unique Indexes,
-        since it goes from positional indexers back to labels when calling
-        BlockManager methods, see GH#12991, GH#22046, GH#15686.
+        Decide whether we will take a block-by-block path.
         """
-        info_axis = self.obj._info_axis_number
-
-        # maybe partial set
         take_split_path = not self.obj._mgr.is_single_block
 
         if not take_split_path and isinstance(value, ABCDataFrame):
@@ -1844,84 +1827,95 @@ class _iLocIndexer(_LocationIndexer):
         # (not null slices) then we must take the split path, xref
         # GH 10360, GH 27841
         if isinstance(indexer, tuple) and len(indexer) == len(self.obj.axes):
-            for i, ax in zip(indexer, self.obj.axes):
+            for i, ax in zip(indexer, self.obj.axes, strict=True):
                 if isinstance(ax, MultiIndex) and not (
                     is_integer(i) or com.is_null_slice(i)
                 ):
                     take_split_path = True
                     break
 
+        return take_split_path
+
+    def _setitem_new_column(self, indexer, key, value, name: str) -> None:
+        """
+        _setitem_with_indexer cases that can go through DataFrame.__setitem__.
+        """
+        # add the new item, and set the value
+        # must have all defined axes if we have a scalar
+        # or a list-like on the non-info axes if we have a
+        # list-like
+        if not len(self.obj):
+            if not is_list_like_indexer(value):
+                raise ValueError(
+                    "cannot set a frame with no defined index and a scalar"
+                )
+            self.obj[key] = value
+            return
+
+        # add a new item with the dtype setup
+        if com.is_null_slice(indexer[0]):
+            # We are setting an entire column
+            self.obj[key] = value
+            return
+        elif is_array_like(value):
+            # GH#42099
+            arr = extract_array(value, extract_numpy=True)
+            taker = -1 * np.ones(len(self.obj), dtype=np.intp)
+            empty_value = algos.take_nd(arr, taker)
+            if not isinstance(value, ABCSeries):
+                # if not Series (in which case we need to align),
+                #  we can short-circuit
+                if isinstance(arr, np.ndarray) and arr.ndim == 1 and len(arr) == 1:
+                    # NumPy 1.25 deprecation: https://github.com/numpy/numpy/pull/10615
+                    arr = arr[0, ...]
+                empty_value[indexer[0]] = arr
+                self.obj[key] = empty_value
+                return
+
+            self.obj[key] = empty_value
+        elif not is_list_like(value):
+            self.obj[key] = construct_1d_array_from_inferred_fill_value(
+                value, len(self.obj)
+            )
+        else:
+            # FIXME: GH#42099#issuecomment-864326014
+            self.obj[key] = infer_fill_value(value)
+
+        new_indexer = convert_from_missing_indexer_tuple(indexer, self.obj.axes)
+        self._setitem_with_indexer(new_indexer, value, name)
+
+        return
+
+    def _setitem_with_indexer(self, indexer, value, name: str = "iloc") -> None:
+        """
+        _setitem_with_indexer is for setting values on a Series/DataFrame
+        using positional indexers.
+
+        If the relevant keys are not present, the Series/DataFrame may be
+        expanded.
+        """
+        info_axis = self.obj._info_axis_number
+        take_split_path = self._decide_split_path(indexer, value)
+
         if isinstance(indexer, tuple):
             nindexer = []
             for i, idx in enumerate(indexer):
-                if isinstance(idx, dict):
+                idx, missing = convert_missing_indexer(idx)
+                if missing:
                     # reindex the axis to the new value
                     # and set inplace
-                    key, _ = convert_missing_indexer(idx)
+                    key = idx
 
                     # if this is the items axes, then take the main missing
                     # path first
-                    # this correctly sets the dtype and avoids cache issues
+                    # this correctly sets the dtype
                     # essentially this separates out the block that is needed
                     # to possibly be modified
                     if self.ndim > 1 and i == info_axis:
-                        # add the new item, and set the value
-                        # must have all defined axes if we have a scalar
-                        # or a list-like on the non-info axes if we have a
-                        # list-like
-                        if not len(self.obj):
-                            if not is_list_like_indexer(value):
-                                raise ValueError(
-                                    "cannot set a frame with no "
-                                    "defined index and a scalar"
-                                )
-                            self.obj[key] = value
-                            return
-
-                        # add a new item with the dtype setup
-                        if com.is_null_slice(indexer[0]):
-                            # We are setting an entire column
-                            self.obj[key] = value
-                            return
-                        elif is_array_like(value):
-                            # GH#42099
-                            arr = extract_array(value, extract_numpy=True)
-                            taker = -1 * np.ones(len(self.obj), dtype=np.intp)
-                            empty_value = algos.take_nd(arr, taker)
-                            if not isinstance(value, ABCSeries):
-                                # if not Series (in which case we need to align),
-                                #  we can short-circuit
-                                if (
-                                    isinstance(arr, np.ndarray)
-                                    and arr.ndim == 1
-                                    and len(arr) == 1
-                                ):
-                                    # NumPy 1.25 deprecation: https://github.com/numpy/numpy/pull/10615
-                                    arr = arr[0, ...]
-                                empty_value[indexer[0]] = arr
-                                self.obj[key] = empty_value
-                                return
-
-                            self.obj[key] = empty_value
-                        elif not is_list_like(value):
-                            self.obj[key] = construct_1d_array_from_inferred_fill_value(
-                                value, len(self.obj)
-                            )
-                        else:
-                            # FIXME: GH#42099#issuecomment-864326014
-                            self.obj[key] = infer_fill_value(value)
-
-                        new_indexer = convert_from_missing_indexer_tuple(
-                            indexer, self.obj.axes
-                        )
-                        self._setitem_with_indexer(new_indexer, value, name)
-
+                        self._setitem_new_column(indexer, key, value, name=name)
                         return
 
                     # reindex the axis
-                    # make sure to clear the cache because we are
-                    # just replacing the block manager here
-                    # so the object is the same
                     index = self.obj._get_axis(i)
                     labels = index.insert(len(index), key)
 
@@ -1987,7 +1981,7 @@ class _iLocIndexer(_LocationIndexer):
         lplane_indexer = length_of_indexer(pi, self.obj.index)
         # lplane_indexer gives the expected length of obj[indexer[0]]
 
-        # we need an iterable, with a ndim of at least 1
+        # we need an iterable, with an ndim of at least 1
         # eg. don't pass through np.array(0)
         if is_list_like_indexer(value) and getattr(value, "ndim", 1) > 0:
             if isinstance(value, ABCDataFrame):
@@ -2017,7 +2011,7 @@ class _iLocIndexer(_LocationIndexer):
                 )
 
             elif lplane_indexer == 0 and len(value) == len(self.obj.index):
-                # We get here in one case via .loc with a all-False mask
+                # We get here in one case via .loc with an all-False mask
                 pass
 
             elif self._is_scalar_access(indexer) and is_object_dtype(
@@ -2028,7 +2022,7 @@ class _iLocIndexer(_LocationIndexer):
 
             elif len(ilocs) == len(value):
                 # We are setting multiple columns in a single row.
-                for loc, v in zip(ilocs, value):
+                for loc, v in zip(ilocs, value, strict=True):
                     self._setitem_single_column(loc, v, pi)
 
             elif len(ilocs) == 1 and com.is_null_slice(pi) and len(self.obj) == 0:
@@ -2548,8 +2542,72 @@ class _ScalarAccessIndexer(NDFrameIndexerBase):
         self.obj._set_value(*key, value=value, takeable=self._takeable)
 
 
-@doc(IndexingMixin.at)
 class _AtIndexer(_ScalarAccessIndexer):
+    """
+    Access a single value for a row/column label pair.
+
+    Similar to ``loc``, in that both provide label-based lookups. Use
+    ``at`` if you only need to get or set a single value in a DataFrame
+    or Series.
+
+    Raises
+    ------
+    KeyError
+        If getting a value and 'label' does not exist in a DataFrame or Series.
+
+    ValueError
+        If row/column label pair is not a tuple or if any label
+        from the pair is not a scalar for DataFrame.
+        If label is list-like (*excluding* NamedTuple) for Series.
+
+    See Also
+    --------
+    DataFrame.at : Access a single value for a row/column pair by label.
+    DataFrame.iat : Access a single value for a row/column pair by integer
+        position.
+    DataFrame.loc : Access a group of rows and columns by label(s).
+    DataFrame.iloc : Access a group of rows and columns by integer
+        position(s).
+    Series.at : Access a single value by label.
+    Series.iat : Access a single value by integer position.
+    Series.loc : Access a group of rows by label(s).
+    Series.iloc : Access a group of rows by integer position(s).
+
+    Notes
+    -----
+    See :ref:`Fast scalar value getting and setting <indexing.basics.get_value>`
+    for more details.
+
+    Examples
+    --------
+    >>> df = pd.DataFrame(
+    ...     [[0, 2, 3], [0, 4, 1], [10, 20, 30]],
+    ...     index=[4, 5, 6],
+    ...     columns=["A", "B", "C"],
+    ... )
+    >>> df
+        A   B   C
+    4   0   2   3
+    5   0   4   1
+    6  10  20  30
+
+    Get value at specified row/column pair
+
+    >>> df.at[4, "B"]
+    np.int64(2)
+
+    Set value at specified row/column pair
+
+    >>> df.at[4, "B"] = 10
+    >>> df.at[4, "B"]
+    np.int64(10)
+
+    Get value within a Series
+
+    >>> df.loc[5].at["B"]
+    np.int64(4)
+    """
+
     _takeable = False
 
     def _convert_key(self, key):
@@ -2581,8 +2639,8 @@ class _AtIndexer(_ScalarAccessIndexer):
         return super().__getitem__(key)
 
     def __setitem__(self, key, value) -> None:
-        if not PYPY:
-            if sys.getrefcount(self.obj) <= 2:
+        if not CHAINED_WARNING_DISABLED:
+            if sys.getrefcount(self.obj) <= REF_COUNT_IDX:
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
                 )
@@ -2598,8 +2656,51 @@ class _AtIndexer(_ScalarAccessIndexer):
         return super().__setitem__(key, value)
 
 
-@doc(IndexingMixin.iat)
 class _iAtIndexer(_ScalarAccessIndexer):
+    """
+    Access a single value for a row/column pair by integer position.
+
+    Similar to ``iloc``, in that both provide integer-based lookups. Use
+    ``iat`` if you only need to get or set a single value in a DataFrame
+    or Series.
+
+    Raises
+    ------
+    IndexError
+        When integer position is out of bounds.
+
+    See Also
+    --------
+    DataFrame.at : Access a single value for a row/column label pair.
+    DataFrame.loc : Access a group of rows and columns by label(s).
+    DataFrame.iloc : Access a group of rows and columns by integer position(s).
+
+    Examples
+    --------
+    >>> df = pd.DataFrame([[0, 2, 3], [0, 4, 1], [10, 20, 30]], columns=["A", "B", "C"])
+    >>> df
+        A   B   C
+    0   0   2   3
+    1   0   4   1
+    2  10  20  30
+
+    Get value at specified row/column pair
+
+    >>> df.iat[1, 2]
+    np.int64(1)
+
+    Set value at specified row/column pair
+
+    >>> df.iat[1, 2] = 10
+    >>> df.iat[1, 2]
+    np.int64(10)
+
+    Get value within a series
+
+    >>> df.loc[0].iat[1]
+    np.int64(2)
+    """
+
     _takeable = True
 
     def _convert_key(self, key):
@@ -2612,8 +2713,8 @@ class _iAtIndexer(_ScalarAccessIndexer):
         return key
 
     def __setitem__(self, key, value) -> None:
-        if not PYPY:
-            if sys.getrefcount(self.obj) <= 2:
+        if not CHAINED_WARNING_DISABLED:
+            if sys.getrefcount(self.obj) <= REF_COUNT_IDX:
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
                 )
@@ -2718,7 +2819,7 @@ def convert_missing_indexer(indexer):
     return indexer, False
 
 
-def convert_from_missing_indexer_tuple(indexer, axes):
+def convert_from_missing_indexer_tuple(indexer: tuple, axes: list[Index]) -> tuple:
     """
     Create a filtered indexer that doesn't have any missing indexers.
     """

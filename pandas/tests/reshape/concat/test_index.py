@@ -190,21 +190,6 @@ class TestIndexConcat:
         tm.assert_frame_equal(result.iloc[:10], df)
         tm.assert_frame_equal(result.iloc[10:], df)
 
-        # append
-        result = df.iloc[0:8, :]._append_internal(df.iloc[8:])
-        tm.assert_frame_equal(result, df)
-
-        result = (
-            df.iloc[0:8, :]
-            ._append_internal(df.iloc[8:9])
-            ._append_internal(df.iloc[9:10])
-        )
-        tm.assert_frame_equal(result, df)
-
-        expected = concat([df, df], axis=0)
-        result = df._append_internal(df)
-        tm.assert_frame_equal(result, expected)
-
 
 class TestMultiIndexConcat:
     def test_concat_multiindex_with_keys(self, multiindex_dataframe_random_data):
@@ -212,7 +197,7 @@ class TestMultiIndexConcat:
         index = frame.index
         result = concat([frame, frame], keys=[0, 1], names=["iteration"])
 
-        assert result.index.names == ("iteration",) + index.names
+        assert result.index.names == ("iteration", *index.names)
         tm.assert_frame_equal(result.loc[0], frame)
         tm.assert_frame_equal(result.loc[1], frame)
         assert result.index.nlevels == 3

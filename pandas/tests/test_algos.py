@@ -1446,6 +1446,19 @@ class TestValueCounts:
         )
         tm.assert_series_equal(result, expected)
 
+    def test_value_counts_stability(self):
+        # GH 63155
+        arr = np.random.default_rng(2).integers(0, 32, 64)
+        result = algos.value_counts_internal(arr, sort=True)
+
+        value_counts = Series(arr).value_counts(sort=False)
+        expected = value_counts.sort_values(ascending=False, kind="stable")
+        tm.assert_series_equal(result, expected)
+
+        unstable_sorted = value_counts.sort_values(ascending=False, kind="quicksort")
+        with pytest.raises(AssertionError):
+            tm.assert_series_equal(result, unstable_sorted)
+
 
 class TestDuplicated:
     def test_duplicated_with_nas(self):
@@ -1469,7 +1482,7 @@ class TestDuplicated:
 
         keys = np.empty(8, dtype=object)
         for i, t in enumerate(
-            zip([0, 0, np.nan, np.nan] * 2, [0, np.nan, 0, np.nan] * 2)
+            zip([0, 0, np.nan, np.nan] * 2, [0, np.nan, 0, np.nan] * 2, strict=True)
         ):
             keys[i] = t
 
@@ -1818,6 +1831,18 @@ class TestRank:
 
         s = Series([1, 2**63], dtype=dtype)
         tm.assert_numpy_array_equal(algos.rank(s), exp)
+
+    @pytest.mark.parametrize("method", ["average", "min", "max"])
+    def test_rank_tiny_values(self, method):
+        # GH62036: regression test for ranking with tiny float values
+        exp = np.array([4.0, 1.0, 3.0, np.nan, 2.0], dtype=np.float64)
+        s = Series(
+            [5.4954145e29, -9.791984e-21, 9.3715776e-26, pd.NA, 1.8790257e-28],
+            dtype="Float64",
+        )
+        s = s.astype(object)
+        result = algos.rank(s, method=method)
+        tm.assert_numpy_array_equal(result, exp)
 
     def test_too_many_ndims(self):
         arr = np.array([[[1, 2, 3], [4, 5, 6], [7, 8, 9]]])

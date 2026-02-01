@@ -14,6 +14,7 @@ from pandas._libs import (
     lib,
     missing as libmissing,
 )
+from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.dtypes import register_extension_dtype
@@ -39,14 +40,20 @@ if TYPE_CHECKING:
 
 
 @register_extension_dtype
+@set_module("pandas")
 class BooleanDtype(BaseMaskedDtype):
     """
     Extension dtype for boolean data.
 
+    This is a pandas Extension dtype for boolean data with support for
+    missing values. BooleanDtype is the dtype companion to :class:`.BooleanArray`,
+    which implements Kleene logic (sometimes called three-value logic) for
+    logical operations. See :ref:`boolean.kleene` for more.
+
     .. warning::
 
-       BooleanDtype is considered experimental. The implementation and
-       parts of the API may change without warning.
+        BooleanDtype is considered experimental. The implementation and
+        parts of the API may change without warning.
 
     Attributes
     ----------
@@ -58,12 +65,24 @@ class BooleanDtype(BaseMaskedDtype):
 
     See Also
     --------
+    arrays.BooleanArray : Array of boolean (True/False) data with missing values.
+    Int64Dtype : Extension dtype for int64 integer data.
     StringDtype : Extension dtype for string data.
 
     Examples
     --------
     >>> pd.BooleanDtype()
     BooleanDtype
+
+    >>> pd.array([True, False, None], dtype=pd.BooleanDtype())
+    <BooleanArray>
+    [True, False, <NA>]
+    Length: 3, dtype: boolean
+
+    >>> pd.array([True, False, None], dtype="boolean")
+    <BooleanArray>
+    [True, False, <NA>]
+    Length: 3, dtype: boolean
     """
 
     name: ClassVar[str] = "boolean"
@@ -203,7 +222,7 @@ def coerce_to_array(
 
         inferred_dtype = lib.infer_dtype(values_object, skipna=True)
         integer_like = ("floating", "integer", "mixed-integer-float")
-        if inferred_dtype not in ("boolean", "empty") + integer_like:
+        if inferred_dtype not in ("boolean", "empty", *integer_like):
             raise TypeError("Need to pass bool-like values")
 
         # mypy does not narrow the type of mask_values to npt.NDArray[np.bool_]
@@ -225,17 +244,15 @@ def coerce_to_array(
         mask = np.zeros(values.shape, dtype=bool)
     elif mask is None:
         mask = mask_values
+    elif isinstance(mask, np.ndarray) and mask.dtype == np.bool_:
+        if mask_values is not None:
+            mask = mask | mask_values
+        elif copy:
+            mask = mask.copy()
     else:
-        if isinstance(mask, np.ndarray) and mask.dtype == np.bool_:
-            if mask_values is not None:
-                mask = mask | mask_values
-            else:
-                if copy:
-                    mask = mask.copy()
-        else:
-            mask = np.array(mask, dtype=bool)
-            if mask_values is not None:
-                mask = mask | mask_values
+        mask = np.array(mask, dtype=bool)
+        if mask_values is not None:
+            mask = mask | mask_values
 
     if values.shape != mask.shape:
         raise ValueError("values.shape and mask.shape must match")
@@ -243,6 +260,7 @@ def coerce_to_array(
     return values, mask
 
 
+@set_module("pandas.arrays")
 class BooleanArray(BaseMaskedArray):
     """
     Array of boolean (True/False) data with missing values.
@@ -254,7 +272,7 @@ class BooleanArray(BaseMaskedArray):
     BooleanArray implements Kleene logic (sometimes called three-value
     logic) for logical operations. See :ref:`boolean.kleene` for more.
 
-    To construct an BooleanArray from generic array-like input, use
+    To construct a BooleanArray from generic array-like input, use
     :func:`pandas.array` specifying ``dtype="boolean"`` (see examples
     below).
 
@@ -294,7 +312,7 @@ class BooleanArray(BaseMaskedArray):
 
     Examples
     --------
-    Create an BooleanArray with :func:`pandas.array`:
+    Create a BooleanArray with :func:`pandas.array`:
 
     >>> pd.array([True, False, None], dtype="boolean")
     <BooleanArray>

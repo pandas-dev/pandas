@@ -17,6 +17,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
+from pandas.compat import PY314
 from pandas.errors import (
     OutOfBoundsDatetime,
     Pandas4Warning,
@@ -48,10 +49,10 @@ class TestTimestampConstructorUnitKeyword:
 
     @pytest.mark.parametrize("typ", [int, float])
     def test_construct_from_int_float_with_unit_out_of_bound_raises(self, typ):
-        # GH#50870  make sure we get a OutOfBoundsDatetime instead of OverflowError
+        # GH#50870  make sure we get an OutOfBoundsDatetime instead of OverflowError
         val = typ(150000000000000)
 
-        msg = f"cannot convert input {val} with the unit 'D'"
+        msg = f"cannot convert input {int(val)} with the unit 'D'"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             Timestamp(val, unit="D")
 
@@ -221,7 +222,10 @@ class TestTimestampConstructorPositionalAndKeywordSupport:
         with pytest.raises(ValueError, match=msg):
             Timestamp(2000, 13, 1)
 
-        msg = "day is out of range for month"
+        if PY314:
+            msg = "must be in range 1..31 for month 1 in year 2000"
+        else:
+            msg = "day is out of range for month"
         with pytest.raises(ValueError, match=msg):
             Timestamp(2000, 1, 0)
         with pytest.raises(ValueError, match=msg):
@@ -245,7 +249,10 @@ class TestTimestampConstructorPositionalAndKeywordSupport:
         with pytest.raises(ValueError, match=msg):
             Timestamp(year=2000, month=13, day=1)
 
-        msg = "day is out of range for month"
+        if PY314:
+            msg = "must be in range 1..31 for month 1 in year 2000"
+        else:
+            msg = "day is out of range for month"
         with pytest.raises(ValueError, match=msg):
             Timestamp(year=2000, month=1, day=0)
         with pytest.raises(ValueError, match=msg):
@@ -427,31 +434,31 @@ class TestTimestampResolutionInference:
     def test_construct_from_time_unit(self):
         # GH#54097 only passing a time component, no date
         ts = Timestamp("01:01:01.111")
-        assert ts.unit == "ms"
+        assert ts.unit == "us"
 
     def test_constructor_str_infer_reso(self):
         # non-iso8601 path
 
         # _parse_delimited_date path
         ts = Timestamp("01/30/2023")
-        assert ts.unit == "s"
+        assert ts.unit == "us"
 
         # _parse_dateabbr_string path
         ts = Timestamp("2015Q1")
-        assert ts.unit == "s"
+        assert ts.unit == "us"
 
         # dateutil_parse path
         ts = Timestamp("2016-01-01 1:30:01 PM")
-        assert ts.unit == "s"
+        assert ts.unit == "us"
 
         ts = Timestamp("2016 June 3 15:25:01.345")
-        assert ts.unit == "ms"
+        assert ts.unit == "us"
 
         ts = Timestamp("300-01-01")
-        assert ts.unit == "s"
+        assert ts.unit == "us"
 
         ts = Timestamp("300 June 1:30:01.300")
-        assert ts.unit == "ms"
+        assert ts.unit == "us"
 
         # dateutil path -> don't drop trailing zeros
         ts = Timestamp("01-01-2013T00:00:00.000000000+0000")
@@ -467,10 +474,10 @@ class TestTimestampResolutionInference:
 
         # GH#56208 minute reso through the ISO8601 path with tz offset
         ts = Timestamp("2020-01-01 00:00+00:00")
-        assert ts.unit == "s"
+        assert ts.unit == "us"
 
         ts = Timestamp("2020-01-01 00+00:00")
-        assert ts.unit == "s"
+        assert ts.unit == "us"
 
     @pytest.mark.parametrize("method", ["now", "today"])
     def test_now_today_unit(self, method):
@@ -507,10 +514,10 @@ class TestTimestampConstructors:
     def test_constructor_from_iso8601_str_with_offset_reso(self):
         # GH#49737
         ts = Timestamp("2016-01-01 04:05:06-01:00")
-        assert ts.unit == "s"
+        assert ts.unit == "us"
 
         ts = Timestamp("2016-01-01 04:05:06.000-01:00")
-        assert ts.unit == "ms"
+        assert ts.unit == "us"
 
         ts = Timestamp("2016-01-01 04:05:06.000000-01:00")
         assert ts.unit == "us"
@@ -823,10 +830,10 @@ class TestTimestampConstructors:
             Timestamp("2263-01-01").as_unit("ns")
 
         ts = Timestamp("2263-01-01")
-        assert ts.unit == "s"
+        assert ts.unit == "us"
 
         ts = Timestamp("1676-01-01")
-        assert ts.unit == "s"
+        assert ts.unit == "us"
 
     def test_barely_out_of_bounds(self):
         # GH#19529
@@ -836,7 +843,6 @@ class TestTimestampConstructors:
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             Timestamp("2262-04-11 23:47:16.854775808")
 
-    @pytest.mark.skip_ubsan
     def test_bounds_with_different_units(self):
         out_of_bounds_dates = ("1677-09-21", "2262-04-12")
 
@@ -877,7 +883,7 @@ class TestTimestampConstructors:
             Timestamp(arg).as_unit("ns")
 
         ts = Timestamp(arg)
-        assert ts.unit == "s"
+        assert ts.unit == "us"
         assert ts.year == ts.month == ts.day == 1
 
     def test_min_valid(self):
@@ -1070,7 +1076,9 @@ def test_timestamp_nano_range(nano):
 
 def test_non_nano_value():
     # https://github.com/pandas-dev/pandas/issues/49076
-    result = Timestamp("1800-01-01", unit="s").value
+    msg = "The 'unit' keyword is only used when"
+    with tm.assert_produces_warning(UserWarning, match=msg):
+        result = Timestamp("1800-01-01", unit="s").value
     # `.value` shows nanoseconds, even though unit is 's'
     assert result == -5364662400000000000
 
@@ -1078,14 +1086,15 @@ def test_non_nano_value():
     msg = (
         r"Cannot convert Timestamp to nanoseconds without overflow. "
         r"Use `.asm8.view\('i8'\)` to cast represent Timestamp in its "
-        r"own unit \(here, s\).$"
+        r"own unit \(here, us\).$"
     )
     ts = Timestamp("0300-01-01")
+    assert ts.unit == "us"
     with pytest.raises(OverflowError, match=msg):
         ts.value
     # check that the suggested workaround actually works
     result = ts.asm8.view("i8")
-    assert result == -52700112000
+    assert result == -52_700_112_000 * 10**6
 
 
 @pytest.mark.parametrize("na_value", [None, np.nan, np.datetime64("NaT"), NaT, NA])

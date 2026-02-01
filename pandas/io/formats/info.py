@@ -32,17 +32,6 @@ if TYPE_CHECKING:
         Series,
     )
 
-
-frame_max_cols_sub = dedent(
-    """\
-    max_cols : int, optional
-        When to switch from the verbose to the truncated output. If the
-        DataFrame has more than `max_cols` columns, the truncated output
-        is used. By default, the setting in
-        ``pandas.options.display.max_info_columns`` is used."""
-)
-
-
 show_counts_sub = dedent(
     """\
     show_counts : bool, optional
@@ -52,112 +41,6 @@ show_counts_sub = dedent(
         ``pandas.options.display.max_info_columns``. A value of True always
         shows the counts, and False never shows the counts."""
 )
-
-
-frame_examples_sub = dedent(
-    """\
-    >>> int_values = [1, 2, 3, 4, 5]
-    >>> text_values = ['alpha', 'beta', 'gamma', 'delta', 'epsilon']
-    >>> float_values = [0.0, 0.25, 0.5, 0.75, 1.0]
-    >>> df = pd.DataFrame({"int_col": int_values, "text_col": text_values,
-    ...                   "float_col": float_values})
-    >>> df
-        int_col text_col  float_col
-    0        1    alpha       0.00
-    1        2     beta       0.25
-    2        3    gamma       0.50
-    3        4    delta       0.75
-    4        5  epsilon       1.00
-
-    Prints information of all columns:
-
-    >>> df.info(verbose=True)
-    <class 'pandas.DataFrame'>
-    RangeIndex: 5 entries, 0 to 4
-    Data columns (total 3 columns):
-     #   Column     Non-Null Count  Dtype
-    ---  ------     --------------  -----
-     0   int_col    5 non-null      int64
-     1   text_col   5 non-null      object
-     2   float_col  5 non-null      float64
-    dtypes: float64(1), int64(1), object(1)
-    memory usage: 248.0+ bytes
-
-    Prints a summary of columns count and its dtypes but not per column
-    information:
-
-    >>> df.info(verbose=False)
-    <class 'pandas.DataFrame'>
-    RangeIndex: 5 entries, 0 to 4
-    Columns: 3 entries, int_col to float_col
-    dtypes: float64(1), int64(1), object(1)
-    memory usage: 248.0+ bytes
-
-    Pipe output of DataFrame.info to buffer instead of sys.stdout, get
-    buffer content and writes to a text file:
-
-    >>> import io
-    >>> buffer = io.StringIO()
-    >>> df.info(buf=buffer)
-    >>> s = buffer.getvalue()
-    >>> with open("df_info.txt", "w",
-    ...           encoding="utf-8") as f:  # doctest: +SKIP
-    ...     f.write(s)
-    260
-
-    The `memory_usage` parameter allows deep introspection mode, specially
-    useful for big DataFrames and fine-tune memory optimization:
-
-    >>> random_strings_array = np.random.choice(['a', 'b', 'c'], 10 ** 6)
-    >>> df = pd.DataFrame({
-    ...     'column_1': np.random.choice(['a', 'b', 'c'], 10 ** 6),
-    ...     'column_2': np.random.choice(['a', 'b', 'c'], 10 ** 6),
-    ...     'column_3': np.random.choice(['a', 'b', 'c'], 10 ** 6)
-    ... })
-    >>> df.info()
-    <class 'pandas.DataFrame'>
-    RangeIndex: 1000000 entries, 0 to 999999
-    Data columns (total 3 columns):
-     #   Column    Non-Null Count    Dtype
-    ---  ------    --------------    -----
-     0   column_1  1000000 non-null  object
-     1   column_2  1000000 non-null  object
-     2   column_3  1000000 non-null  object
-    dtypes: object(3)
-    memory usage: 22.9+ MB
-
-    >>> df.info(memory_usage='deep')
-    <class 'pandas.DataFrame'>
-    RangeIndex: 1000000 entries, 0 to 999999
-    Data columns (total 3 columns):
-     #   Column    Non-Null Count    Dtype
-    ---  ------    --------------    -----
-     0   column_1  1000000 non-null  object
-     1   column_2  1000000 non-null  object
-     2   column_3  1000000 non-null  object
-    dtypes: object(3)
-    memory usage: 165.9 MB"""
-)
-
-
-frame_see_also_sub = dedent(
-    """\
-    DataFrame.describe: Generate descriptive statistics of DataFrame
-        columns.
-    DataFrame.memory_usage: Memory usage of DataFrame columns."""
-)
-
-
-frame_sub_kwargs = {
-    "klass": "DataFrame",
-    "type_sub": " and columns",
-    "max_cols_sub": frame_max_cols_sub,
-    "show_counts_sub": show_counts_sub,
-    "examples_sub": frame_examples_sub,
-    "see_also_sub": frame_see_also_sub,
-    "version_added_sub": "",
-}
-
 
 series_examples_sub = dedent(
     """\
@@ -242,57 +125,6 @@ series_sub_kwargs = {
     "see_also_sub": series_see_also_sub,
     "version_added_sub": "\n.. versionadded:: 1.4.0\n",
 }
-
-
-INFO_DOCSTRING = dedent(
-    """
-    Print a concise summary of a {klass}.
-
-    This method prints information about a {klass} including
-    the index dtype{type_sub}, non-NA values and memory usage.
-    {version_added_sub}\
-
-    Parameters
-    ----------
-    verbose : bool, optional
-        Whether to print the full summary. By default, the setting in
-        ``pandas.options.display.max_info_columns`` is followed.
-    buf : writable buffer, defaults to sys.stdout
-        Where to send the output. By default, the output is printed to
-        sys.stdout. Pass a writable buffer if you need to further process
-        the output.
-    {max_cols_sub}
-    memory_usage : bool, str, optional
-        Specifies whether total memory usage of the {klass}
-        elements (including the index) should be displayed. By default,
-        this follows the ``pandas.options.display.memory_usage`` setting.
-
-        True always show memory usage. False never shows memory usage.
-        A value of 'deep' is equivalent to "True with deep introspection".
-        Memory usage is shown in human-readable units (base-2
-        representation). Without deep introspection a memory estimation is
-        made based in column dtype and number of rows assuming values
-        consume the same memory amount for corresponding dtypes. With deep
-        memory introspection, a real memory usage calculation is performed
-        at the cost of computational resources. See the
-        :ref:`Frequently Asked Questions <df-memory-usage>` for more
-        details.
-    {show_counts_sub}
-
-    Returns
-    -------
-    None
-        This method prints a summary of a {klass} and returns None.
-
-    See Also
-    --------
-    {see_also_sub}
-
-    Examples
-    --------
-    {examples_sub}
-    """
-)
 
 
 def _put_str(s: str | Dtype, space: int) -> str:
@@ -868,12 +700,14 @@ class _TableBuilderVerboseMixin(_TableBuilderAbstract):
         body_column_widths = self._get_body_column_widths()
         return [
             max(*widths)
-            for widths in zip(self.header_column_widths, body_column_widths)
+            for widths in zip(
+                self.header_column_widths, body_column_widths, strict=False
+            )
         ]
 
     def _get_body_column_widths(self) -> Sequence[int]:
         """Get widths of table content columns."""
-        strcols: Sequence[Sequence[str]] = list(zip(*self.strrows))
+        strcols: Sequence[Sequence[str]] = list(zip(*self.strrows, strict=True))
         return [max(len(x) for x in col) for col in strcols]
 
     def _gen_rows(self) -> Iterator[Sequence[str]]:
@@ -899,7 +733,9 @@ class _TableBuilderVerboseMixin(_TableBuilderAbstract):
         header_line = self.SPACING.join(
             [
                 _put_str(header, col_width)
-                for header, col_width in zip(self.headers, self.gross_column_widths)
+                for header, col_width in zip(
+                    self.headers, self.gross_column_widths, strict=True
+                )
             ]
         )
         self._lines.append(header_line)
@@ -909,7 +745,7 @@ class _TableBuilderVerboseMixin(_TableBuilderAbstract):
             [
                 _put_str("-" * header_colwidth, gross_colwidth)
                 for header_colwidth, gross_colwidth in zip(
-                    self.header_column_widths, self.gross_column_widths
+                    self.header_column_widths, self.gross_column_widths, strict=True
                 )
             ]
         )
@@ -920,7 +756,9 @@ class _TableBuilderVerboseMixin(_TableBuilderAbstract):
             body_line = self.SPACING.join(
                 [
                     _put_str(col, gross_colwidth)
-                    for col, gross_colwidth in zip(row, self.gross_column_widths)
+                    for col, gross_colwidth in zip(
+                        row, self.gross_column_widths, strict=True
+                    )
                 ]
             )
             self._lines.append(body_line)
@@ -980,6 +818,7 @@ class _DataFrameTableBuilderVerbose(_DataFrameTableBuilder, _TableBuilderVerbose
             self._gen_line_numbers(),
             self._gen_columns(),
             self._gen_dtypes(),
+            strict=True,
         )
 
     def _gen_rows_with_counts(self) -> Iterator[Sequence[str]]:
@@ -989,6 +828,7 @@ class _DataFrameTableBuilderVerbose(_DataFrameTableBuilder, _TableBuilderVerbose
             self._gen_columns(),
             self._gen_non_null_counts(),
             self._gen_dtypes(),
+            strict=True,
         )
 
     def _gen_line_numbers(self) -> Iterator[str]:
@@ -1088,14 +928,11 @@ class _SeriesTableBuilderVerbose(_SeriesTableBuilder, _TableBuilderVerboseMixin)
 
     def _gen_rows_without_counts(self) -> Iterator[Sequence[str]]:
         """Iterator with string representation of body data without counts."""
-        yield from self._gen_dtypes()
+        yield from ([dtype] for dtype in self._gen_dtypes())
 
     def _gen_rows_with_counts(self) -> Iterator[Sequence[str]]:
         """Iterator with string representation of body data with counts."""
-        yield from zip(
-            self._gen_non_null_counts(),
-            self._gen_dtypes(),
-        )
+        yield from zip(self._gen_non_null_counts(), self._gen_dtypes(), strict=True)
 
 
 def _get_dataframe_dtype_counts(df: DataFrame) -> Mapping[str, int]:

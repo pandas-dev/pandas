@@ -289,7 +289,9 @@ class HTMLFormatter:
             levels = self.columns._format_multi(sparsify=sentinel, include_names=False)
             level_lengths = get_level_lengths(levels, sentinel)
             inner_lvl = len(level_lengths) - 1
-            for lnum, (records, values) in enumerate(zip(level_lengths, levels)):
+            for lnum, (records, values) in enumerate(
+                zip(level_lengths, levels, strict=True)
+            ):
                 if is_truncated_horizontally:
                     # modify the header lines
                     ins_col = self.fmt.tr_col_num
@@ -303,14 +305,16 @@ class HTMLFormatter:
                                 recs_new[tag] = span + 1
                                 if lnum == inner_lvl:
                                     values = (
-                                        values[:ins_col] + ("...",) + values[ins_col:]
+                                        *values[:ins_col],
+                                        "...",
+                                        *values[ins_col:],
                                     )
                                 else:
                                     # sparse col headers do not receive a ...
                                     values = (
-                                        values[:ins_col]
-                                        + (values[ins_col - 1],)
-                                        + values[ins_col:]
+                                        *values[:ins_col],
+                                        values[ins_col - 1],
+                                        *values[ins_col:],
                                     )
                             else:
                                 recs_new[tag] = span
@@ -318,7 +322,7 @@ class HTMLFormatter:
                             # get ...
                             if tag + span == ins_col:
                                 recs_new[ins_col] = 1
-                                values = values[:ins_col] + ("...",) + values[ins_col:]
+                                values = (*values[:ins_col], "...", *values[ins_col:])
                         records = recs_new
                         inner_lvl = len(level_lengths) - 1
                         if lnum == inner_lvl:
@@ -332,7 +336,7 @@ class HTMLFormatter:
                                 recs_new[tag] = span
                         recs_new[ins_col] = 1
                         records = recs_new
-                        values = values[:ins_col] + ["..."] + values[ins_col:]
+                        values = [*values[:ins_col], "...", *values[ins_col:]]
 
                 # see gh-22579
                 # Column Offset Bug with to_html(index=False) with
@@ -486,7 +490,7 @@ class HTMLFormatter:
 
         assert isinstance(frame.index, MultiIndex)
         idx_values = frame.index._format_multi(sparsify=False, include_names=False)
-        idx_values = list(zip(*idx_values))
+        idx_values = list(zip(*idx_values, strict=True))
 
         if self.fmt.sparsify:
             # GH3547
@@ -547,7 +551,7 @@ class HTMLFormatter:
 
                 sparse_offset = 0
                 j = 0
-                for records, v in zip(level_lengths, idx_values[i]):
+                for records, v in zip(level_lengths, idx_values[i], strict=True):
                     if i in records:
                         if records[i] > 1:
                             tags[j] = template.format(span=records[i])
@@ -584,7 +588,10 @@ class HTMLFormatter:
                     )
 
                 idx_values = list(
-                    zip(*frame.index._format_multi(sparsify=False, include_names=False))
+                    zip(
+                        *frame.index._format_multi(sparsify=False, include_names=False),
+                        strict=True,
+                    )
                 )
                 row = []
                 row.extend(idx_values[i])

@@ -10,6 +10,7 @@ from typing import (
 import numpy as np
 
 from pandas._libs import lib
+from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import (
@@ -50,6 +51,7 @@ if TYPE_CHECKING:
     from pandas import DataFrame
 
 
+@set_module("pandas")
 def pivot_table(
     data: DataFrame,
     values=None,
@@ -121,8 +123,6 @@ def pivot_table(
 
     sort : bool, default True
         Specifies if the result should be sorted.
-
-        .. versionadded:: 1.3.0
 
     **kwargs : dict
         Optional keyword arguments to pass to ``aggfunc``.
@@ -504,7 +504,7 @@ def _add_margins(
         margin_dummy[cols] = margin_dummy[cols].apply(
             maybe_downcast_to_dtype, args=(dtype,)
         )
-    result = result._append_internal(margin_dummy)
+    result = concat([result, margin_dummy])
     result.index.names = row_names
 
     return result
@@ -590,10 +590,7 @@ def _generate_marginal_results(
                     # We are adding an empty level
                     transformed_piece.index = MultiIndex.from_tuples(
                         [all_key],
-                        names=piece.index.names
-                        + [
-                            None,
-                        ],
+                        names=[*piece.index.names, None],
                     )
                 else:
                     transformed_piece.index = Index([all_key], name=piece.index.name)
@@ -699,6 +696,7 @@ def _convert_by(by):
     return by
 
 
+@set_module("pandas")
 def pivot(
     data: DataFrame,
     *,
@@ -917,6 +915,7 @@ def pivot(
     return result
 
 
+@set_module("pandas")
 def crosstab(
     index,
     columns,
@@ -1094,8 +1093,8 @@ def crosstab(
     from pandas import DataFrame
 
     data = {
-        **dict(zip(unique_rownames, index)),
-        **dict(zip(unique_colnames, columns)),
+        **dict(zip(unique_rownames, index, strict=True)),
+        **dict(zip(unique_colnames, columns, strict=True)),
     }
     df = DataFrame(data, index=common_idx)
 

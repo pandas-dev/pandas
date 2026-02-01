@@ -142,7 +142,7 @@ def test_groupby_quantile_with_arraylike_q_and_int_columns(frame_size, groupby, 
         list(range(len(q))) * min(nrow, 4)
     ]
     expected_index = pd.MultiIndex(
-        levels=idx_levels, codes=idx_codes, names=groupby + [None]
+        levels=idx_levels, codes=idx_codes, names=[*groupby, None]
     )
     expected_values = [
         [float(x)] * (ncol - len(groupby)) for x in range(min(nrow, 4)) for _ in q
@@ -255,7 +255,9 @@ def test_groupby_quantile_raises_on_invalid_dtype(q, numeric_only):
 
 def test_groupby_quantile_NA_float(any_float_dtype):
     # GH#42849
-    df = DataFrame({"x": [1, 1], "y": [0.2, np.nan]}, dtype=any_float_dtype)
+    dtype = pd.Series([], dtype=any_float_dtype).dtype
+    item = np.nan if isinstance(dtype, np.dtype) else pd.NA
+    df = DataFrame({"x": [1, 1], "y": [0.2, item]}, dtype=any_float_dtype)
     result = df.groupby("x")["y"].quantile(0.5)
     exp_index = Index([1.0], dtype=any_float_dtype, name="x")
 
@@ -353,7 +355,7 @@ def test_groupby_quantile_allNA_column(dtype):
     df = DataFrame({"x": [1, 1], "y": [pd.NA] * 2}, dtype=dtype)
     result = df.groupby("x")["y"].quantile(0.5)
     expected = pd.Series(
-        [np.nan], dtype=dtype, index=Index([1.0], dtype=dtype), name="y"
+        [pd.NA], dtype=dtype, index=Index([1.0], dtype=dtype), name="y"
     )
     expected.index.name = "x"
     tm.assert_series_equal(expected, result)
@@ -361,9 +363,8 @@ def test_groupby_quantile_allNA_column(dtype):
 
 def test_groupby_timedelta_quantile():
     # GH: 29485
-    df = DataFrame(
-        {"value": pd.to_timedelta(np.arange(4), unit="s"), "group": [1, 1, 2, 2]}
-    )
+    tdi = pd.to_timedelta(np.arange(4), unit="s").as_unit("us")
+    df = DataFrame({"value": tdi, "group": [1, 1, 2, 2]})
     result = df.groupby("group").quantile(0.99)
     expected = DataFrame(
         {
@@ -408,7 +409,7 @@ def test_timestamp_groupby_quantile(unit):
 
 def test_groupby_quantile_dt64tz_period():
     # GH#51373
-    dti = pd.date_range("2016-01-01", periods=1000)
+    dti = pd.date_range("2016-01-01", periods=1000, unit="ns")
     df = pd.Series(dti).to_frame().copy()
     df[1] = dti.tz_localize("US/Pacific")
     df[2] = dti.to_period("D")

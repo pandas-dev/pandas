@@ -40,7 +40,7 @@ foreach ext_name, ext_dict : tslibs_sources
         ext_dict.get('sources'),
         cython_args: cython_args,
         include_directories: [inc_np, inc_pd],
-        dependencies: ext_dict.get('deps', ''),
+        dependencies: ext_dict.get('deps', []),
         subdir: 'pandas/_libs/tslibs',
         install: true,
     )

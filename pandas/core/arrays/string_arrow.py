@@ -6,7 +6,6 @@ from typing import (
     TYPE_CHECKING,
     Self,
 )
-import warnings
 
 import numpy as np
 
@@ -19,7 +18,8 @@ from pandas.compat import (
     PYARROW_MIN_VERSION,
     pa_version_under16p0,
 )
-from pandas.util._exceptions import find_stack_level
+from pandas.util._decorators import set_module
+from pandas.util._validators import validate_na_arg
 
 from pandas.core.dtypes.common import (
     is_scalar,
@@ -81,6 +81,7 @@ def _is_string_view(typ):
 # fallback for the ones that pyarrow doesn't yet support
 
 
+@set_module("pandas.arrays")
 class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringArray):
     """
     Extension array for string data in a ``pyarrow.ChunkedArray``.
@@ -108,10 +109,10 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     See Also
     --------
     :func:`array`
-        The recommended function for creating a ArrowStringArray.
+        The recommended function for creating an ArrowStringArray.
     Series.str
         The string methods are available on Series backed by
-        a ArrowStringArray.
+        an ArrowStringArray.
 
     Notes
     -----
@@ -209,6 +210,26 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             result = scalars._data
             result = lib.ensure_string_array(result, copy=copy, convert_na_value=False)
             pa_arr = pa.array(result, mask=na_values, type=pa.large_string())
+        elif isinstance(scalars, ArrowExtensionArray):
+            pa_type = scalars._pa_array.type
+            # Use PyArrow's native cast for integer, string, and boolean types.
+            # Float has different representation in PyArrow: 1.0 -> "1" instead
+            # of "1.0", and uses different scientific notation (1e+10 vs 1e10).
+            # Boolean needs capitalize (true -> True, false -> False).
+            if (
+                pa.types.is_integer(pa_type)
+                or pa.types.is_large_string(pa_type)
+                or pa.types.is_string(pa_type)
+                or pa.types.is_boolean(pa_type)
+            ):
+                pa_arr = pc.cast(scalars._pa_array, pa.large_string())
+                if pa.types.is_boolean(pa_type):
+                    pa_arr = pc.utf8_capitalize(pa_arr)
+            else:
+                # Fall back for types where PyArrow's string representation
+                # differs from Python's str()
+                result = lib.ensure_string_array(scalars, copy=copy)
+                pa_arr = pa.array(result, type=pa.large_string(), from_pandas=True)
         elif isinstance(scalars, (pa.Array, pa.ChunkedArray)):
             pa_arr = pc.cast(scalars, pa.large_string())
         else:
@@ -242,17 +263,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         return super().insert(loc, item)
 
     def _convert_bool_result(self, values, na=lib.no_default, method_name=None):
-        if na is not lib.no_default and not isna(na) and not isinstance(na, bool):
-            # TODO: Enforce in 3.0 (#59615)
-            # GH#59561
-            warnings.warn(
-                f"Allowing a non-bool 'na' in obj.str.{method_name} is deprecated "
-                "and will raise in a future version.",
-                FutureWarning,  # pdlint: ignore[warning_class]
-                stacklevel=find_stack_level(),
-            )
-            na = bool(na)
-
+        validate_na_arg(na, name="na")
         if self.dtype.na_value is np.nan:
             if na is lib.no_default or isna(na):
                 # NaN propagates as False
@@ -260,9 +271,8 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             else:
                 values = values.fill_null(na)
             return values.to_numpy()
-        else:
-            if na is not lib.no_default and not isna(na):  # pyright: ignore [reportGeneralTypeIssues]
-                values = values.fill_null(na)
+        elif na is not lib.no_default and not isna(na):  # pyright: ignore [reportGeneralTypeIssues]
+            values = values.fill_null(na)
         return BooleanDtype().__from_arrow__(values)
 
     def _maybe_convert_setitem_value(self, value):
@@ -362,16 +372,31 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         )
 
     @staticmethod
-    def _preprocess_re_pattern(pat: re.Pattern, case: bool) -> tuple[str, bool, int]:
-        pattern = pat.pattern
-        flags = pat.flags
-        # flags is not supported by pyarrow, but `case` is -> extract and remove
-        if flags & re.IGNORECASE:
-            case = False
-            flags = flags & ~re.IGNORECASE
-        # when creating a pattern with re.compile and a string, it automatically
-        # gets a UNICODE flag, while pyarrow assumes unicode for strings anyway
-        flags = flags & ~re.UNICODE
+    def _preprocess_re_pattern(
+        pat: str | re.Pattern, case: bool, flags: int
+    ) -> tuple[str, bool, int]:
+        if isinstance(pat, re.Pattern):
+            pattern = pat.pattern
+            # TODO flags passed separately by user are ignored
+            flags = pat.flags
+            # flags is not supported by pyarrow, but `case` is -> extract and remove
+            if flags & re.IGNORECASE:
+                case = False
+                flags = flags & ~re.IGNORECASE
+            # when creating a pattern with re.compile and a string, it automatically
+            # gets a UNICODE flag, while pyarrow assumes unicode for strings anyway
+            flags = flags & ~re.UNICODE
+        else:
+            pattern = pat
+
+        if (
+            pattern.endswith("\\Z")
+            # Second condition counts the number of `\` that patterns ends with
+            # prior to Z -> needs to be odd to end with an unescaped \Z
+            and (len(pattern) - len(pattern[:-1].rstrip("\\")) + 1) % 2 == 1
+        ):
+            pattern = pattern[:-2] + "\\z"
+
         return pattern, case, flags
 
     def _str_contains(
@@ -382,12 +407,14 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         na=lib.no_default,
         regex: bool = True,
     ):
-        if flags or self._is_re_pattern_with_flags(pat):
+        if (
+            flags
+            or self._is_re_pattern_with_flags(pat)
+            or (regex and self._has_unsupported_regex(pat))
+        ):
             return super()._str_contains(pat, case, flags, na, regex)
-        if isinstance(pat, re.Pattern):
-            # TODO flags passed separately by user are ignored
-            pat, case, flags = self._preprocess_re_pattern(pat, case)
 
+        pat, case, flags = self._preprocess_re_pattern(pat, case, flags)
         return ArrowStringArrayMixin._str_contains(self, pat, case, flags, na, regex)
 
     def _str_match(
@@ -397,11 +424,14 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         flags: int = 0,
         na: Scalar | lib.NoDefault = lib.no_default,
     ):
-        if flags or self._is_re_pattern_with_flags(pat):
+        if (
+            flags
+            or self._is_re_pattern_with_flags(pat)
+            or self._has_unsupported_regex(pat)
+        ):
             return super()._str_match(pat, case, flags, na)
-        if isinstance(pat, re.Pattern):
-            pat, case, flags = self._preprocess_re_pattern(pat, case)
 
+        pat, case, flags = self._preprocess_re_pattern(pat, case, flags)
         return ArrowStringArrayMixin._str_match(self, pat, case, flags, na)
 
     def _str_fullmatch(
@@ -411,11 +441,14 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         flags: int = 0,
         na: Scalar | lib.NoDefault = lib.no_default,
     ):
-        if flags or self._is_re_pattern_with_flags(pat):
+        if (
+            flags
+            or self._is_re_pattern_with_flags(pat)
+            or self._has_unsupported_regex(pat)
+        ):
             return super()._str_fullmatch(pat, case, flags, na)
-        if isinstance(pat, re.Pattern):
-            pat, case, flags = self._preprocess_re_pattern(pat, case)
 
+        pat, case, flags = self._preprocess_re_pattern(pat, case, flags)
         return ArrowStringArrayMixin._str_fullmatch(self, pat, case, flags, na)
 
     def _str_replace(
@@ -427,8 +460,21 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         flags: int = 0,
         regex: bool = True,
     ):
-        if isinstance(pat, re.Pattern) or callable(repl) or not case or flags:
+        if (
+            isinstance(pat, re.Pattern)
+            or callable(repl)
+            or not case
+            or flags
+            or (  # substitution contains a named group pattern
+                # https://docs.python.org/3/library/re.html
+                isinstance(repl, str) and r"\g<" in repl
+            )
+            or (regex and self._has_unsupported_regex(pat))
+        ):
             return super()._str_replace(pat, repl, n, case, flags, regex)
+
+        if regex:
+            pat, case, flags = self._preprocess_re_pattern(pat, case, flags)
 
         return ArrowStringArrayMixin._str_replace(
             self, pat, repl, n, case, flags, regex
@@ -441,8 +487,10 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             return ArrowExtensionArray._str_repeat(self, repeats=repeats)
 
     def _str_count(self, pat: str, flags: int = 0):
-        if flags:
+        if flags or self._has_unsupported_regex(pat):
             return super()._str_count(pat, flags)
+
+        pat, _, _ = self._preprocess_re_pattern(pat, True, 0)
         result = pc.count_substring_regex(self._pa_array, pat)
         return self._convert_int_result(result)
 

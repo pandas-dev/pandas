@@ -1922,37 +1922,6 @@ class TestGenericArrayFormatter:
         assert res[0] == " [[True, True], [False, False]]"
         assert res[1] == " [[False, True], [True, False]]"
 
-    def test_2d_extension_type(self):
-        # GH 33770
-
-        # Define a stub extension type with just enough code to run Series.__repr__()
-        class DtypeStub(pd.api.extensions.ExtensionDtype):
-            @property
-            def type(self):
-                return np.ndarray
-
-            @property
-            def name(self):
-                return "DtypeStub"
-
-        class ExtTypeStub(pd.api.extensions.ExtensionArray):
-            def __len__(self) -> int:
-                return 2
-
-            def __getitem__(self, ix):
-                return [ix == 1, ix == 0]
-
-            @property
-            def dtype(self):
-                return DtypeStub()
-
-        series = Series(ExtTypeStub(), copy=False)
-        res = repr(series)  # This line crashed before #33770 was fixed.
-        expected = "\n".join(
-            ["0    [False True]", "1    [True False]", "dtype: DtypeStub"]
-        )
-        assert res == expected
-
 
 def _three_digit_exp():
     return f"{1.7e8:.4g}" == "1.7e+008"
@@ -2085,7 +2054,7 @@ class TestFloatArrayFormatter:
 
 class TestTimedelta64Formatter:
     def test_days(self):
-        x = pd.to_timedelta(list(range(5)) + [NaT], unit="D")._values
+        x = pd.to_timedelta([*list(range(5)), NaT], unit="D")._values
         result = fmt._Timedelta64Formatter(x).get_result()
         assert result[0].strip() == "0 days"
         assert result[1].strip() == "1 days"
@@ -2101,25 +2070,25 @@ class TestTimedelta64Formatter:
         assert result[0].strip() == "1 days"
 
     def test_days_neg(self):
-        x = pd.to_timedelta(list(range(5)) + [NaT], unit="D")._values
+        x = pd.to_timedelta([*list(range(5)), NaT], unit="D")._values
         result = fmt._Timedelta64Formatter(-x).get_result()
         assert result[0].strip() == "0 days"
         assert result[1].strip() == "-1 days"
 
     def test_subdays(self):
-        y = pd.to_timedelta(list(range(5)) + [NaT], unit="s")._values
+        y = pd.to_timedelta([*list(range(5)), NaT], unit="s")._values
         result = fmt._Timedelta64Formatter(y).get_result()
         assert result[0].strip() == "0 days 00:00:00"
         assert result[1].strip() == "0 days 00:00:01"
 
     def test_subdays_neg(self):
-        y = pd.to_timedelta(list(range(5)) + [NaT], unit="s")._values
+        y = pd.to_timedelta([*list(range(5)), NaT], unit="s")._values
         result = fmt._Timedelta64Formatter(-y).get_result()
         assert result[0].strip() == "0 days 00:00:00"
         assert result[1].strip() == "-1 days +23:59:59"
 
     def test_zero(self):
-        x = pd.to_timedelta(list(range(1)) + [NaT], unit="D")._values
+        x = pd.to_timedelta([*list(range(1)), NaT], unit="D")._values
         result = fmt._Timedelta64Formatter(x).get_result()
         assert result[0].strip() == "0 days"
 

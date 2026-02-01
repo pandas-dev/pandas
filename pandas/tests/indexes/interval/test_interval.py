@@ -81,11 +81,8 @@ class TestIntervalIndex:
         [
             [1, 1, 2, 5, 15, 53, 217, 1014, 5335, 31240, 201608],
             [-np.inf, -100, -10, 0.5, 1, 1.5, 3.8, 101, 202, np.inf],
-            date_range("2017-01-01", "2017-01-04"),
-            pytest.param(
-                date_range("2017-01-01", "2017-01-04", unit="s"),
-                marks=pytest.mark.xfail(reason="mismatched result unit"),
-            ),
+            date_range("2017-01-01", "2017-01-04", unit="ns"),
+            date_range("2017-01-01", "2017-01-04", unit="s"),
             pd.to_timedelta(["1ns", "2ms", "3s", "4min", "5h", "6D"]),
         ],
     )
@@ -377,13 +374,16 @@ class TestIntervalIndex:
 
     @pytest.mark.parametrize(
         "breaks",
-        [date_range("2018-01-01", periods=5), timedelta_range("0 days", periods=5)],
+        [
+            date_range("2018-01-01", periods=5),
+            timedelta_range("0 days", periods=5, unit="us"),
+        ],
     )
     def test_maybe_convert_i8_nat(self, breaks):
         # GH 20636
         index = IntervalIndex.from_breaks(breaks)
 
-        to_convert = breaks._constructor([pd.NaT] * 3).as_unit("ns")
+        to_convert = breaks._constructor([pd.NaT] * 3).as_unit("us")
         expected = Index([np.nan] * 3, dtype=np.float64)
         result = index._maybe_convert_i8(to_convert)
         tm.assert_index_equal(result, expected)
@@ -752,7 +752,7 @@ class TestIntervalIndex:
         assert index.is_overlapping is False
 
         # non-overlapping with NA
-        tuples = [(na_value, na_value)] + tuples + [(na_value, na_value)]
+        tuples = [(na_value, na_value), *tuples, (na_value, na_value)]
         index = IntervalIndex.from_tuples(tuples, closed=closed)
         assert index.is_overlapping is False
 
@@ -762,7 +762,7 @@ class TestIntervalIndex:
         assert index.is_overlapping is True
 
         # overlapping with NA
-        tuples = [(na_value, na_value)] + tuples + [(na_value, na_value)]
+        tuples = [(na_value, na_value), *tuples, (na_value, na_value)]
         index = IntervalIndex.from_tuples(tuples, closed=closed)
         assert index.is_overlapping is True
 
@@ -774,7 +774,7 @@ class TestIntervalIndex:
         assert result is expected
 
         # common endpoints with NA
-        tuples = [(na_value, na_value)] + tuples + [(na_value, na_value)]
+        tuples = [(na_value, na_value), *tuples, (na_value, na_value)]
         index = IntervalIndex.from_tuples(tuples, closed=closed)
         result = index.is_overlapping
         assert result is expected
@@ -811,21 +811,25 @@ class TestIntervalIndex:
     @pytest.mark.parametrize(
         "tuples",
         [
-            list(zip(range(10), range(1, 11))) + [np.nan],
-            list(
-                zip(
-                    date_range("20170101", periods=10),
-                    date_range("20170101", periods=10),
-                )
-            )
-            + [np.nan],
-            list(
-                zip(
-                    timedelta_range("0 days", periods=10),
-                    timedelta_range("1 day", periods=10),
-                )
-            )
-            + [np.nan],
+            [*list(zip(range(10), range(1, 11))), np.nan],
+            [
+                *list(
+                    zip(
+                        date_range("20170101", periods=10),
+                        date_range("20170101", periods=10),
+                    )
+                ),
+                np.nan,
+            ],
+            [
+                *list(
+                    zip(
+                        timedelta_range("0 days", periods=10),
+                        timedelta_range("1 day", periods=10),
+                    )
+                ),
+                np.nan,
+            ],
         ],
     )
     @pytest.mark.parametrize("na_tuple", [True, False])
@@ -880,6 +884,14 @@ class TestIntervalIndex:
         )
         year_2017_index = IntervalIndex([year_2017])
         assert not year_2017_index._is_all_dates
+
+
+def test_from_arrays_mismatched_signedness_raises():
+    # GH 55715
+    left = np.array([0, 1, 2], dtype="int64")
+    right = np.array([1, 2, 3], dtype="uint64")
+    with pytest.raises(TypeError, match="matching signedness"):
+        IntervalIndex.from_arrays(left, right)
 
 
 def test_dir():

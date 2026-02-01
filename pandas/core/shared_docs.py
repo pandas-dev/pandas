@@ -79,8 +79,6 @@ keep_equal : bool, default False
 
 result_names : tuple, default ('self', 'other')
     Set the dataframes names in the comparison.
-
-    .. versionadded:: 1.5.0
 """
 
 _shared_docs["groupby"] = """
@@ -138,13 +136,6 @@ group_keys : bool, default True
     index to identify pieces. By default group keys are not included
     when the result's index (and column) labels match the inputs, and
     are included otherwise.
-
-    .. versionchanged:: 1.5.0
-
-       Warns that ``group_keys`` will no longer be ignored when the
-       result from ``apply`` is a like-indexed Series or DataFrame.
-       Specify ``group_keys`` explicitly to include the group keys or
-       not.
 
     .. versionchanged:: 2.0.0
 
@@ -619,9 +610,6 @@ _shared_docs["replace"] = """
     3       b
     4    None
     dtype: object
-
-        .. versionchanged:: 1.4.0
-            Previously the explicit ``None`` was silently ignored.
 
     When ``regex=True``, ``value`` is not ``None`` and `to_replace` is a string,
     the replacement will be applied in all columns of the DataFrame.

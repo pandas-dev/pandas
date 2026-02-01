@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from pandas.compat import CHAINED_WARNING_DISABLED
 from pandas.errors import ChainedAssignmentError
 
 from pandas import DataFrame
@@ -17,6 +18,8 @@ def test_series_setitem(indexer):
 
     # using custom check instead of tm.assert_produces_warning because that doesn't
     # fail if multiple warnings are raised
+    if CHAINED_WARNING_DISABLED:
+        return
     with pytest.warns() as record:  # noqa: TID251
         df["a"][indexer] = 0
     assert len(record) == 1

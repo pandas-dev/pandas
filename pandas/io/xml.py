@@ -17,12 +17,10 @@ from pandas.errors import (
     AbstractMethodError,
     ParserError,
 )
-from pandas.util._decorators import doc
+from pandas.util._decorators import set_module
 from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.common import is_list_like
-
-from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.common import (
     get_handle,
@@ -57,10 +55,6 @@ if TYPE_CHECKING:
     from pandas import DataFrame
 
 
-@doc(
-    storage_options=_shared_docs["storage_options"],
-    decompression_options=_shared_docs["decompression_options"] % "path_or_buffer",
-)
 class _XMLFrameParser:
     """
     Internal subclass to parse XML into DataFrames.
@@ -92,18 +86,12 @@ class _XMLFrameParser:
         Data type for data or columns. E.g. {{'a': np.float64,
         'b': np.int32, 'c': 'Int64'}}
 
-        .. versionadded:: 1.5.0
-
     converters : dict, optional
         Dict of functions for converting values in certain columns. Keys can
         either be integers or column labels.
 
-        .. versionadded:: 1.5.0
-
     parse_dates : bool or list of int or names or list of lists or dict
         Converts either index or select columns to datetimes
-
-        .. versionadded:: 1.5.0
 
     encoding : str
         Encoding of xml object or document.
@@ -117,13 +105,32 @@ class _XMLFrameParser:
         and/or attributes as value to be retrieved in iterparsing of
         XML document.
 
-        .. versionadded:: 1.5.0
+    compression : str or dict, default 'infer'
+        For on-the-fly decompression of on-disk data. If 'infer' and
+        'path_or_buffer' is path-like, then detect compression from the
+        following extensions: '.gz', '.bz2', '.zip', '.xz', '.zst', '.tar',
+        '.tar.gz', '.tar.xz' or '.tar.bz2' (otherwise no compression).
+        If using 'zip' or 'tar', the ZIP file must contain only one data
+        file to be read in. Set to ``None`` for no decompression.
+        Can also be a dict with key ``'method'`` set to one of
+        {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'xz'``, ``'tar'``}
+        and other key-value pairs are forwarded to ``zipfile.ZipFile``,
+        ``gzip.GzipFile``, ``bz2.BZ2File``, ``zstandard.ZstdDecompressor``,
+        ``lzma.LZMAFile`` or ``tarfile.TarFile``, respectively.
+        As an example, the following could be passed for Zstandard
+        decompression using a custom compression dictionary:
+        ``compression={'method': 'zstd', 'dict_data': my_compression_dict}``.
 
-    {decompression_options}
-
-        .. versionchanged:: 1.4.0 Zstandard support.
-
-    {storage_options}
+    storage_options : dict, optional
+        Extra options that make sense for a particular storage connection,
+        e.g. host, port, username, password, etc. For HTTP(S) URLs the
+        key-value pairs are forwarded to ``urllib.request.Request`` as header
+        options. For other URLs (e.g. starting with "s3://", and "gcs://")
+        the key-value pairs are forwarded to ``fsspec.open``. Please see
+        ``fsspec`` and ``urllib`` for more details, and for more examples on
+        storage options refer `here <https://pandas.pydata.org/docs/
+        user_guide/io.html?highlight=storage_options#reading-writing-remote-
+        files>`_.
 
     See also
     --------
@@ -222,7 +229,7 @@ class _XMLFrameParser:
                         ),
                         **{
                             nm: ch.text if ch.text else None
-                            for nm, ch in zip(self.names, el.findall("*"))
+                            for nm, ch in zip(self.names, el.findall("*"), strict=True)
                         },
                     }
                     for el in elems
@@ -245,7 +252,7 @@ class _XMLFrameParser:
                     **({el.tag: el.text} if el.text and not el.text.isspace() else {}),
                     **{
                         nm: ch.text if ch.text else None
-                        for nm, ch in zip(self.names, el.findall("*"))
+                        for nm, ch in zip(self.names, el.findall("*"), strict=False)
                     },
                 }
                 for el in elems
@@ -269,7 +276,7 @@ class _XMLFrameParser:
         dicts = [{k: d[k] if k in d.keys() else None for k in keys} for d in dicts]
 
         if self.names:
-            dicts = [dict(zip(self.names, d.values())) for d in dicts]
+            dicts = [dict(zip(self.names, d.values(), strict=True)) for d in dicts]
 
         return dicts
 
@@ -339,7 +346,9 @@ class _XMLFrameParser:
 
             if row is not None:
                 if self.names and iterparse_repeats:
-                    for col, nm in zip(self.iterparse[row_node], self.names):
+                    for col, nm in zip(
+                        self.iterparse[row_node], self.names, strict=True
+                    ):
                         if curr_elem == col:
                             elem_val = elem.text if elem.text else None
                             if elem_val not in row.values() and nm not in row:
@@ -374,7 +383,7 @@ class _XMLFrameParser:
         dicts = [{k: d[k] if k in d.keys() else None for k in keys} for d in dicts]
 
         if self.names:
-            dicts = [dict(zip(self.names, d.values())) for d in dicts]
+            dicts = [dict(zip(self.names, d.values(), strict=True)) for d in dicts]
 
         return dicts
 
@@ -666,7 +675,7 @@ class _LxmlFrameParser(_XMLFrameParser):
 
 
 def get_data_from_filepath(
-    filepath_or_buffer: FilePath | bytes | ReadBuffer[bytes] | ReadBuffer[str],
+    filepath_or_buffer: FilePath | ReadBuffer[bytes] | ReadBuffer[str],
     encoding: str | None,
     compression: CompressionOptions,
     storage_options: StorageOptions,
@@ -678,9 +687,9 @@ def get_data_from_filepath(
         1. filepath (string-like)
         2. file-like object (e.g. open file object, StringIO)
     """
-    filepath_or_buffer = stringify_path(filepath_or_buffer)  # type: ignore[arg-type]
-    with get_handle(  # pyright: ignore[reportCallIssue]
-        filepath_or_buffer,  # pyright: ignore[reportArgumentType]
+    filepath_or_buffer = stringify_path(filepath_or_buffer)
+    with get_handle(
+        filepath_or_buffer,
         "r",
         encoding=encoding,
         compression=compression,
@@ -693,7 +702,9 @@ def get_data_from_filepath(
         )
 
 
-def preprocess_data(data) -> io.StringIO | io.BytesIO:
+def preprocess_data(
+    data: str | bytes | io.StringIO | io.BytesIO,
+) -> io.StringIO | io.BytesIO:
     """
     Convert extracted raw data.
 
@@ -711,7 +722,7 @@ def preprocess_data(data) -> io.StringIO | io.BytesIO:
     return data
 
 
-def _data_to_frame(data, **kwargs) -> DataFrame:
+def _data_to_frame(data: list[dict[str, str | None]], **kwargs) -> DataFrame:
     """
     Convert parsed data to Data Frame.
 
@@ -825,10 +836,7 @@ def _parse(
     )
 
 
-@doc(
-    storage_options=_shared_docs["storage_options"],
-    decompression_options=_shared_docs["decompression_options"] % "path_or_buffer",
-)
+@set_module("pandas")
 def read_xml(
     path_or_buffer: FilePath | ReadBuffer[bytes] | ReadBuffer[str],
     *,
@@ -852,19 +860,13 @@ def read_xml(
     r"""
     Read XML document into a :class:`~pandas.DataFrame` object.
 
-    .. versionadded:: 1.3.0
-
     Parameters
     ----------
     path_or_buffer : str, path object, or file-like object
-        String, path object (implementing ``os.PathLike[str]``), or file-like
+        String path, path object (implementing ``os.PathLike[str]``), or file-like
         object implementing a ``read()`` function. The string can be a path.
         The string can further be a URL. Valid URL schemes
         include http, ftp, s3, and file.
-
-        .. deprecated:: 2.1.0
-            Passing xml literal strings is deprecated.
-            Wrap literal xml input in ``io.StringIO`` or ``io.BytesIO`` instead.
 
     xpath : str, optional, default './\*'
         The ``XPath`` to parse required set of nodes for migration to
@@ -903,13 +905,9 @@ def read_xml(
         If converters are specified, they will be applied INSTEAD
         of dtype conversion.
 
-        .. versionadded:: 1.5.0
-
     converters : dict, optional
         Dict of functions for converting values in certain columns. Keys can either
         be integers or column labels.
-
-        .. versionadded:: 1.5.0
 
     parse_dates : bool or list of int or names or list of lists or dict, default False
         Identifiers to parse index or columns to datetime. The behavior is as follows:
@@ -921,8 +919,6 @@ def read_xml(
           a single date column.
         * dict, e.g. {{'foo' : [1, 3]}} -> parse columns 1, 3 as date and call
           result 'foo'
-
-        .. versionadded:: 1.5.0
 
     encoding : str, optional, default 'utf-8'
         Encoding of XML document.
@@ -951,13 +947,32 @@ def read_xml(
         efficient method should be used for very large XML files (500MB, 1GB, or 5GB+).
         For example, ``{{"row_element": ["child_elem", "attr", "grandchild_elem"]}}``.
 
-        .. versionadded:: 1.5.0
+    compression : str or dict, default 'infer'
+        For on-the-fly decompression of on-disk data. If 'infer' and
+        'path_or_buffer' is path-like, then detect compression from the
+        following extensions: '.gz', '.bz2', '.zip', '.xz', '.zst', '.tar',
+        '.tar.gz', '.tar.xz' or '.tar.bz2' (otherwise no compression).
+        If using 'zip' or 'tar', the ZIP file must contain only one data
+        file to be read in. Set to ``None`` for no decompression.
+        Can also be a dict with key ``'method'`` set to one of
+        {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'xz'``, ``'tar'``}
+        and other key-value pairs are forwarded to ``zipfile.ZipFile``,
+        ``gzip.GzipFile``, ``bz2.BZ2File``, ``zstandard.ZstdDecompressor``,
+        ``lzma.LZMAFile`` or ``tarfile.TarFile``, respectively.
+        As an example, the following could be passed for Zstandard
+        decompression using a custom compression dictionary:
+        ``compression={'method': 'zstd', 'dict_data': my_compression_dict}``.
 
-    {decompression_options}
-
-        .. versionchanged:: 1.4.0 Zstandard support.
-
-    {storage_options}
+    storage_options : dict, optional
+        Extra options that make sense for a particular storage connection,
+        e.g. host, port, username, password, etc. For HTTP(S) URLs the
+        key-value pairs are forwarded to ``urllib.request.Request`` as header
+        options. For other URLs (e.g. starting with "s3://", and "gcs://")
+        the key-value pairs are forwarded to ``fsspec.open``. Please see
+        ``fsspec`` and ``urllib`` for more details, and for more examples on
+        storage options refer `here <https://pandas.pydata.org/docs/
+        user_guide/io.html?highlight=storage_options#reading-writing-remote-
+        files>`_.
 
     dtype_backend : {{'numpy_nullable', 'pyarrow'}}
         Back-end data type applied to the resultant :class:`DataFrame`
@@ -1082,7 +1097,7 @@ def read_xml(
     >>> df = pd.read_xml(
     ...     StringIO(xml),
     ...     xpath="//doc:row",
-    ...     namespaces={{"doc": "https://example.com"}},
+    ...     namespaces={"doc": "https://example.com"},
     ... )
     >>> df
           shape  degrees  sides

@@ -8,12 +8,12 @@ dependencies:
   - setuptools
   - versioneer
   - cython<4.0.0a0
-  - meson=1.8.0
+  - meson=1.10.0
   - meson-python=0.18.0
 
   # test dependencies
-  - pytest>=7.3.2
-  - pytest-xdist>=3.4.0
+  - pytest>=8.3.4
+  - pytest-xdist>=3.6.1
 
   # required dependencies
   - python-dateutil
