@@ -2000,3 +2000,32 @@ def test_groupby_aggregate_empty_udf():
     result = df.groupby(["Group"], as_index=False)["Data"].agg(func)
     expected = DataFrame(columns=["Group", "Data"])
     tm.assert_frame_equal(result, expected)
+
+
+def test_agg_relabel_with_name_match():
+    # GH-63742
+    df = DataFrame(
+        {
+            "group": ["a", "a", "b", "b"],
+            "value": [1, 2, 3, 4],
+            "count": [10, 20, 30, 40],
+        }
+    )
+
+    # Test with tuple format where output names match column names
+    result = df.groupby("group").agg(value=("value", "sum"), count=("count", "max"))
+
+    # Should produce same result as dict format
+    expected = df.groupby("group").agg({"value": "sum", "count": "max"})
+
+    tm.assert_frame_equal(result, expected)
+
+
+def test_agg_relabel_with_name_match_and_namedagg():
+    # GH-63742
+    df = DataFrame({"A": [0, 0, 1, 1], "B": [1, 2, 3, 4]})
+
+    result = df.groupby("A").agg(B=pd.NamedAgg("B", "sum"))
+
+    expected = DataFrame({"B": [3, 7]}, index=Index([0, 1], name="A"))
+    tm.assert_frame_equal(result, expected)
