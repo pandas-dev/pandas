@@ -490,7 +490,6 @@ def _add_margins(
             return marginal_result_set
         result, margin_keys, row_margin = marginal_result_set
 
-    row_margin = row_margin.reindex(result.columns, fill_value=fill_value)
     # populate grand margin
     for k in margin_keys:
         if isinstance(k, str):
@@ -500,10 +499,8 @@ def _add_margins(
 
     from pandas import DataFrame
 
+    row_margin = row_margin.reindex(result.columns, fill_value=fill_value)
     margin_dummy = DataFrame(row_margin, columns=Index([key])).T
-
-    row_names = result.index.names
-    # check the result column and leave floats
 
     for dtype in set(result.dtypes):
         if isinstance(dtype, ExtensionDtype):
@@ -514,6 +511,8 @@ def _add_margins(
         margin_dummy[cols] = margin_dummy[cols].apply(
             maybe_downcast_to_dtype, args=(dtype,)
         )
+
+    row_names = result.index.names
     result = concat([result, margin_dummy])
     result.index.names = row_names
 
@@ -539,12 +538,16 @@ def _compute_grand_margin(
             except TypeError:
                 pass
         return grand_margin
-    elif isinstance(aggfunc, str):
-        return {
-            margins_name: getattr(Series(np.nan, index=data.index), aggfunc)(**kwargs)
-        }
     else:
-        return {margins_name: aggfunc(data.index, **kwargs)}
+        from pandas import Categorical
+
+        # Use groupby for consistency with how values are aggregated.
+        gb = Series(np.nan, index=data.index).groupby(
+            Categorical(np.zeros(len(data.index)), categories=[0]), observed=False
+        )
+        agged = gb.agg(aggfunc, **kwargs)
+        assert isinstance(agged, Series) and len(agged) == 1
+        return {margins_name: agged.iloc[0]}
 
 
 def _generate_marginal_results(
@@ -665,17 +668,31 @@ def _generate_marginal_results_without_values(
             return (margins_name,) + ("",) * (len(cols) - 1)
 
         if len(rows) > 0:
-            gb = Series(np.nan, index=data.index).groupby(
-                [data[row] for row in rows], observed=observed, dropna=dropna
-            )
-            margin = gb.agg(aggfunc, **kwargs)
-            all_key = _all_key()
-            table[all_key] = margin
-            result = table
-            margin_keys.append(all_key)
+            if len(data.index) > 0:
+                gb = Series(np.nan, index=data.index).groupby(
+                    [data[row] for row in rows], observed=observed, dropna=dropna
+                )
+                margin = gb.agg(aggfunc, **kwargs)
+                all_key = _all_key()
+                table[all_key] = margin
+                result = table
+                margin_keys.append(all_key)
+            else:
+                from pandas import Categorical
+
+                gb = Series(np.nan, index=data.index).groupby(
+                    Categorical(np.zeros(0), categories=[0]), observed=False
+                )
+                agged = gb.agg(aggfunc, **kwargs)
+                assert isinstance(agged, Series) and len(agged) == 1
+                margin = agged.iloc[0]
+                all_key = _all_key()
+                table[all_key] = margin
+                result = table
+                margin_keys.append(all_key)
 
         else:
-            margin = data.groupby(level=0, observed=observed, dropna=dropna).apply(
+            margin = data.groupby(level=0, observed=observed, dropna=dropna).agg(
                 aggfunc, **kwargs
             )
             all_key = _all_key()
@@ -687,9 +704,11 @@ def _generate_marginal_results_without_values(
         result = table
         margin_keys = table.columns
 
-    if len(cols):
-        row_margin = data.groupby(cols, observed=observed, dropna=dropna)[cols].apply(
-            aggfunc, **kwargs
+    if len(result.columns) > 0:
+        row_margin = (
+            Series(np.nan, index=data.index)
+            .groupby([data[col] for col in cols], observed=observed, dropna=dropna)
+            .agg(aggfunc, **kwargs)
         )
     else:
         row_margin = Series(np.nan, index=result.columns)
