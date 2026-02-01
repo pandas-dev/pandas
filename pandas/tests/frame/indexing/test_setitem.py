@@ -792,7 +792,9 @@ class TestDataFrameSetItem:
     def test_loc_setitem_ea_dtype(self):
         # GH#55604
         df = DataFrame({"a": np.array([10], dtype="i8")})
-        df.loc[:, "a"] = Series([11], dtype="Int64")
+        msg = r"Setting `df.loc\[:, col\] = values` does \*not\* change"
+        with tm.assert_produces_warning(UserWarning, match=msg):
+            df.loc[:, "a"] = Series([11], dtype="Int64")
         expected = DataFrame({"a": np.array([11], dtype="i8")})
         tm.assert_frame_equal(df, expected)
 
