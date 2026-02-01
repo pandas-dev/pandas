@@ -1032,7 +1032,17 @@ def test_groupby_aggregate_empty_key_empty_return():
     tm.assert_frame_equal(result, expected)
 
 
-def test_groupby_aggregate_empty_with_multiindex_frame():
+def test_groupby_aggregate_empty_with_multiindex_frame_single():
+    # GH 39178
+    df = DataFrame(columns=["a", "b", "c"])
+    result = df.groupby(["a", "b"], group_keys=False).agg(lambda x: x.sum())
+    expected = DataFrame(
+        columns=["c"], index=MultiIndex([[], []], [[], []], names=["a", "b"])
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_aggregate_empty_with_multiindex_frame_multi():
     # GH 39178
     df = DataFrame(columns=["a", "b", "c"])
     result = df.groupby(["a", "b"], group_keys=False).agg(d=("c", list))

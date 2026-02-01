@@ -1658,7 +1658,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         data: DataFrame | Series,
         not_indexed_same: bool | None = None,
         is_transform: bool = False,
-        is_agg: bool = False,
     ) -> NDFrameT:
         """
         Apply function f in python space
@@ -1676,10 +1675,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         is_transform : bool, default False
             Indicator for whether the function is actually a transform
             and should not have group keys prepended.
-        is_agg : bool, default False
-            Indicator for whether the function is an aggregation. When the
-            result is empty, we don't want to warn for this case.
-            See _GroupBy._python_agg_general.
 
         Returns
         -------

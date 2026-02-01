@@ -2375,7 +2375,12 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         if self.ngroups == 0:
             # e.g. test_evaluate_with_empty_groups different path gets different
             #  result dtype in empty case.
-            return self._python_apply_general(f, self._selected_obj, is_agg=True)
+            res_index = self._grouper.result_index
+            result = self.obj._constructor(
+                index=res_index, columns=self._obj_with_exclusions.columns
+            )
+            result = result.astype(self._obj_with_exclusions.dtypes)
+            return result
 
         obj = self._obj_with_exclusions
 
