@@ -41,7 +41,7 @@ Each of these aliases listed in the table below can be found by importing them f
    * - Alias
      - Meaning
    * - .. type:: AggFuncType
-     - Type of functions that can be passed to :meth:`DataFrame's <pandas.DataFrame.agg>`, :meth:`Series' <pandas.Series.agg>`, and :meth:`DataFrameGroupBy's <pandas.core.groupby.DataFrameGroupBy.aggregate>` aggregate methods
+     - Type of functions that can be passed to :meth:`DataFrame's <pandas.DataFrame.agg>`, :meth:`Series' <pandas.Series.agg>`, and :meth:`DataFrameGroupBy's <pandas.api.typing.DataFrameGroupBy.aggregate>` aggregate methods
    * - .. type:: AlignJoin
      - Argument type for ``join`` in :meth:`DataFrame's <pandas.DataFrame.align>` and :meth:`Series' <pandas.Series.align>` ``align`` method
    * - .. type:: AnyAll
