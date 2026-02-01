@@ -61,7 +61,7 @@ Each of these aliases listed in the table below can be found by importing them f
    * - .. type:: ColspaceArgType
      - Argument type for ``colspace`` in :meth:`pandas.DataFrame.to_html`
    * - .. type:: CompressionOptions
-     - Argument type for ``compression`` in all I/O output methods except :meth:`DataFrame.to_parquet`
+     - Argument type for ``compression`` in all I/O output methods except :meth:`pandas.DataFrame.to_parquet`
    * - .. type:: CorrelationMethod
      - Argument type for ``correlation`` in :meth:`DataFrame's <pandas.DataFrame.corr>` and :meth:`Series' <pandas.Series.corr>` ``corr`` method
    * - .. type:: DropKeep
