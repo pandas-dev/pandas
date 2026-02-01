@@ -2607,6 +2607,7 @@ class _AtIndexer(_ScalarAccessIndexer):
     >>> df.loc[5].at["B"]
     np.int64(4)
     """
+
     _takeable = False
 
     def _convert_key(self, key):
@@ -2676,9 +2677,7 @@ class _iAtIndexer(_ScalarAccessIndexer):
 
     Examples
     --------
-    >>> df = pd.DataFrame(
-    ...     [[0, 2, 3], [0, 4, 1], [10, 20, 30]], columns=["A", "B", "C"]
-    ... )
+    >>> df = pd.DataFrame([[0, 2, 3], [0, 4, 1], [10, 20, 30]], columns=["A", "B", "C"])
     >>> df
         A   B   C
     0   0   2   3
@@ -2701,6 +2700,7 @@ class _iAtIndexer(_ScalarAccessIndexer):
     >>> df.loc[0].iat[1]
     np.int64(2)
     """
+
     _takeable = True
 
     def _convert_key(self, key):
