@@ -1033,7 +1033,7 @@ def test_groupby_aggregate_empty_key_empty_return():
 
 
 def test_groupby_aggregate_empty_with_multiindex_frame_single():
-    # GH 39178
+    # GH 39178, 51445
     df = DataFrame(columns=["a", "b", "c"])
     result = df.groupby(["a", "b"], group_keys=False).agg(lambda x: x.sum())
     expected = DataFrame(
