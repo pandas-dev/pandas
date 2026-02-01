@@ -147,6 +147,11 @@ def pivot_table(
     -----
     Reference :ref:`the user guide <reshaping.pivot>` for more examples.
 
+    .. versionchanged:: 3.1.0
+        When ``values`` is empty, which is the case when all columns of
+        ``data`` are either in ``index`` or ``columns`` arguments, aggregation
+        will act on a Series of all NA values.
+
     Examples
     --------
     >>> df = pd.DataFrame(
@@ -340,6 +345,10 @@ def __internal_pivot_table(
         # GH#57876 and GH#61292
         # mypy is not aware `grouped[values]` will always be a DataFrameGroupBy
         grouped = grouped[values]  # type: ignore[assignment]
+    elif grouped._obj_with_exclusions.columns.empty:
+        grouped = Series(np.nan, index=data.index).groupby(
+            [data[key] for key in keys], observed=observed, sort=sort, dropna=dropna
+        )
 
     agged = grouped.agg(aggfunc, **kwargs)
 
@@ -450,9 +459,10 @@ def _add_margins(
     if not values and isinstance(table, ABCSeries):
         # If there are no values and the table is a series, then there is only
         # one column in the data. Compute grand margin and return it.
-        return table._append_internal(
-            table._constructor({key: grand_margin[margins_name]})
-        )
+        row = table._constructor({key: grand_margin[margins_name]})
+        if not isinstance(table.index, MultiIndex):
+            row.index.name = table.index.name
+        return table._append_internal(row)
 
     elif values:
         marginal_result_set = _generate_marginal_results(
@@ -530,6 +540,12 @@ def _compute_grand_margin(
                 pass
         return grand_margin
     else:
+        if isinstance(aggfunc, str):
+            return {
+                margins_name: getattr(Series(np.nan, index=data.index), aggfunc)(
+                    **kwargs
+                )
+            }
         return {margins_name: aggfunc(data.index, **kwargs)}
 
 
@@ -651,9 +667,10 @@ def _generate_marginal_results_without_values(
             return (margins_name,) + ("",) * (len(cols) - 1)
 
         if len(rows) > 0:
-            margin = data.groupby(rows, observed=observed, dropna=dropna)[rows].apply(
-                aggfunc, **kwargs
+            gb = Series(np.nan, index=data.index).groupby(
+                [data[row] for row in rows], observed=observed, dropna=dropna
             )
+            margin = gb.agg(aggfunc, **kwargs)
             all_key = _all_key()
             table[all_key] = margin
             result = table
