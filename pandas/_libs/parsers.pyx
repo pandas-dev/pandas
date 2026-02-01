@@ -95,9 +95,9 @@ from pandas._libs.khash cimport (
 
 from pandas.errors import (
     EmptyDataError,
-    Pandas4Warning,
     ParserError,
     ParserWarning,
+    Pandas4Warning,
 )
 
 from pandas.core.dtypes.dtypes import (
@@ -336,6 +336,7 @@ cdef class TextReader:
 
     cdef:
         parser_t *parser
+        public object encoding
         object na_fvalues
         list true_values, false_values
         bint warn_bom_with_explicit_utf8
@@ -400,8 +401,9 @@ cdef class TextReader:
                   bint skip_blank_lines=True,
                   encoding_errors=b"strict",
                   dtype_backend="numpy",
-                  bint strip_bom=True,
-                  bint warn_bom=False,
+                  bint _strip_bom=True,
+                  bint _warn_bom=False,
+                  object _encoding=None,
                   **kwds):
 
         # set encoding for native Python and C library
@@ -420,10 +422,13 @@ cdef class TextReader:
         self._setup_parser_source(source)
         parser_set_default_options(self.parser)
 
-        self.parser.strip_bom = 1 if strip_bom else 0
-        self.parser.warn_bom = 1 if strip_bom else 0
-
         parser_init(self.parser)
+
+        self.parser.strip_bom = 1 if _strip_bom else 0
+        self.warn_bom_with_explicit_utf8 = _warn_bom
+        self.encoding = _encoding
+        
+
 
         if delim_whitespace:
             self.parser.delim_whitespace = delim_whitespace
@@ -877,7 +882,7 @@ cdef class TextReader:
 
         self._check_tokenize_status(status)
 
-    cdef _check_tokenize_status(self, int status):
+    cdef int _check_tokenize_status(self, int status) except -1:
         if self.parser.warn_msg != NULL:
             warnings.warn(
                 PyUnicode_DecodeUTF8(
@@ -890,23 +895,36 @@ cdef class TextReader:
             )
             free(self.parser.warn_msg)
             self.parser.warn_msg = NULL
-
-        # NEW: Check for BOM warning (only for UTF-8 with BOM)
+        
+        # -----------------------------------------------------------
+        # BOM Warning Check
+        # -----------------------------------------------------------
         if self.warn_bom_with_explicit_utf8 and self.parser.bom_found:
-            warnings.warn(
-                "A UTF-8 BOM was detected in the file. In a future version of "
-                "pandas, specifying encoding='utf-8' will preserve the BOM as a "
-                "'\\ufeff' character to align with Python's standard codec behavior. "
-                "To suppress this warning and strip the BOM, use encoding='utf-8-sig'. "
-                "To prepare for the future behavior, you can manually handle the BOM "
-                "in your code.",
-                Pandas4Warning,
-                stacklevel=find_stack_level()
-            )
-            self.warn_bom_with_explicit_utf8 = False
+            self.warn_bom_with_explicit_utf8 = False  # Only warn once
+            
+            # Build the message
+            # CRITICAL FIX: Use 'self.encoding', not 'encoding_for_warning'
+            if self.encoding is None:
+                msg = (
+                    "A BOM was detected in the file. In pandas 4.0, "
+                    "BOMs will only be stripped when using '-sig' encoding variants "
+                    "(e.g., 'utf-8-sig'). To suppress this warning, specify "
+                    "encoding='utf-8-sig'."
+                )
+            else:
+                msg = (
+                    f"A BOM was detected in a file with encoding='{self.encoding}'. "
+                    f"In pandas 4.0, BOMs will only be stripped when using '-sig' "
+                    f"encoding variants (e.g., 'utf-8-sig'). To suppress this "
+                    f"warning, use encoding='{self.encoding}-sig' if available."
+                )
+            
+            # ✅ EMIT THE WARNING!
+            warnings.warn(msg, Pandas4Warning, stacklevel=find_stack_level())
 
         if status < 0:
             raise_parser_error("Error tokenizing data", self.parser)
+        return 0
 
     #  -> dict[int, "ArrayLike"]
     cdef _read_rows(self, rows, bint trim):

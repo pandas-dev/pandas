@@ -112,7 +112,7 @@ void parser_set_default_options(parser_t *self) {
   self->skip_footer = 0;
 
   self->strip_bom = 1;
-  self->bom_found = 0;
+  self->bom_found = 1;
 }
 
 parser_t *parser_new(void) { return (parser_t *)calloc(1, sizeof(parser_t)); }
@@ -209,7 +209,7 @@ int parser_init(parser_t *self) {
   self->commentchar = '\0';
 
   self->strip_bom = 1;
-  self->bom_found = 0;
+  self->bom_found = 1;
 
   return 0;
 }

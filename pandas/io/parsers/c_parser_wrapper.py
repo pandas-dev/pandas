@@ -84,25 +84,26 @@ class CParserWrapper(ParserBase):
         encoding = kwds.get("encoding", None)
 
         if encoding is None:
+            # Default: strip but warn
+            strip_bom = True
+            warn_bom = True
+            warn_msg_key = "default"
+            
+        elif encoding.lower().endswith('-sig'):
+            # Only -sig variants strip without warning
             strip_bom = True
             warn_bom = False
+            warn_msg_key = None
+            
         else:
-            encoding_lower = encoding.lower().replace("_", "-")
-
-            is_utf8_variant = encoding_lower in ("utf-8", "utf8")
-
-            if encoding_lower.endswith("-sig"):
-                strip_bom = True
-                warn_bom = False
-            elif is_utf8_variant:
-                strip_bom = True
-                warn_bom = True
-            else:
-                strip_bom = False
-                warn_bom = False
-
-        kwds["_strip_bom"] = strip_bom
-        kwds["_warn_bom"] = warn_bom
+            # ALL other encodings: strip but warn
+            strip_bom = True
+            warn_bom = True
+            warn_msg_key = "explicit"
+        
+        kwds['_strip_bom'] = strip_bom
+        kwds['_warn_bom'] = warn_bom
+        kwds['_encoding'] = encoding
 
         for key in (
             "storage_options",
