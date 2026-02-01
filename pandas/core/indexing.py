@@ -25,9 +25,6 @@ from pandas.errors import (
     LossySetitemError,
 )
 from pandas.errors.cow import _chained_assignment_msg
-from pandas.util._decorators import (
-    doc,
-)
 
 from pandas.core.dtypes.cast import (
     can_hold_element,
@@ -1320,9 +1317,7 @@ class _LocIndexer(_LocationIndexer):
 
     Alignable boolean Series:
 
-    >>> df.loc[
-    ...     pd.Series([False, True, False], index=["viper", "sidewinder", "cobra"])
-    ... ]
+    >>> df.loc[pd.Series([False, True, False], index=["viper", "sidewinder", "cobra"])]
                          max_speed  shield
     sidewinder          7       8
 
@@ -1554,6 +1549,7 @@ class _LocIndexer(_LocationIndexer):
     1  2  10.0
     2  3 NaN
     """
+
     _takeable: bool = False
     _valid_types = (
         "labels (MUST BE IN THE INDEX), slices of labels (BOTH "
@@ -2064,6 +2060,7 @@ class _iLocIndexer(_LocationIndexer):
     1   100   300
     2  1000  3000
     """
+
     _valid_types = (
         "integer, integer slice (START point is INCLUDED, END "
         "point is EXCLUDED), listlike of integers, boolean array"
