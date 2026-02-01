@@ -22,7 +22,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from pandas._config import get_option
+from pandas._config import using_string_dtype
 
 from pandas._libs.byteswap import (
     read_double_with_byteswap,
@@ -362,7 +362,7 @@ class SAS7BDATReader(SASReader):
 
     def _process_page_meta(self) -> bool:
         self._read_page_header()
-        pt = const.page_meta_types + [const.page_amd_type, const.page_mix_type]
+        pt = [*const.page_meta_types, const.page_amd_type, const.page_mix_type]
         if self._current_page_type in pt:
             self._process_page_metadata()
         is_data_page = self._current_page_type == const.page_data_type
@@ -684,7 +684,8 @@ class SAS7BDATReader(SASReader):
         if self._current_page_type in const.page_meta_types:
             self._process_page_metadata()
 
-        if self._current_page_type not in const.page_meta_types + [
+        if self._current_page_type not in [
+            *const.page_meta_types,
             const.page_data_type,
             const.page_mix_type,
         ]:
@@ -699,7 +700,7 @@ class SAS7BDATReader(SASReader):
         rslt = {}
 
         js, jb = 0, 0
-        infer_string = get_option("future.infer_string")
+        infer_string = using_string_dtype()
         for j in range(self.column_count):
             name = self.column_names[j]
 

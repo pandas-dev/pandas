@@ -199,6 +199,9 @@ class DataFrameDescriber(NDFrameDescriberAbstract):
                 include=self.include,
                 exclude=self.exclude,
             )
+            if len(data.columns) == 0:
+                msg = "No columns match the specified include or exclude data types"
+                raise ValueError(msg)
         return data
 
 
@@ -234,12 +237,15 @@ def describe_numeric_1d(series: Series, percentiles: Sequence[float]) -> Series:
     else:
         quantiles = series.quantile(percentiles).tolist()
 
-    stat_index = ["count", "mean", "std", "min"] + formatted_percentiles + ["max"]
-    d = (
-        [series.count(), series.mean(), series.std(), series.min()]
-        + quantiles
-        + [series.max()]
-    )
+    stat_index = ["count", "mean", "std", "min", *formatted_percentiles, "max"]
+    d = [
+        series.count(),
+        series.mean(),
+        series.std(),
+        series.min(),
+        *quantiles,
+        series.max(),
+    ]
     # GH#48340 - always return float on non-complex numeric data
     dtype: DtypeObj | None
     if isinstance(series.dtype, ExtensionDtype):
@@ -308,12 +314,14 @@ def describe_timestamp_1d(data: Series, percentiles: Sequence[float]) -> Series:
 
     formatted_percentiles = format_percentiles(percentiles)
 
-    stat_index = ["count", "mean", "min"] + formatted_percentiles + ["max"]
-    d = (
-        [data.count(), data.mean(), data.min()]
-        + data.quantile(percentiles).tolist()
-        + [data.max()]
-    )
+    stat_index = ["count", "mean", "min", *formatted_percentiles, "max"]
+    d = [
+        data.count(),
+        data.mean(),
+        data.min(),
+        *data.quantile(percentiles).tolist(),
+        data.max(),
+    ]
     return Series(d, index=stat_index, name=data.name)
 
 
@@ -353,13 +361,10 @@ def _refine_percentiles(
     if percentiles is None:
         return np.array([0.25, 0.5, 0.75])
 
-    # explicit conversion of `percentiles` to list
-    percentiles = list(percentiles)
+    percentiles = np.asarray(percentiles)
 
     # get them all to be in [0, 1]
     validate_percentile(percentiles)
-
-    percentiles = np.asarray(percentiles)
 
     # sort and check for duplicates
     unique_pcts = np.unique(percentiles)

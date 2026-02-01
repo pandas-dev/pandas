@@ -32,7 +32,7 @@ class TestSeriesToCSV:
         datetime_series.to_csv(path, header=False)
         ts = self.read_csv(path, parse_dates=True)
         expected = datetime_series.copy()
-        expected.index = expected.index.as_unit("s")
+        expected.index = expected.index.as_unit("us")
         tm.assert_series_equal(expected, ts, check_names=False)
 
         assert ts.name is None
@@ -59,7 +59,6 @@ class TestSeriesToCSV:
 
         series = self.read_csv(path, sep="|", parse_dates=True)
         check_series = Series({datetime(1998, 1, 1): 1.0, datetime(1999, 1, 1): 2.0})
-        check_series.index = check_series.index.as_unit("s")
         tm.assert_series_equal(check_series, series)
 
         series = self.read_csv(path, sep="|", parse_dates=False)

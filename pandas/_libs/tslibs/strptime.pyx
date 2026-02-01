@@ -405,6 +405,11 @@ def array_strptime(
                 if len(val) == 0 or val in nat_strings:
                     iresult[i] = NPY_NAT
                     continue
+                elif type(val) is not str:
+                    # GH#60933: normalize string subclasses
+                    # (e.g. lxml.etree._ElementUnicodeResult). The downstream Cython
+                    # path expects an exact `str`, so ensure we pass a plain str
+                    val = str(val)
             elif checknull_with_nat_and_na(val):
                 iresult[i] = NPY_NAT
                 continue
@@ -461,6 +466,8 @@ def array_strptime(
                 # No error reported by string_to_dts, pick back up
                 # where we left off
                 item_reso = get_supported_reso(out_bestunit)
+                if item_reso < NPY_DATETIMEUNIT.NPY_FR_us:
+                    item_reso = NPY_DATETIMEUNIT.NPY_FR_us
                 state.update_creso(item_reso)
                 if infer_reso:
                     creso = state.creso
@@ -505,6 +512,8 @@ def array_strptime(
                 val, fmt, exact, format_regex, locale_time, &dts, &item_reso
             )
 
+            if item_reso < NPY_DATETIMEUNIT.NPY_FR_us:
+                item_reso = NPY_DATETIMEUNIT.NPY_FR_us
             state.update_creso(item_reso)
             if infer_reso:
                 creso = state.creso

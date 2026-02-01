@@ -104,7 +104,7 @@ class TestDatetimeIndexRound:
     def test_no_rounding_occurs(self, tz_naive_fixture):
         # GH 21262
         tz = tz_naive_fixture
-        rng = date_range(start="2016-01-01", periods=5, freq="2Min", tz=tz)
+        rng = date_range(start="2016-01-01", periods=5, freq="2Min", tz=tz, unit="ns")
 
         expected_rng = DatetimeIndex(
             [
@@ -192,7 +192,7 @@ class TestDatetimeIndexRound:
         ],
     )
     def test_round_int64(self, start, index_freq, periods, round_freq):
-        dt = date_range(start=start, freq=index_freq, periods=periods)
+        dt = date_range(start=start, freq=index_freq, periods=periods, unit="ns")
         unit = to_offset(round_freq).nanos
 
         # test floor

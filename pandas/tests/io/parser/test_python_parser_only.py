@@ -158,7 +158,9 @@ also also skip this
 @pytest.mark.parametrize(
     "compression,klass", [("gzip", "GzipFile"), ("bz2", "BZ2File")]
 )
-def test_decompression_regex_sep(python_parser_only, csv1, compression, klass):
+def test_decompression_regex_sep(
+    temp_file, python_parser_only, csv1, compression, klass
+):
     # see gh-6607
     parser = python_parser_only
 
@@ -171,12 +173,11 @@ def test_decompression_regex_sep(python_parser_only, csv1, compression, klass):
     module = pytest.importorskip(compression)
     klass = getattr(module, klass)
 
-    with tm.ensure_clean() as path:
-        with klass(path, mode="wb") as tmp:
-            tmp.write(data)
+    with klass(temp_file, mode="wb") as tmp:
+        tmp.write(data)
 
-        result = parser.read_csv(path, sep="::", compression=compression)
-        tm.assert_frame_equal(result, expected)
+    result = parser.read_csv(temp_file, sep="::", compression=compression)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_read_csv_buglet_4x_multi_index(python_parser_only):
@@ -432,7 +433,7 @@ def test_on_bad_lines_callable_not_expected_length(python_parser_only):
     bad_sio = StringIO(data)
 
     result = parser.read_csv_check_warnings(
-        ParserWarning, "Length of header or names", bad_sio, on_bad_lines=lambda x: x
+        ParserWarning, "from bad_lines callable", bad_sio, on_bad_lines=lambda x: x
     )
     expected = DataFrame({"a": [1, 2, 3], "b": [2, 3, 4]})
     tm.assert_frame_equal(result, expected)
@@ -562,3 +563,81 @@ def test_no_thousand_convert_for_non_numeric_cols(python_parser_only, dtype, exp
     expected = DataFrame(expected)
     expected.insert(0, "a", ["0000,7995", "3,03,001,00514", "4923,600,041"])
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("index_col", [None, 0])
+def test_on_bad_lines_callable_warns_and_truncates_with_index_col(
+    python_parser_only, index_col
+):
+    # GH#61837
+    parser = python_parser_only
+    data = "id,field_1,field_2\n101,A,B\n102,C,D,E\n103,F,G\n"
+
+    def fixer(bad_line):
+        return [*list(bad_line), "EXTRA1", "EXTRA2"]
+
+    result = parser.read_csv_check_warnings(
+        ParserWarning,
+        "from bad_lines callable",
+        StringIO(data),
+        on_bad_lines=fixer,
+        index_col=index_col,
+    )
+
+    if index_col is None:
+        expected = DataFrame(
+            {
+                "id": [101, 102, 103],
+                "field_1": ["A", "C", "F"],
+                "field_2": ["B", "D", "G"],
+            }
+        )
+    else:
+        expected = DataFrame(
+            {"field_1": ["A", "C", "F"], "field_2": ["B", "D", "G"]},
+            index=Index([101, 102, 103], name="id"),
+        )
+
+    tm.assert_frame_equal(result, expected)
+
+
+def test_read_csv_leading_quote_skip(python_parser_only):
+    # GH 62739
+    tbl = """\
+    "
+a b
+1 3
+"""
+    parser = python_parser_only
+    result = parser.read_csv(
+        StringIO(tbl),
+        delimiter=" ",
+        skiprows=1,
+    )
+    expected = DataFrame({"a": [1], "b": [3]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_read_csv_unclosed_double_quote_in_data_still_errors(python_parser_only):
+    # GH 62739
+    tbl = """\
+a b
+"
+1 3
+"""
+    parser = python_parser_only
+    with pytest.raises(ParserError, match="unexpected end of data"):
+        parser.read_csv(StringIO(tbl), delimiter=" ", skiprows=1)
+
+
+def test_read_csv_skiprows_zero(python_parser_only):
+    # GH 62739
+    tbl = """\
+"
+a b
+1 3
+"""
+    parser = python_parser_only
+    # don't skip anything
+    with pytest.raises(ParserError, match="unexpected end of data"):
+        parser.read_csv(StringIO(tbl), delimiter=" ", skiprows=0, engine="python")

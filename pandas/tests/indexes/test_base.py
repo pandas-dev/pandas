@@ -220,7 +220,7 @@ class TestIndex:
         # .asi8 produces integers, so these are considered epoch timestamps
         # ^the above will be true in a later version. Right now we `.view`
         # the i8 values as NS_DTYPE, effectively treating them as wall times.
-        index = date_range("2011-01-01", periods=5)
+        index = date_range("2011-01-01", periods=5, unit="ns")
         arg = getattr(index, attr)
         index = index.tz_localize(tz_naive_fixture)
         dtype = index.dtype
@@ -274,7 +274,7 @@ class TestIndex:
     @pytest.mark.parametrize("attr", ["values", "asi8"])
     @pytest.mark.parametrize("klass", [Index, TimedeltaIndex])
     def test_constructor_dtypes_timedelta(self, attr, klass):
-        index = timedelta_range("1 days", periods=5)
+        index = timedelta_range("1 days", periods=5, unit="ns")
         index = index._with_freq(None)  # won't be preserved by constructors
         dtype = index.dtype
 
@@ -728,7 +728,7 @@ class TestIndex:
     def test_drop_by_str_label_errors_ignore(self, index):
         n = len(index)
         drop = index[list(range(5, 10))]
-        mixed = drop.tolist() + ["foo"]
+        mixed = [*drop.tolist(), "foo"]
         dropped = index.drop(mixed, errors="ignore")
 
         expected = index[list(range(5)) + list(range(10, n))]
@@ -865,7 +865,7 @@ class TestIndex:
 
         if nulls_fixture is pd.NaT or nulls_fixture is pd.NA:
             # Check 1) that we cannot construct a float64 Index with this value
-            #  and 2) that with an NaN we do not have .isin(nulls_fixture)
+            #  and 2) that with a NaN we do not have .isin(nulls_fixture)
             msg = (
                 r"float\(\) argument must be a string or a (real )?number, "
                 f"not {type(nulls_fixture).__name__!r}"
@@ -895,7 +895,7 @@ class TestIndex:
     )
     def test_isin_level_kwarg(self, level, index):
         index = Index(index)
-        values = index.tolist()[-2:] + ["nonexisting"]
+        values = [*index.tolist()[-2:], "nonexisting"]
 
         expected = np.array([False, False, True, True])
         tm.assert_numpy_array_equal(expected, index.isin(values, level=level))
@@ -911,7 +911,7 @@ class TestIndex:
     @pytest.mark.parametrize("label", [1.0, "foobar", "xyzzy", np.nan])
     def test_isin_level_kwarg_bad_label_raises(self, label, index):
         if isinstance(index, MultiIndex):
-            index = index.rename(["foo", "bar"] + index.names[2:])
+            index = index.rename(["foo", "bar", *index.names[2:]])
             msg = f"'Level {label} not found'"
         else:
             index = index.rename("foo")

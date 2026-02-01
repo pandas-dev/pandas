@@ -917,7 +917,9 @@ class TestPandasJSONTests:
         date_unit = "ns"
 
         # freq doesn't round-trip
-        rng = DatetimeIndex(list(date_range("1/1/2000", periods=20)), freq=None)
+        rng = DatetimeIndex(
+            list(date_range("1/1/2000", periods=20, unit="ns")), freq=None
+        )
         encoded = ujson.ujson_dumps(rng, date_unit=date_unit)
 
         decoded = DatetimeIndex(np.array(ujson.ujson_loads(encoded)))

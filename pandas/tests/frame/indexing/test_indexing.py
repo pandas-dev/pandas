@@ -564,9 +564,10 @@ class TestDataFrameIndexing:
 
         # non-monotonic, raise KeyError
         df2 = df.iloc[list(range(5)) + list(range(5, 10))[::-1]]
-        with pytest.raises(KeyError, match=r"^3$"):
+        msg = "non-monotonic index with a missing label 3"
+        with pytest.raises(KeyError, match=msg):
             df2.loc[3:11]
-        with pytest.raises(KeyError, match=r"^3$"):
+        with pytest.raises(KeyError, match=msg):
             df2.loc[3:11] = 0
 
     def test_fancy_getitem_slice_mixed(self, float_frame, float_string_frame):
@@ -820,7 +821,7 @@ class TestDataFrameIndexing:
             columns=["foo", "bar", "baz"],
         )
 
-        df["timestamp"] = Timestamp("20010102")
+        df["timestamp"] = Timestamp("20010102").as_unit("s")
 
         # check our dtypes
         result = df.dtypes
@@ -874,7 +875,7 @@ class TestDataFrameIndexing:
         f = float_string_frame.copy()
         piece = DataFrame(
             [[1.0, 2.0], [3.0, 4.0], [5.0, 6.0], [7.0, 8.0]],
-            index=list(f.index[0:2]) + ["foo", "bar"],
+            index=[*list(f.index[0:2]), "foo", "bar"],
             columns=["A", "B"],
         )
         key = (f.index[slice(None, 2)], ["A", "B"])
@@ -1125,7 +1126,7 @@ class TestDataFrameIndexing:
         # assignment of timedeltas with NaT
 
         one_hour = timedelta(hours=1)
-        df = DataFrame(index=date_range("20130101", periods=4))
+        df = DataFrame(index=date_range("20130101", periods=4, unit="ns"))
         df["A"] = np.array([1 * one_hour] * 4, dtype="m8[ns]")
         df.loc[:, "B"] = np.array([2 * one_hour] * 4, dtype="m8[ns]")
         df.loc[df.index[:3], "C"] = np.array([3 * one_hour] * 3, dtype="m8[ns]")
@@ -1133,7 +1134,7 @@ class TestDataFrameIndexing:
         df.loc[df.index[:3], "E"] = np.array([5 * one_hour] * 3, dtype="m8[ns]")
         df["F"] = np.timedelta64("NaT")
         df.loc[df.index[:-1], "F"] = np.array([6 * one_hour] * 3, dtype="m8[ns]")
-        df.loc[df.index[-3] :, "G"] = date_range("20130101", periods=3)
+        df.loc[df.index[-3] :, "G"] = date_range("20130101", periods=3, unit="ns")
         df["H"] = np.datetime64("NaT")
         result = df.dtypes
         expected = Series(
@@ -1427,13 +1428,17 @@ class TestDataFrameIndexing:
         )
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.parametrize("has_ref", [True, False])
     @pytest.mark.parametrize("col", [{}, {"name": "a"}])
-    def test_loc_setitem_reordering_with_all_true_indexer(self, col):
+    def test_loc_setitem_reordering_with_all_true_indexer(self, col, has_ref):
         # GH#48701
         n = 17
         df = DataFrame({**col, "x": range(n), "y": range(n)})
+        value = df[["x", "y"]].copy()
         expected = df.copy()
-        df.loc[n * [True], ["x", "y"]] = df[["x", "y"]]
+        if has_ref:
+            view = df[:]  # noqa: F841
+        df.loc[n * [True], ["x", "y"]] = value
         tm.assert_frame_equal(df, expected)
 
     def test_loc_rhs_empty_warning(self):
@@ -1558,7 +1563,7 @@ def test_object_casting_indexing_wraps_datetimelike():
     df = DataFrame(
         {
             "A": [1, 2],
-            "B": date_range("2000", periods=2),
+            "B": date_range("2000", periods=2, unit="ns"),
             "C": pd.timedelta_range("1 Day", periods=2),
         }
     )
@@ -1587,7 +1592,7 @@ def test_object_casting_indexing_wraps_datetimelike():
     assert isinstance(val, Timestamp)
 
     blk = mgr.blocks[mgr.blknos[2]]
-    assert blk.dtype == "m8[ns]"  # we got the right block
+    assert blk.dtype == "m8[us]"  # we got the right block
     val = blk.iget((0, 0))
     assert isinstance(val, pd.Timedelta)
 
@@ -1918,14 +1923,14 @@ class TestSetitemValidation:
     _indexers = [0, [0], slice(0, 1), [True, False, False], slice(None, None, None)]
 
     @pytest.mark.parametrize(
-        "invalid", _invalid_scalars + [1, 1.0, np.int64(1), np.float64(1)]
+        "invalid", [*_invalid_scalars, 1, 1.0, np.int64(1), np.float64(1)]
     )
     @pytest.mark.parametrize("indexer", _indexers)
     def test_setitem_validation_scalar_bool(self, invalid, indexer):
         df = DataFrame({"a": [True, False, False]}, dtype="bool")
         self._check_setitem_invalid(df, invalid, indexer)
 
-    @pytest.mark.parametrize("invalid", _invalid_scalars + [True, 1.5, np.float64(1.5)])
+    @pytest.mark.parametrize("invalid", [*_invalid_scalars, True, 1.5, np.float64(1.5)])
     @pytest.mark.parametrize("indexer", _indexers)
     def test_setitem_validation_scalar_int(self, invalid, any_int_numpy_dtype, indexer):
         df = DataFrame({"a": [1, 2, 3]}, dtype=any_int_numpy_dtype)
@@ -1934,7 +1939,7 @@ class TestSetitemValidation:
         else:
             self._check_setitem_invalid(df, invalid, indexer)
 
-    @pytest.mark.parametrize("invalid", _invalid_scalars + [True])
+    @pytest.mark.parametrize("invalid", [*_invalid_scalars, True])
     @pytest.mark.parametrize("indexer", _indexers)
     def test_setitem_validation_scalar_float(self, invalid, float_numpy_dtype, indexer):
         df = DataFrame({"a": [1, 2, None]}, dtype=float_numpy_dtype)

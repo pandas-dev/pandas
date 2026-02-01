@@ -22,7 +22,7 @@ def test_dtypes(dtype):
 
 
 @pytest.mark.parametrize("op", ["sum", "min", "max", "prod"])
-def test_preserve_dtypes(op):
+def test_preserve_dtypes(op, using_python_scalars):
     # for ops that enable (mean would actually work here
     # but generally it is a float return value)
     df = pd.DataFrame(
@@ -35,7 +35,7 @@ def test_preserve_dtypes(op):
 
     # op
     result = getattr(df.C, op)()
-    if op in {"sum", "prod", "min", "max"}:
+    if op in {"sum", "prod", "min", "max"} and not using_python_scalars:
         assert isinstance(result, np.int64)
     else:
         assert isinstance(result, int)
@@ -274,6 +274,22 @@ def test_to_numpy_na_raises(dtype):
     a = pd.array([0, 1, None], dtype="Int64")
     with pytest.raises(ValueError, match=dtype):
         a.to_numpy(dtype=dtype)
+
+
+def test_to_numpy_readonly():
+    arr = pd.array([0, 1], dtype="Int64")
+    arr._readonly = True
+    result = arr.to_numpy()
+    assert not result.flags.writeable
+
+    result = arr.to_numpy(dtype="int64", copy=True)
+    assert result.flags.writeable
+
+    result = arr.to_numpy(dtype="int32")
+    assert result.flags.writeable
+
+    result = arr.to_numpy(dtype="object")
+    assert result.flags.writeable
 
 
 def test_astype_str(using_infer_string):

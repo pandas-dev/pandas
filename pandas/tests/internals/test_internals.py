@@ -103,7 +103,7 @@ def create_block(typestr, placement, item_shape=None, num_offset=0, maker=new_bl
     if item_shape is None:
         item_shape = (N,)
 
-    shape = (num_items,) + item_shape
+    shape = (num_items, *item_shape)
 
     mat = get_numeric_mat(shape)
 
@@ -261,9 +261,9 @@ class TestBlock:
             ["bool", [5]],
         ],
     )
-    def test_pickle(self, typ, data):
+    def test_pickle(self, typ, data, temp_file):
         blk = create_block(typ, data)
-        assert_block_equal(tm.round_trip_pickle(blk), blk)
+        assert_block_equal(tm.round_trip_pickle(blk, temp_file), blk)
 
     def test_mgr_locs(self, fblock):
         assert isinstance(fblock.mgr_locs, BlockPlacement)
@@ -277,12 +277,12 @@ class TestBlock:
         assert len(fblock) == len(fblock.values)
 
     def test_copy(self, fblock):
-        cop = fblock.copy()
+        cop = fblock.copy(deep=True)
         assert cop is not fblock
         assert_block_equal(fblock, cop)
 
     def test_delete(self, fblock):
-        newb = fblock.copy()
+        newb = fblock.copy(deep=True)
         locs = newb.mgr_locs
         nb = newb.delete(0)[0]
         assert newb.mgr_locs is locs
@@ -295,7 +295,7 @@ class TestBlock:
         assert not (newb.values[0] == 1).all()
         assert (nb.values[0] == 1).all()
 
-        newb = fblock.copy()
+        newb = fblock.copy(deep=True)
         locs = newb.mgr_locs
         nb = newb.delete(1)
         assert len(nb) == 2
@@ -310,7 +310,7 @@ class TestBlock:
         assert not (newb.values[1] == 2).all()
         assert (nb[1].values[0] == 2).all()
 
-        newb = fblock.copy()
+        newb = fblock.copy(deep=True)
         nb = newb.delete(2)
         assert len(nb) == 1
         tm.assert_numpy_array_equal(
@@ -318,7 +318,7 @@ class TestBlock:
         )
         assert (nb[0].values[1] == 1).all()
 
-        newb = fblock.copy()
+        newb = fblock.copy(deep=True)
 
         with pytest.raises(IndexError, match=None):
             newb.delete(3)
@@ -391,8 +391,8 @@ class TestBlockManager:
         mgr = BlockManager(blocks, axes)
         mgr.iget(1)
 
-    def test_pickle(self, mgr):
-        mgr2 = tm.round_trip_pickle(mgr)
+    def test_pickle(self, mgr, temp_file):
+        mgr2 = tm.round_trip_pickle(mgr, temp_file)
         tm.assert_frame_equal(
             DataFrame._from_mgr(mgr, axes=mgr.axes),
             DataFrame._from_mgr(mgr2, axes=mgr2.axes),
@@ -407,24 +407,24 @@ class TestBlockManager:
         assert not mgr2._known_consolidated
 
     @pytest.mark.parametrize("mgr_string", ["a,a,a:f8", "a: f8; a: i8"])
-    def test_non_unique_pickle(self, mgr_string):
+    def test_non_unique_pickle(self, mgr_string, temp_file):
         mgr = create_mgr(mgr_string)
-        mgr2 = tm.round_trip_pickle(mgr)
+        mgr2 = tm.round_trip_pickle(mgr, temp_file)
         tm.assert_frame_equal(
             DataFrame._from_mgr(mgr, axes=mgr.axes),
             DataFrame._from_mgr(mgr2, axes=mgr2.axes),
         )
 
-    def test_categorical_block_pickle(self):
+    def test_categorical_block_pickle(self, temp_file):
         mgr = create_mgr("a: category")
-        mgr2 = tm.round_trip_pickle(mgr)
+        mgr2 = tm.round_trip_pickle(mgr, temp_file)
         tm.assert_frame_equal(
             DataFrame._from_mgr(mgr, axes=mgr.axes),
             DataFrame._from_mgr(mgr2, axes=mgr2.axes),
         )
 
         smgr = create_single_mgr("category")
-        smgr2 = tm.round_trip_pickle(smgr)
+        smgr2 = tm.round_trip_pickle(smgr, temp_file)
         tm.assert_series_equal(
             Series()._constructor_from_mgr(smgr, axes=smgr.axes),
             Series()._constructor_from_mgr(smgr2, axes=smgr2.axes),
@@ -489,7 +489,7 @@ class TestBlockManager:
             # view assertion
             tm.assert_equal(cp_blk.values, blk.values)
             if isinstance(blk.values, np.ndarray):
-                assert cp_blk.values.base is blk.values.base
+                assert cp_blk.values.base.base is blk.values.base
             else:
                 # DatetimeTZBlock has DatetimeIndex values
                 assert cp_blk.values._ndarray.base is blk.values._ndarray.base
@@ -1348,7 +1348,7 @@ class TestCanHoldElement:
             ser[: len(elem)] = elem
 
         if inplace:
-            assert ser.array is arr  # i.e. setting was done inplace
+            assert ser._values is arr  # i.e. setting was done inplace
         else:
             assert ser.dtype == object
 

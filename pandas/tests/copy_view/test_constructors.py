@@ -47,6 +47,16 @@ def test_series_from_series(dtype):
     ser.iloc[0] = 0
     assert result.iloc[0] == 1
 
+    # forcing copy=False still gives a CoW shallow copy
+    result = Series(ser, dtype=dtype, copy=False)
+    assert np.shares_memory(get_array(ser), get_array(result))
+    assert result._mgr.blocks[0].refs.has_reference()
+
+    # forcing copy=True still results in an actual hard copy up front
+    result = Series(ser, dtype=dtype, copy=True)
+    assert not np.shares_memory(get_array(ser), get_array(result))
+    assert ser._mgr._has_no_reference(0)
+
 
 def test_series_from_series_with_reindex():
     # Case: constructing a Series from another Series with specifying an index
@@ -54,7 +64,7 @@ def test_series_from_series_with_reindex():
     ser = Series([1, 2, 3], name="name")
 
     # passing an index that doesn't actually require a reindex of the values
-    # -> without CoW we get an actual mutating view
+    # -> still getting a CoW shallow copy
     for index in [
         ser.index,
         ser.index.copy(),
@@ -65,6 +75,11 @@ def test_series_from_series_with_reindex():
         assert np.shares_memory(ser.values, result.values)
         result.iloc[0] = 0
         assert ser.iloc[0] == 1
+
+        # forcing copy=True still results in an actual hard copy up front
+        result = Series(ser, index=index, copy=True)
+        assert not np.shares_memory(ser.values, result.values)
+        assert not result._mgr.blocks[0].refs.has_reference()
 
     # ensure that if an actual reindex is needed, we don't have any refs
     # (mutating the result wouldn't trigger CoW)
@@ -86,6 +101,13 @@ def test_series_from_array(idx, dtype, arr):
 
     arr[0] = 100
     tm.assert_series_equal(ser, ser_orig)
+
+    # if the user explicitly passes copy=False, we get an actual view
+    # not protected by CoW
+    ser = Series(arr, dtype=dtype, index=idx, copy=False)
+    assert np.shares_memory(get_array(ser), data)
+    arr[0] = 50
+    assert ser.iloc[0] == 50
 
 
 @pytest.mark.parametrize("copy", [True, False, None])
@@ -112,9 +134,22 @@ def test_series_from_index(idx):
     ser.iloc[0] = ser.iloc[1]
     tm.assert_index_equal(idx, expected)
 
+    # forcing copy=False still gives a CoW shallow copy
+    ser = Series(idx, copy=False)
+    assert np.shares_memory(get_array(ser), get_array(idx))
+    assert not ser._mgr._has_no_reference(0)
+    ser.iloc[0] = ser.iloc[1]
+    tm.assert_index_equal(idx, expected)
 
-def test_series_from_index_different_dtypes():
-    idx = Index([1, 2, 3], dtype="int64")
+    # forcing copy=True still results in a copy
+    ser = Series(idx, copy=True)
+    assert not np.shares_memory(get_array(ser), get_array(idx))
+    assert ser._mgr._has_no_reference(0)
+
+
+@pytest.mark.parametrize("copy", [True, False, None])
+def test_series_from_index_different_dtypes(copy):
+    idx = Index([1, 2, 3], dtype="int64", copy=copy)
     ser = Series(idx, dtype="int32")
     assert not np.shares_memory(get_array(ser), get_array(idx))
     assert ser._mgr._has_no_reference(0)
@@ -208,14 +243,47 @@ def test_dataframe_from_dict_of_series_with_reindex(dtype):
 
 
 @pytest.mark.parametrize(
-    "data, dtype", [([1, 2], None), ([1, 2], "int64"), (["a", "b"], object)]
+    "data, dtype",
+    [
+        ([1, 2], "int64"),
+        # 1D-only EA
+        ([1, 2], "Int64"),
+        (["a", "b"], "str"),
+        (["a", "b"], object),
+        # 2D EA
+        (
+            [Timestamp("2020", tz="UTC"), Timestamp("2021", tz="UTC")],
+            "datetime64[ns, UTC]",
+        ),
+    ],
+    ids=["int", "int-ea", "str", "object", "datetime64tz"],
 )
 def test_dataframe_from_series_or_index(data, dtype, index_or_series):
     obj = index_or_series(data, dtype=dtype)
-    obj_orig = obj.copy()
-    df = DataFrame(obj, dtype=dtype)
-    assert np.shares_memory(get_array(obj), get_array(df, 0))
+    obj_orig = obj.copy(deep=True)  # deep=True needed for Index
+
+    # default is copy=False -> DataFrame holds a shallow copy of original Index/Series
+    df = DataFrame(obj)
+    assert tm.shares_memory(get_array(obj), get_array(df, 0))
     assert not df._mgr._has_no_reference(0)
+
+    df.iloc[0, 0] = data[-1]
+    tm.assert_equal(obj, obj_orig)
+
+    # with passing the (identical) dtype -> same
+    df = DataFrame(obj, dtype=dtype)
+    assert tm.shares_memory(get_array(obj), get_array(df, 0))
+    assert not df._mgr._has_no_reference(0)
+
+    df.iloc[0, 0] = data[-1]
+    tm.assert_equal(obj, obj_orig)
+
+    # forcing copy=True still results in an actual hard copy up front
+    df = DataFrame(obj, copy=True)
+    if not (obj.dtype == "str" and obj.dtype.storage == "pyarrow"):
+        # ArrowExtensionArray deep copy still points to the same underlying data
+        assert not tm.shares_memory(get_array(obj), get_array(df, 0))
+        assert df._mgr._has_no_reference(0)
 
     df.iloc[0, 0] = data[-1]
     tm.assert_equal(obj, obj_orig)
@@ -254,7 +322,7 @@ def test_dataframe_from_dict_of_series_with_dtype(index):
 
 
 @pytest.mark.parametrize("copy", [False, None, True])
-def test_frame_from_numpy_array(copy):
+def test_dataframe_from_numpy_array(copy):
     arr = np.array([[1, 2], [3, 4]])
     df = DataFrame(arr, copy=copy)
 
@@ -262,6 +330,35 @@ def test_frame_from_numpy_array(copy):
         assert not np.shares_memory(get_array(df, 0), arr)
     else:
         assert np.shares_memory(get_array(df, 0), arr)
+
+
+@pytest.mark.parametrize(
+    "data, dtype",
+    [
+        # 1D-only EA
+        ([1, 2], "Int64"),
+        # 2D EA
+        (
+            [Timestamp("2020", tz="UTC"), Timestamp("2021", tz="UTC")],
+            "datetime64[ns, UTC]",
+        ),
+    ],
+    ids=["int-ea", "datetime64tz"],
+)
+@pytest.mark.parametrize("copy", [False, None, True])
+def test_dataframe_from_extension_array(copy, data, dtype):
+    arr = pd.array(data, dtype=dtype)
+    df = DataFrame(arr, copy=copy)
+
+    if arr.dtype == "Int64":
+        # to ensure tm.shares_memory works correctly
+        # TODO fix in tm.shares_memory or get_array?
+        arr = arr._data
+
+    if copy is None or copy is True:
+        assert not tm.shares_memory(get_array(df, 0), arr)
+    else:
+        assert tm.shares_memory(get_array(df, 0), arr)
 
 
 def test_frame_from_dict_of_index():

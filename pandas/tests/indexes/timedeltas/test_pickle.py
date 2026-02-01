@@ -3,9 +3,9 @@ import pandas._testing as tm
 
 
 class TestPickle:
-    def test_pickle_after_set_freq(self):
+    def test_pickle_after_set_freq(self, temp_file):
         tdi = timedelta_range("1 day", periods=4, freq="s")
         tdi = tdi._with_freq(None)
 
-        res = tm.round_trip_pickle(tdi)
+        res = tm.round_trip_pickle(tdi, temp_file)
         tm.assert_index_equal(res, tdi)

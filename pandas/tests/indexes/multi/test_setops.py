@@ -632,7 +632,7 @@ def test_union_duplicates(index, request):
 
     values = index.unique().values.tolist()
     mi1 = MultiIndex.from_arrays([values, [1] * len(values)])
-    mi2 = MultiIndex.from_arrays([[values[0]] + values, [1] * (len(values) + 1)])
+    mi2 = MultiIndex.from_arrays([[values[0], *values], [1] * (len(values) + 1)])
     result = mi2.union(mi1)
     expected = mi2.sort_values()
     tm.assert_index_equal(result, expected)
@@ -683,6 +683,18 @@ def test_union_keep_ea_dtype_with_na(any_numeric_ea_dtype):
     result = midx.union(midx2)
     expected = MultiIndex.from_arrays(
         [Series([1, 4, pd.NA, pd.NA], dtype=any_numeric_ea_dtype), [1, 2, 1, 2]]
+    )
+    tm.assert_index_equal(result, expected)
+
+
+def test_union_duplicates_different_names():
+    # GH#62059
+    mi1 = MultiIndex.from_tuples([(1, "a"), (2, "b")], names=["x", "y"])
+    mi2 = MultiIndex.from_tuples([(2, "b"), (3, "c"), (2, "b")])
+
+    result = mi1.union(mi2)
+    expected = MultiIndex.from_tuples(
+        [(1, "a"), (2, "b"), (2, "b"), (3, "c")], names=[None, None]
     )
     tm.assert_index_equal(result, expected)
 

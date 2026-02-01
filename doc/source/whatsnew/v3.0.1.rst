@@ -1,0 +1,33 @@
+.. _whatsnew_301:
+
+What's new in 3.0.1 (February XX, 2026)
+----------------------------------------
+
+These are the changes in pandas 3.0.1. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_301.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+- Fixed regression in :meth:`DataFrame.groupby` and :meth:`Series.groupby` when grouping on categorical data with NA values, ``observed=False``, and ``dropna=True`` (:issue:`52445`)
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_301.bugs:
+
+Bug fixes
+^^^^^^^^^
+- Fixed a bug for comparison operators between :py:class:`range` and objects with :class:`StringDtype` with ``storage="pyarrow"`` (:issue:`63429`)
+- Fixed a bug in the :class:`DataFrame` constructor when passed a :class:`Series` or
+  :class:`Index` correctly handling Copy-on-Write (:issue:`63899`)
+- Allow :class:`.ExtensionArray` to have dtypes involving :class:`numpy.void` (:issue:`54810`)
+- Fixed a bug in :func:`col` where unary operators (``-``, ``+``, ``abs``) were not supported (:issue:`63939`)
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_301.contributors:
+
+Contributors
+~~~~~~~~~~~~

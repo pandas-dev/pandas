@@ -115,7 +115,7 @@ details, see the commit logs at https://github.com/pandas-dev/pandas.
 ## Dependencies
 - [NumPy - Adds support for large, multi-dimensional arrays, matrices and high-level mathematical functions to operate on these arrays](https://www.numpy.org)
 - [python-dateutil - Provides powerful extensions to the standard datetime module](https://dateutil.readthedocs.io/en/stable/index.html)
-- [tzdata - Provides an IANA time zone database](https://tzdata.readthedocs.io/en/latest/)
+- [tzdata - Provides an IANA time zone database](https://tzdata.readthedocs.io/en/latest/) (Only required on Windows/Emscripten)
 
 See the [full installation instructions](https://pandas.pydata.org/pandas-docs/stable/install.html#dependencies) for minimum supported versions of required, recommended and optional dependencies.
 
@@ -179,7 +179,7 @@ If you are simply looking to start working with the pandas codebase, navigate to
 
 You can also triage issues which may include reproducing bug reports, or asking for vital information such as version numbers or reproduction instructions. If you would like to start triaging issues, one easy way to get started is to [subscribe to pandas on CodeTriage](https://www.codetriage.com/pandas-dev/pandas).
 
-Or maybe through using pandas you have an idea of your own or are looking for something in the documentation and thinking ‘this can be improved’...you can do something about it!
+Or maybe through using pandas you have an idea of your own or are looking for something in the documentation and thinking ‘this can be improved’... you can do something about it!
 
 Feel free to ask questions on the [mailing list](https://groups.google.com/forum/?fromgroups#!forum/pydata) or on [Slack](https://pandas.pydata.org/docs/dev/development/community.html?highlight=slack#community-slack).
 

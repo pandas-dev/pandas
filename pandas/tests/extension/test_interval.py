@@ -31,11 +31,13 @@ if TYPE_CHECKING:
     import pandas as pd
 
 
-def make_data():
-    N = 100
-    left_array = np.random.default_rng(2).uniform(size=N).cumsum()
-    right_array = left_array + np.random.default_rng(2).uniform(size=N)
-    return [Interval(left, right) for left, right in zip(left_array, right_array)]
+def make_data(n: int):
+    left_array = np.random.default_rng(2).uniform(size=n).cumsum()
+    right_array = left_array + np.random.default_rng(2).uniform(size=n)
+    return [
+        Interval(left, right)
+        for left, right in zip(left_array, right_array, strict=True)
+    ]
 
 
 @pytest.fixture
@@ -45,8 +47,8 @@ def dtype():
 
 @pytest.fixture
 def data():
-    """Length-100 PeriodArray for semantics test."""
-    return IntervalArray(make_data())
+    """Length-10 IntervalArray for semantics test."""
+    return IntervalArray(make_data(10))
 
 
 @pytest.fixture
@@ -100,6 +102,10 @@ class TestIntervalArray(base.ExtensionTests):
     )
     def test_fillna_length_mismatch(self, data_missing):
         super().test_fillna_length_mismatch(data_missing)
+
+    @pytest.mark.xfail(reason="copy=False is not Implemented")
+    def test_fillna_readonly(self, data_missing):
+        super().test_fillna_readonly(data_missing)
 
     @pytest.mark.filterwarnings(
         "ignore:invalid value encountered in cast:RuntimeWarning"

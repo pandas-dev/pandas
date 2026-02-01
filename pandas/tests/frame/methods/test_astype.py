@@ -369,11 +369,21 @@ class TestAstype:
         tm.assert_frame_equal(df.astype("int64").astype(dtype), expected1)
 
     @pytest.mark.parametrize("dtype", ["category", "Int64"])
-    def test_astype_extension_dtypes_duplicate_col(self, dtype):
+    def test_astype_extension_dtypes_duplicate_col(self, dtype, using_nan_is_na):
         # GH#24704
         a1 = Series([0, np.nan, 4], name="a")
         a2 = Series([np.nan, 3, 5], name="a")
         df = concat([a1, a2], axis=1)
+
+        if dtype == "Int64" and not using_nan_is_na:
+            msg = "Cannot cast NaN value to Integer dtype"
+            with pytest.raises(ValueError, match=msg):
+                df.astype(dtype)
+            with pytest.raises(ValueError, match=msg):
+                a1.astype(dtype)
+            with pytest.raises(ValueError, match=msg):
+                a2.astype(dtype)
+            return
 
         result = df.astype(dtype)
         expected = concat([a1.astype(dtype), a2.astype(dtype)], axis=1)
@@ -412,7 +422,7 @@ class TestAstype:
         ]
         df = DataFrame(vals, dtype=object)
         msg = (
-            r"Cannot convert from timedelta64\[ns\] to timedelta64\[.*\]. "
+            r"Cannot convert from timedelta64\[us\] to timedelta64\[.*\]. "
             "Supported resolutions are 's', 'ms', 'us', 'ns'"
         )
         with pytest.raises(ValueError, match=msg):
@@ -551,7 +561,7 @@ class TestAstype:
 
     @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s", "h", "m", "D"])
     def test_astype_to_incorrect_datetimelike(self, unit):
-        # trying to astype a m to a M, or vice-versa
+        # trying to astype an m to an M, or vice-versa
         # GH#19224
         dtype = f"M8[{unit}]"
         other = f"m8[{unit}]"
@@ -724,7 +734,9 @@ class TestAstype:
         msg = "'d' is deprecated and will be removed in a future version."
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             val = {
-                "tz": date_range("2020-08-30", freq="d", periods=2, tz="Europe/London")
+                "tz": date_range(
+                    "2020-08-30", freq="d", periods=2, tz="Europe/London", unit="ns"
+                )
             }
         df = DataFrame(val)
         result = df.astype({"tz": "datetime64[ns, Europe/Berlin]"})
@@ -736,7 +748,11 @@ class TestAstype:
     @pytest.mark.parametrize("tz", ["UTC", "Europe/Berlin"])
     def test_astype_tz_object_conversion(self, tz):
         # GH 35973
-        val = {"tz": date_range("2020-08-30", freq="D", periods=2, tz="Europe/London")}
+        val = {
+            "tz": date_range(
+                "2020-08-30", freq="D", periods=2, tz="Europe/London", unit="ns"
+            )
+        }
         expected = DataFrame(val)
 
         # convert expected to object dtype from other tz str (independently tested)

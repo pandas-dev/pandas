@@ -21,6 +21,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import lib
+from pandas._typing import Scalar
 from pandas.errors import (
     EmptyDataError,
     ParserError,
@@ -77,7 +78,6 @@ if TYPE_CHECKING:
         ArrayLike,
         DtypeObj,
         ReadCsvBuffer,
-        Scalar,
         T,
     )
 
@@ -218,6 +218,14 @@ class PythonParser(ParserBase):
 
             if sep is not None:
                 dia.delimiter = sep
+                # Skip rows at file level before csv.reader sees them
+                # prevents CSV parsing errors on lines that will be discarded
+                if self.skiprows is not None:
+                    while self.skipfunc(self.pos):
+                        line = f.readline()
+                        if not line:
+                            break
+                        self.pos += 1
             else:
                 # attempt to sniff the delimiter from the first valid line,
                 # i.e. no comment line and not in skiprows
@@ -501,7 +509,7 @@ class PythonParser(ParserBase):
                     values, skipna=False, convert_na_value=False
                 )
 
-            cats = Index(values).unique().dropna()
+            cats = Index(values, copy=False).unique().dropna()
             values = Categorical._from_inferred_categories(
                 cats, cats.get_indexer(values), cast_type, true_values=self.true_values
             )
@@ -573,7 +581,7 @@ class PythonParser(ParserBase):
             if isinstance(header, (list, tuple, np.ndarray)):
                 # we have a mi columns, so read an extra line
                 if have_mi_columns:
-                    header = list(header) + [header[-1] + 1]
+                    header = [*list(header), header[-1] + 1]
             else:
                 header = [header]
 
@@ -661,8 +669,8 @@ class PythonParser(ParserBase):
                         this_columns[i] = col
                         counts[col] = cur_count + 1
                 elif have_mi_columns:
-                    # if we have grabbed an extra line, but its not in our
-                    # format so save in the buffer, and create an blank extra
+                    # if we have grabbed an extra line, but it's not in our
+                    # format so save in the buffer, and create a blank extra
                     # line for the rest of the parsing code
                     if hr == header[-1]:
                         lc = len(this_columns)
@@ -954,7 +962,9 @@ class PythonParser(ParserBase):
         """
         if self.on_bad_lines == self.BadLineHandleMethod.ERROR:
             raise ParserError(msg)
-        if self.on_bad_lines == self.BadLineHandleMethod.WARN:
+        if self.on_bad_lines == self.BadLineHandleMethod.WARN or callable(
+            self.on_bad_lines
+        ):
             warnings.warn(
                 f"Skipping line {row_num}: {msg}\n",
                 ParserWarning,
@@ -1189,29 +1199,35 @@ class PythonParser(ParserBase):
 
             for i, _content in iter_content:
                 actual_len = len(_content)
-
                 if actual_len > col_len:
                     if callable(self.on_bad_lines):
                         new_l = self.on_bad_lines(_content)
                         if new_l is not None:
-                            content.append(new_l)  # pyright: ignore[reportArgumentType]
+                            new_l = cast(list[Scalar], new_l)
+                            if len(new_l) > col_len:
+                                row_num = self.pos - (content_len - i + footers)
+                                bad_lines.append((row_num, len(new_l), "callable"))
+                                new_l = new_l[:col_len]
+                            content.append(new_l)
+
                     elif self.on_bad_lines in (
                         self.BadLineHandleMethod.ERROR,
                         self.BadLineHandleMethod.WARN,
                     ):
                         row_num = self.pos - (content_len - i + footers)
-                        bad_lines.append((row_num, actual_len))
-
+                        bad_lines.append((row_num, actual_len, "normal"))
                         if self.on_bad_lines == self.BadLineHandleMethod.ERROR:
                             break
                 else:
                     content.append(_content)
 
-            for row_num, actual_len in bad_lines:
+            for row_num, actual_len, source in bad_lines:
                 msg = (
                     f"Expected {col_len} fields in line {row_num + 1}, saw {actual_len}"
                 )
-                if (
+                if source == "callable":
+                    msg += " from bad_lines callable"
+                elif (
                     self.delimiter
                     and len(self.delimiter) > 1
                     and self.quoting != csv.QUOTE_NONE
@@ -1341,7 +1357,7 @@ class PythonParser(ParserBase):
             )
         if self.columns and self.dtype:
             assert self._col_indices is not None
-            for i, col in zip(self._col_indices, self.columns):
+            for i, col in zip(self._col_indices, self.columns, strict=True):
                 if not isinstance(self.dtype, dict) and not is_numeric_dtype(
                     self.dtype
                 ):
@@ -1458,7 +1474,7 @@ class FixedWidthReader(abc.Iterator):
         shifted = np.roll(mask, 1)
         shifted[0] = 0
         edges = np.where((mask ^ shifted) == 1)[0]
-        edge_pairs = list(zip(edges[::2], edges[1::2]))
+        edge_pairs = list(zip(edges[::2], edges[1::2], strict=True))
         return edge_pairs
 
     def __next__(self) -> list[str]:

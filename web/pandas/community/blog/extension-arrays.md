@@ -151,7 +151,7 @@ array(['a', 'b', 'a'], dtype=object)
 
 To summarize:
 
-- `.array` will *always* be a an ExtensionArray, and is always a zero-copy
+- `.array` will *always* be an ExtensionArray, and is always a zero-copy
    reference back to the data.
 - `.to_numpy()` is *always* a NumPy array, so you can reliably call
    ndarray-specific methods on it.

@@ -382,6 +382,7 @@ cdef class Interval(IntervalMixin):
     >>> year_2017.length
     Timedelta('365 days 00:00:00')
     """
+    __module__ = "pandas"
     _typ = "interval"
     __array_priority__ = 1000
 

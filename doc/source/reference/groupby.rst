@@ -5,7 +5,10 @@
 =======
 GroupBy
 =======
-.. currentmodule:: pandas.core.groupby
+.. currentmodule:: pandas.api.typing
+
+.. note::
+   For an overview, see :ref:`groupby`.
 
 :class:`pandas.api.typing.DataFrameGroupBy` and :class:`pandas.api.typing.SeriesGroupBy`
 instances are returned by groupby calls :func:`pandas.DataFrame.groupby` and
@@ -40,7 +43,7 @@ Function application helper
 
    NamedAgg
 
-.. currentmodule:: pandas.core.groupby
+.. currentmodule:: pandas.api.typing
 
 Function application
 --------------------

@@ -12,6 +12,11 @@ import warnings
 
 import numpy as np
 
+from pandas._config import (
+    is_nan_na,
+    using_python_scalars,
+)
+
 from pandas._libs import (
     algos as libalgos,
     lib,
@@ -23,10 +28,12 @@ from pandas.compat import (
     is_platform_windows,
 )
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import doc
 
+from pandas.core.dtypes.astype import astype_is_view
 from pandas.core.dtypes.base import ExtensionDtype
-from pandas.core.dtypes.cast import maybe_downcast_to_dtype
+from pandas.core.dtypes.cast import (
+    maybe_downcast_to_dtype,
+)
 from pandas.core.dtypes.common import (
     is_bool,
     is_integer_dtype,
@@ -35,7 +42,10 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import BaseMaskedDtype
+from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
+    BaseMaskedDtype,
+)
 from pandas.core.dtypes.missing import (
     array_equivalent,
     is_valid_na_for_dtype,
@@ -71,7 +81,10 @@ from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
 )
-from pandas.core.indexers import check_array_indexer
+from pandas.core.indexers import (
+    check_array_indexer,
+    getitem_returns_view,
+)
 from pandas.core.ops import invalid_comparison
 from pandas.core.util.hashing import hash_array
 
@@ -149,6 +162,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return cls(values, mask)
 
     def _cast_pointwise_result(self, values) -> ArrayLike:
+        if isna(values).all():
+            return type(self)._from_sequence(values, dtype=self.dtype)
         values = np.asarray(values, dtype=object)
         result = lib.maybe_convert_objects(values, convert_to_nullable_dtype=True)
         lkind = self.dtype.kind
@@ -162,8 +177,15 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return result
 
     @classmethod
-    @doc(ExtensionArray._empty)
     def _empty(cls, shape: Shape, dtype: ExtensionDtype) -> Self:
+        """
+        Create an ExtensionArray with the given shape and dtype.
+
+        See also
+        --------
+        ExtensionDtype.empty
+            ExtensionDtype.empty is the 'official' public version of this API.
+        """
         dtype = cast(BaseMaskedDtype, dtype)
         values: np.ndarray = np.empty(shape, dtype=dtype.type)
         values.fill(dtype._internal_fill_value)
@@ -199,7 +221,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 return self.dtype.na_value
             return self._data[item]
 
-        return self._simple_new(self._data[item], newmask)
+        result = self._simple_new(self._data[item], newmask)
+        if getitem_returns_view(self, item):
+            result._readonly = self._readonly
+        return result
 
     def _pad_or_backfill(
         self,
@@ -238,15 +263,50 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 return self._simple_new(npvalues.T, new_mask.T)
             else:
                 return self
+        elif copy:
+            new_values = self.copy()
         else:
-            if copy:
-                new_values = self.copy()
-            else:
-                new_values = self
+            new_values = self
         return new_values
 
-    @doc(ExtensionArray.fillna)
     def fillna(self, value, limit: int | None = None, copy: bool = True) -> Self:
+        """
+        Fill NA/NaN values using the specified method.
+
+        Parameters
+        ----------
+        value : scalar, array-like
+            If a scalar value is passed it is used to fill all missing values.
+            Alternatively, an array-like "value" can be given. It's expected
+            that the array-like have the same length as 'self'.
+        limit : int, default None
+            The maximum number of entries where NA values will be filled.
+        copy : bool, default True
+            Whether to make a copy of the data before filling. If False, then
+            the original should be modified and no new memory should be allocated.
+            For ExtensionArray subclasses that cannot do this, it is at the
+            author's discretion whether to ignore "copy=False" or to raise.
+
+        Returns
+        -------
+        ExtensionArray
+            With NA/NaN filled.
+
+        See Also
+        --------
+        api.extensions.ExtensionArray.dropna : Return ExtensionArray without
+            NA values.
+        api.extensions.ExtensionArray.isna : A 1-D array indicating if
+            each value is missing.
+
+        Examples
+        --------
+        >>> arr = pd.array([np.nan, np.nan, 2, 3, np.nan, np.nan])
+        >>> arr.fillna(0)
+        <IntegerArray>
+        [0, 0, 2, 3, 0, 0]
+        Length: 6, dtype: Int64
+        """
         mask = self._mask
         if limit is not None and limit < len(self):
             modify = mask.cumsum() > limit
@@ -264,11 +324,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             else:
                 new_values = self[:]
             new_values[mask] = value
+        elif copy:
+            new_values = self.copy()
         else:
-            if copy:
-                new_values = self.copy()
-            else:
-                new_values = self[:]
+            new_values = self[:]
         return new_values
 
     @classmethod
@@ -295,9 +354,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             if lib.is_integer(value) or lib.is_float(value):
                 return value
 
-        else:
-            if lib.is_integer(value) or (lib.is_float(value) and value.is_integer()):
-                return value
+        elif lib.is_integer(value) or (lib.is_float(value) and value.is_integer()):
+            return value
             # TODO: unsigned checks
 
         # Note: without the "str" here, the f-string rendering raises in
@@ -305,10 +363,15 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         raise TypeError(f"Invalid value '{value!s}' for dtype '{self.dtype}'")
 
     def __setitem__(self, key, value) -> None:
+        if self._readonly:
+            raise ValueError("Cannot modify read-only array")
+
         key = check_array_indexer(self, key)
 
         if is_scalar(value):
-            if is_valid_na_for_dtype(value, self.dtype):
+            if is_valid_na_for_dtype(value, self.dtype) and not (
+                lib.is_float(value) and not is_nan_na()
+            ):
                 self._mask[key] = True
             else:
                 value = self._validate_setitem_value(value)
@@ -324,7 +387,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def __contains__(self, key) -> bool:
         if isna(key) and key is not self.dtype.na_value:
             # GH#52840
-            if self._data.dtype.kind == "f" and lib.is_float(key):
+            if lib.is_float(key) and is_nan_na():
+                key = self.dtype.na_value
+            elif self._data.dtype.kind == "f" and lib.is_float(key):
                 return bool((np.isnan(self._data) & ~self._mask).any())
 
         return bool(super().__contains__(key))
@@ -336,7 +401,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                     yield val
             else:
                 na_value = self.dtype.na_value
-                for isna_, val in zip(self._mask, self._data):
+                for isna_, val in zip(self._mask, self._data, strict=True):
                     if isna_:
                         yield na_value
                     else:
@@ -513,11 +578,11 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         hasna = self._hasna
         dtype, na_value = to_numpy_dtype_inference(self, dtype, na_value, hasna)
         if dtype is None:
-            dtype = object
+            dtype = np.dtype(object)
 
         if hasna:
             if (
-                dtype != object
+                dtype != np.dtype(object)
                 and not is_string_dtype(dtype)
                 and na_value is libmissing.NA
             ):
@@ -535,10 +600,35 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", category=RuntimeWarning)
                 data = self._data.astype(dtype, copy=copy)
+            if self._readonly and not copy and astype_is_view(self.dtype, dtype):
+                data = data.view()
+                data.flags.writeable = False
         return data
 
-    @doc(ExtensionArray.tolist)
     def tolist(self) -> list:
+        """
+        Return a list of the values.
+
+        These are each a scalar type, which is a Python scalar
+        (for str, int, float) or a pandas scalar
+        (for Timestamp/Timedelta/Interval/Period)
+
+        Returns
+        -------
+        list
+            Python list of values in array.
+
+        See Also
+        --------
+        Index.to_list: Return a list of the values in the Index.
+        Series.to_list: Return a list of the values in the Series.
+
+        Examples
+        --------
+        >>> arr = pd.array([1, 2, 3])
+        >>> arr.tolist()
+        [1, 2, 3]
+        """
         if self.ndim > 1:
             return [x.tolist() for x in self]
         dtype = None if self._hasna else self._data.dtype
@@ -611,7 +701,12 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         if copy is False:
             if not self._hasna:
                 # special case, here we can simply return the underlying data
-                return np.array(self._data, dtype=dtype, copy=copy)
+                result = np.array(self._data, dtype=dtype, copy=copy)
+                # If the ExtensionArray is readonly, make the numpy array readonly too
+                if self._readonly:
+                    result = result.view()
+                    result.flags.writeable = False
+                return result
             raise ValueError(
                 "Unable to avoid copy while creating an array as requested."
             )
@@ -629,7 +724,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         out = kwargs.get("out", ())
 
         for x in inputs + out:
-            if not isinstance(x, self._HANDLED_TYPES + (BaseMaskedArray,)):
+            if not isinstance(x, (*self._HANDLED_TYPES, BaseMaskedArray)):
                 return NotImplemented
 
         # for binary ops, use our custom dunder methods
@@ -682,6 +777,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                     # reached in e.g. np.sqrt on BooleanArray
                     # we don't support float16
                     x = x.astype(np.float32)
+                if is_nan_na():
+                    m[np.isnan(x)] = True
                 return FloatingArray(x, m)
             else:
                 x[mask] = np.nan
@@ -756,6 +853,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         other = ops.maybe_prepare_scalar_for_op(other, (len(self),))
         pd_op = ops.get_array_op(op)
         other = ensure_wrapped_if_datetimelike(other)
+
+        if isinstance(other, ExtensionArray) and isinstance(other.dtype, ArrowDtype):
+            # GH#58602
+            return NotImplemented
 
         if op_name in {"pow", "rpow"} and isinstance(other, np.bool_):
             # Avoid DeprecationWarning: In future, it will be an error
@@ -833,7 +934,11 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         mask = None
 
-        if isinstance(other, BaseMaskedArray):
+        if isinstance(other, ExtensionArray) and isinstance(other.dtype, ArrowDtype):
+            # GH#58602
+            return NotImplemented
+
+        elif isinstance(other, BaseMaskedArray):
             other, mask = other._data, other._mask
 
         elif is_list_like(other):
@@ -888,6 +993,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         if result.dtype.kind == "f":
             from pandas.core.arrays import FloatingArray
 
+            if is_nan_na():
+                mask[np.isnan(result)] = True
+
             return FloatingArray(result, mask, copy=False)
 
         elif result.dtype.kind == "b":
@@ -911,6 +1019,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
             return IntegerArray(result, mask, copy=False)
 
+        elif result.dtype == object:
+            result[mask] = self.dtype.na_value
+            return result
         else:
             result[mask] = np.nan
             return result
@@ -1051,10 +1162,37 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         return FloatingArray(result, mask=mask)
 
-    @doc(ExtensionArray.duplicated)
     def duplicated(
         self, keep: Literal["first", "last", False] = "first"
     ) -> npt.NDArray[np.bool_]:
+        """
+        Return boolean ndarray denoting duplicate values.
+
+        Parameters
+        ----------
+        keep : {'first', 'last', False}, default 'first'
+            - ``first`` : Mark duplicates as ``True`` except for the first occurrence.
+            - ``last`` : Mark duplicates as ``True`` except for the last occurrence.
+            - False : Mark all duplicates as ``True``.
+
+        Returns
+        -------
+        ndarray[bool]
+            With true in indices where elements are duplicated and false otherwise.
+
+        See Also
+        --------
+        DataFrame.duplicated : Return boolean Series denoting
+            duplicate rows.
+        Series.duplicated : Indicate duplicate Series values.
+        api.extensions.ExtensionArray.unique : Compute the ExtensionArray
+            of unique values.
+
+        Examples
+        --------
+        >>> pd.array([1, 1, 2, 3, 3], dtype="Int64").duplicated()
+        array([False,  True, False, False,  True])
+        """
         values = self._data
         mask = self._mask
         return algos.duplicated(values, keep=keep, mask=mask)
@@ -1070,13 +1208,56 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         uniques, mask = algos.unique_with_mask(self._data, self._mask)
         return self._simple_new(uniques, mask)
 
-    @doc(ExtensionArray.searchsorted)
     def searchsorted(
         self,
         value: NumpyValueArrayLike | ExtensionArray,
         side: Literal["left", "right"] = "left",
         sorter: NumpySorter | None = None,
     ) -> npt.NDArray[np.intp] | np.intp:
+        """
+        Find indices where elements should be inserted to maintain order.
+
+        Find the indices into a sorted array `self` (a) such that, if the
+        corresponding elements in `value` were inserted before the indices,
+        the order of `self` would be preserved.
+
+        Assuming that `self` is sorted:
+
+        ======  ================================
+        `side`  returned index `i` satisfies
+        ======  ================================
+        left    ``self[i-1] < value <= self[i]``
+        right   ``self[i-1] <= value < self[i]``
+        ======  ================================
+
+        Parameters
+        ----------
+        value : array-like, list or scalar
+            Value(s) to insert into `self`.
+        side : {'left', 'right'}, optional
+            If 'left', the index of the first suitable location found is given.
+            If 'right', return the last such index.  If there is no suitable
+            index, return either 0 or N (where N is the length of `self`).
+        sorter : 1-D array-like, optional
+            Optional array of integer indices that sort array a into ascending
+            order. They are typically the result of argsort.
+
+        Returns
+        -------
+        array of ints or int
+            If value is array-like, array of insertion points.
+            If value is scalar, a single integer.
+
+        See Also
+        --------
+        numpy.searchsorted : Similar method from NumPy.
+
+        Examples
+        --------
+        >>> arr = pd.array([1, 2, 3, 5])
+        >>> arr.searchsorted([4])
+        array([3])
+        """
         if self._hasna:
             raise ValueError(
                 "searchsorted requires array to be sorted, which is impossible "
@@ -1087,11 +1268,54 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         # Base class searchsorted would cast to object, which is *much* slower.
         return self._data.searchsorted(value, side=side, sorter=sorter)
 
-    @doc(ExtensionArray.factorize)
     def factorize(
         self,
         use_na_sentinel: bool = True,
     ) -> tuple[np.ndarray, ExtensionArray]:
+        """
+        Encode the extension array as an enumerated type.
+
+        Parameters
+        ----------
+        use_na_sentinel : bool, default True
+            If True, the sentinel -1 will be used for NaN values. If False,
+            NaN values will be encoded as non-negative integers and will not drop the
+            NaN from the uniques of the values.
+
+        Returns
+        -------
+        codes : ndarray
+            An integer NumPy array that's an indexer into the original
+            ExtensionArray.
+        uniques : ExtensionArray
+            An ExtensionArray containing the unique values of `self`.
+
+            .. note::
+
+               uniques will *not* contain an entry for the NA value of
+               the ExtensionArray if there are any missing values present
+               in `self`.
+
+        See Also
+        --------
+        factorize : Top-level factorize method that dispatches here.
+
+        Notes
+        -----
+        :meth:`pandas.factorize` offers a `sort` keyword as well.
+
+        Examples
+        --------
+        >>> idx1 = pd.PeriodIndex(
+        ...     ["2014-01", "2014-01", "2014-02", "2014-02", "2014-03", "2014-03"],
+        ...     freq="M",
+        ... )
+        >>> arr, idx = idx1.factorize()
+        >>> arr
+        array([0, 0, 1, 1, 2, 2])
+        >>> idx
+        PeriodIndex(['2014-01', '2014-02', '2014-03'], dtype='period[M]')
+        """
         arr = self._data
         mask = self._mask
 
@@ -1124,8 +1348,38 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         return codes, uniques_ea
 
-    @doc(ExtensionArray._values_for_argsort)
     def _values_for_argsort(self) -> np.ndarray:
+        """
+        Return values for sorting.
+
+        Returns
+        -------
+        ndarray
+            The transformed values should maintain the ordering between values
+            within the array.
+
+        See Also
+        --------
+        ExtensionArray.argsort : Return the indices that would sort this array.
+
+        Notes
+        -----
+        The caller is responsible for *not* modifying these values in-place, so
+        it is safe for implementers to give views on ``self``.
+
+        Functions that use this (e.g. ``ExtensionArray.argsort``) should ignore
+        entries with missing values in the original array (according to
+        ``self.isna()``). This means that the corresponding entries in the returned
+        array don't need to be modified to sort correctly.
+
+        Examples
+        --------
+        In most cases, this is the underlying Numpy array of the ``ExtensionArray``:
+
+        >>> arr = pd.array([1, 2, 3])
+        >>> arr._values_for_argsort()
+        array([1, 2, 3])
+        """
         return self._data
 
     def value_counts(self, dropna: bool = True) -> Series:
@@ -1165,7 +1419,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             self.dtype.construct_array_type()(
                 keys,  # type: ignore[arg-type]
                 mask_index,
-            )
+            ),
+            copy=False,
         )
         return Series(arr, index=index, name="count", copy=False)
 
@@ -1174,8 +1429,42 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         result = type(self)(result, res_mask)
         return result[result.argsort()]
 
-    @doc(ExtensionArray.equals)
     def equals(self, other) -> bool:
+        """
+        Return if another array is equivalent to this array.
+
+        Equivalent means that both arrays have the same shape and dtype, and
+        all values compare equal. Missing values in the same location are
+        considered equal (in contrast with normal equality).
+
+        Parameters
+        ----------
+        other : ExtensionArray
+            Array to compare to this Array.
+
+        Returns
+        -------
+        boolean
+            Whether the arrays are equivalent.
+
+        See Also
+        --------
+        numpy.array_equal : Equivalent method for numpy array.
+        Series.equals : Equivalent method for Series.
+        DataFrame.equals : Equivalent method for DataFrame.
+
+        Examples
+        --------
+        >>> arr1 = pd.array([1, 2, np.nan])
+        >>> arr2 = pd.array([1, 2, np.nan])
+        >>> arr1.equals(arr2)
+        True
+
+        >>> arr1 = pd.array([1, 3, np.nan])
+        >>> arr2 = pd.array([1, 2, np.nan])
+        >>> arr1.equals(arr2)
+        False
+        """
         if type(self) != type(other):
             return False
         if other.dtype != self.dtype:
@@ -1251,7 +1540,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             if isna(result):
                 return self._wrap_na_result(name=name, axis=0, mask_size=(1,))
             else:
-                result = result.reshape(1)
+                if using_python_scalars():
+                    result = np.array([result])
+                else:
+                    result = result.reshape(1)
                 mask = np.zeros(1, dtype=bool)
                 return self._maybe_mask_result(result, mask)
 
@@ -1419,8 +1711,6 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         missing values are present, similar :ref:`Kleene logic <boolean.kleene>`
         is used as for logical operations.
 
-        .. versionchanged:: 1.4.0
-
         Parameters
         ----------
         skipna : bool, default True
@@ -1480,11 +1770,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         result = values.any()
         if skipna:
             return result
+        elif result or len(self) == 0 or not self._mask.any():
+            return result
         else:
-            if result or len(self) == 0 or not self._mask.any():
-                return result
-            else:
-                return self.dtype.na_value
+            return self.dtype.na_value
 
     @overload
     def all(
@@ -1506,8 +1795,6 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         By default, NAs are skipped. If ``skipna=False`` is specified and
         missing values are present, similar :ref:`Kleene logic <boolean.kleene>`
         is used as for logical operations.
-
-        .. versionchanged:: 1.4.0
 
         Parameters
         ----------
@@ -1569,11 +1856,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         if skipna:
             return result  # type: ignore[return-value]
+        elif not result or len(self) == 0 or not self._mask.any():
+            return result  # type: ignore[return-value]
         else:
-            if not result or len(self) == 0 or not self._mask.any():
-                return result  # type: ignore[return-value]
-            else:
-                return self.dtype.na_value
+            return self.dtype.na_value
 
     def interpolate(
         self,

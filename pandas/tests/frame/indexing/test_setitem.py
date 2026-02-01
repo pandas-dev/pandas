@@ -171,7 +171,7 @@ class TestDataFrameSetItem:
         tm.assert_frame_equal(df, expected)
 
     def test_setitem_dt64_index_empty_columns(self):
-        rng = date_range("1/1/2000 00:00:00", "1/1/2000 1:59:50", freq="10s")
+        rng = date_range("1/1/2000 00:00:00", "1/1/2000 1:59:50", freq="10s", unit="ns")
         df = DataFrame(index=np.arange(len(rng)))
 
         df["A"] = rng
@@ -259,7 +259,7 @@ class TestDataFrameSetItem:
             (Period("2020-01"), PeriodDtype("M")),
             (Interval(left=0, right=5), IntervalDtype("int64", "right")),
             (
-                Timestamp("2011-01-01", tz="US/Eastern"),
+                Timestamp("2011-01-01", tz="US/Eastern").as_unit("s"),
                 DatetimeTZDtype(unit="s", tz="US/Eastern"),
             ),
         ],
@@ -1000,7 +1000,18 @@ class TestDataFrameSetItemWithExpansion:
             index=Index([0]),
             columns=(["a", "b", "c"]),
         )
+        expected["a"] = expected["a"].astype("m8[s]")
+        expected["b"] = expected["b"].astype("m8[s]")
         tm.assert_frame_equal(result, expected)
+
+    def test_setitem_tuple_key_in_empty_frame(self):
+        # GH#54385
+        df = DataFrame()
+        df[(0, 0)] = [1, 2, 3]
+
+        cols = Index([(0, 0)], tupleize_cols=False)
+        expected = DataFrame({(0, 0): [1, 2, 3]}, columns=cols)
+        tm.assert_frame_equal(df, expected)
 
 
 class TestDataFrameSetItemSlicing:
@@ -1146,6 +1157,25 @@ class TestDataFrameSetItemBooleanMask:
         df[mask] = ["b", 2]
         # category c is kept in .categories
         tm.assert_frame_equal(df, exp_fancy)
+
+    def test_setitem_mask_assign_NaT_with_datetime(self):
+        # GH 46294
+        # after boolean masking assignment, NaT should align column-wise
+        df = DataFrame(
+            [pd.to_datetime(["2000", "2001"]), pd.to_datetime(["2000", "2002"])],
+            index=pd.to_datetime(["2000", "2000"]),
+        )
+        mask = df > df.index.to_numpy().reshape(-1, 1)
+        df[mask] = NaT
+        expected = DataFrame(
+            [
+                pd.to_datetime(["2000", NaT]),
+                pd.to_datetime(["2000", NaT]),
+            ],
+            index=pd.to_datetime(["2000", "2000"]),
+            dtype="datetime64[us]",
+        )
+        tm.assert_frame_equal(df, expected)
 
     @pytest.mark.parametrize("dtype", ["float", "int64"])
     @pytest.mark.parametrize("kwargs", [{}, {"index": [1]}, {"columns": ["A"]}])
@@ -1368,6 +1398,75 @@ class TestDataFrameSetitemCopyViewSemantics:
             columns=["3010", "2010"],
             index=dti[:0],
         )
+        tm.assert_frame_equal(df, expected)
+
+    def test_iloc_setitem_view_2dblock(self):
+        # https://github.com/pandas-dev/pandas/issues/60309
+        df_parent = DataFrame(
+            {
+                "A": [1, 4, 1, 5],
+                "B": [2, 5, 2, 6],
+                "C": [3, 6, 1, 7],
+                "D": [8, 9, 10, 11],
+            }
+        )
+        df_orig = df_parent.copy()
+        df = df_parent[["B", "C"]]
+
+        # Perform the iloc operation
+        df.iloc[[1, 3], :] = [[2, 2], [2, 2]]
+
+        # Check that original DataFrame is unchanged
+        tm.assert_frame_equal(df_parent, df_orig)
+
+        # Check that df is modified correctly
+        expected = DataFrame({"B": [2, 2, 2, 2], "C": [3, 2, 1, 2]}, index=df.index)
+        tm.assert_frame_equal(df, expected)
+
+        # with setting to subset of columns
+        df = df_parent[["B", "C", "D"]]
+        df.iloc[[1, 3], 0:3:2] = [[2, 2], [2, 2]]
+        tm.assert_frame_equal(df_parent, df_orig)
+        expected = DataFrame(
+            {"B": [2, 2, 2, 2], "C": [3, 6, 1, 7], "D": [8, 2, 10, 2]}, index=df.index
+        )
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize(
+        "indexer, value",
+        [
+            (([0, 2], slice(None)), [[2, 2, 2, 2], [2, 2, 2, 2]]),
+            ((slice(None), slice(None)), 2),
+            ((0, [1, 3]), [2, 2]),
+            (([0], 1), [2]),
+            (([0], np.int64(1)), [2]),
+            ((slice(None), np.int64(1)), [2, 2, 2]),
+            ((slice(None, 2), np.int64(1)), [2, 2]),
+            (
+                (np.array([False, True, False]), np.array([False, True, False, True])),
+                [2, 2],
+            ),
+        ],
+    )
+    def test_setitem_2dblock_with_ref(self, indexer, value):
+        # https://github.com/pandas-dev/pandas/issues/60309
+        arr = np.arange(12).reshape(3, 4)
+
+        df_parent = DataFrame(arr.copy(), columns=list("ABCD"))
+        # the test is specifically for the case where the df is backed by a single
+        # block (taking the non-split path)
+        assert df_parent._mgr.is_single_block
+        df_orig = df_parent.copy()
+        df = df_parent[:]
+
+        df.iloc[indexer] = value
+
+        # Check that original DataFrame is unchanged
+        tm.assert_frame_equal(df_parent, df_orig)
+
+        # Check that df is modified correctly
+        arr[indexer] = value
+        expected = DataFrame(arr, columns=list("ABCD"))
         tm.assert_frame_equal(df, expected)
 
 

@@ -433,14 +433,6 @@ which will be triggered when the tag is pushed.
 3. Download the source distribution and wheels from the `wheel staging area <https://anaconda.org/scientific-python-nightly-wheels/pandas>`_.
    Be careful to make sure that no wheels are missing (e.g. due to failed builds).
 
-   Running scripts/download_wheels.sh with the version that you want to download wheels/the sdist for should do the trick.
-   This script will make a ``dist`` folder inside your clone of pandas and put the downloaded wheels and sdist there::
-
-    scripts/download_wheels.sh <VERSION>
-
-   ATTENTION: this is currently not downloading *all* wheels, and you have to
-   manually download the remainings wheels and sdist!
-
 4. Create a `new GitHub release <https://github.com/pandas-dev/pandas/releases/new>`_:
 
    - Tag: ``<version>``
@@ -451,9 +443,10 @@ which will be triggered when the tag is pushed.
    - Set as the latest release: Leave checked, unless releasing a patch release for an older version
      (e.g. releasing 1.4.5 after 1.5 has been released)
 
-5. Upload wheels to PyPI::
-
-    twine upload pandas/dist/pandas-<version>*.{whl,tar.gz} --skip-existing
+5. Verify wheels are uploaded automatically by GitHub Actions
+   via `**Trusted Publishing** <https://docs.pypi.org/trusted-publishers/>`__
+   when the GitHub `*Release* <https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases>`__
+   is published. Do not run ``twine upload`` manually.
 
 6. The GitHub release will after some hours trigger an
    `automated conda-forge PR <https://github.com/conda-forge/pandas-feedstock/pulls>`_.

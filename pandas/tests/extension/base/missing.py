@@ -122,6 +122,20 @@ class BaseMissingTests:
         assert result is not data
         tm.assert_extension_array_equal(result, data)
 
+    def test_fillna_readonly(self, data_missing):
+        data = data_missing.copy()
+        data._readonly = True
+
+        # by default fillna(copy=True), then this works fine
+        result = data.fillna(data_missing[1])
+        assert result[0] == data_missing[1]
+        tm.assert_extension_array_equal(data, data_missing)
+
+        # but with copy=False, this raises for EAs that respect the copy keyword
+        with pytest.raises(ValueError, match="Cannot modify read-only array"):
+            data.fillna(data_missing[1], copy=False)
+        tm.assert_extension_array_equal(data, data_missing)
+
     def test_fillna_series(self, data_missing):
         fill_value = data_missing[1]
         ser = pd.Series(data_missing)

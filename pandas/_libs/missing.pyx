@@ -72,7 +72,7 @@ cpdef bint check_na_tuples_nonequal(object left, object right):
     if len(left) != len(right):
         return False
 
-    for left_element, right_element in zip(left, right):
+    for left_element, right_element in zip(left, right, strict=True):
         if left_element is C_NA and right_element is not C_NA:
             return True
         elif right_element is C_NA and left_element is not C_NA:
@@ -251,6 +251,24 @@ cdef bint checknull_with_nat_and_na(object obj):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
+def is_pdna_or_none(values: ndarray) -> ndarray:
+    cdef:
+        ndarray[uint8_t] result
+        Py_ssize_t i, N
+        object val
+
+    N = len(values)
+    result = np.zeros(N, dtype=np.uint8)
+
+    for i in range(N):
+        val = values[i]
+        if val is None or val is C_NA:
+            result[i] = True
+    return result.view(bool)
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def is_numeric_na(values: ndarray) -> ndarray:
     """
     Check for NA values consistent with IntegerArray/FloatingArray.
@@ -375,6 +393,7 @@ class NAType(C_NAType):
     >>> True | pd.NA
     True
     """
+    __module__ = "pandas.api.typing"
 
     _instance = None
 
@@ -527,3 +546,4 @@ class NAType(C_NAType):
 
 C_NA = NAType()   # C-visible
 NA = C_NA         # Python-visible
+NA.__module__ = "pandas"

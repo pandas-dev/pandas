@@ -112,7 +112,7 @@ index from the PyPI registry of anaconda.org. You can install it by running.
 
 .. code-block:: shell
 
-    pip install --pre --extra-index https://pypi.anaconda.org/scientific-python-nightly-wheels/simple pandas
+    pip install --pre --extra-index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple pandas
 
 .. note::
     You might be required to uninstall an existing version of pandas to install the development version.
@@ -150,8 +150,10 @@ Package                                                          Minimum support
 ================================================================ ==========================
 `NumPy <https://numpy.org>`__                                    1.26.0
 `python-dateutil <https://dateutil.readthedocs.io/en/stable/>`__ 2.8.2
-`tzdata <https://pypi.org/project/tzdata/>`__                    2023.3
+ `tzdata <https://pypi.org/project/tzdata/>`__ \*                /
 ================================================================ ==========================
+
+\* ``tzdata`` is only required on Windows and Pyodide (Emscripten).
 
 Generally, the minimum supported version is ~2 years old from the release date of a major or minor pandas version.
 

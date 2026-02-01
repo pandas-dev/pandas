@@ -130,7 +130,7 @@ nan 2
     ],
     ids=["dt64-0", "dt64-1", "td64", f"{tm.ENDIAN}U8"],
 )
-def test_unsupported_dtype(c_parser_only, match, kwargs):
+def test_unsupported_dtype(c_parser_only, match, kwargs, temp_file):
     parser = c_parser_only
     df = DataFrame(
         np.random.default_rng(2).random((5, 2)),
@@ -138,11 +138,10 @@ def test_unsupported_dtype(c_parser_only, match, kwargs):
         index=["1A", "1B", "1C", "1D", "1E"],
     )
 
-    with tm.ensure_clean("__unsupported_dtype__.csv") as path:
-        df.to_csv(path)
+    df.to_csv(temp_file)
 
-        with pytest.raises(TypeError, match=match):
-            parser.read_csv(path, index_col=0, **kwargs)
+    with pytest.raises(TypeError, match=match):
+        parser.read_csv(temp_file, index_col=0, **kwargs)
 
 
 @td.skip_if_32bit
@@ -563,27 +562,27 @@ def test_file_handles_mmap(c_parser_only, csv1):
             assert not m.closed
 
 
-def test_file_binary_mode(c_parser_only):
+def test_file_binary_mode(c_parser_only, temp_file):
     # see gh-23779
     parser = c_parser_only
     expected = DataFrame([[1, 2, 3], [4, 5, 6]])
 
-    with tm.ensure_clean() as path:
-        with open(path, "w", encoding="utf-8") as f:
-            f.write("1,2,3\n4,5,6")
+    path = temp_file
+    with open(path, "w", encoding="utf-8") as f:
+        f.write("1,2,3\n4,5,6")
 
-        with open(path, "rb") as f:
-            result = parser.read_csv(f, header=None)
-            tm.assert_frame_equal(result, expected)
+    with open(path, "rb") as f:
+        result = parser.read_csv(f, header=None)
+        tm.assert_frame_equal(result, expected)
 
 
-def test_unix_style_breaks(c_parser_only):
+def test_unix_style_breaks(c_parser_only, temp_file):
     # GH 11020
     parser = c_parser_only
-    with tm.ensure_clean() as path:
-        with open(path, "w", newline="\n", encoding="utf-8") as f:
-            f.write("blah\n\ncol_1,col_2,col_3\n\n")
-        result = parser.read_csv(path, skiprows=2, encoding="utf-8", engine="c")
+    path = temp_file
+    with open(path, "w", newline="\n", encoding="utf-8") as f:
+        f.write("blah\n\ncol_1,col_2,col_3\n\n")
+    result = parser.read_csv(path, skiprows=2, encoding="utf-8", engine="c")
     expected = DataFrame(columns=["col_1", "col_2", "col_3"])
     tm.assert_frame_equal(result, expected)
 

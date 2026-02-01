@@ -44,6 +44,7 @@ def test_fillna_null(null_obj, index_or_series_obj):
     elif isinstance(obj, MultiIndex):
         pytest.skip(f"MultiIndex can't hold '{null_obj}'")
 
+    obj = obj.copy(deep=True)
     values = obj._values
     fill_value = values[0]
     expected = values.copy()

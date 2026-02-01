@@ -809,3 +809,28 @@ class TestCategoricalConstructors:
         result = Categorical(values=values, categories=categories).categories
         expected = RangeIndex(range(5))
         tm.assert_index_equal(result, expected, exact=True)
+
+    def test_categorical_preserve_object_dtype_from_pandas(self, using_infer_string):
+        # GH#61778
+        pylist = ["foo", "bar", "baz"]
+        ser = Series(pylist, dtype="object")
+        idx = Index(pylist, dtype="object")
+        arr = np.array(pylist, dtype="object")
+
+        cat_from_ser = Categorical(ser)
+        cat_from_idx = Categorical(idx)
+        cat_from_arr = Categorical(arr)
+        cat_from_list = Categorical(pylist)
+
+        # Series/Index with object dtype: infer string
+        # dtype if all elements are strings
+        assert cat_from_ser.categories.dtype == object
+        assert cat_from_idx.categories.dtype == object
+
+        if using_infer_string:
+            # Numpy array or list: infer string dtype
+            assert cat_from_arr.categories.dtype == "str"
+            assert cat_from_list.categories.dtype == "str"
+        else:
+            assert cat_from_arr.categories.dtype == object
+            assert cat_from_list.categories.dtype == object

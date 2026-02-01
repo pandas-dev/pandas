@@ -28,9 +28,9 @@ from pandas.api.types import CategoricalDtype
 from pandas.tests.extension import base
 
 
-def make_data():
+def make_data(n: int):
     while True:
-        values = np.random.default_rng(2).choice(list(string.ascii_letters), size=100)
+        values = np.random.default_rng(2).choice(list(string.ascii_letters), size=n)
         # ensure we meet the requirements
         # 1. first two not null
         # 2. first and second are different
@@ -51,7 +51,7 @@ def data():
     * data[0] and data[1] should both be non missing
     * data[0] and data[1] should not be equal
     """
-    return Categorical(make_data())
+    return Categorical(make_data(10))
 
 
 @pytest.fixture
@@ -126,7 +126,7 @@ class TestCategorical(base.ExtensionTests):
         s2 = pd.Series(orig_data2)
         result = s1.combine(s2, lambda x1, x2: x1 + x2)
         expected = pd.Series(
-            [a + b for (a, b) in zip(list(orig_data1), list(orig_data2))]
+            [a + b for (a, b) in zip(list(orig_data1), list(orig_data2), strict=True)]
         )
         tm.assert_series_equal(result, expected)
 

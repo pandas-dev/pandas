@@ -2,14 +2,8 @@
 # Modified from numpy's https://github.com/numpy/numpy/blob/main/tools/wheels/upload_wheels.sh
 
 set_upload_vars() {
-    echo "IS_PUSH is $IS_PUSH"
     echo "IS_SCHEDULE_DISPATCH is $IS_SCHEDULE_DISPATCH"
-    if [[ "$IS_PUSH" == "true" ]]; then
-        echo push and tag event
-        export ANACONDA_ORG="multibuild-wheels-staging"
-        export TOKEN="$PANDAS_STAGING_UPLOAD_TOKEN"
-        export ANACONDA_UPLOAD="true"
-    elif [[ "$IS_SCHEDULE_DISPATCH" == "true" ]]; then
+    if [[ "$IS_SCHEDULE_DISPATCH" == "true" ]]; then
         echo scheduled or dispatched event
         export ANACONDA_ORG="scientific-python-nightly-wheels"
         export TOKEN="$PANDAS_NIGHTLY_UPLOAD_TOKEN"

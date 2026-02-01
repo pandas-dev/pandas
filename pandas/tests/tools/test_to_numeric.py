@@ -250,15 +250,9 @@ def test_really_large_scalar(large_val, signed, transform, errors):
     val = -large_val if signed else large_val
 
     val = transform(val)
-    val_is_string = isinstance(val, str)
 
-    if val_is_string and errors in (None, "raise"):
-        msg = "Integer out of range. at position 0"
-        with pytest.raises(ValueError, match=msg):
-            to_numeric(val, **kwargs)
-    else:
-        expected = float(val) if (errors == "coerce" and val_is_string) else val
-        tm.assert_almost_equal(to_numeric(val, **kwargs), expected)
+    expected = float(val) if errors == "coerce" else int(val)
+    tm.assert_almost_equal(to_numeric(val, **kwargs), expected)
 
 
 def test_really_large_in_arr(large_val, signed, transform, multiple_elts, errors):
@@ -270,21 +264,17 @@ def test_really_large_in_arr(large_val, signed, transform, multiple_elts, errors
     extra_elt = "string"
     arr = [val] + multiple_elts * [extra_elt]
 
-    val_is_string = isinstance(val, str)
     coercing = errors == "coerce"
 
-    if errors in (None, "raise") and (val_is_string or multiple_elts):
-        if val_is_string:
-            msg = "Integer out of range. at position 0"
-        else:
-            msg = 'Unable to parse string "string" at position 1'
+    if errors in (None, "raise") and multiple_elts:
+        msg = 'Unable to parse string "string" at position 1'
 
         with pytest.raises(ValueError, match=msg):
             to_numeric(arr, **kwargs)
     else:
         result = to_numeric(arr, **kwargs)
 
-        exp_val = float(val) if (coercing and val_is_string) else val
+        exp_val = float(val) if (coercing) else int(val)
         expected = [exp_val]
 
         if multiple_elts:
@@ -295,7 +285,7 @@ def test_really_large_in_arr(large_val, signed, transform, multiple_elts, errors
                 expected.append(extra_elt)
                 exp_dtype = object
         else:
-            exp_dtype = float if isinstance(exp_val, (int, float)) else object
+            exp_dtype = float if isinstance(exp_val, float) else object
 
         tm.assert_almost_equal(result, np.array(expected, dtype=exp_dtype))
 
@@ -311,18 +301,11 @@ def test_really_large_in_arr_consistent(large_val, signed, multiple_elts, errors
     if multiple_elts:
         arr.insert(0, large_val)
 
-    if errors in (None, "raise"):
-        index = int(multiple_elts)
-        msg = f"Integer out of range. at position {index}"
+    result = to_numeric(arr, **kwargs)
+    expected = [float(i) if errors == "coerce" else int(i) for i in arr]
+    exp_dtype = float if errors == "coerce" else object
 
-        with pytest.raises(ValueError, match=msg):
-            to_numeric(arr, **kwargs)
-    else:
-        result = to_numeric(arr, **kwargs)
-        expected = [float(i) for i in arr]
-        exp_dtype = float
-
-        tm.assert_almost_equal(result, np.array(expected, dtype=exp_dtype))
+    tm.assert_almost_equal(result, np.array(expected, dtype=exp_dtype))
 
 
 @pytest.mark.parametrize(

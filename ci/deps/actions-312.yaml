@@ -7,14 +7,14 @@ dependencies:
   # build dependencies
   - versioneer
   - cython<4.0.0a0
-  - meson=1.2.1
-  - meson-python=0.13.1
+  - meson=1.10.0
+  - meson-python=0.18.0
 
   # test dependencies
-  - pytest>=7.3.2
+  - pytest>=8.3.4
   - pytest-cov
-  - pytest-xdist>=3.4.0
-  - pytest-localserver>=0.8.1
+  - pytest-xdist>=3.6.1
+  - pytest-localserver>=0.9.0
   - pytest-qt>=4.4.0
   - boto3=1.37.3
 
@@ -44,6 +44,7 @@ dependencies:
   - psycopg2>=2.9.10
   - pyarrow>=13.0.0
   - pyiceberg>=0.8.1
+  - pydantic<2.12.0  # TMP pin to avoid pyiceberg/pydantic issues
   - pymysql>=1.1.1
   - pyreadstat>=1.2.8
   - pytables>=3.10.1

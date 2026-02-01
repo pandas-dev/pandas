@@ -41,7 +41,7 @@ class TestNonNano:
     def dta_dti(self, unit, dtype):
         tz = getattr(dtype, "tz", None)
 
-        dti = pd.date_range("2016-01-01", periods=55, freq="D", tz=tz)
+        dti = pd.date_range("2016-01-01", periods=55, freq="D", tz=tz, unit="ns")
         if tz is None:
             arr = np.asarray(dti).astype(f"M8[{unit}]")
         else:
@@ -114,7 +114,7 @@ class TestNonNano:
             DatetimeArray._simple_new(arr, dtype=wrong)
 
     def test_std_non_nano(self, unit):
-        dti = pd.date_range("2016-01-01", periods=55, freq="D")
+        dti = pd.date_range("2016-01-01", periods=55, freq="D", unit="ns")
         arr = np.asarray(dti).astype(f"M8[{unit}]")
 
         dta = DatetimeArray._simple_new(arr, dtype=arr.dtype)
@@ -144,7 +144,7 @@ class TestNonNano:
     def test_astype_object(self, dta):
         result = dta.astype(object)
         assert all(x._creso == dta._creso for x in result)
-        assert all(x == y for x, y in zip(result, dta))
+        assert all(x == y for x, y in zip(result, dta, strict=True))
 
     def test_to_pydatetime(self, dta_dti):
         dta, dti = dta_dti
@@ -508,7 +508,9 @@ class TestDatetimeArray:
 
     @pytest.mark.parametrize("method", ["pad", "backfill"])
     def test_fillna_preserves_tz(self, method):
-        dti = pd.date_range("2000-01-01", periods=5, freq="D", tz="US/Central")
+        dti = pd.date_range(
+            "2000-01-01", periods=5, freq="D", tz="US/Central", unit="ns"
+        )
         arr = DatetimeArray._from_sequence(dti, dtype=dti.dtype, copy=True)
         arr[2] = pd.NaT
 
@@ -568,7 +570,7 @@ class TestDatetimeArray:
 
     def test_array_interface_tz(self):
         tz = "US/Central"
-        data = pd.date_range("2017", periods=2, tz=tz)._data
+        data = pd.date_range("2017", periods=2, tz=tz, unit="ns")._data
         result = np.asarray(data)
 
         expected = np.array(
@@ -591,7 +593,7 @@ class TestDatetimeArray:
         tm.assert_numpy_array_equal(result, expected)
 
     def test_array_interface(self):
-        data = pd.date_range("2017", periods=2)._data
+        data = pd.date_range("2017", periods=2, unit="ns")._data
         expected = np.array(
             ["2017-01-01T00:00:00", "2017-01-02T00:00:00"], dtype="datetime64[ns]"
         )

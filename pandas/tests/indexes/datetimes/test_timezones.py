@@ -76,7 +76,7 @@ class TestDatetimeIndexTimezones:
 
         start = Timestamp("201710290100", tz=tz)
         end = Timestamp("201710290300", tz=tz)
-        index = date_range(start=start, end=end, freq=freq)
+        index = date_range(start=start, end=end, freq=freq, unit="ns")
 
         expected = DatetimeIndex(
             [

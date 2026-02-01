@@ -250,7 +250,8 @@ class BaseBlockManager(PandasObject):
     def make_empty(self, axes=None) -> Self:
         """return an empty BlockManager with the items axis of len 0"""
         if axes is None:
-            axes = [default_index(0)] + self.axes[1:]
+            # TODO shallow copy remaining axis?
+            axes = [default_index(0), *self.axes[1:]]
 
         # preserve dtype if possible
         if self.ndim == 1:
@@ -385,7 +386,9 @@ class BaseBlockManager(PandasObject):
         self_axes, other_axes = self.axes, other.axes
         if len(self_axes) != len(other_axes):
             return False
-        if not all(ax1.equals(ax2) for ax1, ax2 in zip(self_axes, other_axes)):
+        if not all(
+            ax1.equals(ax2) for ax1, ax2 in zip(self_axes, other_axes, strict=True)
+        ):
             return False
 
         return self._equal_values(other)
@@ -439,7 +442,7 @@ class BaseBlockManager(PandasObject):
                 applied = getattr(b, f)(**kwargs)
             result_blocks = extend_blocks(applied, result_blocks)
 
-        out = type(self).from_blocks(result_blocks, self.axes)
+        out = type(self).from_blocks(result_blocks, [ax.view() for ax in self.axes])
         return out
 
     @final
@@ -572,12 +575,31 @@ class BaseBlockManager(PandasObject):
                     self._iset_split_block(  # type: ignore[attr-defined]
                         0, blk_loc, values
                     )
-                    # first block equals values
-                    self.blocks[0].setitem((indexer[0], np.arange(len(blk_loc))), value)
+
+                    indexer = list(indexer)
+                    # first block equals values we are setting to -> set to all columns
+                    if lib.is_integer(indexer[1]):
+                        col_indexer = 0
+                    elif len(blk_loc) > 1:
+                        col_indexer = slice(None)  # type: ignore[assignment]
+                    else:
+                        col_indexer = np.arange(len(blk_loc))  # type: ignore[assignment]
+                    indexer[1] = col_indexer
+
+                    row_indexer = indexer[0]
+                    if isinstance(row_indexer, np.ndarray) and row_indexer.ndim == 2:
+                        # numpy cannot handle a 2d indexer in combo with a slice
+                        row_indexer = np.squeeze(row_indexer, axis=1)
+                    if isinstance(row_indexer, np.ndarray) and len(row_indexer) == 0:
+                        # numpy does not like empty indexer combined with slice
+                        # and we are setting nothing anyway
+                        return self
+                    indexer[0] = row_indexer
+                    self.blocks[0].setitem(tuple(indexer), value)
                     return self
             # No need to split if we either set all columns or on a single block
             # manager
-            self = self.copy()
+            self = self.copy(deep=True)
 
         return self.apply("setitem", indexer=indexer, value=value)
 
@@ -655,6 +677,7 @@ class BaseBlockManager(PandasObject):
         numeric_blocks = [blk for blk in self.blocks if blk.is_numeric]
         if len(numeric_blocks) == len(self.blocks):
             # Avoid somewhat expensive _combine
+            # TODO(CoW) need to return a shallow copy here?
             return self
         return self._combine(numeric_blocks)
 
@@ -666,7 +689,7 @@ class BaseBlockManager(PandasObject):
                 if index is not None:
                     axes = [self.items[:0], index]
                 else:
-                    axes = [self.items[:0]] + self.axes[1:]
+                    axes = [self.items[:0], *self.axes[1:]]
                 return self.make_empty(axes)
             return self.make_empty()
 
@@ -681,6 +704,7 @@ class BaseBlockManager(PandasObject):
             new_blocks.append(nb)
 
         axes = list(self.axes)
+        # TODO shallow copy of axes?
         if index is not None:
             axes[-1] = index
         axes[0] = self.items.take(indexer)
@@ -691,30 +715,21 @@ class BaseBlockManager(PandasObject):
     def nblocks(self) -> int:
         return len(self.blocks)
 
-    def copy(self, deep: bool | Literal["all"] = True) -> Self:
+    def copy(self, *, deep: bool) -> Self:
         """
         Make deep or shallow copy of BlockManager
 
         Parameters
         ----------
         deep : bool, string or None, default True
-            If False or None, return a shallow copy (do not copy data)
-            If 'all', copy data and a deep copy of the index
+            If False, return a shallow copy (do not copy data)
 
         Returns
         -------
         BlockManager
         """
-        # this preserves the notion of view copying of axes
-        if deep:
-            # hit in e.g. tests.io.json.test_pandas
-
-            def copy_func(ax):
-                return ax.copy(deep=True) if deep == "all" else ax.view()
-
-            new_axes = [copy_func(ax) for ax in self.axes]
-        else:
-            new_axes = [ax.view() for ax in self.axes]
+        # TODO: Should deep=True be respected for axes?
+        new_axes = [ax.view() for ax in self.axes]
 
         res = self.apply("copy", deep=deep)
         res.axes = new_axes
@@ -744,6 +759,7 @@ class BaseBlockManager(PandasObject):
         if self.is_consolidated():
             return self
 
+        # TODO shallow copy is not needed here?
         bm = type(self)(self.blocks, self.axes, verify_integrity=False)
         bm._is_consolidated = False
         bm._consolidate_inplace()
@@ -795,12 +811,13 @@ class BaseBlockManager(PandasObject):
         only_slice : bool, default False
             Whether to take views, not copies, along columns.
         use_na_proxy : bool, default False
-            Whether to use a np.void ndarray for newly introduced columns.
+            Whether to use an np.void ndarray for newly introduced columns.
 
         pandas-indexer with -1's only.
         """
         if indexer is None:
             if new_axis is self.axes[axis]:
+                # TODO(CoW) need to handle CoW?
                 return self
 
             result = self.copy(deep=False)
@@ -841,6 +858,8 @@ class BaseBlockManager(PandasObject):
 
         new_axes = list(self.axes)
         new_axes[axis] = new_axis
+        if self.ndim == 2:
+            new_axes[1 - axis] = self.axes[1 - axis].view()
 
         new_mgr = type(self).from_blocks(new_blocks, new_axes)
         if axis == 1:
@@ -871,7 +890,7 @@ class BaseBlockManager(PandasObject):
             If True, we always return views on existing arrays, never copies.
             This is used when called from ops.blockwise.operate_blockwise.
         use_na_proxy : bool, default False
-            Whether to use a np.void ndarray for newly introduced columns.
+            Whether to use an np.void ndarray for newly introduced columns.
         ref_inplace_op: bool, default False
             Don't track refs if True because we operate inplace
 
@@ -970,7 +989,7 @@ class BaseBlockManager(PandasObject):
                     elif only_slice:
                         # GH#33597 slice instead of take, so we get
                         #  views instead of copies
-                        for i, ml in zip(taker, mgr_locs):
+                        for i, ml in zip(taker, mgr_locs, strict=True):
                             slc = slice(i, i + 1)
                             bp = BlockPlacement(ml)
                             nb = blk.getitem_block_columns(slc, new_mgr_locs=bp)
@@ -1119,7 +1138,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 ndim=1,
                 refs=self.blocks[0].refs,
             )
-            return SingleBlockManager(block, self.axes[0])
+            return SingleBlockManager(block, self.axes[0].view())
 
         dtype = interleaved_dtype([blk.dtype for blk in self.blocks])
 
@@ -1164,7 +1183,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         bp = BlockPlacement(slice(0, len(result)))
         block = new_block(result, placement=bp, ndim=1)
-        return SingleBlockManager(block, self.axes[0])
+        return SingleBlockManager(block, self.axes[0].view())
 
     def iget(self, i: int, track_ref: bool = True) -> SingleBlockManager:
         """
@@ -1178,7 +1197,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         nb = type(block)(
             values, placement=bp, ndim=1, refs=block.refs if track_ref else None
         )
-        return SingleBlockManager(nb, self.axes[1])
+        return SingleBlockManager(nb, self.axes[1].view())
 
     def iget_values(self, i: int) -> ArrayLike:
         """
@@ -1405,7 +1424,10 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         nr_blocks = len(self.blocks)
         blocks_tup = (
-            self.blocks[:blkno_l] + (first_nb,) + self.blocks[blkno_l + 1 :] + nbs_tup
+            *self.blocks[:blkno_l],
+            first_nb,
+            *self.blocks[blkno_l + 1 :],
+            *nbs_tup,
         )
         self.blocks = blocks_tup
 
@@ -1445,7 +1467,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         nb = new_block_2d(value, placement=blk._mgr_locs, refs=refs)
         old_blocks = self.blocks
-        new_blocks = old_blocks[:blkno] + (nb,) + old_blocks[blkno + 1 :]
+        new_blocks = (*old_blocks[:blkno], nb, *old_blocks[blkno + 1 :])
         self.blocks = new_blocks
         return
 
@@ -1613,7 +1635,8 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             nrows = result_blocks[0].values.shape[-1]
         index = default_index(nrows)
 
-        return type(self).from_blocks(result_blocks, [self.axes[0], index])
+        # TODO shallow copy columns?
+        return type(self).from_blocks(result_blocks, [self.axes[0].view(), index])
 
     def reduce(self, func: Callable) -> Self:
         """
@@ -1630,12 +1653,9 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         # If 2D, we assume that we're operating column-wise
         assert self.ndim == 2
 
-        res_blocks: list[Block] = []
-        for blk in self.blocks:
-            nbs = blk.reduce(func)
-            res_blocks.extend(nbs)
-
-        index = Index([None])  # placeholder
+        res_blocks = [blk.reduce(func) for blk in self.blocks]
+        index = default_index(1)  # placeholder
+        # shallow copy self.items not needed because DataFrame._reduce does a getitem
         new_mgr = type(self).from_blocks(res_blocks, [self.items, index])
         return new_mgr
 
@@ -1677,8 +1697,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         assert self.ndim >= 2
         assert is_list_like(qs)  # caller is responsible for this
 
-        new_axes = list(self.axes)
-        new_axes[1] = Index(qs, dtype=np.float64)
+        new_axes = [self.axes[0].view(), Index(qs, dtype=np.float64)]
 
         blocks = [
             blk.quantile(qs=qs, interpolation=interpolation) for blk in self.blocks
@@ -1769,7 +1788,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         na_value: object = lib.no_default,
     ) -> np.ndarray:
         """
-        Convert the blockmanager data into an numpy array.
+        Convert the blockmanager data into a numpy array.
 
         Parameters
         ----------
@@ -1943,6 +1962,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
             offset += len(mgr.items)
 
+        # TODO relevant axis already shallow-copied at caller?
         new_mgr = cls(tuple(blocks), axes)
         return new_mgr
 
@@ -2012,7 +2032,7 @@ class SingleBlockManager(BaseBlockManager):
         arr = ensure_block_shape(blk.values, ndim=2)
         bp = BlockPlacement(0)
         new_blk = type(blk)(arr, placement=bp, ndim=2, refs=blk.refs)
-        axes = [columns, self.axes[0]]
+        axes = [columns, self.axes[0].view()]
         return BlockManager([new_blk], axes=axes, verify_integrity=False)
 
     def _has_no_reference(self, i: int = 0) -> bool:
@@ -2171,7 +2191,7 @@ class SingleBlockManager(BaseBlockManager):
         the dtype.
         """
         if not self._has_no_reference(0):
-            self.blocks = (self._block.copy(),)
+            self.blocks = (self._block.copy(deep=True),)
             self._reset_cache()
 
         arr = self.array
@@ -2305,7 +2325,7 @@ def raise_construction_error(
     e: ValueError | None = None,
 ) -> NoReturn:
     """raise a helpful message about our construction"""
-    passed = tuple(map(int, [tot_items] + list(block_shape)))
+    passed = tuple(map(int, [tot_items, *block_shape]))
     # Correcting the user facing error message during dataframe construction
     if len(passed) <= 2:
         passed = passed[::-1]
@@ -2392,15 +2412,15 @@ def _tuples_to_blocks_no_consolidate(tuples, refs) -> list[Block]:
         new_block_2d(
             ensure_block_shape(arr, ndim=2), placement=BlockPlacement(i), refs=ref
         )
-        for ((i, arr), ref) in zip(tuples, refs)
+        for ((i, arr), ref) in zip(tuples, refs, strict=True)
     ]
 
 
 def _stack_arrays(tuples, dtype: np.dtype):
-    placement, arrays = zip(*tuples)
+    placement, arrays = zip(*tuples, strict=True)
 
     first = arrays[0]
-    shape = (len(arrays),) + first.shape
+    shape = (len(arrays), *first.shape)
 
     stacked = np.empty(shape, dtype=dtype)
     for i, arr in enumerate(arrays):
