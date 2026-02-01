@@ -539,13 +539,11 @@ def _compute_grand_margin(
             except TypeError:
                 pass
         return grand_margin
+    elif isinstance(aggfunc, str):
+        return {
+            margins_name: getattr(Series(np.nan, index=data.index), aggfunc)(**kwargs)
+        }
     else:
-        if isinstance(aggfunc, str):
-            return {
-                margins_name: getattr(Series(np.nan, index=data.index), aggfunc)(
-                    **kwargs
-                )
-            }
         return {margins_name: aggfunc(data.index, **kwargs)}
 
 
