@@ -2480,26 +2480,21 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def _python_agg_general(self, func, *args, **kwargs):
         f = lambda x: func(x, *args, **kwargs)
 
-        if self.ngroups == 0:
-            # e.g. test_evaluate_with_empty_groups different path gets different
-            #  result dtype in empty case.
-            return self._python_apply_general(f, self._selected_obj, is_agg=True)
-
         obj = self._obj_with_exclusions
 
-        if self._grouper._is_resample and not len(obj.columns):
-            # e.g. test_margins_no_values_no_cols
-            return obj._constructor(
-                index=self._grouper.result_index, columns=obj.columns
+        if self.ngroups == 0 or len(obj.columns) == 0:
+            res_index = self._grouper.result_index
+            res = self.obj._constructor(index=res_index, columns=obj.columns).astype(
+                obj.dtypes
             )
+        else:
+            output: dict[int, ArrayLike] = {}
+            for idx, (name, ser) in enumerate(obj.items()):
+                result = self._grouper.agg_series(ser, f)
+                output[idx] = result
 
-        output: dict[int, ArrayLike] = {}
-        for idx, (name, ser) in enumerate(obj.items()):
-            result = self._grouper.agg_series(ser, f)
-            output[idx] = result
-
-        res = self.obj._constructor(output)
-        res.columns = obj.columns.copy(deep=False)
+            res = self.obj._constructor(output)
+            res.columns = obj.columns.copy(deep=False)
         return self._wrap_aggregated_output(res)
 
     def _aggregate_frame(self, func, *args, **kwargs) -> DataFrame:
