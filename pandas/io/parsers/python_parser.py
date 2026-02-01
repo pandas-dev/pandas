@@ -26,6 +26,7 @@ from pandas.errors import (
     EmptyDataError,
     ParserError,
     ParserWarning,
+    Pandas4Warning,
 )
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
@@ -106,6 +107,18 @@ class PythonParser(ParserBase):
         self.buf: list = []
         self.pos = 0
         self.line_pos = 0
+
+        self._bom_found = False
+        self._bom_warned = False
+        self.encoding = kwds.get("encoding")
+        
+        # Determine if we should warn about BOM
+        if self.encoding is None:
+            self._warn_bom = True  # Warn for default encoding
+        elif self.encoding.lower().endswith('-sig'):
+            self._warn_bom = False  # Don't warn for -sig variants
+        else:
+            self._warn_bom = True
 
         self.skiprows = kwds["skiprows"]
 
@@ -850,6 +863,26 @@ class PythonParser(ParserBase):
         first_elt = first_row[0][0]
         if first_elt != _BOM:
             return first_row
+        
+        self._bom_found = True
+    
+        if self._warn_bom and not self._bom_warned:
+            if self.encoding is None:
+                msg = (
+                    "A UTF-8 BOM was detected in the file. In pandas 4.0, "
+                    "BOMs will only be stripped when using encoding='utf-8-sig'. "
+                    "To suppress this warning, use encoding='utf-8-sig'."
+                )
+            else:
+                msg = (
+                    f"A BOM was detected in a file with encoding='{self.encoding}'. "
+                    f"In pandas 4.0, BOMs will only be stripped when using '-sig' "
+                    f"encoding variants (e.g., 'utf-8-sig'). To suppress this "
+                    f"warning, use encoding='{self.encoding}-sig' if available."
+                )
+            
+            warnings.warn(msg, Pandas4Warning, stacklevel=find_stack_level())
+            self._bom_warned = True
 
         first_row_bom = first_row[0]
         new_row: str
