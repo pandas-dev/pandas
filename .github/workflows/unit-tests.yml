@@ -210,7 +210,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Conda
+      - name: Create virtual environment with Pixi
         uses: ./.github/actions/setup-pixi
         with:
           environment: ${{ matrix.environment }}

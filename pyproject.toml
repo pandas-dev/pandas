@@ -850,7 +850,7 @@ pip = "*"
 
 # Required dependencies
 python-dateutil = ">=2.8.2"
-numpy = "<3"
+numpy = ">=1.26.0,<3"
 
 [tool.pixi.pypi-dependencies]
 tzdata = ">=2023.3"
