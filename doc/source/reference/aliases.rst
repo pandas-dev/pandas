@@ -115,7 +115,7 @@ Each of these aliases listed in the table below can be found by importing them f
    * - .. type:: OpenFileErrors
      - Argument type for ``errors`` in :meth:`DataFrame's <pandas.DataFrame.to_hdf>`, :meth:`Series' <pandas.Series.to_hdf>`, :meth:`DataFrame's <pandas.DataFrame.to_csv>` and :meth:`Series' <pandas.Series.to_csv>`
    * - .. type:: Ordered
-     - Return type for :py:attr:`ordered` in :class:`CategoricalDtype` and :class:`Categorical`
+     - Return type for :attr:`ordered <pandas.CategoricalDtype.ordered>` in :class:`~pandas.CategoricalDtype` and :class:`~pandas.Categorical`
    * - .. type:: ParquetCompressionOptions
      - Argument type for ``compression`` in :meth:`~pandas.DataFrame.to_parquet`
    * - .. type:: QuantileInterpolation
@@ -129,7 +129,7 @@ Each of these aliases listed in the table below can be found by importing them f
    * - .. type:: ReindexMethod
      - Argument type for ``reindex`` in :meth:`DataFrame's <pandas.DataFrame.reindex>` and :meth:`Series' <pandas.Series.reindex>` ``reindex`` method
    * - .. type:: Scalar
-     - Types that can be stored in :class:`Series` with non-object dtype
+     - Types that can be stored in :class:`~pandas.Series` with non-object dtype
    * - .. type:: SequenceNotStr
      - Used for arguments that require sequences, but not plain strings
    * - .. type:: SliceType
