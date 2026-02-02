@@ -208,8 +208,8 @@ int parser_init(parser_t *self) {
 
   self->commentchar = '\0';
 
-  self->strip_bom = 1;
-  self->bom_found = 1;
+  self->strip_bom = 0;
+  self->bom_found = 0;
 
   return 0;
 }
