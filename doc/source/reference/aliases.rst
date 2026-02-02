@@ -145,11 +145,11 @@ Each of these aliases listed in the table below can be found by importing them f
    * - .. type:: TimeAmbiguous
      - Argument type for ``ambiguous`` in time operations
    * - .. type:: TimeGrouperOrigin
-     - Argument type for ``origin`` in :meth:`DataFrame's <pandas.DataFrame.resample>`, :meth:`Series' <pandas.Series.resample>` and :class:`TimeGrouper`
+     - Argument type for ``origin`` in :meth:`DataFrame's <pandas.DataFrame.resample>`, :meth:`Series' <pandas.Series.resample>` and :class:`~pandas.Grouper`
    * - .. type:: TimeNonexistent
      - Argument type for ``nonexistent`` in time operations
    * - .. type:: TimeUnit
-     - Time unit argument and return type for :py:attr:`unit`, arguments ``unit`` and ``date_unit``
+     - Time unit argument and return type for :attr:`~pandas.Timedelta.unit`, arguments ``unit`` and ``date_unit``
    * - .. type:: TimedeltaConvertibleTypes
      - Argument type for ``offset`` in various methods, such as :meth:`DataFrame's <pandas.DataFrame.resample>` and :meth:`Series' <pandas.Series.resample>` ``resample()``, ``halflife`` in :meth:`DataFrame's <pandas.DataFrame.ewm>`, :meth:`DataFrameGroupBy's <pandas.api.typing.DataFrameGroupBy.ewm>`, and :meth:`Series' <pandas.Series.ewm>` ``ewm()``, and ``start`` and ``end`` in :meth:`pandas.timedelta_range`
    * - .. type:: TimestampConvertibleTypes
