@@ -401,9 +401,9 @@ cdef class TextReader:
                   bint skip_blank_lines=True,
                   encoding_errors=b"strict",
                   dtype_backend="numpy",
-                  bint _strip_bom=True,
-                  bint _warn_bom=False,
-                  object _encoding=None,
+                  bint strip_bom=True,
+                  bint warn_bom=False,
+                  object encoding=None,
                   **kwds):
 
         # set encoding for native Python and C library
@@ -882,7 +882,7 @@ cdef class TextReader:
 
         self._check_tokenize_status(status)
 
-    cdef int _check_tokenize_status(self, int status) except -1:
+    cdef _check_tokenize_status(self, int status):
         if self.parser.warn_msg != NULL:
             warnings.warn(
                 PyUnicode_DecodeUTF8(
@@ -896,9 +896,6 @@ cdef class TextReader:
             free(self.parser.warn_msg)
             self.parser.warn_msg = NULL
 
-        # -----------------------------------------------------------
-        # BOM Warning Check
-        # -----------------------------------------------------------
         if self.warn_bom_with_explicit_utf8 and self.parser.bom_found:
             self.warn_bom_with_explicit_utf8 = False  # Only warn once
 
@@ -919,12 +916,10 @@ cdef class TextReader:
                     f"warning, use encoding='{self.encoding}-sig' if available."
                 )
 
-            # ✅ EMIT THE WARNING!
             warnings.warn(msg, Pandas4Warning, stacklevel=find_stack_level())
 
         if status < 0:
             raise_parser_error("Error tokenizing data", self.parser)
-        return 0
 
     #  -> dict[int, "ArrayLike"]
     cdef _read_rows(self, rows, bint trim):
