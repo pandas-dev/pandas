@@ -7079,7 +7079,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         if isinstance(other, Series):
             return self._binop(other, op, level=level, fill_value=fill_value)
-        # elif isinstance(other, (np.ndarray, list, tuple, ExtensionArray)):
         elif (isinstance(other, np.ndarray) and other.ndim > 0) or isinstance(
             other, (list, tuple, ExtensionArray)
         ):

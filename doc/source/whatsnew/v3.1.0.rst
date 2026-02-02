@@ -131,7 +131,7 @@ Timezones
 
 Numeric
 ^^^^^^^
--
+- Fixed bug in :meth:`Series.clip` where passing a scalar numpy array (e.g. ``np.array(0)``) would raise a ``TypeError`` (:issue:`59053`)
 -
 
 Conversion
