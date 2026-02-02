@@ -559,45 +559,13 @@ def _homogenize(
 
     for val in data:
         if isinstance(val, (ABCSeries, Index)):
-            orig_refs = getattr(val, "_references", None)
-            orig_values = val._values
             if dtype is not None:
-                if isinstance(val, Index):
-                    val = val.astype(dtype, copy=False)
-                else:
-                    val = val.astype(dtype)
+                val = val.astype(dtype)
             if isinstance(val, ABCSeries) and val.index is not index:
                 # Forces alignment. No need to copy data since we
                 # are putting it into an ndarray later
                 val = val.reindex(index)
-
-            if orig_values is val._values:
-                shares = True
-            elif hasattr(orig_values, "_ndarray") and hasattr(val._values, "_ndarray"):
-                try:
-                    shares = np.shares_memory(
-                        orig_values._ndarray, val._values._ndarray
-                    )
-                except (TypeError, AttributeError):
-                    shares = False
-            elif hasattr(orig_values, "_pa_array") and hasattr(
-                val._values, "_pa_array"
-            ):
-                try:
-                    left_buf = orig_values._pa_array.chunk(0).buffers()[1]
-                    right_buf = val._values._pa_array.chunk(0).buffers()[1]
-                    shares = left_buf.address == right_buf.address
-                except (TypeError, AttributeError, IndexError):
-                    shares = False
-            else:
-                try:
-                    shares = np.shares_memory(orig_values, val._values)
-                except (TypeError, AttributeError):
-                    shares = False
-            if orig_refs is not None and shares:
-                refs.append(orig_refs)
-            else:
-                refs.append(None)
+            refs.append(val._references)
             val = val._values
         else:
             if isinstance(val, dict):

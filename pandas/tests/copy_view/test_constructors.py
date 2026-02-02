@@ -259,6 +259,9 @@ def test_dataframe_from_dict_of_series_with_reindex(dtype):
     ids=["int", "int-ea", "str", "object", "datetime64tz"],
 )
 def test_dataframe_from_series_or_index(data, dtype, index_or_series):
+    if dtype == "str" and not pd._config.using_string_dtype():
+        pytest.skip("str dtype has inconsistent behavior without infer_string")
+
     obj = index_or_series(data, dtype=dtype)
     obj_orig = obj.copy(deep=True)  # deep=True needed for Index
 
