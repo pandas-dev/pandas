@@ -1376,7 +1376,7 @@ class FrameColumnApply(FrameApply):
                     # result, which potentially increases the ref count of this reused
                     # `ser` object (depending on the result of the applied function)
                     # -> if that happened and `ser` is already a copy, then we reset
-                    # the refs here to avoid triggering a unnecessary CoW inside the
+                    # the refs here to avoid triggering an unnecessary CoW inside the
                     # applied function (https://github.com/pandas-dev/pandas/pull/56212)
                     mgr.blocks[0].refs = BlockValuesRefs(mgr.blocks[0])
                 yield ser
