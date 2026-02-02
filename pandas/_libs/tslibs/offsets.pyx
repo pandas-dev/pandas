@@ -570,6 +570,10 @@ cdef class BaseOffset:
         """
         Return a copy of the frequency.
 
+        This method creates a new instance of the same frequency offset
+        with identical parameters. The returned copy is independent of
+        the original, allowing modifications without affecting the source object.
+
         See Also
         --------
         tseries.offsets.Week.copy : Return a copy of Week offset.
@@ -657,6 +661,11 @@ cdef class BaseOffset:
     def rule_code(self) -> str:
         """
         Return a string representing the base frequency.
+
+        This property provides a short string code that identifies the
+        type of frequency offset, such as 'h' for hourly, 'D' for daily,
+        or 'W' for weekly. This code is used internally for frequency
+        string representations and parsing.
 
         See Also
         --------
@@ -949,7 +958,13 @@ cdef class BaseOffset:
     @property
     def nanos(self):
         """
-        Returns an integer of the total number of nanoseconds for fixed frequencies.
+        Return an integer of the total number of nanoseconds.
+
+        This property computes the offset duration in nanoseconds. For fixed
+        frequency offsets (like Hour, Minute, Second), this returns the exact
+        number of nanoseconds. For non-fixed frequencies that depend on
+        calendar context (like Week without a specified weekday), this raises
+        an error.
 
         Raises
         ------
@@ -1001,6 +1016,9 @@ cdef class BaseOffset:
         """
         Return boolean whether a timestamp occurs on the month end.
 
+        This method checks if the given timestamp falls on the last day of
+        a month, taking into account the frequency's normalization settings.
+
         Parameters
         ----------
         ts : Timestamp
@@ -1023,6 +1041,9 @@ cdef class BaseOffset:
         """
         Return boolean whether a timestamp occurs on the quarter start.
 
+        This method checks if the given timestamp falls on the first day of
+        a calendar quarter (January 1, April 1, July 1, or October 1).
+
         Parameters
         ----------
         ts : Timestamp
@@ -1044,6 +1065,9 @@ cdef class BaseOffset:
     def is_quarter_end(self, _Timestamp ts):
         """
         Return boolean whether a timestamp occurs on the quarter end.
+
+        This method checks if the given timestamp falls on the last day of
+        a calendar quarter (March 31, June 30, September 30, or December 31).
 
         Parameters
         ----------
@@ -1068,6 +1092,9 @@ cdef class BaseOffset:
         """
         Return boolean whether a timestamp occurs on the year start.
 
+        This method checks if the given timestamp falls on January 1st,
+        which marks the beginning of a calendar year.
+
         Parameters
         ----------
         ts : Timestamp
@@ -1089,6 +1116,9 @@ cdef class BaseOffset:
     def is_year_end(self, _Timestamp ts):
         """
         Return boolean whether a timestamp occurs on the year end.
+
+        This method checks if the given timestamp falls on December 31st,
+        which marks the end of a calendar year.
 
         Parameters
         ----------
