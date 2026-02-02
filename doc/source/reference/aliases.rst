@@ -47,7 +47,7 @@ Each of these aliases listed in the table below can be found by importing them f
    * - .. type:: AnyAll
      - Argument type for ``how`` in :meth:`DataFrame's <pandas.DataFrame.dropna>` and :meth:`Series' <pandas.Series.dropna>` ``dropna`` method
    * - .. type:: AnyArrayLike
-     - Used to represent :class:`~pandas.api.extensions.ExtensionArray`, ``numpy`` arrays, :class:`Index` and :class:`Series`
+     - Used to represent :class:`~pandas.api.extensions.ExtensionArray`, ``numpy`` arrays, :class:`~pandas.Index` and :class:`~pandas.Series`
    * - .. type:: ArrayLike
      - Used to represent :class:`~pandas.api.extensions.ExtensionArray`, ``numpy`` arrays
    * - .. type:: AstypeArg
