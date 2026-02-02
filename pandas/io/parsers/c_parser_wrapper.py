@@ -87,23 +87,17 @@ class CParserWrapper(ParserBase):
             # Default: strip but warn
             strip_bom = True
             warn_bom = True
-            warn_msg_key = "default"
-
         elif encoding.lower().endswith("-sig"):
             # Only -sig variants strip without warning
             strip_bom = True
             warn_bom = False
-            warn_msg_key = None
-
         else:
             # ALL other encodings: strip but warn
             strip_bom = True
             warn_bom = True
-            warn_msg_key = "explicit"
-
-        kwds["_strip_bom"] = strip_bom
-        kwds["_warn_bom"] = warn_bom
-        kwds["_encoding"] = encoding
+        kwds["strip_bom"] = strip_bom
+        kwds["warn_bom"] = warn_bom
+        kwds["encoding"] = encoding
 
         for key in (
             "storage_options",
