@@ -315,18 +315,19 @@ def array(
     # Handle numpy masked arrays: convert masked values to NA
     # GH#63879
     if isinstance(data, ma.MaskedArray):
-        orig_dtype = data.dtype
-        na_dtype = ensure_dtype_can_hold_na(data.dtype)
-        if hasattr(na_dtype, "char") and na_dtype.char in "SU":
-            na_dtype = np.dtype("object")
-        filled = cast(ma.MaskedArray, data.astype(na_dtype)).filled(np.nan)
-        data = np.asarray(filled)
-        if orig_dtype.kind in "iu":
-            int_dtype_map = IntegerArray._dtype_cls._get_dtype_mapping()
-            if orig_dtype in int_dtype_map:
-                return IntegerArray._from_sequence(
-                    data, dtype=int_dtype_map[orig_dtype], copy=copy
-                )
+        if data.dtype.names is not None:
+            data = np.asarray(data)
+        else:
+            mask = ma.getmaskarray(data)
+            if mask.any():
+                na_dtype = ensure_dtype_can_hold_na(data.dtype)
+                if na_dtype.char in "SU":
+                    na_dtype = np.dtype("object")
+                data = data.astype(na_dtype).filled(np.nan)
+            else:
+                # No mask, convert to regular array
+                data = np.asarray(data)
+
     # this returns None for not-found dtypes.
     if dtype is not None:
         dtype = pandas_dtype(dtype)
