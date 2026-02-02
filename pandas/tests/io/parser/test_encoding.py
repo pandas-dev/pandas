@@ -135,7 +135,7 @@ def test_utf8_bom(all_parsers, data, kwargs, expected):
     # Determine expected warning
     warn = None if parser.engine == "pyarrow" else Pandas4Warning
     match_msg = None if parser.engine == "pyarrow" else "BOM"
-    
+
     # GH#63787: Cython-compiled code has non-standard stack frames,
     # so we disable stacklevel checking.
     with tm.assert_produces_warning(warn, match=match_msg, check_stacklevel=False):
@@ -393,7 +393,7 @@ def test_bom_handling_deprecation(
 
     expect_warning = warning_type
     expect_match = warning_match
-    
+
     expected = DataFrame(expected_data)
 
     if parser.engine == "python" and encoding == "latin1":
