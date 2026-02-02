@@ -6405,19 +6405,19 @@ cdef class CustomBusinessDay(BusinessDay):
             np_dt = np.datetime64(date_in.date())
 
             np_incr_dt = np.busday_offset(
-                np_dt, self._n, roll=roll, busdaycal=self.calendar
+                np_dt, self._n, roll=roll, busdaycal=self._calendar
             )
 
             dt_date = np_incr_dt.astype(datetime)
             result = datetime.combine(dt_date, date_in.time())
 
-            if self.offset:
-                result = result + self.offset
+            if self._offset:
+                result = result + self._offset
             return result
 
         elif is_any_td_scalar(other):
-            td = Timedelta(self.offset) + other
-            return BDay(self._n, offset=td.to_pytimedelta(), normalize=self.normalize)
+            td = Timedelta(self._offset) + other
+            return BDay(self._n, offset=td.to_pytimedelta(), normalize=self._normalize)
         else:
             raise ApplyTypeError(
                 "Only know how to combine trading day with "
@@ -6487,10 +6487,10 @@ cdef class CustomBusinessDay(BusinessDay):
         >>> pd.offsets.CustomBusinessDay(normalize=True).is_on_offset(ts)
         True
         """
-        if self.normalize and not _is_normalized(dt):
+        if self._normalize and not _is_normalized(dt):
             return False
         day64 = _to_dt64D(dt)
-        return np.is_busday(day64, busdaycal=self.calendar)
+        return np.is_busday(day64, busdaycal=self._calendar)
 
 
 cdef class CustomBusinessHour(BusinessHour):
