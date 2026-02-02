@@ -45,13 +45,13 @@ Each of these aliases listed in the table below can be found by importing them f
    * - .. type:: AlignJoin
      - Argument type for ``join`` in :meth:`DataFrame's <pandas.DataFrame.align>` and :meth:`Series' <pandas.Series.align>` ``align`` method
    * - .. type:: AnyAll
-     - Argument type for ``how`` in :meth:`dropna`
+     - Argument type for ``how`` in :meth:`DataFrame's <pandas.DataFrame.dropna>` and :meth:`Series' <pandas.Series.dropna>` ``dropna`` method
    * - .. type:: AnyArrayLike
      - Used to represent :class:`~pandas.api.extensions.ExtensionArray`, ``numpy`` arrays, :class:`Index` and :class:`Series`
    * - .. type:: ArrayLike
      - Used to represent :class:`~pandas.api.extensions.ExtensionArray`, ``numpy`` arrays
    * - .. type:: AstypeArg
-     - Argument type in :meth:`astype`
+     - Argument type in :meth:`DataFrame's <pandas.DataFrame.astype>` and :meth:`Series' <pandas.Series.astype>` ``astype`` method
    * - .. type:: Axes
      - :py:type:`AnyArrayLike` plus sequences (not strings) and ``range``
    * - .. type:: Axis
@@ -97,23 +97,23 @@ Each of these aliases listed in the table below can be found by importing them f
    * - .. type:: InterpolateOptions
      - Argument type for ``interpolate`` in :meth:`DataFrame's <pandas.DataFrame.interpolate>` and :meth:`Series' <pandas.Series.interpolate>` ``interpolate`` method
    * - .. type:: JSONEngine
-     - Argument type for ``engine`` in :meth:`read_json`
+     - Argument type for ``engine`` in :meth:`pandas.read_json`
    * - .. type:: JSONSerializable
-     - Argument type for the return type of a callable for argument ``default_handler`` in :meth:`to_json`
+     - Argument type for the return type of a callable for argument ``default_handler`` in :meth:`DataFrame's <pandas.DataFrame.to_json>` and :meth:`Series' <pandas.Series.to_json>` ``to_json`` method
    * - .. type:: JoinHow
-     - Argument type for ``how`` in :meth:`pandas.merge_ordered` and for ``join`` in :meth:`Series.align`
+     - Argument type for ``how`` in :meth:`pandas.merge_ordered` and for ``join`` in :meth:`Series.align <pandas.Series.align>`
    * - .. type:: JoinValidate
      - Argument type for ``validate`` in :meth:`~pandas.DataFrame.join`
    * - .. type:: MergeHow
-     - Argument type for ``how`` in :meth:`merge`
+     - Argument type for ``how`` in :meth:`pandas.merge`
    * - .. type:: MergeValidate
-     - Argument type for ``validate`` in :meth:`merge`
+     - Argument type for ``validate`` in :meth:`pandas.merge`
    * - .. type:: NaPosition
      - Argument type for ``na_position`` in :meth:`DataFrame's <pandas.DataFrame.sort_values>` and :meth:`Series' <pandas.Series.sort_values>` ``sort_values`` method
    * - .. type:: NsmallestNlargestKeep
      - Argument type for ``keep`` in :meth:`DataFrame's <pandas.DataFrame.nlargest>` and :meth:`Series' <pandas.Series.nlargest>` ``nlargest``, :meth:`DataFrame's <pandas.DataFrame.nsmallest>` and :meth:`Series' <pandas.Series.nsmallest>` ``nsmallest``, and :meth:`SeriesGroupBy's <pandas.api.typing.SeriesGroupBy.nlargest>` ``nlargest`` methods
    * - .. type:: OpenFileErrors
-     - Argument type for ``errors`` in :meth:`to_hdf` and :meth:`to_csv`
+     - Argument type for ``errors`` in :meth:`DataFrame's <pandas.DataFrame.to_hdf>`, :meth:`Series' <pandas.Series.to_hdf>`, :meth:`DataFrame's <pandas.DataFrame.to_csv>` and :meth:`Series' <pandas.Series.to_csv>`
    * - .. type:: Ordered
      - Return type for :py:attr:`ordered` in :class:`CategoricalDtype` and :class:`Categorical`
    * - .. type:: ParquetCompressionOptions
@@ -127,7 +127,7 @@ Each of these aliases listed in the table below can be found by importing them f
    * - .. type:: ReadPickleBuffer
      - Additional argument type corresponding to buffers for :meth:`pandas.read_pickle`
    * - .. type:: ReindexMethod
-     - Argument type for ``reindex`` in :meth:`reindex`
+     - Argument type for ``reindex`` in :meth:`DataFrame's <pandas.DataFrame.reindex>` and :meth:`Series' <pandas.Series.reindex>` ``reindex`` method
    * - .. type:: Scalar
      - Types that can be stored in :class:`Series` with non-object dtype
    * - .. type:: SequenceNotStr
@@ -139,13 +139,13 @@ Each of these aliases listed in the table below can be found by importing them f
    * - .. type:: StorageOptions
      - Argument type for ``storage_options`` in various file output methods
    * - .. type:: Suffixes
-     - Argument type for ``suffixes`` in :meth:`merge`, :meth:`compare` and :meth:`merge_ordered`
+     - Argument type for ``suffixes`` in :meth:`pandas.merge`, :meth:`pandas.merge_ordered`, :meth:`DataFrame's <pandas.DataFrame.compare>` and :meth:`Series' <pandas.Series.compare>`
    * - .. type:: TakeIndexer
-     - Argument type for ``indexer`` and ``indices`` in :meth:`take`
+     - Argument type for ``indexer`` and ``indices`` in :meth:`DataFrame's <pandas.DataFrame.take>` and :meth:`Series' <pandas.Series.take>` ``take`` method
    * - .. type:: TimeAmbiguous
      - Argument type for ``ambiguous`` in time operations
    * - .. type:: TimeGrouperOrigin
-     - Argument type for ``origin`` in :meth:`resample` and :class:`TimeGrouper`
+     - Argument type for ``origin`` in :meth:`DataFrame's <pandas.DataFrame.resample>`, :meth:`Series' <pandas.Series.resample>` and :class:`TimeGrouper`
    * - .. type:: TimeNonexistent
      - Argument type for ``nonexistent`` in time operations
    * - .. type:: TimeUnit
@@ -167,6 +167,6 @@ Each of these aliases listed in the table below can be found by importing them f
    * - .. type:: WriteBuffer
      - Additional argument type corresponding to buffers for various file output methods
    * - .. type:: WriteExcelBuffer
-     - Additional argument type corresponding to buffers for :meth:`to_excel`
+     - Additional argument type corresponding to buffers for :meth:`DataFrame's <pandas.DataFrame.to_excel>` and :meth:`Series' <pandas.Series.to_excel>` ``to_excel`` method
    * - .. type:: XMLParsers
      - Argument type for ``parser`` in :meth:`~pandas.DataFrame.to_xml` and :meth:`pandas.read_xml`
