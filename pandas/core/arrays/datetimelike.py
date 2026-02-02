@@ -5,6 +5,7 @@ from datetime import (
     timedelta,
 )
 from functools import wraps
+from itertools import pairwise
 import operator
 from typing import (
     TYPE_CHECKING,
@@ -2479,9 +2480,6 @@ class TimelikeOps(DatetimeLikeArrayMixin):
 
     def _values_for_json(self) -> np.ndarray:
         # Small performance bump vs the base class which calls np.asarray(self)
-        if self.unit != "ns":
-            # GH#55827
-            return self.as_unit("ns")._values_for_json()
         if isinstance(self.dtype, np.dtype):
             return self._ndarray
         return super()._values_for_json()
@@ -2527,7 +2525,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             to_concat = [x for x in to_concat if len(x)]
 
             if obj.freq is not None and all(x.freq == obj.freq for x in to_concat):
-                pairs = zip(to_concat[:-1], to_concat[1:], strict=True)
+                pairs = pairwise(to_concat)
                 if all(pair[0][-1] + obj.freq == pair[1][0] for pair in pairs):
                     new_freq = obj.freq
                     new_obj._freq = new_freq

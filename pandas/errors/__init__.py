@@ -227,7 +227,7 @@ _CurrentDeprecationWarning = Pandas4Warning
 
 class UnsupportedFunctionCall(ValueError):
     """
-    Exception raised when attempting to call a unsupported numpy function.
+    Exception raised when attempting to call an unsupported numpy function.
 
     For example, ``np.cumsum(groupby_object)``.
 
@@ -676,6 +676,12 @@ class ChainedAssignmentError(Warning):
 
     For more information on Copy-on-Write,
     see :ref:`the user guide<copy_on_write>`.
+
+    See Also
+    --------
+    DataFrame.loc : Access a group of rows and columns by label(s) or a boolean array.
+    DataFrame.iloc : Purely integer-location based indexing for selection by position.
+    Series.loc : Access a group of rows by label(s) or a boolean array.
 
     Examples
     --------

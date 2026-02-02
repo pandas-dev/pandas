@@ -1884,15 +1884,15 @@ class TestDataFrameConstructors:
         )
         result = df.dtypes
         expected = Series(
-            [np.dtype("float64")]
-            + [np.dtype("int64")]
-            + [
+            [
+                np.dtype("float64"),
+                np.dtype("int64"),
                 np.dtype("object")
                 if not using_infer_string
-                else pd.StringDtype(na_value=np.nan)
-            ]
-            + [np.dtype("float64")]
-            + [np.dtype(intname)],
+                else pd.StringDtype(na_value=np.nan),
+                np.dtype("float64"),
+                np.dtype(intname),
+            ],
             index=["a", "b", "c", floatname, intname],
         )
         tm.assert_series_equal(result, expected)
@@ -1910,15 +1910,15 @@ class TestDataFrameConstructors:
         )
         result = df.dtypes
         expected = Series(
-            [np.dtype("float64")]
-            + [np.dtype("int64")]
-            + [
+            [
+                np.dtype("float64"),
+                np.dtype("int64"),
                 np.dtype("object")
                 if not using_infer_string
-                else pd.StringDtype(na_value=np.nan)
-            ]
-            + [np.dtype("float64")]
-            + [np.dtype(intname)],
+                else pd.StringDtype(na_value=np.nan),
+                np.dtype("float64"),
+                np.dtype(intname),
+            ],
             index=["a", "b", "c", floatname, intname],
         )
         tm.assert_series_equal(result, expected)

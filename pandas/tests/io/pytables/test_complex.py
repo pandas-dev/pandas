@@ -7,21 +7,19 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
-from pandas.tests.io.pytables.common import ensure_clean_store
 
 from pandas.io.pytables import read_hdf
 
 
-def test_complex_fixed(tmp_path, setup_path):
+def test_complex_fixed(temp_h5_path):
     df = DataFrame(
         np.random.default_rng(2).random((4, 5)).astype(np.complex64),
         index=list("abcd"),
         columns=list("ABCDE"),
     )
 
-    path = tmp_path / setup_path
-    df.to_hdf(path, key="df")
-    reread = read_hdf(path, "df")
+    df.to_hdf(temp_h5_path, key="df")
+    reread = read_hdf(temp_h5_path, "df")
     tm.assert_frame_equal(df, reread)
 
     df = DataFrame(
@@ -29,22 +27,20 @@ def test_complex_fixed(tmp_path, setup_path):
         index=list("abcd"),
         columns=list("ABCDE"),
     )
-    path = tmp_path / setup_path
-    df.to_hdf(path, key="df")
-    reread = read_hdf(path, "df")
+    df.to_hdf(temp_h5_path, key="df")
+    reread = read_hdf(temp_h5_path, "df")
     tm.assert_frame_equal(df, reread)
 
 
-def test_complex_table(tmp_path, setup_path):
+def test_complex_table(temp_h5_path):
     df = DataFrame(
         np.random.default_rng(2).random((4, 5)).astype(np.complex64),
         index=list("abcd"),
         columns=list("ABCDE"),
     )
 
-    path = tmp_path / setup_path
-    df.to_hdf(path, key="df", format="table")
-    reread = read_hdf(path, key="df")
+    df.to_hdf(temp_h5_path, key="df", format="table")
+    reread = read_hdf(temp_h5_path, key="df")
     tm.assert_frame_equal(df, reread)
 
     df = DataFrame(
@@ -53,13 +49,12 @@ def test_complex_table(tmp_path, setup_path):
         columns=list("ABCDE"),
     )
 
-    path = tmp_path / setup_path
-    df.to_hdf(path, key="df", format="table", mode="w")
-    reread = read_hdf(path, "df")
+    df.to_hdf(temp_h5_path, key="df", format="table", mode="w")
+    reread = read_hdf(temp_h5_path, "df")
     tm.assert_frame_equal(df, reread)
 
 
-def test_complex_mixed_fixed(tmp_path, setup_path):
+def test_complex_mixed_fixed(temp_h5_path):
     complex64 = np.array(
         [1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j], dtype=np.complex64
     )
@@ -76,16 +71,15 @@ def test_complex_mixed_fixed(tmp_path, setup_path):
         },
         index=list("abcd"),
     )
-    path = tmp_path / setup_path
-    df.to_hdf(path, key="df")
-    reread = read_hdf(path, "df")
+    df.to_hdf(temp_h5_path, key="df")
+    reread = read_hdf(temp_h5_path, "df")
     tm.assert_frame_equal(df, reread)
 
 
 @pytest.mark.filterwarnings(
     "ignore:`alltrue` is deprecated as of NumPy 1.25.0:DeprecationWarning"
 )
-def test_complex_mixed_table(tmp_path, setup_path):
+def test_complex_mixed_table_store_select(temp_hdfstore):
     complex64 = np.array(
         [1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j], dtype=np.complex64
     )
@@ -103,18 +97,38 @@ def test_complex_mixed_table(tmp_path, setup_path):
         index=list("abcd"),
     )
 
-    with ensure_clean_store(setup_path) as store:
-        store.append("df", df, data_columns=["A", "B"])
-        result = store.select("df", where="A>2")
-        tm.assert_frame_equal(df.loc[df.A > 2], result)
+    temp_hdfstore.append("df", df, data_columns=["A", "B"])
+    result = temp_hdfstore.select("df", where="A>2")
+    tm.assert_frame_equal(df.loc[df.A > 2], result)
 
-    path = tmp_path / setup_path
-    df.to_hdf(path, key="df", format="table")
-    reread = read_hdf(path, "df")
+
+@pytest.mark.filterwarnings(
+    "ignore:`alltrue` is deprecated as of NumPy 1.25.0:DeprecationWarning"
+)
+def test_complex_mixed_table_store_to_path(temp_h5_path):
+    complex64 = np.array(
+        [1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j], dtype=np.complex64
+    )
+    complex128 = np.array(
+        [1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j], dtype=np.complex128
+    )
+    df = DataFrame(
+        {
+            "A": [1, 2, 3, 4],
+            "B": ["a", "b", "c", "d"],
+            "C": complex64,
+            "D": complex128,
+            "E": [1.0, 2.0, 3.0, 4.0],
+        },
+        index=list("abcd"),
+    )
+
+    df.to_hdf(temp_h5_path, key="df", format="table")
+    reread = read_hdf(temp_h5_path, "df")
     tm.assert_frame_equal(df, reread)
 
 
-def test_complex_across_dimensions_fixed(tmp_path, setup_path):
+def test_complex_across_dimensions_fixed(temp_h5_path):
     complex128 = np.array([1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j])
     s = Series(complex128, index=list("abcd"))
     df = DataFrame({"A": s, "B": s})
@@ -122,24 +136,22 @@ def test_complex_across_dimensions_fixed(tmp_path, setup_path):
     objs = [s, df]
     comps = [tm.assert_series_equal, tm.assert_frame_equal]
     for obj, comp in zip(objs, comps):
-        path = tmp_path / setup_path
-        obj.to_hdf(path, key="obj", format="fixed")
-        reread = read_hdf(path, "obj")
+        obj.to_hdf(temp_h5_path, key="obj", format="fixed")
+        reread = read_hdf(temp_h5_path, "obj")
         comp(obj, reread)
 
 
-def test_complex_across_dimensions(tmp_path, setup_path):
+def test_complex_across_dimensions(temp_h5_path):
     complex128 = np.array([1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j])
     s = Series(complex128, index=list("abcd"))
     df = DataFrame({"A": s, "B": s})
 
-    path = tmp_path / setup_path
-    df.to_hdf(path, key="obj", format="table")
-    reread = read_hdf(path, "obj")
+    df.to_hdf(temp_h5_path, key="obj", format="table")
+    reread = read_hdf(temp_h5_path, "obj")
     tm.assert_frame_equal(df, reread)
 
 
-def test_complex_indexing_error(setup_path):
+def test_complex_indexing_error(temp_hdfstore):
     complex128 = np.array(
         [1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j], dtype=np.complex128
     )
@@ -156,12 +168,11 @@ def test_complex_indexing_error(setup_path):
         "values to data_columns when initializing the table."
     )
 
-    with ensure_clean_store(setup_path) as store:
-        with pytest.raises(TypeError, match=msg):
-            store.append("df", df, data_columns=["C"])
+    with pytest.raises(TypeError, match=msg):
+        temp_hdfstore.append("df", df, data_columns=["C"])
 
 
-def test_complex_series_error(tmp_path, setup_path):
+def test_complex_series_error(temp_h5_path):
     complex128 = np.array([1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j])
     s = Series(complex128, index=list("abcd"))
 
@@ -173,17 +184,15 @@ def test_complex_series_error(tmp_path, setup_path):
         "values to data_columns when initializing the table."
     )
 
-    path = tmp_path / setup_path
     with pytest.raises(TypeError, match=msg):
-        s.to_hdf(path, key="obj", format="t")
+        s.to_hdf(temp_h5_path, key="obj", format="t")
 
-    path = tmp_path / setup_path
-    s.to_hdf(path, key="obj", format="t", index=False)
-    reread = read_hdf(path, "obj")
+    s.to_hdf(temp_h5_path, key="obj", format="t", index=False)
+    reread = read_hdf(temp_h5_path, "obj")
     tm.assert_series_equal(s, reread)
 
 
-def test_complex_append(setup_path):
+def test_complex_append(temp_hdfstore):
     df = DataFrame(
         {
             "a": np.random.default_rng(2).standard_normal(100).astype(np.complex128),
@@ -191,8 +200,7 @@ def test_complex_append(setup_path):
         }
     )
 
-    with ensure_clean_store(setup_path) as store:
-        store.append("df", df, data_columns=["b"])
-        store.append("df", df)
-        result = store.select("df")
-        tm.assert_frame_equal(pd.concat([df, df], axis=0), result)
+    temp_hdfstore.append("df", df, data_columns=["b"])
+    temp_hdfstore.append("df", df)
+    result = temp_hdfstore.select("df")
+    tm.assert_frame_equal(pd.concat([df, df], axis=0), result)

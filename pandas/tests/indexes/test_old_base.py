@@ -428,7 +428,7 @@ class TestBase:
         tm.assert_index_equal(result, expected)
 
         cond = [False] + [True] * len(idx[1:])
-        expected = Index([idx._na_value] + idx[1:].tolist(), dtype=idx.dtype)
+        expected = Index([idx._na_value, *idx[1:].tolist()], dtype=idx.dtype)
         result = idx.where(klass(cond))
         tm.assert_index_equal(result, expected)
 
@@ -456,7 +456,7 @@ class TestBase:
             msg = "slice indices must be integers or None or have an __index__ method"
 
         if using_infer_string:
-            if index.dtype == "string" or index.dtype == "category":
+            if str(index.dtype) in {"str", "string", "category"}:
                 msg = "loc must be an integer between"
             elif index.dtype == "object" and len(index) == 0:
                 msg = "loc must be an integer between"
@@ -925,7 +925,7 @@ class TestNumericBase:
 
         result = index.insert(0, index[0])
 
-        expected = Index([index[0]] + list(index), dtype=index.dtype)
+        expected = Index([index[0], *list(index)], dtype=index.dtype)
         tm.assert_index_equal(result, expected, exact=True)
 
     def test_insert_na(self, nulls_fixture, simple_index):
@@ -934,9 +934,9 @@ class TestNumericBase:
         na_val = nulls_fixture
 
         if na_val is pd.NaT:
-            expected = Index([index[0], pd.NaT] + list(index[1:]), dtype=object)
+            expected = Index([index[0], pd.NaT, *list(index[1:])], dtype=object)
         else:
-            expected = Index([index[0], np.nan] + list(index[1:]))
+            expected = Index([index[0], np.nan, *list(index[1:])])
             # GH#43921 we preserve float dtype
             if index.dtype.kind == "f":
                 expected = Index(expected, dtype=index.dtype)

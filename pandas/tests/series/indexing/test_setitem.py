@@ -1086,7 +1086,7 @@ class TestSetitemNADatetimeLikeDtype(SetitemCastingEquivalents):
     @pytest.fixture
     def expected(self, obj, val, is_inplace):
         dtype = obj.dtype if is_inplace else object
-        expected = Series([val] + list(obj[1:]), dtype=dtype)
+        expected = Series([val, *list(obj[1:])], dtype=dtype)
         return expected
 
     @pytest.fixture
@@ -1198,7 +1198,7 @@ class TestSetitemFloatIntervalWithIntIntervalValues(SetitemCastingEquivalents):
         """
         Fixture to get a Series [(0.5, 1.5], (1.0, 2.0], (2.0, 3.0]]
         """
-        data = [val] + list(obj[1:])
+        data = [val, *list(obj[1:])]
         idx = IntervalIndex(data, dtype="Interval[float64]")
         return Series(idx)
 
