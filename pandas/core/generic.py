@@ -9551,35 +9551,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             msg = "na_option must be one of 'keep', 'top', or 'bottom'"
             raise ValueError(msg)
 
-        def ranker(data):
-            if data.ndim == 2:
-                # i.e. DataFrame, we cast to ndarray
-                values = data.values
-            else:
-                # i.e. Series, can dispatch to EA
-                values = data._values
-
-            if isinstance(values, ExtensionArray):
-                ranks = values._rank(
-                    axis=axis_int,
-                    method=method,
-                    ascending=ascending,
-                    na_option=na_option,
-                    pct=pct,
-                )
-            else:
-                ranks = algos.rank(
-                    values,
-                    axis=axis_int,
-                    method=method,
-                    ascending=ascending,
-                    na_option=na_option,
-                    pct=pct,
-                )
-
-            ranks_obj = self._constructor(ranks, **data._construct_axes_dict())
-            return ranks_obj.__finalize__(self, method="rank")
-
         if numeric_only:
             if self.ndim == 1 and not is_numeric_dtype(self.dtype):
                 # GH#47500
@@ -9591,7 +9562,46 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         else:
             data = self
 
-        return ranker(data)
+        if data.ndim == 2 and axis_int == 1:
+            # Cross-column ranking requires all columns in a single array,
+            # so we cannot process blocks independently.
+            values = data.values
+            ranks = algos.rank(
+                values,
+                axis=axis_int,
+                method=method,
+                ascending=ascending,
+                na_option=na_option,
+                pct=pct,
+            )
+            ranks_obj = self._constructor(ranks, **data._construct_axes_dict())
+            return ranks_obj.__finalize__(self, method="rank")
+
+        # GH#52829 - Use _mgr.apply to process each block independently,
+        # preserving ExtensionArray dtypes (e.g. PyArrow-backed columns).
+        def blk_func(values):
+            if isinstance(values, ExtensionArray):
+                return values._rank(
+                    axis=axis_int,
+                    method=method,
+                    ascending=ascending,
+                    na_option=na_option,
+                    pct=pct,
+                )
+            else:
+                return algos.rank(
+                    values,
+                    axis=axis_int,
+                    method=method,
+                    ascending=ascending,
+                    na_option=na_option,
+                    pct=pct,
+                )
+
+        result_mgr = data._mgr.apply(blk_func)
+        return self._constructor_from_mgr(
+            result_mgr, axes=result_mgr.axes
+        ).__finalize__(self, method="rank")
 
     def compare(
         self,
