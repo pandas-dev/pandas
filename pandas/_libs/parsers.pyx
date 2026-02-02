@@ -424,9 +424,9 @@ cdef class TextReader:
 
         parser_init(self.parser)
 
-        self.parser.strip_bom = 1 if _strip_bom else 0
-        self.warn_bom_with_explicit_utf8 = _warn_bom
-        self.encoding = _encoding
+        self.parser.strip_bom = 1 if strip_bom else 0
+        self.warn_bom_with_explicit_utf8 = warn_bom
+        self.encoding = encoding
 
 
 
