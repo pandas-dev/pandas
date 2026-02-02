@@ -49,6 +49,9 @@ and labeled columns:
    df = pd.DataFrame(np.random.randn(6, 4), index=dates, columns=list("ABCD"))
    df
 
+Here, ``np.random.randn(6, 4)`` creates a 6×4 NumPy array of random numbers.
+Pandas can directly use NumPy arrays as input because it is built on top of NumPy.
+
 Creating a :class:`DataFrame` by passing a dictionary of objects where the keys are the column
 labels and the values are the column values.
 
