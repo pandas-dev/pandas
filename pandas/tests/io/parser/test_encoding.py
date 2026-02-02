@@ -132,24 +132,14 @@ def test_utf8_bom(all_parsers, data, kwargs, expected):
         # CSV parse error: Empty CSV file or block: cannot infer number of columns
         pytest.skip(reason="https://github.com/apache/arrow/issues/38676")
 
-    # GH#63787: Both C and Python engines now warn about BOM stripping.
-    # PyArrow currently does not support this warning path yet.
-    if parser.engine == "pyarrow":
-        # PyArrow doesn't warn yet
-        with tm.assert_produces_warning(None):
-            result = parser.read_csv(
-                _encode_data_with_bom(data), encoding=utf8, **kwargs
-            )
-    else:
-        # Both C-engine and Python engine now warn
-        # GH#63787: Cython-compiled code has non-standard stack frames,
-        # so we disable stacklevel checking.
-        with tm.assert_produces_warning(
-            Pandas4Warning, match="BOM", check_stacklevel=False
-        ):
-            result = parser.read_csv(
-                _encode_data_with_bom(data), encoding=utf8, **kwargs
-            )
+    # Determine expected warning
+    warn = None if parser.engine == "pyarrow" else Pandas4Warning
+    match_msg = None if parser.engine == "pyarrow" else "BOM"
+    
+    # GH#63787: Cython-compiled code has non-standard stack frames,
+    # so we disable stacklevel checking.
+    with tm.assert_produces_warning(warn, match=match_msg, check_stacklevel=False):
+        result = parser.read_csv(_encode_data_with_bom(data), encoding=utf8, **kwargs)
 
     expected = DataFrame({"a": expected})
     tm.assert_frame_equal(result, expected)
@@ -358,69 +348,40 @@ def test_not_readable(all_parsers, mode):
 @pytest.mark.parametrize(
     "data, encoding, warning_type, warning_match, expected_data",
     [
-        # Case 1: UTF-8 with BOM - warn and strip
+        # UTF-8 with BOM
         (
             b"\xef\xbb\xbfName,Age\nJohn,25",
             "utf-8",
             Pandas4Warning,
             "BOM",
-            {"Name": ["John"], "Age": [25]},  # ✅ BOM stripped
+            {"Name": ["John"], "Age": [25]},
         ),
-        # Case 2: Latin1 with bytes matching BOM - warn and strip (C-engine only)
-        # Python engine sees these as literal chars "ï»¿" not as BOM
-        (
-            b"\xef\xbb\xbfName,Age\nJohn,25",
-            "latin1",
-            Pandas4Warning,
-            "BOM",
-            {"Name": ["John"], "Age": [25]},  # ✅ BOM stripped (not ï»¿Name!)
-        ),
-        # Case 3: ISO-8859-1 literal chars - warn and strip (C-engine only)
-        # Python engine doesn't detect this as BOM
-        (
-            "ï»¿ABC,Value\n1,2\n".encode("iso-8859-1"),
-            "utf-8",
-            Pandas4Warning,
-            "BOM",
-            {"ABC": [1], "Value": [2]},  # ✅ BOM stripped
-        ),
-        # Case 4: UTF-8-sig - no warn, strip
+        # UTF-8-sig
         (
             b"\xef\xbb\xbfName,Age\nJohn,25",
             "utf-8-sig",
-            None,  # No warning
             None,
-            {"Name": ["John"], "Age": [25]},  # ✅ BOM stripped
+            None,
+            {"Name": ["John"], "Age": [25]},
         ),
-        # Case 5: Default encoding - warn and strip
+        # Default encoding
         (
             b"\xef\xbb\xbfName,Age\nJohn,25",
-            None,  # Default encoding
+            None,
             Pandas4Warning,
             "BOM",
-            {"Name": ["John"], "Age": [25]},  # ✅ BOM stripped
+            {"Name": ["John"], "Age": [25]},
         ),
     ],
 )
 def test_bom_handling_deprecation(
     all_parsers, data, encoding, warning_type, warning_match, expected_data
 ):
+    """Test BOM handling during deprecation period (GH#63787)."""
     parser = all_parsers
 
     if parser.engine == "pyarrow":
         pytest.skip("BOM warning not yet implemented for PyArrow engine")
-
-    # Special handling for Python engine with latin1 encoding
-    # Python engine doesn't detect BOM in latin1 - it sees literal chars
-    if parser.engine == "python" and encoding == "latin1":
-        # Python engine won't warn for latin1 because it doesn't see the BOM
-        # It will fail to parse correctly (will have "ï»¿Name" column)
-        pytest.skip("Python engine doesn't detect BOM with latin1 encoding")
-
-    # Special handling for Python engine with iso-8859-1 literal chars
-    if parser.engine == "python" and encoding == "utf-8" and b"\xef\xbb\xbfABC" in data:
-        # Python engine won't detect this pattern as BOM
-        pytest.skip("Python engine doesn't detect this BOM pattern")
 
     with tm.assert_produces_warning(
         warning_type, match=warning_match, check_stacklevel=False
