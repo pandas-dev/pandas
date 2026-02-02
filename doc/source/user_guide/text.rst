@@ -815,7 +815,7 @@ NA values in this array are represented and behave as ``np.nan``.
    )
 
 Notice that the last three values are all inferred by pandas as
-being an NA values, and hence stored as ``pd.NA``.
+being NA values, and hence stored as ``pd.NA``.
 
 PyArrow storage with ``pd.NA`` values
 -------------------------------------
@@ -833,7 +833,7 @@ represented and behave as ``pd.NA``.
        dtype=pd.StringDtype(storage="python", na_value=pd.NA)
    )
 
-Notice that the last three values are all inferred by pandas as being an NA
+Notice that the last three values are all inferred by pandas as being NA
 values, and hence stored as ``pd.NA``.
 
 Method summary
