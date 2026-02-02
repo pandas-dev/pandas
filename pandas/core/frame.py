@@ -13027,6 +13027,7 @@ class DataFrame(NDFrame, OpsMixin):
             .. deprecated:: 3.0
             ``dropna`` only has an effect when ``future_stack=False``.
               Using this parameter will raise a ``Pandas4Warning``.
+        
         sort : bool, default True
             Whether to sort the levels of the resulting MultiIndex.
           .. deprecated:: 3.0
@@ -13038,12 +13039,14 @@ class DataFrame(NDFrame, OpsMixin):
             implementation in pandas 3.0. When True, dropna and sort have no impact
             on the result and must remain unspecified. See :ref:`pandas 2.1.0 Release
             notes <whatsnew_210.enhancements.new_stack>` for more details.
+         
          .. deprecated:: 3.0
          This parameter is deprecated and will be removed in a future version.
          Setting ``future_stack=False`` enables legacy behavior
          and will raise a ``Pandas4Warning``.
         Returns
         -------
+
         DataFrame or Series
             Stacked dataframe or series.
 
@@ -13158,10 +13161,10 @@ class DataFrame(NDFrame, OpsMixin):
             )
 
             warnings.warn(
-                "The previous implementation of stack is deprecated and will be "
-                "removed in a future version of pandas. See the What's New notes "
-                "for pandas 2.1.0 for details. Do not specify the future_stack "
-                "argument to adopt the new implementation and silence this warning.",
+             "The 'future_stack' parameter is deprecated and will be removed in a "
+             "future version of pandas. Setting future_stack=False enables the "
+             "legacy implementation, which is also deprecated. See the pandas 2.1.0 "
+             "What's New notes for details."
                 Pandas4Warning,
                 stacklevel=find_stack_level(),
             )
