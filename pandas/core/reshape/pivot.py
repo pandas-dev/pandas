@@ -49,6 +49,10 @@ if TYPE_CHECKING:
     )
 
     from pandas import DataFrame
+    from pandas.api.typing import (
+        DataFrameGroupBy,
+        SeriesGroupBy,
+    )
 
 
 @set_module("pandas")
@@ -340,11 +344,12 @@ def __internal_pivot_table(
                 pass
         values = list(values)
 
-    grouped = data.groupby(keys, observed=observed, sort=sort, dropna=dropna)
+    grouped: SeriesGroupBy | DataFrameGroupBy = data.groupby(
+        keys, observed=observed, sort=sort, dropna=dropna
+    )
     if values_passed:
         # GH#57876 and GH#61292
-        # mypy is not aware `grouped[values]` will always be a DataFrameGroupBy
-        grouped = grouped[values]  # type: ignore[assignment]
+        grouped = grouped[values]
     elif grouped._obj_with_exclusions.columns.empty:
         grouped = Series(np.nan, index=data.index).groupby(
             [data[key] for key in keys], observed=observed, sort=sort, dropna=dropna
