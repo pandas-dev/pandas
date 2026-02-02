@@ -9580,8 +9580,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # GH#52829 - Use _mgr.apply to process each block independently,
         # preserving ExtensionArray dtypes (e.g. PyArrow-backed columns).
         def blk_func(values):
+            # Numpy blocks are stored transposed (n_cols, n_rows) relative to
+            # the DataFrame layout.  Transpose before ranking so that axis=0
+            # operates along rows, matching the user-facing semantics.
+            # For 1D ExtensionArrays, .T is a no-op.
+            values = values.T if hasattr(values, "T") else values
+
             if isinstance(values, ExtensionArray):
-                return values._rank(
+                result = values._rank(
                     axis=axis_int,
                     method=method,
                     ascending=ascending,
@@ -9589,7 +9595,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     pct=pct,
                 )
             else:
-                return algos.rank(
+                result = algos.rank(
                     values,
                     axis=axis_int,
                     method=method,
@@ -9597,6 +9603,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     na_option=na_option,
                     pct=pct,
                 )
+
+            result = result.T if hasattr(result, "T") else result
+            return result
 
         result_mgr = data._mgr.apply(blk_func)
         return self._constructor_from_mgr(
