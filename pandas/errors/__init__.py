@@ -227,7 +227,7 @@ _CurrentDeprecationWarning = Pandas4Warning
 
 class UnsupportedFunctionCall(ValueError):
     """
-    Exception raised when attempting to call a unsupported numpy function.
+    Exception raised when attempting to call an unsupported numpy function.
 
     For example, ``np.cumsum(groupby_object)``.
 
