@@ -623,7 +623,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         defaultdict(<class 'list'>, {Timestamp('2023-01-01 00:00:00'): [0, 1],
         Timestamp('2023-02-01 00:00:00'): [2, 3]})
         """
-        return {k: v.copy() for k, v in self._grouper.indices.items()}
+        return self._grouper.indices
 
     @final
     def _get_index(self, name):
@@ -882,11 +882,11 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
             if isinstance(name, tuple) and len(name) == 1:
                 name = name[0]
             else:
-                raise KeyError(f"Group {name} not found")
+                raise KeyError(f"{name}")
 
         inds = self._get_index(name)
         if not len(inds):
-            raise KeyError(f"Group {name} not found")
+             raise KeyError(f"{name}")
         return self._selected_obj.iloc[inds]
 
     @final
