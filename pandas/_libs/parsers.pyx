@@ -428,8 +428,6 @@ cdef class TextReader:
         self.warn_bom_with_explicit_utf8 = warn_bom
         self.encoding = encoding
 
-
-
         if delim_whitespace:
             self.parser.delim_whitespace = delim_whitespace
         else:
