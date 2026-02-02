@@ -11,7 +11,10 @@ from pandas._libs import (
     parsers,
 )
 from pandas.compat._optional import import_optional_dependency
-from pandas.errors import DtypeWarning
+from pandas.errors import (
+    DtypeWarning,
+    Pandas4Warning,
+)
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import pandas_dtype
@@ -62,6 +65,72 @@ class CParserWrapper(ParserBase):
     low_memory: bool
     _reader: parsers.TextReader
 
+    @staticmethod
+    def _bom_warning_message(encoding: str | None) -> str:
+        if encoding is None:
+            return (
+                "A BOM was detected in the file. In pandas 4.0, "
+                "BOMs will only be stripped when using '-sig' encoding variants "
+                "(e.g., 'utf-8-sig'). To suppress this warning, specify "
+                "encoding='utf-8-sig'."
+            )
+        return (
+            f"A BOM was detected in a file with encoding='{encoding}'. "
+            "In pandas 4.0, BOMs will only be stripped when using '-sig' "
+            "encoding variants (e.g., 'utf-8-sig'). To suppress this warning, "
+            f"use encoding='{encoding}-sig' if available."
+        )
+
+    @staticmethod
+    def _text_has_bom(prefix: str, encoding: str | None) -> bool:
+        if prefix.startswith("\ufeff"):
+            return True
+        if encoding is None:
+            return prefix.startswith("ï»¿")
+        normalized = encoding.lower()
+        if normalized in {"latin1", "latin-1", "cp1252"}:
+            return prefix.startswith("ï»¿")
+        return False
+
+    @classmethod
+    def _maybe_warn_bom(cls, src: ReadCsvBuffer[str], encoding: str | None) -> bool:
+        if not (hasattr(src, "read") and hasattr(src, "seek") and hasattr(src, "tell")):
+            return False
+
+        try:
+            position = src.tell()
+        except Exception:
+            return False
+
+        try:
+            src.seek(0)
+            prefix = src.read(3)
+        except Exception:
+            return False
+        finally:
+            try:
+                src.seek(position)
+            except Exception:
+                pass
+
+        if encoding is not None and encoding.lower() in {"latin1", "latin-1", "cp1252"}:
+            return False
+
+        if isinstance(prefix, bytes):
+            has_bom = prefix.startswith(b"\xef\xbb\xbf")
+        else:
+            has_bom = cls._text_has_bom(prefix, encoding)
+
+        if not has_bom:
+            return False
+
+        warnings.warn(
+            cls._bom_warning_message(encoding),
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return True
+
     def __init__(self, src: ReadCsvBuffer[str], **kwds) -> None:
         super().__init__(kwds)
         self.kwds = kwds
@@ -87,6 +156,10 @@ class CParserWrapper(ParserBase):
             # Default: strip but warn
             strip_bom = True
             warn_bom = True
+        elif encoding.lower() in {"latin1", "latin-1", "cp1252"}:
+            # Latin-1 compatible encodings should not treat BOM as special.
+            strip_bom = False
+            warn_bom = False
         elif encoding.lower().endswith("-sig"):
             # Only -sig variants strip without warning
             strip_bom = True
@@ -113,6 +186,9 @@ class CParserWrapper(ParserBase):
         if kwds["dtype_backend"] == "pyarrow":
             # Fail here loudly instead of in cython after reading
             import_optional_dependency("pyarrow")
+        if warn_bom and self._maybe_warn_bom(src, encoding):
+            kwds["warn_bom"] = False
+
         self._reader = parsers.TextReader(src, **kwds)
 
         self.unnamed_cols = self._reader.unnamed_cols
