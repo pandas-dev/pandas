@@ -787,14 +787,13 @@ reportUnboundVariable = false
 
 [tool.coverage.run]
 branch = true
-omit = ["pandas/_typing.py", "pandas/_version.py"]
+omit = ["pandas/_typing.py"]
 plugins = ["Cython.Coverage"]
 source = ["pandas"]
 
 [tool.coverage.report]
 ignore_errors = false
 show_missing = true
-omit = ["pandas/_version.py"]
 exclude_lines = [
   # Have to re-enable the standard pragma
   "pragma: no cover",

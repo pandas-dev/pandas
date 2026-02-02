@@ -13,7 +13,6 @@
 *.dta binary
 *.xls binary
 *.xlsx binary
-pandas/_version.py export-subst
 
 
 *.bz2 export-ignore
