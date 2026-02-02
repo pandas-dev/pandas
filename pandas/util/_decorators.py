@@ -443,7 +443,7 @@ class Substitution:
         warnings.warn(
             "Substitution is deprecated and will be removed in a future version.",
             Pandas4Warning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         if args and kwargs:
             raise AssertionError("Only positional or keyword args are allowed")
@@ -490,7 +490,7 @@ class Appender:
         warnings.warn(
             "Appender is deprecated and will be removed in a future version.",
             Pandas4Warning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         if indents > 0:
             self.addendum = indent(addendum, indents=indents)
