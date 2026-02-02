@@ -111,8 +111,8 @@ void parser_set_default_options(parser_t *self) {
   self->skip_first_N_rows = -1;
   self->skip_footer = 0;
 
-  self->strip_bom = 1;
-  self->bom_found = 1;
+  self->strip_bom = 0;
+  self->bom_found = 0;
 }
 
 parser_t *parser_new(void) { return (parser_t *)calloc(1, sizeof(parser_t)); }
