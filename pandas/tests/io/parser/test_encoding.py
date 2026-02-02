@@ -348,7 +348,7 @@ def test_not_readable(all_parsers, mode):
 @pytest.mark.parametrize(
     "data, encoding, warning_type, warning_match, expected_data",
     [
-        # UTF-8 with BOM
+        # Case 1: UTF-8 with BOM
         (
             b"\xef\xbb\xbfName,Age\nJohn,25",
             "utf-8",
@@ -356,7 +356,7 @@ def test_not_readable(all_parsers, mode):
             "BOM",
             {"Name": ["John"], "Age": [25]},
         ),
-        # UTF-8-sig
+        # Case 2: UTF-8-sig
         (
             b"\xef\xbb\xbfName,Age\nJohn,25",
             "utf-8-sig",
@@ -364,10 +364,18 @@ def test_not_readable(all_parsers, mode):
             None,
             {"Name": ["John"], "Age": [25]},
         ),
-        # Default encoding
+        # Case 3: Default encoding
         (
             b"\xef\xbb\xbfName,Age\nJohn,25",
             None,
+            Pandas4Warning,
+            "BOM",
+            {"Name": ["John"], "Age": [25]},
+        ),
+        # Case 4: Latin1 (Required by mentor!)
+        (
+            b"\xef\xbb\xbfName,Age\nJohn,25",
+            "latin1",
             Pandas4Warning,
             "BOM",
             {"Name": ["John"], "Age": [25]},
@@ -383,10 +391,20 @@ def test_bom_handling_deprecation(
     if parser.engine == "pyarrow":
         pytest.skip("BOM warning not yet implemented for PyArrow engine")
 
+    expect_warning = warning_type
+    expect_match = warning_match
+    
+    expected = DataFrame(expected_data)
+
+    if parser.engine == "python" and encoding == "latin1":
+        expect_warning = None
+        expect_match = None
+        # Adjust the expected DataFrame for Python engine behavior
+        expected = expected.rename(columns={"Name": "ï»¿Name"})
+
     with tm.assert_produces_warning(
-        warning_type, match=warning_match, check_stacklevel=False
+        expect_warning, match=expect_match, check_stacklevel=False
     ):
         result = parser.read_csv(BytesIO(data), encoding=encoding)
 
-    expected = DataFrame(expected_data)
     tm.assert_frame_equal(result, expected)
