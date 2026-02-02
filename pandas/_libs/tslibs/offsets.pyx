@@ -2838,9 +2838,9 @@ cdef class BusinessHour(BusinessMixin):
             # CustomBusinessHour
             return CustomBusinessDay(
                 n=nb_offset,
-                weekmask=self.weekmask,
-                holidays=self.holidays,
-                calendar=self.calendar,
+                weekmask=self._weekmask,
+                holidays=self._holidays,
+                calendar=self._calendar,
             )
         else:
             return BusinessDay(n=nb_offset)
@@ -2998,9 +2998,9 @@ cdef class BusinessHour(BusinessMixin):
                 # GH#30593 this is a Custom offset
                 skip_bd = CustomBusinessDay(
                     n=bd,
-                    weekmask=self.weekmask,
-                    holidays=self.holidays,
-                    calendar=self.calendar,
+                    weekmask=self._weekmask,
+                    holidays=self._holidays,
+                    calendar=self._calendar,
                 )
             else:
                 skip_bd = BusinessDay(n=bd)
@@ -3096,7 +3096,7 @@ cdef class BusinessHour(BusinessMixin):
         >>> pd.offsets.BusinessHour().is_on_offset(ts)
         False
         """
-        if self.normalize and not _is_normalized(dt):
+        if self._normalize and not _is_normalized(dt):
             return False
 
         if dt.tzinfo is not None:

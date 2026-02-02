@@ -28,7 +28,7 @@ enhancement2
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
--
+- Display formatting for float sequences in DataFrame cells now respects the ``display.precision`` option (:issue:`60503`).
 -
 
 .. ---------------------------------------------------------------------------
