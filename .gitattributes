@@ -72,7 +72,6 @@ web export-ignore
 CITATION.cff export-ignore
 codecov.yml export-ignore
 environment.yml export-ignore
-setup.py export-ignore
 
 
 # GH 39321

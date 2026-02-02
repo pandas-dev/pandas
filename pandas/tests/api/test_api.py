@@ -54,7 +54,7 @@ class TestPDApi(Base):
         "io",
         "tseries",
     ]
-    private_lib = ["compat", "core", "pandas", "util", "_built_with_meson"]
+    private_lib = ["compat", "core", "pandas", "util"]
 
     # misc
     misc = ["IndexSlice", "NaT", "NA"]
@@ -200,8 +200,6 @@ class TestPDApi(Base):
         "_testing",
         "_typing",
     ]
-    if not pd._built_with_meson:
-        private_modules.append("_version")
 
     def test_api(self):
         checkthese = (
