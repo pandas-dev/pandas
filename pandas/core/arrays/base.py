@@ -285,6 +285,10 @@ class ExtensionArray:
         """
         Construct a new ExtensionArray from a sequence of scalars.
 
+        This is a required method for ExtensionArray subclasses. It is used
+        to create a new instance of the ExtensionArray from Python scalars
+        or objects that can be converted to the array's scalar type.
+
         Parameters
         ----------
         scalars : Sequence
@@ -323,6 +327,10 @@ class ExtensionArray:
         """
         Construct a new ExtensionArray from a sequence of strings.
 
+        This method is used to parse string data into the appropriate
+        scalar type for the ExtensionArray. It is commonly used when
+        reading data from text files via parsers like ``read_csv``.
+
         Parameters
         ----------
         strings : Sequence
@@ -360,6 +368,10 @@ class ExtensionArray:
     def _from_factorized(cls, values, original):
         """
         Reconstruct an ExtensionArray after factorization.
+
+        This method reverses the encoding applied by :meth:`factorize`,
+        recreating an ExtensionArray from the unique values and original
+        array metadata.
 
         Parameters
         ----------
@@ -655,6 +667,10 @@ class ExtensionArray:
         """
         An instance of ExtensionDtype.
 
+        This property returns the dtype object associated with this
+        ExtensionArray. The dtype describes the type of data stored
+        in the array.
+
         See Also
         --------
         api.extensions.ExtensionDtype : Base class for extension dtypes.
@@ -674,6 +690,9 @@ class ExtensionArray:
     def shape(self) -> Shape:
         """
         Return a tuple of the array dimensions.
+
+        For ExtensionArrays, this is always a 1-tuple containing the
+        length of the array, since ExtensionArrays are 1-dimensional.
 
         See Also
         --------
@@ -704,6 +723,9 @@ class ExtensionArray:
         """
         Extension Arrays are only allowed to be 1-dimensional.
 
+        This property always returns 1 for ExtensionArrays, as they
+        are constrained to a single dimension by design.
+
         See Also
         --------
         ExtensionArray.shape: Return a tuple of the array dimensions.
@@ -721,6 +743,9 @@ class ExtensionArray:
     def nbytes(self) -> int:
         """
         The number of bytes needed to store this object in memory.
+
+        If computing this is expensive, implementations may return an
+        approximate lower bound on the number of bytes needed.
 
         See Also
         --------
@@ -752,6 +777,9 @@ class ExtensionArray:
     def astype(self, dtype: AstypeArg, copy: bool = True) -> ArrayLike:
         """
         Cast to a NumPy array or ExtensionArray with 'dtype'.
+
+        If the target dtype is an ExtensionDtype, the result is an
+        ExtensionArray. Otherwise, the result is a NumPy ndarray.
 
         Parameters
         ----------
@@ -834,6 +862,9 @@ class ExtensionArray:
         """
         A 1-D array indicating if each value is missing.
 
+        This method returns a boolean array where ``True`` indicates that
+        the corresponding value is missing (NA/NaN).
+
         Returns
         -------
         numpy.ndarray or pandas.api.extensions.ExtensionArray
@@ -878,6 +909,10 @@ class ExtensionArray:
         """
         Return values for sorting.
 
+        This method provides the underlying values that should be used
+        when sorting the ExtensionArray. The returned values should
+        maintain the same relative ordering as the original array.
+
         Returns
         -------
         ndarray
@@ -919,6 +954,9 @@ class ExtensionArray:
     ) -> np.ndarray:
         """
         Return the indices that would sort this array.
+
+        This method computes the indices that would produce a sorted
+        version of the array when used with indexing.
 
         Parameters
         ----------
@@ -1048,6 +1086,9 @@ class ExtensionArray:
         """
         Fill NaN values using an interpolation method.
 
+        This method fills missing values in the array by interpolating
+        between existing values using the specified interpolation technique.
+
         Parameters
         ----------
         method : str, default 'linear'
@@ -1154,6 +1195,10 @@ class ExtensionArray:
         """
         Pad or backfill values, used by Series/DataFrame ffill and bfill.
 
+        This method propagates the last valid observation forward (pad/ffill)
+        or the next valid observation backward (backfill/bfill) to fill NaN
+        values.
+
         Parameters
         ----------
         method : {'backfill', 'bfill', 'pad', 'ffill'}
@@ -1238,6 +1283,9 @@ class ExtensionArray:
         """
         Fill NA/NaN values using the specified method.
 
+        This method replaces missing values in the array with a scalar value
+        or corresponding values from an array-like object.
+
         Parameters
         ----------
         value : scalar, array-like
@@ -1307,6 +1355,9 @@ class ExtensionArray:
         """
         Return ExtensionArray without NA values.
 
+        This method removes all missing values from the array, returning
+        a new ExtensionArray containing only non-NA values.
+
         Returns
         -------
         Self
@@ -1335,6 +1386,9 @@ class ExtensionArray:
     ) -> npt.NDArray[np.bool_]:
         """
         Return boolean ndarray denoting duplicate values.
+
+        This method identifies duplicate values in the array. The `keep`
+        parameter controls which occurrences are marked as duplicates.
 
         Parameters
         ----------
@@ -1434,6 +1488,10 @@ class ExtensionArray:
     def unique(self) -> Self:
         """
         Compute the ExtensionArray of unique values.
+
+        This method returns a new ExtensionArray containing the distinct
+        values from the original array, preserving the order of first
+        appearance.
 
         Returns
         -------
@@ -1605,6 +1663,10 @@ class ExtensionArray:
         """
         Return an array and missing value suitable for factorization.
 
+        This method provides the values and NA sentinel to use in the
+        factorization process. Subclasses may override this to customize
+        the factorization behavior.
+
         Returns
         -------
         values : ndarray
@@ -1640,6 +1702,10 @@ class ExtensionArray:
     ) -> tuple[np.ndarray, ExtensionArray]:
         """
         Encode the extension array as an enumerated type.
+
+        This method encodes the array values as integer codes that index
+        into an array of unique values. Missing values can be encoded
+        with a sentinel value of -1.
 
         Parameters
         ----------
@@ -1840,6 +1906,10 @@ class ExtensionArray:
         """
         Take elements from an array.
 
+        This method selects elements from the array at the specified
+        indices, optionally handling negative indices as missing values
+        when ``allow_fill=True``.
+
         Parameters
         ----------
         indices : sequence of int or one-dimensional np.ndarray of int
@@ -1966,6 +2036,10 @@ class ExtensionArray:
     def view(self, dtype: Dtype | None = None) -> ArrayLike:
         """
         Return a view on the array.
+
+        This method returns a new object referencing the same underlying
+        data, without copying. Modifications to either the view or the
+        original array will be reflected in both.
 
         Parameters
         ----------
@@ -2129,6 +2203,10 @@ class ExtensionArray:
         """
         Return a flattened view on this array.
 
+        Since ExtensionArrays are 1-dimensional, this method returns the
+        array itself. The ``order`` parameter is accepted for compatibility
+        with NumPy but is ignored.
+
         Parameters
         ----------
         order : {None, 'C', 'F', 'A', 'K'}, default 'C'
@@ -2160,6 +2238,10 @@ class ExtensionArray:
     def _concat_same_type(cls, to_concat: Sequence[Self]) -> Self:
         """
         Concatenate multiple array of this dtype.
+
+        This method joins a sequence of ExtensionArrays of the same dtype
+        into a single ExtensionArray. All arrays in the sequence must
+        have the same dtype.
 
         Parameters
         ----------
@@ -2258,6 +2340,10 @@ class ExtensionArray:
     ):
         """
         Return a scalar result of performing the reduction operation.
+
+        This method dispatches to the appropriate reduction method (e.g.,
+        sum, mean, min, max) based on the `name` parameter and returns
+        the result.
 
         Parameters
         ----------
@@ -2465,6 +2551,9 @@ class ExtensionArray:
     def insert(self, loc: int, item) -> Self:
         """
         Insert an item at the given position.
+
+        This method creates a new ExtensionArray with the specified item
+        inserted at the given index. The original array is not modified.
 
         Parameters
         ----------
