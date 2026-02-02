@@ -1,4 +1,5 @@
 from functools import partial
+from itertools import pairwise
 
 import numpy as np
 import pytest
@@ -333,7 +334,7 @@ class TestFromTuples(ConstructorTests):
         if len(breaks) == 0:
             return {"data": breaks}
 
-        tuples = list(zip(breaks[:-1], breaks[1:]))
+        tuples = list(pairwise(breaks))
         if isinstance(breaks, (list, tuple)):
             return {"data": tuples}
         elif isinstance(getattr(breaks, "dtype", None), CategoricalDtype):
@@ -386,7 +387,7 @@ class TestClassConstructors(ConstructorTests):
 
         ivs = [
             Interval(left, right, closed) if notna(left) else left
-            for left, right in zip(breaks[:-1], breaks[1:])
+            for left, right in pairwise(breaks)
         ]
 
         if isinstance(breaks, list):
