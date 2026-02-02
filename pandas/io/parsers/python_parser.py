@@ -113,8 +113,12 @@ class PythonParser(ParserBase):
         self.encoding = kwds.get("encoding")
 
         # Determine if we should warn about BOM
-        if self.encoding is None:
+        if isinstance(f, StringIO):
+            self._warn_bom = False
+        elif self.encoding is None:
             self._warn_bom = True  # Warn for default encoding
+        elif self.encoding.lower() in {"latin1", "latin-1", "cp1252"}:
+            self._warn_bom = False
         elif self.encoding.lower().endswith("-sig"):
             self._warn_bom = False  # Don't warn for -sig variants
         else:
