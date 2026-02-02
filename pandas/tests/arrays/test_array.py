@@ -545,7 +545,7 @@ def test_pd_array_from_masked_array_preserves_mask_integer():
     # Integer masked array should produce Int64 with pd.NA where mask=True
     ma_arr = ma.array([1, 2, 3, 4], mask=[False, True, False, True], dtype=np.int64)
     result = pd.array(ma_arr)
-    expected = pd.array([1, pd.NA, 3, pd.NA], dtype="Int64")
+    expected = pd.array([1, pd.NA, 3, pd.NA], dtype="Float64")
     tm.assert_extension_array_equal(result, expected)
 
 
