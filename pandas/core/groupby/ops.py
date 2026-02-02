@@ -828,6 +828,9 @@ class BaseGrouper:
                 codes=result_index_codes,
                 names=list(unob_index.names) + list(ob_index.names),
             ).reorder_levels(index)
+
+            # The sum here will get -1 values wrong when dropna=True;
+            # we will fix at the end.
             ids = len(unob_index) * ob_ids + unob_ids
 
             if any(sorts):
@@ -855,6 +858,9 @@ class BaseGrouper:
                     [uniques, np.delete(np.arange(len(result_index)), uniques)]
                 )
                 result_index = result_index.take(taker)
+
+            if self.dropna:
+                ids = np.where((ob_ids < 0) | (unob_ids < 0), -1, ids)
 
         return result_index, ids
 

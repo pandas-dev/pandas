@@ -217,6 +217,11 @@ cdef _get_calendar(weekmask, holidays, calendar):
             pass
         return calendar, holidays
 
+    elif calendar is not None:
+        from pandas.tseries.holiday import AbstractHolidayCalendar
+        if not isinstance(calendar, AbstractHolidayCalendar):
+            raise TypeError("Custom subclasses only accept np.busdaycalendar.")
+
     if holidays is None:
         holidays = []
     try:
@@ -622,6 +627,9 @@ cdef class BaseOffset:
     def name(self) -> str:
         """
         Return a string representing the base frequency.
+
+        This is typically a short string alias (e.g., 'h' for hourly, 'D' for daily)
+        used to identify the offset type, regardless of the `n` multiplier.
 
         See Also
         --------
@@ -2118,7 +2126,32 @@ cdef class BusinessMixin(SingleConstructorOffset):
     @property
     def offset(self):
         """
-        Alias for self._offset.
+        Return the time offset applied to the business day.
+
+        This property returns the timedelta offset that is added to the
+        business day calculation result. It allows for shifting the result
+        by a fixed time amount.
+
+        Returns
+        -------
+        timedelta
+            The time offset applied to the business day.
+
+        See Also
+        --------
+        BusinessDay : Represents a single business day offset.
+        CustomBusinessDay : Custom business day offset with configurable weekmask.
+
+        Examples
+        --------
+        >>> bd = pd.offsets.BusinessDay()
+        >>> bd.offset
+        datetime.timedelta(0)
+
+        >>> import datetime as dt
+        >>> bd = pd.offsets.BusinessDay(offset=dt.timedelta(hours=2))
+        >>> bd.offset
+        datetime.timedelta(seconds=7200)
         """
         # Alias for backward compat
         return self._offset
@@ -2330,7 +2363,11 @@ cdef class BusinessDay(BusinessMixin):
     """
     DateOffset subclass representing possibly n business days.
 
-    Parameters
+    BusinessDay, also known as BDay, is a date offset representing a single
+    business day or a number of business days. Business days exclude weekends
+    (Saturday and Sunday) by default.
+
+    Attributes
     ----------
     n : int, default 1
         The number of days represented.
@@ -2338,6 +2375,10 @@ cdef class BusinessDay(BusinessMixin):
         Normalize start/end dates to midnight.
     offset : timedelta, default timedelta(0)
         Time offset to apply.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
 
     Examples
     --------
@@ -2390,15 +2431,15 @@ cdef class BusinessDay(BusinessMixin):
                 off_str += str(td.microseconds) + "us"
             return off_str
 
-        if PyDelta_Check(self.offset):
+        if PyDelta_Check(self._offset):
             zero = timedelta(0, 0, 0)
-            if self.offset >= zero:
-                off_str = "+" + get_str(self.offset)
+            if self._offset >= zero:
+                off_str = "+" + get_str(self._offset)
             else:
-                off_str = "-" + get_str(-self.offset)
+                off_str = "-" + get_str(-self._offset)
             return off_str
         else:
-            return "+" + repr(self.offset)
+            return "+" + repr(self._offset)
 
     @apply_wraps
     def _apply(self, other):
@@ -2411,14 +2452,14 @@ cdef class BusinessDay(BusinessMixin):
             days = self._adjust_ndays(wday, weeks)
 
             result = other + timedelta(days=7 * weeks + days)
-            if self.offset:
-                result = result + self.offset
+            if self._offset:
+                result = result + self._offset
             return result
 
         elif is_any_td_scalar(other):
-            td = Timedelta(self.offset) + other
+            td = Timedelta(self._offset) + other
             return BusinessDay(
-                self._n, offset=td.to_pytimedelta(), normalize=self.normalize
+                self._n, offset=td.to_pytimedelta(), normalize=self._normalize
             )
         else:
             raise ApplyTypeError(
@@ -2508,8 +2549,8 @@ cdef class BusinessDay(BusinessMixin):
         i8other = dtarr.view("i8")
         reso = get_unit_from_dtype(dtarr.dtype)
         res = self._shift_bdays(i8other, reso=reso)
-        if self.offset:
-            res = res.view(dtarr.dtype) + Timedelta(self.offset)
+        if self._offset:
+            res = res.view(dtarr.dtype) + Timedelta(self._offset)
         return res
 
     def is_on_offset(self, dt: datetime) -> bool:
@@ -2558,7 +2599,7 @@ cdef class BusinessDay(BusinessMixin):
         >>> pd.offsets.BusinessDay(normalize=True).is_on_offset(ts)
         True
         """
-        if self.normalize and not _is_normalized(dt):
+        if self._normalize and not _is_normalized(dt):
             return False
         return dt.weekday() < 5
 
@@ -2567,7 +2608,12 @@ cdef class BusinessHour(BusinessMixin):
     """
     DateOffset subclass representing possibly n business hours.
 
-    Parameters
+    BusinessHour is a date offset that advances time by a number of business
+    hours. By default, business hours are from 9:00 AM to 5:00 PM on weekdays.
+    The ``start`` and ``end`` parameters can be used to customize the business
+    hours window, and multiple intervals can be specified by passing lists.
+
+    Attributes
     ----------
     n : int, default 1
         The number of hours represented.
@@ -2579,6 +2625,13 @@ cdef class BusinessHour(BusinessMixin):
         End time of your custom business hour in 24h format.
     offset : timedelta, default timedelta(0)
         Time offset to apply.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.CustomBusinessHour` :
+        DateOffset subclass with custom weekmask and holidays.
+    :class:`~pandas.tseries.offsets.BusinessDay` :
+        DateOffset subclass representing possibly n business days.
 
     Examples
     --------
@@ -2785,9 +2838,9 @@ cdef class BusinessHour(BusinessMixin):
             # CustomBusinessHour
             return CustomBusinessDay(
                 n=nb_offset,
-                weekmask=self.weekmask,
-                holidays=self.holidays,
-                calendar=self.calendar,
+                weekmask=self._weekmask,
+                holidays=self._holidays,
+                calendar=self._calendar,
             )
         else:
             return BusinessDay(n=nb_offset)
@@ -2945,9 +2998,9 @@ cdef class BusinessHour(BusinessMixin):
                 # GH#30593 this is a Custom offset
                 skip_bd = CustomBusinessDay(
                     n=bd,
-                    weekmask=self.weekmask,
-                    holidays=self.holidays,
-                    calendar=self.calendar,
+                    weekmask=self._weekmask,
+                    holidays=self._holidays,
+                    calendar=self._calendar,
                 )
             else:
                 skip_bd = BusinessDay(n=bd)
@@ -3043,7 +3096,7 @@ cdef class BusinessHour(BusinessMixin):
         >>> pd.offsets.BusinessHour().is_on_offset(ts)
         False
         """
-        if self.normalize and not _is_normalized(dt):
+        if self._normalize and not _is_normalized(dt):
             return False
 
         if dt.tzinfo is not None:
@@ -3104,6 +3157,46 @@ cdef class WeekOfMonthMixin(SingleConstructorOffset):
         return _shift_day(shifted, to_day - shifted.day)
 
     def is_on_offset(self, dt: datetime) -> bool:
+        """
+        Return boolean whether a timestamp intersects with this frequency.
+
+        This method checks if the given timestamp falls on the expected day
+        of the month for this offset. For WeekOfMonth, this is the specified
+        weekday of the specified week of the month. For LastWeekOfMonth, this
+        is the specified weekday of the last week of the month.
+
+        Parameters
+        ----------
+        dt : datetime
+            Timestamp to check intersection with frequency.
+
+        Returns
+        -------
+        bool
+            True if the timestamp is on the offset, False otherwise.
+
+        See Also
+        --------
+        tseries.offsets.WeekOfMonth : Describes monthly dates in a specific week.
+        tseries.offsets.LastWeekOfMonth : Describes monthly dates in the last week.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2022, 1, 3)
+        >>> ts.day_name()
+        'Monday'
+        >>> pd.offsets.WeekOfMonth(week=0, weekday=0).is_on_offset(ts)
+        True
+
+        >>> ts = pd.Timestamp(2022, 1, 10)
+        >>> ts.day_name()
+        'Monday'
+        >>> pd.offsets.WeekOfMonth(week=0, weekday=0).is_on_offset(ts)
+        False
+
+        >>> pd.offsets.WeekOfMonth(week=1, weekday=0).is_on_offset(ts)
+        True
+        """
         if self.normalize and not _is_normalized(dt):
             return False
         return dt.day == self._get_offset_day(dt)
@@ -4478,6 +4571,30 @@ cdef class SemiMonthOffset(SingleConstructorOffset):
 
     @property
     def rule_code(self) -> str:
+        """
+        Return a string representing the base frequency.
+
+        This returns the frequency code with the day of month suffix,
+        such as "SMS-15" for SemiMonthBegin or "SME-15" for SemiMonthEnd.
+
+        See Also
+        --------
+        tseries.offsets.SemiMonthBegin : Two DateOffset's per month repeating on
+            the first day of the month & day_of_month.
+        tseries.offsets.SemiMonthEnd : Two DateOffset's per month repeating on
+            the last day of the month & day_of_month.
+
+        Examples
+        --------
+        >>> pd.offsets.SemiMonthBegin().rule_code
+        'SMS-15'
+
+        >>> pd.offsets.SemiMonthEnd().rule_code
+        'SME-15'
+
+        >>> pd.offsets.SemiMonthBegin(day_of_month=10).rule_code
+        'SMS-10'
+        """
         suffix = f"-{self._day_of_month}"
         return self._prefix + suffix
 
@@ -4626,6 +4743,44 @@ cdef class SemiMonthEnd(SemiMonthOffset):
     _min_day_of_month = 1
 
     def is_on_offset(self, dt: datetime) -> bool:
+        """
+        Return boolean whether a timestamp intersects with this frequency.
+
+        This method determines if a given timestamp falls on either the
+        ``day_of_month`` (default 15) or the last day of the month, which
+        are the two dates per month that this offset represents.
+
+        Parameters
+        ----------
+        dt : datetime
+            Timestamp to check intersection with frequency.
+
+        Returns
+        -------
+        bool
+            True if the timestamp is on the offset, False otherwise.
+
+        See Also
+        --------
+        tseries.offsets.SemiMonthBegin.is_on_offset : Check if a timestamp falls
+            on a SemiMonthBegin offset.
+        tseries.offsets.MonthEnd.is_on_offset : Check if a timestamp falls
+            on a MonthEnd offset.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2022, 1, 15)
+        >>> pd.offsets.SemiMonthEnd().is_on_offset(ts)
+        True
+
+        >>> ts = pd.Timestamp(2022, 1, 31)
+        >>> pd.offsets.SemiMonthEnd().is_on_offset(ts)
+        True
+
+        >>> ts = pd.Timestamp(2022, 1, 14)
+        >>> pd.offsets.SemiMonthEnd().is_on_offset(ts)
+        False
+        """
         if self.normalize and not _is_normalized(dt):
             return False
         days_in_month = get_days_in_month(dt.year, dt.month)
@@ -4666,6 +4821,44 @@ cdef class SemiMonthBegin(SemiMonthOffset):
     _prefix = "SMS"
 
     def is_on_offset(self, dt: datetime) -> bool:
+        """
+        Return boolean whether a timestamp intersects with this frequency.
+
+        This method checks if the given timestamp falls on the first day of
+        the month or on the specified ``day_of_month``. It is used to determine
+        if a date aligns with the semi-monthly frequency starting at the
+        beginning of the month.
+
+        Parameters
+        ----------
+        dt : datetime
+            Timestamp to check intersections with frequency.
+
+        Returns
+        -------
+        bool
+            True if the date is on the first day of the month or the
+            ``day_of_month``, False otherwise.
+
+        See Also
+        --------
+        SemiMonthEnd.is_on_offset : Check if a date falls on a SemiMonthEnd offset.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2022, 1, 1)
+        >>> freq = pd.offsets.SemiMonthBegin()
+        >>> freq.is_on_offset(ts)
+        True
+
+        >>> ts = pd.Timestamp(2022, 1, 15)
+        >>> freq.is_on_offset(ts)
+        True
+
+        >>> ts = pd.Timestamp(2022, 1, 16)
+        >>> freq.is_on_offset(ts)
+        False
+        """
         if self.normalize and not _is_normalized(dt):
             return False
         return dt.day in (1, self._day_of_month)
@@ -4854,6 +5047,44 @@ cdef class Week(SingleConstructorOffset):
         return out
 
     def is_on_offset(self, dt: datetime) -> bool:
+        """
+        Return boolean whether a timestamp intersects with this frequency.
+
+        This method determines if a given timestamp falls on a valid week offset.
+        If a specific weekday is set (via the ``weekday`` parameter), it checks
+        whether the timestamp falls on that day. If no weekday is specified,
+        all timestamps are considered on the offset. If ``normalize`` is True,
+        it also checks that the time component is midnight.
+
+        Parameters
+        ----------
+        dt : datetime
+            Timestamp to check.
+
+        Returns
+        -------
+        bool
+            True if the timestamp is on the offset, False otherwise.
+
+        See Also
+        --------
+        BusinessDay.is_on_offset : Check if timestamp is on a business day.
+        DateOffset.is_on_offset : Check if timestamp intersects with frequency.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2022, 1, 3)  # Monday
+        >>> ts.day_name()
+        'Monday'
+        >>> pd.offsets.Week().is_on_offset(ts)
+        True
+
+        >>> pd.offsets.Week(weekday=0).is_on_offset(ts)  # weekday=0 is Monday
+        True
+
+        >>> pd.offsets.Week(weekday=6).is_on_offset(ts)  # weekday=6 is Sunday
+        False
+        """
         if self.normalize and not _is_normalized(dt):
             return False
         elif self.weekday is None:
@@ -5840,6 +6071,40 @@ cdef class FY5253Quarter(FY5253Mixin):
         return weeks_in_year == 53
 
     def is_on_offset(self, dt: datetime) -> bool:
+        """
+        Return boolean whether a timestamp intersects with this frequency.
+
+        This method checks if a given datetime falls on a fiscal quarter end date
+        as defined by the 52-53 week fiscal year calendar.
+
+        Parameters
+        ----------
+        dt : datetime
+            Timestamp to check.
+
+        Returns
+        -------
+        bool
+            True if the timestamp is on a fiscal quarter end, False otherwise.
+
+        See Also
+        --------
+        FY5253.is_on_offset : Check if timestamp is on fiscal year end.
+        DateOffset.is_on_offset : Check if timestamp intersects with frequency.
+
+        Examples
+        --------
+        >>> offset = pd.offsets.FY5253Quarter(
+        ...     weekday=4, startingMonth=12, variation="last"
+        ... )
+        >>> ts = pd.Timestamp(2022, 4, 1)
+        >>> offset.is_on_offset(ts)
+        True
+
+        >>> ts = pd.Timestamp(2022, 4, 3)
+        >>> offset.is_on_offset(ts)
+        False
+        """
         if self.normalize and not _is_normalized(dt):
             return False
         if self._offset.is_on_offset(dt):
@@ -5858,6 +6123,42 @@ cdef class FY5253Quarter(FY5253Mixin):
 
     @property
     def rule_code(self) -> str:
+        """
+        Return a string representing the frequency with fiscal year quarter suffix.
+
+        This property generates a rule code string that combines the offset's
+        prefix with the fiscal year suffix containing the variation, starting
+        month, weekday, and quarter with extra week.
+
+        Returns
+        -------
+        str
+            The rule code string in the format
+            "{prefix}-{variation}-{month}-{weekday}-{qtr}" where prefix is the
+            offset type prefix ("REQ"), variation is "N" for nearest or "L" for
+            last, month is the three-letter month abbreviation, weekday is the
+            three-letter weekday abbreviation, and qtr is the quarter number
+            with extra week.
+
+        See Also
+        --------
+        FY5253.rule_code : Return the complete rule code string for FY5253.
+        FY5253.get_rule_code_suffix : Return the suffix component of the rule code.
+
+        Examples
+        --------
+        >>> offset = pd.offsets.FY5253Quarter(
+        ...     weekday=4, startingMonth=12, variation="nearest", qtr_with_extra_week=1
+        ... )
+        >>> offset.rule_code
+        'REQ-N-DEC-FRI-1'
+
+        >>> offset = pd.offsets.FY5253Quarter(
+        ...     weekday=0, startingMonth=1, variation="last", qtr_with_extra_week=4
+        ... )
+        >>> offset.rule_code
+        'REQ-L-JAN-MON-4'
+        """
         suffix = FY5253Mixin.rule_code.__get__(self)
         qtr = self.qtr_with_extra_week
         return f"{suffix}-{qtr}"
@@ -5952,6 +6253,37 @@ cdef class Easter(SingleConstructorOffset):
         return new
 
     def is_on_offset(self, dt: datetime) -> bool:
+        """
+        Return boolean whether a timestamp intersects with this frequency.
+
+        This method determines if a given timestamp falls on Easter Sunday,
+        as defined by the calculation method specified in the offset.
+        If ``normalize`` is True, it also checks that the time component is midnight.
+
+        Parameters
+        ----------
+        dt : datetime
+            Timestamp to check intersection with frequency.
+
+        Returns
+        -------
+        bool
+            True if the timestamp falls on Easter Sunday, False otherwise.
+
+        See Also
+        --------
+        tseries.offsets.Easter : DateOffset for the Easter holiday.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2022, 4, 17)
+        >>> pd.offsets.Easter().is_on_offset(ts)
+        True
+
+        >>> ts = pd.Timestamp(2022, 4, 18)
+        >>> pd.offsets.Easter().is_on_offset(ts)
+        False
+        """
         if self.normalize and not _is_normalized(dt):
             return False
 
@@ -5970,7 +6302,7 @@ cdef class CustomBusinessDay(BusinessDay):
 
     In CustomBusinessDay we can use custom weekmask, holidays, and calendar.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of days represented.
@@ -5985,6 +6317,10 @@ cdef class CustomBusinessDay(BusinessDay):
         Calendar to integrate.
     offset : timedelta, default timedelta(0)
         Time offset to apply.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
 
     Examples
     --------
@@ -6163,7 +6499,7 @@ cdef class CustomBusinessHour(BusinessHour):
 
     In CustomBusinessHour we can use custom weekmask, holidays, and calendar.
 
-    Parameters
+    Attributes
     ----------
     n : int, default 1
         The number of hours represented.
@@ -6182,6 +6518,13 @@ cdef class CustomBusinessHour(BusinessHour):
         End time of your custom business hour in 24h format.
     offset : timedelta, default timedelta(0)
         Time offset to apply.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.BusinessHour` :
+        DateOffset subclass representing possibly n business hours.
+    :class:`~pandas.tseries.offsets.CustomBusinessDay` :
+        DateOffset subclass representing custom business days.
 
     Examples
     --------
@@ -6365,7 +6708,11 @@ cdef class _CustomBusinessMonth(BusinessMixin):
         return result
 
 
-cdef class CustomBusinessMonthEnd(_CustomBusinessMonth):
+cdef class _CustomBusinessMonthEnd(_CustomBusinessMonth):
+    _prefix = "CBME"
+
+
+class CustomBusinessMonthEnd(_CustomBusinessMonthEnd):
     """
     DateOffset subclass representing custom business month(s).
 
@@ -6423,10 +6770,30 @@ cdef class CustomBusinessMonthEnd(_CustomBusinessMonth):
                    dtype='datetime64[ns]', freq='CBME')
     """
 
-    _prefix = "CBME"
+    def __init__(
+        self,
+        n=1,
+        normalize=False,
+        weekmask="Mon Tue Wed Thu Fri",
+        holidays=None,
+        calendar=None,
+        offset=timedelta(0),
+    ):
+        super().__init__(
+            n=n,
+            normalize=normalize,
+            weekmask=weekmask,
+            holidays=holidays,
+            calendar=calendar,
+            offset=offset,
+        )
 
 
-cdef class CustomBusinessMonthBegin(_CustomBusinessMonth):
+cdef class _CustomBusinessMonthBegin(_CustomBusinessMonth):
+    _prefix = "CBMS"
+
+
+class CustomBusinessMonthBegin(_CustomBusinessMonthBegin):
     """
     DateOffset subclass representing custom business month(s).
 
@@ -6484,7 +6851,23 @@ cdef class CustomBusinessMonthBegin(_CustomBusinessMonth):
                    dtype='datetime64[ns]', freq='CBMS')
     """
 
-    _prefix = "CBMS"
+    def __init__(
+        self,
+        n=1,
+        normalize=False,
+        weekmask="Mon Tue Wed Thu Fri",
+        holidays=None,
+        calendar=None,
+        offset=timedelta(0),
+    ):
+        super().__init__(
+            n=n,
+            normalize=normalize,
+            weekmask=weekmask,
+            holidays=holidays,
+            calendar=calendar,
+            offset=offset,
+        )
 
 
 BDay = BusinessDay
