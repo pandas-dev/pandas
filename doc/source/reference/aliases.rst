@@ -133,7 +133,7 @@ Each of these aliases listed in the table below can be found by importing them f
    * - .. type:: SequenceNotStr
      - Used for arguments that require sequences, but not plain strings
    * - .. type:: SliceType
-     - Argument types for ``start`` and ``end`` in :meth:`Index.slice_locs`
+     - Argument types for ``start`` and ``end`` in :meth:`~pandas.Index.slice_locs`
    * - .. type:: SortKind
      - Argument type for ``kind`` in :meth:`DataFrame's <pandas.DataFrame.sort_values>` and :meth:`Series' <pandas.Series.sort_values>` ``sort_values`` method
    * - .. type:: StorageOptions
