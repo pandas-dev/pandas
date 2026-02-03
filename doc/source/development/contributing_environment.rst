@@ -59,6 +59,7 @@ Some Linux distributions will come with a pre-installed C compiler. To find out
 which compilers (and versions) are installed on your system
 
 .. code-block:: bash
+
     # for Debian/Ubuntu:
     dpkg --list | grep compiler
     # for Red Hat/RHEL/CentOS/Fedora:
@@ -165,6 +166,7 @@ to build the C extensions and install the library.
 To compile and install pandas in editable mode, run:
 
 .. code-block:: bash
+
    python -m pip install --verbose --editable . --no-build-isolation
 
 Additional Meson options can be passed to the ``pip install`` command to modify the installation.
@@ -181,7 +183,8 @@ Helpful options include:
 Now, pandas has been installed into your virtual environment, and the version number will
 reflect that it's a development version with a reference to the latest Git hash from which pandas was built.
 
-.. code-block:: python
+.. code-block:: ipython
+
    In [1]: import pandas
 
    # Your version will be structured similar, but not match, this example.
