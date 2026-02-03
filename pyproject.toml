@@ -426,8 +426,6 @@ exclude = [
 # Keep this one enabled
 "pandas/_typing.py" = ["TC"]
 
-"pandas/tests/plotting/common.py" = ["B905"]
-"pandas/tests/plotting/frame/test_frame_color.py" = ["B905"]
 "pandas/tests/resample/test_base.py" = ["B905"]
 "pandas/tests/reshape/concat/test_concat.py" = ["B905"]
 "pandas/tests/reshape/concat/test_index.py" = ["B905"]
