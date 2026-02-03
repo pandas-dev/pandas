@@ -426,30 +426,6 @@ exclude = [
 # Keep this one enabled
 "pandas/_typing.py" = ["TC"]
 
-# TODO: Fix B905 (zip-without-explicit-strict) - Remove files below as they're fixed
-# For contributors working on this issue:
-# After adding strict={True,False} to zip() calls in a file,
-# remove its line from this section
-"pandas/tests/frame/conftest.py" = ["B905"]
-"pandas/tests/frame/constructors/test_from_dict.py" = ["B905"]
-"pandas/tests/frame/indexing/test_delitem.py" = ["B905"]
-"pandas/tests/frame/indexing/test_getitem.py" = ["B905"]
-"pandas/tests/frame/indexing/test_indexing.py" = ["B905"]
-"pandas/tests/frame/indexing/test_setitem.py" = ["B905"]
-"pandas/tests/frame/indexing/test_xs.py" = ["B905"]
-"pandas/tests/frame/methods/test_drop.py" = ["B905"]
-"pandas/tests/frame/methods/test_isin.py" = ["B905"]
-"pandas/tests/frame/methods/test_pop.py" = ["B905"]
-"pandas/tests/frame/methods/test_replace.py" = ["B905"]
-"pandas/tests/frame/methods/test_reset_index.py" = ["B905"]
-"pandas/tests/frame/methods/test_to_dict.py" = ["B905"]
-"pandas/tests/frame/test_api.py" = ["B905"]
-"pandas/tests/frame/test_constructors.py" = ["B905"]
-"pandas/tests/frame/test_iteration.py" = ["B905"]
-"pandas/tests/frame/test_query_eval.py" = ["B905"]
-"pandas/tests/frame/test_stack_unstack.py" = ["B905"]
-"pandas/tests/frame/test_subclass.py" = ["B905"]
-"pandas/tests/frame/test_ufunc.py" = ["B905"]
 "pandas/tests/groupby/test_groupby_dropna.py" = ["B905"]
 "pandas/tests/groupby/test_groupby.py" = ["B905"]
 "pandas/tests/groupby/test_grouping.py" = ["B905"]
