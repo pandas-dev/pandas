@@ -201,6 +201,8 @@ class TestPDApi(Base):
         "_typing",
     ]
 
+    metadata = ["__git_version__", "__version__"]
+
     def test_api(self):
         checkthese = (
             self.public_lib
@@ -228,6 +230,7 @@ class TestPDApi(Base):
             + self.funcs_read
             + self.funcs_json
             + self.funcs_to
+            + self.metadata
         ) - set(self.deprecated_classes)
         actual = set(pd.__all__)
 
