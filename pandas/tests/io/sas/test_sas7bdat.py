@@ -122,7 +122,7 @@ def test_encoding_options(datapath):
 
     with contextlib.closing(SAS7BDATReader(fname, convert_header_text=False)) as rdr:
         df3 = rdr.read()
-    for x, y in zip(df1.columns, df3.columns):
+    for x, y in zip(df1.columns, df3.columns, strict=True):
         assert x == y.decode()
 
 

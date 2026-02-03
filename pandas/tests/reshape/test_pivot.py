@@ -1196,20 +1196,74 @@ class TestPivotTable:
 
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("margins", [True, False])
+    @pytest.mark.parametrize(
+        "aggfunc, value",
+        [
+            ("sum", [0.0, 0.0, 0.0]),
+            ("prod", [1.0, 1.0, 1.0]),
+            ("count", [0, 0, 0]),
+            ("size", [2, 1, 3]),
+            (len, [2, 1, 3]),
+        ],
+    )
+    def test_reducers_no_values_one_index(self, margins, aggfunc, value):
+        # https://github.com/pandas-dev/pandas/issues/46475
+        df = DataFrame({"a": [1, 1, 2]})
+        result = pivot_table(df, index=["a"], aggfunc=aggfunc, margins=margins)
+        if margins:
+            index = Index([1, 2, "All"], name="a")
+        else:
+            value = value[:-1]
+            index = Index([1, 2], name="a")
+        expected = Series(value, index=index)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("margins", [True, False])
+    @pytest.mark.parametrize("index", [["a"], ["a", "b"]])
+    @pytest.mark.parametrize("columns", [["c"], ["c", "d"]])
+    def test_no_values_no_data(self, margins, index, columns):
+        # https://github.com/pandas-dev/pandas/issues/46475
+        df = DataFrame(columns=index + columns)
+        result = pivot_table(
+            df, index=index, columns=columns, aggfunc=len, margins=margins
+        )
+
+        if margins:
+            level0, level1, codes, data = ["All"], [""], [[0], [0]], [0]
+        else:
+            level0, level1, codes, data = [], [], [[], []], []
+
+        if index == ["a"]:
+            expected_index = Index(level0, name="a")
+        else:
+            expected_index = MultiIndex(
+                levels=[level0, level1], codes=codes, names=index
+            )
+        if columns == ["c"]:
+            expected_columns = Index(level0, name="c")
+        else:
+            expected_columns = MultiIndex(
+                levels=[level0, level1], codes=codes, names=columns
+            )
+
+        expected = DataFrame(data, index=expected_index, columns=expected_columns)
+        tm.assert_frame_equal(result, expected)
+
     def test_margins_no_values_no_cols(self, data):
         # Regression test on pivot table: no values or cols passed.
         result = data[["A", "B"]].pivot_table(
             index=["A", "B"], aggfunc=len, margins=True
         )
-        expected = DataFrame(
+        expected = Series(
+            [3, 1, 4, 3, 11],
             index=MultiIndex(
                 levels=[["bar", "foo", "All"], ["one", "two", ""]],
                 codes=[[0, 0, 1, 1, 2], [0, 1, 0, 1, 2]],
-                names=["A", "B"],
+                names=[None, None],
             ),
-            columns=Index([], dtype="str"),
         )
-        tm.assert_frame_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_margins_no_values_two_rows(self, data):
         # Regression test on pivot table: no values passed but rows are a
@@ -1218,16 +1272,17 @@ class TestPivotTable:
             index=["A", "B"], columns="C", aggfunc=len, margins=True
         )
         expected = DataFrame(
+            data={
+                "dull": [1.0, 1.0, 2.0, 1.0, 5.0],
+                "shiny": [2.0, np.nan, 2.0, 2.0, 6.0],
+                "All": [3, 1, 4, 3, 11],
+            },
             index=MultiIndex(
                 levels=[["bar", "foo", "All"], ["one", "two", ""]],
                 codes=[[0, 0, 1, 1, 2], [0, 1, 0, 1, 2]],
                 names=["A", "B"],
             ),
-            columns=MultiIndex(
-                levels=[pd.array([], dtype="str"), ["dull", "shiny"]],
-                codes=[[], []],
-                names=[None, "C"],
-            ),
+            columns=Index(["dull", "shiny", "All"], dtype="str", name="C"),
         )
         tm.assert_frame_equal(result, expected)
 
@@ -1238,12 +1293,13 @@ class TestPivotTable:
             index="A", columns="B", aggfunc=len, margins=True
         )
         expected = DataFrame(
+            data={
+                "one": [3, 4, 7],
+                "two": [1, 3, 4],
+                "All": [4, 7, 11],
+            },
             index=Index(["bar", "foo", "All"], name="A"),
-            columns=MultiIndex(
-                levels=[pd.array([], dtype="str"), ["dull", "shiny"]],
-                codes=[[], []],
-                names=[None, "B"],
-            ),
+            columns=Index(["one", "two", "All"], dtype="str", name="B"),
         )
         tm.assert_frame_equal(result, expected)
 
@@ -1255,19 +1311,32 @@ class TestPivotTable:
             index=["A", "B"], columns=["C", "D"], aggfunc=len, margins=True
         )
         expected = DataFrame(
+            data={
+                ("dull", "a"): [np.nan, np.nan, 1.0, np.nan, 1.0],
+                ("dull", "b"): [np.nan, np.nan, 1.0, np.nan, 1.0],
+                ("dull", "d"): [np.nan, np.nan, np.nan, 1.0, 1.0],
+                ("dull", "e"): [1.0, np.nan, np.nan, np.nan, 1.0],
+                ("dull", "h"): [np.nan, 1.0, np.nan, np.nan, 1.0],
+                ("shiny", "c"): [np.nan, np.nan, 1.0, np.nan, 1.0],
+                ("shiny", "f"): [1.0, np.nan, np.nan, np.nan, 1.0],
+                ("shiny", "g"): [1.0, np.nan, np.nan, np.nan, 1.0],
+                ("shiny", "i"): [np.nan, np.nan, np.nan, 1.0, 1.0],
+                ("shiny", "j"): [np.nan, np.nan, np.nan, 1.0, 1.0],
+                ("shiny", "k"): [np.nan, np.nan, 1.0, np.nan, 1.0],
+                ("All", ""): [3, 1, 4, 3, 11],
+            },
             index=MultiIndex(
                 levels=[["bar", "foo", "All"], ["one", "two", ""]],
                 codes=[[0, 0, 1, 1, 2], [0, 1, 0, 1, 2]],
                 names=["A", "B"],
             ),
             columns=MultiIndex(
-                levels=[
-                    pd.array([], dtype="str"),
-                    ["dull", "shiny"],
-                    list("abcdefghijk"),
+                levels=[["dull", "shiny", "All"], [*list("abcdefghijk"), ""]],
+                codes=[
+                    [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 2],
+                    [0, 1, 3, 4, 7, 2, 5, 6, 8, 9, 10, 11],
                 ],
-                codes=[[], [], []],
-                names=[None, "C", "D"],
+                names=["C", "D"],
             ),
         )
         tm.assert_frame_equal(result, expected)
@@ -2039,8 +2108,8 @@ class TestPivotTable:
             frame, index=["foo"], aggfunc=len, margins=True, margins_name=greek
         )
         index = Index([1, 2, 3, greek], dtype="object", name="foo")
-        expected = DataFrame(index=index, columns=[])
-        tm.assert_frame_equal(table, expected)
+        expected = Series([1, 1, 1, 3], index=index)
+        tm.assert_series_equal(table, expected)
 
     def test_pivot_string_as_func(self):
         # GH #18713
