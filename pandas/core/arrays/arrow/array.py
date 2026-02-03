@@ -1514,15 +1514,15 @@ class ArrowExtensionArray(
 
         Examples
         --------
-        >>> idx1 = pd.PeriodIndex(
-        ...     ["2014-01", "2014-01", "2014-02", "2014-02", "2014-03", "2014-03"],
-        ...     freq="M",
-        ... )
-        >>> arr, idx = idx1.factorize()
-        >>> arr
-        array([0, 0, 1, 1, 2, 2])
-        >>> idx
-        PeriodIndex(['2014-01', '2014-02', '2014-03'], dtype='period[M]')
+        >>> arr = pd.array(
+        ...     [['Ant', 'Badger', 'Cobra','Cobra', 'Deer', 'Ant'], dtype=str)
+        >>> arr_codes, arr_uniques = arr.factorize()
+        >>> arr_codes
+        array([0, 1, 2, 2, 3, 0])
+        >>> arr_uniques
+        <ArrowStringArray>
+        ['Ant', 'Badger', 'Cobra', 'Deer']
+        Length: 4, dtype: str
         """
         null_encoding = "mask" if use_na_sentinel else "encode"
 
