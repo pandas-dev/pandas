@@ -678,4 +678,3 @@ def test_apply_nullable_integer_precision(dtype):
     result = ser.apply(lambda x: x + 2 if pd.notna(x) else x)
     expected = Series([large_int + 2, pd.NA], dtype=dtype)
     tm.assert_series_equal(result, expected)
-
