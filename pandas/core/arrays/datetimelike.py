@@ -2125,6 +2125,10 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         """
         Perform round operation on the data to the specified `freq`.
 
+        This method rounds each datetime value in the Series/Index to the
+        nearest specified frequency using standard rounding rules (round half
+        to even).
+
         Parameters
         ----------
         freq : str or Offset
@@ -2229,6 +2233,9 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         """
         Perform floor operation on the data to the specified `freq`.
 
+        This method rounds each datetime value in the Series/Index down to
+        the specified frequency (i.e., towards negative infinity).
+
         Parameters
         ----------
         freq : str or Offset
@@ -2332,6 +2339,9 @@ class TimelikeOps(DatetimeLikeArrayMixin):
     ) -> Self:
         """
         Perform ceil operation on the data to the specified `freq`.
+
+        This method rounds each datetime value in the Series/Index up to
+        the specified frequency (i.e., towards positive infinity).
 
         Parameters
         ----------
