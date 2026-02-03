@@ -2358,8 +2358,8 @@ cdef class BusinessMixin(SingleConstructorOffset):
         return self._weekmask
 
     def _repr_attrs(self) -> str:
-        if self.offset:
-            attrs = [f"offset={repr(self.offset)}"]
+        if self._offset:
+            attrs = [f"offset={repr(self._offset)}"]
         else:
             attrs = []
         out = ""
@@ -6733,8 +6733,8 @@ cdef class _CustomBusinessMonth(BusinessMixin):
         new = cur_month_offset_date + n * self.m_offset
         result = self.cbday_roll(new)
 
-        if self.offset:
-            result = result + self.offset
+        if self._offset:
+            result = result + self._offset
         return result
 
 
