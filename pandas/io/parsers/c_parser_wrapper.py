@@ -85,7 +85,10 @@ class CParserWrapper(ParserBase):
         # Decision logic for BOM deprecation (GH#63787)
         # We strip BOM by default (backward compatibility),
         # but warn if user explicitly asked for 'utf-8' and a BOM exists.
+        encoding = kwds.get("encoding", None)
+
         encoding_lower = encoding.lower() if encoding is not None else None
+
         if encoding_lower is None or encoding_lower == "utf-8":
             # Default: strip but warn
             strip_bom = True
