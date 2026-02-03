@@ -2380,11 +2380,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 obj.dtypes
             )
         else:
-            output: dict[int, ArrayLike] = {}
-            for idx, (name, ser) in enumerate(obj.items()):
-                result = self._grouper.agg_series(ser, f)
-                output[idx] = result
-
+            output: dict[int, ArrayLike] = {
+                idx: self._grouper.agg_series(ser, f)
+                for idx, (name, ser) in enumerate(obj.items())
+            }
             res = self.obj._constructor(output)
             res.columns = obj.columns.copy(deep=False)
         return self._wrap_aggregated_output(res)
