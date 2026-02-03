@@ -155,3 +155,25 @@ class TestSeriesClip:
         expected = Series([lower, upper], dtype=dtype)
 
         tm.assert_series_equal(result, expected)
+
+    def test_clip_with_zerodim_ndarray(self):
+        # GH#59053
+        # 0-dimensional numpy arrays should be treated as scalars
+        ser = Series([-1, 2, 3])
+        result = ser.clip(lower=np.array(0))
+        expected = Series([0, 2, 3])
+        tm.assert_series_equal(result, expected)
+
+        result = ser.clip(upper=np.array(1))
+        expected = Series([-1, 1, 1])
+        tm.assert_series_equal(result, expected)
+
+        result = ser.clip(lower=np.array(0), upper=np.array(2))
+        expected = Series([0, 2, 2])
+        tm.assert_series_equal(result, expected)
+
+        # Test with float 0-d array to ensure type casting is consistent
+        ser_float = Series([-1.5, 2.5, 3.5])
+        result = ser_float.clip(lower=np.array(0.5), upper=np.array(3.0))
+        expected = Series([0.5, 2.5, 3.0])
+        tm.assert_series_equal(result, expected)
