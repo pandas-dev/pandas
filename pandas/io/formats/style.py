@@ -1046,7 +1046,7 @@ class Styler(StylerRenderer):
                            | rgb(25%,255,50%)                 | [rgb]{0.25,1,0.5}
         ================== ==================== ============= ==========================
 
-        It is also possible to add user-defined LaTeX only styles to a HTML-CSS Styler
+        It is also possible to add user-defined LaTeX only styles to an HTML-CSS Styler
         using the ``--latex`` flag, and to add LaTeX parsing options that the
         converter will detect within a CSS-comment.
 
