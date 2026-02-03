@@ -426,7 +426,6 @@ exclude = [
 # Keep this one enabled
 "pandas/_typing.py" = ["TC"]
 
-"pandas/tests/internals/test_internals.py" = ["B905"]
 "pandas/tests/io/excel/test_writers.py" = ["B905"]
 "pandas/tests/io/formats/style/test_style.py" = ["B905"]
 "pandas/tests/io/formats/test_format.py" = ["B905"]
