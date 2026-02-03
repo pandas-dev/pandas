@@ -186,7 +186,7 @@ Groupby/resample/rolling
 
 Reshaping
 ^^^^^^^^^
--
+- In :func:`pivot_table`, when ``values`` is empty, the aggregation will be computed on a Series of all NA values (:issue:`46475`)
 -
 
 Sparse
