@@ -25,6 +25,8 @@ Bug fixes
   :class:`Index` correctly handling Copy-on-Write (:issue:`63899`)
 - Allow :class:`.ExtensionArray` to have dtypes involving :class:`numpy.void` (:issue:`54810`)
 - Fixed a bug in :func:`col` where unary operators (``-``, ``+``, ``abs``) were not supported (:issue:`63939`)
+- Fixed a bug in the :func:`comparison_op` raising a ``TypeError`` for zerodim
+  subclasses of ``np.ndarray`` (:issue:`63205`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_301.contributors:
