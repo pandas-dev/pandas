@@ -1523,7 +1523,7 @@ class TestDataFramePlots:
             df.plot(kind=kind)
 
     @pytest.mark.parametrize(
-        "kind", list(plotting.PlotAccessor._common_kinds) + ["area"]
+        "kind", [*list(plotting.PlotAccessor._common_kinds), "area"]
     )
     def test_partially_invalid_plot_data_numeric(self, kind):
         df = DataFrame(

@@ -327,7 +327,7 @@ def test_indexer_quantile_sum(end_value, values, func, args):
     [
         {"a": [1, 1], "b": [0, 1]},
         {"a": [1, 2], "b": [0, 1]},
-        {"a": [1] * 16, "b": [np.nan, 1, 2, np.nan] + list(range(4, 16))},
+        {"a": [1] * 16, "b": [np.nan, 1, 2, np.nan, *list(range(4, 16))]},
     ],
 )
 def test_indexers_are_reusable_after_groupby_rolling(
@@ -387,7 +387,7 @@ def test_fixed_forward_indexer_bounds(
         (
             DataFrame(
                 {
-                    "b": [np.nan, 1, 2, np.nan] + list(range(4, 18)),
+                    "b": [np.nan, 1, 2, np.nan, *list(range(4, 18))],
                     "a": [1] * 7 + [2] * 11,
                     "c": range(18),
                 }

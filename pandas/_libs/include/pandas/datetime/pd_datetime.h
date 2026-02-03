@@ -37,7 +37,7 @@ typedef struct {
   char *(*int64ToIso)(int64_t, NPY_DATETIMEUNIT, NPY_DATETIMEUNIT, size_t *);
   char *(*PyDateTimeToIso)(PyObject *, NPY_DATETIMEUNIT, size_t *);
   npy_datetime (*PyDateTimeToEpoch)(PyObject *, NPY_DATETIMEUNIT);
-  char *(*int64ToIsoDuration)(int64_t, size_t *);
+  char *(*int64ToIsoDuration)(int64_t, NPY_DATETIMEUNIT, size_t *);
   void (*pandas_datetime_to_datetimestruct)(npy_datetime, NPY_DATETIMEUNIT,
                                             npy_datetimestruct *);
   void (*pandas_timedelta_to_timedeltastruct)(npy_datetime, NPY_DATETIMEUNIT,
@@ -80,8 +80,8 @@ static PandasDateTime_CAPI *PandasDateTimeAPI = NULL;
     PandasDateTimeAPI->PyDateTimeToIso((obj), (base), (len))
 #  define PyDateTimeToEpoch(dt, base)                                          \
     PandasDateTimeAPI->PyDateTimeToEpoch((dt), (base))
-#  define int64ToIsoDuration(value, len)                                       \
-    PandasDateTimeAPI->int64ToIsoDuration((value), (len))
+#  define int64ToIsoDuration(value, valueUnit, len)                            \
+    PandasDateTimeAPI->int64ToIsoDuration((value), (valueUnit), (len))
 #  define pandas_datetime_to_datetimestruct(dt, base, out)                     \
     PandasDateTimeAPI->pandas_datetime_to_datetimestruct((dt), (base), (out))
 #  define pandas_timedelta_to_timedeltastruct(td, base, out)                   \

@@ -536,7 +536,7 @@ class TestPartialSetting:
         df = orig.copy()
 
         df.loc[key, :] = df.iloc[0]
-        ex_index = Index(list(orig.index) + [key], dtype=object, name=orig.index.name)
+        ex_index = Index([*list(orig.index), key], dtype=object, name=orig.index.name)
         ex_data = np.concatenate([orig.values, df.iloc[[0]].values], axis=0)
         expected = DataFrame(ex_data, index=ex_index, columns=orig.columns)
 
@@ -558,7 +558,7 @@ class TestPartialSetting:
         ser = Series(df.iloc[0], name="a")
         exp = pd.concat([orig, DataFrame(ser).T.infer_objects()])
         tm.assert_frame_equal(df, exp)
-        tm.assert_index_equal(df.index, Index(orig.index.tolist() + ["a"]))
+        tm.assert_index_equal(df.index, Index([*orig.index.tolist(), "a"]))
         assert df.index.dtype == "object"
 
     @pytest.mark.parametrize(

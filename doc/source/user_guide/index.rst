@@ -34,7 +34,8 @@ or:
     import pandas as pd
     pd.DataFrame({'A': [1, 2, 3]})
 
-The first block is a standard python input, while in the second the ``In [1]:`` indicates the input is inside a `notebook <https://jupyter.org>`__. In Jupyter Notebooks the last line is printed and plots are shown inline.
+The first block is a standard Python input, while in the second the ``In [1]:``
+indicates the input is inside a `notebook <https://jupyter.org>`__. In Jupyter Notebooks the last line is printed and plots are shown inline.
 
 For example:
 
@@ -67,7 +68,6 @@ Guides
     pyarrow
     indexing
     advanced
-    copy_on_write
     merging
     reshaping
     text
@@ -87,6 +87,6 @@ Guides
     enhancingperf
     scale
     sparse
-    migration-3-strings
     gotchas
+    migration
     cookbook

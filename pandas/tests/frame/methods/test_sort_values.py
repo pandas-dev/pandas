@@ -275,9 +275,9 @@ class TestDataFrameSortValues:
         # All rows with NaN in col "B" only have unique values in "A", therefore,
         # only the rows with NaNs in "A" have to be treated individually:
         expected_idx = (
-            [11, 12, 2] + expected_idx_non_na
+            [11, 12, 2, *expected_idx_non_na]
             if na_position == "first"
-            else expected_idx_non_na + [2, 11, 12]
+            else [*expected_idx_non_na, 2, 11, 12]
         )
         expected = df.take(expected_idx)
         sorted_df = df.sort_values(

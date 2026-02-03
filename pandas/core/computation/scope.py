@@ -352,5 +352,5 @@ class Scope:
         vars : DeepChainMap
             All variables in this scope.
         """
-        maps = [self.temps] + self.resolvers.maps + self.scope.maps
+        maps = [self.temps, *self.resolvers.maps, *self.scope.maps]
         return DeepChainMap(*maps)

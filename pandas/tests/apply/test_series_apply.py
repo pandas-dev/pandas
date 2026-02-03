@@ -186,7 +186,7 @@ def test_apply_datetimetz(by_row):
     tm.assert_series_equal(result, exp)
 
     result = s.apply(lambda x: x.hour if by_row else x.dt.hour, by_row=by_row)
-    exp = Series(list(range(24)) + [0], name="XX", dtype="int64" if by_row else "int32")
+    exp = Series([*list(range(24)), 0], name="XX", dtype="int64" if by_row else "int32")
     tm.assert_series_equal(result, exp)
 
     # not vectorized

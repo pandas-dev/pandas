@@ -269,7 +269,7 @@ class TestGetDummies:
         )
         expected[["C"]] = df[["C"]]
         cols = ["from_A_a", "from_A_b", "from_B_b", "from_B_c"]
-        expected = expected[["C"] + cols]
+        expected = expected[["C", *cols]]
 
         typ = SparseArray if sparse else Series
         expected[cols] = expected[cols].apply(lambda x: typ(x))
@@ -285,7 +285,7 @@ class TestGetDummies:
                 [2, False, True, True, False],
                 [3, True, False, False, True],
             ],
-            columns=["C"] + bad_columns,
+            columns=["C", *bad_columns],
         )
         expected = expected.astype({"C": np.int64})
         if sparse:

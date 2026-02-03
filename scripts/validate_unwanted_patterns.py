@@ -50,6 +50,7 @@ PRIVATE_IMPORTS_TO_IGNORE: set[str] = {
     "_global_config",
     "_chained_assignment_msg",
     "_chained_assignment_method_msg",
+    "_chained_assignment_method_update_msg",
     "_version_meson",
     # The numba extensions need this to mock the iloc object
     "_iLocIndexer",
@@ -59,6 +60,8 @@ PRIVATE_IMPORTS_TO_IGNORE: set[str] = {
     "_make_block",
     "_DatetimeTZBlock",
     "_check_pyarrow_available",
+    "_parser",  # https://github.com/pandas-dev/pandas/issues/60833
+    "_trim_zeros_single_float",
 }
 
 

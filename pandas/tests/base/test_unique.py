@@ -59,7 +59,7 @@ def test_unique_null(null_obj, index_or_series_obj, using_nan_is_na):
     # because np.nan == np.nan is False, but None == None is True
     # np.nan would be duplicated, whereas None wouldn't
     unique_values_not_null = [val for val in unique_values_raw if not pd.isnull(val)]
-    unique_values = [null_obj] + unique_values_not_null
+    unique_values = [null_obj, *unique_values_not_null]
 
     if isinstance(obj, pd.Index):
         expected = pd.Index(unique_values, dtype=obj.dtype)

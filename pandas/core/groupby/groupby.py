@@ -62,10 +62,7 @@ from pandas.errors import (
     DataError,
     Pandas4Warning,
 )
-from pandas.util._decorators import (
-    Substitution,
-    cache_readonly,
-)
+from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
@@ -1544,6 +1541,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Notes
         -----
+        See :ref:`groupby.apply` in the User Guide for more details and examples.
+
         The resulting dtype will reflect the return value of the passed ``func``,
         see the examples below.
 
@@ -1913,7 +1912,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             mask.fill(False)
             mask[indices.astype(int)] = True
             # mask fails to broadcast when passed to where; broadcast manually.
-            mask = np.tile(mask, list(self._selected_obj.shape[1:]) + [1]).T
+            mask = np.tile(mask, [*self._selected_obj.shape[1:], 1]).T
             filtered = self._selected_obj.where(mask)  # Fill with NaNs.
         return filtered
 
@@ -4462,7 +4461,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return new_obj
 
     @final
-    @Substitution(name="groupby")
     def ffill(self, limit: int | None = None):
         """
         Forward fill the values.
@@ -4555,7 +4553,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return self._fill("ffill", limit=limit)
 
     @final
-    @Substitution(name="groupby")
     def bfill(self, limit: int | None = None):
         """
         Backward fill the values.
@@ -4998,7 +4995,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return self._wrap_aggregated_output(res, qs=pass_qs)
 
     @final
-    @Substitution(name="groupby")
     def ngroup(self, ascending: bool = True):
         """
         Number each group from 0 to the number of groups - 1.
@@ -5082,7 +5078,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return result
 
     @final
-    @Substitution(name="groupby")
     def cumcount(self, ascending: bool = True):
         """
         Number each item in each group from 0 to the length of that group - 1.
@@ -5439,6 +5434,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     ) -> NDFrameT:
         """
         Cumulative max for each group.
+
+        Returns the cumulative maximum of values within each group. The result
+        has the same size as the input, with each element representing the
+        maximum of all preceding elements (including itself) within its group.
 
         Parameters
         ----------
@@ -6281,9 +6280,9 @@ def _insert_quantile_level(idx: Index, qs: npt.NDArray[np.float64]) -> MultiInde
 
     if idx._is_multi:
         idx = cast(MultiIndex, idx)
-        levels = list(idx.levels) + [lev]
+        levels = [*idx.levels, lev]
         codes = [np.repeat(x, nqs) for x in idx.codes] + [np.tile(lev_codes, len(idx))]
-        mi = MultiIndex(levels=levels, codes=codes, names=idx.names + [None])
+        mi = MultiIndex(levels=levels, codes=codes, names=[*idx.names, None])
     else:
         nidx = len(idx)
         idx_codes = coerce_indexer_dtype(np.arange(nidx), idx)

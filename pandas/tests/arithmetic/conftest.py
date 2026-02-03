@@ -128,8 +128,8 @@ _common_mismatch = [
         np.timedelta64(4, "h"),
         pd.Timedelta(hours=23).to_pytimedelta(),
         pd.Timedelta("23:00:00"),
+        *_common_mismatch,
     ]
-    + _common_mismatch
 )
 def not_daily(request):
     """

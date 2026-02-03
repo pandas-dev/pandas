@@ -92,7 +92,7 @@ def test_names(idx):
     # setting bad names on existing
     index = idx
     with pytest.raises(ValueError, match="^Length of names"):
-        setattr(index, "names", list(index.names) + ["third"])
+        setattr(index, "names", [*list(index.names), "third"])
     with pytest.raises(ValueError, match="^Length of names"):
         setattr(index, "names", [])
 

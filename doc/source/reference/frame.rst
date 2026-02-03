@@ -7,6 +7,9 @@ DataFrame
 =========
 .. currentmodule:: pandas
 
+.. note::
+   For an introduction to using DataFrames, see :ref:`basics`.
+
 Constructor
 ~~~~~~~~~~~
 .. autosummary::

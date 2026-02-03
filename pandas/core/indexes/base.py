@@ -72,9 +72,7 @@ from pandas.errors import (
     Pandas4Warning,
 )
 from pandas.util._decorators import (
-    Appender,
     cache_readonly,
-    doc,
     set_module,
 )
 from pandas.util._exceptions import (
@@ -5023,8 +5021,73 @@ class Index(IndexOpsMixin, PandasObject):
         return data
 
     @cache_readonly
-    @doc(IndexOpsMixin.array)
     def array(self) -> ExtensionArray:
+        """
+        The ExtensionArray of the data backing this Index.
+
+        This property provides direct access to the underlying array data of
+        an Index without requiring conversion to a NumPy array. It
+        returns an ExtensionArray, which is the native storage format for
+        pandas extension dtypes.
+
+        Returns
+        -------
+        ExtensionArray
+            An ExtensionArray of the values stored within. For extension
+            types, this is the actual array. For NumPy native types, this
+            is a thin (no copy) wrapper around :class:`numpy.ndarray`.
+
+            ``.array`` differs from ``.values``, which may require converting
+            the data to a different form.
+
+        See Also
+        --------
+        Index.to_numpy : Similar method that always returns a NumPy array.
+        Series.to_numpy : Similar method that always returns a NumPy array.
+
+        Notes
+        -----
+        This table lays out the different array types for each extension
+        dtype within pandas.
+
+        ================== =============================
+        dtype              array type
+        ================== =============================
+        category           Categorical
+        period             PeriodArray
+        interval           IntervalArray
+        IntegerNA          IntegerArray
+        string             StringArray
+        boolean            BooleanArray
+        datetime64[ns, tz] DatetimeArray
+        ================== =============================
+
+        For any 3rd-party extension types, the array type will be an
+        ExtensionArray.
+
+        For all remaining dtypes ``.array`` will be a
+        :class:`arrays.NumpyExtensionArray` wrapping the actual ndarray
+        stored within. If you absolutely need a NumPy array (possibly with
+        copying / coercing data), then use :meth:`Series.to_numpy` instead.
+
+        Examples
+        --------
+        For regular NumPy types like int, and float, a NumpyExtensionArray
+        is returned.
+
+        >>> pd.Index([1, 2, 3]).array
+        <NumpyExtensionArray>
+        [1, 2, 3]
+        Length: 3, dtype: int64
+
+        For extension types, like Categorical, the actual ExtensionArray
+        is returned
+
+        >>> idx = pd.Index(pd.Categorical(["a", "b", "a"]))
+        >>> idx.array
+        ['a', 'b', 'a']
+        Categories (2, str): ['a', 'b']
+        """
         array = self._data
         if isinstance(array, np.ndarray):
             from pandas.core.arrays.numpy_ import NumpyExtensionArray
@@ -5130,8 +5193,37 @@ class Index(IndexOpsMixin, PandasObject):
             return type(self.values)._from_sequence(result, dtype=self.dtype)
         return result
 
-    @doc(IndexOpsMixin._memory_usage)
     def memory_usage(self, deep: bool = False) -> int:
+        """
+        Memory usage of the values.
+
+        Parameters
+        ----------
+        deep : bool, default False
+            Introspect the data deeply, interrogate
+            `object` dtypes for system-level memory consumption.
+
+        Returns
+        -------
+        bytes used
+            Returns memory usage of the values in the Index in bytes.
+
+        See Also
+        --------
+        numpy.ndarray.nbytes : Total bytes consumed by the elements of the
+            array.
+
+        Notes
+        -----
+        Memory usage does not include memory consumed by elements that
+        are not components of the array if deep=False or if used on PyPy
+
+        Examples
+        --------
+        >>> idx = pd.Index([1, 2, 3])
+        >>> idx.memory_usage()
+        24
+        """
         result = self._memory_usage(deep=deep)
 
         # include our engine hashtable, only if it's already cached
@@ -7469,10 +7561,55 @@ class Index(IndexOpsMixin, PandasObject):
         if isinstance(self, ABCMultiIndex):
             raise TypeError(f"cannot perform {opname} with {type(self).__name__}")
 
-    @Appender(IndexOpsMixin.argmin.__doc__)
     def argmin(
         self, axis: AxisInt | None = None, skipna: bool = True, *args, **kwargs
     ) -> int:
+        """
+        Return int position of the smallest value in the Index.
+
+        If the minimum is achieved in multiple locations,
+        the first row position is returned.
+
+        Parameters
+        ----------
+        axis : None
+            Unused. Parameter needed for compatibility with DataFrame.
+        skipna : bool, default True
+            Exclude NA/null values. If the entire Series is NA, or if ``skipna=False``
+            and there is an NA value, this method will raise a ``ValueError``.
+        *args, **kwargs
+            Additional arguments and keywords for compatibility with NumPy.
+
+        Returns
+        -------
+        int
+            Row position of the minimum value.
+
+        See Also
+        --------
+        Series.argmin : Return position of the minimum value.
+        Series.argmax : Return position of the maximum value.
+        numpy.ndarray.argmin : Equivalent method for numpy arrays.
+        Series.idxmin : Return index label of the minimum values.
+        Series.idxmax : Return index label of the maximum values.
+
+        Examples
+        --------
+        Consider dataset containing cereal calories
+
+        >>> idx = pd.Index([100.0, 110.0, 120.0, 110.0])
+        >>> idx
+        Index([100.0, 110.0, 120.0, 110.0], dtype='float64')
+
+        >>> idx.argmax()
+        np.int64(2)
+        >>> idx.argmin()
+        np.int64(0)
+
+        The maximum cereal calories is the third element and
+        the minimum cereal calories is the first element,
+        since index is zero-indexed.
+        """
         nv.validate_argmin(args, kwargs)
         nv.validate_minmax_axis(axis)
 
@@ -7484,10 +7621,55 @@ class Index(IndexOpsMixin, PandasObject):
 
         return super().argmin(skipna=skipna)
 
-    @Appender(IndexOpsMixin.argmax.__doc__)
     def argmax(
         self, axis: AxisInt | None = None, skipna: bool = True, *args, **kwargs
     ) -> int:
+        """
+        Return int position of the largest value in the Index.
+
+        If the maximum is achieved in multiple locations,
+        the first row position is returned.
+
+        Parameters
+        ----------
+        axis : None
+            Unused. Parameter needed for compatibility with DataFrame.
+        skipna : bool, default True
+            Exclude NA/null values. If the entire Series is NA, or if ``skipna=False``
+            and there is an NA value, this method will raise a ``ValueError``.
+        *args, **kwargs
+            Additional arguments and keywords for compatibility with NumPy.
+
+        Returns
+        -------
+        int
+            Row position of the maximum value.
+
+        See Also
+        --------
+        Series.argmax : Return position of the maximum value.
+        Series.argmin : Return position of the minimum value.
+        numpy.ndarray.argmax : Equivalent method for numpy arrays.
+        Series.idxmax : Return index label of the maximum values.
+        Series.idxmin : Return index label of the minimum values.
+
+        Examples
+        --------
+        Consider dataset containing cereal calories
+
+        >>> idx = pd.Index([100.0, 110.0, 120.0, 110.0])
+        >>> idx
+        Index([100.0, 110.0, 120.0, 110.0], dtype='float64')
+
+        >>> idx.argmax()
+        np.int64(2)
+        >>> idx.argmin()
+        np.int64(0)
+
+        The maximum cereal calories is the third element and
+        the minimum cereal calories is the first element,
+        since index is zero-indexed.
+        """
         nv.validate_argmax(args, kwargs)
         nv.validate_minmax_axis(axis)
 

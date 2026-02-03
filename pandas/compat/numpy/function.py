@@ -104,7 +104,7 @@ validate_argmax = CompatValidator(
 
 def process_skipna(skipna: bool | ndarray | None, args) -> tuple[bool, Any]:
     if isinstance(skipna, ndarray) or skipna is None:
-        args = (skipna,) + args
+        args = (skipna, *args)
         skipna = True
 
     return skipna, args
@@ -165,7 +165,7 @@ def validate_argsort_with_ascending(ascending: bool | int | None, args, kwargs) 
     None, since 'ascending' itself should be a boolean
     """
     if is_integer(ascending) or ascending is None:
-        args = (ascending,) + args
+        args = (ascending, *args)
         ascending = True
 
     validate_argsort_kind(args, kwargs, max_fname_arg_count=3)
@@ -197,7 +197,7 @@ def validate_clip_with_axis(
     an integer or None
     """
     if isinstance(axis, ndarray):
-        args = (axis,) + args
+        args = (axis, *args)
         # error: Incompatible types in assignment (expression has type "None",
         # variable has type "Union[ndarray[Any, Any], str, int]")
         axis = None  # type: ignore[assignment]
@@ -226,7 +226,7 @@ def validate_cum_func_with_skipna(skipna: bool, args, kwargs, name) -> bool:
     check if the 'skipna' parameter is a boolean or not
     """
     if not is_bool(skipna):
-        args = (skipna,) + args
+        args = (skipna, *args)
         skipna = True
     elif isinstance(skipna, np.bool_):
         skipna = bool(skipna)

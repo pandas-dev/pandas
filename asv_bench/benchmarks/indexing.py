@@ -36,7 +36,7 @@ class NumericSeriesIndexing:
         indices = {
             "unique_monotonic_inc": Index(range(N), dtype=dtype),
             "nonunique_monotonic_inc": Index(
-                list(range(55)) + [54] + list(range(55, N - 1)), dtype=dtype
+                [*list(range(55)), 54, *list(range(55, N - 1))], dtype=dtype
             ),
         }
         self.data = Series(np.random.rand(N), index=indices[index_structure])
@@ -85,7 +85,7 @@ class NumericSeriesIndexing:
 
 class NumericMaskedIndexing:
     monotonic_list = list(range(10**6))
-    non_monotonic_list = list(range(50)) + [54, 53, 52, 51] + list(range(55, 10**6 - 1))
+    non_monotonic_list = [*list(range(50)), 54, 53, 52, 51, *list(range(55, 10**6 - 1))]
 
     params = [
         ("Int64", "UInt64", "Float64"),
@@ -197,7 +197,7 @@ class DataFrameNumericIndexing:
         indices = {
             "unique_monotonic_inc": Index(range(N), dtype=dtype),
             "nonunique_monotonic_inc": Index(
-                list(range(55)) + [54] + list(range(55, N - 1)), dtype=dtype
+                [*list(range(55)), 54, *list(range(55, N - 1))], dtype=dtype
             ),
         }
         self.idx_dupe = np.array(range(30)) * 99
@@ -452,7 +452,7 @@ class IndexSingleRow:
         if not unique_cols:
             # GH#33032 single-row lookups with non-unique columns were
             #  15x slower than with unique columns
-            df.columns = ["A", "A"] + list(df.columns[2:])
+            df.columns = ["A", "A", *list(df.columns[2:])]
 
         self.df = df
 

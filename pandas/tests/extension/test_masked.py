@@ -61,11 +61,11 @@ pytestmark = [
 
 
 def make_data():
-    return [1, 2, 3, 4] + [pd.NA] + [10, 11] + [pd.NA] + [99, 100]
+    return [1, 2, 3, 4, pd.NA, 10, 11, pd.NA, 99, 100]
 
 
 def make_float_data():
-    return [0.1, 0.2, 0.3, 0.4] + [pd.NA] + [1.0, 1.1] + [pd.NA] + [9.9, 10.0]
+    return [0.1, 0.2, 0.3, 0.4, pd.NA, 1.0, 1.1, pd.NA, 9.9, 10.0]
 
 
 def make_bool_data():

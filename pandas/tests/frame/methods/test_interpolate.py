@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 import pandas.util._test_decorators as td
 
 from pandas import (
@@ -65,7 +63,10 @@ class TestDataFrameInterpolate:
         assert np.shares_memory(orig, obj.values)
         assert orig.squeeze()[1] == 1.5
 
-    def test_interp_basic(self, using_infer_string):
+    @pytest.mark.parametrize("dtype", ["str", "object"])
+    def test_interp_with_non_numeric(self, dtype, using_infer_string):
+        if not using_infer_string:
+            dtype = "object"
         df = DataFrame(
             {
                 "A": [1, 2, np.nan, 4],
@@ -74,43 +75,75 @@ class TestDataFrameInterpolate:
                 "D": list("abcd"),
             }
         )
-        dtype = "str" if using_infer_string else "object"
+        df["D"] = df["D"].astype(dtype)
+        df_orig = df.copy()
+        expected = DataFrame(
+            {
+                "A": [1.0, 2.0, 3.0, 4.0],
+                "B": [1.0, 4.0, 9.0, 9.0],
+                "C": [1, 2, 3, 5],
+                "D": list("abcd"),
+            }
+        )
+        expected["D"] = expected["D"].astype(dtype)
+
         msg = f"[Cc]annot interpolate with {dtype} dtype"
         with pytest.raises(TypeError, match=msg):
             df.interpolate()
+        tm.assert_frame_equal(df, df_orig)
 
-        cvalues = df["C"]._values
-        dvalues = df["D"].values
         with pytest.raises(TypeError, match=msg):
             df.interpolate(inplace=True)
+        # columns A and B already get interpolated before we hit the error
+        tm.assert_frame_equal(df, expected)
 
-        # check we DID operate inplace
-        assert tm.shares_memory(df["C"]._values, cvalues)
-        assert tm.shares_memory(df["D"]._values, dvalues)
-
-    @pytest.mark.xfail(
-        using_string_dtype(), reason="interpolate doesn't work for string"
-    )
-    def test_interp_basic_with_non_range_index(self, using_infer_string):
+    def test_interp_basic(self):
         df = DataFrame(
             {
                 "A": [1, 2, np.nan, 4],
                 "B": [1, 4, 9, np.nan],
                 "C": [1, 2, 3, 5],
-                "D": list("abcd"),
             }
         )
+        df_orig = df.copy()
+        expected = DataFrame(
+            {
+                "A": [1.0, 2.0, 3.0, 4.0],
+                "B": [1.0, 4.0, 9.0, 9.0],
+                "C": [1, 2, 3, 5],
+            }
+        )
+        result = df.interpolate()
+        tm.assert_frame_equal(result, expected)
 
-        msg = "DataFrame cannot interpolate with object dtype"
-        if not using_infer_string:
-            with pytest.raises(TypeError, match=msg):
-                df.set_index("C").interpolate()
-        else:
-            result = df.set_index("C").interpolate()
-            expected = df.set_index("C")
-            expected.loc[3, "A"] = 2.66667
-            expected.loc[5, "B"] = 9
-            tm.assert_frame_equal(result, expected)
+        # check we didn't operate inplace GH#45791
+        tm.assert_frame_equal(df, df_orig)
+        bvalues = df["B"]._values
+        cvalues = df["C"]._values
+        assert not tm.shares_memory(bvalues, result["B"]._values)
+        assert tm.shares_memory(cvalues, result["C"]._values)
+
+        res = df.interpolate(inplace=True)
+        assert res is df
+        tm.assert_frame_equal(df, expected)
+
+        # check we DID operate inplace
+        assert tm.shares_memory(df["B"]._values, bvalues)
+        assert tm.shares_memory(df["C"]._values, cvalues)
+
+    def test_interp_basic_with_non_range_index(self):
+        df = DataFrame(
+            {
+                "A": [1, 2, np.nan, 4],
+                "B": [1, 4, 9, np.nan],
+                "C": [1, 2, 3, 5],
+            }
+        )
+        result = df.set_index("C").interpolate()
+        expected = df.set_index("C")
+        expected.loc[3, "A"] = 3
+        expected.loc[5, "B"] = 9
+        tm.assert_frame_equal(result, expected)
 
     def test_interp_empty(self):
         # https://github.com/pandas-dev/pandas/issues/35598

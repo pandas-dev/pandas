@@ -136,9 +136,7 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
         return result
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
-        if not all(
-            isinstance(t, self._HANDLED_TYPES + (DecimalArray,)) for t in inputs
-        ):
+        if not all(isinstance(t, (*self._HANDLED_TYPES, DecimalArray)) for t in inputs):
             return NotImplemented
 
         result = arraylike.maybe_dispatch_ufunc_to_dunder_op(

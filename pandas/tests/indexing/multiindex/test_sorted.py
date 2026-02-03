@@ -15,7 +15,7 @@ class TestMultiIndexSorted:
     def test_getitem_multilevel_index_tuple_not_sorted(self):
         index_columns = list("abc")
         df = DataFrame(
-            [[0, 1, 0, "x"], [0, 0, 1, "y"]], columns=index_columns + ["data"]
+            [[0, 1, 0, "x"], [0, 0, 1, "y"]], columns=[*index_columns, "data"]
         )
         df = df.set_index(index_columns)
         query_index = df.index[:1]

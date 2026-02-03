@@ -574,7 +574,7 @@ def test_on_bad_lines_callable_warns_and_truncates_with_index_col(
     data = "id,field_1,field_2\n101,A,B\n102,C,D,E\n103,F,G\n"
 
     def fixer(bad_line):
-        return list(bad_line) + ["EXTRA1", "EXTRA2"]
+        return [*list(bad_line), "EXTRA1", "EXTRA2"]
 
     result = parser.read_csv_check_warnings(
         ParserWarning,

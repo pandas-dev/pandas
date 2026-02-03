@@ -16,6 +16,7 @@ from typing import (
     final,
     overload,
 )
+import warnings
 
 import numpy as np
 
@@ -28,7 +29,10 @@ from pandas._libs.json import (
 )
 from pandas._libs.tslibs import iNaT
 from pandas.compat._optional import import_optional_dependency
-from pandas.errors import AbstractMethodError
+from pandas.errors import (
+    AbstractMethodError,
+    OutOfBoundsDatetime,
+)
 from pandas.util._decorators import set_module
 from pandas.util._validators import check_dtype_backend
 
@@ -181,6 +185,38 @@ def to_json(
 
     if orient == "table" and isinstance(obj, Series):
         obj = obj.to_frame(name=obj.name or "values")
+
+    if date_format == "epoch":
+        # for epoch (numeric) format, convert datetime-likes to the desired
+        # unit up front, such that the C ObjToJSON code can simply write out
+        # the integer values without worrying about conversion
+        if date_unit not in ["s", "ms", "us", "ns"]:
+            raise ValueError(f"Invalid value '{date_unit}' for option 'date_unit'")
+        if isinstance(obj, DataFrame):
+            copied = False
+            cols = np.nonzero(obj.dtypes.map(lambda dt: dt.kind in ["M", "m"]))[0]
+            if len(cols):
+                obj = obj.copy(deep=False)
+                copied = True
+                for col in cols:
+                    obj.isetitem(col, obj.iloc[:, col].dt.as_unit(date_unit))
+            if obj.index.dtype.kind in "Mm":
+                if not copied:
+                    obj = obj.copy(deep=False)
+                    copied = True
+                obj.index = Series(obj.index).dt.as_unit(date_unit)
+            if obj.columns.dtype.kind in "Mm":
+                if not copied:
+                    obj = obj.copy(deep=False)
+                    copied = True
+                obj.columns = Series(obj.columns).dt.as_unit(date_unit)
+        elif isinstance(obj, Series):
+            if obj.dtype.kind in "Mm":
+                obj = obj.copy(deep=False)
+                obj = obj.dt.as_unit(date_unit)
+            if obj.index.dtype.kind in "Mm":
+                obj = obj.copy(deep=False)
+                obj.index = Series(obj.index).dt.as_unit(date_unit)
 
     writer: type[Writer]
     if orient == "table" and isinstance(obj, DataFrame):
@@ -1292,10 +1328,7 @@ class Parser:
 
         new_data = data
 
-        if new_data.dtype == "string":
-            new_data = new_data.astype(object)
-
-        if new_data.dtype == "object":
+        if new_data.dtype == "object" or new_data.dtype == "string":  # noqa: PLR1714
             try:
                 new_data = data.astype("int64")
             except OverflowError:
@@ -1313,18 +1346,32 @@ class Parser:
             if not in_range.all():
                 return data
 
-        date_units = (self.date_unit,) if self.date_unit else self._STAMP_UNITS
-        for date_unit in date_units:
-            try:
-                # In case of multiple possible units, infer the likely unit
-                # based on the first unit for which the parsed dates fit
-                # within the nanoseconds bounds
-                # -> do as_unit cast to ensure OutOfBounds error
-                return to_datetime(new_data, errors="raise", unit=date_unit).dt.as_unit(
-                    "ns"
-                )
-            except (ValueError, OverflowError, TypeError):
-                continue
+        if new_data.dtype == "string":
+            with warnings.catch_warnings():
+                # ignore "Could not infer format" warnings from to_datetime
+                # which is incorrectly raised for non-date strings
+                warnings.simplefilter("ignore", UserWarning)
+                for format in (None, "iso8601", "mixed"):
+                    try:
+                        return to_datetime(new_data, errors="raise", format=format)
+                    except Exception:
+                        pass
+        else:
+            # numeric or mixed objects
+            date_units = (self.date_unit,) if self.date_unit else self._STAMP_UNITS
+            for date_unit in date_units:
+                try:
+                    # In case of multiple possible units, infer the likely unit
+                    # based on the first unit for which the parsed dates fit
+                    # within the nanoseconds bounds
+                    # -> do as_unit cast to ensure OutOfBounds error
+                    data = to_datetime(new_data, errors="raise", unit=date_unit)
+                    _ = data.dt.as_unit("ns")
+                    break
+                except OutOfBoundsDatetime:
+                    continue
+                except (ValueError, OverflowError, TypeError):
+                    pass
         return data
 
 

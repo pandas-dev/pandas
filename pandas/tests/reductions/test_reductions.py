@@ -1370,7 +1370,7 @@ class TestCategoricalSeriesReductions:
         [
             (list("abc"), list("abc")),
             (list("abc"), list("cba")),
-            (list("abc") + [np.nan], list("cba")),
+            ([*list("abc"), np.nan], list("cba")),
             ([1, 2, 3], [3, 2, 1]),
             ([1, 2, 3, np.nan], [3, 2, 1]),
         ],

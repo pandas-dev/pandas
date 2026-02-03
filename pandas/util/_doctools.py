@@ -92,7 +92,7 @@ class TablePlotter:
             self._make_table(ax, right, title="Result", height=1.05 / vcells)
             fig.subplots_adjust(top=0.9, bottom=0.05, left=0.05, right=0.95)
         else:
-            max_rows = max(self._shape(df)[0] for df in left + [right])
+            max_rows = max(self._shape(df)[0] for df in [*left, right])
             height = 1.0 / np.max(max_rows)
             gs = gridspec.GridSpec(1, hcells)
             # left

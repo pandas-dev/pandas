@@ -251,7 +251,7 @@ class BaseBlockManager(PandasObject):
         """return an empty BlockManager with the items axis of len 0"""
         if axes is None:
             # TODO shallow copy remaining axis?
-            axes = [default_index(0)] + self.axes[1:]
+            axes = [default_index(0), *self.axes[1:]]
 
         # preserve dtype if possible
         if self.ndim == 1:
@@ -689,7 +689,7 @@ class BaseBlockManager(PandasObject):
                 if index is not None:
                     axes = [self.items[:0], index]
                 else:
-                    axes = [self.items[:0]] + self.axes[1:]
+                    axes = [self.items[:0], *self.axes[1:]]
                 return self.make_empty(axes)
             return self.make_empty()
 
@@ -1424,7 +1424,10 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         nr_blocks = len(self.blocks)
         blocks_tup = (
-            self.blocks[:blkno_l] + (first_nb,) + self.blocks[blkno_l + 1 :] + nbs_tup
+            *self.blocks[:blkno_l],
+            first_nb,
+            *self.blocks[blkno_l + 1 :],
+            *nbs_tup,
         )
         self.blocks = blocks_tup
 
@@ -1464,7 +1467,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         nb = new_block_2d(value, placement=blk._mgr_locs, refs=refs)
         old_blocks = self.blocks
-        new_blocks = old_blocks[:blkno] + (nb,) + old_blocks[blkno + 1 :]
+        new_blocks = (*old_blocks[:blkno], nb, *old_blocks[blkno + 1 :])
         self.blocks = new_blocks
         return
 
@@ -2322,7 +2325,7 @@ def raise_construction_error(
     e: ValueError | None = None,
 ) -> NoReturn:
     """raise a helpful message about our construction"""
-    passed = tuple(map(int, [tot_items] + list(block_shape)))
+    passed = tuple(map(int, [tot_items, *block_shape]))
     # Correcting the user facing error message during dataframe construction
     if len(passed) <= 2:
         passed = passed[::-1]
@@ -2417,7 +2420,7 @@ def _stack_arrays(tuples, dtype: np.dtype):
     placement, arrays = zip(*tuples, strict=True)
 
     first = arrays[0]
-    shape = (len(arrays),) + first.shape
+    shape = (len(arrays), *first.shape)
 
     stacked = np.empty(shape, dtype=dtype)
     for i, arr in enumerate(arrays):

@@ -966,15 +966,19 @@ adbc_connectable_types = [
 ]
 
 
-all_connectable = sqlalchemy_connectable + ["sqlite_buildin"] + adbc_connectable
+all_connectable = [*sqlalchemy_connectable, "sqlite_buildin", *adbc_connectable]
 
-all_connectable_iris = (
-    sqlalchemy_connectable_iris + ["sqlite_buildin_iris"] + adbc_connectable_iris
-)
+all_connectable_iris = [
+    *sqlalchemy_connectable_iris,
+    "sqlite_buildin_iris",
+    *adbc_connectable_iris,
+]
 
-all_connectable_types = (
-    sqlalchemy_connectable_types + ["sqlite_buildin_types"] + adbc_connectable_types
-)
+all_connectable_types = [
+    *sqlalchemy_connectable_types,
+    "sqlite_buildin_types",
+    *adbc_connectable_types,
+]
 
 
 @pytest.mark.parametrize("conn", all_connectable)

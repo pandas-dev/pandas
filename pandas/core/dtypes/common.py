@@ -627,8 +627,8 @@ def is_string_dtype(arr_or_dtype) -> bool:
 
     See Also
     --------
-    api.types.is_string_dtype : Check whether the provided array or dtype
-                                is of the string dtype.
+    api.types.is_object_dtype : Check whether an array-like or dtype is of the
+        object dtype.
 
     Examples
     --------

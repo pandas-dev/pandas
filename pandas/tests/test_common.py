@@ -196,12 +196,10 @@ def test_version_tag():
         ) from err
 
 
-@pytest.mark.parametrize(
-    "obj", [(obj,) for obj in pd.__dict__.values() if callable(obj)]
-)
-def test_serializable(obj, tmp_path):
+@pytest.mark.parametrize("obj", [obj for obj in pd.__dict__.values() if callable(obj)])
+def test_serializable(obj, temp_file):
     # GH 35611
-    unpickled = tm.round_trip_pickle(obj, tmp_path)
+    unpickled = tm.round_trip_pickle(obj, temp_file)
     assert type(obj) == type(unpickled)
 
 

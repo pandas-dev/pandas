@@ -962,7 +962,7 @@ def test_pyint_engine(N, expected_dtype):
 
     # With missing key:
     idces = range(len(keys))
-    expected = np.array([-1] + list(idces), dtype=np.intp)
+    expected = np.array([-1, *list(idces)], dtype=np.intp)
     missing = tuple([0, 1, 0, 1] * N)
     result = index.get_indexer([missing] + [keys[i] for i in idces])
     tm.assert_numpy_array_equal(result, expected)

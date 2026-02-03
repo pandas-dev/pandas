@@ -40,8 +40,8 @@ def equal_contents(arr1, arr2) -> bool:
 
 
 @pytest.fixture(
-    params=tm.ALL_REAL_NUMPY_DTYPES
-    + [
+    params=[
+        *tm.ALL_REAL_NUMPY_DTYPES,
         "object",
         "category",
         "datetime64[ns]",

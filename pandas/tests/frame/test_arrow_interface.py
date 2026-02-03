@@ -1,5 +1,6 @@
 import ctypes
 
+import numpy as np
 import pytest
 
 import pandas.util._test_decorators as td
@@ -65,12 +66,14 @@ class ArrowStreamWrapper:
 
 
 @td.skip_if_no("pyarrow", min_version="14.0")
-def test_dataframe_from_arrow():
+def test_dataframe_from_arrow(using_infer_string):
     # objects with __arrow_c_stream__
     table = pa.table({"a": [1, 2, 3], "b": ["a", "b", "c"]})
 
     result = pd.DataFrame.from_arrow(table)
     expected = pd.DataFrame({"a": [1, 2, 3], "b": ["a", "b", "c"]})
+    if not using_infer_string:
+        expected["b"] = expected["b"].astype(pd.StringDtype(na_value=np.nan))
     tm.assert_frame_equal(result, expected)
 
     # not only pyarrow object are supported

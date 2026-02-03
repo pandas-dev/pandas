@@ -8,6 +8,8 @@ from typing import (
 )
 import warnings
 
+import numpy as np
+
 from pandas._config import using_string_dtype
 
 from pandas._libs import lib
@@ -17,6 +19,7 @@ from pandas.util._decorators import set_module
 from pandas.util._validators import check_dtype_backend
 
 from pandas.core.api import DataFrame
+from pandas.core.arrays.string_ import StringDtype
 
 from pandas.io._util import arrow_table_to_pandas
 from pandas.io.common import get_handle
@@ -162,9 +165,15 @@ def read_feather(
                     Pandas4Warning,
                 )
 
-                return feather.read_feather(
+                df = feather.read_feather(
                     handles.handle, columns=columns, use_threads=bool(use_threads)
                 )
+                # Convert any StringDtype columns to object dtype (pyarrow always
+                # uses string dtype even when the infer_string option is False)
+                for col, dtype in zip(df.columns, df.dtypes, strict=True):
+                    if isinstance(dtype, StringDtype) and dtype.na_value is np.nan:
+                        df[col] = df[col].astype("object")
+                return df
 
         pa_table = feather.read_table(
             handles.handle, columns=columns, use_threads=bool(use_threads)

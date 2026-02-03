@@ -187,7 +187,7 @@ def test_transform_axis_ts(tsframe):
     tm.assert_frame_equal(result, expected)
 
     # non-monotonic
-    ts = tso.iloc[[1, 0] + list(range(2, len(base)))]
+    ts = tso.iloc[[1, 0, *list(range(2, len(base)))]]
     grouped = ts.groupby(lambda x: x.weekday(), group_keys=False)
     result = ts - grouped.transform("mean")
     expected = grouped.apply(lambda x: x - x.mean(axis=0))

@@ -1411,7 +1411,7 @@ XLS_SIGNATURES = (
     b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1",  # Compound File Binary
 )
 ZIP_SIGNATURE = b"PK\x03\x04"
-PEEK_SIZE = max(map(len, XLS_SIGNATURES + (ZIP_SIGNATURE,)))
+PEEK_SIZE = max(map(len, (*XLS_SIGNATURES, ZIP_SIGNATURE)))
 
 
 def inspect_excel_format(

@@ -280,7 +280,7 @@ class TestDataFrameToCSV:
             recons.columns = df.columns
         if rnlvl and not cnlvl:
             delta_lvl = [recons.iloc[:, i].values for i in range(rnlvl - 1)]
-            ix = MultiIndex.from_arrays([list(recons.index)] + delta_lvl)
+            ix = MultiIndex.from_arrays([list(recons.index), *delta_lvl])
             recons.index = ix
             recons = recons.iloc[:, rnlvl - 1 :]
 
@@ -393,11 +393,11 @@ class TestDataFrameToCSV:
         if r_idx_type == "dt":
             expected.index = expected.index.astype("M8[us]")
         elif r_idx_type == "p":
-            expected.index = expected.index.astype("M8[ns]")
+            expected.index = expected.index.astype("M8[us]")
         if c_idx_type == "dt":
             expected.columns = expected.columns.astype("M8[us]")
         elif c_idx_type == "p":
-            expected.columns = expected.columns.astype("M8[ns]")
+            expected.columns = expected.columns.astype("M8[us]")
         tm.assert_frame_equal(result, expected, check_names=False)
 
     @pytest.mark.slow
