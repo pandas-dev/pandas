@@ -1689,10 +1689,15 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     def map(self, mapper, na_action: Literal["ignore"] | None = None):
         result = map_array(
-            self.to_numpy(dtype=object, na_value=libmissing.NA),
+            self.to_numpy(na_value=libmissing.NA),
             mapper,
             na_action=na_action,
         )
+        if isinstance(result, np.ndarray):
+            try:
+                return type(self)._from_sequence(result, dtype=self.dtype)
+            except (ValueError, TypeError):
+                return result
         return result
 
     @overload

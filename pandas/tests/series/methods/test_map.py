@@ -22,6 +22,7 @@ from pandas import (
     isna,
     timedelta_range,
 )
+from pandas.core.arrays.masked import BaseMaskedDtype
 import pandas._testing as tm
 
 # The fixture it's mostly used in pandas/tests/apply, so it's defined in that
@@ -243,7 +244,11 @@ def test_map_empty(request, index):
     s = Series(index)
     result = s.map({})
 
-    expected = Series(np.nan, index=s.index)
+    # GH#63903
+    if isinstance(s.dtype, BaseMaskedDtype):
+        expected = Series(pd.NA, index=s.index, dtype=s.dtype)
+    else:
+        expected = Series(np.nan, index=s.index)
     tm.assert_series_equal(result, expected)
 
 
@@ -681,12 +686,11 @@ def test_map_pyarrow_timestamp(as_td):
 
 @pytest.mark.parametrize("dtype", ["Int64", "UInt64"])
 def test_map_nullable_integer_precision(dtype):
+    # GH#63903
     large_int = 10000000000000001  # above float64 integer precision limit
     ser = Series([large_int, None], dtype=dtype)
 
     result = ser.map(lambda x: x + 2 if pd.notna(x) else x)
-    expected = Series([large_int + 2, pd.NA], dtype=object)
+    expected = Series([large_int + 2, pd.NA], dtype=dtype)
     tm.assert_series_equal(result, expected)
 
-    # Verify exact value preserved (not rounded due to float conversion)
-    assert result.iloc[0] == large_int + 2
