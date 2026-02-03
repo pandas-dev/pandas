@@ -426,15 +426,6 @@ exclude = [
 # Keep this one enabled
 "pandas/_typing.py" = ["TC"]
 
-"pandas/tests/indexing/interval/test_interval.py" = ["B905"]
-"pandas/tests/indexing/multiindex/test_getitem.py" = ["B905"]
-"pandas/tests/indexing/multiindex/test_iloc.py" = ["B905"]
-"pandas/tests/indexing/multiindex/test_indexing_slow.py" = ["B905"]
-"pandas/tests/indexing/multiindex/test_loc.py" = ["B905"]
-"pandas/tests/indexing/multiindex/test_setitem.py" = ["B905"]
-"pandas/tests/indexing/multiindex/test_sorted.py" = ["B905"]
-"pandas/tests/indexing/test_coercion.py" = ["B905"]
-"pandas/tests/indexing/test_loc.py" = ["B905"]
 "pandas/tests/internals/test_internals.py" = ["B905"]
 "pandas/tests/io/excel/test_writers.py" = ["B905"]
 "pandas/tests/io/formats/style/test_style.py" = ["B905"]
