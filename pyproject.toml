@@ -426,12 +426,6 @@ exclude = [
 # Keep this one enabled
 "pandas/_typing.py" = ["TC"]
 
-"pandas/tests/groupby/test_groupby_dropna.py" = ["B905"]
-"pandas/tests/groupby/test_groupby.py" = ["B905"]
-"pandas/tests/groupby/test_grouping.py" = ["B905"]
-"pandas/tests/groupby/test_raises.py" = ["B905"]
-"pandas/tests/groupby/test_timegrouper.py" = ["B905"]
-"pandas/tests/groupby/transform/test_transform.py" = ["B905"]
 "pandas/tests/indexes/categorical/test_map.py" = ["B905"]
 "pandas/tests/indexes/datetimes/methods/test_astype.py" = ["B905"]
 "pandas/tests/indexes/datetimes/test_formats.py" = ["B905"]
