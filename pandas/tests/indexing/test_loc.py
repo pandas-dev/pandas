@@ -1143,7 +1143,7 @@ class TestLocBaseIndependent:
 
     def test_loc_copy_vs_view(self, request):
         # GH 15631
-        x = DataFrame(zip(range(3), range(3)), columns=["a", "b"])
+        x = DataFrame(zip(range(3), range(3), strict=True), columns=["a", "b"])
 
         y = x.copy()
         q = y.loc[:, "a"]
@@ -1823,6 +1823,7 @@ class TestLocWithMultiIndex:
             zip(
                 ["bar", "bar", "baz", "baz", "foo", "foo", "qux", "qux"],
                 ["one", "two", "one", "two", "one", "two", "one", "two"],
+                strict=True,
             ),
             names=["first", "second"],
         )
@@ -2605,7 +2606,7 @@ class TestLocBooleanMask:
             [0, 1, 2, 10, 4, 5, 6, 7, 8, 9],
             [10, 10, 10, 3, 4, 5, 6, 7, 8, 9],
         ]
-        for cond, data in zip(conditions, expected_data):
+        for cond, data in zip(conditions, expected_data, strict=True):
             result = df.copy()
             result.loc[cond, "x"] = 10
 
