@@ -819,6 +819,21 @@ class TestDataFrameSelectReindex:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_reindex_multiple_columns_string_fill_value(self):
+        # GH#63993
+        df = DataFrame({"a": [0]})
+        result = df.reindex(columns=["a", "b", "c"], fill_value="missing")
+        
+        # Should not raise AssertionError
+        assert result.shape == (1, 3)
+        assert result["a"].iloc[0] == 0
+        assert result["b"].iloc[0] == "missing"
+        assert result["c"].iloc[0] == "missing"
+        
+        # Multiple columns with 1D-only EA dtype fall back to object dtype
+        assert result["b"].dtype == object
+        assert result["c"].dtype == object
+
     def test_reindex_dups(self):
         # GH4746, reindex on duplicate index error messages
         arr = np.random.default_rng(2).standard_normal(10)

@@ -2518,9 +2518,16 @@ def make_na_array(dtype: DtypeObj, shape: Shape, fill_value) -> ArrayLike:
 
         missing_arr = cls._from_sequence([], dtype=dtype)
         ncols, nrows = shape
-        assert ncols == 1, ncols
-        empty_arr = -1 * np.ones((nrows,), dtype=np.intp)
-        return missing_arr.take(empty_arr, allow_fill=True, fill_value=fill_value)
+        if ncols == 1:
+            empty_arr = -1 * np.ones((nrows,), dtype=np.intp)
+            return missing_arr.take(empty_arr, allow_fill=True, fill_value=fill_value)
+        else:
+            # For multiple columns with 1D-only EA dtype, we cannot create a 2D array.
+            # Instead, fall back to object dtype which can handle multiple columns.
+            # This maintains backward compatibility while avoiding the assertion error.
+            missing_arr_np = np.empty(shape, dtype=object)
+            missing_arr_np.fill(fill_value)
+            return missing_arr_np
     elif isinstance(dtype, ExtensionDtype):
         # TODO: no tests get here, a handful would if we disabled
         #  the dt64tz special-case above (which is faster)
