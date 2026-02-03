@@ -426,9 +426,6 @@ exclude = [
 # Keep this one enabled
 "pandas/_typing.py" = ["TC"]
 
-"pandas/tests/series/accessors/test_dt_accessor.py" = ["B905"]
-"pandas/tests/series/test_api.py" = ["B905"]
-"pandas/tests/series/test_constructors.py" = ["B905"]
 "pandas/tests/strings/conftest.py" = ["B905"]
 
 [tool.ruff.lint.flake8-pytest-style]
