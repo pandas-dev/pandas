@@ -89,15 +89,7 @@ class CParserWrapper(ParserBase):
 
         encoding_lower = encoding.lower() if encoding is not None else None
 
-        if encoding_lower is None or encoding_lower == "utf-8":
-            # Default: strip but warn
-            strip_bom = True
-            warn_bom = True
-        elif encoding.lower() in {"latin1", "latin-1", "cp1252"}:
-            # Latin-1 compatible encodings should not treat BOM as special.
-            strip_bom = False
-            warn_bom = False
-        elif encoding_lower.endswith("-sig"):
+        if encoding_lower is not None and encoding_lower.endswith("-sig"):
             # Only -sig variants strip without warning
             strip_bom = True
             warn_bom = False
