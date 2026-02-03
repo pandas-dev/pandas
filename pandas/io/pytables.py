@@ -2694,17 +2694,16 @@ class DataCol(IndexCol):
         tz = self.tz
 
         assert dtype_name is not None
-        # convert to the correct dtype
         dtype = dtype_name
 
-        # reverse converts
         if dtype.startswith("datetime64"):
-            # recreate with tz if indicated
+            # Handle legacy files without unit specifier (GH#64006)
+            if dtype == "datetime64":
+                dtype = "datetime64[ns]"
             converted = _set_tz(converted, tz, dtype)
 
         elif dtype.startswith("timedelta64"):
             if dtype == "timedelta64":
-                # from before we started storing timedelta64 unit
                 converted = np.asarray(converted, dtype="m8[ns]")
             else:
                 converted = np.asarray(converted, dtype=dtype)
@@ -3087,14 +3086,13 @@ class GenericFixed(Fixed):
                 ret = node[start:stop]
 
             if dtype and dtype.startswith("datetime64"):
-                # reconstruct a timezone if indicated
+                if dtype == "datetime64":
+                    dtype = "datetime64[ns]"
                 tz = getattr(attrs, "tz", None)
                 ret = _set_tz(ret, tz, dtype)
 
             elif dtype and dtype.startswith("timedelta64"):
                 if dtype == "timedelta64":
-                    # This was written back before we started writing
-                    # timedelta64 units
                     ret = np.asarray(ret, dtype="m8[ns]")
                 else:
                     ret = np.asarray(ret, dtype=dtype)
