@@ -115,7 +115,7 @@ Each of these aliases listed in the table below can be found by importing them f
    * - .. type:: OpenFileErrors
      - Argument type for ``errors`` in :meth:`DataFrame's <pandas.DataFrame.to_hdf>`, :meth:`Series' <pandas.Series.to_hdf>` ``to_hdf()`` methods, and :meth:`DataFrame's <pandas.DataFrame.to_csv>` and :meth:`Series' <pandas.Series.to_csv>` ``to_csv()`` methods
    * - .. type:: Ordered
-     - Return type for :attr:`ordered <pandas.CategoricalDtype.ordered>` in :class:`~pandas.CategoricalDtype` and :class:`~pandas.Categorical`
+     - Return type for :attr:`ordered <pandas.CategoricalDtype.ordered>` in :class:`pandas.CategoricalDtype` and :class:`pandas.Categorical`
    * - .. type:: ParquetCompressionOptions
      - Argument type for ``compression`` in :meth:`DataFrame.to_parquet() <pandas.DataFrame.to_parquet>`
    * - .. type:: QuantileInterpolation
