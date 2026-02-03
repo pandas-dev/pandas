@@ -158,8 +158,8 @@ typedef struct parser_t {
 
   int skip_empty_lines;
 
-  int strip_bom;
-  int bom_found;
+  int strip_bom; /* strip UTF-8 BOM if found */
+  int bom_found; /* UTF-8 BOM detected in input */
 
 } parser_t;
 
