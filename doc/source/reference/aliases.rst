@@ -101,7 +101,7 @@ Each of these aliases listed in the table below can be found by importing them f
    * - .. type:: JSONSerializable
      - Argument type for the return type of a callable for argument ``default_handler`` in :meth:`DataFrame's <pandas.DataFrame.to_json>` and :meth:`Series' <pandas.Series.to_json>` ``to_json()`` methods
    * - .. type:: JoinHow
-     - Argument type for ``how`` in :meth:`pandas.merge_ordered` and for ``join`` in :meth:`Series.align <pandas.Series.align>`
+     - Argument type for ``how`` in :meth:`pandas.merge_ordered` and for ``join`` in :meth:`Series.align() <pandas.Series.align>`
    * - .. type:: JoinValidate
      - Argument type for ``validate`` in :meth:`DataFrame.join() <pandas.DataFrame.join>`
    * - .. type:: MergeHow
@@ -113,7 +113,7 @@ Each of these aliases listed in the table below can be found by importing them f
    * - .. type:: NsmallestNlargestKeep
      - Argument type for ``keep`` in :meth:`DataFrame's <pandas.DataFrame.nlargest>` and :meth:`Series' <pandas.Series.nlargest>` ``nlargest()``, :meth:`DataFrame's <pandas.DataFrame.nsmallest>` and :meth:`Series' <pandas.Series.nsmallest>` ``nsmallest()``, and :meth:`SeriesGroupBy's <pandas.api.typing.SeriesGroupBy.nlargest>` ``nlargest()`` methods
    * - .. type:: OpenFileErrors
-     - Argument type for ``errors`` in :meth:`DataFrame's <pandas.DataFrame.to_hdf>`, :meth:`Series' <pandas.Series.to_hdf>`, :meth:`DataFrame's <pandas.DataFrame.to_csv>` and :meth:`Series' <pandas.Series.to_csv>`
+     - Argument type for ``errors`` in :meth:`DataFrame's <pandas.DataFrame.to_hdf>`, :meth:`Series' <pandas.Series.to_hdf>` ``to_hdf()`` methods, and :meth:`DataFrame's <pandas.DataFrame.to_csv>` and :meth:`Series' <pandas.Series.to_csv>` ``to_csv()`` methods
    * - .. type:: Ordered
      - Return type for :attr:`ordered <pandas.CategoricalDtype.ordered>` in :class:`~pandas.CategoricalDtype` and :class:`~pandas.Categorical`
    * - .. type:: ParquetCompressionOptions
@@ -139,7 +139,7 @@ Each of these aliases listed in the table below can be found by importing them f
    * - .. type:: StorageOptions
      - Argument type for ``storage_options`` in various file output methods
    * - .. type:: Suffixes
-     - Argument type for ``suffixes`` in :meth:`pandas.merge`, :meth:`pandas.merge_ordered`, :meth:`DataFrame's <pandas.DataFrame.compare>` and :meth:`Series' <pandas.Series.compare>`
+     - Argument type for ``suffixes`` in :meth:`pandas.merge`, :meth:`pandas.merge_ordered`,  and :meth:`DataFrame's <pandas.DataFrame.compare>` and :meth:`Series' <pandas.Series.compare>` ``compare()`` methods
    * - .. type:: TakeIndexer
      - Argument type for ``indexer`` and ``indices`` in :meth:`DataFrame's <pandas.DataFrame.take>` and :meth:`Series' <pandas.Series.take>` ``take()`` methods
    * - .. type:: TimeAmbiguous
@@ -149,7 +149,7 @@ Each of these aliases listed in the table below can be found by importing them f
    * - .. type:: TimeNonexistent
      - Argument type for ``nonexistent`` in time operations
    * - .. type:: TimeUnit
-     - Time unit argument and return type for :attr:`~pandas.Timedelta.unit`, arguments ``unit`` and ``date_unit``
+     - Time unit argument and return type for :attr:`pandas.Timedelta.unit`, arguments ``unit`` and ``date_unit``
    * - .. type:: TimedeltaConvertibleTypes
      - Argument type for ``offset`` in various methods, such as :meth:`DataFrame's <pandas.DataFrame.resample>` and :meth:`Series' <pandas.Series.resample>` ``resample()``, ``halflife`` in :meth:`DataFrame's <pandas.DataFrame.ewm>`, :meth:`DataFrameGroupBy's <pandas.api.typing.DataFrameGroupBy.ewm>`, and :meth:`Series' <pandas.Series.ewm>` ``ewm()``, and ``start`` and ``end`` in :meth:`pandas.timedelta_range`
    * - .. type:: TimestampConvertibleTypes
@@ -163,7 +163,7 @@ Each of these aliases listed in the table below can be found by importing them f
    * - .. type:: UsecolsArgType
      - Argument type for ``usecols`` in :meth:`pandas.read_clipboard`, :meth:`pandas.read_csv` and :meth:`pandas.read_excel`
    * - .. type:: WindowingRankType
-     - Argument type for ``method`` in :meth:`Rolling's <pandas.api.typing.Rolling.rank>` and :meth:`Expanding <pandas.api.typing.Expanding.rank>` ``rank()`` methods, applicable in rolling and expanding window operations
+     - Argument type for ``method`` in :meth:`Rolling's <pandas.api.typing.Rolling.rank>` and :meth:`Expanding's <pandas.api.typing.Expanding.rank>` ``rank()`` methods, applicable in rolling and expanding window operations
    * - .. type:: WriteBuffer
      - Additional argument type corresponding to buffers for various file output methods
    * - .. type:: WriteExcelBuffer
