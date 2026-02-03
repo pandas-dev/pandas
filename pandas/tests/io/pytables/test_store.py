@@ -1116,7 +1116,7 @@ def test_read_hdf_datetime64_without_unit_gh64006(tmp_path):
 
         f.visititems(find_dtype_attrs)
 
-    result = pd.read_hdf(path, key="data")
+    result = read_hdf(path, key="data")
 
     expected = original.astype("datetime64[ns]")
     tm.assert_series_equal(result, expected)
@@ -1127,12 +1127,12 @@ def test_read_hdf_datetime64_without_unit_gh64006(tmp_path):
 def test_read_hdf_datetime_units_preserved(tmp_path, unit):
     pytest.importorskip("tables")
 
-    dates = pd.date_range("2020-01-01", periods=3, freq="D")
+    dates = date_range("2020-01-01", periods=3, freq="D")
     s = Series(dates, name=f"dates_{unit}").astype(f"datetime64[{unit}]")
 
     path = tmp_path / f"test_datetime_{unit}.h5"
     s.to_hdf(path, key="data", mode="w")
-    result = pd.read_hdf(path, key="data")
+    result = read_hdf(path, key="data")
 
     # Verify unit is preserved
     tm.assert_series_equal(result, s)
@@ -1144,7 +1144,7 @@ def test_read_hdf_dataframe_with_datetime64_column(tmp_path):
     h5py = pytest.importorskip("h5py")
 
     # Create DataFrame with datetime column
-    df = DataFrame({"date": pd.date_range("2020-01-01", periods=3), "value": [1, 2, 3]})
+    df = DataFrame({"date": date_range("2020-01-01", periods=3), "value": [1, 2, 3]})
 
     path = tmp_path / "test_df_datetime.h5"
     df.to_hdf(path, key="data", mode="w")
@@ -1160,7 +1160,7 @@ def test_read_hdf_dataframe_with_datetime64_column(tmp_path):
         f.visititems(modify_dtype)
 
     # Should read successfully
-    result = pd.read_hdf(path, key="data")
+    result = read_hdf(path, key="data")
 
     expected = df.copy()
     expected["date"] = expected["date"].astype("datetime64[ns]")
