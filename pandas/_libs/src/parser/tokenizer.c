@@ -649,12 +649,16 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes,
          self->datalen));
 
 #define CHECK_FOR_BOM()                                                        \
-  if (*buf == '\xef' && *(buf + 1) == '\xbb' && *(buf + 2) == '\xbf') {        \
+  if (self->datalen - self->datapos >= 3 &&                                    \
+      (unsigned char)buf[0] == 0xEF && (unsigned char)buf[1] == 0xBB &&        \
+      (unsigned char)buf[2] == 0xBF) {                                         \
     self->bom_found = 1;                                                       \
     if (self->strip_bom) {                                                     \
       buf += 3;                                                                \
       self->datapos += 3;                                                      \
     }                                                                          \
+  } else {                                                                     \
+    self->bom_found = 0;                                                       \
   }
 
 static int skip_this_line(parser_t *self, int64_t rownum) {
