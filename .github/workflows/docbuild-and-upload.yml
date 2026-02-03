@@ -49,7 +49,7 @@ jobs:
       run: |
         if [ -n "${{ github.event.inputs.version }}" ]; then
           echo "PANDAS_VERSION=${{ github.event.inputs.version }}" >> "$GITHUB_ENV"
-        else
+        elif [[ "${GITHUB_REF_NAME:1}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
           echo "PANDAS_VERSION=${GITHUB_REF_NAME:1}" >> "$GITHUB_ENV"
         fi
 
