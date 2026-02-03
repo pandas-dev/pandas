@@ -1515,7 +1515,8 @@ class ArrowExtensionArray(
         Examples
         --------
         >>> arr = pd.array(
-        ...     [['Ant', 'Badger', 'Cobra','Cobra', 'Deer', 'Ant'], dtype=str)
+        ...     ["Ant", "Badger", "Cobra", "Cobra", "Deer", "Ant"], dtype=str
+        ... )
         >>> arr_codes, arr_uniques = arr.factorize()
         >>> arr_codes
         array([0, 1, 2, 2, 3, 0])
