@@ -1908,7 +1908,7 @@ class ArrowExtensionArray(
 
         Examples
         --------
-        >>> pd.array([1, 1, 2, 3, 3], dtype="Int64").duplicated()
+        >>> pd.array([1, 1, 2, 3, 3], dtype="int64[pyarrow]").duplicated()
         array([False,  True, False, False,  True])
         """
         pa_type = self._pa_array.type
