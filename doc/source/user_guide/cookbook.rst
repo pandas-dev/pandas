@@ -861,6 +861,48 @@ Rolling Apply to multiple columns where function returns a Scalar (Volume Weight
 Timeseries
 ----------
 
+Time-distance weighted rolling aggregations
+*******************************************
+
+A decay-weighted aggregation can be applied inside a time-based rolling window.
+The weight depends on how far each observation is from the most recent timestamp in the window.
+This is useful when more recent values should contribute more to rolling statistics than older
+ones, particularly where observations are not evenly spaced in time.
+
+This approach relies on ``rolling.apply`` and recomputes weights for each window, so it
+may be slow for large datasets.
+
+.. code-block:: python
+
+   df = pd.DataFrame(
+       {
+           "timestamp": [
+               "2024-01-01 01:00",
+               "2024-01-01 02:00",
+               "2024-01-01 05:00",
+               "2024-01-01 05:00",
+               "2024-01-01 07:00",
+               "2024-01-01 08:00",
+           ],
+           "value": [12, 13, 20, 26, 24, 27],
+       }
+   )
+
+   df["timestamp"] = pd.to_datetime(df["timestamp"])
+   df = df.set_index("timestamp")
+
+   def decay_weighted_mean(values, alpha=0.1):
+       timestamps = values.index
+       age_hours = (timestamps.max() - timestamps).total_seconds() / 3600
+       weights = np.exp(-alpha * age_hours)
+       return (weights * values).sum() / weights.sum()
+
+   result = (
+       df["value"]
+       .rolling("7h")
+       .apply(decay_weighted_mean)
+   )
+
 `Between times
 <https://stackoverflow.com/questions/14539992/pandas-drop-rows-outside-of-time-range>`__
 
