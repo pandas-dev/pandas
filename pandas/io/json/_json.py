@@ -1091,11 +1091,20 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
     ) -> DataFrame | Series: ...
 
     def __next__(self) -> DataFrame | Series:
-        if self.nrows and self.nrows_seen >= self.nrows:
+        if self.nrows is not None and self.nrows_seen >= self.nrows:
             self.close()
             raise StopIteration
 
-        lines = list(islice(self.data, self.chunksize))
+        if self.nrows is not None:
+            remaining = self.nrows - self.nrows_seen
+            if remaining <= 0:
+                self.close()
+                raise StopIteration
+            chunk_size = min(self.chunksize, remaining)
+        else:
+            chunk_size = self.chunksize
+
+        lines = list(islice(self.data, chunk_size))
         if not lines:
             self.close()
             raise StopIteration

@@ -316,7 +316,7 @@ def test_readjson_nrows(nrows, engine):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("nrows,chunksize", [(2, 2), (4, 2)])
+@pytest.mark.parametrize("nrows,chunksize", [(2, 2), (3, 2), (4, 2)])
 def test_readjson_nrows_chunks(request, nrows, chunksize, engine):
     # GH 33916
     # Test reading line-format JSON to Series with nrows and chunksize param

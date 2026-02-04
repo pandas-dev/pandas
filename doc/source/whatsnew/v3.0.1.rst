@@ -27,6 +27,9 @@ Bug fixes
 - Fixed a bug in :func:`col` where unary operators (``-``, ``+``, ``abs``) were not supported (:issue:`63939`)
 - Fixed a bug in the :func:`comparison_op` raising a ``TypeError`` for zerodim
   subclasses of ``np.ndarray`` (:issue:`63205`)
+- Fixed :func:`read_json` with ``lines=True`` and ``chunksize`` to respect ``nrows``
+  when the requested row count is not a multiple of the chunk size.
+
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_301.contributors:
