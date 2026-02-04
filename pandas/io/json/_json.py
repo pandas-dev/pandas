@@ -1095,6 +1095,7 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
             self.close()
             raise StopIteration
 
+        chunk_size: int | None
         if self.nrows is not None:
             remaining = self.nrows - self.nrows_seen
             if remaining <= 0:
