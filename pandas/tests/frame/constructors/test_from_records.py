@@ -501,3 +501,53 @@ class TestFromRecords:
         )
         expected = DataFrame([], index=[0, 1], columns=["col_1", "Col_2"])
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "data, columns, exclude, expected_cols",
+        [
+            (
+                [{"a": 1, "b": 2, "c": 3}, {"a": 4, "b": 5, "c": 6}],
+                ["a", "b", "c"],
+                ["b"],
+                ["a", "c"],
+            ),
+            (
+                np.array(
+                    [(1, 2, 3), (4, 5, 6)],
+                    dtype=[("a", "i4"), ("b", "i4"), ("c", "i4")],
+                ),
+                ["a", "b", "c"],
+                ["b"],
+                ["a", "c"],
+            ),
+            (
+                [{"a": 1, "b": 2, "c": 3}],
+                ["a", "c"],
+                ["c"],
+                ["a"],
+            ),
+        ],
+    )
+    def test_from_records_exclude_nrows_zero(
+        self, data, columns, exclude, expected_cols
+    ):
+        # GH#63774
+        result = DataFrame.from_records(
+            iter(data), columns=columns, exclude=exclude, nrows=0
+        )
+        expected = DataFrame(columns=expected_cols)
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("exclude", [["c"], ["b", "c"]])
+    def test_from_records_exclude_missing_key_raises_nrows_zero(self, exclude):
+        rows = [{"a": 1, "b": 2}]
+
+        msg = r"\['c'\]"
+
+        with pytest.raises(KeyError, match=msg):
+            DataFrame.from_records(
+                iter(rows),
+                columns=["a", "b"],
+                exclude=exclude,
+                nrows=0,
+            )

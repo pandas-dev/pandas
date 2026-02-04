@@ -1321,6 +1321,7 @@ MultiIndex
 - Bug in :meth:`MultiIndex.union` raising when indexes have duplicates with differing names (:issue:`62059`)
 - Bug in :meth:`MultiIndex.from_tuples` causing wrong output with input of type tuples having NaN values (:issue:`60695`, :issue:`60988`)
 - Bug in :meth:`DataFrame.__setitem__` where column alignment logic would reindex the assigned value with an empty index, incorrectly setting all values to ``NaN``.(:issue:`61841`)
+  - Bug in :meth:`DataFrame.from_records` where the ``exclude`` parameter was ignored when ``nrows=0`` (:issue:`63774`)
 - Bug in :meth:`DataFrame.reindex` and :meth:`Series.reindex` where reindexing :class:`Index` to a :class:`MultiIndex` would incorrectly set all values to ``NaN``.(:issue:`60923`)
 
 I/O
