@@ -55,8 +55,6 @@ dist
 *.egg-info
 .eggs
 .pypirc
-# Local virtual environments
-.venv/
 # type checkers
 pandas/py.typed
 
