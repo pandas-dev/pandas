@@ -1858,9 +1858,6 @@ def pandas_dtype(dtype) -> DtypeObj:
 
         return StringDtype(na_value=np.nan)
 
-    if isinstance(dtype, str) and dtype == "str" and not using_string_dtype():
-        return np.dtype("object")
-
     # registered extension types
     result = registry.find(dtype)
     if result is not None:

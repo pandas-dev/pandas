@@ -848,7 +848,7 @@ def test_pandas_dtype_string_dtypes(string_storage):
     with pd.option_context("future.infer_string", False):
         with pd.option_context("string_storage", string_storage):
             result = pandas_dtype("str")
-    assert result == np.dtype("object")
+    assert result == np.dtype("U")
 
     with pd.option_context("string_storage", string_storage):
         result = pandas_dtype("string")
