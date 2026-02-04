@@ -518,6 +518,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         The :class:`~pandas.api.types.CategoricalDtype` for this instance.
 
+        This property returns the CategoricalDtype which contains information
+        about the categories and whether the categorical is ordered.
+
         See Also
         --------
         astype : Cast argument to a specified dtype.
@@ -852,6 +855,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         Whether the categories have an ordered relationship.
 
+        This property returns True if the categories are ordered, meaning
+        they have a meaningful order that allows comparison operations.
+
         See Also
         --------
         set_ordered : Set the ordered attribute.
@@ -1009,6 +1015,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         Set the Categorical to be ordered.
 
+        This method returns a new Categorical with the ordered attribute set
+        to True, enabling comparison operations between categories.
+
         Returns
         -------
         Categorical
@@ -1043,6 +1052,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     def as_unordered(self) -> Self:
         """
         Set the Categorical to be unordered.
+
+        This method returns a new Categorical with the ordered attribute set
+        to False, disabling comparison operations between categories.
 
         Returns
         -------
