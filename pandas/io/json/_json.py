@@ -931,7 +931,7 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
             data = self._get_data_from_filepath(filepath_or_buffer)
             # If self.chunksize, we prepare the data for the `__next__` method.
             # Otherwise, we read it into memory for the `read` method.
-            if not (self.chunksize or self.nrows):
+            if self.chunksize is None and self.nrows is None:
                 with self:
                     self.data = data.read()
             else:
@@ -1023,7 +1023,7 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         if self.lines:
             if self.chunksize:
                 obj = concat(self)
-            elif self.nrows:
+            elif self.nrows is not None:
                 lines = list(islice(self.data, self.nrows))
                 lines_json = self._combine_lines(lines)
                 obj = self._get_object_parser(lines_json)

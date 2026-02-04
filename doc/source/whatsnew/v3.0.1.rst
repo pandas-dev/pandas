@@ -29,6 +29,7 @@ Bug fixes
   subclasses of ``np.ndarray`` (:issue:`63205`)
 - Fixed :func:`read_json` with ``lines=True`` and ``chunksize`` to respect ``nrows``
   when the requested row count is not a multiple of the chunk size.
+- Fixed :func:`read_json` with ``lines=True`` and ``nrows=0`` returning all rows.
 
 
 .. ---------------------------------------------------------------------------

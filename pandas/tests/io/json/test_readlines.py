@@ -315,6 +315,12 @@ def test_readjson_nrows(nrows, engine):
     expected = DataFrame({"a": [1, 3, 5, 7], "b": [2, 4, 6, 8]}).iloc[:nrows]
     tm.assert_frame_equal(result, expected)
 
+    jsonl = """{"a": 1, "b": 2}
+        {"a": 3, "b": 4}"""
+    result = read_json(StringIO(jsonl), lines=True, nrows=0)
+    expected = DataFrame()
+    tm.assert_frame_equal(result, expected)
+
 
 @pytest.mark.parametrize("nrows,chunksize", [(2, 2), (3, 2), (4, 2)])
 def test_readjson_nrows_chunks(request, nrows, chunksize, engine):
