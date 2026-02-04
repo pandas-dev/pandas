@@ -1100,7 +1100,10 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
             if remaining <= 0:
                 self.close()
                 raise StopIteration
-            chunk_size = min(self.chunksize, remaining)
+            if self.chunksize is None:
+                chunk_size = remaining
+            else:
+                chunk_size = min(self.chunksize, remaining)
         else:
             chunk_size = self.chunksize
 
