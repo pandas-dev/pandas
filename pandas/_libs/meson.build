@@ -50,7 +50,6 @@ _khash_primitive_helper_dep = declare_dependency(
     sources: _khash_primitive_helper,
 )
 
-cc = meson.get_compiler('c')
 m_dep = cc.find_library('m', required: false)
 
 cdata = configuration_data()
