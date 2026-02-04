@@ -39,6 +39,7 @@ from pandas._typing import (
 )
 from pandas.compat.numpy import function as nv
 from pandas.errors import IntCastingNaNError
+from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.cast import (
     LossySetitemError,
@@ -179,6 +180,7 @@ for more.
 """
 
 
+@set_module("pandas.arrays")
 class IntervalArray(IntervalMixin, ExtensionArray):
     """
     Pandas array for interval data that are closed on the same side.
@@ -245,8 +247,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     methods: :meth:`IntervalArray.from_arrays`,
     :meth:`IntervalArray.from_breaks`, and :meth:`IntervalArray.from_tuples`.
     """
-
-    __module__ = "pandas.arrays"
 
     can_hold_na = True
     _na_value = _fill_value = np.nan
@@ -1977,7 +1977,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         axis: AxisInt | None = None,
     ) -> Self:
         """
-        Repeat elements of a IntervalArray.
+        Repeat elements of an IntervalArray.
 
         Returns a new IntervalArray where each element of the current IntervalArray
         is repeated consecutively a given number of times.
@@ -2100,18 +2100,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 return np.zeros(self.shape, dtype=bool)
 
             if self.dtype == values.dtype:
-                # GH#38353 instead of casting to object, operating on a
-                #  complex128 ndarray is much more performant.
-                left = self._combined.view("complex128")
-                right = values._combined.view("complex128")
-                # error: Argument 1 to "isin" has incompatible type
-                # "Union[ExtensionArray, ndarray[Any, Any],
-                # ndarray[Any, dtype[Any]]]"; expected
-                # "Union[_SupportsArray[dtype[Any]],
-                # _NestedSequence[_SupportsArray[dtype[Any]]], bool,
-                # int, float, complex, str, bytes, _NestedSequence[
-                # Union[bool, int, float, complex, str, bytes]]]"
-                return np.isin(left, right).ravel()  # type: ignore[arg-type]
+                left = self._combined
+                right = values._combined
+                return np.isin(left, right).ravel()
 
             elif needs_i8_conversion(self.left.dtype) ^ needs_i8_conversion(
                 values.left.dtype
@@ -2127,24 +2118,28 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         # has no attribute "reshape"  [union-attr]
         left = self.left._values.reshape(-1, 1)  # type: ignore[union-attr]
         right = self.right._values.reshape(-1, 1)  # type: ignore[union-attr]
+        # GH#38353 instead of casting to object, operating on a
+        # complex128 ndarray is much more performant.
         if needs_i8_conversion(left.dtype):
             # error: Item "ndarray[Any, Any]" of "Any | ndarray[Any, Any]" has
             # no attribute "_concat_same_type"
             comb = left._concat_same_type(  # type: ignore[union-attr]
                 [left, right], axis=1
             )
+            comb = comb.view("complex128")[:, 0]
         else:
-            comb = np.concatenate([left, right], axis=1)
+            comb = np.asarray(left.ravel(), dtype="complex128")
+            comb.imag = right.ravel()
         return comb
 
     def _from_combined(self, combined: np.ndarray) -> IntervalArray:
         """
         Create a new IntervalArray with our dtype from a 1D complex128 ndarray.
         """
-        nc = combined.view("i8").reshape(-1, 2)
 
         dtype = self._left.dtype
         if needs_i8_conversion(dtype):
+            nc = combined.view("i8").reshape(-1, 2)
             assert isinstance(self._left, (DatetimeArray, TimedeltaArray))
             new_left: DatetimeArray | TimedeltaArray | np.ndarray = type(
                 self._left
@@ -2155,18 +2150,13 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             )._from_sequence(nc[:, 1], dtype=dtype)
         else:
             assert isinstance(dtype, np.dtype)
-            new_left = nc[:, 0].view(dtype)
-            new_right = nc[:, 1].view(dtype)
+            new_left = np.real(combined).astype(dtype).ravel()
+            new_right = np.imag(combined).astype(dtype).ravel()
         return self._shallow_copy(left=new_left, right=new_right)
 
     def unique(self) -> IntervalArray:
-        # No overload variant of "__getitem__" of "ExtensionArray" matches argument
-        # type "Tuple[slice, int]"
-        nc = unique(
-            self._combined.view("complex128")[:, 0]  # type: ignore[call-overload]
-        )
-        nc = nc[:, None]
-        return self._from_combined(nc)
+        nc = unique(self._combined)
+        return self._from_combined(np.asarray(nc)[:, None])
 
 
 def _maybe_convert_platform_interval(values) -> ArrayLike:

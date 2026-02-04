@@ -45,21 +45,21 @@ class TestIntervalIndex:
         idx = IntervalIndex.from_tuples(tpls, closed=closed)
         ser = Series(list("abc"), idx)
 
-        for key, expected in zip(idx.left, ser):
+        for key, expected in zip(idx.left, ser, strict=True):
             if idx.closed_left:
                 assert indexer_sl(ser)[key] == expected
             else:
                 with pytest.raises(KeyError, match=str(key)):
                     indexer_sl(ser)[key]
 
-        for key, expected in zip(idx.right, ser):
+        for key, expected in zip(idx.right, ser, strict=True):
             if idx.closed_right:
                 assert indexer_sl(ser)[key] == expected
             else:
                 with pytest.raises(KeyError, match=str(key)):
                     indexer_sl(ser)[key]
 
-        for key, expected in zip(idx.mid, ser):
+        for key, expected in zip(idx.mid, ser, strict=True):
             assert indexer_sl(ser)[key] == expected
 
     def test_getitem_non_matching(self, series_with_interval_index, indexer_sl):
@@ -222,3 +222,13 @@ class TestIntervalIndexInsideMultiIndex:
         expected_result = Series([np.nan, 0], index=[np.nan, 1.0], dtype=float)
         result = ser.reindex(index=[np.nan, 1.0])
         tm.assert_series_equal(result, expected_result)
+
+    def test_multiindex_with_interval_index(self):
+        # for GH#25298
+        intIndex = IntervalIndex.from_arrays([1, 5, 8, 13, 16], [4, 9, 12, 17, 20])
+        multiIndex = pd.MultiIndex.from_arrays([["a", "a", "b", "b", "c"], intIndex])
+        data = [(1, 2), (3, 4), (5, 6), (7, 8), (9, 10)]
+        df = DataFrame(data, index=multiIndex)
+        result = df.loc[("b", 16)]
+        expected = Series([7, 8], name=("b", pd.Interval(13, 17, closed="right")))
+        tm.assert_series_equal(result, expected)

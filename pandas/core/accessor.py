@@ -416,7 +416,7 @@ Traceback (most recent call last):
 AttributeError: The series must contain integer data only.
 >>> df = pd.Series([1, 2, 3])
 >>> df.int_accessor.sum()
-np.int64(6)"""
+6"""
 
 
 @set_module("pandas.api.extensions")
@@ -481,7 +481,7 @@ def register_series_accessor(name: str) -> Callable[[TypeT], TypeT]:
     AttributeError: The series must contain integer data only.
     >>> df = pd.Series([1, 2, 3])
     >>> df.int_accessor.sum()
-    np.int64(6)
+    6
     """
     from pandas import Series
 

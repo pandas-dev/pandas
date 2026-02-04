@@ -386,8 +386,8 @@ class _Unstacker:
         new_levels: FrozenList | list[Index]
 
         if isinstance(value_columns, MultiIndex):
-            new_levels = value_columns.levels + (self.removed_level_full,)  # pyright: ignore[reportOperatorIssue]
-            new_names = value_columns.names + (self.removed_name,)
+            new_levels = value_columns.levels + (self.removed_level_full,)  # pyright: ignore[reportOperatorIssue] # noqa: RUF005
+            new_names = value_columns.names + (self.removed_name,)  # noqa: RUF005
 
             new_codes = [lab.take(propagator) for lab in value_columns.codes]
         else:
@@ -490,12 +490,12 @@ def _unstack_multiple(
 
     if not rlocs:
         # Everything is in clocs, so the dummy df has a regular index
-        dummy_index = Index(obs_ids, name="__placeholder__")
+        dummy_index = Index(obs_ids, name="__placeholder__", copy=False)
     else:
         dummy_index = MultiIndex(
-            levels=rlevels + [obs_ids],
-            codes=rcodes + [comp_ids],
-            names=rnames + ["__placeholder__"],
+            levels=[*rlevels, obs_ids],
+            codes=[*rcodes, comp_ids],
+            names=[*rnames, "__placeholder__"],
             verify_integrity=False,
         )
 
@@ -535,8 +535,8 @@ def _unstack_multiple(
         else:
             unstcols = unstacked.columns
         assert isinstance(unstcols, MultiIndex)  # for mypy
-        new_levels = [unstcols.levels[0]] + clevels
-        new_names = [data.columns.name] + cnames
+        new_levels = [unstcols.levels[0], *clevels]
+        new_names = [data.columns.name, *cnames]
 
         new_codes = [unstcols.codes[0]]
         new_codes.extend(rec.take(unstcols.codes[-1]) for rec in recons_codes)
@@ -696,7 +696,9 @@ def stack(
             levels=new_levels, codes=new_codes, names=new_names, verify_integrity=False
         )
     else:
-        levels, (ilab, clab) = zip(*map(stack_factorize, (frame.index, frame.columns)))
+        levels, (ilab, clab) = zip(
+            *map(stack_factorize, (frame.index, frame.columns)), strict=True
+        )
         codes = ilab.repeat(K), np.tile(clab, N).ravel()
         new_index = MultiIndex(
             levels=levels,
@@ -778,13 +780,13 @@ def _stack_multi_column_index(columns: MultiIndex) -> MultiIndex | Index:
 
     levs = (
         [lev[c] if c >= 0 else None for c in codes]
-        for lev, codes in zip(columns.levels[:-1], columns.codes[:-1])
+        for lev, codes in zip(columns.levels[:-1], columns.codes[:-1], strict=True)
     )
 
     # Remove duplicate tuples in the MultiIndex.
-    tuples = zip(*levs)
+    tuples = zip(*levs, strict=True)
     unique_tuples = (key for key, _ in itertools.groupby(tuples))
-    new_levs = zip(*unique_tuples)
+    new_levs = zip(*unique_tuples, strict=True)
 
     # The dtype of each level must be explicitly set to avoid inferring the wrong type.
     # See GH-36991.
@@ -792,7 +794,7 @@ def _stack_multi_column_index(columns: MultiIndex) -> MultiIndex | Index:
         [
             # Not all indices can accept None values.
             Index(new_lev, dtype=lev.dtype) if None not in new_lev else new_lev
-            for new_lev, lev in zip(new_levs, columns.levels)
+            for new_lev, lev in zip(new_levs, columns.levels[:-1], strict=True)
         ],
         names=columns.names[:-1],
     )

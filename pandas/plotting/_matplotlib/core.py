@@ -1126,16 +1126,16 @@ class MPLPlot(ABC):
         Error bars can be specified in several ways:
             Series: the user provides a pandas.Series object of the same
                     length as the data
-            ndarray: provides a np.ndarray of the same length as the data
+            ndarray: provides an np.ndarray of the same length as the data
             DataFrame/dict: error values are paired with keys matching the
                     key in the plotted DataFrame
             str: the name of the column within the plotted DataFrame
 
         Asymmetrical error bars are also supported, however raw error values
-        must be provided in this case. For a ``N`` length :class:`Series`, a
+        must be provided in this case. For an ``N`` length :class:`Series`, a
         ``2xN`` array should be provided indicating lower and upper (or left
-        and right) errors. For a ``MxN`` :class:`DataFrame`, asymmetrical errors
-        should be in a ``Mx2xN`` array.
+        and right) errors. For an ``MxN`` :class:`DataFrame`, asymmetrical errors
+        should be in an ``Mx2xN`` array.
         """
         if err is None:
             return None, data

@@ -83,9 +83,11 @@ class TestDatetimeIndex:
 
     def test_astype_tzaware_to_tzaware(self):
         # GH 18951: tz-aware to tz-aware
-        idx = date_range("20170101", periods=4, tz="US/Pacific")
+        idx = date_range("20170101", periods=4, tz="US/Pacific", unit="ns")
         result = idx.astype("datetime64[ns, US/Eastern]")
-        expected = date_range("20170101 03:00:00", periods=4, tz="US/Eastern")
+        expected = date_range(
+            "20170101 03:00:00", periods=4, tz="US/Eastern", unit="ns"
+        )
         tm.assert_index_equal(result, expected)
         assert result.freq == expected.freq
 
@@ -239,7 +241,7 @@ class TestDatetimeIndex:
         def _check_rng(rng):
             converted = rng.to_pydatetime()
             assert isinstance(converted, np.ndarray)
-            for x, stamp in zip(converted, rng):
+            for x, stamp in zip(converted, rng, strict=True):
                 assert isinstance(x, datetime)
                 assert x == stamp.to_pydatetime()
                 assert x.tzinfo == stamp.tzinfo
@@ -258,7 +260,7 @@ class TestDatetimeIndex:
         def _check_rng(rng):
             converted = rng.to_pydatetime()
             assert isinstance(converted, np.ndarray)
-            for x, stamp in zip(converted, rng):
+            for x, stamp in zip(converted, rng, strict=True):
                 assert isinstance(x, datetime)
                 assert x == stamp.to_pydatetime()
                 assert x.tzinfo == stamp.tzinfo
@@ -275,7 +277,7 @@ class TestDatetimeIndex:
         def _check_rng(rng):
             converted = rng.to_pydatetime()
             assert isinstance(converted, np.ndarray)
-            for x, stamp in zip(converted, rng):
+            for x, stamp in zip(converted, rng, strict=True):
                 assert isinstance(x, datetime)
                 assert x == stamp.to_pydatetime()
                 assert x.tzinfo == stamp.tzinfo
@@ -314,7 +316,7 @@ class TestDatetimeIndex:
 class TestAstype:
     @pytest.mark.parametrize("tz", [None, "US/Central"])
     def test_astype_category(self, tz):
-        obj = date_range("2000", periods=2, tz=tz, name="idx")
+        obj = date_range("2000", periods=2, tz=tz, name="idx", unit="ns")
         result = obj.astype("category")
         dti = DatetimeIndex(["2000-01-01", "2000-01-02"], tz=tz).as_unit("ns")
         expected = pd.CategoricalIndex(

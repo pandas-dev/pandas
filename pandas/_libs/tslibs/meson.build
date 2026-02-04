@@ -4,7 +4,7 @@ tslibs_sources = {
     'base': {'sources': ['base.pyx']},
     'ccalendar': {'sources': ['ccalendar.pyx']},
     'dtypes': {'sources': ['dtypes.pyx']},
-    'conversion': {'sources': ['conversion.pyx']},
+    'conversion': {'sources': ['conversion.pyx'], 'deps': [m_dep]},
     'fields': {'sources': ['fields.pyx']},
     'nattype': {'sources': ['nattype.pyx']},
     'np_datetime': {'sources': ['np_datetime.pyx']},
@@ -40,7 +40,7 @@ foreach ext_name, ext_dict : tslibs_sources
         ext_dict.get('sources'),
         cython_args: cython_args,
         include_directories: [inc_np, inc_pd],
-        dependencies: ext_dict.get('deps', ''),
+        dependencies: ext_dict.get('deps', []),
         subdir: 'pandas/_libs/tslibs',
         install: true,
     )

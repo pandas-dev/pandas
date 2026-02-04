@@ -29,7 +29,10 @@ from pandas._typing import (
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import SpecificationError
-from pandas.util._decorators import cache_readonly
+from pandas.util._decorators import (
+    cache_readonly,
+    set_module,
+)
 
 from pandas.core.dtypes.cast import is_nested_object
 from pandas.core.dtypes.common import (
@@ -75,6 +78,7 @@ if TYPE_CHECKING:
 ResType: TypeAlias = dict[int, Any]
 
 
+@set_module("pandas.api.executors")
 class BaseExecutionEngine(abc.ABC):
     """
     Base class for execution engines for map and apply methods.
@@ -87,8 +91,6 @@ class BaseExecutionEngine(abc.ABC):
     run in parallel, and others. Besides the default executor which
     simply runs the code with the Python interpreter and pandas.
     """
-
-    __module__ = "pandas.api.executors"
 
     @staticmethod
     @abc.abstractmethod
@@ -1374,7 +1376,7 @@ class FrameColumnApply(FrameApply):
                     # result, which potentially increases the ref count of this reused
                     # `ser` object (depending on the result of the applied function)
                     # -> if that happened and `ser` is already a copy, then we reset
-                    # the refs here to avoid triggering a unnecessary CoW inside the
+                    # the refs here to avoid triggering an unnecessary CoW inside the
                     # applied function (https://github.com/pandas-dev/pandas/pull/56212)
                     mgr.blocks[0].refs = BlockValuesRefs(mgr.blocks[0])
                 yield ser
@@ -1768,6 +1770,7 @@ def reconstruct_func(
             raise TypeError("Must provide 'func' or tuples of '(column, aggfunc).")
 
     if relabeling:
+        normalization_needed = False
         # error: Incompatible types in assignment (expression has type
         # "MutableMapping[Hashable, list[Callable[..., Any] | str]]", variable has type
         # "Callable[..., Any] | str | list[Callable[..., Any] | str] |
@@ -1776,18 +1779,32 @@ def reconstruct_func(
         converted_kwargs = {}
         for key, val in kwargs.items():
             if isinstance(val, NamedAgg):
+                column = val.column
                 aggfunc = val.aggfunc
                 if val.args or val.kwargs:
                     aggfunc = lambda x, func=aggfunc, a=val.args, kw=val.kwargs: func(
                         x, *a, **kw
                     )
-                converted_kwargs[key] = (val.column, aggfunc)
             else:
-                converted_kwargs[key] = val
+                column, aggfunc = val
 
-        func, columns, order = normalize_keyword_aggregation(  # type: ignore[assignment]
-            converted_kwargs
-        )
+            if column != key:
+                normalization_needed = True
+            converted_kwargs[key] = column, aggfunc
+
+        if normalization_needed:
+            func, columns, order = normalize_keyword_aggregation(  # type: ignore[assignment]
+                converted_kwargs
+            )
+        else:
+            # When names match, convert to dict format {column: aggfunc}
+            # and disable relabeling since no reordering is needed
+            func = {
+                column: aggfunc for key, (column, aggfunc) in converted_kwargs.items()
+            }
+            # Normalization is skipped if all kwargs keys are the same as their
+            # corresponding column name.
+            relabeling = False
 
     assert func is not None
 
@@ -1970,7 +1987,7 @@ def relabel_result(
             fun = [
                 com.get_callable_name(f) if not isinstance(f, str) else f for f in fun
             ]
-            col_idx_order = Index(s.index).get_indexer(fun)
+            col_idx_order = Index(s.index, copy=False).get_indexer(fun)
             valid_idx = col_idx_order != -1
             if valid_idx.any():
                 s = s.iloc[col_idx_order[valid_idx]]

@@ -10,9 +10,6 @@ from typing import (
 import numpy as np
 
 from pandas.compat._optional import import_optional_dependency
-from pandas.util._decorators import doc
-
-from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.excel._base import (
     BaseExcelReader,
@@ -449,6 +446,7 @@ class OpenpyxlWriter(ExcelWriter):
         startrow: int = 0,
         startcol: int = 0,
         freeze_panes: tuple[int, int] | None = None,
+        autofilter_range: str | None = None,
     ) -> None:
         # Write the frame cells using openpyxl.
         sheet_name = self._get_sheet_name(sheet_name)
@@ -532,9 +530,11 @@ class OpenpyxlWriter(ExcelWriter):
                             for k, v in style_kwargs.items():
                                 setattr(xcell, k, v)
 
+        if autofilter_range:
+            wks.auto_filter.ref = autofilter_range
+
 
 class OpenpyxlReader(BaseExcelReader["Workbook"]):
-    @doc(storage_options=_shared_docs["storage_options"])
     def __init__(
         self,
         filepath_or_buffer: FilePath | ReadBuffer[bytes],
@@ -548,7 +548,15 @@ class OpenpyxlReader(BaseExcelReader["Workbook"]):
         ----------
         filepath_or_buffer : str, path object or Workbook
             Object to be parsed.
-        {storage_options}
+        storage_options : dict, optional
+            Extra options that make sense for a particular storage connection, e.g.
+            host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
+            are forwarded to ``urllib.request.Request`` as header options. For other
+            URLs (e.g. starting with "s3://", and "gcs://") the key-value pairs are
+            forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more
+            details, and for more examples on storage options refer `here
+            <https://pandas.pydata.org/docs/user_guide/io.html?
+            highlight=storage_options#reading-writing-remote-files>`_.
         engine_kwargs : dict, optional
             Arbitrary keyword arguments passed to excel engine.
         """

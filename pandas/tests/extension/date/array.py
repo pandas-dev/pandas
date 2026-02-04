@@ -162,10 +162,13 @@ class DateArray(ExtensionArray):
         self._day[key] = value.day
 
     def __repr__(self) -> str:
-        return f"DateArray{list(zip(self._year, self._month, self._day))}"
+        return f"DateArray{list(zip(self._year, self._month, self._day, strict=True))}"
 
     def copy(self) -> DateArray:
         return DateArray((self._year.copy(), self._month.copy(), self._day.copy()))
+
+    def view(self, dtype: Dtype | None = None) -> DateArray:
+        return DateArray((self._year.view(), self._month.view(), self._day.view()))
 
     def isna(self) -> np.ndarray:
         return np.logical_and(

@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import decimal
 import operator
-from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
     Literal,
@@ -35,10 +34,7 @@ from pandas._typing import (
     TakeIndexer,
     npt,
 )
-from pandas.util._decorators import (
-    doc,
-    set_module,
-)
+from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
@@ -370,7 +366,7 @@ def unique(values):
     array([2, 1])
 
     >>> pd.unique(pd.Series([pd.Timestamp("20160101"), pd.Timestamp("20160101")]))
-    array(['2016-01-01T00:00:00'], dtype='datetime64[s]')
+    array(['2016-01-01T00:00:00.000000'], dtype='datetime64[us]')
 
     >>> pd.unique(
     ...     pd.Series(
@@ -427,7 +423,7 @@ def unique(values):
     >>> pd.unique(pd.Series([("a", "b"), ("b", "a"), ("a", "c"), ("b", "a")]).values)
     array([('a', 'b'), ('b', 'a'), ('a', 'c')], dtype=object)
 
-    An NumpyExtensionArray of complex
+    A NumpyExtensionArray of complex
 
     >>> pd.unique(pd.array([1 + 1j, 2, 3]))
     <NumpyExtensionArray>
@@ -654,28 +650,6 @@ def factorize_array(
 
 
 @set_module("pandas")
-@doc(
-    values=dedent(
-        """\
-    values : sequence
-        A 1-D sequence. Sequences that aren't pandas objects are
-        coerced to ndarrays before factorization.
-    """
-    ),
-    sort=dedent(
-        """\
-    sort : bool, default False
-        Sort `uniques` and shuffle `codes` to maintain the
-        relationship.
-    """
-    ),
-    size_hint=dedent(
-        """\
-    size_hint : int, optional
-        Hint to the hashtable sizer.
-    """
-    ),
-)
 def factorize(
     values,
     sort: bool = False,
@@ -692,12 +666,18 @@ def factorize(
 
     Parameters
     ----------
-    {values}{sort}
+    values : sequence
+        A 1-D sequence. Sequences that aren't pandas objects are
+        coerced to ndarrays before factorization.
+    sort : bool, default False
+        Sort `uniques` and shuffle `codes` to maintain the
+        relationship.
     use_na_sentinel : bool, default True
         If True, the sentinel -1 will be used for NaN values. If False,
         NaN values will be encoded as non-negative integers and will not drop the
         NaN from the uniques of the values.
-    {size_hint}\
+    size_hint : int, optional
+        Hint to the hashtable sizer.
 
     Returns
     -------
@@ -729,7 +709,7 @@ def factorize(
     ``pd.factorize(values)``. The results are identical for methods like
     :meth:`Series.factorize`.
 
-    >>> codes, uniques = pd.factorize(np.array(['b', 'b', 'a', 'c', 'b'], dtype="O"))
+    >>> codes, uniques = pd.factorize(np.array(["b", "b", "a", "c", "b"], dtype="O"))
     >>> codes
     array([0, 0, 1, 2, 0])
     >>> uniques
@@ -738,8 +718,9 @@ def factorize(
     With ``sort=True``, the `uniques` will be sorted, and `codes` will be
     shuffled so that the relationship is the maintained.
 
-    >>> codes, uniques = pd.factorize(np.array(['b', 'b', 'a', 'c', 'b'], dtype="O"),
-    ...                               sort=True)
+    >>> codes, uniques = pd.factorize(
+    ...     np.array(["b", "b", "a", "c", "b"], dtype="O"), sort=True
+    ... )
     >>> codes
     array([1, 1, 0, 2, 1])
     >>> uniques
@@ -749,7 +730,7 @@ def factorize(
     the `codes` with the sentinel value ``-1`` and missing values are not
     included in `uniques`.
 
-    >>> codes, uniques = pd.factorize(np.array(['b', None, 'a', 'c', 'b'], dtype="O"))
+    >>> codes, uniques = pd.factorize(np.array(["b", None, "a", "c", "b"], dtype="O"))
     >>> codes
     array([ 0, -1,  1,  2,  0])
     >>> uniques
@@ -759,7 +740,7 @@ def factorize(
     NumPy arrays). When factorizing pandas objects, the type of `uniques`
     will differ. For Categoricals, a `Categorical` is returned.
 
-    >>> cat = pd.Categorical(['a', 'a', 'c'], categories=['a', 'b', 'c'])
+    >>> cat = pd.Categorical(["a", "a", "c"], categories=["a", "b", "c"])
     >>> codes, uniques = pd.factorize(cat)
     >>> codes
     array([0, 0, 1])
@@ -773,7 +754,7 @@ def factorize(
     For all other pandas objects, an Index of the appropriate type is
     returned.
 
-    >>> cat = pd.Series(['a', 'a', 'c'])
+    >>> cat = pd.Series(["a", "a", "c"])
     >>> codes, uniques = pd.factorize(cat)
     >>> codes
     array([0, 0, 1])
@@ -898,18 +879,15 @@ def value_counts_internal(
             result = result.iloc[0:0]
 
         # normalizing is by len of all (regardless of dropna)
-        counts = np.array([len(ii)])
+        normalize_denominator = len(ii)
 
     else:
+        normalize_denominator = None
         if is_extension_array_dtype(values):
             # handle Categorical and sparse,
             result = Series(values, copy=False)._values.value_counts(dropna=dropna)
             result.name = name
             result.index.name = index_name
-            counts = result._values
-            if not isinstance(counts, np.ndarray):
-                # e.g. ArrowExtensionArray
-                counts = np.asarray(counts)
 
         elif isinstance(values, ABCMultiIndex):
             # GH49558
@@ -920,10 +898,6 @@ def value_counts_internal(
                 .size()
             )
             result.index.names = values.names
-            # error: Incompatible types in assignment (expression has type
-            # "ndarray[Any, Any] | DatetimeArray | TimedeltaArray | PeriodArray | Any",
-            # variable has type "ndarray[tuple[int, ...], dtype[Any]]")
-            counts = result._values  # type: ignore[assignment]
 
         else:
             values = _ensure_arraylike(values, func_name="value_counts")
@@ -933,11 +907,10 @@ def value_counts_internal(
 
             # Starting in 3.0, we no longer perform dtype inference on the
             #  Index object we construct here, xref GH#56161
-            idx = Index(keys, dtype=keys.dtype, name=index_name)
+            idx = Index(keys, dtype=keys.dtype, name=index_name, copy=False)
 
             if (
-                bins is None
-                and not sort
+                not sort
                 and isinstance(values, (DatetimeIndex, TimedeltaIndex))
                 and idx.equals(values)
                 and values.inferred_freq is not None
@@ -948,10 +921,13 @@ def value_counts_internal(
             result = Series(counts, index=idx, name=name, copy=False)
 
     if sort:
-        result = result.sort_values(ascending=ascending)
+        result = result.sort_values(ascending=ascending, kind="stable")
 
     if normalize:
-        result = result / counts.sum()
+        if normalize_denominator is not None:
+            result = result / normalize_denominator
+        else:
+            result = result / result.sum()
 
     return result
 
@@ -1140,14 +1116,8 @@ def take(
 
     Parameters
     ----------
-    arr : array-like or scalar value
-        Non array-likes (sequences/scalars without a dtype) are coerced
-        to an ndarray.
-
-        .. deprecated:: 2.1.0
-            Passing an argument other than a numpy.ndarray, ExtensionArray,
-            Index, or Series is deprecated.
-
+    arr : numpy.ndarray, ExtensionArray, Index, or Series
+        Input array.
     indices : sequence of int or one-dimensional np.ndarray of int
         Indices to be taken.
     axis : int, default 0

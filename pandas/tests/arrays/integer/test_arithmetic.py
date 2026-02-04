@@ -201,10 +201,6 @@ def test_error_invalid_values(data, all_arithmetic_operators):
     ]:  # (data[~data.isna()] >= 0).all():
         res = ops(str_ser)
         expected = pd.Series(["foo" * x for x in data], index=s.index)
-        expected = expected.fillna(np.nan)
-        # TODO: doing this fillna to keep tests passing as we make
-        #  assert_almost_equal stricter, but the expected with pd.NA seems
-        #  more-correct than np.nan here.
         tm.assert_series_equal(res, expected)
     else:
         with tm.external_error_raised(TypeError):
@@ -274,7 +270,7 @@ def test_cross_type_arithmetic():
 
 
 @pytest.mark.parametrize("op", ["mean"])
-def test_reduce_to_float(op):
+def test_reduce_to_float(op, using_python_scalars):
     # some reduce ops always return float, even if the result
     # is a rounded number
     df = pd.DataFrame(
@@ -287,7 +283,10 @@ def test_reduce_to_float(op):
 
     # op
     result = getattr(df.C, op)()
-    assert isinstance(result, float)
+    if using_python_scalars:
+        assert type(result) == float
+    else:
+        assert isinstance(result, np.float64)
 
     # groupby
     result = getattr(df.groupby("A"), op)()

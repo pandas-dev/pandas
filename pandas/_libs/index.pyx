@@ -58,7 +58,7 @@ cdef bint is_definitely_invalid_key(object val):
 
 cdef ndarray _get_bool_indexer(ndarray values, object val, ndarray mask = None):
     """
-    Return a ndarray[bool] of locations where val matches self.values.
+    Return an ndarray[bool] of locations where val matches self.values.
 
     If val is not NA, this is equivalent to `self.values == val`
     """

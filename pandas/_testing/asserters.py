@@ -803,7 +803,7 @@ def assert_extension_array_equal(
             ):
                 return
         # Avoid slow object-dtype comparisons
-        # np.asarray for case where we have a np.MaskedArray
+        # np.asarray for case where we have an np.MaskedArray
         assert_numpy_array_equal(
             np.asarray(left.asi8),
             np.asarray(right.asi8),

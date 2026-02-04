@@ -559,7 +559,7 @@ def test_extractall_no_matches(data, names, any_string_dtype):
         tuples = (tuple([i] * (n - 1)) for i in range(n))
         index = MultiIndex.from_tuples(tuples, names=names)
     s = Series(data, name="series_name", index=index, dtype=any_string_dtype)
-    expected_index = MultiIndex.from_tuples([], names=(names + ("match",)))
+    expected_index = MultiIndex.from_tuples([], names=((*names, "match")))
 
     # one un-named group.
     result = s.str.extractall("(z)")
@@ -682,7 +682,7 @@ def test_extractall_same_as_extract(any_string_dtype):
 
 
 def test_extractall_same_as_extract_subject_index(any_string_dtype):
-    # same as above tests, but s has an MultiIndex.
+    # same as above tests, but s has a MultiIndex.
     mi = MultiIndex.from_tuples(
         [("A", "first"), ("B", "second"), ("C", "third")],
         names=("capital", "ordinal"),
@@ -721,3 +721,64 @@ def test_extractall_preserves_dtype():
 
     result = Series(["abc", "ab"], dtype=ArrowDtype(pa.string())).str.extractall("(ab)")
     assert result.dtypes[0] == "string[pyarrow]"
+
+
+@pytest.mark.parametrize(
+    "pat, expected_data",
+    [
+        (r"(a(?=b))", [None, "a", None, None]),
+        (r"((?<=a)b)", [None, "b", None, None]),
+        (r"(a(?!b))", ["a", None, "a", None]),
+        (r"((?<!b)a)", ["a", "a", None, None]),
+        ("(ab)", [None, "ab", None, None]),
+    ],
+)
+def test_extract_lookarounds(any_string_dtype, pat, expected_data):
+    # https://github.com/pandas-dev/pandas/issues/60833
+    ser = Series(["aa", "ab", "ba", "bb", None], dtype=any_string_dtype)
+    result = ser.str.extract(pat, expand=False)
+    if any_string_dtype == "object":
+        # object input will preserve None but any result with no matches gets NaN
+        expected_data = [np.nan if e is None else e for e in expected_data]
+    expected = Series([*expected_data, None], dtype=any_string_dtype)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "pat, expected_data",
+    [
+        (r"(a(?=b))", {(1, 0): "a"}),
+        (r"((?<=a)b)", {(1, 0): "b"}),
+        (r"(a(?!b))", {(0, 0): "a", (0, 1): "a", (2, 0): "a"}),
+        (r"((?<!b)a)", {(0, 0): "a", (0, 1): "a", (1, 0): "a"}),
+        ("(ab)", {(1, 0): "ab"}),
+    ],
+)
+def test_extractall_lookarounds(any_string_dtype, pat, expected_data):
+    # https://github.com/pandas-dev/pandas/issues/60833
+    ser = Series(["aa", "ab", "ba", "bb", None], dtype=any_string_dtype)
+    result = ser.str.extractall(pat)
+    expected = Series(expected_data, dtype=any_string_dtype).to_frame()
+    expected.index.names = [None, "match"]
+    tm.assert_frame_equal(result, expected)
+
+
+def test_extract_end_of_string(any_string_dtype):
+    # https://github.com/pandas-dev/pandas/pull/63613
+    ser = Series(["aa", "abc", "bb\n"], dtype=any_string_dtype)
+
+    # with dollar sign
+    result = ser.str.extract("([ab]+)$")
+    expected = Series(["aa", np.nan, "bb"], dtype=any_string_dtype).to_frame()
+    tm.assert_frame_equal(result, expected)
+
+    # with \Z (ensure this is translated to \z for pyarrow)
+    result = ser.str.extract(r"([ab]+)\Z")
+    expected = Series(["aa", np.nan, np.nan], dtype=any_string_dtype).to_frame()
+    tm.assert_frame_equal(result, expected)
+
+    # ensure finding a literal \Z still works
+    ser = Series([r"aa\Z", "abc", "bb\\Z\n"], dtype=any_string_dtype)
+    result = ser.str.extract(r"([ab]+)\\Z")
+    expected = Series(["aa", np.nan, "bb"], dtype=any_string_dtype).to_frame()
+    tm.assert_frame_equal(result, expected)

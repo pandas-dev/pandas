@@ -237,9 +237,9 @@ The default setting of ``dropna`` argument is ``True`` which means ``NA`` are no
 GroupBy object attributes
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The ``groups`` attribute is a dictionary whose keys are the computed unique groups
-and corresponding values are the index labels belonging to each group. In the
-above example we have:
+The ``groups`` attribute of a GroupBy object is a dictionary that maps each
+unique group key to the index labels belonging to that group. In the above
+example:
 
 .. ipython:: python
 

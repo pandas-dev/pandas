@@ -1018,8 +1018,8 @@ class StataParser:
         }
 
 
+@set_module("pandas.api.typing")
 class StataReader(StataParser, abc.Iterator):
-    __module__ = "pandas.api.typing"
     __doc__ = _stata_reader_doc
 
     _path_or_buf: IO[bytes]  # Will be assigned by `_open_file`.
@@ -2282,7 +2282,7 @@ def _convert_datetime_to_stata_type(fmt: str) -> np.dtype:
 def _maybe_convert_to_int_keys(convert_dates: dict, varlist: list[Hashable]) -> dict:
     new_dict = {}
     for key, value in convert_dates.items():
-        if not convert_dates[key].startswith("%"):  # make sure proper fmts
+        if not value.startswith("%"):  # make sure proper fmts
             convert_dates[key] = "%" + value
         if key in varlist:
             new_dict[varlist.index(key)] = convert_dates[key]
