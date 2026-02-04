@@ -78,7 +78,7 @@ class TestDataFrameMisc:
         # them in __dir__.
         df = DataFrame(
             [list("abcd"), list("efgh")],
-            columns=pd.MultiIndex.from_tuples(list(zip("ABCD", "EFGH"))),
+            columns=pd.MultiIndex.from_tuples(list(zip("ABCD", "EFGH", strict=True))),
         )
         for key in list("ABCD"):
             assert key in dir(df)

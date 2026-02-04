@@ -5,6 +5,7 @@ from datetime import (
     timedelta,
 )
 from functools import wraps
+from itertools import pairwise
 import operator
 from typing import (
     TYPE_CHECKING,
@@ -2124,6 +2125,10 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         """
         Perform round operation on the data to the specified `freq`.
 
+        This method rounds each datetime value in the Series/Index to the
+        nearest specified frequency using standard rounding rules (round half
+        to even).
+
         Parameters
         ----------
         freq : str or Offset
@@ -2228,6 +2233,9 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         """
         Perform floor operation on the data to the specified `freq`.
 
+        This method rounds each datetime value in the Series/Index down to
+        the specified frequency (i.e., towards negative infinity).
+
         Parameters
         ----------
         freq : str or Offset
@@ -2331,6 +2339,9 @@ class TimelikeOps(DatetimeLikeArrayMixin):
     ) -> Self:
         """
         Perform ceil operation on the data to the specified `freq`.
+
+        This method rounds each datetime value in the Series/Index up to
+        the specified frequency (i.e., towards positive infinity).
 
         Parameters
         ----------
@@ -2524,7 +2535,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             to_concat = [x for x in to_concat if len(x)]
 
             if obj.freq is not None and all(x.freq == obj.freq for x in to_concat):
-                pairs = zip(to_concat[:-1], to_concat[1:], strict=True)
+                pairs = pairwise(to_concat)
                 if all(pair[0][-1] + obj.freq == pair[1][0] for pair in pairs):
                     new_freq = obj.freq
                     new_obj._freq = new_freq

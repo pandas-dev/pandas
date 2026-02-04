@@ -284,8 +284,28 @@ class CustomBusinessHour(BusinessHour):
         offset: timedelta = ...,
     ) -> None: ...
 
-class CustomBusinessMonthEnd(_CustomBusinessMonth): ...
-class CustomBusinessMonthBegin(_CustomBusinessMonth): ...
+class CustomBusinessMonthEnd(_CustomBusinessMonth):
+    def __init__(
+        self,
+        n: int = ...,
+        normalize: bool = ...,
+        weekmask: str = ...,
+        holidays: list | None = ...,
+        calendar: OffsetCalendar | None = ...,
+        offset: timedelta = ...,
+    ) -> None: ...
+
+class CustomBusinessMonthBegin(_CustomBusinessMonth):
+    def __init__(
+        self,
+        n: int = ...,
+        normalize: bool = ...,
+        weekmask: str = ...,
+        holidays: list | None = ...,
+        calendar: OffsetCalendar | None = ...,
+        offset: timedelta = ...,
+    ) -> None: ...
+
 class OffsetMeta(type): ...
 class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta): ...
 

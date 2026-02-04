@@ -1667,6 +1667,10 @@ cdef class PeriodMixin:
         """
         Get the Timestamp for the start of the period.
 
+        This property returns the exact start time of the period as a Timestamp.
+        For example, a monthly period starting in January 2020 would return
+        a Timestamp of '2020-01-01 00:00:00'.
+
         Returns
         -------
         Timestamp
@@ -1696,6 +1700,10 @@ cdef class PeriodMixin:
     def end_time(self) -> Timestamp:
         """
         Get the Timestamp for the end of the period.
+
+        This property returns the exact end time of the period as a Timestamp.
+        The returned timestamp represents the last possible moment within the
+        period (e.g., 23:59:59.999999 for a daily period).
 
         Returns
         -------
@@ -2131,6 +2139,9 @@ cdef class _Period(PeriodMixin):
     def year(self) -> int:
         """
         Return the year this Period falls on.
+
+        The year is derived from the internal representation of the Period
+        based on its ordinal value and frequency.
 
         Returns
         -------
