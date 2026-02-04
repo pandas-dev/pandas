@@ -823,16 +823,16 @@ class TestDataFrameSelectReindex:
         # GH#63993
         df = DataFrame({"a": [0]})
         result = df.reindex(columns=["a", "b", "c"], fill_value="missing")
-        
+
         # Should not raise AssertionError
         assert result.shape == (1, 3)
         assert result["a"].iloc[0] == 0
         assert result["b"].iloc[0] == "missing"
         assert result["c"].iloc[0] == "missing"
-        
-        # Multiple columns with 1D-only EA dtype fall back to object dtype
-        assert result["b"].dtype == object
-        assert result["c"].dtype == object
+
+        # All string columns should have consistent str dtype
+        assert result["b"].dtype == "str"
+        assert result["c"].dtype == "str"
 
     def test_reindex_dups(self):
         # GH4746, reindex on duplicate index error messages
