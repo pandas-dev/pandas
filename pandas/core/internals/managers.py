@@ -2390,12 +2390,7 @@ def _form_blocks(arrays: list[ArrayLike], consolidate: bool, refs: list) -> list
 
         elif is_1d_only_ea_dtype(dtype):
             dtype_blocks = [
-                block_type(
-                    ensure_block_shape(x[1], 2),
-                    placement=BlockPlacement(x[0]),
-                    ndim=2,
-                    refs=refs[x[0]],
-                )
+                block_type(x[1], placement=BlockPlacement(x[0]), ndim=2)
                 for x in tup_block
             ]
             nbs.extend(dtype_blocks)

@@ -272,13 +272,13 @@ def astype_is_view(dtype: DtypeObj, new_dtype: DtypeObj) -> bool:
     if dtype == new_dtype:
         return True
 
-    elif is_string_dtype(dtype) and is_string_dtype(new_dtype):
-        # Potentially! a view when converting from object to string
-        return True
-
     elif isinstance(dtype, np.dtype) and isinstance(new_dtype, np.dtype):
         # Only equal numpy dtypes avoid a copy
         return False
+
+    elif is_string_dtype(dtype) and is_string_dtype(new_dtype):
+        # Potentially! a view when converting from object to string
+        return True
 
     elif is_object_dtype(dtype) and new_dtype.kind == "O":
         # When the underlying array has dtype object, we don't have to make a copy
