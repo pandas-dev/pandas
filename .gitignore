@@ -1,3 +1,4 @@
+#########################################
 # Editor temporary/working/backup files #
 .#*
 *\#*\#
@@ -77,190 +78,69 @@ coverage_html_report
 .mypy_cache
 *.pytest_cache
 .ruff_cache
+# hypothesis test database
+.hypothesis/
+__pycache__
+# pytest-monkeytype
+monkeytype.sqlite3
+# meson editable install folder
+.mesonpy
 
-# C extensions
-*.c
 
-# Nose
-
-# build
-*.orig
-
-# Distribution / packaging
-pip-log.txt
-
-# Sphinx
-_doc_sphinx/
-
-# IPython
-profile_default/
-
-# pytest
-.cache
-
-# Rust build
-pandas/target/
-
-# Docs build artifacts
-/doc/_build/
-
-# Virtualenv
-.env
-.venv*
-
-# Binaries
-*.dll
-*.dylib
-*.so
-
-# Vagrant
-.vagrant/
-
-# input files
-*.xls
-*.xlsx
-*.h5
-*.parquet
-*.feather
-*.csv
-*.dta
-*.stata
-*.pickle
-*.pkl
-*.msgpack
-*.bzip2
-*.bz2
-*.gz
-*.gzip
-*.xz
-*.zip
-*.tar
-*.tgz
-*.tar.gz
-*.tar.bz2
-*.tar.xz
-*.7z
-*.rar
-*.pdf
-*.pptx
-*.ppt
-*.doc
-*.docx
-*.txt
-*.tsv
-*.sas7bdat
-*.mjd
-*.zip
-*.sqlite
-
-# Stata
-*.dta
-
-# SAS
-*.sas7bdat
-
-# HDFStore
-*.h5
-
-# notebooks
-*.ipynb
-
-# opt-in
-*.py.bak
-
-# temporary files
-~*
-
-# edX
-*.log
-
-# Mypy cache
-.mypy_cache/
-
-# Ruff cache
-.ruff_cache/
-
-# Misc
-*.patch
-*.diff
-*.orig
-*.rej
-
-# Tests
-/test-data/
-/test-results/
-/test-results.json
-
-# Mongo
-*.bson
-
-# SQLite
-*.sqlite
-
-# Mac OS
+# OS generated files #
+######################
+.directory
+.gdb_history
 .DS_Store
-
-# Windows
+ehthumbs.db
+Icon?
 Thumbs.db
 
-docker-compose.override.yml
-.envrc
+# Data files #
+##############
+*.dta
+*.xpt
+*.h5
+pandas/io/*.dat
+pandas/io/*.json
+scikits
 
-# for IPython
-.ipynb_checkpoints
+# Generated Sources #
+#####################
+!skts.c
+*.c
+*.cpp
+!pandas/_libs/src/**/*.c
+!pandas/_libs/src/**/*.h
+!pandas/_libs/include/**/*.h
 
-# for coverage
-.coverage
+# Unit / Performance Testing #
+##############################
+asv_bench/env/
+asv_bench/html/
+asv_bench/results/
+asv_bench/pandas/
+test-data.xml
 
-# for lint
-.pylint.d
+# Documentation generated files #
+#################################
+doc/source/generated
+doc/source/user_guide/styled.xlsx
+doc/source/reference/api
+doc/source/_static/*.html
+doc/source/vbench
+doc/source/vbench.rst
+doc/source/index.rst
+doc/build/html/index.html
+# Windows specific leftover:
+doc/tmp.sv
+env/
+doc/source/savefig/
 
-# for tests
-.pytest_cache
+# Interactive terminal generated files #
+########################################
+.jupyterlite.doit.db
 
-# for IDE
-*.sublime-project
-*.sublime-workspace
-
-# for Jupyter
-.jupyter
-
-# local configuration
-pandas.cfg
-
-# direnv
-.envrc
-
-# migration
-*.bak
-
-# default
-*.orig
-
-# packaging
-pip-wheel-metadata
-
-# notebooks
-notebooks/.ipynb_checkpoints
-
-# for WIP
-*.orig
-*.rej
-
-# for eclipse
-.project
-
-# for Visual Studio
-.vscode
-
-# misc
-*.log
-
-# compiled files
-*.pyc
-
-# test output
-pytest_cache
-
-# tarball
-pandas-*.tar.gz
+# Pyodide/WASM related files #
+##############################
+/.pyodide-xbuildenv-*
