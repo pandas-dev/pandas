@@ -657,6 +657,16 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes,
       buf += 3;                                                                \
       self->datapos += 3;                                                      \
     }                                                                          \
+  } else if (self->datalen - self->datapos >= 6 &&                             \
+             (unsigned char)buf[0] == 0xC3 && (unsigned char)buf[1] == 0xAF && \
+             (unsigned char)buf[2] == 0xC2 && (unsigned char)buf[3] == 0xBB && \
+             (unsigned char)buf[4] == 0xC2 && (unsigned char)buf[5] == 0xBF) { \
+    /* UTF-8 encoding of the latin-1 decoded BOM ("ï»¿"). */                   \
+    self->bom_found = 1;                                                       \
+    if (self->strip_bom) {                                                     \
+      buf += 6;                                                                \
+      self->datapos += 6;                                                      \
+    }                                                                          \
   } else {                                                                     \
     self->bom_found = 0;                                                       \
   }

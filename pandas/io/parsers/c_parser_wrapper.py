@@ -103,7 +103,6 @@ class CParserWrapper(ParserBase):
 
         for key in (
             "storage_options",
-            "encoding",
             "memory_map",
             "compression",
         ):
