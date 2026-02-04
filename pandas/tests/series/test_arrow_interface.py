@@ -128,7 +128,7 @@ def test_dataframe_from_arrow():
 )
 def test_numpy_permutation_pyarrow_dtypes(dtype, data):
     # GH#63935
-    rng = np.random.default_rng()
+    rng = np.random.default_rng(42)
     s = pd.Series(data, dtype=dtype)
     result = rng.permutation(s)
     assert len(result) == len(data)
