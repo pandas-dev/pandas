@@ -1,5 +1,6 @@
 import ctypes
 
+import numpy as np
 import pytest
 
 import pandas.util._test_decorators as td
@@ -115,3 +116,20 @@ def test_dataframe_from_arrow():
         TypeError, match="Expected an Arrow-compatible array-like object"
     ):
         pd.Series.from_arrow([1, 2, 3])
+
+
+@pytest.mark.parametrize(
+    "dtype,data",
+    [
+        ("string[pyarrow]", ["foo", "bar", "baz"]),
+        ("int64[pyarrow]", [1, 2, 3]),
+        ("float64[pyarrow]", [1.0, 2.0, 3.0]),
+    ],
+)
+def test_numpy_permutation_pyarrow_dtypes(dtype, data):
+    # GH#63935
+    rng = np.random.default_rng()
+    s = pd.Series(data, dtype=dtype)
+    result = rng.permutation(s)
+    assert len(result) == len(data)
+    assert set(result) == set(data)

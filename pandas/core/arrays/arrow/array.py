@@ -854,11 +854,10 @@ class ArrowExtensionArray(
             raise ValueError(
                 "Unable to avoid copy while creating an array as requested."
             )
-        elif copy is None:
-            # `to_numpy(copy=False)` has the meaning of NumPy `copy=None`.
-            copy = False
-
-        return self.to_numpy(dtype=dtype, copy=copy)
+        result = self.to_numpy(dtype=dtype, copy=copy if copy else False)
+        if copy is None and not result.flags.writeable:
+            result = result.copy()
+        return result
 
     def __invert__(self) -> Self:
         # This is a bit wise op for integer types

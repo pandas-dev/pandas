@@ -945,7 +945,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         if copy is True:
             return arr
-        if copy is False or astype_is_view(values.dtype, arr.dtype):
+        if np.shares_memory(arr, values):
             arr = arr.view()
             arr.flags.writeable = False
         return arr
