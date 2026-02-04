@@ -131,7 +131,7 @@ Timezones
 
 Numeric
 ^^^^^^^
--
+- Fixed bug in :meth:`Series.clip` where passing a scalar numpy array (e.g. ``np.array(0)``) would raise a ``TypeError`` (:issue:`59053`)
 -
 
 Conversion
@@ -186,7 +186,7 @@ Groupby/resample/rolling
 
 Reshaping
 ^^^^^^^^^
--
+- In :func:`pivot_table`, when ``values`` is empty, the aggregation will be computed on a Series of all NA values (:issue:`46475`)
 -
 
 Sparse

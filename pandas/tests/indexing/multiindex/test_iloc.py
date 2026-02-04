@@ -65,7 +65,7 @@ def test_iloc_returns_scalar(simple_multiindex_dataframe):
 
 def test_iloc_getitem_multiple_items():
     # GH 5528
-    tup = zip(*[["a", "a", "b", "b"], ["x", "y", "x", "y"]])
+    tup = zip(*[["a", "a", "b", "b"], ["x", "y", "x", "y"]], strict=True)
     index = MultiIndex.from_tuples(tup)
     df = DataFrame(np.random.default_rng(2).standard_normal((4, 4)), index=index)
     result = df.iloc[[2, 3]]
@@ -156,7 +156,7 @@ def test_iloc_setitem_int_multiindex_series(data, indexes, values, expected_k):
     df = df.set_index(["i", "j"])
 
     series = df.k.copy()
-    for i, v in zip(indexes, values):
+    for i, v in zip(indexes, values, strict=True):
         series.iloc[i] += v
 
     df["k"] = expected_k
