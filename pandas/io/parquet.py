@@ -391,16 +391,71 @@ class FastParquetImpl(BaseImpl):
             path = handles.handle
 
         try:
+            # Reset BytesIO stream position to beginning for fastparquet
+            if hasattr(path, 'seek') and hasattr(path, 'tell'):
+                path.seek(0)
+            
             parquet_file = self.api.ParquetFile(path, **parquet_kwargs)
+            
+            # Get pandas metadata to check for index information
+            pandas_metadata = getattr(parquet_file, 'pandas_metadata', None)
+            
             with catch_warnings():
                 filterwarnings(
                     "ignore",
                     "make_block is deprecated",
                     Pandas4Warning,
                 )
-                return parquet_file.to_pandas(
-                    columns=columns, filters=filters, **kwargs
-                )
+                
+                # Workaround for fastparquet index restoration issue
+                # If pandas metadata indicates index columns, handle them manually
+                if (pandas_metadata and 
+                    'index_columns' in pandas_metadata and 
+                    pandas_metadata['index_columns'] and
+                    len(pandas_metadata['index_columns']) == 1):
+                    
+                    index_col_name = pandas_metadata['index_columns'][0]
+                    
+                    # Read all columns including the index column as regular data
+                    if hasattr(path, 'seek'):
+                        path.seek(0)
+                    
+                    try:
+                        # Force reading all columns without any index interpretation
+                        df_with_index_col = parquet_file.to_pandas(
+                            columns=columns, filters=filters, index=False, **kwargs
+                        )
+                        
+                        # Check if the index column is present in the data
+                        if index_col_name in df_with_index_col.columns:
+                            # Extract the index values and set them as the DataFrame index
+                            index_values = df_with_index_col[index_col_name]
+                            df_without_index_col = df_with_index_col.drop(columns=[index_col_name])
+                            df_without_index_col.index = index_values
+                            # Preserve the original index name behavior (None for unnamed indexes)
+                            df_without_index_col.index.name = None
+                            
+                            return df_without_index_col
+                        else:
+                            # Index column not found, fall back to normal behavior
+                            if hasattr(path, 'seek'):
+                                path.seek(0)
+                            return parquet_file.to_pandas(
+                                columns=columns, filters=filters, **kwargs
+                            )
+                    except Exception:
+                        # If our workaround fails, fall back to normal behavior
+                        if hasattr(path, 'seek'):
+                            path.seek(0)
+                        return parquet_file.to_pandas(
+                            columns=columns, filters=filters, **kwargs
+                        )
+                else:
+                    # No index columns in metadata, use normal behavior
+                    return parquet_file.to_pandas(
+                        columns=columns, filters=filters, **kwargs
+                    )
+                
         finally:
             if handles is not None:
                 handles.close()
