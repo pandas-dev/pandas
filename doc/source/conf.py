@@ -172,11 +172,26 @@ copyright = f"{datetime.now().year},"
 #
 # The short X.Y version.
 import pandas  # isort:skip
-
 _branch = os.environ.get(
     "READTHEDOCS_GIT_IDENTIFIER",
     os.environ.get("READTHEDOCS_VERSION", "")
 )
+
+<<<<<<< HEAD
+_branch = os.environ.get(
+    "READTHEDOCS_GIT_IDENTIFIER",
+    os.environ.get("READTHEDOCS_VERSION", "")
+)
+=======
+if _branch == "main":
+    # Dev docs should show "dev", not the branch name
+    version = "dev"
+    release = "dev"
+else:
+    version = os.environ.get("PANDAS_VERSION", str(pandas.__version__))
+    release = version
+
+>>>>>>> 11ad4689ba (DOC: Fix dev docs version regression)
 
 if _branch == "main":
     version = "dev"
