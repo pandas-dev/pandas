@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from io import TextIOBase
 from typing import TYPE_CHECKING
 import warnings
 
@@ -97,6 +98,9 @@ class CParserWrapper(ParserBase):
             # ALL other encodings: strip but warn
             strip_bom = True
             warn_bom = True
+        if isinstance(src, TextIOBase):
+            # Text input is already decoded, so do not warn about BOM.
+            warn_bom = False
         kwds["strip_bom"] = strip_bom
         kwds["warn_bom"] = warn_bom
         kwds["encoding"] = encoding
