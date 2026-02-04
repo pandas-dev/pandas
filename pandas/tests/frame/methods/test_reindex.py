@@ -824,15 +824,14 @@ class TestDataFrameSelectReindex:
         df = DataFrame({"a": [0]})
         result = df.reindex(columns=["a", "b", "c"], fill_value="missing")
 
-        # Should not raise AssertionError
-        assert result.shape == (1, 3)
-        assert result["a"].iloc[0] == 0
-        assert result["b"].iloc[0] == "missing"
-        assert result["c"].iloc[0] == "missing"
-
-        # All string columns should have consistent str dtype
-        assert result["b"].dtype == "str"
-        assert result["c"].dtype == "str"
+        # Create expected DataFrame with consistent str dtype for string fill_value columns
+        expected = DataFrame({
+            "a": [0],
+            "b": ["missing"],
+            "c": ["missing"]
+        })
+        
+        tm.assert_frame_equal(result, expected)
 
     def test_reindex_dups(self):
         # GH4746, reindex on duplicate index error messages

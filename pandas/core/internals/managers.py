@@ -955,20 +955,19 @@ class BaseBlockManager(PandasObject):
         for blkno, mgr_locs in libinternals.get_blkno_placements(blknos, group=group):
             if blkno == -1:
                 # If we've got here, fill_value was not lib.no_default
-                # GH#63993: Use _make_na_blocks to handle 1D-only extension dtypes properly
+                # GH#63993: Handle 1D-only extension dtypes by creating separate blocks
                 dtype, _ = infer_dtype_from_scalar(fill_value)
+                
+                # Determine placements: separate blocks for 1D-only dtypes with multiple columns
                 if is_1d_only_ea_dtype(dtype) and len(mgr_locs) > 1:
-                    # Create separate blocks for each column to maintain consistent dtype
-                    for block in self._make_na_blocks(
-                        placement=mgr_locs,
-                        fill_value=fill_value,
-                        use_na_proxy=use_na_proxy,
-                    ):
-                        yield block
+                    placements = [BlockPlacement([col_idx]) for col_idx in mgr_locs]
                 else:
-                    # Use original single block approach
+                    placements = [mgr_locs]
+                
+                # Create blocks using the determined placements
+                for placement in placements:
                     yield self._make_na_block(
-                        placement=mgr_locs,
+                        placement=placement,
                         fill_value=fill_value,
                         use_na_proxy=use_na_proxy,
                     )
@@ -1034,47 +1033,6 @@ class BaseBlockManager(PandasObject):
         dtype, fill_value = infer_dtype_from_scalar(fill_value)
         block_values = make_na_array(dtype, shape, fill_value)
         return new_block_2d(block_values, placement=placement)
-
-    def _make_na_blocks(
-        self, placement: BlockPlacement, fill_value=None, use_na_proxy: bool = False
-    ) -> list[Block]:
-        """
-        Create NA blocks, handling 1D-only extension dtypes by creating separate blocks.
-
-        This is used for cases where we need multiple columns with 1D-only extension dtypes.
-        """
-        if use_na_proxy:
-            assert fill_value is None
-            shape = (len(placement), self.shape[1])
-            vals = np.empty(shape, dtype=np.void)
-            nb = NumpyBlock(vals, placement, ndim=2)
-            return [nb]
-
-        if fill_value is None or fill_value is np.nan:
-            fill_value = np.nan
-            # GH45857 avoid unnecessary upcasting
-            dtype = interleaved_dtype([blk.dtype for blk in self.blocks])
-            if dtype is not None and np.issubdtype(dtype.type, np.floating):
-                fill_value = dtype.type(fill_value)
-
-        dtype, fill_value = infer_dtype_from_scalar(fill_value)
-
-        # GH#63993: Handle 1D-only extension dtypes with multiple columns
-        # Create separate 1D blocks to maintain consistent str dtype
-        if is_1d_only_ea_dtype(dtype) and len(placement) > 1:
-            blocks = []
-            for col_idx in placement:
-                single_placement = BlockPlacement([col_idx])
-                single_shape = (1, self.shape[1])
-                single_values = make_na_array(dtype, single_shape, fill_value)
-                block = new_block_2d(single_values, placement=single_placement)
-                blocks.append(block)
-            return blocks
-        else:
-            # Single column or 2D-capable dtype - use original logic
-            shape = (len(placement), self.shape[1])
-            block_values = make_na_array(dtype, shape, fill_value)
-            return [new_block_2d(block_values, placement=placement)]
 
     def take(
         self,
