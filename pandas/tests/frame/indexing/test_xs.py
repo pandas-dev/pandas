@@ -137,7 +137,7 @@ class TestXSWithMultiIndex:
             ["bar", "bar", "baz", "baz", "foo", "foo", "qux", "qux"],
             ["one", "two", "one", "two", "one", "two", "one", "two"],
         ]
-        tuples = list(zip(*arrays))
+        tuples = list(zip(*arrays, strict=True))
 
         index = MultiIndex.from_tuples(tuples, names=["first", "second"])
         df = DataFrame(
