@@ -65,6 +65,9 @@ class PerformanceWarning(Warning):
     """
     Warning raised when there is a possible performance impact.
 
+    This warning is typically raised when an operation may be slower than
+    expected due to the data structure or access pattern being used.
+
     See Also
     --------
     DataFrame.set_index : Set the DataFrame index using existing columns.
@@ -97,6 +100,9 @@ class PandasChangeWarning(Warning):
     """
     Warning raised for any upcoming change.
 
+    This is the base class for all pandas warnings that indicate upcoming
+    changes to the library's behavior.
+
     See Also
     --------
     errors.PandasPendingDeprecationWarning : Class for deprecations that will raise a
@@ -121,6 +127,9 @@ class PandasPendingDeprecationWarning(PandasChangeWarning, PendingDeprecationWar
     """
     Warning raised for an upcoming change that is a PendingDeprecationWarning.
 
+    This warning indicates a feature that will be deprecated in a future
+    version of pandas, but is not yet officially deprecated.
+
     See Also
     --------
     errors.PandasChangeWarning: Class for deprecations that will raise any warning.
@@ -138,6 +147,9 @@ class PandasPendingDeprecationWarning(PandasChangeWarning, PendingDeprecationWar
 class PandasDeprecationWarning(PandasChangeWarning, DeprecationWarning):
     """
     Warning raised for an upcoming change that is a DeprecationWarning.
+
+    This warning indicates a feature that is officially deprecated and will
+    be removed in a future version of pandas.
 
     See Also
     --------
@@ -157,6 +169,9 @@ class PandasFutureWarning(PandasChangeWarning, FutureWarning):
     """
     Warning raised for an upcoming change that is a FutureWarning.
 
+    This warning indicates a change in behavior that will occur in a future
+    version of pandas. Users should update their code accordingly.
+
     See Also
     --------
     errors.PandasChangeWarning: Class for deprecations that will raise any warning.
@@ -175,6 +190,9 @@ class PandasFutureWarning(PandasChangeWarning, FutureWarning):
 class Pandas4Warning(PandasDeprecationWarning):
     """
     Warning raised for an upcoming change that will be enforced in pandas 4.0.
+
+    This warning indicates a deprecation that will be enforced when pandas
+    version 4.0 is released. Users should update their code before upgrading.
 
     See Also
     --------
@@ -200,6 +218,9 @@ class Pandas4Warning(PandasDeprecationWarning):
 class Pandas5Warning(PandasPendingDeprecationWarning):
     """
     Warning raised for an upcoming change that will be enforced in pandas 5.0.
+
+    This warning indicates a pending deprecation that will be enforced when
+    pandas version 5.0 is released. Users should plan to update their code.
 
     See Also
     --------
@@ -529,6 +550,9 @@ class AbstractMethodError(NotImplementedError):
 class NumbaUtilError(Exception):
     """
     Error raised for unsupported Numba engine routines.
+
+    This exception is raised when attempting to use the Numba engine with
+    a function or operation that is not supported by Numba.
 
     See Also
     --------
