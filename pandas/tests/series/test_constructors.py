@@ -200,6 +200,12 @@ class TestSeriesConstructors:
         with pytest.raises(NotImplementedError, match=msg):
             Series(m)
 
+    def test_constructor_nested_list_with_dtype_raises(self):
+        data = [[1, 2], [3, 4]]
+        msg = r"Data must be 1-dimensional, got ndarray of shape \(2, 2\) instead"
+        with pytest.raises(ValueError, match=msg):
+            Series(data, dtype="int64")
+
     def test_constructor_index_ndim_gt_1_raises(self):
         # GH#18579
         df = DataFrame([[1, 2], [3, 4], [5, 6]], index=[3, 6, 9])

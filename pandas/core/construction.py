@@ -746,11 +746,16 @@ def _sanitize_ndim(
             result = com.asarray_tuplesafe(data, dtype=np.dtype("object"))
             cls = dtype.construct_array_type()
             result = cls._from_sequence(result, dtype=dtype)
+        elif dtype is not None:
+            shape = result.shape
+            raise ValueError(
+                f"Data must be 1-dimensional, got ndarray of shape {shape} instead"
+            )
         else:
             # error: Argument "dtype" to "asarray_tuplesafe" has incompatible type
             # "Union[dtype[Any], ExtensionDtype, None]"; expected "Union[str,
             # dtype[Any], None]"
-            result = com.asarray_tuplesafe(data, dtype=dtype)  # type: ignore[arg-type]
+            result = com.asarray_tuplesafe(data, dtype=dtype)
     return result
 
 
