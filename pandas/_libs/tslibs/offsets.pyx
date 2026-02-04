@@ -570,6 +570,10 @@ cdef class BaseOffset:
         """
         Return a copy of the frequency.
 
+        This method creates a new instance of the same frequency offset
+        with identical parameters. The returned copy is independent of
+        the original, allowing modifications without affecting the source object.
+
         See Also
         --------
         tseries.offsets.Week.copy : Return a copy of Week offset.
@@ -657,6 +661,11 @@ cdef class BaseOffset:
     def rule_code(self) -> str:
         """
         Return a string representing the base frequency.
+
+        This property provides a short string code that identifies the
+        type of frequency offset, such as 'h' for hourly, 'D' for daily,
+        or 'W' for weekly. This code is used internally for frequency
+        string representations and parsing.
 
         See Also
         --------
@@ -949,7 +958,13 @@ cdef class BaseOffset:
     @property
     def nanos(self):
         """
-        Returns an integer of the total number of nanoseconds for fixed frequencies.
+        Return an integer of the total number of nanoseconds.
+
+        This property computes the offset duration in nanoseconds. For fixed
+        frequency offsets (like Hour, Minute, Second), this returns the exact
+        number of nanoseconds. For non-fixed frequencies that depend on
+        calendar context (like Week without a specified weekday), this raises
+        an error.
 
         Raises
         ------
@@ -1001,6 +1016,9 @@ cdef class BaseOffset:
         """
         Return boolean whether a timestamp occurs on the month end.
 
+        This method checks if the given timestamp falls on the last day of
+        a month, taking into account the frequency's normalization settings.
+
         Parameters
         ----------
         ts : Timestamp
@@ -1023,6 +1041,9 @@ cdef class BaseOffset:
         """
         Return boolean whether a timestamp occurs on the quarter start.
 
+        This method checks if the given timestamp falls on the first day of
+        a calendar quarter (January 1, April 1, July 1, or October 1).
+
         Parameters
         ----------
         ts : Timestamp
@@ -1044,6 +1065,9 @@ cdef class BaseOffset:
     def is_quarter_end(self, _Timestamp ts):
         """
         Return boolean whether a timestamp occurs on the quarter end.
+
+        This method checks if the given timestamp falls on the last day of
+        a calendar quarter (March 31, June 30, September 30, or December 31).
 
         Parameters
         ----------
@@ -1068,6 +1092,9 @@ cdef class BaseOffset:
         """
         Return boolean whether a timestamp occurs on the year start.
 
+        This method checks if the given timestamp falls on January 1st,
+        which marks the beginning of a calendar year.
+
         Parameters
         ----------
         ts : Timestamp
@@ -1089,6 +1116,9 @@ cdef class BaseOffset:
     def is_year_end(self, _Timestamp ts):
         """
         Return boolean whether a timestamp occurs on the year end.
+
+        This method checks if the given timestamp falls on December 31st,
+        which marks the end of a calendar year.
 
         Parameters
         ----------
@@ -2328,8 +2358,8 @@ cdef class BusinessMixin(SingleConstructorOffset):
         return self._weekmask
 
     def _repr_attrs(self) -> str:
-        if self.offset:
-            attrs = [f"offset={repr(self.offset)}"]
+        if self._offset:
+            attrs = [f"offset={repr(self._offset)}"]
         else:
             attrs = []
         out = ""
@@ -2431,15 +2461,15 @@ cdef class BusinessDay(BusinessMixin):
                 off_str += str(td.microseconds) + "us"
             return off_str
 
-        if PyDelta_Check(self.offset):
+        if PyDelta_Check(self._offset):
             zero = timedelta(0, 0, 0)
-            if self.offset >= zero:
-                off_str = "+" + get_str(self.offset)
+            if self._offset >= zero:
+                off_str = "+" + get_str(self._offset)
             else:
-                off_str = "-" + get_str(-self.offset)
+                off_str = "-" + get_str(-self._offset)
             return off_str
         else:
-            return "+" + repr(self.offset)
+            return "+" + repr(self._offset)
 
     @apply_wraps
     def _apply(self, other):
@@ -2452,14 +2482,14 @@ cdef class BusinessDay(BusinessMixin):
             days = self._adjust_ndays(wday, weeks)
 
             result = other + timedelta(days=7 * weeks + days)
-            if self.offset:
-                result = result + self.offset
+            if self._offset:
+                result = result + self._offset
             return result
 
         elif is_any_td_scalar(other):
-            td = Timedelta(self.offset) + other
+            td = Timedelta(self._offset) + other
             return BusinessDay(
-                self._n, offset=td.to_pytimedelta(), normalize=self.normalize
+                self._n, offset=td.to_pytimedelta(), normalize=self._normalize
             )
         else:
             raise ApplyTypeError(
@@ -2549,8 +2579,8 @@ cdef class BusinessDay(BusinessMixin):
         i8other = dtarr.view("i8")
         reso = get_unit_from_dtype(dtarr.dtype)
         res = self._shift_bdays(i8other, reso=reso)
-        if self.offset:
-            res = res.view(dtarr.dtype) + Timedelta(self.offset)
+        if self._offset:
+            res = res.view(dtarr.dtype) + Timedelta(self._offset)
         return res
 
     def is_on_offset(self, dt: datetime) -> bool:
@@ -2599,7 +2629,7 @@ cdef class BusinessDay(BusinessMixin):
         >>> pd.offsets.BusinessDay(normalize=True).is_on_offset(ts)
         True
         """
-        if self.normalize and not _is_normalized(dt):
+        if self._normalize and not _is_normalized(dt):
             return False
         return dt.weekday() < 5
 
@@ -2838,9 +2868,9 @@ cdef class BusinessHour(BusinessMixin):
             # CustomBusinessHour
             return CustomBusinessDay(
                 n=nb_offset,
-                weekmask=self.weekmask,
-                holidays=self.holidays,
-                calendar=self.calendar,
+                weekmask=self._weekmask,
+                holidays=self._holidays,
+                calendar=self._calendar,
             )
         else:
             return BusinessDay(n=nb_offset)
@@ -2998,9 +3028,9 @@ cdef class BusinessHour(BusinessMixin):
                 # GH#30593 this is a Custom offset
                 skip_bd = CustomBusinessDay(
                     n=bd,
-                    weekmask=self.weekmask,
-                    holidays=self.holidays,
-                    calendar=self.calendar,
+                    weekmask=self._weekmask,
+                    holidays=self._holidays,
+                    calendar=self._calendar,
                 )
             else:
                 skip_bd = BusinessDay(n=bd)
@@ -3096,7 +3126,7 @@ cdef class BusinessHour(BusinessMixin):
         >>> pd.offsets.BusinessHour().is_on_offset(ts)
         False
         """
-        if self.normalize and not _is_normalized(dt):
+        if self._normalize and not _is_normalized(dt):
             return False
 
         if dt.tzinfo is not None:
@@ -6405,19 +6435,19 @@ cdef class CustomBusinessDay(BusinessDay):
             np_dt = np.datetime64(date_in.date())
 
             np_incr_dt = np.busday_offset(
-                np_dt, self._n, roll=roll, busdaycal=self.calendar
+                np_dt, self._n, roll=roll, busdaycal=self._calendar
             )
 
             dt_date = np_incr_dt.astype(datetime)
             result = datetime.combine(dt_date, date_in.time())
 
-            if self.offset:
-                result = result + self.offset
+            if self._offset:
+                result = result + self._offset
             return result
 
         elif is_any_td_scalar(other):
-            td = Timedelta(self.offset) + other
-            return BDay(self._n, offset=td.to_pytimedelta(), normalize=self.normalize)
+            td = Timedelta(self._offset) + other
+            return BDay(self._n, offset=td.to_pytimedelta(), normalize=self._normalize)
         else:
             raise ApplyTypeError(
                 "Only know how to combine trading day with "
@@ -6487,10 +6517,10 @@ cdef class CustomBusinessDay(BusinessDay):
         >>> pd.offsets.CustomBusinessDay(normalize=True).is_on_offset(ts)
         True
         """
-        if self.normalize and not _is_normalized(dt):
+        if self._normalize and not _is_normalized(dt):
             return False
         day64 = _to_dt64D(dt)
-        return np.is_busday(day64, busdaycal=self.calendar)
+        return np.is_busday(day64, busdaycal=self._calendar)
 
 
 cdef class CustomBusinessHour(BusinessHour):
@@ -6703,8 +6733,8 @@ cdef class _CustomBusinessMonth(BusinessMixin):
         new = cur_month_offset_date + n * self.m_offset
         result = self.cbday_roll(new)
 
-        if self.offset:
-            result = result + self.offset
+        if self._offset:
+            result = result + self._offset
         return result
 
 
