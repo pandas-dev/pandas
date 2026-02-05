@@ -14,7 +14,6 @@ from pandas._libs import (
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import (
     DtypeWarning,
-    Pandas4Warning,
 )
 from pandas.util._exceptions import find_stack_level
 
