@@ -770,6 +770,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Return Series/DataFrame with requested index / column level(s) removed.
 
+        This method is useful for simplifying a MultiIndex by removing one or
+        more levels.
+
         Parameters
         ----------
         level : int, str, or list-like
@@ -1119,6 +1122,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> Self | None:
         """
         Set the name of the axis for the index or columns.
+
+        This method is useful for labeling the axes in a MultiIndex or for
+        providing descriptive names to axes.
 
         Parameters
         ----------
@@ -3234,6 +3240,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def to_xarray(self):
         """
         Return an xarray object from the pandas object.
+
+        This method converts a pandas object to an xarray object, which is
+        useful for working with labeled multi-dimensional data.
 
         Returns
         -------
@@ -6942,6 +6951,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Fill NA/NaN values with `value`.
 
+        This method replaces missing values with a specified value.
+
         Parameters
         ----------
         value : scalar, dict, Series, or DataFrame
@@ -7180,6 +7191,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> Self:
         """
         Fill NA/NaN values by propagating the last valid observation to next valid.
+
+        This method fills missing values using forward fill, where the last
+        valid observation is propagated forward to fill the gaps.
 
         Parameters
         ----------
@@ -10874,6 +10888,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> Self:
         """
         Convert tz-aware axis to target time zone.
+
+        This method converts the timezone of a datetime-based index from one
+        timezone to another.
 
         Parameters
         ----------
