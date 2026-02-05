@@ -123,16 +123,12 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.is_unique ES01" \
         -i "pandas.Series.is_monotonic_increasing ES01" \
         -i "pandas.Series.is_monotonic_decreasing ES01" \
-        -i "pandas.Series.droplevel ES01" \
         -i "pandas.Series.drop_duplicates ES01" \
         -i "pandas.Series.rename_axis ES01" \
         -i "pandas.Series.mask ES01" \
-        -i "pandas.Series.ffill ES01" \
-        -i "pandas.Series.fillna ES01" \
         -i "pandas.Series.unstack ES01" \
         -i "pandas.Series.explode ES01" \
         -i "pandas.Series.compare ES01" \
-        -i "pandas.Series.tz_convert ES01" \
         -i "pandas.Series.at_time ES01" \
         -i "pandas.Series.cat ES01" \
         -i "pandas.Series.sparse ES01" \
@@ -149,7 +145,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.to_csv ES01" \
         -i "pandas.Series.to_dict ES01" \
         -i "pandas.Series.to_frame ES01" \
-        -i "pandas.Series.to_xarray ES01" \
         -i "pandas.Series.to_string ES01" \
         -i "pandas.Series.to_markdown ES01" \
         -i "pandas.testing.assert_series_equal ES01" \
@@ -484,21 +479,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DataFrame.round ES01" \
         -i "pandas.DataFrame.value_counts ES01" \
         -i "pandas.DataFrame.at_time ES01" \
-        -i "pandas.DataFrame.rename_axis ES01" \
-        -i "pandas.DataFrame.ffill ES01" \
-        -i "pandas.DataFrame.fillna ES01" \
-        -i "pandas.DataFrame.droplevel ES01" \
-        -i "pandas.DataFrame.sort_values ES01" \
-        -i "pandas.DataFrame.explode ES01" \
-        -i "pandas.DataFrame.to_xarray ES01" \
-        -i "pandas.DataFrame.T ES01" \
-        -i "pandas.DataFrame.compare ES01" \
-        -i "pandas.DataFrame.tz_convert ES01" \
-        -i "pandas.DataFrame.sparse.density ES01" \
-        -i "pandas.DataFrame.sparse.from_spmatrix ES01" \
-        -i "pandas.DataFrame.sparse.to_coo ES01" \
-        -i "pandas.DataFrame.sparse.to_dense ES01" \
-        -i "pandas.DataFrame.to_string ES01" \
         -i "pandas.DataFrame.to_markdown ES01" # no backslash in the last line
 
     RET=$(($RET + $?)) ; echo $MSG "DONE"
