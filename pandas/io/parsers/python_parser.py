@@ -871,7 +871,10 @@ class PythonParser(ParserBase):
         self._bom_found = True
 
         if self._warn_bom and not self._bom_warned:
-            if self.encoding is None:
+            encoding_lower = (
+                self.encoding.lower() if isinstance(self.encoding, str) else None
+            )
+            if self.encoding is None or encoding_lower == "utf-8":
                 msg = (
                     "A UTF-8 BOM was detected in the file. In pandas 4.0, "
                     "BOMs will only be stripped when using encoding='utf-8-sig'. "
@@ -880,9 +883,7 @@ class PythonParser(ParserBase):
             else:
                 msg = (
                     f"A BOM was detected in a file with encoding='{self.encoding}'. "
-                    f"In pandas 4.0, BOMs will only be stripped when using '-sig' "
-                    f"encoding variants (e.g., 'utf-8-sig'). To suppress this "
-                    f"warning, use encoding='{self.encoding}-sig' if available."
+                    "In pandas 4.0, BOMs will not be stripped for this encoding."
                 )
 
             warnings.warn(msg, Pandas4Warning, stacklevel=find_stack_level())
