@@ -882,11 +882,11 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
             if isinstance(name, tuple) and len(name) == 1:
                 name = name[0]
             else:
-                raise KeyError(name)
+                raise KeyError(f"{name}")
 
         inds = self._get_index(name)
         if not len(inds):
-            raise KeyError(name)
+             raise KeyError(f"{name}")
         return self._selected_obj.iloc[inds]
 
     @final
