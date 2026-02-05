@@ -277,7 +277,15 @@ def astype_is_view(dtype: DtypeObj, new_dtype: DtypeObj) -> bool:
         return False
 
     elif is_string_dtype(dtype) and is_string_dtype(new_dtype):
+        from pandas.core.arrays.string_ import StringDtype
+
         # Potentially! a view when converting from object to string
+        if (
+            isinstance(dtype, StringDtype)
+            and dtype.storage == "pyarrow"
+            and new_dtype == "object"
+        ):
+            return False
         return True
 
     elif is_object_dtype(dtype) and new_dtype.kind == "O":
