@@ -27,7 +27,7 @@ jobs:
     strategy:
       matrix:
         platform: [ubuntu-24.04, ubuntu-24.04-arm]
-        env_file: [actions-311.yaml, actions-312.yaml, actions-313.yaml]
+        env_file: [actions-311.yaml, actions-312.yaml, actions-313.yaml, actions-314.yaml]
         # Prevent the include jobs from overriding other jobs
         pattern: [""]
         pandas_future_infer_string: ["1"]
@@ -318,7 +318,7 @@ jobs:
     #    To freeze this file, uncomment out the ``if: false`` condition, and migrate the jobs
     #    to the corresponding posix/windows-macos/sdist etc. workflows.
     # Feel free to modify this comment as necessary.
-    # if: false
+    if: false
     defaults:
       run:
         shell: bash -eou pipefail {0}
@@ -349,7 +349,7 @@ jobs:
       - name: Set up Python Dev Version
         uses: actions/setup-python@v6
         with:
-          python-version: '3.14-dev'
+          python-version: '3.15-dev'
 
       - name: Build Environment
         run: |
