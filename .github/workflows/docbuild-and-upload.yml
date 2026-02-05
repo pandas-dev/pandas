@@ -49,9 +49,24 @@ jobs:
       run: |
         if [ -n "${{ github.event.inputs.version }}" ]; then
           echo "PANDAS_VERSION=${{ github.event.inputs.version }}" >> "$GITHUB_ENV"
-        elif [[ "${GITHUB_REF_NAME:1}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        elif [[ "$GITHUB_REF_NAME" =~ ^v\d+\.\d+\.\d+\.?((rc\d+|dev\d+))?$ ]]; then
           echo "PANDAS_VERSION=${GITHUB_REF_NAME:1}" >> "$GITHUB_ENV"
         fi
+
+        if [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" ~= ^/ref/tags.* ]]; then
+          echo "PUBLISH_PROD=true" >> "$GITHUB_ENV"
+        elif [[ "${{ github.event.inputs.publish_prod }}" == "true" ]]; then
+          echo "PUBLISH_PROD=true" >> "$GITHUB_ENV"
+        else
+          echo "PUBLISH_PROD=false" >> "$GITHUB_ENV"
+
+    - name: Validate version when publishing to prod
+      run: |
+        if [[ "${{ env.PUBLISH_PROD }}" == "true" ]] &&
+           [[ ! "${{ env.PANDAS_VERSION }}" =~ ^\d+\.\d+\.\d+\.?(rc\d+)?$ ]]
+        then
+          echo "Invalid version ${{ env.PANDAS_VERSION }} for publishing to prod."
+          exit 1
 
     - name: Checkout
       uses: actions/checkout@v6
@@ -105,7 +120,7 @@ jobs:
 
     - name: Upload prod docs
       run: rsync -az --delete doc/build/html/ web@${{ secrets.server_ip }}:/var/www/html/pandas-docs/version/${{ env.PANDAS_VERSION }}
-      if: ${{ (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')) || (inputs.publish_prod == 'true') }}
+      if: ${{ env.PUBLISH_PROD == 'true' }}
 
     - name: Move docs into site directory
       run: mv doc/build/html web/build/docs
