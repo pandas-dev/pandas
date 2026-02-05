@@ -2061,7 +2061,7 @@ class Timedelta(_Timedelta):
 
     **kwargs
         Available kwargs: {days, seconds, microseconds,
-        milliseconds, minutes, hours, weeks}.
+        milliseconds, minutes, nanoseconds, hours, weeks}.
         Values for construction in compat with datetime.timedelta.
         Numpy ints and floats will be coerced to python ints and floats.
 
