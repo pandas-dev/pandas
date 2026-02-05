@@ -318,8 +318,7 @@ def array(
         if data.dtype.names is not None:
             data = np.asarray(data)
         else:
-            mask = ma.getmaskarray(data)
-            if mask.any():
+            if data.mask is not np.False_ and ma.getmaskarray(data).any():
                 na_dtype = ensure_dtype_can_hold_na(data.dtype)
                 if na_dtype.char in "SU":
                     na_dtype = np.dtype("object")
