@@ -316,7 +316,10 @@ def array(
     # GH#63879
     if isinstance(data, ma.MaskedArray):
         if data.dtype.names is not None:
-            data = np.asarray(data)
+            raise TypeError(
+                "Structured masked arrays are not supported. "
+                "Use a 1-D masked array instead."
+            )
         elif data.mask is not np.False_ and ma.getmaskarray(data).any():
             na_dtype = ensure_dtype_can_hold_na(data.dtype)
             if na_dtype.char in "SU":

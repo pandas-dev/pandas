@@ -572,3 +572,12 @@ def test_pd_array_from_masked_array_nomask():
     result = pd.array(ma_arr)
     expected = pd.array([1, 2, 3], dtype="Int64")
     tm.assert_extension_array_equal(result, expected)
+
+
+def test_pd_array_structured_masked_array_raises():
+    # GH#63879 - structured MaskedArrays should raise (match Series behavior)
+    arr = np.array([(1, 2), (2, 3)], dtype="i8,i8")
+    ma_arr = np.ma.array(arr, mask=[(False, True), (False, True)])
+    msg = "Structured masked arrays are not supported"
+    with pytest.raises(TypeError, match=msg):
+        pd.array(ma_arr)
