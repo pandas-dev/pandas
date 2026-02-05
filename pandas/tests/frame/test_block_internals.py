@@ -419,6 +419,7 @@ def get_longley_data():
 
 
 @td.skip_if_warnings_arent_thread_safe
+@pytest.mark.single_cpu
 def test_multithreaded_reading():
     def numpy_assert(data, b):
         b.wait()
