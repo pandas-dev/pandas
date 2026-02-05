@@ -590,3 +590,16 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
     def __pos__(self) -> Self:
         raise TypeError(f"bad operand type for unary +: '{self.dtype}'")
+
+    def _where(self, mask, value) -> Self:
+        mask = np.asarray(mask, dtype=np.bool_)
+        pa_type = self._pa_array.type
+        if lib.is_list_like(value) and not is_scalar(value) and len(value) == 1:
+            value = value[0]
+        if is_scalar(value):
+            pa_value = self._box_pa_scalar(value, pa_type=pa_type)
+        else:
+            pa_value = self._box_pa_array(value, pa_type=pa_type)
+        mask_pa = pa.array(mask, type=pa.bool_())
+        result = pc.if_else(mask_pa, self._pa_array, pa_value)
+        return self._from_pyarrow_array(result)

@@ -18,6 +18,7 @@ from pandas import (
     isna,
 )
 import pandas._testing as tm
+import pandas.util._test_decorators as td
 from pandas._testing._hypothesis import OPTIONAL_ONE_OF_ALL
 
 
@@ -1084,3 +1085,25 @@ def test_where_inplace_string_array_consistency():
     df_inplace.where(df_inplace != "", np.nan, inplace=True)
 
     tm.assert_frame_equal(result, df_inplace)
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    ["string", pytest.param("string[pyarrow]", marks=td.skip_if_no("pyarrow"))],
+)
+@pytest.mark.parametrize(
+    "other, expected",
+    [
+        (["a", "b", "c"], ["x", "b", "z"]),
+        (["cudf"], ["x", "cudf", "z"]),
+        (["a", None, "c"], ["x", None, "z"]),
+    ],
+)
+def test_where_string_listlike_other(dtype, other, expected):
+    df = DataFrame({"A": Series(["x", "y", "z"], dtype=dtype)})
+    cond = Series([True, False, True])
+
+    result = df.where(cond, other)
+    expected = DataFrame({"A": Series(expected, dtype=dtype)})
+
+    tm.assert_frame_equal(result, expected)

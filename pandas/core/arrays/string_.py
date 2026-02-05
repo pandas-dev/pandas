@@ -890,6 +890,12 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         # the super() method NDArrayBackedExtensionArray._where uses
         # np.putmask which doesn't properly handle None/pd.NA, so using the
         # base class implementation that uses __setitem__
+        if lib.is_list_like(value) and not lib.is_scalar(value) and len(value) == 1:
+            value = value[0]
+        if lib.is_list_like(value) and not isinstance(
+            value, (np.ndarray, ExtensionArray)
+        ):
+            value = self._from_sequence(value, dtype=self.dtype)
         return ExtensionArray._where(self, mask, value)
 
     def isin(self, values: ArrayLike) -> npt.NDArray[np.bool_]:
