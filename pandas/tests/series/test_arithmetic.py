@@ -1125,10 +1125,18 @@ def test_div_mul_preserves_multiindex_categorical_type():
     # since `level` in sum() removed, tinker with groupby
     norm = s.groupby(level=["c1", "c2"]).sum()
 
-    norm_div_s = s.div(norm)
-    norm_mul_s = s.mul(norm)
+    result_div = s.div(norm)
+    result_mul = s.mul(norm)
 
-    for result_s in [norm_div_s, norm_mul_s]:
-        assert isinstance(result_s.index.levels[0], pd.CategoricalIndex)
-        assert isinstance(result_s.index.levels[1], pd.CategoricalIndex)
-        assert isinstance(result_s.index.levels[2], pd.CategoricalIndex)
+    expected_div_values = [
+        s.loc[c0, c1, c2] / norm.loc[c1, c2] for c0, c1, c2 in result_div.index
+    ]
+    expected_mul_values = [
+        s.loc[c0, c1, c2] * norm.loc[c1, c2] for c0, c1, c2 in result_mul.index
+    ]
+
+    expected_div = Series(expected_div_values, index=result_div.index)
+    expected_mul = Series(expected_mul_values, index=result_mul.index)
+
+    tm.assert_series_equal(result_div, expected_div)
+    tm.assert_series_equal(result_mul, expected_mul)
