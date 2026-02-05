@@ -68,6 +68,7 @@ jobs:
         then
           echo "Invalid version ${{ env.PANDAS_VERSION }} for publishing to prod."
           exit 1
+        fi
 
     - name: Checkout
       uses: actions/checkout@v6
