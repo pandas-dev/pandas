@@ -21,6 +21,7 @@ from pandas import (
     option_context,
 )
 import pandas._testing as tm
+import pandas.util._test_decorators as td
 from pandas.core.internals.blocks import NumpyBlock
 
 # Segregated collection of methods that require the BlockManager internal data
@@ -417,6 +418,7 @@ def get_longley_data():
     return pd.read_csv(longley_csv).iloc[:, [1, 2, 3, 4, 5, 6]].astype(float)
 
 
+@td.skip_if_warnings_arent_thread_safe
 def test_multithreaded_reading():
     def numpy_assert(data, b):
         b.wait()
