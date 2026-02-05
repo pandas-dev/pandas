@@ -190,7 +190,6 @@ cdef extern from "pandas/parser/tokenizer.h":
         # Tokenizing stuff
         ParserState state
         int doublequote            # is " represented by ""? */
-        int strip_bom              # strip UTF-8 BOM if found
         char delimiter             # field separator */
         int delim_whitespace       # consume tabs / spaces instead
         char quotechar             # quote character */
@@ -231,8 +230,9 @@ cdef extern from "pandas/parser/tokenizer.h":
         char *warn_msg
         char *error_msg
 
-        int64_t skip_empty_lines
-        int bom_found
+        int skip_empty_lines
+        int strip_bom              # strip UTF-8 BOM if found
+        int bom_found              # UTF-8 BOM detected in input
 
     ctypedef struct coliter_t:
         char **words
@@ -899,19 +899,19 @@ cdef class TextReader:
 
             # Build the message
             # CRITICAL FIX: Use 'self.encoding', not 'encoding_for_warning'
-            if self.encoding is None:
+            encoding_lower = (
+                self.encoding.lower() if isinstance(self.encoding, str) else None
+            )
+            if self.encoding is None or encoding_lower == "utf-8":
                 msg = (
                     "A BOM was detected in the file. In pandas 4.0, "
-                    "BOMs will only be stripped when using '-sig' encoding variants "
-                    "(e.g., 'utf-8-sig'). To suppress this warning, specify "
-                    "encoding='utf-8-sig'."
+                    "BOMs will only be stripped when using encoding='utf-8-sig'. "
+                    "To suppress this warning, specify encoding='utf-8-sig'."
                 )
             else:
                 msg = (
                     f"A BOM was detected in a file with encoding='{self.encoding}'. "
-                    f"In pandas 4.0, BOMs will only be stripped when using '-sig' "
-                    f"encoding variants (e.g., 'utf-8-sig'). To suppress this "
-                    f"warning, use encoding='{self.encoding}-sig' if available."
+                    "In pandas 4.0, BOMs will not be stripped for this encoding."
                 )
 
             warnings.warn(msg, Pandas4Warning, stacklevel=find_stack_level())

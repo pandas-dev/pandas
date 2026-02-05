@@ -376,8 +376,8 @@ def test_not_readable(all_parsers, mode):
         (
             b"\xef\xbb\xbfName,Age\nJohn,25",
             "latin1",
-            Pandas4Warning,
-            "BOM",
+            None,
+            None,
             {"Name": ["John"], "Age": [25]},
         ),
     ],
@@ -396,11 +396,11 @@ def test_bom_handling_deprecation(
 
     expected = DataFrame(expected_data)
 
-    if parser.engine == "python" and encoding == "latin1":
+    if encoding == "latin1":
         expect_warning = None
         expect_match = None
-        # Adjust the expected DataFrame for Python engine behavior
-        expected = expected.rename(columns={"Name": "ï»¿Name"})
+        # Preserve BOM bytes in latin1 across engines
+        expected = expected.rename(columns={"Name": "\xef\xbb\xbfName"})
 
     with tm.assert_produces_warning(
         expect_warning, match=expect_match, check_stacklevel=False
