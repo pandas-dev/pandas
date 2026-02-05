@@ -53,12 +53,13 @@ jobs:
           echo "PANDAS_VERSION=${GITHUB_REF_NAME:1}" >> "$GITHUB_ENV"
         fi
 
-        if [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" ~= ^/ref/tags.* ]]; then
+        if [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" =~ ^\/ref\/tags.* ]]; then
           echo "PUBLISH_PROD=true" >> "$GITHUB_ENV"
         elif [[ "${{ github.event.inputs.publish_prod }}" == "true" ]]; then
           echo "PUBLISH_PROD=true" >> "$GITHUB_ENV"
         else
           echo "PUBLISH_PROD=false" >> "$GITHUB_ENV"
+        fi
 
     - name: Validate version when publishing to prod
       run: |
