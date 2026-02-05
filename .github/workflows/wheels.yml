@@ -192,7 +192,8 @@ jobs:
         # installing wheel here because micromamba step was skipped
         if: matrix.buildplat[1] == 'win_arm64'
         shell: bash -el {0}
-        run: python -m pip install wheel anaconda-client
+        # cryptography pin due to https://github.com/pyca/cryptography/pull/14216
+        run: python -m pip install wheel anaconda-client cryptography==46.0.3
 
       - name: Validate wheel RECORD
         shell: bash -el {0}
