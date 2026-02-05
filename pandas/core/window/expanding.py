@@ -195,11 +195,17 @@ class Expanding(RollingAndExpandingMixin):
         1  2  5  8
         2  3  6  9
 
-        >>> df.ewm(alpha=0.5).mean()
-                  A         B         C
-        0  1.000000  4.000000  7.000000
-        1  1.666667  4.666667  7.666667
-        2  2.428571  5.428571  8.428571
+        >>> df.expanding(2).sum()
+             A     B     C
+        0  NaN   NaN   NaN
+        1  3.0   9.0  15.0
+        2  6.0  15.0  24.0
+
+        >>> df.expanding(2).agg({"A": "sum", "B": "min"})
+             A    B
+        0  NaN  NaN
+        1  3.0  4.0
+        2  6.0  4.0
         """
         return super().aggregate(func, *args, **kwargs)
 

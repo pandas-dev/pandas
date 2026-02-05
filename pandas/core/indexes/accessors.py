@@ -267,12 +267,12 @@ class ArrowTemporalProperties(PandasDelegate, PandasObject, NoNewAttributesMixin
 
 @delegate_names(
     delegate=DatetimeArray,
-    accessors=DatetimeArray._datetimelike_ops + ["unit"],
+    accessors=[*DatetimeArray._datetimelike_ops, "unit"],
     typ="property",
 )
 @delegate_names(
     delegate=DatetimeArray,
-    accessors=DatetimeArray._datetimelike_methods + ["as_unit"],
+    accessors=[*DatetimeArray._datetimelike_methods, "as_unit"],
     typ="method",
 )
 class DatetimeProperties(Properties):
@@ -401,6 +401,10 @@ class DatetimeProperties(Properties):
     def isocalendar(self) -> DataFrame:
         """
         Calculate year, week, and day according to the ISO 8601 standard.
+
+        The ISO 8601 standard defines the first week of the year as the week
+        containing the first Thursday. This method returns a DataFrame with
+        columns for the ISO year, ISO week number, and ISO day of week.
 
         Returns
         -------
@@ -627,6 +631,15 @@ class CombinedDatetimelikeProperties(
 ):
     """
     Accessor object for Series values' datetime-like, timedelta and period properties.
+
+    This accessor provides access to properties and methods for datetime-like,
+    timedelta, and period data types. It can be used with Series containing
+    datetime64, timedelta64, or period data.
+
+    Parameters
+    ----------
+    data : Series
+        Series with datetime-like, timedelta, or period dtype.
 
     See Also
     --------

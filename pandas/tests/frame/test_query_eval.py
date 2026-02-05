@@ -160,21 +160,13 @@ class TestDataFrameEval:
             df.query("")
 
     def test_query_duplicate_column_name(self, engine, parser):
-        df = DataFrame(
-            {
-                "A": range(3),
-                "B": range(3),
-                "C": range(3)
-            }
-        ).rename(columns={"B": "A"})
+        df = DataFrame({"A": range(3), "B": range(3), "C": range(3)}).rename(
+            columns={"B": "A"}
+        )
 
         res = df.query("C == 1", engine=engine, parser=parser)
 
-        expect = DataFrame(
-            [[1, 1, 1]],
-            columns=["A", "A", "C"],
-            index=[1]
-        )
+        expect = DataFrame([[1, 1, 1]], columns=["A", "A", "C"], index=[1])
 
         tm.assert_frame_equal(res, expect)
 
@@ -529,7 +521,10 @@ class TestDataFrameQueryNumExprPandas:
     def test_date_query_with_non_date(self, engine, parser):
         n = 10
         df = DataFrame(
-            {"dates": date_range("1/1/2012", periods=n, unit="ns"), "nondate": np.arange(n)}
+            {
+                "dates": date_range("1/1/2012", periods=n, unit="ns"),
+                "nondate": np.arange(n),
+            }
         )
 
         result = df.query("dates == nondate", parser=parser, engine=engine)
@@ -999,10 +994,10 @@ class TestDataFrameQueryStrings:
             rhs = lhs[::-1]
 
             eq, ne = "==", "!="
-            ops = 2 * ([eq] + [ne])
+            ops = 2 * ([eq, ne])
             msg = r"'(Not)?In' nodes are not implemented"
 
-            for lh, op_, rh in zip(lhs, ops, rhs):
+            for lh, op_, rh in zip(lhs, ops, rhs, strict=True):
                 ex = f"{lh} {op_} {rh}"
                 with pytest.raises(NotImplementedError, match=msg):
                     df.query(
@@ -1040,10 +1035,10 @@ class TestDataFrameQueryStrings:
             rhs = lhs[::-1]
 
             eq, ne = "==", "!="
-            ops = 2 * ([eq] + [ne])
+            ops = 2 * ([eq, ne])
             msg = r"'(Not)?In' nodes are not implemented"
 
-            for lh, ops_, rh in zip(lhs, ops, rhs):
+            for lh, ops_, rh in zip(lhs, ops, rhs, strict=True):
                 ex = f"{lh} {ops_} {rh}"
                 with pytest.raises(NotImplementedError, match=msg):
                     df.query(ex, engine=engine, parser=parser)
@@ -1140,9 +1135,7 @@ class TestDataFrameQueryStrings:
             [">=", operator.ge],
         ],
     )
-    def test_query_lex_compare_strings(
-        self, parser, engine, op, func
-    ):
+    def test_query_lex_compare_strings(self, parser, engine, op, func):
         a = Series(np.random.default_rng(2).choice(list("abcde"), 20))
         b = Series(np.arange(a.size))
         df = DataFrame({"X": a, "Y": b})

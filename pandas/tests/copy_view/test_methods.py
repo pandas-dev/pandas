@@ -1587,3 +1587,15 @@ def test_reduce():
     assert result.index is not df.columns
     result = df.quantile([0.25, 0.5, 0.75])
     assert result.columns is not df.columns
+
+
+def test_diff():
+    df = DataFrame({"a": [1, 2, 3], "b": 1.5})
+
+    result = df.diff()
+    assert result.index is not df.index
+    assert result.columns is not df.columns
+
+    ser = Series([1, 2, 3])
+    result = ser.diff()
+    assert result.index is not ser.index

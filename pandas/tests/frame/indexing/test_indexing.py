@@ -875,7 +875,7 @@ class TestDataFrameIndexing:
         f = float_string_frame.copy()
         piece = DataFrame(
             [[1.0, 2.0], [3.0, 4.0], [5.0, 6.0], [7.0, 8.0]],
-            index=list(f.index[0:2]) + ["foo", "bar"],
+            index=[*list(f.index[0:2]), "foo", "bar"],
             columns=["A", "B"],
         )
         key = (f.index[slice(None, 2)], ["A", "B"])
@@ -1524,7 +1524,7 @@ class TestDataFrameIndexing:
         # GH#57457
         columns = ["a"]
         data = [np.array([1, 2], dtype=">f8")]
-        df = DataFrame(dict(zip(columns, data)))
+        df = DataFrame(dict(zip(columns, data, strict=True)))
         result = df[df.columns]
         dfexp = DataFrame({"a": [1, 2]}, dtype=">f8")
         expected = dfexp[dfexp.columns]
@@ -1923,14 +1923,14 @@ class TestSetitemValidation:
     _indexers = [0, [0], slice(0, 1), [True, False, False], slice(None, None, None)]
 
     @pytest.mark.parametrize(
-        "invalid", _invalid_scalars + [1, 1.0, np.int64(1), np.float64(1)]
+        "invalid", [*_invalid_scalars, 1, 1.0, np.int64(1), np.float64(1)]
     )
     @pytest.mark.parametrize("indexer", _indexers)
     def test_setitem_validation_scalar_bool(self, invalid, indexer):
         df = DataFrame({"a": [True, False, False]}, dtype="bool")
         self._check_setitem_invalid(df, invalid, indexer)
 
-    @pytest.mark.parametrize("invalid", _invalid_scalars + [True, 1.5, np.float64(1.5)])
+    @pytest.mark.parametrize("invalid", [*_invalid_scalars, True, 1.5, np.float64(1.5)])
     @pytest.mark.parametrize("indexer", _indexers)
     def test_setitem_validation_scalar_int(self, invalid, any_int_numpy_dtype, indexer):
         df = DataFrame({"a": [1, 2, 3]}, dtype=any_int_numpy_dtype)
@@ -1939,7 +1939,7 @@ class TestSetitemValidation:
         else:
             self._check_setitem_invalid(df, invalid, indexer)
 
-    @pytest.mark.parametrize("invalid", _invalid_scalars + [True])
+    @pytest.mark.parametrize("invalid", [*_invalid_scalars, True])
     @pytest.mark.parametrize("indexer", _indexers)
     def test_setitem_validation_scalar_float(self, invalid, float_numpy_dtype, indexer):
         df = DataFrame({"a": [1, 2, None]}, dtype=float_numpy_dtype)

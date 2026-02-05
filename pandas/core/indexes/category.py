@@ -13,7 +13,6 @@ import numpy as np
 from pandas._libs import index as libindex
 from pandas.util._decorators import (
     cache_readonly,
-    doc,
     set_module,
 )
 
@@ -372,8 +371,41 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
     def inferred_type(self) -> str:
         return "categorical"
 
-    @doc(Index.__contains__)
     def __contains__(self, key: Any) -> bool:
+        """
+        Return a boolean indicating whether the provided key is in the index.
+
+        Parameters
+        ----------
+        key : label
+            The key to check if it is present in the index.
+
+        Returns
+        -------
+        bool
+            Whether the key search is in the index.
+
+        Raises
+        ------
+        TypeError
+            If the key is not hashable.
+
+        See Also
+        --------
+        Index.isin : Returns an ndarray of boolean dtype indicating whether the
+            list-like key is in the index.
+
+        Examples
+        --------
+        >>> idx = pd.Index([1, 2, 3, 4])
+        >>> idx
+        Index([1, 2, 3, 4], dtype='int64')
+
+        >>> 2 in idx
+        True
+        >>> 6 in idx
+        False
+        """
         # if key is a NaN, check if any NaN is in self.
         if is_valid_na_for_dtype(key, self.categories.dtype):
             return self.hasnans
