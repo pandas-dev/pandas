@@ -3363,6 +3363,37 @@ def test_groupby_count_return_arrow_dtype(data_missing):
     tm.assert_frame_equal(result, expected)
 
 
+def test_groupby_var_return_arrow_dtype():
+    # GH#54627
+    df = pd.DataFrame(
+        {
+            "A": pd.Series([True, True], dtype="bool[pyarrow]"),
+            "B": pd.Series(
+                [Decimal(123), Decimal(12)],
+                dtype=ArrowDtype(pa.decimal128(6, 3)),
+            ),
+        }
+    )
+    result = df.groupby("A").var()
+    assert result.dtypes["B"] == ArrowDtype(pa.float64())
+
+
+@pytest.mark.parametrize("how", ["var", "std", "mean", "median"])
+def test_groupby_decimal_returns_arrow_float(how):
+    # GH#54627 - groupby operations on decimal should return Arrow float types
+    df = pd.DataFrame(
+        {
+            "A": pd.Series([True, True, False], dtype="bool[pyarrow]"),
+            "B": pd.Series(
+                [Decimal(123), Decimal(12), Decimal(50)],
+                dtype=ArrowDtype(pa.decimal128(6, 3)),
+            ),
+        }
+    )
+    result = getattr(df.groupby("A"), how)()
+    assert result.dtypes["B"] == ArrowDtype(pa.float64())
+
+
 def test_fixed_size_list():
     # GH#55000
     ser = pd.Series(

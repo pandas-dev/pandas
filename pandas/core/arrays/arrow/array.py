@@ -2824,6 +2824,32 @@ class ArrowExtensionArray(
             values = self._to_datetimearray()
         elif pa.types.is_duration(pa_type):
             values = self._to_timedeltaarray()
+        elif pa.types.is_decimal(pa_type):
+            # GH#54627: Decimal types need special handling for groupby
+            # operations that return float (var, std, mean, etc.)
+            if how in ["var", "std", "sem", "mean", "median"]:
+                # These operations return float64 for decimal inputs
+                from pandas.core.arrays.floating import FloatingArray
+
+                mask = self.isna()
+                arr = self.to_numpy(dtype=np.float64, na_value=np.nan)
+                values = FloatingArray(arr, mask)
+                result = values._groupby_op(
+                    how=how,
+                    has_dropped_na=has_dropped_na,
+                    min_count=min_count,
+                    ngroups=ngroups,
+                    ids=ids,
+                    **kwargs,
+                )
+                # Convert result back to Arrow (will be double[pyarrow])
+                if isinstance(result, BaseMaskedArray):
+                    pa_result = result.__arrow_array__()
+                    return self._from_pyarrow_array(pa_result)
+                return result
+            else:
+                # For other operations (sum, min, max, etc.), convert to masked
+                values = self._to_masked()
         else:
             values = self._to_masked()
 
