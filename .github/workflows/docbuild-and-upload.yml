@@ -51,11 +51,12 @@ jobs:
         tag_version_pat="^v\d+\.\d+\.\d+(rc\d+)?$"
         version_pat="^\d+\.\d+\.\d+(rc\d+)?$"
 
-        PANDAS_VERSION=""
         if [[ -n "${{ github.event.inputs.version }}" ]]; then
           PANDAS_VERSION="${{ github.event.inputs.version }}"
         elif [[ "${{ github.event_name }}" == "push" && "$GITHUB_REF_NAME" =~ $tag_version_pat ]]; then
           PANDAS_VERSION="${GITHUB_REF_NAME:1}"
+        else
+          PANDAS_VERSION=""
         fi
         echo "PANDAS_VERSION=$PANDAS_VERSION" >> "$GITHUB_ENV"
 
