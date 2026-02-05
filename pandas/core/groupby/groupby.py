@@ -799,6 +799,9 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         """
         Construct DataFrame from group with provided name.
 
+        This method retrieves all rows belonging to a specific group identified
+        by the given name.
+
         Parameters
         ----------
         name : object
