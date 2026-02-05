@@ -317,15 +317,14 @@ def array(
     if isinstance(data, ma.MaskedArray):
         if data.dtype.names is not None:
             data = np.asarray(data)
+        elif data.mask is not np.False_ and ma.getmaskarray(data).any():
+            na_dtype = ensure_dtype_can_hold_na(data.dtype)
+            if na_dtype.char in "SU":
+                na_dtype = np.dtype("object")
+            data = cast(ma.MaskedArray, data.astype(na_dtype)).filled(np.nan)
         else:
-            if data.mask is not np.False_ and ma.getmaskarray(data).any():
-                na_dtype = ensure_dtype_can_hold_na(data.dtype)
-                if na_dtype.char in "SU":
-                    na_dtype = np.dtype("object")
-                data = cast(ma.MaskedArray, data.astype(na_dtype)).filled(np.nan)
-            else:
-                # No mask, convert to regular array
-                data = np.asarray(data)
+            # No mask, convert to regular array
+            data = np.asarray(data)
 
     # this returns None for not-found dtypes.
     if dtype is not None:
