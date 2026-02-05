@@ -418,12 +418,15 @@ def get_longley_data():
     return pd.read_csv(longley_csv).iloc[:, [1, 2, 3, 4, 5, 6]].astype(float)
 
 
+# See gh-63685, comparisons and copying led to races in statsmodels tests
+#
+# This test spawns a thread pool, so it shouldn't run under xdist.
+# It generates warnings, so it needs warnings to be thread-safe as well
 @td.skip_if_warnings_arent_thread_safe
 @pytest.mark.single_cpu
 def test_multithreaded_reading():
     def numpy_assert(data, b):
         b.wait()
-        # See gh-63685, comparisons and copying led to races seen with
         tm.assert_almost_equal((data + 1) - 1, data.copy())
 
     tm.run_multithreaded(
@@ -437,8 +440,6 @@ def test_multithreaded_reading():
             return False
 
     def concat(data, b):
-        # based on a test from statsmodels that triggered races in Pandas
-        # under pytest-run-parallel
         b.wait()
         x = data.copy()
         nobs = len(x)
