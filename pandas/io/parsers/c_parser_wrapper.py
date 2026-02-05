@@ -65,7 +65,6 @@ class CParserWrapper(ParserBase):
     low_memory: bool
     _reader: parsers.TextReader
 
-
     def __init__(self, src: ReadCsvBuffer[str], **kwds) -> None:
         super().__init__(kwds)
         self.kwds = kwds

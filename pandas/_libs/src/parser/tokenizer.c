@@ -648,17 +648,15 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes,
   TRACE(("_TOKEN_CLEANUP: datapos: %d, datalen: %d\n", self->datapos,          \
          self->datalen));
 
-#define CHECK_FOR_BOM()                       \
-    if (self->datalen - self->datapos >= 3 && \
-        (unsigned char)buf[0] == 0xEF &&      \
-        (unsigned char)buf[1] == 0xBB &&      \
-        (unsigned char)buf[2] == 0xBF) {      \
-        self->bom_found = 1;                  \
-        if (self->strip_bom) {                \
-            buf += 3;                         \
-            self->datapos += 3;               \
-        }                                     \
-    }
+#define CHECK_FOR_BOM()                                                        \
+  if (self->datalen - self->datapos >= 3 && (unsigned char)buf[0] == 0xEF &&   \
+      (unsigned char)buf[1] == 0xBB && (unsigned char)buf[2] == 0xBF) {        \
+    self->bom_found = 1;                                                       \
+    if (self->strip_bom) {                                                     \
+      buf += 3;                                                                \
+      self->datapos += 3;                                                      \
+    }                                                                          \
+  }
 
 static int skip_this_line(parser_t *self, int64_t rownum) {
   if (self->skipfunc != NULL) {
