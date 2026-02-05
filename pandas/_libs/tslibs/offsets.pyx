@@ -3317,7 +3317,7 @@ cdef class WeekOfMonthMixin(SingleConstructorOffset):
         >>> pd.offsets.WeekOfMonth(n=1, week=0, weekday=0).rule_code
         'WOM-1MON'
         """
-        weekday = int_to_weekday.get(self.weekday, "")
+        weekday = int_to_weekday.get(self._weekday, "")
         if self._week == -1:
             # LastWeekOfMonth
             return f"{self._prefix}-{weekday}"
@@ -4993,7 +4993,7 @@ cdef class Week(SingleConstructorOffset):
 
     @apply_wraps
     def _apply(self, other):
-        if self.weekday is None:
+        if self._weekday is None:
             return other + self._n * self._inc
 
         if not PyDateTime_Check(other):
@@ -5003,15 +5003,15 @@ cdef class Week(SingleConstructorOffset):
 
         k = self._n
         otherDay = other.weekday()
-        if otherDay != self.weekday:
-            other = other + timedelta((self.weekday - otherDay) % 7)
+        if otherDay != self._weekday:
+            other = other + timedelta((self._weekday - otherDay) % 7)
             if k > 0:
                 k -= 1
 
         return other + timedelta(weeks=k)
 
     def _apply_array(self, dtarr: np.ndarray) -> np.ndarray:
-        if self.weekday is None:
+        if self._weekday is None:
             td = timedelta(days=7 * self._n)
             unit = np.datetime_data(dtarr.dtype)[0]
             td64 = np.timedelta64(td, unit)
@@ -5117,9 +5117,9 @@ cdef class Week(SingleConstructorOffset):
         """
         if self._normalize and not _is_normalized(dt):
             return False
-        elif self.weekday is None:
+        elif self._weekday is None:
             return True
-        return dt.weekday() == self.weekday
+        return dt.weekday() == self._weekday
 
     @property
     def rule_code(self) -> str:
@@ -5142,8 +5142,8 @@ cdef class Week(SingleConstructorOffset):
         'W'
         """
         suffix = ""
-        if self.weekday is not None:
-            weekday = int_to_weekday[self.weekday]
+        if self._weekday is not None:
+            weekday = int_to_weekday[self._weekday]
             suffix = f"-{weekday}"
         return self._prefix + suffix
 
@@ -5229,7 +5229,7 @@ cdef class WeekOfMonth(WeekOfMonthMixin):
         """
         mstart = datetime(other.year, other.month, 1)
         wday = mstart.weekday()
-        shift_days = (self.weekday - wday) % 7
+        shift_days = (self._weekday - wday) % 7
         return 1 + shift_days + self._week * 7
 
     @classmethod
@@ -5313,7 +5313,7 @@ cdef class LastWeekOfMonth(WeekOfMonthMixin):
         dim = get_days_in_month(other.year, other.month)
         mend = datetime(other.year, other.month, dim)
         wday = mend.weekday()
-        shift_days = (wday - self.weekday) % 7
+        shift_days = (wday - self._weekday) % 7
         return dim - shift_days
 
     @classmethod
@@ -5730,7 +5730,7 @@ cdef class FY5253(FY5253Mixin):
 
         dim = get_days_in_month(dt.year, self._startingMonth)
         target_date = datetime(dt.year, self._startingMonth, dim)
-        wkday_diff = self.weekday - target_date.weekday()
+        wkday_diff = self._weekday - target_date.weekday()
         if wkday_diff == 0:
             # year_end is the same for "last" and "nearest" cases
             return target_date
@@ -5928,8 +5928,8 @@ cdef class FY5253Quarter(FY5253Mixin):
     def _offset(self):
         return FY5253(
             startingMonth=self._startingMonth,
-            weekday=self.weekday,
-            variation=self.variation,
+            weekday=self._weekday,
+            variation=self._variation,
         )
 
     def _rollback_to_year(self, other: datetime):
