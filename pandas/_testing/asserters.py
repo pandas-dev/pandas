@@ -188,7 +188,7 @@ def assert_dict_equal(left, right, compare_keys: bool = True) -> None:
 def assert_index_equal(
     left: Index,
     right: Index,
-    exact: bool | str = "equiv",
+    exact: bool | str = True,
     check_names: bool = True,
     check_exact: bool = True,
     check_categorical: bool = True,
@@ -206,7 +206,7 @@ def assert_index_equal(
         The first index to compare.
     right : Index
         The second index to compare.
-    exact : bool or {'equiv'}, default 'equiv'
+    exact : bool or {'equiv'}, default True
         Whether to check the Index class, dtype and inferred_type
         are identical. If 'equiv', then RangeIndex can be substituted for
         Index with an int64 dtype as well.
