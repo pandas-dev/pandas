@@ -45,21 +45,21 @@ class TestIntervalIndex:
         idx = IntervalIndex.from_tuples(tpls, closed=closed)
         ser = Series(list("abc"), idx)
 
-        for key, expected in zip(idx.left, ser):
+        for key, expected in zip(idx.left, ser, strict=True):
             if idx.closed_left:
                 assert indexer_sl(ser)[key] == expected
             else:
                 with pytest.raises(KeyError, match=str(key)):
                     indexer_sl(ser)[key]
 
-        for key, expected in zip(idx.right, ser):
+        for key, expected in zip(idx.right, ser, strict=True):
             if idx.closed_right:
                 assert indexer_sl(ser)[key] == expected
             else:
                 with pytest.raises(KeyError, match=str(key)):
                     indexer_sl(ser)[key]
 
-        for key, expected in zip(idx.mid, ser):
+        for key, expected in zip(idx.mid, ser, strict=True):
             assert indexer_sl(ser)[key] == expected
 
     def test_getitem_non_matching(self, series_with_interval_index, indexer_sl):

@@ -52,7 +52,7 @@ class TestDataFrameDelItem:
     def test_delitem_col_still_multiindex(self):
         arrays = [["a", "b", "c", "top"], ["", "", "", "OD"], ["", "", "", "wx"]]
 
-        tuples = sorted(zip(*arrays))
+        tuples = sorted(zip(*arrays, strict=True))
         index = MultiIndex.from_tuples(tuples)
 
         df = DataFrame(np.random.default_rng(2).standard_normal((3, 4)), columns=index)

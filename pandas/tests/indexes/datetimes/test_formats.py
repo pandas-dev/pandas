@@ -175,7 +175,7 @@ class TestDatetimeIndexRendering:
         )
 
         with pd.option_context("display.width", 300):
-            for index, expected in zip(idxs, exp):
+            for index, expected in zip(idxs, exp, strict=True):
                 index = index.as_unit(unit)
                 expected = expected.replace("[ns", f"[{unit}")
                 result = repr(index)
@@ -227,6 +227,7 @@ class TestDatetimeIndexRendering:
             for idx, expected in zip(
                 [idx1, idx2, idx3, idx4, idx5, idx6, idx7],
                 [exp1, exp2, exp3, exp4, exp5, exp6, exp7],
+                strict=True,
             ):
                 ser = Series(idx.as_unit(unit))
                 result = repr(ser)
@@ -264,7 +265,9 @@ class TestDatetimeIndexRendering:
         exp6 = """DatetimeIndex: 3 entries, 2011-01-01 09:00:00-05:00 to NaT"""
 
         for idx, expected in zip(
-            [idx1, idx2, idx3, idx4, idx5, idx6], [exp1, exp2, exp3, exp4, exp5, exp6]
+            [idx1, idx2, idx3, idx4, idx5, idx6],
+            [exp1, exp2, exp3, exp4, exp5, exp6],
+            strict=True,
         ):
             result = idx._summary()
             assert result == expected

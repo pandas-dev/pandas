@@ -155,3 +155,11 @@ class TestSeriesClip:
         expected = Series([lower, upper], dtype=dtype)
 
         tm.assert_series_equal(result, expected)
+
+    def test_clip_with_scalar_array_lower(self):
+        # GH#59053
+        ser = Series([-1, 2, 3])
+        lower = np.array(0)
+        result = ser.clip(lower=lower)
+        expected = Series([0, 2, 3])
+        tm.assert_series_equal(result, expected)

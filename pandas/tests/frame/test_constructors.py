@@ -374,9 +374,9 @@ class TestDataFrameConstructors:
                 for d in dtypes
             ]
 
-        for d, a in zip(dtypes, arrays):
+        for d, a in zip(dtypes, arrays, strict=True):
             assert a.dtype == d
-        ad.update(dict(zip(dtypes, arrays)))
+        ad.update(dict(zip(dtypes, arrays, strict=True)))
         df = DataFrame(ad)
 
         dtypes = MIXED_FLOAT_DTYPES + MIXED_INT_DTYPES
@@ -491,7 +491,7 @@ class TestDataFrameConstructors:
         nums = list(range(nitems))
         np.random.default_rng(2).shuffle(nums)
         expected = [f"A{i:d}" for i in nums]
-        df = DataFrame(OrderedDict(zip(expected, [[0]] * nitems)))
+        df = DataFrame(OrderedDict(zip(expected, [[0]] * nitems, strict=True)))
         assert expected == list(df.columns)
 
     def test_constructor_dict(self):
@@ -784,8 +784,12 @@ class TestDataFrameConstructors:
     def test_constructor_dict_cast2(self):
         # can't cast to float
         test_data = {
-            "A": dict(zip(range(20), [f"word_{i}" for i in range(20)])),
-            "B": dict(zip(range(15), np.random.default_rng(2).standard_normal(15))),
+            "A": dict(zip(range(20), [f"word_{i}" for i in range(20)], strict=True)),
+            "B": dict(
+                zip(
+                    range(15), np.random.default_rng(2).standard_normal(15), strict=True
+                )
+            ),
         }
         with pytest.raises(ValueError, match="could not convert string"):
             DataFrame(test_data, dtype=float)
@@ -1729,7 +1733,8 @@ class TestDataFrameConstructors:
             Index(["c", "d", "e"], name=name_in3),
         ]
         series = {
-            c: Series([0, 1, 2], index=i) for i, c in zip(indices, ["x", "y", "z"])
+            c: Series([0, 1, 2], index=i)
+            for i, c in zip(indices, ["x", "y", "z"], strict=True)
         }
         result = DataFrame(series)
 

@@ -402,6 +402,10 @@ class DatetimeProperties(Properties):
         """
         Calculate year, week, and day according to the ISO 8601 standard.
 
+        The ISO 8601 standard defines the first week of the year as the week
+        containing the first Thursday. This method returns a DataFrame with
+        columns for the ISO year, ISO week number, and ISO day of week.
+
         Returns
         -------
         DataFrame

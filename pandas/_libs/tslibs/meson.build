@@ -4,7 +4,7 @@ tslibs_sources = {
     'base': {'sources': ['base.pyx']},
     'ccalendar': {'sources': ['ccalendar.pyx']},
     'dtypes': {'sources': ['dtypes.pyx']},
-    'conversion': {'sources': ['conversion.pyx']},
+    'conversion': {'sources': ['conversion.pyx'], 'deps': [m_dep]},
     'fields': {'sources': ['fields.pyx']},
     'nattype': {'sources': ['nattype.pyx']},
     'np_datetime': {'sources': ['np_datetime.pyx']},

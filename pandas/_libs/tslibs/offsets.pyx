@@ -153,12 +153,12 @@ def apply_wraps(func):
         if self._adjust_dst:
             result = result.tz_localize(tz)
 
-        if self.normalize:
+        if self._normalize:
             result = result.normalize()
 
         # If the offset object does not have a nanoseconds component,
         # the result's nanosecond component may be lost.
-        if not self.normalize and nano != 0 and not hasattr(self, "nanoseconds"):
+        if not self._normalize and nano != 0 and not hasattr(self, "nanoseconds"):
             if result.nanosecond != nano:
                 if result.tz is not None:
                     # convert to UTC
@@ -515,7 +515,7 @@ cdef class BaseOffset:
         Returns a copy of the calling offset object with n=1 and all other
         attributes equal.
         """
-        return type(self)(n=1, normalize=self.normalize, **self.kwds)
+        return type(self)(n=1, normalize=self._normalize, **self.kwds)
 
     def __add__(self, other):
         if util.is_array(other) and other.dtype == object:
@@ -533,7 +533,7 @@ cdef class BaseOffset:
         if PyDateTime_Check(other):
             raise TypeError("Cannot subtract datetime from offset.")
         elif type(other) is type(self):
-            return type(self)(self._n - other.n, normalize=self.normalize,
+            return type(self)(self._n - other.n, normalize=self._normalize,
                               **self.kwds)
         else:
             # e.g. PeriodIndex
@@ -546,7 +546,7 @@ cdef class BaseOffset:
         if util.is_array(other):
             return np.array([self * x for x in other])
         elif is_integer_object(other):
-            return type(self)(n=other * self._n, normalize=self.normalize,
+            return type(self)(n=other * self._n, normalize=self._normalize,
                               **self.kwds)
         elif isinstance(other, BaseOffset):
             # Otherwise raises RecurrsionError due to __rmul__
@@ -792,11 +792,11 @@ cdef class BaseOffset:
         Timestamp('2025-01-31 00:00:00')
         """
         dt = Timestamp(dt)
-        if self.normalize and (dt - dt.normalize())._value != 0:
+        if self._normalize and (dt - dt.normalize())._value != 0:
             # GH#32616
             dt = dt.normalize()
         if not self.is_on_offset(dt):
-            dt = dt - type(self)(1, normalize=self.normalize, **self.kwds)
+            dt = dt - type(self)(1, normalize=self._normalize, **self.kwds)
         return dt
 
     def rollforward(self, dt) -> datetime:
@@ -841,7 +841,7 @@ cdef class BaseOffset:
         """
         dt = Timestamp(dt)
         if not self.is_on_offset(dt):
-            dt = dt + type(self)(1, normalize=self.normalize, **self.kwds)
+            dt = dt + type(self)(1, normalize=self._normalize, **self.kwds)
         return dt
 
     def _get_offset_day(self, other: datetime) -> int:
@@ -888,7 +888,7 @@ cdef class BaseOffset:
         >>> freq.is_on_offset(ts)
         False
         """
-        if self.normalize and not _is_normalized(dt):
+        if self._normalize and not _is_normalized(dt):
             return False
 
         # Default (slow) method for determining if some date is a member of the
@@ -1970,7 +1970,7 @@ cdef class RelativeDeltaOffset(BaseOffset):
         >>> freq.is_on_offset(ts)
         False
         """
-        if self.normalize and not _is_normalized(dt):
+        if self._normalize and not _is_normalized(dt):
             return False
         return True
 
@@ -2358,8 +2358,8 @@ cdef class BusinessMixin(SingleConstructorOffset):
         return self._weekmask
 
     def _repr_attrs(self) -> str:
-        if self.offset:
-            attrs = [f"offset={repr(self.offset)}"]
+        if self._offset:
+            attrs = [f"offset={repr(self._offset)}"]
         else:
             attrs = []
         out = ""
@@ -3141,7 +3141,7 @@ cdef class BusinessHour(BusinessMixin):
         """
         Slight speedups using calculated values.
         """
-        # if self.normalize and not _is_normalized(dt):
+        # if self._normalize and not _is_normalized(dt):
         #     return False
         # Valid bh can be on the different BusinessDay during midnight
         # Distinguish by the time spent from previous opening time
@@ -3227,7 +3227,7 @@ cdef class WeekOfMonthMixin(SingleConstructorOffset):
         >>> pd.offsets.WeekOfMonth(week=1, weekday=0).is_on_offset(ts)
         True
         """
-        if self.normalize and not _is_normalized(dt):
+        if self._normalize and not _is_normalized(dt):
             return False
         return dt.day == self._get_offset_day(dt)
 
@@ -3450,7 +3450,7 @@ cdef class YearOffset(SingleConstructorOffset):
         >>> freq.is_on_offset(ts)
         True
         """
-        if self.normalize and not _is_normalized(dt):
+        if self._normalize and not _is_normalized(dt):
             return False
         return dt.month == self._month and dt.day == self._get_offset_day(dt)
 
@@ -3829,7 +3829,7 @@ cdef class QuarterOffset(SingleConstructorOffset):
         >>> freq.is_on_offset(ts)
         True
         """
-        if self.normalize and not _is_normalized(dt):
+        if self._normalize and not _is_normalized(dt):
             return False
         mod_month = (dt.month - self.startingMonth) % 3
         return mod_month == 0 and dt.day == self._get_offset_day(dt)
@@ -4141,7 +4141,7 @@ cdef class HalfYearOffset(SingleConstructorOffset):
         >>> freq.is_on_offset(ts)
         True
         """
-        if self.normalize and not _is_normalized(dt):
+        if self._normalize and not _is_normalized(dt):
             return False
         mod_month = (dt.month - self.startingMonth) % 6
         return mod_month == 0 and dt.day == self._get_offset_day(dt)
@@ -4368,7 +4368,7 @@ cdef class MonthOffset(SingleConstructorOffset):
         >>> pd.offsets.MonthEnd().is_on_offset(ts)
         True
         """
-        if self.normalize and not _is_normalized(dt):
+        if self._normalize and not _is_normalized(dt):
             return False
         return dt.day == self._get_offset_day(dt)
 
@@ -4811,7 +4811,7 @@ cdef class SemiMonthEnd(SemiMonthOffset):
         >>> pd.offsets.SemiMonthEnd().is_on_offset(ts)
         False
         """
-        if self.normalize and not _is_normalized(dt):
+        if self._normalize and not _is_normalized(dt):
             return False
         days_in_month = get_days_in_month(dt.year, dt.month)
         return dt.day in (self._day_of_month, days_in_month)
@@ -4889,7 +4889,7 @@ cdef class SemiMonthBegin(SemiMonthOffset):
         >>> freq.is_on_offset(ts)
         False
         """
-        if self.normalize and not _is_normalized(dt):
+        if self._normalize and not _is_normalized(dt):
             return False
         return dt.day in (1, self._day_of_month)
 
@@ -5115,7 +5115,7 @@ cdef class Week(SingleConstructorOffset):
         >>> pd.offsets.Week(weekday=6).is_on_offset(ts)  # weekday=6 is Sunday
         False
         """
-        if self.normalize and not _is_normalized(dt):
+        if self._normalize and not _is_normalized(dt):
             return False
         elif self.weekday is None:
             return True
@@ -5621,7 +5621,7 @@ cdef class FY5253(FY5253Mixin):
         >>> offset.is_on_offset(ts)
         False
         """
-        if self.normalize and not _is_normalized(dt):
+        if self._normalize and not _is_normalized(dt):
             return False
         dt = datetime(dt.year, dt.month, dt.day)
         year_end = self.get_year_end(dt)
@@ -6135,7 +6135,7 @@ cdef class FY5253Quarter(FY5253Mixin):
         >>> offset.is_on_offset(ts)
         False
         """
-        if self.normalize and not _is_normalized(dt):
+        if self._normalize and not _is_normalized(dt):
             return False
         if self._offset.is_on_offset(dt):
             return True
@@ -6314,7 +6314,7 @@ cdef class Easter(SingleConstructorOffset):
         >>> pd.offsets.Easter().is_on_offset(ts)
         False
         """
-        if self.normalize and not _is_normalized(dt):
+        if self._normalize and not _is_normalized(dt):
             return False
 
         from dateutil.easter import easter
@@ -6733,8 +6733,8 @@ cdef class _CustomBusinessMonth(BusinessMixin):
         new = cur_month_offset_date + n * self.m_offset
         result = self.cbday_roll(new)
 
-        if self.offset:
-            result = result + self.offset
+        if self._offset:
+            result = result + self._offset
         return result
 
 

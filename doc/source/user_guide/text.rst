@@ -690,7 +690,7 @@ Differences in behavior will be primarily due to the kind of NA value.
 1. Like ``dtype="object"``, :ref:`string accessor methods<api.series.str>`
    that return **integer** output will return a NumPy array that is
    either dtype int or float depending on the presence of NA values.
-   Methods returning **boolean** output will return a NumPy array this is
+   Methods returning **boolean** output will return a NumPy array that is
    dtype bool, with the value ``False`` when an NA value is encountered.
 
    .. ipython:: python

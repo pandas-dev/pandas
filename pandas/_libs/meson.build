@@ -50,6 +50,8 @@ _khash_primitive_helper_dep = declare_dependency(
     sources: _khash_primitive_helper,
 )
 
+m_dep = cc.find_library('m', required: false)
+
 cdata = configuration_data()
 if cy.version().version_compare('>=3.1.0')
     cdata.set('freethreading_compatible', '1')
@@ -70,10 +72,10 @@ libs_sources = {
     # numpy include dir is implicitly included
     'algos': {
         'sources': ['algos.pyx', _algos_common_helper, _algos_take_helper],
-        'deps': _khash_primitive_helper_dep,
+        'deps': [_khash_primitive_helper_dep, m_dep],
     },
     'arrays': {'sources': ['arrays.pyx']},
-    'groupby': {'sources': ['groupby.pyx']},
+    'groupby': {'sources': ['groupby.pyx'], 'deps': [m_dep]},
     'hashing': {'sources': ['hashing.pyx']},
     'hashtable': {
         'sources': [
@@ -126,6 +128,7 @@ libs_sources = {
             'src/vendored/ujson/lib/ultrajsonenc.c',
             'src/vendored/ujson/lib/ultrajsondec.c',
         ],
+        'deps': [m_dep],
     },
     'ops': {'sources': ['ops.pyx']},
     'ops_dispatch': {'sources': ['ops_dispatch.pyx']},
@@ -133,7 +136,7 @@ libs_sources = {
     'reshape': {'sources': ['reshape.pyx']},
     'sas': {'sources': ['sas.pyx']},
     'byteswap': {'sources': ['byteswap.pyx']},
-    'sparse': {'sources': ['sparse.pyx', _sparse_op_helper]},
+    'sparse': {'sources': ['sparse.pyx', _sparse_op_helper], 'deps': [m_dep]},
     'tslib': {'sources': ['tslib.pyx']},
     'testing': {'sources': ['testing.pyx']},
     'writers': {'sources': ['writers.pyx']},

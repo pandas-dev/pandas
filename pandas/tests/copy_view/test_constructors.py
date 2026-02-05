@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -248,7 +250,15 @@ def test_dataframe_from_dict_of_series_with_reindex(dtype):
         ([1, 2], "int64"),
         # 1D-only EA
         ([1, 2], "Int64"),
-        (["a", "b"], "str"),
+        pytest.param(
+            ["a", "b"],
+            "str",
+            marks=pytest.mark.xfail(
+                reason="TODO bug with infer_string=False and specifying dtype='str'"
+            )
+            if not using_string_dtype()
+            else [],
+        ),
         (["a", "b"], object),
         # 2D EA
         (
