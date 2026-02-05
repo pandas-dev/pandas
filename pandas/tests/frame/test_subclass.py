@@ -82,7 +82,7 @@ class TestDataFrameSubclassing:
         cdf_multi2 = CustomDataFrame([[0, 1], [2, 3]], columns=mcol)
         assert isinstance(cdf_multi2["A"], CustomSeries)
 
-    def test_dataframe_metadata(self, tmp_path):
+    def test_dataframe_metadata(self, temp_file):
         df = tm.SubclassedDataFrame(
             {"X": [1, 2, 3], "Y": [1, 2, 3]}, index=["a", "b", "c"]
         )
@@ -97,7 +97,7 @@ class TestDataFrameSubclassing:
         assert df.iloc[0:1, :].testattr == "XXX"
 
         # see gh-10553
-        unpickled = tm.round_trip_pickle(df, tmp_path)
+        unpickled = tm.round_trip_pickle(df, temp_file)
         tm.assert_frame_equal(df, unpickled)
         assert df._metadata == unpickled._metadata
         assert df.testattr == unpickled.testattr
@@ -231,10 +231,10 @@ class TestDataFrameSubclassing:
         df = tm.SubclassedDataFrame(
             [[10, 11, 12, 13], [20, 21, 22, 23], [30, 31, 32, 33], [40, 41, 42, 43]],
             index=MultiIndex.from_tuples(
-                list(zip(list("AABB"), list("cdcd"))), names=["aaa", "ccc"]
+                list(zip(list("AABB"), list("cdcd"), strict=True)), names=["aaa", "ccc"]
             ),
             columns=MultiIndex.from_tuples(
-                list(zip(list("WWXX"), list("yzyz"))), names=["www", "yyy"]
+                list(zip(list("WWXX"), list("yzyz"), strict=True)), names=["www", "yyy"]
             ),
         )
 
@@ -250,7 +250,14 @@ class TestDataFrameSubclassing:
                 [41, 43],
             ],
             index=MultiIndex.from_tuples(
-                list(zip(list("AAAABBBB"), list("ccddccdd"), list("yzyzyzyz"))),
+                list(
+                    zip(
+                        list("AAAABBBB"),
+                        list("ccddccdd"),
+                        list("yzyzyzyz"),
+                        strict=True,
+                    )
+                ),
                 names=["aaa", "ccc", "yyy"],
             ),
             columns=Index(["W", "X"], name="www"),
@@ -274,7 +281,14 @@ class TestDataFrameSubclassing:
                 [42, 43],
             ],
             index=MultiIndex.from_tuples(
-                list(zip(list("AAAABBBB"), list("ccddccdd"), list("WXWXWXWX"))),
+                list(
+                    zip(
+                        list("AAAABBBB"),
+                        list("ccddccdd"),
+                        list("WXWXWXWX"),
+                        strict=True,
+                    )
+                ),
                 names=["aaa", "ccc", "www"],
             ),
             columns=Index(["y", "z"], name="yyy"),
@@ -293,10 +307,10 @@ class TestDataFrameSubclassing:
                 [40, 41, 42.0, 43.0],
             ],
             index=MultiIndex.from_tuples(
-                list(zip(list("AABB"), list("cdcd"))), names=["aaa", "ccc"]
+                list(zip(list("AABB"), list("cdcd"), strict=True)), names=["aaa", "ccc"]
             ),
             columns=MultiIndex.from_tuples(
-                list(zip(list("WWXX"), list("yzyz"))), names=["www", "yyy"]
+                list(zip(list("WWXX"), list("yzyz"), strict=True)), names=["www", "yyy"]
             ),
         )
 
@@ -312,7 +326,14 @@ class TestDataFrameSubclassing:
                 [41, 43.0],
             ],
             index=MultiIndex.from_tuples(
-                list(zip(list("AAAABBBB"), list("ccddccdd"), list("yzyzyzyz"))),
+                list(
+                    zip(
+                        list("AAAABBBB"),
+                        list("ccddccdd"),
+                        list("yzyzyzyz"),
+                        strict=True,
+                    )
+                ),
                 names=["aaa", "ccc", "yyy"],
             ),
             columns=Index(["W", "X"], name="www"),
@@ -336,7 +357,14 @@ class TestDataFrameSubclassing:
                 [42.0, 43.0],
             ],
             index=MultiIndex.from_tuples(
-                list(zip(list("AAAABBBB"), list("ccddccdd"), list("WXWXWXWX"))),
+                list(
+                    zip(
+                        list("AAAABBBB"),
+                        list("ccddccdd"),
+                        list("WXWXWXWX"),
+                        strict=True,
+                    )
+                ),
                 names=["aaa", "ccc", "www"],
             ),
             columns=Index(["y", "z"], name="yyy"),
@@ -365,10 +393,10 @@ class TestDataFrameSubclassing:
         df = tm.SubclassedDataFrame(
             [[10, 11, 12, 13], [20, 21, 22, 23], [30, 31, 32, 33], [40, 41, 42, 43]],
             index=MultiIndex.from_tuples(
-                list(zip(list("AABB"), list("cdcd"))), names=["aaa", "ccc"]
+                list(zip(list("AABB"), list("cdcd"), strict=True)), names=["aaa", "ccc"]
             ),
             columns=MultiIndex.from_tuples(
-                list(zip(list("WWXX"), list("yzyz"))), names=["www", "yyy"]
+                list(zip(list("WWXX"), list("yzyz"), strict=True)), names=["www", "yyy"]
             ),
         )
 
@@ -376,7 +404,14 @@ class TestDataFrameSubclassing:
             [[10, 20, 11, 21, 12, 22, 13, 23], [30, 40, 31, 41, 32, 42, 33, 43]],
             index=Index(["A", "B"], name="aaa"),
             columns=MultiIndex.from_tuples(
-                list(zip(list("WWWWXXXX"), list("yyzzyyzz"), list("cdcdcdcd"))),
+                list(
+                    zip(
+                        list("WWWWXXXX"),
+                        list("yyzzyyzz"),
+                        list("cdcdcdcd"),
+                        strict=True,
+                    )
+                ),
                 names=["www", "yyy", "ccc"],
             ),
         )
@@ -391,7 +426,14 @@ class TestDataFrameSubclassing:
             [[10, 30, 11, 31, 12, 32, 13, 33], [20, 40, 21, 41, 22, 42, 23, 43]],
             index=Index(["c", "d"], name="ccc"),
             columns=MultiIndex.from_tuples(
-                list(zip(list("WWWWXXXX"), list("yyzzyyzz"), list("ABABABAB"))),
+                list(
+                    zip(
+                        list("WWWWXXXX"),
+                        list("yyzzyyzz"),
+                        list("ABABABAB"),
+                        strict=True,
+                    )
+                ),
                 names=["www", "yyy", "aaa"],
             ),
         )
@@ -409,10 +451,10 @@ class TestDataFrameSubclassing:
                 [40, 41, 42.0, 43.0],
             ],
             index=MultiIndex.from_tuples(
-                list(zip(list("AABB"), list("cdcd"))), names=["aaa", "ccc"]
+                list(zip(list("AABB"), list("cdcd"), strict=True)), names=["aaa", "ccc"]
             ),
             columns=MultiIndex.from_tuples(
-                list(zip(list("WWXX"), list("yzyz"))), names=["www", "yyy"]
+                list(zip(list("WWXX"), list("yzyz"), strict=True)), names=["www", "yyy"]
             ),
         )
 
@@ -423,7 +465,14 @@ class TestDataFrameSubclassing:
             ],
             index=Index(["A", "B"], name="aaa"),
             columns=MultiIndex.from_tuples(
-                list(zip(list("WWWWXXXX"), list("yyzzyyzz"), list("cdcdcdcd"))),
+                list(
+                    zip(
+                        list("WWWWXXXX"),
+                        list("yyzzyyzz"),
+                        list("cdcdcdcd"),
+                        strict=True,
+                    )
+                ),
                 names=["www", "yyy", "ccc"],
             ),
         )
@@ -441,7 +490,14 @@ class TestDataFrameSubclassing:
             ],
             index=Index(["c", "d"], name="ccc"),
             columns=MultiIndex.from_tuples(
-                list(zip(list("WWWWXXXX"), list("yyzzyyzz"), list("ABABABAB"))),
+                list(
+                    zip(
+                        list("WWWWXXXX"),
+                        list("yyzzyyzz"),
+                        list("ABABABAB"),
+                        strict=True,
+                    )
+                ),
                 names=["www", "yyy", "aaa"],
             ),
         )
@@ -507,7 +563,7 @@ class TestDataFrameSubclassing:
                 "A1980": {0: "d", 1: "e", 2: "f"},
                 "B1970": {0: 2.5, 1: 1.2, 2: 0.7},
                 "B1980": {0: 3.2, 1: 1.3, 2: 0.1},
-                "X": dict(zip(range(3), x)),
+                "X": dict(zip(range(3), x, strict=True)),
             }
         )
 
@@ -604,10 +660,10 @@ class TestDataFrameSubclassing:
         df = tm.SubclassedDataFrame(
             [[10, 11, 12, 13], [20, 21, 22, 23], [30, 31, 32, 33], [40, 41, 42, 43]],
             index=MultiIndex.from_tuples(
-                list(zip(list("AABB"), list("cdcd"))), names=["aaa", "ccc"]
+                list(zip(list("AABB"), list("cdcd"), strict=True)), names=["aaa", "ccc"]
             ),
             columns=MultiIndex.from_tuples(
-                list(zip(list("WWXX"), list("yzyz"))), names=["www", "yyy"]
+                list(zip(list("WWXX"), list("yzyz"), strict=True)), names=["www", "yyy"]
             ),
         )
         result = df.count()

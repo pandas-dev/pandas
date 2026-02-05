@@ -21,11 +21,11 @@ def test_insert(idx):
     # key not contained in all levels
     new_index = idx.insert(0, ("abc", "three"))
 
-    exp0 = Index(list(idx.levels[0]) + ["abc"], name="first")
+    exp0 = Index([*list(idx.levels[0]), "abc"], name="first")
     tm.assert_index_equal(new_index.levels[0], exp0)
     assert new_index.names == ["first", "second"]
 
-    exp1 = Index(list(idx.levels[1]) + ["three"], name="second")
+    exp1 = Index([*list(idx.levels[1]), "three"], name="second")
     tm.assert_index_equal(new_index.levels[1], exp1)
     assert new_index[0] == ("abc", "three")
 
@@ -120,11 +120,11 @@ def test_append_index():
         (1.2, datetime(2011, 1, 2, tzinfo=tz)),
         (1.3, datetime(2011, 1, 3, tzinfo=tz)),
     ]
-    expected = Index([1.1, 1.2, 1.3] + expected_tuples)
+    expected = Index([1.1, 1.2, 1.3, *expected_tuples])
     tm.assert_index_equal(result, expected)
 
     result = midx_lv2.append(idx1)
-    expected = Index(expected_tuples + [1.1, 1.2, 1.3])
+    expected = Index([*expected_tuples, 1.1, 1.2, 1.3])
     tm.assert_index_equal(result, expected)
 
     result = midx_lv2.append(midx_lv2)
@@ -141,8 +141,8 @@ def test_append_index():
                 (1.1, datetime(2011, 1, 1, tzinfo=tz), "A"),
                 (1.2, datetime(2011, 1, 2, tzinfo=tz), "B"),
                 (1.3, datetime(2011, 1, 3, tzinfo=tz), "C"),
-            ]
-            + expected_tuples,
+                *expected_tuples,
+            ],
             dtype=object,
         ),
         None,

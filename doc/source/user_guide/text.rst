@@ -47,7 +47,7 @@ to significantly increase the performance and lower the memory overhead of
 
    The default when pandas infers the dtype of a collection of
    strings is to use ``dtype='str'``. This will use ``np.nan``
-   as it's NA value and be backed by a PyArrow string array when
+   as its NA value and be backed by a PyArrow string array when
    PyArrow is installed, or backed by NumPy ``object`` array
    when PyArrow is not installed.
 
@@ -690,7 +690,7 @@ Differences in behavior will be primarily due to the kind of NA value.
 1. Like ``dtype="object"``, :ref:`string accessor methods<api.series.str>`
    that return **integer** output will return a NumPy array that is
    either dtype int or float depending on the presence of NA values.
-   Methods returning **boolean** output will return a NumPy array this is
+   Methods returning **boolean** output will return a NumPy array that is
    dtype bool, with the value ``False`` when an NA value is encountered.
 
    .. ipython:: python
@@ -815,7 +815,7 @@ NA values in this array are represented and behave as ``np.nan``.
    )
 
 Notice that the last three values are all inferred by pandas as
-being an NA values, and hence stored as ``pd.NA``.
+being NA values, and hence stored as ``pd.NA``.
 
 PyArrow storage with ``pd.NA`` values
 -------------------------------------
@@ -833,7 +833,7 @@ represented and behave as ``pd.NA``.
        dtype=pd.StringDtype(storage="python", na_value=pd.NA)
    )
 
-Notice that the last three values are all inferred by pandas as being an NA
+Notice that the last three values are all inferred by pandas as being NA
 values, and hence stored as ``pd.NA``.
 
 Method summary

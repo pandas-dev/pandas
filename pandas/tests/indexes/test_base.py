@@ -534,7 +534,7 @@ class TestIndex:
         # Test that returning a single object from a MultiIndex
         #   returns an Index.
         first_level = ["foo", "bar", "baz"]
-        multi_index = MultiIndex.from_tuples(zip(first_level, [1, 2, 3]))
+        multi_index = MultiIndex.from_tuples(zip(first_level, [1, 2, 3], strict=True))
         reduced_index = multi_index.map(lambda x: x[0])
         tm.assert_index_equal(reduced_index, Index(first_level))
 
@@ -562,7 +562,7 @@ class TestIndex:
     @pytest.mark.parametrize(
         "mapper",
         [
-            lambda values, index: {i: e for e, i in zip(values, index)},
+            lambda values, index: {i: e for e, i in zip(values, index, strict=True)},
             lambda values, index: Series(values, index),
         ],
     )
@@ -576,7 +576,7 @@ class TestIndex:
     @pytest.mark.parametrize(
         "mapper",
         [
-            lambda values, index: {i: e for e, i in zip(values, index)},
+            lambda values, index: {i: e for e, i in zip(values, index, strict=True)},
             lambda values, index: Series(values, index),
         ],
     )
@@ -728,7 +728,7 @@ class TestIndex:
     def test_drop_by_str_label_errors_ignore(self, index):
         n = len(index)
         drop = index[list(range(5, 10))]
-        mixed = drop.tolist() + ["foo"]
+        mixed = [*drop.tolist(), "foo"]
         dropped = index.drop(mixed, errors="ignore")
 
         expected = index[list(range(5)) + list(range(10, n))]
@@ -895,7 +895,7 @@ class TestIndex:
     )
     def test_isin_level_kwarg(self, level, index):
         index = Index(index)
-        values = index.tolist()[-2:] + ["nonexisting"]
+        values = [*index.tolist()[-2:], "nonexisting"]
 
         expected = np.array([False, False, True, True])
         tm.assert_numpy_array_equal(expected, index.isin(values, level=level))
@@ -911,7 +911,7 @@ class TestIndex:
     @pytest.mark.parametrize("label", [1.0, "foobar", "xyzzy", np.nan])
     def test_isin_level_kwarg_bad_label_raises(self, label, index):
         if isinstance(index, MultiIndex):
-            index = index.rename(["foo", "bar"] + index.names[2:])
+            index = index.rename(["foo", "bar", *index.names[2:]])
             msg = f"'Level {label} not found'"
         else:
             index = index.rename("foo")

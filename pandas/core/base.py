@@ -29,10 +29,7 @@ from pandas._typing import (
 from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import (
-    cache_readonly,
-    doc,
-)
+from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.cast import can_hold_element
 from pandas.core.dtypes.common import (
@@ -82,9 +79,6 @@ if TYPE_CHECKING:
         Index,
         Series,
     )
-
-
-_shared_docs: dict[str, str] = {}
 
 
 class PandasObject(DirNamesMixin):
@@ -1481,16 +1475,43 @@ class IndexOpsMixin(OpsMixin):
                 uniques = Index(uniques, copy=False)
         return codes, uniques
 
-    _shared_docs["searchsorted"] = """
+    # This overload is needed so that the call to searchsorted in
+    # pandas.core.resample.TimeGrouper._get_period_bins picks the correct result
+
+    # error: Overloaded function signatures 1 and 2 overlap with incompatible
+    # return types
+    @overload
+    def searchsorted(  # type: ignore[overload-overlap]
+        self,
+        value: ScalarLike_co,
+        side: Literal["left", "right"] = ...,
+        sorter: NumpySorter = ...,
+    ) -> np.intp: ...
+
+    @overload
+    def searchsorted(
+        self,
+        value: npt.ArrayLike | ExtensionArray,
+        side: Literal["left", "right"] = ...,
+        sorter: NumpySorter = ...,
+    ) -> npt.NDArray[np.intp]: ...
+
+    def searchsorted(
+        self,
+        value: NumpyValueArrayLike | ExtensionArray,
+        side: Literal["left", "right"] = "left",
+        sorter: NumpySorter | None = None,
+    ) -> npt.NDArray[np.intp] | np.intp:
+        """
         Find indices where elements should be inserted to maintain order.
 
-        Find the indices into a sorted {klass} `self` such that, if the
+        Find the indices into a sorted Index `self` such that, if the
         corresponding elements in `value` were inserted before the indices,
         the order of `self` would be preserved.
 
         .. note::
 
-            The {klass} *must* be monotonically sorted, otherwise
+            The Index *must* be monotonically sorted, otherwise
             wrong locations will likely be returned. Pandas does *not*
             check this for you.
 
@@ -1536,33 +1557,33 @@ class IndexOpsMixin(OpsMixin):
         >>> ser.searchsorted([0, 4])
         array([0, 3])
 
-        >>> ser.searchsorted([1, 3], side='left')
+        >>> ser.searchsorted([1, 3], side="left")
         array([0, 2])
 
-        >>> ser.searchsorted([1, 3], side='right')
+        >>> ser.searchsorted([1, 3], side="right")
         array([1, 3])
 
-        >>> ser = pd.Series(pd.to_datetime(['3/11/2000', '3/12/2000', '3/13/2000']))
+        >>> ser = pd.Series(pd.to_datetime(["3/11/2000", "3/12/2000", "3/13/2000"]))
         >>> ser
         0   2000-03-11
         1   2000-03-12
         2   2000-03-13
         dtype: datetime64[us]
 
-        >>> ser.searchsorted('3/14/2000')
+        >>> ser.searchsorted("3/14/2000")
         np.int64(3)
 
         >>> ser = pd.Categorical(
-        ...     ['apple', 'bread', 'bread', 'cheese', 'milk'], ordered=True
+        ...     ["apple", "bread", "bread", "cheese", "milk"], ordered=True
         ... )
         >>> ser
         ['apple', 'bread', 'bread', 'cheese', 'milk']
         Categories (4, str): ['apple' < 'bread' < 'cheese' < 'milk']
 
-        >>> ser.searchsorted('bread')
+        >>> ser.searchsorted("bread")
         np.int64(1)
 
-        >>> ser.searchsorted(['bread'], side='right')
+        >>> ser.searchsorted(["bread"], side="right")
         array([3])
 
         If the values are not monotonically sorted, wrong locations
@@ -1578,35 +1599,6 @@ class IndexOpsMixin(OpsMixin):
         >>> ser.searchsorted(1)  # doctest: +SKIP
         0  # wrong result, correct would be 1
         """
-
-    # This overload is needed so that the call to searchsorted in
-    # pandas.core.resample.TimeGrouper._get_period_bins picks the correct result
-
-    # error: Overloaded function signatures 1 and 2 overlap with incompatible
-    # return types
-    @overload
-    def searchsorted(  # type: ignore[overload-overlap]
-        self,
-        value: ScalarLike_co,
-        side: Literal["left", "right"] = ...,
-        sorter: NumpySorter = ...,
-    ) -> np.intp: ...
-
-    @overload
-    def searchsorted(
-        self,
-        value: npt.ArrayLike | ExtensionArray,
-        side: Literal["left", "right"] = ...,
-        sorter: NumpySorter = ...,
-    ) -> npt.NDArray[np.intp]: ...
-
-    @doc(_shared_docs["searchsorted"], klass="Index")
-    def searchsorted(
-        self,
-        value: NumpyValueArrayLike | ExtensionArray,
-        side: Literal["left", "right"] = "left",
-        sorter: NumpySorter | None = None,
-    ) -> npt.NDArray[np.intp] | np.intp:
         if isinstance(value, ABCDataFrame):
             msg = (
                 "Value must be 1-D array-like or scalar, "

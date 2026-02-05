@@ -1898,9 +1898,14 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         Return value at the given quantile.
 
+        Computes the quantile of values within each resampled group.
+
         Parameters
         ----------
         q : float or array-like, default 0.5 (50% quantile)
+            Value between 0 <= q <= 1, the quantile(s) to compute.
+        **kwargs
+            Additional keyword arguments to be passed to the function.
 
         Returns
         -------
@@ -2365,7 +2370,8 @@ class TimeGrouper(Grouper):
         If axis is PeriodIndex
     """
 
-    _attributes = Grouper._attributes + (
+    _attributes = (
+        *Grouper._attributes,
         "closed",
         "label",
         "how",

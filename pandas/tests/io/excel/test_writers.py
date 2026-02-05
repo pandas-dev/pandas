@@ -8,6 +8,7 @@ from decimal import Decimal
 from functools import partial
 from io import BytesIO
 import os
+import pathlib
 import re
 import uuid
 
@@ -160,7 +161,7 @@ class TestRoundTrip:
         sheets = ["AAA", "BBB", "CCC"]
 
         dfs = [tdf(s) for s in sheets]
-        dfs = dict(zip(sheets, dfs))
+        dfs = dict(zip(sheets, dfs, strict=True))
 
         with ExcelWriter(tmp_excel) as ew:
             for sheetname, df in dfs.items():
@@ -1422,7 +1423,7 @@ class TestExcelWriter:
         result = pd.read_excel(tmp_excel, index_col=0)
         tm.assert_frame_equal(result, expected)
 
-    def test_path_path_lib(self, engine, ext, tmp_path):
+    def test_path_path_lib(self, engine, tmp_excel):
         df = DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
             columns=Index(list("ABCD")),
@@ -1431,7 +1432,7 @@ class TestExcelWriter:
         writer = partial(df.to_excel, engine=engine)
 
         reader = partial(pd.read_excel, index_col=0)
-        result = tm.round_trip_pathlib(writer, reader, tmp_path, path=f"foo{ext}")
+        result = tm.round_trip_pathlib(writer, reader, pathlib.Path(tmp_excel))
         tm.assert_frame_equal(result, df)
 
     def test_merged_cell_custom_objects(self, tmp_excel):
