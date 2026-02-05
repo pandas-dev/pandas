@@ -3795,7 +3795,7 @@ cdef class QuarterOffset(SingleConstructorOffset):
         >>> qe.rule_code
         'QE-MAR'
         """
-        month = MONTH_ALIASES[self.startingMonth]
+        month = MONTH_ALIASES[self._startingMonth]
         return f"{self._prefix}-{month}"
 
     def is_on_offset(self, dt: datetime) -> bool:
@@ -3831,7 +3831,7 @@ cdef class QuarterOffset(SingleConstructorOffset):
         """
         if self._normalize and not _is_normalized(dt):
             return False
-        mod_month = (dt.month - self.startingMonth) % 3
+        mod_month = (dt.month - self._startingMonth) % 3
         return mod_month == 0 and dt.day == self._get_offset_day(dt)
 
     @apply_wraps
@@ -3841,9 +3841,9 @@ cdef class QuarterOffset(SingleConstructorOffset):
         # Then find the month in that quarter containing an is_on_offset date for
         # self.  `months_since` is the number of months to shift other.month
         # to get to this on-offset month.
-        months_since = other.month % 3 - self.startingMonth % 3
+        months_since = other.month % 3 - self._startingMonth % 3
         qtrs = roll_qtrday(
-            other, self._n, self.startingMonth, day_opt=self._day_opt, modby=3
+            other, self._n, self._startingMonth, day_opt=self._day_opt, modby=3
         )
         months = qtrs * 3 - months_since
         return shift_month(other, months, self._day_opt)
@@ -3853,7 +3853,7 @@ cdef class QuarterOffset(SingleConstructorOffset):
         shifted = shift_quarters(
             dtarr.view("i8"),
             self._n,
-            self.startingMonth,
+            self._startingMonth,
             self._day_opt,
             modby=3,
             reso=reso,
@@ -3981,7 +3981,7 @@ cdef class QuarterEnd(QuarterOffset):
         # Because QuarterEnd can be the freq for a Period, define its
         #  _period_dtype_code at construction for performance
         QuarterOffset.__init__(self, n, normalize, startingMonth)
-        self._period_dtype_code = PeriodDtypeCode.Q_DEC + self.startingMonth % 12
+        self._period_dtype_code = PeriodDtypeCode.Q_DEC + self._startingMonth % 12
 
 
 cdef class QuarterBegin(QuarterOffset):
@@ -4099,7 +4099,7 @@ cdef class HalfYearOffset(SingleConstructorOffset):
         >>> offset.rule_code
         'BHYE-JUN'
         """
-        month = MONTH_ALIASES[self.startingMonth]
+        month = MONTH_ALIASES[self._startingMonth]
         return f"{self._prefix}-{month}"
 
     def is_on_offset(self, dt: datetime) -> bool:
@@ -4143,7 +4143,7 @@ cdef class HalfYearOffset(SingleConstructorOffset):
         """
         if self._normalize and not _is_normalized(dt):
             return False
-        mod_month = (dt.month - self.startingMonth) % 6
+        mod_month = (dt.month - self._startingMonth) % 6
         return mod_month == 0 and dt.day == self._get_offset_day(dt)
 
     @apply_wraps
@@ -4153,9 +4153,9 @@ cdef class HalfYearOffset(SingleConstructorOffset):
         # Then find the month in that half containing an is_on_offset date for
         # self.  `months_since` is the number of months to shift other.month
         # to get to this on-offset month.
-        months_since = other.month % 6 - self.startingMonth % 6
+        months_since = other.month % 6 - self._startingMonth % 6
         hlvs = roll_qtrday(
-            other, self._n, self.startingMonth, day_opt=self._day_opt, modby=6
+            other, self._n, self._startingMonth, day_opt=self._day_opt, modby=6
         )
         months = hlvs * 6 - months_since
         return shift_month(other, months, self._day_opt)
@@ -4165,7 +4165,7 @@ cdef class HalfYearOffset(SingleConstructorOffset):
         shifted = shift_quarters(
             dtarr.view("i8"),
             self._n,
-            self.startingMonth,
+            self._startingMonth,
             self._day_opt,
             modby=6,
             reso=reso,
