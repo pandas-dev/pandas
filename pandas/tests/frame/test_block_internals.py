@@ -10,6 +10,7 @@ import numpy as np
 import pytest
 
 from pandas.errors import Pandas4Warning
+import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -21,7 +22,6 @@ from pandas import (
     option_context,
 )
 import pandas._testing as tm
-import pandas.util._test_decorators as td
 from pandas.core.internals.blocks import NumpyBlock
 
 # Segregated collection of methods that require the BlockManager internal data
