@@ -397,6 +397,13 @@ def array(
             r"'s', 'ms', 'us', and 'ns' are no longer supported."
         )
 
+    # GH#57702: Handle string dtype consistently with Series construction.
+    # Use ensure_string_array to preserve NA values (None, np.nan) instead
+    # of converting them to string representation (e.g., "None", "nan").
+    if lib.is_np_dtype(dtype, "U"):
+        result = lib.ensure_string_array(data, convert_na_value=False, copy=copy)
+        return NumpyExtensionArray._from_sequence(result, dtype=object, copy=False)
+
     return NumpyExtensionArray._from_sequence(data, dtype=dtype, copy=copy)
 
 

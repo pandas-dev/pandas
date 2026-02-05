@@ -537,3 +537,36 @@ def test_array_to_numpy_na():
     result = arr.to_numpy(na_value=True, dtype=bool)
     expected = np.array([True, True])
     tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "data, expected_values, expected_dtype",
+    [
+        # GH#57702 - pd.array with dtype=str should preserve None like pd.Series
+        ([1, None], ["1", None], object),
+        (["a", None], ["a", None], object),
+        ([1, np.nan], ["1", np.nan], object),
+        # Without None values, behavior should be consistent
+        ([1, 2], ["1", "2"], object),
+        (["a", "b"], ["a", "b"], object),
+    ],
+)
+def test_array_dtype_str_preserves_na(data, expected_values, expected_dtype):
+    # GH#57702 - pd.array with dtype=str should be consistent with pd.Series
+    result = pd.array(data, dtype=str)
+
+    # Should return NumpyExtensionArray with object dtype
+    assert isinstance(result, NumpyExtensionArray)
+    assert result.dtype.numpy_dtype == expected_dtype
+
+    # Check values - None/np.nan should be preserved, not converted to strings
+    for i, (res_val, exp_val) in enumerate(zip(result, expected_values)):
+        if exp_val is None or (isinstance(exp_val, float) and np.isnan(exp_val)):
+            assert pd.isna(res_val)
+        else:
+            assert res_val == exp_val
+
+    # Should be consistent with pd.Series(..., dtype=str).array
+    series_result = pd.Series(data, dtype=str).array
+    assert result.dtype == series_result.dtype
+    tm.assert_numpy_array_equal(result._ndarray, series_result._ndarray)

@@ -136,6 +136,7 @@ Numeric
 
 Conversion
 ^^^^^^^^^^
+- Bug in :func:`pd.array` where ``dtype=str`` would convert ``None`` values to the string ``"None"``, inconsistent with :class:`Series` construction which preserves ``None`` values. Now ``pd.array`` with ``dtype=str`` consistently preserves NA values like ``None`` and ``np.nan`` (:issue:`57702`)
 -
 -
 
