@@ -60,17 +60,18 @@ jobs:
         echo "PANDAS_VERSION=$PANDAS_VERSION" >> "$GITHUB_ENV"
 
         if [[ "${{ github.event_name }}" == "push" && -n "$PANDAS_VERSION" ]]; then
-          echo "PUBLISH_PROD=true" >> "$GITHUB_ENV"
+          PUBLISH_PROD="true"
         elif [[ "${{ github.event.inputs.publish_prod }}" == "true" ]]; then
-          echo "PUBLISH_PROD=true" >> "$GITHUB_ENV"
+          PUBLISH_PROD="true"
         else
-          echo "PUBLISH_PROD=false" >> "$GITHUB_ENV"
+          PUBLISH_PROD="false"
         fi
+        echo "PUBLISH_PROD=$PUBLISH_PROD" >> "$GITHUB_ENV"
 
-        if [[ "${{ env.PUBLISH_PROD }}" == "true" ]] &&
-           [[ ! "${{ env.PANDAS_VERSION }}" =~ $version_pat ]]
+        if [[ "$PUBLISH_PROD" == "true" ]] &&
+           [[ ! "$PANDAS_VERSION" =~ $version_pat ]]
         then
-          echo "Invalid version ${{ env.PANDAS_VERSION }} for publishing to prod."
+          echo "Invalid version $PANDAS_VERSION for publishing to prod."
           exit 1
         fi
 
