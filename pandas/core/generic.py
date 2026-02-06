@@ -12342,8 +12342,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         halflife : float, str, timedelta, optional
             Specify decay in terms of half-life
 
-            :math:`\alpha = 1 - \\exp\\left(-\\ln(2) / halflife\right)`, for
-            :math:`halflife > 0`.
+            :math:`\alpha = 1 - \\exp\\left(-\\ln(2) / halflife\right)`,
+            for :math:`halflife > 0`.
 
             If ``times`` is specified, a timedelta convertible unit over which an
             observation decays to half its value. Only applicable to ``mean()``,
@@ -12385,9 +12385,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             - When ``ignore_na=False`` (default), weights are based on absolute
               positions.
-              For example, the weights of :math:`x_0` and :math:`x_2` used in
-              calculating the final weighted average of [:math:`x_0`, None, :math:`x_2`]
-              are :math:`(1-\alpha)^2` and :math:`1` if ``adjust=True``, and
+              For example, the weights of :math:`x_0` and :math:`x_2`
+              used in calculating the final weighted average of
+              [:math:`x_0`, None, :math:`x_2`] are
+              :math:`(1-\alpha)^2` and :math:`1` if ``adjust=True``, and
               :math:`(1-\alpha)^2` and :math:`\alpha` if ``adjust=False``.
 
             - When ``ignore_na=True``, weights are based
@@ -12493,8 +12494,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         **times**
 
-        Exponentially weighted mean with weights calculated with a timedelta
-        ``halflife`` relative to ``times``.
+        Exponentially weighted mean with weights calculated with a
+        timedelta ``halflife`` relative to ``times``.
 
         >>> times = ['2020-01-01', '2020-01-03', '2020-01-10', '2020-01-15',
         ...         '2020-01-17']
