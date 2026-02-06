@@ -560,7 +560,7 @@ def test_array_dtype_str_preserves_na(data, expected_values, expected_dtype):
     assert result.dtype.numpy_dtype == expected_dtype
 
     # Check values - None/np.nan should be preserved, not converted to strings
-    for i, (res_val, exp_val) in enumerate(zip(result, expected_values)):
+    for i, (res_val, exp_val) in enumerate(zip(result, expected_values, strict=False)):
         if exp_val is None or (isinstance(exp_val, float) and np.isnan(exp_val)):
             assert pd.isna(res_val)
         else:
