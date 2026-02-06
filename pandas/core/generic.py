@@ -12323,10 +12323,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Provide exponentially weighted (EW) calculations.
 
         Exactly one of ``com``, ``span``, ``halflife``, or ``alpha`` must be
-        provided if ``times`` is not provided. If ``times`` is provided and ``adjust=True``,
-        ``halflife`` and one of ``com``, ``span`` or ``alpha`` may be provided.
-        If ``times`` is provided and ``adjust=False``, ``halflife`` must be the only
-        provided decay-specification parameter.
+        provided if ``times`` is not provided. If ``times`` is provided and 
+        ``adjust=True``, ``halflife`` and one of ``com``, ``span`` or ``alpha`` 
+        may be provided.
+        If ``times`` is provided and ``adjust=False``, ``halflife`` 
+        must be the only provided decay-specification parameter.
 
         Parameters
         ----------
