@@ -35,6 +35,7 @@ from pandas.util._validators import (
     validate_insert_loc,
 )
 
+from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
@@ -208,7 +209,8 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         )
 
     def _cast_pointwise_result(self, values: ArrayLike) -> ArrayLike:
-        values = np.asarray(values, dtype=object)
+        if not (isinstance(values, np.ndarray) and values.dtype == object):
+            values = construct_1d_object_array_from_listlike(values)
         return lib.maybe_convert_objects(values, convert_non_numeric=True)
 
     # Signature of "argmin" incompatible with supertype "ExtensionArray"
