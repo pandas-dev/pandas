@@ -116,6 +116,10 @@ jobs:
         # BackendUnavailable: Cannot import 'mesonpy'
           - buildplat: [windows-11-arm, win_arm64]
             python: ["cp313t", "3.13"]
+    concurrency:
+      # https://github.community/t/concurrecy-not-work-for-push/183068/7
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.buildplat[0] }}-${{ matrix.buildplat[1] }}-${{ matrix.python[0]}}-build-wheels
+      cancel-in-progress: true
 
     env:
       IS_PUSH: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
@@ -192,7 +196,8 @@ jobs:
         # installing wheel here because micromamba step was skipped
         if: matrix.buildplat[1] == 'win_arm64'
         shell: bash -el {0}
-        run: python -m pip install wheel anaconda-client
+        # cryptography pin due to https://github.com/pyca/cryptography/pull/14216
+        run: python -m pip install wheel anaconda-client cryptography==46.0.3
 
       - name: Validate wheel RECORD
         shell: bash -el {0}

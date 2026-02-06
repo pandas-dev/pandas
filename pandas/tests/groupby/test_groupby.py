@@ -1835,14 +1835,24 @@ def test_empty_groupby(columns, keys, values, method, op, dropna, using_infer_st
     tm.assert_equal(result, expected)
 
 
-def test_empty_groupby_apply_nonunique_columns():
-    # GH#44417
-    df = DataFrame(np.random.default_rng(2).standard_normal((0, 4)))
-    df[3] = df[3].astype(np.int64)
-    df.columns = [0, 1, 2, 0]
-    gb = df.groupby(df[1], group_keys=False)
-    res = gb.apply(lambda x: x)
-    assert (res.dtypes == df.drop(columns=1).dtypes).all()
+@pytest.mark.parametrize("method_name", ["agg", "apply"])
+@pytest.mark.parametrize("keys", [[1], [1, 2]])
+def test_empty_groupby_apply_nonunique_columns(method_name, keys):
+    # GH#44417 & GH#63975
+    df = DataFrame(np.random.default_rng(2).standard_normal((0, 5)))
+    df[4] = df[4].astype(np.int64)
+    df.columns = [0, 1, 2, 3, 0]
+    gb = df.groupby(keys, group_keys=False)
+    method = getattr(gb, method_name)
+    result = method(lambda x: x)
+    expected = DataFrame(dtype="float64", columns=range(5))
+    expected[4] = expected[4].astype("int64")
+    expected.columns = [0, 1, 2, 3, 0]
+    if method_name == "agg":
+        expected = expected.set_index(keys)
+    else:
+        expected = expected.drop(columns=keys)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_tuple_as_grouping():

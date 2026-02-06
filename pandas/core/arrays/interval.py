@@ -185,6 +185,10 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     """
     Pandas array for interval data that are closed on the same side.
 
+    An IntervalArray stores an array of Interval objects, where each Interval
+    represents a contiguous span of values. All intervals in the array must
+    have the same closure (left, right, both, or neither).
+
     Parameters
     ----------
     data : array-like (1-dimensional)
@@ -493,6 +497,10 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         """
         Construct an IntervalArray from an array of splits.
 
+        This method creates intervals from consecutive pairs of break points,
+        where each break point is the right edge of one interval and the left
+        edge of the next.
+
         Parameters
         ----------
         breaks : array-like (1-dimensional)
@@ -588,6 +596,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     ) -> Self:
         """
         Construct from two arrays defining the left and right bounds.
+
+        This method creates an IntervalArray from two arrays of equal length,
+        where the i-th interval spans from left[i] to right[i].
 
         Parameters
         ----------
@@ -694,6 +705,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     ) -> Self:
         """
         Construct an IntervalArray from an array-like of tuples.
+
+        This method creates an IntervalArray from a sequence of (left, right)
+        tuples, where each tuple defines the bounds of an interval.
 
         Parameters
         ----------
@@ -1627,6 +1641,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         """
         Return an identical IntervalArray closed on the specified side.
 
+        This method creates a new IntervalArray with the same bounds but with
+        a different closure specification.
+
         Parameters
         ----------
         closed : {'left', 'right', 'both', 'neither'}
@@ -1874,6 +1891,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         """
         Return an ndarray (if self is IntervalArray) or Index \
         (if self is IntervalIndex) of tuples of the form (left, right).
+
+        This method extracts the bounds of each interval as a tuple,
+        useful for iteration or conversion to other data structures.
 
         Parameters
         ----------
