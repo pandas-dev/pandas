@@ -2,7 +2,10 @@ import numpy as np
 import pytest
 
 import pandas._testing as tm
-from pandas.core.indexes.api import Index
+from pandas.core.indexes.api import (
+    Index,
+    RangeIndex,
+)
 
 
 class TestJoinInt64Index:
@@ -28,11 +31,11 @@ class TestJoinInt64Index:
         # not monotonic
         res, lidx, ridx = index.join(other, how="inner", return_indexers=True)
 
-        eres = Index([2, 12], dtype=np.int64, name="lhs")
+        eres = RangeIndex(start=2, stop=22, step=10, name="lhs")
         elidx = np.array([1, 6], dtype=np.intp)
         eridx = np.array([4, 1], dtype=np.intp)
 
-        assert isinstance(res, Index) and res.dtype == np.int64
+        assert isinstance(res, RangeIndex) and res.dtype == np.int64
         tm.assert_index_equal(res, eres)
         tm.assert_numpy_array_equal(lidx, elidx)
         tm.assert_numpy_array_equal(ridx, eridx)
@@ -41,8 +44,9 @@ class TestJoinInt64Index:
         res, lidx, ridx = index.join(other_mono, how="inner", return_indexers=True)
 
         res2 = index.intersection(other_mono).set_names(["lhs"])
-        tm.assert_index_equal(res, res2)
+        tm.assert_index_equal(res, res2, exact="equiv")
 
+        eres = Index([2, 12], dtype=np.int64, name="lhs")
         elidx = np.array([1, 6], dtype=np.intp)
         eridx = np.array([1, 4], dtype=np.intp)
         assert isinstance(res, Index) and res.dtype == np.int64
