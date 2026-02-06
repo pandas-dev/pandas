@@ -95,9 +95,7 @@ from pandas.errors import (
     Pandas4Warning,
 )
 from pandas.errors.cow import _chained_assignment_method_msg
-from pandas.util._decorators import (
-    deprecate_kwarg
-)
+from pandas.util._decorators import deprecate_kwarg
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import (
     check_dtype_backend,
