@@ -348,6 +348,9 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         Aggregate using one or more operations over the specified axis.
 
+        This method applies aggregation functions to resampled groups, enabling
+        summary statistics to be computed for each time period.
+
         Parameters
         ----------
         func : function, str, list or dict
@@ -1109,6 +1112,9 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         Return the values at the new freq, essentially a reindex.
 
+        This method selects data at the specified frequency without aggregation,
+        useful for upsampling to a higher frequency or selecting specific time points.
+
         Parameters
         ----------
         fill_value : scalar, optional
@@ -1216,6 +1222,9 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         Compute prod of group values.
 
+        This method calculates the product of all values within each resampled
+        time period.
+
         Parameters
         ----------
         numeric_only : bool, default False
@@ -1271,6 +1280,8 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         Compute min value of group.
 
+        This method returns the minimum value within each resampled time period.
+
         Parameters
         ----------
         numeric_only : bool, default False
@@ -1325,6 +1336,8 @@ class Resampler(BaseGroupBy, PandasObject):
     ):
         """
         Compute max value of group.
+
+        This method returns the maximum value within each resampled time period.
 
         Parameters
         ----------
@@ -1382,6 +1395,9 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         Compute the first non-null entry of each column.
 
+        This method returns the first value encountered in each resampled time
+        period, skipping missing values by default.
+
         Parameters
         ----------
         numeric_only : bool, default False
@@ -1434,6 +1450,9 @@ class Resampler(BaseGroupBy, PandasObject):
     ):
         """
         Compute the last non-null entry of each column.
+
+        This method returns the last value encountered in each resampled time
+        period, skipping missing values by default.
 
         Parameters
         ----------
@@ -1536,6 +1555,9 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         Compute mean of groups, excluding missing values.
 
+        This method calculates the arithmetic mean of values within each
+        resampled time period.
+
         Parameters
         ----------
         numeric_only : bool, default False
@@ -1590,6 +1612,9 @@ class Resampler(BaseGroupBy, PandasObject):
     ):
         """
         Compute standard deviation of groups, excluding missing values.
+
+        This method calculates the sample standard deviation of values within
+        each resampled time period.
 
         Parameters
         ----------
@@ -1646,6 +1671,9 @@ class Resampler(BaseGroupBy, PandasObject):
     ):
         """
         Compute variance of groups, excluding missing values.
+
+        This method calculates the sample variance of values within each
+        resampled time period.
 
         Parameters
         ----------
@@ -1761,6 +1789,9 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         Compute open, high, low and close values of a group, excluding missing values.
 
+        This method computes OHLC (Open-High-Low-Close) values, commonly used
+        in financial data analysis to summarize price movements within time periods.
+
         Returns
         -------
         DataFrame
@@ -1815,6 +1846,9 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         Return number of unique elements in the group.
 
+        This method counts the number of distinct values within each resampled
+        time period.
+
         Returns
         -------
         Series
@@ -1849,6 +1883,9 @@ class Resampler(BaseGroupBy, PandasObject):
     def size(self):
         """
         Compute group sizes.
+
+        This method returns the number of rows in each resampled time period,
+        including rows with missing values.
 
         Returns
         -------
@@ -1898,6 +1935,9 @@ class Resampler(BaseGroupBy, PandasObject):
     def count(self):
         """
         Compute count of group, excluding missing values.
+
+        This method returns the number of non-null values in each resampled
+        time period.
 
         Returns
         -------
