@@ -100,25 +100,25 @@ class TestTake:
 
         # no errors
         result = idx.take(np.array([1, -3]))
-        expected = Index([2, 1], dtype=np.int64, name="xxx")
+        expected = RangeIndex(start=2, stop=0, step=-1, name="xxx")
         tm.assert_index_equal(result, expected)
 
     def test_take_accepts_empty_array(self):
         idx = RangeIndex(1, 4, name="foo")
         result = idx.take(np.array([]))
-        expected = Index([], dtype=np.int64, name="foo")
+        expected = RangeIndex(start=0, stop=0, step=1, name="foo")
         tm.assert_index_equal(result, expected)
 
         # empty index
         idx = RangeIndex(0, name="foo")
         result = idx.take(np.array([]))
-        expected = Index([], dtype=np.int64, name="foo")
+        expected = RangeIndex(start=0, stop=0, step=1, name="foo")
         tm.assert_index_equal(result, expected)
 
     def test_take_accepts_non_int64_array(self):
         idx = RangeIndex(1, 4, name="foo")
         result = idx.take(np.array([2, 1], dtype=np.uint32))
-        expected = Index([3, 2], dtype=np.int64, name="foo")
+        expected = RangeIndex(start=3, stop=1, step=-1, name="foo")
         tm.assert_index_equal(result, expected)
 
     def test_take_when_index_has_step(self):
