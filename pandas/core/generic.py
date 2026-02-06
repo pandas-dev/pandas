@@ -12319,14 +12319,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         times: np.ndarray | DataFrame | Series | None = None,
         method: Literal["single", "table"] = "single",
     ) -> ExponentialMovingWindow:
-        """  
+        """
         Provide exponentially weighted (EW) calculations.
 
         Exactly one of ``com``, ``span``, ``halflife``, or ``alpha`` must be
-        provided if ``times`` is not provided. If ``times`` is provided and 
-        ``adjust=True``, ``halflife`` and one of ``com``, ``span`` or ``alpha`` 
+        provided if ``times`` is not provided. If ``times`` is provided and
+        ``adjust=True``, ``halflife`` and one of ``com``, ``span`` or ``alpha``
         may be provided.
-        If ``times`` is provided and ``adjust=False``, ``halflife`` 
+        If ``times`` is provided and ``adjust=False``, ``halflife``
         must be the only provided decay-specification parameter.
 
         Parameters
@@ -12364,13 +12364,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Divide by decaying adjustment factor in beginning periods to account
             for imbalance in relative weightings (viewing EWMA as a moving average).
 
-            - When ``adjust=True`` (default), the EW function is calculated using weights
-              :math:`w_i = (1 - \alpha)^i`. For example, the EW moving average of the series
-              [:math:`x_0, x_1, ..., x_t`] would be:
+            - When ``adjust=True`` (default), the EW function is calculated
+              using weights
+              :math:`w_i = (1 - \alpha)^i`. For example, the EW moving
+              average of the series [:math:`x_0, x_1, ..., x_t`] would be:
 
             .. math::
-                y_t = \frac{x_t + (1 - \alpha)x_{t-1} + (1 - \alpha)^2 x_{t-2} + ... + (1 -
-                \alpha)^t x_0}{1 + (1 - \alpha) + (1 - \alpha)^2 + ... + (1 - \alpha)^t}
+                y_t = \frac{x_t + (1 - \alpha)x_{t-1} + (1 - \alpha)^2 x_{t-2} + ... +
+                (1 - \alpha)^t x_0}{1 + (1 - \alpha) + (1 - \alpha)^2 + ... +
+                (1 - \alpha)^t}
 
             - When ``adjust=False``, the exponentially weighted function is calculated
               recursively:
@@ -12384,14 +12386,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Ignore missing values when calculating weights.
 
             - When ``ignore_na=False`` (default), weights are based on absolute positions.
-              For example, the weights of :math:`x_0` and :math:`x_2` used in calculating
-              the final weighted average of [:math:`x_0`, None, :math:`x_2`] are
-              :math:`(1-\alpha)^2` and :math:`1` if ``adjust=True``, and
+              For example, the weights of :math:`x_0` and :math:`x_2` used in
+              calculating the final weighted average of [:math:`x_0`, None, :math:`x_2`]
+              are :math:`(1-\alpha)^2` and :math:`1` if ``adjust=True``, and
               :math:`(1-\alpha)^2` and :math:`\alpha` if ``adjust=False``.
 
             - When ``ignore_na=True``, weights are based
-              on relative positions. For example, the weights of :math:`x_0` and :math:`x_2`
-              used in calculating the final weighted average of
+              on relative positions. For example, the weights of :math:`x_0` and
+              :math:`x_2` used in calculating the final weighted average of
               [:math:`x_0`, None, :math:`x_2`] are :math:`1-\alpha` and :math:`1` if
               ``adjust=True``, and :math:`1-\alpha` and :math:`\alpha` if ``adjust=False``.
 
@@ -12399,8 +12401,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             Only applicable to ``mean()``.
 
-            Times corresponding to the observations. Must be monotonically increasing and
-            ``datetime64[ns]`` dtype.
+            Times corresponding to the observations. Must be monotonically
+            increasing and ``datetime64[ns]`` dtype.
 
             If 1-D array like, a sequence with the same shape as the observations.
 
@@ -12416,8 +12418,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Returns
         -------
         pandas.api.typing.ExponentialMovingWindow
-            An instance of ExponentialMovingWindow for further exponentially weighted (EW)
-            calculations, e.g. using the ``mean`` method.
+            An instance of ExponentialMovingWindow for further exponentially weighted
+            (EW) calculations, e.g. using the ``mean`` method.
 
         See Also
         --------
@@ -12491,10 +12493,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         **times**
 
-        Exponentially weighted mean with weights calculated with a timedelta ``halflife``
-        relative to ``times``.
+        Exponentially weighted mean with weights calculated with a timedelta
+        ``halflife`` relative to ``times``.
 
-        >>> times = ['2020-01-01', '2020-01-03', '2020-01-10', '2020-01-15', '2020-01-17']
+        >>> times = ['2020-01-01', '2020-01-03', '2020-01-10', '2020-01-15', 
+        ...         '2020-01-17']
         >>> df.ewm(halflife='4 days', times=pd.DatetimeIndex(times)).mean()
                   B
         0  0.000000
