@@ -12385,7 +12385,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ignore_na : bool, default False
             Ignore missing values when calculating weights.
 
-            - When ``ignore_na=False`` (default), weights are based on absolute positions.
+            - When ``ignore_na=False`` (default), weights are based on absolute
+              positions.
               For example, the weights of :math:`x_0` and :math:`x_2` used in
               calculating the final weighted average of [:math:`x_0`, None, :math:`x_2`]
               are :math:`(1-\alpha)^2` and :math:`1` if ``adjust=True``, and
@@ -12395,7 +12396,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
               on relative positions. For example, the weights of :math:`x_0` and
               :math:`x_2` used in calculating the final weighted average of
               [:math:`x_0`, None, :math:`x_2`] are :math:`1-\alpha` and :math:`1` if
-              ``adjust=True``, and :math:`1-\alpha` and :math:`\alpha` if ``adjust=False``.
+              ``adjust=True``, and :math:`1-\alpha` and :math:`\alpha`
+              if ``adjust=False``.
 
         times : np.ndarray, Series, default None
 
@@ -12496,7 +12498,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Exponentially weighted mean with weights calculated with a timedelta
         ``halflife`` relative to ``times``.
 
-        >>> times = ['2020-01-01', '2020-01-03', '2020-01-10', '2020-01-15', 
+        >>> times = ['2020-01-01', '2020-01-03', '2020-01-10', '2020-01-15',
         ...         '2020-01-17']
         >>> df.ewm(halflife='4 days', times=pd.DatetimeIndex(times)).mean()
                   B
