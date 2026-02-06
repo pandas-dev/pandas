@@ -21,6 +21,7 @@ from pandas.util._decorators import (
     deprecate_kwarg,
     set_module,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_bool,
@@ -188,7 +189,7 @@ def assert_dict_equal(left, right, compare_keys: bool = True) -> None:
 def assert_index_equal(
     left: Index,
     right: Index,
-    exact: bool | str = True,
+    exact: bool | str | lib.NoDefault = lib.no_default,
     check_names: bool = True,
     check_exact: bool = True,
     check_categorical: bool = True,
@@ -244,6 +245,16 @@ def assert_index_equal(
 
     if obj is None:
         obj = "MultiIndex" if isinstance(left, MultiIndex) else "Index"
+
+    if exact is lib.no_default and exact == "equiv":
+        warnings.warn(
+            "The default value of 'equiv' for the `exact` parameter in is deprecated "
+            "and will be changed to 'True' in a future version. Please set exact "
+            "to the desired value to avoid seeing this warning",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        exact = True
 
     def _check_types(left, right, obj: str = "Index") -> None:
         if not exact:
