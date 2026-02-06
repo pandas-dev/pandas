@@ -137,22 +137,27 @@ class NumpyExtensionArray(
         if isinstance(dtype, NumpyEADtype):
             dtype = dtype._dtype
 
-        # error: Argument "dtype" to "asarray" has incompatible type
-        # "Union[ExtensionDtype, str, dtype[Any], dtype[floating[_64Bit]], Type[object],
-        # None]"; expected "Union[dtype[Any], None, type, _SupportsDType, str,
-        # Union[Tuple[Any, int], Tuple[Any, Union[int, Sequence[int]]], List[Any],
-        # _DTypeDict, Tuple[Any, Any]]]"
-        result = np.asarray(scalars, dtype=dtype)  # type: ignore[arg-type]
-        if (
-            result.ndim > 1
-            and not hasattr(scalars, "dtype")
-            and (dtype is None or dtype == object)
-        ):
-            # e.g. list-of-tuples
-            result = construct_1d_object_array_from_listlike(scalars)
+        # GH#57702: Handle string dtype consistently with pd.Series
+        # by using ensure_string_array which preserves None values
+        if dtype is not None and pandas_dtype(dtype).kind == "U":
+            result = lib.ensure_string_array(scalars, convert_na_value=False, copy=copy)
+        else:
+            # error: Argument "dtype" to "asarray" has incompatible type
+            # "Union[ExtensionDtype, str, dtype[Any], dtype[floating[_64Bit]], Type[object],
+            # None]"; expected "Union[dtype[Any], None, type, _SupportsDType, str,
+            # Union[Tuple[Any, int], Tuple[Any, Union[int, Sequence[int]]], List[Any],
+            # _DTypeDict, Tuple[Any, Any]]]"
+            result = np.asarray(scalars, dtype=dtype)  # type: ignore[arg-type]
+            if (
+                result.ndim > 1
+                and not hasattr(scalars, "dtype")
+                and (dtype is None or dtype == object)
+            ):
+                # e.g. list-of-tuples
+                result = construct_1d_object_array_from_listlike(scalars)
 
-        if copy and result is scalars:
-            result = result.copy()
+            if copy and result is scalars:
+                result = result.copy()
         return cls(result)
 
     def _cast_pointwise_result(self, values) -> ArrayLike:
