@@ -3252,24 +3252,24 @@ class DataFrame(NDFrame, OpsMixin):
         >>> df = pd.DataFrame(data={"col1": [1, 2], "col2": [4, 3]})
         >>> html_string = df.to_html()
         >>> print(html_string)
-        <table border="1" class="dataframe">
+        <table style="border: 1px solid black;" class="dataframe">
           <thead>
             <tr style="text-align: right;">
-              <th></th>
-              <th>col1</th>
-              <th>col2</th>
+              <th style="border: 1px solid black;"></th>
+              <th style="border: 1px solid black;">col1</th>
+              <th style="border: 1px solid black;">col2</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <th>0</th>
-              <td>1</td>
-              <td>4</td>
+              <th style="border: 1px solid black;">0</th>
+              <td style="border: 1px solid black;">1</td>
+              <td style="border: 1px solid black;">4</td>
             </tr>
             <tr>
-              <th>1</th>
-              <td>2</td>
-              <td>3</td>
+              <th style="border: 1px solid black;">1</th>
+              <td style="border: 1px solid black;">2</td>
+              <td style="border: 1px solid black;">3</td>
             </tr>
           </tbody>
         </table>
@@ -3287,21 +3287,21 @@ class DataFrame(NDFrame, OpsMixin):
         >>> df = pd.DataFrame(data={"col1": [1, 2], "col2": [4, 3]})
         >>> html_string = df.to_html(index=False)
         >>> print(html_string)
-        <table border="1" class="dataframe">
+        <table style="border: 1px solid black;" class="dataframe">
           <thead>
             <tr style="text-align: right;">
-              <th>col1</th>
-              <th>col2</th>
+              <th style="border: 1px solid black;">col1</th>
+              <th style="border: 1px solid black;">col2</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td>1</td>
-              <td>4</td>
+              <td style="border: 1px solid black;">1</td>
+              <td style="border: 1px solid black;">4</td>
             </tr>
             <tr>
-              <td>2</td>
-              <td>3</td>
+              <td style="border: 1px solid black;">2</td>
+              <td style="border: 1px solid black;">3</td>
             </tr>
           </tbody>
         </table>
