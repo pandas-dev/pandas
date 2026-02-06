@@ -39,6 +39,7 @@ jobs:
     if: >-
       (github.event_name == 'schedule') ||
       github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'release' ||
       (github.event_name == 'pull_request' &&
       contains(github.event.pull_request.labels.*.name, 'Build')) ||
       (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && ( ! endsWith(github.ref, 'dev0')))
@@ -50,7 +51,7 @@ jobs:
       sdist_file: ${{ steps.save-path.outputs.sdist_name }}
     steps:
       - name: Checkout pandas
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -64,7 +65,7 @@ jobs:
           python -m pip install build
           python -m build --sdist
 
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         with:
           name: sdist
           path: ./dist/*
@@ -84,6 +85,7 @@ jobs:
     if: >-
       (github.event_name == 'schedule') ||
       github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'release' ||
       (github.event_name == 'pull_request' &&
       contains(github.event.pull_request.labels.*.name, 'Build')) ||
       (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && ( ! endsWith(github.ref, 'dev0')))
@@ -114,13 +116,17 @@ jobs:
         # BackendUnavailable: Cannot import 'mesonpy'
           - buildplat: [windows-11-arm, win_arm64]
             python: ["cp313t", "3.13"]
+    concurrency:
+      # https://github.community/t/concurrecy-not-work-for-push/183068/7
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.buildplat[0] }}-${{ matrix.buildplat[1] }}-${{ matrix.python[0]}}-build-wheels
+      cancel-in-progress: true
 
     env:
       IS_PUSH: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
       IS_SCHEDULE_DISPATCH: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
     steps:
       - name: Checkout pandas
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -138,7 +144,7 @@ jobs:
       # removes unnecessary files from the release
       - name: Download sdist (not macOS)
         #if: ${{ matrix.buildplat[1] != 'macosx_*' }}
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: sdist
           path: ./dist
@@ -190,13 +196,14 @@ jobs:
         # installing wheel here because micromamba step was skipped
         if: matrix.buildplat[1] == 'win_arm64'
         shell: bash -el {0}
-        run: python -m pip install wheel anaconda-client
+        # cryptography pin due to https://github.com/pyca/cryptography/pull/14216
+        run: python -m pip install wheel anaconda-client cryptography==46.0.3
 
       - name: Validate wheel RECORD
         shell: bash -el {0}
         run: for whl in $(ls wheelhouse); do wheel unpack wheelhouse/$whl -d /tmp; done
 
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         with:
           name: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
           path: ./wheelhouse/*.whl
@@ -205,13 +212,10 @@ jobs:
         if: ${{ success() && (env.IS_SCHEDULE_DISPATCH == 'true' || env.IS_PUSH == 'true') }}
         shell: bash -el {0}
         env:
-          PANDAS_STAGING_UPLOAD_TOKEN: ${{ secrets.PANDAS_STAGING_UPLOAD_TOKEN }}
           PANDAS_NIGHTLY_UPLOAD_TOKEN: ${{ secrets.PANDAS_NIGHTLY_UPLOAD_TOKEN }}
         # trigger an upload to
         # https://anaconda.org/scientific-python-nightly-wheels/pandas
         # for cron jobs or "Run workflow" (restricted to main branch).
-        # Tags will upload to
-        # https://anaconda.org/multibuild-wheels-staging/pandas
         # The tokens were originally generated at anaconda.org
         run: |
           source ci/upload_wheels.sh
@@ -238,11 +242,11 @@ jobs:
 
     steps:
       - name: Download all artefacts
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           path: dist          # everything lands in ./dist/**
 
-      # TODO: This step can be probably be achieved by actions/download-artifact@v6
+      # TODO: This step can be probably be achieved by actions/download-artifact@v7
       # by specifying merge-multiple: true, and a glob pattern
       - name: Collect files
         run: |

@@ -311,7 +311,7 @@ def test_orc_dtype_backend_pyarrow(using_infer_string):
             "float_with_nan": [2.0, np.nan, 3.0],
             "bool": [True, False, True],
             "bool_with_na": [True, False, None],
-            "datetime": pd.date_range("20130101", periods=3),
+            "datetime": pd.date_range("20130101", periods=3, unit="ns"),
             "datetime_with_nat": [
                 pd.Timestamp("20130101"),
                 pd.NaT,
@@ -418,13 +418,12 @@ def test_invalid_dtype_backend(temp_file):
         read_orc(temp_file, dtype_backend="numpy")
 
 
-def test_string_inference(tmp_path):
+def test_string_inference(temp_file):
     # GH#54431
-    path = tmp_path / "test_string_inference.p"
     df = pd.DataFrame(data={"a": ["x", "y"]})
-    df.to_orc(path)
+    df.to_orc(temp_file)
     with pd.option_context("future.infer_string", True):
-        result = read_orc(path)
+        result = read_orc(temp_file)
     expected = pd.DataFrame(
         data={"a": ["x", "y"]},
         dtype=pd.StringDtype(na_value=np.nan),

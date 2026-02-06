@@ -22,6 +22,7 @@ from collections.abc import (
 import contextlib
 from functools import partial
 import inspect
+import sys
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -44,9 +45,12 @@ from pandas.core.dtypes.generic import (
     ABCExtensionArray,
     ABCIndex,
     ABCMultiIndex,
+    ABCNumpyExtensionArray,
     ABCSeries,
 )
 from pandas.core.dtypes.inference import iterable_not_string
+
+from pandas.core.col import Expression
 
 if TYPE_CHECKING:
     from pandas._typing import (
@@ -127,7 +131,8 @@ def is_bool_indexer(key: Any) -> bool:
         and convert to an ndarray.
     """
     if isinstance(
-        key, (ABCSeries, np.ndarray, ABCIndex, ABCExtensionArray)
+        key,
+        (ABCSeries, np.ndarray, ABCIndex, ABCExtensionArray, ABCNumpyExtensionArray),
     ) and not isinstance(key, ABCMultiIndex):
         if key.dtype == np.object_:
             key_array = np.asarray(key)
@@ -380,7 +385,9 @@ def apply_if_callable(maybe_callable, obj, **kwargs):
     obj : NDFrame
     **kwargs
     """
-    if callable(maybe_callable):
+    if isinstance(maybe_callable, Expression):
+        return maybe_callable._eval_expression(obj, **kwargs)
+    elif callable(maybe_callable):
         return maybe_callable(obj, **kwargs)
 
     return maybe_callable
@@ -639,8 +646,6 @@ def fill_missing_names(names: Sequence[Hashable | None]) -> list[Hashable]:
     """
     If a name is missing then replace it by level_n, where n is the count
 
-    .. versionadded:: 1.4.0
-
     Parameters
     ----------
     names : list-like
@@ -652,3 +657,29 @@ def fill_missing_names(names: Sequence[Hashable | None]) -> list[Hashable]:
         list of column names with the None values replaced.
     """
     return [f"level_{i}" if name is None else name for i, name in enumerate(names)]
+
+
+def is_local_in_caller_frame(obj):
+    """
+    Helper function used in detecting chained assignment.
+
+    If the pandas object (DataFrame/Series) is a local variable
+    in the caller's frame, it should not be a case of chained
+    assignment or method call.
+
+    For example:
+
+    def test():
+        df = pd.DataFrame(...)
+        df["a"] = 1  # not chained assignment
+
+    Inside ``df.__setitem__``, we call this function to check whether `df`
+    (`self`) is a local variable in `test` frame (the frame calling setitem). If
+    so, we know it is not a case of chained assignment (even when the refcount
+    of `df` is below the threshold due to optimization of local variables).
+    """
+    frame = sys._getframe(2)
+    for v in frame.f_locals.values():
+        if v is obj:
+            return True
+    return False

@@ -24,7 +24,7 @@ class TestItem:
 
         ser = Series([0.5], index=[3])
         result = ser.item()
-        assert isinstance(result, float)
+        assert type(result) == float
         assert result == 0.5
 
         ser = Series([1, 2])

@@ -30,7 +30,7 @@ xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 @pytest.mark.parametrize("check_orig", [True, False])
 @pytest.mark.usefixtures("pyarrow_xfail")
 def test_dtype_all_columns(
-    all_parsers, dtype, check_orig, using_infer_string, tmp_path
+    all_parsers, dtype, check_orig, using_infer_string, temp_file
 ):
     # see gh-3795, gh-6607
     parser = all_parsers
@@ -41,10 +41,9 @@ def test_dtype_all_columns(
         index=["1A", "1B", "1C", "1D", "1E"],
     )
 
-    path = tmp_path / "__passing_str_as_dtype__.csv"
-    df.to_csv(path)
+    df.to_csv(temp_file)
 
-    result = parser.read_csv(path, dtype=dtype, index_col=0)
+    result = parser.read_csv(temp_file, dtype=dtype, index_col=0)
 
     if check_orig:
         expected = df.copy()

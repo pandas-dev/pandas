@@ -11,7 +11,6 @@ from numpy in the following ways:
        pandas convention is to return [-inf, nan, inf] for all dtype
        combinations.
 
-       Note: the numpy behavior described here is py3-specific.
 
     2) np.array([-1, 0, 1], dtype=dtype1) % np.array([0, 0, 0], dtype=dtype2)
        gives precisely the same results as the // operation.
@@ -163,11 +162,11 @@ def dispatch_fill_zeros(op, left, right, result):
             _fill_zeros(result[1], right, left),
         )
     elif op is operator.floordiv:
-        # Note: no need to do this for truediv; in py3 numpy behaves the way
+        # Note: no need to do this for truediv; numpy behaves the way
         #  we want.
         result = mask_zero_div_zero(left, right, result)
     elif op is roperator.rfloordiv:
-        # Note: no need to do this for rtruediv; in py3 numpy behaves the way
+        # Note: no need to do this for rtruediv; numpy behaves the wayS
         #  we want.
         result = mask_zero_div_zero(right, left, result)
     elif op is operator.mod:

@@ -84,7 +84,7 @@ def _transfer_marks(engine, read_ext):
     engine gives us a pytest.param object with some marks, read_ext is just
     a string.  We need to generate a new pytest.param inheriting the marks.
     """
-    values = engine.values + (read_ext,)
+    values = (*engine.values, read_ext)
     new_param = pytest.param(values, marks=engine.marks)
     return new_param
 
@@ -135,10 +135,7 @@ def df_ref(datapath):
 
 
 def get_exp_unit(read_ext: str, engine: str | None) -> str:
-    unit = "us"
-    if (read_ext == ".ods") ^ (engine == "calamine"):
-        unit = "s"
-    return unit
+    return "us"
 
 
 def adjust_expected(expected: DataFrame, read_ext: str, engine: str | None) -> None:

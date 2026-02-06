@@ -229,21 +229,18 @@ def merge(
         `right` should be left as-is, with no suffix. At least one of the
         values must not be None.
     copy : bool, default False
-        If False, avoid copy if possible.
-
-        .. note::
-            The `copy` keyword will change behavior in pandas 3.0.
-            `Copy-on-Write
-            <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
-            will be enabled by default, which means that all methods with a
-            `copy` keyword will use a lazy copy mechanism to defer the copy and
-            ignore the `copy` keyword. The `copy` keyword will be removed in a
-            future version of pandas.
-
-            You can already get the future behavior and improvements through
-            enabling copy on write ``pd.options.mode.copy_on_write = True``
+        This keyword is now ignored; changing its value will have no
+        impact on the method.
 
         .. deprecated:: 3.0.0
+
+            This keyword is ignored and will be removed in pandas 4.0. Since
+            pandas 3.0, this method always returns a new object using a lazy
+            copy mechanism that defers copies until necessary
+            (Copy-on-Write). See the `user guide on Copy-on-Write
+            <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+            for more details.
+
     indicator : bool or str, default False
         If True, adds a column to the output DataFrame called "_merge" with
         information on the source of each row. The column can be given a different
@@ -327,7 +324,7 @@ def merge(
     Traceback (most recent call last):
     ...
     ValueError: columns overlap but no suffix specified:
-        Index(['value'], dtype='object')
+        Index(['value'], dtype='str')
 
     >>> df1 = pd.DataFrame({"a": ["foo", "bar"], "b": [1, 2]})
     >>> df2 = pd.DataFrame({"a": ["foo", "baz"], "c": [3, 4]})
@@ -1153,7 +1150,10 @@ class _MergeOperation:
         self._maybe_restore_index_levels(result)
 
         return result.__finalize__(
-            types.SimpleNamespace(input_objs=[self.left, self.right]), method="merge"
+            types.SimpleNamespace(
+                input_objs=[self.left, self.right], left=self.left, right=self.right
+            ),
+            method="merge",
         )
 
     @final
@@ -1928,6 +1928,10 @@ class _MergeOperation:
                 )
             if not self.right_index and right_on is None:
                 raise MergeError('Must pass "right_on" OR "right_index".')
+            if self.right_index and right_on is not None:
+                raise MergeError(
+                    'Can only pass argument "right_on" OR "right_index" not both.'
+                )
             n = len(left_on)
             if self.right_index:
                 if len(left_on) != self.right.index.nlevels:
@@ -2093,8 +2097,8 @@ def get_join_indexers(
         lkey = left_keys[0]
         rkey = right_keys[0]
 
-    left = Index(lkey)
-    right = Index(rkey)
+    left = Index(lkey, copy=False)
+    right = Index(rkey, copy=False)
 
     if (
         left.is_monotonic_increasing
@@ -2233,9 +2237,10 @@ def restore_dropped_levels_multijoin(
         else:
             restore_codes = algos.take_nd(codes, indexer, fill_value=-1)
 
-        join_levels = join_levels + [restore_levels]
-        join_codes = join_codes + [restore_codes]
-        join_names = join_names + [dropped_level_name]
+        # Use + operator: FrozenList.__add__ returns FrozenList, unpacking returns list
+        join_levels = join_levels + [restore_levels]  # noqa: RUF005
+        join_codes = join_codes + [restore_codes]  # noqa: RUF005
+        join_names = join_names + [dropped_level_name]  # noqa: RUF005
 
     return join_levels, join_codes, join_names
 
@@ -2525,7 +2530,7 @@ class _AsOfMerge(_OrderedMerge):
         self, values: AnyArrayLike, side: str
     ) -> np.ndarray:
         # we require sortedness and non-null values in the join keys
-        if not Index(values).is_monotonic_increasing:
+        if not Index(values, copy=False).is_monotonic_increasing:
             if isna(values).any():
                 raise ValueError(f"Merge keys contain null values on {side} side")
             raise ValueError(f"{side} keys must be sorted")
@@ -2828,7 +2833,7 @@ def _factorize_keys(
         rk = ensure_int64(rk.codes)
 
     elif isinstance(lk, ExtensionArray) and lk.dtype == rk.dtype:
-        if (isinstance(lk.dtype, ArrowDtype) and is_string_dtype(lk.dtype)) or (
+        if isinstance(lk.dtype, ArrowDtype) or (
             isinstance(lk.dtype, StringDtype) and lk.dtype.storage == "pyarrow"
         ):
             import pyarrow as pa
@@ -3029,9 +3034,9 @@ def _get_join_keys(
     # densify current keys to avoid overflow
     lkey, rkey, count = _factorize_keys(lkey, rkey, sort=sort)
 
-    llab = [lkey] + llab[nlev:]
-    rlab = [rkey] + rlab[nlev:]
-    shape = (count,) + shape[nlev:]
+    llab = [lkey, *llab[nlev:]]
+    rlab = [rkey, *rlab[nlev:]]
+    shape = (count, *shape[nlev:])
 
     return _get_join_keys(llab, rlab, shape, sort)
 

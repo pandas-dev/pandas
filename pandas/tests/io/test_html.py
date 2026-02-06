@@ -61,7 +61,7 @@ def assert_framelist_equal(list1, list2, *args, **kwargs):
         )
     )
     assert both_frames, msg
-    for frame_i, frame_j in zip(list1, list2):
+    for frame_i, frame_j in zip(list1, list2, strict=True):
         tm.assert_frame_equal(frame_i, frame_j, *args, **kwargs)
         assert not frame_i.empty, "frames are both empty"
 
@@ -1065,7 +1065,7 @@ class TestReadHtml:
         df = DataFrame({"date": date_range("1/1/2001", periods=10)})
 
         expected = df[:]
-        expected["date"] = expected["date"].dt.as_unit("s")
+        expected["date"] = expected["date"].dt.as_unit("us")
 
         str_df = df.to_html()
         res = flavor_read_html(StringIO(str_df), parse_dates=[1], index_col=0)

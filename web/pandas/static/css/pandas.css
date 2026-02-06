@@ -9,6 +9,7 @@ h1 {
     font-size: 2.4rem;
     font-weight: 700;
     color: #130654;
+    margin: 2.4rem 0 2.4rem;
 }
 h2 {
     font-size: 1.8rem;
@@ -134,6 +135,12 @@ a.headerlink {
 h2:hover a.headerlink, h3:hover a.headerlink {
     opacity: 1;
     transition: opacity 0.5s;
+}
+
+@media (min-width: 992px) {
+  .container-main {
+    max-width: 960px;
+  }
 }
 
 

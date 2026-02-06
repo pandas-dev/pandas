@@ -68,7 +68,6 @@ from pandas._testing.compat import (
 )
 from pandas._testing.contexts import (
     decompress_file,
-    ensure_clean,
     raises_chained_assignment_error,
     set_timezone,
     with_csv_dialect,
@@ -290,7 +289,7 @@ def box_expected(expected, box_cls, transpose: bool = True):
         else:
             expected = pd.array(expected, copy=False)
     elif box_cls is Index:
-        expected = Index(expected)
+        expected = Index(expected, copy=False)
     elif box_cls is Series:
         expected = Series(expected)
     elif box_cls is DataFrame:
@@ -402,7 +401,7 @@ def get_cython_table_params(ndframe, func_names_and_expected):
     ----------
     ndframe : DataFrame or Series
     func_names_and_expected : Sequence of two items
-        The first item is a name of a NDFrame method ('sum', 'prod') etc.
+        The first item is a name of an NDFrame method ('sum', 'prod') etc.
         The second item is the expected return value.
 
     Returns
@@ -587,7 +586,6 @@ __all__ = [
     "can_set_locale",
     "convert_rows_list_to_csv_str",
     "decompress_file",
-    "ensure_clean",
     "external_error_raised",
     "get_cython_table_params",
     "get_dtype",

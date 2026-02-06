@@ -1,6 +1,7 @@
 import numpy as np
 
 from pandas import (
+    Categorical,
     DataFrame,
     date_range,
 )
@@ -83,3 +84,16 @@ class TestEquals:
         df3 = df1.set_index(["floats"], append=True)
         df2 = df1.set_index(["floats"], append=True)
         assert df3.equals(df2)
+
+    def test_equals_categorical_categories_order(self):
+        cat1 = Categorical(["a", "b", "a"], categories=["a", "b"])
+        cat2 = Categorical(["a", "b", "a"], categories=["b", "a"])
+        df1 = DataFrame({"c": cat1})
+        df2 = DataFrame({"c": cat2})
+
+        assert df1.equals(df2)
+
+        cat3 = Categorical(["a", "b", "a"], categories=["a", "b", "c"])
+        df3 = DataFrame({"c": cat3})
+
+        assert not df1.equals(df3)

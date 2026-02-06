@@ -178,7 +178,7 @@ class TestDataFrameBlockInternals:
                 np.dtype("datetime64[us]"),
                 np.dtype("timedelta64[us]"),
             ],
-            index=list("ABCD") + ["foo", "datetime", "timedelta"],
+            index=[*list("ABCD"), "foo", "datetime", "timedelta"],
         )
         tm.assert_series_equal(result, expected)
 
@@ -194,7 +194,7 @@ class TestDataFrameBlockInternals:
 
         expected = DataFrame(
             {
-                "dt1": Timestamp("20130101"),
+                "dt1": Timestamp("20130101").as_unit("s"),
                 "dt2": date_range("20130101", periods=3).astype("M8[s]"),
                 # 'dt3' : date_range('20130101 00:00:01',periods=3,freq='s'),
                 # FIXME: don't leave commented-out
@@ -239,20 +239,20 @@ class TestDataFrameBlockInternals:
         with pytest.raises(ValueError, match=msg):
             f("M8[ns]")
 
-    def test_pickle_float_string_frame(self, float_string_frame):
-        unpickled = tm.round_trip_pickle(float_string_frame)
+    def test_pickle_float_string_frame(self, float_string_frame, temp_file):
+        unpickled = tm.round_trip_pickle(float_string_frame, temp_file)
         tm.assert_frame_equal(float_string_frame, unpickled)
 
         # buglet
         float_string_frame._mgr.ndim
 
-    def test_pickle_empty(self):
+    def test_pickle_empty(self, temp_file):
         empty_frame = DataFrame()
-        unpickled = tm.round_trip_pickle(empty_frame)
+        unpickled = tm.round_trip_pickle(empty_frame, temp_file)
         repr(unpickled)
 
-    def test_pickle_empty_tz_frame(self, timezone_frame):
-        unpickled = tm.round_trip_pickle(timezone_frame)
+    def test_pickle_empty_tz_frame(self, timezone_frame, temp_file):
+        unpickled = tm.round_trip_pickle(timezone_frame, temp_file)
         tm.assert_frame_equal(timezone_frame, unpickled)
 
     def test_consolidate_datetime64(self):

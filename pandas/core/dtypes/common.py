@@ -602,7 +602,7 @@ def is_categorical_dtype(arr_or_dtype) -> bool:
 
 def is_string_or_object_np_dtype(dtype: np.dtype) -> bool:
     """
-    Faster alternative to is_string_dtype, assumes we have a np.dtype object.
+    Faster alternative to is_string_dtype, assumes we have an np.dtype object.
     """
     return dtype == object or dtype.kind in "SU"
 
@@ -627,8 +627,8 @@ def is_string_dtype(arr_or_dtype) -> bool:
 
     See Also
     --------
-    api.types.is_string_dtype : Check whether the provided array or dtype
-                                is of the string dtype.
+    api.types.is_object_dtype : Check whether an array-like or dtype is of the
+        object dtype.
 
     Examples
     --------
@@ -882,7 +882,7 @@ def is_unsigned_integer_dtype(arr_or_dtype) -> bool:
     See Also
     --------
     api.types.is_signed_integer_dtype : Check whether the provided array
-        or dtype is of an signed integer dtype.
+        or dtype is of a signed integer dtype.
     api.types.is_integer_dtype : Check whether the provided array or dtype
         is of an integer dtype.
     api.types.is_numeric_dtype : Check whether the provided array or dtype
@@ -1264,7 +1264,7 @@ def is_numeric_dtype(arr_or_dtype) -> bool:
     api.types.is_unsigned_integer_dtype: Check whether the provided array
         or dtype is of an unsigned integer dtype.
     api.types.is_signed_integer_dtype: Check whether the provided array
-        or dtype is of an signed integer dtype.
+        or dtype is of a signed integer dtype.
 
     Examples
     --------
@@ -1883,8 +1883,9 @@ def pandas_dtype(dtype) -> DtypeObj:
             # Hence enabling DeprecationWarning
             warnings.simplefilter("always", DeprecationWarning)
             npdtype = np.dtype(dtype)
-    except SyntaxError as err:
-        # np.dtype uses `eval` which can raise SyntaxError
+    except TypeError:
+        raise
+    except ValueError as err:
         raise TypeError(f"data type '{dtype}' not understood") from err
 
     # Any invalid dtype (such as pd.Timestamp) should raise an error.

@@ -12,7 +12,10 @@ import warnings
 
 import numpy as np
 
-from pandas._config import is_nan_na
+from pandas._config import (
+    is_nan_na,
+    using_python_scalars,
+)
 
 from pandas._libs import (
     algos as libalgos,
@@ -30,8 +33,11 @@ from pandas.errors import (
 )
 from pandas.util._exceptions import find_stack_level
 
+from pandas.core.dtypes.astype import astype_is_view
 from pandas.core.dtypes.base import ExtensionDtype
-from pandas.core.dtypes.cast import maybe_downcast_to_dtype
+from pandas.core.dtypes.cast import (
+    maybe_downcast_to_dtype,
+)
 from pandas.core.dtypes.common import (
     is_bool,
     is_integer_dtype,
@@ -79,7 +85,10 @@ from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
 )
-from pandas.core.indexers import check_array_indexer
+from pandas.core.indexers import (
+    check_array_indexer,
+    getitem_returns_view,
+)
 from pandas.core.ops import invalid_comparison
 from pandas.core.util.hashing import hash_array
 
@@ -216,7 +225,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 return self.dtype.na_value
             return self._data[item]
 
-        return self._simple_new(self._data[item], newmask)
+        result = self._simple_new(self._data[item], newmask)
+        if getitem_returns_view(self, item):
+            result._readonly = self._readonly
+        return result
 
     def _pad_or_backfill(
         self,
@@ -255,11 +267,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 return self._simple_new(npvalues.T, new_mask.T)
             else:
                 return self
+        elif copy:
+            new_values = self.copy()
         else:
-            if copy:
-                new_values = self.copy()
-            else:
-                new_values = self
+            new_values = self
         return new_values
 
     def fillna(self, value, limit: int | None = None, copy: bool = True) -> Self:
@@ -317,11 +328,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             else:
                 new_values = self[:]
             new_values[mask] = value
+        elif copy:
+            new_values = self.copy()
         else:
-            if copy:
-                new_values = self.copy()
-            else:
-                new_values = self[:]
+            new_values = self[:]
         return new_values
 
     @classmethod
@@ -348,9 +358,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             if lib.is_integer(value) or lib.is_float(value):
                 return value
 
-        else:
-            if lib.is_integer(value) or (lib.is_float(value) and value.is_integer()):
-                return value
+        elif lib.is_integer(value) or (lib.is_float(value) and value.is_integer()):
+            return value
             # TODO: unsigned checks
 
         # Note: without the "str" here, the f-string rendering raises in
@@ -358,6 +367,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         raise TypeError(f"Invalid value '{value!s}' for dtype '{self.dtype}'")
 
     def __setitem__(self, key, value) -> None:
+        if self._readonly:
+            raise ValueError("Cannot modify read-only array")
+
         key = check_array_indexer(self, key)
 
         if is_scalar(value):
@@ -570,11 +582,11 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         hasna = self._hasna
         dtype, na_value = to_numpy_dtype_inference(self, dtype, na_value, hasna)
         if dtype is None:
-            dtype = object
+            dtype = np.dtype(object)
 
         if hasna:
             if (
-                dtype != object
+                dtype != np.dtype(object)
                 and not is_string_dtype(dtype)
                 and na_value is libmissing.NA
             ):
@@ -592,6 +604,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", category=RuntimeWarning)
                 data = self._data.astype(dtype, copy=copy)
+            if self._readonly and not copy and astype_is_view(self.dtype, dtype):
+                data = data.view()
+                data.flags.writeable = False
         return data
 
     def tolist(self) -> list:
@@ -690,7 +705,12 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         if copy is False:
             if not self._hasna:
                 # special case, here we can simply return the underlying data
-                return np.array(self._data, dtype=dtype, copy=copy)
+                result = np.array(self._data, dtype=dtype, copy=copy)
+                # If the ExtensionArray is readonly, make the numpy array readonly too
+                if self._readonly:
+                    result = result.view()
+                    result.flags.writeable = False
+                return result
             raise ValueError(
                 "Unable to avoid copy while creating an array as requested."
             )
@@ -708,7 +728,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         out = kwargs.get("out", ())
 
         for x in inputs + out:
-            if not isinstance(x, self._HANDLED_TYPES + (BaseMaskedArray,)):
+            if not isinstance(x, (*self._HANDLED_TYPES, BaseMaskedArray)):
                 return NotImplemented
 
         # for binary ops, use our custom dunder methods
@@ -1028,6 +1048,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
             return IntegerArray(result, mask, copy=False)
 
+        elif result.dtype == object:
+            result[mask] = self.dtype.na_value
+            return result
         else:
             result[mask] = np.nan
             return result
@@ -1288,8 +1311,6 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             NaN values will be encoded as non-negative integers and will not drop the
             NaN from the uniques of the values.
 
-            .. versionadded:: 1.5.0
-
         Returns
         -------
         codes : ndarray
@@ -1427,7 +1448,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             self.dtype.construct_array_type()(
                 keys,  # type: ignore[arg-type]
                 mask_index,
-            )
+            ),
+            copy=False,
         )
         return Series(arr, index=index, name="count", copy=False)
 
@@ -1547,7 +1569,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             if isna(result):
                 return self._wrap_na_result(name=name, axis=0, mask_size=(1,))
             else:
-                result = result.reshape(1)
+                if using_python_scalars():
+                    result = np.array([result])
+                else:
+                    result = result.reshape(1)
                 mask = np.zeros(1, dtype=bool)
                 return self._maybe_mask_result(result, mask)
 
@@ -1774,11 +1799,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         result = values.any()
         if skipna:
             return result
+        elif result or len(self) == 0 or not self._mask.any():
+            return result
         else:
-            if result or len(self) == 0 or not self._mask.any():
-                return result
-            else:
-                return self.dtype.na_value
+            return self.dtype.na_value
 
     @overload
     def all(
@@ -1861,11 +1885,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         if skipna:
             return result  # type: ignore[return-value]
+        elif not result or len(self) == 0 or not self._mask.any():
+            return result  # type: ignore[return-value]
         else:
-            if not result or len(self) == 0 or not self._mask.any():
-                return result  # type: ignore[return-value]
-            else:
-                return self.dtype.na_value
+            return self.dtype.na_value
 
     def interpolate(
         self,

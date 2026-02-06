@@ -7,6 +7,8 @@ from typing import (
 
 import numpy as np
 
+from pandas._config import using_python_scalars
+
 from pandas._libs.lib import infer_dtype
 from pandas._libs.tslibs import iNaT
 from pandas.errors import NoBufferPresent
@@ -232,7 +234,10 @@ class PandasColumn(Column):
         """
         Number of null elements. Should always be known.
         """
-        return self._col.isna().sum().item()
+        result = self._col.isna().sum()
+        if not using_python_scalars():
+            result = result.item()
+        return result
 
     @property
     def metadata(self) -> dict[str, pd.Index]:

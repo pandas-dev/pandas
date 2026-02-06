@@ -4,11 +4,9 @@ from datetime import (
     date,
     datetime,
 )
-import gc
 import itertools
 import re
 import string
-import weakref
 
 import numpy as np
 import pytest
@@ -1525,7 +1523,7 @@ class TestDataFramePlots:
             df.plot(kind=kind)
 
     @pytest.mark.parametrize(
-        "kind", list(plotting.PlotAccessor._common_kinds) + ["area"]
+        "kind", [*list(plotting.PlotAccessor._common_kinds), "area"]
     )
     def test_partially_invalid_plot_data_numeric(self, kind):
         df = DataFrame(
@@ -2173,15 +2171,15 @@ class TestDataFramePlots:
                 index=date_range("2000-01-01", periods=10, freq="B"),
             )
 
-        # Use a weakref so we can see if the object gets collected without
-        # also preventing it from being collected
-        ref = weakref.ref(df.plot(kind=kind, **args))
-
-        # have matplotlib delete all the figures
-        plt.close("all")
-        # force a garbage collection
-        gc.collect()
-        assert ref() is None
+        ax = df.plot(kind=kind, **args)
+        # https://github.com/pandas-dev/pandas/issues/9003#issuecomment-70544889
+        if kind in ["line", "area"]:
+            for i, (cached_data, _, _) in enumerate(ax._plot_data):
+                ser = df.iloc[:, i]
+                assert not tm.shares_memory(ser, cached_data)
+                tm.assert_numpy_array_equal(ser._values, cached_data._values)
+        else:
+            assert not hasattr(ax, "_plot_data")
 
     def test_df_gridspec_patterns_vert_horiz(self):
         # GH 10819

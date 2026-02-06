@@ -109,19 +109,19 @@ def melt(
     ...     }
     ... )
     >>> df
-    A  B  C
+       A  B  C
     0  a  1  2
     1  b  3  4
     2  c  5  6
 
     >>> pd.melt(df, id_vars=["A"], value_vars=["B"])
-    A variable  value
+       A variable  value
     0  a        B      1
     1  b        B      3
     2  c        B      5
 
     >>> pd.melt(df, id_vars=["A"], value_vars=["B", "C"])
-    A variable  value
+       A variable  value
     0  a        B      1
     1  b        B      3
     2  c        B      5
@@ -138,7 +138,7 @@ def melt(
     ...     var_name="myVarname",
     ...     value_name="myValname",
     ... )
-    A myVarname  myValname
+       A myVarname  myValname
     0  a         B          1
     1  b         B          3
     2  c         B          5
@@ -146,7 +146,7 @@ def melt(
     Original index values can be kept around:
 
     >>> pd.melt(df, id_vars=["A"], value_vars=["B", "C"], ignore_index=False)
-    A variable  value
+       A variable  value
     0  a        B      1
     1  b        B      3
     2  c        B      5
@@ -158,20 +158,20 @@ def melt(
 
     >>> df.columns = [list("ABC"), list("DEF")]
     >>> df
-    A  B  C
-    D  E  F
+       A  B  C
+       D  E  F
     0  a  1  2
     1  b  3  4
     2  c  5  6
 
     >>> pd.melt(df, col_level=0, id_vars=["A"], value_vars=["B"])
-    A variable  value
+       A variable  value
     0  a        B      1
     1  b        B      3
     2  c        B      5
 
     >>> pd.melt(df, id_vars=[("A", "D")], value_vars=[("B", "E")])
-    (A, D) variable_0 variable_1  value
+      (A, D) variable_0 variable_1  value
     0      a          B          E      1
     1      b          B          E      3
     2      c          B          E      5
@@ -199,7 +199,7 @@ def melt(
         missing = idx == -1
         if missing.any():
             missing_labels = [
-                lab for lab, not_found in zip(labels, missing) if not_found
+                lab for lab, not_found in zip(labels, missing, strict=True) if not_found
             ]
             raise KeyError(
                 "The following id_vars or value_vars are not present in "
@@ -444,7 +444,7 @@ def wide_to_long(
     ...         "A1980": {0: "d", 1: "e", 2: "f"},
     ...         "B1970": {0: 2.5, 1: 1.2, 2: 0.7},
     ...         "B1980": {0: 3.2, 1: 1.3, 2: 0.1},
-    ...         "X": dict(zip(range(3), np.random.randn(3))),
+    ...         "X": dict(zip(range(3), np.random.randn(3), strict=True)),
     ...     }
     ... )
     >>> df["id"] = df.index
@@ -641,7 +641,7 @@ def wide_to_long(
             # TODO: anything else to catch?
             pass
 
-        return newdf.set_index(i + [j])
+        return newdf.set_index([*i, j])
 
     if not is_list_like(stubnames):
         stubnames = [stubnames]
@@ -673,4 +673,4 @@ def wide_to_long(
     if len(i) == 1:
         return new.set_index(i).join(melted)
     else:
-        return new.merge(melted.reset_index(), on=i).set_index(i + [j])
+        return new.merge(melted.reset_index(), on=i).set_index([*i, j])

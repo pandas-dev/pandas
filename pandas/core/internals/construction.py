@@ -181,7 +181,7 @@ def rec_array_to_mgr(
     mgr = arrays_to_mgr(arrays, columns, index, dtype=dtype)
 
     if copy:
-        mgr = mgr.copy()
+        mgr = mgr.copy(deep=True)
     return mgr
 
 
@@ -193,7 +193,7 @@ def ndarray_to_mgr(
     values, index, columns, dtype: DtypeObj | None, copy: bool
 ) -> Manager:
     # used in DataFrame.__init__
-    # input must be a ndarray, list, Series, Index, ExtensionArray
+    # input must be an ndarray, list, Series, Index, ExtensionArray
     infer_object = not isinstance(values, (ABCSeries, Index, ExtensionArray))
 
     if isinstance(values, ABCSeries):
@@ -226,14 +226,29 @@ def ndarray_to_mgr(
         else:
             values = [values]
 
+        # Handle copy semantics: already copy 1d-only EA. Other arrays will
+        # be copied when consolidating the blocks
+        if copy:
+            values = [
+                (x.copy(deep=True) if isinstance(x, Index) else x.copy())
+                if isinstance(x, (ExtensionArray, Index, ABCSeries))
+                and is_1d_only_ea_dtype(x.dtype)
+                else x
+                for x in values
+            ]
+
         if columns is None:
             columns = Index(range(len(values)))
         else:
             columns = ensure_index(columns)
 
-        return arrays_to_mgr(values, columns, index, dtype=dtype)
+        return arrays_to_mgr(values, columns, index, dtype=dtype, consolidate=copy)
 
-    elif isinstance(vdtype, ExtensionDtype):
+    if isinstance(values, (ABCSeries, Index)):
+        if not copy and (dtype is None or astype_is_view(values.dtype, dtype)):
+            refs = values._references
+
+    if isinstance(vdtype, ExtensionDtype):
         # i.e. Datetime64TZ, PeriodDtype; cases with is_1d_only_ea_dtype(vdtype)
         #  are already caught above
         values = extract_array(values, extract_numpy=True)
@@ -243,9 +258,6 @@ def ndarray_to_mgr(
             values = values.reshape(-1, 1)
 
     elif isinstance(values, (ABCSeries, Index)):
-        if not copy and (dtype is None or astype_is_view(values.dtype, dtype)):
-            refs = values._references
-
         if copy:
             values = values._values.copy()
         else:

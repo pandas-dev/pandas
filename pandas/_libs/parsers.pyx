@@ -329,10 +329,6 @@ cdef class TextReader:
 
     # source: StringIO or file object
 
-    ..versionchange:: 1.2.0
-        removed 'compression', 'memory_map', and 'encoding' argument.
-        These arguments are outsourced to CParserWrapper.
-        'source' has to be a file handle.
     """
 
     cdef:

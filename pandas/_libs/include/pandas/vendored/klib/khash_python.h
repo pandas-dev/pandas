@@ -254,17 +254,17 @@ static inline khuint32_t kh_python_hash_func(PyObject *key);
 // we could use any hashing algorithm, this is the original CPython's for tuples
 
 #if SIZEOF_PY_UHASH_T > 4
-#define _PandasHASH_XXPRIME_1 ((Py_uhash_t)11400714785074694791ULL)
-#define _PandasHASH_XXPRIME_2 ((Py_uhash_t)14029467366897019727ULL)
-#define _PandasHASH_XXPRIME_5 ((Py_uhash_t)2870177450012600261ULL)
-#define _PandasHASH_XXROTATE(x)                                                \
-  ((x << 31) | (x >> 33)) /* Rotate left 31 bits */
+#  define _PandasHASH_XXPRIME_1 ((Py_uhash_t)11400714785074694791ULL)
+#  define _PandasHASH_XXPRIME_2 ((Py_uhash_t)14029467366897019727ULL)
+#  define _PandasHASH_XXPRIME_5 ((Py_uhash_t)2870177450012600261ULL)
+#  define _PandasHASH_XXROTATE(x)                                              \
+    ((x << 31) | (x >> 33)) /* Rotate left 31 bits */
 #else
-#define _PandasHASH_XXPRIME_1 ((Py_uhash_t)2654435761UL)
-#define _PandasHASH_XXPRIME_2 ((Py_uhash_t)2246822519UL)
-#define _PandasHASH_XXPRIME_5 ((Py_uhash_t)374761393UL)
-#define _PandasHASH_XXROTATE(x)                                                \
-  ((x << 13) | (x >> 19)) /* Rotate left 13 bits */
+#  define _PandasHASH_XXPRIME_1 ((Py_uhash_t)2654435761UL)
+#  define _PandasHASH_XXPRIME_2 ((Py_uhash_t)2246822519UL)
+#  define _PandasHASH_XXPRIME_5 ((Py_uhash_t)374761393UL)
+#  define _PandasHASH_XXROTATE(x)                                              \
+    ((x << 13) | (x >> 19)) /* Rotate left 13 bits */
 #endif
 
 static inline Py_hash_t tupleobject_hash(PyTupleObject *key) {

@@ -22,7 +22,7 @@ This file implements string parsing and creation for NumPy datetime.
 #pragma once
 
 #ifndef NPY_NO_DEPRECATED_API
-#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
+#  define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #endif // NPY_NO_DEPRECATED_API
 
 /* 'format_requirement' can be one of three values:
