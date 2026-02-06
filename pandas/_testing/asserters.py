@@ -251,21 +251,21 @@ def assert_index_equal(
     if obj is None:
         obj = "MultiIndex" if isinstance(left, MultiIndex) else "Index"
 
-    if exact is lib.no_default and exact == "equiv":  # type: ignore[comparison-overlap]
+    if exact is lib.no_default:
         warnings.warn(
-            "The default value of 'equiv' for the `exact` parameter in is deprecated "
+            "The default value of 'equiv' for the `exact` parameter is deprecated "
             "and will be changed to 'True' in a future version. Please set exact "
             "to the desired value to avoid seeing this warning",
             Pandas4Warning,
             stacklevel=find_stack_level(),
         )
-        exact = True
+        exact = "equiv"
 
     def _check_types(left, right, obj: str = "Index") -> None:
         if not exact:
             return
 
-        assert_class_equal(left, right, exact=exact, obj=obj)  # type: ignore[arg-type]
+        assert_class_equal(left, right, exact=exact, obj=obj)
         assert_attr_equal("inferred_type", left, right, obj=obj)
 
         # Skip exact dtype checking when `check_categorical` is False
