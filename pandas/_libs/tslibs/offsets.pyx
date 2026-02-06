@@ -1241,6 +1241,9 @@ cdef class Tick(SingleConstructorOffset):
         """
         Returns an integer of the total number of nanoseconds.
 
+        This property converts the offset duration to nanoseconds for
+        precise time calculations.
+
         See Also
         --------
         tseries.offsets.Hour.nanos :
@@ -1518,6 +1521,9 @@ cdef class Day(SingleConstructorOffset):
     def nanos(self) -> int64_t:
         """
         Returns an integer of the total number of nanoseconds.
+
+        This property converts the Day offset duration to nanoseconds,
+        for precise calculation.
 
         See Also
         --------
@@ -3302,6 +3308,9 @@ cdef class WeekOfMonthMixin(SingleConstructorOffset):
         """
         Return a string representing the base frequency.
 
+        This code is used internally to identify the frequency type and
+        includes the week number and weekday information.
+
         See Also
         --------
         tseries.offsets.Hour.rule_code :
@@ -3390,6 +3399,9 @@ cdef class YearOffset(SingleConstructorOffset):
     def rule_code(self) -> str:
         """
         Return a string representing the base frequency.
+
+        This code is used internally to identify the frequency type and
+        includes the anchor month information.
 
         See Also
         --------
@@ -3480,6 +3492,9 @@ cdef class BYearEnd(YearOffset):
     """
     DateOffset increments between the last business day of the year.
 
+    This offset moves dates to the last business day of the specified month
+    (default December), skipping weekends.
+
     Attributes
     ----------
     n : int, default 1
@@ -3518,6 +3533,9 @@ cdef class BYearEnd(YearOffset):
 cdef class BYearBegin(YearOffset):
     """
     DateOffset increments between the first business day of the year.
+
+    This offset moves dates to the first business day of the specified month
+    (default January), skipping weekends.
 
     Attributes
     ----------
@@ -4902,6 +4920,9 @@ cdef class Week(SingleConstructorOffset):
     """
     Weekly offset.
 
+    This offset represents a duration of one or more weeks. It can optionally
+    be anchored to a specific day of the week.
+
     Attributes
     ----------
     n : int, default 1
@@ -5125,6 +5146,9 @@ cdef class Week(SingleConstructorOffset):
     def rule_code(self) -> str:
         """
         Return a string representing the base frequency.
+
+        This code is used internally to identify the frequency type and
+        includes any anchoring information (e.g., day of week for Week offsets).
 
         See Also
         --------
