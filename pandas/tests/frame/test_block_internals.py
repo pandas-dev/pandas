@@ -422,7 +422,7 @@ def get_longley_data():
 #
 # This test spawns a thread pool, so it shouldn't run under xdist.
 # It generates warnings, so it needs warnings to be thread-safe as well
-@td.skip_if_warnings_arent_thread_safe
+@td.skip_if_thread_unsafe_warnings
 @pytest.mark.single_cpu
 def test_multithreaded_reading():
     def numpy_assert(data, b):

@@ -119,7 +119,7 @@ skip_if_wasm = pytest.mark.skipif(
     WASM,
     reason="does not support wasm",
 )
-skip_if_warnings_arent_thread_safe = pytest.mark.skipif(
+skip_if_thread_unsafe_warnings = pytest.mark.skipif(
     not getattr(sys.flags, "context_aware_warnings", 0),
     reason="Python warnings must be thread-safe for consistent results",
 )
