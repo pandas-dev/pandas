@@ -84,6 +84,8 @@ if TYPE_CHECKING:
         WriteExcelBuffer,
     )
 
+EXCEL_ROWS_MAX = 1_048_576
+
 
 @overload
 def read_excel(
@@ -120,9 +122,6 @@ def read_excel(
     storage_options: StorageOptions = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
 ) -> DataFrame: ...
-
-
-EXCEL_ROWS_MAX = 1_048_576
 
 
 @overload
