@@ -12317,7 +12317,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         times: np.ndarray | DataFrame | Series | None = None,
         method: Literal["single", "table"] = "single",
     ) -> ExponentialMovingWindow:
-        """
+        r"""
         Provide exponentially weighted (EW) calculations.
 
         Exactly one of ``com``, ``span``, ``halflife``, or ``alpha`` must be
@@ -12380,6 +12380,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     y_0 &= x_0\\
                     y_t &= (1 - \alpha) y_{t-1} + \alpha x_t,
                 \\end{split}
+
         ignore_na : bool, default False
             Ignore missing values when calculating weights.
 
