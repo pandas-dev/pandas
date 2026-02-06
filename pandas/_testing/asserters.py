@@ -207,10 +207,15 @@ def assert_index_equal(
         The first index to compare.
     right : Index
         The second index to compare.
-    exact : bool or {'equiv'}, default True
+    exact : bool or {'equiv'}, default 'equiv'
         Whether to check the Index class, dtype and inferred_type
         are identical. If 'equiv', then RangeIndex can be substituted for
         Index with an int64 dtype as well.
+
+        .. deprecated:: 3.1.0
+            The default value of 'equiv' has been deprecated and will be changed to
+            True in the future.
+
     check_names : bool, default True
         Whether to check the names attribute.
     check_exact : bool, default True
