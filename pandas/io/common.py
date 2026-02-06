@@ -397,21 +397,16 @@ def _get_filepath_or_buffer(
 
         # waiting until now for importing to match intended lazy logic of
         # urlopen function defined elsewhere in this module
-        import urllib.error
         import urllib.request
 
         # assuming storage_options is to be interpreted as headers
         req_info = urllib.request.Request(filepath_or_buffer, headers=storage_options)
-        try:
-            with urlopen(req_info) as req:
-                content_encoding = req.headers.get("Content-Encoding", None)
-                if content_encoding == "gzip":
-                    # Override compression based on Content-Encoding header
-                    compression = {"method": "gzip"}
-                reader = BytesIO(req.read())
-        except urllib.error.HTTPError as err:
-            err.close()
-            raise
+        with urlopen(req_info) as req:
+            content_encoding = req.headers.get("Content-Encoding", None)
+            if content_encoding == "gzip":
+                # Override compression based on Content-Encoding header
+                compression = {"method": "gzip"}
+            reader = BytesIO(req.read())
         return IOArgs(
             filepath_or_buffer=reader,
             encoding=encoding,
