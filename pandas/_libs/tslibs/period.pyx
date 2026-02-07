@@ -1667,6 +1667,10 @@ cdef class PeriodMixin:
         """
         Get the Timestamp for the start of the period.
 
+        This property returns the exact start time of the period as a Timestamp.
+        For example, a monthly period starting in January 2020 would return
+        a Timestamp of '2020-01-01 00:00:00'.
+
         Returns
         -------
         Timestamp
@@ -1696,6 +1700,10 @@ cdef class PeriodMixin:
     def end_time(self) -> Timestamp:
         """
         Get the Timestamp for the end of the period.
+
+        This property returns the exact end time of the period as a Timestamp.
+        The returned timestamp represents the last possible moment within the
+        period (e.g., 23:59:59.999999 for a daily period).
 
         Returns
         -------
@@ -1990,6 +1998,9 @@ cdef class _Period(PeriodMixin):
         """
         Convert Period to desired frequency, at the start or end of the interval.
 
+        This method converts the Period to a different frequency, aligning
+        the result to either the start or end of the original interval.
+
         Parameters
         ----------
         freq : str, DateOffset
@@ -2132,6 +2143,9 @@ cdef class _Period(PeriodMixin):
         """
         Return the year this Period falls on.
 
+        The year is derived from the internal representation of the Period
+        based on its ordinal value and frequency.
+
         Returns
         -------
         int
@@ -2178,6 +2192,8 @@ cdef class _Period(PeriodMixin):
     def month(self) -> int:
         """
         Return the month this Period falls on.
+
+        Months are numbered from 1 (January) through 12 (December).
 
         Returns
         -------
@@ -2256,6 +2272,9 @@ cdef class _Period(PeriodMixin):
         """
         Get the hour of the day component of the Period.
 
+        For periods with a frequency shorter than a day, this returns the
+        hour portion of the time. For longer frequencies, it returns 0.
+
         Returns
         -------
         int
@@ -2286,6 +2305,9 @@ cdef class _Period(PeriodMixin):
         """
         Get minute of the hour component of the Period.
 
+        For periods with a frequency shorter than an hour, this returns the
+        minute portion of the time. For longer frequencies, it returns 0.
+
         Returns
         -------
         int
@@ -2310,6 +2332,9 @@ cdef class _Period(PeriodMixin):
         """
         Get the second component of the Period.
 
+        For periods with a frequency shorter than a minute, this returns the
+        second portion of the time. For longer frequencies, it returns 0.
+
         Returns
         -------
         int
@@ -2333,6 +2358,9 @@ cdef class _Period(PeriodMixin):
     def weekofyear(self) -> int:
         """
         Get the week of the year on the given Period.
+
+        Weeks are numbered according to ISO 8601, where the first week of
+        the year contains the first Thursday of the year.
 
         Returns
         -------
@@ -2364,6 +2392,9 @@ cdef class _Period(PeriodMixin):
     def week(self) -> int:
         """
         Get the week of the year on the given Period.
+
+        Weeks are numbered according to ISO 8601, where the first week of
+        the year contains the first Thursday of the year.
 
         Returns
         -------
@@ -2534,6 +2565,10 @@ cdef class _Period(PeriodMixin):
         """
         Return the quarter this Period falls on.
 
+        Quarter 1 includes January through March, quarter 2 includes April
+        through June, quarter 3 includes July through September, and quarter
+        4 includes October through December.
+
         See Also
         --------
         Timestamp.quarter : Return the quarter of the Timestamp.
@@ -2598,6 +2633,9 @@ cdef class _Period(PeriodMixin):
         """
         Get the total number of days in the month that this period falls on.
 
+        This value depends on the month and whether the year is a leap year
+        (e.g., February has 28 or 29 days).
+
         Returns
         -------
         int
@@ -2632,6 +2670,9 @@ cdef class _Period(PeriodMixin):
         """
         Get the total number of days of the month that this period falls on.
 
+        This value depends on the month and whether the year is a leap year.
+        This is an alias for :attr:`days_in_month`.
+
         Returns
         -------
         int
@@ -2653,6 +2694,10 @@ cdef class _Period(PeriodMixin):
     def is_leap_year(self) -> bool:
         """
         Return True if the period's year is in a leap year.
+
+        A leap year is a year with 366 days (instead of 365), including
+        February 29 as an intercalary day. Leap years are years divisible
+        by 4, except for years divisible by 100 but not by 400.
 
         See Also
         --------

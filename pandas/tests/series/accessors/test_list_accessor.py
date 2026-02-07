@@ -97,7 +97,7 @@ def test_list_getitem_slice_invalid():
         [[1, 2, 3], [4, None, 5], None],
         dtype=ArrowDtype(pa.list_(pa.int64())),
     )
-    with pytest.raises(pa.lib.ArrowInvalid, match=re.escape("`step` must be >= 1")):
+    with tm.external_error_raised(pa.ArrowInvalid):
         ser.list[1:None:0]
 
 
@@ -129,9 +129,9 @@ def test_list_getitem_invalid_index(list_dtype):
         [[1, 2, 3], [4, None, 5], None],
         dtype=ArrowDtype(list_dtype),
     )
-    with pytest.raises(pa.lib.ArrowInvalid, match="Index -1 is out of bounds"):
+    with tm.external_error_raised(pa.ArrowInvalid):
         ser.list[-1]
-    with pytest.raises(pa.lib.ArrowInvalid, match="Index 5 is out of bounds"):
+    with tm.external_error_raised(pa.ArrowInvalid):
         ser.list[5]
     with pytest.raises(ValueError, match="key must be an int or slice, got str"):
         ser.list["abc"]

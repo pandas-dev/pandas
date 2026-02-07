@@ -251,6 +251,8 @@ class SeriesGroupBy(GroupBy[Series]):
 
         Notes
         -----
+        See :ref:`groupby.apply` in the User Guide for more details and examples.
+
         The resulting dtype will reflect the return value of the passed ``func``,
         see the examples below.
 
@@ -382,6 +384,9 @@ class SeriesGroupBy(GroupBy[Series]):
 
         Notes
         -----
+        See :ref:`groupby.aggregate` in the User Guide for more details
+        and examples.
+
         When using ``engine='numba'``, there will be no "fall back" behavior internally.
         The group data and group index will be passed as numpy arrays to the JITed
         user defined function, and no alternative execution attempts will be tried.
@@ -711,6 +716,8 @@ class SeriesGroupBy(GroupBy[Series]):
 
         Notes
         -----
+        See :ref:`groupby.transform` in the User Guide for more details and examples.
+
         Each group is endowed the attribute 'name' in case you need to know
         which group you are working on.
 
@@ -2180,6 +2187,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         Notes
         -----
+        See :ref:`groupby.aggregate` in the User Guide for more details
+        and examples.
+
         When using ``engine='numba'``, there will be no "fall back" behavior internally.
         The group data and group index will be passed as numpy arrays to the JITed
         user defined function, and no alternative execution attempts will be tried.
@@ -2362,24 +2372,20 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def _python_agg_general(self, func, *args, **kwargs):
         f = lambda x: func(x, *args, **kwargs)
 
-        if self.ngroups == 0:
-            # e.g. test_evaluate_with_empty_groups different path gets different
-            #  result dtype in empty case.
-            return self._python_apply_general(f, self._selected_obj, is_agg=True)
-
         obj = self._obj_with_exclusions
 
-        if not len(obj.columns):
-            # e.g. test_margins_no_values_no_cols
-            return self._python_apply_general(f, self._selected_obj)
-
-        output: dict[int, ArrayLike] = {}
-        for idx, (name, ser) in enumerate(obj.items()):
-            result = self._grouper.agg_series(ser, f)
-            output[idx] = result
-
-        res = self.obj._constructor(output)
-        res.columns = obj.columns.copy(deep=False)
+        if self.ngroups == 0 or len(obj.columns) == 0:
+            res_index = self._grouper.result_index
+            res = self.obj._constructor(index=res_index, columns=obj.columns).astype(
+                obj.dtypes
+            )
+        else:
+            output: dict[int, ArrayLike] = {
+                idx: self._grouper.agg_series(ser, f)
+                for idx, (name, ser) in enumerate(obj.items())
+            }
+            res = self.obj._constructor(output)
+            res.columns = obj.columns.copy(deep=False)
         return self._wrap_aggregated_output(res)
 
     def _aggregate_frame(self, func, *args, **kwargs) -> DataFrame:
@@ -2706,6 +2712,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         Notes
         -----
+        See :ref:`groupby.transform` in the User Guide for more details and examples.
+
         Each group is endowed the attribute 'name' in case you need to know
         which group you are working on.
 

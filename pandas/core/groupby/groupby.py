@@ -799,6 +799,9 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         """
         Construct DataFrame from group with provided name.
 
+        This method retrieves all rows belonging to a specific group identified
+        by the given name.
+
         Parameters
         ----------
         name : object
@@ -1541,6 +1544,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Notes
         -----
+        See :ref:`groupby.apply` in the User Guide for more details and examples.
+
         The resulting dtype will reflect the return value of the passed ``func``,
         see the examples below.
 
@@ -1656,7 +1661,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         data: DataFrame | Series,
         not_indexed_same: bool | None = None,
         is_transform: bool = False,
-        is_agg: bool = False,
     ) -> NDFrameT:
         """
         Apply function f in python space
@@ -1674,10 +1678,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         is_transform : bool, default False
             Indicator for whether the function is actually a transform
             and should not have group keys prepended.
-        is_agg : bool, default False
-            Indicator for whether the function is an aggregation. When the
-            result is empty, we don't want to warn for this case.
-            See _GroupBy._python_agg_general.
 
         Returns
         -------
