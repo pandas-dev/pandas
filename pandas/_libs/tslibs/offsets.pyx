@@ -1402,6 +1402,8 @@ cdef class Day(SingleConstructorOffset):
     """
     Offset ``n`` days.
 
+    Used for date arithmetic with datetime-like objects.
+
     Attributes
     ----------
     n : int, default 1
@@ -1544,6 +1546,8 @@ cdef class Hour(Tick):
     """
     Offset ``n`` hours.
 
+    Used for date arithmetic with datetime-like objects.
+
     Attributes
     ----------
     n : int, default 1
@@ -1579,6 +1583,8 @@ cdef class Hour(Tick):
 cdef class Minute(Tick):
     """
     Offset ``n`` minutes.
+
+    Used for date arithmetic with datetime-like objects.
 
     Attributes
     ----------
@@ -1616,6 +1622,8 @@ cdef class Second(Tick):
     """
     Offset ``n`` seconds.
 
+    Used for date arithmetic with datetime-like objects.
+
     Attributes
     ----------
     n : int, default 1
@@ -1651,6 +1659,8 @@ cdef class Second(Tick):
 cdef class Milli(Tick):
     """
     Offset ``n`` milliseconds.
+
+    Used for date arithmetic with datetime-like objects.
 
     Attributes
     ----------
@@ -1689,6 +1699,8 @@ cdef class Micro(Tick):
     """
     Offset ``n`` microseconds.
 
+    Used for date arithmetic with datetime-like objects.
+
     Attributes
     ----------
     n : int, default 1
@@ -1725,6 +1737,8 @@ cdef class Micro(Tick):
 cdef class Nano(Tick):
     """
     Offset ``n`` nanoseconds.
+
+    Used for date arithmetic with datetime-like objects.
 
     Attributes
     ----------
