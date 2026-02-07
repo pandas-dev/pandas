@@ -499,61 +499,6 @@ class SeriesGroupBy(GroupBy[Series]):
 
     agg = aggregate
 
-    def _agg_for_resample(
-        self, func=None, *args, engine=None, engine_kwargs=None, **kwargs
-    ):
-        relabeling = func is None
-        columns = None
-        if relabeling:
-            columns, func = validate_func_kwargs(kwargs)
-            kwargs = {}
-
-        if isinstance(func, str):
-            if maybe_use_numba(engine) and engine is not None:
-                # Not all agg functions support numba, only propagate numba kwargs
-                # if user asks for numba, and engine is not None
-                # (if engine is None, the called function will handle the case where
-                # numba is requested via the global option)
-                kwargs["engine"] = engine
-            if engine_kwargs is not None:
-                kwargs["engine_kwargs"] = engine_kwargs
-            return getattr(self, func)(*args, **kwargs)
-
-        elif isinstance(func, abc.Iterable):
-            # Catch instances of lists / tuples
-            # but not the class list / tuple itself.
-            func = maybe_mangle_lambdas(func)
-            kwargs["engine"] = engine
-            kwargs["engine_kwargs"] = engine_kwargs
-            ret = self._aggregate_multiple_funcs(func, *args, **kwargs)
-            if relabeling:
-                # columns is not narrowed by mypy from relabeling flag
-                assert columns is not None  # for mypy
-                ret.columns = columns
-            if not self.as_index:
-                ret = ret.reset_index()
-            return ret
-
-        else:
-            if maybe_use_numba(engine):
-                return self._aggregate_with_numba(
-                    func, *args, engine_kwargs=engine_kwargs, **kwargs
-                )
-
-            if self.ngroups == 0:
-                # e.g. test_evaluate_with_empty_groups without any groups to
-                #  iterate over, we have no output on which to do dtype
-                #  inference. We default to using the existing dtype.
-                #  xref GH#51445
-                obj = self._obj_with_exclusions
-                return self.obj._constructor(
-                    [],
-                    name=self.obj.name,
-                    index=self._grouper.result_index,
-                    dtype=obj.dtype,
-                )
-            return self._python_agg_general(func, *args, **kwargs)
-
     def _python_agg_general(self, func, *args, **kwargs):
         f = lambda x: func(x, *args, **kwargs)
 
