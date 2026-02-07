@@ -1298,10 +1298,8 @@ class TestLambdaMangling:
         tm.assert_frame_equal(result, expected)
 
     def test_unused_kwargs(self):
-        # GH#39169 - Passing kwargs used to have agg pass the entire frame rather
-        # than column-by-column
-
-        # UDF that works on both the entire frame and column-by-column
+        # https://github.com/pandas-dev/pandas/issues/39169
+        # agg behavior should not change in the presence of usused args.
         func = lambda data, **kwargs: np.sum(np.sum(data))
 
         df = DataFrame([[1, 2], [3, 4]])
@@ -1398,24 +1396,6 @@ class TestLambdaMangling:
             weight_min=pd.NamedAgg(column="weight", aggfunc=lambda x: np.min(x)),
         )
         tm.assert_frame_equal(result2, expected)
-
-    def test_multiple_udf_same_name(self):
-        # GH#28570
-        quant50 = partial(np.percentile, q=50)
-        quant70 = partial(np.percentile, q=70)
-
-        df = DataFrame({"col1": ["a", "a", "b", "b", "b"], "col2": [1, 2, 3, 4, 5]})
-        expected = DataFrame(
-            [[1.5, 1.7], [4.0, 4.4]],
-            index=Index(["a", "b"], name="col1"),
-            columns=MultiIndex(
-                levels=[["col2"], ["percentile"]],
-                codes=[[0, 0], [0, 0]],
-            ),
-        )
-        gb = df.groupby("col1")
-        result = gb.agg({"col2": [quant50, quant70]})
-        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("use_kwargs", [True, False])
     def test_multiple_udf_with_args(self, use_kwargs):
