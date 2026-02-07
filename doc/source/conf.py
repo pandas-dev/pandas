@@ -694,7 +694,6 @@ def linkcode_resolve(domain, info) -> str | None:
 
     fn = os.path.relpath(fn, start=os.path.dirname(pandas.__file__))
 
-    
     return (
         f"https://github.com/pandas-dev/pandas/blob/"
         f"v{pandas.__version__}/pandas/{fn}{linespec}"
