@@ -96,7 +96,6 @@ if TYPE_CHECKING:
     )
 
     from pandas import Categorical
-    from pandas.core.generic import NDFrame
 
 # TODO(typing) the return value on this callable should be any *scalar*.
 AggScalar: TypeAlias = str | Callable[..., Any]
@@ -2358,23 +2357,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             res = self.obj._constructor(output)
             res.columns = obj.columns.copy(deep=False)
         return self._wrap_aggregated_output(res)
-
-    def _aggregate_frame(self, func, *args, **kwargs) -> DataFrame:
-        if self._grouper.nkeys != 1:
-            raise AssertionError("Number of keys must be 1")
-
-        obj = self._obj_with_exclusions
-
-        result: dict[Hashable, NDFrame | np.ndarray] = {}
-        for name, grp_df in self._grouper.get_iterator(obj):
-            fres = func(grp_df, *args, **kwargs)
-            result[name] = fres
-
-        result_index = self._grouper.result_index
-        out = self.obj._constructor(result, index=obj.columns, columns=result_index)
-        out = out.T
-
-        return out
 
     def _wrap_applied_output(
         self,
