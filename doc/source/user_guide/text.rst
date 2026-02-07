@@ -68,6 +68,19 @@ the NA value.
    pd.Series(["a", "b", None], dtype="str")
    pd.Series(["a", "b", None], dtype="string")
 
+.. note::
+
+   When constructing a ``Series`` or ``Array`` with ``dtype="str"`` or
+   ``dtype="string"``, values such as ``None``, ``np.nan``, and ``pd.NA``
+   are treated as missing.
+
+   For ``dtype="str"`` (``na_value=np.nan``), missing values are stored
+   as ``np.nan``. For ``dtype="string"`` (``na_value=pd.NA``), missing
+   values are stored as ``pd.NA``.
+
+   This differs from ``object`` dtype, where missing values are not
+   normalized and may retain their original representation.
+
 Specifying either alias will also convert non-string data to strings:
 
 .. ipython:: python
