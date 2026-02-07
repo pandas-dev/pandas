@@ -110,6 +110,21 @@ the equivalent (scalar) built-in string methods:
    s.str.upper()
    s.str.len()
 
+.. note::
+
+   String methods are applied element-wise. If a value is not a string,
+   the result for that element will be ``NaN`` rather than raising an error.
+
+   For example:
+
+   .. ipython:: python
+
+      pd.Series(["a", 1]).str.upper()
+
+   returns ``NaN`` for the non-string value. This behavior is intentional
+   and allows vectorized string operations on data containing mixed types.
+
+
 .. ipython:: python
 
    idx = pd.Index([" jack", "jill ", " jesse ", "frank"])
