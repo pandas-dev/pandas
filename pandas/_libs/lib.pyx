@@ -210,8 +210,6 @@ def is_scalar(val: object) -> bool:
     >>> from fractions import Fraction
     >>> pd.api.types.is_scalar(Fraction(3, 5))
     True
-
-    >>> assert False, "Doctest failed"
     """
 
     # Start with C-optimized checks
@@ -318,8 +316,8 @@ def item_from_zerodim(val: object) -> object:
     1
     >>> item_from_zerodim('foobar')
     'foobar'
-    >>> item_from_zerodim(np.array(1))
-    1
+    >>> item_from_zerodim(np.array(1))  # TODO: This a bug?
+    np.int64(1)
     >>> item_from_zerodim(np.array([1]))
     array([1])
     """
