@@ -48,6 +48,7 @@ def test_agg_regression1(tsframe):
 
 
 def test_agg_must_agg(df):
+    # https://github.com/pandas-dev/pandas/pull/64014
     grouped = df.groupby("A")["C"]
     expected = Series(
         {
@@ -69,6 +70,17 @@ def test_agg_must_agg(df):
         name="C",
     )
     result = grouped.agg(lambda x: x.index[:2])
+    tm.assert_series_equal(result, expected)
+
+    expected = Series(
+        {
+            "bar": np.array(df[df.A == "bar"]["C"]),
+            "foo": np.array(df[df.A == "foo"]["C"]),
+        },
+        index=Index(["bar", "foo"], name="A"),
+        name="C",
+    )
+    result = grouped.agg(lambda x: np.array(x))
     tm.assert_series_equal(result, expected)
 
 
