@@ -562,7 +562,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         if not self.is_monotonic_increasing:
             raise ValueError("Index is not monotonic")
         values = self.asi8
-        return bool((values[1:] - values[:-1] == 1).all())
+        return bool(((values[1:] - values[:-1]) == 1).all())
 
     @property
     def inferred_type(self) -> str:
