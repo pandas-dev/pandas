@@ -9425,7 +9425,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     def eq(self, other, axis: Axis = "columns", level=None) -> DataFrame:
         """
-        Get Not equal to of dataframe and other, element-wise (binary operator `eq`).
+        Get Equal to of dataframe and other, element-wise (binary operator `eq`).
 
         Among flexible wrappers (`eq`, `ne`, `le`, `lt`, `ge`, `gt`) to comparison
         operators.
