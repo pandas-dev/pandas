@@ -5,6 +5,7 @@ from pandas import (
     DataFrame,
     Series,
     array as pd_array,
+    col,
     date_range,
 )
 import pandas._testing as tm
@@ -146,3 +147,17 @@ def test_case_when_callable():
     )
     expected = np.piecewise(x, [x < 0, x >= 0], [lambda x: -x, lambda x: x])
     tm.assert_series_equal(result, Series(expected))
+
+
+def test_case_when_expression_condition(df):
+    result = df["a"].case_when([(col("a") > 1, 10), (col("a") <= 1, 5)])
+    expected = Series([5, 10, 10], name="a")
+    tm.assert_series_equal(result, expected)
+
+
+def test_case_when_expression_replacement(df):
+    result = df["a"].case_when(
+        [(df["a"] > 1, col("a") + 100), (df["a"] <= 1, col("a") + 1)]
+    )
+    expected = Series([2, 102, 103], name="a")
+    tm.assert_series_equal(result, expected)

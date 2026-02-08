@@ -106,6 +106,7 @@ from pandas.core import (
     ops,
     roperator,
 )
+from pandas.core.col import Expression
 from pandas.core.accessor import Accessor
 from pandas.core.apply import SeriesApply
 from pandas.core.arrays import ExtensionArray
@@ -6389,11 +6390,18 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     "a condition and replacement; "
                     f"instead got length {len(entry)}."
                 )
+        frame = None
+
+        def _evaluate_case_when_arg(arg):
+            nonlocal frame
+            if isinstance(arg, Expression):
+                if frame is None:
+                    frame = self.to_frame()
+                return arg._eval_expression(frame)
+            return com.apply_if_callable(arg, self)
+
         caselist = [
-            (
-                com.apply_if_callable(condition, self),
-                com.apply_if_callable(replacement, self),
-            )
+            (_evaluate_case_when_arg(condition), _evaluate_case_when_arg(replacement))
             for condition, replacement in caselist
         ]
         default = self.copy(deep=False)
