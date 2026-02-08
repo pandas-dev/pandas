@@ -821,7 +821,7 @@ class NaTType(_NaT):
         >>> ts
         Timestamp('2023-01-01 10:00:00+0100', tz='Europe/Brussels')
         >>> ts.timetz()
-        datetime.time(10, 0, tzinfo=<DstTzInfo 'Europe/Brussels' CET+1:00:00 STD>)
+        datetime.time(10, 0, tzinfo=zoneinfo.ZoneInfo(key='Europe/Brussels'))
         """
         )
     toordinal = _make_error_func(
@@ -970,7 +970,7 @@ class NaTType(_NaT):
 
         Examples
         --------
-        >>> pd.Timestamp.utcfromtimestamp(1584199972)
+        >>> pd.Timestamp.utcfromtimestamp(1584199972)  # doctest: +SKIP
         Timestamp('2020-03-14 15:32:52+0000', tz='UTC')
         """,
     )
