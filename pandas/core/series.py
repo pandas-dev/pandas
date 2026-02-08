@@ -106,7 +106,6 @@ from pandas.core import (
     ops,
     roperator,
 )
-from pandas.core.col import Expression
 from pandas.core.accessor import Accessor
 from pandas.core.apply import SeriesApply
 from pandas.core.arrays import ExtensionArray
@@ -116,6 +115,7 @@ from pandas.core.arrays.arrow import (
 )
 from pandas.core.arrays.categorical import CategoricalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
+from pandas.core.col import Expression
 from pandas.core.construction import (
     array as pd_array,
     extract_array,
