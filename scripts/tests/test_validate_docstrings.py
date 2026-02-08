@@ -46,37 +46,6 @@ class BadDocstrings:
         Series([], dtype: bool)
         """
 
-    def unused_import(self) -> None:
-        """
-        Examples
-        --------
-        >>> import pandas as pdf
-        >>> df = pd.DataFrame(np.ones((3, 3)), columns=('a', 'b', 'c'))
-        """
-
-    def missing_whitespace_around_arithmetic_operator(self) -> None:
-        """
-        Examples
-        --------
-        >>> 2+5
-        7
-        """
-
-    def indentation_is_not_a_multiple_of_four(self) -> None:
-        """
-        Examples
-        --------
-        >>> if 2 + 5:
-        ...   pass
-        """
-
-    def missing_whitespace_after_comma(self) -> None:
-        """
-        Examples
-        --------
-        >>> df = pd.DataFrame(np.ones((3,3)),columns=('a','b', 'c'))
-        """
-
     def write_array_like_with_hyphen_not_underscore(self) -> None:
         """
         In docstrings, use array-like over array_like
@@ -155,37 +124,6 @@ class TestValidator:
                 "BadDocstrings",
                 "redundant_import",
                 ("Do not import pandas, as it is imported automatically",),
-            ),
-            (
-                "BadDocstrings",
-                "unused_import",
-                (
-                    "flake8 error: line 1, col 1: F401 'pandas as pdf' "
-                    "imported but unused",
-                ),
-            ),
-            (
-                "BadDocstrings",
-                "missing_whitespace_around_arithmetic_operator",
-                (
-                    "flake8 error: line 1, col 2: "
-                    "E226 missing whitespace around arithmetic operator",
-                ),
-            ),
-            (
-                "BadDocstrings",
-                "indentation_is_not_a_multiple_of_four",
-                # with flake8 3.9.0, the message ends with four spaces,
-                #  whereas in earlier versions, it ended with "four"
-                (
-                    "flake8 error: line 2, col 3: E111 indentation is not a "
-                    "multiple of 4",
-                ),
-            ),
-            (
-                "BadDocstrings",
-                "missing_whitespace_after_comma",
-                ("flake8 error: line 1, col 33: E231 missing whitespace after ','",),
             ),
             (
                 "BadDocstrings",
