@@ -316,7 +316,7 @@ def item_from_zerodim(val: object) -> object:
     1
     >>> item_from_zerodim('foobar')
     'foobar'
-    >>> item_from_zerodim(np.array(1))  # TODO: This a bug?
+    >>> item_from_zerodim(np.array(1))
     np.int64(1)
     >>> item_from_zerodim(np.array([1]))
     array([1])

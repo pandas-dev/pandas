@@ -6109,9 +6109,8 @@ cdef class FY5253Quarter(FY5253Mixin):
         >>> offset = pd.offsets.FY5253Quarter(
         ...     weekday=5, startingMonth=12, qtr_with_extra_week=1
         ... )
-        >>> # TODO: Update to a year where this returns true?
-        >>> offset.year_has_extra_week(pd.Timestamp("2011-04-02"))
-        False
+        >>> offset.year_has_extra_week(pd.Timestamp("2014-04-02"))
+        True
         >>> offset.year_has_extra_week(pd.Timestamp("2010-04-02"))
         False
         """
@@ -6543,6 +6542,7 @@ cdef class CustomBusinessDay(BusinessDay):
         True
         """
         from pandas.core.dtypes.cast import maybe_unbox_numpy_scalar
+
         if self._normalize and not _is_normalized(dt):
             return False
         day64 = _to_dt64D(dt)

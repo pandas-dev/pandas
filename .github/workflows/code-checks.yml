@@ -40,58 +40,51 @@ jobs:
     - name: Set up Conda
       uses: ./.github/actions/setup-conda
 
-    - name: Install pandas in editable mode
-      id: build-editable
+    - name: Build Pandas
+      id: build
       uses: ./.github/actions/build_pandas
-      with:
-        editable: true
 
     # The following checks are independent of each other and should still be run if one fails
-
-    # TODO: The doctests have to be run first right now, since the Cython doctests only work
-    # with pandas installed in non-editable mode
-    # This can be removed once pytest-cython doesn't require C extensions to be installed inplace
-
     - name: Extra installs
       # https://pytest-qt.readthedocs.io/en/latest/troubleshooting.html#github-actions-azure-pipelines-travis-ci-and-gitlab-ci-cd
       run: sudo apt-get update && sudo apt-get install -y libegl1 libopengl0
 
     - name: Run doctests
       run: cd ci && ./code_checks.sh doctests
-      if: ${{ steps.build-editable.outcome == 'success' && always() }}
+      if: ${{ steps.build.outcome == 'success' && always() }}
 
     - name: Check for no warnings when building single-page docs
       run: ci/code_checks.sh single-docs
-      if: ${{ steps.build-editable.outcome == 'success' && always() }}
+      if: ${{ steps.build.outcome == 'success' && always() }}
 
     - name: Run checks on imported code
       run: ci/code_checks.sh code
-      if: ${{ steps.build-editable.outcome == 'success' && always() }}
+      if: ${{ steps.build.outcome == 'success' && always() }}
 
     - name: Run docstring validation
       run: ci/code_checks.sh docstrings
-      if: ${{ steps.build-editable.outcome == 'success' && always() }}
+      if: ${{ steps.build.outcome == 'success' && always() }}
 
     - name: Run check of documentation notebooks
       run: ci/code_checks.sh notebooks
-      if: ${{ steps.build-editable.outcome == 'success' && always() }}
+      if: ${{ steps.build.outcome == 'success' && always() }}
 
     - name: Use existing environment for type checking
       run: |
         echo $PATH >> $GITHUB_PATH
         echo "PYTHONHOME=$PYTHONHOME" >> $GITHUB_ENV
         echo "PYTHONPATH=$PYTHONPATH" >> $GITHUB_ENV
-      if: ${{ steps.build-editable.outcome == 'success' && always() }}
+      if: ${{ steps.build.outcome == 'success' && always() }}
 
     - name: Typing
       uses: pre-commit/action@v3.0.1
       with:
         extra_args: --verbose --hook-stage manual --all-files
-      if: ${{ steps.build-editable.outcome == 'success' && always() }}
+      if: ${{ steps.build.outcome == 'success' && always() }}
 
     - name: Run docstring validation script tests
       run: pytest scripts
-      if: ${{ steps.build-editable.outcome == 'success' && always() }}
+      if: ${{ steps.build.outcome == 'success' && always() }}
 
   asv-benchmarks:
     name: ASV Benchmarks
