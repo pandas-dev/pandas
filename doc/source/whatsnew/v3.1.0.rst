@@ -151,7 +151,7 @@ Interval
 
 Indexing
 ^^^^^^^^
--
+-fixed bug in :meth:`Series.iloc` where assigning a ``dict`` to an object-dtype Series converted it to a ``Series`` instead of storing it (:issue:`62723`)
 -
 
 Missing

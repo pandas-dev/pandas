@@ -2667,7 +2667,9 @@ class _iLocIndexer(_LocationIndexer):
         """
         from pandas import Series
 
-        if (isinstance(value, ABCSeries) and name != "iloc") or isinstance(value, dict):
+        if (isinstance(value, ABCSeries) and name != "iloc") or (
+            isinstance(value, dict) and not (name == "iloc" and self.ndim == 1)
+        ):
             # TODO(EA): ExtensionBlock.setitem this causes issues with
             # setting for extensionarrays that store dicts. Need to decide
             # if it's worth supporting that.
