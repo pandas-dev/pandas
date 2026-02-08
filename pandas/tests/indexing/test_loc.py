@@ -2229,6 +2229,28 @@ class TestLocSetitemWithExpansion:
         assert expected.dtypes["B"] == val.dtype
         tm.assert_frame_equal(df, expected)
 
+    def test_loc_setitem_with_expansion_duplicate_columns(self):
+        # GH#58317
+        df = DataFrame(
+            [[1, 2, 3, 4], [4, 5, 6, 7], [7, 8, 9, 10]],
+            columns=["D", "B", "C", "A"],
+        )
+        item = DataFrame(
+            [[1, 2, 3, 4], [4, 5, 6, 7], [7, 8, 9, 10]],
+            columns=["A", "B", "C", "X"],
+            index=[3, 2, 1],
+        )
+        df.loc[[True, False, True], ["B", "E", "B"]] = item
+        expected = DataFrame(
+            [
+                [1, np.nan, np.nan, 3, 4, np.nan],
+                [4, 5.0, 5.0, 6, 7, np.nan],
+                [7, 5.0, 5.0, 9, 10, np.nan],
+            ],
+            columns=["D", "B", "B", "C", "A", "E"],
+        )
+        tm.assert_frame_equal(df, expected)
+
 
 class TestLocCallable:
     def test_frame_loc_getitem_callable(self):

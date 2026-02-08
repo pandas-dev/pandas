@@ -151,8 +151,9 @@ Interval
 
 Indexing
 ^^^^^^^^
+-Fixed bug in :meth:`DataFrame.loc` where assigning with duplicate column names and new columns corrupted unrelated columns (:issue:`58317`)
 -
--
+
 
 Missing
 ^^^^^^^
