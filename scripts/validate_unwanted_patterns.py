@@ -26,17 +26,9 @@ DEPRECATION_WARNINGS_PATTERN = re.compile(
     r"(PendingDeprecation|Deprecation|Future)Warning"
 )
 PRIVATE_IMPORTS_TO_IGNORE: set[str] = {
-    "_extension_array_shared_docs",
-    "_index_shared_docs",
-    "_interval_shared_docs",
-    "_merge_doc",
-    "_shared_docs",
     "_new_Index",
     "_new_PeriodIndex",
-    "_pipe_template",
-    "_apply_groupings_depr",
     "__main__",
-    "_transform_template",
     "_get_plot_backend",
     "_matplotlib",
     "_arrow_utils",
