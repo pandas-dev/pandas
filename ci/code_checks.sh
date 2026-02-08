@@ -69,13 +69,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
     MSG='Validate Docstrings' ; echo "$MSG"
     "$BASE_DIR"/scripts/validate_docstrings.py \
         --format=actions \
-        -i "pandas.tseries.offsets.Day ES01" \
-        -i "pandas.tseries.offsets.Hour ES01" \
-        -i "pandas.tseries.offsets.Minute ES01" \
-        -i "pandas.tseries.offsets.Second ES01" \
-        -i "pandas.tseries.offsets.Milli ES01" \
-        -i "pandas.tseries.offsets.Micro ES01" \
-        -i "pandas.tseries.offsets.Nano ES01" \
         -i "pandas.tseries.frequencies.to_offset ES01" \
         -i "pandas.Series.dtype ES01" \
         -i "pandas.Series.shape ES01" \
