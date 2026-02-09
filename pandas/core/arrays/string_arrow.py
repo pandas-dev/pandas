@@ -29,6 +29,7 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays._arrow_string_mixins import ArrowStringArrayMixin
 from pandas.core.arrays.arrow import ArrowExtensionArray
+from pandas.core.arrays.base import ExtensionArray
 from pandas.core.arrays.boolean import BooleanDtype
 from pandas.core.arrays.floating import Float64Dtype
 from pandas.core.arrays.integer import Int64Dtype
@@ -592,14 +593,10 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         raise TypeError(f"bad operand type for unary +: '{self.dtype}'")
 
     def _where(self, mask, value) -> Self:
-        mask = np.asarray(mask, dtype=np.bool_)
-        pa_type = self._pa_array.type
         if lib.is_list_like(value) and not is_scalar(value) and len(value) == 1:
             value = value[0]
-        if is_scalar(value):
-            pa_value = self._box_pa_scalar(value, pa_type=pa_type)
-        else:
-            pa_value = self._box_pa_array(value, pa_type=pa_type)
-        mask_pa = pa.array(mask, type=pa.bool_())
-        result = pc.if_else(mask_pa, self._pa_array, pa_value)
-        return self._from_pyarrow_array(result)
+        if lib.is_list_like(value) and not isinstance(
+            value, (np.ndarray, ExtensionArray)
+        ):
+            value = self._from_sequence(value, dtype=self.dtype)
+        return ExtensionArray._where(self, mask, value)
