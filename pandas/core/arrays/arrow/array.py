@@ -2775,9 +2775,6 @@ class ArrowExtensionArray(
             na_value = 1
         elif pa.types.is_boolean(pa_dtype):
             na_value = True
-        elif pa.types.is_decimal(pa_dtype):
-            # GH#54627
-            return type(self)(self._pa_array.cast(pa.float64()))._to_masked()
         else:
             raise NotImplementedError
 
