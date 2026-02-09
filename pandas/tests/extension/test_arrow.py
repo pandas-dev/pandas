@@ -3414,12 +3414,13 @@ def test_groupby_std_returns_arrow_dtype_float32():
 def test_groupby_var_returns_arrow_dtype_decimal():
     # GH#54627
     from decimal import Decimal
+
     df = pd.DataFrame(
         {
             "A": pd.Series([True, True, False, False], dtype="bool[pyarrow]"),
             "B": pd.Series(
-                [Decimal("123.0"), Decimal("12.0"), Decimal("50.0"), Decimal("75.0")], 
-                dtype=ArrowDtype(pa.decimal128(6, 3))
+                [Decimal("123.0"), Decimal("12.0"), Decimal("50.0"), Decimal("75.0")],
+                dtype=ArrowDtype(pa.decimal128(6, 3)),
             ),
         }
     )
@@ -3430,12 +3431,13 @@ def test_groupby_var_returns_arrow_dtype_decimal():
 def test_groupby_std_returns_arrow_dtype_decimal():
     # GH#54627
     from decimal import Decimal
+
     df = pd.DataFrame(
         {
             "A": pd.Series([True, True, False, False], dtype="bool[pyarrow]"),
             "B": pd.Series(
-                [Decimal("123.0"), Decimal("12.0"), Decimal("50.0"), Decimal("75.0")], 
-                dtype=ArrowDtype(pa.decimal128(6, 3))
+                [Decimal("123.0"), Decimal("12.0"), Decimal("50.0"), Decimal("75.0")],
+                dtype=ArrowDtype(pa.decimal128(6, 3)),
             ),
         }
     )
