@@ -355,7 +355,7 @@ Missing values on either side will result in missing values in the result as wel
 Concatenating a Series and something array-like into a Series
 -------------------------------------------------------------
 
-The parameter ``others`` can also be two-dimensional. In this case, the number or rows must match the lengths of the calling ``Series`` (or ``Index``).
+The parameter ``others`` can also be two-dimensional. In this case, the number of rows must match the lengths of the calling ``Series`` (or ``Index``).
 
 .. ipython:: python
 
