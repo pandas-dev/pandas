@@ -151,7 +151,7 @@ Interval
 
 Indexing
 ^^^^^^^^
--
+-Fixed bug in :meth:`DataFrame.loc` when setting new row and new columns simultaneously filling existing columns with ``b''`` instead of ``NaN`` (:issue:`58316`)
 -
 
 Missing
