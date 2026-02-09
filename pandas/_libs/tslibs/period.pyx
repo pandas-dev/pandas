@@ -2049,13 +2049,13 @@ cdef class _Period(PeriodMixin):
 
         >>> period = pd.Period('2023-01', freq='M')
         >>> period.asfreq('h', how='start')
-        Period('2023-01-01 00:00', 'H')
+        Period('2023-01-01 00:00', 'h')
 
         Convert a weekly period to a daily period, aligning to the last day of the week:
 
         >>> period = pd.Period('2023-08-01', freq='W')
         >>> period.asfreq('D', how='end')
-        Period('2023-08-04', 'D')
+        Period('2023-08-06', 'D')
         """
         freq = self._maybe_convert_freq(freq)
         how = validate_end_alias(how)

@@ -78,9 +78,6 @@ about reStructuredText can be found in:
 * `Quick reStructuredText reference <https://docutils.sourceforge.io/docs/user/rst/quickref.html>`_
 * `Full reStructuredText specification <https://docutils.sourceforge.io/docs/ref/rst/restructuredtext.html>`_
 
-pandas has some helpers for sharing docstrings between related classes, see
-:ref:`docstring.sharing`.
-
 The rest of this document will summarize all the above guidelines, and will
 provide additional conventions specific to the pandas project.
 
@@ -924,76 +921,3 @@ plot will be generated automatically when building the documentation.
                 >>> ser.plot()
             """
             pass
-
-.. _docstring.sharing:
-
-Sharing docstrings
-------------------
-
-pandas has a system for sharing docstrings, with slight variations, between
-classes. This helps us keep docstrings consistent, while keeping things clear
-for the user reading. It comes at the cost of some complexity when writing.
-
-Each shared docstring will have a base template with variables, like
-``{klass}``. The variables filled in later on using the ``doc`` decorator.
-Finally, docstrings can also be appended to with the ``doc`` decorator.
-
-In this example, we'll create a parent docstring normally (this is like
-``pandas.core.generic.NDFrame``). Then we'll have two children (like
-``pandas.Series`` and ``pandas.DataFrame``). We'll
-substitute the class names in this docstring.
-
-.. code-block:: python
-
-   class Parent:
-       @doc(klass="Parent")
-       def my_function(self):
-           """Apply my function to {klass}."""
-           ...
-
-
-   class ChildA(Parent):
-       @doc(Parent.my_function, klass="ChildA")
-       def my_function(self):
-           ...
-
-
-   class ChildB(Parent):
-       @doc(Parent.my_function, klass="ChildB")
-       def my_function(self):
-           ...
-
-The resulting docstrings are
-
-.. code-block:: python
-
-   >>> print(Parent.my_function.__doc__)
-   Apply my function to Parent.
-   >>> print(ChildA.my_function.__doc__)
-   Apply my function to ChildA.
-   >>> print(ChildB.my_function.__doc__)
-   Apply my function to ChildB.
-
-Notice:
-
-1. We "append" the parent docstring to the children docstrings, which are
-   initially empty.
-
-Our files will often contain a module-level ``_shared_doc_kwargs`` with some
-common substitution values (things like ``klass``, ``axes``, etc).
-
-You can substitute and append in one shot with something like
-
-.. code-block:: python
-
-   @doc(template, **_shared_doc_kwargs)
-   def my_function(self):
-       ...
-
-where ``template`` may come from a module-level ``_shared_docs`` dictionary
-mapping function names to docstrings. Wherever possible, we prefer using
-``doc``, since the docstring-writing processes is slightly closer to normal.
-
-See ``pandas.core.generic.NDFrame.fillna`` for an example template, and
-``pandas.Series.fillna`` and ``pandas.core.generic.frame.fillna``
-for the filled versions.
