@@ -1076,6 +1076,9 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Render a DataFrame to a console-friendly tabular output.
 
+        This method converts the DataFrame to a string representation suitable
+        for printing or writing to a file.
+
         Parameters
         ----------
         buf : str, Path or StringIO-like, optional, default None
@@ -4120,6 +4123,9 @@ class DataFrame(NDFrame, OpsMixin):
     def T(self) -> DataFrame:
         """
         The transpose of the DataFrame.
+
+        This property returns a DataFrame with rows and columns interchanged,
+        reflecting the data across the main diagonal.
 
         Returns
         -------
@@ -7987,6 +7993,9 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Sort by the values along either axis.
 
+        This method sorts the DataFrame by the values in one or more columns
+        or by index/column labels.
+
         Parameters
         ----------
         by : str or list of str
@@ -9416,7 +9425,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     def eq(self, other, axis: Axis = "columns", level=None) -> DataFrame:
         """
-        Get Not equal to of dataframe and other, element-wise (binary operator `eq`).
+        Get Equal to of dataframe and other, element-wise (binary operator `eq`).
 
         Among flexible wrappers (`eq`, `ne`, `le`, `lt`, `ge`, `gt`) to comparison
         operators.
@@ -11808,6 +11817,9 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Compare to another DataFrame and show the differences.
 
+        This method compares two DataFrames element-wise and returns a DataFrame
+        highlighting the differences.
+
         Parameters
         ----------
         other : DataFrame
@@ -13206,6 +13218,9 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> DataFrame:
         """
         Transform each element of a list-like to a row, replicating index values.
+
+        This method is useful for expanding nested data structures like lists
+        into separate rows while maintaining the relationship with other columns.
 
         Parameters
         ----------
