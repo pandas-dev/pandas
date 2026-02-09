@@ -3396,7 +3396,6 @@ def test_groupby_var_returns_arrow_dtype_float32():
         }
     )
     result = df.groupby("A").var()
-    # Pandas preserves float32 precision for float32 inputs
     assert result.dtypes["B"] == ArrowDtype(pa.float32())
 
 
@@ -3409,7 +3408,6 @@ def test_groupby_std_returns_arrow_dtype_float32():
         }
     )
     result = df.groupby("A").std()
-    # Pandas preserves float32 precision for float32 inputs
     assert result.dtypes["B"] == ArrowDtype(pa.float32())
 
 
@@ -3426,7 +3424,6 @@ def test_groupby_var_returns_arrow_dtype_decimal():
         }
     )
     result = df.groupby("A").var()
-    # Decimals are cast to float64, so result should be float64
     assert result.dtypes["B"] == ArrowDtype(pa.float64())
 
 
@@ -3443,7 +3440,6 @@ def test_groupby_std_returns_arrow_dtype_decimal():
         }
     )
     result = df.groupby("A").std()
-    # Decimals are cast to float64, so result should be float64
     assert result.dtypes["B"] == ArrowDtype(pa.float64())
 
 
