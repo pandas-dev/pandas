@@ -387,8 +387,16 @@ class TestReadHtml:
     @pytest.mark.single_cpu
     def test_invalid_url(self, httpserver, flavor_read_html):
         httpserver.serve_content("Name or service not known", code=404)
-        with pytest.raises((URLError, ValueError), match="HTTP Error 404: NOT FOUND"):
-            flavor_read_html(httpserver.url, match=".*Water.*")
+        try:
+            with pytest.raises(
+                (URLError, ValueError), match="HTTP Error 404: NOT FOUND"
+            ) as err:
+                flavor_read_html(httpserver.url, match=".*Water.*")
+        finally:
+            if isinstance(err.value, URLError):
+                # Has a file-like handle that we can close
+                # https://docs.python.org/3/library/urllib.error.html#urllib.error.HTTPError
+                err.value.close()
 
     @pytest.mark.slow
     def test_file_url(self, banklist_data, flavor_read_html):
