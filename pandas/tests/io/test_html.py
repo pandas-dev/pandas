@@ -394,6 +394,8 @@ class TestReadHtml:
                 flavor_read_html(httpserver.url, match=".*Water.*")
         finally:
             if isinstance(err.value, URLError):
+                # Has a file-like handle that we can close
+                # https://docs.python.org/3/library/urllib.error.html#urllib.error.HTTPError
                 err.value.close()
 
     @pytest.mark.slow
