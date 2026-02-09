@@ -973,6 +973,7 @@ class StataReader(StataParser, abc.Iterator):
     path_or_buf : path (string), buffer or path object
         string, pathlib.Path or object
         implementing a binary read() functions.
+    convert_dates : bool, default True
         Convert date variables to DataFrame time values.
     convert_categoricals : bool, default True
         Read value labels and convert columns to Categorical/Factor variables.
