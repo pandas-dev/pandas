@@ -3387,6 +3387,66 @@ def test_groupby_std_returns_arrow_dtype():
     assert result.dtypes["B"] == ArrowDtype(pa.float64())
 
 
+def test_groupby_var_returns_arrow_dtype_float32():
+    # GH#54627
+    df = pd.DataFrame(
+        {
+            "A": pd.Series([True, True, False, False], dtype="bool[pyarrow]"),
+            "B": pd.Series([123.0, 12.0, 50.0, 75.0], dtype="float32[pyarrow]"),
+        }
+    )
+    result = df.groupby("A").var()
+    # Pandas preserves float32 precision for float32 inputs
+    assert result.dtypes["B"] == ArrowDtype(pa.float32())
+
+
+def test_groupby_std_returns_arrow_dtype_float32():
+    # GH#54627
+    df = pd.DataFrame(
+        {
+            "A": pd.Series([True, True, False, False], dtype="bool[pyarrow]"),
+            "B": pd.Series([123.0, 12.0, 50.0, 75.0], dtype="float32[pyarrow]"),
+        }
+    )
+    result = df.groupby("A").std()
+    # Pandas preserves float32 precision for float32 inputs
+    assert result.dtypes["B"] == ArrowDtype(pa.float32())
+
+
+def test_groupby_var_returns_arrow_dtype_decimal():
+    # GH#54627
+    from decimal import Decimal
+    df = pd.DataFrame(
+        {
+            "A": pd.Series([True, True, False, False], dtype="bool[pyarrow]"),
+            "B": pd.Series(
+                [Decimal("123.0"), Decimal("12.0"), Decimal("50.0"), Decimal("75.0")], 
+                dtype=ArrowDtype(pa.decimal128(6, 3))
+            ),
+        }
+    )
+    result = df.groupby("A").var()
+    # Decimals are cast to float64, so result should be float64
+    assert result.dtypes["B"] == ArrowDtype(pa.float64())
+
+
+def test_groupby_std_returns_arrow_dtype_decimal():
+    # GH#54627
+    from decimal import Decimal
+    df = pd.DataFrame(
+        {
+            "A": pd.Series([True, True, False, False], dtype="bool[pyarrow]"),
+            "B": pd.Series(
+                [Decimal("123.0"), Decimal("12.0"), Decimal("50.0"), Decimal("75.0")], 
+                dtype=ArrowDtype(pa.decimal128(6, 3))
+            ),
+        }
+    )
+    result = df.groupby("A").std()
+    # Decimals are cast to float64, so result should be float64
+    assert result.dtypes["B"] == ArrowDtype(pa.float64())
+
+
 def test_fixed_size_list():
     # GH#55000
     ser = pd.Series(
