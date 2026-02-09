@@ -3363,6 +3363,30 @@ def test_groupby_count_return_arrow_dtype(data_missing):
     tm.assert_frame_equal(result, expected)
 
 
+def test_groupby_var_returns_arrow_dtype():
+    # GH#54627
+    df = pd.DataFrame(
+        {
+            "A": pd.Series([True, True, False, False], dtype="bool[pyarrow]"),
+            "B": pd.Series([123, 12, 50, 75], dtype="int64[pyarrow]"),
+        }
+    )
+    result = df.groupby("A").var()
+    assert result.dtypes["B"] == ArrowDtype(pa.float64())
+
+
+def test_groupby_std_returns_arrow_dtype():
+    # GH#54627
+    df = pd.DataFrame(
+        {
+            "A": pd.Series([True, True, False, False], dtype="bool[pyarrow]"),
+            "B": pd.Series([123, 12, 50, 75], dtype="int64[pyarrow]"),
+        }
+    )
+    result = df.groupby("A").std()
+    assert result.dtypes["B"] == ArrowDtype(pa.float64())
+
+
 def test_fixed_size_list():
     # GH#55000
     ser = pd.Series(
