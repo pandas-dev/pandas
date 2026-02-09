@@ -140,6 +140,19 @@ or for installing in [development mode](https://pip.pypa.io/en/latest/cli/pip_in
 ```sh
 python -m pip install -ve . --no-build-isolation --config-settings editable-verbose=true
 ```
+## Contributing to pandas
+
+### 🧑‍💻 New Contributors
+
+If you are new to contributing to pandas or open source in general, consider starting with:
+- Documentation improvements or clarifications
+- Issues labeled **good first issue** or **Docs**
+- Reviewing examples or improving explanations based on user experience
+
+Before opening a pull request, please review the contributing guide and code of conduct linked above. Small, focused contributions are encouraged and help new contributors become familiar with the project workflow.
+
+
+
 
 See the full instructions for [installing from source](https://pandas.pydata.org/docs/dev/development/contributing_environment.html).
 
