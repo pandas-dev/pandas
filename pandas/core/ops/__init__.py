@@ -19,7 +19,6 @@ from pandas.core.ops.common import (
     get_op_result_name,
     unpack_zerodim_and_defer,
 )
-from pandas.core.ops.docstrings import make_flex_doc
 from pandas.core.ops.invalid import invalid_comparison
 from pandas.core.ops.mask_ops import (
     kleene_and,
@@ -76,7 +75,6 @@ __all__ = [
     "kleene_or",
     "kleene_xor",
     "logical_op",
-    "make_flex_doc",
     "maybe_prepare_scalar_for_op",
     "radd",
     "rand_",

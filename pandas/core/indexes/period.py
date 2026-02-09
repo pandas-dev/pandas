@@ -38,7 +38,6 @@ from pandas.core.arrays.period import (
     validate_dtype_freq,
 )
 import pandas.core.common as com
-import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import maybe_extract_name
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 from pandas.core.indexes.datetimes import (
@@ -55,15 +54,6 @@ if TYPE_CHECKING:
         DtypeObj,
         npt,
     )
-
-
-_index_doc_kwargs = dict(ibase._index_doc_kwargs)
-_index_doc_kwargs.update({"target_klass": "PeriodIndex or list of Periods"})
-_shared_doc_kwargs = {
-    "klass": "PeriodArray",
-}
-
-# --- Period index sketch
 
 
 def _new_PeriodIndex(cls, **d):
