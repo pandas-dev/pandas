@@ -1402,6 +1402,11 @@ cdef class Day(SingleConstructorOffset):
     """
     Offset ``n`` days.
 
+    Represents a calendar-day offset for use in arithmetic with
+    :class:`~datetime.datetime`, :class:`~pandas.Timestamp`, or other
+    datetime-like objects. Addition and subtraction shift the value by
+    exactly ``n`` calendar days, with time-of-day preserved.
+
     Attributes
     ----------
     n : int, default 1
@@ -1544,6 +1549,11 @@ cdef class Hour(Tick):
     """
     Offset ``n`` hours.
 
+    Represents a fixed duration of ``n`` hours (3,600 seconds each) for
+    use in arithmetic with datetime-like objects. Unlike calendar-based
+    offsets, the result is deterministic and does not depend on
+    timezone or daylight saving.
+
     Attributes
     ----------
     n : int, default 1
@@ -1579,6 +1589,10 @@ cdef class Hour(Tick):
 cdef class Minute(Tick):
     """
     Offset ``n`` minutes.
+
+    Represents a fixed duration of ``n`` minutes (60 seconds each) for
+    use in arithmetic with datetime-like objects. Useful for
+    time-series alignment at sub-hour resolution.
 
     Attributes
     ----------
@@ -1616,6 +1630,10 @@ cdef class Second(Tick):
     """
     Offset ``n`` seconds.
 
+    Represents a fixed duration of ``n`` seconds for use in arithmetic
+    with datetime-like objects. The smallest tick offset that does not
+    involve fractional seconds.
+
     Attributes
     ----------
     n : int, default 1
@@ -1651,6 +1669,10 @@ cdef class Second(Tick):
 cdef class Milli(Tick):
     """
     Offset ``n`` milliseconds.
+
+    Represents a fixed duration of ``n`` milliseconds (1/1000 of a
+    second) for use in arithmetic with datetime-like objects. Supports
+    sub-second precision in time-series operations.
 
     Attributes
     ----------
@@ -1689,6 +1711,10 @@ cdef class Micro(Tick):
     """
     Offset ``n`` microseconds.
 
+    Represents a fixed duration of ``n`` microseconds (1/1,000,000 of a
+    second) for use in arithmetic with datetime-like objects. Enables
+    microsecond-level precision in time-series operations.
+
     Attributes
     ----------
     n : int, default 1
@@ -1725,6 +1751,10 @@ cdef class Micro(Tick):
 cdef class Nano(Tick):
     """
     Offset ``n`` nanoseconds.
+
+    Represents a fixed duration of ``n`` nanoseconds (1/1,000,000,000 of
+    a second) for use in arithmetic with datetime-like objects. The
+    finest resolution tick offset, suitable for high-precision timestamps.
 
     Attributes
     ----------

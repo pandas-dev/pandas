@@ -1518,6 +1518,7 @@ cdef class _Timedelta(timedelta):
         self._ensure_components()
         return -999999999 <= self._d and self._d <= 999999999
 
+    @cython.critical_section
     cdef _ensure_components(_Timedelta self):
         """
         compute the components
@@ -1529,6 +1530,8 @@ cdef class _Timedelta(timedelta):
             pandas_timedeltastruct tds
 
         pandas_timedelta_to_timedeltastruct(self._value, self._creso, &tds)
+        if self._is_populated:
+            return
         self._d = tds.days
         self._h = tds.hrs
         self._m = tds.min
@@ -2278,7 +2281,7 @@ class Timedelta(_Timedelta):
         elif is_float_object(value):
             int_item = int(value)
             if value == int_item:
-                # round float -> treat like a int, try to preserve unit
+                # round float -> treat like an int, try to preserve unit
                 return cls(int_item, unit=unit)
 
             # unit=None is de-facto 'ns'
