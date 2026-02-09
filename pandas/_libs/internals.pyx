@@ -139,6 +139,7 @@ cdef class BlockPlacement:
             return self._as_array
 
     @property
+    @cython.critical_section
     def as_array(self) -> np.ndarray:
         cdef:
             Py_ssize_t start, stop, _
@@ -147,8 +148,10 @@ cdef class BlockPlacement:
             start, stop, step, _ = slice_get_indices_ex(self._as_slice)
             # NOTE: this is the C-optimized equivalent of
             #  `np.arange(start, stop, step, dtype=np.intp)`
-            self._as_array = cnp.PyArray_Arange(start, stop, step, NPY_INTP)
-            self._has_array = True
+            as_array = cnp.PyArray_Arange(start, stop, step, NPY_INTP)
+            if not self._has_array:
+                self._as_array = as_array
+                self._has_array = True
 
         return self._as_array
 
@@ -221,11 +224,14 @@ cdef class BlockPlacement:
         # We can get here with int or ndarray
         return self.iadd(other)
 
+    @cython.critical_section
     cdef slice _ensure_has_slice(self):
         if not self._has_slice:
-            self._as_slice = indexer_as_slice(self._as_array)
-            self._has_slice = True
-
+            as_slice = indexer_as_slice(self._as_array)
+            # check again after indexer_as_slice call
+            if not self._has_slice:
+                self._as_slice = as_slice
+                self._has_slice = True
         return self._as_slice
 
     cpdef BlockPlacement increment_above(self, Py_ssize_t loc):
@@ -730,7 +736,7 @@ cdef class BlockManager:
         public tuple blocks
         public list axes
         public bint _known_consolidated, _is_consolidated
-        public ndarray _blknos, _blklocs
+        ndarray __blknos, __blklocs
 
     def __cinit__(
         self,
@@ -758,7 +764,27 @@ cdef class BlockManager:
 
     # -------------------------------------------------------------------
     # Block Placement
+    @property
+    @cython.critical_section
+    def _blknos(self):
+        return self.__blknos
 
+    @_blknos.setter
+    @cython.critical_section
+    def _blknos(self, ndarray val):
+        self.__blknos = val
+
+    @property
+    @cython.critical_section
+    def _blklocs(self):
+        return self.__blklocs
+
+    @_blklocs.setter
+    @cython.critical_section
+    def _blklocs(self, ndarray val):
+        self.__blklocs = val
+
+    @cython.critical_section
     cpdef _rebuild_blknos_and_blklocs(self):
         """
         Update mgr._blknos / mgr._blklocs.
@@ -796,8 +822,8 @@ cdef class BlockManager:
             if blkno == -1:
                 raise AssertionError("Gaps in blk ref_locs")
 
-        self._blknos = new_blknos
-        self._blklocs = new_blklocs
+        self.__blknos = new_blknos
+        self.__blklocs = new_blklocs
 
     # -------------------------------------------------------------------
     # Pickle
@@ -869,8 +895,9 @@ cdef class BlockManager:
         mgr = type(self)(tuple(nbs), new_axes, verify_integrity=False)
 
         # We can avoid having to rebuild blklocs/blknos
-        blklocs = self._blklocs
-        blknos = self._blknos
+        with cython.critical_section(self):
+            blklocs = self.__blklocs
+            blknos = self.__blknos
         if blknos is not None:
             mgr._blknos = blknos.copy()
             mgr._blklocs = blklocs.copy()

@@ -272,6 +272,7 @@ cdef class IndexEngine:
                 self.monotonic_dec = 1
 
     @property
+    @cython.critical_section
     def is_unique(self) -> bool:
         # for why we check is_monotonic_increasing here, see
         # https://github.com/pandas-dev/pandas/pull/55342#discussion_r1361405781
@@ -286,6 +287,7 @@ cdef class IndexEngine:
         self._ensure_mapping_populated()
 
     @property
+    @cython.critical_section
     def is_monotonic_increasing(self) -> bool:
         if self.need_monotonic_check:
             self._do_monotonic_check()
@@ -293,6 +295,7 @@ cdef class IndexEngine:
         return self.monotonic_inc == 1
 
     @property
+    @cython.critical_section
     def is_monotonic_decreasing(self) -> bool:
         if self.need_monotonic_check:
             self._do_monotonic_check()
@@ -336,24 +339,26 @@ cdef class IndexEngine:
         return val
 
     @property
+    @cython.critical_section
     def is_mapping_populated(self) -> bool:
         return self.mapping is not None
 
+    @cython.critical_section
     cdef _ensure_mapping_populated(self):
         # this populates the mapping
         # if its not already populated
         # also satisfies the need_unique_check
-
         if not self.is_mapping_populated:
-
             values = self.values
-            self.mapping = self._make_hash_table(len(values))
-            self.mapping.map_locations(values, self.mask)
-
-            if len(self.mapping) == len(values):
-                self.unique = 1
-
-        self.need_unique_check = 0
+            mapping = self._make_hash_table(len(values))
+            mapping.map_locations(values, self.mask)
+            unique = len(mapping) == len(values)
+        # check again after creating the mapping
+        # which could have released the critical_section
+        if not self.is_mapping_populated:
+            self.mapping = mapping
+            self.unique = unique
+            self.need_unique_check = 0
 
     def clear_mapping(self):
         self.mapping = None

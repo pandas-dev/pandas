@@ -977,6 +977,8 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Return day of the week.
 
+        Days are numbered Monday=0 through Sunday=6.
+
         Returns
         -------
         int
@@ -999,6 +1001,8 @@ cdef class _Timestamp(ABCTimestamp):
     def day_of_year(self) -> int:
         """
         Return the day of the year.
+
+        Days are numbered from 1 through 365 (or 366 in leap years).
 
         Returns
         -------
@@ -1059,6 +1063,8 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Return the day of the Timestamp.
 
+        Days are numbered from 1 through the number of days in the month.
+
         Returns
         -------
         int
@@ -1081,6 +1087,9 @@ cdef class _Timestamp(ABCTimestamp):
     def fold(self) -> int:
         """
         Return the fold value of the Timestamp.
+
+        The fold attribute is used to disambiguate wall times in a repeated
+        interval during daylight saving time transitions.
 
         Returns
         -------
@@ -1151,6 +1160,8 @@ cdef class _Timestamp(ABCTimestamp):
     def hour(self) -> int:
         """
         Return the hour of the Timestamp.
+
+        Hours are numbered from 0 through 23.
 
         Returns
         -------
@@ -1288,6 +1299,8 @@ cdef class _Timestamp(ABCTimestamp):
     def days_in_month(self) -> int:
         """
         Return the number of days in the month.
+
+        This value depends on the month and whether the year is a leap year.
 
         Returns
         -------
@@ -1549,6 +1562,8 @@ cdef class _Timestamp(ABCTimestamp):
     def asm8(self) -> np.datetime64:
         """
         Return numpy datetime64 format with same precision.
+
+        This property provides interoperability with NumPy datetime operations.
 
         See Also
         --------

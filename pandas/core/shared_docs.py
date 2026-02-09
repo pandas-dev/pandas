@@ -2,57 +2,6 @@ from __future__ import annotations
 
 _shared_docs: dict[str, str] = {}
 
-_shared_docs["aggregate"] = """
-Aggregate using one or more operations over the specified axis.
-
-Parameters
-----------
-func : function, str, list or dict
-    Function to use for aggregating the data. If a function, must either
-    work when passed a {klass} or when passed to {klass}.apply.
-
-    Accepted combinations are:
-
-    - function
-    - string function name
-    - list of functions and/or function names, e.g. ``[np.sum, 'mean']``
-    - dict of axis labels -> functions, function names or list of such.
-{axis}
-*args
-    Positional arguments to pass to `func`.
-**kwargs
-    Keyword arguments to pass to `func`.
-
-Returns
--------
-scalar, Series or DataFrame
-
-    The return can be:
-
-    * scalar : when Series.agg is called with single function
-    * Series : when DataFrame.agg is called with a single function
-    * DataFrame : when DataFrame.agg is called with several functions
-{see_also}
-Notes
------
-The aggregation operations are always performed over an axis, either the
-index (default) or the column axis. This behavior is different from
-`numpy` aggregation functions (`mean`, `median`, `prod`, `sum`, `std`,
-`var`), where the default is to compute the aggregation of the flattened
-array, e.g., ``numpy.mean(arr_2d)`` as opposed to
-``numpy.mean(arr_2d, axis=0)``.
-
-`agg` is an alias for `aggregate`. Use the alias.
-
-Functions that mutate the passed object can produce unexpected
-behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
-for more details.
-
-A passed user-defined-function will be passed a Series for evaluation.
-
-If ``func`` defines an index relabeling, ``axis`` must be ``0`` or ``index``.
-{examples}"""
-
 _shared_docs["compare"] = """
 Compare to another {klass} and show the differences.
 

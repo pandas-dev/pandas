@@ -95,10 +95,7 @@ from pandas.errors import (
     Pandas4Warning,
 )
 from pandas.errors.cow import _chained_assignment_method_msg
-from pandas.util._decorators import (
-    deprecate_kwarg,
-    doc,
-)
+from pandas.util._decorators import deprecate_kwarg
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import (
     check_dtype_backend,
@@ -12308,7 +12305,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return Expanding(self, min_periods=min_periods, method=method)
 
     @final
-    @doc(ExponentialMovingWindow)
     def ewm(
         self,
         com: float | None = None,
@@ -12321,6 +12317,197 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         times: np.ndarray | DataFrame | Series | None = None,
         method: Literal["single", "table"] = "single",
     ) -> ExponentialMovingWindow:
+        r"""
+        Provide exponentially weighted (EW) calculations.
+
+        Exactly one of ``com``, ``span``, ``halflife``, or ``alpha`` must be
+        provided if ``times`` is not provided. If ``times`` is provided and
+        ``adjust=True``, ``halflife`` and one of ``com``, ``span`` or ``alpha``
+        may be provided.
+        If ``times`` is provided and ``adjust=False``, ``halflife``
+        must be the only provided decay-specification parameter.
+
+        Parameters
+        ----------
+        com : float, optional
+            Specify decay in terms of center of mass
+
+            :math:`\alpha = 1 / (1 + com)`, for :math:`com \\geq 0`.
+
+        span : float, optional
+            Specify decay in terms of span
+
+            :math:`\alpha = 2 / (span + 1)`, for :math:`span \\geq 1`.
+
+        halflife : float, str, timedelta, optional
+            Specify decay in terms of half-life
+
+            :math:`\alpha = 1 - \\exp\\left(-\\ln(2) / halflife\right)`,
+            for :math:`halflife > 0`.
+
+            If ``times`` is specified, a timedelta convertible unit over which an
+            observation decays to half its value. Only applicable to ``mean()``,
+            and halflife value will not apply to the other functions.
+
+        alpha : float, optional
+            Specify smoothing factor :math:`\alpha` directly
+
+            :math:`0 < \alpha \\leq 1`.
+
+        min_periods : int, default 0
+            Minimum number of observations in window required to have a value;
+            otherwise, result is ``np.nan``.
+
+        adjust : bool, default True
+            Divide by decaying adjustment factor in beginning periods to account
+            for imbalance in relative weightings (viewing EWMA as a moving average).
+
+            - When ``adjust=True`` (default), the EW function is calculated
+              using weights
+              :math:`w_i = (1 - \alpha)^i`. For example, the EW moving
+              average of the series [:math:`x_0, x_1, ..., x_t`] would be:
+
+            .. math::
+                y_t = \frac{x_t + (1 - \alpha)x_{t-1} + (1 - \alpha)^2 x_{t-2} + ... +
+                (1 - \alpha)^t x_0}{1 + (1 - \alpha) + (1 - \alpha)^2 + ... +
+                (1 - \alpha)^t}
+
+            - When ``adjust=False``, the exponentially weighted function is calculated
+              recursively:
+
+            .. math::
+                \begin{split}
+                    y_0 &= x_0\\
+                    y_t &= (1 - \alpha) y_{t-1} + \alpha x_t,
+                \\end{split}
+
+        ignore_na : bool, default False
+            Ignore missing values when calculating weights.
+
+            - When ``ignore_na=False`` (default), weights are based on absolute
+              positions.
+              For example, the weights of :math:`x_0` and :math:`x_2`
+              used in calculating the final weighted average of
+              [:math:`x_0`, None, :math:`x_2`] are
+              :math:`(1-\alpha)^2` and :math:`1` if ``adjust=True``, and
+              :math:`(1-\alpha)^2` and :math:`\alpha` if ``adjust=False``.
+
+            - When ``ignore_na=True``, weights are based
+              on relative positions. For example, the weights of :math:`x_0` and
+              :math:`x_2` used in calculating the final weighted average of
+              [:math:`x_0`, None, :math:`x_2`] are :math:`1-\alpha` and :math:`1` if
+              ``adjust=True``, and :math:`1-\alpha` and :math:`\alpha`
+              if ``adjust=False``.
+
+        times : np.ndarray, Series, default None
+
+            Only applicable to ``mean()``.
+
+            Times corresponding to the observations. Must be monotonically
+            increasing and ``datetime64[ns]`` dtype.
+
+            If 1-D array like, a sequence with the same shape as the observations.
+
+        method : str {'single', 'table'}, default 'single'
+            Execute the rolling operation per single column or row (``'single'``)
+            or over the entire object (``'table'``).
+
+            This argument is only implemented when specifying ``engine='numba'``
+            in the method call.
+
+            Only applicable to ``mean()``
+
+        Returns
+        -------
+        pandas.api.typing.ExponentialMovingWindow
+            An instance of ExponentialMovingWindow for further exponentially weighted
+            (EW) calculations, e.g. using the ``mean`` method.
+
+        See Also
+        --------
+        rolling : Provides rolling window calculations.
+        expanding : Provides expanding transformations.
+
+        Notes
+        -----
+        See :ref:`Windowing Operations <window.exponentially_weighted>`
+        for further usage details and examples.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]})
+        >>> df
+             B
+        0  0.0
+        1  1.0
+        2  2.0
+        3  NaN
+        4  4.0
+
+        >>> df.ewm(com=0.5).mean()
+                  B
+        0  0.000000
+        1  0.750000
+        2  1.615385
+        3  1.615385
+        4  3.670213
+        >>> df.ewm(alpha=2 / 3).mean()
+                  B
+        0  0.000000
+        1  0.750000
+        2  1.615385
+        3  1.615385
+        4  3.670213
+
+        **adjust**
+
+        >>> df.ewm(com=0.5, adjust=True).mean()
+                  B
+        0  0.000000
+        1  0.750000
+        2  1.615385
+        3  1.615385
+        4  3.670213
+        >>> df.ewm(com=0.5, adjust=False).mean()
+                  B
+        0  0.000000
+        1  0.666667
+        2  1.555556
+        3  1.555556
+        4  3.650794
+
+        **ignore_na**
+
+        >>> df.ewm(com=0.5, ignore_na=True).mean()
+                  B
+        0  0.000000
+        1  0.750000
+        2  1.615385
+        3  1.615385
+        4  3.225000
+        >>> df.ewm(com=0.5, ignore_na=False).mean()
+                  B
+        0  0.000000
+        1  0.750000
+        2  1.615385
+        3  1.615385
+        4  3.670213
+
+        **times**
+
+        Exponentially weighted mean with weights calculated with a
+        timedelta ``halflife`` relative to ``times``.
+
+        >>> times = ['2020-01-01', '2020-01-03', '2020-01-10', '2020-01-15',
+        ...         '2020-01-17']
+        >>> df.ewm(halflife='4 days', times=pd.DatetimeIndex(times)).mean()
+                  B
+        0  0.000000
+        1  0.585786
+        2  1.523889
+        3  1.523889
+        4  3.233686
+        """
         return ExponentialMovingWindow(
             self,
             com=com,

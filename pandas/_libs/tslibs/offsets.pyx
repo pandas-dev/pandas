@@ -1241,6 +1241,9 @@ cdef class Tick(SingleConstructorOffset):
         """
         Returns an integer of the total number of nanoseconds.
 
+        This property converts the offset duration to nanoseconds for
+        precise time calculations.
+
         See Also
         --------
         tseries.offsets.Hour.nanos :
@@ -1399,6 +1402,11 @@ cdef class Day(SingleConstructorOffset):
     """
     Offset ``n`` days.
 
+    Represents a calendar-day offset for use in arithmetic with
+    :class:`~datetime.datetime`, :class:`~pandas.Timestamp`, or other
+    datetime-like objects. Addition and subtraction shift the value by
+    exactly ``n`` calendar days, with time-of-day preserved.
+
     Attributes
     ----------
     n : int, default 1
@@ -1519,6 +1527,9 @@ cdef class Day(SingleConstructorOffset):
         """
         Returns an integer of the total number of nanoseconds.
 
+        This property converts the Day offset duration to nanoseconds,
+        for precise calculation.
+
         See Also
         --------
         tseries.offsets.Hour.nanos :
@@ -1537,6 +1548,11 @@ cdef class Day(SingleConstructorOffset):
 cdef class Hour(Tick):
     """
     Offset ``n`` hours.
+
+    Represents a fixed duration of ``n`` hours (3,600 seconds each) for
+    use in arithmetic with datetime-like objects. Unlike calendar-based
+    offsets, the result is deterministic and does not depend on
+    timezone or daylight saving.
 
     Attributes
     ----------
@@ -1574,6 +1590,10 @@ cdef class Minute(Tick):
     """
     Offset ``n`` minutes.
 
+    Represents a fixed duration of ``n`` minutes (60 seconds each) for
+    use in arithmetic with datetime-like objects. Useful for
+    time-series alignment at sub-hour resolution.
+
     Attributes
     ----------
     n : int, default 1
@@ -1610,6 +1630,10 @@ cdef class Second(Tick):
     """
     Offset ``n`` seconds.
 
+    Represents a fixed duration of ``n`` seconds for use in arithmetic
+    with datetime-like objects. The smallest tick offset that does not
+    involve fractional seconds.
+
     Attributes
     ----------
     n : int, default 1
@@ -1645,6 +1669,10 @@ cdef class Second(Tick):
 cdef class Milli(Tick):
     """
     Offset ``n`` milliseconds.
+
+    Represents a fixed duration of ``n`` milliseconds (1/1000 of a
+    second) for use in arithmetic with datetime-like objects. Supports
+    sub-second precision in time-series operations.
 
     Attributes
     ----------
@@ -1683,6 +1711,10 @@ cdef class Micro(Tick):
     """
     Offset ``n`` microseconds.
 
+    Represents a fixed duration of ``n`` microseconds (1/1,000,000 of a
+    second) for use in arithmetic with datetime-like objects. Enables
+    microsecond-level precision in time-series operations.
+
     Attributes
     ----------
     n : int, default 1
@@ -1719,6 +1751,10 @@ cdef class Micro(Tick):
 cdef class Nano(Tick):
     """
     Offset ``n`` nanoseconds.
+
+    Represents a fixed duration of ``n`` nanoseconds (1/1,000,000,000 of
+    a second) for use in arithmetic with datetime-like objects. The
+    finest resolution tick offset, suitable for high-precision timestamps.
 
     Attributes
     ----------
@@ -3302,6 +3338,9 @@ cdef class WeekOfMonthMixin(SingleConstructorOffset):
         """
         Return a string representing the base frequency.
 
+        This code is used internally to identify the frequency type and
+        includes the week number and weekday information.
+
         See Also
         --------
         tseries.offsets.Hour.rule_code :
@@ -3390,6 +3429,9 @@ cdef class YearOffset(SingleConstructorOffset):
     def rule_code(self) -> str:
         """
         Return a string representing the base frequency.
+
+        This code is used internally to identify the frequency type and
+        includes the anchor month information.
 
         See Also
         --------
@@ -3480,6 +3522,9 @@ cdef class BYearEnd(YearOffset):
     """
     DateOffset increments between the last business day of the year.
 
+    This offset moves dates to the last business day of the specified month
+    (default December), skipping weekends.
+
     Attributes
     ----------
     n : int, default 1
@@ -3518,6 +3563,9 @@ cdef class BYearEnd(YearOffset):
 cdef class BYearBegin(YearOffset):
     """
     DateOffset increments between the first business day of the year.
+
+    This offset moves dates to the first business day of the specified month
+    (default January), skipping weekends.
 
     Attributes
     ----------
@@ -4902,6 +4950,9 @@ cdef class Week(SingleConstructorOffset):
     """
     Weekly offset.
 
+    This offset represents a duration of one or more weeks. It can optionally
+    be anchored to a specific day of the week.
+
     Attributes
     ----------
     n : int, default 1
@@ -5125,6 +5176,9 @@ cdef class Week(SingleConstructorOffset):
     def rule_code(self) -> str:
         """
         Return a string representing the base frequency.
+
+        This code is used internally to identify the frequency type and
+        includes any anchoring information (e.g., day of week for Week offsets).
 
         See Also
         --------

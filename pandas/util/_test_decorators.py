@@ -27,6 +27,7 @@ For more information, refer to the ``pytest`` documentation on ``skipif``.
 from __future__ import annotations
 
 import locale
+import sys
 from typing import TYPE_CHECKING
 
 import pytest
@@ -117,6 +118,10 @@ skip_if_not_us_locale = pytest.mark.skipif(
 skip_if_wasm = pytest.mark.skipif(
     WASM,
     reason="does not support wasm",
+)
+skip_if_thread_unsafe_warnings = pytest.mark.skipif(
+    not getattr(sys.flags, "context_aware_warnings", 0),
+    reason="Python warnings must be thread-safe for consistent results",
 )
 
 
