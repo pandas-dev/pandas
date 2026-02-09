@@ -2281,7 +2281,7 @@ class Timedelta(_Timedelta):
         elif is_float_object(value):
             int_item = int(value)
             if value == int_item:
-                # round float -> treat like a int, try to preserve unit
+                # round float -> treat like an int, try to preserve unit
                 return cls(int_item, unit=unit)
 
             # unit=None is de-facto 'ns'
