@@ -27,7 +27,6 @@ Bug fixes
 - Fixed a bug in :func:`col` where unary operators (``-``, ``+``, ``abs``) were not supported (:issue:`63939`)
 - Fixed a bug in the :func:`comparison_op` raising a ``TypeError`` for zerodim
   subclasses of ``np.ndarray`` (:issue:`63205`)
-- Fixed bug in :meth:`Series.apply` and :meth:`Series.map` where nullable integer dtypes were converted to float, causing precision loss for large integers (:issue:`63903`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_301.contributors:
