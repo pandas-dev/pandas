@@ -824,13 +824,10 @@ class TestDataFrameSelectReindex:
         df = DataFrame({"a": [0]})
         result = df.reindex(columns=["a", "b", "c"], fill_value="missing")
 
-        # Create expected DataFrame with consistent str dtype for string fill_value columns
-        expected = DataFrame({
-            "a": [0],
-            "b": ["missing"],
-            "c": ["missing"]
-        })
-        
+        # Create expected DataFrame with consistent str dtype for string
+        # fill_value columns
+        expected = DataFrame({"a": [0], "b": ["missing"], "c": ["missing"]})
+
         tm.assert_frame_equal(result, expected)
 
     def test_reindex_dups(self):

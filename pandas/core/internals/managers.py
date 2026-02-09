@@ -957,13 +957,14 @@ class BaseBlockManager(PandasObject):
                 # If we've got here, fill_value was not lib.no_default
                 # GH#63993: Handle 1D-only extension dtypes by creating separate blocks
                 dtype, _ = infer_dtype_from_scalar(fill_value)
-                
-                # Determine placements: separate blocks for 1D-only dtypes with multiple columns
+
+                # Determine placements: separate blocks for 1D-only dtypes with
+                # multiple columns
                 if is_1d_only_ea_dtype(dtype) and len(mgr_locs) > 1:
-                    placements = [BlockPlacement([col_idx]) for col_idx in mgr_locs]
+                    placements = [BlockPlacement(col_idx) for col_idx in mgr_locs]
                 else:
                     placements = [mgr_locs]
-                
+
                 # Create blocks using the determined placements
                 for placement in placements:
                     yield self._make_na_block(
