@@ -133,8 +133,6 @@ if TYPE_CHECKING:
 # ----------------------------------------------------------------------------
 # Array
 
-_sparray_doc_kwargs = {"klass": "SparseArray"}
-
 
 def _get_fill(arr: SparseArray) -> np.ndarray:
     """
