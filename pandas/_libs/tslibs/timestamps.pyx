@@ -3490,7 +3490,7 @@ default 'raise'
 
     def to_julian_date(self) -> np.float64:
         """
-        Convert TimeStamp to a Julian Date.
+        Convert Timestamp to a Julian Date.
 
         This method returns the number of days as a float since
         0 Julian date, which is noon January 1, 4713 BC.
