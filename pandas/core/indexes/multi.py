@@ -1900,7 +1900,7 @@ class MultiIndex(Index):
         Returns
         -------
         Index
-            Returns an MultiIndex object after removing NA/NaN values.
+            Returns a MultiIndex object after removing NA/NaN values.
 
         See Also
         --------
@@ -4351,7 +4351,7 @@ class MultiIndex(Index):
 
     def astype(self, dtype, copy: bool = True):
         """
-        Create an MultiIndex with values cast to dtypes.
+        Create a MultiIndex with values cast to dtypes.
 
         The class of a new Index is determined by dtype. When conversion is
         impossible, a TypeError exception is raised.
