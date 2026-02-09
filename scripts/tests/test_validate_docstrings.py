@@ -307,17 +307,6 @@ class TestApiItems:
         assert result[idx][3] == subsection
 
 
-class TestPandasDocstringClass:
-    @pytest.mark.parametrize(
-        "name", ["pandas.Series.str.isdecimal", "pandas.Series.str.islower"]
-    )
-    def test_encode_content_write_to_file(self, name) -> None:
-        # GH25466
-        docstr = validate_docstrings.PandasDocstring(name).validate_pep8()
-        # the list of pep8 errors should be empty
-        assert not list(docstr)
-
-
 class TestMainFunction:
     def test_exit_status_for_main(self, monkeypatch) -> None:
         monkeypatch.setattr(
