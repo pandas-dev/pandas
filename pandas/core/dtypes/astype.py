@@ -279,13 +279,14 @@ def astype_is_view(dtype: DtypeObj, new_dtype: DtypeObj) -> bool:
     elif is_string_dtype(dtype) and is_string_dtype(new_dtype):
         from pandas.core.arrays.string_ import StringDtype
 
-        # Potentially! a view when converting from object to string
         if (
             isinstance(dtype, StringDtype)
             and dtype.storage == "pyarrow"
             and new_dtype == "object"
         ):
+            # for conversion of pyarrow array to numpy object array -> always a copy
             return False
+        # Potentially! a view when converting from object to string
         return True
 
     elif is_object_dtype(dtype) and new_dtype.kind == "O":
