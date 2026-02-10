@@ -6,7 +6,10 @@ import re
 import numpy as np
 import pytest
 
-from pandas.errors import SpecificationError
+from pandas.errors import (
+    Pandas4Warning,
+    SpecificationError,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -2457,7 +2460,9 @@ def test_by_column_values_with_same_starting_value(any_string_dtype):
     )
     aggregate_details = {"Mood": Series.mode, "Credit": "sum"}
 
-    result = df.groupby(["Name"]).agg(aggregate_details)
+    msg = "Converting a Series or array of length 1 into a scalar"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = df.groupby(["Name"]).agg(aggregate_details)
     expected = DataFrame(
         {
             "Mood": [Series(["happy", "sad"], dtype=dtype), Series(["happy"])],
