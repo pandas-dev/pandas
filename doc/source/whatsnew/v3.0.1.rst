@@ -31,6 +31,7 @@ Bug fixes
   subclasses of ``np.ndarray`` (:issue:`63205`)
 - Added additional typing aliases in :py:mod:`pandas.api.typing.aliases` (:issue:`64098`)
 - Fixed thread safety issues in :class:`DataFrame` internals on the free-threaded build (:issue:`63685`).
+- Prevent buffer overflow in :meth:`Rolling.corr` and :meth:`Rolling.cov` with variable windows when passing ``other`` with a longer index than the original window. This now raises ``ValueError`` (:issue:`62937`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_301.contributors:
