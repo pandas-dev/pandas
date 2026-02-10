@@ -113,8 +113,6 @@ if TYPE_CHECKING:
     )
     from pandas.core.generic import NDFrame
 
-_shared_docs_kwargs: dict[str, str] = {}
-
 
 @set_module("pandas.api.typing")
 class Resampler(BaseGroupBy, PandasObject):
