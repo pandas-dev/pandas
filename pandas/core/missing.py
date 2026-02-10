@@ -201,6 +201,7 @@ NP_METHODS = ["linear", "time", "index", "values"]
 
 SP_METHODS = [
     "nearest",
+    "nearest-up",
     "zero",
     "slinear",
     "quadratic",
@@ -333,7 +334,7 @@ def get_interp_index(method, index: Index) -> Index:
 
         index = RangeIndex(len(index))
     else:
-        methods = {"index", "values", "nearest", "time"}
+        methods = {"index", "values", "nearest", "nearest-up", "time"}
         is_numeric_or_datetime = (
             is_numeric_dtype(index.dtype)
             or isinstance(index.dtype, DatetimeTZDtype)
@@ -592,6 +593,7 @@ def _interpolate_scipy_wrapper(
 
     interp1d_methods = [
         "nearest",
+        "nearest-up",
         "zero",
         "slinear",
         "quadratic",

@@ -302,6 +302,13 @@ class TestSeriesInterpolateData:
 
         result = s.interpolate(method="nearest")
         tm.assert_series_equal(result, expected)
+        # nearest-up
+        expected = Series([1, 3, 12, 12, 25, 25.0])
+        result = s.interpolate(method="nearest-up")
+        tm.assert_series_equal(result, expected.astype("float"))
+
+        result = s.interpolate(method="nearest-up")
+        tm.assert_series_equal(result, expected)
         # zero
         expected = Series([1, 3, 3, 12, 12, 25.0])
         result = s.interpolate(method="zero")

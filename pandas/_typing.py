@@ -364,6 +364,7 @@ InterpolateOptions: TypeAlias = Literal[
     "index",
     "values",
     "nearest",
+    "nearest-up",
     "zero",
     "slinear",
     "quadratic",

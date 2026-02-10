@@ -28,6 +28,7 @@ enhancement2
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
+- :meth:`Series.interpolate` and :meth:`DataFrame.interpolate` now support the ``nearest-up`` interpolation method (:issue:`64074`).
 - Display formatting for float sequences in DataFrame cells now respects the ``display.precision`` option (:issue:`60503`).
 -
 

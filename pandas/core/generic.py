@@ -7888,7 +7888,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
               of the DataFrame's index to linearly calculate missing values.
             * 'values': Interpolation based on the numerical values
               in the DataFrame, treating them as equally spaced along the index.
-            * 'nearest', 'zero', 'slinear', 'quadratic', 'cubic',
+            * 'nearest', 'nearest-up', 'zero', 'slinear', 'quadratic', 'cubic',
               'barycentric', 'polynomial': Passed to
               `scipy.interpolate.interp1d`, whereas 'spline' is passed to
               `scipy.interpolate.UnivariateSpline`. These methods use the numerical
@@ -7896,7 +7896,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
               you also specify an `order` (int), e.g.
               ``df.interpolate(method='polynomial', order=5)``. Note that,
               `slinear` method in Pandas refers to the Scipy first order `spline`
-              instead of Pandas first order `spline`.
+              instead of Pandas first order `spline`. The 'nearest-up' method
+              selects the nearest value, preferring values above (forward) when
+              equidistant, while 'nearest' prefers values below (backward).
             * 'krogh', 'piecewise_polynomial', 'spline', 'pchip', 'akima',
               'cubicspline': Wrappers around the SciPy interpolation methods of
               similar names. See `Notes`.

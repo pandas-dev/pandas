@@ -1096,12 +1096,15 @@ class ExtensionArray:
             * 'time': Works on daily and higher resolution data to interpolate
             given length of interval.
             * 'index', 'values': use the actual numerical values of the index.
-            * 'nearest', 'zero', 'slinear', 'quadratic', 'cubic', 'barycentric',
-            'polynomial': Passed to scipy.interpolate.interp1d, whereas 'spline'
-            is passed to scipy.interpolate.UnivariateSpline. These methods use
-            the numerical values of the index.
+            * 'nearest', 'nearest-up', 'zero', 'slinear', 'quadratic', 'cubic',
+            'barycentric', 'polynomial': Passed to scipy.interpolate.interp1d,
+            whereas 'spline' is passed to scipy.interpolate.UnivariateSpline.
+            These methods use the numerical values of the index.
             Both 'polynomial' and 'spline' require that you also specify an
             order (int), e.g. arr.interpolate(method='polynomial', order=5).
+            The 'nearest-up' method selects the nearest value, preferring values
+            above (forward) when equidistant, while 'nearest' prefers values
+            below (backward).
             * 'krogh', 'piecewise_polynomial', 'spline', 'pchip', 'akima',
             'cubicspline': Wrappers around the SciPy interpolation methods
             of similar names. See Notes.
