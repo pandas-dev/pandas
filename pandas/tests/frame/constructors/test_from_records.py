@@ -504,7 +504,7 @@ class TestFromRecords:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("missing_value", [None, np.nan, pd.NA])
-    def test_from_records_missing_value_key(self, missing_value):
+    def test_from_records_missing_value_key(self, missing_value, using_infer_string):
         # https://github.com/pandas-dev/pandas/issues/63889
         # preserve values when None key is converted to NaN column name
         dict_data = [
@@ -512,7 +512,10 @@ class TestFromRecords:
             {"colA": 3, missing_value: 4},
         ]
         result = DataFrame.from_records(dict_data)
-        expected = DataFrame([[1, 2], [3, 4]], columns=["colA", np.nan])
+        expected = DataFrame(
+            [[1, 2], [3, 4]],
+            columns=["colA", np.nan if not using_infer_string else missing_value],
+        )
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("missing_value", [None, np.nan, pd.NA])

@@ -14,8 +14,8 @@ including other versions of pandas.
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 - Fixed regression in :meth:`DataFrame.groupby` and :meth:`Series.groupby` when grouping on categorical data with NA values, ``observed=False``, and ``dropna=True`` (:issue:`52445`)
-- Fixed regression when calling ``numpy.random``'s ``permutation()`` on a (pyarrow-backed) string :class:`Series` (:issue:`63935`)
 - Fixed regression in the :class:`DataFrame` and :meth:`DataFrame.from_records` constructor with a list of dicts with a missing value indicator as key (:issue:`63889`)
+- Fixed regression when calling ``numpy.random``'s ``permutation()`` on a (pyarrow-backed) string :class:`Series` (:issue:`63935`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_301.bugs:
