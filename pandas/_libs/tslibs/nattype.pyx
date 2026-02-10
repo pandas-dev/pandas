@@ -248,7 +248,7 @@ cdef class _NaT(datetime):
         >>> ts
         Timestamp('2023-01-01 10:00:15')
         >>> ts.to_datetime64()
-        numpy.datetime64('2023-01-01T10:00:15.000000')
+        np.datetime64('2023-01-01T10:00:15.000000')
         """
         return np.datetime64("NaT", "ns")
 
@@ -281,12 +281,12 @@ cdef class _NaT(datetime):
         --------
         >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
         >>> ts.to_numpy()
-        numpy.datetime64('2020-03-14T15:32:52.192548651')
+        np.datetime64('2020-03-14T15:32:52.192548651')
 
         Analogous for ``pd.NaT``:
 
         >>> pd.NaT.to_numpy()
-        numpy.datetime64('NaT')
+        np.datetime64('NaT')
         """
         if dtype is not None:
             # GH#44460
@@ -821,7 +821,7 @@ class NaTType(_NaT):
         >>> ts
         Timestamp('2023-01-01 10:00:00+0100', tz='Europe/Brussels')
         >>> ts.timetz()
-        datetime.time(10, 0, tzinfo=<DstTzInfo 'Europe/Brussels' CET+1:00:00 STD>)
+        datetime.time(10, 0, tzinfo=zoneinfo.ZoneInfo(key='Europe/Brussels'))
         """
         )
     toordinal = _make_error_func(
@@ -1866,7 +1866,7 @@ default 'raise'
         >>> ts
         Timestamp('2023-01-01 00:00:00.010000')
         >>> ts.unit
-        'ms'
+        'us'
         >>> ts = ts.as_unit('s')
         >>> ts
         Timestamp('2023-01-01 00:00:00')

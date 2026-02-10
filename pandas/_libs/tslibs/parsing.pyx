@@ -716,7 +716,7 @@ cdef datetime dateutil_parse(
             # e.g. "1994 Jan 15 05:16 FOO" where FOO is not recognized
             # GH#18702, # GH 50235 enforced in 3.0
             raise ValueError(
-                f'Parsed string "{timestr}" included an un-recognized timezone '
+                f'Parsed string "{timestr}" included an unrecognized timezone '
                 f'"{res.tzname}".'
             )
 
