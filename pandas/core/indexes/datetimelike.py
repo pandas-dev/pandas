@@ -61,7 +61,6 @@ from pandas.core.arrays import (
     TimedeltaArray,
 )
 import pandas.core.common as com
-import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
     Index,
 )
@@ -81,8 +80,6 @@ if TYPE_CHECKING:
     )
 
     from pandas import CategoricalIndex
-
-_index_doc_kwargs = dict(ibase._index_doc_kwargs)
 
 
 class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):

@@ -14,7 +14,6 @@ from collections.abc import (
 import functools
 import operator
 import sys
-from textwrap import dedent
 from typing import (
     IO,
     TYPE_CHECKING,
@@ -4831,37 +4830,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         return self
 
-    _agg_see_also_doc = dedent(
-        """
-    See Also
-    --------
-    Series.apply : Invoke function on a Series.
-    Series.transform : Transform function producing a Series with like indexes.
-    """
-    )
-
-    _agg_examples_doc = dedent(
-        """
-    Examples
-    --------
-    >>> s = pd.Series([1, 2, 3, 4])
-    >>> s
-    0    1
-    1    2
-    2    3
-    3    4
-    dtype: int64
-
-    >>> s.agg('min')
-    1
-
-    >>> s.agg(['min', 'max'])
-    min   1
-    max   4
-    dtype: int64
-    """
-    )
-
     def aggregate(self, func=None, axis: Axis = 0, *args, **kwargs):
         """
         Aggregate using one or more operations over the specified axis.
@@ -7079,7 +7047,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         if isinstance(other, Series):
             return self._binop(other, op, level=level, fill_value=fill_value)
-        elif isinstance(other, (np.ndarray, list, tuple, ExtensionArray)):
+        elif (isinstance(other, np.ndarray) and other.ndim > 0) or isinstance(
+            other, (list, tuple, ExtensionArray)
+        ):
             if len(other) != len(self):
                 raise ValueError("Lengths must be equal")
             other = self._constructor(other, self.index, copy=False)
