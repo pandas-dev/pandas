@@ -642,7 +642,9 @@ class TestDataFrameConstructors:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("missing_value", [None, np.nan, pd.NA])
-    def test_constructor_list_of_dict_with_str_na_key(self, missing_value):
+    def test_constructor_list_of_dict_with_str_na_key(
+        self, missing_value, using_infer_string
+    ):
         # https://github.com/pandas-dev/pandas/issues/63889
         # preserve values when None key is converted to NaN column name
         dict_data = [
@@ -650,15 +652,25 @@ class TestDataFrameConstructors:
             {"colA": 3, missing_value: 4},
         ]
         result = DataFrame(dict_data)
-        expected = DataFrame([[1, 2], [3, 4]], columns=["colA", np.nan])
+        expected = DataFrame(
+            [[1, 2], [3, 4]],
+            columns=["colA", np.nan if using_infer_string else missing_value],
+        )
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("missing_value", [None, np.nan, pd.NA])
-    def test_constructor_dict_of_dict_with_str_na_key(self, missing_value):
+    def test_constructor_dict_of_dict_with_str_na_key(
+        self, missing_value, using_infer_string
+    ):
         # https://github.com/pandas-dev/pandas/issues/63889
         dict_data = {"col": {"row1": 1, missing_value: 2, "row3": 3}}
         result = DataFrame(dict_data)
-        expected = DataFrame({"col": [1, 2, 3]}, index=Index(["row1", np.nan, "row3"]))
+        expected = DataFrame(
+            {"col": [1, 2, 3]},
+            index=Index(
+                ["row1", np.nan if using_infer_string else missing_value, "row3"]
+            ),
+        )
         tm.assert_frame_equal(result, expected)
 
     def test_constructor_multi_index(self):

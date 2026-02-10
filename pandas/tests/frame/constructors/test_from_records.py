@@ -514,7 +514,7 @@ class TestFromRecords:
         result = DataFrame.from_records(dict_data)
         expected = DataFrame(
             [[1, 2], [3, 4]],
-            columns=["colA", np.nan if not using_infer_string else missing_value],
+            columns=["colA", np.nan if using_infer_string else missing_value],
         )
         tm.assert_frame_equal(result, expected)
 
