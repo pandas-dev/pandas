@@ -1322,6 +1322,7 @@ class TestReaders:
         tm.assert_frame_equal(actual, expected)
 
     def test_read_excel_skiprows_callable_all(self, read_ext):
+        # GH 64027
         actual = pd.read_excel("test1" + read_ext, skiprows=lambda _: True, nrows=1)
         expected = DataFrame()
         tm.assert_frame_equal(actual, expected)
