@@ -58,6 +58,7 @@ from pandas.core.construction import (
 from pandas.core.indexes.api import (
     DatetimeIndex,
     Index,
+    MultiIndex,
     TimedeltaIndex,
     default_index,
     ensure_index,
@@ -580,7 +581,17 @@ def _homogenize(
                 else:
                     # see test_constructor_subclass_dict
                     val = dict(val)
-                val = lib.fast_multiget(val, oindex._values, default=np.nan)
+
+                if not isinstance(index, MultiIndex) and index.hasnans:
+                    # GH#63889 Check if dict has missing value keys that need special
+                    # handling (i.e. None/np.nan/pd.NA might no longer be matched
+                    # when using fast_multiget with processed object index values)
+                    from pandas import Series
+
+                    val = Series(val).reindex(index)._values
+                else:
+                    # Fast path: use lib.fast_multiget for dicts without missing keys
+                    val = lib.fast_multiget(val, oindex._values, default=np.nan)
 
             val = sanitize_array(val, index, dtype=dtype, copy=False)
             com.require_length_match(val, index)
