@@ -612,7 +612,32 @@ def array_equivalent_object(ndarray left, ndarray right) -> bool:
                         return False
 
             elif PyArray_Check(x) or PyArray_Check(y):
-                return False
+                # GH#59778, GH#63904: One is ndarray, the other is not
+                # For empty arrays, return False to avoid numpy deprecation warning
+                # For non-empty, convert list/tuple/ExtensionArray to array and compare
+                if PyArray_Check(x):
+                    arr, other = x, y
+                else:
+                    arr, other = y, x
+
+                # Check if other is list/tuple or pandas ExtensionArray
+                if isinstance(other, (list, tuple)):
+                    # Empty array/list - return False to avoid numpy deprecation warning
+                    if len(arr) == 0 or len(other) == 0:
+                        return False
+                    other_arr = np.asarray(other, dtype=object)
+                elif hasattr(other, "to_numpy"):
+                    # pandas ExtensionArray
+                    other_arr = np.asarray(other.to_numpy(), dtype=object)
+                else:
+                    return False
+
+                if arr.shape != other_arr.shape:
+                    return False
+
+                from pandas.core.dtypes.missing import array_equivalent
+                if not array_equivalent(arr, other_arr):
+                    return False
             elif (x is C_NA) ^ (y is C_NA):
                 return False
             elif not (

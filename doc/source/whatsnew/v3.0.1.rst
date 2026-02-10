@@ -30,6 +30,7 @@ Bug fixes
 - Fixed a bug in the :func:`comparison_op` raising a ``TypeError`` for zerodim
   subclasses of ``np.ndarray`` (:issue:`63205`)
 - Fixed thread safety issues in :class:`DataFrame` internals on the free-threaded build (:issue:`63685`).
+- Fixed a bug in :func:`testing.assert_frame_equal` and :func:`testing.assert_series_equal` where comparing nested ``list``, ``tuple``, or pandas ``ExtensionArray`` with ``numpy.ndarray`` containing the same values incorrectly raised ``AssertionError`` (:issue:`63904`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_301.contributors:
