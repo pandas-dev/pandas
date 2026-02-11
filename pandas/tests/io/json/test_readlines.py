@@ -353,6 +353,21 @@ def test_readjson_nrows_chunks(request, nrows, chunksize, engine):
     tm.assert_frame_equal(chunked, expected)
 
 
+@pytest.mark.parametrize(
+    "jsonl,nrows",
+    [('{"a":1}\n{"a":2}\n', 0), ("", None)],
+)
+def test_readjson_read_empty_chunks(jsonl, nrows):
+    kwargs = {"lines": True, "chunksize": 2}
+    if nrows is not None:
+        kwargs["nrows"] = nrows
+
+    with read_json(StringIO(jsonl), **kwargs) as reader:
+        result = reader.read()
+
+    tm.assert_frame_equal(result, DataFrame())
+
+
 def test_readjson_nrows_requires_lines(engine):
     # GH 33916
     # Test ValueError raised if nrows is set without setting lines in read_json

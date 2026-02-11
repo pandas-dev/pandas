@@ -920,6 +920,10 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
             self.nrows = validate_integer("nrows", self.nrows, 0)
             if not self.lines:
                 raise ValueError("nrows can only be passed if lines=True")
+            if self.engine == "pyarrow":
+                raise NotImplementedError(
+                    "currently pyarrow engine doesn't support nrows parameter"
+                )
         if self.engine == "pyarrow":
             if not self.lines:
                 raise ValueError(
@@ -1022,7 +1026,11 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         obj: DataFrame | Series
         if self.lines:
             if self.chunksize:
-                obj = concat(self)
+                chunks = list(self)
+                if chunks:
+                    obj = concat(chunks)
+                else:
+                    obj = self._get_object_parser(self._combine_lines([]))
             elif self.nrows is not None:
                 lines = list(islice(self.data, self.nrows))
                 lines_json = self._combine_lines(lines)

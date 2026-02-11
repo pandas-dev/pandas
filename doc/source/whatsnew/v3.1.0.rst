@@ -168,8 +168,8 @@ I/O
 ^^^
 - Fixed bug in :func:`read_excel` where usage of ``skiprows`` could lead to an infinite loop (:issue:`64027`)
 - Fixed :func:`read_json` with ``lines=True`` and ``chunksize`` to respect ``nrows``
-  when the requested row count is not a multiple of the chunk size.
-- Fixed :func:`read_json` with ``lines=True`` and ``nrows=0`` returning all rows.
+  when the requested row count is not a multiple of the chunk size (:issue:`64025`)
+- Fixed :func:`read_json` with ``lines=True`` and ``nrows=0`` to return an empty DataFrame (:issue:`64025`)
 
 Period
 ^^^^^^
