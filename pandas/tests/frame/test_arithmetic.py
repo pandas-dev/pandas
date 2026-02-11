@@ -2201,3 +2201,28 @@ def test_mixed_col_index_dtype(string_dtype_no_object):
     expected.columns = expected.columns.astype(string_dtype_no_object)
 
     tm.assert_frame_equal(result, expected)
+
+
+def test_arith_reindex_with_pyarrow_dtype():
+    # GH#63288 - Preserve pyarrow dtypes when reindexing introduces
+    # missing columns
+    pytest.importorskip("pyarrow")
+
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]})
+    df1 = df.iloc[:, :2].astype("int64[pyarrow]")  # columns: a, b
+    df2 = df.iloc[1:, 1:].astype("int64[pyarrow]")  # columns: b, c
+
+    result = df1 + df2
+    expected = DataFrame(
+        {
+            "a": pd.array([pd.NA, pd.NA, pd.NA], dtype="int64[pyarrow]"),
+            "b": pd.array([pd.NA, 10, 12], dtype="int64[pyarrow]"),
+            "c": pd.array([pd.NA, pd.NA, pd.NA], dtype="int64[pyarrow]"),
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+    # Verify all columns preserved ExtensionDtype
+    assert str(result["a"].dtype) == "int64[pyarrow]"
+    assert str(result["b"].dtype) == "int64[pyarrow]"
+    assert str(result["c"].dtype) == "int64[pyarrow]"
