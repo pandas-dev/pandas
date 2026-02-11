@@ -98,6 +98,28 @@ if TYPE_CHECKING:
 # -- Helper functions
 
 
+def _sa_text_if_string(stmt: Any) -> Any:
+    """
+    Wrap plain SQL strings with sqlalchemy.text() if SQLAlchemy is available.
+
+    Parameters
+    ----------
+    stmt : Any
+        The SQL statement or object.
+
+    Returns
+    -------
+    Any
+        `sqlalchemy.sql.elements.TextClause` if wrapping occurred,
+        otherwise the original statement.
+    """
+    try:
+        import sqlalchemy as sa  # lazy import; keep SA optional
+    except ImportError:
+        return stmt
+    return sa.text(stmt) if isinstance(stmt, str) else stmt
+
+
 def _process_parse_dates_argument(parse_dates):
     """Process parse_dates argument for read_sql functions"""
     # handle non-list entries for parse_dates gracefully
@@ -1853,7 +1875,8 @@ class SQLDatabase(PandasSQL):
         read_sql
 
         """
-        result = self.execute(sql, params)
+        stmt = _sa_text_if_string(sql)
+        result = self.execute(stmt, params)
         columns = result.keys()
 
         if chunksize is not None:
