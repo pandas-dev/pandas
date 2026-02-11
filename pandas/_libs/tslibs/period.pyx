@@ -1998,6 +1998,9 @@ cdef class _Period(PeriodMixin):
         """
         Convert Period to desired frequency, at the start or end of the interval.
 
+        This method converts the Period to a different frequency, aligning
+        the result to either the start or end of the original interval.
+
         Parameters
         ----------
         freq : str, DateOffset
@@ -2046,13 +2049,13 @@ cdef class _Period(PeriodMixin):
 
         >>> period = pd.Period('2023-01', freq='M')
         >>> period.asfreq('h', how='start')
-        Period('2023-01-01 00:00', 'H')
+        Period('2023-01-01 00:00', 'h')
 
         Convert a weekly period to a daily period, aligning to the last day of the week:
 
         >>> period = pd.Period('2023-08-01', freq='W')
         >>> period.asfreq('D', how='end')
-        Period('2023-08-04', 'D')
+        Period('2023-08-06', 'D')
         """
         freq = self._maybe_convert_freq(freq)
         how = validate_end_alias(how)
@@ -2190,6 +2193,8 @@ cdef class _Period(PeriodMixin):
         """
         Return the month this Period falls on.
 
+        Months are numbered from 1 (January) through 12 (December).
+
         Returns
         -------
         int
@@ -2267,6 +2272,9 @@ cdef class _Period(PeriodMixin):
         """
         Get the hour of the day component of the Period.
 
+        For periods with a frequency shorter than a day, this returns the
+        hour portion of the time. For longer frequencies, it returns 0.
+
         Returns
         -------
         int
@@ -2297,6 +2305,9 @@ cdef class _Period(PeriodMixin):
         """
         Get minute of the hour component of the Period.
 
+        For periods with a frequency shorter than an hour, this returns the
+        minute portion of the time. For longer frequencies, it returns 0.
+
         Returns
         -------
         int
@@ -2321,6 +2332,9 @@ cdef class _Period(PeriodMixin):
         """
         Get the second component of the Period.
 
+        For periods with a frequency shorter than a minute, this returns the
+        second portion of the time. For longer frequencies, it returns 0.
+
         Returns
         -------
         int
@@ -2344,6 +2358,9 @@ cdef class _Period(PeriodMixin):
     def weekofyear(self) -> int:
         """
         Get the week of the year on the given Period.
+
+        Weeks are numbered according to ISO 8601, where the first week of
+        the year contains the first Thursday of the year.
 
         Returns
         -------
@@ -2375,6 +2392,9 @@ cdef class _Period(PeriodMixin):
     def week(self) -> int:
         """
         Get the week of the year on the given Period.
+
+        Weeks are numbered according to ISO 8601, where the first week of
+        the year contains the first Thursday of the year.
 
         Returns
         -------
@@ -2545,6 +2565,10 @@ cdef class _Period(PeriodMixin):
         """
         Return the quarter this Period falls on.
 
+        Quarter 1 includes January through March, quarter 2 includes April
+        through June, quarter 3 includes July through September, and quarter
+        4 includes October through December.
+
         See Also
         --------
         Timestamp.quarter : Return the quarter of the Timestamp.
@@ -2609,6 +2633,9 @@ cdef class _Period(PeriodMixin):
         """
         Get the total number of days in the month that this period falls on.
 
+        This value depends on the month and whether the year is a leap year
+        (e.g., February has 28 or 29 days).
+
         Returns
         -------
         int
@@ -2643,6 +2670,9 @@ cdef class _Period(PeriodMixin):
         """
         Get the total number of days of the month that this period falls on.
 
+        This value depends on the month and whether the year is a leap year.
+        This is an alias for :attr:`days_in_month`.
+
         Returns
         -------
         int
@@ -2664,6 +2694,10 @@ cdef class _Period(PeriodMixin):
     def is_leap_year(self) -> bool:
         """
         Return True if the period's year is in a leap year.
+
+        A leap year is a year with 366 days (instead of 365), including
+        February 29 as an intercalary day. Leap years are years divisible
+        by 4, except for years divisible by 100 but not by 400.
 
         See Also
         --------

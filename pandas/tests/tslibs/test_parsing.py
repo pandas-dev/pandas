@@ -43,7 +43,7 @@ def test_parsing_tzlocal_deprecated():
             r"Parsing 'EST' as tzlocal \(dependent on system timezone\) "
             r"is no longer supported\. "
             "Pass the 'tz' keyword or call tz_localize after construction instead",
-            ".*included an un-recognized timezone",
+            ".*included an unrecognized timezone",
         ]
     )
     dtstr = "Jan 15 2004 03:00 EST"
