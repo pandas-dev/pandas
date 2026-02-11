@@ -9994,6 +9994,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # align the cond to same shape as myself
         cond = common.apply_if_callable(cond, self)
         if isinstance(cond, NDFrame):
+            cond = cond.fillna(True)
             # CoW: Make sure reference is not kept alive
             if cond.ndim == 1 and self.ndim == 2:
                 cond = cond._constructor_expanddim(
@@ -10008,6 +10009,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if cond.shape != self.shape:
                 raise ValueError("Array conditional must be same shape as self")
             cond = self._constructor(cond, **self._construct_axes_dict(), copy=False)
+            cond = cond.fillna(True)
 
         # make sure we are boolean
         fill_value = bool(inplace)
@@ -10481,6 +10483,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # see gh-21891
         if not hasattr(cond, "__invert__"):
             cond = np.array(cond)
+
+        # GH 60772
+        na_msg = "Cannot mask with non-boolean array containing NA / NaN values"
+        if isinstance(cond, np.ndarray):
+            if not lib.is_bool_array(cond):
+                raise ValueError(na_msg)
+        elif isinstance(cond, ABCDataFrame):
+            if not all(is_bool_dtype(blk.dtype) for blk in cond._mgr.blocks):
+                raise ValueError(na_msg)
+        elif isinstance(cond, ABCSeries):
+            if not is_bool_dtype(cond):
+                raise ValueError(na_msg)
 
         return self._where(
             ~cond,
