@@ -84,6 +84,8 @@ if TYPE_CHECKING:
         WriteExcelBuffer,
     )
 
+EXCEL_ROWS_MAX = 1_048_576
+
 
 @overload
 def read_excel(
@@ -608,7 +610,7 @@ class BaseExcelReader(Generic[_WorkbookT]):
         self,
         skiprows: Callable,
         rows_to_use: int,
-    ) -> int:
+    ) -> int | None:
         """
         Determine how many file rows are required to obtain `nrows` data
         rows when `skiprows` is a function.
@@ -631,6 +633,8 @@ class BaseExcelReader(Generic[_WorkbookT]):
             if not skiprows(i):
                 rows_used_so_far += 1
             i += 1
+            if i >= EXCEL_ROWS_MAX:
+                return None
         return i
 
     def _calc_rows(
