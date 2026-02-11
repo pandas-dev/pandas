@@ -277,6 +277,22 @@ class TestLoc:
         df.loc[mask] = df
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.parametrize(
+        "original_type, new_type",
+        [
+            (np.uint16, np.uint8),
+            (np.int32, np.int16),
+            (np.int64, np.uint64),
+            (np.int64, np.int16),
+        ],
+    )
+    def test_loc_assign_preserve_dtype(self, original_type, new_type):
+        s = Series([10, 20, 30], index=list("abc"), dtype=original_type)
+        s.loc["a":"b"] = np.array([100, 200], dtype=new_type)
+
+        expected = original_type
+        assert s.dtype == expected
+
 
 class TestLocBaseIndependent:
     # Tests for loc that do not depend on subclassing Base
