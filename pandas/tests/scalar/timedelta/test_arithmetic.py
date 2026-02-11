@@ -35,6 +35,21 @@ class TestTimedeltaAdditionSubtraction:
         __sub__, __rsub__
     """
 
+    def test_td_add_sub_pydatetime(self, unit):
+        # GH#53643
+        td = Timedelta(hours=23).as_unit(unit)
+        dt = datetime(2016, 1, 1)
+
+        expected = datetime(2016, 1, 1, 23)
+        result = dt + td
+        assert result == expected
+        result = td + dt
+        assert result == expected
+
+        expected = datetime(2015, 12, 31, 1)
+        result = dt - td
+        assert result == expected
+
     @pytest.mark.parametrize(
         "ten_seconds",
         [
@@ -104,7 +119,7 @@ class TestTimedeltaAdditionSubtraction:
 
     def test_td_add_timestamp_overflow(self):
         ts = Timestamp("1700-01-01").as_unit("ns")
-        msg = "Cannot cast 259987 from D to 'ns' without overflow."
+        msg = "Cannot cast 259987 days 00:00:00 to unit='ns' without overflow."
         with pytest.raises(OutOfBoundsTimedelta, match=msg):
             ts + Timedelta(13 * 19999, input_unit="D")
 
@@ -440,7 +455,7 @@ class TestTimedeltaMultiplicationDivision:
 
         msg = (
             "ufunc '?multiply'? cannot use operands with types "
-            rf"dtype\('{tm.ENDIAN}m8\[ns\]'\) and dtype\('{tm.ENDIAN}m8\[ns\]'\)"
+            rf"dtype\('{tm.ENDIAN}m8\[us\]'\) and dtype\('{tm.ENDIAN}m8\[us\]'\)"
         )
         with pytest.raises(TypeError, match=msg):
             td * other
@@ -818,11 +833,11 @@ class TestTimedeltaMultiplicationDivision:
         assert isinstance(result, Timedelta)
         assert result == Timedelta(0)
 
-        result = td % 1e12
+        result = td % 1e9
         assert isinstance(result, Timedelta)
         assert result == Timedelta(minutes=3, seconds=20)
 
-        result = td % int(1e12)
+        result = td % int(1e9)
         assert isinstance(result, Timedelta)
         assert result == Timedelta(minutes=3, seconds=20)
 
@@ -876,8 +891,8 @@ class TestTimedeltaMultiplicationDivision:
         # GH#19365
         td = Timedelta(days=2, hours=6)
 
-        result = divmod(td, 53 * 3600 * 1e9)
-        assert result[0] == Timedelta(1, input_unit="ns")
+        result = divmod(td, 53 * 3600 * 1e6)
+        assert result[0] == Timedelta(1, input_unit="us").as_unit("us")
         assert isinstance(result[1], Timedelta)
         assert result[1] == Timedelta(hours=1)
 
@@ -969,6 +984,12 @@ class TestTimedeltaMultiplicationDivision:
         msg = "unsupported operand type|cannot use operands with types"
         with pytest.raises(TypeError, match=msg):
             op(arr, Timedelta("1D"))
+
+    def test_mul_bool_invalid(self):
+        # GH#62316
+        msg = "Cannot multiply Timedelta by bool. Explicitly cast to integer"
+        with pytest.raises(TypeError, match=msg):
+            Timedelta("1 day") * True
 
 
 class TestTimedeltaComparison:
@@ -1219,6 +1240,7 @@ def test_ops_str_deprecated(box):
                 "ufunc 'divide' cannot use operands",
                 "Invalid dtype object for __floordiv__",
                 r"unsupported operand type\(s\) for /: 'int' and 'str'",
+                r"unsupported operand type\(s\) for /: 'datetime.timedelta' and 'str'",
             ]
         )
         with pytest.raises(TypeError, match=msg):

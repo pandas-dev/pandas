@@ -95,10 +95,10 @@ def to_timedelta(
     | ArrayLike
     | Index
     | Series,
-    unit: UnitChoices | None = None,
+    input_unit: UnitChoices | None = None,
     errors: DateTimeErrorChoices = "raise",
     *,
-    input_unit: UnitChoices | None = None,
+    unit: UnitChoices | None = None,
 ) -> Timedelta | TimedeltaIndex | Series | NaTType | Any:
     """
     Convert argument to timedelta.
@@ -120,7 +120,7 @@ def to_timedelta(
     unit : str or None, default None
         Use input_unit instead.
 
-        .. deprecated:: 3.0.0
+        .. deprecated:: 3.1.0
 
     errors : {'raise', 'coerce'}, default 'raise'
         - If 'raise', then invalid parsing will raise an exception.
@@ -132,9 +132,9 @@ def to_timedelta(
 
         * 'W'
         * 'D' / 'days' / 'day'
-        * 'hours' / 'hour' / 'hr' / 'h' / 'H'
+        * 'hours' / 'hour' / 'hr' / 'h'
         * 'm' / 'minute' / 'min' / 'minutes'
-        * 's' / 'seconds' / 'sec' / 'second' / 'S'
+        * 's' / 'seconds' / 'sec' / 'second'
         * 'ms' / 'milliseconds' / 'millisecond' / 'milli' / 'millis'
         * 'us' / 'microseconds' / 'microsecond' / 'micro' / 'micros'
         * 'ns' / 'nanoseconds' / 'nano' / 'nanos' / 'nanosecond'
@@ -144,6 +144,9 @@ def to_timedelta(
         .. deprecated:: 2.2.0
             Units 'H'and 'S' are deprecated and will be removed
             in a future version. Please use 'h' and 's'.
+    errors : {'raise', 'coerce'}, default 'raise'
+        - If 'raise', then invalid parsing will raise an exception.
+        - If 'coerce', then invalid parsing will be set as NaT.
 
     Returns
     -------
@@ -186,10 +189,10 @@ def to_timedelta(
     >>> pd.to_timedelta(np.arange(5), input_unit="s")
     TimedeltaIndex(['0 days 00:00:00', '0 days 00:00:01', '0 days 00:00:02',
                     '0 days 00:00:03', '0 days 00:00:04'],
-                   dtype='timedelta64[ns]', freq=None)
+                   dtype='timedelta64[s]', freq=None)
     >>> pd.to_timedelta(np.arange(5), input_unit="D")
     TimedeltaIndex(['0 days', '1 days', '2 days', '3 days', '4 days'],
-                   dtype='timedelta64[ns]', freq=None)
+                   dtype='timedelta64[s]', freq=None)
     """
     if unit is not None:
         # GH#62097
@@ -274,5 +277,6 @@ def _convert_listlike(
 
     from pandas import TimedeltaIndex
 
-    value = TimedeltaIndex(td64arr, name=name)
+    copy = td64arr is arg or np.may_share_memory(arg, td64arr)
+    value = TimedeltaIndex(td64arr, name=name, copy=copy)
     return value

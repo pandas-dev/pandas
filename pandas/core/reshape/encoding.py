@@ -379,8 +379,6 @@ def from_dummies(
 
     Inverts the operation performed by :func:`~pandas.get_dummies`.
 
-    .. versionadded:: 1.5.0
-
     Parameters
     ----------
     data : DataFrame
@@ -540,7 +538,11 @@ def from_dummies(
                 raise ValueError(len_msg)
         elif isinstance(default_category, Hashable):
             default_category = dict(
-                zip(variables_slice, [default_category] * len(variables_slice))
+                zip(
+                    variables_slice,
+                    [default_category] * len(variables_slice),
+                    strict=True,
+                )
             )
         else:
             raise TypeError(

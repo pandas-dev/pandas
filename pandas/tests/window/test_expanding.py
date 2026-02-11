@@ -216,7 +216,7 @@ def test_expanding_sem(frame_or_series):
     result = obj.expanding().sem()
     if isinstance(result, DataFrame):
         result = Series(result[0].values)
-    expected = Series([np.nan] + [0.707107] * 2)
+    expected = Series([np.nan, 0.5, (1 / 3) ** 0.5])
     tm.assert_series_equal(result, expected)
 
 

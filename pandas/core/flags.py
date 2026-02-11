@@ -3,10 +3,13 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 import weakref
 
+from pandas.util._decorators import set_module
+
 if TYPE_CHECKING:
     from pandas.core.generic import NDFrame
 
 
+@set_module("pandas")
 class Flags:
     """
     Flags that apply to pandas objects.
@@ -54,8 +57,6 @@ class Flags:
     >>> df.flags
     <Flags(allows_duplicate_labels=True)>
     """
-
-    __module__ = "pandas"
 
     _keys: set[str] = {"allows_duplicate_labels"}
 

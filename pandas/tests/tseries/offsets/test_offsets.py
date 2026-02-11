@@ -549,9 +549,9 @@ class TestCommon:
             result = offset_s + dta
         tm.assert_equal(result, dta)
 
-    def test_pickle_roundtrip(self, offset_types):
+    def test_pickle_roundtrip(self, offset_types, temp_file):
         off = _create_offset(offset_types)
-        res = tm.round_trip_pickle(off)
+        res = tm.round_trip_pickle(off, temp_file)
         assert off == res
         if type(off) is not DateOffset:
             for attr in off._attributes:
@@ -562,10 +562,10 @@ class TestCommon:
                 # Make sure nothings got lost from _params (which __eq__) is based on
                 assert getattr(off, attr) == getattr(res, attr)
 
-    def test_pickle_dateoffset_odd_inputs(self):
+    def test_pickle_dateoffset_odd_inputs(self, temp_file):
         # GH#34511
         off = DateOffset(months=12)
-        res = tm.round_trip_pickle(off)
+        res = tm.round_trip_pickle(off, temp_file)
         assert off == res
 
         base_dt = datetime(2020, 1, 1)
@@ -649,6 +649,7 @@ class TestDateOffset:
                 "2008-01-02 00:00:00.001000000",
                 "2008-01-02 00:00:00.000001000",
             ],
+            strict=True,
         ),
     )
     def test_add(self, arithmatic_offset_type, expected, dt):
@@ -670,6 +671,7 @@ class TestDateOffset:
                 "2008-01-01 23:59:59.999000000",
                 "2008-01-01 23:59:59.999999000",
             ],
+            strict=True,
         ),
     )
     def test_sub(self, arithmatic_offset_type, expected, dt):
@@ -693,6 +695,7 @@ class TestDateOffset:
                 "2008-01-02 00:00:00.008000000",
                 "2008-01-02 00:00:00.000009000",
             ],
+            strict=True,
         ),
     )
     def test_mul_add(self, arithmatic_offset_type, n, expected, dt):
@@ -717,6 +720,7 @@ class TestDateOffset:
                 "2008-01-01 23:59:59.992000000",
                 "2008-01-01 23:59:59.999991000",
             ],
+            strict=True,
         ),
     )
     def test_mul_sub(self, arithmatic_offset_type, n, expected, dt):

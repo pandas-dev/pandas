@@ -68,7 +68,6 @@ from pandas.core.frame import DataFrame
 from pandas.core.indexes.base import Index
 from pandas.core.indexes.range import RangeIndex
 from pandas.core.series import Series
-from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.common import get_handle
 
@@ -95,60 +94,6 @@ _version_error = (
     "113 (Stata 8/9), 114 (Stata 10/11), 115 (Stata 12), 117 (Stata 13), "
     "118 (Stata 14/15/16), and 119 (Stata 15/16, over 32,767 variables)."
 )
-
-_statafile_processing_params1 = """\
-convert_dates : bool, default True
-    Convert date variables to DataFrame time values.
-convert_categoricals : bool, default True
-    Read value labels and convert columns to Categorical/Factor variables."""
-
-_statafile_processing_params2 = """\
-index_col : str, optional
-    Column to set as index.
-convert_missing : bool, default False
-    Flag indicating whether to convert missing values to their Stata
-    representations.  If False, missing values are replaced with nan.
-    If True, columns containing missing values are returned with
-    object data types and missing values are represented by
-    StataMissingValue objects.
-preserve_dtypes : bool, default True
-    Preserve Stata datatypes. If False, numeric data are upcast to pandas
-    default types for foreign data (float64 or int64).
-columns : list or None
-    Columns to retain.  Columns will be returned in the given order.  None
-    returns all columns.
-order_categoricals : bool, default True
-    Flag indicating whether converted categorical data are ordered."""
-
-_chunksize_params = """\
-chunksize : int, default None
-    Return StataReader object for iterations, returns chunks with
-    given number of lines."""
-
-_reader_notes = """\
-Notes
------
-Categorical variables read through an iterator may not have the same
-categories and dtype. This occurs when  a variable stored in a DTA
-file is associated to an incomplete set of value labels that only
-label a strict subset of the values."""
-
-_stata_reader_doc = f"""\
-Class for reading Stata dta files.
-
-Parameters
-----------
-path_or_buf : path (string), buffer or path object
-    string, pathlib.Path or object
-    implementing a binary read() functions.
-{_statafile_processing_params1}
-{_statafile_processing_params2}
-{_chunksize_params}
-{_shared_docs["decompression_options"]}
-{_shared_docs["storage_options"]}
-
-{_reader_notes}
-"""
 
 
 _date_formats = ["%tc", "%tC", "%td", "%d", "%tw", "%tm", "%tq", "%th", "%ty"]
@@ -1018,9 +963,73 @@ class StataParser:
         }
 
 
+@set_module("pandas.api.typing")
 class StataReader(StataParser, abc.Iterator):
-    __module__ = "pandas.api.typing"
-    __doc__ = _stata_reader_doc
+    """
+    Class for reading Stata dta files.
+
+    Parameters
+    ----------
+    path_or_buf : path (string), buffer or path object
+        string, pathlib.Path or object
+        implementing a binary read() functions.
+    convert_dates : bool, default True
+        Convert date variables to DataFrame time values.
+    convert_categoricals : bool, default True
+        Read value labels and convert columns to Categorical/Factor variables.
+    index_col : str, optional
+        Column to set as index.
+    convert_missing : bool, default False
+        Flag indicating whether to convert missing values to their Stata
+        representations.  If False, missing values are replaced with nan.
+        If True, columns containing missing values are returned with
+        object data types and missing values are represented by
+        StataMissingValue objects.
+    preserve_dtypes : bool, default True
+        Preserve Stata datatypes. If False, numeric data are upcast to pandas
+        default types for foreign data (float64 or int64).
+    columns : list or None
+        Columns to retain.  Columns will be returned in the given order.  None
+        returns all columns.
+    order_categoricals : bool, default True
+        Flag indicating whether converted categorical data are ordered.
+    chunksize : int, default None
+        Return StataReader object for iterations, returns chunks with
+        given number of lines.
+    compression : str or dict, default 'infer'
+        For on-the-fly decompression of on-disk data. If 'infer' and '%s' is
+        path-like, then detect compression from the following extensions: '.gz',
+        '.bz2', '.zip', '.xz', '.zst', '.tar', '.tar.gz', '.tar.xz' or '.tar.bz2'
+        (otherwise no compression).
+        If using 'zip' or 'tar', the ZIP file must contain only one data file
+        to be read in.
+        Set to ``None`` for no decompression.
+        Can also be a dict with key ``'method'`` set
+        to one of ``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'xz'``, ``'tar'`` and
+        other key-value pairs are forwarded to
+        ``zipfile.ZipFile``, ``gzip.GzipFile``,
+        ``bz2.BZ2File``, ``zstandard.ZstdDecompressor``, ``lzma.LZMAFile`` or
+        ``tarfile.TarFile``, respectively.
+        As an example, the following could be passed for Zstandard decompression using a
+        custom compression dictionary:
+        ``compression={'method': 'zstd', 'dict_data': my_compression_dict}``.
+    storage_options : dict, optional
+        Extra options that make sense for a particular storage connection, e.g.
+        host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
+        are forwarded to ``urllib.request.Request`` as header options. For other
+        URLs (e.g. starting with "s3://", and "gcs://") the key-value pairs are
+        forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more
+        details, and for more examples on storage options refer `here
+        <https://pandas.pydata.org/docs/user_guide/io.html?
+        highlight=storage_options#reading-writing-remote-files>`_.
+
+    Notes
+    -----
+    Categorical variables read through an iterator may not have the same
+    categories and dtype. This occurs when  a variable stored in a DTA
+    file is associated to an incomplete set of value labels that only
+    label a strict subset of the values.
+    """
 
     _path_or_buf: IO[bytes]  # Will be assigned by `_open_file`.
 
@@ -2158,9 +2167,6 @@ def read_stata(
         As an example, the following could be passed for Zstandard decompression using a
         custom compression dictionary:
         ``compression={'method': 'zstd', 'dict_data': my_compression_dict}``.
-
-        .. versionadded:: 1.5.0
-            Added support for `.tar` files.
     storage_options : dict, optional
         Extra options that make sense for a particular storage connection, e.g.
         host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
@@ -2285,7 +2291,7 @@ def _convert_datetime_to_stata_type(fmt: str) -> np.dtype:
 def _maybe_convert_to_int_keys(convert_dates: dict, varlist: list[Hashable]) -> dict:
     new_dict = {}
     for key, value in convert_dates.items():
-        if not convert_dates[key].startswith("%"):  # make sure proper fmts
+        if not value.startswith("%"):  # make sure proper fmts
             convert_dates[key] = "%" + value
         if key in varlist:
             new_dict[varlist.index(key)] = convert_dates[key]
@@ -2423,10 +2429,6 @@ class StataWriter(StataParser):
         As an example, the following could be passed for faster compression and to
         create a reproducible gzip archive:
         ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
-
-        .. versionadded:: 1.5.0
-            Added support for `.tar` files.
-
     storage_options : dict, optional
         Extra options that make sense for a particular storage connection, e.g.
         host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
@@ -2441,8 +2443,6 @@ class StataWriter(StataParser):
         Dictionary containing columns as keys and dictionaries of column value
         to labels as values. The combined length of all labels for a single
         variable must be 32,000 characters or smaller.
-
-        .. versionadded:: 1.4.0
 
     Returns
     -------
@@ -3418,8 +3418,6 @@ class StataWriter117(StataWriter):
         to labels as values. The combined length of all labels for a single
         variable must be 32,000 characters or smaller.
 
-        .. versionadded:: 1.4.0
-
     Returns
     -------
     writer : StataWriter117 instance
@@ -3809,8 +3807,6 @@ class StataWriterUTF8(StataWriter117):
         Dictionary containing columns as keys and dictionaries of column value
         to labels as values. The combined length of all labels for a single
         variable must be 32,000 characters or smaller.
-
-        .. versionadded:: 1.4.0
 
     Returns
     -------

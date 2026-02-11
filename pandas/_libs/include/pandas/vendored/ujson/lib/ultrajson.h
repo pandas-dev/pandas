@@ -61,24 +61,24 @@ tree doesn't have cyclic references.
 
 // Max decimals to encode double floating point numbers with
 #ifndef JSON_DOUBLE_MAX_DECIMALS
-#define JSON_DOUBLE_MAX_DECIMALS 15
+#  define JSON_DOUBLE_MAX_DECIMALS 15
 #endif
 
 // Max recursion depth, default for encoder
 #ifndef JSON_MAX_RECURSION_DEPTH
-#define JSON_MAX_RECURSION_DEPTH 1024
+#  define JSON_MAX_RECURSION_DEPTH 1024
 #endif
 
 // Max recursion depth, default for decoder
 #ifndef JSON_MAX_OBJECT_DEPTH
-#define JSON_MAX_OBJECT_DEPTH 1024
+#  define JSON_MAX_OBJECT_DEPTH 1024
 #endif
 
 /*
 Dictates and limits how much stack space for buffers UltraJSON will use before
 resorting to provided heap functions */
 #ifndef JSON_MAX_STACK_BUFFER_SIZE
-#define JSON_MAX_STACK_BUFFER_SIZE 131072
+#  define JSON_MAX_STACK_BUFFER_SIZE 131072
 #endif
 
 #ifdef _WIN32
@@ -93,24 +93,24 @@ typedef unsigned __int16 JSUTF16;
 typedef unsigned __int32 JSUTF32;
 typedef __int64 JSLONG;
 
-#define EXPORTFUNCTION __declspec(dllexport)
+#  define EXPORTFUNCTION __declspec(dllexport)
 
-#define FASTCALL_MSVC __fastcall
+#  define FASTCALL_MSVC __fastcall
 
-#define INLINE_PREFIX static __inline
+#  define INLINE_PREFIX static __inline
 
 #else
 
-#include <stdint.h>
+#  include <stdint.h>
 typedef int64_t JSINT64;
 typedef uint64_t JSUINT64;
 
 typedef int32_t JSINT32;
 typedef uint32_t JSUINT32;
 
-#define FASTCALL_MSVC
+#  define FASTCALL_MSVC
 
-#define INLINE_PREFIX static inline
+#  define INLINE_PREFIX static inline
 
 typedef uint8_t JSUINT8;
 typedef uint16_t JSUTF16;
@@ -118,25 +118,25 @@ typedef uint32_t JSUTF32;
 
 typedef int64_t JSLONG;
 
-#define EXPORTFUNCTION
+#  define EXPORTFUNCTION
 #endif
 
 #if !(defined(__LITTLE_ENDIAN__) || defined(__BIG_ENDIAN__))
 
-#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-#define __LITTLE_ENDIAN__
-#else
+#  if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+#    define __LITTLE_ENDIAN__
+#  else
 
-#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
-#define __BIG_ENDIAN__
-#endif
+#    if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+#      define __BIG_ENDIAN__
+#    endif
 
-#endif
+#  endif
 
 #endif
 
 #if !defined(__LITTLE_ENDIAN__) && !defined(__BIG_ENDIAN__)
-#error "Endianness not supported"
+#  error "Endianness not supported"
 #endif
 
 enum JSTYPES {

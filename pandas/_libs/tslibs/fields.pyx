@@ -146,7 +146,7 @@ def get_date_name_field(
     NPY_DATETIMEUNIT reso=NPY_FR_ns,
 ):
     """
-    Given a int64-based datetime index, return array of strings of date
+    Given an int64-based datetime index, return array of strings of date
     name based on requested field (e.g. day_name)
     """
     cdef:
@@ -335,7 +335,7 @@ def get_date_field(
     NPY_DATETIMEUNIT reso=NPY_FR_ns,
 ):
     """
-    Given a int64-based datetime index, extract the year, month, etc.,
+    Given an int64-based datetime index, extract the year, month, etc.,
     field and return an array of these values.
     """
     cdef:
@@ -502,7 +502,7 @@ def get_timedelta_field(
     NPY_DATETIMEUNIT reso=NPY_FR_ns,
 ):
     """
-    Given a int64-based timedelta index, extract the days, hrs, sec.,
+    Given an int64-based timedelta index, extract the days, hrs, sec.,
     field and return an array of these values.
     """
     cdef:
@@ -555,7 +555,7 @@ def get_timedelta_days(
     NPY_DATETIMEUNIT reso=NPY_FR_ns,
 ):
     """
-    Given a int64-based timedelta index, extract the days,
+    Given an int64-based timedelta index, extract the days,
     field and return an array of these values.
     """
     cdef:
@@ -592,7 +592,7 @@ cpdef isleapyear_arr(ndarray years):
 @cython.boundscheck(False)
 def build_isocalendar_sarray(const int64_t[:] dtindex, NPY_DATETIMEUNIT reso):
     """
-    Given a int64-based datetime array, return the ISO 8601 year, week, and day
+    Given an int64-based datetime array, return the ISO 8601 year, week, and day
     as a structured array.
     """
     cdef:

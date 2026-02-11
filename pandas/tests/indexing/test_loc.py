@@ -333,7 +333,7 @@ class TestLocBaseIndependent:
 
     def test_loc_getitem_dups(self):
         # GH 5678
-        # repeated getitems on a dup index returning a ndarray
+        # repeated getitems on a dup index returning an ndarray
         df = DataFrame(
             np.random.default_rng(2).random((20, 5)),
             index=["ABCDE"[x % 5] for x in range(20)],
@@ -722,7 +722,7 @@ class TestLocBaseIndependent:
         )
 
         df["date_dt"] = to_datetime(df["date"], input_unit="ms", cache=True).dt.as_unit(
-            "ms"
+            "us"
         )
 
         df.loc[:, "date_dt_cp"] = df.loc[:, "date_dt"]
@@ -870,7 +870,7 @@ class TestLocBaseIndependent:
         # multiple setting with frame on rhs (with M8)
         df = DataFrame(
             {
-                "date": date_range("2000-01-01", "2000-01-5"),
+                "date": date_range("2000-01-01", "2000-01-5", unit="ns"),
                 "val": Series(range(5), dtype=np.int64),
             }
         )
@@ -1145,7 +1145,7 @@ class TestLocBaseIndependent:
 
     def test_loc_copy_vs_view(self, request):
         # GH 15631
-        x = DataFrame(zip(range(3), range(3)), columns=["a", "b"])
+        x = DataFrame(zip(range(3), range(3), strict=True), columns=["a", "b"])
 
         y = x.copy()
         q = y.loc[:, "a"]
@@ -1433,7 +1433,7 @@ class TestLocBaseIndependent:
         tm.assert_frame_equal(expected, df)
 
     def test_loc_setitem_categorical_values_partial_column_slice(self):
-        # Assigning a Category to parts of a int/... column uses the values of
+        # Assigning a Category to parts of an int/... column uses the values of
         # the Categorical
         df = DataFrame({"a": [1, 1, 1, 1, 1], "b": list("aaaaa")})
         with pytest.raises(TypeError, match="Invalid value"):
@@ -1825,6 +1825,7 @@ class TestLocWithMultiIndex:
             zip(
                 ["bar", "bar", "baz", "baz", "foo", "foo", "qux", "qux"],
                 ["one", "two", "one", "two", "one", "two", "one", "two"],
+                strict=True,
             ),
             names=["first", "second"],
         )
@@ -1846,7 +1847,7 @@ class TestLocWithMultiIndex:
         # GH 16710
         df = DataFrame(
             {"a": range(10), "b": range(10)},
-            index=date_range("2010-01-01", "2010-01-10"),
+            index=date_range("2010-01-01", "2010-01-10", unit="ns"),
         )
         result = df.loc[["2010-01-01", "2010-01-05"], ["a", "b"]]
         expected = DataFrame(
@@ -2196,7 +2197,7 @@ class TestLocSetitemWithExpansion:
             view = df[:]  # noqa: F841
         df.loc[key, 1] = N
         expected = DataFrame(
-            {0: list(arr) + [np.nan], 1: [np.nan] * N + [float(N)]},
+            {0: [*list(arr), np.nan], 1: [np.nan] * N + [float(N)]},
             index=exp_index,
         )
         tm.assert_frame_equal(df, expected)
@@ -2607,7 +2608,7 @@ class TestLocBooleanMask:
             [0, 1, 2, 10, 4, 5, 6, 7, 8, 9],
             [10, 10, 10, 3, 4, 5, 6, 7, 8, 9],
         ]
-        for cond, data in zip(conditions, expected_data):
+        for cond, data in zip(conditions, expected_data, strict=True):
             result = df.copy()
             result.loc[cond, "x"] = 10
 
@@ -2645,7 +2646,7 @@ class TestLocBooleanMask:
             index=date_range("1/1/2000", periods=3, freq="1h"),
         )
         expected = df.copy()
-        expected["C"] = [expected.index[0]] + [pd.NaT, pd.NaT]
+        expected["C"] = [expected.index[0], pd.NaT, pd.NaT]
 
         mask = df.A < 1
         df.loc[mask, "C"] = df.loc[mask].index
@@ -3164,9 +3165,10 @@ class TestLocSeries:
 
         # non-monotonic, raise KeyError
         s2 = ser.iloc[list(range(5)) + list(range(9, 4, -1))]
-        with pytest.raises(KeyError, match=r"^3$"):
+        msg = "non-monotonic index with a missing label 3"
+        with pytest.raises(KeyError, match=msg):
             s2.loc[3:11]
-        with pytest.raises(KeyError, match=r"^3$"):
+        with pytest.raises(KeyError, match=msg):
             s2.loc[3:11] = 0
 
     def test_loc_getitem_iterator(self, string_series):
@@ -3188,7 +3190,7 @@ class TestLocSeries:
         string_series.loc[inds] = 5
         msg = r"\['foo'\] not in index"
         with pytest.raises(KeyError, match=msg):
-            string_series.loc[inds + ["foo"]] = 5
+            string_series.loc[[*inds, "foo"]] = 5
 
     def test_basic_setitem_with_labels(self, datetime_series):
         indices = datetime_series.index[[5, 10, 15]]

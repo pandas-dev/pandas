@@ -142,7 +142,7 @@ def test_groupby_quantile_with_arraylike_q_and_int_columns(frame_size, groupby, 
         list(range(len(q))) * min(nrow, 4)
     ]
     expected_index = pd.MultiIndex(
-        levels=idx_levels, codes=idx_codes, names=groupby + [None]
+        levels=idx_levels, codes=idx_codes, names=[*groupby, None]
     )
     expected_values = [
         [float(x)] * (ncol - len(groupby)) for x in range(min(nrow, 4)) for _ in q
@@ -363,9 +363,8 @@ def test_groupby_quantile_allNA_column(dtype):
 
 def test_groupby_timedelta_quantile():
     # GH: 29485
-    df = DataFrame(
-        {"value": pd.to_timedelta(np.arange(4), input_unit="s"), "group": [1, 1, 2, 2]}
-    )
+    tdi = pd.to_timedelta(np.arange(4), input_unit="s").as_unit("us")
+    df = DataFrame({"value": tdi, "group": [1, 1, 2, 2]})
     result = df.groupby("group").quantile(0.99)
     expected = DataFrame(
         {
@@ -410,7 +409,7 @@ def test_timestamp_groupby_quantile(unit):
 
 def test_groupby_quantile_dt64tz_period():
     # GH#51373
-    dti = pd.date_range("2016-01-01", periods=1000)
+    dti = pd.date_range("2016-01-01", periods=1000, unit="ns")
     df = pd.Series(dti).to_frame().copy()
     df[1] = dti.tz_localize("US/Pacific")
     df[2] = dti.to_period("D")
