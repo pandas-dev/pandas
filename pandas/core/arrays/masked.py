@@ -1693,9 +1693,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             mapper,
             na_action=na_action,
         )
-        if isinstance(result, np.ndarray):
-            return self._cast_pointwise_result(result)
-        return result
+        return self._cast_pointwise_result(result)
 
     @overload
     def any(

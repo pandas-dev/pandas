@@ -28,7 +28,6 @@ enhancement2
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
-- :meth:`Series.apply` and :meth:`Series.map` now preserve nullable (masked) extension array dtypes where appropriate; e.g. when the result is float, the output dtype is ``Float64`` rather than being cast back to the input dtype (:issue:`63903`).
 - Display formatting for float sequences in DataFrame cells now respects the ``display.precision`` option (:issue:`60503`).
 -
 
@@ -197,7 +196,7 @@ Sparse
 
 ExtensionArray
 ^^^^^^^^^^^^^^
-- Fixed bug in :meth:`Series.apply` and :meth:`Series.map` where nullable integer dtypes were converted to float, causing precision loss for large integers (:issue:`63903`).
+- Fixed bug in :meth:`Series.apply` and :meth:`Series.map` where nullable integer dtypes were converted to float, causing precision loss for large integers; now the nullable dtype will be preserved (:issue:`63903`).
 -
 -
 
