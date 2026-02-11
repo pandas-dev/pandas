@@ -1084,7 +1084,11 @@ class _LocationIndexer(NDFrameIndexerBase):
         # Reverse tuple so that we are indexing along columns before rows
         # and avoid unintended dtype inference. # GH60600
         for i, key in zip(range(len(tup) - 1, -1, -1), reversed(tup), strict=True):
-            if is_label_like(key) or is_list_like(key):
+            if (
+                is_label_like(key)
+                or is_list_like(key)
+                or (isinstance(key, slice) and need_slice(key))
+            ):
                 # We don't need to check for tuples here because those are
                 #  caught by the _is_nested_tuple_indexer check above.
                 section = self._getitem_axis(key, axis=i)
