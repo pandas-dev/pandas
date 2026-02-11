@@ -70,9 +70,9 @@ def test_basic_aggregations(dtype):
     result = grouped.aggregate(lambda x: x * 2)
     expected = Series(
         {
-            0: (data[data.index // 3 == 0] * 2).tolist(),
-            1: (data[data.index // 3 == 1] * 2).tolist(),
-            2: (data[data.index // 3 == 2] * 2).tolist(),
+            0: (data[data.index // 3 == 0] * 2).to_numpy(),
+            1: (data[data.index // 3 == 1] * 2).to_numpy(),
+            2: (data[data.index // 3 == 2] * 2).to_numpy(),
         },
     )
     tm.assert_series_equal(result, expected)
