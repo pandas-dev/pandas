@@ -97,6 +97,8 @@ def data_for_compare(request):
 
 
 class TestSparseArray(base.ExtensionTests):
+    _supports_fillna_copy_false = False
+
     def _supports_reduction(self, obj, op_name: str) -> bool:
         return True
 
@@ -236,21 +238,6 @@ class TestSparseArray(base.ExtensionTests):
 
     def test_fillna_no_op_returns_copy(self, data, request):
         super().test_fillna_no_op_returns_copy(data)
-
-    def test_fillna_readonly(self, data_missing):
-        # copy keyword is ignored by SparseArray.fillna
-        # -> copy=True vs False doesn't make a difference
-        data = data_missing.copy()
-        data._readonly = True
-
-        result = data.fillna(data_missing[1])
-        assert result[0] == data_missing[1]
-        tm.assert_extension_array_equal(data, data_missing)
-
-        # fillna(copy=False) is ignored -> so same result as above
-        result = data.fillna(data_missing[1], copy=False)
-        assert result[0] == data_missing[1]
-        tm.assert_extension_array_equal(data, data_missing)
 
     @pytest.mark.xfail(reason="Unsupported")
     def test_fillna_series(self, data_missing):

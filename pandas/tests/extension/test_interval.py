@@ -82,6 +82,7 @@ def data_for_grouping():
 
 class TestIntervalArray(base.ExtensionTests):
     divmod_exc = TypeError
+    _supports_fillna_copy_false = False
 
     def _supports_reduction(self, ser: pd.Series, op_name: str) -> bool:
         return op_name in ["min", "max"]
@@ -102,10 +103,6 @@ class TestIntervalArray(base.ExtensionTests):
     )
     def test_fillna_length_mismatch(self, data_missing):
         super().test_fillna_length_mismatch(data_missing)
-
-    @pytest.mark.xfail(reason="copy=False is not Implemented")
-    def test_fillna_readonly(self, data_missing):
-        super().test_fillna_readonly(data_missing)
 
     @pytest.mark.filterwarnings(
         "ignore:invalid value encountered in cast:RuntimeWarning"

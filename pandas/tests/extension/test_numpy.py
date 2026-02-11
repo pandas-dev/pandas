@@ -343,11 +343,6 @@ class TestNumpyExtensionArray(base.ExtensionTests):
         super().test_fillna_frame(data_missing)
 
     @skip_nested
-    def test_fillna_readonly(self, data_missing):
-        # Non-scalar "scalar" values.
-        super().test_fillna_readonly(data_missing)
-
-    @skip_nested
     def test_setitem_invalid(self, data, invalid_scalar):
         # object dtype can hold anything, so doesn't raise
         super().test_setitem_invalid(data, invalid_scalar)
