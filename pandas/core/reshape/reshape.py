@@ -185,11 +185,14 @@ class _Unstacker:
         v = self.level
 
         codes = list(self.index.codes)
-        if not self.sort:
-            # Create new codes considering that labels are already sorted
-            codes = [factorize(code)[0] for code in codes]
+
         levs = list(self.index.levels)
         to_sort = codes[:v] + codes[v + 1 :] + [codes[v]]
+
+        if not self.sort:
+            # remap the unstacked level codes to match reordered removed_level
+            to_sort[-1] = factorize(to_sort[-1])[0]
+
         sizes = tuple(len(x) for x in levs[:v] + levs[v + 1 :] + [levs[v]])
 
         comp_index, obs_ids = get_compressed_ids(to_sort, sizes)
@@ -201,9 +204,8 @@ class _Unstacker:
     @cache_readonly
     def sorted_labels(self) -> list[np.ndarray]:
         indexer, to_sort = self._indexer_and_to_sort
-        if self.sort:
-            return [line.take(indexer) for line in to_sort]
-        return to_sort
+
+        return [line.take(indexer) for line in to_sort]
 
     def _make_sorted_values(self, values: np.ndarray) -> np.ndarray:
         indexer, _ = self._indexer_and_to_sort
@@ -233,10 +235,8 @@ class _Unstacker:
 
         self.group_index = comp_index
         self.mask = mask
-        if self.sort:
-            self.compressor = comp_index.searchsorted(np.arange(ngroups))
-        else:
-            self.compressor = np.sort(np.unique(comp_index, return_index=True)[1])
+
+        self.compressor = comp_index.searchsorted(np.arange(ngroups))
 
     @cache_readonly
     def mask_all(self) -> bool:
@@ -433,12 +433,9 @@ class _Unstacker:
     @cache_readonly
     def new_index(self) -> MultiIndex | Index:
         # Does not depend on values or value_columns
-        if self.sort:
-            labels = self.sorted_labels[:-1]
-        else:
-            v = self.level
-            codes = list(self.index.codes)
-            labels = codes[:v] + codes[v + 1 :]
+
+        labels = self.sorted_labels[:-1]  # does not depend on sort
+
         result_codes = [lab.take(self.compressor) for lab in labels]
 
         # construct the new index
