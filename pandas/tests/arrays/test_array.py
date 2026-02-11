@@ -578,6 +578,6 @@ def test_pd_array_structured_masked_array_raises():
     # GH#63879 - structured MaskedArrays should raise (match Series behavior)
     arr = np.array([(1, 2), (2, 3)], dtype="i8,i8")
     ma_arr = np.ma.array(arr, mask=[(False, True), (False, True)])
-    msg = "Structured masked arrays are not supported"
-    with pytest.raises(TypeError, match=msg):
+    msg = "Cannot construct an array from an ndarray with compound dtype"
+    with pytest.raises(ValueError, match=msg):
         pd.array(ma_arr)

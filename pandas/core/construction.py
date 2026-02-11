@@ -316,9 +316,9 @@ def array(
     # GH#63879
     if isinstance(data, ma.MaskedArray):
         if data.dtype.names is not None:
-            raise TypeError(
-                "Structured masked arrays are not supported. "
-                "Use a 1-D masked array instead."
+            raise ValueError(
+                "Cannot construct an array from an ndarray with compound dtype. "
+                "Use DataFrame instead."
             )
         elif data.mask is not np.False_ and ma.getmaskarray(data).any():
             na_dtype = ensure_dtype_can_hold_na(data.dtype)
