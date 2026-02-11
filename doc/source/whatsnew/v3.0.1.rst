@@ -18,6 +18,7 @@ Fixed regressions
 - Fixed regression in :meth:`DataFrame.reindex` when using a string fill value  (:issue:`63993`)
 - Fixed regression in the :class:`DataFrame` and :meth:`DataFrame.from_records` constructor with a list of dicts with a missing value indicator as key (:issue:`63889`)
 - Fixed regression when calling ``numpy.random``'s ``permutation()`` on a (pyarrow-backed) string :class:`Series` (:issue:`63935`)
+- Fixed regression where :meth:`Series.str.contains` and :meth:`Series.str.replace` on pyarrow-backed strings rejected RE2 unicode escapes like ``\x{...}`` and ``\p{...}`` (:issue:`63901`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_301.bugs:
