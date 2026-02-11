@@ -825,6 +825,20 @@ class TestSeriesComparison:
         expected = Series([True, False, False])
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("comparison_op", [operator.eq, operator.ne])
+    def test_comparison_with_na_object_dtype(self, comparison_op):
+        # GH#63328 - NA comparison should propagate NA in results
+        ser = Series([1, 2, pd.NA])
+
+        result = comparison_op(ser, 3)
+
+        if comparison_op is operator.eq:
+            expected = Series([False, False, pd.NA], dtype="boolean")
+        else:
+            expected = Series([True, True, pd.NA], dtype="boolean")
+
+        tm.assert_series_equal(result, expected)
+
 
 # ------------------------------------------------------------------
 # Unsorted
