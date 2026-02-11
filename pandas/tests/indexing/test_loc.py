@@ -2229,6 +2229,63 @@ class TestLocSetitemWithExpansion:
         assert expected.dtypes["B"] == val.dtype
         tm.assert_frame_equal(df, expected)
 
+    def test_loc_setitem_tzaware_scalar_with_expansion(self):
+        # GH#55423
+        from datetime import timezone
+        from pandas import DatetimeTZDtype
+
+        df = DataFrame([{"id": 1}, {"id": 2}, {"id": 3}])
+        _time = datetime.fromtimestamp(1695887042, tz=timezone.utc)
+
+        # Assignment via .loc
+        df.loc[df.id >= 2, "time"] = _time
+
+        # Check dtype
+        assert isinstance(df["time"].dtype, DatetimeTZDtype)
+        assert str(df["time"].dtype.tz) == "UTC"
+
+        # Check values
+        expected = DataFrame(
+            {
+                "id": [1, 2, 3],
+                "time": [pd.NaT, _time, _time],
+            }
+        )
+        # Check frame equality (including dtypes)
+        tm.assert_frame_equal(df, expected)
+
+    def test_loc_setitem_different_timezone(self):
+        # GH#55423
+        df = DataFrame([{"id": 1}, {"id": 2}, {"id": 3}])
+        _time = Timestamp("2023-01-01 12:00", tz="Europe/London")
+        df.loc[df.id >= 2, "time"] = _time
+
+        assert pd.api.types.is_datetime64tz_dtype(df["time"])
+        assert str(df["time"].dtype.tz) == "Europe/London"
+
+    def test_loc_setitem_series_with_expansion(self):
+        # GH#55423
+        df = DataFrame([{"id": 1}, {"id": 2}, {"id": 3}])
+        _times = Series(
+            [Timestamp("2023-01-01", tz="UTC"), Timestamp("2023-01-02", tz="UTC")],
+            index=[1, 2],
+        )
+        df.loc[df.id >= 2, "time"] = _times
+
+        assert pd.api.types.is_datetime64tz_dtype(df["time"])
+        assert df["time"].iloc[1] == _times.iloc[0]
+        assert df["time"].iloc[2] == _times.iloc[1]
+
+    def test_loc_setitem_existing_column_with_nat(self):
+        # GH#55423
+        df = DataFrame({"id": [1, 2, 3], "time": Series([pd.NaT]*3, dtype="datetime64[ns, UTC]")})
+        _time = Timestamp("2023-01-01", tz="UTC")
+        df.loc[df.id >= 2, "time"] = _time
+
+        assert pd.api.types.is_datetime64tz_dtype(df["time"])
+        expected = Series([pd.NaT, _time, _time], dtype="datetime64[ns, UTC]", name="time")
+        tm.assert_series_equal(df["time"], expected)
+
 
 class TestLocCallable:
     def test_frame_loc_getitem_callable(self):
