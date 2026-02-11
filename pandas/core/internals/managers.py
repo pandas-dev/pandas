@@ -955,17 +955,15 @@ class BaseBlockManager(PandasObject):
         for blkno, mgr_locs in libinternals.get_blkno_placements(blknos, group=group):
             if blkno == -1:
                 # If we've got here, fill_value was not lib.no_default
-                # GH#63993: Handle 1D-only extension dtypes by creating separate blocks
-                dtype, _ = infer_dtype_from_scalar(fill_value)
 
-                # Determine placements: separate blocks for 1D-only dtypes with
-                # multiple columns
+                dtype, _ = infer_dtype_from_scalar(fill_value)
                 if is_1d_only_ea_dtype(dtype) and len(mgr_locs) > 1:
+                    # Handle 1D-only extension dtypes by creating separate blocks
+                    # (GH#63993)
                     placements = [BlockPlacement(col_idx) for col_idx in mgr_locs]
                 else:
                     placements = [mgr_locs]
 
-                # Create blocks using the determined placements
                 for placement in placements:
                     yield self._make_na_block(
                         placement=placement,

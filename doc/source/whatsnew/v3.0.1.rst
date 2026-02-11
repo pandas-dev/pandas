@@ -14,6 +14,7 @@ including other versions of pandas.
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 - Fixed regression in :meth:`DataFrame.groupby` and :meth:`Series.groupby` when grouping on categorical data with NA values, ``observed=False``, and ``dropna=True`` (:issue:`52445`)
+- Fixed regression in :meth:`DataFrame.reindex` when using a string fill value  (:issue:`63993`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_301.bugs:
