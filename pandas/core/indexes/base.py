@@ -1663,9 +1663,9 @@ class Index(IndexOpsMixin, PandasObject):
         index : bool, default True
             Set the index of the returned DataFrame as the original Index.
 
-        name : Hashable, default lib.no_default
+        name : Hashable, defaults to index.name
             The passed name should substitute for the index name (if it has
-            one). If not specified, the index's own name is used.
+            one).
 
         Returns
         -------
