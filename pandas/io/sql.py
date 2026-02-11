@@ -163,6 +163,9 @@ def _convert_arrays_to_dataframe(
     coerce_float: bool = True,
     dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
 ) -> DataFrame:
+    # GH#53028 - handle cursors that return dictionaries
+    if data and len(data) > 0 and is_dict_like(data[0]):
+        data = [tuple(row[col] for col in columns) for row in data]
     content = lib.to_object_array_tuples(data)
     idx_len = content.shape[0]
     arrays = convert_object_array(
