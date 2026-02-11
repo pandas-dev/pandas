@@ -806,3 +806,18 @@ class TestSeriesInterpolateData:
         result = ser.interpolate(method="nearest", fill_value=0)
         expected = Series([np.nan, 0, 1, 1, 3, 0])
         tm.assert_series_equal(result, expected)
+
+    def test_interpolate_integer_dtype_error_message(self):
+        # GH#41565
+        # Test that interpolating an integer Series with method='linear' provides
+        # a helpful error message suggesting the limitation and workaround
+        s = Series([1, None, 3], dtype=pd.Int64Dtype())
+        msg = (
+            r"Invalid fill method\. Expecting pad \(ffill\) or backfill \(bfill\)\. "
+            r"Got linear\. Note: interpolation methods like 'linear' are not supported "
+            r"for integer dtypes\. Integer columns only support 'pad' \(ffill\) and "
+            r"'backfill' \(bfill\) methods\. Consider converting to float dtype "
+            r"if you need to use interpolation\."
+        )
+        with pytest.raises(ValueError, match=msg):
+            s.interpolate(method="linear")
