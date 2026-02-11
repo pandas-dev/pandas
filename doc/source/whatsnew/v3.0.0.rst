@@ -1253,6 +1253,7 @@ Numeric
 Conversion
 ^^^^^^^^^^
 - :func:`to_numeric` on big integers converts to ``object`` datatype with python integers when not coercing. (:issue:`51295`)
+- Bug in :meth:`ArrowDtype._get_common_dtype` and :meth:`ExtentionDtype._get_common_dtype` when using ``date32[pyarrow]`` and ``date64[pyarrow]`` types (:issue:`62343`)
 - Bug in :meth:`DataFrame.astype` not casting ``values`` for Arrow-based dictionary dtype correctly (:issue:`58479`)
 - Bug in :meth:`DataFrame.update` bool dtype being converted to object (:issue:`55509`)
 - Bug in :meth:`Series.astype` might modify read-only array inplace when casting to a string dtype (:issue:`57212`)
