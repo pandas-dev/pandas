@@ -60,6 +60,7 @@ from pandas.core.arrays import (
     TimedeltaArray,
 )
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
+from pandas.core.arrays.masked import BaseMaskedArray
 from pandas.core.arrays.string_ import StringDtype
 from pandas.core.indexes.api import safe_sort_index
 
@@ -1041,6 +1042,46 @@ def assert_series_equal(
                 index_values=left.index,
                 obj=str(obj),
             )
+        elif (
+            isinstance(left_values, BaseMaskedArray)
+            and not isinstance(right_values, ExtensionArray)
+        ) or (
+            isinstance(right_values, BaseMaskedArray)
+            and not isinstance(left_values, ExtensionArray)
+        ):
+            # GH#61473 - Mixed BaseMaskedArray/ndarray with check_exact
+            # Compare NA masks separately and valid values as objects
+            if isinstance(left_values, BaseMaskedArray):
+                left_na = np.asarray(left_values.isna())
+                left_valid = left_values[~left_na].to_numpy(dtype=object)
+            else:
+                left_na = np.asarray(pd.isna(left_values))
+                left_valid = np.asarray(left_values)[~left_na]
+
+            if isinstance(right_values, BaseMaskedArray):
+                right_na = np.asarray(right_values.isna())
+                right_valid = right_values[~right_na].to_numpy(dtype=object)
+            else:
+                right_na = np.asarray(pd.isna(right_values))
+                right_valid = np.asarray(right_values)[~right_na]
+
+            # Compare NA masks
+            assert_numpy_array_equal(
+                left_na,
+                right_na,
+                obj=f"{obj} NA mask",
+                index_values=left.index,
+            )
+
+            # Compare valid values
+            if len(left_valid) > 0:
+                assert_numpy_array_equal(
+                    left_valid,
+                    right_valid,
+                    check_dtype=check_dtype,
+                    obj=str(obj),
+                    index_values=left.index[~left_na],
+                )
         else:
             # convert both to NumPy if not, check_dtype would raise earlier
             lv, rv = left_values, right_values
@@ -1117,6 +1158,51 @@ def assert_series_equal(
             index_values=left.index,
             obj=str(obj),
         )
+    elif (
+        isinstance(left._values, BaseMaskedArray)
+        and not isinstance(right._values, ExtensionArray)
+    ) or (
+        isinstance(right._values, BaseMaskedArray)
+        and not isinstance(left._values, ExtensionArray)
+    ):
+        # GH#61473 - Handle mixed BaseMaskedArray/ndarray comparison
+        # Convert both to object arrays preserving NA identity
+        left_vals = left._values
+        right_vals = right._values
+
+        if isinstance(left_vals, BaseMaskedArray):
+            left_na = left_vals.isna()
+            left_valid = left_vals[~left_na].to_numpy(dtype=object)
+        else:
+            left_na = pd.isna(left_vals)
+            left_valid = np.asarray(left_vals)[~left_na]
+
+        if isinstance(right_vals, BaseMaskedArray):
+            right_na = right_vals.isna()
+            right_valid = right_vals[~right_na].to_numpy(dtype=object)
+        else:
+            right_na = pd.isna(right_vals)
+            right_valid = np.asarray(right_vals)[~right_na]
+
+        # Compare NA masks
+        assert_numpy_array_equal(
+            np.asarray(left_na),
+            np.asarray(right_na),
+            obj=f"{obj} NA mask",
+            index_values=left.index,
+        )
+
+        # Compare valid values
+        if len(left_valid) > 0:
+            _testing.assert_almost_equal(
+                left_valid,
+                right_valid,
+                rtol=rtol,
+                atol=atol,
+                check_dtype=bool(check_dtype),
+                obj=str(obj),
+                index_values=left.index[~np.asarray(left_na)],
+            )
     else:
         _testing.assert_almost_equal(
             left._values,
