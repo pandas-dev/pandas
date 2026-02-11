@@ -6,6 +6,7 @@ import numpy as np
 
 from pandas import (
     NA,
+    ArrowDtype,
     Categorical,
     DataFrame,
     Index,
@@ -1150,6 +1151,56 @@ class Resample:
         self.df_multiindex.groupby(level="groups").resample(
             "10s", level="timedeltas"
         ).mean()
+
+
+class GroupByAggregateArrowDtypes:
+    param_names = ["dtype", "method"]
+    params = [
+        [
+            "int32[pyarrow]",
+            "int64[pyarrow]",
+            "float32[pyarrow]",
+            "float64[pyarrow]",
+            "decimal128",
+            "string[pyarrow]",
+        ],
+        ["sum", "prod", "min", "max", "mean", "std", "var", "count"],
+    ]
+
+    # String types only support min, max, count
+    _string_unsupported = {"sum", "prod", "mean", "std", "var"}
+
+    def setup(self, dtype, method):
+        import pyarrow as pa
+
+        from pandas.api.types import is_string_dtype
+
+        if dtype == "string[pyarrow]" and method in self._string_unsupported:
+            raise NotImplementedError("skipped")
+
+        size = 100_000
+        ngroups = 1000
+
+        if dtype in ("int32[pyarrow]", "int64[pyarrow]"):
+            data = np.random.randint(0, 10_000, size)
+        elif dtype in ("float32[pyarrow]", "float64[pyarrow]"):
+            data = np.random.randn(size)
+        elif dtype == "decimal128":
+            from decimal import Decimal
+
+            data = [Decimal(str(round(x, 3))) for x in np.random.randn(size)]
+            dtype = ArrowDtype(pa.decimal128(10, 3))
+        elif dtype == "string[pyarrow]":
+            data = np.random.choice(list(ascii_letters), size)
+
+        ser = Series(data, dtype=dtype)
+        if not is_string_dtype(ser.dtype):
+            ser.iloc[::10] = NA
+        self.ser = ser
+        self.key = np.random.randint(0, ngroups, size)
+
+    def time_series_agg(self, dtype, method):
+        self.ser.groupby(self.key).agg(method)
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip
