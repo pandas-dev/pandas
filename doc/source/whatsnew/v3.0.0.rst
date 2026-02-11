@@ -1221,6 +1221,7 @@ Timedelta
 ^^^^^^^^^
 - Accuracy improvement in :meth:`Timedelta.to_pytimedelta` to round microseconds consistently for large nanosecond based Timedelta (:issue:`57841`)
 - Bug in :class:`Timedelta` constructor failing to raise when passed an invalid keyword (:issue:`53801`)
+- Bug in :class:`pandas.tseries.offsets.DateOffset` where ``DateOffset(1)`` and ``DateOffset(days=1)`` returned different results near daylight saving time transitions. (:issue:`61862`)
 - Bug in :meth:`DataFrame.cumsum` which was raising ``IndexError`` if dtype is ``timedelta64[ns]`` (:issue:`57956`)
 - Bug in adding or subtracting a :class:`Timedelta` object with non-nanosecond unit to a python ``datetime.datetime`` object giving incorrect results; this now works correctly for Timedeltas inside the ``datetime.timedelta`` implementation bounds (:issue:`53643`)
 - Bug in multiplication operations with ``timedelta64`` dtype failing to raise ``TypeError`` when multiplying by ``bool`` objects or dtypes (:issue:`58054`)
