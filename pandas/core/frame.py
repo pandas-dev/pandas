@@ -18310,7 +18310,11 @@ class DataFrame(NDFrame, OpsMixin):
         setattr(new_obj, axis_name, new_ax)
         return new_obj
 
-    def isin(self, values: Series | DataFrame | Sequence | Mapping) -> DataFrame:
+    def isin(
+        self,
+        values: Series | DataFrame | Sequence | Mapping,
+        ignore_index: bool = False,
+    ) -> DataFrame:
         """
         Whether each element in the DataFrame is contained in values.
 
@@ -18318,10 +18322,26 @@ class DataFrame(NDFrame, OpsMixin):
         ----------
         values : iterable, Series, DataFrame or dict
             The result will only be true at a location if all the
-            labels match. If `values` is a Series, that's the index. If
-            `values` is a dict, the keys must be the column names,
-            which must match. If `values` is a DataFrame,
-            then both the index and column labels must match.
+            labels match.
+
+            - If `values` is a Series, the index labels must match.
+            - If `values` is a dict, the keys must be column names,
+              which must match.
+            - If `values` is a DataFrame:
+
+              * When ``ignore_index=False`` (default), both the index
+                and column labels must match, and comparison is done
+                elementwise.
+              * When ``ignore_index=True``, only column labels must
+                match. Each element in the DataFrame is compared
+                against the set of values in the corresponding column
+                of ``values``, ignoring row index alignment.
+
+        ignore_index : bool, default False
+            *Only valid when `values` is a DataFrame.*
+            If True, ignore index alignment and simply check
+            if each value in each column occurs in the same
+            column of `values`.
 
         Returns
         -------
@@ -18338,8 +18358,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         Notes
         -----
-            ``__iter__`` is used (and not ``__contains__``) to iterate over values
-            when checking if it contains the elements in DataFrame.
+        ``__iter__`` is used (and not ``__contains__``) to iterate over values
+        when checking if it contains the elements in DataFrame.
 
         Examples
         --------
@@ -18402,9 +18422,12 @@ class DataFrame(NDFrame, OpsMixin):
                 raise ValueError("cannot compute isin with a duplicate axis.")
             result = self.eq(values.reindex_like(self), axis="index")
         elif isinstance(values, DataFrame):
-            if not (values.columns.is_unique and values.index.is_unique):
-                raise ValueError("cannot compute isin with a duplicate axis.")
-            result = self.eq(values.reindex_like(self))
+            if ignore_index:
+                result = self.isin(values.to_dict("list"))
+            else:
+                if not (values.columns.is_unique and values.index.is_unique):
+                    raise ValueError("cannot compute isin with a duplicate axis.")
+                result = self.eq(values.reindex_like(self))
         else:
             if not is_list_like(values):
                 raise TypeError(
