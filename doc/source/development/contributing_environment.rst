@@ -39,7 +39,7 @@ Alternatively, you can install the necessary components on the commandline using
 Alternatively, you could use the `WSL <https://learn.microsoft.com/en-us/windows/wsl/install>`_
 and consult the ``Linux`` instructions below.
 
-Macos
+MacOS
 ~~~~~
 
 To use the :ref:`conda <contributing.conda>`-based compilers, you will need to install the
