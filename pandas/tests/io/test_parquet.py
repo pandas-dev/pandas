@@ -248,6 +248,20 @@ def check_partition_names(path, expected):
     assert dataset.partitioning.schema.names == expected
 
 
+def test_read_parquet_invalid_path_types(tmp_path, engine):
+    # GH #62922
+    df = pd.DataFrame({"a": [1]})
+    path = tmp_path / "test_read_parquet.parquet"
+    df.to_parquet(path, engine=engine)
+
+    msg = (
+        f"read_parquet expected str/os.PathLike or file-like object, "
+        f"got list type"
+    )
+    with pytest.raises(TypeError, match=msg):
+        read_parquet([str(path)], engine=engine)
+
+
 def test_invalid_engine(df_compat, temp_file):
     msg = "engine must be one of 'pyarrow', 'fastparquet'"
     with pytest.raises(ValueError, match=msg):
