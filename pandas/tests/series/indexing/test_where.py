@@ -445,3 +445,94 @@ def test_where_datetimelike_categorical(tz_naive_fixture):
     res = pd.DataFrame(lvals).where(mask[:, None], pd.DataFrame(rvals))
 
     tm.assert_frame_equal(res, pd.DataFrame(dr))
+
+
+@pytest.mark.parametrize(
+    "original,conditional,inplace,expected",
+    [
+        (
+            [[0.0, 0.5, 0.0], [0.1, 0.0, 0.2], [0.2, 0.0, 0.0]],
+            [True, True, False],
+            False,
+            [[0.0, 0.5, np.nan], [0.1, 0.0, np.nan], [0.2, 0.0, np.nan]],
+        ),
+        (
+            [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]],
+            [True, False, True],
+            False,
+            [[1.0, np.nan, 3.0], [4.0, np.nan, 6.0], [7.0, np.nan, 9.0]],
+        ),
+        (
+            [[0.0, 0.5, 0.0], [0.1, 0.0, 0.2], [0.2, 0.0, 0.0]],
+            [True, True, False],
+            True,
+            [[0.0, 0.5, np.nan], [0.1, 0.0, np.nan], [0.2, 0.0, np.nan]],
+        ),
+        (
+            [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]],
+            [True, False, True],
+            True,
+            [[1.0, np.nan, 3.0], [4.0, np.nan, 6.0], [7.0, np.nan, 9.0]],
+        ),
+    ],
+)
+def test_where_axis1(original, conditional, inplace, expected):
+    # GH 58190, 58144
+    A = pd.DataFrame(original)
+    expected = pd.DataFrame(expected)
+
+    if inplace:
+        A.where(Series(conditional), axis=1, inplace=True)
+        tm.assert_frame_equal(A, expected)
+    else:
+        res = A.where(Series(conditional), axis=1)
+        tm.assert_frame_equal(res, expected, check_dtype=False)
+
+
+@pytest.mark.parametrize(
+    "original,conditional,expected",
+    [
+        (
+            [
+                ["2001-02-03", "2001-02-04", "2001-02-05"],
+                ["2002-02-03", "2002-02-04", "2002-02-05"],
+                ["2003-02-03", "2003-02-04", "2003-02-05"],
+            ],
+            [True, True, False],
+            [
+                ["2001-02-03", "2001-02-04", pd.NaT],
+                ["2002-02-03", "2002-02-04", pd.NaT],
+                ["2003-02-03", "2003-02-04", pd.NaT],
+            ],
+        ),
+    ],
+)
+def test_where_axis1_datetime(original, conditional, expected):
+    A = pd.DataFrame(original).apply(pd.to_datetime)
+    expected = pd.DataFrame(expected).apply(pd.to_datetime)
+    res = A.where(Series(conditional), axis=1)
+    tm.assert_frame_equal(res, expected)
+
+
+@pytest.mark.parametrize(
+    "dtype,original,conditional,expected",
+    [
+        (
+            "Int64",
+            [[1, 2, 3], [4, 5, 6], [7, 8, 9]],
+            [True, False, True],
+            [[1, pd.NA, 3], [4, pd.NA, 6], [7, pd.NA, 9]],
+        ),
+        (
+            "Float64",
+            [[1, 2, 3], [4, 5, 6], [7, 8, 9]],
+            [True, False, True],
+            [[1, pd.NA, 3], [4, pd.NA, 6], [7, pd.NA, 9]],
+        ),
+    ],
+)
+def test_where_axis1_special_dtypes(dtype, original, conditional, expected):
+    A = pd.DataFrame(original, dtype=dtype)
+    expected = pd.DataFrame(expected, dtype=dtype)
+    res = A.where(Series(conditional), axis=1)
+    tm.assert_frame_equal(res, expected)
