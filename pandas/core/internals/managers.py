@@ -956,11 +956,20 @@ class BaseBlockManager(PandasObject):
             if blkno == -1:
                 # If we've got here, fill_value was not lib.no_default
 
-                yield self._make_na_block(
-                    placement=mgr_locs,
-                    fill_value=fill_value,
-                    use_na_proxy=use_na_proxy,
-                )
+                dtype, _ = infer_dtype_from_scalar(fill_value)
+                if is_1d_only_ea_dtype(dtype) and len(mgr_locs) > 1:
+                    # Handle 1D-only extension dtypes by creating separate blocks
+                    # (GH#63993)
+                    placements = [BlockPlacement(col_idx) for col_idx in mgr_locs]
+                else:
+                    placements = [mgr_locs]
+
+                for placement in placements:
+                    yield self._make_na_block(
+                        placement=placement,
+                        fill_value=fill_value,
+                        use_na_proxy=use_na_proxy,
+                    )
             else:
                 blk = self.blocks[blkno]
 
