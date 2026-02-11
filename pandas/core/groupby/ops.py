@@ -16,6 +16,7 @@ from typing import (
     Generic,
     final,
 )
+import warnings
 
 import numpy as np
 
@@ -31,8 +32,12 @@ from pandas._typing import (
     Shape,
     npt,
 )
-from pandas.errors import AbstractMethodError
+from pandas.errors import (
+    AbstractMethodError,
+    Pandas4Warning,
+)
 from pandas.util._decorators import cache_readonly
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
     maybe_downcast_to_dtype,
@@ -89,7 +94,7 @@ def check_result_array(obj, dtype) -> None:
             raise ValueError("Must produce aggregated value")
 
 
-def extract_result(res):
+def extract_result(res, warn: bool):
     """
     Extract the result object, it might be a 0-dim ndarray
     or a len-1 0-dim, or a scalar
@@ -98,6 +103,14 @@ def extract_result(res):
         # Preserve EA
         res = res._values
         if res.ndim == 1 and len(res) == 1:
+            if warn:
+                warnings.warn(
+                    "Converting a Series or array of length 1 into a scalar is "
+                    "deprecated and will be removed in a future version. If you wish "
+                    "to preserve the current behavior, have ``func`` return scalars.",
+                    category=Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
             # see test_agg_lambda_with_timezone, test_resampler_grouper.py::test_apply
             res = res[0]
     return res
@@ -600,6 +613,7 @@ class BaseGrouper:
         self._groupings = groupings
         self._sort = sort
         self.dropna = dropna
+        self._is_resample = False
 
     @property
     def groupings(self) -> list[grouper.Grouping]:
@@ -999,7 +1013,7 @@ class BaseGrouper:
 
         for i, group in enumerate(splitter):
             res = func(group)
-            res = extract_result(res)
+            res = extract_result(res, warn=not self._is_resample)
 
             if not initialized:
                 # We only do this validation on the first iteration
