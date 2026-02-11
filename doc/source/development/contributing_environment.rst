@@ -76,8 +76,8 @@ instructions.
 Let us know if you have any difficulties by opening an issue or reaching out on our contributor
 community :ref:`Slack <community.slack>`.
 
-Step 2: create an virtual environment
--------------------------------------
+Step 2: create a virtual environment
+------------------------------------
 
 Before proceeding:
 
@@ -160,7 +160,7 @@ should already exist.
 Step 3: build and install pandas
 --------------------------------
 
-pandas uses the `Meson <https://mesonbuild.com/>`_ build backend via a `PEP 517 <https://peps.python.org/pep-0517/>`_
+pandas uses the `Meson <https://mesonbuild.com/>`_ build backend via `PEP 517 <https://peps.python.org/pep-0517/>`_
 to build the C extensions and install the library.
 
 To compile and install pandas in editable mode, run:
