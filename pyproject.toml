@@ -590,6 +590,7 @@ module = [
   "pandas.core.indexing", # TODO
   "pandas.core.missing", # TODO
   "pandas.core.nanops", # TODO
+  "pandas.core.nanops_numba", # TODO
   "pandas.core.resample", # TODO
   "pandas.core.roperator", # TODO
   "pandas.core.sample", # TODO
@@ -634,6 +635,10 @@ module = [
 disallow_untyped_calls = false
 disallow_untyped_defs = false
 disallow_incomplete_defs = false
+
+[[tool.mypy.overrides]]
+  module = "pandas.core.nanops_numba"
+  disable_error_code = ["unused-ignore"]
 
 [[tool.mypy.overrides]]
 module = [
