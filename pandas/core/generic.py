@@ -2898,6 +2898,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Not all datastores support ``method="multi"``. Oracle, for example,
         does not support multi-value insert.
 
+        When using SQL Server with pyodbc, datetime precision may be lost when
+        writing to local temporary tables (names starting with ``#``). To avoid
+        this, add ``UseFMTONLY=Yes`` to the connection string. See
+        :ref:`io.sql_datetime_data` for details.
+
         References
         ----------
         .. [1] https://docs.sqlalchemy.org
