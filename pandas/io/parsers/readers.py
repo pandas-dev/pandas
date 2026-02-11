@@ -448,8 +448,8 @@ def read_csv(
         specify row locations for a :class:`~pandas.MultiIndex` on the columns
         e.g. ``[0, 1, 3]``. Intervening rows that are not specified will be
         skipped (e.g. 2 in this example is skipped). Note that this
-        parameter ignores commented lines and empty lines if
-        ``skip_blank_lines=True``, so ``header=0`` denotes the first line of
+        parameter ignores commented lines, empty lines if
+        ``skip_blank_lines=True``, and skipped rows if ``skiprows > 0``, so ``header=0`` denotes the first line of
         data rather than the first line of the file.
 
         When inferred from the file contents, headers are kept distinct from
@@ -545,6 +545,7 @@ def read_csv(
 
         * To read rows 1,000,000 through 1,999,999:
           ``read_csv(..., skiprows=1000000, nrows=999999)``
+          Note that you'll need to specify column names for this call to avoid interpreting line 1,000,000 as a header row.
 
     na_values : Hashable, Iterable of Hashable or dict of {{Hashable : Iterable}},
         optional
