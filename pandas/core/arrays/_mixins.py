@@ -210,7 +210,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
 
     def _cast_pointwise_result(self, values: ArrayLike) -> ArrayLike:
         if not (isinstance(values, np.ndarray) and values.dtype == object):
-            values = construct_1d_object_array_from_listlike(values)
+            values = construct_1d_object_array_from_listlike(values)  # type: ignore[arg-type]
         return lib.maybe_convert_objects(values, convert_non_numeric=True)
 
     # Signature of "argmin" incompatible with supertype "ExtensionArray"
