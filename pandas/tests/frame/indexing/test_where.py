@@ -1087,10 +1087,6 @@ def test_where_inplace_string_array_consistency():
 
 
 @pytest.mark.parametrize(
-    "dtype",
-    ["string", pytest.param("string[pyarrow]", marks=td.skip_if_no("pyarrow"))],
-)
-@pytest.mark.parametrize(
     "other, expected",
     [
         (["a", "b", "c"], ["x", "b", "z"]),
@@ -1098,7 +1094,8 @@ def test_where_inplace_string_array_consistency():
         (["a", None, "c"], ["x", None, "z"]),
     ],
 )
-def test_where_string_listlike_other(dtype, other, expected):
+def test_where_string_listlike_other(any_string_dtype, other, expected):
+    dtype = any_string_dtype
     df = DataFrame({"A": Series(["x", "y", "z"], dtype=dtype)})
     cond = Series([True, False, True])
 
