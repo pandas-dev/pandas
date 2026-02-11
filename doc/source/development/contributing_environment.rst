@@ -177,8 +177,8 @@ Helpful options include:
 * ``-Csetup-args="-Ddebug=true"``: Compile the C extensions with debug symbols.
 
 .. note::
-   When pandas is installed in ``--editable`` mode, pandas will automatically rebuild the library upon ``import``.
-   You may see build logs when the ``import`` is executed.
+   When pandas is installed in ``--editable`` mode, pandas will automatically rebuild the library upon ``import``,
+   and build logs will show if ``-Ceditable-verbose=true`` is passed as well.
 
 Now, pandas has been installed into your virtual environment, and the version number will
 reflect that it's a development version with a reference to the latest Git hash from which pandas was built.
