@@ -509,6 +509,7 @@ def array_to_timedelta64(
                     ival = _numeric_to_td64ns(item, parsed_unit, NPY_FR_ns)
 
                     item_reso = NPY_FR_ns
+                    int_reso = NPY_FR_ns
                     state.update_creso(item_reso)
                     if infer_reso:
                         creso = state.creso

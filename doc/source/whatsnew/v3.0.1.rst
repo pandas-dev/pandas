@@ -13,6 +13,7 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
+- Fixed regression in :func:`to_timedelta` when converting a list with float and int (:issue:`64044`)
 - Fixed regression in :meth:`DataFrame.groupby` and :meth:`Series.groupby` when grouping on categorical data with NA values, ``observed=False``, and ``dropna=True`` (:issue:`52445`)
 - Fixed regression in :meth:`DataFrame.reindex` when using a string fill value  (:issue:`63993`)
 - Fixed regression in the :class:`DataFrame` and :meth:`DataFrame.from_records` constructor with a list of dicts with a missing value indicator as key (:issue:`63889`)
