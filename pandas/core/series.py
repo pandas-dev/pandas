@@ -6989,7 +6989,20 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         this_vals, other_vals = ops.fill_binop(this._values, other._values, fill_value)
 
         with np.errstate(all="ignore"):
-            result = func(this_vals, other_vals)
+            # GH#63250: Use arithmetic_op for arithmetic operations to ensure
+            # consistent behavior with dunder methods (includes _bool_arith_check)
+            # But use direct func call for comparison operations (gt, lt, etc.)
+            if func in (
+                operator.gt,
+                operator.ge,
+                operator.lt,
+                operator.le,
+                operator.eq,
+                operator.ne,
+            ):
+                result = func(this_vals, other_vals)
+            else:
+                result = ops.arithmetic_op(this_vals, other_vals, func)
 
         name = ops.get_op_result_name(self, other)
 
