@@ -38,7 +38,7 @@ except ImportError:
     HAS_PYARROW = False
 
 
-def _safe_fill_null(arr: pa.Array, fill_value: object) -> pa.Array:
+def _safe_fill_null(arr: pa.Array, fill_value) -> pa.Array:
     """
     Safe wrapper for pyarrow.compute.fill_null with fallback for Windows + pyarrow 21.
 
