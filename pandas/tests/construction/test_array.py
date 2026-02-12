@@ -4,12 +4,15 @@ import pandas as pd
 import pandas._testing as tm
 
 
-@pytest.mark.parametrize("data", [
-    ["a", None],        # Original case
-    [None, None],       # All nulls
-    [],                 # Empty list
-    ["", None],         # Empty string and null
-])
+@pytest.mark.parametrize(
+    "data",
+    [
+        ["a", None],  # Original case
+        [None, None],  # All nulls
+        [],  # Empty list
+        ["", None],  # Empty string and null
+    ],
+)
 def test_string_array_construction_consistency_with_series(data):
     # GH#57702: Ensure pd.array and pd.Series(data).values are consistent
     # for StringDtype(storage="python")
