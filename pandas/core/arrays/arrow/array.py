@@ -58,7 +58,10 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
+    DatetimeTZDtype,
+)
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import (
@@ -93,8 +96,6 @@ from pandas.tseries.frequencies import to_offset
 if HAS_PYARROW:
     import pyarrow as pa
     import pyarrow.compute as pc
-
-    from pandas.core.dtypes.dtypes import ArrowDtype
 
     ARROW_CMP_FUNCS = {
         "eq": pc.equal,
