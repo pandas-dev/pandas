@@ -429,11 +429,12 @@ For example, the following would always have given nanosecond resolution previou
 but now infer:
 
 .. ipython:: python
+   :okwarning:
 
     # parsing strings
     print(pd.to_datetime(["2024-03-22 11:36"]).dtype)
     # converting integers
-    print(pd.to_datetime([0], "s").dtype)
+    print(pd.to_datetime([0], unit="s").dtype)
     # converting stdlib datetime object
     dt = pd.Timestamp("2024-03-22 11:36").to_pydatetime()
     print(pd.to_datetime([dt]).dtype)
