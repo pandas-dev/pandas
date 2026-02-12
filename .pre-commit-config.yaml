@@ -16,7 +16,7 @@ ci:
     autofix_prs: false
     autoupdate_schedule: monthly
     # manual stage hooks
-    skip: [pyright, mypy]
+    skip: [pyright, mypy, ty]
 repos:
 -   repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.14.14
@@ -146,6 +146,14 @@ repos:
         pass_filenames: false
         types: [pyi]
         args: [scripts/run_stubtest.py]
+        stages: [manual]
+    -   id: ty
+        # note: assumes python env is setup and activated
+        name: ty
+        entry: ty check
+        language: system
+        pass_filenames: false
+        types: [python]
         stages: [manual]
     -   id: inconsistent-namespace-usage
         name: 'Check for inconsistent use of pandas namespace'
