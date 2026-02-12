@@ -186,7 +186,6 @@ Groupby/resample/rolling
 
 Reshaping
 ^^^^^^^^^
-- Fixed bug in :func:`merge` where NaN values in Arrow string dtype join keys were incorrectly matched with non-NaN values (:issue:`64060`)
 - In :func:`pivot_table`, when ``values`` is empty, the aggregation will be computed on a Series of all NA values (:issue:`46475`)
 -
 

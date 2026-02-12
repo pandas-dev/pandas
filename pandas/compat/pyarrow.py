@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import sys
 
-import numpy as np
-
 from pandas.util.version import Version
 
 PYARROW_MIN_VERSION = "13.0.0"
@@ -38,7 +36,9 @@ except ImportError:
     HAS_PYARROW = False
 
 
-def _safe_fill_null(arr: pa.Array, fill_value) -> pa.Array:
+def _safe_fill_null(
+    arr: pa.Array | pa.ChunkedArray, fill_value
+) -> pa.Array | pa.ChunkedArray:
     """
     Safe wrapper for pyarrow.compute.fill_null with fallback for Windows + pyarrow 21.
 
@@ -48,32 +48,31 @@ def _safe_fill_null(arr: pa.Array, fill_value) -> pa.Array:
 
     Parameters
     ----------
-    arr : pyarrow.Array
+    arr : pyarrow.Array | pyarrow.ChunkedArray
         Input array with potential null values.
-    fill_value : object
+    fill_value : Any
         Value to fill nulls with.
 
     Returns
     -------
-    pyarrow.Array
+    pyarrow.Array | pyarrow.ChunkedArray
         Array with nulls filled with fill_value.
     """
-    import pyarrow as pa
     import pyarrow.compute as pc
-
-    # Convert ChunkedArray to Array for consistent handling
-    if isinstance(arr, pa.ChunkedArray):
-        arr = arr.combine_chunks()
 
     is_windows = sys.platform in ["win32", "cygwin"]
     use_fallback = (
         HAS_PYARROW and is_windows and not pa_version_under21p0 and pa_version_under22p0
     )
 
-    if use_fallback:
-        null_mask = pc.is_null(arr).to_numpy(zero_copy_only=False)
-        np_arr = arr.to_numpy(zero_copy_only=False, writable=True)
-        np.putmask(np_arr, null_mask, fill_value)
-        return pa.array(np_arr, type=arr.type)
-    else:
+    if not use_fallback or isinstance(fill_value, (pa.Array, pa.ChunkedArray)):
         return pc.fill_null(arr, fill_value)
+
+    fill_scalar = pa.scalar(fill_value, type=arr.type)
+
+    if isinstance(arr, pa.ChunkedArray):
+        return pa.chunked_array(
+            [pc.if_else(pc.is_null(chunk), fill_scalar, chunk) for chunk in arr.chunks]
+        )
+
+    return pc.if_else(pc.is_null(arr), fill_scalar, arr)
