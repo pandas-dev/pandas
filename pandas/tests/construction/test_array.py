@@ -17,3 +17,4 @@ def test_string_array_construction_consistency_with_series(data):
     result_series_array = pd.Series(data, dtype=dtype).values
     
     tm.assert_extension_array_equal(result_array, result_series_array)
+    
