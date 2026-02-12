@@ -54,7 +54,7 @@ class TestPDApi(Base):
         "io",
         "tseries",
     ]
-    private_lib = ["compat", "core", "pandas", "util", "_built_with_meson"]
+    private_lib = ["compat", "core", "pandas", "util"]
 
     # misc
     misc = ["IndexSlice", "NaT", "NA"]
@@ -200,8 +200,8 @@ class TestPDApi(Base):
         "_testing",
         "_typing",
     ]
-    if not pd._built_with_meson:
-        private_modules.append("_version")
+
+    metadata = ["__git_version__", "__version__"]
 
     def test_api(self):
         checkthese = (
@@ -230,6 +230,7 @@ class TestPDApi(Base):
             + self.funcs_read
             + self.funcs_json
             + self.funcs_to
+            + self.metadata
         ) - set(self.deprecated_classes)
         actual = set(pd.__all__)
 

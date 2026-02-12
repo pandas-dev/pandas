@@ -300,7 +300,7 @@ repos:
         entry: python scripts/validate_exception_location.py
         language: python
         files: ^pandas/
-        exclude: ^(pandas/_libs/|pandas/tests/|pandas/errors/__init__.py$|pandas/_version.py)
+        exclude: ^pandas/_libs/|pandas/tests/|pandas/errors/__init__.py$
         types: [python]
     -   id: check-test-naming
         name: check that test names start with 'test'
