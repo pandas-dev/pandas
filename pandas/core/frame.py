@@ -1298,6 +1298,11 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Iterate over DataFrame rows as (index, Series) pairs.
 
+        Each row is yielded as a (index, Series) tuple; the Series has
+        the same index as the DataFrame columns. Note that dtypes may
+        not be preserved across rows. Prefer :meth:`itertuples` for
+        speed and type consistency.
+
         Yields
         ------
         index : label or tuple of label
@@ -1352,6 +1357,11 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> Iterable[tuple[Any, ...]]:
         """
         Iterate over DataFrame rows as namedtuples.
+
+        Each row becomes a namedtuple (or plain tuple if ``name`` is
+        None) with field names taken from the column names or
+        positional names. Generally faster and more type-stable than
+        :meth:`iterrows`.
 
         Parameters
         ----------
@@ -6296,6 +6306,9 @@ class DataFrame(NDFrame, OpsMixin):
     def pop(self, item: Hashable) -> Series:
         """
         Return item and drop it from DataFrame. Raise KeyError if not found.
+
+        The column is removed from the DataFrame and returned as a Series;
+        the original DataFrame is modified in place unless it was a view.
 
         Parameters
         ----------
@@ -18313,6 +18326,11 @@ class DataFrame(NDFrame, OpsMixin):
     def isin(self, values: Series | DataFrame | Sequence | Mapping) -> DataFrame:
         """
         Whether each element in the DataFrame is contained in values.
+
+        Returns a DataFrame of the same shape with boolean values: True
+        where the element is in the corresponding structure of
+        ``values``, False otherwise. ``values`` can be a list, dict,
+        Series, or DataFrame; alignment rules depend on its type.
 
         Parameters
         ----------
