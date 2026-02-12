@@ -2837,7 +2837,8 @@ def _factorize_keys(
             isinstance(lk.dtype, StringDtype) and lk.dtype.storage == "pyarrow"
         ):
             import pyarrow as pa
-            import pyarrow.compute as pc
+
+            from pandas.compat.pyarrow import _safe_fill_null
 
             len_lk = len(lk)
             lk = lk._pa_array  # type: ignore[attr-defined]
@@ -2848,27 +2849,29 @@ def _factorize_keys(
                 .dictionary_encode()
             )
 
-            left_indices = dc.indices[slice(len_lk)]
-            right_indices = dc.indices[slice(len_lk, None)]
-
-            lmask = pc.is_null(left_indices).to_numpy(zero_copy_only=False)
-            rmask = pc.is_null(right_indices).to_numpy(zero_copy_only=False)
-
-            llab = left_indices.to_numpy(zero_copy_only=False, writable=True)
-            rlab = right_indices.to_numpy(zero_copy_only=False, writable=True)
-            np.putmask(llab, lmask, 0)
-            np.putmask(rlab, rmask, 0)
-            llab = llab.astype(np.intp, copy=False)
-            rlab = rlab.astype(np.intp, copy=False)
-            count = len(dc.dictionary)
+            llab, rlab, count = (
+                _safe_fill_null(dc.indices[slice(len_lk)], -1)
+                .to_numpy()
+                .astype(np.intp, copy=False),
+                _safe_fill_null(dc.indices[slice(len_lk, None)], -1)
+                .to_numpy()
+                .astype(np.intp, copy=False),
+                len(dc.dictionary),
+            )
 
             if sort:
                 uniques = dc.dictionary.to_numpy(zero_copy_only=False)
                 llab, rlab = _sort_labels(uniques, llab, rlab)
 
             if dc.null_count > 0:
-                np.putmask(llab, lmask, count)
-                np.putmask(rlab, rmask, count)
+                lmask = llab == -1
+                lany = lmask.any()
+                rmask = rlab == -1
+                rany = rmask.any()
+                if lany:
+                    np.putmask(llab, lmask, count)
+                if rany:
+                    np.putmask(rlab, rmask, count)
                 count += 1
             return llab, rlab, count
 
