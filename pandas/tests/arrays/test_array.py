@@ -3,6 +3,7 @@ import decimal
 import zoneinfo
 
 import numpy as np
+from numpy import ma
 import pytest
 
 from pandas._config import using_string_dtype
@@ -537,3 +538,46 @@ def test_array_to_numpy_na():
     result = arr.to_numpy(na_value=True, dtype=bool)
     expected = np.array([True, True])
     tm.assert_numpy_array_equal(result, expected)
+
+
+def test_pd_array_from_masked_array_preserves_mask_integer():
+    # GH#63879
+    # Integer masked array should produce Int64 with pd.NA where mask=True
+    ma_arr = ma.array([1, 2, 3, 4], mask=[False, True, False, True], dtype=np.int64)
+    result = pd.array(ma_arr)
+    expected = pd.array([1, pd.NA, 3, pd.NA], dtype="Float64")
+    tm.assert_extension_array_equal(result, expected)
+
+
+def test_pd_array_from_masked_array_preserves_mask_string():
+    # GH#63879
+    # String masked array should produce StringArray with pd.NA where mask=True
+    ma_arr = ma.array(["a", "b", "c", "d"], mask=[False, True, False, True])
+    result = pd.array(ma_arr)
+    expected = pd.array(["a", pd.NA, "c", pd.NA], dtype="string")
+    tm.assert_extension_array_equal(result, expected)
+
+
+def test_pd_array_from_masked_array_no_mask():
+    # GH#63879 - edge case: mask is all False
+    ma_arr = ma.array([1, 2, 3], mask=[False, False, False], dtype=np.int64)
+    result = pd.array(ma_arr)
+    expected = pd.array([1, 2, 3], dtype="Int64")
+    tm.assert_extension_array_equal(result, expected)
+
+
+def test_pd_array_from_masked_array_nomask():
+    # GH#63879 - edge case: mask is nomask
+    ma_arr = ma.array([1, 2, 3], mask=ma.nomask, dtype=np.int64)
+    result = pd.array(ma_arr)
+    expected = pd.array([1, 2, 3], dtype="Int64")
+    tm.assert_extension_array_equal(result, expected)
+
+
+def test_pd_array_structured_masked_array_raises():
+    # GH#63879 - structured MaskedArrays should raise (match Series behavior)
+    arr = np.array([(1, 2), (2, 3)], dtype="i8,i8")
+    ma_arr = np.ma.array(arr, mask=[(False, True), (False, True)])
+    msg = "Cannot construct an array from an ndarray with compound dtype"
+    with pytest.raises(ValueError, match=msg):
+        pd.array(ma_arr)
