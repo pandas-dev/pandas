@@ -328,7 +328,7 @@ def test_readjson_nrows_not_implemented_pyarrow(temp_file):
 
     jsonl = """{"a": 1, "b": 2}
         {"a": 3, "b": 4}"""
-    Path(temp_file).write_text(jsonl)
+    Path(temp_file).write_text(jsonl, encoding="utf-8")
 
     msg = "currently pyarrow engine doesn't support nrows parameter"
     with pytest.raises(NotImplementedError, match=msg):
