@@ -88,11 +88,16 @@ if TYPE_CHECKING:
         WriteBuffer,
     )
 
+# Error shown when a version number was parsed but is not supported.
+# Wording intentionally mentions “either not a valid Stata dataset or
+# an unsupported version” to avoid confusing users when input is not a
+#  real .dta.
 _version_error = (
-    "Version of given Stata file is {version}. pandas supports importing "
-    "versions 102, 103, 104, 105, 108, 110 (Stata 7), 111 (Stata 7SE),  "
-    "113 (Stata 8/9), 114 (Stata 10/11), 115 (Stata 12), 117 (Stata 13), "
-    "118 (Stata 14/15/16), and 119 (Stata 15/16, over 32,767 variables)."
+    "This is either not a valid Stata dataset or a Stata dataset from a "
+    "version pandas does not support (detected: {version}). pandas "
+    "supports importing versions 105, 108, 111 (Stata 7SE), 113 (Stata "
+    "8/9), 114 (Stata 10/11), 115 (Stata 12), 117 (Stata 13), 118 (Stata "
+    "14/15/16), and 119 (Stata 15/16, over 32,767 variables)."
 )
 
 
