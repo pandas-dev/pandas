@@ -4170,14 +4170,14 @@ class DataFrame(NDFrame, OpsMixin):
 
             # shortcut if the key is in columns
             is_mi = isinstance(self.columns, MultiIndex)
-            # GH#45316 Return view if key is not duplicated
-            # Only use drop_duplicates with duplicates for performance
-            if not is_mi and (
-                (self.columns.is_unique and key in self.columns)
-                or key in self.columns.drop_duplicates(keep=False)
-            ):
-                return self._get_item(key)
-
+            # GH#45316 Return view if key is not duplicated (single column)
+            if not is_mi:
+                try:
+                    loc = self.columns.get_loc(key)
+                    if isinstance(loc, int):
+                        return self._get_item(key)
+                except (KeyError, InvalidIndexError):
+                    pass
             elif is_mi and self.columns.is_unique and key in self.columns:
                 return self._getitem_multilevel(key)
 
