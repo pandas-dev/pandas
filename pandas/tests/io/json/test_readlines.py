@@ -322,6 +322,19 @@ def test_readjson_nrows(nrows, engine):
     tm.assert_frame_equal(result, expected)
 
 
+def test_readjson_nrows_not_implemented_pyarrow(temp_file):
+    # GH 64025
+    pytest.importorskip("pyarrow.json")
+
+    jsonl = """{"a": 1, "b": 2}
+        {"a": 3, "b": 4}"""
+    Path(temp_file).write_text(jsonl)
+
+    msg = "currently pyarrow engine doesn't support nrows parameter"
+    with pytest.raises(NotImplementedError, match=msg):
+        read_json(temp_file, lines=True, nrows=1, engine="pyarrow")
+
+
 @pytest.mark.parametrize("nrows,chunksize", [(2, 2), (3, 2), (4, 2)])
 def test_readjson_nrows_chunks(request, nrows, chunksize, engine):
     # GH 33916
@@ -358,6 +371,7 @@ def test_readjson_nrows_chunks(request, nrows, chunksize, engine):
     [('{"a":1}\n{"a":2}\n', 0), ("", None)],
 )
 def test_readjson_read_empty_chunks(jsonl, nrows):
+    # GH 64025
     kwargs = {"lines": True, "chunksize": 2}
     if nrows is not None:
         kwargs["nrows"] = nrows
