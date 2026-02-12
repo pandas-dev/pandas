@@ -585,7 +585,7 @@ class TestPeriodDtype(Base):
 
     def test_freq_deprecation(self, dtype):
         msg = "PeriodDtype.freq is deprecated, use dtype.unit instead"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             dtype.freq
 
 

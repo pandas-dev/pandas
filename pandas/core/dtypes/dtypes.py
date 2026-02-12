@@ -51,7 +51,10 @@ from pandas.compat import (
     HAS_PYARROW,
     PYARROW_MIN_VERSION,
 )
-from pandas.errors import PerformanceWarning
+from pandas.errors import (
+    Pandas4Warning,
+    PerformanceWarning,
+)
 from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 
@@ -1129,7 +1132,7 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
         """
         warnings.warn(
             "PeriodDtype.freq is deprecated, use dtype.unit instead",
-            FutureWarning,
+            Pandas4Warning,
             stacklevel=find_stack_level(),
         )
         return self._freq
