@@ -4168,15 +4168,20 @@ class DataFrame(NDFrame, OpsMixin):
             # is_iterator to exclude generator e.g. test_getitem_listlike
             # As of Python 3.12, slice is hashable which breaks MultiIndex (GH#57500)
 
-            # shortcut if the key is in columns
+            # Shortcut: return single column as Series when key refers to one column.
+            # Previously we used "key in self.columns.drop_duplicates(keep=False)",
+            # which built a new Index on every access when columns had duplicates.
+            # Using get_loc(key) instead: it returns int iff key appears exactly once,
+            # so we get the same behavior without extra allocation (GH#45316).
             is_mi = isinstance(self.columns, MultiIndex)
-            # GH#45316 Return view if key is not duplicated (single column)
             if not is_mi:
                 try:
                     loc = self.columns.get_loc(key)
+                    # int: key unique; slice/array: key duplicated (fall through).
                     if isinstance(loc, int):
                         return self._get_item(key)
                 except (KeyError, InvalidIndexError):
+                    # Key missing or invalid; fall through to list/slice/other paths.
                     pass
             elif is_mi and self.columns.is_unique and key in self.columns:
                 return self._getitem_multilevel(key)
