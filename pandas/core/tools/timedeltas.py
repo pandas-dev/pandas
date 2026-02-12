@@ -117,11 +117,6 @@ def to_timedelta(
             Strings with units 'M', 'Y' and 'y' do not represent
             unambiguous timedelta values and will raise an exception.
 
-    unit : str or None, default None
-        Use input_unit instead.
-
-        .. deprecated:: 3.1.0
-
     errors : {'raise', 'coerce'}, default 'raise'
         - If 'raise', then invalid parsing will raise an exception.
         - If 'coerce', then invalid parsing will be set as NaT.
@@ -147,6 +142,10 @@ def to_timedelta(
     errors : {'raise', 'coerce'}, default 'raise'
         - If 'raise', then invalid parsing will raise an exception.
         - If 'coerce', then invalid parsing will be set as NaT.
+    unit : str or None, default None
+        Use input_unit instead.
+
+        .. deprecated:: 3.1.0
 
     Returns
     -------
