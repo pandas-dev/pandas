@@ -70,12 +70,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
     "$BASE_DIR"/scripts/validate_docstrings.py \
         --format=actions \
         -i "pandas.tseries.frequencies.to_offset ES01" \
-        -i "pandas.Series.dtype ES01" \
-        -i "pandas.Series.shape ES01" \
-        -i "pandas.Series.nbytes ES01" \
-        -i "pandas.Series.ndim ES01" \
-        -i "pandas.Series.size ES01" \
-        -i "pandas.Series.T ES01" \
         -i "pandas.Series.dtypes ES01" \
         -i "pandas.Series.convert_dtypes ES01" \
         -i "pandas.Series.to_numpy ES01" \
@@ -206,10 +200,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Index.inferred_type ES01" \
         -i "pandas.Index.shape ES01" \
         -i "pandas.Index.name ES01" \
-        -i "pandas.Index.nbytes ES01" \
-        -i "pandas.Index.ndim ES01" \
-        -i "pandas.Index.size ES01" \
-        -i "pandas.Index.T ES01" \
         -i "pandas.Index.memory_usage ES01" \
         -i "pandas.Index.all ES01" \
         -i "pandas.Index.any ES01" \
