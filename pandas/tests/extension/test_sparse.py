@@ -150,6 +150,23 @@ class TestSparseArray(base.ExtensionTests):
 
         super().test_reduce_frame(data, all_numeric_reductions, skipna)
 
+    def test_reduce_array(self, data, all_numeric_reductions, skipna, request):
+        if all_numeric_reductions in [
+            "prod",
+            "median",
+            "var",
+            "std",
+            "sem",
+            "skew",
+            "kurt",
+        ]:
+            mark = pytest.mark.xfail(
+                reason="This should be viable but is not implemented"
+            )
+            request.node.add_marker(mark)
+
+        super().test_reduce_array(data, all_numeric_reductions, skipna)
+
     def _check_unsupported(self, data):
         if data.dtype == SparseDtype(int, 0):
             pytest.skip("Can't store nan in int array.")

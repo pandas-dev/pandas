@@ -958,6 +958,9 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             else:
                 return nanops.nanall(self._ndarray, skipna=skipna)
 
+        if name == "count":
+            return super().count()
+
         if name in ["min", "max", "argmin", "argmax", "sum"]:
             result = getattr(self, name)(skipna=skipna, axis=axis, **kwargs)
             if keepdims:

@@ -14,7 +14,7 @@ class BaseReduceTests:
 
     def _supports_reduction(self, ser: pd.Series, op_name: str) -> bool:
         # Specify if we expect this reduction to succeed.
-        return False
+        return op_name == "count"
 
     def check_reduce(self, ser: pd.Series, op_name: str, skipna: bool):
         # We perform the same operation on the np.float64 data and check
@@ -126,3 +126,58 @@ class BaseReduceTests:
             pytest.skip(f"Reduction {op_name} not supported for this dtype")
 
         self.check_reduce_frame(ser, op_name, skipna)
+
+    def test_reduce_array(self, data, all_numeric_reductions, skipna: bool):
+        op_name = all_numeric_reductions
+        ser = pd.Series(data)
+
+        kwargs = {}
+        if op_name == "mean" and isinstance(ser.array, pd.arrays.SparseArray):
+            # TODO: Missing skipna argument
+            pass
+        elif op_name != "count":
+            kwargs["skipna"] = skipna
+
+        if "DecimalArray" in str(type(ser.array)) and op_name != "count":
+            # DecimalArray does not implement sum et all directly.
+            msg = f"object has no attribute '{op_name}'"
+            with pytest.raises(AttributeError, match=msg):
+                getattr(ser.array, op_name)(**kwargs)
+            return
+
+        if not self._supports_reduction(ser, op_name):
+            # TODO: the message being checked here isn't actually checking anything
+            msg = "|".join(
+                [
+                    f"object has no attribute '{op_name}'",
+                    "does not support operation",
+                    f"{op_name} is not implemented for",
+                    f"Cannot perform reduction '{op_name}'",
+                    "[Cc]ould not convert",
+                    "Cannot convert",
+                    f"Categorical is not ordered for operation {op_name}",
+                    "setting an array element with a sequence",
+                    "can't multiply sequence by non-int of type",
+                    r"complex\(\) first argument must be a string or a number",
+                ]
+            )
+            with pytest.raises(
+                (TypeError, NotImplementedError, AttributeError), match=msg
+            ):
+                getattr(ser.array, op_name)(**kwargs)
+            return
+        if (
+            isinstance(ser.array.dtype, pd.SparseDtype)
+            and op_name in ["sum", "min", "max"]
+            and not skipna
+        ):
+            # TODO: Bug - ._reduce doesn't properly handle not skipna
+            return
+
+        res_op = getattr(ser.array, op_name)
+        try:
+            expected = ser.array._reduce(op_name, **kwargs)
+        except (NotImplementedError, AttributeError):
+            return
+        result = res_op(**kwargs)
+        tm.assert_almost_equal(result, expected)

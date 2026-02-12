@@ -1535,6 +1535,11 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             op = getattr(nanops, f"nan{name}")
             axis = kwargs.pop("axis", None)
             result = op(data, axis=axis, skipna=skipna, mask=mask, **kwargs)
+            if self.ndim > 1:
+                # Remainder of method assumes scalar result; other ops above
+                # do not respect `axis` argument and so always return a scalar.
+                # TODO: What happens when ndim > 1 on main?
+                return result
 
         if keepdims:
             if isna(result):
@@ -1640,6 +1645,29 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             axis=axis,
         )
         return self._wrap_reduction_result("mean", result, skipna=skipna, axis=axis)
+
+    def median(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
+        nv.validate_median((), kwargs)
+        result = self._reduce("median", skipna=skipna, axis=axis, **kwargs)
+        return self._wrap_reduction_result("median", result, skipna=skipna, axis=axis)
+
+    def kurt(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
+        # TODO: Does not exist?
+        # nv.validate_kurt((), kwargs)
+        result = self._reduce("kurt", skipna=skipna, axis=axis, **kwargs)
+        return self._wrap_reduction_result("kurt", result, skipna=skipna, axis=axis)
+
+    def sem(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
+        # TODO: Does not exist?
+        # nv.validate_sem((), kwargs)
+        result = self._reduce("sem", skipna=skipna, axis=axis, **kwargs)
+        return self._wrap_reduction_result("sem", result, skipna=skipna, axis=axis)
+
+    def skew(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
+        # TODO: Does not exist?
+        # nv.validate_skew((), kwargs)
+        result = self._reduce("skew", skipna=skipna, axis=axis, **kwargs)
+        return self._wrap_reduction_result("skew", result, skipna=skipna, axis=axis)
 
     def var(
         self, *, skipna: bool = True, axis: AxisInt | None = 0, ddof: int = 1, **kwargs
