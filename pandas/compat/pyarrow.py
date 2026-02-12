@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sys
+from typing import Any
 
 from pandas.util.version import Version
 
@@ -37,7 +38,7 @@ except ImportError:
 
 
 def _safe_fill_null(
-    arr: pa.Array | pa.ChunkedArray, fill_value
+    arr: pa.Array | pa.ChunkedArray, fill_value: Any
 ) -> pa.Array | pa.ChunkedArray:
     """
     Safe wrapper for pyarrow.compute.fill_null with fallback for Windows + pyarrow 21.
