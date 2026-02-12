@@ -1372,7 +1372,7 @@ class TestLambdaMangling:
 
     @pytest.mark.parametrize("use_kwargs", [True, False])
     def test_multiple_udf_with_args(self, use_kwargs):
-        # GH#26611
+        # https://github.com/pandas-dev/pandas/issues/26611
         def func(x, y):
             return x.sum() + y
 
