@@ -1377,7 +1377,7 @@ class TestLambdaMangling:
             return x.sum() + y
 
         df = DataFrame({"A": [1, 2]})
-        expected = DataFrame({"A": [13]})
+        expected = DataFrame({"A": [13]}, index=Index([0], dtype="intp"))
         gb = df.groupby([0, 0])
         if use_kwargs:
             args, kwargs = (), {"y": 10}
