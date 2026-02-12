@@ -8,6 +8,8 @@ import struct
 import sys
 from typing import TYPE_CHECKING
 
+from pandas.util._decorators import set_module
+
 if TYPE_CHECKING:
     from pandas._typing import JSONSerializable
 
@@ -90,6 +92,7 @@ def _get_dependency_info() -> dict[str, JSONSerializable]:
     return result
 
 
+@set_module("pandas")
 def show_versions(as_json: str | bool = False) -> None:
     """
     Provide useful information, important for bug reports.

@@ -128,7 +128,7 @@ def _create_sp_frame():
     return DataFrame(data, index=dates).apply(SparseArray)
 
 
-def create_pickle_data():
+def create_pickle_data(test: bool = True):
     """create the pickle data"""
     data = {
         "A": [0.0, 1.0, 2.0, 3.0, np.nan],
@@ -161,7 +161,8 @@ def create_pickle_data():
                     *[
                         ["bar", "bar", "baz", "baz", "foo", "foo", "qux", "qux"],
                         ["one", "two", "one", "two", "one", "two", "one", "two"],
-                    ]
+                    ],
+                    strict=True,
                 )
             ),
             names=["first", "second"],
@@ -178,7 +179,8 @@ def create_pickle_data():
         "mi": Series(
             np.arange(5).astype(np.float64),
             index=MultiIndex.from_tuples(
-                tuple(zip(*[[1, 1, 2, 2, 2], [3, 4, 3, 4, 5]])), names=["one", "two"]
+                tuple(zip(*[[1, 1, 2, 2, 2], [3, 4, 3, 4, 5]], strict=True)),
+                names=["one", "two"],
             ),
         ),
         "dup": Series(np.arange(5).astype(np.float64), index=["A", "B", "C", "D", "A"]),
@@ -203,7 +205,8 @@ def create_pickle_data():
                         *[
                             ["bar", "bar", "baz", "baz", "baz"],
                             ["one", "two", "one", "two", "three"],
-                        ]
+                        ],
+                        strict=True,
                     )
                 ),
                 names=["first", "second"],
@@ -254,6 +257,10 @@ def create_pickle_data():
         "nat": NaT,
         "tz": Timestamp("2011-01-01", tz="US/Eastern"),
     }
+    if test:
+        # kept because those are present in the legacy pickles (<= 1.4)
+        timestamp["freq"] = Timestamp("2011-01-01")
+        timestamp["both"] = Timestamp("2011-01-01", tz="Asia/Tokyo")
 
     off = {
         "DateOffset": DateOffset(years=1),
@@ -319,7 +326,7 @@ def write_legacy_pickles(output_dir):
     pth = f"{platform_name()}.pickle"
 
     with open(os.path.join(output_dir, pth), "wb") as fh:
-        pickle.dump(create_pickle_data(), fh, pickle.DEFAULT_PROTOCOL)
+        pickle.dump(create_pickle_data(test=False), fh, pickle.DEFAULT_PROTOCOL)
 
     print(f"created pickle file: {pth}")
 

@@ -176,7 +176,7 @@ def _bn_ok_dtype(dtype: DtypeObj, name: str) -> bool:
 def _has_infs(result) -> bool:
     if isinstance(result, np.ndarray):
         if result.dtype in ("f8", "f4"):
-            # Note: outside of an nanops-specific test, we always have
+            # Note: outside of a nanops-specific test, we always have
             #  result.ndim == 1, so there is no risk of this ravel making a copy.
             return lib.has_infs(result.ravel("K"))
     try:
@@ -195,17 +195,15 @@ def _get_fill_value(
     if _na_ok_dtype(dtype):
         if fill_value_typ is None:
             return np.nan
+        elif fill_value_typ == "+inf":
+            return np.inf
         else:
-            if fill_value_typ == "+inf":
-                return np.inf
-            else:
-                return -np.inf
+            return -np.inf
+    elif fill_value_typ == "+inf":
+        # need the max int here
+        return lib.i8max
     else:
-        if fill_value_typ == "+inf":
-            # need the max int here
-            return lib.i8max
-        else:
-            return iNaT
+        return iNaT
 
 
 def _maybe_get_mask(
@@ -463,8 +461,7 @@ def maybe_operate_rowwise(func: F) -> F:
             # only takes this path for wide arrays (long dataframes), for threshold see
             # https://github.com/pandas-dev/pandas/pull/43311#issuecomment-974891737
             and (values.shape[1] / 1000) > values.shape[0]
-            and values.dtype != object
-            and values.dtype != bool
+            and values.dtype not in (object, bool)
         ):
             arrs = list(values)
             if kwargs.get("mask") is not None:
@@ -651,12 +648,9 @@ def _mask_datetimelike_result(
         # we need to apply the mask
         result = result.astype("i8").view(orig_values.dtype)
         axis_mask = mask.any(axis=axis)
-        # error: Unsupported target for indexed assignment ("Union[ndarray[Any, Any],
-        # datetime64, timedelta64]")
-        result[axis_mask] = iNaT  # type: ignore[index]
-    else:
-        if mask.any():
-            return np.int64(iNaT).view(orig_values.dtype)
+        result[axis_mask] = iNaT
+    elif mask.any():
+        return np.int64(iNaT).view(orig_values.dtype)
     return result
 
 
@@ -946,8 +940,9 @@ def nanstd(
     >>> nanops.nanstd(s.values)
     1.0
     """
-    if values.dtype == "M8[ns]":
-        values = values.view("m8[ns]")
+    if values.dtype.kind == "M":
+        unit = np.datetime_data(values.dtype)[0]
+        values = values.view(f"m8[{unit}]")
 
     orig_dtype = values.dtype
     values, mask = _get_values(values, skipna, mask=mask)
@@ -1368,7 +1363,7 @@ def nankurt(
     # With a few modifications, like using the maximum value instead of the averages
     # and some adaptations because they use the average and we use the sum for `m2`.
     # We need to estimate an upper bound to the error to consider the data constant.
-    # Lets call:
+    # Let's call:
     # x: true value in data
     # y: floating point representation
     # e: relative approximation error
@@ -1379,7 +1374,7 @@ def nankurt(
     # (|x - y|/|x|)² <= e²
     # Σ (|x - y|/|x|)² <= ne²
     #
-    # Lets say that the fperr upper bound for m2 is constrained by the summation.
+    # Let's say that the fperr upper bound for m2 is constrained by the summation.
     # |m2 - y|/|m2| <= ne²
     # |m2 - y| <= n|m2|e²
     #
@@ -1478,11 +1473,10 @@ def _maybe_arg_null_out(
             raise ValueError("Encountered all NA values")
         elif not skipna and mask.any():
             raise ValueError("Encountered an NA value with skipna=False")
-    else:
-        if skipna and mask.all(axis).any():
-            raise ValueError("Encountered all NA values")
-        elif not skipna and mask.any(axis).any():
-            raise ValueError("Encountered an NA value with skipna=False")
+    elif skipna and mask.all(axis).any():
+        raise ValueError("Encountered all NA values")
+    elif not skipna and mask.any(axis).any():
+        raise ValueError("Encountered an NA value with skipna=False")
     return result
 
 

@@ -303,7 +303,7 @@ def test_wrap_agg_out(three_group):
     grouped = three_group.groupby(["A", "B"])
 
     def func(ser):
-        if ser.dtype == object or ser.dtype == "string":
+        if ser.dtype in (object, "string"):
             raise TypeError("Test error message")
         return ser.sum()
 
@@ -866,6 +866,64 @@ class TestNamedAggregationDataFrame:
         expected = df.groupby("A").agg(b=("B", "sum"), c=("B", "count"))
         tm.assert_frame_equal(result, expected)
 
+    def n_between(self, ser, low, high, **kwargs):
+        return ser.between(low, high, **kwargs).sum()
+
+    def test_namedagg_args(self):
+        # https://github.com/pandas-dev/pandas/issues/58283
+        df = DataFrame({"A": [0, 0, 1, 1], "B": [-1, 0, 1, 2]})
+
+        result = df.groupby("A").agg(
+            count_between=pd.NamedAgg("B", self.n_between, 0, 1)
+        )
+        expected = DataFrame({"count_between": [1, 1]}, index=Index([0, 1], name="A"))
+        tm.assert_frame_equal(result, expected)
+
+    def test_namedagg_kwargs(self):
+        # https://github.com/pandas-dev/pandas/issues/58283
+        df = DataFrame({"A": [0, 0, 1, 1], "B": [-1, 0, 1, 2]})
+
+        result = df.groupby("A").agg(
+            count_between_kw=pd.NamedAgg("B", self.n_between, 0, 1, inclusive="both")
+        )
+        expected = DataFrame(
+            {"count_between_kw": [1, 1]}, index=Index([0, 1], name="A")
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_namedagg_args_and_kwargs(self):
+        # https://github.com/pandas-dev/pandas/issues/58283
+        df = DataFrame({"A": [0, 0, 1, 1], "B": [-1, 0, 1, 2]})
+
+        result = df.groupby("A").agg(
+            count_between_mix=pd.NamedAgg(
+                "B", self.n_between, 0, 1, inclusive="neither"
+            )
+        )
+        expected = DataFrame(
+            {"count_between_mix": [0, 0]}, index=Index([0, 1], name="A")
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_multiple_named_agg_with_args_and_kwargs(self):
+        # https://github.com/pandas-dev/pandas/issues/58283
+        df = DataFrame({"A": [0, 1, 2, 3], "B": [1, 2, 3, 4]})
+
+        result = df.groupby("A").agg(
+            n_between01=pd.NamedAgg("B", self.n_between, 0, 1),
+            n_between13=pd.NamedAgg("B", self.n_between, 1, 3),
+            n_between02=pd.NamedAgg("B", self.n_between, 0, 2),
+        )
+        expected = DataFrame(
+            {
+                "n_between01": [1, 0, 0, 0],
+                "n_between13": [1, 1, 1, 0],
+                "n_between02": [1, 1, 0, 0],
+            },
+            index=Index([0, 1, 2, 3], name="A"),
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_mangled(self):
         df = DataFrame({"A": [0, 1], "B": [1, 2], "C": [3, 4]})
         result = df.groupby("A").agg(b=("B", lambda x: 0), c=("C", lambda x: 1))
@@ -974,13 +1032,31 @@ def test_groupby_aggregate_empty_key_empty_return():
     tm.assert_frame_equal(result, expected)
 
 
-def test_groupby_aggregate_empty_with_multiindex_frame():
+def test_groupby_aggregate_empty_with_multiindex_frame_single(as_index):
+    # GH 39178, 51445
+    df = DataFrame(columns=["a", "b", "c"])
+    gb = df.groupby(["a", "b"], group_keys=False, as_index=as_index)
+    result = gb.agg(lambda x: x.sum())
+    expected = DataFrame(
+        columns=["c"], index=MultiIndex([[], []], [[], []], names=["a", "b"])
+    )
+    if not as_index:
+        expected = expected.reset_index()
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_aggregate_empty_with_multiindex_frame_multi(as_index):
     # GH 39178
     df = DataFrame(columns=["a", "b", "c"])
-    result = df.groupby(["a", "b"], group_keys=False).agg(d=("c", list))
+    result = df.groupby(["a", "b"], group_keys=False, as_index=as_index).agg(
+        d=("c", list)
+    )
     expected = DataFrame(
         columns=["d"], index=MultiIndex([[], []], [[], []], names=["a", "b"])
     )
+    if not as_index:
+        expected = expected.reset_index()
+
     tm.assert_frame_equal(result, expected)
 
 
@@ -1678,7 +1754,7 @@ def test_groupby_agg_extension_timedelta_cumsum_with_named_aggregation():
         {
             "td": Series(
                 ["0 days 01:00:00", "0 days 00:15:00", "0 days 01:15:00"],
-                dtype="timedelta64[ns]",
+                dtype="timedelta64[us]",
             ),
             "grps": ["a", "a", "b"],
         }
@@ -1923,4 +1999,33 @@ def test_groupby_aggregate_empty_udf():
     df = DataFrame(columns=["Group", "Data"])
     result = df.groupby(["Group"], as_index=False)["Data"].agg(func)
     expected = DataFrame(columns=["Group", "Data"])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_agg_relabel_with_name_match():
+    # GH-63742
+    df = DataFrame(
+        {
+            "group": ["a", "a", "b", "b"],
+            "value": [1, 2, 3, 4],
+            "count": [10, 20, 30, 40],
+        }
+    )
+
+    # Test with tuple format where output names match column names
+    result = df.groupby("group").agg(value=("value", "sum"), count=("count", "max"))
+
+    # Should produce same result as dict format
+    expected = df.groupby("group").agg({"value": "sum", "count": "max"})
+
+    tm.assert_frame_equal(result, expected)
+
+
+def test_agg_relabel_with_name_match_and_namedagg():
+    # GH-63742
+    df = DataFrame({"A": [0, 0, 1, 1], "B": [1, 2, 3, 4]})
+
+    result = df.groupby("A").agg(B=pd.NamedAgg("B", "sum"))
+
+    expected = DataFrame({"B": [3, 7]}, index=Index([0, 1], name="A"))
     tm.assert_frame_equal(result, expected)

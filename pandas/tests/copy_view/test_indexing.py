@@ -57,6 +57,8 @@ def test_subset_column_selection(backend):
 
     subset = df[["a", "c"]]
 
+    assert subset.index is not df.index
+
     # the subset shares memory ...
     assert np.shares_memory(get_array(subset, "a"), get_array(df, "a"))
     # ... but uses CoW when being modified
@@ -100,6 +102,7 @@ def test_subset_row_slice(backend):
     subset = df[1:3]
     subset._mgr._verify_integrity()
 
+    assert subset.columns is not df.columns
     assert np.shares_memory(get_array(subset, "a"), get_array(df, "a"))
 
     subset.iloc[0, 0] = 0
@@ -128,6 +131,7 @@ def test_subset_column_slice(backend, dtype):
     subset = df.iloc[:, 1:]
     subset._mgr._verify_integrity()
 
+    assert subset.index is not df.index
     assert np.shares_memory(get_array(subset, "b"), get_array(df, "b"))
 
     subset.iloc[0, 0] = 0
@@ -173,6 +177,9 @@ def test_subset_loc_rows_columns(
 
     subset = df.loc[row_indexer, column_indexer]
 
+    assert subset.index is not df.index
+    assert subset.columns is not df.columns
+
     # modifying the subset never modifies the parent
     subset.iloc[0, 0] = 0
 
@@ -215,6 +222,9 @@ def test_subset_iloc_rows_columns(
     df_orig = df.copy()
 
     subset = df.iloc[row_indexer, column_indexer]
+
+    assert subset.index is not df.index
+    assert subset.columns is not df.columns
 
     # modifying the subset never modifies the parent
     subset.iloc[0, 0] = 0
@@ -534,6 +544,8 @@ def test_null_slice(backend, method):
 
     # we always return new objects (shallow copy), regardless of CoW or not
     assert df2 is not df
+    assert df2.index is not df.index
+    assert df2.columns is not df.columns
 
     # and those trigger CoW when mutated
     df2.iloc[0, 0] = 0
@@ -558,6 +570,7 @@ def test_null_slice_series(backend, method):
 
     # we always return new objects, regardless of CoW or not
     assert s2 is not s
+    assert s2.index is not s.index
 
     # and those trigger CoW when mutated
     s2.iloc[0] = 0
@@ -579,6 +592,7 @@ def test_series_getitem_slice(backend):
 
     subset = s[:]
     assert np.shares_memory(get_array(subset), get_array(s))
+    assert subset.index is not s.index
 
     subset.iloc[0] = 0
 
@@ -598,6 +612,7 @@ def test_series_getitem_ellipsis():
 
     subset = s[...]
     assert np.shares_memory(get_array(subset), get_array(s))
+    assert subset.index is not s.index
 
     subset.iloc[0] = 0
 
@@ -701,7 +716,9 @@ def test_column_as_series(backend):
 
     s = df["a"]
 
+    assert s.index is not df.index
     assert np.shares_memory(get_array(s, "a"), get_array(df, "a"))
+
     s[0] = 0
 
     expected = Series([0, 2, 3], name="a")
@@ -754,6 +771,8 @@ def test_column_as_series_no_item_cache(request, backend, method):
     s2 = method(df)
 
     assert s1 is not s2
+    assert s1.index is not df.index
+    assert s1.index is not s2.index
 
     s1.iloc[0] = 0
 

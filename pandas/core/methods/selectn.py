@@ -176,11 +176,10 @@ class SelectNSeries(SelectN[Series]):
         if self.keep != "all":
             inds = inds[:n]
             findex = nbase
+        elif len(inds) < nbase <= len(nan_index) + len(inds):
+            findex = len(nan_index) + len(inds)
         else:
-            if len(inds) < nbase <= len(nan_index) + len(inds):
-                findex = len(nan_index) + len(inds)
-            else:
-                findex = len(inds)
+            findex = len(inds)
 
         if self.keep == "last":
             # reverse indices

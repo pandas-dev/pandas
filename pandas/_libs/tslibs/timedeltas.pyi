@@ -15,6 +15,7 @@ from pandas._libs.tslibs import (
 )
 from pandas._typing import (
     Frequency,
+    TimeUnit,
     npt,
 )
 
@@ -70,6 +71,7 @@ def array_to_timedelta64(
     values: npt.NDArray[np.object_],
     unit: str | None = ...,
     errors: str = ...,
+    creso: int = ...,
 ) -> np.ndarray: ...  # np.ndarray[m8ns]
 def parse_timedelta_unit(unit: str | None) -> UnitChoices: ...
 def delta_to_nanoseconds(
@@ -162,5 +164,5 @@ class Timedelta(timedelta):
     ) -> np.timedelta64: ...
     def view(self, dtype: npt.DTypeLike) -> object: ...
     @property
-    def unit(self) -> str: ...
-    def as_unit(self, unit: str, round_ok: bool = ...) -> Timedelta: ...
+    def unit(self) -> TimeUnit: ...
+    def as_unit(self, unit: TimeUnit, round_ok: bool = ...) -> Timedelta: ...

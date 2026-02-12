@@ -102,7 +102,7 @@ class _XlsxStyler:
         style_dict : style dictionary to convert
         num_format_str : optional number format string
         """
-        # Create a XlsxWriter format object.
+        # Create an XlsxWriter format object.
         props = {}
 
         if num_format_str is not None:
@@ -213,7 +213,7 @@ class XlsxWriter(ExcelWriter):
         )
 
         try:
-            self._book = Workbook(self._handles.handle, **engine_kwargs)  # type: ignore[arg-type]
+            self._book = Workbook(self._handles.handle, **engine_kwargs)
         except TypeError:
             self._handles.handle.close()
             raise
@@ -245,6 +245,7 @@ class XlsxWriter(ExcelWriter):
         startrow: int = 0,
         startcol: int = 0,
         freeze_panes: tuple[int, int] | None = None,
+        autofilter_range: str | None = None,
     ) -> None:
         # Write the frame cells using xlsxwriter.
         sheet_name = self._get_sheet_name(sheet_name)
@@ -282,3 +283,6 @@ class XlsxWriter(ExcelWriter):
                 )
             else:
                 wks.write(startrow + cell.row, startcol + cell.col, val, style)
+
+        if autofilter_range:
+            wks.autofilter(autofilter_range)

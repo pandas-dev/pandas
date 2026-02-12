@@ -91,9 +91,13 @@ def hash_pandas_object(
     """
     Return a data hash of the Index/Series/DataFrame.
 
+    The hash is computed element-wise using the underlying data values,
+    and optionally includes the index when hashing a Series or DataFrame.
+
     Parameters
     ----------
     obj : Index, Series, or DataFrame
+        The pandas object to hash.
     index : bool, default True
         Include the index in the hash (if Series/DataFrame).
     encoding : str, default 'utf8'
@@ -108,6 +112,11 @@ def hash_pandas_object(
     -------
     Series of uint64
         Same length as the object.
+
+    See Also
+    --------
+    util.hash_array : Return a hash of the given array.
+    util.hash_tuples : Hash a MultiIndex or listlike-of-tuples efficiently.
 
     Examples
     --------
@@ -188,7 +197,7 @@ def hash_tuples(
     hash_key: str = _default_hash_key,
 ) -> npt.NDArray[np.uint64]:
     """
-    Hash an MultiIndex / listlike-of-tuples efficiently.
+    Hash a MultiIndex / listlike-of-tuples efficiently.
 
     Parameters
     ----------
@@ -261,7 +270,7 @@ def hash_array(
     See Also
     --------
     util.hash_pandas_object : Return a data hash of the Index/Series/DataFrame.
-    util.hash_tuples : Hash an MultiIndex / listlike-of-tuples efficiently.
+    util.hash_tuples : Hash a MultiIndex / listlike-of-tuples efficiently.
 
     Examples
     --------
@@ -270,7 +279,7 @@ def hash_array(
       dtype=uint64)
     """
     if not hasattr(vals, "dtype"):
-        raise TypeError("must pass a ndarray-like")
+        raise TypeError("must pass an ndarray-like")
 
     if isinstance(vals, ABCExtensionArray):
         return vals._hash_pandas_object(
@@ -324,8 +333,10 @@ def _hash_ndarray(
             )
 
             codes, categories = factorize(vals, sort=False)
-            dtype = CategoricalDtype(categories=Index(categories), ordered=False)
-            cat = Categorical._simple_new(codes, dtype)
+            tdtype = CategoricalDtype(
+                categories=Index(categories, copy=False), ordered=False
+            )
+            cat = Categorical._simple_new(codes, tdtype)
             return cat._hash_pandas_object(
                 encoding=encoding, hash_key=hash_key, categorize=False
             )

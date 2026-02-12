@@ -19,6 +19,7 @@ from pandas._libs import missing as libmissing
 from pandas._libs.hashtable import object_hash
 from pandas._libs.properties import cache_readonly
 from pandas.errors import AbstractMethodError
+from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -41,6 +42,7 @@ if TYPE_CHECKING:
     ExtensionDtypeT = TypeVar("ExtensionDtypeT", bound="ExtensionDtype")
 
 
+@set_module("pandas.api.extensions")
 class ExtensionDtype:
     """
     A custom data type, to be paired with an ExtensionArray.
@@ -455,8 +457,8 @@ class StorageExtensionDtype(ExtensionDtype):
     name: str
     _metadata = ("storage",)
 
-    def __init__(self, storage: str | None = None) -> None:
-        self.storage = storage
+    def __init__(self, storage: str) -> None:
+        self._storage = storage
 
     def __repr__(self) -> str:
         return f"{self.name}[{self.storage}]"
@@ -477,7 +479,12 @@ class StorageExtensionDtype(ExtensionDtype):
     def na_value(self) -> libmissing.NAType:
         return libmissing.NA
 
+    @property
+    def storage(self) -> str:
+        return self._storage
 
+
+@set_module("pandas.api.extensions")
 def register_extension_dtype(cls: type_t[ExtensionDtypeT]) -> type_t[ExtensionDtypeT]:
     """
     Register an ExtensionType with pandas as class decorator.
@@ -513,7 +520,7 @@ class Registry:
     """
     Registry for dtype inference.
 
-    The registry allows one to map a string repr of a extension
+    The registry allows one to map a string repr of an extension
     dtype to an extension dtype. The string alias can be used in several
     places, including
 

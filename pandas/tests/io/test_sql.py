@@ -191,7 +191,7 @@ def create_and_load_iris(conn, iris_file: Path):
     with iris_file.open(newline=None, encoding="utf-8") as csvfile:
         reader = csv.reader(csvfile)
         header = next(reader)
-        params = [dict(zip(header, row)) for row in reader]
+        params = [dict(zip(header, row, strict=True)) for row in reader]
         stmt = insert(iris).values(params)
         with conn.begin() as con:
             iris.drop(con, checkfirst=True)
@@ -748,10 +748,9 @@ def postgresql_psycopg2_conn_types(postgresql_psycopg2_engine_types):
 
 
 @pytest.fixture
-def sqlite_str():
+def sqlite_str(temp_file):
     pytest.importorskip("sqlalchemy")
-    with tm.ensure_clean() as name:
-        yield f"sqlite:///{name}"
+    return f"sqlite:///{temp_file}"
 
 
 @pytest.fixture
@@ -817,20 +816,19 @@ def sqlite_conn_types(sqlite_engine_types):
 
 
 @pytest.fixture
-def sqlite_adbc_conn():
+def sqlite_adbc_conn(temp_file):
     pytest.importorskip("pyarrow")
     pytest.importorskip("adbc_driver_sqlite")
     from adbc_driver_sqlite import dbapi
 
-    with tm.ensure_clean() as name:
-        uri = f"file:{name}"
-        with dbapi.connect(uri) as conn:
-            yield conn
-            for view in get_all_views(conn):
-                drop_view(view, conn)
-            for tbl in get_all_tables(conn):
-                drop_table(tbl, conn)
-            conn.commit()
+    uri = f"file:{temp_file}"
+    with dbapi.connect(uri) as conn:
+        yield conn
+        for view in get_all_views(conn):
+            drop_view(view, conn)
+        for tbl in get_all_tables(conn):
+            drop_table(tbl, conn)
+        conn.commit()
 
 
 @pytest.fixture
@@ -968,15 +966,19 @@ adbc_connectable_types = [
 ]
 
 
-all_connectable = sqlalchemy_connectable + ["sqlite_buildin"] + adbc_connectable
+all_connectable = [*sqlalchemy_connectable, "sqlite_buildin", *adbc_connectable]
 
-all_connectable_iris = (
-    sqlalchemy_connectable_iris + ["sqlite_buildin_iris"] + adbc_connectable_iris
-)
+all_connectable_iris = [
+    *sqlalchemy_connectable_iris,
+    "sqlite_buildin_iris",
+    *adbc_connectable_iris,
+]
 
-all_connectable_types = (
-    sqlalchemy_connectable_types + ["sqlite_buildin_types"] + adbc_connectable_types
-)
+all_connectable_types = [
+    *sqlalchemy_connectable_types,
+    "sqlite_buildin_types",
+    *adbc_connectable_types,
+]
 
 
 @pytest.mark.parametrize("conn", all_connectable)
@@ -1208,7 +1210,7 @@ def test_to_sql_callable(conn, test_frame1, request):
 
     def sample(pd_table, conn, keys, data_iter):
         check.append(1)
-        data = [dict(zip(keys, row)) for row in data_iter]
+        data = [dict(zip(keys, row, strict=True)) for row in data_iter]
         conn.execute(pd_table.table.insert(), data)
 
     with pandasSQL_builder(conn, need_transaction=True) as pandasSQL:
@@ -1336,7 +1338,7 @@ def test_insertion_method_on_conflict_do_nothing(conn, request):
     from sqlalchemy.sql import text
 
     def insert_on_conflict(table, conn, keys, data_iter):
-        data = [dict(zip(keys, row)) for row in data_iter]
+        data = [dict(zip(keys, row, strict=True)) for row in data_iter]
         stmt = (
             insert(table.table)
             .values(data)
@@ -1418,7 +1420,7 @@ def test_insertion_method_on_conflict_update(conn, request):
     from sqlalchemy.sql import text
 
     def insert_on_conflict(table, conn, keys, data_iter):
-        data = [dict(zip(keys, row)) for row in data_iter]
+        data = [dict(zip(keys, row, strict=True)) for row in data_iter]
         stmt = insert(table.table).values(data)
         stmt = stmt.on_duplicate_key_update(b=stmt.inserted.b, c=stmt.inserted.c)
         result = conn.execute(stmt)
@@ -1833,7 +1835,7 @@ def test_api_custom_dateparsing_error(
             pytest.mark.xfail(reason="failing combination of arguments")
         )
 
-    expected = types_data_frame.astype({"DateCol": "datetime64[s]"})
+    expected = types_data_frame.astype({"DateCol": "datetime64[us]"})
 
     result = read_sql(
         text,
@@ -1856,12 +1858,6 @@ def test_api_custom_dateparsing_error(
             }
         )
 
-    if conn_name == "postgresql_adbc_types" and pa_version_under14p1:
-        expected["DateCol"] = expected["DateCol"].astype("datetime64[ns]")
-    elif "postgres" in conn_name or "mysql" in conn_name:
-        expected["DateCol"] = expected["DateCol"].astype("datetime64[us]")
-    else:
-        expected["DateCol"] = expected["DateCol"].astype("datetime64[s]")
     tm.assert_frame_equal(result, expected)
 
 
@@ -2504,20 +2500,20 @@ def test_sqlalchemy_integer_overload_mapping(conn, request, integer):
             sql.SQLTable("test_type", db, frame=df)
 
 
-def test_database_uri_string(request, test_frame1):
+def test_database_uri_string(temp_file, request, test_frame1):
     pytest.importorskip("sqlalchemy")
     # Test read_sql and .to_sql method with a database URI (GH10654)
     # db_uri = 'sqlite:///:memory:' # raises
     # sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) near
     # "iris": syntax error [SQL: 'iris']
-    with tm.ensure_clean() as name:
-        db_uri = "sqlite:///" + name
-        table = "iris"
-        test_frame1.to_sql(name=table, con=db_uri, if_exists="replace", index=False)
-        test_frame2 = sql.read_sql(table, db_uri)
-        test_frame3 = sql.read_sql_table(table, db_uri)
-        query = "SELECT * FROM iris"
-        test_frame4 = sql.read_sql_query(query, db_uri)
+    name = str(temp_file)
+    db_uri = "sqlite:///" + name
+    table = "iris"
+    test_frame1.to_sql(name=table, con=db_uri, if_exists="replace", index=False)
+    test_frame2 = sql.read_sql(table, db_uri)
+    test_frame3 = sql.read_sql_table(table, db_uri)
+    query = "SELECT * FROM iris"
+    test_frame4 = sql.read_sql_query(query, db_uri)
     tm.assert_frame_equal(test_frame1, test_frame2)
     tm.assert_frame_equal(test_frame1, test_frame3)
     tm.assert_frame_equal(test_frame1, test_frame4)
@@ -2581,16 +2577,15 @@ def test_column_with_percentage(conn, request):
     tm.assert_frame_equal(res, df)
 
 
-def test_sql_open_close(test_frame3):
+def test_sql_open_close(temp_file, test_frame3):
     # Test if the IO in the database still work if the connection closed
     # between the writing and reading (as in many real situations).
 
-    with tm.ensure_clean() as name:
-        with contextlib.closing(sqlite3.connect(name)) as conn:
-            assert sql.to_sql(test_frame3, "test_frame3_legacy", conn, index=False) == 4
+    with contextlib.closing(sqlite3.connect(temp_file)) as conn:
+        assert sql.to_sql(test_frame3, "test_frame3_legacy", conn, index=False) == 4
 
-        with contextlib.closing(sqlite3.connect(name)) as conn:
-            result = sql.read_sql_query("SELECT * FROM test_frame3_legacy;", conn)
+    with contextlib.closing(sqlite3.connect(temp_file)) as conn:
+        result = sql.read_sql_query("SELECT * FROM test_frame3_legacy;", conn)
 
     tm.assert_frame_equal(test_frame3, result)
 

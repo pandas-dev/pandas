@@ -23,7 +23,6 @@ from shutil import get_terminal_size
 from typing import (
     TYPE_CHECKING,
     Any,
-    Final,
     cast,
 )
 
@@ -42,6 +41,7 @@ from pandas._libs.tslibs import (
     Timestamp,
 )
 from pandas._libs.tslibs.nattype import NaTType
+from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.common import (
     is_complex_dtype,
@@ -106,62 +106,6 @@ if TYPE_CHECKING:
     )
 
 
-common_docstring: Final = """
-        Parameters
-        ----------
-        buf : str, Path or StringIO-like, optional, default None
-            Buffer to write to. If None, the output is returned as a string.
-        columns : array-like, optional, default None
-            The subset of columns to write. Writes all columns by default.
-        col_space : %(col_space_type)s, optional
-            %(col_space)s
-        header : %(header_type)s, optional
-            %(header)s.
-        index : bool, optional, default True
-            Whether to print index (row) labels.
-        na_rep : str, optional, default 'NaN'
-            String representation of ``NaN`` to use.
-        formatters : list, tuple or dict of one-param. functions, optional
-            Formatter functions to apply to columns' elements by position or
-            name.
-            The result of each function must be a unicode string.
-            List/tuple must be of length equal to the number of columns.
-        float_format : one-parameter function, optional, default None
-            Formatter function to apply to columns' elements if they are
-            floats. This function must return a unicode string and will be
-            applied only to the non-``NaN`` elements, with ``NaN`` being
-            handled by ``na_rep``.
-        sparsify : bool, optional, default True
-            Set to False for a DataFrame with a hierarchical index to print
-            every multiindex key at each row.
-        index_names : bool, optional, default True
-            Prints the names of the indexes.
-        justify : str, default None
-            How to justify the column labels. If None uses the option from
-            the print configuration (controlled by set_option), 'right' out
-            of the box. Valid values are
-
-            * left
-            * right
-            * center
-            * justify
-            * justify-all
-            * start
-            * end
-            * inherit
-            * match-parent
-            * initial
-            * unset.
-        max_rows : int, optional
-            Maximum number of rows to display in the console.
-        max_cols : int, optional
-            Maximum number of columns to display in the console.
-        show_dimensions : bool, default False
-            Display DataFrame dimensions (number of rows by number of columns).
-        decimal : str, default '.'
-            Character recognized as decimal separator, e.g. ',' in Europe.
-    """
-
 VALID_JUSTIFY_PARAMETERS = (
     "left",
     "right",
@@ -175,14 +119,6 @@ VALID_JUSTIFY_PARAMETERS = (
     "initial",
     "unset",
 )
-
-return_docstring: Final = """
-        Returns
-        -------
-        str or None
-            If buf is None, returns the result as a string. Otherwise returns
-            None.
-    """
 
 
 class SeriesFormatter:
@@ -357,8 +293,6 @@ def get_dataframe_repr_params() -> dict[str, Any]:
     Supplying these parameters to DataFrame.to_string is equivalent to calling
     ``repr(DataFrame)``. This is useful if you want to adjust the repr output.
 
-    .. versionadded:: 1.4.0
-
     Example
     -------
     >>> import pandas as pd
@@ -390,8 +324,6 @@ def get_series_repr_params() -> dict[str, Any]:
     Supplying these parameters to Series.to_string is equivalent to calling
     ``repr(series)``. This is useful if you want to adjust the series repr output.
 
-    .. versionadded:: 1.4.0
-
     Example
     -------
     >>> import pandas as pd
@@ -420,10 +352,71 @@ class DataFrameFormatter:
     Class for processing dataframe formatting options and data.
 
     Used by DataFrame.to_string, which backs DataFrame.__repr__.
-    """
 
-    __doc__ = __doc__ if __doc__ else ""
-    __doc__ += common_docstring + return_docstring
+    Parameters
+    ----------
+    buf : str, Path or StringIO-like, optional, default None
+        Buffer to write to. If None, the output is returned as a string.
+    columns : array-like, optional, default None
+        The subset of columns to write. Writes all columns by default.
+    col_space : int, list or dict of int, optional
+        The minimum width of each column. If a list of ints is given
+        every integers corresponds with one column. If a dict is given,
+        the key references the column, while the value defines the space
+        to use.
+    header : bool or list of str, optional
+        Write out the column names. If a list of columns is given,
+        it is assumed to be aliases for the column names.
+    index : bool, optional, default True
+        Whether to print index (row) labels.
+    na_rep : str, optional, default 'NaN'
+        String representation of ``NaN`` to use.
+    formatters : list, tuple or dict of one-param. functions, optional
+        Formatter functions to apply to columns' elements by position or
+        name.
+        The result of each function must be a unicode string.
+        List/tuple must be of length equal to the number of columns.
+    float_format : one-parameter function, optional, default None
+        Formatter function to apply to columns' elements if they are
+        floats. This function must return a unicode string and will be
+        applied only to the non-``NaN`` elements, with ``NaN`` being
+        handled by ``na_rep``.
+    sparsify : bool, optional, default True
+        Set to False for a DataFrame with a hierarchical index to print
+        every multiindex key at each row.
+    index_names : bool, optional, default True
+        Prints the names of the indexes.
+    justify : str, default None
+        How to justify the column labels. If None uses the option from
+        the print configuration (controlled by set_option), 'right' out
+        of the box. Valid values are
+
+        * left
+        * right
+        * center
+        * justify
+        * justify-all
+        * start
+        * end
+        * inherit
+        * match-parent
+        * initial
+        * unset.
+    max_rows : int, optional
+        Maximum number of rows to display in the console.
+    max_cols : int, optional
+        Maximum number of columns to display in the console.
+    show_dimensions : bool, default False
+        Display DataFrame dimensions (number of rows by number of columns).
+    decimal : str, default '.'
+        Character recognized as decimal separator, e.g. ',' in Europe.
+
+    Returns
+    -------
+    str or None
+        If buf is None, returns the result as a string. Otherwise returns
+        None.
+    """
 
     def __init__(
         self,
@@ -579,7 +572,7 @@ class DataFrameFormatter:
                     f"Col_space length({len(col_space)}) should match "
                     f"DataFrame number of columns({len(self.frame.columns)})"
                 )
-            result = dict(zip(self.frame.columns, col_space))
+            result = dict(zip(self.frame.columns, col_space, strict=True))
         return result
 
     def _calc_max_cols_fitted(self) -> int | None:
@@ -786,7 +779,7 @@ class DataFrameFormatter:
             if self.sparsify and len(fmt_columns):
                 fmt_columns = sparsify_labels(fmt_columns)
 
-            str_columns = [list(x) for x in zip(*fmt_columns)]
+            str_columns = [list(x) for x in zip(*fmt_columns, strict=True)]
         else:
             fmt_columns = columns._format_flat(include_name=False)
             str_columns = [
@@ -795,7 +788,9 @@ class DataFrameFormatter:
                     if not self._get_formatter(i) and is_numeric_dtype(dtype)
                     else x
                 ]
-                for i, (x, dtype) in enumerate(zip(fmt_columns, self.frame.dtypes))
+                for i, (x, dtype) in enumerate(
+                    zip(fmt_columns, self.frame.dtypes, strict=False)
+                )
             ]
         return str_columns
 
@@ -904,7 +899,7 @@ class DataFrameRenderer:
         render_links: bool = False,
     ) -> str | None:
         """
-        Render a DataFrame to a html table.
+        Render a DataFrame to an html table.
 
         Parameters
         ----------
@@ -1359,7 +1354,7 @@ class FloatArrayFormatter(_GenericArrayFormatter):
             formatted = np.array(
                 [
                     formatter(val) if not m else na_rep
-                    for val, m in zip(values.ravel(), mask.ravel())
+                    for val, m in zip(values.ravel(), mask.ravel(), strict=True)
                 ]
             ).reshape(values.shape)
             return formatted
@@ -1377,6 +1372,7 @@ class FloatArrayFormatter(_GenericArrayFormatter):
                 imag_values,
                 real_mask,
                 imag_mask,
+                strict=True,
             ):
                 if not re_isna and not im_isna:
                     formatted_lst.append(formatter(val))
@@ -1796,7 +1792,7 @@ def _trim_zeros_complex(str_complexes: ArrayLike, decimal: str = ".") -> list[st
         + imag_pt[0]  # +/-
         + f"{imag_pt[1:]:>{padded_length}}"  # complex part (no sign), possibly nan
         + "j"
-        for real_pt, imag_pt in zip(padded_parts[:n], padded_parts[n:])
+        for real_pt, imag_pt in zip(padded_parts[:n], padded_parts[n:], strict=True)
     ]
     return padded
 
@@ -1952,6 +1948,7 @@ class EngFormatter:
         return formatted
 
 
+@set_module("pandas")
 def set_eng_float_format(accuracy: int = 3, use_eng_prefix: bool = False) -> None:
     """
     Format float representation in DataFrame with SI notation.

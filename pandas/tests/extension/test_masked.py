@@ -61,11 +61,11 @@ pytestmark = [
 
 
 def make_data():
-    return [1, 2, 3, 4] + [pd.NA] + [10, 11] + [pd.NA] + [99, 100]
+    return [1, 2, 3, 4, pd.NA, 10, 11, pd.NA, 99, 100]
 
 
 def make_float_data():
-    return [0.1, 0.2, 0.3, 0.4] + [pd.NA] + [1.0, 1.1] + [pd.NA] + [9.9, 10.0]
+    return [0.1, 0.2, 0.3, 0.4, pd.NA, 1.0, 1.1, pd.NA, 9.9, 10.0]
 
 
 def make_bool_data():
@@ -172,20 +172,23 @@ class TestMaskedArrays(base.ExtensionTests):
         #  override becomes unnecessary.
 
     @pytest.mark.parametrize("na_action", [None, "ignore"])
-    def test_map(self, data_missing, na_action):
+    def test_map(self, data_missing, na_action, using_nan_is_na):
         result = data_missing.map(lambda x: x, na_action=na_action)
-        if data_missing.dtype == Float32Dtype():
+        if data_missing.dtype == Float32Dtype() and using_nan_is_na:
             # map roundtrips through objects, which converts to float64
             expected = data_missing.to_numpy(dtype="float64", na_value=np.nan)
         else:
             expected = data_missing.to_numpy()
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_map_na_action_ignore(self, data_missing_for_sorting):
+    def test_map_na_action_ignore(self, data_missing_for_sorting, using_nan_is_na):
         zero = data_missing_for_sorting[2]
         result = data_missing_for_sorting.map(lambda x: zero, na_action="ignore")
         if data_missing_for_sorting.dtype.kind == "b":
             expected = np.array([False, pd.NA, False], dtype=object)
+        elif not using_nan_is_na:
+            # TODO: would we prefer to get NaN in this case to get a non-object?
+            expected = np.array([zero, pd.NA, zero], dtype=object)
         else:
             expected = np.array([zero, np.nan, zero])
         tm.assert_numpy_array_equal(result, expected)
@@ -350,9 +353,11 @@ class TestMaskedArrays(base.ExtensionTests):
         expected = pd.Series(
             pd.array(
                 getattr(ser.astype("float64"), op_name)(skipna=skipna),
-                dtype=expected_dtype,
+                dtype="Float64",
             )
         )
+        expected[np.isnan(expected)] = pd.NA
+        expected = expected.astype(expected_dtype)
         tm.assert_series_equal(result, expected)
 
     def test_loc_setitem_with_expansion_preserves_ea_index_dtype(self, data, request):

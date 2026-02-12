@@ -37,7 +37,7 @@ def is_platform_mac():
 
 
 # note: sync with pyproject.toml, environment.yml and asv.conf.json
-min_cython_ver = "3.0"
+min_cython_ver = "3.1"
 
 try:
     from Cython import (
@@ -403,7 +403,7 @@ def maybe_cythonize(extensions, *args, **kwargs):
         return extensions
 
     elif not _CYTHON_INSTALLED:
-        # GH#28836 raise a helfpul error message
+        # GH#28836 raise a helpful error message
         if _CYTHON_VERSION:
             raise RuntimeError(
                 f"Cannot cythonize with old Cython version ({_CYTHON_VERSION} "

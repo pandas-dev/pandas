@@ -35,7 +35,7 @@ class TestInsert:
 
         item = np.timedelta64("NaT")
         result = idx.insert(0, item)
-        expected = Index([item] + list(idx), dtype=object)
+        expected = Index([item, *list(idx)], dtype=object)
         tm.assert_index_equal(result, expected)
 
     def test_insert_empty_preserves_freq(self, tz_naive_fixture):
@@ -196,7 +196,7 @@ class TestInsert:
         item = Timestamp("2000-01-04")
         result = idx.insert(3, item)
         expected = Index(
-            list(idx[:3]) + [item] + list(idx[3:]), dtype=object, name="idx"
+            [*list(idx[:3]), item, *list(idx[3:])], dtype=object, name="idx"
         )
         tm.assert_index_equal(result, expected)
 
@@ -204,7 +204,7 @@ class TestInsert:
         item = datetime(2000, 1, 4)
         result = idx.insert(3, item)
         expected = Index(
-            list(idx[:3]) + [item] + list(idx[3:]), dtype=object, name="idx"
+            [*list(idx[:3]), item, *list(idx[3:])], dtype=object, name="idx"
         )
         tm.assert_index_equal(result, expected)
 
@@ -212,13 +212,15 @@ class TestInsert:
     def test_insert_mismatched_tz(self):
         # see GH#7299
         # pre-2.0 with mismatched tzs we would cast to object
-        idx = date_range("1/1/2000", periods=3, freq="D", tz="Asia/Tokyo", name="idx")
+        idx = date_range(
+            "1/1/2000", periods=3, freq="D", tz="Asia/Tokyo", unit="ns", name="idx"
+        )
 
         # mismatched tz -> cast to object (could reasonably cast to same tz or UTC)
         item = Timestamp("2000-01-04", tz="US/Eastern")
         result = idx.insert(3, item)
         expected = Index(
-            list(idx[:3]) + [item.tz_convert(idx.tz)] + list(idx[3:]),
+            [*list(idx[:3]), item.tz_convert(idx.tz), *list(idx[3:])],
             name="idx",
         )
         assert expected.dtype == idx.dtype
@@ -227,7 +229,7 @@ class TestInsert:
         item = datetime(2000, 1, 4, tzinfo=zoneinfo.ZoneInfo("US/Eastern"))
         result = idx.insert(3, item)
         expected = Index(
-            list(idx[:3]) + [item.astimezone(idx.tzinfo)] + list(idx[3:]),
+            [*list(idx[:3]), item.astimezone(idx.tzinfo), *list(idx[3:])],
             name="idx",
         )
         assert expected.dtype == idx.dtype
@@ -245,9 +247,9 @@ class TestInsert:
 
         if isinstance(item, np.ndarray):
             assert item.item() == 0
-            expected = Index([dti[0], 0] + list(dti[1:]), dtype=object, name=9)
+            expected = Index([dti[0], 0, *list(dti[1:])], dtype=object, name=9)
         else:
-            expected = Index([dti[0], item] + list(dti[1:]), dtype=object, name=9)
+            expected = Index([dti[0], item, *list(dti[1:])], dtype=object, name=9)
 
         tm.assert_index_equal(result, expected)
 
@@ -260,7 +262,7 @@ class TestInsert:
         result = dti.insert(0, value)
 
         ts = Timestamp(value).tz_localize(tz)
-        expected = DatetimeIndex([ts] + list(dti), dtype=dti.dtype, name=9)
+        expected = DatetimeIndex([ts, *list(dti)], dtype=dti.dtype, name=9)
         tm.assert_index_equal(result, expected)
 
     def test_insert_non_castable_str(self, tz_aware_fixture):
@@ -271,5 +273,5 @@ class TestInsert:
         value = "foo"
         result = dti.insert(0, value)
 
-        expected = Index(["foo"] + list(dti), dtype=object, name=9)
+        expected = Index(["foo", *list(dti)], dtype=object, name=9)
         tm.assert_index_equal(result, expected)

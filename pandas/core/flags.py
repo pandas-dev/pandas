@@ -3,10 +3,13 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 import weakref
 
+from pandas.util._decorators import set_module
+
 if TYPE_CHECKING:
     from pandas.core.generic import NDFrame
 
 
+@set_module("pandas")
 class Flags:
     """
     Flags that apply to pandas objects.

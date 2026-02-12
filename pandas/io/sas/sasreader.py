@@ -15,9 +15,7 @@ from typing import (
     overload,
 )
 
-from pandas.util._decorators import doc
-
-from pandas.core.shared_docs import _shared_docs
+from pandas.util._decorators import set_module
 
 from pandas.io.common import stringify_path
 
@@ -34,6 +32,7 @@ if TYPE_CHECKING:
     from pandas import DataFrame
 
 
+@set_module("pandas.api.typing")
 class SASReader(Iterator["DataFrame"], ABC):
     """
     Abstract class for XportReader and SAS7BDATReader.
@@ -83,7 +82,7 @@ def read_sas(
 ) -> DataFrame | SASReader: ...
 
 
-@doc(decompression_options=_shared_docs["decompression_options"] % "filepath_or_buffer")
+@set_module("pandas")
 def read_sas(
     filepath_or_buffer: FilePath | ReadBuffer[bytes],
     *,
@@ -101,9 +100,9 @@ def read_sas(
     ----------
     filepath_or_buffer : str, path object, or file-like object
         String, path object (implementing ``os.PathLike[str]``), or file-like
-        object implementing a binary ``read()`` function. The string could be a URL.
-        Valid URL schemes include http, ftp, s3, and file. For file URLs, a host is
-        expected. A local file could be:
+        object implementing a binary ``read()`` function. The string could be
+        a URL. Valid URL schemes include http, ftp, s3, and file. For file
+        URLs, a host is expected. A local file could be:
         ``file://localhost/path/to/table.sas7bdat``.
     format : str {{'xport', 'sas7bdat'}} or None
         If None, file format is inferred from file extension. If 'xport' or
@@ -116,7 +115,20 @@ def read_sas(
         Read file `chunksize` lines at a time, returns iterator.
     iterator : bool, defaults to False
         If True, returns an iterator for reading the file incrementally.
-    {decompression_options}
+    compression : str or dict, default 'infer'
+        For on-the-fly decompression of on-disk data. If 'infer' and
+        'filepath_or_buffer' is path-like, then detect compression from the
+        following extensions: '.gz', '.bz2', '.zip', '.xz', '.zst', '.tar',
+        '.tar.gz', '.tar.xz' or '.tar.bz2' (otherwise no compression).
+        Set to ``None`` for no decompression.
+        Can also be a dict with key ``'method'`` set to one of {``'zip'``,
+        ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'xz'``, ``'tar'``} and other
+        key-value pairs are forwarded to ``zipfile.ZipFile``,
+        ``gzip.GzipFile``, ``bz2.BZ2File``, ``zstandard.ZstdCompressor``,
+        ``lzma.LZMAFile`` or ``tarfile.TarFile``, respectively.
+        As an example, the following could be passed for faster compression
+        and to create a reproducible gzip archive:
+        ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
 
     Returns
     -------
@@ -126,7 +138,7 @@ def read_sas(
 
     See Also
     --------
-    read_csv : Read a comma-separated values (csv) file into a pandas DataFrame.
+    read_csv : Read a comma-separated values (csv) file into a DataFrame.
     read_excel : Read an Excel file into a pandas DataFrame.
     read_spss : Read an SPSS file into a pandas DataFrame.
     read_orc : Load an ORC object into a pandas DataFrame.

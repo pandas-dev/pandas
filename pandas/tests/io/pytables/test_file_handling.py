@@ -1,4 +1,5 @@
 import os
+import uuid
 
 import numpy as np
 import pytest
@@ -22,57 +23,49 @@ from pandas import (
     date_range,
     read_hdf,
 )
-from pandas.tests.io.pytables.common import (
-    _maybe_remove,
-    ensure_clean_store,
-    tables,
-)
 
 from pandas.io import pytables
 from pandas.io.pytables import Term
 
+tables = pytest.importorskip("tables")
 pytestmark = [pytest.mark.single_cpu]
 
 
 @pytest.mark.parametrize("mode", ["r", "r+", "a", "w"])
-def test_mode(setup_path, tmp_path, mode, using_infer_string):
+def test_mode(temp_h5_path, mode, using_infer_string):
     df = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
         columns=Index(list("ABCD"), dtype=object),
         index=date_range("2000-01-01", periods=10, freq="B"),
     )
     msg = r"[\S]* does not exist"
-    path = tmp_path / setup_path
+    doesnt_exist = f"{uuid.uuid4()}.h5"
 
     # constructor
     if mode in ["r", "r+"]:
         with pytest.raises(OSError, match=msg):
-            HDFStore(path, mode=mode)
+            HDFStore(doesnt_exist, mode=mode)
 
     else:
-        with HDFStore(path, mode=mode) as store:
+        with HDFStore(temp_h5_path, mode=mode) as store:
             assert store._handle.mode == mode
-
-    path = tmp_path / setup_path
 
     # context
     if mode in ["r", "r+"]:
         with pytest.raises(OSError, match=msg):
-            with HDFStore(path, mode=mode) as store:
+            with HDFStore(doesnt_exist, mode=mode) as store:
                 pass
     else:
-        with HDFStore(path, mode=mode) as store:
+        with HDFStore(temp_h5_path, mode=mode) as store:
             assert store._handle.mode == mode
-
-    path = tmp_path / setup_path
 
     # conv write
     if mode in ["r", "r+"]:
         with pytest.raises(OSError, match=msg):
-            df.to_hdf(path, key="df", mode=mode)
-        df.to_hdf(path, key="df", mode="w")
+            df.to_hdf(doesnt_exist, key="df", mode=mode)
+        df.to_hdf(temp_h5_path, key="df", mode="w")
     else:
-        df.to_hdf(path, key="df", mode=mode)
+        df.to_hdf(temp_h5_path, key="df", mode=mode)
 
     # conv read
     if mode in ["w"]:
@@ -81,34 +74,31 @@ def test_mode(setup_path, tmp_path, mode, using_infer_string):
             r"Allowed modes are r, r\+ and a."
         )
         with pytest.raises(ValueError, match=msg):
-            read_hdf(path, "df", mode=mode)
+            read_hdf(temp_h5_path, "df", mode=mode)
     else:
-        result = read_hdf(path, "df", mode=mode)
+        result = read_hdf(temp_h5_path, "df", mode=mode)
         if using_infer_string:
             df.columns = df.columns.astype("str")
         tm.assert_frame_equal(result, df)
 
 
-def test_default_mode(tmp_path, setup_path, using_infer_string):
+def test_default_mode(temp_h5_path, using_infer_string):
     # read_hdf uses default mode
     df = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
         columns=Index(list("ABCD"), dtype=object),
         index=date_range("2000-01-01", periods=10, freq="B"),
     )
-    path = tmp_path / setup_path
-    df.to_hdf(path, key="df", mode="w")
-    result = read_hdf(path, "df")
+    df.to_hdf(temp_h5_path, key="df", mode="w")
+    result = read_hdf(temp_h5_path, "df")
     expected = df.copy()
     if using_infer_string:
         expected.columns = expected.columns.astype("str")
     tm.assert_frame_equal(result, expected)
 
 
-def test_reopen_handle(tmp_path, setup_path):
-    path = tmp_path / setup_path
-
-    store = HDFStore(path, mode="a")
+def test_reopen_handle(temp_h5_path):
+    store = HDFStore(temp_h5_path, mode="a")
     store["a"] = Series(
         np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
     )
@@ -131,7 +121,7 @@ def test_reopen_handle(tmp_path, setup_path):
     store.close()
     assert not store.is_open
 
-    store = HDFStore(path, mode="a")
+    store = HDFStore(temp_h5_path, mode="a")
     store["a"] = Series(
         np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
     )
@@ -161,43 +151,43 @@ def test_reopen_handle(tmp_path, setup_path):
     assert not store.is_open
 
 
-def test_open_args(setup_path, using_infer_string):
-    with tm.ensure_clean(setup_path) as path:
-        df = DataFrame(
-            1.1 * np.arange(120).reshape((30, 4)),
-            columns=Index(list("ABCD"), dtype=object),
-            index=Index([f"i-{i}" for i in range(30)], dtype=object),
-        )
+def test_open_args(using_infer_string):
+    not_written = f"{uuid.uuid4()}.h5"
+    df = DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+    )
 
-        # create an in memory store
-        store = HDFStore(
-            path, mode="a", driver="H5FD_CORE", driver_core_backing_store=0
-        )
-        store["df"] = df
-        store.append("df2", df)
+    # create an in memory store
+    store = HDFStore(
+        not_written, mode="a", driver="H5FD_CORE", driver_core_backing_store=0
+    )
+    store["df"] = df
+    store.append("df2", df)
 
-        expected = df.copy()
-        if using_infer_string:
-            expected.index = expected.index.astype("str")
-            expected.columns = expected.columns.astype("str")
+    expected = df.copy()
+    if using_infer_string:
+        expected.index = expected.index.astype("str")
+        expected.columns = expected.columns.astype("str")
 
-        tm.assert_frame_equal(store["df"], expected)
-        tm.assert_frame_equal(store["df2"], expected)
+    tm.assert_frame_equal(store["df"], expected)
+    tm.assert_frame_equal(store["df2"], expected)
 
-        store.close()
+    store.close()
 
     # the file should not have actually been written
-    assert not os.path.exists(path)
+    assert not os.path.exists(not_written)
 
 
-def test_flush(setup_path):
-    with ensure_clean_store(setup_path) as store:
+def test_flush(temp_h5_path):
+    with HDFStore(temp_h5_path, mode="w") as store:
         store["a"] = Series(range(5))
         store.flush()
         store.flush(fsync=True)
 
 
-def test_complibs_default_settings(tmp_path, setup_path, using_infer_string):
+def test_complibs_default_settings(temp_h5_path, using_infer_string):
     # GH15943
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
@@ -207,65 +197,61 @@ def test_complibs_default_settings(tmp_path, setup_path, using_infer_string):
 
     # Set complevel and check if complib is automatically set to
     # default value
-    tmpfile = tmp_path / setup_path
-    df.to_hdf(tmpfile, key="df", complevel=9)
-    result = read_hdf(tmpfile, "df")
+    df.to_hdf(temp_h5_path, key="df", complevel=9)
+    result = read_hdf(temp_h5_path, "df")
     expected = df.copy()
     if using_infer_string:
         expected.index = expected.index.astype("str")
         expected.columns = expected.columns.astype("str")
     tm.assert_frame_equal(result, expected)
 
-    with tables.open_file(tmpfile, mode="r") as h5file:
+    with tables.open_file(temp_h5_path, mode="r") as h5file:
         for node in h5file.walk_nodes(where="/df", classname="Leaf"):
             assert node.filters.complevel == 9
             assert node.filters.complib == "zlib"
 
     # Set complib and check to see if compression is disabled
-    tmpfile = tmp_path / setup_path
-    df.to_hdf(tmpfile, key="df", complib="zlib")
-    result = read_hdf(tmpfile, "df")
+    df.to_hdf(temp_h5_path, key="df", complib="zlib")
+    result = read_hdf(temp_h5_path, "df")
     expected = df.copy()
     if using_infer_string:
         expected.index = expected.index.astype("str")
         expected.columns = expected.columns.astype("str")
     tm.assert_frame_equal(result, expected)
 
-    with tables.open_file(tmpfile, mode="r") as h5file:
+    with tables.open_file(temp_h5_path, mode="r") as h5file:
         for node in h5file.walk_nodes(where="/df", classname="Leaf"):
             assert node.filters.complevel == 0
             assert node.filters.complib is None
 
     # Check if not setting complib or complevel results in no compression
-    tmpfile = tmp_path / setup_path
-    df.to_hdf(tmpfile, key="df")
-    result = read_hdf(tmpfile, "df")
+    df.to_hdf(temp_h5_path, key="df")
+    result = read_hdf(temp_h5_path, "df")
     expected = df.copy()
     if using_infer_string:
         expected.index = expected.index.astype("str")
         expected.columns = expected.columns.astype("str")
     tm.assert_frame_equal(result, expected)
 
-    with tables.open_file(tmpfile, mode="r") as h5file:
+    with tables.open_file(temp_h5_path, mode="r") as h5file:
         for node in h5file.walk_nodes(where="/df", classname="Leaf"):
             assert node.filters.complevel == 0
             assert node.filters.complib is None
 
 
-def test_complibs_default_settings_override(tmp_path, setup_path):
+def test_complibs_default_settings_override(temp_h5_path):
     # Check if file-defaults can be overridden on a per table basis
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
         columns=Index(list("ABCD"), dtype=object),
         index=Index([f"i-{i}" for i in range(30)], dtype=object),
     )
-    tmpfile = tmp_path / setup_path
-    store = HDFStore(tmpfile)
+    store = HDFStore(temp_h5_path)
     store.append("dfc", df, complevel=9, complib="blosc")
     store.append("df", df)
     store.close()
 
-    with tables.open_file(tmpfile, mode="r") as h5file:
+    with tables.open_file(temp_h5_path, mode="r") as h5file:
         for node in h5file.walk_nodes(where="/df", classname="Leaf"):
             assert node.filters.complevel == 0
             assert node.filters.complib is None
@@ -318,18 +304,16 @@ def test_complibs(tmp_path, lvl, lib, request):
 @pytest.mark.skipif(
     not is_platform_little_endian(), reason="reason platform is not little endian"
 )
-def test_encoding(setup_path):
-    with ensure_clean_store(setup_path) as store:
-        df = DataFrame({"A": "foo", "B": "bar"}, index=range(5))
-        df.loc[2, "A"] = np.nan
-        df.loc[3, "B"] = np.nan
-        _maybe_remove(store, "df")
-        store.append("df", df, encoding="ascii")
-        tm.assert_frame_equal(store["df"], df)
+def test_encoding(temp_hdfstore):
+    df = DataFrame({"A": "foo", "B": "bar"}, index=range(5))
+    df.loc[2, "A"] = np.nan
+    df.loc[3, "B"] = np.nan
+    temp_hdfstore.append("df", df, encoding="ascii")
+    tm.assert_frame_equal(temp_hdfstore["df"], df)
 
-        expected = df.reindex(columns=["A"])
-        result = store.select("df", Term("columns=A", encoding="ascii"))
-        tm.assert_frame_equal(result, expected)
+    expected = df.reindex(columns=["A"])
+    result = temp_hdfstore.select("df", Term("columns=A", encoding="ascii"))
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize(
@@ -347,7 +331,7 @@ def test_encoding(setup_path):
     ],
 )
 @pytest.mark.parametrize("dtype", ["category", None])
-def test_latin_encoding(tmp_path, setup_path, dtype, val):
+def test_latin_encoding(temp_h5_path, dtype, val):
     enc = "latin-1"
     nan_rep = ""
     key = "data"
@@ -355,9 +339,8 @@ def test_latin_encoding(tmp_path, setup_path, dtype, val):
     val = [x.decode(enc) if isinstance(x, bytes) else x for x in val]
     ser = Series(val, dtype=dtype)
 
-    store = tmp_path / setup_path
-    ser.to_hdf(store, key=key, format="table", encoding=enc, nan_rep=nan_rep)
-    retr = read_hdf(store, key)
+    ser.to_hdf(temp_h5_path, key=key, format="table", encoding=enc, nan_rep=nan_rep)
+    retr = read_hdf(temp_h5_path, key)
 
     # TODO:(3.0): once Categorical replace deprecation is enforced,
     #  we may be able to re-simplify the construction of s_nan
@@ -372,20 +355,18 @@ def test_latin_encoding(tmp_path, setup_path, dtype, val):
     tm.assert_series_equal(s_nan, retr)
 
 
-def test_multiple_open_close(tmp_path, setup_path):
+def test_multiple_open_close(temp_h5_path):
     # gh-4409: open & close multiple times
-
-    path = tmp_path / setup_path
 
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
         columns=Index(list("ABCD"), dtype=object),
         index=Index([f"i-{i}" for i in range(30)], dtype=object),
     )
-    df.to_hdf(path, key="df", mode="w", format="table")
+    df.to_hdf(temp_h5_path, key="df", mode="w", format="table")
 
     # single
-    store = HDFStore(path)
+    store = HDFStore(temp_h5_path)
     assert "CLOSED" not in store.info()
     assert store.is_open
 
@@ -393,23 +374,21 @@ def test_multiple_open_close(tmp_path, setup_path):
     assert "CLOSED" in store.info()
     assert not store.is_open
 
-    path = tmp_path / setup_path
-
     if pytables._table_file_open_policy_is_strict:
         # multiples
-        store1 = HDFStore(path)
+        store1 = HDFStore(temp_h5_path)
         msg = (
             r"The file [\S]* is already opened\.  Please close it before "
             r"reopening in write mode\."
         )
         with pytest.raises(ValueError, match=msg):
-            HDFStore(path)
+            HDFStore(temp_h5_path)
 
         store1.close()
     else:
         # multiples
-        store1 = HDFStore(path)
-        store2 = HDFStore(path)
+        store1 = HDFStore(temp_h5_path)
+        store2 = HDFStore(temp_h5_path)
 
         assert "CLOSED" not in store1.info()
         assert "CLOSED" not in store2.info()
@@ -429,10 +408,10 @@ def test_multiple_open_close(tmp_path, setup_path):
         assert not store2.is_open
 
         # nested close
-        store = HDFStore(path, mode="w")
+        store = HDFStore(temp_h5_path, mode="w")
         store.append("df", df)
 
-        store2 = HDFStore(path)
+        store2 = HDFStore(temp_h5_path)
         store2.append("df2", df)
         store2.close()
         assert "CLOSED" in store2.info()
@@ -443,10 +422,10 @@ def test_multiple_open_close(tmp_path, setup_path):
         assert not store.is_open
 
         # double closing
-        store = HDFStore(path, mode="w")
+        store = HDFStore(temp_h5_path, mode="w")
         store.append("df", df)
 
-        store2 = HDFStore(path)
+        store2 = HDFStore(temp_h5_path)
         store.close()
         assert "CLOSED" in store.info()
         assert not store.is_open
@@ -456,16 +435,14 @@ def test_multiple_open_close(tmp_path, setup_path):
         assert not store2.is_open
 
     # ops on a closed store
-    path = tmp_path / setup_path
-
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
         columns=Index(list("ABCD"), dtype=object),
         index=Index([f"i-{i}" for i in range(30)], dtype=object),
     )
-    df.to_hdf(path, key="df", mode="w", format="table")
+    df.to_hdf(temp_h5_path, key="df", mode="w", format="table")
 
-    store = HDFStore(path)
+    store = HDFStore(temp_h5_path)
     store.close()
 
     msg = r"[\S]* file is not open!"
@@ -507,7 +484,6 @@ def test_multiple_open_close(tmp_path, setup_path):
         store.df
 
 
-def test_fspath():
-    with tm.ensure_clean("foo.h5") as path:
-        with HDFStore(path) as store:
-            assert os.fspath(store) == str(path)
+def test_fspath(temp_h5_path):
+    with HDFStore(temp_h5_path) as store:
+        assert os.fspath(store) == str(temp_h5_path)

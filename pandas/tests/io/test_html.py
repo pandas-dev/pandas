@@ -61,7 +61,7 @@ def assert_framelist_equal(list1, list2, *args, **kwargs):
         )
     )
     assert both_frames, msg
-    for frame_i, frame_j in zip(list1, list2):
+    for frame_i, frame_j in zip(list1, list2, strict=True):
         tm.assert_frame_equal(frame_i, frame_j, *args, **kwargs)
         assert not frame_i.empty, "frames are both empty"
 
@@ -387,8 +387,16 @@ class TestReadHtml:
     @pytest.mark.single_cpu
     def test_invalid_url(self, httpserver, flavor_read_html):
         httpserver.serve_content("Name or service not known", code=404)
-        with pytest.raises((URLError, ValueError), match="HTTP Error 404: NOT FOUND"):
-            flavor_read_html(httpserver.url, match=".*Water.*")
+        try:
+            with pytest.raises(
+                (URLError, ValueError), match="HTTP Error 404: NOT FOUND"
+            ) as err:
+                flavor_read_html(httpserver.url, match=".*Water.*")
+        finally:
+            if isinstance(err.value, URLError):
+                # Has a file-like handle that we can close
+                # https://docs.python.org/3/library/urllib.error.html#urllib.error.HTTPError
+                err.value.close()
 
     @pytest.mark.slow
     def test_file_url(self, banklist_data, flavor_read_html):
@@ -1065,7 +1073,7 @@ class TestReadHtml:
         df = DataFrame({"date": date_range("1/1/2001", periods=10)})
 
         expected = df[:]
-        expected["date"] = expected["date"].dt.as_unit("s")
+        expected["date"] = expected["date"].dt.as_unit("us")
 
         str_df = df.to_html()
         res = flavor_read_html(StringIO(str_df), parse_dates=[1], index_col=0)

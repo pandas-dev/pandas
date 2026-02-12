@@ -36,7 +36,7 @@ def left_right():
     right = left.sample(
         frac=1, random_state=np.random.default_rng(2), ignore_index=True
     )
-    right.columns = right.columns[:-1].tolist() + ["right"]
+    right.columns = [*right.columns[:-1].tolist(), "right"]
     right["right"] *= -1
     return left, right
 
@@ -89,6 +89,7 @@ class TestSorting:
         grouped = data.groupby(["a", "b", "c", "d"])
         assert len(grouped) == len(values)
 
+    @pytest.mark.slow
     @pytest.mark.parametrize("agg", ["mean", "median"])
     def test_int64_overflow_groupby_large_df_shuffled(self, agg):
         rs = np.random.default_rng(2)
@@ -197,11 +198,11 @@ class TestMerge:
         # #2690, combinatorial explosion
         df1 = DataFrame(
             np.random.default_rng(2).standard_normal((1000, 7)),
-            columns=list("ABCDEF") + ["G1"],
+            columns=[*list("ABCDEF"), "G1"],
         )
         df2 = DataFrame(
             np.random.default_rng(3).standard_normal((1000, 7)),
-            columns=list("ABCDEF") + ["G2"],
+            columns=[*list("ABCDEF"), "G2"],
         )
         result = merge(df1, df2, how="outer")
         assert len(result) == 2000
@@ -286,26 +287,13 @@ class TestMerge:
         for k, lval in ldict.items():
             rval = rdict.get(k, [np.nan])
             for lv, rv in product(lval, rval):
-                vals.append(
-                    k
-                    + (
-                        lv,
-                        rv,
-                    )
-                )
+                vals.append((*k, lv, rv))
 
         for k, rval in rdict.items():
             if k not in ldict:
-                vals.extend(
-                    k
-                    + (
-                        np.nan,
-                        rv,
-                    )
-                    for rv in rval
-                )
+                vals.extend((*k, np.nan, rv) for rv in rval)
 
-        out = DataFrame(vals, columns=list("ABCDEFG") + ["left", "right"])
+        out = DataFrame(vals, columns=[*list("ABCDEFG"), "left", "right"])
         out = out.sort_values(out.columns.to_list(), ignore_index=True)
 
         jmask = {
@@ -357,7 +345,7 @@ def test_decons(codes_list, shape):
     group_index = get_group_index(codes_list, shape, sort=True, xnull=True)
     codes_list2 = _decons_group_index(group_index, shape)
 
-    for a, b in zip(codes_list, codes_list2):
+    for a, b in zip(codes_list, codes_list2, strict=True):
         tm.assert_numpy_array_equal(a, b)
 
 

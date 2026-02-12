@@ -7,7 +7,10 @@ import operator
 import numpy as np
 import pytest
 
-from pandas.compat import PY312
+from pandas.compat import (
+    PY312,
+    PY314,
+)
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import (
     NumExprClobberingError,
@@ -104,17 +107,21 @@ def _eval_single_bin(lhs, cmp1, rhs, engine):
     ids=["DataFrame", "Series", "SeriesNaN", "DataFrameNaN", "float"],
 )
 def lhs(request):
-    nan_df1 = DataFrame(np.random.default_rng(2).standard_normal((10, 5)))
-    nan_df1[nan_df1 > 0.5] = np.nan
-
-    opts = (
-        DataFrame(np.random.default_rng(2).standard_normal((10, 5))),
-        Series(np.random.default_rng(2).standard_normal(5)),
-        Series([1, 2, np.nan, np.nan, 5]),
-        nan_df1,
-        np.random.default_rng(2).standard_normal(),
-    )
-    return opts[request.param]
+    rng = np.random.default_rng(2)
+    if request.param == 0:
+        return DataFrame(rng.standard_normal((10, 5)))
+    elif request.param == 1:
+        return Series(rng.standard_normal(5))
+    elif request.param == 2:
+        return Series([1, 2, np.nan, np.nan, 5])
+    elif request.param == 3:
+        nan_df1 = DataFrame(rng.standard_normal((10, 5)))
+        nan_df1[nan_df1 > 0.5] = np.nan
+        return nan_df1
+    elif request.param == 4:
+        return rng.standard_normal()
+    else:
+        raise ValueError(f"{request.param}")
 
 
 rhs = lhs
@@ -175,7 +182,7 @@ class TestEval:
                 r"only list-like( or dict-like)? objects are allowed to be "
                 r"passed to (DataFrame\.)?isin\(\), you passed a "
                 r"(`|')bool(`|')",
-                "argument of type 'bool' is not iterable",
+                "argument of type 'bool' is not .*",
             ]
         )
         if cmp_op in ("in", "not in") and not is_list_like(rhs):
@@ -220,7 +227,7 @@ class TestEval:
                 r"only list-like( or dict-like)? objects are allowed to be "
                 r"passed to (DataFrame\.)?isin\(\), you passed a "
                 r"(`|')float(`|')",
-                "argument of type 'float' is not iterable",
+                "argument of type 'float' is not .*",
             ]
         )
         if is_scalar(rhs) and op in skip_these:
@@ -564,7 +571,9 @@ class TestEval:
     def test_scalar_unary(self, engine, parser):
         msg = "bad operand type for unary ~: 'float'"
         warn = None
-        if PY312 and not (engine == "numexpr" and parser == "pandas"):
+        if (PY314 and engine == "numexpr" and parser == "pandas") or (
+            PY312 and not (engine == "numexpr" and parser == "pandas")
+        ):
             warn = DeprecationWarning
         with pytest.raises(TypeError, match=msg):
             pd.eval("~1.0", engine=engine, parser=parser)
@@ -799,7 +808,7 @@ def should_warn(*args):
 
 class TestAlignment:
     index_types = ["i", "s", "dt"]
-    lhs_index_types = index_types + ["s"]  # 'p'
+    lhs_index_types = [*index_types, "s"]  # 'p'
 
     def test_align_nested_unary_op(self, engine, parser):
         s = "df * ~2"
@@ -913,7 +922,7 @@ class TestAlignment:
     @pytest.mark.parametrize("index_name", ["index", "columns"])
     @pytest.mark.parametrize(
         "r_idx_type, c_idx_type",
-        list(product(["i", "s"], ["i", "s"])) + [("dt", "dt")],
+        [*list(product(["i", "s"], ["i", "s"])), ("dt", "dt")],
     )
     @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     def test_basic_series_frame_alignment(
@@ -1106,7 +1115,7 @@ class TestOperations:
             ex3 = f"1 {op} (x + 1)"
 
             if op in ("in", "not in"):
-                msg = "argument of type 'int' is not iterable"
+                msg = "argument of type 'int' is not .*"
                 with pytest.raises(TypeError, match=msg):
                     pd.eval(ex, engine=engine, parser=parser)
             else:
@@ -1193,7 +1202,7 @@ class TestOperations:
         expec3 = df.a + df.b + df.c[df.b < 0]
         exprs = expr1, expr2, expr3
         expecs = expec1, expec2, expec3
-        for e, expec in zip(exprs, expecs):
+        for e, expec in zip(exprs, expecs, strict=True):
             tm.assert_series_equal(expec, self.eval(e, local_dict={"df": df}))
 
     def test_assignment_fails(self):

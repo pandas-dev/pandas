@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 
 def invalid_comparison(
     left: ArrayLike,
-    right: ArrayLike | list | Scalar,
+    right: ArrayLike | list | range | Scalar,
     op: Callable[[Any, Any], bool],
 ) -> npt.NDArray[np.bool_]:
     """

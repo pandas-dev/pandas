@@ -26,4 +26,4 @@ def __getattr__(key: str):
 
 
 def __dir__() -> list[str]:
-    return list(globals().keys()) + ["hash_array", "hash_pandas_object"]
+    return [*list(globals().keys()), "hash_array", "hash_pandas_object"]

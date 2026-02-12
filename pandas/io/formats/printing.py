@@ -21,7 +21,11 @@ from unicodedata import east_asian_width
 
 from pandas._config import get_option
 
-from pandas.core.dtypes.inference import is_sequence
+from pandas.core.dtypes.inference import (
+    is_float,
+    is_sequence,
+)
+from pandas.core.dtypes.missing import notna
 
 from pandas.io.formats.console import get_console_size
 
@@ -60,7 +64,7 @@ def adjoin(space: int, *lists: list[str], **kwargs: Any) -> str:
         nl = justfunc(lst, lengths[i], mode="left")
         nl = ([" " * lengths[i]] * (maxLen - len(lst))) + nl
         newLists.append(nl)
-    toJoin = zip(*newLists)
+    toJoin = zip(*newLists, strict=True)
     return "\n".join("".join(lines) for lines in toJoin)
 
 
@@ -129,6 +133,12 @@ def _pprint_seq(
         if (max_items is not None) and (i >= max_items):
             max_items_reached = True
             break
+        if is_float(item) and notna(item):
+            # GH#60503
+            from pandas.io.formats.format import _trim_zeros_single_float
+
+            precision = get_option("display.precision")
+            item = _trim_zeros_single_float(f"{item:.{precision}f}")
         r.append(pprint_thing(item, _nest_lvl + 1, max_seq_items=max_seq_items, **kwds))
     body = ", ".join(r)
 
@@ -497,14 +507,16 @@ def _justify(
     max_length = [0] * len(combined[0])
     for inner_seq in combined:
         length = [len(item) for item in inner_seq]
-        max_length = [max(x, y) for x, y in zip(max_length, length)]
+        max_length = [max(x, y) for x, y in zip(max_length, length, strict=True)]
 
     # justify each item in each list-like in head and tail using max_length
     head_tuples = [
-        tuple(x.rjust(max_len) for x, max_len in zip(seq, max_length)) for seq in head
+        tuple(x.rjust(max_len) for x, max_len in zip(seq, max_length, strict=True))
+        for seq in head
     ]
     tail_tuples = [
-        tuple(x.rjust(max_len) for x, max_len in zip(seq, max_length)) for seq in tail
+        tuple(x.rjust(max_len) for x, max_len in zip(seq, max_length, strict=True))
+        for seq in tail
     ]
     return head_tuples, tail_tuples
 

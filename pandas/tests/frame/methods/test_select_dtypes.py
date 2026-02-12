@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas.core.dtypes.dtypes import ExtensionDtype
 
 import pandas as pd
@@ -33,7 +35,7 @@ class DummyArray(ExtensionArray):
         self._dtype = dtype
 
     def __array__(self, dtype=None, copy=None):
-        return self.data
+        return np.asarray(self.data, dtype=dtype)
 
     @property
     def dtype(self):
@@ -46,6 +48,9 @@ class DummyArray(ExtensionArray):
         pass
 
     def copy(self):
+        return self
+
+    def view(self):
         return self
 
 
@@ -102,7 +107,12 @@ class TestSelectDtypes:
             ri = df.select_dtypes(include=[str])
             tm.assert_frame_equal(ri, ei)
 
-        ri = df.select_dtypes(include=["object"])
+        msg = "For backward compatibility, 'str' dtypes are included"
+        warn = None
+        if using_infer_string:
+            warn = Pandas4Warning
+        with tm.assert_produces_warning(warn, match=msg):
+            ri = df.select_dtypes(include=["object"])
         ei = df[["a"]]
         tm.assert_frame_equal(ri, ei)
 
@@ -312,15 +322,18 @@ class TestSelectDtypes:
         )
         df["g"] = df.f.diff()
         assert not hasattr(np, "u8")
-        r = df.select_dtypes(include=["i8", "O"], exclude=["timedelta"])
-        # if using_infer_string:
-        #     TODO warn
+
+        msg = "For backward compatibility, 'str' dtypes are included"
+        warn = None
+        if using_infer_string:
+            warn = Pandas4Warning
+        with tm.assert_produces_warning(warn, match=msg):
+            r = df.select_dtypes(include=["i8", "O"], exclude=["timedelta"])
         e = df[["a", "b"]]
         tm.assert_frame_equal(r, e)
 
-        r = df.select_dtypes(include=["i8", "O", "timedelta64[ns]"])
-        # if using_infer_string:
-        #     TODO warn
+        with tm.assert_produces_warning(warn, match=msg):
+            r = df.select_dtypes(include=["i8", "O", "timedelta64[ns]"])
         e = df[["a", "b", "g"]]
         tm.assert_frame_equal(r, e)
 
@@ -497,7 +510,12 @@ class TestSelectDtypes:
         )
 
         # with "object" -> only select the object or default str dtype column
-        result = df.select_dtypes(include=["object"])
+        msg = "For backward compatibility, 'str' dtypes are included"
+        warn = None
+        if using_infer_string:
+            warn = Pandas4Warning
+        with tm.assert_produces_warning(warn, match=msg):
+            result = df.select_dtypes(include=["object"])
         expected = df[["a"]]
         tm.assert_frame_equal(result, expected)
 

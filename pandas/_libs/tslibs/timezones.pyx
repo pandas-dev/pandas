@@ -59,9 +59,6 @@ cdef bint is_utc_zoneinfo(tzinfo tz):
             utc_zoneinfo = zoneinfo.ZoneInfo("UTC")
         except zoneinfo.ZoneInfoNotFoundError:
             return False
-        # Warn if tzdata is too old, even if there is a system tzdata to alert
-        # users about the mismatch between local/system tzdata
-        import_optional_dependency("tzdata", errors="warn", min_version="2022.7")
 
     return tz is utc_zoneinfo
 
@@ -252,7 +249,7 @@ cdef object _get_utc_trans_times_from_dateutil_tz(tzinfo tz):
     """
     new_trans = list(tz._trans_list)
     last_std_offset = 0
-    for i, (trans, tti) in enumerate(zip(tz._trans_list, tz._trans_idx)):
+    for i, (trans, tti) in enumerate(zip(tz._trans_list, tz._trans_idx, strict=True)):
         if not tti.isdst:
             last_std_offset = tti.offset
         new_trans[i] = trans - last_std_offset

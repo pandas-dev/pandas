@@ -8,8 +8,10 @@ import pytest
 
 from pandas.compat import pa_version_under16p0
 from pandas.errors import IndexingError
+import pandas.util._test_decorators as td
 
 from pandas import (
+    NA,
     Categorical,
     CategoricalDtype,
     DataFrame,
@@ -1255,7 +1257,7 @@ class TestiLocBaseIndependent:
         # GH#45241
         # TODO: make an extension interface test for this?
         arr = interval_range(1, 10.0)._values
-        df = DataFrame(arr)
+        df = DataFrame(arr, copy=False)
 
         # ser should be a *view* on the DataFrame data
         ser = df.iloc[2]
@@ -1519,8 +1521,10 @@ class TestILocSeries:
     def test_iloc_nullable_int64_size_1_nan(self):
         # GH 31861
         result = DataFrame({"a": ["test"], "b": [np.nan]})
+
+        ser = Series([NA], name="b", dtype="Int64")
         with pytest.raises(TypeError, match="Invalid value"):
-            result.loc[:, "b"] = result.loc[:, "b"].astype("Int64")
+            result.loc[:, "b"] = ser
 
     def test_iloc_arrow_extension_array(self):
         # GH#61311
@@ -1532,3 +1536,15 @@ class TestILocSeries:
         expected = df.iloc[:, df["c"]]
         result = df_arrow.iloc[:, df_arrow["c"]]
         tm.assert_frame_equal(result, expected, check_dtype=False)
+
+    @td.skip_if_no("pyarrow")
+    def test_setitem_pyarrow_int_series(self):
+        # GH#62462
+        ser = Series([1, 2, 3], dtype="int64[pyarrow]")
+        idx = Index([0, 1])
+        vals = Series([7, 8], dtype="int64[pyarrow]")
+
+        ser.iloc[idx] = vals
+
+        expected = Series([7, 8, 3], dtype="int64[pyarrow]")
+        tm.assert_series_equal(ser, expected)

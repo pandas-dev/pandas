@@ -171,6 +171,10 @@ class TestDecimalArray(base.ExtensionTests):
         ):
             super().test_fillna_limit_series(data_missing)
 
+    @pytest.mark.xfail(reason="copy keyword is missing")
+    def test_fillna_readonly(self, data_missing):
+        super().test_fillna_readonly(data_missing)
+
     def test_series_repr(self, data):
         # Overriding this base test to explicitly test that
         # the custom _formatter is used

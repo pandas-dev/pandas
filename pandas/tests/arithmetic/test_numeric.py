@@ -151,6 +151,23 @@ class TestNumericComparisons:
 
 
 class TestNumericArraylikeArithmeticWithDatetimeLike:
+    def test_mul_timedelta_list(self, box_with_array):
+        # GH#62524
+        box = box_with_array
+        left = np.array([3, 4])
+        left = tm.box_expected(left, box)
+
+        right = [Timedelta(days=1), Timedelta(days=2)]
+
+        result = left * right
+
+        expected = TimedeltaIndex([Timedelta(days=3), Timedelta(days=8)])
+        expected = tm.box_expected(expected, box)
+        tm.assert_equal(result, expected)
+
+        result2 = right * left
+        tm.assert_equal(result2, expected)
+
     @pytest.mark.parametrize("box_cls", [np.array, Index, Series])
     @pytest.mark.parametrize(
         "left", lefts, ids=lambda x: type(x).__name__ + str(x.dtype)
@@ -206,8 +223,8 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
     @pytest.mark.parametrize(
         "scalar_td",
         [
-            Timedelta(days=1),
-            Timedelta(days=1).to_timedelta64(),
+            Timedelta(days=1).as_unit("ns"),
+            Timedelta(days=1).as_unit("ns").to_timedelta64(),
             Timedelta(days=1).to_pytimedelta(),
             Timedelta(days=1).to_timedelta64().astype("timedelta64[s]"),
             Timedelta(days=1).to_timedelta64().astype("timedelta64[ms]"),
@@ -218,7 +235,9 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         # GH#19333
         box = box_with_array
         index = numeric_idx
-        expected = TimedeltaIndex([Timedelta(days=n) for n in range(len(index))])
+        expected = TimedeltaIndex(
+            [Timedelta(days=n) for n in range(len(index))], dtype="m8[ns]"
+        )
         if isinstance(scalar_td, np.timedelta64):
             dtype = scalar_td.dtype
             expected = expected.astype(dtype)
@@ -237,9 +256,9 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
     @pytest.mark.parametrize(
         "scalar_td",
         [
-            Timedelta(days=1),
-            Timedelta(days=1).to_timedelta64(),
-            Timedelta(days=1).to_pytimedelta(),
+            Timedelta(days=1).as_unit("ns"),
+            Timedelta(days=1).as_unit("ns").to_timedelta64(),
+            Timedelta(days=1).as_unit("ns").to_pytimedelta(),
         ],
         ids=lambda x: type(x).__name__,
     )
@@ -278,7 +297,9 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
                 # i.e. resolution is lower -> use lowest supported resolution
                 dtype = np.dtype("m8[s]")
             expected = expected.astype(dtype)
-        elif type(three_days) is timedelta:
+        elif type(three_days) is timedelta or (
+            isinstance(three_days, Timedelta) and three_days.unit == "us"
+        ):
             expected = expected.astype("m8[us]")
         elif isinstance(
             three_days,
@@ -766,7 +787,7 @@ class TestMultiplicationDivision:
             div, mod = divmod(idx.values, 2)
 
         expected = Index(div), Index(mod)
-        for r, e in zip(result, expected):
+        for r, e in zip(result, expected, strict=True):
             tm.assert_index_equal(r, e)
 
     def test_divmod_ndarray(self, numeric_idx):
@@ -778,7 +799,7 @@ class TestMultiplicationDivision:
             div, mod = divmod(idx.values, other)
 
         expected = Index(div), Index(mod)
-        for r, e in zip(result, expected):
+        for r, e in zip(result, expected, strict=True):
             tm.assert_index_equal(r, e)
 
     def test_divmod_series(self, numeric_idx):
@@ -790,7 +811,7 @@ class TestMultiplicationDivision:
             div, mod = divmod(idx.values, other)
 
         expected = Series(div), Series(mod)
-        for r, e in zip(result, expected):
+        for r, e in zip(result, expected, strict=True):
             tm.assert_series_equal(r, e)
 
     @pytest.mark.parametrize("other", [np.nan, 7, -23, 2.718, -3.14, np.inf])
@@ -1088,7 +1109,7 @@ class TestAdditionSubtraction:
         with np.errstate(all="ignore"):
             expecteds = divmod(series.values, np.asarray(other_np))
 
-        for result, expected in zip(results, expecteds):
+        for result, expected in zip(results, expecteds, strict=True):
             # check the values, name, and index separately
             tm.assert_almost_equal(np.asarray(result), expected)
 

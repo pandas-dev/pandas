@@ -801,7 +801,7 @@ class TestWideToLong:
                 "A1980": {0: "d", 1: "e", 2: "f"},
                 "B1970": {0: 2.5, 1: 1.2, 2: 0.7},
                 "B1980": {0: 3.2, 1: 1.3, 2: 0.1},
-                "X": dict(zip(range(3), x)),
+                "X": dict(zip(range(3), x, strict=True)),
             }
         )
         df["id"] = df.index
@@ -837,7 +837,7 @@ class TestWideToLong:
                 "A.1980": {0: "d", 1: "e", 2: "f"},
                 "B.1970": {0: 2.5, 1: 1.2, 2: 0.7},
                 "B.1980": {0: 3.2, 1: 1.3, 2: 0.1},
-                "X": dict(zip(range(3), x)),
+                "X": dict(zip(range(3), x, strict=True)),
             }
         )
         df["id"] = df.index
@@ -861,7 +861,7 @@ class TestWideToLong:
                 "A(quarterly)1980": {0: "d", 1: "e", 2: "f"},
                 "B(quarterly)1970": {0: 2.5, 1: 1.2, 2: 0.7},
                 "B(quarterly)1980": {0: 3.2, 1: 1.3, 2: 0.1},
-                "X": dict(zip(range(3), x)),
+                "X": dict(zip(range(3), x, strict=True)),
             }
         )
         df["id"] = df.index
@@ -933,7 +933,7 @@ class TestWideToLong:
         tm.assert_frame_equal(result.sort_index(axis=1), expected.sort_index(axis=1))
 
     def test_invalid_separator(self):
-        # if an invalid separator is supplied a empty data frame is returned
+        # if an invalid separator is supplied an empty data frame is returned
         sep = "nope!"
         df = DataFrame(
             {

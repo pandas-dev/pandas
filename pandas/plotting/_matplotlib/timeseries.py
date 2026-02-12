@@ -75,19 +75,16 @@ def maybe_resample(series: Series, ax: Axes, kwargs: dict[str, Any]):
 
     if ax_freq is not None and freq != ax_freq:
         if is_superperiod(freq, ax_freq):  # upsample input
-            series = series.copy()
+            series = series.copy(deep=False)
             # error: "Index" has no attribute "asfreq"
             series.index = series.index.asfreq(  # type: ignore[attr-defined]
                 ax_freq, how="s"
             )
             freq = ax_freq
         elif _is_sup(freq, ax_freq):  # one is weekly
-            # Resampling with PeriodDtype is deprecated, so we convert to
-            #  DatetimeIndex, resample, then convert back.
-            ser_ts = series.to_timestamp()
-            ser_d = ser_ts.resample("D").last().dropna()
-            ser_freq = ser_d.resample(ax_freq).last().dropna()
-            series = ser_freq.to_period(ax_freq)
+            how = "last"
+            series = getattr(series.resample("D"), how)().dropna()
+            series = getattr(series.resample(ax_freq), how)().dropna()
             freq = ax_freq
         elif is_subperiod(freq, ax_freq) or _is_sub(freq, ax_freq):
             _upsample_others(ax, freq, kwargs)
@@ -145,7 +142,7 @@ def _replot_ax(ax: Axes, freq: BaseOffset):
     labels = []
     if data is not None:
         for series, plotf, kwds in data:
-            series = series.copy()
+            series = series.copy(deep=False)
             idx = series.index.asfreq(freq, how="S")
             series.index = idx
             # TODO #54485
@@ -344,7 +341,7 @@ def format_dateaxis(
         subplot.format_coord = functools.partial(_format_coord, freq)
 
     elif isinstance(index, ABCTimedeltaIndex):
-        subplot.xaxis.set_major_formatter(TimeSeries_TimedeltaFormatter())
+        subplot.xaxis.set_major_formatter(TimeSeries_TimedeltaFormatter(index.unit))
     else:
         raise TypeError("index type not supported")
 

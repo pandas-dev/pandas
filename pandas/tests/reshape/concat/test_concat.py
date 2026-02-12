@@ -10,7 +10,10 @@ import itertools
 import numpy as np
 import pytest
 
-from pandas.errors import InvalidIndexError
+from pandas.errors import (
+    InvalidIndexError,
+    Pandas4Warning,
+)
 
 import pandas as pd
 from pandas import (
@@ -169,9 +172,9 @@ class TestConcatenate:
         )
         expected = concat([df, df2, df, df2])
         exp_index = MultiIndex(
-            levels=levels + [[0]],
+            levels=[*levels, [0]],
             codes=[[0, 0, 1, 1], [0, 1, 0, 1], [0, 0, 0, 0]],
-            names=names + [None],
+            names=[*names, None],
         )
         expected.index = exp_index
 
@@ -434,7 +437,9 @@ class TestConcatenate:
         # to join with union
         # these two are of different length!
         left = concat([ts1, ts2], join="outer", axis=1)
-        right = concat([ts2, ts1], join="outer", axis=1)
+        msg = "Sorting by default when concatenating all DatetimeIndex is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            right = concat([ts2, ts1], join="outer", axis=1)
 
         assert len(left) == len(right)
 
@@ -702,7 +707,7 @@ def test_concat_repeated_keys(keys, integrity):
     # GH: 20816
     series_list = [Series({"a": 1}), Series({"b": 2}), Series({"c": 3})]
     result = concat(series_list, keys=keys, verify_integrity=integrity)
-    tuples = list(zip(keys, ["a", "b", "c"]))
+    tuples = list(zip(keys, ["a", "b", "c"], strict=True))
     expected = Series([1, 2, 3], index=MultiIndex.from_tuples(tuples))
     tm.assert_series_equal(result, expected)
 
