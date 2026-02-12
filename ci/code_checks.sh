@@ -71,7 +71,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         --format=actions \
         -i "pandas.tseries.frequencies.to_offset ES01" \
         -i "pandas.Series.dtypes ES01" \
-        -i "pandas.Series.convert_dtypes ES01" \
         -i "pandas.Series.to_numpy ES01" \
         -i "pandas.Series.to_period ES01" \
         -i "pandas.Series.keys ES01" \
@@ -82,7 +81,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.aggregate ES01" \
         -i "pandas.Series.transform ES01" \
         -i "pandas.Series.rolling ES01" \
-        -i "pandas.Series.pipe ES01" \
         -i "pandas.Series.count ES01" \
         -i "pandas.Series.mean ES01" \
         -i "pandas.Series.median ES01" \
@@ -94,7 +92,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.is_monotonic_decreasing ES01" \
         -i "pandas.Series.drop_duplicates ES01" \
         -i "pandas.Series.rename_axis ES01" \
-        -i "pandas.Series.mask ES01" \
         -i "pandas.Series.unstack ES01" \
         -i "pandas.Series.explode ES01" \
         -i "pandas.Series.compare ES01" \
@@ -405,14 +402,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.api.extensions.register_dataframe_accessor ES01" \
         -i "pandas.api.extensions.register_series_accessor ES01" \
         -i "pandas.api.extensions.register_index_accessor ES01" \
-        -i "pandas.DataFrame.convert_dtypes ES01" \
-        -i "pandas.DataFrame.__iter__ ES01" \
-        -i "pandas.DataFrame.iterrows ES01" \
-        -i "pandas.DataFrame.itertuples ES01" \
-        -i "pandas.DataFrame.pop ES01" \
-        -i "pandas.DataFrame.isin ES01" \
-        -i "pandas.DataFrame.mask ES01" \
-        -i "pandas.DataFrame.pipe ES01" \
         -i "pandas.DataFrame.agg ES01" \
         -i "pandas.DataFrame.aggregate ES01" \
         -i "pandas.DataFrame.transform ES01" \
