@@ -19,6 +19,8 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.inference import is_integer
 
+from pandas.core.arrays.arrow.array import to_pyarrow_type
+
 from pandas.io._util import arrow_table_to_pandas
 from pandas.io.parsers.base_parser import ParserBase
 
@@ -138,6 +140,25 @@ class ArrowParserWrapper(ParserBase):
             self.convert_options["include_columns"] = [
                 f"f{n}" for n in self.convert_options["include_columns"]
             ]
+
+        if self.dtype is not None:
+            if isinstance(self.dtype, dict):
+                column_types = {}
+                for col, col_dtype in self.dtype.items():
+                    source_dtype = pandas_dtype(col_dtype)
+                    target_dtype = to_pyarrow_type(source_dtype.type)
+                    if target_dtype:
+                        column_types[col] = target_dtype
+                        # TODO: Unsupported dtypes silently ignored - may cause
+                        # unexpected behavior when pyarrow applies default inference
+                        # instead of user's dtype
+
+                if column_types:
+                    self.convert_options["column_types"] = column_types
+            else:
+                # TODO: Global dtypes not supported - may cause inconsistent behavior
+                # between engines, especially for leading zero preservation
+                pass
 
         self.read_options = {
             "autogenerate_column_names": self.header is None,
