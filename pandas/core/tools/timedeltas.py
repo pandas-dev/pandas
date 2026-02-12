@@ -76,10 +76,10 @@ def to_timedelta(
 @overload
 def to_timedelta(
     arg: list | tuple | range | ArrayLike | Index,
-    unit: UnitChoices | None = ...,
+    input_unit: UnitChoices | None = ...,
     errors: DateTimeErrorChoices = ...,
     *,
-    input_unit: UnitChoices | None = ...,
+    unit: UnitChoices | None = ...,
 ) -> TimedeltaIndex: ...
 
 
