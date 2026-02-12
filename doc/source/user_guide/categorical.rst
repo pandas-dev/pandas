@@ -1147,34 +1147,3 @@ Setting the index will create a ``CategoricalIndex``:
     df.index
     # This now sorts by the categories order
     df.sort_index()
-
-Side effects
-~~~~~~~~~~~~
-
-Constructing a ``Series`` from a ``Categorical`` will not copy the input
-``Categorical``. This means that changes to the ``Series`` will in most cases
-change the original ``Categorical``:
-
-.. ipython:: python
-
-    cat = pd.Categorical([1, 2, 3, 10], categories=[1, 2, 3, 4, 10])
-    s = pd.Series(cat, name="cat")
-    cat
-    s.iloc[0:2] = 10
-    cat
-
-Use ``copy=True`` to prevent such a behaviour or simply don't reuse ``Categoricals``:
-
-.. ipython:: python
-
-    cat = pd.Categorical([1, 2, 3, 10], categories=[1, 2, 3, 4, 10])
-    s = pd.Series(cat, name="cat", copy=True)
-    cat
-    s.iloc[0:2] = 10
-    cat
-
-.. note::
-
-    This also happens in some cases when you supply a NumPy array instead of a ``Categorical``:
-    using an int array (e.g. ``np.array([1,2,3,4])``) will exhibit the same behavior, while using
-    a string array (e.g. ``np.array(["a","b","c","a"])``) will not.

@@ -2,12 +2,15 @@ from datetime import (
     datetime,
     timedelta,
 )
+from io import StringIO
 import itertools
+from textwrap import dedent
 
 import numpy as np
 import pytest
 
 from pandas.errors import Pandas4Warning
+import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -383,3 +386,70 @@ def test_update_inplace_sets_valid_block_values():
 
     # check we haven't put a Series into any block.values
     assert isinstance(df._mgr.blocks[0].values, Categorical)
+
+
+def get_longley_data():
+    # From statsmodels.datasets.longley
+    # This specific dataset seems to trigger races in Pandas 3.0.0 more readily
+    # than data frames used elsewhere in the tests
+    longley_csv = StringIO(
+        dedent(
+            """"Obs","GNPDEFL","GNP","UNEMP","ARMED","POP","YEAR"
+            1,83,234289,2356,1590,107608,1947
+            2,88.5,259426,2325,1456,108632,1948
+            3,88.2,258054,3682,1616,109773,1949
+            4,89.5,284599,3351,1650,110929,1950
+            5,96.2,328975,2099,3099,112075,1951
+            6,98.1,346999,1932,3594,113270,1952
+            7,99,365385,1870,3547,115094,1953
+            8,100,363112,3578,3350,116219,1954
+            9,101.2,397469,2904,3048,117388,1955
+            10,104.6,419180,2822,2857,118734,1956
+            11,108.4,442769,2936,2798,120445,1957
+            12,110.8,444546,4681,2637,121950,1958
+            13,112.6,482704,3813,2552,123366,1959
+            14,114.2,502601,3931,2514,125368,1960
+            15,115.7,518173,4806,2572,127852,1961
+            16,116.9,554894,4007,2827,130081,1962
+            """
+        )
+    )
+
+    return pd.read_csv(longley_csv).iloc[:, [1, 2, 3, 4, 5, 6]].astype(float)
+
+
+# See gh-63685, comparisons and copying led to races in statsmodels tests
+#
+# This test spawns a thread pool, so it shouldn't run under xdist.
+# It generates warnings, so it needs warnings to be thread-safe as well
+@td.skip_if_thread_unsafe_warnings
+@pytest.mark.single_cpu
+def test_multithreaded_reading():
+    def numpy_assert(data, b):
+        b.wait()
+        tm.assert_almost_equal((data + 1) - 1, data.copy())
+
+    tm.run_multithreaded(
+        numpy_assert, max_workers=8, arguments=(get_longley_data(),), pass_barrier=True
+    )
+
+    def safe_is_const(s):
+        try:
+            return np.ptp(s) == 0.0 and np.any(s != 0.0)
+        except Exception:
+            return False
+
+    def concat(data, b):
+        b.wait()
+        x = data.copy()
+        nobs = len(x)
+        trendarr = np.fliplr(np.vander(np.arange(1, nobs + 1, dtype=np.float64), 1))
+        x.apply(safe_is_const, 0)
+        trendarr = DataFrame(trendarr, index=x.index, columns=["const"])
+        x = [trendarr, x]
+        x = pd.concat(x[::1], axis=1)
+        tm.assert_frame_equal(x, x)
+
+    tm.run_multithreaded(
+        concat, max_workers=8, arguments=(get_longley_data(),), pass_barrier=True
+    )
