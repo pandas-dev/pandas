@@ -99,6 +99,7 @@ libs_sources = {
         'sources': ['join.pyx', _khash_primitive_helper],
         'deps': _khash_primitive_helper_dep,
     },
+    'khash': {'sources': ['khash.pyx']},
     'lib': {'sources': ['lib.pyx', 'src/parser/tokenizer.c']},
     'missing': {'sources': ['missing.pyx']},
     'pandas_datetime': {
