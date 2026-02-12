@@ -68,13 +68,13 @@ def test_basic_aggregations(dtype):
 
     # corner cases
     result = grouped.aggregate(lambda x: x * 2)
-    scalar = np.array(2, dtype=dtype)
     expected = Series(
-        {
-            0: (data[data.index // 3 == 0] * scalar).to_numpy(),
-            1: (data[data.index // 3 == 1] * scalar).to_numpy(),
-            2: (data[data.index // 3 == 2] * scalar).to_numpy(),
-        },
+        [
+            (data[data.index // 3 == 0] * 2).to_numpy(),
+            (data[data.index // 3 == 1] * 2).to_numpy(),
+            (data[data.index // 3 == 2] * 2).to_numpy(),
+        ],
+        index=pd.Index([0, 1, 2], dtype="intp"),
     )
     tm.assert_series_equal(result, expected)
 
