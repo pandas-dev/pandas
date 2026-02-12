@@ -303,6 +303,10 @@ class IndexOpsMixin(OpsMixin):
         doc="""
         Return the transpose, which is by definition self.
 
+        For 1D objects (Series, Index) transposition has no effect; the
+        object is returned unchanged. Provided for API compatibility with
+        DataFrame and NumPy.
+
         See Also
         --------
         Index : Immutable sequence used for indexing and alignment.
@@ -336,6 +340,10 @@ class IndexOpsMixin(OpsMixin):
         """
         Return a tuple of the shape of the underlying data.
 
+        For a Series this is ``(length,)``; for a 1D Index, likewise a
+        single-element tuple. Useful for compatibility with NumPy and
+        other array-like APIs.
+
         See Also
         --------
         Series.ndim : Number of dimensions of the underlying data.
@@ -361,6 +369,9 @@ class IndexOpsMixin(OpsMixin):
     def ndim(self) -> int:
         """
         Number of dimensions of the underlying data, by definition 1.
+
+        Series and Index are one-dimensional; this property always returns 1
+        for compatibility with array-like interfaces.
 
         See Also
         --------
@@ -431,6 +442,9 @@ class IndexOpsMixin(OpsMixin):
         """
         Return the number of bytes in the underlying data.
 
+        Includes only the memory used by the array values; overhead such as
+        the index is not included. Useful for estimating memory usage.
+
         See Also
         --------
         Series.ndim : Number of dimensions of the underlying data.
@@ -463,6 +477,9 @@ class IndexOpsMixin(OpsMixin):
     def size(self) -> int:
         """
         Return the number of elements in the underlying data.
+
+        For a Series or Index this is the length (number of rows). Equivalent
+        to ``len(obj)`` and ``np.prod(obj.shape)``.
 
         See Also
         --------
