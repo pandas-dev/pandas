@@ -6,7 +6,10 @@ import re
 import numpy as np
 import pytest
 
-from pandas.errors import SpecificationError
+from pandas.errors import (
+    Pandas4Warning,
+    SpecificationError,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -2457,17 +2460,16 @@ def test_by_column_values_with_same_starting_value(any_string_dtype):
     )
     aggregate_details = {"Mood": Series.mode, "Credit": "sum"}
 
-    result = df.groupby(["Name"]).agg(aggregate_details)
+    msg = "Converting a Series or array of length 1 into a scalar"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = df.groupby(["Name"]).agg(aggregate_details)
     expected = DataFrame(
         {
-            "Mood": [["happy", "sad"], "happy"],
+            "Mood": [Series(["happy", "sad"], dtype=dtype), Series(["happy"])],
             "Credit": [2500, 900],
             "Name": ["Thomas", "Thomas John"],
         },
     ).set_index("Name")
-    if getattr(dtype, "storage", None) == "pyarrow":
-        mood_values = pd.array(["happy", "sad"], dtype=dtype)
-        expected["Mood"] = [mood_values, "happy"]
     tm.assert_frame_equal(result, expected)
 
 
@@ -2938,6 +2940,7 @@ def test_groupby_dropna_with_nunique_unique():
     # GH#42016
     df = [[1, 1, 1, "A"], [1, None, 1, "A"], [1, None, 2, "A"], [1, None, 3, "A"]]
     df_dropna = DataFrame(df, columns=["a", "b", "c", "partner"])
+
     result = df_dropna.groupby(["a", "b", "c"], dropna=False).agg(
         {"partner": ["nunique", "unique"]}
     )
