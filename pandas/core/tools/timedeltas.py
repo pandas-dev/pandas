@@ -56,20 +56,20 @@ if TYPE_CHECKING:
 @overload
 def to_timedelta(
     arg: str | float | timedelta,
-    unit: UnitChoices | None = ...,
+    input_unit: UnitChoices | None = ...,
     errors: DateTimeErrorChoices = ...,
     *,
-    input_unit: UnitChoices | None = ...,
+    unit: UnitChoices | None = ...,
 ) -> Timedelta: ...
 
 
 @overload
 def to_timedelta(
     arg: Series,
-    unit: UnitChoices | None = ...,
+    input_unit: UnitChoices | None = ...,
     errors: DateTimeErrorChoices = ...,
     *,
-    input_unit: UnitChoices | None = ...,
+    unit: UnitChoices | None = ...,
 ) -> Series: ...
 
 

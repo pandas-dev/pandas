@@ -2830,7 +2830,7 @@ def test_as_unit_duration_truncation(from_unit, to_unit):
     # Test that as_unit truncates correctly (matches NumPy behavior)
     # Value with sub-unit precision to test truncation
     ser_numpy = pd.Series(
-        pd.to_timedelta([93784567890123, None], unit="ns").as_unit(from_unit)
+        pd.to_timedelta([93784567890123, None], input_unit="ns").as_unit(from_unit)
     )
     ser_arrow = ser_numpy.astype(f"duration[{from_unit}][pyarrow]")
 
@@ -3138,7 +3138,7 @@ def test_describe_timedelta_data(pa_type):
     data = pd.Series(range(1, 10), dtype=ArrowDtype(pa_type))
     result = data.describe()
     expected = pd.Series(
-        [9] + pd.to_timedelta([5, 2, 1, 3, 5, 7, 9], input_unit=pa_type.unit).tolist(),
+        [9, *pd.to_timedelta([5, 2, 1, 3, 5, 7, 9], input_unit=pa_type.unit).tolist()],
         dtype=object,
         index=["count", "mean", "std", "min", "25%", "50%", "75%", "max"],
     )
