@@ -595,13 +595,13 @@ class ExtensionArray:
         --------
         >>> arr = pd.array([1], dtype="Int64")
         >>> arr.item()
-        1
+        np.int64(1)
 
         >>> arr = pd.array([1, 2, 3], dtype="Int64")
         >>> arr.item(0)
-        1
+        np.int64(1)
         >>> arr.item(2)
-        3
+        np.int64(3)
         """
         if len(args) == 0:
             if len(self) != 1:

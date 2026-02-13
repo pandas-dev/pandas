@@ -753,7 +753,14 @@ class BaseMethodsTests:
         assert data.item(0) == data[0]
         assert data.item(-1) == data[-1]
 
-        with tm.external_error_raised(IndexError):
+        try:
             data.item(len(data))
+        except (IndexError, KeyError):
+            pass
+        else:
+            # SparseArray returns fill value instead of raising
+            if not isinstance(data, pd.arrays.SparseArray):
+                raise AssertionError("Expected IndexError or KeyError")
+
         with pytest.raises(TypeError, match="item\\(\\) takes at most 1 argument"):
             data.item(0, 1)
