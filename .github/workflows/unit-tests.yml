@@ -27,7 +27,7 @@ jobs:
     strategy:
       matrix:
         platform: [ubuntu-24.04, ubuntu-24.04-arm]
-        environment: [py311, py312, py313]
+        environment: [py311, py312, py313, py314]
         # Prevent the include jobs from overriding other jobs
         pattern: [""]
         pandas_future_infer_string: ["1"]
@@ -190,7 +190,7 @@ jobs:
     strategy:
       matrix:
         os: [macos-15-intel, macos-15, windows-2025]
-        environment: [py311, py312, py313]
+        environment: [py311, py312, py313, py314]
       fail-fast: false
     runs-on: ${{ matrix.os }}
     name: ${{ format('{0} {1}', matrix.os, matrix.environment) }}
