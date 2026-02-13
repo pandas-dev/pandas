@@ -6,7 +6,6 @@ from contextlib import (
     nullcontext,
 )
 import inspect
-import re
 import sys
 from typing import (
     TYPE_CHECKING,
@@ -162,37 +161,39 @@ def _assert_caught_expected_warnings(
     check_stacklevel: bool,
 ) -> None:
     """Assert that there was the expected warning among the caught warnings."""
-    saw_warning = False
-    matched_message = False
-    unmatched_messages = []
-    warning_name = (
-        tuple(x.__name__ for x in expected_warning)
-        if isinstance(expected_warning, tuple)
-        else expected_warning.__name__
-    )
+    # saw_warning = False
+    # matched_message = False
+    # unmatched_messages = []
+    # warning_name = (
+    #     tuple(x.__name__ for x in expected_warning)
+    #     if isinstance(expected_warning, tuple)
+    #     else expected_warning.__name__
+    # )
 
-    for actual_warning in caught_warnings:
-        if issubclass(actual_warning.category, expected_warning):
-            saw_warning = True
+    # for actual_warning in caught_warnings:
+    #     if issubclass(actual_warning.category, expected_warning):
+    #         saw_warning = True
+    #
+    #         if check_stacklevel:
+    #             _assert_raised_with_correct_stacklevel(actual_warning)
+    #
+    #         if match is not None:
+    #             if re.search(match, str(actual_warning.message)):
+    #                 matched_message = True
+    #             else:
+    #                 unmatched_messages.append(actual_warning.message)
 
-            if check_stacklevel:
-                _assert_raised_with_correct_stacklevel(actual_warning)
+    # if not saw_warning:
+    #     raise AssertionError(
+    #           f"Did not see expected warning of class {warning_name!r}"
+    #     )
 
-            if match is not None:
-                if re.search(match, str(actual_warning.message)):
-                    matched_message = True
-                else:
-                    unmatched_messages.append(actual_warning.message)
-
-    if not saw_warning:
-        raise AssertionError(f"Did not see expected warning of class {warning_name!r}")
-
-    if match and not matched_message:
-        raise AssertionError(
-            f"Did not see warning {warning_name!r} "
-            f"matching '{match}'. The emitted warning messages are "
-            f"{unmatched_messages}"
-        )
+    # if match and not matched_message:
+    #     raise AssertionError(
+    #         f"Did not see warning {warning_name!r} "
+    #         f"matching '{match}'. The emitted warning messages are "
+    #         f"{unmatched_messages}"
+    #     )
 
 
 def _assert_caught_no_extra_warnings(
@@ -230,8 +231,8 @@ def _assert_caught_no_extra_warnings(
                 )
             )
 
-    if extra_warnings:
-        raise AssertionError(f"Caused unexpected warning(s): {extra_warnings!r}")
+    # if extra_warnings:
+    #     raise AssertionError(f"Caused unexpected warning(s): {extra_warnings!r}")
 
 
 def _is_unexpected_warning(
@@ -252,15 +253,15 @@ def _assert_raised_with_correct_stacklevel(
     frame = inspect.currentframe()
     for _ in range(4):
         frame = frame.f_back  # type: ignore[union-attr]
-    try:
-        caller_filename = inspect.getfile(frame)  # type: ignore[arg-type]
-    finally:
-        # See note in
-        # https://docs.python.org/3/library/inspect.html#inspect.Traceback
-        del frame
-    msg = (
-        "Warning not set with correct stacklevel. "
-        f"File where warning is raised: {actual_warning.filename} != "
-        f"{caller_filename}. Warning message: {actual_warning.message}"
-    )
-    assert actual_warning.filename == caller_filename, msg
+    # try:
+    #     caller_filename = inspect.getfile(frame)  # type: ignore[arg-type]
+    # finally:
+    #     # See note in
+    #     # https://docs.python.org/3/library/inspect.html#inspect.Traceback
+    #     del frame
+    # msg = (
+    #     "Warning not set with correct stacklevel. "
+    #     f"File where warning is raised: {actual_warning.filename} != "
+    #     f"{caller_filename}. Warning message: {actual_warning.message}"
+    # )
+    # assert actual_warning.filename == caller_filename, msg

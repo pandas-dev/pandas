@@ -109,6 +109,9 @@ def pytest_addoption(parser) -> None:
     )
 
 
+session_mp = pytest.MonkeyPatch()
+
+
 def pytest_sessionstart(session):
     import doctest
     import inspect
@@ -129,6 +132,113 @@ def pytest_sessionstart(session):
         return orig(self, module, object)
 
     doctest.DocTestFinder._from_module = _from_module  # type: ignore[attr-defined]
+
+    import functools as ft
+    import types
+
+    # file_path = "/home/richard/dev/pandas/tmp.txt"
+    # if not hasattr(session.config, "workerinput"):
+    #     if os.path.exists(file_path):
+    #         os.remove(file_path)
+    #     open(file_path, "w").close()
+
+    def is_class_method(method):
+        if not isinstance(method, types.MethodType):
+            return False
+
+        bound_to = getattr(method, "__self__", None)
+        if not isinstance(bound_to, type):
+            return False
+
+        name = method.__name__
+        for cls in bound_to.__mro__:
+            descriptor = vars(cls).get(name)
+            if descriptor is not None:
+                return isinstance(descriptor, classmethod)
+
+        return False
+
+    def wrap_callable(func):
+        if hasattr(func, "_has_patch"):
+            return func
+
+        @ft.wraps(func)
+        def wrapper(*args, **kwargs):
+            result = func(*args, **kwargs)
+            # if "PYTEST_CURRENT_TEST" in os.environ:
+            #     with pd.option_context("future.python_scalars", True):
+            #         maybe_unboxed = maybe_unbox_numpy_scalar(result)
+            #     if result is not maybe_unboxed:
+            #         path = f"{func.__module__}:{func.__qualname__}"
+            #         contents = open(file_path).read()
+            #         if path not in contents:
+            #             line = f"{path} {os.environ['PYTEST_CURRENT_TEST']}\n"
+            #             with open(file_path, mode="a") as fh:
+            #                 fh.write(line)
+            return result
+
+        wrapper._has_patch = True
+        return wrapper
+
+    def find_public_methods(obj, buf):
+        for name, subobj in inspect.getmembers(obj):
+            if (
+                not name.startswith("_")
+                and callable(subobj)
+                and not inspect.isclass(subobj)
+            ):
+                buf.append((subobj, obj, name))
+
+    def find_all_public_classes(obj, buf, visited=None):
+        if visited is None:
+            visited = set()
+        if id(obj) in visited:
+            return
+        visited.add(id(obj))
+
+        if (
+            inspect.isclass(obj)
+            and obj.__module__.startswith("pandas")
+            and not obj.__name__.startswith("_")
+            and "core" not in obj.__module__
+            and "_libs" not in obj.__module__
+            and "_typing" not in obj.__module__
+            and "_config" not in obj.__module__
+            and ".io" not in obj.__module__
+            and "util" not in obj.__module__
+        ):
+            buf.append(obj)
+
+        for name, subobj in inspect.getmembers(obj):
+            if id(subobj) in visited:
+                continue
+            if name.startswith("_") or name == "core":
+                continue
+            if (
+                id(subobj) not in visited
+                and not name.startswith("_")
+                and name != "core"
+                and (inspect.ismodule(subobj) or inspect.isclass(subobj))
+            ):
+                find_all_public_classes(subobj, buf, visited)
+
+    public_classes = []
+    find_all_public_classes(pd, public_classes)
+
+    public_methods = []
+    for public_class in public_classes:
+        find_public_methods(public_class, public_methods)
+
+    for obj, parent, parent_attr in public_methods:
+        if is_class_method(obj):
+            continue
+        if isinstance(inspect.getattr_static(parent, parent_attr), staticmethod):
+            continue
+        if issubclass(parent, pd.core.arrays.base.ExtensionArray):
+            # arrays can return NumPy scalars
+            continue
+        path = f"{parent.__module__}.{parent.__qualname__}.{parent_attr}"
+        session_mp.setattr(path, wrap_callable(obj))
 
 
 def ignore_doctest_warning(item: pytest.Item, path: str, message: str) -> None:

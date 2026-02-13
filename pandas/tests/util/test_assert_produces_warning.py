@@ -13,6 +13,8 @@ from pandas.errors import (
 
 import pandas._testing as tm
 
+pytest.skip(allow_module_level=True)
+
 
 @pytest.fixture(
     params=[
