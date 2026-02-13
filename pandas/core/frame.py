@@ -14347,7 +14347,7 @@ class DataFrame(NDFrame, OpsMixin):
         row_df = row_df.infer_objects().rename_axis(index.names)
 
         if len(row_df.columns) == len(self.columns):
-            # Try to retain our original dtype when doing the concat, GH#...
+            # Try to retain our original dtype when doing the concat, GH#62523
             for i in range(len(self.columns)):
                 arr = self.iloc[:, i].array
 
