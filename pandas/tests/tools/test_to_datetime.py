@@ -2048,6 +2048,20 @@ class TestToDatetimeUnit:
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             to_datetime(should_fail2, unit="D", errors="raise")
 
+    def test_to_datetime_unit_with_datetimeindex(self):
+        # GH#64012 - unit should not be silently ignored for datetime-like input
+        dti = date_range("2026-01-01", periods=3, freq="D", unit="us")
+        msg = "cannot specify 'unit' when the input is datetime-like"
+        with pytest.raises(ValueError, match=msg):
+            to_datetime(dti, unit="ns")
+
+    def test_to_datetime_unit_with_tz_aware_datetimeindex(self):
+        # GH#64012 - also applies to timezone-aware input
+        dti = date_range("2026-01-01", periods=3, freq="D", tz="US/Eastern")
+        msg = "cannot specify 'unit' when the input is datetime-like"
+        with pytest.raises(ValueError, match=msg):
+            to_datetime(dti, unit="ns")
+
 
 class TestToDatetimeDataFrame:
     @pytest.fixture
