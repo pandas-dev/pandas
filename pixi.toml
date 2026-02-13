@@ -93,16 +93,16 @@ zstandard = ">=0.23.0"
 [feature.minimum-versions]
 solve-strategy = "lowest-direct"
 
-[feature.numpydev.pypi-options]
+[feature.numpy-nightly.pypi-options]
 extra-index-urls = ["https://pypi.anaconda.org/scientific-python-nightly-wheels/simple"]
 
-[feature.numpydev.pypi-dependencies]
+[feature.numpy-nightly.pypi-dependencies]
 numpy = { version = "*", index = "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" }
 
-[feature.pyarrownightly.pypi-options]
+[feature.pyarrow-nightly.pypi-options]
 extra-index-urls = ["https://pypi.anaconda.org/scientific-python-nightly-wheels/simple"]
 
-[feature.pyarrownightly.pypi-dependencies]
+[feature.pyarrow-nightly.pypi-dependencies]
 pyarrow = { version = "*", index = "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" }
 
 [feature.downstream.dependencies]
@@ -123,6 +123,6 @@ py314 = { features = ["py314", "test", "test-clipboard", "test-network", "pyarro
 no-pyarrow = { features = ["py313", "test", "test-clipboard", "test-network", "optional-dependencies"] }
 minimum-versions = { features = ["py311", "test", "test-clipboard", "test-network", "pyarrow", "optional-dependencies", "minimum-versions"] }
 freethreading = { features = ["freethreading", "test"] }
-numpy-nightly = { features = ["py313", "test", "numpydev"] }
-pyarrow-nightly = { features = ["py313", "test", "pyarrownightly"] }
+numpy-nightly = { features = ["py313", "test", "numpy-nightly"] }
+pyarrow-nightly = { features = ["py313", "test", "pyarrow-nightly"] }
 downstream = { features = ["py313", "test", "downstream"] }
