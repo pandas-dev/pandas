@@ -736,9 +736,17 @@ def read_csv(
         option can improve performance because there is no longer any I/O overhead.
     float_precision : {{'high', 'legacy', 'round_trip'}}, optional
         Specifies which converter the C engine should use for floating-point
-        values. The options are ``None`` or ``'high'`` for the ordinary converter,
-        ``'legacy'`` for the original lower precision pandas converter, and
-        ``'round_trip'`` for the round-trip converter.
+        values.
+
+        - ``None`` or ``'high'``: use the default high-precision converter.
+        - ``'legacy'``: use the original pandas converter (lower precision).
+        - ``'round_trip'``: use the round-trip converter.
+
+        In this context, "round-trip" means parsing text to ``float`` and then
+        converting that value back to text and parsing again returns the same
+        ``float`` value.
+
+        See :ref:`io.float_precision` for examples.
 
     storage_options : dict, optional
         Extra options that make sense for a particular storage connection, e.g.
@@ -1299,9 +1307,17 @@ def read_table(
         option can improve performance because there is no longer any I/O overhead.
     float_precision : {{'high', 'legacy', 'round_trip'}}, optional
         Specifies which converter the C engine should use for floating-point
-        values. The options are ``None`` or ``'high'`` for the ordinary converter,
-        ``'legacy'`` for the original lower precision pandas converter, and
-        ``'round_trip'`` for the round-trip converter.
+        values.
+
+        - ``None`` or ``'high'``: use the default high-precision converter.
+        - ``'legacy'``: use the original pandas converter (lower precision).
+        - ``'round_trip'``: use the round-trip converter.
+
+        In this context, "round-trip" means parsing text to ``float`` and then
+        converting that value back to text and parsing again returns the same
+        ``float`` value.
+
+        See :ref:`io.float_precision` for examples.
 
     storage_options : dict, optional
         Extra options that make sense for a particular storage connection, e.g.
@@ -2068,9 +2084,9 @@ def TextParser(*args, **kwds) -> TextFileReader:
         Encoding to use for UTF when reading/writing (ex. 'utf-8')
     float_precision : str, optional
         Specifies which converter the C engine should use for floating-point
-        values. The options are `None` or `high` for the ordinary converter,
-        `legacy` for the original lower precision pandas converter, and
-        `round_trip` for the round-trip converter.
+        values. The options are ``None`` or ``'high'`` for the default
+        high-precision converter, ``'legacy'`` for the original lower precision
+        pandas converter, and ``'round_trip'`` for the round-trip converter.
     """
     kwds["engine"] = "python"
     return TextFileReader(*args, **kwds)
