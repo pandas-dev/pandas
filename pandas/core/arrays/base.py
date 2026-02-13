@@ -612,9 +612,7 @@ class ExtensionArray:
         elif len(args) == 1:
             return self[args[0]]
         else:
-            raise TypeError(
-                f"item() takes at most 1 argument ({len(args)} given)"
-            )
+            raise TypeError(f"item() takes at most 1 argument ({len(args)} given)")
 
     def __iter__(self) -> Iterator[Any]:
         """

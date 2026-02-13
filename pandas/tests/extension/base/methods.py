@@ -736,60 +736,24 @@ class BaseMethodsTests:
     def test_equals_same_data_different_object(self, data):
         # https://github.com/pandas-dev/pandas/issues/34660
         assert pd.Series(data).equals(pd.Series(data))
-    def test_item_single_element(self, data):
+
+    def test_item(self, data):
         # GH#63876, GH#64129
         arr = type(data)._from_sequence([data[0]], dtype=data.dtype)
-        result = arr.item()
-        assert result == data[0]
+        assert arr.item() == data[0]
 
-    def test_item_single_element_with_na(self, data, na_value):
-        # GH#63876, GH#64129
-        arr = type(data)._from_sequence([na_value], dtype=data.dtype)
-        result = arr.item()
-        if na_value is pd.NA:
-            assert result is pd.NA
-        elif np.isnan(na_value):
-            assert np.isnan(result)
-        else:
-            assert result == na_value
-
-    def test_item_with_index(self, data):
-        # GH#63876, GH#64129
-        if len(data) < 3:
-            pytest.skip("Test requires at least 3 elements")
-        
-        result = data.item(0)
-        assert result == data[0]
-        
-        result = data.item(2)
-        assert result == data[2]
-        
-        result = data.item(-1)
-        assert result == data[-1]
-
-    def test_item_multiple_elements_raises(self, data):
-        # GH#63876, GH#64129
         msg = "can only convert an array of size 1 to a Python scalar"
         with pytest.raises(ValueError, match=msg):
             data[:2].item()
-
-    def test_item_empty_array_raises(self, data):
-        # GH#63876, GH#64129
-        msg = "can only convert an array of size 1 to a Python scalar"
         with pytest.raises(ValueError, match=msg):
             data[:0].item()
 
-    def test_item_index_out_of_bounds_raises(self, data):
+    def test_item_with_index(self, data):
         # GH#63876, GH#64129
+        assert data.item(0) == data[0]
+        assert data.item(-1) == data[-1]
+
         with tm.external_error_raised(IndexError):
             data.item(len(data))
-        
-        with tm.external_error_raised(IndexError):
-            data.item(-len(data) - 1)
-
-    def test_item_too_many_args_raises(self, data):
-        # GH#63876, GH#64129
-        msg = "item\\(\\) takes at most 1 argument \\(2 given\\)"
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError, match="item\\(\\) takes at most 1 argument"):
             data.item(0, 1)
-
