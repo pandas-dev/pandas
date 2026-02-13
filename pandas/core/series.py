@@ -14,7 +14,6 @@ from collections.abc import (
 import functools
 import operator
 import sys
-from textwrap import dedent
 from typing import (
     IO,
     TYPE_CHECKING,
@@ -631,6 +630,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def dtype(self) -> DtypeObj:
         """
         Return the dtype object of the underlying data.
+
+        This is the dtype of the array backing the Series (or the single dtype
+        for a DataFrame column). For extension types, it returns the
+        corresponding extension dtype.
 
         See Also
         --------
@@ -4830,37 +4833,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Subset to act on.
         """
         return self
-
-    _agg_see_also_doc = dedent(
-        """
-    See Also
-    --------
-    Series.apply : Invoke function on a Series.
-    Series.transform : Transform function producing a Series with like indexes.
-    """
-    )
-
-    _agg_examples_doc = dedent(
-        """
-    Examples
-    --------
-    >>> s = pd.Series([1, 2, 3, 4])
-    >>> s
-    0    1
-    1    2
-    2    3
-    3    4
-    dtype: int64
-
-    >>> s.agg('min')
-    1
-
-    >>> s.agg(['min', 'max'])
-    min   1
-    max   4
-    dtype: int64
-    """
-    )
 
     def aggregate(self, func=None, axis: Axis = 0, *args, **kwargs):
         """
