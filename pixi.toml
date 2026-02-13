@@ -45,14 +45,15 @@ hypothesis = ">=6.116.0"
 
 [feature.test-network.dependencies]
 pytest-localserver = ">=0.9.0"
-boto3 = "1.37.3"
+# TODO: Try changing to boto3 = "*"
+boto3 = "==1.37.3"
 
 [feature.test-clipboard.dependencies]
 pytest-qt = ">=4.4.0"
 pyqt = ">=5.15.9"
 qtpy = ">=2.4.2"
 
-[tool.pixi.feature.pyarrow.dependencies]
+[feature.pyarrow.dependencies]
 pyarrow = ">=13.0.0"
 
 [feature.optional-dependencies.dependencies]
