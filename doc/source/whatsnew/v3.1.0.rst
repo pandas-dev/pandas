@@ -161,7 +161,7 @@ Missing
 
 MultiIndex
 ^^^^^^^^^^
--
+- Bug in :meth:`Series` arithmetic operations raising ``ValueError`` when a :class:`MultiIndex` contains NaN values and is aligned with a regular :class:`Index` (:issue:`60908`)
 -
 
 I/O
