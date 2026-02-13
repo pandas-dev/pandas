@@ -793,7 +793,7 @@ def to_datetime(
         - If :const:`'julian'`, unit must be :const:`'D'`, and origin is set to
           beginning of Julian Calendar. Julian day number :const:`0` is assigned
           to the day starting at noon on January 1, 4713 BC.
-        - If Timestamp convertible (Timestamp, dt.datetime, np.datetimt64 or date
+        - If Timestamp convertible (Timestamp, dt.datetime, np.datetime64 or date
           string), origin is set to Timestamp identified by origin.
         - If a float or integer, origin is the difference
           (in units determined by the ``unit`` argument) relative to 1970-01-01.
@@ -1174,7 +1174,7 @@ def _assemble_from_unit_mappings(
         # we allow coercion to if errors allows
         values = to_numeric(values, errors=errors)
 
-        # prevent prevision issues in case of float32 # GH#60506
+        # prevent precision issues in case of float32 # GH#60506
         if is_float_dtype(values.dtype):
             values = values.astype("float64")
 
