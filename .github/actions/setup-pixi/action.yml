@@ -11,7 +11,7 @@ runs:
       with:
         pixi-version: v0.62.2
         log-level: vv
-        manifest-path: pyproject.toml
+        manifest-path: pixi.toml
         environments: ${{ inputs.environment }}
         activate-environment: true
         # TODO: A pixi.lock is required to cache

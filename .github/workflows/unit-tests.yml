@@ -158,7 +158,7 @@ jobs:
       run: sudo locale-gen ${{ matrix.extra_loc }}
       if: ${{ matrix.extra_loc }}
 
-    - name: Set up Conda
+    - name: Set virtual environment with Pixi
       uses: ./.github/actions/setup-pixi
       with:
         environment: ${{ matrix.environment }}
