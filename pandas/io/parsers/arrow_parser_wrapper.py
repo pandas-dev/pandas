@@ -318,6 +318,7 @@ class ArrowParserWrapper(ParserBase):
                 table,
                 dtype_backend=dtype_backend,
                 null_to_int64=True,
+                to_pandas_kwargs=self.kwds.get("to_pandas_kwargs"),
                 dtype=self.dtype,
                 names=self.names,
             )
