@@ -14,7 +14,6 @@ from collections.abc import (
 import functools
 import operator
 import sys
-from textwrap import dedent
 from typing import (
     IO,
     TYPE_CHECKING,
@@ -631,6 +630,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def dtype(self) -> DtypeObj:
         """
         Return the dtype object of the underlying data.
+
+        This is the dtype of the array backing the Series (or the single dtype
+        for a DataFrame column). For extension types, it returns the
+        corresponding extension dtype.
 
         See Also
         --------
@@ -1547,15 +1550,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ----------
         buf : StringIO-like, optional
             Buffer to write to.
-        na_rep : str, optional
-            String representation of NaN to use, default 'NaN'.
+        na_rep : str, default 'NaN'
+            String representation of NaN to use.
         float_format : one-parameter function, optional
             Formatter function to apply to columns' elements if they are
             floats, default None.
         header : bool, default True
             Add the Series header (index name).
-        index : bool, optional
-            Add index (row) labels, default True.
+        index : bool, default True
+            Add index (row) labels.
         length : bool, default False
             Add the Series length.
         dtype : bool, default False
@@ -4831,37 +4834,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         return self
 
-    _agg_see_also_doc = dedent(
-        """
-    See Also
-    --------
-    Series.apply : Invoke function on a Series.
-    Series.transform : Transform function producing a Series with like indexes.
-    """
-    )
-
-    _agg_examples_doc = dedent(
-        """
-    Examples
-    --------
-    >>> s = pd.Series([1, 2, 3, 4])
-    >>> s
-    0    1
-    1    2
-    2    3
-    3    4
-    dtype: int64
-
-    >>> s.agg('min')
-    1
-
-    >>> s.agg(['min', 'max'])
-    min   1
-    max   4
-    dtype: int64
-    """
-    )
-
     def aggregate(self, func=None, axis: Axis = 0, *args, **kwargs):
         """
         Aggregate using one or more operations over the specified axis.
@@ -7079,7 +7051,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         if isinstance(other, Series):
             return self._binop(other, op, level=level, fill_value=fill_value)
-        elif isinstance(other, (np.ndarray, list, tuple, ExtensionArray)):
+        elif (isinstance(other, np.ndarray) and other.ndim > 0) or isinstance(
+            other, (list, tuple, ExtensionArray)
+        ):
             if len(other) != len(self):
                 raise ValueError("Lengths must be equal")
             other = self._constructor(other, self.index, copy=False)
