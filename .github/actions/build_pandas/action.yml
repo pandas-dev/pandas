@@ -11,12 +11,14 @@ runs:
   using: composite
   steps:
 
-    - name: Environment Detail
-      run: |
-        micromamba info
-        micromamba list
-        pip list --pre
-      shell: bash -el {0}
+    # TODO: Change this to run: pixi list
+    # once environments are always created using Pixi
+    # - name: Environment Detail
+    #   run: |
+    #     micromamba info
+    #     micromamba list
+    #     pip list --pre
+    #   shell: bash -el {0}
 
     - name: Uninstall existing Pandas installation
       run: |

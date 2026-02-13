@@ -1,4 +1,5 @@
 name: Set up Conda environment with Pixi
+description: Create a Conda environment based on the environments section in pixi.toml
 inputs:
   environment:
     description: Pixi environment name in pyproject.toml to use.
