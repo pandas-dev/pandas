@@ -564,6 +564,58 @@ class ExtensionArray:
         """
         raise AbstractMethodError(self)
 
+    def item(self, *args):
+        """
+        Return the array element at the specified position as a Python scalar.
+
+        Parameters
+        ----------
+        *args : int, optional
+            Position of the element. If not provided, the array must contain
+            exactly one element.
+
+        Returns
+        -------
+        scalar
+            The element at the specified position.
+
+        Raises
+        ------
+        ValueError
+            If no arguments are provided and the array does not have exactly
+            one element.
+        IndexError
+            If the specified position is out of bounds.
+
+        See Also
+        --------
+        numpy.ndarray.item : Return the item of an array as a scalar.
+
+        Examples
+        --------
+        >>> arr = pd.array([1], dtype="Int64")
+        >>> arr.item()
+        1
+
+        >>> arr = pd.array([1, 2, 3], dtype="Int64")
+        >>> arr.item(0)
+        1
+        >>> arr.item(2)
+        3
+        """
+        if len(args) == 0:
+            if len(self) != 1:
+                raise ValueError(
+                    "can only convert an array of size 1 to a Python scalar"
+                )
+            return self[0]
+        elif len(args) == 1:
+            return self[args[0]]
+        else:
+            raise TypeError(
+                f"item() takes at most 1 argument ({len(args)} given)"
+            )
+
     def __iter__(self) -> Iterator[Any]:
         """
         Iterate over elements of the array.
