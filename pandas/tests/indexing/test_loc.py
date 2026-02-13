@@ -2229,6 +2229,21 @@ class TestLocSetitemWithExpansion:
         assert expected.dtypes["B"] == val.dtype
         tm.assert_frame_equal(df, expected)
 
+    def test_loc_setitem_with_expansion_new_row_and_new_columns(self):
+        # GH#58316
+        df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+        df.loc["x", ["C", "D"]] = 91
+        expected = DataFrame(
+            {
+                "A": [1.0, 2.0, 3.0, np.nan],
+                "B": [4.0, 5.0, 6.0, np.nan],
+                "C": [np.nan, np.nan, np.nan, 91.0],
+                "D": [np.nan, np.nan, np.nan, 91.0],
+            },
+            index=Index([0, 1, 2, "x"]),
+        )
+        tm.assert_frame_equal(df, expected)
+
 
 class TestLocCallable:
     def test_frame_loc_getitem_callable(self):
