@@ -9,7 +9,10 @@ from functools import partial
 import numpy as np
 import pytest
 
-from pandas.errors import SpecificationError
+from pandas.errors import (
+    Pandas4Warning,
+    SpecificationError,
+)
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_integer_dtype
@@ -1555,7 +1558,9 @@ def test_groupby_agg_precision(any_real_numeric_dtype):
     expected = DataFrame(
         {"key3": pd.array([max_value], dtype=any_real_numeric_dtype)}, index=index
     )
-    result = df.groupby(["key1", "key2"]).agg(lambda x: x)
+    msg = "Converting a Series or array of length 1 into a scalar"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = df.groupby(["key1", "key2"]).agg(lambda x: x)
     tm.assert_frame_equal(result, expected)
 
 
@@ -1649,7 +1654,9 @@ def test_groupby_complex_raises(func):
 def test_agg_of_mode_list(test, constant):
     # GH#25581
     df1 = DataFrame(test)
-    result = df1.groupby(0).agg(Series.mode)
+    msg = "Converting a Series or array of length 1 into a scalar"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = df1.groupby(0).agg(Series.mode)
     # Mode usually only returns 1 value, but can return a list in the case of a tie.
 
     expected = DataFrame(constant)
