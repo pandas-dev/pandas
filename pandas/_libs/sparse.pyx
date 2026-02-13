@@ -655,6 +655,9 @@ cdef class BlockUnion(BlockMerge):
             ndarray[int32_t, ndim=1] xstart, xend, ystart, yend
             int32_t xi, yi, ynblocks, nend
 
+        if mode != 0 and mode != 1:
+            raise Exception("Mode must be 0 or 1")
+
         # so symmetric code will work
         if mode == 0:
             xstart = self.xstart
