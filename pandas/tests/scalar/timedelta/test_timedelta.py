@@ -661,6 +661,16 @@ class TestTimedeltas:
         assert Timedelta(days=1, microseconds=6).resolution_string == "us"
         assert Timedelta(days=1, nanoseconds=6).resolution_string == "ns"
 
+    def test_resolution_string_consistent_construction(self):
+        # Regression test: ensure constructing via value+unit and via
+        # keyword arguments yields the same resolution_string.
+        # See GH# (user report)
+        td_positional = Timedelta(1 / 128, "seconds")
+        td_keyword = Timedelta(seconds=1 / 128)
+        assert td_positional.resolution_string == td_keyword.resolution_string
+        # expect highest precision (nanoseconds)
+        assert td_positional.resolution_string == "ns"
+
     def test_resolution_deprecated(self):
         # GH#21344
         td = Timedelta(days=4, hours=3)
