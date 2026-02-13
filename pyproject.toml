@@ -306,8 +306,6 @@ ignore = [
   "PT019",
   # The following rules may cause conflicts when used with the formatter:
   "ISC001",
-  # if-stmt-min-max
-  "PLR1730",
   # nan-comparison
   "PLW0177",
 

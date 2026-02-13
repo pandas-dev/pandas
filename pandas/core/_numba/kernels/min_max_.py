@@ -64,8 +64,7 @@ def sliding_min_max(
     # Indices of largest windows that "cover" preceding windows.
     dominators: list[int] = []  # this is a stack
 
-    if min_periods < 1:
-        min_periods = 1
+    min_periods = max(min_periods, 1)
 
     if N > 2:
         i_next = N - 1  # equivalent to i_next = i+1 inside the loop
@@ -165,8 +164,7 @@ def grouped_min_max(
             continue
 
         if is_max:
-            if val > output[lab]:
-                output[lab] = val
+            output[lab] = max(output[lab], val)
         elif val < output[lab]:
             output[lab] = val
 
