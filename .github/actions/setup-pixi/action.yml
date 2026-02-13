@@ -14,7 +14,6 @@ runs:
         log-level: vv
         manifest-path: pixi.toml
         environments: ${{ inputs.environment }}
-        activate-environment: true
         # TODO: A pixi.lock is required to cache
         cache: false
         cache-write: ${{ github.event_name == 'push' && github.ref_name == 'main' }}

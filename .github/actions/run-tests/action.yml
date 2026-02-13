@@ -1,10 +1,11 @@
 name: Run tests and report results
+description: Run pytest and upload the results to Codecov
 runs:
   using: composite
   steps:
     - name: Test
       run: ci/run_tests.sh
-      shell: bash -el {0}
+      shell: pixi run bash -euox pipefail {0}
 
     - name: Publish test results
       uses: actions/upload-artifact@v4

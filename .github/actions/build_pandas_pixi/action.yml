@@ -1,3 +1,4 @@
+# TODO: This should replace build_pandas/action.yml once Pixi is used for all environments
 name: Build pandas
 description: Rebuilds the C extensions and installs pandas
 inputs:
@@ -12,18 +13,15 @@ runs:
   steps:
 
     - name: Environment Detail
-      run: |
-        micromamba info
-        micromamba list
-        pip list --pre
-      shell: bash -el {0}
+      run: pixi list
+      shell: bash -euox pipefail {0}
 
     - name: Uninstall existing Pandas installation
       run: |
         if pip show pandas 1>/dev/null; then
           pip uninstall -y pandas
         fi
-      shell: bash -el {0}
+      shell: pixi run bash -euox pipefail {0}
 
     - name: Build Pandas
       run: |
@@ -34,4 +32,4 @@ runs:
           pip install . --no-build-isolation -v --no-deps \
             ${{ inputs.werror == 'true' && '-Csetup-args="--werror"' || '' }}
         fi
-      shell: bash -el {0}
+      shell: pixi run bash -euox pipefail {0}

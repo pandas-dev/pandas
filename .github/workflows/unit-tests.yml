@@ -165,7 +165,7 @@ jobs:
 
     - name: Build Pandas
       id: build
-      uses: ./.github/actions/build_pandas
+      uses: ./.github/actions/build_pandas_pixi
       with:
         # python3.14t/cpython/pyatomic_gcc.h:63:10:
         #   error: ‘__atomic_fetch_add_8’
@@ -216,7 +216,7 @@ jobs:
           environment: ${{ matrix.environment }}
 
       - name: Build Pandas
-        uses: ./.github/actions/build_pandas
+        uses: ./.github/actions/build_pandas_pixi
 
       - name: Test
         uses: ./.github/actions/run-tests
