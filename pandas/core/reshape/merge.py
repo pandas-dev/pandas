@@ -2042,31 +2042,6 @@ class _MergeOperation:
             )
 
 
-def _maybe_get_rangeindex_indexer(
-    probe: np.ndarray, target_index: Index
-) -> npt.NDArray[np.intp] | None:
-    """
-    Parameters
-    ----------
-    probe : np.ndarray
-        1D integer array to map into ``target_index``.
-    target_index : Index
-        Target index. Fast-path applies only when this is a
-        :class:`~pandas.RangeIndex`.
-
-    Returns
-    -------
-    np.ndarray[np.intp] or None
-        Indexer into ``target_index`` (``-1`` for missing) or ``None`` if the
-        fast-path does not apply.
-    """
-    if not isinstance(target_index, RangeIndex):
-        return None
-    if probe.ndim != 1 or probe.dtype.kind not in "iu":
-        return None
-    return target_index.get_indexer(probe)
-
-
 def get_join_indexers(
     left_keys: list[ArrayLike],
     right_keys: list[ArrayLike],
