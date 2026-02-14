@@ -25,15 +25,7 @@ runs:
 
     - name: Build Pandas
       run: |
-        if [[ ${{ inputs.editable }} ]]; then
-          INSTALL_TARGET="--editable ."
-        else
-          INSTALL_TARGET="."
-        fi
-        if [[ ${{ inputs.werror }} ]]; then
-          WERROR='-Csetup-args="--werror"'
-        else
-          WERROR=""
-        fi
-        pip install $INSTALL_TARGET --no-build-isolation -v --no-deps $WERROR
+        EDITABLE=${{ inputs.editable && '--editable' || '' }}
+        WERROR=${{ inputs.werror && '-Csetup-args="--werror"' || '' }}
+        pip install $EDITABLE . --no-build-isolation -v --no-deps $WERROR
       shell: pixi run bash -euox pipefail {0}
