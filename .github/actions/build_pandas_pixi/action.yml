@@ -33,7 +33,7 @@ runs:
           INSTALL_TARGET="."
         fi
         if [[ ${{ inputs.werror }} ]]; then
-          WERROR='-Csetup-args="--werror" -Csetup-args="-Wno-maybe-uninitialized" -Csetup-args="-Wno-maybe-uninitialized"'
+          WERROR='-Csetup-args="--werror" -Csetup-args="-Wno-maybe-uninitialized"'
         else
           WERROR=""
         fi
