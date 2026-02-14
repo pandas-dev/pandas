@@ -684,6 +684,15 @@ def read_csv(
         standard encodings
         <https://docs.python.org/3/library/codecs.html#standard-encodings>`_ .
 
+        .. versionchanged:: 3.0.0
+            When a file contains a UTF-8 BOM (Byte Order Mark) and ``encoding``
+            is explicitly specified as ``'utf-8'``, pandas will issue a
+            ``FutureWarning``. In a future version, the BOM will be preserved as a
+            ``'\ufeff'`` character to align with Python's codec behavior.
+            To strip the BOM without a warning, use ``encoding='utf-8-sig'``.
+            When ``encoding`` is not specified (the default), the BOM is
+            automatically stripped for backward compatibility.
+
     encoding_errors : str, optional, default 'strict'
         How encoding errors are treated. `List of possible values
         <https://docs.python.org/3/library/codecs.html#error-handlers>`_ .

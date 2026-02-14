@@ -95,6 +95,7 @@ from pandas._libs.khash cimport (
 
 from pandas.errors import (
     EmptyDataError,
+    Pandas4Warning,
     ParserError,
     ParserWarning,
 )
@@ -229,7 +230,9 @@ cdef extern from "pandas/parser/tokenizer.h":
         char *warn_msg
         char *error_msg
 
-        int64_t skip_empty_lines
+        int skip_empty_lines
+        int strip_bom              # strip UTF-8 BOM if found
+        int bom_found              # UTF-8 BOM detected in input
 
     ctypedef struct coliter_t:
         char **words
@@ -333,8 +336,10 @@ cdef class TextReader:
 
     cdef:
         parser_t *parser
+        public object encoding
         object na_fvalues
         list true_values, false_values
+        bint warn_bom_with_explicit_utf8
         object handle
         object orig_header
         bint na_filter, keep_default_na, has_usecols, has_mi_columns
@@ -395,7 +400,11 @@ cdef class TextReader:
                   float_precision=None,
                   bint skip_blank_lines=True,
                   encoding_errors=b"strict",
-                  dtype_backend="numpy"):
+                  dtype_backend="numpy",
+                  bint strip_bom=True,
+                  bint warn_bom=False,
+                  object encoding=None,
+                  **kwds):
 
         # set encoding for native Python and C library
         if isinstance(encoding_errors, str):
@@ -414,6 +423,10 @@ cdef class TextReader:
         parser_set_default_options(self.parser)
 
         parser_init(self.parser)
+
+        self.parser.strip_bom = 1 if strip_bom else 0
+        self.warn_bom_with_explicit_utf8 = warn_bom
+        self.encoding = encoding
 
         if delim_whitespace:
             self.parser.delim_whitespace = delim_whitespace
@@ -880,6 +893,28 @@ cdef class TextReader:
             )
             free(self.parser.warn_msg)
             self.parser.warn_msg = NULL
+
+        if self.warn_bom_with_explicit_utf8 and self.parser.bom_found:
+            self.warn_bom_with_explicit_utf8 = False  # Only warn once
+
+            # Build the message
+            # CRITICAL FIX: Use 'self.encoding', not 'encoding_for_warning'
+            encoding_lower = (
+                self.encoding.lower() if isinstance(self.encoding, str) else None
+            )
+            if self.encoding is None or encoding_lower == "utf-8":
+                msg = (
+                    "A BOM was detected in the file. In pandas 4.0, "
+                    "BOMs will only be stripped when using encoding='utf-8-sig'. "
+                    "To suppress this warning, specify encoding='utf-8-sig'."
+                )
+            else:
+                msg = (
+                    f"A BOM was detected in a file with encoding='{self.encoding}'. "
+                    "In pandas 4.0, BOMs will not be stripped for this encoding."
+                )
+
+            warnings.warn(msg, Pandas4Warning, stacklevel=find_stack_level())
 
         if status < 0:
             raise_parser_error("Error tokenizing data", self.parser)

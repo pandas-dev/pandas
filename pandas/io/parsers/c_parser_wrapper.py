@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from io import StringIO
 from typing import TYPE_CHECKING
 import warnings
 
@@ -11,7 +12,9 @@ from pandas._libs import (
     parsers,
 )
 from pandas.compat._optional import import_optional_dependency
-from pandas.errors import DtypeWarning
+from pandas.errors import (
+    DtypeWarning,
+)
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import pandas_dtype
@@ -78,9 +81,30 @@ class CParserWrapper(ParserBase):
         # Have to pass int, would break tests using TextReader directly otherwise :(
         kwds["on_bad_lines"] = self.on_bad_lines.value
 
+        # Decision logic for BOM deprecation (GH#63787)
+        # We strip BOM by default (backward compatibility),
+        # but warn if user explicitly asked for 'utf-8' and a BOM exists.
+        encoding = kwds.get("encoding", None)
+
+        encoding_lower = encoding.lower() if encoding is not None else None
+
+        if encoding_lower is not None and encoding_lower.endswith("-sig"):
+            # Only -sig variants strip without warning
+            strip_bom = True
+            warn_bom = False
+        else:
+            # ALL other encodings: strip but warn
+            strip_bom = True
+            warn_bom = True
+        if isinstance(src, StringIO):
+            # Text input is already decoded, so do not warn about BOM.
+            warn_bom = False
+        kwds["strip_bom"] = strip_bom
+        kwds["warn_bom"] = warn_bom
+        kwds["encoding"] = encoding
+
         for key in (
             "storage_options",
-            "encoding",
             "memory_map",
             "compression",
         ):

@@ -13,6 +13,10 @@ import tempfile
 import numpy as np
 import pytest
 
+from pandas.errors import (
+    Pandas4Warning,
+)
+
 from pandas import (
     DataFrame,
     read_csv,
@@ -128,7 +132,15 @@ def test_utf8_bom(all_parsers, data, kwargs, expected):
         # CSV parse error: Empty CSV file or block: cannot infer number of columns
         pytest.skip(reason="https://github.com/apache/arrow/issues/38676")
 
-    result = parser.read_csv(_encode_data_with_bom(data), encoding=utf8, **kwargs)
+    # Determine expected warning
+    warn = None if parser.engine == "pyarrow" else Pandas4Warning
+    match_msg = None if parser.engine == "pyarrow" else "BOM"
+
+    # GH#63787: Cython-compiled code has non-standard stack frames,
+    # so we disable stacklevel checking.
+    with tm.assert_produces_warning(warn, match=match_msg, check_stacklevel=False):
+        result = parser.read_csv(_encode_data_with_bom(data), encoding=utf8, **kwargs)
+
     expected = DataFrame({"a": expected})
     tm.assert_frame_equal(result, expected)
 
@@ -331,3 +343,68 @@ def test_not_readable(all_parsers, mode):
         df = parser.read_csv(handle)
     expected = DataFrame([], columns=["abcd"])
     tm.assert_frame_equal(df, expected)
+
+
+@pytest.mark.parametrize(
+    "data, encoding, warning_type, warning_match, expected_data",
+    [
+        # Case 1: UTF-8 with BOM
+        (
+            b"\xef\xbb\xbfName,Age\nJohn,25",
+            "utf-8",
+            Pandas4Warning,
+            "BOM",
+            {"Name": ["John"], "Age": [25]},
+        ),
+        # Case 2: UTF-8-sig
+        (
+            b"\xef\xbb\xbfName,Age\nJohn,25",
+            "utf-8-sig",
+            None,
+            None,
+            {"Name": ["John"], "Age": [25]},
+        ),
+        # Case 3: Default encoding
+        (
+            b"\xef\xbb\xbfName,Age\nJohn,25",
+            None,
+            Pandas4Warning,
+            "BOM",
+            {"Name": ["John"], "Age": [25]},
+        ),
+        # Case 4: Latin1 (Required by mentor!)
+        (
+            b"\xef\xbb\xbfName,Age\nJohn,25",
+            "latin1",
+            None,
+            None,
+            {"Name": ["John"], "Age": [25]},
+        ),
+    ],
+)
+def test_bom_handling_deprecation(
+    all_parsers, data, encoding, warning_type, warning_match, expected_data
+):
+    """Test BOM handling during deprecation period (GH#63787)."""
+    parser = all_parsers
+
+    if parser.engine == "pyarrow":
+        pytest.skip("BOM warning not yet implemented for PyArrow engine")
+
+    expect_warning = warning_type
+    expect_match = warning_match
+
+    expected = DataFrame(expected_data)
+
+    if encoding == "latin1":
+        expect_warning = None
+        expect_match = None
+        # Preserve BOM bytes in latin1 across engines
+        expected = expected.rename(columns={"Name": "\xef\xbb\xbfName"})
+
+    with tm.assert_produces_warning(
+        expect_warning, match=expect_match, check_stacklevel=False
+    ):
+        result = parser.read_csv(BytesIO(data), encoding=encoding)
+
+    tm.assert_frame_equal(result, expected)

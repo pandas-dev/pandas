@@ -24,6 +24,7 @@ from pandas._libs import lib
 from pandas._typing import Scalar
 from pandas.errors import (
     EmptyDataError,
+    Pandas4Warning,
     ParserError,
     ParserWarning,
 )
@@ -106,6 +107,22 @@ class PythonParser(ParserBase):
         self.buf: list = []
         self.pos = 0
         self.line_pos = 0
+
+        self._bom_found = False
+        self._bom_warned = False
+        self.encoding = kwds.get("encoding")
+
+        # Determine if we should warn about BOM
+        if isinstance(f, StringIO):
+            self._warn_bom = False
+        elif self.encoding is None:
+            self._warn_bom = True  # Warn for default encoding
+        elif self.encoding.lower() in {"latin1", "latin-1", "cp1252"}:
+            self._warn_bom = False
+        elif self.encoding.lower().endswith("-sig"):
+            self._warn_bom = False  # Don't warn for -sig variants
+        else:
+            self._warn_bom = True
 
         self.skiprows = kwds["skiprows"]
 
@@ -850,6 +867,27 @@ class PythonParser(ParserBase):
         first_elt = first_row[0][0]
         if first_elt != _BOM:
             return first_row
+
+        self._bom_found = True
+
+        if self._warn_bom and not self._bom_warned:
+            encoding_lower = (
+                self.encoding.lower() if isinstance(self.encoding, str) else None
+            )
+            if self.encoding is None or encoding_lower == "utf-8":
+                msg = (
+                    "A UTF-8 BOM was detected in the file. In pandas 4.0, "
+                    "BOMs will only be stripped when using encoding='utf-8-sig'. "
+                    "To suppress this warning, use encoding='utf-8-sig'."
+                )
+            else:
+                msg = (
+                    f"A BOM was detected in a file with encoding='{self.encoding}'. "
+                    "In pandas 4.0, BOMs will not be stripped for this encoding."
+                )
+
+            warnings.warn(msg, Pandas4Warning, stacklevel=find_stack_level())
+            self._bom_warned = True
 
         first_row_bom = first_row[0]
         new_row: str
