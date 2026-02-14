@@ -59,6 +59,7 @@ from pandas._libs.tslibs.ccalendar cimport (
 )
 from pandas._libs.tslibs.conversion cimport localize_pydatetime
 from pandas._libs.tslibs.dtypes cimport (
+    PeriodDtypeBase,
     c_OFFSET_RENAMED_FREQSTR,
     c_OFFSET_TO_PERIOD_FREQSTR,
     c_PERIOD_AND_OFFSET_DEPR_FREQSTR,
@@ -738,6 +739,19 @@ cdef class BaseOffset:
 
     def _offset_str(self) -> str:
         return ""
+
+    @property
+    def _period_unit(self) -> str:
+        """
+        For offsets that are associated with a Period, give that period's freqstr.
+        Otherwise our own freqstr.
+
+        This is used when checking whether we can add this offset to a given
+        Period.
+        """
+        if hasattr(self, "_period_dtype_code"):
+            return PeriodDtypeBase(self._period_dtype_code, self.n)._freqstr
+        return self.freqstr
 
     # ------------------------------------------------------------------
 
