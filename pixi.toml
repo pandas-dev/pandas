@@ -37,7 +37,7 @@ python = "3.14.*"
 [feature.freethreading.dependencies]
 python-freethreading = "3.13.*"
 
-[feature.test.dependencies]
+[feature.test-base.dependencies]
 pytest = ">=8.3.4"
 pytest-cov = "*"
 pytest-xdist = ">=3.6.1"
@@ -116,13 +116,13 @@ pyyaml = "*"
 xarray = ">=2024.10.0"
 
 [environments]
-py311 = { features = ["py311", "test", "test-clipboard", "test-network", "pyarrow", "optional-dependencies"] }
-py312 = { features = ["py312", "test", "test-clipboard", "test-network", "pyarrow", "optional-dependencies"] }
-py313 = { features = ["py313", "test", "test-clipboard", "test-network", "pyarrow", "optional-dependencies"] }
-py314 = { features = ["py314", "test", "test-clipboard", "test-network", "pyarrow", "optional-dependencies"] }
-no-pyarrow = { features = ["py313", "test", "test-clipboard", "test-network", "optional-dependencies"] }
-minimum-versions = { features = ["py311", "test", "test-clipboard", "test-network", "pyarrow", "optional-dependencies", "minimum-versions"] }
-freethreading = { features = ["freethreading", "test"] }
-numpy-nightly = { features = ["py313", "test", "numpy-nightly"] }
-pyarrow-nightly = { features = ["py313", "test", "pyarrow-nightly"] }
-downstream = { features = ["py313", "test", "downstream"] }
+py311 = { features = ["py311", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies"] }
+py312 = { features = ["py312", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies"] }
+py313 = { features = ["py313", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies"] }
+py314 = { features = ["py314", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies"] }
+no-pyarrow = { features = ["py313", "test-base", "test-clipboard", "test-network", "optional-dependencies"] }
+minimum-versions = { features = ["py311", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies", "minimum-versions"] }
+freethreading = { features = ["freethreading", "test-base"] }
+numpy-nightly = { features = ["py313", "test-base", "numpy-nightly"] }
+pyarrow-nightly = { features = ["py313", "test-base", "pyarrow-nightly"] }
+downstream = { features = ["py313", "test-base", "downstream"] }
