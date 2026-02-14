@@ -633,12 +633,27 @@ class PythonParser(ParserBase):
                 if not have_mi_columns:
                     # Store original columns for dtype mapping
                     orig_columns = this_columns[:]
-                    # Use dedup_names to handle duplicate column names
-                    this_columns = list(
+
+                    # Ensure that regular columns are used before unnamed
+                    # ones to keep given names and mangle unnamed columns
+                    col_loop_order = [
+                        i
+                        for i in range(len(this_columns))
+                        if i not in this_unnamed_cols
+                    ] + this_unnamed_cols
+
+                    # Reorder columns so named ones are processed first,
+                    # then apply dedup_names for consistent deduplication
+                    reordered = [this_columns[i] for i in col_loop_order]
+                    deduped = list(
                         dedup_names(
-                            this_columns, is_potential_multiindex=False
+                            reordered,  # type: ignore[arg-type]
+                            is_potential_multiindex=False,
                         )
-                    )  # type: ignore[assignment]
+                    )
+                    # Map back to original positions
+                    for j, idx in enumerate(col_loop_order):
+                        this_columns[idx] = deduped[j]
 
                     # Update dtype mapping if columns were renamed
                     if self.dtype is not None and is_dict_like(self.dtype):
