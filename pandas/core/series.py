@@ -6292,7 +6292,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> Series:
         """
         Replace values where the conditions are True.
-        
+
         Replacement is performed in order; for each element, the first condition
         that evaluates to True determines the value used. This mirrors the semantics
         of a SQL ``CASE WHEN`` expression.
