@@ -29,7 +29,6 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays._arrow_string_mixins import ArrowStringArrayMixin
 from pandas.core.arrays.arrow import ArrowExtensionArray
-from pandas.core.arrays.base import ExtensionArray
 from pandas.core.arrays.boolean import BooleanDtype
 from pandas.core.arrays.floating import Float64Dtype
 from pandas.core.arrays.integer import Int64Dtype
