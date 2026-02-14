@@ -9596,9 +9596,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     na_option=na_option,
                     pct=pct,
                 )
-                ranks_obj = self._constructor(
-                    ranks, **data._construct_axes_dict()
-                )
+                ranks_obj = self._constructor(ranks, **data._construct_axes_dict())
                 return ranks_obj.__finalize__(self, method="rank")
         else:
             # Series: can dispatch to EA
