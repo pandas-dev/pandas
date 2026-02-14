@@ -4,7 +4,21 @@ runs:
   using: composite
   steps:
     - name: Test
-      run: ci/run_tests.sh
+      env:
+        MESONPY_EDITABLE_VERBOSE: 1
+        PYTHONDEVMODE: 1
+        PYTHONWARNDEFAULTENCODING: 1
+      run: |
+        pytest -r fE
+          --numprocesses=$PYTEST_WORKERS \
+          --dist=worksteal \
+          $TEST_ARGS \
+          --capture=no \
+          --cov=pandas \
+          --cov-report=xml \
+          --cov-append \
+          --cov-config=pyproject.toml \
+          $PYTEST_TARGET
       shell: pixi run bash -euox pipefail {0}
 
     - name: Publish test results

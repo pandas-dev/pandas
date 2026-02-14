@@ -1,5 +1,4 @@
-# shellcheck disable=SC2148
-# Pixi execute this script with bash -euox pipefail {0}
+#!/bin/bash -e
 # Workaround for pytest-xdist (it collects different tests in the workers if PYTHONHASHSEED is not set)
 # https://github.com/pytest-dev/pytest/issues/920
 # https://github.com/pytest-dev/pytest/issues/1075
@@ -14,5 +13,4 @@ if [[ "$PATTERN" ]]; then
   PYTEST_CMD="$PYTEST_CMD -m \"$PATTERN\""
 fi
 
-echo "$PYTEST_CMD"
-sh -c "$PYTEST_CMD"
+eval "$PYTEST_CMD"
