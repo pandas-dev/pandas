@@ -618,16 +618,13 @@ def test_concat_datetime64_different_resolutions():
     df = DataFrame(
         {
             "ints": range(2),
-            "dates": pd.date_range("2000", periods=2, freq="min"),
+            "dates": date_range("2000", periods=2, freq="min"),
         },
     )
     df2 = df.copy()
     df2["dates"] = df.dates.astype("M8[s]")
-    
+
     combined = concat([df, df2])
-    
+
     # The result should be a datetime64 dtype, not object
-    assert pd.api.types.is_datetime64_any_dtype(combined.dates.dtype)
-    # The resolution should be the most precise (nanoseconds in this case)
-    # or at least maintain datetime64 functionality
     assert combined.dates.dtype.kind == "M"
