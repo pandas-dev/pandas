@@ -191,6 +191,15 @@ def array(
     ['a', 'b']
     Length: 2, dtype: str32
 
+    Pandas converts entries of a multidimensional sequence(excluding NumPy arrays)
+    to its string representation if the ``dtype`` is ``str`` or any extension string
+    data type.
+
+    >>> pd.array([[1], [2], [3]], dtype="str")
+    <StringArray>
+    ['[1]', '[2]', '[3]']
+    Length: 3, dtype: str
+
     Finally, Pandas has arrays that mostly overlap with NumPy
 
       * :class:`arrays.DatetimeArray`

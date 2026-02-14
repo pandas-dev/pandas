@@ -317,6 +317,26 @@ def test_array_copy():
 
 
 @pytest.mark.parametrize(
+    "data",
+    [
+        # string 2D
+        [["a"], ["b"]],
+        # int 2D
+        [[1], [2]],
+        # mixed 2D
+        [[1, 2], ["a", "b"]],
+        # mixed 3D
+        [[[1]], [["a"]], [[3.14]]],
+    ],
+)
+def test_array_string(data):
+    result = pd.array(data, dtype="str")
+    expected = [str(i) for i in data]
+    expected = pd.array(expected, dtype="str")
+    tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize(
     "data, expected",
     [
         # period
