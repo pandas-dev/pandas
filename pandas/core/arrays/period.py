@@ -274,7 +274,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
             unit = None
 
         if isinstance(scalars, cls):
-            freq = dtype.freq if dtype is not None else None
+            freq = dtype.freq if dtype is not None else None  # type: ignore[union-attr]
             validate_dtype_freq(scalars.dtype, freq)
             if copy:
                 scalars = scalars.copy()
