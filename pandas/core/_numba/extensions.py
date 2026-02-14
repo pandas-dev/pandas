@@ -287,7 +287,7 @@ def maybe_cast_str_impl(x):
 @unbox(IndexType)
 def unbox_index(typ, obj, c):
     """
-    Convert a Index object to a native structure.
+    Convert an Index object to a native structure.
 
     Note: Object dtype is not allowed here
     """

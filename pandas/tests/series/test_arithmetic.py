@@ -399,6 +399,28 @@ class TestSeriesArithmetic:
         result = [True, None, True] + ser  # noqa: RUF005
         tm.assert_series_equal(result, expected)
 
+    def test_subtraction_index_name_type_mismatch_regression(self):
+        # GH#57524
+        s1 = Series(
+            [23, 22, 21],
+            index=Index(["a", "b", "c"], name="index a"),
+            dtype="Int64",
+        )
+        s2 = Series(
+            [21, 22, 23],
+            index=Index(
+                ["a", "b", "c"],
+                name="index b",
+                dtype="string",
+            ),
+            dtype="Int64",
+        )
+
+        result = s1 - s2
+        expected = Series([2, 0, -2], index=s1.index, dtype="Int64")
+
+        tm.assert_series_equal(result, expected)
+
 
 # ------------------------------------------------------------------
 # Comparisons

@@ -32,7 +32,6 @@ from pandas._libs.tslibs import NaT
 from pandas.compat.numpy import function as nv
 from pandas.errors import PerformanceWarning
 from pandas.util._decorators import (
-    doc,
     set_module,
 )
 from pandas.util._exceptions import find_stack_level
@@ -133,8 +132,6 @@ if TYPE_CHECKING:
 
 # ----------------------------------------------------------------------------
 # Array
-
-_sparray_doc_kwargs = {"klass": "SparseArray"}
 
 
 def _get_fill(arr: SparseArray) -> np.ndarray:
@@ -885,10 +882,38 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         diff = np.r_[np.diff(indices), 2]
         return indices[(diff > 1).argmax()] + 1
 
-    @doc(ExtensionArray.duplicated)
     def duplicated(
         self, keep: Literal["first", "last", False] = "first"
     ) -> npt.NDArray[np.bool_]:
+        """
+        Return boolean ndarray denoting duplicate values.
+
+        Parameters
+        ----------
+        keep : {'first', 'last', False}, default 'first'
+            - ``first`` : Mark duplicates as ``True`` except for the first occurrence.
+            - ``last`` : Mark duplicates as ``True`` except for the last occurrence.
+            - False : Mark all duplicates as ``True``.
+
+        Returns
+        -------
+        ndarray[bool]
+            With true in indices where elements are duplicated and false otherwise.
+
+        See Also
+        --------
+        DataFrame.duplicated : Return boolean Series denoting
+            duplicate rows.
+        Series.duplicated : Indicate duplicate Series values.
+        api.extensions.ExtensionArray.unique : Compute the ExtensionArray
+            of unique values.
+
+        Examples
+        --------
+        >>> pd.array([1, 1, 2, 3, 3], dtype=pd.SparseDtype(np.int64)).duplicated()
+        array([False,  True, False, False,  True])
+        """
+
         values = np.asarray(self)
         mask = np.asarray(self.isna())
         return algos.duplicated(values, keep=keep, mask=mask)

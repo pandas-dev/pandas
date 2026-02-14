@@ -12,7 +12,6 @@ from collections import abc
 from collections.abc import Callable
 import dataclasses
 from functools import partial
-from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -96,7 +95,6 @@ if TYPE_CHECKING:
     )
 
     from pandas import Categorical
-    from pandas.core.generic import NDFrame
 
 # TODO(typing) the return value on this callable should be any *scalar*.
 AggScalar: TypeAlias = str | Callable[..., Any]
@@ -251,6 +249,8 @@ class SeriesGroupBy(GroupBy[Series]):
 
         Notes
         -----
+        See :ref:`groupby.apply` in the User Guide for more details and examples.
+
         The resulting dtype will reflect the return value of the passed ``func``,
         see the examples below.
 
@@ -382,6 +382,9 @@ class SeriesGroupBy(GroupBy[Series]):
 
         Notes
         -----
+        See :ref:`groupby.aggregate` in the User Guide for more details
+        and examples.
+
         When using ``engine='numba'``, there will be no "fall back" behavior internally.
         The group data and group index will be passed as numpy arrays to the JITed
         user defined function, and no alternative execution attempts will be tried.
@@ -607,47 +610,6 @@ class SeriesGroupBy(GroupBy[Series]):
                 result.index = default_index(len(result))
             return result.__finalize__(self.obj, method="groupby")
 
-    __examples_series_doc = dedent(
-        """
-    >>> ser = pd.Series([390.0, 350.0, 30.0, 20.0],
-    ...                 index=["Falcon", "Falcon", "Parrot", "Parrot"],
-    ...                 name="Max Speed")
-    >>> grouped = ser.groupby([1, 1, 2, 2])
-    >>> grouped.transform(lambda x: (x - x.mean()) / x.std())
-        Falcon    0.707107
-        Falcon   -0.707107
-        Parrot    0.707107
-        Parrot   -0.707107
-        Name: Max Speed, dtype: float64
-
-    Broadcast result of the transformation
-
-    >>> grouped.transform(lambda x: x.max() - x.min())
-    Falcon    40.0
-    Falcon    40.0
-    Parrot    10.0
-    Parrot    10.0
-    Name: Max Speed, dtype: float64
-
-    >>> grouped.transform("mean")
-    Falcon    370.0
-    Falcon    370.0
-    Parrot     25.0
-    Parrot     25.0
-    Name: Max Speed, dtype: float64
-
-    The resulting dtype will reflect the return value of the passed ``func``,
-    for example:
-
-    >>> grouped.transform(lambda x: x.astype(int).max())
-    Falcon    390
-    Falcon    390
-    Parrot     30
-    Parrot     30
-    Name: Max Speed, dtype: int64
-    """
-    )
-
     def transform(self, func, *args, engine=None, engine_kwargs=None, **kwargs):
         """
         Call function producing a same-indexed Series on each group.
@@ -711,6 +673,8 @@ class SeriesGroupBy(GroupBy[Series]):
 
         Notes
         -----
+        See :ref:`groupby.transform` in the User Guide for more details and examples.
+
         Each group is endowed the attribute 'name' in case you need to know
         which group you are working on.
 
@@ -2180,6 +2144,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         Notes
         -----
+        See :ref:`groupby.aggregate` in the User Guide for more details
+        and examples.
+
         When using ``engine='numba'``, there will be no "fall back" behavior internally.
         The group data and group index will be passed as numpy arrays to the JITed
         user defined function, and no alternative execution attempts will be tried.
@@ -2319,37 +2286,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 return self._aggregate_with_numba(
                     func, *args, engine_kwargs=engine_kwargs, **kwargs
                 )
-            # grouper specific aggregations
-            if self._grouper.nkeys > 1:
-                # test_groupby_as_index_series_scalar gets here with 'not self.as_index'
-                return self._python_agg_general(func, *args, **kwargs)
-            elif args or kwargs:
-                # test_pass_args_kwargs gets here (with and without as_index)
-                # can't return early
-                result = self._aggregate_frame(func, *args, **kwargs)
-
-            else:
-                # try to treat as if we are passing a list
-                gba = GroupByApply(self, [func], args=(), kwargs={})
-                try:
-                    result = gba.agg()
-
-                except ValueError as err:
-                    if "No objects to concatenate" not in str(err):
-                        raise
-                    # _aggregate_frame can fail with e.g. func=Series.mode,
-                    # where it expects 1D values but would be getting 2D values
-                    # In other tests, using aggregate_frame instead of GroupByApply
-                    #  would give correct values but incorrect dtypes
-                    #  object vs float64 in test_cython_agg_empty_buckets
-                    #  float64 vs int64 in test_category_order_apply
-                    result = self._aggregate_frame(func)
-
-                else:
-                    # GH#32040, GH#35246
-                    # e.g. test_groupby_as_index_select_column_sum_empty_df
-                    result = cast(DataFrame, result)
-                    result.columns = self._obj_with_exclusions.columns.copy()
+            result = self._python_agg_general(func, *args, **kwargs)
 
         if not self.as_index:
             result = self._insert_inaxis_grouper(result)
@@ -2362,42 +2299,21 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def _python_agg_general(self, func, *args, **kwargs):
         f = lambda x: func(x, *args, **kwargs)
 
-        if self.ngroups == 0:
-            # e.g. test_evaluate_with_empty_groups different path gets different
-            #  result dtype in empty case.
-            return self._python_apply_general(f, self._selected_obj, is_agg=True)
-
         obj = self._obj_with_exclusions
 
-        if not len(obj.columns):
-            # e.g. test_margins_no_values_no_cols
-            return self._python_apply_general(f, self._selected_obj)
-
-        output: dict[int, ArrayLike] = {}
-        for idx, (name, ser) in enumerate(obj.items()):
-            result = self._grouper.agg_series(ser, f)
-            output[idx] = result
-
-        res = self.obj._constructor(output)
-        res.columns = obj.columns.copy(deep=False)
+        if self.ngroups == 0 or len(obj.columns) == 0:
+            res_index = self._grouper.result_index
+            res = self.obj._constructor(index=res_index, columns=obj.columns).astype(
+                obj.dtypes
+            )
+        else:
+            output: dict[int, ArrayLike] = {
+                idx: self._grouper.agg_series(ser, f)
+                for idx, (name, ser) in enumerate(obj.items())
+            }
+            res = self.obj._constructor(output)
+            res.columns = obj.columns.copy(deep=False)
         return self._wrap_aggregated_output(res)
-
-    def _aggregate_frame(self, func, *args, **kwargs) -> DataFrame:
-        if self._grouper.nkeys != 1:
-            raise AssertionError("Number of keys must be 1")
-
-        obj = self._obj_with_exclusions
-
-        result: dict[Hashable, NDFrame | np.ndarray] = {}
-        for name, grp_df in self._grouper.get_iterator(obj):
-            fres = func(grp_df, *args, **kwargs)
-            result[name] = fres
-
-        result_index = self._grouper.result_index
-        out = self.obj._constructor(result, index=obj.columns, columns=result_index)
-        out = out.T
-
-        return out
 
     def _wrap_applied_output(
         self,
@@ -2591,58 +2507,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         concatenated = concatenated.reindex(concat_index, axis=1)
         return self._set_result_index_ordered(concatenated)
 
-    __examples_dataframe_doc = dedent(
-        """
-    >>> df = pd.DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
-    ...                           'foo', 'bar'],
-    ...                    'B' : ['one', 'one', 'two', 'three',
-    ...                           'two', 'two'],
-    ...                    'C' : [1, 5, 5, 2, 5, 5],
-    ...                    'D' : [2.0, 5., 8., 1., 2., 9.]})
-    >>> grouped = df.groupby('A')[['C', 'D']]
-    >>> grouped.transform(lambda x: (x - x.mean()) / x.std())
-            C         D
-    0 -1.154701 -0.577350
-    1  0.577350  0.000000
-    2  0.577350  1.154701
-    3 -1.154701 -1.000000
-    4  0.577350 -0.577350
-    5  0.577350  1.000000
-
-    Broadcast result of the transformation
-
-    >>> grouped.transform(lambda x: x.max() - x.min())
-        C    D
-    0  4.0  6.0
-    1  3.0  8.0
-    2  4.0  6.0
-    3  3.0  8.0
-    4  4.0  6.0
-    5  3.0  8.0
-
-    >>> grouped.transform("mean")
-        C    D
-    0  3.666667  4.0
-    1  4.000000  5.0
-    2  3.666667  4.0
-    3  4.000000  5.0
-    4  3.666667  4.0
-    5  4.000000  5.0
-
-    The resulting dtype will reflect the return value of the passed ``func``,
-    for example:
-
-    >>> grouped.transform(lambda x: x.astype(int).max())
-    C  D
-    0  5  8
-    1  5  9
-    2  5  8
-    3  5  9
-    4  5  8
-    5  5  9
-    """
-    )
-
     def transform(self, func, *args, engine=None, engine_kwargs=None, **kwargs):
         """
         Call function producing a same-indexed DataFrame on each group.
@@ -2706,6 +2570,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         Notes
         -----
+        See :ref:`groupby.transform` in the User Guide for more details and examples.
+
         Each group is endowed the attribute 'name' in case you need to know
         which group you are working on.
 
