@@ -362,6 +362,17 @@ def _convert_listlike_datetimes(
         arg = np.array(arg)
 
     arg_dtype = getattr(arg, "dtype", None)
+    # GH#64012 - raise if unit is passed with datetime-like input,
+    # since unit is only for numeric/epoch conversion
+    if unit is not None and (
+        isinstance(arg_dtype, DatetimeTZDtype)
+        or lib.is_np_dtype(arg_dtype, "M")
+        or (isinstance(arg_dtype, ArrowDtype) and arg_dtype.type is Timestamp)
+    ):
+        raise ValueError(
+            "cannot specify 'unit' when the input is datetime-like. "
+            "Use .as_unit() to convert to a different resolution."
+        )
     # these are shortcutable
     tz = "utc" if utc else None
     if isinstance(arg_dtype, DatetimeTZDtype):
