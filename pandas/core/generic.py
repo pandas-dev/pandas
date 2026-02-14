@@ -1869,6 +1869,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Iterate over info axis.
 
+        For a DataFrame this yields column names (labels); for a Series
+        it yields the single name. Enables iteration over the object
+        with ``for col in df``.
+
         Returns
         -------
         iterator
@@ -6020,6 +6024,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         r"""
         Apply chainable functions that expect Series or DataFrames.
 
+        Passes the object as the first argument to each function, so
+        that ``df.pipe(f).pipe(g)`` is equivalent to ``g(f(df))``.
+        Improves readability when chaining several transformations.
+
         Parameters
         ----------
         func : function
@@ -6740,6 +6748,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> Self:
         """
         Convert columns from numpy dtypes to the best dtypes that support ``pd.NA``.
+
+        This finds the smallest dtype that can hold all values, or uses
+        extension dtypes (e.g. nullable integer, string, boolean) so that
+        missing values are represented by ``pd.NA`` instead of ``np.nan``.
 
         Parameters
         ----------
@@ -10326,6 +10338,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> Self:
         """
         Replace values where the condition is True.
+
+        Where ``cond`` is True, the result takes the value from
+        ``other``; where False, it keeps the original value. Inverse of
+        :meth:`where`. Useful for replacing invalid or sentinel values.
 
         Parameters
         ----------
