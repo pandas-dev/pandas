@@ -29,7 +29,6 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays._arrow_string_mixins import ArrowStringArrayMixin
 from pandas.core.arrays.arrow import ArrowExtensionArray
-from pandas.core.arrays.base import ExtensionArray
 from pandas.core.arrays.boolean import BooleanDtype
 from pandas.core.arrays.floating import Float64Dtype
 from pandas.core.arrays.integer import Int64Dtype
@@ -592,11 +591,3 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     def __pos__(self) -> Self:
         raise TypeError(f"bad operand type for unary +: '{self.dtype}'")
 
-    def _where(self, mask, value) -> Self:
-        # We moved the len-1 check to base, but we still need to convert lists
-        # to arrays so the base class can perform boolean indexing.
-        if lib.is_list_like(value) and not isinstance(
-            value, (np.ndarray, ExtensionArray)
-        ):
-            value = self._from_sequence(value, dtype=self.dtype)
-        return super()._where(mask, value)
