@@ -11,7 +11,6 @@ inputs:
 runs:
   using: composite
   steps:
-
     - name: Environment Detail
       run: pixi list
       shell: bash -euox pipefail {0}
@@ -25,7 +24,7 @@ runs:
 
     - name: Build Pandas
       run: |
-        EDITABLE=${{ inputs.editable && '--editable' || '' }}
-        WERROR=${{ inputs.werror && '-Csetup-args="--werror"' || '' }}
+        EDITABLE=${{ inputs.editable == true && '--editable' || '' }}
+        WERROR=${{ inputs.werror == true && '-Csetup-args="--werror"' || '' }}
         pip install $EDITABLE . --no-build-isolation -v --no-deps $WERROR
       shell: pixi run bash -euox pipefail {0}
