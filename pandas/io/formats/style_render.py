@@ -90,9 +90,9 @@ class StylerRenderer:
     #: Template used to render plain-string output.
     template_string = env.get_template("string.tpl")
     #: Labels of the rows in the underlying data.
-    index: Index | None = None
+    index: Index = Index([])
     #: Labels of the columns in the underlying data.
-    columns: Index | None = None
+    columns: Index = Index([])
 
     def __init__(
         self,
