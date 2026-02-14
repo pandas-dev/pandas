@@ -657,7 +657,9 @@ class PythonParser(ParserBase):
 
                     # Update dtype mapping if columns were renamed
                     if self.dtype is not None and is_dict_like(self.dtype):
-                        for old_col, new_col in zip(orig_columns, this_columns, strict=True):
+                        for old_col, new_col in zip(
+                            orig_columns, this_columns, strict=True
+                        ):
                             if (
                                 old_col != new_col
                                 and self.dtype.get(old_col) is not None
