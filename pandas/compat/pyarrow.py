@@ -74,22 +74,17 @@ def _safe_fill_null(
 
     if pa.types.is_duration(arr.type):
 
-        def fill_null_duration_via_int64(
-            arr: pa.Array, fill_scalar: pa.Scalar
-        ) -> pa.Array:
-            arr_i64 = pc.cast(arr, pa.int64())
-            fill_i64 = pc.cast(fill_scalar, pa.int64())
-            out_i64 = pc.if_else(pc.is_null(arr), fill_i64, arr_i64)
-            return pc.cast(out_i64, arr.type)
+        def fill_null_duration(arr: pa.Array, fill_scalar: pa.Scalar) -> pa.Array:
+            mask = pc.is_null(arr)
+            zero_duration = pa.scalar(0, type=arr.type)
+            arr_zeroed = pc.if_else(mask, zero_duration, arr)
+            return pc.if_else(mask, fill_scalar, arr_zeroed)
 
         if isinstance(arr, pa.ChunkedArray):
             return pa.chunked_array(
-                [
-                    fill_null_duration_via_int64(chunk, fill_scalar)
-                    for chunk in arr.chunks
-                ]
+                [fill_null_duration(chunk, fill_scalar) for chunk in arr.chunks]
             )
-        return fill_null_duration_via_int64(arr, fill_scalar)
+        return fill_null_duration(arr, fill_scalar)
 
     if isinstance(arr, pa.ChunkedArray):
         return pa.chunked_array(
