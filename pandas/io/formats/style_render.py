@@ -73,14 +73,26 @@ class StylerRenderer:
 
     this_dir = pathlib.Path(__file__).parent.resolve()
     template_dir = this_dir / "templates"
+    #: Jinja2 loader used to resolve Styler templates.
     loader = jinja2.FileSystemLoader(template_dir)
+    #: Jinja2 environment used to load and render Styler templates.
     env = jinja2.Environment(loader=loader, trim_blocks=True)
+    #: Template used to render complete HTML output.
     template_html = env.get_template("html.tpl")
+    #: Template used to render the HTML ``<table>`` element.
     template_html_table = env.get_template("html_table.tpl")
+    #: Template used to render HTML ``<style>`` blocks.
     template_html_style = env.get_template("html_style.tpl")
+    #: Template used to render LaTeX output.
     template_latex = env.get_template("latex.tpl")
+    #: Template used to render Typst output.
     template_typst = env.get_template("typst.tpl")
+    #: Template used to render plain-string output.
     template_string = env.get_template("string.tpl")
+    #: Labels of the rows in the underlying data.
+    index: Index | None = None
+    #: Labels of the columns in the underlying data.
+    columns: Index | None = None
 
     def __init__(
         self,
