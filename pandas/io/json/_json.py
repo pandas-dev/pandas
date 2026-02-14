@@ -920,6 +920,10 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
             self.nrows = validate_integer("nrows", self.nrows, 0)
             if not self.lines:
                 raise ValueError("nrows can only be passed if lines=True")
+            if self.engine == "pyarrow":
+                raise NotImplementedError(
+                    "currently pyarrow engine doesn't support nrows parameter"
+                )
         if self.engine == "pyarrow":
             if not self.lines:
                 raise ValueError(
@@ -931,7 +935,7 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
             data = self._get_data_from_filepath(filepath_or_buffer)
             # If self.chunksize, we prepare the data for the `__next__` method.
             # Otherwise, we read it into memory for the `read` method.
-            if not (self.chunksize or self.nrows):
+            if self.chunksize is None and self.nrows is None:
                 with self:
                     self.data = data.read()
             else:
@@ -1022,8 +1026,12 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         obj: DataFrame | Series
         if self.lines:
             if self.chunksize:
-                obj = concat(self)
-            elif self.nrows:
+                chunks = list(self)
+                if chunks:
+                    obj = concat(chunks)
+                else:
+                    obj = self._get_object_parser(self._combine_lines([]))
+            elif self.nrows is not None:
                 lines = list(islice(self.data, self.nrows))
                 lines_json = self._combine_lines(lines)
                 obj = self._get_object_parser(lines_json)
@@ -1091,11 +1099,20 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
     ) -> DataFrame | Series: ...
 
     def __next__(self) -> DataFrame | Series:
-        if self.nrows and self.nrows_seen >= self.nrows:
-            self.close()
-            raise StopIteration
+        chunk_size: int | None
+        if self.nrows is not None:
+            remaining = self.nrows - self.nrows_seen
+            if remaining <= 0:
+                self.close()
+                raise StopIteration
+            if self.chunksize is None:
+                chunk_size = remaining
+            else:
+                chunk_size = min(self.chunksize, remaining)
+        else:
+            chunk_size = self.chunksize
 
-        lines = list(islice(self.data, self.chunksize))
+        lines = list(islice(self.data, chunk_size))
         if not lines:
             self.close()
             raise StopIteration
