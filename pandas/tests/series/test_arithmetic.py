@@ -1105,3 +1105,14 @@ def test_comparison_mismatched_datetime_units(index):
     result2 = ser2 < ser
     expected2 = Series([False, False, False], index=ser2.index)
     tm.assert_series_equal(result2, expected2)
+
+
+def test_comparison_result_missing_value():
+    # GH#63328
+    ser = Series([None, 0, 1, False, True, np.nan, pd.NaT, pd.NA])
+
+    result = ser == 3
+    lst = [False] * (len(ser) - 1) + [pd.NA]
+    expected = Series(lst, dtype="object")
+
+    tm.assert_series_equal(result, expected)
