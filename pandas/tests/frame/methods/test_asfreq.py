@@ -192,9 +192,10 @@ class TestAsFreq:
         ts2 = ts.copy()
         ts2.index = [x.date() for x in ts2.index]
 
-        result = ts2.asfreq("4h", method="ffill")
-        expected = ts.asfreq("4h", method="ffill")
-        tm.assert_equal(result, expected)
+        with pytest.raises(
+            TypeError, match="Cannot compare Timestamp with datetime.date"
+        ):
+            ts2.asfreq("4h", method="ffill")
 
     def test_asfreq_with_unsorted_index(self, frame_or_series):
         # GH#39805

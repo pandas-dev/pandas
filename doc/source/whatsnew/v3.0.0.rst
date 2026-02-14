@@ -1216,6 +1216,8 @@ Datetimelike
 - Bug in constructing arrays with a timezone-aware :class:`ArrowDtype` from timezone-naive datetime objects incorrectly treating those as UTC times instead of wall times like :class:`DatetimeTZDtype` (:issue:`61775`)
 - Bug in retaining frequency in :meth:`value_counts` specifically for :meth:`DatetimeIndex` and :meth:`TimedeltaIndex` (:issue:`33830`)
 - Bug in setting scalar values with mismatched resolution into arrays with non-nanosecond ``datetime64``, ``timedelta64`` or :class:`DatetimeTZDtype` incorrectly truncating those scalars (:issue:`56410`)
+- Removed the special casing for sequences of Python ``date`` objects in ``DatetimeIndex.get_indexer`` and related indexing logic.
+  Indexing a ``DatetimeIndex`` with Python ``date`` objects now behaves consistently with other types. (:issue:`62158`)
 
 Timedelta
 ^^^^^^^^^
