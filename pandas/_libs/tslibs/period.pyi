@@ -38,7 +38,7 @@ def from_ordinals(
 ) -> npt.NDArray[np.int64]: ...
 def extract_ordinals(
     values: npt.NDArray[np.object_],
-    freq: Frequency | int,
+    dtype: PeriodDtypeBase,
 ) -> npt.NDArray[np.int64]: ...
 def extract_freq(
     values: npt.NDArray[np.object_],
