@@ -9,7 +9,7 @@ runs:
         PYTHONDEVMODE: 1
         PYTHONWARNDEFAULTENCODING: 1
       run: |
-        python -m pytest -r fE
+        python -m pytest -r fE \
           --numprocesses=$PYTEST_WORKERS \
           --dist=worksteal \
           $TEST_ARGS \
