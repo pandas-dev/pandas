@@ -3104,7 +3104,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         >>> s.autocorr()
         nan
         """
-        return self.corr(cast(Series, self.shift(lag)))
+        return self.corr(cast("Series", self.shift(lag)))
 
     def dot(self, other: AnyArrayLike | DataFrame) -> Series | np.ndarray:
         """
@@ -3877,7 +3877,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         self._get_axis_number(axis)
 
         if is_list_like(ascending):
-            ascending = cast(Sequence[bool], ascending)
+            ascending = cast("Sequence[bool]", ascending)
             if len(ascending) != 1:
                 raise ValueError(
                     f"Length of ascending ({len(ascending)}) must be 1 for Series"
@@ -3891,7 +3891,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         # GH 35922. Make sorting stable by leveraging nargsort
         if key:
-            values_to_sort = cast(Series, ensure_key_mapped(self, key))._values
+            values_to_sort = cast("Series", ensure_key_mapped(self, key))._values
         else:
             values_to_sort = self._values
         sorted_index = nargsort(values_to_sort, kind, bool(ascending), na_position)
@@ -6998,7 +6998,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         name = ops.get_op_result_name(self, other)
 
         out = this._construct_result(result, name, other)
-        return cast(Series, out)
+        return cast("Series", out)
 
     def _construct_result(
         self,

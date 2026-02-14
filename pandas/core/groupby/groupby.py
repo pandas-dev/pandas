@@ -1604,7 +1604,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             # GH#49834 - result needs groups in the index for
             # _wrap_transform_fast_result
             if func in ["idxmin", "idxmax"]:
-                func = cast(Literal["idxmin", "idxmax"], func)
+                func = cast("Literal['idxmin', 'idxmax']", func)
                 result = self._idxmax_idxmin(func, True, *args, **kwargs)
             else:
                 if engine is not None:
@@ -2435,7 +2435,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             observed=self.observed,
             dropna=self.dropna,
         )
-        result_series = cast(Series, gb.size())
+        result_series = cast("Series", gb.size())
         result_series.name = name
 
         if sort:
@@ -4491,7 +4491,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         # old behaviour, but with all and any support for DataFrames.
         # modified in GH 7559 to have better perf
-        n = cast(int, n)
+        n = cast("int", n)
         dropped = self._selected_obj.dropna(how=dropna, axis=0)
 
         # get a new grouper for our dropped obj
@@ -5328,7 +5328,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         goldfish    5.0  8.0
         """
         if is_list_like(periods):
-            periods = cast(Sequence, periods)
+            periods = cast("Sequence", periods)
             if len(periods) == 0:
                 raise ValueError("If `periods` is an iterable, it cannot be empty.")
             from pandas.core.reshape.concat import concat
@@ -5341,7 +5341,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 )
             if suffix:
                 raise ValueError("Cannot specify `suffix` if `periods` is an int.")
-            periods = [cast(int, periods)]
+            periods = [cast("int", periods)]
             add_suffix = False
 
         shifted_dataframes = []
@@ -5350,7 +5350,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 raise TypeError(
                     f"Periods must be integer, but {period} is {type(period)}."
                 )
-            period = cast(int, period)
+            period = cast("int", period)
             if freq is not None:
                 f = lambda x: x.shift(
                     period,
@@ -5380,11 +5380,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             if add_suffix:
                 if isinstance(shifted, Series):
-                    shifted = cast(NDFrameT, shifted.to_frame())
+                    shifted = cast("NDFrameT", shifted.to_frame())
                 shifted = shifted.add_suffix(
                     f"{suffix}_{period}" if suffix else f"_{period}"
                 )
-            shifted_dataframes.append(cast(Union[Series, DataFrame], shifted))
+            shifted_dataframes.append(cast("Union[Series, DataFrame]", shifted))
 
         return (
             shifted_dataframes[0]
@@ -6022,7 +6022,7 @@ def _insert_quantile_level(idx: Index, qs: npt.NDArray[np.float64]) -> MultiInde
     lev_codes = coerce_indexer_dtype(lev_codes, lev)
 
     if idx._is_multi:
-        idx = cast(MultiIndex, idx)
+        idx = cast("MultiIndex", idx)
         levels = [*idx.levels, lev]
         codes = [np.repeat(x, nqs) for x in idx.codes] + [np.tile(lev_codes, len(idx))]
         mi = MultiIndex(levels=levels, codes=codes, names=[*idx.names, None])
