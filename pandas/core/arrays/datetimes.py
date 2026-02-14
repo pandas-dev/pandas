@@ -28,6 +28,7 @@ from pandas._libs.tslibs import (
     NaT,
     NaTType,
     Resolution,
+    Timedelta,
     Timestamp,
     astype_overflowsafe,
     fields,
@@ -71,6 +72,7 @@ import pandas.core.common as com
 
 from pandas.tseries.frequencies import get_period_alias
 from pandas.tseries.offsets import (
+    DateOffset,
     Day,
     Tick,
 )
@@ -95,7 +97,6 @@ if TYPE_CHECKING:
 
     from pandas import (
         DataFrame,
-        Timedelta,
     )
     from pandas.core.arrays import PeriodArray
 
@@ -816,6 +817,8 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         else:
             values = self
 
+        units = ["ns", "us", "ms", "s"]
+
         try:
             res_values = offset._apply_array(values._ndarray)
             if res_values.dtype.kind == "i":
@@ -832,17 +835,49 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                     PerformanceWarning,
                     stacklevel=find_stack_level(),
                 )
-            res_values = self.astype("O") + offset
-            result = type(self)._from_sequence(res_values, dtype=self.dtype)
+            # Handle non-vectorized DateOffsets with both calendar and
+            # timedelta parts, preserving time resolution.
+            values_ns = values.as_unit("ns") if values.unit != "ns" else values
+            res_values = np.array([ts + offset for ts in values_ns], dtype=object)
+
+            res_unit = self.unit
+
+            off = getattr(offset, "offset", None)
+            if off is not None:
+                offset_td = Timedelta(off)
+                if offset_td.value != 0:
+                    offset_unit = offset_td.resolution_string
+                    if self.unit in units and offset_unit in units:
+                        idx_self = units.index(self.unit)
+                        idx_offset = units.index(offset_unit)
+                        res_unit = units[min(idx_self, idx_offset)]
+
+            dtype = np.dtype(f"datetime64[{res_unit}]")
+            result = type(self)._from_sequence(res_values, dtype=dtype)
 
         else:
+            res_unit = self.unit
+            if type(offset) is DateOffset:
+                if "nanoseconds" in offset.kwds:
+                    res_unit = "ns"
+                elif "microseconds" in offset.kwds and self.unit != "ns":
+                    res_unit = "us"
+            if hasattr(offset, "offset") and offset.offset is not None:
+                offset_td = Timedelta(offset.offset)
+                if offset_td.value != 0:
+                    offset_unit = offset_td.unit
+                    idx_self = units.index(self.unit)
+                    idx_offset = units.index(offset_unit)
+                    res_unit = units[min(idx_self, idx_offset)]
             result = type(self)._simple_new(res_values, dtype=res_values.dtype)
-            if offset.normalize:
-                result = result.normalize()
-                result._freq = None
+            result = result.as_unit(res_unit)
 
-            if self.tz is not None:
-                result = result.tz_localize(self.tz)
+        if offset.normalize:
+            result = result.normalize()
+            result._freq = None
+
+        if self.tz is not None:
+            result = result.tz_localize(self.tz)
 
         return result
 
