@@ -98,7 +98,12 @@ class ArrowStringArrayMixin:
             return False
 
         str_pat = pat.pattern if isinstance(pat, re.Pattern) else pat
-        tokens = regex_parser(str_pat)
+        try:
+            tokens = regex_parser(str_pat)
+        except re.error:
+            # Pattern not valid for Python's re (e.g. RE2 syntax like \x{...} or \p)
+            # Let the pyarrow backend handle it.
+            return False
         return has_unsupported_code(tokens)
 
     def _str_len(self):
