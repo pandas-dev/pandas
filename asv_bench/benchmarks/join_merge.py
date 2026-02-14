@@ -587,4 +587,45 @@ class Align:
         self.ts1.align(self.ts2, join="left")
 
 
+class MergeRangeLikeFastPath:
+    """
+    Benchmarks for merge(sort=False) where one side is unsorted and the other
+    side's key is sorted/unique and range-like (eligible for maybe_sequence_to_range
+    -> RangeIndex.get_indexer fast-path).
+    """
+
+    params = [50_000, 200_000, 1_000_000, 5_000_000]
+    param_names = ["n"]
+
+    def setup(self, n):
+        rng = np.random.default_rng(0)
+        step = 2
+
+        left_sorted = DataFrame({"k": np.arange(n, dtype=np.int64), "v": 1})
+        self.left_unsorted = left_sorted.iloc[rng.permutation(n)].reset_index(drop=True)
+        self.left_sorted = left_sorted
+
+        right_sorted = DataFrame({"k": np.arange(0, n, step, dtype=np.int64), "w": 1})
+        self.right_sorted = right_sorted
+        self.right_unsorted = right_sorted.iloc[
+            rng.permutation(len(right_sorted))
+        ].reset_index(drop=True)
+
+        left_miss = self.left_unsorted.copy()
+        left_miss["k"] = left_miss["k"] + (10 * n)
+        self.left_miss = left_miss
+
+    def time_left_join_sorted_baseline(self, n):
+        self.left_sorted.merge(self.right_sorted, on="k", how="left", sort=False)
+
+    def time_left_join_unsorted_left(self, n):
+        self.left_unsorted.merge(self.right_sorted, on="k", how="left", sort=False)
+
+    def time_right_join_unsorted_right(self, n):
+        self.left_sorted.merge(self.right_unsorted, on="k", how="right", sort=False)
+
+    def time_left_join_zero_match_unsorted_left(self, n):
+        self.left_miss.merge(self.right_sorted, on="k", how="left", sort=False)
+
+
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

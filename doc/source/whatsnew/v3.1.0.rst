@@ -100,7 +100,10 @@ Deprecations
 
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
--
+- Improved performance of :meth:`~pandas.DataFrame.merge` with ``sort=False`` for
+  single-key ``how="left"``/``how="right"`` joins when the opposite join key is a
+  sorted, unique and range-like integer/unsigned-integer sequence.
+  (:issue:`64146`).
 -
 
 .. ---------------------------------------------------------------------------
