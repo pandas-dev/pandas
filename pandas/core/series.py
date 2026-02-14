@@ -6291,7 +6291,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ],
     ) -> Series:
         """
-        Replace values where the conditions are True.
+        Replace values by evaluating conditions in order.
+
+        For each element, the first matching condition in ``caselist`` is used.
+        If no condition matches, the original value is kept.
 
         .. versionadded:: 2.2.0
 
@@ -6299,7 +6302,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ----------
         caselist : A list of tuples of conditions and expected replacements
             Takes the form:  ``(condition0, replacement0)``,
-            ``(condition1, replacement1)``, ... .
+            ``(condition1, replacement1)``, ... and is evaluated in order.
             ``condition`` should be a 1-D boolean array-like object
             or a callable. If ``condition`` is a callable,
             it is computed on the Series
@@ -6323,6 +6326,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Examples
         --------
+        Conditions are checked from top to bottom. If multiple conditions are
+        ``True`` for one element, only the first matching condition is applied.
+
         >>> c = pd.Series([6, 7, 8, 9], name="c")
         >>> a = pd.Series([0, 0, 1, 2])
         >>> b = pd.Series([0, 3, 4, 5])
@@ -6337,6 +6343,21 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         1    3
         2    1
         3    2
+        Name: c, dtype: int64
+
+        Here, both conditions are ``True`` for index 2 and 3, but the first
+        match wins:
+
+        >>> c.case_when(
+        ...     caselist=[
+        ...         (a.gt(0), 100),
+        ...         (a.gt(0), 0),
+        ...     ]
+        ... )
+        0      6
+        1      7
+        2    100
+        3    100
         Name: c, dtype: int64
         """
         if not isinstance(caselist, list):
