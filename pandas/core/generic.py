@@ -9581,7 +9581,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         ascending=ascending,
                         pct=pct,
                     )
-                result = data._constructor(result_columns, index=data.index)
+                result = data._constructor(
+                    result_columns, **data._construct_axes_dict()
+                )
                 return result.__finalize__(self, method="rank")
             else:
                 # axis=1: rank across columns per row, use ndarray path
