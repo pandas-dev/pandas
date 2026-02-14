@@ -30,10 +30,17 @@ guidance on:
 
 We will not introduce new deprecations in patch releases.
 
-Deprecations will only be enforced in **major** releases. For example, if a
-behavior is deprecated in pandas 1.2.0, it will continue to work, with a
-warning, for all releases in the 1.x series. The behavior will change and the
-deprecation removed in the next major release (2.0.0).
+Deprecations will only be enforced in **major** releases, following a 3-stage
+policy (see `PDEP 17 <https://pandas.pydata.org/pdeps/0017-backwards-compatibility-and-deprecation-policy.html>`_):
+
+1. A ``DeprecationWarning`` is introduced in a minor release.
+2. In the last minor release before the next major version, the warning is
+   escalated to a ``FutureWarning`` for broader visibility.
+3. The deprecated functionality is removed in the next major release.
+
+For example, if a behavior is deprecated in pandas 3.1.0, it will emit a
+``DeprecationWarning`` throughout the 3.x series, switch to a
+``FutureWarning`` in the last 3.x minor release, and be removed in 4.0.0.
 
 .. note::
 

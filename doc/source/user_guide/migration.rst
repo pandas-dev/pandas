@@ -70,22 +70,13 @@ Migrating to Copy-on-Write
 Copy-on-Write is the default and only mode in pandas 3.0. This means that users
 need to migrate their code to be compliant with CoW rules.
 
-The default mode in pandas < 3.0 raises warnings for certain cases that will actively
-change behavior and thus change user intended behavior.
+.. note::
 
-pandas 2.2 has a warning mode
+   In pandas 2.x, a warning mode was available via
+   ``pd.options.mode.copy_on_write = "warn"``. This option is deprecated in
+   pandas 3.0 and has no effect, as Copy-on-Write is now always enabled.
 
-.. code-block:: python
-
-    pd.options.mode.copy_on_write = "warn"
-
-that will warn for every operation that will change behavior with CoW. We expect this mode
-to be very noisy, since many cases that we don't expect that they will influence users will
-also emit a warning. We recommend checking this mode and analyzing the warnings, but it is
-not necessary to address all of these warning. The first two items of the following lists
-are the only cases that need to be addressed to make existing code work with CoW.
-
-The following few items describe the user visible changes:
+The following items describe the user visible changes:
 
 **Chained assignment will never work**
 
