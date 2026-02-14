@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 from typing import Any
 
 from pandas.util.version import Version
@@ -60,14 +61,11 @@ def _safe_fill_null(
     """
     import pyarrow.compute as pc
 
-    # is_windows = sys.platform in ["win32", "cygwin"]
-    # use_fallback = (
-    #     HAS_PYARROW and is_windows and not pa_version_under21p0
-    #     and pa_version_under22p0
-    # )
-    # if not use_fallback or isinstance(fill_value, (pa.Array, pa.ChunkedArray)):
-    #     return pc.fill_null(arr, fill_value)
-    if isinstance(fill_value, (pa.Array, pa.ChunkedArray)):
+    is_windows = sys.platform in ["win32", "cygwin"]
+    use_fallback = (
+        HAS_PYARROW and is_windows and not pa_version_under21p0 and pa_version_under22p0
+    )
+    if not use_fallback or isinstance(fill_value, (pa.Array, pa.ChunkedArray)):
         return pc.fill_null(arr, fill_value)
 
     fill_scalar = pa.scalar(fill_value, type=arr.type)
