@@ -137,6 +137,15 @@ class TestPeriodIndex:
         tm.assert_index_equal(idx.unique(), expected)
         assert idx.nunique() == 3
 
+    def test_is_full_false_with_duplicates(self):
+        idx = PeriodIndex(
+            ["2023-01", "2023-02", "2023-02", "2023-03"],
+            freq="M",
+        )
+
+        assert idx.is_monotonic_increasing
+        assert idx.is_full is False
+
     def test_pindex_fieldaccessor_nat(self):
         idx = PeriodIndex(
             ["2011-01", "2011-02", "NaT", "2012-03", "2012-04"], freq="D", name="name"
