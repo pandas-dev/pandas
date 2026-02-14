@@ -246,3 +246,16 @@ class TestDataFrameUpdate:
 
         df.update(other)
         tm.assert_frame_equal(df, expected)
+
+    def test_update_datetime_column_after_setting_none(self):
+        # GH#29462
+
+        df = DataFrame({"date": [pd.Timestamp("2026-02-05")]})
+
+        other = df.copy()
+        other["date"] = None
+
+        other.update(df)
+        expected = DataFrame({"date": [pd.Timestamp("2026-02-05")]})
+
+        tm.assert_frame_equal(other, expected, check_dtype=False)
