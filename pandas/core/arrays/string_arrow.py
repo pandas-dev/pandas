@@ -590,3 +590,6 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
     def __pos__(self) -> Self:
         raise TypeError(f"bad operand type for unary +: '{self.dtype}'")
+
+    def _where(self, mask, value) -> Self:
+        return super()._where(mask, value)
