@@ -31,7 +31,7 @@ runs:
           INSTALL_TARGET="."
         fi
         if [[ ${{ inputs.werror }} ]]; then
-          WERROR='-Csetup-args="--werror"
+          WERROR='-Csetup-args="--werror"'
         else
           WERROR=""
         fi
