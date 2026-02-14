@@ -901,8 +901,7 @@ class _LocationIndexer(NDFrameIndexerBase):
                 #  below would create float64 columns in this example, which
                 #  would successfully hold 7, so we would end up with the wrong
                 #  dtype.
-                indexer = np.arange(len(keys), dtype=np.intp)
-                indexer[len(self.obj.columns) :] = -1
+                indexer = self.obj.columns.get_indexer(keys)
                 new_mgr = self.obj._mgr.reindex_indexer(
                     keys, indexer=indexer, axis=0, only_slice=True, use_na_proxy=True
                 )
