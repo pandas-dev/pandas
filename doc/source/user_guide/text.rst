@@ -714,6 +714,20 @@ Differences in behavior will be primarily due to the kind of NA value.
 3. Comparison operations will return a NumPy array with dtype bool. Missing
    values will always compare as unequal just as :attr:`np.nan` does.
 
+.. note::
+
+   When constructing a ``Series`` or ``Array`` with ``dtype="str"``,
+   missing values are inferred and normalized according to the
+   ``na_value`` of the underlying ``StringDtype`` variant.
+   In particular, when ``na_value=np.nan`` (the default for ``dtype="str"``),
+   values such as ``None``, ``np.nan``, and ``pd.NA`` are treated as
+   missing and stored as ``np.nan``.
+
+   Users coming from ``object`` dtype should be aware that the missing
+   value semantics are controlled by the ``StringDtype`` configuration,
+   which may differ from the behavior of plain NumPy object arrays.
+
+
 ``StringDtype`` with ``pd.NA`` NA values
 ----------------------------------------
 
