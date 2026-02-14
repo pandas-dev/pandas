@@ -593,10 +593,4 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         raise TypeError(f"bad operand type for unary +: '{self.dtype}'")
 
     def _where(self, mask, value) -> Self:
-        # We moved the len-1 check to base, but we still need to convert lists
-        # to arrays so the base class can perform boolean indexing.
-        if lib.is_list_like(value) and not isinstance(
-            value, (np.ndarray, ExtensionArray)
-        ):
-            value = self._from_sequence(value, dtype=self.dtype)
         return super()._where(mask, value)
