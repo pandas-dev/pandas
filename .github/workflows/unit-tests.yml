@@ -167,10 +167,13 @@ jobs:
       id: build
       uses: ./.github/actions/build_pandas_pixi
       with:
+        # TODO: Remove
+        # maybe-uninitialized in sparse.pyx in _find_next_block_end
+        werror: false
         # python3.14t/cpython/pyatomic_gcc.h:63:10:
         #   error: ‘__atomic_fetch_add_8’
         #   writing 8 bytes into a region of size 0 overflows the destination [-Werror=stringop-overflow=]
-        werror: ${{ matrix.name != 'Freethreading' }}
+        # werror: ${{ matrix.name != 'Freethreading' }}
 
     - name: Test (not single_cpu)
       uses: ./.github/actions/run-tests

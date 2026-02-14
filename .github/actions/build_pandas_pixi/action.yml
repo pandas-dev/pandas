@@ -24,8 +24,6 @@ runs:
       shell: pixi run bash -euox pipefail {0}
 
     - name: Build Pandas
-      # TODO: Remove -Wno-maybe-uninitialized
-      # Occurs in sparse.pyx in _find_next_block_end
       run: |
         if [[ ${{ inputs.editable }} ]]; then
           INSTALL_TARGET="--editable ."
@@ -33,7 +31,7 @@ runs:
           INSTALL_TARGET="."
         fi
         if [[ ${{ inputs.werror }} ]]; then
-          WERROR='-Csetup-args="--werror" -Csetup-args="-Wno-maybe-uninitialized"'
+          WERROR='-Csetup-args="--werror"
         else
           WERROR=""
         fi
