@@ -4,9 +4,9 @@ from hypothesis import given
 import numpy as np
 import pytest
 
+from pandas.core.dtypes.common import is_scalar
+
 import pandas as pd
-import pandas._testing as tm
-import pandas.util._test_decorators as td
 from pandas import (
     DataFrame,
     DatetimeIndex,
@@ -17,8 +17,8 @@ from pandas import (
     date_range,
     isna,
 )
+import pandas._testing as tm
 from pandas._testing._hypothesis import OPTIONAL_ONE_OF_ALL
-from pandas.core.dtypes.common import is_scalar
 
 
 @pytest.fixture(params=["default", "float_string", "mixed_float", "mixed_int"])
