@@ -1306,20 +1306,31 @@ def dedup_names(
     """
     names = list(names)  # so we can index
     counts: DefaultDict[Hashable, int] = defaultdict(int)
+    # Track original names so generated suffixes don't collide with them
+    orig_names = set(names)
 
     for i, col in enumerate(names):
         cur_count = counts[col]
 
-        while cur_count > 0:
-            counts[col] = cur_count + 1
+        if cur_count > 0:
+            old_col = col
+            while cur_count > 0:
+                counts[old_col] = cur_count + 1
 
-            if is_potential_multiindex:
-                # for mypy
-                assert isinstance(col, tuple)
-                col = (*col[:-1], f"{col[-1]}.{cur_count}")
-            else:
-                col = f"{col}.{cur_count}"
-            cur_count = counts[col]
+                if is_potential_multiindex:
+                    # for mypy
+                    assert isinstance(old_col, tuple)
+                    col = (*old_col[:-1], f"{old_col[-1]}.{cur_count}")
+                else:
+                    col = f"{old_col}.{cur_count}"
+                if not is_potential_multiindex and col in orig_names:
+                    # Name already exists in original columns; skip it
+                    # (only for single-index; multi-index dedup allows
+                    # generated names to match originals, which then get
+                    # mangled when encountered later)
+                    cur_count += 1
+                else:
+                    cur_count = counts[col]
 
         names[i] = col
         counts[col] = cur_count + 1
