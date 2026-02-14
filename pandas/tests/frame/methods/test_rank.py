@@ -520,7 +520,7 @@ class TestRank:
     def test_rank_ea_pyarrow_dtype(self, method):
         # GH#52829
         # Test that DataFrame.rank preserves pyarrow dtypes
-        pa = pytest.importorskip("pyarrow")
+        pytest.importorskip("pyarrow")
 
         df = DataFrame([1, 2, 3], dtype="int32[pyarrow]")
         result = df.rank(method=method)
