@@ -498,3 +498,42 @@ class TestRank:
             exp_dtype = "float64"
         expected = Series([1, 2, None, 3], dtype=exp_dtype)
         tm.assert_series_equal(result, expected)
+
+    def test_rank_ea_preserves_extension_dtype(self):
+        # GH#52829
+        # Test that DataFrame.rank preserves ExtensionArray dtypes
+        # when original dtype was an EADtype
+
+        # Test with nullable Int64
+        df = DataFrame([1, 2, 3], dtype="Int64")
+        result = df.rank(method="min")
+        expected = DataFrame([1, 2, 3], dtype="UInt64")
+        tm.assert_frame_equal(result, expected)
+
+        # Test with multiple columns
+        df = DataFrame({"a": [1, 2, 3], "b": [3, 2, 1]}, dtype="Int64")
+        result = df.rank(method="min")
+        expected = DataFrame({"a": [1, 2, 3], "b": [3, 2, 1]}, dtype="UInt64")
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("method", ["average", "min", "max", "first", "dense"])
+    def test_rank_ea_pyarrow_dtype(self, method):
+        # GH#52829
+        # Test that DataFrame.rank preserves pyarrow dtypes
+        pa = pytest.importorskip("pyarrow")
+
+        df = DataFrame([1, 2, 3], dtype="int32[pyarrow]")
+        result = df.rank(method=method)
+
+        # Depending on the method, the result dtype might vary
+        # but it should always be a pyarrow dtype
+        assert result.dtypes[0].name.endswith("[pyarrow]")
+
+        # Verify the values are correct
+        if method == "average":
+            expected_values = np.array([1.0, 2.0, 3.0])
+        else:
+            expected_values = np.array([1, 2, 3])
+        tm.assert_numpy_array_equal(
+            result[0].to_numpy(dtype=expected_values.dtype), expected_values
+        )
