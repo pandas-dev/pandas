@@ -1323,8 +1323,11 @@ def dedup_names(
                     col = (*old_col[:-1], f"{old_col[-1]}.{cur_count}")
                 else:
                     col = f"{old_col}.{cur_count}"
-                if col in orig_names:
+                if not is_potential_multiindex and col in orig_names:
                     # Name already exists in original columns; skip it
+                    # (only for single-index; multi-index dedup allows
+                    # generated names to match originals, which then get
+                    # mangled when encountered later)
                     cur_count += 1
                 else:
                     cur_count = counts[col]
