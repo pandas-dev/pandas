@@ -2638,9 +2638,6 @@ class ExtensionArray:
         # Otherwise, boolean indexing against the mask can raise for listlikes.
         if is_list_like(value) and not is_scalar(value) and len(value) == 1:
             value = value[0]
-        # GH#63842: Ensure list-likes are converted to arrays for boolean indexing
-        if is_list_like(value) and not isinstance(value, (np.ndarray, ExtensionArray)):
-            value = self._from_sequence(value, dtype=self.dtype)
         result = self.copy()
 
         if is_list_like(value):
