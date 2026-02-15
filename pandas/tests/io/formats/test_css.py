@@ -286,3 +286,43 @@ def test_css_relative_font_size(size, relative_to, resolved):
     else:
         inherited = {"font-size": relative_to}
     assert_resolves(f"font-size: {size}", {"font-size": resolved}, inherited=inherited)
+
+
+@pytest.mark.parametrize(
+    "style,expected",
+    [
+        ('number-format: #,,"Panda"', [("number-format", '#,,"Panda"')]),
+        ('number-format: #,,"test"', [("number-format", '#,,"test"')]),
+        (
+            'color: "red"; number-format: #,,"Panda"',
+            [("color", '"red"'), ("number-format", '#,,"Panda"')],
+        ),
+        ('font-family: "Arial",sans-serif', [("font-family", '"Arial",sans-serif')]),
+        ('content: "hi"', [("content", '"hi"')]),
+        ('data: "some more tests"', [("data", '"some more tests"')]),
+    ],
+)
+def test_parse_preserve_quoted_case(style, expected):
+    resolve = CSSResolver()
+    res = list(resolve.parse(style))
+    assert res == expected
+
+
+@pytest.mark.parametrize(
+    "style,expected",
+    [
+        ('number-format: #,,"Panda"', {"number-format": '#,,"Panda"'}),
+        ('number-format: #,,"test"', {"number-format": '#,,"test"'}),
+        (
+            'color: red; number-format: #,,"Panda"',
+            {"color": "red", "number-format": '#,,"Panda"'},
+        ),
+        ('font-family: "Arial",sans-serif', {"font-family": '"Arial",sans-serif'}),
+        ('content: "hi"', {"content": '"hi"'}),
+        ('data: "some more TESTS"', {"data": '"some more TESTS"'}),
+    ],
+)
+def test_atomize_preserve_quoted_case(style, expected):
+    resolve = CSSResolver()
+    res = resolve(style)
+    assert res == expected
