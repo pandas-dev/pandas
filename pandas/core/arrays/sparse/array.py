@@ -1092,7 +1092,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
             if com.is_bool_indexer(key):
                 # mypy doesn't know we have an array here
-                key = cast(np.ndarray, key)
+                key = cast("np.ndarray", key)
                 return self.take(np.arange(len(key), dtype=np.int32)[key])
             elif hasattr(key, "__len__"):
                 return self.take(key)
@@ -1360,7 +1360,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         dtype = self.dtype.update_dtype(dtype)
         subtype = pandas_dtype(dtype._subtype_with_str)
-        subtype = cast(np.dtype, subtype)  # ensured by update_dtype
+        subtype = cast("np.dtype", subtype)  # ensured by update_dtype
         values = ensure_wrapped_if_datetimelike(self.sp_values)
         sp_values = astype_array(values, subtype, copy=copy)
         sp_values = np.asarray(sp_values)
