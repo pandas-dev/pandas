@@ -194,6 +194,7 @@ def pytest_collection_modifyitems(items, config) -> None:
         ),
         ("read_parquet", "Passing a BlockManager to DataFrame is deprecated"),
         ("Timestamp.utcfromtimestamp", "Timestamp.utcfromtimestamp is deprecated"),
+        ("PeriodDtype.freq", "PeriodDtype.freq is deprecated, use dtype.unit instead"),
     ]
 
     if is_doctest:
