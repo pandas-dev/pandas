@@ -1897,7 +1897,7 @@ cdef class _Period(PeriodMixin):
                     return False
                 elif op == Py_NE:
                     return True
-                self._require_matching_unit(other._dtype._freqstr)
+                self._require_matching_unit(other._dtype.unit)
             return PyObject_RichCompareBool(self._ordinal, other._ordinal, op)
         elif other is NaT:
             return op == Py_NE
@@ -1991,7 +1991,7 @@ cdef class _Period(PeriodMixin):
         ):
             return self + (-other)
         elif is_period_object(other):
-            self._require_matching_unit(other._dtype._freqstr)
+            self._require_matching_unit(other._dtype.unit)
             # GH 23915 - mul by base freq since __add__ is agnostic of n
             return (self._ordinal - other._ordinal) * self._freq.base
         elif other is NaT:
