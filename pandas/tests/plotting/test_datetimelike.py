@@ -247,8 +247,8 @@ class TestTSPlot:
             index=idx,
             columns=["A", "B", "C"],
         )
-        freq = PeriodDtype(df.index.freq)._freqstr
-        freq = df.index.to_period(freq).freq
+        unit = PeriodDtype(df.index.freq).unit
+        freq = df.index.to_period(unit).freq
         _check_plot_works(df.plot, freq)
 
     @pytest.mark.parametrize(

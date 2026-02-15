@@ -53,8 +53,8 @@ def period_index(freqstr):
         warnings.filterwarnings(
             "ignore", message="Period with BDay freq", category=FutureWarning
         )
-        freqstr = PeriodDtype(to_offset(freqstr))._freqstr
-        pi = pd.period_range(start=Timestamp("2000-01-01"), periods=100, freq=freqstr)
+        unit = PeriodDtype(to_offset(freqstr)).unit
+        pi = pd.period_range(start=Timestamp("2000-01-01"), periods=100, freq=unit)
     return pi
 
 
@@ -784,9 +784,9 @@ class TestDatetimeArray(SharedTests):
         dti = datetime_index
         arr = dti._data
 
-        freqstr = PeriodDtype(to_offset(freqstr))._freqstr
-        expected = dti.to_period(freq=freqstr)
-        result = arr.to_period(freq=freqstr)
+        unit = PeriodDtype(to_offset(freqstr)).unit
+        expected = dti.to_period(freq=unit)
+        result = arr.to_period(freq=unit)
         assert isinstance(result, PeriodArray)
 
         tm.assert_equal(result, expected._data)
