@@ -1290,7 +1290,9 @@ def period_array(
     return PeriodArray._from_sequence(data, dtype=dtype)
 
 
-def validate_dtype_freq(dtype: DtypeObj | None, dtype2: DtypeObj | None) -> PeriodDtype:
+def validate_dtype_freq(
+    dtype: DtypeObj | None, dtype2: DtypeObj | None
+) -> PeriodDtype | None:
     """
     If a dtype is specified both directly and indirectly via a `freq` (dtype2),
     ensure they match. If only the latter is available, return the indirect dtype.
@@ -1303,7 +1305,7 @@ def validate_dtype_freq(dtype: DtypeObj | None, dtype2: DtypeObj | None) -> Peri
 
     Returns
     -------
-    PeriodDtype
+    PeriodDtype or None
 
     Raises
     ------
