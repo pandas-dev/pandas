@@ -282,8 +282,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         periods = np.asarray(scalars, dtype=object)
 
         freq = freq or libperiod.extract_freq(periods)
-        ordinals = libperiod.extract_ordinals(periods, freq)
         dtype = PeriodDtype(freq)
+        ordinals = libperiod.extract_ordinals(periods, dtype)
         return cls(ordinals, dtype=dtype)
 
     @classmethod

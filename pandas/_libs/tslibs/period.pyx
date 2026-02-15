@@ -1543,7 +1543,7 @@ def from_ordinals(const int64_t[:] values, freq):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def extract_ordinals(ndarray values, freq) -> np.ndarray:
+def extract_ordinals(ndarray values, PeriodDtypeBase dtype) -> np.ndarray:
     # values is object-dtype, may be 2D
 
     cdef:
@@ -1559,13 +1559,13 @@ def extract_ordinals(ndarray values, freq) -> np.ndarray:
         # if we don't raise here, we'll segfault later!
         raise TypeError("extract_ordinals values must be object-dtype")
 
-    freqstr = PeriodDtypeBase(freq._period_dtype_code, freq.n)._freqstr
+    freqstr = dtype._freqstr
 
     for i in range(n):
         # Analogous to: p = values[i]
         p = <object>(<PyObject**>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
 
-        ordinal = _extract_ordinal(p, freqstr, freq)
+        ordinal = _extract_ordinal(p, freqstr)
 
         # Analogous to: ordinals[i] = ordinal
         (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = ordinal
@@ -1575,7 +1575,7 @@ def extract_ordinals(ndarray values, freq) -> np.ndarray:
     return ordinals
 
 
-cdef int64_t _extract_ordinal(object item, str freqstr, freq) except? -1:
+cdef int64_t _extract_ordinal(object item, str freqstr) except? -1:
     """
     See extract_ordinals.
     """
@@ -1600,7 +1600,7 @@ cdef int64_t _extract_ordinal(object item, str freqstr, freq) except? -1:
                 raise IncompatibleFrequency(msg)
 
         except AttributeError:
-            item = Period(item, freq=freq)
+            item = Period(item, freq=freqstr)
             if item is NaT:
                 # input may contain NaT-like string
                 ordinal = NPY_NAT
