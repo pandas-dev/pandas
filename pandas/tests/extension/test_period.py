@@ -91,7 +91,10 @@ class TestPeriodArray(base.ExtensionTests):
             exp_op = getattr(alt, op_name)
             result = res_op(skipna=skipna)
             expected = exp_op(skipna=skipna)
-            expected = Period._from_ordinal(int(expected), dtype=ser.dtype)
+            expected = Period._from_ordinal(
+                int(expected),
+                dtype=ser.dtype,  # type: ignore[arg-type]
+            )
             tm.assert_almost_equal(result, expected)
 
         else:
