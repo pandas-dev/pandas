@@ -1139,6 +1139,10 @@ default 'raise'
         """
         Return an ndarray of ``datetime.datetime`` objects.
 
+        This method converts each element in the DatetimeArray to a native
+        Python ``datetime.datetime`` object, including timezone information
+        if present.
+
         Returns
         -------
         numpy.ndarray
