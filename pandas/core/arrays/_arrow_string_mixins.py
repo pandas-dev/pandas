@@ -396,26 +396,8 @@ class ArrowStringArrayMixin:
         return ArrowStringArrayMixin._str_match(self, pat, case, flags, na)
 
     def _str_find(self, sub: str, start: int = 0, end: int | None = None):
-        if (start == 0 or start is None) and end is None:
-            result = pc.find_substring(self._pa_array, sub)
-        else:
-            if sub == "":
-                # GH#56792
-                res_list = self._apply_elementwise(
-                    lambda val: val.find(sub, start, end)
-                )
-                return self._convert_int_result(pa.chunked_array(res_list))
-            if start is None:
-                start_offset = 0
-                start = 0
-            elif start < 0:
-                start_offset = pc.add(start, pc.utf8_length(self._pa_array))
-                start_offset = pc.if_else(pc.less(start_offset, 0), 0, start_offset)
-            else:
-                start_offset = start
-            slices = pc.utf8_slice_codeunits(self._pa_array, start, stop=end)
-            result = pc.find_substring(slices, sub)
-            found = pc.not_equal(result, pa.scalar(-1, type=result.type))
-            offset_result = pc.add(result, start_offset)
-            result = pc.if_else(found, offset_result, -1)
-        return self._convert_int_result(result)
+        # GH#64123 - pc.find_substring returns byte offsets instead of
+        # character offsets for multi-byte UTF-8 characters, so we fall back
+        # to Python str.find which correctly returns character offsets.
+        res_list = self._apply_elementwise(lambda val: val.find(sub, start, end))
+        return self._convert_int_result(pa.chunked_array(res_list))
