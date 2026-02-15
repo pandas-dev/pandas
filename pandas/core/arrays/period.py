@@ -50,10 +50,12 @@ from pandas._libs.tslibs.period import (
     get_period_field_arr,
     period_asfreq_arr,
 )
+from pandas.errors import Pandas4Warning
 from pandas.util._decorators import (
     cache_readonly,
     set_module,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_object,
@@ -392,6 +394,12 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
 
     @property
     def freqstr(self) -> str:
+        warnings.warn(
+            "PeriodArray.freqstr is deprecated and will be removed in a "
+            "future version. Use obj.unit instead",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
         return self.unit
 
     def __array__(
@@ -433,17 +441,17 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
                 return pyarrow.array(self._ndarray, mask=self.isna(), type=type)
             elif isinstance(type, ArrowPeriodType):
                 # ensure we have the same freq
-                if self.freqstr != type.freq:
+                if self.unit != type.freq:
                     raise TypeError(
                         "Not supported to convert PeriodArray to array with different "
-                        f"'freq' ({self.freqstr} vs {type.freq})"
+                        f"'freq' ({self.unit} vs {type.freq})"
                     )
             else:
                 raise TypeError(
                     f"Not supported to convert PeriodArray to '{type}' type"
                 )
 
-        period_type = ArrowPeriodType(self.freqstr)
+        period_type = ArrowPeriodType(self.unit)
         storage_array = pyarrow.array(self._ndarray, mask=self.isna(), type="int64")
         return pyarrow.ExtensionArray.from_storage(period_type, storage_array)
 
@@ -1187,7 +1195,7 @@ def raise_on_incompatible(left, right) -> IncompatibleFrequency:
             )
             other_freq = PeriodDtype(right).unit
     elif isinstance(right, (ABCPeriodIndex, PeriodArray, Period)):
-        other_freq = right.freqstr
+        other_freq = right.unit
     else:
         other_freq = delta_to_tick(Timedelta(right)).freqstr
 

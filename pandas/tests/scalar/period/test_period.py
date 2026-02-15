@@ -420,8 +420,8 @@ class TestPeriodConstruction:
         result1 = Period("1989", freq="2Y")
         result2 = Period("1989", freq="Y")
         assert result1.ordinal == result2.ordinal
-        assert result1.freqstr == "2Y-DEC"
-        assert result2.freqstr == "Y-DEC"
+        assert result1.unit == "2Y-DEC"
+        assert result2.unit == "Y-DEC"
         assert result1.freq == offsets.YearEnd(2)
         assert result2.freq == offsets.YearEnd()
 
@@ -521,21 +521,21 @@ class TestPeriodConstruction:
         assert p1.ordinal == p2.ordinal
 
         assert p1.freq == offsets.MonthEnd(3)
-        assert p1.freqstr == "3M"
+        assert p1.unit == "3M"
 
         assert p2.freq == offsets.MonthEnd()
-        assert p2.freqstr == "M"
+        assert p2.unit == "M"
 
         result = p1 + 1
         assert result.ordinal == (p2 + 3).ordinal
 
         assert result.freq == p1.freq
-        assert result.freqstr == "3M"
+        assert result.unit == "3M"
 
         result = p1 - 1
         assert result.ordinal == (p2 - 3).ordinal
         assert result.freq == p1.freq
-        assert result.freqstr == "3M"
+        assert result.unit == "3M"
 
         msg = "Frequency must be positive, because it represents span: -3M"
         with pytest.raises(ValueError, match=msg):
@@ -564,33 +564,33 @@ class TestPeriodConstruction:
             assert p2.ordinal == p3.ordinal
 
             assert p1.freq == offsets.Hour(25)
-            assert p1.freqstr == "25h"
+            assert p1.unit == "25h"
 
             assert p2.freq == offsets.Hour(25)
-            assert p2.freqstr == "25h"
+            assert p2.unit == "25h"
 
             assert p3.freq == offsets.Hour()
-            assert p3.freqstr == "h"
+            assert p3.unit == "h"
 
             result = p1 + 1
             assert result.ordinal == (p3 + 25).ordinal
             assert result.freq == p1.freq
-            assert result.freqstr == "25h"
+            assert result.unit == "25h"
 
             result = p2 + 1
             assert result.ordinal == (p3 + 25).ordinal
             assert result.freq == p2.freq
-            assert result.freqstr == "25h"
+            assert result.unit == "25h"
 
             result = p1 - 1
             assert result.ordinal == (p3 - 25).ordinal
             assert result.freq == p1.freq
-            assert result.freqstr == "25h"
+            assert result.unit == "25h"
 
             result = p2 - 1
             assert result.ordinal == (p3 - 25).ordinal
             assert result.freq == p2.freq
-            assert result.freqstr == "25h"
+            assert result.unit == "25h"
 
         msg = "Frequency must be positive, because it represents span: -25h"
         with pytest.raises(ValueError, match=msg):
@@ -876,7 +876,11 @@ class TestPeriodProperties:
     def test_freq_str(self):
         i1 = Period("1982", freq="Min")
         assert i1.freq == offsets.Minute()
-        assert i1.freqstr == "min"
+        assert i1.unit == "min"
+
+        msg = "Period.freqstr is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            assert i1.freqstr == "min"
 
     @pytest.mark.filterwarnings(
         "ignore:Period with BDay freq is deprecated:FutureWarning"

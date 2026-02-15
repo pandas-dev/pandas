@@ -196,10 +196,13 @@ class SeriesFormatter:
 
         index = self.series.index
         if (
-            isinstance(index, (DatetimeIndex, PeriodIndex, TimedeltaIndex))
+            isinstance(index, (DatetimeIndex, TimedeltaIndex))
             and index.freq is not None
         ):
             footer += f"Freq: {index.freqstr}"
+        elif isinstance(index, PeriodIndex):
+            # TODO(4.0): change "Freq: " to unit?
+            footer += f"Freq: {index.unit}"
 
         if self.name is not False and name is not None:
             if footer:

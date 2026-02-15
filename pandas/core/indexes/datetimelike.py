@@ -16,6 +16,7 @@ from typing import (
     cast,
     final,
 )
+import warnings
 
 import numpy as np
 
@@ -39,10 +40,12 @@ from pandas.errors import (
     NullFrequencyError,
     OutOfBoundsDatetime,
     OutOfBoundsTimedelta,
+    Pandas4Warning,
 )
 from pandas.util._decorators import (
     cache_readonly,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_integer,
@@ -217,6 +220,14 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         """
         from pandas import PeriodIndex
 
+        if isinstance(self, PeriodIndex):
+            warnings.warn(
+                "PeriodIndex.freqstr is deprecated and will be removed in a "
+                "future version. Use obj.unit instead",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+
         if self._data.freqstr is not None and isinstance(
             self._data, (PeriodArray, PeriodIndex)
         ):
@@ -377,7 +388,10 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         String with a summarized representation of the index
         """
         result = super()._summary(name=name)
-        if self.freq:
+        if isinstance(self.dtype, PeriodDtype):
+            # TODO(4.0): change "Freq" to unit?
+            result += f"\nFreq: {self.unit}"
+        elif self.freq:
             result += f"\nFreq: {self.freqstr}"
 
         return result
