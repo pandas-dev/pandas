@@ -268,7 +268,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         if dtype is not None:
             dtype = pandas_dtype(dtype)
         if dtype and isinstance(dtype, PeriodDtype):
-            unit = dtype._freqstr
+            unit = dtype.unit
         else:
             unit = None
 
@@ -367,11 +367,11 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         if other is NaT:
             return
         elif isinstance(other, Period):
-            self._require_matching_unit(other._dtype._freqstr)
+            self._require_matching_unit(other._dtype.unit)
         else:
             # error: Item "NaTType" of "NaTType | PeriodArray" has no
             # attribute "freq"
-            self._require_matching_unit(other.dtype._freqstr)  # type: ignore[union-attr]
+            self._require_matching_unit(other.dtype.unit)  # type: ignore[union-attr]
 
     # --------------------------------------------------------------------
     # Data / Attributes
