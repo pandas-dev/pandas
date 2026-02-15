@@ -212,9 +212,9 @@ def convert_json_field_to_pandas_type(field) -> str | CategoricalDtype:
         elif field.get("freq"):
             # GH#9586 rename frequency M to ME for offsets
             offset = to_offset(field["freq"])
-            freq = PeriodDtype(offset)._freqstr
+            unit = PeriodDtype(offset).unit
             # GH#47747 using datetime over period to minimize the change surface
-            return f"period[{freq}]"
+            return f"period[{unit}]"
         else:
             return "datetime64[ns]"
     elif typ == "any":
