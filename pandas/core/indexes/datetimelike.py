@@ -211,12 +211,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         ... )
         >>> idx.freqstr
         '2D'
-
-        For PeriodIndex:
-
-        >>> idx = pd.PeriodIndex(["2023-1", "2023-2", "2023-3"], freq="M")
-        >>> idx.freqstr
-        'M'
         """
         from pandas import PeriodIndex
 
