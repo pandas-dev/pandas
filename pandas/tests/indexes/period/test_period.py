@@ -1,7 +1,10 @@
 import numpy as np
 import pytest
 
-from pandas.errors import IncompatibleFrequency
+from pandas.errors import (
+    IncompatibleFrequency,
+    Pandas4Warning,
+)
 
 from pandas import (
     Index,
@@ -156,12 +159,12 @@ class TestPeriodIndex:
         pi = period_range(start="1/1/11", end="12/31/11", freq="2M")
         tm.assert_index_equal(pi, expected)
         assert pi.freq == offsets.MonthEnd(2)
-        assert pi.freqstr == "2M"
+        assert pi.unit == "2M"
 
         pi = period_range(start="1/1/11", periods=6, freq="2M")
         tm.assert_index_equal(pi, expected)
         assert pi.freq == offsets.MonthEnd(2)
-        assert pi.freqstr == "2M"
+        assert pi.unit == "2M"
 
     @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     @pytest.mark.filterwarnings("ignore:Period with BDay freq:FutureWarning")
@@ -190,6 +193,22 @@ class TestPeriodIndex:
         result = index.map(lambda x: x.ordinal)
         exp = Index([x.ordinal for x in index])
         tm.assert_index_equal(result, exp)
+
+
+def test_freqstr_deprecated():
+    # GH#64157
+    pi = PeriodIndex(["2000", "2001"], freq="D")
+    msg = (
+        "PeriodIndex.freqstr is deprecated and will be removed in a "
+        "future version. Use obj.unit instead"
+    )
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = pi.freqstr
+    assert result == pi.unit
+    msg = msg.replace("Index", "Array")
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = pi._data.freqstr
+    assert result == pi._data.unit
 
 
 def test_maybe_convert_timedelta():

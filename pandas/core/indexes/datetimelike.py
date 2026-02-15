@@ -16,6 +16,7 @@ from typing import (
     cast,
     final,
 )
+import warnings
 
 import numpy as np
 
@@ -39,10 +40,12 @@ from pandas.errors import (
     NullFrequencyError,
     OutOfBoundsDatetime,
     OutOfBoundsTimedelta,
+    Pandas4Warning,
 )
 from pandas.util._decorators import (
     cache_readonly,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_integer,
@@ -208,20 +211,23 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         ... )
         >>> idx.freqstr
         '2D'
-
-        For PeriodIndex:
-
-        >>> idx = pd.PeriodIndex(["2023-1", "2023-2", "2023-3"], freq="M")
-        >>> idx.freqstr
-        'M'
         """
         from pandas import PeriodIndex
+
+        if isinstance(self, PeriodIndex):
+            warnings.warn(
+                # GH#64157
+                "PeriodIndex.freqstr is deprecated and will be removed in a "
+                "future version. Use obj.unit instead",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
 
         if self._data.freqstr is not None and isinstance(
             self._data, (PeriodArray, PeriodIndex)
         ):
-            freq = PeriodDtype(self._data.freq)._freqstr
-            return freq
+            unit = PeriodDtype(self._data.freq).unit
+            return unit
         else:
             return self._data.freqstr  # type: ignore[return-value]
 
@@ -377,7 +383,10 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         String with a summarized representation of the index
         """
         result = super()._summary(name=name)
-        if self.freq:
+        if isinstance(self.dtype, PeriodDtype):
+            # TODO(4.0): change "Freq" to unit?
+            result += f"\nFreq: {self.unit}"  # type: ignore[attr-defined]
+        elif self.freq:
             result += f"\nFreq: {self.freqstr}"
 
         return result

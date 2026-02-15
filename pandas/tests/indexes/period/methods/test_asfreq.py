@@ -79,9 +79,9 @@ class TestPeriodIndex:
         result2 = pi1.asfreq("M")
         expected = period_range(freq="M", start="2001-12", end="2001-12")
         tm.assert_numpy_array_equal(result1.asi8, expected.asi8)
-        assert result1.freqstr == "3M"
+        assert result1.unit == "3M"
         tm.assert_numpy_array_equal(result2.asi8, expected.asi8)
-        assert result2.freqstr == "M"
+        assert result2.unit == "M"
 
     def test_asfreq_nat(self):
         idx = PeriodIndex(["2011-01", "2011-02", "NaT", "2011-04"], freq="M")

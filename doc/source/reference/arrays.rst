@@ -331,6 +331,7 @@ Properties
    Period.qyear
    Period.second
    Period.start_time
+   Period.unit
    Period.week
    Period.weekday
    Period.weekofyear
