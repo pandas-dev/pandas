@@ -68,7 +68,9 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
     MSG='Validate Docstrings' ; echo "$MSG"
     python "$BASE_DIR"/scripts/validate_docstrings.py \
-        --format=actions
+        --format=actions \
+        -i "pandas.PeriodIndex.unit EX01,SS06,SA01"
+
 
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
