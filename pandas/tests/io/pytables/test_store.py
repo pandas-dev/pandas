@@ -1095,3 +1095,73 @@ def test_to_hdf_multiindex_string_dtype_crash(temp_h5_path):
     df.to_hdf(temp_h5_path, key="test")
     result = read_hdf(temp_h5_path, key="test")
     tm.assert_frame_equal(df, result, check_dtype=False)
+
+
+def test_read_hdf_datetime64_without_unit_gh64006(tmp_path):
+    pytest.importorskip("tables")
+    h5py = pytest.importorskip("h5py")
+
+    dates = pd.date_range("2020-01-01", periods=3, freq="D")
+    original = Series(dates, name="dates")
+
+    path = tmp_path / "test_legacy_datetime.h5"
+    original.to_hdf(path, key="data", mode="w")
+
+    with h5py.File(path, "r+") as f:
+
+        def find_dtype_attrs(name, obj):
+            """Recursively find datasets with dtype attributes and modify them."""
+            if isinstance(obj, h5py.Dataset) and "dtype" in obj.attrs:
+                obj.attrs["dtype"] = b"datetime64"  # No unit!
+
+        f.visititems(find_dtype_attrs)
+
+    result = read_hdf(path, key="data")
+
+    expected = original.astype("datetime64[ns]")
+    tm.assert_series_equal(result, expected)
+    assert result.dtype == "datetime64[ns]"
+
+
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+def test_read_hdf_datetime_units_preserved(tmp_path, unit):
+    pytest.importorskip("tables")
+
+    dates = date_range("2020-01-01", periods=3, freq="D")
+    s = Series(dates, name=f"dates_{unit}").astype(f"datetime64[{unit}]")
+
+    path = tmp_path / f"test_datetime_{unit}.h5"
+    s.to_hdf(path, key="data", mode="w")
+    result = read_hdf(path, key="data")
+
+    # Verify unit is preserved
+    tm.assert_series_equal(result, s)
+    assert str(result.dtype) == f"datetime64[{unit}]"
+
+
+def test_read_hdf_dataframe_with_datetime64_column(tmp_path):
+    pytest.importorskip("tables")
+    h5py = pytest.importorskip("h5py")
+
+    # Create DataFrame with datetime column
+    df = DataFrame({"date": date_range("2020-01-01", periods=3), "value": [1, 2, 3]})
+
+    path = tmp_path / "test_df_datetime.h5"
+    df.to_hdf(path, key="data", mode="w")
+
+    # Modify to simulate legacy format
+    with h5py.File(path, "r+") as f:
+
+        def modify_dtype(name, obj):
+            if isinstance(obj, h5py.Dataset) and "dtype" in obj.attrs:
+                if obj.attrs.get("dtype", b"").startswith(b"datetime64"):
+                    obj.attrs["dtype"] = b"datetime64"
+
+        f.visititems(modify_dtype)
+
+    # Should read successfully
+    result = read_hdf(path, key="data")
+
+    expected = df.copy()
+    expected["date"] = expected["date"].astype("datetime64[ns]")
+    tm.assert_frame_equal(result, expected)
