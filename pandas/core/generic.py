@@ -35,53 +35,6 @@ from pandas._libs.tslibs import (
     Timestamp,
     to_offset,
 )
-from pandas._typing import (
-    AlignJoin,
-    AnyArrayLike,
-    ArrayLike,
-    Axes,
-    Axis,
-    AxisInt,
-    CompressionOptions,
-    DtypeArg,
-    DtypeBackend,
-    DtypeObj,
-    FilePath,
-    FillnaOptions,
-    FloatFormatType,
-    FormattersType,
-    Frequency,
-    IgnoreRaise,
-    IndexKeyFunc,
-    IndexLabel,
-    InterpolateOptions,
-    IntervalClosedType,
-    JSONSerializable,
-    Level,
-    ListLike,
-    Manager,
-    NaPosition,
-    NDFrameT,
-    OpenFileErrors,
-    RandomState,
-    ReindexMethod,
-    Renamer,
-    Scalar,
-    SequenceNotStr,
-    SortKind,
-    StorageOptions,
-    Suffixes,
-    T,
-    TimeAmbiguous,
-    TimedeltaConvertibleTypes,
-    TimeNonexistent,
-    TimestampConvertibleTypes,
-    TimeUnit,
-    ValueKeyFunc,
-    WriteBuffer,
-    WriteExcelBuffer,
-    npt,
-)
 from pandas.compat import CHAINED_WARNING_DISABLED
 from pandas.compat._constants import (
     REF_COUNT_METHOD,
@@ -193,7 +146,54 @@ if TYPE_CHECKING:
     )
 
     from pandas._libs.tslibs import BaseOffset
-    from pandas._typing import P
+    from pandas._typing import (
+        AlignJoin,
+        AnyArrayLike,
+        ArrayLike,
+        Axes,
+        Axis,
+        AxisInt,
+        CompressionOptions,
+        DtypeArg,
+        DtypeBackend,
+        DtypeObj,
+        FilePath,
+        FillnaOptions,
+        FloatFormatType,
+        FormattersType,
+        Frequency,
+        IgnoreRaise,
+        IndexKeyFunc,
+        IndexLabel,
+        InterpolateOptions,
+        IntervalClosedType,
+        JSONSerializable,
+        Level,
+        ListLike,
+        Manager,
+        NaPosition,
+        NDFrameT,
+        OpenFileErrors,
+        P,
+        RandomState,
+        ReindexMethod,
+        Renamer,
+        Scalar,
+        SequenceNotStr,
+        SortKind,
+        StorageOptions,
+        Suffixes,
+        T,
+        TimeAmbiguous,
+        TimedeltaConvertibleTypes,
+        TimeNonexistent,
+        TimestampConvertibleTypes,
+        TimeUnit,
+        ValueKeyFunc,
+        WriteBuffer,
+        WriteExcelBuffer,
+        npt,
+    )
 
     from pandas import (
         DataFrame,
@@ -1445,7 +1445,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         if not (isinstance(other, type(self)) or isinstance(self, type(other))):
             return False
-        other = cast(NDFrame, other)
+        other = cast("NDFrame", other)
         return self._mgr.equals(other._mgr)
 
     # -------------------------------------------------------------------------
@@ -2130,7 +2130,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             data = self.head(config.get_option("display.max_rows"))
 
             as_json = data.to_json(orient="table")
-            as_json = cast(str, as_json)
+            as_json = cast("str", as_json)
             return loads(as_json, object_pairs_hook=collections.OrderedDict)
 
     # ----------------------------------------------------------------------
@@ -6552,7 +6552,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         result.columns = self.columns
         result = result.__finalize__(self, method="astype")
         # https://github.com/python/mypy/issues/8354
-        return cast(Self, result)
+        return cast("Self", result)
 
     @final
     def copy(self, deep: bool = True) -> Self:
@@ -9857,7 +9857,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         else:  # pragma: no cover
             raise TypeError(f"unsupported type: {type(other)}")
 
-        right = cast(NDFrameT, _right)
+        right = cast("NDFrameT", _right)
         if self.ndim == 1 or axis == 0:
             # If we are aligning timezone-aware DatetimeIndexes and the timezones
             #  do not match, convert both to UTC.
@@ -10643,7 +10643,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             return self.to_frame().shift(
                 periods=periods, freq=freq, axis=axis, fill_value=fill_value
             )
-        periods = cast(int, periods)
+        periods = cast("int", periods)
 
         if freq is None:
             # when freq is None, data is shifted, index is not

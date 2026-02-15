@@ -226,7 +226,7 @@ class StringDtype(StorageExtensionDtype):
         elif na_value is not libmissing.NA:
             raise ValueError(f"'na_value' must be np.nan or pd.NA, got {na_value}")
 
-        self._storage = cast(str, storage)
+        self._storage = cast("str", storage)
         self._na_value = na_value
 
     def __repr__(self) -> str:
@@ -504,7 +504,7 @@ class BaseStringArray(ExtensionArray):
                 # error: Argument 1 to "dtype" has incompatible type
                 # "Union[ExtensionDtype, str, dtype[Any], Type[object]]"; expected
                 # "Type[object]"
-                dtype=np.dtype(cast(type, dtype)),
+                dtype=np.dtype(cast("type", dtype)),
             )
 
             if not na_value_is_na:
@@ -585,7 +585,7 @@ class BaseStringArray(ExtensionArray):
                 mask.view("uint8"),
                 convert=False,
                 na_value=na_value,
-                dtype=np.dtype(cast(type, dtype)),
+                dtype=np.dtype(cast("type", dtype)),
             )
             if na_value_is_na and is_integer_dtype(dtype) and mask.any():
                 # TODO: we could alternatively do this check before map_infer_mask

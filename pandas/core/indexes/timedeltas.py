@@ -388,19 +388,19 @@ def timedelta_range(
         if start is not None and end is not None:
             start = Timedelta(start)
             end = Timedelta(end)
-            start = cast(Timedelta, start)
-            end = cast(Timedelta, end)
+            start = cast("Timedelta", start)
+            end = cast("Timedelta", end)
             if abbrev_to_npy_unit(start.unit) > abbrev_to_npy_unit(end.unit):
                 unit = cast("TimeUnit", start.unit)
             else:
                 unit = cast("TimeUnit", end.unit)
         elif start is not None:
             start = Timedelta(start)
-            start = cast(Timedelta, start)
+            start = cast("Timedelta", start)
             unit = cast("TimeUnit", start.unit)
         else:
             end = Timedelta(end)
-            end = cast(Timedelta, end)
+            end = cast("Timedelta", end)
             unit = cast("TimeUnit", end.unit)
 
         # Last we need to watch out for cases where the 'freq' implies a higher

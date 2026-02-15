@@ -197,7 +197,7 @@ class ObjectStringArrayMixin:
 
     def _str_repeat(self, repeats: int | Sequence[int]):
         if lib.is_integer(repeats):
-            rint = cast(int, repeats)
+            rint = cast("int", repeats)
 
             def scalar_rep(x):
                 try:

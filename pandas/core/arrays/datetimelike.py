@@ -195,7 +195,7 @@ def _period_dispatch(meth: F) -> F:
         res_i8 = result.view("i8")
         return self._from_backing_data(res_i8)
 
-    return cast(F, new_meth)
+    return cast("F", new_meth)
 
 
 class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
@@ -391,12 +391,12 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         # Use cast as we know we will get back a DatetimeLikeArray or DTScalar,
         # but skip evaluating the Union at runtime for performance
         # (see https://github.com/pandas-dev/pandas/pull/44624)
-        result = cast(Union[Self, DTScalarOrNaT], super().__getitem__(key))
+        result = cast("Union[Self, DTScalarOrNaT]", super().__getitem__(key))
         if lib.is_scalar(result):
             return result
         else:
             # At this point we know the result is an array.
-            result = cast(Self, result)
+            result = cast("Self", result)
         # error: Incompatible types in assignment (expression has type
         # "BaseOffset | None", variable has type "None")
         result._freq = self._get_getitem_freq(key)  # type: ignore[assignment]
@@ -1011,7 +1011,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             return result
 
         if not isinstance(self.dtype, PeriodDtype):
-            self = cast(TimelikeOps, self)
+            self = cast("TimelikeOps", self)
             if self._creso != other._creso:
                 if not isinstance(other, type(self)):
                     # i.e. Timedelta/Timestamp, cast to ndarray and let
@@ -1699,7 +1699,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         i8modes, _ = algorithms.mode(self.view("i8"), mask=mask)
         npmodes = i8modes.view(self._ndarray.dtype)
-        npmodes = cast(np.ndarray, npmodes)
+        npmodes = cast("np.ndarray", npmodes)
         return self._from_backing_data(npmodes)
 
     # ------------------------------------------------------------------
@@ -2106,7 +2106,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             )
 
         values = self.view("i8")
-        values = cast(np.ndarray, values)
+        values = cast("np.ndarray", values)
         nanos = get_unit_for_round(freq, self._creso)
         if nanos == 0:
             # GH 52761

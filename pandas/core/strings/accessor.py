@@ -15,13 +15,6 @@ import numpy as np
 from pandas._config import using_string_dtype
 
 from pandas._libs import lib
-from pandas._typing import (
-    AlignJoin,
-    DtypeObj,
-    F,
-    Scalar,
-    npt,
-)
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
@@ -58,7 +51,14 @@ if TYPE_CHECKING:
         Iterator,
     )
 
-    from pandas._typing import NpDtype
+    from pandas._typing import (
+        AlignJoin,
+        DtypeObj,
+        F,
+        NpDtype,
+        Scalar,
+        npt,
+    )
 
     from pandas import (
         DataFrame,
@@ -142,7 +142,7 @@ def forbid_nonstring_types(
             return func(self, *args, **kwargs)
 
         wrapper.__name__ = func_name
-        return cast(F, wrapper)
+        return cast("F", wrapper)
 
     return _forbid_nonstring_types
 

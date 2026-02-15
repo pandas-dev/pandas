@@ -28,10 +28,6 @@ from pandas._libs.tslibs.dtypes import (
     FreqGroup,
     periods_per_day,
 )
-from pandas._typing import (
-    F,
-    npt,
-)
 
 from pandas.core.dtypes.common import (
     is_float,
@@ -61,7 +57,11 @@ if TYPE_CHECKING:
     from matplotlib.axis import Axis
 
     from pandas._libs.tslibs.offsets import BaseOffset
-    from pandas._typing import TimeUnit
+    from pandas._typing import (
+        F,
+        TimeUnit,
+        npt,
+    )
 
 
 _mpl_units: dict = {}  # Cache for units overwritten by us
@@ -89,7 +89,7 @@ def register_pandas_matplotlib_converters(func: F) -> F:
         with pandas_converters():
             return func(*args, **kwargs)
 
-    return cast(F, wrapper)
+    return cast("F", wrapper)
 
 
 @contextlib.contextmanager

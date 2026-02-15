@@ -17,11 +17,6 @@ from typing import (
 
 import numpy as np
 
-from pandas._typing import (
-    DtypeObj,
-    NDFrameT,
-    npt,
-)
 from pandas.util._validators import validate_percentile
 
 from pandas.core.dtypes.common import (
@@ -44,6 +39,12 @@ if TYPE_CHECKING:
         Callable,
         Hashable,
         Sequence,
+    )
+
+    from pandas._typing import (
+        DtypeObj,
+        NDFrameT,
+        npt,
     )
 
     from pandas import (
@@ -95,7 +96,7 @@ def describe_ndframe(
         )
 
     result = describer.describe(percentiles=percentiles)
-    return cast(NDFrameT, result)
+    return cast("NDFrameT", result)
 
 
 class NDFrameDescriberAbstract(ABC):
