@@ -7,7 +7,7 @@ name = "pandas"
 
 [dependencies]
 # Build dependencies
-versioneer = "*"
+versioneer = ">=0.29"
 cython = ">3.1.0,<4.0.0a0"
 meson = ">=1.10.1,<2"
 meson-python = ">=0.19.0,<1"
