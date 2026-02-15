@@ -40,9 +40,9 @@ def extract_ordinals(
     values: npt.NDArray[np.object_],
     dtype: PeriodDtypeBase,
 ) -> npt.NDArray[np.int64]: ...
-def extract_freq(
+def extract_period_unit(
     values: npt.NDArray[np.object_],
-) -> BaseOffset: ...
+) -> str: ...
 def period_array_strftime(
     values: npt.NDArray[np.int64],
     dtype_code: int,

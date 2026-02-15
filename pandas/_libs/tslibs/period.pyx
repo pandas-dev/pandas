@@ -1610,7 +1610,7 @@ cdef int64_t _extract_ordinal(object item, str freqstr) except? -1:
     return ordinal
 
 
-def extract_freq(ndarray[object] values) -> BaseOffset:
+def extract_period_unit(ndarray[object] values) -> str:
     # TODO: Change type to const object[:] when Cython supports that.
 
     cdef:
@@ -1621,7 +1621,7 @@ def extract_freq(ndarray[object] values) -> BaseOffset:
         value = values[i]
 
         if is_period_object(value):
-            return value.freq
+            return value.freqstr
 
     raise ValueError("freq not specified and cannot be inferred")
 
