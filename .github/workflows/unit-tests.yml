@@ -87,7 +87,7 @@ jobs:
             platform: ubuntu-24.04
           - name: "Pyarrow Nightly"
             environment: pyarrow-nightly
-            pattepytest_marker_expressionrn: "not slow and not network and not single_cpu"
+            pytest_marker_expression: "not slow and not network and not single_cpu"
             platform: ubuntu-24.04
       fail-fast: false
     name: ${{ matrix.name || format('{0} {1}', matrix.platform, matrix.environment) }}
