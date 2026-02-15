@@ -740,7 +740,7 @@ cdef class BaseOffset:
     def _offset_str(self) -> str:
         return ""
 
-    @property
+    @cache_readonly
     def _period_unit(self) -> str:
         """
         For offsets that are associated with a Period, give that period's freqstr.
