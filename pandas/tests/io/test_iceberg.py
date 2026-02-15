@@ -59,7 +59,7 @@ catalog:
         importlib.reload(pyiceberg_catalog)  # needed to reload the config file
 
     yield Catalog(name=catalog_name or "default", uri=uri, warehouse=warehouse)
-
+    catalog.close()
     if catalog_name is not None:
         config_path.unlink()
 
