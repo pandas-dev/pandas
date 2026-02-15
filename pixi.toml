@@ -39,9 +39,15 @@ python-freethreading = "3.13.*"
 
 [feature.test-base.dependencies]
 pytest = ">=8.3.4"
-pytest-cov = "*"
 pytest-xdist = ">=3.6.1"
 hypothesis = ">=6.116.0"
+
+[feature.pytest-cov-conda.dependencies]
+pytest-cov = "*"
+
+[feature.pytest-cov-pypi.pypi-dependencies]
+# No free-threaded coveragepy (with the C-extension) on conda-forge yet
+pytest-cov = "*"
 
 [feature.test-network.dependencies]
 pytest-localserver = ">=0.9.0"
@@ -116,13 +122,13 @@ pyyaml = "*"
 xarray = ">=2024.10.0"
 
 [environments]
-py311 = { features = ["py311", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies"] }
-py312 = { features = ["py312", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies"] }
-py313 = { features = ["py313", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies"] }
-py314 = { features = ["py314", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies"] }
-no-pyarrow = { features = ["py313", "test-base", "test-clipboard", "test-network", "optional-dependencies"] }
-minimum-versions = { features = ["py311", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies", "minimum-versions"] }
-freethreading = { features = ["freethreading", "test-base"] }
-numpy-nightly = { features = ["py313", "test-base", "numpy-nightly"] }
-pyarrow-nightly = { features = ["py313", "test-base", "pyarrow-nightly"] }
-downstream = { features = ["py313", "test-base", "downstream"] }
+py311 = { features = ["py311", "test-base", "pytest-cov-conda", "test-clipboard", "test-network", "pyarrow", "optional-dependencies"] }
+py312 = { features = ["py312", "test-base", "pytest-cov-conda", "test-clipboard", "test-network", "pyarrow", "optional-dependencies"] }
+py313 = { features = ["py313", "test-base", "pytest-cov-conda", "test-clipboard", "test-network", "pyarrow", "optional-dependencies"] }
+py314 = { features = ["py314", "test-base", "pytest-cov-conda", "test-clipboard", "test-network", "pyarrow", "optional-dependencies"] }
+no-pyarrow = { features = ["py313", "test-base", "pytest-cov-conda", "test-clipboard", "test-network", "optional-dependencies"] }
+minimum-versions = { features = ["py311", "test-base", "pytest-cov-conda", "test-clipboard", "test-network", "pyarrow", "optional-dependencies", "minimum-versions"] }
+freethreading = { features = ["freethreading", "test-base", "pytest-cov-pypi", ] }
+numpy-nightly = { features = ["py313", "test-base", "pytest-cov-conda", "numpy-nightly"] }
+pyarrow-nightly = { features = ["py313", "test-base", "pytest-cov-conda", "pyarrow-nightly"] }
+downstream = { features = ["py313", "test-base", "pytest-cov-conda", "downstream"] }
