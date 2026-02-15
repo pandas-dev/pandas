@@ -269,11 +269,12 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         if dtype is not None:
             dtype = pandas_dtype(dtype)
         if dtype and isinstance(dtype, PeriodDtype):
-            freq = dtype.freq
+            unit = dtype._freqstr
         else:
-            freq = None
+            unit = None
 
         if isinstance(scalars, cls):
+            freq = dtype.freq if dtype is not None else None  # type: ignore[union-attr]
             validate_dtype_freq(scalars.dtype, freq)
             if copy:
                 scalars = scalars.copy()
@@ -281,8 +282,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
 
         periods = np.asarray(scalars, dtype=object)
 
-        freq = freq or libperiod.extract_freq(periods)
-        dtype = PeriodDtype(freq)
+        unit = unit or libperiod.extract_period_unit(periods)
+        dtype = PeriodDtype(unit)
         ordinals = libperiod.extract_ordinals(periods, dtype)
         return cls(ordinals, dtype=dtype)
 
@@ -1283,7 +1284,7 @@ def period_array(
 
     data = ensure_object(arrdata)
     if freq is None:
-        freq = libperiod.extract_freq(data)
+        freq = libperiod.extract_period_unit(data)
     dtype = PeriodDtype(freq)
     return PeriodArray._from_sequence(data, dtype=dtype)
 
