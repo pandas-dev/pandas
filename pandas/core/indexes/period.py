@@ -147,6 +147,11 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     TimedeltaIndex : Index of timedelta64 data.
     period_range : Create a fixed-frequency PeriodIndex.
 
+    Notes
+    -----
+    User Guide section :ref:`Time series / date functionality <timeseries>` for more
+    information and examples.
+
     Examples
     --------
     >>> idx = pd.PeriodIndex(data=["2000Q1", "2002Q3"], freq="Q")

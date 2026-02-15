@@ -252,6 +252,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     Notes
     -----
+        User Guide section :ref:`Time series / date functionality <timeseries>` for more
+    information and examples.
+
     To learn more about the frequency strings, please see
     :ref:`this link<timeseries.offset_aliases>`.
 

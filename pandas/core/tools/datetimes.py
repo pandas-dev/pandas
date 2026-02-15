@@ -885,6 +885,11 @@ def to_datetime(
       the timezone has a daylight savings policy. In that case you may wish to
       use ``utc=True``.
 
+    Notes
+    -----
+    User Guide section :ref:`Time series / date functionality <timeseries>` for more
+    information and examples.
+
     Examples
     --------
 
