@@ -128,7 +128,7 @@ py313 = { features = ["py313", "test-base", "pytest-cov-conda", "test-clipboard"
 py314 = { features = ["py314", "test-base", "pytest-cov-conda", "test-clipboard", "test-network", "pyarrow", "optional-dependencies"] }
 no-pyarrow = { features = ["py313", "test-base", "pytest-cov-conda", "test-clipboard", "test-network", "optional-dependencies"] }
 minimum-versions = { features = ["py311", "test-base", "pytest-cov-conda", "test-clipboard", "test-network", "pyarrow", "optional-dependencies", "minimum-versions"] }
-freethreading = { features = ["freethreading", "test-base", "pytest-cov-pypi", ] }
+freethreading = { features = ["freethreading", "test-base", "pytest-cov-pypi"] }
 numpy-nightly = { features = ["py313", "test-base", "pytest-cov-conda", "numpy-nightly"] }
 pyarrow-nightly = { features = ["py313", "test-base", "pytest-cov-conda", "pyarrow-nightly"] }
 downstream = { features = ["py313", "test-base", "pytest-cov-conda", "downstream"] }
