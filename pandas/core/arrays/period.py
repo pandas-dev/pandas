@@ -243,7 +243,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
             values = np.array(values, dtype="int64", copy=copy)
         if dtype is None:
             raise ValueError("dtype is not specified and cannot be inferred")
-        dtype = cast(PeriodDtype, dtype)
+        dtype = cast("PeriodDtype", dtype)
         NDArrayBacked.__init__(self, values, dtype)
 
     # error: Signature of "_simple_new" incompatible with supertype "NDArrayBacked"
@@ -269,11 +269,12 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         if dtype is not None:
             dtype = pandas_dtype(dtype)
         if dtype and isinstance(dtype, PeriodDtype):
-            freq = dtype.freq
+            unit = dtype._freqstr
         else:
-            freq = None
+            unit = None
 
         if isinstance(scalars, cls):
+            freq = dtype.freq if dtype is not None else None  # type: ignore[union-attr]
             validate_dtype_freq(scalars.dtype, freq)
             if copy:
                 scalars = scalars.copy()
@@ -281,9 +282,9 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
 
         periods = np.asarray(scalars, dtype=object)
 
-        freq = freq or libperiod.extract_freq(periods)
-        ordinals = libperiod.extract_ordinals(periods, freq)
-        dtype = PeriodDtype(freq)
+        unit = unit or libperiod.extract_period_unit(periods)
+        dtype = PeriodDtype(unit)
+        ordinals = libperiod.extract_ordinals(periods, dtype)
         return cls(ordinals, dtype=dtype)
 
     @classmethod
@@ -1283,7 +1284,7 @@ def period_array(
 
     data = ensure_object(arrdata)
     if freq is None:
-        freq = libperiod.extract_freq(data)
+        freq = libperiod.extract_period_unit(data)
     dtype = PeriodDtype(freq)
     return PeriodArray._from_sequence(data, dtype=dtype)
 
@@ -1446,11 +1447,11 @@ def _range_from_fields(
     if quarter is not None:
         if freq is None:
             freq = to_offset("Q", is_period=True)
-            base = cast(int, FreqGroup.FR_QTR.value)
+            base = cast("int", FreqGroup.FR_QTR.value)
         else:
             freq = to_offset(freq, is_period=True)
             base = libperiod.freq_to_dtype_code(freq)
-            if base != cast(int, FreqGroup.FR_QTR.value):
+            if base != cast("int", FreqGroup.FR_QTR.value):
                 raise AssertionError("base must equal FR_QTR")
 
         freqstr = freq.freqstr
