@@ -169,7 +169,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         lkind = self.dtype.kind
         rkind = result.dtype.kind
         if (lkind in "iu" and rkind in "iu") or (lkind == rkind == "f"):
-            result = cast(BaseMaskedArray, result)
+            result = cast("BaseMaskedArray", result)
             new_data = maybe_downcast_to_dtype(
                 result._data, dtype=self.dtype.numpy_dtype
             )
@@ -186,7 +186,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         ExtensionDtype.empty
             ExtensionDtype.empty is the 'official' public version of this API.
         """
-        dtype = cast(BaseMaskedDtype, dtype)
+        dtype = cast("BaseMaskedDtype", dtype)
         values: np.ndarray = np.empty(shape, dtype=dtype.type)
         values.fill(dtype._internal_fill_value)
         mask = np.ones(shape, dtype=bool)
