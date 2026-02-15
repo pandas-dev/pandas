@@ -2784,6 +2784,7 @@ cdef class _Period(PeriodMixin):
         """
         from pandas.errors import Pandas4Warning
         warnings.warn(
+            # GH#64157
             "Period.freqstr is deprecated. Use period.unit instead",
             Pandas4Warning,
         )
