@@ -867,7 +867,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
     # --------------------------------------------------------------------
 
     def _box_func(self, x) -> Period | NaTType:
-        return Period._from_ordinal(ordinal=x, freq=self.freq)
+        return Period._from_ordinal(ordinal=x, dtype=self.dtype)
 
     def asfreq(self, freq=None, how: str = "E") -> Self:
         """
