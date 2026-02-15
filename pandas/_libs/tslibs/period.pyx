@@ -1565,13 +1565,13 @@ def extract_ordinals(ndarray values, PeriodDtypeBase dtype) -> np.ndarray:
         # if we don't raise here, we'll segfault later!
         raise TypeError("extract_ordinals values must be object-dtype")
 
-    freqstr = dtype._freqstr
+    unit = dtype.unit
 
     for i in range(n):
         # Analogous to: p = values[i]
         p = <object>(<PyObject**>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
 
-        ordinal = _extract_ordinal(p, freqstr)
+        ordinal = _extract_ordinal(p, unit)
 
         # Analogous to: ordinals[i] = ordinal
         (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = ordinal
@@ -1581,7 +1581,7 @@ def extract_ordinals(ndarray values, PeriodDtypeBase dtype) -> np.ndarray:
     return ordinals
 
 
-cdef int64_t _extract_ordinal(object item, str freqstr) except? -1:
+cdef int64_t _extract_ordinal(object item, str unit) except? -1:
     """
     See extract_ordinals.
     """
@@ -1597,14 +1597,14 @@ cdef int64_t _extract_ordinal(object item, str freqstr) except? -1:
         try:
             ordinal = item.ordinal
 
-            if item.freqstr != freqstr:
+            if item.freqstr != unit:
                 msg = DIFFERENT_FREQ.format(cls="PeriodIndex",
-                                            own_freq=freqstr,
+                                            own_freq=unit,
                                             other_freq=item.freqstr)
                 raise IncompatibleFrequency(msg)
 
         except AttributeError:
-            item = Period(item, freq=freqstr)
+            item = Period(item, freq=unit)
             if item is NaT:
                 # input may contain NaT-like string
                 ordinal = NPY_NAT
@@ -1763,10 +1763,10 @@ cdef class PeriodMixin:
             condition = self.freqstr != other_unit
 
         if condition:
-            freqstr = self.freqstr
+            unit = self.unit
             msg = DIFFERENT_FREQ.format(
                 cls=type(self).__name__,
-                own_freq=freqstr,
+                own_freq=unit,
                 other_freq=other_unit,
             )
             raise IncompatibleFrequency(msg)
@@ -1829,6 +1829,26 @@ cdef class _Period(PeriodMixin):
         <MonthEnd>
         """
         return self._freq
+
+    @property
+    def unit(self) -> str:
+        """
+        Return the unit string for this Period.
+
+        The unit string represents the span of time that this Period covers,
+        e.g. "D", "M", "h", "m", "s".
+
+        See Also
+        --------
+        Timestamp.unit : Return the Timestamp's analogous unit.
+
+        Examples
+        --------
+        >>> period = pd.Period('2020-01', freq='M')
+        >>> period.unit
+        'M'
+        """
+        return self._dtype.unit
 
     # higher than np.ndarray, np.matrix, np.timedelta64
     __array_priority__ = 100
@@ -2126,7 +2146,7 @@ cdef class _Period(PeriodMixin):
         if freq is None:
             freq_code = self._dtype._get_to_timestamp_base()
             dtype = PeriodDtypeBase(freq_code, 1)
-            freq = dtype._freqstr
+            freq = dtype.unit
             base = freq_code
         else:
             freq = self._maybe_convert_freq(freq)
@@ -2767,8 +2787,7 @@ cdef class _Period(PeriodMixin):
         >>> pd.Period('2020-01', 'D').freqstr
         'D'
         """
-        freqstr = PeriodDtypeBase(self._freq._period_dtype_code, self._freq.n)._freqstr
-        return freqstr
+        return self.unit
 
     def __repr__(self) -> str:
         base = self._dtype._dtype_code

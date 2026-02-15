@@ -580,7 +580,7 @@ def _maybe_coerce_freq(code) -> str:
     """
     assert code is not None
     if isinstance(code, DateOffset):
-        code = PeriodDtype(to_offset(code.name))._freqstr
+        code = PeriodDtype(to_offset(code.name)).unit
     if code in {"h", "min", "s", "ms", "us", "ns"}:
         return code
     else:
