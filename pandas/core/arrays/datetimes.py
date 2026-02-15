@@ -1277,7 +1277,7 @@ default 'raise'
             if isinstance(self.freq, BaseOffset) and hasattr(
                 self.freq, "_period_dtype_code"
             ):
-                freq = PeriodDtype(self.freq)._freqstr
+                freq = PeriodDtype(self.freq).unit
 
             if freq is None:
                 raise ValueError(
