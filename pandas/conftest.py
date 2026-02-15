@@ -194,9 +194,9 @@ def pytest_collection_modifyitems(items, config) -> None:
         ),
         ("read_parquet", "Passing a BlockManager to DataFrame is deprecated"),
         ("Timestamp.utcfromtimestamp", "Timestamp.utcfromtimestamp is deprecated"),
-        ("DatetimeLikeArrayMixin.freqstr", "PeriodIndex.freqstr is deprecated"),
+        ("DatetimeLikeArrayMixin.freqstr", "PeriodArray.freqstr is deprecated"),
         ("DatetimeIndexOpsMixin.freqstr", "PeriodIndex.freqstr is deprecated"),
-        ("Period.freqstr", "Period.freqstr is deprecated"),
+        ("_Period.freqstr", "Period.freqstr is deprecated"),
     ]
 
     if is_doctest:

@@ -900,12 +900,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         ... )
         >>> idx.freqstr
         '2D'
-
-        For PeriodIndex:
-
-        >>> idx = pd.PeriodIndex(["2023-1", "2023-2", "2023-3"], freq="M")
-        >>> idx.freqstr
-        'M'
         """
         if self.freq is None:
             return None
