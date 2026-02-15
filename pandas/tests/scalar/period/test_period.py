@@ -878,6 +878,7 @@ class TestPeriodProperties:
         assert i1.freq == offsets.Minute()
         assert i1.unit == "min"
 
+        # GH#64157
         msg = "Period.freqstr is deprecated"
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             assert i1.freqstr == "min"

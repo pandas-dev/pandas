@@ -422,6 +422,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
     @property
     def freqstr(self) -> str:
         warnings.warn(
+            # GH#64157
             "PeriodArray.freqstr is deprecated and will be removed in a "
             "future version. Use obj.unit instead",
             Pandas4Warning,

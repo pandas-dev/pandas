@@ -196,7 +196,7 @@ class TestPeriodIndex:
 
 
 def test_freqstr_deprecated():
-    # GH#??
+    # GH#64157
     pi = PeriodIndex(["2000", "2001"], freq="D")
     msg = (
         "PeriodIndex.freqstr is deprecated and will be removed in a "
