@@ -70,15 +70,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
     "$BASE_DIR"/scripts/validate_docstrings.py \
         --format=actions \
         -i "pandas.tseries.frequencies.to_offset ES01" \
-        -i "pandas.Series.dtypes ES01" \
-        -i "pandas.Series.to_numpy ES01" \
-        -i "pandas.Series.to_period ES01" \
-        -i "pandas.Series.keys ES01" \
-        -i "pandas.Series.pop ES01" \
-        -i "pandas.Series.item ES01" \
-        -i "pandas.Series.round ES01" \
-        -i "pandas.Series.agg ES01" \
-        -i "pandas.Series.aggregate ES01" \
         -i "pandas.Series.transform ES01" \
         -i "pandas.Series.rolling ES01" \
         -i "pandas.Series.count ES01" \
