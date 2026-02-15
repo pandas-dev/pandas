@@ -384,7 +384,7 @@ class TestTSPlot:
         bts.plot(ax=ax)
         assert ax.get_lines()[0].get_xydata()[0, 0] == ts.index[0].ordinal
         idx = ax.get_lines()[0].get_xdata()
-        assert PeriodIndex(data=idx).freqstr == "M"
+        assert PeriodIndex(data=idx).unit == "M"
 
     def test_business_freq_no_weekend_gaps(self):
         # Verify that plotting a BDay-frequency series produces evenly-spaced
