@@ -949,7 +949,10 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
     @property  # NB: override with cache_readonly in immutable subclasses
     def _resolution_obj(self) -> Resolution | None:
-        freqstr = self.freqstr
+        if isinstance(self.dtype, PeriodDtype):
+            freqstr = self.unit
+        else:
+            freqstr = self.freqstr
         if freqstr is None:
             return None
         try:

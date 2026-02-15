@@ -1,5 +1,5 @@
 import re
-
+import warnings
 cimport numpy as cnp
 from cpython.object cimport (
     Py_EQ,
@@ -1593,10 +1593,10 @@ cdef int64_t _extract_ordinal(object item, str unit) except? -1:
         try:
             ordinal = item.ordinal
 
-            if item.freqstr != unit:
+            if item.unit != unit:
                 msg = DIFFERENT_FREQ.format(cls="PeriodIndex",
                                             own_freq=unit,
-                                            other_freq=item.freqstr)
+                                            other_freq=item.unit)
                 raise IncompatibleFrequency(msg)
 
         except AttributeError:
@@ -1904,7 +1904,7 @@ cdef class _Period(PeriodMixin):
         return NotImplemented
 
     def __hash__(self):
-        return hash((self.ordinal, self.freqstr))
+        return hash((self.ordinal, self.unit))
 
     def _add_timedeltalike_scalar(self, other) -> "Period":
         cdef:
@@ -1912,7 +1912,7 @@ cdef class _Period(PeriodMixin):
 
         if not self._dtype._is_tick_like():
             raise IncompatibleFrequency("Input cannot be converted to "
-                                        f"Period(freq={self.freqstr})")
+                                        f"Period(freq={self.unit})")
 
         if (
             cnp.is_timedelta64_object(other) and
@@ -1929,7 +1929,7 @@ cdef class _Period(PeriodMixin):
             inc = delta_to_nanoseconds(other, reso=self._dtype._creso, round_ok=False)
         except ValueError as err:
             raise IncompatibleFrequency("Input cannot be converted to "
-                                        f"Period(freq={self.freqstr})") from err
+                                        f"Period(freq={self.unit})") from err
         with cython.overflowcheck(True):
             ordinal = self._ordinal + inc
         return Period(ordinal=ordinal, freq=self._freq)
@@ -2782,12 +2782,17 @@ cdef class _Period(PeriodMixin):
         >>> pd.Period('2020-01', 'D').freqstr
         'D'
         """
+        from pandas.errors import Pandas4Warning
+        warnings.warn(
+            "Period.freqstr is deprecated. Use period.unit instead",
+            Pandas4Warning,
+        )
         return self.unit
 
     def __repr__(self) -> str:
         base = self._dtype._dtype_code
         formatted = period_format(self.ordinal, base)
-        return f"Period('{formatted}', '{self.freqstr}')"
+        return f"Period('{formatted}', '{self.unit}')"
 
     def __str__(self) -> str:
         """

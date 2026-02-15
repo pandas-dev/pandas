@@ -78,7 +78,7 @@ class TestDatetimeLike:
             if idx.tz is not None:
                 assert idx.tz in str(idx)
         if isinstance(idx, pd.PeriodIndex):
-            assert f"dtype='period[{idx.freqstr}]'" in str(idx)
+            assert f"dtype='period[{idx.unit}]'" in str(idx)
         else:
             assert f"freq='{idx.freqstr}'" in str(idx)
 
