@@ -338,7 +338,7 @@ class TestTSPlot:
         assert ax.get_lines()[0].get_xydata()[0, 0] == bts.index[0].ordinal
         idx = ax.get_lines()[0].get_xdata()
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert PeriodIndex(data=idx).freqstr == "B"
+            assert PeriodIndex(data=idx).unit == "B"
 
     def test_business_freq_convert(self):
         bts = Series(
@@ -350,7 +350,7 @@ class TestTSPlot:
         bts.plot(ax=ax)
         assert ax.get_lines()[0].get_xydata()[0, 0] == ts.index[0].ordinal
         idx = ax.get_lines()[0].get_xdata()
-        assert PeriodIndex(data=idx).freqstr == "M"
+        assert PeriodIndex(data=idx).unit == "M"
 
     def test_freq_with_no_period_alias(self):
         # GH34487
