@@ -750,7 +750,7 @@ cdef class BaseOffset:
         Period.
         """
         if hasattr(self, "_period_dtype_code"):
-            return PeriodDtypeBase(self._period_dtype_code, self.n)._freqstr
+            return PeriodDtypeBase(self._period_dtype_code, self.n).unit
         return self.freqstr
 
     # ------------------------------------------------------------------
