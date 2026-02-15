@@ -243,6 +243,7 @@ class Resampler(BaseGroupBy, PandasObject):
         if self._timegrouper._arrow_dtype is not None:
             binlabels = binlabels.astype(self._timegrouper._arrow_dtype)
         bin_grouper = BinGrouper(bins, binlabels, indexer=self._indexer)
+        bin_grouper._is_resample = True
         return binner, bin_grouper
 
     @overload
