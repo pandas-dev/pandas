@@ -1280,7 +1280,7 @@ def period_array(
 
     if arrdata.dtype.kind in "iu":
         arr = arrdata.astype(np.int64, copy=False)
-        ordinals = libperiod.from_calendar_ordinals(arr, dtype)
+        ordinals = libperiod.from_calendar_ordinals(arr, dtype)  # type: ignore[arg-type]
         return PeriodArray(ordinals, dtype=dtype)
 
     data = ensure_object(arrdata)
