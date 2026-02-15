@@ -258,6 +258,11 @@ class Styler(StylerRenderer):
         """
         Append another Styler to combine the output into a single table.
 
+        This method enables combining multiple styled DataFrames into a single
+        HTML, LaTeX, or string output by appending additional summary rows or
+        related data beneath the original table. Styles, formatting, and CSS
+        classes applied to each Styler are preserved in the concatenated result.
+
         Parameters
         ----------
         other : Styler
@@ -1672,6 +1677,12 @@ class Styler(StylerRenderer):
         """
         Set the ``class`` attribute of ``<td>`` HTML elements.
 
+        This method accepts a DataFrame of CSS class names and maps them to
+        the corresponding ``<td>`` elements in the rendered HTML table using
+        matching index and column keys. It can be used in combination with
+        ``Styler.set_table_styles`` to build a self-contained CSS styling
+        solution.
+
         Parameters
         ----------
         classes : DataFrame
@@ -2527,6 +2538,11 @@ class Styler(StylerRenderer):
         """
         Set the text added to a ``<caption>`` HTML element.
 
+        This method sets the table caption that is rendered as a ``<caption>``
+        element in HTML output or as a ``\\caption`` command in LaTeX output.
+        For LaTeX, a tuple of two strings can be provided to specify both a
+        full caption and a short caption.
+
         Parameters
         ----------
         caption : str, tuple, list
@@ -2575,6 +2591,11 @@ class Styler(StylerRenderer):
     ) -> Styler:
         """
         Add CSS to permanently display the index or column headers in a scrolling frame.
+
+        This method applies CSS ``position: sticky`` rules so that the index
+        or column headers remain visible while scrolling through large tables.
+        It supports both regular and MultiIndex axes, with configurable pixel
+        sizes for header cell dimensions.
 
         Parameters
         ----------
@@ -2867,6 +2888,12 @@ class Styler(StylerRenderer):
     ) -> Styler:
         """
         Hide the entire index / column headers, or specific rows / columns from display.
+
+        This method controls the visibility of rows, columns, and axis headers
+        in the rendered output. It can hide the entire index or column headers,
+        specific levels of a MultiIndex, individual data rows or columns, or
+        just the axis-level names, depending on the combination of arguments
+        provided.
 
         Parameters
         ----------
@@ -3373,6 +3400,11 @@ class Styler(StylerRenderer):
     def set_properties(self, subset: Subset | None = None, **kwargs) -> Styler:
         """
         Set defined CSS-properties to each ``<td>`` HTML element for the given subset.
+
+        This is a convenience method that applies one or more CSS property-value
+        pairs uniformly to every ``<td>`` element in the specified subset. It
+        wraps :meth:`Styler.map` with a function that returns the given CSS
+        properties regardless of the cell data.
 
         Parameters
         ----------
