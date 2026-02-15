@@ -842,13 +842,34 @@ class TestDatetime64Arithmetic:
         expected = tm.box_expected(expected, box_with_array)
 
         result = rng + two_hours
-        tm.assert_equal(result, expected)
+        if isinstance(result, pd.DataFrame):
+            tm.assert_frame_equal(result, expected, check_index_type=True)
+        elif isinstance(result, Series):
+            tm.assert_series_equal(result, expected, check_index_type=True)
+        elif isinstance(result, pd.Index):
+            tm.assert_index_equal(result, expected, exact=True)
+        else:
+            tm.assert_equal(result, expected)
 
         result = two_hours + rng
-        tm.assert_equal(result, expected)
+        if isinstance(result, pd.DataFrame):
+            tm.assert_frame_equal(result, expected, check_index_type=True)
+        elif isinstance(result, Series):
+            tm.assert_series_equal(result, expected, check_index_type=True)
+        elif isinstance(result, pd.Index):
+            tm.assert_index_equal(result, expected, exact=True)
+        else:
+            tm.assert_equal(result, expected)
 
         rng += two_hours
-        tm.assert_equal(rng, expected)
+        if isinstance(result, pd.DataFrame):
+            tm.assert_frame_equal(result, expected, check_index_type=True)
+        elif isinstance(result, Series):
+            tm.assert_series_equal(result, expected, check_index_type=True)
+        elif isinstance(result, pd.Index):
+            tm.assert_index_equal(result, expected, exact=True)
+        else:
+            tm.assert_equal(result, expected)
 
     def test_dt64arr_sub_timedeltalike_scalar(
         self, tz_naive_fixture, two_hours, box_with_array
