@@ -1749,27 +1749,21 @@ cdef class PeriodMixin:
         """
         return self.to_timestamp(how="end")
 
-    def _require_matching_freq(self, other: BaseOffset, bint base=False):
+    def _require_matching_unit(self, other_unit: str, bint base=False):
         # See also arrays.period.raise_on_incompatible
         if base:
-            condition = self.freq.base != other.base
+            # Strip leading digits and possibly a minus sign
+            pat = r"^-?\d+"
+            condition = re.sub(pat, "", self.freqstr) != re.sub(pat, "", other_unit)
         else:
-            condition = self.freq != other
+            condition = self.freqstr != other_unit
 
         if condition:
-            freqstr = PeriodDtypeBase(
-                self.freq._period_dtype_code, self.freq.n
-            )._freqstr
-            if hasattr(other, "_period_dtype_code"):
-                other_freqstr = PeriodDtypeBase(
-                    other._period_dtype_code, other.n
-                )._freqstr
-            else:
-                other_freqstr = other.freqstr
+            freqstr = self.freqstr
             msg = DIFFERENT_FREQ.format(
                 cls=type(self).__name__,
                 own_freq=freqstr,
-                other_freq=other_freqstr,
+                other_freq=other_unit,
             )
             raise IncompatibleFrequency(msg)
 
@@ -1876,7 +1870,7 @@ cdef class _Period(PeriodMixin):
                     return False
                 elif op == Py_NE:
                     return True
-                self._require_matching_freq(other.freq)
+                self._require_matching_unit(other._dtype._freqstr)
             return PyObject_RichCompareBool(self._ordinal, other._ordinal, op)
         elif other is NaT:
             return op == Py_NE
@@ -1925,7 +1919,7 @@ cdef class _Period(PeriodMixin):
         cdef:
             int64_t ordinal
 
-        self._require_matching_freq(other, base=True)
+        self._require_matching_unit(other._period_unit, base=True)
 
         ordinal = self._ordinal + other.n
         return Period(ordinal=ordinal, freq=self._freq)
@@ -1970,7 +1964,7 @@ cdef class _Period(PeriodMixin):
         ):
             return self + (-other)
         elif is_period_object(other):
-            self._require_matching_freq(other.freq)
+            self._require_matching_unit(other._dtype._freqstr)
             # GH 23915 - mul by base freq since __add__ is agnostic of n
             return (self._ordinal - other._ordinal) * self._freq.base
         elif other is NaT:

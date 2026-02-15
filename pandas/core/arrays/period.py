@@ -362,9 +362,12 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
     def _check_compatible_with(self, other: Period | NaTType | PeriodArray) -> None:  # type: ignore[override]
         if other is NaT:
             return
-        # error: Item "NaTType" of "Period | NaTType | PeriodArray" has no
-        # attribute "freq"
-        self._require_matching_freq(other.freq)  # type: ignore[union-attr]
+        elif isinstance(other, Period):
+            self._require_matching_unit(other._dtype._freqstr)
+        else:
+            # error: Item "NaTType" of "NaTType | PeriodArray" has no
+            # attribute "freq"
+            self._require_matching_unit(other.dtype._freqstr)  # type: ignore[union-attr]
 
     # --------------------------------------------------------------------
     # Data / Attributes
@@ -1039,7 +1042,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         if isinstance(other, Day):
             return self + np.timedelta64(other.n, "D")
 
-        self._require_matching_freq(other, base=True)
+        self._require_matching_unit(other._period_unit, base=True)
         return self._addsub_int_array_or_scalar(other.n, operator.add)
 
     # TODO: can we de-duplicate with Period._add_timedeltalike_scalar?
