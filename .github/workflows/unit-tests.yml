@@ -213,6 +213,11 @@ jobs:
         with:
           environment: ${{ matrix.environment }}
 
+      - name: Remove link.EXE for Windows
+        # https://github.com/Quansight-Labs/uarray/pull/310#issuecomment-3872989816
+        run: rm /c/Program\ Files/Git/usr/bin/link.EXE
+        if: ${{ matrix.os == "windows-2025" }}
+
       - name: Build Pandas
         uses: ./.github/actions/build_pandas_pixi
         with:
