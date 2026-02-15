@@ -391,7 +391,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         result = super()._summary(name=name)
         if isinstance(self.dtype, PeriodDtype):
             # TODO(4.0): change "Freq" to unit?
-            result += f"\nFreq: {self.unit}"
+            result += f"\nFreq: {self.unit}"  # type: ignore[attr-defined]
         elif self.freq:
             result += f"\nFreq: {self.freqstr}"
 
