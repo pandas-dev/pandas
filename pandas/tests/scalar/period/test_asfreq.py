@@ -50,9 +50,9 @@ class TestFreqConversion:
         result2 = val.asfreq("min")
         expected = Period("2007-12-31 23:59", freq="min")
         assert result1.ordinal == expected.ordinal
-        assert result1.freqstr == "5min"
+        assert result1.unit == "5min"
         assert result2.ordinal == expected.ordinal
-        assert result2.freqstr == "min"
+        assert result2.unit == "min"
 
     def test_conv_annual(self):
         # frequency conversion tests: from Annual Frequency
