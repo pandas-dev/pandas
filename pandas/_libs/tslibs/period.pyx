@@ -1760,9 +1760,9 @@ cdef class PeriodMixin:
         if base:
             # Strip leading digits and possibly a minus sign
             pat = r"^-?\d+"
-            condition = re.sub(pat, "", self.freqstr) != re.sub(pat, "", other_unit)
+            condition = re.sub(pat, "", self.unit) != re.sub(pat, "", other_unit)
         else:
-            condition = self.freqstr != other_unit
+            condition = self.unit != other_unit
 
         if condition:
             unit = self.unit
