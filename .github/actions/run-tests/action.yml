@@ -39,7 +39,7 @@ runs:
       run: |
         python -m pytest \
           -r fE \
-          -m ${{ inputs.pytest_marker_expression }} \
+          -m "${{ inputs.pytest_marker_expression }}" \
           ${{ inputs.extra_pytest_args }} \
           --numprocesses=${{ inputs.numprocesses }} \
           --dist=worksteal \

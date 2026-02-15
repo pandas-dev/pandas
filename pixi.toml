@@ -13,7 +13,6 @@ meson = ">=1.2.1,<2"
 meson-python = ">=0.17.1,<1"
 c-compiler = "*"
 cxx-compiler = "*"
-pip = "*"
 
 # Required dependencies
 python-dateutil = ">=2.8.2"
