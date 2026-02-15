@@ -2,6 +2,9 @@
 name: Build pandas
 description: Rebuilds the C extensions and installs pandas
 inputs:
+  environment:
+    description: Virtual environment to install pandas
+    required: true
   editable:
     description: Whether to build pandas in editable mode (default true)
     default: true
@@ -12,7 +15,7 @@ runs:
   using: composite
   steps:
     - name: Environment Detail
-      run: pixi list
+      run: pixi list --environment ${{ inputs.environment }}
       shell: bash -euox pipefail {0}
 
     - name: Uninstall existing Pandas installation
@@ -20,11 +23,11 @@ runs:
         if pip show pandas 1>/dev/null; then
           pip uninstall -y pandas
         fi
-      shell: pixi run bash -euox pipefail {0}
+      shell: pixi run --environment ${{ inputs.environment }} bash -euox pipefail {0}
 
     - name: Build Pandas
       run: |
         EDITABLE=${{ inputs.editable == 'true' && '--editable' || '' }}
         WERROR=${{ inputs.werror == 'true' && '-Csetup-args="--werror"' || '' }}
         pip install $EDITABLE . --no-build-isolation -v --no-deps $WERROR
-      shell: pixi run bash -euox pipefail {0}
+      shell: pixi run --environment ${{ inputs.environment }} bash -euox pipefail {0}

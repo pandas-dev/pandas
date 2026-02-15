@@ -1,25 +1,54 @@
 name: Run tests and report results
 description: Run pytest and upload the results to Codecov
+inputs:
+  environment:
+    description: Virtual environment in pixi.toml to run tests.
+    required: true
+  numprocesses:
+    description: pytest-xdist numprocesses value
+    required: true
+  extra_pytest_args:
+    description: Additional pytest commandline arguments
+    required: true
+  pytest_marker_expression:
+    description: pytest marker expression to pass to -m.
+    required: true
+  pytest_target:
+    description: File or directory path to run tests
+    required: true
+  pandas_future_infer_string:
+    description: Environment variable for infer string behavior
+    default: '1'
+  pandas_future_python_scalars:
+    description: Environment variable for Python scalar behavior
+    default: '0'
 runs:
   using: composite
   steps:
     - name: Test
       env:
+        PANDAS_CI: 1
+        PANDAS_FUTURE_INFER_STRING: ${{ inputs.pandas_future_infer_string }}
+        PANDAS_FUTURE_PYTHON_SCALARS: ${{ inputs.pandas_future_python_scalars }}
         MESONPY_EDITABLE_VERBOSE: 1
         PYTHONDEVMODE: 1
         PYTHONWARNDEFAULTENCODING: 1
+        # Clipboard tests
+        QT_QPA_PLATFORM: offscreen
       run: |
-        python -m pytest -r fE \
-          --numprocesses=$PYTEST_WORKERS \
+        python -m pytest \
+          -r fE \
+          -m ${{ inputs.pytest_marker_expression }} \
+          ${{ inputs.extra_pytest_args }} \
+          --numprocesses=${{ inputs.numprocesses }} \
           --dist=worksteal \
-          $TEST_ARGS \
           --capture=no \
           --cov=pandas \
           --cov-report=xml \
           --cov-append \
           --cov-config=pyproject.toml \
-          $PYTEST_TARGET
-      shell: pixi run bash -euox pipefail {0}
+          ${{ inputs.pytest_target }}
+      shell: pixi run --environment ${{ inputs.environment }} bash -euox pipefail {0}
 
     - name: Publish test results
       uses: actions/upload-artifact@v4

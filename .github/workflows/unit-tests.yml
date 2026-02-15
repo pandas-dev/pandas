@@ -29,30 +29,30 @@ jobs:
         platform: [ubuntu-24.04, ubuntu-24.04-arm]
         environment: [py311, py312, py313, py314]
         # Prevent the include jobs from overriding other jobs
-        pattern: [""]
+        pytest_marker_expression: [""]
         pandas_future_infer_string: ["1"]
         pandas_future_python_scalars: ["0"]
         include:
           - name: "Downstream Compat"
             environment: downstream
-            pattern: "not slow and not network and not single_cpu"
+            pytest_marker_expression: "not slow and not network and not single_cpu"
             pytest_target: "pandas/tests/test_downstream.py"
             platform: ubuntu-24.04
           - name: "Minimum Versions"
             environment: minimum-versions
-            pattern: "not slow and not network and not single_cpu"
+            pytest_marker_expression: "not slow and not network and not single_cpu"
             platform: ubuntu-24.04
           - name: "Freethreading"
             environment: freethreading
-            pattern: "not slow and not network and not single_cpu"
+            pytest_marker_expression: "not slow and not network and not single_cpu"
             platform: ubuntu-24.04
           - name: "Without PyArrow"
             environment: no-pyarrow
-            pattern: "not slow and not network and not single_cpu"
+            pytest_marker_expression: "not slow and not network and not single_cpu"
             platform: ubuntu-24.04
           - name: "Locale: it_IT"
             environment: py313
-            pattern: "not slow and not network and not single_cpu"
+            pytest_marker_expression: "not slow and not network and not single_cpu"
             extra_apt: "language-pack-it"
             # Use the utf8 version as the default, it has no bad side-effect.
             lang: "it_IT.utf8"
@@ -63,7 +63,7 @@ jobs:
             platform: ubuntu-24.04
           - name: "Locale: zh_CN"
             environment: py313
-            pattern: "not slow and not network and not single_cpu"
+            pytest_marker_expression: "not slow and not network and not single_cpu"
             extra_apt: "language-pack-zh-hans"
             # Use the utf8 version as the default, it has no bad side-effect.
             lang: "zh_CN.utf8"
@@ -82,31 +82,21 @@ jobs:
             platform: ubuntu-24.04
           - name: "Numpy Nightly"
             environment: numpy-nightly
-            pattern: "not slow and not network and not single_cpu"
-            test_args: "-W error::DeprecationWarning -W error::FutureWarning"
+            pytest_marker_expression: "not slow and not network and not single_cpu"
+            extra_pytest_args: "-W error::DeprecationWarning -W error::FutureWarning"
             platform: ubuntu-24.04
           - name: "Pyarrow Nightly"
             environment: pyarrow-nightly
-            pattern: "not slow and not network and not single_cpu"
+            pattepytest_marker_expressionrn: "not slow and not network and not single_cpu"
             platform: ubuntu-24.04
       fail-fast: false
     name: ${{ matrix.name || format('{0} {1}', matrix.platform, matrix.environment) }}
     env:
-      PATTERN: ${{ matrix.pattern }}
       LANG: ${{ matrix.lang || 'C.UTF-8' }}
       LC_ALL: ${{ matrix.lc_all || '' }}
-      PANDAS_CI: '1'
-      PANDAS_FUTURE_INFER_STRING: ${{ matrix.pandas_future_infer_string || '1' }}
-      PANDAS_FUTURE_PYTHON_SCALARS: ${{ matrix.pandas_future_python_scalars || '0' }}
-      TEST_ARGS: ${{ matrix.test_args || '' }}
-      PYTEST_WORKERS: 'auto'
-      PYTEST_TARGET: ${{ matrix.pytest_target || 'pandas' }}
-      # Clipboard tests
-      QT_QPA_PLATFORM: offscreen
-      REMOVE_PYARROW: ${{ matrix.name == 'Without PyArrow' && '1' || '0' }}
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
-      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.environment }}-${{ matrix.pattern }}-${{ matrix.extra_apt || '' }}-${{ matrix.pandas_future_infer_string }}-${{ matrix.platform }}
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.environment }}-${{ matrix.pytest_marker_expression }}-${{ matrix.extra_apt || '' }}-${{ matrix.pandas_future_infer_string }}-${{ matrix.platform }}
       cancel-in-progress: true
 
     services:
@@ -167,6 +157,7 @@ jobs:
       id: build
       uses: ./.github/actions/build_pandas_pixi
       with:
+        environment: ${{ matrix.environment }}
         # TODO: Remove
         # maybe-uninitialized in sparse.pyx in _find_next_block_end
         werror: false
@@ -177,16 +168,25 @@ jobs:
 
     - name: Test (not single_cpu)
       uses: ./.github/actions/run-tests
-      env:
-        # Set pattern to not single_cpu if not already set
-        PATTERN: ${{ env.PATTERN == '' && 'not single_cpu' || matrix.pattern }}
-
+      with:
+        environment: ${{ matrix.environment }}
+        numprocesses: 'auto'
+        pytest_marker_expression: ${{ matrix.pytest_marker_expression == '' && 'not single_cpu' || matrix.pytest_marker_expression }}
+        extra_pytest_args: ${{ matrix.extra_pytest_args || '' }}
+        pytest_target: ${{ matrix.pytest_target || 'pandas' }}
+        pandas_future_infer_string: ${{ matrix.pandas_future_infer_string || '1' }}
+        pandas_future_python_scalars: ${{ matrix.pandas_future_python_scalars || '0' }}
     - name: Test (single_cpu)
       uses: ./.github/actions/run-tests
-      env:
-        PATTERN: 'single_cpu'
-        PYTEST_WORKERS: 0
-      if: ${{ matrix.pattern == '' && (always() && steps.build.outcome == 'success')}}
+      with:
+        environment: ${{ matrix.environment }}
+        numprocesses: 0
+        pytest_marker_expression: 'single_cpu'
+        extra_pytest_args: ${{ matrix.extra_pytest_args || '' }}
+        pytest_target: ${{ matrix.pytest_target || 'pandas' }}
+        pandas_future_infer_string: ${{ matrix.pandas_future_infer_string || '1' }}
+        pandas_future_python_scalars: ${{ matrix.pandas_future_python_scalars || '0' }}
+      if: ${{ matrix.pytest_marker_expression == '' && (always() && steps.build.outcome == 'success')}}
 
   macos-windows:
     timeout-minutes: 90
@@ -201,11 +201,6 @@ jobs:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
       group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.environment }}-${{ matrix.os }}
       cancel-in-progress: true
-    env:
-      PANDAS_CI: 1
-      PYTEST_TARGET: pandas
-      PATTERN: "not slow and not db and not network and not single_cpu"
-      PYTEST_WORKERS: 'auto'
 
     steps:
       - name: Checkout
@@ -220,9 +215,17 @@ jobs:
 
       - name: Build Pandas
         uses: ./.github/actions/build_pandas_pixi
+        with:
+          environment: ${{ matrix.environment }}
 
       - name: Test
         uses: ./.github/actions/run-tests
+        with:
+          environment: ${{ matrix.environment }}
+          numprocesses: 'auto'
+          extra_pytest_args: ''
+          pytest_marker_expression: 'not slow and not db and not network and not single_cpu'
+          pytest_target: 'pandas'
 
   Linux-32-bit:
     runs-on: ubuntu-24.04
@@ -364,7 +367,7 @@ jobs:
           python -m pip list
 
       - name: Run Tests
-        uses: ./.github/actions/run-tests
+        run: ci/run_tests.sh
 
   # NOTE: this job must be kept in sync with the Pyodide build job in wheels.yml
   emscripten:

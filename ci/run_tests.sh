@@ -1,4 +1,5 @@
 #!/bin/bash -e
+
 # Workaround for pytest-xdist (it collects different tests in the workers if PYTHONHASHSEED is not set)
 # https://github.com/pytest-dev/pytest/issues/920
 # https://github.com/pytest-dev/pytest/issues/1075
@@ -13,4 +14,5 @@ if [[ "$PATTERN" ]]; then
   PYTEST_CMD="$PYTEST_CMD -m \"$PATTERN\""
 fi
 
-eval "$PYTEST_CMD"
+echo "$PYTEST_CMD"
+sh -c "$PYTEST_CMD"
