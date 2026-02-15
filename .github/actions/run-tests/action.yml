@@ -35,6 +35,7 @@ runs:
         PYTHONWARNDEFAULTENCODING: 1
         # Clipboard tests
         QT_QPA_PLATFORM: offscreen
+        PYTHONHASHSEED: 123
       run: |
         python -m pytest \
           -r fE \
