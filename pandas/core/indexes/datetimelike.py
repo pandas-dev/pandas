@@ -222,6 +222,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
 
         if isinstance(self, PeriodIndex):
             warnings.warn(
+                # GH#64157
                 "PeriodIndex.freqstr is deprecated and will be removed in a "
                 "future version. Use obj.unit instead",
                 Pandas4Warning,
