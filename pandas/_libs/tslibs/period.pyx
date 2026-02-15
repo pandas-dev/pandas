@@ -1543,7 +1543,7 @@ def from_ordinals(const int64_t[:] values, freq):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def extract_ordinals(ndarray values, freq) -> np.ndarray:
+def extract_ordinals(ndarray values, PeriodDtypeBase dtype) -> np.ndarray:
     # values is object-dtype, may be 2D
 
     cdef:
@@ -1559,13 +1559,13 @@ def extract_ordinals(ndarray values, freq) -> np.ndarray:
         # if we don't raise here, we'll segfault later!
         raise TypeError("extract_ordinals values must be object-dtype")
 
-    freqstr = PeriodDtypeBase(freq._period_dtype_code, freq.n)._freqstr
+    freqstr = dtype._freqstr
 
     for i in range(n):
         # Analogous to: p = values[i]
         p = <object>(<PyObject**>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
 
-        ordinal = _extract_ordinal(p, freqstr, freq)
+        ordinal = _extract_ordinal(p, freqstr)
 
         # Analogous to: ordinals[i] = ordinal
         (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = ordinal
@@ -1575,7 +1575,7 @@ def extract_ordinals(ndarray values, freq) -> np.ndarray:
     return ordinals
 
 
-cdef int64_t _extract_ordinal(object item, str freqstr, freq) except? -1:
+cdef int64_t _extract_ordinal(object item, str freqstr) except? -1:
     """
     See extract_ordinals.
     """
@@ -1600,7 +1600,7 @@ cdef int64_t _extract_ordinal(object item, str freqstr, freq) except? -1:
                 raise IncompatibleFrequency(msg)
 
         except AttributeError:
-            item = Period(item, freq=freq)
+            item = Period(item, freq=freqstr)
             if item is NaT:
                 # input may contain NaT-like string
                 ordinal = NPY_NAT
@@ -1610,7 +1610,7 @@ cdef int64_t _extract_ordinal(object item, str freqstr, freq) except? -1:
     return ordinal
 
 
-def extract_freq(ndarray[object] values) -> BaseOffset:
+def extract_period_unit(ndarray[object] values) -> str:
     # TODO: Change type to const object[:] when Cython supports that.
 
     cdef:
@@ -1621,7 +1621,7 @@ def extract_freq(ndarray[object] values) -> BaseOffset:
         value = values[i]
 
         if is_period_object(value):
-            return value.freq
+            return value.freqstr
 
     raise ValueError("freq not specified and cannot be inferred")
 
@@ -1749,27 +1749,21 @@ cdef class PeriodMixin:
         """
         return self.to_timestamp(how="end")
 
-    def _require_matching_freq(self, other: BaseOffset, bint base=False):
+    def _require_matching_unit(self, other_unit: str, bint base=False):
         # See also arrays.period.raise_on_incompatible
         if base:
-            condition = self.freq.base != other.base
+            # Strip leading digits and possibly a minus sign
+            pat = r"^-?\d+"
+            condition = re.sub(pat, "", self.freqstr) != re.sub(pat, "", other_unit)
         else:
-            condition = self.freq != other
+            condition = self.freqstr != other_unit
 
         if condition:
-            freqstr = PeriodDtypeBase(
-                self.freq._period_dtype_code, self.freq.n
-            )._freqstr
-            if hasattr(other, "_period_dtype_code"):
-                other_freqstr = PeriodDtypeBase(
-                    other._period_dtype_code, other.n
-                )._freqstr
-            else:
-                other_freqstr = other.freqstr
+            freqstr = self.freqstr
             msg = DIFFERENT_FREQ.format(
                 cls=type(self).__name__,
                 own_freq=freqstr,
-                other_freq=other_freqstr,
+                other_freq=other_unit,
             )
             raise IncompatibleFrequency(msg)
 
@@ -1876,7 +1870,7 @@ cdef class _Period(PeriodMixin):
                     return False
                 elif op == Py_NE:
                     return True
-                self._require_matching_freq(other.freq)
+                self._require_matching_unit(other._dtype._freqstr)
             return PyObject_RichCompareBool(self._ordinal, other._ordinal, op)
         elif other is NaT:
             return op == Py_NE
@@ -1925,7 +1919,7 @@ cdef class _Period(PeriodMixin):
         cdef:
             int64_t ordinal
 
-        self._require_matching_freq(other, base=True)
+        self._require_matching_unit(other._period_unit, base=True)
 
         ordinal = self._ordinal + other.n
         return Period(ordinal=ordinal, freq=self._freq)
@@ -1970,7 +1964,7 @@ cdef class _Period(PeriodMixin):
         ):
             return self + (-other)
         elif is_period_object(other):
-            self._require_matching_freq(other.freq)
+            self._require_matching_unit(other._dtype._freqstr)
             # GH 23915 - mul by base freq since __add__ is agnostic of n
             return (self._ordinal - other._ordinal) * self._freq.base
         elif other is NaT:

@@ -68,7 +68,6 @@ from pandas.arrays import (
     NumpyExtensionArray,
 )
 from pandas.core.algorithms import unique
-from pandas.core.arrays import ArrowExtensionArray
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.arrays.datetimes import (
     maybe_convert_dtype,
@@ -93,6 +92,7 @@ if TYPE_CHECKING:
         DataFrame,
         Series,
     )
+    from pandas.core.arrays import ArrowExtensionArray
 
 # ---------------------------------------------------------------------
 # types used in annotations
@@ -376,7 +376,7 @@ def _convert_listlike_datetimes(
         if utc:
             # pyarrow uses UTC, not lowercase utc
             if isinstance(arg, Index):
-                arg_array = cast(ArrowExtensionArray, arg.array)
+                arg_array = cast("ArrowExtensionArray", arg.array)
                 if arg_dtype.pyarrow_dtype.tz is not None:
                     arg_array = arg_array._dt_tz_convert("UTC")
                 else:
@@ -1054,7 +1054,7 @@ def to_datetime(
             # ndarray[Any, Any], Series]"; expected "Union[List[Any], Tuple[Any, ...],
             # Union[Union[ExtensionArray, ndarray[Any, Any]], Index, Series], Series]"
             argc = cast(
-                Union[list, tuple, ExtensionArray, np.ndarray, "Series", Index], arg
+                "Union[list, tuple, ExtensionArray, np.ndarray, Series, Index]", arg
             )
             cache_array = _maybe_cache(argc, format, cache, convert_listlike)
         except OutOfBoundsDatetime:
