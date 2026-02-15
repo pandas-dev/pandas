@@ -4177,12 +4177,13 @@ class DataFrame(NDFrame, OpsMixin):
             if not is_mi:
                 try:
                     loc = self.columns.get_loc(key)
-                    # int: key unique; slice/array: key duplicated (fall through).
-                    if isinstance(loc, int):
-                        return self._get_item(key)
                 except (KeyError, InvalidIndexError):
                     # Key missing or invalid; fall through to list/slice/other paths.
                     pass
+                else:
+                    # int: key unique; slice/array: key duplicated (fall through).
+                    if isinstance(loc, int):
+                        return self._get_item(key)
             elif is_mi and self.columns.is_unique and key in self.columns:
                 return self._getitem_multilevel(key)
 
