@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import numpy as np
 import pytest
 
 import pandas as pd
@@ -82,7 +83,7 @@ _legacy_files = list(Path(__file__).parent.parent.glob("data/legacy_hdf/*/*.h5")
 
 
 @pytest.mark.parametrize("legacy_file", _legacy_files, ids=lambda x: x.name)
-def test_legacy_files(datapath, legacy_file, request):
+def test_legacy_files(datapath, legacy_file, using_infer_string, request):
     legacy_version = Version(legacy_file.parent.name)
     if legacy_version < Version("2.2.0"):
         request.node.add_marker(
@@ -96,20 +97,33 @@ def test_legacy_files(datapath, legacy_file, request):
 
     expected = create_dataframe_all_types()
 
+    # the fixed format doesn't include categorical columns (not supported)
     if legacy_file.endswith("fixed.h5"):
         expected = expected.drop(
             columns=["categorical", "categorical_object", "categorical_int"]
         )
 
     # object dtype columns with strings get read as `str`
-    expected["object"] = expected["object"].astype("str")
-    expected["object_nan"] = expected["object_nan"].astype("str")
-    if legacy_file.endswith("table.h5"):
-        expected["categorical_object"] = expected["categorical_object"].astype(
-            pd.CategoricalDtype(
-                expected["categorical_object"].cat.categories.astype("str")
+    if using_infer_string:
+        expected["object"] = expected["object"].astype("str")
+        expected["object_nan"] = expected["object_nan"].astype("str")
+        if legacy_file.endswith("table.h5"):
+            expected["categorical_object"] = expected["categorical_object"].astype(
+                pd.CategoricalDtype(
+                    expected["categorical_object"].cat.categories.astype("str")
+                )
             )
-        )
+    else:
+        expected["string"] = expected["string"].astype("object")
+        if legacy_file.endswith("table.h5"):
+            expected["object"] = expected["object"].fillna(np.nan)
+            expected["categorical"] = expected["categorical"].astype(
+                pd.CategoricalDtype(
+                    expected["categorical"].cat.categories.astype(object)
+                )
+            )
+        else:
+            expected["string"] = expected["string"].fillna("nan")
 
     if legacy_version < Version("2.2.0") or (
         legacy_version < Version("3.0.0") and legacy_file.endswith("fixed.h5")
