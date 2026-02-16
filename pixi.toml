@@ -139,5 +139,15 @@ args = [
   { "arg" = "editable", "default" = "" },
   { "arg" = "werror", "default" = "" },
 ]
-cmd = "python -m pip install --verbose {{ editable }} . --no-build-isolation --no-deps {{ werror }}"
+cmd = [
+    "python",
+    "-m",
+    "pip",
+    "install",
+    "--verbose",
+    "{{ editable }} .",
+    "--no-build-isolation",
+    "--no-deps",
+    "{{ werror }}"
+]
 depends-on = ["clean-pandas"]
