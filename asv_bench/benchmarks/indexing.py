@@ -444,8 +444,7 @@ class DataFrameGetitemDuplicateColumns:
 
     Previously each access called columns.drop_duplicates(keep=False), which
     built a new Index (O(n)). Now we use get_loc(key), so this path is O(1)
-    for hash-based indexes. Running asv compare before vs after the fix
-    shows the speedup.
+    for hash-based indexes.
     """
 
     params = [1_000, 10_000, 100_000, 1_000_000]
