@@ -128,3 +128,16 @@ freethreading = { features = ["freethreading", "numpy", "test-base", "pytest-cov
 numpy-nightly = { features = ["py313", "numpy-nightly", "test-base", "pytest-cov-conda"] }
 pyarrow-nightly = { features = ["py313", "numpy", "test-base", "pytest-cov-conda", "pyarrow-nightly"] }
 downstream = { features = ["py313", "numpy", "test-base", "pytest-cov-conda", "downstream"] }
+
+
+[tasks]
+[tasks.clean-pandas]
+cmd = "python -m pip uninstall -y pandas || true"
+
+[tasks.build-pandas]
+args = [
+  { "arg" = "editable", "default" = "" },
+  { "arg" = "werror", "default" = "" },
+]
+cmd = "python -m pip install {{ editable }} --verbose . --no-build-isolation --no-deps {{ werror }}"
+depends-on = ["clean-pandas"]

@@ -153,16 +153,26 @@ jobs:
       with:
         environment: ${{ matrix.environment }}
 
-    - name: Build Pandas
+    - name: Build pandas
       id: build
-      uses: ./.github/actions/build_pandas_pixi
-      with:
-        environment: ${{ matrix.environment }}
-        # matrix.name == 'Minimum Versions' can be removed once Cython >=3.2
-        # python3.14t/cpython/pyatomic_gcc.h:63:10:
-        #   error: ‘__atomic_fetch_add_8’
-        #   writing 8 bytes into a region of size 0 overflows the destination [-Werror=stringop-overflow=]
-        werror: ${{ ! (matrix.name == 'Freethreading' || matrix.name == 'Minimum Versions') }}
+      run: |
+        pixi run \
+          --environment ${{ inputs.environment }}
+          build \
+          --editable \
+          ${{ ! (matrix.name == 'Freethreading' || matrix.name == 'Minimum Versions') && '-Csetup-args="--werror"' || '' }}
+      shell: bash -euox pipefail {0}
+
+    # - name: Build Pandas
+    #   id: build
+    #   uses: ./.github/actions/build_pandas_pixi
+    #   with:
+    #     environment: ${{ matrix.environment }}
+    #     # matrix.name == 'Minimum Versions' can be removed once Cython >=3.2
+    #     # python3.14t/cpython/pyatomic_gcc.h:63:10:
+    #     #   error: ‘__atomic_fetch_add_8’
+    #     #   writing 8 bytes into a region of size 0 overflows the destination [-Werror=stringop-overflow=]
+    #     werror: ${{ ! (matrix.name == 'Freethreading' || matrix.name == 'Minimum Versions') }}
 
     - name: Test (not single_cpu)
       uses: ./.github/actions/run-tests
