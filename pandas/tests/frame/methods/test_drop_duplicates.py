@@ -521,5 +521,7 @@ def test_drop_duplicates_with_empty_missing():
     df = DataFrame(data={"A": ["a", "b", "", "a", None, "b"]})
     df["B"] = "b"
     result = df.drop_duplicates()
-    expected = DataFrame(data={"A": ["a", "b", "", None], "B": ["b", "b", "b", "b"]})
+    expected = DataFrame(
+        data={"A": ["a", "b", "", None], "B": ["b", "b", "b", "b"]}, index=[0, 1, 2, 4]
+    )
     tm.assert_frame_equal(result, expected)
