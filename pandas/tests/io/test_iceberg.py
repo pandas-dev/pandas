@@ -16,7 +16,13 @@ import pandas._testing as tm
 
 from pandas.io.iceberg import read_iceberg
 
-pytestmark = pytest.mark.single_cpu
+pytestmark = [
+    pytest.mark.single_cpu,
+    pytest.mark.xfail(
+        condition=pd.options.future.infer_string is False,
+        reason="TODO: Tests fail with PANDAS_FUTURE_INFER_STRING=0",
+    ),
+]
 
 pyiceberg = pytest.importorskip("pyiceberg")
 pyiceberg_catalog = pytest.importorskip("pyiceberg.catalog")
