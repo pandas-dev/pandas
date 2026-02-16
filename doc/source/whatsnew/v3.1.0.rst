@@ -200,6 +200,7 @@ Sparse
 
 ExtensionArray
 ^^^^^^^^^^^^^^
+- Fixed bug in :meth:`Series.apply` and :meth:`Series.map` where nullable integer dtypes were converted to float, causing precision loss for large integers; now the nullable dtype will be preserved (:issue:`63903`).
 -
 -
 
