@@ -298,6 +298,52 @@ def create_pickle_data(test: bool = True):
     }
 
 
+def create_dataframe_all_types():
+    timestamps = Series(
+        [
+            Timestamp("2013-01-01"),
+            NaT,
+            Timestamp("2013-01-03"),
+            Timestamp("2013-01-04"),
+            Timestamp("2013-01-05"),
+        ]
+    )
+    timedeltas = timestamps - timestamps[0]
+
+    data = {
+        # "string": Series(
+        #     ["a", "b", "c", None, "e"], dtype=StringDtype(na_value=np.nan)
+        # ),
+        # "object": Series(["a", "b", "c", None, "e"], dtype=object),
+        # "object_nan": Series(["a", "b", "c", np.nan, "e"], dtype=object),
+        "int": list(range(1, 6)),
+        "uint64": np.arange(3, 8).astype("uint64"),
+        "float": [0.1, 0.2, 0.3, 0.4, np.nan],
+        "float32": Series([0.1, 0.2, 0.3, 0.4, np.nan], dtype="float32"),
+        "bool": [True, False, True, False, True],
+        "datetime_ns": timestamps.dt.as_unit("ns"),
+        "datetime_us": timestamps.dt.as_unit("us"),
+        "datetime_ms": timestamps.dt.as_unit("ms"),
+        "datetime_s": timestamps.dt.as_unit("s"),
+        "datetimetz_ns": timestamps.dt.tz_localize("US/Eastern").dt.as_unit("ns"),
+        "datetimetz_us": timestamps.dt.tz_localize("US/Eastern").dt.as_unit("us"),
+        "timedelta_ns": timedeltas.dt.as_unit("ns"),
+        "timedelta_us": timedeltas.dt.as_unit("us"),
+        "timedelta_ms": timedeltas.dt.as_unit("ms"),
+        "timedelta_s": timedeltas.dt.as_unit("s"),
+        # "categorical": Categorical(
+        #     Series(
+        #         ["foo", "bar", "baz",np.nan,"foo"],dtype=StringDtype(na_value=np.nan)
+        #     )
+        # ),
+        # "categorical_object": Categorical(
+        #     Series(["foo", "bar", "baz", np.nan, "foo"], dtype=object)
+        # ),
+        "categorical_int": Categorical([1, 2, 3, np.nan, 1]),
+    }
+    return DataFrame(data)
+
+
 def platform_name():
     return "_".join(
         [
@@ -310,22 +356,32 @@ def platform_name():
 
 
 def write_legacy_pickles(output_dir):
-    version = pandas.__version__
-
-    print(
-        "This script generates a storage file for the current arch, system, "
-        "and python version"
-    )
-    print(f"  pandas version: {version}")
-    print(f"  output dir    : {output_dir}")
-    print("  storage format: pickle")
-
     pth = f"{platform_name()}.pickle"
 
     with open(os.path.join(output_dir, pth), "wb") as fh:
         pickle.dump(create_pickle_data(test=False), fh, pickle.DEFAULT_PROTOCOL)
 
     print(f"created pickle file: {pth}")
+
+
+def write_legacy_hdf(output_dir, format):
+    import tables
+
+    pth = f"{platform_name()}_pytables-{tables.__version__}_{format}.h5"
+
+    df = create_dataframe_all_types()
+    if format == "fixed":
+        # df = df.drop(columns=["categorical", "categorical_object", "categorical_int"])
+        df = df.drop(columns=["categorical_int"])
+    complevel = 9 if format == "table" else None
+    df.to_hdf(
+        os.path.join(output_dir, pth),
+        key="df_alltypes",
+        format=format,
+        complevel=complevel,
+    )
+
+    print(f"created hdf file: {pth}")
 
 
 def write_legacy_file():
@@ -341,13 +397,24 @@ def write_legacy_file():
     output_dir = str(sys.argv[1])
     storage_type = str(sys.argv[2])
 
+    print(
+        "This script generates a storage file for the current arch, system, "
+        "and python version"
+    )
+    print(f"  pandas version: {pandas.__version__}")
+    print(f"  output dir    : {output_dir}")
+    print(f"  storage format: {storage_type}")
+
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
 
     if storage_type == "pickle":
         write_legacy_pickles(output_dir=output_dir)
+    elif storage_type == "hdf":
+        write_legacy_hdf(output_dir=output_dir, format="fixed")
+        write_legacy_hdf(output_dir=output_dir, format="table")
     else:
-        sys.exit("storage_type must be one of {'pickle'}")
+        sys.exit("storage_type must be one of {'pickle', 'hdf'}")
 
 
 if __name__ == "__main__":
