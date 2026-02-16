@@ -316,6 +316,7 @@ def test_array_copy():
     assert tm.shares_memory(a, b)
 
 
+# GH
 @pytest.mark.parametrize(
     "data",
     [
@@ -329,10 +330,13 @@ def test_array_copy():
         [[[1]], [["a"]], [[3.14]]],
     ],
 )
-def test_array_string(data):
+def test_array_string_nd(data):
     result = pd.array(data, dtype="str")
-    expected = [str(i) for i in data]
-    expected = pd.array(expected, dtype="str")
+    expected = (
+        pd.StringDtype(na_value=np.nan)
+        .construct_array_type()
+        ._from_sequence(data, dtype=pd.StringDtype(na_value=np.nan))
+    )
     tm.assert_equal(result, expected)
 
 
