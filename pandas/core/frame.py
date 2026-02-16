@@ -9107,6 +9107,28 @@ class DataFrame(NDFrame, OpsMixin):
         #  to avoid constructing two potentially large/sparse DataFrames
         join_columns = left.columns.join(right.columns, how="outer")
 
+        # GH#63288 Preserve ExtensionDtype (e.g. pyarrow) when reindexing
+        # introduces missing columns
+        from pandas.core.dtypes.base import ExtensionDtype
+
+        missing_cols = [c for c in join_columns if c not in result.columns]
+
+        if missing_cols:
+            for col in missing_cols:
+                src = left[col] if col in left.columns else right[col]
+
+                if isinstance(src.dtype, ExtensionDtype):
+                    # Create NA-filled Series with same ExtensionDtype
+                    fill = src.iloc[:0].reindex(result.index)
+                else:
+                    # Fallback to existing NumPy behavior
+                    fill = self._constructor_sliced(
+                        [np.nan] * len(result.index),
+                        index=result.index,
+                    )
+
+                result[col] = fill
+
         if result.columns.has_duplicates:
             # Avoid reindexing with a duplicate axis.
             # https://github.com/pandas-dev/pandas/issues/35194
