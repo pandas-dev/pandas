@@ -1807,7 +1807,7 @@ cdef class _Period(PeriodMixin):
 
     @cache_readonly
     def _freq(self) -> BaseOffset:
-        return to_offset(self._dtype._freqstr, is_period=True)
+        return to_offset(self._dtype.unit, is_period=True)
 
     @property
     def freq(self):
