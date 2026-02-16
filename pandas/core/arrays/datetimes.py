@@ -510,7 +510,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             # Nanosecond-granularity timestamps aren't always correctly
             # representable with doubles, so we limit the range that we
             # pass to np.linspace as much as possible
-            periods = cast(int, periods)
+            periods = cast("int", periods)
             i8values = (
                 np.linspace(0, end._value - start._value, periods, dtype="int64")
                 + start._value
@@ -1138,6 +1138,10 @@ default 'raise'
     def to_pydatetime(self) -> npt.NDArray[np.object_]:
         """
         Return an ndarray of ``datetime.datetime`` objects.
+
+        This method converts each element in the DatetimeArray to a native
+        Python ``datetime.datetime`` object, including timezone information
+        if present.
 
         Returns
         -------
@@ -2339,7 +2343,7 @@ default 'raise'
 
     def to_julian_date(self) -> npt.NDArray[np.float64]:
         """
-        Convert TimeStamp to a Julian Date.
+        Convert Timestamp to a Julian Date.
 
         This method returns the number of days as a float since noon January 1, 4713 BC.
 
@@ -2532,7 +2536,7 @@ def _sequence_to_dt64(
     if data_dtype == object or is_string_dtype(data_dtype):
         # TODO: We do not have tests specific to string-dtypes,
         #  also complex or categorical or other extension
-        data = cast(np.ndarray, data)
+        data = cast("np.ndarray", data)
         copy = False
         if lib.infer_dtype(data, skipna=False) == "integer":
             # Much more performant than going through array_to_datetime
@@ -2577,7 +2581,7 @@ def _sequence_to_dt64(
     # so we need to handle these types.
     if isinstance(data_dtype, DatetimeTZDtype):
         # DatetimeArray -> ndarray
-        data = cast(DatetimeArray, data)
+        data = cast("DatetimeArray", data)
         tz = _maybe_infer_tz(tz, data.tz)
         result = data._ndarray
 
@@ -2586,7 +2590,7 @@ def _sequence_to_dt64(
         if isinstance(data, DatetimeArray):
             data = data._ndarray
 
-        data = cast(np.ndarray, data)
+        data = cast("np.ndarray", data)
         result, copy = _construct_from_dt64_naive(
             data, tz=tz, copy=copy, ambiguous=ambiguous
         )
@@ -2597,7 +2601,7 @@ def _sequence_to_dt64(
         if data.dtype != INT64_DTYPE:
             data = data.astype(np.int64, copy=False)
             copy = False
-        data = cast(np.ndarray, data)
+        data = cast("np.ndarray", data)
         result = data.view(out_dtype)
 
     if copy:
@@ -2862,7 +2866,7 @@ def _validate_dt64_dtype(dtype):
             # Without this, things like adding an array of timedeltas and
             # a  tz-aware Timestamp (with a tz specific to its datetime) will
             # be incorrect(ish?) for the array as a whole
-            dtype = cast(DatetimeTZDtype, dtype)
+            dtype = cast("DatetimeTZDtype", dtype)
             dtype = DatetimeTZDtype(
                 unit=dtype.unit, tz=timezones.tz_standardize(dtype.tz)
             )
@@ -3087,8 +3091,8 @@ def _generate_range(
         # argument type "None"
         start = end - (periods - 1) * offset  # type: ignore[operator]
 
-    start = cast(Timestamp, start)
-    end = cast(Timestamp, end)
+    start = cast("Timestamp", start)
+    end = cast("Timestamp", end)
 
     cur = start
     if offset.n >= 0:

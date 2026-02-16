@@ -9,7 +9,10 @@ from functools import partial
 import numpy as np
 import pytest
 
-from pandas.errors import SpecificationError
+from pandas.errors import (
+    Pandas4Warning,
+    SpecificationError,
+)
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_integer_dtype
@@ -1032,13 +1035,31 @@ def test_groupby_aggregate_empty_key_empty_return():
     tm.assert_frame_equal(result, expected)
 
 
-def test_groupby_aggregate_empty_with_multiindex_frame():
+def test_groupby_aggregate_empty_with_multiindex_frame_single(as_index):
+    # GH 39178, 51445
+    df = DataFrame(columns=["a", "b", "c"])
+    gb = df.groupby(["a", "b"], group_keys=False, as_index=as_index)
+    result = gb.agg(lambda x: x.sum())
+    expected = DataFrame(
+        columns=["c"], index=MultiIndex([[], []], [[], []], names=["a", "b"])
+    )
+    if not as_index:
+        expected = expected.reset_index()
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_aggregate_empty_with_multiindex_frame_multi(as_index):
     # GH 39178
     df = DataFrame(columns=["a", "b", "c"])
-    result = df.groupby(["a", "b"], group_keys=False).agg(d=("c", list))
+    result = df.groupby(["a", "b"], group_keys=False, as_index=as_index).agg(
+        d=("c", list)
+    )
     expected = DataFrame(
         columns=["d"], index=MultiIndex([[], []], [[], []], names=["a", "b"])
     )
+    if not as_index:
+        expected = expected.reset_index()
+
     tm.assert_frame_equal(result, expected)
 
 
@@ -1252,6 +1273,20 @@ class TestLambdaMangling:
         expected = DataFrame({"<lambda_0>": [13], "<lambda_1>": [30]})
         tm.assert_frame_equal(result, expected)
 
+    def test_unused_kwargs(self):
+        # https://github.com/pandas-dev/pandas/issues/39169
+        # agg behavior should not change in the presence of unused args.
+        func = lambda data, **kwargs: np.sum(np.sum(data))
+
+        df = DataFrame([[1, 2], [3, 4]])
+        expected = DataFrame({0: [1, 3], 1: [2, 4]})
+
+        result = df.groupby(level=0).agg(func)
+        tm.assert_frame_equal(result, expected)
+
+        result = df.groupby(level=0).agg(func, foo=42)
+        tm.assert_frame_equal(result, expected)
+
     def test_agg_with_one_lambda(self):
         # GH 25719, write tests for DataFrameGroupby.agg with only one lambda
         df = DataFrame(
@@ -1337,6 +1372,22 @@ class TestLambdaMangling:
             weight_min=pd.NamedAgg(column="weight", aggfunc=lambda x: np.min(x)),
         )
         tm.assert_frame_equal(result2, expected)
+
+    @pytest.mark.parametrize("use_kwargs", [True, False])
+    def test_multiple_udf_with_args(self, use_kwargs):
+        # https://github.com/pandas-dev/pandas/issues/26611
+        def func(x, y):
+            return x.sum() + y
+
+        df = DataFrame({"A": [1, 2]})
+        expected = DataFrame({"A": [13]}, index=Index([0], dtype="intp"))
+        gb = df.groupby([0, 0])
+        if use_kwargs:
+            args, kwargs = (), {"y": 10}
+        else:
+            args, kwargs = (10,), {}
+        result = gb.agg(func, *args, **kwargs)
+        tm.assert_frame_equal(result, expected)
 
 
 def test_pass_args_kwargs_duplicate_columns(tsframe, as_index):
@@ -1537,7 +1588,9 @@ def test_groupby_agg_precision(any_real_numeric_dtype):
     expected = DataFrame(
         {"key3": pd.array([max_value], dtype=any_real_numeric_dtype)}, index=index
     )
-    result = df.groupby(["key1", "key2"]).agg(lambda x: x)
+    msg = "Converting a Series or array of length 1 into a scalar"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = df.groupby(["key1", "key2"]).agg(lambda x: x)
     tm.assert_frame_equal(result, expected)
 
 
@@ -1631,7 +1684,9 @@ def test_groupby_complex_raises(func):
 def test_agg_of_mode_list(test, constant):
     # GH#25581
     df1 = DataFrame(test)
-    result = df1.groupby(0).agg(Series.mode)
+    msg = "Converting a Series or array of length 1 into a scalar"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = df1.groupby(0).agg(Series.mode)
     # Mode usually only returns 1 value, but can return a list in the case of a tie.
 
     expected = DataFrame(constant)

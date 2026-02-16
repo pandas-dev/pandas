@@ -96,6 +96,10 @@ Each of these aliases listed in the table below can be found by importing them f
      - Argument type for ``level`` in multiple methods
    * - .. type:: InterpolateOptions
      - Argument type for ``interpolate`` in :meth:`DataFrame's <pandas.DataFrame.interpolate>` and :meth:`Series' <pandas.Series.interpolate>` ``interpolate()`` methods
+   * - .. type:: IntervalClosedType
+     - Argument type for ``closed`` in :class:`~pandas.Interval`, :class:`~pandas.IntervalIndex`, and ``inclusive`` in various methods
+   * - .. type:: IntervalLeftRight
+     - Restriction for ``closed`` to be ``left`` or ``right`` in :class:`~pandas.Interval`, :class:`~pandas.IntervalIndex`, and ``inclusive`` in various methods
    * - .. type:: JSONEngine
      - Argument type for ``engine`` in :meth:`pandas.read_json`
    * - .. type:: JSONSerializable
@@ -104,6 +108,8 @@ Each of these aliases listed in the table below can be found by importing them f
      - Argument type for ``how`` in :meth:`pandas.merge_ordered` and for ``join`` in :meth:`Series.align() <pandas.Series.align>`
    * - .. type:: JoinValidate
      - Argument type for ``validate`` in :meth:`DataFrame.join() <pandas.DataFrame.join>`
+   * - .. type:: ListLike
+     - Argument type for arguments that can be either a single value or a list of values in various methods
    * - .. type:: MergeHow
      - Argument type for ``how`` in :meth:`pandas.merge`
    * - .. type:: MergeValidate
@@ -130,6 +136,10 @@ Each of these aliases listed in the table below can be found by importing them f
      - Argument type for ``reindex`` in :meth:`DataFrame's <pandas.DataFrame.reindex>` and :meth:`Series' <pandas.Series.reindex>` ``reindex()`` methods
    * - .. type:: Scalar
      - Types that can be stored in :class:`~pandas.Series` with non-object dtype
+   * - .. type:: ScalarIndexer
+     - Argument type used for scalar indexing operations, such as the ``key`` argument in ``__getitem__()`` methods
+   * - .. type:: SequenceIndexer
+     - Argument type used for sequence indexing operations, such as the ``key`` argument in ``__getitem__()`` methods
    * - .. type:: SequenceNotStr
      - Used for arguments that require sequences, but not plain strings
    * - .. type:: SliceType

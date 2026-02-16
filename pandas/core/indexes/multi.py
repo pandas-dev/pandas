@@ -30,21 +30,6 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.hashtable import duplicated
-from pandas._typing import (
-    AnyAll,
-    AnyArrayLike,
-    Axis,
-    DropKeep,
-    DtypeObj,
-    F,
-    IgnoreRaise,
-    IndexLabel,
-    IndexT,
-    NaPosition,
-    Scalar,
-    Shape,
-    npt,
-)
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
     InvalidIndexError,
@@ -115,6 +100,22 @@ from pandas.core.sorting import (
 from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        AnyAll,
+        AnyArrayLike,
+        Axis,
+        DropKeep,
+        DtypeObj,
+        F,
+        IgnoreRaise,
+        IndexLabel,
+        IndexT,
+        NaPosition,
+        Scalar,
+        Shape,
+        npt,
+    )
+
     from pandas import (
         CategoricalIndex,
         DataFrame,
@@ -190,13 +191,17 @@ def names_compat(meth: F) -> F:
 
         return meth(self_or_cls, *args, **kwargs)
 
-    return cast(F, new_meth)
+    return cast("F", new_meth)
 
 
 @set_module("pandas")
 class MultiIndex(Index):
     """
     A multi-level, or hierarchical, index object for pandas objects.
+
+    A MultiIndex allows indexing with multiple keys, effectively enabling
+    multiple dimensions of indexing on a single axis. It can be thought of
+    as an array of tuples where each tuple is unique.
 
     Parameters
     ----------
@@ -449,6 +454,10 @@ class MultiIndex(Index):
         """
         Convert arrays to MultiIndex.
 
+        Each array in the input corresponds to one level of the output
+        MultiIndex. The i-th element of each array together form the i-th
+        tuple in the resulting MultiIndex.
+
         Parameters
         ----------
         arrays : list / sequence of array-likes
@@ -521,6 +530,10 @@ class MultiIndex(Index):
         """
         Convert list of tuples to MultiIndex.
 
+        Each tuple in the input represents a single entry in the resulting
+        MultiIndex. The number of elements in each tuple determines the
+        number of levels.
+
         Parameters
         ----------
         tuples : list / sequence of tuple-likes
@@ -556,7 +569,7 @@ class MultiIndex(Index):
             raise TypeError("Input must be a list / sequence of tuple-likes.")
         if is_iterator(tuples):
             tuples = list(tuples)
-        tuples = cast(Collection[tuple[Hashable, ...]], tuples)
+        tuples = cast("Collection[tuple[Hashable, ...]]", tuples)
 
         # handling the empty tuple cases
         if len(tuples) and all(isinstance(e, tuple) and not e for e in tuples):
@@ -586,7 +599,7 @@ class MultiIndex(Index):
             arrays = list(lib.to_object_array_tuples(tuples).T)
         else:
             arrs = zip_longest(*tuples, fillvalue=np.nan)
-            arrays = cast(list[Sequence[Hashable]], arrs)
+            arrays = cast("list[Sequence[Hashable]]", arrs)
 
         return cls.from_arrays(arrays, sortorder=sortorder, names=names)
 
@@ -599,6 +612,9 @@ class MultiIndex(Index):
     ) -> MultiIndex:
         """
         Make a MultiIndex from the cartesian product of multiple iterables.
+
+        This method generates a MultiIndex containing all combinations of the
+        input iterables, similar to computing the cartesian product.
 
         Parameters
         ----------
@@ -658,6 +674,9 @@ class MultiIndex(Index):
     ) -> MultiIndex:
         """
         Make a MultiIndex from a DataFrame.
+
+        Each column of the DataFrame becomes one level of the MultiIndex,
+        with the column values used as labels.
 
         Parameters
         ----------
@@ -770,6 +789,9 @@ class MultiIndex(Index):
     def dtypes(self) -> Series:
         """
         Return the dtypes as a Series for the underlying MultiIndex.
+
+        Each element in the returned Series corresponds to the dtype of one
+        level of the MultiIndex, indexed by the level names.
 
         See Also
         --------
@@ -1051,6 +1073,10 @@ class MultiIndex(Index):
         """
         Integer number of levels in this MultiIndex.
 
+        This property returns the count of levels (i.e., the depth of the
+        hierarchical index), which corresponds to the number of arrays
+        or columns used to construct the MultiIndex.
+
         See Also
         --------
         MultiIndex.levels : Get the levels of the MultiIndex.
@@ -1173,6 +1199,10 @@ class MultiIndex(Index):
     ) -> MultiIndex:
         """
         Set new codes on MultiIndex. Defaults to returning new index.
+
+        The codes map each index entry to its position in the corresponding
+        level array. This method returns a new MultiIndex with the updated
+        codes.
 
         Parameters
         ----------
@@ -1900,7 +1930,7 @@ class MultiIndex(Index):
         Returns
         -------
         Index
-            Returns an MultiIndex object after removing NA/NaN values.
+            Returns a MultiIndex object after removing NA/NaN values.
 
         See Also
         --------
@@ -2160,6 +2190,9 @@ class MultiIndex(Index):
     def to_flat_index(self) -> Index:  # type: ignore[override]
         """
         Convert a MultiIndex to an Index of Tuples containing the level values.
+
+        This is useful for compatibility with libraries or operations that
+        expect a flat, single-level index rather than a hierarchical one.
 
         Returns
         -------
@@ -3916,6 +3949,9 @@ class MultiIndex(Index):
         """
         Get location for a sequence of labels.
 
+        This method returns the integer positions in the index that match the
+        given sequence of per-level keys, slices, or boolean masks.
+
         Parameters
         ----------
         seq : label, slice, list, mask or a sequence of such
@@ -4141,6 +4177,9 @@ class MultiIndex(Index):
         """
         Slice index between two labels / tuples, return new MultiIndex.
 
+        This method returns a new MultiIndex containing only the entries
+        that fall within the specified range on the first level.
+
         Parameters
         ----------
         before : label or tuple, can be partial. Default None
@@ -4351,7 +4390,7 @@ class MultiIndex(Index):
 
     def astype(self, dtype, copy: bool = True):
         """
-        Create an MultiIndex with values cast to dtypes.
+        Create a MultiIndex with values cast to dtypes.
 
         The class of a new Index is determined by dtype. When conversion is
         impossible, a TypeError exception is raised.

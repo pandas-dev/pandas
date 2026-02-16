@@ -107,8 +107,6 @@ if TYPE_CHECKING:
         Series,
     )
 
-_extension_array_shared_docs: dict[str, str] = {}
-
 
 @set_module("pandas.api.extensions")
 class ExtensionArray:
@@ -1613,7 +1611,7 @@ class ExtensionArray:
         """
         if type(self) != type(other):
             return False
-        other = cast(ExtensionArray, other)
+        other = cast("ExtensionArray", other)
         if self.dtype != other.dtype:
             return False
         elif len(self) != len(other):
@@ -1764,48 +1762,6 @@ class ExtensionArray:
 
         uniques_ea = self._from_factorized(uniques, self)
         return codes, uniques_ea
-
-    _extension_array_shared_docs["repeat"] = """
-        Repeat elements of a %(klass)s.
-
-        Returns a new %(klass)s where each element of the current %(klass)s
-        is repeated consecutively a given number of times.
-
-        Parameters
-        ----------
-        repeats : int or array of ints
-            The number of repetitions for each element. This should be a
-            non-negative integer. Repeating 0 times will return an empty
-            %(klass)s.
-        axis : None
-            Must be ``None``. Has no effect but is accepted for compatibility
-            with numpy.
-
-        Returns
-        -------
-        %(klass)s
-            Newly created %(klass)s with repeated elements.
-
-        See Also
-        --------
-        Series.repeat : Equivalent function for Series.
-        Index.repeat : Equivalent function for Index.
-        numpy.repeat : Similar method for :class:`numpy.ndarray`.
-        ExtensionArray.take : Take arbitrary positions.
-
-        Examples
-        --------
-        >>> cat = pd.Categorical(['a', 'b', 'c'])
-        >>> cat
-        ['a', 'b', 'c']
-        Categories (3, str): ['a', 'b', 'c']
-        >>> cat.repeat(2)
-        ['a', 'a', 'b', 'b', 'c', 'c']
-        Categories (3, str): ['a', 'b', 'c']
-        >>> cat.repeat([1, 2, 3])
-        ['a', 'b', 'b', 'c', 'c', 'c']
-        Categories (3, str): ['a', 'b', 'c']
-        """
 
     def repeat(self, repeats: int | Sequence[int], axis: AxisInt | None = None) -> Self:
         """

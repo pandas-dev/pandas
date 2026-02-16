@@ -13,20 +13,11 @@ from __future__ import annotations
 
 import collections
 from collections import abc
-from collections.abc import (
-    Callable,
-    Hashable,
-    Iterable,
-    Iterator,
-    Mapping,
-    Sequence,
-)
 import functools
 from io import StringIO
 import itertools
 import operator
 import sys
-from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -182,7 +173,6 @@ from pandas.core.internals.construction import (
 from pandas.core.methods import selectn
 from pandas.core.reshape.melt import melt
 from pandas.core.series import Series
-from pandas.core.shared_docs import _shared_docs
 from pandas.core.sorting import (
     get_group_index,
     lexsort_indexer,
@@ -198,6 +188,14 @@ from pandas.io.formats.info import DataFrameInfo
 import pandas.plotting
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Callable,
+        Hashable,
+        Iterable,
+        Iterator,
+        Mapping,
+        Sequence,
+    )
     import datetime
 
     from pandas._libs.internals import BlockValuesRefs
@@ -546,7 +544,7 @@ class DataFrame(NDFrame, OpsMixin):
         elif isinstance(data, (np.ndarray, Series, Index, ExtensionArray)):
             if data.dtype.names:
                 # i.e. numpy structured array
-                data = cast(np.ndarray, data)
+                data = cast("np.ndarray", data)
                 mgr = rec_array_to_mgr(
                     data,
                     index,
@@ -1076,6 +1074,9 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Render a DataFrame to a console-friendly tabular output.
 
+        This method converts the DataFrame to a string representation suitable
+        for printing or writing to a file.
+
         Parameters
         ----------
         buf : str, Path or StringIO-like, optional, default None
@@ -1239,54 +1240,6 @@ class DataFrame(NDFrame, OpsMixin):
 
         return Styler(self)
 
-    _shared_docs["items"] = r"""
-        Iterate over (column name, Series) pairs.
-
-        Iterates over the DataFrame columns, returning a tuple with
-        the column name and the content as a Series.
-
-        Yields
-        ------
-        label : object
-            The column names for the DataFrame being iterated over.
-        content : Series
-            The column entries belonging to each label, as a Series.
-
-        See Also
-        --------
-        DataFrame.iterrows : Iterate over DataFrame rows as
-            (index, Series) pairs.
-        DataFrame.itertuples : Iterate over DataFrame rows as namedtuples
-            of the values.
-
-        Examples
-        --------
-        >>> df = pd.DataFrame({'species': ['bear', 'bear', 'marsupial'],
-        ...                   'population': [1864, 22000, 80000]},
-        ...                   index=['panda', 'polar', 'koala'])
-        >>> df
-                species   population
-        panda   bear      1864
-        polar   bear      22000
-        koala   marsupial 80000
-        >>> for label, content in df.items():
-        ...     print(f'label: {label}')
-        ...     print(f'content: {content}', sep='\n')
-        ...
-        label: species
-        content:
-        panda         bear
-        polar         bear
-        koala    marsupial
-        Name: species, dtype: str
-        label: population
-        content:
-        panda     1864
-        polar    22000
-        koala    80000
-        Name: population, dtype: int64
-        """
-
     def items(self) -> Iterable[tuple[Hashable, Series]]:
         r"""
         Iterate over (column name, Series) pairs.
@@ -1345,6 +1298,11 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Iterate over DataFrame rows as (index, Series) pairs.
 
+        Each row is yielded as a (index, Series) tuple; the Series has
+        the same index as the DataFrame columns. Note that dtypes may
+        not be preserved across rows. Prefer :meth:`itertuples` for
+        speed and type consistency.
+
         Yields
         ------
         index : label or tuple of label
@@ -1399,6 +1357,11 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> Iterable[tuple[Any, ...]]:
         """
         Iterate over DataFrame rows as namedtuples.
+
+        Each row becomes a namedtuple (or plain tuple if ``name`` is
+        None) with field names taken from the column names or
+        positional names. Generally faster and more type-stable than
+        :meth:`iterrows`.
 
         Parameters
         ----------
@@ -4076,7 +4039,7 @@ class DataFrame(NDFrame, OpsMixin):
                 )
 
                 new_values = transpose_homogeneous_masked_arrays(
-                    cast(Sequence[BaseMaskedArray], self._iter_column_arrays())
+                    cast("Sequence[BaseMaskedArray]", self._iter_column_arrays())
                 )
             elif isinstance(first_dtype, ArrowDtype):
                 # We have arrow EAs with the same dtype. We can transpose faster.
@@ -4086,7 +4049,7 @@ class DataFrame(NDFrame, OpsMixin):
                 )
 
                 new_values = transpose_homogeneous_pyarrow(
-                    cast(Sequence[ArrowExtensionArray], self._iter_column_arrays())
+                    cast("Sequence[ArrowExtensionArray]", self._iter_column_arrays())
                 )
             else:
                 # We have other EAs with the same dtype. We preserve dtype in transpose.
@@ -4120,6 +4083,9 @@ class DataFrame(NDFrame, OpsMixin):
     def T(self) -> DataFrame:
         """
         The transpose of the DataFrame.
+
+        This property returns a DataFrame with rows and columns interchanged,
+        reflecting the data across the main diagonal.
 
         Returns
         -------
@@ -4202,16 +4168,22 @@ class DataFrame(NDFrame, OpsMixin):
             # is_iterator to exclude generator e.g. test_getitem_listlike
             # As of Python 3.12, slice is hashable which breaks MultiIndex (GH#57500)
 
-            # shortcut if the key is in columns
+            # Shortcut: return single column as Series when key refers to one column.
+            # Previously we used "key in self.columns.drop_duplicates(keep=False)",
+            # which built a new Index on every access when columns had duplicates.
+            # Using get_loc(key) instead: it returns int iff key appears exactly once,
+            # so we get the same behavior without extra allocation (GH#45316).
             is_mi = isinstance(self.columns, MultiIndex)
-            # GH#45316 Return view if key is not duplicated
-            # Only use drop_duplicates with duplicates for performance
-            if not is_mi and (
-                (self.columns.is_unique and key in self.columns)
-                or key in self.columns.drop_duplicates(keep=False)
-            ):
-                return self._get_item(key)
-
+            if not is_mi:
+                try:
+                    loc = self.columns.get_loc(key)
+                except (KeyError, InvalidIndexError):
+                    # Key missing or invalid; fall through to list/slice/other paths.
+                    pass
+                else:
+                    # int: key unique; slice/array: key duplicated (fall through).
+                    if isinstance(loc, int):
+                        return self._get_item(key)
             elif is_mi and self.columns.is_unique and key in self.columns:
                 return self._getitem_multilevel(key)
 
@@ -4763,7 +4735,7 @@ class DataFrame(NDFrame, OpsMixin):
         try:
             if takeable:
                 icol = col
-                iindex = cast(int, index)
+                iindex = cast("int", index)
             else:
                 icol = self.columns.get_loc(col)
                 iindex = self.index.get_loc(index)
@@ -6341,6 +6313,9 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Return item and drop it from DataFrame. Raise KeyError if not found.
 
+        The column is removed from the DataFrame and returned as a Series;
+        the original DataFrame is modified in place unless it was a view.
+
         Parameters
         ----------
         item : label
@@ -6556,7 +6531,7 @@ class DataFrame(NDFrame, OpsMixin):
         axis = self._get_axis_number(axis)
 
         if is_list_like(periods):
-            periods = cast(Sequence, periods)
+            periods = cast("Sequence", periods)
             if axis == 1:
                 raise ValueError(
                     "If `periods` contains multiple shifts, `axis` cannot be 1."
@@ -6571,7 +6546,7 @@ class DataFrame(NDFrame, OpsMixin):
                     raise TypeError(
                         f"Periods must be integer, but {period} is {type(period)}."
                     )
-                period = cast(int, period)
+                period = cast("int", period)
                 shifted_dataframes.append(
                     super()
                     .shift(periods=period, freq=freq, axis=axis, fill_value=fill_value)
@@ -6580,7 +6555,7 @@ class DataFrame(NDFrame, OpsMixin):
             return concat(shifted_dataframes, axis=1, sort=False)
         elif suffix:
             raise ValueError("Cannot specify `suffix` if `periods` is an int.")
-        periods = cast(int, periods)
+        periods = cast("int", periods)
 
         ncols = len(self.columns)
         if axis == 1 and periods != 0 and ncols > 0 and freq is None:
@@ -7640,7 +7615,7 @@ class DataFrame(NDFrame, OpsMixin):
         if subset is not None:
             # subset needs to be list
             if not is_list_like(subset):
-                subset = [cast(Hashable, subset)]
+                subset = [cast("Hashable", subset)]
             ax = self._get_axis(agg_axis)
             indices = ax.get_indexer_for(subset)
             check = indices == -1
@@ -7920,7 +7895,7 @@ class DataFrame(NDFrame, OpsMixin):
             subset = (subset,)
 
         #  needed for mypy since can't narrow types using np.iterable
-        subset = cast(Sequence, subset)
+        subset = cast("Sequence", subset)
 
         # Verify all columns in subset exist in the queried dataframe
         # Otherwise, raise a KeyError, same as if you try to __getitem__ with a
@@ -7986,6 +7961,9 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> DataFrame | None:
         """
         Sort by the values along either axis.
+
+        This method sorts the DataFrame by the values in one or more columns
+        or by index/column labels.
 
         Parameters
         ----------
@@ -9416,7 +9394,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     def eq(self, other, axis: Axis = "columns", level=None) -> DataFrame:
         """
-        Get Not equal to of dataframe and other, element-wise (binary operator `eq`).
+        Get Equal to of dataframe and other, element-wise (binary operator `eq`).
 
         Among flexible wrappers (`eq`, `ne`, `le`, `lt`, `ge`, `gt`) to comparison
         operators.
@@ -11808,6 +11786,9 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Compare to another DataFrame and show the differences.
 
+        This method compares two DataFrames element-wise and returns a DataFrame
+        highlighting the differences.
+
         Parameters
         ----------
         other : DataFrame
@@ -13207,6 +13188,9 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Transform each element of a list-like to a row, replicating index values.
 
+        This method is useful for expanding nested data structures like lists
+        into separate rows while maintaining the relationship with other columns.
+
         Parameters
         ----------
         column : IndexLabel
@@ -13695,66 +13679,6 @@ class DataFrame(NDFrame, OpsMixin):
 
         # TODO: _shallow_copy(subset)?
         return subset[key]
-
-    _agg_see_also_doc = dedent(
-        """
-    See Also
-    --------
-    DataFrame.apply : Perform any type of operations.
-    DataFrame.transform : Perform transformation type operations.
-    DataFrame.groupby : Perform operations over groups.
-    DataFrame.resample : Perform operations over resampled bins.
-    DataFrame.rolling : Perform operations over rolling window.
-    DataFrame.expanding : Perform operations over expanding window.
-    core.window.ewm.ExponentialMovingWindow : Perform operation over exponential
-        weighted window.
-    """
-    )
-
-    _agg_examples_doc = dedent(
-        """
-    Examples
-    --------
-    >>> df = pd.DataFrame([[1, 2, 3],
-    ...                    [4, 5, 6],
-    ...                    [7, 8, 9],
-    ...                    [np.nan, np.nan, np.nan]],
-    ...                   columns=['A', 'B', 'C'])
-
-    Aggregate these functions over the rows.
-
-    >>> df.agg(['sum', 'min'])
-            A     B     C
-    sum  12.0  15.0  18.0
-    min   1.0   2.0   3.0
-
-    Different aggregations per column.
-
-    >>> df.agg({'A' : ['sum', 'min'], 'B' : ['min', 'max']})
-            A    B
-    sum  12.0  NaN
-    min   1.0  2.0
-    max   NaN  8.0
-
-    Aggregate different functions over the columns and rename the index
-    of the resulting DataFrame.
-
-    >>> df.agg(x=('A', 'max'), y=('B', 'min'), z=('C', 'mean'))
-         A    B    C
-    x  7.0  NaN  NaN
-    y  NaN  2.0  NaN
-    z  NaN  NaN  6.0
-
-    Aggregate over the columns.
-
-    >>> df.agg("mean", axis="columns")
-    0    2.0
-    1    5.0
-    2    8.0
-    3    NaN
-    dtype: float64
-    """
-    )
 
     def aggregate(self, func=None, axis: Axis = 0, *args, **kwargs):
         """
@@ -14265,7 +14189,7 @@ class DataFrame(NDFrame, OpsMixin):
 
             # one axis is empty
             if not all(self.shape):
-                func = cast(Callable, func)
+                func = cast("Callable", func)
                 try:
                     if axis == 0:
                         r = func(Series([], dtype=np.float64), *args, **kwargs)
@@ -18408,6 +18332,11 @@ class DataFrame(NDFrame, OpsMixin):
     def isin(self, values: Series | DataFrame | Sequence | Mapping) -> DataFrame:
         """
         Whether each element in the DataFrame is contained in values.
+
+        Returns a DataFrame of the same shape with boolean values: True
+        where the element is in the corresponding structure of
+        ``values``, False otherwise. ``values`` can be a list, dict,
+        Series, or DataFrame; alignment rules depend on its type.
 
         Parameters
         ----------

@@ -16,6 +16,8 @@ from numpy cimport (
 
 import numpy as np
 
+from pandas._libs.properties import cache_readonly
+
 cnp.import_array()
 
 cimport cython
@@ -1521,14 +1523,16 @@ cdef accessor _get_accessor_func(str field):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def from_ordinals(const int64_t[:] values, freq):
+def from_calendar_ordinals(const int64_t[:] values, PeriodDtypeBase dtype):
+    # NB: this is *not* the same behavior as PeriodIndex.from_ordinals,
+    #  but a vectorized application of the Period constructor on an integer
+    #  input.
     cdef:
         Py_ssize_t i, n = len(values)
         int64_t[::1] result = np.empty(len(values), dtype="i8")
         int64_t val
 
-    freq = to_offset(freq, is_period=True)
-    if not isinstance(freq, BaseOffset):
+    if dtype is None:
         raise ValueError("freq not specified and cannot be inferred")
 
     for i in range(n):
@@ -1536,14 +1540,16 @@ def from_ordinals(const int64_t[:] values, freq):
         if val == NPY_NAT:
             result[i] = NPY_NAT
         else:
-            result[i] = Period(val, freq=freq).ordinal
+            # equiv Period(val, freq=dtype.unit).ordinal, specialized
+            #  bc we know val is an integer
+            result[i] = period_ordinal(val, 1, 1, 0, 0, 0, 0, 0, dtype._dtype_code)
 
     return result.base
 
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def extract_ordinals(ndarray values, freq) -> np.ndarray:
+def extract_ordinals(ndarray values, PeriodDtypeBase dtype) -> np.ndarray:
     # values is object-dtype, may be 2D
 
     cdef:
@@ -1559,13 +1565,13 @@ def extract_ordinals(ndarray values, freq) -> np.ndarray:
         # if we don't raise here, we'll segfault later!
         raise TypeError("extract_ordinals values must be object-dtype")
 
-    freqstr = PeriodDtypeBase(freq._period_dtype_code, freq.n)._freqstr
+    freqstr = dtype._freqstr
 
     for i in range(n):
         # Analogous to: p = values[i]
         p = <object>(<PyObject**>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
 
-        ordinal = _extract_ordinal(p, freqstr, freq)
+        ordinal = _extract_ordinal(p, freqstr)
 
         # Analogous to: ordinals[i] = ordinal
         (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = ordinal
@@ -1575,7 +1581,7 @@ def extract_ordinals(ndarray values, freq) -> np.ndarray:
     return ordinals
 
 
-cdef int64_t _extract_ordinal(object item, str freqstr, freq) except? -1:
+cdef int64_t _extract_ordinal(object item, str freqstr) except? -1:
     """
     See extract_ordinals.
     """
@@ -1600,7 +1606,7 @@ cdef int64_t _extract_ordinal(object item, str freqstr, freq) except? -1:
                 raise IncompatibleFrequency(msg)
 
         except AttributeError:
-            item = Period(item, freq=freq)
+            item = Period(item, freq=freqstr)
             if item is NaT:
                 # input may contain NaT-like string
                 ordinal = NPY_NAT
@@ -1610,7 +1616,7 @@ cdef int64_t _extract_ordinal(object item, str freqstr, freq) except? -1:
     return ordinal
 
 
-def extract_freq(ndarray[object] values) -> BaseOffset:
+def extract_period_unit(ndarray[object] values) -> str:
     # TODO: Change type to const object[:] when Cython supports that.
 
     cdef:
@@ -1621,7 +1627,7 @@ def extract_freq(ndarray[object] values) -> BaseOffset:
         value = values[i]
 
         if is_period_object(value):
-            return value.freq
+            return value.freqstr
 
     raise ValueError("freq not specified and cannot be inferred")
 
@@ -1749,27 +1755,21 @@ cdef class PeriodMixin:
         """
         return self.to_timestamp(how="end")
 
-    def _require_matching_freq(self, other: BaseOffset, bint base=False):
+    def _require_matching_unit(self, other_unit: str, bint base=False):
         # See also arrays.period.raise_on_incompatible
         if base:
-            condition = self.freq.base != other.base
+            # Strip leading digits and possibly a minus sign
+            pat = r"^-?\d+"
+            condition = re.sub(pat, "", self.freqstr) != re.sub(pat, "", other_unit)
         else:
-            condition = self.freq != other
+            condition = self.freqstr != other_unit
 
         if condition:
-            freqstr = PeriodDtypeBase(
-                self.freq._period_dtype_code, self.freq.n
-            )._freqstr
-            if hasattr(other, "_period_dtype_code"):
-                other_freqstr = PeriodDtypeBase(
-                    other._period_dtype_code, other.n
-                )._freqstr
-            else:
-                other_freqstr = other.freqstr
+            freqstr = self.freqstr
             msg = DIFFERENT_FREQ.format(
                 cls=type(self).__name__,
                 own_freq=freqstr,
-                other_freq=other_freqstr,
+                other_freq=other_unit,
             )
             raise IncompatibleFrequency(msg)
 
@@ -1779,7 +1779,6 @@ cdef class _Period(PeriodMixin):
     cdef readonly:
         int64_t _ordinal
         PeriodDtypeBase _dtype
-        BaseOffset _freq
 
     @property
     def ordinal(self) -> int:
@@ -1808,6 +1807,10 @@ cdef class _Period(PeriodMixin):
         """
         return self._ordinal
 
+    @cache_readonly
+    def _freq(self) -> BaseOffset:
+        return to_offset(self._dtype._freqstr, is_period=True)
+
     @property
     def freq(self):
         """
@@ -1835,10 +1838,9 @@ cdef class _Period(PeriodMixin):
     dayofweek = _Period.day_of_week
     dayofyear = _Period.day_of_year
 
-    def __cinit__(self, int64_t ordinal, BaseOffset freq):
+    def __cinit__(self, int64_t ordinal, PeriodDtypeBase dtype):
         self._ordinal = ordinal
-        self._freq = freq
-        self._dtype = PeriodDtypeBase(freq._period_dtype_code, freq.n)
+        self._dtype = dtype
 
     @classmethod
     def _maybe_convert_freq(cls, object freq) -> BaseOffset:
@@ -1858,15 +1860,14 @@ cdef class _Period(PeriodMixin):
         return freq
 
     @classmethod
-    def _from_ordinal(cls, ordinal: int64_t, freq: BaseOffset) -> "Period":
+    def _from_ordinal(cls, ordinal: int64_t, dtype: PeriodDtypeBase) -> "Period":
         """
         Fast creation from an ordinal and freq that are already validated!
         """
         if ordinal == NPY_NAT:
             return NaT
         else:
-            freq = cls._maybe_convert_freq(freq)
-            self = _Period.__new__(cls, ordinal, freq)
+            self = _Period.__new__(cls, ordinal, dtype)
             return self
 
     def __richcmp__(self, other, op):
@@ -1876,7 +1877,7 @@ cdef class _Period(PeriodMixin):
                     return False
                 elif op == Py_NE:
                     return True
-                self._require_matching_freq(other.freq)
+                self._require_matching_unit(other._dtype._freqstr)
             return PyObject_RichCompareBool(self._ordinal, other._ordinal, op)
         elif other is NaT:
             return op == Py_NE
@@ -1925,7 +1926,7 @@ cdef class _Period(PeriodMixin):
         cdef:
             int64_t ordinal
 
-        self._require_matching_freq(other, base=True)
+        self._require_matching_unit(other._period_unit, base=True)
 
         ordinal = self._ordinal + other.n
         return Period(ordinal=ordinal, freq=self._freq)
@@ -1970,7 +1971,7 @@ cdef class _Period(PeriodMixin):
         ):
             return self + (-other)
         elif is_period_object(other):
-            self._require_matching_freq(other.freq)
+            self._require_matching_unit(other._dtype._freqstr)
             # GH 23915 - mul by base freq since __add__ is agnostic of n
             return (self._ordinal - other._ordinal) * self._freq.base
         elif other is NaT:
@@ -1997,6 +1998,9 @@ cdef class _Period(PeriodMixin):
     def asfreq(self, freq, how="E") -> "Period":
         """
         Convert Period to desired frequency, at the start or end of the interval.
+
+        This method converts the Period to a different frequency, aligning
+        the result to either the start or end of the original interval.
 
         Parameters
         ----------
@@ -2046,13 +2050,13 @@ cdef class _Period(PeriodMixin):
 
         >>> period = pd.Period('2023-01', freq='M')
         >>> period.asfreq('h', how='start')
-        Period('2023-01-01 00:00', 'H')
+        Period('2023-01-01 00:00', 'h')
 
         Convert a weekly period to a daily period, aligning to the last day of the week:
 
         >>> period = pd.Period('2023-08-01', freq='W')
         >>> period.asfreq('D', how='end')
-        Period('2023-08-04', 'D')
+        Period('2023-08-06', 'D')
         """
         freq = self._maybe_convert_freq(freq)
         how = validate_end_alias(how)
@@ -2190,6 +2194,8 @@ cdef class _Period(PeriodMixin):
         """
         Return the month this Period falls on.
 
+        Months are numbered from 1 (January) through 12 (December).
+
         Returns
         -------
         int
@@ -2267,6 +2273,9 @@ cdef class _Period(PeriodMixin):
         """
         Get the hour of the day component of the Period.
 
+        For periods with a frequency shorter than a day, this returns the
+        hour portion of the time. For longer frequencies, it returns 0.
+
         Returns
         -------
         int
@@ -2297,6 +2306,9 @@ cdef class _Period(PeriodMixin):
         """
         Get minute of the hour component of the Period.
 
+        For periods with a frequency shorter than an hour, this returns the
+        minute portion of the time. For longer frequencies, it returns 0.
+
         Returns
         -------
         int
@@ -2321,6 +2333,9 @@ cdef class _Period(PeriodMixin):
         """
         Get the second component of the Period.
 
+        For periods with a frequency shorter than a minute, this returns the
+        second portion of the time. For longer frequencies, it returns 0.
+
         Returns
         -------
         int
@@ -2344,6 +2359,9 @@ cdef class _Period(PeriodMixin):
     def weekofyear(self) -> int:
         """
         Get the week of the year on the given Period.
+
+        Weeks are numbered according to ISO 8601, where the first week of
+        the year contains the first Thursday of the year.
 
         Returns
         -------
@@ -2375,6 +2393,9 @@ cdef class _Period(PeriodMixin):
     def week(self) -> int:
         """
         Get the week of the year on the given Period.
+
+        Weeks are numbered according to ISO 8601, where the first week of
+        the year contains the first Thursday of the year.
 
         Returns
         -------
@@ -2545,6 +2566,10 @@ cdef class _Period(PeriodMixin):
         """
         Return the quarter this Period falls on.
 
+        Quarter 1 includes January through March, quarter 2 includes April
+        through June, quarter 3 includes July through September, and quarter
+        4 includes October through December.
+
         See Also
         --------
         Timestamp.quarter : Return the quarter of the Timestamp.
@@ -2609,6 +2634,9 @@ cdef class _Period(PeriodMixin):
         """
         Get the total number of days in the month that this period falls on.
 
+        This value depends on the month and whether the year is a leap year
+        (e.g., February has 28 or 29 days).
+
         Returns
         -------
         int
@@ -2643,6 +2671,9 @@ cdef class _Period(PeriodMixin):
         """
         Get the total number of days of the month that this period falls on.
 
+        This value depends on the month and whether the year is a leap year.
+        This is an alias for :attr:`days_in_month`.
+
         Returns
         -------
         int
@@ -2664,6 +2695,10 @@ cdef class _Period(PeriodMixin):
     def is_leap_year(self) -> bool:
         """
         Return True if the period's year is in a leap year.
+
+        A leap year is a year with 366 days (instead of 365), including
+        February 29 as an intercalary day. Leap years are years divisible
+        by 4, except for years divisible by 100 but not by 400.
 
         See Also
         --------
@@ -3120,7 +3155,9 @@ class Period(_Period):
             )
         if ordinal == NPY_NAT:
             return NaT
-        return cls._from_ordinal(ordinal, freq)
+        freq = cls._maybe_convert_freq(freq)
+        dtype = PeriodDtypeBase(freq._period_dtype_code, freq.n)
+        return cls._from_ordinal(ordinal, dtype=dtype)
 
 
 cdef bint is_period_object(object obj):

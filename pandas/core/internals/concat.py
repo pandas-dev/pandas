@@ -361,7 +361,7 @@ class JoinUnit:
                     # we want to avoid filling with np.nan if we are
                     # using None; we already know that we are all
                     # nulls
-                    values = cast(np.ndarray, self.block.values)
+                    values = cast("np.ndarray", self.block.values)
                     if values.size and values[0, 0] is None:
                         fill_value = None
 

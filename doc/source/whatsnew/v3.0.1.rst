@@ -13,7 +13,11 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
+- Fixed regression in :func:`to_timedelta` when converting a list with float and int (:issue:`64044`)
 - Fixed regression in :meth:`DataFrame.groupby` and :meth:`Series.groupby` when grouping on categorical data with NA values, ``observed=False``, and ``dropna=True`` (:issue:`52445`)
+- Fixed regression in :meth:`DataFrame.reindex` when using a string fill value  (:issue:`63993`)
+- Fixed regression in the :class:`DataFrame` and :meth:`DataFrame.from_records` constructor with a list of dicts with a missing value indicator as key (:issue:`63889`)
+- Fixed regression when calling ``numpy.random``'s ``permutation()`` on a (pyarrow-backed) string :class:`Series` (:issue:`63935`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_301.bugs:
@@ -27,6 +31,10 @@ Bug fixes
 - Fixed a bug in :func:`col` where unary operators (``-``, ``+``, ``abs``) were not supported (:issue:`63939`)
 - Fixed a bug in the :func:`comparison_op` raising a ``TypeError`` for zerodim
   subclasses of ``np.ndarray`` (:issue:`63205`)
+- Added additional typing aliases in :py:mod:`pandas.api.typing.aliases` (:issue:`64098`)
+- Fixed bug in :meth:`DataFrame.loc` when setting new row and new columns simultaneously filling existing columns with ``b''`` instead of ``NaN`` (:issue:`58316`)
+- Fixed thread safety issues in :class:`DataFrame` internals on the free-threaded build (:issue:`63685`).
+- Prevent buffer overflow in :meth:`Rolling.corr` and :meth:`Rolling.cov` with variable windows when passing ``other`` with a longer index than the original window. This now raises ``ValueError`` (:issue:`62937`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_301.contributors:

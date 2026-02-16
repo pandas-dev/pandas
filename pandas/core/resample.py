@@ -25,7 +25,6 @@ from pandas._libs.tslibs import (
     Timestamp,
     to_offset,
 )
-from pandas._typing import NDFrameT
 from pandas.errors import (
     AbstractMethodError,
     Pandas4Warning,
@@ -44,7 +43,6 @@ from pandas.core.dtypes.generic import (
 
 import pandas.core.algorithms as algos
 from pandas.core.apply import ResamplerWindowApply
-from pandas.core.arrays import ArrowExtensionArray
 from pandas.core.base import (
     PandasObject,
     SelectionMixin,
@@ -98,6 +96,7 @@ if TYPE_CHECKING:
         Frequency,
         IndexLabel,
         InterpolateOptions,
+        NDFrameT,
         P,
         T,
         TimedeltaConvertibleTypes,
@@ -111,9 +110,8 @@ if TYPE_CHECKING:
         DataFrame,
         Series,
     )
+    from pandas.core.arrays import ArrowExtensionArray
     from pandas.core.generic import NDFrame
-
-_shared_docs_kwargs: dict[str, str] = {}
 
 
 @set_module("pandas.api.typing")
@@ -346,6 +344,9 @@ class Resampler(BaseGroupBy, PandasObject):
     def aggregate(self, func=None, *args, **kwargs):
         """
         Aggregate using one or more operations over the specified axis.
+
+        This method applies aggregation functions to resampled groups, enabling
+        summary statistics to be computed for each time period.
 
         Parameters
         ----------
@@ -1058,6 +1059,9 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         Return the values at the new freq, essentially a reindex.
 
+        This method selects data at the specified frequency without aggregation,
+        useful for upsampling to a higher frequency or selecting specific time points.
+
         Parameters
         ----------
         fill_value : scalar, optional
@@ -1165,6 +1169,9 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         Compute prod of group values.
 
+        This method calculates the product of all values within each resampled
+        time period.
+
         Parameters
         ----------
         numeric_only : bool, default False
@@ -1220,6 +1227,8 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         Compute min value of group.
 
+        This method returns the minimum value within each resampled time period.
+
         Parameters
         ----------
         numeric_only : bool, default False
@@ -1274,6 +1283,8 @@ class Resampler(BaseGroupBy, PandasObject):
     ):
         """
         Compute max value of group.
+
+        This method returns the maximum value within each resampled time period.
 
         Parameters
         ----------
@@ -1331,6 +1342,9 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         Compute the first non-null entry of each column.
 
+        This method returns the first value encountered in each resampled time
+        period, skipping missing values by default.
+
         Parameters
         ----------
         numeric_only : bool, default False
@@ -1383,6 +1397,9 @@ class Resampler(BaseGroupBy, PandasObject):
     ):
         """
         Compute the last non-null entry of each column.
+
+        This method returns the last value encountered in each resampled time
+        period, skipping missing values by default.
 
         Parameters
         ----------
@@ -1485,6 +1502,9 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         Compute mean of groups, excluding missing values.
 
+        This method calculates the arithmetic mean of values within each
+        resampled time period.
+
         Parameters
         ----------
         numeric_only : bool, default False
@@ -1539,6 +1559,9 @@ class Resampler(BaseGroupBy, PandasObject):
     ):
         """
         Compute standard deviation of groups, excluding missing values.
+
+        This method calculates the sample standard deviation of values within
+        each resampled time period.
 
         Parameters
         ----------
@@ -1595,6 +1618,9 @@ class Resampler(BaseGroupBy, PandasObject):
     ):
         """
         Compute variance of groups, excluding missing values.
+
+        This method calculates the sample variance of values within each
+        resampled time period.
 
         Parameters
         ----------
@@ -1710,6 +1736,9 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         Compute open, high, low and close values of a group, excluding missing values.
 
+        This method computes OHLC (Open-High-Low-Close) values, commonly used
+        in financial data analysis to summarize price movements within time periods.
+
         Returns
         -------
         DataFrame
@@ -1764,6 +1793,9 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         Return number of unique elements in the group.
 
+        This method counts the number of distinct values within each resampled
+        time period.
+
         Returns
         -------
         Series
@@ -1798,6 +1830,9 @@ class Resampler(BaseGroupBy, PandasObject):
     def size(self):
         """
         Compute group sizes.
+
+        This method returns the number of rows in each resampled time period,
+        including rows with missing values.
 
         Returns
         -------
@@ -1847,6 +1882,9 @@ class Resampler(BaseGroupBy, PandasObject):
     def count(self):
         """
         Compute count of group, excluding missing values.
+
+        This method returns the number of non-null values in each resampled
+        time period.
 
         Returns
         -------
@@ -2059,7 +2097,7 @@ class _GroupByMixin(PandasObject, SelectionMixin):
 
         new_rs = type(self)(
             groupby=groupby,
-            parent=cast(Resampler, self),
+            parent=cast("Resampler", self),
             selection=selection,
         )
         return new_rs
@@ -2563,7 +2601,7 @@ class TimeGrouper(Grouper):
         """
         # create the resampler and return our binner
         r = self._get_resampler(obj)
-        return r._grouper, cast(NDFrameT, r.obj)
+        return r._grouper, cast("NDFrameT", r.obj)
 
     def _get_time_bins(self, ax: DatetimeIndex):
         if not isinstance(ax, DatetimeIndex):
@@ -2813,7 +2851,7 @@ class TimeGrouper(Grouper):
         if isinstance(ax.dtype, ArrowDtype) and ax.dtype.kind in "Mm":
             self._arrow_dtype = ax.dtype
             ax = Index(
-                cast(ArrowExtensionArray, ax.array)._maybe_convert_datelike_array()
+                cast("ArrowExtensionArray", ax.array)._maybe_convert_datelike_array()
             )
         return obj, ax, indexer
 
