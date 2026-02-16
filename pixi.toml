@@ -19,6 +19,12 @@ pip = ">=26"
 python-dateutil = ">=2.8.2"
 numpy = ">=1.26.0,<3"
 
+[feature.numpy.dependencies]
+numpy = ">=1.26.0,<3"
+
+[feature.numpy-nightly.pypi-dependencies]
+numpy = { version = "*", index = "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" }
+
 [target.win.dependencies]
 tzdata = ">=2023.3"
 
@@ -62,6 +68,9 @@ qtpy = ">=2.4.2"
 [feature.pyarrow.dependencies]
 pyarrow = ">=13.0.0"
 
+[feature.pyarrow-nightly.pypi-dependencies]
+pyarrow = { version = "*", index = "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" }
+
 [feature.optional-dependencies.dependencies]
 adbc-driver-postgresql = ">=1.2.0"
 adbc-driver-sqlite = ">=1.2.0"
@@ -99,18 +108,6 @@ zstandard = ">=0.23.0"
 [feature.minimum-versions]
 solve-strategy = "lowest-direct"
 
-[feature.numpy-nightly.pypi-options]
-extra-index-urls = ["https://pypi.anaconda.org/scientific-python-nightly-wheels/simple"]
-
-[feature.numpy-nightly.pypi-dependencies]
-numpy = { version = "*", index = "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" }
-
-[feature.pyarrow-nightly.pypi-options]
-extra-index-urls = ["https://pypi.anaconda.org/scientific-python-nightly-wheels/simple"]
-
-[feature.pyarrow-nightly.pypi-dependencies]
-pyarrow = { version = "*", index = "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" }
-
 [feature.downstream.dependencies]
 cftime = "*"
 dask = "*"
@@ -122,13 +119,13 @@ pyyaml = "*"
 xarray = ">=2024.10.0"
 
 [environments]
-py311 = { features = ["py311", "test-base", "pytest-cov-conda", "test-clipboard", "test-network", "pyarrow", "optional-dependencies"] }
-py312 = { features = ["py312", "test-base", "pytest-cov-conda", "test-clipboard", "test-network", "pyarrow", "optional-dependencies"] }
-py313 = { features = ["py313", "test-base", "pytest-cov-conda", "test-clipboard", "test-network", "pyarrow", "optional-dependencies"] }
-py314 = { features = ["py314", "test-base", "pytest-cov-conda", "test-clipboard", "test-network", "pyarrow", "optional-dependencies"] }
-no-pyarrow = { features = ["py313", "test-base", "pytest-cov-conda", "test-clipboard", "test-network", "optional-dependencies"] }
-minimum-versions = { features = ["py311", "test-base", "pytest-cov-conda", "test-clipboard", "test-network", "pyarrow", "optional-dependencies", "minimum-versions"] }
-freethreading = { features = ["freethreading", "test-base", "pytest-cov-pypi"] }
-numpy-nightly = { features = ["py313", "test-base", "pytest-cov-conda", "numpy-nightly"] }
-pyarrow-nightly = { features = ["py313", "test-base", "pytest-cov-conda", "pyarrow-nightly"] }
-downstream = { features = ["py313", "test-base", "pytest-cov-conda", "downstream"] }
+py311 = { features = ["py311", "numpy", "test-base", "pytest-cov-conda", "test-clipboard", "test-network", "pyarrow", "optional-dependencies"] }
+py312 = { features = ["py312", "numpy", "test-base", "pytest-cov-conda", "test-clipboard", "test-network", "pyarrow", "optional-dependencies"] }
+py313 = { features = ["py313", "numpy", "test-base", "pytest-cov-conda", "test-clipboard", "test-network", "pyarrow", "optional-dependencies"] }
+py314 = { features = ["py314", "numpy", "test-base", "pytest-cov-conda", "test-clipboard", "test-network", "pyarrow", "optional-dependencies"] }
+no-pyarrow = { features = ["py313", "numpy", "test-base", "pytest-cov-conda", "test-clipboard", "test-network", "optional-dependencies"] }
+minimum-versions = { features = ["py311", "numpy", "test-base", "pytest-cov-conda", "test-clipboard", "test-network", "pyarrow", "optional-dependencies", "minimum-versions"] }
+freethreading = { features = ["freethreading", "numpy", "test-base", "pytest-cov-pypi"] }
+numpy-nightly = { features = ["py313", "numpy-nightly", "test-base", "pytest-cov-conda"] }
+pyarrow-nightly = { features = ["py313", "numpy", "test-base", "pytest-cov-conda", "pyarrow-nightly"] }
+downstream = { features = ["py313", "numpy", "test-base", "pytest-cov-conda", "downstream"] }
