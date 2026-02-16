@@ -1128,15 +1128,35 @@ def test_div_mul_preserves_multiindex_categorical_type():
     result_div = s.div(norm)
     result_mul = s.mul(norm)
 
+    expected_idx = pd.MultiIndex.from_arrays(
+        [
+            Categorical(
+                [10, 20, 30, 10, 20, 30, 10, 20, 30, 10, 20, 30],
+                categories=[10, 20, 30],
+                ordered=True,
+            ),
+            Categorical(
+                ["A", "A", "A", "A", "A", "A", "B", "B", "B", "B", "B", "B"],
+                categories=["B", "A"],
+                ordered=True,
+            ),
+            Categorical(
+                ["X", "X", "X", "Y", "Y", "Y", "X", "X", "X", "Y", "Y", "Y"],
+                categories=["X", "Y"],
+            ),
+        ],
+        names=["c0", "c1", "c2"],
+    )
+
     expected_div_values = [
-        s.loc[c0, c1, c2] / norm.loc[c1, c2] for c0, c1, c2 in result_div.index
+        s.loc[c0, c1, c2] / norm.loc[c1, c2] for c0, c1, c2 in expected_idx
     ]
     expected_mul_values = [
-        s.loc[c0, c1, c2] * norm.loc[c1, c2] for c0, c1, c2 in result_mul.index
+        s.loc[c0, c1, c2] * norm.loc[c1, c2] for c0, c1, c2 in expected_idx
     ]
 
-    expected_div = Series(expected_div_values, index=result_div.index)
-    expected_mul = Series(expected_mul_values, index=result_mul.index)
+    expected_div = Series(expected_div_values, index=expected_idx)
+    expected_mul = Series(expected_mul_values, index=expected_idx)
 
     tm.assert_series_equal(result_div, expected_div)
     tm.assert_series_equal(result_mul, expected_mul)
