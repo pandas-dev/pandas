@@ -9,7 +9,6 @@ from typing import (
     Self,
     TypeVar,
     cast,
-    overload,
 )
 import warnings
 
@@ -274,8 +273,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
             unit = None
 
         if isinstance(scalars, cls):
-            freq = dtype.freq if dtype is not None else None  # type: ignore[union-attr]
-            validate_dtype_freq(scalars.dtype, freq)
+            validate_dtype_freq(scalars.dtype, dtype)
             if copy:
                 scalars = scalars.copy()
             return scalars
@@ -1290,49 +1288,40 @@ def period_array(
     return PeriodArray._from_sequence(data, dtype=dtype)
 
 
-@overload
-def validate_dtype_freq(dtype, freq: BaseOffsetT) -> BaseOffsetT: ...
-
-
-@overload
-def validate_dtype_freq(dtype, freq: timedelta | str | None) -> BaseOffset: ...
-
-
 def validate_dtype_freq(
-    dtype, freq: BaseOffsetT | BaseOffset | timedelta | str | None
-) -> BaseOffsetT:
+    dtype: DtypeObj | None, dtype2: DtypeObj | None
+) -> PeriodDtype | None:
     """
-    If both a dtype and a freq are available, ensure they match.  If only
-    dtype is available, extract the implied freq.
+    If a dtype is specified both directly and indirectly via a `freq` (dtype2),
+    ensure they match. If only the latter is available, return the indirect dtype.
 
     Parameters
     ----------
     dtype : dtype
-    freq : DateOffset or None
+    dtype2 : PeriodDtype or None
+        Dtype derived from a `freq` passed to the caller.
 
     Returns
     -------
-    freq : DateOffset
+    PeriodDtype or None
 
     Raises
     ------
     ValueError : non-period dtype
     IncompatibleFrequency : mismatch between dtype and freq
     """
-    if freq is not None:
-        freq = to_offset(freq, is_period=True)
-
     if dtype is not None:
-        dtype = pandas_dtype(dtype)
         if not isinstance(dtype, PeriodDtype):
             raise ValueError("dtype must be PeriodDtype")
-        if freq is None:
-            freq = dtype.freq
-        elif freq != dtype.freq:
+        if dtype2 is not None and dtype != dtype2:
             raise IncompatibleFrequency("specified freq and dtype are different")
-    # error: Incompatible return value type (got "Union[BaseOffset, Any, None]",
-    # expected "BaseOffset")
-    return freq  # type: ignore[return-value]
+
+    elif dtype2 is not None:
+        if not isinstance(dtype2, PeriodDtype):
+            raise ValueError("dtype must be PeriodDtype")
+        dtype = dtype2
+
+    return dtype
 
 
 def dt64arr_to_periodarr(
