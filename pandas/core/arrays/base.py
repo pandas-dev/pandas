@@ -564,13 +564,13 @@ class ExtensionArray:
         """
         raise AbstractMethodError(self)
 
-    def item(self, *args):
+    def item(self, index: int | None = None):
         """
         Return the array element at the specified position as a Python scalar.
 
         Parameters
         ----------
-        *args : int, optional
+        index : int, optional
             Position of the element. If not provided, the array must contain
             exactly one element.
 
@@ -582,7 +582,7 @@ class ExtensionArray:
         Raises
         ------
         ValueError
-            If no arguments are provided and the array does not have exactly
+            If no index is provided and the array does not have exactly
             one element.
         IndexError
             If the specified position is out of bounds.
@@ -603,16 +603,14 @@ class ExtensionArray:
         >>> arr.item(2)
         np.int64(3)
         """
-        if len(args) == 0:
+        if index is None:
             if len(self) != 1:
                 raise ValueError(
                     "can only convert an array of size 1 to a Python scalar"
                 )
             return self[0]
-        elif len(args) == 1:
-            return self[args[0]]
         else:
-            raise TypeError(f"item() takes at most 1 argument ({len(args)} given)")
+            return self[index]
 
     def __iter__(self) -> Iterator[Any]:
         """
