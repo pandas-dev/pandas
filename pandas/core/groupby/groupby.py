@@ -1067,6 +1067,30 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         return result
 
+    def _get_dtype_backend_for_aggregation(self) -> str | None:
+        """
+        Check if input has Arrow dtype and return the appropriate dtype_backend.
+
+        Returns "pyarrow" if input has ArrowExtensionArray, None otherwise.
+        This is used to preserve Arrow dtype in aggregation results.
+        """
+        dtype_backend: None | Literal["pyarrow", "numpy_nullable"] = None
+
+        if isinstance(self.obj, Series):
+            if isinstance(self.obj.array, ArrowExtensionArray):
+                if isinstance(self.obj.array, ArrowStringArray):
+                    if self.obj.array.dtype.na_value is np.nan:
+                        dtype_backend = None
+                    else:
+                        dtype_backend = "numpy_nullable"
+                else:
+                    dtype_backend = "pyarrow"
+            elif isinstance(self.obj.array, BaseMaskedArray):
+                dtype_backend = "numpy_nullable"
+        # TODO: For DataFrames what if columns are mixed arrow/numpy/masked?
+
+        return dtype_backend
+
     def _wrap_applied_output(
         self,
         data,
@@ -2346,10 +2370,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         dog    4.000000  12.333333
         mouse  4.916667   2.250000
         """
+        # GH#54627: Preserve Arrow dtype in result
+        dtype_backend = self._get_dtype_backend_for_aggregation()
+
         if maybe_use_numba(engine):
             from pandas.core._numba.kernels import grouped_var
 
-            return self._numba_agg_general(
+            result = self._numba_agg_general(
                 grouped_var,
                 executor.float_dtype_mapping,
                 engine_kwargs,
@@ -2358,13 +2385,25 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 skipna=skipna,
             )
         else:
-            return self._cython_agg_general(
+            result = self._cython_agg_general(
                 "var",
                 alt=lambda x: Series(x, copy=False).var(ddof=ddof, skipna=skipna),
                 numeric_only=numeric_only,
                 ddof=ddof,
                 skipna=skipna,
             )
+
+        # GH#54627: Convert result to Arrow dtype if input had Arrow dtype
+        if dtype_backend == "pyarrow" and result is not None:
+            result = result.convert_dtypes(
+                infer_objects=False,
+                convert_string=False,
+                convert_boolean=False,
+                convert_floating=False,
+                dtype_backend="pyarrow",
+            )
+
+        return result
 
     @final
     def _value_counts(
