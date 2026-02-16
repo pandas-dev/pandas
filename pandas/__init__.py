@@ -180,7 +180,7 @@ from pandas._version_meson import (  # pyright: ignore [reportMissingImports]
 )
 
 
-# module level doc-string
+# module-level doc-string
 __doc__ = """
 pandas - a powerful data analysis and manipulation library for Python
 =====================================================================
