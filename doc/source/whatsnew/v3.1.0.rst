@@ -100,7 +100,11 @@ Deprecations
 
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
--
+- Performance improvement in :meth:`DataFrame.__getitem__` when selecting a
+  single column by label on a :class:`DataFrame` with duplicate column names.
+  We no longer call :meth:`Index.drop_duplicates` on every access; we use
+  :meth:`Index.get_loc` instead, avoiding O(n) work and allocation
+  (:issue:`XXXXX`).
 -
 
 .. ---------------------------------------------------------------------------
