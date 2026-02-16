@@ -158,7 +158,7 @@ jobs:
       run: |
         pixi run \
           --environment ${{ matrix.environment }}
-          build \
+          build-pandas \
           --editable \
           ${{ ! (matrix.name == 'Freethreading' || matrix.name == 'Minimum Versions') && '-Csetup-args="--werror"' || '' }}
       shell: bash -euox pipefail {0}
