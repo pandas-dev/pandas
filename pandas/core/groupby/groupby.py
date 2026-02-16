@@ -1087,7 +1087,16 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     dtype_backend = "pyarrow"
             elif isinstance(self.obj.array, BaseMaskedArray):
                 dtype_backend = "numpy_nullable"
-        # TODO: For DataFrames what if columns are mixed arrow/numpy/masked?
+        elif isinstance(self.obj, DataFrame):
+            # GH#54627: Check if any numeric column has Arrow dtype
+            from pandas.core.dtypes.dtypes import ArrowDtype
+
+            has_arrow = any(
+                isinstance(dtype, ArrowDtype)
+                for dtype in self.obj.dtypes
+            )
+            if has_arrow:
+                dtype_backend = "pyarrow"
 
         return dtype_backend
 
