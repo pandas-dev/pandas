@@ -736,3 +736,31 @@ class BaseMethodsTests:
     def test_equals_same_data_different_object(self, data):
         # https://github.com/pandas-dev/pandas/issues/34660
         assert pd.Series(data).equals(pd.Series(data))
+
+    def test_item(self, data):
+        # GH#63876, GH#64129
+        arr = type(data)._from_sequence([data[0]], dtype=data.dtype)
+        assert arr.item() == data[0]
+
+        msg = "can only convert an array of size 1 to a Python scalar"
+        with pytest.raises(ValueError, match=msg):
+            data[:2].item()
+        with pytest.raises(ValueError, match=msg):
+            data[:0].item()
+
+    def test_item_with_index(self, data):
+        # GH#63876, GH#64129
+        assert data.item(0) == data[0]
+        assert data.item(-1) == data[-1]
+
+        try:
+            data.item(len(data))
+        except (IndexError, KeyError):
+            pass
+        else:
+            # SparseArray returns fill value instead of raising
+            if not isinstance(data, pd.arrays.SparseArray):
+                raise AssertionError("Expected IndexError or KeyError")
+
+        with pytest.raises(TypeError, match="item\\(\\) takes at most 1 argument"):
+            data.item(0, 1)
