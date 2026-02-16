@@ -5,6 +5,7 @@ import pytest
 import pandas as pd
 import pandas._testing as tm
 from pandas.tests.io.generate_legacy_storage_files import create_dataframe_all_types
+from pandas.util.version import Version
 
 tables = pytest.importorskip("tables")
 
@@ -81,7 +82,8 @@ def test_legacy_files(datapath):
     current_data = create_dataframe_all_types()
 
     for legacy_file in Path(__file__).parent.parent.glob("data/legacy_hdf/*/*.h5"):
-        # legacy_version = Version(legacy_file.parent.name)
+        legacy_version = Version(legacy_file.parent.name)
+
         result = pd.read_hdf(legacy_file)
 
         expected = current_data.copy()
@@ -99,6 +101,18 @@ def test_legacy_files(datapath):
                 pd.CategoricalDtype(
                     expected["categorical_object"].cat.categories.astype("str")
                 )
+            )
+
+        if legacy_version < Version("3.0.0") and legacy_file.name.endswith("fixed.h5"):
+            # TODO timedelta columns gets read as nanoseconds, resulting in buggy values
+            assert not result["timedelta_us"].equals(expected["timedelta_us"])
+            assert not result["timedelta_ms"].equals(expected["timedelta_ms"])
+            assert not result["timedelta_s"].equals(expected["timedelta_s"])
+            result = result.drop(
+                columns=["timedelta_us", "timedelta_ms", "timedelta_s"]
+            )
+            expected = expected.drop(
+                columns=["timedelta_us", "timedelta_ms", "timedelta_s"]
             )
 
         tm.assert_frame_equal(result, expected)
