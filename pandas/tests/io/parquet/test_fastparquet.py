@@ -35,9 +35,8 @@ def test_fastparquet_bytesio_multiple_files_preserve_index() -> None:
     buf1.seek(0)
     buf2.seek(0)
 
-    result1: pd.DataFrame = pd.read_parquet(buf1, engine="fastparquet")
-    result2: pd.DataFrame = pd.read_parquet(buf2, engine="fastparquet")
+    result1 = pd.read_parquet(buf1, engine="fastparquet")
+    result2 = pd.read_parquet(buf2, engine="fastparquet")
 
     tm.assert_index_equal(result1.index, df1.index)
     tm.assert_index_equal(result2.index, df2.index)
-
