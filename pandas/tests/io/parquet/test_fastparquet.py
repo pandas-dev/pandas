@@ -40,4 +40,3 @@ def test_fastparquet_bytesio_multiple_files_preserve_index():
 
     tm.assert_index_equal(result1.index, df1.index)
     tm.assert_index_equal(result2.index, df2.index)
-
