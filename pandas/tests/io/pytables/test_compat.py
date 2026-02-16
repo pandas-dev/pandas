@@ -1,7 +1,10 @@
+from pathlib import Path
+
 import pytest
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.tests.io.generate_legacy_storage_files import create_dataframe_all_types
 
 tables = pytest.importorskip("tables")
 
@@ -72,3 +75,30 @@ class TestReadPyTablesHDF5:
         result = pd.read_hdf(path, key=objname, start=1, stop=2)
         expected = df[1:2].reset_index(drop=True)
         tm.assert_frame_equal(result, expected, check_index_type=True)
+
+
+def test_legacy_files(datapath):
+    current_data = create_dataframe_all_types()
+
+    for legacy_file in Path(__file__).parent.parent.glob("data/legacy_hdf/*/*.h5"):
+        # legacy_version = Version(legacy_file.parent.name)
+        result = pd.read_hdf(legacy_file)
+
+        expected = current_data.copy()
+
+        if legacy_file.name.endswith("fixed.h5"):
+            expected = expected.drop(
+                columns=["categorical", "categorical_object", "categorical_int"]
+            )
+
+        # object dtype columns with strings get read as `str`
+        expected["object"] = expected["object"].astype("str")
+        expected["object_nan"] = expected["object_nan"].astype("str")
+        if legacy_file.name.endswith("table.h5"):
+            expected["categorical_object"] = expected["categorical_object"].astype(
+                pd.CategoricalDtype(
+                    expected["categorical_object"].cat.categories.astype("str")
+                )
+            )
+
+        tm.assert_frame_equal(result, expected)
