@@ -82,8 +82,14 @@ _legacy_files = list(Path(__file__).parent.parent.glob("data/legacy_hdf/*/*.h5")
 
 
 @pytest.mark.parametrize("legacy_file", _legacy_files, ids=lambda x: x.name)
-def test_legacy_files(datapath, legacy_file):
+def test_legacy_files(datapath, legacy_file, request):
     legacy_version = Version(legacy_file.parent.name)
+    if legacy_version < Version("2.2.0"):
+        request.node.add_marker(
+            pytest.mark.xfail(
+                reason="HDF5 files from pandas < 2.2 with datetime64 columns"
+            )
+        )
     legacy_file = datapath(legacy_file)
 
     result = pd.read_hdf(legacy_file)
@@ -105,14 +111,31 @@ def test_legacy_files(datapath, legacy_file):
             )
         )
 
-    if legacy_version < Version("3.0.0") and legacy_file.endswith("fixed.h5"):
-        # TODO timedelta columns gets read as nanoseconds, resulting in buggy values
+    if legacy_version < Version("2.2.0") or (
+        legacy_version < Version("3.0.0") and legacy_file.endswith("fixed.h5")
+    ):
+        # timedelta columns gets read as nanoseconds, resulting in buggy values
+        # (this also happened for direct roundtrips with those versions)
         assert not result["timedelta_us"].equals(expected["timedelta_us"])
         assert not result["timedelta_ms"].equals(expected["timedelta_ms"])
         assert not result["timedelta_s"].equals(expected["timedelta_s"])
         result = result.drop(columns=["timedelta_us", "timedelta_ms", "timedelta_s"])
         expected = expected.drop(
             columns=["timedelta_us", "timedelta_ms", "timedelta_s"]
+        )
+
+    if legacy_version < Version("2.2.0"):
+        # datetime columns gets read as nanoseconds, resulting in buggy values
+        # (this also happened for direct roundtrips with those versions)
+        assert not result["datetime_us"].equals(expected["datetime_us"])
+        assert not result["datetime_ms"].equals(expected["datetime_ms"])
+        assert not result["datetime_s"].equals(expected["datetime_s"])
+        assert not result["datetimetz_us"].equals(expected["datetimetz_us"])
+        result = result.drop(
+            columns=["datetime_us", "datetime_ms", "datetime_s", "datetimetz_us"]
+        )
+        expected = expected.drop(
+            columns=["datetime_us", "datetime_ms", "datetime_s", "datetimetz_us"]
         )
 
     tm.assert_frame_equal(result, expected)
