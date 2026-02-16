@@ -8,6 +8,8 @@ from io import StringIO
 import numpy as np
 import pytest
 
+from pandas.compat import pa_version_is2300
+
 from pandas import DataFrame
 import pandas._testing as tm
 
@@ -66,6 +68,7 @@ def test_large_exponent(request, all_parsers_all_precisions, value, expected_val
 
     if (
         parser.engine == "pyarrow"
+        and pa_version_is2300
         and precision is None
         and value[:2] not in ["0E", "-0"]
     ):
