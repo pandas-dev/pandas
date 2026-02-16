@@ -3227,3 +3227,55 @@ def test_merge_right_on_and_right_index():
 
     with pytest.raises(pd.errors.MergeError):
         df1.merge(df2, left_on="col", right_on="col", right_index=True)
+
+
+@pytest.mark.parametrize("dtype", [np.int64, np.uint64])
+@pytest.mark.parametrize("start, step", [(0, 2), (5, 3)])
+def test_merge_left_sort_false_range_like_right(dtype, start, step):
+    left_k = np.array(
+        [start + step * 3, start, start + step * 1, start + step * 10],
+        dtype=dtype,
+    )
+    left = (
+        DataFrame({"k": left_k, "v": [10, 11, 12, 13]})
+        .iloc[[2, 0, 3, 1]]
+        .reset_index(drop=True)
+    )
+    right_k = np.arange(start, start + step * 6, step, dtype=dtype)
+    right = DataFrame(
+        {"k": right_k, "w": np.arange(len(right_k), dtype=np.int64)},
+    )
+
+    result = left.merge(right, on="k", how="left", sort=False)
+
+    expected = left.copy()
+    expected["w"] = right.set_index("k")["w"].reindex(left["k"]).to_numpy()
+
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", [np.int64, np.uint64])
+@pytest.mark.parametrize("start, step", [(0, 2), (5, 3)])
+def test_merge_right_sort_false_range_like_left(dtype, start, step):
+    left_k = np.arange(start, start + step * 6, step, dtype=dtype)
+    left = DataFrame(
+        {"k": left_k, "v": np.arange(len(left_k), dtype=np.int64)},
+    )
+
+    right_k = np.array(
+        [start + step * 2, start, start + step * 10, start + step * 1],
+        dtype=dtype,
+    )
+    right = (
+        DataFrame({"k": right_k, "w": [1, 2, 3, 4]})
+        .iloc[[1, 3, 0, 2]]
+        .reset_index(drop=True)
+    )
+
+    result = left.merge(right, on="k", how="right", sort=False)
+
+    expected = right.copy()
+    expected["v"] = left.set_index("k")["v"].reindex(expected["k"]).to_numpy()
+    expected = expected[["k", "v", "w"]]
+
+    tm.assert_frame_equal(result, expected)
