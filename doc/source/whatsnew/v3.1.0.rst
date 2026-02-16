@@ -104,7 +104,7 @@ Performance improvements
   single column by label on a :class:`DataFrame` with duplicate column names.
   We no longer call :meth:`Index.drop_duplicates` on every access; we use
   :meth:`Index.get_loc` instead, avoiding O(n) work and allocation
-  (:issue:`XXXXX`).
+  (:issue:`64126`).
 -
 
 .. ---------------------------------------------------------------------------
