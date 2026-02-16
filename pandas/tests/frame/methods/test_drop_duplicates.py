@@ -514,3 +514,12 @@ def test_drop_duplicates_set():
     result = df.drop_duplicates({"AAA", "B"}, keep=False)
     expected = df.loc[[0]]
     tm.assert_frame_equal(result, expected)
+
+
+def test_drop_duplicates_with_empty_missing():
+    # https://github.com/pandas-dev/pandas/issues/62611 - specific bug with pyarrow
+    df = DataFrame(data={"A": ["a", "b", "", "a", None, "b"]})
+    df["B"] = "b"
+    result = df.drop_duplicates()
+    expected = DataFrame(data={"A": ["a", "b", "", None], "B": ["b", "b", "b", "b"]})
+    tm.assert_frame_equal(result, expected)
