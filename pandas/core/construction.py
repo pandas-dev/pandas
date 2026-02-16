@@ -195,7 +195,7 @@ def array(
     data type.
 
     >>> pd.array([[1], [2], [3]], dtype="str")
-    <StringArray>
+    <ArrowStringArray>
     ['[1]', '[2]', '[3]']
     Length: 3, dtype: str
 
