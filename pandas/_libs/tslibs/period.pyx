@@ -1521,14 +1521,16 @@ cdef accessor _get_accessor_func(str field):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def from_ordinals(const int64_t[:] values, freq):
+def from_calendar_ordinals(const int64_t[:] values, PeriodDtypeBase dtype):
+    # NB: this is *not* the same behavior as PeriodIndex.from_ordinals,
+    #  but a vectorized application of the Period constructor on an integer
+    #  input.
     cdef:
         Py_ssize_t i, n = len(values)
         int64_t[::1] result = np.empty(len(values), dtype="i8")
         int64_t val
 
-    freq = to_offset(freq, is_period=True)
-    if not isinstance(freq, BaseOffset):
+    if dtype is None:
         raise ValueError("freq not specified and cannot be inferred")
 
     for i in range(n):
@@ -1536,7 +1538,9 @@ def from_ordinals(const int64_t[:] values, freq):
         if val == NPY_NAT:
             result[i] = NPY_NAT
         else:
-            result[i] = Period(val, freq=freq).ordinal
+            # equiv Period(val, freq=dtype.unit).ordinal, specialized
+            #  bc we know val is an integer
+            result[i] = period_ordinal(val, 1, 1, 0, 0, 0, 0, 0, dtype._dtype_code)
 
     return result.base
 

@@ -1,4 +1,3 @@
-from datetime import timedelta
 from typing import Literal
 
 import numpy as np
@@ -32,9 +31,9 @@ def get_period_field_arr(
     arr: npt.NDArray[np.int64],  # const int64_t[:]
     freq: int,
 ) -> npt.NDArray[np.int64]: ...
-def from_ordinals(
+def from_calendar_ordinals(
     values: npt.NDArray[np.int64],  # const int64_t[:]
-    freq: timedelta | BaseOffset | str,
+    dtype: PeriodDtypeBase,
 ) -> npt.NDArray[np.int64]: ...
 def extract_ordinals(
     values: npt.NDArray[np.object_],
