@@ -17,7 +17,6 @@ pip = ">=26"
 
 # Required dependencies
 python-dateutil = ">=2.8.2"
-numpy = ">=1.26.0,<3"
 
 [feature.numpy.dependencies]
 numpy = ">=1.26.0,<3"
