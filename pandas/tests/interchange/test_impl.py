@@ -525,6 +525,9 @@ def test_non_str_names_w_duplicates():
         ),
     ],
 )
+@pytest.mark.filterwarnings(
+    "ignore:The 'unit' keyword is deprecated:DeprecationWarning"
+)
 def test_pandas_nullable_with_missing_values(
     data: list, dtype: str, expected_dtype: str
 ) -> None:
@@ -592,6 +595,9 @@ def test_pandas_nullable_with_missing_values(
             "timestamp[us, tz=Asia/Kathmandu]",
         ),
     ],
+)
+@pytest.mark.filterwarnings(
+    "ignore:The 'unit' keyword is deprecated:DeprecationWarning"
 )
 def test_pandas_nullable_without_missing_values(
     data: list, dtype: str, expected_dtype: str

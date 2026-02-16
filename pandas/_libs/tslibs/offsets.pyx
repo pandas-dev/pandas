@@ -7293,7 +7293,7 @@ cpdef to_offset(freq, bint is_period=False):
                     # For these prefixes, we have something like "3h" or
                     #  "2.5min", so we can construct a Timedelta with the
                     #  matching unit and get our offset from delta_to_tick
-                    td = Timedelta(1, unit=name)
+                    td = Timedelta(1, input_unit=name)
                     off = delta_to_tick(td)
                     offset = off * float(stride)
                     if n != 0:

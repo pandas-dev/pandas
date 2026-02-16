@@ -79,7 +79,8 @@ class AsType:
             "int": np.random.randint(2**16, size=154),
             "float": sys.maxsize * np.random.random((38,)),
             "timestamp": [
-                pd.Timestamp(x, unit="s") for x in np.random.randint(2**18, size=578)
+                pd.Timestamp(x, input_unit="s")
+                for x in np.random.randint(2**18, size=578)
             ],
         }
 

@@ -603,7 +603,7 @@ def _format_labels(
         unit = dtype_to_unit(bins.dtype)  # type: ignore[arg-type]
         unit = cast("TimeUnit", unit)
         formatter = lambda x: x
-        adjust = lambda x: x - Timedelta(1, unit=unit).as_unit(unit)
+        adjust = lambda x: x - Timedelta(1, input_unit=unit).as_unit(unit)
     else:
         precision = _infer_precision(precision, bins)
         formatter = lambda x: _round_frac(x, precision)

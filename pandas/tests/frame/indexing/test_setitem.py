@@ -991,8 +991,8 @@ class TestDataFrameSetItemWithExpansion:
     def test_loc_expansion_with_timedelta_type(self):
         result = DataFrame(columns=list("abc"))
         result.loc[0] = {
-            "a": pd.to_timedelta(5, unit="s"),
-            "b": pd.to_timedelta(72, unit="s"),
+            "a": pd.to_timedelta(5, input_unit="s"),
+            "b": pd.to_timedelta(72, input_unit="s"),
             "c": "23",
         }
         expected = DataFrame(

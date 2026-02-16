@@ -946,7 +946,7 @@ class TestDataFrameConstructors:
                 {0: None, 1: None, 2: 4, 3: None},
                 {0: None, 1: None, 2: None, 3: 6},
             ],
-            index=[Timedelta(td, "D") for td in td_as_int],
+            index=[Timedelta(td, input_unit="D") for td in td_as_int],
         )
         expected.index = expected.index.astype(exp_dtype)
 
@@ -2118,8 +2118,8 @@ class TestDataFrameConstructors:
         exp_dtype = np.dtype(f"m8[{exp_unit}]")
         expected = DataFrame(
             [
-                [Timedelta(1, "D"), Timedelta(2, "D")],
-                [Timedelta(4, "D"), Timedelta(5, "D")],
+                [Timedelta(1, input_unit="D"), Timedelta(2, input_unit="D")],
+                [Timedelta(4, input_unit="D"), Timedelta(5, input_unit="D")],
             ],
             dtype=exp_dtype,
         )

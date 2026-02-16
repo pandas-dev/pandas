@@ -39,11 +39,11 @@ class TestTimestampConstructorUnitKeyword:
         # GH#47266 avoid the conversions in cast_from_unit
         val = typ(150)
 
-        ts = Timestamp(val, unit="Y")
+        ts = Timestamp(val, input_unit="Y")
         expected = Timestamp("2120-01-01")
         assert ts == expected
 
-        ts = Timestamp(val, unit="M")
+        ts = Timestamp(val, input_unit="M")
         expected = Timestamp("1982-07-01")
         assert ts == expected
 
@@ -54,17 +54,17 @@ class TestTimestampConstructorUnitKeyword:
 
         msg = f"cannot convert input {int(val)} with the unit 'D'"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
-            Timestamp(val, unit="D")
+            Timestamp(val, input_unit="D")
 
     def test_constructor_float_not_round_with_YM_unit_raises(self):
         # GH#47267 avoid the conversions in cast_from-unit
 
-        msg = "Conversion of non-round float with unit=[MY] is ambiguous"
+        msg = "Conversion of non-round float with input_unit=[MY] is ambiguous"
         with pytest.raises(ValueError, match=msg):
-            Timestamp(150.5, unit="Y")
+            Timestamp(150.5, input_unit="Y")
 
         with pytest.raises(ValueError, match=msg):
-            Timestamp(150.5, unit="M")
+            Timestamp(150.5, input_unit="M")
 
     @pytest.mark.parametrize(
         "value, check_kwargs",
@@ -95,7 +95,7 @@ class TestTimestampConstructorUnitKeyword:
     )
     def test_construct_with_unit(self, value, check_kwargs):
         def check(value, unit=None, h=1, s=1, us=0, ns=0):
-            stamp = Timestamp(value, unit=unit)
+            stamp = Timestamp(value, input_unit=unit)
             assert stamp.year == 2000
             assert stamp.month == 1
             assert stamp.day == 1
@@ -1076,9 +1076,9 @@ def test_timestamp_nano_range(nano):
 
 def test_non_nano_value():
     # https://github.com/pandas-dev/pandas/issues/49076
-    msg = "The 'unit' keyword is only used when"
+    msg = "The 'input_unit' keyword is only used when"
     with tm.assert_produces_warning(UserWarning, match=msg):
-        result = Timestamp("1800-01-01", unit="s").value
+        result = Timestamp("1800-01-01", input_unit="s").value
     # `.value` shows nanoseconds, even though unit is 's'
     assert result == -5364662400000000000
 

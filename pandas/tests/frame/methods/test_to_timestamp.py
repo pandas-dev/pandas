@@ -95,18 +95,21 @@ class TestToTimestamp:
         delta = timedelta(hours=23)
         result = df.to_timestamp("H", "end", axis=1)
         exp_index = _get_with_delta(delta)
+
         exp_index = exp_index + Timedelta(1, "h") - Timedelta(1, "us")
         tm.assert_index_equal(result.columns, exp_index)
 
         delta = timedelta(hours=23, minutes=59)
         result = df.to_timestamp("min", "end", axis=1)
         exp_index = _get_with_delta(delta)
+
         exp_index = exp_index + Timedelta(1, "m") - Timedelta(1, "us")
         tm.assert_index_equal(result.columns, exp_index)
 
         result = df.to_timestamp("S", "end", axis=1)
         delta = timedelta(hours=23, minutes=59, seconds=59)
         exp_index = _get_with_delta(delta)
+
         exp_index = exp_index + Timedelta(1, "s") - Timedelta(1, "us")
         tm.assert_index_equal(result.columns, exp_index)
 

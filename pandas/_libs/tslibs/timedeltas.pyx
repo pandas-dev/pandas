@@ -1226,7 +1226,7 @@ cdef class _Timedelta(timedelta):
 
         Examples
         --------
-        >>> pd.Timedelta(1, "us").value
+        >>> pd.Timedelta(1, input_unit="us").value
         1000
         """
         try:
@@ -1310,7 +1310,7 @@ cdef class _Timedelta(timedelta):
 
         **Using integer input**
 
-        >>> td = pd.Timedelta(42, unit='s')
+        >>> td = pd.Timedelta(42, input_unit='s')
         >>> td.seconds
         42
         """
@@ -1350,7 +1350,7 @@ cdef class _Timedelta(timedelta):
 
         **Using integer input**
 
-        >>> td = pd.Timedelta(42, unit='us')
+        >>> td = pd.Timedelta(42, input_unit='us')
         >>> td.microseconds
         42
         """
@@ -1402,7 +1402,7 @@ cdef class _Timedelta(timedelta):
 
         Examples
         --------
-        >>> td = pd.Timedelta(42, unit='us')
+        >>> td = pd.Timedelta(42, input_unit='us')
         >>> td.unit
         'us'
         """
@@ -1750,7 +1750,7 @@ cdef class _Timedelta(timedelta):
         >>> td.asm8
         np.timedelta64(3005,'us')
 
-        >>> td = pd.Timedelta(42, unit='ns')
+        >>> td = pd.Timedelta(42, input_unit='ns')
         >>> td.asm8
         np.timedelta64(42,'ns')
         """
@@ -1794,7 +1794,7 @@ cdef class _Timedelta(timedelta):
         >>> td.resolution_string
         's'
 
-        >>> td = pd.Timedelta(36, unit='us')
+        >>> td = pd.Timedelta(36, input_unit='us')
         >>> td.resolution_string
         'us'
         """
@@ -1841,7 +1841,7 @@ cdef class _Timedelta(timedelta):
 
         **Using integer input**
 
-        >>> td = pd.Timedelta(42, unit='ns')
+        >>> td = pd.Timedelta(42, input_unit='ns')
         >>> td.nanoseconds
         42
         """
@@ -2043,7 +2043,7 @@ class Timedelta(_Timedelta):
     ----------
     value : Timedelta, timedelta, np.timedelta64, str, int or float
         Input value.
-    unit : str, default 'ns'
+    input_unit : str, default 'ns'
         If input is an integer, denote the unit of the input.
         If input is a float, denote the unit of the integer parts.
         The decimal parts with resolution lower than 1 nanosecond are ignored.
@@ -2063,6 +2063,10 @@ class Timedelta(_Timedelta):
 
             Allowing the values `w`, `d`, `MIN`, `MS`, `US` and `NS` to denote units
             are deprecated in favour of the values `W`, `D`, `min`, `ms`, `us` and `ns`.
+    unit : str or None, default None
+        Use input_unit instead.
+
+        .. deprecated:: 3.0.0
 
     **kwargs
         Available kwargs: {days, seconds, microseconds,
@@ -2093,7 +2097,7 @@ class Timedelta(_Timedelta):
     --------
     Here we initialize Timedelta object with both value and unit
 
-    >>> td = pd.Timedelta(1, "D")
+    >>> td = pd.Timedelta(1, input_unit="D")
     >>> td
     Timedelta('1 days 00:00:00')
 
@@ -2109,7 +2113,18 @@ class Timedelta(_Timedelta):
     _req_any_kwargs_new = {"weeks", "days", "hours", "minutes", "seconds",
                            "milliseconds", "microseconds", "nanoseconds"}
 
-    def __new__(cls, object value=_no_input, unit=None, **kwargs):
+    def __new__(cls, object value=_no_input, input_unit=None, *, unit=None, **kwargs):
+        if unit is not None:
+            if input_unit is not None:
+                raise ValueError("Specify only 'input_unit', not 'unit'")
+            from pandas.errors import Pandas4Warning
+            warnings.warn(
+                "The 'unit' keyword is deprecated. Use 'input_unit' instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+            input_unit = unit
+
         unsupported_kwargs = set(kwargs)
         unsupported_kwargs.difference_update(cls._req_any_kwargs_new)
         if unsupported_kwargs or (
@@ -2125,12 +2140,12 @@ class Timedelta(_Timedelta):
             )
 
         if (
-            unit is not None
+            input_unit is not None
             and not (is_float_object(value) or is_integer_object(value))
         ):
             # GH#53198
             warnings.warn(
-                "The 'unit' keyword is only used when the Timedelta input is "
+                "The 'input_unit' keyword is only used when the Timedelta input is "
                 f"an integer or float, not {type(value).__name__}. "
                 "To specify the storage unit of the output use `td.as_unit(unit)`",
                 UserWarning,
@@ -2184,7 +2199,7 @@ class Timedelta(_Timedelta):
                 # If possible, give a microsecond unit
                 value = value.astype("m8[us]")
 
-        disallow_ambiguous_unit(unit)
+        disallow_ambiguous_unit(input_unit)
 
         cdef:
             int64_t new_value
@@ -2192,7 +2207,7 @@ class Timedelta(_Timedelta):
         # GH 30543 if pd.Timedelta already passed, return it
         # check that only value is passed
         if isinstance(value, _Timedelta):
-            # 'unit' is benign in this case, but e.g. days or seconds
+            # 'input_unit' is benign in this case, but e.g. days or seconds
             #  doesn't make sense here.
             if len(kwargs):
                 # GH#48898
@@ -2203,8 +2218,10 @@ class Timedelta(_Timedelta):
                 )
             return value
         elif isinstance(value, str):
-            if unit is not None:
-                raise ValueError("unit must not be specified if the value is a str")
+            if input_unit is not None:
+                raise ValueError(
+                    "input_unit must not be specified if the value is a str"
+                )
             if (len(value) > 0 and value[0] == "P") or (
                 len(value) > 1 and value[:2] == "-P"
             ):
@@ -2272,23 +2289,23 @@ class Timedelta(_Timedelta):
         elif is_integer_object(value):
             # unit=None is de-facto 'ns'
             if value != NPY_NAT:
-                unit = parse_timedelta_unit(unit)
-                if unit != "ns":
+                input_unit = parse_timedelta_unit(input_unit)
+                if input_unit != "ns":
                     # Return with the closest-to-supported unit by going through
                     #  the timedelta64 path
-                    td = np.timedelta64(value, unit)
+                    td = np.timedelta64(value, input_unit)
                     return cls(td)
-                value = _numeric_to_td64ns(value, unit)
+                value = _numeric_to_td64ns(value, input_unit)
 
         elif is_float_object(value):
             int_item = int(value)
             if value == int_item:
                 # round float -> treat like an int, try to preserve unit
-                return cls(int_item, unit=unit)
+                return cls(int_item, input_unit=input_unit)
 
             # unit=None is de-facto 'ns'
-            unit = parse_timedelta_unit(unit)
-            value = _numeric_to_td64ns(value, unit)
+            input_unit = parse_timedelta_unit(input_unit)
+            value = _numeric_to_td64ns(value, input_unit)
 
         else:
             raise ValueError(

@@ -97,6 +97,8 @@ class Timedelta(timedelta):
     def __new__(  # type: ignore[misc]
         cls: type[Self],
         value=...,
+        input_unit: str | None = ...,
+        *,
         unit: str | None = ...,
         **kwargs: float | np.integer | np.floating,
     ) -> Self | NaTType: ...
