@@ -36,6 +36,7 @@ if TYPE_CHECKING:
         Callable,
         Sequence,
     )
+    from typing import IO
     from xml.etree.ElementTree import Element
 
     from lxml import etree
@@ -183,6 +184,8 @@ class _XMLFrameParser:
         self.iterparse = iterparse
         self.compression: CompressionOptions = compression
         self.storage_options = storage_options
+        self.xml_doc: Element | etree._Element | etree._XSLTResultTree | None = None
+        self.xsl_doc: etree._Element | None = None
 
     def parse_data(self) -> list[dict[str, str | None]]:
         """
@@ -280,7 +283,9 @@ class _XMLFrameParser:
 
         return dicts
 
-    def _iterparse_nodes(self, iterparse: Callable) -> list[dict[str, str | None]]:
+    def _iterparse_nodes(
+        self, iterparse: Callable[..., Any]
+    ) -> list[dict[str, str | None]]:
         """
         Iterparse xml nodes.
 
@@ -444,6 +449,7 @@ class _EtreeFrameParser(_XMLFrameParser):
                 "To use stylesheet, you need lxml installed and selected as parser."
             )
 
+        elems: list[Any] = []
         if self.iterparse is None:
             self.xml_doc = self._parse_doc(self.path_or_buffer)
             elems = self._validate_path()
@@ -465,7 +471,6 @@ class _EtreeFrameParser(_XMLFrameParser):
         ``etree`` supports limited ``XPath``. If user attempts a more complex
         expression syntax error will raise.
         """
-
         msg = (
             "xpath does not return any nodes or attributes. "
             "Be sure to specify in `xpath` the parent nodes of "
@@ -475,7 +480,9 @@ class _EtreeFrameParser(_XMLFrameParser):
             "use them in xpath."
         )
         try:
-            elems = self.xml_doc.findall(self.xpath, namespaces=self.namespaces)
+            elems = self.xml_doc.findall(  # type: ignore[union-attr]
+                self.xpath, namespaces=self.namespaces
+            )
             children = [ch for el in elems for ch in el.findall("*")]
             attrs = {k: v for el in elems for k, v in el.attrib.items()}
 
@@ -506,7 +513,9 @@ class _EtreeFrameParser(_XMLFrameParser):
             if self.iterparse:
                 children = self.iterparse[next(iter(self.iterparse))]
             else:
-                parent = self.xml_doc.find(self.xpath, namespaces=self.namespaces)
+                parent = self.xml_doc.find(  # type: ignore[union-attr]
+                    self.xpath, namespaces=self.namespaces
+                )
                 children = parent.findall("*") if parent is not None else []
 
             if is_list_like(self.names):
@@ -558,6 +567,7 @@ class _LxmlFrameParser(_XMLFrameParser):
         """
         from lxml.etree import iterparse
 
+        elems: list[Any] = []
         if self.iterparse is None:
             self.xml_doc = self._parse_doc(self.path_or_buffer)
 
@@ -587,7 +597,9 @@ class _LxmlFrameParser(_XMLFrameParser):
             "use them in xpath."
         )
 
-        elems = self.xml_doc.xpath(self.xpath, namespaces=self.namespaces)
+        elems = self.xml_doc.xpath(  # type: ignore[union-attr]
+            self.xpath, namespaces=self.namespaces
+        )
         children = [ch for el in elems for ch in el.xpath("*")]
         attrs = {k: v for el in elems for k, v in el.attrib.items()}
 
@@ -611,7 +623,7 @@ class _LxmlFrameParser(_XMLFrameParser):
             if self.iterparse:
                 children = self.iterparse[next(iter(self.iterparse))]
             else:
-                children = self.xml_doc.xpath(
+                children = self.xml_doc.xpath(  # type: ignore[union-attr]
                     self.xpath + "[1]/*", namespaces=self.namespaces
                 )
 
@@ -679,7 +691,7 @@ def get_data_from_filepath(
     encoding: str | None,
     compression: CompressionOptions,
     storage_options: StorageOptions,
-):
+) -> io.StringIO | io.BytesIO | IO[str] | IO[bytes]:
     """
     Extract raw XML data.
 
@@ -722,7 +734,7 @@ def preprocess_data(
     return data
 
 
-def _data_to_frame(data: list[dict[str, str | None]], **kwargs) -> DataFrame:
+def _data_to_frame(data: list[dict[str, str | None]], **kwargs: Any) -> DataFrame:
     """
     Convert parsed data to Data Frame.
 
@@ -762,7 +774,7 @@ def _parse(
     compression: CompressionOptions,
     storage_options: StorageOptions,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
-    **kwargs,
+    **kwargs: Any,
 ) -> DataFrame:
     """
     Call internal parsers.
