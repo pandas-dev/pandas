@@ -226,10 +226,14 @@ jobs:
         run: rm /c/Program\ Files/Git/usr/bin/link.EXE
         if: ${{ matrix.os == 'windows-2025' }}
 
-      - name: Build Pandas
-        uses: ./.github/actions/build_pandas_pixi
-        with:
-          environment: ${{ matrix.environment }}
+      - name: Build pandas
+        id: build
+        run: |
+          pixi run \
+            --environment ${{ matrix.environment }} \
+            build-pandas \
+            --editable
+        shell: bash -euox pipefail {0}
 
       - name: Test
         uses: ./.github/actions/run-tests
