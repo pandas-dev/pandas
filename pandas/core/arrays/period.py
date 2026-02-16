@@ -867,7 +867,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
     # --------------------------------------------------------------------
 
     def _box_func(self, x) -> Period | NaTType:
-        return Period._from_ordinal(ordinal=x, freq=self.freq)
+        return Period._from_ordinal(ordinal=x, dtype=self.dtype)
 
     def asfreq(self, freq=None, how: str = "E") -> Self:
         """
@@ -1280,9 +1280,7 @@ def period_array(
 
     if arrdata.dtype.kind in "iu":
         arr = arrdata.astype(np.int64, copy=False)
-        # error: Argument 2 to "from_ordinals" has incompatible type "Union[str,
-        # Tick, None]"; expected "Union[timedelta, BaseOffset, str]"
-        ordinals = libperiod.from_ordinals(arr, freq)  # type: ignore[arg-type]
+        ordinals = libperiod.from_calendar_ordinals(arr, dtype)  # type: ignore[arg-type]
         return PeriodArray(ordinals, dtype=dtype)
 
     data = ensure_object(arrdata)

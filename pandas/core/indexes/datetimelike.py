@@ -94,6 +94,9 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         """
         Return the mean value of the Array.
 
+        This method computes the arithmetic mean of the datetime or timedelta
+        values in the index, optionally skipping NaT values.
+
         Parameters
         ----------
         skipna : bool, default True
@@ -180,6 +183,10 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
     def freqstr(self) -> str:
         """
         Return the frequency object as a string if it's set, otherwise None.
+
+        This property returns a string representation of the frequency
+        (e.g., ``'D'`` for daily, ``'h'`` for hourly) when one has been set
+        on the index, either explicitly or via inference.
 
         See Also
         --------
@@ -677,6 +684,9 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
     def inferred_freq(self) -> str | None:
         """
         Return the inferred frequency of the index.
+
+        Attempts to determine the frequency of the index by analyzing the
+        differences between consecutive values using ``infer_freq``.
 
         Returns
         -------
