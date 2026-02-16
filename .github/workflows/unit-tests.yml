@@ -157,7 +157,7 @@ jobs:
       id: build
       run: |
         pixi run \
-          --environment ${{ matrix.environment }}
+          --environment ${{ matrix.environment }} \
           build-pandas \
           --editable \
           ${{ ! (matrix.name == 'Freethreading' || matrix.name == 'Minimum Versions') && '-Csetup-args="--werror"' || '' }}
