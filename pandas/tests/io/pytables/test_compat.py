@@ -78,41 +78,41 @@ class TestReadPyTablesHDF5:
         tm.assert_frame_equal(result, expected, check_index_type=True)
 
 
-def test_legacy_files(datapath):
-    current_data = create_dataframe_all_types()
+_legacy_files = list(Path(__file__).parent.parent.glob("data/legacy_hdf/*/*.h5"))
 
-    for legacy_file in Path(__file__).parent.parent.glob("data/legacy_hdf/*/*.h5"):
-        legacy_version = Version(legacy_file.parent.name)
 
-        result = pd.read_hdf(legacy_file)
+@pytest.mark.parametrize("legacy_file", _legacy_files, ids=lambda x: x.name)
+def test_legacy_files(datapath, legacy_file):
+    legacy_version = Version(legacy_file.parent.name)
+    legacy_file = datapath(legacy_file)
 
-        expected = current_data.copy()
+    result = pd.read_hdf(legacy_file)
 
-        if legacy_file.name.endswith("fixed.h5"):
-            expected = expected.drop(
-                columns=["categorical", "categorical_object", "categorical_int"]
+    expected = create_dataframe_all_types()
+
+    if legacy_file.endswith("fixed.h5"):
+        expected = expected.drop(
+            columns=["categorical", "categorical_object", "categorical_int"]
+        )
+
+    # object dtype columns with strings get read as `str`
+    expected["object"] = expected["object"].astype("str")
+    expected["object_nan"] = expected["object_nan"].astype("str")
+    if legacy_file.endswith("table.h5"):
+        expected["categorical_object"] = expected["categorical_object"].astype(
+            pd.CategoricalDtype(
+                expected["categorical_object"].cat.categories.astype("str")
             )
+        )
 
-        # object dtype columns with strings get read as `str`
-        expected["object"] = expected["object"].astype("str")
-        expected["object_nan"] = expected["object_nan"].astype("str")
-        if legacy_file.name.endswith("table.h5"):
-            expected["categorical_object"] = expected["categorical_object"].astype(
-                pd.CategoricalDtype(
-                    expected["categorical_object"].cat.categories.astype("str")
-                )
-            )
+    if legacy_version < Version("3.0.0") and legacy_file.endswith("fixed.h5"):
+        # TODO timedelta columns gets read as nanoseconds, resulting in buggy values
+        assert not result["timedelta_us"].equals(expected["timedelta_us"])
+        assert not result["timedelta_ms"].equals(expected["timedelta_ms"])
+        assert not result["timedelta_s"].equals(expected["timedelta_s"])
+        result = result.drop(columns=["timedelta_us", "timedelta_ms", "timedelta_s"])
+        expected = expected.drop(
+            columns=["timedelta_us", "timedelta_ms", "timedelta_s"]
+        )
 
-        if legacy_version < Version("3.0.0") and legacy_file.name.endswith("fixed.h5"):
-            # TODO timedelta columns gets read as nanoseconds, resulting in buggy values
-            assert not result["timedelta_us"].equals(expected["timedelta_us"])
-            assert not result["timedelta_ms"].equals(expected["timedelta_ms"])
-            assert not result["timedelta_s"].equals(expected["timedelta_s"])
-            result = result.drop(
-                columns=["timedelta_us", "timedelta_ms", "timedelta_s"]
-            )
-            expected = expected.drop(
-                columns=["timedelta_us", "timedelta_ms", "timedelta_s"]
-            )
-
-        tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
