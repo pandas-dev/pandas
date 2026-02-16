@@ -43,11 +43,11 @@ pytest-xdist = ">=3.6.1"
 hypothesis = ">=6.116.0"
 
 [feature.pytest-cov-conda.dependencies]
-pytest-cov = "*"
+pytest-cov = ">=7.0.0"
 
 [feature.pytest-cov-pypi.pypi-dependencies]
 # No free-threaded coveragepy (with the C-extension) on conda-forge yet
-pytest-cov = "*"
+pytest-cov = ">=7.0.0"
 
 [feature.test-network.dependencies]
 pytest-localserver = ">=0.9.0"
