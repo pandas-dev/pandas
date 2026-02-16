@@ -54,7 +54,6 @@ from pandas import (
     Period,
     RangeIndex,
     Series,
-    StringDtype,
     Timestamp,
     bdate_range,
     date_range,
@@ -315,11 +314,11 @@ def create_dataframe_all_types():
     timedeltas = timestamps - timestamps[0]
 
     data = {
-        "string": Series(
-            ["a", "b", "c", None, "e"], dtype=StringDtype(na_value=np.nan)
-        ),
-        "object": Series(["a", "b", "c", None, "e"], dtype=object),
-        "object_nan": Series(["a", "b", "c", np.nan, "e"], dtype=object),
+        # "string": Series(
+        #     ["a", "b", "c", None, "e"], dtype=StringDtype(na_value=np.nan)
+        # ),
+        # "object": Series(["a", "b", "c", None, "e"], dtype=object),
+        # "object_nan": Series(["a", "b", "c", np.nan, "e"], dtype=object),
         "int": list(range(1, 6)),
         "uint64": np.arange(3, 8).astype("uint64"),
         "float": [0.1, 0.2, 0.3, 0.4, np.nan],
@@ -335,14 +334,14 @@ def create_dataframe_all_types():
         "timedelta_us": timedeltas.dt.as_unit("us"),
         "timedelta_ms": timedeltas.dt.as_unit("ms"),
         "timedelta_s": timedeltas.dt.as_unit("s"),
-        "categorical": Categorical(
-            Series(
-                ["foo", "bar", "baz", np.nan, "foo"], dtype=StringDtype(na_value=np.nan)
-            )
-        ),
-        "categorical_object": Categorical(
-            Series(["foo", "bar", "baz", np.nan, "foo"], dtype=object)
-        ),
+        # "categorical": Categorical(
+        #     Series(
+        #         ["foo", "bar", "baz",np.nan,"foo"],dtype=StringDtype(na_value=np.nan)
+        #     )
+        # ),
+        # "categorical_object": Categorical(
+        #     Series(["foo", "bar", "baz", np.nan, "foo"], dtype=object)
+        # ),
         "categorical_int": Categorical([1, 2, 3, np.nan, 1]),
     }
     return DataFrame(data)
@@ -375,8 +374,15 @@ def write_legacy_hdf(output_dir, format):
 
     df = create_dataframe_all_types()
     if format == "fixed":
-        df = df.drop(columns=["categorical", "categorical_object", "categorical_int"])
-    df.to_hdf(os.path.join(output_dir, pth), key="df_alltypes", format=format)
+        # df = df.drop(columns=["categorical", "categorical_object", "categorical_int"])
+        df = df.drop(columns=["categorical_int"])
+    complevel = 9 if format == "table" else None
+    df.to_hdf(
+        os.path.join(output_dir, pth),
+        key="df_alltypes",
+        format=format,
+        complevel=complevel,
+    )
 
     print(f"created hdf file: {pth}")
 
