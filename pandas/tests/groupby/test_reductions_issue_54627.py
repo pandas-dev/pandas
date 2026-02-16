@@ -18,45 +18,42 @@ from pandas import (
 import pandas._testing as tm
 
 
-@pytest.mark.filterwarnings("ignore::FutureWarning")
+pytestmark = pytest.mark.filterwarnings("ignore::FutureWarning")
+
+
 class TestGroupByVarArrowDtype:
     """Test groupby.var() preserves Arrow dtype."""
 
-    def test_groupby_var_arrow_dtype(self):
-        """Test that groupby.var() returns Arrow dtype when input has Arrow dtype."""
-        # Create DataFrame with Arrow types
-        df = DataFrame({
-            "A": Series([True, True], dtype="bool[pyarrow]"),
-            "B": Series(
-                [decimal.Decimal(123), decimal.Decimal(12)],
-                dtype=pd.ArrowDtype(pa.decimal128(6, 3))
-            ),
-        })
+    def test_groupby_var_arrow_dtype_series(self):
+        """Test that groupby.var() returns Arrow dtype for Series with Arrow dtype."""
+        # Create Series with Arrow type
+        s = Series([1.0, 2.0, 3.0, 4.0, 5.0], dtype="float64[pyarrow]")
+        key = Series([1, 1, 2, 2, 2], dtype="int64[pyarrow]"])
 
-        # Groupby and compute variance
-        result = df.groupby("A").var()
+        result = s.groupby(key).var()
 
-        # Expected: Column B should have float64[pyarrow] dtype
-        # Bug: Column B has float64 dtype
-        assert "pyarrow" in str(result["B"].dtype), (
-            f"Expected Arrow dtype, got {result['B'].dtype}"
+        # Expected: result should have float64[pyarrow] dtype
+        # Bug: result has float64 dtype
+        assert "pyarrow" in str(result.dtype), (
+            f"Expected Arrow dtype, got {result.dtype}"
         )
 
-    def test_groupby_var_float_pyarrow(self):
-        """Test groupby.var() with float64[pyarrow] dtype."""
+    def test_groupby_var_arrow_dtype_dataframe(self):
+        """Test that groupby.var() returns Arrow dtype for DataFrame with Arrow dtype."""
+        # Create DataFrame with Arrow types
         df = DataFrame({
-            "key": Series([1, 1, 2], dtype="int64[pyarrow]"),
-            "value": Series([1.0, 2.0, 3.0], dtype="float64[pyarrow]"),
+            "key": Series([1, 1, 2, 2], dtype="int64[pyarrow]"),
+            "value": Series([1.0, 2.0, 3.0, 4.0], dtype="float64[pyarrow]"),
         })
 
         result = df.groupby("key").var()
 
-        # The result should preserve Arrow dtype
+        # Expected: Column 'value' should have float64[pyarrow] dtype
         assert "pyarrow" in str(result["value"].dtype), (
-            f"Expected Arrow dtype, got {result['value'].dtype}"
+            f"Expected Arrow dtype for value column, got {result['value'].dtype}"
         )
 
-    def test_groupby_var_decimal_pyarrow(self):
+    def test_groupby_var_arrow_dtype_decimal(self):
         """Test groupby.var() with decimal[pyarrow] dtype."""
         df = DataFrame({
             "key": Series([1, 1, 2], dtype="int64[pyarrow]"),
@@ -69,28 +66,43 @@ class TestGroupByVarArrowDtype:
         result = df.groupby("key").var()
 
         # The result should preserve Arrow dtype
+        # Note: decimal128 converts to float64 in variance calculation
+        # but should still be pyarrow float64
         assert "pyarrow" in str(result["value"].dtype), (
             f"Expected Arrow dtype, got {result['value'].dtype}"
         )
 
+    def test_groupby_var_without_arrow_returns_numpy(self):
+        """Test that groupby.var() returns numpy dtype when input is numpy."""
+        # Create DataFrame with regular numpy types
+        df = DataFrame({
+            "key": [1, 1, 2, 2],
+            "value": [1.0, 2.0, 3.0, 4.0],
+        })
+
+        result = df.groupby("key").var()
+
+        # Should be regular numpy float64
+        assert result["value"].dtype == np.float64
+        assert "pyarrow" not in str(result["value"].dtype)
+
+    def test_groupby_var_mixed_types(self):
+        """Test groupby.var() with mixed Arrow and numpy columns."""
+        df = DataFrame({
+            "key": Series([1, 1, 2, 2], dtype="int64[pyarrow]"),
+            "arrow_col": Series([1.0, 2.0, 3.0, 4.0], dtype="float64[pyarrow]"),
+            "numpy_col": [1.0, 2.0, 3.0, 4.0],
+        })
+
+        result = df.groupby("key").var()
+
+        # Arrow column should preserve Arrow dtype
+        assert "pyarrow" in str(result["arrow_col"].dtype), (
+            f"Expected Arrow dtype for arrow_col, got {result['arrow_col'].dtype}"
+        )
+        # Numpy column should remain numpy
+        assert result["numpy_col"].dtype == np.float64
+
 
 if __name__ == "__main__":
-    # Run the tests
-    test = TestGroupByVarArrowDtype()
-    try:
-        test.test_groupby_var_arrow_dtype()
-        print("✅ test_groupby_var_arrow_dtype passed")
-    except Exception as e:
-        print(f"❌ test_groupby_var_arrow_dtype failed: {e}")
-    
-    try:
-        test.test_groupby_var_float_pyarrow()
-        print("✅ test_groupby_var_float_pyarrow passed")
-    except Exception as e:
-        print(f"❌ test_groupby_var_float_pyarrow failed: {e}")
-    
-    try:
-        test.test_groupby_var_decimal_pyarrow()
-        print("✅ test_groupby_var_decimal_pyarrow passed")
-    except Exception as e:
-        print(f"❌ test_groupby_var_decimal_pyarrow failed: {e}")
+    pytest.main([__file__, "-v"])
