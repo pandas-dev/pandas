@@ -4,10 +4,6 @@ SQL-style merge routines
 
 from __future__ import annotations
 
-from collections.abc import (
-    Hashable,
-    Sequence,
-)
 import datetime
 from functools import partial
 import types
@@ -29,16 +25,6 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.lib import is_range_indexer
-from pandas._typing import (
-    AnyArrayLike,
-    ArrayLike,
-    IndexLabel,
-    JoinHow,
-    MergeHow,
-    Shape,
-    Suffixes,
-    npt,
-)
 from pandas.errors import MergeError
 from pandas.util._decorators import (
     cache_readonly,
@@ -102,6 +88,22 @@ from pandas.core.sorting import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Sequence,
+    )
+
+    from pandas._typing import (
+        AnyArrayLike,
+        ArrayLike,
+        IndexLabel,
+        JoinHow,
+        MergeHow,
+        Shape,
+        Suffixes,
+        npt,
+    )
+
     from pandas import DataFrame
     from pandas.core import groupby
     from pandas.core.arrays import DatetimeArray
@@ -1064,7 +1066,7 @@ class _MergeOperation:
         if how in {"left_anti", "right_anti"}:
             how = how.split("_")[0]  # type: ignore[assignment]
             anti_join = True
-        how = cast(JoinHow | Literal["asof"], how)
+        how = cast("JoinHow | Literal['asof']", how)
         return how, anti_join
 
     def _maybe_require_matching_dtypes(
@@ -1594,16 +1596,16 @@ class _MergeOperation:
                 lk = extract_array(lk, extract_numpy=True)
                 rk = extract_array(rk, extract_numpy=True)
                 if is_lkey(lk):
-                    lk = cast(ArrayLike, lk)
+                    lk = cast("ArrayLike", lk)
                     left_keys.append(lk)
                     if is_rkey(rk):
-                        rk = cast(ArrayLike, rk)
+                        rk = cast("ArrayLike", rk)
                         right_keys.append(rk)
                         join_names.append(None)  # what to do?
                     else:
                         # Then we're either Hashable or a wrong-length arraylike,
                         #  the latter of which will raise
-                        rk = cast(Hashable, rk)
+                        rk = cast("Hashable", rk)
                         if rk is not None:
                             right_keys.append(right._get_label_or_level_values(rk))
                             join_names.append(rk)
@@ -1615,7 +1617,7 @@ class _MergeOperation:
                     if not is_rkey(rk):
                         # Then we're either Hashable or a wrong-length arraylike,
                         #  the latter of which will raise
-                        rk = cast(Hashable, rk)
+                        rk = cast("Hashable", rk)
                         if rk is not None:
                             right_keys.append(right._get_label_or_level_values(rk))
                         else:
@@ -1624,12 +1626,12 @@ class _MergeOperation:
                         if lk is not None and lk == rk:  # FIXME: what about other NAs?
                             right_drop.append(rk)
                     else:
-                        rk = cast(ArrayLike, rk)
+                        rk = cast("ArrayLike", rk)
                         right_keys.append(rk)
                     if lk is not None:
                         # Then we're either Hashable or a wrong-length arraylike,
                         #  the latter of which will raise
-                        lk = cast(Hashable, lk)
+                        lk = cast("Hashable", lk)
                         left_keys.append(left._get_label_or_level_values(lk))
                         join_names.append(lk)
                     else:
@@ -1640,13 +1642,13 @@ class _MergeOperation:
             for k in self.left_on:
                 if is_lkey(k):
                     k = extract_array(k, extract_numpy=True)
-                    k = cast(ArrayLike, k)
+                    k = cast("ArrayLike", k)
                     left_keys.append(k)
                     join_names.append(None)
                 else:
                     # Then we're either Hashable or a wrong-length arraylike,
                     #  the latter of which will raise
-                    k = cast(Hashable, k)
+                    k = cast("Hashable", k)
                     left_keys.append(left._get_label_or_level_values(k))
                     join_names.append(k)
             if isinstance(self.right.index, MultiIndex):
@@ -1662,13 +1664,13 @@ class _MergeOperation:
             for k in self.right_on:
                 k = extract_array(k, extract_numpy=True)
                 if is_rkey(k):
-                    k = cast(ArrayLike, k)
+                    k = cast("ArrayLike", k)
                     right_keys.append(k)
                     join_names.append(None)
                 else:
                     # Then we're either Hashable or a wrong-length arraylike,
                     #  the latter of which will raise
-                    k = cast(Hashable, k)
+                    k = cast("Hashable", k)
                     right_keys.append(right._get_label_or_level_values(k))
                     join_names.append(k)
             if isinstance(self.left.index, MultiIndex):
@@ -1712,8 +1714,8 @@ class _MergeOperation:
             # if either left or right is a categorical
             # then the must match exactly in categories & ordered
             if lk_is_cat and rk_is_cat:
-                lk = cast(Categorical, lk)
-                rk = cast(Categorical, rk)
+                lk = cast("Categorical", lk)
+                rk = cast("Categorical", rk)
                 if lk._categories_match_up_to_permutation(rk):
                     continue
 
@@ -1870,11 +1872,11 @@ class _MergeOperation:
             # columns, and end up trying to merge
             # incompatible dtypes. See GH 16900.
             if name in self.left.columns:
-                typ = cast(Categorical, lk).categories.dtype if lk_is_cat else object
+                typ = cast("Categorical", lk).categories.dtype if lk_is_cat else object
                 self.left = self.left.copy(deep=False)
                 self.left[name] = self.left[name].astype(typ)
             if name in self.right.columns:
-                typ = cast(Categorical, rk).categories.dtype if rk_is_cat else object
+                typ = cast("Categorical", rk).categories.dtype if rk_is_cat else object
                 self.right = self.right.copy(deep=False)
                 self.right[name] = self.right[name].astype(typ)
 

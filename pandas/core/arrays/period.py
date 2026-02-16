@@ -243,7 +243,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
             values = np.array(values, dtype="int64", copy=copy)
         if dtype is None:
             raise ValueError("dtype is not specified and cannot be inferred")
-        dtype = cast(PeriodDtype, dtype)
+        dtype = cast("PeriodDtype", dtype)
         NDArrayBacked.__init__(self, values, dtype)
 
     # error: Signature of "_simple_new" incompatible with supertype "NDArrayBacked"
@@ -269,11 +269,12 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         if dtype is not None:
             dtype = pandas_dtype(dtype)
         if dtype and isinstance(dtype, PeriodDtype):
-            freq = dtype.freq
+            unit = dtype._freqstr
         else:
-            freq = None
+            unit = None
 
         if isinstance(scalars, cls):
+            freq = dtype.freq if dtype is not None else None  # type: ignore[union-attr]
             validate_dtype_freq(scalars.dtype, freq)
             if copy:
                 scalars = scalars.copy()
@@ -281,9 +282,9 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
 
         periods = np.asarray(scalars, dtype=object)
 
-        freq = freq or libperiod.extract_freq(periods)
-        ordinals = libperiod.extract_ordinals(periods, freq)
-        dtype = PeriodDtype(freq)
+        unit = unit or libperiod.extract_period_unit(periods)
+        dtype = PeriodDtype(unit)
+        ordinals = libperiod.extract_ordinals(periods, dtype)
         return cls(ordinals, dtype=dtype)
 
     @classmethod
@@ -361,9 +362,12 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
     def _check_compatible_with(self, other: Period | NaTType | PeriodArray) -> None:  # type: ignore[override]
         if other is NaT:
             return
-        # error: Item "NaTType" of "Period | NaTType | PeriodArray" has no
-        # attribute "freq"
-        self._require_matching_freq(other.freq)  # type: ignore[union-attr]
+        elif isinstance(other, Period):
+            self._require_matching_unit(other._dtype._freqstr)
+        else:
+            # error: Item "NaTType" of "NaTType | PeriodArray" has no
+            # attribute "freq"
+            self._require_matching_unit(other.dtype._freqstr)  # type: ignore[union-attr]
 
     # --------------------------------------------------------------------
     # Data / Attributes
@@ -1038,7 +1042,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         if isinstance(other, Day):
             return self + np.timedelta64(other.n, "D")
 
-        self._require_matching_freq(other, base=True)
+        self._require_matching_unit(other._period_unit, base=True)
         return self._addsub_int_array_or_scalar(other.n, operator.add)
 
     # TODO: can we de-duplicate with Period._add_timedeltalike_scalar?
@@ -1283,7 +1287,7 @@ def period_array(
 
     data = ensure_object(arrdata)
     if freq is None:
-        freq = libperiod.extract_freq(data)
+        freq = libperiod.extract_period_unit(data)
     dtype = PeriodDtype(freq)
     return PeriodArray._from_sequence(data, dtype=dtype)
 
@@ -1446,11 +1450,11 @@ def _range_from_fields(
     if quarter is not None:
         if freq is None:
             freq = to_offset("Q", is_period=True)
-            base = cast(int, FreqGroup.FR_QTR.value)
+            base = cast("int", FreqGroup.FR_QTR.value)
         else:
             freq = to_offset(freq, is_period=True)
             base = libperiod.freq_to_dtype_code(freq)
-            if base != cast(int, FreqGroup.FR_QTR.value):
+            if base != cast("int", FreqGroup.FR_QTR.value):
                 raise AssertionError("base must equal FR_QTR")
 
         freqstr = freq.freqstr
