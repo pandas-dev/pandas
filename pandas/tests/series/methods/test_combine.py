@@ -17,6 +17,17 @@ class TestCombine:
         expected = Series([min(i * 10, 22) for i in range(5)])
         tm.assert_series_equal(result, expected)
 
+    def test_combine_fill_value_with_integer_index_key(self):
+        # GH#31142 - fill_value should not use positional indexing
+        a = Series([1, 2, 3], index=["a", "b", "c"])
+        b = Series([10, 20, 30], index=[0, "e", "f"])
+        result = b.combine(a, lambda x, y: x + y, fill_value=0)
+        expected = Series(
+            [10, 1, 2, 3, 20, 30],
+            index=[0, "a", "b", "c", "e", "f"],
+        )
+        tm.assert_series_equal(result, expected)
+
     def test_combine_series(self):
         # GH#31899
         s1 = Series([91, NA, 94], dtype="Int8")
