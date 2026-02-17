@@ -1835,4 +1835,4 @@ Notes
 
 - ``.loc[start:end]`` is inclusive of both endpoints.
 - ``get_slice_bound`` can be used with ``"left"`` or ``"right"`` to control inclusion.
-- For slicing by time of day, see :meth:`DataFrame.between_time`.
+- For slicing by time of day, see :meth:`pandas.DataFrame.between_time`.
