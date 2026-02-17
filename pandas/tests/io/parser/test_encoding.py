@@ -145,7 +145,7 @@ def test_latin1_bom_preserved(all_parsers):
 
     bom_bytes = b"\xef\xbb\xbf"
     bom_text = bom_bytes.decode("latin1")
-    data = "a\n1".encode("latin1")
+    data = b"a\n1"
     bio = BytesIO(bom_bytes + data)
 
     with tm.assert_produces_warning(False):
