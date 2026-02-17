@@ -1823,7 +1823,7 @@ slice bounds explicitly and apply them with ``.iloc``:
     import numpy as np
 
     dates = pd.date_range("2000-01-01", periods=10, freq="B")
-    ts = pd.Series(np.random.randn(len(dates)), index=dates)
+    ts = pd.Series(np.arange(len(dates)), index=dates)
 
     lo = ts.index.get_slice_bound("2000-01-04", "left", "loc")
     hi = ts.index.get_slice_bound("2000-01-10", "left", "loc")
