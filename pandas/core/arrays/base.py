@@ -42,6 +42,7 @@ from pandas.util._validators import (
 
 from pandas.core.dtypes.astype import astype_is_view
 from pandas.core.dtypes.common import (
+    is_integer,
     is_list_like,
     is_scalar,
     pandas_dtype,
@@ -140,6 +141,7 @@ class ExtensionArray:
     interpolate
     isin
     isna
+    item
     ravel
     repeat
     searchsorted
@@ -603,6 +605,56 @@ class ExtensionArray:
         """
         # error: Unsupported operand type for ~ ("ExtensionArray")
         return ~(self == other)  # type: ignore[operator]
+
+    def item(self, index: int | None = None):
+        """
+        Return the array element at the specified position as a Python scalar.
+
+        Parameters
+        ----------
+        index : int, optional
+            Position of the element. If not provided, the array must contain
+            exactly one element.
+
+        Returns
+        -------
+        scalar
+            The element at the specified position.
+
+        Raises
+        ------
+        ValueError
+            If no index is provided and the array does not have exactly
+            one element.
+        IndexError
+            If the specified position is out of bounds.
+
+        See Also
+        --------
+        numpy.ndarray.item : Return the item of an array as a scalar.
+
+        Examples
+        --------
+        >>> arr = pd.array([1], dtype="Int64")
+        >>> arr.item()
+        np.int64(1)
+
+        >>> arr = pd.array([1, 2, 3], dtype="Int64")
+        >>> arr.item(0)
+        np.int64(1)
+        >>> arr.item(2)
+        np.int64(3)
+        """
+        if index is None:
+            if len(self) != 1:
+                raise ValueError(
+                    "can only convert an array of size 1 to a Python scalar"
+                )
+            return self[0]
+        else:
+            if not is_integer(index):
+                raise TypeError(f"index must be an integer, got {type(index)}")
+            return self[index]
 
     def to_numpy(
         self,
