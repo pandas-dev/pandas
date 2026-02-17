@@ -42,6 +42,7 @@ from pandas.util._validators import (
 
 from pandas.core.dtypes.astype import astype_is_view
 from pandas.core.dtypes.common import (
+    is_integer,
     is_list_like,
     is_scalar,
     pandas_dtype,
@@ -610,6 +611,8 @@ class ExtensionArray:
                 )
             return self[0]
         else:
+            if not is_integer(index):
+                raise TypeError(f"index must be an integer, got {type(index)}")
             return self[index]
 
     def __iter__(self) -> Iterator[Any]:

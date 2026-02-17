@@ -739,7 +739,7 @@ class BaseMethodsTests:
 
     def test_item(self, data):
         # GH#63876, GH#64129
-        arr = type(data)._from_sequence([data[0]], dtype=data.dtype)
+        arr = data[:1]
         assert arr.item() == data[0]
 
         msg = "can only convert an array of size 1 to a Python scalar"
@@ -757,7 +757,16 @@ class BaseMethodsTests:
             # SparseArray returns fill value instead of raising
             expected = data.fill_value
             result = data.item(len(data))
-            assert result == expected
+            if isinstance(expected, float) and np.isnan(expected):
+                assert np.isnan(result)
+            else:
+                assert result == expected
         else:
             with tm.external_error_raised(IndexError):
                 data.item(len(data))
+
+    def test_item_invalid_index_type(self, data):
+        # GH#63876, GH#64129
+        msg = "index must be an integer"
+        with pytest.raises(TypeError, match=msg):
+            data.item([0])
