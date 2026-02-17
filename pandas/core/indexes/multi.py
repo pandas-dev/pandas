@@ -1306,7 +1306,7 @@ class MultiIndex(Index):
             # The levels would overflow a 16 bit uint - use uint8
             return MultiIndexUInt32Engine(self.levels, self.codes, offsets)
         if lev_bits[0] > 8:
-            # The levels would overflow a 8 bit uint - use uint16
+            # The levels would overflow an 8 bit uint - use uint16
             return MultiIndexUInt16Engine(self.levels, self.codes, offsets)
         # The levels fit in an 8 bit uint - use uint8
         return MultiIndexUInt8Engine(self.levels, self.codes, offsets)
