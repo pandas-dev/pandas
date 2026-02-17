@@ -1027,7 +1027,7 @@ class DataFrameRenderer:
         csv_formatter.save()
 
         if created_buffer:
-            path_or_buf = cast(Union[BytesIO, StringIO], path_or_buf)
+            path_or_buf = cast("Union[BytesIO, StringIO]", path_or_buf)
             content = path_or_buf.getvalue()
             if isinstance(content, bytes):
                 # Need to decode into string since the
