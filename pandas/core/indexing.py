@@ -2466,9 +2466,7 @@ class _iLocIndexer(_LocationIndexer):
             if isinstance(value, ABCDataFrame):
                 self._setitem_with_indexer_frame_value(indexer, value, name)
 
-            elif np.ndim(value) == 2:
-                # TODO: avoid np.ndim call in case it isn't an ndarray, since
-                #  that will construct an ndarray, which will be wasteful
+            elif _is_2d_value(value):
                 self._setitem_with_indexer_2d_value(indexer, value)
 
             elif len(ilocs) == 1 and lplane_indexer == len(value) and not is_scalar(pi):
@@ -2523,7 +2521,7 @@ class _iLocIndexer(_LocationIndexer):
                 self._setitem_single_column(loc, value, pi)
 
     def _setitem_with_indexer_2d_value(self, indexer, value) -> None:
-        # We get here with np.ndim(value) == 2, excluding DataFrame,
+        # We get here with 2D value, excluding DataFrame,
         #  which goes through _setitem_with_indexer_frame_value
         pi = indexer[0]
 
@@ -3199,6 +3197,26 @@ class _iAtIndexer(_ScalarAccessIndexer):
                 )
 
         return super().__setitem__(key, value)
+
+
+def _is_2d_value(value) -> bool:
+    """
+    Check if value is 2-dimensional without constructing an ndarray.
+
+    ``np.ndim(value)`` converts lists to ndarray internally, which is
+    wasteful when we only need the dimensionality. This helper uses the
+    ``.ndim`` attribute when available (ndarray, ExtensionArray, etc.)
+    and falls back to a cheap isinstance check for plain lists.
+    """
+    ndim = getattr(value, "ndim", None)
+    if ndim is not None:
+        return ndim == 2
+    # Plain list: check if first element is list-like (i.e. nested list)
+    return (
+        isinstance(value, list)
+        and len(value) > 0
+        and isinstance(value[0], (list, np.ndarray))
+    )
 
 
 def _tuplify(ndim: int, loc: Hashable) -> tuple[Hashable | slice, ...]:
