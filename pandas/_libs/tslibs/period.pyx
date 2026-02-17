@@ -16,6 +16,8 @@ from numpy cimport (
 
 import numpy as np
 
+from pandas._libs.properties import cache_readonly
+
 cnp.import_array()
 
 cimport cython
@@ -1521,14 +1523,16 @@ cdef accessor _get_accessor_func(str field):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def from_ordinals(const int64_t[:] values, freq):
+def from_calendar_ordinals(const int64_t[:] values, PeriodDtypeBase dtype):
+    # NB: this is *not* the same behavior as PeriodIndex.from_ordinals,
+    #  but a vectorized application of the Period constructor on an integer
+    #  input.
     cdef:
         Py_ssize_t i, n = len(values)
         int64_t[::1] result = np.empty(len(values), dtype="i8")
         int64_t val
 
-    freq = to_offset(freq, is_period=True)
-    if not isinstance(freq, BaseOffset):
+    if dtype is None:
         raise ValueError("freq not specified and cannot be inferred")
 
     for i in range(n):
@@ -1536,7 +1540,9 @@ def from_ordinals(const int64_t[:] values, freq):
         if val == NPY_NAT:
             result[i] = NPY_NAT
         else:
-            result[i] = Period(val, freq=freq).ordinal
+            # equiv Period(val, freq=dtype.unit).ordinal, specialized
+            #  bc we know val is an integer
+            result[i] = period_ordinal(val, 1, 1, 0, 0, 0, 0, 0, dtype._dtype_code)
 
     return result.base
 
@@ -1773,7 +1779,6 @@ cdef class _Period(PeriodMixin):
     cdef readonly:
         int64_t _ordinal
         PeriodDtypeBase _dtype
-        BaseOffset _freq
 
     @property
     def ordinal(self) -> int:
@@ -1802,6 +1807,10 @@ cdef class _Period(PeriodMixin):
         """
         return self._ordinal
 
+    @cache_readonly
+    def _freq(self) -> BaseOffset:
+        return to_offset(self._dtype._freqstr, is_period=True)
+
     @property
     def freq(self):
         """
@@ -1829,10 +1838,9 @@ cdef class _Period(PeriodMixin):
     dayofweek = _Period.day_of_week
     dayofyear = _Period.day_of_year
 
-    def __cinit__(self, int64_t ordinal, BaseOffset freq):
+    def __cinit__(self, int64_t ordinal, PeriodDtypeBase dtype):
         self._ordinal = ordinal
-        self._freq = freq
-        self._dtype = PeriodDtypeBase(freq._period_dtype_code, freq.n)
+        self._dtype = dtype
 
     @classmethod
     def _maybe_convert_freq(cls, object freq) -> BaseOffset:
@@ -1852,15 +1860,14 @@ cdef class _Period(PeriodMixin):
         return freq
 
     @classmethod
-    def _from_ordinal(cls, ordinal: int64_t, freq: BaseOffset) -> "Period":
+    def _from_ordinal(cls, ordinal: int64_t, dtype: PeriodDtypeBase) -> "Period":
         """
         Fast creation from an ordinal and freq that are already validated!
         """
         if ordinal == NPY_NAT:
             return NaT
         else:
-            freq = cls._maybe_convert_freq(freq)
-            self = _Period.__new__(cls, ordinal, freq)
+            self = _Period.__new__(cls, ordinal, dtype)
             return self
 
     def __richcmp__(self, other, op):
@@ -3148,7 +3155,9 @@ class Period(_Period):
             )
         if ordinal == NPY_NAT:
             return NaT
-        return cls._from_ordinal(ordinal, freq)
+        freq = cls._maybe_convert_freq(freq)
+        dtype = PeriodDtypeBase(freq._period_dtype_code, freq.n)
+        return cls._from_ordinal(ordinal, dtype=dtype)
 
 
 cdef bint is_period_object(object obj):
