@@ -324,7 +324,7 @@ def array(
             na_dtype = ensure_dtype_can_hold_na(data.dtype)
             if na_dtype.char in "SU":
                 na_dtype = np.dtype("object")
-            data = cast(ma.MaskedArray, data.astype(na_dtype)).filled(np.nan)
+            data = cast("ma.MaskedArray", data.astype(na_dtype)).filled(np.nan)
         else:
             # No mask, convert to regular array
             data = np.asarray(data)
