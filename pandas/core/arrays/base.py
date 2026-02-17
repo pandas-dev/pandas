@@ -139,6 +139,7 @@ class ExtensionArray:
     interpolate
     isin
     isna
+    item
     ravel
     repeat
     searchsorted
