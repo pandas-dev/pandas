@@ -1832,6 +1832,6 @@ slice bounds explicitly and apply them with ``.iloc``:
 Notes
 ~~~~~
 
-- ``.loc[start:end]`` is inclusive of both endpoints.
-- Use ``get_slice_bound`` with ``"left"`` or ``"right"`` to control inclusion.
-- For slicing by time of day, see :meth:`pandas.DataFrame.between_time`.
+- ``.loc[start:end]`` is inclusive of both endpoints
+- Use ``get_slice_bound`` with ``"left"`` or ``"right"`` to control inclusion
+- For slicing by time of day, see :meth:`pandas.DataFrame.between_time`
