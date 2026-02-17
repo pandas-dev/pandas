@@ -199,6 +199,10 @@ class MultiIndex(Index):
     """
     A multi-level, or hierarchical, index object for pandas objects.
 
+    A MultiIndex allows indexing with multiple keys, effectively enabling
+    multiple dimensions of indexing on a single axis. It can be thought of
+    as an array of tuples where each tuple is unique.
+
     Parameters
     ----------
     levels : sequence of arrays
@@ -450,6 +454,10 @@ class MultiIndex(Index):
         """
         Convert arrays to MultiIndex.
 
+        Each array in the input corresponds to one level of the output
+        MultiIndex. The i-th element of each array together form the i-th
+        tuple in the resulting MultiIndex.
+
         Parameters
         ----------
         arrays : list / sequence of array-likes
@@ -521,6 +529,10 @@ class MultiIndex(Index):
     ) -> MultiIndex:
         """
         Convert list of tuples to MultiIndex.
+
+        Each tuple in the input represents a single entry in the resulting
+        MultiIndex. The number of elements in each tuple determines the
+        number of levels.
 
         Parameters
         ----------
@@ -601,6 +613,9 @@ class MultiIndex(Index):
         """
         Make a MultiIndex from the cartesian product of multiple iterables.
 
+        This method generates a MultiIndex containing all combinations of the
+        input iterables, similar to computing the cartesian product.
+
         Parameters
         ----------
         iterables : list / sequence of iterables
@@ -659,6 +674,9 @@ class MultiIndex(Index):
     ) -> MultiIndex:
         """
         Make a MultiIndex from a DataFrame.
+
+        Each column of the DataFrame becomes one level of the MultiIndex,
+        with the column values used as labels.
 
         Parameters
         ----------
@@ -771,6 +789,9 @@ class MultiIndex(Index):
     def dtypes(self) -> Series:
         """
         Return the dtypes as a Series for the underlying MultiIndex.
+
+        Each element in the returned Series corresponds to the dtype of one
+        level of the MultiIndex, indexed by the level names.
 
         See Also
         --------
@@ -1052,6 +1073,10 @@ class MultiIndex(Index):
         """
         Integer number of levels in this MultiIndex.
 
+        This property returns the count of levels (i.e., the depth of the
+        hierarchical index), which corresponds to the number of arrays
+        or columns used to construct the MultiIndex.
+
         See Also
         --------
         MultiIndex.levels : Get the levels of the MultiIndex.
@@ -1175,6 +1200,10 @@ class MultiIndex(Index):
         """
         Set new codes on MultiIndex. Defaults to returning new index.
 
+        The codes map each index entry to its position in the corresponding
+        level array. This method returns a new MultiIndex with the updated
+        codes.
+
         Parameters
         ----------
         codes : sequence or list of sequence
@@ -1277,7 +1306,7 @@ class MultiIndex(Index):
             # The levels would overflow a 16 bit uint - use uint8
             return MultiIndexUInt32Engine(self.levels, self.codes, offsets)
         if lev_bits[0] > 8:
-            # The levels would overflow a 8 bit uint - use uint16
+            # The levels would overflow an 8 bit uint - use uint16
             return MultiIndexUInt16Engine(self.levels, self.codes, offsets)
         # The levels fit in an 8 bit uint - use uint8
         return MultiIndexUInt8Engine(self.levels, self.codes, offsets)
@@ -2161,6 +2190,9 @@ class MultiIndex(Index):
     def to_flat_index(self) -> Index:  # type: ignore[override]
         """
         Convert a MultiIndex to an Index of Tuples containing the level values.
+
+        This is useful for compatibility with libraries or operations that
+        expect a flat, single-level index rather than a hierarchical one.
 
         Returns
         -------
@@ -3917,6 +3949,9 @@ class MultiIndex(Index):
         """
         Get location for a sequence of labels.
 
+        This method returns the integer positions in the index that match the
+        given sequence of per-level keys, slices, or boolean masks.
+
         Parameters
         ----------
         seq : label, slice, list, mask or a sequence of such
@@ -4141,6 +4176,9 @@ class MultiIndex(Index):
     def truncate(self, before=None, after=None) -> MultiIndex:
         """
         Slice index between two labels / tuples, return new MultiIndex.
+
+        This method returns a new MultiIndex containing only the entries
+        that fall within the specified range on the first level.
 
         Parameters
         ----------
