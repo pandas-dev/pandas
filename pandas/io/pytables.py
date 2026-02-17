@@ -2700,6 +2700,8 @@ class DataCol(IndexCol):
         # reverse converts
         if dtype.startswith("datetime64"):
             # recreate with tz if indicated
+            if dtype == "datetime64":
+                dtype = "datetime64[ns]"
             converted = _set_tz(converted, tz, dtype)
 
         elif dtype.startswith("timedelta64"):
@@ -3088,6 +3090,8 @@ class GenericFixed(Fixed):
 
             if dtype and dtype.startswith("datetime64"):
                 # reconstruct a timezone if indicated
+                if dtype == "datetime64":
+                    dtype = "datetime64[ns]"
                 tz = getattr(attrs, "tz", None)
                 ret = _set_tz(ret, tz, dtype)
 
