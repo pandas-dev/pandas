@@ -274,7 +274,8 @@ def test_add_strings(any_string_dtype, request):
 
 
 @pytest.mark.xfail(reason="GH-28527")
-def test_add_frame(dtype):
+def test_add_frame(any_string_dtype):
+    dtype = any_string_dtype
     arr = pd.array(["a", "b", np.nan, np.nan], dtype=dtype)
     df = pd.DataFrame([["x", np.nan, "y", np.nan]])
 
