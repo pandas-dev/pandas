@@ -13,6 +13,7 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
+- Added the :meth:`pandas.api.extensions.ExtensionArray.item` method to fix regression with accessing the item of an array of strings, which now is an ``ExtensionArray`` subclass instead of a numpy ``ndarray`` (:issue:`63876`)
 - Fixed regression in :func:`read_hdf` reading a file written by pandas <= 2.2 with a datetime64 column (:issue:`64006`)
 - Fixed regression in :func:`to_timedelta` when converting a list with float and int (:issue:`64044`)
 - Fixed regression in :meth:`DataFrame.groupby` and :meth:`Series.groupby` when grouping on categorical data with NA values, ``observed=False``, and ``dropna=True`` (:issue:`52445`)
