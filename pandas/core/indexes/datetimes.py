@@ -1600,6 +1600,7 @@ def bdate_range(
     if isinstance(freq, str) and freq.upper().startswith("C"):
         msg = f"invalid custom frequency string: {freq}"
         if freq == "CBH":
+            # GH#62849
             raise ValueError(f"{msg}, did you mean cbh?")
         try:
             weekmask = weekmask or "Mon Tue Wed Thu Fri"
