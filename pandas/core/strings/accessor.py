@@ -1480,13 +1480,18 @@ class StringMethods(NoNewAttributesMixin):
         4    False
         dtype: bool
         """
-        if regex and re.compile(pat).groups:
-            warnings.warn(
-                "This pattern is interpreted as a regular expression, and has "
-                "match groups. To actually get the groups, use str.extract.",
-                UserWarning,
-                stacklevel=find_stack_level(),
-            )
+        if regex:
+            try:
+                has_groups = re.compile(pat).groups
+            except re.error:
+                has_groups = False
+            if has_groups:
+                warnings.warn(
+                    "This pattern is interpreted as a regular expression, and has "
+                    "match groups. To actually get the groups, use str.extract.",
+                    UserWarning,
+                    stacklevel=find_stack_level(),
+                )
 
         result = self._data.array._str_contains(pat, case, flags, na, regex)
         return self._wrap_result(result, fill_value=na, returns_string=False)
