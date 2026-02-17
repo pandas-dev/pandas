@@ -116,6 +116,8 @@ Bug fixes
 ~~~~~~~~~
 - Fix bug in :func:`to_datetime` that could give an unnecessary ``RuntimeWarning`` when converting DataFrame containing missing values (:issue:`64141`)
 
+- Fixed a bug in :func:`to_numeric` with integer-like strings with leading zeros could lose precision when the result was cast to ``float64`` due to mixed numeric types (:issue:`64184`)
+
 Categorical
 ^^^^^^^^^^^
 -
