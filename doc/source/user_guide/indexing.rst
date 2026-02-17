@@ -215,6 +215,7 @@ as an attribute:
    sa
    dfa.A = list(range(len(dfa.index)))  # ok if A already exists
    dfa
+
    dfa['A'] = list(range(len(dfa.index)))  # use this form to create a new column
    dfa
 
@@ -1808,3 +1809,30 @@ Examples:
    #If you want positional assignment instead of index alignment:
    # reset the Series index to match DataFrame index
    df['s1_values'] = s1.reindex(df.index)
+
+  Non-inclusive partial string indexing
+-------------------------------------
+
+Slicing a ``DatetimeIndex`` using ``.loc[start:end]`` includes both endpoints.
+To construct a half-open interval (for example ``[start, end)``), compute the
+slice bounds explicitly and apply them with ``.iloc``:
+
+.. ipython:: python
+
+    import pandas as pd
+    import numpy as np
+
+    dates = pd.date_range("2000-01-01", periods=10, freq="B")
+    ts = pd.Series(np.random.randn(len(dates)), index=dates)
+
+    lo = ts.index.get_slice_bound("2000-01-04", "left", "loc")
+    hi = ts.index.get_slice_bound("2000-01-10", "left", "loc")
+
+    ts.iloc[lo:hi]
+
+Notes
+~~~~~
+
+- ``.loc[start:end]`` is inclusive of both endpoints.
+- ``get_slice_bound`` can be used with ``"left"`` or ``"right"`` to control inclusion.
+- For slicing by time of day, see :meth:`DataFrame.between_time`.
