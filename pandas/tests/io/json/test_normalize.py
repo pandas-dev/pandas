@@ -512,15 +512,42 @@ class TestJSONNormalize:
         tm.assert_equal(expected_df, result)
 
     def test_json_normalize_non_dict_items(self):
-        # gh-62829
-        data_list = [np.nan, {"id": 12}, {"id": 13}]
-        msg = "All items in data must be of type dict, found float"
+        data_list = [{"id": 12}, "x", {"id": 13}]
+        msg = "All items in data must be of type dict or null, found str"
 
         with pytest.raises(TypeError, match=msg):
             json_normalize(data_list, max_level=0)
 
         with pytest.raises(TypeError, match=msg):
             json_normalize(data_list)
+
+    def test_json_normalize_null_items(self):
+        # GH 64188
+        data = [
+            {
+                "id": 1,
+                "name": "Cole Volk",
+                "fitness": {"height": 130, "weight": 60},
+            },
+            np.nan,
+            {
+                "id": 2,
+                "name": np.nan,
+                "fitness": np.nan,
+            },
+        ]
+
+        result = json_normalize(data)
+        expected = DataFrame(
+            {
+                "id": [1.0, np.nan, 2.0],
+                "name": ["Cole Volk", np.nan, np.nan],
+                "fitness.height": [130.0, np.nan, np.nan],
+                "fitness.weight": [60.0, np.nan, np.nan],
+                "fitness": [np.nan, np.nan, np.nan],
+            }
+        )
+        tm.assert_frame_equal(result, expected)
 
     def test_nested_flattening_consistent(self):
         # see gh-21537
