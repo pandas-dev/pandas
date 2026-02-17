@@ -11,7 +11,10 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs import index as libindex
+from pandas._libs import (
+    index as libindex,
+    lib,
+)
 from pandas._libs.tslibs import (
     BaseOffset,
     Day,
@@ -19,6 +22,7 @@ from pandas._libs.tslibs import (
     Period,
     Resolution,
     Tick,
+    period as libperiod,
     to_offset,
 )
 from pandas._libs.tslibs.dtypes import OFFSET_TO_PERIOD_FREQSTR
@@ -28,6 +32,7 @@ from pandas.util._decorators import (
 )
 
 from pandas.core.dtypes.common import (
+    ensure_object,
     is_integer,
     pandas_dtype,
 )
@@ -37,7 +42,6 @@ from pandas.core.dtypes.missing import is_valid_na_for_dtype
 
 from pandas.core.arrays.period import (
     PeriodArray,
-    period_array,
     raise_on_incompatible,
     validate_dtype_freq,
 )
@@ -383,13 +387,42 @@ class PeriodIndex(DatetimeIndexOpsMixin):
             # e.g. D -> 2D seems to be OK
             data = data.asfreq(freq)
 
-        # don't pass copy here, since we copy later.
-        data = period_array(data=data, freq=freq)
+        data_dtype = getattr(data, "dtype", None)
+        dtype = PeriodDtype(freq) if freq is not None else None
+
+        if lib.is_np_dtype(data_dtype, "M"):
+            parr = PeriodArray._from_datetime64(data, freq)
+        elif isinstance(data_dtype, PeriodDtype):
+            parr = PeriodArray(data)
+            if freq is not None and freq != data_dtype.freq:
+                # TODO: de-duplicate with asfreq call above?
+                parr = parr.asfreq(freq)
+        else:
+            # other iterable of some kind
+            if not isinstance(data, (np.ndarray, list, tuple, ABCSeries)):
+                data = list(data)
+
+            arrdata = np.asarray(data)
+            if arrdata.dtype.kind == "f" and len(arrdata) > 0:
+                raise TypeError(
+                    "PeriodIndex does not allow floating point in construction"
+                )
+
+            if arrdata.dtype.kind in "iu":
+                arr = arrdata.astype(np.int64, copy=False)
+                ordinals = libperiod.from_calendar_ordinals(arr, dtype)
+                parr = PeriodArray(ordinals, dtype=dtype)
+            else:
+                data = ensure_object(arrdata)
+                if freq is None:
+                    freq = libperiod.extract_period_unit(data)
+                dtype = PeriodDtype(freq)
+                parr = PeriodArray._from_sequence(data, dtype=dtype)
 
         if copy:
-            data = data.copy()
+            parr = parr.copy()
 
-        return cls._simple_new(data, name=name, refs=refs)
+        return cls._simple_new(parr, name=name, refs=refs)
 
     @classmethod
     def from_fields(

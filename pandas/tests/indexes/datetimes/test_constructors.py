@@ -24,13 +24,13 @@ import pandas as pd
 from pandas import (
     DatetimeIndex,
     Index,
+    PeriodIndex,
     Timestamp,
     date_range,
     offsets,
     to_datetime,
 )
 import pandas._testing as tm
-from pandas.core.arrays import period_array
 
 
 class TestDatetimeIndex:
@@ -107,7 +107,7 @@ class TestDatetimeIndex:
 
     def test_dti_with_period_data_raises(self):
         # GH#23675
-        data = pd.PeriodIndex(["2016Q1", "2016Q2"], freq="Q")
+        data = PeriodIndex(["2016Q1", "2016Q2"], freq="Q")
 
         with pytest.raises(TypeError, match="PeriodDtype data is invalid"):
             DatetimeIndex(data)
@@ -116,10 +116,10 @@ class TestDatetimeIndex:
             to_datetime(data)
 
         with pytest.raises(TypeError, match="PeriodDtype data is invalid"):
-            DatetimeIndex(period_array(data))
+            DatetimeIndex(PeriodIndex(data))
 
         with pytest.raises(TypeError, match="PeriodDtype data is invalid"):
-            to_datetime(period_array(data))
+            to_datetime(PeriodIndex(data))
 
     def test_dti_with_timedelta64_data_raises(self):
         # GH#23675 deprecated, enforced in GH#29794
