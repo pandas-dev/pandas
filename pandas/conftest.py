@@ -200,7 +200,7 @@ def pytest_collection_modifyitems(items, config) -> None:
         ("BaseOffset.name.__get__", "The 'name' property is deprecated"),
         ("DatetimeLikeArrayMixin.freqstr", "PeriodArray.freqstr is deprecated"),
         ("DatetimeIndexOpsMixin.freqstr", "PeriodIndex.freqstr is deprecated"),
-        ("_Period.freqstr", "Period.freqstr is deprecated"),
+        ("_Period.freqstr.__get__", "Period.freqstr is deprecated"),
     ]
 
     if is_doctest:
