@@ -647,13 +647,13 @@ class PythonParser(ParserBase):
                     reordered = [this_columns[i] for i in col_loop_order]
                     deduped = list(
                         dedup_names(
-                            reordered,  # type: ignore[arg-type]
+                            reordered,
                             is_potential_multiindex=False,
                         )
                     )
                     # Map back to original positions
                     for j, idx in enumerate(col_loop_order):
-                        this_columns[idx] = deduped[j]
+                        this_columns[idx] = cast("Scalar | None", deduped[j])
 
                     # Update dtype mapping if columns were renamed
                     if self.dtype is not None and is_dict_like(self.dtype):
