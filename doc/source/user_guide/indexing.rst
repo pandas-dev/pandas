@@ -1810,7 +1810,7 @@ Examples:
    # reset the Series index to match DataFrame index
    df['s1_values'] = s1.reindex(df.index)
 
-  Non-inclusive partial string indexing
+Non-inclusive partial string indexing
 -------------------------------------
 
 Slicing a ``DatetimeIndex`` using ``.loc[start:end]`` includes both endpoints.
@@ -1820,10 +1820,9 @@ slice bounds explicitly and apply them with ``.iloc``:
 .. ipython:: python
 
     import pandas as pd
-    import numpy as np
 
     dates = pd.date_range("2000-01-01", periods=10, freq="B")
-    ts = pd.Series(np.arange(len(dates)), index=dates)
+    ts = pd.Series(range(len(dates)), index=dates)
 
     lo = ts.index.get_slice_bound("2000-01-04", "left", "loc")
     hi = ts.index.get_slice_bound("2000-01-10", "left", "loc")
@@ -1834,5 +1833,5 @@ Notes
 ~~~~~
 
 - ``.loc[start:end]`` is inclusive of both endpoints.
-- ``get_slice_bound`` can be used with ``"left"`` or ``"right"`` to control inclusion.
+- Use ``get_slice_bound`` with ``"left"`` or ``"right"`` to control inclusion.
 - For slicing by time of day, see :meth:`pandas.DataFrame.between_time`.
