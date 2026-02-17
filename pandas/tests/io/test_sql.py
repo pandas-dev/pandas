@@ -3886,6 +3886,21 @@ def sqlite_builtin_detect_types():
             yield conn
 
 
+@pytest.fixture
+def sqlite_builtin_detect_types_decimal():
+    # GH#61667: sqlite type detection + Decimal converter.
+    sqlite3.register_converter(
+        "PANDAS_DECIMAL_GH61667",
+        lambda b: Decimal(b.decode()),
+    )
+
+    with contextlib.closing(
+        sqlite3.connect(":memory:", detect_types=sqlite3.PARSE_DECLTYPES)
+    ) as closing_conn:
+        with closing_conn as conn:
+            yield conn
+
+
 def test_roundtripping_datetimes_detect_types(sqlite_builtin_detect_types):
     # https://github.com/pandas-dev/pandas/issues/55554
     conn = sqlite_builtin_detect_types
@@ -3893,6 +3908,39 @@ def test_roundtripping_datetimes_detect_types(sqlite_builtin_detect_types):
     df.to_sql("test", conn, if_exists="replace", index=False)
     result = pd.read_sql("select * from test", conn).iloc[0, 0]
     assert result == Timestamp("2020-12-31 12:00:00.000000")
+
+
+def test_read_sql_query_decimal_coerce_float_large_integral_preserves_value(
+    sqlite_builtin_detect_types_decimal,
+):
+    # GH#61667: coerce_float=True should not lose precision for large integral Decimals.
+    conn = sqlite_builtin_detect_types_decimal
+
+    conn.execute("CREATE TABLE t_gh61667_int (longID PANDAS_DECIMAL_GH61667)")
+    conn.execute(
+        "INSERT INTO t_gh61667_int (longID) VALUES (?)", ("305184080441754059",)
+    )
+
+    df = sql.read_sql_query("SELECT longID FROM t_gh61667_int", conn, coerce_float=True)
+    v = df.loc[0, "longID"]
+
+    assert str(v) == "305184080441754059"
+    assert not isinstance(v, (float, np.floating))
+
+
+def test_read_sql_query_decimal_coerce_float_fractional_still_float(
+    sqlite_builtin_detect_types_decimal,
+):
+    conn = sqlite_builtin_detect_types_decimal
+
+    conn.execute("CREATE TABLE t_gh61667_frac (x PANDAS_DECIMAL_GH61667)")
+    conn.execute("INSERT INTO t_gh61667_frac (x) VALUES (?)", ("1.25",))
+
+    df = sql.read_sql_query("SELECT x FROM t_gh61667_frac", conn, coerce_float=True)
+    v = df.loc[0, "x"]
+
+    assert isinstance(v, (float, np.floating))
+    assert v == 1.25
 
 
 @pytest.mark.db
