@@ -329,6 +329,10 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         """
         Convert tz-aware Datetime Array/Index from one time zone to another.
 
+        This method converts each timestamp in the index to the target time
+        zone while preserving the underlying UTC time. The index must already
+        be timezone-aware.
+
         Parameters
         ----------
         tz : str, zoneinfo.ZoneInfo, pytz.timezone, dateutil.tz.tzfile, datetime.tzinfo or None
@@ -601,7 +605,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     def to_julian_date(self) -> Index:
         """
-        Convert TimeStamp to a Julian Date.
+        Convert Timestamp to a Julian Date.
 
         This method returns the number of days as a float since noon January 1, 4713 BC.
 
@@ -823,6 +827,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     def snap(self, freq: Frequency = "S") -> DatetimeIndex:
         """
         Snap time stamps to nearest occurring frequency.
+
+        Each timestamp in the index is adjusted to the nearest occurrence of
+        the specified frequency, snapping backward or forward as appropriate.
 
         Parameters
         ----------
@@ -1106,6 +1113,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         """
         Return index locations of values at particular time of day.
 
+        This method returns the integer indices of the DatetimeIndex entries
+        that match the specified time of day, regardless of the date.
+
         Parameters
         ----------
         time : datetime.time or str
@@ -1186,6 +1196,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     ) -> npt.NDArray[np.intp]:
         """
         Return index locations of values between particular times of day.
+
+        This method returns the integer indices of the DatetimeIndex entries
+        whose time-of-day components fall within the specified range.
 
         Parameters
         ----------

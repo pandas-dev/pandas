@@ -16,6 +16,7 @@ from typing import (
     Generic,
     final,
 )
+import warnings
 
 import numpy as np
 
@@ -31,8 +32,12 @@ from pandas._typing import (
     Shape,
     npt,
 )
-from pandas.errors import AbstractMethodError
+from pandas.errors import (
+    AbstractMethodError,
+    Pandas4Warning,
+)
 from pandas.util._decorators import cache_readonly
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
     maybe_downcast_to_dtype,
@@ -98,6 +103,13 @@ def extract_result(res):
         # Preserve EA
         res = res._values
         if res.ndim == 1 and len(res) == 1:
+            warnings.warn(
+                "Converting a Series or array of length 1 into a scalar is "
+                "deprecated and will be removed in a future version. If you wish "
+                "to preserve the current behavior, have ``func`` return scalars.",
+                category=Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
             # see test_agg_lambda_with_timezone, test_resampler_grouper.py::test_apply
             res = res[0]
     return res
@@ -600,6 +612,7 @@ class BaseGrouper:
         self._groupings = groupings
         self._sort = sort
         self.dropna = dropna
+        self._is_resample = False
 
     @property
     def groupings(self) -> list[grouper.Grouping]:
@@ -828,6 +841,9 @@ class BaseGrouper:
                 codes=result_index_codes,
                 names=list(unob_index.names) + list(ob_index.names),
             ).reorder_levels(index)
+
+            # The sum here will get -1 values wrong when dropna=True;
+            # we will fix at the end.
             ids = len(unob_index) * ob_ids + unob_ids
 
             if any(sorts):
@@ -855,6 +871,9 @@ class BaseGrouper:
                     [uniques, np.delete(np.arange(len(result_index)), uniques)]
                 )
                 result_index = result_index.take(taker)
+
+            if self.dropna:
+                ids = np.where((ob_ids < 0) | (unob_ids < 0), -1, ids)
 
         return result_index, ids
 
@@ -995,7 +1014,7 @@ class BaseGrouper:
             res = func(group)
             res = extract_result(res)
 
-            if not initialized:
+            if self._is_resample and not initialized:
                 # We only do this validation on the first iteration
                 check_result_array(res, group.dtype)
                 initialized = True

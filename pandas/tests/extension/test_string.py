@@ -226,7 +226,7 @@ class TestStringArray(base.ExtensionTests):
         return op_name in ["cummin", "cummax", "cumsum"]
 
     def _cast_pointwise_result(self, op_name: str, obj, other, pointwise_result):
-        dtype = cast(StringDtype, tm.get_dtype(obj))
+        dtype = cast("StringDtype", tm.get_dtype(obj))
         if op_name in ["__add__", "__radd__"]:
             cast_to = dtype
             dtype_other = tm.get_dtype(other) if not isinstance(other, str) else None
