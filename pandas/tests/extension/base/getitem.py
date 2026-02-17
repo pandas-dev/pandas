@@ -484,17 +484,8 @@ class BaseGetitemTests:
         assert data.item(0) == data[0]
         assert data.item(-1) == data[-1]
 
-        if isinstance(data, pd.arrays.SparseArray):
-            # SparseArray returns fill value instead of raising
-            expected = data.fill_value
-            result = data.item(len(data))
-            if isinstance(expected, float) and np.isnan(expected):
-                assert np.isnan(result)
-            else:
-                assert result == expected
-        else:
-            with tm.external_error_raised(IndexError):
-                data.item(len(data))
+        with tm.external_error_raised(IndexError):
+            data.item(len(data))
 
         msg = "index must be an integer"
         with pytest.raises(TypeError, match=msg):
