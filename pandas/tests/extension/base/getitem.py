@@ -141,6 +141,7 @@ class BaseGetitemTests:
                     "index is out of bounds: must be an integer "
                     f"between -{ub} and {ub - 1}"
                 ),  # Sparse
+                f"index {ub} is out of bounds for axis 0 with size {ub}",
                 f"index {ub + 1} is out of bounds for axis 0 with size {ub}",
                 f"index -{ub + 1} is out of bounds for axis 0 with size {ub}",
             ]
