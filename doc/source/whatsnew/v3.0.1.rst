@@ -33,6 +33,8 @@ Bug fixes
 - Fixed a bug in the :func:`comparison_op` raising a ``TypeError`` for zerodim
   subclasses of ``np.ndarray`` (:issue:`63205`)
 - Added additional typing aliases in :py:mod:`pandas.api.typing.aliases` (:issue:`64098`)
+- Fixed bug in :func:`merge` where NaN values in pyarrow-backed string dtype join keys were incorrectly matched with non-NaN values on Windows with pyarrow 21 (:issue:`64060`)
+- Fixed bug in :func:`read_hdf` reading a file written by pandas <= 2.2 with a datetime64 column (:issue:`64006`)
 - Fixed bug in :meth:`DataFrame.loc` when setting new row and new columns simultaneously filling existing columns with ``b''`` instead of ``NaN`` (:issue:`58316`)
 - Fixed thread safety issues in :class:`DataFrame` internals on the free-threaded build (:issue:`63685`).
 - Prevent buffer overflow in :meth:`Rolling.corr` and :meth:`Rolling.cov` with variable windows when passing ``other`` with a longer index than the original window. This now raises ``ValueError`` (:issue:`62937`)
