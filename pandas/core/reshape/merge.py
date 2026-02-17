@@ -2837,7 +2837,8 @@ def _factorize_keys(
             isinstance(lk.dtype, StringDtype) and lk.dtype.storage == "pyarrow"
         ):
             import pyarrow as pa
-            import pyarrow.compute as pc
+
+            from pandas.compat.pyarrow import _safe_fill_null
 
             len_lk = len(lk)
             lk = lk._pa_array  # type: ignore[attr-defined]
@@ -2849,10 +2850,10 @@ def _factorize_keys(
             )
 
             llab, rlab, count = (
-                pc.fill_null(dc.indices[slice(len_lk)], -1)
+                _safe_fill_null(dc.indices[slice(len_lk)], -1)
                 .to_numpy()
                 .astype(np.intp, copy=False),
-                pc.fill_null(dc.indices[slice(len_lk, None)], -1)
+                _safe_fill_null(dc.indices[slice(len_lk, None)], -1)
                 .to_numpy()
                 .astype(np.intp, copy=False),
                 len(dc.dictionary),
