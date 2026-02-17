@@ -5226,7 +5226,7 @@ def _maybe_convert_for_string_atom(
     if bvalues.dtype != object:
         return bvalues
 
-    bvalues = cast(np.ndarray, bvalues)
+    bvalues = cast("np.ndarray", bvalues)
 
     dtype_name = bvalues.dtype.name
     inferred_type = lib.infer_dtype(bvalues, skipna=False)

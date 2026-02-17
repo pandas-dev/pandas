@@ -2400,7 +2400,7 @@ class ArrowExtensionArray(
 
         elif is_integer(key):
             # fast path
-            key = cast(int, key)
+            key = cast("int", key)
             n = len(self)
             if key < 0:
                 key += n
