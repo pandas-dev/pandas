@@ -410,7 +410,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
 
             if arrdata.dtype.kind in "iu":
                 arr = arrdata.astype(np.int64, copy=False)
-                ordinals = libperiod.from_calendar_ordinals(arr, dtype)
+                ordinals = libperiod.from_calendar_ordinals(arr, dtype)  # type: ignore[arg-type]
                 parr = PeriodArray(ordinals, dtype=dtype)
             else:
                 data = ensure_object(arrdata)
