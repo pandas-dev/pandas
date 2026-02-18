@@ -201,10 +201,10 @@ jobs:
           name: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
           path: ./wheelhouse/*.whl
 
-  publish_nightly:
+  upload_nightly:
     # trigger an upload to https://anaconda.org/scientific-python-nightly-wheels/pandas
     # for cron jobs or "Run workflow" (restricted to main branch).
-    name: Upload nightly wheels to Anaconda
+    name: Upload nightly packages to Anaconda
     if: >
       github.repository == 'pandas-dev/pandas' &&
       (github.event_name == 'schedule' ||
