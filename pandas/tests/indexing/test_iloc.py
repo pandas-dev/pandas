@@ -1090,6 +1090,25 @@ class TestiLocBaseIndependent:
         expected = DataFrame({"a": [1, 2, 3], "b": [11, 12, 13], "c": [7, 8, 9]})
         tm.assert_frame_equal(df2, expected)
 
+    def test_iloc_assignment_nullable_int_with_na(self):
+        # GH#62473
+        ser = Series(
+            [4, 6, 9, None, 10, 13, 15], index=[6, 1, 5, 0, 3, 2, 4], dtype="Int64"
+        )
+        indices = Series(
+            [6, 1, 5, 0, 3, 2, 4], index=[6, 1, 5, 0, 3, 2, 4], dtype="int64"
+        )
+        values = Series(
+            [4, 6, 9, None, 10, 13, 15], index=[4, 1, 2, 6, 0, 5, 3], dtype="Int64"
+        )
+
+        ser.iloc[indices] = values
+
+        expected = Series(
+            [NA, 6, 13, 10, 15, 9, 4], index=[6, 1, 5, 0, 3, 2, 4], dtype="Int64"
+        )
+        tm.assert_series_equal(ser, expected)
+
     @pytest.mark.parametrize("has_ref", [True, False])
     def test_iloc_setitem_dictionary_value(self, has_ref):
         # GH#37728
