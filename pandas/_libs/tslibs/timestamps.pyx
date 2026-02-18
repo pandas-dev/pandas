@@ -694,7 +694,7 @@ cdef class _Timestamp(ABCTimestamp):
         if freq:
             kwds = freq.kwds
             month_kw = kwds.get("startingMonth", kwds.get("month", 12))
-            freq_name = freq.name
+            freq_name = freq.rule_code
         else:
             month_kw = 12
             freq_name = None

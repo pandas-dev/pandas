@@ -944,19 +944,16 @@ def test_valid_month_attributes(kwd, month_classes):
 
 
 def test_month_offset_name(month_classes):
-    # GH#33757 off.name with n != 1 should not raise AttributeError
+    # GH#33757 off.rule_code with n != 1 should not raise AttributeError
     obj = month_classes(1)
     obj2 = month_classes(2)
-    with tm.assert_produces_warning(FutureWarning, match="name.*deprecated"):
-        assert obj2.name == obj.name
+    assert obj2.rule_code == obj.rule_code
 
 
 def test_offset_name_deprecated():
     # GH#64207
     offset = Day(1)
-    with tm.assert_produces_warning(
-        FutureWarning, match="name.*deprecated.*rule_code"
-    ):
+    with tm.assert_produces_warning(FutureWarning, match="name.*deprecated.*rule_code"):
         result = offset.name
     assert result == "D"
 

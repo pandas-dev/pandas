@@ -838,7 +838,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         dta = DatetimeArray._from_sequence(new_data, dtype=new_data.dtype)
         assert dta.unit == unit
 
-        if self.freq.name == "B":
+        if self.freq.rule_code == "B":
             # See if we can retain BDay instead of Day in cases where
             #  len(self) is too small for infer_freq to distinguish between them
             diffs = libalgos.unique_deltas(self.asi8)

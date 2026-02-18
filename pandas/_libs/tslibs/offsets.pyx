@@ -649,10 +649,10 @@ cdef class BaseOffset:
 
         Examples
         --------
-        >>> pd.offsets.Hour().name  # doctest: +SKIP
+        >>> pd.offsets.Hour().name
         'h'
 
-        >>> pd.offsets.Hour(5).name  # doctest: +SKIP
+        >>> pd.offsets.Hour(5).name
         'h'
         """
         warnings.warn(
@@ -7347,7 +7347,7 @@ cpdef to_offset(freq, bint is_period=False):
 
     if is_period and not has_period_dtype_code:
         if isinstance(freq, str):
-            raise ValueError(f"{result.name} is not supported as period frequency")
+            raise ValueError(f"{result.rule_code} is not supported as period frequency")
         else:
             raise ValueError(f"{freq} is not supported as period frequency")
 
