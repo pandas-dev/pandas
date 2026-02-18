@@ -44,9 +44,6 @@ jobs:
       contains(github.event.pull_request.labels.*.name, 'Build')) ||
       (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && ( ! endsWith(github.ref, 'dev0')))
     runs-on: ubuntu-24.04
-    env:
-      IS_PUSH: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
-      IS_SCHEDULE_DISPATCH: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
     outputs:
       sdist_file: ${{ steps.save-path.outputs.sdist_name }}
     steps:
@@ -121,9 +118,6 @@ jobs:
       group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.buildplat[0] }}-${{ matrix.buildplat[1] }}-${{ matrix.python[0]}}-build-wheels
       cancel-in-progress: true
 
-    env:
-      IS_PUSH: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
-      IS_SCHEDULE_DISPATCH: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
     steps:
       - name: Checkout pandas
         uses: actions/checkout@v6
@@ -187,7 +181,6 @@ jobs:
           # yet present on conda-forge
           create-args: >-
             python=3.11
-            anaconda-client
             wheel
           cache-downloads: true
           cache-environment: true
@@ -197,7 +190,7 @@ jobs:
         if: matrix.buildplat[1] == 'win_arm64'
         shell: bash -el {0}
         # cryptography pin due to https://github.com/pyca/cryptography/pull/14216
-        run: python -m pip install wheel anaconda-client cryptography==46.0.3
+        run: python -m pip install wheel cryptography==46.0.3
 
       - name: Validate wheel RECORD
         shell: bash -el {0}
@@ -208,19 +201,37 @@ jobs:
           name: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
           path: ./wheelhouse/*.whl
 
-      - name: Upload wheels & sdist
-        if: ${{ success() && (env.IS_SCHEDULE_DISPATCH == 'true' || env.IS_PUSH == 'true') }}
-        shell: bash -el {0}
-        env:
-          PANDAS_NIGHTLY_UPLOAD_TOKEN: ${{ secrets.PANDAS_NIGHTLY_UPLOAD_TOKEN }}
-        # trigger an upload to
-        # https://anaconda.org/scientific-python-nightly-wheels/pandas
-        # for cron jobs or "Run workflow" (restricted to main branch).
-        # The tokens were originally generated at anaconda.org
+  publish_nightly:
+    # trigger an upload to https://anaconda.org/scientific-python-nightly-wheels/pandas
+    # for cron jobs or "Run workflow" (restricted to main branch).
+    name: Upload nightly wheels to Anaconda
+    if: >
+      github.repository == 'pandas-dev/pandas' &&
+      (github.event_name == 'schedule' ||
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'))
+    needs:
+      - build_wheels
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Download all artefacts
+        uses: actions/download-artifact@v7
+        with:
+          path: dist          # everything lands in ./dist/**
+
+      # TODO: This step can be probably be achieved by actions/download-artifact@v7
+      # by specifying merge-multiple: true, and a glob pattern
+      - name: Collect files
         run: |
-          source ci/upload_wheels.sh
-          set_upload_vars
-          upload_wheels
+          mkdir -p upload
+          find dist -name '*.whl' -exec mv {} upload/ \;
+          find dist -name '*.tar.gz' -exec mv {} upload/ \;
+
+      - name: Upload wheels & sdist
+        uses: scientific-python/upload-nightly-action@0.6.3
+        with:
+          artifacts_path: ./upload
+          anaconda_nightly_upload_token: ${{secrets.PANDAS_NIGHTLY_UPLOAD_TOKEN}}
 
   publish:
     if: >
