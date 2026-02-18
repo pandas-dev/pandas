@@ -126,6 +126,9 @@ is accelerated with PyArrow `compute functions <https://arrow.apache.org/docs/py
 * String functionality
 * Datetime functionality
 
+For a comprehensive reference of which methods use native PyArrow compute functions
+vs. falling back to Python/NumPy implementations, see :ref:`arrow-fallbacks`.
+
 The following are just some examples of operations that are accelerated by native PyArrow compute functions.
 
 .. ipython:: python
