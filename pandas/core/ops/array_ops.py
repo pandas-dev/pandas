@@ -113,6 +113,10 @@ def fill_binop(left, right, fill_value):
 
 
 def comp_method_OBJECT_ARRAY(op, x, y):
+    from pandas._libs import missing as libmissing
+
+    from pandas.core.arrays import BooleanArray
+
     if isinstance(y, list):
         # e.g. test_tuple_categories
         y = construct_1d_object_array_from_listlike(y)
@@ -129,7 +133,28 @@ def comp_method_OBJECT_ARRAY(op, x, y):
         result = libops.vec_compare(x.ravel(), y.ravel(), op)
     else:
         result = libops.scalar_compare(x.ravel(), y, op)
-    return result.reshape(x.shape)
+    result = result.reshape(x.shape)
+
+    # GH#63328: Check if there are pd.NA values in the input and return
+    # BooleanArray to properly propagate NA in comparisons
+    x_has_na = any(val is libmissing.NA for val in x.ravel())
+    y_has_na = (is_scalar(y) and y is libmissing.NA) or (
+        isinstance(y, np.ndarray) and any(val is libmissing.NA for val in y.ravel())
+    )
+
+    if x_has_na or y_has_na:
+        # Create a mask for NA values
+        mask = np.array([val is libmissing.NA for val in x.ravel()], dtype=bool)
+        if isinstance(y, np.ndarray):
+            mask = mask | np.array(
+                [val is libmissing.NA for val in y.ravel()], dtype=bool
+            )
+        elif y is libmissing.NA:
+            mask = np.ones(x.shape, dtype=bool)
+        mask = mask.reshape(x.shape)
+        return BooleanArray(result, mask, copy=False)
+
+    return result
 
 
 def _masked_arith_op(x: np.ndarray, y, op) -> np.ndarray:
