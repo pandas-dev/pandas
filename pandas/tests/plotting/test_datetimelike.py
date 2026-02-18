@@ -247,8 +247,8 @@ class TestTSPlot:
             index=idx,
             columns=["A", "B", "C"],
         )
-        freq = PeriodDtype(df.index.freq)._freqstr
-        freq = df.index.to_period(freq).freq
+        unit = PeriodDtype(df.index.freq).unit
+        freq = df.index.to_period(unit).freq
         _check_plot_works(df.plot, freq)
 
     @pytest.mark.parametrize(
@@ -338,7 +338,7 @@ class TestTSPlot:
         assert ax.get_lines()[0].get_xydata()[0, 0] == bts.index[0].ordinal
         idx = ax.get_lines()[0].get_xdata()
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert PeriodIndex(data=idx).freqstr == "B"
+            assert PeriodIndex(data=idx).unit == "B"
 
     def test_business_freq_convert(self):
         bts = Series(
@@ -350,7 +350,7 @@ class TestTSPlot:
         bts.plot(ax=ax)
         assert ax.get_lines()[0].get_xydata()[0, 0] == ts.index[0].ordinal
         idx = ax.get_lines()[0].get_xdata()
-        assert PeriodIndex(data=idx).freqstr == "M"
+        assert PeriodIndex(data=idx).unit == "M"
 
     def test_business_freq_no_weekend_gaps(self):
         # Verify that plotting a BDay-frequency series produces evenly-spaced
