@@ -6,8 +6,6 @@ Tests for the str accessors are in pandas/tests/strings/test_string_array.py
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas.compat.pyarrow import pa_version_under19p0
 
 from pandas.core.dtypes.common import is_dtype_equal
@@ -351,18 +349,16 @@ def test_arrow_roundtrip(dtype, string_storage, using_infer_string):
         assert table.field("a").type == "large_string"
     with pd.option_context("string_storage", string_storage):
         result = table.to_pandas()
-    if dtype.na_value is np.nan and not using_infer_string:
-        assert result["a"].dtype == "object"
-    else:
-        assert isinstance(result["a"].dtype, pd.StringDtype)
-        expected = df.astype(pd.StringDtype(string_storage, na_value=dtype.na_value))
-        if using_infer_string:
-            expected.columns = expected.columns.astype(
-                pd.StringDtype(string_storage, na_value=np.nan)
-            )
-        tm.assert_frame_equal(result, expected)
-        # ensure the missing value is represented by NA and not np.nan or None
-        assert result.loc[2, "a"] is result["a"].dtype.na_value
+
+    assert isinstance(result["a"].dtype, pd.StringDtype)
+    expected = df.astype(pd.StringDtype(string_storage, na_value=dtype.na_value))
+    if using_infer_string:
+        expected.columns = expected.columns.astype(
+            pd.StringDtype(string_storage, na_value=np.nan)
+        )
+    tm.assert_frame_equal(result, expected)
+    # ensure the missing value is represented by NA and not np.nan or None
+    assert result.loc[2, "a"] is result["a"].dtype.na_value
 
 
 @pytest.mark.filterwarnings("ignore:Passing a BlockManager:DeprecationWarning")
@@ -373,10 +369,17 @@ def test_arrow_from_string(using_infer_string):
 
     result = table.to_pandas()
 
-    if using_infer_string and not pa_version_under19p0:
-        expected = pd.DataFrame({"a": ["a", "b", None]}, dtype="str")
-    else:
+    if not using_infer_string:
+        if pa_version_under19p0:
+            expected = pd.DataFrame({"a": ["a", "b", None]}, dtype="object")
+        else:
+            expected = pd.DataFrame(
+                {"a": ["a", "b", None]}, dtype=pd.StringDtype(na_value=np.nan)
+            )
+    elif pa_version_under19p0:
         expected = pd.DataFrame({"a": ["a", "b", None]}, dtype="object")
+    else:
+        expected = pd.DataFrame({"a": ["a", "b", None]}, dtype="str")
     tm.assert_frame_equal(result, expected)
 
 
@@ -397,16 +400,13 @@ def test_arrow_load_from_zero_chunks(dtype, string_storage, using_infer_string):
     with pd.option_context("string_storage", string_storage):
         result = table.to_pandas()
 
-    if dtype.na_value is np.nan and not using_string_dtype():
-        assert result["a"].dtype == "object"
-    else:
-        assert isinstance(result["a"].dtype, pd.StringDtype)
-        expected = df.astype(pd.StringDtype(string_storage, na_value=dtype.na_value))
-        if using_infer_string:
-            expected.columns = expected.columns.astype(
-                pd.StringDtype(string_storage, na_value=np.nan)
-            )
-        tm.assert_frame_equal(result, expected)
+    assert isinstance(result["a"].dtype, pd.StringDtype)
+    expected = df.astype(pd.StringDtype(string_storage, na_value=dtype.na_value))
+    if using_infer_string:
+        expected.columns = expected.columns.astype(
+            pd.StringDtype(string_storage, na_value=np.nan)
+        )
+    tm.assert_frame_equal(result, expected)
 
 
 def test_value_counts_na(dtype):
@@ -610,3 +610,14 @@ def test_numpy_array_ufunc(dtype, box):
             expected = pd.Series(["aa", "bbbb", "cccccc"])
 
     tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize("box", [pd.Series, pd.array])
+def test_numpy_random_permute(dtype, box):
+    # https://github.com/pandas-dev/pandas/issues/63935
+    arr = box(["a", "bb", "ccc"], dtype=dtype)
+
+    rng = np.random.default_rng(2)
+    result = rng.permutation(arr)
+    assert isinstance(result, np.ndarray)
+    assert sorted(result.tolist()) == ["a", "bb", "ccc"]
