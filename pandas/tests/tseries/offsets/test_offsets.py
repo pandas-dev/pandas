@@ -9,6 +9,7 @@ from datetime import (
     timedelta,
 )
 
+from dateutil.relativedelta import relativedelta
 import numpy as np
 import pytest
 
@@ -1084,9 +1085,9 @@ def test_dateoffset_misc():
 
 @pytest.mark.parametrize("n", [-1, 1, 3])
 def test_construct_int_arg_no_kwargs_assumed_days(n):
-    # GH 45890, 45643
+    # GH 45643, 45890, 61870
     offset = DateOffset(n)
-    assert offset._offset == timedelta(1)
+    assert offset._offset == relativedelta(days=1)
     result = Timestamp(2022, 1, 2) + offset
     expected = Timestamp(2022, 1, 2 + n)
     assert result == expected
@@ -1221,3 +1222,12 @@ def test_is_yqm_start_end():
 def test_multiply_dateoffset_typeerror(left, right):
     with pytest.raises(TypeError, match="Cannot multiply"):
         left * right
+
+
+def test_dateoffset_days_vs_n_near_dst_transition():
+    # GH 61870
+    ts = Timestamp("2022-10-30", tz="Europe/Brussels")
+
+    offset_days = ts + offsets.DateOffset(days=1)
+    offset_n = ts + offsets.DateOffset(1)
+    assert offset_days == offset_n
