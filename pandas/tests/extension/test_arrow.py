@@ -3895,6 +3895,88 @@ def test_arrow_dtype_itemsize_fixed_width(type_name, expected_size):
     )
 
 
+def test_roundtrip_of_nested_types():
+    df = pd.DataFrame(
+        {
+            "list_int": pd.Series(
+                [[1, 2, 3], [4, 5]], dtype=ArrowDtype(pa.list_(pa.int64()))
+            ),
+            "list_string": pd.Series(
+                [["a", "b"], ["c"]], dtype=ArrowDtype(pa.list_(pa.string()))
+            ),
+            "large_list_int": pd.Series(
+                [[1, 2], [3, 4, 5]], dtype=ArrowDtype(pa.large_list(pa.int64()))
+            ),
+            "large_list_string": pd.Series(
+                [["x", "y"], ["z"]], dtype=ArrowDtype(pa.large_list(pa.string()))
+            ),
+            "list_map": pd.Series(
+                [[{"a": 1.0, "b": 2.0}], [{"c": 3.0}]],
+                dtype=ArrowDtype(pa.list_(pa.map_(pa.string(), pa.float64()))),
+            ),
+            "large_list_map": pd.Series(
+                [[{"x": 1.5}], [{"y": 2.5, "z": 3.5}]],
+                dtype=ArrowDtype(pa.large_list(pa.map_(pa.string(), pa.float64()))),
+            ),
+            "map_int_float": pd.Series(
+                [{1: 1.1, 2: 2.2}, {3: 3.3}],
+                dtype=ArrowDtype(pa.map_(pa.int64(), pa.float64())),
+            ),
+            "struct_simple": pd.Series(
+                [{"f1": 1, "f2": 1.5}, {"f1": 2, "f2": 2.5}],
+                dtype=ArrowDtype(pa.struct([("f1", pa.int64()), ("f2", pa.float64())])),
+            ),
+            "struct_nested": pd.Series(
+                [
+                    {
+                        "outer_int": 10,
+                        "inner": {"int_list": [1, 2, 3], "text": "hello"},
+                    },
+                    {"outer_int": 20, "inner": {"int_list": [4, 5], "text": "world"}},
+                ],
+                dtype=ArrowDtype(
+                    pa.struct(
+                        [
+                            ("outer_int", pa.int64()),
+                            (
+                                "inner",
+                                pa.struct(
+                                    [
+                                        ("int_list", pa.list_(pa.int64())),
+                                        ("text", pa.string()),
+                                    ]
+                                ),
+                            ),
+                        ]
+                    )
+                ),
+            ),
+            "binary_16": pd.Series(
+                [b"0123456789abcdef", b"fedcba9876543210"],
+                dtype=ArrowDtype(pa.binary(16)),
+            ),
+            "list_struct": pd.Series(
+                [
+                    [{"id": 1, "value": 10.5}, {"id": 2, "value": 20.5}],
+                    [{"id": 3, "value": 30.5}],
+                ],
+                dtype=ArrowDtype(
+                    pa.list_(pa.struct([("id", pa.int64()), ("value", pa.float64())]))
+                ),
+            ),
+        }
+    )
+
+    if pa_version_under19p0:
+        with tm.assert_produces_warning(Pandas4Warning, check_stacklevel=False):
+            table = pa.Table.from_pandas(df)
+            result = table.to_pandas()
+    else:
+        table = pa.Table.from_pandas(df)
+        result = table.to_pandas()
+    tm.assert_frame_equal(result, df)
+
+
 @pytest.mark.parametrize("type_name", ["string", "binary", "large_string"])
 def test_arrow_dtype_itemsize_variable_width(type_name):
     # GH 57948

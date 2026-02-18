@@ -2392,6 +2392,10 @@ class ArrowDtype(StorageExtensionDtype):
                 except (NotImplementedError, ValueError):
                     # Fall through to raise with nice exception message below
                     pass
+                binary_pattern = re.compile(r"^fixed_size_binary\[(?P<width>\d+)\]$")
+                if match := binary_pattern.match(base_type):
+                    byte_width = match.group("width")
+                    return cls(pa.binary(int(byte_width)))
 
                 raise NotImplementedError(
                     "Passing pyarrow type specific parameters "
@@ -2399,8 +2403,68 @@ class ArrowDtype(StorageExtensionDtype):
                     "Please construct an ArrowDtype object with a pyarrow_dtype "
                     "instance with specific parameters."
                 ) from err
-            raise TypeError(f"'{base_type}' is not a valid pyarrow data type.") from err
+            # match maps
+            map_pattern = re.compile(r"^map<(?P<key>[^,<>]+),\s(?P<value>[^,<>]+)>$")
+            # match lists
+            list_inner_pattern = r"<item:\s(?P<item_type>.+)>$"
+            list_pattern = re.compile(rf"^list{list_inner_pattern}")
+            large_list_pattern = re.compile(rf"^large_list{list_inner_pattern}")
+            # match structs
+            struct_pattern = re.compile(r"^struct<(?P<fields>.+)>$")
+            if match := map_pattern.match(base_type):
+                pa_dtype = pa.map_(
+                    pa.type_for_alias(match.group("key")),
+                    pa.type_for_alias(match.group("value")),
+                )
+            elif match := list_pattern.match(base_type):
+                pa_dtype = pa.list_(
+                    cls._resolve_inner_types(match.group("item_type") + "[pyarrow]")
+                )
+            elif match := large_list_pattern.match(base_type):
+                pa_dtype = pa.large_list(
+                    cls._resolve_inner_types(match.group("item_type") + "[pyarrow]")
+                )
+            elif match := struct_pattern.match(base_type):
+                fields = []
+                for name, t in cls._split_struct(match.group("fields")):
+                    field_dtype = cls._resolve_inner_types(t + "[pyarrow]")
+                    fields.append((name, field_dtype))
+                pa_dtype = pa.struct(fields)
+            else:
+                raise TypeError(
+                    f"'{base_type}' is not a valid pyarrow data type."
+                ) from err
         return cls(pa_dtype)
+
+    @classmethod
+    def _resolve_inner_types(cls, string: str) -> pa.DataType:
+        if string == "string[pyarrow]":
+            return pa.string()
+        else:
+            return cls.construct_from_string(string).pyarrow_dtype
+
+    @staticmethod
+    def _split_struct(fields: str):
+        field_pattern = re.compile(r"^\s*(?P<name>[^:]+):\s*(?P<type>.+)\s*$")
+
+        parts, start, depth = [], 0, 0
+        for i, char in enumerate(fields):
+            if char in "<":
+                depth += 1
+            elif char in ">":
+                depth -= 1
+            elif char == "," and depth == 0:
+                parts.append(fields[start:i].strip())
+                start = i + 1
+
+        if start < len(fields):
+            parts.append(fields[start:].strip())
+
+        for field in parts:
+            if match := field_pattern.match(field):
+                yield match.group("name"), match.group("type")
+            else:
+                raise TypeError(f"Could not parse struct field definition: '{field}'")
 
     # TODO(arrow#33642): This can be removed once supported by pyarrow
     @classmethod
