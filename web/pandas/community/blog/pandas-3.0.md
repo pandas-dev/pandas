@@ -71,7 +71,7 @@ especially for library code that currently looks for "object" dtype when
 expecting string data.
 
 For more details, see the
-[migration guide for the new string data type](https://pandas.pydata.org/pandas-docs/dev/user_guide/migration.html#the-new-string-data-type).
+[migration guide for the new string data type](https://pandas.pydata.org/docs/dev/user_guide/migration.html#the-new-string-data-type).
 
 This new data type will use the `pyarrow` library under the hood, if installed,
 to provide the performance improvements. Therefore we strongly recommend to
@@ -104,7 +104,7 @@ DataFrame.
 
 For more details, see the
 
-[Copy-on-Write migration guide](https://pandas.pydata.org/pandas-docs/dev/user_guide/migration.html#copy-on-write-cow).
+[Copy-on-Write migration guide](https://pandas.pydata.org/docs/dev/user_guide/migration.html#copy-on-write-cow).
 
 ## Obtaining pandas 3.0
 
