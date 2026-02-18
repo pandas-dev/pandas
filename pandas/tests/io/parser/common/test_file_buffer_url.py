@@ -91,10 +91,9 @@ def test_nonexistent_path(all_parsers):
     parser = all_parsers
     path = f"{uuid.uuid4()}.csv"
 
-    msg = r"\[Errno 2\]"
-    with pytest.raises(FileNotFoundError, match=msg) as e:
+    msg = rf"No such file or directory: '{path}'"
+    with pytest.raises(FileNotFoundError, match=msg):
         parser.read_csv(path)
-    assert path == e.value.filename
 
 
 @pytest.mark.skipif(WASM, reason="limited file system access on WASM")
@@ -316,21 +315,21 @@ def test_invalid_file_buffer_class(all_parsers):
         pass
 
     parser = all_parsers
-    msg = "Invalid file path or buffer object type"
+    msg = "Expected file path name or file-like object"
 
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(TypeError, match=msg):
         parser.read_csv(InvalidBuffer())
 
 
 def test_invalid_file_buffer_mock(all_parsers):
     # see gh-15337
     parser = all_parsers
-    msg = "Invalid file path or buffer object type"
+    msg = "Expected file path name or file-like object"
 
     class Foo:
         pass
 
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(TypeError, match=msg):
         parser.read_csv(Foo())
 
 

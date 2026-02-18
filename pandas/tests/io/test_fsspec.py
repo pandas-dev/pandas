@@ -331,13 +331,13 @@ def test_markdown_options(fsspectest):
     assert fsspectest.cat("testmem://mockfile")
 
 
-def test_non_fsspec_options():
+def test_non_fsspec_options(empty_local_file):
     pytest.importorskip("pyarrow")
     with pytest.raises(ValueError, match="storage_options"):
-        read_csv("localfile", storage_options={"a": True})
+        read_csv(empty_local_file, storage_options={"a": True})
     with pytest.raises(ValueError, match="storage_options"):
         # separate test for parquet, which has a different code path
-        read_parquet("localfile", storage_options={"a": True})
+        read_parquet(empty_local_file, storage_options={"a": True})
     by = io.BytesIO()
 
     with pytest.raises(ValueError, match="storage_options"):

@@ -10,6 +10,7 @@ import codecs
 from collections import defaultdict
 from collections.abc import (
     Hashable,
+    Iterable,
     Mapping,
     Sequence,
 )
@@ -26,7 +27,10 @@ from io import (
 )
 import mmap
 import os
-from pathlib import Path
+from pathlib import (
+    Path,
+    PurePosixPath,
+)
 import re
 import tarfile
 from typing import (
@@ -42,6 +46,7 @@ from typing import (
     overload,
 )
 from urllib.parse import (
+    unquote,
     urljoin,
     urlparse as parse_url,
     uses_netloc,
@@ -55,6 +60,7 @@ from pandas._typing import (
     BaseBuffer,
     ReadCsvBuffer,
 )
+from pandas.compat import is_platform_windows
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._exceptions import find_stack_level
 
@@ -1325,3 +1331,199 @@ def dedup_names(
         counts[col] = cur_count + 1
 
     return names
+
+
+def _infer_protocol(path: str) -> str:
+    """
+    Infer the protocol of a given path string.
+    Parameters
+    ----------
+    path : str
+        The path string to infer the protocol from.
+    Returns
+    -------
+    str
+        The inferred protocol.
+    """
+    # Treat Windows drive letters like C:\ as local file paths
+    if is_platform_windows() and re.match(r"^[a-zA-Z]:[\\/]", path):
+        return "file"
+
+    if is_fsspec_url(path) or path.startswith("http"):
+        parsed = parse_url(path)
+        return parsed.scheme
+    return "file"
+
+
+def _match_file(
+    path: Path | PurePosixPath, extensions: set[str] | None, glob: str | None
+) -> bool:
+    """
+    Check if the file matches the given extensions and glob pattern.
+    Parameters
+    ----------
+    path : Path or PurePosixPath
+        The file path to check.
+    extensions : set[str]
+        A set of file extensions to match against.
+    glob : str
+        A glob pattern to match against.
+    Returns
+    -------
+    bool
+        True if the file matches the extensions and glob pattern, False otherwise.
+    """
+    return (extensions is None or path.suffix.lower() in extensions) and (
+        glob is None or path.match(glob)
+    )
+
+
+def _resolve_local_path(path_str: str) -> Path:
+    """
+    Resolve a local file path, handling Windows paths and file URLs.
+    Parameters
+    ----------
+    path_str : str
+        The path string to resolve.
+    Returns
+    -------
+    Path
+        A Path object representing the resolved local path.
+    """
+    parsed = parse_url(path_str)
+
+    if is_platform_windows():
+        if parsed.scheme == "file":
+            if parsed.netloc:
+                return Path(f"//{parsed.netloc}{unquote(parsed.path)}")
+            return Path(unquote(parsed.path.lstrip("/")))
+
+        if re.match(r"^[a-zA-Z]:[\\/]", path_str):
+            return Path(unquote(path_str))
+
+    return Path(unquote(parsed.path))
+
+
+def iterdir(
+    path: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
+    extensions: str | Iterable[str] | None = None,
+    glob: str | None = None,
+    storage_options: StorageOptions | None = None,
+) -> FilePath | list[FilePath] | ReadCsvBuffer[bytes] | ReadCsvBuffer[str]:
+    """
+    Return file paths in a directory (no nesting allowed). File-like objects
+    and string URLs are returned directly. Remote paths are handled via fsspec.
+
+    Supports:
+    - Local paths (str, os.PathLike)
+    - file:// URLs
+    - Remote paths (e.g., s3://) via fsspec (if installed)
+
+    Parameters
+    ----------
+    path : FilePath
+        Path to the directory (local or remote).
+    extensions : str or list of str, optional
+        Only return files with the given extension(s). Case-insensitive.
+        If None, all files are returned.
+    glob : str, optional
+        Only return files matching the given glob pattern.
+        If None, all files are returned.
+
+    Returns
+    -------
+    FilePath or list[FilePath] or ReadCsvBuffer
+        If `path` is a file-like object, returns it directly.
+        Otherwise, returns a list of file paths in the directory.
+
+    Raises
+    ------
+    TypeError
+        If `path` is not a string, os.PathLike, or file-like object.
+    FileNotFoundError
+        If the specified path does not exist.
+    ValueError
+        If the specified path is neither a file nor a directory.
+    ImportError
+        If fsspec is required but not installed.
+    """
+
+    # file-like objects and urls are returned directly
+    if hasattr(path, "read") or hasattr(path, "write") or is_url(path):
+        return path
+
+    if not isinstance(path, (str, os.PathLike)):
+        raise TypeError(
+            f"Expected file path name or file-like object, got {type(path)} type"
+        )
+
+    if extensions is not None:
+        if isinstance(extensions, str):
+            extensions = {extensions.lower()}
+        else:
+            extensions = {ext.lower() for ext in extensions}
+
+    path_str = os.fspath(path)
+    scheme = _infer_protocol(path_str)
+
+    if scheme == "file":
+        resolved_path = _resolve_local_path(path_str)
+        if not resolved_path.exists():
+            raise FileNotFoundError(f"No such file or directory: '{resolved_path}'")
+
+        result = []
+        if resolved_path.is_file():
+            if _match_file(
+                resolved_path,
+                extensions,
+                glob,
+            ):
+                result.append(resolved_path)
+                return result  # type: ignore[return-value]
+
+        if resolved_path.is_dir():
+            for entry in resolved_path.iterdir():
+                if entry.is_file():
+                    if _match_file(
+                        entry,
+                        extensions,
+                        glob,
+                    ):
+                        result.append(entry)
+            return result  # type: ignore[return-value]
+
+        raise ValueError(
+            f"The path '{resolved_path}' is neither a file nor a directory."
+        )
+
+    # Remote paths
+    fsspec = import_optional_dependency("fsspec")
+
+    # GH #11071
+    # Two legacy S3 protocols (s3n and s3a) are replaced with s3
+    if path_str.startswith("s3n://"):
+        path_str = path_str.replace("s3n://", "s3://")
+    if path_str.startswith("s3a://"):
+        path_str = path_str.replace("s3a://", "s3://")
+
+    fs, inner_path = fsspec.core.url_to_fs(path_str, **(storage_options or {}))
+    if fs.isfile(inner_path):
+        path_obj = PurePosixPath(inner_path)
+        if _match_file(
+            path_obj,
+            extensions,
+            glob,
+        ):
+            return [path]
+
+    result = []
+    for file in fs.ls(inner_path, detail=True):
+        if file["type"] == "file":
+            path_obj = PurePosixPath(file["name"])
+            if _match_file(
+                path_obj,
+                extensions,
+                glob,
+            ):
+                result.append(f"{scheme}://{path_obj}")  # type: ignore[arg-type]
+    return result  # type: ignore[return-value]

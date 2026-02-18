@@ -185,15 +185,10 @@ def test_close_file_handle_on_invalid_usecols(all_parsers, temp_file):
     os.unlink(fname)
 
 
-def test_invalid_file_inputs(request, all_parsers):
+def test_invalid_file_inputs(all_parsers):
     # GH#45957
     parser = all_parsers
-    if parser.engine == "python":
-        request.applymarker(
-            pytest.mark.xfail(reason=f"{parser.engine} engine supports lists.")
-        )
-
-    with pytest.raises(ValueError, match="Invalid"):
+    with pytest.raises(TypeError, match="Expected file path name or file-like"):
         parser.read_csv([])
 
 
