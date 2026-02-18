@@ -955,14 +955,14 @@ def test_offset_name_deprecated():
     # GH#64207
     offset = Day(1)
     with tm.assert_produces_warning(
-        FutureWarning, match="name.*deprecated.*freqstr"
+        FutureWarning, match="name.*deprecated.*rule_code"
     ):
         result = offset.name
     assert result == "D"
 
-    # freqstr should not raise a warning
+    # rule_code should not raise a warning
     with tm.assert_produces_warning(None):
-        result = offset.freqstr
+        result = offset.rule_code
     assert result == "D"
 
 

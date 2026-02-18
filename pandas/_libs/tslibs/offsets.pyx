@@ -634,7 +634,7 @@ cdef class BaseOffset:
         Return a string representing the base frequency.
 
         .. deprecated:: 3.1.0
-            The ``.name`` property is deprecated. Use ``.freqstr`` instead.
+            The ``.name`` property is deprecated. Use ``.rule_code`` instead.
 
         This is typically a short string alias (e.g., 'h' for hourly, 'D' for daily)
         used to identify the offset type, regardless of the `n` multiplier.
@@ -657,7 +657,7 @@ cdef class BaseOffset:
         """
         warnings.warn(
             "The 'name' property is deprecated and will be removed in a future "
-            "version. Use 'freqstr' instead.",
+            "version. Use 'rule_code' instead.",
             FutureWarning,
             stacklevel=find_stack_level(),
         )
