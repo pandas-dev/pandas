@@ -2154,7 +2154,10 @@ class ArrowExtensionArray(
 
         data_to_reduce = self._pa_array
 
-        if name in ["any", "all"] and (
+        if name == "count":
+            return super().count()
+
+        elif name in ["any", "all"] and (
             pa.types.is_integer(pa_type)
             or pa.types.is_floating(pa_type)
             or pa.types.is_duration(pa_type)
@@ -2337,6 +2340,86 @@ class ArrowExtensionArray(
             return result
         else:
             return pa_result
+
+    def sum(
+        self,
+        *,
+        skipna: bool = True,
+        **kwargs,
+    ):
+        return self._reduce("sum", skipna=skipna, **kwargs)
+
+    def min(
+        self,
+        *,
+        skipna: bool = True,
+        **kwargs,
+    ):
+        return self._reduce("min", skipna=skipna, **kwargs)
+
+    def max(
+        self,
+        *,
+        skipna: bool = True,
+        **kwargs,
+    ):
+        return self._reduce("max", skipna=skipna, **kwargs)
+
+    def mean(
+        self,
+        *,
+        skipna: bool = True,
+        **kwargs,
+    ):
+        return self._reduce("mean", skipna=skipna, **kwargs)
+
+    def sem(
+        self,
+        *,
+        skipna: bool = True,
+        **kwargs,
+    ):
+        return self._reduce("sem", skipna=skipna, **kwargs)
+
+    def skew(
+        self,
+        *,
+        skipna: bool = True,
+        **kwargs,
+    ):
+        return self._reduce("skew", skipna=skipna, **kwargs)
+
+    def median(
+        self,
+        *,
+        skipna: bool = True,
+        **kwargs,
+    ):
+        return self._reduce("median", skipna=skipna, **kwargs)
+
+    def var(
+        self,
+        *,
+        skipna: bool = True,
+        **kwargs,
+    ):
+        return self._reduce("var", skipna=skipna, **kwargs)
+
+    def std(
+        self,
+        *,
+        skipna: bool = True,
+        **kwargs,
+    ):
+        return self._reduce("std", skipna=skipna, **kwargs)
+
+    def prod(
+        self,
+        *,
+        skipna: bool = True,
+        **kwargs,
+    ):
+        return self._reduce("prod", skipna=skipna, **kwargs)
 
     def _explode(self):
         """

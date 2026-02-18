@@ -274,14 +274,10 @@ class Dim2CompatTests:
                 expected = expected.fillna(fill_value)
 
             tm.assert_extension_array_equal(result, expected)
-        elif method == "median":
-            # std and var are not dtype-preserving
-            expected = data
-            tm.assert_extension_array_equal(result, expected)
-        elif method in ["mean", "std", "var"]:
+        elif method in ["mean", "median", "std", "var"]:
             if is_integer_dtype(data) or is_bool_dtype(data):
                 data = data.astype("Float64")
-            if method == "mean":
+            if method in ["mean", "median"]:
                 tm.assert_extension_array_equal(result, data)
             else:
                 tm.assert_extension_array_equal(result, data - data)

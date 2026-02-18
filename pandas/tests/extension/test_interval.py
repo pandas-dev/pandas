@@ -84,7 +84,7 @@ class TestIntervalArray(base.ExtensionTests):
     divmod_exc = TypeError
 
     def _supports_reduction(self, ser: pd.Series, op_name: str) -> bool:
-        return op_name in ["min", "max"]
+        return op_name in ["min", "max", "count"]
 
     def test_fillna_limit_frame(self, data_missing):
         # GH#58001

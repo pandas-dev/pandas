@@ -550,7 +550,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
                 return result.astype(np.bool_)
             return result
 
-        if name in ("min", "max", "sum", "argmin", "argmax"):
+        if name in ("count", "min", "max", "sum", "argmin", "argmax"):
             result = self._reduce_calc(name, skipna=skipna, keepdims=keepdims, **kwargs)
         else:
             raise TypeError(f"Cannot perform reduction '{name}' with string dtype")

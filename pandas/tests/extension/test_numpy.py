@@ -308,7 +308,7 @@ class TestNumpyExtensionArray(base.ExtensionTests):
 
     def _supports_reduction(self, ser: pd.Series, op_name: str) -> bool:
         if ser.dtype.kind == "O":
-            return op_name in ["sum", "min", "max", "any", "all"]
+            return op_name in ["sum", "min", "max", "any", "all", "count"]
         return True
 
     def check_reduce(self, ser: pd.Series, op_name: str, skipna: bool):
