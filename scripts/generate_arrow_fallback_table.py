@@ -33,7 +33,14 @@ from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 import sys
-from typing import Any
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    NamedTuple,
+)
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 import numpy as np
 
@@ -77,7 +84,8 @@ ARROW_DTYPES: dict[str, str] = {
 
 # Simplified dtype groups for documentation
 DTYPE_GROUPS: dict[str, list[str]] = {
-    "string": ["string", "large_string"],
+    "string": ["string"],
+    "large_string": ["large_string"],
     "integer": [
         "int8",
         "int16",
@@ -176,8 +184,8 @@ STRING_METHODS: dict[str, dict[str, Any]] = {
     "fullmatch": {"pat": "a"},
     "find": {"sub": "a"},
     "rfind": {"sub": "a"},
-    "index": {"sub": "a"},
-    "rindex": {"sub": "a"},
+    "index": {"sub": "e"},
+    "rindex": {"sub": "e"},
     "count": {"pat": "a"},
     "replace": {"pat": "a", "repl": "b"},
     "repeat": {"repeats": 2},
@@ -397,6 +405,91 @@ DATETIME_PARAMETER_VARIANTS: dict[str, list[tuple[str, dict[str, Any]]]] = {
     ],
 }
 
+
+class VariantMetadata(NamedTuple):
+    """Metadata for a method with parameter-dependent fallback."""
+
+    accessor: str | None  # "str", "dt", or None
+    parameters: list[dict[str, str]]  # [{"name": ..., "default": ...}]
+    default_variant_key: str  # e.g. "contains(flags=0)"
+
+
+# Metadata for parameter variants:
+# Each entry maps a base method name to its VariantMetadata.
+PARAMETER_VARIANT_METADATA: dict[str, VariantMetadata] = {
+    # String methods
+    "split": VariantMetadata(
+        "str",
+        [{"name": "expand", "default": "False"}],
+        "split(expand=False)",
+    ),
+    "rsplit": VariantMetadata(
+        "str",
+        [{"name": "expand", "default": "False"}],
+        "rsplit(expand=False)",
+    ),
+    "extract": VariantMetadata(
+        "str",
+        [{"name": "expand", "default": "True"}],
+        "extract(expand=True)",
+    ),
+    "replace": VariantMetadata(
+        "str",
+        [
+            {"name": "case", "default": "True"},
+            {"name": "repl", "default": "string"},
+        ],
+        "replace(case=True)",
+    ),
+    "contains": VariantMetadata(
+        "str",
+        [{"name": "flags", "default": "0"}],
+        "contains(flags=0)",
+    ),
+    "match": VariantMetadata(
+        "str",
+        [{"name": "flags", "default": "0"}],
+        "match(flags=0)",
+    ),
+    "fullmatch": VariantMetadata(
+        "str",
+        [{"name": "flags", "default": "0"}],
+        "fullmatch(flags=0)",
+    ),
+    "count": VariantMetadata(
+        "str",
+        [{"name": "flags", "default": "0"}],
+        "count(flags=0)",
+    ),
+    "findall": VariantMetadata(
+        "str",
+        [{"name": "flags", "default": "0"}],
+        "findall(flags=0)",
+    ),
+    "pad": VariantMetadata(
+        "str",
+        [{"name": "side", "default": "left"}],
+        "pad(side=left)",
+    ),
+    # Array methods
+    "fillna": VariantMetadata(
+        None,
+        [{"name": "limit", "default": "None"}],
+        "fillna(limit=None)",
+    ),
+    "interpolate": VariantMetadata(
+        None,
+        [{"name": "method", "default": "linear"}],
+        "interpolate(method=linear)",
+    ),
+    # Datetime methods
+    "tz_localize": VariantMetadata(
+        "dt",
+        [{"name": "ambiguous", "default": "raise"}],
+        "tz_localize(ambiguous=raise)",
+    ),
+}
+
 # =============================================================================
 # Version-gated methods: behavior changes based on PyArrow version
 # =============================================================================
@@ -502,10 +595,6 @@ class FallbackTracker:
         self.to_numpy_called = False
         self.elementwise_called = False
 
-    def reset(self):
-        self.to_numpy_called = False
-        self.elementwise_called = False
-
 
 @contextmanager
 def track_fallbacks():
@@ -552,122 +641,133 @@ def track_fallbacks():
 # =============================================================================
 
 
-def create_test_series(dtype_name: str) -> pd.Series | None:
-    """Create a test Series for the given dtype."""
+def create_test_series(dtype_name: str, include_na: bool = True) -> pd.Series | None:
+    """
+    Create a test Series for the given dtype.
+
+    Parameters
+    ----------
+    dtype_name : str
+        Key from ARROW_DTYPES.
+    include_na : bool, default True
+        Whether to include NA values. Set to False for methods
+        that require sorted data without NAs (e.g. searchsorted).
+    """
+    import datetime
+    import warnings
+
     dtype_str = ARROW_DTYPES.get(dtype_name)
     if dtype_str is None:
         return None
 
-    try:
-        if dtype_name in ["string", "large_string"]:
-            data = ["hello world", "test string", "abc def", None, "xyz"]
-        elif dtype_name in ["binary", "large_binary"]:
-            data = [b"hello", b"world", b"test", None, b"xyz"]
-        elif dtype_name == "bool":
-            data = [True, False, True, None, False]
-        elif "int" in dtype_name or "uint" in dtype_name:
-            data = [1, 2, 3, None, 5]
-        elif "float" in dtype_name:
-            data = [1.5, 2.5, 3.5, None, 5.5]
-        elif "timestamp" in dtype_name:
-            data = pd.to_datetime(
-                ["2024-01-01", "2024-01-02", "2024-01-03", None, "2024-01-05"]
-            )
-            if "tz" in dtype_name or "UTC" in dtype_str:
-                data = data.tz_localize("UTC")
-        elif "date" in dtype_name:
-            import datetime
+    # Data with NAs and without NAs for each dtype category
+    data_with_na: dict[str, list] = {
+        "string": ["hello world", "test string", "abc def", None, "exyz"],
+        "binary": [b"hello", b"world", b"test", None, b"xyz"],
+        "bool": [True, False, True, None, False],
+        "int": [1, 2, 3, None, 5],
+        "float": [1.5, 2.5, 3.5, None, 5.5],
+        "date": [
+            datetime.date(2024, 1, 1),
+            datetime.date(2024, 1, 2),
+            datetime.date(2024, 1, 3),
+            None,
+            datetime.date(2024, 1, 5),
+        ],
+        "time": [
+            datetime.time(10, 0, 0),
+            datetime.time(11, 30, 0),
+            datetime.time(12, 45, 30),
+            None,
+            datetime.time(14, 0, 0),
+        ],
+    }
+    data_no_na: dict[str, list] = {
+        "string": ["apple", "banana", "cherry", "date", "elderberry"],
+        "binary": [b"apple", b"banana", b"cherry", b"date", b"elderberry"],
+        "bool": [False, False, True, True, True],
+        "int": [1, 2, 3, 4, 5],
+        "float": [1.5, 2.5, 3.5, 4.5, 5.5],
+        "date": [
+            datetime.date(2024, 1, 1),
+            datetime.date(2024, 1, 2),
+            datetime.date(2024, 1, 3),
+            datetime.date(2024, 1, 4),
+            datetime.date(2024, 1, 5),
+        ],
+        "time": [
+            datetime.time(10, 0, 0),
+            datetime.time(11, 0, 0),
+            datetime.time(12, 0, 0),
+            datetime.time(13, 0, 0),
+            datetime.time(14, 0, 0),
+        ],
+    }
 
-            data = [
-                datetime.date(2024, 1, 1),
-                datetime.date(2024, 1, 2),
-                datetime.date(2024, 1, 3),
-                None,
-                datetime.date(2024, 1, 5),
-            ]
-        elif "duration" in dtype_name:
-            data = pd.to_timedelta(["1 day", "2 days", "3 days", None, "5 days"])
-        elif "time" in dtype_name:
-            import datetime
-
-            data = [
-                datetime.time(10, 0, 0),
-                datetime.time(11, 30, 0),
-                datetime.time(12, 45, 30),
-                None,
-                datetime.time(14, 0, 0),
-            ]
-        else:
-            data = [1, 2, 3, None, 5]
-
-        return pd.Series(data, dtype=dtype_str)
-    except Exception:
-        return None
-
-
-def create_test_series_no_na(dtype_name: str) -> pd.Series | None:
-    """Create a test Series without NA values for methods that require sorted data."""
-    dtype_str = ARROW_DTYPES.get(dtype_name)
-    if dtype_str is None:
-        return None
+    source = data_no_na if not include_na else data_with_na
+    na_val = None if include_na else "2024-01-04"
 
     try:
         if dtype_name in ["string", "large_string"]:
-            data = ["apple", "banana", "cherry", "date", "elderberry"]
+            data = source["string"]
         elif dtype_name in ["binary", "large_binary"]:
-            data = [b"apple", b"banana", b"cherry", b"date", b"elderberry"]
+            data = source["binary"]
         elif dtype_name == "bool":
-            data = [False, False, True, True, True]
+            data = source["bool"]
         elif "int" in dtype_name or "uint" in dtype_name:
-            data = [1, 2, 3, 4, 5]
+            data = source["int"]
         elif "float" in dtype_name:
-            data = [1.5, 2.5, 3.5, 4.5, 5.5]
+            data = source["float"]
         elif "timestamp" in dtype_name:
-            data = pd.to_datetime(
-                ["2024-01-01", "2024-01-02", "2024-01-03", "2024-01-04", "2024-01-05"]
-            )
+            dates = [
+                "2024-01-01",
+                "2024-01-02",
+                "2024-01-03",
+                na_val,
+                "2024-01-05",
+            ]
+            data = pd.to_datetime(dates)
             if "tz" in dtype_name or "UTC" in dtype_str:
                 data = data.tz_localize("UTC")
         elif "date" in dtype_name:
-            import datetime
-
-            data = [
-                datetime.date(2024, 1, 1),
-                datetime.date(2024, 1, 2),
-                datetime.date(2024, 1, 3),
-                datetime.date(2024, 1, 4),
-                datetime.date(2024, 1, 5),
-            ]
+            data = source["date"]
         elif "duration" in dtype_name:
-            data = pd.to_timedelta(["1 day", "2 days", "3 days", "4 days", "5 days"])
-        elif "time" in dtype_name:
-            import datetime
-
-            data = [
-                datetime.time(10, 0, 0),
-                datetime.time(11, 0, 0),
-                datetime.time(12, 0, 0),
-                datetime.time(13, 0, 0),
-                datetime.time(14, 0, 0),
+            durations = [
+                "1 day",
+                "2 days",
+                "3 days",
+                None if include_na else "4 days",
+                "5 days",
             ]
+            data = pd.to_timedelta(durations)
+        elif "time" in dtype_name:
+            data = source["time"]
         else:
-            data = [1, 2, 3, 4, 5]
+            data = source["int"]
 
         return pd.Series(data, dtype=dtype_str)
-    except Exception:
+    except Exception as e:
+        warnings.warn(
+            f"Failed to create test Series for '{dtype_name}' ({dtype_str}): {e}",
+            stacklevel=2,
+        )
         return None
 
 
 def get_fillna_value(dtype_name: str) -> Any:
     """Get appropriate fillna value for dtype."""
+    import datetime
+
     if dtype_name in ["string", "large_string"]:
         return "filled"
     elif dtype_name in ["binary", "large_binary"]:
         return b"filled"
     elif dtype_name == "bool":
         return False
-    elif "timestamp" in dtype_name or "date" in dtype_name:
+    elif "timestamp" in dtype_name:
         return pd.Timestamp("2024-01-01")
+    elif "date" in dtype_name:
+        return datetime.date(2024, 1, 1)
     elif "duration" in dtype_name:
         return pd.Timedelta("1 day")
     else:
@@ -683,7 +783,12 @@ def get_searchsorted_value(dtype_name: str) -> Any:
     elif dtype_name == "bool":
         return True
     elif "timestamp" in dtype_name or "date" in dtype_name:
-        return pd.Timestamp("2024-01-02")
+        tz = (
+            "UTC"
+            if "tz" in dtype_name or "UTC" in ARROW_DTYPES.get(dtype_name, "")
+            else None
+        )
+        return pd.Timestamp("2024-01-02", tz=tz)
     elif "duration" in dtype_name:
         return pd.Timedelta("2 days")
     else:
@@ -756,60 +861,50 @@ def classify_result(
     return ResultType.ARROW_NATIVE
 
 
-def run_operation(
+def _get_result_dtype(result: Any) -> str:
+    """Get a string representation of the result dtype."""
+    if isinstance(result, pd.Series):
+        return str(result.dtype)
+    elif isinstance(result, pd.DataFrame):
+        return "DataFrame"
+    elif isinstance(result, np.ndarray):
+        return str(result.dtype)
+    else:
+        return type(result).__name__
+
+
+def _run_with_tracking(
     series: pd.Series,
-    method_name: str,
-    kwargs: dict[str, Any],
-    accessor: str | None = None,
-    display_name: str | None = None,
+    result_name: str,
+    func: Callable,
 ) -> OperationResult:
-    """Run an operation and return the result classification."""
+    """
+    Run a callable under fallback tracking and classify the result.
+
+    Parameters
+    ----------
+    series : pd.Series
+        The input series (used for dtype info and classification).
+    result_name : str
+        Name to use in the OperationResult.
+    func : Callable
+        Zero-argument callable that performs the operation.
+    """
     dtype_name = str(series.dtype)
-    # Use display_name for results if provided (for parameter variants)
-    result_name = display_name if display_name else method_name
 
     with track_fallbacks() as tracker:
         try:
-            # Get the method
-            if accessor:
-                obj = getattr(series, accessor)
-            else:
-                obj = series
-
-            method = getattr(obj, method_name)
-
-            # Handle special cases for kwargs
-            actual_kwargs = kwargs.copy()
-
-            # Call the method
-            if callable(method):
-                result = method(**actual_kwargs)
-            else:
-                # It's a property
-                result = method
-
-            # Classify the result
+            result = func()
             result_type = classify_result(series, result, tracker)
-
-            # Get result dtype
-            if isinstance(result, pd.Series):
-                result_dtype = str(result.dtype)
-            elif isinstance(result, pd.DataFrame):
-                result_dtype = "DataFrame"
-            elif isinstance(result, np.ndarray):
-                result_dtype = str(result.dtype)
-            else:
-                result_dtype = type(result).__name__
 
             return OperationResult(
                 method=result_name,
                 dtype=dtype_name,
                 result_type=result_type,
-                result_dtype=result_dtype,
+                result_dtype=_get_result_dtype(result),
                 used_to_numpy=tracker.to_numpy_called,
                 used_elementwise=tracker.elementwise_called,
             )
-
         except NotImplementedError as e:
             return OperationResult(
                 method=result_name,
@@ -824,6 +919,21 @@ def run_operation(
                 result_type=ResultType.TYPE_ERROR,
                 error_message=str(e),
             )
+        except ValueError as e:
+            # Some unsupported operations raise ValueError instead of
+            # NotImplementedError (e.g. "Can not interpolate with
+            # method=pad"). Classify these as NOT_IMPLEMENTED.
+            msg = str(e)
+            if msg.startswith("Can not "):
+                result_type = ResultType.NOT_IMPLEMENTED
+            else:
+                result_type = ResultType.OTHER_ERROR
+            return OperationResult(
+                method=result_name,
+                dtype=dtype_name,
+                result_type=result_type,
+                error_message=msg,
+            )
         except Exception as e:
             return OperationResult(
                 method=result_name,
@@ -831,6 +941,27 @@ def run_operation(
                 result_type=ResultType.OTHER_ERROR,
                 error_message=f"{type(e).__name__}: {e}",
             )
+
+
+def run_operation(
+    series: pd.Series,
+    method_name: str,
+    kwargs: dict[str, Any],
+    accessor: str | None = None,
+    display_name: str | None = None,
+) -> OperationResult:
+    """Run an operation and return the result classification."""
+    result_name = display_name if display_name else method_name
+
+    def _call():
+        obj = getattr(series, accessor) if accessor else series
+        method = getattr(obj, method_name)
+        if callable(method):
+            return method(**kwargs)
+        else:
+            return method  # property
+
+    return _run_with_tracking(series, result_name, _call)
 
 
 def run_arithmetic_op(
@@ -840,46 +971,11 @@ def run_arithmetic_op(
     operand: Any,
 ) -> OperationResult:
     """Run an arithmetic operation."""
-    dtype_name = str(series.dtype)
 
-    with track_fallbacks() as tracker:
-        try:
-            method = getattr(series, dunder)
-            result = method(operand)
+    def _call():
+        return getattr(series, dunder)(operand)
 
-            result_type = classify_result(series, result, tracker)
-
-            return OperationResult(
-                method=op_name,
-                dtype=dtype_name,
-                result_type=result_type,
-                result_dtype=str(result.dtype)
-                if isinstance(result, pd.Series)
-                else type(result).__name__,
-                used_to_numpy=tracker.to_numpy_called,
-                used_elementwise=tracker.elementwise_called,
-            )
-        except NotImplementedError as e:
-            return OperationResult(
-                method=op_name,
-                dtype=dtype_name,
-                result_type=ResultType.NOT_IMPLEMENTED,
-                error_message=str(e),
-            )
-        except TypeError as e:
-            return OperationResult(
-                method=op_name,
-                dtype=dtype_name,
-                result_type=ResultType.TYPE_ERROR,
-                error_message=str(e),
-            )
-        except Exception as e:
-            return OperationResult(
-                method=op_name,
-                dtype=dtype_name,
-                result_type=ResultType.OTHER_ERROR,
-                error_message=f"{type(e).__name__}: {e}",
-            )
+    return _run_with_tracking(series, op_name, _call)
 
 
 # =============================================================================
@@ -910,8 +1006,8 @@ def run_all_tests() -> dict[str, list[OperationResult]]:
         "comparison": [],
     }
 
-    # String methods - only on string dtypes
-    for dtype_name in DTYPE_GROUPS["string"]:
+    # String methods - on all string-like dtypes
+    for dtype_name in DTYPE_GROUPS["string"] + DTYPE_GROUPS["large_string"]:
         series = create_test_series(dtype_name)
         if series is None:
             continue
@@ -1019,7 +1115,7 @@ def run_all_tests() -> dict[str, list[OperationResult]]:
                 actual_kwargs["value"] = get_fillna_value(dtype_name)
             elif method == "searchsorted":
                 # searchsorted requires sorted data without NAs
-                series_no_na = create_test_series_no_na(dtype_name)
+                series_no_na = create_test_series(dtype_name, include_na=False)
                 if series_no_na is None:
                     continue
                 actual_kwargs["value"] = get_searchsorted_value(dtype_name)
@@ -1030,9 +1126,10 @@ def run_all_tests() -> dict[str, list[OperationResult]]:
                 if dtype_name in non_numeric:
                     continue  # clip doesn't make sense for these
                 if "timestamp" in dtype_name or "date" in dtype_name:
+                    tz = "UTC" if "tz" in dtype_name or "UTC" in dtype_str else None
                     actual_kwargs = {
-                        "lower": pd.Timestamp("2024-01-02"),
-                        "upper": pd.Timestamp("2024-01-04"),
+                        "lower": pd.Timestamp("2024-01-02", tz=tz),
+                        "upper": pd.Timestamp("2024-01-04", tz=tz),
                     }
                 elif "duration" in dtype_name:
                     actual_kwargs = {
@@ -1125,6 +1222,13 @@ def format_rst_table(all_results: dict[str, list[OperationResult]]) -> str:
         "This document shows the runtime behavior of pandas methods on",
         "Arrow-backed arrays. Results are determined by actually running",
         "each operation and observing the outcome.",
+        "",
+        ".. note::",
+        "",
+        "   ``string[pyarrow]`` (StringDtype) and ``large_string[pyarrow]``",
+        "   (ArrowDtype) use different implementations and are shown in separate",
+        "   columns. ``string[pyarrow]`` is the default string dtype; most users",
+        "   should focus on that column.",
         "",
         ".. note::",
         "",
@@ -1369,6 +1473,7 @@ def _format_method_table(
     # Define group order for consistent columns
     group_order = [
         "string",
+        "large_string",
         "integer",
         "float",
         "bool",
@@ -1480,96 +1585,155 @@ def _build_version_notes() -> dict[str, dict[str, Any]]:
     return version_notes
 
 
-def format_json_lookup(all_results: dict[str, list[OperationResult]]) -> str:
+def _build_parameter_variants() -> dict[str, dict[str, Any]]:
     """
-    Format results as JSON lookup table for downstream consumption.
+    Build parameter_variants section for JSON output.
 
-    Structure: {method: {dtype: status}}
-    Allows O(1) lookup: data["str.lower"]["string[pyarrow]"] -> "arrow"
+    Maps base method name -> variant info for methods with parameter-dependent behavior.
     """
-    import json
+    parameter_variants: dict[str, dict[str, Any]] = {}
 
-    # Map category to accessor prefix
-    accessor_map = {
-        "string_methods": "str",
-        "datetime_methods": "dt",
-        "timedelta_methods": "dt",
-        "aggregations": None,
-        "array_methods": None,
-        "algorithmic_methods": None,
-        "arithmetic": None,
-        "comparison": None,
-    }
+    # Combine all parameter variant configs
+    all_variants = [
+        (STRING_PARAMETER_VARIANTS, "str"),
+        (ARRAY_PARAMETER_VARIANTS, None),
+        (DATETIME_PARAMETER_VARIANTS, "dt"),
+    ]
 
+    for variant_dict, accessor in all_variants:
+        for base_method, variants in variant_dict.items():
+            # Get metadata for this method
+            meta = PARAMETER_VARIANT_METADATA.get(base_method)
+            if meta is None:
+                continue
+
+            default_key = meta.default_variant_key
+
+            # Build the full base method key
+            if accessor:
+                base_key = f"{accessor}.{base_method}"
+            else:
+                base_key = base_method
+
+            # Build variants mapping: param_value -> full method key
+            variant_mapping: dict[str, str] = {}
+            for display_name, _ in variants:
+                # Extract param value from display name,
+                # e.g., "split(expand=False)" -> "expand=False"
+                if "(" in display_name and ")" in display_name:
+                    param_part = display_name[display_name.index("(") + 1 : -1]
+                    # Build full key
+                    if accessor:
+                        full_key = f"{accessor}.{display_name}"
+                    else:
+                        full_key = display_name
+                    variant_mapping[param_part] = full_key
+
+            default_variant = f"{accessor}.{default_key}" if accessor else default_key
+            parameter_variants[base_key] = {
+                "parameters": meta.parameters,
+                "default_variant": default_variant,
+                "variants": variant_mapping,
+            }
+
+    return parameter_variants
+
+
+# Map category to accessor prefix (shared by JSON formatters)
+_ACCESSOR_MAP: dict[str, str | None] = {
+    "string_methods": "str",
+    "datetime_methods": "dt",
+    "timedelta_methods": "dt",
+    "aggregations": None,
+    "array_methods": None,
+    "algorithmic_methods": None,
+    "arithmetic": None,
+    "comparison": None,
+}
+
+
+def _build_json_base(
+    all_results: dict[str, list[OperationResult]],
+) -> dict[str, Any]:
+    """
+    Build the common JSON output structure shared by both formats.
+
+    Returns a dict with schema metadata and keyed results
+    in both orientations (methods and dtypes) before backfilling
+    base method entries.
+    """
     output: dict[str, Any] = {
-        "schema_version": 2,  # Bumped for version_gated addition
+        "schema_version": 3,
         "pandas_version": pd.__version__,
         "pyarrow_version": _get_current_pyarrow_version(),
         "methods": {},
+        "dtypes": {},
         "version_gated": _build_version_notes(),
+        "parameter_variants": _build_parameter_variants(),
     }
 
     for category, results in all_results.items():
-        accessor = accessor_map.get(category)
+        accessor = _ACCESSOR_MAP.get(category)
         for r in results:
-            # Build method key with accessor prefix
             if accessor:
                 method_key = f"{accessor}.{r.method}"
             else:
                 method_key = r.method
 
+            # methods orientation: method -> dtype -> status
             if method_key not in output["methods"]:
                 output["methods"][method_key] = {}
-
             output["methods"][method_key][r.dtype] = r.result_type.value
 
-    return json.dumps(output, indent=2)
+            # dtypes orientation: dtype -> method -> status
+            if r.dtype not in output["dtypes"]:
+                output["dtypes"][r.dtype] = {}
+            output["dtypes"][r.dtype][method_key] = r.result_type.value
+
+    # Backfill base methods with default variant behavior
+    param_variants = output["parameter_variants"]
+    for base_key, variant_info in param_variants.items():
+        default_key = variant_info["default_variant"]
+
+        # methods orientation
+        if default_key in output["methods"]:
+            if base_key not in output["methods"]:
+                output["methods"][base_key] = output["methods"][default_key].copy()
+
+        # dtypes orientation
+        for methods in output["dtypes"].values():
+            if default_key in methods and base_key not in methods:
+                methods[base_key] = methods[default_key]
+
+    return output
 
 
-def format_json_by_dtype(all_results: dict[str, list[OperationResult]]) -> str:
+def format_json_lookup(
+    all_results: dict[str, list[OperationResult]],
+) -> str:
     """
-    Format results as JSON grouped by dtype for downstream consumption.
+    Format results as JSON lookup table: method -> dtype -> status.
 
-    Structure: {dtype: {method: status}}
-    Useful for checking all methods for a specific dtype.
+    Allows O(1) lookup: data["methods"]["str.lower"]["string[pyarrow]"]
     """
     import json
 
-    # Map category to accessor prefix
-    accessor_map = {
-        "string_methods": "str",
-        "datetime_methods": "dt",
-        "timedelta_methods": "dt",
-        "aggregations": None,
-        "array_methods": None,
-        "algorithmic_methods": None,
-        "arithmetic": None,
-        "comparison": None,
-    }
+    base = _build_json_base(all_results)
+    del base["dtypes"]  # not needed for this format
+    return json.dumps(base, indent=2)
 
-    output: dict[str, Any] = {
-        "schema_version": 2,  # Bumped for version_gated addition
-        "pandas_version": pd.__version__,
-        "pyarrow_version": _get_current_pyarrow_version(),
-        "dtypes": {},
-        "version_gated": _build_version_notes(),
-    }
 
-    for category, results in all_results.items():
-        accessor = accessor_map.get(category)
-        for r in results:
-            # Build method key with accessor prefix
-            if accessor:
-                method_key = f"{accessor}.{r.method}"
-            else:
-                method_key = r.method
+def format_json_by_dtype(
+    all_results: dict[str, list[OperationResult]],
+) -> str:
+    """
+    Format results as JSON grouped by dtype: dtype -> method -> status.
+    """
+    import json
 
-            if r.dtype not in output["dtypes"]:
-                output["dtypes"][r.dtype] = {}
-
-            output["dtypes"][r.dtype][method_key] = r.result_type.value
-
-    return json.dumps(output, indent=2)
+    base = _build_json_base(all_results)
+    del base["methods"]  # not needed for this format
+    return json.dumps(base, indent=2)
 
 
 # =============================================================================

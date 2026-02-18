@@ -12,6 +12,13 @@ each operation and observing the outcome.
 
 .. note::
 
+   ``string[pyarrow]`` (StringDtype) and ``large_string[pyarrow]``
+   (ArrowDtype) use different implementations and are shown in separate
+   columns. ``string[pyarrow]`` is the default string dtype; most users
+   should focus on that column.
+
+.. note::
+
    Results may vary based on method parameters. For example, some string
    methods like ``split(expand=True)`` use Arrow, while
    ``split(expand=False)`` may fall back to NumPy. This table shows
@@ -62,144 +69,212 @@ String Methods (Series.str.*)
 =============================
 
 .. list-table::
-   :widths: 25 10
+   :widths: 25 10 10
    :header-rows: 1
 
    * - Method
      - string
+     - large_string
    * - ``capitalize``
      - |arrow|
+     - |arrow|
    * - ``casefold``
-     - |mixed|
+     - |arrow|
+     - |elementwise|
    * - ``center``
      - |arrow|
+     - |arrow|
    * - ``contains(flags=0)``
-     - |mixed|
+     - |numpy|
+     - |arrow|
    * - ``contains(flags=re.I)``
-     - |mixed|
+     - |numpy|
+     - |notimpl|
    * - ``count(flags=0)``
-     - |mixed|
+     - |numpy|
+     - |arrow|
    * - ``count(flags=re.I)``
-     - |mixed|
+     - |numpy|
+     - |notimpl|
    * - ``encode``
-     - |mixed|
+     - |object|
+     - |elementwise|
    * - ``endswith``
-     - |mixed|
+     - |numpy|
+     - |arrow|
    * - ``extract(expand=False)``
+     - |arrow|
      - |arrow|
    * - ``extract(expand=True)``
      - |arrow|
+     - |arrow|
    * - ``extractall``
      - |arrow|
+     - |arrow|
    * - ``find``
-     - |mixed|
+     - |numpy|
+     - |arrow|
    * - ``findall(flags=0)``
-     - |mixed|
+     - |object|
+     - |elementwise|
    * - ``findall(flags=re.I)``
-     - |mixed|
+     - |object|
+     - |elementwise|
    * - ``fullmatch(flags=0)``
-     - |mixed|
+     - |numpy|
+     - |arrow|
    * - ``fullmatch(flags=re.I)``
-     - |mixed|
+     - |numpy|
+     - |notimpl|
    * - ``get``
      - |arrow|
+     - |arrow|
    * - ``get_dummies``
-     - |mixed|
+     - |numpy|
+     - |arrow|
    * - ``index``
-     - |error|
+     - |numpy|
+     - |elementwise|
    * - ``isalnum``
-     - |mixed|
+     - |numpy|
+     - |arrow|
    * - ``isalpha``
-     - |mixed|
+     - |numpy|
+     - |arrow|
    * - ``isascii``
-     - |mixed|
+     - |numpy|
+     - |arrow|
    * - ``isdecimal``
-     - |mixed|
+     - |numpy|
+     - |arrow|
    * - ``isdigit``
-     - |mixed|
+     - |numpy|
+     - |arrow|
    * - ``islower``
-     - |mixed|
+     - |numpy|
+     - |arrow|
    * - ``isnumeric``
-     - |mixed|
+     - |numpy|
+     - |arrow|
    * - ``isspace``
-     - |mixed|
+     - |numpy|
+     - |arrow|
    * - ``istitle``
-     - |mixed|
+     - |numpy|
+     - |arrow|
    * - ``isupper``
-     - |mixed|
+     - |numpy|
+     - |arrow|
    * - ``join``
-     - |mixed|
+     - |arrow|
+     - |elementwise|
    * - ``len``
-     - |mixed|
+     - |numpy|
+     - |arrow|
    * - ``ljust``
+     - |arrow|
      - |arrow|
    * - ``lower``
      - |arrow|
+     - |arrow|
    * - ``lstrip``
      - |arrow|
+     - |arrow|
    * - ``match(flags=0)``
-     - |mixed|
+     - |numpy|
+     - |error|
    * - ``match(flags=re.I)``
-     - |mixed|
+     - |numpy|
+     - |error|
    * - ``normalize``
-     - |mixed|
+     - |arrow|
+     - |elementwise|
    * - ``pad(side=both)``
+     - |arrow|
      - |arrow|
    * - ``pad(side=left)``
      - |arrow|
+     - |arrow|
    * - ``pad(side=right)``
      - |arrow|
+     - |arrow|
    * - ``partition``
-     - |mixed|
+     - |arrow|
+     - |elementwise|
    * - ``removeprefix``
+     - |arrow|
      - |arrow|
    * - ``removesuffix``
      - |arrow|
+     - |arrow|
    * - ``repeat``
      - |arrow|
+     - |arrow|
    * - ``replace(case=False)``
-     - |mixed|
+     - |arrow|
+     - |notimpl|
    * - ``replace(case=True)``
      - |arrow|
+     - |arrow|
    * - ``replace(repl=callable)``
-     - |mixed|
+     - |arrow|
+     - |notimpl|
    * - ``rfind``
-     - |mixed|
+     - |numpy|
+     - |elementwise|
    * - ``rindex``
-     - |error|
+     - |numpy|
+     - |elementwise|
    * - ``rjust``
      - |arrow|
+     - |arrow|
    * - ``rpartition``
-     - |mixed|
+     - |arrow|
+     - |elementwise|
    * - ``rsplit(expand=False)``
-     - |mixed|
+     - |object|
+     - |arrow|
    * - ``rsplit(expand=True)``
+     - |arrow|
      - |arrow|
    * - ``rstrip``
      - |arrow|
+     - |arrow|
    * - ``slice``
+     - |arrow|
      - |arrow|
    * - ``slice_replace``
      - |arrow|
+     - |arrow|
    * - ``split(expand=False)``
-     - |mixed|
+     - |object|
+     - |arrow|
    * - ``split(expand=True)``
      - |arrow|
+     - |arrow|
    * - ``startswith``
-     - |mixed|
+     - |numpy|
+     - |arrow|
    * - ``strip``
+     - |arrow|
      - |arrow|
    * - ``swapcase``
      - |arrow|
+     - |arrow|
    * - ``title``
      - |arrow|
+     - |arrow|
    * - ``translate``
-     - |mixed|
+     - |arrow|
+     - |elementwise|
    * - ``upper``
      - |arrow|
+     - |arrow|
    * - ``wrap``
-     - |mixed|
+     - |arrow|
+     - |elementwise|
    * - ``zfill``
+     - |arrow|
      - |arrow|
 
 Datetime Methods (Series.dt.*)
@@ -373,11 +448,12 @@ Array Methods
 =============
 
 .. list-table::
-   :widths: 25 10 10 10 10 10 10 10 10 10
+   :widths: 25 10 10 10 10 10 10 10 10 10 10
    :header-rows: 1
 
    * - Method
      - string
+     - large_string
      - integer
      - float
      - bool
@@ -387,6 +463,7 @@ Array Methods
      - time
      - binary
    * - ``abs``
+     -
      -
      - |arrow|
      - |arrow|
@@ -406,7 +483,9 @@ Array Methods
      - |numpy|
      - |numpy|
      - |numpy|
+     - |numpy|
    * - ``bfill``
+     - |arrow|
      - |arrow|
      - |arrow|
      - |arrow|
@@ -418,15 +497,17 @@ Array Methods
      - |arrow|
    * - ``clip``
      -
+     -
      - |arrow|
      - |arrow|
      -
-     - |mixed|
+     - |arrow|
      - |typeerror|
      - |arrow|
      - |typeerror|
      -
    * - ``cummax``
+     - |arrow|
      - |arrow|
      - |arrow|
      - |arrow|
@@ -440,6 +521,7 @@ Array Methods
      - |arrow|
      - |arrow|
      - |arrow|
+     - |arrow|
      - |typeerror|
      - |arrow|
      - |arrow|
@@ -447,6 +529,7 @@ Array Methods
      - |arrow|
      - |typeerror|
    * - ``cumprod``
+     -
      -
      - |arrow|
      - |arrow|
@@ -458,6 +541,7 @@ Array Methods
      -
    * - ``cumsum``
      -
+     -
      - |arrow|
      - |arrow|
      - |typeerror|
@@ -467,6 +551,7 @@ Array Methods
      - |typeerror|
      -
    * - ``diff``
+     -
      -
      - |arrow|
      - |arrow|
@@ -486,7 +571,9 @@ Array Methods
      - |arrow|
      - |arrow|
      - |arrow|
+     - |arrow|
    * - ``dropna``
+     - |arrow|
      - |arrow|
      - |arrow|
      - |arrow|
@@ -506,7 +593,9 @@ Array Methods
      - |numpy|
      - |numpy|
      - |numpy|
+     - |numpy|
    * - ``ffill``
+     - |arrow|
      - |arrow|
      - |arrow|
      - |arrow|
@@ -522,7 +611,8 @@ Array Methods
      - |arrow|
      - |arrow|
      - |arrow|
-     - |error|
+     - |arrow|
+     - |arrow|
      - |arrow|
      - |arrow|
      - |arrow|
@@ -532,11 +622,13 @@ Array Methods
      - |arrow|
      - |arrow|
      - |arrow|
-     - |error|
+     - |arrow|
+     - |arrow|
      - |arrow|
      - |arrow|
      - |arrow|
    * - ``interpolate(method=linear)``
+     -
      -
      - |arrow|
      - |arrow|
@@ -548,15 +640,17 @@ Array Methods
      -
    * - ``interpolate(method=pad)``
      -
-     - |error|
-     - |error|
      -
-     - |error|
-     - |error|
-     - |error|
-     - |error|
+     - |notimpl|
+     - |notimpl|
+     -
+     - |notimpl|
+     - |notimpl|
+     - |notimpl|
+     - |notimpl|
      -
    * - ``isna``
+     - |numpy|
      - |numpy|
      - |numpy|
      - |numpy|
@@ -576,7 +670,9 @@ Array Methods
      - |numpy|
      - |numpy|
      - |numpy|
+     - |numpy|
    * - ``round``
+     -
      -
      -
      - |arrow|
@@ -591,12 +687,14 @@ Array Methods
      - |numpy|
      - |numpy|
      - |numpy|
-     - |mixed|
+     - |numpy|
+     - |numpy|
      - |typeerror|
      - |numpy|
      - |typeerror|
      - |numpy|
    * - ``shift``
+     - |arrow|
      - |arrow|
      - |arrow|
      - |arrow|
@@ -616,7 +714,9 @@ Array Methods
      - |arrow|
      - |arrow|
      - |arrow|
+     - |arrow|
    * - ``unique``
+     - |arrow|
      - |arrow|
      - |arrow|
      - |arrow|
@@ -634,11 +734,12 @@ These methods have behavior that may vary across versions.
 Explicit kwargs are used for deterministic results.
 
 .. list-table::
-   :widths: 25 10 10 10 10 10 10 10 10 10
+   :widths: 25 10 10 10 10 10 10 10 10 10 10
    :header-rows: 1
 
    * - Method
      - string
+     - large_string
      - integer
      - float
      - bool
@@ -657,8 +758,10 @@ Explicit kwargs are used for deterministic results.
      - |numpy|
      - |numpy|
      - |numpy|
+     - |numpy|
    * - ``rank``
-     - |mixed|
+     - |numpy|
+     - |arrow|
      - |arrow|
      - |arrow|
      - |arrow|
@@ -668,6 +771,7 @@ Explicit kwargs are used for deterministic results.
      - |arrow|
      - |arrow|
    * - ``value_counts``
+     - |arrow|
      - |arrow|
      - |arrow|
      - |arrow|
