@@ -103,7 +103,7 @@ Read a SAS Xport file:
 
 >>> df = pd.read_sas('filename.XPT')
 
-Read a Xport file in 10,000 line chunks:
+Read an Xport file in 10,000 line chunks:
 
 >>> itr = pd.read_sas('filename.XPT', chunksize=10000)
 >>> for chunk in itr:

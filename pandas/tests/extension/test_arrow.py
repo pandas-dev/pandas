@@ -36,11 +36,14 @@ from pandas._libs import lib
 from pandas._libs.tslibs import timezones
 from pandas.compat import (
     PY312,
+    is_ci_environment,
+    is_platform_windows,
     pa_version_under14p0,
     pa_version_under19p0,
     pa_version_under20p0,
     pa_version_under21p0,
 )
+from pandas.compat.pyarrow import pa_version_under22p0
 from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.common import pandas_dtype
@@ -68,6 +71,18 @@ pa = pytest.importorskip("pyarrow")
 
 from pandas.core.arrays.arrow.array import ArrowExtensionArray
 from pandas.core.arrays.arrow.extension_types import ArrowPeriodType
+
+
+def _require_timezone_database(request):
+    if is_platform_windows() and is_ci_environment() and pa_version_under22p0:
+        mark = pytest.mark.xfail(
+            raises=pa.ArrowInvalid,
+            reason=(
+                "TODO: Set ARROW_TIMEZONE_DATABASE environment variable "
+                "on CI to path to the tzdata for pyarrow."
+            ),
+        )
+        request.applymarker(mark)
 
 
 @pytest.fixture(params=tm.ALL_PYARROW_DTYPES, ids=str)
@@ -281,6 +296,12 @@ class TestArrowArray(base.ExtensionTests):
         ser = pd.Series(data)
         self._compare_other(ser, data, comparison_op, data[0])
 
+    def test_compare_range_len(self, data, comparison_op):
+        # GH#63429
+        ser = pd.Series(data)
+        range_test = range(len(ser))
+        self._compare_other(ser, range_test, comparison_op, range_test)
+
     @pytest.mark.parametrize("na_action", [None, "ignore"])
     def test_map(self, data_missing, na_action, using_nan_is_na):
         if data_missing.dtype.kind in "mM":
@@ -349,6 +370,10 @@ class TestArrowArray(base.ExtensionTests):
             ArrowExtensionArray._from_sequence_of_strings(["12-1"], dtype=dtype)
 
     def test_from_sequence_of_strings_pa_array(self, data, request):
+        pa_dtype = data.dtype.pyarrow_dtype
+        if pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None:
+            _require_timezone_database(request)
+
         pa_array = data._pa_array.cast(pa.string())
         result = type(data)._from_sequence_of_strings(pa_array, dtype=data.dtype)
         tm.assert_extension_array_equal(result, data)
@@ -1757,6 +1782,14 @@ def test_str_contains_flags_unsupported():
         ser.str.contains("a", flags=1)
 
 
+def test_str_contains_re2_unicode_escape():
+    # GH 63901
+    ser = pd.Series(["a", "\u0e01", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.contains(r"[\x{0e00}-\x{0e7f}]")
+    expected = pd.Series([False, True, None], dtype=ArrowDtype(pa.bool_()))
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "side, pat, na, exp",
     [
@@ -1811,6 +1844,13 @@ def test_str_replace(pat, repl, n, regex, exp):
     ser = pd.Series(["abac", None], dtype=ArrowDtype(pa.string()))
     result = ser.str.replace(pat, repl, n=n, regex=regex)
     expected = pd.Series(exp, dtype=ArrowDtype(pa.string()))
+    tm.assert_series_equal(result, expected)
+
+
+def test_str_replace_re2_unicode_property():
+    ser = pd.Series(["Jan", "Feb", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.replace(r"\p{Lu}", "U", regex=True)
+    expected = pd.Series(["Uan", "Ueb", None], dtype=ArrowDtype(pa.string()))
     tm.assert_series_equal(result, expected)
 
 
@@ -2590,6 +2630,8 @@ def test_dt_isocalendar():
 )
 def test_dt_day_month_name(method, exp, request):
     # GH 52388
+    _require_timezone_database(request)
+
     ser = pd.Series([datetime(2023, 1, 1), None], dtype=ArrowDtype(pa.timestamp("ms")))
     result = getattr(ser.dt, method)()
     expected = pd.Series([exp, None], dtype=ArrowDtype(pa.string()))
@@ -2597,6 +2639,8 @@ def test_dt_day_month_name(method, exp, request):
 
 
 def test_dt_strftime(request):
+    _require_timezone_database(request)
+
     ser = pd.Series(
         [datetime(year=2023, month=1, day=2, hour=3), None],
         dtype=ArrowDtype(pa.timestamp("ns")),
@@ -2683,6 +2727,8 @@ def test_dt_tz_localize_unsupported_tz_options():
 
 
 def test_dt_tz_localize_none(request):
+    _require_timezone_database(request)
+
     ser = pd.Series(
         [datetime(year=2023, month=1, day=2, hour=3), None],
         dtype=ArrowDtype(pa.timestamp("ns", tz="US/Pacific")),
@@ -2697,6 +2743,8 @@ def test_dt_tz_localize_none(request):
 
 @pytest.mark.parametrize("unit", ["us", "ns"])
 def test_dt_tz_localize(unit, request):
+    _require_timezone_database(request)
+
     ser = pd.Series(
         [datetime(year=2023, month=1, day=2, hour=3), None],
         dtype=ArrowDtype(pa.timestamp(unit)),
@@ -2718,6 +2766,8 @@ def test_dt_tz_localize(unit, request):
     ],
 )
 def test_dt_tz_localize_nonexistent(nonexistent, exp_date, request):
+    _require_timezone_database(request)
+
     ser = pd.Series(
         [datetime(year=2023, month=3, day=12, hour=2, minute=30), None],
         dtype=ArrowDtype(pa.timestamp("ns")),

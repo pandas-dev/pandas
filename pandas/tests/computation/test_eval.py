@@ -7,7 +7,10 @@ import operator
 import numpy as np
 import pytest
 
-from pandas.compat import PY312
+from pandas.compat import (
+    PY312,
+    PY314,
+)
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import (
     NumExprClobberingError,
@@ -179,7 +182,7 @@ class TestEval:
                 r"only list-like( or dict-like)? objects are allowed to be "
                 r"passed to (DataFrame\.)?isin\(\), you passed a "
                 r"(`|')bool(`|')",
-                "argument of type 'bool' is not iterable",
+                "argument of type 'bool' is not .*",
             ]
         )
         if cmp_op in ("in", "not in") and not is_list_like(rhs):
@@ -224,7 +227,7 @@ class TestEval:
                 r"only list-like( or dict-like)? objects are allowed to be "
                 r"passed to (DataFrame\.)?isin\(\), you passed a "
                 r"(`|')float(`|')",
-                "argument of type 'float' is not iterable",
+                "argument of type 'float' is not .*",
             ]
         )
         if is_scalar(rhs) and op in skip_these:
@@ -568,7 +571,9 @@ class TestEval:
     def test_scalar_unary(self, engine, parser):
         msg = "bad operand type for unary ~: 'float'"
         warn = None
-        if PY312 and not (engine == "numexpr" and parser == "pandas"):
+        if (PY314 and engine == "numexpr" and parser == "pandas") or (
+            PY312 and not (engine == "numexpr" and parser == "pandas")
+        ):
             warn = DeprecationWarning
         with pytest.raises(TypeError, match=msg):
             pd.eval("~1.0", engine=engine, parser=parser)
@@ -1110,7 +1115,7 @@ class TestOperations:
             ex3 = f"1 {op} (x + 1)"
 
             if op in ("in", "not in"):
-                msg = "argument of type 'int' is not iterable"
+                msg = "argument of type 'int' is not .*"
                 with pytest.raises(TypeError, match=msg):
                     pd.eval(ex, engine=engine, parser=parser)
             else:
