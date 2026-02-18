@@ -374,9 +374,9 @@ class TestDataFrameConstructors:
                 for d in dtypes
             ]
 
-        for d, a in zip(dtypes, arrays):
+        for d, a in zip(dtypes, arrays, strict=True):
             assert a.dtype == d
-        ad.update(dict(zip(dtypes, arrays)))
+        ad.update(dict(zip(dtypes, arrays, strict=True)))
         df = DataFrame(ad)
 
         dtypes = MIXED_FLOAT_DTYPES + MIXED_INT_DTYPES
@@ -491,7 +491,7 @@ class TestDataFrameConstructors:
         nums = list(range(nitems))
         np.random.default_rng(2).shuffle(nums)
         expected = [f"A{i:d}" for i in nums]
-        df = DataFrame(OrderedDict(zip(expected, [[0]] * nitems)))
+        df = DataFrame(OrderedDict(zip(expected, [[0]] * nitems, strict=True)))
         assert expected == list(df.columns)
 
     def test_constructor_dict(self):
@@ -641,6 +641,38 @@ class TestDataFrameConstructors:
         expected = DataFrame([[1, 2], [2, 3]], columns=[np.nan, 2])
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("missing_value", [None, np.nan, pd.NA])
+    def test_constructor_list_of_dict_with_str_na_key(
+        self, missing_value, using_infer_string
+    ):
+        # https://github.com/pandas-dev/pandas/issues/63889
+        # preserve values when None key is converted to NaN column name
+        dict_data = [
+            {"colA": 1, missing_value: 2},
+            {"colA": 3, missing_value: 4},
+        ]
+        result = DataFrame(dict_data)
+        expected = DataFrame(
+            [[1, 2], [3, 4]],
+            columns=["colA", np.nan if using_infer_string else missing_value],
+        )
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("missing_value", [None, np.nan, pd.NA])
+    def test_constructor_dict_of_dict_with_str_na_key(
+        self, missing_value, using_infer_string
+    ):
+        # https://github.com/pandas-dev/pandas/issues/63889
+        dict_data = {"col": {"row1": 1, missing_value: 2, "row3": 3}}
+        result = DataFrame(dict_data)
+        expected = DataFrame(
+            {"col": [1, 2, 3]},
+            index=Index(
+                ["row1", np.nan if using_infer_string else missing_value, "row3"]
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_constructor_multi_index(self):
         # GH 4078
         # construction error with mi and all-nan frame
@@ -784,8 +816,12 @@ class TestDataFrameConstructors:
     def test_constructor_dict_cast2(self):
         # can't cast to float
         test_data = {
-            "A": dict(zip(range(20), [f"word_{i}" for i in range(20)])),
-            "B": dict(zip(range(15), np.random.default_rng(2).standard_normal(15))),
+            "A": dict(zip(range(20), [f"word_{i}" for i in range(20)], strict=True)),
+            "B": dict(
+                zip(
+                    range(15), np.random.default_rng(2).standard_normal(15), strict=True
+                )
+            ),
         }
         with pytest.raises(ValueError, match="could not convert string"):
             DataFrame(test_data, dtype=float)
@@ -1729,7 +1765,8 @@ class TestDataFrameConstructors:
             Index(["c", "d", "e"], name=name_in3),
         ]
         series = {
-            c: Series([0, 1, 2], index=i) for i, c in zip(indices, ["x", "y", "z"])
+            c: Series([0, 1, 2], index=i)
+            for i, c in zip(indices, ["x", "y", "z"], strict=True)
         }
         result = DataFrame(series)
 

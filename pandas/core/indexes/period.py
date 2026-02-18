@@ -19,6 +19,7 @@ from pandas._libs.tslibs import (
     Period,
     Resolution,
     Tick,
+    to_offset,
 )
 from pandas._libs.tslibs.dtypes import OFFSET_TO_PERIOD_FREQSTR
 from pandas.util._decorators import (
@@ -26,7 +27,10 @@ from pandas.util._decorators import (
     set_module,
 )
 
-from pandas.core.dtypes.common import is_integer
+from pandas.core.dtypes.common import (
+    is_integer,
+    pandas_dtype,
+)
 from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import is_valid_na_for_dtype
@@ -38,7 +42,6 @@ from pandas.core.arrays.period import (
     validate_dtype_freq,
 )
 import pandas.core.common as com
-import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import maybe_extract_name
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 from pandas.core.indexes.datetimes import (
@@ -55,15 +58,6 @@ if TYPE_CHECKING:
         DtypeObj,
         npt,
     )
-
-
-_index_doc_kwargs = dict(ibase._index_doc_kwargs)
-_index_doc_kwargs.update({"target_klass": "PeriodIndex or list of Periods"})
-_shared_doc_kwargs = {
-    "klass": "PeriodArray",
-}
-
-# --- Period index sketch
 
 
 def _new_PeriodIndex(cls, **d):
@@ -366,10 +360,17 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         refs = None
         if not copy and isinstance(data, (Index, ABCSeries)):
             refs = data._references
+        if dtype is not None:
+            dtype = pandas_dtype(dtype)
 
         name = maybe_extract_name(name, data, cls)
 
-        freq = validate_dtype_freq(dtype, freq)
+        if freq is not None:
+            freq = to_offset(freq, is_period=True)
+        dtype2 = PeriodDtype(freq) if freq is not None else None
+        dtype = validate_dtype_freq(dtype, dtype2)
+        if dtype is not None:
+            freq = dtype._freq
 
         # GH#63388
         data, copy = cls._maybe_copy_array_input(data, copy, dtype)

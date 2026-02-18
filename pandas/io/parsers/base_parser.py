@@ -721,7 +721,7 @@ class ParserBase:
             # if dtype == None, default will be object.
             dtype_dict = defaultdict(lambda: dtype)
         else:
-            dtype = cast(dict, dtype)
+            dtype = cast("dict", dtype)
             dtype_dict = defaultdict(
                 lambda: None,
                 {columns[k] if is_integer(k) else k: v for k, v in dtype.items()},
