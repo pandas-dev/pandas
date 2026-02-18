@@ -1008,7 +1008,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     See Also
     --------
     Series.dt.seconds : Return number of seconds for each element.
-    Series.dt.microseconds : Return number of nanoseconds for each element.
+    Series.dt.microseconds : Return number of microseconds for each element.
 
     Examples
     --------
