@@ -5,7 +5,7 @@ requires = [
     "meson-python>=0.17.1,<1",
     "meson>=1.2.1,<2",
     "wheel",
-    "Cython<4.0.0a0",  # Note: sync with setup.py, environment.yml and asv.conf.json
+    "Cython>3.1.0,<4.0.0a0",  # Note: sync with environment.yml and asv.conf.json
     # Force numpy higher than 2.0, so that built wheels are compatible
     # with both numpy 1 and 2
     "numpy>=2.0.0",
@@ -121,17 +121,6 @@ all = ['adbc-driver-postgresql>=1.2.0',
        'xlrd>=2.0.1',
        'xlsxwriter>=3.2.0',
        'zstandard>=0.23.0']
-
-# TODO: Remove after setuptools support is dropped.
-[tool.setuptools]
-include-package-data = true
-
-[tool.setuptools.packages.find]
-include = ["pandas", "pandas.*"]
-namespaces = false
-
-[tool.setuptools.exclude-package-data]
-"*" = ["*.c", "*.h"]
 
 # See the docstring in versioneer.py for instructions. Note that you must
 # re-run 'versioneer.py setup' after changing this section, and commit the
@@ -381,8 +370,6 @@ ignore = [
   "PLW0108",
   # global-statement
   "PLW0603",
-  # runtime-cast-value
-  "TC006",
   # unused-unpacked-variable
   "RUF059",
   # pytest-raises-ambiguous-pattern
@@ -617,7 +604,6 @@ module = [
   "pandas.io.parquet", # TODO
   "pandas.io.pytables", # TODO
   "pandas.io.sql", # TODO
-  "pandas.io.xml", # TODO
   "pandas.plotting.*", # TODO
   "pandas.tests.*",
   "pandas.tseries.frequencies", # TODO
@@ -627,7 +613,6 @@ module = [
   "pandas.util._test_decorators", # TODO
   "pandas.util._validators", # TODO
   "pandas.util", # TODO
-  "pandas._version",
   "pandas.conftest",
   "pandas"
 ]
@@ -638,7 +623,6 @@ disallow_incomplete_defs = false
 [[tool.mypy.overrides]]
 module = [
   "pandas.tests.*",
-  "pandas._version",
   "pandas.io.clipboard",
 ]
 check_untyped_defs = false
@@ -712,14 +696,13 @@ reportUnboundVariable = false
 
 [tool.coverage.run]
 branch = true
-omit = ["pandas/_typing.py", "pandas/_version.py"]
+omit = ["pandas/_typing.py"]
 plugins = ["Cython.Coverage"]
 source = ["pandas"]
 
 [tool.coverage.report]
 ignore_errors = false
 show_missing = true
-omit = ["pandas/_version.py"]
 exclude_lines = [
   # Have to re-enable the standard pragma
   "pragma: no cover",

@@ -42,6 +42,7 @@ from pandas.util._validators import (
 
 from pandas.core.dtypes.astype import astype_is_view
 from pandas.core.dtypes.common import (
+    is_integer,
     is_list_like,
     is_scalar,
     pandas_dtype,
@@ -107,8 +108,6 @@ if TYPE_CHECKING:
         Series,
     )
 
-_extension_array_shared_docs: dict[str, str] = {}
-
 
 @set_module("pandas.api.extensions")
 class ExtensionArray:
@@ -140,6 +139,7 @@ class ExtensionArray:
     interpolate
     isin
     isna
+    item
     ravel
     repeat
     searchsorted
@@ -615,6 +615,56 @@ class ExtensionArray:
         """
         # error: Unsupported operand type for ~ ("ExtensionArray")
         return ~(self == other)  # type: ignore[operator]
+
+    def item(self, index: int | None = None):
+        """
+        Return the array element at the specified position as a Python scalar.
+
+        Parameters
+        ----------
+        index : int, optional
+            Position of the element. If not provided, the array must contain
+            exactly one element.
+
+        Returns
+        -------
+        scalar
+            The element at the specified position.
+
+        Raises
+        ------
+        ValueError
+            If no index is provided and the array does not have exactly
+            one element.
+        IndexError
+            If the specified position is out of bounds.
+
+        See Also
+        --------
+        numpy.ndarray.item : Return the item of an array as a scalar.
+
+        Examples
+        --------
+        >>> arr = pd.array([1], dtype="Int64")
+        >>> arr.item()
+        np.int64(1)
+
+        >>> arr = pd.array([1, 2, 3], dtype="Int64")
+        >>> arr.item(0)
+        np.int64(1)
+        >>> arr.item(2)
+        np.int64(3)
+        """
+        if index is None:
+            if len(self) != 1:
+                raise ValueError(
+                    "can only convert an array of size 1 to a Python scalar"
+                )
+            return self[0]
+        else:
+            if not is_integer(index):
+                raise TypeError(f"index must be an integer, got {type(index)}")
+            return self[index]
 
     def to_numpy(
         self,
@@ -1613,7 +1663,7 @@ class ExtensionArray:
         """
         if type(self) != type(other):
             return False
-        other = cast(ExtensionArray, other)
+        other = cast("ExtensionArray", other)
         if self.dtype != other.dtype:
             return False
         elif len(self) != len(other):
@@ -1764,48 +1814,6 @@ class ExtensionArray:
 
         uniques_ea = self._from_factorized(uniques, self)
         return codes, uniques_ea
-
-    _extension_array_shared_docs["repeat"] = """
-        Repeat elements of a %(klass)s.
-
-        Returns a new %(klass)s where each element of the current %(klass)s
-        is repeated consecutively a given number of times.
-
-        Parameters
-        ----------
-        repeats : int or array of ints
-            The number of repetitions for each element. This should be a
-            non-negative integer. Repeating 0 times will return an empty
-            %(klass)s.
-        axis : None
-            Must be ``None``. Has no effect but is accepted for compatibility
-            with numpy.
-
-        Returns
-        -------
-        %(klass)s
-            Newly created %(klass)s with repeated elements.
-
-        See Also
-        --------
-        Series.repeat : Equivalent function for Series.
-        Index.repeat : Equivalent function for Index.
-        numpy.repeat : Similar method for :class:`numpy.ndarray`.
-        ExtensionArray.take : Take arbitrary positions.
-
-        Examples
-        --------
-        >>> cat = pd.Categorical(['a', 'b', 'c'])
-        >>> cat
-        ['a', 'b', 'c']
-        Categories (3, str): ['a', 'b', 'c']
-        >>> cat.repeat(2)
-        ['a', 'a', 'b', 'b', 'c', 'c']
-        Categories (3, str): ['a', 'b', 'c']
-        >>> cat.repeat([1, 2, 3])
-        ['a', 'b', 'b', 'c', 'c', 'c']
-        Categories (3, str): ['a', 'b', 'c']
-        """
 
     def repeat(self, repeats: int | Sequence[int], axis: AxisInt | None = None) -> Self:
         """

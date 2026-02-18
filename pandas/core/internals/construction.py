@@ -58,6 +58,7 @@ from pandas.core.construction import (
 from pandas.core.indexes.api import (
     DatetimeIndex,
     Index,
+    MultiIndex,
     TimedeltaIndex,
     default_index,
     ensure_index,
@@ -580,7 +581,17 @@ def _homogenize(
                 else:
                     # see test_constructor_subclass_dict
                     val = dict(val)
-                val = lib.fast_multiget(val, oindex._values, default=np.nan)
+
+                if not isinstance(index, MultiIndex) and index.hasnans:
+                    # GH#63889 Check if dict has missing value keys that need special
+                    # handling (i.e. None/np.nan/pd.NA might no longer be matched
+                    # when using fast_multiget with processed object index values)
+                    from pandas import Series
+
+                    val = Series(val).reindex(index)._values
+                else:
+                    # Fast path: use lib.fast_multiget for dicts without missing keys
+                    val = lib.fast_multiget(val, oindex._values, default=np.nan)
 
             val = sanitize_array(val, index, dtype=dtype, copy=False)
             com.require_length_match(val, index)
@@ -867,17 +878,22 @@ def _list_of_dict_to_arrays(
     content : np.ndarray[object, ndim=2]
     columns : Index
     """
+    # assure that they are of the base dict class and not of derived
+    # classes
+    data = [d if type(d) is dict else dict(d) for d in data]
+
     if columns is None:
         gen = (list(x.keys()) for x in data)
         sort = not any(isinstance(d, dict) for d in data)
         pre_cols = lib.fast_unique_multiple_list_gen(gen, sort=sort)
         columns = ensure_index(pre_cols)
 
-    # assure that they are of the base dict class and not of derived
-    # classes
-    data = [d if type(d) is dict else dict(d) for d in data]
+        # use pre_cols to preserve exact values that were present as dict keys
+        # (e.g. otherwise missing values might be coerced to the canonical repr)
+        content = lib.dicts_to_array(data, pre_cols)
+    else:
+        content = lib.dicts_to_array(data, list(columns))
 
-    content = lib.dicts_to_array(data, list(columns))
     return content, columns
 
 
