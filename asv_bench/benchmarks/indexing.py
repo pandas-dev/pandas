@@ -582,7 +582,7 @@ class Block:
 
 
 class LocSetitem2dValue:
-    params = [[100, 10_000, 1_000_000], [True, False]]
+    params = [[100, 10_000, 1_000_000, 10_000_000], [True, False]]
     param_names = ["nrows", "value_is_ndarray"]
 
     def setup(self, nrows, value_is_ndarray):
