@@ -134,6 +134,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DatetimeTZDtype.unit ES01" \
         -i "pandas.DatetimeTZDtype.tz ES01" \
         -i "pandas.IntervalDtype.subtype ES01" \
+        -i "pandas.api.extensions.ExtensionArray.item ES01" \
         -i "pandas.api.types.pandas_dtype ES01" \
         -i "pandas.api.types.is_any_real_numeric_dtype ES01" \
         -i "pandas.api.types.is_complex_dtype ES01" \

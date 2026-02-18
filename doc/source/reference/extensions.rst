@@ -57,6 +57,7 @@ objects.
       api.extensions.ExtensionArray.interpolate
       api.extensions.ExtensionArray.isin
       api.extensions.ExtensionArray.isna
+      api.extensions.ExtensionArray.item
       api.extensions.ExtensionArray.ravel
       api.extensions.ExtensionArray.repeat
       api.extensions.ExtensionArray.searchsorted
