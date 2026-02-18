@@ -377,7 +377,7 @@ class ParserBase:
             )
             if cast_type is not None:
                 # Don't perform RangeIndex inference
-                idx = Index(arr, name=name, dtype=cast_type)
+                idx = Index(arr, name=name, dtype=cast_type, copy=False)
             else:
                 idx = ensure_index_from_sequences([arr], [name])
             arrays.append(idx)
@@ -721,7 +721,7 @@ class ParserBase:
             # if dtype == None, default will be object.
             dtype_dict = defaultdict(lambda: dtype)
         else:
-            dtype = cast(dict, dtype)
+            dtype = cast("dict", dtype)
             dtype_dict = defaultdict(
                 lambda: None,
                 {columns[k] if is_integer(k) else k: v for k, v in dtype.items()},

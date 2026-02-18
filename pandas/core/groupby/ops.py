@@ -16,6 +16,7 @@ from typing import (
     Generic,
     final,
 )
+import warnings
 
 import numpy as np
 
@@ -31,8 +32,12 @@ from pandas._typing import (
     Shape,
     npt,
 )
-from pandas.errors import AbstractMethodError
+from pandas.errors import (
+    AbstractMethodError,
+    Pandas4Warning,
+)
 from pandas.util._decorators import cache_readonly
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
     maybe_downcast_to_dtype,
@@ -98,6 +103,13 @@ def extract_result(res):
         # Preserve EA
         res = res._values
         if res.ndim == 1 and len(res) == 1:
+            warnings.warn(
+                "Converting a Series or array of length 1 into a scalar is "
+                "deprecated and will be removed in a future version. If you wish "
+                "to preserve the current behavior, have ``func`` return scalars.",
+                category=Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
             # see test_agg_lambda_with_timezone, test_resampler_grouper.py::test_apply
             res = res[0]
     return res
@@ -264,7 +276,7 @@ class WrappedCythonOp:
         elif kind == "transform":
             out_shape = values.shape
         else:
-            out_shape = (ngroups,) + values.shape[1:]
+            out_shape = (ngroups, *values.shape[1:])
         return out_shape
 
     def _get_out_dtype(self, dtype: np.dtype) -> np.dtype:
@@ -276,11 +288,10 @@ class WrappedCythonOp:
             # The Cython implementation only produces the row number; we'll take
             # from the index using this in post processing
             out_dtype = "intp"
+        elif dtype.kind in "iufcb":
+            out_dtype = f"{dtype.kind}{dtype.itemsize}"
         else:
-            if dtype.kind in "iufcb":
-                out_dtype = f"{dtype.kind}{dtype.itemsize}"
-            else:
-                out_dtype = "object"
+            out_dtype = "object"
         return np.dtype(out_dtype)
 
     def _get_result_dtype(self, dtype: np.dtype) -> np.dtype:
@@ -601,6 +612,7 @@ class BaseGrouper:
         self._groupings = groupings
         self._sort = sort
         self.dropna = dropna
+        self._is_resample = False
 
     @property
     def groupings(self) -> list[grouper.Grouping]:
@@ -652,9 +664,25 @@ class BaseGrouper:
         """dict {group name -> group indices}"""
         if len(self.groupings) == 1 and isinstance(self.result_index, CategoricalIndex):
             # This shows unused categories in indices GH#38642
-            return self.groupings[0].indices
-        codes_list = [ping.codes for ping in self.groupings]
-        return get_indexer_dict(codes_list, self.levels)
+            result = self.groupings[0].indices
+        else:
+            codes_list = [ping.codes for ping in self.groupings]
+            result = get_indexer_dict(codes_list, self.levels)
+        if not self.dropna:
+            has_mi = isinstance(self.result_index, MultiIndex)
+            if not has_mi and self.result_index.hasnans:
+                result = {
+                    np.nan if isna(key) else key: value for key, value in result.items()
+                }
+            elif has_mi:
+                # MultiIndex has no efficient way to tell if there are NAs
+                result = {
+                    # error: "Hashable" has no attribute "__iter__" (not iterable)
+                    tuple(np.nan if isna(comp) else comp for comp in key): value  # type: ignore[attr-defined]
+                    for key, value in result.items()
+                }
+
+        return result
 
     @final
     @cache_readonly
@@ -730,7 +758,7 @@ class BaseGrouper:
     @cache_readonly
     def is_monotonic(self) -> bool:
         # return if my group orderings are monotonic
-        return Index(self.ids).is_monotonic_increasing
+        return Index(self.ids, copy=False).is_monotonic_increasing
 
     @final
     @cache_readonly
@@ -760,7 +788,9 @@ class BaseGrouper:
 
     @cache_readonly
     def result_index_and_ids(self) -> tuple[Index, npt.NDArray[np.intp]]:
-        levels = [Index._with_infer(ping.uniques) for ping in self.groupings]
+        levels = [
+            Index._with_infer(ping.uniques, copy=False) for ping in self.groupings
+        ]
         obs = [
             ping._observed or not ping._passed_categorical for ping in self.groupings
         ]
@@ -811,6 +841,9 @@ class BaseGrouper:
                 codes=result_index_codes,
                 names=list(unob_index.names) + list(ob_index.names),
             ).reorder_levels(index)
+
+            # The sum here will get -1 values wrong when dropna=True;
+            # we will fix at the end.
             ids = len(unob_index) * ob_ids + unob_ids
 
             if any(sorts):
@@ -838,6 +871,9 @@ class BaseGrouper:
                     [uniques, np.delete(np.arange(len(result_index)), uniques)]
                 )
                 result_index = result_index.take(taker)
+
+            if self.dropna:
+                ids = np.where((ob_ids < 0) | (unob_ids < 0), -1, ids)
 
         return result_index, ids
 
@@ -978,7 +1014,7 @@ class BaseGrouper:
             res = func(group)
             res = extract_result(res)
 
-            if not initialized:
+            if self._is_resample and not initialized:
                 # We only do this validation on the first iteration
                 check_result_array(res, group.dtype)
                 initialized = True

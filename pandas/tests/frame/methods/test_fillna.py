@@ -42,7 +42,7 @@ class TestFillNA:
         arr = np.full((40, 50), np.nan)
         df = DataFrame(arr, copy=False)
 
-        with tm.raises_chained_assignment_error(inplace_method=True):
+        with tm.raises_chained_assignment_error():
             df[0].fillna(-1, inplace=True)
         assert np.isnan(arr[:, 0]).all()
 
@@ -103,9 +103,9 @@ class TestFillNA:
         expected[2] = expected[2].astype("object")
         tm.assert_frame_equal(result, expected)
 
-        return_value = df.fillna({2: "foo"}, inplace=True)
+        result = df.fillna({2: "foo"}, inplace=True)
+        assert result is df
         tm.assert_frame_equal(df, expected)
-        assert return_value is None
 
     def test_fillna_limit_and_value(self):
         # limit and value
@@ -256,6 +256,20 @@ class TestFillNA:
         idx = TimedeltaIndex(["1 days", "2 days", "1 days", NaT, NaT])
         df = DataFrame({"a": Categorical(idx)})
         tm.assert_frame_equal(df.fillna(value=NaT), df)
+
+    def test_fillna_with_categorical_series(self):
+        # https://github.com/pandas-dev/pandas/issues/56329
+        df = DataFrame(
+            {"cats": Categorical(["A", "B", "C"]), "ints": [1.0, 2.0, np.nan]}
+        )
+
+        filler = Series(Categorical([10.0, 20.0, 30.0]))
+        result = df.fillna({"ints": filler})
+
+        expected = DataFrame(
+            {"cats": Categorical(["A", "B", "C"]), "ints": [1.0, 2.0, 30.0]}
+        )
+        tm.assert_frame_equal(result, expected)
 
     def test_fillna_no_downcast(self, frame_or_series):
         # GH#45603 preserve object dtype
@@ -423,11 +437,12 @@ class TestFillNA:
         expected = df.fillna(value=0)
         assert expected is not df
 
-        df.fillna(value=0, inplace=True)
+        result = df.fillna(value=0, inplace=True)
+        assert result is df
         tm.assert_frame_equal(df, expected)
 
-        expected = df.fillna(value={0: 0}, inplace=True)
-        assert expected is None
+        result = df.fillna(value={0: 0}, inplace=True)
+        assert result is df
 
         df.loc[:4, 1] = np.nan
         df.loc[-4:, 3] = np.nan
@@ -470,7 +485,8 @@ class TestFillNA:
             }
         )
         result = df.fillna(df.max(axis=1), axis=1)
-        df.fillna(df.max(axis=1), axis=1, inplace=True)
+        result = df.fillna(df.max(axis=1), axis=1, inplace=True)
+        assert result is df
         expected = DataFrame(
             {
                 "a": [1.0, 1.0, 2.0, 3.0, 4.0],
@@ -643,7 +659,8 @@ class TestFillNA:
         expected = df.fillna(axis=1, value=100, limit=1)
         assert expected is not df
 
-        df.fillna(axis=1, value=100, limit=1, inplace=True)
+        result = df.fillna(axis=1, value=100, limit=1, inplace=True)
+        assert result is df
         tm.assert_frame_equal(df, expected)
 
     @pytest.mark.parametrize("val", [-1, {"x": -1, "y": -1}])
@@ -730,7 +747,8 @@ def test_fillna_nones_inplace():
         [[None, None], [None, None]],
         columns=["A", "B"],
     )
-    df.fillna(value={"A": 1, "B": 2}, inplace=True)
+    result = df.fillna(value={"A": 1, "B": 2}, inplace=True)
+    assert result is df
 
     expected = DataFrame([[1, 2], [1, 2]], columns=["A", "B"], dtype=object)
     tm.assert_frame_equal(df, expected)
@@ -826,7 +844,10 @@ def test_fillna_with_none_object(test_frame, dtype):
 def test_fillna_out_of_bounds_datetime():
     # GH#61208
     df = DataFrame(
-        {"datetime": date_range("1/1/2011", periods=3, freq="h"), "value": [1, 2, 3]}
+        {
+            "datetime": date_range("1/1/2011", periods=3, freq="h", unit="ns"),
+            "value": [1, 2, 3],
+        }
     )
     df.iloc[0, 0] = None
 

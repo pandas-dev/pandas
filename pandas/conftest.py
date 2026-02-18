@@ -109,6 +109,28 @@ def pytest_addoption(parser) -> None:
     )
 
 
+def pytest_sessionstart(session):
+    import doctest
+    import inspect
+
+    # https://github.com/pandas-dev/pandas/pull/62988
+    # When we modify the __module__ of a class, the __module__ on the methods
+    # of that class do not change. When these two disagree, doctests would not
+    # typically run. We hack `DocTestFinder` to avoid this.
+    orig = doctest.DocTestFinder._from_module  # type: ignore[attr-defined]
+
+    def _from_module(self, module, object):
+        # When . is in __qualname__, object is a method of a class.
+        if inspect.isfunction(object) and "." in object.__qualname__:
+            # We only get here when the class that the method is on is from the
+            # appropriate module. So ignore checking the __module__ of the method
+            # itself and run the doctest.
+            return True
+        return orig(self, module, object)
+
+    doctest.DocTestFinder._from_module = _from_module  # type: ignore[attr-defined]
+
+
 def ignore_doctest_warning(item: pytest.Item, path: str, message: str) -> None:
     """Ignore doctest warning.
 
@@ -135,14 +157,15 @@ def pytest_collection_modifyitems(items, config) -> None:
     # Warnings from doctests that can be ignored; place reason in comment above.
     # Each entry specifies (path, message) - see the ignore_doctest_warning function
     ignored_doctest_warnings = [
-        ("api.interchange.from_dataframe", ".*Interchange Protocol is deprecated"),
+        ("api.interchange.from_dataframe", "The DataFrame Interchange Protocol"),
         ("is_int64_dtype", "is_int64_dtype is deprecated"),
         ("is_interval_dtype", "is_interval_dtype is deprecated"),
         ("is_period_dtype", "is_period_dtype is deprecated"),
         ("is_datetime64tz_dtype", "is_datetime64tz_dtype is deprecated"),
         ("is_categorical_dtype", "is_categorical_dtype is deprecated"),
         ("is_sparse", "is_sparse is deprecated"),
-        ("DataFrame.__dataframe__", "Interchange Protocol is deprecated"),
+        ("CategoricalDtype._from_values_or_dtype", "Constructing a Categorical"),
+        ("DataFrame.__dataframe__", "The DataFrame Interchange Protocol"),
         ("DataFrameGroupBy.fillna", "DataFrameGroupBy.fillna is deprecated"),
         ("DataFrameGroupBy.corrwith", "DataFrameGroupBy.corrwith is deprecated"),
         ("NDFrame.replace", "Series.replace without 'value'"),
@@ -170,6 +193,7 @@ def pytest_collection_modifyitems(items, config) -> None:
             "DataFrameGroupBy.fillna with 'method' is deprecated",
         ),
         ("read_parquet", "Passing a BlockManager to DataFrame is deprecated"),
+        ("Timestamp.utcfromtimestamp", "Timestamp.utcfromtimestamp is deprecated"),
     ]
 
     if is_doctest:
@@ -762,14 +786,14 @@ def index_with_missing(request):
     if request.param in ["tuples", "mi-with-dt64tz-level", "multi"]:
         # For setting missing values in the top level of MultiIndex
         vals = ind.tolist()
-        vals[0] = (None,) + vals[0][1:]
-        vals[-1] = (None,) + vals[-1][1:]
+        vals[0] = (None, *vals[0][1:])
+        vals[-1] = (None, *vals[-1][1:])
         return MultiIndex.from_tuples(vals)
     else:
         vals = ind.values.copy()
         vals[0] = None
         vals[-1] = None
-        return type(ind)(vals)
+        return type(ind)(vals, copy=False)
 
 
 # ----------------------------------------------------------------
@@ -935,10 +959,10 @@ def rand_series_with_duplicate_datetimeindex() -> Series:
         (Period("2012-01", freq="M"), "period[M]"),
         (Period("2012-02-01", freq="D"), "period[D]"),
         (
-            Timestamp("2011-01-01", tz="US/Eastern"),
+            Timestamp("2011-01-01", tz="US/Eastern").as_unit("s"),
             DatetimeTZDtype(unit="s", tz="US/Eastern"),
         ),
-        (Timedelta(seconds=500), "timedelta64[ns]"),
+        (Timedelta(seconds=500), "timedelta64[us]"),
     ]
 )
 def ea_scalar_and_dtype(request):
@@ -2094,6 +2118,11 @@ def using_infer_string() -> bool:
     return pd.options.future.infer_string is True
 
 
+@pytest.fixture
+def using_python_scalars() -> bool:
+    return pd.options.future.python_scalars is True
+
+
 _warsaws: list[Any] = ["Europe/Warsaw", "dateutil/Europe/Warsaw"]
 if pytz is not None:
     _warsaws.append(pytz.timezone("Europe/Warsaw"))
@@ -2127,5 +2156,5 @@ def monkeysession():
 @pytest.fixture(params=[True, False])
 def using_nan_is_na(request):
     opt = request.param
-    with pd.option_context("mode.nan_is_na", opt):
+    with pd.option_context("future.distinguish_nan_and_na", not opt):
         yield opt

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import abc
 from collections import defaultdict
-from collections.abc import Callable
 import functools
 from functools import partial
 import inspect
@@ -17,19 +16,12 @@ from typing import (
 import numpy as np
 
 from pandas._libs.internals import BlockValuesRefs
-from pandas._typing import (
-    AggFuncType,
-    AggFuncTypeBase,
-    AggFuncTypeDict,
-    AggObjType,
-    Axis,
-    AxisInt,
-    NDFrameT,
-    npt,
-)
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import SpecificationError
-from pandas.util._decorators import cache_readonly
+from pandas.util._decorators import (
+    cache_readonly,
+    set_module,
+)
 
 from pandas.core.dtypes.cast import is_nested_object
 from pandas.core.dtypes.common import (
@@ -56,11 +48,23 @@ from pandas.core.util.numba_ import (
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Generator,
         Hashable,
         Iterable,
         MutableMapping,
         Sequence,
+    )
+
+    from pandas._typing import (
+        AggFuncType,
+        AggFuncTypeBase,
+        AggFuncTypeDict,
+        AggObjType,
+        Axis,
+        AxisInt,
+        NDFrameT,
+        npt,
     )
 
     from pandas import (
@@ -75,6 +79,7 @@ if TYPE_CHECKING:
 ResType: TypeAlias = dict[int, Any]
 
 
+@set_module("pandas.api.executors")
 class BaseExecutionEngine(abc.ABC):
     """
     Base class for execution engines for map and apply methods.
@@ -87,8 +92,6 @@ class BaseExecutionEngine(abc.ABC):
     run in parallel, and others. Besides the default executor which
     simply runs the code with the Python interpreter and pandas.
     """
-
-    __module__ = "pandas.api.executors"
 
     @staticmethod
     @abc.abstractmethod
@@ -325,7 +328,7 @@ class Apply(metaclass=abc.ABCMeta):
             return obj.T.transform(func, 0, *args, **kwargs).T
 
         if is_list_like(func) and not is_dict_like(func):
-            func = cast(list[AggFuncTypeBase], func)
+            func = cast("list[AggFuncTypeBase]", func)
             # Convert func equivalent dict
             if is_series:
                 func = {com.get_callable_name(v) or v: v for v in func}
@@ -333,11 +336,11 @@ class Apply(metaclass=abc.ABCMeta):
                 func = dict.fromkeys(obj, func)
 
         if is_dict_like(func):
-            func = cast(AggFuncTypeDict, func)
+            func = cast("AggFuncTypeDict", func)
             return self.transform_dict_like(func)
 
         # func is either str or callable
-        func = cast(AggFuncTypeBase, func)
+        func = cast("AggFuncTypeBase", func)
         try:
             result = self.transform_str_or_callable(func)
         except TypeError:
@@ -437,7 +440,7 @@ class Apply(metaclass=abc.ABCMeta):
             Data for result. When aggregating with a Series, this can contain any
             Python objects.
         """
-        func = cast(list[AggFuncTypeBase], self.func)
+        func = cast("list[AggFuncTypeBase]", self.func)
         obj = self.obj
 
         results = []
@@ -544,7 +547,7 @@ class Apply(metaclass=abc.ABCMeta):
 
         obj = self.obj
         is_groupby = isinstance(obj, (DataFrameGroupBy, SeriesGroupBy))
-        func = cast(AggFuncTypeDict, self.func)
+        func = cast("AggFuncTypeDict", self.func)
         func = self.normalize_dictlike_arg(op_name, selected_obj, func)
 
         is_non_unique_col = (
@@ -672,7 +675,7 @@ class Apply(metaclass=abc.ABCMeta):
         result: Series or DataFrame
         """
         # Caller is responsible for checking isinstance(self.f, str)
-        func = cast(str, self.func)
+        func = cast("str", self.func)
 
         obj = self.obj
 
@@ -1268,7 +1271,7 @@ class FrameRowApply(FrameApply):
         return numba_func
 
     def apply_with_numba(self) -> dict[int, Any]:
-        func = cast(Callable, self.func)
+        func = cast("Callable", self.func)
         args, kwargs = prepare_function_arguments(
             func, self.args, self.kwargs, num_required_args=1
         )
@@ -1374,7 +1377,7 @@ class FrameColumnApply(FrameApply):
                     # result, which potentially increases the ref count of this reused
                     # `ser` object (depending on the result of the applied function)
                     # -> if that happened and `ser` is already a copy, then we reset
-                    # the refs here to avoid triggering a unnecessary CoW inside the
+                    # the refs here to avoid triggering an unnecessary CoW inside the
                     # applied function (https://github.com/pandas-dev/pandas/pull/56212)
                     mgr.blocks[0].refs = BlockValuesRefs(mgr.blocks[0])
                 yield ser
@@ -1410,7 +1413,7 @@ class FrameColumnApply(FrameApply):
         return numba_func
 
     def apply_with_numba(self) -> dict[int, Any]:
-        func = cast(Callable, self.func)
+        func = cast("Callable", self.func)
         args, kwargs = prepare_function_arguments(
             func, self.args, self.kwargs, num_required_args=1
         )
@@ -1557,7 +1560,7 @@ class SeriesApply(NDFrameApply):
 
     def apply_standard(self) -> DataFrame | Series:
         # caller is responsible for ensuring that f is Callable
-        func = cast(Callable, self.func)
+        func = cast("Callable", self.func)
         obj = self.obj
 
         if isinstance(func, np.ufunc):
@@ -1768,6 +1771,7 @@ def reconstruct_func(
             raise TypeError("Must provide 'func' or tuples of '(column, aggfunc).")
 
     if relabeling:
+        normalization_needed = False
         # error: Incompatible types in assignment (expression has type
         # "MutableMapping[Hashable, list[Callable[..., Any] | str]]", variable has type
         # "Callable[..., Any] | str | list[Callable[..., Any] | str] |
@@ -1776,18 +1780,32 @@ def reconstruct_func(
         converted_kwargs = {}
         for key, val in kwargs.items():
             if isinstance(val, NamedAgg):
+                column = val.column
                 aggfunc = val.aggfunc
                 if val.args or val.kwargs:
                     aggfunc = lambda x, func=aggfunc, a=val.args, kw=val.kwargs: func(
                         x, *a, **kw
                     )
-                converted_kwargs[key] = (val.column, aggfunc)
             else:
-                converted_kwargs[key] = val
+                column, aggfunc = val
 
-        func, columns, order = normalize_keyword_aggregation(  # type: ignore[assignment]
-            converted_kwargs
-        )
+            if column != key:
+                normalization_needed = True
+            converted_kwargs[key] = column, aggfunc
+
+        if normalization_needed:
+            func, columns, order = normalize_keyword_aggregation(  # type: ignore[assignment]
+                converted_kwargs
+            )
+        else:
+            # When names match, convert to dict format {column: aggfunc}
+            # and disable relabeling since no reordering is needed
+            func = {
+                column: aggfunc for key, (column, aggfunc) in converted_kwargs.items()
+            }
+            # Normalization is skipped if all kwargs keys are the same as their
+            # corresponding column name.
+            relabeling = False
 
     assert func is not None
 
@@ -1970,7 +1988,7 @@ def relabel_result(
             fun = [
                 com.get_callable_name(f) if not isinstance(f, str) else f for f in fun
             ]
-            col_idx_order = Index(s.index).get_indexer(fun)
+            col_idx_order = Index(s.index, copy=False).get_indexer(fun)
             valid_idx = col_idx_order != -1
             if valid_idx.any():
                 s = s.iloc[col_idx_order[valid_idx]]

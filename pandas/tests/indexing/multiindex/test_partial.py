@@ -150,7 +150,7 @@ class TestMultiIndexPartial:
         # GH#33355 dont fall-back to positional when leading level is int
         ymd = multiindex_year_month_day_dataframe_random_data
         levels = ymd.index.levels
-        ymd.index = ymd.index.set_levels([levels[0].astype(dtype)] + levels[1:])
+        ymd.index = ymd.index.set_levels([levels[0].astype(dtype), *levels[1:]])
         ser = ymd["A"]
         mi = ser.index
         assert isinstance(mi, MultiIndex)
@@ -208,14 +208,14 @@ class TestMultiIndexPartial:
             ),
             (
                 slice(None, "2019-2"),
-                date_range("2019", periods=2, freq="MS"),
+                date_range("2019", periods=2, freq="MS", unit="ns"),
                 [0, 1, 2, 3],
             ),
         ],
     )
     def test_partial_getitem_loc_datetime(self, indexer, exp_idx, exp_values):
         # GH: 25165
-        date_idx = date_range("2019", periods=2, freq="MS")
+        date_idx = date_range("2019", periods=2, freq="MS", unit="ns")
         df = DataFrame(
             list(range(4)),
             index=MultiIndex.from_product([date_idx, [0, 1]], names=["x", "y"]),

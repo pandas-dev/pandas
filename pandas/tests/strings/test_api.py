@@ -21,7 +21,9 @@ _any_allowed_skipna_inferred_dtype = [
     ("empty", []),
     ("mixed-integer", ["a", np.nan, 2]),
 ]
-ids, _ = zip(*_any_allowed_skipna_inferred_dtype)  # use inferred type as id
+ids, _ = zip(
+    *_any_allowed_skipna_inferred_dtype, strict=True
+)  # use inferred type as id
 
 
 @pytest.fixture(params=_any_allowed_skipna_inferred_dtype, ids=ids)

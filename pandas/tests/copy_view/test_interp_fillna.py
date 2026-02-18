@@ -26,6 +26,8 @@ def test_interpolate_no_op(method):
     else:
         result = df.interpolate(method=method)
         assert np.shares_memory(get_array(result, "a"), get_array(df, "a"))
+        assert result.index is not df.index
+        assert result.columns is not df.columns
 
         result.iloc[0, 0] = 100
 
@@ -42,8 +44,10 @@ def test_interp_fill_functions(func):
     result = getattr(df, func)()
 
     assert np.shares_memory(get_array(result, "a"), get_array(df, "a"))
-    result.iloc[0, 0] = 100
+    assert result.index is not df.index
+    assert result.columns is not df.columns
 
+    result.iloc[0, 0] = 100
     assert not np.shares_memory(get_array(result, "a"), get_array(df, "a"))
     tm.assert_frame_equal(df, df_orig)
 
@@ -161,6 +165,9 @@ def test_fillna():
 
     df2 = df.fillna(5.5)
     assert np.shares_memory(get_array(df, "b"), get_array(df2, "b"))
+    assert df2.index is not df.index
+    assert df2.columns is not df.columns
+
     df2.iloc[0, 1] = 100
     tm.assert_frame_equal(df_orig, df)
 
@@ -278,11 +285,11 @@ def test_fillna_inplace_ea_noop_shares_memory(any_numeric_ea_and_arrow_dtype):
 def test_fillna_chained_assignment():
     df = DataFrame({"a": [1, np.nan, 2], "b": 1})
     df_orig = df.copy()
-    with tm.raises_chained_assignment_error(inplace_method=True):
+    with tm.raises_chained_assignment_error():
         df["a"].fillna(100, inplace=True)
     tm.assert_frame_equal(df, df_orig)
 
-    with tm.raises_chained_assignment_error(inplace_method=True):
+    with tm.raises_chained_assignment_error():
         df[["a"]].fillna(100, inplace=True)
     tm.assert_frame_equal(df, df_orig)
 
@@ -291,10 +298,10 @@ def test_fillna_chained_assignment():
 def test_interpolate_chained_assignment(func):
     df = DataFrame({"a": [1, np.nan, 2], "b": 1})
     df_orig = df.copy()
-    with tm.raises_chained_assignment_error(inplace_method=True):
+    with tm.raises_chained_assignment_error():
         getattr(df["a"], func)(inplace=True)
     tm.assert_frame_equal(df, df_orig)
 
-    with tm.raises_chained_assignment_error(inplace_method=True):
+    with tm.raises_chained_assignment_error():
         getattr(df[["a"]], func)(inplace=True)
     tm.assert_frame_equal(df, df_orig)

@@ -17,11 +17,6 @@ from typing import (
 
 import numpy as np
 
-from pandas._typing import (
-    DtypeObj,
-    NDFrameT,
-    npt,
-)
 from pandas.util._validators import validate_percentile
 
 from pandas.core.dtypes.common import (
@@ -44,6 +39,12 @@ if TYPE_CHECKING:
         Callable,
         Hashable,
         Sequence,
+    )
+
+    from pandas._typing import (
+        DtypeObj,
+        NDFrameT,
+        npt,
     )
 
     from pandas import (
@@ -95,7 +96,7 @@ def describe_ndframe(
         )
 
     result = describer.describe(percentiles=percentiles)
-    return cast(NDFrameT, result)
+    return cast("NDFrameT", result)
 
 
 class NDFrameDescriberAbstract(ABC):
@@ -237,12 +238,15 @@ def describe_numeric_1d(series: Series, percentiles: Sequence[float]) -> Series:
     else:
         quantiles = series.quantile(percentiles).tolist()
 
-    stat_index = ["count", "mean", "std", "min"] + formatted_percentiles + ["max"]
-    d = (
-        [series.count(), series.mean(), series.std(), series.min()]
-        + quantiles
-        + [series.max()]
-    )
+    stat_index = ["count", "mean", "std", "min", *formatted_percentiles, "max"]
+    d = [
+        series.count(),
+        series.mean(),
+        series.std(),
+        series.min(),
+        *quantiles,
+        series.max(),
+    ]
     # GH#48340 - always return float on non-complex numeric data
     dtype: DtypeObj | None
     if isinstance(series.dtype, ExtensionDtype):
@@ -311,12 +315,14 @@ def describe_timestamp_1d(data: Series, percentiles: Sequence[float]) -> Series:
 
     formatted_percentiles = format_percentiles(percentiles)
 
-    stat_index = ["count", "mean", "min"] + formatted_percentiles + ["max"]
-    d = (
-        [data.count(), data.mean(), data.min()]
-        + data.quantile(percentiles).tolist()
-        + [data.max()]
-    )
+    stat_index = ["count", "mean", "min", *formatted_percentiles, "max"]
+    d = [
+        data.count(),
+        data.mean(),
+        data.min(),
+        *data.quantile(percentiles).tolist(),
+        data.max(),
+    ]
     return Series(d, index=stat_index, name=data.name)
 
 

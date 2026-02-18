@@ -42,6 +42,7 @@ if TYPE_CHECKING:
     ExtensionDtypeT = TypeVar("ExtensionDtypeT", bound="ExtensionDtype")
 
 
+@set_module("pandas.api.extensions")
 class ExtensionDtype:
     """
     A custom data type, to be paired with an ExtensionArray.
@@ -111,8 +112,6 @@ class ExtensionDtype:
     ``pandas.errors.AbstractMethodError`` and no ``register`` method is
     provided for registering virtual subclasses.
     """
-
-    __module__ = "pandas.api.extensions"
 
     _metadata: tuple[str, ...] = ()
 
@@ -458,8 +457,8 @@ class StorageExtensionDtype(ExtensionDtype):
     name: str
     _metadata = ("storage",)
 
-    def __init__(self, storage: str | None = None) -> None:
-        self.storage = storage
+    def __init__(self, storage: str) -> None:
+        self._storage = storage
 
     def __repr__(self) -> str:
         return f"{self.name}[{self.storage}]"
@@ -479,6 +478,10 @@ class StorageExtensionDtype(ExtensionDtype):
     @property
     def na_value(self) -> libmissing.NAType:
         return libmissing.NA
+
+    @property
+    def storage(self) -> str:
+        return self._storage
 
 
 @set_module("pandas.api.extensions")

@@ -25,11 +25,11 @@ from pandas._libs.tslibs import (
     Timestamp,
     to_offset,
 )
-from pandas._typing import NDFrameT
 from pandas.errors import (
     AbstractMethodError,
     Pandas4Warning,
 )
+from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.dtypes import (
@@ -43,7 +43,6 @@ from pandas.core.dtypes.generic import (
 
 import pandas.core.algorithms as algos
 from pandas.core.apply import ResamplerWindowApply
-from pandas.core.arrays import ArrowExtensionArray
 from pandas.core.base import (
     PandasObject,
     SelectionMixin,
@@ -97,6 +96,7 @@ if TYPE_CHECKING:
         Frequency,
         IndexLabel,
         InterpolateOptions,
+        NDFrameT,
         P,
         T,
         TimedeltaConvertibleTypes,
@@ -110,11 +110,11 @@ if TYPE_CHECKING:
         DataFrame,
         Series,
     )
+    from pandas.core.arrays import ArrowExtensionArray
     from pandas.core.generic import NDFrame
 
-_shared_docs_kwargs: dict[str, str] = {}
 
-
+@set_module("pandas.api.typing")
 class Resampler(BaseGroupBy, PandasObject):
     """
     Class for resampling datetimelike data, a groupby-like operation.
@@ -135,8 +135,6 @@ class Resampler(BaseGroupBy, PandasObject):
     -----
     After resampling, see aggregate, apply, and transform functions.
     """
-
-    __module__ = "pandas.api.typing"
 
     _grouper: BinGrouper
     _timegrouper: TimeGrouper
@@ -242,7 +240,10 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         binner, bins, binlabels = self._get_binner_for_time()
         assert len(bins) == len(binlabels)
+        if self._timegrouper._arrow_dtype is not None:
+            binlabels = binlabels.astype(self._timegrouper._arrow_dtype)
         bin_grouper = BinGrouper(bins, binlabels, indexer=self._indexer)
+        bin_grouper._is_resample = True
         return binner, bin_grouper
 
     @overload
@@ -344,6 +345,9 @@ class Resampler(BaseGroupBy, PandasObject):
     def aggregate(self, func=None, *args, **kwargs):
         """
         Aggregate using one or more operations over the specified axis.
+
+        This method applies aggregation functions to resampled groups, enabling
+        summary statistics to be computed for each time period.
 
         Parameters
         ----------
@@ -1056,6 +1060,9 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         Return the values at the new freq, essentially a reindex.
 
+        This method selects data at the specified frequency without aggregation,
+        useful for upsampling to a higher frequency or selecting specific time points.
+
         Parameters
         ----------
         fill_value : scalar, optional
@@ -1163,6 +1170,9 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         Compute prod of group values.
 
+        This method calculates the product of all values within each resampled
+        time period.
+
         Parameters
         ----------
         numeric_only : bool, default False
@@ -1218,6 +1228,8 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         Compute min value of group.
 
+        This method returns the minimum value within each resampled time period.
+
         Parameters
         ----------
         numeric_only : bool, default False
@@ -1272,6 +1284,8 @@ class Resampler(BaseGroupBy, PandasObject):
     ):
         """
         Compute max value of group.
+
+        This method returns the maximum value within each resampled time period.
 
         Parameters
         ----------
@@ -1329,6 +1343,9 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         Compute the first non-null entry of each column.
 
+        This method returns the first value encountered in each resampled time
+        period, skipping missing values by default.
+
         Parameters
         ----------
         numeric_only : bool, default False
@@ -1381,6 +1398,9 @@ class Resampler(BaseGroupBy, PandasObject):
     ):
         """
         Compute the last non-null entry of each column.
+
+        This method returns the last value encountered in each resampled time
+        period, skipping missing values by default.
 
         Parameters
         ----------
@@ -1483,6 +1503,9 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         Compute mean of groups, excluding missing values.
 
+        This method calculates the arithmetic mean of values within each
+        resampled time period.
+
         Parameters
         ----------
         numeric_only : bool, default False
@@ -1537,6 +1560,9 @@ class Resampler(BaseGroupBy, PandasObject):
     ):
         """
         Compute standard deviation of groups, excluding missing values.
+
+        This method calculates the sample standard deviation of values within
+        each resampled time period.
 
         Parameters
         ----------
@@ -1593,6 +1619,9 @@ class Resampler(BaseGroupBy, PandasObject):
     ):
         """
         Compute variance of groups, excluding missing values.
+
+        This method calculates the sample variance of values within each
+        resampled time period.
 
         Parameters
         ----------
@@ -1708,6 +1737,9 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         Compute open, high, low and close values of a group, excluding missing values.
 
+        This method computes OHLC (Open-High-Low-Close) values, commonly used
+        in financial data analysis to summarize price movements within time periods.
+
         Returns
         -------
         DataFrame
@@ -1762,6 +1794,9 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         Return number of unique elements in the group.
 
+        This method counts the number of distinct values within each resampled
+        time period.
+
         Returns
         -------
         Series
@@ -1796,6 +1831,9 @@ class Resampler(BaseGroupBy, PandasObject):
     def size(self):
         """
         Compute group sizes.
+
+        This method returns the number of rows in each resampled time period,
+        including rows with missing values.
 
         Returns
         -------
@@ -1845,6 +1883,9 @@ class Resampler(BaseGroupBy, PandasObject):
     def count(self):
         """
         Compute count of group, excluding missing values.
+
+        This method returns the number of non-null values in each resampled
+        time period.
 
         Returns
         -------
@@ -1896,9 +1937,14 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         Return value at the given quantile.
 
+        Computes the quantile of values within each resampled group.
+
         Parameters
         ----------
         q : float or array-like, default 0.5 (50% quantile)
+            Value between 0 <= q <= 1, the quantile(s) to compute.
+        **kwargs
+            Additional keyword arguments to be passed to the function.
 
         Returns
         -------
@@ -2052,7 +2098,7 @@ class _GroupByMixin(PandasObject, SelectionMixin):
 
         new_rs = type(self)(
             groupby=groupby,
-            parent=cast(Resampler, self),
+            parent=cast("Resampler", self),
             selection=selection,
         )
         return new_rs
@@ -2166,6 +2212,7 @@ class DatetimeIndexResampler(Resampler):
         return result
 
 
+@set_module("pandas.api.typing")
 # error: Definition of "ax" in base class "_GroupByMixin" is incompatible
 # with definition in base class "DatetimeIndexResampler"
 class DatetimeIndexResamplerGroupby(  # type: ignore[misc]
@@ -2174,8 +2221,6 @@ class DatetimeIndexResamplerGroupby(  # type: ignore[misc]
     """
     Provides a resample of a groupby implementation
     """
-
-    __module__ = "pandas.api.typing"
 
     @property
     def _resampler_cls(self):
@@ -2269,6 +2314,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         return self._wrap_result(new_obj)
 
 
+@set_module("pandas.api.typing")
 # error: Definition of "ax" in base class "_GroupByMixin" is incompatible with
 # definition in base class "PeriodIndexResampler"
 class PeriodIndexResamplerGroupby(  # type: ignore[misc]
@@ -2277,8 +2323,6 @@ class PeriodIndexResamplerGroupby(  # type: ignore[misc]
     """
     Provides a resample of a groupby implementation.
     """
-
-    __module__ = "pandas.api.typing"
 
     @property
     def _resampler_cls(self):
@@ -2307,6 +2351,7 @@ class TimedeltaIndexResampler(DatetimeIndexResampler):
         return binner
 
 
+@set_module("pandas.api.typing")
 # error: Definition of "ax" in base class "_GroupByMixin" is incompatible with
 # definition in base class "DatetimeIndexResampler"
 class TimedeltaIndexResamplerGroupby(  # type: ignore[misc]
@@ -2315,8 +2360,6 @@ class TimedeltaIndexResamplerGroupby(  # type: ignore[misc]
     """
     Provides a resample of a groupby implementation.
     """
-
-    __module__ = "pandas.api.typing"
 
     @property
     def _resampler_cls(self):
@@ -2352,6 +2395,7 @@ def get_resampler_for_grouping(
     return resampler._get_resampler_for_grouping(groupby=groupby, key=tg.key)
 
 
+@set_module("pandas.api.typing")
 class TimeGrouper(Grouper):
     """
     Custom groupby class for time-interval grouping.
@@ -2365,9 +2409,8 @@ class TimeGrouper(Grouper):
         If axis is PeriodIndex
     """
 
-    __module__ = "pandas.api.typing"
-
-    _attributes = Grouper._attributes + (
+    _attributes = (
+        *Grouper._attributes,
         "closed",
         "label",
         "how",
@@ -2438,23 +2481,22 @@ class TimeGrouper(Grouper):
                 closed = "right"
             if label is None:
                 label = "right"
+        # The backward resample sets ``closed`` to ``'right'`` by default
+        # since the last value should be considered as the edge point for
+        # the last bin. When origin in "end" or "end_day", the value for a
+        # specific ``Timestamp`` index stands for the resample result from
+        # the current ``Timestamp`` minus ``freq`` to the current
+        # ``Timestamp`` with a right close.
+        elif origin in ["end", "end_day"]:
+            if closed is None:
+                closed = "right"
+            if label is None:
+                label = "right"
         else:
-            # The backward resample sets ``closed`` to ``'right'`` by default
-            # since the last value should be considered as the edge point for
-            # the last bin. When origin in "end" or "end_day", the value for a
-            # specific ``Timestamp`` index stands for the resample result from
-            # the current ``Timestamp`` minus ``freq`` to the current
-            # ``Timestamp`` with a right close.
-            if origin in ["end", "end_day"]:
-                if closed is None:
-                    closed = "right"
-                if label is None:
-                    label = "right"
-            else:
-                if closed is None:
-                    closed = "left"
-                if label is None:
-                    label = "left"
+            if closed is None:
+                closed = "left"
+            if label is None:
+                label = "left"
 
         self.closed = closed
         self.label = label
@@ -2560,7 +2602,7 @@ class TimeGrouper(Grouper):
         """
         # create the resampler and return our binner
         r = self._get_resampler(obj)
-        return r._grouper, cast(NDFrameT, r.obj)
+        return r._grouper, cast("NDFrameT", r.obj)
 
     def _get_time_bins(self, ax: DatetimeIndex):
         if not isinstance(ax, DatetimeIndex):
@@ -2810,7 +2852,7 @@ class TimeGrouper(Grouper):
         if isinstance(ax.dtype, ArrowDtype) and ax.dtype.kind in "Mm":
             self._arrow_dtype = ax.dtype
             ax = Index(
-                cast(ArrowExtensionArray, ax.array)._maybe_convert_datelike_array()
+                cast("ArrowExtensionArray", ax.array)._maybe_convert_datelike_array()
             )
         return obj, ax, indexer
 

@@ -3,7 +3,8 @@ from __future__ import annotations
 __docformat__ = "restructuredtext"
 
 # Let users know if they're missing any of our hard dependencies
-_hard_dependencies = ("numpy", "dateutil", "tzdata")
+# except tzdata (see https://github.com/pandas-dev/pandas/issues/63264)
+_hard_dependencies = ("numpy", "dateutil")
 
 for _dependency in _hard_dependencies:
     try:
@@ -173,21 +174,10 @@ from pandas.io.json._normalize import json_normalize
 from pandas.util._tester import test
 
 # use the closest tagged version if possible
-_built_with_meson = False
-try:
-    from pandas._version_meson import (  # pyright: ignore [reportMissingImports]
-        __version__,
-        __git_version__,
-    )
-
-    _built_with_meson = True
-except ImportError:
-    from pandas._version import get_versions
-
-    v = get_versions()
-    __version__ = v.get("closest-tag", v["version"])
-    __git_version__ = v.get("full-revisionid")
-    del get_versions, v
+from pandas._version_meson import (  # pyright: ignore [reportMissingImports]
+    __version__,
+    __git_version__,
+)
 
 
 # module level doc-string
@@ -278,6 +268,8 @@ __all__ = [
     "UInt16Dtype",
     "UInt32Dtype",
     "UInt64Dtype",
+    "__git_version__",
+    "__version__",
     "api",
     "array",
     "arrays",

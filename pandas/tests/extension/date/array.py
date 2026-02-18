@@ -96,7 +96,7 @@ class DateArray(ExtensionArray):
             # check if all elements have the same type
             if any(not isinstance(x, np.ndarray) for x in dates):
                 raise TypeError("invalid type")
-            ly, lm, ld = (len(cast(np.ndarray, d)) for d in dates)
+            ly, lm, ld = (len(cast("np.ndarray", d)) for d in dates)
             if not ly == lm == ld:
                 raise ValueError(
                     f"tuple members must have the same length: {(ly, lm, ld)}"
@@ -162,10 +162,13 @@ class DateArray(ExtensionArray):
         self._day[key] = value.day
 
     def __repr__(self) -> str:
-        return f"DateArray{list(zip(self._year, self._month, self._day))}"
+        return f"DateArray{list(zip(self._year, self._month, self._day, strict=True))}"
 
     def copy(self) -> DateArray:
         return DateArray((self._year.copy(), self._month.copy(), self._day.copy()))
+
+    def view(self, dtype: Dtype | None = None) -> DateArray:
+        return DateArray((self._year.view(), self._month.view(), self._day.view()))
 
     def isna(self) -> np.ndarray:
         return np.logical_and(

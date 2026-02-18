@@ -26,17 +26,9 @@ DEPRECATION_WARNINGS_PATTERN = re.compile(
     r"(PendingDeprecation|Deprecation|Future)Warning"
 )
 PRIVATE_IMPORTS_TO_IGNORE: set[str] = {
-    "_extension_array_shared_docs",
-    "_index_shared_docs",
-    "_interval_shared_docs",
-    "_merge_doc",
-    "_shared_docs",
     "_new_Index",
     "_new_PeriodIndex",
-    "_pipe_template",
-    "_apply_groupings_depr",
     "__main__",
-    "_transform_template",
     "_get_plot_backend",
     "_matplotlib",
     "_arrow_utils",
@@ -50,6 +42,7 @@ PRIVATE_IMPORTS_TO_IGNORE: set[str] = {
     "_global_config",
     "_chained_assignment_msg",
     "_chained_assignment_method_msg",
+    "_chained_assignment_method_update_msg",
     "_version_meson",
     # The numba extensions need this to mock the iloc object
     "_iLocIndexer",
@@ -59,6 +52,9 @@ PRIVATE_IMPORTS_TO_IGNORE: set[str] = {
     "_make_block",
     "_DatetimeTZBlock",
     "_check_pyarrow_available",
+    "_parser",  # https://github.com/pandas-dev/pandas/issues/60833
+    "_trim_zeros_single_float",
+    "_safe_fill_null",
 }
 
 
@@ -95,10 +91,7 @@ def _get_literal_string_prefix_len(token_string: str) -> int:
         return 0
 
 
-PRIVATE_FUNCTIONS_ALLOWED = {
-    "sys._getframe",
-    "sys._is_gil_enabled",
-}  # no known alternative
+PRIVATE_FUNCTIONS_ALLOWED = {"sys._getframe"}  # no known alternative
 
 
 def private_function_across_module(file_obj: IO[str]) -> Iterable[tuple[int, str]]:

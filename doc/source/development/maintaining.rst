@@ -433,14 +433,6 @@ which will be triggered when the tag is pushed.
 3. Download the source distribution and wheels from the `wheel staging area <https://anaconda.org/scientific-python-nightly-wheels/pandas>`_.
    Be careful to make sure that no wheels are missing (e.g. due to failed builds).
 
-   Running scripts/download_wheels.sh with the version that you want to download wheels/the sdist for should do the trick.
-   This script will make a ``dist`` folder inside your clone of pandas and put the downloaded wheels and sdist there::
-
-    scripts/download_wheels.sh <VERSION>
-
-   ATTENTION: this is currently not downloading *all* wheels, and you have to
-   manually download the remainings wheels and sdist!
-
 4. Create a `new GitHub release <https://github.com/pandas-dev/pandas/releases/new>`_:
 
    - Tag: ``<version>``

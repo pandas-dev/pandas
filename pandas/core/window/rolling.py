@@ -15,6 +15,7 @@ from typing import (
     Concatenate,
     Literal,
     Self,
+    cast,
     final,
     overload,
 )
@@ -29,6 +30,7 @@ from pandas._libs.tslibs import (
 import pandas._libs.window.aggregations as window_aggregations
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import DataError
+from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.common import (
     ensure_float64,
@@ -95,6 +97,7 @@ if TYPE_CHECKING:
         NDFrameT,
         QuantileInterpolation,
         P,
+        TimeUnit,
         T,
         WindowingRankType,
         npt,
@@ -855,6 +858,7 @@ class BaseWindowGroupby(BaseWindow):
         return super()._gotitem(key, ndim, subset=subset)
 
 
+@set_module("pandas.api.typing")
 class Window(BaseWindow):
     """
     Provide rolling window calculations.
@@ -1106,8 +1110,6 @@ class Window(BaseWindow):
     2020-01-02 2020-01-01  3.0
     2020-01-03 2020-01-02  6.0
     """
-
-    __module__ = "pandas.api.typing"
 
     _attributes = [
         "window",
@@ -1779,8 +1781,8 @@ class RollingAndExpandingMixin(BaseWindow):
     def sem(self, ddof: int = 1, numeric_only: bool = False):
         # Raise here so error message says sem instead of std
         self._validate_numeric_only("sem", numeric_only)
-        return self.std(numeric_only=numeric_only) / (
-            self.count(numeric_only=numeric_only) - ddof
+        return self.std(numeric_only=numeric_only, ddof=ddof) / (
+            self.count(numeric_only=numeric_only)
         ).pow(0.5)
 
     def kurt(self, numeric_only: bool = False):
@@ -1957,8 +1959,8 @@ class RollingAndExpandingMixin(BaseWindow):
         )
 
 
+@set_module("pandas.api.typing")
 class Rolling(RollingAndExpandingMixin):
-    __module__ = "pandas.api.typing"
     _attributes: list[str] = [
         "window",
         "min_periods",
@@ -2001,6 +2003,7 @@ class Rolling(RollingAndExpandingMixin):
                 except TypeError:
                     # if not a datetime dtype, eg for empty dataframes
                     unit = "ns"
+                unit = cast("TimeUnit", unit)
                 self._win_freq_i8 = Timedelta(freq.nanos).as_unit(unit)._value
 
             # min_periods must be an integer
@@ -2941,16 +2944,16 @@ class Rolling(RollingAndExpandingMixin):
         --------
         >>> s = pd.Series([0, 1, 2, 3])
         >>> s.rolling(2, min_periods=1).sem()
-        0         NaN
-        1    0.707107
-        2    0.707107
-        3    0.707107
+        0    NaN
+        1    0.5
+        2    0.5
+        3    0.5
         dtype: float64
         """
         # Raise here so error message says sem instead of std
         self._validate_numeric_only("sem", numeric_only)
-        return self.std(numeric_only=numeric_only) / (
-            self.count(numeric_only) - ddof
+        return self.std(numeric_only=numeric_only, ddof=ddof) / (
+            self.count(numeric_only)
         ).pow(0.5)
 
     def kurt(self, numeric_only: bool = False):
@@ -3084,9 +3087,6 @@ class Rolling(RollingAndExpandingMixin):
         ----------
         q : float
             Quantile to compute. 0 <= quantile <= 1.
-
-            .. deprecated:: 2.1.0
-                This was renamed from 'quantile' to 'q' in version 2.1.0.
 
         interpolation : {'linear', 'lower', 'higher', 'midpoint', 'nearest'}
             This optional parameter specifies the interpolation method to use,
@@ -3454,12 +3454,11 @@ class Rolling(RollingAndExpandingMixin):
 Rolling.__doc__ = Window.__doc__
 
 
+@set_module("pandas.api.typing")
 class RollingGroupby(BaseWindowGroupby, Rolling):
     """
     Provide a rolling groupby implementation.
     """
-
-    __module__ = "pandas.api.typing"
 
     _attributes = Rolling._attributes + BaseWindowGroupby._attributes
 

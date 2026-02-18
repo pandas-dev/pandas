@@ -8,6 +8,7 @@ import numpy as np
 
 from pandas._libs.tslibs import BaseOffset
 from pandas._libs.window.indexers import calculate_variable_window_bounds
+from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.common import ensure_platform_int
 
@@ -16,6 +17,7 @@ from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.tseries.offsets import Nano
 
 
+@set_module("pandas.api.indexers")
 class BaseIndexer:
     """
     Base class for window bounds calculations.
@@ -57,8 +59,6 @@ class BaseIndexer:
     3	7.0
     4	4.0
     """
-
-    __module__ = "pandas.api.indexers"
 
     def __init__(
         self, index_array: np.ndarray | None = None, window_size: int = 0, **kwargs
@@ -195,20 +195,27 @@ class VariableWindowIndexer(BaseIndexer):
         A tuple of ndarray[int64]s, indicating the boundaries of each
         window
         """
+        assert self.index_array is not None
+        if (index_length := len(self.index_array)) < num_values:
+            raise ValueError(
+                "Variable rolling window requires the index to be at least as long "
+                f"as the 'other' index. Got {index_length} < {num_values}. "
+                "Please align 'other' to the rolling object's index using "
+                "reindex_like() or similar method."
+            )
         # error: Argument 4 to "calculate_variable_window_bounds" has incompatible
         # type "Optional[bool]"; expected "bool"
-        # error: Argument 6 to "calculate_variable_window_bounds" has incompatible
-        # type "Optional[ndarray]"; expected "ndarray"
         return calculate_variable_window_bounds(
             num_values,
             self.window_size,
             min_periods,
             center,  # type: ignore[arg-type]
             closed,
-            self.index_array,  # type: ignore[arg-type]
+            self.index_array,
         )
 
 
+@set_module("pandas.api.indexers")
 class VariableOffsetWindowIndexer(BaseIndexer):
     """
     Calculate window boundaries based on a non-fixed offset such as a BusinessDay.
@@ -269,8 +276,6 @@ class VariableOffsetWindowIndexer(BaseIndexer):
     2020-01-09   8.0
     2020-01-10   9.0
     """
-
-    __module__ = "pandas.api.indexers"
 
     def __init__(
         self,
@@ -432,6 +437,7 @@ class ExpandingIndexer(BaseIndexer):
         )
 
 
+@set_module("pandas.api.indexers")
 class FixedForwardWindowIndexer(BaseIndexer):
     """
     Creates window boundaries for fixed-length windows that include the current row.
@@ -476,8 +482,6 @@ class FixedForwardWindowIndexer(BaseIndexer):
     3  4.0
     4  4.0
     """
-
-    __module__ = "pandas.api.indexers"
 
     def get_window_bounds(
         self,
