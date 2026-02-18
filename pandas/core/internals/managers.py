@@ -705,11 +705,11 @@ class BaseBlockManager(DataManager):
         else:
             new_blocks = []
             for blk in self.blocks:
-                if blk.dtype == np.void:
+                if blk.dtype == np.void and blk.dtype.itemsize == 0:
                     # GH#58316: np.void placeholders cast to b'' when
                     # reindexed; preserve np.void so _setitem_single_column
                     # can later infer the correct dtype
-                    vals = np.empty((blk.values.shape[0], len(indexer)), dtype=np.void)
+                    vals = np.empty((blk.values.shape[0], len(indexer)), dtype=blk.dtype)
                     new_blocks.append(NumpyBlock(vals, blk.mgr_locs, ndim=2))
                 else:
                     new_blocks.append(
