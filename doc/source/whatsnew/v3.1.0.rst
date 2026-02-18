@@ -153,7 +153,7 @@ Interval
 
 Indexing
 ^^^^^^^^
--
+- Bug in :meth:`Series.searchsorted` and :meth:`Index.searchsorted` with nullable integer arrays containing ``NA`` values in the ``value`` parameter returning incorrect insertion positions (:issue:`63938`)
 -
 
 Missing
