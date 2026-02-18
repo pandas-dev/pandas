@@ -422,9 +422,18 @@ class TestPeriodIndex:
 
     @pytest.mark.parametrize("floats", [[1.1, 2.1], np.array([1.1, 2.1])])
     def test_constructor_floats(self, floats):
-        msg = "PeriodIndex does not allow floating point in construction"
+        msg = "PeriodArray does not allow floating point in construction"
         with pytest.raises(TypeError, match=msg):
             PeriodIndex(floats)
+        with pytest.raises(TypeError, match=msg):
+            PeriodArray._from_sequence(floats)
+
+        # But if they are all-NaN we allow it
+
+        pi = PeriodIndex([np.nan], freq="D")
+        assert pi.isna().all()
+        parr = PeriodArray._from_sequence([np.nan], dtype="period[D]")
+        assert parr.isna().all()
 
     def test_constructor_year_and_quarter(self):
         year = Series([2001, 2002, 2003])

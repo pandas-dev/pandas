@@ -279,7 +279,15 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
             return scalars
 
         arrdata = np.asarray(scalars)
-        if arrdata.dtype.kind in "iu":
+        if arrdata.dtype.kind == "f" and len(arrdata) > 0:
+            if not np.isnan(arrdata).all():
+                raise TypeError(
+                    "PeriodArray does not allow floating point in construction"
+                )
+            ordinals = np.full(arrdata.shape, iNaT, dtype=np.int64)
+            return cls(ordinals, dtype=dtype)
+
+        elif arrdata.dtype.kind in "iu":
             arr = arrdata.astype(np.int64, copy=False)
             ordinals = libperiod.from_calendar_ordinals(arr, dtype)  # type: ignore[arg-type]
             return cls(ordinals, dtype=dtype)
@@ -1272,11 +1280,6 @@ def period_array(
     if not isinstance(data, (np.ndarray, list, tuple, ABCSeries)):
         # test_constructor_empty_special has a case with an iter object
         data = list(data)
-
-    arrdata = np.asarray(data)
-
-    if arrdata.dtype.kind == "f" and len(arrdata) > 0:
-        raise TypeError("PeriodIndex does not allow floating point in construction")
 
     return PeriodArray._from_sequence(data, dtype=dtype)
 
