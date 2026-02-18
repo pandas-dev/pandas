@@ -2041,15 +2041,41 @@ class BarPlot(MPLPlot):
             self._append_legend_handles_labels(rect, label)
 
     def _post_plot_logic(self, ax: Axes, data) -> None:
-        if self.use_index:
-            str_index = [pprint_thing(key) for key in data.index]
-        else:
-            str_index = [pprint_thing(key) for key in range(data.shape[0])]
-
         s_edge = self.ax_pos[0] - 0.25 + self.lim_offset
         e_edge = self.ax_pos[-1] + 0.25 + self.bar_width + self.lim_offset
 
-        self._decorate_ticks(ax, self._get_index_name(), str_index, s_edge, e_edge)
+        # GH#1918: Apply date formatter for time series indices
+        if self._is_ts_plot():
+            freq = data.index.freq
+            # Set freq on axis for formatter to use, but don't call decorate_axes
+            # to avoid adding _plot_data attribute (which bar plots shouldn't have)
+            ax.freq = freq  # type: ignore[attr-defined]
+            xaxis = ax.get_xaxis()
+            xaxis.freq = freq  # type: ignore[attr-defined]
+
+            index = data.index
+            if isinstance(index, ABCDatetimeIndex):
+                index = index.to_period(freq=freq)
+
+            if isinstance(index, ABCPeriodIndex):
+                format_dateaxis(ax, freq, index)
+
+            ax.set_xlim((s_edge, e_edge))
+            if self.xticks is not None:
+                ax.set_xticks(np.array(self.xticks))
+            else:
+                ax.set_xticks(self.tick_pos)
+
+            index_name = self._get_index_name()
+            if index_name is not None and self.use_index:
+                ax.set_xlabel(index_name)
+        else:
+            if self.use_index:
+                str_index = [pprint_thing(key) for key in data.index]
+            else:
+                str_index = [pprint_thing(key) for key in range(data.shape[0])]
+
+            self._decorate_ticks(ax, self._get_index_name(), str_index, s_edge, e_edge)
 
     def _decorate_ticks(
         self,
