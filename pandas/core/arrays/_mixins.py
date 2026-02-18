@@ -15,22 +15,7 @@ import numpy as np
 from pandas._libs import lib
 from pandas._libs.arrays import NDArrayBacked
 from pandas._libs.tslibs import is_supported_dtype
-from pandas._typing import (
-    ArrayLike,
-    AxisInt,
-    Dtype,
-    F,
-    FillnaOptions,
-    PositionalIndexer2D,
-    PositionalIndexerTuple,
-    ScalarIndexer,
-    SequenceIndexer,
-    Shape,
-    TakeIndexer,
-    npt,
-)
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import doc
 from pandas.util._validators import (
     validate_bool_kwarg,
     validate_insert_loc,
@@ -64,8 +49,20 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from pandas._typing import (
+        ArrayLike,
+        AxisInt,
+        Dtype,
+        F,
+        FillnaOptions,
         NumpySorter,
         NumpyValueArrayLike,
+        PositionalIndexer2D,
+        PositionalIndexerTuple,
+        ScalarIndexer,
+        SequenceIndexer,
+        Shape,
+        TakeIndexer,
+        npt,
     )
 
     from pandas import Series
@@ -88,7 +85,7 @@ def ravel_compat(meth: F) -> F:
         order = "F" if flags.f_contiguous else "C"
         return result.reshape(self.shape, order=order)
 
-    return cast(F, method)
+    return cast("F", method)
 
 
 class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
@@ -233,30 +230,106 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         return self._from_backing_data(new_data)
 
     @classmethod
-    @doc(ExtensionArray._concat_same_type)
     def _concat_same_type(
         cls,
         to_concat: Sequence[Self],
         axis: AxisInt = 0,
     ) -> Self:
+        """
+        Concatenate multiple array of this dtype.
+
+        Parameters
+        ----------
+        to_concat : sequence of this type
+
+        Returns
+        -------
+        ExtensionArray
+        """
         if not lib.dtypes_all_equal([x.dtype for x in to_concat]):
             dtypes = {str(x.dtype) for x in to_concat}
             raise ValueError("to_concat must have the same dtype", dtypes)
 
         return super()._concat_same_type(to_concat, axis=axis)
 
-    @doc(ExtensionArray.searchsorted)
     def searchsorted(
         self,
         value: NumpyValueArrayLike | ExtensionArray,
         side: Literal["left", "right"] = "left",
         sorter: NumpySorter | None = None,
     ) -> npt.NDArray[np.intp] | np.intp:
+        """
+        Find indices where elements should be inserted to maintain order.
+
+        Find the indices into a sorted array `self` (a) such that, if the
+        corresponding elements in `value` were inserted before the indices,
+        the order of `self` would be preserved.
+
+        Assuming that `self` is sorted:
+
+        ======  ================================
+        `side`  returned index `i` satisfies
+        ======  ================================
+        left    ``self[i-1] < value <= self[i]``
+        right   ``self[i-1] <= value < self[i]``
+        ======  ================================
+
+        Parameters
+        ----------
+        value : array-like, list or scalar
+            Value(s) to insert into `self`.
+        side : {'left', 'right'}, optional
+            If 'left', the index of the first suitable location found is given.
+            If 'right', return the last such index.  If there is no suitable
+            index, return either 0 or N (where N is the length of `self`).
+        sorter : 1-D array-like, optional
+            Optional array of integer indices that sort array a into ascending
+            order. They are typically the result of argsort.
+
+        Returns
+        -------
+        array of ints or int
+            If value is array-like, array of insertion points.
+            If value is scalar, a single integer.
+
+        See Also
+        --------
+        numpy.searchsorted : Similar method from NumPy.
+        """
         npvalue = self._validate_setitem_value(value)
         return self._ndarray.searchsorted(npvalue, side=side, sorter=sorter)
 
-    @doc(ExtensionArray.shift)
     def shift(self, periods: int = 1, fill_value=None) -> Self:
+        """
+        Shift values by desired number.
+
+        Newly introduced missing values are filled with
+        ``self.dtype.na_value``.
+
+        Parameters
+        ----------
+        periods : int, default 1
+            The number of periods to shift. Negative values are allowed
+            for shifting backwards.
+
+        fill_value : object, optional
+            The scalar value to use for newly introduced missing values.
+            The default is ``self.dtype.na_value``.
+
+        Returns
+        -------
+        ExtensionArray
+            Shifted.
+
+        Notes
+        -----
+        If ``self`` is empty or ``periods`` is 0, a copy of ``self`` is
+        returned.
+
+        If ``periods > len(self)``, then an array of size
+        len(self) is returned, with all values filled with
+        ``self.dtype.na_value``.
+        """
         # NB: shift is always along axis=0
         axis = 0
         fill_value = self._validate_scalar(fill_value)
@@ -341,8 +414,25 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
             new_values = self
         return new_values
 
-    @doc(ExtensionArray.fillna)
     def fillna(self, value, limit: int | None = None, copy: bool = True) -> Self:
+        """
+        Fill NA/NaN values using the specified method.
+
+        Parameters
+        ----------
+        value : scalar, array-like
+            If a scalar value is passed it is used to fill all missing values.
+            Alternatively, an array-like 'value' can be given. It's expected
+            that the array-like have the same length as 'self'.
+        limit : int, default None
+            The maximum number of entries along the entire axis where NaNs will be
+            filled.
+
+        Returns
+        -------
+        ExtensionArray
+            With NA/NaN filled.
+        """
         mask = self.isna()
         if limit is not None and limit < len(self):
             # mypy doesn't like that mask can be an EA which need not have `cumsum`
