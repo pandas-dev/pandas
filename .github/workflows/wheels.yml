@@ -210,27 +210,21 @@ jobs:
       (github.event_name == 'schedule' ||
       (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'))
     needs:
+      - build_sdist
       - build_wheels
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
 
     steps:
       - name: Download all artefacts
         uses: actions/download-artifact@v7
         with:
-          path: dist          # everything lands in ./dist/**
-
-      # TODO: This step can be probably be achieved by actions/download-artifact@v7
-      # by specifying merge-multiple: true, and a glob pattern
-      - name: Collect files
-        run: |
-          mkdir -p upload
-          find dist -name '*.whl' -exec mv {} upload/ \;
-          find dist -name '*.tar.gz' -exec mv {} upload/ \;
+          path: dist
+          merge-multiple: true
 
       - name: Upload wheels & sdist
-        uses: scientific-python/upload-nightly-action@0.6.3
+        uses: scientific-python/upload-nightly-action@5748273c71e2d8d3a61f3a11a16421c8954f9ecf # 0.6.3
         with:
-          artifacts_path: ./upload
+          artifacts_path: dist
           anaconda_nightly_upload_token: ${{secrets.PANDAS_NIGHTLY_UPLOAD_TOKEN}}
 
   publish:
