@@ -10045,7 +10045,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     )
         else:
             # GH#21947 we have an empty DataFrame/Series, could be object-dtype
-            cond = cond.astype(bool, copy=False)
+            cond = cond.astype(bool)
 
         cond = -cond if inplace else cond
         cond = cond.reindex(self._info_axis, axis=self._info_axis_number)
