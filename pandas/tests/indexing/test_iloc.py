@@ -1109,6 +1109,18 @@ class TestiLocBaseIndependent:
         expected = DataFrame({"x": [1, 9], "y": [2.0, 99.0]})
         tm.assert_frame_equal(df, expected)
 
+    def test_iloc_setitem_dict_value_in_object_series(self):
+        # GH#62723
+        s = Series(0, dtype="object")
+
+        s.iloc[0] = {}
+        assert s.iloc[0] == {}
+        assert isinstance(s.iloc[0], dict)
+
+        s.iloc[0] = {"a": 1, "b": 2}
+        assert s.iloc[0] == {"a": 1, "b": 2}
+        assert isinstance(s.iloc[0], dict)
+
     def test_iloc_getitem_float_duplicates(self):
         df = DataFrame(
             np.random.default_rng(2).standard_normal((3, 3)),
