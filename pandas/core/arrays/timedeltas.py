@@ -125,7 +125,8 @@ class TimedeltaArray(dtl.TimelikeOps):
     data : array-like
         The timedelta data.
     dtype : numpy.dtype
-        Currently, only ``numpy.dtype("timedelta64[ns]")`` is accepted.
+        Valid ``numpy`` dtypes are ``timedelta64[ns]``, ``timedelta64[us]``,
+        ``timedelta64[ms]``, and ``timedelta64[s]``.
     freq : Offset, optional
         Frequency of the data.
     copy : bool, default False
