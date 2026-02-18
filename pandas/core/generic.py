@@ -11957,6 +11957,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Provide rolling window calculations.
 
+        This method returns a rolling window object, enabling aggregation,
+        transformation, and other operations over a sliding window of a
+        specified size.
+
         Parameters
         ----------
         window : int, timedelta, str, offset, or BaseIndexer subclass

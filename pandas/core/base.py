@@ -1231,6 +1231,9 @@ class IndexOpsMixin(OpsMixin):
         """
         Return True if values in the object are unique.
 
+        This property checks whether all values in the Series or Index are
+        distinct, including missing values.
+
         Returns
         -------
         bool
