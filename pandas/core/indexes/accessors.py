@@ -222,17 +222,17 @@ class ArrowTemporalProperties(PandasDelegate, PandasObject, NoNewAttributesMixin
             Pandas4Warning,
             stacklevel=find_stack_level(),
         )
-        return cast(ArrowExtensionArray, self._parent.array)._dt_to_pytimedelta()
+        return cast("ArrowExtensionArray", self._parent.array)._dt_to_pytimedelta()
 
     def to_pydatetime(self) -> Series:
         # GH#20306
-        return cast(ArrowExtensionArray, self._parent.array)._dt_to_pydatetime()
+        return cast("ArrowExtensionArray", self._parent.array)._dt_to_pydatetime()
 
     def isocalendar(self) -> DataFrame:
         from pandas import DataFrame
 
         result = (
-            cast(ArrowExtensionArray, self._parent.array)
+            cast("ArrowExtensionArray", self._parent.array)
             ._dt_isocalendar()
             ._pa_array.combine_chunks()
         )
@@ -406,6 +406,10 @@ class DatetimeProperties(Properties):
     def isocalendar(self) -> DataFrame:
         """
         Calculate year, week, and day according to the ISO 8601 standard.
+
+        The ISO 8601 standard defines the first week of the year as the week
+        containing the first Thursday. This method returns a DataFrame with
+        columns for the ISO year, ISO week number, and ISO day of week.
 
         Returns
         -------
