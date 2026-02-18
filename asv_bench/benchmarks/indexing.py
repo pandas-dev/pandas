@@ -438,6 +438,28 @@ class GetItemSingleColumn:
         self.df_int_col[0]
 
 
+class DataFrameGetitemDuplicateColumns:
+    """
+    Benchmark df[key] when columns have duplicate names but key is unique.
+
+    Previously each access called columns.drop_duplicates(keep=False), which
+    built a new Index (O(n)). Now we use get_loc(key), so this path is O(1)
+    for hash-based indexes.
+    """
+
+    params = [1_000, 10_000, 100_000, 1_000_000]
+    param_names = ["ncols"]
+
+    def setup(self, ncols):
+        # ncols-1 duplicate names + one unique column we access
+        cols = ["a"] * (ncols - 1) + ["key"]
+        self.df = DataFrame(0, index=range(100), columns=cols)
+
+    def time_getitem_single_column_with_duplicate_columns(self, ncols):
+        for _ in range(100):
+            self.df["key"]
+
+
 class IndexSingleRow:
     params = [True, False]
     param_names = ["unique_cols"]
