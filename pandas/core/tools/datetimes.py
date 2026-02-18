@@ -68,7 +68,6 @@ from pandas.arrays import (
     NumpyExtensionArray,
 )
 from pandas.core.algorithms import unique
-from pandas.core.arrays import ArrowExtensionArray
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.arrays.datetimes import (
     maybe_convert_dtype,
@@ -93,6 +92,7 @@ if TYPE_CHECKING:
         DataFrame,
         Series,
     )
+    from pandas.core.arrays import ArrowExtensionArray
 
 # ---------------------------------------------------------------------
 # types used in annotations
@@ -376,7 +376,7 @@ def _convert_listlike_datetimes(
         if utc:
             # pyarrow uses UTC, not lowercase utc
             if isinstance(arg, Index):
-                arg_array = cast(ArrowExtensionArray, arg.array)
+                arg_array = cast("ArrowExtensionArray", arg.array)
                 if arg_dtype.pyarrow_dtype.tz is not None:
                     arg_array = arg_array._dt_tz_convert("UTC")
                 else:
@@ -793,7 +793,7 @@ def to_datetime(
         - If :const:`'julian'`, unit must be :const:`'D'`, and origin is set to
           beginning of Julian Calendar. Julian day number :const:`0` is assigned
           to the day starting at noon on January 1, 4713 BC.
-        - If Timestamp convertible (Timestamp, dt.datetime, np.datetimt64 or date
+        - If Timestamp convertible (Timestamp, dt.datetime, np.datetime64 or date
           string), origin is set to Timestamp identified by origin.
         - If a float or integer, origin is the difference
           (in units determined by the ``unit`` argument) relative to 1970-01-01.
@@ -1054,7 +1054,7 @@ def to_datetime(
             # ndarray[Any, Any], Series]"; expected "Union[List[Any], Tuple[Any, ...],
             # Union[Union[ExtensionArray, ndarray[Any, Any]], Index, Series], Series]"
             argc = cast(
-                Union[list, tuple, ExtensionArray, np.ndarray, "Series", Index], arg
+                "Union[list, tuple, ExtensionArray, np.ndarray, Series, Index]", arg
             )
             cache_array = _maybe_cache(argc, format, cache, convert_listlike)
         except OutOfBoundsDatetime:
@@ -1174,7 +1174,7 @@ def _assemble_from_unit_mappings(
         # we allow coercion to if errors allows
         values = to_numeric(values, errors=errors)
 
-        # prevent prevision issues in case of float32 # GH#60506
+        # prevent precision issues in case of float32 # GH#60506
         if is_float_dtype(values.dtype):
             values = values.astype("float64")
 

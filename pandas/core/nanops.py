@@ -19,17 +19,6 @@ from pandas._libs import (
     iNaT,
     lib,
 )
-from pandas._typing import (
-    ArrayLike,
-    AxisInt,
-    CorrelationMethod,
-    Dtype,
-    DtypeObj,
-    F,
-    Scalar,
-    Shape,
-    npt,
-)
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.common import (
@@ -50,6 +39,18 @@ from pandas.core.dtypes.missing import (
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+
+    from pandas._typing import (
+        ArrayLike,
+        AxisInt,
+        CorrelationMethod,
+        Dtype,
+        DtypeObj,
+        F,
+        Scalar,
+        Shape,
+        npt,
+    )
 
 bn = import_optional_dependency("bottleneck", errors="warn")
 _BOTTLENECK_INSTALLED = bn is not None
@@ -94,7 +95,7 @@ class disallow:
                     raise TypeError(e) from e
                 raise
 
-        return cast(F, _f)
+        return cast("F", _f)
 
 
 class bottleneck_switch:
@@ -150,7 +151,7 @@ class bottleneck_switch:
 
             return result
 
-        return cast(F, f)
+        return cast("F", f)
 
 
 def _bn_ok_dtype(dtype: DtypeObj, name: str) -> bool:
@@ -411,7 +412,7 @@ def _datetimelike_compat(func: F) -> F:
 
         return result
 
-    return cast(F, new_func)
+    return cast("F", new_func)
 
 
 def _na_for_min_count(values: np.ndarray, axis: AxisInt | None) -> Scalar | np.ndarray:
@@ -475,7 +476,7 @@ def maybe_operate_rowwise(func: F) -> F:
 
         return func(values, axis=axis, **kwargs)
 
-    return cast(F, newfunc)
+    return cast("F", newfunc)
 
 
 def nanany(
@@ -710,7 +711,7 @@ def nanmean(
     the_sum = _ensure_numeric(the_sum)
 
     if axis is not None and getattr(the_sum, "ndim", False):
-        count = cast(np.ndarray, count)
+        count = cast("np.ndarray", count)
         with np.errstate(all="ignore"):
             # suppress division by zero warnings
             the_mean = the_sum / count
@@ -896,7 +897,7 @@ def _get_counts_nanvar(
             d = np.nan
     else:
         # count is not narrowed by is_float check
-        count = cast(np.ndarray, count)
+        count = cast("np.ndarray", count)
         mask = count <= ddof
         if mask.any():
             np.putmask(d, mask, np.nan)

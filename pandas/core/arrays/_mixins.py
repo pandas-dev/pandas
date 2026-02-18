@@ -15,20 +15,6 @@ import numpy as np
 from pandas._libs import lib
 from pandas._libs.arrays import NDArrayBacked
 from pandas._libs.tslibs import is_supported_dtype
-from pandas._typing import (
-    ArrayLike,
-    AxisInt,
-    Dtype,
-    F,
-    FillnaOptions,
-    PositionalIndexer2D,
-    PositionalIndexerTuple,
-    ScalarIndexer,
-    SequenceIndexer,
-    Shape,
-    TakeIndexer,
-    npt,
-)
 from pandas.errors import AbstractMethodError
 from pandas.util._validators import (
     validate_bool_kwarg,
@@ -64,8 +50,20 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from pandas._typing import (
+        ArrayLike,
+        AxisInt,
+        Dtype,
+        F,
+        FillnaOptions,
         NumpySorter,
         NumpyValueArrayLike,
+        PositionalIndexer2D,
+        PositionalIndexerTuple,
+        ScalarIndexer,
+        SequenceIndexer,
+        Shape,
+        TakeIndexer,
+        npt,
     )
 
     from pandas import Series
@@ -88,7 +86,7 @@ def ravel_compat(meth: F) -> F:
         order = "F" if flags.f_contiguous else "C"
         return result.reshape(self.shape, order=order)
 
-    return cast(F, method)
+    return cast("F", method)
 
 
 class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):

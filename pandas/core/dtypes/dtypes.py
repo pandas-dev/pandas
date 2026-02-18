@@ -350,7 +350,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             # ordered=None.
             dtype = CategoricalDtype(categories, ordered)
 
-        return cast(CategoricalDtype, dtype)
+        return cast("CategoricalDtype", dtype)
 
     @classmethod
     def construct_from_string(cls, string: str_type) -> CategoricalDtype:
@@ -617,7 +617,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             )
         else:
             # from here on, dtype is a CategoricalDtype
-            dtype = cast(CategoricalDtype, dtype)
+            dtype = cast("CategoricalDtype", dtype)
 
         # update categories/ordered unless they've been explicitly passed as None
         if (
@@ -971,7 +971,9 @@ class DatetimeTZDtype(PandasExtensionDtype):
 
     def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
         if all(isinstance(t, DatetimeTZDtype) and t.tz == self.tz for t in dtypes):
-            np_dtype = np.max([cast(DatetimeTZDtype, t).base for t in [self, *dtypes]])
+            np_dtype = np.max(
+                [cast("DatetimeTZDtype", t).base for t in [self, *dtypes]]
+            )
             unit = np.datetime_data(np_dtype)[0]
             unit = cast("TimeUnit", unit)
             return type(self)(unit=unit, tz=self.tz)

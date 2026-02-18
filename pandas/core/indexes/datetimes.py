@@ -180,7 +180,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     yearfirst : bool, default False
         If True parse dates in `data` with the year first order.
     dtype : numpy.dtype or DatetimeTZDtype or str, default None
-        Note that the only NumPy dtype allowed is `datetime64[ns]`.
+        Note that the only NumPy dtypes allowed are 'datetime64[ns]',
+        'datetime64[us]', 'datetime64[ms]', 'datetime64[s]'.
     copy : bool, default None
         Whether to copy input data, only relevant for array, Series, and Index
         inputs (for other input, e.g. a list, a new array is created anyway).
@@ -328,6 +329,10 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     def tz_convert(self, tz) -> Self:
         """
         Convert tz-aware Datetime Array/Index from one time zone to another.
+
+        This method converts each timestamp in the index to the target time
+        zone while preserving the underlying UTC time. The index must already
+        be timezone-aware.
 
         Parameters
         ----------
@@ -824,6 +829,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         """
         Snap time stamps to nearest occurring frequency.
 
+        Each timestamp in the index is adjusted to the nearest occurrence of
+        the specified frequency, snapping backward or forward as appropriate.
+
         Parameters
         ----------
         freq : str, Timedelta, datetime.timedelta, or DateOffset, default 'S'
@@ -1106,6 +1114,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         """
         Return index locations of values at particular time of day.
 
+        This method returns the integer indices of the DatetimeIndex entries
+        that match the specified time of day, regardless of the date.
+
         Parameters
         ----------
         time : datetime.time or str
@@ -1186,6 +1197,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     ) -> npt.NDArray[np.intp]:
         """
         Return index locations of values between particular times of day.
+
+        This method returns the integer indices of the DatetimeIndex entries
+        whose time-of-day components fall within the specified range.
 
         Parameters
         ----------
@@ -1587,6 +1601,7 @@ def bdate_range(
     if isinstance(freq, str) and freq.upper().startswith("C"):
         msg = f"invalid custom frequency string: {freq}"
         if freq == "CBH":
+            # GH#62849
             raise ValueError(f"{msg}, did you mean cbh?")
         try:
             weekmask = weekmask or "Mon Tue Wed Thu Fri"

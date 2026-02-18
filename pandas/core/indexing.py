@@ -864,7 +864,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         return indexer, value
 
     @final
-    def _ensure_listlike_indexer(self, key, axis=None, value=None) -> None:
+    def _ensure_listlike_indexer(self, key, axis=None) -> None:
         """
         Ensure that a list-like of column labels are all present by adding them if
         they do not already exist.
@@ -875,8 +875,6 @@ class _LocationIndexer(NDFrameIndexerBase):
             Target labels.
         axis : key axis if known
         """
-        column_axis = 1
-
         # column only exists in 2-dimensional DataFrame
         if self.ndim != 2:
             return
@@ -886,11 +884,11 @@ class _LocationIndexer(NDFrameIndexerBase):
             # if length of key is > 1 set key to column part
             # unless axis is already specified, then go with that
             if axis is None:
-                axis = column_axis
+                axis = 1
             key = key[axis]
 
         if (
-            axis == column_axis
+            axis == 1
             and not isinstance(self.obj.columns, MultiIndex)
             and is_list_like_indexer(key)
             and not com.is_bool_indexer(key)
@@ -1125,7 +1123,7 @@ class _LocationIndexer(NDFrameIndexerBase):
             #  is equivalent.
             #  (see the other place where we call _handle_lowerdim_multi_index_axis0)
             with suppress(IndexingError):
-                return cast(_LocIndexer, self)._handle_lowerdim_multi_index_axis0(tup)
+                return cast("_LocIndexer", self)._handle_lowerdim_multi_index_axis0(tup)
 
         tup = self._validate_key_length(tup)
 
@@ -1185,7 +1183,7 @@ class _LocationIndexer(NDFrameIndexerBase):
                 #  DataFrame, IndexingError is not raised when slice(None,None,None)
                 #  with one row.
                 with suppress(IndexingError):
-                    return cast(_LocIndexer, self)._handle_lowerdim_multi_index_axis0(
+                    return cast("_LocIndexer", self)._handle_lowerdim_multi_index_axis0(
                         tup
                     )
             elif isinstance(self.obj, ABCSeries) and any(

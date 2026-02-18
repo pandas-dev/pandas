@@ -1196,7 +1196,7 @@ class RangeIndex(Index):
         elif len(indexes) == 1:
             return indexes[0]
 
-        rng_indexes = cast(list[RangeIndex], indexes)
+        rng_indexes = cast("list[RangeIndex]", indexes)
 
         start = step = next_ = None
 

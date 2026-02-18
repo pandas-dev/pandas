@@ -169,13 +169,13 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         lkind = self.dtype.kind
         rkind = result.dtype.kind
         if (lkind in "iu" and rkind in "iu") or (lkind == rkind == "f"):
-            result = cast(BaseMaskedArray, result)
+            result = cast("BaseMaskedArray", result)
             new_data = maybe_downcast_to_dtype(
                 result._data, dtype=self.dtype.numpy_dtype
             )
             result = type(result)(new_data, result._mask)
         elif lkind == "f" and rkind == "i":
-            result = cast(BaseMaskedArray, result)
+            result = cast("BaseMaskedArray", result)
             new_data = maybe_downcast_to_dtype(
                 result._data, dtype=self.dtype.numpy_dtype
             )
@@ -192,7 +192,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         ExtensionDtype.empty
             ExtensionDtype.empty is the 'official' public version of this API.
         """
-        dtype = cast(BaseMaskedDtype, dtype)
+        dtype = cast("BaseMaskedDtype", dtype)
         values: np.ndarray = np.empty(shape, dtype=dtype.type)
         values.fill(dtype._internal_fill_value)
         mask = np.ones(shape, dtype=bool)
@@ -1694,7 +1694,12 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return self._wrap_reduction_result("max", result, skipna=skipna, axis=axis)
 
     def map(self, mapper, na_action: Literal["ignore"] | None = None):
-        return map_array(self.to_numpy(), mapper, na_action=na_action)
+        result = map_array(
+            self.to_numpy(dtype=object, na_value=libmissing.NA),
+            mapper,
+            na_action=na_action,
+        )
+        return self._cast_pointwise_result(result)
 
     @overload
     def any(
