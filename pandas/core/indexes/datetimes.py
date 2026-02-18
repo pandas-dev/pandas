@@ -180,7 +180,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     yearfirst : bool, default False
         If True parse dates in `data` with the year first order.
     dtype : numpy.dtype or DatetimeTZDtype or str, default None
-        Note that the only NumPy dtype allowed is `datetime64[ns]`.
+        Note that the only NumPy dtypes allowed are 'datetime64[ns]',
+        'datetime64[us]', 'datetime64[ms]', 'datetime64[s]'.
     copy : bool, default None
         Whether to copy input data, only relevant for array, Series, and Index
         inputs (for other input, e.g. a list, a new array is created anyway).
