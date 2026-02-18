@@ -1143,7 +1143,7 @@ class TestLocBaseIndependent:
 
     def test_loc_copy_vs_view(self, request):
         # GH 15631
-        x = DataFrame(zip(range(3), range(3)), columns=["a", "b"])
+        x = DataFrame(zip(range(3), range(3), strict=True), columns=["a", "b"])
 
         y = x.copy()
         q = y.loc[:, "a"]
@@ -1823,6 +1823,7 @@ class TestLocWithMultiIndex:
             zip(
                 ["bar", "bar", "baz", "baz", "foo", "foo", "qux", "qux"],
                 ["one", "two", "one", "two", "one", "two", "one", "two"],
+                strict=True,
             ),
             names=["first", "second"],
         )
@@ -2228,6 +2229,21 @@ class TestLocSetitemWithExpansion:
         assert expected.dtypes["B"] == val.dtype
         tm.assert_frame_equal(df, expected)
 
+    def test_loc_setitem_with_expansion_new_row_and_new_columns(self):
+        # GH#58316
+        df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+        df.loc["x", ["C", "D"]] = 91
+        expected = DataFrame(
+            {
+                "A": [1.0, 2.0, 3.0, np.nan],
+                "B": [4.0, 5.0, 6.0, np.nan],
+                "C": [np.nan, np.nan, np.nan, 91.0],
+                "D": [np.nan, np.nan, np.nan, 91.0],
+            },
+            index=Index([0, 1, 2, "x"]),
+        )
+        tm.assert_frame_equal(df, expected)
+
 
 class TestLocCallable:
     def test_frame_loc_getitem_callable(self):
@@ -2605,7 +2621,7 @@ class TestLocBooleanMask:
             [0, 1, 2, 10, 4, 5, 6, 7, 8, 9],
             [10, 10, 10, 3, 4, 5, 6, 7, 8, 9],
         ]
-        for cond, data in zip(conditions, expected_data):
+        for cond, data in zip(conditions, expected_data, strict=True):
             result = df.copy()
             result.loc[cond, "x"] = 10
 

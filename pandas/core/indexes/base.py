@@ -44,27 +44,6 @@ from pandas._libs.tslibs import (
     Timestamp,
     tz_compare,
 )
-from pandas._typing import (
-    AnyAll,
-    ArrayLike,
-    Axes,
-    Axis,
-    AxisInt,
-    DropKeep,
-    Dtype,
-    DtypeObj,
-    F,
-    IgnoreRaise,
-    IndexLabel,
-    IndexT,
-    JoinHow,
-    Level,
-    NaPosition,
-    ReindexMethod,
-    Shape,
-    SliceType,
-    npt,
-)
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
     DuplicateLabelError,
@@ -205,6 +184,28 @@ if TYPE_CHECKING:
         Sequence,
     )
 
+    from pandas._typing import (
+        AnyAll,
+        ArrayLike,
+        Axes,
+        Axis,
+        AxisInt,
+        DropKeep,
+        Dtype,
+        DtypeObj,
+        F,
+        IgnoreRaise,
+        IndexLabel,
+        IndexT,
+        JoinHow,
+        Level,
+        NaPosition,
+        ReindexMethod,
+        Shape,
+        SliceType,
+        npt,
+    )
+
     from pandas import (
         CategoricalIndex,
         DataFrame,
@@ -218,17 +219,6 @@ if TYPE_CHECKING:
 
 __all__ = ["Index"]
 
-_unsortable_types = frozenset(("mixed", "mixed-integer"))
-
-_index_doc_kwargs: dict[str, str] = {
-    "klass": "Index",
-    "inplace": "",
-    "target_klass": "Index",
-    "raises_section": "",
-    "unique": "Index",
-    "duplicated": "np.ndarray",
-}
-_index_shared_docs: dict[str, str] = {}
 str_t = str
 
 _dtype_obj = np.dtype("object")
@@ -288,7 +278,7 @@ def _maybe_return_indexers(meth: F) -> F:
             ridx = ensure_platform_int(ridx)
         return join_index, lidx, ridx
 
-    return cast(F, join)
+    return cast("F", join)
 
 
 def _new_Index(cls, d):
@@ -874,7 +864,7 @@ class Index(IndexOpsMixin, PandasObject):
             elif self._engine_type is libindex.ObjectEngine:
                 return libindex.ExtensionEngine(target_values)
 
-        target_values = cast(np.ndarray, target_values)
+        target_values = cast("np.ndarray", target_values)
         # to avoid a reference cycle, bind `target_values` to a local variable, so
         # `self` is not passed into the lambda.
         if target_values.dtype == bool:
@@ -1179,52 +1169,6 @@ class Index(IndexOpsMixin, PandasObject):
             result._references.add_index_reference(result)
         return result
 
-    _index_shared_docs["take"] = """
-        Return a new %(klass)s of the values selected by the indices.
-
-        For internal compatibility with numpy arrays.
-
-        Parameters
-        ----------
-        indices : array-like
-            Indices to be taken.
-        axis : {0 or 'index'}, optional
-            The axis over which to select values, always 0 or 'index'.
-        allow_fill : bool, default True
-            How to handle negative values in `indices`.
-
-            * False: negative values in `indices` indicate positional indices
-                from the right (the default). This is similar to
-                :func:`numpy.take`.
-
-            * True: negative values in `indices` indicate
-                missing values. These values are set to `fill_value`. Any other
-                other negative values raise a ``ValueError``.
-
-        fill_value : scalar, default None
-            If allow_fill=True and fill_value is not None, indices specified by
-            -1 are regarded as NA. If Index doesn't hold NA, raise ValueError.
-        **kwargs
-            Required for compatibility with numpy.
-
-        Returns
-        -------
-        Index
-            An index formed of elements at the given indices. Will be the same
-            type as self, except for RangeIndex.
-
-        See Also
-        --------
-        numpy.ndarray.take: Return an array formed from the
-            elements of a at the given indices.
-
-        Examples
-        --------
-        >>> idx = pd.Index(['a', 'b', 'c'])
-        >>> idx.take([2, 2, 1, 2])
-        Index(['c', 'c', 'b', 'c'], dtype='str')
-        """
-
     def take(
         self,
         indices,
@@ -1522,7 +1466,7 @@ class Index(IndexOpsMixin, PandasObject):
     def _mpl_repr(self) -> np.ndarray:
         # how to represent ourselves to matplotlib
         if isinstance(self.dtype, np.dtype) and self.dtype.kind != "M":
-            return cast(np.ndarray, self.values)
+            return cast("np.ndarray", self.values)
         return self.astype(object, copy=False)._values
 
     _default_na_rep = "NaN"
@@ -1714,6 +1658,9 @@ class Index(IndexOpsMixin, PandasObject):
     ) -> DataFrame:
         """
         Create a DataFrame with a column containing the Index.
+
+        This method wraps the Index values into a single-column DataFrame,
+        optionally preserving the original Index as the new DataFrame's index.
 
         Parameters
         ----------
@@ -4514,7 +4461,7 @@ class Index(IndexOpsMixin, PandasObject):
         ridx: np.ndarray | None
 
         if len(other):
-            how = cast(JoinHow, {"left": "right", "right": "left"}.get(how, how))
+            how = cast("JoinHow", {"left": "right", "right": "left"}.get(how, how))
             join_index, ridx, lidx = other._join_empty(self, how, sort)
         elif how in ["left", "outer"]:
             if sort and not self.is_monotonic_increasing:
@@ -4793,7 +4740,7 @@ class Index(IndexOpsMixin, PandasObject):
 
             if keep_order:  # just drop missing values. o.w. keep order
                 left_indexer = np.arange(len(left), dtype=np.intp)
-                left_indexer = cast(np.ndarray, left_indexer)
+                left_indexer = cast("np.ndarray", left_indexer)
                 mask = new_lev_codes != -1
                 if not mask.all():
                     new_codes = [lab[mask] for lab in new_codes]
@@ -5674,7 +5621,7 @@ class Index(IndexOpsMixin, PandasObject):
             if not isinstance(other, type(self)):
                 return False
 
-            earr = cast(ExtensionArray, self._data)
+            earr = cast("ExtensionArray", self._data)
             return earr.equals(other._data)
 
         if isinstance(other.dtype, ExtensionDtype):
@@ -5975,7 +5922,7 @@ class Index(IndexOpsMixin, PandasObject):
                 items=self, ascending=ascending, na_position=na_position, key=key
             )
         else:
-            idx = cast(Index, ensure_key_mapped(self, key))
+            idx = cast("Index", ensure_key_mapped(self, key))
             _as = idx.argsort(na_position=na_position)
             if not ascending:
                 _as = _as[::-1]
@@ -6104,59 +6051,6 @@ class Index(IndexOpsMixin, PandasObject):
             "floating",
             "complex",
         }
-
-    _index_shared_docs["get_indexer_non_unique"] = """
-        Compute indexer and mask for new index given the current index.
-
-        The indexer should be then used as an input to ndarray.take to align the
-        current data to the new index.
-
-        Parameters
-        ----------
-        target : %(target_klass)s
-            An iterable containing the values to be used for computing indexer.
-
-        Returns
-        -------
-        indexer : np.ndarray[np.intp]
-            Integers from 0 to n - 1 indicating that the index at these
-            positions matches the corresponding target values. Missing values
-            in the target are marked by -1.
-        missing : np.ndarray[np.intp]
-            An indexer into the target of the values not found.
-            These correspond to the -1 in the indexer array.
-
-        See Also
-        --------
-        Index.get_indexer : Computes indexer and mask for new index given
-            the current index.
-        Index.get_indexer_for : Returns an indexer even when non-unique.
-
-        Examples
-        --------
-        >>> index = pd.Index(['c', 'b', 'a', 'b', 'b'])
-        >>> index.get_indexer_non_unique(['b', 'b'])
-        (array([1, 3, 4, 1, 3, 4]), array([], dtype=int64))
-
-        In the example below there are no matched values.
-
-        >>> index = pd.Index(['c', 'b', 'a', 'b', 'b'])
-        >>> index.get_indexer_non_unique(['q', 'r', 't'])
-        (array([-1, -1, -1]), array([0, 1, 2]))
-
-        For this reason, the returned ``indexer`` contains only integers equal to -1.
-        It demonstrates that there's no match between the index and the ``target``
-        values at these positions. The mask [0, 1, 2] in the return value shows that
-        the first, second, and third elements are missing.
-
-        Notice that the return value is a tuple contains two items. In the example
-        below the first item is an array of locations in ``index``. The second
-        item is a mask shows that the first and third elements are missing.
-
-        >>> index = pd.Index(['c', 'b', 'a', 'b', 'b'])
-        >>> index.get_indexer_non_unique(['f', 'b', 's'])
-        (array([-1,  1,  3,  4, -1]), array([0, 2]))
-        """
 
     def get_indexer_non_unique(
         self, target

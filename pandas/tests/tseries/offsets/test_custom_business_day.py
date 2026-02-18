@@ -97,3 +97,9 @@ class TestCustomBusinessDay:
         cday0_14_1 = read_pickle(pth)
         cday = CDay(holidays=hdays)
         assert cday == cday0_14_1
+
+    def test_cbd_raises_if_calendar_not_busdaycalendar(self):
+        # GH#60647
+        msg = "Custom subclasses only accept np.busdaycalendar."
+        with pytest.raises(TypeError, match=msg):
+            CDay(calendar=object())

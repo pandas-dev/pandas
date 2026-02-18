@@ -510,7 +510,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             # Nanosecond-granularity timestamps aren't always correctly
             # representable with doubles, so we limit the range that we
             # pass to np.linspace as much as possible
-            periods = cast(int, periods)
+            periods = cast("int", periods)
             i8values = (
                 np.linspace(0, end._value - start._value, periods, dtype="int64")
                 + start._value
@@ -594,6 +594,10 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     def tz(self) -> tzinfo | None:
         """
         Return the timezone.
+
+        This property returns the timezone information associated with the
+        datetime data. If the data is timezone-naive (i.e. has no timezone
+        information), it returns None.
 
         Returns
         -------
@@ -860,6 +864,10 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     def tz_convert(self, tz) -> Self:
         """
         Convert tz-aware Datetime Array/Index from one time zone to another.
+
+        This method converts datetime values from their current timezone to a
+        different timezone. The underlying UTC time remains the same, only the
+        local time representation changes to reflect the target timezone.
 
         Parameters
         ----------
@@ -1131,6 +1139,10 @@ default 'raise'
         """
         Return an ndarray of ``datetime.datetime`` objects.
 
+        This method converts each element in the DatetimeArray to a native
+        Python ``datetime.datetime`` object, including timezone information
+        if present.
+
         Returns
         -------
         numpy.ndarray
@@ -1288,6 +1300,10 @@ default 'raise'
         """
         Return the month names with specified locale.
 
+        This method returns the full name of the month (e.g., "January", "February")
+        for each datetime value in the Series/Index. The names can be localized
+        to different languages using the locale parameter.
+
         Parameters
         ----------
         locale : str, optional
@@ -1355,6 +1371,10 @@ default 'raise'
     def day_name(self, locale=None) -> npt.NDArray[np.object_]:
         """
         Return the day names with specified locale.
+
+        This method returns the full name of the day of the week (e.g., "Monday",
+        "Tuesday") for each datetime value in the Series/Index. The names can be
+        localized to different languages using the locale parameter.
 
         Parameters
         ----------
@@ -1555,6 +1575,10 @@ default 'raise'
         """
         Calculate year, week, and day according to the ISO 8601 standard.
 
+        The ISO 8601 standard defines the first week of the year as the week
+        containing the first Thursday. This method returns a DataFrame with
+        columns for the ISO year, ISO week number, and ISO day of week.
+
         Returns
         -------
         DataFrame
@@ -1600,6 +1624,10 @@ default 'raise'
         """
         The year of the datetime.
 
+        This attribute returns the year component of each datetime value
+        in the Series/Index. The returned values are integers representing
+        the calendar year.
+
         See Also
         --------
         DatetimeIndex.month: The month as January=1, December=12.
@@ -1628,6 +1656,10 @@ default 'raise'
         """
         The month as January=1, December=12.
 
+        This attribute returns the month component of each datetime value
+        in the Series/Index. Months are numbered from 1 (January) through
+        12 (December).
+
         See Also
         --------
         DatetimeIndex.year: The year of the datetime.
@@ -1655,6 +1687,10 @@ default 'raise'
         "D",
         """
         The day of the datetime.
+
+        This attribute returns the day of the month component of each
+        datetime value in the Series/Index. Values range from 1 to 31,
+        depending on the month.
 
         See Also
         --------
@@ -1685,6 +1721,10 @@ default 'raise'
         """
         The hours of the datetime.
 
+        This attribute returns the hour component of each datetime value
+        in the Series/Index. Values range from 0 to 23, representing the
+        hour of the day in 24-hour format.
+
         See Also
         --------
         DatetimeIndex.day: The day of the datetime.
@@ -1714,6 +1754,9 @@ default 'raise'
         """
         The minutes of the datetime.
 
+        This attribute returns the minute component of each datetime value
+        in the Series/Index. Values range from 0 to 59.
+
         See Also
         --------
         DatetimeIndex.hour: The hours of the datetime.
@@ -1741,6 +1784,9 @@ default 'raise'
         "s",
         """
         The seconds of the datetime.
+
+        This attribute returns the second component of each datetime value
+        in the Series/Index. Values range from 0 to 59.
 
         See Also
         --------
@@ -1771,6 +1817,10 @@ default 'raise'
         """
         The microseconds of the datetime.
 
+        This attribute returns the microsecond component of each datetime
+        value in the Series/Index. Values range from 0 to 999999
+        (one microsecond is one millionth of a second).
+
         See Also
         --------
         DatetimeIndex.second: The seconds of the datetime.
@@ -1798,6 +1848,10 @@ default 'raise'
         "ns",
         """
         The nanoseconds of the datetime.
+
+        This attribute returns the nanosecond component of each datetime
+        value in the Series/Index. Values range from 0 to 999
+        (one nanosecond is one billionth of a second).
 
         See Also
         --------
@@ -1865,6 +1919,9 @@ default 'raise'
         """
         The ordinal day of the year.
 
+        This attribute returns the day of the year for each datetime value
+        in the Series/Index. Values range from 1 to 365 (or 366 for leap years).
+
         See Also
         --------
         DatetimeIndex.dayofweek : The day of the week with Monday=0, Sunday=6.
@@ -1899,6 +1956,11 @@ default 'raise'
         "q",
         """
         The quarter of the date.
+
+        This attribute returns the quarter of the year for each datetime value
+        in the Series/Index. Quarter 1 includes January through March, quarter 2
+        includes April through June, quarter 3 includes July through September,
+        and quarter 4 includes October through December.
 
         See Also
         --------
@@ -1935,6 +1997,10 @@ default 'raise'
         """
         The number of days in the month.
 
+        This attribute returns the total number of days in the month for each
+        datetime value in the Series/Index. The value depends on the month and
+        whether the year is a leap year (e.g., February has 29 days in a leap year).
+
         See Also
         --------
         Series.dt.day : Return the day of the month.
@@ -1961,6 +2027,9 @@ default 'raise'
     daysinmonth = days_in_month
     _is_month_doc = """
         Indicates whether the date is the {first_or_last} day of the month.
+
+        This boolean attribute evaluates to True if the date falls on the
+        {first_or_last} day of a calendar month, and False otherwise.
 
         Returns
         -------
@@ -2017,6 +2086,10 @@ default 'raise'
         """
         Indicator for whether the date is the first day of a quarter.
 
+        This boolean attribute evaluates to True if the date falls on the
+        first day of a calendar quarter (January 1, April 1, July 1, or
+        October 1), and False otherwise.
+
         Returns
         -------
         is_quarter_start : Series or DatetimeIndex
@@ -2059,6 +2132,10 @@ default 'raise'
         """
         Indicator for whether the date is the last day of a quarter.
 
+        This boolean attribute evaluates to True if the date falls on the
+        last day of a calendar quarter (March 31, June 30, September 30, or
+        December 31), and False otherwise.
+
         Returns
         -------
         is_quarter_end : Series or DatetimeIndex
@@ -2100,6 +2177,9 @@ default 'raise'
         "is_year_start",
         """
         Indicate whether the date is the first day of a year.
+
+        This boolean attribute evaluates to True if the date is January 1st,
+        and False otherwise.
 
         Returns
         -------
@@ -2170,6 +2250,9 @@ default 'raise'
         "is_year_end",
         """
         Indicate whether the date is the last day of the year.
+
+        This boolean attribute evaluates to True if the date is December 31st,
+        and False otherwise.
 
         Returns
         -------
@@ -2260,7 +2343,7 @@ default 'raise'
 
     def to_julian_date(self) -> npt.NDArray[np.float64]:
         """
-        Convert TimeStamp to a Julian Date.
+        Convert Timestamp to a Julian Date.
 
         This method returns the number of days as a float since noon January 1, 4713 BC.
 
@@ -2453,7 +2536,7 @@ def _sequence_to_dt64(
     if data_dtype == object or is_string_dtype(data_dtype):
         # TODO: We do not have tests specific to string-dtypes,
         #  also complex or categorical or other extension
-        data = cast(np.ndarray, data)
+        data = cast("np.ndarray", data)
         copy = False
         if lib.infer_dtype(data, skipna=False) == "integer":
             # Much more performant than going through array_to_datetime
@@ -2498,7 +2581,7 @@ def _sequence_to_dt64(
     # so we need to handle these types.
     if isinstance(data_dtype, DatetimeTZDtype):
         # DatetimeArray -> ndarray
-        data = cast(DatetimeArray, data)
+        data = cast("DatetimeArray", data)
         tz = _maybe_infer_tz(tz, data.tz)
         result = data._ndarray
 
@@ -2507,7 +2590,7 @@ def _sequence_to_dt64(
         if isinstance(data, DatetimeArray):
             data = data._ndarray
 
-        data = cast(np.ndarray, data)
+        data = cast("np.ndarray", data)
         result, copy = _construct_from_dt64_naive(
             data, tz=tz, copy=copy, ambiguous=ambiguous
         )
@@ -2518,7 +2601,7 @@ def _sequence_to_dt64(
         if data.dtype != INT64_DTYPE:
             data = data.astype(np.int64, copy=False)
             copy = False
-        data = cast(np.ndarray, data)
+        data = cast("np.ndarray", data)
         result = data.view(out_dtype)
 
     if copy:
@@ -2783,7 +2866,7 @@ def _validate_dt64_dtype(dtype):
             # Without this, things like adding an array of timedeltas and
             # a  tz-aware Timestamp (with a tz specific to its datetime) will
             # be incorrect(ish?) for the array as a whole
-            dtype = cast(DatetimeTZDtype, dtype)
+            dtype = cast("DatetimeTZDtype", dtype)
             dtype = DatetimeTZDtype(
                 unit=dtype.unit, tz=timezones.tz_standardize(dtype.tz)
             )
@@ -3008,8 +3091,8 @@ def _generate_range(
         # argument type "None"
         start = end - (periods - 1) * offset  # type: ignore[operator]
 
-    start = cast(Timestamp, start)
-    end = cast(Timestamp, end)
+    start = cast("Timestamp", start)
+    end = cast("Timestamp", end)
 
     cur = start
     if offset.n >= 0:
