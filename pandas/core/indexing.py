@@ -2527,20 +2527,28 @@ class _iLocIndexer(_LocationIndexer):
 
         ilocs = self._ensure_iterable_column_indexer(indexer[1])
 
-        if not is_array_like(value):
-            # cast lists to array
-            value = np.array(value, dtype=object)
-        if len(ilocs) != value.shape[1]:
-            raise ValueError(
-                "Must have equal len keys and value when setting with an ndarray"
-            )
-
-        for i, loc in enumerate(ilocs):
-            value_col = value[:, i]
-            if is_object_dtype(value_col.dtype):
-                # casting to list so that we do type inference in setitem_single_column
-                value_col = value_col.tolist()
-            self._setitem_single_column(loc, value_col, pi)
+        if isinstance(value, list):
+            # Extract columns directly from the list-of-lists instead of
+            # converting to an object array and back (list → array → .tolist()).
+            if len(ilocs) != len(value[0]):
+                raise ValueError(
+                    "Must have equal len keys and value when setting with an ndarray"
+                )
+            for i, loc in enumerate(ilocs):
+                value_col = [row[i] for row in value]
+                self._setitem_single_column(loc, value_col, pi)
+        else:
+            if not is_array_like(value):
+                value = np.asarray(value)
+            if len(ilocs) != value.shape[1]:
+                raise ValueError(
+                    "Must have equal len keys and value when setting with an ndarray"
+                )
+            for i, loc in enumerate(ilocs):
+                value_col = value[:, i]
+                if is_object_dtype(value_col.dtype):
+                    value_col = value_col.tolist()
+                self._setitem_single_column(loc, value_col, pi)
 
     def _setitem_with_indexer_frame_value(
         self, indexer, value: DataFrame, name: str
