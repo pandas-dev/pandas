@@ -2961,6 +2961,157 @@ def test_dt_timedelta_total_seconds():
     tm.assert_series_equal(result, expected)
 
 
+def test_dt_timedelta_components():
+    # Test that .dt.components returns correct values for Arrow duration arrays
+    ser = pd.Series(
+        [
+            pd.Timedelta(days=5, hours=3, minutes=2, seconds=1, milliseconds=4),
+            pd.Timedelta(days=0, hours=23, minutes=59, seconds=59),
+            None,
+        ],
+        dtype=ArrowDtype(pa.duration("ns")),
+    )
+    result = ser.dt.components
+    expected = pd.DataFrame(
+        {
+            "days": pd.array([5, 0, None], dtype="Int32[pyarrow]"),
+            "hours": pd.array([3, 23, None], dtype="Int32[pyarrow]"),
+            "minutes": pd.array([2, 59, None], dtype="Int32[pyarrow]"),
+            "seconds": pd.array([1, 59, None], dtype="Int32[pyarrow]"),
+            "milliseconds": pd.array([4, 0, None], dtype="Int32[pyarrow]"),
+            "microseconds": pd.array([0, 0, None], dtype="Int32[pyarrow]"),
+            "nanoseconds": pd.array([0, 0, None], dtype="Int32[pyarrow]"),
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_dt_timedelta_negative_durations():
+    # Test negative durations match pandas behavior
+    # In pandas, -22h 57m 57s is represented as -1 day + 1h 2m 3s
+    ser_arrow = pd.Series(
+        [
+            pd.Timedelta(hours=-22, minutes=-57, seconds=-57),  # = -1 day + 1h 2m 3s
+            pd.Timedelta(days=-2, hours=5),  # = -2 days + 5h
+            pd.Timedelta(days=-1),  # exactly -1 day
+            pd.Timedelta(nanoseconds=-1),  # = -1 day + 23:59:59.999999999
+        ],
+        dtype=ArrowDtype(pa.duration("ns")),
+    )
+    ser_numpy = pd.Series(
+        [
+            pd.Timedelta(hours=-22, minutes=-57, seconds=-57),
+            pd.Timedelta(days=-2, hours=5),
+            pd.Timedelta(days=-1),
+            pd.Timedelta(nanoseconds=-1),
+        ]
+    )
+
+    # Compare components
+    result = ser_arrow.dt.components
+    expected = ser_numpy.dt.components.astype("Int32[pyarrow]")
+    tm.assert_frame_equal(result, expected)
+
+
+def test_dt_timedelta_negative_boundaries():
+    # Test boundary cases: -1 of each unit
+    ser_arrow = pd.Series(
+        [
+            pd.Timedelta(nanoseconds=-1),
+            pd.Timedelta(microseconds=-1),
+            pd.Timedelta(milliseconds=-1),
+            pd.Timedelta(seconds=-1),
+            pd.Timedelta(minutes=-1),
+            pd.Timedelta(hours=-1),
+            pd.Timedelta(days=-1),
+            pd.Timedelta(days=-1, nanoseconds=-1),  # -1 day - 1ns
+            None,
+        ],
+        dtype=ArrowDtype(pa.duration("ns")),
+    )
+    ser_numpy = pd.Series(
+        [
+            pd.Timedelta(nanoseconds=-1),
+            pd.Timedelta(microseconds=-1),
+            pd.Timedelta(milliseconds=-1),
+            pd.Timedelta(seconds=-1),
+            pd.Timedelta(minutes=-1),
+            pd.Timedelta(hours=-1),
+            pd.Timedelta(days=-1),
+            pd.Timedelta(days=-1, nanoseconds=-1),
+            pd.NaT,
+        ]
+    )
+
+    # Compare .dt.days
+    result_days = ser_arrow.dt.days
+    expected_days = pd.Series(ser_numpy.dt.days.values, dtype="Int32[pyarrow]").where(
+        ser_arrow.notna(), pd.NA
+    )
+    tm.assert_series_equal(result_days, expected_days)
+
+    # Compare components
+    result = ser_arrow.dt.components
+    expected = ser_numpy.dt.components.astype("Int32[pyarrow]")
+    tm.assert_frame_equal(result, expected)
+
+
+def test_dt_timedelta_mixed_signs_with_nulls():
+    # Test mixed positive/negative values with nulls interspersed
+    ser_arrow = pd.Series(
+        [
+            pd.Timedelta(days=1, hours=2, minutes=3),
+            None,
+            pd.Timedelta(hours=-5, minutes=-30),
+            pd.Timedelta(days=0),
+            None,
+            pd.Timedelta(days=-100, hours=12),
+        ],
+        dtype=ArrowDtype(pa.duration("ns")),
+    )
+    ser_numpy = pd.Series(
+        [
+            pd.Timedelta(days=1, hours=2, minutes=3),
+            pd.NaT,
+            pd.Timedelta(hours=-5, minutes=-30),
+            pd.Timedelta(days=0),
+            pd.NaT,
+            pd.Timedelta(days=-100, hours=12),
+        ]
+    )
+
+    result = ser_arrow.dt.components
+    expected = ser_numpy.dt.components.astype("Int32[pyarrow]")
+    tm.assert_frame_equal(result, expected)
+
+
+def test_dt_timedelta_accessors_match_python_timedelta():
+    # Test that .dt.days, .dt.seconds, .dt.microseconds match Python timedelta
+    # semantics (total sub-day seconds, total sub-second microseconds)
+    from datetime import timedelta as pytimedelta
+
+    td = pytimedelta(
+        days=1, hours=2, minutes=3, seconds=45, milliseconds=678, microseconds=123
+    )
+    ser = pd.Series([pd.Timedelta(td), None], dtype=ArrowDtype(pa.duration("ns")))
+
+    # .dt.days should match Python timedelta.days
+    assert ser.dt.days.iloc[0] == td.days
+
+    # .dt.seconds should be total seconds in sub-day portion (0-86399)
+    # = hours*3600 + minutes*60 + seconds = 2*3600 + 3*60 + 45 = 7425
+    assert ser.dt.seconds.iloc[0] == td.seconds
+
+    # .dt.microseconds should be total microseconds in sub-second portion (0-999999)
+    # = milliseconds*1000 + microseconds = 678*1000 + 123 = 678123
+    assert ser.dt.microseconds.iloc[0] == td.microseconds
+
+    # Null handling
+    assert pd.isna(ser.dt.days.iloc[1])
+    assert pd.isna(ser.dt.seconds.iloc[1])
+    assert pd.isna(ser.dt.microseconds.iloc[1])
+
+
 def test_dt_to_pytimedelta():
     # GH 52284
     data = [timedelta(1, 2, 3), timedelta(1, 2, 4)]
@@ -3036,6 +3187,39 @@ def test_dt_components_large_values():
         dtype="int32[pyarrow]",
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_dt_day_remainder_cache_invalidation():
+    # Test that _dt_day_remainder cache is invalidated after __setitem__
+    ser = pd.Series(
+        [pd.Timedelta("1 days 1:02:03"), pd.Timedelta("2 days 4:05:06")],
+        dtype=ArrowDtype(pa.duration("ns")),
+    )
+    arr = ser.array
+
+    # Access to cache the day remainder and verify initial values
+    result_before = pd.Series(arr._dt_seconds, dtype="int32[pyarrow]")
+    expected_before = pd.Series(
+        [1 * 3600 + 2 * 60 + 3, 4 * 3600 + 5 * 60 + 6], dtype="int32[pyarrow]"
+    )
+    tm.assert_series_equal(result_before, expected_before)
+    assert "_dt_day_remainder" in arr.__dict__
+
+    # Modify the array
+    arr[0] = pd.Timedelta("3 days 7:08:09")
+
+    # Cache should be invalidated
+    assert "_dt_day_remainder" not in arr.__dict__
+
+    # Accessing again should give correct (recomputed) values, not stale cached values
+    result_after = pd.Series(arr._dt_seconds, dtype="int32[pyarrow]")
+    expected_after = pd.Series(
+        [7 * 3600 + 8 * 60 + 9, 4 * 3600 + 5 * 60 + 6], dtype="int32[pyarrow]"
+    )
+    tm.assert_series_equal(result_after, expected_after)
+
+    # Verify the first value actually changed (not returning stale cache)
+    assert result_after.iloc[0] != result_before.iloc[0]
 
 
 @pytest.mark.parametrize("skipna", [True, False])

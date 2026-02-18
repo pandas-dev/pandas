@@ -2447,6 +2447,8 @@ class ArrowExtensionArray(
         if isinstance(data, pa.Array):
             data = pa.chunked_array([data])
         self._pa_array = data
+        # Invalidate any cached properties that depend on _pa_array
+        self.__dict__.pop("_dt_day_remainder", None)
 
     def _rank_calc(
         self,
@@ -3022,75 +3024,228 @@ class ArrowExtensionArray(
             return type(self)(pa.chunked_array(result))
         return type(self)(pc.utf8_zfill(self._pa_array, width))
 
+    # Conversion factors for duration units to various time components.
+    # Maps component -> {unit: divisor} to extract that component from the unit.
+    _DURATION_DIVISORS: dict[str, dict[str, int]] = {
+        "day": {
+            "s": 86400,
+            "ms": 86_400_000,
+            "us": 86_400_000_000,
+            "ns": 86_400_000_000_000,
+        },
+        "hour": {
+            "s": 3600,
+            "ms": 3_600_000,
+            "us": 3_600_000_000,
+            "ns": 3_600_000_000_000,
+        },
+        "minute": {"s": 60, "ms": 60_000, "us": 60_000_000, "ns": 60_000_000_000},
+        "second": {"s": 1, "ms": 1_000, "us": 1_000_000, "ns": 1_000_000_000},
+        "millisecond": {"ms": 1, "us": 1_000, "ns": 1_000_000},
+        "microsecond": {"us": 1, "ns": 1_000},
+        "nanosecond": {"ns": 1},
+    }
+
+    @staticmethod
+    def _dt_floor_div_int64(arr: pa.Array, divisor: int) -> pa.Array:
+        """
+        Floor division for int64 arrays, handling negative values correctly.
+
+        PyArrow's pc.divide truncates toward zero, but we need floor division
+        (toward negative infinity) to match pandas behavior for negative durations.
+
+        Uses a fast path for all-positive arrays (the common case).
+
+        Parameters
+        ----------
+        arr : pa.Array
+            Array already cast to int64.
+        divisor : int
+            The divisor for floor division.
+        """
+        # Fast path: if all values are non-negative, truncation equals floor
+        min_scalar = pc.min(arr)
+        if not min_scalar.is_valid or min_scalar.as_py() >= 0:
+            return pc.divide(arr, divisor)
+        # Slow path: handle negative values properly
+        # Truncated division (toward zero)
+        trunc_div = pc.divide(arr, divisor)
+        # Remainder with same sign as dividend
+        remainder = pc.subtract(arr, pc.multiply(trunc_div, divisor))
+        # Adjust for negative values with non-zero remainder:
+        # floor(a/b) = trunc(a/b) - 1 when a < 0 and remainder != 0
+        is_negative = pc.less(arr, 0)
+        has_remainder = pc.not_equal(remainder, 0)
+        needs_adjustment = pc.and_(is_negative, has_remainder)
+        adjustment = pc.if_else(needs_adjustment, 1, 0)
+        return pc.subtract(trunc_div, adjustment)
+
+    def _dt_floor_div(self, divisor: int) -> pa.Array:
+        """
+        Floor division for duration arrays.
+
+        Convenience wrapper that casts to int64 first.
+        """
+        arr = self._pa_array.cast(pa.int64())
+        return self._dt_floor_div_int64(arr, divisor)
+
+    @functools.cached_property
+    def _dt_day_remainder(self) -> pa.Array:
+        """
+        Return the remainder after removing full days, always non-negative.
+
+        For negative durations like -22h 57m 57s (= -1 day + 1h 2m 3s),
+        this returns the positive offset from the day boundary.
+
+        This is cached because it's used by all sub-day component accessors.
+        """
+        unit = self._pa_array.type.unit
+        divisor = self._DURATION_DIVISORS["day"][unit]
+        arr = self._pa_array.cast(pa.int64())
+        days = self._dt_floor_div(divisor)
+        # remainder = arr - days * divisor (always non-negative)
+        return pc.subtract(arr, pc.multiply(days, divisor))
+
+    def _dt_subday_component(self, component: str, modulo: int) -> Self:
+        """
+        Extract a sub-day component (hours, minutes, etc.) from the day remainder.
+
+        The remainder is always non-negative, so we can use integer division.
+        """
+        unit = self._pa_array.type.unit
+        divisors = self._DURATION_DIVISORS[component]
+        # For units coarser than this component, the result is always 0
+        if unit not in divisors:
+            return self._from_pyarrow_array(
+                pc.if_else(
+                    pc.is_null(self._pa_array),
+                    pa.scalar(None, type=pa.int32()),
+                    pa.scalar(0, type=pa.int32()),
+                )
+            )
+        remainder = self._dt_day_remainder
+        # Integer division is fine here since remainder is non-negative
+        result = pc.divide(remainder, divisors[unit])
+        # result % modulo (PyArrow lacks a modulo kernel, so we use div/mul/sub)
+        quotient = pc.divide(result, modulo)
+        result = pc.subtract(result, pc.multiply(quotient, modulo))
+        return self._from_pyarrow_array(result.cast(pa.int32()))
+
     @property
     def _dt_days(self) -> Self:
-        return self._from_pyarrow_array(
-            pa.array(
-                self._to_timedeltaarray().components.days,
-                from_pandas=True,
-                type=pa.int32(),
-            )
-        )
+        unit = self._pa_array.type.unit
+        result = self._dt_floor_div(self._DURATION_DIVISORS["day"][unit])
+        return self._from_pyarrow_array(result.cast(pa.int32()))
 
     @property
     def _dt_hours(self) -> Self:
-        return self._from_pyarrow_array(
-            pa.array(
-                self._to_timedeltaarray().components.hours,
-                from_pandas=True,
-                type=pa.int32(),
-            )
-        )
+        return self._dt_subday_component("hour", modulo=24)
 
     @property
     def _dt_minutes(self) -> Self:
-        return self._from_pyarrow_array(
-            pa.array(
-                self._to_timedeltaarray().components.minutes,
-                from_pandas=True,
-                type=pa.int32(),
-            )
-        )
+        return self._dt_subday_component("minute", modulo=60)
 
     @property
     def _dt_seconds(self) -> Self:
-        return self._from_pyarrow_array(
-            pa.array(
-                self._to_timedeltaarray().components.seconds,
-                from_pandas=True,
-                type=pa.int32(),
+        # Total seconds in sub-day portion (0-86399), per Python timedelta semantics
+        unit = self._pa_array.type.unit
+        divisors = self._DURATION_DIVISORS
+        if unit not in divisors["second"]:
+            # Unit is coarser than seconds, result is always 0
+            return self._from_pyarrow_array(
+                pc.if_else(
+                    pc.is_null(self._pa_array),
+                    pa.scalar(None, type=pa.int32()),
+                    pa.scalar(0, type=pa.int32()),
+                )
             )
-        )
+        remainder = self._dt_day_remainder
+        # Convert remainder to seconds (no modulo - we want total sub-day seconds)
+        result = pc.divide(remainder, divisors["second"][unit])
+        return self._from_pyarrow_array(result.cast(pa.int32()))
 
     @property
     def _dt_milliseconds(self) -> Self:
-        return self._from_pyarrow_array(
-            pa.array(
-                self._to_timedeltaarray().components.milliseconds,
-                from_pandas=True,
-                type=pa.int32(),
-            )
-        )
+        return self._dt_subday_component("millisecond", modulo=1000)
 
     @property
     def _dt_microseconds(self) -> Self:
-        return self._from_pyarrow_array(
-            pa.array(
-                self._to_timedeltaarray().components.microseconds,
-                from_pandas=True,
-                type=pa.int32(),
+        # Total microseconds in sub-second portion (0-999999), per Python timedelta
+        unit = self._pa_array.type.unit
+        divisors = self._DURATION_DIVISORS
+        if unit not in divisors["microsecond"]:
+            # Unit is coarser than microseconds, result is always 0
+            return self._from_pyarrow_array(
+                pc.if_else(
+                    pc.is_null(self._pa_array),
+                    pa.scalar(None, type=pa.int32()),
+                    pa.scalar(0, type=pa.int32()),
+                )
             )
+        remainder = self._dt_day_remainder
+        # Get sub-second portion: remainder % (divisor for 1 second)
+        second_divisor = divisors["second"][unit]
+        second_quotient = pc.divide(remainder, second_divisor)
+        sub_second = pc.subtract(
+            remainder, pc.multiply(second_quotient, second_divisor)
         )
+        # Convert to microseconds
+        result = pc.divide(sub_second, divisors["microsecond"][unit])
+        return self._from_pyarrow_array(result.cast(pa.int32()))
 
     @property
     def _dt_nanoseconds(self) -> Self:
-        return self._from_pyarrow_array(
-            pa.array(
-                self._to_timedeltaarray().components.nanoseconds,
-                from_pandas=True,
-                type=pa.int32(),
-            )
-        )
+        # Nanoseconds only (0-999), per Python timedelta semantics
+        return self._dt_subday_component("nanosecond", modulo=1000)
+
+    @property
+    def _dt_components(self) -> dict[str, ArrowExtensionArray]:
+        """
+        Return all duration components efficiently in a single pass.
+
+        Computes days and the day remainder once, then extracts all sub-day
+        components from that remainder. This is much faster than calling
+        each _dt_* property individually.
+        """
+        unit = self._pa_array.type.unit
+        divisors = self._DURATION_DIVISORS
+
+        # Cast to int64 once and reuse
+        arr = self._pa_array.cast(pa.int64())
+        day_divisor = divisors["day"][unit]
+
+        # Compute days and remainder once
+        days = self._dt_floor_div_int64(arr, day_divisor)
+        remainder = pc.subtract(arr, pc.multiply(days, day_divisor))
+
+        def extract_component(
+            component: str, modulo: int, from_remainder: pa.Array
+        ) -> ArrowExtensionArray:
+            """Extract a component from the given remainder."""
+            if unit not in divisors[component]:
+                # Unit is coarser than this component, result is always 0
+                return self._from_pyarrow_array(
+                    pc.if_else(
+                        pc.is_null(self._pa_array),
+                        pa.scalar(None, type=pa.int32()),
+                        pa.scalar(0, type=pa.int32()),
+                    )
+                )
+            result = pc.divide(from_remainder, divisors[component][unit])
+            # TODO: revisit once Arrow has a modulo kernel
+            quotient = pc.divide(result, modulo)
+            result = pc.subtract(result, pc.multiply(quotient, modulo))
+            return self._from_pyarrow_array(result.cast(pa.int32()))
+
+        return {
+            "days": self._from_pyarrow_array(days.cast(pa.int32())),
+            "hours": extract_component("hour", 24, remainder),
+            "minutes": extract_component("minute", 60, remainder),
+            "seconds": extract_component("second", 60, remainder),
+            "milliseconds": extract_component("millisecond", 1000, remainder),
+            "microseconds": extract_component("microsecond", 1000, remainder),
+            "nanoseconds": extract_component("nanosecond", 1000, remainder),
+        }
 
     def _dt_to_pytimedelta(self) -> np.ndarray:
         data = self._pa_array.to_pylist()
