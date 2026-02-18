@@ -1321,6 +1321,12 @@ class TestReaders:
         expected["c"] = expected["c"].astype(f"M8[{unit}]")
         tm.assert_frame_equal(actual, expected)
 
+    def test_read_excel_skiprows_callable_all(self, read_ext):
+        # GH 64027
+        actual = pd.read_excel("test1" + read_ext, skiprows=lambda _: True, nrows=1)
+        expected = DataFrame()
+        tm.assert_frame_equal(actual, expected)
+
     def test_read_excel_nrows(self, read_ext):
         # GH 16645
         num_rows_to_pull = 5
