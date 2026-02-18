@@ -633,6 +633,9 @@ cdef class BaseOffset:
         """
         Return a string representing the base frequency.
 
+        .. deprecated:: 3.1.0
+            The ``.name`` property is deprecated. Use ``.freqstr`` instead.
+
         This is typically a short string alias (e.g., 'h' for hourly, 'D' for daily)
         used to identify the offset type, regardless of the `n` multiplier.
 
@@ -646,12 +649,18 @@ cdef class BaseOffset:
 
         Examples
         --------
-        >>> pd.offsets.Hour().name
+        >>> pd.offsets.Hour().name  # doctest: +SKIP
         'h'
 
-        >>> pd.offsets.Hour(5).name
+        >>> pd.offsets.Hour(5).name  # doctest: +SKIP
         'h'
         """
+        warnings.warn(
+            "The 'name' property is deprecated and will be removed in a future "
+            "version. Use 'freqstr' instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return self.rule_code
 
     @property

@@ -93,6 +93,7 @@ Other API changes
 Deprecations
 ~~~~~~~~~~~~
 - Deprecated :meth:`.DataFrameGroupBy.agg` and :meth:`.Resampler.agg` unpacking a scalar when the provided ``func`` returns a Series or array of length 1; in the future this will result in the Series or array being in the result. Users should unpack the scalar in ``func`` itself (:issue:`64014`)
+- Deprecated the ``.name`` property of offset objects (e.g., :class:`~pandas.tseries.offsets.Day`, :class:`~pandas.tseries.offsets.Hour`). Use ``.freqstr`` instead (:issue:`64207`)
 -
 
 .. ---------------------------------------------------------------------------

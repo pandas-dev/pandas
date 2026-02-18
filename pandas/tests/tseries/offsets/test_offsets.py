@@ -947,7 +947,23 @@ def test_month_offset_name(month_classes):
     # GH#33757 off.name with n != 1 should not raise AttributeError
     obj = month_classes(1)
     obj2 = month_classes(2)
-    assert obj2.name == obj.name
+    with tm.assert_produces_warning(FutureWarning, match="name.*deprecated"):
+        assert obj2.name == obj.name
+
+
+def test_offset_name_deprecated():
+    # GH#64207
+    offset = Day(1)
+    with tm.assert_produces_warning(
+        FutureWarning, match="name.*deprecated.*freqstr"
+    ):
+        result = offset.name
+    assert result == "D"
+
+    # freqstr should not raise a warning
+    with tm.assert_produces_warning(None):
+        result = offset.freqstr
+    assert result == "D"
 
 
 @pytest.mark.parametrize("kwd", sorted(liboffsets._relativedelta_kwds))
