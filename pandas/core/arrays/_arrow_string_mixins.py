@@ -424,3 +424,74 @@ class ArrowStringArrayMixin:
             offset_result = pc.add(result, start_offset)
             result = pc.if_else(found, offset_result, -1)
         return self._convert_int_result(result)
+
+    def _str_partition(self, sep: str, expand: bool):
+        """
+        Partition each string around the first occurrence of sep.
+
+        Optimized implementation for expand=True using PyArrow compute functions.
+        For expand=False, falls back to element-wise processing.
+        """
+        if not expand or pa_version_under21p0:
+            predicate = lambda val: val.partition(sep)
+            result = self._apply_elementwise(predicate)
+            return self._from_pyarrow_array(pa.chunked_array(result))
+
+        from pandas import DataFrame
+        from pandas.core.arrays.arrow import ArrowExtensionArray
+
+        pa_array = self._pa_array
+
+        # Handle empty array case
+        if len(pa_array) == 0:
+            return DataFrame()
+
+        str_type = pa_array.type
+
+        # Split on first occurrence
+        split = pc.split_pattern(pa_array, sep, max_splits=1)
+
+        # Determine which rows found the separator
+        lengths = pc.list_value_length(split)
+        found = pc.greater(lengths, 1)
+
+        # Extract before part (always first element)
+        before = pc.list_element(split, 0)
+
+        # Extract after part (join remaining elements after separator)
+        after_list = pc.list_slice(split, 1)
+        if pa.types.is_large_string(str_type):
+            after_list = pc.cast(after_list, pa.list_(pa.string()))
+        after = pc.binary_join(after_list, "")
+        if pa.types.is_large_string(str_type):
+            after = pc.cast(after, pa.large_string())
+
+        # Create separator column (sep if found, empty string otherwise)
+        sep_scalar = pa.scalar(sep, type=str_type)
+        empty_scalar = pa.scalar("", type=str_type)
+        sep_col = pc.if_else(found, sep_scalar, empty_scalar)
+
+        # Combine into flat array then interleave
+        before_arr = before.combine_chunks()
+        sep_arr = sep_col.combine_chunks()
+        after_arr = after.combine_chunks()
+
+        n = len(before_arr)
+
+        # Interleave arrays: [before[0], sep[0], after[0], before[1], ...]
+        interleaved = pa.concat_arrays([before_arr, sep_arr, after_arr])
+
+        # Create interleave indices: [0, n, 2n, 1, n+1, 2n+1, ...]
+        # Using formula: indices[i] = (i // 3) + (i % 3) * n
+        all_idx = pa.arange(0, n * 3)
+        row_part = pc.divide(all_idx, 3)
+        col_part = pc.subtract(all_idx, pc.multiply(row_part, 3))
+        indices = pc.add(row_part, pc.multiply(col_part, n))
+        values = pc.take(interleaved, indices)
+
+        # Create list array with fixed size 3
+        offsets = pa.arange(0, n * 3 + 1, 3)
+        result = pa.ListArray.from_arrays(offsets, values)
+
+        # Return ArrowExtensionArray (result is list<string>, not string type)
+        return ArrowExtensionArray(result)

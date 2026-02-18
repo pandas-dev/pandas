@@ -2890,11 +2890,6 @@ class ArrowExtensionArray(
             result = self._pa_array
         return self._from_pyarrow_array(pc.binary_join(result, sep))
 
-    def _str_partition(self, sep: str, expand: bool) -> Self:
-        predicate = lambda val: val.partition(sep)
-        result = self._apply_elementwise(predicate)
-        return self._from_pyarrow_array(pa.chunked_array(result))
-
     def _str_rpartition(self, sep: str, expand: bool) -> Self:
         predicate = lambda val: val.rpartition(sep)
         result = self._apply_elementwise(predicate)
