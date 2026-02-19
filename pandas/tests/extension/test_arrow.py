@@ -1782,6 +1782,14 @@ def test_str_contains_flags_unsupported():
         ser.str.contains("a", flags=1)
 
 
+def test_str_contains_re2_unicode_escape():
+    # GH 63901
+    ser = pd.Series(["a", "\u0e01", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.contains(r"[\x{0e00}-\x{0e7f}]")
+    expected = pd.Series([False, True, None], dtype=ArrowDtype(pa.bool_()))
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "side, pat, na, exp",
     [
@@ -1836,6 +1844,13 @@ def test_str_replace(pat, repl, n, regex, exp):
     ser = pd.Series(["abac", None], dtype=ArrowDtype(pa.string()))
     result = ser.str.replace(pat, repl, n=n, regex=regex)
     expected = pd.Series(exp, dtype=ArrowDtype(pa.string()))
+    tm.assert_series_equal(result, expected)
+
+
+def test_str_replace_re2_unicode_property():
+    ser = pd.Series(["Jan", "Feb", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.replace(r"\p{Lu}", "U", regex=True)
+    expected = pd.Series(["Uan", "Ueb", None], dtype=ArrowDtype(pa.string()))
     tm.assert_series_equal(result, expected)
 
 

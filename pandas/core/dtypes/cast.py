@@ -138,7 +138,7 @@ def maybe_convert_platform(
         arr = values
 
     if arr.dtype == _dtype_obj:
-        arr = cast(np.ndarray, arr)
+        arr = cast("np.ndarray", arr)
         arr = lib.maybe_convert_objects(arr)
 
     return arr
@@ -283,11 +283,11 @@ def maybe_downcast_to_dtype(result: ArrayLike, dtype: np.dtype) -> ArrayLike:
 
     elif dtype.kind == "m" and result.dtype == _dtype_obj:
         # test_where_downcast_to_td64
-        result = cast(np.ndarray, result)
+        result = cast("np.ndarray", result)
         result = array_to_timedelta64(result)
 
     elif dtype == np.dtype("M8[ns]") and result.dtype == _dtype_obj:
-        result = cast(np.ndarray, result)
+        result = cast("np.ndarray", result)
         return np.asarray(maybe_cast_to_datetime(result, dtype=dtype))
 
     return result

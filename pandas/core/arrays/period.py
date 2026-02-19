@@ -9,7 +9,6 @@ from typing import (
     Self,
     TypeVar,
     cast,
-    overload,
 )
 import warnings
 
@@ -243,7 +242,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
             values = np.array(values, dtype="int64", copy=copy)
         if dtype is None:
             raise ValueError("dtype is not specified and cannot be inferred")
-        dtype = cast(PeriodDtype, dtype)
+        dtype = cast("PeriodDtype", dtype)
         NDArrayBacked.__init__(self, values, dtype)
 
     # error: Signature of "_simple_new" incompatible with supertype "NDArrayBacked"
@@ -269,22 +268,28 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         if dtype is not None:
             dtype = pandas_dtype(dtype)
         if dtype and isinstance(dtype, PeriodDtype):
-            freq = dtype.freq
+            unit = dtype._freqstr
         else:
-            freq = None
+            unit = None
 
         if isinstance(scalars, cls):
-            validate_dtype_freq(scalars.dtype, freq)
+            validate_dtype_freq(scalars.dtype, dtype)
             if copy:
                 scalars = scalars.copy()
             return scalars
 
-        periods = np.asarray(scalars, dtype=object)
+        arrdata = np.asarray(scalars)
+        if arrdata.dtype.kind in "iu":
+            arr = arrdata.astype(np.int64, copy=False)
+            ordinals = libperiod.from_calendar_ordinals(arr, dtype)  # type: ignore[arg-type]
+            return cls(ordinals, dtype=dtype)
+        else:
+            periods = ensure_object(arrdata)
 
-        freq = freq or libperiod.extract_freq(periods)
-        ordinals = libperiod.extract_ordinals(periods, freq)
-        dtype = PeriodDtype(freq)
-        return cls(ordinals, dtype=dtype)
+            unit = unit or libperiod.extract_period_unit(periods)
+            dtype = PeriodDtype(unit)
+            ordinals = libperiod.extract_ordinals(periods, dtype)
+            return cls(ordinals, dtype=dtype)
 
     @classmethod
     def _from_sequence_of_strings(
@@ -361,9 +366,12 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
     def _check_compatible_with(self, other: Period | NaTType | PeriodArray) -> None:  # type: ignore[override]
         if other is NaT:
             return
-        # error: Item "NaTType" of "Period | NaTType | PeriodArray" has no
-        # attribute "freq"
-        self._require_matching_freq(other.freq)  # type: ignore[union-attr]
+        elif isinstance(other, Period):
+            self._require_matching_unit(other._dtype._freqstr)
+        else:
+            # error: Item "NaTType" of "NaTType | PeriodArray" has no
+            # attribute "freq"
+            self._require_matching_unit(other.dtype._freqstr)  # type: ignore[union-attr]
 
     # --------------------------------------------------------------------
     # Data / Attributes
@@ -863,7 +871,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
     # --------------------------------------------------------------------
 
     def _box_func(self, x) -> Period | NaTType:
-        return Period._from_ordinal(ordinal=x, freq=self.freq)
+        return Period._from_ordinal(ordinal=x, dtype=self.dtype)
 
     def asfreq(self, freq=None, how: str = "E") -> Self:
         """
@@ -1038,7 +1046,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         if isinstance(other, Day):
             return self + np.timedelta64(other.n, "D")
 
-        self._require_matching_freq(other, base=True)
+        self._require_matching_unit(other._period_unit, base=True)
         return self._addsub_int_array_or_scalar(other.n, operator.add)
 
     # TODO: can we de-duplicate with Period._add_timedeltalike_scalar?
@@ -1248,6 +1256,7 @@ def period_array(
     Length: 4, dtype: period[Q-DEC]
     """
     data_dtype = getattr(data, "dtype", None)
+    dtype = PeriodDtype(freq) if freq is not None else None
 
     if lib.is_np_dtype(data_dtype, "M"):
         return PeriodArray._from_datetime64(data, freq)
@@ -1261,76 +1270,51 @@ def period_array(
 
     # other iterable of some kind
     if not isinstance(data, (np.ndarray, list, tuple, ABCSeries)):
+        # test_constructor_empty_special has a case with an iter object
         data = list(data)
 
     arrdata = np.asarray(data)
 
-    dtype: PeriodDtype | None
-    if freq:
-        dtype = PeriodDtype(freq)
-    else:
-        dtype = None
-
     if arrdata.dtype.kind == "f" and len(arrdata) > 0:
         raise TypeError("PeriodIndex does not allow floating point in construction")
 
-    if arrdata.dtype.kind in "iu":
-        arr = arrdata.astype(np.int64, copy=False)
-        # error: Argument 2 to "from_ordinals" has incompatible type "Union[str,
-        # Tick, None]"; expected "Union[timedelta, BaseOffset, str]"
-        ordinals = libperiod.from_ordinals(arr, freq)  # type: ignore[arg-type]
-        return PeriodArray(ordinals, dtype=dtype)
-
-    data = ensure_object(arrdata)
-    if freq is None:
-        freq = libperiod.extract_freq(data)
-    dtype = PeriodDtype(freq)
     return PeriodArray._from_sequence(data, dtype=dtype)
 
 
-@overload
-def validate_dtype_freq(dtype, freq: BaseOffsetT) -> BaseOffsetT: ...
-
-
-@overload
-def validate_dtype_freq(dtype, freq: timedelta | str | None) -> BaseOffset: ...
-
-
 def validate_dtype_freq(
-    dtype, freq: BaseOffsetT | BaseOffset | timedelta | str | None
-) -> BaseOffsetT:
+    dtype: DtypeObj | None, dtype2: DtypeObj | None
+) -> PeriodDtype | None:
     """
-    If both a dtype and a freq are available, ensure they match.  If only
-    dtype is available, extract the implied freq.
+    If a dtype is specified both directly and indirectly via a `freq` (dtype2),
+    ensure they match. If only the latter is available, return the indirect dtype.
 
     Parameters
     ----------
     dtype : dtype
-    freq : DateOffset or None
+    dtype2 : PeriodDtype or None
+        Dtype derived from a `freq` passed to the caller.
 
     Returns
     -------
-    freq : DateOffset
+    PeriodDtype or None
 
     Raises
     ------
     ValueError : non-period dtype
     IncompatibleFrequency : mismatch between dtype and freq
     """
-    if freq is not None:
-        freq = to_offset(freq, is_period=True)
-
     if dtype is not None:
-        dtype = pandas_dtype(dtype)
         if not isinstance(dtype, PeriodDtype):
             raise ValueError("dtype must be PeriodDtype")
-        if freq is None:
-            freq = dtype.freq
-        elif freq != dtype.freq:
+        if dtype2 is not None and dtype != dtype2:
             raise IncompatibleFrequency("specified freq and dtype are different")
-    # error: Incompatible return value type (got "Union[BaseOffset, Any, None]",
-    # expected "BaseOffset")
-    return freq  # type: ignore[return-value]
+
+    elif dtype2 is not None:
+        if not isinstance(dtype2, PeriodDtype):
+            raise ValueError("dtype must be PeriodDtype")
+        dtype = dtype2
+
+    return dtype
 
 
 def dt64arr_to_periodarr(
@@ -1446,11 +1430,11 @@ def _range_from_fields(
     if quarter is not None:
         if freq is None:
             freq = to_offset("Q", is_period=True)
-            base = cast(int, FreqGroup.FR_QTR.value)
+            base = cast("int", FreqGroup.FR_QTR.value)
         else:
             freq = to_offset(freq, is_period=True)
             base = libperiod.freq_to_dtype_code(freq)
-            if base != cast(int, FreqGroup.FR_QTR.value):
+            if base != cast("int", FreqGroup.FR_QTR.value):
                 raise AssertionError("base must equal FR_QTR")
 
         freqstr = freq.freqstr
