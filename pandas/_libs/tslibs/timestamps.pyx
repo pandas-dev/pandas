@@ -372,10 +372,10 @@ cdef class _Timestamp(ABCTimestamp):
         Examples
         --------
         >>> pd.Timestamp("2020-01-01 12:34:56").unit
-        's'
+        'us'
 
         >>> pd.Timestamp("2020-01-01 12:34:56.123").unit
-        'ms'
+        'us'
 
         >>> pd.Timestamp("2020-01-01 12:34:56.123456").unit
         'us'
@@ -977,6 +977,8 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Return day of the week.
 
+        Days are numbered Monday=0 through Sunday=6.
+
         Returns
         -------
         int
@@ -999,6 +1001,8 @@ cdef class _Timestamp(ABCTimestamp):
     def day_of_year(self) -> int:
         """
         Return the day of the year.
+
+        Days are numbered from 1 through 365 (or 366 in leap years).
 
         Returns
         -------
@@ -1059,6 +1063,8 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Return the day of the Timestamp.
 
+        Days are numbered from 1 through the number of days in the month.
+
         Returns
         -------
         int
@@ -1081,6 +1087,9 @@ cdef class _Timestamp(ABCTimestamp):
     def fold(self) -> int:
         """
         Return the fold value of the Timestamp.
+
+        The fold attribute is used to disambiguate wall times in a repeated
+        interval during daylight saving time transitions.
 
         Returns
         -------
@@ -1151,6 +1160,8 @@ cdef class _Timestamp(ABCTimestamp):
     def hour(self) -> int:
         """
         Return the hour of the Timestamp.
+
+        Hours are numbered from 0 through 23.
 
         Returns
         -------
@@ -1288,6 +1299,8 @@ cdef class _Timestamp(ABCTimestamp):
     def days_in_month(self) -> int:
         """
         Return the number of days in the month.
+
+        This value depends on the month and whether the year is a leap year.
 
         Returns
         -------
@@ -1529,7 +1542,7 @@ cdef class _Timestamp(ABCTimestamp):
         >>> ts
         Timestamp('2023-01-01 00:00:00.010000')
         >>> ts.unit
-        'ms'
+        'us'
         >>> ts = ts.as_unit('s')
         >>> ts
         Timestamp('2023-01-01 00:00:00')
@@ -1550,6 +1563,8 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Return numpy datetime64 format with same precision.
 
+        This property provides interoperability with NumPy datetime operations.
+
         See Also
         --------
         numpy.datetime64 : Numpy datatype for dates and times with high precision.
@@ -1560,7 +1575,7 @@ cdef class _Timestamp(ABCTimestamp):
         --------
         >>> ts = pd.Timestamp(2020, 3, 14, 15)
         >>> ts.asm8
-        numpy.datetime64('2020-03-14T15:00:00.000000')
+        np.datetime64('2020-03-14T15:00:00.000000')
         """
         return self.to_datetime64()
 
@@ -1667,7 +1682,7 @@ cdef class _Timestamp(ABCTimestamp):
         >>> ts
         Timestamp('2023-01-01 10:00:15')
         >>> ts.to_datetime64()
-        numpy.datetime64('2023-01-01T10:00:15.000000')
+        np.datetime64('2023-01-01T10:00:15.000000')
         """
         # TODO: find a way to construct dt64 directly from _reso
         abbrev = npy_unit_to_abbrev(self._creso)
@@ -1702,12 +1717,12 @@ cdef class _Timestamp(ABCTimestamp):
         --------
         >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
         >>> ts.to_numpy()
-        numpy.datetime64('2020-03-14T15:32:52.192548651')
+        np.datetime64('2020-03-14T15:32:52.192548651')
 
         Analogous for ``pd.NaT``:
 
         >>> pd.NaT.to_numpy()
-        numpy.datetime64('NaT')
+        np.datetime64('NaT')
         """
         if dtype is not None or copy is not False:
             raise ValueError(
@@ -2467,7 +2482,7 @@ class Timestamp(_Timestamp):
         >>> ts
         Timestamp('2023-01-01 10:00:00+0100', tz='Europe/Brussels')
         >>> ts.timetz()
-        datetime.time(10, 0, tzinfo=<DstTzInfo 'Europe/Brussels' CET+1:00:00 STD>)
+        datetime.time(10, 0, tzinfo=zoneinfo.ZoneInfo(key='Europe/Brussels'))
         """
         return super().timetz()
 
@@ -3475,7 +3490,7 @@ default 'raise'
 
     def to_julian_date(self) -> np.float64:
         """
-        Convert TimeStamp to a Julian Date.
+        Convert Timestamp to a Julian Date.
 
         This method returns the number of days as a float since
         0 Julian date, which is noon January 1, 4713 BC.
@@ -3492,25 +3507,31 @@ default 'raise'
         >>> ts.to_julian_date()
         2458923.147824074
         """
+        from pandas.core.dtypes.cast import maybe_unbox_numpy_scalar
+
         year = self._year
         month = self.month
         day = self.day
         if month <= 2:
             year -= 1
             month += 12
-        return (day +
-                np.trunc((153 * month - 457) / 5) +
-                365 * year +
-                np.floor(year / 4) -
-                np.floor(year / 100) +
-                np.floor(year / 400) +
-                1721118.5 +
-                (self.hour +
-                 self.minute / 60.0 +
-                 self.second / 3600.0 +
-                 self.microsecond / 3600.0 / 1e+6 +
-                 self._nanosecond / 3600.0 / 1e+9
-                 ) / 24.0)
+        result = (
+            day +
+            np.trunc((153 * month - 457) / 5) +
+            365 * year +
+            np.floor(year / 4) -
+            np.floor(year / 100) +
+            np.floor(year / 400) +
+            1721118.5 +
+            (self.hour +
+             self.minute / 60.0 +
+             self.second / 3600.0 +
+             self.microsecond / 3600.0 / 1e+6 +
+             self._nanosecond / 3600.0 / 1e+9
+             ) / 24.0
+        )
+        result = maybe_unbox_numpy_scalar(result)
+        return result
 
     def isoweekday(self):
         """

@@ -59,6 +59,7 @@ from pandas._libs.tslibs.ccalendar cimport (
 )
 from pandas._libs.tslibs.conversion cimport localize_pydatetime
 from pandas._libs.tslibs.dtypes cimport (
+    PeriodDtypeBase,
     c_OFFSET_RENAMED_FREQSTR,
     c_OFFSET_TO_PERIOD_FREQSTR,
     c_PERIOD_AND_OFFSET_DEPR_FREQSTR,
@@ -739,6 +740,19 @@ cdef class BaseOffset:
     def _offset_str(self) -> str:
         return ""
 
+    @cache_readonly
+    def _period_unit(self) -> str:
+        """
+        For offsets that are associated with a Period, give that period's freqstr.
+        Otherwise our own freqstr.
+
+        This is used when checking whether we can add this offset to a given
+        Period.
+        """
+        if hasattr(self, "_period_dtype_code"):
+            return PeriodDtypeBase(self._period_dtype_code, self.n)._freqstr
+        return self.freqstr
+
     # ------------------------------------------------------------------
 
     def _apply(self, other):
@@ -783,7 +797,7 @@ cdef class BaseOffset:
         Timestamp is not on the offset (not a month end), so it rolls backward:
 
         >>> offset.rollback(ts)
-        Timestamp('2024-12-31 00:00:00')
+        Timestamp('2024-12-31 09:00:00')
 
         If the timestamp is already on the offset, it remains unchanged:
 
@@ -831,7 +845,7 @@ cdef class BaseOffset:
         Timestamp is not on the offset (not a month end), so it rolls forward:
 
         >>> offset.rollforward(ts)
-        Timestamp('2025-01-31 00:00:00')
+        Timestamp('2025-01-31 09:00:00')
 
         If the timestamp is already on the offset, it remains unchanged:
 
@@ -980,7 +994,7 @@ cdef class BaseOffset:
 
         Examples
         --------
-        >>> pd.offsets.Week(n=1).nanos
+        >>> pd.offsets.Week(n=1).nanos  # doctest: +SKIP
         ValueError: Week: weekday=None is a non-fixed frequency
         """
         raise ValueError(f"{self} is a non-fixed frequency")
@@ -1241,6 +1255,9 @@ cdef class Tick(SingleConstructorOffset):
         """
         Returns an integer of the total number of nanoseconds.
 
+        This property converts the offset duration to nanoseconds for
+        precise time calculations.
+
         See Also
         --------
         tseries.offsets.Hour.nanos :
@@ -1399,6 +1416,11 @@ cdef class Day(SingleConstructorOffset):
     """
     Offset ``n`` days.
 
+    Represents a calendar-day offset for use in arithmetic with
+    :class:`~datetime.datetime`, :class:`~pandas.Timestamp`, or other
+    datetime-like objects. Addition and subtraction shift the value by
+    exactly ``n`` calendar days, with time-of-day preserved.
+
     Attributes
     ----------
     n : int, default 1
@@ -1501,7 +1523,7 @@ cdef class Day(SingleConstructorOffset):
 
         Examples
         --------
-        >>> pd.Day(5).freqstr
+        >>> pd.offsets.Day(5).freqstr
         '5D'
 
         >>> pd.offsets.Day(1).freqstr
@@ -1518,6 +1540,9 @@ cdef class Day(SingleConstructorOffset):
     def nanos(self) -> int64_t:
         """
         Returns an integer of the total number of nanoseconds.
+
+        This property converts the Day offset duration to nanoseconds,
+        for precise calculation.
 
         See Also
         --------
@@ -1537,6 +1562,11 @@ cdef class Day(SingleConstructorOffset):
 cdef class Hour(Tick):
     """
     Offset ``n`` hours.
+
+    Represents a fixed duration of ``n`` hours (3,600 seconds each) for
+    use in arithmetic with datetime-like objects. Unlike calendar-based
+    offsets, the result is deterministic and does not depend on
+    timezone or daylight saving.
 
     Attributes
     ----------
@@ -1574,6 +1604,10 @@ cdef class Minute(Tick):
     """
     Offset ``n`` minutes.
 
+    Represents a fixed duration of ``n`` minutes (60 seconds each) for
+    use in arithmetic with datetime-like objects. Useful for
+    time-series alignment at sub-hour resolution.
+
     Attributes
     ----------
     n : int, default 1
@@ -1610,6 +1644,10 @@ cdef class Second(Tick):
     """
     Offset ``n`` seconds.
 
+    Represents a fixed duration of ``n`` seconds for use in arithmetic
+    with datetime-like objects. The smallest tick offset that does not
+    involve fractional seconds.
+
     Attributes
     ----------
     n : int, default 1
@@ -1645,6 +1683,10 @@ cdef class Second(Tick):
 cdef class Milli(Tick):
     """
     Offset ``n`` milliseconds.
+
+    Represents a fixed duration of ``n`` milliseconds (1/1000 of a
+    second) for use in arithmetic with datetime-like objects. Supports
+    sub-second precision in time-series operations.
 
     Attributes
     ----------
@@ -1683,6 +1725,10 @@ cdef class Micro(Tick):
     """
     Offset ``n`` microseconds.
 
+    Represents a fixed duration of ``n`` microseconds (1/1,000,000 of a
+    second) for use in arithmetic with datetime-like objects. Enables
+    microsecond-level precision in time-series operations.
+
     Attributes
     ----------
     n : int, default 1
@@ -1719,6 +1765,10 @@ cdef class Micro(Tick):
 cdef class Nano(Tick):
     """
     Offset ``n`` nanoseconds.
+
+    Represents a fixed duration of ``n`` nanoseconds (1/1,000,000,000 of
+    a second) for use in arithmetic with datetime-like objects. The
+    finest resolution tick offset, suitable for high-precision timestamps.
 
     Attributes
     ----------
@@ -2701,7 +2751,7 @@ cdef class BusinessHour(BusinessMixin):
                    '2022-12-12 06:00:00', '2022-12-12 07:00:00',
                    '2022-12-12 10:00:00', '2022-12-12 11:00:00',
                    '2022-12-12 15:00:00', '2022-12-12 16:00:00'],
-                   dtype='datetime64[ns]', freq='bh')
+                   dtype='datetime64[us]', freq='bh')
     """
 
     _prefix = "bh"
@@ -3302,6 +3352,9 @@ cdef class WeekOfMonthMixin(SingleConstructorOffset):
         """
         Return a string representing the base frequency.
 
+        This code is used internally to identify the frequency type and
+        includes the week number and weekday information.
+
         See Also
         --------
         tseries.offsets.Hour.rule_code :
@@ -3317,7 +3370,7 @@ cdef class WeekOfMonthMixin(SingleConstructorOffset):
         >>> pd.offsets.WeekOfMonth(n=1, week=0, weekday=0).rule_code
         'WOM-1MON'
         """
-        weekday = int_to_weekday.get(self.weekday, "")
+        weekday = int_to_weekday.get(self._weekday, "")
         if self._week == -1:
             # LastWeekOfMonth
             return f"{self._prefix}-{weekday}"
@@ -3390,6 +3443,9 @@ cdef class YearOffset(SingleConstructorOffset):
     def rule_code(self) -> str:
         """
         Return a string representing the base frequency.
+
+        This code is used internally to identify the frequency type and
+        includes the anchor month information.
 
         See Also
         --------
@@ -3480,6 +3536,9 @@ cdef class BYearEnd(YearOffset):
     """
     DateOffset increments between the last business day of the year.
 
+    This offset moves dates to the last business day of the specified month
+    (default December), skipping weekends.
+
     Attributes
     ----------
     n : int, default 1
@@ -3518,6 +3577,9 @@ cdef class BYearEnd(YearOffset):
 cdef class BYearBegin(YearOffset):
     """
     DateOffset increments between the first business day of the year.
+
+    This offset moves dates to the first business day of the specified month
+    (default January), skipping weekends.
 
     Attributes
     ----------
@@ -3795,7 +3857,7 @@ cdef class QuarterOffset(SingleConstructorOffset):
         >>> qe.rule_code
         'QE-MAR'
         """
-        month = MONTH_ALIASES[self.startingMonth]
+        month = MONTH_ALIASES[self._startingMonth]
         return f"{self._prefix}-{month}"
 
     def is_on_offset(self, dt: datetime) -> bool:
@@ -3831,7 +3893,7 @@ cdef class QuarterOffset(SingleConstructorOffset):
         """
         if self._normalize and not _is_normalized(dt):
             return False
-        mod_month = (dt.month - self.startingMonth) % 3
+        mod_month = (dt.month - self._startingMonth) % 3
         return mod_month == 0 and dt.day == self._get_offset_day(dt)
 
     @apply_wraps
@@ -3841,9 +3903,9 @@ cdef class QuarterOffset(SingleConstructorOffset):
         # Then find the month in that quarter containing an is_on_offset date for
         # self.  `months_since` is the number of months to shift other.month
         # to get to this on-offset month.
-        months_since = other.month % 3 - self.startingMonth % 3
+        months_since = other.month % 3 - self._startingMonth % 3
         qtrs = roll_qtrday(
-            other, self._n, self.startingMonth, day_opt=self._day_opt, modby=3
+            other, self._n, self._startingMonth, day_opt=self._day_opt, modby=3
         )
         months = qtrs * 3 - months_since
         return shift_month(other, months, self._day_opt)
@@ -3853,7 +3915,7 @@ cdef class QuarterOffset(SingleConstructorOffset):
         shifted = shift_quarters(
             dtarr.view("i8"),
             self._n,
-            self.startingMonth,
+            self._startingMonth,
             self._day_opt,
             modby=3,
             reso=reso,
@@ -3981,7 +4043,7 @@ cdef class QuarterEnd(QuarterOffset):
         # Because QuarterEnd can be the freq for a Period, define its
         #  _period_dtype_code at construction for performance
         QuarterOffset.__init__(self, n, normalize, startingMonth)
-        self._period_dtype_code = PeriodDtypeCode.Q_DEC + self.startingMonth % 12
+        self._period_dtype_code = PeriodDtypeCode.Q_DEC + self._startingMonth % 12
 
 
 cdef class QuarterBegin(QuarterOffset):
@@ -4099,7 +4161,7 @@ cdef class HalfYearOffset(SingleConstructorOffset):
         >>> offset.rule_code
         'BHYE-JUN'
         """
-        month = MONTH_ALIASES[self.startingMonth]
+        month = MONTH_ALIASES[self._startingMonth]
         return f"{self._prefix}-{month}"
 
     def is_on_offset(self, dt: datetime) -> bool:
@@ -4143,7 +4205,7 @@ cdef class HalfYearOffset(SingleConstructorOffset):
         """
         if self._normalize and not _is_normalized(dt):
             return False
-        mod_month = (dt.month - self.startingMonth) % 6
+        mod_month = (dt.month - self._startingMonth) % 6
         return mod_month == 0 and dt.day == self._get_offset_day(dt)
 
     @apply_wraps
@@ -4153,9 +4215,9 @@ cdef class HalfYearOffset(SingleConstructorOffset):
         # Then find the month in that half containing an is_on_offset date for
         # self.  `months_since` is the number of months to shift other.month
         # to get to this on-offset month.
-        months_since = other.month % 6 - self.startingMonth % 6
+        months_since = other.month % 6 - self._startingMonth % 6
         hlvs = roll_qtrday(
-            other, self._n, self.startingMonth, day_opt=self._day_opt, modby=6
+            other, self._n, self._startingMonth, day_opt=self._day_opt, modby=6
         )
         months = hlvs * 6 - months_since
         return shift_month(other, months, self._day_opt)
@@ -4165,7 +4227,7 @@ cdef class HalfYearOffset(SingleConstructorOffset):
         shifted = shift_quarters(
             dtarr.view("i8"),
             self._n,
-            self.startingMonth,
+            self._startingMonth,
             self._day_opt,
             modby=6,
             reso=reso,
@@ -4902,6 +4964,9 @@ cdef class Week(SingleConstructorOffset):
     """
     Weekly offset.
 
+    This offset represents a duration of one or more weeks. It can optionally
+    be anchored to a specific day of the week.
+
     Attributes
     ----------
     n : int, default 1
@@ -4993,7 +5058,7 @@ cdef class Week(SingleConstructorOffset):
 
     @apply_wraps
     def _apply(self, other):
-        if self.weekday is None:
+        if self._weekday is None:
             return other + self._n * self._inc
 
         if not PyDateTime_Check(other):
@@ -5003,15 +5068,15 @@ cdef class Week(SingleConstructorOffset):
 
         k = self._n
         otherDay = other.weekday()
-        if otherDay != self.weekday:
-            other = other + timedelta((self.weekday - otherDay) % 7)
+        if otherDay != self._weekday:
+            other = other + timedelta((self._weekday - otherDay) % 7)
             if k > 0:
                 k -= 1
 
         return other + timedelta(weeks=k)
 
     def _apply_array(self, dtarr: np.ndarray) -> np.ndarray:
-        if self.weekday is None:
+        if self._weekday is None:
             td = timedelta(days=7 * self._n)
             unit = np.datetime_data(dtarr.dtype)[0]
             td64 = np.timedelta64(td, unit)
@@ -5117,14 +5182,17 @@ cdef class Week(SingleConstructorOffset):
         """
         if self._normalize and not _is_normalized(dt):
             return False
-        elif self.weekday is None:
+        elif self._weekday is None:
             return True
-        return dt.weekday() == self.weekday
+        return dt.weekday() == self._weekday
 
     @property
     def rule_code(self) -> str:
         """
         Return a string representing the base frequency.
+
+        This code is used internally to identify the frequency type and
+        includes any anchoring information (e.g., day of week for Week offsets).
 
         See Also
         --------
@@ -5142,8 +5210,8 @@ cdef class Week(SingleConstructorOffset):
         'W'
         """
         suffix = ""
-        if self.weekday is not None:
-            weekday = int_to_weekday[self.weekday]
+        if self._weekday is not None:
+            weekday = int_to_weekday[self._weekday]
             suffix = f"-{weekday}"
         return self._prefix + suffix
 
@@ -5229,7 +5297,7 @@ cdef class WeekOfMonth(WeekOfMonthMixin):
         """
         mstart = datetime(other.year, other.month, 1)
         wday = mstart.weekday()
-        shift_days = (self.weekday - wday) % 7
+        shift_days = (self._weekday - wday) % 7
         return 1 + shift_days + self._week * 7
 
     @classmethod
@@ -5313,7 +5381,7 @@ cdef class LastWeekOfMonth(WeekOfMonthMixin):
         dim = get_days_in_month(other.year, other.month)
         mend = datetime(other.year, other.month, dim)
         wday = mend.weekday()
-        shift_days = (wday - self.weekday) % 7
+        shift_days = (wday - self._weekday) % 7
         return dim - shift_days
 
     @classmethod
@@ -5730,7 +5798,7 @@ cdef class FY5253(FY5253Mixin):
 
         dim = get_days_in_month(dt.year, self._startingMonth)
         target_date = datetime(dt.year, self._startingMonth, dim)
-        wkday_diff = self.weekday - target_date.weekday()
+        wkday_diff = self._weekday - target_date.weekday()
         if wkday_diff == 0:
             # year_end is the same for "last" and "nearest" cases
             return target_date
@@ -5928,8 +5996,8 @@ cdef class FY5253Quarter(FY5253Mixin):
     def _offset(self):
         return FY5253(
             startingMonth=self._startingMonth,
-            weekday=self.weekday,
-            variation=self.variation,
+            weekday=self._weekday,
+            variation=self._variation,
         )
 
     def _rollback_to_year(self, other: datetime):
@@ -6085,7 +6153,7 @@ cdef class FY5253Quarter(FY5253Mixin):
         >>> offset = pd.offsets.FY5253Quarter(
         ...     weekday=5, startingMonth=12, qtr_with_extra_week=1
         ... )
-        >>> offset.year_has_extra_week(pd.Timestamp("2011-04-02"))
+        >>> offset.year_has_extra_week(pd.Timestamp("2014-04-02"))
         True
         >>> offset.year_has_extra_week(pd.Timestamp("2010-04-02"))
         False
@@ -6371,7 +6439,7 @@ cdef class CustomBusinessDay(BusinessDay):
     Index(['Mon 12 Dec 2022 00:00', 'Wed 14 Dec 2022 00:00',
            'Fri 16 Dec 2022 00:00', 'Mon 19 Dec 2022 00:00',
            'Wed 21 Dec 2022 00:00'],
-           dtype='object')
+           dtype='str')
 
     Using NumPy business day calendar you can define custom holidays.
 
@@ -6381,7 +6449,7 @@ cdef class CustomBusinessDay(BusinessDay):
     >>> pd.date_range(dt.datetime(2022, 12, 10), dt.datetime(2022, 12, 25), freq=freq)
     DatetimeIndex(['2022-12-13', '2022-12-15', '2022-12-16', '2022-12-19',
                    '2022-12-20', '2022-12-21', '2022-12-22', '2022-12-23'],
-                   dtype='datetime64[ns]', freq='C')
+                   dtype='datetime64[us]', freq='C')
 
     If you want to shift the result on n day you can use the parameter ``offset``.
 
@@ -6517,10 +6585,14 @@ cdef class CustomBusinessDay(BusinessDay):
         >>> pd.offsets.CustomBusinessDay(normalize=True).is_on_offset(ts)
         True
         """
+        from pandas.core.dtypes.cast import maybe_unbox_numpy_scalar
+
         if self._normalize and not _is_normalized(dt):
             return False
         day64 = _to_dt64D(dt)
-        return np.is_busday(day64, busdaycal=self._calendar)
+        result = np.is_busday(day64, busdaycal=self._calendar)
+        result = maybe_unbox_numpy_scalar(result)
+        return result
 
 
 cdef class CustomBusinessHour(BusinessHour):
@@ -6591,7 +6663,7 @@ cdef class CustomBusinessHour(BusinessHour):
                    '2022-12-12 06:00:00', '2022-12-12 07:00:00',
                    '2022-12-12 10:00:00', '2022-12-12 11:00:00',
                    '2022-12-12 15:00:00', '2022-12-12 16:00:00'],
-                   dtype='datetime64[ns]', freq='cbh')
+                   dtype='datetime64[us]', freq='cbh')
 
     Business days can be specified by ``weekmask`` parameter. To convert
     the returned datetime object to its string representation
@@ -6607,7 +6679,7 @@ cdef class CustomBusinessHour(BusinessHour):
            'Wed 14 Dec 2022 11:00', 'Wed 14 Dec 2022 12:00',
            'Fri 16 Dec 2022 10:00', 'Fri 16 Dec 2022 11:00',
            'Fri 16 Dec 2022 12:00'],
-           dtype='object')
+           dtype='str')
 
     Using NumPy business day calendar you can define custom holidays.
 
@@ -6620,7 +6692,7 @@ cdef class CustomBusinessHour(BusinessHour):
                    '2022-12-15 11:00:00', '2022-12-15 12:00:00',
                    '2022-12-16 10:00:00', '2022-12-16 11:00:00',
                    '2022-12-16 12:00:00'],
-                   dtype='datetime64[ns]', freq='cbh')
+                   dtype='datetime64[us]', freq='cbh')
     """
 
     _prefix = "cbh"
@@ -6787,7 +6859,7 @@ class CustomBusinessMonthEnd(_CustomBusinessMonthEnd):
     Index(['Thu 28 Jul 2022 00:00', 'Wed 31 Aug 2022 00:00',
            'Thu 29 Sep 2022 00:00', 'Thu 27 Oct 2022 00:00',
            'Wed 30 Nov 2022 00:00'],
-           dtype='object')
+           dtype='str')
 
     Using NumPy business day calendar you can define custom holidays.
 
@@ -6797,7 +6869,7 @@ class CustomBusinessMonthEnd(_CustomBusinessMonthEnd):
     >>> freq = pd.offsets.CustomBusinessMonthEnd(calendar=bdc)
     >>> pd.date_range(dt.datetime(2022, 7, 10), dt.datetime(2022, 11, 10), freq=freq)
     DatetimeIndex(['2022-07-29', '2022-08-31', '2022-09-29', '2022-10-28'],
-                   dtype='datetime64[ns]', freq='CBME')
+                   dtype='datetime64[us]', freq='CBME')
     """
 
     def __init__(
@@ -6868,7 +6940,7 @@ class CustomBusinessMonthBegin(_CustomBusinessMonthBegin):
     Index(['Wed 03 Aug 2022 00:00', 'Thu 01 Sep 2022 00:00',
            'Wed 05 Oct 2022 00:00', 'Wed 02 Nov 2022 00:00',
            'Thu 01 Dec 2022 00:00'],
-           dtype='object')
+           dtype='str')
 
     Using NumPy business day calendar you can define custom holidays.
 
@@ -6878,7 +6950,7 @@ class CustomBusinessMonthBegin(_CustomBusinessMonthBegin):
     >>> freq = pd.offsets.CustomBusinessMonthBegin(calendar=bdc)
     >>> pd.date_range(dt.datetime(2022, 7, 10), dt.datetime(2022, 11, 10), freq=freq)
     DatetimeIndex(['2022-08-02', '2022-09-01', '2022-10-03', '2022-11-02'],
-                   dtype='datetime64[ns]', freq='CBMS')
+                   dtype='datetime64[us]', freq='CBMS')
     """
 
     def __init__(
@@ -7156,7 +7228,7 @@ cpdef to_offset(freq, bint is_period=False):
     <2 * BusinessDays>
 
     >>> to_offset(pd.Timedelta(days=1))
-    <Day>
+    <24 * Hours>
 
     >>> to_offset(pd.offsets.Hour())
     <Hour>
