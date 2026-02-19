@@ -5617,10 +5617,10 @@ class Index(IndexOpsMixin, PandasObject):
         if isinstance(self._values, ExtensionArray):
             # Dispatch to the ExtensionArray's .equals method.
             if not isinstance(other, type(self)):
-                # Special case: if other is object dtype, try to compare values directly
+                # Special case for PeriodIndex: if other is object dtype, try to compare values directly
                 # This handles cases like PeriodIndex.equals(PeriodIndex.astype(object))
-                # Convert ExtensionArray to object array for comparison
-                if is_object_dtype(other.dtype):
+                # Note: This is PeriodIndex-specific behavior (GH#13107), not for all EA-backed indices
+                if isinstance(self, ABCPeriodIndex) and is_object_dtype(other.dtype):
                     self_obj = np.asarray(self._values, dtype=object)
                     return array_equivalent(self_obj, other._values)
                 return False
