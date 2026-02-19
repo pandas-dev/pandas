@@ -1459,6 +1459,17 @@ class TestTypeInference:
         arr = np.array([na_value, Period("2011-01", freq="D"), na_value])
         assert lib.infer_dtype(arr, skipna=True) == "period"
 
+    def test_infer_dtype_period_skipna_false(self):
+        # GH#64196: skipna=False should return "mixed" when NA values are present
+        arr = np.array([pd.NaT, Period("2011-01", freq="D")])
+        assert lib.infer_dtype(arr, skipna=False) == "mixed"
+
+        arr = np.array([np.nan, Period("2011-01", freq="D")])
+        assert lib.infer_dtype(arr, skipna=False) == "mixed"
+
+        arr = np.array([Period("2011-01", freq="D"), pd.NaT])
+        assert lib.infer_dtype(arr, skipna=False) == "mixed"
+
     @pytest.mark.parametrize("na_value", [pd.NA, np.nan])
     def test_infer_dtype_numeric_with_na(self, na_value):
         # GH61621
@@ -1810,6 +1821,18 @@ class TestTypeInference:
         flt_interval = Interval(1.5, 2.5, closed="left")
         arr = np.array([first, flt_interval], dtype=object)
         assert lib.infer_dtype(arr, skipna=False) == "interval"
+
+    def test_infer_dtype_interval_skipna_false(self):
+        # GH#64196: skipna=False should return "mixed" when NA values are present
+        first = Interval(0, 1, closed="left")
+        arr = np.array([np.nan, first], dtype=object)
+        assert lib.infer_dtype(arr, skipna=False) == "mixed"
+
+        arr = np.array([None, first], dtype=object)
+        assert lib.infer_dtype(arr, skipna=False) == "mixed"
+
+        arr = np.array([first, np.nan], dtype=object)
+        assert lib.infer_dtype(arr, skipna=False) == "mixed"
 
     @pytest.mark.parametrize("data", [["a", "b", "c"], ["a", "b", pd.NA]])
     def test_string_dtype(

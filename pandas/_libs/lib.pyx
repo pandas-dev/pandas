@@ -1791,7 +1791,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
             return "period"
 
     elif isinstance(val, Interval):
-        if is_interval_array(values):
+        if is_interval_array(values, skipna=skipna):
             return "interval"
 
     cnp.PyArray_ITER_RESET(it)
@@ -2209,7 +2209,6 @@ cpdef bint is_time_array(ndarray values, bint skipna=False):
     return validator.validate(values)
 
 
-# FIXME: actually use skipna
 cdef bint is_period_array(ndarray values, bint skipna=True):
     """
     Is this an ndarray of Period objects (or NaT) with a single `freq`?
@@ -2239,6 +2238,9 @@ cdef bint is_period_array(ndarray values, bint skipna=True):
                 # mismatched freqs
                 return False
         elif checknull_with_nat(val):
+            if not skipna:
+                # When skipna=False, NaT-like values are invalid
+                return False
             pass
         else:
             # Not a Period or NaT-like
@@ -2251,7 +2253,7 @@ cdef bint is_period_array(ndarray values, bint skipna=True):
 
 
 # Note: only python-exposed for tests
-cpdef bint is_interval_array(ndarray values):
+cpdef bint is_interval_array(ndarray values, bint skipna=True):
     """
     Is this an ndarray of Interval (or np.nan) with a single dtype?
     """
@@ -2298,6 +2300,9 @@ cpdef bint is_interval_array(ndarray values):
             else:
                 raise ValueError(val)
         elif util.is_nan(val) or val is None:
+            if not skipna:
+                # When skipna=False, NaN/None values are invalid
+                return False
             pass
         else:
             return False
