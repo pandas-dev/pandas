@@ -370,8 +370,6 @@ ignore = [
   "PLW0108",
   # global-statement
   "PLW0603",
-  # runtime-cast-value
-  "TC006",
   # unused-unpacked-variable
   "RUF059",
   # pytest-raises-ambiguous-pattern
@@ -606,7 +604,6 @@ module = [
   "pandas.io.parquet", # TODO
   "pandas.io.pytables", # TODO
   "pandas.io.sql", # TODO
-  "pandas.io.xml", # TODO
   "pandas.plotting.*", # TODO
   "pandas.tests.*",
   "pandas.tseries.frequencies", # TODO

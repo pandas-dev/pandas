@@ -28,10 +28,6 @@ from pandas._libs.tslibs.dtypes import (
     FreqGroup,
     periods_per_day,
 )
-from pandas._typing import (
-    F,
-    npt,
-)
 
 from pandas.core.dtypes.common import (
     is_float,
@@ -61,7 +57,11 @@ if TYPE_CHECKING:
     from matplotlib.axis import Axis
 
     from pandas._libs.tslibs.offsets import BaseOffset
-    from pandas._typing import TimeUnit
+    from pandas._typing import (
+        F,
+        TimeUnit,
+        npt,
+    )
 
 
 _mpl_units: dict = {}  # Cache for units overwritten by us
@@ -89,7 +89,7 @@ def register_pandas_matplotlib_converters(func: F) -> F:
         with pandas_converters():
             return func(*args, **kwargs)
 
-    return cast(F, wrapper)
+    return cast("F", wrapper)
 
 
 @contextlib.contextmanager
@@ -938,14 +938,10 @@ class TimeSeries_DateLocator(mpl.ticker.Locator):  # pyright: ignore[reportAttri
     ----------
     freq : BaseOffset
         Valid frequency specifier.
-    minor_locator : {False, True}, optional
-        Whether the locator is for minor ticks (True) or not.
-    dynamic_mode : {True, False}, optional
+    minor_locator : bool, default False
+        Whether the locator is for minor ticks.
+    dynamic_mode : bool, default True
         Whether the locator should work in dynamic mode.
-    base : {int}, optional
-    quarter : {int}, optional
-    month : {int}, optional
-    day : {int}, optional
     """
 
     axis: Axis
@@ -955,19 +951,11 @@ class TimeSeries_DateLocator(mpl.ticker.Locator):  # pyright: ignore[reportAttri
         freq: BaseOffset,
         minor_locator: bool = False,
         dynamic_mode: bool = True,
-        base: int = 1,
-        quarter: int = 1,
-        month: int = 1,
-        day: int = 1,
         plot_obj=None,
     ) -> None:
         freq = to_offset(freq, is_period=True)
         self.freq = freq
-        self.base = base
-        (self.quarter, self.month, self.day) = (quarter, month, day)
         self.isminor = minor_locator
-        self.isdynamic = dynamic_mode
-        self.offset = 0
         self.plot_obj = plot_obj
         self.finder = get_finder(freq)
 
@@ -981,29 +969,17 @@ class TimeSeries_DateLocator(mpl.ticker.Locator):  # pyright: ignore[reportAttri
 
     def __call__(self):
         """Return the locations of the ticks."""
-        # axis calls Locator.set_axis inside set_m<xxxx>_formatter
-
         vi = tuple(self.axis.get_view_interval())
         vmin, vmax = vi
         if vmax < vmin:
             vmin, vmax = vmax, vmin
-        if self.isdynamic:
-            locs = self._get_default_locs(vmin, vmax)
-        else:  # pragma: no cover
-            base = self.base
-            (d, m) = divmod(vmin, base)
-            vmin = (d + 1) * base
-            # error: No overload variant of "range" matches argument types "float",
-            # "float", "int"
-            locs = list(range(vmin, vmax + 1, base))  # type: ignore[call-overload]
-        return locs
+        return self._get_default_locs(vmin, vmax)
 
     def autoscale(self):
         """
         Sets the view limits to the nearest multiples of base that contain the
         data.
         """
-        # requires matplotlib >= 0.98.0
         (vmin, vmax) = self.axis.get_data_interval()
 
         locs = self._get_default_locs(vmin, vmax)
@@ -1044,13 +1020,9 @@ class TimeSeries_DateFormatter(mpl.ticker.Formatter):  # pyright: ignore[reportA
         plot_obj=None,
     ) -> None:
         freq = to_offset(freq, is_period=True)
-        self.format = None
         self.freq = freq
-        self.locs: list[Any] = []  # unused, for matplotlib compat
         self.formatdict: dict[Any, Any] | None = None
         self.isminor = minor_locator
-        self.isdynamic = dynamic_mode
-        self.offset = 0
         self.plot_obj = plot_obj
         self.finder = get_finder(freq)
 

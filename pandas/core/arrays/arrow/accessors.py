@@ -437,7 +437,7 @@ class StructAccessor(ArrowAccessor):
                 while level_name_or_index:
                     # we need the cast, otherwise mypy complains about
                     # getting ints, bytes, or str here, which isn't possible.
-                    level_name_or_index = cast(list, level_name_or_index)
+                    level_name_or_index = cast("list", level_name_or_index)
                     name_or_index = level_name_or_index.pop()
                     name = get_name(name_or_index, selected)
                     selected = selected.type.field(selected.type.get_field_index(name))
