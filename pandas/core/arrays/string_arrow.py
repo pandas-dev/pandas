@@ -592,4 +592,10 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         raise TypeError(f"bad operand type for unary +: '{self.dtype}'")
 
     def _where(self, mask, value) -> Self:
+        if not is_scalar(value) and lib.is_list_like(value):
+            if isinstance(value, BaseStringArray):
+                if value.dtype != self.dtype:
+                    value = value.astype(self.dtype)
+            else:
+                value = type(self)._from_sequence(value, dtype=self.dtype)
         return super()._where(mask, value)
