@@ -5626,7 +5626,8 @@ class Index(IndexOpsMixin, PandasObject):
                     isinstance(self.dtype, PeriodDtype)
                     and is_object_dtype(other.dtype)
                 ):
-                    self_obj = np.asarray(self._values, dtype=object)
+                    # Convert ExtensionArray to object array for comparison
+                    self_obj = self._values.astype(object)
                     return array_equivalent(self_obj, other._values)
                 return False
 
