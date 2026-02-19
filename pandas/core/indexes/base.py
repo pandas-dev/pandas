@@ -5622,7 +5622,10 @@ class Index(IndexOpsMixin, PandasObject):
                 # This handles cases like PeriodIndex.equals(PeriodIndex.astype(object))
                 # Note: This is PeriodIndex-specific behavior (GH#13107),
                 # not for all EA-backed indices
-                if isinstance(self, ABCPeriodIndex) and is_object_dtype(other.dtype):
+                if (
+                    isinstance(self.dtype, PeriodDtype)
+                    and is_object_dtype(other.dtype)
+                ):
                     self_obj = np.asarray(self._values, dtype=object)
                     return array_equivalent(self_obj, other._values)
                 return False
