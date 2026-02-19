@@ -210,8 +210,6 @@ def test_with_na_groups(any_real_numpy_dtype):
 
     tm.assert_series_equal(agged, expected, check_dtype=False)
 
-    # assert issubclass(agged.dtype.type, np.integer)
-
     # explicitly return a float from my function
     def f(x):
         return float(len(x))

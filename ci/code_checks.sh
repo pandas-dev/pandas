@@ -70,15 +70,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
     "$BASE_DIR"/scripts/validate_docstrings.py \
         --format=actions \
         -i "pandas.tseries.frequencies.to_offset ES01" \
-        -i "pandas.Series.transform ES01" \
-        -i "pandas.Series.rolling ES01" \
-        -i "pandas.Series.count ES01" \
-        -i "pandas.Series.mean ES01" \
-        -i "pandas.Series.median ES01" \
-        -i "pandas.Series.nlargest ES01" \
-        -i "pandas.Series.nsmallest ES01" \
-        -i "pandas.Series.quantile ES01" \
-        -i "pandas.Series.is_unique ES01" \
         -i "pandas.Series.is_monotonic_increasing ES01" \
         -i "pandas.Series.is_monotonic_decreasing ES01" \
         -i "pandas.Series.drop_duplicates ES01" \
@@ -143,6 +134,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DatetimeTZDtype.unit ES01" \
         -i "pandas.DatetimeTZDtype.tz ES01" \
         -i "pandas.IntervalDtype.subtype ES01" \
+        -i "pandas.api.extensions.ExtensionArray.item ES01" \
         -i "pandas.api.types.pandas_dtype ES01" \
         -i "pandas.api.types.is_any_real_numeric_dtype ES01" \
         -i "pandas.api.types.is_complex_dtype ES01" \
@@ -360,7 +352,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DataFrame.agg ES01" \
         -i "pandas.DataFrame.aggregate ES01" \
         -i "pandas.DataFrame.transform ES01" \
-        -i "pandas.DataFrame.rolling ES01" \
         -i "pandas.DataFrame.corr ES01" \
         -i "pandas.DataFrame.mean ES01" \
         -i "pandas.DataFrame.median ES01" \
