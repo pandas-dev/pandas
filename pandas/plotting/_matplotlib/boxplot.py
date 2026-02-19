@@ -212,9 +212,10 @@ class BoxPlot(LinePlot):
 
                     # When `by` is assigned, the ticklabels will become unique grouped
                     # values, instead of label which is used as subtitle in this case.
-                    # error: "Index" has no attribute "levels"; maybe "nlevels"?
-                    levels = self.data.columns.levels  # type: ignore[attr-defined]
-                    ticklabels = [pprint_thing(col) for col in levels[0]]
+                    ticklabels = [
+                        pprint_thing(col)
+                        for col in self.data.columns.get_level_values(0)
+                    ]
                 else:
                     ticklabels = [pprint_thing(label)]
 
