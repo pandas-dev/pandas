@@ -76,6 +76,7 @@ from pandas.core.arrays import (
     datetimelike as dtl,
 )
 import pandas.core.common as com
+from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
     from collections.abc import (
@@ -274,10 +275,12 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         else:
             unit = None
 
+        scalars = extract_array(scalars, extract_numpy=True)
         if isinstance(scalars, cls):
-            validate_dtype_freq(scalars.dtype, dtype)
-            if copy:
-                scalars = scalars.copy()
+            if dtype is not None:
+                return scalars.astype(dtype, copy=copy)
+            elif copy:
+                return scalars.copy()
             return scalars
 
         if not isinstance(
@@ -1276,13 +1279,6 @@ def period_array(
 
     if lib.is_np_dtype(data_dtype, "M"):
         return PeriodArray._from_datetime64(data, freq)
-    if isinstance(data_dtype, PeriodDtype):
-        out = PeriodArray(data)
-        if freq is not None:
-            if freq == data_dtype.freq:
-                return out
-            return out.asfreq(freq)
-        return out
 
     return PeriodArray._from_sequence(data, dtype=dtype)
 
