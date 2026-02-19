@@ -106,9 +106,12 @@ class Expression:
         self._needs_parentheses = needs_parenthese
 
     def _eval_expression(self, df: DataFrame | Series) -> Any:
+        frame: DataFrame
         if isinstance(df, ABCSeries):
-            df = df.to_frame()
-        return self._func(df)
+            frame = df.to_frame()
+        else:
+            frame = df
+        return self._func(frame)
 
     def _with_op(
         self, op: str, other: Any, repr_str: str, needs_parentheses: bool = True
