@@ -649,7 +649,7 @@ class TestArrowArray(base.ExtensionTests):
     def test_get_common_dtype(self, dtype, request):
         pa_dtype = dtype.pyarrow_dtype
         if (
-            pa.types.is_date(pa_dtype)
+            pa.types.is_date64(pa_dtype)
             or pa.types.is_time(pa_dtype)
             or (pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None)
             or pa.types.is_binary(pa_dtype)
@@ -1086,9 +1086,9 @@ class TestArrowArray(base.ExtensionTests):
 
     def test_loc_setitem_with_expansion_preserves_ea_index_dtype(self, data, request):
         pa_dtype = data.dtype.pyarrow_dtype
-        if pa.types.is_date(pa_dtype):
+        if pa.types.is_date64(pa_dtype):
             mark = pytest.mark.xfail(
-                reason="GH#62343 incorrectly casts to timestamp[ms][pyarrow]"
+                reason="GH#62343 incorrectly casts date64 to timestamp[ms][pyarrow]"
             )
             request.applymarker(mark)
         super().test_loc_setitem_with_expansion_preserves_ea_index_dtype(data)

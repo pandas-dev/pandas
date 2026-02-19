@@ -2282,6 +2282,18 @@ class ArrowDtype(StorageExtensionDtype):
     @cache_readonly
     def numpy_dtype(self) -> np.dtype:
         """Return an instance of the related numpy dtype"""
+        if pa.types.is_date32(self.pyarrow_dtype):
+            # pa.timestamp(unit).to_pandas_dtype() returns ns units
+            # regardless of the pyarrow timestamp units.
+            # This can be removed if/when pyarrow addresses it:
+            # https://github.com/apache/arrow/issues/34462
+            return np.dtype("datetime64[D]")
+        if pa.types.is_date64(self.pyarrow_dtype):
+            # pa.timestamp(unit).to_pandas_dtype() returns ns units
+            # regardless of the pyarrow timestamp units.
+            # This can be removed if/when pyarrow addresses it:
+            # https://github.com/apache/arrow/issues/34462
+            return np.dtype("datetime64[ms]")
         if pa.types.is_timestamp(self.pyarrow_dtype):
             # pa.timestamp(unit).to_pandas_dtype() returns ns units
             # regardless of the pyarrow timestamp units.
