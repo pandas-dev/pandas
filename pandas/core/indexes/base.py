@@ -5617,6 +5617,10 @@ class Index(IndexOpsMixin, PandasObject):
         if isinstance(self._values, ExtensionArray):
             # Dispatch to the ExtensionArray's .equals method.
             if not isinstance(other, type(self)):
+                # Special case: if other is object dtype, try to compare values directly
+                # This handles cases like PeriodIndex.equals(PeriodIndex.astype(object))
+                if is_object_dtype(other.dtype):
+                    return array_equivalent(self._values, other._values)
                 return False
 
             earr = cast("ExtensionArray", self._data)
