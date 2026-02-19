@@ -43,7 +43,10 @@ from pandas import (
     get_option,
 )
 import pandas.core.common as com
-from pandas.core.indexes.datetimes import date_range
+from pandas.core.indexes.datetimes import (
+    DatetimeIndex,
+    date_range,
+)
 from pandas.core.indexes.period import (
     Period,
     PeriodIndex,
@@ -151,6 +154,24 @@ def time2num(d):
     if isinstance(d, pydt.time):
         return _to_ordinalf(d)
     return d
+
+
+# -------------------------------------------------------------------------
+# --- BDay ordinal helpers (replaces deprecated Period[B] ordinals) ---
+# -------------------------------------------------------------------------
+
+_BDAY_EPOCH = np.datetime64("1970-01-01", "D")
+
+
+def _bday_count(dt) -> int:
+    """Business-day ordinal for a date (replaces deprecated Period[B].ordinal)."""
+    return int(np.busday_count(_BDAY_EPOCH, np.datetime64(dt, "D")))
+
+
+def _bday_to_datetime(ordinal: int) -> datetime:
+    """Inverse of _bday_count (replaces Period(ordinal=N, freq='B'))."""
+    dt64 = np.busday_offset(_BDAY_EPOCH, ordinal)
+    return dt64.astype("datetime64[us]").item()
 
 
 class TimeConverter(munits.ConversionInterface):
@@ -497,13 +518,15 @@ def _get_default_annual_spacing(nyears) -> tuple[int, int]:
     return (min_spacing, maj_spacing)
 
 
-def _period_break(dates: PeriodIndex, period: str) -> npt.NDArray[np.intp]:
+def _period_break(
+    dates: PeriodIndex | DatetimeIndex, period: str
+) -> npt.NDArray[np.intp]:
     """
     Returns the indices where the given period changes.
 
     Parameters
     ----------
-    dates : PeriodIndex
+    dates : PeriodIndex or DatetimeIndex
         Array of intervals to monitor.
     period : str
         Name of the period to monitor.
@@ -512,9 +535,16 @@ def _period_break(dates: PeriodIndex, period: str) -> npt.NDArray[np.intp]:
     return np.nonzero(mask)[0]
 
 
-def _period_break_mask(dates: PeriodIndex, period: str) -> npt.NDArray[np.bool_]:
-    current = getattr(dates, period)
-    previous = getattr(dates - 1 * dates.freq, period)
+def _period_break_mask(
+    dates: PeriodIndex | DatetimeIndex, period: str
+) -> npt.NDArray[np.bool_]:
+    # DatetimeIndex has no .week attribute; use .isocalendar().week instead
+    if period == "week" and isinstance(dates, DatetimeIndex):
+        current = dates.isocalendar().week.values
+        previous = (dates - 1 * dates.freq).isocalendar().week.values
+    else:
+        current = getattr(dates, period)
+        previous = getattr(dates - 1 * dates.freq, period)
     return current != previous
 
 
@@ -574,32 +604,37 @@ def _get_periods_per_ymd(freq: BaseOffset) -> tuple[int, int, int]:
 def _daily_finder(vmin: float, vmax: float, freq: BaseOffset) -> np.ndarray:
     # error: "BaseOffset" has no attribute "_period_dtype_code"
     dtype_code = freq._period_dtype_code  # type: ignore[attr-defined]
+    freq_group = FreqGroup.from_period_dtype_code(dtype_code)
 
     periodsperday, periodspermonth, periodsperyear = _get_periods_per_ymd(freq)
 
     # save this for later usage
     vmin_orig = vmin
     (vmin, vmax) = (int(vmin), int(vmax))
-    span = vmax - vmin + 1
 
-    with warnings.catch_warnings():
-        warnings.filterwarnings(
-            "ignore", "Period with BDay freq is deprecated", category=FutureWarning
+    if freq_group == FreqGroup.FR_BUS:
+        # BDay branch: use numpy business-day arithmetic to avoid
+        #  (deprecated) Period[B].
+        ordinals = np.arange(vmin, vmax + 1, step=freq.n, dtype=np.int64)
+        dates_ = DatetimeIndex(
+            np.busday_offset(_BDAY_EPOCH, ordinals).astype("datetime64[ns]"),
+            freq=freq,
         )
-        warnings.filterwarnings(
-            "ignore", r"PeriodDtype\[B\] is deprecated", category=FutureWarning
-        )
+    else:
         dates_ = period_range(
             start=Period(ordinal=vmin, freq=freq),
             end=Period(ordinal=vmax, freq=freq),
             freq=freq,
         )
+        ordinals = dates_.asi8
+
+    span = len(ordinals)
 
     # Initialize the output
     info = np.zeros(
         span, dtype=[("val", np.int64), ("maj", bool), ("min", bool), ("fmt", "|S20")]
     )
-    info["val"][:] = dates_.asi8
+    info["val"][:] = ordinals
     info["fmt"][:] = ""
     info["maj"][[0, -1]] = True
     # .. and set some shortcuts
@@ -1056,13 +1091,13 @@ class TimeSeries_DateFormatter(mpl.ticker.Formatter):  # pyright: ignore[reportA
             fmt = self.formatdict.pop(x, "")
             if isinstance(fmt, np.bytes_):
                 fmt = fmt.decode("utf-8")
-            with warnings.catch_warnings():
-                warnings.filterwarnings(
-                    "ignore",
-                    "Period with BDay freq is deprecated",
-                    category=FutureWarning,
-                )
-                period = Period(ordinal=int(x), freq=self.freq)
+            # error: "BaseOffset" has no attribute "_period_dtype_code"
+            dtype_code = self.freq._period_dtype_code  # type: ignore[attr-defined]
+            freq_group = FreqGroup.from_period_dtype_code(dtype_code)
+            if freq_group == FreqGroup.FR_BUS:
+                # Use _bday_to_datetime to avoid (deprecated) Period[B]
+                return _bday_to_datetime(int(x)).strftime(fmt)
+            period = Period(ordinal=int(x), freq=self.freq)
             assert isinstance(period, Period)
             return period.strftime(fmt)
 
