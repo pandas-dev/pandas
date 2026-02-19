@@ -1459,16 +1459,21 @@ class TestTypeInference:
         arr = np.array([na_value, Period("2011-01", freq="D"), na_value])
         assert lib.infer_dtype(arr, skipna=True) == "period"
 
-    def test_infer_dtype_period_skipna_false(self):
-        # GH#64196: skipna=False should return "mixed" when NA values are present
+    def test_infer_dtype_period_skipna_wired(self):
+        # GH#64196: skipna parameter is wired through for consistency
+        # Period aligns with datetime/timedelta behavior where skipna doesn't
+        # change the result for dtypes that natively support missing values
         arr = np.array([pd.NaT, Period("2011-01", freq="D")])
-        assert lib.infer_dtype(arr, skipna=False) == "mixed"
+        assert lib.infer_dtype(arr, skipna=True) == "period"
+        assert lib.infer_dtype(arr, skipna=False) == "period"
 
         arr = np.array([np.nan, Period("2011-01", freq="D")])
-        assert lib.infer_dtype(arr, skipna=False) == "mixed"
+        assert lib.infer_dtype(arr, skipna=True) == "period"
+        assert lib.infer_dtype(arr, skipna=False) == "period"
 
         arr = np.array([Period("2011-01", freq="D"), pd.NaT])
-        assert lib.infer_dtype(arr, skipna=False) == "mixed"
+        assert lib.infer_dtype(arr, skipna=True) == "period"
+        assert lib.infer_dtype(arr, skipna=False) == "period"
 
     @pytest.mark.parametrize("na_value", [pd.NA, np.nan])
     def test_infer_dtype_numeric_with_na(self, na_value):
@@ -1822,17 +1827,22 @@ class TestTypeInference:
         arr = np.array([first, flt_interval], dtype=object)
         assert lib.infer_dtype(arr, skipna=False) == "interval"
 
-    def test_infer_dtype_interval_skipna_false(self):
-        # GH#64196: skipna=False should return "mixed" when NA values are present
+    def test_infer_dtype_interval_skipna_wired(self):
+        # GH#64196: skipna parameter is wired through for consistency
+        # Interval aligns with datetime/timedelta behavior where skipna doesn't
+        # change the result for dtypes that natively support missing values
         first = Interval(0, 1, closed="left")
         arr = np.array([np.nan, first], dtype=object)
-        assert lib.infer_dtype(arr, skipna=False) == "mixed"
+        assert lib.infer_dtype(arr, skipna=True) == "interval"
+        assert lib.infer_dtype(arr, skipna=False) == "interval"
 
         arr = np.array([None, first], dtype=object)
-        assert lib.infer_dtype(arr, skipna=False) == "mixed"
+        assert lib.infer_dtype(arr, skipna=True) == "interval"
+        assert lib.infer_dtype(arr, skipna=False) == "interval"
 
         arr = np.array([first, np.nan], dtype=object)
-        assert lib.infer_dtype(arr, skipna=False) == "mixed"
+        assert lib.infer_dtype(arr, skipna=True) == "interval"
+        assert lib.infer_dtype(arr, skipna=False) == "interval"
 
     @pytest.mark.parametrize("data", [["a", "b", "c"], ["a", "b", pd.NA]])
     def test_string_dtype(

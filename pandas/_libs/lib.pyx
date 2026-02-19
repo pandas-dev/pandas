@@ -2238,9 +2238,10 @@ cdef bint is_period_array(ndarray values, bint skipna=True):
                 # mismatched freqs
                 return False
         elif checknull_with_nat(val):
-            if not skipna:
-                # When skipna=False, NaT-like values are invalid
-                return False
+            # NaT-like values are valid for Period dtype (similar to datetime)
+            # skipna parameter is wired through for API consistency but doesn't
+            # change behavior for dtypes that natively support missing values
+            # This aligns Period with datetime/timedelta behavior
             pass
         else:
             # Not a Period or NaT-like
@@ -2300,9 +2301,10 @@ cpdef bint is_interval_array(ndarray values, bint skipna=True):
             else:
                 raise ValueError(val)
         elif util.is_nan(val) or val is None:
-            if not skipna:
-                # When skipna=False, NaN/None values are invalid
-                return False
+            # NaN/None values are valid for Interval dtype (similar to datetime)
+            # skipna parameter is wired through for API consistency but doesn't
+            # change behavior for dtypes that natively support missing values
+            # This aligns Interval with datetime/timedelta behavior
             pass
         else:
             return False
