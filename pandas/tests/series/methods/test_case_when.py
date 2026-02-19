@@ -161,3 +161,57 @@ def test_case_when_expression_replacement(df):
     )
     expected = Series([2, 102, 103], name="a")
     tm.assert_series_equal(result, expected)
+
+
+def test_case_when_expression_in_assign():
+    df = DataFrame({"age": [65, 30], "name": ["Jason", "Anna"]})
+    result = df.assign(
+        elderly=col("age").case_when([(col("name").eq("Jason"), 1)])
+    )
+    expected = df.assign(elderly=Series([1, 30], index=df.index))
+    tm.assert_frame_equal(result, expected)
+
+
+def test_case_when_expression_mixed_args_in_assign():
+    df = DataFrame({"name": ["Jason", "Amy", "Bob"], "age": [42, 10, 5]})
+    caselist = [
+        (lambda s: s < 10, col("age") + 100),
+        (col("name").eq("Jason"), 1),
+    ]
+    result = df.assign(elderly=col("age").case_when(caselist=caselist))
+    expected = df.assign(elderly=Series([1, 10, 105], index=df.index))
+    tm.assert_frame_equal(result, expected)
+
+
+def test_case_when_expression_math_condition_in_assign():
+    df = DataFrame({"a": [-1, 1, 2], "b": [0, -2, 1]})
+    caselist = [(col("a") + col("b") > 0, 99)]
+    result = df.assign(flag=col("a").case_when(caselist=caselist))
+    expected = df.assign(flag=Series([-1, 1, 99], index=df.index))
+    tm.assert_frame_equal(result, expected)
+
+
+def test_case_when_expression_missing_values_in_assign():
+    df = DataFrame({"age": [np.nan, 5.0, 20.0]})
+    caselist = [
+        (col("age").isna(), "missing"),
+        (col("age") > 10, "adult"),
+    ]
+    result = df.assign(group=col("age").case_when(caselist=caselist))
+    expected = df.assign(
+        group=Series(["missing", 5.0, "adult"], index=df.index, dtype=object)
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("name", ["a", None])
+def test_case_when_expression_series_context(name):
+    ser = Series([0, 2, 3], name=name)
+    if name is None:
+        msg = "Column 'None' not found in given DataFrame"
+        with pytest.raises(ValueError, match=msg):
+            ser.case_when([(col(name) > 1, 10)])
+    else:
+        result = ser.case_when([(col(name) > 1, 10)])
+        expected = Series([0, 10, 10], name=name)
+        tm.assert_series_equal(result, expected)

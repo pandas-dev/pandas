@@ -9,6 +9,10 @@ from typing import (
     Any,
 )
 
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCSeries,
+)
 from pandas.util._decorators import set_module
 
 if TYPE_CHECKING:
@@ -47,17 +51,27 @@ _OP_SYMBOLS = {
 }
 
 
-def _parse_args(df: DataFrame, *args: Any) -> tuple[Series]:
+def _eval_expression_recursively(obj: Any, df: DataFrame) -> Any:
+    if isinstance(obj, Expression):
+        return obj._eval_expression(df)
+    if isinstance(obj, list):
+        return [_eval_expression_recursively(item, df) for item in obj]
+    if isinstance(obj, tuple):
+        return tuple(_eval_expression_recursively(item, df) for item in obj)
+    if isinstance(obj, dict):
+        return {key: _eval_expression_recursively(val, df) for key, val in obj.items()}
+    return obj
+
+
+def _parse_args(df: DataFrame, *args: Any) -> tuple[Any, ...]:
     # Parse `args`, evaluating any expressions we encounter.
-    return tuple(
-        [x._eval_expression(df) if isinstance(x, Expression) else x for x in args]
-    )
+    return tuple(_eval_expression_recursively(x, df) for x in args)
 
 
 def _parse_kwargs(df: DataFrame, **kwargs: Any) -> dict[str, Any]:
     # Parse `kwargs`, evaluating any expressions we encounter.
     return {
-        key: val._eval_expression(df) if isinstance(val, Expression) else val
+        key: _eval_expression_recursively(val, df)
         for key, val in kwargs.items()
     }
 
@@ -93,7 +107,9 @@ class Expression:
         self._repr_str = repr_str
         self._needs_parentheses = needs_parenthese
 
-    def _eval_expression(self, df: DataFrame) -> Any:
+    def _eval_expression(self, df: DataFrame | Series) -> Any:
+        if isinstance(df, ABCSeries):
+            df = df.to_frame()
         return self._func(df)
 
     def _with_op(
@@ -287,7 +303,17 @@ class Expression:
 
         return Expression(wrapped, repr_str)
 
-    def __call__(self, *args: Any, **kwargs: Any) -> Expression:
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
+        if (
+            len(args) == 1
+            and not kwargs
+            and isinstance(args[0], (ABCDataFrame, ABCSeries))
+        ):
+            frame = args[0]
+            if isinstance(frame, ABCSeries):
+                frame = frame.to_frame()
+            return self._eval_expression(frame)
+
         def func(df: DataFrame, *args: Any, **kwargs: Any) -> Any:
             parsed_args = _parse_args(df, *args)
             parsed_kwargs = _parse_kwargs(df, **kwargs)
