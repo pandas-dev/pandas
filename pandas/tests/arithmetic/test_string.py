@@ -91,6 +91,21 @@ def test_pathlib_path_division(any_string_dtype, request):
     tm.assert_series_equal(result, expected)
 
 
+def test_pathlib_path_chained_division(any_string_dtype):
+    # GH#63832
+    # Test that chained Path division works (was failing for PyArrow strings)
+    item = Path("/Users/Irv/")
+    ser1 = Series(["A", "B"], dtype=any_string_dtype)
+    ser2 = Series(["C", "D"], dtype=any_string_dtype)
+
+    # Test chained division: Path / Series / Series
+    result = item / ser1 / ser2
+
+    # Result should contain the correct Path objects
+    expected_paths = [item / "A" / "C", item / "B" / "D"]
+    assert result.tolist() == expected_paths
+
+
 def test_mixed_object_comparison(any_string_dtype):
     # GH#60228
     dtype = any_string_dtype

@@ -677,7 +677,13 @@ class ArrowExtensionArray(
                 pa_array = pa.array(value, type=pa_type, mask=mask)
             except (pa.ArrowInvalid, pa.ArrowTypeError):
                 # GH50430: let pyarrow infer type, then cast
-                pa_array = pa.array(value, mask=mask)
+                try:
+                    pa_array = pa.array(value, mask=mask)
+                except (pa.ArrowInvalid, pa.ArrowTypeError):
+                    # GH63832: If pyarrow cannot infer the type (e.g., PosixPath),
+                    # we cannot use PyArrow for this data. Raise to signal that
+                    # the operation should fall back to object dtype handling.
+                    raise
 
             if pa_type is None and pa.types.is_duration(pa_array.type):
                 # Workaround https://github.com/apache/arrow/issues/37291
@@ -971,7 +977,12 @@ class ArrowExtensionArray(
     def _evaluate_op_method(self, other, op, arrow_funcs) -> Self:
         pa_type = self._pa_array.type
         other_original = other
-        other = self._box_pa(other)
+        try:
+            other = self._box_pa(other)
+        except (pa.ArrowInvalid, pa.ArrowTypeError):
+            # GH63832: If pyarrow cannot handle the other operand type,
+            # fall back to object dtype operation
+            return NotImplemented
 
         if (
             pa.types.is_string(pa_type)
@@ -1076,6 +1087,11 @@ class ArrowExtensionArray(
             )
 
         result = self._evaluate_op_method(other, op, ARROW_ARITHMETIC_FUNCS)
+
+        # GH#63832: If PyArrow cannot handle the operation, fall back to object dtype
+        if result is NotImplemented:
+            return NotImplemented
+
         if is_nan_na() and result.dtype.kind == "f":
             parr = result._pa_array
             mask = pc.is_nan(parr).fill_null(False).to_numpy()
