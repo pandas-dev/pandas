@@ -13,6 +13,7 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
+- Fixed a regression in :func:`json_normalize` that caused top-level missing entries to raise a ``TypeError``. Missing entries are once again interpreted as empty records (:issue:`64188`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_302.bug_fixes:
