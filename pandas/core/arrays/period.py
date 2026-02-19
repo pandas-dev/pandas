@@ -118,9 +118,7 @@ def _field_accessor(name: str, docstring: str | None = None):
 
 
 @set_module("pandas.arrays")
-# error: Definition of "_concat_same_type" in base class "NDArrayBacked" is
-# incompatible with definition in base class "ExtensionArray"
-class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
+class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
     """
     Pandas ExtensionArray for storing Period data.
 
