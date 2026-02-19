@@ -16,13 +16,17 @@ from contextlib import contextmanager
 from csv import QUOTE_NONE
 from decimal import Decimal
 from functools import partial
-from io import StringIO
+from io import (
+    BytesIO,
+    StringIO,
+)
 import math
 import re
 from shutil import get_terminal_size
 from typing import (
     TYPE_CHECKING,
     Any,
+    Union,
     cast,
 )
 
@@ -972,6 +976,7 @@ class DataFrameRenderer:
     def to_csv(
         self,
         path_or_buf: FilePath | WriteBuffer[bytes] | WriteBuffer[str] | None = None,
+        engine: str = "python",
         encoding: str | None = None,
         sep: str = ",",
         columns: Sequence[Hashable] | None = None,
@@ -995,12 +1000,13 @@ class DataFrameRenderer:
 
         if path_or_buf is None:
             created_buffer = True
-            path_or_buf = StringIO()
+            path_or_buf = StringIO() if engine == "python" else BytesIO()
         else:
             created_buffer = False
 
         csv_formatter = CSVFormatter(
             path_or_buf=path_or_buf,
+            engine=engine,
             lineterminator=lineterminator,
             sep=sep,
             encoding=encoding,
@@ -1021,8 +1027,12 @@ class DataFrameRenderer:
         csv_formatter.save()
 
         if created_buffer:
-            assert isinstance(path_or_buf, StringIO)
+            path_or_buf = cast("Union[BytesIO, StringIO]", path_or_buf)
             content = path_or_buf.getvalue()
+            if isinstance(content, bytes):
+                # Need to decode into string since the
+                # pyarrow engine only writes binary data
+                content = content.decode("utf-8")
             path_or_buf.close()
             return content
 

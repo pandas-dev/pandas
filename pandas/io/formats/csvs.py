@@ -11,16 +11,20 @@ from collections.abc import (
     Sequence,
 )
 import csv as csvlib
+import io
 import os
 from typing import (
+    IO,
     TYPE_CHECKING,
     Any,
+    AnyStr,
     cast,
 )
 
 import numpy as np
 
 from pandas._libs import writers as libwriters
+from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.generic import (
@@ -60,6 +64,7 @@ class CSVFormatter:
         self,
         formatter: DataFrameFormatter,
         path_or_buf: FilePath | WriteBuffer[str] | WriteBuffer[bytes] = "",
+        engine: str = "python",
         sep: str = ",",
         cols: Sequence[Hashable] | None = None,
         index_label: IndexLabel | None = None,
@@ -81,6 +86,7 @@ class CSVFormatter:
         self.obj = self.fmt.frame
 
         self.filepath_or_buffer = path_or_buf
+        self.engine = engine
         self.encoding = encoding
         self.compression: CompressionOptions = compression
         self.mode = mode
@@ -247,6 +253,11 @@ class CSVFormatter:
         """
         Create the writer & save.
         """
+        if self.engine == "pyarrow" and (
+            "b" not in self.mode or isinstance(self.filepath_or_buffer, io.TextIOBase)
+        ):
+            raise ValueError("The pyarrow engine can only open files in binary mode.")
+
         # apply compression and byte/text conversion
         with get_handle(
             self.filepath_or_buffer,
@@ -255,12 +266,89 @@ class CSVFormatter:
             errors=self.errors,
             compression=self.compression,
             storage_options=self.storage_options,
+            # pyarrow engine exclusively writes bytes
+            is_text=self.engine == "python",
         ) as handles:
             # Note: self.encoding is irrelevant here
-            # error: Argument "quoting" to "writer" has incompatible type "int";
-            # expected "Literal[0, 1, 2, 3]"
+
+            # This is a mypy bug?
+            # error: Cannot infer type argument 1 of "_save" of "CSVFormatter"  [misc]
+            self._save(handles.handle)  # type: ignore[misc]
+
+    def _save_pyarrow(self, handle: IO[AnyStr]) -> None:
+        pa = import_optional_dependency("pyarrow")
+        pa_csv = import_optional_dependency("pyarrow.csv")
+
+        if self.quotechar is not None and self.quotechar != '"':
+            raise ValueError('The pyarrow engine only supports " as a quotechar.')
+
+        unsupported_options = [
+            # each pair is (option value, default, option name)
+            (self.decimal, ".", "decimal"),
+            (self.float_format, None, "float_format"),
+            (self.na_rep, "", "na_rep"),
+            (self.date_format, None, "date_foramt"),
+            (self.lineterminator, os.linesep, "lineterminator"),
+            (self.encoding, None, "encoding"),
+            (self.errors, "strict", "errors"),
+            (self.escapechar, None, "escapechar"),
+        ]
+
+        for opt_val, default, option in unsupported_options:
+            if opt_val != default:
+                raise ValueError(
+                    f"The {option} option is not supported with the pyarrow engine."
+                )
+
+        # Convert index to column and rename name to empty string
+        # since we serialize the index as basically a column with no name
+        # TODO: this won't work for multi-indexes (without names)
+        obj = self.obj
+        if self.index:
+            new_names = [
+                label if label is not None else "" for label in self.obj.index.names
+            ]
+            obj = self.obj.reset_index(names=new_names)
+
+        table = pa.Table.from_pandas(obj)
+
+        # Map quoting arg to pyarrow equivalents
+        if self.quoting == csvlib.QUOTE_MINIMAL:
+            pa_quoting = "needed"
+        elif self.quotechar is None:
+            raise TypeError("quotechar must be set if quoting enabled")
+        elif self.quoting == csvlib.QUOTE_ALL:
+            # TODO: Is this a 1-1 mapping?
+            # This doesn't quote nulls, check if Python does this
+            pa_quoting = "all_valid"
+        elif self.quoting == csvlib.QUOTE_NONE:
+            pa_quoting = "none"
+        else:
+            raise NotImplementedError(
+                f"Quoting option {self.quoting} is not supported with engine='pyarrow'"
+            )
+
+        kwargs: dict[str, Any] = {
+            "include_header": self._need_to_save_header,
+            "batch_size": self.chunksize,
+        }
+        kwargs["delimiter"] = self.sep
+        kwargs["quoting_style"] = pa_quoting
+
+        write_options = pa_csv.WriteOptions(**kwargs)
+        pa_csv.write_csv(table, handle, write_options)
+
+    def _save(self, handle: IO[AnyStr]) -> None:
+        if self.engine == "pyarrow":
+            self._save_pyarrow(handle)
+        else:
             self.writer = csvlib.writer(
-                handles.handle,
+                # error: Argument of type "IO[AnyStr@_save]" cannot be assigned
+                # to parameter "csvfile" of type "SupportsWrite[str]"
+                # in function "writer"
+                # error: Argument "quoting" to "writer" has incompatible type "int";
+                # expected "Literal[0, 1, 2, 3]"
+                handle,  # type: ignore[arg-type]
                 lineterminator=self.lineterminator,
                 delimiter=self.sep,
                 quoting=self.quoting,  # type: ignore[arg-type]
@@ -268,13 +356,9 @@ class CSVFormatter:
                 escapechar=self.escapechar,
                 quotechar=self.quotechar,
             )
-
-            self._save()
-
-    def _save(self) -> None:
-        if self._need_to_save_header:
-            self._save_header()
-        self._save_body()
+            if self._need_to_save_header:
+                self._save_header()
+            self._save_body()
 
     def _save_header(self) -> None:
         if not self.has_mi_columns or self._has_aliases:

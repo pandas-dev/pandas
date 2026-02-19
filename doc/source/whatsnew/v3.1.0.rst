@@ -29,6 +29,7 @@ enhancement2
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 - :meth:`.DataFrameGroupBy.agg` now allows for the provided ``func`` to return a NumPy array (:issue:`63957`)
+- Allow using pyarrow to serialize :class:`DataFrame` and :class:`Series` to CSV with ``engine="pyarrow"`` in :meth:`DataFrame.to_csv` and :meth:`Series.to_csv` (:issue:`53618`)
 - Display formatting for float sequences in DataFrame cells now respects the ``display.precision`` option (:issue:`60503`).
 
 .. ---------------------------------------------------------------------------
