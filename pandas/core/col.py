@@ -7,6 +7,7 @@ from collections.abc import (
 from typing import (
     TYPE_CHECKING,
     Any,
+    TypeGuard,
 )
 
 from pandas.util._decorators import set_module
@@ -87,6 +88,10 @@ def _pretty_print_args_kwargs(*args: Any, **kwargs: Any) -> str:
     return ", ".join(all_args)
 
 
+def _is_series(obj: DataFrame | Series) -> TypeGuard[Series]:
+    return isinstance(obj, ABCSeries)
+
+
 @set_module("pandas.api.typing")
 class Expression:
     """
@@ -107,7 +112,7 @@ class Expression:
 
     def _eval_expression(self, df: DataFrame | Series) -> Any:
         frame: DataFrame
-        if isinstance(df, ABCSeries):
+        if _is_series(df):
             frame = df.to_frame()
         else:
             frame = df
