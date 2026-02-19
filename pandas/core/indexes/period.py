@@ -375,14 +375,6 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         # GH#63388
         data, copy = cls._maybe_copy_array_input(data, copy, dtype)
 
-        # PeriodIndex allow PeriodIndex(period_index, freq=different)
-        # Let's not encourage that kind of behavior in PeriodArray.
-
-        if freq and isinstance(data, cls) and data.freq != freq:
-            # TODO: We can do some of these with no-copy / coercion?
-            # e.g. D -> 2D seems to be OK
-            data = data.asfreq(freq)
-
         # don't pass copy here, since we copy later.
         data = period_array(data=data, freq=freq)
 
