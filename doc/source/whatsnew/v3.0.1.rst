@@ -45,4 +45,4 @@ Bug fixes
 Contributors
 ~~~~~~~~~~~~
 
-.. contributors:: v3.0.0..v3.0.1|HEAD
+.. contributors:: v3.0.0..v3.0.1

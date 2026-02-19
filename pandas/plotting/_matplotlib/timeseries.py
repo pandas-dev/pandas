@@ -69,7 +69,9 @@ def maybe_resample(series: Series, ax: Axes, kwargs: dict[str, Any]):
     if freq is None:  # pragma: no cover
         raise ValueError("Cannot use dynamic axis without frequency info")
 
-    # Convert DatetimeIndex to PeriodIndex
+    # Convert DatetimeIndex to PeriodIndex so the x-axis uses Period ordinals.
+    # For BDay freq this ensures consecutive business days get consecutive
+    # ordinals with no weekend gaps (GH#1482).
     if isinstance(series.index, ABCDatetimeIndex):
         series = series.to_period(freq=freq)
 
@@ -264,8 +266,12 @@ def _get_index_freq(index: Index) -> BaseOffset | None:
 
 
 def maybe_convert_index(ax: Axes, data: NDFrameT) -> NDFrameT:
-    # tsplot converts automatically, but don't want to convert index
-    # over and over for DataFrames
+    # Convert DatetimeIndex to PeriodIndex for plotting.  This is needed so
+    # that the x-axis uses Period ordinals rather than matplotlib date2num
+    # floats.  A key benefit: for business-day (BDay) frequency, PeriodIndex
+    # assigns consecutive ordinals to weekdays only, producing evenly-spaced
+    # points with no weekend gaps.  With raw date2num values Fri→Mon would be
+    # a 3-unit gap.  See GH#1482.
     if isinstance(data.index, (ABCDatetimeIndex, ABCPeriodIndex)):
         freq = _get_index_freq(data.index)
 

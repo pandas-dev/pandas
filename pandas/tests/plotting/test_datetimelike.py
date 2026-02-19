@@ -352,6 +352,22 @@ class TestTSPlot:
         idx = ax.get_lines()[0].get_xdata()
         assert PeriodIndex(data=idx).freqstr == "M"
 
+    def test_business_freq_no_weekend_gaps(self):
+        # Verify that plotting a BDay-frequency series produces evenly-spaced
+        # x-coordinates with no gaps at weekends.  The current implementation
+        # achieves this by converting DatetimeIndex to PeriodIndex internally;
+        # PeriodIndex with BDay freq assigns consecutive ordinals to business
+        # days only, so Fri→Mon is a 1-unit step (not 3).  See GH#1482.
+        idx = date_range("2020-01-01", periods=30, freq="B")
+        ser = Series(range(len(idx)), index=idx)
+        _, ax = mpl.pyplot.subplots()
+        ser.plot(ax=ax)
+        x_values = ax.get_lines()[0].get_xydata()[:, 0]
+        diffs = np.unique(np.diff(x_values))
+        # All consecutive x-coordinates should be uniformly spaced (no 3-unit
+        # weekend gaps that would appear if raw date2num floats were used).
+        assert len(diffs) == 1, f"Expected uniform spacing, got distinct diffs: {diffs}"
+
     def test_freq_with_no_period_alias(self):
         # GH34487
         freq = WeekOfMonth()

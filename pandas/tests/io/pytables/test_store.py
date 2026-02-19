@@ -110,14 +110,14 @@ def test_repr(temp_hdfstore, performance_warning, using_infer_string):
     store["b"] = Series(range(10), dtype="float64", index=[f"i_{i}" for i in range(10)])
     store["c"] = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD"), dtype=object),
-        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        columns=Index(list("ABCD")),
+        index=Index([f"i-{i}" for i in range(30)]),
     )
 
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD"), dtype=object),
-        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        columns=Index(list("ABCD")),
+        index=Index([f"i-{i}" for i in range(30)]),
     )
     df["obj1"] = "foo"
     df["obj2"] = "bar"
@@ -150,8 +150,8 @@ def test_repr_get_storer(temp_hdfstore):
     # storers
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD"), dtype=object),
-        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        columns=Index(list("ABCD")),
+        index=Index([f"i-{i}" for i in range(30)]),
     )
     temp_hdfstore.append("df", df)
 
@@ -167,13 +167,13 @@ def test_contains(temp_hdfstore):
     )
     store["b"] = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD"), dtype=object),
-        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        columns=Index(list("ABCD")),
+        index=Index([f"i-{i}" for i in range(30)]),
     )
     store["foo/bar"] = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD"), dtype=object),
-        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        columns=Index(list("ABCD")),
+        index=Index([f"i-{i}" for i in range(30)]),
     )
     assert "a" in store
     assert "b" in store
@@ -187,8 +187,8 @@ def test_contains(temp_hdfstore):
     with tm.assert_produces_warning(tables.NaturalNameWarning, check_stacklevel=False):
         store["node())"] = DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
-            columns=Index(list("ABCD"), dtype=object),
-            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+            columns=Index(list("ABCD")),
+            index=Index([f"i-{i}" for i in range(30)]),
         )
     assert "node())" in store
 
@@ -200,12 +200,12 @@ def test_versioning(temp_hdfstore):
     )
     store["b"] = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD"), dtype=object),
-        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        columns=Index(list("ABCD")),
+        index=Index([f"i-{i}" for i in range(30)]),
     )
     df = DataFrame(
         np.random.default_rng(2).standard_normal((20, 4)),
-        columns=Index(list("ABCD"), dtype=object),
+        columns=Index(list("ABCD")),
         index=date_range("2000-01-01", periods=20, freq="B"),
     )
     store.append("df1", df[:10])

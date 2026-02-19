@@ -1311,7 +1311,6 @@ class TestOperations:
         expected = Series([True], name="a")
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.xfail(reason="Unknown: Omitted test_ in name prior.")
     def test_assignment_not_inplace(self):
         # see gh-9297
         df = DataFrame(
@@ -1323,7 +1322,8 @@ class TestOperations:
 
         expected = df.copy()
         expected["c"] = expected["a"] + expected["b"]
-        tm.assert_frame_equal(df, expected)
+        tm.assert_frame_equal(actual, expected)
+        assert list(df.columns) == ["a", "b"]
 
     def test_multi_line_expression(self):
         # GH 11149

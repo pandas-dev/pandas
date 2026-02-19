@@ -159,7 +159,7 @@ def test_pytables_native2_read(datapath):
     assert isinstance(d1, DataFrame)
 
 
-def test_read_hdf_open_store(temp_h5_path, using_infer_string):
+def test_read_hdf_open_store(temp_h5_path):
     # GH10330
     # No check for non-string path_or-buf, and no test of open store
     df = DataFrame(

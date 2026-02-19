@@ -718,7 +718,7 @@ def test_append_misc_empty_frame(temp_hdfstore):
     tm.assert_frame_equal(temp_hdfstore.select("df2"), df)
 
 
-def test_append_raise(temp_hdfstore, using_infer_string):
+def test_append_raise(temp_hdfstore):
     # test append with invalid input to get good error messages
 
     # list in column
