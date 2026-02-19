@@ -71,7 +71,10 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna
 
-from pandas.core.arrays import datetimelike as dtl
+from pandas.core.arrays import (
+    ExtensionArray,
+    datetimelike as dtl,
+)
 import pandas.core.common as com
 
 if TYPE_CHECKING:
@@ -97,7 +100,6 @@ if TYPE_CHECKING:
         DatetimeArray,
         TimedeltaArray,
     )
-    from pandas.core.arrays.base import ExtensionArray
 
 
 BaseOffsetT = TypeVar("BaseOffsetT", bound=BaseOffset)
@@ -277,6 +279,12 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
             if copy:
                 scalars = scalars.copy()
             return scalars
+
+        if not isinstance(
+            scalars, (np.ndarray, list, tuple, ABCSeries, ABCIndex, ExtensionArray)
+        ):
+            # test_constructor_empty_special has a case with an iter object
+            scalars = list(scalars)
 
         arrdata = np.asarray(scalars)
         if arrdata.dtype.kind == "f" and len(arrdata) > 0:
@@ -1275,11 +1283,6 @@ def period_array(
                 return out
             return out.asfreq(freq)
         return out
-
-    # other iterable of some kind
-    if not isinstance(data, (np.ndarray, list, tuple, ABCSeries)):
-        # test_constructor_empty_special has a case with an iter object
-        data = list(data)
 
     return PeriodArray._from_sequence(data, dtype=dtype)
 
