@@ -115,7 +115,6 @@ from pandas.core.arrays.arrow import (
 )
 from pandas.core.arrays.categorical import CategoricalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
-from pandas.core.col import Expression
 from pandas.core.construction import (
     array as pd_array,
     extract_array,
@@ -6390,6 +6389,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     "a condition and replacement; "
                     f"instead got length {len(entry)}."
                 )
+
         def _evaluate_case_when_arg(arg):
             return com.apply_if_callable(arg, self)
 

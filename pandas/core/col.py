@@ -9,11 +9,12 @@ from typing import (
     Any,
 )
 
+from pandas.util._decorators import set_module
+
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
 )
-from pandas.util._decorators import set_module
 
 if TYPE_CHECKING:
     from pandas import (
@@ -70,10 +71,7 @@ def _parse_args(df: DataFrame, *args: Any) -> tuple[Any, ...]:
 
 def _parse_kwargs(df: DataFrame, **kwargs: Any) -> dict[str, Any]:
     # Parse `kwargs`, evaluating any expressions we encounter.
-    return {
-        key: _eval_expression_recursively(val, df)
-        for key, val in kwargs.items()
-    }
+    return {key: _eval_expression_recursively(val, df) for key, val in kwargs.items()}
 
 
 def _pretty_print_args_kwargs(*args: Any, **kwargs: Any) -> str:
