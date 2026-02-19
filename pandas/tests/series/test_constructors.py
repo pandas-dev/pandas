@@ -1308,7 +1308,6 @@ class TestSeriesConstructors:
         tm.assert_series_equal(result, expected)
         assert result.dtype == "Period[D]"
 
-    @pytest.mark.xfail(reason="PeriodDtype Series not supported yet")
     def test_construct_from_ints_including_iNaT_scalar_period_dtype(self):
         series = Series([0, 1000, 2000, pd._libs.iNaT], dtype="period[D]")
 

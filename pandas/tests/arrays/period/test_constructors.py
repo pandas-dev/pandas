@@ -99,15 +99,25 @@ def test_period_array_freq_mismatch():
         PeriodArray(arr, dtype=dtype)
 
 
-def test_from_sequence_disallows_i8():
-    arr = period_array(["2000", "2001"], freq="D")
+def test_from_sequence_allows_i8():
+    # GH#64227 this used to be allowed for PeriodIndex and period_array
+    # but not PeriodArray._from_sequence
+    arr = period_array(["1975", "1976"], freq="D")
 
-    msg = str(arr[0].ordinal)
-    with pytest.raises(TypeError, match=msg):
-        PeriodArray._from_sequence(arr.asi8, dtype=arr.dtype)
+    expected = pd.PeriodIndex([pd.Period(x, freq=arr.freq) for x in arr.asi8]).array
 
-    with pytest.raises(TypeError, match=msg):
-        PeriodArray._from_sequence(list(arr.asi8), dtype=arr.dtype)
+    result1 = pd.PeriodIndex(arr.asi8, dtype=arr.dtype).array
+    result2 = period_array(arr.asi8, freq=arr.freq)
+    result3 = PeriodArray._from_sequence(arr.asi8, dtype=arr.dtype)
+    # FIXME: GH#64227 this goes through a different path and gives different behavior
+    # result4 = PeriodArray._from_sequence(arr.asi8.astype(object), dtype=arr.dtype)
+    result5 = PeriodArray._from_sequence(list(arr.asi8), dtype=arr.dtype)
+
+    tm.assert_period_array_equal(result1, expected)
+    tm.assert_period_array_equal(result2, expected)
+    tm.assert_period_array_equal(result3, expected)
+    # tm.assert_period_array_equal(result4, expected)
+    tm.assert_period_array_equal(result5, expected)
 
 
 def test_from_td64nat_sequence_raises():

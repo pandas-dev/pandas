@@ -278,12 +278,18 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
                 scalars = scalars.copy()
             return scalars
 
-        periods = np.asarray(scalars, dtype=object)
+        arrdata = np.asarray(scalars)
+        if arrdata.dtype.kind in "iu":
+            arr = arrdata.astype(np.int64, copy=False)
+            ordinals = libperiod.from_calendar_ordinals(arr, dtype)  # type: ignore[arg-type]
+            return cls(ordinals, dtype=dtype)
+        else:
+            periods = ensure_object(arrdata)
 
-        unit = unit or libperiod.extract_period_unit(periods)
-        dtype = PeriodDtype(unit)
-        ordinals = libperiod.extract_ordinals(periods, dtype)
-        return cls(ordinals, dtype=dtype)
+            unit = unit or libperiod.extract_period_unit(periods)
+            dtype = PeriodDtype(unit)
+            ordinals = libperiod.extract_ordinals(periods, dtype)
+            return cls(ordinals, dtype=dtype)
 
     @classmethod
     def _from_sequence_of_strings(
@@ -1250,6 +1256,7 @@ def period_array(
     Length: 4, dtype: period[Q-DEC]
     """
     data_dtype = getattr(data, "dtype", None)
+    dtype = PeriodDtype(freq) if freq is not None else None
 
     if lib.is_np_dtype(data_dtype, "M"):
         return PeriodArray._from_datetime64(data, freq)
@@ -1263,28 +1270,14 @@ def period_array(
 
     # other iterable of some kind
     if not isinstance(data, (np.ndarray, list, tuple, ABCSeries)):
+        # test_constructor_empty_special has a case with an iter object
         data = list(data)
 
     arrdata = np.asarray(data)
 
-    dtype: PeriodDtype | None
-    if freq:
-        dtype = PeriodDtype(freq)
-    else:
-        dtype = None
-
     if arrdata.dtype.kind == "f" and len(arrdata) > 0:
         raise TypeError("PeriodIndex does not allow floating point in construction")
 
-    if arrdata.dtype.kind in "iu":
-        arr = arrdata.astype(np.int64, copy=False)
-        ordinals = libperiod.from_calendar_ordinals(arr, dtype)  # type: ignore[arg-type]
-        return PeriodArray(ordinals, dtype=dtype)
-
-    data = ensure_object(arrdata)
-    if freq is None:
-        freq = libperiod.extract_period_unit(data)
-    dtype = PeriodDtype(freq)
     return PeriodArray._from_sequence(data, dtype=dtype)
 
 
