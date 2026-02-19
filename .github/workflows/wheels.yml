@@ -205,10 +205,10 @@ jobs:
     # trigger an upload to https://anaconda.org/scientific-python-nightly-wheels/pandas
     # for cron jobs or "Run workflow" (restricted to main branch).
     name: Upload nightly packages to Anaconda
-    # if: >
-    #   github.repository == 'pandas-dev/pandas' &&
-    #   (github.event_name == 'schedule' ||
-    #   (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'))
+    if: >
+      github.repository == 'pandas-dev/pandas' &&
+      (github.event_name == 'schedule' ||
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'))
     needs:
       - build_sdist
       - build_wheels
@@ -221,16 +221,11 @@ jobs:
           path: dist
           merge-multiple: true
 
-      - name: Check files
-        shell: bash -el {0}
-        run: |
-          ls -al dist
-
-      # - name: Upload wheels & sdist
-      #   uses: scientific-python/upload-nightly-action@5748273c71e2d8d3a61f3a11a16421c8954f9ecf # 0.6.3
-      #   with:
-      #     artifacts_path: dist
-      #     anaconda_nightly_upload_token: ${{secrets.PANDAS_NIGHTLY_UPLOAD_TOKEN}}
+      - name: Upload wheels & sdist
+        uses: scientific-python/upload-nightly-action@5748273c71e2d8d3a61f3a11a16421c8954f9ecf # 0.6.3
+        with:
+          artifacts_path: dist
+          anaconda_nightly_upload_token: ${{secrets.PANDAS_NIGHTLY_UPLOAD_TOKEN}}
 
   publish:
     if: >
