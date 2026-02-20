@@ -62,6 +62,7 @@ matplotlib = "pandas:plotting._matplotlib"
 
 [project.optional-dependencies]
 test = ['hypothesis>=6.116.0', 'pytest>=8.3.4', 'pytest-xdist>=3.6.1']
+sbom = ['check-jsonschema']
 pyarrow = ['pyarrow>=13.0.0']
 performance = ['bottleneck>=1.4.2', 'numba>=0.60.0', 'numexpr>=2.10.2']
 computation = ['scipy>=1.14.1', 'xarray>=2024.10.0']
@@ -148,6 +149,10 @@ test-command = """
   """
 enable = ["cpython-freethreading"]
 before-build = "PACKAGE_DIR={package} bash {package}/scripts/cibw_before_build.sh"
+# Repair wheel and inject SBOM (PEP 770)
+# auditwheel 6.5.0+ auto-generates SBOM for bundled .so files
+# Our script adds the vendored code SBOM on top of that
+repair-wheel-command = "python ./scripts/cibw_repair_wheel.py {wheel} {dest_dir}"
 
 [tool.cibuildwheel.windows]
 environment = {}
@@ -157,7 +162,7 @@ test-command = """
   python -c "import pandas as pd; \
   pd.test(extra_args=['--no-strict-data-files', '-m not clipboard and not single_cpu and not slow and not network and not db']);" \
   """
-repair-wheel-command = "delvewheel repair -w {dest_dir} {wheel}"
+repair-wheel-command = "python ./scripts/cibw_repair_wheel.py {wheel} {dest_dir}"
 
 [[tool.cibuildwheel.overrides]]
 select = "*-manylinux_aarch64*"
@@ -177,12 +182,14 @@ before-test = "apk update && apk add musl-locales"
 # https://github.com/MacPython/numpy-wheels/pull/87#issuecomment-624878264
 select = "*-macosx*"
 environment = {CFLAGS="-g0"}
+repair-wheel-command = "python ./scripts/cibw_repair_wheel.py {wheel} {dest_dir}"
 
 [[tool.cibuildwheel.overrides]]
 select = "*pyodide*"
 test-requires = "pytest>=8.3.4 hypothesis>=6.116.0"
 # Pyodide repairs wheels on its own, using auditwheel-emscripten
-repair-wheel-command = ""
+# We just inject SBOM using the macos path (copy + inject, no repair tool)
+repair-wheel-command = "python ./scripts/cibw_repair_wheel.py {wheel} {dest_dir}"
 # https://github.com/pyodide/pyodide/issues/5805
 build-verbosity = 1
 test-command = """

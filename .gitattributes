@@ -78,5 +78,7 @@ environment.yml export-ignore
 # exclude the whole directory to avoid running related tests in sdist
 pandas/tests/io/parser/data export-ignore
 
-# Include cibw script in sdist since it's needed for building wheels
+# Include cibw scripts in sdist since they're needed for building wheels
 scripts/cibw_before_build.sh -export-ignore
+scripts/cibw_repair_wheel.py -export-ignore
+scripts/generate_sbom.py -export-ignore
