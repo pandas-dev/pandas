@@ -277,7 +277,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         #  bc of GH#64241
         data_dtype = getattr(scalars, "dtype", None)
         if lib.is_np_dtype(data_dtype, "M"):
-            freq = dtype._freq if dtype is not None else None
+            freq = dtype._freq if dtype is not None else None  # type: ignore[union-attr]
             return cls._from_datetime64(scalars, freq)
 
         scalars = extract_array(scalars, extract_numpy=True)
