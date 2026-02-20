@@ -47,7 +47,6 @@ import pandas._testing as tm
 from pandas.core.arrays import (
     IntegerArray,
     IntervalArray,
-    period_array,
 )
 from pandas.core.internals.blocks import NumpyBlock
 
@@ -1304,7 +1303,7 @@ class TestSeriesConstructors:
     def test_constructor_infer_period(self, data_constructor):
         data = [Period("2000", "D"), Period("2001", "D"), None]
         result = Series(data_constructor(data))
-        expected = Series(period_array(data))
+        expected = Series(pd.PeriodIndex(data))
         tm.assert_series_equal(result, expected)
         assert result.dtype == "Period[D]"
 
