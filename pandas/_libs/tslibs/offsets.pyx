@@ -655,10 +655,12 @@ cdef class BaseOffset:
         >>> pd.offsets.Hour(5).name
         'h'
         """
+        from pandas.errors import Pandas4Warning
+
         warnings.warn(
             "The 'name' property is deprecated and will be removed in a future "
             "version. Use 'rule_code' instead.",
-            FutureWarning,
+            Pandas4Warning,
             stacklevel=find_stack_level(),
         )
         return self.rule_code

@@ -26,6 +26,7 @@ from pandas._libs.tslibs.offsets import (
     to_offset,
 )
 from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
+from pandas.errors import Pandas4Warning
 
 from pandas import (
     DataFrame,
@@ -953,7 +954,9 @@ def test_month_offset_name(month_classes):
 def test_offset_name_deprecated():
     # GH#64207
     offset = Day(1)
-    with tm.assert_produces_warning(FutureWarning, match="name.*deprecated.*rule_code"):
+    with tm.assert_produces_warning(
+        Pandas4Warning, match="name.*deprecated.*rule_code"
+    ):
         result = offset.name
     assert result == "D"
 
