@@ -1261,6 +1261,10 @@ class IndexOpsMixin(OpsMixin):
         """
         Return True if values in the object are monotonically increasing.
 
+        This property checks whether each element is greater than or equal to
+        the previous element. Equal consecutive values are considered
+        monotonically increasing.
+
         Returns
         -------
         bool
@@ -1288,6 +1292,10 @@ class IndexOpsMixin(OpsMixin):
     def is_monotonic_decreasing(self) -> bool:
         """
         Return True if values in the object are monotonically decreasing.
+
+        This property checks whether each element is less than or equal to
+        the previous element. Equal consecutive values are considered
+        monotonically decreasing.
 
         Returns
         -------
