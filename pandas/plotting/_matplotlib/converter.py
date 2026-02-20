@@ -536,10 +536,10 @@ def _period_break_mask(
     # DatetimeIndex has no .week attribute; use .isocalendar().week instead
     if period == "week" and isinstance(dates, DatetimeIndex):
         current = dates.isocalendar().week.values
-        previous = (dates - 1 * dates.freq).isocalendar().week.values
+        previous = (dates - 1 * dates.freq).isocalendar().week.values  # type: ignore[operator]
     else:
         current = getattr(dates, period)
-        previous = getattr(dates - 1 * dates.freq, period)
+        previous = getattr(dates - 1 * dates.freq, period)  # type: ignore[operator]
     return current != previous
 
 
@@ -607,6 +607,7 @@ def _daily_finder(vmin: float, vmax: float, freq: BaseOffset) -> np.ndarray:
     vmin_orig = vmin
     (vmin, vmax) = (int(vmin), int(vmax))
 
+    dates_: DatetimeIndex | PeriodIndex
     if freq_group == FreqGroup.FR_BUS:
         # BDay branch: use numpy business-day arithmetic to avoid
         #  (deprecated) Period[B].
@@ -652,7 +653,7 @@ def _daily_finder(vmin: float, vmax: float, freq: BaseOffset) -> np.ndarray:
         year_start = _period_break(dates_, "year")
 
         def _hour_finder(label_interval: int, force_year_start: bool) -> None:
-            target = dates_.hour
+            target = dates_.hour  # type: ignore[union-attr]
             mask = _period_break_mask(dates_, "hour")
             info_maj[day_start] = True
             info_min[mask & (target % label_interval == 0)] = True
@@ -663,7 +664,7 @@ def _daily_finder(vmin: float, vmax: float, freq: BaseOffset) -> np.ndarray:
                 info_fmt[first_label(day_start)] = "%H:%M\n%d-%b\n%Y"
 
         def _minute_finder(label_interval: int) -> None:
-            target = dates_.minute
+            target = dates_.minute  # type: ignore[union-attr]
             hour_start = _period_break(dates_, "hour")
             mask = _period_break_mask(dates_, "minute")
             info_maj[hour_start] = True
@@ -673,7 +674,7 @@ def _daily_finder(vmin: float, vmax: float, freq: BaseOffset) -> np.ndarray:
             info_fmt[year_start] = "%H:%M\n%d-%b\n%Y"
 
         def _second_finder(label_interval: int) -> None:
-            target = dates_.second
+            target = dates_.second  # type: ignore[union-attr]
             minute_start = _period_break(dates_, "minute")
             mask = _period_break_mask(dates_, "second")
             info_maj[minute_start] = True
