@@ -375,8 +375,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         # GH#63388
         data, copy = cls._maybe_copy_array_input(data, copy, dtype)
 
-        # don't pass copy here, since we copy later.
-        data = period_array(data=data, freq=freq)
+        data = period_array(data=data, dtype=dtype)
 
         if copy:
             data = data.copy()

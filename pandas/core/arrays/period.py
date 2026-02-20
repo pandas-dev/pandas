@@ -1226,8 +1226,7 @@ def raise_on_incompatible(left, right) -> IncompatibleFrequency:
 
 def period_array(
     data: Sequence[Period | str | None] | AnyArrayLike,
-    freq: str | Tick | BaseOffset | None = None,
-    copy: bool = False,
+    dtype: PeriodDtype | None = None,
 ) -> PeriodArray:
     """
     Construct a new PeriodArray from a sequence of Period scalars.
@@ -1238,11 +1237,8 @@ def period_array(
         A sequence of Period objects. These are required to all have
         the same ``freq.`` Missing values can be indicated by ``None``
         or ``pandas.NaT``.
-    freq : str, Tick, or Offset
-        The frequency of every element of the array. This can be specified
-        to avoid inferring the `freq` from `data`.
-    copy : bool, default False
-        Whether to ensure a copy of the data is made.
+    dtype : PeriodDtype or None, default None
+        The dtype for the array. If not specified, is inferred from the data.
 
     Returns
     -------
@@ -1267,20 +1263,20 @@ def period_array(
 
     Integers that look like years are handled
 
-    >>> period_array([2000, 2001, 2002], freq="D")
+    >>> period_array([2000, 2001, 2002], dtype=PeriodDtype("D"))
     <PeriodArray>
     ['2000-01-01', '2001-01-01', '2002-01-01']
     Length: 3, dtype: period[D]
 
     Datetime-like strings may also be passed
 
-    >>> period_array(["2000-Q1", "2000-Q2", "2000-Q3", "2000-Q4"], freq="Q")
+    >>> period_array(
+    ...     ["2000-Q1", "2000-Q2", "2000-Q3", "2000-Q4"], dtype=PeriodDtype("Q")
+    ... )
     <PeriodArray>
     ['2000Q1', '2000Q2', '2000Q3', '2000Q4']
     Length: 4, dtype: period[Q-DEC]
     """
-    dtype = PeriodDtype(freq) if freq is not None else None
-
     return PeriodArray._from_sequence(data, dtype=dtype)
 
 
