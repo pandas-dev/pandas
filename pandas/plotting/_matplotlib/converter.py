@@ -156,21 +156,16 @@ def time2num(d):
     return d
 
 
-# -------------------------------------------------------------------------
-# --- BDay ordinal helpers (replaces deprecated Period[B] ordinals) ---
-# -------------------------------------------------------------------------
-
-_BDAY_EPOCH = np.datetime64("1970-01-01", "D")
-
-
 def _bday_count(dt) -> int:
     """Business-day ordinal for a date (replaces deprecated Period[B].ordinal)."""
-    return int(np.busday_count(_BDAY_EPOCH, np.datetime64(dt, "D")))
+    return int(
+        np.busday_count(np.datetime64("1970-01-01", "D"), np.datetime64(dt, "D"))
+    )
 
 
 def _bday_to_datetime(ordinal: int) -> datetime:
     """Inverse of _bday_count (replaces Period(ordinal=N, freq='B'))."""
-    dt64 = np.busday_offset(_BDAY_EPOCH, ordinal)
+    dt64 = np.busday_offset(np.datetime64("1970-01-01", "D"), ordinal)
     return dt64.astype("datetime64[us]").item()
 
 
@@ -617,7 +612,9 @@ def _daily_finder(vmin: float, vmax: float, freq: BaseOffset) -> np.ndarray:
         #  (deprecated) Period[B].
         ordinals = np.arange(vmin, vmax + 1, step=freq.n, dtype=np.int64)
         dates_ = DatetimeIndex(
-            np.busday_offset(_BDAY_EPOCH, ordinals).astype("datetime64[ns]"),
+            np.busday_offset(np.datetime64("1970-01-01", "D"), ordinals).astype(
+                "datetime64[ns]"
+            ),
             freq=freq,
         )
     else:
