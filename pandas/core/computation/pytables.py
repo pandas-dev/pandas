@@ -236,7 +236,7 @@ class BinOp(ops.BinOp):
             if isinstance(conv_val, str):
                 conv_val = Timedelta(conv_val)
             elif lib.is_integer(conv_val) or lib.is_float(conv_val):
-                conv_val = Timedelta(conv_val, unit="s")
+                conv_val = Timedelta(conv_val, input_unit="s")
             else:
                 conv_val = Timedelta(conv_val)
             conv_val = conv_val.as_unit(unit)._value

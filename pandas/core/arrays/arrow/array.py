@@ -628,7 +628,9 @@ class ArrowExtensionArray(
                 # Workaround https://github.com/apache/arrow/issues/37291
                 from pandas.core.tools.timedeltas import to_timedelta
 
-                value = to_timedelta(value, unit=pa_type.unit).as_unit(pa_type.unit)
+                value = to_timedelta(value, input_unit=pa_type.unit).as_unit(
+                    pa_type.unit
+                )
                 value = value.to_numpy()
 
             if pa_type is not None and pa.types.is_timestamp(pa_type):
@@ -809,7 +811,13 @@ class ArrowExtensionArray(
             return result
         else:
             pa_type = self._pa_array.type
-            scalar = value.as_py()
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore",
+                    "The 'unit' keyword is deprecated",
+                    Pandas4Warning,
+                )
+                scalar = value.as_py()
             if scalar is None:
                 return self._dtype.na_value
             elif pa.types.is_timestamp(pa_type) and pa_type.unit != "ns":
@@ -830,16 +838,22 @@ class ArrowExtensionArray(
         pa_type = self._pa_array.type
         box_timestamp = pa.types.is_timestamp(pa_type) and pa_type.unit != "ns"
         box_timedelta = pa.types.is_duration(pa_type) and pa_type.unit != "ns"
-        for value in self._pa_array:
-            val = value.as_py()
-            if val is None:
-                yield na_value
-            elif box_timestamp:
-                yield Timestamp(val).as_unit(pa_type.unit)
-            elif box_timedelta:
-                yield Timedelta(val).as_unit(pa_type.unit)
-            else:
-                yield val
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                "The 'unit' keyword is deprecated",
+                Pandas4Warning,
+            )
+            for value in self._pa_array:
+                val = value.as_py()
+                if val is None:
+                    yield na_value
+                elif box_timestamp:
+                    yield Timestamp(val).as_unit(pa_type.unit)
+                elif box_timedelta:
+                    yield Timedelta(val).as_unit(pa_type.unit)
+                else:
+                    yield val
 
     def __arrow_array__(self, type=None):
         """Convert myself to a pyarrow ChunkedArray."""
@@ -2323,7 +2337,14 @@ class ArrowExtensionArray(
 
         if keepdims:
             if isinstance(pa_result, pa.Scalar):
-                result = pa.array([pa_result.as_py()], type=pa_result.type)
+                with warnings.catch_warnings():
+                    warnings.filterwarnings(
+                        "ignore",
+                        "The 'unit' keyword is deprecated",
+                        Pandas4Warning,
+                    )
+                    item = pa_result.as_py()
+                result = pa.array([item], type=pa_result.type)
             else:
                 result = pa.array(
                     [pa_result],
@@ -2334,7 +2355,13 @@ class ArrowExtensionArray(
         if pc.is_null(pa_result).as_py():
             return self.dtype.na_value
         elif isinstance(pa_result, pa.Scalar):
-            result = pa_result.as_py()
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore",
+                    "The 'unit' keyword is deprecated",
+                    Pandas4Warning,
+                )
+                result = pa_result.as_py()
             pa_type = pa_result.type
             if pa.types.is_duration(pa_type) and pa_type.unit != "ns":
                 return Timedelta(result).as_unit(pa_type.unit)
@@ -2417,7 +2444,13 @@ class ArrowExtensionArray(
                     f"index {key} is out of bounds for axis 0 with size {n}"
                 )
             if isinstance(value, pa.Scalar):
-                value = value.as_py()
+                with warnings.catch_warnings():
+                    warnings.filterwarnings(
+                        "ignore",
+                        "The 'unit' keyword is deprecated",
+                        Pandas4Warning,
+                    )
+                    value = value.as_py()
             elif is_list_like(value):
                 raise ValueError("Length of indexer and values mismatch")
             chunks = [
@@ -2718,7 +2751,13 @@ class ArrowExtensionArray(
                 pa_type = value.type
             elif isinstance(value, pa.Scalar):
                 pa_type = value.type
-                value = value.as_py()
+                with warnings.catch_warnings():
+                    warnings.filterwarnings(
+                        "ignore",
+                        "The 'unit' keyword is deprecated",
+                        Pandas4Warning,
+                    )
+                    value = value.as_py()
             else:
                 pa_type = None
             return np.array(value, dtype=object), pa_type
@@ -2767,7 +2806,13 @@ class ArrowExtensionArray(
         if isinstance(replacements, pa.Array):
             replacements = np.array(replacements, dtype=object)
         elif isinstance(replacements, pa.Scalar):
-            replacements = replacements.as_py()
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore",
+                    "The 'unit' keyword is deprecated",
+                    Pandas4Warning,
+                )
+                replacements = replacements.as_py()
 
         result = np.array(values, dtype=object)
         result[mask] = replacements
@@ -3099,7 +3144,13 @@ class ArrowExtensionArray(
         )
 
     def _dt_to_pytimedelta(self) -> np.ndarray:
-        data = self._pa_array.to_pylist()
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                "The 'unit' keyword is deprecated",
+                Pandas4Warning,
+            )
+            data = self._pa_array.to_pylist()
         if self._dtype.pyarrow_dtype.unit == "ns":
             data = [None if ts is None else ts.to_pytimedelta() for ts in data]
         return np.array(data, dtype=object)
@@ -3368,7 +3419,13 @@ class ArrowExtensionArray(
                 f"to_pydatetime cannot be called with {self.dtype.pyarrow_dtype} type. "
                 "Convert to pyarrow timestamp type."
             )
-        data = self._pa_array.to_pylist()
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                "The 'unit' keyword is deprecated",
+                Pandas4Warning,
+            )
+            data = self._pa_array.to_pylist()
         if self._dtype.pyarrow_dtype.unit == "ns":
             data = [None if ts is None else ts.to_pydatetime(warn=False) for ts in data]
         return Series(data, dtype=object)

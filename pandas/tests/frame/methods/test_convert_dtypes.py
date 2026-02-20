@@ -220,7 +220,7 @@ class TestConvertDtypes:
         df = pd.DataFrame(
             {
                 "timestamps": pd.Series(
-                    pd.to_datetime(range(5), utc=True, unit="h"),
+                    pd.to_datetime(range(5), utc=True, input_unit="h"),
                     dtype="timestamp[ns, tz=UTC][pyarrow]",
                 )
             }

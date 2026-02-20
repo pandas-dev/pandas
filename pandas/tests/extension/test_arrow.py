@@ -2845,7 +2845,7 @@ def test_as_unit_duration_truncation(from_unit, to_unit):
     # Test that as_unit truncates correctly (matches NumPy behavior)
     # Value with sub-unit precision to test truncation
     ser_numpy = pd.Series(
-        pd.to_timedelta([93784567890123, None], unit="ns").as_unit(from_unit)
+        pd.to_timedelta([93784567890123, None], input_unit="ns").as_unit(from_unit)
     )
     ser_arrow = ser_numpy.astype(f"duration[{from_unit}][pyarrow]")
 
@@ -3153,7 +3153,7 @@ def test_describe_timedelta_data(pa_type):
     data = pd.Series(range(1, 10), dtype=ArrowDtype(pa_type))
     result = data.describe()
     expected = pd.Series(
-        [9, *pd.to_timedelta([5, 2, 1, 3, 5, 7, 9], unit=pa_type.unit).tolist()],
+        [9, *pd.to_timedelta([5, 2, 1, 3, 5, 7, 9], input_unit=pa_type.unit).tolist()],
         dtype=object,
         index=["count", "mean", "std", "min", "25%", "50%", "75%", "max"],
     )
@@ -3168,7 +3168,7 @@ def test_describe_datetime_data(pa_type):
     expected = pd.Series(
         [9]
         + [
-            pd.Timestamp(v, tz=pa_type.tz, unit=pa_type.unit)
+            pd.Timestamp(v, tz=pa_type.tz, input_unit=pa_type.unit)
             for v in [5, 1, 3, 5, 7, 9]
         ],
         dtype=object,
@@ -3229,9 +3229,9 @@ def test_from_sequence_temporal(pa_type):
     val = 3
     unit = pa_type.unit
     if pa.types.is_duration(pa_type):
-        seq = [pd.Timedelta(val, unit=unit).as_unit(unit)]
+        seq = [pd.Timedelta(val, input_unit=unit).as_unit(unit)]
     else:
-        seq = [pd.Timestamp(val, unit=unit, tz=pa_type.tz).as_unit(unit)]
+        seq = [pd.Timestamp(val, input_unit=unit, tz=pa_type.tz).as_unit(unit)]
 
     result = ArrowExtensionArray._from_sequence(seq, dtype=pa_type)
     expected = ArrowExtensionArray(pa.array([val], type=pa_type))
@@ -3245,9 +3245,9 @@ def test_setitem_temporal(pa_type):
     # GH 53171
     unit = pa_type.unit
     if pa.types.is_duration(pa_type):
-        val = pd.Timedelta(1, unit=unit).as_unit(unit)
+        val = pd.Timedelta(1, input_unit=unit).as_unit(unit)
     else:
-        val = pd.Timestamp(1, unit=unit, tz=pa_type.tz).as_unit(unit)
+        val = pd.Timestamp(1, input_unit=unit, tz=pa_type.tz).as_unit(unit)
 
     arr = ArrowExtensionArray(pa.array([1, 2, 3], type=pa_type))
 
@@ -3264,7 +3264,7 @@ def test_arithmetic_temporal(pa_type, request):
     # GH 53171
     arr = ArrowExtensionArray(pa.array([1, 2, 3], type=pa_type))
     unit = pa_type.unit
-    result = arr - pd.Timedelta(1, unit=unit).as_unit(unit)
+    result = arr - pd.Timedelta(1, input_unit=unit).as_unit(unit)
     expected = ArrowExtensionArray(pa.array([0, 1, 2], type=pa_type))
     tm.assert_extension_array_equal(result, expected)
 
@@ -3276,9 +3276,9 @@ def test_comparison_temporal(pa_type):
     # GH 53171
     unit = pa_type.unit
     if pa.types.is_duration(pa_type):
-        val = pd.Timedelta(1, unit=unit).as_unit(unit)
+        val = pd.Timedelta(1, input_unit=unit).as_unit(unit)
     else:
-        val = pd.Timestamp(1, unit=unit, tz=pa_type.tz).as_unit(unit)
+        val = pd.Timestamp(1, input_unit=unit, tz=pa_type.tz).as_unit(unit)
 
     arr = ArrowExtensionArray(pa.array([1, 2, 3], type=pa_type))
 
@@ -3295,10 +3295,10 @@ def test_getitem_temporal(pa_type):
     arr = ArrowExtensionArray(pa.array([1, 2, 3], type=pa_type))
     result = arr[1]
     if pa.types.is_duration(pa_type):
-        expected = pd.Timedelta(2, unit=pa_type.unit).as_unit(pa_type.unit)
+        expected = pd.Timedelta(2, input_unit=pa_type.unit).as_unit(pa_type.unit)
         assert isinstance(result, pd.Timedelta)
     else:
-        expected = pd.Timestamp(2, unit=pa_type.unit, tz=pa_type.tz).as_unit(
+        expected = pd.Timestamp(2, input_unit=pa_type.unit, tz=pa_type.tz).as_unit(
             pa_type.unit
         )
         assert isinstance(result, pd.Timestamp)
@@ -3315,13 +3315,15 @@ def test_iter_temporal(pa_type):
     result = list(arr)
     if pa.types.is_duration(pa_type):
         expected = [
-            pd.Timedelta(1, unit=pa_type.unit).as_unit(pa_type.unit),
+            pd.Timedelta(1, input_unit=pa_type.unit).as_unit(pa_type.unit),
             pd.NA,
         ]
         assert isinstance(result[0], pd.Timedelta)
     else:
         expected = [
-            pd.Timestamp(1, unit=pa_type.unit, tz=pa_type.tz).as_unit(pa_type.unit),
+            pd.Timestamp(1, input_unit=pa_type.unit, tz=pa_type.tz).as_unit(
+                pa_type.unit
+            ),
             pd.NA,
         ]
         assert isinstance(result[0], pd.Timestamp)
@@ -3347,9 +3349,11 @@ def test_to_numpy_temporal(pa_type, dtype):
     arr = ArrowExtensionArray(pa.array([1, None], type=pa_type))
     result = arr.to_numpy(dtype=dtype)
     if pa.types.is_duration(pa_type):
-        value = pd.Timedelta(1, unit=pa_type.unit).as_unit(pa_type.unit)
+        value = pd.Timedelta(1, input_unit=pa_type.unit).as_unit(pa_type.unit)
     else:
-        value = pd.Timestamp(1, unit=pa_type.unit, tz=pa_type.tz).as_unit(pa_type.unit)
+        value = pd.Timestamp(1, input_unit=pa_type.unit, tz=pa_type.tz).as_unit(
+            pa_type.unit
+        )
 
     if dtype == object or (pa.types.is_timestamp(pa_type) and pa_type.tz is not None):
         if dtype == object:

@@ -1019,7 +1019,7 @@ class TestDatetimeIndex:
         pointwise = [
             vals[0].tz_localize(tz),
             Timestamp(vals[1], tz=tz),
-            to_datetime(vals[2], unit="us", utc=True).tz_convert(tz),
+            to_datetime(vals[2], input_unit="us", utc=True).tz_convert(tz),
         ]
         exp_vals = [x.as_unit("us").asm8 for x in pointwise]
         exp_arr = np.array(exp_vals, dtype="M8[us]")

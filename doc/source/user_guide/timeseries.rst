@@ -320,25 +320,25 @@ Epoch timestamps
 ~~~~~~~~~~~~~~~~
 
 pandas supports converting integer or float epoch times to ``Timestamp`` and
-``DatetimeIndex``. The default unit is nanoseconds, since that is how ``Timestamp``
-objects are stored internally. However, epochs are often stored in another ``unit``
+``DatetimeIndex``. The default input_unit is nanoseconds, since that is how ``Timestamp``
+objects are stored internally. However, epochs are often stored in another ``input_unit``
 which can be specified. These are computed from the starting point specified by the
 ``origin`` parameter.
 
 .. ipython:: python
 
    pd.to_datetime(
-       [1349720105, 1349806505, 1349892905, 1349979305, 1350065705], unit="s"
+       [1349720105, 1349806505, 1349892905, 1349979305, 1350065705], input_unit="s"
    )
 
    pd.to_datetime(
        [1349720105100, 1349720105200, 1349720105300, 1349720105400, 1349720105500],
-       unit="ms",
+       input_unit="ms",
    )
 
 .. note::
 
-   The ``unit`` parameter does not use the same strings as the ``format`` parameter
+   The ``input_unit`` parameter does not use the same strings as the ``format`` parameter
    that was discussed :ref:`above<timeseries.converting.format>`. The
    available units are listed on the documentation for :func:`pandas.to_datetime`.
 
@@ -366,8 +366,8 @@ as timezone-naive timestamps and then localize to the appropriate timezone:
 
    .. ipython:: python
 
-      pd.to_datetime([1490195805.433, 1490195805.433502912], unit="s")
-      pd.to_datetime(1490195805433502912, unit="ns")
+      pd.to_datetime([1490195805.433, 1490195805.433502912], input_unit="s")
+      pd.to_datetime(1490195805433502912, input_unit="ns")
 
 .. seealso::
 
@@ -412,14 +412,14 @@ of a ``DatetimeIndex``. For example, to use 1960-01-01 as the starting date:
 
 .. ipython:: python
 
-   pd.to_datetime([1, 2, 3], unit="D", origin=pd.Timestamp("1960-01-01"))
+   pd.to_datetime([1, 2, 3], input_unit="D", origin=pd.Timestamp("1960-01-01"))
 
 The default is set at ``origin='unix'``, which defaults to ``1970-01-01 00:00:00``.
 Commonly called 'unix epoch' or POSIX time.
 
 .. ipython:: python
 
-   pd.to_datetime([1, 2, 3], unit="D")
+   pd.to_datetime([1, 2, 3], input_unit="D")
 
 .. _timeseries.daterange:
 
@@ -2640,7 +2640,7 @@ Transform nonexistent times to ``NaT`` or shift the times.
     dti
     dti.tz_localize("Europe/Warsaw", nonexistent="shift_forward")
     dti.tz_localize("Europe/Warsaw", nonexistent="shift_backward")
-    dti.tz_localize("Europe/Warsaw", nonexistent=pd.Timedelta(1, unit="h"))
+    dti.tz_localize("Europe/Warsaw", nonexistent=pd.Timedelta(1, input_unit="h"))
     dti.tz_localize("Europe/Warsaw", nonexistent="NaT")
 
 

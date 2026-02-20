@@ -142,6 +142,7 @@ from where to compute the resulting timestamps when parsing numerical values wit
 For example, with 1960-01-01 as the starting date:
 
 .. ipython:: python
+   :okwarning:
 
    pd.to_datetime([1, 2, 3], unit='D', origin=pd.Timestamp('1960-01-01'))
 
@@ -149,6 +150,7 @@ The default is set at ``origin='unix'``, which defaults to ``1970-01-01 00:00:00
 commonly called 'unix epoch' or POSIX time. This was the previous default, so this is a backward compatible change.
 
 .. ipython:: python
+   :okwarning:
 
    pd.to_datetime([1, 2, 3], unit='D')
 

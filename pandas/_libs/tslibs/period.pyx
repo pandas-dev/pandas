@@ -2135,7 +2135,7 @@ cdef class _Period(PeriodMixin):
         val = self.asfreq(freq, how)
 
         dt64 = period_ordinal_to_dt64(val.ordinal, base)
-        return Timestamp(dt64, unit=unit)
+        return Timestamp(dt64, input_unit=unit)
 
     @property
     def year(self) -> int:

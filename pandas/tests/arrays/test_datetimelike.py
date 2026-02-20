@@ -1311,7 +1311,7 @@ def test_to_numpy_extra_readonly(arr):
     "values",
     [
         pd.to_datetime(["2020-01-01", "2020-02-01"]),
-        pd.to_timedelta([1, 2], unit="D"),
+        pd.to_timedelta([1, 2], input_unit="D"),
         PeriodIndex(["2020-01-01", "2020-02-01"], freq="D"),
     ],
 )
@@ -1342,7 +1342,7 @@ def test_searchsorted_datetimelike_with_listlike(values, klass, as_index):
     "values",
     [
         pd.to_datetime(["2020-01-01", "2020-02-01"]),
-        pd.to_timedelta([1, 2], unit="D"),
+        pd.to_timedelta([1, 2], input_unit="D"),
         PeriodIndex(["2020-01-01", "2020-02-01"], freq="D"),
     ],
 )

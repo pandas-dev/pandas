@@ -92,7 +92,7 @@ class TestSeriesIsIn:
         tm.assert_series_equal(result, expected)
 
         # timedelta64[ns]
-        s = Series(pd.to_timedelta(range(5), unit="D"))
+        s = Series(pd.to_timedelta(range(5), input_unit="D"))
         result = s.isin(s[0:2])
         tm.assert_series_equal(result, expected)
 
