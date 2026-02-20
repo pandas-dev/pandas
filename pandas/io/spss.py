@@ -34,6 +34,9 @@ def read_spss(
     """
     Load an SPSS file from the file path, returning a DataFrame.
 
+    This function reads data saved in the SPSS ``.sav`` format using the
+    ``pyreadstat`` library, which must be installed separately.
+
     Parameters
     ----------
     path : str or Path

@@ -2114,6 +2114,10 @@ def read_stata(
     """
     Read Stata file into DataFrame.
 
+    This function reads ``.dta`` files produced by Stata, with support for
+    converting date variables, categorical data, and missing value
+    representations.
+
     Parameters
     ----------
     filepath_or_buffer : str, path object or file-like object
