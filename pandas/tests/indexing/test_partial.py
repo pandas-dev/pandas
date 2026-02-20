@@ -235,42 +235,30 @@ class TestEmptyFrameSetitemExpansion:
 
 
 class TestPartialSetting:
-    def test_partial_setting(self):
+    # Prior to GH#62523, the 5.0 case was cast to float, which did not match the
+    #  behavior when setting 5.0 in non-expansion cases
+    @pytest.mark.parametrize("item", [5, 5.0])
+    def test_partial_setting(self, indexer_sl, item):
         # GH2578, allow ix and friends to partially set
 
         # series
-        s_orig = Series([1, 2, 3])
-
-        s = s_orig.copy()
-        s[5] = 5
+        ser = Series([1, 2, 3])
         expected = Series([1, 2, 3, 5], index=[0, 1, 2, 5])
-        tm.assert_series_equal(s, expected)
 
-        s = s_orig.copy()
-        s.loc[5] = 5
-        expected = Series([1, 2, 3, 5], index=[0, 1, 2, 5])
-        tm.assert_series_equal(s, expected)
+        indexer_sl(ser)[5] = item
+        tm.assert_series_equal(ser, expected)
 
-        s = s_orig.copy()
-        s[5] = 5.0
-        expected = Series([1, 2, 3, 5.0], index=[0, 1, 2, 5])
-        tm.assert_series_equal(s, expected)
-
-        s = s_orig.copy()
-        s.loc[5] = 5.0
-        expected = Series([1, 2, 3, 5.0], index=[0, 1, 2, 5])
-        tm.assert_series_equal(s, expected)
-
+    def test_cannot_expand_with_iloc_iat(self):
         # iloc/iat raise
-        s = s_orig.copy()
+        ser = Series([1, 2, 3])
 
         msg = "iloc cannot enlarge its target object"
         with pytest.raises(IndexError, match=msg):
-            s.iloc[3] = 5.0
+            ser.iloc[3] = 5.0
 
         msg = "index 3 is out of bounds for axis 0 with size 3"
         with pytest.raises(IndexError, match=msg):
-            s.iat[3] = 5.0
+            ser.iat[3] = 5.0
 
     @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
     def test_partial_setting_frame(self):
