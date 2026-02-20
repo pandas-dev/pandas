@@ -196,6 +196,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.PeriodIndex.month ES01" \
         -i "pandas.PeriodIndex.quarter ES01" \
         -i "pandas.PeriodIndex.second ES01" \
+        -i "pandas.PeriodIndex.unit EX01,SS06,SA01" \
         -i "pandas.PeriodIndex.week ES01" \
         -i "pandas.PeriodIndex.weekday ES01" \
         -i "pandas.PeriodIndex.weekofyear ES01" \

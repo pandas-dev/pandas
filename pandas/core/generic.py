@@ -10684,9 +10684,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if freq != orig_freq:
                 assert orig_freq is not None  # for mypy
                 raise ValueError(
-                    f"Given freq {PeriodDtype(freq)._freqstr} "
+                    f"Given freq {PeriodDtype(freq).unit} "
                     f"does not match PeriodIndex freq "
-                    f"{PeriodDtype(orig_freq)._freqstr}"
+                    f"{PeriodDtype(orig_freq).unit}"
                 )
             new_ax: Index = index.shift(periods)
         else:

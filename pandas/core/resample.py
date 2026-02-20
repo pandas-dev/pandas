@@ -3137,7 +3137,7 @@ def asfreq(
 
         if isinstance(freq, BaseOffset):
             if hasattr(freq, "_period_dtype_code"):
-                freq = PeriodDtype(freq)._freqstr
+                freq = PeriodDtype(freq).unit
 
         new_obj = obj.copy()
         new_obj.index = obj.index.asfreq(freq, how=how)

@@ -220,8 +220,8 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         if self._data.freqstr is not None and isinstance(
             self._data, (PeriodArray, PeriodIndex)
         ):
-            freq = PeriodDtype(self._data.freq)._freqstr
-            return freq
+            unit = PeriodDtype(self._data.freq).unit
+            return unit
         else:
             return self._data.freqstr  # type: ignore[return-value]
 
