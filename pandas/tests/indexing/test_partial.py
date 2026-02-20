@@ -235,7 +235,7 @@ class TestEmptyFrameSetitemExpansion:
 
 
 class TestPartialSetting:
-    # Prior to 3.0, the 5.0 case was cast to float, which did not match the
+    # Prior to GH#62523, the 5.0 case was cast to float, which did not match the
     #  behavior when setting 5.0 in non-expansion cases
     @pytest.mark.parametrize("item", [5, 5.0])
     def test_partial_setting(self, indexer_sl, item):
