@@ -32,6 +32,16 @@ def test_period_array_ok(data, freq, expected):
     expected = np.asarray(expected, dtype=np.int64)
     tm.assert_numpy_array_equal(result, expected)
 
+    dtype = pd.PeriodDtype(freq) if freq is not None else None
+    result = PeriodArray._from_sequence(data, dtype=dtype)
+    tm.assert_numpy_array_equal(result.asi8, expected)
+
+    result = pd.PeriodIndex(data, dtype=dtype)
+    tm.assert_numpy_array_equal(result.asi8, expected)
+
+    result = pd.PeriodIndex(data, freq=freq)
+    tm.assert_numpy_array_equal(result.asi8, expected)
+
 
 def test_period_array_readonly_object():
     # https://github.com/pandas-dev/pandas/issues/25403
