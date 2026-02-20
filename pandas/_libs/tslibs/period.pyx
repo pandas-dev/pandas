@@ -2767,8 +2767,7 @@ cdef class _Period(PeriodMixin):
         >>> pd.Period('2020-01', 'D').freqstr
         'D'
         """
-        freqstr = PeriodDtypeBase(self._freq._period_dtype_code, self._freq.n)._freqstr
-        return freqstr
+        return self._dtype._freqstr
 
     def __repr__(self) -> str:
         base = self._dtype._dtype_code
