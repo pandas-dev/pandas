@@ -1533,6 +1533,10 @@ def bdate_range(
     """
     Return a fixed frequency DatetimeIndex with business day as the default.
 
+    This function generates a DatetimeIndex using business day frequency by
+    default, skipping weekends. Custom business day calendars can be
+    specified via ``weekmask`` and ``holidays``.
+
     Parameters
     ----------
     start : str or datetime-like, default None
