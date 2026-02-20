@@ -1,0 +1,133 @@
+{
+  "title": "Debugger",
+  "description": "Debugger settings",
+  "jupyter.lab.setting-icon": "ui-components:bug",
+  "jupyter.lab.setting-icon-label": "Debugger",
+  "jupyter.lab.menus": {
+    "main": [
+      {
+        "id": "jp-mainmenu-kernel",
+        "items": [
+          { "type": "separator", "rank": 1.2 },
+          { "command": "debugger:restart-debug", "rank": 1.2 }
+        ]
+      },
+      {
+        "id": "jp-mainmenu-view",
+        "items": [
+          {
+            "command": "debugger:show-panel",
+            "rank": 5
+          }
+        ]
+      }
+    ],
+    "context": [
+      {
+        "command": "debugger:inspect-variable",
+        "selector": ".jp-DebuggerVariables-body .jp-DebuggerVariables-grid"
+      },
+      {
+        "command": "debugger:render-mime-variable",
+        "selector": ".jp-DebuggerVariables-body"
+      },
+      {
+        "command": "debugger:copy-to-clipboard",
+        "selector": ".jp-DebuggerVariables-body"
+      },
+      {
+        "command": "debugger:copy-to-globals",
+        "selector": ".jp-DebuggerVariables-body.jp-debuggerVariables-local"
+      }
+    ]
+  },
+  "jupyter.lab.shortcuts": [
+    {
+      "command": "debugger:show-panel",
+      "keys": ["Accel Shift E"],
+      "selector": "body"
+    },
+    {
+      "command": "debugger:continue",
+      "keys": ["F9"],
+      "selector": "body"
+    },
+    {
+      "command": "debugger:terminate",
+      "keys": ["Shift F9"],
+      "selector": "[data-jp-debugger-stopped-threads='true']"
+    },
+    {
+      "command": "debugger:next",
+      "keys": ["F10"],
+      "selector": "[data-jp-debugger-stopped-threads='true']"
+    },
+    {
+      "command": "debugger:stepIn",
+      "keys": ["F11"],
+      "selector": "[data-jp-debugger-stopped-threads='true']"
+    },
+    {
+      "command": "debugger:stepOut",
+      "keys": ["Shift F11"],
+      "selector": "[data-jp-debugger-stopped-threads='true']"
+    }
+  ],
+  "definitions": {
+    "variableFilters": {
+      "properties": {
+        "xpython": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "properties": {
+    "variableFilters": {
+      "title": "Variable filter",
+      "description": "Variables to filter out in the tree and table viewers",
+      "$ref": "#/definitions/variableFilters",
+      "default": {
+        "xpython": [
+          "debugpy",
+          "display",
+          "get_ipython",
+          "ptvsd",
+          "_xpython_get_connection_filename",
+          "_xpython_launch",
+          "_pydev_stop_at_break",
+          "__annotations__",
+          "__builtins__",
+          "__doc__",
+          "__loader__",
+          "__name__",
+          "__package__",
+          "__spec__"
+        ]
+      }
+    },
+    "defaultKernelSourcesFilter": {
+      "title": "Default kernel sources regexp filter",
+      "description": "A regular expression filter to apply by default when showing the kernel sources",
+      "type": "string",
+      "default": ""
+    },
+    "autoCollapseDebuggerSidebar": {
+      "title": "Auto Collapse Debugger Sidebar",
+      "description": "Collapse the debugger sidebar when disabling the debugger on a document.",
+      "type": "boolean",
+      "default": false
+    },
+    "showPausedOverlay": {
+      "title": "Show Paused Overlay",
+      "description": "Show an overlay on the editor or notebook when execution is paused in the debugger.",
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "additionalProperties": false,
+  "type": "object"
+}

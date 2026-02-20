@@ -1,0 +1,113 @@
+Metadata-Version: 2.4
+Name: pyiceberg
+Version: 0.11.0
+Summary: Apache Iceberg is an open table format for huge analytic datasets
+Author-email: Apache Software Foundation <dev@iceberg.apache.org>
+License-Expression: Apache-2.0
+Project-URL: Homepage, https://py.iceberg.apache.org/
+Project-URL: Repository, https://github.com/apache/iceberg-python
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Requires-Python: <4.0.0,>=3.10.0
+Description-Content-Type: text/markdown
+License-File: LICENSE
+License-File: NOTICE
+Requires-Dist: mmh3<6.0.0,>=4.0.0
+Requires-Dist: requests<3.0.0,>=2.20.0
+Requires-Dist: click<9.0.0,>=7.1.1
+Requires-Dist: rich<15.0.0,>=10.11.0
+Requires-Dist: strictyaml<2.0.0,>=1.7.0
+Requires-Dist: pydantic!=2.12.0,!=2.12.1,!=2.4.0,!=2.4.1,<3.0,>=2.0
+Requires-Dist: fsspec>=2023.1.0
+Requires-Dist: pyparsing<4.0.0,>=3.1.0
+Requires-Dist: tenacity<10.0.0,>=8.2.3
+Requires-Dist: pyroaring<2.0.0,>=1.0.0
+Requires-Dist: cachetools<7.0,>=5.5
+Requires-Dist: zstandard<1.0.0,>=0.13.0
+Provides-Extra: pyarrow
+Requires-Dist: pyarrow>=17.0.0; extra == "pyarrow"
+Requires-Dist: pyiceberg-core<0.9.0,>=0.5.1; extra == "pyarrow"
+Provides-Extra: pandas
+Requires-Dist: pandas>=1.0.0; extra == "pandas"
+Requires-Dist: pyarrow>=17.0.0; extra == "pandas"
+Provides-Extra: duckdb
+Requires-Dist: duckdb<2.0.0,>=0.5.0; extra == "duckdb"
+Requires-Dist: pyarrow>=17.0.0; extra == "duckdb"
+Provides-Extra: ray
+Requires-Dist: ray<3.0.0,>=2.10.0; extra == "ray"
+Requires-Dist: pyarrow>=17.0.0; extra == "ray"
+Requires-Dist: pandas>=1.0.0; extra == "ray"
+Provides-Extra: bodo
+Requires-Dist: bodo>=2025.7.4; extra == "bodo"
+Provides-Extra: daft
+Requires-Dist: daft>=0.5.0; extra == "daft"
+Provides-Extra: polars
+Requires-Dist: polars<2,>=1.21.0; extra == "polars"
+Provides-Extra: snappy
+Requires-Dist: python-snappy<1.0.0,>=0.6.0; extra == "snappy"
+Provides-Extra: hive
+Requires-Dist: thrift<1.0.0,>=0.13.0; extra == "hive"
+Provides-Extra: hive-kerberos
+Requires-Dist: thrift<1.0.0,>=0.13.0; extra == "hive-kerberos"
+Requires-Dist: thrift-sasl>=0.4.3; extra == "hive-kerberos"
+Requires-Dist: kerberos<2,>=1.3.1; extra == "hive-kerberos"
+Provides-Extra: s3fs
+Requires-Dist: s3fs>=2023.1.0; extra == "s3fs"
+Provides-Extra: glue
+Requires-Dist: boto3>=1.24.59; extra == "glue"
+Provides-Extra: adlfs
+Requires-Dist: adlfs>=2024.7.0; extra == "adlfs"
+Provides-Extra: dynamodb
+Requires-Dist: boto3>=1.24.59; extra == "dynamodb"
+Provides-Extra: bigquery
+Requires-Dist: google-cloud-bigquery<4,>=3.33.0; extra == "bigquery"
+Provides-Extra: sql-postgres
+Requires-Dist: sqlalchemy<3,>=2.0.18; extra == "sql-postgres"
+Requires-Dist: psycopg2-binary>=2.9.6; extra == "sql-postgres"
+Provides-Extra: sql-sqlite
+Requires-Dist: sqlalchemy<3,>=2.0.18; extra == "sql-sqlite"
+Provides-Extra: gcsfs
+Requires-Dist: gcsfs>=2023.1.0; extra == "gcsfs"
+Provides-Extra: rest-sigv4
+Requires-Dist: boto3>=1.24.59; extra == "rest-sigv4"
+Provides-Extra: hf
+Requires-Dist: huggingface-hub>=0.24.0; extra == "hf"
+Provides-Extra: pyiceberg-core
+Requires-Dist: pyiceberg-core<0.9.0,>=0.5.1; extra == "pyiceberg-core"
+Provides-Extra: datafusion
+Requires-Dist: datafusion<52,>=51; extra == "datafusion"
+Provides-Extra: gcp-auth
+Requires-Dist: google-auth>=2.4.0; extra == "gcp-auth"
+Provides-Extra: entra-auth
+Requires-Dist: azure-identity>=1.25.1; extra == "entra-auth"
+Dynamic: license-file
+
+<!--
+ - Licensed to the Apache Software Foundation (ASF) under one or more
+ - contributor license agreements.  See the NOTICE file distributed with
+ - this work for additional information regarding copyright ownership.
+ - The ASF licenses this file to You under the Apache License, Version 2.0
+ - (the "License"); you may not use this file except in compliance with
+ - the License.  You may obtain a copy of the License at
+ -
+ -   http://www.apache.org/licenses/LICENSE-2.0
+ -
+ - Unless required by applicable law or agreed to in writing, software
+ - distributed under the License is distributed on an "AS IS" BASIS,
+ - WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ - See the License for the specific language governing permissions and
+ - limitations under the License.
+ -->
+
+# Iceberg Python
+
+PyIceberg is a Python library for programmatic access to Iceberg table metadata as well as to table data in Iceberg format. It is a Python implementation of the [Iceberg table spec](https://iceberg.apache.org/spec/).
+
+The documentation is available at [https://py.iceberg.apache.org/](https://py.iceberg.apache.org/).
+
+## Get in Touch
+
+- [Iceberg community](https://iceberg.apache.org/community/)

@@ -1,0 +1,26 @@
+{
+  "jupyter.lab.menus": {
+    "main": [
+      {
+        "id": "jp-mainmenu-help",
+        "items": [
+          {
+            "type": "separator",
+            "rank": 2
+          },
+          {
+            "command": "help:jupyter-forum",
+            "rank": 2
+          },
+          {
+            "type": "separator",
+            "rank": 2
+          }
+        ]
+      }
+    ]
+  },
+  "properties": {},
+  "additionalProperties": false,
+  "type": "object"
+}

@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Pyrefly Language Server Configuration",
+  "type": "object",
+  "properties": {
+    "python.pyrefly.disableTypeErrors": {
+      "type": "boolean",
+      "default": false,
+      "description": "If true, pyrefly will not provide typecheck squiggles in the IDE. To control other IDE services, see `python.pyrefly.disableLanguageServices`",
+      "scope": "resource"
+    },
+    "python.pyrefly.disableLanguageServices": {
+      "type": "boolean",
+      "default": false,
+      "description": "If true, pyrefly will not provide other IDE services like completions, hover, definition, etc. To control type errors, see `python.pyrefly.disableTypeErrors`",
+      "scope": "resource"
+    }
+  }
+}

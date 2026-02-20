@@ -1,0 +1,119 @@
+openapi: 3.0.1
+info:
+  title: Jupyter Server Terminals API
+  description: Terminals API
+  contact:
+    name: Jupyter Project
+    url: https://jupyter.org
+  version: "1"
+servers:
+  - url: /
+paths:
+  /api/terminals:
+    get:
+      tags:
+        - terminals
+      summary: Get available terminals
+      responses:
+        200:
+          description: A list of all available terminal ids.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Terminal"
+        403:
+          description: Forbidden to access
+          content: {}
+        404:
+          description: Not found
+          content: {}
+    post:
+      tags:
+        - terminals
+      summary: Create a new terminal
+      responses:
+        200:
+          description: Successfully created a new terminal
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Terminal"
+        403:
+          description: Forbidden to access
+          content: {}
+        404:
+          description: Not found
+          content: {}
+  /api/terminals/{terminal_id}:
+    get:
+      tags:
+        - terminals
+      summary: Get a terminal session corresponding to an id.
+      parameters:
+        - name: terminal_id
+          in: path
+          description: ID of terminal session
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Terminal session with given id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Terminal"
+        403:
+          description: Forbidden to access
+          content: {}
+        404:
+          description: Not found
+          content: {}
+    delete:
+      tags:
+        - terminals
+      summary: Delete a terminal session corresponding to an id.
+      parameters:
+        - name: terminal_id
+          in: path
+          description: ID of terminal session
+          required: true
+          schema:
+            type: string
+      responses:
+        204:
+          description: Successfully deleted terminal session
+          content: {}
+        403:
+          description: Forbidden to access
+          content: {}
+        404:
+          description: Not found
+          content: {}
+components:
+  schemas:
+    Terminal:
+      required:
+        - name
+      type: object
+      properties:
+        name:
+          type: string
+          description: name of terminal
+        last_activity:
+          type: string
+          description: |
+            ISO 8601 timestamp for the last-seen activity on this terminal.  Use
+            this to identify which terminals have been inactive since a given time.
+            Timestamps will be UTC, indicated 'Z' suffix.
+      description: A Terminal object
+  parameters:
+    terminal_id:
+      name: terminal_id
+      in: path
+      description: ID of terminal session
+      required: true
+      schema:
+        type: string

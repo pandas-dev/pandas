@@ -1,0 +1,1 @@
+"use strict";(self["webpackChunk_jupyterlab_application_top"]=self["webpackChunk_jupyterlab_application_top"]||[]).push([[5362],{55362:(a,p,e)=>{e.d(p,{createGitGraphServices:()=>t.b});var t=e(51454);var r=e(11254)}}]);

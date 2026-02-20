@@ -1,0 +1,11 @@
+_argon2_cffi_bindings/__init__.py,sha256=b6Da6_RCsMXKbA9QyzKmeGqm9cYijmtkAJqNOV2V50Y,86
+_argon2_cffi_bindings/__pycache__/__init__.cpython-312.pyc,,
+_argon2_cffi_bindings/__pycache__/_ffi_build.cpython-312.pyc,,
+_argon2_cffi_bindings/_ffi.abi3.so,sha256=oIdch02OAnyTc99rwlQHKlScWax4p0TZUK4DTlOGgZY,248600
+_argon2_cffi_bindings/_ffi_build.py,sha256=qhZUHeEejfsTqxDgJwmmtroWG3ZcfXF_5IKtgHOCnO4,6289
+argon2_cffi_bindings-25.1.0.dist-info/INSTALLER,sha256=zuuue4knoyJ-UwPPXg8fezS7VCrXJQrAP7zeNuwvFQg,4
+argon2_cffi_bindings-25.1.0.dist-info/METADATA,sha256=Lo7NiLg2SB_yoPzTIGzhSWlonx04LFJ33dbXJA8Snw8,7352
+argon2_cffi_bindings-25.1.0.dist-info/RECORD,,
+argon2_cffi_bindings-25.1.0.dist-info/WHEEL,sha256=h1aYCrgberf8zKRdTp9A0VCnBgQ-UWmk4eWr2Sp1e1M,148
+argon2_cffi_bindings-25.1.0.dist-info/licenses/LICENSE,sha256=nBWNT0M2J_SKwktrTTeXCv5BclFGc8UxgBTXzKFXxt8,1082
+argon2_cffi_bindings-25.1.0.dist-info/top_level.txt,sha256=WyRJzxvIv58cyvTye2AsVz50Lw0hDxUYBuCH1rUb_tg,27

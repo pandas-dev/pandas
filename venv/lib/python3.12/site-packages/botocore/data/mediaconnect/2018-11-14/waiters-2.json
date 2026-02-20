@@ -1,0 +1,352 @@
+{
+  "version" : 2,
+  "waiters" : {
+    "FlowActive" : {
+      "description" : "Wait until a flow is active",
+      "delay" : 3,
+      "maxAttempts" : 40,
+      "operation" : "DescribeFlow",
+      "acceptors" : [ {
+        "matcher" : "path",
+        "argument" : "Flow.Status",
+        "state" : "success",
+        "expected" : "ACTIVE"
+      }, {
+        "matcher" : "path",
+        "argument" : "Flow.Status",
+        "state" : "retry",
+        "expected" : "STARTING"
+      }, {
+        "matcher" : "path",
+        "argument" : "Flow.Status",
+        "state" : "retry",
+        "expected" : "UPDATING"
+      }, {
+        "matcher" : "error",
+        "state" : "retry",
+        "expected" : "InternalServerErrorException"
+      }, {
+        "matcher" : "error",
+        "state" : "retry",
+        "expected" : "ServiceUnavailableException"
+      }, {
+        "matcher" : "path",
+        "argument" : "Flow.Status",
+        "state" : "failure",
+        "expected" : "STANDBY"
+      }, {
+        "matcher" : "path",
+        "argument" : "Flow.Status",
+        "state" : "failure",
+        "expected" : "ERROR"
+      } ]
+    },
+    "FlowDeleted" : {
+      "description" : "Wait until a flow is deleted",
+      "delay" : 3,
+      "maxAttempts" : 40,
+      "operation" : "DescribeFlow",
+      "acceptors" : [ {
+        "matcher" : "error",
+        "state" : "success",
+        "expected" : "NotFoundException"
+      }, {
+        "matcher" : "path",
+        "argument" : "Flow.Status",
+        "state" : "retry",
+        "expected" : "DELETING"
+      }, {
+        "matcher" : "error",
+        "state" : "retry",
+        "expected" : "InternalServerErrorException"
+      }, {
+        "matcher" : "error",
+        "state" : "retry",
+        "expected" : "ServiceUnavailableException"
+      }, {
+        "matcher" : "path",
+        "argument" : "Flow.Status",
+        "state" : "failure",
+        "expected" : "ERROR"
+      } ]
+    },
+    "FlowStandby" : {
+      "description" : "Wait until a flow is in standby mode",
+      "delay" : 3,
+      "maxAttempts" : 40,
+      "operation" : "DescribeFlow",
+      "acceptors" : [ {
+        "matcher" : "path",
+        "argument" : "Flow.Status",
+        "state" : "success",
+        "expected" : "STANDBY"
+      }, {
+        "matcher" : "path",
+        "argument" : "Flow.Status",
+        "state" : "retry",
+        "expected" : "STOPPING"
+      }, {
+        "matcher" : "error",
+        "state" : "retry",
+        "expected" : "InternalServerErrorException"
+      }, {
+        "matcher" : "error",
+        "state" : "retry",
+        "expected" : "ServiceUnavailableException"
+      }, {
+        "matcher" : "path",
+        "argument" : "Flow.Status",
+        "state" : "failure",
+        "expected" : "ERROR"
+      } ]
+    },
+    "InputActive" : {
+      "description" : "Wait until the Input is ACTIVE",
+      "delay" : 3,
+      "maxAttempts" : 40,
+      "operation" : "GetRouterInput",
+      "acceptors" : [ {
+        "matcher" : "path",
+        "argument" : "RouterInput.State",
+        "state" : "success",
+        "expected" : "ACTIVE"
+      }, {
+        "matcher" : "path",
+        "argument" : "RouterInput.State",
+        "state" : "retry",
+        "expected" : "STARTING"
+      }, {
+        "matcher" : "path",
+        "argument" : "RouterInput.State",
+        "state" : "retry",
+        "expected" : "UPDATING"
+      }, {
+        "matcher" : "path",
+        "argument" : "RouterInput.State",
+        "state" : "retry",
+        "expected" : "MIGRATING"
+      }, {
+        "matcher" : "error",
+        "state" : "retry",
+        "expected" : "InternalServerErrorException"
+      }, {
+        "matcher" : "error",
+        "state" : "retry",
+        "expected" : "ServiceUnavailableException"
+      }, {
+        "matcher" : "path",
+        "argument" : "RouterInput.State",
+        "state" : "failure",
+        "expected" : "ERROR"
+      } ]
+    },
+    "InputDeleted" : {
+      "description" : "Wait until the Input is deleted",
+      "delay" : 3,
+      "maxAttempts" : 40,
+      "operation" : "GetRouterInput",
+      "acceptors" : [ {
+        "matcher" : "path",
+        "argument" : "RouterInput.State",
+        "state" : "retry",
+        "expected" : "DELETING"
+      }, {
+        "matcher" : "error",
+        "state" : "retry",
+        "expected" : "InternalServerErrorException"
+      }, {
+        "matcher" : "error",
+        "state" : "retry",
+        "expected" : "ServiceUnavailableException"
+      }, {
+        "matcher" : "path",
+        "argument" : "RouterInput.State",
+        "state" : "failure",
+        "expected" : "ERROR"
+      }, {
+        "matcher" : "error",
+        "state" : "success",
+        "expected" : "NotFoundException"
+      } ]
+    },
+    "InputStandby" : {
+      "description" : "Wait until the Input is STANDBY",
+      "delay" : 3,
+      "maxAttempts" : 40,
+      "operation" : "GetRouterInput",
+      "acceptors" : [ {
+        "matcher" : "path",
+        "argument" : "RouterInput.State",
+        "state" : "success",
+        "expected" : "STANDBY"
+      }, {
+        "matcher" : "path",
+        "argument" : "RouterInput.State",
+        "state" : "retry",
+        "expected" : "STOPPING"
+      }, {
+        "matcher" : "error",
+        "state" : "retry",
+        "expected" : "InternalServerErrorException"
+      }, {
+        "matcher" : "error",
+        "state" : "retry",
+        "expected" : "ServiceUnavailableException"
+      }, {
+        "matcher" : "path",
+        "argument" : "RouterInput.State",
+        "state" : "failure",
+        "expected" : "ERROR"
+      } ]
+    },
+    "OutputActive" : {
+      "description" : "Wait until the Output is ACTIVE",
+      "delay" : 3,
+      "maxAttempts" : 40,
+      "operation" : "GetRouterOutput",
+      "acceptors" : [ {
+        "matcher" : "path",
+        "argument" : "RouterOutput.State",
+        "state" : "success",
+        "expected" : "ACTIVE"
+      }, {
+        "matcher" : "path",
+        "argument" : "RouterOutput.State",
+        "state" : "retry",
+        "expected" : "STARTING"
+      }, {
+        "matcher" : "path",
+        "argument" : "RouterOutput.State",
+        "state" : "retry",
+        "expected" : "UPDATING"
+      }, {
+        "matcher" : "path",
+        "argument" : "RouterOutput.State",
+        "state" : "retry",
+        "expected" : "MIGRATING"
+      }, {
+        "matcher" : "error",
+        "state" : "retry",
+        "expected" : "InternalServerErrorException"
+      }, {
+        "matcher" : "error",
+        "state" : "retry",
+        "expected" : "ServiceUnavailableException"
+      }, {
+        "matcher" : "path",
+        "argument" : "RouterOutput.State",
+        "state" : "failure",
+        "expected" : "ERROR"
+      } ]
+    },
+    "OutputDeleted" : {
+      "description" : "Wait until the Output is deleted",
+      "delay" : 3,
+      "maxAttempts" : 40,
+      "operation" : "GetRouterOutput",
+      "acceptors" : [ {
+        "matcher" : "path",
+        "argument" : "RouterOutput.State",
+        "state" : "retry",
+        "expected" : "DELETING"
+      }, {
+        "matcher" : "error",
+        "state" : "retry",
+        "expected" : "InternalServerErrorException"
+      }, {
+        "matcher" : "error",
+        "state" : "retry",
+        "expected" : "ServiceUnavailableException"
+      }, {
+        "matcher" : "path",
+        "argument" : "RouterOutput.State",
+        "state" : "failure",
+        "expected" : "ERROR"
+      }, {
+        "matcher" : "error",
+        "state" : "success",
+        "expected" : "NotFoundException"
+      } ]
+    },
+    "OutputRouted" : {
+      "description" : "Wait until the Output is ROUTED",
+      "delay" : 3,
+      "maxAttempts" : 40,
+      "operation" : "GetRouterOutput",
+      "acceptors" : [ {
+        "matcher" : "path",
+        "argument" : "RouterOutput.RoutedState",
+        "state" : "success",
+        "expected" : "ROUTED"
+      }, {
+        "matcher" : "path",
+        "argument" : "RouterOutput.RoutedState",
+        "state" : "retry",
+        "expected" : "ROUTING"
+      }, {
+        "matcher" : "error",
+        "state" : "retry",
+        "expected" : "InternalServerErrorException"
+      }, {
+        "matcher" : "error",
+        "state" : "retry",
+        "expected" : "ServiceUnavailableException"
+      } ]
+    },
+    "OutputStandby" : {
+      "description" : "Wait until the Output is STANDBY",
+      "delay" : 3,
+      "maxAttempts" : 40,
+      "operation" : "GetRouterOutput",
+      "acceptors" : [ {
+        "matcher" : "path",
+        "argument" : "RouterOutput.State",
+        "state" : "success",
+        "expected" : "STANDBY"
+      }, {
+        "matcher" : "path",
+        "argument" : "RouterOutput.State",
+        "state" : "retry",
+        "expected" : "STOPPING"
+      }, {
+        "matcher" : "error",
+        "state" : "retry",
+        "expected" : "InternalServerErrorException"
+      }, {
+        "matcher" : "error",
+        "state" : "retry",
+        "expected" : "ServiceUnavailableException"
+      }, {
+        "matcher" : "path",
+        "argument" : "RouterOutput.State",
+        "state" : "failure",
+        "expected" : "ERROR"
+      } ]
+    },
+    "OutputUnrouted" : {
+      "description" : "Wait until the Output is UNROUTED",
+      "delay" : 3,
+      "maxAttempts" : 40,
+      "operation" : "GetRouterOutput",
+      "acceptors" : [ {
+        "matcher" : "path",
+        "argument" : "RouterOutput.RoutedState",
+        "state" : "success",
+        "expected" : "UNROUTED"
+      }, {
+        "matcher" : "path",
+        "argument" : "RouterOutput.RoutedState",
+        "state" : "retry",
+        "expected" : "ROUTING"
+      }, {
+        "matcher" : "error",
+        "state" : "retry",
+        "expected" : "InternalServerErrorException"
+      }, {
+        "matcher" : "error",
+        "state" : "retry",
+        "expected" : "ServiceUnavailableException"
+      } ]
+    }
+  }
+}

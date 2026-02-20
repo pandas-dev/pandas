@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   width="51"
+   height="51"
+   viewBox="0 0 51 51"
+   version="2.0"
+   id="svg40"
+   sodipodi:docname="jupyter.svg"
+   inkscape:version="1.2.2 (b0a8486541, 2022-12-01)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:figma="http://www.figma.com/figma/ns">
+  <sodipodi:namedview
+     id="namedview42"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     showgrid="false"
+     inkscape:zoom="15.862745"
+     inkscape:cx="19.353523"
+     inkscape:cy="15.381953"
+     inkscape:window-width="1920"
+     inkscape:window-height="979"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg40" />
+  <title
+     id="title2">logo-5.svg</title>
+  <desc
+     id="desc4">Created using Figma 0.90</desc>
+  <g
+     id="Canvas"
+     transform="translate(-1631.819,-2281)"
+     figma:type="canvas">
+    <g
+       id="logo"
+       style="mix-blend-mode:normal"
+       figma:type="group">
+      <g
+         id="g"
+         style="mix-blend-mode:normal"
+         figma:type="group">
+        <g
+           id="path"
+           style="mix-blend-mode:normal"
+           figma:type="group">
+          <g
+             id="path7 fill"
+             style="mix-blend-mode:normal"
+             figma:type="vector">
+            <use
+               xlink:href="#path0_fill"
+               transform="translate(1669.3,2281.31)"
+               fill="#767677"
+               style="mix-blend-mode:normal"
+               id="use6" />
+          </g>
+        </g>
+        <g
+           id="g13"
+           style="mix-blend-mode:normal"
+           figma:type="group">
+          <g
+             id="path8 fill"
+             style="mix-blend-mode:normal"
+             figma:type="vector">
+            <use
+               xlink:href="#path1_fill"
+               transform="translate(1639.74,2311.98)"
+               fill="#f37726"
+               style="mix-blend-mode:normal"
+               id="use10" />
+          </g>
+        </g>
+        <g
+           id="g18"
+           style="mix-blend-mode:normal"
+           figma:type="group">
+          <g
+             id="path9 fill"
+             style="mix-blend-mode:normal"
+             figma:type="vector">
+            <use
+               xlink:href="#path2_fill"
+               transform="translate(1639.73,2285.48)"
+               fill="#f37726"
+               style="mix-blend-mode:normal"
+               id="use15" />
+          </g>
+        </g>
+        <g
+           id="g23"
+           style="mix-blend-mode:normal"
+           figma:type="group">
+          <g
+             id="path10 fill"
+             style="mix-blend-mode:normal"
+             figma:type="vector">
+            <use
+               xlink:href="#path3_fill"
+               transform="translate(1639.8,2323.81)"
+               fill="#989798"
+               style="mix-blend-mode:normal"
+               id="use20" />
+          </g>
+        </g>
+        <g
+           id="g28"
+           style="mix-blend-mode:normal"
+           figma:type="group">
+          <g
+             id="path11 fill"
+             style="mix-blend-mode:normal"
+             figma:type="vector">
+            <use
+               xlink:href="#path4_fill"
+               transform="translate(1638.36,2286.06)"
+               fill="#6f7070"
+               style="mix-blend-mode:normal"
+               id="use25" />
+          </g>
+        </g>
+      </g>
+    </g>
+  </g>
+  <defs
+     id="defs38">
+    <path
+       id="path0_fill"
+       d="M 5.89353,2.844 C 5.91889,3.43165 5.77085,4.01367 5.46815,4.51645 5.16545,5.01922 4.72168,5.42015 4.19299,5.66851 3.6643,5.91688 3.07444,6.00151 2.49805,5.91171 1.92166,5.8219 1.38463,5.5617 0.954898,5.16401 0.52517,4.76633 0.222056,4.24903 0.0839037,3.67757 -0.0542483,3.10611 -0.02123,2.50617 0.178781,1.95364 0.378793,1.4011 0.736809,0.920817 1.20754,0.573538 1.67826,0.226259 2.24055,0.0275919 2.82326,0.00267229 3.60389,-0.0307115 4.36573,0.249789 4.94142,0.782551 5.51711,1.31531 5.85956,2.05676 5.89353,2.844 Z" />
+    <path
+       id="path1_fill"
+       d="M 18.2646,7.13411 C 10.4145,7.13411 3.55872,4.2576 0,0 c 1.32539,3.8204 3.79556,7.13081 7.0686,9.47303 3.2731,2.34217 7.1871,3.60037 11.2004,3.60037 4.0133,0 7.9273,-1.2582 11.2004,-3.60037 C 32.7424,7.13081 35.2126,3.8204 36.538,0 32.9705,4.2576 26.1148,7.13411 18.2646,7.13411 Z" />
+    <path
+       id="path2_fill"
+       d="m 18.2733,5.93931 c 7.8502,0 14.706,2.87652 18.2647,7.13409 C 35.2126,9.25303 32.7424,5.94262 29.4694,3.6004 26.1963,1.25818 22.2823,0 18.269,0 14.2557,0 10.3417,1.25818 7.0686,3.6004 3.79556,5.94262 1.32539,9.25303 0,13.0734 3.56745,8.82463 10.4232,5.93931 18.2733,5.93931 Z" />
+    <path
+       id="path3_fill"
+       d="M 7.42789,3.58338 C 7.46008,4.3243 7.27355,5.05819 6.89193,5.69213 6.51031,6.32607 5.95075,6.83156 5.28411,7.1446 4.61747,7.45763 3.87371,7.56414 3.14702,7.45063 2.42032,7.33712 1.74336,7.0087 1.20184,6.50695 0.660328,6.0052 0.27861,5.35268 0.105017,4.63202 -0.0685757,3.91135 -0.0262361,3.15494 0.226675,2.45856 0.479587,1.76217 0.931697,1.15713 1.52576,0.720033 2.11983,0.282935 2.82914,0.0334395 3.56389,0.00313344 4.54667,-0.0374033 5.50529,0.316706 6.22961,0.987835 6.95393,1.65896 7.38484,2.59235 7.42789,3.58338 Z" />
+    <path
+       id="path4_fill"
+       d="M 2.27471,4.39629 C 1.84363,4.41508 1.41671,4.30445 1.04799,4.07843 0.679268,3.8524 0.385328,3.52114 0.203371,3.12656 0.0214136,2.73198 -0.0403798,2.29183 0.0258116,1.86181 0.0920031,1.4318 0.283204,1.03126 0.575213,0.710883 0.867222,0.39051 1.24691,0.164708 1.66622,0.0620592 2.08553,-0.0405897 2.52561,-0.0154714 2.93076,0.134235 3.33591,0.283941 3.68792,0.551505 3.94222,0.90306 4.19652,1.25462 4.34169,1.67436 4.35935,2.10916 4.38299,2.69107 4.17678,3.25869 3.78597,3.68746 3.39516,4.11624 2.85166,4.37116 2.27471,4.39629 Z" />
+  </defs>
+  <metadata
+     id="metadata271">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:title>logo-5.svg</dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+</svg>

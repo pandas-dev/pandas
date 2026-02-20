@@ -1,0 +1,28 @@
+{
+  "pagination": {
+    "ListTaskInstances": {
+      "input_token": "NextToken",
+      "output_token": "NextToken",
+      "limit_key": "MaxResults",
+      "result_key": "TaskInstances"
+    },
+    "ListWorkflowRuns": {
+      "input_token": "NextToken",
+      "output_token": "NextToken",
+      "limit_key": "MaxResults",
+      "result_key": "WorkflowRuns"
+    },
+    "ListWorkflowVersions": {
+      "input_token": "NextToken",
+      "output_token": "NextToken",
+      "limit_key": "MaxResults",
+      "result_key": "WorkflowVersions"
+    },
+    "ListWorkflows": {
+      "input_token": "NextToken",
+      "output_token": "NextToken",
+      "limit_key": "MaxResults",
+      "result_key": "Workflows"
+    }
+  }
+}

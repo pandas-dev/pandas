@@ -1,0 +1,5 @@
+graft test_hyphens_underscore/labextension
+
+include index.js
+include package.json
+include pyproject.toml

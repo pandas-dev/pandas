@@ -1,0 +1,240 @@
+Metadata-Version: 2.4
+Name: pytest-qt
+Version: 4.5.0
+Summary: pytest support for PyQt and PySide applications
+Home-page: http://github.com/pytest-dev/pytest-qt
+Author: Bruno Oliveira
+Author-email: nicoddemus@gmail.com
+License: MIT
+Keywords: pytest qt test unittest
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Framework :: Pytest
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Classifier: Topic :: Desktop Environment :: Window Managers
+Classifier: Topic :: Software Development :: Quality Assurance
+Classifier: Topic :: Software Development :: Testing
+Classifier: Topic :: Software Development :: User Interfaces
+Requires-Python: >=3.9
+Description-Content-Type: text/x-rst
+License-File: LICENSE
+Requires-Dist: pytest
+Requires-Dist: pluggy>=1.1
+Requires-Dist: typing_extensions
+Provides-Extra: doc
+Requires-Dist: sphinx; extra == "doc"
+Requires-Dist: sphinx_rtd_theme; extra == "doc"
+Provides-Extra: dev
+Requires-Dist: pre-commit; extra == "dev"
+Requires-Dist: tox; extra == "dev"
+Dynamic: author
+Dynamic: author-email
+Dynamic: classifier
+Dynamic: description
+Dynamic: description-content-type
+Dynamic: home-page
+Dynamic: keywords
+Dynamic: license
+Dynamic: license-file
+Dynamic: provides-extra
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary
+
+=========
+pytest-qt
+=========
+
+pytest-qt is a `pytest`_ plugin that allows programmers to write tests
+for `PyQt5`_, `PyQt6`_, and `PySide6`_ applications.
+
+The main usage is to use the ``qtbot`` fixture, responsible for handling ``qApp``
+creation as needed and provides methods to simulate user interaction,
+like key presses and mouse clicks:
+
+
+.. code-block:: python
+
+    def test_hello(qtbot):
+        widget = HelloWidget()
+        qtbot.addWidget(widget)
+
+        # click in the Greet button and make sure it updates the appropriate label
+        qtbot.mouseClick(widget.button_greet, qt_api.QtCore.Qt.MouseButton.LeftButton)
+
+        assert widget.greet_label.text() == "Hello!"
+
+
+.. _PySide6: https://pypi.org/project/PySide6/
+.. _PyQt5: https://pypi.org/project/PyQt5/
+.. _PyQt6: https://pypi.org/project/PyQt6/
+.. _pytest: http://pytest.org
+
+This allows you to test and make sure your view layer is behaving the way you expect after each code change.
+
+.. |version| image:: http://img.shields.io/pypi/v/pytest-qt.svg
+  :target: https://pypi.python.org/pypi/pytest-qt
+
+.. |conda-forge| image:: https://img.shields.io/conda/vn/conda-forge/pytest-qt.svg
+    :target: https://anaconda.org/conda-forge/pytest-qt
+
+.. |ci| image:: https://github.com/pytest-dev/pytest-qt/workflows/test/badge.svg
+  :target: https://github.com/pytest-dev/pytest-qt/actions
+
+.. |coverage| image:: http://img.shields.io/coveralls/pytest-dev/pytest-qt.svg
+  :target: https://coveralls.io/r/pytest-dev/pytest-qt
+
+.. |docs| image:: https://readthedocs.org/projects/pytest-qt/badge/?version=latest
+  :target: https://pytest-qt.readthedocs.io
+
+.. |python| image:: https://img.shields.io/pypi/pyversions/pytest-qt.svg
+  :target: https://pypi.python.org/pypi/pytest-qt/
+  :alt: Supported Python versions
+
+.. |black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
+  :target: https://github.com/ambv/black
+
+|python| |version| |conda-forge| |ci| |coverage| |docs| |black|
+
+
+Features
+========
+
+- `qtbot`_ fixture to simulate user interaction with ``Qt`` widgets.
+- `Automatic capture`_ of ``qDebug``, ``qWarning`` and ``qCritical`` messages;
+- waitSignal_ and waitSignals_ functions to block test execution until specific
+  signals are emitted.
+- `Exceptions in virtual methods and slots`_ are automatically captured and
+  fail tests accordingly.
+
+.. _qtbot: https://pytest-qt.readthedocs.io/en/latest/reference.html#module-pytestqt.qtbot
+.. _Automatic capture: https://pytest-qt.readthedocs.io/en/latest/logging.html
+.. _waitSignal: https://pytest-qt.readthedocs.io/en/latest/signals.html
+.. _waitSignals: https://pytest-qt.readthedocs.io/en/latest/signals.html
+.. _Exceptions in virtual methods and slots: https://pytest-qt.readthedocs.io/en/latest/virtual_methods.html
+
+Requirements
+============
+
+Works with either PySide6_, PyQt6_ or PyQt5_.
+
+If any of the above libraries is already imported by the time the tests execute, that library will be used.
+
+If not, pytest-qt will try to import and use the Qt APIs, in this order:
+
+- ``PySide6``
+- ``PyQt6``
+- ``PyQt5``
+
+To force a particular API, set the configuration variable ``qt_api`` in your ``pytest.ini`` file to
+``pyside6``, ``pyqt6`` or ``pyqt5``:
+
+.. code-block:: ini
+
+    [pytest]
+    qt_api=pyqt6
+
+
+Alternatively, you can set the ``PYTEST_QT_API`` environment
+variable to the same values described above (the environment variable wins over the configuration
+if both are set).
+
+
+Documentation
+=============
+
+Full documentation and tutorial available at `Read the Docs`_.
+
+.. _Read The Docs: https://pytest-qt.readthedocs.io
+
+Change Log
+==========
+
+Please consult the `changelog page`_.
+
+.. _changelog page: https://pytest-qt.readthedocs.io/en/latest/changelog.html
+
+Bugs/Requests
+=============
+
+Please report any issues or feature requests in the `issue tracker`_.
+
+.. _issue tracker: https://github.com/pytest-dev/pytest-qt/issues
+
+Contributing
+============
+
+Contributions are welcome, so feel free to submit a bug or feature
+request.
+
+Pull requests are highly appreciated! If you
+can, include some tests that exercise the new code or test that a bug has been
+fixed, and make sure to include yourself in the contributors list. :)
+
+To prepare your environment, create a virtual environment and install ``pytest-qt`` in editable mode with ``dev``
+extras::
+
+    $ pip install --editable .[dev]
+
+After that install ``pre-commit`` for pre-commit checks::
+
+    $ pre-commit install
+
+Running tests
+-------------
+
+Tests are run using `tox`_::
+
+    $ tox -e py-pyside6,py-pyqt5
+
+``pytest-qt`` is formatted using `black <https://github.com/ambv/black>`_ and uses
+`pre-commit <https://github.com/pre-commit/pre-commit>`_ for linting checks before commits. You
+can install ``pre-commit`` locally with::
+
+    $ pip install pre-commit
+    $ pre-commit install
+
+Related projects
+----------------
+
+- `pytest-xvfb <https://github.com/The-Compiler/pytest-xvfb/>`_ allows to run a virtual xserver (Xvfb) on Linux to avoid GUI elements popping up on the screen or for easy CI testing
+- `pytest-qml <https://github.com/jgirardet/pytest-qml>`_ allows running QML tests from pytest
+
+Contributors
+------------
+
+Many thanks to:
+
+- Igor T. Ghisi (`@itghisi <https://github.com/itghisi>`_);
+- John David Reaver (`@jdreaver <https://github.com/jdreaver>`_);
+- Benjamin Hedrich (`@bh <https://github.com/bh>`_);
+- Benjamin Audren (`@baudren <https://github.com/baudren>`_);
+- Fabio Zadrozny (`@fabioz <https://github.com/fabioz>`_);
+- Datalyze Solutions (`@datalyze-solutions <https://github.com/datalyze-solutions>`_);
+- Florian Bruhin (`@The-Compiler <https://github.com/The-Compiler>`_);
+- Guilherme Quentel Melo (`@gqmelo <https://github.com/gqmelo>`_);
+- Francesco Montesano (`@montefra <https://github.com/montefra>`_);
+- Roman Yurchak (`@rth <https://github.com/rth>`_)
+- Christian Karl (`@karlch <https://github.com/karlch>`_)
+
+**Powered by**
+
+.. |pycharm| image:: https://resources.jetbrains.com/storage/products/company/brand/logos/PyCharm.png
+  :target: https://www.jetbrains.com/pycharm
+  :width: 400
+
+.. |pydev| image:: http://www.pydev.org/images/pydev_banner3.png
+  :target: https://www.pydev.org
+
+|pycharm|
+
+|pydev|
+
+.. _tox: https://tox.readthedocs.io

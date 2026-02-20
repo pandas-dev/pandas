@@ -1,0 +1,2 @@
+[console_scripts]
+asv = asv.__main__:main

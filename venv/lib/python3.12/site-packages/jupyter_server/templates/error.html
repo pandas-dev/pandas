@@ -1,0 +1,32 @@
+{% extends "page.html" %}
+
+{% block stylesheet %}
+{{super()}}
+<style type="text/css">
+    /* disable initial hide */
+    div#header,
+    div#site {
+        display: block;
+    }
+</style>
+{% endblock %}
+{% block site %}
+
+<div class="error">
+    {% block h1_error %}
+    <h1>{{status_code}} : {{status_message}}</h1>
+    {% endblock h1_error %}
+    {% block error_detail %}
+    {% if message %}
+    <p>{% trans %}The error was:{% endtrans %}</p>
+    <div class="traceback-wrapper">
+        <pre class="traceback">{{message}}</pre>
+    </div>
+    {% endif %}
+    {% endblock error_detail %}
+</div>
+
+{% endblock %}
+
+{% block script %}
+{% endblock script %}

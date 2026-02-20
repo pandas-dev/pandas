@@ -1,0 +1,11 @@
+{
+  "name": "@jupyterlab/mock-mime-extension",
+  "version": "0.3.0",
+  "private": true,
+  "dependencies": {
+    "@lumino/widgets": "^2.7.5"
+  },
+  "jupyterlab": {
+    "mimeExtension": true
+  }
+}

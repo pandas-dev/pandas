@@ -1,0 +1,91 @@
+Metadata-Version: 2.1
+Name: notebook_shim
+Version: 0.2.4
+Summary: A shim layer for notebook traits and config
+Author-email: Jupyter Development Team <jupyter@googlegroups.com>
+License: BSD 3-Clause License
+        
+        Copyright (c) 2022 Project Jupyter Contributors
+        All rights reserved.
+        
+        Redistribution and use in source and binary forms, with or without
+        modification, are permitted provided that the following conditions are met:
+        
+        1. Redistributions of source code must retain the above copyright notice, this
+           list of conditions and the following disclaimer.
+        
+        2. Redistributions in binary form must reproduce the above copyright notice,
+           this list of conditions and the following disclaimer in the documentation
+           and/or other materials provided with the distribution.
+        
+        3. Neither the name of the copyright holder nor the names of its
+           contributors may be used to endorse or promote products derived from
+           this software without specific prior written permission.
+        
+        THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+        AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+        IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+        DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+        FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+        DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+        SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+        CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+        OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+        OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+License-File: LICENSE
+Keywords: ipython,jupyter
+Classifier: Framework :: Jupyter
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: Science/Research
+Classifier: Intended Audience :: System Administrators
+Classifier: License :: OSI Approved :: BSD License
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3 :: Only
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Requires-Python: >=3.7
+Requires-Dist: jupyter-server<3,>=1.8
+Provides-Extra: test
+Requires-Dist: pytest; extra == 'test'
+Requires-Dist: pytest-console-scripts; extra == 'test'
+Requires-Dist: pytest-jupyter; extra == 'test'
+Requires-Dist: pytest-tornasync; extra == 'test'
+Description-Content-Type: text/markdown
+
+# Notebook Shim
+
+This project provides a way for JupyterLab and other frontends to switch to [Jupyter Server](https://github.com/jupyter/jupyter_server/) for their Python Web application backend.
+
+## Basic Usage
+
+Install from PyPI:
+
+```
+pip install notebook_shim
+```
+
+This will automatically enable the extension in Jupyter Server.
+
+## Usage
+
+This project also includes an API for shimming traits that moved from `NotebookApp` in to `ServerApp` in Jupyter Server. This can be used by applications that subclassed `NotebookApp` to leverage the Python server backend of Jupyter Notebooks. Such extensions should *now* switch to `ExtensionApp` API in Jupyter Server and add `NotebookConfigShimMixin` in their inheritance list to properly handle moved traits.
+
+For example, an application class that previously looked like:
+
+```python
+from notebook.notebookapp import NotebookApp
+
+class MyApplication(NotebookApp):
+```
+
+should switch to look something like:
+
+```python
+from jupyter_server.extension.application import ExtensionApp
+from notebook_shim.shim import NotebookConfigShimMixin
+
+class MyApplication(NotebookConfigShimMixin, ExtensionApp):
+```

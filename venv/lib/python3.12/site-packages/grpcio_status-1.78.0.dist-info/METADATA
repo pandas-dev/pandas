@@ -1,0 +1,38 @@
+Metadata-Version: 2.4
+Name: grpcio-status
+Version: 1.78.0
+Summary: Status proto mapping for gRPC
+Author-email: The gRPC Authors <grpc-io@googlegroups.com>
+License-Expression: Apache-2.0
+Project-URL: Homepage, https://grpc.io
+Project-URL: Documentation, https://grpc.github.io/grpc/python/grpc_status.html
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Classifier: Programming Language :: Python :: 3.14
+Requires-Python: >=3.9
+Description-Content-Type: text/x-rst
+License-File: LICENSE
+Requires-Dist: protobuf<7.0.0,>=6.31.1
+Requires-Dist: grpcio>=1.78.0
+Requires-Dist: googleapis-common-protos>=1.5.5
+Dynamic: classifier
+Dynamic: license-file
+Dynamic: requires-dist
+Dynamic: requires-python
+
+gRPC Python Status Proto
+===========================
+
+Reference package for GRPC Python status proto mapping.
+
+
+Dependencies
+------------
+
+Depends on the `grpcio` package, available from PyPI via `pip install grpcio`.

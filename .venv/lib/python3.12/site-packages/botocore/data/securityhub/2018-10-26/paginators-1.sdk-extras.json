@@ -1,0 +1,22 @@
+{
+  "version": 1.0,
+  "merge": {
+    "pagination": {
+        "ListOrganizationAdminAccounts": {
+            "non_aggregate_keys": [
+                "Feature"
+            ]
+        },
+        "GetFindingsTrendsV2": {
+            "non_aggregate_keys": [
+                "Granularity"
+            ]
+        },
+        "GetResourcesTrendsV2": {
+            "non_aggregate_keys": [
+                "Granularity"
+            ]
+        }
+    }
+  }
+}

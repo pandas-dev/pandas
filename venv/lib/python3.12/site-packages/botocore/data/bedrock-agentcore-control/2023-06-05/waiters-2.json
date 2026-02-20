@@ -1,0 +1,149 @@
+{
+  "version" : 2,
+  "waiters" : {
+    "MemoryCreated" : {
+      "delay" : 2,
+      "maxAttempts" : 60,
+      "operation" : "GetMemory",
+      "acceptors" : [ {
+        "matcher" : "path",
+        "argument" : "memory.status",
+        "state" : "retry",
+        "expected" : "CREATING"
+      }, {
+        "matcher" : "path",
+        "argument" : "memory.status",
+        "state" : "success",
+        "expected" : "ACTIVE"
+      }, {
+        "matcher" : "path",
+        "argument" : "memory.status",
+        "state" : "failure",
+        "expected" : "FAILED"
+      } ]
+    },
+    "PolicyActive" : {
+      "description" : "Wait until a Policy is active",
+      "delay" : 2,
+      "maxAttempts" : 60,
+      "operation" : "GetPolicy",
+      "acceptors" : [ {
+        "matcher" : "path",
+        "argument" : "status",
+        "state" : "success",
+        "expected" : "ACTIVE"
+      }, {
+        "matcher" : "path",
+        "argument" : "status",
+        "state" : "failure",
+        "expected" : "CREATE_FAILED"
+      }, {
+        "matcher" : "path",
+        "argument" : "status",
+        "state" : "failure",
+        "expected" : "UPDATE_FAILED"
+      }, {
+        "matcher" : "path",
+        "argument" : "status",
+        "state" : "failure",
+        "expected" : "DELETE_FAILED"
+      } ]
+    },
+    "PolicyDeleted" : {
+      "description" : "Wait until a Policy is deleted",
+      "delay" : 2,
+      "maxAttempts" : 60,
+      "operation" : "GetPolicy",
+      "acceptors" : [ {
+        "matcher" : "error",
+        "state" : "success",
+        "expected" : "ResourceNotFoundException"
+      }, {
+        "matcher" : "path",
+        "argument" : "status",
+        "state" : "retry",
+        "expected" : "DELETING"
+      }, {
+        "matcher" : "path",
+        "argument" : "status",
+        "state" : "failure",
+        "expected" : "DELETE_FAILED"
+      } ]
+    },
+    "PolicyEngineActive" : {
+      "description" : "Wait until a PolicyEngine is active",
+      "delay" : 2,
+      "maxAttempts" : 60,
+      "operation" : "GetPolicyEngine",
+      "acceptors" : [ {
+        "matcher" : "path",
+        "argument" : "status",
+        "state" : "success",
+        "expected" : "ACTIVE"
+      }, {
+        "matcher" : "path",
+        "argument" : "status",
+        "state" : "failure",
+        "expected" : "CREATE_FAILED"
+      }, {
+        "matcher" : "path",
+        "argument" : "status",
+        "state" : "failure",
+        "expected" : "UPDATE_FAILED"
+      }, {
+        "matcher" : "path",
+        "argument" : "status",
+        "state" : "failure",
+        "expected" : "DELETE_FAILED"
+      } ]
+    },
+    "PolicyEngineDeleted" : {
+      "description" : "Wait until a PolicyEngine is deleted",
+      "delay" : 2,
+      "maxAttempts" : 60,
+      "operation" : "GetPolicyEngine",
+      "acceptors" : [ {
+        "matcher" : "error",
+        "state" : "success",
+        "expected" : "ResourceNotFoundException"
+      }, {
+        "matcher" : "path",
+        "argument" : "status",
+        "state" : "retry",
+        "expected" : "DELETING"
+      }, {
+        "matcher" : "path",
+        "argument" : "status",
+        "state" : "failure",
+        "expected" : "DELETE_FAILED"
+      } ]
+    },
+    "PolicyGenerationCompleted" : {
+      "description" : "Wait until policy generation is completed",
+      "delay" : 2,
+      "maxAttempts" : 60,
+      "operation" : "GetPolicyGeneration",
+      "acceptors" : [ {
+        "matcher" : "path",
+        "argument" : "status",
+        "state" : "success",
+        "expected" : "GENERATED"
+      }, {
+        "matcher" : "path",
+        "argument" : "status",
+        "state" : "retry",
+        "expected" : "GENERATING"
+      }, {
+        "matcher" : "path",
+        "argument" : "status",
+        "state" : "failure",
+        "expected" : "GENERATE_FAILED"
+      }, {
+        "matcher" : "path",
+        "argument" : "status",
+        "state" : "failure",
+        "expected" : "DELETE_FAILED"
+      } ]
+    }
+  }
+}

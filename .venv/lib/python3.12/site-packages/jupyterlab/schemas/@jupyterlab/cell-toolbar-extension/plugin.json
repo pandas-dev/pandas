@@ -1,0 +1,101 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "title": "Cell Toolbar",
+  "description": "Cell Toolbar Settings.",
+  "jupyter.lab.toolbars": {
+    "Cell": [
+      {
+        "name": "duplicate-cell",
+        "command": "notebook:duplicate-below"
+      },
+      { "name": "move-cell-up", "command": "notebook:move-cell-up" },
+      { "name": "move-cell-down", "command": "notebook:move-cell-down" },
+      {
+        "name": "insert-cell-above",
+        "command": "notebook:insert-cell-above"
+      },
+      {
+        "name": "insert-cell-below",
+        "command": "notebook:insert-cell-below"
+      },
+      {
+        "command": "notebook:delete-cell",
+        "icon": "ui-components:delete",
+        "name": "delete-cell"
+      }
+    ]
+  },
+  "jupyter.lab.transform": true,
+  "properties": {
+    "showToolbar": {
+      "title": "Show cell toolbar",
+      "description": "Show a toolbar inside the active cell, if there is enough room for one",
+      "type": "boolean",
+      "default": true
+    },
+    "toolbar": {
+      "title": "List of toolbar items",
+      "description": "An item is defined by a 'name', a 'command' name, and an 'icon' name",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/toolbarItem"
+      },
+      "default": []
+    }
+  },
+  "additionalProperties": false,
+  "type": "object",
+  "definitions": {
+    "toolbarItem": {
+      "properties": {
+        "name": {
+          "title": "Unique name",
+          "type": "string"
+        },
+        "args": {
+          "title": "Command arguments",
+          "type": "object"
+        },
+        "command": {
+          "title": "Command id",
+          "type": "string",
+          "default": ""
+        },
+        "disabled": {
+          "title": "Whether the item is ignored or not",
+          "type": "boolean",
+          "default": false
+        },
+        "icon": {
+          "title": "Item icon id",
+          "description": "If defined, it will override the command icon",
+          "type": "string"
+        },
+        "label": {
+          "title": "Item label",
+          "description": "If defined, it will override the command label",
+          "type": "string"
+        },
+        "caption": {
+          "title": "Item caption",
+          "description": "If defined, it will override the command caption",
+          "type": "string"
+        },
+        "type": {
+          "title": "Item type",
+          "type": "string",
+          "enum": ["command", "spacer"]
+        },
+        "rank": {
+          "title": "Item rank",
+          "type": "number",
+          "minimum": 0,
+          "default": 50
+        }
+      },
+      "required": ["name"],
+      "additionalProperties": false,
+      "type": "object"
+    }
+  }
+}

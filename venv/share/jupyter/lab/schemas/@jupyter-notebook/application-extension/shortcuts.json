@@ -1,0 +1,16 @@
+{
+  "jupyter.lab.setting-icon": "notebook-ui-components:jupyter",
+  "jupyter.lab.setting-icon-label": "Jupyter Notebook shortcuts",
+  "title": "Jupyter Notebook Shortcuts",
+  "description": "Keyboard shortcuts for Jupyter Notebook",
+  "jupyter.lab.shortcuts": [
+    {
+      "args": {},
+      "command": "notebook:toggle-cell-outputs",
+      "keys": ["O"],
+      "selector": ".jp-Notebook.jp-mod-commandMode:not(.jp-mod-readWrite) :focus"
+    }
+  ],
+  "additionalProperties": false,
+  "type": "object"
+}

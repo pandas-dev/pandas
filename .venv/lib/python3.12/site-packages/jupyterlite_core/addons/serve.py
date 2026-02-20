@@ -1,0 +1,173 @@
+"""a JupyterLite addon for serving"""
+
+import json
+import os
+
+import doit
+from traitlets import Bool, default
+
+from ..constants import JUPYTER_CONFIG_DATA, JUPYTERLITE_JSON, SETTINGS_FILE_TYPES, UTF8
+from ..optional import has_optional_dependency
+from .base import BaseAddon
+
+# we _really_ don't want to be in the server-running business, so hardcode, now...
+HOST = "127.0.0.1"
+
+
+class ServeAddon(BaseAddon):
+    __all__ = ["status", "serve"]
+
+    has_tornado: bool = Bool()
+
+    @default("has_tornado")
+    def _default_has_tornado(self):
+        return has_optional_dependency("tornado")
+
+    def status(self, manager):
+        yield self.task(name="contents", actions=[self._print_status])
+
+    def _print_status(self):
+        print(
+            f"""    url: {self.url}"""
+            "\n"
+            f"""    server: {"tornado" if self.has_tornado else "stdlib"}"""
+        )
+
+        print("""    headers:""")
+        for headers in [self.manager.http_headers, self.manager.extra_http_headers]:
+            for header, value in headers.items():
+                print(f"""        {header}: {value}""")
+
+    @property
+    def url(self):
+        return f"http://{HOST}:{self.manager.port}{self.manager.base_url}"
+
+    def serve(self, manager):
+        if self.has_tornado:
+            name = "tornado"
+            actions = [doit.tools.PythonInteractiveAction(self._serve_tornado)]
+        else:
+            name = "stdlib"
+            actions = [doit.tools.PythonInteractiveAction(self._serve_stdlib)]
+
+        yield self.task(
+            name=name,
+            doc=f"run server at {self.url} for {manager.output_dir}",
+            uptodate=[lambda: False],
+            actions=actions,
+        )
+
+    def _patch_mime(self):
+        """install extra mime types if configured"""
+        import mimetypes
+
+        jupyterlite_json = self.manager.output_dir / JUPYTERLITE_JSON
+        config = json.loads(jupyterlite_json.read_text(**UTF8))
+        file_types = config[JUPYTER_CONFIG_DATA].get(SETTINGS_FILE_TYPES)
+
+        if file_types:
+            if os.name == "nt":
+                # do not trust windows registry, which regularly has bad info
+                mimetypes.init(files=[])
+            # ensure css, js are correct, which are required for pages to function
+
+            mime_map = dict()
+
+            for file_type in file_types.values():
+                for ext in file_type["extensions"]:
+                    mimetypes.add_type(file_type["mimeTypes"][0], ext)
+                    mime_map[ext] = file_type["mimeTypes"][0]
+
+            return mime_map
+
+    def _serve_tornado(self):
+        from tornado import httpserver, ioloop, web
+
+        self._patch_mime()
+
+        manager = self.manager
+
+        def shutdown():
+            http_server.stop()
+            ioloop.IOLoop.current().stop()
+
+        class ShutdownHandler(web.RequestHandler):
+            def get(self):
+                ioloop.IOLoop.instance().add_callback(shutdown)
+
+        class StaticHandler(web.StaticFileHandler):
+            def set_default_headers(self):
+                for headers in [manager.http_headers, manager.extra_http_headers]:
+                    for header, value in headers.items():
+                        if value is not None:
+                            self.set_header(header, value)
+
+            def parse_url_path(self, url_path):
+                if not url_path or url_path.endswith("/"):
+                    url_path = url_path + "index.html"
+                return url_path
+
+        path = str(manager.output_dir)
+        app = web.Application(
+            [
+                (manager.base_url + "shutdown", ShutdownHandler),
+                (manager.base_url + "(.*)", StaticHandler, {"path": path}),
+            ],
+            debug=True,
+        )
+        http_server = httpserver.HTTPServer(app)
+        http_server.listen(manager.port)
+
+        self._serve_forever(path, ioloop.IOLoop.instance().start)
+
+    def _serve_stdlib(self):
+        """Serve the site with python's standard library HTTP server."""
+
+        import socketserver
+        from functools import partial
+        from http.server import SimpleHTTPRequestHandler
+
+        HttpRequestHandler = SimpleHTTPRequestHandler  # noqa: N806
+
+        mime_map = self._patch_mime()
+
+        if mime_map:
+            path = str(self.manager.output_dir)
+
+            class HttpRequestHandler(SimpleHTTPRequestHandler):
+                extensions_map = {
+                    "": "application/octet-stream",
+                    **mime_map,
+                }
+
+        httpd = socketserver.TCPServer(
+            (HOST, self.manager.port), partial(HttpRequestHandler, directory=path)
+        )
+
+        self._serve_forever(path, httpd.serve_forever)
+
+    def _serve_forever(self, path, handler):
+        """Serve the site forever, or the user presses ``Ctrl+C``."""
+
+        shutdown_url = ""
+
+        if self.has_tornado:
+            shutdown_url = f"""
+            - Visiting {self.manager.base_url}shutdown"""
+
+        banner = f"""
+
+        Serving JupyterLite Debug Server from:
+            {path}
+        on:
+            {self.url}index.html
+
+        *** Exit by: ***
+            - Pressing Ctrl+C{shutdown_url}"""
+
+        self.log.warning(banner)
+
+        try:
+            handler()
+        except KeyboardInterrupt:
+            self.log.warning(f"Stopping {self.url}")

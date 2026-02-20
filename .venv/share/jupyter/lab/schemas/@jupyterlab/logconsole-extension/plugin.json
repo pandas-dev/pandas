@@ -1,0 +1,133 @@
+{
+  "jupyter.lab.setting-icon": "ui-components:list",
+  "jupyter.lab.setting-icon-label": "Log Console",
+  "jupyter.lab.menus": {
+    "main": [
+      {
+        "id": "jp-mainmenu-view",
+        "items": [
+          {
+            "type": "separator",
+            "rank": 9.9
+          },
+          {
+            "command": "logconsole:open",
+            "rank": 9.95
+          },
+          {
+            "type": "separator",
+            "rank": 9.99
+          }
+        ]
+      }
+    ],
+    "context": [
+      { "command": "logconsole:open", "selector": ".jp-Notebook", "rank": 60 }
+    ]
+  },
+  "title": "Log Console",
+  "description": "Log Console settings.",
+  "jupyter.lab.toolbars": {
+    "LogConsole": [
+      {
+        "name": "add-checkpoint",
+        "command": "logconsole:add-checkpoint",
+        "rank": 10
+      },
+      { "name": "clear", "command": "logconsole:clear", "rank": 20 },
+      { "name": "set-level", "command": "logconsole:set-level", "rank": 30 }
+    ]
+  },
+  "jupyter.lab.transform": true,
+  "properties": {
+    "maxLogEntries": {
+      "type": "number",
+      "title": "Log entry count limit",
+      "description": "Maximum number of log entries to store in memory",
+      "default": 1000
+    },
+    "flash": {
+      "type": "boolean",
+      "title": "Status Bar Item flash",
+      "description": "Whether to flash on new log message or not",
+      "default": true
+    },
+    "defaultLogLevel": {
+      "type": "string",
+      "title": "Default Log Level",
+      "description": "Default log level for loggers",
+      "oneOf": [
+        { "const": "critical", "title": "Critical" },
+        { "const": "error", "title": "Error" },
+        { "const": "warning", "title": "Warning" },
+        { "const": "info", "title": "Info" },
+        { "const": "debug", "title": "Debug" }
+      ],
+      "default": "warning"
+    },
+    "toolbar": {
+      "title": "Log console toolbar items",
+      "description": "Note: To disable a toolbar item,\ncopy it to User Preferences and add the\n\"disabled\" key. The following example will disable the clear button:\n{\n  \"toolbar\": [\n    {\n      \"name\": \"clear\",\n      \"disabled\": true\n    }\n  ]\n}\n\nToolbar description:",
+      "items": {
+        "$ref": "#/definitions/toolbarItem"
+      },
+      "type": "array",
+      "default": []
+    }
+  },
+  "additionalProperties": false,
+  "type": "object",
+  "definitions": {
+    "toolbarItem": {
+      "properties": {
+        "name": {
+          "title": "Unique name",
+          "type": "string"
+        },
+        "args": {
+          "title": "Command arguments",
+          "type": "object"
+        },
+        "command": {
+          "title": "Command id",
+          "type": "string",
+          "default": ""
+        },
+        "disabled": {
+          "title": "Whether the item is ignored or not",
+          "type": "boolean",
+          "default": false
+        },
+        "icon": {
+          "title": "Item icon id",
+          "description": "If defined, it will override the command icon",
+          "type": "string"
+        },
+        "label": {
+          "title": "Item label",
+          "description": "If defined, it will override the command label",
+          "type": "string"
+        },
+        "caption": {
+          "title": "Item caption",
+          "description": "If defined, it will override the command caption",
+          "type": "string"
+        },
+        "type": {
+          "title": "Item type",
+          "type": "string",
+          "enum": ["command", "spacer"]
+        },
+        "rank": {
+          "title": "Item rank",
+          "type": "number",
+          "minimum": 0,
+          "default": 50
+        }
+      },
+      "required": ["name"],
+      "additionalProperties": false,
+      "type": "object"
+    }
+  }
+}

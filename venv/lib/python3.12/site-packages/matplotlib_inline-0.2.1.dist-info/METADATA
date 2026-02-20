@@ -1,0 +1,74 @@
+Metadata-Version: 2.4
+Name: matplotlib-inline
+Version: 0.2.1
+Summary: Inline Matplotlib backend for Jupyter
+Keywords: ipython,jupyter,matplotlib,python
+Author-email: IPython Development Team <ipython-dev@python.org>
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Framework :: IPython
+Classifier: Framework :: Jupyter :: JupyterLab :: 3
+Classifier: Framework :: Jupyter :: JupyterLab :: 4
+Classifier: Framework :: Jupyter :: JupyterLab
+Classifier: Framework :: Jupyter
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: Science/Research
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Classifier: Programming Language :: Python :: 3.14
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python
+Classifier: Topic :: Multimedia :: Graphics
+License-File: LICENSE
+Requires-Dist: traitlets
+Requires-Dist: flake8 ; extra == "test"
+Requires-Dist: nbdime ; extra == "test"
+Requires-Dist: nbval ; extra == "test"
+Requires-Dist: notebook ; extra == "test"
+Requires-Dist: pytest ; extra == "test"
+Project-URL: Homepage, https://github.com/ipython/matplotlib-inline
+Provides-Extra: test
+
+# Matplotlib Inline Back-end for IPython and Jupyter
+
+This package provides support for matplotlib to display figures directly inline in the Jupyter notebook and related clients, as shown below.
+
+## Installation
+
+With conda:
+
+```bash
+conda install -c conda-forge matplotlib-inline
+```
+
+With pip:
+
+```bash
+pip install matplotlib-inline
+```
+
+## Usage
+
+Note that in current versions of JupyterLab and Jupyter Notebook, the explicit use of the `%matplotlib inline` directive is not needed anymore, though other third-party clients may still require it.
+
+This will produce a figure immediately below:
+
+```python
+%matplotlib inline
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+x = np.linspace(0, 3*np.pi, 500)
+plt.plot(x, np.sin(x**2))
+plt.title('A simple chirp');
+```
+
+## License
+
+Licensed under the terms of the BSD 3-Clause License, by the IPython Development Team (see `LICENSE` file).
+

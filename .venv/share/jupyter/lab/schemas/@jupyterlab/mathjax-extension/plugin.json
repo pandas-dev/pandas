@@ -1,0 +1,38 @@
+{
+  "title": "MathJax Plugin",
+  "description": "MathJax math renderer for JupyterLab",
+  "jupyter.lab.menus": {
+    "context": [
+      {
+        "type": "separator",
+        "selector": ".MathJax",
+        "rank": 12
+      },
+      {
+        "command": "mathjax:clipboard",
+        "selector": ".MathJax",
+        "rank": 13
+      },
+      {
+        "command": "mathjax:scale",
+        "selector": ".MathJax",
+        "rank": 13
+      },
+      {
+        "command": "mathjax:scale",
+        "selector": ".MathJax",
+        "rank": 13,
+        "args": {
+          "scale": 1.5
+        }
+      },
+      {
+        "type": "separator",
+        "selector": ".MathJax",
+        "rank": 13
+      }
+    ]
+  },
+  "additionalProperties": false,
+  "type": "object"
+}
