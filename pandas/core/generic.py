@@ -11142,7 +11142,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         dtype: int64
         >>> s.tz_localize("Europe/Warsaw", nonexistent="shift_backward")
         2015-03-29 01:59:59.999999999+01:00    0
-        2015-03-29 03:30:00+02:00              1
+        2015-03-29 03:30:00.000000000+02:00    1
         dtype: int64
         >>> s.tz_localize("Europe/Warsaw", nonexistent=pd.Timedelta("1h"))
         2015-03-29 03:30:00+02:00    0
