@@ -710,6 +710,9 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Check if the date is the first day of the month.
 
+        This is determined by checking whether the ``day`` component of the
+        Timestamp is equal to 1.
+
         Returns
         -------
         bool
@@ -736,6 +739,9 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Check if the date is the last day of the month.
 
+        This is determined by comparing the ``day`` component with the total
+        number of days in the month of the Timestamp.
+
         Returns
         -------
         bool
@@ -761,6 +767,9 @@ cdef class _Timestamp(ABCTimestamp):
     def is_quarter_start(self) -> bool:
         """
         Check if the date is the first day of the quarter.
+
+        Quarters start on the first day of January, April, July, and October
+        in the standard calendar.
 
         Returns
         -------
@@ -789,6 +798,9 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Check if date is last day of the quarter.
 
+        Quarters end on the last day of March, June, September, and December
+        in the standard calendar.
+
         Returns
         -------
         bool
@@ -816,6 +828,9 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Return True if date is first day of the year.
 
+        This is determined by checking whether the month and day components
+        are both equal to 1 (i.e., January 1st).
+
         Returns
         -------
         bool
@@ -840,6 +855,9 @@ cdef class _Timestamp(ABCTimestamp):
     def is_year_end(self) -> bool:
         """
         Return True if date is last day of the year.
+
+        This is determined by checking whether the month is 12 and the day
+        is 31 (i.e., December 31st).
 
         Returns
         -------
@@ -1138,6 +1156,8 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Return the month of the Timestamp.
 
+        Months are numbered from 1 (January) through 12 (December).
+
         Returns
         -------
         int
@@ -1186,6 +1206,8 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Return the minute of the Timestamp.
 
+        Minutes range from 0 through 59.
+
         Returns
         -------
         int
@@ -1231,6 +1253,9 @@ cdef class _Timestamp(ABCTimestamp):
     def microsecond(self) -> int:
         """
         Return the microsecond of the Timestamp.
+
+        Microseconds range from 0 through 999999 and represent the
+        sub-second component of the Timestamp at microsecond resolution.
 
         Returns
         -------
