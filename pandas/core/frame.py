@@ -157,6 +157,7 @@ from pandas.core.indexes.multi import (
 from pandas.core.indexing import (
     check_bool_indexer,
     check_dict_or_set_indexers,
+    infer_and_maybe_downcast,
 )
 from pandas.core.internals import BlockManager
 from pandas.core.internals.construction import (
@@ -14361,6 +14362,15 @@ class DataFrame(NDFrame, OpsMixin):
         # infer_objects is needed for
         #  test_append_empty_frame_to_series_with_dateutil_tz
         row_df = row_df.infer_objects().rename_axis(index.names)
+
+        if len(row_df.columns) == len(self.columns):
+            # Try to retain our original dtype when doing the concat, GH#62523
+            for i in range(len(self.columns)):
+                arr = self.iloc[:, i].array
+
+                casted = infer_and_maybe_downcast(arr, row_df.iloc[:, i]._values)
+
+                row_df.isetitem(i, casted)
 
         from pandas.core.reshape.concat import concat
 

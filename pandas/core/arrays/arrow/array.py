@@ -473,6 +473,12 @@ class ArrowExtensionArray(
                 result = result.astype(dtype)  # type: ignore[assignment]
             return result
 
+        elif pa.types.is_timestamp(arr.type) and pa.types.is_timestamp(
+            self._pa_array.type
+        ):
+            if arr.type.tz == self._pa_array.type.tz:
+                arr = arr.cast(self._pa_array.type)
+
         elif pa.types.is_date(arr.type) and pa.types.is_date(self._pa_array.type):
             arr = arr.cast(self._pa_array.type)
         elif pa.types.is_time(arr.type) and pa.types.is_time(self._pa_array.type):
