@@ -8918,6 +8918,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Select values at particular time of day (e.g., 9:30AM).
 
+        This method filters rows whose index has a time component matching
+        the specified time. The index must be a DatetimeIndex.
+
         Parameters
         ----------
         time : datetime.time or str

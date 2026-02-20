@@ -2878,6 +2878,10 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     """
     Accessor object for categorical properties of the Series values.
 
+    This accessor provides methods and properties to interact with the
+    underlying categorical data, such as accessing categories, renaming
+    them, reordering, or adding and removing categories.
+
     Parameters
     ----------
     data : Series or CategoricalIndex

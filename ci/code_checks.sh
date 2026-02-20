@@ -70,15 +70,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
     "$BASE_DIR"/scripts/validate_docstrings.py \
         --format=actions \
         -i "pandas.tseries.frequencies.to_offset ES01" \
-        -i "pandas.Series.is_monotonic_increasing ES01" \
-        -i "pandas.Series.is_monotonic_decreasing ES01" \
-        -i "pandas.Series.drop_duplicates ES01" \
-        -i "pandas.Series.rename_axis ES01" \
-        -i "pandas.Series.unstack ES01" \
-        -i "pandas.Series.explode ES01" \
-        -i "pandas.Series.compare ES01" \
-        -i "pandas.Series.at_time ES01" \
-        -i "pandas.Series.cat ES01" \
         -i "pandas.Series.sparse ES01" \
         -i "pandas.Series.cat.codes ES01" \
         -i "pandas.Series.sparse.density ES01" \
@@ -360,7 +351,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DataFrame.quantile ES01" \
         -i "pandas.DataFrame.round ES01" \
         -i "pandas.DataFrame.value_counts ES01" \
-        -i "pandas.DataFrame.at_time ES01" \
         -i "pandas.DataFrame.to_markdown ES01" # no backslash in the last line
 
     RET=$(($RET + $?)) ; echo $MSG "DONE"

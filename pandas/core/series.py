@@ -2409,6 +2409,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Return Series with duplicate values removed.
 
+        This method identifies and removes duplicate values from the Series,
+        keeping the first, last, or none of the duplicate occurrences based
+        on the ``keep`` parameter.
+
         Parameters
         ----------
         keep : {'first', 'last', ``False``}, default 'first'
@@ -3329,6 +3333,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> DataFrame | Series:
         """
         Compare to another Series and show the differences.
+
+        This method aligns two Series and highlights only the values that
+        differ between them. Equal values are shown as NaN by default.
 
         Parameters
         ----------
@@ -4545,6 +4552,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Transform each element of a list-like to a row.
 
+        This method expands list-like elements so that each item in the list
+        gets its own row, while non-list-like elements remain unchanged.
+        The index is duplicated for the expanded rows.
+
         Parameters
         ----------
         ignore_index : bool, default False
@@ -4617,6 +4628,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> DataFrame:
         """
         Unstack, also known as pivot, Series with MultiIndex to produce DataFrame.
+
+        This method pivots a level of the MultiIndex labels, reshaping the
+        Series into a DataFrame where the unstacked level becomes the columns.
 
         Parameters
         ----------
@@ -5720,6 +5734,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> Self | None:
         """
         Set the name of the axis for the index.
+
+        This method sets or changes the name of the index (axis) of the
+        Series. It can accept a scalar, list-like, or function to rename
+        the axis.
 
         Parameters
         ----------
