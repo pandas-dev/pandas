@@ -71,8 +71,12 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna
 
-from pandas.core.arrays import datetimelike as dtl
+from pandas.core.arrays import (
+    ExtensionArray,
+    datetimelike as dtl,
+)
 import pandas.core.common as com
+from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
     from collections.abc import (
@@ -97,7 +101,6 @@ if TYPE_CHECKING:
         DatetimeArray,
         TimedeltaArray,
     )
-    from pandas.core.arrays.base import ExtensionArray
 
 
 BaseOffsetT = TypeVar("BaseOffsetT", bound=BaseOffset)
@@ -115,9 +118,7 @@ def _field_accessor(name: str, docstring: str | None = None):
 
 
 @set_module("pandas.arrays")
-# error: Definition of "_concat_same_type" in base class "NDArrayBacked" is
-# incompatible with definition in base class "ExtensionArray"
-class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
+class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
     """
     Pandas ExtensionArray for storing Period data.
 
@@ -272,18 +273,40 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         else:
             unit = None
 
+        scalars = extract_array(scalars, extract_numpy=True)
         if isinstance(scalars, cls):
-            validate_dtype_freq(scalars.dtype, dtype)
-            if copy:
-                scalars = scalars.copy()
+            if dtype is not None:
+                return scalars.astype(dtype, copy=copy)
+            elif copy:
+                return scalars.copy()
             return scalars
 
-        periods = np.asarray(scalars, dtype=object)
+        if not isinstance(
+            scalars, (np.ndarray, list, tuple, ABCSeries, ABCIndex, ExtensionArray)
+        ):
+            # test_constructor_empty_special has a case with an iter object
+            scalars = list(scalars)
 
-        unit = unit or libperiod.extract_period_unit(periods)
-        dtype = PeriodDtype(unit)
-        ordinals = libperiod.extract_ordinals(periods, dtype)
-        return cls(ordinals, dtype=dtype)
+        arrdata = np.asarray(scalars)
+        if arrdata.dtype.kind == "f" and len(arrdata) > 0:
+            if not np.isnan(arrdata).all():
+                raise TypeError(
+                    "PeriodArray does not allow floating point in construction"
+                )
+            ordinals = np.full(arrdata.shape, iNaT, dtype=np.int64)
+            return cls(ordinals, dtype=dtype)
+
+        elif arrdata.dtype.kind in "iu":
+            arr = arrdata.astype(np.int64, copy=False)
+            ordinals = libperiod.from_calendar_ordinals(arr, dtype)  # type: ignore[arg-type]
+            return cls(ordinals, dtype=dtype)
+        else:
+            periods = ensure_object(arrdata)
+
+            unit = unit or libperiod.extract_period_unit(periods)
+            dtype = PeriodDtype(unit)
+            ordinals = libperiod.extract_ordinals(periods, dtype)
+            return cls(ordinals, dtype=dtype)
 
     @classmethod
     def _from_sequence_of_strings(
@@ -1250,41 +1273,11 @@ def period_array(
     Length: 4, dtype: period[Q-DEC]
     """
     data_dtype = getattr(data, "dtype", None)
+    dtype = PeriodDtype(freq) if freq is not None else None
 
     if lib.is_np_dtype(data_dtype, "M"):
         return PeriodArray._from_datetime64(data, freq)
-    if isinstance(data_dtype, PeriodDtype):
-        out = PeriodArray(data)
-        if freq is not None:
-            if freq == data_dtype.freq:
-                return out
-            return out.asfreq(freq)
-        return out
 
-    # other iterable of some kind
-    if not isinstance(data, (np.ndarray, list, tuple, ABCSeries)):
-        data = list(data)
-
-    arrdata = np.asarray(data)
-
-    dtype: PeriodDtype | None
-    if freq:
-        dtype = PeriodDtype(freq)
-    else:
-        dtype = None
-
-    if arrdata.dtype.kind == "f" and len(arrdata) > 0:
-        raise TypeError("PeriodIndex does not allow floating point in construction")
-
-    if arrdata.dtype.kind in "iu":
-        arr = arrdata.astype(np.int64, copy=False)
-        ordinals = libperiod.from_calendar_ordinals(arr, dtype)  # type: ignore[arg-type]
-        return PeriodArray(ordinals, dtype=dtype)
-
-    data = ensure_object(arrdata)
-    if freq is None:
-        freq = libperiod.extract_period_unit(data)
-    dtype = PeriodDtype(freq)
     return PeriodArray._from_sequence(data, dtype=dtype)
 
 
