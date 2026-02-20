@@ -8,6 +8,10 @@ from abc import (
     ABC,
     abstractmethod,
 )
+from datetime import (
+    date,
+    datetime,
+)
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -70,7 +74,6 @@ from pandas.core.tools.timedeltas import to_timedelta
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
-    from datetime import datetime
 
     from pandas._typing import (
         Axis,
@@ -540,6 +543,20 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         """
         Analogue to maybe_cast_indexer for get_indexer instead of get_loc.
         """
+        # GH#62158: For DatetimeIndex, prevent matching of pure Python `date` objects
+        # not `datetime`.
+        if isinstance(self._data, DatetimeArray):
+            arr = (
+                keyarr._values
+                if isinstance(keyarr, Index)
+                else np.asarray(keyarr, dtype=object)
+            )
+            if any(isinstance(x, date) and not isinstance(x, datetime) for x in arr):
+                return (
+                    keyarr
+                    if isinstance(keyarr, Index)
+                    else Index._simple_new(arr, name=None)
+                )
         try:
             res = self._data._validate_listlike(keyarr, allow_object=True)
         except (ValueError, TypeError):
