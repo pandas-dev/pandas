@@ -1295,6 +1295,10 @@ def interval_range(
     """
     Return a fixed frequency IntervalIndex.
 
+    This function generates a sequence of evenly spaced intervals over a
+    specified range, supporting numeric, datetime-like, and timedelta
+    endpoints.
+
     Parameters
     ----------
     start : numeric or datetime-like, default None
