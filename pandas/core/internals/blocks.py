@@ -104,7 +104,11 @@ from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
 )
-from pandas.core.indexers import check_setitem_lengths
+from pandas.core.indexers import (
+    check_setitem_lengths,
+    is_scalar_indexer,
+    length_of_indexer,
+)
 from pandas.core.indexes.base import get_values_for_csv
 
 if TYPE_CHECKING:
@@ -133,6 +137,39 @@ if TYPE_CHECKING:
 
 # comparison is faster than is_object_dtype
 _dtype_obj = np.dtype("object")
+
+
+def _datetimelike_compat_num_set(values: np.ndarray, indexer) -> int | None:
+    """
+    Infer ``len(values[indexer])`` without materializing ``values[indexer]``
+    when possible.
+
+    For scalar indexers, return ``None``.
+    """
+    if is_scalar_indexer(indexer, values.ndim):
+        return None
+
+    try:
+        if not isinstance(indexer, tuple):
+            return length_of_indexer(indexer, values)
+
+        if len(indexer) == 0:
+            return None
+
+        if lib.is_integer(indexer[0]):
+            if len(indexer) == 1:
+                return values.shape[1]
+            return length_of_indexer(indexer[1], values[0])
+
+        return length_of_indexer(indexer[0], values)
+    except (AssertionError, AttributeError, IndexError, TypeError, ValueError):
+        # Fallback for uncommon indexers (e.g. Ellipsis) where inferring length
+        # is non-trivial.
+        vi = values[indexer]
+        if lib.is_list_like(vi):
+            return len(vi)
+
+    return None
 
 
 class Block(PandasObject, libinternals.Block):
@@ -1119,12 +1156,9 @@ class Block(PandasObject, libinternals.Block):
             return nb.setitem(indexer, value)
         else:
             if self.dtype == _dtype_obj:
-                # TODO: avoid having to construct values[indexer]
-                vi = values[indexer]
-                if lib.is_list_like(vi):
-                    # checking lib.is_scalar here fails on
-                    #  test_iloc_setitem_custom_object
-                    casted = setitem_datetimelike_compat(values, len(vi), casted)
+                num_set = _datetimelike_compat_num_set(values, indexer)
+                if num_set is not None:
+                    casted = setitem_datetimelike_compat(values, num_set, casted)
 
             self = self._maybe_copy(inplace=True)
             values = cast("np.ndarray", self.values.T)

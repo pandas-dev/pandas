@@ -39,6 +39,7 @@ from pandas.core.internals import (
     make_block,
 )
 from pandas.core.internals.blocks import (
+    _datetimelike_compat_num_set,
     ensure_block_shape,
     maybe_coerce_values,
     new_block,
@@ -1387,6 +1388,32 @@ def test_block_shape():
     b = Series(Categorical([1, 2, 3])).reindex(idx)
 
     assert a._mgr.blocks[0].mgr_locs.indexer == b._mgr.blocks[0].mgr_locs.indexer
+
+
+def test_datetimelike_compat_num_set_fastpath_1d():
+    class NoGetItemArray:
+        ndim = 1
+        shape = (10,)
+
+        def __len__(self) -> int:
+            return self.shape[0]
+
+        def __getitem__(self, key):
+            raise AssertionError("unexpected __getitem__ call")
+
+    values = NoGetItemArray()
+    assert _datetimelike_compat_num_set(values, slice(2, 8, 2)) == 3
+    assert _datetimelike_compat_num_set(values, [1, 3, 5]) == 3
+    assert _datetimelike_compat_num_set(values, np.array([True] * 4 + [False] * 6)) == 4
+
+
+def test_datetimelike_compat_num_set_tuple_indexer():
+    values = np.empty((3, 4), dtype=object)
+
+    assert _datetimelike_compat_num_set(values, (0,)) == 4
+    assert _datetimelike_compat_num_set(values, (0, slice(1, None))) == 3
+    assert _datetimelike_compat_num_set(values, (slice(None), 0)) == 3
+    assert _datetimelike_compat_num_set(values, (0, 0)) is None
 
 
 def test_make_block_no_pandas_array(block_maker):
