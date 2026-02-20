@@ -273,6 +273,13 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         else:
             unit = None
 
+        # Note: we can't do extract_array until after from_datetime64 path
+        #  bc of GH#64241
+        data_dtype = getattr(scalars, "dtype", None)
+        if lib.is_np_dtype(data_dtype, "M"):
+            freq = dtype._freq if dtype is not None else None
+            return cls._from_datetime64(scalars, freq)
+
         scalars = extract_array(scalars, extract_numpy=True)
         if isinstance(scalars, cls):
             if dtype is not None:
@@ -1272,11 +1279,7 @@ def period_array(
     ['2000Q1', '2000Q2', '2000Q3', '2000Q4']
     Length: 4, dtype: period[Q-DEC]
     """
-    data_dtype = getattr(data, "dtype", None)
     dtype = PeriodDtype(freq) if freq is not None else None
-
-    if lib.is_np_dtype(data_dtype, "M"):
-        return PeriodArray._from_datetime64(data, freq)
 
     return PeriodArray._from_sequence(data, dtype=dtype)
 
