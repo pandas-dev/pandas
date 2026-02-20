@@ -507,3 +507,11 @@ def test_assert_series_equal_check_exact_index_default(left_idx, right_idx):
     ser2 = Series(np.zeros(6, dtype=int), right_idx)
     tm.assert_series_equal(ser1, ser2)
     tm.assert_frame_equal(ser1.to_frame(), ser2.to_frame())
+
+
+def test_assert_series_equal_na_values_different_dtype():
+    # GH#61473
+    ser1 = Series([pd.NA], dtype="Int32")
+    ser2 = Series([pd.NA], dtype="object")
+
+    tm.assert_series_equal(ser1, ser2, check_dtype=False)
