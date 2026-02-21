@@ -737,6 +737,10 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         """
         The percent of non- ``fill_value`` points, as decimal.
 
+        This is calculated as the number of non-fill-value points divided by
+        the total length of the array. A density of 1.0 means no values are
+        the fill value, while 0.0 means all values are the fill value.
+
         See Also
         --------
         DataFrame.sparse.from_spmatrix : Create a new DataFrame from a
