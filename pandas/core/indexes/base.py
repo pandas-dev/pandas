@@ -4751,8 +4751,13 @@ class Index(IndexOpsMixin, PandasObject):
             rev_indexer = lib.get_reverse_indexer(left_lev_indexer, len(old_level))
             old_codes = left.codes[level]
 
-            taker = old_codes[old_codes != -1]
+            # GH#60908: preserve NaN entries (-1 codes) instead of
+            # dropping them; only drop rows not found in the join
+            nan_mask = old_codes == -1
+            taker = old_codes.copy()
+            taker[nan_mask] = 0  # safe placeholder for .take()
             new_lev_codes = rev_indexer.take(taker)
+            new_lev_codes[nan_mask] = -1  # restore NaN codes
 
             new_codes = list(left.codes)
             new_codes[level] = new_lev_codes
@@ -4763,7 +4768,7 @@ class Index(IndexOpsMixin, PandasObject):
             if keep_order:  # just drop missing values. o.w. keep order
                 left_indexer = np.arange(len(left), dtype=np.intp)
                 left_indexer = cast("np.ndarray", left_indexer)
-                mask = new_lev_codes != -1
+                mask = (new_lev_codes != -1) | nan_mask
                 if not mask.all():
                     new_codes = [lab[mask] for lab in new_codes]
                     left_indexer = left_indexer[mask]
