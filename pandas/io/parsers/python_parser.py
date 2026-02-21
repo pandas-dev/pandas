@@ -1,9 +1,6 @@
 from __future__ import annotations
 
-from collections import (
-    abc,
-    defaultdict,
-)
+from collections import abc
 import csv
 from io import StringIO
 import re
@@ -11,7 +8,6 @@ from typing import (
     IO,
     TYPE_CHECKING,
     Any,
-    DefaultDict,
     Literal,
     cast,
     final,
@@ -635,39 +631,41 @@ class PythonParser(ParserBase):
                         this_columns.append(c)
 
                 if not have_mi_columns:
-                    counts: DefaultDict = defaultdict(int)
-                    # Ensure that regular columns are used before unnamed ones
-                    # to keep given names and mangle unnamed columns
+                    # Store original columns for dtype mapping
+                    orig_columns = this_columns[:]
+
+                    # Ensure that regular columns are used before unnamed
+                    # ones to keep given names and mangle unnamed columns
                     col_loop_order = [
                         i
                         for i in range(len(this_columns))
                         if i not in this_unnamed_cols
                     ] + this_unnamed_cols
 
-                    # TODO: Use pandas.io.common.dedup_names instead (see #50371)
-                    for i in col_loop_order:
-                        col = this_columns[i]
-                        old_col = col
-                        cur_count = counts[col]
+                    # Reorder columns so named ones are processed first,
+                    # then apply dedup_names for consistent deduplication
+                    reordered = [this_columns[i] for i in col_loop_order]
+                    deduped = list(
+                        dedup_names(
+                            reordered,
+                            is_potential_multiindex=False,
+                        )
+                    )
+                    # Map back to original positions
+                    for j, idx in enumerate(col_loop_order):
+                        this_columns[idx] = cast("Scalar | None", deduped[j])
 
-                        if cur_count > 0:
-                            while cur_count > 0:
-                                counts[old_col] = cur_count + 1
-                                col = f"{old_col}.{cur_count}"
-                                if col in this_columns:
-                                    cur_count += 1
-                                else:
-                                    cur_count = counts[col]
-
+                    # Update dtype mapping if columns were renamed
+                    if self.dtype is not None and is_dict_like(self.dtype):
+                        for old_col, new_col in zip(
+                            orig_columns, this_columns, strict=True
+                        ):
                             if (
-                                self.dtype is not None
-                                and is_dict_like(self.dtype)
+                                old_col != new_col
                                 and self.dtype.get(old_col) is not None
-                                and self.dtype.get(col) is None
+                                and self.dtype.get(new_col) is None
                             ):
-                                self.dtype.update({col: self.dtype.get(old_col)})
-                        this_columns[i] = col
-                        counts[col] = cur_count + 1
+                                self.dtype.update({new_col: self.dtype.get(old_col)})
                 elif have_mi_columns:
                     # if we have grabbed an extra line, but it's not in our
                     # format so save in the buffer, and create a blank extra
