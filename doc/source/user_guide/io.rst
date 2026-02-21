@@ -944,10 +944,17 @@ Specifying method for floating-point conversion
 '''''''''''''''''''''''''''''''''''''''''''''''
 
 The parameter ``float_precision`` can be specified in order to use
-a specific floating-point converter during parsing with the C engine.
-The options are the ordinary converter, the high-precision converter, and
-the round-trip converter (which is guaranteed to round-trip values after
-writing to a file). For example:
+a specific floating-point converter during parsing with the C engine:
+
+- ``None`` or ``"high"`` use the default high-precision converter.
+- ``"legacy"`` uses the original pandas converter (lower precision).
+- ``"round_trip"`` uses the round-trip converter.
+
+In this context, round-trip means parsing text to ``float`` and then
+converting that value back to text and parsing again returns the same
+``float`` value.
+
+For example:
 
 .. ipython:: python
 
@@ -965,6 +972,13 @@ writing to a file). For example:
            StringIO(data),
            engine="c",
            float_precision="high",
+       )["c"][0] - float(val)
+   )
+   abs(
+       pd.read_csv(
+           StringIO(data),
+           engine="c",
+           float_precision="legacy",
        )["c"][0] - float(val)
    )
    abs(
