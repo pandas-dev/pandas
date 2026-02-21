@@ -339,7 +339,7 @@ def test_array_string_nd(data):
             ._from_sequence(data, dtype=pd.StringDtype(na_value=np.nan))
         )
         if using_string_dtype()
-        else NumpyExtensionArray(np.array(data))
+        else NumpyExtensionArray(np.array(data, dtype=str))
     )
     tm.assert_equal(result, expected)
 
