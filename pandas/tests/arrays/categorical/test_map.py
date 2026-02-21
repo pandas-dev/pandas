@@ -123,11 +123,13 @@ def test_map_nan_identity_preserves_categorical():
 
     def mapper(x):
         if pd.isna(x):
-            return float("nan")
+            return np.nan
         return x.upper()
 
     result = cat.map(mapper, na_action=None)
-    assert isinstance(result, Categorical)
+
+    expected = Categorical(["A", "B", np.nan], categories=["A", "B"])
+    tm.assert_categorical_equal(result, expected)
 
 
 def test_map_with_dict_or_series(na_action):

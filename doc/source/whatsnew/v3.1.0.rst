@@ -113,7 +113,9 @@ Bug fixes
 
 Categorical
 ^^^^^^^^^^^
--
+- Fixed ``Categorical.map`` incorrectly returning an ``Index`` instead of a
+  ``Categorical`` when the mapping was one-to-one and missing values were
+  preserved (:issue:`64064`).
 -
 
 Datetimelike
