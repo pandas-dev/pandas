@@ -10,7 +10,9 @@ from pandas._libs.algos import (
     Infinity,
     NegInfinity,
 )
+import pandas.util._test_decorators as td
 
+import pandas as pd
 from pandas import (
     DataFrame,
     Index,
@@ -498,3 +500,48 @@ class TestRank:
             exp_dtype = "float64"
         expected = Series([1, 2, None, 3], dtype=exp_dtype)
         tm.assert_series_equal(result, expected)
+
+    @td.skip_if_no("pyarrow")
+    @pytest.mark.parametrize("method", ["average", "min", "max", "first", "dense"])
+    def test_rank_ea_dtype_preservation(self, method):
+        # GH#52829 - DataFrame.rank should preserve ExtensionArray dtypes
+        import pyarrow as pa
+
+        df = DataFrame(
+            {
+                "a": Series([3, 1, 2], dtype=pd.ArrowDtype(pa.int32())),
+                "b": Series([1.5, 3.5, 2.5], dtype=pd.ArrowDtype(pa.float64())),
+            }
+        )
+        result = df.rank(method=method)
+
+        # Verify each column preserves EA dtype (should not be float64)
+        if method == "average":
+            assert result["a"].dtype == pd.ArrowDtype(pa.float64())
+            assert result["b"].dtype == pd.ArrowDtype(pa.float64())
+        else:
+            assert result["a"].dtype == pd.ArrowDtype(pa.uint64())
+            assert result["b"].dtype == pd.ArrowDtype(pa.uint64())
+
+        # Verify rank values match Series.rank
+        for col in df.columns:
+            expected = df[col].rank(method=method)
+            tm.assert_series_equal(result[col], expected, check_names=False)
+
+    @td.skip_if_no("pyarrow")
+    def test_rank_ea_dtype_preservation_nullable(self):
+        # GH#52829 - DataFrame.rank should preserve nullable dtypes
+        df = DataFrame(
+            {
+                "a": Series([3, 1, None, 2], dtype="Int64"),
+                "b": Series([1.5, None, 3.5, 2.5], dtype="Float64"),
+            }
+        )
+        result = df.rank(method="min")
+
+        assert result["a"].dtype == "UInt64"
+        assert result["b"].dtype == "UInt64"
+
+        for col in df.columns:
+            expected = df[col].rank(method="min")
+            tm.assert_series_equal(result[col], expected, check_names=False)
