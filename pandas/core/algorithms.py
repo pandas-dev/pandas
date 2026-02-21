@@ -552,6 +552,18 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
     elif isinstance(values.dtype, ExtensionDtype):
         return isin(np.asarray(comps_array), np.asarray(values))
 
+    if (
+        is_integer_dtype(values.dtype)
+        and is_integer_dtype(comps_array.dtype)
+        and values.dtype.itemsize == 8
+        and comps_array.dtype.itemsize == 8
+        and is_signed_integer_dtype(values.dtype)
+        != is_signed_integer_dtype(comps_array.dtype)
+    ):
+        # Avoid float64 upcast for mixed int64/uint64, which can lose precision.
+        values = ensure_object(values)
+        comps_array = ensure_object(comps_array)
+
     # GH16012
     # Ensure np.isin doesn't get object types or it *may* throw an exception
     # Albeit hashmap has O(1) look-up (vs. O(logn) in sorted array),
