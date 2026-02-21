@@ -309,7 +309,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
             if dtype is None:
                 dtype_base = libperiod.extract_period_unit(periods)
                 dtype = PeriodDtype(dtype_base)
-            ordinals = libperiod.extract_ordinals(periods, dtype)
+            ordinals = libperiod.extract_ordinals(periods, dtype)  # type: ignore[arg-type]
             return cls(ordinals, dtype=dtype)
 
     @classmethod
