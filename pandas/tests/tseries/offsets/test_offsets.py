@@ -30,6 +30,7 @@ from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
 from pandas import (
     DataFrame,
     DatetimeIndex,
+    PeriodDtype,
     Series,
     date_range,
 )
@@ -1221,3 +1222,35 @@ def test_is_yqm_start_end():
 def test_multiply_dateoffset_typeerror(left, right):
     with pytest.raises(TypeError, match="Cannot multiply"):
         left * right
+
+
+@pytest.mark.parametrize("n", [1, 2])
+@pytest.mark.parametrize(
+    "unit",
+    [
+        "ns",
+        "us",
+        "ms",
+        "s",
+        "min",
+        "h",
+        "D",
+        "W-SUN",
+        "W-MON",
+        "M",
+        "Q-DEC",
+        "Q-NOV",
+        "Y-DEC",
+        "Y-NOV",
+    ],
+)
+def test_to_offset_period_dtype_roundtrip(unit, n):
+    # Test that period_dtype_to_offset correctly maps Dtypes back to offsets
+    off = to_offset(unit, is_period=True) * n
+
+    dtype = PeriodDtype(off)
+    assert dtype.freq == off
+
+    round_trip = to_offset(dtype)
+
+    assert round_trip == off

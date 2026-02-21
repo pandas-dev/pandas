@@ -268,10 +268,6 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
     ) -> Self:
         if dtype is not None:
             dtype = pandas_dtype(dtype)
-        if dtype and isinstance(dtype, PeriodDtype):
-            unit = dtype._freqstr
-        else:
-            unit = None
 
         # Note: we can't do extract_array until after from_datetime64 path
         #  bc of GH#64241
@@ -310,8 +306,9 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         else:
             periods = ensure_object(arrdata)
 
-            unit = unit or libperiod.extract_period_unit(periods)
-            dtype = PeriodDtype(unit)
+            if dtype is None:
+                dtype_base = libperiod.extract_period_unit(periods)
+                dtype = PeriodDtype(dtype_base)
             ordinals = libperiod.extract_ordinals(periods, dtype)
             return cls(ordinals, dtype=dtype)
 
