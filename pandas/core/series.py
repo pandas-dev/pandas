@@ -4132,7 +4132,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         self,
         axis: Axis = 0,
         kind: SortKind = "quicksort",
-        order: None = None,
+        order: str | list[str] | None = None,
         stable: None = None,
     ) -> Series:
         """
@@ -4148,8 +4148,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         kind : {'mergesort', 'quicksort', 'heapsort', 'stable'}, default 'quicksort'
             Choice of sorting algorithm. See :func:`numpy.sort` for more
             information. 'mergesort' and 'stable' are the only stable algorithms.
-        order : None
-            Has no effect but is accepted for compatibility with numpy.
+        order : str or list of str, optional
+            Must match series name if given, accepted only for compatibility with numpy.
         stable : None
             Has no effect but is accepted for compatibility with numpy.
 
@@ -4158,6 +4158,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Series[np.intp]
             Positions of values within the sort order with -1 indicating
             nan values.
+
+        Raises
+        ------
+        ValueError
+            If order does not match Series.name
 
         See Also
         --------
@@ -4175,6 +4180,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if axis != -1:
             # GH#54257 We allow -1 here so that np.argsort(series) works
             self._get_axis_number(axis)
+
+        if order is not None:
+            if order != self.name and order != [self.name]:
+                raise TypeError("The order argument must match Series.name if specified")
 
         result = self.array.argsort(kind=kind)
 
