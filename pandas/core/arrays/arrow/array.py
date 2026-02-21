@@ -2004,12 +2004,28 @@ class ArrowExtensionArray(
         -------
         ArrowExtensionArray
         """
-        chunks = [array for ea in to_concat for array in ea._pa_array.iterchunks()]
+        from pandas import get_option
+
+        _ARROW_RECHUNK_THRESHOLD = 1_000_000  # 1 million elements
+
         if to_concat[0].dtype == "string":
             # StringDtype has no attribute pyarrow_dtype
             pa_dtype = pa.large_string()
         else:
             pa_dtype = to_concat[0].dtype.pyarrow_dtype
+
+        chunks = [array for ea in to_concat for array in ea._pa_array.iterchunks()]
+
+        # GH#42357: Combine chunks if average size is below threshold
+        num_chunks = len(chunks)
+        total_length = sum(len(chunk) for chunk in chunks)
+        if (
+            get_option("mode.arrow_rechunk_on_concat")
+            and num_chunks > 1
+            and total_length / num_chunks < _ARROW_RECHUNK_THRESHOLD
+        ):
+            chunks = [pa.concat_arrays(chunks).cast(pa_dtype)]
+
         arr = pa.chunked_array(chunks, type=pa_dtype)
         return to_concat[0]._from_pyarrow_array(arr)
 

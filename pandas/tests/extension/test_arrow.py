@@ -3949,3 +3949,38 @@ def test_timestamp_reduction_consistency(unit, method):
         f"{method} for {unit} returned {type(result)}"
     )
     assert result.unit == unit
+
+
+@pytest.mark.parametrize(
+    "rechunk, num_duplicate, num_chunks",
+    [
+        (False, 100, 100),
+        (True, 100, 1),
+    ],
+)
+def test_concat_rechunk_auto(rechunk, num_duplicate, num_chunks):
+    """GH#42357: Test concat with many small ArrowExtensionArrays."""
+    with pd.option_context("mode.arrow_rechunk_on_concat", rechunk):
+        s1 = pd.Series(list("abc"), dtype="string[pyarrow]")
+        result = pd.concat([s1] * num_duplicate, ignore_index=True)
+        assert result.array._pa_array.num_chunks == num_chunks
+
+
+@pytest.mark.parametrize(
+    "rechunk, arr_size, num_chunks",
+    [
+        (False, 2_000_000, 2),
+        (True, 2_000_000, 2),
+        (False, 900_000, 2),
+        (True, 900_000, 1),
+    ],
+)
+def test_concat_rechunk_threshold(rechunk, arr_size, num_chunks):
+    """GH#42357: Large chunks should not be rechunked unnecessarily."""
+    with pd.option_context("mode.arrow_rechunk_on_concat", rechunk):
+        # Create arrays with large chunks (2M elements each > 1M threshold)
+        s1 = pd.Series(range(arr_size), dtype="int64[pyarrow]")
+        s2 = pd.Series(range(arr_size), dtype="int64[pyarrow]")
+        result = pd.concat([s1, s2], ignore_index=True)
+        # Average chunk size > threshold, should keep 2 chunks
+        assert result.array._pa_array.num_chunks == num_chunks
