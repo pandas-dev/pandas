@@ -3875,7 +3875,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         More complicated user-defined functions can be used,
         as long as they expect a Series and return an array-like
 
-        >>> s.sort_values(key=lambda x: (np.tan(x.cumsum())))
+        >>> s.sort_values(key=lambda x: np.tan(x.cumsum()))
         0   -4
         3    2
         4    4
