@@ -190,7 +190,12 @@ def clean_fill_method(
         valid_methods.append("nearest")
         expecting = "pad (ffill), backfill (bfill) or nearest"
     if method not in valid_methods:
-        raise ValueError(f"Invalid fill method. Expecting {expecting}. Got {method}")
+        hint = ""
+        if method == "linear":
+            hint = " Are you trying to interpolate an integer column?"
+        raise ValueError(
+            f"Invalid fill method. Expecting {expecting}. Got {method}.{hint}"
+        )
     return method
 
 
@@ -796,7 +801,7 @@ def _cubicspline_interpolate(
 
     See Also
     --------
-    scipy.interpolate.CubicHermiteSpline
+    scipy.interpolate.CubicSpline
 
     Returns
     -------
