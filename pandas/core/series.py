@@ -4133,7 +4133,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         axis: Axis = 0,
         kind: SortKind = "quicksort",
         order: str | list[str] | None = None,
-        stable: None = None,
+        stable: bool | None = None,
     ) -> Series:
         """
         Return the integer indices that would sort the Series values.
@@ -4150,8 +4150,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             information. 'mergesort' and 'stable' are the only stable algorithms.
         order : str or list of str, optional
             Must match series name if given, accepted only for compatibility with numpy.
-        stable : None
-            Has no effect but is accepted for compatibility with numpy.
+        stable : bool, optional, default `False`
+            If ``True``, equivalent to ``kind='stable'``. Cannot be used with ``kind``.
 
         Returns
         -------
@@ -4185,7 +4185,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             if order != self.name and order != [self.name]:
                 raise TypeError("The order argument must match Series.name if specified")
 
-        result = self.array.argsort(kind=kind)
+        result = self.array.argsort(kind=kind, stable=stable)
 
         res = self._constructor(
             result, index=self.index, name=self.name, dtype=np.intp, copy=False
