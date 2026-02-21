@@ -1,4 +1,8 @@
+from collections.abc import Callable
+import copy
 from datetime import datetime
+import operator
+import re
 
 import numpy as np
 import pytest
@@ -23,6 +27,8 @@ from pandas.tests.test_register_accessor import ensure_removed
         (1 - pd.col("a"), [0, -1], "1 - col('a')"),
         (pd.col("a") * 1, [1, 2], "col('a') * 1"),
         (1 * pd.col("a"), [1, 2], "1 * col('a')"),
+        (2 ** pd.col("a"), [2, 4], "2 ** col('a')"),
+        (pd.col("a") ** 2, [1, 4], "col('a') ** 2"),
         (pd.col("a") / 1, [1.0, 2.0], "col('a') / 1"),
         (1 / pd.col("a"), [1.0, 0.5], "1 / col('a')"),
         (pd.col("a") // 1, [1, 2], "col('a') // 1"),
@@ -58,11 +64,57 @@ from pandas.tests.test_register_accessor import ensure_removed
 def test_col_simple(
     expr: Expression, expected_values: list[object], expected_str: str
 ) -> None:
+    # https://github.com/pandas-dev/pandas/pull/64267
     df = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
     result = df.assign(c=expr)
     expected = pd.DataFrame({"a": [1, 2], "b": [3, 4], "c": expected_values})
     tm.assert_frame_equal(result, expected)
     assert str(expr) == expected_str
+
+
+@pytest.mark.parametrize(
+    ("op", "expected_values", "expected_str"),
+    [
+        (operator.iadd, [3, 4], "col('a') + 2"),
+        (operator.iand, [0, 2], "col('a') & 2"),
+        (operator.ifloordiv, [0, 1], "col('a') // 2"),
+        (operator.imod, [1, 0], "col('a') % 2"),
+        (operator.imul, [2, 4], "col('a') * 2"),
+        (operator.ior, [3, 2], "col('a') | 2"),
+        (operator.ipow, [1, 4], "col('a') ** 2"),
+        (operator.isub, [-1, 0], "col('a') - 2"),
+        (operator.itruediv, [0.5, 1.0], "col('a') / 2"),
+        (operator.ixor, [3, 0], "col('a') ^ 2"),
+    ],
+)
+def test_inplace_ops(
+    op: Callable, expected_values: list[object], expected_str: str
+) -> None:
+    # https://github.com/pandas-dev/pandas/pull/64267
+    df = pd.DataFrame({"a": [1, 2]})
+    expr = pd.col("a")
+    expr = op(expr, 2)
+    result = df.assign(c=expr)
+    expected = pd.DataFrame({"a": [1, 2], "c": expected_values})
+    tm.assert_frame_equal(result, expected)
+    assert str(expr) == expected_str
+
+
+def test_matmul():
+    # https://github.com/pandas-dev/pandas/pull/64267
+    df = pd.DataFrame({"a": [1, 2]})
+
+    expr = pd.col("a") @ [3, 4]
+    result = df.assign(c=expr)
+    expected = pd.DataFrame({"a": [1, 2], "c": [11, 11]})
+    tm.assert_frame_equal(result, expected)
+    assert str(expr) == "col('a') @ [3, 4]"
+
+    expr = [3, 4] @ pd.col("a")
+    result = df.assign(c=expr)
+    expected = pd.DataFrame({"a": [1, 2], "c": [11, 11]})
+    tm.assert_frame_equal(result, expected)
+    assert str(expr) == "[3, 4] @ col('a')"
 
 
 def test_frame_getitem() -> None:
@@ -291,3 +343,48 @@ def test_where() -> None:
     result = df.assign(c=expr)
     expected = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [2, 2, 4]})
     tm.assert_frame_equal(result, expected)
+
+
+# Unsupported ops
+def test_bool():
+    with pytest.raises(TypeError, match="boolean value of an expression is ambiguous"):
+        bool(pd.col("a"))
+
+
+def test_iter():
+    with pytest.raises(TypeError, match="Expression objects are not iterable"):
+        iter(pd.col("a"))
+
+
+def test_contains():
+    with pytest.raises(
+        TypeError, match="argument of type 'Expression' is not iterable"
+    ):
+        1 in pd.col("a")
+
+
+def test_copy():
+    with pytest.raises(TypeError, match="Expression objects are not copiable"):
+        copy.copy(pd.col("a"))
+
+
+def test_deepcopy():
+    with pytest.raises(TypeError, match="Expression objects are not copiable"):
+        copy.deepcopy(pd.col("a"))
+
+
+def test_divmod():
+    msg = re.escape("unsupported operand type(s) for divmod(): 'Expression' and 'int'")
+    with pytest.raises(TypeError, match=msg):
+        divmod(pd.col("a"), 2)
+
+
+def test_len():
+    with pytest.raises(TypeError, match="object of type 'Expression' has no len()"):
+        len(pd.col("a"))
+
+
+def test_round():
+    msg = "type Expression doesn't define __round__ method"
+    with pytest.raises(TypeError, match=msg):
+        round(pd.col("a"), 2)
