@@ -1027,7 +1027,7 @@ class ExtensionArray:
         -------
         np.ndarray[np.intp]
             Array of indices that sort ``self``. If NaN values are contained,
-            NaN values are placed at the end.
+            they are placed according to ``na_position``.
 
         See Also
         --------
