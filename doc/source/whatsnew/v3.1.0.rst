@@ -218,6 +218,13 @@ Other
 -
 
 .. ---------------------------------------------------------------------------
+.. _whatsnew_310.documentation:
+
+Documentation
+~~~~~~~~~~~~~
+- Corrected alignment description in :meth:`NDFrame.where` and :meth:`NDFrame.mask` docstrings (:issue:`61781`)
+
+.. ---------------------------------------------------------------------------
 .. _whatsnew_310.contributors:
 
 Contributors
