@@ -206,8 +206,7 @@ ExtensionArray
 
 Styler
 ^^^^^^
--
--
+- Fixed bug in :class:`CSSResolver` where quoted strings in CSS properties were incorrectly lowercased, causing string literals to lose their case; now quoted strings are left as-is (:issue:`63101`)
 
 Other
 ^^^^^

@@ -123,6 +123,36 @@ def _border_expander(side: str = "") -> Callable:
     return expand
 
 
+def _lowercase_css_values(value: str) -> str:
+    """
+    Preserves the case for all characters within single or double-quoted strings,
+    but lowercases everything else.
+
+    Intended to lowercase CSS properties and preserve string literals
+    (e.g. in Excel number formats).
+    Parameters
+    ----------
+    value: str
+        The CSS value string to process.
+
+    Returns
+    -------
+    str
+        The processed lowercase value with preserved case for quoted strings.
+
+    """
+    split = re.split(r'(".*?"|\'.*?\')', value)  # split by double and single quotes
+    res = []
+    for s in split:
+        if (s.startswith("'") and s.endswith("'")) or (
+            s.startswith('"') and s.endswith('"')
+        ):
+            res.append(s)
+        else:
+            res.append(s.lower())
+    return "".join(res)
+
+
 class CSSResolver:
     """
     A callable for parsing and resolving CSS to atomic properties.
@@ -391,7 +421,7 @@ class CSSResolver:
     def atomize(self, declarations: Iterable) -> Generator[tuple[str, str]]:
         for prop, value in declarations:
             prop = prop.lower()
-            value = value.lower()
+            value = _lowercase_css_values(value)
             if prop in self.CSS_EXPANSIONS:
                 expand = self.CSS_EXPANSIONS[prop]
                 yield from expand(self, prop, value)
@@ -413,8 +443,7 @@ class CSSResolver:
                 continue
             prop, sep, val = decl.partition(":")
             prop = prop.strip().lower()
-            # TODO: don't lowercase case sensitive parts of values (strings)
-            val = val.strip().lower()
+            val = _lowercase_css_values(val.strip())
             if sep:
                 yield prop, val
             else:
