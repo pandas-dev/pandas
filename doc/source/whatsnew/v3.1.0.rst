@@ -195,7 +195,7 @@ Reshaping
 
 Sparse
 ^^^^^^
--
+- Bug in indexing a :class:`SparseArray` with an out-of-bounds integer with the value of the length of the array returning the fill value instead of raising an ``IndexError`` (:issue:`64183`).
 -
 
 ExtensionArray

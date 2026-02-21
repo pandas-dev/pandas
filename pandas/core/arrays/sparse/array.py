@@ -37,7 +37,6 @@ from pandas.util._decorators import (
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import (
     validate_bool_kwarg,
-    validate_insert_loc,
 )
 
 from pandas.core.dtypes.astype import astype_array
@@ -1095,8 +1094,15 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         return type(self)(data_slice, kind=self.kind)
 
-    def _get_val_at(self, loc):
-        loc = validate_insert_loc(loc, len(self))
+    def _get_val_at(self, loc: int):
+        n = len(self)
+        if loc < 0:
+            loc += n
+
+        if loc >= n or loc < 0:
+            raise IndexError(
+                f"index is out of bounds: must be an integer between -{n} and {n - 1}"
+            )
 
         sp_loc = self.sp_index.lookup(loc)
         if sp_loc == -1:
