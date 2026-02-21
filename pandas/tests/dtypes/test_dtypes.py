@@ -1,3 +1,5 @@
+from contextlib import redirect_stdout
+import io
 import re
 import warnings
 import weakref
@@ -1256,3 +1258,18 @@ def test_categorical_nan_no_dtype_conversion():
     expected = pd.DataFrame({"a": Categorical([1], [1]), "b": [1]})
     df.loc[0, "a"] = np.array([1])
     tm.assert_frame_equal(df, expected)
+
+
+def test_dt_to_pydatetime_conversion():
+    expected = "datetime64[us]"
+
+    df = pd.DataFrame({"ts": [pd.Timestamp("2024-01-01 12:00:00").as_unit("ns")]})
+    df["ts"] = np.array(df.ts.dt.to_pydatetime())
+    assert df["ts"].dtype == expected, f"actual={df['ts'].dtype}, expected={expected}"
+
+    buffer = io.StringIO()
+    with redirect_stdout(buffer):
+        df.info()
+
+    output = buffer.getvalue()
+    assert expected in output
