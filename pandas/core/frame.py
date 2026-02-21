@@ -31,7 +31,10 @@ import warnings
 import numpy as np
 from numpy import ma
 
-from pandas._config import get_option
+from pandas._config import (
+    get_option,
+    using_string_dtype,
+)
 
 from pandas._libs import (
     algos as libalgos,
@@ -555,21 +558,38 @@ class DataFrame(NDFrame, OpsMixin):
                 )
             elif isinstance(data, (ABCSeries, ABCIndex)) and data.name is not None:
                 # i.e. Series/Index with non-None name
+                dtype_for_mgr = dtype
+                if (
+                    dtype is not None
+                    and not using_string_dtype()
+                    and isinstance(dtype, np.dtype)
+                    and dtype.kind == "U"
+                ):
+                    dtype_for_mgr = np.dtype("object")
                 mgr = dict_to_mgr(
                     # error: Item "ndarray" of "Union[ndarray, Series, Index]" has no
                     # attribute "name"
                     {data.name: data},
                     index,
                     columns,
-                    dtype=dtype,
+                    dtype=dtype_for_mgr,
                     copy=copy,
                 )
             else:
+                dtype_for_mgr = dtype
+                if (
+                    isinstance(data, (ABCSeries, ABCIndex))
+                    and dtype is not None
+                    and not using_string_dtype()
+                    and isinstance(dtype, np.dtype)
+                    and dtype.kind == "U"
+                ):
+                    dtype_for_mgr = np.dtype("object")
                 mgr = ndarray_to_mgr(
                     data,
                     index,
                     columns,
-                    dtype=dtype,
+                    dtype=dtype_for_mgr,
                     copy=copy,
                 )
 
