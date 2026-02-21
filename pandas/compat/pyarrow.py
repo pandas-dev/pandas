@@ -23,7 +23,7 @@ try:
     pa_version_under21p0 = _palv < Version("21.0.0")
     pa_version_under22p0 = _palv < Version("22.0.0")
     HAS_PYARROW = _palv >= Version(PYARROW_MIN_VERSION)
-except ImportError:
+except (ImportError, AttributeError):
     pa_version_under14p0 = True
     pa_version_under14p1 = True
     pa_version_under15p0 = True
