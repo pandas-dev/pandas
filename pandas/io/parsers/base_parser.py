@@ -830,6 +830,7 @@ parser_defaults = {
     "encoding_errors": "strict",
     "on_bad_lines": ParserBase.BadLineHandleMethod.ERROR,
     "dtype_backend": lib.no_default,
+    "to_pandas_kwargs": None,
 }
 
 
