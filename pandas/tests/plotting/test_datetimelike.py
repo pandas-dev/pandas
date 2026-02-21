@@ -464,9 +464,10 @@ class TestTSPlot:
     def test_finder_daily(self):
         day_lst = [10, 40, 252, 400, 950, 2750, 10000]
 
-        msg = "Period with BDay freq is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            xpl1 = xpl2 = [Period("1999-1-1", freq="B").ordinal] * len(day_lst)
+        # BDay ordinals are now computed via np.busday_count (no deprecated Period[B])
+        xpl1 = xpl2 = [conv._bday_count(bdate_range("1999-1-1", periods=1)[0])] * len(
+            day_lst
+        )
         rs1 = []
         rs2 = []
         for n in day_lst:
