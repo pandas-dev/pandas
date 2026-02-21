@@ -3013,6 +3013,10 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
         """
         Return Series of codes as well as the index.
 
+        The codes are integer indicators for the position of each value in
+        the categories. Uncategorized values (i.e., NaN) are assigned a code
+        of ``-1``.
+
         See Also
         --------
         Series.cat.categories : Return the categories of this categorical.
