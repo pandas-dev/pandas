@@ -376,6 +376,7 @@ def nargsort(
     na_position: str = "last",
     key: Callable | None = None,
     mask: npt.NDArray[np.bool_] | None = None,
+    **kwargs,
 ) -> npt.NDArray[np.intp]:
     """
     Intended to be a drop-in replacement for np.argsort which handles NaNs.
@@ -393,6 +394,7 @@ def nargsort(
     key : Optional[Callable], default None
     mask : Optional[np.ndarray[bool]], default None
         Passed when called by ExtensionArray.argsort.
+    **kwargs
 
     Returns
     -------
@@ -409,6 +411,7 @@ def nargsort(
             na_position=na_position,
             key=None,
             mask=mask,
+            **kwargs,
         )
 
     if isinstance(items, ABCRangeIndex):
@@ -429,6 +432,7 @@ def nargsort(
             ascending=ascending,
             kind=kind,
             na_position=na_position,
+            **kwargs,
         )
 
     idx = np.arange(len(items))
@@ -439,7 +443,7 @@ def nargsort(
     if not ascending:
         non_nans = non_nans[::-1]
         non_nan_idx = non_nan_idx[::-1]
-    indexer = non_nan_idx[non_nans.argsort(kind=kind)]
+    indexer = non_nan_idx[non_nans.argsort(kind=kind, **kwargs)]
     if not ascending:
         indexer = indexer[::-1]
     # Finally, place the NaNs at the end or the beginning according to
