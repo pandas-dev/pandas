@@ -13000,18 +13000,26 @@ class DataFrame(NDFrame, OpsMixin):
             axis, defined as one index or label, or a list of indices
             or labels.
         dropna : bool, default True
-            Whether to drop rows in the resulting Frame/Series with
-            missing values. Stacking a column level onto the index
-            axis can create combinations of index and column values
-            that are missing from the original dataframe. See Examples
-            section.
+            Whether to drop rows in the resulting stacked output that contain
+            all missing values.
+
+            .. deprecated:: 3.0
+               This parameter is deprecated and no longer has any effect.
+               It will be removed in a future version.
         sort : bool, default True
-            Whether to sort the levels of the resulting MultiIndex.
-        future_stack : bool, default True
-            Whether to use the new implementation that will replace the current
-            implementation in pandas 3.0. When True, dropna and sort have no impact
-            on the result and must remain unspecified. See :ref:`pandas 2.1.0 Release
-            notes <whatsnew_210.enhancements.new_stack>` for more details.
+            Whether to sort the index after stacking.
+
+            .. deprecated:: 3.0
+               This parameter is deprecated and no longer has any effect.
+               It will be removed in a future version.
+        future_stack : bool, default False
+            Whether to use the future stacking behavior, where only existing
+            combinations of column levels are included in the result. When False,
+            missing combinations may be generated in the stacked output.
+
+            .. deprecated:: 3.0
+               This parameter is deprecated and no longer has any effect.
+               It will be removed in a future version.
 
         Returns
         -------
@@ -13029,11 +13037,15 @@ class DataFrame(NDFrame, OpsMixin):
 
         Notes
         -----
-        The function is named by analogy with a collection of books
-        being reorganized from being side by side on a horizontal
-        position (the columns of the dataframe) to being stacked
-        vertically on top of each other (in the index of the
-        dataframe).
+        Starting from pandas 3.0, ``stack`` always uses the new implementation
+        that previously required ``future_stack=True``. The parameters ``dropna``,
+        ``sort``, and ``future_stack`` are deprecated and no longer have any effect.
+        They will be removed in a future version of pandas.
+
+        The function is named by analogy with a collection of books being
+        reorganized from lying side-by-side horizontally (the columns of the
+        DataFrame) to being stacked vertically on top of each other (in the
+        index of the DataFrame).
 
         Reference :ref:`the user guide <reshaping.stacking>` for more examples.
 
@@ -13088,10 +13100,10 @@ class DataFrame(NDFrame, OpsMixin):
         ...     [[1.0, 2.0], [3.0, 4.0]], index=["cat", "dog"], columns=multicol2
         ... )
 
-        It is common to have missing values when stacking a dataframe
-        with multi-level columns, as the stacked dataframe typically
-        has more values than the original dataframe. Missing values
-        are filled with NaNs:
+        When stacking a DataFrame with multi-level columns, the new
+        implementation does not generate rows of missing values. The
+        result includes only combinations that exist in the original
+        data.
 
         >>> df_multi_level_cols2
             weight height
