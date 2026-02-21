@@ -110,14 +110,14 @@ def test_unicode_encoding(all_parsers, csv_dir_path):
         ),
     ],
 )
-def test_utf8_bom(all_parsers, data, kwargs, expected):
+@pytest.mark.parametrize("encoding", ["utf-8", "utf-8-sig"])
+def test_utf8_bom_removal(all_parsers, data, kwargs, expected, encoding):
     # see gh-4793
     parser = all_parsers
     bom = "\ufeff"
-    utf8 = "utf-8"
 
     def _encode_data_with_bom(_data):
-        bom_data = (bom + _data).encode(utf8)
+        bom_data = (bom + _data).encode("utf-8")
         return BytesIO(bom_data)
 
     if (
@@ -128,8 +128,29 @@ def test_utf8_bom(all_parsers, data, kwargs, expected):
         # CSV parse error: Empty CSV file or block: cannot infer number of columns
         pytest.skip(reason="https://github.com/apache/arrow/issues/38676")
 
-    result = parser.read_csv(_encode_data_with_bom(data), encoding=utf8, **kwargs)
+    with tm.assert_produces_warning(False):
+        result = parser.read_csv(
+            _encode_data_with_bom(data),
+            encoding=encoding,
+            **kwargs,
+        )
     expected = DataFrame({"a": expected})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_latin1_bom_preserved(all_parsers):
+    parser = all_parsers
+    if parser.engine == "pyarrow":
+        pytest.skip(reason="pyarrow does not support latin-1 encoding")
+
+    bom_bytes = b"\xef\xbb\xbf"
+    bom_text = bom_bytes.decode("latin1")
+    data = b"a\n1"
+    bio = BytesIO(bom_bytes + data)
+
+    with tm.assert_produces_warning(False):
+        result = parser.read_csv(bio, encoding="latin1")
+    expected = DataFrame({f"{bom_text}a": [1]})
     tm.assert_frame_equal(result, expected)
 
 
