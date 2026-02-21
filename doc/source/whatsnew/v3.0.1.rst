@@ -39,6 +39,9 @@ Bug fixes
 - Fixed thread safety issues in :class:`DataFrame` internals on the free-threaded build (:issue:`63685`).
 - Prevent buffer overflow in :meth:`Rolling.corr` and :meth:`Rolling.cov` with variable windows when passing ``other`` with a longer index than the original window. This now raises ``ValueError`` (:issue:`62937`)
 
+- Fixed a bug in :func:`to_datetime` when parameter ``origin`` was passed with time
+  specified, now time will be preserved instead of truncated (:issue:`63419`)
+
 .. ---------------------------------------------------------------------------
 .. _whatsnew_301.contributors:
 
