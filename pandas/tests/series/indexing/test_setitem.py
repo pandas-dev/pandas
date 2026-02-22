@@ -13,6 +13,7 @@ from pandas.compat.numpy import np_version_gt2
 from pandas.errors import IndexingError
 
 from pandas.core.dtypes.common import is_list_like
+from pandas.api.extensions import ExtensionArray, ExtensionDtype
 
 from pandas import (
     NA,
@@ -697,6 +698,53 @@ class TestSetitemCasting:
         with pytest.raises(TypeError, match="Invalid value"):
             ser[1:] = arr[1:]  # has an NA -> cast to boolean dtype
 
+def test_setitem_extension_array_into_object_dtype():
+    # GH#42437
+    # Ensure assigning an ExtensionArray into an object-dtype
+    # Series stores elements individually.
+
+    class SimpleDtype(ExtensionDtype):
+        @property
+        def type(self):
+            return tuple
+
+        @property
+        def name(self):
+            return "simple"
+
+        @classmethod
+        def construct_array_type(cls):
+            return SimpleEA
+
+    class SimpleEA(ExtensionArray):
+        @property
+        def dtype(self):
+            return SimpleDtype()
+
+        def __len__(self):
+            return 3
+
+        def __getitem__(self, item):
+            if isinstance(item, int):
+                return (1, 2, 3)
+            raise NotImplementedError
+
+        def isna(self):
+            return np.zeros(len(self), dtype=bool)
+
+        def copy(self):
+            return SimpleEA()
+
+        def take(self, indices, allow_fill=False, fill_value=None):
+            return SimpleEA()
+
+    data = SimpleEA()
+    ser = Series(index=range(3), dtype=object)
+
+    ser[:] = data
+
+    expected = Series([(1, 2, 3)] * 3, dtype=object)
+    tm.assert_series_equal(ser, expected)
 
 class SetitemCastingEquivalents:
     """
