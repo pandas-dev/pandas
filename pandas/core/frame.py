@@ -157,6 +157,7 @@ from pandas.core.indexes.multi import (
 from pandas.core.indexing import (
     check_bool_indexer,
     check_dict_or_set_indexers,
+    infer_and_maybe_downcast,
 )
 from pandas.core.internals import BlockManager
 from pandas.core.internals.construction import (
@@ -9015,7 +9016,6 @@ class DataFrame(NDFrame, OpsMixin):
             #  fails in cases with empty columns reached via
             #  _frame_arith_method_with_reindex
 
-            # TODO operate_blockwise expects a manager of the same type
             bm = self._mgr.operate_blockwise(
                 right._mgr,
                 array_op,
@@ -13677,7 +13677,6 @@ class DataFrame(NDFrame, OpsMixin):
         elif subset.ndim == 1:  # is Series
             return subset
 
-        # TODO: _shallow_copy(subset)?
         return subset[key]
 
     def aggregate(self, func=None, axis: Axis = 0, *args, **kwargs):
@@ -14363,6 +14362,15 @@ class DataFrame(NDFrame, OpsMixin):
         # infer_objects is needed for
         #  test_append_empty_frame_to_series_with_dateutil_tz
         row_df = row_df.infer_objects().rename_axis(index.names)
+
+        if len(row_df.columns) == len(self.columns):
+            # Try to retain our original dtype when doing the concat, GH#62523
+            for i in range(len(self.columns)):
+                arr = self.iloc[:, i].array
+
+                casted = infer_and_maybe_downcast(arr, row_df.iloc[:, i]._values)
+
+                row_df.isetitem(i, casted)
 
         from pandas.core.reshape.concat import concat
 
@@ -16991,7 +16999,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         See Also
         --------
-        Dataframe.kurt : Returns unbiased kurtosis over requested axis.
+        DataFrame.kurt : Returns unbiased kurtosis over requested axis.
 
         Examples
         --------
@@ -17112,7 +17120,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         See Also
         --------
-        Dataframe.kurtosis : Returns unbiased kurtosis over requested axis.
+        DataFrame.kurtosis : Returns unbiased kurtosis over requested axis.
 
         Examples
         --------
