@@ -27,6 +27,11 @@ if TYPE_CHECKING:
     from pandas._typing import F
 
 
+def has_castable_attr(obj) -> bool:
+    attrs = ["__array__", "__dlpack__", "__arrow_c_array__", "__arrow_c_stream__"]
+    return any(hasattr(obj, name) for name in attrs)
+
+
 def unpack_zerodim_and_defer(name: str) -> Callable[[F], F]:
     """
     Boilerplate for pandas conventions in arithmetic and comparison methods.

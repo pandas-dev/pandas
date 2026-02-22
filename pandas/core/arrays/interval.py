@@ -12,6 +12,7 @@ from typing import (
     TypeAlias,
     overload,
 )
+import warnings
 
 import numpy as np
 
@@ -37,8 +38,12 @@ from pandas._typing import (
     npt,
 )
 from pandas.compat.numpy import function as nv
-from pandas.errors import IntCastingNaNError
+from pandas.errors import (
+    IntCastingNaNError,
+    Pandas4Warning,
+)
 from pandas.util._decorators import set_module
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
     LossySetitemError,
@@ -70,6 +75,7 @@ from pandas.core.dtypes.missing import (
     notna,
 )
 
+from pandas.core import ops
 from pandas.core.algorithms import (
     isin,
     take,
@@ -695,6 +701,17 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def _cmp_method(self, other, op):
         # ensure pandas array for list-like and eliminate non-interval scalars
         if is_list_like(other):
+            if not isinstance(
+                other, (list, np.ndarray, ExtensionArray)
+            ) and not ops.has_castable_attr(other):
+                warnings.warn(
+                    f"Operation with {type(other).__name__} are deprecated. "
+                    "In a future version these will be treated as scalar-like. "
+                    "To retain the old behavior, explicitly wrap in a Series "
+                    "instead.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
             if len(self) != len(other):
                 raise ValueError("Lengths must match to compare")
             other = pd_array(other)

@@ -7111,6 +7111,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         elif (isinstance(other, np.ndarray) and other.ndim > 0) or isinstance(
             other, (list, tuple, ExtensionArray)
         ):
+            if isinstance(other, tuple):
+                op_name = op.__name__.strip("_")
+                warnings.warn(
+                    f"Series.{op_name} with a tuple is deprecated and will be "
+                    "treated as scalar-like in a future version. "
+                    "Explicitly wrap in a numpy array instead.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
             if len(other) != len(self):
                 raise ValueError("Lengths must be equal")
             other = self._constructor(other, self.index, copy=False)

@@ -975,6 +975,20 @@ class ArrowExtensionArray(
         )
 
     def _evaluate_op_method(self, other, op, arrow_funcs) -> Self:
+        if (
+            is_list_like(other)
+            and not isinstance(other, (np.ndarray, ExtensionArray, list))
+            and not ops.has_castable_attr(other)
+        ):
+            warnings.warn(
+                f"Operation with {type(other).__name__} are deprecated. "
+                "In a future version these will be treated as scalar-like. "
+                "To retain the old behavior, explicitly wrap in a Series "
+                "instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+
         pa_type = self._pa_array.type
         other_original = other
         other = self._box_pa(other)
