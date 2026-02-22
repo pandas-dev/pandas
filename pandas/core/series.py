@@ -44,6 +44,7 @@ from pandas.errors import (
     ChainedAssignmentError,
     InvalidIndexError,
     Pandas4Warning,
+    PandasFutureWarning,
 )
 from pandas.errors.cow import (
     _chained_assignment_method_update_msg,
@@ -4159,11 +4160,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Positions of values within the sort order with -1 indicating
             nan values.
 
-        Raises
-        ------
-        ValueError
-            If order does not match Series.name
-
         See Also
         --------
         numpy.ndarray.argsort : Returns the indices that would sort this array.
@@ -4182,8 +4178,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             self._get_axis_number(axis)
 
         if order is not None:
-            if order != self.name and order != [self.name]:
-                raise TypeError("The order argument must match Series.name if specified")
+            if order not in (self.name, [self.name]):
+                warnings.warn(
+                    "The order argument should match Series.name if specified",
+                    PandasFutureWarning,
+                    stacklevel=find_stack_level(),
+                )
 
         result = self.array.argsort(kind=kind, stable=stable)
 
