@@ -7,6 +7,7 @@ from datetime import (
     datetime,
     time,
     timedelta,
+    timezone,
 )
 import re
 
@@ -2360,6 +2361,20 @@ class TestLocSetitemWithExpansion:
                 "D": [np.nan, np.nan, np.nan, 91.0],
             },
             index=Index([0, 1, 2, "x"]),
+        )
+        tm.assert_frame_equal(df, expected)
+
+    def test_loc_setitem_with_expansion_preserves_tzaware_datetime_dtype(self):
+        # GH#55423
+        df = DataFrame([{"id": 1}, {"id": 2}, {"id": 3}])
+        _time = datetime.fromtimestamp(1695887042).replace(tzinfo=timezone.utc)
+        df.loc[df.id >= 2, "time"] = _time
+
+        expected = DataFrame(
+            {
+                "id": [1, 2, 3],
+                "time": [pd.NaT, _time, _time],
+            }
         )
         tm.assert_frame_equal(df, expected)
 
