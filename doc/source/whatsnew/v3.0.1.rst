@@ -39,6 +39,9 @@ Bug fixes
 - Fixed thread safety issues in :class:`DataFrame` internals on the free-threaded build (:issue:`63685`).
 - Prevent buffer overflow in :meth:`Rolling.corr` and :meth:`Rolling.cov` with variable windows when passing ``other`` with a longer index than the original window. This now raises ``ValueError`` (:issue:`62937`)
 
+- Fixed a bug when comparing between ``pd.NA`` in :class:`Series` with other values,
+  now return ``pd.NA`` instead of ``False`` (:issue:`63328`)
+
 .. ---------------------------------------------------------------------------
 .. _whatsnew_301.contributors:
 
