@@ -100,10 +100,14 @@ def test_pathlib_path_chained_division(any_string_dtype):
 
     # Test chained division: Path / Series / Series
     result = item / ser1 / ser2
+    expected = Series([item / "A" / "C", item / "B" / "D"], dtype=object)
+    tm.assert_series_equal(result, expected, check_dtype=False)
 
-    # Result should contain the correct Path objects
-    expected_paths = [item / "A" / "C", item / "B" / "D"]
-    assert result.tolist() == expected_paths
+    # Test 3-way chained division
+    ser3 = Series(["E", "F"], dtype=any_string_dtype)
+    result = item / ser1 / ser2 / ser3
+    expected = Series([item / "A" / "C" / "E", item / "B" / "D" / "F"], dtype=object)
+    tm.assert_series_equal(result, expected, check_dtype=False)
 
 
 def test_mixed_object_comparison(any_string_dtype):

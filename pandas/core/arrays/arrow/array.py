@@ -679,11 +679,9 @@ class ArrowExtensionArray(
                 # GH50430: let pyarrow infer type, then cast
                 try:
                     pa_array = pa.array(value, mask=mask)
-                except (pa.ArrowInvalid, pa.ArrowTypeError):
-                    # GH63832: If pyarrow cannot infer the type (e.g., PosixPath),
-                    # we cannot use PyArrow for this data. Raise to signal that
-                    # the operation should fall back to object dtype handling.
-                    raise
+                except (pa.ArrowInvalid, pa.ArrowTypeError) as err:
+                    # GH63832: Mark type inference failure for fallback
+                    raise pa.ArrowInvalid(f"__PANDAS_FALLBACK__: {err}") from err
 
             if pa_type is None and pa.types.is_duration(pa_array.type):
                 # Workaround https://github.com/apache/arrow/issues/37291
@@ -979,10 +977,11 @@ class ArrowExtensionArray(
         other_original = other
         try:
             other = self._box_pa(other)
-        except (pa.ArrowInvalid, pa.ArrowTypeError):
-            # GH63832: If pyarrow cannot handle the other operand type,
-            # fall back to object dtype operation
-            return NotImplemented
+        except pa.ArrowInvalid as err:
+            # GH63832: Check for type inference failure marker
+            if "__PANDAS_FALLBACK__" in str(err):
+                return NotImplemented
+            raise
 
         if (
             pa.types.is_string(pa_type)
