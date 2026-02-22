@@ -1688,7 +1688,12 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return self._wrap_reduction_result("max", result, skipna=skipna, axis=axis)
 
     def map(self, mapper, na_action: Literal["ignore"] | None = None):
-        return map_array(self.to_numpy(), mapper, na_action=na_action)
+        result = map_array(
+            self.to_numpy(dtype=object, na_value=libmissing.NA),
+            mapper,
+            na_action=na_action,
+        )
+        return self._cast_pointwise_result(result)
 
     @overload
     def any(

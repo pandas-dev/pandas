@@ -2223,6 +2223,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Return number of non-NA/null observations in the Series.
 
+        This method counts the number of elements that are not missing
+        (i.e., not NaN or None) in the Series.
+
         Returns
         -------
         int
@@ -2405,6 +2408,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> Series | None:
         """
         Return Series with duplicate values removed.
+
+        This method identifies and removes duplicate values from the Series,
+        keeping the first, last, or none of the duplicate occurrences based
+        on the ``keep`` parameter.
 
         Parameters
         ----------
@@ -2783,6 +2790,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> float | Series:
         """
         Return value at the given quantile.
+
+        This method computes the value below which a given fraction of the
+        data falls. When multiple quantiles are requested, a Series indexed
+        by the quantile values is returned.
 
         Parameters
         ----------
@@ -3322,6 +3333,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> DataFrame | Series:
         """
         Compare to another Series and show the differences.
+
+        This method aligns two Series and highlights only the values that
+        differ between them. Equal values are shown as NaN by default.
 
         Parameters
         ----------
@@ -4175,6 +4189,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Return the largest `n` elements.
 
+        This method is optimized for performance compared to sorting the
+        entire Series when only a few of the top values are needed.
+
         Parameters
         ----------
         n : int, default 5
@@ -4281,6 +4298,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> Series:
         """
         Return the smallest `n` elements.
+
+        This method is optimized for performance compared to sorting the
+        entire Series when only a few of the bottom values are needed.
 
         Parameters
         ----------
@@ -4532,6 +4552,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Transform each element of a list-like to a row.
 
+        This method expands list-like elements so that each item in the list
+        gets its own row, while non-list-like elements remain unchanged.
+        The index is duplicated for the expanded rows.
+
         Parameters
         ----------
         ignore_index : bool, default False
@@ -4604,6 +4628,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> DataFrame:
         """
         Unstack, also known as pivot, Series with MultiIndex to produce DataFrame.
+
+        This method pivots a level of the MultiIndex labels, reshaping the
+        Series into a DataFrame where the unstacked level becomes the columns.
 
         Parameters
         ----------
@@ -4942,6 +4969,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> DataFrame | Series:
         """
         Call ``func`` on self producing a Series with the same axis shape as self.
+
+        Unlike ``agg``, which can return a scalar or a smaller result,
+        ``transform`` must return a result that is the same size as the input.
+        This makes it suitable for element-wise operations.
 
         Parameters
         ----------
@@ -5703,6 +5734,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> Self | None:
         """
         Set the name of the axis for the index.
+
+        This method sets or changes the name of the index (axis) of the
+        Series. It can accept a scalar, list-like, or function to rename
+        the axis.
 
         Parameters
         ----------
@@ -9182,6 +9217,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Return the mean of the values over the requested axis.
 
+        This method computes the arithmetic mean of the Series values,
+        optionally skipping missing values.
+
         Parameters
         ----------
         axis : {index (0)}
@@ -9237,6 +9275,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> Any:
         """
         Return the median of the values over the requested axis.
+
+        This method computes the median (middle value) of the Series values,
+        optionally skipping missing values.
 
         Parameters
         ----------

@@ -30,7 +30,6 @@ from pandas import (
     to_datetime,
 )
 import pandas._testing as tm
-from pandas.core.arrays import period_array
 
 
 class TestDatetimeIndex:
@@ -116,10 +115,10 @@ class TestDatetimeIndex:
             to_datetime(data)
 
         with pytest.raises(TypeError, match="PeriodDtype data is invalid"):
-            DatetimeIndex(period_array(data))
+            DatetimeIndex(pd.PeriodIndex(data))
 
         with pytest.raises(TypeError, match="PeriodDtype data is invalid"):
-            to_datetime(period_array(data))
+            to_datetime(pd.PeriodIndex(data))
 
     def test_dti_with_timedelta64_data_raises(self):
         # GH#23675 deprecated, enforced in GH#29794

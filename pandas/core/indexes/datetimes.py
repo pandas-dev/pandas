@@ -180,7 +180,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     yearfirst : bool, default False
         If True parse dates in `data` with the year first order.
     dtype : numpy.dtype or DatetimeTZDtype or str, default None
-        Note that the only NumPy dtype allowed is `datetime64[ns]`.
+        Note that the only NumPy dtypes allowed are 'datetime64[ns]',
+        'datetime64[us]', 'datetime64[ms]', 'datetime64[s]'.
     copy : bool, default None
         Whether to copy input data, only relevant for array, Series, and Index
         inputs (for other input, e.g. a list, a new array is created anyway).
@@ -1532,6 +1533,10 @@ def bdate_range(
     """
     Return a fixed frequency DatetimeIndex with business day as the default.
 
+    This function generates a DatetimeIndex using business day frequency by
+    default, skipping weekends. Custom business day calendars can be
+    specified via ``weekmask`` and ``holidays``.
+
     Parameters
     ----------
     start : str or datetime-like, default None
@@ -1600,6 +1605,7 @@ def bdate_range(
     if isinstance(freq, str) and freq.upper().startswith("C"):
         msg = f"invalid custom frequency string: {freq}"
         if freq == "CBH":
+            # GH#62849
             raise ValueError(f"{msg}, did you mean cbh?")
         try:
             weekmask = weekmask or "Mon Tue Wed Thu Fri"

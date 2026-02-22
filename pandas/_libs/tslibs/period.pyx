@@ -1591,10 +1591,8 @@ cdef int64_t _extract_ordinal(object item, str freqstr) except? -1:
     if checknull_with_nat(item) or item is C_NA:
         ordinal = NPY_NAT
     elif util.is_integer_object(item):
-        if item == NPY_NAT:
-            ordinal = NPY_NAT
-        else:
-            raise TypeError(item)
+        # GH#64227
+        ordinal = item
     else:
         try:
             ordinal = item.ordinal
@@ -2769,8 +2767,7 @@ cdef class _Period(PeriodMixin):
         >>> pd.Period('2020-01', 'D').freqstr
         'D'
         """
-        freqstr = PeriodDtypeBase(self._freq._period_dtype_code, self._freq.n)._freqstr
-        return freqstr
+        return self._dtype._freqstr
 
     def __repr__(self) -> str:
         base = self._dtype._dtype_code
