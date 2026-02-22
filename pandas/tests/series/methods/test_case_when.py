@@ -150,17 +150,21 @@ def test_case_when_callable():
 
 
 def test_case_when_expression_condition(df):
-    result = df["a"].case_when([(col("a") > 1, 10), (col("a") <= 1, 5)])
-    expected = Series([5, 10, 10], name="a")
-    tm.assert_series_equal(result, expected)
+    result = df.assign(
+        out=col("a").case_when([(col("a") > 1, 10), (col("a") <= 1, 5)])
+    )
+    expected = df.assign(out=Series([5, 10, 10], index=df.index))
+    tm.assert_frame_equal(result, expected)
 
 
 def test_case_when_expression_replacement(df):
-    result = df["a"].case_when(
-        [(df["a"] > 1, col("a") + 100), (df["a"] <= 1, col("a") + 1)]
+    result = df.assign(
+        out=col("a").case_when(
+            [(df["a"] > 1, col("a") + 100), (df["a"] <= 1, col("a") + 1)]
+        )
     )
-    expected = Series([2, 102, 103], name="a")
-    tm.assert_series_equal(result, expected)
+    expected = df.assign(out=Series([2, 102, 103], index=df.index))
+    tm.assert_frame_equal(result, expected)
 
 
 def test_case_when_expression_in_assign():
@@ -202,14 +206,3 @@ def test_case_when_expression_missing_values_in_assign():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("name", ["a", None])
-def test_case_when_expression_series_context(name):
-    ser = Series([0, 2, 3], name=name)
-    if name is None:
-        msg = "Column 'None' not found in given DataFrame"
-        with pytest.raises(ValueError, match=msg):
-            ser.case_when([(col(name) > 1, 10)])
-    else:
-        result = ser.case_when([(col(name) > 1, 10)])
-        expected = Series([0, 10, 10], name=name)
-        tm.assert_series_equal(result, expected)

@@ -7,15 +7,9 @@ from collections.abc import (
 from typing import (
     TYPE_CHECKING,
     Any,
-    TypeGuard,
 )
 
 from pandas.util._decorators import set_module
-
-from pandas.core.dtypes.generic import (
-    ABCDataFrame,
-    ABCSeries,
-)
 
 if TYPE_CHECKING:
     from pandas import (
@@ -53,26 +47,19 @@ _OP_SYMBOLS = {
 }
 
 
-def _eval_expression_recursively(obj: Any, df: DataFrame) -> Any:
-    if isinstance(obj, Expression):
-        return obj._eval_expression(df)
-    if isinstance(obj, list):
-        return [_eval_expression_recursively(item, df) for item in obj]
-    if isinstance(obj, tuple):
-        return tuple(_eval_expression_recursively(item, df) for item in obj)
-    if isinstance(obj, dict):
-        return {key: _eval_expression_recursively(val, df) for key, val in obj.items()}
-    return obj
-
-
 def _parse_args(df: DataFrame, *args: Any) -> tuple[Any, ...]:
     # Parse `args`, evaluating any expressions we encounter.
-    return tuple(_eval_expression_recursively(x, df) for x in args)
+    return tuple(
+        x._eval_expression(df) if isinstance(x, Expression) else x for x in args
+    )
 
 
 def _parse_kwargs(df: DataFrame, **kwargs: Any) -> dict[str, Any]:
     # Parse `kwargs`, evaluating any expressions we encounter.
-    return {key: _eval_expression_recursively(val, df) for key, val in kwargs.items()}
+    return {
+        key: val._eval_expression(df) if isinstance(val, Expression) else val
+        for key, val in kwargs.items()
+    }
 
 
 def _pretty_print_args_kwargs(*args: Any, **kwargs: Any) -> str:
@@ -86,10 +73,6 @@ def _pretty_print_args_kwargs(*args: Any, **kwargs: Any) -> str:
         all_args.append(kwargs_repr)
 
     return ", ".join(all_args)
-
-
-def _is_series(obj: DataFrame | Series) -> TypeGuard[Series]:
-    return isinstance(obj, ABCSeries)
 
 
 @set_module("pandas.api.typing")
@@ -110,13 +93,8 @@ class Expression:
         self._repr_str = repr_str
         self._needs_parentheses = needs_parenthese
 
-    def _eval_expression(self, df: DataFrame | Series) -> Any:
-        frame: DataFrame
-        if _is_series(df):
-            frame = df.to_frame()
-        else:
-            frame = df
-        return self._func(frame)
+    def _eval_expression(self, df: DataFrame) -> Any:
+        return self._func(df)
 
     def _with_op(
         self, op: str, other: Any, repr_str: str, needs_parentheses: bool = True
@@ -309,17 +287,7 @@ class Expression:
 
         return Expression(wrapped, repr_str)
 
-    def __call__(self, *args: Any, **kwargs: Any) -> Any:
-        if (
-            len(args) == 1
-            and not kwargs
-            and isinstance(args[0], (ABCDataFrame, ABCSeries))
-        ):
-            frame = args[0]
-            if isinstance(frame, ABCSeries):
-                frame = frame.to_frame()
-            return self._eval_expression(frame)
-
+    def __call__(self, *args: Any, **kwargs: Any) -> Expression:
         def func(df: DataFrame, *args: Any, **kwargs: Any) -> Any:
             parsed_args = _parse_args(df, *args)
             parsed_kwargs = _parse_kwargs(df, **kwargs)
@@ -335,6 +303,32 @@ class Expression:
             repr_str = f"({repr_str})"
         repr_str += f".{name}"
         return Expression(lambda df: getattr(self._eval_expression(df), name), repr_str)
+
+    def case_when(self, caselist) -> "Expression":
+        """
+        Create an expression that evaluates :meth:`Series.case_when` in a DataFrame context.
+
+        This is intended to enable patterns like::
+
+            df.assign(result=pd.col("a").case_when([(pd.col("b") > 0, 1)]))
+
+        where conditions/replacements may reference other columns via ``pd.col``.
+        """
+
+        def func(df: DataFrame) -> Any:
+            ser = self._eval_expression(df)
+            evaluated = []
+            for condition, replacement in caselist:
+                if isinstance(condition, Expression):
+                    condition = condition._eval_expression(df)
+                if isinstance(replacement, Expression):
+                    replacement = replacement._eval_expression(df)
+                evaluated.append((condition, replacement))
+            return ser.case_when(evaluated)
+
+        # Keep repr compact; caselist may be large.
+        repr_str = f"{self!r}.case_when(...)"
+        return Expression(func, repr_str)
 
     def __repr__(self) -> str:
         return self._repr_str or "Expr(...)"
