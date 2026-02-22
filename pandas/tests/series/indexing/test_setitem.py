@@ -13,7 +13,6 @@ from pandas.compat.numpy import np_version_gt2
 from pandas.errors import IndexingError
 
 from pandas.core.dtypes.common import is_list_like
-from pandas.api.extensions import ExtensionArray, ExtensionDtype
 
 from pandas import (
     NA,
@@ -38,6 +37,10 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
+from pandas.api.extensions import (
+    ExtensionArray,
+    ExtensionDtype,
+)
 
 from pandas.tseries.offsets import BDay
 
@@ -698,6 +701,7 @@ class TestSetitemCasting:
         with pytest.raises(TypeError, match="Invalid value"):
             ser[1:] = arr[1:]  # has an NA -> cast to boolean dtype
 
+
 def test_setitem_extension_array_into_object_dtype():
     # GH#42437
     # Ensure assigning an ExtensionArray into an object-dtype
@@ -745,6 +749,7 @@ def test_setitem_extension_array_into_object_dtype():
 
     expected = Series([(1, 2, 3)] * 3, dtype=object)
     tm.assert_series_equal(ser, expected)
+
 
 class SetitemCastingEquivalents:
     """
