@@ -304,7 +304,7 @@ class Expression:
         repr_str += f".{name}"
         return Expression(lambda df: getattr(self._eval_expression(df), name), repr_str)
 
-    def case_when(self, caselist) -> "Expression":
+    def case_when(self, caselist) -> Expression:
         """
         Create an expression that evaluates :meth:`Series.case_when` in a DataFrame context.
 

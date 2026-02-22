@@ -150,9 +150,7 @@ def test_case_when_callable():
 
 
 def test_case_when_expression_condition(df):
-    result = df.assign(
-        out=col("a").case_when([(col("a") > 1, 10), (col("a") <= 1, 5)])
-    )
+    result = df.assign(out=col("a").case_when([(col("a") > 1, 10), (col("a") <= 1, 5)]))
     expected = df.assign(out=Series([5, 10, 10], index=df.index))
     tm.assert_frame_equal(result, expected)
 
@@ -204,5 +202,3 @@ def test_case_when_expression_missing_values_in_assign():
         group=Series(["missing", 5.0, "adult"], index=df.index, dtype=object)
     )
     tm.assert_frame_equal(result, expected)
-
-
