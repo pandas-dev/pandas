@@ -2514,9 +2514,7 @@ class _iLocIndexer(_LocationIndexer):
             if isinstance(value, ABCDataFrame):
                 self._setitem_with_indexer_frame_value(indexer, value, name)
 
-            elif np.ndim(value) == 2:
-                # TODO: avoid np.ndim call in case it isn't an ndarray, since
-                #  that will construct an ndarray, which will be wasteful
+            elif _is_2d_value(value):
                 self._setitem_with_indexer_2d_value(indexer, value)
 
             elif len(ilocs) == 1 and lplane_indexer == len(value) and not is_scalar(pi):
@@ -2571,26 +2569,34 @@ class _iLocIndexer(_LocationIndexer):
                 self._setitem_single_column(loc, value, pi)
 
     def _setitem_with_indexer_2d_value(self, indexer, value) -> None:
-        # We get here with np.ndim(value) == 2, excluding DataFrame,
+        # We get here with 2D value, excluding DataFrame,
         #  which goes through _setitem_with_indexer_frame_value
         pi = indexer[0]
 
         ilocs = self._ensure_iterable_column_indexer(indexer[1])
 
-        if not is_array_like(value):
-            # cast lists to array
-            value = np.array(value, dtype=object)
-        if len(ilocs) != value.shape[1]:
-            raise ValueError(
-                "Must have equal len keys and value when setting with an ndarray"
-            )
-
-        for i, loc in enumerate(ilocs):
-            value_col = value[:, i]
-            if is_object_dtype(value_col.dtype):
-                # casting to list so that we do type inference in setitem_single_column
-                value_col = value_col.tolist()
-            self._setitem_single_column(loc, value_col, pi)
+        if isinstance(value, list):
+            # Extract columns directly from the list-of-lists instead of
+            # converting to an object array and back (list → array → .tolist()).
+            if len(ilocs) != len(value[0]):
+                raise ValueError(
+                    "Must have equal len keys and value when setting with an ndarray"
+                )
+            for i, loc in enumerate(ilocs):
+                value_col = [row[i] for row in value]
+                self._setitem_single_column(loc, value_col, pi)
+        else:
+            if not is_array_like(value):
+                value = np.asarray(value)
+            if len(ilocs) != value.shape[1]:
+                raise ValueError(
+                    "Must have equal len keys and value when setting with an ndarray"
+                )
+            for i, loc in enumerate(ilocs):
+                value_col = value[:, i]
+                if is_object_dtype(value_col.dtype):
+                    value_col = value_col.tolist()
+                self._setitem_single_column(loc, value_col, pi)
 
     def _setitem_with_indexer_frame_value(
         self, indexer, value: DataFrame, name: str
@@ -3235,6 +3241,26 @@ class _iAtIndexer(_ScalarAccessIndexer):
                 )
 
         return super().__setitem__(key, value)
+
+
+def _is_2d_value(value) -> bool:
+    """
+    Check if value is 2-dimensional without constructing an ndarray.
+
+    ``np.ndim(value)`` converts lists to ndarray internally, which is
+    wasteful when we only need the dimensionality. This helper uses the
+    ``.ndim`` attribute when available (ndarray, ExtensionArray, etc.)
+    and falls back to a cheap isinstance check for plain lists.
+    """
+    ndim = getattr(value, "ndim", None)
+    if ndim is not None:
+        return ndim == 2
+    # Plain list: check if first element is list-like (i.e. nested list)
+    return (
+        isinstance(value, list)
+        and len(value) > 0
+        and isinstance(value[0], (list, np.ndarray))
+    )
 
 
 def _tuplify(ndim: int, loc: Hashable) -> tuple[Hashable | slice, ...]:

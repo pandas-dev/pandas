@@ -1548,3 +1548,31 @@ class TestILocSeries:
 
         expected = Series([7, 8, 3], dtype="int64[pyarrow]")
         tm.assert_series_equal(ser, expected)
+
+    @pytest.mark.parametrize("indexer", ["loc", "iloc"])
+    def test_setitem_2d_list_of_lists_mixed_dtypes(self, indexer):
+        # GH#64229 — list-of-lists on mixed-dtype DataFrame should
+        # produce the same result as setting with an ndarray.
+        df_list = DataFrame(
+            {"a": [0.0, 0.0, 0.0], "b": [0, 0, 0], "c": [0.0, 0.0, 0.0]}
+        )
+        df_arr = df_list.copy()
+
+        val_list = [[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]]
+        val_arr = np.array(val_list)
+
+        if indexer == "loc":
+            df_list.loc[:, ["a", "c"]] = val_list
+            df_arr.loc[:, ["a", "c"]] = val_arr
+        else:
+            df_list.iloc[:, [0, 2]] = val_list
+            df_arr.iloc[:, [0, 2]] = val_arr
+
+        tm.assert_frame_equal(df_list, df_arr)
+
+    def test_setitem_2d_list_of_lists_shape_mismatch(self):
+        # GH#64229 —  Column count in value must match
+        # the number of columns being set.
+        df = DataFrame({"a": [0.0, 0.0], "b": [0, 0], "c": [0.0, 0.0]})
+        with pytest.raises(ValueError, match="Must have equal len keys"):
+            df.loc[:, ["a", "c"]] = [[1, 2, 3], [4, 5, 6]]

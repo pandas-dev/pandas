@@ -103,6 +103,9 @@ Performance improvements
 - Performance improvement in :meth:`DataFrame.__getitem__` when selecting a
   single column by label on a :class:`DataFrame` with duplicate column names.
   (:issue:`64126`).
+- Performance improvement in :meth:`DataFrame.loc` and :meth:`DataFrame.iloc`
+  setitem with a 2D list-of-lists value by avoiding a wasteful round-trip
+  through an intermediate object array (:issue:`64229`).
 -
 
 .. ---------------------------------------------------------------------------
