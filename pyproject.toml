@@ -43,7 +43,6 @@ classifiers = [
     'Development Status :: 5 - Production/Stable',
     'Environment :: Console',
     'Intended Audience :: Science/Research',
-    'License :: OSI Approved :: BSD License',
     'Operating System :: OS Independent',
     'Programming Language :: Cython',
     'Programming Language :: Python',
