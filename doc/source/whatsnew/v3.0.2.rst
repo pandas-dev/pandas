@@ -19,6 +19,8 @@ Fixed regressions
 
 Bug fixes
 ^^^^^^^^^
+- :func:`col` and expressions derived from it failed with power (``**``) and matrix multiplication (``@``) operators (:issue:`64267`)
+- Bug when using :func:`col` with Python functions :func:`bool`, :func:`iter`, :func:`copy`, and :func:`deepcopy` either failed or produced incorrect results; these now all raise a ``TypeError`` (:issue:`64267`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_302.contributors:
