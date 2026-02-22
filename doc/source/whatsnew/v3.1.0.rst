@@ -111,6 +111,8 @@ Performance improvements
 Bug fixes
 ~~~~~~~~~
 
+- Fixed a bug in :func:`to_numeric` with integer-like strings with leading zeros could lose precision when the result was cast to ``float64`` due to mixed numeric types (:issue:`64184`)
+
 Categorical
 ^^^^^^^^^^^
 -
