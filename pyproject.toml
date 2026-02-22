@@ -2,8 +2,8 @@
 # Minimum requirements for the build system to execute.
 # See https://github.com/scipy/scipy/pull/12940 for the AIX issue.
 requires = [
-    "meson-python>=0.17.1,<1",
-    "meson>=1.2.1,<2",
+    "meson-python>=0.19.0,<1",
+    "meson>=1.10.1,<2",
     "wheel",
     "Cython>3.1.0,<4.0.0a0",  # Note: sync with environment.yml and asv.conf.json
     # Force numpy higher than 2.0, so that built wheels are compatible
@@ -446,6 +446,8 @@ filterwarnings = [
   "error:.*encoding.* argument not specified::pandas",
   "ignore:.*ssl.SSLSocket:pytest.PytestUnraisableExceptionWarning",
   "ignore:.*ssl.SSLSocket:ResourceWarning",
+  # From pyiceberg w/ Python >=3.13: https://github.com/apache/iceberg-python/issues/2530#issuecomment-3712112040
+  "ignore:unclosed database in <sqlite3.Connection object*:ResourceWarning",
   # GH 44844: Can remove once minimum matplotlib version >= 3.7
   "ignore:.*FileIO:pytest.PytestUnraisableExceptionWarning",
   "ignore:.*BufferedRandom:ResourceWarning",
