@@ -141,3 +141,25 @@ args = [
 ]
 cmd = "python -m pip install --verbose {{ editable }} . --no-build-isolation --no-deps {{ werror }}"
 depends-on = ["clean-pandas"]
+
+[tasks.ci-test-pandas]
+args = [
+  { "arg" = "pytest_flags" },
+  { "arg" = "numprocesses", "default" = "auto" },
+  { "arg" = "pytest_target", "default" = "pandas" },
+]
+cmd = [
+  "python",
+  "-m",
+  "pytest",
+  "-r",
+  "fE",
+  "{{ pytest_flags }}",
+  "--numprocesses={{ numprocesses }}",
+  "--dist=worksteal",
+  "--capture=no",
+  "--cov=pandas",
+  "--cov-report=xml",
+  "--cov-append",
+  "{{ pytest_target }}",
+]
