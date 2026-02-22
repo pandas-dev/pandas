@@ -246,6 +246,27 @@ def union_indexes(indexes, sort: bool | lib.NoDefault = True) -> Index:
 
         for other in indexes[1:]:
             result = result.union(other, sort=None if sort else False)
+
+        if isinstance(result, DatetimeIndex) and result.freq is None:
+            candidate_freq = indexes[0].freq
+            if candidate_freq is not None and all(
+                idx.freq == candidate_freq for idx in indexes[1:]
+            ):
+                on_freq = type(result._data)._generate_range(
+                    start=result[0],
+                    end=None,
+                    periods=len(result),
+                    freq=candidate_freq,
+                    unit=result.unit,
+                )
+                if (result.asi8 == on_freq.asi8).all():
+                    arr = type(result._data)._simple_new(
+                        result._data._ndarray,
+                        freq=candidate_freq,
+                        dtype=result._data.dtype,
+                    )
+                    result = type(result)._simple_new(arr, name=result.name)
+
         return result
 
     elif kind == "array":

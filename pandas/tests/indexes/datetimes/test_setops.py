@@ -773,3 +773,20 @@ def test_union_across_dst_boundary():
     result = index1.union(index2)
     expected = date_range("2025-10-25", "2025-10-28", freq="D", tz="Europe/Helsinki")
     tm.assert_index_equal(result, expected)
+
+
+def test_union_indexes_custom_business_day_order_independent():
+    # GH#64253
+    from pandas.core.indexes.api import union_indexes
+
+    freq = pd.offsets.CustomBusinessDay(holidays=["2020-01-10"])
+    idx1 = date_range("2020-01-01", periods=5, freq=freq)
+    idx2 = date_range(start=idx1[3], periods=5, freq=freq)
+    idx3 = date_range(start=idx2[3], periods=5, freq=freq)
+
+    result_123 = union_indexes([idx1, idx2, idx3])
+    result_132 = union_indexes([idx1, idx3, idx2])
+
+    tm.assert_index_equal(result_123, result_132)
+    assert result_123.freq == freq
+    assert result_132.freq == freq
