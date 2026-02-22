@@ -143,6 +143,7 @@ class _Unstacker:
         self.removed_level_full = index.levels[self.level]
         self.unique_nan_index: int = -1
         if not self.sort:
+            self.removed_level_full = self.removed_level
             unique_codes: np.ndarray = unique(self.index.codes[self.level])
             if self.has_nan:
                 # drop nan codes, because they are not represented in level
@@ -236,7 +237,7 @@ class _Unstacker:
         if self.sort:
             self.compressor = comp_index.searchsorted(np.arange(ngroups))
         else:
-            self.compressor = np.sort(np.unique(comp_index, return_index=True)[1])
+            self.compressor = np.unique(comp_index, return_index=True)[1]
 
     @cache_readonly
     def mask_all(self) -> bool:
