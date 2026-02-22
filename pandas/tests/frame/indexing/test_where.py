@@ -1084,3 +1084,22 @@ def test_where_inplace_string_array_consistency():
     df_inplace.where(df_inplace != "", np.nan, inplace=True)
 
     tm.assert_frame_equal(result, df_inplace)
+
+
+@pytest.mark.parametrize(
+    "other, expected",
+    [
+        (["a", "b", "c"], ["x", "b", "z"]),
+        (["cudf"], ["x", "cudf", "z"]),
+        (["a", None, "c"], ["x", None, "z"]),
+    ],
+)
+def test_where_string_listlike_other(any_string_dtype, other, expected):
+    dtype = any_string_dtype
+    df = DataFrame({"A": Series(["x", "y", "z"], dtype=dtype)})
+    cond = Series([True, False, True])
+
+    result = df.where(cond, other)
+    expected = DataFrame({"A": Series(expected, dtype=dtype)})
+
+    tm.assert_frame_equal(result, expected)

@@ -19,6 +19,9 @@ Fixed regressions
 
 Bug fixes
 ^^^^^^^^^
+- Fixed a bug in :meth:`DataFrame.where` where a ``StringDtype`` DataFrame and
+  list-like ``other`` could return ``object`` dtype instead of preserving
+  ``StringDtype`` (:issue:`63842`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_302.contributors:
