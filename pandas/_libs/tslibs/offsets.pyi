@@ -14,6 +14,7 @@ from typing import (
 
 import numpy as np
 
+from pandas._libs.tslibs.dtypes import PeriodDtypeBase
 from pandas._libs.tslibs.nattype import NaTType
 from pandas._typing import (
     OffsetCalendar,
@@ -107,7 +108,9 @@ def to_offset(freq: None, is_period: bool = ...) -> None: ...
 @overload
 def to_offset(freq: _BaseOffsetT, is_period: bool = ...) -> _BaseOffsetT: ...
 @overload
-def to_offset(freq: timedelta | str, is_period: bool = ...) -> BaseOffset: ...
+def to_offset(
+    freq: timedelta | str | PeriodDtypeBase, is_period: bool = ...
+) -> BaseOffset: ...
 
 class Tick(SingleConstructorOffset):
     _creso: int

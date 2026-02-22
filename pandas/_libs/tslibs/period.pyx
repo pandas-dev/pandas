@@ -1565,13 +1565,11 @@ def extract_ordinals(ndarray values, PeriodDtypeBase dtype) -> np.ndarray:
         # if we don't raise here, we'll segfault later!
         raise TypeError("extract_ordinals values must be object-dtype")
 
-    freqstr = dtype._freqstr
-
     for i in range(n):
         # Analogous to: p = values[i]
         p = <object>(<PyObject**>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
 
-        ordinal = _extract_ordinal(p, freqstr)
+        ordinal = _extract_ordinal(p, dtype)
 
         # Analogous to: ordinals[i] = ordinal
         (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = ordinal
@@ -1581,7 +1579,7 @@ def extract_ordinals(ndarray values, PeriodDtypeBase dtype) -> np.ndarray:
     return ordinals
 
 
-cdef int64_t _extract_ordinal(object item, str freqstr) except? -1:
+cdef int64_t _extract_ordinal(object item, PeriodDtypeBase dtype) except? -1:
     """
     See extract_ordinals.
     """
@@ -1597,14 +1595,14 @@ cdef int64_t _extract_ordinal(object item, str freqstr) except? -1:
         try:
             ordinal = item.ordinal
 
-            if item.freqstr != freqstr:
+            if item._dtype != dtype:
                 msg = DIFFERENT_FREQ.format(cls="PeriodIndex",
-                                            own_freq=freqstr,
+                                            own_freq=dtype._freqstr,
                                             other_freq=item.freqstr)
                 raise IncompatibleFrequency(msg)
 
         except AttributeError:
-            item = Period(item, freq=freqstr)
+            item = Period(item, freq=dtype)
             if item is NaT:
                 # input may contain NaT-like string
                 ordinal = NPY_NAT
@@ -1614,7 +1612,7 @@ cdef int64_t _extract_ordinal(object item, str freqstr) except? -1:
     return ordinal
 
 
-def extract_period_unit(ndarray[object] values) -> str:
+def extract_period_unit(ndarray[object] values) -> PeriodDtypeBase:
     # TODO: Change type to const object[:] when Cython supports that.
 
     cdef:
@@ -1625,7 +1623,7 @@ def extract_period_unit(ndarray[object] values) -> str:
         value = values[i]
 
         if is_period_object(value):
-            return value.freqstr
+            return (<_Period>value)._dtype
 
     raise ValueError("freq not specified and cannot be inferred")
 
