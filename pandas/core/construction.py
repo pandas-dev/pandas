@@ -16,6 +16,8 @@ from typing import (
 import numpy as np
 from numpy import ma
 
+from pyarrow import UuidArray, Array, ChunkedArray
+
 from pandas._config import using_string_dtype
 
 from pandas._libs import lib
@@ -69,8 +71,8 @@ if TYPE_CHECKING:
     from pandas.core.arrays import (
         DatetimeArray,
         ExtensionArray,
-        TimedeltaArray,
-    )
+        TimedeltaArray
+)
 
 
 @set_module("pandas")
@@ -637,6 +639,11 @@ def sanitize_array(
         else:
             # we will try to copy by-definition here
             subarr = _try_cast(data, dtype, copy)
+
+    #python checks conditions from left to right and MUST check for pa.Array before chekcing for pa.UuidType
+    elif isinstance(data, (Array, ChunkedArray)) and isinstance(data, UuidArray):
+        from pandas.core.arrays.arrow import ArrowExtensionArray
+        return ArrowExtensionArray(data)
 
     elif hasattr(data, "__array__"):
         # e.g. dask array GH#38645
