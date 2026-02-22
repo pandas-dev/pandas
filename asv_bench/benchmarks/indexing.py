@@ -550,6 +550,34 @@ class SetitemObjectDtype:
         self.df.loc[0, 1] = 1.0
 
 
+class SetitemObjectDtypeDatetimelike:
+    params = [
+        [10_000, 1_000_000, 10_000_000, 20_000_000],
+        ["bool", "ndarray"],
+        [0.01, 0.5, 0.99],
+    ]
+    param_names = ["nrows", "indexer_kind", "selection_fraction"]
+
+    def setup(self, nrows, indexer_kind, selection_fraction):
+        self.ser = Series(np.empty(nrows, dtype=object))
+
+        n_set = max(1, int(nrows * selection_fraction))
+        # Deterministic random positions so each benchmark case is reproducible.
+        take_idx = np.random.default_rng(0).choice(nrows, size=n_set, replace=False)
+
+        if indexer_kind == "bool":
+            indexer = np.zeros(nrows, dtype=bool)
+            indexer[take_idx] = True
+            self.indexer = indexer
+        else:
+            self.indexer = take_idx
+
+        self.value = np.datetime64("2020-01-01", "ns")
+
+    def time_iloc_setitem(self, nrows, indexer_kind, selection_fraction):
+        self.ser.iloc[self.indexer] = self.value
+
+
 class ChainIndexing:
     params = [None, "warn"]
     param_names = ["mode"]
