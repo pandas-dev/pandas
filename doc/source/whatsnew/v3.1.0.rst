@@ -118,7 +118,7 @@ Categorical
 
 Datetimelike
 ^^^^^^^^^^^^
--
+- Fixed a bug in :meth:`DatetimeIndex.union` where combining multiple ``CustomBusinessDay`` indexes produced an order-dependent ``freq`` (:issue:`64253`)
 -
 
 Timedelta
