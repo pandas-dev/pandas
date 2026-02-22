@@ -201,7 +201,7 @@ def _get_ax_freq(ax: Axes):
 
 def _get_period_alias(freq: timedelta | BaseOffset | str) -> str | None:
     if isinstance(freq, BaseOffset):
-        freqstr = freq.name
+        freqstr = freq.rule_code
     else:
         freqstr = to_offset(freq, is_period=True).rule_code
 

@@ -457,8 +457,8 @@ def test_expanding_min_periods_apply(engine_and_raw):
 @pytest.mark.parametrize(
     "f",
     [
-        lambda x: (x.expanding(min_periods=5).cov(x, pairwise=True)),
-        lambda x: (x.expanding(min_periods=5).corr(x, pairwise=True)),
+        lambda x: x.expanding(min_periods=5).cov(x, pairwise=True),
+        lambda x: x.expanding(min_periods=5).corr(x, pairwise=True),
     ],
 )
 def test_moment_functions_zero_length_pairwise(f):

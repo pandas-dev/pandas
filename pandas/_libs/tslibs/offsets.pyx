@@ -633,6 +633,9 @@ cdef class BaseOffset:
         """
         Return a string representing the base frequency.
 
+        .. deprecated:: 3.1.0
+            The ``.name`` property is deprecated. Use ``.rule_code`` instead.
+
         This is typically a short string alias (e.g., 'h' for hourly, 'D' for daily)
         used to identify the offset type, regardless of the `n` multiplier.
 
@@ -652,6 +655,14 @@ cdef class BaseOffset:
         >>> pd.offsets.Hour(5).name
         'h'
         """
+        from pandas.errors import Pandas4Warning
+
+        warnings.warn(
+            "The 'name' property is deprecated and will be removed in a future "
+            "version. Use 'rule_code' instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
         return self.rule_code
 
     @property
@@ -7338,7 +7349,7 @@ cpdef to_offset(freq, bint is_period=False):
 
     if is_period and not has_period_dtype_code:
         if isinstance(freq, str):
-            raise ValueError(f"{result.name} is not supported as period frequency")
+            raise ValueError(f"{result.rule_code} is not supported as period frequency")
         else:
             raise ValueError(f"{freq} is not supported as period frequency")
 
