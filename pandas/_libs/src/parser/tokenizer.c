@@ -1624,6 +1624,13 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
   long int num_digits = 0;
   long int num_decimals = 0;
 
+  // Skip leading zeros but keep at least one digit
+  bool saw_digit = false;
+  while (*p == '0') {
+    saw_digit = true;
+    p++;
+  }
+
   // Process string of digits.
   while (isdigit_ascii(*p)) {
     if (num_digits < max_digits) {
@@ -1635,6 +1642,10 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
 
     p++;
     p += (tsep != '\0' && *p == tsep);
+  }
+
+  if (saw_digit && num_digits == 0) {
+    num_digits = 1;
   }
 
   // Process decimal part
