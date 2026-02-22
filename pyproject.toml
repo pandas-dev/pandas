@@ -24,7 +24,7 @@ readme = 'README.md'
 authors = [
   { name = 'The Pandas Development Team', email='pandas-dev@python.org' },
 ]
-license = {file = 'LICENSE'}
+license = "BSD-3-Clause"
 license-files = [
   "LICENSE",
   "LICENSES/*",
