@@ -7,6 +7,7 @@ from datetime import (
     datetime,
     time,
     timedelta,
+    timezone,
 )
 import re
 
@@ -2855,6 +2856,25 @@ class TestLocBooleanMask:
         df = DataFrame({"a": ["x"], "b": ["y"]}, dtype=object)
         expected = DataFrame({"a": ["y"], "b": ["y"]}, dtype=object)
         df.loc[np.array([True], dtype=np.bool_), ["a"]] = df["b"].copy()
+        tm.assert_frame_equal(df, expected)
+
+    def test_loc_setitem_bool_mask_tzaware_scalar_with_expansion(self):
+        # GH#55423
+
+        df = DataFrame([{"id": 1}, {"id": 2}, {"id": 3}])
+        _time = datetime.fromtimestamp(1695887042, tz=timezone.utc)
+
+        df.loc[df.id >= 2, "time"] = _time
+
+        assert isinstance(df["time"].dtype, pd.DatetimeTZDtype)
+        assert str(df["time"].dtype.tz) == "UTC"
+
+        expected = DataFrame(
+            {
+                "id": [1, 2, 3],
+                "time": [pd.NaT, _time, _time],
+            }
+        )
         tm.assert_frame_equal(df, expected)
 
 
