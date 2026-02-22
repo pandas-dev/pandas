@@ -333,7 +333,7 @@ def test_array_string_nd(data):
     # GH 64138
     result = pd.array(data, dtype="str")
 
-    if using_string_dtype:
+    if using_string_dtype():
         expected = (
             pd.StringDtype(na_value=np.nan)
             .construct_array_type()
