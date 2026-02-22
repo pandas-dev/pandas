@@ -4418,7 +4418,8 @@ class DataFrame(NDFrame, OpsMixin):
         Notes
         -----
         When assigning a Series to a DataFrame column, pandas aligns the Series
-        by index labels, not by position. This means:
+        by index labels, not by position. In effect, the Series is reindexed to
+        the DataFrame's index before assignment. This means:
 
         * Values from the Series are matched to DataFrame rows by index label
         * If a Series index label doesn't exist in the DataFrame index, it's ignored
