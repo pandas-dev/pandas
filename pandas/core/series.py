@@ -6414,11 +6414,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     "a condition and replacement; "
                     f"instead got length {len(entry)}."
                 )
+
+        def _evaluate_case_when_arg(arg):
+            return com.apply_if_callable(arg, self)
+
         caselist = [
-            (
-                com.apply_if_callable(condition, self),
-                com.apply_if_callable(replacement, self),
-            )
+            (_evaluate_case_when_arg(condition), _evaluate_case_when_arg(replacement))
             for condition, replacement in caselist
         ]
         default = self.copy(deep=False)

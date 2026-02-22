@@ -47,10 +47,10 @@ _OP_SYMBOLS = {
 }
 
 
-def _parse_args(df: DataFrame, *args: Any) -> tuple[Series]:
+def _parse_args(df: DataFrame, *args: Any) -> tuple[Any, ...]:
     # Parse `args`, evaluating any expressions we encounter.
     return tuple(
-        [x._eval_expression(df) if isinstance(x, Expression) else x for x in args]
+        x._eval_expression(df) if isinstance(x, Expression) else x for x in args
     )
 
 
@@ -303,6 +303,32 @@ class Expression:
             repr_str = f"({repr_str})"
         repr_str += f".{name}"
         return Expression(lambda df: getattr(self._eval_expression(df), name), repr_str)
+
+    def case_when(self, caselist) -> Expression:
+        """
+        Create an expression that evaluates :meth:`Series.case_when` in a DataFrame context.
+
+        This is intended to enable patterns like::
+
+            df.assign(result=pd.col("a").case_when([(pd.col("b") > 0, 1)]))
+
+        where conditions/replacements may reference other columns via ``pd.col``.
+        """
+
+        def func(df: DataFrame) -> Any:
+            ser = self._eval_expression(df)
+            evaluated = []
+            for condition, replacement in caselist:
+                if isinstance(condition, Expression):
+                    condition = condition._eval_expression(df)
+                if isinstance(replacement, Expression):
+                    replacement = replacement._eval_expression(df)
+                evaluated.append((condition, replacement))
+            return ser.case_when(evaluated)
+
+        # Keep repr compact; caselist may be large.
+        repr_str = f"{self!r}.case_when(...)"
+        return Expression(func, repr_str)
 
     def __repr__(self) -> str:
         return self._repr_str or "Expr(...)"

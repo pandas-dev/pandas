@@ -5,6 +5,7 @@ from pandas import (
     DataFrame,
     Series,
     array as pd_array,
+    col,
     date_range,
 )
 import pandas._testing as tm
@@ -146,3 +147,58 @@ def test_case_when_callable():
     )
     expected = np.piecewise(x, [x < 0, x >= 0], [lambda x: -x, lambda x: x])
     tm.assert_series_equal(result, Series(expected))
+
+
+def test_case_when_expression_condition(df):
+    result = df.assign(out=col("a").case_when([(col("a") > 1, 10), (col("a") <= 1, 5)]))
+    expected = df.assign(out=Series([5, 10, 10], index=df.index))
+    tm.assert_frame_equal(result, expected)
+
+
+def test_case_when_expression_replacement(df):
+    result = df.assign(
+        out=col("a").case_when(
+            [(df["a"] > 1, col("a") + 100), (df["a"] <= 1, col("a") + 1)]
+        )
+    )
+    expected = df.assign(out=Series([2, 102, 103], index=df.index))
+    tm.assert_frame_equal(result, expected)
+
+
+def test_case_when_expression_in_assign():
+    df = DataFrame({"age": [65, 30], "name": ["Jason", "Anna"]})
+    result = df.assign(elderly=col("age").case_when([(col("name").eq("Jason"), 1)]))
+    expected = df.assign(elderly=Series([1, 30], index=df.index))
+    tm.assert_frame_equal(result, expected)
+
+
+def test_case_when_expression_mixed_args_in_assign():
+    df = DataFrame({"name": ["Jason", "Amy", "Bob"], "age": [42, 10, 5]})
+    caselist = [
+        (lambda s: s < 10, col("age") + 100),
+        (col("name").eq("Jason"), 1),
+    ]
+    result = df.assign(elderly=col("age").case_when(caselist=caselist))
+    expected = df.assign(elderly=Series([1, 10, 105], index=df.index))
+    tm.assert_frame_equal(result, expected)
+
+
+def test_case_when_expression_math_condition_in_assign():
+    df = DataFrame({"a": [-1, 1, 2], "b": [0, -2, 1]})
+    caselist = [(col("a") + col("b") > 0, 99)]
+    result = df.assign(flag=col("a").case_when(caselist=caselist))
+    expected = df.assign(flag=Series([-1, 1, 99], index=df.index))
+    tm.assert_frame_equal(result, expected)
+
+
+def test_case_when_expression_missing_values_in_assign():
+    df = DataFrame({"age": [np.nan, 5.0, 20.0]})
+    caselist = [
+        (col("age").isna(), "missing"),
+        (col("age") > 10, "adult"),
+    ]
+    result = df.assign(group=col("age").case_when(caselist=caselist))
+    expected = df.assign(
+        group=Series(["missing", 5.0, "adult"], index=df.index, dtype=object)
+    )
+    tm.assert_frame_equal(result, expected)

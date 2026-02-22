@@ -9,6 +9,12 @@ including other versions of pandas.
 {{ header }}
 
 .. ---------------------------------------------------------------------------
+.. _whatsnew_301.enhancements:
+
+Enhancements
+~~~~~~~~~~~~
+- Added support for :func:`pd.col` expressions in :meth:`Series.case_when` (:issue:`64070`).
+
 .. _whatsnew_301.regressions:
 
 Fixed regressions
