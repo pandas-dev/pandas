@@ -88,10 +88,10 @@ class TestArithmetic:
 
         expected = pd.Index([x + per for x in idx], dtype=object)
         result = idx + per
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
         result = per + idx
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
     # TODO: parametrize
     def test_pow_ops_object(self):
@@ -304,16 +304,16 @@ class TestArithmetic:
     def test_add(self):
         index = pd.Index([str(i) for i in range(10)])
         expected = pd.Index(index.values * 2)
-        tm.assert_index_equal(index + index, expected)
-        tm.assert_index_equal(index + index.tolist(), expected)
-        tm.assert_index_equal(index.tolist() + index, expected)
+        tm.assert_index_equal(index + index, expected, exact=True)
+        tm.assert_index_equal(index + index.tolist(), expected, exact=True)
+        tm.assert_index_equal(index.tolist() + index, expected, exact=True)
 
         # test add and radd
         index = pd.Index(list("abc"))
         expected = pd.Index(["a1", "b1", "c1"])
-        tm.assert_index_equal(index + "1", expected)
+        tm.assert_index_equal(index + "1", expected, exact=True)
         expected = pd.Index(["1a", "1b", "1c"])
-        tm.assert_index_equal("1" + index, expected)
+        tm.assert_index_equal("1" + index, expected, exact=True)
 
     def test_sub_fail(self):
         index = pd.Index([str(i) for i in range(10)])
@@ -334,10 +334,10 @@ class TestArithmetic:
         expected = pd.Index([Decimal(0), Decimal(1)])
 
         result = index - Decimal(1)
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
         result = index - pd.Index([Decimal(1), Decimal(1)])
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
         msg = "unsupported operand type"
         with pytest.raises(TypeError, match=msg):
@@ -352,10 +352,10 @@ class TestArithmetic:
         expected = pd.Index([Decimal(1), Decimal(0)])
 
         result = Decimal(2) - index
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
         result = np.array([Decimal(2), Decimal(2)]) - index
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
         msg = "unsupported operand type"
         with pytest.raises(TypeError, match=msg):
