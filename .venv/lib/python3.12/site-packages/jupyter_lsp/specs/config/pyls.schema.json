@@ -1,0 +1,246 @@
+{
+  "title": "Python Language Server Configuration",
+  "type": "object",
+  "properties": {
+    "pyls.executable": {
+      "type": "string",
+      "default": "pyls",
+      "description": "Language server executable"
+    },
+    "pyls.configurationSources": {
+      "type": "array",
+      "default": ["pycodestyle"],
+      "description": "List of configuration sources to use.",
+      "items": {
+        "type": "string",
+        "enum": ["pycodestyle", "pyflakes"]
+      },
+      "uniqueItems": true
+    },
+    "pyls.plugins.jedi_completion.enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable or disable the plugin."
+    },
+    "pyls.plugins.jedi_completion.include_params": {
+      "type": "boolean",
+      "default": true,
+      "description": "Auto-completes methods and classes with tabstops for each parameter."
+    },
+    "pyls.plugins.jedi_definition.enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable or disable the plugin."
+    },
+    "pyls.plugins.jedi_definition.follow_imports": {
+      "type": "boolean",
+      "default": true,
+      "description": "The goto call will follow imports."
+    },
+    "pyls.plugins.jedi_definition.follow_builtin_imports": {
+      "type": "boolean",
+      "default": true,
+      "description": "If follow_imports is True will decide if it follow builtin imports."
+    },
+    "pyls.plugins.jedi_hover.enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable or disable the plugin."
+    },
+    "pyls.plugins.jedi_references.enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable or disable the plugin."
+    },
+    "pyls.plugins.jedi_signature_help.enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable or disable the plugin."
+    },
+    "pyls.plugins.jedi_symbols.enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable or disable the plugin."
+    },
+    "pyls.plugins.jedi_symbols.all_scopes": {
+      "type": "boolean",
+      "default": true,
+      "description": "If True lists the names of all scopes instead of only the module namespace."
+    },
+    "pyls.plugins.mccabe.enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable or disable the plugin."
+    },
+    "pyls.plugins.mccabe.threshold": {
+      "type": "number",
+      "default": 15,
+      "description": "The minimum threshold that triggers warnings about cyclomatic complexity."
+    },
+    "pyls.plugins.preload.enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable or disable the plugin."
+    },
+    "pyls.plugins.preload.modules": {
+      "type": "array",
+      "default": null,
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true,
+      "description": "List of modules to import on startup"
+    },
+    "pyls.plugins.pycodestyle.enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable or disable the plugin."
+    },
+    "pyls.plugins.pycodestyle.exclude": {
+      "type": "array",
+      "default": null,
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true,
+      "description": "Exclude files or directories which match these patterns."
+    },
+    "pyls.plugins.pycodestyle.filename": {
+      "type": "array",
+      "default": null,
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true,
+      "description": "When parsing directories, only check filenames matching these patterns."
+    },
+    "pyls.plugins.pycodestyle.select": {
+      "type": "array",
+      "default": null,
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true,
+      "description": "Select errors and warnings"
+    },
+    "pyls.plugins.pycodestyle.ignore": {
+      "type": "array",
+      "default": null,
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true,
+      "description": "Ignore errors and warnings"
+    },
+    "pyls.plugins.pycodestyle.hangClosing": {
+      "type": "boolean",
+      "default": null,
+      "description": "Hang closing bracket instead of matching indentation of opening bracket's line."
+    },
+    "pyls.plugins.pycodestyle.maxLineLength": {
+      "type": "number",
+      "default": null,
+      "description": "Set maximum allowed line length."
+    },
+    "pyls.plugins.pydocstyle.enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Enable or disable the plugin."
+    },
+    "pyls.plugins.pydocstyle.convention": {
+      "type": "string",
+      "default": null,
+      "enum": ["pep257", "numpy"],
+      "description": "Choose the basic list of checked errors by specifying an existing convention."
+    },
+    "pyls.plugins.pydocstyle.addIgnore": {
+      "type": "array",
+      "default": null,
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true,
+      "description": "Ignore errors and warnings in addition to the specified convention."
+    },
+    "pyls.plugins.pydocstyle.addSelect": {
+      "type": "array",
+      "default": null,
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true,
+      "description": "Select errors and warnings in addition to the specified convention."
+    },
+    "pyls.plugins.pydocstyle.ignore": {
+      "type": "array",
+      "default": null,
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true,
+      "description": "Ignore errors and warnings"
+    },
+    "pyls.plugins.pydocstyle.select": {
+      "type": "array",
+      "default": null,
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true,
+      "description": "Select errors and warnings"
+    },
+    "pyls.plugins.pydocstyle.match": {
+      "type": "string",
+      "default": "(?!test_).*\\.py",
+      "description": "Check only files that exactly match the given regular expression; default is to match files that don't start with 'test_' but end with '.py'."
+    },
+    "pyls.plugins.pydocstyle.matchDir": {
+      "type": "string",
+      "default": "[^\\.].*",
+      "description": "Search only dirs that exactly match the given regular expression; default is to match dirs which do not begin with a dot."
+    },
+    "pyls.plugins.pyflakes.enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable or disable the plugin."
+    },
+    "pyls.plugins.pylint.enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable or disable the plugin."
+    },
+    "pyls.plugins.pylint.args": {
+      "type": "array",
+      "default": null,
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": false,
+      "description": "Arguments to pass to pylint."
+    },
+    "pyls.plugins.rope_completion.enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable or disable the plugin."
+    },
+    "pyls.plugins.yapf.enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable or disable the plugin."
+    },
+    "pyls.rope.extensionModules": {
+      "type": "string",
+      "default": null,
+      "description": "Builtin and c-extension modules that are allowed to be imported and inspected by rope."
+    },
+    "pyls.rope.ropeFolder": {
+      "type": "array",
+      "default": null,
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true,
+      "description": "The name of the folder in which rope stores project configurations and data.  Pass `null` for not using such a folder at all."
+    }
+  }
+}

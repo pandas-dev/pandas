@@ -1,0 +1,38 @@
+Metadata-Version: 2.4
+Name: types-PyMySQL
+Version: 1.1.0.20251220
+Summary: Typing stubs for PyMySQL
+License-Expression: Apache-2.0
+Project-URL: Homepage, https://github.com/python/typeshed
+Project-URL: GitHub, https://github.com/python/typeshed
+Project-URL: Changes, https://github.com/typeshed-internal/stub_uploader/blob/main/data/changelogs/PyMySQL.md
+Project-URL: Issue tracker, https://github.com/python/typeshed/issues
+Project-URL: Chat, https://gitter.im/python/typing
+Classifier: Programming Language :: Python :: 3
+Classifier: Typing :: Stubs Only
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Dynamic: license-file
+
+## Typing stubs for PyMySQL
+
+This is a [type stub package](https://typing.python.org/en/latest/tutorials/external_libraries.html)
+for the [`PyMySQL`](https://github.com/PyMySQL/PyMySQL) package. It can be used by type checkers
+to check code that uses `PyMySQL`. This version of
+`types-PyMySQL` aims to provide accurate annotations for
+`PyMySQL==1.1.*`.
+
+This package is part of the [typeshed project](https://github.com/python/typeshed).
+All fixes for types and metadata should be contributed there.
+See [the README](https://github.com/python/typeshed/blob/main/README.md)
+for more details. The source for this package can be found in the
+[`stubs/PyMySQL`](https://github.com/python/typeshed/tree/main/stubs/PyMySQL)
+directory.
+
+This package was tested with the following type checkers:
+* [mypy](https://github.com/python/mypy/) 1.18.2
+* [pyright](https://github.com/microsoft/pyright) 1.1.407
+
+It was generated from typeshed commit
+[`bf5b55d7463c620c7b7181d87ae68aba214d56a0`](https://github.com/python/typeshed/commit/bf5b55d7463c620c7b7181d87ae68aba214d56a0).

@@ -1,0 +1,13 @@
+# This module is not meant for public use and will be removed in SciPy v2.0.0.
+from typing_extensions import deprecated
+
+__all__ = ["fourier_ellipsoid", "fourier_gaussian", "fourier_shift", "fourier_uniform"]
+
+@deprecated("will be removed in SciPy v2.0.0")
+def fourier_gaussian(input: object, sigma: object, n: object = -1, axis: object = -1, output: object = None) -> object: ...
+@deprecated("will be removed in SciPy v2.0.0")
+def fourier_uniform(input: object, size: object, n: object = -1, axis: object = -1, output: object = None) -> object: ...
+@deprecated("will be removed in SciPy v2.0.0")
+def fourier_ellipsoid(input: object, size: object, n: object = -1, axis: object = -1, output: object = None) -> object: ...
+@deprecated("will be removed in SciPy v2.0.0")
+def fourier_shift(input: object, shift: object, n: object = -1, axis: object = -1, output: object = None) -> object: ...

@@ -1,0 +1,52 @@
+{
+  "pagination": {
+    "ListServiceDependencies": {
+      "input_token": "NextToken",
+      "output_token": "NextToken",
+      "limit_key": "MaxResults",
+      "result_key": "ServiceDependencies"
+    },
+    "ListServiceDependents": {
+      "input_token": "NextToken",
+      "output_token": "NextToken",
+      "limit_key": "MaxResults",
+      "result_key": "ServiceDependents"
+    },
+    "ListServiceLevelObjectives": {
+      "input_token": "NextToken",
+      "output_token": "NextToken",
+      "limit_key": "MaxResults",
+      "result_key": "SloSummaries"
+    },
+    "ListServiceOperations": {
+      "input_token": "NextToken",
+      "output_token": "NextToken",
+      "limit_key": "MaxResults",
+      "result_key": "ServiceOperations"
+    },
+    "ListServices": {
+      "input_token": "NextToken",
+      "output_token": "NextToken",
+      "limit_key": "MaxResults",
+      "result_key": "ServiceSummaries"
+    },
+    "ListServiceLevelObjectiveExclusionWindows": {
+      "input_token": "NextToken",
+      "output_token": "NextToken",
+      "limit_key": "MaxResults",
+      "result_key": "ExclusionWindows"
+    },
+    "ListServiceStates": {
+      "input_token": "NextToken",
+      "output_token": "NextToken",
+      "limit_key": "MaxResults",
+      "result_key": "ServiceStates"
+    },
+    "ListEntityEvents": {
+      "input_token": "NextToken",
+      "output_token": "NextToken",
+      "limit_key": "MaxResults",
+      "result_key": "ChangeEvents"
+    }
+  }
+}

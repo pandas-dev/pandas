@@ -1,0 +1,82 @@
+{
+  "pagination": {
+    "GetAnomalies": {
+      "input_token": "NextPageToken",
+      "output_token": "NextPageToken",
+      "limit_key": "MaxResults",
+      "result_key": "Anomalies"
+    },
+    "GetAnomalyMonitors": {
+      "input_token": "NextPageToken",
+      "output_token": "NextPageToken",
+      "limit_key": "MaxResults",
+      "result_key": "AnomalyMonitors"
+    },
+    "GetAnomalySubscriptions": {
+      "input_token": "NextPageToken",
+      "output_token": "NextPageToken",
+      "limit_key": "MaxResults",
+      "result_key": "AnomalySubscriptions"
+    },
+    "GetCostAndUsageComparisons": {
+      "input_token": "NextPageToken",
+      "output_token": "NextPageToken",
+      "limit_key": "MaxResults",
+      "result_key": "CostAndUsageComparisons"
+    },
+    "GetCostComparisonDrivers": {
+      "input_token": "NextPageToken",
+      "output_token": "NextPageToken",
+      "limit_key": "MaxResults",
+      "result_key": "CostComparisonDrivers"
+    },
+    "ListCostAllocationTagBackfillHistory": {
+      "input_token": "NextToken",
+      "output_token": "NextToken",
+      "limit_key": "MaxResults",
+      "result_key": "BackfillRequests"
+    },
+    "ListCostAllocationTags": {
+      "input_token": "NextToken",
+      "output_token": "NextToken",
+      "limit_key": "MaxResults",
+      "result_key": "CostAllocationTags"
+    },
+    "ListCostCategoryDefinitions": {
+      "input_token": "NextToken",
+      "output_token": "NextToken",
+      "limit_key": "MaxResults",
+      "result_key": "CostCategoryReferences"
+    },
+    "ListCostCategoryResourceAssociations": {
+      "input_token": "NextToken",
+      "output_token": "NextToken",
+      "limit_key": "MaxResults",
+      "result_key": "CostCategoryResourceAssociations"
+    },
+    "GetReservationPurchaseRecommendation": {
+      "input_token": "NextPageToken",
+      "output_token": "NextPageToken",
+      "limit_key": "PageSize",
+      "result_key": "Recommendations"
+    },
+    "GetRightsizingRecommendation": {
+      "input_token": "NextPageToken",
+      "output_token": "NextPageToken",
+      "limit_key": "PageSize",
+      "result_key": "RightsizingRecommendations"
+    },
+    "ListCommitmentPurchaseAnalyses": {
+      "input_token": "NextPageToken",
+      "output_token": "NextPageToken",
+      "limit_key": "PageSize",
+      "result_key": "AnalysisSummaryList"
+    },
+    "ListSavingsPlansPurchaseRecommendationGeneration": {
+      "input_token": "NextPageToken",
+      "output_token": "NextPageToken",
+      "limit_key": "PageSize",
+      "result_key": "GenerationSummaryList"
+    }
+  }
+}

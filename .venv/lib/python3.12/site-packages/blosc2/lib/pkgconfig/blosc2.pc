@@ -1,0 +1,12 @@
+prefix=${pcfiledir}/../.. # directory containing blosc2.pc
+libdir=${prefix}/lib
+includedir=${prefix}/include
+
+Name: blosc2
+Description: A blocking, shuffling and lossless compression library
+URL: https://blosc.org/
+Version: 2.23.1.dev0
+
+Requires:
+Libs: -L${libdir} -lblosc2
+Cflags: -I${includedir}

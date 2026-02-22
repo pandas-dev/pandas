@@ -1,0 +1,25 @@
+{
+  "title": "Settings Editor Form UI",
+  "description": "Settings editor form ui settings.",
+  "properties": {
+    "settingEditorType": {
+      "title": "Type of editor for the setting.",
+      "description": "Set the type of editor to use while editing your settings.",
+      "enum": ["json", "ui"],
+      "default": "ui"
+    },
+    "toSkip": {
+      "title": "Additional plugins to skip in settings editor",
+      "description": "List of additional plugin IDs that should not be displayed in the settings editor. These plugins can still be configured programmatically or via overrides.json. Note: Some core plugins like context-menu and main-menu are always hidden and cannot be made visible.",
+      "type": "array",
+      "items": {
+        "type": "string",
+        "title": "Plugin ID",
+        "description": "Plugin ID to skip"
+      },
+      "default": []
+    }
+  },
+  "additionalProperties": false,
+  "type": "object"
+}

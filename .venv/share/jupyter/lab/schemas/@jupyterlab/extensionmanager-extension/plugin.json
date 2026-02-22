@@ -1,0 +1,59 @@
+{
+  "title": "Extension Manager",
+  "description": "Extension manager settings.",
+  "jupyter.lab.setting-icon": "ui-components:extension",
+  "jupyter.lab.setting-icon-label": "Extension Manager",
+  "jupyter.lab.menus": {
+    "main": [
+      {
+        "id": "jp-mainmenu-view",
+        "items": [
+          {
+            "command": "extensionmanager:show-panel",
+            "rank": 9
+          }
+        ]
+      },
+      {
+        "id": "jp-mainmenu-settings",
+        "items": [
+          {
+            "type": "separator",
+            "rank": 100
+          },
+          {
+            "command": "extensionmanager:toggle",
+            "rank": 100
+          },
+          {
+            "type": "separator",
+            "rank": 100
+          }
+        ]
+      }
+    ]
+  },
+  "jupyter.lab.shortcuts": [
+    {
+      "command": "extensionmanager:show-panel",
+      "keys": ["Accel Shift X"],
+      "selector": "body"
+    }
+  ],
+  "properties": {
+    "enabled": {
+      "title": "Enabled Status",
+      "description": "Enables extension manager.\nWARNING: installing untrusted extensions may be unsafe.",
+      "default": true,
+      "type": "boolean"
+    },
+    "disclaimed": {
+      "title": "Disclaimed Status",
+      "description": "Whether the user agrees the access to external web services and understands extensions may introduce security risks or contain malicious code that runs on his machine.",
+      "default": false,
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": false,
+  "type": "object"
+}

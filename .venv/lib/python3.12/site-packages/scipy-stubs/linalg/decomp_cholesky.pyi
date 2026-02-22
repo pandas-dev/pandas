@@ -1,0 +1,23 @@
+# This file is not meant for public use and will be removed in SciPy v2.0.0.
+
+from typing_extensions import deprecated
+
+import numpy as np
+
+__all__ = ["LinAlgError", "cho_factor", "cho_solve", "cho_solve_banded", "cholesky", "cholesky_banded", "get_lapack_funcs"]
+
+@deprecated("will be removed in SciPy v2.0.0")
+class LinAlgError(np.linalg.LinAlgError): ...
+
+@deprecated("will be removed in SciPy v2.0.0")
+def get_lapack_funcs(names: object, arrays: object = (), dtype: object = None, ilp64: object = False) -> object: ...
+@deprecated("will be removed in SciPy v2.0.0")
+def cholesky(a: object, lower: object = False, overwrite_a: object = False, check_finite: object = True) -> object: ...
+@deprecated("will be removed in SciPy v2.0.0")
+def cho_factor(a: object, lower: object = False, overwrite_a: object = False, check_finite: object = True) -> object: ...
+@deprecated("will be removed in SciPy v2.0.0")
+def cho_solve(c_and_lower: object, b: object, overwrite_b: object = False, check_finite: object = True) -> object: ...
+@deprecated("will be removed in SciPy v2.0.0")
+def cholesky_banded(ab: object, overwrite_ab: object = False, lower: object = False, check_finite: object = True) -> object: ...
+@deprecated("will be removed in SciPy v2.0.0")
+def cho_solve_banded(cb_and_lower: object, b: object, overwrite_b: object = False, check_finite: object = True) -> object: ...

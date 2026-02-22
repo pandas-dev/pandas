@@ -1,0 +1,31 @@
+{
+  "title": "HTML Sanitizer",
+  "description": "HTML Sanitizer settings.",
+  "jupyter.lab.setting-icon": "ui-components:html5",
+  "additionalProperties": false,
+  "properties": {
+    "allowedSchemes": {
+      "title": "Allowed URL Scheme",
+      "description": "Scheme allowed by the HTML sanitizer.",
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string"
+      },
+      "default": ["http", "https", "ftp", "mailto", "tel"]
+    },
+    "autolink": {
+      "type": "boolean",
+      "title": "Autolink URL replacement",
+      "description": "Whether to replace URLs with links or not.",
+      "default": true
+    },
+    "allowNamedProperties": {
+      "type": "boolean",
+      "title": "Allow named properties",
+      "description": "Whether to allow untrusted elements to include `name` and `id` attributes. These attributes are stripped by default to prevent DOM clobbering attacks.",
+      "default": false
+    }
+  },
+  "type": "object"
+}

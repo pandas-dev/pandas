@@ -1,0 +1,49 @@
+[console_scripts]
+setuptools-scm = setuptools_scm._cli:main
+
+[distutils.setup_keywords]
+use_scm_version = setuptools_scm._integration.setuptools:version_keyword
+
+[pipx.run]
+setuptools-scm = setuptools_scm._cli:main
+setuptools_scm = setuptools_scm._cli:main
+
+[setuptools.file_finders]
+setuptools_scm = setuptools_scm._file_finders:find_files
+
+[setuptools.finalize_distribution_options]
+setuptools_scm = setuptools_scm._integration.setuptools:infer_version
+
+[setuptools_scm.files_command]
+.git = setuptools_scm._file_finders.git:git_find_files
+.hg = setuptools_scm._file_finders.hg:hg_find_files
+
+[setuptools_scm.files_command_fallback]
+.git_archival.txt = setuptools_scm._file_finders.git:git_archive_find_files
+.hg_archival.txt = setuptools_scm._file_finders.hg:hg_archive_find_files
+
+[setuptools_scm.local_scheme]
+dirty-tag = setuptools_scm.version:get_local_dirty_tag
+no-local-version = setuptools_scm.version:get_no_local_node
+node-and-date = setuptools_scm.version:get_local_node_and_date
+node-and-timestamp = setuptools_scm.version:get_local_node_and_timestamp
+
+[setuptools_scm.parse_scm]
+.git = setuptools_scm.git:parse
+.hg = setuptools_scm.hg:parse
+
+[setuptools_scm.parse_scm_fallback]
+.git_archival.txt = setuptools_scm.git:parse_archival
+.hg_archival.txt = setuptools_scm.hg:parse_archival
+PKG-INFO = setuptools_scm.fallbacks:parse_pkginfo
+pyproject.toml = setuptools_scm.fallbacks:fallback_version
+setup.py = setuptools_scm.fallbacks:fallback_version
+
+[setuptools_scm.version_scheme]
+calver-by-date = setuptools_scm.version:calver_by_date
+guess-next-dev = setuptools_scm.version:guess_next_dev_version
+no-guess-dev = setuptools_scm.version:no_guess_dev_version
+only-version = setuptools_scm.version:only_version
+post-release = setuptools_scm.version:postrelease_version
+python-simplified-semver = setuptools_scm.version:simplified_semver_version
+release-branch-semver = setuptools_scm.version:release_branch_semver_version

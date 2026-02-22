@@ -1,0 +1,531 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any, Optional, Union
+
+from moto.core.common_models import CloudFormationModel
+
+from ..exceptions import (
+    InvalidNetworkAttachmentIdError,
+    InvalidNetworkInterfaceIdError,
+    LastEniDetachError,
+)
+from .core import TaggedEC2Resource
+from .security_groups import SecurityGroup
+
+if TYPE_CHECKING:
+    from datetime import datetime
+
+    from .instances import Instance
+from ..utils import (
+    generate_dns_from_ip,
+    generic_filter,
+    random_eni_id,
+    random_mac_address,
+    random_private_ip,
+    random_public_ip,
+)
+
+
+class Attachment:
+    def __init__(self, eni: NetworkInterface):
+        self.attach_time = eni.attach_time
+        self.attachment_id = eni.attachment_id
+        self.delete_on_termination = eni.delete_on_termination
+        self.device_index = eni.device_index
+        self.network_card_index = 0
+        assert eni.instance is not None, "ENI must be attached to an instance"
+        self.instance_id = eni.instance.id
+        self.instance_owner_id = eni.instance.owner_id
+        self.status = "attached"
+
+
+class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
+    def __init__(
+        self,
+        ec2_backend: Any,
+        subnet: Any,
+        private_ip_address: Union[list[str], str],
+        private_ip_addresses: Optional[list[dict[str, Any]]] = None,
+        device_index: int = 0,
+        public_ip_auto_assign: bool = False,
+        group_ids: Optional[list[str]] = None,
+        description: Optional[str] = None,
+        tags: Optional[dict[str, str]] = None,
+        delete_on_termination: Optional[bool] = False,
+        **kwargs: Any,
+    ):
+        self.ec2_backend = ec2_backend
+        self.id = random_eni_id()
+        self.device_index: Optional[int] = device_index
+        if isinstance(private_ip_address, list) and private_ip_address:
+            private_ip_address = private_ip_address[0]
+        self.private_ip_address: Optional[str] = private_ip_address or None  # type: ignore
+        self.private_ip_addresses: list[dict[str, Any]] = private_ip_addresses or []
+        self.ipv6_addresses = kwargs.get("ipv6_addresses") or []
+
+        self.subnet = subnet
+        if isinstance(subnet, str):
+            self.subnet = self.ec2_backend.get_subnet(subnet)
+        self.instance: Optional[Instance] = None
+        self.attachment_id: Optional[str] = None
+        self.attach_time: Optional[datetime] = None
+        self.delete_on_termination = delete_on_termination
+        self.description = description or ""
+        self.source_dest_check = True
+
+        self.public_ip: Optional[str] = None
+        self.public_ip_auto_assign = public_ip_auto_assign
+        self.start()
+        self.add_tags(tags or {})
+        self.requester_managed = False
+        self.requester_id = "AIDAIT2UOQQY3AUEMOTO"
+        self.status = "available"
+        self.mac_address = random_mac_address()
+        self.interface_type = "interface"
+        # Local set to the ENI. When attached to an instance, @property group_set
+        #   returns groups for both self and the attached instance.
+        self._group_set = []
+
+        if self.subnet.ipv6_cidr_block_associations:
+            association = list(self.subnet.ipv6_cidr_block_associations.values())[0]
+            subnet_ipv6_cidr_block = association.get("ipv6CidrBlock")
+            if kwargs.get("ipv6_address_count"):
+                while len(self.ipv6_addresses) < kwargs["ipv6_address_count"]:
+                    ip = random_private_ip(subnet_ipv6_cidr_block, ipv6=True)
+                    if ip not in self.ipv6_addresses:
+                        self.ipv6_addresses.append(ip)
+
+        if self.private_ip_addresses:
+            primary_selected = True if private_ip_address else False
+            for item in self.private_ip_addresses.copy():
+                if isinstance(item, str):
+                    self.private_ip_addresses.remove(item)
+                    self.private_ip_addresses.append(
+                        {
+                            "Primary": True if not primary_selected else False,
+                            "PrivateIpAddress": item,
+                        }
+                    )
+                    primary_selected = True
+
+        if not self.private_ip_address:
+            if self.private_ip_addresses:
+                for private_ip in self.private_ip_addresses:
+                    if isinstance(private_ip, dict) and private_ip.get("Primary"):
+                        self.private_ip_address = private_ip.get("PrivateIpAddress")
+                        break
+            if not self.private_ip_addresses:
+                self.private_ip_address = random_private_ip(self.subnet.cidr_block)
+
+        if not self.private_ip_addresses:
+            self.private_ip_addresses.append(
+                {"Primary": True, "PrivateIpAddress": self.private_ip_address}
+            )
+
+        secondary_ips = kwargs.get("secondary_ips_count", None)
+        if secondary_ips:
+            ips = [
+                random_private_ip(self.subnet.cidr_block)
+                for index in range(0, int(secondary_ips))
+            ]
+            if ips:
+                self.private_ip_addresses.extend(
+                    [{"Primary": False, "PrivateIpAddress": ip} for ip in ips]
+                )
+
+        if self.subnet:
+            vpc = self.ec2_backend.get_vpc(self.subnet.vpc_id)
+            if vpc and vpc.enable_dns_hostnames:
+                self.private_dns_name = generate_dns_from_ip(self.private_ip_address)
+                for address in self.private_ip_addresses:
+                    if address.get("Primary", None):
+                        address["PrivateDnsName"] = self.private_dns_name
+
+        group = None
+        if group_ids:
+            for group_id in group_ids:
+                group = self.ec2_backend.get_security_group_from_id(group_id)
+                if not group:
+                    # Create with specific group ID.
+                    group = SecurityGroup(
+                        self.ec2_backend,
+                        group_id,
+                        group_id,
+                        group_id,
+                        vpc_id=self.subnet.vpc_id,
+                    )
+                    self.ec2_backend.groups[self.subnet.vpc_id][group_id] = group
+                if group:
+                    self._group_set.append(group)
+        if not group_ids:
+            group = self.ec2_backend.get_default_security_group(vpc.id)
+            if group:
+                self._group_set.append(group)
+
+    @property
+    def owner_id(self) -> str:
+        return self.ec2_backend.account_id
+
+    @property
+    def attachment(self) -> Optional[Attachment]:
+        if self.attachment_id:
+            return Attachment(self)
+        return None
+
+    @property
+    def instance_ipv6_address_list(self) -> list[dict[str, Any]]:
+        """This property is invoked for DescribeInstances, not for DescribeNetworkInterfaces."""
+        # The logic here was pulled directly from Moto's original (and now deleted)
+        # XML template for the DescribeInstances response and may not be entirely correct.
+        # TODO: Verify correctness against AWS and unify with `self.network_interface_ipv6_addresses_list` if possible.
+        ipv6_addresses = [
+            {
+                "Ipv6Address": ipv6,
+                "IsPrimaryIpv6": False,
+            }
+            for ipv6 in self.ipv6_addresses
+        ]
+        return ipv6_addresses
+
+    @property
+    def network_interface_ipv6_addresses_list(self) -> list[dict[str, str]]:
+        addresses = [{"Ipv6Address": ip} for ip in self.ipv6_addresses if ip]
+        return addresses
+
+    @property
+    def instance_private_ip_address_list(self) -> list[dict[str, Any]]:
+        """This property is invoked for DescribeInstances, not for DescribeNetworkInterfaces."""
+        # The logic here was pulled directly from Moto's original (and now deleted)
+        # XML template for the DescribeInstances response and may not be entirely correct.
+        # TODO: Verify correctness against AWS and unify with `self.private_ip_addresses` if possible.
+        ip_addresses = []
+        for ip_address in self.private_ip_addresses:
+            item = {
+                "PrivateIpAddress": ip_address.get("PrivateIpAddress"),
+                "Primary": ip_address.get("Primary", False),
+            }
+            if ip_address.get("PrivateIpAddress") == self.private_ip_address:
+                item["Primary"] = True
+                if self.public_ip:
+                    item["Association"] = self.association
+            ip_addresses.append(item)
+        return ip_addresses
+
+    @property
+    def association(self) -> dict[str, Any]:  # type: ignore[misc]
+        association: dict[str, Any] = {}
+        if self.public_ip:
+            eips = self.ec2_backend.address_by_ip(
+                [self.public_ip], fail_if_not_found=False
+            )
+            eip = eips[0] if len(eips) > 0 else None
+            if eip:
+                association["allocationId"] = eip.allocation_id or None
+                association["associationId"] = eip.association_id or None
+            association["natEnabled"] = True
+            association["publicIp"] = self.public_ip
+            association["publicDnsName"] = generate_dns_from_ip(self.public_ip)
+            association["ipOwnerId"] = self.ec2_backend.account_id
+        return association
+
+    @property
+    def availability_zone(self) -> str:
+        return self.subnet.availability_zone
+
+    @property
+    def vpc_id(self) -> str:
+        return self.subnet.vpc_id
+
+    @property
+    def subnet_id(self) -> str:
+        return self.subnet.id
+
+    @staticmethod
+    def cloudformation_name_type() -> str:
+        return ""
+
+    @staticmethod
+    def cloudformation_type() -> str:
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-networkinterface.html
+        return "AWS::EC2::NetworkInterface"
+
+    @classmethod
+    def create_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+        **kwargs: Any,
+    ) -> NetworkInterface:
+        from ..models import ec2_backends
+
+        properties = cloudformation_json["Properties"]
+
+        security_group_ids = properties.get("SecurityGroups", [])
+
+        ec2_backend = ec2_backends[account_id][region_name]
+        subnet_id = properties.get("SubnetId")
+        if subnet_id:
+            subnet = ec2_backend.get_subnet(subnet_id)
+        else:
+            subnet = None
+
+        private_ip_address = properties.get("PrivateIpAddress", None)
+        description = properties.get("Description", None)
+
+        network_interface = ec2_backend.create_network_interface(
+            subnet,
+            private_ip_address,
+            group_ids=security_group_ids,
+            description=description,
+        )
+        return network_interface
+
+    def delete(self) -> None:
+        self.ec2_backend.delete_network_interface(eni_id=self.id)
+        for priv_ip in self.private_ip_addresses:
+            self.subnet.del_subnet_ip(priv_ip["PrivateIpAddress"])
+
+    def stop(self) -> None:
+        if self.public_ip_auto_assign:
+            self.public_ip = None
+
+    def start(self) -> None:
+        self.check_auto_public_ip()
+
+    def check_auto_public_ip(self) -> None:
+        if (
+            self.public_ip_auto_assign
+            and str(self.public_ip_auto_assign).lower() == "true"
+        ):
+            self.public_ip = random_public_ip()
+
+    @property
+    def group_set(self) -> Any:  # type: ignore[misc]
+        if self.instance and self.instance.security_groups:
+            return set(self._group_set) | set(self.instance.security_groups)
+        else:
+            return self._group_set
+
+    @classmethod
+    def has_cfn_attr(cls, attr: str) -> bool:
+        return attr in ["PrimaryPrivateIpAddress", "SecondaryPrivateIpAddresses"]
+
+    def get_cfn_attribute(self, attribute_name: str) -> Any:
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+
+        if attribute_name == "PrimaryPrivateIpAddress":
+            return self.private_ip_address
+        elif attribute_name == "SecondaryPrivateIpAddresses":
+            raise NotImplementedError(
+                '"Fn::GetAtt" : [ "{0}" , "SecondaryPrivateIpAddresses" ]"'
+            )
+        raise UnformattedGetAttTemplateException()
+
+    @property
+    def physical_resource_id(self) -> str:
+        return self.id
+
+    def get_filter_value(
+        self, filter_name: str, method_name: Optional[str] = None
+    ) -> Any:
+        if filter_name == "network-interface-id":
+            return self.id
+        elif filter_name in ("addresses.private-ip-address", "private-ip-address"):
+            return self.private_ip_address
+        elif filter_name == "subnet-id":
+            return self.subnet.id
+        elif filter_name == "vpc-id":
+            return self.subnet.vpc_id
+        elif filter_name == "group-id":
+            return [group.id for group in self._group_set]
+        elif filter_name == "availability-zone":
+            return self.subnet.availability_zone
+        elif filter_name == "description":
+            return self.description
+        elif filter_name == "attachment.instance-id":
+            return self.instance.id if self.instance else None
+        elif filter_name == "attachment.instance-owner-id":
+            return self.owner_id
+        else:
+            return super().get_filter_value(filter_name, "DescribeNetworkInterfaces")
+
+
+class NetworkInterfaceBackend:
+    def __init__(self) -> None:
+        self.enis: dict[str, NetworkInterface] = {}
+
+    def create_network_interface(
+        self,
+        subnet: Any,
+        private_ip_address: Union[str, list[str]],
+        private_ip_addresses: Optional[list[dict[str, Any]]] = None,
+        group_ids: Optional[list[str]] = None,
+        description: Optional[str] = None,
+        tags: Optional[dict[str, str]] = None,
+        delete_on_termination: Optional[bool] = False,
+        **kwargs: Any,
+    ) -> NetworkInterface:
+        eni = NetworkInterface(
+            self,
+            subnet,
+            private_ip_address,
+            private_ip_addresses,
+            group_ids=group_ids,
+            description=description,
+            tags=tags,
+            delete_on_termination=delete_on_termination,
+            **kwargs,
+        )
+        self.enis[eni.id] = eni
+        return eni
+
+    def get_network_interface(self, eni_id: str) -> NetworkInterface:
+        for eni in self.enis.values():
+            if eni_id == eni.id:
+                return eni
+        raise InvalidNetworkInterfaceIdError(eni_id)
+
+    def delete_network_interface(self, eni_id: str) -> None:
+        deleted = self.enis.pop(eni_id, None)
+        if not deleted:
+            raise InvalidNetworkInterfaceIdError(eni_id)
+
+    def describe_network_interfaces(
+        self, filters: Any = None
+    ) -> list[NetworkInterface]:
+        # Note: This is only used in EC2Backend#do_resources_exist
+        # Client-calls use #get_all_network_interfaces()
+        # We should probably merge these at some point..
+        enis = list(self.enis.values())
+
+        if filters:
+            for _filter, _filter_value in filters.items():
+                if _filter == "network-interface-id":
+                    _filter = "id"
+                    enis = [
+                        eni for eni in enis if getattr(eni, _filter) in _filter_value
+                    ]
+                else:
+                    self.raise_not_implemented_error(  # type: ignore
+                        f"The filter '{_filter}' for DescribeNetworkInterfaces"
+                    )
+        return enis
+
+    def attach_network_interface(
+        self, eni_id: str, instance_id: str, device_index: int
+    ) -> Attachment:
+        eni = self.get_network_interface(eni_id)
+        instance = self.get_instance(instance_id)  # type: ignore[attr-defined]
+        instance.attach_eni(eni, device_index)
+        assert isinstance(eni.attachment, Attachment)
+        return eni.attachment
+
+    def detach_network_interface(self, attachment_id: str) -> None:
+        for eni in self.enis.values():
+            if eni.attachment_id == attachment_id:
+                if eni.instance and len(eni.instance.nics) == 1:
+                    raise LastEniDetachError
+                eni.instance.detach_eni(eni)  # type: ignore
+                return
+        raise InvalidNetworkAttachmentIdError(attachment_id)
+
+    def modify_network_interface_attribute(
+        self,
+        eni_id: str,
+        group_ids: list[str],
+        source_dest_check: Optional[bool] = None,
+        description: Optional[str] = None,
+    ) -> None:
+        eni = self.get_network_interface(eni_id)
+        groups = [self.get_security_group_from_id(group_id) for group_id in group_ids]  # type: ignore[attr-defined]
+        if groups:
+            eni._group_set = groups
+        if source_dest_check in [True, False]:
+            eni.source_dest_check = source_dest_check
+
+        if description:
+            eni.description = description
+
+    def get_all_network_interfaces(
+        self, eni_ids: Optional[list[str]] = None, filters: Any = None
+    ) -> list[NetworkInterface]:
+        enis = list(self.enis.values())
+
+        if eni_ids:
+            enis = [eni for eni in enis if eni.id in eni_ids]
+            if len(enis) != len(eni_ids):
+                invalid_id = list(set(eni_ids).difference({eni.id for eni in enis}))[0]
+                raise InvalidNetworkInterfaceIdError(invalid_id)
+
+        return generic_filter(filters, enis)
+
+    def unassign_private_ip_addresses(
+        self, eni_id: str, private_ip_address: Optional[list[str]] = None
+    ) -> NetworkInterface:
+        eni = self.get_network_interface(eni_id)
+        if private_ip_address:
+            for item in eni.private_ip_addresses.copy():
+                if item.get("PrivateIpAddress") in private_ip_address:
+                    eni.private_ip_addresses.remove(item)
+        return eni
+
+    def assign_private_ip_addresses(
+        self,
+        eni_id: str,
+        private_ip_addresses: Optional[list[str]] = None,
+        secondary_ips_count: Optional[int] = None,
+    ) -> NetworkInterface:
+        eni = self.get_network_interface(eni_id)
+        eni_assigned_ips = [
+            item.get("PrivateIpAddress") for item in eni.private_ip_addresses
+        ]
+        if private_ip_addresses:
+            eni.private_ip_addresses.extend(
+                {"Primary": False, "PrivateIpAddress": ip}
+                for ip in private_ip_addresses
+                if ip not in eni_assigned_ips
+            )
+            return eni
+        while secondary_ips_count:
+            ip = random_private_ip(eni.subnet.cidr_block)
+            if ip not in eni_assigned_ips:
+                eni.private_ip_addresses.append(
+                    {"Primary": False, "PrivateIpAddress": ip}
+                )
+                secondary_ips_count -= 1
+        return eni
+
+    def assign_ipv6_addresses(
+        self,
+        eni_id: str,
+        ipv6_addresses: Optional[list[str]] = None,
+        ipv6_count: Optional[int] = None,
+    ) -> NetworkInterface:
+        eni = self.get_network_interface(eni_id)
+        if ipv6_addresses:
+            eni.ipv6_addresses.extend(
+                ip for ip in ipv6_addresses if ip not in eni.ipv6_addresses
+            )
+
+        while ipv6_count:
+            association = list(eni.subnet.ipv6_cidr_block_associations.values())[0]
+            subnet_ipv6_cidr_block = association.get("ipv6CidrBlock")
+            ip = random_private_ip(subnet_ipv6_cidr_block, ipv6=True)
+            if ip not in eni.ipv6_addresses:
+                eni.ipv6_addresses.append(ip)
+                ipv6_count -= 1
+        return eni
+
+    def unassign_ipv6_addresses(
+        self, eni_id: str, ips: Optional[list[str]] = None
+    ) -> list[str]:
+        unassigned_addresses = []
+        eni = self.get_network_interface(eni_id)
+        if ips:
+            for ip in eni.ipv6_addresses.copy():
+                if ip in ips:
+                    unassigned_addresses.append(ip)
+                    eni.ipv6_addresses.remove(ip)
+        return unassigned_addresses

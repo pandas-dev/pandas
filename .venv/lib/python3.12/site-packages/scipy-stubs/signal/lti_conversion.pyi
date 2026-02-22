@@ -1,0 +1,19 @@
+# This module is not meant for public use and will be removed in SciPy v2.0.0.
+from typing_extensions import deprecated
+
+from .filter_design import normalize, tf2zpk, zpk2tf  # pyrefly: ignore[deprecated] # ty: ignore[deprecated]
+
+__all__ = ["abcd_normalize", "cont2discrete", "normalize", "ss2tf", "ss2zpk", "tf2ss", "tf2zpk", "zpk2ss", "zpk2tf"]
+
+@deprecated("will be removed in SciPy v2.0.0")
+def tf2ss(num: object, den: object) -> object: ...
+@deprecated("will be removed in SciPy v2.0.0")
+def abcd_normalize(A: object = None, B: object = None, C: object = None, D: object = None) -> object: ...
+@deprecated("will be removed in SciPy v2.0.0")
+def ss2tf(A: object, B: object, C: object, D: object, input: object = 0) -> object: ...
+@deprecated("will be removed in SciPy v2.0.0")
+def zpk2ss(z: object, p: object, k: object) -> object: ...
+@deprecated("will be removed in SciPy v2.0.0")
+def ss2zpk(A: object, B: object, C: object, D: object, input: object = 0) -> object: ...
+@deprecated("will be removed in SciPy v2.0.0")
+def cont2discrete(system: object, dt: object, method: object = "zoh", alpha: object = None) -> object: ...

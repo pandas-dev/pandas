@@ -1,0 +1,74 @@
+Metadata-Version: 2.4
+Name: pytest-xdist
+Version: 3.8.0
+Summary: pytest xdist plugin for distributed testing, most importantly across multiple CPUs
+Author-email: holger krekel and contributors <pytest-dev@python.org>, holger@merlinux.eu
+License-Expression: MIT
+Project-URL: Homepage, https://github.com/pytest-dev/pytest-xdist
+Project-URL: Documentation, https://pytest-xdist.readthedocs.io/en/latest
+Project-URL: Changelog, https://pytest-xdist.readthedocs.io/en/latest/changelog.html
+Project-URL: Source, https://github.com/pytest-dev/pytest-xdist
+Project-URL: Tracker, https://github.com/pytest-dev/pytest-xdist/issues
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Framework :: Pytest
+Classifier: Intended Audience :: Developers
+Classifier: Operating System :: POSIX
+Classifier: Operating System :: Microsoft :: Windows
+Classifier: Operating System :: MacOS :: MacOS X
+Classifier: Topic :: Software Development :: Testing
+Classifier: Topic :: Software Development :: Quality Assurance
+Classifier: Topic :: Utilities
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3 :: Only
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Requires-Python: >=3.9
+Description-Content-Type: text/x-rst
+License-File: LICENSE
+Requires-Dist: execnet>=2.1
+Requires-Dist: pytest>=7.0.0
+Provides-Extra: testing
+Requires-Dist: filelock; extra == "testing"
+Provides-Extra: psutil
+Requires-Dist: psutil>=3.0; extra == "psutil"
+Provides-Extra: setproctitle
+Requires-Dist: setproctitle; extra == "setproctitle"
+Dynamic: license-file
+
+============
+pytest-xdist
+============
+
+.. image:: http://img.shields.io/pypi/v/pytest-xdist.svg
+    :alt: PyPI version
+    :target: https://pypi.python.org/pypi/pytest-xdist
+
+.. image:: https://img.shields.io/conda/vn/conda-forge/pytest-xdist.svg
+    :target: https://anaconda.org/conda-forge/pytest-xdist
+
+.. image:: https://img.shields.io/pypi/pyversions/pytest-xdist.svg
+    :alt: Python versions
+    :target: https://pypi.python.org/pypi/pytest-xdist
+
+.. image:: https://github.com/pytest-dev/pytest-xdist/workflows/test/badge.svg
+    :target: https://github.com/pytest-dev/pytest-xdist/actions
+
+.. image:: https://img.shields.io/badge/code%20style-black-000000.svg
+    :target: https://github.com/ambv/black
+
+The `pytest-xdist`_ plugin extends pytest with new test execution modes, the most used being distributing
+tests across multiple CPUs to speed up test execution::
+
+    pytest -n auto
+
+With this call, pytest will spawn a number of workers processes equal to the number of available CPUs, and distribute
+the tests randomly across them.
+
+Documentation
+=============
+
+Documentation is available at `Read The Docs <https://pytest-xdist.readthedocs.io>`__.

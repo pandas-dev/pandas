@@ -1,0 +1,274 @@
+Metadata-Version: 2.4
+Name: pyroaring
+Version: 1.0.3
+Summary: Library for handling efficiently sorted integer sets.
+Home-page: https://github.com/Ezibenroc/PyRoaringBitMap
+Author: Tom Cornebize
+Author-email: tom.cornebize@gmail.com
+License: MIT
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Intended Audience :: Developers
+Classifier: Operating System :: POSIX :: Linux
+Classifier: Operating System :: MacOS :: MacOS X
+Classifier: Operating System :: Microsoft :: Windows
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+License-File: LICENSE
+Dynamic: author
+Dynamic: author-email
+Dynamic: classifier
+Dynamic: description
+Dynamic: home-page
+Dynamic: license
+Dynamic: license-file
+Dynamic: summary
+
+|Documentation Status|
+
+An efficient and light-weight ordered set of integers.
+This is a Python wrapper for the C library `CRoaring <https://github.com/RoaringBitmap/CRoaring>`__.
+
+Example
+-------
+
+You can use a bitmap nearly as the classical Python set in your code:
+
+.. code:: python
+
+    from pyroaring import BitMap
+    bm1 = BitMap()
+    bm1.add(3)
+    bm1.add(18)
+    print("has 3:", 3 in bm1)
+    print("has 4:", 4 in bm1)
+    bm2 = BitMap([3, 27, 42])
+    print("bm1       = %s" % bm1)
+    print("bm2       = %s" % bm2)
+    print("bm1 & bm2 = %s" % (bm1&bm2))
+    print("bm1 | bm2 = %s" % (bm1|bm2))
+
+Output:
+
+::
+
+    has 3: True
+    has 4: False
+    bm1       = BitMap([3, 18])
+    bm2       = BitMap([3, 27, 42])
+    bm1 & bm2 = BitMap([3])
+    bm1 | bm2 = BitMap([3, 18, 27, 42])
+
+The class ``BitMap`` is for 32 bit integers, it supports values from 0 to 2**32-1 (included).
+
+For larger numbers, you can use the class ``BitMap64`` that supports values from 0 to 2**64-1 (included).
+
+Installation from Pypi
+----------------------
+
+Supported systems: Linux, MacOS or Windows, Python 3.8 or higher. Note that pyroaring might still work with older Python
+versions, but they are not tested anymore.
+
+To install pyroaring on your local account, use the following command:
+
+.. code:: bash
+
+    pip install pyroaring --user
+
+For a system-wide installation, use the following command:
+
+.. code:: bash
+
+    pip install pyroaring
+
+Naturally, the latter may require superuser rights (consider prefixing
+the commands by ``sudo``).
+
+If you want to use Python 3 and your system defaults on Python 2.7, you
+may need to adjust the above commands, e.g., replace ``pip`` by ``pip3``.
+
+Installation from conda-forge
+-----------------------------
+
+Conda users can install the package from `conda-forge`:
+
+.. code:: bash
+
+   conda install -c conda-forge pyroaring
+
+(Supports Python 3.6 or higher; Mac/Linux/Windows)
+
+Installation from Source
+---------------------------------
+
+If you want to compile (and install) pyroaring by yourself, for instance
+to modify the Cython sources you can follow the following instructions.
+Note that these examples will install in your currently active python
+virtual environment. Installing this way will require an appropriate
+C compiler to be installed on your system.
+
+First clone this repository.
+
+.. code:: bash
+
+    git clone https://github.com/Ezibenroc/PyRoaringBitMap.git
+
+To install from Cython via source, for example during development run the following from the root of the above repository:
+
+.. code:: bash
+
+    python -m pip install .
+
+This will automatically install Cython if it not present for the build, cythonise the source files and compile everything for you.
+
+If you just want to recompile the package in place for quick testing you can
+try the following:
+
+.. code:: bash
+
+    python setup.py build_clib
+    python setup.py build_ext -i
+
+Note that the build_clib compiles croaring only, and only needs to be run once.
+
+Then you can test the new code using tox - this will install all the other
+dependencies needed for testing and test in an isolated environment:
+
+.. code:: bash
+
+    python -m pip install tox
+    tox
+
+If you just want to run the tests directly from the root of the repository:
+
+.. code:: bash
+
+    python -m pip install hypothesis pytest
+    # This will test in three ways: via installation from source,
+    # via cython directly, and creation of a wheel
+    python -m pytest test.py
+
+
+Package pyroaring as an sdist and wheel. Note that building wheels that have
+wide compatibility can be tricky - for releases we rely on `cibuildwheel <https://cibuildwheel.readthedocs.io/en/stable/>`_
+to do the heavy lifting across platforms.
+
+.. code:: bash
+
+    python -m pip install build
+    python -m build .
+
+For all the above commands, two environment variables can be used to control the compilation.
+
+- ``DEBUG=1`` to build pyroaring in debug mode.
+- ``ARCHI=<cpu-type>`` to build pyroaring for the given platform. The platform may be any keyword
+  given to the ``-march`` option of gcc (see the
+  `documentation <https://gcc.gnu.org/onlinedocs/gcc-4.5.3/gcc/i386-and-x86_002d64-Options.html>`__).
+  Note that cross-compiling for a 32-bit architecture from a 64-bit architecture is not supported.
+
+Example of use:
+
+.. code:: bash
+
+    DEBUG=1 ARCHI=x86-64 python setup.py build_ext
+
+
+Optimizing the builds for your machine (x64)
+--------------------------------------------
+
+For recent Intel and AMD (x64) processors under Linux, you may get better performance by requesting that
+CRoaring be built for your machine, specifically, when building from source.
+Be mindful that when doing so, the generated binary may only run on your machine.
+
+
+.. code:: bash
+
+    ARCHI=native pip install pyroaring  --no-binary :all:
+
+This approach may not work under macOS.
+
+
+Development Notes
+-----------------
+
+Updating CRoaring
+=================
+
+The download_amalgamation.py script can be used to download a specific version
+of the official CRoaring amalgamation:
+
+.. code:: bash
+
+    python download_amalgamation.py v0.7.2
+
+This will update roaring.c and roaring.h. This also means that the dependency
+is vendored in and tracked as part of the source repository now. Note that the
+__croaring_version__ in version.pxi will need to be updated to match the new
+version.
+
+
+Tracking Package and CRoaring versions
+======================================
+
+The package version is maintained in the file `pyroaring/version.pxi` - this
+can be manually incremented in preparation for releases. This file is read
+from in setup.py to specify the version.
+
+The croaring version is tracked in `pyroaring/croaring_version.pxi` - this is
+updated automatically when downloading a new amalgamation.
+
+
+Benchmark
+---------
+
+``Pyroaring`` is compared with the built-in ``set`` and the library ``sortedcontainers``.
+
+The script ``quick_bench.py`` measures the time of different set
+operations. It uses randomly generated sets of size 1e6 and density
+0.125. For each operation, the average time (in seconds) of 30 tests
+is reported.
+
+The results have been obtained with:
+
+- CPU AMD Ryzen 7 5700X
+- CPython version 3.11.2
+- gcc version 12.2.0
+- Cython version 3.0.2
+- sortedcontainers version 2.4.0
+- pyroaring commit `b54769b <https://github.com/Ezibenroc/PyRoaringBitMap/tree/b54769bf22b037ed989348b04d297ddc56db7ed8>`__
+
+===============================  =====================  =====================  ==========  ==================
+operation                          pyroaring (32 bits)    pyroaring (64 bits)         set    sortedcontainers
+===============================  =====================  =====================  ==========  ==================
+range constructor                             3.03e-04               3.15e-04    4.09e-02            8.54e-02
+ordered list constructor                      2.17e-02               3.06e-02    8.21e-02            2.67e-01
+list constructor                              7.23e-02               6.38e-02    5.65e-02            2.34e-01
+ordered array constructor                     4.50e-03             nan           6.53e-02            1.75e-01
+array constructor                             6.51e-02             nan           8.98e-02            2.40e-01
+element addition                              4.33e-07               2.19e-07    2.13e-07            3.82e-07
+element removal                               2.69e-07               1.67e-07    2.33e-07            2.83e-07
+membership test                               1.59e-07               1.33e-07    1.42e-07            3.22e-07
+union                                         1.07e-04               1.04e-04    1.06e-01            5.69e-01
+intersection                                  6.00e-04               6.26e-04    4.66e-02            1.03e-01
+difference                                    7.24e-05               8.34e-05    7.94e-02            2.34e-01
+symmetric diference                           8.32e-05               1.03e-04    1.31e-01            4.19e-01
+equality test                                 3.52e-05               3.21e-05    3.18e-02            3.29e-02
+subset test                                   4.15e-05               4.41e-05    3.20e-02            3.20e-02
+conversion to list                            2.92e-02               3.08e-02    3.16e-02            3.53e-02
+pickle dump & load                            1.64e-04               1.76e-04    1.37e-01            3.53e-01
+"naive" conversion to array                   2.46e-02               2.57e-02    6.49e-02            5.73e-02
+"optimized" conversion to array               8.73e-04               1.45e-03  nan                 nan
+selection                                     8.83e-07               2.49e-06  nan                   8.18e-06
+contiguous slice                              3.31e-03               6.49e-03  nan                   4.32e-03
+slice                                         1.58e-03               2.74e-03  nan                   1.29e-01
+small slice                                   6.62e-05               1.15e-04  nan                   5.43e-03
+===============================  =====================  =====================  ==========  ==================
+
+Note: the timings are missing for pyroaring 64 bits with the array constructor. For simplicity reasons the Benchmark
+builds an array of 32 bit integers, which is not compatible with ``BitMap64``.
+
+.. |Documentation Status| image:: https://readthedocs.org/projects/pyroaringbitmap/badge/?version=stable
+   :target: http://pyroaringbitmap.readthedocs.io/en/stable/?badge=stable

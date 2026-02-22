@@ -1,0 +1,76 @@
+Metadata-Version: 2.4
+Name: google-api-core
+Version: 2.30.0
+Summary: Google API client core library
+Author-email: Google LLC <googleapis-packages@google.com>
+License: Apache 2.0
+Project-URL: Homepage, https://github.com/googleapis/google-cloud-python/tree/main/packages/google-api-core
+Project-URL: Documentation, https://googleapis.dev/python/google-api-core/latest/
+Project-URL: Repository, https://github.com/googleapis/google-cloud-python
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: Apache Software License
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Classifier: Programming Language :: Python :: 3.14
+Classifier: Operating System :: OS Independent
+Classifier: Topic :: Internet
+Requires-Python: >=3.9
+Description-Content-Type: text/x-rst
+License-File: LICENSE
+Requires-Dist: googleapis-common-protos<2.0.0,>=1.56.3
+Requires-Dist: protobuf<7.0.0,>=4.25.8
+Requires-Dist: proto-plus<2.0.0,>=1.22.3
+Requires-Dist: proto-plus<2.0.0,>=1.25.0; python_version >= "3.13"
+Requires-Dist: google-auth<3.0.0,>=2.14.1
+Requires-Dist: requests<3.0.0,>=2.20.0
+Provides-Extra: async-rest
+Requires-Dist: google-auth[aiohttp]<3.0.0,>=2.35.0; extra == "async-rest"
+Provides-Extra: grpc
+Requires-Dist: grpcio<2.0.0,>=1.33.2; extra == "grpc"
+Requires-Dist: grpcio<2.0.0,>=1.49.1; python_version >= "3.11" and extra == "grpc"
+Requires-Dist: grpcio<2.0.0,>=1.75.1; python_version >= "3.14" and extra == "grpc"
+Requires-Dist: grpcio-status<2.0.0,>=1.33.2; extra == "grpc"
+Requires-Dist: grpcio-status<2.0.0,>=1.49.1; python_version >= "3.11" and extra == "grpc"
+Requires-Dist: grpcio-status<2.0.0,>=1.75.1; python_version >= "3.14" and extra == "grpc"
+Dynamic: license-file
+
+Core Library for Google Client Libraries
+========================================
+
+|pypi| |versions|
+
+This library is not meant to stand-alone. Instead it defines
+common helpers used by all Google API clients. For more information, see the
+`documentation`_.
+
+.. |pypi| image:: https://img.shields.io/pypi/v/google-api_core.svg
+   :target: https://pypi.org/project/google-api_core/
+.. |versions| image:: https://img.shields.io/pypi/pyversions/google-api_core.svg
+   :target: https://pypi.org/project/google-api_core/
+.. _documentation: https://googleapis.dev/python/google-api-core/latest
+
+
+Supported Python Versions
+-------------------------
+Python >= 3.9
+
+
+Unsupported Python Versions
+---------------------------
+
+Python == 2.7, Python == 3.5, Python == 3.6, Python == 3.7, Python == 3.8.
+
+The last version of this library compatible with Python 2.7 and 3.5 is
+`google-api-core==1.31.1`.
+
+The last version of this library compatible with Python 3.6 is
+`google-api-core==2.8.2`.
+
+The last version of this library compatible with Python 3.7 and 3.8 is
+`google-api-core==2.29.0`.

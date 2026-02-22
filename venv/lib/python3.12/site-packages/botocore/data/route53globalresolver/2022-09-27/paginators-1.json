@@ -1,0 +1,58 @@
+{
+  "pagination": {
+    "ListAccessSources": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "accessSources"
+    },
+    "ListAccessTokens": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "accessTokens"
+    },
+    "ListDNSViews": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "dnsViews"
+    },
+    "ListFirewallDomainLists": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "firewallDomainLists"
+    },
+    "ListFirewallDomains": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "domains"
+    },
+    "ListFirewallRules": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "firewallRules"
+    },
+    "ListGlobalResolvers": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "globalResolvers"
+    },
+    "ListHostedZoneAssociations": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "hostedZoneAssociations"
+    },
+    "ListManagedFirewallDomainLists": {
+      "input_token": "nextToken",
+      "output_token": "nextToken",
+      "limit_key": "maxResults",
+      "result_key": "managedFirewallDomainLists"
+    }
+  }
+}

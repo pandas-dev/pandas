@@ -1,0 +1,72 @@
+"""tests of various mechanisms of providing federated_extensions"""
+
+import json
+import shutil
+
+from pytest import mark
+
+from .conftest import CONDA_PKGS, FIXTURES, WHEELS
+
+try:  # pragma: no cover
+    __import__("libarchive")
+    HAS_LIBARCHIVE = True
+except Exception:  # pragma: no cover
+    HAS_LIBARCHIVE = False
+
+
+@mark.parametrize("remote", [True, False])
+@mark.parametrize(
+    "ext_name",
+    [p.name for p in [*WHEELS, *CONDA_PKGS] if HAS_LIBARCHIVE or not p.name.endswith(".conda")],
+)
+@mark.parametrize("use_libarchive", [True, False] if HAS_LIBARCHIVE else [False])
+def test_federated_extensions(  # noqa: PLR0913
+    an_empty_lite_dir, script_runner, remote, ext_name, use_libarchive, a_fixture_server
+):
+    """can we include a single extension from an archive"""
+    if remote:
+        federated_extensions = [f"{a_fixture_server}/{ext_name}"]
+    else:
+        shutil.copy2(FIXTURES / ext_name, an_empty_lite_dir / ext_name)
+        federated_extensions = [ext_name]
+
+    config = {
+        "LiteBuildConfig": {
+            "federated_extensions": federated_extensions,
+            "ignore_sys_prefix": ["federated_extensions"],
+            "settings_overrides": ["overrides.json"],
+            "apps": ["lab"],
+        },
+    }
+    overrides = {"the-smallest-extension:plugin": {}}
+
+    (an_empty_lite_dir / "jupyter_lite_config.json").write_text(json.dumps(config))
+    (an_empty_lite_dir / "overrides.json").write_text(json.dumps(overrides))
+
+    extra_args = [] if use_libarchive else ["--no-libarchive"]
+
+    build = script_runner.run(["jupyter", "lite", "build", *extra_args], cwd=str(an_empty_lite_dir))
+
+    if ext_name.endswith(".conda") and not use_libarchive:
+        assert not build.success
+        return
+
+    assert build.success
+
+    check = script_runner.run(["jupyter", "lite", "check", *extra_args], cwd=str(an_empty_lite_dir))
+    assert check.success
+
+    output = an_empty_lite_dir / "_output"
+    lite_json = output / "jupyter-lite.json"
+    lite_data = json.loads(lite_json.read_text(encoding="utf-8"))
+    smallest_dir = output / "extensions/the-smallest-extension"
+    assert smallest_dir.exists()
+    lite_ext = lite_data["jupyter-config-data"]["federated_extensions"]
+    smallest = lite_ext[0]
+    assert (smallest_dir / smallest["load"]).exists()
+    assert "extension" in smallest
+    assert "mimeExtension" in smallest
+    assert "style" in smallest
+
+    lab_build = output / "build"
+    assert (lab_build / "themes/the-smallest-extension/index.css").exists()

@@ -1,0 +1,446 @@
+# Translations template for Jupyter.
+# Copyright (C) 2017 ORGANIZATION
+# This file is distributed under the same license as the Jupyter project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2017.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: Jupyter VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2017-08-25 02:53-0400\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.5.0\n"
+
+#: notebook/serverapp.py:49
+msgid "The Jupyter Notebook requires tornado >= 4.0"
+msgstr "该程序要求 tornado 版本 >= 4.0"
+
+#: notebook/serverapp.py:53
+msgid "The Jupyter Notebook requires tornado >= 4.0, but you have < 1.1.0"
+msgstr "该程序要求 tornado 版本 >= 4.0, 可是现实却是 < 1.1.0"
+
+#: notebook/serverapp.py:55
+#, python-format
+msgid "The Jupyter Notebook requires tornado >= 4.0, but you have %s"
+msgstr "该程序要求 tornado 版本 >= 4.0, 可是现实却是 %s"
+
+#: notebook/serverapp.py:206
+#, python-format
+msgid "Alternatively use `%s` when working on the notebook's Javascript and LESS"
+msgstr "在使用notebook的JavaScript和LESS时，可以替换使用 `%s` "
+
+#: notebook/serverapp.py:385
+msgid "List currently running notebook servers."
+msgstr "列出当前运行的Notebook服务."
+
+#: notebook/serverapp.py:389
+msgid "Produce machine-readable JSON list output."
+msgstr "生成机器可读的JSON输出."
+
+#: notebook/serverapp.py:391
+msgid "Produce machine-readable JSON object on each line of output."
+msgstr "当前运行的服务"
+
+#: notebook/serverapp.py:395
+msgid "If True, the output will be a JSON list of objects, one per active notebook server, each with the details from the relevant server info file."
+msgstr "如果是正确的，输出将是一个对象的JSON列表，一个活动的笔记本服务器，每一个都有相关的服务器信息文件的详细信息。"
+
+#: notebook/serverapp.py:399
+msgid "If True, each line of output will be a JSON object with the details from the server info file. For a JSON list output, see the NbserverListApp.jsonlist configuration value"
+msgstr "如果是正确的，每一行输出将是一个JSON对象，其中有来自服务器信息文件的详细信息。对于一个JSON列表输出，请参阅NbserverListApp。jsonlist配置值"
+
+#: notebook/serverapp.py:425
+msgid "Don't open the notebook in a browser after startup."
+msgstr "在启动服务以后不在浏览器中打开一个窗口."
+
+#: notebook/serverapp.py:429
+msgid "DISABLED: use %pylab or %matplotlib in the notebook to enable matplotlib."
+msgstr ""
+
+#: notebook/serverapp.py:445
+msgid "Allow the notebook to be run from root user."
+msgstr "允许notebook在root用户下运行."
+
+#: notebook/serverapp.py:476
+msgid ""
+"The Jupyter HTML Notebook.\n"
+"    \n"
+"    This launches a Tornado based HTML Notebook Server that serves up an HTML5/Javascript Notebook client."
+msgstr "The Jupyter HTML Notebook.\n \n 这将启动一个基于tornado的HTML笔记本服务器，它提供一个html5/javascript笔记本客户端。"
+
+#: notebook/serverapp.py:546
+msgid "Set the Access-Control-Allow-Credentials: true header"
+msgstr "设置Access-Control-Allow-Credentials:true报头"
+
+#: notebook/serverapp.py:550
+msgid "Whether to allow the user to run the notebook as root."
+msgstr "是否允许notebook在root用户下运行."
+
+#: notebook/serverapp.py:554
+msgid "The default URL to redirect to from `/`"
+msgstr "从 `/` 重定向到的默认URL "
+
+#: notebook/serverapp.py:558
+msgid "The IP address the notebook server will listen on."
+msgstr "notebook服务会监听的IP地址."
+
+#: notebook/serverapp.py:571
+#, python-format
+msgid ""
+"Cannot bind to localhost, using 127.0.0.1 as default ip\n"
+"%s"
+msgstr "不能绑定到localhost, 使用127.0.0.1作为默认的IP \n %s"
+
+#: notebook/serverapp.py:585
+msgid "The port the notebook server will listen on."
+msgstr "notebook服务会监听的IP端口."
+
+#: notebook/serverapp.py:589
+msgid "The number of additional ports to try if the specified port is not available."
+msgstr "如果指定的端口不可用，则要尝试其他端口的数量."
+
+#: notebook/serverapp.py:593
+msgid "The full path to an SSL/TLS certificate file."
+msgstr "SSL/TLS 认证文件所在全路径."
+
+#: notebook/serverapp.py:597
+msgid "The full path to a private key file for usage with SSL/TLS."
+msgstr "SSL/TLS 私钥文件所在全路径."
+
+#: notebook/serverapp.py:601
+msgid "The full path to a certificate authority certificate for SSL/TLS client authentication."
+msgstr "用于ssl/tls客户端身份验证的证书颁发证书的完整路径."
+
+#: notebook/serverapp.py:605
+msgid "The file where the cookie secret is stored."
+msgstr "存放cookie密钥的文件被保存了."
+
+#: notebook/serverapp.py:634
+#, python-format
+msgid "Writing notebook server cookie secret to %s"
+msgstr "把notebook 服务cookie密码写入 %s"
+
+#: notebook/serverapp.py:641
+#, python-format
+msgid "Could not set permissions on %s"
+msgstr "不能在 %s 设置权限"
+
+#: notebook/serverapp.py:646
+msgid ""
+"Token used for authenticating first-time connections to the server.\n"
+"\n"
+"        When no password is enabled,\n"
+"        the default is to generate a new, random token.\n"
+"\n"
+"        Setting to an empty string disables authentication altogether, which is NOT RECOMMENDED.\n"
+"        "
+msgstr ""
+
+#: notebook/serverapp.py:656
+msgid ""
+"One-time token used for opening a browser.\n"
+"        Once used, this token cannot be used again.\n"
+"        "
+msgstr ""
+
+#: notebook/serverapp.py:732
+msgid ""
+"Specify Where to open the notebook on startup. This is the\n"
+"        `new` argument passed to the standard library method `webbrowser.open`.\n"
+"        The behaviour is not guaranteed, but depends on browser support. Valid\n"
+"        values are:\n"
+"            2 opens a new tab,\n"
+"            1 opens a new window,\n"
+"            0 opens in an existing window.\n"
+"        See the `webbrowser.open` documentation for details.\n"
+"        "
+msgstr ""
+
+#: notebook/serverapp.py:752
+msgid "Supply overrides for the tornado.web.Application that the Jupyter notebook uses."
+msgstr ""
+
+#: notebook/serverapp.py:756
+msgid ""
+"\n"
+"        Set the tornado compression options for websocket connections.\n"
+"\n"
+"        This value will be returned from :meth:`WebSocketHandler.get_compression_options`.\n"
+"        None (default) will disable compression.\n"
+"        A dict (even an empty one) will enable compression.\n"
+"\n"
+"        See the tornado docs for WebSocketHandler.get_compression_options for details.\n"
+"        "
+msgstr ""
+
+#: notebook/serverapp.py:767
+msgid "Supply overrides for terminado. Currently only supports \"shell_command\"."
+msgstr ""
+
+#: notebook/serverapp.py:770
+msgid "Extra keyword arguments to pass to `set_secure_cookie`. See tornado's set_secure_cookie docs for details."
+msgstr ""
+
+#: notebook/serverapp.py:774
+msgid ""
+"Supply SSL options for the tornado HTTPServer.\n"
+"            See the tornado docs for details."
+msgstr ""
+
+#: notebook/serverapp.py:778
+msgid "Supply extra arguments that will be passed to Jinja environment."
+msgstr ""
+
+#: notebook/serverapp.py:782
+msgid "Extra variables to supply to jinja templates when rendering."
+msgstr ""
+
+#: notebook/serverapp.py:838
+msgid "Path to search for custom.js, css"
+msgstr ""
+
+#: notebook/serverapp.py:850
+msgid ""
+"Extra paths to search for serving jinja templates.\n"
+"\n"
+"        Can be used to override templates from notebook.templates."
+msgstr ""
+
+#: notebook/serverapp.py:861
+msgid "extra paths to look for Javascript notebook extensions"
+msgstr ""
+
+#: notebook/serverapp.py:906
+#, python-format
+msgid "Using MathJax: %s"
+msgstr ""
+
+#: notebook/serverapp.py:909
+msgid "The MathJax.js configuration file that is to be used."
+msgstr ""
+
+#: notebook/serverapp.py:914
+#, python-format
+msgid "Using MathJax configuration file: %s"
+msgstr ""
+
+#: notebook/serverapp.py:920
+msgid "The notebook manager class to use."
+msgstr ""
+
+#: notebook/serverapp.py:926
+msgid "The kernel manager class to use."
+msgstr ""
+
+#: notebook/serverapp.py:932
+msgid "The session manager class to use."
+msgstr ""
+
+#: notebook/serverapp.py:938
+msgid "The config manager class to use"
+msgstr ""
+
+#: notebook/serverapp.py:959
+msgid "The login handler class to use."
+msgstr ""
+
+#: notebook/serverapp.py:966
+msgid "The logout handler class to use."
+msgstr ""
+
+#: notebook/serverapp.py:970
+msgid "Whether to trust or not X-Scheme/X-Forwarded-Proto and X-Real-Ip/X-Forwarded-For headerssent by the upstream reverse proxy. Necessary if the proxy handles SSL"
+msgstr ""
+
+#: notebook/serverapp.py:982
+msgid ""
+"\n"
+"        DISABLED: use %pylab or %matplotlib in the notebook to enable matplotlib.\n"
+"        "
+msgstr ""
+
+#: notebook/serverapp.py:994
+msgid "Support for specifying --pylab on the command line has been removed."
+msgstr ""
+
+#: notebook/serverapp.py:996
+msgid "Please use `%pylab{0}` or `%matplotlib{0}` in the notebook itself."
+msgstr ""
+
+#: notebook/serverapp.py:1001
+msgid "The directory to use for notebooks and kernels."
+msgstr "用于笔记本和内核的目录。"
+
+#: notebook/serverapp.py:1024
+#, python-format
+msgid "No such notebook dir: '%r'"
+msgstr "没有找到路径: '%r' "
+
+#: notebook/serverapp.py:1046
+msgid "Dict of Python modules to load as notebook server extensions.Entry values can be used to enable and disable the loading of the extensions. The extensions will be loaded in alphabetical order."
+msgstr "将Python模块作为笔记本服务器扩展加载。可以使用条目值来启用和禁用扩展的加载。这些扩展将以字母顺序加载。"
+
+#: notebook/serverapp.py:1055
+msgid "Reraise exceptions encountered loading server extensions?"
+msgstr "重新运行的异常会遇到加载服务器扩展吗?"
+
+#: notebook/serverapp.py:1058
+msgid ""
+"(msgs/sec)\n"
+"        Maximum rate at which messages can be sent on iopub before they are\n"
+"        limited."
+msgstr ""
+
+#: notebook/serverapp.py:1062
+msgid ""
+"(bytes/sec)\n"
+"        Maximum rate at which stream output can be sent on iopub before they are\n"
+"        limited."
+msgstr ""
+
+#: notebook/serverapp.py:1066
+msgid ""
+"(sec) Time window used to \n"
+"        check the message and data rate limits."
+msgstr "(sec)时间窗口被用来 \n 检查消息和数据速率限制."
+
+#: notebook/serverapp.py:1077
+#, python-format
+msgid "No such file or directory: %s"
+msgstr "找不到文件或文件夹: %s"
+
+#: notebook/serverapp.py:1147
+msgid "Notebook servers are configured to only be run with a password."
+msgstr "服务设置为只能使用密码运行."
+
+#: notebook/serverapp.py:1148
+msgid "Hint: run the following command to set a password"
+msgstr "提示: 运行下面命令设置密码"
+
+#: notebook/serverapp.py:1149
+msgid "\t$ python -m notebook.auth password"
+msgstr ""
+
+#: notebook/serverapp.py:1187
+#, python-format
+msgid "The port %i is already in use, trying another port."
+msgstr "端口 %i 已经被站用, 请尝试其他端口."
+
+#: notebook/serverapp.py:1190
+#, python-format
+msgid "Permission to listen on port %i denied"
+msgstr "监听端口 %i 失败"
+
+#: notebook/serverapp.py:1199
+msgid "ERROR: the notebook server could not be started because no available port could be found."
+msgstr "错误: 服务启动失败因为没有找到可用的端口. "
+
+#: notebook/serverapp.py:1205
+msgid "[all ip addresses on your system]"
+msgstr "[系统所有IP地址]"
+
+#: notebook/serverapp.py:1229
+#, python-format
+msgid "Terminals not available (error was %s)"
+msgstr "终端不可用(错误: %s)"
+
+#: notebook/serverapp.py:1265
+msgid "interrupted"
+msgstr "中断"
+
+#: notebook/serverapp.py:1267
+msgid "y"
+msgstr ""
+
+#: notebook/serverapp.py:1268
+msgid "n"
+msgstr ""
+
+#: notebook/serverapp.py:1269
+#, python-format
+msgid "Shutdown this notebook server (%s/[%s])? "
+msgstr "关闭服务 (%s/[%s])"
+
+#: notebook/serverapp.py:1275
+msgid "Shutdown confirmed"
+msgstr "关闭确定"
+
+#: notebook/serverapp.py:1279
+msgid "No answer for 5s:"
+msgstr "5s 未响应"
+
+#: notebook/serverapp.py:1280
+msgid "resuming operation..."
+msgstr "重启操作..."
+
+#: notebook/serverapp.py:1288
+#, python-format
+msgid "received signal %s, stopping"
+msgstr "接受信号 %s, 正在停止"
+
+#: notebook/serverapp.py:1344
+#, python-format
+msgid "Error loading server extension %s"
+msgstr "加载插件 %s 失败"
+
+#: notebook/serverapp.py:1375
+#, python-format
+msgid "Shutting down %d kernel"
+msgid_plural "Shutting down %d kernels"
+msgstr[0] "关闭 %d 服务"
+msgstr[1] "关闭 %d 服务"
+
+#: notebook/serverapp.py:1383
+#, python-format
+msgid "%d active kernel"
+msgid_plural "%d active kernels"
+msgstr[0] "%d 活跃的服务"
+msgstr[1] "%d 活跃的服务"
+
+#: notebook/serverapp.py:1387
+#, python-format
+msgid ""
+"The Jupyter Notebook is running at:\n"
+"%s"
+msgstr "本程序运行在: %s"
+
+#: notebook/serverapp.py:1434
+msgid "Running as root is not recommended. Use --allow-root to bypass."
+msgstr "不建议以root身份运行.使用--allow-root绕过过."
+
+#: notebook/serverapp.py:1440
+msgid "Use Control-C to stop this server and shut down all kernels (twice to skip confirmation)."
+msgstr "使用control-c停止此服务器并关闭所有内核(两次跳过确认)."
+
+#: notebook/serverapp.py:1442
+msgid "Welcome to Project Jupyter! Explore the various tools available and their corresponding documentation. If you are interested in contributing to the platform, please visit the communityresources section at http://jupyter.org/community.html."
+msgstr "欢迎来到项目Jupyter! 探索可用的各种工具及其相应的文档. 如果你有兴趣对这个平台,请访问http://jupyter.org/community.html community resources部分."
+
+#: notebook/serverapp.py:1453
+#, python-format
+msgid "No web browser found: %s."
+msgstr "没有找到web浏览器: %s."
+
+#: notebook/serverapp.py:1458
+#, python-format
+msgid "%s does not exist"
+msgstr "%s 不存在"
+
+#: notebook/serverapp.py:1492
+msgid "Interrupted..."
+msgstr "已经中断..."
+
+#: notebook/services/contents/filemanager.py:525
+#, python-format
+msgid "Serving notebooks from local directory: %s"
+msgstr "启动notebooks 在本地路径: %s"
+
+#: notebook/services/contents/manager.py:69
+msgid "Untitled"
+msgstr "未命名"

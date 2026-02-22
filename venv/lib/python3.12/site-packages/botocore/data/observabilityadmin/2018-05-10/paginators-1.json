@@ -1,0 +1,46 @@
+{
+  "pagination": {
+    "ListResourceTelemetry": {
+      "input_token": "NextToken",
+      "output_token": "NextToken",
+      "limit_key": "MaxResults",
+      "result_key": "TelemetryConfigurations"
+    },
+    "ListResourceTelemetryForOrganization": {
+      "input_token": "NextToken",
+      "output_token": "NextToken",
+      "limit_key": "MaxResults",
+      "result_key": "TelemetryConfigurations"
+    },
+    "ListTelemetryRules": {
+      "input_token": "NextToken",
+      "output_token": "NextToken",
+      "limit_key": "MaxResults",
+      "result_key": "TelemetryRuleSummaries"
+    },
+    "ListTelemetryRulesForOrganization": {
+      "input_token": "NextToken",
+      "output_token": "NextToken",
+      "limit_key": "MaxResults",
+      "result_key": "TelemetryRuleSummaries"
+    },
+    "ListCentralizationRulesForOrganization": {
+      "input_token": "NextToken",
+      "output_token": "NextToken",
+      "limit_key": "MaxResults",
+      "result_key": "CentralizationRuleSummaries"
+    },
+    "ListS3TableIntegrations": {
+      "input_token": "NextToken",
+      "output_token": "NextToken",
+      "limit_key": "MaxResults",
+      "result_key": "IntegrationSummaries"
+    },
+    "ListTelemetryPipelines": {
+      "input_token": "NextToken",
+      "output_token": "NextToken",
+      "limit_key": "MaxResults",
+      "result_key": "PipelineSummaries"
+    }
+  }
+}

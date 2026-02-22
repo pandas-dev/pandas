@@ -1,0 +1,3 @@
+[array_api]
+blosc2 = blosc2
+

@@ -1,0 +1,2 @@
+[xarray.chunkmanagers]
+dask = xarray.namedarray.daskmanager:DaskManager

@@ -1,0 +1,193 @@
+{
+  "version" : 2,
+  "waiters" : {
+    "InboundExternalLinkActive" : {
+      "delay" : 30,
+      "maxAttempts" : 5,
+      "operation" : "GetInboundExternalLink",
+      "acceptors" : [ {
+        "matcher" : "path",
+        "argument" : "status",
+        "state" : "success",
+        "expected" : "ACTIVE"
+      }, {
+        "matcher" : "path",
+        "argument" : "status",
+        "state" : "failure",
+        "expected" : "REJECTED"
+      }, {
+        "matcher" : "path",
+        "argument" : "status",
+        "state" : "failure",
+        "expected" : "FAILED"
+      }, {
+        "matcher" : "path",
+        "argument" : "status",
+        "state" : "failure",
+        "expected" : "DELETED"
+      }, {
+        "matcher" : "path",
+        "argument" : "status",
+        "state" : "failure",
+        "expected" : "ISOLATED"
+      } ]
+    },
+    "LinkAccepted" : {
+      "delay" : 30,
+      "maxAttempts" : 5,
+      "operation" : "GetLink",
+      "acceptors" : [ {
+        "matcher" : "path",
+        "argument" : "status",
+        "state" : "success",
+        "expected" : "ACCEPTED"
+      }, {
+        "matcher" : "path",
+        "argument" : "status",
+        "state" : "failure",
+        "expected" : "REJECTED"
+      }, {
+        "matcher" : "path",
+        "argument" : "status",
+        "state" : "failure",
+        "expected" : "FAILED"
+      }, {
+        "matcher" : "path",
+        "argument" : "status",
+        "state" : "failure",
+        "expected" : "DELETED"
+      } ]
+    },
+    "LinkActive" : {
+      "delay" : 30,
+      "maxAttempts" : 5,
+      "operation" : "GetLink",
+      "acceptors" : [ {
+        "matcher" : "path",
+        "argument" : "status",
+        "state" : "success",
+        "expected" : "ACTIVE"
+      }, {
+        "matcher" : "path",
+        "argument" : "status",
+        "state" : "failure",
+        "expected" : "REJECTED"
+      }, {
+        "matcher" : "path",
+        "argument" : "status",
+        "state" : "failure",
+        "expected" : "FAILED"
+      }, {
+        "matcher" : "path",
+        "argument" : "status",
+        "state" : "failure",
+        "expected" : "DELETED"
+      } ]
+    },
+    "OutboundExternalLinkActive" : {
+      "delay" : 30,
+      "maxAttempts" : 5,
+      "operation" : "GetOutboundExternalLink",
+      "acceptors" : [ {
+        "matcher" : "path",
+        "argument" : "status",
+        "state" : "success",
+        "expected" : "ACTIVE"
+      }, {
+        "matcher" : "path",
+        "argument" : "status",
+        "state" : "failure",
+        "expected" : "REJECTED"
+      }, {
+        "matcher" : "path",
+        "argument" : "status",
+        "state" : "failure",
+        "expected" : "FAILED"
+      }, {
+        "matcher" : "path",
+        "argument" : "status",
+        "state" : "failure",
+        "expected" : "DELETED"
+      }, {
+        "matcher" : "path",
+        "argument" : "status",
+        "state" : "failure",
+        "expected" : "ISOLATED"
+      } ]
+    },
+    "RequesterGatewayActive" : {
+      "delay" : 30,
+      "maxAttempts" : 5,
+      "operation" : "GetRequesterGateway",
+      "acceptors" : [ {
+        "matcher" : "path",
+        "argument" : "status",
+        "state" : "success",
+        "expected" : "ACTIVE"
+      }, {
+        "matcher" : "path",
+        "argument" : "status",
+        "state" : "failure",
+        "expected" : "DELETED"
+      }, {
+        "matcher" : "path",
+        "argument" : "status",
+        "state" : "failure",
+        "expected" : "ERROR"
+      } ]
+    },
+    "RequesterGatewayDeleted" : {
+      "delay" : 30,
+      "maxAttempts" : 5,
+      "operation" : "GetRequesterGateway",
+      "acceptors" : [ {
+        "matcher" : "path",
+        "argument" : "status",
+        "state" : "success",
+        "expected" : "DELETED"
+      }, {
+        "matcher" : "path",
+        "argument" : "status",
+        "state" : "failure",
+        "expected" : "ERROR"
+      } ]
+    },
+    "ResponderGatewayActive" : {
+      "delay" : 30,
+      "maxAttempts" : 5,
+      "operation" : "GetResponderGateway",
+      "acceptors" : [ {
+        "matcher" : "path",
+        "argument" : "status",
+        "state" : "success",
+        "expected" : "ACTIVE"
+      }, {
+        "matcher" : "path",
+        "argument" : "status",
+        "state" : "failure",
+        "expected" : "DELETED"
+      }, {
+        "matcher" : "path",
+        "argument" : "status",
+        "state" : "failure",
+        "expected" : "ERROR"
+      } ]
+    },
+    "ResponderGatewayDeleted" : {
+      "delay" : 30,
+      "maxAttempts" : 5,
+      "operation" : "GetResponderGateway",
+      "acceptors" : [ {
+        "matcher" : "path",
+        "argument" : "status",
+        "state" : "success",
+        "expected" : "DELETED"
+      }, {
+        "matcher" : "path",
+        "argument" : "status",
+        "state" : "failure",
+        "expected" : "ERROR"
+      } ]
+    }
+  }
+}

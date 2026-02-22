@@ -1,0 +1,3 @@
+from typing import Final
+
+PUBLIC_MODULES: Final[list[str]] = ...

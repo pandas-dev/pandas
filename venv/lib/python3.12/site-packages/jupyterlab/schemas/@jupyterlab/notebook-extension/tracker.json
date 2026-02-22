@@ -1,0 +1,873 @@
+{
+  "jupyter.lab.setting-icon": "ui-components:notebook",
+  "jupyter.lab.setting-icon-label": "Notebook",
+  "jupyter.lab.menus": {
+    "main": [
+      {
+        "id": "jp-mainmenu-file",
+        "items": [
+          {
+            "type": "submenu",
+            "submenu": {
+              "id": "jp-mainmenu-file-new",
+              "items": [
+                {
+                  "command": "notebook:create-new",
+                  "rank": 10
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "jp-mainmenu-edit",
+        "items": [
+          {
+            "type": "separator",
+            "rank": 4
+          },
+          {
+            "command": "notebook:undo-cell-action",
+            "rank": 4
+          },
+          {
+            "command": "notebook:redo-cell-action",
+            "rank": 4
+          },
+          {
+            "type": "separator",
+            "rank": 5
+          },
+          {
+            "command": "notebook:cut-cell",
+            "rank": 5
+          },
+          {
+            "command": "notebook:copy-cell",
+            "rank": 5
+          },
+          {
+            "command": "notebook:paste-cell-below",
+            "rank": 5
+          },
+          {
+            "command": "notebook:paste-cell-above",
+            "rank": 5
+          },
+          {
+            "command": "notebook:paste-and-replace-cell",
+            "rank": 5
+          },
+          {
+            "type": "separator",
+            "rank": 6
+          },
+          {
+            "command": "notebook:delete-cell",
+            "rank": 6
+          },
+          {
+            "type": "separator",
+            "rank": 7
+          },
+          {
+            "command": "notebook:select-all",
+            "rank": 7
+          },
+          {
+            "command": "notebook:deselect-all",
+            "rank": 7
+          },
+          {
+            "type": "separator",
+            "rank": 8
+          },
+          {
+            "command": "notebook:move-cell-up",
+            "rank": 8
+          },
+          {
+            "command": "notebook:move-cell-down",
+            "rank": 8
+          },
+          {
+            "type": "separator",
+            "rank": 9
+          },
+          {
+            "command": "notebook:split-cell-at-cursor",
+            "rank": 9
+          },
+          {
+            "command": "notebook:merge-cells",
+            "rank": 9
+          },
+          {
+            "command": "notebook:merge-cell-above",
+            "rank": 9
+          },
+          {
+            "command": "notebook:merge-cell-below",
+            "rank": 9
+          },
+          {
+            "type": "separator",
+            "rank": 9
+          }
+        ]
+      },
+      {
+        "id": "jp-mainmenu-view",
+        "items": [
+          {
+            "type": "separator",
+            "rank": 10
+          },
+          {
+            "command": "notebook:hide-cell-code",
+            "rank": 10
+          },
+          {
+            "command": "notebook:hide-cell-outputs",
+            "rank": 10
+          },
+          {
+            "command": "notebook:hide-all-cell-code",
+            "rank": 10
+          },
+          {
+            "command": "notebook:hide-all-cell-outputs",
+            "rank": 10
+          },
+          {
+            "type": "separator",
+            "rank": 10
+          },
+          {
+            "command": "notebook:show-cell-code",
+            "rank": 11
+          },
+          {
+            "command": "notebook:show-cell-outputs",
+            "rank": 11
+          },
+          {
+            "command": "notebook:show-all-cell-code",
+            "rank": 11
+          },
+          {
+            "command": "notebook:show-all-cell-outputs",
+            "rank": 11
+          },
+          {
+            "type": "separator",
+            "rank": 11
+          },
+          {
+            "command": "notebook:toggle-render-side-by-side-current",
+            "rank": 12
+          },
+          {
+            "type": "separator",
+            "rank": 12
+          }
+        ]
+      },
+      {
+        "id": "jp-mainmenu-run",
+        "items": [
+          {
+            "type": "separator",
+            "rank": 10
+          },
+          {
+            "command": "notebook:run-cell-and-insert-below",
+            "rank": 10
+          },
+          {
+            "command": "notebook:run-cell",
+            "rank": 10
+          },
+          {
+            "command": "notebook:run-in-console",
+            "rank": 10
+          },
+          {
+            "type": "separator",
+            "rank": 11
+          },
+          {
+            "command": "notebook:run-all-above",
+            "rank": 11
+          },
+          {
+            "command": "notebook:run-all-below",
+            "rank": 11
+          },
+          {
+            "type": "separator",
+            "rank": 12
+          },
+          {
+            "command": "notebook:render-all-markdown",
+            "rank": 12
+          },
+          {
+            "type": "separator",
+            "rank": 12
+          }
+        ]
+      },
+      {
+        "id": "jp-mainmenu-kernel",
+        "items": [
+          {
+            "command": "notebook:restart-and-run-to-selected",
+            "rank": 1
+          }
+        ]
+      }
+    ],
+    "context": [
+      {
+        "type": "separator",
+        "selector": ".jp-Notebook .jp-Cell",
+        "rank": 0
+      },
+      {
+        "command": "notebook:cut-cell",
+        "selector": ".jp-Notebook .jp-Cell",
+        "rank": 1
+      },
+      {
+        "command": "notebook:copy-cell",
+        "selector": ".jp-Notebook .jp-Cell",
+        "rank": 2
+      },
+      {
+        "command": "notebook:paste-cell-below",
+        "selector": ".jp-Notebook .jp-Cell",
+        "rank": 3
+      },
+      {
+        "type": "separator",
+        "selector": ".jp-Notebook .jp-Cell",
+        "rank": 4
+      },
+      {
+        "command": "notebook:delete-cell",
+        "selector": ".jp-Notebook .jp-Cell",
+        "rank": 5
+      },
+      {
+        "type": "separator",
+        "selector": ".jp-Notebook .jp-Cell",
+        "rank": 6
+      },
+      {
+        "command": "notebook:split-cell-at-cursor",
+        "selector": ".jp-Notebook .jp-Cell",
+        "rank": 7
+      },
+      {
+        "command": "notebook:merge-cells",
+        "selector": ".jp-Notebook .jp-Cell",
+        "rank": 8
+      },
+      {
+        "command": "notebook:merge-cell-above",
+        "selector": ".jp-Notebook .jp-Cell",
+        "rank": 8
+      },
+      {
+        "command": "notebook:merge-cell-below",
+        "selector": ".jp-Notebook .jp-Cell",
+        "rank": 8
+      },
+      {
+        "type": "separator",
+        "selector": ".jp-Notebook .jp-Cell",
+        "rank": 9
+      },
+      {
+        "command": "notebook:create-output-view",
+        "selector": ".jp-Notebook .jp-CodeCell",
+        "rank": 10
+      },
+      {
+        "type": "separator",
+        "selector": ".jp-Notebook .jp-CodeCell",
+        "rank": 11
+      },
+      {
+        "command": "notebook:clear-cell-output",
+        "selector": ".jp-Notebook .jp-CodeCell",
+        "rank": 12
+      },
+      {
+        "command": "notebook:clear-all-cell-outputs",
+        "selector": ".jp-Notebook",
+        "rank": 13
+      },
+      {
+        "type": "separator",
+        "selector": ".jp-Notebook",
+        "rank": 20
+      },
+      {
+        "command": "notebook:enable-output-scrolling",
+        "selector": ".jp-Notebook",
+        "rank": 21
+      },
+      {
+        "command": "notebook:disable-output-scrolling",
+        "selector": ".jp-Notebook",
+        "rank": 22
+      },
+      {
+        "type": "separator",
+        "selector": ".jp-Notebook",
+        "rank": 30
+      },
+      {
+        "command": "notebook:undo-cell-action",
+        "selector": ".jp-Notebook",
+        "rank": 31
+      },
+      {
+        "command": "notebook:redo-cell-action",
+        "selector": ".jp-Notebook",
+        "rank": 32
+      },
+      {
+        "command": "notebook:restart-kernel",
+        "selector": ".jp-Notebook",
+        "rank": 33
+      },
+      {
+        "type": "separator",
+        "selector": ".jp-Notebook",
+        "rank": 40
+      },
+      {
+        "command": "notebook:create-console",
+        "selector": ".jp-Notebook",
+        "rank": 41
+      },
+      {
+        "command": "notebook:create-subshell-console",
+        "selector": ".jp-Notebook",
+        "rank": 42
+      },
+      {
+        "command": "notebook:create-new",
+        "selector": ".jp-DirListing-content",
+        "rank": 52,
+        "args": {
+          "isContextMenu": true
+        }
+      }
+    ]
+  },
+  "jupyter.lab.shortcuts": [
+    {
+      "command": "notebook:change-cell-to-code",
+      "keys": ["Y"],
+      "selector": ".jp-Notebook.jp-mod-commandMode:not(.jp-mod-readWrite) :focus"
+    },
+    {
+      "command": "notebook:change-cell-to-heading-1",
+      "keys": ["1"],
+      "selector": ".jp-Notebook.jp-mod-commandMode:not(.jp-mod-readWrite) :focus"
+    },
+    {
+      "command": "notebook:change-cell-to-heading-2",
+      "keys": ["2"],
+      "selector": ".jp-Notebook.jp-mod-commandMode:not(.jp-mod-readWrite) :focus"
+    },
+    {
+      "command": "notebook:change-cell-to-heading-3",
+      "keys": ["3"],
+      "selector": ".jp-Notebook.jp-mod-commandMode:not(.jp-mod-readWrite) :focus"
+    },
+    {
+      "command": "notebook:change-cell-to-heading-4",
+      "keys": ["4"],
+      "selector": ".jp-Notebook.jp-mod-commandMode:not(.jp-mod-readWrite) :focus"
+    },
+    {
+      "command": "notebook:change-cell-to-heading-5",
+      "keys": ["5"],
+      "selector": ".jp-Notebook.jp-mod-commandMode:not(.jp-mod-readWrite) :focus"
+    },
+    {
+      "command": "notebook:change-cell-to-heading-6",
+      "keys": ["6"],
+      "selector": ".jp-Notebook.jp-mod-commandMode:not(.jp-mod-readWrite) :focus"
+    },
+    {
+      "command": "notebook:change-cell-to-markdown",
+      "keys": ["M"],
+      "selector": ".jp-Notebook.jp-mod-commandMode:not(.jp-mod-readWrite) :focus"
+    },
+    {
+      "command": "notebook:change-cell-to-raw",
+      "keys": ["R"],
+      "selector": ".jp-Notebook.jp-mod-commandMode:not(.jp-mod-readWrite) :focus"
+    },
+    {
+      "command": "notebook:copy-cell",
+      "keys": ["C"],
+      "selector": ".jp-Notebook.jp-mod-commandMode:not(.jp-mod-readWrite) :focus"
+    },
+    {
+      "command": "notebook:cut-cell",
+      "keys": ["X"],
+      "selector": ".jp-Notebook.jp-mod-commandMode:not(.jp-mod-readWrite) :focus"
+    },
+    {
+      "command": "notebook:delete-cell",
+      "keys": ["D", "D"],
+      "selector": ".jp-Notebook.jp-mod-commandMode:not(.jp-mod-readWrite) :focus"
+    },
+    {
+      "command": "notebook:enter-command-mode",
+      "keys": ["Escape"],
+      "selector": ".jp-Notebook.jp-mod-editMode"
+    },
+    {
+      "command": "notebook:enter-command-mode",
+      "keys": ["Ctrl M"],
+      "selector": ".jp-Notebook.jp-mod-editMode"
+    },
+    {
+      "command": "notebook:access-previous-history-entry",
+      "keys": ["Alt ArrowUp"],
+      "selector": ".jp-Notebook.jp-mod-editMode"
+    },
+    {
+      "command": "notebook:access-next-history-entry",
+      "keys": ["Alt ArrowDown"],
+      "selector": ".jp-Notebook.jp-mod-editMode"
+    },
+    {
+      "command": "notebook:enter-edit-mode",
+      "keys": ["Enter"],
+      "selector": ".jp-Notebook.jp-mod-commandMode .jp-Cell:focus"
+    },
+    {
+      "command": "notebook:extend-marked-cells-above",
+      "keys": ["Shift ArrowUp"],
+      "selector": ".jp-Notebook.jp-mod-commandMode:not(.jp-mod-readWrite) :focus"
+    },
+    {
+      "command": "notebook:extend-marked-cells-above",
+      "keys": ["Shift K"],
+      "selector": ".jp-Notebook.jp-mod-commandMode:not(.jp-mod-readWrite) :focus"
+    },
+    {
+      "command": "notebook:extend-marked-cells-top",
+      "keys": ["Shift Home"],
+      "selector": ".jp-Notebook.jp-mod-commandMode:not(.jp-mod-readWrite) :focus"
+    },
+    {
+      "command": "notebook:extend-marked-cells-below",
+      "keys": ["Shift ArrowDown"],
+      "selector": ".jp-Notebook.jp-mod-commandMode:not(.jp-mod-readWrite) :focus"
+    },
+    {
+      "command": "notebook:extend-marked-cells-bottom",
+      "keys": ["Shift End"],
+      "selector": ".jp-Notebook.jp-mod-commandMode:not(.jp-mod-readWrite) :focus"
+    },
+    {
+      "command": "notebook:extend-marked-cells-below",
+      "keys": ["Shift J"],
+      "selector": ".jp-Notebook.jp-mod-commandMode:not(.jp-mod-readWrite) :focus"
+    },
+    {
+      "command": "notebook:insert-cell-above",
+      "keys": ["A"],
+      "selector": ".jp-Notebook.jp-mod-commandMode:not(.jp-mod-readWrite) :focus"
+    },
+    {
+      "command": "notebook:insert-cell-below",
+      "keys": ["B"],
+      "selector": ".jp-Notebook.jp-mod-commandMode:not(.jp-mod-readWrite) :focus"
+    },
+    {
+      "command": "notebook:merge-cells",
+      "keys": ["Shift M"],
+      "selector": ".jp-Notebook.jp-mod-commandMode:not(.jp-mod-readWrite) :focus"
+    },
+    {
+      "command": "notebook:merge-cell-above",
+      "keys": ["Ctrl Backspace"],
+      "selector": ".jp-Notebook.jp-mod-commandMode:not(.jp-mod-readWrite) :focus"
+    },
+    {
+      "command": "notebook:merge-cell-below",
+      "keys": ["Ctrl Shift M"],
+      "selector": ".jp-Notebook.jp-mod-commandMode:not(.jp-mod-readWrite) :focus"
+    },
+    {
+      "command": "notebook:move-cursor-down",
+      "keys": ["ArrowDown"],
+      "selector": ".jp-Notebook.jp-mod-commandMode:not(.jp-mod-readWrite) :focus"
+    },
+    {
+      "command": "notebook:move-cursor-down",
+      "keys": ["J"],
+      "selector": ".jp-Notebook.jp-mod-commandMode:not(.jp-mod-readWrite) :focus"
+    },
+    {
+      "command": "notebook:move-cursor-up",
+      "keys": ["ArrowUp"],
+      "selector": ".jp-Notebook.jp-mod-commandMode:not(.jp-mod-readWrite) :focus"
+    },
+    {
+      "command": "notebook:move-cursor-up",
+      "keys": ["K"],
+      "selector": ".jp-Notebook.jp-mod-commandMode:not(.jp-mod-readWrite) :focus"
+    },
+    {
+      "command": "notebook:move-cursor-heading-above-or-collapse",
+      "keys": ["ArrowLeft"],
+      "selector": ".jp-Notebook.jp-mod-commandMode:not(.jp-mod-readWrite) :focus"
+    },
+    {
+      "command": "notebook:move-cursor-heading-below-or-expand",
+      "keys": ["ArrowRight"],
+      "selector": ".jp-Notebook.jp-mod-commandMode:not(.jp-mod-readWrite) :focus"
+    },
+    {
+      "command": "notebook:insert-heading-above",
+      "keys": ["Shift A"],
+      "selector": ".jp-Notebook.jp-mod-commandMode:not(.jp-mod-readWrite) :focus"
+    },
+    {
+      "command": "notebook:insert-heading-below",
+      "keys": ["Shift B"],
+      "selector": ".jp-Notebook.jp-mod-commandMode:not(.jp-mod-readWrite) :focus"
+    },
+    {
+      "command": "notebook:collapse-all-headings",
+      "keys": ["Ctrl Shift ArrowLeft"],
+      "selector": ".jp-Notebook.jp-mod-commandMode:not(.jp-mod-readWrite) :focus"
+    },
+    {
+      "command": "notebook:expand-all-headings",
+      "keys": ["Ctrl Shift ArrowRight"],
+      "selector": ".jp-Notebook.jp-mod-commandMode:not(.jp-mod-readWrite) :focus"
+    },
+    {
+      "command": "notebook:paste-cell-below",
+      "keys": ["V"],
+      "selector": ".jp-Notebook.jp-mod-commandMode:not(.jp-mod-readWrite) :focus"
+    },
+    {
+      "command": "notebook:redo-cell-action",
+      "keys": ["Shift Z"],
+      "selector": ".jp-Notebook.jp-mod-commandMode:not(.jp-mod-readWrite) :focus"
+    },
+    {
+      "command": "notebook:run-cell",
+      "macKeys": ["Ctrl Enter"],
+      "keys": [],
+      "selector": ".jp-Notebook.jp-mod-commandMode:not(.jp-mod-readWrite) :focus"
+    },
+    {
+      "command": "notebook:run-cell",
+      "macKeys": ["Ctrl Enter"],
+      "keys": [],
+      "selector": ".jp-Notebook.jp-mod-editMode"
+    },
+    {
+      "command": "notebook:run-cell",
+      "keys": ["Accel Enter"],
+      "selector": ".jp-Notebook.jp-mod-commandMode:not(.jp-mod-readWrite) :focus"
+    },
+    {
+      "command": "notebook:run-cell",
+      "keys": ["Accel Enter"],
+      "selector": ".jp-Notebook.jp-mod-editMode"
+    },
+    {
+      "command": "notebook:run-cell-and-insert-below",
+      "keys": ["Alt Enter"],
+      "selector": ".jp-Notebook.jp-mod-commandMode:not(.jp-mod-readWrite) :focus"
+    },
+    {
+      "command": "notebook:run-cell-and-insert-below",
+      "keys": ["Alt Enter"],
+      "selector": ".jp-Notebook.jp-mod-editMode"
+    },
+    {
+      "command": "notebook:run-in-console",
+      "keys": [""],
+      "selector": ".jp-Notebook.jp-mod-editMode"
+    },
+    {
+      "command": "notebook:run-cell-and-select-next",
+      "keys": ["Shift Enter"],
+      "selector": ".jp-Notebook.jp-mod-editMode"
+    },
+    {
+      "command": "viewmenu:line-numbering",
+      "keys": ["Shift L"],
+      "selector": ".jp-Notebook.jp-mod-commandMode:not(.jp-mod-readWrite) :focus"
+    },
+    {
+      "command": "viewmenu:match-brackets",
+      "keys": [""],
+      "selector": ".jp-Notebook.jp-mod-commandMode"
+    },
+    {
+      "command": "notebook:select-all",
+      "keys": ["Accel A"],
+      "selector": ".jp-Notebook.jp-mod-commandMode:not(.jp-mod-readWrite) :focus"
+    },
+    {
+      "command": "notebook:split-cell-at-cursor",
+      "keys": ["Ctrl Shift -"],
+      "selector": ".jp-Notebook.jp-mod-editMode"
+    },
+    {
+      "command": "notebook:undo-cell-action",
+      "keys": ["Z"],
+      "selector": ".jp-Notebook.jp-mod-commandMode:not(.jp-mod-readWrite) :focus"
+    },
+    {
+      "command": "notebook:toggle-render-side-by-side-current",
+      "keys": ["Shift R"],
+      "selector": ".jp-Notebook.jp-mod-commandMode:not(.jp-mod-readWrite) :focus"
+    },
+    {
+      "command": "notebook:move-cell-up",
+      "keys": ["Ctrl Shift ArrowUp"],
+      "selector": ".jp-Notebook.jp-mod-commandMode:not(.jp-mod-readWrite) :focus"
+    },
+    {
+      "command": "notebook:move-cell-down",
+      "keys": ["Ctrl Shift ArrowDown"],
+      "selector": ".jp-Notebook.jp-mod-commandMode:not(.jp-mod-readWrite) :focus"
+    }
+  ],
+  "title": "Notebook",
+  "description": "Notebook settings.",
+  "definitions": {
+    "kernelStatusConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "showOnStatusBar": {
+          "type": "boolean",
+          "title": "Show kernel status on toolbar or status bar.",
+          "description": "If `true`, the kernel status progression will be displayed in the status bar otherwise it will be in the toolbar.",
+          "default": false
+        },
+        "showProgress": {
+          "type": "boolean",
+          "title": "Show execution progress.",
+          "default": true
+        },
+        "showJumpToRecentExecutionButton": {
+          "type": "boolean",
+          "title": "Show jump to most recently executed/executing cell button",
+          "description": "If enabled, displays a button that scrolls to the currently executing cell or, if none, the most recently executed cell. scrolls to the currently executing cell or, if none, the most recently executed cell. The button shows when hovering over the kernel execution indicator. Enabling this option automatically enables recording of execution timing metadata.",
+          "default": false
+        }
+      }
+    }
+  },
+  "properties": {
+    "enableKernelInitNotification": {
+      "title": "Notify about code execution if kernel is initializing",
+      "description": "Display notification if code cells are run while kernel is initializing.",
+      "type": "boolean",
+      "default": false
+    },
+    "codeCellConfig": {
+      "title": "Code Cell Configuration",
+      "description": "The configuration for all code cells; it will override the CodeMirror default configuration.",
+      "type": "object",
+      "default": {
+        "lineNumbers": false,
+        "lineWrap": false
+      }
+    },
+    "defaultCell": {
+      "title": "Default cell type",
+      "description": "The default type (markdown, code, or raw) for new cells",
+      "type": "string",
+      "enum": ["code", "markdown", "raw"],
+      "default": "code"
+    },
+    "autoStartDefaultKernel": {
+      "title": "Automatically Start Preferred Kernel",
+      "description": "Whether to automatically start the preferred kernel.",
+      "type": "boolean",
+      "default": false
+    },
+    "showInputPlaceholder": {
+      "title": "Show input placeholder",
+      "description": "Show placeholder text for standard input fields (requires reload)",
+      "type": "boolean",
+      "default": true
+    },
+    "inputHistoryScope": {
+      "type": "string",
+      "default": "global",
+      "enum": ["global", "session"],
+      "title": "Input History Scope",
+      "description": "Whether the line history for standard input (e.g. the ipdb prompt) should kept separately for different kernel sessions (`session`) or combined (`global`)."
+    },
+    "kernelShutdown": {
+      "title": "Shut down kernel",
+      "description": "Whether to shut down or not the kernel when closing a notebook.",
+      "type": "boolean",
+      "default": false
+    },
+    "markdownCellConfig": {
+      "title": "Markdown Cell Configuration",
+      "description": "The configuration for all markdown cells; it will override the CodeMirror default configuration.",
+      "type": "object",
+      "default": {
+        "lineNumbers": false,
+        "matchBrackets": false
+      }
+    },
+    "autoRenderMarkdownCells": {
+      "title": "Automatically render markdown when cursor leaves markdown cells",
+      "description": "Whether to render markdown cells when the cursor moves out of them.",
+      "type": "boolean",
+      "default": false
+    },
+    "rawCellConfig": {
+      "title": "Raw Cell Configuration",
+      "description": "The configuration for all raw cells; it will override the CodeMirror default configuration.",
+      "type": "object",
+      "default": {
+        "lineNumbers": false,
+        "matchBrackets": false
+      }
+    },
+    "scrollPastEnd": {
+      "title": "Scroll past last cell",
+      "description": "Whether to be able to scroll so the last cell is at the top of the panel",
+      "type": "boolean",
+      "default": true
+    },
+    "recordTiming": {
+      "title": "Recording timing",
+      "description": "Should timing data be recorded in cell metadata",
+      "type": "boolean",
+      "default": false
+    },
+    "overscanCount": {
+      "title": "Number of cells to render outside the viewport",
+      "description": "In 'full' windowing mode, this is the number of cells above and below the viewport.",
+      "type": "number",
+      "default": 1,
+      "minimum": 1
+    },
+    "maxNumberOutputs": {
+      "title": "The maximum number of output cells to be rendered in the output area.",
+      "description": "Defines the maximum number of output cells to be rendered in the output area for cells with many outputs. The output area will have a head and the remaining outputs will be trimmed and not displayed unless the user clicks on the information message. Set to 0 to have the complete display.",
+      "type": "number",
+      "default": 50
+    },
+    "scrollHeadingToTop": {
+      "title": "Scroll heading to top",
+      "description": "Whether to scroll heading to the document top when selecting it in the table of contents.",
+      "type": "boolean",
+      "default": true
+    },
+    "showEditorForReadOnlyMarkdown": {
+      "title": "Show editor for read-only Markdown cells",
+      "description": "Should an editor be shown for read-only markdown",
+      "type": "boolean",
+      "default": true
+    },
+    "kernelStatus": {
+      "title": "Kernel status icon configuration",
+      "description": "Defines the position and components of execution progress indicator.",
+      "$ref": "#/definitions/kernelStatusConfig",
+      "default": {
+        "showOnStatusBar": false,
+        "showProgress": true,
+        "showJumpToRecentExecutionButton": false
+      }
+    },
+    "documentWideUndoRedo": {
+      "title": "Enable undo/redo actions at the notebook document level.",
+      "description": "Enables the undo/redo actions at the notebook document level; aka undoing within a cell may undo the latest notebook change that happen in another cell. This is deprecated and will be removed in 5.0.0.",
+      "type": "boolean",
+      "default": false
+    },
+    "showHiddenCellsButton": {
+      "type": "boolean",
+      "title": "Show hidden cells button if collapsed",
+      "description": "If set to true, a button is shown below collapsed headings, indicating how many cells are hidden beneath the collapsed heading.",
+      "default": true
+    },
+    "renderingLayout": {
+      "title": "Rendering Layout",
+      "description": "Global setting to define the rendering layout in notebooks. 'default' or 'side-by-side' are supported.",
+      "enum": ["default", "side-by-side"],
+      "default": "default"
+    },
+    "sideBySideLeftMarginOverride": {
+      "title": "Side-by-side left margin override",
+      "description": "Side-by-side left margin override.",
+      "type": "string",
+      "default": "10px"
+    },
+    "sideBySideRightMarginOverride": {
+      "title": "Side-by-side right margin override",
+      "description": "Side-by-side right margin override.",
+      "type": "string",
+      "default": "10px"
+    },
+    "sideBySideOutputRatio": {
+      "title": "Side-by-side output ratio",
+      "description": "For the side-by-side rendering, the side-by-side output ratio defines the width of the output vs the input. Set 1 for same size, > 1 for larger output, < 1 for smaller output.",
+      "type": "number",
+      "default": 1,
+      "minimum": 0
+    },
+    "windowingMode": {
+      "title": "Windowing mode",
+      "description": "- 'defer': Improve loading time - Wait for idle CPU cycles to attach out of viewport cells\n- 'full': Best performance with side effects - Attach to the DOM only cells in viewport\n- 'none': Worst performance without side effects - Attach all cells to the viewport\n- 'contentVisibility': Browser-optimized rendering - Use content-visibility to skip offscreen cells",
+      "enum": ["defer", "full", "none", "contentVisibility"],
+      "default": "contentVisibility"
+    },
+    "accessKernelHistory": {
+      "title": "Kernel history access",
+      "description": "Enable kernel history access from notebook cells. Enabling this allows you to scroll through kernel history from a given notebook cell.",
+      "type": "boolean",
+      "default": false
+    },
+    "addExtraLineOnCellMerge": {
+      "title": "Add extra line when merging cells",
+      "description": "Whether to add an extra blank line between cells when merging them. When enabled, cells are joined with double newlines. When disabled, cells are joined with single newlines.",
+      "type": "boolean",
+      "default": true
+    },
+    "showMinimap": {
+      "title": "Show minimap",
+      "description": "Whether to show the notebook minimap (virtual scrollbar) by default for all notebooks.",
+      "type": "boolean",
+      "default": false
+    },
+    "useSystemClipboardForCells": {
+      "title": "Use system clipboard for copy/cut/paste of cells",
+      "description": "Whether to use the system clipboard for copy/cut/paste of cells. When enabled, cell contents are copied to the system clipboard, allowing copy/cut/paste between different notebook tabs or browser windows.",
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "additionalProperties": false,
+  "type": "object"
+}

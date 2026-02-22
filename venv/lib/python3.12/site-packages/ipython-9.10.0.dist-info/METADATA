@@ -1,0 +1,115 @@
+Metadata-Version: 2.4
+Name: ipython
+Version: 9.10.0
+Summary: IPython: Productive Interactive Computing
+Author: The IPython Development Team
+Author-email: ipython-dev@python.org
+License-Expression: BSD-3-Clause
+Project-URL: Homepage, https://ipython.org
+Project-URL: Documentation, https://ipython.readthedocs.io/
+Project-URL: Funding, https://jupyter.org/about#donate
+Project-URL: Source, https://github.com/ipython/ipython
+Project-URL: Tracker, https://github.com/ipython/ipython/issues
+Keywords: Interactive,Interpreter,Shell,Embedding
+Platform: Linux
+Platform: Mac OSX
+Platform: Windows
+Classifier: Framework :: IPython
+Classifier: Framework :: Jupyter
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: Science/Research
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3 :: Only
+Classifier: Topic :: System :: Shells
+Requires-Python: >=3.11
+Description-Content-Type: text/x-rst
+License-File: LICENSE
+License-File: COPYING.rst
+Requires-Dist: colorama>=0.4.4; sys_platform == "win32"
+Requires-Dist: decorator>=4.3.2
+Requires-Dist: ipython-pygments-lexers>=1.0.0
+Requires-Dist: jedi>=0.18.1
+Requires-Dist: matplotlib-inline>=0.1.5
+Requires-Dist: pexpect>4.3; sys_platform != "win32" and sys_platform != "emscripten"
+Requires-Dist: prompt_toolkit<3.1.0,>=3.0.41
+Requires-Dist: pygments>=2.11.0
+Requires-Dist: stack_data>=0.6.0
+Requires-Dist: traitlets>=5.13.0
+Requires-Dist: typing_extensions>=4.6; python_version < "3.12"
+Provides-Extra: black
+Requires-Dist: black; extra == "black"
+Provides-Extra: doc
+Requires-Dist: docrepr; extra == "doc"
+Requires-Dist: exceptiongroup; extra == "doc"
+Requires-Dist: intersphinx_registry; extra == "doc"
+Requires-Dist: ipykernel; extra == "doc"
+Requires-Dist: ipython[matplotlib,test]; extra == "doc"
+Requires-Dist: setuptools>=70.0; extra == "doc"
+Requires-Dist: sphinx_toml==0.0.4; extra == "doc"
+Requires-Dist: sphinx-rtd-theme>=0.1.8; extra == "doc"
+Requires-Dist: sphinx>=8.0; extra == "doc"
+Requires-Dist: typing_extensions; extra == "doc"
+Provides-Extra: test
+Requires-Dist: pytest>=7.0.0; extra == "test"
+Requires-Dist: pytest-asyncio>=1.0.0; extra == "test"
+Requires-Dist: testpath>=0.2; extra == "test"
+Requires-Dist: packaging>=20.1.0; extra == "test"
+Requires-Dist: setuptools>=61.2; extra == "test"
+Provides-Extra: test-extra
+Requires-Dist: ipython[test]; extra == "test-extra"
+Requires-Dist: curio; extra == "test-extra"
+Requires-Dist: jupyter_ai; extra == "test-extra"
+Requires-Dist: ipython[matplotlib]; extra == "test-extra"
+Requires-Dist: nbformat; extra == "test-extra"
+Requires-Dist: nbclient; extra == "test-extra"
+Requires-Dist: ipykernel>6.30; extra == "test-extra"
+Requires-Dist: numpy>=1.27; extra == "test-extra"
+Requires-Dist: pandas>2.1; extra == "test-extra"
+Requires-Dist: trio>=0.1.0; extra == "test-extra"
+Provides-Extra: matplotlib
+Requires-Dist: matplotlib>3.9; extra == "matplotlib"
+Provides-Extra: all
+Requires-Dist: ipython[doc,matplotlib,terminal,test,test_extra]; extra == "all"
+Requires-Dist: argcomplete>=3.0; extra == "all"
+Dynamic: author
+Dynamic: author-email
+Dynamic: license-file
+
+IPython provides a rich toolkit to help you make the most out of using Python
+interactively.  Its main components are:
+
+ * A powerful interactive Python shell
+ * A `Jupyter <https://jupyter.org/>`_ kernel to work with Python code in Jupyter
+   notebooks and other interactive frontends.
+
+The enhanced interactive Python shells have the following main features:
+
+ * Comprehensive object introspection.
+
+ * Input history, persistent across sessions.
+
+ * Caching of output results during a session with automatically generated
+   references.
+
+ * Extensible tab completion, with support by default for completion of python
+   variables and keywords, filenames and function keywords.
+
+ * Extensible system of 'magic' commands for controlling the environment and
+   performing many tasks related either to IPython or the operating system.
+
+ * A rich configuration system with easy switching between different setups
+   (simpler than changing $PYTHONSTARTUP environment variables every time).
+
+ * Session logging and reloading.
+
+ * Extensible syntax processing for special purpose situations.
+
+ * Access to the system shell with user-extensible alias system.
+
+ * Easily embeddable in other Python programs and GUIs.
+
+ * Integrated access to the pdb debugger and the Python profiler.
+
+The latest development version is always available from IPython's `GitHub
+site <http://github.com/ipython>`_.
