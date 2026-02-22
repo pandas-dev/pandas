@@ -1431,3 +1431,5 @@ reference/api/pandas.core.window.ewm.EWM.cov,pandas.core.window.ewm.ExponentialM
 reference/api/pandas.core.window.ewm.EWM.mean,pandas.core.window.ewm.ExponentialMovingWindow.mean
 reference/api/pandas.core.window.ewm.EWM.std,pandas.core.window.ewm.ExponentialMovingWindow.std
 reference/api/pandas.core.window.ewm.EWM.var,pandas.core.window.ewm.ExponentialMovingWindow.var
+reference/api/pandas.core.frame.DataFrame,reference/api/pandas.DataFrame
+reference/api/pandas.core.indexes.base.Index,reference/api/pandas.Index
