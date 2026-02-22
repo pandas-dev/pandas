@@ -1105,3 +1105,58 @@ def test_comparison_mismatched_datetime_units(index):
     result2 = ser2 < ser
     expected2 = Series([False, False, False], index=ser2.index)
     tm.assert_series_equal(result2, expected2)
+
+
+def test_div_mul_preserves_multiindex_categorical_type():
+    # GH 42785
+    # Multiindex Categorical type should preserved after series div/mul
+    cat_idx_0 = pd.CategoricalIndex(
+        [10, 20, 30], categories=[10, 20, 30], ordered=True, name="c0"
+    )
+    cat_idx_1 = pd.CategoricalIndex(
+        ["B", "A"], categories=["B", "A"], ordered=True, name="c1"
+    )
+    cat_idx_2 = pd.CategoricalIndex(["X", "Y"], categories=["X", "Y"], name="c2")
+
+    cat_multi_idx = pd.MultiIndex.from_product([cat_idx_0, cat_idx_1, cat_idx_2])
+
+    s = Series(range(12), index=cat_multi_idx)
+
+    # since `level` in sum() removed, tinker with groupby
+    norm = s.groupby(level=["c1", "c2"]).sum()
+
+    result_div = s.div(norm)
+    result_mul = s.mul(norm)
+
+    expected_idx = pd.MultiIndex.from_arrays(
+        [
+            Categorical(
+                [10, 20, 30, 10, 20, 30, 10, 20, 30, 10, 20, 30],
+                categories=[10, 20, 30],
+                ordered=True,
+            ),
+            Categorical(
+                ["A", "A", "A", "A", "A", "A", "B", "B", "B", "B", "B", "B"],
+                categories=["B", "A"],
+                ordered=True,
+            ),
+            Categorical(
+                ["X", "X", "X", "Y", "Y", "Y", "X", "X", "X", "Y", "Y", "Y"],
+                categories=["X", "Y"],
+            ),
+        ],
+        names=["c0", "c1", "c2"],
+    )
+
+    expected_div_values = [
+        s.loc[c0, c1, c2] / norm.loc[c1, c2] for c0, c1, c2 in expected_idx
+    ]
+    expected_mul_values = [
+        s.loc[c0, c1, c2] * norm.loc[c1, c2] for c0, c1, c2 in expected_idx
+    ]
+
+    expected_div = Series(expected_div_values, index=expected_idx)
+    expected_mul = Series(expected_mul_values, index=expected_idx)
+
+    tm.assert_series_equal(result_div, expected_div)
+    tm.assert_series_equal(result_mul, expected_mul)
