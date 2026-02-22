@@ -298,13 +298,13 @@ class TestTimedelta64ArithmeticUnsorted:
         for result in [idx * 2, np.multiply(idx, 2)]:
             assert isinstance(result, TimedeltaIndex)
             exp = TimedeltaIndex(["4h", "8h", "12h", "16h", "20h"], freq="4h", name="x")
-            tm.assert_index_equal(result, exp)
+            tm.assert_index_equal(result, exp, exact=True)
             assert result.freq == "4h"
 
         for result in [idx / 2, np.divide(idx, 2)]:
             assert isinstance(result, TimedeltaIndex)
             exp = TimedeltaIndex(["1h", "2h", "3h", "4h", "5h"], freq="h", name="x")
-            tm.assert_index_equal(result, exp)
+            tm.assert_index_equal(result, exp, exact=True)
             assert result.freq == "h"
 
         for result in [-idx, np.negative(idx)]:
@@ -312,14 +312,14 @@ class TestTimedelta64ArithmeticUnsorted:
             exp = TimedeltaIndex(
                 ["-2h", "-4h", "-6h", "-8h", "-10h"], freq="-2h", name="x"
             )
-            tm.assert_index_equal(result, exp)
+            tm.assert_index_equal(result, exp, exact=True)
             assert result.freq == "-2h"
 
         idx = TimedeltaIndex(["-2h", "-1h", "0h", "1h", "2h"], freq="h", name="x")
         for result in [abs(idx), np.absolute(idx)]:
             assert isinstance(result, TimedeltaIndex)
             exp = TimedeltaIndex(["2h", "1h", "0h", "1h", "2h"], freq=None, name="x")
-            tm.assert_index_equal(result, exp)
+            tm.assert_index_equal(result, exp, exact=True)
             assert result.freq is None
 
     def test_subtraction_ops(self):
@@ -345,31 +345,31 @@ class TestTimedelta64ArithmeticUnsorted:
 
         result = dt - dti
         expected = TimedeltaIndex(["0 days", "-1 days", "-2 days"], name="bar")
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
         result = dti - dt
         expected = TimedeltaIndex(["0 days", "1 days", "2 days"], name="bar")
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
         result = tdi - td
         expected = TimedeltaIndex(["0 days", NaT, "1 days"], name="foo")
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
         result = td - tdi
         expected = TimedeltaIndex(["0 days", NaT, "-1 days"], name="foo")
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
         result = dti - td
         expected = DatetimeIndex(
             ["20121231", "20130101", "20130102"], dtype="M8[us]", freq="D", name="bar"
         )
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
         result = dt - tdi
         expected = DatetimeIndex(
             ["20121231", NaT, "20121230"], dtype="M8[us]", name="foo"
         )
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
     def test_subtraction_ops_with_tz(self, box_with_array):
         # check that dt/dti subtraction ops with tz are validated
@@ -462,15 +462,15 @@ class TestTimedelta64ArithmeticUnsorted:
 
         result = tdi - tdi
         expected = TimedeltaIndex(["0 days", NaT, "0 days"], name="foo")
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
         result = tdi + tdi
         expected = TimedeltaIndex(["2 days", NaT, "4 days"], name="foo")
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
         result = dti - tdi  # name will be reset
         expected = DatetimeIndex(["20121231", NaT, "20130101"], dtype="M8[us]")
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
     def test_addition_ops(self):
         # with datetimes/timedelta and tdi/dti
@@ -483,21 +483,21 @@ class TestTimedelta64ArithmeticUnsorted:
         expected = DatetimeIndex(
             ["20130102", NaT, "20130103"], dtype="M8[us]", name="foo"
         )
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
         result = dt + tdi
         expected = DatetimeIndex(
             ["20130102", NaT, "20130103"], dtype="M8[us]", name="foo"
         )
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
         result = td + tdi
         expected = TimedeltaIndex(["2 days", NaT, "3 days"], name="foo")
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
         result = tdi + td
         expected = TimedeltaIndex(["2 days", NaT, "3 days"], name="foo")
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
         # unequal length
         msg = "cannot add indices of unequal length"
@@ -517,11 +517,11 @@ class TestTimedelta64ArithmeticUnsorted:
 
         result = tdi + dti  # name will be reset
         expected = DatetimeIndex(["20130102", NaT, "20130105"], dtype="M8[us]")
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
         result = dti + tdi  # name will be reset
         expected = DatetimeIndex(["20130102", NaT, "20130105"], dtype="M8[us]")
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
         result = dt + td
         expected = Timestamp("20130102")
@@ -540,7 +540,7 @@ class TestTimedelta64ArithmeticUnsorted:
         shifted = index + timedelta(1)
         back = shifted + timedelta(-1)
         back = back._with_freq("infer")
-        tm.assert_index_equal(index, back)
+        tm.assert_index_equal(index, back, exact=True)
 
         if freq == "D":
             expected = pd.tseries.offsets.Day(1)
@@ -554,7 +554,7 @@ class TestTimedelta64ArithmeticUnsorted:
 
         result = index - timedelta(1)
         expected = index + timedelta(-1)
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
     def test_timedelta_tick_arithmetic(self):
         # GH#4134, buggy with timedeltas
@@ -567,11 +567,11 @@ class TestTimedelta64ArithmeticUnsorted:
 
         assert result1.freq == rng.freq
         result1 = result1._with_freq(None)
-        tm.assert_index_equal(result1, result4)
+        tm.assert_index_equal(result1, result4, exact=True)
 
         assert result3.freq == rng.freq
         result3 = result3._with_freq(None)
-        tm.assert_index_equal(result2, result3)
+        tm.assert_index_equal(result2, result3, exact=True)
 
     def test_tda_add_sub_index(self):
         # Check that TimedeltaArray defers to Index on arithmetic ops
@@ -582,15 +582,15 @@ class TestTimedelta64ArithmeticUnsorted:
 
         result = tda + dti
         expected = tdi + dti
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
         result = tda + tdi
         expected = tdi + tdi
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
         result = tda - tdi
         expected = tdi - tdi
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
     def test_tda_add_dt64_object_array(
         self, performance_warning, box_with_array, tz_naive_fixture
@@ -667,27 +667,27 @@ class TestTimedelta64ArithmeticUnsorted:
 
         result = rng + 1 * rng.freq
         exp = timedelta_range("4 days", periods=5, freq="2D", name="x")
-        tm.assert_index_equal(result, exp)
+        tm.assert_index_equal(result, exp, exact=True)
         assert result.freq == "2D"
 
         result = rng - 2 * rng.freq
         exp = timedelta_range("-2 days", periods=5, freq="2D", name="x")
-        tm.assert_index_equal(result, exp)
+        tm.assert_index_equal(result, exp, exact=True)
         assert result.freq == "2D"
 
         result = rng * 2
         exp = timedelta_range("4 days", periods=5, freq="4D", name="x")
-        tm.assert_index_equal(result, exp)
+        tm.assert_index_equal(result, exp, exact=True)
         assert result.freq == "4D"
 
         result = rng / 2
         exp = timedelta_range("1 days", periods=5, freq="D", name="x")
-        tm.assert_index_equal(result, exp)
+        tm.assert_index_equal(result, exp, exact=True)
         assert result.freq == "D"
 
         result = -rng
         exp = timedelta_range("-2 days", periods=5, freq="-2D", name="x")
-        tm.assert_index_equal(result, exp)
+        tm.assert_index_equal(result, exp, exact=True)
         assert result.freq == "-2D"
 
         rng = timedelta_range("-2 days", periods=5, freq="D", name="x")
@@ -696,7 +696,7 @@ class TestTimedelta64ArithmeticUnsorted:
         exp = TimedeltaIndex(
             ["2 days", "1 days", "0 days", "1 days", "2 days"], name="x"
         )
-        tm.assert_index_equal(result, exp)
+        tm.assert_index_equal(result, exp, exact=True)
         assert result.freq is None
 
 
@@ -754,17 +754,17 @@ class TestAddSubNaTMasking:
         # These should not overflow!
         exp = TimedeltaIndex([NaT], dtype="m8[us]")
         result = pd.to_timedelta([NaT]) - Timedelta("1 days")
-        tm.assert_index_equal(result, exp)
+        tm.assert_index_equal(result, exp, exact=True)
 
         exp = TimedeltaIndex(["4 days", NaT])
         result = pd.to_timedelta(["5 days", NaT]) - Timedelta("1 days")
-        tm.assert_index_equal(result, exp)
+        tm.assert_index_equal(result, exp, exact=True)
 
         exp = TimedeltaIndex([NaT, NaT, "5 hours"])
         result = pd.to_timedelta([NaT, "5 days", "1 hours"]) + pd.to_timedelta(
             ["7 seconds", NaT, "4 hours"]
         )
-        tm.assert_index_equal(result, exp)
+        tm.assert_index_equal(result, exp, exact=True)
 
 
 class TestTimedeltaArraylikeAddSubOps:
@@ -2328,4 +2328,4 @@ def test_add_timestamp_to_timedelta():
             for i in range(31)
         ]
     )
-    tm.assert_index_equal(result, expected)
+    tm.assert_index_equal(result, expected, exact=True)

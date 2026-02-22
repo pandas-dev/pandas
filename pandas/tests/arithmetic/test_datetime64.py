@@ -848,7 +848,7 @@ class TestDatetime64Arithmetic:
         tm.assert_equal(result, expected)
 
         rng += two_hours
-        tm.assert_equal(rng, expected)
+        tm.assert_equal(result, expected)
 
     def test_dt64arr_sub_timedeltalike_scalar(
         self, tz_naive_fixture, two_hours, box_with_array
@@ -1635,7 +1635,7 @@ class TestDatetime64DateOffsetArithmetic:
             ],
             dtype="datetime64[ns]",
         )
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
         result = dti + DateOffset(days=1, milliseconds=4)
         expected = DatetimeIndex(
@@ -1646,7 +1646,7 @@ class TestDatetime64DateOffsetArithmetic:
             ],
             dtype="datetime64[ns]",
         )
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
 
 class TestDatetime64OverflowHandling:
@@ -2048,17 +2048,17 @@ class TestDatetimeIndexArithmetic:
 
         # add with TimedeltaIndex
         result = dti + tdi
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
         result = tdi + dti
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
         # add with timedelta64 array
         result = dti + tdi.values
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
         result = tdi.values + dti
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
     def test_dti_iadd_tdi(self, tz_naive_fixture):
         # GH#17558
@@ -2071,20 +2071,20 @@ class TestDatetimeIndexArithmetic:
         # iadd with TimedeltaIndex
         result = DatetimeIndex([Timestamp("2017-01-01", tz=tz)] * 10)
         result += tdi
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
         result = pd.timedelta_range("0 days", periods=10)
         result += dti
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
         # iadd with timedelta64 array
         result = DatetimeIndex([Timestamp("2017-01-01", tz=tz)] * 10)
         result += tdi.values
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
         result = pd.timedelta_range("0 days", periods=10)
         result += dti
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
     def test_dti_sub_tdi(self, tz_naive_fixture):
         # GH#17558
@@ -2096,7 +2096,7 @@ class TestDatetimeIndexArithmetic:
 
         # sub with TimedeltaIndex
         result = dti - tdi
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
         msg = "cannot subtract .*TimedeltaArray"
         with pytest.raises(TypeError, match=msg):
@@ -2104,7 +2104,7 @@ class TestDatetimeIndexArithmetic:
 
         # sub with timedelta64 array
         result = dti - tdi.values
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
         msg = "cannot subtract a datelike from a TimedeltaArray"
         with pytest.raises(TypeError, match=msg):
@@ -2121,7 +2121,7 @@ class TestDatetimeIndexArithmetic:
         # isub with TimedeltaIndex
         result = DatetimeIndex([Timestamp("2017-01-01", tz=tz)] * 10).as_unit(unit)
         result -= tdi
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
         # DTA.__isub__ GH#43904
         dta = dti._data.copy()
@@ -2139,7 +2139,7 @@ class TestDatetimeIndexArithmetic:
         # isub with timedelta64 array
         result = DatetimeIndex([Timestamp("2017-01-01", tz=tz)] * 10).as_unit(unit)
         result -= tdi.values
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
         with pytest.raises(TypeError, match=msg):
             tdi.values -= dti
@@ -2160,16 +2160,16 @@ class TestDatetimeIndexArithmetic:
         dta = dti.array
         result = dta - dti
         expected = dti - dti
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
         tdi = result
         result = dta + tdi
         expected = dti + tdi
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
         result = dta - tdi
         expected = dti - tdi
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
     def test_sub_dti_dti(self, unit):
         # previously performed setop (deprecated in 0.16.0), now changed to
@@ -2180,10 +2180,10 @@ class TestDatetimeIndexArithmetic:
         expected = TimedeltaIndex([0, 0, 0]).as_unit(unit)
 
         result = dti - dti
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
         result = dti_tz - dti_tz
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
         msg = "Cannot subtract tz-naive and tz-aware datetime-like objects"
         with pytest.raises(TypeError, match=msg):
             dti_tz - dti
@@ -2193,7 +2193,7 @@ class TestDatetimeIndexArithmetic:
 
         # isub
         dti -= dti
-        tm.assert_index_equal(dti, expected)
+        tm.assert_index_equal(dti, expected, exact=True)
 
         # different length raises ValueError
         dti1 = date_range("20130101", periods=3, unit=unit)
@@ -2207,7 +2207,7 @@ class TestDatetimeIndexArithmetic:
         dti2 = DatetimeIndex(["2012-01-02", "2012-01-03", np.nan]).as_unit(unit)
         expected = TimedeltaIndex(["1 days", np.nan, np.nan]).as_unit(unit)
         result = dti2 - dti1
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
     # -------------------------------------------------------------------
     # TODO: Most of this block is moved from series or frame tests, needs
@@ -2315,14 +2315,14 @@ class TestDatetimeIndexArithmetic:
         exp = date_range("2011-01-02", periods=3, freq="2D", name="x", unit=unit)
         for result in [idx + delta, np.add(idx, delta)]:
             assert isinstance(result, DatetimeIndex)
-            tm.assert_index_equal(result, exp)
+            tm.assert_index_equal(result, exp, exact=True)
             assert result.freq == "2D"
 
         exp = date_range("2010-12-31", periods=3, freq="2D", name="x", unit=unit)
 
         for result in [idx - delta, np.subtract(idx, delta)]:
             assert isinstance(result, DatetimeIndex)
-            tm.assert_index_equal(result, exp)
+            tm.assert_index_equal(result, exp, exact=True)
             assert result.freq == "2D"
 
         # When adding/subtracting an ndarray (which has no .freq), the result
@@ -2336,7 +2336,7 @@ class TestDatetimeIndexArithmetic:
         ).as_unit(unit)
 
         for result in [idx + delta, np.add(idx, delta)]:
-            tm.assert_index_equal(result, exp)
+            tm.assert_index_equal(result, exp, exact=True)
             assert result.freq == exp.freq
 
         exp = DatetimeIndex(
@@ -2344,7 +2344,7 @@ class TestDatetimeIndexArithmetic:
         ).as_unit(unit)
         for result in [idx - delta, np.subtract(idx, delta)]:
             assert isinstance(result, DatetimeIndex)
-            tm.assert_index_equal(result, exp)
+            tm.assert_index_equal(result, exp, exact=True)
             assert result.freq == exp.freq
 
     def test_dti_add_series(self, tz_naive_fixture, names):
@@ -2366,9 +2366,9 @@ class TestDatetimeIndexArithmetic:
 
         expected = index + Timedelta(seconds=5)
         result3 = ser.values + index
-        tm.assert_index_equal(result3, expected)
+        tm.assert_index_equal(result3, expected, exact=True)
         result4 = index + ser.values
-        tm.assert_index_equal(result4, expected)
+        tm.assert_index_equal(result4, expected, exact=True)
 
     @pytest.mark.parametrize("op", [operator.add, roperator.radd, operator.sub])
     def test_dti_addsub_offset_arraylike(
@@ -2436,7 +2436,7 @@ def test_shift_months(years, months, unit):
 
     raw = [x + pd.offsets.DateOffset(years=years, months=months) for x in dti]
     expected = DatetimeIndex(raw).as_unit(dti.unit)
-    tm.assert_index_equal(actual, expected)
+    tm.assert_index_equal(actual, expected, exact=True)
 
 
 def test_dt64arr_addsub_object_dtype_2d(performance_warning):

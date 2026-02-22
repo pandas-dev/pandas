@@ -21,6 +21,7 @@ from pandas.util._decorators import (
     deprecate_kwarg,
     set_module,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_bool,
@@ -188,7 +189,7 @@ def assert_dict_equal(left, right, compare_keys: bool = True) -> None:
 def assert_index_equal(
     left: Index,
     right: Index,
-    exact: bool | str = "equiv",
+    exact: bool | str | lib.NoDefault = lib.no_default,
     check_names: bool = True,
     check_exact: bool = True,
     check_categorical: bool = True,
@@ -210,6 +211,11 @@ def assert_index_equal(
         Whether to check the Index class, dtype and inferred_type
         are identical. If 'equiv', then RangeIndex can be substituted for
         Index with an int64 dtype as well.
+
+        .. deprecated:: 3.1.0
+            The default value of 'equiv' has been deprecated and will be changed to
+            True in the future.
+
     check_names : bool, default True
         Whether to check the names attribute.
     check_exact : bool, default True
@@ -244,6 +250,16 @@ def assert_index_equal(
 
     if obj is None:
         obj = "MultiIndex" if isinstance(left, MultiIndex) else "Index"
+
+    if exact is lib.no_default:
+        warnings.warn(
+            "The default value of 'equiv' for the `exact` parameter is deprecated "
+            "and will be changed to 'True' in a future version. Please set exact "
+            "to the desired value to avoid seeing this warning",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        exact = "equiv"
 
     def _check_types(left, right, obj: str = "Index") -> None:
         if not exact:
@@ -1376,13 +1392,23 @@ def assert_equal(left, right, **kwargs) -> None:
     __tracebackhide__ = True
 
     if isinstance(left, Index):
-        assert_index_equal(left, right, **kwargs)
+        exact = kwargs.pop("exact", True)
+        assert_index_equal(left, right, exact=exact, **kwargs)
         if isinstance(left, (DatetimeIndex, TimedeltaIndex)):
             assert left.freq == right.freq, (left.freq, right.freq)
     elif isinstance(left, Series):
-        assert_series_equal(left, right, **kwargs)
+        check_index_type = kwargs.pop("check_index_type", True)
+        assert_series_equal(left, right, check_index_type=check_index_type, **kwargs)
     elif isinstance(left, DataFrame):
-        assert_frame_equal(left, right, **kwargs)
+        check_index_type = kwargs.pop("check_index_type", True)
+        check_column_type = kwargs.pop("check_column_type", True)
+        assert_frame_equal(
+            left,
+            right,
+            check_index_type=check_index_type,
+            check_column_type=check_column_type,
+            **kwargs,
+        )
     elif isinstance(left, IntervalArray):
         assert_interval_array_equal(left, right, **kwargs)
     elif isinstance(left, PeriodArray):
