@@ -9560,13 +9560,50 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             msg = "na_option must be one of 'keep', 'top', or 'bottom'"
             raise ValueError(msg)
 
-        def ranker(data):
-            if data.ndim == 2:
-                # i.e. DataFrame, we cast to ndarray
-                values = data.values
+        if numeric_only:
+            if self.ndim == 1 and not is_numeric_dtype(self.dtype):
+                # GH#47500
+                raise TypeError(
+                    "Series.rank does not allow numeric_only=True with "
+                    "non-numeric dtype."
+                )
+            data = self._get_numeric_data()
+        else:
+            data = self
+
+        if data.ndim == 2:
+            # GH#52829: rank column-by-column for axis=0 to preserve EA dtypes
+            if axis_int == 0:
+                result_columns = {}
+                for col in data.columns:
+                    result_columns[col] = data[col].rank(
+                        axis=0,
+                        method=method,
+                        numeric_only=False,
+                        na_option=na_option,
+                        ascending=ascending,
+                        pct=pct,
+                    )
+                result = data._constructor(
+                    result_columns, **data._construct_axes_dict()
+                )
+                return result.__finalize__(self, method="rank")
             else:
-                # i.e. Series, can dispatch to EA
-                values = data._values
+                # axis=1: rank across columns per row, use ndarray path
+                values = data.values
+                ranks = algos.rank(
+                    values,
+                    axis=1,
+                    method=method,
+                    ascending=ascending,
+                    na_option=na_option,
+                    pct=pct,
+                )
+                ranks_obj = self._constructor(ranks, **data._construct_axes_dict())
+                return ranks_obj.__finalize__(self, method="rank")
+        else:
+            # Series: can dispatch to EA
+            values = data._values
 
             if isinstance(values, ExtensionArray):
                 ranks = values._rank(
@@ -9588,19 +9625,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             ranks_obj = self._constructor(ranks, **data._construct_axes_dict())
             return ranks_obj.__finalize__(self, method="rank")
-
-        if numeric_only:
-            if self.ndim == 1 and not is_numeric_dtype(self.dtype):
-                # GH#47500
-                raise TypeError(
-                    "Series.rank does not allow numeric_only=True with "
-                    "non-numeric dtype."
-                )
-            data = self._get_numeric_data()
-        else:
-            data = self
-
-        return ranker(data)
 
     def compare(
         self,
