@@ -732,7 +732,7 @@ cdef class TextReader:
                 if self.has_mi_columns:
 
                     # If we have grabbed an extra line, but it's not in our
-                    # format, save in the buffer, and create an blank extra
+                    # format, save in the buffer, and create a blank extra
                     # line for the rest of the parsing code.
                     if hr == prelim_header[-1]:
                         lc = len(this_header)
@@ -1747,7 +1747,7 @@ cdef _try_uint64(parser_t *parser, int64_t col,
         Py_ssize_t lines
         coliter_t it
         uint64_t *data
-        ndarray result
+        ndarray[uint64_t] result
         uint_state state
 
     lines = line_end - line_start
@@ -1819,7 +1819,7 @@ cdef _try_int64(parser_t *parser, int64_t col,
         Py_ssize_t lines
         coliter_t it
         int64_t *data
-        ndarray result
+        ndarray[int64_t] result
         int64_t NA = na_values[np.int64]
 
     lines = line_end - line_start
@@ -1916,7 +1916,7 @@ cdef _try_bool_flex(parser_t *parser, int64_t col,
         int error, na_count = 0
         Py_ssize_t lines
         uint8_t *data
-        ndarray result
+        ndarray[uint8_t] result
         uint8_t NA = na_values[np.bool_]
 
     lines = line_end - line_start

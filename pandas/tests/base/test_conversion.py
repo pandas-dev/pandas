@@ -299,7 +299,7 @@ def test_array_multiindex_raises():
         (np.array([1, 2], dtype=np.int64), np.array([1, 2], dtype=np.int64), True),
         (pd.Categorical(["a", "b"]), np.array(["a", "b"], dtype=object), False),
         (
-            pd.core.arrays.period_array(["2000", "2001"], freq="D"),
+            pd.PeriodIndex(["2000", "2001"], freq="D").array,
             np.array([pd.Period("2000", freq="D"), pd.Period("2001", freq="D")]),
             False,
         ),

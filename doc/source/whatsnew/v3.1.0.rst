@@ -28,8 +28,8 @@ enhancement2
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
+- :meth:`.DataFrameGroupBy.agg` now allows for the provided ``func`` to return a NumPy array (:issue:`63957`)
 - Display formatting for float sequences in DataFrame cells now respects the ``display.precision`` option (:issue:`60503`).
--
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_310.notable_bug_fixes:
@@ -92,7 +92,7 @@ Other API changes
 
 Deprecations
 ~~~~~~~~~~~~
--
+- Deprecated :meth:`.DataFrameGroupBy.agg` and :meth:`.Resampler.agg` unpacking a scalar when the provided ``func`` returns a Series or array of length 1; in the future this will result in the Series or array being in the result. Users should unpack the scalar in ``func`` itself (:issue:`64014`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -100,7 +100,9 @@ Deprecations
 
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
--
+- Performance improvement in :meth:`DataFrame.__getitem__` when selecting a
+  single column by label on a :class:`DataFrame` with duplicate column names.
+  (:issue:`64126`).
 -
 
 .. ---------------------------------------------------------------------------
@@ -136,7 +138,7 @@ Numeric
 
 Conversion
 ^^^^^^^^^^
--
+- Fixed :func:`pandas.array` to preserve mask information when converting NumPy masked arrays, converting masked values to missing values (:issue:`63879`).
 -
 
 Strings
@@ -151,7 +153,7 @@ Interval
 
 Indexing
 ^^^^^^^^
--
+- Bugs in setitem-with-expansion when adding new rows failing to keep the original dtype in some cases (:issue:`32346`, :issue:`15231`, :issue:`47503`, :issue:`6485`, :issue:`25383`, :issue:`52235`, :issue:`17026`, :issue:`56010`)
 -
 
 Missing
@@ -166,8 +168,10 @@ MultiIndex
 
 I/O
 ^^^
--
--
+- Fixed bug in :func:`read_excel` where usage of ``skiprows`` could lead to an infinite loop (:issue:`64027`)
+- Fixed :func:`read_json` with ``lines=True`` and ``chunksize`` to respect ``nrows``
+  when the requested row count is not a multiple of the chunk size (:issue:`64025`)
+- Fixed :func:`read_json` with ``lines=True`` and ``nrows=0`` to return an empty DataFrame (:issue:`64025`)
 
 Period
 ^^^^^^
@@ -182,7 +186,7 @@ Plotting
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 - Bug in :meth:`.DataFrameGroupBy.agg` when there are no groups, multiple keys, and ``group_keys=False`` (:issue:`51445`)
--
+- Bug in :meth:`.DataFrameGroupBy.agg` would operate on the group as a whole when ``args`` or ``kwargs`` are supplied for the provided ``func``; now this method only operates on each Series of the group (:issue:`39169`)
 
 Reshaping
 ^^^^^^^^^
@@ -196,6 +200,7 @@ Sparse
 
 ExtensionArray
 ^^^^^^^^^^^^^^
+- Fixed bug in :meth:`Series.apply` and :meth:`Series.map` where nullable integer dtypes were converted to float, causing precision loss for large integers; now the nullable dtype will be preserved (:issue:`63903`).
 -
 -
 

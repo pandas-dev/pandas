@@ -2170,7 +2170,7 @@ class TestLocSetitemWithExpansion:
             assert exp_index[-1][0] == key
         else:
             assert exp_index[-1] == key
-        exp_data = np.arange(N + 1).astype(np.float64)
+        exp_data = np.arange(N + 1).astype(np.int64)
         expected = DataFrame(exp_data, index=exp_index)
 
         # Add new row, but no new columns
@@ -2227,6 +2227,140 @@ class TestLocSetitemWithExpansion:
         bex = val.append(DatetimeIndex([pd.NaT, pd.NaT], dtype=val.dtype))
         expected = DataFrame({"A": range(5), "B": bex})
         assert expected.dtypes["B"] == val.dtype
+        tm.assert_frame_equal(df, expected)
+
+    def test_loc_setitem_expansion_both(self):
+        # GH#47503
+        ct_arr = np.array([[70, 150], [66, 81]])
+        df = DataFrame(
+            data=ct_arr,
+            columns=["Outstanding", "Not Outstanding"],
+            index=["Bank", "Credit Union"],
+        )
+        ctot = df.copy()
+
+        df.loc["Total", :] = ctot.sum(axis=0)
+        df.loc[:, "Total"] = ctot.sum(axis=1)
+
+        expected = DataFrame(
+            {
+                "Outstanding": np.array([70, 66, 136]),
+                "Not Outstanding": np.array([150, 81, 231]),
+                "Total": [220, 147, np.nan],
+            },
+            index=["Bank", "Credit Union", "Total"],
+        )
+        tm.assert_frame_equal(df, expected)
+
+    def test_loc_setitem_with_expansion_dtype_retention(self):
+        # GH#6485
+        df = DataFrame({"a": range(10)}, dtype="i4")
+        df.loc[10] = 10
+
+        expected = DataFrame({"a": range(11)}, dtype="i4")
+        tm.assert_frame_equal(df, expected)
+
+        ser = df["a"].iloc[:-1]
+        ser.loc[10] = 10
+        tm.assert_series_equal(ser, expected["a"])
+
+    def test_loc_setitem_with_expansion_dtype_retention_empty(self):
+        # GH#6485
+        df = DataFrame({"a": Series([], dtype="i8")})
+        df.loc[0, "a"] = 3
+
+        expected = DataFrame({"a": [3]}, dtype="i8")
+        tm.assert_frame_equal(df, expected)
+
+        ser = df["a"].iloc[:-1]
+        ser.loc[0] = 3
+        tm.assert_series_equal(ser, expected["a"])
+
+    def test_loc_setitem_with_expansion_multi_column(self):
+        # GH#15231
+        df = DataFrame([[1, 2], [3, 4]], columns=["a", "b"])
+        df.loc[2] = Series({"a": 7})
+
+        expected = DataFrame({"a": [1, 3, 7], "b": [2, 4, np.nan]})
+        tm.assert_frame_equal(df, expected)
+
+    def test_loc_setitem_with_expansion_categorical(self):
+        # GH#25383
+        df = DataFrame(
+            {
+                "reg": [0, 1, 2],
+                "cat": Categorical(["a", "b", "b"], categories=["a", "b", "c", "d"]),
+            }
+        )
+        df.loc[3] = (3, "c")
+
+        expected = DataFrame(
+            {
+                "reg": [0, 1, 2, 3],
+                "cat": Categorical(
+                    ["a", "b", "b", "c"], categories=["a", "b", "c", "d"]
+                ),
+            }
+        )
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.xfail(
+        reason="Pending decision on whether to special-case empty cases."
+    )
+    def test_loc_setitem_with_expansion_empty_stays_object(self):
+        # GH#31805
+        df = DataFrame(columns=["A", "B", "C"])
+        df.loc[0] = [2015, 1, 7.0]
+
+        expected = DataFrame({"A": [2015], "B": [1], "C": [7.0]}, dtype=object)
+        tm.assert_frame_equal(df, expected)
+
+    def test_loc_setitem_with_expansion_retains_ea_dtype(self):
+        # GH#32346
+        ser = Series([1, 2, 3], dtype="Int64")
+        ser.loc[3] = 4
+        expected = Series([1, 2, 3, 4], dtype="Int64")
+        tm.assert_series_equal(ser, expected)
+
+    @td.skip_if_no("pyarrow")
+    def test_setitem_with_expansion_pyarrow_scalar_retains_dtype(self):
+        # GH#52235
+        ts1 = Timestamp("2025-09-15")
+        ts2 = Timestamp("2025-09-16")
+        ser = Series([ts1], dtype="date32[pyarrow]")
+
+        import pyarrow as pa
+
+        item = pa.scalar(ts2, type="date32")
+
+        ser[1] = item
+
+        expected = Series([ts1, ts2], dtype="date32[pyarrow]")
+        tm.assert_series_equal(ser, expected)
+
+    def test_loc_setitem_with_expansion_multiindex_retains_dtypes(self):
+        # GH#17026
+        mi = MultiIndex.from_tuples([("a", "c"), ("b", "c"), ("c", "d")])
+        expected = DataFrame([[1, 2], [3, 4], [5, 6]], index=mi)
+
+        df = expected.iloc[:-1]
+        df.loc[("c", "d"), :] = [5, 6]
+
+        tm.assert_frame_equal(df, expected)
+
+    def test_loc_setitem_with_expansion_new_row_and_new_columns(self):
+        # GH#58316
+        df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+        df.loc["x", ["C", "D"]] = 91
+        expected = DataFrame(
+            {
+                "A": [1.0, 2.0, 3.0, np.nan],
+                "B": [4.0, 5.0, 6.0, np.nan],
+                "C": [np.nan, np.nan, np.nan, 91.0],
+                "D": [np.nan, np.nan, np.nan, 91.0],
+            },
+            index=Index([0, 1, 2, "x"]),
+        )
         tm.assert_frame_equal(df, expected)
 
 

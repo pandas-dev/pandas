@@ -84,6 +84,9 @@ class ListAccessor(ArrowAccessor):
         """
         Return the length of each list in the Series.
 
+        Computes the number of elements in each list entry. The result is a
+        Series of integers with the same index as the original Series.
+
         Returns
         -------
         pandas.Series
@@ -123,6 +126,9 @@ class ListAccessor(ArrowAccessor):
     def __getitem__(self, key: int | slice) -> Series:
         """
         Index or slice lists in the Series.
+
+        Retrieves elements at the given integer index or slice from each list
+        in the Series, returning a new Series with the selected values.
 
         Parameters
         ----------
@@ -195,6 +201,10 @@ class ListAccessor(ArrowAccessor):
         """
         Flatten list values.
 
+        Each list element is expanded into separate rows, preserving the
+        original index. The resulting Series may have a longer length than
+        the original if lists contain more than one element.
+
         Returns
         -------
         pandas.Series
@@ -261,6 +271,9 @@ class StructAccessor(ArrowAccessor):
         """
         Return the dtype object of each child field of the struct.
 
+        The returned Series is indexed by the field names of the struct and
+        contains the corresponding :class:`ArrowDtype` for each field.
+
         Returns
         -------
         pandas.Series
@@ -310,6 +323,10 @@ class StructAccessor(ArrowAccessor):
     ) -> Series:
         """
         Extract a child field of a struct as a Series.
+
+        This method accesses individual child fields of an Arrow struct
+        column by name, index, expression, or a list of those for nested
+        structs.
 
         Parameters
         ----------
@@ -437,7 +454,7 @@ class StructAccessor(ArrowAccessor):
                 while level_name_or_index:
                     # we need the cast, otherwise mypy complains about
                     # getting ints, bytes, or str here, which isn't possible.
-                    level_name_or_index = cast(list, level_name_or_index)
+                    level_name_or_index = cast("list", level_name_or_index)
                     name_or_index = level_name_or_index.pop()
                     name = get_name(name_or_index, selected)
                     selected = selected.type.field(selected.type.get_field_index(name))
@@ -463,6 +480,9 @@ class StructAccessor(ArrowAccessor):
     def explode(self) -> DataFrame:
         """
         Extract all child fields of a struct as a DataFrame.
+
+        Each child field of the struct becomes a column in the resulting
+        DataFrame, with column names matching the struct field names.
 
         Returns
         -------
