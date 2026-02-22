@@ -153,3 +153,10 @@ class TestDatetimeIndex:
 
         with pytest.raises(ValueError, match=msg):
             date_range(start="2016-02-21", end="2016-08-21", freq=freq)
+
+    def test_equals_string_coercion_regression(self):
+        # GH 13286
+        dti = DatetimeIndex(["1971-10-01"])
+        obj = Index(["1971-10-01"], dtype="object")
+
+        assert not dti.equals(obj)
