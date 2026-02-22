@@ -360,7 +360,7 @@ def test_contains():
     # Python 3.14 changes the message from "is not iterable" to
     # "is not a container or iterable"
     with pytest.raises(
-        TypeError, match="argument of type 'Expression' is not .* iterable"
+        TypeError, match="argument of type 'Expression' is not .*iterable"
     ):
         1 in pd.col("a")
 
