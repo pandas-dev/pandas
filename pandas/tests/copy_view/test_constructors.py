@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 import pytest
 
@@ -21,6 +23,9 @@ from pandas.tests.copy_view.util import get_array
 # -----------------------------------------------------------------------------
 # Copy/view behaviour for Series / DataFrame constructors
 
+import pytest
+
+FUTURE_STRINGS = os.environ.get("PANDAS_FUTURE_INFER_STRING", "1") != "0"
 
 @pytest.mark.parametrize("dtype", [None, "int64"])
 def test_series_from_series(dtype):
@@ -268,6 +273,15 @@ def test_dataframe_from_dict_of_series_with_reindex(dtype):
     ],
     ids=["int", "int-ea", "str", "object", "datetime64tz"],
 )
+
+@pytest.mark.xfail(
+    condition=(os.environ.get("PANDAS_FUTURE_INFER_STRING") == "0"),
+    reason=(
+        "Legacy string inference does not guarantee "
+        "Copy-on-Write reference preservation"
+    ),
+)
+
 def test_dataframe_from_series_or_index(data, dtype, index_or_series):
     obj = index_or_series(data, dtype=dtype)
     obj_orig = obj.copy(deep=True)  # deep=True needed for Index
@@ -275,7 +289,10 @@ def test_dataframe_from_series_or_index(data, dtype, index_or_series):
     # default is copy=False -> DataFrame holds a shallow copy of original Index/Series
     df = DataFrame(obj)
     assert tm.shares_memory(get_array(obj), get_array(df, 0))
+
+
     assert not df._mgr._has_no_reference(0)
+
 
     df.iloc[0, 0] = data[-1]
     tm.assert_equal(obj, obj_orig)
