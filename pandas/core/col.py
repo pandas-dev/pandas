@@ -334,7 +334,7 @@ class Expression:
     def __copy__(self) -> NoReturn:
         raise TypeError("Expression objects are not copiable")
 
-    def __deepcopy__(self, memo) -> NoReturn:
+    def __deepcopy__(self, memo: dict[int, Any] | None) -> NoReturn:
         raise TypeError("Expression objects are not copiable")
 
 
