@@ -263,7 +263,7 @@ def union_indexes(indexes, sort: bool | lib.NoDefault = True) -> Index:
                     arr = type(result._data)._simple_new(
                         result._data._ndarray,
                         freq=candidate_freq,
-                        dtype=result._data.dtype,
+                        dtype=result._data.dtype,  # type: ignore[arg-type]
                     )
                     result = type(result)._simple_new(arr, name=result.name)
 
