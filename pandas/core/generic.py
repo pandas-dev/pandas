@@ -6598,7 +6598,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         -----
         When ``deep=True``, data is copied but actual Python objects
         will not be copied recursively, only the reference to the object.
-        This is in contrast to `copy.deepcopy` in the Standard Library,
+        This is in contrast to :py:func:`copy.deepcopy` in the Standard Library,
         which recursively copies object data (see examples below).
 
         While ``Index`` objects are copied when ``deep=True``, the underlying
@@ -8917,6 +8917,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def at_time(self, time, asof: bool = False, axis: Axis | None = None) -> Self:
         """
         Select values at particular time of day (e.g., 9:30AM).
+
+        This method filters rows whose index has a time component matching
+        the specified time. The index must be a DatetimeIndex.
 
         Parameters
         ----------
@@ -11956,6 +11959,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> Window | Rolling:
         """
         Provide rolling window calculations.
+
+        This method returns a rolling window object, enabling aggregation,
+        transformation, and other operations over a sliding window of a
+        specified size.
 
         Parameters
         ----------

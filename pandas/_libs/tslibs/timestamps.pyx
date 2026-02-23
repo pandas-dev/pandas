@@ -315,6 +315,10 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Return the value of the Timestamp.
 
+        This represents the Timestamp as the number of nanoseconds since the
+        Unix epoch (1970-01-01 00:00:00 UTC). It may overflow for Timestamps
+        far from the epoch.
+
         Returns
         -------
         int
@@ -710,6 +714,9 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Check if the date is the first day of the month.
 
+        This is determined by checking whether the ``day`` component of the
+        Timestamp is equal to 1.
+
         Returns
         -------
         bool
@@ -736,6 +743,9 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Check if the date is the last day of the month.
 
+        This is determined by comparing the ``day`` component with the total
+        number of days in the month of the Timestamp.
+
         Returns
         -------
         bool
@@ -761,6 +771,9 @@ cdef class _Timestamp(ABCTimestamp):
     def is_quarter_start(self) -> bool:
         """
         Check if the date is the first day of the quarter.
+
+        Quarters start on the first day of January, April, July, and October
+        in the standard calendar.
 
         Returns
         -------
@@ -789,6 +802,9 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Check if date is last day of the quarter.
 
+        Quarters end on the last day of March, June, September, and December
+        in the standard calendar.
+
         Returns
         -------
         bool
@@ -816,6 +832,9 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Return True if date is first day of the year.
 
+        This is determined by checking whether the month and day components
+        are both equal to 1 (i.e., January 1st).
+
         Returns
         -------
         bool
@@ -840,6 +859,9 @@ cdef class _Timestamp(ABCTimestamp):
     def is_year_end(self) -> bool:
         """
         Return True if date is last day of the year.
+
+        This is determined by checking whether the month is 12 and the day
+        is 31 (i.e., December 31st).
 
         Returns
         -------
@@ -876,6 +898,10 @@ cdef class _Timestamp(ABCTimestamp):
     def day_name(self, locale=None) -> str:
         """
         Return the day name of the Timestamp with specified locale.
+
+        This method returns the full name of the day of the week (e.g.,
+        'Monday', 'Tuesday') for the given Timestamp. The locale can be
+        specified to return the name in a particular language.
 
         Parameters
         ----------
@@ -1115,6 +1141,8 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Return the year of the Timestamp.
 
+        The year is returned as an integer following the Gregorian calendar.
+
         Returns
         -------
         int
@@ -1137,6 +1165,8 @@ cdef class _Timestamp(ABCTimestamp):
     def month(self) -> int:
         """
         Return the month of the Timestamp.
+
+        Months are numbered from 1 (January) through 12 (December).
 
         Returns
         -------
@@ -1186,6 +1216,8 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Return the minute of the Timestamp.
 
+        Minutes range from 0 through 59.
+
         Returns
         -------
         int
@@ -1209,6 +1241,8 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Return the second of the Timestamp.
 
+        Seconds range from 0 to 59.
+
         Returns
         -------
         int
@@ -1231,6 +1265,9 @@ cdef class _Timestamp(ABCTimestamp):
     def microsecond(self) -> int:
         """
         Return the microsecond of the Timestamp.
+
+        Microseconds range from 0 through 999999 and represent the
+        sub-second component of the Timestamp at microsecond resolution.
 
         Returns
         -------
@@ -1277,6 +1314,10 @@ cdef class _Timestamp(ABCTimestamp):
     def week(self) -> int:
         """
         Return the week number of the year.
+
+        Weeks are numbered according to the ISO 8601 standard, where weeks
+        start on Monday and the first week of the year contains the year's
+        first Thursday.
 
         Returns
         -------
@@ -1517,6 +1558,11 @@ cdef class _Timestamp(ABCTimestamp):
     def as_unit(self, str unit, bint round_ok=True):
         """
         Convert the underlying int64 representation to the given unit.
+
+        This method changes the resolution of the Timestamp's internal
+        representation. When converting to a coarser resolution (e.g.,
+        nanoseconds to seconds), precision may be lost through rounding
+        unless ``round_ok`` is set to False.
 
         Parameters
         ----------
@@ -2910,6 +2956,10 @@ timedelta}, default 'raise'
         """
         Return a new Timestamp floored to this resolution.
 
+        This method rounds the Timestamp down to the nearest boundary of the
+        given frequency. The result will never be later than the original
+        Timestamp.
+
         Parameters
         ----------
         freq : str
@@ -3004,6 +3054,10 @@ timedelta}, default 'raise'
     def ceil(self, freq, ambiguous="raise", nonexistent="raise"):
         """
         Return a new Timestamp ceiled to this resolution.
+
+        This method rounds the Timestamp up to the nearest boundary of the
+        given frequency. The result will never be earlier than the original
+        Timestamp.
 
         Parameters
         ----------

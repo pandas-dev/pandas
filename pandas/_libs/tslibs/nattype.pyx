@@ -559,6 +559,10 @@ class NaTType(_NaT):
         """
         Return the day name of the Timestamp with specified locale.
 
+        This method returns the full name of the day of the week (e.g.,
+        'Monday', 'Tuesday') for the given Timestamp. The locale can be
+        specified to return the name in a particular language.
+
         Parameters
         ----------
         locale : str, default None (English locale)
@@ -1434,6 +1438,10 @@ timedelta}, default 'raise'
         """
         Return a new Timestamp floored to this resolution.
 
+        This method rounds the Timestamp down to the nearest boundary of the
+        given frequency. The result will never be later than the original
+        Timestamp.
+
         Parameters
         ----------
         freq : str
@@ -1528,6 +1536,10 @@ timedelta}, default 'raise'
         "ceil",
         """
         Return a new Timestamp ceiled to this resolution.
+
+        This method rounds the Timestamp up to the nearest boundary of the
+        given frequency. The result will never be earlier than the original
+        Timestamp.
 
         Parameters
         ----------
@@ -1841,6 +1853,11 @@ default 'raise'
     def as_unit(self, str unit, bint round_ok=True) -> "NaTType":
         """
         Convert the underlying int64 representation to the given unit.
+
+        This method changes the resolution of the Timestamp's internal
+        representation. When converting to a coarser resolution (e.g.,
+        nanoseconds to seconds), precision may be lost through rounding
+        unless ``round_ok`` is set to False.
 
         Parameters
         ----------
