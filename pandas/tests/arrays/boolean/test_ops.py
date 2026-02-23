@@ -25,3 +25,9 @@ class TestUnaryOps:
         result = abs(arr)
 
         tm.assert_extension_array_equal(result, arr)
+
+    def test_booleanarray_and_list_with_na(self):
+        b = pd.array([True, False], dtype="boolean")
+        result = b & [pd.NA, False]
+        expected = pd.array([pd.NA, False], dtype="boolean")
+        tm.assert_extension_array_equal(result, expected)
