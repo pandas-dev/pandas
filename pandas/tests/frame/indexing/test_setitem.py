@@ -1498,3 +1498,27 @@ def test_setitem_partial_row_multiple_columns():
         }
     )
     tm.assert_frame_equal(df, expected)
+
+
+def test_setitem_loc_tz_aware_datetime_inference():
+    # GH#55423
+    # When adding a tz-aware datetime column to a DataFrame using .loc
+    # assignment, the dtype should be datetime64[ns, UTC] not "object"
+    import datetime as dt
+
+    df = DataFrame([{"id": 1}, {"id": 2}, {"id": 3}])
+    _time = dt.datetime.utcfromtimestamp(1695887042).replace(tzinfo=dt.timezone.utc)
+    df.loc[df.id >= 2, "time"] = _time
+
+    # Check the dtype is datetime64[ns, UTC] not object
+    assert df.dtypes["time"] == DatetimeTZDtype(tz="UTC")
+
+    # Verify the values are correctly set
+    expected = DataFrame(
+        {
+            "id": [1, 2, 3],
+            "time": [NaT, Timestamp(_time), Timestamp(_time)],
+        }
+    )
+    # Compare without the exact type to handle different tz representations
+    tm.assert_frame_equal(df, expected, check_dtype=False)

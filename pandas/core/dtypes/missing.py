@@ -567,6 +567,11 @@ def infer_fill_value(val):
     elif val.dtype == object:
         dtype = lib.infer_dtype(ensure_object(val), skipna=False)
         if dtype in ["datetime", "datetime64"]:
+            # Check if any value is timezone-aware
+            tz = _infer_timezone_from_object_array(val)
+            if tz is not None:
+                # Return timezone-aware NaT
+                return np.array("NaT", dtype=DatetimeTZDtype(tz=tz))
             return np.array("NaT", dtype=DT64NS_DTYPE)
         elif dtype in ["timedelta", "timedelta64"]:
             return np.array("NaT", dtype=TD64NS_DTYPE)
@@ -574,6 +579,19 @@ def infer_fill_value(val):
     elif val.dtype.kind == "U":
         return np.array(np.nan, dtype=val.dtype)
     return np.nan
+
+
+def _infer_timezone_from_object_array(val):
+    """
+    Check if the object array contains timezone-aware datetime values.
+    Returns the timezone if found, None otherwise.
+    """
+    import datetime as dt
+
+    for item in val:
+        if isinstance(item, dt.datetime) and item.tzinfo is not None:
+            return item.tzinfo
+    return None
 
 
 def construct_1d_array_from_inferred_fill_value(
@@ -587,6 +605,14 @@ def construct_1d_array_from_inferred_fill_value(
 
     arr = sanitize_array(value, Index(range(1)), copy=False)
     taker = -1 * np.ones(length, dtype=np.intp)
+
+    # If the array is a DatetimeArray with timezone, we need to ensure
+    # the fill value used by take_nd preserves the timezone
+    if isinstance(arr.dtype, DatetimeTZDtype):
+        # Create a timezone-aware NaT for the fill value
+        fill_value = np.array("NaT", dtype=arr.dtype)
+        return take_nd(arr, taker, fill_value=fill_value)
+
     return take_nd(arr, taker)
 
 
