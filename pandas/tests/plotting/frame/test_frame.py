@@ -416,9 +416,7 @@ class TestDataFramePlots:
         ax = df.plot()
         lines = ax.get_lines()
         assert not isinstance(lines[0].get_xdata(), PeriodIndex)
-        msg = r"PeriodDtype\[B\] is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert isinstance(PeriodIndex(lines[0].get_xdata()), PeriodIndex)
+        assert isinstance(PeriodIndex(lines[0].get_xdata()), PeriodIndex)
 
     def test_xcompat_plot_params_context_manager(self):
         df = DataFrame(
@@ -442,9 +440,7 @@ class TestDataFramePlots:
         ax = df.plot()
         lines = ax.get_lines()
         assert not isinstance(lines[0].get_xdata(), PeriodIndex)
-        msg = r"PeriodDtype\[B\] is deprecated "
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert isinstance(PeriodIndex(lines[0].get_xdata()), PeriodIndex)
+        assert isinstance(PeriodIndex(lines[0].get_xdata()), PeriodIndex)
         _check_ticks_props(ax, xrot=0)
 
     def test_period_compat(self):
