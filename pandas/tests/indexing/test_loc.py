@@ -2364,6 +2364,21 @@ class TestLocSetitemWithExpansion:
         tm.assert_frame_equal(df, expected)
 
 
+    def test_loc_setitem_with_expansion_tz_aware_datetime(self):
+        # GH#55423 - enlarging DataFrame with tz-aware scalar should
+        # retain datetime dtype, not object
+        df = DataFrame({"id": [1, 2, 3]})
+        _time = Timestamp("2023-09-28 07:44:02", tz="UTC")
+        df.loc[df.id >= 2, "time"] = _time
+
+        result_dtype = df["time"].dtype
+        assert hasattr(result_dtype, "tz"), f"Expected DatetimeTZDtype, got {result_dtype}"
+        assert str(result_dtype.tz) == "UTC"
+        assert pd.isna(df.loc[0, "time"])
+        assert df.loc[1, "time"] == _time
+        assert df.loc[2, "time"] == _time
+
+
 class TestLocCallable:
     def test_frame_loc_getitem_callable(self):
         # GH#11485
