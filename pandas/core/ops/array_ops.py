@@ -22,7 +22,10 @@ from pandas._libs import (
     lib,
     ops as libops,
 )
-from pandas._libs.missing import NA
+from pandas._libs.missing import (
+    NA,
+    is_pdna,
+)
 from pandas._libs.tslibs import (
     BaseOffset,
     get_supported_dtype,
@@ -130,10 +133,10 @@ def comp_method_OBJECT_ARRAY(op, x, y):
         result = libops.vec_compare(x.ravel(), y.ravel(), op)
     else:
         result = libops.scalar_compare(x.ravel(), y, op)
-        is_pdna = [var is NA for var in x]
-        if any(is_pdna):
+        is_pdna_mask = is_pdna(np.asarray(x))
+        if any(is_pdna_mask):
             arr_pdna = np.asarray([NA])
-            result = np.where(is_pdna, arr_pdna, result)
+            result = np.where(is_pdna_mask, arr_pdna, result)
     return result.reshape(x.shape)
 
 
