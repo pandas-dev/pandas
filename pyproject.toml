@@ -148,12 +148,17 @@ test-extras = "test"
 test-command = """
   python -c 'import pandas as pd; \
   pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db", "--numprocesses=2", "--dist=worksteal", "--no-strict-data-files"]); \
-  pd.test(extra_args=["-m not clipboard and single_cpu and not slow and not network and not db", "--no-strict-data-files"]);' \
+  pd.test(extra_args=["-m single_cpu", "--no-strict-data-files"]);' \
   """
 enable = ["cpython-freethreading"]
 
 [tool.cibuildwheel.windows]
 environment = {}
+test-command = """
+  python -c "import pandas as pd; \
+  pd.test(extra_args=['-m not clipboard and not single_cpu and not slow and not network and not db', '--numprocesses=2', '--dist=worksteal', '--no-strict-data-files']); \
+  pd.test(extra_args=['-m single_cpu', '--no-strict-data-files']);" \
+  """
 before-build = "python -m pip install delvewheel"
 repair-wheel-command = "delvewheel repair -w {dest_dir} {wheel}"
 

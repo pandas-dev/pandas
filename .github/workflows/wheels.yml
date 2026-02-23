@@ -108,7 +108,7 @@ jobs:
       - name: Checkout pandas
         uses: actions/checkout@v6
         with:
-          fetch-depth: 0
+          fetch-depth: 1
 
       - name: Set up MSVC environment for Windows ARM64
         if: matrix.buildplat[1] == 'win_arm64'
