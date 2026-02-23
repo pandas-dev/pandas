@@ -1230,3 +1230,9 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
 
     def _str_zfill(self, width: int) -> Self:
         return self._str_map(lambda x: x.zfill(width))
+
+    def _str_splitlines(self, keepends: bool = False) -> Self:
+        return self._str_map(lambda x: x.splitlines(keepends), dtype=object)
+
+    def _str_expandtabs(self, tabsize: int = 8) -> Self:
+        return self._str_map(lambda x: x.expandtabs(tabsize))

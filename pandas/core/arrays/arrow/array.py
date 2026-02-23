@@ -3028,6 +3028,18 @@ class ArrowExtensionArray(
             return type(self)(pa.chunked_array(result))
         return type(self)(pc.utf8_zfill(self._pa_array, width))
 
+    def _str_splitlines(self, keepends: bool = False) -> Self:
+        predicate = lambda val: val.splitlines(keepends)
+        result = self._apply_elementwise(predicate)
+        chunks = [pa.array(chunk, from_pandas=True) for chunk in result]
+        return self._from_pyarrow_array(pa.chunked_array(chunks))
+
+    def _str_expandtabs(self, tabsize: int = 8) -> Self:
+        predicate = lambda val: val.expandtabs(tabsize)
+        result = self._apply_elementwise(predicate)
+        chunks = [pa.array(chunk, from_pandas=True) for chunk in result]
+        return self._from_pyarrow_array(pa.chunked_array(chunks))
+
     @property
     def _dt_days(self) -> Self:
         return self._from_pyarrow_array(

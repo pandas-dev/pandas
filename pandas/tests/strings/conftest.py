@@ -59,6 +59,10 @@ _any_string_method = [
     ("translate", ({97: 100},), {}),
     ("wrap", (2,), {}),
     ("zfill", (10,), {}),
+    ("splitlines", (), {}),
+    ("splitlines", (), {"keepends": True}),
+    ("expandtabs", (), {}),
+    ("expandtabs", (4,), {}),
     # methods without positional arguments: zip with empty tuple and empty dict
     *zip(
         [
