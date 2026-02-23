@@ -13683,6 +13683,12 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Aggregate using one or more operations over the specified axis.
 
+        This method allows combining multiple aggregation functions at once,
+        such as ``sum``, ``mean``, and ``min``, and can apply them either
+        per-column or per-row. It accepts functions as strings, callables,
+        lists, or dictionaries mapping column labels to the desired
+        aggregation(s).
+
         Parameters
         ----------
         func : function, str, list or dict
@@ -13799,6 +13805,10 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> DataFrame:
         """
         Call ``func`` on self producing a DataFrame with the same axis shape as self.
+
+        Unlike aggregation, transformation preserves the shape of the input.
+        The provided function must return a result that is the same size as
+        the input along the specified axis, raising a ``ValueError`` otherwise.
 
         Parameters
         ----------
@@ -15026,6 +15036,11 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Compute pairwise correlation of columns, excluding NA/null values.
 
+        The result is a symmetric DataFrame where each element represents
+        the correlation coefficient between two columns. By default, the
+        Pearson correlation is computed, but Kendall and Spearman methods
+        as well as arbitrary callables are also supported.
+
         Parameters
         ----------
         method : {'pearson', 'kendall', 'spearman'} or callable
@@ -16249,6 +16264,11 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Return the product of the values over the requested axis.
 
+        This multiplies all values in each column (or row when
+        ``axis=1``) together, skipping missing values by default.
+        An empty or all-NA column returns ``1`` unless ``min_count``
+        is specified.
+
         Parameters
         ----------
         axis : {index (0), columns (1)}
@@ -16365,6 +16385,9 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> Series | Any:
         """
         Return the mean of the values over the requested axis.
+
+        This computes the arithmetic mean of the values in each column
+        (or row when ``axis=1``), skipping missing values by default.
 
         Parameters
         ----------
@@ -16486,6 +16509,9 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> Series | Any:
         """
         Return the median of the values over the requested axis.
+
+        This computes the median of the values in each column (or row
+        when ``axis=1``), skipping missing values by default.
 
         Parameters
         ----------
@@ -18004,6 +18030,10 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> Series | DataFrame:
         """
         Return values at the given quantile over requested axis.
+
+        This method computes the value below which a given proportion of
+        observations fall. By default, it computes quantiles column-wise,
+        but row-wise computation is also supported via ``axis=1``.
 
         Parameters
         ----------
