@@ -219,6 +219,53 @@ Furthermore you can align a level of a MultiIndexed DataFrame with a Series.
    )
    dfmi.sub(column, axis=0, level="second")
 
+.. _basics.list_broadcasting:
+
+Broadcasting behavior with lists
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When performing arithmetic between a :class:`DataFrame` and a Python list (or
+any other 1-D array-like that is not a :class:`Series`), pandas first converts
+the list to a :class:`Series` whose index matches the **columns** of the
+:class:`DataFrame`.  The operation then broadcasts **column-wise** (i.e. across
+rows), which can be surprising if you expected row-wise broadcasting.
+
+.. ipython:: python
+
+   df_list = pd.DataFrame(
+       {"one": [1, 2, 3], "two": [4, 5, 6], "three": [7, 8, 9]},
+       index=["a", "b", "c"],
+   )
+   df_list
+
+   # The list [10, 20, 30] is aligned to columns ["one", "two", "three"]
+   # and the addition is broadcast row-wise (same value added to each row).
+   df_list + [10, 20, 30]
+
+Because the list length must match the **number of columns** (not rows), adding
+a list of length equal to the number of rows will raise a ``ValueError``:
+
+.. code-block:: python
+
+   # This raises ValueError: wrong number of items passed
+   # df_list + [10, 20, 30, 40]  # 4 items but df has 3 columns
+
+To broadcast **row-wise** instead (i.e. add a different value to each row),
+use the explicit :meth:`~DataFrame.add` method with ``axis=0`` or create a
+:class:`Series` with the appropriate index:
+
+.. ipython:: python
+
+   # Row-wise broadcasting: add 10 to row "a", 20 to row "b", 30 to row "c"
+   df_list.add([10, 20, 30], axis=0)
+
+   # Equivalently, using an explicitly indexed Series
+   row_values = pd.Series([10, 20, 30], index=["a", "b", "c"])
+   df_list.add(row_values, axis=0)
+
+See the section on :ref:`flexible binary operations <basics.binop>` for a full
+description of the ``axis`` parameter and other options.
+
 Series and Index also support the :func:`divmod` builtin. This function takes
 the floor division and modulo operation at the same time returning a two-tuple
 of the same type as the left hand side. For example:
