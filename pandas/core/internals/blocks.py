@@ -149,25 +149,29 @@ def _datetimelike_compat_num_set(values: np.ndarray, indexer) -> int | None:
     if is_scalar_indexer(indexer, values.ndim):
         return None
 
-    try:
-        if not isinstance(indexer, tuple):
+    if not isinstance(indexer, tuple):
+        if isinstance(indexer, (ABCSeries, ABCIndex, np.ndarray, list, range, slice)):
             return length_of_indexer(indexer, values)
+        return None
 
-        if len(indexer) == 0:
-            return None
+    if len(indexer) == 0:
+        return None
 
-        if lib.is_integer(indexer[0]):
-            if len(indexer) == 1:
-                return values.shape[1]
-            return length_of_indexer(indexer[1], values[0])
+    row_indexer = indexer[0]
 
-        return length_of_indexer(indexer[0], values)
-    except (AssertionError, AttributeError, IndexError, TypeError, ValueError):
-        # Fallback for uncommon indexers (e.g. Ellipsis) where inferring length
-        # is non-trivial.
-        vi = values[indexer]
-        if lib.is_list_like(vi):
-            return len(vi)
+    if lib.is_integer(row_indexer):
+        if len(indexer) == 1:
+            return values.shape[1]
+
+        col_indexer = indexer[1]
+        if isinstance(
+            col_indexer, (ABCSeries, ABCIndex, np.ndarray, list, range, slice)
+        ):
+            return length_of_indexer(col_indexer, values[0])
+        return None
+
+    if isinstance(row_indexer, (ABCSeries, ABCIndex, np.ndarray, list, range, slice)):
+        return length_of_indexer(row_indexer, values)
 
     return None
 
