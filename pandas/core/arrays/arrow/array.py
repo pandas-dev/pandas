@@ -473,6 +473,12 @@ class ArrowExtensionArray(
                 result = result.astype(dtype)  # type: ignore[assignment]
             return result
 
+        elif pa.types.is_timestamp(arr.type) and pa.types.is_timestamp(
+            self._pa_array.type
+        ):
+            if arr.type.tz == self._pa_array.type.tz:
+                arr = arr.cast(self._pa_array.type)
+
         elif pa.types.is_date(arr.type) and pa.types.is_date(self._pa_array.type):
             arr = arr.cast(self._pa_array.type)
         elif pa.types.is_time(arr.type) and pa.types.is_time(self._pa_array.type):
@@ -969,6 +975,20 @@ class ArrowExtensionArray(
         )
 
     def _evaluate_op_method(self, other, op, arrow_funcs) -> Self:
+        if (
+            is_list_like(other)
+            and not isinstance(other, (np.ndarray, ExtensionArray, list))
+            and not ops.has_castable_attr(other)
+        ):
+            warnings.warn(
+                f"Operation with {type(other).__name__} are deprecated. "
+                "In a future version these will be treated as scalar-like. "
+                "To retain the old behavior, explicitly wrap in a Series "
+                "instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+
         pa_type = self._pa_array.type
         other_original = other
         other = self._box_pa(other)

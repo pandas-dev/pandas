@@ -456,8 +456,6 @@ filterwarnings = [
   "ignore:Setuptools is replacing distutils.:UserWarning:_distutils_hack",
   # https://github.com/PyTables/PyTables/issues/822
   "ignore:a closed node found in the registry:UserWarning:tables",
-  # GH#64207: Deprecation of Offset.name property
-  "ignore:The 'name' property is deprecated:pandas.errors.Pandas4Warning:pandas._libs.tslibs.offsets",
 ]
 junit_family = "xunit2"
 markers = [

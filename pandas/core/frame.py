@@ -157,6 +157,7 @@ from pandas.core.indexes.multi import (
 from pandas.core.indexing import (
     check_bool_indexer,
     check_dict_or_set_indexers,
+    infer_and_maybe_downcast,
 )
 from pandas.core.internals import BlockManager
 from pandas.core.internals.construction import (
@@ -9015,7 +9016,6 @@ class DataFrame(NDFrame, OpsMixin):
             #  fails in cases with empty columns reached via
             #  _frame_arith_method_with_reindex
 
-            # TODO operate_blockwise expects a manager of the same type
             bm = self._mgr.operate_blockwise(
                 right._mgr,
                 array_op,
@@ -9254,6 +9254,18 @@ class DataFrame(NDFrame, OpsMixin):
                 )
 
         elif is_list_like(right) and not isinstance(right, (Series, DataFrame)):
+            if not isinstance(
+                right, (np.ndarray, ExtensionArray, Index, list, dict)
+            ) and not ops.has_castable_attr(right):
+                warnings.warn(
+                    f"Operation with {type(right).__name__} are deprecated. "
+                    "In a future version these will be treated as scalar-like. "
+                    "To retain the old behavior, explicitly wrap in a Series "
+                    "instead.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
+
             # GH#36702. Raise when attempting arithmetic with list of array-like.
             if any(is_array_like(el) for el in right):
                 raise ValueError(
@@ -13677,12 +13689,17 @@ class DataFrame(NDFrame, OpsMixin):
         elif subset.ndim == 1:  # is Series
             return subset
 
-        # TODO: _shallow_copy(subset)?
         return subset[key]
 
     def aggregate(self, func=None, axis: Axis = 0, *args, **kwargs):
         """
         Aggregate using one or more operations over the specified axis.
+
+        This method allows combining multiple aggregation functions at once,
+        such as ``sum``, ``mean``, and ``min``, and can apply them either
+        per-column or per-row. It accepts functions as strings, callables,
+        lists, or dictionaries mapping column labels to the desired
+        aggregation(s).
 
         Parameters
         ----------
@@ -13800,6 +13817,10 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> DataFrame:
         """
         Call ``func`` on self producing a DataFrame with the same axis shape as self.
+
+        Unlike aggregation, transformation preserves the shape of the input.
+        The provided function must return a result that is the same size as
+        the input along the specified axis, raising a ``ValueError`` otherwise.
 
         Parameters
         ----------
@@ -14363,6 +14384,15 @@ class DataFrame(NDFrame, OpsMixin):
         # infer_objects is needed for
         #  test_append_empty_frame_to_series_with_dateutil_tz
         row_df = row_df.infer_objects().rename_axis(index.names)
+
+        if len(row_df.columns) == len(self.columns):
+            # Try to retain our original dtype when doing the concat, GH#62523
+            for i in range(len(self.columns)):
+                arr = self.iloc[:, i].array
+
+                casted = infer_and_maybe_downcast(arr, row_df.iloc[:, i]._values)
+
+                row_df.isetitem(i, casted)
 
         from pandas.core.reshape.concat import concat
 
@@ -15017,6 +15047,11 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> DataFrame:
         """
         Compute pairwise correlation of columns, excluding NA/null values.
+
+        The result is a symmetric DataFrame where each element represents
+        the correlation coefficient between two columns. By default, the
+        Pearson correlation is computed, but Kendall and Spearman methods
+        as well as arbitrary callables are also supported.
 
         Parameters
         ----------
@@ -16241,6 +16276,11 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Return the product of the values over the requested axis.
 
+        This multiplies all values in each column (or row when
+        ``axis=1``) together, skipping missing values by default.
+        An empty or all-NA column returns ``1`` unless ``min_count``
+        is specified.
+
         Parameters
         ----------
         axis : {index (0), columns (1)}
@@ -16357,6 +16397,9 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> Series | Any:
         """
         Return the mean of the values over the requested axis.
+
+        This computes the arithmetic mean of the values in each column
+        (or row when ``axis=1``), skipping missing values by default.
 
         Parameters
         ----------
@@ -16478,6 +16521,9 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> Series | Any:
         """
         Return the median of the values over the requested axis.
+
+        This computes the median of the values in each column (or row
+        when ``axis=1``), skipping missing values by default.
 
         Parameters
         ----------
@@ -16991,7 +17037,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         See Also
         --------
-        Dataframe.kurt : Returns unbiased kurtosis over requested axis.
+        DataFrame.kurt : Returns unbiased kurtosis over requested axis.
 
         Examples
         --------
@@ -17112,7 +17158,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         See Also
         --------
-        Dataframe.kurtosis : Returns unbiased kurtosis over requested axis.
+        DataFrame.kurtosis : Returns unbiased kurtosis over requested axis.
 
         Examples
         --------
@@ -17996,6 +18042,10 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> Series | DataFrame:
         """
         Return values at the given quantile over requested axis.
+
+        This method computes the value below which a given proportion of
+        observations fall. By default, it computes quantiles column-wise,
+        but row-wise computation is also supported via ``axis=1``.
 
         Parameters
         ----------

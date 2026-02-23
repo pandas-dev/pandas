@@ -41,6 +41,7 @@ from pandas.util._validators import (
 )
 
 from pandas.core.dtypes.astype import astype_is_view
+from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
     is_integer,
     is_list_like,
@@ -457,7 +458,8 @@ class ExtensionArray:
         try:
             return type(self)._from_scalars(values, dtype=self.dtype)
         except (ValueError, TypeError):
-            values = np.asarray(values, dtype=object)
+            if not (isinstance(values, np.ndarray) and values.dtype == object):
+                values = construct_1d_object_array_from_listlike(values)
             return lib.maybe_convert_objects(values, convert_non_numeric=True)
 
     # ------------------------------------------------------------------------

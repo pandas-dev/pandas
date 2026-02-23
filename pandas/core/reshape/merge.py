@@ -1746,14 +1746,14 @@ class _MergeOperation:
                         com_cls = ct.construct_array_type()
                         rk = com_cls._from_sequence(rk, dtype=ct, copy=False)
                     else:
-                        rk = rk.astype(ct)
+                        rk = rk.astype(ct, copy=False)
                 elif isinstance(rk.dtype, ExtensionDtype):
                     ct = find_common_type([lk.dtype, rk.dtype])
                     if isinstance(ct, ExtensionDtype):
                         com_cls = ct.construct_array_type()
                         lk = com_cls._from_sequence(lk, dtype=ct, copy=False)
                     else:
-                        lk = lk.astype(ct)
+                        lk = lk.astype(ct, copy=False)
 
                 # check whether ints and floats
                 if is_integer_dtype(rk.dtype) and is_float_dtype(lk.dtype):
