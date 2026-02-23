@@ -247,7 +247,7 @@ def union_indexes(indexes, sort: bool | lib.NoDefault = True) -> Index:
         for other in indexes[1:]:
             result = result.union(other, sort=None if sort else False)
 
-        if isinstance(result, DatetimeIndex) and result.freq is None:
+        if isinstance(result, (DatetimeIndex, TimedeltaIndex)) and result.freq is None:
             candidate_freq = indexes[0].freq
             if candidate_freq is not None and all(
                 idx.freq == candidate_freq for idx in indexes[1:]
