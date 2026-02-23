@@ -409,3 +409,24 @@ def test_array_repr(any_numpy_array):
     expected = f"<NumpyExtensionArray>\n{values}\nLength: 2, dtype: {nparray.dtype}"
     result = repr(arr)
     assert result == expected, f"{result} vs {expected}"
+
+
+def test_string_dtype_preserves_none():
+    # GH#57702 - Ensure pd.array with string dtype preserves None like pd.Series
+    # Test with numpy string dtype
+    result_array = pd.array([1, None], dtype=np.dtype("U10"))
+    result_series = pd.Series([1, None], dtype=np.dtype("U10")).array
+
+    # Both should preserve None as None, not convert to "None" string
+    # Both should have object dtype to preserve None
+    assert result_array.dtype == object
+    assert result_series.dtype == object
+
+    # Check values match
+    tm.assert_extension_array_equal(result_array, result_series)
+
+    # Explicitly check that None is preserved
+    assert result_array[0] == "1"
+    assert result_array[1] is None
+    assert result_series[0] == "1"
+    assert result_series[1] is None
