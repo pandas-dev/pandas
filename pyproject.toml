@@ -154,6 +154,7 @@ enable = ["cpython-freethreading"]
 
 [tool.cibuildwheel.windows]
 environment = {}
+# powershell needs to swap quotes?
 test-command = """
   python -c "import pandas as pd; \
   pd.test(extra_args=['-m not clipboard and not single_cpu and not slow and not network and not db', '--numprocesses=2', '--dist=worksteal', '--no-strict-data-files']); \
@@ -177,6 +178,11 @@ test-requires = "pytest>=8.3.4 hypothesis>=6.116.0"
 repair-wheel-command = ""
 # https://github.com/pyodide/pyodide/issues/5805
 build-verbosity = 1
+# OSError: [Errno 138] emscripten does not support processes
+test-command = """
+  python -c 'import pandas as pd; \
+  pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db", "--no-strict-data-files"]); \
+  """
 
 [tool.ruff]
 line-length = 88
