@@ -828,7 +828,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                 offset_td = Timedelta(off)
                 if offset_td.value != 0:
                     offset_unit = offset_td.resolution_string
-                    if self.unit in units and offset_unit in units:
+                    if offset_unit in units:
                         idx_self = units.index(self.unit)
                         idx_offset = units.index(offset_unit)
                         res_unit = units[min(idx_self, idx_offset)]
@@ -843,13 +843,15 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                     res_unit = "ns"
                 elif "microseconds" in offset.kwds and self.unit != "ns":
                     res_unit = "us"
-            if hasattr(offset, "offset") and offset.offset is not None:
-                offset_td = Timedelta(offset.offset)
+            off = getattr(offset, "offset", None)
+            if off is not None:
+                offset_td = Timedelta(off)
                 if offset_td.value != 0:
-                    offset_unit = offset_td.unit
-                    idx_self = units.index(self.unit)
-                    idx_offset = units.index(offset_unit)
-                    res_unit = units[min(idx_self, idx_offset)]
+                    offset_unit = offset_td.resolution_string
+                    if offset_unit in units:
+                        idx_self = units.index(self.unit)
+                        idx_offset = units.index(offset_unit)
+                        res_unit = units[min(idx_self, idx_offset)]
             result = type(self)._simple_new(res_values, dtype=res_values.dtype)
             result = result.as_unit(res_unit)
 
