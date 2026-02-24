@@ -74,3 +74,21 @@ class TestSeriesArgsort:
     def test_argsort_preserve_name(self, datetime_series):
         result = datetime_series.argsort()
         assert result.name == datetime_series.name
+
+    def test_argsort_stable_behavior():
+        ser = Series([3, 1, 2])
+        arr = np.array([3, 1, 2])
+
+        # 1. stable=True matches NumPy
+        result_stable_true = ser.argsort(stable=True).to_numpy()
+        expected_stable_true = np.argsort(arr, stable=True)
+        tm.assert_numpy_array_equal(result_stable_true, expected_stable_true)
+
+        # 2. stable=False matches NumPy
+        result_stable_false = ser.argsort(stable=False).to_numpy()
+        expected_stable_false = np.argsort(arr, stable=False)
+        tm.assert_numpy_array_equal(result_stable_false, expected_stable_false)
+
+        # 3. Conflicting kind and stable should raise
+        with pytest.raises(ValueError, match="kind.*keyword parameters"):
+            ser.argsort(kind="heapsort", stable=True)

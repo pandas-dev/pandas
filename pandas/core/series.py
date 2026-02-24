@@ -4176,6 +4176,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             # GH#54257 We allow -1 here so that np.argsort(series) works
             self._get_axis_number(axis)
 
+        if stable is not None:
+            if kind != "quicksort":
+                raise ValueError(
+                    "`kind` and keyword parameters can't be provided at the same time. "
+                    "Use only one of them."
+                )
+            if stable:
+                kind = "stable"
+
         result = self.array.argsort(kind=kind)
 
         res = self._constructor(
