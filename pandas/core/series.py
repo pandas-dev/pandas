@@ -4152,7 +4152,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         order : str or list of str, optional
             Must match series name if given, accepted only for compatibility with numpy.
         stable : bool, optional, default None
-            If ``True``, equivalent to ``kind='stable'``. Cannot be used with ``kind``.
+            If ``True``, perform a stable sort. Equivalent to ``kind=stable``, and
+            cannot be used together with ``kind``.
 
         Returns
         -------
@@ -4177,19 +4178,30 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             # GH#54257 We allow -1 here so that np.argsort(series) works
             self._get_axis_number(axis)
 
-        if kind is None and stable is None:
-            # GH#64255 this is the previous default behaviour
-            kind = "quicksort"
-
-        if order is not None:
-            if order not in (self.name, [self.name]):
+        if kind is None:
+            if stable is True:
+                kind = "stable"
+            else:
+                # GH#64255 this is the previous default behaviour
+                kind = "quicksort"
+        else:
+            if stable is not None:
                 warnings.warn(
-                    "The order argument should match Series.name if specified",
+                    "`kind` and `stable` can't be provided at the same time. "
+                    "`stable` will be ignored.",
                     PandasFutureWarning,
                     stacklevel=find_stack_level(),
                 )
 
-        result = self.array.argsort(kind=kind, stable=stable)
+        if order is not None:
+            if order not in (self.name, [self.name]):
+                warnings.warn(
+                    "`order` should match Series.name if specified",
+                    PandasFutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+
+        result = self.array.argsort(kind=kind)
 
         res = self._constructor(
             result, index=self.index, name=self.name, dtype=np.intp, copy=False
