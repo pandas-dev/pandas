@@ -13,6 +13,6 @@ def test_extract_array_rangeindex():
     tm.assert_numpy_array_equal(res, expected)
 
     res = extract_array(ri, extract_numpy=True, extract_range=False)
-    tm.assert_index_equal(res, ri)
+    tm.assert_index_equal(res, ri, exact=True)
     res = extract_array(ri, extract_numpy=False, extract_range=False)
-    tm.assert_index_equal(res, ri)
+    tm.assert_index_equal(res, ri, exact=True)
