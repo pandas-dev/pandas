@@ -315,6 +315,10 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Return the value of the Timestamp.
 
+        This represents the Timestamp as the number of nanoseconds since the
+        Unix epoch (1970-01-01 00:00:00 UTC). It may overflow for Timestamps
+        far from the epoch.
+
         Returns
         -------
         int
@@ -895,6 +899,10 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Return the day name of the Timestamp with specified locale.
 
+        This method returns the full name of the day of the week (e.g.,
+        'Monday', 'Tuesday') for the given Timestamp. The locale can be
+        specified to return the name in a particular language.
+
         Parameters
         ----------
         locale : str, default None (English locale)
@@ -1133,6 +1141,8 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Return the year of the Timestamp.
 
+        The year is returned as an integer following the Gregorian calendar.
+
         Returns
         -------
         int
@@ -1231,6 +1241,8 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Return the second of the Timestamp.
 
+        Seconds range from 0 to 59.
+
         Returns
         -------
         int
@@ -1302,6 +1314,10 @@ cdef class _Timestamp(ABCTimestamp):
     def week(self) -> int:
         """
         Return the week number of the year.
+
+        Weeks are numbered according to the ISO 8601 standard, where weeks
+        start on Monday and the first week of the year contains the year's
+        first Thursday.
 
         Returns
         -------
@@ -1542,6 +1558,11 @@ cdef class _Timestamp(ABCTimestamp):
     def as_unit(self, str unit, bint round_ok=True):
         """
         Convert the underlying int64 representation to the given unit.
+
+        This method changes the resolution of the Timestamp's internal
+        representation. When converting to a coarser resolution (e.g.,
+        nanoseconds to seconds), precision may be lost through rounding
+        unless ``round_ok`` is set to False.
 
         Parameters
         ----------
@@ -2935,6 +2956,10 @@ timedelta}, default 'raise'
         """
         Return a new Timestamp floored to this resolution.
 
+        This method rounds the Timestamp down to the nearest boundary of the
+        given frequency. The result will never be later than the original
+        Timestamp.
+
         Parameters
         ----------
         freq : str
@@ -3029,6 +3054,10 @@ timedelta}, default 'raise'
     def ceil(self, freq, ambiguous="raise", nonexistent="raise"):
         """
         Return a new Timestamp ceiled to this resolution.
+
+        This method rounds the Timestamp up to the nearest boundary of the
+        given frequency. The result will never be earlier than the original
+        Timestamp.
 
         Parameters
         ----------
