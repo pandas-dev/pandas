@@ -379,13 +379,13 @@ class TestDataFrameSetItem:
 
         df["Index"] = rng
         rs = Index(df["Index"])
-        tm.assert_index_equal(rs, rng, check_names=False)
+        tm.assert_index_equal(rs, rng, exact=True, check_names=False)
         assert rs.name == "Index"
         assert rng.name == "index"
 
         rs = df.reset_index().set_index("index")
         assert isinstance(rs.index, PeriodIndex)
-        tm.assert_index_equal(rs.index, rng)
+        tm.assert_index_equal(rs.index, rng, exact=True)
 
     def test_setitem_complete_column_with_array(self):
         # GH#37954
@@ -429,7 +429,7 @@ class TestDataFrameSetItem:
         if dtype == "f8":
             expected_cols = Index([1.0, 2.0, 3.0, False], dtype=object)
 
-        tm.assert_index_equal(df.columns, expected_cols)
+        tm.assert_index_equal(df.columns, expected_cols, exact=True)
 
     @pytest.mark.parametrize("indexer", ["B", ["B"]])
     def test_setitem_frame_length_0_str_key(self, indexer):
@@ -535,10 +535,10 @@ class TestDataFrameSetItem:
         # they compare equal as Index
         # when converted to numpy objects
         c = lambda x: Index(np.array(x))
-        tm.assert_index_equal(c(df.B), c(df.B))
-        tm.assert_index_equal(c(df.B), c(df.C), check_names=False)
-        tm.assert_index_equal(c(df.B), c(df.D), check_names=False)
-        tm.assert_index_equal(c(df.C), c(df.D), check_names=False)
+        tm.assert_index_equal(c(df.B), c(df.B), exact=True)
+        tm.assert_index_equal(c(df.B), c(df.C), exact=True, check_names=False)
+        tm.assert_index_equal(c(df.B), c(df.D), exact=True, check_names=False)
+        tm.assert_index_equal(c(df.C), c(df.D), exact=True, check_names=False)
 
         # B & D are the same Series
         tm.assert_series_equal(df["B"], df["B"])
@@ -563,7 +563,7 @@ class TestDataFrameSetItem:
         result = DataFrame(columns=["A"], index=index)
         result["A"] = []
         expected = DataFrame(columns=["A"], index=index)
-        tm.assert_index_equal(result.index, expected.index)
+        tm.assert_index_equal(result.index, expected.index, exact=True)
 
     @pytest.mark.parametrize(
         "cols, values, expected",
