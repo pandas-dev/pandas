@@ -1010,3 +1010,40 @@ def test_multindex_series_loc_with_tuple_label():
     ser = Series([1, 2], index=mi)
     result = ser.loc[(3, (4, 5))]
     assert result == 2
+
+
+def test_loc_datetime_date_multiindex_with_np_datetime64():
+    # GH#55969
+    # Accessing a MultiIndex with datetime.date at level 0 using np.datetime64
+    # should correctly filter on all specified levels, not just the first.
+    import datetime as dt
+
+    dates = [dt.date(2023, 11, 1), dt.date(2023, 11, 1), dt.date(2023, 11, 2)]
+    t1 = ["A", "B", "C"]
+    t2 = ["C", "D", "E"]
+    vals = [1.0, 2.0, 3.0]
+
+    df = DataFrame({"dates": dates, "t1": t1, "t2": t2, "vals": vals})
+    df = df.set_index(["dates", "t1", "t2"])
+
+    date = np.datetime64("2023-11-01")
+
+    # Selecting (date, "A") should return only the first row
+    result = df.loc[(date, "A")]
+    expected = DataFrame(
+        {"vals": [1.0]},
+        index=Index(["C"], name="t2"),
+    )
+    tm.assert_frame_equal(result, expected)
+
+    # Selecting (date, "B") should return only the second row
+    result = df.loc[(date, "B")]
+    expected = DataFrame(
+        {"vals": [2.0]},
+        index=Index(["D"], name="t2"),
+    )
+    tm.assert_frame_equal(result, expected)
+
+    # Selecting (date, "C") with a non-matching date should raise KeyError
+    with pytest.raises(KeyError):
+        df.loc[(date, "C")]
