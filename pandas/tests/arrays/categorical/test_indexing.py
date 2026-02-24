@@ -150,7 +150,7 @@ class TestCategoricalIndexing:
         exp_arr = np.array([0, 0, 1, 1, 2, 2], dtype=np.int8)
         exp_idx = PeriodIndex(["2014-01", "2014-02", "2014-03"], freq="M")
         tm.assert_numpy_array_equal(cat1._codes, exp_arr)
-        tm.assert_index_equal(cat1.categories, exp_idx)
+        tm.assert_index_equal(cat1.categories, exp_idx, exact=True)
 
         idx2 = PeriodIndex(
             ["2014-03", "2014-03", "2014-02", "2014-01", "2014-03", "2014-01"],
@@ -161,7 +161,7 @@ class TestCategoricalIndexing:
         exp_arr = np.array([2, 2, 1, 0, 2, 0], dtype=np.int8)
         exp_idx2 = PeriodIndex(["2014-01", "2014-02", "2014-03"], freq="M")
         tm.assert_numpy_array_equal(cat2._codes, exp_arr)
-        tm.assert_index_equal(cat2.categories, exp_idx2)
+        tm.assert_index_equal(cat2.categories, exp_idx2, exact=True)
 
         idx3 = PeriodIndex(
             [
@@ -190,7 +190,7 @@ class TestCategoricalIndexing:
             freq="M",
         )
         tm.assert_numpy_array_equal(cat3._codes, exp_arr)
-        tm.assert_index_equal(cat3.categories, exp_idx)
+        tm.assert_index_equal(cat3.categories, exp_idx, exact=True)
 
     @pytest.mark.parametrize(
         "null_val",
@@ -201,7 +201,7 @@ class TestCategoricalIndexing:
         result = PeriodIndex(["2022-04-06", "2022-04-07", null_val], freq="D")
         expected = PeriodIndex(["2022-04-06", "2022-04-07", "NaT"], dtype="period[D]")
         assert result[2] is NaT
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
     @pytest.mark.parametrize("new_categories", [[1, 2, 3, 4], [1, 2]])
     def test_categories_assignments_wrong_length_raises(self, new_categories):

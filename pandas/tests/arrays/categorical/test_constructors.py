@@ -73,11 +73,11 @@ class TestCategoricalConstructors:
         # GH 17248
         c = Categorical([])
         expected = Index([])
-        tm.assert_index_equal(c.categories, expected)
+        tm.assert_index_equal(c.categories, expected, exact=True)
 
         c = Categorical([], categories=[1, 2, 3])
         expected = Index([1, 2, 3], dtype=np.int64)
-        tm.assert_index_equal(c.categories, expected)
+        tm.assert_index_equal(c.categories, expected, exact=True)
 
     def test_constructor_empty_boolean(self):
         # see gh-22702
@@ -89,7 +89,7 @@ class TestCategoricalConstructors:
         values = np.array([(1,), (1, 2), (1,), (1, 2)], dtype=object)
         result = Categorical(values)
         expected = Index([(1,), (1, 2)], tupleize_cols=False)
-        tm.assert_index_equal(result.categories, expected)
+        tm.assert_index_equal(result.categories, expected, exact=True)
         assert result.ordered is False
 
     def test_constructor_tuples_datetimes(self):
@@ -110,7 +110,7 @@ class TestCategoricalConstructors:
             [(Timestamp("2010-01-01"),), (Timestamp("2010-01-02"),)],
             tupleize_cols=False,
         )
-        tm.assert_index_equal(result.categories, expected)
+        tm.assert_index_equal(result.categories, expected, exact=True)
 
     def test_constructor_unsortable(self):
         # it works!
@@ -133,7 +133,7 @@ class TestCategoricalConstructors:
         ii = IntervalIndex([Interval(1, 2), Interval(2, 3), Interval(3, 6)])
         exp = Categorical(ii, ordered=True)
         tm.assert_categorical_equal(result, exp)
-        tm.assert_index_equal(result.categories, ii)
+        tm.assert_index_equal(result.categories, ii, exact=True)
 
     def test_constructor(self):
         exp_arr = np.array(["a", "b", "c", "a", "b", "c"], dtype=np.object_)
@@ -172,7 +172,7 @@ class TestCategoricalConstructors:
         c1 = Categorical(["a", "b", "c", "a"], categories=["a", "c", "b"])
         c2 = Categorical(c1, categories=["a", "b", "c"])
         tm.assert_numpy_array_equal(c1.__array__(), c2.__array__())
-        tm.assert_index_equal(c2.categories, Index(["a", "b", "c"]))
+        tm.assert_index_equal(c2.categories, Index(["a", "b", "c"]), exact=True)
 
         # Series of dtype category
         c1 = Categorical(["a", "b", "c", "a"], categories=["a", "b", "c", "d"])
@@ -338,7 +338,7 @@ class TestCategoricalConstructors:
         expected = type(dtl)(s)
         expected._data.freq = None
 
-        tm.assert_index_equal(c.categories, expected)
+        tm.assert_index_equal(c.categories, expected, exact=True)
         tm.assert_numpy_array_equal(c.codes, np.arange(5, dtype="int8"))
 
         # with NaT
@@ -349,7 +349,7 @@ class TestCategoricalConstructors:
         expected = type(dtl)(s2.dropna())
         expected._data.freq = None
 
-        tm.assert_index_equal(c.categories, expected)
+        tm.assert_index_equal(c.categories, expected, exact=True)
 
         exp = np.array([0, 1, 2, 3, -1], dtype=np.int8)
         tm.assert_numpy_array_equal(c.codes, exp)
@@ -361,10 +361,10 @@ class TestCategoricalConstructors:
         idx = date_range("2015-01-01 10:00", freq="D", periods=3, tz="US/Eastern")
         idx = idx._with_freq(None)  # freq not preserved in result.categories
         result = Categorical(idx)
-        tm.assert_index_equal(result.categories, idx)
+        tm.assert_index_equal(result.categories, idx, exact=True)
 
         result = Categorical(Series(idx))
-        tm.assert_index_equal(result.categories, idx)
+        tm.assert_index_equal(result.categories, idx, exact=True)
 
     def test_constructor_date_objects(self):
         # we dont cast date objects to timestamps, matching Index constructor
@@ -378,18 +378,18 @@ class TestCategoricalConstructors:
         idx = timedelta_range("1 days", freq="D", periods=3)
         idx = idx._with_freq(None)  # freq not preserved in result.categories
         result = Categorical(idx)
-        tm.assert_index_equal(result.categories, idx)
+        tm.assert_index_equal(result.categories, idx, exact=True)
 
         result = Categorical(Series(idx))
-        tm.assert_index_equal(result.categories, idx)
+        tm.assert_index_equal(result.categories, idx, exact=True)
 
     def test_constructor_from_index_series_period(self):
         idx = period_range("2015-01-01", freq="D", periods=3)
         result = Categorical(idx)
-        tm.assert_index_equal(result.categories, idx)
+        tm.assert_index_equal(result.categories, idx, exact=True)
 
         result = Categorical(Series(idx))
-        tm.assert_index_equal(result.categories, idx)
+        tm.assert_index_equal(result.categories, idx, exact=True)
 
     @pytest.mark.parametrize(
         "values",
@@ -527,7 +527,7 @@ class TestCategoricalConstructors:
         dtype = CategoricalDtype(cats)
         arr = Categorical.from_codes(codes, dtype=dtype, validate=validate)
         assert arr.categories.dtype == cats.dtype
-        tm.assert_index_equal(arr.categories, Index(cats))
+        tm.assert_index_equal(arr.categories, Index(cats), exact=True)
 
     def test_from_codes_empty(self):
         cat = ["a", "b", "c"]
@@ -706,7 +706,7 @@ class TestCategoricalConstructors:
     def test_constructor_imaginary(self):
         values = [1, 2, 3 + 1j]
         c1 = Categorical(values)
-        tm.assert_index_equal(c1.categories, Index(values))
+        tm.assert_index_equal(c1.categories, Index(values), exact=True)
         tm.assert_numpy_array_equal(np.array(c1), np.array(values))
 
     def test_constructor_string_and_tuples(self):
@@ -720,28 +720,28 @@ class TestCategoricalConstructors:
         cat = Categorical(idx, categories=idx)
         expected_codes = np.arange(10, dtype="int8")
         tm.assert_numpy_array_equal(cat.codes, expected_codes)
-        tm.assert_index_equal(cat.categories, idx)
+        tm.assert_index_equal(cat.categories, idx, exact=True)
 
         # infer categories
         cat = Categorical(idx)
         tm.assert_numpy_array_equal(cat.codes, expected_codes)
-        tm.assert_index_equal(cat.categories, idx)
+        tm.assert_index_equal(cat.categories, idx, exact=True)
 
         # list values
         cat = Categorical(list(idx))
         tm.assert_numpy_array_equal(cat.codes, expected_codes)
-        tm.assert_index_equal(cat.categories, idx)
+        tm.assert_index_equal(cat.categories, idx, exact=True)
 
         # list values, categories
         cat = Categorical(list(idx), categories=list(idx))
         tm.assert_numpy_array_equal(cat.codes, expected_codes)
-        tm.assert_index_equal(cat.categories, idx)
+        tm.assert_index_equal(cat.categories, idx, exact=True)
 
         # shuffled
         values = idx.take([1, 2, 0])
         cat = Categorical(values, categories=idx)
         tm.assert_numpy_array_equal(cat.codes, np.array([1, 2, 0], dtype="int8"))
-        tm.assert_index_equal(cat.categories, idx)
+        tm.assert_index_equal(cat.categories, idx, exact=True)
 
         # extra
         values = pd.interval_range(8, 11, periods=3)
@@ -750,14 +750,14 @@ class TestCategoricalConstructors:
             cat = Categorical(values, categories=idx)
         expected_codes = np.array([8, 9, -1], dtype="int8")
         tm.assert_numpy_array_equal(cat.codes, expected_codes)
-        tm.assert_index_equal(cat.categories, idx)
+        tm.assert_index_equal(cat.categories, idx, exact=True)
 
         # overlapping
         idx = IntervalIndex([Interval(0, 2), Interval(0, 1)])
         cat = Categorical(idx, categories=idx)
         expected_codes = np.array([0, 1], dtype="int8")
         tm.assert_numpy_array_equal(cat.codes, expected_codes)
-        tm.assert_index_equal(cat.categories, idx)
+        tm.assert_index_equal(cat.categories, idx, exact=True)
 
     def test_categorical_extension_array_nullable(self, nulls_fixture):
         # GH:

@@ -21,19 +21,19 @@ class TestCategoricalAPI:
     def test_ordered_api(self):
         # GH 9347
         cat1 = Categorical(list("acb"), ordered=False)
-        tm.assert_index_equal(cat1.categories, Index(["a", "b", "c"]))
+        tm.assert_index_equal(cat1.categories, Index(["a", "b", "c"]), exact=True)
         assert not cat1.ordered
 
         cat2 = Categorical(list("acb"), categories=list("bca"), ordered=False)
-        tm.assert_index_equal(cat2.categories, Index(["b", "c", "a"]))
+        tm.assert_index_equal(cat2.categories, Index(["b", "c", "a"]), exact=True)
         assert not cat2.ordered
 
         cat3 = Categorical(list("acb"), ordered=True)
-        tm.assert_index_equal(cat3.categories, Index(["a", "b", "c"]))
+        tm.assert_index_equal(cat3.categories, Index(["a", "b", "c"]), exact=True)
         assert cat3.ordered
 
         cat4 = Categorical(list("acb"), categories=list("bca"), ordered=True)
-        tm.assert_index_equal(cat4.categories, Index(["b", "c", "a"]))
+        tm.assert_index_equal(cat4.categories, Index(["b", "c", "a"]), exact=True)
         assert cat4.ordered
 
     def test_set_ordered(self):
@@ -61,13 +61,13 @@ class TestCategoricalAPI:
         tm.assert_numpy_array_equal(
             res.__array__(), np.array([1, 2, 3, 1], dtype=np.int64)
         )
-        tm.assert_index_equal(res.categories, Index([1, 2, 3]))
+        tm.assert_index_equal(res.categories, Index([1, 2, 3]), exact=True)
 
         exp_cat = np.array(["a", "b", "c", "a"], dtype=np.object_)
         tm.assert_numpy_array_equal(cat.__array__(), exp_cat)
 
         exp_cat = Index(["a", "b", "c"])
-        tm.assert_index_equal(cat.categories, exp_cat)
+        tm.assert_index_equal(cat.categories, exp_cat, exact=True)
 
         # GH18862 (let rename_categories take callables)
         result = cat.rename_categories(lambda x: x.upper())
@@ -96,27 +96,27 @@ class TestCategoricalAPI:
         cat = Categorical(["a", "b", "c", "d"])
         res = cat.rename_categories({"a": 4, "b": 3, "c": 2, "d": 1})
         expected = Index([4, 3, 2, 1])
-        tm.assert_index_equal(res.categories, expected)
+        tm.assert_index_equal(res.categories, expected, exact=True)
 
         # Test for dicts of smaller length
         cat = Categorical(["a", "b", "c", "d"])
         res = cat.rename_categories({"a": 1, "c": 3})
 
         expected = Index([1, "b", 3, "d"])
-        tm.assert_index_equal(res.categories, expected)
+        tm.assert_index_equal(res.categories, expected, exact=True)
 
         # Test for dicts with bigger length
         cat = Categorical(["a", "b", "c", "d"])
         res = cat.rename_categories({"a": 1, "b": 2, "c": 3, "d": 4, "e": 5, "f": 6})
         expected = Index([1, 2, 3, 4])
-        tm.assert_index_equal(res.categories, expected)
+        tm.assert_index_equal(res.categories, expected, exact=True)
 
         # Test for dicts with no items from old categories
         cat = Categorical(["a", "b", "c", "d"])
         res = cat.rename_categories({"f": 1, "g": 3})
 
         expected = Index(["a", "b", "c", "d"])
-        tm.assert_index_equal(res.categories, expected)
+        tm.assert_index_equal(res.categories, expected, exact=True)
 
     def test_reorder_categories(self):
         cat = Categorical(["a", "b", "c", "a"], ordered=True)
@@ -207,11 +207,11 @@ class TestCategoricalAPI:
         cat = cat.set_categories(["c", "b", "a"])
         res = cat.set_categories(["a", "b", "c"])
         # cat must be the same as before
-        tm.assert_index_equal(cat.categories, exp_categories)
+        tm.assert_index_equal(cat.categories, exp_categories, exact=True)
         tm.assert_numpy_array_equal(cat.__array__(), exp_values)
         # only res is changed
         exp_categories_back = Index(["a", "b", "c"])
-        tm.assert_index_equal(res.categories, exp_categories_back)
+        tm.assert_index_equal(res.categories, exp_categories_back, exact=True)
         tm.assert_numpy_array_equal(res.__array__(), exp_values)
 
         # not all "old" included in "new" -> all not included ones are now
@@ -223,17 +223,17 @@ class TestCategoricalAPI:
         # still not all "old" in "new"
         res = cat.set_categories(["a", "b", "d"])
         tm.assert_numpy_array_equal(res.codes, np.array([0, 1, -1, 0], dtype=np.int8))
-        tm.assert_index_equal(res.categories, Index(["a", "b", "d"]))
+        tm.assert_index_equal(res.categories, Index(["a", "b", "d"]), exact=True)
 
         # all "old" included in "new"
         cat = cat.set_categories(["a", "b", "c", "d"])
         exp_categories = Index(["a", "b", "c", "d"])
-        tm.assert_index_equal(cat.categories, exp_categories)
+        tm.assert_index_equal(cat.categories, exp_categories, exact=True)
 
         # internals...
         c = Categorical([1, 2, 3, 4, 1], categories=[1, 2, 3, 4], ordered=True)
         tm.assert_numpy_array_equal(c._codes, np.array([0, 1, 2, 3, 0], dtype=np.int8))
-        tm.assert_index_equal(c.categories, Index([1, 2, 3, 4]))
+        tm.assert_index_equal(c.categories, Index([1, 2, 3, 4]), exact=True)
 
         exp = np.array([1, 2, 3, 4, 1], dtype=np.int64)
         tm.assert_numpy_array_equal(np.asarray(c), exp)
@@ -245,7 +245,7 @@ class TestCategoricalAPI:
         tm.assert_numpy_array_equal(c._codes, np.array([3, 2, 1, 0, 3], dtype=np.int8))
 
         # categories are now in new order
-        tm.assert_index_equal(c.categories, Index([4, 3, 2, 1]))
+        tm.assert_index_equal(c.categories, Index([4, 3, 2, 1]), exact=True)
 
         # output is the same
         exp = np.array([1, 2, 3, 4, 1], dtype=np.int64)
@@ -349,24 +349,26 @@ class TestCategoricalAPI:
         exp_categories_all = Index(["a", "b", "c", "d", "e"])
         exp_categories_dropped = Index(["a", "b", "c", "d"])
 
-        tm.assert_index_equal(c.categories, exp_categories_all)
+        tm.assert_index_equal(c.categories, exp_categories_all, exact=True)
 
         res = c.remove_unused_categories()
-        tm.assert_index_equal(res.categories, exp_categories_dropped)
-        tm.assert_index_equal(c.categories, exp_categories_all)
+        tm.assert_index_equal(res.categories, exp_categories_dropped, exact=True)
+        tm.assert_index_equal(c.categories, exp_categories_all, exact=True)
 
         # with NaN values (GH11599)
         c = Categorical(["a", "b", "c", np.nan], categories=["a", "b", "c", "d", "e"])
         res = c.remove_unused_categories()
-        tm.assert_index_equal(res.categories, Index(np.array(["a", "b", "c"])))
+        tm.assert_index_equal(
+            res.categories, Index(np.array(["a", "b", "c"])), exact=True
+        )
         exp_codes = np.array([0, 1, 2, -1], dtype=np.int8)
         tm.assert_numpy_array_equal(res.codes, exp_codes)
-        tm.assert_index_equal(c.categories, exp_categories_all)
+        tm.assert_index_equal(c.categories, exp_categories_all, exact=True)
 
         val = ["F", np.nan, "D", "B", "D", "F", np.nan]
         cat = Categorical(values=val, categories=list("ABCDEFG"))
         out = cat.remove_unused_categories()
-        tm.assert_index_equal(out.categories, Index(["B", "D", "F"]))
+        tm.assert_index_equal(out.categories, Index(["B", "D", "F"]), exact=True)
         exp_codes = np.array([2, -1, 1, 0, 1, 2, -1], dtype=np.int8)
         tm.assert_numpy_array_equal(out.codes, exp_codes)
         assert out.tolist() == val

@@ -58,7 +58,7 @@ class TestCategoricalDtypes:
         c = Categorical(["a", "b", "c"])
         result = c._set_dtype(CategoricalDtype(list("abcd")), copy=True)
         tm.assert_numpy_array_equal(result.codes, c.codes)
-        tm.assert_index_equal(result.dtype.categories, Index(list("abcd")))
+        tm.assert_index_equal(result.dtype.categories, Index(list("abcd")), exact=True)
 
     @pytest.mark.parametrize(
         "values, categories, new_categories, warn",
@@ -144,4 +144,4 @@ class TestCategoricalDtypes:
         expected = IntervalIndex.from_arrays(
             [0, 1], [1, 2], dtype="interval[uint64, right]"
         )
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)

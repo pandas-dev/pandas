@@ -51,7 +51,7 @@ class TestCategoricalSort:
         res = cat.sort_values()
         exp = np.array(["a", "b", "c", "d"], dtype=object)
         tm.assert_numpy_array_equal(res.__array__(), exp)
-        tm.assert_index_equal(res.categories, cat.categories)
+        tm.assert_index_equal(res.categories, cat.categories, exact=True)
 
         cat = Categorical(
             ["a", "c", "b", "d"], categories=["a", "b", "c", "d"], ordered=True
@@ -59,12 +59,12 @@ class TestCategoricalSort:
         res = cat.sort_values()
         exp = np.array(["a", "b", "c", "d"], dtype=object)
         tm.assert_numpy_array_equal(res.__array__(), exp)
-        tm.assert_index_equal(res.categories, cat.categories)
+        tm.assert_index_equal(res.categories, cat.categories, exact=True)
 
         res = cat.sort_values(ascending=False)
         exp = np.array(["d", "c", "b", "a"], dtype=object)
         tm.assert_numpy_array_equal(res.__array__(), exp)
-        tm.assert_index_equal(res.categories, cat.categories)
+        tm.assert_index_equal(res.categories, cat.categories, exact=True)
 
         # sort (inplace order)
         cat1 = cat.copy()
@@ -73,7 +73,7 @@ class TestCategoricalSort:
         assert cat1._codes is orig_codes
         exp = np.array(["a", "b", "c", "d"], dtype=object)
         tm.assert_numpy_array_equal(cat1.__array__(), exp)
-        tm.assert_index_equal(res.categories, cat.categories)
+        tm.assert_index_equal(res.categories, cat.categories, exact=True)
 
         # reverse
         cat = Categorical(["a", "c", "c", "b", "d"], ordered=True)
@@ -81,7 +81,7 @@ class TestCategoricalSort:
         exp_val = np.array(["d", "c", "c", "b", "a"], dtype=object)
         exp_categories = Index(["a", "b", "c", "d"])
         tm.assert_numpy_array_equal(res.__array__(), exp_val)
-        tm.assert_index_equal(res.categories, exp_categories)
+        tm.assert_index_equal(res.categories, exp_categories, exact=True)
 
     def test_sort_values_na_position(self):
         # see gh-12882
@@ -91,38 +91,38 @@ class TestCategoricalSort:
         exp = np.array([2.0, 2.0, 5.0, np.nan, np.nan])
         res = cat.sort_values()  # default arguments
         tm.assert_numpy_array_equal(res.__array__(), exp)
-        tm.assert_index_equal(res.categories, exp_categories)
+        tm.assert_index_equal(res.categories, exp_categories, exact=True)
 
         exp = np.array([np.nan, np.nan, 2.0, 2.0, 5.0])
         res = cat.sort_values(ascending=True, na_position="first")
         tm.assert_numpy_array_equal(res.__array__(), exp)
-        tm.assert_index_equal(res.categories, exp_categories)
+        tm.assert_index_equal(res.categories, exp_categories, exact=True)
 
         exp = np.array([np.nan, np.nan, 5.0, 2.0, 2.0])
         res = cat.sort_values(ascending=False, na_position="first")
         tm.assert_numpy_array_equal(res.__array__(), exp)
-        tm.assert_index_equal(res.categories, exp_categories)
+        tm.assert_index_equal(res.categories, exp_categories, exact=True)
 
         exp = np.array([2.0, 2.0, 5.0, np.nan, np.nan])
         res = cat.sort_values(ascending=True, na_position="last")
         tm.assert_numpy_array_equal(res.__array__(), exp)
-        tm.assert_index_equal(res.categories, exp_categories)
+        tm.assert_index_equal(res.categories, exp_categories, exact=True)
 
         exp = np.array([5.0, 2.0, 2.0, np.nan, np.nan])
         res = cat.sort_values(ascending=False, na_position="last")
         tm.assert_numpy_array_equal(res.__array__(), exp)
-        tm.assert_index_equal(res.categories, exp_categories)
+        tm.assert_index_equal(res.categories, exp_categories, exact=True)
 
         cat = Categorical(["a", "c", "b", "d", np.nan], ordered=True)
         res = cat.sort_values(ascending=False, na_position="last")
         exp_val = np.array(["d", "c", "b", "a", np.nan], dtype=object)
         exp_categories = Index(["a", "b", "c", "d"])
         tm.assert_numpy_array_equal(res.__array__(), exp_val)
-        tm.assert_index_equal(res.categories, exp_categories)
+        tm.assert_index_equal(res.categories, exp_categories, exact=True)
 
         cat = Categorical(["a", "c", "b", "d", np.nan], ordered=True)
         res = cat.sort_values(ascending=False, na_position="first")
         exp_val = np.array([np.nan, "d", "c", "b", "a"], dtype=object)
         exp_categories = Index(["a", "b", "c", "d"])
         tm.assert_numpy_array_equal(res.__array__(), exp_val)
-        tm.assert_index_equal(res.categories, exp_categories)
+        tm.assert_index_equal(res.categories, exp_categories, exact=True)
