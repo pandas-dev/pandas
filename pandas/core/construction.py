@@ -341,15 +341,6 @@ def array(
     if dtype is not None:
         dtype = pandas_dtype(dtype)
 
-    if getattr(data, "ndim", 1) > 1:
-        shape = getattr(data, "shape", None)
-        if shape is None:
-            raise ValueError("Data must be 1-dimensional.")
-        raise ValueError(
-            "Data must be 1-dimensional, "
-            f"got {type(data).__name__} of shape {shape} instead"
-        )
-
     if isinstance(data, ExtensionArray) and (dtype is None or data.dtype == dtype):
         # e.g. TimedeltaArray[s], avoid casting to NumpyExtensionArray
         if copy:

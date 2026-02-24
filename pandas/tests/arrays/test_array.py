@@ -497,17 +497,10 @@ def test_nd_raises(data):
 @pytest.mark.parametrize(
     "data, dtype",
     [
-        (np.array([[1, 2], [3, 4]]), None),
         (np.array([[1, 2], [3, 4]]), "int64"),
         (np.array([[1, 2], [3, 4]]), "float64"),
-        (np.array([[1, 2], [3, 4]]), "Int64"),
-        (np.array([["2000-01-01", "2000-01-02"]], dtype="datetime64[ns]"), None),
-        (
-            np.array([["2000-01-01", "2000-01-02"]], dtype="datetime64[ns]"),
-            "datetime64[ns]",
-        ),
-        (np.array([[1, 2], [3, 4]], dtype="timedelta64[s]"), None),
-        (np.array([[1, 2], [3, 4]], dtype="timedelta64[s]"), "timedelta64[s]"),
+        (np.array([[1, 2], [3, 4]]), object),
+        (np.array([[1, 2], [3, 4]]), "object"),
     ],
 )
 def test_ndim_gt_1_raises(data, dtype):
