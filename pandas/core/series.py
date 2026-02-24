@@ -4132,7 +4132,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def argsort(
         self,
         axis: Axis = 0,
-        kind: SortKind = "quicksort",
+        kind: SortKind | None = None,
         order: str | list[str] | None = None,
         stable: bool | None = None,
     ) -> Series:
@@ -4146,7 +4146,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ----------
         axis : {0 or 'index'}
             Unused. Parameter needed for compatibility with DataFrame.
-        kind : {'mergesort', 'quicksort', 'heapsort', 'stable'}, default 'quicksort'
+        kind : {'mergesort', 'quicksort', 'heapsort', 'stable'}, optional, default None
             Choice of sorting algorithm. See :func:`numpy.sort` for more
             information. 'mergesort' and 'stable' are the only stable algorithms.
         order : str or list of str, optional
@@ -4176,6 +4176,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if axis != -1:
             # GH#54257 We allow -1 here so that np.argsort(series) works
             self._get_axis_number(axis)
+
+        if kind is None and stable is None:
+            # GH#64255 this is the previous default behaviour
+            kind = "quicksort"
 
         if order is not None:
             if order not in (self.name, [self.name]):
