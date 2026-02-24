@@ -134,14 +134,14 @@ def test_series_from_index(idx):
     assert np.shares_memory(get_array(ser), get_array(idx))
     assert not ser._mgr._has_no_reference(0)
     ser.iloc[0] = ser.iloc[1]
-    tm.assert_index_equal(idx, expected)
+    tm.assert_index_equal(idx, expected, exact=True)
 
     # forcing copy=False still gives a CoW shallow copy
     ser = Series(idx, copy=False)
     assert np.shares_memory(get_array(ser), get_array(idx))
     assert not ser._mgr._has_no_reference(0)
     ser.iloc[0] = ser.iloc[1]
-    tm.assert_index_equal(idx, expected)
+    tm.assert_index_equal(idx, expected, exact=True)
 
     # forcing copy=True still results in a copy
     ser = Series(idx, copy=True)
@@ -379,4 +379,4 @@ def test_frame_from_dict_of_index():
     assert not df._mgr._has_no_reference(0)
 
     df.iloc[0, 0] = 100
-    tm.assert_index_equal(idx, expected)
+    tm.assert_index_equal(idx, expected, exact=True)
