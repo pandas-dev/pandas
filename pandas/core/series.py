@@ -4151,7 +4151,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             information. 'mergesort' and 'stable' are the only stable algorithms.
         order : str or list of str, optional
             Must match series name if given, accepted only for compatibility with numpy.
-        stable : bool, optional, default `False`
+        stable : bool, optional, default None
             If ``True``, equivalent to ``kind='stable'``. Cannot be used with ``kind``.
 
         Returns
