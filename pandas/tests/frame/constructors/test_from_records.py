@@ -140,7 +140,7 @@ class TestFromRecords:
         # empty case
         result = DataFrame.from_records([], columns=["foo", "bar", "baz"])
         assert len(result) == 0
-        tm.assert_index_equal(result.columns, Index(["foo", "bar", "baz"]))
+        tm.assert_index_equal(result.columns, Index(["foo", "bar", "baz"]), exact=True)
 
         result = DataFrame.from_records([])
         assert len(result) == 0
@@ -223,7 +223,7 @@ class TestFromRecords:
 
         assert len(result) == 0
         assert result.index.name == "foo"
-        tm.assert_index_equal(result.columns, expected)
+        tm.assert_index_equal(result.columns, expected, exact=True)
 
     def test_from_records_series_list_dict(self):
         # GH#27358
@@ -259,7 +259,7 @@ class TestFromRecords:
 
         index = Index(np.arange(len(arr))[::-1])
         indexed_frame = DataFrame.from_records(arr, index=index)
-        tm.assert_index_equal(indexed_frame.index, index)
+        tm.assert_index_equal(indexed_frame.index, index, exact=True)
 
         # without names, it should go to last ditch
         arr2 = np.zeros((2, 3))
