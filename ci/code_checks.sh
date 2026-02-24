@@ -70,13 +70,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
     "$BASE_DIR"/scripts/validate_docstrings.py \
         --format=actions \
         -i "pandas.tseries.frequencies.to_offset ES01" \
-        -i "pandas.Series.hist ES01" \
-        -i "pandas.Series.to_pickle ES01" \
-        -i "pandas.Series.to_csv ES01" \
-        -i "pandas.Series.to_dict ES01" \
-        -i "pandas.Series.to_frame ES01" \
-        -i "pandas.Series.to_string ES01" \
-        -i "pandas.Series.to_markdown ES01" \
         -i "pandas.testing.assert_series_equal ES01" \
         -i "pandas.testing.assert_index_equal ES01" \
         -i "pandas.Timestamp.nanosecond ES01" \
@@ -107,8 +100,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.api.types.is_re ES01" \
         -i "pandas.api.types.is_re_compilable ES01" \
         -i "pandas.api.types.is_scalar ES01" \
-        -i "pandas.DataFrame.to_pickle ES01" \
-        -i "pandas.DataFrame.to_csv ES01" \
         -i "pandas.read_html ES01" \
         -i "pandas.DataFrame.to_html ES01" \
         -i "pandas.io.formats.style.Styler.to_html ES01" \
