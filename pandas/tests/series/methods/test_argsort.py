@@ -75,7 +75,7 @@ class TestSeriesArgsort:
         result = datetime_series.argsort()
         assert result.name == datetime_series.name
 
-    def test_argsort_stable_behavior():
+    def test_argsort_stable_behavior(self):
         ser = Series([3, 1, 2])
         arr = np.array([3, 1, 2])
 
