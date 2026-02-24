@@ -894,7 +894,7 @@ class TestCategoricalDtypeParametrized:
     )
     def test_basic(self, categories, ordered):
         c1 = CategoricalDtype(categories, ordered=ordered)
-        tm.assert_index_equal(c1.categories, pd.Index(categories))
+        tm.assert_index_equal(c1.categories, pd.Index(categories), exact=True)
         assert c1.ordered is ordered
 
     def test_order_matters(self):
@@ -913,7 +913,7 @@ class TestCategoricalDtypeParametrized:
 
     def test_categories(self):
         result = CategoricalDtype(["a", "b", "c"])
-        tm.assert_index_equal(result.categories, pd.Index(["a", "b", "c"]))
+        tm.assert_index_equal(result.categories, pd.Index(["a", "b", "c"]), exact=True)
         assert result.ordered is False
 
     def test_equal_but_different(self):
@@ -1072,9 +1072,9 @@ class TestCategoricalDtypeParametrized:
     def test_categorical_categories(self):
         # GH17884
         c1 = CategoricalDtype(Categorical(["a", "b"]))
-        tm.assert_index_equal(c1.categories, pd.Index(["a", "b"]))
+        tm.assert_index_equal(c1.categories, pd.Index(["a", "b"]), exact=True)
         c1 = CategoricalDtype(CategoricalIndex(["a", "b"]))
-        tm.assert_index_equal(c1.categories, pd.Index(["a", "b"]))
+        tm.assert_index_equal(c1.categories, pd.Index(["a", "b"]), exact=True)
 
     @pytest.mark.parametrize(
         "new_categories", [list("abc"), list("cba"), list("wxyz"), None]
@@ -1089,7 +1089,7 @@ class TestCategoricalDtypeParametrized:
         expected_categories = pd.Index(new_categories or original_categories)
         expected_ordered = new_ordered if new_ordered is not None else dtype.ordered
 
-        tm.assert_index_equal(result.categories, expected_categories)
+        tm.assert_index_equal(result.categories, expected_categories, exact=True)
         assert result.ordered is expected_ordered
 
     def test_update_dtype_string(self, ordered):
@@ -1097,7 +1097,7 @@ class TestCategoricalDtypeParametrized:
         expected_categories = dtype.categories
         expected_ordered = dtype.ordered
         result = dtype.update_dtype("category")
-        tm.assert_index_equal(result.categories, expected_categories)
+        tm.assert_index_equal(result.categories, expected_categories, exact=True)
         assert result.ordered is expected_ordered
 
     @pytest.mark.parametrize("bad_dtype", ["foo", object, np.int64, PeriodDtype("Q")])
