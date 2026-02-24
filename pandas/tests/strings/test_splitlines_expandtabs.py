@@ -3,13 +3,16 @@ Tests for Series.str.splitlines and Series.str.expandtabs.
 
 These methods mirror Python's str.splitlines() and str.expandtabs().
 """
+
 import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Series, _testing as tm
+from pandas import (
+    Series,
+    _testing as tm,
+)
 from pandas.tests.strings import _convert_na_value
-
 
 # --- splitlines tests ---
 
@@ -28,7 +31,8 @@ def test_str_splitlines_basic(any_string_dtype, keepends):
                 ["line1\r\n", "line2"],
                 ["no newline"],
                 np.nan,
-            ]
+            ],
+            dtype=object,
         )
     else:
         exp = Series(
@@ -37,7 +41,8 @@ def test_str_splitlines_basic(any_string_dtype, keepends):
                 ["line1", "line2"],
                 ["no newline"],
                 np.nan,
-            ]
+            ],
+            dtype=object,
         )
     exp = _convert_na_value(values, exp)
     tm.assert_series_equal(result, exp)
@@ -46,7 +51,7 @@ def test_str_splitlines_basic(any_string_dtype, keepends):
 def test_str_splitlines_empty_string(any_string_dtype):
     values = Series(["", "a\nb", np.nan], dtype=any_string_dtype)
     result = values.str.splitlines()
-    exp = Series([[], ["a", "b"], np.nan])
+    exp = Series([[], ["a", "b"], np.nan], dtype=object)
     exp = _convert_na_value(values, exp)
     tm.assert_series_equal(result, exp)
 
@@ -54,7 +59,7 @@ def test_str_splitlines_empty_string(any_string_dtype):
 def test_str_splitlines_keepends_true(any_string_dtype):
     values = Series(["a\nb\nc"], dtype=any_string_dtype)
     result = values.str.splitlines(keepends=True)
-    exp = Series([["a\n", "b\n", "c"]])
+    exp = Series([["a\n", "b\n", "c"]], dtype=object)
     exp = _convert_na_value(values, exp)
     tm.assert_series_equal(result, exp)
 
@@ -66,7 +71,10 @@ def test_str_splitlines_universal_newlines(any_string_dtype):
         dtype=any_string_dtype,
     )
     result = values.str.splitlines()
-    exp = Series([["a", "b"], ["a", "b"], ["a", "b"], ["a", "b"], ["a", "b"]])
+    exp = Series(
+        [["a", "b"], ["a", "b"], ["a", "b"], ["a", "b"], ["a", "b"]],
+        dtype=object,
+    )
     exp = _convert_na_value(values, exp)
     tm.assert_series_equal(result, exp)
 
@@ -99,7 +107,7 @@ def test_str_splitlines_empty_series(any_string_dtype):
 def test_str_expandtabs_tabsize_four(any_string_dtype):
     values = Series(["1\t2", "a\t\tb", np.nan], dtype=any_string_dtype)
     result = values.str.expandtabs(tabsize=4)
-    exp = Series(["1   2", "a       b", np.nan])
+    exp = Series(["1   2", "a       b", np.nan], dtype=values.dtype)
     exp = _convert_na_value(values, exp)
     tm.assert_series_equal(result, exp)
 
@@ -107,7 +115,7 @@ def test_str_expandtabs_tabsize_four(any_string_dtype):
 def test_str_expandtabs_tabsize_eight(any_string_dtype):
     values = Series(["1\t2", "a\tb", np.nan], dtype=any_string_dtype)
     result = values.str.expandtabs(tabsize=8)
-    exp = Series(["1       2", "a       b", np.nan])
+    exp = Series(["1       2", "a       b", np.nan], dtype=values.dtype)
     exp = _convert_na_value(values, exp)
     tm.assert_series_equal(result, exp)
 
@@ -115,7 +123,7 @@ def test_str_expandtabs_tabsize_eight(any_string_dtype):
 def test_str_expandtabs_default(any_string_dtype):
     values = Series(["1\t2", "a\tb", np.nan], dtype=any_string_dtype)
     result = values.str.expandtabs()
-    exp = Series(["1       2", "a       b", np.nan])
+    exp = Series(["1       2", "a       b", np.nan], dtype=values.dtype)
     exp = _convert_na_value(values, exp)
     tm.assert_series_equal(result, exp)
 
@@ -123,7 +131,7 @@ def test_str_expandtabs_default(any_string_dtype):
 def test_str_expandtabs_no_tabs(any_string_dtype):
     values = Series(["no tabs", "here", np.nan], dtype=any_string_dtype)
     result = values.str.expandtabs(8)
-    exp = Series(["no tabs", "here", np.nan])
+    exp = Series(["no tabs", "here", np.nan], dtype=values.dtype)
     exp = _convert_na_value(values, exp)
     tm.assert_series_equal(result, exp)
 
@@ -131,7 +139,7 @@ def test_str_expandtabs_no_tabs(any_string_dtype):
 def test_str_expandtabs_empty_string(any_string_dtype):
     values = Series(["", "\t", "a\tb"], dtype=any_string_dtype)
     result = values.str.expandtabs(4)
-    exp = Series(["", "    ", "a   b"])
+    exp = Series(["", "    ", "a   b"], dtype=values.dtype)
     exp = _convert_na_value(values, exp)
     tm.assert_series_equal(result, exp)
 
@@ -139,14 +147,15 @@ def test_str_expandtabs_empty_string(any_string_dtype):
 def test_str_expandtabs_index(any_string_dtype):
     idx = pd.Index(["1\t2", "a\tb"], dtype=any_string_dtype)
     result = idx.str.expandtabs(4)
-    exp = pd.Index(["1   2", "a   b"])
+    # Use result.dtype so test passes when Index infers StringDtype (e.g. Py3.14)
+    exp = pd.Index(["1   2", "a   b"], dtype=result.dtype)
     tm.assert_index_equal(result, exp)
 
 
 def test_str_expandtabs_tabsize_zero(any_string_dtype):
     values = Series(["1\t2"], dtype=any_string_dtype)
     result = values.str.expandtabs(0)
-    exp = Series(["12"])
+    exp = Series(["12"], dtype=values.dtype)
     exp = _convert_na_value(values, exp)
     tm.assert_series_equal(result, exp)
 

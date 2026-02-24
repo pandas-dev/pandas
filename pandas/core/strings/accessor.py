@@ -2283,14 +2283,8 @@ class StringMethods(NoNewAttributesMixin):
 
         Examples
         --------
-        >>> s = pd.Series(["1\\t2", "a\\t\\tb", np.nan])
-        >>> s.str.expandtabs()
-        0    1       2
-        1    a       b
-        2    NaN
-        dtype: object
-
-        >>> s.str.expandtabs(tabsize=4)
+        >>> s = pd.Series(["1\\t2", "a\\tb", np.nan], dtype=object)
+        >>> s.str.expandtabs(4)
         0    1   2
         1    a   b
         2    NaN
