@@ -83,7 +83,15 @@ class TestSeriesArgsort:
         true_expected = np.argsort(ser.values, stable=True)
         false_expected = np.argsort(ser.values, stable=False)
 
+        tm.assert_numpy_array_equal(false_indexer.values, false_expected)
+        tm.assert_numpy_array_equal(true_indexer.values, true_expected)
 
+    def test_argsort_pos_arg_stable(self, argsort_stability_series):
+        ser = argsort_stability_series
+        true_indexer = ser.argsort(0, None, None, True)
+        false_indexer = ser.argsort(0, None, None, False)
+
+        true_expected = false_expected = np.argsort(ser.values, stable=False)
         tm.assert_numpy_array_equal(false_indexer.values, false_expected)
         tm.assert_numpy_array_equal(true_indexer.values, true_expected)
 

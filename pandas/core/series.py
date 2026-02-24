@@ -44,6 +44,7 @@ from pandas.errors import (
     ChainedAssignmentError,
     InvalidIndexError,
     Pandas4Warning,
+    PandasDeprecationWarning,
     PandasFutureWarning,
 )
 from pandas.errors.cow import (
@@ -4134,6 +4135,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         axis: Axis = 0,
         kind: SortKind | None = None,
         order: str | list[str] | None = None,
+        _stable: None = None,
+        *,
         stable: bool | None = None,
     ) -> Series:
         """
@@ -4151,6 +4154,18 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             information. 'mergesort' and 'stable' are the only stable algorithms.
         order : str or list of str, optional
             Must match series name if given, accepted only for compatibility with numpy.
+        _stable : Unused
+
+            .. deprecated:: 3.1.0
+
+                This argument is present for API backwards compatibility. It should
+                never be used as a keyword argument.
+                Previous versions accepted a positional or keyword argument named
+                ``stable`` that did nothing.
+                For compatibility with ``numpy.argsort``, ``stable`` is now a
+                keyword-only argument that does something, while ``_stable`` is a
+                placeholder for the old positional argument and still does nothing.
+
         stable : bool, optional, default None
             If ``True``, perform a stable sort. Equivalent to ``kind=stable``, and
             cannot be used together with ``kind``.
@@ -4178,13 +4193,20 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             # GH#54257 We allow -1 here so that np.argsort(series) works
             self._get_axis_number(axis)
 
+        if _stable is not None:
+            warnings.warn(
+                "`_stable` does nothing and should never be used",
+                PandasDeprecationWarning,
+                stacklevel=find_stack_level(),
+            )
+
         if kind is None:
             if stable is True:
                 kind = "stable"
             else:
                 # GH#64255 this is the previous default behaviour
                 kind = "quicksort"
-        else:
+        else:  # noqa: PLR5501
             if stable is not None:
                 warnings.warn(
                     "`kind` and `stable` can't be provided at the same time. "
