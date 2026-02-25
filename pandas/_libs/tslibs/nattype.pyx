@@ -602,6 +602,11 @@ class NaTType(_NaT):
         """
         Return a named tuple containing ISO year, week number, and weekday.
 
+        The ISO 8601 calendar is a widely used international standard. The
+        returned named tuple has three components: ``year``, ``week``, and
+        ``weekday``. The ISO year may differ from the Gregorian year for dates
+        near the start or end of a calendar year.
+
         See Also
         --------
         DatetimeIndex.isocalendar : Return a 3-tuple containing ISO year,
@@ -891,6 +896,10 @@ class NaTType(_NaT):
         """
         Return a formatted string of the Timestamp.
 
+        This method converts a Timestamp to a string according to the given
+        format string, using the same directives as the standard library's
+        :meth:`datetime.datetime.strftime`.
+
         Parameters
         ----------
         format : str
@@ -1061,6 +1070,10 @@ class NaTType(_NaT):
         Timestamp.utcnow()
 
         Return a new Timestamp representing UTC day and time.
+
+        .. deprecated:: 3.0.0
+            ``Timestamp.utcnow`` is deprecated and will be removed in a future
+            version. Use ``Timestamp.now('UTC')`` instead.
 
         See Also
         --------
