@@ -779,7 +779,9 @@ class ExcelFormatter:
             # MultiIndex columns require an extra row
             # with index names (blank if None) for
             # unambiguous round-trip, Issue #11328
-            if isinstance(self.columns, MultiIndex) and com.any_not_none(*self.df.index.names):
+            if isinstance(self.columns, MultiIndex) and com.any_not_none(
+                *self.df.index.names
+            ):
                 self.rowcounter += 1
 
             # if index labels are not empty go ahead and dump

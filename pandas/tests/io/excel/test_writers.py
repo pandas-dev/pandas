@@ -370,7 +370,7 @@ class TestRoundTrip:
         )
 
         tm.assert_frame_equal(result, expected)
-        
+
     def test_multiindex_no_empty_row(self, tmp_excel):
         # GH 27772
         # Setup: 2-level MultiIndex for rows and columns with names=None
@@ -379,21 +379,25 @@ class TestRoundTrip:
         df = DataFrame([[10, 20], [30, 40]], index=row_mi, columns=col_mi)
 
         df.to_excel(tmp_excel)
-        
+
         # Read the raw grid with no parsing
         result = pd.read_excel(tmp_excel, header=None, index_col=None)
-        
+
         # Standardize: Convert "Unnamed: X" strings or Nones to np.nan
         # This ensures tm.assert_frame_equal doesn't trip on engine-specific naming
-        result = result.map(lambda x: np.nan if (pd.isna(x) or str(x).startswith("Unnamed:")) else x)
+        result = result.map(
+            lambda x: np.nan if (pd.isna(x) or str(x).startswith("Unnamed:")) else x
+        )
 
         # Define the reference "physical layout"
-        expected = DataFrame([
-            [np.nan, np.nan, "C1", np.nan],
-            [np.nan, np.nan, "A",  "B" ],
-            ["R1",   1,      10,    20 ],
-            [np.nan,   2,      30,    40 ]
-        ])
+        expected = DataFrame(
+            [
+                [np.nan, np.nan, "C1", np.nan],
+                [np.nan, np.nan, "A", "B"],
+                ["R1", 1, 10, 20],
+                [np.nan, 2, 30, 40],
+            ]
+        )
 
         tm.assert_frame_equal(result, expected)
 
