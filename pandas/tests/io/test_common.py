@@ -491,7 +491,7 @@ def test_urlopen_timeout_from_storage_options(monkeypatch):
         def __init__(self, data: bytes):
             self._data = data
             # pandas checks req.headers.get("Content-Encoding", None)
-            self.headers = {}
+            self.headers: dict[str, str] = {}
 
         def read(self) -> bytes:
             return self._data
