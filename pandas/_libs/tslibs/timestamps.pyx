@@ -1292,6 +1292,10 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Return the nanosecond of the Timestamp.
 
+        This property returns an integer representing the nanosecond component
+        (0-999) of the Timestamp. This is particularly useful when working with
+        high-precision temporal data that requires sub-microsecond resolution.
+
         Returns
         -------
         int
@@ -2051,6 +2055,10 @@ class Timestamp(_Timestamp):
 
         Return a new Timestamp representing UTC day and time.
 
+        .. deprecated:: 3.0.0
+            ``Timestamp.utcnow`` is deprecated and will be removed in a future
+            version. Use ``Timestamp.now('UTC')`` instead.
+
         See Also
         --------
         Timestamp : Constructs an arbitrary datetime.
@@ -2172,6 +2180,10 @@ class Timestamp(_Timestamp):
     def strftime(self, format):
         """
         Return a formatted string of the Timestamp.
+
+        This method converts a Timestamp to a string according to the given
+        format string, using the same directives as the standard library's
+        :meth:`datetime.datetime.strftime`.
 
         Parameters
         ----------
@@ -2309,6 +2321,11 @@ class Timestamp(_Timestamp):
     def isocalendar(self):
         """
         Return a named tuple containing ISO year, week number, and weekday.
+
+        The ISO 8601 calendar is a widely used international standard. The
+        returned named tuple has three components: ``year``, ``week``, and
+        ``weekday``. The ISO year may differ from the Gregorian year for dates
+        near the start or end of a calendar year.
 
         See Also
         --------
