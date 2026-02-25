@@ -2055,7 +2055,7 @@ class Timestamp(_Timestamp):
 
         Return a new Timestamp representing UTC day and time.
 
-        .. deprecated:: 2.1.0
+        .. deprecated:: 3.0.0
             ``Timestamp.utcnow`` is deprecated and will be removed in a future
             version. Use ``Timestamp.now('UTC')`` instead.
 
