@@ -395,8 +395,8 @@ def _get_filepath_or_buffer(
         # TODO: fsspec can also handle HTTP via requests, but leaving this
         # unchanged. using fsspec appears to break the ability to infer if the
         # server responded with gzipped data
-        
-        # don't mutate user input 
+
+        # don't mutate user input
         storage_options = dict(storage_options or {})
 
         # Reserve "urlopen_timeout" for urllib, don't forward it as an HTTP header
