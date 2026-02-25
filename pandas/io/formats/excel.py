@@ -631,7 +631,7 @@ class ExcelFormatter:
             yield ExcelCell(
                 row=lnum,
                 col=coloffset,
-                val=name,
+                val=name if name is not None else "",
                 style=None,
             )
 
@@ -698,7 +698,7 @@ class ExcelFormatter:
 
         gen2: Iterable[ExcelCell] = ()
 
-        if self.df.index.names:
+        if com.any_not_none(*self.df.index.names):
             row = [x if x is not None else "" for x in self.df.index.names] + [
                 ""
             ] * len(self.columns)
@@ -779,7 +779,7 @@ class ExcelFormatter:
             # MultiIndex columns require an extra row
             # with index names (blank if None) for
             # unambiguous round-trip, Issue #11328
-            if isinstance(self.columns, MultiIndex):
+            if isinstance(self.columns, MultiIndex) and com.any_not_none(*self.df.index.names):
                 self.rowcounter += 1
 
             # if index labels are not empty go ahead and dump
