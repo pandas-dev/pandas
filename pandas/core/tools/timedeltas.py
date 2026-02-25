@@ -33,6 +33,8 @@ from pandas.core.dtypes.generic import (
 
 from pandas.core.arrays.timedeltas import sequence_to_td64ns
 
+from pandas.tseries.offsets import Day
+
 if TYPE_CHECKING:
     from collections.abc import Hashable
     from datetime import timedelta
@@ -202,6 +204,9 @@ def to_timedelta(
 
     if isinstance(arg, str) and unit is not None:
         raise ValueError("unit must not be specified if the input is/contains a str")
+
+    if isinstance(arg, Day):
+        return Timedelta(days=arg.n)
 
     # ...so it must be a scalar value. Return scalar.
     return _coerce_scalar_to_timedelta_type(arg, unit=unit, errors=errors)

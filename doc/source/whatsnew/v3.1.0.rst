@@ -117,6 +117,7 @@ Performance improvements
 Bug fixes
 ~~~~~~~~~
 - Fix bug in :func:`to_datetime` that could give an unnecessary ``RuntimeWarning`` when converting DataFrame containing missing values (:issue:`64141`)
+- Fix bug inconsistency in :func:`to_timedelta` where ``Day`` offsets raised while other fixed-duration offsets such as ``Hour`` were accepted. ``Day`` offsets can now be converted to ``Timedelta`` (:issue:`64240`).
 
 Categorical
 ^^^^^^^^^^^

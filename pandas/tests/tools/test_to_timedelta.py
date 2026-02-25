@@ -21,6 +21,8 @@ from pandas import (
 import pandas._testing as tm
 from pandas.core.arrays import TimedeltaArray
 
+from pandas.tseries.frequencies import to_offset
+
 
 class TestTimedeltas:
     def test_to_timedelta_mixed_unit_strings(self):
@@ -377,6 +379,22 @@ class TestTimedeltas:
             to_timedelta(should_fail2, unit="D")
         with pytest.raises(OutOfBoundsTimedelta, match=scalar_msg2):
             pd.Timedelta(should_fail2[1], unit="D")
+
+    def test_to_timedelta_day_offset(self):
+        result = to_timedelta(to_offset("D"))
+        expected = pd.Timedelta(days=1)
+        assert result == expected
+
+    def test_to_timedelta_day_offset_list(self):
+        offsets = [to_offset("D"), to_offset("2D")]
+        result = to_timedelta(offsets)
+        expected = to_timedelta(["1D", "2D"])
+        tm.assert_index_equal(result, expected)
+
+    def test_to_Timedelta_constructor_day_offset(self):
+        result = pd.Timedelta(to_offset("D"))
+        expected = pd.Timedelta(days=1)
+        assert result == expected
 
 
 def test_from_numeric_arrow_dtype(any_numeric_ea_dtype):
