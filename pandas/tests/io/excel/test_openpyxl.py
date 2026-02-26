@@ -18,7 +18,33 @@ from pandas.io.excel._openpyxl import OpenpyxlReader
 
 openpyxl = pytest.importorskip("openpyxl")
 
+@pytest.fixture
+def merged_excel_file(tmp_path):
+    # Create an Excel file with merged cells
+    wb = Workbook()
+    ws = wb.active
 
+    # Merge some cells
+    ws.merge_cells("A1:A3")
+    ws["A1"] = "Hello"
+    ws.merge_cells("B1:B3")
+    ws["B1"] = 123
+
+    file_path = tmp_path / "merged_test.xlsx"
+    wb.save(file_path)
+    return file_path
+
+def test_fill_merged_cells(merged_excel_file):
+    # Read Excel with your new feature
+    df = pd.read_excel(merged_excel_file, fill_merged_cells=True)
+
+    # Assert that merged cells are filled correctly
+    expected = pd.DataFrame({
+        "A": ["Hello", "Hello", "Hello"],
+        "B": [123, 123, 123],
+    })
+
+    pd.testing.assert_frame_equal(df, expected)
 @pytest.fixture
 def ext():
     return ".xlsx"
