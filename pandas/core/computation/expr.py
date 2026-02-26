@@ -24,6 +24,7 @@ from pandas.errors import UndefinedVariableError
 from pandas.core.dtypes.common import is_string_dtype
 
 import pandas.core.common as com
+from pandas.core.computation import ops as _ops
 from pandas.core.computation.ops import (
     ARITH_OPS_SYMS,
     BOOL_OPS_SYMS,
@@ -39,8 +40,6 @@ from pandas.core.computation.ops import (
     Op,
     Term,
     UnaryOp,
-    _in,
-    _not_in,
     is_term,
 )
 from pandas.core.computation.parsing import (
@@ -565,9 +564,9 @@ class BaseExprVisitor(ast.NodeVisitor):
             left_val = left(self.env)
             right_val = right(self.env)
             res = (
-                _in(left_val, right_val)
+                _ops._in(left_val, right_val)
                 if isinstance(op_class, ast.In)
-                else _not_in(left_val, right_val)
+                else _ops._not_in(left_val, right_val)
             )
             name = self.env.add_tmp(res)
             return self.term_type(name, self.env)
