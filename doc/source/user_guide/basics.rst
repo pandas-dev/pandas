@@ -209,6 +209,16 @@ either match on the *index* or *columns* via the **axis** keyword:
    df.sub(column, axis="index")
    df.sub(column, axis=0)
 
+List-like inputs are first converted to a ``Series`` and then aligned to columns
+by position. For example, if list elements are ``ndarray`` objects, each column
+is matched with one array object:
+
+.. ipython:: python
+
+   df2 = pd.DataFrame({"a": [0, 1, 2], "b": [10, 11, 12]})
+   rhs = [np.array([1, 1, 1]), np.array([2, 2, 2])]
+   df2 + rhs
+
 Furthermore you can align a level of a MultiIndexed DataFrame with a Series.
 
 .. ipython:: python
