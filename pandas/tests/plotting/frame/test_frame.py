@@ -415,10 +415,12 @@ class TestDataFramePlots:
 
         ax = df.plot()
         lines = ax.get_lines()
-        assert not isinstance(lines[0].get_xdata(), PeriodIndex)
-        msg = r"PeriodDtype\[B\] is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert isinstance(PeriodIndex(lines[0].get_xdata()), PeriodIndex)
+
+        # x-data is plain int64 business-day ordinals (not Period[B])
+        xdata = lines[0].get_xdata()
+        assert not isinstance(xdata, PeriodIndex)
+        # consecutive uniform spacing (no weekend gaps)
+        assert len(np.unique(np.diff(xdata))) == 1
 
     def test_xcompat_plot_params_context_manager(self):
         df = DataFrame(
@@ -441,10 +443,11 @@ class TestDataFramePlots:
         )
         ax = df.plot()
         lines = ax.get_lines()
-        assert not isinstance(lines[0].get_xdata(), PeriodIndex)
-        msg = r"PeriodDtype\[B\] is deprecated "
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert isinstance(PeriodIndex(lines[0].get_xdata()), PeriodIndex)
+        # x-data is plain int64 business-day ordinals (not Period[B])
+        xdata = lines[0].get_xdata()
+        assert not isinstance(xdata, PeriodIndex)
+        assert len(np.unique(np.diff(xdata))) == 1
+
         _check_ticks_props(ax, xrot=0)
 
     def test_period_compat(self):
@@ -649,11 +652,6 @@ class TestDataFramePlots:
             assert xmin <= lines[0].get_data()[0][0]
             assert xmax >= lines[0].get_data()[0][-1]
 
-    @pytest.mark.xfail(
-        strict=False,
-        reason="2020-12-01 this has been failing periodically on the "
-        "ymin==0 assertion for a week or so.",
-    )
     @pytest.mark.parametrize("stacked", [True, False])
     def test_area_lim(self, stacked):
         df = DataFrame(

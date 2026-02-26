@@ -60,6 +60,7 @@ from pandas._libs.tslibs.ccalendar cimport (
 from pandas._libs.tslibs.conversion cimport localize_pydatetime
 from pandas._libs.tslibs.dtypes cimport (
     PeriodDtypeBase,
+    PeriodDtypeCode,
     c_OFFSET_RENAMED_FREQSTR,
     c_OFFSET_TO_PERIOD_FREQSTR,
     c_PERIOD_AND_OFFSET_DEPR_FREQSTR,
@@ -7258,6 +7259,9 @@ cpdef to_offset(freq, bint is_period=False):
     elif PyDelta_Check(freq):
         result = delta_to_tick(freq)
 
+    elif isinstance(freq, PeriodDtypeBase):
+        return period_dtype_to_offset(freq)
+
     elif isinstance(freq, str):
         result = None
         stride_sign = None
@@ -7343,6 +7347,47 @@ cpdef to_offset(freq, bint is_period=False):
             raise ValueError(f"{freq} is not supported as period frequency")
 
     return result
+
+
+def period_dtype_to_offset(PeriodDtypeBase dtype):
+    cdef:
+        PeriodDtypeCode code = dtype._dtype_code
+
+    if code == PeriodDtypeCode.D:
+        return Day(dtype._n)
+    elif code == PeriodDtypeCode.H:
+        return Hour(dtype._n)
+    elif code == PeriodDtypeCode.T:
+        return Minute(dtype._n)
+    elif code == PeriodDtypeCode.S:
+        return Second(dtype._n)
+    elif code == PeriodDtypeCode.L:
+        return Milli(dtype._n)
+    elif code == PeriodDtypeCode.U:
+        return Micro(dtype._n)
+    elif code == PeriodDtypeCode.N:
+        return Nano(dtype._n)
+    elif code == PeriodDtypeCode.B:
+        return BusinessDay(dtype._n)
+    elif code == PeriodDtypeCode.M:
+        return MonthEnd(dtype._n)
+
+    base, anchor = divmod(code, 1000)
+    base = base * 1000
+    if base == PeriodDtypeCode.A:
+        if anchor == 0:
+            anchor = 12
+        return YearEnd(dtype._n, month=anchor)
+    elif base == PeriodDtypeCode.Q_DEC:
+        if anchor == 0:
+            anchor = 12
+        return QuarterEnd(dtype._n, startingMonth=anchor)
+    elif base == PeriodDtypeCode.W_SUN:
+        if anchor == 0:
+            anchor = 7
+        return Week(dtype._n, weekday=anchor - 1)
+    else:
+        raise NotImplementedError(dtype._dtype_code, base, anchor)
 
 
 # ----------------------------------------------------------------------

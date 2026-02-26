@@ -67,31 +67,11 @@ fi
 if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
     MSG='Validate Docstrings' ; echo "$MSG"
-    "$BASE_DIR"/scripts/validate_docstrings.py \
+    python "$BASE_DIR"/scripts/validate_docstrings.py \
         --format=actions \
         -i "pandas.tseries.frequencies.to_offset ES01" \
-        -i "pandas.Series.hist ES01" \
-        -i "pandas.Series.to_pickle ES01" \
-        -i "pandas.Series.to_csv ES01" \
-        -i "pandas.Series.to_dict ES01" \
-        -i "pandas.Series.to_frame ES01" \
-        -i "pandas.Series.to_string ES01" \
-        -i "pandas.Series.to_markdown ES01" \
         -i "pandas.testing.assert_series_equal ES01" \
         -i "pandas.testing.assert_index_equal ES01" \
-        -i "pandas.Timestamp.nanosecond ES01" \
-        -i "pandas.Timestamp.second ES01" \
-        -i "pandas.Timestamp.value ES01" \
-        -i "pandas.Timestamp.week ES01" \
-        -i "pandas.Timestamp.weekofyear ES01" \
-        -i "pandas.Timestamp.year ES01" \
-        -i "pandas.Timestamp.as_unit ES01" \
-        -i "pandas.Timestamp.ceil ES01" \
-        -i "pandas.Timestamp.day_name ES01" \
-        -i "pandas.Timestamp.floor ES01" \
-        -i "pandas.Timestamp.isocalendar ES01" \
-        -i "pandas.Timestamp.strftime ES01" \
-        -i "pandas.Timestamp.utcnow ES01" \
         -i "pandas.Timedelta.nanoseconds ES01" \
         -i "pandas.Timedelta.as_unit ES01" \
         -i "pandas.Timedelta.ceil ES01" \
@@ -116,8 +96,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.api.types.is_re ES01" \
         -i "pandas.api.types.is_re_compilable ES01" \
         -i "pandas.api.types.is_scalar ES01" \
-        -i "pandas.DataFrame.to_pickle ES01" \
-        -i "pandas.DataFrame.to_csv ES01" \
         -i "pandas.read_html ES01" \
         -i "pandas.DataFrame.to_html ES01" \
         -i "pandas.io.formats.style.Styler.to_html ES01" \
@@ -297,15 +275,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.api.extensions.register_dataframe_accessor ES01" \
         -i "pandas.api.extensions.register_series_accessor ES01" \
         -i "pandas.api.extensions.register_index_accessor ES01" \
-        -i "pandas.DataFrame.agg ES01" \
-        -i "pandas.DataFrame.aggregate ES01" \
-        -i "pandas.DataFrame.transform ES01" \
-        -i "pandas.DataFrame.corr ES01" \
-        -i "pandas.DataFrame.mean ES01" \
-        -i "pandas.DataFrame.median ES01" \
-        -i "pandas.DataFrame.prod ES01" \
-        -i "pandas.DataFrame.product ES01" \
-        -i "pandas.DataFrame.quantile ES01" \
         -i "pandas.DataFrame.round ES01" \
         -i "pandas.DataFrame.value_counts ES01" \
         -i "pandas.DataFrame.to_markdown ES01" # no backslash in the last line

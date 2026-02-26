@@ -1049,6 +1049,9 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
         if isinstance(freq, PeriodDtype):
             return freq
 
+        elif isinstance(freq, PeriodDtypeBase):
+            freq = to_offset(freq, is_period=True)
+
         if not isinstance(freq, BaseOffset):
             freq = cls._parse_dtype_strict(freq)
 
