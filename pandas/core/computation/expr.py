@@ -35,9 +35,12 @@ from pandas.core.computation.ops import (
     BinOp,
     Constant,
     FuncNode,
+    MathCall,
     Op,
     Term,
     UnaryOp,
+    _in,
+    _not_in,
     is_term,
 )
 from pandas.core.computation.parsing import (
@@ -433,10 +436,16 @@ class BaseExprVisitor(ast.NodeVisitor):
         op_instance = node.op
         op_type = type(op_instance)
 
-        # must be two terms and the comparison operator must be ==/!=/in/not in
-        if is_term(left) and is_term(right) and op_type in self.rewrite_map:
-            left_list, right_list = map(_is_list, (left, right))
-            left_str, right_str = map(_is_str, (left, right))
+        # left may be a Term or MathCall (e.g. abs(col)); right must be a Term
+        if (
+            (is_term(left) or isinstance(left, MathCall))
+            and is_term(right)
+            and op_type in self.rewrite_map
+        ):
+            left_list = _is_list(left) if is_term(left) else False
+            left_str = _is_str(left) if is_term(left) else False
+            right_list = _is_list(right)
+            right_str = _is_str(right)
 
             # if there are any strings or lists in the expression
             if left_list or right_list or left_str or right_str:
@@ -540,6 +549,28 @@ class BaseExprVisitor(ast.NodeVisitor):
     def visit_BinOp(self, node, **kwargs):
         op, op_class, left, right = self._maybe_transform_eq_ne(node)
         left, right = self._maybe_downcast_constants(left, right)
+        # Special-case membership when LHS is a MathCall (e.g. abs(col), the
+        # reported case). Other call-like nodes could be handled here later if needed.
+        # After rewriting "== [..]" / "!= [..]" to "in"/"not in", building a BinOp
+        # would go through BinOp.evaluate(), which expects lhs.evaluate();
+        # MathCall has __call__(env) but not evaluate(), so we compute membership
+        # here and return a temporary Term. Only when RHS is list/string literal
+        # (consistent with _rewrite_membership_op) to avoid broadening semantics.
+        if (
+            isinstance(left, MathCall)
+            and is_term(right)
+            and isinstance(op_class, (ast.In, ast.NotIn))
+            and (_is_list(right) or _is_str(right))
+        ):
+            left_val = left(self.env)
+            right_val = right(self.env)
+            res = (
+                _in(left_val, right_val)
+                if isinstance(op_class, ast.In)
+                else _not_in(left_val, right_val)
+            )
+            name = self.env.add_tmp(res)
+            return self.term_type(name, self.env)
         return self._maybe_evaluate_binop(op, op_class, left, right)
 
     def visit_UnaryOp(self, node, **kwargs):

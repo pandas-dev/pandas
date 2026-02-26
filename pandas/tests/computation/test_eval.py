@@ -1311,6 +1311,20 @@ class TestOperations:
         expected = Series([True], name="a")
         tm.assert_series_equal(result, expected)
 
+    def test_query_abs_eq_list_treated_like_isin(self):
+        # GH 31848: query abs(column) == [list] should behave like .isin()
+        df = DataFrame({"col": [1, -1, 2, -2]})
+        result = df.query("abs(col) == [1, 2]")
+        expected = df[df["col"].abs().isin([1, 2])]
+        tm.assert_frame_equal(result, expected)
+
+    def test_query_abs_ne_list_treated_like_not_isin(self):
+        # GH 31848: query abs(column) != [list] should behave like ~.isin()
+        df = DataFrame({"col": [1, -1, 2, -2]})
+        result = df.query("abs(col) != [1, 2]")
+        expected = df[~df["col"].abs().isin([1, 2])]
+        tm.assert_frame_equal(result, expected)
+
     def test_assignment_not_inplace(self):
         # see gh-9297
         df = DataFrame(
