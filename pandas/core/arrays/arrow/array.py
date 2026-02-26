@@ -677,11 +677,7 @@ class ArrowExtensionArray(
                 pa_array = pa.array(value, type=pa_type, mask=mask)
             except (pa.ArrowInvalid, pa.ArrowTypeError):
                 # GH50430: let pyarrow infer type, then cast
-                try:
-                    pa_array = pa.array(value, mask=mask)
-                except (pa.ArrowInvalid, pa.ArrowTypeError) as err:
-                    # GH63832: Mark type inference failure for fallback
-                    raise pa.ArrowInvalid(f"__PANDAS_FALLBACK__: {err}") from err
+                pa_array = pa.array(value, mask=mask)
 
             if pa_type is None and pa.types.is_duration(pa_array.type):
                 # Workaround https://github.com/apache/arrow/issues/37291
@@ -975,13 +971,7 @@ class ArrowExtensionArray(
     def _evaluate_op_method(self, other, op, arrow_funcs) -> Self:
         pa_type = self._pa_array.type
         other_original = other
-        try:
-            other = self._box_pa(other)
-        except pa.ArrowInvalid as err:
-            # GH63832: Check for type inference failure marker
-            if "__PANDAS_FALLBACK__" in str(err):
-                return NotImplemented
-            raise
+        other = self._box_pa(other)
 
         if (
             pa.types.is_string(pa_type)
@@ -1068,28 +1058,33 @@ class ArrowExtensionArray(
             return self._evaluate_op_method(other, op, ARROW_LOGICAL_FUNCS)
 
     def _arith_method(self, other, op) -> Self | npt.NDArray[np.object_]:
-        if (
-            op in [operator.truediv, roperator.rtruediv]
-            and isinstance(other, Path)
-            and (
-                pa.types.is_string(self._pa_array.type)
-                or pa.types.is_large_string(self._pa_array.type)
-            )
+        if op in [operator.truediv, roperator.rtruediv] and (
+            pa.types.is_string(self._pa_array.type)
+            or pa.types.is_large_string(self._pa_array.type)
         ):
-            # GH#61940
-            return np.array(
-                [
-                    op(x, other) if isinstance(x, str) else self.dtype.na_value
-                    for x in self
-                ],
-                dtype=object,
-            )
+            if isinstance(other, Path):
+                # GH#61940
+                return np.array(
+                    [
+                        op(x, other) if isinstance(x, str) else self.dtype.na_value
+                        for x in self
+                    ],
+                    dtype=object,
+                )
+            if isinstance(other, np.ndarray) and other.dtype == object:
+                if len(other) > 0 and isinstance(other.flat[0], Path):
+                    # GH#63832: chained Path division e.g. Path / Series / Series
+                    return np.array(
+                        [
+                            op(x, y)
+                            if isinstance(x, str) and isinstance(y, Path)
+                            else self.dtype.na_value
+                            for x, y in zip(self, other, strict=True)
+                        ],
+                        dtype=object,
+                    )
 
         result = self._evaluate_op_method(other, op, ARROW_ARITHMETIC_FUNCS)
-
-        # GH#63832: If PyArrow cannot handle the operation, fall back to object dtype
-        if result is NotImplemented:
-            return NotImplemented
 
         if is_nan_na() and result.dtype.kind == "f":
             parr = result._pa_array

@@ -91,23 +91,29 @@ def test_pathlib_path_division(any_string_dtype, request):
     tm.assert_series_equal(result, expected)
 
 
-def test_pathlib_path_chained_division(any_string_dtype):
+def test_pathlib_path_chained_division(any_string_dtype, request):
     # GH#63832
     # Test that chained Path division works (was failing for PyArrow strings)
+    if any_string_dtype != object and any_string_dtype.storage == "python":
+        mark = pytest.mark.xfail(
+            reason="StringArray wraps the chained result in string dtype "
+            "instead of object dtype."
+        )
+        request.applymarker(mark)
+
     item = Path("/Users/Irv/")
     ser1 = Series(["A", "B"], dtype=any_string_dtype)
     ser2 = Series(["C", "D"], dtype=any_string_dtype)
 
-    # Test chained division: Path / Series / Series
     result = item / ser1 / ser2
     expected = Series([item / "A" / "C", item / "B" / "D"], dtype=object)
-    tm.assert_series_equal(result, expected, check_dtype=False)
+    tm.assert_series_equal(result, expected)
 
     # Test 3-way chained division
     ser3 = Series(["E", "F"], dtype=any_string_dtype)
     result = item / ser1 / ser2 / ser3
     expected = Series([item / "A" / "C" / "E", item / "B" / "D" / "F"], dtype=object)
-    tm.assert_series_equal(result, expected, check_dtype=False)
+    tm.assert_series_equal(result, expected)
 
 
 def test_mixed_object_comparison(any_string_dtype):
