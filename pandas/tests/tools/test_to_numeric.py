@@ -677,7 +677,7 @@ def test_failure_to_convert_uint64_string_to_NaN():
         # edge cases from issue #64184 (leading zeros + precision)
         "000000000010084566.1",
         "10084566.1",
-        "00000000001008456612",
+        "00000000001008456612.20",
         "0000.00",
         "0.12",
     ],
