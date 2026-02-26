@@ -2722,6 +2722,16 @@ class ArrowExtensionArray(
         -------
         pa.Array
         """
+        if isinstance(left, pa.ChunkedArray) and (
+            pa.types.is_string(left.type) or pa.types.is_large_string(left.type)
+        ):
+            left = left.combine_chunks()
+
+        if isinstance(right, pa.ChunkedArray) and (
+            pa.types.is_string(right.type) or pa.types.is_large_string(right.type)
+        ):
+            right = right.combine_chunks()
+
         try:
             return pc.if_else(cond, left, right)
         except pa.ArrowNotImplementedError:
