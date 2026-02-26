@@ -67,7 +67,7 @@ fi
 if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
     MSG='Validate Docstrings' ; echo "$MSG"
-    "$BASE_DIR"/scripts/validate_docstrings.py \
+    python "$BASE_DIR"/scripts/validate_docstrings.py \
         --format=actions \
         -i "pandas.tseries.frequencies.to_offset ES01" \
         -i "pandas.testing.assert_series_equal ES01" \
