@@ -202,13 +202,12 @@ def _coerce_to_data_and_mask(values, dtype, copy: bool, dtype_cls: type[NumericD
                     wrong = np.isnan(values)
                     if wrong.any():
                         raise ValueError("Cannot cast NaN value to Integer dtype.")
+        elif is_nan_na():
+            mask = libmissing.is_numeric_na(values)
         else:
-            if is_nan_na():
-                mask = libmissing.is_numeric_na(values)
-            else:
-                # is_numeric_na will raise on non-numeric NAs
-                libmissing.is_numeric_na(values)
-                mask = libmissing.is_pdna_or_none(values)
+            # is_numeric_na will raise on non-numeric NAs
+            libmissing.is_numeric_na(values)
+            mask = libmissing.is_pdna_or_none(values)
     else:
         assert len(mask) == len(values)
 

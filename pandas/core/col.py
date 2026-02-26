@@ -7,6 +7,7 @@ from collections.abc import (
 from typing import (
     TYPE_CHECKING,
     Any,
+    NoReturn,
 )
 
 from pandas.util._decorators import set_module
@@ -154,6 +155,22 @@ class Expression:
         self_repr, other_repr = self._maybe_wrap_parentheses(other)
         return self._with_op("__rmul__", other, f"{other_repr} * {self_repr}")
 
+    def __matmul__(self, other: Any) -> Expression:
+        self_repr, other_repr = self._maybe_wrap_parentheses(other)
+        return self._with_op("__matmul__", other, f"{self_repr} @ {other_repr}")
+
+    def __rmatmul__(self, other: Any) -> Expression:
+        self_repr, other_repr = self._maybe_wrap_parentheses(other)
+        return self._with_op("__rmatmul__", other, f"{other_repr} @ {self_repr}")
+
+    def __pow__(self, other: Any) -> Expression:
+        self_repr, other_repr = self._maybe_wrap_parentheses(other)
+        return self._with_op("__pow__", other, f"{self_repr} ** {other_repr}")
+
+    def __rpow__(self, other: Any) -> Expression:
+        self_repr, other_repr = self._maybe_wrap_parentheses(other)
+        return self._with_op("__rpow__", other, f"{other_repr} ** {self_repr}")
+
     def __truediv__(self, other: Any) -> Expression:
         self_repr, other_repr = self._maybe_wrap_parentheses(other)
         return self._with_op("__truediv__", other, f"{self_repr} / {other_repr}")
@@ -234,6 +251,35 @@ class Expression:
             needs_parenthese=True,
         )
 
+    def __neg__(self) -> Expression:
+        if self._needs_parentheses:
+            repr_str = f"-({self._repr_str})"
+        else:
+            repr_str = f"-{self._repr_str}"
+        return Expression(
+            lambda df: -self._eval_expression(df),
+            repr_str,
+            needs_parenthese=True,
+        )
+
+    def __pos__(self) -> Expression:
+        if self._needs_parentheses:
+            repr_str = f"+({self._repr_str})"
+        else:
+            repr_str = f"+{self._repr_str}"
+        return Expression(
+            lambda df: +self._eval_expression(df),
+            repr_str,
+            needs_parenthese=True,
+        )
+
+    def __abs__(self) -> Expression:
+        return Expression(
+            lambda df: abs(self._eval_expression(df)),
+            f"abs({self._repr_str})",
+            needs_parenthese=True,
+        )
+
     def __array_ufunc__(
         self, ufunc: Callable[..., Any], method: str, *inputs: Any, **kwargs: Any
     ) -> Expression:
@@ -281,6 +327,19 @@ class Expression:
 
     def __repr__(self) -> str:
         return self._repr_str or "Expr(...)"
+
+    # Unsupported ops
+    def __bool__(self) -> NoReturn:
+        raise TypeError("boolean value of an expression is ambiguous")
+
+    def __iter__(self) -> NoReturn:
+        raise TypeError("Expression objects are not iterable")
+
+    def __copy__(self) -> NoReturn:
+        raise TypeError("Expression objects are not copiable")
+
+    def __deepcopy__(self, memo: dict[int, Any] | None) -> NoReturn:
+        raise TypeError("Expression objects are not copiable")
 
 
 @set_module("pandas")

@@ -164,13 +164,13 @@ class TestDataFrameShift:
         assert tm.get_dtype(res) == "datetime64[ns, US/Eastern]"
 
         res = obj.shift(1)
-        exp_vals = [NaT] + dates.astype(object).values.tolist()[:9]
+        exp_vals = [NaT, *dates.astype(object).values.tolist()[:9]]
         exp = frame_or_series(exp_vals)
         tm.assert_equal(res, exp)
         assert tm.get_dtype(res) == "datetime64[ns, US/Eastern]"
 
         res = obj.shift(-2)
-        exp_vals = dates.astype(object).values.tolist()[2:] + [NaT, NaT]
+        exp_vals = [*dates.astype(object).values.tolist()[2:], NaT, NaT]
         exp = frame_or_series(exp_vals)
         tm.assert_equal(res, exp)
         assert tm.get_dtype(res) == "datetime64[ns, US/Eastern]"

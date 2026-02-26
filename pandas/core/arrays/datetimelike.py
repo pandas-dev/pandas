@@ -5,6 +5,7 @@ from datetime import (
     timedelta,
 )
 from functools import wraps
+from itertools import pairwise
 import operator
 from typing import (
     TYPE_CHECKING,
@@ -78,6 +79,7 @@ from pandas.compat.numpy import function as nv
 from pandas.errors import (
     AbstractMethodError,
     InvalidComparison,
+    Pandas4Warning,
     PerformanceWarning,
 )
 from pandas.util._decorators import (
@@ -194,7 +196,7 @@ def _period_dispatch(meth: F) -> F:
         res_i8 = result.view("i8")
         return self._from_backing_data(res_i8)
 
-    return cast(F, new_meth)
+    return cast("F", new_meth)
 
 
 class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
@@ -390,12 +392,12 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         # Use cast as we know we will get back a DatetimeLikeArray or DTScalar,
         # but skip evaluating the Union at runtime for performance
         # (see https://github.com/pandas-dev/pandas/pull/44624)
-        result = cast(Union[Self, DTScalarOrNaT], super().__getitem__(key))
+        result = cast("Union[Self, DTScalarOrNaT]", super().__getitem__(key))
         if lib.is_scalar(result):
             return result
         else:
             # At this point we know the result is an array.
-            result = cast(Self, result)
+            result = cast("Self", result)
         # error: Incompatible types in assignment (expression has type
         # "BaseOffset | None", variable has type "None")
         result._freq = self._get_getitem_freq(key)  # type: ignore[assignment]
@@ -691,6 +693,14 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                     msg = self._validation_error_message(value, True)
                     raise TypeError(msg) from err
 
+        if isinstance(value, list):
+            value = construct_1d_object_array_from_listlike(value)
+        if isinstance(value, np.ndarray) and value.dtype == object:
+            # We need to call maybe_convert_objects here instead of in pd_array
+            #  so we can specify dtype_if_all_nat.
+            value = lib.maybe_convert_objects(
+                value, convert_non_numeric=True, dtype_if_all_nat=self.dtype
+            )
         # Do type inference if necessary up front (after unpacking
         # NumpyExtensionArray)
         # e.g. we passed PeriodIndex.values and got an ndarray of Periods
@@ -979,6 +989,19 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             # TODO: handle 2D-like listlikes
             return op(self.ravel(), other.ravel()).reshape(self.shape)
 
+        if is_list_like(other):
+            if not isinstance(
+                other, (list, np.ndarray, ExtensionArray)
+            ) and not ops.has_castable_attr(other):
+                warnings.warn(
+                    f"Operation with {type(other).__name__} are deprecated. "
+                    "In a future version these will be treated as scalar-like. "
+                    "To retain the old behavior, explicitly wrap in a Series "
+                    "instead.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
+
         try:
             other = self._validate_comparison_value(other)
         except InvalidComparison:
@@ -1002,7 +1025,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             return result
 
         if not isinstance(self.dtype, PeriodDtype):
-            self = cast(TimelikeOps, self)
+            self = cast("TimelikeOps", self)
             if self._creso != other._creso:
                 if not isinstance(other, type(self)):
                     # i.e. Timedelta/Timestamp, cast to ndarray and let
@@ -1690,7 +1713,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         i8modes, _ = algorithms.mode(self.view("i8"), mask=mask)
         npmodes = i8modes.view(self._ndarray.dtype)
-        npmodes = cast(np.ndarray, npmodes)
+        npmodes = cast("np.ndarray", npmodes)
         return self._from_backing_data(npmodes)
 
     # ------------------------------------------------------------------
@@ -1728,10 +1751,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                     f"'{how}' with PeriodDtype is no longer supported. "
                     f"Use (obj != pd.Period(0, freq)).{how}() instead."
                 )
-        else:
-            # timedeltas we can add but not multiply
-            if how in ["prod", "cumprod", "skew", "kurt", "var"]:
-                raise TypeError(f"timedelta64 type does not support {how} operations")
+        # timedeltas we can add but not multiply
+        elif how in ["prod", "cumprod", "skew", "kurt", "var"]:
+            raise TypeError(f"timedelta64 type does not support {how} operations")
 
         # All of the functions implemented here are ordinal, so we can
         #  operate on the tz-naive equivalents
@@ -2098,7 +2120,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             )
 
         values = self.view("i8")
-        values = cast(np.ndarray, values)
+        values = cast("np.ndarray", values)
         nanos = get_unit_for_round(freq, self._creso)
         if nanos == 0:
             # GH 52761
@@ -2116,6 +2138,10 @@ class TimelikeOps(DatetimeLikeArrayMixin):
     ) -> Self:
         """
         Perform round operation on the data to the specified `freq`.
+
+        This method rounds each datetime value in the Series/Index to the
+        nearest specified frequency using standard rounding rules (round half
+        to even).
 
         Parameters
         ----------
@@ -2221,6 +2247,9 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         """
         Perform floor operation on the data to the specified `freq`.
 
+        This method rounds each datetime value in the Series/Index down to
+        the specified frequency (i.e., towards negative infinity).
+
         Parameters
         ----------
         freq : str or Offset
@@ -2324,6 +2353,9 @@ class TimelikeOps(DatetimeLikeArrayMixin):
     ) -> Self:
         """
         Perform ceil operation on the data to the specified `freq`.
+
+        This method rounds each datetime value in the Series/Index up to
+        the specified frequency (i.e., towards positive infinity).
 
         Parameters
         ----------
@@ -2472,9 +2504,6 @@ class TimelikeOps(DatetimeLikeArrayMixin):
 
     def _values_for_json(self) -> np.ndarray:
         # Small performance bump vs the base class which calls np.asarray(self)
-        if self.unit != "ns":
-            # GH#55827
-            return self.as_unit("ns")._values_for_json()
         if isinstance(self.dtype, np.dtype):
             return self._ndarray
         return super()._values_for_json()
@@ -2520,7 +2549,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             to_concat = [x for x in to_concat if len(x)]
 
             if obj.freq is not None and all(x.freq == obj.freq for x in to_concat):
-                pairs = zip(to_concat[:-1], to_concat[1:], strict=True)
+                pairs = pairwise(to_concat)
                 if all(pair[0][-1] + obj.freq == pair[1][0] for pair in pairs):
                     new_freq = obj.freq
                     new_obj._freq = new_freq

@@ -4,9 +4,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from pandas.compat._optional import import_optional_dependency
-from pandas.util._decorators import doc
-
-from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.excel._base import BaseExcelReader
 
@@ -22,7 +19,6 @@ if TYPE_CHECKING:
 
 
 class PyxlsbReader(BaseExcelReader["Workbook"]):
-    @doc(storage_options=_shared_docs["storage_options"])
     def __init__(
         self,
         filepath_or_buffer: FilePath | ReadBuffer[bytes],
@@ -36,7 +32,15 @@ class PyxlsbReader(BaseExcelReader["Workbook"]):
         ----------
         filepath_or_buffer : str, path object, or Workbook
             Object to be parsed.
-        {storage_options}
+        storage_options : dict, optional
+            Extra options that make sense for a particular storage connection, e.g.
+            host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
+            are forwarded to ``urllib.request.Request`` as header options. For other
+            URLs (e.g. starting with "s3://", and "gcs://") the key-value pairs are
+            forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more
+            details, and for more examples on storage options refer `here
+            <https://pandas.pydata.org/docs/user_guide/io.html?
+            highlight=storage_options#reading-writing-remote-files>`_.
         engine_kwargs : dict, optional
             Arbitrary keyword arguments passed to excel engine.
         """

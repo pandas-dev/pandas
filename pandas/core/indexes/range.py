@@ -825,10 +825,9 @@ class RangeIndex(Index):
                 if self.step < 0:
                     sorted_index = self[::-1]
                     inverse_indexer = True
-            else:
-                if self.step > 0:
-                    sorted_index = self[::-1]
-                    inverse_indexer = True
+            elif self.step > 0:
+                sorted_index = self[::-1]
+                inverse_indexer = True
 
         if return_indexer:
             if inverse_indexer:
@@ -1197,7 +1196,7 @@ class RangeIndex(Index):
         elif len(indexes) == 1:
             return indexes[0]
 
-        rng_indexes = cast(list[RangeIndex], indexes)
+        rng_indexes = cast("list[RangeIndex]", indexes)
 
         start = step = next_ = None
 

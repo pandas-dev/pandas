@@ -46,6 +46,7 @@ class TestIntervalIndexRendering:
                     for left, right in zip(
                         Index([329.973, 345.137], dtype="float64"),
                         Index([345.137, 360.191], dtype="float64"),
+                        strict=True,
                     )
                 ]
             ),

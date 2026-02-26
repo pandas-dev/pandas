@@ -9,6 +9,7 @@ Tests for the following offsets:
 from __future__ import annotations
 
 from datetime import datetime
+from itertools import pairwise
 
 import pytest
 
@@ -61,7 +62,7 @@ class TestSemiMonthEnd:
             datetime(2008, 12, 31),
         )
 
-        for base, exp_date in zip(dates[:-1], dates[1:], strict=True):
+        for base, exp_date in pairwise(dates):
             assert_offset_equal(SemiMonthEnd(), base, exp_date)
 
         # ensure .apply_index works as expected
@@ -312,7 +313,7 @@ class TestSemiMonthBegin:
             datetime(2008, 12, 15),
         )
 
-        for base, exp_date in zip(dates[:-1], dates[1:], strict=True):
+        for base, exp_date in pairwise(dates):
             assert_offset_equal(SemiMonthBegin(), base, exp_date)
 
         # ensure .apply_index works as expected

@@ -389,6 +389,18 @@ cpdef array_to_datetime(
 
                 if val != val or val == NPY_NAT:
                     iresult[i] = NPY_NAT
+                elif val.is_integer():
+                    # If we have a round float, treat it like an integer
+                    item_reso = int_reso
+                    state.update_creso(item_reso)
+                    if infer_reso:
+                        creso = state.creso
+
+                    iresult[i] = cast_from_unit(
+                        <int64_t>val, unit_for_numerics, out_reso=creso
+                    )
+
+                    state.found_other = True
                 else:
                     item_reso = NPY_FR_ns
                     state.update_creso(item_reso)
