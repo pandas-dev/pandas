@@ -80,6 +80,7 @@ from pandas.plotting._matplotlib.tools import (
     get_xlim,
     handle_shared_axes,
 )
+from pandas.tseries.frequencies import to_offset
 
 if TYPE_CHECKING:
     from matplotlib.artist import Artist
@@ -1354,7 +1355,7 @@ class ScatterPlot(PlanePlot):
             _was_dt_like = isinstance(s.index, (ABCDatetimeIndex, ABCPeriodIndex))
             s = maybe_convert_index(ax, s)
             if _was_dt_like and is_integer_dtype(s.index):
-                decorate_axes(ax, "B")
+                decorate_axes(ax, to_offset("B"))
             freq, s = prepare_ts_data(s, ax, self.kwds)
             x_data = s.index
 
@@ -1565,7 +1566,7 @@ class LinePlot(MPLPlot):
             if is_integer_dtype(data.index) and isinstance(
                 self.data.index, (ABCDatetimeIndex, ABCPeriodIndex)
             ):
-                decorate_axes(ax0, "B")
+                decorate_axes(ax0, to_offset("B"))
 
             x = data.index  # dummy, not used
             plotf = self._ts_plot

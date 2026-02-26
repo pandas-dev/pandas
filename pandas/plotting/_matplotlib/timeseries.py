@@ -376,7 +376,7 @@ def format_dateaxis(
                 if not isinstance(existing, PeriodConverter):
                     subplot.xaxis.set_converter(PeriodConverter())
             else:
-                subplot.xaxis.converter = PeriodConverter()  # type: ignore[attr-defined]
+                subplot.xaxis.converter = PeriodConverter()
 
     elif isinstance(index, ABCTimedeltaIndex):
         subplot.xaxis.set_major_formatter(TimeSeries_TimedeltaFormatter(index.unit))

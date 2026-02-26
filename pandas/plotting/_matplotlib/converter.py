@@ -290,8 +290,7 @@ class PeriodConverter(mdates.DateConverter):
 def _get_datevalue(date, freq):
     if isinstance(date, Period):
         freq_obj = to_offset(freq, is_period=True)
-        # error: "BaseOffset" has no attribute "_period_dtype_code"
-        dtype_code = freq_obj._period_dtype_code  # type: ignore[attr-defined]
+        dtype_code = freq_obj._period_dtype_code
         if FreqGroup.from_period_dtype_code(dtype_code) == FreqGroup.FR_BUS:
             # Avoid creating deprecated Period[B] via asfreq.  If the Period
             # is already BDay, its ordinal IS the business-day count; otherwise
@@ -302,8 +301,7 @@ def _get_datevalue(date, freq):
         return date.asfreq(freq).ordinal
     elif isinstance(date, (str, datetime, pydt.date, np.datetime64)):
         freq_obj = to_offset(freq, is_period=True)
-        # error: "BaseOffset" has no attribute "_period_dtype_code"
-        dtype_code = freq_obj._period_dtype_code  # type: ignore[attr-defined]
+        dtype_code = freq_obj._period_dtype_code
         if FreqGroup.from_period_dtype_code(dtype_code) == FreqGroup.FR_BUS:
             # Avoid creating deprecated Period[B]; use numpy business-day count.
             return bday_count(date)
