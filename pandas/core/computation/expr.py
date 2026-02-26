@@ -21,10 +21,12 @@ import numpy as np
 
 from pandas.errors import UndefinedVariableError
 
-from pandas.core.dtypes.common import is_string_dtype
+from pandas.core.dtypes.common import (
+    is_list_like,
+    is_string_dtype,
+)
 
 import pandas.core.common as com
-from pandas.core.computation import ops as _ops
 from pandas.core.computation.ops import (
     ARITH_OPS_SYMS,
     BOOL_OPS_SYMS,
@@ -563,11 +565,28 @@ class BaseExprVisitor(ast.NodeVisitor):
         ):
             left_val = left(self.env)
             right_val = right(self.env)
-            res = (
-                _ops._in(left_val, right_val)
-                if isinstance(op_class, ast.In)
-                else _ops._not_in(left_val, right_val)
-            )
+            if isinstance(op_class, ast.In):
+                try:
+                    res = left_val.isin(right_val)
+                except AttributeError:
+                    if is_list_like(left_val):
+                        try:
+                            res = right_val.isin(left_val)
+                        except AttributeError:
+                            res = left_val in right_val
+                    else:
+                        res = left_val in right_val
+            else:
+                try:
+                    res = ~left_val.isin(right_val)
+                except AttributeError:
+                    if is_list_like(left_val):
+                        try:
+                            res = ~right_val.isin(left_val)
+                        except AttributeError:
+                            res = left_val not in right_val
+                    else:
+                        res = left_val not in right_val
             name = self.env.add_tmp(res)
             return self.term_type(name, self.env)
         return self._maybe_evaluate_binop(op, op_class, left, right)
