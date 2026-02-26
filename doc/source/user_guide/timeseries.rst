@@ -773,6 +773,53 @@ With no defaults.
        )
    ]
 
+.. _timeseries.noninclusive_slicing:
+
+Non-inclusive slicing
+~~~~~~~~~~~~~~~~~~~~~
+
+As noted in the sections above, label-based slicing with a ``DatetimeIndex``
+**includes both endpoints**. This differs from standard Python sequence slicing
+where the stop endpoint is excluded.
+
+If you need to select data using open or half-open intervals (for example,
+``start < t < end`` or ``start <= t < end``), you can use boolean indexing:
+
+.. ipython:: python
+
+   ts_example = pd.Series(
+       range(5),
+       index=pd.date_range("2000-01-01", periods=5, freq="D"),
+   )
+   ts_example
+
+Select all entries strictly between ``"2000-01-02"`` and ``"2000-01-04"``
+(excluding both endpoints):
+
+.. ipython:: python
+
+   ts_example[(ts_example.index > "2000-01-02") & (ts_example.index < "2000-01-04")]
+
+Select entries with a half-open interval (include left, exclude right):
+
+.. ipython:: python
+
+   ts_example[(ts_example.index >= "2000-01-02") & (ts_example.index < "2000-01-04")]
+
+For large time series where boolean indexing may be less efficient, you can use
+:meth:`~pandas.Index.get_slice_bound` together with ``.iloc`` to achieve
+non-inclusive slicing on a sorted index:
+
+.. ipython:: python
+
+   lo = ts_example.index.get_slice_bound("2000-01-02", "right")
+   hi = ts_example.index.get_slice_bound("2000-01-04", "left")
+   ts_example.iloc[lo:hi]
+
+Here, ``side="right"`` returns the position just past ``"2000-01-02"``, and
+``side="left"`` returns the position of ``"2000-01-04"`` itself. Since ``.iloc``
+uses standard Python half-open slicing, the result excludes both endpoints.
+
 Truncating & fancy indexing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
