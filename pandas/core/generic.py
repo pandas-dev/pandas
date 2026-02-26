@@ -3064,6 +3064,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Pickle (serialize) object to file.
 
+        Uses Python's ``pickle`` module to serialize the object and write
+        it to the specified file path. The resulting file can be loaded
+        back using :func:`pandas.read_pickle`.
+
         Parameters
         ----------
         path : str, path object, or file-like object
@@ -3813,6 +3817,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> str | None:
         r"""
         Write object to a comma-separated values (csv) file.
+
+        By default, the resulting file includes row index and column headers.
+        Supports customization of delimiter, encoding, compression, and more.
+        The output can be written to a file path, file-like buffer, or
+        returned as a string.
 
         Parameters
         ----------
@@ -6598,7 +6607,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         -----
         When ``deep=True``, data is copied but actual Python objects
         will not be copied recursively, only the reference to the object.
-        This is in contrast to `copy.deepcopy` in the Standard Library,
+        This is in contrast to :py:func:`copy.deepcopy` in the Standard Library,
         which recursively copies object data (see examples below).
 
         While ``Index`` objects are copied when ``deep=True``, the underlying
@@ -6772,7 +6781,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             :class:`Series` (still experimental). Behaviour is as follows:
 
             * ``"numpy_nullable"``: returns nullable-dtype-backed
-              :class:`DataFrame` or :class:`Serires`.
+              :class:`DataFrame` or :class:`Series`.
             * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
               :class:`DataFrame` or :class:`Series`.
 
@@ -8917,6 +8926,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def at_time(self, time, asof: bool = False, axis: Axis | None = None) -> Self:
         """
         Select values at particular time of day (e.g., 9:30AM).
+
+        This method filters rows whose index has a time component matching
+        the specified time. The index must be a DatetimeIndex.
 
         Parameters
         ----------
@@ -11956,6 +11968,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> Window | Rolling:
         """
         Provide rolling window calculations.
+
+        This method returns a rolling window object, enabling aggregation,
+        transformation, and other operations over a sliding window of a
+        specified size.
 
         Parameters
         ----------

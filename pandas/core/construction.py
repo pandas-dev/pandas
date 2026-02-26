@@ -29,6 +29,7 @@ from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
     construct_1d_object_array_from_listlike,
+    ensure_dtype_can_hold_na,
     maybe_cast_to_datetime,
     maybe_cast_to_integer_array,
     maybe_convert_platform,
@@ -190,6 +191,14 @@ def array(
     ['a', 'b']
     Length: 2, dtype: str32
 
+    pandas converts entries of a multidimensional sequence (excluding NumPy arrays)
+    to its string representation if the ``dtype`` is a string data type.
+
+    >>> pd.array([[1], [2], [3]], dtype="str")
+    <ArrowStringArray>
+    ['[1]', '[2]', '[3]']
+    Length: 3, dtype: str
+
     Finally, Pandas has arrays that mostly overlap with NumPy
 
       * :class:`arrays.DatetimeArray`
@@ -310,6 +319,23 @@ def array(
         dtype = data.dtype
 
     data = extract_array(data, extract_numpy=True)
+
+    # Handle numpy masked arrays: convert masked values to NA
+    # GH#63879
+    if isinstance(data, ma.MaskedArray):
+        if data.dtype.names is not None:
+            raise ValueError(
+                "Cannot construct an array from an ndarray with compound dtype. "
+                "Use DataFrame instead."
+            )
+        elif data.mask is not np.False_ and ma.getmaskarray(data).any():
+            na_dtype = ensure_dtype_can_hold_na(data.dtype)
+            if na_dtype.char in "SU":
+                na_dtype = np.dtype("object")
+            data = cast("ma.MaskedArray", data.astype(na_dtype)).filled(np.nan)
+        else:
+            # No mask, convert to regular array
+            data = np.asarray(data)
 
     # this returns None for not-found dtypes.
     if dtype is not None:

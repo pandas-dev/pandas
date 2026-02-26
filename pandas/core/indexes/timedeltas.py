@@ -290,6 +290,9 @@ def timedelta_range(
     """
     Return a fixed frequency TimedeltaIndex with day as the default.
 
+    This function generates a sequence of evenly spaced timedelta values
+    between the specified bounds, using day as the default frequency.
+
     Parameters
     ----------
     start : str or timedelta-like, default None

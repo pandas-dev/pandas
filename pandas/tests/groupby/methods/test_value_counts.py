@@ -356,7 +356,7 @@ def test_against_frame_and_seriesgroupby(
             expected.index = MultiIndex.from_frame(index_frame2)
 
             if index_frame2.columns.isna()[0]:
-                # with using_infer_string, the columns in index_frame as string
+                # with using_infer_string, the columns in index_frame are string
                 #  dtype, which makes the rename({0: None}) above use np.nan
                 #  instead of None, so we need to set None more explicitly.
                 expected.index.names = [None, *expected.index.names[1:]]

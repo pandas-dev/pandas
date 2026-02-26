@@ -47,7 +47,6 @@ import pandas._testing as tm
 from pandas.core.arrays import (
     IntegerArray,
     IntervalArray,
-    period_array,
 )
 from pandas.core.internals.blocks import NumpyBlock
 
@@ -1304,11 +1303,10 @@ class TestSeriesConstructors:
     def test_constructor_infer_period(self, data_constructor):
         data = [Period("2000", "D"), Period("2001", "D"), None]
         result = Series(data_constructor(data))
-        expected = Series(period_array(data))
+        expected = Series(pd.PeriodIndex(data))
         tm.assert_series_equal(result, expected)
         assert result.dtype == "Period[D]"
 
-    @pytest.mark.xfail(reason="PeriodDtype Series not supported yet")
     def test_construct_from_ints_including_iNaT_scalar_period_dtype(self):
         series = Series([0, 1000, 2000, pd._libs.iNaT], dtype="period[D]")
 

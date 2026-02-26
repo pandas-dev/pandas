@@ -1185,6 +1185,17 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         valid = ~mask
 
         if lib.is_list_like(other):
+            if not isinstance(
+                other, (list, ExtensionArray, np.ndarray)
+            ) and not ops.has_castable_attr(other):
+                warnings.warn(
+                    f"Operation with {type(other).__name__} are deprecated. "
+                    "In a future version these will be treated as scalar-like. "
+                    "To retain the old behavior, explicitly wrap in a Series "
+                    "instead.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
             if len(other) != len(self):
                 # prevent improper broadcasting when other is 2D
                 raise ValueError(
