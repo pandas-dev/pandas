@@ -19,7 +19,7 @@ ci:
     skip: [pyright, mypy]
 repos:
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.14.10
+    rev: v0.14.14
     hooks:
     -   id: ruff
         args: [--exit-non-zero-on-fix]
@@ -46,7 +46,7 @@ repos:
     -   id: codespell
         types_or: [python, rst, markdown, cython, c]
 -   repo: https://github.com/MarcoGorelli/cython-lint
-    rev: v0.18.1
+    rev: v0.19.0
     hooks:
     -   id: cython-lint
     -   id: double-quote-cython-strings
@@ -99,7 +99,7 @@ repos:
       args: ['-i', '--style', '{IndentPPDirectives: AfterHash}']
       types_or: [c, c++]
 -   repo: https://github.com/trim21/pre-commit-mirror-meson
-    rev: v1.10.0
+    rev: v1.10.1
     hooks:
     - id: meson-fmt
       args: ['--inplace']
@@ -300,7 +300,7 @@ repos:
         entry: python scripts/validate_exception_location.py
         language: python
         files: ^pandas/
-        exclude: ^(pandas/_libs/|pandas/tests/|pandas/errors/__init__.py$|pandas/_version.py)
+        exclude: ^pandas/_libs/|pandas/tests/|pandas/errors/__init__.py$
         types: [python]
     -   id: check-test-naming
         name: check that test names start with 'test'

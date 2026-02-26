@@ -995,7 +995,9 @@ def test_query_compare_column_type(temp_hdfstore):
             with pytest.raises(ValueError, match=msg):
                 temp_hdfstore.select("test", where=query)
 
-        for v, col in zip(["1", "1.1", "2014-01-01"], ["int", "float", "real_date"]):
+        for v, col in zip(
+            ["1", "1.1", "2014-01-01"], ["int", "float", "real_date"], strict=True
+        ):
             query = f"{col} {op} v"
             result = temp_hdfstore.select("test", where=query)
 
@@ -1023,6 +1025,7 @@ def test_select_large_integer(temp_hdfstore):
         zip(
             ["a", "b", "c", "d"],
             [-9223372036854775801, -9223372036854775802, -9223372036854775803, 123],
+            strict=True,
         ),
         columns=["x", "y"],
     )

@@ -195,17 +195,23 @@ class VariableWindowIndexer(BaseIndexer):
         A tuple of ndarray[int64]s, indicating the boundaries of each
         window
         """
+        assert self.index_array is not None
+        if (index_length := len(self.index_array)) < num_values:
+            raise ValueError(
+                "Variable rolling window requires the index to be at least as long "
+                f"as the 'other' index. Got {index_length} < {num_values}. "
+                "Please align 'other' to the rolling object's index using "
+                "reindex_like() or similar method."
+            )
         # error: Argument 4 to "calculate_variable_window_bounds" has incompatible
         # type "Optional[bool]"; expected "bool"
-        # error: Argument 6 to "calculate_variable_window_bounds" has incompatible
-        # type "Optional[ndarray]"; expected "ndarray"
         return calculate_variable_window_bounds(
             num_values,
             self.window_size,
             min_periods,
             center,  # type: ignore[arg-type]
             closed,
-            self.index_array,  # type: ignore[arg-type]
+            self.index_array,
         )
 
 

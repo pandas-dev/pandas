@@ -971,7 +971,7 @@ static int tokenize_bytes(parser_t *self, size_t line_limit,
       break;
 
     case QUOTE_IN_QUOTED_FIELD:
-      // double quote - seen a quote in an quoted field
+      // double quote - seen a quote in a quoted field
       if (IS_QUOTE(c)) {
         // save "" as "
 

@@ -1350,7 +1350,7 @@ class SQLTable(PandasObject):
     def _sqlalchemy_type(self, col: Index | Series):
         dtype: DtypeArg = self.dtype or {}
         if is_dict_like(dtype):
-            dtype = cast(dict, dtype)
+            dtype = cast("dict", dtype)
             if col.name in dtype:
                 return dtype[col.name]
 
@@ -1907,7 +1907,7 @@ class SQLDatabase(PandasSQL):
                 # dtype[Any], Type[object]]"
                 dtype = dict.fromkeys(frame, dtype)  # type: ignore[arg-type]
             else:
-                dtype = cast(dict, dtype)
+                dtype = cast("dict", dtype)
 
             from sqlalchemy.types import TypeEngine
 
@@ -2633,7 +2633,7 @@ class SQLiteTable(SQLTable):
     def _sql_type_name(self, col):
         dtype: DtypeArg = self.dtype or {}
         if is_dict_like(dtype):
-            dtype = cast(dict, dtype)
+            dtype = cast("dict", dtype)
             if col.name in dtype:
                 return dtype[col.name]
 
@@ -2861,7 +2861,7 @@ class SQLiteDatabase(PandasSQL):
                 # dtype[Any], Type[object]]"
                 dtype = dict.fromkeys(frame, dtype)  # type: ignore[arg-type]
             else:
-                dtype = cast(dict, dtype)
+                dtype = cast("dict", dtype)
 
             for col, my_type in dtype.items():
                 if not isinstance(my_type, str):

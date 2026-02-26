@@ -30,9 +30,11 @@ from pandas._libs.sparse import (
 )
 from pandas._libs.tslibs import NaT
 from pandas.compat.numpy import function as nv
-from pandas.errors import PerformanceWarning
+from pandas.errors import (
+    Pandas4Warning,
+    PerformanceWarning,
+)
 from pandas.util._decorators import (
-    doc,
     set_module,
 )
 from pandas.util._exceptions import find_stack_level
@@ -69,7 +71,10 @@ from pandas.core.dtypes.missing import (
     notna,
 )
 
-from pandas.core import arraylike
+from pandas.core import (
+    arraylike,
+    ops,
+)
 import pandas.core.algorithms as algos
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import ExtensionArray
@@ -133,8 +138,6 @@ if TYPE_CHECKING:
 
 # ----------------------------------------------------------------------------
 # Array
-
-_sparray_doc_kwargs = {"klass": "SparseArray"}
 
 
 def _get_fill(arr: SparseArray) -> np.ndarray:
@@ -740,6 +743,10 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         """
         The percent of non- ``fill_value`` points, as decimal.
 
+        This is calculated as the number of non-fill-value points divided by
+        the total length of the array. A density of 1.0 means no values are
+        the fill value, while 0.0 means all values are the fill value.
+
         See Also
         --------
         DataFrame.sparse.from_spmatrix : Create a new DataFrame from a
@@ -885,10 +892,38 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         diff = np.r_[np.diff(indices), 2]
         return indices[(diff > 1).argmax()] + 1
 
-    @doc(ExtensionArray.duplicated)
     def duplicated(
         self, keep: Literal["first", "last", False] = "first"
     ) -> npt.NDArray[np.bool_]:
+        """
+        Return boolean ndarray denoting duplicate values.
+
+        Parameters
+        ----------
+        keep : {'first', 'last', False}, default 'first'
+            - ``first`` : Mark duplicates as ``True`` except for the first occurrence.
+            - ``last`` : Mark duplicates as ``True`` except for the last occurrence.
+            - False : Mark all duplicates as ``True``.
+
+        Returns
+        -------
+        ndarray[bool]
+            With true in indices where elements are duplicated and false otherwise.
+
+        See Also
+        --------
+        DataFrame.duplicated : Return boolean Series denoting
+            duplicate rows.
+        Series.duplicated : Indicate duplicate Series values.
+        api.extensions.ExtensionArray.unique : Compute the ExtensionArray
+            of unique values.
+
+        Examples
+        --------
+        >>> pd.array([1, 1, 2, 3, 3], dtype=pd.SparseDtype(np.int64)).duplicated()
+        array([False,  True, False, False,  True])
+        """
+
         values = np.asarray(self)
         mask = np.asarray(self.isna())
         return algos.duplicated(values, keep=keep, mask=mask)
@@ -1061,7 +1096,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
             if com.is_bool_indexer(key):
                 # mypy doesn't know we have an array here
-                key = cast(np.ndarray, key)
+                key = cast("np.ndarray", key)
                 return self.take(np.arange(len(key), dtype=np.int32)[key])
             elif hasattr(key, "__len__"):
                 return self.take(key)
@@ -1329,7 +1364,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         dtype = self.dtype.update_dtype(dtype)
         subtype = pandas_dtype(dtype._subtype_with_str)
-        subtype = cast(np.dtype, subtype)  # ensured by update_dtype
+        subtype = cast("np.dtype", subtype)  # ensured by update_dtype
         values = ensure_wrapped_if_datetimelike(self.sp_values)
         sp_values = astype_array(values, subtype, copy=copy)
         sp_values = np.asarray(sp_values)
@@ -1804,6 +1839,18 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             return _wrap_result(op_name, result, self.sp_index, fill)
 
         else:
+            if not isinstance(
+                other, (list, np.ndarray, ExtensionArray)
+            ) and not ops.has_castable_attr(other):
+                warnings.warn(
+                    f"Operation with {type(other).__name__} are deprecated. "
+                    "In a future version these will be treated as scalar-like. "
+                    "To retain the old behavior, explicitly wrap in a Series "
+                    "instead.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
+
             other = np.asarray(other)
             with np.errstate(all="ignore"):
                 if len(self) != len(other):
@@ -1816,6 +1863,19 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 return _sparse_array_op(self, other, op, op_name)
 
     def _cmp_method(self, other, op) -> SparseArray:
+        if (
+            is_list_like(other)
+            and not isinstance(other, (list, np.ndarray, ExtensionArray))
+            and not ops.has_castable_attr(other)
+        ):
+            warnings.warn(
+                f"Operation with {type(other).__name__} are deprecated. "
+                "In a future version these will be treated as scalar-like. "
+                "To retain the old behavior, explicitly wrap in a Series "
+                "instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
         if not is_scalar(other) and not isinstance(other, type(self)):
             # convert list-like to ndarray
             other = np.asarray(other)
