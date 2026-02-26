@@ -98,7 +98,6 @@ if TYPE_CHECKING:
         Callable,
         Sequence,
     )
-    from types import EllipsisType
     from typing import (
         Protocol,
         type_check_only,
@@ -1008,15 +1007,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     def __getitem__(self, key: ScalarIndexer) -> Any: ...
 
     @overload
-    def __getitem__(
-        self,
-        key: SequenceIndexer | tuple[int | EllipsisType, ...],
-    ) -> Self: ...
+    def __getitem__(self, key: SequenceIndexer) -> Self: ...
 
-    def __getitem__(
-        self,
-        key: PositionalIndexer | tuple[int | EllipsisType, ...],
-    ) -> Self | Any:
+    def __getitem__(self, key: PositionalIndexer) -> Self | Any:
         if isinstance(key, tuple):
             key = unpack_tuple_and_ellipses(key)
             if key is ...:
