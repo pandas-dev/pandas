@@ -415,8 +415,12 @@ class TestDataFramePlots:
 
         ax = df.plot()
         lines = ax.get_lines()
-        assert not isinstance(lines[0].get_xdata(), PeriodIndex)
-        assert isinstance(PeriodIndex(lines[0].get_xdata()), PeriodIndex)
+
+        # x-data is plain int64 business-day ordinals (not Period[B])
+        xdata = lines[0].get_xdata()
+        assert not isinstance(xdata, PeriodIndex)
+        # consecutive uniform spacing (no weekend gaps)
+        assert len(np.unique(np.diff(xdata))) == 1
 
     def test_xcompat_plot_params_context_manager(self):
         df = DataFrame(
@@ -439,8 +443,11 @@ class TestDataFramePlots:
         )
         ax = df.plot()
         lines = ax.get_lines()
-        assert not isinstance(lines[0].get_xdata(), PeriodIndex)
-        assert isinstance(PeriodIndex(lines[0].get_xdata()), PeriodIndex)
+        # x-data is plain int64 business-day ordinals (not Period[B])
+        xdata = lines[0].get_xdata()
+        assert not isinstance(xdata, PeriodIndex)
+        assert len(np.unique(np.diff(xdata))) == 1
+
         _check_ticks_props(ax, xrot=0)
 
     def test_period_compat(self):
