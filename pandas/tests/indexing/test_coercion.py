@@ -144,7 +144,7 @@ class TestInsertIndexCoercion(CoercionBase):
         """test coercion triggered by insert"""
         target = original.copy()
         res = target.insert(1, value)
-        tm.assert_index_equal(res, expected)
+        tm.assert_index_equal(res, expected, exact=True)
         assert res.dtype == expected_dtype
 
     @pytest.mark.parametrize(
@@ -244,14 +244,14 @@ class TestInsertIndexCoercion(CoercionBase):
             result = obj.insert(1, ts)
             expected = obj.astype(object).insert(1, ts)
             assert expected.dtype == object
-            tm.assert_index_equal(result, expected)
+            tm.assert_index_equal(result, expected, exact=True)
 
             ts = pd.Timestamp("2012-01-01", tz="Asia/Tokyo").as_unit("s")
             result = obj.insert(1, ts)
             # once deprecation is enforced:
             expected = obj.insert(1, ts.tz_convert(obj.dtype.tz))
             assert expected.dtype == obj.dtype
-            tm.assert_index_equal(result, expected)
+            tm.assert_index_equal(result, expected, exact=True)
 
         else:
             # mismatched tzawareness
@@ -259,14 +259,14 @@ class TestInsertIndexCoercion(CoercionBase):
             result = obj.insert(1, ts)
             expected = obj.astype(object).insert(1, ts)
             assert expected.dtype == object
-            tm.assert_index_equal(result, expected)
+            tm.assert_index_equal(result, expected, exact=True)
 
         item = 1
         result = obj.insert(1, item)
         expected = obj.astype(object).insert(1, item)
         assert expected[1] == item
         assert expected.dtype == object
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
     def test_insert_index_timedelta64(self):
         obj = pd.TimedeltaIndex(["1 day", "2 day", "3 day", "4 day"])
@@ -282,7 +282,7 @@ class TestInsertIndexCoercion(CoercionBase):
             result = obj.insert(1, item)
             expected = obj.astype(object).insert(1, item)
             assert expected.dtype == object
-            tm.assert_index_equal(result, expected)
+            tm.assert_index_equal(result, expected, exact=True)
 
     @pytest.mark.parametrize(
         "insert, coerced_val, coerced_dtype",
@@ -318,7 +318,7 @@ class TestInsertIndexCoercion(CoercionBase):
         else:
             result = obj.insert(0, insert)
             expected = obj.astype(object).insert(0, insert)
-            tm.assert_index_equal(result, expected)
+            tm.assert_index_equal(result, expected, exact=True)
 
             # TODO: ATM inserting '2012-01-01 00:00:00' when we have obj.freq=="M"
             #  casts that string to Period[M], not clear that is desirable
@@ -326,7 +326,7 @@ class TestInsertIndexCoercion(CoercionBase):
                 # non-castable string
                 result = obj.insert(0, str(insert))
                 expected = obj.astype(object).insert(0, str(insert))
-                tm.assert_index_equal(result, expected)
+                tm.assert_index_equal(result, expected, exact=True)
 
     @pytest.mark.xfail(reason="Test not implemented")
     def test_insert_index_complex128(self):
@@ -479,7 +479,7 @@ class TestWhereCoercion(CoercionBase):
 
         expected = pd.TimedeltaIndex(["1 Day", value, value, "4 Days"])
         result = tdi.where(cond, value)
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
         # wrong-dtyped NaT
         dtnat = np.datetime64("NaT", "ns")
@@ -487,7 +487,7 @@ class TestWhereCoercion(CoercionBase):
         assert expected[1] is dtnat
 
         result = tdi.where(cond, dtnat)
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
     def test_where_index_period(self):
         dti = pd.date_range("2016-01-01", periods=3, freq="QS")
@@ -499,24 +499,24 @@ class TestWhereCoercion(CoercionBase):
         value = pi[-1] + pi.freq * 10
         expected = pd.PeriodIndex([value, pi[1], value])
         result = pi.where(cond, value)
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
         # Case passing ndarray[object] of Periods
         other = np.asarray(pi + pi.freq * 10, dtype=object)
         result = pi.where(cond, other)
         expected = pd.PeriodIndex([other[0], pi[1], other[2]])
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
         # Passing a mismatched scalar -> casts to object
         td = pd.Timedelta(days=4)
         expected = pd.Index([td, pi[1], td], dtype=object)
         result = pi.where(cond, td)
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
         per = pd.Period("2020-04-21", "D")
         expected = pd.Index([per, pi[1], per], dtype=object)
         result = pi.where(cond, per)
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
 
 class TestFillnaSeriesCoercion(CoercionBase):

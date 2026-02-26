@@ -170,7 +170,7 @@ class TestFancy:
 
         result = df.index
         expected = Index([1, 2, np.inf], dtype=np.float64)
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
     def test_setitem_dtype_upcast(self):
         # GH3216
@@ -209,7 +209,7 @@ class TestFancy:
         df = DataFrame(np.eye(3), columns=["a", "a", "b"])
         result = df[["b", "a"]].columns
         expected = Index(["b", "a", "a"])
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
     def test_dups_fancy_indexing_across_dtypes(self):
         # across dtypes
@@ -600,7 +600,7 @@ class TestFancy:
             exp = s.index
             if 0 not in s:
                 exp = Index([*s.index.tolist(), 0])
-            tm.assert_index_equal(s2.index, exp)
+            tm.assert_index_equal(s2.index, exp, exact=True)
 
             s2 = s.copy()
             indexer(s2)["0"] = 0
@@ -616,7 +616,7 @@ class TestFancy:
 
             s2 = s.copy()
             indexer(s2)[0.0] = 0
-            tm.assert_index_equal(s2.index, s.index)
+            tm.assert_index_equal(s2.index, s.index, exact=True)
 
             s2 = s.copy()
             indexer(s2)["0"] = 0

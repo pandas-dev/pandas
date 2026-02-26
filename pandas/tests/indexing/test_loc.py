@@ -1768,10 +1768,10 @@ class TestLocWithMultiIndex:
         exp_index = MultiIndex.from_arrays(expected)
         if dim == "index":
             res = df.loc[keys, :]
-            tm.assert_index_equal(res.index, exp_index)
+            tm.assert_index_equal(res.index, exp_index, exact=True)
         elif dim == "columns":
             res = df.loc[:, keys]
-            tm.assert_index_equal(res.columns, exp_index)
+            tm.assert_index_equal(res.columns, exp_index, exact=True)
 
     def test_loc_preserve_names(self, multiindex_year_month_day_dataframe_random_data):
         ymd = multiindex_year_month_day_dataframe_random_data
@@ -1956,10 +1956,10 @@ class TestLocWithMultiIndex:
         )
 
         result = df.index.levels[0]
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
         result = df.loc[["a"]].index.levels[0]
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
     @pytest.mark.parametrize("lt_value", [30, 10])
     def test_loc_multiindex_levels_contain_values_not_in_index_anymore(self, lt_value):
@@ -1990,7 +1990,7 @@ class TestLocWithMultiIndex:
 
         loc_result = ser.loc["a", :, :]
         expected = ser.index.droplevel(0)[:4]
-        tm.assert_index_equal(loc_result.index, expected)
+        tm.assert_index_equal(loc_result.index, expected, exact=True)
 
 
 class TestLocSetitemWithExpansion:
@@ -2004,11 +2004,11 @@ class TestLocSetitemWithExpansion:
         df.loc[item] = 1
 
         exp_index = Index([idx[0], item], dtype=idx.dtype)
-        tm.assert_index_equal(df.index, exp_index)
+        tm.assert_index_equal(df.index, exp_index, exact=True)
 
         ser = df["A"].iloc[:-1]
         ser.loc[item] = 1
-        tm.assert_index_equal(ser.index, exp_index)
+        tm.assert_index_equal(ser.index, exp_index, exact=True)
 
     def test_loc_setitem_with_expansion_large_dataframe(self, monkeypatch):
         # GH#10692
@@ -2145,7 +2145,7 @@ class TestLocSetitemWithExpansion:
 
         result = df.columns
         expected = Index([0, 1, np.inf], dtype=np.float64)
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
     @pytest.mark.filterwarnings("ignore:indexing past lexsort depth")
     @pytest.mark.parametrize("has_ref", [True, False])

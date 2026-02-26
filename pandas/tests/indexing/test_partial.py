@@ -138,7 +138,7 @@ class TestEmptyFrameSetitemExpansion:
 
     def test_partial_set_empty_frame5(self):
         df = DataFrame()
-        tm.assert_index_equal(df.columns, pd.RangeIndex(0))
+        tm.assert_index_equal(df.columns, pd.RangeIndex(0), exact=True)
         df2 = DataFrame()
         df2[1] = Series([1], index=["foo"])
         df.loc[:, 1] = Series([1], index=["foo"])
@@ -558,7 +558,7 @@ class TestPartialSetting:
         ser = Series(df.iloc[0], name="a")
         exp = pd.concat([orig, DataFrame(ser).T.infer_objects()])
         tm.assert_frame_equal(df, exp)
-        tm.assert_index_equal(df.index, Index([*orig.index.tolist(), "a"]))
+        tm.assert_index_equal(df.index, Index([*orig.index.tolist(), "a"]), exact=True)
         assert df.index.dtype == "object"
 
     @pytest.mark.parametrize(
