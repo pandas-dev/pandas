@@ -1265,7 +1265,12 @@ class Parser:
 
                 return filled, True
 
-            elif self.dtype is True:
+            # error: Non-overlapping identity check (left operand type:
+            # "ExtensionDtype | str | dtype[Any] | type[object] |
+            # Mapping[Hashable, ExtensionDtype | str | dtype[Any] |
+            # type[str] | type[complex] | type[bool] | type[object]]",
+            # right operand type: "Literal[True]")
+            elif self.dtype is True:  # type: ignore[comparison-overlap]
                 pass
             elif not _should_convert_dates(
                 convert_dates, self.keep_default_dates, name

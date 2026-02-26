@@ -1019,7 +1019,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     ) -> Self | Any:
         if isinstance(key, tuple):
             key = unpack_tuple_and_ellipses(key)
-            if key is ...:
+            if key is ...:  # type: ignore[comparison-overlap]
                 raise ValueError("Cannot slice with Ellipsis")
 
         if is_integer(key):

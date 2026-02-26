@@ -776,7 +776,7 @@ class ArrowExtensionArray(
         elif isinstance(item, tuple):
             item = unpack_tuple_and_ellipses(item)
 
-        if item is Ellipsis:
+        if item is Ellipsis:  # type: ignore[comparison-overlap]
             # TODO: should be handled by pyarrow?
             item = slice(None)
 

@@ -1553,5 +1553,4 @@ def _validate_skipfooter_arg(skipfooter: int) -> int:
     if skipfooter < 0:
         raise ValueError("skipfooter cannot be negative")
 
-    # Incompatible return value type (got "Union[int, integer[Any]]", expected "int")
-    return skipfooter  # type: ignore[return-value]
+    return skipfooter
