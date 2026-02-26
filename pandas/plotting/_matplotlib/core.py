@@ -66,6 +66,7 @@ from pandas.plotting._matplotlib.groupby import reconstruct_data_with_by
 from pandas.plotting._matplotlib.misc import unpack_single_str_list
 from pandas.plotting._matplotlib.style import get_standard_colors
 from pandas.plotting._matplotlib.timeseries import (
+    decorate_axes,
     format_dateaxis,
     maybe_convert_index,
     prepare_ts_data,
@@ -1350,7 +1351,10 @@ class ScatterPlot(PlanePlot):
         x_data = data[x]
         s = Series(index=x_data)
         if use_dynamic_x(ax, s.index):
+            _was_dt_like = isinstance(s.index, (ABCDatetimeIndex, ABCPeriodIndex))
             s = maybe_convert_index(ax, s)
+            if _was_dt_like and is_integer_dtype(s.index):
+                decorate_axes(ax, "B")
             freq, s = prepare_ts_data(s, ax, self.kwds)
             x_data = s.index
 
@@ -1552,7 +1556,16 @@ class LinePlot(MPLPlot):
 
     def _make_plot(self, fig: Figure) -> None:
         if self._is_ts_plot():
-            data = maybe_convert_index(self._get_ax(0), self.data)
+            ax0 = self._get_ax(0)
+            data = maybe_convert_index(ax0, self.data)
+            # For BDay, maybe_convert_index produces a plain int64 index (to
+            # avoid the deprecated Period[B]).  The int64 index carries no freq
+            # attribute, so pre-populate ax.freq via decorate_axes now; the
+            # per-column prepare_ts_data → maybe_resample calls need it.
+            if is_integer_dtype(data.index) and isinstance(
+                self.data.index, (ABCDatetimeIndex, ABCPeriodIndex)
+            ):
+                decorate_axes(ax0, "B")
 
             x = data.index  # dummy, not used
             plotf = self._ts_plot

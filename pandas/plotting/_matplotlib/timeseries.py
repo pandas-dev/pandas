@@ -297,9 +297,6 @@ def maybe_convert_index(ax: Axes, data: NDFrameT) -> NDFrameT:
                     ),
                     dtype=np.int64,
                 )
-                # Set ax.freq now so that maybe_resample() can retrieve it
-                # from the ax; the plain int64 index carries no freq attribute.
-                decorate_axes(ax, freq_str)
             else:
                 data = data.tz_localize(None).to_period(freq=freq_str)
         elif isinstance(data.index, ABCPeriodIndex):
@@ -308,7 +305,6 @@ def maybe_convert_index(ax: Axes, data: NDFrameT) -> NDFrameT:
                 # avoid creating new (deprecated) Period[B] objects.
                 data = data.copy(deep=False)
                 data.index = Index(data.index.asi8, dtype=np.int64)
-                decorate_axes(ax, freq_str)
             else:
                 data.index = data.index.asfreq(freq=freq_str, how="start")
     return data
