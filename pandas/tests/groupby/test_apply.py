@@ -329,7 +329,7 @@ def test_groupby_as_index_apply_str():
     ind = Index(list("abcde"))
     df = DataFrame([[1, 2], [2, 3], [1, 4], [1, 5], [2, 6]], index=ind)
     res = df.groupby(0, as_index=False, group_keys=False).apply(lambda x: x).index
-    tm.assert_index_equal(res, ind)
+    tm.assert_index_equal(res, ind, exact=True)
 
 
 def test_apply_concat_preserve_names(three_group):
@@ -383,7 +383,7 @@ def test_apply_series_to_frame():
 
     assert isinstance(result, DataFrame)
     assert not hasattr(result, "name")  # GH49907
-    tm.assert_index_equal(result.index, ts.index)
+    tm.assert_index_equal(result.index, ts.index, exact=True)
 
 
 def test_apply_series_yield_constant(df):
@@ -406,7 +406,7 @@ def test_apply_frame_to_series(df):
     grouped = df.groupby(["A", "B"])
     result = grouped.apply(len)
     expected = grouped.count()["C"]
-    tm.assert_index_equal(result.index, expected.index)
+    tm.assert_index_equal(result.index, expected.index, exact=True)
     tm.assert_numpy_array_equal(result.values, expected.values)
 
 
@@ -416,7 +416,7 @@ def test_apply_frame_not_as_index_column_name(df):
     result = grouped.apply(len)
     expected = grouped.count().rename(columns={"C": np.nan}).drop(columns="D")
     # TODO(GH#34306): Use assert_frame_equal when column name is not np.nan
-    tm.assert_index_equal(result.index, expected.index)
+    tm.assert_index_equal(result.index, expected.index, exact=True)
     tm.assert_numpy_array_equal(result.values, expected.values)
 
 

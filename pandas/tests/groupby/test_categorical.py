@@ -242,9 +242,13 @@ def test_more_basic():
     # GH 10460
     expc = Categorical.from_codes(np.arange(4).repeat(8), levels, ordered=True)
     exp = CategoricalIndex(expc)
-    tm.assert_index_equal(desc_result.stack().index.get_level_values(0), exp)
+    tm.assert_index_equal(
+        desc_result.stack().index.get_level_values(0), exp, exact=True
+    )
     exp = Index(["count", "mean", "std", "min", "25%", "50%", "75%", "max"] * 4)
-    tm.assert_index_equal(desc_result.stack().index.get_level_values(1), exp)
+    tm.assert_index_equal(
+        desc_result.stack().index.get_level_values(1), exp, exact=True
+    )
 
 
 def test_level_get_group(observed):
@@ -697,17 +701,23 @@ def test_datetime():
     ord_data = data.take(idx)
     expected = ord_data.groupby(ord_labels, observed=False).describe()
     tm.assert_frame_equal(desc_result, expected)
-    tm.assert_index_equal(desc_result.index, expected.index)
+    tm.assert_index_equal(desc_result.index, expected.index, exact=True)
     tm.assert_index_equal(
-        desc_result.index.get_level_values(0), expected.index.get_level_values(0)
+        desc_result.index.get_level_values(0),
+        expected.index.get_level_values(0),
+        exact=True,
     )
 
     # GH 10460
     expc = Categorical.from_codes(np.arange(4).repeat(8), levels, ordered=True)
     exp = CategoricalIndex(expc)
-    tm.assert_index_equal((desc_result.stack().index.get_level_values(0)), exp)
+    tm.assert_index_equal(
+        (desc_result.stack().index.get_level_values(0)), exp, exact=True
+    )
     exp = Index(["count", "mean", "std", "min", "25%", "50%", "75%", "max"] * 4)
-    tm.assert_index_equal((desc_result.stack().index.get_level_values(1)), exp)
+    tm.assert_index_equal(
+        (desc_result.stack().index.get_level_values(1)), exp, exact=True
+    )
 
 
 def test_categorical_index():
@@ -745,7 +755,7 @@ def test_describe_categorical_columns():
     df = DataFrame(np.random.default_rng(2).standard_normal((20, 4)), columns=cats)
     result = df.groupby([1, 2, 3, 4] * 5).describe()
 
-    tm.assert_index_equal(result.stack().columns, cats)
+    tm.assert_index_equal(result.stack().columns, cats, exact=True)
     tm.assert_categorical_equal(result.stack().columns.values, cats.values)
 
 
@@ -760,7 +770,7 @@ def test_unstack_categorical():
     result = gcat.describe()
 
     exp_columns = CategoricalIndex(["A", "B"], ordered=False, name="medium")
-    tm.assert_index_equal(result.columns, exp_columns)
+    tm.assert_index_equal(result.columns, exp_columns, exact=True)
     tm.assert_categorical_equal(result.columns.values, exp_columns.values)
 
     result = gcat["A"] + gcat["B"]
@@ -872,11 +882,13 @@ def test_preserve_categories():
     sort_index = CategoricalIndex(categories, categories, ordered=True, name="A")
     nosort_index = CategoricalIndex(list("bac"), categories, ordered=True, name="A")
     tm.assert_index_equal(
-        df.groupby("A", sort=True, observed=False).first().index, sort_index
+        df.groupby("A", sort=True, observed=False).first().index, sort_index, exact=True
     )
     # GH#42482 - don't sort result when sort=False, even when ordered=True
     tm.assert_index_equal(
-        df.groupby("A", sort=False, observed=False).first().index, nosort_index
+        df.groupby("A", sort=False, observed=False).first().index,
+        nosort_index,
+        exact=True,
     )
 
 
@@ -889,10 +901,12 @@ def test_preserve_categories_ordered_false():
     # GH#42482 - don't sort result when sort=False, even when ordered=True
     nosort_index = CategoricalIndex(list("bac"), list("abc"), ordered=False, name="A")
     tm.assert_index_equal(
-        df.groupby("A", sort=True, observed=False).first().index, sort_index
+        df.groupby("A", sort=True, observed=False).first().index, sort_index, exact=True
     )
     tm.assert_index_equal(
-        df.groupby("A", sort=False, observed=False).first().index, nosort_index
+        df.groupby("A", sort=False, observed=False).first().index,
+        nosort_index,
+        exact=True,
     )
 
 
@@ -1956,11 +1970,11 @@ def test_category_order_reducer(
     else:
         result = op_result["a"].cat.categories
     expected = Index([1, 4, 3, 2])
-    tm.assert_index_equal(result, expected)
+    tm.assert_index_equal(result, expected, exact=True)
 
     if index_kind == "multi":
         result = op_result.index.get_level_values("a2").categories
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
 
 @pytest.mark.parametrize("index_kind", ["single", "multi"])
@@ -1987,11 +2001,11 @@ def test_category_order_transformer(
     op_result = getattr(gb, transformation_func)(*args)
     result = op_result.index.get_level_values("a").categories
     expected = Index([1, 4, 3, 2])
-    tm.assert_index_equal(result, expected)
+    tm.assert_index_equal(result, expected, exact=True)
 
     if index_kind == "multi":
         result = op_result.index.get_level_values("a2").categories
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
 
 @pytest.mark.parametrize("index_kind", ["range", "single", "multi"])
@@ -2023,11 +2037,11 @@ def test_category_order_head_tail(
     else:
         result = op_result.index.get_level_values("a").categories
     expected = Index([1, 4, 3, 2])
-    tm.assert_index_equal(result, expected)
+    tm.assert_index_equal(result, expected, exact=True)
 
     if index_kind == "multi":
         result = op_result.index.get_level_values("a2").categories
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
 
 @pytest.mark.parametrize("index_kind", ["range", "single", "multi"])
@@ -2061,11 +2075,11 @@ def test_category_order_apply(as_index, sort, observed, method, index_kind, orde
     else:
         result = op_result.index.get_level_values("a").categories
     expected = Index([1, 4, 3, 2])
-    tm.assert_index_equal(result, expected)
+    tm.assert_index_equal(result, expected, exact=True)
 
     if index_kind == "multi":
         result = op_result.index.get_level_values("a2").categories
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
 
 @pytest.mark.parametrize("index_kind", ["range", "single", "multi"])

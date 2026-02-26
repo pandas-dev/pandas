@@ -981,4 +981,4 @@ class TestGroupBy:
             [Timestamp("2013-01-01"), Timestamp("2013-01-02")],
             dtype="timestamp[ns, America/Denver][pyarrow]",
         )
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)

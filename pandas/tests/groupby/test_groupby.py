@@ -956,19 +956,19 @@ def test_groupby_with_hier_columns():
     )
 
     result = df.groupby(level=0).mean()
-    tm.assert_index_equal(result.columns, columns)
+    tm.assert_index_equal(result.columns, columns, exact=True)
 
     result = df.groupby(level=0).agg("mean")
-    tm.assert_index_equal(result.columns, columns)
+    tm.assert_index_equal(result.columns, columns, exact=True)
 
     result = df.groupby(level=0).apply(lambda x: x.mean())
-    tm.assert_index_equal(result.columns, columns)
+    tm.assert_index_equal(result.columns, columns, exact=True)
 
     # add a nuisance column
     sorted_columns, _ = columns.sortlevel(0)
     df["A", "foo"] = "bar"
     result = df.groupby(level=0).mean(numeric_only=True)
-    tm.assert_index_equal(result.columns, df.columns[:-1])
+    tm.assert_index_equal(result.columns, df.columns[:-1], exact=True)
 
 
 def test_grouping_ndarray(df):
@@ -1227,7 +1227,7 @@ def test_groupby_nat_exclude():
     for k, e in zip(keys, expected, strict=True):
         # grouped.groups keys are np.datetime64 with system tz
         # not to be affected by tz, only compare values
-        tm.assert_index_equal(grouped.groups[k], e)
+        tm.assert_index_equal(grouped.groups[k], e, exact=True)
 
     # confirm obj is not filtered
     tm.assert_frame_equal(grouped._grouper.groupings[0].obj, df)
@@ -1279,7 +1279,7 @@ def test_groupby_2d_malformed():
     d["label"] = ["l1", "l2"]
     tmp = d.groupby(["group"]).mean(numeric_only=True)
     res_values = np.array([[0.0, 1.0], [0.0, 1.0]])
-    tm.assert_index_equal(tmp.columns, Index(["zeros", "ones"]))
+    tm.assert_index_equal(tmp.columns, Index(["zeros", "ones"]), exact=True)
     tm.assert_numpy_array_equal(tmp.values, res_values)
 
 
@@ -1980,7 +1980,7 @@ def test_groups_sort_dropna(sort, dropna):
     for result_value, expected_value in zip(
         result.values(), expected.values(), strict=True
     ):
-        tm.assert_index_equal(result_value, expected_value)
+        tm.assert_index_equal(result_value, expected_value, exact=True)
 
 
 @pytest.mark.parametrize(
@@ -2194,7 +2194,7 @@ def test_groupby_column_index_name_lost(func):
     df = DataFrame([[1]], columns=expected)
     df_grouped = df.groupby([1])
     result = getattr(df_grouped, func)().columns
-    tm.assert_index_equal(result, expected)
+    tm.assert_index_equal(result, expected, exact=True)
 
 
 @pytest.mark.parametrize(
@@ -2921,7 +2921,7 @@ def test_decimal_na_sort(test_series):
         gb = gb["value"]
     result = gb._grouper.result_index
     expected = Index([Decimal(1), None], name="key")
-    tm.assert_index_equal(result, expected)
+    tm.assert_index_equal(result, expected, exact=True)
 
 
 def test_groupby_dropna_with_nunique_unique():
@@ -2983,7 +2983,7 @@ def test_groupby_multi_index_codes():
     df_grouped = df.groupby(["A", "B"], dropna=False).sum()
 
     index = df_grouped.index
-    tm.assert_index_equal(index, MultiIndex.from_frame(index.to_frame()))
+    tm.assert_index_equal(index, MultiIndex.from_frame(index.to_frame()), exact=True)
 
 
 def test_groupby_datetime_with_nat():

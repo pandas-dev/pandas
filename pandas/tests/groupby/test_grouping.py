@@ -466,7 +466,7 @@ class TestGrouping:
         groups = Series([1, 0, 1, 0], index=index, name=("a", "a"))
         result = obj.groupby(groups).last()
         expected = frame_or_series([4, 3])
-        expected.index.name = ("a", "a")
+        expected.index = Index([0, 1], dtype="int64", name=("a", "a"))
         tm.assert_equal(result, expected)
 
     def test_groupby_grouper_f_sanity_checked(self):

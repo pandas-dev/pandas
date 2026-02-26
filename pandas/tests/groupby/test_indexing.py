@@ -273,7 +273,7 @@ def test_columns_on_iter():
     # Group-by and select columns
     cols = ["A", "B"]
     for _, dg in df.groupby(df.A < 4)[cols]:
-        tm.assert_index_equal(dg.columns, pd.Index(cols))
+        tm.assert_index_equal(dg.columns, pd.Index(cols), exact=True)
         assert "C" not in dg.columns
 
 
