@@ -3064,6 +3064,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Pickle (serialize) object to file.
 
+        Uses Python's ``pickle`` module to serialize the object and write
+        it to the specified file path. The resulting file can be loaded
+        back using :func:`pandas.read_pickle`.
+
         Parameters
         ----------
         path : str, path object, or file-like object
@@ -3813,6 +3817,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> str | None:
         r"""
         Write object to a comma-separated values (csv) file.
+
+        By default, the resulting file includes row index and column headers.
+        Supports customization of delimiter, encoding, compression, and more.
+        The output can be written to a file path, file-like buffer, or
+        returned as a string.
 
         Parameters
         ----------
@@ -6772,7 +6781,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             :class:`Series` (still experimental). Behaviour is as follows:
 
             * ``"numpy_nullable"``: returns nullable-dtype-backed
-              :class:`DataFrame` or :class:`Serires`.
+              :class:`DataFrame` or :class:`Series`.
             * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
               :class:`DataFrame` or :class:`Series`.
 

@@ -1819,6 +1819,11 @@ cdef class _Timedelta(timedelta):
         """
         Return the number of nanoseconds (n), where 0 <= n < 1 microsecond.
 
+        This is the nanoseconds component of the Timedelta, which represents
+        the residual nanoseconds that are not captured by higher-order components
+        such as days, seconds, or microseconds. The value is always in the range
+        [0, 999].
+
         Returns
         -------
         int
@@ -1971,6 +1976,10 @@ cdef class _Timedelta(timedelta):
     def as_unit(self, str unit, bint round_ok=True):
         """
         Convert the underlying int64 representation to the given unit.
+
+        Converts the Timedelta to a new resolution specified by ``unit``.
+        If the conversion would require rounding (loss of precision), this
+        is allowed by default. Set ``round_ok=False`` to raise an error instead.
 
         Parameters
         ----------
@@ -2340,6 +2349,9 @@ class Timedelta(_Timedelta):
         """
         Round the Timedelta to the specified resolution.
 
+        Rounds the Timedelta value to the nearest multiple of the given
+        frequency using half-even rounding.
+
         Parameters
         ----------
         freq : str
@@ -2374,6 +2386,9 @@ class Timedelta(_Timedelta):
         """
         Return a new Timedelta floored to this resolution.
 
+        Truncates the Timedelta to the nearest multiple of the given
+        frequency, rounding toward negative infinity.
+
         Parameters
         ----------
         freq : str
@@ -2403,6 +2418,9 @@ class Timedelta(_Timedelta):
     def ceil(self, freq):
         """
         Return a new Timedelta ceiled to this resolution.
+
+        Rounds the Timedelta up to the nearest multiple of the given
+        frequency, rounding toward positive infinity.
 
         Parameters
         ----------
