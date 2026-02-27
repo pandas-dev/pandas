@@ -3111,6 +3111,21 @@ def test_setitem_boolean_replace_with_mask_segfault():
     assert arr._pa_array == expected._pa_array
 
 
+def test_setitem_na_chunked_string_if_else():
+    # GH#64320
+    df = pd.concat(
+        [
+            pd.DataFrame({"a": ["x"] * 5, "b": ["x"] * 5}),
+            pd.DataFrame({"a": ["x"] * 5, "b": ["x"] * 5}),
+        ]
+    )
+    for _ in range(5):
+        df.loc[[0], "a"] = pd.NA
+    assert pd.isna(df["a"].iloc[0])
+    assert (df["a"].iloc[1:] == "x").all()
+    assert (df["b"] == "x").all()
+
+
 @pytest.mark.parametrize(
     "data, arrow_dtype",
     [

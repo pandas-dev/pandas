@@ -2722,6 +2722,7 @@ class ArrowExtensionArray(
         -------
         pa.Array
         """
+        # TODO: Remove this part when pa.if_else is fixed (GH#64320)
         if isinstance(left, pa.ChunkedArray) and (
             pa.types.is_string(left.type) or pa.types.is_large_string(left.type)
         ):
