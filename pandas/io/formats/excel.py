@@ -734,7 +734,9 @@ class ExcelFormatter:
             else:
                 index_label = self.df.index.names[0]
 
-            if isinstance(self.columns, MultiIndex):
+            if isinstance(self.columns, MultiIndex) and com.any_not_none(
+                *self.df.index.names
+            ):
                 self.rowcounter += 1
 
             if index_label and self.header is not False:
