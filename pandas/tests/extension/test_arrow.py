@@ -3117,7 +3117,8 @@ def test_setitem_na_chunked_string_if_else():
         [
             pd.DataFrame({"a": ["x"] * 5, "b": ["x"] * 5}),
             pd.DataFrame({"a": ["x"] * 5, "b": ["x"] * 5}),
-        ]
+        ],
+        ignore_index=True,
     )
     for _ in range(5):
         df.loc[[0], "a"] = pd.NA
