@@ -186,6 +186,39 @@ class TestTSPlot:
         first_y = first_line.get_ydata()[0]
         assert expected_string == ax.format_coord(first_x, first_y)
 
+    def test_ts_plot_format_coord_bday(self):
+        # format_coord is the hover-tooltip; verify it formats BDay correctly
+        # without creating deprecated Period[B].
+        ser = Series(1, index=date_range("2014-01-01", periods=3, freq="B"))
+        _, ax = mpl.pyplot.subplots()
+        ser.plot(ax=ax)
+        first_line = ax.get_lines()[0]
+        # int64 bday ordinal, not deprecated Period[B]
+        first_x = first_line.get_xdata()[0]
+        first_y = first_line.get_ydata()[0]
+        assert ax.format_coord(first_x, first_y) == "t = 2014-01-01  y = 1.000000"
+
+    def test_bday_set_xlim_with_strings_or_datetimes(self):
+        # GH#64244 - After a BDay plot, ax.set_xlim() with string or datetime
+        # arguments should convert them to business-day ordinals via
+        # PeriodConverter (which is now explicitly stored on the axis).
+        idx = date_range("2020-01-01", periods=20, freq="B")
+        ser = Series(range(20), index=idx)
+        _, ax = mpl.pyplot.subplots()
+        ser.plot(ax=ax)
+
+        # string arguments
+        ax.set_xlim("2020-01-06", "2020-01-10")  # Mon, Fri of week 2
+        left, right = ax.get_xlim()
+        assert int(left) == conv.bday_count("2020-01-06")
+        assert int(right) == conv.bday_count("2020-01-10")
+
+        # datetime arguments
+        ax.set_xlim(datetime(2020, 1, 12), datetime(2020, 1, 16))
+        left, right = ax.get_xlim()
+        assert int(left) == conv.bday_count("2020-01-12")
+        assert int(right) == conv.bday_count("2020-01-16")
+
     @pytest.mark.parametrize("freq", ["s", "min", "h", "D", "W", "M", "Q", "Y"])
     def test_line_plot_period_series(self, freq):
         idx = period_range("12/31/1999", freq=freq, periods=10)
@@ -335,10 +368,11 @@ class TestTSPlot:
             bts.index = period_range(start=dt, periods=len(bts), freq="B")
         _, ax = mpl.pyplot.subplots()
         bts.plot(ax=ax)
+        # x-data is plain int64 business-day ordinals (not Period[B])
         assert ax.get_lines()[0].get_xydata()[0, 0] == bts.index[0].ordinal
         idx = ax.get_lines()[0].get_xdata()
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert PeriodIndex(data=idx).freqstr == "B"
+        # consecutive business days should produce consecutive ordinals
+        assert np.all(np.diff(idx) == 1)
 
     def test_business_freq_convert(self):
         bts = Series(
@@ -354,10 +388,10 @@ class TestTSPlot:
 
     def test_business_freq_no_weekend_gaps(self):
         # Verify that plotting a BDay-frequency series produces evenly-spaced
-        # x-coordinates with no gaps at weekends.  The current implementation
-        # achieves this by converting DatetimeIndex to PeriodIndex internally;
-        # PeriodIndex with BDay freq assigns consecutive ordinals to business
-        # days only, so Fri→Mon is a 1-unit step (not 3).  See GH#1482.
+        # x-coordinates with no gaps at weekends.  The implementation converts
+        # DatetimeIndex to int64 business-day ordinals (via np.busday_count),
+        # so Fri->Mon is a 1-unit step rather than the 3-unit date2num gap.
+        # See GH#1482.
         idx = date_range("2020-01-01", periods=30, freq="B")
         ser = Series(range(len(idx)), index=idx)
         _, ax = mpl.pyplot.subplots()
@@ -405,9 +439,6 @@ class TestTSPlot:
         idx = ax.get_lines()[0].get_xdata()
         tm.assert_index_equal(bts.index.to_period(), PeriodIndex(idx))
 
-    @pytest.mark.filterwarnings(
-        "ignore:Period with BDay freq is deprecated:FutureWarning"
-    )
     @pytest.mark.parametrize(
         "obj",
         [
@@ -465,7 +496,7 @@ class TestTSPlot:
         day_lst = [10, 40, 252, 400, 950, 2750, 10000]
 
         # BDay ordinals are now computed via np.busday_count (no deprecated Period[B])
-        xpl1 = xpl2 = [conv._bday_count(bdate_range("1999-1-1", periods=1)[0])] * len(
+        xpl1 = xpl2 = [conv.bday_count(bdate_range("1999-1-1", periods=1)[0])] * len(
             day_lst
         )
         rs1 = []
@@ -753,7 +784,6 @@ class TestTSPlot:
         assert axes[2].get_yaxis().get_ticks_position() == "right"
 
     def test_mixed_freq_regular_first(self):
-        # TODO
         s1 = Series(
             np.arange(20, dtype=np.float64),
             index=date_range("2020-01-01", periods=20, freq="B"),
@@ -766,18 +796,17 @@ class TestTSPlot:
 
         ax2 = s2.plot(style="g", ax=ax)
         lines = ax2.get_lines()
-        msg = r"PeriodDtype\[B\] is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            idx1 = PeriodIndex(lines[0].get_xdata())
-            idx2 = PeriodIndex(lines[1].get_xdata())
+        # x-data is plain int64 business-day ordinals (not deprecated Period[B])
+        idx1 = lines[0].get_xdata()
+        idx2 = lines[1].get_xdata()
+        expected1 = np.array([conv.bday_count(ts) for ts in s1.index])
+        expected2 = np.array([conv.bday_count(ts) for ts in s2.index])
+        tm.assert_numpy_array_equal(idx1, expected1)
+        tm.assert_numpy_array_equal(idx2, expected2)
 
-            tm.assert_index_equal(idx1, s1.index.to_period("B"))
-            tm.assert_index_equal(idx2, s2.index.to_period("B"))
-
-            left, right = ax2.get_xlim()
-            pidx = s1.index.to_period()
-        assert left <= pidx[0].ordinal
-        assert right >= pidx[-1].ordinal
+        left, right = ax2.get_xlim()
+        assert left <= expected1[0]
+        assert right >= expected1[-1]
 
     def test_mixed_freq_irregular_first(self):
         s1 = Series(
@@ -805,16 +834,16 @@ class TestTSPlot:
         s1.plot(ax=ax)
         ax2 = s2.plot(style="g", ax=ax)
         lines = ax2.get_lines()
-        msg = r"PeriodDtype\[B\] is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            idx1 = PeriodIndex(lines[0].get_xdata())
-            idx2 = PeriodIndex(lines[1].get_xdata())
-            assert idx1.equals(s1.index.to_period("B"))
-            assert idx2.equals(s2.index.to_period("B"))
-            left, right = ax2.get_xlim()
-            pidx = s1.index.to_period()
-        assert left <= pidx[0].ordinal
-        assert right >= pidx[-1].ordinal
+        # x-data is plain int64 business-day ordinals (not deprecated Period[B])
+        idx1 = lines[0].get_xdata()
+        idx2 = lines[1].get_xdata()
+        expected1 = np.array([conv.bday_count(ts) for ts in s1.index])
+        expected2 = np.array([conv.bday_count(ts) for ts in s2.index])
+        tm.assert_numpy_array_equal(idx1, expected1)
+        tm.assert_numpy_array_equal(idx2, expected2)
+        left, right = ax2.get_xlim()
+        assert left <= expected1[0]
+        assert right >= expected1[-1]
 
     def test_mixed_freq_irregular_first_df(self):
         # GH 9852
