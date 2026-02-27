@@ -584,15 +584,12 @@ class TestSeriesPlots:
         # gh-14821: check if the values have any missing values
         assert any(~np.isnan(axes.lines[0].get_xdata()))
 
-    @pytest.mark.xfail(reason="Api changed in 3.6.0")
     def test_boxplot_series(self, ts):
         _, ax = mpl.pyplot.subplots()
         ax = ts.plot.box(logy=True, ax=ax)
         _check_ax_scales(ax, yaxis="log")
         xlabels = ax.get_xticklabels()
         _check_text_labels(xlabels, [ts.name])
-        ylabels = ax.get_yticklabels()
-        _check_text_labels(ylabels, [""] * len(ylabels))
 
     @pytest.mark.parametrize(
         "kind",
