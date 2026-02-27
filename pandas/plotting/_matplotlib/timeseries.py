@@ -7,7 +7,8 @@ from typing import (
     TYPE_CHECKING,
     Any,
 )
-import warnings
+
+import numpy as np
 
 from pandas._libs.tslibs import (
     BaseOffset,
@@ -25,11 +26,15 @@ from pandas.core.dtypes.generic import (
     ABCTimedeltaIndex,
 )
 
+from pandas import Index
+
 from pandas.io.formats.printing import pprint_thing
 from pandas.plotting._matplotlib.converter import (
+    PeriodConverter,
     TimeSeries_DateFormatter,
     TimeSeries_DateLocator,
     TimeSeries_TimedeltaFormatter,
+    bday_to_datetime,
 )
 from pandas.tseries.frequencies import (
     get_period_alias,
@@ -46,7 +51,6 @@ if TYPE_CHECKING:
 
     from pandas import (
         DatetimeIndex,
-        Index,
         PeriodIndex,
         Series,
     )
@@ -266,12 +270,10 @@ def _get_index_freq(index: Index) -> BaseOffset | None:
 
 
 def maybe_convert_index(ax: Axes, data: NDFrameT) -> NDFrameT:
-    # Convert DatetimeIndex to PeriodIndex for plotting.  This is needed so
-    # that the x-axis uses Period ordinals rather than matplotlib date2num
-    # floats.  A key benefit: for business-day (BDay) frequency, PeriodIndex
-    # assigns consecutive ordinals to weekdays only, producing evenly-spaced
-    # points with no weekend gaps.  With raw date2num values Fri→Mon would be
-    # a 3-unit gap.  See GH#1482.
+    # Convert DatetimeIndex to ordinal-integer index for plotting, so the
+    # x-axis uses consecutive integers rather than matplotlib date2num floats.
+    # This ensures evenly-spaced points: for BDay freq, Fri→Mon is a 1-unit
+    # step rather than a 3-unit gap.  See GH#1482.
     if isinstance(data.index, (ABCDatetimeIndex, ABCPeriodIndex)):
         freq = _get_index_freq(data.index)
 
@@ -283,19 +285,27 @@ def maybe_convert_index(ax: Axes, data: NDFrameT) -> NDFrameT:
 
         freq_str = _get_period_alias(freq)
 
-        with warnings.catch_warnings():
-            # suppress Period[B] deprecation warning
-            # TODO: need to find an alternative to this before the deprecation
-            #  is enforced!
-            warnings.filterwarnings(
-                "ignore",
-                r"PeriodDtype\[B\] is deprecated",
-                category=FutureWarning,
-            )
-
-            if isinstance(data.index, ABCDatetimeIndex):
+        if isinstance(data.index, ABCDatetimeIndex):
+            if freq_str == "B":
+                # Avoid creating deprecated Period[B]; use numpy business-day
+                # arithmetic to map each timestamp to its business-day ordinal.
+                data = data.copy(deep=False)
+                data.index = Index(
+                    np.busday_count(
+                        np.datetime64("1970-01-01", "D"),
+                        data.index.tz_localize(None).values.astype("datetime64[D]"),
+                    ),
+                    dtype=np.int64,
+                )
+            else:
                 data = data.tz_localize(None).to_period(freq=freq_str)
-            elif isinstance(data.index, ABCPeriodIndex):
+        elif isinstance(data.index, ABCPeriodIndex):
+            if freq_str == "B":
+                # Extract the existing Period[B] ordinals as plain int64 to
+                # avoid creating new (deprecated) Period[B] objects.
+                data = data.copy(deep=False)
+                data.index = Index(data.index.asi8, dtype=np.int64)
+            else:
                 data.index = data.index.asfreq(freq=freq_str, how="start")
     return data
 
@@ -303,7 +313,11 @@ def maybe_convert_index(ax: Axes, data: NDFrameT) -> NDFrameT:
 # Patch methods for subplot.
 
 
-def _format_coord(freq: BaseOffset, t, y) -> str:
+def _format_coord(freq, t, y) -> str:
+    if _get_period_alias(freq) == "B":
+        # Avoid creating deprecated Period[B]; convert ordinal to datetime
+        # using numpy business-day arithmetic.
+        return f"t = {bday_to_datetime(int(t)).strftime('%Y-%m-%d')}  y = {y:8f}"
     time_period = Period(ordinal=int(t), freq=freq)
     return f"t = {time_period}  y = {y:8f}"
 
@@ -324,7 +338,10 @@ def format_dateaxis(
     # handle index specific formatting
     # Note: DatetimeIndex does not use this
     # interface. DatetimeIndex uses matplotlib.date directly
-    if isinstance(index, ABCPeriodIndex):
+    if isinstance(index, ABCPeriodIndex) or _get_period_alias(freq) == "B":
+        # For BDay freq the index is a plain int64 of business-day ordinals
+        # (not a PeriodIndex) to avoid the deprecated Period[B].  The tick
+        # locator and formatter both operate on those ordinals directly.
         majlocator = TimeSeries_DateLocator(
             freq, dynamic_mode=True, minor_locator=False, plot_obj=subplot
         )
@@ -345,6 +362,21 @@ def format_dateaxis(
 
         # x and y coord info
         subplot.format_coord = functools.partial(_format_coord, freq)
+
+        # For BDay the x-axis holds plain int64 ordinals, so matplotlib's
+        # units machinery never registers a converter.  Set PeriodConverter
+        # explicitly so that post-plot ax.set_xlim(string, ...) /
+        # ax.set_xlim(datetime, ...) calls can map values to ordinals via
+        # _get_datevalue().  For PeriodIndex plots the converter is already
+        # stored by matplotlib; skip to avoid a RuntimeError on re-entry.
+        if _get_period_alias(freq) == "B":
+            if hasattr(subplot.xaxis, "set_converter"):
+                # matplotlib >= 3.10: only set if not already a PeriodConverter
+                existing = subplot.xaxis.get_converter()
+                if not isinstance(existing, PeriodConverter):
+                    subplot.xaxis.set_converter(PeriodConverter())
+            else:
+                subplot.xaxis.converter = PeriodConverter()
 
     elif isinstance(index, ABCTimedeltaIndex):
         subplot.xaxis.set_major_formatter(TimeSeries_TimedeltaFormatter(index.unit))

@@ -112,11 +112,10 @@ class TestDataFramePlots:
         _check_ticks_props(axes, xrot=0)
         _check_axes_shape(axes, axes_num=4, layout=(4, 1))
 
-    @pytest.mark.xfail(reason="Api changed in 3.6.0")
     @pytest.mark.slow
     def test_plot_invalid_arg(self):
         df = DataFrame({"x": [1, 2], "y": [3, 4]})
-        msg = "'Line2D' object has no property 'blarg'"
+        msg = r"Line2D.set\(\) got an unexpected keyword argument 'blarg'"
         with pytest.raises(AttributeError, match=msg):
             df.plot.line(blarg=True)
 
@@ -415,8 +414,12 @@ class TestDataFramePlots:
 
         ax = df.plot()
         lines = ax.get_lines()
-        assert not isinstance(lines[0].get_xdata(), PeriodIndex)
-        assert isinstance(PeriodIndex(lines[0].get_xdata()), PeriodIndex)
+
+        # x-data is plain int64 business-day ordinals (not Period[B])
+        xdata = lines[0].get_xdata()
+        assert not isinstance(xdata, PeriodIndex)
+        # consecutive uniform spacing (no weekend gaps)
+        assert len(np.unique(np.diff(xdata))) == 1
 
     def test_xcompat_plot_params_context_manager(self):
         df = DataFrame(
@@ -439,8 +442,11 @@ class TestDataFramePlots:
         )
         ax = df.plot()
         lines = ax.get_lines()
-        assert not isinstance(lines[0].get_xdata(), PeriodIndex)
-        assert isinstance(PeriodIndex(lines[0].get_xdata()), PeriodIndex)
+        # x-data is plain int64 business-day ordinals (not Period[B])
+        xdata = lines[0].get_xdata()
+        assert not isinstance(xdata, PeriodIndex)
+        assert len(np.unique(np.diff(xdata))) == 1
+
         _check_ticks_props(ax, xrot=0)
 
     def test_period_compat(self):
@@ -645,11 +651,6 @@ class TestDataFramePlots:
             assert xmin <= lines[0].get_data()[0][0]
             assert xmax >= lines[0].get_data()[0][-1]
 
-    @pytest.mark.xfail(
-        strict=False,
-        reason="2020-12-01 this has been failing periodically on the "
-        "ymin==0 assertion for a week or so.",
-    )
     @pytest.mark.parametrize("stacked", [True, False])
     def test_area_lim(self, stacked):
         df = DataFrame(

@@ -67,16 +67,11 @@ fi
 if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
     MSG='Validate Docstrings' ; echo "$MSG"
-    "$BASE_DIR"/scripts/validate_docstrings.py \
+    python "$BASE_DIR"/scripts/validate_docstrings.py \
         --format=actions \
         -i "pandas.tseries.frequencies.to_offset ES01" \
         -i "pandas.testing.assert_series_equal ES01" \
         -i "pandas.testing.assert_index_equal ES01" \
-        -i "pandas.Timedelta.nanoseconds ES01" \
-        -i "pandas.Timedelta.as_unit ES01" \
-        -i "pandas.Timedelta.ceil ES01" \
-        -i "pandas.Timedelta.floor ES01" \
-        -i "pandas.Timedelta.round ES01" \
         -i "pandas.Interval ES01" \
         -i "pandas.Interval.left ES01" \
         -i "pandas.Interval.length ES01" \

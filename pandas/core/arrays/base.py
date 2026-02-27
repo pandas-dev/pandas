@@ -2554,7 +2554,7 @@ class ExtensionArray:
             return [x.tolist() for x in self]
         return list(self)
 
-    def delete(self, loc: PositionalIndexer) -> Self:
+    def delete(self, loc: ScalarIndexer | slice | list[int] | np.ndarray) -> Self:
         indexer = np.delete(np.arange(len(self)), loc)
         return self.take(indexer)
 
