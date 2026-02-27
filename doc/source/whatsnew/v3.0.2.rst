@@ -13,6 +13,7 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
+- Fixed regression in :meth:`HDFStore.select` where the ``where`` clause on a datetime index silently returned empty results when the index had non-nanosecond resolution (:issue:`64310`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_302.bug_fixes:
