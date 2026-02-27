@@ -3022,8 +3022,12 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         Index
-            Returns a new Index object with all unique elements from both the original
+            Returns a new Index object with elements from both the original
             Index and the `other` Index.
+
+            If an element is duplicated in either input Index, the result
+            includes that element with the highest multiplicity from either
+            input.
 
         See Also
         --------
@@ -3046,6 +3050,13 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx2 = pd.Index([1, 2, 3, 4])
         >>> idx1.union(idx2)
         Index(['a', 'b', 'c', 'd', 1, 2, 3, 4], dtype='object')
+
+        Union with duplicates
+
+        >>> idx1 = pd.Index([1, 1, 2, 3])
+        >>> idx2 = pd.Index([1, 2, 2, 4])
+        >>> idx1.union(idx2)
+        Index([1, 1, 2, 2, 3, 4], dtype='int64')
 
         MultiIndex case
 
