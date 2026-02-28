@@ -391,6 +391,12 @@ def _can_parallelize_csv(filepath_or_buffer, kwds: dict) -> bool:
     if kwds.get("nrows") is not None:
         return False
 
+    # The chunk splitter scans for raw \n bytes.  A custom lineterminator
+    # (which the C engine does honour) would misalign chunk boundaries.
+    lineterminator = kwds.get("lineterminator")
+    if lineterminator is not None and lineterminator != "\n":
+        return False
+
     # Callable / list skiprows require tracking absolute line numbers.
     skiprows = kwds.get("skiprows")
     if skiprows is not None and not isinstance(skiprows, (int, np.integer)):
