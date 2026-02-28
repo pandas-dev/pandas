@@ -261,11 +261,10 @@ def test_corrupt_read(datapath):
 
 @pytest.mark.xfail(WASM, reason="failing with currently set tolerances on WASM")
 def test_max_sas_date(datapath):
-    # GH 20927
+    # GH 20927, GH 56014
     # NB. max datetime in SAS dataset is 31DEC9999:23:59:59.999
-    #    but this is read as 29DEC9999:23:59:59.998993 by a buggy
-    #    sas7bdat module
-    # See also GH#56014 for discussion of the correct "expected" results.
+    # SAS uses a modified Gregorian calendar where years divisible by 4000
+    # are not leap years, producing a 2-day offset for dates >= year 4000.
     fname = datapath("io", "sas", "data", "max_sas_date.sas7bdat")
     df = pd.read_sas(fname, encoding="iso-8859-1")
 
@@ -275,7 +274,7 @@ def test_max_sas_date(datapath):
             "dt_as_float": [253717747199.999, 1880323199.999],
             "dt_as_dt": np.array(
                 [
-                    datetime(9999, 12, 29, 23, 59, 59, 999000),
+                    datetime(9999, 12, 31, 23, 59, 59, 999000),
                     datetime(2019, 8, 1, 23, 59, 59, 999000),
                 ],
                 dtype="M8[ms]",
@@ -283,7 +282,7 @@ def test_max_sas_date(datapath):
             "date_as_float": [2936547.0, 21762.0],
             "date_as_date": np.array(
                 [
-                    datetime(9999, 12, 29),
+                    datetime(9999, 12, 31),
                     datetime(2019, 8, 1),
                 ],
                 dtype="M8[s]",
@@ -318,10 +317,10 @@ def test_max_sas_date_iterator(datapath):
                 "text": ["max"],
                 "dt_as_float": [253717747199.999],
                 "dt_as_dt": np.array(
-                    [datetime(9999, 12, 29, 23, 59, 59, 999000)], dtype="M8[ms]"
+                    [datetime(9999, 12, 31, 23, 59, 59, 999000)], dtype="M8[ms]"
                 ),
                 "date_as_float": [2936547.0],
-                "date_as_date": np.array([datetime(9999, 12, 29)], dtype="M8[s]"),
+                "date_as_date": np.array([datetime(9999, 12, 31)], dtype="M8[s]"),
             },
             columns=col_order,
         ),
@@ -354,14 +353,14 @@ def test_null_date(datapath):
         {
             "datecol": np.array(
                 [
-                    datetime(9999, 12, 29),
+                    datetime(9999, 12, 31),
                     np.datetime64("NaT"),
                 ],
                 dtype="M8[s]",
             ),
             "datetimecol": np.array(
                 [
-                    datetime(9999, 12, 29, 23, 59, 59, 999000),
+                    datetime(9999, 12, 31, 23, 59, 59, 999000),
                     np.datetime64("NaT"),
                 ],
                 dtype="M8[ms]",
