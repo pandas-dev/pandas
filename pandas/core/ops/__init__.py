@@ -17,6 +17,7 @@ from pandas.core.ops.array_ops import (
 )
 from pandas.core.ops.common import (
     get_op_result_name,
+    has_castable_attr,
     unpack_zerodim_and_defer,
 )
 from pandas.core.ops.invalid import invalid_comparison
@@ -70,6 +71,7 @@ __all__ = [
     "fill_binop",
     "get_array_op",
     "get_op_result_name",
+    "has_castable_attr",
     "invalid_comparison",
     "kleene_and",
     "kleene_or",

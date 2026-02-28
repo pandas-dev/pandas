@@ -16,6 +16,7 @@ from datetime import (
     tzinfo,
 )
 from os import PathLike
+from types import EllipsisType
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -389,12 +390,9 @@ Manager: TypeAlias = Union["BlockManager", "SingleBlockManager"]
 # SequenceIndexer is for list like or slices (but not tuples)
 # PositionalIndexerTuple is extends the PositionalIndexer for 2D arrays
 # These are used in various __getitem__ overloads
-# TODO(typing#684): add Ellipsis, see
-# https://github.com/python/typing/issues/684#issuecomment-548203158
-# https://bugs.python.org/issue41810
 # Using List[int] here rather than Sequence[int] to disallow tuples.
 ScalarIndexer: TypeAlias = int | np.integer
-SequenceIndexer: TypeAlias = slice | list[int] | np.ndarray
+SequenceIndexer: TypeAlias = slice | EllipsisType | list[int] | np.ndarray
 PositionalIndexer: TypeAlias = ScalarIndexer | SequenceIndexer
 PositionalIndexerTuple: TypeAlias = tuple[PositionalIndexer, PositionalIndexer]
 PositionalIndexer2D: TypeAlias = PositionalIndexer | PositionalIndexerTuple

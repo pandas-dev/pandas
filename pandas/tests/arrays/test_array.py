@@ -317,6 +317,35 @@ def test_array_copy():
 
 
 @pytest.mark.parametrize(
+    "data",
+    [
+        # string 2D
+        [["a"], ["b"]],
+        # int 2D
+        [[1], [2]],
+        # mixed 2D
+        [[1, 2], ["a", "b"]],
+        # mixed 3D
+        [[[1]], [["a"]], [[3.14]]],
+    ],
+)
+def test_array_string_nd(data):
+    # GH 64138
+    result = pd.array(data, dtype="str")
+
+    if using_string_dtype():
+        expected = (
+            pd.StringDtype(na_value=np.nan)
+            .construct_array_type()
+            ._from_sequence(data, dtype=pd.StringDtype(na_value=np.nan))
+        )
+    else:
+        expected = NumpyExtensionArray(np.array(data, dtype=str))
+
+    tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize(
     "data, expected",
     [
         # period
