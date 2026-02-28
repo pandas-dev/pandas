@@ -954,37 +954,33 @@ In this context, round-trip means parsing text to ``float`` and then
 converting that value back to text and parsing again returns the same
 ``float`` value.
 
-For example:
+The following example uses a near-zero value with many decimal places
+to show how each option affects the result. Reading the parsed scalar
+and formatting it with a fixed precision makes the differences visible:
 
 .. ipython:: python
 
-   val = "0.3066101993807095471566981359501369297504425048828125"
-   data = "a,b,c\n1,2,{0}".format(val)
-   abs(
-       pd.read_csv(
-           StringIO(data),
-           engine="c",
-           float_precision=None,
-       )["c"][0] - float(val)
-   )
-   abs(
-       pd.read_csv(
-           StringIO(data),
-           engine="c",
-           float_precision="high",
-       )["c"][0] - float(val)
-   )
-   abs(
-       pd.read_csv(
-           StringIO(data),
-           engine="c",
-           float_precision="legacy",
-       )["c"][0] - float(val)
-   )
-   abs(
-       pd.read_csv(StringIO(data), engine="c", float_precision="round_trip")["c"][0]
-       - float(val)
-   )
+   from io import StringIO
+
+   data = "value\n0.00000000000000012\n"
+
+   high = pd.read_csv(
+       StringIO(data), engine="c", float_precision="high"
+   ).loc[0, "value"]
+   legacy = pd.read_csv(
+       StringIO(data), engine="c", float_precision="legacy"
+   ).loc[0, "value"]
+   rt = pd.read_csv(
+       StringIO(data), engine="c", float_precision="round_trip"
+   ).loc[0, "value"]
+
+   format(high, ".20g"), format(legacy, ".20g"), format(rt, ".20g")
+
+The formatted output shows that ``"round_trip"`` preserves the textual
+representation of the value more closely than ``"high"`` or ``"legacy"``.
+Use ``float_precision="round_trip"`` when minimizing rounding introduced
+by parsing matters (for example, when the CSV was exported from another
+tool).
 
 
 .. _io.thousands:
