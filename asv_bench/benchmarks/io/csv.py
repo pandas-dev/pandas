@@ -642,4 +642,76 @@ class ReadCSVCParserLowMemory:
         read_csv(self.csv, engine="c", low_memory=False)
 
 
+class ReadCSVParallelLargeFile(BaseIO):
+    """
+    Benchmark for the parallel read_csv path (C engine, large local files).
+
+    The parallel path activates automatically when reading from a local file
+    path with the C engine and the file exceeds ~50 MB.  Using a BytesIO
+    baseline lets us measure the speedup from parallelism directly.
+    """
+
+    fname = "__test_large__.csv"
+
+    # nrows chosen so that the resulting file sits clearly above the ~50 MB
+    # parallel-activation threshold (500 K rows ≈ 45 MB float, 2 M ≈ 184 MB).
+    params = (
+        [1_000_000, 2_000_000],
+        ["float", "int", "mixed"],
+    )
+    param_names = ["nrows", "dtype"]
+
+    def setup(self, nrows, dtype):
+        rng = np.random.default_rng(42)
+        if dtype == "float":
+            df = DataFrame(
+                {
+                    "a": rng.random(nrows),
+                    "b": rng.random(nrows),
+                    "c": rng.random(nrows),
+                    "d": rng.random(nrows),
+                    "e": rng.random(nrows),
+                }
+            )
+        elif dtype == "int":
+            df = DataFrame(
+                {
+                    "a": rng.integers(0, 10**6, nrows),
+                    "b": rng.integers(0, 10**6, nrows),
+                    "c": rng.integers(0, 10**6, nrows),
+                    "d": rng.integers(0, 10**6, nrows),
+                    "e": rng.integers(0, 10**6, nrows),
+                }
+            )
+        else:  # mixed
+            df = DataFrame(
+                {
+                    "a": rng.integers(0, 10**6, nrows),
+                    "b": rng.random(nrows),
+                    "c": [
+                        "cat" if i % 3 == 0 else "dog" if i % 3 == 1 else "fish"
+                        for i in range(nrows)
+                    ],
+                    "d": rng.random(nrows),
+                    "e": rng.integers(0, 1000, nrows),
+                }
+            )
+        df.to_csv(self.fname, index=False)
+
+        # Pre-read raw bytes for the serial (BytesIO) baseline so that disk
+        # I/O is not included in either timing.
+        with open(self.fname, "rb") as f:
+            self._raw = f.read()
+
+    def time_from_filepath(self, nrows, dtype):
+        """File-path read: takes the parallel path for large files."""
+        read_csv(self.fname)
+
+    def time_from_bytesio(self, nrows, dtype):
+        """BytesIO read: always serial (parallel path requires a file path)."""
+        from io import BytesIO
+
+        read_csv(BytesIO(self._raw))
+
+
 from ..pandas_vb_common import setup  # noqa: F401 isort:skip
