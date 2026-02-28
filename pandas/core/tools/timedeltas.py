@@ -196,6 +196,7 @@ def to_timedelta(
         # Series]]")  [assignment]
         arg = lib.item_from_zerodim(arg)  # type: ignore[assignment]
     elif is_list_like(arg) and getattr(arg, "ndim", 1) == 1:
+        arg = [Timedelta(days=x.n) if isinstance(x, Day) else x for x in arg]
         return _convert_listlike(arg, unit=unit, errors=errors)
     elif getattr(arg, "ndim", 1) > 1:
         raise TypeError(
