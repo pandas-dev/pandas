@@ -39,7 +39,7 @@ runs:
         pixi run \
           --environment ${{ matrix.environment }} \
           ci-test-pandas \
-          -m ${{ inputs.pytest_marker_expression }} ${{ extra_pytest_args }} \
+          '-m ${{ inputs.pytest_marker_expression }} ${{ extra_pytest_args }}' \
           ${{ inputs.numprocesses }} \
           ${{ inputs.pytest_target }}
       shell: bash -euox pipefail {0}
