@@ -171,7 +171,6 @@ def test_airline(datapath):
     tm.assert_frame_equal(df, df0)
 
 
-@pytest.mark.skipif(WASM, reason="Pyodide/WASM has 32-bitness")
 def test_date_time(datapath):
     # Support of different SAS date/datetime formats (PR #15871)
     fname = datapath("io", "sas", "data", "datetime.sas7bdat")
@@ -194,7 +193,7 @@ def test_date_time(datapath):
     res = df0["DateTimeHi"].astype("M8[us]").dt.round("ms")
     df0["DateTimeHi"] = res.astype("M8[ms]")
 
-    if not IS64:
+    if not IS64 and not WASM:
         # No good reason for this, just what we get on the CI
         df0.loc[0, "DateTimeHi"] += np.timedelta64(1, "ms")
         df0.loc[[2, 3], "DateTimeHi"] -= np.timedelta64(1, "ms")
@@ -259,7 +258,6 @@ def test_corrupt_read(datapath):
         pd.read_sas(fname)
 
 
-@pytest.mark.xfail(WASM, reason="failing with currently set tolerances on WASM")
 def test_max_sas_date(datapath):
     # GH 20927, GH 56014
     # NB. max datetime in SAS dataset is 31DEC9999:23:59:59.999
@@ -291,14 +289,14 @@ def test_max_sas_date(datapath):
         columns=["text", "dt_as_float", "dt_as_dt", "date_as_float", "date_as_date"],
     )
 
-    if not IS64:
+    if not IS64 and not WASM:
         # No good reason for this, just what we get on the CI
         expected.loc[:, "dt_as_dt"] -= np.timedelta64(1, "ms")
+        expected.loc[1, "dt_as_dt"] = pd.Timestamp("2019-08-01 23:59:59.998")
 
     tm.assert_frame_equal(df, expected)
 
 
-@pytest.mark.xfail(WASM, reason="failing with currently set tolerances on WASM")
 def test_max_sas_date_iterator(datapath):
     # GH 20927
     # when called as an iterator, only those chunks with a date > pd.Timestamp.max
@@ -335,16 +333,15 @@ def test_max_sas_date_iterator(datapath):
             columns=col_order,
         ),
     ]
-    if not IS64:
+    if not IS64 and not WASM:
         # No good reason for this, just what we get on the CI
         expected[0].loc[0, "dt_as_dt"] -= np.timedelta64(1, "ms")
-        expected[1].loc[0, "dt_as_dt"] -= np.timedelta64(1, "ms")
+        expected[1].loc[0, "dt_as_dt"] = pd.Timestamp("2019-08-01 23:59:59.998")
 
     tm.assert_frame_equal(results[0], expected[0])
     tm.assert_frame_equal(results[1], expected[1])
 
 
-@pytest.mark.skipif(WASM, reason="Pyodide/WASM has 32-bitness")
 def test_null_date(datapath):
     fname = datapath("io", "sas", "data", "dates_null.sas7bdat")
     df = pd.read_sas(fname, encoding="utf-8")
@@ -367,7 +364,7 @@ def test_null_date(datapath):
             ),
         },
     )
-    if not IS64:
+    if not IS64 and not WASM:
         # No good reason for this, just what we get on the CI
         expected.loc[0, "datetimecol"] -= np.timedelta64(1, "ms")
     tm.assert_frame_equal(df, expected)
