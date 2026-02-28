@@ -2448,15 +2448,6 @@ you can use the ``tz_convert`` method.
     (and UTC) cannot be guaranteed by any time zone library because a timezone's
     offset from UTC may be changed by the respective government.
 
-.. note::
-
-    ``pytz`` is an optional dependency as of pandas 3.0. When using ``pytz``
-    time zones, it is incorrect to pass a time zone object directly into the
-    ``datetime.datetime`` constructor
-    (e.g., ``datetime.datetime(2011, 1, 1, tzinfo=pytz.timezone('US/Eastern'))``).
-    Instead, the datetime needs to be localized using the ``localize`` method
-    on the ``pytz`` time zone object.
-
 Under the hood, all timestamps are stored in UTC. Values from a time zone aware
 :class:`DatetimeIndex` or :class:`Timestamp` will have their fields (day, hour, minute, etc.)
 localized to the time zone. However, timestamps with the same UTC value are
