@@ -226,7 +226,7 @@ class TestStringArray(base.ExtensionTests):
         return op_name in ["cummin", "cummax", "cumsum"]
 
     def _cast_pointwise_result(self, op_name: str, obj, other, pointwise_result):
-        dtype = cast(StringDtype, tm.get_dtype(obj))
+        dtype = cast("StringDtype", tm.get_dtype(obj))
         if op_name in ["__add__", "__radd__"]:
             cast_to = dtype
             dtype_other = tm.get_dtype(other) if not isinstance(other, str) else None
@@ -282,6 +282,14 @@ class TestStringArray(base.ExtensionTests):
             mark = pytest.mark.xfail(reason="Casts to object")
             request.applymarker(mark)
         super().test_loc_setitem_with_expansion_preserves_ea_index_dtype(data)
+
+    def test_loc_setitem_with_expansion_retains_ea_dtype(
+        self, data, using_infer_string, request
+    ):
+        if not using_infer_string and data.dtype.storage == "python":
+            mark = pytest.mark.xfail(reason="Gives object")
+            request.applymarker(mark)
+        super().test_loc_setitem_with_expansion_retains_ea_dtype(data)
 
 
 class Test2DCompat(base.Dim2CompatTests):

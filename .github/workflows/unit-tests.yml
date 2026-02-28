@@ -27,7 +27,7 @@ jobs:
     strategy:
       matrix:
         platform: [ubuntu-24.04, ubuntu-24.04-arm]
-        env_file: [actions-311.yaml, actions-312.yaml, actions-313.yaml]
+        env_file: [actions-311.yaml, actions-312.yaml, actions-313.yaml, actions-314.yaml]
         # Prevent the include jobs from overriding other jobs
         pattern: [""]
         pandas_future_infer_string: ["1"]
@@ -190,7 +190,7 @@ jobs:
     strategy:
       matrix:
         os: [macos-15-intel, macos-15, windows-2025]
-        env_file: [actions-311.yaml, actions-312.yaml, actions-313.yaml]
+        env_file: [actions-311.yaml, actions-312.yaml, actions-313.yaml, actions-314.yaml]
       fail-fast: false
     runs-on: ${{ matrix.os }}
     name: ${{ format('{0} {1}', matrix.os, matrix.env_file) }}
@@ -246,7 +246,7 @@ jobs:
         run: |
           /opt/python/cp313-cp313/bin/python -m venv ~/virtualenvs/pandas-dev
           . ~/virtualenvs/pandas-dev/bin/activate
-          python -m pip install --no-cache-dir -U pip wheel setuptools meson[ninja]==1.2.1 meson-python==0.13.1
+          python -m pip install --no-cache-dir -U pip wheel meson[ninja]==1.2.1 meson-python==0.13.1
           python -m pip install numpy -Csetup-args="-Dallow-noblas=true"
           python -m pip install --no-cache-dir versioneer[toml] cython python-dateutil pytest>=8.3.4 pytest-xdist>=3.6.1 hypothesis>=6.116.0
           python -m pip install --no-cache-dir --no-build-isolation -e . -Csetup-args="--werror"
@@ -284,7 +284,7 @@ jobs:
         run: |
           /opt/python/cp313-cp313/bin/python -m venv ~/virtualenvs/pandas-dev
           . ~/virtualenvs/pandas-dev/bin/activate
-          python -m pip install --no-cache-dir -U pip wheel setuptools meson-python==0.13.1 meson[ninja]==1.2.1
+          python -m pip install --no-cache-dir -U pip wheel meson-python==0.13.1 meson[ninja]==1.2.1
           python -m pip install --no-cache-dir versioneer[toml] cython numpy python-dateutil pytest>=8.3.4 pytest-xdist>=3.6.1 hypothesis>=6.116.0
           python -m pip install --no-cache-dir --no-build-isolation -e . -Csetup-args="--werror"
           python -m pip list --no-cache-dir
@@ -318,7 +318,7 @@ jobs:
     #    To freeze this file, uncomment out the ``if: false`` condition, and migrate the jobs
     #    to the corresponding posix/windows-macos/sdist etc. workflows.
     # Feel free to modify this comment as necessary.
-    # if: false
+    if: false
     defaults:
       run:
         shell: bash -eou pipefail {0}
@@ -349,12 +349,12 @@ jobs:
       - name: Set up Python Dev Version
         uses: actions/setup-python@v6
         with:
-          python-version: '3.14-dev'
+          python-version: '3.15-dev'
 
       - name: Build Environment
         run: |
           python --version
-          python -m pip install --upgrade pip setuptools wheel meson[ninja]==1.2.1 meson-python==0.13.1
+          python -m pip install --upgrade pip wheel meson[ninja]==1.2.1 meson-python==0.13.1
           python -m pip install --pre --extra-index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple numpy
           python -m pip install versioneer[toml] python-dateutil tzdata cython hypothesis>=6.116.0 pytest>=8.3.4 pytest-xdist>=3.6.1 pytest-cov
           python -m pip install -ve . --no-build-isolation --no-index --no-deps -Csetup-args="--werror"

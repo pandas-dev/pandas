@@ -193,6 +193,7 @@ def pytest_collection_modifyitems(items, config) -> None:
             "DataFrameGroupBy.fillna with 'method' is deprecated",
         ),
         ("read_parquet", "Passing a BlockManager to DataFrame is deprecated"),
+        ("Timestamp.utcfromtimestamp", "Timestamp.utcfromtimestamp is deprecated"),
     ]
 
     if is_doctest:

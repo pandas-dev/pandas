@@ -138,7 +138,7 @@ Look,a snake,🐍"""
             assert result == data.encode("utf-8")
 
     # Test that pyarrow can handle a file opened with get_handle
-    def test_get_handle_pyarrow_compat(self):
+    def test_get_handle_pyarrow_compat(sel, using_infer_string):
         pa_csv = pytest.importorskip("pyarrow.csv")
 
         # Test latin1, ucs-2, and ucs-4 chars
@@ -154,6 +154,8 @@ Look,a snake,🐍"""
             df = pa_csv.read_csv(handles.handle).to_pandas()
             if pa_version_under19p0:
                 expected = expected.astype("object")
+            elif not using_infer_string:
+                expected = expected.astype(pd.StringDtype(na_value=np.nan))
             tm.assert_frame_equal(df, expected)
             assert not s.closed
 

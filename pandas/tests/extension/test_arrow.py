@@ -43,6 +43,7 @@ from pandas.compat import (
     pa_version_under20p0,
     pa_version_under21p0,
 )
+from pandas.compat.pyarrow import pa_version_under22p0
 from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.common import pandas_dtype
@@ -73,7 +74,7 @@ from pandas.core.arrays.arrow.extension_types import ArrowPeriodType
 
 
 def _require_timezone_database(request):
-    if is_platform_windows() and is_ci_environment():
+    if is_platform_windows() and is_ci_environment() and pa_version_under22p0:
         mark = pytest.mark.xfail(
             raises=pa.ArrowInvalid,
             reason=(
@@ -294,6 +295,12 @@ class TestArrowArray(base.ExtensionTests):
     def test_compare_scalar(self, data, comparison_op):
         ser = pd.Series(data)
         self._compare_other(ser, data, comparison_op, data[0])
+
+    def test_compare_range_len(self, data, comparison_op):
+        # GH#63429
+        ser = pd.Series(data)
+        range_test = range(len(ser))
+        self._compare_other(ser, range_test, comparison_op, range_test)
 
     @pytest.mark.parametrize("na_action", [None, "ignore"])
     def test_map(self, data_missing, na_action, using_nan_is_na):
@@ -1775,6 +1782,14 @@ def test_str_contains_flags_unsupported():
         ser.str.contains("a", flags=1)
 
 
+def test_str_contains_re2_unicode_escape():
+    # GH 63901
+    ser = pd.Series(["a", "\u0e01", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.contains(r"[\x{0e00}-\x{0e7f}]")
+    expected = pd.Series([False, True, None], dtype=ArrowDtype(pa.bool_()))
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "side, pat, na, exp",
     [
@@ -1829,6 +1844,13 @@ def test_str_replace(pat, repl, n, regex, exp):
     ser = pd.Series(["abac", None], dtype=ArrowDtype(pa.string()))
     result = ser.str.replace(pat, repl, n=n, regex=regex)
     expected = pd.Series(exp, dtype=ArrowDtype(pa.string()))
+    tm.assert_series_equal(result, expected)
+
+
+def test_str_replace_re2_unicode_property():
+    ser = pd.Series(["Jan", "Feb", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.replace(r"\p{Lu}", "U", regex=True)
+    expected = pd.Series(["Uan", "Ueb", None], dtype=ArrowDtype(pa.string()))
     tm.assert_series_equal(result, expected)
 
 

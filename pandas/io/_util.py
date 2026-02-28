@@ -166,4 +166,26 @@ def _post_convert_dtypes(
             # GH#44901 reraise to keep api consistent
             raise ValueError(str(err)) from err
 
+    if (
+        not using_string_dtype()
+        and dtype != "str"
+        and (dtype_backend is lib.no_default or dtype_backend == "numpy")
+    ):
+        # Convert any StringDtype columns back to object dtype (pyarrow always
+        # uses string dtype even when the infer_string option is False)
+        for col, dtype in zip(df.columns, df.dtypes, strict=True):
+            if isinstance(dtype, pd.StringDtype) and dtype.na_value is np.nan:
+                df[col] = df[col].astype("object").fillna(None)
+            if isinstance(dtype, pd.CategoricalDtype):
+                cat_dtype = dtype.categories.dtype
+                if (
+                    isinstance(cat_dtype, pd.StringDtype)
+                    and cat_dtype.na_value is np.nan
+                ):
+                    cat_dtype = pd.CategoricalDtype(
+                        categories=dtype.categories.astype("object"),
+                        ordered=dtype.ordered,
+                    )
+                    df[col] = df[col].astype(cat_dtype)
+
     return df

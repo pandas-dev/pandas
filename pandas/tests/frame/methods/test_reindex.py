@@ -819,6 +819,13 @@ class TestDataFrameSelectReindex:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_reindex_with_string_fill_value(self):
+        # GH#63993
+        df = DataFrame({"a": [0]})
+        result = df.reindex(columns=["a", "b", "c"], fill_value="missing")
+        expected = DataFrame({"a": [0], "b": ["missing"], "c": ["missing"]})
+        tm.assert_frame_equal(result, expected)
+
     def test_reindex_dups(self):
         # GH4746, reindex on duplicate index error messages
         arr = np.random.default_rng(2).standard_normal(10)

@@ -125,7 +125,8 @@ class TimedeltaArray(dtl.TimelikeOps):
     data : array-like
         The timedelta data.
     dtype : numpy.dtype
-        Currently, only ``numpy.dtype("timedelta64[ns]")`` is accepted.
+        Valid ``numpy`` dtypes are ``timedelta64[ns]``, ``timedelta64[us]``,
+        ``timedelta64[ms]``, and ``timedelta64[s]``.
     freq : Offset, optional
         Frequency of the data.
     copy : bool, default False
@@ -873,6 +874,10 @@ class TimedeltaArray(dtl.TimelikeOps):
     days_docstring = textwrap.dedent(
         """Number of days for each element.
 
+    This attribute returns the number of whole days in each timedelta value.
+    It represents the days component of the duration, not the total duration
+    expressed in days.
+
     See Also
     --------
     Series.dt.seconds : Return number of seconds for each element.
@@ -908,6 +913,10 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     seconds_docstring = textwrap.dedent(
         """Number of seconds (>= 0 and less than 1 day) for each element.
+
+    This attribute returns the seconds component of each timedelta value,
+    which is the number of seconds remaining after subtracting whole days.
+    Values range from 0 to 86399.
 
     See Also
     --------
@@ -947,6 +956,10 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     microseconds_docstring = textwrap.dedent(
         """Number of microseconds (>= 0 and less than 1 second) for each element.
+
+    This attribute returns the microseconds component of each timedelta value,
+    which is the number of microseconds remaining after subtracting whole
+    seconds. Values range from 0 to 999999.
 
     See Also
     --------
@@ -989,10 +1002,14 @@ class TimedeltaArray(dtl.TimelikeOps):
     nanoseconds_docstring = textwrap.dedent(
         """Number of nanoseconds (>= 0 and less than 1 microsecond) for each element.
 
+    This attribute returns the nanoseconds component of each timedelta value,
+    which is the number of nanoseconds remaining after subtracting whole
+    microseconds. Values range from 0 to 999.
+
     See Also
     --------
     Series.dt.seconds : Return number of seconds for each element.
-    Series.dt.microseconds : Return number of nanoseconds for each element.
+    Series.dt.microseconds : Return number of microseconds for each element.
 
     Examples
     --------
