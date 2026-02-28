@@ -76,7 +76,7 @@ def _sas_to_gregorian_correction(values: np.ndarray, unit: str) -> np.ndarray:
     this adds back the missing days. `unit` must be "d" (days) or "s" (seconds).
     """
     scale = 86400 if unit == "s" else 1
-    thresholds = np.array([_SAS_MARCH1_4000, _SAS_MARCH1_8000]) * scale
+    thresholds = np.array([_SAS_MARCH1_4000, _SAS_MARCH1_8000], dtype=np.int64) * scale
     correction = np.zeros(len(values), dtype=np.float64)
     valid = ~np.isnan(values)
     for threshold in thresholds:
