@@ -36,19 +36,13 @@ runs:
         # Clipboard tests
         QT_QPA_PLATFORM: offscreen
       run: |
-        python -m pytest \
-          -r fE \
-          -m "${{ inputs.pytest_marker_expression }}" \
-          ${{ inputs.extra_pytest_args }} \
-          --numprocesses=${{ inputs.numprocesses }} \
-          --dist=worksteal \
-          --capture=no \
-          --cov=pandas \
-          --cov-report=xml \
-          --cov-append \
-          --cov-config=pyproject.toml \
+        pixi run \
+          --environment ${{ matrix.environment }} \
+          ci-test-pandas \
+          -m ${{ inputs.pytest_marker_expression }} ${{ extra_pytest_args }} \
+          ${{ inputs.numprocesses }} \
           ${{ inputs.pytest_target }}
-      shell: pixi run --environment ${{ inputs.environment }} bash -euox pipefail {0}
+      shell: bash -euox pipefail {0}
 
     - name: Publish test results
       uses: actions/upload-artifact@v4
