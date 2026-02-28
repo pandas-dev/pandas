@@ -92,14 +92,14 @@ class TestCanParallelizeCsv:
         import pandas.io.parsers.readers as _readers
 
         path = tmp_path / "data.csv"
-        path.write_text("a,b\n1,2\n")
+        path.write_text("a,b\n1,2\n", encoding="utf-8")
         monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
         assert _can_parallelize_csv(path, self._kwds(engine=None))
 
     def test_rejects_file_like_object(self, tmp_path):
         path = tmp_path / "data.csv"
-        path.write_text("a,b\n1,2\n")
-        with open(path) as f:
+        path.write_text("a,b\n1,2\n", encoding="utf-8")
+        with open(path, encoding="utf-8") as f:
             assert not _can_parallelize_csv(f, self._kwds())
 
     def test_rejects_url(self):
@@ -114,22 +114,22 @@ class TestCanParallelizeCsv:
 
     def test_rejects_iterator_mode(self, tmp_path):
         path = tmp_path / "data.csv"
-        path.write_text("a,b\n1,2\n")
+        path.write_text("a,b\n1,2\n", encoding="utf-8")
         assert not _can_parallelize_csv(path, self._kwds(iterator=True))
 
     def test_rejects_chunksize(self, tmp_path):
         path = tmp_path / "data.csv"
-        path.write_text("a,b\n1,2\n")
+        path.write_text("a,b\n1,2\n", encoding="utf-8")
         assert not _can_parallelize_csv(path, self._kwds(chunksize=1000))
 
     def test_rejects_nrows(self, tmp_path):
         path = tmp_path / "data.csv"
-        path.write_text("a,b\n1,2\n")
+        path.write_text("a,b\n1,2\n", encoding="utf-8")
         assert not _can_parallelize_csv(path, self._kwds(nrows=100))
 
     def test_rejects_non_c_engine(self, tmp_path):
         path = tmp_path / "data.csv"
-        path.write_text("a,b\n1,2\n")
+        path.write_text("a,b\n1,2\n", encoding="utf-8")
         assert not _can_parallelize_csv(path, self._kwds(engine="python"))
         assert not _can_parallelize_csv(path, self._kwds(engine="pyarrow"))
 
@@ -137,7 +137,7 @@ class TestCanParallelizeCsv:
         import pandas.io.parsers.readers as _readers
 
         path = tmp_path / "data.csv"
-        path.write_text("a,b\n1,2\n")
+        path.write_text("a,b\n1,2\n", encoding="utf-8")
         # The chunk splitter always scans for \n; a different lineterminator
         # would misalign chunk boundaries and produce silently wrong output.
         assert not _can_parallelize_csv(path, self._kwds(lineterminator="\r"))
@@ -149,40 +149,40 @@ class TestCanParallelizeCsv:
 
     def test_rejects_callable_skiprows(self, tmp_path):
         path = tmp_path / "data.csv"
-        path.write_text("a,b\n1,2\n")
+        path.write_text("a,b\n1,2\n", encoding="utf-8")
         assert not _can_parallelize_csv(path, self._kwds(skiprows=lambda x: x == 0))
 
     def test_rejects_list_skiprows(self, tmp_path):
         path = tmp_path / "data.csv"
-        path.write_text("a,b\n1,2\n")
+        path.write_text("a,b\n1,2\n", encoding="utf-8")
         assert not _can_parallelize_csv(path, self._kwds(skiprows=[0, 2]))
 
     def test_rejects_multi_level_header(self, tmp_path):
         path = tmp_path / "data.csv"
-        path.write_text("a,b\n1,2\n")
+        path.write_text("a,b\n1,2\n", encoding="utf-8")
         assert not _can_parallelize_csv(path, self._kwds(header=[0, 1]))
 
     def test_rejects_index_col(self, tmp_path):
         path = tmp_path / "data.csv"
-        path.write_text("a,b\n1,2\n")
+        path.write_text("a,b\n1,2\n", encoding="utf-8")
         assert not _can_parallelize_csv(path, self._kwds(index_col=0))
         assert not _can_parallelize_csv(path, self._kwds(index_col="a"))
 
     def test_accepts_index_col_false(self, tmp_path):
         # index_col=False is allowed (suppresses implicit index)
         path = tmp_path / "data.csv"
-        path.write_text("a,b\n1,2\n")
+        path.write_text("a,b\n1,2\n", encoding="utf-8")
         # File is too small → False due to size, not index_col=False
         assert not _can_parallelize_csv(path, self._kwds(index_col=False))
 
     def test_rejects_usecols(self, tmp_path):
         path = tmp_path / "data.csv"
-        path.write_text("a,b,c\n1,2,3\n")
+        path.write_text("a,b,c\n1,2,3\n", encoding="utf-8")
         assert not _can_parallelize_csv(path, self._kwds(usecols=["a", "b"]))
 
     def test_rejects_small_file(self, tmp_path):
         path = tmp_path / "small.csv"
-        path.write_text("a,b\n1,2\n")
+        path.write_text("a,b\n1,2\n", encoding="utf-8")
         assert not _can_parallelize_csv(path, self._kwds())
 
 
@@ -234,7 +234,7 @@ class TestFindDataStartOffset:
 class TestFindChunkByteOffsets:
     def _write_csv(self, path: Path, n_rows: int = 10) -> None:
         lines = "a,b\n" + "".join(f"{i},{i}\n" for i in range(n_rows))
-        path.write_text(lines)
+        path.write_text(lines, encoding="utf-8")
 
     def test_single_chunk(self, tmp_path):
         path = tmp_path / "data.csv"
@@ -419,7 +419,7 @@ class TestReadCsvParallel:
         path = tmp_path / "data.csv"
         n = 5_000
         lines = ["skip_me\n"] * 3 + ["a,b\n"] + [f"{i},{i}\n" for i in range(n)]
-        path.write_text("".join(lines))
+        path.write_text("".join(lines), encoding="utf-8")
         kwds = self._base_kwds(path, skiprows=3)
         result = self._parallel_read(path, kwds)
         expected = self._serial_read(path, skiprows=3)
