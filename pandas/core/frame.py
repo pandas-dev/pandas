@@ -13,14 +13,6 @@ from __future__ import annotations
 
 import collections
 from collections import abc
-from collections.abc import (
-    Callable,
-    Hashable,
-    Iterable,
-    Iterator,
-    Mapping,
-    Sequence,
-)
 import functools
 from io import StringIO
 import itertools
@@ -165,6 +157,7 @@ from pandas.core.indexes.multi import (
 from pandas.core.indexing import (
     check_bool_indexer,
     check_dict_or_set_indexers,
+    infer_and_maybe_downcast,
 )
 from pandas.core.internals import BlockManager
 from pandas.core.internals.construction import (
@@ -196,6 +189,14 @@ from pandas.io.formats.info import DataFrameInfo
 import pandas.plotting
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Callable,
+        Hashable,
+        Iterable,
+        Iterator,
+        Mapping,
+        Sequence,
+    )
     import datetime
 
     from pandas._libs.internals import BlockValuesRefs
@@ -544,7 +545,7 @@ class DataFrame(NDFrame, OpsMixin):
         elif isinstance(data, (np.ndarray, Series, Index, ExtensionArray)):
             if data.dtype.names:
                 # i.e. numpy structured array
-                data = cast(np.ndarray, data)
+                data = cast("np.ndarray", data)
                 mgr = rec_array_to_mgr(
                     data,
                     index,
@@ -4039,7 +4040,7 @@ class DataFrame(NDFrame, OpsMixin):
                 )
 
                 new_values = transpose_homogeneous_masked_arrays(
-                    cast(Sequence[BaseMaskedArray], self._iter_column_arrays())
+                    cast("Sequence[BaseMaskedArray]", self._iter_column_arrays())
                 )
             elif isinstance(first_dtype, ArrowDtype):
                 # We have arrow EAs with the same dtype. We can transpose faster.
@@ -4049,7 +4050,7 @@ class DataFrame(NDFrame, OpsMixin):
                 )
 
                 new_values = transpose_homogeneous_pyarrow(
-                    cast(Sequence[ArrowExtensionArray], self._iter_column_arrays())
+                    cast("Sequence[ArrowExtensionArray]", self._iter_column_arrays())
                 )
             else:
                 # We have other EAs with the same dtype. We preserve dtype in transpose.
@@ -4168,16 +4169,22 @@ class DataFrame(NDFrame, OpsMixin):
             # is_iterator to exclude generator e.g. test_getitem_listlike
             # As of Python 3.12, slice is hashable which breaks MultiIndex (GH#57500)
 
-            # shortcut if the key is in columns
+            # Shortcut: return single column as Series when key refers to one column.
+            # Previously we used "key in self.columns.drop_duplicates(keep=False)",
+            # which built a new Index on every access when columns had duplicates.
+            # Using get_loc(key) instead: it returns int iff key appears exactly once,
+            # so we get the same behavior without extra allocation (GH#45316).
             is_mi = isinstance(self.columns, MultiIndex)
-            # GH#45316 Return view if key is not duplicated
-            # Only use drop_duplicates with duplicates for performance
-            if not is_mi and (
-                (self.columns.is_unique and key in self.columns)
-                or key in self.columns.drop_duplicates(keep=False)
-            ):
-                return self._get_item(key)
-
+            if not is_mi:
+                try:
+                    loc = self.columns.get_loc(key)
+                except (KeyError, InvalidIndexError):
+                    # Key missing or invalid; fall through to list/slice/other paths.
+                    pass
+                else:
+                    # int: key unique; slice/array: key duplicated (fall through).
+                    if isinstance(loc, int):
+                        return self._get_item(key)
             elif is_mi and self.columns.is_unique and key in self.columns:
                 return self._getitem_multilevel(key)
 
@@ -4729,7 +4736,7 @@ class DataFrame(NDFrame, OpsMixin):
         try:
             if takeable:
                 icol = col
-                iindex = cast(int, index)
+                iindex = cast("int", index)
             else:
                 icol = self.columns.get_loc(col)
                 iindex = self.index.get_loc(index)
@@ -6525,7 +6532,7 @@ class DataFrame(NDFrame, OpsMixin):
         axis = self._get_axis_number(axis)
 
         if is_list_like(periods):
-            periods = cast(Sequence, periods)
+            periods = cast("Sequence", periods)
             if axis == 1:
                 raise ValueError(
                     "If `periods` contains multiple shifts, `axis` cannot be 1."
@@ -6540,7 +6547,7 @@ class DataFrame(NDFrame, OpsMixin):
                     raise TypeError(
                         f"Periods must be integer, but {period} is {type(period)}."
                     )
-                period = cast(int, period)
+                period = cast("int", period)
                 shifted_dataframes.append(
                     super()
                     .shift(periods=period, freq=freq, axis=axis, fill_value=fill_value)
@@ -6549,7 +6556,7 @@ class DataFrame(NDFrame, OpsMixin):
             return concat(shifted_dataframes, axis=1, sort=False)
         elif suffix:
             raise ValueError("Cannot specify `suffix` if `periods` is an int.")
-        periods = cast(int, periods)
+        periods = cast("int", periods)
 
         ncols = len(self.columns)
         if axis == 1 and periods != 0 and ncols > 0 and freq is None:
@@ -7609,7 +7616,7 @@ class DataFrame(NDFrame, OpsMixin):
         if subset is not None:
             # subset needs to be list
             if not is_list_like(subset):
-                subset = [cast(Hashable, subset)]
+                subset = [cast("Hashable", subset)]
             ax = self._get_axis(agg_axis)
             indices = ax.get_indexer_for(subset)
             check = indices == -1
@@ -7889,7 +7896,7 @@ class DataFrame(NDFrame, OpsMixin):
             subset = (subset,)
 
         #  needed for mypy since can't narrow types using np.iterable
-        subset = cast(Sequence, subset)
+        subset = cast("Sequence", subset)
 
         # Verify all columns in subset exist in the queried dataframe
         # Otherwise, raise a KeyError, same as if you try to __getitem__ with a
@@ -9009,7 +9016,6 @@ class DataFrame(NDFrame, OpsMixin):
             #  fails in cases with empty columns reached via
             #  _frame_arith_method_with_reindex
 
-            # TODO operate_blockwise expects a manager of the same type
             bm = self._mgr.operate_blockwise(
                 right._mgr,
                 array_op,
@@ -9248,6 +9254,18 @@ class DataFrame(NDFrame, OpsMixin):
                 )
 
         elif is_list_like(right) and not isinstance(right, (Series, DataFrame)):
+            if not isinstance(
+                right, (np.ndarray, ExtensionArray, Index, list, dict)
+            ) and not ops.has_castable_attr(right):
+                warnings.warn(
+                    f"Operation with {type(right).__name__} are deprecated. "
+                    "In a future version these will be treated as scalar-like. "
+                    "To retain the old behavior, explicitly wrap in a Series "
+                    "instead.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
+
             # GH#36702. Raise when attempting arithmetic with list of array-like.
             if any(is_array_like(el) for el in right):
                 raise ValueError(
@@ -13671,12 +13689,17 @@ class DataFrame(NDFrame, OpsMixin):
         elif subset.ndim == 1:  # is Series
             return subset
 
-        # TODO: _shallow_copy(subset)?
         return subset[key]
 
     def aggregate(self, func=None, axis: Axis = 0, *args, **kwargs):
         """
         Aggregate using one or more operations over the specified axis.
+
+        This method allows combining multiple aggregation functions at once,
+        such as ``sum``, ``mean``, and ``min``, and can apply them either
+        per-column or per-row. It accepts functions as strings, callables,
+        lists, or dictionaries mapping column labels to the desired
+        aggregation(s).
 
         Parameters
         ----------
@@ -13794,6 +13817,10 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> DataFrame:
         """
         Call ``func`` on self producing a DataFrame with the same axis shape as self.
+
+        Unlike aggregation, transformation preserves the shape of the input.
+        The provided function must return a result that is the same size as
+        the input along the specified axis, raising a ``ValueError`` otherwise.
 
         Parameters
         ----------
@@ -14183,7 +14210,7 @@ class DataFrame(NDFrame, OpsMixin):
 
             # one axis is empty
             if not all(self.shape):
-                func = cast(Callable, func)
+                func = cast("Callable", func)
                 try:
                     if axis == 0:
                         r = func(Series([], dtype=np.float64), *args, **kwargs)
@@ -14357,6 +14384,15 @@ class DataFrame(NDFrame, OpsMixin):
         # infer_objects is needed for
         #  test_append_empty_frame_to_series_with_dateutil_tz
         row_df = row_df.infer_objects().rename_axis(index.names)
+
+        if len(row_df.columns) == len(self.columns):
+            # Try to retain our original dtype when doing the concat, GH#62523
+            for i in range(len(self.columns)):
+                arr = self.iloc[:, i].array
+
+                casted = infer_and_maybe_downcast(arr, row_df.iloc[:, i]._values)
+
+                row_df.isetitem(i, casted)
 
         from pandas.core.reshape.concat import concat
 
@@ -15011,6 +15047,11 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> DataFrame:
         """
         Compute pairwise correlation of columns, excluding NA/null values.
+
+        The result is a symmetric DataFrame where each element represents
+        the correlation coefficient between two columns. By default, the
+        Pearson correlation is computed, but Kendall and Spearman methods
+        as well as arbitrary callables are also supported.
 
         Parameters
         ----------
@@ -16235,6 +16276,11 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Return the product of the values over the requested axis.
 
+        This multiplies all values in each column (or row when
+        ``axis=1``) together, skipping missing values by default.
+        An empty or all-NA column returns ``1`` unless ``min_count``
+        is specified.
+
         Parameters
         ----------
         axis : {index (0), columns (1)}
@@ -16351,6 +16397,9 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> Series | Any:
         """
         Return the mean of the values over the requested axis.
+
+        This computes the arithmetic mean of the values in each column
+        (or row when ``axis=1``), skipping missing values by default.
 
         Parameters
         ----------
@@ -16472,6 +16521,9 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> Series | Any:
         """
         Return the median of the values over the requested axis.
+
+        This computes the median of the values in each column (or row
+        when ``axis=1``), skipping missing values by default.
 
         Parameters
         ----------
@@ -16985,7 +17037,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         See Also
         --------
-        Dataframe.kurt : Returns unbiased kurtosis over requested axis.
+        DataFrame.kurt : Returns unbiased kurtosis over requested axis.
 
         Examples
         --------
@@ -17106,7 +17158,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         See Also
         --------
-        Dataframe.kurtosis : Returns unbiased kurtosis over requested axis.
+        DataFrame.kurtosis : Returns unbiased kurtosis over requested axis.
 
         Examples
         --------
@@ -17990,6 +18042,10 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> Series | DataFrame:
         """
         Return values at the given quantile over requested axis.
+
+        This method computes the value below which a given proportion of
+        observations fall. By default, it computes quantiles column-wise,
+        but row-wise computation is also supported via ``axis=1``.
 
         Parameters
         ----------

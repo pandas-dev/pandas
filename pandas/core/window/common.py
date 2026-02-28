@@ -85,7 +85,7 @@ def flex_binary_moment(arg1, arg2, f, pairwise: bool = False):
                     if arg2.columns.nlevels > 1:
                         # mypy needs to know columns is a MultiIndex, Index doesn't
                         # have levels attribute
-                        arg2.columns = cast(MultiIndex, arg2.columns)
+                        arg2.columns = cast("MultiIndex", arg2.columns)
                         # GH 21157: Equivalent to MultiIndex.from_product(
                         #  [result_index], <unique combinations of arg2.columns.levels>,
                         # )

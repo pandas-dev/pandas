@@ -559,6 +559,10 @@ class NaTType(_NaT):
         """
         Return the day name of the Timestamp with specified locale.
 
+        This method returns the full name of the day of the week (e.g.,
+        'Monday', 'Tuesday') for the given Timestamp. The locale can be
+        specified to return the name in a particular language.
+
         Parameters
         ----------
         locale : str, default None (English locale)
@@ -597,6 +601,11 @@ class NaTType(_NaT):
         "isocalendar",
         """
         Return a named tuple containing ISO year, week number, and weekday.
+
+        The ISO 8601 calendar is a widely used international standard. The
+        returned named tuple has three components: ``year``, ``week``, and
+        ``weekday``. The ISO year may differ from the Gregorian year for dates
+        near the start or end of a calendar year.
 
         See Also
         --------
@@ -887,6 +896,10 @@ class NaTType(_NaT):
         """
         Return a formatted string of the Timestamp.
 
+        This method converts a Timestamp to a string according to the given
+        format string, using the same directives as the standard library's
+        :meth:`datetime.datetime.strftime`.
+
         Parameters
         ----------
         format : str
@@ -1057,6 +1070,10 @@ class NaTType(_NaT):
         Timestamp.utcnow()
 
         Return a new Timestamp representing UTC day and time.
+
+        .. deprecated:: 3.0.0
+            ``Timestamp.utcnow`` is deprecated and will be removed in a future
+            version. Use ``Timestamp.now('UTC')`` instead.
 
         See Also
         --------
@@ -1434,6 +1451,10 @@ timedelta}, default 'raise'
         """
         Return a new Timestamp floored to this resolution.
 
+        This method rounds the Timestamp down to the nearest boundary of the
+        given frequency. The result will never be later than the original
+        Timestamp.
+
         Parameters
         ----------
         freq : str
@@ -1528,6 +1549,10 @@ timedelta}, default 'raise'
         "ceil",
         """
         Return a new Timestamp ceiled to this resolution.
+
+        This method rounds the Timestamp up to the nearest boundary of the
+        given frequency. The result will never be earlier than the original
+        Timestamp.
 
         Parameters
         ----------
@@ -1841,6 +1866,11 @@ default 'raise'
     def as_unit(self, str unit, bint round_ok=True) -> "NaTType":
         """
         Convert the underlying int64 representation to the given unit.
+
+        This method changes the resolution of the Timestamp's internal
+        representation. When converting to a coarser resolution (e.g.,
+        nanoseconds to seconds), precision may be lost through rounding
+        unless ``round_ok`` is set to False.
 
         Parameters
         ----------

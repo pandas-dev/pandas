@@ -306,10 +306,16 @@ class TestDatetimeArrayComparisons:
             tuple(right),
             right.astype(object),
         ]:
-            result = op(arr, other)
+            depr_msg = "Operation with tuple are deprecated."
+            warn = None
+            if isinstance(other, tuple):
+                warn = Pandas4Warning
+            with tm.assert_produces_warning(warn, match=depr_msg):
+                result = op(arr, other)
             tm.assert_numpy_array_equal(result, expected)
 
-            result = op(other, arr)
+            with tm.assert_produces_warning(warn, match=depr_msg):
+                result = op(other, arr)
             tm.assert_numpy_array_equal(result, expected)
 
 

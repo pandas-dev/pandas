@@ -11,10 +11,6 @@ from typing import (
 import warnings
 
 from pandas._libs.properties import cache_readonly
-from pandas._typing import (
-    F,
-    T,
-)
 from pandas.util._exceptions import find_stack_level
 
 if TYPE_CHECKING:
@@ -23,6 +19,10 @@ if TYPE_CHECKING:
         Mapping,
     )
 
+    from pandas._typing import (
+        F,
+        T,
+    )
     from pandas.errors import PandasChangeWarning
 
 
@@ -219,7 +219,7 @@ def deprecate_kwarg(
                 kwargs[new_arg_name] = new_arg_value
             return func(*args, **kwargs)
 
-        return cast(F, wrapper)
+        return cast("F", wrapper)
 
     return _deprecate_kwarg
 
