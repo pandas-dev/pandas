@@ -19,9 +19,11 @@ from pandas._libs import (
     iNaT,
     lib,
 )
+import pandas._libs.algos as libalgos
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.common import (
+    ensure_float64,
     is_complex,
     is_float,
     is_float_dtype,
@@ -1217,7 +1219,7 @@ def nanskew(
     axis: AxisInt | None = None,
     skipna: bool = True,
     mask: npt.NDArray[np.bool_] | None = None,
-) -> float:
+) -> np.ndarray | float:
     """
     Compute the sample skewness.
 
@@ -1246,54 +1248,23 @@ def nanskew(
     >>> nanops.nanskew(s.values)
     np.float64(1.7320508075688787)
     """
-    mask = _maybe_get_mask(values, skipna, mask)
-    if values.dtype.kind != "f":
-        values = values.astype("f8")
-        count = _get_counts(values.shape, mask, axis)
-    else:
-        count = _get_counts(values.shape, mask, axis, dtype=values.dtype)
-
-    if skipna and mask is not None:
-        values = values.copy()
-        np.putmask(values, mask, 0)
-    elif not skipna and mask is not None and mask.any():
-        return np.nan
-
-    with np.errstate(invalid="ignore", divide="ignore"):
-        mean = values.sum(axis, dtype=np.float64) / count
-    if axis is not None:
-        mean = np.expand_dims(mean, axis)
-
-    adjusted = values - mean
-    if skipna and mask is not None:
-        np.putmask(adjusted, mask, 0)
-    adjusted2 = adjusted**2
-    adjusted3 = adjusted2 * adjusted
-    m2 = adjusted2.sum(axis, dtype=np.float64)
-    m3 = adjusted3.sum(axis, dtype=np.float64)
-
-    # floating point error. See comment in [nankurt]
-    max_abs = np.abs(values).max(axis, initial=0.0)
-    eps = np.finfo(m2.dtype).eps
-    constant_tolerance2 = ((eps * max_abs) ** 2) * count
-    constant_tolerance3 = ((eps * max_abs) ** 3) * count
-    m2 = _zero_out_fperr(m2, constant_tolerance2)
-    m3 = _zero_out_fperr(m3, constant_tolerance3)
-
-    with np.errstate(invalid="ignore", divide="ignore"):
-        result = (count * (count - 1) ** 0.5 / (count - 2)) * (m3 / m2**1.5)
-
     dtype = values.dtype
+    values = ensure_float64(values)
+
+    if axis is None or (values.ndim == 1 and axis == 0):
+        result_float = libalgos.scalar_skew(
+            values.ravel(), skipna, mask.ravel() if mask is not None else None
+        )
+        result = np.float64(result_float)
+    elif axis == 0:
+        result = libalgos.axis0_skew(values, skipna, mask)
+    elif axis == 1:
+        result = libalgos.axis1_skew(values, skipna, mask)
+    else:
+        raise ValueError("axis must be 0, 1 or None")
+
     if dtype.kind == "f":
         result = result.astype(dtype, copy=False)
-
-    if isinstance(result, np.ndarray):
-        result = np.where(m2 == 0, 0, result)
-        result[count < 3] = np.nan
-    else:
-        result = dtype.type(0) if m2 == 0 else result
-        if count < 3:
-            return np.nan
 
     return result
 
@@ -1306,7 +1277,7 @@ def nankurt(
     axis: AxisInt | None = None,
     skipna: bool = True,
     mask: npt.NDArray[np.bool_] | None = None,
-) -> float:
+) -> np.ndarray | float:
     """
     Compute the sample excess kurtosis
 
@@ -1335,84 +1306,23 @@ def nankurt(
     >>> nanops.nankurt(s.values)
     np.float64(-1.2892561983471076)
     """
-    mask = _maybe_get_mask(values, skipna, mask)
-    if values.dtype.kind != "f":
-        values = values.astype("f8")
-        count = _get_counts(values.shape, mask, axis)
-    else:
-        count = _get_counts(values.shape, mask, axis, dtype=values.dtype)
-
-    if skipna and mask is not None:
-        values = values.copy()
-        np.putmask(values, mask, 0)
-    elif not skipna and mask is not None and mask.any():
-        return np.nan
-
-    with np.errstate(invalid="ignore", divide="ignore"):
-        mean = values.sum(axis, dtype=np.float64) / count
-    if axis is not None:
-        mean = np.expand_dims(mean, axis)
-
-    adjusted = values - mean
-    if skipna and mask is not None:
-        np.putmask(adjusted, mask, 0)
-    adjusted2 = adjusted**2
-    adjusted4 = adjusted2**2
-    m2 = adjusted2.sum(axis, dtype=np.float64)
-    m4 = adjusted4.sum(axis, dtype=np.float64)
-
-    # Several floating point errors may occur during the summation due to rounding.
-    # This computation is similar to the one in Scipy
-    # https://github.com/scipy/scipy/blob/04d6d9c460b1fed83f2919ecec3d743cfa2e8317/scipy/stats/_stats_py.py#L1429
-    # With a few modifications, like using the maximum value instead of the averages
-    # and some adaptations because they use the average and we use the sum for `m2`.
-    # We need to estimate an upper bound to the error to consider the data constant.
-    # Let's call:
-    # x: true value in data
-    # y: floating point representation
-    # e: relative approximation error
-    # n: number of observations in array
-    #
-    # We have that:
-    # |x - y|/|x| <= e (See https://en.wikipedia.org/wiki/Machine_epsilon)
-    # (|x - y|/|x|)² <= e²
-    # Σ (|x - y|/|x|)² <= ne²
-    #
-    # Let's say that the fperr upper bound for m2 is constrained by the summation.
-    # |m2 - y|/|m2| <= ne²
-    # |m2 - y| <= n|m2|e²
-    #
-    # We will use max (x²) to estimate |m2|
-    max_abs = np.abs(values).max(axis, initial=0.0)
-    eps = np.finfo(m2.dtype).eps
-    constant_tolerance2 = ((eps * max_abs) ** 2) * count
-    constant_tolerance4 = ((eps * max_abs) ** 4) * count
-    m2 = _zero_out_fperr(m2, constant_tolerance2)
-    m4 = _zero_out_fperr(m4, constant_tolerance4)
-
-    with np.errstate(invalid="ignore", divide="ignore"):
-        adj = 3 * (count - 1) ** 2 / ((count - 2) * (count - 3))
-        numerator = count * (count + 1) * (count - 1) * m4
-        denominator = (count - 2) * (count - 3) * m2**2
-
-    if not isinstance(denominator, np.ndarray):
-        # if ``denom`` is a scalar, check these corner cases first before
-        # doing division
-        if count < 4:
-            return np.nan
-        if denominator == 0:
-            return values.dtype.type(0)
-
-    with np.errstate(invalid="ignore", divide="ignore"):
-        result = numerator / denominator - adj
-
     dtype = values.dtype
+    values = ensure_float64(values)
+
+    if axis is None or (values.ndim == 1 and axis == 0):
+        result_float = libalgos.scalar_kurt(
+            values.ravel(), skipna, mask.ravel() if mask is not None else None
+        )
+        result = np.float64(result_float)
+    elif axis == 0:
+        result = libalgos.axis0_kurt(values, skipna, mask)
+    elif axis == 1:
+        result = libalgos.axis1_kurt(values, skipna, mask)
+    else:
+        raise ValueError("axis must be 0, 1 or None")
+
     if dtype.kind == "f":
         result = result.astype(dtype, copy=False)
-
-    if isinstance(result, np.ndarray):
-        result = np.where(denominator == 0, 0, result)
-        result[count < 4] = np.nan
 
     return result
 
