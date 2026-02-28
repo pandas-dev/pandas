@@ -133,6 +133,20 @@ class TestCanParallelizeCsv:
         assert not _can_parallelize_csv(path, self._kwds(engine="python"))
         assert not _can_parallelize_csv(path, self._kwds(engine="pyarrow"))
 
+    def test_rejects_custom_lineterminator(self, tmp_path, monkeypatch):
+        import pandas.io.parsers.readers as _readers
+
+        path = tmp_path / "data.csv"
+        path.write_text("a,b\n1,2\n")
+        # The chunk splitter always scans for \n; a different lineterminator
+        # would misalign chunk boundaries and produce silently wrong output.
+        assert not _can_parallelize_csv(path, self._kwds(lineterminator="\r"))
+        assert not _can_parallelize_csv(path, self._kwds(lineterminator="|"))
+        # \n and None (default) are acceptable.
+        monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
+        assert _can_parallelize_csv(path, self._kwds(lineterminator="\n"))
+        assert _can_parallelize_csv(path, self._kwds(lineterminator=None))
+
     def test_rejects_callable_skiprows(self, tmp_path):
         path = tmp_path / "data.csv"
         path.write_text("a,b\n1,2\n")
