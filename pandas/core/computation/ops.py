@@ -341,7 +341,7 @@ class BinOp(Op):
     rhs : Term or Op
     """
 
-    def __init__(self, op: str, lhs, rhs) -> None:
+    def __init__(self, op: str, lhs: Term | Op, rhs: Term | Op) -> None:
         super().__init__(op, (lhs, rhs))
         self.lhs = lhs
         self.rhs = rhs
