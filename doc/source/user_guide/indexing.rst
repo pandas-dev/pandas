@@ -1206,7 +1206,7 @@ You can also use the levels of a ``DataFrame`` with a
 
    n = 10
    colors = np.random.choice(['red', 'green'], size=n)
-   foods = np.random.choice(['eggs', 'ham'], size=n)
+   foods = np.random.choice(['rice', 'lentils'], size=n)
    colors
    foods
 
