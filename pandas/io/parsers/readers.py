@@ -310,9 +310,9 @@ def _read(
         _n_workers = os.cpu_count() or 1
         if _n_workers > 1 and _can_parallelize_csv(filepath_or_buffer, kwds):
             try:
-                _result = _read_csv_parallel(
-                    stringify_path(filepath_or_buffer), kwds, _n_workers
-                )
+                _filepath = stringify_path(filepath_or_buffer)
+                assert isinstance(_filepath, str)  # guaranteed by _can_parallelize_csv
+                _result = _read_csv_parallel(_filepath, kwds, _n_workers)
                 if _result is not None:
                     return _result
             except ParserError:
@@ -556,6 +556,7 @@ def _read_csv_parallel(
     first_buf = io.BytesIO(preamble + first_chunk_bytes)
     first_reader = TextFileReader(first_buf, **base_kwds)
     first_df = first_reader.read()
+    assert first_reader._engine.orig_names is not None
     col_names: list = list(first_reader._engine.orig_names)
     first_reader.close()
     del first_chunk_bytes
@@ -593,6 +594,9 @@ def _read_csv_parallel(
                 cf.seek(start)
                 data = cf.read(end - start)
         reader = TextFileReader(io.BytesIO(b""), **rest_kwds)
+        from pandas.io.parsers.c_parser_wrapper import CParserWrapper
+
+        assert isinstance(reader._engine, CParserWrapper)
         reader._engine._reader.load_buffer(data)
         try:
             return reader.read()
