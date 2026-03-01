@@ -308,10 +308,10 @@ class TestSeriesPlots:
         tm.assert_almost_equal(res[1], ymax)
 
         result = getattr(ax, axis).get_ticklocs()
-        diff = result - expected
-        assert all(x == 0 for x in diff), [repr(x) for x in diff]
-        tm.assert_numpy_array_equal(diff, np.zeros(diff.shape, dtype=np.float64))
-        tm.assert_numpy_array_equal(result, expected)
+        # GH#64317 on some linux builds this is flaky with the first entry being
+        #  off by -1.69e-21. Rather than xfail this test, we allow a small
+        #  tolerance, as it isn't really user-visible.
+        tm.assert_almost_equal(result, expected, atol=2e-21)
 
     def test_bar_ignore_index(self):
         df = Series([1, 2, 3, 4], index=["a", "b", "c", "d"])
