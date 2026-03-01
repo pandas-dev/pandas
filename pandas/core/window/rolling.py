@@ -2041,6 +2041,10 @@ class Rolling(RollingAndExpandingMixin):
         """
         Aggregate using one or more operations over the specified axis.
 
+        This method allows combining multiple aggregation functions (e.g.
+        ``'sum'``, ``'mean'``) in a single call, returning a result for each
+        function applied to each rolling window.
+
         Parameters
         ----------
         func : function, str, list or dict
@@ -2123,6 +2127,9 @@ class Rolling(RollingAndExpandingMixin):
         """
         Calculate the rolling count of non NaN observations.
 
+        This is useful for identifying windows with missing data, as it counts
+        only non-NaN entries within each window.
+
         Parameters
         ----------
         numeric_only : bool, default False
@@ -2175,6 +2182,9 @@ class Rolling(RollingAndExpandingMixin):
     ):
         """
         Calculate the rolling custom aggregation function.
+
+        Applies an arbitrary function to each rolling window. This is useful
+        when the built-in rolling methods do not cover the desired computation.
 
         Parameters
         ----------
@@ -2358,6 +2368,9 @@ class Rolling(RollingAndExpandingMixin):
         """
         Calculate the rolling sum.
 
+        This is equivalent to applying ``numpy.sum`` over each rolling window.
+        Missing values (NaN) are excluded from the calculation.
+
         Parameters
         ----------
         numeric_only : bool, default False
@@ -2457,6 +2470,8 @@ class Rolling(RollingAndExpandingMixin):
         """
         Calculate the rolling maximum.
 
+        This is equivalent to applying ``numpy.max`` over each rolling window.
+
         Parameters
         ----------
         numeric_only : bool, default False
@@ -2526,6 +2541,8 @@ class Rolling(RollingAndExpandingMixin):
         """
         Calculate the rolling minimum.
 
+        This is equivalent to applying ``numpy.min`` over each rolling window.
+
         Parameters
         ----------
         numeric_only : bool, default False
@@ -2591,6 +2608,8 @@ class Rolling(RollingAndExpandingMixin):
     ):
         """
         Calculate the rolling mean.
+
+        This is equivalent to applying ``numpy.mean`` over each rolling window.
 
         Parameters
         ----------
@@ -2665,6 +2684,9 @@ class Rolling(RollingAndExpandingMixin):
         """
         Calculate the rolling median.
 
+        This is equivalent to applying ``numpy.median`` over each rolling
+        window.
+
         Parameters
         ----------
         numeric_only : bool, default False
@@ -2731,6 +2753,9 @@ class Rolling(RollingAndExpandingMixin):
     ):
         """
         Calculate the rolling standard deviation.
+
+        This is equivalent to applying ``numpy.std`` (with the specified
+        ``ddof``) over each rolling window.
 
         Parameters
         ----------
@@ -2806,6 +2831,9 @@ class Rolling(RollingAndExpandingMixin):
         """
         Calculate the rolling variance.
 
+        This is equivalent to applying ``numpy.var`` (with the specified
+        ``ddof``) over each rolling window.
+
         Parameters
         ----------
         ddof : int, default 1
@@ -2874,6 +2902,9 @@ class Rolling(RollingAndExpandingMixin):
         """
         Calculate the rolling unbiased skewness.
 
+        This is equivalent to applying ``scipy.stats.skew`` over each rolling
+        window. A minimum of three periods is required.
+
         Parameters
         ----------
         numeric_only : bool, default False
@@ -2914,6 +2945,9 @@ class Rolling(RollingAndExpandingMixin):
     def sem(self, ddof: int = 1, numeric_only: bool = False):
         """
         Calculate the rolling standard error of mean.
+
+        This is computed as the rolling standard deviation divided by the
+        square root of the rolling count. A minimum of one period is required.
 
         Parameters
         ----------
@@ -2959,6 +2993,10 @@ class Rolling(RollingAndExpandingMixin):
     def kurt(self, numeric_only: bool = False):
         """
         Calculate the rolling Fisher's definition of kurtosis without bias.
+
+        This is equivalent to applying ``scipy.stats.kurtosis`` (with
+        ``bias=False``) over each rolling window. A minimum of four periods
+        is required.
 
         Parameters
         ----------
@@ -3008,6 +3046,9 @@ class Rolling(RollingAndExpandingMixin):
         """
         Calculate the rolling First (left-most) element of the window.
 
+        Return the first observed value in each rolling window. This is useful
+        for tracking the starting value of a window as it slides forward.
+
         Parameters
         ----------
         numeric_only : bool, default False
@@ -3042,6 +3083,9 @@ class Rolling(RollingAndExpandingMixin):
     def last(self, numeric_only: bool = False):
         """
         Calculate the rolling Last (right-most) element of the window.
+
+        Return the last observed value in each rolling window. This is useful
+        for tracking the most recent value of a window as it slides forward.
 
         Parameters
         ----------
@@ -3082,6 +3126,10 @@ class Rolling(RollingAndExpandingMixin):
     ):
         """
         Calculate the rolling quantile.
+
+        Return the ``q``-th quantile of the values in each rolling window. The
+        ``interpolation`` parameter controls how quantiles falling between two
+        data points are handled.
 
         Parameters
         ----------
@@ -3146,6 +3194,9 @@ class Rolling(RollingAndExpandingMixin):
     ):
         """
         Calculate the rolling rank.
+
+        Compute the rank of each value within each rolling window. Ties are
+        resolved using the ``method`` parameter.
 
         Parameters
         ----------
@@ -3269,6 +3320,10 @@ class Rolling(RollingAndExpandingMixin):
         """
         Calculate the rolling sample covariance.
 
+        Compute the sample covariance between the calling object and ``other``
+        over each rolling window. If ``other`` is not supplied, pairwise
+        covariances of the columns are computed.
+
         Parameters
         ----------
         other : Series or DataFrame, optional
@@ -3329,6 +3384,10 @@ class Rolling(RollingAndExpandingMixin):
     ):
         """
         Calculate the rolling correlation.
+
+        Compute the Pearson correlation coefficient between the calling object
+        and ``other`` over each rolling window. If ``other`` is not supplied,
+        pairwise correlations of the columns are computed.
 
         Parameters
         ----------
