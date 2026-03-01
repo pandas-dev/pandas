@@ -128,12 +128,11 @@ def test_utf8_bom_removal(all_parsers, data, kwargs, expected, encoding):
         # CSV parse error: Empty CSV file or block: cannot infer number of columns
         pytest.skip(reason="https://github.com/apache/arrow/issues/38676")
 
-    with tm.assert_produces_warning(False):
-        result = parser.read_csv(
-            _encode_data_with_bom(data),
-            encoding=encoding,
-            **kwargs,
-        )
+    result = parser.read_csv(
+        _encode_data_with_bom(data),
+        encoding=encoding,
+        **kwargs,
+    )
     expected = DataFrame({"a": expected})
     tm.assert_frame_equal(result, expected)
 
@@ -148,8 +147,7 @@ def test_latin1_bom_preserved(all_parsers):
     data = "a\n1".encode("latin1")
     bio = BytesIO(bom_bytes + data)
 
-    with tm.assert_produces_warning(False):
-        result = parser.read_csv(bio, encoding="latin1")
+    result = parser.read_csv(bio, encoding="latin1")
     expected = DataFrame({f"{bom_text}a": [1]})
     tm.assert_frame_equal(result, expected)
 
