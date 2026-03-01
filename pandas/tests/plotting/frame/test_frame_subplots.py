@@ -427,7 +427,11 @@ class TestDataFramePlotsSubplots:
         # no subplots
         df = DataFrame({"A": [3] * 5, "B": list(range(1, 6))}, index=range(5))
         ax = df.plot.bar(grid=True, log=True)
-        tm.assert_numpy_array_equal(ax.yaxis.get_ticklocs(), expected)
+
+        result = ax.yaxis.get_ticklocs()
+        diff = result - expected
+        assert all(x == 0 for x in diff), [repr(x) for x in diff]
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_bar_log_subplots(self):
         expected = np.array([0.1, 1.0, 10.0, 100.0, 1000.0, 1e4])

@@ -306,7 +306,12 @@ class TestSeriesPlots:
         res = getattr(ax, res_meth)()
         tm.assert_almost_equal(res[0], ymin)
         tm.assert_almost_equal(res[1], ymax)
-        tm.assert_numpy_array_equal(getattr(ax, axis).get_ticklocs(), expected)
+
+        result = getattr(ax, axis).get_ticklocs()
+        diff = result - expected
+        assert all(x == 0 for x in diff), [repr(x) for x in diff]
+        tm.assert_numpy_array_equal(diff, np.zeros(diff.shape, dtype=np.float64))
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_bar_ignore_index(self):
         df = Series([1, 2, 3, 4], index=["a", "b", "c", "d"])
