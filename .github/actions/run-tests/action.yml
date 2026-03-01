@@ -30,6 +30,7 @@ runs:
         PANDAS_CI: 1
         PANDAS_FUTURE_INFER_STRING: ${{ inputs.pandas_future_infer_string }}
         PANDAS_FUTURE_PYTHON_SCALARS: ${{ inputs.pandas_future_python_scalars }}
+        MESONPY_EDITABLE_VERBOSE: 1
         PYTHONDEVMODE: 1
         PYTHONWARNDEFAULTENCODING: 1
         # Clipboard tests
