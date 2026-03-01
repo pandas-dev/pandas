@@ -350,7 +350,7 @@ Installable with ``pip install "pandas[clipboard]"``.
 ======================================================================================== ================== =============== ==============
 Dependency                                                                               Minimum Version    pip extra       Notes
 ======================================================================================== ================== =============== ==============
-`PyQt5 <https://pypi.org/project/PyQt5/>`__                                             5.15.9             clipboard       Clipboard I/O
+`PyQt5 <https://pypi.org/project/PyQt5/>`__                                              5.15.9             clipboard       Clipboard I/O
 `qtpy <https://github.com/spyder-ide/qtpy>`__                                            2.4.2              clipboard       Clipboard I/O
 ======================================================================================== ================== =============== ==============
 
