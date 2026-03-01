@@ -252,7 +252,7 @@ class TestJoin:
             assert merged[col].isna().all()
 
         merged2 = target.join(source.reindex([]), on="C", how="inner")
-        tm.assert_index_equal(merged2.columns, merged.columns)
+        tm.assert_index_equal(merged2.columns, merged.columns, exact=True)
         assert len(merged2) == 0
 
     def test_join_on_inner(self):
@@ -265,7 +265,7 @@ class TestJoin:
         expected = expected[expected["value"].notna()]
         tm.assert_series_equal(joined["key"], expected["key"])
         tm.assert_series_equal(joined["value"], expected["value"], check_dtype=False)
-        tm.assert_index_equal(joined.index, expected.index)
+        tm.assert_index_equal(joined.index, expected.index, exact=True)
 
     def test_join_on_singlekey_list(self):
         df = DataFrame({"key": ["a", "a", "b", "b", "c"]})

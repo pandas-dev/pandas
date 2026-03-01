@@ -151,13 +151,13 @@ def test_transform_broadcast(tsframe, ts):
     grouped = ts.groupby(lambda x: x.month)
     result = grouped.transform(np.mean)
 
-    tm.assert_index_equal(result.index, ts.index)
+    tm.assert_index_equal(result.index, ts.index, exact=True)
     for _, gp in grouped:
         assert_fp_equal(result.reindex(gp.index), gp.mean())
 
     grouped = tsframe.groupby(lambda x: x.month)
     result = grouped.transform(np.mean)
-    tm.assert_index_equal(result.index, tsframe.index)
+    tm.assert_index_equal(result.index, tsframe.index, exact=True)
     for _, gp in grouped:
         agged = gp.mean(axis=0)
         res = result.reindex(gp.index)
@@ -1116,11 +1116,11 @@ def test_transform_agg_by_name(request, reduction_func, frame_or_series):
         result = g.transform(func, *args)
 
     # this is the *definition* of a transformation
-    tm.assert_index_equal(result.index, obj.index)
+    tm.assert_index_equal(result.index, obj.index, exact=True)
 
     if func not in ("ngroup", "size") and obj.ndim == 2:
         # size/ngroup return a Series, unlike other transforms
-        tm.assert_index_equal(result.columns, obj.columns)
+        tm.assert_index_equal(result.columns, obj.columns, exact=True)
 
     # verify that values were broadcasted across each group
     assert len(set(DataFrame(result).iloc[-4:, -1])) == 1

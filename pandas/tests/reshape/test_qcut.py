@@ -76,7 +76,7 @@ def test_qcut_include_lowest():
             Interval(6.75, 9),
         ]
     )
-    tm.assert_index_equal(ii.categories, ex_levels)
+    tm.assert_index_equal(ii.categories, ex_levels, exact=True)
 
 
 def test_qcut_nas():
@@ -172,7 +172,7 @@ def test_qcut_duplicates_bin(kwargs, msg):
     else:
         result = qcut(values, 3, **kwargs)
         expected = IntervalIndex([Interval(-0.001, 1), Interval(1, 3)])
-        tm.assert_index_equal(result.categories, expected)
+        tm.assert_index_equal(result.categories, expected, exact=True)
 
 
 @pytest.mark.parametrize(
@@ -264,7 +264,7 @@ def test_date_like_qcut_bins(arg, expected_bins, unit):
     expected_bins = expected_bins.as_unit(unit)
     ser = Series(arg)
     result, result_bins = qcut(ser, 2, retbins=True)
-    tm.assert_index_equal(result_bins, expected_bins)
+    tm.assert_index_equal(result_bins, expected_bins, exact=True)
 
 
 @pytest.mark.parametrize("bins", [6, 7])

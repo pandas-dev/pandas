@@ -180,8 +180,8 @@ class TestPivotTable:
             ],
             names=["customer", "product"],
         )
-        tm.assert_index_equal(pv_col.columns, m)
-        tm.assert_index_equal(pv_ind.index, m)
+        tm.assert_index_equal(pv_col.columns, m, exact=True)
+        tm.assert_index_equal(pv_ind.index, m, exact=True)
 
     def test_pivot_table_categorical(self):
         cat1 = Categorical(
@@ -2785,7 +2785,7 @@ class TestPivot:
 
         result = df.pivot(index=1, columns=0, values=2)
         expected_columns = Index(["A", "B"], name=0, dtype=any_string_dtype)
-        tm.assert_index_equal(result.columns, expected_columns)
+        tm.assert_index_equal(result.columns, expected_columns, exact=True)
 
     def test_pivot_index_none(self):
         # GH#3962
@@ -2929,7 +2929,7 @@ class TestPivot:
         pivot = df.pivot_table(index="a", columns="b", values="value", aggfunc="count")
 
         expected = Index([], dtype="object", name="b")
-        tm.assert_index_equal(pivot.columns, expected)
+        tm.assert_index_equal(pivot.columns, expected, exact=True)
 
     def test_pivot_table_handles_explicit_datetime_types(self):
         # GH#43574
@@ -2956,7 +2956,7 @@ class TestPivot:
             ],
             names=["a", "date"],
         )
-        tm.assert_index_equal(pivot.index, expected)
+        tm.assert_index_equal(pivot.index, expected, exact=True)
 
     def test_pivot_table_with_margins_and_numeric_column_names(self):
         # GH#26568
