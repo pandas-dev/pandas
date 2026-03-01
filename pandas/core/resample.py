@@ -2676,7 +2676,9 @@ class TimeGrouper(Grouper):
     ) -> tuple[DatetimeIndex, npt.NDArray[np.int64]]:
         # Some hacks for > daily data, see #1471, #1458, #1483
 
-        if self.freq.name in ("BME", "ME", "W") or self.freq.name.split("-")[0] in (
+        if self.freq.rule_code in ("BME", "ME", "W") or self.freq.rule_code.split("-")[
+            0
+        ] in (
             "BQE",
             "BYE",
             "QE",
