@@ -7,10 +7,12 @@ from __future__ import annotations
 from typing import (
     TYPE_CHECKING,
     Any,
+    cast,
     overload,
-    Iterable,
-    cast
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
 
 import numpy as np
 
@@ -198,7 +200,7 @@ def to_timedelta(
         # Series]]")  [assignment]
         arg = lib.item_from_zerodim(arg)  # type: ignore[assignment]
     elif is_list_like(arg) and getattr(arg, "ndim", 1) == 1:
-        arg_iter = cast(Iterable[object], arg)
+        arg_iter = cast("Iterable[object]", arg)
         if any(isinstance(x, Day) for x in arg_iter):
             arg = [Timedelta(days=x.n) if isinstance(x, Day) else x for x in arg]
         return _convert_listlike(arg, unit=unit, errors=errors)
