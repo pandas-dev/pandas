@@ -61,7 +61,7 @@ especially for library code that currently looks for "object" dtype when
 expecting string data.
 
 For more details, see the
-[migration guide for the new string data type](https://pandas.pydata.org/docs/dev/user_guide/migration-3-strings.html).
+[migration guide for the new string data type](https://pandas.pydata.org/docs/dev/user_guide/migration.html#the-new-string-data-type).
 
 ### 2. Consistent copy/view behaviour with Copy-on-Write (CoW)
 
@@ -88,7 +88,7 @@ if it were a copy, so modifications of the result won't affect the original
 DataFrame.
 
 For more details, see the
-[Copy-on-Write migration guide](https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html#migrating-to-copy-on-write).
+[Copy-on-Write migration guide](https://pandas.pydata.org/docs/dev/user_guide/migration.html#copy-on-write-cow).
 
 
 ## Call to Action: test the Release Candidate

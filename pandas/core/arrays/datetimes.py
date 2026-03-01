@@ -150,7 +150,7 @@ def _field_accessor(name: str, field: str, docstring: str | None = None):
                     month_kw = kwds.get("startingMonth", kwds.get("month", month_kw))
 
                 if freq is not None:
-                    freq_name = freq.name
+                    freq_name = freq.rule_code
                 else:
                     freq_name = None
                 result = fields.get_start_end_field(
@@ -193,7 +193,8 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         `dtype` and `freq` will be extracted from `values`.
 
     dtype : numpy.dtype or DatetimeTZDtype
-        Note that the only NumPy dtype allowed is 'datetime64[ns]'.
+        Note that the only NumPy dtypes allowed are 'datetime64[ns]',
+        'datetime64[us]', 'datetime64[ms]', 'datetime64[s]'.
     freq : str or Offset, optional
         The frequency.
     copy : bool, default False

@@ -1746,14 +1746,14 @@ class _MergeOperation:
                         com_cls = ct.construct_array_type()
                         rk = com_cls._from_sequence(rk, dtype=ct, copy=False)
                     else:
-                        rk = rk.astype(ct)
+                        rk = rk.astype(ct, copy=False)
                 elif isinstance(rk.dtype, ExtensionDtype):
                     ct = find_common_type([lk.dtype, rk.dtype])
                     if isinstance(ct, ExtensionDtype):
                         com_cls = ct.construct_array_type()
                         lk = com_cls._from_sequence(lk, dtype=ct, copy=False)
                     else:
-                        lk = lk.astype(ct)
+                        lk = lk.astype(ct, copy=False)
 
                 # check whether ints and floats
                 if is_integer_dtype(rk.dtype) and is_float_dtype(lk.dtype):
@@ -2839,7 +2839,8 @@ def _factorize_keys(
             isinstance(lk.dtype, StringDtype) and lk.dtype.storage == "pyarrow"
         ):
             import pyarrow as pa
-            import pyarrow.compute as pc
+
+            from pandas.compat.pyarrow import _safe_fill_null
 
             len_lk = len(lk)
             lk = lk._pa_array  # type: ignore[attr-defined]
@@ -2851,10 +2852,10 @@ def _factorize_keys(
             )
 
             llab, rlab, count = (
-                pc.fill_null(dc.indices[slice(len_lk)], -1)
+                _safe_fill_null(dc.indices[slice(len_lk)], -1)
                 .to_numpy()
                 .astype(np.intp, copy=False),
-                pc.fill_null(dc.indices[slice(len_lk, None)], -1)
+                _safe_fill_null(dc.indices[slice(len_lk, None)], -1)
                 .to_numpy()
                 .astype(np.intp, copy=False),
                 len(dc.dictionary),

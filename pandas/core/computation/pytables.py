@@ -225,7 +225,10 @@ class BinOp(ops.BinOp):
             if isinstance(conv_val, (int, float)):
                 conv_val = stringify(conv_val)
             conv_val = ensure_decoded(conv_val)
-            conv_val = Timestamp(conv_val).as_unit("ns")
+            unit: TimeUnit = "ns"
+            if "[" in kind:
+                unit = cast("TimeUnit", kind.split("[")[-1][:-1])
+            conv_val = Timestamp(conv_val).as_unit(unit)
             if conv_val.tz is not None:
                 conv_val = conv_val.tz_convert("UTC")
             return TermValue(conv_val, conv_val._value, kind)
