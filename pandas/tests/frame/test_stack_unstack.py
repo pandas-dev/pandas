@@ -1391,7 +1391,7 @@ def test_unstack_sort_false_unused_levels():
     index = MultiIndex.from_product(
         [["a", "b", "c"], ["M01", "M02"]], names=["series", "period"]
     )
-    df = DataFrame({"value": np.arange(6)}, index=index)
+    df = DataFrame({"value": np.arange(6, dtype=np.int64)}, index=index)
 
     result = df.loc[["b", "c"]].unstack(level="series", sort=False)
 
