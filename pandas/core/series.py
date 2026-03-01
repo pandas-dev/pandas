@@ -1718,12 +1718,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Examples
             --------
-            >>> s = pd.Series(["elk", "pig", "dog", "quetzal"], name="animal")
+            >>> s = pd.Series(["elk", "deer", "dog", "quetzal"], name="animal")
             >>> print(s.to_markdown())
             |    | animal   |
             |---:|:---------|
             |  0 | elk      |
-            |  1 | pig      |
+            |  1 | deer     |
             |  2 | dog      |
             |  3 | quetzal  |
 
@@ -1735,7 +1735,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             +====+==========+
             |  0 | elk      |
             +----+----------+
-            |  1 | pig      |
+            |  1 | deer     |
             +----+----------+
             |  2 | dog      |
             +----+----------+
