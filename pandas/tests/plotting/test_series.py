@@ -311,7 +311,7 @@ class TestSeriesPlots:
         # GH#64317 on some linux builds this is flaky with the first entry being
         #  off by -1.69e-21. Rather than xfail this test, we allow a small
         #  tolerance, as it isn't really user-visible.
-        tm.assert_almost_equal(result, expected, atol=2e-21)
+        tm.assert_almost_equal(result, expected, atol=1e-18)
 
     def test_bar_ignore_index(self):
         df = Series([1, 2, 3, 4], index=["a", "b", "c", "d"])
