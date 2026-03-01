@@ -281,7 +281,7 @@ def test_from_obscure_array(dtype, box):
     idx_cls = {"M8[ns]": DatetimeIndex, "m8[ns]": TimedeltaIndex}[dtype]
     result = idx_cls(arr)
     expected = idx_cls(data)
-    tm.assert_index_equal(result, expected)
+    tm.assert_index_equal(result, expected, exact=True)
 
 
 def test_xarray_coerce_unit():
@@ -299,4 +299,4 @@ def test_xarray_coerce_unit():
         dtype="datetime64[ns]",
         freq=None,
     )
-    tm.assert_index_equal(result, expected)
+    tm.assert_index_equal(result, expected, exact=True)
