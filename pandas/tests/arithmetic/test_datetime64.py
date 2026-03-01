@@ -117,7 +117,7 @@ class TestDatetime64ArrayLikeComparisons:
                         "GH#64281 - Windows + tzlocal(): time.localtime() raises"
                         "an error when its argument is negative."
                     ),
-                    run=False,
+                    strict=False,
                 )
             )
 
@@ -134,7 +134,7 @@ class TestDatetime64ArrayLikeComparisons:
                         "GH#64281 - Windows + tzlocal(): time.localtime() raises"
                         "an error when its argument is negative."
                     ),
-                    run=False,
+                    strict=False,
                 )
             )
 
