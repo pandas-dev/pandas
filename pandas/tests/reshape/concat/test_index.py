@@ -317,7 +317,7 @@ class TestMultiIndexConcat:
         result_index = df.index
         expected_index = MultiIndex.from_product(iterables)
 
-        tm.assert_index_equal(result_index, expected_index)
+        tm.assert_index_equal(result_index, expected_index, exact=True)
 
         result_df = df
         expected_df = DataFrame(
