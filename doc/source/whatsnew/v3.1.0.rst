@@ -121,7 +121,7 @@ Categorical
 
 Datetimelike
 ^^^^^^^^^^^^
--
+- Bug in :meth:`DatetimeIndex.intersection` where a non-empty result was incorrectly returned when two :class:`DatetimeIndex` objects with a non-normalized frequency (e.g. ``CDay(normalize=False)``) start at different times of day (:issue:`44025`)
 -
 
 Timedelta

@@ -832,7 +832,24 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         #  so intersection will preserve freq
         # Note we are assuming away Ticks, as those go through _range_intersect
         # GH#42104
-        return self.freq.n == 1
+        if self.freq.n != 1:
+            return False
+
+        # GH#44025: Verify the two indexes are on the same grid by checking
+        # that the start of one falls within the other (when ranges overlap).
+        # This mirrors the check in _can_fast_union.
+        if self[0] <= other[0]:
+            left, right = self, other
+        else:
+            left, right = other, self
+
+        # If ranges overlap, right[0] must be a member of left for them
+        # to be on the same grid (i.e., for the fast intersect to be correct).
+        if right[0] <= left[-1]:
+            return right[0] in left
+
+        # Ranges don't overlap; fast intersect correctly returns empty.
+        return True
 
     def _can_fast_union(self, other: Self) -> bool:
         # Assumes that type(self) == type(other), as per the annotation

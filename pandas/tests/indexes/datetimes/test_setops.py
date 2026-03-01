@@ -765,6 +765,23 @@ def test_intersection_non_nano_rangelike():
     tm.assert_index_equal(result, expected)
 
 
+def test_intersection_non_anchored_freq():
+    # GH#44025 - DatetimeIndex.intersection with non-anchored freq gave wrong result
+    freq = pd.offsets.CDay(1, normalize=False)
+    ts = Timestamp("2021-10-13 09")
+    ts2 = ts + pd.Timedelta("1 hour")
+
+    dti = date_range(start=ts, periods=10, freq=freq)
+    dti2 = date_range(start=ts2, periods=10, freq=freq)
+
+    # Verify the two DTIs have no common elements
+    assert set(dti).intersection(set(dti2)) == set()
+
+    result = dti.intersection(dti2)
+    expected = dti[:0]
+    tm.assert_index_equal(result, expected)
+
+
 def test_union_across_dst_boundary():
     # GH#62915 union should work when one index ends at DST boundary
     # and the other extends past it

@@ -83,6 +83,7 @@ __pycache__
 monkeytype.sqlite3
 # meson editable install folder
 .mesonpy
+pandas/_version_meson.py
 
 
 # OS generated files #
