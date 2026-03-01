@@ -11012,7 +11012,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis : {{0 or 'index', 1 or 'columns'}}, default 0
             The axis to localize
         level : int, str, default None
-            If axis ia a MultiIndex, localize a specific level. Otherwise
+            If axis is a MultiIndex, localize a specific level. Otherwise
             must be None.
         copy : bool, default False
             This keyword is now ignored; changing its value will have no
