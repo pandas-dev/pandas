@@ -643,7 +643,8 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes,
          self->datalen));
 
 #define CHECK_FOR_BOM()                                                        \
-  if (*buf == '\xef' && *(buf + 1) == '\xbb' && *(buf + 2) == '\xbf') {        \
+  if (self->datalen - self->datapos >= 3 && *buf == '\xef' &&                  \
+      *(buf + 1) == '\xbb' && *(buf + 2) == '\xbf') {                          \
     buf += 3;                                                                  \
     self->datapos += 3;                                                        \
   }
