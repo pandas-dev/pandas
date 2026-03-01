@@ -755,7 +755,7 @@ def test_resample_offset(unit):
     exp_rng = date_range("12/31/1999 23:57:00", "1/1/2000 01:57", freq="5min").as_unit(
         unit
     )
-    tm.assert_index_equal(resampled.index, exp_rng)
+    tm.assert_index_equal(resampled.index, exp_rng, exact=True)
 
 
 @pytest.mark.parametrize(
@@ -779,7 +779,7 @@ def test_resample_origin(kwargs, unit):
     ).as_unit(unit)
 
     resampled = ts.resample("5min", **kwargs).mean()
-    tm.assert_index_equal(resampled.index, exp_rng)
+    tm.assert_index_equal(resampled.index, exp_rng, exact=True)
 
 
 @pytest.mark.parametrize(
@@ -816,31 +816,31 @@ def test_resample_origin_prime_freq(unit):
         "2000-10-01 23:14:00", "2000-10-02 00:22:00", freq="17min"
     ).as_unit(unit)
     resampled = ts.resample("17min").mean()
-    tm.assert_index_equal(resampled.index, exp_rng)
+    tm.assert_index_equal(resampled.index, exp_rng, exact=True)
     resampled = ts.resample("17min", origin="start_day").mean()
-    tm.assert_index_equal(resampled.index, exp_rng)
+    tm.assert_index_equal(resampled.index, exp_rng, exact=True)
 
     exp_rng = date_range(
         "2000-10-01 23:30:00", "2000-10-02 00:21:00", freq="17min"
     ).as_unit(unit)
     resampled = ts.resample("17min", origin="start").mean()
-    tm.assert_index_equal(resampled.index, exp_rng)
+    tm.assert_index_equal(resampled.index, exp_rng, exact=True)
     resampled = ts.resample("17min", offset="23h30min").mean()
-    tm.assert_index_equal(resampled.index, exp_rng)
+    tm.assert_index_equal(resampled.index, exp_rng, exact=True)
     resampled = ts.resample("17min", origin="start_day", offset="23h30min").mean()
-    tm.assert_index_equal(resampled.index, exp_rng)
+    tm.assert_index_equal(resampled.index, exp_rng, exact=True)
 
     exp_rng = date_range(
         "2000-10-01 23:18:00", "2000-10-02 00:26:00", freq="17min"
     ).as_unit(unit)
     resampled = ts.resample("17min", origin="epoch").mean()
-    tm.assert_index_equal(resampled.index, exp_rng)
+    tm.assert_index_equal(resampled.index, exp_rng, exact=True)
 
     exp_rng = date_range(
         "2000-10-01 23:24:00", "2000-10-02 00:15:00", freq="17min"
     ).as_unit(unit)
     resampled = ts.resample("17min", origin="2000-01-01").mean()
-    tm.assert_index_equal(resampled.index, exp_rng)
+    tm.assert_index_equal(resampled.index, exp_rng, exact=True)
 
 
 def test_resample_origin_with_tz(unit):
@@ -857,14 +857,14 @@ def test_resample_origin_with_tz(unit):
         "1999-12-31 23:57:00", "2000-01-01 01:57", freq="5min", tz=tz
     ).as_unit(unit)
     resampled = ts.resample("5min", origin="1999-12-31 23:57:00+00:00").mean()
-    tm.assert_index_equal(resampled.index, exp_rng)
+    tm.assert_index_equal(resampled.index, exp_rng, exact=True)
 
     # origin of '1999-31-12 12:02:00+03:00' should be equivalent for this case
     resampled = ts.resample("5min", origin="1999-12-31 12:02:00+03:00").mean()
-    tm.assert_index_equal(resampled.index, exp_rng)
+    tm.assert_index_equal(resampled.index, exp_rng, exact=True)
 
     resampled = ts.resample("5min", origin="epoch", offset="2m").mean()
-    tm.assert_index_equal(resampled.index, exp_rng)
+    tm.assert_index_equal(resampled.index, exp_rng, exact=True)
 
     with pytest.raises(ValueError, match=msg):
         ts.resample("5min", origin="12/31/1999 23:57:00").mean()
@@ -1000,7 +1000,7 @@ def test_resample_to_period_monthly_buglet(unit):
 
     result = ts.resample("ME").mean().to_period()
     exp_index = period_range("Jan-2000", "Dec-2000", freq="M")
-    tm.assert_index_equal(result.index, exp_index)
+    tm.assert_index_equal(result.index, exp_index, exact=True)
 
 
 def test_period_with_agg():
@@ -1193,7 +1193,7 @@ def test_corner_cases(unit):
 
     result = ts.resample("5min", closed="right", label="left").mean()
     ex_index = date_range("1999-12-31 23:55", periods=4, freq="5min").as_unit(unit)
-    tm.assert_index_equal(result.index, ex_index)
+    tm.assert_index_equal(result.index, ex_index, exact=True)
 
 
 def test_corner_cases_date(simple_date_range_series, unit):
@@ -1428,7 +1428,7 @@ def test_resample_nunique_preserves_column_level_names(unit):
         [df.columns.tolist()] * 2, names=["lev0", "lev1"]
     )
     result = df.resample("1h").nunique()
-    tm.assert_index_equal(df.columns, result.columns)
+    tm.assert_index_equal(df.columns, result.columns, exact=True)
 
 
 @pytest.mark.parametrize(

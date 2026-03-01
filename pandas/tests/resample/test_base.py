@@ -226,7 +226,7 @@ def test_resample_empty_series(freq, index, resample_method):
         expected.index = _asfreq_compat(ser.index, freq)
         tm.assert_series_equal(result, expected, check_dtype=False)
 
-    tm.assert_index_equal(result.index, expected.index)
+    tm.assert_index_equal(result.index, expected.index, exact=True)
     assert result.index.freq == expected.index.freq
 
 
@@ -279,7 +279,7 @@ def test_resample_nat_index_series(freq, resample_method):
     else:
         expected = ser[:0].copy()
         tm.assert_series_equal(result, expected, check_dtype=False)
-    tm.assert_index_equal(result.index, expected.index)
+    tm.assert_index_equal(result.index, expected.index, exact=True)
     assert result.index.freq == expected.index.freq
 
 
@@ -353,7 +353,7 @@ def test_resample_empty_dataframe(index, freq, resample_method):
 
     expected.index = _asfreq_compat(df.index, freq)
 
-    tm.assert_index_equal(result.index, expected.index)
+    tm.assert_index_equal(result.index, expected.index, exact=True)
     assert result.index.freq == expected.index.freq
     tm.assert_almost_equal(result, expected)
 

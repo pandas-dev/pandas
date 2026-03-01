@@ -152,7 +152,7 @@ def test_groupby_with_origin():
     count_ts = count_ts[middle:end]
     count_ts2 = ts2.groupby(simple_grouper).agg("count")
     with pytest.raises(AssertionError, match="Index are different"):
-        tm.assert_index_equal(count_ts.index, count_ts2.index)
+        tm.assert_index_equal(count_ts.index, count_ts2.index, exact=True)
 
     # test origin on 1970-01-01 00:00:00
     origin = Timestamp(0)
@@ -352,11 +352,11 @@ def test_consistency_with_window(test_frame):
     expected = Index([1, 2, 3], name="A")
     result = df.groupby("A").resample("2s").mean()
     assert result.index.nlevels == 2
-    tm.assert_index_equal(result.index.levels[0], expected)
+    tm.assert_index_equal(result.index.levels[0], expected, exact=True)
 
     result = df.groupby("A").rolling(20).mean()
     assert result.index.nlevels == 2
-    tm.assert_index_equal(result.index.levels[0], expected)
+    tm.assert_index_equal(result.index.levels[0], expected, exact=True)
 
 
 def test_median_duplicate_columns():
