@@ -127,6 +127,20 @@ def test_from_sequence_dtype():
     tm.assert_extension_array_equal(result, expected)
 
 
+def test_from_sequence_raises_2d():
+    # GH#64280
+    arr = np.array([[1, 2], [3, 4]], dtype="int64")
+    with pytest.raises(ValueError, match="must be 1-dimensional"):
+        NumpyExtensionArray._from_sequence(arr, dtype="int64")
+
+
+def test_from_sequence_raises_2d_float():
+    # GH#64280
+    arr = np.array([[1, 2], [3, 4]], dtype="float64")
+    with pytest.raises(ValueError, match="must be 1-dimensional"):
+        NumpyExtensionArray._from_sequence(arr, dtype="float64")
+
+
 def test_constructor_copy():
     arr = np.array([0, 1])
     result = NumpyExtensionArray(arr, copy=True)

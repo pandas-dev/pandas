@@ -151,6 +151,12 @@ class NumpyExtensionArray(
             # e.g. list-of-tuples
             result = construct_1d_object_array_from_listlike(scalars)
 
+        if result.ndim != 1:
+            raise ValueError(
+                "NumpyExtensionArray must be 1-dimensional. "
+                f"Got {result.ndim}-dimensional array instead."
+            )
+
         if copy and result is scalars:
             result = result.copy()
         return cls(result)

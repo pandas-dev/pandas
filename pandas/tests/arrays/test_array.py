@@ -494,6 +494,21 @@ def test_nd_raises(data):
         pd.array(data, dtype="int64")
 
 
+@pytest.mark.parametrize(
+    "data, dtype",
+    [
+        ([[1, 2], [3, 4]], np.float64),
+        ([[1, 2], [3, 4]], np.int64),
+        (np.array([[1, 2], [3, 4]]), np.float64),
+        (np.array([[1, 2], [3, 4]]), np.int64),
+    ],
+)
+def test_nd_raises_2d(data, dtype):
+    # GH#64280
+    with pytest.raises(ValueError, match="NumpyExtensionArray must be 1-dimensional"):
+        pd.array(data, dtype=dtype)
+
+
 def test_scalar_raises():
     with pytest.raises(ValueError, match="Cannot pass scalar '1'"):
         pd.array(1)
