@@ -105,8 +105,8 @@ Performance improvements
 - Performance improvement in :meth:`DataFrame.__getitem__` when selecting a
   single column by label on a :class:`DataFrame` with duplicate column names.
   (:issue:`64126`).
+- Performance improvement in :func:`merge` with ``how="left"`` (:issue:`64370`)
 - Performance improvement in :meth:`GroupBy.quantile` (:issue:`64330`)
--
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_310.bug_fixes:
