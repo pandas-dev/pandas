@@ -23,6 +23,7 @@ from pandas._config import get_option
 
 from pandas.core.dtypes.inference import (
     is_float,
+    is_scalar,
     is_sequence,
 )
 from pandas.core.dtypes.missing import notna
@@ -230,7 +231,13 @@ def pprint_thing(
             result = result.replace(c, translate[c])
         return result
 
-    if hasattr(thing, "__next__"):
+    if is_scalar(thing):
+        # GH#58285 put this check before Mapping check for performance
+        if quote_strings and isinstance(thing, str):
+            result = f"'{as_escaped_string(thing)}'"
+        else:
+            result = as_escaped_string(thing)
+    elif hasattr(thing, "__next__"):
         return str(thing)
     elif isinstance(thing, Mapping) and _nest_lvl < get_option(
         "display.pprint_nest_depth"
@@ -249,8 +256,6 @@ def pprint_thing(
             quote_strings=quote_strings,
             max_seq_items=max_seq_items,
         )
-    elif isinstance(thing, str) and quote_strings:
-        result = f"'{as_escaped_string(thing)}'"
     else:
         result = as_escaped_string(thing)
 
