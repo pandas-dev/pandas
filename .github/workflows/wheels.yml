@@ -196,6 +196,16 @@ jobs:
         shell: bash -el {0}
         run: for whl in $(ls wheelhouse); do wheel unpack wheelhouse/$whl -d /tmp; done
 
+      - name: Validate SBOM (PEP 770)
+        shell: bash -el {0}
+        run: |
+          pip install check-jsonschema
+          for whl in wheelhouse/*.whl; do
+            echo "Validating SBOM in $whl..."
+            unzip -p "$whl" "*/sboms/pandas.cdx.json" > /tmp/sbom.json
+            check-jsonschema --schemafile "https://cyclonedx.org/schema/bom-1.6.schema.json" /tmp/sbom.json
+          done
+
       - uses: actions/upload-artifact@v6
         with:
           name: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
