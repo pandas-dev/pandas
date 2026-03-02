@@ -1559,7 +1559,8 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         self._known_consolidated = False
 
         if (
-            get_option("performance_warnings")
+            get_option("mode.performance_warnings")
+            and len(self.blocks) > 100
             and sum(not block.is_extension for block in self.blocks) > 100
         ):
             warnings.warn(

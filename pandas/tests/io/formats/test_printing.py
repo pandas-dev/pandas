@@ -89,6 +89,33 @@ class TestPPrintThing:
         with cf.option_context("display.precision", 3):
             assert printing.pprint_thing([3.14159265, 3.14159265]) == "[3.142, 3.142]"
 
+    @pytest.mark.parametrize(
+        "thing, expected",
+        [
+            (42, "42"),
+            (3.14, "3.14"),
+            (True, "True"),
+            (False, "False"),
+            (None, "None"),
+            (complex(1, 2), "(1+2j)"),
+        ],
+    )
+    def test_repr_scalar_fast_path(self, thing, expected):
+        # GH#58285 - scalars without __iter__ or __getitem__ use a fast path
+        # that skips expensive ABC isinstance checks
+        assert printing.pprint_thing(thing) == expected
+
+    def test_repr_scalar_fast_path_with_escape_chars(self):
+        # GH#58285 - fast path also handles escape_chars correctly
+        esc = {"<": "&lt;", ">": "&gt;"}
+        assert printing.pprint_thing(42, escape_chars=esc) == "42"
+
+    def test_repr_mapping_with_dict_escape_chars(self):
+        # GH#58285 - dict escape_chars should use fast path in as_escaped_string
+        # Note: & must come before < to prevent double-encoding of &lt; etc.
+        esc = {"&": "&amp;", "<": "&lt;"}
+        assert printing.pprint_thing("a<b", escape_chars=esc) == "a&lt;b"
+
 
 class TestFormatBase:
     def test_adjoin(self):

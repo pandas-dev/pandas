@@ -3313,7 +3313,7 @@ class GenericFixed(Fixed):
                 pass
             elif inferred_type == "string":
                 pass
-            elif get_option("performance_warnings"):
+            elif get_option("mode.performance_warnings"):
                 ws = performance_doc % (inferred_type, key, items)
                 warnings.warn(ws, PerformanceWarning, stacklevel=find_stack_level())
 

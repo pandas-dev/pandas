@@ -128,7 +128,7 @@ def _align_core(terms):
 
                 ordm = np.log10(max(1, abs(reindexer_size - term_axis_size)))
                 if (
-                    get_option("performance_warnings")
+                    get_option("mode.performance_warnings")
                     and ordm >= 1
                     and reindexer_size >= 10000
                 ):

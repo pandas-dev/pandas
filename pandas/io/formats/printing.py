@@ -216,7 +216,7 @@ def pprint_thing(
         thing: Any, escape_chars: EscapeChars | None = escape_chars
     ) -> str:
         translate = {"\t": r"\t", "\n": r"\n", "\r": r"\r", "'": r"\'"}
-        if isinstance(escape_chars, Mapping):
+        if isinstance(escape_chars, dict) or isinstance(escape_chars, Mapping):
             if default_escapes:
                 translate.update(escape_chars)
             else:
@@ -232,6 +232,12 @@ def pprint_thing(
 
     if hasattr(thing, "__next__"):
         return str(thing)
+    elif not hasattr(thing, "__iter__") and not hasattr(thing, "__getitem__"):
+        # Fast path for scalars that support neither the iterator protocol
+        # (__iter__) nor the old-style sequence protocol (__getitem__).
+        # Such objects cannot be Mappings or sequences, so we skip the
+        # expensive ABC isinstance checks and format them directly.
+        return as_escaped_string(thing)
     elif isinstance(thing, Mapping) and _nest_lvl < get_option(
         "display.pprint_nest_depth"
     ):

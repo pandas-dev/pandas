@@ -826,7 +826,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                 # expected "dtype[Any] | _HasDType[dtype[Any]]"  [arg-type]
                 res_values = res_values.view(values.dtype)  # type: ignore[arg-type]
         except NotImplementedError:
-            if get_option("performance_warnings"):
+            if get_option("mode.performance_warnings"):
                 warnings.warn(
                     "Non-vectorized DateOffset being applied to Series or "
                     "DatetimeIndex.",

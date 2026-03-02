@@ -1222,7 +1222,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         side: Literal["left", "right"] = "left",
         sorter: NumpySorter | None = None,
     ) -> npt.NDArray[np.intp] | np.intp:
-        if get_option("performance_warnings"):
+        if get_option("mode.performance_warnings"):
             msg = "searchsorted requires high memory usage."
             warnings.warn(msg, PerformanceWarning, stacklevel=find_stack_level())
         v = np.asarray(v)
