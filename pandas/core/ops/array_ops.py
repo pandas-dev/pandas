@@ -135,7 +135,7 @@ def comp_method_OBJECT_ARRAY(op, x, y):
         result = libops.scalar_compare(x.ravel(), y, op)
         is_pdna_mask = is_pdna(x)
         if any(is_pdna_mask):
-            arr_pdna = np.asarray([NA])
+            arr_pdna = np.array([NA])
             result = np.where(is_pdna_mask, arr_pdna, result)
     return result.reshape(x.shape)
 
