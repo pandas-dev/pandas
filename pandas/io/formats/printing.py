@@ -19,6 +19,8 @@ from typing import (
 )
 from unicodedata import east_asian_width
 
+import numpy as np
+
 from pandas._config import get_option
 
 from pandas.core.dtypes.inference import (
@@ -232,11 +234,21 @@ def pprint_thing(
 
     if hasattr(thing, "__next__"):
         return str(thing)
-    elif not hasattr(thing, "__iter__") and not hasattr(thing, "__getitem__"):
-        # Fast path for scalars that support neither the iterator protocol
-        # (__iter__) nor the old-style sequence protocol (__getitem__).
-        # Such objects cannot be Mappings or sequences, so we skip the
-        # expensive ABC isinstance checks and format them directly.
+    elif not hasattr(thing, "__iter__") and (
+        not hasattr(thing, "__getitem__")
+        or isinstance(thing, (np.number, np.bool_))
+    ):
+        # Fast path for non-sequence scalars.  Such objects cannot be Mappings
+        # or sequences, so skip expensive ABC isinstance checks.
+        #
+        # Two categories qualify:
+        #   1. Objects with neither __iter__ nor __getitem__: Python int/float/
+        #      bool/None, pandas Period/Timestamp/Timedelta/NA/NaT, etc.
+        #   2. numpy numeric scalars (np.float64, np.int64, np.bool_, …):
+        #      these have __getitem__ but are NOT iterable — iter() raises
+        #      TypeError.  They are subclasses of np.number or np.bool_ which
+        #      lets us distinguish them from numpy.void / numpy.record (which
+        #      ARE iterable sequences and must NOT take this exit).
         return as_escaped_string(thing)
     elif isinstance(thing, Mapping) and _nest_lvl < get_option(
         "display.pprint_nest_depth"

@@ -105,6 +105,37 @@ class TestPPrintThing:
         # that skips expensive ABC isinstance checks
         assert printing.pprint_thing(thing) == expected
 
+    @pytest.mark.parametrize(
+        "thing, expected",
+        [
+            pytest.param(
+                pytest.importorskip("numpy").float64(3.14),
+                "3.14",
+                id="np.float64",
+            ),
+            pytest.param(
+                pytest.importorskip("numpy").int64(42),
+                "42",
+                id="np.int64",
+            ),
+            pytest.param(
+                pytest.importorskip("numpy").bool_(True),
+                "True",
+                id="np.bool_",
+            ),
+            pytest.param(
+                pytest.importorskip("numpy").complex128(1 + 2j),
+                "(1+2j)",
+                id="np.complex128",
+            ),
+        ],
+    )
+    def test_repr_numpy_scalar_fast_path(self, thing, expected):
+        # GH#58285 - numpy numeric scalars have __getitem__ but are not
+        # iterable; they now take the fast path that skips Mapping/is_sequence
+        # checks (which were introduced as a regression in the isinstance change)
+        assert printing.pprint_thing(thing) == expected
+
     def test_repr_scalar_fast_path_with_escape_chars(self):
         # GH#58285 - fast path also handles escape_chars correctly
         esc = {"<": "&lt;", ">": "&gt;"}

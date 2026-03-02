@@ -107,8 +107,8 @@ Performance improvements
   (:issue:`64126`).
 - Performance improvement in :meth:`GroupBy.quantile` (:issue:`64330`)
 - Performance improvement in :func:`~pandas.io.formats.printing.pprint_thing` for scalar
-  values (e.g. ``int``, ``float``) by adding a fast path that skips expensive ABC
-  ``isinstance`` checks (:issue:`58285`).
+  values (e.g. ``int``, ``float``, ``np.float64``, ``np.int64``) by adding a fast path
+  that skips expensive ABC ``isinstance`` checks (:issue:`58285`).
 -
 
 .. ---------------------------------------------------------------------------
