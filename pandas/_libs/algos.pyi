@@ -127,34 +127,34 @@ def diff_2d(
 # ----------------------------------------------------------------------
 
 def scalar_skew(
-    values: np.ndarray = ...,  # const float64_t[:]
-    skipna: bool = ...,  # bint
-    mask: npt.NDArray[np.bool_] | None = ...,  # const uint8_t[:]
+    values: np.ndarray,  # const float64_t[:]
+    skipna: bool,  # bint
+    mask: npt.NDArray[np.bool_] | None,  # const uint8_t[:]
 ) -> float: ...
 def scalar_kurt(
-    values: np.ndarray = ...,  # const float64_t[:]
-    skipna: bool = ...,  # bint
-    mask: npt.NDArray[np.bool_] | None = ...,  # const uint8_t[:]
+    values: np.ndarray,  # const float64_t[:]
+    skipna: bool,  # bint
+    mask: npt.NDArray[np.bool_] | None,  # const uint8_t[:]
 ) -> float: ...
 def axis0_skew(
-    values: np.ndarray = ...,  # const float64_t[:, :]
-    skipna: bool = ...,  # bint
-    mask: npt.NDArray[np.bool_] | None = ...,  # const uint8_t[:, :]
+    values: np.ndarray,  # const float64_t[:, :]
+    skipna: bool,  # bint
+    mask: npt.NDArray[np.bool_] | None,  # const uint8_t[:, :]
 ) -> np.ndarray: ...
 def axis0_kurt(
-    values: np.ndarray = ...,  # const float64_t[:, :]
-    skipna: bool = ...,  # bint
-    mask: npt.NDArray[np.bool_] | None = ...,  # const uint8_t[:, :]
+    values: np.ndarray,  # const float64_t[:, :]
+    skipna: bool,  # bint
+    mask: npt.NDArray[np.bool_] | None,  # const uint8_t[:, :]
 ) -> np.ndarray: ...
 def axis1_skew(
-    values: np.ndarray = ...,  # const float64_t[:, :]
-    skipna: bool = ...,  # bint
-    mask: npt.NDArray[np.bool_] | None = ...,  # const uint8_t[:, :]
+    values: np.ndarray,  # const float64_t[:, :]
+    skipna: bool,  # bint
+    mask: npt.NDArray[np.bool_] | None,  # const uint8_t[:, :]
 ) -> np.ndarray: ...
 def axis1_kurt(
-    values: np.ndarray = ...,  # const float64_t[:, :]
-    skipna: bool = ...,  # bint
-    mask: npt.NDArray[np.bool_] | None = ...,  # const uint8_t[:, :]
+    values: np.ndarray,  # const float64_t[:, :]
+    skipna: bool,  # bint
+    mask: npt.NDArray[np.bool_] | None,  # const uint8_t[:, :]
 ) -> np.ndarray: ...
 def ensure_platform_int(arr: object) -> npt.NDArray[np.intp]: ...
 def ensure_object(arr: object) -> npt.NDArray[np.object_]: ...

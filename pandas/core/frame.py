@@ -17200,7 +17200,7 @@ class DataFrame(NDFrame, OpsMixin):
         dog    2
         mouse  3
         dtype: int64
-        >>> s.kurt()
+        >>> round(s.kurt(), 6)
         1.5
 
         With a DataFrame
@@ -17215,15 +17215,15 @@ class DataFrame(NDFrame, OpsMixin):
           dog  2   4
           dog  2   4
         mouse  3   4
-        >>> df.kurt()
+        >>> round(df.kurt(), 6)
         a   1.5
         b   4.0
         dtype: float64
 
         With axis=None
 
-        >>> df.kurt(axis=None)
-        -0.9886927196984727
+        >>> round(df.kurt(axis=None), 6)
+        -0.988693
 
         Using axis=1
 

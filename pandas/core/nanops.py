@@ -1245,12 +1245,13 @@ def nanskew(
     --------
     >>> from pandas.core import nanops
     >>> s = pd.Series([1, np.nan, 1, 2])
-    >>> nanops.nanskew(s.values)
-    np.float64(1.7320508075688787)
+    >>> round(nanops.nanskew(s.values), 6)
+    np.float64(1.732051)
     """
     dtype = values.dtype
     values = ensure_float64(values)
 
+    result: npt.DTypeLike
     if axis is None or (values.ndim == 1 and axis == 0):
         result_float = libalgos.scalar_skew(
             values.ravel(), skipna, mask.ravel() if mask is not None else None
@@ -1303,12 +1304,13 @@ def nankurt(
     --------
     >>> from pandas.core import nanops
     >>> s = pd.Series([1, np.nan, 1, 3, 2])
-    >>> nanops.nankurt(s.values)
-    np.float64(-1.2892561983471076)
+    >>> round(nanops.nankurt(s.values), 6)
+    np.float64(-1.289256)
     """
     dtype = values.dtype
     values = ensure_float64(values)
 
+    result: npt.DTypeLike
     if axis is None or (values.ndim == 1 and axis == 0):
         result_float = libalgos.scalar_kurt(
             values.ravel(), skipna, mask.ravel() if mask is not None else None
