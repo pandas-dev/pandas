@@ -134,7 +134,7 @@ jobs:
       run: mv doc/build/html web/build/docs
 
     - name: Save website as an artifact
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: website
         path: web/build
