@@ -87,16 +87,12 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.api.types.is_re_compilable ES01" \
         -i "pandas.api.types.is_scalar ES01" \
         -i "pandas.read_html ES01" \
-        -i "pandas.DataFrame.to_html ES01" \
         -i "pandas.io.formats.style.Styler.to_html ES01" \
         -i "pandas.read_xml ES01" \
-        -i "pandas.DataFrame.to_xml ES01" \
         -i "pandas.io.formats.style.Styler.to_latex ES01" \
         -i "pandas.HDFStore.get ES01" \
         -i "pandas.HDFStore.info ES01" \
         -i "pandas.HDFStore.keys ES01" \
-        -i "pandas.DataFrame.to_feather ES01" \
-        -i "pandas.DataFrame.to_orc ES01" \
         -i "pandas.Index.putmask ES01" \
         -i "pandas.Index.fillna ES01" \
         -i "pandas.Index.dropna ES01" \
@@ -236,10 +232,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.io.formats.style.Styler.to_string ES01" \
         -i "pandas.api.extensions.register_dataframe_accessor ES01" \
         -i "pandas.api.extensions.register_series_accessor ES01" \
-        -i "pandas.api.extensions.register_index_accessor ES01" \
-        -i "pandas.DataFrame.round ES01" \
-        -i "pandas.DataFrame.value_counts ES01" \
-        -i "pandas.DataFrame.to_markdown ES01" # no backslash in the last line
+        -i "pandas.api.extensions.register_index_accessor ES01" # no backslash in the last line
 
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
