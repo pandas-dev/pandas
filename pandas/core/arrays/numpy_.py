@@ -137,6 +137,20 @@ class NumpyExtensionArray(
         if isinstance(dtype, NumpyEADtype):
             dtype = dtype._dtype
 
+        # GH#57702: For NumPy Unicode dtype (kind='U'), use ensure_string_array
+        # with convert_na_value=False to preserve None/NA values instead of
+        # converting them to the string 'None' via np.asarray.
+        # This makes pd.array(..., dtype=str) consistent with pd.Series(..., dtype=str).
+        if isinstance(dtype, np.dtype) and dtype.kind == "U":
+            if isinstance(scalars, np.ndarray):
+                shape = scalars.shape
+                if scalars.ndim > 1:
+                    scalars = scalars.ravel()
+            else:
+                shape = (len(scalars),)
+            result = lib.ensure_string_array(scalars, convert_na_value=False, copy=copy)
+            return cls(result.reshape(shape))
+
         # error: Argument "dtype" to "asarray" has incompatible type
         # "Union[ExtensionDtype, str, dtype[Any], dtype[floating[_64Bit]], Type[object],
         # None]"; expected "Union[dtype[Any], None, type, _SupportsDType, str,
