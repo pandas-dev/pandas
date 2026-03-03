@@ -973,8 +973,8 @@ class IntervalIndex(ExtensionIndex):
 
             indexer.append(locs)
 
-        indexer = np.concatenate(indexer)
-        return ensure_platform_int(indexer), ensure_platform_int(missing)
+        concatenated_indexer = np.concatenate(indexer)
+        return ensure_platform_int(concatenated_indexer), ensure_platform_int(missing)
 
     @cache_readonly
     def _index_as_unique(self) -> bool:
