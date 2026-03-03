@@ -82,7 +82,7 @@ cdef class Localizer:
         if is_utc(tz) or tz is None:
             self.use_utc = True
 
-        elif is_tzlocal(tz) or is_zoneinfo(tz):
+        elif is_tzlocal(tz):
             self.use_tzlocal = True
 
         else:
@@ -108,7 +108,7 @@ cdef class Localizer:
             self.ntrans = self.trans.shape[0]
             self.deltas = deltas
 
-            if typ != "pytz" and typ != "dateutil":
+            if typ not in ("pytz", "dateutil", "zoneinfo"):
                 # static/fixed; in this case we know that len(delta) == 1
                 self.use_fixed = True
                 self.delta = deltas[0]
