@@ -2633,6 +2633,6 @@ def test_stata_v117_prefix_with_unsupported_version_raises_version_error():
     buf = io.BytesIO(b"<stata_dta><header><release>999</release>" + b"\x00" * 64)
     with pytest.raises(
         ValueError,
-        match=(r"either not a valid Stata dataset|does not support.*999"),
+        match=r"either not a valid Stata dataset.*\(detected:\s*999\)",
     ):
         read_stata(buf)
