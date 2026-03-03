@@ -2604,6 +2604,10 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Write a DataFrame to the binary Feather format.
 
+        The Feather format is a lightweight, language-agnostic columnar file
+        format based on Apache Arrow, designed for efficient read and write
+        performance. This method requires the ``pyarrow`` library.
+
         Parameters
         ----------
         path : str, path object, file-like object
@@ -2685,6 +2689,10 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> str | None:
         """
         Print DataFrame in Markdown-friendly format.
+
+        Generates a Markdown table representation of the
+        DataFrame using the ``tabulate`` library. The result can be written
+        to a file or returned as a string for embedding in Markdown documents.
 
         Parameters
         ----------
@@ -2955,6 +2963,11 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Write a DataFrame to the Optimized Row Columnar (ORC) format.
 
+        ORC is a self-describing, type-aware columnar file format designed
+        for Hadoop workloads. It provides efficient compression and encoding
+        schemes, making it well-suited for large-scale data storage and
+        analytics. This method requires the ``pyarrow`` library.
+
         Parameters
         ----------
         path : str, file-like object or None, default None
@@ -3120,6 +3133,10 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> str | None:
         """
         Render a DataFrame as an HTML table.
+
+        Converts the DataFrame into an HTML ``<table>`` element. The resulting
+        HTML can be written to a file or returned as a string. This is useful
+        for embedding tabular data in web pages or HTML-based reports.
 
         Parameters
         ----------
@@ -3376,6 +3393,11 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> str | None:
         """
         Render a DataFrame to an XML document.
+
+        Produces an XML representation of the DataFrame where each row becomes
+        an XML element. Column values can be mapped to either XML element text
+        or attributes, and the output supports namespaces, XSLT stylesheets,
+        and custom root/row element names.
 
         Parameters
         ----------
@@ -8391,6 +8413,11 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> Series:
         """
         Return a Series containing the frequency of each distinct row in the DataFrame.
+
+        The resulting Series is indexed by the unique row combinations found
+        in the DataFrame (or the specified subset of columns). By default the
+        counts are sorted in descending order, and rows with ``NaN`` values
+        in any column are excluded.
 
         Parameters
         ----------
@@ -14901,6 +14928,10 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> DataFrame:
         """
         Round numeric columns in a DataFrame to a variable number of decimal places.
+
+        Each column can be rounded to a different number of decimal places by
+        passing a dict or Series mapping column names to the desired precision.
+        Non-numeric columns are left unchanged.
 
         Parameters
         ----------
