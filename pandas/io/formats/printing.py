@@ -19,6 +19,8 @@ from typing import (
 )
 from unicodedata import east_asian_width
 
+import numpy as np
+
 from pandas._config import get_option
 
 from pandas.core.dtypes.inference import (
@@ -213,30 +215,12 @@ def pprint_thing(
     str
     """
 
-    def as_escaped_string(
-        thing: Any, escape_chars: EscapeChars | None = escape_chars
-    ) -> str:
-        translate = {"\t": r"\t", "\n": r"\n", "\r": r"\r", "'": r"\'"}
-        if isinstance(escape_chars, Mapping):
-            if default_escapes:
-                translate.update(escape_chars)
-            else:
-                translate = escape_chars  # type: ignore[assignment]
-            escape_chars = list(escape_chars.keys())
-        else:
-            escape_chars = escape_chars or ()
-
-        result = str(thing)
-        for c in escape_chars:
-            result = result.replace(c, translate[c])
-        return result
-
-    if is_scalar(thing):
+    # TODO: should is_scalar exclude np.record?
+    if is_scalar(thing) and not isinstance(thing, np.record):
         # GH#58285 put this check before Mapping check for performance
+        result = _as_escaped_string(thing, escape_chars, default_escapes)
         if quote_strings and isinstance(thing, str):
-            result = f"'{as_escaped_string(thing)}'"
-        else:
-            result = as_escaped_string(thing)
+            result = f"'{result}'"
     elif hasattr(thing, "__next__"):
         return str(thing)
     elif isinstance(thing, Mapping) and _nest_lvl < get_option(
@@ -257,15 +241,34 @@ def pprint_thing(
             max_seq_items=max_seq_items,
         )
     else:
-        result = as_escaped_string(thing)
+        result = _as_escaped_string(thing, escape_chars, default_escapes)
 
     return result
 
 
+def _as_escaped_string(
+    thing: Any, escape_chars: EscapeChars | None, default_escapes: bool
+) -> str:
+    translate = {"\t": r"\t", "\n": r"\n", "\r": r"\r", "'": r"\'"}
+    if isinstance(escape_chars, Mapping):
+        if default_escapes:
+            translate.update(escape_chars)
+        else:
+            translate = escape_chars  # type: ignore[assignment]
+        escape_chars = list(escape_chars.keys())
+    else:
+        escape_chars = escape_chars or ()
+
+    result = str(thing)
+    for c in escape_chars:
+        result = result.replace(c, translate[c])
+    return result
+
+
 def pprint_thing_encoded(
-    object: object, encoding: str = "utf-8", errors: str = "replace"
+    thing: object, encoding: str = "utf-8", errors: str = "replace"
 ) -> bytes:
-    value = pprint_thing(object)  # get unicode representation of object
+    value = pprint_thing(thing)  # get unicode representation of thing
     return value.encode(encoding, errors)
 
 
