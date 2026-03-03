@@ -772,8 +772,7 @@ class RangeIndex(Index):
             return self._range == other._range
         return super().equals(other)
 
-    # error: Signature of "sort_values" incompatible with supertype "Index"
-    @overload  # type: ignore[override]
+    @overload
     def sort_values(
         self,
         *,
