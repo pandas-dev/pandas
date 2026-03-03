@@ -791,7 +791,7 @@ class RangeIndex(Index):
         ascending: bool = ...,
         na_position: NaPosition = ...,
         key: Callable | None = ...,
-    ) -> tuple[Self, np.ndarray | RangeIndex]: ...
+    ) -> tuple[Self, np.ndarray]: ...
 
     @overload
     def sort_values(
@@ -801,7 +801,7 @@ class RangeIndex(Index):
         ascending: bool = ...,
         na_position: NaPosition = ...,
         key: Callable | None = ...,
-    ) -> Self | tuple[Self, np.ndarray | RangeIndex]: ...
+    ) -> Self | tuple[Self, np.ndarray]: ...
 
     def sort_values(
         self,
@@ -810,7 +810,7 @@ class RangeIndex(Index):
         ascending: bool = True,
         na_position: NaPosition = "last",
         key: Callable | None = None,
-    ) -> Self | tuple[Self, np.ndarray | RangeIndex]:
+    ) -> Self | tuple[Self, np.ndarray]:
         if key is not None:
             return super().sort_values(
                 return_indexer=return_indexer,
@@ -831,10 +831,10 @@ class RangeIndex(Index):
 
         if return_indexer:
             if inverse_indexer:
-                rng = range(len(self) - 1, -1, -1)
+                indexer = np.arange(len(self) - 1, -1, -1, dtype=np.intp)
             else:
-                rng = range(len(self))
-            return sorted_index, RangeIndex(rng)
+                indexer = np.arange(len(self), dtype=np.intp)
+            return sorted_index, indexer
         else:
             return sorted_index
 

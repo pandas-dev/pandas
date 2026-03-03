@@ -13,6 +13,7 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
+- Fixed regression in :meth:`DataFrame.sort_index` and :meth:`Series.sort_index` raising ``AssertionError`` when called with ``level=`` on a :class:`RangeIndex` (:issue:`64383`)
 - Fixed regression in :meth:`HDFStore.select` where the ``where`` clause on a datetime index silently returned empty results when the index had non-nanosecond resolution (:issue:`64310`)
 
 .. ---------------------------------------------------------------------------
