@@ -20,44 +20,39 @@ cdef numeric_t kth_smallest_c(numeric_t* arr, Py_ssize_t k, Py_ssize_t n) noexce
 @cython.cdivision(True)
 cdef inline void moments_add_value(
     float64_t val,
-    int64_t* nobs_ptr,
-    float64_t* mean_ptr,
-    float64_t* m2_ptr,
-    float64_t* m3_ptr,
-    float64_t* m4_ptr,
+    int64_t* nobs,
+    float64_t* mean,
+    float64_t* m2,
+    float64_t* m3,
+    float64_t* m4,
     int max_moment,
 ) noexcept nogil:
     cdef:
-        int64_t nobs = nobs_ptr[0] + 1
-        float64_t mean = mean_ptr[0]
-        float64_t n = <float64_t>nobs
-        float64_t delta = val - mean
-        float64_t delta_n = delta / n
-        float64_t term1 = delta * delta_n * (n - 1.0)
-        float64_t m2, m3
+        float64_t n
+        float64_t delta = val - mean[0]
+        float64_t delta_n, term1
 
-    nobs_ptr[0] = nobs
+    nobs[0] += 1
+    n = <float64_t>nobs[0]
+    delta_n = delta / n
+    term1 = delta * delta_n * (n - 1.0)
 
     if max_moment >= 4:
-        m2 = m2_ptr[0]
-        m3 = m3_ptr[0]
-        m4_ptr[0] += delta_n * (
-                -4.0 * m3
+        m4[0] += delta_n * (
+                -4.0 * m3[0]
                 + delta_n * (
-                    6.0 * m2 + term1 * (n * n - 3.0 * n + 3.0)
+                    6.0 * m2[0] + term1 * (n * n - 3.0 * n + 3.0)
                     )
                 )
-        m3_ptr[0] = m3 + delta_n * (term1 * (n - 2.0) - 3.0 * m2)
-        m2_ptr[0] = m2 + term1
+        m3[0] += delta_n * (term1 * (n - 2.0) - 3.0 * m2[0])
+        m2[0] += term1
     elif max_moment == 3:
-        m2 = m2_ptr[0]
-        m3 = m3_ptr[0]
-        m3_ptr[0] = m3 + delta_n * (term1 * (n - 2.0) - 3.0 * m2)
-        m2_ptr[0] = m2 + term1
+        m3[0] += delta_n * (term1 * (n - 2.0) - 3.0 * m2[0])
+        m2[0] += term1
     elif max_moment == 2:
-        m2_ptr[0] += term1
+        m2[0] += term1
 
-    mean_ptr[0] = mean + delta_n
+    mean[0] += delta_n
 
 
 @cython.cdivision(True)
