@@ -44,14 +44,9 @@ cdef inline void moments_add_value(
                     6.0 * m2[0] + term1 * (n * n - 3.0 * n + 3.0)
                     )
                 )
+    if max_moment >= 3:
         m3[0] += delta_n * (term1 * (n - 2.0) - 3.0 * m2[0])
-        m2[0] += term1
-    elif max_moment == 3:
-        m3[0] += delta_n * (term1 * (n - 2.0) - 3.0 * m2[0])
-        m2[0] += term1
-    elif max_moment == 2:
-        m2[0] += term1
-
+    m2[0] += term1
     mean[0] += delta_n
 
 
