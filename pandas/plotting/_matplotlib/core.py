@@ -1938,7 +1938,7 @@ class BarPlot(MPLPlot):
         data = self.data.fillna(0)
 
         _stacked_subplots_ind: dict[int, int] = {}
-        _stacked_subplots_offsets = []
+        _stacked_subplots_offsets: list[tuple[np.ndarray, np.ndarray]] = []
 
         self.subplots: list[Any]
 
@@ -1949,7 +1949,7 @@ class BarPlot(MPLPlot):
                         continue
                     for plot in sub_plot:
                         _stacked_subplots_ind[int(plot)] = i
-                    _stacked_subplots_offsets.append([0, 0])
+                    _stacked_subplots_offsets.append((pos_prior, neg_prior))
 
         for i, (label, y) in enumerate(self._iter_data(data=data)):
             ax = self._get_ax(i)
@@ -1979,7 +1979,7 @@ class BarPlot(MPLPlot):
 
             if i in _stacked_subplots_ind:
                 offset_index = _stacked_subplots_ind[i]
-                pos_prior, neg_prior = _stacked_subplots_offsets[offset_index]  # type: ignore[assignment]
+                pos_prior, neg_prior = _stacked_subplots_offsets[offset_index]
                 mask = y >= 0
                 start = np.where(mask, pos_prior, neg_prior) + self._start_base
                 w = self.bar_width / 2
@@ -1995,7 +1995,7 @@ class BarPlot(MPLPlot):
                 )
                 pos_new = pos_prior + np.where(mask, y, 0)
                 neg_new = neg_prior + np.where(mask, 0, y)
-                _stacked_subplots_offsets[offset_index] = [pos_new, neg_new]
+                _stacked_subplots_offsets[offset_index] = (pos_new, neg_new)
 
             elif self.subplots:
                 w = self.bar_width / 2

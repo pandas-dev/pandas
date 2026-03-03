@@ -286,7 +286,7 @@ cdef class _NaT(datetime):
         Analogous for ``pd.NaT``:
 
         >>> pd.NaT.to_numpy()
-        numpy.datetime64('NaT')
+        numpy.datetime64('NaT', 'ns')
         """
         if dtype is not None:
             # GH#44460

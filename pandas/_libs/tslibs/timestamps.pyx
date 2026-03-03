@@ -1707,7 +1707,7 @@ cdef class _Timestamp(ABCTimestamp):
         Analogous for ``pd.NaT``:
 
         >>> pd.NaT.to_numpy()
-        numpy.datetime64('NaT')
+        numpy.datetime64('NaT', 'ns')
         """
         if dtype is not None or copy is not False:
             raise ValueError(
