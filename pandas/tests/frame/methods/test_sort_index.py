@@ -1030,3 +1030,28 @@ def test_sort_index_stable_sort():
         columns=["dt", "value"],
     ).set_index(["dt"])
     tm.assert_frame_equal(result, expected)
+
+
+def test_sort_index_rangeindex_with_level_keyword():
+    # GH#64383 - sort_index with level keyword on single-level RangeIndex
+    # should not raise AssertionError
+    df = DataFrame({"a": [1, 2, 3], "foo": [0, 1, 2]}).set_index(["foo"], drop=True)
+    result = df.sort_index(level="foo")
+    expected = DataFrame({"a": [1, 2, 3]}, index=RangeIndex(3, name="foo"))
+    tm.assert_frame_equal(result, expected)
+
+    # Also test when the index is already a RangeIndex with a named index
+    df2 = DataFrame({"a": [1, 2, 3]})
+    df2.index.names = ["foo"]
+    result2 = df2.sort_index(level="foo")
+    expected2 = DataFrame({"a": [1, 2, 3]}, index=RangeIndex(3, name="foo"))
+    tm.assert_frame_equal(result2, expected2)
+
+    # Test unsorted RangeIndex
+    df3 = DataFrame({"a": [1, 2, 3], "foo": [1, 0, 2]}).set_index(["foo"], drop=True)
+    result3 = df3.sort_index(level="foo")
+    expected3 = DataFrame(
+        {"a": [2, 1, 3]},
+        index=pd.Index([0, 1, 2], name="foo"),
+    )
+    tm.assert_frame_equal(result3, expected3)

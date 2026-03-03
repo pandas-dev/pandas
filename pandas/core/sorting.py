@@ -97,6 +97,8 @@ def get_indexer_indexer(
             sort_remaining=sort_remaining,
             na_position=na_position,
         )
+        if isinstance(indexer, ABCRangeIndex):
+            indexer = indexer._data
     elif (np.all(ascending) and target.is_monotonic_increasing) or (
         not np.any(ascending) and target.is_monotonic_decreasing
     ):
