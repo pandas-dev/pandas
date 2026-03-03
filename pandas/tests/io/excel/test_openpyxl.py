@@ -343,6 +343,17 @@ def test_read_with_bad_dimension(
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "filename", ["dimension_missing", "dimension_small", "dimension_large"]
+)
+def test_read_with_bad_dimension_skiprows_callable_all(datapath, ext, filename):
+    # GH 64027
+    path = datapath("io", "data", "excel", f"{filename}{ext}")
+    result = pd.read_excel(path, skiprows=lambda _: True, nrows=1)
+    expected = DataFrame()
+    tm.assert_frame_equal(result, expected)
+
+
 def test_append_mode_file(tmp_excel):
     # GH 39576
     df = DataFrame()

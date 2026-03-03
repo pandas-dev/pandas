@@ -643,7 +643,8 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes,
          self->datalen));
 
 #define CHECK_FOR_BOM()                                                        \
-  if (*buf == '\xef' && *(buf + 1) == '\xbb' && *(buf + 2) == '\xbf') {        \
+  if (self->datalen - self->datapos >= 3 && *buf == '\xef' &&                  \
+      *(buf + 1) == '\xbb' && *(buf + 2) == '\xbf') {                          \
     buf += 3;                                                                  \
     self->datapos += 3;                                                        \
   }
@@ -971,7 +972,7 @@ static int tokenize_bytes(parser_t *self, size_t line_limit,
       break;
 
     case QUOTE_IN_QUOTED_FIELD:
-      // double quote - seen a quote in an quoted field
+      // double quote - seen a quote in a quoted field
       if (IS_QUOTE(c)) {
         // save "" as "
 
@@ -1619,15 +1620,18 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
     break;
   }
 
-  double number = 0.;
   long int exponent = 0;
   long int num_digits = 0;
   long int num_decimals = 0;
 
+  // Accumulate mantissa digits as an integer to avoid per-digit FP rounding.
+  // max_digits=17 decimal digits fit safely in uint64_t (max ~9.9e17 < 2^64).
+  uint64_t mantissa = 0;
+
   // Process string of digits.
   while (isdigit_ascii(*p)) {
     if (num_digits < max_digits) {
-      number = number * 10. + (*p - '0');
+      mantissa = mantissa * 10 + (*p - '0');
       num_digits++;
     } else {
       ++exponent;
@@ -1644,7 +1648,7 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
     p++;
 
     while (num_digits < max_digits && isdigit_ascii(*p)) {
-      number = number * 10. + (*p - '0');
+      mantissa = mantissa * 10 + (*p - '0');
       p++;
       num_digits++;
       num_decimals++;
@@ -1661,6 +1665,10 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
     *error = ERANGE;
     return 0.0;
   }
+
+  // Single conversion from integer mantissa to double: at most one rounding,
+  // compared to up to max_digits roundings in the old FP accumulation loop.
+  double number = (double)mantissa;
 
   // Correct for sign.
   if (negative)

@@ -973,8 +973,8 @@ class IntervalIndex(ExtensionIndex):
 
             indexer.append(locs)
 
-        indexer = np.concatenate(indexer)
-        return ensure_platform_int(indexer), ensure_platform_int(missing)
+        concatenated_indexer = np.concatenate(indexer)
+        return ensure_platform_int(concatenated_indexer), ensure_platform_int(missing)
 
     @cache_readonly
     def _index_as_unique(self) -> bool:
@@ -1294,6 +1294,10 @@ def interval_range(
 ) -> IntervalIndex:
     """
     Return a fixed frequency IntervalIndex.
+
+    This function generates a sequence of evenly spaced intervals over a
+    specified range, supporting numeric, datetime-like, and timedelta
+    endpoints.
 
     Parameters
     ----------

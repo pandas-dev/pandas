@@ -22,13 +22,6 @@ from pandas._libs import (
     algos,
     lib,
 )
-from pandas._typing import (
-    ArrayLike,
-    AxisInt,
-    F,
-    ReindexMethod,
-    npt,
-)
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.cast import infer_dtype_from
@@ -53,6 +46,14 @@ from pandas.core.dtypes.missing import (
 if TYPE_CHECKING:
     from collections.abc import Callable
     from typing import TypeAlias
+
+    from pandas._typing import (
+        ArrayLike,
+        AxisInt,
+        F,
+        ReindexMethod,
+        npt,
+    )
 
     from pandas import Index
 
@@ -435,7 +436,7 @@ def _index_to_interp_indices(index: Index, method: str) -> np.ndarray:
 
     if method == "linear":
         inds = xarr
-        inds = cast(np.ndarray, inds)
+        inds = cast("np.ndarray", inds)
     else:
         inds = np.asarray(xarr)
 
@@ -897,7 +898,7 @@ def _datetimelike_compat(func: F) -> F:
 
         return func(values, limit=limit, limit_area=limit_area, mask=mask)
 
-    return cast(F, new_func)
+    return cast("F", new_func)
 
 
 @_datetimelike_compat

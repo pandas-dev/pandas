@@ -60,7 +60,8 @@ class TestIndexConcat:
             Index(["c", "d", "e"], name=name_in3),
         ]
         frames = [
-            DataFrame({c: [0, 1, 2]}, index=i) for i, c in zip(indices, ["x", "y", "z"])
+            DataFrame({c: [0, 1, 2]}, index=i)
+            for i, c in zip(indices, ["x", "y", "z"], strict=True)
         ]
         result = concat(frames, axis=1)
 
@@ -218,7 +219,7 @@ class TestMultiIndexConcat:
         level2 = [1] * 5 + [2] * 2
         level1 = [1] * 7
         no_name = list(range(5)) + list(range(2))
-        tuples = list(zip(level2, level1, no_name))
+        tuples = list(zip(level2, level1, no_name, strict=True))
         index = MultiIndex.from_tuples(tuples, names=["level2", "level1", None])
         expected = DataFrame({"col": no_name}, index=index, dtype=np.int32)
         tm.assert_frame_equal(result, expected)

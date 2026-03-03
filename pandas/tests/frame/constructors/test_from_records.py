@@ -12,6 +12,7 @@ from pandas._config import using_string_dtype
 
 from pandas.compat import is_platform_little_endian
 
+import pandas as pd
 from pandas import (
     CategoricalIndex,
     DataFrame,
@@ -500,4 +501,29 @@ class TestFromRecords:
             iter(rows), index=[0, 1], columns=["col_1", "Col_2"], nrows=0
         )
         expected = DataFrame([], index=[0, 1], columns=["col_1", "Col_2"])
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("missing_value", [None, np.nan, pd.NA])
+    def test_from_records_missing_value_key(self, missing_value, using_infer_string):
+        # https://github.com/pandas-dev/pandas/issues/63889
+        # preserve values when None key is converted to NaN column name
+        dict_data = [
+            {"colA": 1, missing_value: 2},
+            {"colA": 3, missing_value: 4},
+        ]
+        result = DataFrame.from_records(dict_data)
+        expected = DataFrame(
+            [[1, 2], [3, 4]],
+            columns=["colA", np.nan if using_infer_string else missing_value],
+        )
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("missing_value", [None, np.nan, pd.NA])
+    def test_from_records_missing_value_key_only(self, missing_value):
+        dict_data = [
+            {missing_value: 1},
+            {missing_value: 2},
+        ]
+        result = DataFrame.from_records(dict_data)
+        expected = DataFrame([[1], [2]], columns=Index([missing_value]))
         tm.assert_frame_equal(result, expected)

@@ -157,11 +157,11 @@ class BinOp(ops.BinOp):
         left, right = self.lhs, self.rhs
 
         if is_term(left) and is_term(right):
-            res = pr(left.value, right.value)
+            res = pr(left, right)
         elif not is_term(left) and is_term(right):
-            res = pr(left.prune(klass), right.value)
+            res = pr(left.prune(klass), right)
         elif is_term(left) and not is_term(right):
-            res = pr(left.value, right.prune(klass))
+            res = pr(left, right.prune(klass))
         elif not (is_term(left) or is_term(right)):
             res = pr(left.prune(klass), right.prune(klass))
 
@@ -169,6 +169,7 @@ class BinOp(ops.BinOp):
 
     def conform(self, rhs):
         """inplace conform rhs"""
+        rhs = rhs.value
         if not is_list_like(rhs):
             rhs = [rhs]
         if isinstance(rhs, np.ndarray):
@@ -178,7 +179,7 @@ class BinOp(ops.BinOp):
     @property
     def is_valid(self) -> bool:
         """return True if this is a valid field"""
-        return self.lhs in self.queryables
+        return self.lhs.value in self.queryables
 
     @property
     def is_in_table(self) -> bool:
@@ -186,27 +187,27 @@ class BinOp(ops.BinOp):
         return True if this is a valid column name for generation (e.g. an
         actual column in the table)
         """
-        return self.queryables.get(self.lhs) is not None
+        return self.queryables.get(self.lhs.value) is not None
 
     @property
     def kind(self):
         """the kind of my field"""
-        return getattr(self.queryables.get(self.lhs), "kind", None)
+        return getattr(self.queryables.get(self.lhs.value), "kind", None)
 
     @property
     def meta(self):
         """the meta of my field"""
-        return getattr(self.queryables.get(self.lhs), "meta", None)
+        return getattr(self.queryables.get(self.lhs.value), "meta", None)
 
     @property
     def metadata(self):
         """the metadata of my field"""
-        return getattr(self.queryables.get(self.lhs), "metadata", None)
+        return getattr(self.queryables.get(self.lhs.value), "metadata", None)
 
     def generate(self, v) -> str:
         """create and return the op string for this TermValue"""
         val = v.tostring(self.encoding)
-        return f"({self.lhs} {self.op} {val})"
+        return f"({self.lhs.value} {self.op} {val})"
 
     def convert_value(self, conv_val) -> TermValue:
         """
@@ -225,7 +226,10 @@ class BinOp(ops.BinOp):
             if isinstance(conv_val, (int, float)):
                 conv_val = stringify(conv_val)
             conv_val = ensure_decoded(conv_val)
-            conv_val = Timestamp(conv_val).as_unit("ns")
+            unit: TimeUnit = "ns"
+            if "[" in kind:
+                unit = cast("TimeUnit", kind.split("[")[-1][:-1])
+            conv_val = Timestamp(conv_val).as_unit(unit)
             if conv_val.tz is not None:
                 conv_val = conv_val.tz_convert("UTC")
             return TermValue(conv_val, conv_val._value, kind)
@@ -322,25 +326,17 @@ class FilterBinOp(BinOp):
         rhs = self.conform(self.rhs)
         values = list(rhs)
 
-        if self.is_in_table:
-            # if too many values to create the expression, use a filter instead
-            if self.op in ["==", "!="] and len(values) > self._max_selectors:
-                filter_op = self.generate_filter_op()
-                self.filter = (self.lhs, filter_op, Index(values))
-
-                return self
+        if self.op not in ["==", "!="]:
+            if not self.is_in_table:
+                raise TypeError(
+                    f"passing a filterable condition to a non-table indexer [{self}]"
+                )
             return None
 
-        # equality conditions
-        if self.op in ["==", "!="]:
-            filter_op = self.generate_filter_op()
-            self.filter = (self.lhs, filter_op, Index(values))
-
-        else:
-            raise TypeError(
-                f"passing a filterable condition to a non-table indexer [{self}]"
-            )
-
+        if self.is_in_table and len(values) <= self._max_selectors:
+            return None
+        filter_op = self.generate_filter_op()
+        self.filter = (self.lhs.value, filter_op, Index(values))
         return self
 
     def generate_filter_op(self, invert: bool = False):
