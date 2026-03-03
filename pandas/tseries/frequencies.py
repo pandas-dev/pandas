@@ -581,6 +581,9 @@ def _maybe_coerce_freq(code) -> str:
     assert code is not None
     if isinstance(code, DateOffset):
         code = PeriodDtype(to_offset(code.rule_code))._freqstr
+    # Strip any leading multiplier digits (e.g. '12h' -> 'h') so that
+    # is_subperiod / is_superperiod can compare base frequency codes.  GH#50355
+    code = code.lstrip("0123456789")
     if code in {"h", "min", "s", "ms", "us", "ns"}:
         return code
     else:
