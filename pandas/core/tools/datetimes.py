@@ -616,7 +616,8 @@ def _adjust_to_origin(arg, origin, unit):
             if lib.is_integer(origin) or lib.is_float(origin):
                 offset = Timestamp(origin, unit=unit)
             else:
-                ts_unit = unit if unit != "D" else "s"
+                datetime_unit: list[TimeUnit] = ["s", "ms", "us", "ns"]
+                ts_unit: TimeUnit = "s" if unit not in datetime_unit else unit
                 offset = Timestamp(origin).as_unit(ts_unit)
         except OutOfBoundsDatetime as err:
             raise OutOfBoundsDatetime(f"origin {origin} is Out of Bounds") from err
