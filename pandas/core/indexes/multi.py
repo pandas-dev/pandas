@@ -3438,17 +3438,17 @@ class MultiIndex(Index):
             if isinstance(lab, np.datetime64) and is_object_dtype(lev.dtype):
                 # GH#55969: np.datetime64 with day (or coarser) resolution converts
                 # to datetime.date; finer resolutions keep datetime.datetime.
-                lab_ts = lab.astype("datetime64[us]")
-                py_val: datetime.datetime | datetime.date = lab_ts.astype(
-                    datetime.datetime
-                )
+                py_val: datetime.datetime | datetime.date = lab.astype(
+                    "datetime64[us]"
+                ).item()
                 if (
-                    py_val.hour == 0  # type: ignore[union-attr]
-                    and py_val.minute == 0  # type: ignore[union-attr]
-                    and py_val.second == 0  # type: ignore[union-attr]
-                    and py_val.microsecond == 0  # type: ignore[union-attr]
+                    isinstance(py_val, datetime.datetime)
+                    and py_val.hour == 0
+                    and py_val.minute == 0
+                    and py_val.second == 0
+                    and py_val.microsecond == 0
                 ):
-                    py_val = py_val.date()  # type: ignore[union-attr]
+                    py_val = py_val.date()
                 if py_val in lev:
                     lab = py_val
 
@@ -3516,15 +3516,17 @@ class MultiIndex(Index):
         # Convert to the matching Python scalar type before calling get_loc so
         # that the lookup succeeds.
         if isinstance(key, np.datetime64) and is_object_dtype(level_index.dtype):
-            key_ts = key.astype("datetime64[us]")
-            py_val: datetime.datetime | datetime.date = key_ts.astype(datetime.datetime)
+            py_val: datetime.datetime | datetime.date = key.astype(
+                "datetime64[us]"
+            ).item()
             if (
-                py_val.hour == 0  # type: ignore[union-attr]
-                and py_val.minute == 0  # type: ignore[union-attr]
-                and py_val.second == 0  # type: ignore[union-attr]
-                and py_val.microsecond == 0  # type: ignore[union-attr]
+                isinstance(py_val, datetime.datetime)
+                and py_val.hour == 0
+                and py_val.minute == 0
+                and py_val.second == 0
+                and py_val.microsecond == 0
             ):
-                py_val = py_val.date()  # type: ignore[union-attr]
+                py_val = py_val.date()
             if py_val in level_index:
                 key = py_val
         return level_index.get_loc(key)
