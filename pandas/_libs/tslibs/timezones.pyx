@@ -326,21 +326,21 @@ cdef object _get_zoneinfo_trans_and_deltas(tzinfo tz):
         Nanosecond UTC offsets corresponding to DST transitions.
     """
     cdef:
-        int64_t first_offset_seconds
-
-    # Get the first offset directly from ZoneInfo for accuracy
-    # (dateutil may have slightly different values for historical dates)
-    first_offset_seconds = int(tz.utcoffset(datetime(1, 1, 1)).total_seconds())
+        int64_t fixed_offset_seconds
 
     dateutil_tz = dateutil_gettz(tz.key)
 
     if hasattr(dateutil_tz, "_trans_list") and len(dateutil_tz._trans_list):
+        first_offset_seconds = int(dateutil_tz._ttinfo_before.offset)
         return _get_trans_and_deltas_from_dateutil_tz(
             dateutil_tz, first_offset_seconds
         )
     else:
+        fixed_offset_seconds = int(
+            tz.utcoffset(datetime(2020, 1, 1)).total_seconds()
+        )
         trans = np.array([NPY_NAT + 1], dtype=np.int64)
-        deltas = np.array([first_offset_seconds], dtype="i8") * 1_000_000_000
+        deltas = np.array([fixed_offset_seconds], dtype="i8") * 1_000_000_000
         return trans, deltas
 
 
