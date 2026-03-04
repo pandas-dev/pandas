@@ -3064,6 +3064,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Pickle (serialize) object to file.
 
+        Uses Python's ``pickle`` module to serialize the object and write
+        it to the specified file path. The resulting file can be loaded
+        back using :func:`pandas.read_pickle`.
+
         Parameters
         ----------
         path : str, path object, or file-like object
@@ -3813,6 +3817,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> str | None:
         r"""
         Write object to a comma-separated values (csv) file.
+
+        By default, the resulting file includes row index and column headers.
+        Supports customization of delimiter, encoding, compression, and more.
+        The output can be written to a file path, file-like buffer, or
+        returned as a string.
 
         Parameters
         ----------
@@ -6772,7 +6781,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             :class:`Series` (still experimental). Behaviour is as follows:
 
             * ``"numpy_nullable"``: returns nullable-dtype-backed
-              :class:`DataFrame` or :class:`Serires`.
+              :class:`DataFrame` or :class:`Series`.
             * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
               :class:`DataFrame` or :class:`Series`.
 
@@ -8918,6 +8927,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Select values at particular time of day (e.g., 9:30AM).
 
+        This method filters rows whose index has a time component matching
+        the specified time. The index must be a DatetimeIndex.
+
         Parameters
         ----------
         time : datetime.time or str
@@ -11000,7 +11012,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis : {{0 or 'index', 1 or 'columns'}}, default 0
             The axis to localize
         level : int, str, default None
-            If axis ia a MultiIndex, localize a specific level. Otherwise
+            If axis is a MultiIndex, localize a specific level. Otherwise
             must be None.
         copy : bool, default False
             This keyword is now ignored; changing its value will have no

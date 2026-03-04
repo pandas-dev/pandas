@@ -183,8 +183,8 @@ def test_time_based_rolling_other_longer_raises(func):
 @pytest.mark.parametrize(
     "f",
     [
-        lambda x: (x.rolling(window=10, min_periods=5).cov(x, pairwise=True)),
-        lambda x: (x.rolling(window=10, min_periods=5).corr(x, pairwise=True)),
+        lambda x: x.rolling(window=10, min_periods=5).cov(x, pairwise=True),
+        lambda x: x.rolling(window=10, min_periods=5).corr(x, pairwise=True),
     ],
 )
 def test_rolling_functions_window_non_shrinkage_binary(f):
@@ -206,8 +206,8 @@ def test_rolling_functions_window_non_shrinkage_binary(f):
 @pytest.mark.parametrize(
     "f",
     [
-        lambda x: (x.rolling(window=10, min_periods=5).cov(x, pairwise=True)),
-        lambda x: (x.rolling(window=10, min_periods=5).corr(x, pairwise=True)),
+        lambda x: x.rolling(window=10, min_periods=5).cov(x, pairwise=True),
+        lambda x: x.rolling(window=10, min_periods=5).corr(x, pairwise=True),
     ],
 )
 def test_moment_functions_zero_length_pairwise(f):

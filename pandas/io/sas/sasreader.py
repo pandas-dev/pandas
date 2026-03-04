@@ -96,6 +96,9 @@ def read_sas(
     """
     Read SAS files stored as either XPORT or SAS7BDAT format files.
 
+    The file format is inferred from the file extension if not explicitly
+    specified. Supports both full reads and chunked iteration.
+
     Parameters
     ----------
     filepath_or_buffer : str, path object, or file-like object
