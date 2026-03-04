@@ -616,8 +616,9 @@ def _adjust_to_origin(arg, origin, unit):
             if lib.is_integer(origin) or lib.is_float(origin):
                 offset = Timestamp(origin, unit=unit)
             else:
-                datetime_unit: list[TimeUnit] = ["s", "ms", "us", "ns"]
-                ts_unit: TimeUnit = "s" if unit not in datetime_unit else unit
+                time_units: list[TimeUnit] = ["s", "ms", "us", "ns"]
+                ts_unit: TimeUnit = getattr(origin, "unit", unit)
+                ts_unit = "s" if ts_unit not in time_units else ts_unit
                 offset = Timestamp(origin).as_unit(ts_unit)
 
                 base = Timestamp(0)
