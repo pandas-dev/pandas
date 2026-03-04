@@ -398,6 +398,10 @@ def is_timedelta64_dtype(arr_or_dtype) -> bool:
     """
     Check whether an array-like or dtype is of the timedelta64 dtype.
 
+    This function checks if the provided array-like object or dtype
+    corresponds to a timedelta64 dtype, which is used to represent
+    differences between two datetime values.
+
     Parameters
     ----------
     arr_or_dtype : array-like or dtype

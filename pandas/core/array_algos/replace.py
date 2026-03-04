@@ -87,9 +87,11 @@ def compare_or_regex_search(
         op = lambda x: operator.eq(x, b)
     else:
         op = np.vectorize(
-            lambda x: bool(re.search(b, x))
-            if isinstance(x, str) and isinstance(b, (str, Pattern))
-            else False,
+            lambda x: (
+                bool(re.search(b, x))
+                if isinstance(x, str) and isinstance(b, (str, Pattern))
+                else False
+            ),
             otypes=[bool],
         )
 

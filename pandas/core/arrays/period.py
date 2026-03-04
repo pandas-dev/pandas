@@ -268,10 +268,6 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
     ) -> Self:
         if dtype is not None:
             dtype = pandas_dtype(dtype)
-        if dtype and isinstance(dtype, PeriodDtype):
-            unit = dtype._freqstr
-        else:
-            unit = None
 
         # Note: we can't do extract_array until after from_datetime64 path
         #  bc of GH#64241
@@ -310,9 +306,10 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         else:
             periods = ensure_object(arrdata)
 
-            unit = unit or libperiod.extract_period_unit(periods)
-            dtype = PeriodDtype(unit)
-            ordinals = libperiod.extract_ordinals(periods, dtype)
+            if dtype is None:
+                dtype_base = libperiod.extract_period_unit(periods)
+                dtype = PeriodDtype(dtype_base)
+            ordinals = libperiod.extract_ordinals(periods, dtype)  # type: ignore[arg-type]
             return cls(ordinals, dtype=dtype)
 
     @classmethod
@@ -868,7 +865,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         dta = DatetimeArray._from_sequence(new_data, dtype=new_data.dtype)
         assert dta.unit == unit
 
-        if self.freq.name == "B":
+        if self.freq.rule_code == "B":
             # See if we can retain BDay instead of Day in cases where
             #  len(self) is too small for infer_freq to distinguish between them
             diffs = libalgos.unique_deltas(self.asi8)
