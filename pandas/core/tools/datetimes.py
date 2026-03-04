@@ -627,6 +627,8 @@ def _adjust_to_origin(arg, origin, unit):
                     raise OutOfBoundsDatetime
         except OutOfBoundsDatetime as err:
             raise OutOfBoundsDatetime(f"origin {origin} is Out of Bounds") from err
+        except TypeError as err:
+            raise ValueError(f"origin offset {offset} must be tz-naive") from err
         except ValueError as err:
             raise ValueError(
                 f"origin {origin} cannot be converted to a Timestamp"
