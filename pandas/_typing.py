@@ -84,7 +84,7 @@ if TYPE_CHECKING:
 
     # numpy compatible types
     NumpyValueArrayLike: TypeAlias = ScalarLike_co | npt.ArrayLike
-    NumpySorter: TypeAlias = npt._ArrayLikeInt_co | None
+    NumpySorter: TypeAlias = npt.NDArray[np.integer] | None
 
 
 P = ParamSpec("P")
