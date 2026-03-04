@@ -290,6 +290,12 @@ cdef object _get_zoneinfo_trans_and_deltas(tzinfo tz):
     deltas : ndarray[int64_t]
         Nanosecond UTC offsets corresponding to DST transitions.
     """
+    cdef:
+        int64_t first_offset_ns
+
+    first_offset = tz.utcoffset(datetime(1, 1, 1))
+    first_offset_ns = int(first_offset.total_seconds()) * 1_000_000_000
+
     dateutil_tz = dateutil_gettz(tz.key)
 
     if hasattr(dateutil_tz, "_trans_list") and len(dateutil_tz._trans_list):
@@ -302,17 +308,13 @@ cdef object _get_zoneinfo_trans_and_deltas(tzinfo tz):
         trans[0] = NPY_NAT + 1
 
         deltas = np.array(
-            [v.offset for v in (dateutil_tz._ttinfo_before,) + dateutil_tz._trans_idx],
+            [first_offset_ns] +
+            [v.offset * 1_000_000_000 for v in dateutil_tz._trans_idx],
             dtype="i8"
         )
-        deltas *= 1_000_000_000
     else:
         trans = np.array([NPY_NAT + 1], dtype=np.int64)
-        if hasattr(dateutil_tz, "_ttinfo_std"):
-            offset = dateutil_tz._ttinfo_std.offset
-        else:
-            offset = 0
-        deltas = np.array([offset], dtype="i8") * 1_000_000_000
+        deltas = np.array([first_offset_ns], dtype="i8")
 
     return trans, deltas
 
