@@ -499,7 +499,7 @@ among the specified categories will raise.
 .. note::
 
    With ``dtype='category'``, the resulting categories will always be parsed
-   as strings (``str`` dtype). If the categories are numeric they can be
+   as strings (object dtype). If the categories are numeric they can be
    converted using the :func:`to_numeric` function, or as appropriate, another
    converter such as :func:`to_datetime`.
 
@@ -825,8 +825,8 @@ Parsing a CSV with mixed timezones
 
 pandas cannot natively represent a column or index with mixed timezones. If your CSV
 file contains columns with a mixture of timezones, the default result will be
-a ``str``-dtype column with strings, even with ``parse_dates``.
-To parse the mixed-timezone values as a datetime column, read in as ``str`` dtype and
+an object-dtype column with strings, even with ``parse_dates``.
+To parse the mixed-timezone values as a datetime column, read in as ``object`` dtype and
 then call :func:`to_datetime` with ``utc=True``.
 
 
