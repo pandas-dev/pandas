@@ -914,3 +914,4 @@ def test_to_numeric_leading_zero_precision_loss():
     result = to_numeric(ser)
 
     assert result.iloc[0] == 10084566.0
+    

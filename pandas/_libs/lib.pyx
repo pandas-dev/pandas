@@ -2486,11 +2486,15 @@ def maybe_convert_numeric(
             seen.float_ = True
         else:
             try:
-                try:
-                    as_int = int(val)
-                    maybe_int = 1
-                    fval = <float64_t>as_int
-                except (TypeError, ValueError):
+                # Attempt integer parsing first for string values
+                if isinstance(val, str):
+                    try:
+                        as_int = int(val)
+                        maybe_int = 1
+                        fval = <float64_t>as_int
+                    except (TypeError, ValueError):
+                        floatify(val, &fval, &maybe_int)
+                else:
                     floatify(val, &fval, &maybe_int)
 
                 if fval in na_values:
