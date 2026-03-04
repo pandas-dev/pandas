@@ -136,23 +136,15 @@ def scalar_kurt(
     skipna: bool,  # bint
     mask: npt.NDArray[np.bool_] | None,  # const uint8_t[:]
 ) -> float: ...
-def axis0_skew(
+def axis_skew(
     values: np.ndarray,  # const float64_t[:, :]
+    axis: int,
     skipna: bool,  # bint
     mask: npt.NDArray[np.bool_] | None,  # const uint8_t[:, :]
 ) -> np.ndarray: ...
-def axis0_kurt(
+def axis_kurt(
     values: np.ndarray,  # const float64_t[:, :]
-    skipna: bool,  # bint
-    mask: npt.NDArray[np.bool_] | None,  # const uint8_t[:, :]
-) -> np.ndarray: ...
-def axis1_skew(
-    values: np.ndarray,  # const float64_t[:, :]
-    skipna: bool,  # bint
-    mask: npt.NDArray[np.bool_] | None,  # const uint8_t[:, :]
-) -> np.ndarray: ...
-def axis1_kurt(
-    values: np.ndarray,  # const float64_t[:, :]
+    axis: int,
     skipna: bool,  # bint
     mask: npt.NDArray[np.bool_] | None,  # const uint8_t[:, :]
 ) -> np.ndarray: ...

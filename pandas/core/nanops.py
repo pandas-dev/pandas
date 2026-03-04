@@ -1257,10 +1257,8 @@ def nanskew(
             values.ravel(), skipna, mask.ravel() if mask is not None else None
         )
         result = np.float64(result_float)
-    elif axis == 0:
-        result = libalgos.axis0_skew(values, skipna, mask)
-    elif axis == 1:
-        result = libalgos.axis1_skew(values, skipna, mask)
+    elif axis in {0, 1}:
+        result = libalgos.axis_skew(values, axis, skipna, mask)
     else:
         raise ValueError("axis must be 0, 1 or None")
 
@@ -1316,10 +1314,8 @@ def nankurt(
             values.ravel(), skipna, mask.ravel() if mask is not None else None
         )
         result = np.float64(result_float)
-    elif axis == 0:
-        result = libalgos.axis0_kurt(values, skipna, mask)
-    elif axis == 1:
-        result = libalgos.axis1_kurt(values, skipna, mask)
+    elif axis in {0, 1}:
+        result = libalgos.axis_kurt(values, axis, skipna, mask)
     else:
         raise ValueError("axis must be 0, 1 or None")
 

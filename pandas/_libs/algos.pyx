@@ -1557,72 +1557,25 @@ def scalar_kurt(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def axis0_skew(
+def axis_skew(
     const float64_t[:, :] values,
+    int axis,
     bint skipna,
     const uint8_t[:, :] mask,
 ) -> ndarray:
     cdef:
-        Py_ssize_t j, ncols = values.shape[1]
-        int64_t[:] nobs = np.zeros(ncols, dtype=np.int64)
-        float64_t[:] mean = np.zeros(ncols)
-        float64_t[:] m2 = np.zeros(ncols)
-        float64_t[:] m3 = np.zeros(ncols)
-        ndarray result_arr = np.empty(ncols, dtype=np.float64)
+        Py_ssize_t i
+        Py_ssize_t nouter = values.shape[1] if axis == 0 else values.shape[0]
+        int64_t[:] nobs = np.zeros(nouter, dtype=np.int64)
+        float64_t[:] mean = np.zeros(nouter)
+        float64_t[:] m2 = np.zeros(nouter)
+        float64_t[:] m3 = np.zeros(nouter)
+        ndarray result_arr = np.empty(nouter, dtype=np.float64)
         float64_t[:] result = result_arr
 
     with nogil:
-        accumulate_moments_axis(values, skipna, mask, nobs, mean, m2, m3, None, 0, 3)
-        for j in range(ncols):
-            result[j] = calc_skew(nobs[j], m2[j], m3[j])
-
-    return result_arr
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def axis0_kurt(
-    const float64_t[:, :] values,
-    bint skipna,
-    const uint8_t[:, :] mask,
-) -> ndarray:
-    cdef:
-        Py_ssize_t j, ncols = values.shape[1]
-        int64_t[:] nobs = np.zeros(ncols, dtype=np.int64)
-        float64_t[:] mean = np.zeros(ncols)
-        float64_t[:] m2 = np.zeros(ncols)
-        float64_t[:] m3 = np.zeros(ncols)
-        float64_t[:] m4 = np.zeros(ncols)
-        ndarray result_arr = np.empty(ncols, dtype=np.float64)
-        float64_t[:] result = result_arr
-
-    with nogil:
-        accumulate_moments_axis(values, skipna, mask, nobs, mean, m2, m3, m4, 0, 4)
-        for j in range(ncols):
-            result[j] = calc_kurt(nobs[j], m2[j], m4[j])
-
-    return result_arr
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def axis1_skew(
-    const float64_t[:, :] values,
-    bint skipna,
-    const uint8_t[:, :] mask,
-) -> ndarray:
-    cdef:
-        Py_ssize_t i, nrows = values.shape[0]
-        int64_t[:] nobs = np.zeros(nrows, dtype=np.int64)
-        float64_t[:] mean = np.zeros(nrows)
-        float64_t[:] m2 = np.zeros(nrows)
-        float64_t[:] m3 = np.zeros(nrows)
-        ndarray result_arr = np.empty(nrows, dtype=np.float64)
-        float64_t[:] result = result_arr
-
-    with nogil:
-        accumulate_moments_axis(values, skipna, mask, nobs, mean, m2, m3, None, 1, 3)
-        for i in range(nrows):
+        accumulate_moments_axis(values, skipna, mask, nobs, mean, m2, m3, None, axis, 3)
+        for i in range(nouter):
             result[i] = calc_skew(nobs[i], m2[i], m3[i])
 
     return result_arr
@@ -1630,24 +1583,26 @@ def axis1_skew(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def axis1_kurt(
+def axis_kurt(
     const float64_t[:, :] values,
+    int axis,
     bint skipna,
     const uint8_t[:, :] mask,
 ) -> ndarray:
     cdef:
-        Py_ssize_t i, nrows = values.shape[0]
-        int64_t[:] nobs = np.zeros(nrows, dtype=np.int64)
-        float64_t[:] mean = np.zeros(nrows)
-        float64_t[:] m2 = np.zeros(nrows)
-        float64_t[:] m3 = np.zeros(nrows)
-        float64_t[:] m4 = np.zeros(nrows)
-        ndarray result_arr = np.empty(nrows, dtype=np.float64)
+        Py_ssize_t i
+        Py_ssize_t nouter = values.shape[1] if axis == 0 else values.shape[0]
+        int64_t[:] nobs = np.zeros(nouter, dtype=np.int64)
+        float64_t[:] mean = np.zeros(nouter)
+        float64_t[:] m2 = np.zeros(nouter)
+        float64_t[:] m3 = np.zeros(nouter)
+        float64_t[:] m4 = np.zeros(nouter)
+        ndarray result_arr = np.empty(nouter, dtype=np.float64)
         float64_t[:] result = result_arr
 
     with nogil:
-        accumulate_moments_axis(values, skipna, mask, nobs, mean, m2, m3, m4, 1, 4)
-        for i in range(nrows):
+        accumulate_moments_axis(values, skipna, mask, nobs, mean, m2, m3, m4, axis, 4)
+        for i in range(nouter):
             result[i] = calc_kurt(nobs[i], m2[i], m4[i])
 
     return result_arr
