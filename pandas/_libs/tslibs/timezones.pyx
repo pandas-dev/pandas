@@ -312,7 +312,7 @@ cdef object _get_trans_and_deltas_from_dateutil_tz(
     return trans, deltas
 
 
-cdef object _get_zoneinfo_trans_and_deltas(tzinfo tz):
+cdef tuple _get_zoneinfo_trans_and_deltas(tzinfo tz):
     """
     Parameters
     ----------
