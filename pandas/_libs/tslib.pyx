@@ -26,6 +26,7 @@ import numpy as np
 cnp.import_array()
 
 from pandas._libs.tslibs.dtypes cimport (
+    abbrev_to_npy_unit,
     get_supported_reso,
     npy_unit_to_abbrev,
 )
@@ -120,7 +121,7 @@ def format_array_from_datetime(
     NPY_DATETIMEUNIT reso=NPY_FR_ns,
 ) -> np.ndarray:
     """
-    return a np object array of the string formatted values
+    return an np object array of the string formatted values
 
     Parameters
     ----------
@@ -312,7 +313,7 @@ cpdef array_to_datetime(
         _TSObject tsobj
         tzinfo tz, tz_out = None
         cnp.flatiter it = cnp.PyArray_IterNew(values)
-        NPY_DATETIMEUNIT item_reso
+        NPY_DATETIMEUNIT item_reso, int_reso
         bint infer_reso = creso == NPY_DATETIMEUNIT.NPY_FR_GENERIC
         DatetimeParseState state = DatetimeParseState(creso)
         str abbrev
@@ -325,11 +326,11 @@ cpdef array_to_datetime(
     else:
         abbrev = npy_unit_to_abbrev(creso)
 
-    if unit_for_numerics is not None:
-        # either creso or unit_for_numerics should be passed, not both
-        assert creso == NPY_FR_ns
-    else:
+    if unit_for_numerics is None:
         unit_for_numerics = abbrev
+        int_reso = NPY_FR_ns
+    else:
+        int_reso = get_supported_reso(abbrev_to_npy_unit(unit_for_numerics))
 
     result = np.empty((<object>values).shape, dtype=f"M8[{abbrev}]")
     iresult = result.view("i8").ravel()
@@ -370,11 +371,36 @@ cpdef array_to_datetime(
                 iresult[i] = get_datetime64_nanos(val, creso)
                 state.found_other = True
 
-            elif is_integer_object(val) or is_float_object(val):
+            elif is_integer_object(val):
+                if val == NPY_NAT:
+                    iresult[i] = NPY_NAT
+                else:
+                    item_reso = int_reso
+                    state.update_creso(item_reso)
+                    if infer_reso:
+                        creso = state.creso
+
+                    iresult[i] = cast_from_unit(val, unit_for_numerics, out_reso=creso)
+
+                    state.found_other = True
+
+            elif is_float_object(val):
                 # these must be ns unit by-definition
 
                 if val != val or val == NPY_NAT:
                     iresult[i] = NPY_NAT
+                elif val.is_integer():
+                    # If we have a round float, treat it like an integer
+                    item_reso = int_reso
+                    state.update_creso(item_reso)
+                    if infer_reso:
+                        creso = state.creso
+
+                    iresult[i] = cast_from_unit(
+                        <int64_t>val, unit_for_numerics, out_reso=creso
+                    )
+
+                    state.found_other = True
                 else:
                     item_reso = NPY_FR_ns
                     state.update_creso(item_reso)
@@ -460,6 +486,7 @@ cpdef array_to_datetime(
                 dayfirst=dayfirst,
                 utc=utc,
                 creso=state.creso,
+                unit_for_numerics=unit_for_numerics,
             )
         elif state.creso == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
             # i.e. we never encountered anything non-NaT, default to "s". This

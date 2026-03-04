@@ -126,9 +126,6 @@ def to_dict(
           [{column -> value}, ... , {column -> value}]
         - 'index' : dict like {index -> {column -> value}}
 
-        .. versionadded:: 1.4.0
-            'tight' as an allowed value for the ``orient`` argument
-
     into : class, default dict
         The collections.abc.MutableMapping subclass used for all Mappings
         in the return value.  Can be the actual class or an empty

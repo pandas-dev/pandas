@@ -92,7 +92,7 @@ class TestSeriesRank:
         mask = np.isnan(datetime_series)
         filled = datetime_series.fillna(np.inf)
 
-        # rankdata returns a ndarray
+        # rankdata returns an ndarray
         exp = Series(sp_stats.rankdata(filled), index=filled.index, name="ts")
         exp[mask] = np.nan
 

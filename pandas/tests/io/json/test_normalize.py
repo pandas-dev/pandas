@@ -927,3 +927,14 @@ class TestNestedToRecord:
             index=[1, 2, 3],
         )
         tm.assert_frame_equal(result, expected)
+
+    def test_json_normalize_meta_string_validation(self):
+        # GH 63019
+        data = [{"a": 1, 12: "meta_value", "nested": [{"b": 2}]}]
+
+        # Test non-string meta raises TypeError consistently
+        with pytest.raises(TypeError, match="must be strings"):
+            json_normalize(data, meta=[12])
+
+        with pytest.raises(TypeError, match="must be strings"):
+            json_normalize(data, record_path=["nested"], meta=[12])

@@ -71,7 +71,7 @@ class TestWhere:
         tm.assert_index_equal(result, expected)
 
         cond = [False] + [True] * len(idx[1:])
-        expected = IntervalIndex([np.nan] + idx[1:].tolist())
+        expected = IntervalIndex([np.nan, *idx[1:].tolist()])
         result = idx.where(klass(cond))
         tm.assert_index_equal(result, expected)
 
@@ -364,7 +364,7 @@ class TestGetIndexer:
         tm.assert_numpy_array_equal(result, expected)
 
     def test_get_indexer_datetime(self):
-        ii = IntervalIndex.from_breaks(date_range("2018-01-01", periods=4))
+        ii = IntervalIndex.from_breaks(date_range("2018-01-01", periods=4, unit="ns"))
         # TODO: with mismatched resolution get_indexer currently raises;
         #  this should probably coerce?
         target = DatetimeIndex(["2018-01-02"], dtype="M8[ns]")
@@ -661,7 +661,7 @@ class TestPutmask:
 
     def test_putmask_td64(self):
         # GH#37968
-        dti = date_range("2016-01-01", periods=9)
+        dti = date_range("2016-01-01", periods=9, unit="ns")
         tdi = dti - dti[0]
         idx = IntervalIndex.from_breaks(tdi)
         mask = np.zeros(idx.shape, dtype=bool)

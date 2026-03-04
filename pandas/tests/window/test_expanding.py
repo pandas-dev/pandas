@@ -216,7 +216,7 @@ def test_expanding_sem(frame_or_series):
     result = obj.expanding().sem()
     if isinstance(result, DataFrame):
         result = Series(result[0].values)
-    expected = Series([np.nan] + [0.707107] * 2)
+    expected = Series([np.nan, 0.5, (1 / 3) ** 0.5])
     tm.assert_series_equal(result, expected)
 
 
@@ -457,8 +457,8 @@ def test_expanding_min_periods_apply(engine_and_raw):
 @pytest.mark.parametrize(
     "f",
     [
-        lambda x: (x.expanding(min_periods=5).cov(x, pairwise=True)),
-        lambda x: (x.expanding(min_periods=5).corr(x, pairwise=True)),
+        lambda x: x.expanding(min_periods=5).cov(x, pairwise=True),
+        lambda x: x.expanding(min_periods=5).corr(x, pairwise=True),
     ],
 )
 def test_moment_functions_zero_length_pairwise(f):

@@ -613,7 +613,7 @@ class TestDataFrameAnalytics:
                     "D": Series([np.nan], dtype="str"),
                     "E": Categorical([np.nan], categories=["a"]),
                     "F": DatetimeIndex([pd.NaT], dtype="M8[ns]"),
-                    "G": to_timedelta([pd.NaT]),
+                    "G": to_timedelta([pd.NaT]).as_unit("us"),
                 },
             ),
             (
@@ -687,8 +687,8 @@ class TestDataFrameAnalytics:
     def test_operators_timedelta64(self):
         df = DataFrame(
             {
-                "A": date_range("2012-1-1", periods=3, freq="D"),
-                "B": date_range("2012-1-2", periods=3, freq="D"),
+                "A": date_range("2012-1-1", periods=3, freq="D", unit="ns"),
+                "B": date_range("2012-1-2", periods=3, freq="D", unit="ns"),
                 "C": Timestamp("20120101") - timedelta(minutes=5, seconds=5),
             }
         )
@@ -761,8 +761,8 @@ class TestDataFrameAnalytics:
         # GH 3106
         df = DataFrame(
             {
-                "time": date_range("20130102", periods=5),
-                "time2": date_range("20130105", periods=5),
+                "time": date_range("20130102", periods=5, unit="ns"),
+                "time2": date_range("20130105", periods=5, unit="ns"),
             }
         )
         df["off1"] = df["time2"] - df["time"]
@@ -781,12 +781,14 @@ class TestDataFrameAnalytics:
 
         result = df.std(skipna=False)
         expected = Series(
-            [df["A"].std(), pd.NaT], index=["A", "B"], dtype="timedelta64[ns]"
+            [df["A"].std(), pd.NaT], index=["A", "B"], dtype="timedelta64[us]"
         )
         tm.assert_series_equal(result, expected)
 
         result = df.std(axis=1, skipna=False)
-        expected = Series([pd.Timedelta(0)] * 8 + [pd.NaT, pd.Timedelta(0)])
+        expected = Series(
+            [pd.Timedelta(0)] * 8 + [pd.NaT, pd.Timedelta(0)], dtype="m8[us]"
+        )
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -800,8 +802,7 @@ class TestDataFrameAnalytics:
         if not skipna or all(value is pd.NaT for value in values):
             expected = Series({"a": pd.NaT}, dtype=f"timedelta64[{unit}]")
         else:
-            # 86400000000000ns == 1 day
-            expected = Series({"a": 86400000000000}, dtype=f"timedelta64[{unit}]")
+            expected = Series({"a": "1 days"}, dtype=f"timedelta64[{unit}]")
         tm.assert_series_equal(result, expected)
 
     def test_sum_corner(self):
@@ -1040,6 +1041,26 @@ class TestDataFrameAnalytics:
         df = DataFrame(index=range(1), columns=range(10))
         bools = isna(df)
         assert bools.sum(axis=1)[0] == 10
+
+    @pytest.mark.parametrize(
+        "input_data, expected_data",
+        [
+            ({"a": ["483", "3"], "b": ["94", "759"]}, ["48394", "3759"]),
+            (
+                {"a": ["483.948", "3.0"], "b": ["94.2", "759.93"]},
+                ["483.94894.2", "3.0759.93"],
+            ),
+            ({"a": ["483", "3.0"], "b": ["94.2", "79"]}, ["48394.2", "3.079"]),
+        ],
+    )
+    def test_sum_string_dtype_coercion(self, input_data, expected_data):
+        # GH#22642
+        # Check that summing numeric strings results in concatenation
+        # and not conversion to dtype int64 or float64
+        df = DataFrame(input_data)
+        expected = Series(expected_data)
+        result = df.sum(axis=1)
+        tm.assert_series_equal(result, expected)
 
     # ----------------------------------------------------------------------
     # Index of max / min
@@ -1300,7 +1321,7 @@ class TestDataFrameAnalytics:
             assert r0.all()
             assert r1.all()
 
-    def test_any_all_extra(self):
+    def test_any_all_extra(self, using_python_scalars):
         df = DataFrame(
             {
                 "A": [True, False, False],
@@ -1324,13 +1345,19 @@ class TestDataFrameAnalytics:
         tm.assert_series_equal(result, expected)
 
         # Axis is None
-        result = df.all(axis=None).item()
+        result = df.all(axis=None)
+        if not using_python_scalars:
+            result = result.item()
         assert result is False
 
-        result = df.any(axis=None).item()
+        result = df.any(axis=None)
+        if not using_python_scalars:
+            result = result.item()
         assert result is True
 
-        result = df[["C"]].all(axis=None).item()
+        result = df[["C"]].all(axis=None)
+        if not using_python_scalars:
+            result = result.item()
         assert result is True
 
     @pytest.mark.parametrize("axis", [0, 1])
@@ -1438,7 +1465,7 @@ class TestDataFrameAnalytics:
             ),
         ],
     )
-    def test_any_all_np_func(self, func, data, expected):
+    def test_any_all_np_func(self, func, data, expected, using_python_scalars):
         # GH 19976
         data = DataFrame(data)
 
@@ -1465,20 +1492,30 @@ class TestDataFrameAnalytics:
 
         elif data.dtypes.apply(lambda x: x != "category").any():
             result = func(data)
-            assert isinstance(result, np.bool_)
-            assert result.item() is expected
+            if using_python_scalars:
+                assert result is expected
+            else:
+                assert isinstance(result, np.bool_)
+                assert result.item() is expected
 
             # method version
             result = getattr(DataFrame(data), func.__name__)(axis=None)
-            assert isinstance(result, np.bool_)
-            assert result.item() is expected
+            if using_python_scalars:
+                assert result is expected
+            else:
+                assert isinstance(result, np.bool_)
+                assert result.item() is expected
 
-    def test_any_all_object(self):
+    def test_any_all_object(self, using_python_scalars):
         # GH 19976
-        result = np.all(DataFrame(columns=["a", "b"])).item()
+        result = np.all(DataFrame(columns=["a", "b"]))
+        if not using_python_scalars:
+            result = result.item()
         assert result is True
 
-        result = np.any(DataFrame(columns=["a", "b"])).item()
+        result = np.any(DataFrame(columns=["a", "b"]))
+        if not using_python_scalars:
+            result = result.item()
         assert result is False
 
     def test_any_all_object_bool_only(self):

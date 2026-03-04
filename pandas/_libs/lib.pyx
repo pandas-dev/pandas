@@ -106,7 +106,6 @@ from pandas._libs.tslibs.nattype cimport (
 )
 from pandas._libs.tslibs.offsets cimport is_offset_object
 from pandas._libs.tslibs.period cimport is_period_object
-from pandas._libs.tslibs.timedeltas cimport convert_to_timedelta64
 from pandas._libs.tslibs.timezones cimport tz_compare
 
 # constants that will be compared to potentially arbitrarily large
@@ -135,7 +134,7 @@ except ImportError:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def memory_usage_of_objects(arr: object[:]) -> int64_t:
+def memory_usage_of_objects(ndarray[object, ndim=1] arr) -> int64_t:
     """
     Return the memory usage of an object array in bytes.
 
@@ -159,6 +158,10 @@ def memory_usage_of_objects(arr: object[:]) -> int64_t:
 def is_scalar(val: object) -> bool:
     """
     Return True if given object is scalar.
+
+    This function determines whether a given Python object is a scalar
+    value rather than a collection. Scalars include numeric types,
+    strings, bytes, dates, timedeltas, intervals, periods, and ``None``.
 
     Parameters
     ----------
@@ -318,11 +321,11 @@ def item_from_zerodim(val: object) -> object:
     >>> item_from_zerodim('foobar')
     'foobar'
     >>> item_from_zerodim(np.array(1))
-    1
+    np.int64(1)
     >>> item_from_zerodim(np.array([1]))
     array([1])
     """
-    if cnp.PyArray_IsZeroDim(val):
+    if cnp.PyArray_IsZeroDim(val) and cnp.PyArray_CheckExact(val):
         return cnp.PyArray_ToScalar(cnp.PyArray_DATA(val), val)
     return val
 
@@ -631,7 +634,7 @@ def array_equivalent_object(ndarray left, ndarray right) -> bool:
                 # Check if non-scalars have the same type
                 return False
             elif check_na_tuples_nonequal(x, y):
-                # We have tuples where one Side has a NA and the other side does not
+                # We have tuples where one Side has an NA and the other side does not
                 # Only condition we may end up with a TypeError
                 return False
             raise
@@ -1186,6 +1189,10 @@ def is_bool(obj: object) -> bool:
     """
     Return True if given object is boolean.
 
+    This function checks whether ``obj`` is an instance of Python's built-in
+    ``bool`` type. It does not return True for numeric values like ``0``
+    or ``1`` that can evaluate as booleans.
+
     Parameters
     ----------
     obj : object
@@ -1216,6 +1223,9 @@ def is_bool(obj: object) -> bool:
 def is_complex(obj: object) -> bool:
     """
     Return True if given object is complex.
+
+    This function checks whether ``obj`` is an instance of Python's built-in
+    ``complex`` type or numpy's complex type (e.g., ``numpy.complex128``).
 
     Parameters
     ----------
@@ -2593,7 +2603,7 @@ def maybe_convert_objects(ndarray[object] objects,
         Whether to convert numeric entries.
     convert_to_nullable_dtype : bool, default False
         If an array-like object contains only integer or boolean values (and NaN) is
-        encountered, whether to convert and return an Boolean/IntegerArray.
+        encountered, whether to convert and return a Boolean/IntegerArray.
     convert_non_numeric : bool, default False
         Whether to convert datetime, timedelta, period, interval types.
     dtype_if_all_nat : np.dtype, ExtensionDtype, or None, default None
@@ -2674,11 +2684,6 @@ def maybe_convert_objects(ndarray[object] objects,
         elif is_timedelta(val):
             if convert_non_numeric:
                 seen.timedelta_ = True
-                try:
-                    convert_to_timedelta64(val, "ns")
-                except OutOfBoundsTimedelta:
-                    seen.object_ = True
-                    break
                 break
             else:
                 seen.object_ = True
@@ -2716,7 +2721,6 @@ def maybe_convert_objects(ndarray[object] objects,
             if convert_non_numeric:
                 if getattr(val, "tzinfo", None) is not None:
                     seen.datetimetz_ = True
-                    break
                 else:
                     seen.datetime_ = True
                     try:
@@ -2724,10 +2728,9 @@ def maybe_convert_objects(ndarray[object] objects,
                     except OutOfBoundsDatetime:
                         # e.g. test_out_of_s_bounds_datetime64
                         seen.object_ = True
-                        break
             else:
                 seen.object_ = True
-                break
+            break
         elif is_period_object(val):
             if convert_non_numeric:
                 seen.period_ = True
@@ -3198,7 +3201,9 @@ def to_object_array_tuples(rows: object) -> np.ndarray:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def fast_multiget(dict mapping, object[:] keys, default=np.nan) -> "ArrayLike":
+def fast_multiget(
+    dict mapping, ndarray[object, ndim=1] keys, default=np.nan
+) -> "ArrayLike":
     cdef:
         Py_ssize_t i, n = len(keys)
         object val

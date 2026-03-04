@@ -8,9 +8,6 @@ import pytest
 
 from pandas.compat import (
     IS64,
-    is_platform_arm,
-    is_platform_power,
-    is_platform_riscv64,
 )
 from pandas.errors import Pandas4Warning
 
@@ -228,15 +225,10 @@ def test_datetimelike_centered_selections(
         index=date_range("2020", periods=5),
     )
 
-    if func_name == "sem":
-        kwargs = {"ddof": 0}
-    else:
-        kwargs = {}
-
     result = getattr(
         df_time.rolling("2D", closed=closed, min_periods=1, center=True),
         func_name,
-    )(**kwargs)
+    )()
 
     tm.assert_frame_equal(result, expected, check_dtype=False)
 
@@ -1081,31 +1073,95 @@ def test_rolling_sem(frame_or_series):
     result = obj.rolling(2, min_periods=1).sem()
     if isinstance(result, DataFrame):
         result = Series(result[0].values)
-    expected = Series([np.nan] + [0.7071067811865476] * 2)
+    expected = Series([np.nan] + [0.5] * 2)
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.xfail(
-    is_platform_arm() or is_platform_power() or is_platform_riscv64(),
-    reason="GH 38921",
-)
 @pytest.mark.parametrize(
-    ("func", "third_value", "values"),
+    ("func", "values", "window", "ddof", "expected_values"),
     [
-        ("var", 1, [5e33, 0, 0.5, 0.5, 2, 0]),
-        ("std", 1, [7.071068e16, 0, 0.7071068, 0.7071068, 1.414214, 0]),
-        ("var", 2, [5e33, 0.5, 0, 0.5, 2, 0]),
-        ("std", 2, [7.071068e16, 0.7071068, 0, 0.7071068, 1.414214, 0]),
+        ("var", [99999999999999999, 1, 1, 2, 3, 1, 1], 2, 1, [5e33, 0, 0.5, 0.5, 2, 0]),
+        (
+            "std",
+            [99999999999999999, 1, 1, 2, 3, 1, 1],
+            2,
+            1,
+            [7.071068e16, 0, 0.7071068, 0.7071068, 1.414214, 0],
+        ),
+        ("var", [99999999999999999, 1, 2, 2, 3, 1, 1], 2, 1, [5e33, 0.5, 0, 0.5, 2, 0]),
+        (
+            "std",
+            [99999999999999999, 1, 2, 2, 3, 1, 1],
+            2,
+            1,
+            [7.071068e16, 0.7071068, 0, 0.7071068, 1.414214, 0],
+        ),
+        (
+            "std",
+            [1.2e03, 1.3e17, 1.5e17, 1.995e03, 1.990e03],
+            2,
+            1,
+            [9.192388e16, 1.414214e16, 1.060660e17, 3.535534e00],
+        ),
+        (
+            "var",
+            [
+                0.00000000e00,
+                0.00000000e00,
+                3.16188252e-18,
+                2.95781651e-16,
+                2.23153542e-51,
+                0.00000000e00,
+                0.00000000e00,
+                5.39943432e-48,
+                1.38206260e-73,
+                0.00000000e00,
+            ],
+            3,
+            1,
+            [
+                3.33250036e-036,
+                2.88538519e-032,
+                2.88538519e-032,
+                2.91622617e-032,
+                1.65991678e-102,
+                9.71796366e-096,
+                9.71796366e-096,
+                9.71796366e-096,
+            ],
+        ),
+        (
+            "std",
+            [1, -1, 0, 1, 3, 2, -2, 10000000000, 1, 2, 0, -2, 1, 3, 0, 1],
+            6,
+            1,
+            [
+                1.41421356e00,
+                1.87082869e00,
+                4.08248290e09,
+                4.08248290e09,
+                4.08248290e09,
+                4.08248290e09,
+                4.08248290e09,
+                4.08248290e09,
+                1.72240142e00,
+                1.75119007e00,
+                1.64316767e00,
+            ],
+        ),
     ],
 )
-def test_rolling_var_numerical_issues(func, third_value, values):
-    # GH: 37051
-    ds = Series([99999999999999999, 1, third_value, 2, 3, 1, 1])
-    result = getattr(ds.rolling(2), func)()
-    expected = Series([np.nan] + values)
-    tm.assert_series_equal(result, expected)
+def test_rolling_var_correctness(func, values, window, ddof, expected_values):
+    # GH: 37051, 42064, 54518, 52407, 47721
+    ts = Series(values)
+    result = getattr(ts.rolling(window=window), func)(ddof=ddof)
+    if result.last_valid_index():
+        result = result[
+            result.first_valid_index() : result.last_valid_index() + 1
+        ].reset_index(drop=True)
+    expected = Series(expected_values)
+    tm.assert_series_equal(result, expected, atol=1e-55)
     # GH 42064
-    # new `roll_var` will output 0.0 correctly
     tm.assert_series_equal(result == 0, expected == 0)
 
 
@@ -1460,14 +1516,39 @@ def test_rolling_skew_kurt_numerical_stability(method):
             [3000000, 1, 1, 2, 3, 4, 999],
             [np.nan] * 3 + [4.0, -1.289256, -1.2, 3.999946],
         ),
+        (
+            "kurt",
+            [1e6, -1e6, 1, 2, 3, 4, 5, 6],
+            [np.nan] * 3 + [1.5, 4.0, -1.2, -1.2, -1.2],
+        ),
     ],
 )
 def test_rolling_skew_kurt_large_value_range(method, data, values):
-    # GH: 37557, 47461
+    # GH: 37557, 47461, 61416
     s = Series(data)
     result = getattr(s.rolling(4), method)()
     expected = Series(values)
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("method", ["skew", "kurt"])
+def test_same_result_with_different_lengths(method):
+    # GH-54380
+    len_smaller = 10
+    len_bigger = 12
+    window_size = 8
+
+    rng = np.random.default_rng(2)
+    data = rng.normal(loc=0.0, scale=1e3, size=len_bigger)
+    window_smaller = Series(data[:len_smaller]).rolling(window_size)
+    window_bigger = Series(data).rolling(window_size)
+
+    result_smaller = getattr(window_smaller, method)()
+    result_bigger = getattr(window_bigger, method)()
+
+    result_bigger_trimmed = result_bigger[:len_smaller]
+
+    tm.assert_series_equal(result_smaller, result_bigger_trimmed, check_exact=True)
 
 
 def test_invalid_method():
@@ -1546,7 +1627,8 @@ def test_rolling_mean_all_nan_window_floating_artifacts(start, exp_values):
         ]
     )
 
-    values = exp_values + [
+    values = [
+        *exp_values,
         0.00366666,
         0.005,
         0.005,
@@ -1942,7 +2024,8 @@ def test_numeric_only_corr_cov_series(kernel, use_arg, numeric_only, dtype):
 def test_rolling_timedelta_window_non_nanoseconds(unit, tz):
     # Test Sum, GH#55106
     df_time = DataFrame(
-        {"A": range(5)}, index=date_range("2013-01-01", freq="1s", periods=5, tz=tz)
+        {"A": range(5)},
+        index=date_range("2013-01-01", freq="1s", periods=5, tz=tz, unit="ns"),
     )
     sum_in_nanosecs = df_time.rolling("1s").sum()
     # microseconds / milliseconds should not break the correct rolling

@@ -332,3 +332,9 @@ class TestSeriesConvertDtypes:
         result = ser.convert_dtypes(dtype_backend="pyarrow")
         expected = ser.copy()
         tm.assert_series_equal(result, expected)
+
+    def test_convert_dtypes_complex(self):
+        # GH 60129
+        ser = pd.Series([1.5 + 3.0j, 1.5 - 3.0j])
+        result = ser.convert_dtypes()
+        tm.assert_series_equal(result, ser)

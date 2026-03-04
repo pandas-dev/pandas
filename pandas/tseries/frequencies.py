@@ -171,7 +171,7 @@ def infer_freq(
         )
 
     if not isinstance(index, DatetimeIndex):
-        index = DatetimeIndex(index)
+        index = DatetimeIndex(index, copy=False)
 
     inferer = _FrequencyInferer(index)
     return inferer.get_freq()
@@ -580,7 +580,7 @@ def _maybe_coerce_freq(code) -> str:
     """
     assert code is not None
     if isinstance(code, DateOffset):
-        code = PeriodDtype(to_offset(code.name))._freqstr
+        code = PeriodDtype(to_offset(code.rule_code))._freqstr
     if code in {"h", "min", "s", "ms", "us", "ns"}:
         return code
     else:

@@ -233,9 +233,8 @@ def test_where_setitem_invalid():
     # GH 2702
     # make sure correct exceptions are raised on invalid list assignment
 
-    msg = (
-        lambda x: f"cannot set using a {x} indexer with a "
-        "different length than the value"
+    msg = lambda x: (
+        f"cannot set using a {x} indexer with a different length than the value"
     )
     # slice
     s = Series(list("abc"), dtype=object)
@@ -326,12 +325,14 @@ def test_where_inplace():
 
     rs = s.copy()
 
-    rs.where(cond, inplace=True)
+    result = rs.where(cond, inplace=True)
+    assert result is rs
     tm.assert_series_equal(rs.dropna(), s[cond])
     tm.assert_series_equal(rs, s.where(cond))
 
     rs = s.copy()
-    rs.where(cond, -s, inplace=True)
+    result = rs.where(cond, -s, inplace=True)
+    assert result is rs
     tm.assert_series_equal(rs, s.where(cond, -s))
 
 

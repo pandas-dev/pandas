@@ -50,11 +50,11 @@ https://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 #include <wchar.h>
 
 #ifndef TRUE
-#define TRUE 1
-#define FALSE 0
+#  define TRUE 1
+#  define FALSE 0
 #endif
 #ifndef NULL
-#define NULL 0
+#  define NULL 0
 #endif
 
 struct DecoderState {

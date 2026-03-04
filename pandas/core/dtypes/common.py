@@ -290,6 +290,10 @@ def is_datetime64_dtype(arr_or_dtype) -> bool:
     """
     Check whether an array-like or dtype is of the datetime64 dtype.
 
+    This function checks for the base ``datetime64`` dtype without regard
+    to timezone information. For timezone-aware checks, use
+    :func:`api.types.is_datetime64_any_dtype` instead.
+
     Parameters
     ----------
     arr_or_dtype : array-like or dtype
@@ -393,6 +397,10 @@ def is_datetime64tz_dtype(arr_or_dtype) -> bool:
 def is_timedelta64_dtype(arr_or_dtype) -> bool:
     """
     Check whether an array-like or dtype is of the timedelta64 dtype.
+
+    This function checks if the provided array-like object or dtype
+    corresponds to a timedelta64 dtype, which is used to represent
+    differences between two datetime values.
 
     Parameters
     ----------
@@ -602,7 +610,7 @@ def is_categorical_dtype(arr_or_dtype) -> bool:
 
 def is_string_or_object_np_dtype(dtype: np.dtype) -> bool:
     """
-    Faster alternative to is_string_dtype, assumes we have a np.dtype object.
+    Faster alternative to is_string_dtype, assumes we have an np.dtype object.
     """
     return dtype == object or dtype.kind in "SU"
 
@@ -627,8 +635,8 @@ def is_string_dtype(arr_or_dtype) -> bool:
 
     See Also
     --------
-    api.types.is_string_dtype : Check whether the provided array or dtype
-                                is of the string dtype.
+    api.types.is_object_dtype : Check whether an array-like or dtype is of the
+        object dtype.
 
     Examples
     --------
@@ -664,6 +672,10 @@ def is_string_dtype(arr_or_dtype) -> bool:
 def is_dtype_equal(source, target) -> bool:
     """
     Check if two dtypes are equal.
+
+    This function compares two dtype specifications, handling both NumPy
+    dtypes and pandas ExtensionDtypes. String representations of dtypes
+    are also supported and will be resolved before comparison.
 
     Parameters
     ----------
@@ -1000,6 +1012,10 @@ def is_datetime64_any_dtype(arr_or_dtype) -> bool:
     """
     Check whether the provided array or dtype is of the datetime64 dtype.
 
+    Unlike :func:`api.types.is_datetime64_dtype`, this function also
+    considers timezone-aware dtypes such as ``DatetimeTZDtype`` to be
+    datetime64 dtypes.
+
     Parameters
     ----------
     arr_or_dtype : array-like or dtype
@@ -1062,6 +1078,10 @@ def is_datetime64_any_dtype(arr_or_dtype) -> bool:
 def is_datetime64_ns_dtype(arr_or_dtype) -> bool:
     """
     Check whether the provided array or dtype is of the datetime64[ns] dtype.
+
+    This function is more restrictive than :func:`api.types.is_datetime64_dtype`
+    because it requires the dtype to have nanosecond resolution specifically,
+    including timezone-aware ``DatetimeTZDtype`` with nanosecond units.
 
     Parameters
     ----------
@@ -1247,6 +1267,9 @@ def is_numeric_dtype(arr_or_dtype) -> bool:
     """
     Check whether the provided array or dtype is of a numeric dtype.
 
+    Numeric dtypes include integer, float, complex, and boolean types.
+    Datetime and timedelta dtypes are not considered numeric.
+
     Parameters
     ----------
     arr_or_dtype : array-like or dtype
@@ -1301,6 +1324,10 @@ def is_numeric_dtype(arr_or_dtype) -> bool:
 def is_any_real_numeric_dtype(arr_or_dtype) -> bool:
     """
     Check whether the provided array or dtype is of a real number dtype.
+
+    Real number dtypes include integer and float types but exclude complex
+    and boolean dtypes. This is useful when operations require real-valued
+    numeric input only.
 
     Parameters
     ----------
@@ -1559,6 +1586,9 @@ def is_ea_or_datetimelike_dtype(dtype: DtypeObj | None) -> bool:
 def is_complex_dtype(arr_or_dtype) -> bool:
     """
     Check whether the provided array or dtype is of a complex dtype.
+
+    Complex dtypes represent numbers with both real and imaginary parts,
+    such as ``np.complex64`` and ``np.complex128``.
 
     Parameters
     ----------
@@ -1823,6 +1853,10 @@ def pandas_dtype(dtype) -> DtypeObj:
     """
     Convert input into a pandas only dtype object or a numpy dtype object.
 
+    This function first checks for pandas extension types registered in the
+    dtype registry, then falls back to NumPy dtype resolution. It accepts
+    strings, types, numpy dtypes, and pandas ExtensionDtype instances.
+
     Parameters
     ----------
     dtype : object
@@ -1883,8 +1917,9 @@ def pandas_dtype(dtype) -> DtypeObj:
             # Hence enabling DeprecationWarning
             warnings.simplefilter("always", DeprecationWarning)
             npdtype = np.dtype(dtype)
-    except SyntaxError as err:
-        # np.dtype uses `eval` which can raise SyntaxError
+    except TypeError:
+        raise
+    except ValueError as err:
         raise TypeError(f"data type '{dtype}' not understood") from err
 
     # Any invalid dtype (such as pd.Timestamp) should raise an error.

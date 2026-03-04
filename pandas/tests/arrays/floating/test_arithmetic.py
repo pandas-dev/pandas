@@ -185,7 +185,7 @@ def test_error_invalid_values(data, all_arithmetic_operators):
         ]
     )
     with pytest.raises(TypeError, match=msg):
-        ops(pd.Series(pd.date_range("20180101", periods=len(s))))
+        ops(pd.Series(pd.date_range("20180101", periods=len(s), unit="ns")))
 
 
 # Various

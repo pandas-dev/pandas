@@ -221,7 +221,7 @@ def test_qcut_nat(ser, unit):
 def test_datetime_tz_qcut(bins):
     # see gh-19872
     tz = "US/Eastern"
-    ser = Series(date_range("20130101", periods=3, tz=tz))
+    ser = Series(date_range("20130101", periods=3, tz=tz, unit="ns"))
 
     result = qcut(ser, bins)
     expected = Series(
@@ -304,5 +304,5 @@ def test_qcut_contains(scale, q, precision):
     arr = (scale * np.arange(q + 1)).round(precision)
     result = qcut(arr, q, precision=precision)
 
-    for value, bucket in zip(arr, result):
+    for value, bucket in zip(arr, result, strict=True):
         assert value in bucket

@@ -87,7 +87,9 @@ class TestCombineFirst:
             rs = s0.combine_first(s1)
 
         xp = Series([datetime(2010, 1, 1), "2011"], dtype=f"datetime64[{unit}]")
-
+        if unit in ["s", "ms"]:
+            # TODO: should _cast_pointwise_result attempt to preserve unit?
+            xp = xp.dt.as_unit("us")
         tm.assert_series_equal(rs, xp)
 
     def test_combine_first_dt_tz_values(self, tz_naive_fixture):

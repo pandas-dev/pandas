@@ -68,7 +68,7 @@ def test_hash_array_mixed(dtype):
 
 @pytest.mark.parametrize("val", [5, "foo", pd.Timestamp("20130101")])
 def test_hash_array_errors(val):
-    msg = "must pass a ndarray-like"
+    msg = "must pass an ndarray-like"
     with pytest.raises(TypeError, match=msg):
         hash_array(val)
 

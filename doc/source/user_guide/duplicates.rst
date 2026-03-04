@@ -109,8 +109,6 @@ with the same label.
 Disallowing Duplicate Labels
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. versionadded:: 1.2.0
-
 As noted above, handling duplicates is an important feature when reading in raw
 data. That said, you may want to avoid introducing duplicates as part of a data
 processing pipeline (from methods like :meth:`pandas.concat`,

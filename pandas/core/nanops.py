@@ -19,17 +19,6 @@ from pandas._libs import (
     iNaT,
     lib,
 )
-from pandas._typing import (
-    ArrayLike,
-    AxisInt,
-    CorrelationMethod,
-    Dtype,
-    DtypeObj,
-    F,
-    Scalar,
-    Shape,
-    npt,
-)
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.common import (
@@ -50,6 +39,18 @@ from pandas.core.dtypes.missing import (
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+
+    from pandas._typing import (
+        ArrayLike,
+        AxisInt,
+        CorrelationMethod,
+        Dtype,
+        DtypeObj,
+        F,
+        Scalar,
+        Shape,
+        npt,
+    )
 
 bn = import_optional_dependency("bottleneck", errors="warn")
 _BOTTLENECK_INSTALLED = bn is not None
@@ -94,7 +95,7 @@ class disallow:
                     raise TypeError(e) from e
                 raise
 
-        return cast(F, _f)
+        return cast("F", _f)
 
 
 class bottleneck_switch:
@@ -150,7 +151,7 @@ class bottleneck_switch:
 
             return result
 
-        return cast(F, f)
+        return cast("F", f)
 
 
 def _bn_ok_dtype(dtype: DtypeObj, name: str) -> bool:
@@ -176,7 +177,7 @@ def _bn_ok_dtype(dtype: DtypeObj, name: str) -> bool:
 def _has_infs(result) -> bool:
     if isinstance(result, np.ndarray):
         if result.dtype in ("f8", "f4"):
-            # Note: outside of an nanops-specific test, we always have
+            # Note: outside of a nanops-specific test, we always have
             #  result.ndim == 1, so there is no risk of this ravel making a copy.
             return lib.has_infs(result.ravel("K"))
     try:
@@ -195,17 +196,15 @@ def _get_fill_value(
     if _na_ok_dtype(dtype):
         if fill_value_typ is None:
             return np.nan
+        elif fill_value_typ == "+inf":
+            return np.inf
         else:
-            if fill_value_typ == "+inf":
-                return np.inf
-            else:
-                return -np.inf
+            return -np.inf
+    elif fill_value_typ == "+inf":
+        # need the max int here
+        return lib.i8max
     else:
-        if fill_value_typ == "+inf":
-            # need the max int here
-            return lib.i8max
-        else:
-            return iNaT
+        return iNaT
 
 
 def _maybe_get_mask(
@@ -413,7 +412,7 @@ def _datetimelike_compat(func: F) -> F:
 
         return result
 
-    return cast(F, new_func)
+    return cast("F", new_func)
 
 
 def _na_for_min_count(values: np.ndarray, axis: AxisInt | None) -> Scalar | np.ndarray:
@@ -463,8 +462,7 @@ def maybe_operate_rowwise(func: F) -> F:
             # only takes this path for wide arrays (long dataframes), for threshold see
             # https://github.com/pandas-dev/pandas/pull/43311#issuecomment-974891737
             and (values.shape[1] / 1000) > values.shape[0]
-            and values.dtype != object
-            and values.dtype != bool
+            and values.dtype not in (object, bool)
         ):
             arrs = list(values)
             if kwargs.get("mask") is not None:
@@ -478,7 +476,7 @@ def maybe_operate_rowwise(func: F) -> F:
 
         return func(values, axis=axis, **kwargs)
 
-    return cast(F, newfunc)
+    return cast("F", newfunc)
 
 
 def nanany(
@@ -652,9 +650,8 @@ def _mask_datetimelike_result(
         result = result.astype("i8").view(orig_values.dtype)
         axis_mask = mask.any(axis=axis)
         result[axis_mask] = iNaT
-    else:
-        if mask.any():
-            return np.int64(iNaT).view(orig_values.dtype)
+    elif mask.any():
+        return np.int64(iNaT).view(orig_values.dtype)
     return result
 
 
@@ -714,7 +711,7 @@ def nanmean(
     the_sum = _ensure_numeric(the_sum)
 
     if axis is not None and getattr(the_sum, "ndim", False):
-        count = cast(np.ndarray, count)
+        count = cast("np.ndarray", count)
         with np.errstate(all="ignore"):
             # suppress division by zero warnings
             the_mean = the_sum / count
@@ -900,7 +897,7 @@ def _get_counts_nanvar(
             d = np.nan
     else:
         # count is not narrowed by is_float check
-        count = cast(np.ndarray, count)
+        count = cast("np.ndarray", count)
         mask = count <= ddof
         if mask.any():
             np.putmask(d, mask, np.nan)
@@ -944,8 +941,9 @@ def nanstd(
     >>> nanops.nanstd(s.values)
     1.0
     """
-    if values.dtype == "M8[ns]":
-        values = values.view("m8[ns]")
+    if values.dtype.kind == "M":
+        unit = np.datetime_data(values.dtype)[0]
+        values = values.view(f"m8[{unit}]")
 
     orig_dtype = values.dtype
     values, mask = _get_values(values, skipna, mask=mask)
@@ -1476,11 +1474,10 @@ def _maybe_arg_null_out(
             raise ValueError("Encountered all NA values")
         elif not skipna and mask.any():
             raise ValueError("Encountered an NA value with skipna=False")
-    else:
-        if skipna and mask.all(axis).any():
-            raise ValueError("Encountered all NA values")
-        elif not skipna and mask.any(axis).any():
-            raise ValueError("Encountered an NA value with skipna=False")
+    elif skipna and mask.all(axis).any():
+        raise ValueError("Encountered all NA values")
+    elif not skipna and mask.any(axis).any():
+        raise ValueError("Encountered an NA value with skipna=False")
     return result
 
 

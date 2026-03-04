@@ -24,7 +24,7 @@ def test_read_invalid_types_raises():
 
 
 def test_read_writer_table():
-    # Also test reading tables from an text OpenDocument file
+    # Also test reading tables from a text OpenDocument file
     # (.odt)
     index = pd.Index(["Row 1", "Row 2", "Row 3"], name="Header")
     expected = pd.DataFrame(

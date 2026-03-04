@@ -18,7 +18,7 @@ import pandas._testing as tm
 
 class TestDataFrameToRecords:
     def test_to_records_timeseries(self):
-        index = date_range("1/1/2000", periods=10)
+        index = date_range("1/1/2000", periods=10, unit="ns")
         df = DataFrame(
             np.random.default_rng(2).standard_normal((10, 3)),
             index=index,
@@ -121,9 +121,9 @@ class TestDataFrameToRecords:
         # GH 47263: consistent data types for Index and MultiIndex
         df = DataFrame(
             {
-                1: date_range("2022-01-01", periods=2),
-                2: date_range("2022-01-01", periods=2),
-                3: date_range("2022-01-01", periods=2),
+                1: date_range("2022-01-01", periods=2, unit="ns"),
+                2: date_range("2022-01-01", periods=2, unit="ns"),
+                3: date_range("2022-01-01", periods=2, unit="ns"),
             }
         )
 

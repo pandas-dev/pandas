@@ -977,7 +977,7 @@ with optional filling of missing data with ``fill_method``.
 
 :func:`merge_asof` is similar to an ordered left-join except that matches are on the
 nearest key rather than equal keys. For each row in the ``left`` :class:`DataFrame`,
-the last row in the ``right`` :class:`DataFrame` are selected where the ``on`` key is less
+the last row in the ``right`` :class:`DataFrame` is selected where the ``on`` key is less
 than the left's key. Both :class:`DataFrame` must be sorted by the key.
 
 Optionally :func:`merge_asof` can perform a group-wise merge by matching the

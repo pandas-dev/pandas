@@ -171,7 +171,7 @@ class TestDataFrameSetItem:
         tm.assert_frame_equal(df, expected)
 
     def test_setitem_dt64_index_empty_columns(self):
-        rng = date_range("1/1/2000 00:00:00", "1/1/2000 1:59:50", freq="10s")
+        rng = date_range("1/1/2000 00:00:00", "1/1/2000 1:59:50", freq="10s", unit="ns")
         df = DataFrame(index=np.arange(len(rng)))
 
         df["A"] = rng
@@ -259,7 +259,7 @@ class TestDataFrameSetItem:
             (Period("2020-01"), PeriodDtype("M")),
             (Interval(left=0, right=5), IntervalDtype("int64", "right")),
             (
-                Timestamp("2011-01-01", tz="US/Eastern"),
+                Timestamp("2011-01-01", tz="US/Eastern").as_unit("s"),
                 DatetimeTZDtype(unit="s", tz="US/Eastern"),
             ),
         ],
@@ -663,7 +663,7 @@ class TestDataFrameSetItem:
         tm.assert_frame_equal(df, expected)
 
     def test_setitem_list_of_tuples(self, float_frame):
-        tuples = list(zip(float_frame["A"], float_frame["B"]))
+        tuples = list(zip(float_frame["A"], float_frame["B"], strict=True))
         float_frame["tuples"] = tuples
 
         result = float_frame["tuples"]
@@ -1000,6 +1000,8 @@ class TestDataFrameSetItemWithExpansion:
             index=Index([0]),
             columns=(["a", "b", "c"]),
         )
+        expected["a"] = expected["a"].astype("m8[s]")
+        expected["b"] = expected["b"].astype("m8[s]")
         tm.assert_frame_equal(result, expected)
 
     def test_setitem_tuple_key_in_empty_frame(self):
@@ -1155,6 +1157,25 @@ class TestDataFrameSetItemBooleanMask:
         df[mask] = ["b", 2]
         # category c is kept in .categories
         tm.assert_frame_equal(df, exp_fancy)
+
+    def test_setitem_mask_assign_NaT_with_datetime(self):
+        # GH 46294
+        # after boolean masking assignment, NaT should align column-wise
+        df = DataFrame(
+            [pd.to_datetime(["2000", "2001"]), pd.to_datetime(["2000", "2002"])],
+            index=pd.to_datetime(["2000", "2000"]),
+        )
+        mask = df > df.index.to_numpy().reshape(-1, 1)
+        df[mask] = NaT
+        expected = DataFrame(
+            [
+                pd.to_datetime(["2000", NaT]),
+                pd.to_datetime(["2000", NaT]),
+            ],
+            index=pd.to_datetime(["2000", "2000"]),
+            dtype="datetime64[us]",
+        )
+        tm.assert_frame_equal(df, expected)
 
     @pytest.mark.parametrize("dtype", ["float", "int64"])
     @pytest.mark.parametrize("kwargs", [{}, {"index": [1]}, {"columns": ["A"]}])

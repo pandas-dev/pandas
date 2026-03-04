@@ -847,22 +847,34 @@ class TestMerge:
         left = DataFrame(
             {
                 "key": [1, 2],
-                "value": pd.date_range("20151010", periods=2, tz="US/Eastern"),
+                "value": pd.date_range(
+                    "20151010", periods=2, tz="US/Eastern", unit="ns"
+                ),
             }
         )
         right = DataFrame(
             {
                 "key": [2, 3],
-                "value": pd.date_range("20151011", periods=2, tz="US/Eastern"),
+                "value": pd.date_range(
+                    "20151011", periods=2, tz="US/Eastern", unit="ns"
+                ),
             }
         )
         expected = DataFrame(
             {
                 "key": [1, 2, 3],
-                "value_x": list(pd.date_range("20151010", periods=2, tz="US/Eastern"))
-                + [pd.NaT],
-                "value_y": [pd.NaT]
-                + list(pd.date_range("20151011", periods=2, tz="US/Eastern")),
+                "value_x": [
+                    *list(
+                        pd.date_range("20151010", periods=2, tz="US/Eastern", unit="ns")
+                    ),
+                    pd.NaT,
+                ],
+                "value_y": [
+                    pd.NaT,
+                    *list(
+                        pd.date_range("20151011", periods=2, tz="US/Eastern", unit="ns")
+                    ),
+                ],
             }
         )
         result = merge(left, right, on="key", how="outer")
@@ -974,8 +986,8 @@ class TestMerge:
         expected = DataFrame(
             {
                 "key": [1, 2, 3],
-                "value_x": list(exp_x) + [pd.NaT],
-                "value_y": [pd.NaT] + list(exp_y),
+                "value_x": [*list(exp_x), pd.NaT],
+                "value_y": [pd.NaT, *list(exp_y)],
             }
         )
         result = merge(left, right, on="key", how="outer")
@@ -2206,6 +2218,37 @@ class TestMergeCategorical:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_merge_category_index_levels_stay_category(self):
+        # GH#37480
+        df1 = DataFrame(
+            {
+                "x": list(range(1, 10)),
+                "y": list(range(1, 10)),
+                "z": list(range(1, 10)),
+                "d": list(range(1, 10)),
+            }
+        )
+
+        df2 = df1.astype({"x": "category", "y": "category", "z": "category"})
+
+        df3 = df2.iloc[:4, :].groupby(["z", "x"], observed=True).agg({"d": "sum"})
+        df4 = df2.iloc[7:, :].groupby(["z", "x", "y"], observed=True).agg({"d": "sum"})
+        result = merge(df3, df4, left_index=True, right_index=True, how="outer")
+
+        cats = list(range(1, 10))
+        z = Categorical(list(range(1, 5)) + list(range(8, 10)), categories=cats)
+        x = Categorical(list(range(1, 5)) + list(range(8, 10)), categories=cats)
+        y = Categorical([np.nan] * 4 + list(range(8, 10)), categories=cats)
+        idx = MultiIndex.from_arrays([z, x, y], names=["z", "x", "y"])
+        expected = DataFrame(
+            {
+                "d_x": list(map(float, range(1, 5))) + [np.nan] * 2,
+                "d_y": [np.nan] * 4 + list(map(float, range(8, 10))),
+            },
+            index=idx,
+        )
+        tm.assert_frame_equal(result, expected)
+
 
 class TestMergeOnIndexes:
     @pytest.mark.parametrize(
@@ -2593,7 +2636,7 @@ def test_categorical_non_unique_monotonic(n_categories):
     # GH 28189
     # With n_categories as 5, we test the int8 case is hit in libjoin,
     # with n_categories as 128 we test the int16 case.
-    left_index = CategoricalIndex([0] + list(range(n_categories)))
+    left_index = CategoricalIndex([0, *list(range(n_categories))])
     df1 = DataFrame(range(n_categories + 1), columns=["value"], index=left_index)
     df2 = DataFrame(
         [[6]],
@@ -2928,6 +2971,41 @@ def test_merge_multiindex_single_level():
     tm.assert_frame_equal(result, expected)
 
 
+def test_merge_multiindex_reset_index_mixed():
+    # GH#62150
+    df = DataFrame(
+        {("column_1", ""): [1, 1], ("column_2", ""): [2, 2]},
+        index=MultiIndex.from_arrays(
+            [[1, 1], ["metadata_1", "metadata_2"]], names=["index", "metadata"]
+        ),
+    )
+
+    df2 = DataFrame(
+        data=[1, 1],
+        index=Index([1, 1], name="index"),
+        columns=MultiIndex.from_product([["new_data"], [""]]),
+    )
+
+    with tm.assert_produces_warning(pd.errors.PerformanceWarning):
+        result = df.reset_index().merge(df2.reset_index(), on="index")
+
+    expected = DataFrame(
+        {
+            ("index", ""): [1, 1, 1, 1],
+            ("metadata", ""): ["metadata_1", "metadata_1", "metadata_2", "metadata_2"],
+            ("column_1", ""): [1, 1, 1, 1],
+            ("column_2", ""): [2, 2, 2, 2],
+            ("new_data", ""): [1, 1, 1, 1],
+        }
+    )
+    expected.columns = MultiIndex.from_tuples(expected.columns)
+
+    tm.assert_frame_equal(result, expected)
+
+    result2 = df.reset_index().merge(df2.reset_index(), on=[("index", "")])
+    tm.assert_frame_equal(result2, expected)
+
+
 @pytest.mark.parametrize("on_index", [True, False])
 @pytest.mark.parametrize("left_unique", [True, False])
 @pytest.mark.parametrize("left_monotonic", [True, False])
@@ -3141,3 +3219,11 @@ def test_merge_pyarrow_datetime_duplicates():
     )
     expected = expected.convert_dtypes(dtype_backend="pyarrow")
     tm.assert_frame_equal(result, expected)
+
+
+def test_merge_right_on_and_right_index():
+    df1 = DataFrame({"col": [1, 2, 3]})
+    df2 = DataFrame({"col": [2, 3, 4]})
+
+    with pytest.raises(pd.errors.MergeError):
+        df1.merge(df2, left_on="col", right_on="col", right_index=True)

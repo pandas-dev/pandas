@@ -154,7 +154,9 @@ class TestDataFrameShift:
 
     def test_shift_dst(self, frame_or_series):
         # GH#13926
-        dates = date_range("2016-11-06", freq="h", periods=10, tz="US/Eastern")
+        dates = date_range(
+            "2016-11-06", freq="h", periods=10, tz="US/Eastern", unit="ns"
+        )
         obj = frame_or_series(dates)
 
         res = obj.shift(0)
@@ -162,13 +164,13 @@ class TestDataFrameShift:
         assert tm.get_dtype(res) == "datetime64[ns, US/Eastern]"
 
         res = obj.shift(1)
-        exp_vals = [NaT] + dates.astype(object).values.tolist()[:9]
+        exp_vals = [NaT, *dates.astype(object).values.tolist()[:9]]
         exp = frame_or_series(exp_vals)
         tm.assert_equal(res, exp)
         assert tm.get_dtype(res) == "datetime64[ns, US/Eastern]"
 
         res = obj.shift(-2)
-        exp_vals = dates.astype(object).values.tolist()[2:] + [NaT, NaT]
+        exp_vals = [*dates.astype(object).values.tolist()[2:], NaT, NaT]
         exp = frame_or_series(exp_vals)
         tm.assert_equal(res, exp)
         assert tm.get_dtype(res) == "datetime64[ns, US/Eastern]"
@@ -176,7 +178,9 @@ class TestDataFrameShift:
     @pytest.mark.parametrize("ex", [10, -10, 20, -20])
     def test_shift_dst_beyond(self, frame_or_series, ex):
         # GH#13926
-        dates = date_range("2016-11-06", freq="h", periods=10, tz="US/Eastern")
+        dates = date_range(
+            "2016-11-06", freq="h", periods=10, tz="US/Eastern", unit="ns"
+        )
         obj = frame_or_series(dates)
         res = obj.shift(ex)
         exp = frame_or_series([NaT] * 10, dtype="datetime64[ns, US/Eastern]")
@@ -433,9 +437,11 @@ class TestDataFrameShift:
         # Explicit cast to float to avoid implicit cast when setting nan.
         # Column names aren't unique, so directly calling `expected.astype` won't work.
         expected = expected.pipe(
-            lambda df: df.set_axis(range(df.shape[1]), axis=1)
-            .astype({0: "float", 1: "float"})
-            .set_axis(df.columns, axis=1)
+            lambda df: (
+                df.set_axis(range(df.shape[1]), axis=1)
+                .astype({0: "float", 1: "float"})
+                .set_axis(df.columns, axis=1)
+            )
         )
         expected.iloc[:, :2] = np.nan
         expected.columns = df3.columns
@@ -452,9 +458,11 @@ class TestDataFrameShift:
         # Explicit cast to float to avoid implicit cast when setting nan.
         # Column names aren't unique, so directly calling `expected.astype` won't work.
         expected = expected.pipe(
-            lambda df: df.set_axis(range(df.shape[1]), axis=1)
-            .astype({3: "float", 4: "float"})
-            .set_axis(df.columns, axis=1)
+            lambda df: (
+                df.set_axis(range(df.shape[1]), axis=1)
+                .astype({3: "float", 4: "float"})
+                .set_axis(df.columns, axis=1)
+            )
         )
         expected.iloc[:, -2:] = np.nan
         expected.columns = df3.columns

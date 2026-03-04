@@ -117,7 +117,7 @@ def _astype_nansafe(
             # bc we know arr.dtype == object, this is equivalent to
             #  `np.asarray(to_timedelta(arr))`, but using a lower-level API that
             #  does not require a circular import.
-            tdvals = array_to_timedelta64(arr).view("m8[ns]")
+            tdvals = array_to_timedelta64(arr)
 
             tda = ensure_wrapped_if_datetimelike(tdvals)
             return tda.astype(dtype, copy=False)._ndarray
@@ -129,7 +129,7 @@ def _astype_nansafe(
         )
         raise ValueError(msg)
 
-    if copy or arr.dtype == object or dtype == object:
+    if copy or object in (arr.dtype, dtype):
         # Explicit copy, or required since NumPy can't view from / to object.
         return arr.astype(dtype, copy=True)
 
@@ -140,11 +140,13 @@ def _astype_float_to_int_nansafe(
     values: np.ndarray, dtype: np.dtype, copy: bool
 ) -> np.ndarray:
     """
-    astype with a check preventing converting NaN to an meaningless integer value.
+    astype with a check preventing converting NaN to a meaningless integer value.
     """
     if not np.isfinite(values).all():
         raise IntCastingNaNError(
-            "Cannot convert non-finite values (NA or inf) to integer"
+            "Cannot convert non-finite values (NA or inf) to integer."
+            "Replace or remove non-finite values or cast to an integer type"
+            "that supports these values (e.g. 'Int64')"
         )
     if dtype.kind == "u":
         # GH#45151
@@ -275,6 +277,15 @@ def astype_is_view(dtype: DtypeObj, new_dtype: DtypeObj) -> bool:
         return False
 
     elif is_string_dtype(dtype) and is_string_dtype(new_dtype):
+        from pandas.core.arrays.string_ import StringDtype
+
+        if (
+            isinstance(dtype, StringDtype)
+            and dtype.storage == "pyarrow"
+            and new_dtype == "object"
+        ):
+            # for conversion of pyarrow array to numpy object array -> always a copy
+            return False
         # Potentially! a view when converting from object to string
         return True
 

@@ -315,6 +315,10 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Return the value of the Timestamp.
 
+        This represents the Timestamp as the number of nanoseconds since the
+        Unix epoch (1970-01-01 00:00:00 UTC). It may overflow for Timestamps
+        far from the epoch.
+
         Returns
         -------
         int
@@ -372,10 +376,10 @@ cdef class _Timestamp(ABCTimestamp):
         Examples
         --------
         >>> pd.Timestamp("2020-01-01 12:34:56").unit
-        's'
+        'us'
 
         >>> pd.Timestamp("2020-01-01 12:34:56.123").unit
-        'ms'
+        'us'
 
         >>> pd.Timestamp("2020-01-01 12:34:56.123456").unit
         'us'
@@ -412,7 +416,7 @@ cdef class _Timestamp(ABCTimestamp):
 
     @classmethod
     def _from_dt64(cls, dt64: np.datetime64):
-        # construct a Timestamp from a np.datetime64 object, keeping the
+        # construct a Timestamp from an np.datetime64 object, keeping the
         #  resolution of the input.
         # This is here mainly so we can incrementally implement non-nano
         #  (e.g. only tznaive at first)
@@ -694,7 +698,7 @@ cdef class _Timestamp(ABCTimestamp):
         if freq:
             kwds = freq.kwds
             month_kw = kwds.get("startingMonth", kwds.get("month", 12))
-            freq_name = freq.name
+            freq_name = freq.rule_code
         else:
             month_kw = 12
             freq_name = None
@@ -709,6 +713,9 @@ cdef class _Timestamp(ABCTimestamp):
     def is_month_start(self) -> bool:
         """
         Check if the date is the first day of the month.
+
+        This is determined by checking whether the ``day`` component of the
+        Timestamp is equal to 1.
 
         Returns
         -------
@@ -736,6 +743,9 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Check if the date is the last day of the month.
 
+        This is determined by comparing the ``day`` component with the total
+        number of days in the month of the Timestamp.
+
         Returns
         -------
         bool
@@ -761,6 +771,9 @@ cdef class _Timestamp(ABCTimestamp):
     def is_quarter_start(self) -> bool:
         """
         Check if the date is the first day of the quarter.
+
+        Quarters start on the first day of January, April, July, and October
+        in the standard calendar.
 
         Returns
         -------
@@ -789,6 +802,9 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Check if date is last day of the quarter.
 
+        Quarters end on the last day of March, June, September, and December
+        in the standard calendar.
+
         Returns
         -------
         bool
@@ -816,6 +832,9 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Return True if date is first day of the year.
 
+        This is determined by checking whether the month and day components
+        are both equal to 1 (i.e., January 1st).
+
         Returns
         -------
         bool
@@ -840,6 +859,9 @@ cdef class _Timestamp(ABCTimestamp):
     def is_year_end(self) -> bool:
         """
         Return True if date is last day of the year.
+
+        This is determined by checking whether the month is 12 and the day
+        is 31 (i.e., December 31st).
 
         Returns
         -------
@@ -876,6 +898,10 @@ cdef class _Timestamp(ABCTimestamp):
     def day_name(self, locale=None) -> str:
         """
         Return the day name of the Timestamp with specified locale.
+
+        This method returns the full name of the day of the week (e.g.,
+        'Monday', 'Tuesday') for the given Timestamp. The locale can be
+        specified to return the name in a particular language.
 
         Parameters
         ----------
@@ -977,6 +1003,8 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Return day of the week.
 
+        Days are numbered Monday=0 through Sunday=6.
+
         Returns
         -------
         int
@@ -999,6 +1027,8 @@ cdef class _Timestamp(ABCTimestamp):
     def day_of_year(self) -> int:
         """
         Return the day of the year.
+
+        Days are numbered from 1 through 365 (or 366 in leap years).
 
         Returns
         -------
@@ -1059,6 +1089,8 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Return the day of the Timestamp.
 
+        Days are numbered from 1 through the number of days in the month.
+
         Returns
         -------
         int
@@ -1081,6 +1113,9 @@ cdef class _Timestamp(ABCTimestamp):
     def fold(self) -> int:
         """
         Return the fold value of the Timestamp.
+
+        The fold attribute is used to disambiguate wall times in a repeated
+        interval during daylight saving time transitions.
 
         Returns
         -------
@@ -1106,6 +1141,8 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Return the year of the Timestamp.
 
+        The year is returned as an integer following the Gregorian calendar.
+
         Returns
         -------
         int
@@ -1128,6 +1165,8 @@ cdef class _Timestamp(ABCTimestamp):
     def month(self) -> int:
         """
         Return the month of the Timestamp.
+
+        Months are numbered from 1 (January) through 12 (December).
 
         Returns
         -------
@@ -1152,6 +1191,8 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Return the hour of the Timestamp.
 
+        Hours are numbered from 0 through 23.
+
         Returns
         -------
         int
@@ -1174,6 +1215,8 @@ cdef class _Timestamp(ABCTimestamp):
     def minute(self) -> int:
         """
         Return the minute of the Timestamp.
+
+        Minutes range from 0 through 59.
 
         Returns
         -------
@@ -1198,6 +1241,8 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Return the second of the Timestamp.
 
+        Seconds range from 0 to 59.
+
         Returns
         -------
         int
@@ -1220,6 +1265,9 @@ cdef class _Timestamp(ABCTimestamp):
     def microsecond(self) -> int:
         """
         Return the microsecond of the Timestamp.
+
+        Microseconds range from 0 through 999999 and represent the
+        sub-second component of the Timestamp at microsecond resolution.
 
         Returns
         -------
@@ -1244,6 +1292,10 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Return the nanosecond of the Timestamp.
 
+        This property returns an integer representing the nanosecond component
+        (0-999) of the Timestamp. This is particularly useful when working with
+        high-precision temporal data that requires sub-microsecond resolution.
+
         Returns
         -------
         int
@@ -1267,6 +1319,10 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Return the week number of the year.
 
+        Weeks are numbered according to the ISO 8601 standard, where weeks
+        start on Monday and the first week of the year contains the year's
+        first Thursday.
+
         Returns
         -------
         int
@@ -1288,6 +1344,8 @@ cdef class _Timestamp(ABCTimestamp):
     def days_in_month(self) -> int:
         """
         Return the number of days in the month.
+
+        This value depends on the month and whether the year is a leap year.
 
         Returns
         -------
@@ -1505,6 +1563,11 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Convert the underlying int64 representation to the given unit.
 
+        This method changes the resolution of the Timestamp's internal
+        representation. When converting to a coarser resolution (e.g.,
+        nanoseconds to seconds), precision may be lost through rounding
+        unless ``round_ok`` is set to False.
+
         Parameters
         ----------
         unit : {"ns", "us", "ms", "s"}
@@ -1529,7 +1592,7 @@ cdef class _Timestamp(ABCTimestamp):
         >>> ts
         Timestamp('2023-01-01 00:00:00.010000')
         >>> ts.unit
-        'ms'
+        'us'
         >>> ts = ts.as_unit('s')
         >>> ts
         Timestamp('2023-01-01 00:00:00')
@@ -1550,6 +1613,8 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Return numpy datetime64 format with same precision.
 
+        This property provides interoperability with NumPy datetime operations.
+
         See Also
         --------
         numpy.datetime64 : Numpy datatype for dates and times with high precision.
@@ -1560,7 +1625,7 @@ cdef class _Timestamp(ABCTimestamp):
         --------
         >>> ts = pd.Timestamp(2020, 3, 14, 15)
         >>> ts.asm8
-        numpy.datetime64('2020-03-14T15:00:00.000000')
+        np.datetime64('2020-03-14T15:00:00.000000')
         """
         return self.to_datetime64()
 
@@ -1667,7 +1732,7 @@ cdef class _Timestamp(ABCTimestamp):
         >>> ts
         Timestamp('2023-01-01 10:00:15')
         >>> ts.to_datetime64()
-        numpy.datetime64('2023-01-01T10:00:15.000000')
+        np.datetime64('2023-01-01T10:00:15.000000')
         """
         # TODO: find a way to construct dt64 directly from _reso
         abbrev = npy_unit_to_abbrev(self._creso)
@@ -1702,12 +1767,12 @@ cdef class _Timestamp(ABCTimestamp):
         --------
         >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
         >>> ts.to_numpy()
-        numpy.datetime64('2020-03-14T15:32:52.192548651')
+        np.datetime64('2020-03-14T15:32:52.192548651')
 
         Analogous for ``pd.NaT``:
 
         >>> pd.NaT.to_numpy()
-        numpy.datetime64('NaT')
+        np.datetime64('NaT','ns')
         """
         if dtype is not None or copy is not False:
             raise ValueError(
@@ -1717,7 +1782,7 @@ cdef class _Timestamp(ABCTimestamp):
 
     def to_period(self, freq=None):
         """
-        Return an period of which this timestamp is an observation.
+        Return a period of which this timestamp is an observation.
 
         This method converts the given Timestamp to a Period object,
         which represents a span of time,such as a year, month, etc.,
@@ -1917,7 +1982,9 @@ class Timestamp(_Timestamp):
         Return new Timestamp object representing current time local to tz.
 
         This method returns a new `Timestamp` object that represents the current time.
-        If a timezone is provided, the current time will be localized to that timezone.
+        If a timezone is provided, either through a timezone object or an IANA
+        standard timezone identifier, the current time will be localized to that
+        timezone.
         Otherwise, it returns the current local time.
 
         Parameters
@@ -1935,6 +2002,11 @@ class Timestamp(_Timestamp):
         --------
         >>> pd.Timestamp.now()  # doctest: +SKIP
         Timestamp('2020-11-16 22:06:16.378782')
+
+        If you want a specific timezone, in this case 'Brazil/East':
+
+        >>> pd.Timestamp.now('Brazil/East')  # doctest: +SKIP
+        Timestamp('2025-11-11 22:17:59.609943-03:00)
 
         Analogous for ``pd.NaT``:
 
@@ -1982,6 +2054,10 @@ class Timestamp(_Timestamp):
         Timestamp.utcnow()
 
         Return a new Timestamp representing UTC day and time.
+
+        .. deprecated:: 3.0.0
+            ``Timestamp.utcnow`` is deprecated and will be removed in a future
+            version. Use ``Timestamp.now('UTC')`` instead.
 
         See Also
         --------
@@ -2104,6 +2180,10 @@ class Timestamp(_Timestamp):
     def strftime(self, format):
         """
         Return a formatted string of the Timestamp.
+
+        This method converts a Timestamp to a string according to the given
+        format string, using the same directives as the standard library's
+        :meth:`datetime.datetime.strftime`.
 
         Parameters
         ----------
@@ -2241,6 +2321,11 @@ class Timestamp(_Timestamp):
     def isocalendar(self):
         """
         Return a named tuple containing ISO year, week number, and weekday.
+
+        The ISO 8601 calendar is a widely used international standard. The
+        returned named tuple has three components: ``year``, ``week``, and
+        ``weekday``. The ISO year may differ from the Gregorian year for dates
+        near the start or end of a calendar year.
 
         See Also
         --------
@@ -2460,7 +2545,7 @@ class Timestamp(_Timestamp):
         >>> ts
         Timestamp('2023-01-01 10:00:00+0100', tz='Europe/Brussels')
         >>> ts.timetz()
-        datetime.time(10, 0, tzinfo=<DstTzInfo 'Europe/Brussels' CET+1:00:00 STD>)
+        datetime.time(10, 0, tzinfo=zoneinfo.ZoneInfo(key='Europe/Brussels'))
         """
         return super().timetz()
 
@@ -2888,6 +2973,10 @@ timedelta}, default 'raise'
         """
         Return a new Timestamp floored to this resolution.
 
+        This method rounds the Timestamp down to the nearest boundary of the
+        given frequency. The result will never be later than the original
+        Timestamp.
+
         Parameters
         ----------
         freq : str
@@ -2982,6 +3071,10 @@ timedelta}, default 'raise'
     def ceil(self, freq, ambiguous="raise", nonexistent="raise"):
         """
         Return a new Timestamp ceiled to this resolution.
+
+        This method rounds the Timestamp up to the nearest boundary of the
+        given frequency. The result will never be earlier than the original
+        Timestamp.
 
         Parameters
         ----------
@@ -3468,7 +3561,7 @@ default 'raise'
 
     def to_julian_date(self) -> np.float64:
         """
-        Convert TimeStamp to a Julian Date.
+        Convert Timestamp to a Julian Date.
 
         This method returns the number of days as a float since
         0 Julian date, which is noon January 1, 4713 BC.
@@ -3485,25 +3578,31 @@ default 'raise'
         >>> ts.to_julian_date()
         2458923.147824074
         """
+        from pandas.core.dtypes.cast import maybe_unbox_numpy_scalar
+
         year = self._year
         month = self.month
         day = self.day
         if month <= 2:
             year -= 1
             month += 12
-        return (day +
-                np.fix((153 * month - 457) / 5) +
-                365 * year +
-                np.floor(year / 4) -
-                np.floor(year / 100) +
-                np.floor(year / 400) +
-                1721118.5 +
-                (self.hour +
-                 self.minute / 60.0 +
-                 self.second / 3600.0 +
-                 self.microsecond / 3600.0 / 1e+6 +
-                 self._nanosecond / 3600.0 / 1e+9
-                 ) / 24.0)
+        result = (
+            day +
+            np.trunc((153 * month - 457) / 5) +
+            365 * year +
+            np.floor(year / 4) -
+            np.floor(year / 100) +
+            np.floor(year / 400) +
+            1721118.5 +
+            (self.hour +
+             self.minute / 60.0 +
+             self.second / 3600.0 +
+             self.microsecond / 3600.0 / 1e+6 +
+             self._nanosecond / 3600.0 / 1e+9
+             ) / 24.0
+        )
+        result = maybe_unbox_numpy_scalar(result)
+        return result
 
     def isoweekday(self):
         """

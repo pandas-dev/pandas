@@ -94,11 +94,14 @@ class JSONArray(ExtensionArray):
         return cls([UserDict(x) for x in values if x != ()])
 
     def _cast_pointwise_result(self, values):
-        result = super()._cast_pointwise_result(values)
         try:
-            return type(self)._from_sequence(result, dtype=self.dtype)
+            return type(self)._from_sequence(values, dtype=self.dtype)
         except (ValueError, TypeError):
-            return result
+            # TODO replace with public function
+            from pandas._libs import lib
+
+            values = np.asarray(values, dtype=object)
+            return lib.maybe_convert_objects(values, convert_non_numeric=True)
 
     def __getitem__(self, item):
         if isinstance(item, tuple):
@@ -128,7 +131,7 @@ class JSONArray(ExtensionArray):
             item = pd.api.indexers.check_array_indexer(self, item)
             if is_bool_dtype(item.dtype):
                 return type(self)._from_sequence(
-                    [x for x, m in zip(self, item) if m], dtype=self.dtype
+                    [x for x, m in zip(self, item, strict=True) if m], dtype=self.dtype
                 )
             # integer
             return type(self)([self.data[i] for i in item])
@@ -146,12 +149,12 @@ class JSONArray(ExtensionArray):
 
             if isinstance(key, np.ndarray) and key.dtype == "bool":
                 # masking
-                for i, (k, v) in enumerate(zip(key, value)):
+                for i, (k, v) in enumerate(zip(key, value, strict=False)):
                     if k:
                         assert isinstance(v, self.dtype.type)
                         self.data[i] = v
             else:
-                for k, v in zip(key, value):
+                for k, v in zip(key, value, strict=False):
                     assert isinstance(v, self.dtype.type)
                     self.data[k] = v
 

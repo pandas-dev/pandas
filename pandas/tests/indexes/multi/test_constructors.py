@@ -762,7 +762,7 @@ def test_index_equal_empty_iterable():
 
 
 def test_raise_invalid_sortorder():
-    # Test that the MultiIndex constructor raise when a incorrect sortorder is given
+    # Test that the MultiIndex constructor raise when an incorrect sortorder is given
     # GH#28518
 
     levels = [[0, 1], [0, 1, 2]]
