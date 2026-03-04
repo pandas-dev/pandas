@@ -277,6 +277,41 @@ cdef int64_t[::1] unbox_utcoffsets(object transinfo):
 # Daylight Savings
 
 
+cdef object _get_trans_and_deltas_from_dateutil_tz(
+    tzinfo dateutil_tz,
+    int64_t first_offset_seconds
+):
+    """
+    Parameters
+    ----------
+    dateutil_tz : tzinfo
+        A dateutil timezone object with _trans_list and _trans_idx attributes.
+    first_offset_seconds : int64_t
+        The UTC offset in seconds for the period before the first transition.
+
+    Returns
+    -------
+    trans : ndarray[int64_t]
+        Nanosecond UTC times of DST transitions.
+    deltas : ndarray[int64_t]
+        Nanosecond UTC offsets corresponding to DST transitions.
+    """
+    trans_list = _get_utc_trans_times_from_dateutil_tz(dateutil_tz)
+    trans = np.hstack([
+        np.array([0], dtype="M8[s]"),
+        np.array(trans_list, dtype="M8[s]")
+    ]).astype("M8[ns]")
+    trans = trans.view("i8")
+    trans[0] = NPY_NAT + 1
+
+    deltas = np.array(
+        [first_offset_seconds] + [v.offset for v in dateutil_tz._trans_idx],
+        dtype="i8"
+    )
+    deltas *= 1_000_000_000
+    return trans, deltas
+
+
 cdef object _get_zoneinfo_trans_and_deltas(tzinfo tz):
     """
     Parameters
@@ -291,32 +326,22 @@ cdef object _get_zoneinfo_trans_and_deltas(tzinfo tz):
         Nanosecond UTC offsets corresponding to DST transitions.
     """
     cdef:
-        int64_t first_offset_ns
+        int64_t first_offset_seconds
 
-    first_offset = tz.utcoffset(datetime(1, 1, 1))
-    first_offset_ns = int(first_offset.total_seconds()) * 1_000_000_000
+    # Get the first offset directly from ZoneInfo for accuracy
+    # (dateutil may have slightly different values for historical dates)
+    first_offset_seconds = int(tz.utcoffset(datetime(1, 1, 1)).total_seconds())
 
     dateutil_tz = dateutil_gettz(tz.key)
 
     if hasattr(dateutil_tz, "_trans_list") and len(dateutil_tz._trans_list):
-        trans_list = _get_utc_trans_times_from_dateutil_tz(dateutil_tz)
-        trans = np.hstack([
-            np.array([0], dtype="M8[s]"),
-            np.array(trans_list, dtype="M8[s]")
-        ]).astype("M8[ns]")
-        trans = trans.view("i8")
-        trans[0] = NPY_NAT + 1
-
-        deltas = np.array(
-            [first_offset_ns] +
-            [v.offset * 1_000_000_000 for v in dateutil_tz._trans_idx],
-            dtype="i8"
+        return _get_trans_and_deltas_from_dateutil_tz(
+            dateutil_tz, first_offset_seconds
         )
     else:
         trans = np.array([NPY_NAT + 1], dtype=np.int64)
-        deltas = np.array([first_offset_ns], dtype="i8")
-
-    return trans, deltas
+        deltas = np.array([first_offset_seconds], dtype="i8") * 1_000_000_000
+        return trans, deltas
 
 
 cdef object get_dst_info(tzinfo tz):
@@ -352,19 +377,9 @@ cdef object get_dst_info(tzinfo tz):
 
         elif treat_tz_as_dateutil(tz):
             if len(tz._trans_list):
-                # get utc trans times
-                trans_list = _get_utc_trans_times_from_dateutil_tz(tz)
-                trans = np.hstack([
-                    np.array([0], dtype="M8[s]"),  # place holder for 1st item
-                    np.array(trans_list, dtype="M8[s]")]).astype(
-                    "M8[ns]")  # all trans listed
-                trans = trans.view("i8")
-                trans[0] = NPY_NAT + 1
-
-                # deltas
-                deltas = np.array([v.offset for v in (
-                    tz._ttinfo_before,) + tz._trans_idx], dtype="i8")
-                deltas *= 1_000_000_000
+                trans, deltas = _get_trans_and_deltas_from_dateutil_tz(
+                    tz, int(tz._ttinfo_before.offset)
+                )
                 typ = "dateutil"
 
             elif is_fixed_offset(tz):

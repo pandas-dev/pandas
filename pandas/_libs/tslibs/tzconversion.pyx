@@ -108,7 +108,7 @@ cdef class Localizer:
             self.ntrans = self.trans.shape[0]
             self.deltas = deltas
 
-            if typ not in ("pytz", "dateutil", "zoneinfo"):
+            if typ != "pytz" and typ != "dateutil" and typ != "zoneinfo":
                 # static/fixed; in this case we know that len(delta) == 1
                 self.use_fixed = True
                 self.delta = deltas[0]
