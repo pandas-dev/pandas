@@ -619,6 +619,11 @@ def _adjust_to_origin(arg, origin, unit):
                 datetime_unit: list[TimeUnit] = ["s", "ms", "us", "ns"]
                 ts_unit: TimeUnit = "s" if unit not in datetime_unit else unit
                 offset = Timestamp(origin).as_unit(ts_unit)
+
+                base = Timestamp(0)
+                dt_min, dt_max = base.min, base.max
+                if not dt_min < offset < dt_max:
+                    raise OutOfBoundsDatetime
         except OutOfBoundsDatetime as err:
             raise OutOfBoundsDatetime(f"origin {origin} is Out of Bounds") from err
         except ValueError as err:
