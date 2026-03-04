@@ -2824,6 +2824,9 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return Index with duplicate values removed.
 
+        The ``keep`` parameter controls which duplicate values are removed.
+        The original Index is not modified.
+
         Parameters
         ----------
         keep : {'first', 'last', ``False``}, default 'first'
@@ -4123,6 +4126,9 @@ class Index(IndexOpsMixin, PandasObject):
     ) -> tuple[Index, npt.NDArray[np.intp] | None]:
         """
         Create index with target's values.
+
+        Optionally provides an indexer that maps the new labels back to the
+        original positions, and supports filling methods for non-exact matches.
 
         Parameters
         ----------
@@ -5661,6 +5667,10 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Similar to equals, but checks that object attributes and types are also equal.
 
+        While :meth:`Index.equals` only checks that the elements are the same,
+        this method additionally verifies that the Index objects have matching
+        types and attributes (e.g., ``name``).
+
         Parameters
         ----------
         other : Index
@@ -7024,6 +7034,9 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Make new Index with passed location(-s) deleted.
 
+        Returns a new Index with the entries at the given positional
+        location(s) removed. The original Index is not modified.
+
         Parameters
         ----------
         loc : int or list of int
@@ -7146,6 +7159,10 @@ class Index(IndexOpsMixin, PandasObject):
     ) -> Index:
         """
         Make new Index with passed list of labels deleted.
+
+        Unlike :meth:`Index.delete`, which accepts positional indices, this
+        method removes entries by their label values. The original Index is
+        not modified.
 
         Parameters
         ----------
@@ -7384,6 +7401,9 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return whether any element is Truthy.
 
+        This is equivalent to calling ``bool(self.any())``. An empty Index
+        will return False.
+
         Parameters
         ----------
         *args
@@ -7428,6 +7448,9 @@ class Index(IndexOpsMixin, PandasObject):
     def all(self, *args, **kwargs):
         """
         Return whether all elements are Truthy.
+
+        This is equivalent to calling ``bool(self.all())``. An empty Index
+        will return True.
 
         Parameters
         ----------
@@ -7604,6 +7627,9 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return the minimum value of the Index.
 
+        The minimum is computed by comparing all values in the Index.
+        NA/null values are excluded by default.
+
         Parameters
         ----------
         axis : {None}
@@ -7666,6 +7692,9 @@ class Index(IndexOpsMixin, PandasObject):
     def max(self, axis: AxisInt | None = None, skipna: bool = True, *args, **kwargs):
         """
         Return the maximum value of the Index.
+
+        The maximum is computed by comparing all values in the Index.
+        NA/null values are excluded by default.
 
         Parameters
         ----------

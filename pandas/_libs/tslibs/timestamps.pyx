@@ -698,7 +698,7 @@ cdef class _Timestamp(ABCTimestamp):
         if freq:
             kwds = freq.kwds
             month_kw = kwds.get("startingMonth", kwds.get("month", 12))
-            freq_name = freq.name
+            freq_name = freq.rule_code
         else:
             month_kw = 12
             freq_name = None
@@ -1772,7 +1772,7 @@ cdef class _Timestamp(ABCTimestamp):
         Analogous for ``pd.NaT``:
 
         >>> pd.NaT.to_numpy()
-        np.datetime64('NaT')
+        np.datetime64('NaT','ns')
         """
         if dtype is not None or copy is not False:
             raise ValueError(
