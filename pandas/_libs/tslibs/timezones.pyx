@@ -277,7 +277,7 @@ cdef int64_t[::1] unbox_utcoffsets(object transinfo):
 # Daylight Savings
 
 
-cdef object _get_trans_and_deltas_from_dateutil_tz(
+cdef tuple _get_trans_and_deltas_from_dateutil_tz(
     tzinfo dateutil_tz,
     int64_t first_offset_seconds
 ):
