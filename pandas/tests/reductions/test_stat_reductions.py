@@ -229,6 +229,7 @@ class TestSeriesStatReductions:
         assert pd.isna(result)
 
     def test_skew(self, using_python_scalars):
+        # GH 62864 - returns NaN on degenerate distribution
         sp_stats = pytest.importorskip("scipy.stats")
 
         string_series = Series(range(20), dtype=np.float64, name="series")
@@ -240,7 +241,6 @@ class TestSeriesStatReductions:
         # values
         min_N = 3
         for i in range(1, min_N + 1):
-            # GH 62864 - returns NaN on degenerate distribution
             s = Series(np.ones(i))
             df = DataFrame(np.ones((i, i)))
             assert np.isnan(s.skew())
@@ -266,13 +266,12 @@ class TestSeriesStatReductions:
         for i in range(1, min_N + 1):
             s = Series(np.ones(i))
             df = DataFrame(np.ones((i, i)))
-            if i < min_N:
-                assert np.isnan(s.kurt())
-                assert np.isnan(df.kurt()).all()
-                if using_python_scalars:
-                    assert type(s.kurt()) == float
-                else:
-                    assert isinstance(s.kurt(), np.float64)  # GH53482
+            assert np.isnan(s.kurt())
+            assert np.isnan(df.kurt()).all()
+            if using_python_scalars:
+                assert type(s.kurt()) == float
+            else:
+                assert isinstance(s.kurt(), np.float64)  # GH53482
 
 
 @pytest.mark.parametrize(
