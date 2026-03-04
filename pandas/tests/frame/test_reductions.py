@@ -2232,3 +2232,32 @@ def test_mean_nullable_int_axis_1():
     result = df.mean(axis=1, skipna=False)
     expected = Series([1.0, 2.0, 3.5, pd.NA], dtype="Float64")
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "method", ["sum", "prod", "mean", "median", "std", "var", "sem", "min", "max"]
+)
+@pytest.mark.parametrize("invalid_value", [None, "invalid", 1])
+def test_numeric_only_bool_validation(method, invalid_value):
+    # GH#53098: numeric_only should only accept boolean values
+    df = DataFrame({"a": [1, 2, 3], "b": [4.0, 5.0, 6.0], "c": ["x", "y", "z"]})
+
+    msg = 'For argument "numeric_only" expected type bool'
+    with pytest.raises(ValueError, match=msg):
+        getattr(df, method)(numeric_only=invalid_value)
+
+
+@pytest.mark.parametrize(
+    "method", ["sum", "prod", "mean", "median", "std", "var", "sem", "min", "max"]
+)
+def test_numeric_only_valid_bool(method):
+    # GH#53098: numeric_only should accept True and False
+    df = DataFrame({"a": [1, 2, 3], "b": [4.0, 5.0, 6.0], "c": ["x", "y", "z"]})
+
+    # Should not raise for True
+    result_true = getattr(df, method)(numeric_only=True)
+    assert result_true is not None
+
+    # Should not raise for False
+    result_false = getattr(df, method)(numeric_only=False)
+    assert result_false is not None
