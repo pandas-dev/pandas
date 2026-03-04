@@ -208,7 +208,7 @@ cdef object tz_cache_key(tzinfo tz):
                              "https://github.com/pandas-dev/pandas/pull/7362")
         return "dateutil" + tz._filename
     elif is_zoneinfo(tz):
-        return tz.key
+        return "zoneinfo/" + tz.key
     else:
         return None
 
