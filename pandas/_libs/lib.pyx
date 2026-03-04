@@ -2486,7 +2486,12 @@ def maybe_convert_numeric(
             seen.float_ = True
         else:
             try:
-                floatify(val, &fval, &maybe_int)
+                try:
+                    as_int = int(val)
+                    maybe_int = 1
+                    fval = <float64_t>as_int
+                except (TypeError, ValueError):
+                    floatify(val, &fval, &maybe_int)
 
                 if fval in na_values:
                     seen.saw_null()
