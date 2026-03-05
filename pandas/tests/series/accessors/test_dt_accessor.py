@@ -832,3 +832,26 @@ def test_day_attribute_non_nano_beyond_int32():
     result = ser.dt.days
     expected = Series([1579371003, 1559453522, 2839645203, 2586, 27, 42066, 0])
     tm.assert_series_equal(result, expected)
+
+
+def test_to_pydatetime_conversion():
+    # GH#55136
+    # Ensure that dt.to_pydatetime() correctly converts datetime64[ns] to object dtype
+    # containing Python datetime objects
+    
+    ser = pd.Series(pd.date_range("2020-01-01", periods=5))
+    assert ser.dtype == "datetime64[ns]"
+    
+    result = ser.dt.to_pydatetime()
+    
+    # Result should be object dtype (array of Python datetime objects)
+    assert result.dtype == object
+    
+    # Verify that elements are Python datetime objects
+    from datetime import datetime
+    for elem in result:
+        assert isinstance(elem, datetime)
+    
+    # Verify values are correct
+    expected_values = pd.date_range("2020-01-01", periods=5).to_pydatetime()
+    tm.assert_numpy_array_equal(result.values, expected_values)
