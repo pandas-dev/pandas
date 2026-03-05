@@ -1680,3 +1680,43 @@ def test_flags_kwarg(any_string_dtype):
     with tm.assert_produces_warning(UserWarning, match=msg):
         result = data.str.contains(pat, flags=re.IGNORECASE)
     assert result.iloc[0]
+
+
+def test_find_multibyte_characters(any_string_dtype):
+    # GH#64123
+    # Ensure str.find returns character indices, not byte indices,
+    # for multibyte UTF-8 characters
+    
+    examples = [
+        ('ga', 1),       # Basic ASCII: 'a' at position 1
+        ('Áa', 1),       # 2-byte UTF-8 char: Á is 2 bytes, but 'a' still at char position 1
+        ('永a', 1),      # 3-byte UTF-8 char: 永 is 3 bytes, but 'a' still at char position 1
+        ('🐍a', 1),      # 4-byte UTF-8 char: 🐍 is 4 bytes, but 'a' still at char position 1
+    ]
+    
+    for text, expected_pos in examples:
+        # Test with Series
+        s = Series([text], dtype=any_string_dtype)
+        result = s.str.find('a')
+        expected = Series([expected_pos], dtype='Int64')
+        tm.assert_series_equal(result, expected)
+        
+        # Verify it matches Python str.find behavior
+        assert text.find('a') == expected_pos, f"Test data mismatch for {text!r}"
+
+
+def test_find_multibyte_with_start_end(any_string_dtype):
+    # GH#64123
+    # Test find with start/end parameters on multibyte strings
+    
+    s = Series(['永永a永'], dtype=any_string_dtype)
+    
+    # Find 'a' starting from position 1 (should find at position 2)
+    result = s.str.find('a', start=1)
+    expected = Series([2], dtype='Int64')
+    tm.assert_series_equal(result, expected)
+    
+    # Find 'a' with end parameter (should not find, end before 'a')
+    result = s.str.find('a', start=0, end=2)
+    expected = Series([-1], dtype='Int64')
+    tm.assert_series_equal(result, expected)
