@@ -6762,38 +6762,37 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             ):
                 # We need to preserve the direct behavior for comparisons.
                 result = func(this_vals, other_vals)
+            # GH#63250: For bool dtypes, flex methods like Series.truediv
+            # (and friends) historically did not match their dunder
+            # counterparts. Deprecate this behavior (raise in pandas 4.0).
+            elif (
+                func
+                in (
+                    operator.truediv,
+                    roperator.rtruediv,
+                    operator.floordiv,
+                    roperator.rfloordiv,
+                    operator.pow,
+                    roperator.rpow,
+                    divmod,
+                    roperator.rdivmod,
+                )
+                and isinstance(this_vals, np.ndarray)
+                and this_vals.dtype.kind == "b"
+                and isinstance(other_vals, np.ndarray)
+                and other_vals.dtype.kind == "b"
+            ):
+                op_name = func.__name__.strip("_").lstrip("r")
+                warnings.warn(
+                    f"Series.{func.__name__.strip('_')} with bool dtypes is "
+                    "deprecated and will raise NotImplementedError in a future "
+                    f"version: operator '{op_name}' not implemented for bool dtypes",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
+                result = func(this_vals, other_vals)
             else:
-                # GH#63250: For bool dtypes, flex methods like Series.truediv
-                # (and friends) historically did not match their dunder
-                # counterparts. Deprecate this behavior (raise in pandas 4.0).
-                if (
-                    func
-                    in (
-                        operator.truediv,
-                        roperator.rtruediv,
-                        operator.floordiv,
-                        roperator.rfloordiv,
-                        operator.pow,
-                        roperator.rpow,
-                        divmod,
-                        roperator.rdivmod,
-                    )
-                    and isinstance(this_vals, np.ndarray)
-                    and this_vals.dtype.kind == "b"
-                    and isinstance(other_vals, np.ndarray)
-                    and other_vals.dtype.kind == "b"
-                ):
-                    op_name = func.__name__.strip("_").lstrip("r")
-                    warnings.warn(
-                        f"Series.{func.__name__.strip('_')} with bool dtypes is "
-                        "deprecated and will raise NotImplementedError in a future "
-                        f"version: operator '{op_name}' not implemented for bool dtypes",
-                        Pandas4Warning,
-                        stacklevel=find_stack_level(),
-                    )
-                    result = func(this_vals, other_vals)
-                else:
-                    result = ops.arithmetic_op(this_vals, other_vals, func)
+                result = ops.arithmetic_op(this_vals, other_vals, func)
 
         name = ops.get_op_result_name(self, other)
 
