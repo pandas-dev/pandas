@@ -25,7 +25,6 @@ on:
 env:
   ENV_FILE: environment.yml
   PANDAS_CI: 1
-  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 permissions:
   contents: read
@@ -100,6 +99,8 @@ jobs:
 
     - name: Build website
       run: python web/pandas_web.py web/pandas --target-path=web/build
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Build documentation
       run: doc/make.py --warnings-are-errors
