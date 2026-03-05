@@ -158,3 +158,27 @@ def test_from_arrow_from_raw_struct_array():
 
     result = dtype.__from_arrow__(pa.chunked_array([arr]))
     tm.assert_extension_array_equal(result, expected)
+
+
+def test_from_arrow_with_nullable_subtype():
+    pa = pytest.importorskip("pyarrow")
+
+    from pandas.core.arrays.arrow.extension_types import ArrowIntervalType
+
+    interval_dtype = pd.IntervalDtype(pd.Int64Dtype(), "right")
+    arr = pa.array(
+        [
+            {"left": 1, "right": 2},
+            {"left": 3, "right": 4},
+        ],
+        type=ArrowIntervalType(pa.int64(), "right"),
+    )
+
+    result = interval_dtype.__from_arrow__(arr)
+    expected = IntervalArray.from_arrays(
+        pd.array([1, 3], dtype="Int64"),
+        pd.array([2, 4], dtype="Int64"),
+        closed="right",
+        dtype=interval_dtype,
+    )
+    tm.assert_extension_array_equal(result, expected)
