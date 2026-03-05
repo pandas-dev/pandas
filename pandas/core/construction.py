@@ -14,6 +14,7 @@ from typing import (
 )
 
 import numpy as np
+import pyarrow as pa
 from numpy import ma
 
 from pyarrow import UuidArray, Array, ChunkedArray
@@ -641,7 +642,7 @@ def sanitize_array(
             subarr = _try_cast(data, dtype, copy)
 
     #python checks conditions from left to right and MUST check for pa.Array before chekcing for pa.UuidType
-    elif isinstance(data, (Array, ChunkedArray)) and isinstance(data, UuidArray):
+    elif isinstance(data, (Array, ChunkedArray)) and data.type == pa.uuid(): #cant do and isinstance(data, UuidArray) because it does not catch chunked arrays
         from pandas.core.arrays.arrow import ArrowExtensionArray
         return ArrowExtensionArray(data)
 

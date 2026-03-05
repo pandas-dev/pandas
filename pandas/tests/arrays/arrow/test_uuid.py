@@ -56,8 +56,8 @@ def test_uuid_getitem_scalar():
     v0 = s.iloc[0]
     v1 = s.iloc[1]
 
-    assert isinstance(v0, (bytes, bytearray)) #maybe later me make uuid.UUID?
-    assert v1 is None #still works?
+    assert isinstance(v0, uuid.UUID)
+    assert v1 is pd.NA #pd.NA is same as NONE, pandas version of None is pd.NA
 
 #TEST5: Maintainer explicitly talked about this, we dont want UUID support to break pandas "semantics" so  "x in s" should check index, not value, and "x in s.array" should check balues
 def test_uuid_contains_behavior():
