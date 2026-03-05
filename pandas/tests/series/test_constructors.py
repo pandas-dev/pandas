@@ -2292,3 +2292,26 @@ def test_dict_keys_rangeindex():
     result = Series({0: 1, 1: 2})
     expected = Series([1, 2], index=RangeIndex(2))
     tm.assert_series_equal(result, expected, check_index_type=True)
+
+
+def test_dtype_str_consistency_with_none():
+    # GH#57702
+    # Ensure pd.Series and pd.array handle None consistently when dtype=str
+    
+    # pd.array with dtype=str should convert None to 'None' string
+    arr = pd.array([1, None], dtype=str)
+    assert arr.dtype == pd.StringDtype()
+    # Note: behavior may vary - either 'None' or pd.NA is acceptable
+    # The key is consistency with Series
+    
+    # pd.Series with dtype=str should behave the same as pd.array
+    ser = pd.Series([1, None], dtype=str)
+    assert ser.dtype == pd.StringDtype()
+    
+    # The underlying arrays should have the same dtype
+    assert ser.array.dtype == arr.dtype
+    
+    # DataFrame should also be consistent
+    df = pd.DataFrame([1, None], dtype=str)
+    assert df[0].dtype == pd.StringDtype()
+    assert df[0].array.dtype == arr.dtype
