@@ -240,3 +240,18 @@ class TestConvertDtypes:
         )
         result = df.convert_dtypes()
         tm.assert_frame_equal(result, expected)
+
+    def test_convert_dtypes_pyarrow_not_installed_error(self, monkeypatch):
+        # GH#63745
+        # Ensure clear error message when pyarrow is not installed
+        # but dtype_backend="pyarrow" is specified
+        
+        # Simulate pyarrow not being installed
+        import sys
+        monkeypatch.setitem(sys.modules, "pyarrow", None)
+        
+        df = pd.DataFrame({"a": [1, 2, 3]})
+        
+        msg = "dtype_backend='pyarrow' requires the 'pyarrow' package"
+        with pytest.raises(ImportError, match=msg):
+            df.convert_dtypes(dtype_backend="pyarrow")

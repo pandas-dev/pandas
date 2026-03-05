@@ -480,3 +480,11 @@ def check_dtype_backend(dtype_backend) -> None:
                 f"dtype_backend {dtype_backend} is invalid, only 'numpy_nullable' and "
                 f"'pyarrow' are allowed.",
             )
+        if dtype_backend == "pyarrow":
+            # GH#63745: Check that pyarrow is installed before proceeding
+            from pandas.compat._optional import import_optional_dependency
+
+            import_optional_dependency(
+                "pyarrow",
+                extra="dtype_backend='pyarrow' requires the 'pyarrow' package.",
+            )
