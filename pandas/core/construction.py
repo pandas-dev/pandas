@@ -320,6 +320,13 @@ def array(
 
     data = extract_array(data, extract_numpy=True)
 
+    # GH#64280: Ensure data is 1-dimensional
+    if isinstance(data, np.ndarray) and data.ndim != 1:
+        raise ValueError(
+            f"Cannot pass {data.ndim}-dimensional array to 'pandas.array'. "
+            "Expected 1-dimensional data."
+        )
+
     # Handle numpy masked arrays: convert masked values to NA
     # GH#63879
     if isinstance(data, ma.MaskedArray):

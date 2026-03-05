@@ -609,3 +609,23 @@ def test_pd_array_structured_masked_array_raises():
     msg = "Cannot construct an array from an ndarray with compound dtype"
     with pytest.raises(ValueError, match=msg):
         pd.array(ma_arr)
+
+
+def test_pd_array_rejects_multidimensional_numpy_array():
+    # GH#64280
+    # pd.array should raise ValueError when given multidimensional numpy array
+    data = [[1, 9], [2, 6], [3, 5]]
+    
+    # Test with explicit dtype
+    msg = "Cannot pass 2-dimensional array to 'pandas.array'"
+    with pytest.raises(ValueError, match=msg):
+        pd.array(data, dtype=np.float64)
+    
+    with pytest.raises(ValueError, match=msg):
+        pd.array(data, dtype=int)
+    
+    # Also test with 3D array
+    data_3d = [[[1, 2]], [[3, 4]]]
+    msg_3d = "Cannot pass 3-dimensional array to 'pandas.array'"
+    with pytest.raises(ValueError, match=msg_3d):
+        pd.array(data_3d, dtype=np.float64)
