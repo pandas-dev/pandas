@@ -839,7 +839,7 @@ class TestStata:
             np.int32,
             np.float64,
         )
-        for c, t in zip(expected.columns, expected_types):
+        for c, t in zip(expected.columns, expected_types, strict=True):
             expected[c] = expected[c].astype(t)
 
         tm.assert_frame_equal(written_and_read_again, expected)
@@ -870,7 +870,9 @@ class TestStata:
 
         with StataReader(path) as sr:
             sr._ensure_open()  # The `_*list` variables are initialized here
-            for variable, fmt, typ in zip(sr._varlist, sr._fmtlist, sr._typlist):
+            for variable, fmt, typ in zip(
+                sr._varlist, sr._fmtlist, sr._typlist, strict=True
+            ):
                 assert int(variable[1:]) == int(fmt[1:-1])
                 assert int(variable[1:]) == typ
 
@@ -981,7 +983,9 @@ class TestStata:
         mm = [0, 0, 59, 0, 0, 0]
         ss = [0, 0, 59, 0, 0, 0]
         expected = []
-        for year, month, day, hour, minute, second in zip(yr, mo, dd, hr, mm, ss):
+        for year, month, day, hour, minute, second in zip(
+            yr, mo, dd, hr, mm, ss, strict=True
+        ):
             row = []
             for j in range(7):
                 if j == 0:
@@ -1672,7 +1676,7 @@ The repeated labels are:\n-+\nwolof
             path = temp_file
             df.to_stata(path)
 
-    def test_path_pathlib(self, tmp_path):
+    def test_path_pathlib(self, temp_file):
         df = DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
             columns=pd.Index(list("ABCD")),
@@ -1680,7 +1684,7 @@ The repeated labels are:\n-+\nwolof
         )
         df.index.name = "index"
         reader = lambda x: read_stata(x).set_index("index")
-        result = tm.round_trip_pathlib(df.to_stata, reader, tmp_path)
+        result = tm.round_trip_pathlib(df.to_stata, reader, temp_file)
         tm.assert_frame_equal(df, result)
 
     @pytest.mark.parametrize("write_index", [True, False])

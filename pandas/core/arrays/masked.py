@@ -27,7 +27,11 @@ from pandas.compat import (
     IS64,
     is_platform_windows,
 )
-from pandas.errors import AbstractMethodError
+from pandas.errors import (
+    AbstractMethodError,
+    Pandas4Warning,
+)
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.astype import astype_is_view
 from pandas.core.dtypes.base import ExtensionDtype
@@ -169,7 +173,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         lkind = self.dtype.kind
         rkind = result.dtype.kind
         if (lkind in "iu" and rkind in "iu") or (lkind == rkind == "f"):
-            result = cast(BaseMaskedArray, result)
+            result = cast("BaseMaskedArray", result)
             new_data = maybe_downcast_to_dtype(
                 result._data, dtype=self.dtype.numpy_dtype
             )
@@ -186,7 +190,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         ExtensionDtype.empty
             ExtensionDtype.empty is the 'official' public version of this API.
         """
-        dtype = cast(BaseMaskedDtype, dtype)
+        dtype = cast("BaseMaskedDtype", dtype)
         values: np.ndarray = np.empty(shape, dtype=dtype.type)
         values.fill(dtype._internal_fill_value)
         mask = np.ones(shape, dtype=bool)
@@ -724,7 +728,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         out = kwargs.get("out", ())
 
         for x in inputs + out:
-            if not isinstance(x, self._HANDLED_TYPES + (BaseMaskedArray,)):
+            if not isinstance(x, (*self._HANDLED_TYPES, BaseMaskedArray)):
                 return NotImplemented
 
         # for binary ops, use our custom dunder methods
@@ -829,6 +833,20 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def _arith_method(self, other, op):
         op_name = op.__name__
         omask = None
+
+        if (
+            is_list_like(other)
+            and not isinstance(other, (list, np.ndarray, ExtensionArray))
+            and not ops.has_castable_attr(other)
+        ):
+            warnings.warn(
+                f"Operation with {type(other).__name__} are deprecated. "
+                "In a future version these will be treated as scalar-like. "
+                "To retain the old behavior, explicitly wrap in a Series "
+                "instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
 
         if (
             not hasattr(other, "dtype")
@@ -942,6 +960,17 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             other, mask = other._data, other._mask
 
         elif is_list_like(other):
+            if not isinstance(
+                other, (list, np.ndarray, ExtensionArray)
+            ) and not ops.has_castable_attr(other):
+                warnings.warn(
+                    f"Operation with {type(other).__name__} are deprecated. "
+                    "In a future version these will be treated as scalar-like. "
+                    "To retain the old behavior, explicitly wrap in a Series "
+                    "instead.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
             other = np.asarray(other)
             if other.ndim > 1:
                 raise NotImplementedError("can only perform ops with 1-d structures")
@@ -1688,7 +1717,12 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return self._wrap_reduction_result("max", result, skipna=skipna, axis=axis)
 
     def map(self, mapper, na_action: Literal["ignore"] | None = None):
-        return map_array(self.to_numpy(), mapper, na_action=na_action)
+        result = map_array(
+            self.to_numpy(dtype=object, na_value=libmissing.NA),
+            mapper,
+            na_action=na_action,
+        )
+        return self._cast_pointwise_result(result)
 
     @overload
     def any(

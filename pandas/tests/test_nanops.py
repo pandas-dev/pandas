@@ -304,7 +304,7 @@ class TestnanopsDataFrame:
         empty_targfunc=None,
         **kwargs,
     ):
-        for axis in list(range(targarval.ndim)) + [None]:
+        for axis in [*list(range(targarval.ndim)), None]:
             targartempval = targarval if skipna else testarval
             if skipna and empty_targfunc and isna(targartempval).all():
                 targ = empty_targfunc(targartempval, axis=axis, **kwargs)

@@ -135,10 +135,9 @@ class TestDatetimeIndexOps:
         tm.assert_index_equal(dr.hour, expected)
 
     # GH#12806
-    # error: Unsupported operand types for + ("List[None]" and "List[str]")
     @pytest.mark.parametrize(
         "time_locale",
-        [None] + tm.get_locales(),  # type: ignore[operator]
+        [None, *tm.get_locales()],
     )
     def test_day_name_month_name(self, time_locale):
         # Test Monday -> Sunday and January -> December, in that sequence
@@ -184,7 +183,9 @@ class TestDatetimeIndexOps:
             "Saturday",
             "Sunday",
         ]
-        for day, name, eng_name in zip(range(4, 11), expected_days, english_days):
+        for day, name, eng_name in zip(
+            range(4, 11), expected_days, english_days, strict=True
+        ):
             name = name.capitalize()
             assert dti.day_name(locale=time_locale)[day] == name
             assert dti.day_name(locale=None)[day] == eng_name
@@ -206,7 +207,7 @@ class TestDatetimeIndexOps:
 
         tm.assert_index_equal(result, expected)
 
-        for item, expected in zip(dti, expected_months):
+        for item, expected in zip(dti, expected_months, strict=True):
             result = item.month_name(locale=time_locale)
             expected = expected.capitalize()
 

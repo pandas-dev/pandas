@@ -1175,7 +1175,7 @@ class TestToDatetime:
         tm.assert_index_equal(result, expected)
 
         # A list of datetimes where the last one is out of bounds
-        dts_with_oob = dts + [np.datetime64("9999-01-01")]
+        dts_with_oob = [*dts, np.datetime64("9999-01-01")]
 
         # As of GH#51978 we do not raise in this case
         to_datetime(dts_with_oob, errors="raise")
@@ -3611,7 +3611,7 @@ def test_to_datetime_iso8601_utc_mixed_both_offsets():
 def test_unknown_tz_raises():
     # GH#18702, GH#51476
     dtstr = "2014 Jan 9 05:15 FAKE"
-    msg = '.*un-recognized timezone "FAKE".'
+    msg = '.*unrecognized timezone "FAKE".'
     with pytest.raises(ValueError, match=msg):
         Timestamp(dtstr)
 
