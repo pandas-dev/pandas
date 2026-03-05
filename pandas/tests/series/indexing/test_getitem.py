@@ -719,3 +719,30 @@ class TestGetitemDeprecatedIndexers:
         ser = Series([1, 2, 3])
         with pytest.raises(TypeError, match="as an indexer is not supported"):
             ser[key] = 1
+
+
+def test_getitem_categorical_index_from_cut():
+    # GH#27437
+    # Ensure indexing works correctly when index is output from pd.cut
+    
+    data = DataFrame(dict(values=range(20), quintiles=pd.cut(range(20), 5)))
+    grouped = data.groupby("quintiles")["values"]
+    
+    # Create Series with categorical index from cut
+    samples = grouped.agg(lambda x: list(x.head(3)))
+    
+    # samples should have a CategoricalIndex
+    assert isinstance(samples.index, pd.CategoricalIndex)
+    
+    # Test indexing with different methods
+    # Integer indexing should use label-based (categorical interval)
+    result0 = samples[0]  # First interval
+    result_last = samples[19]  # Last interval
+    
+    # Both should be lists
+    assert isinstance(result0, list)
+    assert isinstance(result_last, list)
+    
+    # Should be different lists (from different quintiles)
+    # The bug was that indexing with different values returned the same result
+    assert result0 != result_last
