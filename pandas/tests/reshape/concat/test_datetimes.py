@@ -609,3 +609,29 @@ def test_concat_float_datetime64():
 
     result = concat([df_time, df_float.iloc[:0]])
     tm.assert_frame_equal(result, expected)
+
+
+def test_concat_datetime64_different_resolutions():
+    # GH#53307
+    # Ensure concat preserves datetime64 dtype when combining columns
+    # with different resolutions (ns, s, ms, etc.)
+    
+    df = DataFrame({
+        'ints': range(2),
+        'dates': pd.date_range("2000", periods=2, freq="min"),
+    })
+    
+    df2 = df.copy()
+    df2['dates'] = df.dates.astype('M8[s]')  # Different resolution (seconds)
+    
+    result = concat([df, df2])
+    
+    # Result should be datetime64 dtype (not object)
+    assert pd.api.types.is_datetime64_any_dtype(result.dates.dtype)
+    
+    # Should use the more precise resolution (ns in this case)
+    # or a common resolution that can represent both
+    assert result.dates.dtype in [
+        'datetime64[ns]',  # Most precise
+        'datetime64[s]',   # Or common resolution
+    ]
