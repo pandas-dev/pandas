@@ -401,9 +401,24 @@ class ArrowStringArrayMixin:
         return ArrowStringArrayMixin._str_match(self, pat, case, flags, na)
 
     def _str_find(self, sub: str, start: int = 0, end: int | None = None):
-        # GH#64123: PyArrow's find_substring returns byte indices, not character indices
-        # Use element-wise Python str.find to ensure character-based indexing
-        res_list = self._apply_elementwise(
-            lambda val: val.find(sub, start, end)
-        )
-        return self._convert_int_result(pa.chunked_array(res_list))
+        # GH#64123: PyArrow's find_substring returns byte indices, need to convert to char indices
+        if (start == 0 or start is None) and end is None:
+            # Simple case: find from beginning
+            byte_result = pc.find_substring(self._pa_array, sub)
+            # Convert byte indices to character indices
+            # For positions where substring was found (>= 0), count characters before that byte position
+            found_mask = pc.greater_equal(byte_result, 0)
+            
+            # For found items: slice from 0 to byte_index and count UTF-8 characters
+            char_result = pc.if_else(
+                found_mask,
+                pc.utf8_length(pc.utf8_slice_codeunits(self._pa_array, 0, byte_result)),
+                -1
+            )
+            return self._convert_int_result(char_result)
+        else:
+            # Complex case with start/end: use element-wise for correctness
+            res_list = self._apply_elementwise(
+                lambda val: val.find(sub, start, end)
+            )
+            return self._convert_int_result(pa.chunked_array(res_list))
