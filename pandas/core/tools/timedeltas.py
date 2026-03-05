@@ -200,11 +200,12 @@ def to_timedelta(
         # Series]]")  [assignment]
         arg = lib.item_from_zerodim(arg)  # type: ignore[assignment]
     elif is_list_like(arg) and getattr(arg, "ndim", 1) == 1:
-        arg_iter = cast("Iterable[object]", arg)
-        normalized = [
-            Timedelta(days=x.n) if isinstance(x, Day) else x for x in arg_iter
-        ]
-        return _convert_listlike(normalized, unit=unit, errors=errors)
+        arg_iter = list(cast("Iterable[object]", arg))
+
+        if any(isinstance(x, Day) for x in arg_iter):
+            arg = [Timedelta(days=x.n) if isinstance(x, Day) else x for x in arg_iter]
+
+        return _convert_listlike(arg, unit=unit, errors=errors)
     elif getattr(arg, "ndim", 1) > 1:
         raise TypeError(
             "arg must be a string, timedelta, list, tuple, 1-d array, or Series"
