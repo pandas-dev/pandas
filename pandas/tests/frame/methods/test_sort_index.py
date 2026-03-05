@@ -1055,3 +1055,24 @@ def test_sort_index_rangeindex_with_level_keyword():
         index=pd.Index([0, 1, 2], name="foo"),
     )
     tm.assert_frame_equal(result3, expected3)
+
+    # Test reversed RangeIndex
+    df4 = DataFrame(
+        {"a": [1, 2, 3]}, index=RangeIndex(start=2, stop=-1, step=-1, name="foo")
+    )
+    result4 = df4.sort_index(level="foo")
+    expected4 = DataFrame(
+        {"a": [3, 2, 1]},
+        index=pd.Index([0, 1, 2], name="foo"),
+    )
+    tm.assert_frame_equal(result4, expected4)
+
+    # Test ascending=False
+    df5 = DataFrame({"a": [1, 2, 3]})
+    df5.index.names = ["foo"]
+    result5 = df5.sort_index(level="foo", ascending=False)
+    expected5 = DataFrame(
+        {"a": [3, 2, 1]},
+        index=pd.Index([2, 1, 0], name="foo"),
+    )
+    tm.assert_frame_equal(result5, expected5)
