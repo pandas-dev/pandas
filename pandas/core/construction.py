@@ -326,6 +326,13 @@ def array(
             f"Cannot pass {data.ndim}-dimensional array to 'pandas.array'. "
             "Expected 1-dimensional data."
         )
+    # Also check for nested lists
+    elif isinstance(data, (list, tuple)) and len(data) > 0:
+        if isinstance(data[0], (list, tuple, np.ndarray)):
+            raise ValueError(
+                "Cannot pass multidimensional array to 'pandas.array'. "
+                "Expected 1-dimensional data."
+            )
 
     # Handle numpy masked arrays: convert masked values to NA
     # GH#63879
