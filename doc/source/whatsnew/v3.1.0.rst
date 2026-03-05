@@ -29,8 +29,8 @@ enhancement2
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 - :meth:`.DataFrameGroupBy.agg` now allows for the provided ``func`` to return a NumPy array (:issue:`63957`)
-- Display formatting for float sequences in DataFrame cells now respects the ``display.precision`` option (:issue:`60503`).
 - :meth:`Timestamp.round`, :meth:`Timestamp.floor`, and :meth:`Timestamp.ceil` now officially accept :class:`Timedelta` arguments (:issue:`63687`)
+- Display formatting for float sequences in DataFrame cells now respects the ``display.precision`` option (:issue:`60503`).
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_310.notable_bug_fixes:
