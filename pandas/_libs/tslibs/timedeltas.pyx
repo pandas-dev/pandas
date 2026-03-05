@@ -2,8 +2,8 @@ import collections
 import re
 import warnings
 
-from pandas.util._decorators import set_module
 from pandas._libs.tslibs.offsets import Day
+from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 
 cimport cython
