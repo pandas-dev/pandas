@@ -3,6 +3,7 @@ import re
 import warnings
 
 from pandas.util._decorators import set_module
+from pandas._libs.tslibs.offsets import Day
 from pandas.util._exceptions import find_stack_level
 
 cimport cython
@@ -2269,6 +2270,10 @@ class Timedelta(_Timedelta):
                 except (OverflowError, OutOfBoundsDatetime) as err:
                     raise OutOfBoundsTimedelta(value) from err
             return cls._from_value_and_reso(new_value, reso=new_reso)
+
+        elif isinstance(value, Day):
+            # convert Day offset to Timedelta
+            return cls(days=value.n)
 
         elif is_tick_object(value):
             new_reso = get_supported_reso(value._creso)
