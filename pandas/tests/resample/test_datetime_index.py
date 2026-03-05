@@ -2188,3 +2188,33 @@ def test_resample_A_raises(freq):
     s = Series(range(10), index=date_range("20130101", freq="D", periods=10))
     with pytest.raises(ValueError, match=msg):
         s.resample(freq).mean()
+
+
+def test_resample_quarter_starting_month_non_unitary():
+    # GH#29576
+    # Ensure that when resampling with non-unitary Quarter periods,
+    # the startingMonth parameter is respected
+    
+    ser = Series(
+        data=np.zeros(365),
+        index=date_range('1950-01-01', '1950-12-31', freq='D')
+    )
+    
+    result = ser.resample('2QS-MAR').mean()
+    
+    # With 2QS-MAR (2 quarters starting in March), we expect:
+    # - First period should start in March (or 6 months before: September)
+    # The bug was that it started at closest single quarter instead
+    
+    # Expected index should have March-anchored quarter starts
+    # e.g., 1949-09-01, 1950-03-01, 1950-09-01
+    # (each 6 months apart, anchored to March fiscal year)
+    
+    # At minimum, verify the frequency is preserved
+    assert result.index.freq == "2QS-MAR"
+    
+    # Additional check: with QS-MAR, first element should be in March or offset
+    # For 2QS-MAR starting before 1950, it should be 1949-09-01 or 1950-03-01
+    first_month = result.index[0].month
+    # Should be March (3) or September (9) for MAR fiscal year
+    assert first_month in [3, 9], f"Expected March or Sept, got month {first_month}"
