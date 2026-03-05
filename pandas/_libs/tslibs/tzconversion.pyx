@@ -135,6 +135,9 @@ cdef class Localizer:
             return utc_val + self.delta
         else:
             pos[0] = bisect_right_i8(self.tdata, utc_val, self.ntrans) - 1
+
+            # Fall back to ZoneInfo.utcoffset() for pre-first-transition timestamps,
+            # since ZoneInfo and dateutil may return different offsets in LMT era.
             if self.use_zoneinfo_fallback and pos[0] == 0:
                 return utc_val + _tz_localize_using_tzinfo_api(
                     utc_val, self.tz, to_utc=False, creso=self._creso, fold=fold
