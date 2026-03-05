@@ -501,16 +501,19 @@ def _to_datetime_with_unit(arg, unit, name, utc: bool, errors: str) -> Index:
         if arg.dtype.kind in "iu":
             # Note we can't do "f" here because that could induce unwanted
             #  rounding GH#14156, GH#20445
-            arr = arg.astype(f"datetime64[{unit}]", copy=False)
-            dtype = get_supported_dtype(arr.dtype)
-            try:
-                arr = astype_overflowsafe(arr, dtype, copy=False)
-            except OutOfBoundsDatetime:
-                if errors == "raise":
-                    raise
-                arg = arg.astype(object)
-                return _to_datetime_with_unit(arg, unit, name, utc, errors)
-            tz_parsed = None
+        # GH#60677: Use int64 dtype for bounds checking
+        if arg.dtype != np.dtype("int64"):
+            arg = arg.astype("int64", copy=False)
+        dtype = get_supported_dtype(np.dtype(f"M8[{unit}]"))
+        try:
+            # astype_overflowsafe will raise OutOfBoundsDatetime if needed
+            arr = astype_overflowsafe(arg, dtype, copy=False)
+        except OutOfBoundsDatetime:
+            if errors == "raise":
+                raise
+            arg = arg.astype(object)
+            return _to_datetime_with_unit(arg, unit, name, utc, errors)
+        tz_parsed = None
 
         elif arg.dtype.kind == "f":
             with np.errstate(invalid="ignore"):

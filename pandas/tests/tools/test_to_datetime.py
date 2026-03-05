@@ -3827,3 +3827,26 @@ def test_to_datetime_lxml_elementunicoderesult_with_format(cache):
 
     out = to_datetime(Series([val]), format="%Y-%m-%d %H:%M:%S", cache=cache)
     assert out.iloc[0] == Timestamp(s)
+
+
+def test_to_datetime_scalar_out_of_bounds_with_unit():
+    # GH#60677
+    # Ensure that scalar input raises OutOfBoundsDatetime just like list input
+    uint64_max = np.iinfo("uint64").max
+    
+    # List input should raise (and does)
+    msg = f"cannot convert input {uint64_max} with the unit 'ns'"
+    with pytest.raises(OutOfBoundsDatetime, match=msg):
+        to_datetime([uint64_max], unit="ns")
+    
+    # Scalar input should also raise (this was the bug)
+    with pytest.raises(OutOfBoundsDatetime, match=msg):
+        to_datetime(uint64_max, unit="ns")
+    
+    # Test with errors='coerce' - should return NaT
+    result = to_datetime(uint64_max, unit="ns", errors="coerce")
+    assert result is NaT
+    
+    result = to_datetime([uint64_max], unit="ns", errors="coerce")
+    expected = DatetimeIndex([NaT])
+    tm.assert_index_equal(result, expected)
