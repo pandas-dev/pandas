@@ -1542,3 +1542,25 @@ def test_mean_numeric_only_validates_bool():
 
     with pytest.raises(ValueError, match=msg):
         df.groupby(["A"]).mean(numeric_only=1)
+
+
+def test_groupby_var_arrow_dtype():
+    # GH#54627
+    # Ensure groupby.var() preserves arrow dtypes
+    pytest.importorskip("pyarrow")
+    import pyarrow as pa
+    import decimal
+    
+    df = DataFrame({
+        "A": pd.Series([True, True], dtype="bool[pyarrow]"),
+        "B": pd.Series(
+            [decimal.Decimal(123), decimal.Decimal(12)],
+            dtype=pd.ArrowDtype(pa.decimal128(6, 3))
+        )
+    })
+    
+    result = df.groupby("A").var()
+    
+    # Check that result dtype is arrow-backed
+    # (might be float64[pyarrow] after variance calculation)
+    assert isinstance(result["B"].dtype, pd.ArrowDtype)
