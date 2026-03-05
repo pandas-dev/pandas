@@ -53,12 +53,11 @@ jobs:
 
         if [[ -n "${{ github.event.inputs.version }}" ]]; then
           PANDAS_VERSION="${{ github.event.inputs.version }}"
+          echo "PANDAS_VERSION=$PANDAS_VERSION" >> "$GITHUB_ENV"
         elif [[ "${{ github.event_name }}" == "push" && "$GITHUB_REF_NAME" =~ $tag_version_pat ]]; then
           PANDAS_VERSION="${GITHUB_REF_NAME:1}"
-        else
-          PANDAS_VERSION=""
+          echo "PANDAS_VERSION=$PANDAS_VERSION" >> "$GITHUB_ENV"
         fi
-        echo "PANDAS_VERSION=$PANDAS_VERSION" >> "$GITHUB_ENV"
 
         if [[ "${{ github.event_name }}" == "push" && -n "$PANDAS_VERSION" ]]; then
           PUBLISH_PROD="true"
