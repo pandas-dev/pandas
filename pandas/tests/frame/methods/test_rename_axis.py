@@ -28,6 +28,18 @@ class TestDataFrameRenameAxis:
         assert no_return is None
         tm.assert_frame_equal(result, expected)
 
+    def test_rename_axis_with_allows_duplicate_labels_false(self):
+        # GH#44958
+        df = DataFrame([[1, 2], [3, 4]], columns=["a", "b"]).set_flags(
+            allows_duplicate_labels=False
+        )
+
+        result = df.rename_axis("idx", axis=0)
+        expected = DataFrame(
+            [[1, 2], [3, 4]], index=Index([0, 1], name="idx"), columns=["a", "b"]
+        )
+        tm.assert_frame_equal(result, expected, check_flags=False)
+
     def test_rename_axis_raises(self):
         # GH#17833
         df = DataFrame({"A": [1, 2], "B": [1, 2]})
@@ -60,15 +72,15 @@ class TestDataFrameRenameAxis:
 
         # Test for renaming index using dict
         result = df.rename_axis(index={"ll": "foo"})
-        assert result.index.names == ("foo", "nn")
+        assert result.index.names == ["foo", "nn"]
 
         # Test for renaming index using a function
         result = df.rename_axis(index=str.upper, axis=0)
-        assert result.index.names == ("LL", "NN")
+        assert result.index.names == ["LL", "NN"]
 
         # Test for renaming index providing complete list
         result = df.rename_axis(index=["foo", "goo"])
-        assert result.index.names == ("foo", "goo")
+        assert result.index.names == ["foo", "goo"]
 
         # Test for changing index and columns at same time
         sdf = df.reset_index().set_index("nn").drop(columns=["ll", "y"])

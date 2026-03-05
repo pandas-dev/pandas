@@ -17,11 +17,12 @@ def bar_grad(a=None, b=None, c=None, d=None):
     ret = [("width", "10em")]
     if all(x is None for x in [a, b, c, d]):
         return ret
-    return ret + [
+    return [
+        *ret,
         (
             "background",
             f"linear-gradient(90deg,{','.join([x for x in [a, b, c, d] if x])})",
-        )
+        ),
     ]
 
 
@@ -347,6 +348,7 @@ def test_styler_bar_with_NA_values():
 
 
 def test_style_bar_with_pyarrow_NA_values():
+    pytest.importorskip("pyarrow")
     data = """name,age,test1,test2,teacher
         Adam,15,95.0,80,Ashby
         Bob,16,81.0,82,Ashby

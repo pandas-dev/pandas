@@ -46,6 +46,17 @@ class TestGetIndexer:
         expected = np.array([-1, 2, -1, -1, 1, -1, -1, 0, -1], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_get_indexer_missing_value_casting_string_dtype(self):
+        # GH#55833
+        idx = Index(["a", "b", None])
+        result = idx.get_indexer([None])
+        expected = np.array([2], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = idx.get_indexer([None, True])
+        expected = np.array([2, -1], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
 
 class TestTake:
     def test_take_preserve_name(self):

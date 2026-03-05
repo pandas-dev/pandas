@@ -1,6 +1,7 @@
 """
 Tests for statistical reductions of 2nd moment or higher: var, skew, kurt, ...
 """
+
 import inspect
 
 import numpy as np
@@ -98,7 +99,7 @@ class TestSeriesStatReductions:
             # mean, idxmax, idxmin, min, and max are valid for dates
             if name not in ["max", "min", "mean", "median", "std"]:
                 ds = Series(date_range("1/1/2001", periods=10))
-                msg = f"does not support reduction '{name}'"
+                msg = f"does not support operation '{name}'"
                 with pytest.raises(TypeError, match=msg):
                     f(ds)
 
@@ -227,7 +228,7 @@ class TestSeriesStatReductions:
         result = s.sem(ddof=1)
         assert pd.isna(result)
 
-    def test_skew(self):
+    def test_skew(self, using_python_scalars):
         sp_stats = pytest.importorskip("scipy.stats")
 
         string_series = Series(range(20), dtype=np.float64, name="series")
@@ -246,7 +247,10 @@ class TestSeriesStatReductions:
                 assert np.isnan(df.skew()).all()
             else:
                 assert 0 == s.skew()
-                assert isinstance(s.skew(), np.float64)  # GH53482
+                if using_python_scalars:
+                    assert type(s.skew()) == float
+                else:
+                    assert isinstance(s.skew(), np.float64)  # GH53482
                 assert (df.skew() == 0).all()
 
     def test_kurt(self):
@@ -257,7 +261,7 @@ class TestSeriesStatReductions:
         alt = lambda x: sp_stats.kurtosis(x, bias=False)
         self._check_stat_op("kurt", alt, string_series)
 
-    def test_kurt_corner(self):
+    def test_kurt_corner(self, using_python_scalars):
         # test corner cases, kurt() returns NaN unless there's at least 4
         # values
         min_N = 4
@@ -269,5 +273,8 @@ class TestSeriesStatReductions:
                 assert np.isnan(df.kurt()).all()
             else:
                 assert 0 == s.kurt()
-                assert isinstance(s.kurt(), np.float64)  # GH53482
+                if using_python_scalars:
+                    assert type(s.kurt()) == float
+                else:
+                    assert isinstance(s.kurt(), np.float64)  # GH53482
                 assert (df.kurt() == 0).all()

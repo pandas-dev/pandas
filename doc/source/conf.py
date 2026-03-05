@@ -114,6 +114,8 @@ if pattern:
                 ):
                     exclude_patterns.append(rel_fname)
                 elif single_doc and rel_fname != pattern:
+                    if "\\" in rel_fname:
+                        rel_fname = rel_fname.replace("\\", "/")
                     exclude_patterns.append(rel_fname)
 
 with open(os.path.join(source_path, "index.rst.template"), encoding="utf-8") as f:
@@ -172,7 +174,7 @@ copyright = f"{datetime.now().year},"
 import pandas  # isort:skip
 
 # version = '%s r%s' % (pandas.__version__, svn_version())
-version = str(pandas.__version__)
+version = os.environ.get("PANDAS_VERSION", str(pandas.__version__))
 
 # The full version, including alpha/beta/rc tags.
 release = version
@@ -230,10 +232,10 @@ html_theme = "pydata_sphinx_theme"
 # further.  For a list of options available for each theme, see the
 # documentation.
 
-if ".dev" in version:
+if ".dev" in version or ("rc" in version and "+" in version):
     switcher_version = "dev"
 elif "rc" in version:
-    switcher_version = version.split("rc", maxsplit=1)[0] + " (rc)"
+    switcher_version = ".".join(version.split(".")[:2]) + " (rc)"
 else:
     # only keep major.minor version number to match versions.json
     switcher_version = ".".join(version.split(".")[:2])
@@ -242,7 +244,6 @@ html_theme_options = {
     "external_links": [],
     "footer_start": ["pandas_footer", "sphinx-version"],
     "github_url": "https://github.com/pandas-dev/pandas",
-    "twitter_url": "https://twitter.com/pandas_dev",
     "analytics": {
         "plausible_analytics_domain": "pandas.pydata.org",
         "plausible_analytics_url": "https://views.scientific-python.org/js/script.js",
@@ -254,8 +255,16 @@ html_theme_options = {
         "json_url": "https://pandas.pydata.org/versions.json",
         "version_match": switcher_version,
     },
-    "show_version_warning_banner": True,
+    # This shows a warning for patch releases since the
+    # patch version doesn't compare as equal (e.g. 2.2.1 != 2.2.0 but it should be)
+    "show_version_warning_banner": False,
+    "announcement": "https://raw.githubusercontent.com/pandas-dev/pandas/main/doc/_templates/docs-announcement-banner.html",
     "icon_links": [
+        {
+            "name": "X",
+            "url": "https://x.com/pandas_dev",
+            "icon": "fa-brands fa-square-x-twitter",
+        },
         {
             "name": "Mastodon",
             "url": "https://fosstodon.org/@pandas_dev",
@@ -397,7 +406,7 @@ html_use_modindex = True
 # html_split_index = False
 
 # If true, links to the reST sources are added to the pages.
-# html_show_sourcelink = True
+html_show_sourcelink = False
 
 # If true, an OpenSearch description file will be output, and all pages will
 # contain a <link> tag referring to it.  The value of this option must be the
@@ -556,7 +565,7 @@ class AccessorLevelDocumenter(Documenter):
                 else:
                     modname = self.env.temp_data.get("py:module")
             # ... else, it stays None, which means invalid
-        return modname, parents + [base]
+        return modname, [*parents, base]
 
 
 class AccessorAttributeDocumenter(AccessorLevelDocumenter, AttributeDocumenter):
@@ -685,7 +694,7 @@ def linkcode_resolve(domain, info) -> str | None:
 
     fn = os.path.relpath(fn, start=os.path.dirname(pandas.__file__))
 
-    if "+" in pandas.__version__:
+    if "+" in version:
         return f"https://github.com/pandas-dev/pandas/blob/main/pandas/{fn}{linespec}"
     else:
         return (
@@ -820,7 +829,6 @@ linkcheck_ignore = [
             "https://github.com/pandas-dev/pandas/blob/v0.20.2/pandas/core/generic.py#L568",
             "https://github.com/pandas-dev/pandas/blob/v0.20.2/pandas/core/frame.py#L1495",
             "https://github.com/pandas-dev/pandas/issues/174151",
-            "https://gitpod.io/#https://github.com/USERNAME/pandas",
             "https://manishamde.github.io/blog/2013/03/07/pandas-and-python-top-10/",
             "https://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes.table",
             "https://nipunbatra.github.io/blog/visualisation/2013/05/01/aggregation-timeseries.html",

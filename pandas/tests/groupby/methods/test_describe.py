@@ -79,7 +79,7 @@ def test_frame_describe_multikey(tsframe):
         group = grouped[col].describe()
         # GH 17464 - Remove duplicate MultiIndex levels
         group_col = MultiIndex(
-            levels=[[col], group.columns],
+            levels=[Index([col], dtype=tsframe.columns.dtype), group.columns],
             codes=[[0] * len(group.columns), range(len(group.columns))],
         )
         group = DataFrame(group.values, columns=group_col, index=group.index)
@@ -90,20 +90,22 @@ def test_frame_describe_multikey(tsframe):
 
 def test_frame_describe_tupleindex():
     # GH 14848 - regression from 0.19.0 to 0.19.1
-    df1 = DataFrame(
+    name = "k"
+    df = DataFrame(
         {
             "x": [1, 2, 3, 4, 5] * 3,
-            "y": [10, 20, 30, 40, 50] * 3,
-            "z": [100, 200, 300, 400, 500] * 3,
+            name: [(0, 0, 1), (0, 1, 0), (1, 0, 0)] * 5,
         }
     )
-    df1["k"] = [(0, 0, 1), (0, 1, 0), (1, 0, 0)] * 5
-    df2 = df1.rename(columns={"k": "key"})
-    msg = "Names should be list-like for a MultiIndex"
-    with pytest.raises(ValueError, match=msg):
-        df1.groupby("k").describe()
-    with pytest.raises(ValueError, match=msg):
-        df2.groupby("key").describe()
+    result = df.groupby(name).describe()
+    expected = DataFrame(
+        [[5.0, 3.0, 1.581139, 1.0, 2.0, 3.0, 4.0, 5.0]] * 3,
+        index=Index([(0, 0, 1), (0, 1, 0), (1, 0, 0)], tupleize_cols=False, name=name),
+        columns=MultiIndex.from_arrays(
+            [["x"] * 8, ["count", "mean", "std", "min", "25%", "50%", "75%", "max"]]
+        ),
+    )
+    tm.assert_frame_equal(result, expected)
 
 
 def test_frame_describe_unstacked_format():
@@ -200,15 +202,15 @@ def test_describe_duplicate_columns():
     gb = df.groupby(df[1])
     result = gb.describe(percentiles=[])
 
-    columns = ["count", "mean", "std", "min", "50%", "max"]
+    columns = ["count", "mean", "std", "min", "max"]
     frames = [
-        DataFrame([[1.0, val, np.nan, val, val, val]], index=[1], columns=columns)
+        DataFrame([[1.0, val, np.nan, val, val]], index=[1], columns=columns)
         for val in (0.0, 2.0, 3.0)
     ]
     expected = pd.concat(frames, axis=1)
     expected.columns = MultiIndex(
         levels=[[0, 2], columns],
-        codes=[6 * [0] + 6 * [1] + 6 * [0], 3 * list(range(6))],
+        codes=[5 * [0] + 5 * [1] + 5 * [0], 3 * list(range(5))],
     )
     expected.index.names = [1]
     tm.assert_frame_equal(result, expected)
@@ -265,5 +267,5 @@ def test_groupby_empty_dataset(dtype, kwargs):
 
     result = df.iloc[:0].groupby("A").B.describe(**kwargs)
     expected = df.groupby("A").B.describe(**kwargs).reset_index(drop=True).iloc[:0]
-    expected.index = Index([])
+    expected.index = Index([], dtype=df.columns.dtype)
     tm.assert_frame_equal(result, expected)

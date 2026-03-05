@@ -22,7 +22,7 @@ Fixed regressions
 - Fixed regression in ``DataFrame.__setitem__`` raising ``ValueError`` when expanding :class:`DataFrame` and new column is from type ``"0 - name"`` (:issue:`39010`)
 - Fixed regression in setting with :meth:`DataFrame.loc`  raising ``ValueError`` when :class:`DataFrame` has unsorted :class:`MultiIndex` columns and indexer is a scalar (:issue:`38601`)
 - Fixed regression in setting with :meth:`DataFrame.loc` raising ``KeyError`` with :class:`MultiIndex` and list-like columns indexer enlarging :class:`DataFrame` (:issue:`39147`)
-- Fixed regression in :meth:`~DataFrame.groupby()` with :class:`Categorical` grouping column not showing unused categories for ``grouped.indices`` (:issue:`38642`)
+- Fixed regression in :meth:`~DataFrame.groupby` with :class:`Categorical` grouping column not showing unused categories for ``grouped.indices`` (:issue:`38642`)
 - Fixed regression in :meth:`.DataFrameGroupBy.sem` and :meth:`.SeriesGroupBy.sem` where the presence of non-numeric columns would cause an error instead of being dropped (:issue:`38774`)
 - Fixed regression in :meth:`.DataFrameGroupBy.diff` raising for ``int8`` and ``int16`` columns (:issue:`39050`)
 - Fixed regression in :meth:`DataFrame.groupby` when aggregating an ``ExtensionDType`` that could fail for non-numeric values (:issue:`38980`)

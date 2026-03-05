@@ -5,6 +5,7 @@ import pytest
 
 from pandas._libs import iNaT
 
+from pandas import array
 import pandas._testing as tm
 import pandas.core.algorithms as algos
 
@@ -299,9 +300,18 @@ class TestExtensionTake:
         tm.assert_numpy_array_equal(result, expected)
 
     def test_take_coerces_list(self):
+        # GH#52981 coercing is deprecated, disabled in 3.0
         arr = [1, 2, 3]
-        msg = "take accepting non-standard inputs is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = algos.take(arr, [0, 0])
-        expected = np.array([1, 1])
-        tm.assert_numpy_array_equal(result, expected)
+        msg = (
+            "pd.api.extensions.take requires a numpy.ndarray, ExtensionArray, "
+            "Index, Series, or NumpyExtensionArray got list"
+        )
+        with pytest.raises(TypeError, match=msg):
+            algos.take(arr, [0, 0])
+
+    def test_take_NumpyExtensionArray(self):
+        # GH#59177
+        arr = array([1 + 1j, 2, 3])  # NumpyEADtype('complex128') (NumpyExtensionArray)
+        assert algos.take(arr, [2]) == 2
+        arr = array([1, 2, 3])  # Int64Dtype() (ExtensionArray)
+        assert algos.take(arr, [2]) == 2

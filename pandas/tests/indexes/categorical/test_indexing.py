@@ -64,8 +64,7 @@ class TestTake:
         tm.assert_categorical_equal(result.values, expected.values)
 
         msg = (
-            "When allow_fill=True and fill_value is not None, "
-            "all indices must be >= -1"
+            "When allow_fill=True and fill_value is not None, all indices must be >= -1"
         )
         with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -2]), fill_value=True)
@@ -103,8 +102,7 @@ class TestTake:
         tm.assert_index_equal(result, expected)
 
         msg = (
-            "When allow_fill=True and fill_value is not None, "
-            "all indices must be >= -1"
+            "When allow_fill=True and fill_value is not None, all indices must be >= -1"
         )
         with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -2]), fill_value=True)
@@ -317,7 +315,7 @@ class TestWhere:
         tm.assert_index_equal(result, expected)
 
         cond = [False] + [True] * (len(i) - 1)
-        expected = CategoricalIndex([np.nan] + i[1:].tolist(), categories=i.categories)
+        expected = CategoricalIndex([np.nan, *i[1:].tolist()], categories=i.categories)
         result = i.where(klass(cond))
         tm.assert_index_equal(result, expected)
 
@@ -349,7 +347,7 @@ class TestContains:
         assert 1 not in ci
 
     def test_contains_nan(self):
-        ci = CategoricalIndex(list("aabbca") + [np.nan], categories=list("cabdef"))
+        ci = CategoricalIndex([*list("aabbca"), np.nan], categories=list("cabdef"))
         assert np.nan in ci
 
     @pytest.mark.parametrize("unwrap", [True, False])

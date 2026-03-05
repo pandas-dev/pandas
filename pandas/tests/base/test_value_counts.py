@@ -14,6 +14,7 @@ from pandas import (
     Series,
     Timedelta,
     TimedeltaIndex,
+    Timestamp,
     array,
 )
 import pandas._testing as tm
@@ -47,11 +48,6 @@ def test_value_counts(index_or_series_obj):
             # i.e IntegerDtype
             expected = expected.astype("Int64")
 
-    # TODO(GH#32514): Order of entries with the same count is inconsistent
-    #  on CI (gh-32449)
-    if obj.duplicated().any():
-        result = result.sort_index()
-        expected = expected.sort_index()
     tm.assert_series_equal(result, expected)
 
 
@@ -59,15 +55,15 @@ def test_value_counts(index_or_series_obj):
 @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 def test_value_counts_null(null_obj, index_or_series_obj):
     orig = index_or_series_obj
-    obj = orig.copy()
 
-    if not allow_na_ops(obj):
+    if not allow_na_ops(orig):
         pytest.skip("type doesn't allow for NA operations")
-    elif len(obj) < 1:
+    elif len(orig) < 1:
         pytest.skip("Test doesn't make sense on empty data")
     elif isinstance(orig, MultiIndex):
         pytest.skip(f"MultiIndex can't hold '{null_obj}'")
 
+    obj = orig.copy(deep=True)
     values = obj._values
     values[0:2] = null_obj
 
@@ -89,11 +85,6 @@ def test_value_counts_null(null_obj, index_or_series_obj):
     expected.index.name = obj.name
 
     result = obj.value_counts()
-    if obj.duplicated().any():
-        # TODO(GH#32514):
-        #  Order of entries with the same count is inconsistent on CI (gh-32449)
-        expected = expected.sort_index()
-        result = result.sort_index()
 
     if not isinstance(result.dtype, np.dtype):
         if getattr(obj.dtype, "storage", "") == "pyarrow":
@@ -106,11 +97,8 @@ def test_value_counts_null(null_obj, index_or_series_obj):
     expected[null_obj] = 3
 
     result = obj.value_counts(dropna=False)
-    if obj.duplicated().any():
-        # TODO(GH#32514):
-        #  Order of entries with the same count is inconsistent on CI (gh-32449)
-        expected = expected.sort_index()
-        result = result.sort_index()
+    expected = expected.sort_index()
+    result = result.sort_index()
     tm.assert_series_equal(result, expected)
 
 
@@ -127,7 +115,7 @@ def test_value_counts_inferred(index_or_series, using_infer_string):
     else:
         exp = np.unique(np.array(s_values, dtype=np.object_))
         if using_infer_string:
-            exp = array(exp)
+            exp = array(exp, dtype="str")
         tm.assert_equal(s.unique(), exp)
 
     assert s.nunique() == 4
@@ -205,7 +193,7 @@ def test_value_counts_bins(index_or_series, using_infer_string):
     else:
         exp = np.array(["a", "b", np.nan, "d"], dtype=object)
         if using_infer_string:
-            exp = array(exp)
+            exp = array(exp, dtype="str")
         tm.assert_equal(s.unique(), exp)
     assert s.nunique() == 3
 
@@ -292,7 +280,7 @@ def test_value_counts_datetime64(index_or_series, unit):
 
     # numpy_array_equal cannot compare pd.NaT
     if isinstance(s, Index):
-        exp_idx = DatetimeIndex(expected.tolist() + [pd.NaT]).as_unit(unit)
+        exp_idx = DatetimeIndex([*expected.tolist(), pd.NaT]).as_unit(unit)
         tm.assert_index_equal(unique, exp_idx)
     else:
         tm.assert_extension_array_equal(unique[:3], expected)
@@ -347,9 +335,86 @@ def test_value_counts_object_inference_deprecated():
     dti = pd.date_range("2016-01-01", periods=3, tz="UTC")
 
     idx = dti.astype(object)
-    msg = "The behavior of value_counts with object-dtype is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        res = idx.value_counts()
+    res = idx.value_counts()
 
     exp = dti.value_counts()
+    exp.index = exp.index.astype(object)
     tm.assert_series_equal(res, exp)
+
+
+@pytest.mark.parametrize(
+    ("index", "expected_index"),
+    [
+        [
+            pd.date_range("2016-01-01", periods=5, freq="D", unit="ns"),
+            pd.date_range("2016-01-01", periods=5, freq="D", unit="ns"),
+        ],
+        [
+            pd.timedelta_range(Timedelta(0), periods=5, freq="h"),
+            pd.timedelta_range(Timedelta(0), periods=5, freq="h"),
+        ],
+        [
+            DatetimeIndex(
+                [Timestamp("2016-01-01") + Timedelta(days=i) for i in range(1)]
+                + [Timestamp("2016-01-02")]
+                + [Timestamp("2016-01-01") + Timedelta(days=i) for i in range(1, 5)]
+            ),
+            DatetimeIndex(pd.date_range("2016-01-01", periods=5, freq="D", unit="us")),
+        ],
+        [
+            TimedeltaIndex(
+                [Timedelta(hours=i) for i in range(1)]
+                + [Timedelta(hours=1)]
+                + [Timedelta(hours=i) for i in range(1, 5)],
+            ),
+            TimedeltaIndex(pd.timedelta_range(Timedelta(hours=0), periods=5, freq="h")),
+        ],
+        [
+            DatetimeIndex(
+                [Timestamp("2016-01-01") + Timedelta(days=i) for i in range(2)]
+                + [Timestamp("2016-01-01") + Timedelta(days=i) for i in range(3, 5)],
+            ),
+            DatetimeIndex(
+                [Timestamp("2016-01-01") + Timedelta(days=i) for i in range(2)]
+                + [Timestamp("2016-01-01") + Timedelta(days=i) for i in range(3, 5)],
+            ),
+        ],
+        [
+            TimedeltaIndex(
+                [Timedelta(hours=i) for i in range(2)]
+                + [Timedelta(hours=i) for i in range(3, 5)],
+            ),
+            TimedeltaIndex(
+                [Timedelta(hours=i) for i in range(2)]
+                + [Timedelta(hours=i) for i in range(3, 5)],
+            ),
+        ],
+        [
+            DatetimeIndex(
+                [Timestamp("2016-01-01")]
+                + [pd.NaT]
+                + [Timestamp("2016-01-01") + Timedelta(days=i) for i in range(1, 5)],
+            ),
+            DatetimeIndex(
+                [Timestamp("2016-01-01")]
+                + [pd.NaT]
+                + [Timestamp("2016-01-01") + Timedelta(days=i) for i in range(1, 5)],
+            ),
+        ],
+        [
+            TimedeltaIndex(
+                [Timedelta(hours=0)]
+                + [pd.NaT]
+                + [Timedelta(hours=i) for i in range(1, 5)],
+            ),
+            TimedeltaIndex(
+                [Timedelta(hours=0)]
+                + [pd.NaT]
+                + [Timedelta(hours=i) for i in range(1, 5)],
+            ),
+        ],
+    ],
+)
+def test_value_counts_index_datetimelike(index, expected_index):
+    vc = index.value_counts(sort=False, dropna=False)
+    tm.assert_index_equal(vc.index, expected_index)

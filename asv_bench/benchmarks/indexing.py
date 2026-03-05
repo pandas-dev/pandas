@@ -3,6 +3,7 @@ These benchmarks are for Series and DataFrame indexing methods.  For the
 lower-level methods directly on Index and subclasses, see index_object.py,
 indexing_engine.py, and index_cached.py
 """
+
 from datetime import datetime
 import warnings
 
@@ -35,7 +36,7 @@ class NumericSeriesIndexing:
         indices = {
             "unique_monotonic_inc": Index(range(N), dtype=dtype),
             "nonunique_monotonic_inc": Index(
-                list(range(55)) + [54] + list(range(55, N - 1)), dtype=dtype
+                [*list(range(55)), 54, *list(range(55, N - 1))], dtype=dtype
             ),
         }
         self.data = Series(np.random.rand(N), index=indices[index_structure])
@@ -84,7 +85,7 @@ class NumericSeriesIndexing:
 
 class NumericMaskedIndexing:
     monotonic_list = list(range(10**6))
-    non_monotonic_list = list(range(50)) + [54, 53, 52, 51] + list(range(55, 10**6 - 1))
+    non_monotonic_list = [*list(range(50)), 54, 53, 52, 51, *list(range(55, 10**6 - 1))]
 
     params = [
         ("Int64", "UInt64", "Float64"),
@@ -196,7 +197,7 @@ class DataFrameNumericIndexing:
         indices = {
             "unique_monotonic_inc": Index(range(N), dtype=dtype),
             "nonunique_monotonic_inc": Index(
-                list(range(55)) + [54] + list(range(55, N - 1)), dtype=dtype
+                [*list(range(55)), 54, *list(range(55, N - 1))], dtype=dtype
             ),
         }
         self.idx_dupe = np.array(range(30)) * 99
@@ -437,6 +438,28 @@ class GetItemSingleColumn:
         self.df_int_col[0]
 
 
+class DataFrameGetitemDuplicateColumns:
+    """
+    Benchmark df[key] when columns have duplicate names but key is unique.
+
+    Previously each access called columns.drop_duplicates(keep=False), which
+    built a new Index (O(n)). Now we use get_loc(key), so this path is O(1)
+    for hash-based indexes.
+    """
+
+    params = [1_000, 10_000, 100_000, 1_000_000]
+    param_names = ["ncols"]
+
+    def setup(self, ncols):
+        # ncols-1 duplicate names + one unique column we access
+        cols = ["a"] * (ncols - 1) + ["key"]
+        self.df = DataFrame(0, index=range(100), columns=cols)
+
+    def time_getitem_single_column_with_duplicate_columns(self, ncols):
+        for _ in range(100):
+            self.df["key"]
+
+
 class IndexSingleRow:
     params = [True, False]
     param_names = ["unique_cols"]
@@ -451,7 +474,7 @@ class IndexSingleRow:
         if not unique_cols:
             # GH#33032 single-row lookups with non-unique columns were
             #  15x slower than with unique columns
-            df.columns = ["A", "A"] + list(df.columns[2:])
+            df.columns = ["A", "A", *list(df.columns[2:])]
 
         self.df = df
 
@@ -545,24 +568,17 @@ class ChainIndexing:
 
 
 class Block:
-    params = [
-        (True, "True"),
-        (np.array(True), "np.array(True)"),
-    ]
-
-    def setup(self, true_value, mode):
+    def setup(self):
         self.df = DataFrame(
             False,
             columns=np.arange(500).astype(str),
             index=date_range("2010-01-01", "2011-01-01"),
         )
 
-        self.true_value = true_value
-
-    def time_test(self, true_value, mode):
+    def time_test(self):
         start = datetime(2010, 5, 1)
         end = datetime(2010, 9, 1)
-        self.df.loc[start:end, :] = true_value
+        self.df.loc[start:end, :] = True
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

@@ -8,6 +8,7 @@ from pandas.errors import ParserWarning
 import pandas.util._test_decorators as td
 
 from pandas import (
+    NA,
     DataFrame,
     DatetimeIndex,
     Series,
@@ -30,11 +31,10 @@ def iterparse(request):
     return request.param
 
 
-def read_xml_iterparse(data, **kwargs):
-    with tm.ensure_clean() as path:
-        with open(path, "w", encoding="utf-8") as f:
-            f.write(data)
-        return read_xml(path, **kwargs)
+def read_xml_iterparse(data, temp_file, **kwargs):
+    with open(temp_file, "w", encoding="utf-8") as f:
+        f.write(data)
+    return read_xml(temp_file, **kwargs)
 
 
 xml_types = """\
@@ -83,13 +83,14 @@ xml_dates = """<?xml version='1.0' encoding='utf-8'?>
 # DTYPE
 
 
-def test_dtype_single_str(parser):
+def test_dtype_single_str(parser, temp_file):
     df_result = read_xml(StringIO(xml_types), dtype={"degrees": "str"}, parser=parser)
     df_iter = read_xml_iterparse(
         xml_types,
         parser=parser,
         dtype={"degrees": "str"},
         iterparse={"row": ["shape", "degrees", "sides"]},
+        temp_file=temp_file,
     )
 
     df_expected = DataFrame(
@@ -104,13 +105,14 @@ def test_dtype_single_str(parser):
     tm.assert_frame_equal(df_iter, df_expected)
 
 
-def test_dtypes_all_str(parser):
+def test_dtypes_all_str(parser, temp_file):
     df_result = read_xml(StringIO(xml_dates), dtype="string", parser=parser)
     df_iter = read_xml_iterparse(
         xml_dates,
         parser=parser,
         dtype="string",
         iterparse={"row": ["shape", "degrees", "sides", "date"]},
+        temp_file=temp_file,
     )
 
     df_expected = DataFrame(
@@ -127,7 +129,7 @@ def test_dtypes_all_str(parser):
     tm.assert_frame_equal(df_iter, df_expected)
 
 
-def test_dtypes_with_names(parser):
+def test_dtypes_with_names(parser, temp_file):
     df_result = read_xml(
         StringIO(xml_dates),
         names=["Col1", "Col2", "Col3", "Col4"],
@@ -140,13 +142,14 @@ def test_dtypes_with_names(parser):
         names=["Col1", "Col2", "Col3", "Col4"],
         dtype={"Col2": "string", "Col3": "Int64", "Col4": "datetime64[ns]"},
         iterparse={"row": ["shape", "degrees", "sides", "date"]},
+        temp_file=temp_file,
     )
 
     df_expected = DataFrame(
         {
             "Col1": ["square", "circle", "triangle"],
-            "Col2": Series(["00360", "00360", "00180"]).astype("string"),
-            "Col3": Series([4.0, float("nan"), 3.0]).astype("Int64"),
+            "Col2": Series(["00360", "00360", "00180"], dtype="string"),
+            "Col3": Series([4.0, NA, 3.0], dtype="Int64"),
             "Col4": DatetimeIndex(
                 ["2020-01-01", "2021-01-01", "2022-01-01"], dtype="M8[ns]"
             ),
@@ -157,20 +160,21 @@ def test_dtypes_with_names(parser):
     tm.assert_frame_equal(df_iter, df_expected)
 
 
-def test_dtype_nullable_int(parser):
+def test_dtype_nullable_int(parser, temp_file):
     df_result = read_xml(StringIO(xml_types), dtype={"sides": "Int64"}, parser=parser)
     df_iter = read_xml_iterparse(
         xml_types,
         parser=parser,
         dtype={"sides": "Int64"},
         iterparse={"row": ["shape", "degrees", "sides"]},
+        temp_file=temp_file,
     )
 
     df_expected = DataFrame(
         {
             "shape": ["square", "circle", "triangle"],
             "degrees": [360, 360, 180],
-            "sides": Series([4.0, float("nan"), 3.0]).astype("Int64"),
+            "sides": Series([4.0, NA, 3.0], dtype="Int64"),
         }
     )
 
@@ -178,13 +182,14 @@ def test_dtype_nullable_int(parser):
     tm.assert_frame_equal(df_iter, df_expected)
 
 
-def test_dtype_float(parser):
+def test_dtype_float(parser, temp_file):
     df_result = read_xml(StringIO(xml_types), dtype={"degrees": "float"}, parser=parser)
     df_iter = read_xml_iterparse(
         xml_types,
         parser=parser,
         dtype={"degrees": "float"},
         iterparse={"row": ["shape", "degrees", "sides"]},
+        temp_file=temp_file,
     )
 
     df_expected = DataFrame(
@@ -208,7 +213,7 @@ def test_wrong_dtype(xml_books, parser, iterparse):
         )
 
 
-def test_both_dtype_converters(parser):
+def test_both_dtype_converters(parser, temp_file):
     df_expected = DataFrame(
         {
             "shape": ["square", "circle", "triangle"],
@@ -230,6 +235,7 @@ def test_both_dtype_converters(parser):
             converters={"degrees": str},
             parser=parser,
             iterparse={"row": ["shape", "degrees", "sides"]},
+            temp_file=temp_file,
         )
 
         tm.assert_frame_equal(df_result, df_expected)
@@ -239,7 +245,7 @@ def test_both_dtype_converters(parser):
 # CONVERTERS
 
 
-def test_converters_str(parser):
+def test_converters_str(parser, temp_file):
     df_result = read_xml(
         StringIO(xml_types), converters={"degrees": str}, parser=parser
     )
@@ -248,6 +254,7 @@ def test_converters_str(parser):
         parser=parser,
         converters={"degrees": str},
         iterparse={"row": ["shape", "degrees", "sides"]},
+        temp_file=temp_file,
     )
 
     df_expected = DataFrame(
@@ -262,7 +269,7 @@ def test_converters_str(parser):
     tm.assert_frame_equal(df_iter, df_expected)
 
 
-def test_converters_date(parser):
+def test_converters_date(parser, temp_file):
     convert_to_datetime = lambda x: to_datetime(x)
     df_result = read_xml(
         StringIO(xml_dates), converters={"date": convert_to_datetime}, parser=parser
@@ -272,6 +279,7 @@ def test_converters_date(parser):
         parser=parser,
         converters={"date": convert_to_datetime},
         iterparse={"row": ["shape", "degrees", "sides", "date"]},
+        temp_file=temp_file,
     )
 
     df_expected = DataFrame(
@@ -311,13 +319,14 @@ def test_callable_str_converters(xml_books, parser, iterparse):
 # PARSE DATES
 
 
-def test_parse_dates_column_name(parser):
+def test_parse_dates_column_name(parser, temp_file):
     df_result = read_xml(StringIO(xml_dates), parse_dates=["date"], parser=parser)
     df_iter = read_xml_iterparse(
         xml_dates,
         parser=parser,
         parse_dates=["date"],
         iterparse={"row": ["shape", "degrees", "sides", "date"]},
+        temp_file=temp_file,
     )
 
     df_expected = DataFrame(
@@ -333,13 +342,14 @@ def test_parse_dates_column_name(parser):
     tm.assert_frame_equal(df_iter, df_expected)
 
 
-def test_parse_dates_column_index(parser):
+def test_parse_dates_column_index(parser, temp_file):
     df_result = read_xml(StringIO(xml_dates), parse_dates=[3], parser=parser)
     df_iter = read_xml_iterparse(
         xml_dates,
         parser=parser,
         parse_dates=[3],
         iterparse={"row": ["shape", "degrees", "sides", "date"]},
+        temp_file=temp_file,
     )
 
     df_expected = DataFrame(
@@ -355,7 +365,7 @@ def test_parse_dates_column_index(parser):
     tm.assert_frame_equal(df_iter, df_expected)
 
 
-def test_parse_dates_true(parser):
+def test_parse_dates_true(parser, temp_file):
     df_result = read_xml(StringIO(xml_dates), parse_dates=True, parser=parser)
 
     df_iter = read_xml_iterparse(
@@ -363,6 +373,7 @@ def test_parse_dates_true(parser):
         parser=parser,
         parse_dates=True,
         iterparse={"row": ["shape", "degrees", "sides", "date"]},
+        temp_file=temp_file,
     )
 
     df_expected = DataFrame(
@@ -378,59 +389,7 @@ def test_parse_dates_true(parser):
     tm.assert_frame_equal(df_iter, df_expected)
 
 
-def test_parse_dates_dictionary(parser):
-    xml = """<?xml version='1.0' encoding='utf-8'?>
-<data>
-  <row>
-    <shape>square</shape>
-    <degrees>360</degrees>
-    <sides>4.0</sides>
-    <year>2020</year>
-    <month>12</month>
-    <day>31</day>
-   </row>
-  <row>
-    <shape>circle</shape>
-    <degrees>360</degrees>
-    <sides/>
-    <year>2021</year>
-    <month>12</month>
-    <day>31</day>
-  </row>
-  <row>
-    <shape>triangle</shape>
-    <degrees>180</degrees>
-    <sides>3.0</sides>
-    <year>2022</year>
-    <month>12</month>
-    <day>31</day>
-  </row>
-</data>"""
-
-    df_result = read_xml(
-        StringIO(xml), parse_dates={"date_end": ["year", "month", "day"]}, parser=parser
-    )
-    df_iter = read_xml_iterparse(
-        xml,
-        parser=parser,
-        parse_dates={"date_end": ["year", "month", "day"]},
-        iterparse={"row": ["shape", "degrees", "sides", "year", "month", "day"]},
-    )
-
-    df_expected = DataFrame(
-        {
-            "date_end": to_datetime(["2020-12-31", "2021-12-31", "2022-12-31"]),
-            "shape": ["square", "circle", "triangle"],
-            "degrees": [360, 360, 180],
-            "sides": [4.0, float("nan"), 3.0],
-        }
-    )
-
-    tm.assert_frame_equal(df_result, df_expected)
-    tm.assert_frame_equal(df_iter, df_expected)
-
-
-def test_day_first_parse_dates(parser):
+def test_day_first_parse_dates(parser, temp_file):
     xml = """\
 <?xml version='1.0' encoding='utf-8'?>
 <data>
@@ -472,6 +431,7 @@ def test_day_first_parse_dates(parser):
             parse_dates=["date"],
             parser=parser,
             iterparse={"row": ["shape", "degrees", "sides", "date"]},
+            temp_file=temp_file,
         )
 
         tm.assert_frame_equal(df_result, df_expected)
@@ -479,7 +439,5 @@ def test_day_first_parse_dates(parser):
 
 
 def test_wrong_parse_dates_type(xml_books, parser, iterparse):
-    with pytest.raises(
-        TypeError, match=("Only booleans, lists, and dictionaries are accepted")
-    ):
+    with pytest.raises(TypeError, match="Only booleans and lists are accepted"):
         read_xml(xml_books, parse_dates={"date"}, parser=parser, iterparse=iterparse)

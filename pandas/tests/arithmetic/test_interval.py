@@ -107,7 +107,9 @@ class TestComparison:
         Helper that performs elementwise comparisons between `array` and `other`
         """
         other = other if is_list_like(other) else [other] * len(interval_array)
-        expected = np.array([op(x, y) for x, y in zip(interval_array, other)])
+        expected = np.array(
+            [op(x, y) for x, y in zip(interval_array, other, strict=True)]
+        )
         if isinstance(other, Series):
             return Series(expected, index=other.index)
         return expected
@@ -207,19 +209,19 @@ class TestComparison:
     @pytest.mark.parametrize(
         "other",
         [
-            (
+            [
                 Interval(0, 1),
                 Interval(Timedelta("1 day"), Timedelta("2 days")),
                 Interval(4, 5, "both"),
                 Interval(10, 20, "neither"),
-            ),
-            (0, 1.5, Timestamp("20170103"), np.nan),
-            (
+            ],
+            [0, 1.5, Timestamp("20170103"), np.nan],
+            [
                 Timestamp("20170102", tz="US/Eastern"),
                 Timedelta("2 days"),
                 "baz",
                 pd.NaT,
-            ),
+            ],
         ],
     )
     def test_compare_list_like_object(self, op, interval_array, other):

@@ -18,9 +18,12 @@ cdef class DatetimeParseState:
         bint found_tz
         bint found_naive
         bint found_naive_str
+        bint found_aware_str
         bint found_other
         bint creso_ever_changed
         NPY_DATETIMEUNIT creso
+        set out_tzoffset_vals
 
     cdef tzinfo process_datetime(self, datetime dt, tzinfo tz, bint utc_convert)
     cdef bint update_creso(self, NPY_DATETIMEUNIT item_reso) noexcept
+    cdef tzinfo check_for_mixed_inputs(self, tzinfo tz_out, bint utc)

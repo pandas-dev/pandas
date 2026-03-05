@@ -121,7 +121,7 @@ def test_multiindex_symmetric_difference():
 
     idx2 = idx.copy().rename(["A", "B"])
     result = idx.symmetric_difference(idx2)
-    assert result.names == (None, None)
+    assert result.names == [None, None]
 
 
 def test_empty(idx):
@@ -382,7 +382,7 @@ def test_union_sort_other_incomparable():
     idx = MultiIndex.from_product([[1, pd.Timestamp("2000")], ["a", "b"]])
 
     # default, sort=None
-    with tm.assert_produces_warning(RuntimeWarning):
+    with tm.assert_produces_warning(RuntimeWarning, match="are unorderable"):
         result = idx.union(idx[:1])
     tm.assert_index_equal(result, idx)
 
@@ -632,7 +632,7 @@ def test_union_duplicates(index, request):
 
     values = index.unique().values.tolist()
     mi1 = MultiIndex.from_arrays([values, [1] * len(values)])
-    mi2 = MultiIndex.from_arrays([[values[0]] + values, [1] * (len(values) + 1)])
+    mi2 = MultiIndex.from_arrays([[values[0], *values], [1] * (len(values) + 1)])
     result = mi2.union(mi1)
     expected = mi2.sort_values()
     tm.assert_index_equal(result, expected)
@@ -683,6 +683,18 @@ def test_union_keep_ea_dtype_with_na(any_numeric_ea_dtype):
     result = midx.union(midx2)
     expected = MultiIndex.from_arrays(
         [Series([1, 4, pd.NA, pd.NA], dtype=any_numeric_ea_dtype), [1, 2, 1, 2]]
+    )
+    tm.assert_index_equal(result, expected)
+
+
+def test_union_duplicates_different_names():
+    # GH#62059
+    mi1 = MultiIndex.from_tuples([(1, "a"), (2, "b")], names=["x", "y"])
+    mi2 = MultiIndex.from_tuples([(2, "b"), (3, "c"), (2, "b")])
+
+    result = mi1.union(mi2)
+    expected = MultiIndex.from_tuples(
+        [(1, "a"), (2, "b"), (2, "b"), (3, "c")], names=[None, None]
     )
     tm.assert_index_equal(result, expected)
 
@@ -757,7 +769,7 @@ def test_union_with_na_when_constructing_dataframe():
     series1 = Series(
         (1,),
         index=MultiIndex.from_arrays(
-            [Series([None], dtype="string"), Series([None], dtype="string")]
+            [Series([None], dtype="str"), Series([None], dtype="str")]
         ),
     )
     series2 = Series((10, 20), index=MultiIndex.from_tuples(((None, None), ("a", "b"))))

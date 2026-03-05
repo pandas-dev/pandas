@@ -9,7 +9,6 @@ cpdef int64_t get_unit_for_round(freq, NPY_DATETIMEUNIT creso) except? -1
 cpdef int64_t delta_to_nanoseconds(
     delta, NPY_DATETIMEUNIT reso=*, bint round_ok=*
 ) except? -1
-cdef convert_to_timedelta64(object ts, str unit)
 cdef bint is_any_td_scalar(object obj)
 
 

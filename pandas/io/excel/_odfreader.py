@@ -7,17 +7,9 @@ from typing import (
 
 import numpy as np
 
-from pandas._typing import (
-    FilePath,
-    ReadBuffer,
-    Scalar,
-    StorageOptions,
-)
 from pandas.compat._optional import import_optional_dependency
-from pandas.util._decorators import doc
 
 import pandas as pd
-from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.excel._base import BaseExcelReader
 
@@ -25,9 +17,14 @@ if TYPE_CHECKING:
     from odf.opendocument import OpenDocument
 
     from pandas._libs.tslibs.nattype import NaTType
+    from pandas._typing import (
+        FilePath,
+        ReadBuffer,
+        Scalar,
+        StorageOptions,
+    )
 
 
-@doc(storage_options=_shared_docs["storage_options"])
 class ODFReader(BaseExcelReader["OpenDocument"]):
     def __init__(
         self,
@@ -42,7 +39,15 @@ class ODFReader(BaseExcelReader["OpenDocument"]):
         ----------
         filepath_or_buffer : str, path to be parsed or
             an open readable stream.
-        {storage_options}
+        storage_options : dict, optional
+            Extra options that make sense for a particular storage connection,
+            e.g. host, port, username, password, etc. For HTTP(S) URLs the
+            key-value pairs are forwarded to ``urllib.request.Request`` as
+            header options. For other URLs (e.g. starting with "s3://", and
+            "gcs://") the key-value pairs are forwarded to ``fsspec.open``.
+            Please see ``fsspec`` and ``urllib`` for more details, and for
+            more examples on storage options refer `here
+            <https://pandas.pydata.org/docs/user_guide/io.html?#reading-writing-remote-files>`__.
         engine_kwargs : dict, optional
             Arbitrary keyword arguments passed to excel engine.
         """
@@ -122,29 +127,25 @@ class ODFReader(BaseExcelReader["OpenDocument"]):
         table: list[list[Scalar | NaTType]] = []
 
         for sheet_row in sheet_rows:
-            sheet_cells = [
-                x
-                for x in sheet_row.childNodes
-                if hasattr(x, "qname") and x.qname in cell_names
-            ]
             empty_cells = 0
             table_row: list[Scalar | NaTType] = []
 
-            for sheet_cell in sheet_cells:
-                if sheet_cell.qname == table_cell_name:
-                    value = self._get_cell_value(sheet_cell)
-                else:
-                    value = self.empty_value
+            for sheet_cell in sheet_row.childNodes:
+                if hasattr(sheet_cell, "qname") and sheet_cell.qname in cell_names:
+                    if sheet_cell.qname == table_cell_name:
+                        value = self._get_cell_value(sheet_cell)
+                    else:
+                        value = self.empty_value
 
-                column_repeat = self._get_column_repeat(sheet_cell)
+                    column_repeat = self._get_column_repeat(sheet_cell)
 
-                # Queue up empty values, writing only if content succeeds them
-                if value == self.empty_value:
-                    empty_cells += column_repeat
-                else:
-                    table_row.extend([self.empty_value] * empty_cells)
-                    empty_cells = 0
-                    table_row.extend([value] * column_repeat)
+                    # Queue up empty values, writing only if content succeeds them
+                    if value == self.empty_value:
+                        empty_cells += column_repeat
+                    else:
+                        table_row.extend([self.empty_value] * empty_cells)
+                        empty_cells = 0
+                        table_row.extend([value] * column_repeat)
 
             if max_row_len < len(table_row):
                 max_row_len = len(table_row)
@@ -216,7 +217,7 @@ class ODFReader(BaseExcelReader["OpenDocument"]):
         elif cell_type == "time":
             stamp = pd.Timestamp(str(cell))
             # cast needed here because Scalar doesn't include datetime.time
-            return cast(Scalar, stamp.time())
+            return cast("Scalar", stamp.time())
         else:
             self.close()
             raise ValueError(f"Unrecognized type {cell_type}")

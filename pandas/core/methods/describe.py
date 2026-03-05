@@ -3,6 +3,7 @@ Module responsible for execution of NDFrame.describe() method.
 
 Method NDFrame.describe() delegates actual execution to function describe_ndframe().
 """
+
 from __future__ import annotations
 
 from abc import (
@@ -11,18 +12,11 @@ from abc import (
 )
 from typing import (
     TYPE_CHECKING,
-    Callable,
     cast,
 )
 
 import numpy as np
 
-from pandas._libs.tslibs import Timestamp
-from pandas._typing import (
-    DtypeObj,
-    NDFrameT,
-    npt,
-)
 from pandas.util._validators import validate_percentile
 
 from pandas.core.dtypes.common import (
@@ -42,8 +36,15 @@ from pandas.io.formats.format import format_percentiles
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Hashable,
         Sequence,
+    )
+
+    from pandas._typing import (
+        DtypeObj,
+        NDFrameT,
+        npt,
     )
 
     from pandas import (
@@ -95,7 +96,7 @@ def describe_ndframe(
         )
 
     result = describer.describe(percentiles=percentiles)
-    return cast(NDFrameT, result)
+    return cast("NDFrameT", result)
 
 
 class NDFrameDescriberAbstract(ABC):
@@ -172,11 +173,7 @@ class DataFrameDescriber(NDFrameDescriberAbstract):
             ldesc.append(describe_func(series, percentiles))
 
         col_names = reorder_columns(ldesc)
-        d = concat(
-            [x.reindex(col_names) for x in ldesc],
-            axis=1,
-            sort=False,
-        )
+        d = concat(ldesc, axis=1, ignore_index=True, sort=False).reindex(col_names)
         d.columns = data.columns.copy()
         return d
 
@@ -198,6 +195,9 @@ class DataFrameDescriber(NDFrameDescriberAbstract):
                 include=self.include,
                 exclude=self.exclude,
             )
+            if len(data.columns) == 0:
+                msg = "No columns match the specified include or exclude data types"
+                raise ValueError(msg)
         return data
 
 
@@ -228,12 +228,20 @@ def describe_numeric_1d(series: Series, percentiles: Sequence[float]) -> Series:
 
     formatted_percentiles = format_percentiles(percentiles)
 
-    stat_index = ["count", "mean", "std", "min"] + formatted_percentiles + ["max"]
-    d = (
-        [series.count(), series.mean(), series.std(), series.min()]
-        + series.quantile(percentiles).tolist()
-        + [series.max()]
-    )
+    if len(percentiles) == 0:
+        quantiles = []
+    else:
+        quantiles = series.quantile(percentiles).tolist()
+
+    stat_index = ["count", "mean", "std", "min", *formatted_percentiles, "max"]
+    d = [
+        series.count(),
+        series.mean(),
+        series.std(),
+        series.min(),
+        *quantiles,
+        series.max(),
+    ]
     # GH#48340 - always return float on non-complex numeric data
     dtype: DtypeObj | None
     if isinstance(series.dtype, ExtensionDtype):
@@ -287,54 +295,6 @@ def describe_categorical_1d(
     return Series(result, index=names, name=data.name, dtype=dtype)
 
 
-def describe_timestamp_as_categorical_1d(
-    data: Series,
-    percentiles_ignored: Sequence[float],
-) -> Series:
-    """Describe series containing timestamp data treated as categorical.
-
-    Parameters
-    ----------
-    data : Series
-        Series to be described.
-    percentiles_ignored : list-like of numbers
-        Ignored, but in place to unify interface.
-    """
-    names = ["count", "unique"]
-    objcounts = data.value_counts()
-    count_unique = len(objcounts[objcounts != 0])
-    result: list[float | Timestamp] = [data.count(), count_unique]
-    dtype = None
-    if count_unique > 0:
-        top, freq = objcounts.index[0], objcounts.iloc[0]
-        tz = data.dt.tz
-        asint = data.dropna().values.view("i8")
-        top = Timestamp(top)
-        if top.tzinfo is not None and tz is not None:
-            # Don't tz_localize(None) if key is already tz-aware
-            top = top.tz_convert(tz)
-        else:
-            top = top.tz_localize(tz)
-        names += ["top", "freq", "first", "last"]
-        result += [
-            top,
-            freq,
-            Timestamp(asint.min(), tz=tz),
-            Timestamp(asint.max(), tz=tz),
-        ]
-
-    # If the DataFrame is empty, set 'top' and 'freq' to None
-    # to maintain output shape consistency
-    else:
-        names += ["top", "freq"]
-        result += [np.nan, np.nan]
-        dtype = "object"
-
-    from pandas import Series
-
-    return Series(result, index=names, name=data.name, dtype=dtype)
-
-
 def describe_timestamp_1d(data: Series, percentiles: Sequence[float]) -> Series:
     """Describe series containing datetime64 dtype.
 
@@ -350,12 +310,14 @@ def describe_timestamp_1d(data: Series, percentiles: Sequence[float]) -> Series:
 
     formatted_percentiles = format_percentiles(percentiles)
 
-    stat_index = ["count", "mean", "min"] + formatted_percentiles + ["max"]
-    d = (
-        [data.count(), data.mean(), data.min()]
-        + data.quantile(percentiles).tolist()
-        + [data.max()]
-    )
+    stat_index = ["count", "mean", "min", *formatted_percentiles, "max"]
+    d = [
+        data.count(),
+        data.mean(),
+        data.min(),
+        *data.quantile(percentiles).tolist(),
+        data.max(),
+    ]
     return Series(d, index=stat_index, name=data.name)
 
 
@@ -395,17 +357,10 @@ def _refine_percentiles(
     if percentiles is None:
         return np.array([0.25, 0.5, 0.75])
 
-    # explicit conversion of `percentiles` to list
-    percentiles = list(percentiles)
+    percentiles = np.asarray(percentiles)
 
     # get them all to be in [0, 1]
     validate_percentile(percentiles)
-
-    # median should always be included
-    if 0.5 not in percentiles:
-        percentiles.append(0.5)
-
-    percentiles = np.asarray(percentiles)
 
     # sort and check for duplicates
     unique_pcts = np.unique(percentiles)

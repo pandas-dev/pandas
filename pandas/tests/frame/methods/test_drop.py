@@ -144,7 +144,8 @@ class TestDataFrameDrop:
 
         # non-unique - wheee!
         nu_df = DataFrame(
-            list(zip(range(3), range(-3, 1), list("abc"))), columns=["a", "a", "b"]
+            list(zip(range(3), range(-3, 0), list("abc"), strict=True)),
+            columns=["a", "a", "b"],
         )
         tm.assert_frame_equal(nu_df.drop("a", axis=1), nu_df[["b"]])
         tm.assert_frame_equal(nu_df.drop("b", axis="columns"), nu_df["a"])
@@ -296,7 +297,7 @@ class TestDataFrameDrop:
             ["", "wx", "wy", "", "", ""],
         ]
 
-        tuples = sorted(zip(*arrays))
+        tuples = sorted(zip(*arrays, strict=True))
         index = MultiIndex.from_tuples(tuples)
         df = DataFrame(np.random.default_rng(2).standard_normal((4, 6)), columns=index)
 
@@ -345,6 +346,18 @@ class TestDataFrameDrop:
             ),
         )
         tm.assert_frame_equal(result, expected)
+
+    def test_drop_raise_with_both_axis_and_index(self):
+        # GH#61823
+        df = DataFrame(
+            [[1, 2, 3], [3, 4, 5], [5, 6, 7]],
+            index=["a", "b", "c"],
+            columns=["d", "e", "f"],
+        )
+
+        msg = "Cannot specify both 'axis' and 'index'/'columns'"
+        with pytest.raises(ValueError, match=msg):
+            df.drop(index="b", axis=1)
 
     def test_drop_nonunique(self):
         df = DataFrame(

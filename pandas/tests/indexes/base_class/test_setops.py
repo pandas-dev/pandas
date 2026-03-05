@@ -84,13 +84,13 @@ class TestIndexSetOps:
         # https://github.com/pandas-dev/pandas/issues/24959
         idx = Index([1, pd.Timestamp("2000")])
         # default (sort=None)
-        with tm.assert_produces_warning(RuntimeWarning):
+        with tm.assert_produces_warning(RuntimeWarning, match="not supported between"):
             result = idx.union(idx[:1])
 
         tm.assert_index_equal(result, idx)
 
         # sort=None
-        with tm.assert_produces_warning(RuntimeWarning):
+        with tm.assert_produces_warning(RuntimeWarning, match="not supported between"):
             result = idx.union(idx[:1], sort=None)
         tm.assert_index_equal(result, idx)
 

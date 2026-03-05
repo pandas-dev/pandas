@@ -2,10 +2,15 @@ from datetime import (
     datetime,
     timedelta,
 )
+from io import StringIO
 import itertools
+from textwrap import dedent
 
 import numpy as np
 import pytest
+
+from pandas.errors import Pandas4Warning
+import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -44,14 +49,14 @@ class TestDataFrameBlockInternals:
     def test_cast_internals(self, float_frame):
         msg = "Passing a BlockManager to DataFrame"
         with tm.assert_produces_warning(
-            DeprecationWarning, match=msg, check_stacklevel=False
+            Pandas4Warning, match=msg, check_stacklevel=False
         ):
             casted = DataFrame(float_frame._mgr, dtype=int)
         expected = DataFrame(float_frame._series, dtype=int)
         tm.assert_frame_equal(casted, expected)
 
         with tm.assert_produces_warning(
-            DeprecationWarning, match=msg, check_stacklevel=False
+            Pandas4Warning, match=msg, check_stacklevel=False
         ):
             casted = DataFrame(float_frame._mgr, dtype=np.int32)
         expected = DataFrame(float_frame._series, dtype=np.int32)
@@ -161,19 +166,6 @@ class TestDataFrameBlockInternals:
         tm.assert_series_equal(result, expected)
 
     def test_construction_with_mixed(self, float_string_frame, using_infer_string):
-        # test construction edge cases with mixed types
-
-        # f7u12, this does not work without extensive workaround
-        data = [
-            [datetime(2001, 1, 5), np.nan, datetime(2001, 1, 2)],
-            [datetime(2000, 1, 2), datetime(2000, 1, 3), datetime(2000, 1, 1)],
-        ]
-        df = DataFrame(data)
-
-        # check dtypes
-        result = df.dtypes
-        expected = Series({"datetime64[us]": 3})
-
         # mixed-type frames
         float_string_frame["datetime"] = datetime.now()
         float_string_frame["timedelta"] = timedelta(days=1, seconds=1)
@@ -183,11 +175,13 @@ class TestDataFrameBlockInternals:
         expected = Series(
             [np.dtype("float64")] * 4
             + [
-                np.dtype("object") if not using_infer_string else "string",
+                np.dtype("object")
+                if not using_infer_string
+                else pd.StringDtype(na_value=np.nan),
                 np.dtype("datetime64[us]"),
                 np.dtype("timedelta64[us]"),
             ],
-            index=list("ABCD") + ["foo", "datetime", "timedelta"],
+            index=[*list("ABCD"), "foo", "datetime", "timedelta"],
         )
         tm.assert_series_equal(result, expected)
 
@@ -195,8 +189,7 @@ class TestDataFrameBlockInternals:
         # convert from a numpy array of non-ns timedelta64; as of 2.0 this does
         #  *not* convert
         arr = np.array([1, 2, 3], dtype="timedelta64[s]")
-        df = DataFrame(index=range(3))
-        df["A"] = arr
+        df = DataFrame({"A": arr})
         expected = DataFrame(
             {"A": pd.timedelta_range("00:00:01", periods=3, freq="s")}, index=range(3)
         )
@@ -204,7 +197,7 @@ class TestDataFrameBlockInternals:
 
         expected = DataFrame(
             {
-                "dt1": Timestamp("20130101"),
+                "dt1": Timestamp("20130101").as_unit("s"),
                 "dt2": date_range("20130101", periods=3).astype("M8[s]"),
                 # 'dt3' : date_range('20130101 00:00:01',periods=3,freq='s'),
                 # FIXME: don't leave commented-out
@@ -214,11 +207,11 @@ class TestDataFrameBlockInternals:
         assert expected.dtypes["dt1"] == "M8[s]"
         assert expected.dtypes["dt2"] == "M8[s]"
 
-        df = DataFrame(index=range(3))
-        df["dt1"] = np.datetime64("2013-01-01")
-        df["dt2"] = np.array(
+        dt1 = np.datetime64("2013-01-01")
+        dt2 = np.array(
             ["2013-01-01", "2013-01-02", "2013-01-03"], dtype="datetime64[D]"
         )
+        df = DataFrame({"dt1": dt1, "dt2": dt2})
 
         # df['dt3'] = np.array(['2013-01-01 00:00:01','2013-01-01
         # 00:00:02','2013-01-01 00:00:03'],dtype='datetime64[s]')
@@ -245,25 +238,24 @@ class TestDataFrameBlockInternals:
             f("float64")
 
         # 10822
-        msg = "^Unknown datetime string format, unable to parse: aa, at position 0$"
+        msg = "^Unknown datetime string format, unable to parse: aa$"
         with pytest.raises(ValueError, match=msg):
             f("M8[ns]")
 
-    def test_pickle(self, float_string_frame, timezone_frame):
-        empty_frame = DataFrame()
-
-        unpickled = tm.round_trip_pickle(float_string_frame)
+    def test_pickle_float_string_frame(self, float_string_frame, temp_file):
+        unpickled = tm.round_trip_pickle(float_string_frame, temp_file)
         tm.assert_frame_equal(float_string_frame, unpickled)
 
         # buglet
         float_string_frame._mgr.ndim
 
-        # empty
-        unpickled = tm.round_trip_pickle(empty_frame)
+    def test_pickle_empty(self, temp_file):
+        empty_frame = DataFrame()
+        unpickled = tm.round_trip_pickle(empty_frame, temp_file)
         repr(unpickled)
 
-        # tz frame
-        unpickled = tm.round_trip_pickle(timezone_frame)
+    def test_pickle_empty_tz_frame(self, timezone_frame, temp_file):
+        unpickled = tm.round_trip_pickle(timezone_frame, temp_file)
         tm.assert_frame_equal(timezone_frame, unpickled)
 
     def test_consolidate_datetime64(self):
@@ -396,24 +388,68 @@ def test_update_inplace_sets_valid_block_values():
     assert isinstance(df._mgr.blocks[0].values, Categorical)
 
 
-def test_nonconsolidated_item_cache_take():
-    # https://github.com/pandas-dev/pandas/issues/35521
+def get_longley_data():
+    # From statsmodels.datasets.longley
+    # This specific dataset seems to trigger races in Pandas 3.0.0 more readily
+    # than data frames used elsewhere in the tests
+    longley_csv = StringIO(
+        dedent(
+            """"Obs","GNPDEFL","GNP","UNEMP","ARMED","POP","YEAR"
+            1,83,234289,2356,1590,107608,1947
+            2,88.5,259426,2325,1456,108632,1948
+            3,88.2,258054,3682,1616,109773,1949
+            4,89.5,284599,3351,1650,110929,1950
+            5,96.2,328975,2099,3099,112075,1951
+            6,98.1,346999,1932,3594,113270,1952
+            7,99,365385,1870,3547,115094,1953
+            8,100,363112,3578,3350,116219,1954
+            9,101.2,397469,2904,3048,117388,1955
+            10,104.6,419180,2822,2857,118734,1956
+            11,108.4,442769,2936,2798,120445,1957
+            12,110.8,444546,4681,2637,121950,1958
+            13,112.6,482704,3813,2552,123366,1959
+            14,114.2,502601,3931,2514,125368,1960
+            15,115.7,518173,4806,2572,127852,1961
+            16,116.9,554894,4007,2827,130081,1962
+            """
+        )
+    )
 
-    # create non-consolidated dataframe with object dtype columns
-    df = DataFrame()
-    df["col1"] = Series(["a"], dtype=object)
-    df["col2"] = Series([0], dtype=object)
+    return pd.read_csv(longley_csv).iloc[:, [1, 2, 3, 4, 5, 6]].astype(float)
 
-    # access column (item cache)
-    df["col1"] == "A"
-    # take operation
-    # (regression was that this consolidated but didn't reset item cache,
-    # resulting in an invalid cache and the .at operation not working properly)
-    df[df["col2"] == 0]
 
-    # now setting value should update actual dataframe
-    df.at[0, "col1"] = "A"
+# See gh-63685, comparisons and copying led to races in statsmodels tests
+#
+# This test spawns a thread pool, so it shouldn't run under xdist.
+# It generates warnings, so it needs warnings to be thread-safe as well
+@td.skip_if_thread_unsafe_warnings
+@pytest.mark.single_cpu
+def test_multithreaded_reading():
+    def numpy_assert(data, b):
+        b.wait()
+        tm.assert_almost_equal((data + 1) - 1, data.copy())
 
-    expected = DataFrame({"col1": ["A"], "col2": [0]}, dtype=object)
-    tm.assert_frame_equal(df, expected)
-    assert df.at[0, "col1"] == "A"
+    tm.run_multithreaded(
+        numpy_assert, max_workers=8, arguments=(get_longley_data(),), pass_barrier=True
+    )
+
+    def safe_is_const(s):
+        try:
+            return np.ptp(s) == 0.0 and np.any(s != 0.0)
+        except Exception:
+            return False
+
+    def concat(data, b):
+        b.wait()
+        x = data.copy()
+        nobs = len(x)
+        trendarr = np.fliplr(np.vander(np.arange(1, nobs + 1, dtype=np.float64), 1))
+        x.apply(safe_is_const, 0)
+        trendarr = DataFrame(trendarr, index=x.index, columns=["const"])
+        x = [trendarr, x]
+        x = pd.concat(x[::1], axis=1)
+        tm.assert_frame_equal(x, x)
+
+    tm.run_multithreaded(
+        concat, max_workers=8, arguments=(get_longley_data(),), pass_barrier=True
+    )

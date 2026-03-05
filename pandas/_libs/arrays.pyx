@@ -67,6 +67,10 @@ cdef class NDArrayBacked:
         """
         Construct a new ExtensionArray `new_array` with `arr` as its _ndarray.
 
+        The returned array has the same dtype as self.
+
+        Caller is responsible for ensuring `values.dtype == self._ndarray.dtype`.
+
         This should round-trip:
             self == self._from_backing_data(self._ndarray)
         """
@@ -95,6 +99,10 @@ cdef class NDArrayBacked:
             if len(state) != 3:
                 if len(state) == 1 and isinstance(state[0], dict):
                     self.__setstate__(state[0])
+                    return
+                elif len(state) == 2:
+                    # GH#62820: Handle missing attrs dict during auto-unpickling
+                    self.__setstate__((*state, {}))
                     return
                 raise NotImplementedError(state)  # pragma: no cover
 

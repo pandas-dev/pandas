@@ -54,7 +54,7 @@ class TestDatetimeIndex:
 
     def test_indexing_fast_xs(self):
         # indexing - fast_xs
-        df = DataFrame({"a": date_range("2014-01-01", periods=10, tz="UTC")})
+        df = DataFrame({"a": date_range("2014-01-01", periods=10, tz="UTC", unit="ns")})
         result = df.iloc[5]
         expected = Series(
             [Timestamp("2014-01-06 00:00:00+0000", tz="UTC")],

@@ -1,4 +1,5 @@
-""" Test cases for misc plot functions """
+"""Test cases for misc plot functions"""
+
 import os
 
 import numpy as np
@@ -29,6 +30,10 @@ from pandas.tests.plotting.common import (
 mpl = pytest.importorskip("matplotlib")
 plt = pytest.importorskip("matplotlib.pyplot")
 cm = pytest.importorskip("matplotlib.cm")
+
+import re
+
+from pandas.plotting._matplotlib.style import get_standard_colors
 
 
 @pytest.fixture
@@ -108,8 +113,6 @@ def test_savefig(kind, data, index):
 
 class TestSeriesPlots:
     def test_autocorrelation_plot(self):
-        from pandas.plotting import autocorrelation_plot
-
         ser = Series(
             np.arange(10, dtype=np.float64),
             index=date_range("2020-01-01", periods=10),
@@ -117,32 +120,28 @@ class TestSeriesPlots:
         )
         # Ensure no UserWarning when making plot
         with tm.assert_produces_warning(None):
-            _check_plot_works(autocorrelation_plot, series=ser)
-            _check_plot_works(autocorrelation_plot, series=ser.values)
+            _check_plot_works(plotting.autocorrelation_plot, series=ser)
+            _check_plot_works(plotting.autocorrelation_plot, series=ser.values)
 
-            ax = autocorrelation_plot(ser, label="Test")
+            ax = plotting.autocorrelation_plot(ser, label="Test")
         _check_legend_labels(ax, labels=["Test"])
 
     @pytest.mark.parametrize("kwargs", [{}, {"lag": 5}])
     def test_lag_plot(self, kwargs):
-        from pandas.plotting import lag_plot
-
         ser = Series(
             np.arange(10, dtype=np.float64),
             index=date_range("2020-01-01", periods=10),
             name="ts",
         )
-        _check_plot_works(lag_plot, series=ser, **kwargs)
+        _check_plot_works(plotting.lag_plot, series=ser, **kwargs)
 
     def test_bootstrap_plot(self):
-        from pandas.plotting import bootstrap_plot
-
         ser = Series(
             np.arange(10, dtype=np.float64),
             index=date_range("2020-01-01", periods=10),
             name="ts",
         )
-        _check_plot_works(bootstrap_plot, series=ser, size=10)
+        _check_plot_works(plotting.bootstrap_plot, series=ser, size=10)
 
 
 class TestDataFramePlots:
@@ -155,7 +154,7 @@ class TestDataFramePlots:
         if pass_axis:
             _, ax = mpl.pyplot.subplots(3, 3)
 
-        df = DataFrame(np.random.default_rng(2).standard_normal((100, 3)))
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 3)))
 
         # we are plotting multiples on a sub-plot
         with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
@@ -167,7 +166,7 @@ class TestDataFramePlots:
             )
         axes0_labels = axes[0][0].yaxis.get_majorticklabels()
         # GH 5662
-        expected = ["-2", "0", "2"]
+        expected = ["-2", "-1", "0"]
         _check_text_labels(axes0_labels, expected)
         _check_ticks_props(axes, xlabelsize=8, xrot=90, ylabelsize=8, yrot=0)
 
@@ -180,7 +179,7 @@ class TestDataFramePlots:
         if pass_axis:
             _, ax = mpl.pyplot.subplots(3, 3)
 
-        df = DataFrame(np.random.default_rng(11).standard_normal((100, 3)))
+        df = DataFrame(np.random.default_rng(11).standard_normal((10, 3)))
         df[0] = (df[0] - 2) / 3
 
         # we are plotting multiples on a sub-plot
@@ -192,18 +191,15 @@ class TestDataFramePlots:
                 ax=ax,
             )
         axes0_labels = axes[0][0].yaxis.get_majorticklabels()
-        expected = ["-1.0", "-0.5", "0.0"]
+        expected = ["-1.25", "-1.0", "-0.75", "-0.5"]
         _check_text_labels(axes0_labels, expected)
         _check_ticks_props(axes, xlabelsize=8, xrot=90, ylabelsize=8, yrot=0)
 
     @pytest.mark.slow
     def test_andrews_curves_no_warning(self, iris):
-        from pandas.plotting import andrews_curves
-
-        df = iris
         # Ensure no UserWarning when making plot
         with tm.assert_produces_warning(None):
-            _check_plot_works(andrews_curves, frame=df, class_column="Name")
+            _check_plot_works(plotting.andrews_curves, frame=iris, class_column="Name")
 
     @pytest.mark.slow
     @pytest.mark.parametrize(
@@ -228,12 +224,10 @@ class TestDataFramePlots:
         ],
     )
     def test_andrews_curves_linecolors(self, request, df, linecolors):
-        from pandas.plotting import andrews_curves
-
         if isinstance(df, str):
             df = request.getfixturevalue(df)
         ax = _check_plot_works(
-            andrews_curves, frame=df, class_column="Name", color=linecolors
+            plotting.andrews_curves, frame=df, class_column="Name", color=linecolors
         )
         _check_colors(
             ax.get_lines()[:10], linecolors=linecolors, mapping=df["Name"][:10]
@@ -255,23 +249,19 @@ class TestDataFramePlots:
         ],
     )
     def test_andrews_curves_cmap(self, request, df):
-        from pandas.plotting import andrews_curves
-
         if isinstance(df, str):
             df = request.getfixturevalue(df)
         cmaps = [cm.jet(n) for n in np.linspace(0, 1, df["Name"].nunique())]
         ax = _check_plot_works(
-            andrews_curves, frame=df, class_column="Name", color=cmaps
+            plotting.andrews_curves, frame=df, class_column="Name", color=cmaps
         )
         _check_colors(ax.get_lines()[:10], linecolors=cmaps, mapping=df["Name"][:10])
 
     @pytest.mark.slow
     def test_andrews_curves_handle(self):
-        from pandas.plotting import andrews_curves
-
         colors = ["b", "g", "r"]
         df = DataFrame({"A": [1, 2, 3], "B": [1, 2, 3], "C": [1, 2, 3], "Name": colors})
-        ax = andrews_curves(df, "Name", color=colors)
+        ax = plotting.andrews_curves(df, "Name", color=colors)
         handles, _ = ax.get_legend_handles_labels()
         _check_colors(handles, linecolors=colors)
 
@@ -281,61 +271,54 @@ class TestDataFramePlots:
         [("#556270", "#4ECDC4", "#C7F464"), ["dodgerblue", "aquamarine", "seagreen"]],
     )
     def test_parallel_coordinates_colors(self, iris, color):
-        from pandas.plotting import parallel_coordinates
-
         df = iris
 
         ax = _check_plot_works(
-            parallel_coordinates, frame=df, class_column="Name", color=color
+            plotting.parallel_coordinates, frame=df, class_column="Name", color=color
         )
         _check_colors(ax.get_lines()[:10], linecolors=color, mapping=df["Name"][:10])
 
     @pytest.mark.slow
     def test_parallel_coordinates_cmap(self, iris):
-        from matplotlib import cm
-
-        from pandas.plotting import parallel_coordinates
-
         df = iris
 
         ax = _check_plot_works(
-            parallel_coordinates, frame=df, class_column="Name", colormap=cm.jet
+            plotting.parallel_coordinates,
+            frame=df,
+            class_column="Name",
+            colormap=cm.jet,
         )
-        cmaps = [cm.jet(n) for n in np.linspace(0, 1, df["Name"].nunique())]
+        cmaps = [mpl.cm.jet(n) for n in np.linspace(0, 1, df["Name"].nunique())]
         _check_colors(ax.get_lines()[:10], linecolors=cmaps, mapping=df["Name"][:10])
 
     @pytest.mark.slow
     def test_parallel_coordinates_line_diff(self, iris):
-        from pandas.plotting import parallel_coordinates
-
         df = iris
 
-        ax = _check_plot_works(parallel_coordinates, frame=df, class_column="Name")
+        ax = _check_plot_works(
+            plotting.parallel_coordinates, frame=df, class_column="Name"
+        )
         nlines = len(ax.get_lines())
         nxticks = len(ax.xaxis.get_ticklabels())
 
         ax = _check_plot_works(
-            parallel_coordinates, frame=df, class_column="Name", axvlines=False
+            plotting.parallel_coordinates, frame=df, class_column="Name", axvlines=False
         )
         assert len(ax.get_lines()) == (nlines - nxticks)
 
     @pytest.mark.slow
     def test_parallel_coordinates_handles(self, iris):
-        from pandas.plotting import parallel_coordinates
-
         df = iris
         colors = ["b", "g", "r"]
         df = DataFrame({"A": [1, 2, 3], "B": [1, 2, 3], "C": [1, 2, 3], "Name": colors})
-        ax = parallel_coordinates(df, "Name", color=colors)
+        ax = plotting.parallel_coordinates(df, "Name", color=colors)
         handles, _ = ax.get_legend_handles_labels()
         _check_colors(handles, linecolors=colors)
 
     # not sure if this is indicative of a problem
     @pytest.mark.filterwarnings("ignore:Attempting to set:UserWarning")
     def test_parallel_coordinates_with_sorted_labels(self):
-        """For #15908"""
-        from pandas.plotting import parallel_coordinates
-
+        # GH 15908
         df = DataFrame(
             {
                 "feat": list(range(30)),
@@ -344,59 +327,54 @@ class TestDataFramePlots:
                 + [1 for _ in range(10)],
             }
         )
-        ax = parallel_coordinates(df, "class", sort_labels=True)
+        ax = plotting.parallel_coordinates(df, "class", sort_labels=True)
         polylines, labels = ax.get_legend_handles_labels()
         color_label_tuples = zip(
-            [polyline.get_color() for polyline in polylines], labels
+            [polyline.get_color() for polyline in polylines], labels, strict=True
         )
         ordered_color_label_tuples = sorted(color_label_tuples, key=lambda x: x[1])
         prev_next_tupels = zip(
-            list(ordered_color_label_tuples[0:-1]), list(ordered_color_label_tuples[1:])
+            list(ordered_color_label_tuples[0:-1]),
+            list(ordered_color_label_tuples[1:]),
+            strict=True,
         )
         for prev, nxt in prev_next_tupels:
             # labels and colors are ordered strictly increasing
             assert prev[1] < nxt[1] and prev[0] < nxt[0]
 
     def test_radviz_no_warning(self, iris):
-        from pandas.plotting import radviz
-
-        df = iris
         # Ensure no UserWarning when making plot
         with tm.assert_produces_warning(None):
-            _check_plot_works(radviz, frame=df, class_column="Name")
+            _check_plot_works(plotting.radviz, frame=iris, class_column="Name")
 
     @pytest.mark.parametrize(
         "color",
         [("#556270", "#4ECDC4", "#C7F464"), ["dodgerblue", "aquamarine", "seagreen"]],
     )
     def test_radviz_color(self, iris, color):
-        from pandas.plotting import radviz
-
         df = iris
-        ax = _check_plot_works(radviz, frame=df, class_column="Name", color=color)
+        ax = _check_plot_works(
+            plotting.radviz, frame=df, class_column="Name", color=color
+        )
         # skip Circle drawn as ticks
         patches = [p for p in ax.patches[:20] if p.get_label() != ""]
         _check_colors(patches[:10], facecolors=color, mapping=df["Name"][:10])
 
     def test_radviz_color_cmap(self, iris):
-        from matplotlib import cm
-
-        from pandas.plotting import radviz
-
         df = iris
-        ax = _check_plot_works(radviz, frame=df, class_column="Name", colormap=cm.jet)
-        cmaps = [cm.jet(n) for n in np.linspace(0, 1, df["Name"].nunique())]
+        ax = _check_plot_works(
+            plotting.radviz, frame=df, class_column="Name", colormap=cm.jet
+        )
+        cmaps = [mpl.cm.jet(n) for n in np.linspace(0, 1, df["Name"].nunique())]
         patches = [p for p in ax.patches[:20] if p.get_label() != ""]
         _check_colors(patches, facecolors=cmaps, mapping=df["Name"][:10])
 
     def test_radviz_colors_handles(self):
-        from pandas.plotting import radviz
-
         colors = [[0.0, 0.0, 1.0, 1.0], [0.0, 0.5, 1.0, 1.0], [1.0, 0.0, 0.0, 1.0]]
         df = DataFrame(
             {"A": [1, 2, 3], "B": [2, 1, 3], "C": [3, 2, 1], "Name": ["b", "g", "r"]}
         )
-        ax = radviz(df, "Name", color=colors)
+        ax = plotting.radviz(df, "Name", color=colors)
         handles, _ = ax.get_legend_handles_labels()
         _check_colors(handles, facecolors=colors)
 
@@ -419,7 +397,7 @@ class TestDataFramePlots:
             "using `title` of type `list` and `subplots=True`"
         )
         with pytest.raises(ValueError, match=msg):
-            df.plot(subplots=True, title=title + ["kittens > puppies"])
+            df.plot(subplots=True, title=[*title, "kittens > puppies"])
 
     def test_subplot_titles_too_little(self, iris):
         df = iris.drop("Name", axis=1).head()
@@ -454,7 +432,7 @@ class TestDataFramePlots:
             subplots=True, layout=(2, 2), title=title[:-1]
         )
         title_list = [ax.get_title() for sublist in plot for ax in sublist]
-        assert title_list == title[:3] + [""]
+        assert title_list == [*title[:3], ""]
 
     def test_get_standard_colors_random_seed(self):
         # GH17525
@@ -470,15 +448,11 @@ class TestDataFramePlots:
     def test_get_standard_colors_consistency(self):
         # GH17525
         # Make sure it produces the same colors every time it's called
-        from pandas.plotting._matplotlib.style import get_standard_colors
-
         color1 = get_standard_colors(1, color_type="random")
         color2 = get_standard_colors(1, color_type="random")
         assert color1 == color2
 
     def test_get_standard_colors_default_num_colors(self):
-        from pandas.plotting._matplotlib.style import get_standard_colors
-
         # Make sure the default color_types returns the specified amount
         color1 = get_standard_colors(1, color_type="default")
         color2 = get_standard_colors(9, color_type="default")
@@ -508,11 +482,7 @@ class TestDataFramePlots:
 
         # Make sure not to add more colors so that matplotlib can cycle
         # correctly.
-        from matplotlib import cm
-
-        from pandas.plotting._matplotlib.style import get_standard_colors
-
-        color_before = cm.gnuplot(range(5))
+        color_before = mpl.cm.gnuplot(range(5))
         color_after = get_standard_colors(1, color=color_before)
         assert len(color_after) == len(color_before)
 
@@ -520,7 +490,7 @@ class TestDataFramePlots:
             np.random.default_rng(2).standard_normal((48, 4)), columns=list("ABCD")
         )
 
-        color_list = cm.gnuplot(np.linspace(0, 1, 16))
+        color_list = mpl.cm.gnuplot(np.linspace(0, 1, 16))
         p = df.A.plot.bar(figsize=(16, 7), color=color_list)
         assert p.patches[1].get_facecolor() == p.patches[17].get_facecolor()
 
@@ -545,9 +515,7 @@ class TestDataFramePlots:
     def test_bar_plot(self):
         # GH38947
         # Test bar plot with string and int index
-        from matplotlib.text import Text
-
-        expected = [Text(0, 0, "0"), Text(1, 0, "Total")]
+        expected = [mpl.text.Text(0, 0, "0"), mpl.text.Text(1, 0, "Total")]
 
         df = DataFrame(
             {
@@ -558,21 +526,22 @@ class TestDataFramePlots:
         plot_bar = df.plot.bar()
         assert all(
             (a.get_text() == b.get_text())
-            for a, b in zip(plot_bar.get_xticklabels(), expected)
+            for a, b in zip(plot_bar.get_xticklabels(), expected, strict=True)
         )
 
     def test_barh_plot_labels_mixed_integer_string(self):
         # GH39126
         # Test barh plot with string and integer at the same column
-        from matplotlib.text import Text
-
         df = DataFrame([{"word": 1, "value": 0}, {"word": "knowledge", "value": 2}])
         plot_barh = df.plot.barh(x="word", legend=None)
-        expected_yticklabels = [Text(0, 0, "1"), Text(0, 1, "knowledge")]
+        expected_yticklabels = [
+            mpl.text.Text(0, 0, "1"),
+            mpl.text.Text(0, 1, "knowledge"),
+        ]
         assert all(
             actual.get_text() == expected.get_text()
             for actual, expected in zip(
-                plot_barh.get_yticklabels(), expected_yticklabels
+                plot_barh.get_yticklabels(), expected_yticklabels, strict=True
             )
         )
 
@@ -648,8 +617,8 @@ class TestDataFramePlots:
         # Create data
         df = DataFrame(
             {
-                "a": np.random.default_rng(2).standard_normal(1000),
-                "b": np.random.default_rng(2).standard_normal(1000),
+                "a": np.random.default_rng(2).standard_normal(10),
+                "b": np.random.default_rng(2).standard_normal(10),
             }
         )
 
@@ -706,9 +675,7 @@ class TestDataFramePlots:
     def test_bar_plt_xaxis_intervalrange(self):
         # GH 38969
         # Ensure IntervalIndex x-axis produces a bar plot as expected
-        from matplotlib.text import Text
-
-        expected = [Text(0, 0, "([0, 1],)"), Text(1, 0, "([1, 2],)")]
+        expected = [mpl.text.Text(0, 0, "([0, 1],)"), mpl.text.Text(1, 0, "([1, 2],)")]
         s = Series(
             [1, 2],
             index=[interval_range(0, 2, closed="both")],
@@ -716,5 +683,184 @@ class TestDataFramePlots:
         _check_plot_works(s.plot.bar)
         assert all(
             (a.get_text() == b.get_text())
-            for a, b in zip(s.plot.bar().get_xticklabels(), expected)
+            for a, b in zip(s.plot.bar().get_xticklabels(), expected, strict=True)
         )
+
+
+@pytest.fixture
+def df_bar_data():
+    return np.random.default_rng(3).integers(0, 100, 5)
+
+
+@pytest.fixture
+def df_bar_df(df_bar_data) -> DataFrame:
+    df_bar_df = DataFrame(
+        {
+            "A": df_bar_data,
+            "B": df_bar_data[::-1],
+            "C": df_bar_data[0],
+            "D": df_bar_data[-1],
+        }
+    )
+    return df_bar_df
+
+
+def _df_bar_xyheight_from_ax_helper(df_bar_data, ax, subplot_division):
+    subplot_data_df_list = []
+
+    # get xy and height of squares representing data, separated by subplots
+    for i in range(len(subplot_division)):
+        subplot_data = np.array(
+            [
+                (x.get_x(), x.get_y(), x.get_height())
+                for x in ax[i].findobj(plt.Rectangle)
+                if x.get_height() in df_bar_data
+            ]
+        )
+        subplot_data_df_list.append(
+            DataFrame(data=subplot_data, columns=["x_coord", "y_coord", "height"])
+        )
+
+    return subplot_data_df_list
+
+
+def _df_bar_subplot_checker(df_bar_data, df_bar_df, subplot_data_df, subplot_columns):
+    subplot_sliced_by_source = [
+        subplot_data_df.iloc[
+            len(df_bar_data) * i : len(df_bar_data) * (i + 1)
+        ].reset_index()
+        for i in range(len(subplot_columns))
+    ]
+
+    if len(subplot_columns) == 1:
+        expected_total_height = df_bar_df.loc[:, subplot_columns[0]]
+    else:
+        expected_total_height = df_bar_df.loc[:, subplot_columns].sum(axis=1)
+
+    for i in range(len(subplot_columns)):
+        sliced_df = subplot_sliced_by_source[i]
+        if i == 0:
+            # Checks that the bar chart starts y=0
+            assert (sliced_df["y_coord"] == 0).all()
+            height_iter = sliced_df["y_coord"].add(sliced_df["height"])
+        else:
+            height_iter = height_iter + sliced_df["height"]
+
+        if i + 1 == len(subplot_columns):
+            # Checks final height matches what is expected
+            tm.assert_series_equal(
+                height_iter, expected_total_height, check_names=False, check_dtype=False
+            )
+        else:
+            # Checks each preceding bar ends where the next one starts
+            next_start_coord = subplot_sliced_by_source[i + 1]["y_coord"]
+            tm.assert_series_equal(
+                height_iter, next_start_coord, check_names=False, check_dtype=False
+            )
+
+
+# GH Issue 61018
+@pytest.mark.parametrize("columns_used", [["A", "B"], ["C", "D"], ["D", "A"]])
+def test_bar_1_subplot_1_double_stacked(df_bar_data, df_bar_df, columns_used):
+    df_bar_df_trimmed = df_bar_df[columns_used]
+    subplot_division = [columns_used]
+    ax = df_bar_df_trimmed.plot(subplots=subplot_division, kind="bar", stacked=True)
+    subplot_data_df_list = _df_bar_xyheight_from_ax_helper(
+        df_bar_data, ax, subplot_division
+    )
+    for i in range(len(subplot_data_df_list)):
+        _df_bar_subplot_checker(
+            df_bar_data, df_bar_df_trimmed, subplot_data_df_list[i], subplot_division[i]
+        )
+
+
+@pytest.mark.parametrize(
+    "columns_used", [["A", "B", "C"], ["A", "C", "B"], ["D", "A", "C"]]
+)
+def test_bar_2_subplot_1_double_stacked(df_bar_data, df_bar_df, columns_used):
+    df_bar_df_trimmed = df_bar_df[columns_used]
+    subplot_division = [(columns_used[0], columns_used[1]), (columns_used[2],)]
+    ax = df_bar_df_trimmed.plot(subplots=subplot_division, kind="bar", stacked=True)
+    subplot_data_df_list = _df_bar_xyheight_from_ax_helper(
+        df_bar_data, ax, subplot_division
+    )
+    for i in range(len(subplot_data_df_list)):
+        _df_bar_subplot_checker(
+            df_bar_data, df_bar_df_trimmed, subplot_data_df_list[i], subplot_division[i]
+        )
+
+
+@pytest.mark.parametrize(
+    "subplot_division",
+    [
+        [("A", "B"), ("C", "D")],
+        [("A", "D"), ("C", "B")],
+        [("B", "C"), ("D", "A")],
+        [("B", "D"), ("C", "A")],
+    ],
+)
+def test_bar_2_subplot_2_double_stacked(df_bar_data, df_bar_df, subplot_division):
+    ax = df_bar_df.plot(subplots=subplot_division, kind="bar", stacked=True)
+    subplot_data_df_list = _df_bar_xyheight_from_ax_helper(
+        df_bar_data, ax, subplot_division
+    )
+    for i in range(len(subplot_data_df_list)):
+        _df_bar_subplot_checker(
+            df_bar_data, df_bar_df, subplot_data_df_list[i], subplot_division[i]
+        )
+
+
+@pytest.mark.parametrize(
+    "subplot_division",
+    [[("A", "B", "C")], [("A", "D", "B")], [("C", "A", "D")], [("D", "C", "A")]],
+)
+def test_bar_2_subplots_1_triple_stacked(df_bar_data, df_bar_df, subplot_division):
+    ax = df_bar_df.plot(subplots=subplot_division, kind="bar", stacked=True)
+    subplot_data_df_list = _df_bar_xyheight_from_ax_helper(
+        df_bar_data, ax, subplot_division
+    )
+    for i in range(len(subplot_data_df_list)):
+        _df_bar_subplot_checker(
+            df_bar_data, df_bar_df, subplot_data_df_list[i], subplot_division[i]
+        )
+
+
+def test_bar_subplots_stacking_bool(df_bar_data, df_bar_df):
+    subplot_division = [("A"), ("B"), ("C"), ("D")]
+    ax = df_bar_df.plot(subplots=True, kind="bar", stacked=True)
+    subplot_data_df_list = _df_bar_xyheight_from_ax_helper(
+        df_bar_data, ax, subplot_division
+    )
+    for i in range(len(subplot_data_df_list)):
+        _df_bar_subplot_checker(
+            df_bar_data, df_bar_df, subplot_data_df_list[i], subplot_division[i]
+        )
+
+
+def test_plot_bar_label_count_default():
+    df = DataFrame(
+        [(30, 10, 10, 10), (20, 20, 20, 20), (10, 30, 30, 10)], columns=list("ABCD")
+    )
+    df.plot(subplots=True, kind="bar", title=["A", "B", "C", "D"])
+
+
+def test_plot_bar_label_count_expected_fail():
+    df = DataFrame(
+        [(30, 10, 10, 10), (20, 20, 20, 20), (10, 30, 30, 10)], columns=list("ABCD")
+    )
+    error_regex = re.escape(
+        "The number of titles (4) must equal the number of subplots (3)."
+    )
+    with pytest.raises(ValueError, match=error_regex):
+        df.plot(
+            subplots=[("A", "B")],
+            kind="bar",
+            title=["A&B", "C", "D", "Extra Title"],
+        )
+
+
+def test_plot_bar_label_count_expected_success():
+    df = DataFrame(
+        [(30, 10, 10, 10), (20, 20, 20, 20), (10, 30, 30, 10)], columns=list("ABCD")
+    )
+    df.plot(subplots=[("A", "B", "D")], kind="bar", title=["A&B&D", "C"])

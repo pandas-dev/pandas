@@ -1,4 +1,4 @@
-""" test the scalar Timestamp """
+"""test the scalar Timestamp"""
 
 import calendar
 from datetime import (
@@ -9,6 +9,7 @@ from datetime import (
 import locale
 import time
 import unicodedata
+import zoneinfo
 
 from dateutil.tz import (
     tzlocal,
@@ -20,8 +21,6 @@ from hypothesis import (
 )
 import numpy as np
 import pytest
-import pytz
-from pytz import utc
 
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 from pandas._libs.tslibs.timezones import (
@@ -31,6 +30,7 @@ from pandas._libs.tslibs.timezones import (
     tz_compare,
 )
 from pandas.compat import IS64
+from pandas.errors import Pandas4Warning
 
 from pandas import (
     NaT,
@@ -119,10 +119,9 @@ class TestTimestampProperties:
 
     # GH 12806
     @pytest.mark.parametrize("tz", [None, "EST"])
-    # error: Unsupported operand types for + ("List[None]" and "List[str]")
     @pytest.mark.parametrize(
         "time_locale",
-        [None] + tm.get_locales(),  # type: ignore[operator]
+        [None, *tm.get_locales()],
     )
     def test_names(self, tz, time_locale):
         # GH 17354
@@ -240,6 +239,7 @@ class TestTimestampProperties:
         dow = ts.weekday()
         assert dow == expected
 
+    @pytest.mark.slow
     @given(
         ts=st.datetimes(),
         sign=st.sampled_from(["-", ""]),
@@ -259,7 +259,7 @@ class TestTimestampProperties:
 
 
 class TestTimestamp:
-    @pytest.mark.parametrize("tz", [None, pytz.timezone("US/Pacific")])
+    @pytest.mark.parametrize("tz", [None, zoneinfo.ZoneInfo("US/Pacific")])
     def test_disallow_setting_tz(self, tz):
         # GH#3746
         ts = Timestamp("2010")
@@ -269,7 +269,7 @@ class TestTimestamp:
 
     def test_default_to_stdlib_utc(self):
         msg = "Timestamp.utcnow is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             assert Timestamp.utcnow().tz is timezone.utc
         assert Timestamp.now("UTC").tz is timezone.utc
         assert Timestamp("2016-01-01", tz="UTC").tz is timezone.utc
@@ -311,16 +311,16 @@ class TestTimestamp:
             assert int((Timestamp(x)._value - Timestamp(y)._value) / 1e9) == 0
 
         compare(Timestamp.now(), datetime.now())
-        compare(Timestamp.now("UTC"), datetime.now(pytz.timezone("UTC")))
+        compare(Timestamp.now("UTC"), datetime.now(timezone.utc))
         compare(Timestamp.now("UTC"), datetime.now(tzutc()))
         msg = "Timestamp.utcnow is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             compare(Timestamp.utcnow(), datetime.now(timezone.utc))
         compare(Timestamp.today(), datetime.today())
         current_time = calendar.timegm(datetime.now().utctimetuple())
 
         msg = "Timestamp.utcfromtimestamp is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             ts_utc = Timestamp.utcfromtimestamp(current_time)
         assert ts_utc.timestamp() == current_time
         compare(
@@ -329,12 +329,12 @@ class TestTimestamp:
         compare(
             # Support tz kwarg in Timestamp.fromtimestamp
             Timestamp.fromtimestamp(current_time, "UTC"),
-            datetime.fromtimestamp(current_time, utc),
+            datetime.fromtimestamp(current_time, timezone.utc),
         )
         compare(
             # Support tz kwarg in Timestamp.fromtimestamp
             Timestamp.fromtimestamp(current_time, tz="UTC"),
-            datetime.fromtimestamp(current_time, utc),
+            datetime.fromtimestamp(current_time, timezone.utc),
         )
 
         date_component = datetime.now(timezone.utc)
@@ -366,11 +366,11 @@ class TestTimestamp:
         # further test accessors
         base = Timestamp("20140101 00:00:00").as_unit("ns")
 
-        result = Timestamp(base._value + Timedelta("5ms")._value)
+        result = Timestamp(base._value + Timedelta("5ms").value)
         assert result == Timestamp(f"{base}.005000")
         assert result.microsecond == 5000
 
-        result = Timestamp(base._value + Timedelta("5us")._value)
+        result = Timestamp(base._value + Timedelta("5us").value)
         assert result == Timestamp(f"{base}.000005")
         assert result.microsecond == 5
 
@@ -379,11 +379,11 @@ class TestTimestamp:
         assert result.nanosecond == 5
         assert result.microsecond == 0
 
-        result = Timestamp(base._value + Timedelta("6ms 5us")._value)
+        result = Timestamp(base._value + Timedelta("6ms 5us").value)
         assert result == Timestamp(f"{base}.006005")
         assert result.microsecond == 5 + 6 * 1000
 
-        result = Timestamp(base._value + Timedelta("200ms 5us")._value)
+        result = Timestamp(base._value + Timedelta("200ms 5us").value)
         assert result == Timestamp(f"{base}.200005")
         assert result.microsecond == 5 + 200 * 1000
 
@@ -501,8 +501,7 @@ class TestTimestampConversion:
         # GH#21333 make sure a warning is issued when timezone
         # info is lost
         ts = Timestamp("2009-04-15 16:17:18", tz="US/Eastern")
-        with tm.assert_produces_warning(UserWarning):
-            # warning that timezone info will be lost
+        with tm.assert_produces_warning(UserWarning, match="drop timezone information"):
             ts.to_period("D")
 
     def test_to_numpy_alias(self):
@@ -586,9 +585,9 @@ class TestNonNano:
         assert ts.month_name() == alt.month_name()
 
     def test_tz_convert(self, ts):
-        ts = Timestamp._from_value_and_reso(ts._value, ts._creso, utc)
+        ts = Timestamp._from_value_and_reso(ts._value, ts._creso, timezone.utc)
 
-        tz = pytz.timezone("US/Pacific")
+        tz = zoneinfo.ZoneInfo("US/Pacific")
         result = ts.tz_convert(tz)
 
         assert isinstance(result, Timestamp)
@@ -657,11 +656,11 @@ class TestNonNano:
 
         assert other.asm8 < ts
 
-    def test_pickle(self, ts, tz_aware_fixture):
+    def test_pickle(self, ts, tz_aware_fixture, temp_file):
         tz = tz_aware_fixture
         tz = maybe_get_tz(tz)
         ts = Timestamp._from_value_and_reso(ts._value, ts._creso, tz)
-        rt = tm.round_trip_pickle(ts)
+        rt = tm.round_trip_pickle(ts, temp_file)
         assert rt._creso == ts._creso
         assert rt == ts
 

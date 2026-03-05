@@ -2,6 +2,8 @@ from io import StringIO
 
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -11,11 +13,11 @@ pytest.importorskip("tabulate")
 def test_keyword_deprecation():
     # GH 57280
     msg = (
-        "Starting with pandas version 3.0.0 all arguments of to_markdown "
+        "Starting with pandas version 4.0 all arguments of to_markdown "
         "except for the argument 'buf' will be keyword-only."
     )
     s = pd.Series()
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
         s.to_markdown(None, "wt")
 
 
@@ -35,8 +37,7 @@ def test_empty_frame():
     df.to_markdown(buf=buf)
     result = buf.getvalue()
     assert result == (
-        "| id   | first_name   | last_name   |\n"
-        "|------|--------------|-------------|"
+        "| id   | first_name   | last_name   |\n|------|--------------|-------------|"
     )
 
 
@@ -65,8 +66,7 @@ def test_series():
     s.to_markdown(buf=buf)
     result = buf.getvalue()
     assert result == (
-        "|    |   foo |\n|---:|------:|\n|  0 |     1 "
-        "|\n|  1 |     2 |\n|  2 |     3 |"
+        "|    |   foo |\n|---:|------:|\n|  0 |     1 |\n|  1 |     2 |\n|  2 |     3 |"
     )
 
 

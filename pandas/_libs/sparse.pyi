@@ -1,9 +1,9 @@
-from typing import Sequence
+from typing import Self
 
 import numpy as np
 
 from pandas._typing import (
-    Self,
+    TakeIndexer,
     npt,
 )
 
@@ -28,7 +28,7 @@ class SparseIndex:
 class IntIndex(SparseIndex):
     indices: npt.NDArray[np.int32]
     def __init__(
-        self, length: int, indices: Sequence[int], check_integrity: bool = ...
+        self, length: int, indices: TakeIndexer, check_integrity: bool = ...
     ) -> None: ...
 
 class BlockIndex(SparseIndex):

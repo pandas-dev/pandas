@@ -11,7 +11,8 @@ import re
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas.compat._optional import import_optional_dependency
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 from pandas import (
@@ -26,6 +27,7 @@ from pandas.tests.frame.common import (
     _check_mixed_float,
     _check_mixed_int,
 )
+from pandas.util.version import Version
 
 
 @pytest.fixture
@@ -57,7 +59,7 @@ class DummyElement:
         self.value = value
         self.dtype = np.dtype(dtype)
 
-    def __array__(self):
+    def __array__(self, dtype=None, copy=None):
         return np.array(self.value, dtype=self.dtype)
 
     def __str__(self) -> str:
@@ -114,7 +116,7 @@ class TestFrameComparisons:
             [
                 {
                     "a": np.random.default_rng(2).integers(10, size=10),
-                    "b": pd.date_range("20010101", periods=10),
+                    "b": pd.date_range("20010101", periods=10, unit="ns"),
                 },
                 {
                     "a": np.random.default_rng(2).integers(10, size=10),
@@ -128,13 +130,13 @@ class TestFrameComparisons:
                 },
                 {
                     "a": np.random.default_rng(2).integers(10, size=10),
-                    "b": pd.date_range("20010101", periods=10),
+                    "b": pd.date_range("20010101", periods=10, unit="ns"),
                 },
             ],
             [
                 {
-                    "a": pd.date_range("20010101", periods=10),
-                    "b": pd.date_range("20010101", periods=10),
+                    "a": pd.date_range("20010101", periods=10, unit="ns"),
+                    "b": pd.date_range("20010101", periods=10, unit="ns"),
                 },
                 {
                     "a": np.random.default_rng(2).integers(10, size=10),
@@ -144,11 +146,11 @@ class TestFrameComparisons:
             [
                 {
                     "a": np.random.default_rng(2).integers(10, size=10),
-                    "b": pd.date_range("20010101", periods=10),
+                    "b": pd.date_range("20010101", periods=10, unit="ns"),
                 },
                 {
-                    "a": pd.date_range("20010101", periods=10),
-                    "b": pd.date_range("20010101", periods=10),
+                    "a": pd.date_range("20010101", periods=10, unit="ns"),
+                    "b": pd.date_range("20010101", periods=10, unit="ns"),
                 },
             ],
         ],
@@ -251,9 +253,6 @@ class TestFrameComparisons:
             with pytest.raises(TypeError, match=msg):
                 right_f(pd.Timestamp("nat"), df)
 
-    @pytest.mark.xfail(
-        using_pyarrow_string_dtype(), reason="can't compare string and int"
-    )
     def test_mixed_comparison(self):
         # GH#13128, GH#22163 != datetime64 vs non-dt64 should be False,
         # not raise TypeError
@@ -275,7 +274,9 @@ class TestFrameComparisons:
 
         expected = DataFrame([[False, False], [True, False], [False, False]])
 
-        result = df == (2, 2)
+        depr_msg = "In a future version these will be treated as scalar-like"
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            result = df == (2, 2)
         tm.assert_frame_equal(result, expected)
 
         result = df == [2, 2]
@@ -309,7 +310,7 @@ class TestFrameFlexComparisons:
         other_data = np.random.default_rng(2).standard_normal((5, 3))
         df = DataFrame(data)
         other = DataFrame(other_data)
-        ndim_5 = np.ones(df.shape + (1, 3))
+        ndim_5 = np.ones((*df.shape, 1, 3))
 
         # DataFrame
         assert df.eq(df).values.all()
@@ -446,7 +447,7 @@ class TestFrameFlexComparisons:
         df = DataFrame([pd.NaT])
 
         result = df == pd.NaT
-        # result.iloc[0, 0] is a np.bool_ object
+        # result.iloc[0, 0] is an np.bool_ object
         assert result.iloc[0, 0].item() is False
 
         result = df.eq(pd.NaT)
@@ -835,6 +836,43 @@ class TestFrameFlexArithmetic:
 
         tm.assert_frame_equal(result, expected)
 
+    def test_frame_multiindex_operations_part_align_axis1(self):
+        # GH#61009 Test DataFrame-Series arithmetic operation
+        # with partly aligned MultiIndex and axis = 1
+        df = DataFrame(
+            [[1, 2, 3], [3, 4, 5]],
+            index=[2010, 2020],
+            columns=MultiIndex.from_tuples(
+                [
+                    ("a", "b", 0),
+                    ("a", "b", 1),
+                    ("a", "c", 2),
+                ],
+                names=["scen", "mod", "id"],
+            ),
+        )
+
+        series = Series(
+            [0.4],
+            index=MultiIndex.from_product([["b"], ["a"]], names=["mod", "scen"]),
+        )
+
+        expected = DataFrame(
+            [[1.4, 2.4, np.nan], [3.4, 4.4, np.nan]],
+            index=[2010, 2020],
+            columns=MultiIndex.from_tuples(
+                [
+                    ("a", "b", 0),
+                    ("a", "b", 1),
+                    ("a", "c", 2),
+                ],
+                names=["scen", "mod", "id"],
+            ),
+        )
+        result = df.add(series, axis=1)
+
+        tm.assert_frame_equal(result, expected)
+
 
 class TestFrameArithmetic:
     def test_td64_op_nat_casting(self):
@@ -974,7 +1012,14 @@ class TestFrameArithmetic:
         # GH#17901
         df = DataFrame({"A": [1, 1], "B": [1, 1]})
         expected = DataFrame({"A": [2, 2], "B": [3, 3]})
-        result = df + values
+
+        depr_msg = "In a future version these will be treated as scalar-like"
+        warn = None
+        if isinstance(values, (range, deque, tuple)):
+            warn = Pandas4Warning
+
+        with tm.assert_produces_warning(warn, match=depr_msg):
+            result = df + values
         tm.assert_frame_equal(result, expected)
 
     def test_arith_non_pandas_object(self):
@@ -1082,6 +1127,8 @@ class TestFrameArithmetic:
             (operator.mod, "complex128"),
         }
 
+        ne = import_optional_dependency("numexpr", errors="ignore")
+        ne_warns_on_op = ne is not None and Version(ne.__version__) < Version("2.13.1")
         if (op, dtype) in invalid:
             warn = None
             if (dtype == "<M8[ns]" and op == operator.add) or (
@@ -1097,7 +1144,7 @@ class TestFrameArithmetic:
                     and expr.USE_NUMEXPR
                     and switch_numexpr_min_elements == 0
                 ):
-                    warn = UserWarning  # "evaluating in Python space because ..."
+                    warn = UserWarning
             else:
                 msg = (
                     f"cannot perform __{op.__name__}__ with this "
@@ -1105,17 +1152,20 @@ class TestFrameArithmetic:
                 )
 
             with pytest.raises(TypeError, match=msg):
-                with tm.assert_produces_warning(warn):
+                with tm.assert_produces_warning(warn, match="evaluating in Python"):
                     op(df, elem.value)
 
         elif (op, dtype) in skip:
             if op in [operator.add, operator.mul]:
-                if expr.USE_NUMEXPR and switch_numexpr_min_elements == 0:
-                    # "evaluating in Python space because ..."
+                if (
+                    expr.USE_NUMEXPR
+                    and switch_numexpr_min_elements == 0
+                    and ne_warns_on_op
+                ):
                     warn = UserWarning
                 else:
                     warn = None
-                with tm.assert_produces_warning(warn):
+                with tm.assert_produces_warning(warn, match="evaluating in Python"):
                     op(df, elem.value)
 
             else:
@@ -1519,7 +1569,7 @@ class TestFrameArithmeticUnsorted:
         df2 = df1.copy()
 
         row = simple_frame.xs("a")
-        ndim_5 = np.ones(df1.shape + (1, 1, 1))
+        ndim_5 = np.ones((*df1.shape, 1, 1, 1))
 
         result = func(df1, df2)
         tm.assert_numpy_array_equal(result.values, func(df1.values, df2.values))
@@ -1553,7 +1603,12 @@ class TestFrameArithmeticUnsorted:
         )
 
         f = getattr(operator, compare_operators_no_eq_ne)
-        msg = "'[<>]=?' not supported between instances of 'str' and 'int'"
+        msg = "|".join(
+            [
+                "'[<>]=?' not supported between instances of 'str' and 'int'",
+                "Invalid comparison between dtype=str and int",
+            ]
+        )
         with pytest.raises(TypeError, match=msg):
             f(df, 0)
 
@@ -1594,9 +1649,11 @@ class TestFrameArithmeticUnsorted:
             # wrong shape
             df > lst
 
+        depr_msg = "In a future version these will be treated as scalar-like"
         with pytest.raises(ValueError, match=msg1d):
             # wrong shape
-            df > tup
+            with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+                df > tup
 
         # broadcasts like ndarray (GH#23000)
         result = df > b_r
@@ -1620,7 +1677,8 @@ class TestFrameArithmeticUnsorted:
             df == lst
 
         with pytest.raises(ValueError, match=msg1d):
-            df == tup
+            with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+                df == tup
 
         # broadcasts like ndarray (GH#23000)
         result = df == b_r
@@ -1645,7 +1703,8 @@ class TestFrameArithmeticUnsorted:
             df == lst
 
         with pytest.raises(ValueError, match=msg1d):
-            df == tup
+            with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+                df == tup
 
     def test_inplace_ops_alignment(self):
         # inplace ops / ops alignment
@@ -1814,13 +1873,22 @@ class TestFrameArithmeticUnsorted:
 
         align = DataFrame._align_for_op
 
+        depr_msg = "In a future version these will be treated as scalar-like"
+        warn = None
+        if isinstance(val, (tuple, range)):
+            warn = Pandas4Warning
+
+        with tm.assert_produces_warning(warn, match=depr_msg):
+            result = align(df, val, axis=0)[1]
         expected = DataFrame({"X": val, "Y": val, "Z": val}, index=df.index)
-        tm.assert_frame_equal(align(df, val, axis=0)[1], expected)
+        tm.assert_frame_equal(result, expected)
 
         expected = DataFrame(
             {"X": [1, 1, 1], "Y": [2, 2, 2], "Z": [3, 3, 3]}, index=df.index
         )
-        tm.assert_frame_equal(align(df, val, axis=1)[1], expected)
+        with tm.assert_produces_warning(warn, match=depr_msg):
+            result = align(df, val, axis=1)[1]
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("val", [[1, 2], (1, 2), np.array([1, 2]), range(1, 3)])
     def test_alignment_non_pandas_length_mismatch(self, val):
@@ -1832,14 +1900,21 @@ class TestFrameArithmeticUnsorted:
             columns=columns,
         )
 
+        depr_msg = "In a future version these will be treated as scalar-like"
+        warn = None
+        if isinstance(val, (tuple, range)):
+            warn = Pandas4Warning
+
         align = DataFrame._align_for_op
         # length mismatch
         msg = "Unable to coerce to Series, length must be 3: given 2"
         with pytest.raises(ValueError, match=msg):
-            align(df, val, axis=0)
+            with tm.assert_produces_warning(warn, match=depr_msg):
+                align(df, val, axis=0)
 
         with pytest.raises(ValueError, match=msg):
-            align(df, val, axis=1)
+            with tm.assert_produces_warning(warn, match=depr_msg):
+                align(df, val, axis=1)
 
     def test_alignment_non_pandas_index_columns(self):
         index = ["A", "B", "C"]
@@ -2032,6 +2107,51 @@ def test_arithmetic_multiindex_align():
     tm.assert_frame_equal(result, expected)
 
 
+def test_arithmetic_multiindex_column_align():
+    # GH#60498
+    df1 = DataFrame(
+        data=100,
+        columns=MultiIndex.from_product(
+            [["1A", "1B"], ["2A", "2B"]], names=["Lev1", "Lev2"]
+        ),
+        index=["C1", "C2"],
+    )
+    df2 = DataFrame(
+        data=np.array([[0.1, 0.25], [0.2, 0.45]]),
+        columns=MultiIndex.from_product([["1A", "1B"]], names=["Lev1"]),
+        index=["C1", "C2"],
+    )
+    expected = DataFrame(
+        data=np.array([[10.0, 10.0, 25.0, 25.0], [20.0, 20.0, 45.0, 45.0]]),
+        columns=MultiIndex.from_product(
+            [["1A", "1B"], ["2A", "2B"]], names=["Lev1", "Lev2"]
+        ),
+        index=["C1", "C2"],
+    )
+    result = df1 * df2
+    tm.assert_frame_equal(result, expected)
+
+
+def test_arithmetic_multiindex_column_align_with_fillvalue():
+    # GH#60903
+    df1 = DataFrame(
+        data=[[1.0, 2.0]],
+        columns=MultiIndex.from_tuples([("A", "one"), ("A", "two")]),
+    )
+    df2 = DataFrame(
+        data=[[3.0, 4.0]],
+        columns=MultiIndex.from_tuples([("B", "one"), ("B", "two")]),
+    )
+    expected = DataFrame(
+        data=[[1.0, 2.0, 3.0, 4.0]],
+        columns=MultiIndex.from_tuples(
+            [("A", "one"), ("A", "two"), ("B", "one"), ("B", "two")]
+        ),
+    )
+    result = df1.add(df2, fill_value=0)
+    tm.assert_frame_equal(result, expected)
+
+
 def test_bool_frame_mult_float():
     # GH 18549
     df = DataFrame(True, list("ab"), list("cd"))
@@ -2100,11 +2220,14 @@ def test_enum_column_equality():
     tm.assert_series_equal(result, expected)
 
 
-def test_mixed_col_index_dtype():
+def test_mixed_col_index_dtype(string_dtype_no_object):
     # GH 47382
     df1 = DataFrame(columns=list("abc"), data=1.0, index=[0])
     df2 = DataFrame(columns=list("abc"), data=0.0, index=[0])
-    df1.columns = df2.columns.astype("string")
+    df1.columns = df2.columns.astype(string_dtype_no_object)
     result = df1 + df2
     expected = DataFrame(columns=list("abc"), data=1.0, index=[0])
+
+    expected.columns = expected.columns.astype(string_dtype_no_object)
+
     tm.assert_frame_equal(result, expected)

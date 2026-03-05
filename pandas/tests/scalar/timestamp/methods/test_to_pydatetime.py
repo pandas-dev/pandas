@@ -3,7 +3,7 @@ from datetime import (
     timedelta,
 )
 
-import pytz
+import pytest
 
 from pandas._libs.tslibs.timezones import dateutil_gettz as gettz
 import pandas.util._test_decorators as td
@@ -24,7 +24,8 @@ class TestTimestampToPyDatetime:
         ts = Timestamp("2011-01-01 9:00:00.123456789")
 
         # Warn the user of data loss (nanoseconds).
-        with tm.assert_produces_warning(UserWarning):
+        msg = "Discarding nonzero nanoseconds in conversion"
+        with tm.assert_produces_warning(UserWarning, match=msg):
             expected = datetime(2011, 1, 1, 9, 0, 0, 123456)
             result = ts.to_pydatetime()
             assert result == expected
@@ -42,6 +43,7 @@ class TestTimestampToPyDatetime:
         assert stamp.tzinfo == dtval.tzinfo
 
     def test_timestamp_to_pydatetime_explicit_pytz(self):
+        pytz = pytest.importorskip("pytz")
         stamp = Timestamp("20090415", tz=pytz.timezone("US/Eastern"))
         dtval = stamp.to_pydatetime()
         assert stamp == dtval

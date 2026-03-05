@@ -1,15 +1,18 @@
 from collections.abc import Iterator
-from datetime import datetime
+from datetime import (
+    datetime,
+    timezone,
+)
 from decimal import Decimal
 
 import numpy as np
 import pytest
-import pytz
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 from pandas.compat import is_platform_little_endian
 
+import pandas as pd
 from pandas import (
     CategoricalIndex,
     DataFrame,
@@ -39,7 +42,7 @@ class TestFromRecords:
         expected = DataFrame({"EXPIRY": [datetime(2005, 3, 1, 0, 0), None]})
 
         arrdata = [np.array([datetime(2005, 3, 1, 0, 0), None])]
-        dtypes = [("EXPIRY", "<M8[ns]")]
+        dtypes = [("EXPIRY", "<M8[us]")]
 
         recarray = np.rec.fromarrays(arrdata, dtype=dtypes)
 
@@ -55,9 +58,7 @@ class TestFromRecords:
         expected["EXPIRY"] = expected["EXPIRY"].astype("M8[s]")
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.skipif(
-        using_pyarrow_string_dtype(), reason="dtype checking logic doesn't work"
-    )
+    @pytest.mark.xfail(using_string_dtype(), reason="dtype checking logic doesn't work")
     def test_from_records_sequencelike(self):
         df = DataFrame(
             {
@@ -145,6 +146,12 @@ class TestFromRecords:
         result = DataFrame.from_records([])
         assert len(result) == 0
         assert len(result.columns) == 0
+
+    def test_from_records_sequencelike_empty_index(self):
+        result = DataFrame.from_records([], index=[])
+        assert len(result) == 0
+        assert len(result.columns) == 0
+        assert len(result.index) == 0
 
     def test_from_records_dictlike(self):
         # test the dict methods
@@ -239,7 +246,7 @@ class TestFromRecords:
         tm.assert_frame_equal(frame, expected)
 
     def test_frame_from_records_utc(self):
-        rec = {"datum": 1.5, "begin_time": datetime(2006, 4, 27, tzinfo=pytz.utc)}
+        rec = {"datum": 1.5, "begin_time": datetime(2006, 4, 27, tzinfo=timezone.utc)}
 
         # it works
         DataFrame.from_records([rec], index="begin_time")
@@ -463,3 +470,60 @@ class TestFromRecords:
 
         alt = DataFrame(arr)
         tm.assert_frame_equal(alt, expected)
+
+    def test_from_records_structured_array(self):
+        # GH 59717
+        data = np.array(
+            [
+                ("John", 25, "New York", 50000),
+                ("Jane", 30, "San Francisco", 75000),
+                ("Bob", 35, "Chicago", 65000),
+                ("Alice", 28, "Los Angeles", 60000),
+            ],
+            dtype=[("name", "U10"), ("age", "i4"), ("city", "U15"), ("salary", "i4")],
+        )
+
+        actual_result = DataFrame.from_records(data, columns=["name", "salary", "city"])
+
+        modified_data = {
+            "name": ["John", "Jane", "Bob", "Alice"],
+            "salary": np.array([50000, 75000, 65000, 60000], dtype="int32"),
+            "city": ["New York", "San Francisco", "Chicago", "Los Angeles"],
+        }
+        expected_result = DataFrame(modified_data)
+
+        tm.assert_frame_equal(actual_result, expected_result)
+
+    def test_from_records_empty_iterator_with_preserve_columns(self):
+        # GH#61140
+        rows = []
+        result = DataFrame.from_records(
+            iter(rows), index=[0, 1], columns=["col_1", "Col_2"], nrows=0
+        )
+        expected = DataFrame([], index=[0, 1], columns=["col_1", "Col_2"])
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("missing_value", [None, np.nan, pd.NA])
+    def test_from_records_missing_value_key(self, missing_value, using_infer_string):
+        # https://github.com/pandas-dev/pandas/issues/63889
+        # preserve values when None key is converted to NaN column name
+        dict_data = [
+            {"colA": 1, missing_value: 2},
+            {"colA": 3, missing_value: 4},
+        ]
+        result = DataFrame.from_records(dict_data)
+        expected = DataFrame(
+            [[1, 2], [3, 4]],
+            columns=["colA", np.nan if using_infer_string else missing_value],
+        )
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("missing_value", [None, np.nan, pd.NA])
+    def test_from_records_missing_value_key_only(self, missing_value):
+        dict_data = [
+            {missing_value: 1},
+            {missing_value: 2},
+        ]
+        result = DataFrame.from_records(dict_data)
+        expected = DataFrame([[1], [2]], columns=Index([missing_value]))
+        tm.assert_frame_equal(result, expected)

@@ -81,8 +81,8 @@ class TestSeriesMisc:
             Index(np.arange(10), dtype=np.float64),
             Index([True, False]),
             Index([f"a{i}" for i in range(101)]),
-            pd.MultiIndex.from_tuples(zip("ABCD", "EFGH")),
-            pd.MultiIndex.from_tuples(zip([0, 1, 2, 3], "EFGH")),
+            pd.MultiIndex.from_tuples(zip("ABCD", "EFGH", strict=True)),
+            pd.MultiIndex.from_tuples(zip([0, 1, 2, 3], "EFGH", strict=True)),
         ],
     )
     def test_index_tab_completion(self, index):
@@ -107,7 +107,7 @@ class TestSeriesMisc:
     def test_axis_alias(self):
         s = Series([1, 2, np.nan])
         tm.assert_series_equal(s.dropna(axis="rows"), s.dropna(axis="index"))
-        assert s.dropna().sum("rows") == 3
+        assert s.dropna().sum(axis="rows") == 3
         assert s._get_axis_number("rows") == 0
         assert s._get_axis_name("rows") == "index"
 
@@ -162,7 +162,6 @@ class TestSeriesMisc:
 
     def test_inspect_getmembers(self):
         # GH38782
-        pytest.importorskip("jinja2")
         ser = Series(dtype=object)
         inspect.getmembers(ser)
 
@@ -195,7 +194,6 @@ class TestSeriesMisc:
         with pytest.raises(AttributeError, match=msg):
             ser.weekday
 
-    @pytest.mark.filterwarnings("ignore:Downcasting object dtype arrays:FutureWarning")
     @pytest.mark.parametrize(
         "kernel, has_numeric_only",
         [

@@ -1,12 +1,12 @@
 """
 Shared methods for Index subclasses backed by ExtensionArray.
 """
+
 from __future__ import annotations
 
 from inspect import signature
 from typing import (
     TYPE_CHECKING,
-    Callable,
     TypeVar,
 )
 
@@ -17,6 +17,8 @@ from pandas.core.dtypes.generic import ABCDataFrame
 from pandas.core.indexes.base import Index
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     import numpy as np
 
     from pandas._typing import (
@@ -72,7 +74,7 @@ def _inherit_from_data(
                         return type(self)._simple_new(result, name=self.name)
                     elif isinstance(result, ABCDataFrame):
                         return result.set_index(self)
-                    return Index(result, name=self.name)
+                    return Index(result, name=self.name, dtype=result.dtype, copy=False)
                 return result
 
             def fset(self, value) -> None:
@@ -99,7 +101,7 @@ def _inherit_from_data(
                     return type(self)._simple_new(result, name=self.name)
                 elif isinstance(result, ABCDataFrame):
                     return result.set_index(self)
-                return Index(result, name=self.name)
+                return Index(result, name=self.name, dtype=result.dtype, copy=False)
             return result
 
         # error: "property" has no attribute "__name__"
@@ -113,7 +115,7 @@ def inherit_names(
     names: list[str], delegate: type, cache: bool = False, wrap: bool = False
 ) -> Callable[[type[_ExtensionIndexT]], type[_ExtensionIndexT]]:
     """
-    Class decorator to pin attributes from an ExtensionArray to a Index subclass.
+    Class decorator to pin attributes from an ExtensionArray to an Index subclass.
 
     Parameters
     ----------

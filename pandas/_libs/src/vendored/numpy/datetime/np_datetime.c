@@ -16,53 +16,27 @@ This file is derived from NumPy 1.7. See NUMPY_LICENSE.txt
 
 // Licence at LICENSES/NUMPY_LICENSE
 
-#define NO_IMPORT
-
 #ifndef NPY_NO_DEPRECATED_API
-#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
+#  define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #endif // NPY_NO_DEPRECATED_API
 
-#include <Python.h>
-
 #include "pandas/vendored/numpy/datetime/np_datetime.h"
-#include <numpy/ndarraytypes.h>
+#define NO_IMPORT_ARRAY
+#define PY_ARRAY_UNIQUE_SYMBOL PANDAS_DATETIME_NUMPY
+#include "pandas/portable.h"
+#include <numpy/ndarrayobject.h>
 #include <numpy/npy_common.h>
+#include <stdbool.h>
 
-#if defined(_WIN32)
-#ifndef ENABLE_INTSAFE_SIGNED_FUNCTIONS
-#define ENABLE_INTSAFE_SIGNED_FUNCTIONS
-#endif
-#include <intsafe.h>
-#define checked_int64_add(a, b, res) LongLongAdd(a, b, res)
-#define checked_int64_sub(a, b, res) LongLongSub(a, b, res)
-#define checked_int64_mul(a, b, res) LongLongMult(a, b, res)
-#else
-#if defined __has_builtin
-#if __has_builtin(__builtin_add_overflow)
-#define checked_int64_add(a, b, res) __builtin_add_overflow(a, b, res)
-#define checked_int64_sub(a, b, res) __builtin_sub_overflow(a, b, res)
-#define checked_int64_mul(a, b, res) __builtin_mul_overflow(a, b, res)
-#else
-_Static_assert(0,
-               "Overflow checking not detected; please try a newer compiler");
-#endif
-// __has_builtin was added in gcc 10, but our muslinux_1_1 build environment
-// only has gcc-9.3, so fall back to __GNUC__ macro as long as we have that
-#elif __GNUC__ > 7
-#define checked_int64_add(a, b, res) __builtin_add_overflow(a, b, res)
-#define checked_int64_sub(a, b, res) __builtin_sub_overflow(a, b, res)
-#define checked_int64_mul(a, b, res) __builtin_mul_overflow(a, b, res)
-#else
-_Static_assert(0, "__has_builtin not detected; please try a newer compiler");
-#endif
-#endif
+#define XSTR(a) STR(a)
+#define STR(a) #a
 
 #define PD_CHECK_OVERFLOW(FUNC)                                                \
   do {                                                                         \
     if ((FUNC) != 0) {                                                         \
       PyGILState_STATE gstate = PyGILState_Ensure();                           \
       PyErr_SetString(PyExc_OverflowError,                                     \
-                      "Overflow occurred in npy_datetimestruct_to_datetime");  \
+                      "Overflow occurred at " __FILE__ ":" XSTR(__LINE__));    \
       PyGILState_Release(gstate);                                              \
       return -1;                                                               \
     }                                                                          \
@@ -138,8 +112,8 @@ npy_int64 get_datetimestruct_days(const npy_datetimestruct *dts) {
   npy_int64 year, days = 0;
   const int *month_lengths;
 
-  year = dts->year - 1970;
-  days = year * 365;
+  PD_CHECK_OVERFLOW(checked_sub(dts->year, 1970, &year));
+  PD_CHECK_OVERFLOW(checked_mul(year, 365, &days));
 
   /* Adjust for leap years */
   if (days >= 0) {
@@ -147,32 +121,32 @@ npy_int64 get_datetimestruct_days(const npy_datetimestruct *dts) {
      * 1968 is the closest leap year before 1970.
      * Exclude the current year, so add 1.
      */
-    year += 1;
+    PD_CHECK_OVERFLOW(checked_add(year, 1, &year));
     /* Add one day for each 4 years */
-    days += year / 4;
+    PD_CHECK_OVERFLOW(checked_add(days, year / 4, &days));
     /* 1900 is the closest previous year divisible by 100 */
-    year += 68;
+    PD_CHECK_OVERFLOW(checked_add(year, 68, &year));
     /* Subtract one day for each 100 years */
-    days -= year / 100;
+    PD_CHECK_OVERFLOW(checked_sub(days, year / 100, &days));
     /* 1600 is the closest previous year divisible by 400 */
-    year += 300;
+    PD_CHECK_OVERFLOW(checked_add(year, 300, &year));
     /* Add one day for each 400 years */
-    days += year / 400;
+    PD_CHECK_OVERFLOW(checked_add(days, year / 400, &days));
   } else {
     /*
      * 1972 is the closest later year after 1970.
      * Include the current year, so subtract 2.
      */
-    year -= 2;
+    PD_CHECK_OVERFLOW(checked_sub(year, 2, &year));
     /* Subtract one day for each 4 years */
-    days += year / 4;
+    PD_CHECK_OVERFLOW(checked_add(days, year / 4, &days));
     /* 2000 is the closest later year divisible by 100 */
-    year -= 28;
+    PD_CHECK_OVERFLOW(checked_sub(year, 28, &year));
     /* Add one day for each 100 years */
-    days -= year / 100;
+    PD_CHECK_OVERFLOW(checked_sub(days, year / 100, &days));
     /* 2000 is also the closest later year divisible by 400 */
     /* Subtract one day for each 400 years */
-    days += year / 400;
+    PD_CHECK_OVERFLOW(checked_add(days, year / 400, &days));
   }
 
   month_lengths = days_per_month_table[is_leapyear(dts->year)];
@@ -180,11 +154,11 @@ npy_int64 get_datetimestruct_days(const npy_datetimestruct *dts) {
 
   /* Add the months */
   for (i = 0; i < month; ++i) {
-    days += month_lengths[i];
+    PD_CHECK_OVERFLOW(checked_add(days, month_lengths[i], &days));
   }
 
   /* Add the days */
-  days += dts->day - 1;
+  PD_CHECK_OVERFLOW(checked_add(days, dts->day - 1, &days));
 
   return days;
 }
@@ -339,11 +313,11 @@ PyObject *extract_utc_offset(PyObject *obj) {
 }
 
 static inline int scaleYearToEpoch(int64_t year, int64_t *result) {
-  return checked_int64_sub(year, 1970, result);
+  return checked_sub(year, 1970, result);
 }
 
 static inline int scaleYearsToMonths(int64_t years, int64_t *result) {
-  return checked_int64_mul(years, 12, result);
+  return checked_mul(years, 12, result);
 }
 
 static inline int scaleDaysToWeeks(int64_t days, int64_t *result) {
@@ -353,7 +327,7 @@ static inline int scaleDaysToWeeks(int64_t days, int64_t *result) {
   } else {
     int res;
     int64_t checked_days;
-    if ((res = checked_int64_sub(days, 6, &checked_days))) {
+    if ((res = checked_sub(days, 6, &checked_days))) {
       return res;
     }
 
@@ -363,43 +337,55 @@ static inline int scaleDaysToWeeks(int64_t days, int64_t *result) {
 }
 
 static inline int scaleDaysToHours(int64_t days, int64_t *result) {
-  return checked_int64_mul(days, 24, result);
+  return checked_mul(days, 24, result);
 }
 
 static inline int scaleHoursToMinutes(int64_t hours, int64_t *result) {
-  return checked_int64_mul(hours, 60, result);
+  return checked_mul(hours, 60, result);
 }
 
 static inline int scaleMinutesToSeconds(int64_t minutes, int64_t *result) {
-  return checked_int64_mul(minutes, 60, result);
-}
-
-static inline int scaleSecondsToMilliseconds(int64_t seconds, int64_t *result) {
-  return checked_int64_mul(seconds, 1000, result);
-}
-
-static inline int scaleSecondsToMicroseconds(int64_t seconds, int64_t *result) {
-  return checked_int64_mul(seconds, 1000000, result);
-}
-
-static inline int scaleMicrosecondsToNanoseconds(int64_t microseconds,
-                                                 int64_t *result) {
-  return checked_int64_mul(microseconds, 1000, result);
+  return checked_mul(minutes, 60, result);
 }
 
 static inline int scaleMicrosecondsToPicoseconds(int64_t microseconds,
                                                  int64_t *result) {
-  return checked_int64_mul(microseconds, 1000000, result);
+  return checked_mul(microseconds, 1000000, result);
 }
 
 static inline int64_t scalePicosecondsToFemtoseconds(int64_t picoseconds,
                                                      int64_t *result) {
-  return checked_int64_mul(picoseconds, 1000, result);
+  return checked_mul(picoseconds, 1000, result);
 }
 
 static inline int64_t scalePicosecondsToAttoseconds(int64_t picoseconds,
                                                     int64_t *result) {
-  return checked_int64_mul(picoseconds, 1000000, result);
+  return checked_mul(picoseconds, 1000000, result);
+}
+
+/*
+ * Handle underflow when scaling time to a smaller unit.
+ * Splits the operation to avoid underflow, if necessary,
+ * in the following manner:
+ * y = a * x + b = a * (x + k - k) + b = a * (x + k) + (b - a * k)
+ *
+ * Returns false on success, true on failure (from checked_* functions).
+ */
+static bool scale_time_with_underflow_check(int64_t time, int64_t scale_factor,
+                                            int64_t fractional_part,
+                                            int64_t *result) {
+  const int64_t min_scalable_time = NPY_MIN_INT64 / scale_factor;
+
+  if (time < min_scalable_time) {
+    const int64_t amount_below_threshold = time - min_scalable_time;
+    const int64_t scaled_time = scale_factor * (time - amount_below_threshold);
+    return checked_mul(scale_factor, amount_below_threshold, result) ||
+           checked_add(*result, fractional_part, result) ||
+           checked_add(scaled_time, *result, result);
+  }
+
+  return checked_mul(time, scale_factor, result) ||
+         checked_add(fractional_part, *result, result);
 }
 
 /*
@@ -420,8 +406,8 @@ npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT base,
     PD_CHECK_OVERFLOW(scaleYearsToMonths(years, &months));
 
     int64_t months_adder;
-    PD_CHECK_OVERFLOW(checked_int64_sub(dts->month, 1, &months_adder));
-    PD_CHECK_OVERFLOW(checked_int64_add(months, months_adder, &months));
+    PD_CHECK_OVERFLOW(checked_sub(dts->month, 1, &months_adder));
+    PD_CHECK_OVERFLOW(checked_add(months, months_adder, &months));
 
     if (base == NPY_FR_M) {
       return months;
@@ -429,6 +415,15 @@ npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT base,
   }
 
   const int64_t days = get_datetimestruct_days(dts);
+  if (days == -1) {
+    PyGILState_STATE gstate = PyGILState_Ensure();
+    bool did_error = PyErr_Occurred() == NULL ? false : true;
+    PyGILState_Release(gstate);
+    if (did_error) {
+      return -1;
+    }
+  }
+
   if (base == NPY_FR_D) {
     return days;
   }
@@ -441,7 +436,7 @@ npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT base,
 
   int64_t hours;
   PD_CHECK_OVERFLOW(scaleDaysToHours(days, &hours));
-  PD_CHECK_OVERFLOW(checked_int64_add(hours, dts->hour, &hours));
+  PD_CHECK_OVERFLOW(checked_add(hours, dts->hour, &hours));
 
   if (base == NPY_FR_h) {
     return hours;
@@ -449,7 +444,7 @@ npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT base,
 
   int64_t minutes;
   PD_CHECK_OVERFLOW(scaleHoursToMinutes(hours, &minutes));
-  PD_CHECK_OVERFLOW(checked_int64_add(minutes, dts->min, &minutes));
+  PD_CHECK_OVERFLOW(checked_add(minutes, dts->min, &minutes));
 
   if (base == NPY_FR_m) {
     return minutes;
@@ -457,7 +452,7 @@ npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT base,
 
   int64_t seconds;
   PD_CHECK_OVERFLOW(scaleMinutesToSeconds(minutes, &seconds));
-  PD_CHECK_OVERFLOW(checked_int64_add(seconds, dts->sec, &seconds));
+  PD_CHECK_OVERFLOW(checked_add(seconds, dts->sec, &seconds));
 
   if (base == NPY_FR_s) {
     return seconds;
@@ -465,16 +460,16 @@ npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT base,
 
   if (base == NPY_FR_ms) {
     int64_t milliseconds;
-    PD_CHECK_OVERFLOW(scaleSecondsToMilliseconds(seconds, &milliseconds));
-    PD_CHECK_OVERFLOW(
-        checked_int64_add(milliseconds, dts->us / 1000, &milliseconds));
-
+    const int64_t ms_per_second = 1000L;
+    PD_CHECK_OVERFLOW(scale_time_with_underflow_check(
+        seconds, ms_per_second, dts->us / 1000L, &milliseconds));
     return milliseconds;
   }
 
   int64_t microseconds;
-  PD_CHECK_OVERFLOW(scaleSecondsToMicroseconds(seconds, &microseconds));
-  PD_CHECK_OVERFLOW(checked_int64_add(microseconds, dts->us, &microseconds));
+  const int64_t us_per_second = 1000000L;
+  PD_CHECK_OVERFLOW(scale_time_with_underflow_check(seconds, us_per_second,
+                                                    dts->us, &microseconds));
 
   if (base == NPY_FR_us) {
     return microseconds;
@@ -482,27 +477,16 @@ npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT base,
 
   if (base == NPY_FR_ns) {
     int64_t nanoseconds;
-
-    // Minimum valid timestamp in nanoseconds (1677-09-21 00:12:43.145224193).
-    const int64_t min_nanoseconds = NPY_MIN_INT64 + 1;
-    if (microseconds == min_nanoseconds / 1000 - 1) {
-      // For values within one microsecond of min_nanoseconds, use it as base
-      // and offset it with nanosecond delta to avoid overflow during scaling.
-      PD_CHECK_OVERFLOW(checked_int64_add(
-          min_nanoseconds, (dts->ps - _NS_MIN_DTS.ps) / 1000, &nanoseconds));
-    } else {
-      PD_CHECK_OVERFLOW(
-          scaleMicrosecondsToNanoseconds(microseconds, &nanoseconds));
-      PD_CHECK_OVERFLOW(
-          checked_int64_add(nanoseconds, dts->ps / 1000, &nanoseconds));
-    }
+    const int64_t ns_per_us = 1000L;
+    PD_CHECK_OVERFLOW(scale_time_with_underflow_check(
+        microseconds, ns_per_us, dts->ps / 1000, &nanoseconds));
 
     return nanoseconds;
   }
 
   int64_t picoseconds;
   PD_CHECK_OVERFLOW(scaleMicrosecondsToPicoseconds(microseconds, &picoseconds));
-  PD_CHECK_OVERFLOW(checked_int64_add(picoseconds, dts->ps, &picoseconds));
+  PD_CHECK_OVERFLOW(checked_add(picoseconds, dts->ps, &picoseconds));
 
   if (base == NPY_FR_ps) {
     return picoseconds;
@@ -512,15 +496,14 @@ npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT base,
     int64_t femtoseconds;
     PD_CHECK_OVERFLOW(
         scalePicosecondsToFemtoseconds(picoseconds, &femtoseconds));
-    PD_CHECK_OVERFLOW(
-        checked_int64_add(femtoseconds, dts->as / 1000, &femtoseconds));
+    PD_CHECK_OVERFLOW(checked_add(femtoseconds, dts->as / 1000, &femtoseconds));
     return femtoseconds;
   }
 
   if (base == NPY_FR_as) {
     int64_t attoseconds;
     PD_CHECK_OVERFLOW(scalePicosecondsToAttoseconds(picoseconds, &attoseconds));
-    PD_CHECK_OVERFLOW(checked_int64_add(attoseconds, dts->as, &attoseconds));
+    PD_CHECK_OVERFLOW(checked_add(attoseconds, dts->as, &attoseconds));
     return attoseconds;
   }
 
@@ -649,11 +632,12 @@ void pandas_datetime_to_datetimestruct(npy_datetime dt, NPY_DATETIMEUNIT base,
     perday = 24LL * 60 * 60 * 1000 * 1000 * 1000 * 1000;
 
     set_datetimestruct_days(extract_unit(&dt, perday), out);
-    out->hour = (npy_int32)extract_unit(&dt, 1000LL * 1000 * 1000 * 60 * 60);
-    out->min = (npy_int32)extract_unit(&dt, 1000LL * 1000 * 1000 * 60);
-    out->sec = (npy_int32)extract_unit(&dt, 1000LL * 1000 * 1000);
-    out->us = (npy_int32)extract_unit(&dt, 1000LL);
-    out->ps = (npy_int32)(dt * 1000);
+    out->hour =
+        (npy_int32)extract_unit(&dt, 1000LL * 1000 * 1000 * 1000 * 60 * 60);
+    out->min = (npy_int32)extract_unit(&dt, 1000LL * 1000 * 1000 * 1000 * 60);
+    out->sec = (npy_int32)extract_unit(&dt, 1000LL * 1000 * 1000 * 1000);
+    out->us = (npy_int32)extract_unit(&dt, 1000LL * 1000);
+    out->ps = (npy_int32)(dt);
     break;
 
   case NPY_FR_fs:
@@ -709,355 +693,121 @@ void pandas_datetime_to_datetimestruct(npy_datetime dt, NPY_DATETIMEUNIT base,
 void pandas_timedelta_to_timedeltastruct(npy_timedelta td,
                                          NPY_DATETIMEUNIT base,
                                          pandas_timedeltastruct *out) {
-  npy_int64 frac;
-  npy_int64 sfrac;
-  npy_int64 ifrac;
-  int sign;
-  npy_int64 per_day;
-  npy_int64 per_sec;
-
   /* Initialize the output to all zeros */
   memset(out, 0, sizeof(pandas_timedeltastruct));
 
+  const npy_int64 sec_per_hour = 3600;
+  const npy_int64 sec_per_min = 60;
+
   switch (base) {
-  case NPY_FR_ns:
-
-    per_day = 86400000000000LL;
-    per_sec = 1000LL * 1000LL * 1000LL;
-
-    // put frac in seconds
-    if (td < 0 && td % per_sec != 0)
-      frac = td / per_sec - 1;
-    else
-      frac = td / per_sec;
-
-    if (frac < 0) {
-      sign = -1;
-
-      // even fraction
-      if ((-frac % 86400LL) != 0) {
-        out->days = -frac / 86400LL + 1;
-        frac += 86400LL * out->days;
-      } else {
-        frac = -frac;
-      }
-    } else {
-      sign = 1;
-      out->days = 0;
-    }
-
-    if (frac >= 86400) {
-      out->days += frac / 86400LL;
-      frac -= out->days * 86400LL;
-    }
-
-    if (frac >= 3600) {
-      out->hrs = (npy_int32)(frac / 3600LL);
-      frac -= out->hrs * 3600LL;
-    } else {
-      out->hrs = 0;
-    }
-
-    if (frac >= 60) {
-      out->min = (npy_int32)(frac / 60LL);
-      frac -= out->min * 60LL;
-    } else {
-      out->min = 0;
-    }
-
-    if (frac >= 0) {
-      out->sec = (npy_int32)frac;
-      frac -= out->sec;
-    } else {
-      out->sec = 0;
-    }
-
-    sfrac = (out->hrs * 3600LL + out->min * 60LL + out->sec) * per_sec;
-
-    if (sign < 0)
-      out->days = -out->days;
-
-    ifrac = td - (out->days * per_day + sfrac);
-
-    if (ifrac != 0) {
-      out->ms = (npy_int32)(ifrac / (1000LL * 1000LL));
-      ifrac -= out->ms * 1000LL * 1000LL;
-      out->us = (npy_int32)(ifrac / 1000LL);
-      ifrac -= out->us * 1000LL;
-      out->ns = (npy_int32)ifrac;
-    } else {
-      out->ms = 0;
-      out->us = 0;
-      out->ns = 0;
-    }
+  case NPY_FR_W:
+    out->days = 7 * td;
     break;
-
-  case NPY_FR_us:
-
-    per_day = 86400000000LL;
-    per_sec = 1000LL * 1000LL;
-
-    // put frac in seconds
-    if (td < 0 && td % per_sec != 0)
-      frac = td / per_sec - 1;
-    else
-      frac = td / per_sec;
-
-    if (frac < 0) {
-      sign = -1;
-
-      // even fraction
-      if ((-frac % 86400LL) != 0) {
-        out->days = -frac / 86400LL + 1;
-        frac += 86400LL * out->days;
-      } else {
-        frac = -frac;
-      }
-    } else {
-      sign = 1;
-      out->days = 0;
-    }
-
-    if (frac >= 86400) {
-      out->days += frac / 86400LL;
-      frac -= out->days * 86400LL;
-    }
-
-    if (frac >= 3600) {
-      out->hrs = (npy_int32)(frac / 3600LL);
-      frac -= out->hrs * 3600LL;
-    } else {
-      out->hrs = 0;
-    }
-
-    if (frac >= 60) {
-      out->min = (npy_int32)(frac / 60LL);
-      frac -= out->min * 60LL;
-    } else {
-      out->min = 0;
-    }
-
-    if (frac >= 0) {
-      out->sec = (npy_int32)frac;
-      frac -= out->sec;
-    } else {
-      out->sec = 0;
-    }
-
-    sfrac = (out->hrs * 3600LL + out->min * 60LL + out->sec) * per_sec;
-
-    if (sign < 0)
-      out->days = -out->days;
-
-    ifrac = td - (out->days * per_day + sfrac);
-
-    if (ifrac != 0) {
-      out->ms = (npy_int32)(ifrac / 1000LL);
-      ifrac -= out->ms * 1000LL;
-      out->us = (npy_int32)(ifrac / 1L);
-      ifrac -= out->us * 1L;
-      out->ns = (npy_int32)ifrac;
-    } else {
-      out->ms = 0;
-      out->us = 0;
-      out->ns = 0;
-    }
+  case NPY_FR_D:
+    out->days = td;
     break;
-
-  case NPY_FR_ms:
-
-    per_day = 86400000LL;
-    per_sec = 1000LL;
-
-    // put frac in seconds
-    if (td < 0 && td % per_sec != 0)
-      frac = td / per_sec - 1;
-    else
-      frac = td / per_sec;
-
-    if (frac < 0) {
-      sign = -1;
-
-      // even fraction
-      if ((-frac % 86400LL) != 0) {
-        out->days = -frac / 86400LL + 1;
-        frac += 86400LL * out->days;
-      } else {
-        frac = -frac;
-      }
-    } else {
-      sign = 1;
-      out->days = 0;
-    }
-
-    if (frac >= 86400) {
-      out->days += frac / 86400LL;
-      frac -= out->days * 86400LL;
-    }
-
-    if (frac >= 3600) {
-      out->hrs = (npy_int32)(frac / 3600LL);
-      frac -= out->hrs * 3600LL;
-    } else {
-      out->hrs = 0;
-    }
-
-    if (frac >= 60) {
-      out->min = (npy_int32)(frac / 60LL);
-      frac -= out->min * 60LL;
-    } else {
-      out->min = 0;
-    }
-
-    if (frac >= 0) {
-      out->sec = (npy_int32)frac;
-      frac -= out->sec;
-    } else {
-      out->sec = 0;
-    }
-
-    sfrac = (out->hrs * 3600LL + out->min * 60LL + out->sec) * per_sec;
-
-    if (sign < 0)
-      out->days = -out->days;
-
-    ifrac = td - (out->days * per_day + sfrac);
-
-    if (ifrac != 0) {
-      out->ms = (npy_int32)ifrac;
-      out->us = 0;
-      out->ns = 0;
-    } else {
-      out->ms = 0;
-      out->us = 0;
-      out->ns = 0;
-    }
+  case NPY_FR_h:
+    out->days = td / 24LL;
+    td -= out->days * 24LL;
+    out->hrs = (npy_int32)td;
     break;
-
-  case NPY_FR_s:
-    // special case where we can simplify many expressions bc per_sec=1
-
-    per_day = 86400LL;
-    per_sec = 1L;
-
-    // put frac in seconds
-    if (td < 0 && td % per_sec != 0)
-      frac = td / per_sec - 1;
-    else
-      frac = td / per_sec;
-
-    if (frac < 0) {
-      sign = -1;
-
-      // even fraction
-      if ((-frac % 86400LL) != 0) {
-        out->days = -frac / 86400LL + 1;
-        frac += 86400LL * out->days;
-      } else {
-        frac = -frac;
-      }
-    } else {
-      sign = 1;
-      out->days = 0;
-    }
-
-    if (frac >= 86400) {
-      out->days += frac / 86400LL;
-      frac -= out->days * 86400LL;
-    }
-
-    if (frac >= 3600) {
-      out->hrs = (npy_int32)(frac / 3600LL);
-      frac -= out->hrs * 3600LL;
-    } else {
-      out->hrs = 0;
-    }
-
-    if (frac >= 60) {
-      out->min = (npy_int32)(frac / 60LL);
-      frac -= out->min * 60LL;
-    } else {
-      out->min = 0;
-    }
-
-    if (frac >= 0) {
-      out->sec = (npy_int32)frac;
-      frac -= out->sec;
-    } else {
-      out->sec = 0;
-    }
-
-    sfrac = (out->hrs * 3600LL + out->min * 60LL + out->sec) * per_sec;
-
-    if (sign < 0)
-      out->days = -out->days;
-
-    ifrac = td - (out->days * per_day + sfrac);
-
-    if (ifrac != 0) {
-      out->ms = 0;
-      out->us = 0;
-      out->ns = 0;
-    } else {
-      out->ms = 0;
-      out->us = 0;
-      out->ns = 0;
-    }
-    break;
-
   case NPY_FR_m:
-
     out->days = td / 1440LL;
     td -= out->days * 1440LL;
     out->hrs = (npy_int32)(td / 60LL);
     td -= out->hrs * 60LL;
     out->min = (npy_int32)td;
-
-    out->sec = 0;
-    out->ms = 0;
-    out->us = 0;
-    out->ns = 0;
     break;
+  case NPY_FR_s:
+  case NPY_FR_ms:
+  case NPY_FR_us:
+  case NPY_FR_ns: {
+    const npy_int64 sec_per_day = 86400;
+    npy_int64 per_sec;
+    if (base == NPY_FR_s) {
+      per_sec = 1;
+    } else if (base == NPY_FR_ms) {
+      per_sec = 1000;
+    } else if (base == NPY_FR_us) {
+      per_sec = 1000000;
+    } else {
+      per_sec = 1000000000;
+    }
 
-  case NPY_FR_h:
-    out->days = td / 24LL;
-    td -= out->days * 24LL;
-    out->hrs = (npy_int32)td;
+    const npy_int64 per_day = sec_per_day * per_sec;
+    npy_int64 frac;
+    // put frac in seconds
+    if (td < 0 && td % per_sec != 0)
+      frac = td / per_sec - 1;
+    else
+      frac = td / per_sec;
 
-    out->min = 0;
-    out->sec = 0;
-    out->ms = 0;
-    out->us = 0;
-    out->ns = 0;
-    break;
+    const int sign = frac < 0 ? -1 : 1;
+    if (frac < 0) {
+      // even fraction
+      if ((-frac % sec_per_day) != 0) {
+        out->days = -frac / sec_per_day + 1;
+        frac += sec_per_day * out->days;
+      } else {
+        frac = -frac;
+      }
+    }
 
-  case NPY_FR_D:
-    out->days = td;
-    out->hrs = 0;
-    out->min = 0;
-    out->sec = 0;
-    out->ms = 0;
-    out->us = 0;
-    out->ns = 0;
-    break;
+    if (frac >= sec_per_day) {
+      out->days += frac / sec_per_day;
+      frac -= out->days * sec_per_day;
+    }
 
-  case NPY_FR_W:
-    out->days = 7 * td;
-    out->hrs = 0;
-    out->min = 0;
-    out->sec = 0;
-    out->ms = 0;
-    out->us = 0;
-    out->ns = 0;
-    break;
+    if (frac >= sec_per_hour) {
+      out->hrs = (npy_int32)(frac / sec_per_hour);
+      frac -= out->hrs * sec_per_hour;
+    }
 
+    if (frac >= sec_per_min) {
+      out->min = (npy_int32)(frac / sec_per_min);
+      frac -= out->min * sec_per_min;
+    }
+
+    if (frac >= 0) {
+      out->sec = (npy_int32)frac;
+      frac -= out->sec;
+    }
+
+    if (sign < 0)
+      out->days = -out->days;
+
+    if (base > NPY_FR_s) {
+      const npy_int64 sfrac =
+          (out->hrs * sec_per_hour + out->min * sec_per_min + out->sec) *
+          per_sec;
+
+      npy_int64 ifrac = td - (out->days * per_day + sfrac);
+
+      if (base == NPY_FR_ms) {
+        out->ms = (npy_int32)ifrac;
+      } else if (base == NPY_FR_us) {
+        out->ms = (npy_int32)(ifrac / 1000LL);
+        ifrac = ifrac % 1000LL;
+        out->us = (npy_int32)ifrac;
+      } else if (base == NPY_FR_ns) {
+        out->ms = (npy_int32)(ifrac / (1000LL * 1000LL));
+        ifrac = ifrac % (1000LL * 1000LL);
+        out->us = (npy_int32)(ifrac / 1000LL);
+        ifrac = ifrac % 1000LL;
+        out->ns = (npy_int32)ifrac;
+      }
+    }
+
+  } break;
   default:
     PyErr_SetString(PyExc_RuntimeError,
                     "NumPy timedelta metadata is corrupted with "
                     "invalid base unit");
+    break;
   }
 
-  out->seconds = out->hrs * 3600 + out->min * 60 + out->sec;
+  out->seconds =
+      (npy_int32)(out->hrs * sec_per_hour + out->min * sec_per_min + out->sec);
   out->microseconds = out->ms * 1000 + out->us;
   out->nanoseconds = out->ns;
 }
@@ -1070,5 +820,8 @@ void pandas_timedelta_to_timedeltastruct(npy_timedelta td,
  */
 PyArray_DatetimeMetaData
 get_datetime_metadata_from_dtype(PyArray_Descr *dtype) {
-  return (((PyArray_DatetimeDTypeMetaData *)dtype->c_metadata)->meta);
+#if NPY_ABI_VERSION < 0x02000000
+#  define PyDataType_C_METADATA(dtype) ((dtype)->c_metadata)
+#endif
+  return ((PyArray_DatetimeDTypeMetaData *)PyDataType_C_METADATA(dtype))->meta;
 }

@@ -2,6 +2,7 @@
 
 ExcelFormatter is tested implicitly in pandas/tests/io/excel
 """
+
 import string
 
 import pytest
@@ -156,6 +157,14 @@ from pandas.io.formats.excel import (
             {"border": {"top": {"style": "thick"}}},
         ),
         (
+            "border-top-style: solid; border-top-width: none",
+            {"border": {"top": {"style": "none"}}},
+        ),
+        (
+            "border-top-style: solid; border-top-width: 0.000001pt",
+            {"border": {"top": {"style": "none"}}},
+        ),
+        (
             "border-top-style: dotted",
             {"border": {"top": {"style": "mediumDashDotDot"}}},
         ),
@@ -192,6 +201,10 @@ from pandas.io.formats.excel import (
         (
             "border-top-color: blue",
             {"border": {"top": {"color": "0000FF", "style": "none"}}},
+        ),
+        (
+            "border-top-style: slantDashDot; border-top-color: blue",
+            {"border": {"top": {"style": "slantDashDot", "color": "0000FF"}}},
         ),
         # ALIGNMENT
         # - horizontal
@@ -246,6 +259,20 @@ def test_css_to_excel_multiple():
         },
         "alignment": {"horizontal": "center", "vertical": "top"},
     } == actual
+
+
+@pytest.mark.parametrize(
+    "css",
+    [
+        "border-top-style: unhandled-border-style",
+        "border-style: another-unhandled-style",
+    ],
+)
+def test_css_to_excel_unhandled_border_style_warns(css):
+    """Test that unhandled border styles raise a CSSWarning."""
+    convert = CSSToExcelConverter()
+    with tm.assert_produces_warning(CSSWarning, match="Unhandled border style format"):
+        convert(css)
 
 
 @pytest.mark.parametrize(
@@ -324,9 +351,26 @@ def test_css_to_excel_bad_colors(input_color):
     if input_color is not None:
         expected["fill"] = {"patternType": "solid"}
 
-    with tm.assert_produces_warning(CSSWarning):
+    with tm.assert_produces_warning(CSSWarning, match="Unhandled color format"):
         convert = CSSToExcelConverter()
         assert expected == convert(css)
+
+
+@pytest.mark.parametrize("input_color", ["#", "#1234567"])
+def test_css_to_excel_invalid_color_raises(input_color):
+    """Test that invalid colors raise a ValueError."""
+    css = (
+        f"border-top-color: {input_color}; "
+        f"border-right-color: {input_color}; "
+        f"border-bottom-color: {input_color}; "
+        f"border-left-color: {input_color}; "
+        f"background-color: {input_color}; "
+        f"color: {input_color}"
+    )
+
+    convert = CSSToExcelConverter()
+    with pytest.raises(ValueError, match=f"Unexpected color {input_color}"):
+        convert(css)
 
 
 def tests_css_named_colors_valid():

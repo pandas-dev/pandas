@@ -29,10 +29,7 @@ class SharedSetAxisTests:
         expected = obj.copy()
         expected.index = new_index
 
-        result = obj.set_axis(new_index, axis=0, copy=True)
-        tm.assert_equal(expected, result)
-        assert result is not obj
-        result = obj.set_axis(new_index, axis=0, copy=False)
+        result = obj.set_axis(new_index, axis=0)
         tm.assert_equal(expected, result)
         assert result is not obj
         # check we did NOT make a copy
@@ -44,7 +41,6 @@ class SharedSetAxisTests:
                 for i in range(obj.shape[1])
             )
 
-        # copy defaults to True
         result = obj.set_axis(new_index, axis=0)
         tm.assert_equal(expected, result)
         assert result is not obj
@@ -57,7 +53,7 @@ class SharedSetAxisTests:
                 for i in range(obj.shape[1])
             )
 
-        res = obj.set_axis(new_index, copy=False)
+        res = obj.set_axis(new_index)
         tm.assert_equal(expected, res)
         # check we did NOT make a copy
         if res.ndim == 1:
@@ -97,7 +93,7 @@ class SharedSetAxisTests:
         # wrong length
         msg = (
             f"Length mismatch: Expected axis has {len(obj)} elements, "
-            f"new values have {len(obj)-1} elements"
+            f"new values have {len(obj) - 1} elements"
         )
         with pytest.raises(ValueError, match=msg):
             obj.index = np.arange(len(obj) - 1)
@@ -115,6 +111,16 @@ class TestDataFrameSetAxis(SharedSetAxisTests):
             index=[2010, 2011, 2012],
         )
         return df
+
+    def test_set_axis_with_allows_duplicate_labels_false(self):
+        # GH#44958
+        df = DataFrame([[1, 2], [3, 4]], columns=["a", "b"]).set_flags(
+            allows_duplicate_labels=False
+        )
+
+        result = df.set_axis(labels=["x", "y"], axis=0)
+        expected = DataFrame([[1, 2], [3, 4]], index=["x", "y"], columns=["a", "b"])
+        tm.assert_frame_equal(result, expected, check_flags=False)
 
 
 class TestSeriesSetAxis(SharedSetAxisTests):

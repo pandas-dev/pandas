@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import IncompatibleFrequency
+
 from pandas import (
     Index,
     NaT,
@@ -100,7 +102,7 @@ class TestPeriodIndex:
 
         field_idx = getattr(periodindex, field)
         assert len(periodindex) == len(field_idx)
-        for x, val in zip(periods, field_idx):
+        for x, val in zip(periods, field_idx, strict=True):
             assert getattr(x, field) == val
 
         if len(ser) == 0:
@@ -108,7 +110,7 @@ class TestPeriodIndex:
 
         field_s = getattr(ser.dt, field)
         assert len(periodindex) == len(field_s)
-        for x, val in zip(periods, field_s):
+        for x, val in zip(periods, field_s, strict=True):
             assert getattr(x, field) == val
 
     def test_is_(self):
@@ -198,7 +200,7 @@ def test_maybe_convert_timedelta():
 
     offset = offsets.BusinessDay()
     msg = r"Input has different freq=B from PeriodIndex\(freq=D\)"
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(IncompatibleFrequency, match=msg):
         pi._maybe_convert_timedelta(offset)
 
 

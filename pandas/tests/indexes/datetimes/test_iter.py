@@ -20,7 +20,7 @@ class TestDatetimeIndexIteration:
             ["2018-02-08 15:00:00.168456358", "2018-02-08 15:00:00.168456359"], tz=tz
         )
         for i, ts in enumerate(index):
-            assert ts == index[i]  # pylint: disable=unnecessary-list-index-lookup
+            assert ts == index[i]  # noqa: PLR1736 (unnecessary-list-index-lookup)
 
     def test_iter_readonly(self):
         # GH#28055 ints_to_pydatetime with readonly array
@@ -35,7 +35,7 @@ class TestDatetimeIndexIteration:
 
         for i, ts in enumerate(index):
             result = ts
-            expected = index[i]  # pylint: disable=unnecessary-list-index-lookup
+            expected = index[i]  # noqa: PLR1736 (unnecessary-list-index-lookup)
             assert result == expected
 
     def test_iteration_preserves_tz2(self):
@@ -45,7 +45,7 @@ class TestDatetimeIndexIteration:
 
         for i, ts in enumerate(index):
             result = ts
-            expected = index[i]  # pylint: disable=unnecessary-list-index-lookup
+            expected = index[i]  # noqa: PLR1736 (unnecessary-list-index-lookup)
             assert result._repr_base == expected._repr_base
             assert result == expected
 
@@ -56,7 +56,7 @@ class TestDatetimeIndexIteration:
         )
         for i, ts in enumerate(index):
             result = ts
-            expected = index[i]  # pylint: disable=unnecessary-list-index-lookup
+            expected = index[i]  # noqa: PLR1736 (unnecessary-list-index-lookup)
             assert result._repr_base == expected._repr_base
             assert result == expected
 

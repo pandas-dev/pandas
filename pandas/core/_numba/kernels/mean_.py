@@ -6,6 +6,7 @@ Numba 1D mean kernels that can be shared by
 
 Mirrors pandas/_libs/window/aggregation.pyx
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -168,9 +169,10 @@ def grouped_mean(
     labels: npt.NDArray[np.intp],
     ngroups: int,
     min_periods: int,
+    skipna: bool,
 ) -> tuple[np.ndarray, list[int]]:
     output, nobs_arr, comp_arr, consecutive_counts, prev_vals = grouped_kahan_sum(
-        values, result_dtype, labels, ngroups
+        values, result_dtype, labels, ngroups, skipna
     )
 
     # Post-processing, replace sums that don't satisfy min_periods

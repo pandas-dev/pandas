@@ -236,11 +236,10 @@ class TestIntervalRange:
 
     def test_interval_range_fractional_period(self):
         # float value for periods
-        expected = interval_range(start=0, periods=10)
-        msg = "Non-integer 'periods' in pd.date_range, .* pd.interval_range"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = interval_range(start=0, periods=10.5)
-        tm.assert_index_equal(result, expected)
+        msg = "periods must be an integer, got 10.5"
+        ts = Timestamp("2024-03-25")
+        with pytest.raises(TypeError, match=msg):
+            interval_range(ts, periods=10.5)
 
     def test_constructor_coverage(self):
         # equivalent timestamp-like start/end
@@ -266,7 +265,7 @@ class TestIntervalRange:
             tm.assert_index_equal(result, expected)
 
         # equivalent timedelta-like start/end
-        start, end = Timedelta(days=1), Timedelta(days=10)
+        start, end = Timedelta(days=1).as_unit("us"), Timedelta(days=10).as_unit("us")
         expected = interval_range(start=start, end=end)
 
         result = interval_range(start=start.to_pytimedelta(), end=end.to_pytimedelta())
@@ -340,7 +339,7 @@ class TestIntervalRange:
             interval_range(start=Timedelta("1 day"), end=Timedelta("10 days"), freq=2)
 
         # invalid periods
-        msg = "periods must be a number, got foo"
+        msg = "periods must be an integer, got foo"
         with pytest.raises(TypeError, match=msg):
             interval_range(start=0, periods="foo")
 
@@ -380,4 +379,12 @@ class TestIntervalRange:
 
         result = interval_range(0, 1, freq=0.6)
         expected = IntervalIndex.from_breaks([0, 0.6])
+        tm.assert_index_equal(result, expected)
+
+    def test_interval_range_float32_start_int_freq(self):
+        # GH 58964
+        result = interval_range(start=np.float32(0), end=2, freq=1)
+        expected = IntervalIndex.from_tuples(
+            [(0.0, 1.0), (1.0, 2.0)], dtype="interval[float64, right]"
+        )
         tm.assert_index_equal(result, expected)

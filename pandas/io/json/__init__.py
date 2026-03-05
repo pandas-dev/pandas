@@ -7,9 +7,9 @@ from pandas.io.json._json import (
 from pandas.io.json._table_schema import build_table_schema
 
 __all__ = [
-    "ujson_dumps",
-    "ujson_loads",
+    "build_table_schema",
     "read_json",
     "to_json",
-    "build_table_schema",
+    "ujson_dumps",
+    "ujson_loads",
 ]

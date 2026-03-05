@@ -89,6 +89,7 @@ def operate_blockwise(
     #  assert len(slocs) == nlocs, (len(slocs), nlocs)
     #  assert slocs == set(range(nlocs)), slocs
 
+    # TODO shallow copy axes?
     new_mgr = type(right)(tuple(res_blks), axes=right.axes, verify_integrity=False)
     return new_mgr
 

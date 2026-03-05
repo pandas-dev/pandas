@@ -1,6 +1,7 @@
 """
 data hash pandas / numpy objects
 """
+
 from __future__ import annotations
 
 import itertools
@@ -90,9 +91,13 @@ def hash_pandas_object(
     """
     Return a data hash of the Index/Series/DataFrame.
 
+    The hash is computed element-wise using the underlying data values,
+    and optionally includes the index when hashing a Series or DataFrame.
+
     Parameters
     ----------
     obj : Index, Series, or DataFrame
+        The pandas object to hash.
     index : bool, default True
         Include the index in the hash (if Series/DataFrame).
     encoding : str, default 'utf8'
@@ -105,7 +110,13 @@ def hash_pandas_object(
 
     Returns
     -------
-    Series of uint64, same length as the object
+    Series of uint64
+        Same length as the object.
+
+    See Also
+    --------
+    util.hash_array : Return a hash of the given array.
+    util.hash_tuples : Hash a MultiIndex or listlike-of-tuples efficiently.
 
     Examples
     --------
@@ -186,7 +197,7 @@ def hash_tuples(
     hash_key: str = _default_hash_key,
 ) -> npt.NDArray[np.uint64]:
     """
-    Hash an MultiIndex / listlike-of-tuples efficiently.
+    Hash a MultiIndex / listlike-of-tuples efficiently.
 
     Parameters
     ----------
@@ -239,9 +250,14 @@ def hash_array(
     """
     Given a 1d array, return an array of deterministic integers.
 
+    This function applies a hash function to each element of the input
+    array, producing a fixed set of uint64 values suitable for use in
+    hashing-based algorithms.
+
     Parameters
     ----------
     vals : ndarray or ExtensionArray
+        The input array to hash.
     encoding : str, default 'utf8'
         Encoding for data & key when strings.
     hash_key : str, default _default_hash_key
@@ -255,6 +271,11 @@ def hash_array(
     ndarray[np.uint64, ndim=1]
         Hashed values, same length as the vals.
 
+    See Also
+    --------
+    util.hash_pandas_object : Return a data hash of the Index/Series/DataFrame.
+    util.hash_tuples : Hash a MultiIndex / listlike-of-tuples efficiently.
+
     Examples
     --------
     >>> pd.util.hash_array(np.array([1, 2, 3]))
@@ -262,7 +283,7 @@ def hash_array(
       dtype=uint64)
     """
     if not hasattr(vals, "dtype"):
-        raise TypeError("must pass a ndarray-like")
+        raise TypeError("must pass an ndarray-like")
 
     if isinstance(vals, ABCExtensionArray):
         return vals._hash_pandas_object(
@@ -316,8 +337,10 @@ def _hash_ndarray(
             )
 
             codes, categories = factorize(vals, sort=False)
-            dtype = CategoricalDtype(categories=Index(categories), ordered=False)
-            cat = Categorical._simple_new(codes, dtype)
+            tdtype = CategoricalDtype(
+                categories=Index(categories, copy=False), ordered=False
+            )
+            cat = Categorical._simple_new(codes, tdtype)
             return cat._hash_pandas_object(
                 encoding=encoding, hash_key=hash_key, categorize=False
             )
@@ -336,4 +359,7 @@ def _hash_ndarray(
     vals ^= vals >> 27
     vals *= np.uint64(0x94D049BB133111EB)
     vals ^= vals >> 31
-    return vals
+    # error: Incompatible return value type (got "Any | ndarray[tuple[int, ...],
+    # dtype[signedinteger[Any]]]", expected "ndarray[tuple[int, ...],
+    # dtype[unsignedinteger[_64Bit]]]")
+    return vals  # type: ignore[return-value]

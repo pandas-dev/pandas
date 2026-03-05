@@ -1,0 +1,59 @@
+.. _whatsnew_222:
+
+What's new in 2.2.2 (April 10, 2024)
+---------------------------------------
+
+These are the changes in pandas 2.2.2. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_220.np2_compat:
+
+Pandas 2.2.2 is now compatible with numpy 2.0
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Pandas 2.2.2 is the first version of pandas that is generally compatible with the upcoming
+numpy 2.0 release, and wheels for pandas 2.2.2 will work with both numpy 1.x and 2.x.
+
+One major caveat is that arrays created with numpy 2.0's new ``StringDtype`` will convert
+to ``object`` dtyped arrays upon :class:`Series`/:class:`DataFrame` creation.
+Full support for numpy 2.0's StringDtype is expected to land in pandas 3.0.
+
+As usual please report any bugs discovered to our `issue tracker <https://github.com/pandas-dev/pandas/issues/new/choose>`_
+
+.. _whatsnew_222.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+- :meth:`DataFrame.__dataframe__` was producing incorrect data buffers when the a column's type was a pandas nullable on with missing values (:issue:`56702`)
+- :meth:`DataFrame.__dataframe__` was producing incorrect data buffers when the a column's type was a pyarrow nullable on with missing values (:issue:`57664`)
+- Avoid issuing a spurious ``DeprecationWarning`` when a custom :class:`DataFrame` or :class:`Series` subclass method is called (:issue:`57553`)
+- Fixed regression in precision of :func:`to_datetime` with string and ``unit`` input (:issue:`57051`)
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_222.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+- :meth:`DataFrame.__dataframe__` was producing incorrect data buffers when the column's type was nullable boolean (:issue:`55332`)
+- :meth:`DataFrame.__dataframe__` was showing bytemask instead of bitmask for ``'string[pyarrow]'`` validity buffer (:issue:`57762`)
+- :meth:`DataFrame.__dataframe__` was showing non-null validity buffer (instead of ``None``) ``'string[pyarrow]'`` without missing values (:issue:`57761`)
+- :meth:`DataFrame.to_sql` was failing to find the right table when using the schema argument (:issue:`57539`)
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_222.other:
+
+Other
+~~~~~
+-
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_222.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v2.2.1..v2.2.2

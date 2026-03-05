@@ -14,3 +14,4 @@ Comparison with other tools
     comparison_with_spreadsheets
     comparison_with_sas
     comparison_with_stata
+    comparison_with_spss

@@ -793,7 +793,7 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrame.resample` that would throw a ``ValueError`` when resampling from ``"D"`` to ``"24H"`` over a transition into daylight savings time (DST) (:issue:`35219`)
 - Bug when combining methods :meth:`DataFrame.groupby` with :meth:`DataFrame.resample` and :meth:`DataFrame.interpolate` raising a ``TypeError`` (:issue:`35325`)
 - Bug in :meth:`.DataFrameGroupBy.apply` where a non-nuisance grouping column would be dropped from the output columns if another groupby method was called before ``.apply`` (:issue:`34656`)
-- Bug when subsetting columns on a :class:`.DataFrameGroupBy` (e.g. ``df.groupby('a')[['b']])``) would reset the attributes ``axis``, ``dropna``, ``group_keys``, ``level``, ``mutated``, ``sort``, and ``squeeze`` to their default values (:issue:`9959`)
+- Bug when subsetting columns on a :class:`.DataFrameGroupBy` (e.g. ``df.groupby('a')[['b']]``) would reset the attributes ``axis``, ``dropna``, ``group_keys``, ``level``, ``mutated``, ``sort``, and ``squeeze`` to their default values (:issue:`9959`)
 - Bug in :meth:`.DataFrameGroupBy.tshift` failing to raise ``ValueError`` when a frequency cannot be inferred for the index of a group (:issue:`35937`)
 - Bug in :meth:`DataFrame.groupby` does not always maintain column index name for ``any``, ``all``, ``bfill``, ``ffill``, ``shift`` (:issue:`29764`)
 - Bug in :meth:`.DataFrameGroupBy.apply` raising error with ``np.nan`` group(s) when ``dropna=False`` (:issue:`35889`)

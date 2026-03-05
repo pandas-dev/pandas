@@ -2,22 +2,30 @@
 Provide user facing operators for doing the split part of the
 split-apply-combine paradigm.
 """
+
 from __future__ import annotations
 
+from itertools import pairwise
 from typing import (
     TYPE_CHECKING,
     final,
 )
-import warnings
 
 import numpy as np
 
+from pandas._libs import (
+    algos as libalgos,
+)
 from pandas._libs.tslibs import OutOfBoundsDatetime
 from pandas.errors import InvalidIndexError
-from pandas.util._decorators import cache_readonly
-from pandas.util._exceptions import find_stack_level
+from pandas.util._decorators import (
+    cache_readonly,
+    set_module,
+)
 
 from pandas.core.dtypes.common import (
+    ensure_int64,
+    ensure_platform_int,
     is_list_like,
     is_scalar,
 )
@@ -35,10 +43,14 @@ from pandas.core.groupby.categorical import recode_for_groupby
 from pandas.core.indexes.api import (
     Index,
     MultiIndex,
+    default_index,
 )
 from pandas.core.series import Series
 
-from pandas.io.formats.printing import pprint_thing
+from pandas.io.formats.printing import (
+    PrettyDict,
+    pprint_thing,
+)
 
 if TYPE_CHECKING:
     from collections.abc import (
@@ -55,6 +67,7 @@ if TYPE_CHECKING:
     from pandas.core.generic import NDFrame
 
 
+@set_module("pandas")
 class Grouper:
     """
     A Grouper allows the user to specify a groupby instruction for an object.
@@ -72,6 +85,9 @@ class Grouper:
         Currently unused, reserved for future use.
     **kwargs
         Dictionary of the keyword arguments to pass to Grouper.
+
+    Attributes
+    ----------
     key : str, defaults to None
         Groupby key, which selects the grouping column of the target.
     level : name/number, defaults to None
@@ -102,8 +118,6 @@ class Grouper:
         - 'end': `origin` is the last value of the timeseries
         - 'end_day': `origin` is the ceiling midnight of the last day
 
-        .. versionadded:: 1.3.0
-
     offset : Timedelta or str, default is None
         An offset timedelta added to the origin.
 
@@ -117,6 +131,11 @@ class Grouper:
     Grouper or pandas.api.typing.TimeGrouper
         A TimeGrouper is returned if ``freq`` is not ``None``. Otherwise, a Grouper
         is returned.
+
+    See Also
+    --------
+    Series.groupby : Apply a function groupby to a Series.
+    DataFrame.groupby : Apply a function groupby.
 
     Examples
     --------
@@ -239,7 +258,6 @@ class Grouper:
 
     sort: bool
     dropna: bool
-    _gpr_index: Index | None
     _grouper: Index | None
 
     _attributes: tuple[str, ...] = ("key", "level", "freq", "sort", "dropna")
@@ -265,27 +283,28 @@ class Grouper:
         self.sort = sort
         self.dropna = dropna
 
-        self._grouper_deprecated = None
         self._indexer_deprecated: npt.NDArray[np.intp] | None = None
-        self._obj_deprecated = None
-        self._gpr_index = None
         self.binner = None
         self._grouper = None
         self._indexer: npt.NDArray[np.intp] | None = None
 
     def _get_grouper(
-        self, obj: NDFrameT, validate: bool = True
+        self, obj: NDFrameT, validate: bool = True, observed: bool = True
     ) -> tuple[ops.BaseGrouper, NDFrameT]:
         """
         Parameters
         ----------
         obj : Series or DataFrame
+            Object being grouped.
         validate : bool, default True
-            if True, validate the grouper
+            If True, validate the grouper.
+        observed : bool, default True
+            Whether only observed groups should be in the result. Only
+            has an impact when grouping on categorical data.
 
         Returns
         -------
-        a tuple of grouper, obj (possibly sorted)
+        A tuple of grouper, obj (possibly sorted)
         """
         obj, _, _ = self._set_grouper(obj)
         grouper, _, obj = get_grouper(
@@ -295,11 +314,8 @@ class Grouper:
             sort=self.sort,
             validate=validate,
             dropna=self.dropna,
+            observed=observed,
         )
-        # Without setting this, subsequent lookups to .groups raise
-        # error: Incompatible types in assignment (expression has type "BaseGrouper",
-        # variable has type "None")
-        self._grouper_deprecated = grouper  # type: ignore[assignment]
 
         return grouper, obj
 
@@ -366,9 +382,8 @@ class Grouper:
                     level = ax._get_level_number(level)
                     ax = Index(ax._get_level_values(level), name=ax.names[level])
 
-                else:
-                    if level not in (0, ax.name):
-                        raise ValueError(f"The level {level} is not valid")
+                elif level not in (0, ax.name):
+                    raise ValueError(f"The level {level} is not valid")
 
         # possibly sort
         indexer: npt.NDArray[np.intp] | None = None
@@ -381,61 +396,7 @@ class Grouper:
             ax = ax.take(indexer)
             obj = obj.take(indexer, axis=0)
 
-        # error: Incompatible types in assignment (expression has type
-        # "NDFrameT", variable has type "None")
-        self._obj_deprecated = obj  # type: ignore[assignment]
-        self._gpr_index = ax
         return obj, ax, indexer
-
-    @final
-    @property
-    def ax(self) -> Index:
-        warnings.warn(
-            f"{type(self).__name__}.ax is deprecated and will be removed in a "
-            "future version. Use Resampler.ax instead",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        index = self._gpr_index
-        if index is None:
-            raise ValueError("_set_grouper must be called before ax is accessed")
-        return index
-
-    @final
-    @property
-    def indexer(self):
-        warnings.warn(
-            f"{type(self).__name__}.indexer is deprecated and will be removed "
-            "in a future version. Use Resampler.indexer instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self._indexer_deprecated
-
-    @final
-    @property
-    def obj(self):
-        # TODO(3.0): enforcing these deprecations on Grouper should close
-        #  GH#25564, GH#41930
-        warnings.warn(
-            f"{type(self).__name__}.obj is deprecated and will be removed "
-            "in a future version. Use GroupBy.indexer instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self._obj_deprecated
-
-    @final
-    @property
-    def groups(self):
-        warnings.warn(
-            f"{type(self).__name__}.groups is deprecated and will be removed "
-            "in a future version. Use GroupBy.groups instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        # error: "None" has no attribute "groups"
-        return self._grouper_deprecated.groups  # type: ignore[attr-defined]
 
     @final
     def __repr__(self) -> str:
@@ -484,7 +445,6 @@ class Grouping:
     """
 
     _codes: npt.NDArray[np.signedinteger] | None = None
-    _all_grouper: Categorical | None
     _orig_cats: Index | None
     _index: Index
 
@@ -500,10 +460,11 @@ class Grouping:
         dropna: bool = True,
         uniques: ArrayLike | None = None,
     ) -> None:
+        if isinstance(grouper, Series):
+            grouper = grouper.copy(deep=False)
         self.level = level
         self._orig_grouper = grouper
         grouping_vector = _convert_grouper(index, grouper)
-        self._all_grouper = None
         self._orig_cats = None
         self._index = index
         self._sort = sort
@@ -554,7 +515,9 @@ class Grouping:
                 # error: Cannot determine type of "grouping_vector"  [has-type]
                 ng = newgrouper.groupings[0].grouping_vector  # type: ignore[has-type]
                 # use Index instead of ndarray so we can recover the name
-                grouping_vector = Index(ng, name=newgrouper.result_index.name)
+                grouping_vector = Index(
+                    ng, name=newgrouper.result_index.name, copy=False
+                )
 
         elif not isinstance(
             grouping_vector, (Series, Index, ExtensionArray, np.ndarray)
@@ -572,8 +535,7 @@ class Grouping:
             ):
                 grper = pprint_thing(grouping_vector)
                 errmsg = (
-                    "Grouper result violates len(labels) == "
-                    f"len(data)\nresult: {grper}"
+                    f"Grouper result violates len(labels) == len(data)\nresult: {grper}"
                 )
                 raise AssertionError(errmsg)
 
@@ -587,9 +549,7 @@ class Grouping:
         elif isinstance(getattr(grouping_vector, "dtype", None), CategoricalDtype):
             # a passed Categorical
             self._orig_cats = grouping_vector.categories
-            grouping_vector, self._all_grouper = recode_for_groupby(
-                grouping_vector, sort, observed
-            )
+            grouping_vector = recode_for_groupby(grouping_vector, sort, observed)
 
         self.grouping_vector = grouping_vector
 
@@ -726,9 +686,37 @@ class Grouping:
     @cache_readonly
     def groups(self) -> dict[Hashable, Index]:
         codes, uniques = self._codes_and_uniques
-        uniques = Index._with_infer(uniques, name=self.name)
-        cats = Categorical.from_codes(codes, uniques, validate=False)
-        return self._index.groupby(cats)
+        uniques = Index._with_infer(uniques, name=self.name, copy=False)
+
+        r, counts = libalgos.groupsort_indexer(ensure_platform_int(codes), len(uniques))
+        counts = ensure_int64(counts).cumsum()
+        _result = (r[start:end] for start, end in pairwise(counts))
+        # map to the label
+        result = {k: self._index.take(v) for k, v in zip(uniques, _result, strict=True)}
+
+        return PrettyDict(result)
+
+    @property
+    def observed_grouping(self) -> Grouping:
+        if self._observed:
+            return self
+
+        return self._observed_grouping
+
+    @cache_readonly
+    def _observed_grouping(self) -> Grouping:
+        grouping = Grouping(
+            self._index,
+            self._orig_grouper,
+            obj=self.obj,
+            level=self.level,
+            sort=self._sort,
+            observed=True,
+            in_axis=self.in_axis,
+            dropna=self._dropna,
+            uniques=self._uniques,
+        )
+        return grouping
 
 
 def get_grouper(
@@ -810,7 +798,7 @@ def get_grouper(
 
     # a passed-in Grouper, directly convert
     if isinstance(key, Grouper):
-        grouper, obj = key._get_grouper(obj, validate=False)
+        grouper, obj = key._get_grouper(obj, validate=False, observed=observed)
         if key.key is None:
             return grouper, frozenset(), obj
         else:
@@ -893,7 +881,7 @@ def get_grouper(
             return gpr._mgr.references_same_values(obj_gpr_column._mgr, 0)
         return False
 
-    for gpr, level in zip(keys, levels):
+    for gpr, level in zip(keys, levels, strict=True):
         if is_in_obj(gpr):  # df.groupby(df['name'])
             in_axis = True
             exclusions.add(gpr.name)
@@ -941,7 +929,7 @@ def get_grouper(
     if len(groupings) == 0 and len(obj):
         raise ValueError("No group keys passed!")
     if len(groupings) == 0:
-        groupings.append(Grouping(Index([], dtype="int"), np.array([], dtype=np.intp)))
+        groupings.append(Grouping(default_index(0), np.array([], dtype=np.intp)))
 
     # create the internals grouper
     grouper = ops.BaseGrouper(group_axis, groupings, sort=sort, dropna=dropna)

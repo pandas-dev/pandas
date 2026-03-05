@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 import operator
-from typing import TYPE_CHECKING
+from typing import Self
 
 import numba
 from numba import types
@@ -41,19 +41,17 @@ from pandas.core.indexing import _iLocIndexer
 from pandas.core.internals import SingleBlockManager
 from pandas.core.series import Series
 
-if TYPE_CHECKING:
-    from pandas._typing import Self
-
 
 # Helper function to hack around fact that Index casts numpy string dtype to object
 #
-# Idea is to set an attribute on a Index called _numba_data
+# Idea is to set an attribute on an Index called _numba_data
 # that is the original data, or the object data casted to numpy string dtype,
 # with a context manager that is unset afterwards
 @contextmanager
 def set_numba_data(index: Index):
     numba_data = index._data
-    if numba_data.dtype == object:
+    if numba_data.dtype in (object, "string"):
+        numba_data = np.asarray(numba_data)
         if not lib.is_string_array(numba_data):
             raise ValueError(
                 "The numba engine only supports using string or numeric column names"
@@ -289,7 +287,7 @@ def maybe_cast_str_impl(x):
 @unbox(IndexType)
 def unbox_index(typ, obj, c):
     """
-    Convert a Index object to a native structure.
+    Convert an Index object to a native structure.
 
     Note: Object dtype is not allowed here
     """
@@ -344,12 +342,12 @@ def unbox_series(typ, obj, c):
 @box(IndexType)
 def box_index(typ, val, c):
     """
-    Convert a native index structure to a Index object.
+    Convert a native index structure to an Index object.
 
     If our native index is of a numpy string dtype, we'll cast it to
     object.
     """
-    # First build a Numpy array object, then wrap it in a Index
+    # First build a Numpy array object, then wrap it in an Index
     index = cgutils.create_struct_proxy(typ)(c.context, c.builder, value=val)
 
     res = cgutils.alloca_once_value(c.builder, index.parent)

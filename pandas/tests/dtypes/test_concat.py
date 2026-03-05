@@ -12,22 +12,18 @@ def test_concat_mismatched_categoricals_with_empty():
     ser1 = Series(["a", "b", "c"], dtype="category")
     ser2 = Series([], dtype="category")
 
-    msg = "The behavior of array concatenation with empty entries is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = _concat.concat_compat([ser1._values, ser2._values])
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        expected = pd.concat([ser1, ser2])._values
-    tm.assert_categorical_equal(result, expected)
+    result = _concat.concat_compat([ser1._values, ser2._values])
+    expected = pd.concat([ser1, ser2])._values
+    tm.assert_numpy_array_equal(result, expected)
 
 
-@pytest.mark.parametrize("copy", [True, False])
-def test_concat_single_dataframe_tz_aware(copy):
+def test_concat_single_dataframe_tz_aware():
     # https://github.com/pandas-dev/pandas/issues/25257
     df = pd.DataFrame(
         {"timestamp": [pd.Timestamp("2020-04-08 09:00:00.709949+0000", tz="UTC")]}
     )
     expected = df.copy()
-    result = pd.concat([df], copy=copy)
+    result = pd.concat([df])
     tm.assert_frame_equal(result, expected)
 
 
@@ -51,7 +47,7 @@ def test_concat_periodarray_2d():
         _concat.concat_compat([arr[:2], arr[2:]], axis=1)
 
 
-def test_concat_series_between_empty_and_tzaware_series():
+def test_concat_series_between_empty_and_tzaware_series(using_infer_string):
     tzaware_time = pd.Timestamp("2020-01-01T00:00:00+00:00")
     ser1 = Series(index=[tzaware_time], data=0, dtype=float)
     ser2 = Series(dtype=float)
@@ -61,7 +57,9 @@ def test_concat_series_between_empty_and_tzaware_series():
         data=[
             (0.0, None),
         ],
-        index=pd.Index([tzaware_time], dtype=object),
+        index=[tzaware_time]
+        if using_infer_string
+        else pd.Index([tzaware_time], dtype=object),
         columns=[0, 1],
         dtype=float,
     )

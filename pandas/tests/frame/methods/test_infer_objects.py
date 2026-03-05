@@ -25,7 +25,7 @@ class TestInferObjects:
 
         assert df["a"].dtype == "int64"
         assert df["b"].dtype == "float64"
-        assert df["c"].dtype == "M8[ns]"
+        assert df["c"].dtype == "M8[us]"
         assert df["d"].dtype == "object"
 
         expected = DataFrame(

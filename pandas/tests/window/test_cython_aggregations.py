@@ -30,6 +30,9 @@ def _get_rolling_aggregations():
             ("roll_median_c", window_aggregations.roll_median_c),
             ("roll_max", window_aggregations.roll_max),
             ("roll_min", window_aggregations.roll_min),
+            ("roll_first", window_aggregations.roll_first),
+            ("roll_last", window_aggregations.roll_last),
+            ("roll_nunique", window_aggregations.roll_nunique),
         ]
         + [
             (
@@ -59,7 +62,7 @@ def _get_rolling_aggregations():
         ]
     )
     # unzip to a list of 2 tuples, names and functions
-    unzipped = list(zip(*named_roll_aggs))
+    unzipped = list(zip(*named_roll_aggs, strict=True))
     return {"ids": unzipped[0], "params": unzipped[1]}
 
 

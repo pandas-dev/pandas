@@ -7,6 +7,9 @@ Input/output
 ============
 .. currentmodule:: pandas
 
+.. note::
+   For an overview, see :ref:`io`.
+
 Pickling
 ~~~~~~~~
 .. autosummary::
@@ -155,6 +158,16 @@ Parquet
 
    read_parquet
    DataFrame.to_parquet
+
+Iceberg
+~~~~~~~
+.. autosummary::
+    :toctree: api/
+
+    read_iceberg
+    DataFrame.to_iceberg
+
+.. warning:: ``read_iceberg`` is experimental and may change without warning.
 
 ORC
 ~~~

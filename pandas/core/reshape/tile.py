@@ -1,13 +1,14 @@
 """
 Quantilization functions and related stuff
 """
+
 from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Literal,
+    cast,
 )
 
 import numpy as np
@@ -17,6 +18,7 @@ from pandas._libs import (
     Timestamp,
     lib,
 )
+from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.common import (
     ensure_platform_int,
@@ -41,14 +43,19 @@ from pandas import (
 )
 import pandas.core.algorithms as algos
 from pandas.core.arrays.datetimelike import dtype_to_unit
+from pandas.core.col import Expression
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from pandas._typing import (
         DtypeObj,
         IntervalLeftRight,
+        TimeUnit,
     )
 
 
+@set_module("pandas")
 def cut(
     x,
     bins,
@@ -71,7 +78,7 @@ def cut(
 
     Parameters
     ----------
-    x : array-like
+    x : 1d ndarray or Series
         The input array to be binned. Must be 1-dimensional.
     bins : int, sequence of scalars, or IntervalIndex
         The criteria to bin by.
@@ -102,7 +109,7 @@ def cut(
         The precision at which to store and display the bins labels.
     include_lowest : bool, default False
         Whether the first interval should be left-inclusive or not.
-    duplicates : {default 'raise', 'drop'}, optional
+    duplicates : {'raise', 'drop'}, default 'raise'
         If bin edges are not unique, raise ValueError or drop non-uniques.
     ordered : bool, default True
         Whether the labels are ordered or not. Applies to returned types
@@ -124,7 +131,7 @@ def cut(
           Categorical for all other inputs. The values stored within
           are whatever the type in the sequence is.
 
-        * False : returns an ndarray of integers.
+        * False : returns a 1d ndarray or Series of integers.
 
     bins : numpy.ndarray or IntervalIndex.
         The computed or specified bins. Only returned when `retbins=True`.
@@ -140,11 +147,16 @@ def cut(
         fixed set of values.
     Series : One-dimensional array with axis labels (including time series).
     IntervalIndex : Immutable Index implementing an ordered, sliceable set.
+    numpy.histogram_bin_edges: Function to calculate only the edges of the bins
+        used by the histogram function.
 
     Notes
     -----
     Any NA values will be NA in the result. Out of bounds values will be NA in
     the resulting Series or Categorical object.
+
+    ``numpy.histogram_bin_edges`` can be used along with cut to calculate bins according
+    to some predefined methods.
 
     Reference :ref:`the user guide <reshaping.tile.cut>` for more examples.
 
@@ -168,14 +180,14 @@ def cut(
 
     >>> pd.cut(np.array([1, 7, 5, 4, 6, 3]), 3, labels=["bad", "medium", "good"])
     ['bad', 'good', 'medium', 'medium', 'good', 'bad']
-    Categories (3, object): ['bad' < 'medium' < 'good']
+    Categories (3, str): ['bad' < 'medium' < 'good']
 
     ``ordered=False`` will result in unordered categories when labels are passed.
     This parameter can be used to allow non-unique labels:
 
     >>> pd.cut(np.array([1, 7, 5, 4, 6, 3]), 3, labels=["B", "A", "B"], ordered=False)
     ['B', 'B', 'A', 'A', 'B', 'B']
-    Categories (2, object): ['A', 'B']
+    Categories (2, str): ['A', 'B']
 
     ``labels=False`` implies you just want the bins back.
 
@@ -237,6 +249,16 @@ def cut(
     >>> pd.cut([0, 0.5, 1.5, 2.5, 4.5], bins)
     [NaN, (0.0, 1.0], NaN, (2.0, 3.0], (4.0, 5.0]]
     Categories (3, interval[int64, right]): [(0, 1] < (2, 3] < (4, 5]]
+
+    Using np.histogram_bin_edges with cut
+
+    >>> pd.cut(
+    ...     np.array([1, 7, 5, 4]),
+    ...     bins=np.histogram_bin_edges(np.array([1, 7, 5, 4]), bins="auto"),
+    ... )
+    ... # doctest: +ELLIPSIS
+    [NaN, (5.0, 7.0], (3.0, 5.0], (3.0, 5.0]]
+    Categories (3, interval[float64, right]): [(1.0, 3.0] < (3.0, 5.0] < (5.0, 7.0]]
     """
     # NOTE: this binning code is changed a bit from histogram for var(x) == 0
 
@@ -270,6 +292,7 @@ def cut(
     return _postprocess_for_cut(fac, bins, retbins, original)
 
 
+@set_module("pandas")
 def qcut(
     x,
     q,
@@ -288,6 +311,7 @@ def qcut(
     Parameters
     ----------
     x : 1d ndarray or Series
+        Input Numpy array or pandas Series object to be discretized.
     q : int or list-like of float
         Number of quantiles. 10 for deciles, 4 for quartiles, etc. Alternately
         array of quantiles, e.g. [0, .25, .5, .75, 1.] for quartiles.
@@ -312,6 +336,11 @@ def qcut(
     bins : ndarray of floats
         Returned only if `retbins` is True.
 
+    See Also
+    --------
+    cut : Bin values into discrete intervals.
+    Series.quantile : Return value at the given quantile.
+
     Notes
     -----
     Out of bounds values will be NA in the resulting Categorical object
@@ -326,16 +355,29 @@ def qcut(
     >>> pd.qcut(range(5), 3, labels=["good", "medium", "bad"])
     ... # doctest: +SKIP
     [good, good, medium, bad, bad]
-    Categories (3, object): [good < medium < bad]
+    Categories (3, str): [good < medium < bad]
 
     >>> pd.qcut(range(5), 4, labels=False)
     array([0, 0, 1, 2, 3])
     """
+    if isinstance(x, Expression):
+        return x._call_with_func(
+            qcut, x=x, q=q, labels=labels, retbins=retbins, precision=precision
+        )
     original = x
     x_idx = _preprocess_for_cut(x)
     x_idx, _ = _coerce_to_type(x_idx)
 
-    quantiles = np.linspace(0, 1, q + 1) if is_integer(q) else q
+    if is_integer(q):
+        quantiles = np.linspace(0, 1, q + 1)
+        # Round up rather than to nearest if not representable in base 2
+        np.putmask(
+            quantiles,
+            q * quantiles != np.arange(q + 1),
+            np.nextafter(quantiles, 1),
+        )
+    else:
+        quantiles = q
 
     bins = x_idx.to_series().dropna().quantile(quantiles)
 
@@ -377,7 +419,7 @@ def _nbins_to_bins(x_idx: Index, nbins: int, right: bool) -> Index:
             # error: Argument 1 to "dtype_to_unit" has incompatible type
             # "dtype[Any] | ExtensionDtype"; expected "DatetimeTZDtype | dtype[Any]"
             unit = dtype_to_unit(x_idx.dtype)  # type: ignore[arg-type]
-            td = Timedelta(seconds=1).as_unit(unit)
+            td = Timedelta(seconds=1).as_unit(cast("TimeUnit", unit))
             # Use DatetimeArray/TimedeltaArray method instead of linspace
             # error: Item "ExtensionArray" of "ExtensionArray | ndarray[Any, Any]"
             # has no attribute "_generate_range"
@@ -409,7 +451,7 @@ def _nbins_to_bins(x_idx: Index, nbins: int, right: bool) -> Index:
         else:
             bins[-1] += adj
 
-    return Index(bins)
+    return Index(bins, copy=False)
 
 
 def _bins_to_cuts(
@@ -490,11 +532,10 @@ def _bins_to_cuts(
                 "labels must be unique if ordered=True; pass ordered=False "
                 "for duplicate labels"
             )
-        else:
-            if len(labels) != len(bins) - 1:
-                raise ValueError(
-                    "Bin labels must be one fewer than the number of bin edges"
-                )
+        elif len(labels) != len(bins) - 1:
+            raise ValueError(
+                "Bin labels must be one fewer than the number of bin edges"
+            )
 
         if not isinstance(getattr(labels, "dtype", None), CategoricalDtype):
             labels = Categorical(
@@ -534,7 +575,7 @@ def _coerce_to_type(x: Index) -> tuple[Index, DtypeObj | None]:
     # https://github.com/pandas-dev/pandas/issues/31389
     elif isinstance(x.dtype, ExtensionDtype) and is_numeric_dtype(x.dtype):
         x_arr = x.to_numpy(dtype=np.float64, na_value=np.nan)
-        x = Index(x_arr)
+        x = Index(x_arr, copy=False)
 
     return Index(x), dtype
 
@@ -560,6 +601,7 @@ def _format_labels(
         # error: Argument 1 to "dtype_to_unit" has incompatible type
         # "dtype[Any] | ExtensionDtype"; expected "DatetimeTZDtype | dtype[Any]"
         unit = dtype_to_unit(bins.dtype)  # type: ignore[arg-type]
+        unit = cast("TimeUnit", unit)
         formatter = lambda x: x
         adjust = lambda x: x - Timedelta(1, unit=unit).as_unit(unit)
     else:
@@ -593,7 +635,7 @@ def _preprocess_for_cut(x) -> Index:
     if x.ndim != 1:
         raise ValueError("Input array must be 1 dimensional")
 
-    return Index(x)
+    return Index(x, copy=False)
 
 
 def _postprocess_for_cut(fac, bins, retbins: bool, original):

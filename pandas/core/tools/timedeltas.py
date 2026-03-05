@@ -1,6 +1,7 @@
 """
 timedelta support tools
 """
+
 from __future__ import annotations
 
 from typing import (
@@ -21,6 +22,7 @@ from pandas._libs.tslibs.timedeltas import (
     disallow_ambiguous_unit,
     parse_timedelta_unit,
 )
+from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.dtypes import ArrowDtype
@@ -53,8 +55,7 @@ def to_timedelta(
     arg: str | float | timedelta,
     unit: UnitChoices | None = ...,
     errors: DateTimeErrorChoices = ...,
-) -> Timedelta:
-    ...
+) -> Timedelta: ...
 
 
 @overload
@@ -62,8 +63,7 @@ def to_timedelta(
     arg: Series,
     unit: UnitChoices | None = ...,
     errors: DateTimeErrorChoices = ...,
-) -> Series:
-    ...
+) -> Series: ...
 
 
 @overload
@@ -71,10 +71,10 @@ def to_timedelta(
     arg: list | tuple | range | ArrayLike | Index,
     unit: UnitChoices | None = ...,
     errors: DateTimeErrorChoices = ...,
-) -> TimedeltaIndex:
-    ...
+) -> TimedeltaIndex: ...
 
 
+@set_module("pandas")
 def to_timedelta(
     arg: str
     | int
@@ -113,19 +113,14 @@ def to_timedelta(
 
         * 'W'
         * 'D' / 'days' / 'day'
-        * 'hours' / 'hour' / 'hr' / 'h' / 'H'
-        * 'm' / 'minute' / 'min' / 'minutes' / 'T'
-        * 's' / 'seconds' / 'sec' / 'second' / 'S'
-        * 'ms' / 'milliseconds' / 'millisecond' / 'milli' / 'millis' / 'L'
-        * 'us' / 'microseconds' / 'microsecond' / 'micro' / 'micros' / 'U'
-        * 'ns' / 'nanoseconds' / 'nano' / 'nanos' / 'nanosecond' / 'N'
+        * 'hours' / 'hour' / 'hr' / 'h'
+        * 'm' / 'minute' / 'min' / 'minutes'
+        * 's' / 'seconds' / 'sec' / 'second'
+        * 'ms' / 'milliseconds' / 'millisecond' / 'milli' / 'millis'
+        * 'us' / 'microseconds' / 'microsecond' / 'micro' / 'micros'
+        * 'ns' / 'nanoseconds' / 'nano' / 'nanos' / 'nanosecond'
 
         Must not be specified when `arg` contains strings and ``errors="raise"``.
-
-        .. deprecated:: 2.2.0
-            Units 'H', 'T', 'S', 'L', 'U' and 'N' are deprecated and will be removed
-            in a future version. Please use 'h', 'min', 's', 'ms', 'us', and 'ns'
-            instead of 'H', 'T', 'S', 'L', 'U' and 'N'.
 
     errors : {'raise', 'coerce'}, default 'raise'
         - If 'raise', then invalid parsing will raise an exception.
@@ -172,10 +167,10 @@ def to_timedelta(
     >>> pd.to_timedelta(np.arange(5), unit="s")
     TimedeltaIndex(['0 days 00:00:00', '0 days 00:00:01', '0 days 00:00:02',
                     '0 days 00:00:03', '0 days 00:00:04'],
-                   dtype='timedelta64[ns]', freq=None)
-    >>> pd.to_timedelta(np.arange(5), unit="d")
+                   dtype='timedelta64[s]', freq=None)
+    >>> pd.to_timedelta(np.arange(5), unit="D")
     TimedeltaIndex(['0 days', '1 days', '2 days', '3 days', '4 days'],
-                   dtype='timedelta64[ns]', freq=None)
+                   dtype='timedelta64[s]', freq=None)
     """
     if unit is not None:
         unit = parse_timedelta_unit(unit)
@@ -185,7 +180,7 @@ def to_timedelta(
         raise ValueError("errors must be one of 'raise', or 'coerce'.")
 
     if arg is None:
-        return arg
+        return NaT
     elif isinstance(arg, ABCSeries):
         values = _convert_listlike(arg._values, unit=unit, errors=errors)
         return arg._constructor(values, index=arg.index, name=arg.name)
@@ -246,5 +241,6 @@ def _convert_listlike(
 
     from pandas import TimedeltaIndex
 
-    value = TimedeltaIndex(td64arr, name=name)
+    copy = td64arr is arg or np.may_share_memory(arg, td64arr)
+    value = TimedeltaIndex(td64arr, name=name, copy=copy)
     return value

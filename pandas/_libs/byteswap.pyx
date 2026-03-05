@@ -15,7 +15,7 @@ from libc.string cimport memcpy
 
 def read_float_with_byteswap(bytes data, Py_ssize_t offset, bint byteswap):
     cdef uint32_t value
-    assert offset + sizeof(value) < len(data)
+    assert offset + <Py_ssize_t>sizeof(value) < len(data)
     cdef const void *ptr = <unsigned char*>(data) + offset
     memcpy(&value, ptr, sizeof(value))
     if byteswap:
@@ -28,7 +28,7 @@ def read_float_with_byteswap(bytes data, Py_ssize_t offset, bint byteswap):
 
 def read_double_with_byteswap(bytes data, Py_ssize_t offset, bint byteswap):
     cdef uint64_t value
-    assert offset + sizeof(value) < len(data)
+    assert offset + <Py_ssize_t>sizeof(value) < len(data)
     cdef const void *ptr = <unsigned char*>(data) + offset
     memcpy(&value, ptr, sizeof(value))
     if byteswap:
@@ -41,7 +41,7 @@ def read_double_with_byteswap(bytes data, Py_ssize_t offset, bint byteswap):
 
 def read_uint16_with_byteswap(bytes data, Py_ssize_t offset, bint byteswap):
     cdef uint16_t res
-    assert offset + sizeof(res) < len(data)
+    assert offset + <Py_ssize_t>sizeof(res) < len(data)
     memcpy(&res, <const unsigned char*>(data) + offset, sizeof(res))
     if byteswap:
         res = _byteswap2(res)
@@ -50,7 +50,7 @@ def read_uint16_with_byteswap(bytes data, Py_ssize_t offset, bint byteswap):
 
 def read_uint32_with_byteswap(bytes data, Py_ssize_t offset, bint byteswap):
     cdef uint32_t res
-    assert offset + sizeof(res) < len(data)
+    assert offset + <Py_ssize_t>sizeof(res) < len(data)
     memcpy(&res, <const unsigned char*>(data) + offset, sizeof(res))
     if byteswap:
         res = _byteswap4(res)
@@ -59,7 +59,7 @@ def read_uint32_with_byteswap(bytes data, Py_ssize_t offset, bint byteswap):
 
 def read_uint64_with_byteswap(bytes data, Py_ssize_t offset, bint byteswap):
     cdef uint64_t res
-    assert offset + sizeof(res) < len(data)
+    assert offset + <Py_ssize_t>sizeof(res) < len(data)
     memcpy(&res, <const unsigned char*>(data) + offset, sizeof(res))
     if byteswap:
         res = _byteswap8(res)

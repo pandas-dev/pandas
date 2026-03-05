@@ -1,21 +1,15 @@
 """
 Utilities for conversion to writer-agnostic Excel representation.
 """
+
 from __future__ import annotations
 
-from collections.abc import (
-    Hashable,
-    Iterable,
-    Mapping,
-    Sequence,
-)
 import functools
 import itertools
 import re
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     cast,
 )
 import warnings
@@ -23,7 +17,6 @@ import warnings
 import numpy as np
 
 from pandas._libs.lib import is_list_like
-from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes import missing
@@ -36,10 +29,10 @@ from pandas import (
     DataFrame,
     Index,
     MultiIndex,
+    Period,
     PeriodIndex,
 )
 import pandas.core.common as com
-from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.formats._color_data import CSS4_COLORS
 from pandas.io.formats.css import (
@@ -47,10 +40,18 @@ from pandas.io.formats.css import (
     CSSWarning,
 )
 from pandas.io.formats.format import get_level_lengths
-from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Callable,
+        Hashable,
+        Iterable,
+        Mapping,
+        Sequence,
+    )
+
     from pandas._typing import (
+        ExcelWriterMergeCells,
         FilePath,
         IndexLabel,
         StorageOptions,
@@ -301,13 +302,13 @@ class CSSToExcelConverter:
         #       'slantDashDot'
         #       'thick'
         #       'thin'
-        if width is None and style is None and color is None:
-            # Return None will remove "border" from style dictionary
-            return None
-
         if width is None and style is None:
-            # Return "none" will keep "border" in style dictionary
-            return "none"
+            if color is None:
+                # Return None will remove "border" from style dictionary
+                return None
+            else:
+                # Return "none" will keep "border" in style dictionary
+                return "none"
 
         if style in ("none", "hidden"):
             return "none"
@@ -408,11 +409,6 @@ class CSSToExcelConverter:
             return decoration.split()
         else:
             return ()
-
-    def _get_underline(self, decoration: Sequence[str]) -> str | None:
-        if "underline" in decoration:
-            return "single"
-        return None
 
     def _get_shadow(self, props: Mapping[str, str]) -> bool | None:
         if "text-shadow" in props:
@@ -522,8 +518,11 @@ class ExcelFormatter:
         Column label for index column(s) if desired. If None is given, and
         `header` and `index` are True, then the index names are used. A
         sequence should be given if the DataFrame uses MultiIndex.
-    merge_cells : bool, default False
-        Format MultiIndex and Hierarchical Rows as merged cells.
+    merge_cells : bool or 'columns', default False
+        Format MultiIndex column headers and Hierarchical Rows as merged cells
+        if True. Merge MultiIndex column headers only if 'columns'.
+        .. versionchanged:: 3.0.0
+            Added the 'columns' option.
     inf_rep : str, default `'inf'`
         representation for np.inf values (which aren't representable in Excel)
         A `'-'` sign will be added in front of -inf.
@@ -532,6 +531,8 @@ class ExcelFormatter:
         Defaults to ``CSSToExcelConverter()``.
         It should have signature css_declarations string -> excel style.
         This is only called for body cells.
+    autofilter : bool, default False
+        If True, add automatic filters to all columns.
     """
 
     max_rows = 2**20
@@ -546,9 +547,10 @@ class ExcelFormatter:
         header: Sequence[Hashable] | bool = True,
         index: bool = True,
         index_label: IndexLabel | None = None,
-        merge_cells: bool = False,
+        merge_cells: ExcelWriterMergeCells = False,
         inf_rep: str = "inf",
         style_converter: Callable | None = None,
+        autofilter: bool = False,
     ) -> None:
         self.rowcounter = 0
         self.na_rep = na_rep
@@ -579,8 +581,12 @@ class ExcelFormatter:
         self.index = index
         self.index_label = index_label
         self.header = header
+
+        if not isinstance(merge_cells, bool) and merge_cells != "columns":
+            raise ValueError(f"Unexpected value for {merge_cells=}.")
         self.merge_cells = merge_cells
         self.inf_rep = inf_rep
+        self.autofilter = autofilter
 
     def _format_value(self, val):
         if is_scalar(val) and missing.isna(val):
@@ -612,9 +618,8 @@ class ExcelFormatter:
             return
 
         columns = self.columns
-        level_strs = columns._format_multi(
-            sparsify=self.merge_cells, include_names=False
-        )
+        merge_columns = self.merge_cells in {True, "columns"}
+        level_strs = columns._format_multi(sparsify=merge_columns, include_names=False)
         level_lengths = get_level_lengths(level_strs)
         coloffset = 0
         lnum = 0
@@ -622,51 +627,34 @@ class ExcelFormatter:
         if self.index and isinstance(self.df.index, MultiIndex):
             coloffset = self.df.index.nlevels - 1
 
-        if self.merge_cells:
-            # Format multi-index as a merged cells.
-            for lnum, name in enumerate(columns.names):
-                yield ExcelCell(
-                    row=lnum,
-                    col=coloffset,
-                    val=name,
-                    style=None,
-                )
+        for lnum, name in enumerate(columns.names):
+            yield ExcelCell(
+                row=lnum,
+                col=coloffset,
+                val=name,
+                style=None,
+            )
 
-            for lnum, (spans, levels, level_codes) in enumerate(
-                zip(level_lengths, columns.levels, columns.codes)
-            ):
-                values = levels.take(level_codes)
-                for i, span_val in spans.items():
-                    mergestart, mergeend = None, None
-                    if span_val > 1:
-                        mergestart, mergeend = lnum, coloffset + i + span_val
-                    yield CssExcelCell(
-                        row=lnum,
-                        col=coloffset + i + 1,
-                        val=values[i],
-                        style=None,
-                        css_styles=getattr(self.styler, "ctx_columns", None),
-                        css_row=lnum,
-                        css_col=i,
-                        css_converter=self.style_converter,
-                        mergestart=mergestart,
-                        mergeend=mergeend,
-                    )
-        else:
-            # Format in legacy format with dots to indicate levels.
-            for i, values in enumerate(zip(*level_strs)):
-                v = ".".join(map(pprint_thing, values))
+        for lnum, (spans, levels, level_codes) in enumerate(
+            zip(level_lengths, columns.levels, columns.codes, strict=True)
+        ):
+            values = levels.take(level_codes)
+            for i, span_val in spans.items():
+                mergestart, mergeend = None, None
+                if merge_columns and span_val > 1:
+                    mergestart, mergeend = lnum, coloffset + i + span_val
                 yield CssExcelCell(
                     row=lnum,
                     col=coloffset + i + 1,
-                    val=v,
+                    val=values[i],
                     style=None,
                     css_styles=getattr(self.styler, "ctx_columns", None),
                     css_row=lnum,
                     css_col=i,
                     css_converter=self.style_converter,
+                    mergestart=mergestart,
+                    mergeend=mergeend,
                 )
-
         self.rowcounter = lnum
 
     def _format_header_regular(self) -> Iterable[ExcelCell]:
@@ -680,7 +668,7 @@ class ExcelFormatter:
 
             colnames = self.columns
             if self._has_aliases:
-                self.header = cast(Sequence, self.header)
+                self.header = cast("Sequence", self.header)
                 if len(self.header) != len(self.columns):
                     raise ValueError(
                         f"Writing {len(self.columns)} cols "
@@ -790,9 +778,8 @@ class ExcelFormatter:
 
             # MultiIndex columns require an extra row
             # with index names (blank if None) for
-            # unambiguous round-trip, unless not merging,
-            # in which case the names all go on one row Issue #11328
-            if isinstance(self.columns, MultiIndex) and self.merge_cells:
+            # unambiguous round-trip, Issue #11328
+            if isinstance(self.columns, MultiIndex):
                 self.rowcounter += 1
 
             # if index labels are not empty go ahead and dump
@@ -800,7 +787,7 @@ class ExcelFormatter:
                 for cidx, name in enumerate(index_labels):
                     yield ExcelCell(self.rowcounter - 1, cidx, name, None)
 
-            if self.merge_cells:
+            if self.merge_cells and self.merge_cells != "columns":
                 # Format hierarchical rows as merged cells.
                 level_strs = self.df.index._format_multi(
                     sparsify=True, include_names=False
@@ -808,13 +795,19 @@ class ExcelFormatter:
                 level_lengths = get_level_lengths(level_strs)
 
                 for spans, levels, level_codes in zip(
-                    level_lengths, self.df.index.levels, self.df.index.codes
+                    level_lengths,
+                    self.df.index.levels,
+                    self.df.index.codes,
+                    strict=False,
                 ):
                     values = levels.take(
                         level_codes,
                         allow_fill=levels._can_hold_na,
                         fill_value=levels._na_value,
                     )
+                    # GH#60099
+                    if isinstance(values[0], Period):
+                        values = values.to_timestamp()
 
                     for i, span_val in spans.items():
                         mergestart, mergeend = None, None
@@ -837,8 +830,12 @@ class ExcelFormatter:
 
             else:
                 # Format hierarchical rows with non-merged values.
-                for indexcolvals in zip(*self.df.index):
+                for indexcolvals in zip(*self.df.index, strict=True):
                     for idx, indexcolval in enumerate(indexcolvals):
+                        # GH#60099
+                        if isinstance(indexcolval, Period):
+                            indexcolval = indexcolval.to_timestamp()
+
                         yield CssExcelCell(
                             row=self.rowcounter + idx,
                             col=gcolidx,
@@ -879,7 +876,34 @@ class ExcelFormatter:
             cell.val = self._format_value(cell.val)
             yield cell
 
-    @doc(storage_options=_shared_docs["storage_options"])
+    def _num2excel(self, index: int) -> str:
+        """
+        Convert 0-based column index to Excel column name.
+
+        Parameters
+        ----------
+        index : int
+            The numeric column index to convert to an Excel column name.
+
+        Returns
+        -------
+        column_name : str
+            The column name corresponding to the index.
+
+        Raises
+        ------
+        ValueError
+            Index is negative
+        """
+        if index < 0:
+            raise ValueError(f"Index cannot be negative: {index}")
+        column_name = ""
+        # while loop in case column name needs to be longer than 1 character
+        while index > 0 or not column_name:
+            index, remainder = divmod(index, 26)
+            column_name = chr(65 + remainder) + column_name
+        return column_name
+
     def write(
         self,
         writer: FilePath | WriteExcelBuffer | ExcelWriter,
@@ -908,7 +932,15 @@ class ExcelFormatter:
             via the options ``io.excel.xlsx.writer``,
             or ``io.excel.xlsm.writer``.
 
-        {storage_options}
+        storage_options : dict, optional
+            Extra options that make sense for a particular storage connection, e.g.
+            host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
+            are forwarded to ``urllib.request.Request`` as header options. For other
+            URLs (e.g. starting with "s3://", and "gcs://") the key-value pairs are
+            forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more
+            details, and for more examples on storage options refer `here
+            <https://pandas.pydata.org/docs/user_guide/io.html?
+            highlight=storage_options#reading-writing-remote-files>`_.
 
         engine_kwargs: dict, optional
             Arbitrary keyword arguments passed to excel engine.
@@ -921,6 +953,46 @@ class ExcelFormatter:
                 f"This sheet is too large! Your sheet size is: {num_rows}, {num_cols} "
                 f"Max sheet size is: {self.max_rows}, {self.max_cols}"
             )
+
+        if self.autofilter:
+            # default offset for header row
+            startrowsoffset = 1
+            endrowsoffset = 1
+
+            if num_cols == 0:
+                indexoffset = 0
+            elif self.index:
+                indexoffset = 0
+                if isinstance(self.df.index, MultiIndex):
+                    if self.merge_cells:
+                        raise ValueError(
+                            "Excel filters merged cells by showing only the first row. "
+                            "'autofilter' and 'merge_cells' cannot "
+                            "be used simultaneously."
+                        )
+                    else:
+                        indexoffset = self.df.index.nlevels - 1
+
+                if isinstance(self.columns, MultiIndex):
+                    if self.merge_cells:
+                        raise ValueError(
+                            "Excel filters merged cells by showing only the first row. "
+                            "'autofilter' and 'merge_cells' cannot "
+                            "be used simultaneously."
+                        )
+                    else:
+                        startrowsoffset = self.columns.nlevels
+                        # multindex columns add a blank row between header and data
+                        endrowsoffset = self.columns.nlevels + 1
+            else:
+                # no index column
+                indexoffset = -1
+            start = f"{self._num2excel(startcol)}{startrow + startrowsoffset}"
+            autofilter_end_column = self._num2excel(startcol + num_cols + indexoffset)
+            end = f"{autofilter_end_column}{startrow + num_rows + endrowsoffset}"
+            autofilter_range = f"{start}:{end}"
+        else:
+            autofilter_range = None
 
         if engine_kwargs is None:
             engine_kwargs = {}
@@ -944,6 +1016,7 @@ class ExcelFormatter:
                 startrow=startrow,
                 startcol=startcol,
                 freeze_panes=freeze_panes,
+                autofilter_range=autofilter_range,
             )
         finally:
             # make sure to close opened file handles

@@ -38,7 +38,7 @@ class TestTimedeltaRound:
             ("min", "1 days 02:35:00", "-1 days 02:35:00"),
             ("12min", "1 days 02:36:00", "-1 days 02:36:00"),
             ("h", "1 days 03:00:00", "-1 days 03:00:00"),
-            ("d", "1 days", "-1 days"),
+            ("D", "1 days", "-1 days"),
         ],
     )
     def test_round(self, freq, s1, s2):
@@ -63,7 +63,6 @@ class TestTimedeltaRound:
             with pytest.raises(ValueError, match=msg):
                 t1.round(freq)
 
-    @pytest.mark.skip_ubsan
     def test_round_implementation_bounds(self):
         # See also: analogous test for Timestamp
         # GH#38964
@@ -89,7 +88,7 @@ class TestTimedeltaRound:
         with pytest.raises(OutOfBoundsTimedelta, match=msg):
             Timedelta.max.round("s")
 
-    @pytest.mark.skip_ubsan
+    @pytest.mark.slow
     @given(val=st.integers(min_value=iNaT + 1, max_value=lib.i8max))
     @pytest.mark.parametrize(
         "method", [Timedelta.round, Timedelta.floor, Timedelta.ceil]

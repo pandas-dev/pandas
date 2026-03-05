@@ -8,7 +8,10 @@ from functools import partial
 import numpy as np
 import pytest
 
-from pandas.errors import SpecificationError
+from pandas.errors import (
+    Pandas4Warning,
+    SpecificationError,
+)
 
 import pandas as pd
 from pandas import (
@@ -209,7 +212,7 @@ def test_aggregate_api_consistency():
     expected = pd.concat([c_mean, c_sum, d_mean, d_sum], axis=1)
     expected.columns = MultiIndex.from_product([["C", "D"], ["mean", "sum"]])
 
-    msg = r"Column\(s\) \['r', 'r2'\] do not exist"
+    msg = r"Label\(s\) \['r', 'r2'\] do not exist"
     with pytest.raises(KeyError, match=msg):
         grouped[["D", "C"]].agg({"r": "sum", "r2": "mean"})
 
@@ -224,7 +227,7 @@ def test_agg_dict_renaming_deprecation():
             {"B": {"foo": ["sum", "max"]}, "C": {"bar": ["count", "min"]}}
         )
 
-    msg = r"Column\(s\) \['ma'\] do not exist"
+    msg = r"Label\(s\) \['ma'\] do not exist"
     with pytest.raises(KeyError, match=msg):
         df.groupby("A")[["B", "C"]].agg({"ma": "max"})
 
@@ -355,7 +358,8 @@ def test_series_agg_multi_pure_python():
     )
 
     def bad(x):
-        assert len(x.values.base) > 0
+        if isinstance(x.values, np.ndarray):
+            assert len(x.values.base) > 0
         return "foo"
 
     result = data.groupby(["A", "B"]).agg(bad)
@@ -465,7 +469,9 @@ def test_agg_tzaware_non_datetime_result(as_period):
     tm.assert_series_equal(result, expected)
 
     result = gb["b"].agg(lambda x: x.iloc[-1] - x.iloc[0])
-    expected = Series([pd.Timedelta(days=1), pd.Timedelta(days=1)], name="b")
+    expected = Series(
+        [pd.Timedelta(days=1), pd.Timedelta(days=1)], name="b", dtype="m8[us]"
+    )
     expected.index.name = "a"
     if as_period:
         expected = Series([pd.offsets.Day(1), pd.offsets.Day(1)], name="b")
@@ -498,17 +504,13 @@ def test_agg_timezone_round_trip():
     assert ts == grouped.first()["B"].iloc[0]
 
     # GH#27110 applying iloc should return a DataFrame
-    msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        assert ts == grouped.apply(lambda x: x.iloc[0]).iloc[0, 1]
+    assert ts == grouped.apply(lambda x: x.iloc[0])["B"].iloc[0]
 
     ts = df["B"].iloc[2]
     assert ts == grouped.last()["B"].iloc[0]
 
     # GH#27110 applying iloc should return a DataFrame
-    msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        assert ts == grouped.apply(lambda x: x.iloc[-1]).iloc[0, 1]
+    assert ts == grouped.apply(lambda x: x.iloc[-1])["B"].iloc[0]
 
 
 def test_sum_uint64_overflow():
@@ -617,7 +619,9 @@ def test_agg_lambda_with_timezone():
             ],
         }
     )
-    result = df.groupby("tag").agg({"date": lambda e: e.head(1)})
+    msg = "Converting a Series or array of length 1 into a scalar"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = df.groupby("tag").agg({"date": lambda e: e.head(1)})
     expected = DataFrame(
         [pd.Timestamp("2018-01-01", tz="UTC")],
         index=Index([1], name="tag"),
@@ -650,7 +654,7 @@ def test_groupby_agg_err_catching(err_cls):
         to_decimal,
     )
 
-    data = make_data()[:5]
+    data = make_data(5)
     df = DataFrame(
         {"id1": [0, 0, 0, 1, 1], "id2": [0, 1, 0, 1, 1], "decimals": DecimalArray(data)}
     )

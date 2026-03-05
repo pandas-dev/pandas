@@ -340,6 +340,8 @@ def test_center_reindex_frame(frame, roll_func, kwargs, minp, fill_value):
         lambda x: x.rolling(window=10, min_periods=5).var(),
         lambda x: x.rolling(window=10, min_periods=5).skew(),
         lambda x: x.rolling(window=10, min_periods=5).kurt(),
+        lambda x: x.rolling(window=10, min_periods=5).first(),
+        lambda x: x.rolling(window=10, min_periods=5).last(),
         lambda x: x.rolling(window=10, min_periods=5).quantile(q=0.5),
         lambda x: x.rolling(window=10, min_periods=5).median(),
         lambda x: x.rolling(window=10, min_periods=5).apply(sum, raw=False),
@@ -388,7 +390,7 @@ def test_rolling_max_resample(step):
     # So that we can have 3 datapoints on last day (4, 10, and 20)
     indices.append(datetime(1975, 1, 5, 1))
     indices.append(datetime(1975, 1, 5, 2))
-    series = Series(list(range(5)) + [10, 20], index=indices)
+    series = Series([*list(range(5)), 10, 20], index=indices)
     # Use floats instead of ints as values
     series = series.map(lambda x: float(x))
     # Sort chronologically
@@ -425,7 +427,7 @@ def test_rolling_min_resample(step):
     # So that we can have 3 datapoints on last day (4, 10, and 20)
     indices.append(datetime(1975, 1, 5, 1))
     indices.append(datetime(1975, 1, 5, 2))
-    series = Series(list(range(5)) + [10, 20], index=indices)
+    series = Series([*list(range(5)), 10, 20], index=indices)
     # Use floats instead of ints as values
     series = series.map(lambda x: float(x))
     # Sort chronologically
@@ -445,7 +447,7 @@ def test_rolling_median_resample():
     # So that we can have 3 datapoints on last day (4, 10, and 20)
     indices.append(datetime(1975, 1, 5, 1))
     indices.append(datetime(1975, 1, 5, 2))
-    series = Series(list(range(5)) + [10, 20], index=indices)
+    series = Series([*list(range(5)), 10, 20], index=indices)
     # Use floats instead of ints as values
     series = series.map(lambda x: float(x))
     # Sort chronologically
@@ -501,6 +503,8 @@ def test_rolling_min_max_numeric_types(any_real_numpy_dtype):
         lambda x: x.rolling(window=10, min_periods=5).var(),
         lambda x: x.rolling(window=10, min_periods=5).skew(),
         lambda x: x.rolling(window=10, min_periods=5).kurt(),
+        lambda x: x.rolling(window=10, min_periods=5).first(),
+        lambda x: x.rolling(window=10, min_periods=5).last(),
         lambda x: x.rolling(window=10, min_periods=5).quantile(0.5),
         lambda x: x.rolling(window=10, min_periods=5).median(),
         lambda x: x.rolling(window=10, min_periods=5).apply(sum, raw=False),

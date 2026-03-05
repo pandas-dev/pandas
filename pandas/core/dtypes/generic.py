@@ -1,4 +1,5 @@
-""" define generic base classes for pandas objects """
+"""define generic base classes for pandas objects"""
+
 from __future__ import annotations
 
 from typing import (

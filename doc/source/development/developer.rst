@@ -99,7 +99,7 @@ Column metadata
 * Boolean: ``'bool'``
 * Integers: ``'int8', 'int16', 'int32', 'int64', 'uint8', 'uint16', 'uint32', 'uint64'``
 * Floats: ``'float16', 'float32', 'float64'``
-* Date and Time Types: ``'datetime', 'datetimetz'``, ``'timedelta'``
+* Date and Time Types: ``'datetime', 'datetimetz', 'timedelta'``
 * String: ``'unicode', 'bytes'``
 * Categorical: ``'categorical'``
 * Other Python objects: ``'object'``
@@ -116,19 +116,19 @@ The ``metadata`` field is ``None`` except for:
   omitted it is assumed to be nanoseconds.
 * ``categorical``: ``{'num_categories': K, 'ordered': is_ordered, 'type': $TYPE}``
 
-    * Here ``'type'`` is optional, and can be a nested pandas type specification
-      here (but not categorical)
+  * Here ``'type'`` is optional, and can be a nested pandas type specification
+    here (but not categorical)
 
 * ``unicode``: ``{'encoding': encoding}``
 
-    * The encoding is optional, and if not present is UTF-8
+  * The encoding is optional, and if not present is UTF-8
 
 * ``object``: ``{'encoding': encoding}``. Objects can be serialized and stored
   in ``BYTE_ARRAY`` Parquet columns. The encoding can be one of:
 
-    * ``'pickle'``
-    * ``'bson'``
-    * ``'json'``
+  * ``'pickle'``
+  * ``'bson'``
+  * ``'json'``
 
 * ``timedelta``: ``{'unit': 'ns'}``. The ``'unit'`` is optional, and if omitted
   it is assumed to be nanoseconds. This metadata is optional altogether

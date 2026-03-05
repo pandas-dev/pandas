@@ -167,6 +167,15 @@ cdef class IntervalMixin:
         """
         Return the midpoint of the Interval.
 
+        The midpoint is the average of the left and right bounds, or equivalently
+        the left bound plus half of :attr:`length`.
+
+        See Also
+        --------
+        Interval.left : Return the left bound for the interval.
+        Interval.right : Return the right bound for the interval.
+        Interval.length : Return the length of the interval.
+
         Examples
         --------
         >>> iv = pd.Interval(0, 5)
@@ -183,6 +192,10 @@ cdef class IntervalMixin:
     def length(self):
         """
         Return the length of the Interval.
+
+        The length is the distance between the right and left bounds, i.e.
+        ``right - left``. For time-like bounds this returns a
+        :class:`~datetime.timedelta` or :class:`~pandas.Timedelta`.
 
         See Also
         --------
@@ -202,6 +215,12 @@ cdef class IntervalMixin:
     def is_empty(self):
         """
         Indicates if an interval is empty, meaning it contains no points.
+
+        An interval is considered empty if its `left` and `right` endpoints
+        are equal, and it is not closed on both sides. This means that the
+        interval does not include any real points. In the case of an
+        :class:`pandas.arrays.IntervalArray` or :class:`IntervalIndex`, the
+        property returns a boolean array indicating the emptiness of each interval.
 
         Returns
         -------
@@ -285,7 +304,12 @@ cdef class Interval(IntervalMixin):
     """
     Immutable object implementing an Interval, a bounded slice-like interval.
 
-    Parameters
+    An Interval represents a range of values between a left and right bound,
+    with optional inclusion of the endpoints. It is used in :class:`IntervalIndex`
+    and :class:`~pandas.arrays.IntervalArray` for interval-based indexing and
+    analysis.
+
+    Attributes
     ----------
     left : orderable scalar
         Left bound for the interval.
@@ -370,12 +394,22 @@ cdef class Interval(IntervalMixin):
     >>> year_2017.length
     Timedelta('365 days 00:00:00')
     """
+    __module__ = "pandas"
     _typ = "interval"
     __array_priority__ = 1000
 
     cdef readonly object left
     """
     Left bound for the interval.
+
+    The left endpoint of the interval. Whether it is included in the interval
+    depends on the value of :attr:`closed`.
+
+    See Also
+    --------
+    Interval.right : Return the right bound for the interval.
+    numpy.ndarray.left : A similar method in numpy for obtaining
+        the left endpoint(s) of intervals.
 
     Examples
     --------
@@ -389,6 +423,15 @@ cdef class Interval(IntervalMixin):
     cdef readonly object right
     """
     Right bound for the interval.
+
+    The right endpoint of the interval. Whether it is included in the interval
+    depends on the value of :attr:`closed`.
+
+    See Also
+    --------
+    Interval.left : Return the left bound for the interval.
+    numpy.ndarray.right : A similar method in numpy for obtaining
+        the right endpoint(s) of intervals.
 
     Examples
     --------
@@ -404,6 +447,13 @@ cdef class Interval(IntervalMixin):
     String describing the inclusive side the intervals.
 
     Either ``left``, ``right``, ``both`` or ``neither``.
+
+    See Also
+    --------
+    Interval.closed_left : Check if the interval is closed on the left side.
+    Interval.closed_right : Check if the interval is closed on the right side.
+    Interval.open_left : Check if the interval is open on the left side.
+    Interval.open_right : Check if the interval is open on the right side.
 
     Examples
     --------

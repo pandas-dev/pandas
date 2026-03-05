@@ -2,7 +2,6 @@ import datetime
 
 import numpy as np
 import pytest
-import pytz
 
 import pandas.util._test_decorators as td
 
@@ -1903,10 +1902,8 @@ class TestAsOfMerge:
         tm.assert_frame_equal(result, expected)
 
     def test_basic_no_by(self, trades, asof, quotes):
-        f = (
-            lambda x: x[x.ticker == "MSFT"]
-            .drop("ticker", axis=1)
-            .reset_index(drop=True)
+        f = lambda x: (
+            x[x.ticker == "MSFT"].drop("ticker", axis=1).reset_index(drop=True)
         )
 
         # just use a single ticker
@@ -2071,7 +2068,7 @@ class TestAsOfMerge:
                     start=to_datetime("2016-01-02"),
                     freq="D",
                     periods=5,
-                    tz=pytz.timezone("UTC"),
+                    tz=datetime.UTC,
                     unit=unit,
                 ),
                 "value1": np.arange(5),
@@ -2083,7 +2080,7 @@ class TestAsOfMerge:
                     start=to_datetime("2016-01-01"),
                     freq="D",
                     periods=5,
-                    tz=pytz.timezone("UTC"),
+                    tz=datetime.UTC,
                     unit=unit,
                 ),
                 "value2": list("ABCDE"),
@@ -2097,7 +2094,7 @@ class TestAsOfMerge:
                     start=to_datetime("2016-01-02"),
                     freq="D",
                     periods=5,
-                    tz=pytz.timezone("UTC"),
+                    tz=datetime.UTC,
                     unit=unit,
                 ),
                 "value1": np.arange(5),
@@ -3063,11 +3060,8 @@ class TestAsOfMerge:
 
         tm.assert_frame_equal(result, expected)
 
-    def test_merge_datatype_error_raises(self, using_infer_string):
-        if using_infer_string:
-            msg = "incompatible merge keys"
-        else:
-            msg = r"Incompatible merge dtype, .*, both sides must have numeric dtype"
+    def test_merge_datatype_error_raises(self):
+        msg = r"Incompatible merge dtype, .*, both sides must have numeric dtype"
 
         left = pd.DataFrame({"left_val": [1, 5, 10], "a": ["a", "b", "c"]})
         right = pd.DataFrame({"right_val": [1, 2, 3, 6, 7], "a": [1, 2, 3, 6, 7]})
@@ -3162,7 +3156,7 @@ class TestAsOfMerge:
         )
         expected["value_y"] = np.array([np.nan, np.nan, np.nan], dtype=object)
         if using_infer_string:
-            expected["value_y"] = expected["value_y"].astype("string[pyarrow_numpy]")
+            expected["value_y"] = expected["value_y"].astype("str")
         tm.assert_frame_equal(result, expected)
 
     def test_merge_by_col_tz_aware(self):
@@ -3213,7 +3207,7 @@ class TestAsOfMerge:
         )
         expected["value_y"] = np.array([np.nan], dtype=object)
         if using_infer_string:
-            expected["value_y"] = expected["value_y"].astype("string[pyarrow_numpy]")
+            expected["value_y"] = expected["value_y"].astype("str")
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("dtype", ["float64", "int16", "m8[ns]", "M8[us]"])
@@ -3253,14 +3247,14 @@ class TestAsOfMerge:
             )
 
         left = pd.DataFrame(
-            list(zip([0, 5, 10, 15, 20, 25], [0, 1, 2, 3, 4, 5])),
+            list(zip([0, 5, 10, 15, 20, 25], [0, 1, 2, 3, 4, 5], strict=True)),
             columns=["time", "left"],
         )
 
         left["time"] = pd.to_timedelta(left["time"], "ms").astype(f"m8[{unit}]")
 
         right = pd.DataFrame(
-            list(zip([0, 3, 9, 12, 15, 18], [0, 1, 2, 3, 4, 5])),
+            list(zip([0, 3, 9, 12, 15, 18], [0, 1, 2, 3, 4, 5], strict=True)),
             columns=["time", "right"],
         )
 
@@ -3272,6 +3266,7 @@ class TestAsOfMerge:
                     [0, 5, 10, 15, 20, 25],
                     [0, 1, 2, 3, 4, 5],
                     [0, np.nan, 2, 4, np.nan, np.nan],
+                    strict=True,
                 )
             ),
             columns=["time", "left", "right"],

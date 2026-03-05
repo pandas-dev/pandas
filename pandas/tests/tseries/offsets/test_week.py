@@ -4,6 +4,7 @@ Tests for the following offsets:
 - WeekOfMonth
 - LastWeekOfMonth
 """
+
 from __future__ import annotations
 
 from datetime import (

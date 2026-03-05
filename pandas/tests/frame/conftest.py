@@ -17,9 +17,9 @@ def datetime_frame() -> DataFrame:
     Columns are ['A', 'B', 'C', 'D']
     """
     return DataFrame(
-        np.random.default_rng(2).standard_normal((100, 4)),
-        columns=Index(list("ABCD"), dtype=object),
-        index=date_range("2000-01-01", periods=100, freq="B"),
+        np.random.default_rng(2).standard_normal((10, 4)),
+        columns=Index(list("ABCD")),
+        index=date_range("2000-01-01", periods=10, freq="B"),
     )
 
 
@@ -33,7 +33,7 @@ def float_string_frame():
     df = DataFrame(
         np.random.default_rng(2).standard_normal((30, 4)),
         index=Index([f"foo_{i}" for i in range(30)], dtype=object),
-        columns=Index(list("ABCD"), dtype=object),
+        columns=Index(list("ABCD")),
     )
     df["foo"] = "bar"
     return df
@@ -50,7 +50,7 @@ def mixed_float_frame():
         {
             col: np.random.default_rng(2).random(30, dtype=dtype)
             for col, dtype in zip(
-                list("ABCD"), ["float32", "float32", "float32", "float64"]
+                list("ABCD"), ["float32", "float32", "float32", "float64"], strict=True
             )
         },
         index=Index([f"foo_{i}" for i in range(30)], dtype=object),
@@ -70,7 +70,9 @@ def mixed_int_frame():
     return DataFrame(
         {
             col: np.ones(30, dtype=dtype)
-            for col, dtype in zip(list("ABCD"), ["int32", "uint64", "uint8", "int64"])
+            for col, dtype in zip(
+                list("ABCD"), ["int32", "uint64", "uint8", "int64"], strict=True
+            )
         },
         index=Index([f"foo_{i}" for i in range(30)], dtype=object),
     )
@@ -90,9 +92,9 @@ def timezone_frame():
     """
     df = DataFrame(
         {
-            "A": date_range("20130101", periods=3),
-            "B": date_range("20130101", periods=3, tz="US/Eastern"),
-            "C": date_range("20130101", periods=3, tz="CET"),
+            "A": date_range("20130101", periods=3, unit="ns"),
+            "B": date_range("20130101", periods=3, tz="US/Eastern", unit="ns"),
+            "C": date_range("20130101", periods=3, tz="CET", unit="ns"),
         }
     )
     df.iloc[1, 1] = NaT

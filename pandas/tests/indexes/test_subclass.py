@@ -1,6 +1,7 @@
 """
 Tests involving custom Index subclasses
 """
+
 import numpy as np
 
 from pandas import (

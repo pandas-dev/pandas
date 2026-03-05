@@ -25,25 +25,25 @@ static int to_double(char *item, double *p_value, char sci, char decimal,
 }
 
 static int floatify(PyObject *str, double *result, int *maybe_int) {
-  char *data;
-  PyObject *tmp = NULL;
+  const char *data;
   const char sci = 'E';
   const char dec = '.';
 
   if (PyBytes_Check(str)) {
     data = PyBytes_AS_STRING(str);
   } else if (PyUnicode_Check(str)) {
-    tmp = PyUnicode_AsUTF8String(str);
-    if (tmp == NULL) {
+    // PyUnicode_AsUTF8 returns a pointer to the string's internal UTF-8
+    // buffer (caching it on the object), avoiding a heap allocation.
+    data = PyUnicode_AsUTF8(str);
+    if (data == NULL) {
       return -1;
     }
-    data = PyBytes_AS_STRING(tmp);
   } else {
     PyErr_SetString(PyExc_TypeError, "Invalid object type");
     return -1;
   }
 
-  const int status = to_double(data, result, sci, dec, maybe_int);
+  const int status = to_double((char *)data, result, sci, dec, maybe_int);
 
   if (!status) {
     /* handle inf/-inf infinity/-infinity */
@@ -86,12 +86,10 @@ static int floatify(PyObject *str, double *result, int *maybe_int) {
     }
   }
 
-  Py_XDECREF(tmp);
   return 0;
 
 parsingerror:
   PyErr_Format(PyExc_ValueError, "Unable to parse string \"%s\"", data);
-  Py_XDECREF(tmp);
   return -1;
 }
 
@@ -161,7 +159,12 @@ static int pandas_parser_exec(PyObject *Py_UNUSED(module)) {
 }
 
 static PyModuleDef_Slot pandas_parser_slots[] = {
-    {Py_mod_exec, pandas_parser_exec}, {0, NULL}};
+    {Py_mod_exec, pandas_parser_exec},
+#if PY_VERSION_HEX >= 0x030D0000
+    {Py_mod_gil, Py_MOD_GIL_NOT_USED},
+#endif
+    {0, NULL},
+};
 
 static struct PyModuleDef pandas_parsermodule = {
     PyModuleDef_HEAD_INIT,

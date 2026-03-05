@@ -1,6 +1,7 @@
 """
 Module for scope operations
 """
+
 from __future__ import annotations
 
 from collections import ChainMap
@@ -139,7 +140,7 @@ class Scope:
     temps : dict
     """
 
-    __slots__ = ["level", "scope", "target", "resolvers", "temps"]
+    __slots__ = ["level", "resolvers", "scope", "target", "temps"]
     level: int
     scope: DeepChainMap
     resolvers: DeepChainMap
@@ -351,5 +352,5 @@ class Scope:
         vars : DeepChainMap
             All variables in this scope.
         """
-        maps = [self.temps] + self.resolvers.maps + self.scope.maps
+        maps = [self.temps, *self.resolvers.maps, *self.scope.maps]
         return DeepChainMap(*maps)

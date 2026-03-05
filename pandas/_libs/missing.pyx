@@ -72,7 +72,7 @@ cpdef bint check_na_tuples_nonequal(object left, object right):
     if len(left) != len(right):
         return False
 
-    for left_element, right_element in zip(left, right):
+    for left_element, right_element in zip(left, right, strict=True):
         if left_element is C_NA and right_element is not C_NA:
             return True
         elif right_element is C_NA and left_element is not C_NA:
@@ -242,7 +242,6 @@ cpdef ndarray[uint8_t] isna_string(ndarray arr):
     cdef:
         Py_ssize_t i, n = arr.size
         object val
-        bint is_null
         ndarray result = np.zeros((<object>arr).shape, dtype=np.uint8)
         flatiter it = cnp.PyArray_IterNew(arr)
         flatiter it2 = cnp.PyArray_IterNew(result)
@@ -292,6 +291,24 @@ cdef bint is_null_timedelta64(v):
 cdef bint checknull_with_nat_and_na(object obj):
     # See GH#32214
     return checknull_with_nat(obj) or obj is C_NA
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def is_pdna_or_none(values: ndarray) -> ndarray:
+    cdef:
+        ndarray[uint8_t] result
+        Py_ssize_t i, N
+        object val
+
+    N = len(values)
+    result = np.zeros(N, dtype=np.uint8)
+
+    for i in range(N):
+        val = values[i]
+        if val is None or val is C_NA:
+            result[i] = True
+    return result.view(bool)
 
 
 @cython.wraparound(False)
@@ -392,6 +409,14 @@ class NAType(C_NAType):
     The NA singleton is a missing value indicator defined by pandas. It is
     used in certain new extension dtypes (currently the "string" dtype).
 
+    See Also
+    --------
+    numpy.nan : Floating point representation of Not a Number (NaN) for numerical data.
+    isna : Detect missing values for an array-like object.
+    notna : Detect non-missing values for an array-like object.
+    DataFrame.fillna : Fill missing values in a DataFrame.
+    Series.fillna : Fill missing values in a Series.
+
     Examples
     --------
     >>> pd.NA
@@ -412,6 +437,7 @@ class NAType(C_NAType):
     >>> True | pd.NA
     True
     """
+    __module__ = "pandas.api.typing"
 
     _instance = None
 
@@ -508,6 +534,10 @@ class NAType(C_NAType):
             return False
         elif other is True or other is C_NA:
             return NA
+        elif util.is_bool_object(other):
+            if not other:
+                return False
+            return NA
         return NotImplemented
 
     __rand__ = __and__
@@ -517,12 +547,16 @@ class NAType(C_NAType):
             return True
         elif other is False or other is C_NA:
             return NA
+        elif util.is_bool_object(other):
+            if not other:
+                return NA
+            return True
         return NotImplemented
 
     __ror__ = __or__
 
     def __xor__(self, other):
-        if other is False or other is True or other is C_NA:
+        if util.is_bool_object(other) or other is C_NA:
             return NA
         return NotImplemented
 
@@ -556,3 +590,4 @@ class NAType(C_NAType):
 
 C_NA = NAType()   # C-visible
 NA = C_NA         # Python-visible
+NA.__module__ = "pandas"

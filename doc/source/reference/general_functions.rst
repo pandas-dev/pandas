@@ -7,6 +7,9 @@ General functions
 =================
 .. currentmodule:: pandas
 
+.. note::
+   For an overview, see :ref:`reshaping`.
+
 Data manipulations
 ~~~~~~~~~~~~~~~~~~
 .. autosummary::
@@ -71,6 +74,7 @@ Top-level evaluation
 .. autosummary::
    :toctree: api/
 
+   col
    eval
 
 Datetime formats

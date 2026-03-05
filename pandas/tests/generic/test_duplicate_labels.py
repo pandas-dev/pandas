@@ -1,4 +1,5 @@
 """Tests dealing with the NDFrame.allows_duplicates."""
+
 import operator
 
 import numpy as np
@@ -163,7 +164,6 @@ class TestPreserves:
                     allows_duplicate_labels=False
                 ),
                 False,
-                marks=not_implemented,
             ),
             # false true false
             pytest.param(
@@ -172,7 +172,6 @@ class TestPreserves:
                 ),
                 pd.DataFrame({"B": [0, 1]}, index=["a", "d"]),
                 False,
-                marks=not_implemented,
             ),
             # true true true
             (
@@ -295,7 +294,6 @@ class TestRaises:
         with pytest.raises(pd.errors.DuplicateLabelError, match=msg):
             pd.concat(objs, axis=1)
 
-    @not_implemented
     def test_merge_raises(self):
         a = pd.DataFrame({"A": [0, 1, 2]}, index=["a", "b", "c"]).set_flags(
             allows_duplicate_labels=False
@@ -382,11 +380,11 @@ def test_inplace_raises(method, frame_only):
             method(s)
 
 
-def test_pickle():
+def test_pickle(temp_file):
     a = pd.Series([1, 2]).set_flags(allows_duplicate_labels=False)
-    b = tm.round_trip_pickle(a)
+    b = tm.round_trip_pickle(a, temp_file)
     tm.assert_series_equal(a, b)
 
     a = pd.DataFrame({"A": []}).set_flags(allows_duplicate_labels=False)
-    b = tm.round_trip_pickle(a)
+    b = tm.round_trip_pickle(a, temp_file)
     tm.assert_frame_equal(a, b)

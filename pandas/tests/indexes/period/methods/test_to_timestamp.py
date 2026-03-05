@@ -18,32 +18,32 @@ import pandas._testing as tm
 class TestToTimestamp:
     def test_to_timestamp_non_contiguous(self):
         # GH#44100
-        dti = date_range("2021-10-18", periods=9, freq="D")
+        dti = date_range("2021-10-18", periods=9, freq="D", unit="ns")
         pi = dti.to_period()
 
         result = pi[::2].to_timestamp()
-        expected = dti[::2]
+        expected = dti[::2].as_unit("us")
         tm.assert_index_equal(result, expected)
 
         result = pi._data[::2].to_timestamp()
-        expected = dti._data[::2]
+        expected = dti._data[::2].as_unit("us")
         # TODO: can we get the freq to round-trip?
         tm.assert_datetime_array_equal(result, expected, check_freq=False)
 
         result = pi[::-1].to_timestamp()
-        expected = dti[::-1]
+        expected = dti[::-1].as_unit("us")
         tm.assert_index_equal(result, expected)
 
         result = pi._data[::-1].to_timestamp()
-        expected = dti._data[::-1]
+        expected = dti._data[::-1].as_unit("us")
         tm.assert_datetime_array_equal(result, expected, check_freq=False)
 
         result = pi[::2][::-1].to_timestamp()
-        expected = dti[::2][::-1]
+        expected = dti[::2][::-1].as_unit("us")
         tm.assert_index_equal(result, expected)
 
         result = pi._data[::2][::-1].to_timestamp()
-        expected = dti._data[::2][::-1]
+        expected = dti._data[::2][::-1].as_unit("us")
         tm.assert_datetime_array_equal(result, expected, check_freq=False)
 
     def test_to_timestamp_freq(self):
@@ -59,7 +59,7 @@ class TestToTimestamp:
         result = index.to_timestamp("D")
         expected = DatetimeIndex(
             [NaT, datetime(2011, 1, 1), datetime(2011, 2, 1)],
-            dtype="M8[ns]",
+            dtype="M8[us]",
             name="idx",
         )
         tm.assert_index_equal(result, expected)
@@ -101,15 +101,15 @@ class TestToTimestamp:
 
         result = idx.to_timestamp()
         expected = DatetimeIndex(
-            ["2011-01-01", "NaT", "2011-02-01"], dtype="M8[ns]", name="idx"
+            ["2011-01-01", "NaT", "2011-02-01"], dtype="M8[us]", name="idx"
         )
         tm.assert_index_equal(result, expected)
 
         result = idx.to_timestamp(how="E")
         expected = DatetimeIndex(
-            ["2011-02-28", "NaT", "2011-03-31"], dtype="M8[ns]", name="idx"
+            ["2011-02-28", "NaT", "2011-03-31"], dtype="M8[us]", name="idx"
         )
-        expected = expected + Timedelta(1, "D") - Timedelta(1, "ns")
+        expected = expected + Timedelta(1, "D") - Timedelta(1, "us")
         tm.assert_index_equal(result, expected)
 
     def test_to_timestamp_pi_combined(self):
@@ -117,22 +117,22 @@ class TestToTimestamp:
 
         result = idx.to_timestamp()
         expected = DatetimeIndex(
-            ["2011-01-01 00:00", "2011-01-02 01:00"], dtype="M8[ns]", name="idx"
+            ["2011-01-01 00:00", "2011-01-02 01:00"], dtype="M8[us]", name="idx"
         )
         tm.assert_index_equal(result, expected)
 
         result = idx.to_timestamp(how="E")
         expected = DatetimeIndex(
-            ["2011-01-02 00:59:59", "2011-01-03 01:59:59"], name="idx", dtype="M8[ns]"
+            ["2011-01-02 00:59:59", "2011-01-03 01:59:59"], name="idx", dtype="M8[us]"
         )
-        expected = expected + Timedelta(1, "s") - Timedelta(1, "ns")
+        expected = expected + Timedelta(1, "s") - Timedelta(1, "us")
         tm.assert_index_equal(result, expected)
 
         result = idx.to_timestamp(how="E", freq="h")
         expected = DatetimeIndex(
-            ["2011-01-02 00:00", "2011-01-03 01:00"], dtype="M8[ns]", name="idx"
+            ["2011-01-02 00:00", "2011-01-03 01:00"], dtype="M8[us]", name="idx"
         )
-        expected = expected + Timedelta(1, "h") - Timedelta(1, "ns")
+        expected = expected + Timedelta(1, "h") - Timedelta(1, "us")
         tm.assert_index_equal(result, expected)
 
     def test_to_timestamp_1703(self):
@@ -140,3 +140,10 @@ class TestToTimestamp:
 
         result = index.to_timestamp()
         assert result[0] == Timestamp("1/1/2012")
+
+
+def test_ms_to_timestamp_error_message():
+    # https://github.com/pandas-dev/pandas/issues/58974#issuecomment-2164265446
+    ix = period_range("2000", periods=3, freq="M")
+    with pytest.raises(ValueError, match="for Period, please use 'M' instead of 'MS'"):
+        ix.to_timestamp("MS")

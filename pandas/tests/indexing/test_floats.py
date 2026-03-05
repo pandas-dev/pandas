@@ -87,11 +87,11 @@ class TestFloatIndexers:
         ],
     )
     def test_scalar_non_numeric_series_fallback(self, index):
-        # fallsback to position selection, series only
+        # starting in 3.0, integer keys are always treated as labels, no longer
+        #  fall back to positional.
         s = Series(np.arange(len(index)), index=index)
 
-        msg = "Series.__getitem__ treating keys as positions is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with pytest.raises(KeyError, match="3"):
             s[3]
         with pytest.raises(KeyError, match="^3.0$"):
             s[3.0]
@@ -118,12 +118,9 @@ class TestFloatIndexers:
             indexer_sl(s3)[1.0]
 
         if indexer_sl is not tm.loc:
-            # __getitem__ falls back to positional
-            msg = "Series.__getitem__ treating keys as positions is deprecated"
-            with tm.assert_produces_warning(FutureWarning, match=msg):
-                result = s3[1]
-            expected = 2
-            assert result == expected
+            # as of 3.0, __getitem__ no longer falls back to positional
+            with pytest.raises(KeyError, match="^1$"):
+                s3[1]
 
         with pytest.raises(KeyError, match=r"^1\.0$"):
             indexer_sl(s3)[1.0]
@@ -491,24 +488,12 @@ class TestFloatIndexers:
         for fancy_idx in [[5, 0], np.array([5, 0])]:
             tm.assert_series_equal(indexer_sl(s)[fancy_idx], expected)
 
-        warn = FutureWarning if indexer_sl is tm.setitem else None
-        msg = r"The behavior of obj\[i:j\] with a float-dtype index"
-
         # all should return the same as we are slicing 'the same'
-        with tm.assert_produces_warning(warn, match=msg):
-            result1 = indexer_sl(s)[2:5]
         result2 = indexer_sl(s)[2.0:5.0]
         result3 = indexer_sl(s)[2.0:5]
         result4 = indexer_sl(s)[2.1:5]
-        tm.assert_series_equal(result1, result2)
-        tm.assert_series_equal(result1, result3)
-        tm.assert_series_equal(result1, result4)
-
-        expected = Series([1, 2], index=[2.5, 5.0])
-        with tm.assert_produces_warning(warn, match=msg):
-            result = indexer_sl(s)[2:5]
-
-        tm.assert_series_equal(result, expected)
+        tm.assert_series_equal(result2, result3)
+        tm.assert_series_equal(result2, result4)
 
         # list selection
         result1 = indexer_sl(s)[[0.0, 5, 10]]

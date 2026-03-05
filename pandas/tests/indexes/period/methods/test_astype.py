@@ -22,7 +22,7 @@ class TestPeriodIndexAsType:
         with pytest.raises(TypeError, match=msg):
             idx.astype(dtype)
 
-    def test_astype_conversion(self):
+    def test_astype_conversion(self, using_infer_string):
         # GH#13149, GH#13209
         idx = PeriodIndex(["2016-05-16", "NaT", NaT, np.nan], freq="D", name="idx")
 
@@ -41,7 +41,12 @@ class TestPeriodIndexAsType:
         tm.assert_index_equal(result, expected)
 
         result = idx.astype(str)
-        expected = Index([str(x) for x in idx], name="idx", dtype=object)
+        if using_infer_string:
+            expected = Index(
+                [str(x) if x is not NaT else None for x in idx], name="idx", dtype="str"
+            )
+        else:
+            expected = Index([str(x) for x in idx], name="idx", dtype=object)
         tm.assert_index_equal(result, expected)
 
         idx = period_range("1990", "2009", freq="Y", name="idx")

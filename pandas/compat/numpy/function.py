@@ -15,6 +15,7 @@ This module provides a set of commonly used default arguments for functions and
 methods that are spread throughout the codebase. This module will make it
 easier to adjust to future upstream changes in the analogous numpy signatures.
 """
+
 from __future__ import annotations
 
 from typing import (
@@ -103,7 +104,7 @@ validate_argmax = CompatValidator(
 
 def process_skipna(skipna: bool | ndarray | None, args) -> tuple[bool, Any]:
     if isinstance(skipna, ndarray) or skipna is None:
-        args = (skipna,) + args
+        args = (skipna, *args)
         skipna = True
 
     return skipna, args
@@ -164,11 +165,11 @@ def validate_argsort_with_ascending(ascending: bool | int | None, args, kwargs) 
     None, since 'ascending' itself should be a boolean
     """
     if is_integer(ascending) or ascending is None:
-        args = (ascending,) + args
+        args = (ascending, *args)
         ascending = True
 
     validate_argsort_kind(args, kwargs, max_fname_arg_count=3)
-    ascending = cast(bool, ascending)
+    ascending = cast("bool", ascending)
     return ascending
 
 
@@ -179,13 +180,11 @@ validate_clip = CompatValidator(
 
 
 @overload
-def validate_clip_with_axis(axis: ndarray, args, kwargs) -> None:
-    ...
+def validate_clip_with_axis(axis: ndarray, args, kwargs) -> None: ...
 
 
 @overload
-def validate_clip_with_axis(axis: AxisNoneT, args, kwargs) -> AxisNoneT:
-    ...
+def validate_clip_with_axis(axis: AxisNoneT, args, kwargs) -> AxisNoneT: ...
 
 
 def validate_clip_with_axis(
@@ -198,7 +197,7 @@ def validate_clip_with_axis(
     an integer or None
     """
     if isinstance(axis, ndarray):
-        args = (axis,) + args
+        args = (axis, *args)
         # error: Incompatible types in assignment (expression has type "None",
         # variable has type "Union[ndarray[Any, Any], str, int]")
         axis = None  # type: ignore[assignment]
@@ -227,7 +226,7 @@ def validate_cum_func_with_skipna(skipna: bool, args, kwargs, name) -> bool:
     check if the 'skipna' parameter is a boolean or not
     """
     if not is_bool(skipna):
-        args = (skipna,) + args
+        args = (skipna, *args)
         skipna = True
     elif isinstance(skipna, np.bool_):
         skipna = bool(skipna)
@@ -259,10 +258,6 @@ validate_max = CompatValidator(
     MINMAX_DEFAULTS, fname="max", method="both", max_fname_arg_count=1
 )
 
-RESHAPE_DEFAULTS: dict[str, str] = {"order": "C"}
-validate_reshape = CompatValidator(
-    RESHAPE_DEFAULTS, fname="reshape", method="both", max_fname_arg_count=1
-)
 
 REPEAT_DEFAULTS: dict[str, Any] = {"axis": None}
 validate_repeat = CompatValidator(
@@ -273,12 +268,6 @@ ROUND_DEFAULTS: dict[str, Any] = {"out": None}
 validate_round = CompatValidator(
     ROUND_DEFAULTS, fname="round", method="both", max_fname_arg_count=1
 )
-
-SORT_DEFAULTS: dict[str, int | str | None] = {}
-SORT_DEFAULTS["axis"] = -1
-SORT_DEFAULTS["kind"] = "quicksort"
-SORT_DEFAULTS["order"] = None
-validate_sort = CompatValidator(SORT_DEFAULTS, fname="sort", method="kwargs")
 
 STAT_FUNC_DEFAULTS: dict[str, Any | None] = {}
 STAT_FUNC_DEFAULTS["dtype"] = None
@@ -325,20 +314,6 @@ TAKE_DEFAULTS["mode"] = "raise"
 validate_take = CompatValidator(TAKE_DEFAULTS, fname="take", method="kwargs")
 
 
-def validate_take_with_convert(convert: ndarray | bool | None, args, kwargs) -> bool:
-    """
-    If this function is called via the 'numpy' library, the third parameter in
-    its signature is 'axis', which takes either an ndarray or 'None', so check
-    if the 'convert' parameter is either an instance of ndarray or is None
-    """
-    if isinstance(convert, ndarray) or convert is None:
-        args = (convert,) + args
-        convert = True
-
-    validate_take(args, kwargs, max_fname_arg_count=3, method="both")
-    return convert
-
-
 TRANSPOSE_DEFAULTS = {"axes": None}
 validate_transpose = CompatValidator(
     TRANSPOSE_DEFAULTS, fname="transpose", method="both", max_fname_arg_count=0
@@ -361,23 +336,6 @@ def validate_groupby_func(name: str, args, kwargs, allowed=None) -> None:
             "numpy operations are not valid with groupby. "
             f"Use .groupby(...).{name}() instead"
         )
-
-
-RESAMPLER_NUMPY_OPS = ("min", "max", "sum", "prod", "mean", "std", "var")
-
-
-def validate_resampler_func(method: str, args, kwargs) -> None:
-    """
-    'args' and 'kwargs' should be empty because all of their necessary
-    parameters are explicitly listed in the function signature
-    """
-    if len(args) + len(kwargs) > 0:
-        if method in RESAMPLER_NUMPY_OPS:
-            raise UnsupportedFunctionCall(
-                "numpy operations are not valid with resample. "
-                f"Use .resample(...).{method}() instead"
-            )
-        raise TypeError("too many arguments passed in")
 
 
 def validate_minmax_axis(axis: AxisInt | None, ndim: int = 1) -> None:

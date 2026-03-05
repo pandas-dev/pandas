@@ -502,7 +502,7 @@ class TestGetIndexer:
         )
 
         msg = "Input has different freq=None from PeriodArray\\(freq=h\\)"
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(libperiod.IncompatibleFrequency, match=msg):
             idx.get_indexer(target, "nearest", tolerance="1 minute")
 
         tm.assert_numpy_array_equal(
@@ -523,7 +523,7 @@ class TestGetIndexer:
         tol_bad = [
             Timedelta("2 hour").to_timedelta64(),
             Timedelta("1 hour").to_timedelta64(),
-            np.timedelta64(1, "M"),
+            np.timedelta64(2629746, "s"),
         ]
         with pytest.raises(
             libperiod.IncompatibleFrequency, match="Input has different freq=None from"
@@ -540,7 +540,7 @@ class TestWhere:
         tm.assert_index_equal(result, expected)
 
         cond = [False] + [True] * (len(i) - 1)
-        expected = PeriodIndex([NaT] + i[1:].tolist(), freq="D")
+        expected = PeriodIndex([NaT, *i[1:].tolist()], freq="D")
         result = i.where(listlike_box(cond))
         tm.assert_index_equal(result, expected)
 
@@ -552,12 +552,12 @@ class TestWhere:
             tm.assert_index_equal(result, expected)
 
         i2 = i.copy()
-        i2 = PeriodIndex([NaT, NaT] + i[2:].tolist(), freq="D")
+        i2 = PeriodIndex([NaT, NaT, *i[2:].tolist()], freq="D")
         result = i.where(notna(i2), i2)
         tm.assert_index_equal(result, i2)
 
         i2 = i.copy()
-        i2 = PeriodIndex([NaT, NaT] + i[2:].tolist(), freq="D")
+        i2 = PeriodIndex([NaT, NaT, *i[2:].tolist()], freq="D")
         result = i.where(notna(i2), i2.values)
         tm.assert_index_equal(result, i2)
 
@@ -565,28 +565,28 @@ class TestWhere:
         pi = period_range("20130101", periods=5, freq="D")
 
         tail = pi[2:].tolist()
-        i2 = PeriodIndex([NaT, NaT] + tail, freq="D")
+        i2 = PeriodIndex([NaT, NaT, *tail], freq="D")
         mask = notna(i2)
 
         result = pi.where(mask, i2.asi8)
-        expected = pd.Index([NaT._value, NaT._value] + tail, dtype=object)
+        expected = pd.Index([NaT._value, NaT._value, *tail], dtype=object)
         assert isinstance(expected[0], int)
         tm.assert_index_equal(result, expected)
 
         tdi = i2.asi8.view("timedelta64[ns]")
-        expected = pd.Index([tdi[0], tdi[1]] + tail, dtype=object)
+        expected = pd.Index([tdi[0], tdi[1], *tail], dtype=object)
         assert isinstance(expected[0], np.timedelta64)
         result = pi.where(mask, tdi)
         tm.assert_index_equal(result, expected)
 
         dti = i2.to_timestamp("s")
-        expected = pd.Index([dti[0], dti[1]] + tail, dtype=object)
+        expected = pd.Index([dti[0], dti[1], *tail], dtype=object)
         assert expected[0] is NaT
         result = pi.where(mask, dti)
         tm.assert_index_equal(result, expected)
 
         td = Timedelta(days=4)
-        expected = pd.Index([td, td] + tail, dtype=object)
+        expected = pd.Index([td, td, *tail], dtype=object)
         assert expected[0] == td
         result = pi.where(mask, td)
         tm.assert_index_equal(result, expected)
@@ -700,8 +700,7 @@ class TestTake:
         tm.assert_index_equal(result, expected)
 
         msg = (
-            "When allow_fill=True and fill_value is not None, "
-            "all indices must be >= -1"
+            "When allow_fill=True and fill_value is not None, all indices must be >= -1"
         )
         with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -2]), fill_value=True)

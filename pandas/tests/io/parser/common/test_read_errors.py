@@ -2,6 +2,7 @@
 Tests that work on the Python, C and PyArrow engines but do not have a
 specific classification into the other test modules.
 """
+
 import codecs
 import csv
 from io import StringIO
@@ -11,7 +12,6 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from pandas.compat import PY311
 from pandas.errors import (
     EmptyDataError,
     ParserError,
@@ -57,9 +57,12 @@ def test_bad_stream_exception(all_parsers, csv_dir_path):
     msg = "'utf-8' codec can't decode byte"
 
     # Stream must be binary UTF8.
-    with open(path, "rb") as handle, codecs.StreamRecoder(
-        handle, utf8.encode, utf8.decode, codec.streamreader, codec.streamwriter
-    ) as stream:
+    with (
+        open(path, "rb") as handle,
+        codecs.StreamRecoder(
+            handle, utf8.encode, utf8.decode, codec.streamreader, codec.streamwriter
+        ) as stream,
+    ):
         with pytest.raises(UnicodeDecodeError, match=msg):
             parser.read_csv(stream)
 
@@ -127,8 +130,7 @@ def test_catch_too_many_names(all_parsers):
     msg = (
         "Too many columns specified: expected 4 and found 3"
         if parser.engine == "c"
-        else "Number of passed names did not match "
-        "number of header fields in the file"
+        else "Number of passed names did not match number of header fields in the file"
     )
 
     with pytest.raises(ValueError, match=msg):
@@ -192,7 +194,6 @@ def test_warn_bad_lines(all_parsers):
     expected_warning = ParserWarning
     if parser.engine == "pyarrow":
         match_msg = "Expected 1 columns, but found 3: 1,2,3"
-        expected_warning = (ParserWarning, DeprecationWarning)
 
     with tm.assert_produces_warning(
         expected_warning, match=match_msg, check_stacklevel=False
@@ -225,12 +226,10 @@ def test_null_byte_char(request, all_parsers):
     names = ["a", "b"]
     parser = all_parsers
 
-    if parser.engine == "c" or (parser.engine == "python" and PY311):
-        if parser.engine == "python" and PY311:
+    if parser.engine in ["c", "python"]:
+        if parser.engine == "python":
             request.applymarker(
-                pytest.mark.xfail(
-                    reason="In Python 3.11, this is read as an empty character not null"
-                )
+                pytest.mark.xfail(reason="This is read as an empty character not null")
             )
         expected = DataFrame([[np.nan, "foo"]], columns=names)
         out = parser.read_csv(StringIO(data), names=names)
@@ -247,29 +246,26 @@ def test_null_byte_char(request, all_parsers):
 
 
 @pytest.mark.filterwarnings("always::ResourceWarning")
-def test_open_file(request, all_parsers):
+def test_open_file(all_parsers, temp_file):
     # GH 39024
     parser = all_parsers
 
     msg = "Could not determine delimiter"
     err = csv.Error
     if parser.engine == "c":
-        msg = "the 'c' engine does not support sep=None with delim_whitespace=False"
-        err = ValueError
+        msg = "object of type 'NoneType' has no len"
+        err = TypeError
     elif parser.engine == "pyarrow":
-        msg = (
-            "the 'pyarrow' engine does not support sep=None with delim_whitespace=False"
-        )
+        msg = "'utf-8' codec can't decode byte 0xe4"
         err = ValueError
 
-    with tm.ensure_clean() as path:
-        file = Path(path)
-        file.write_bytes(b"\xe4\na\n1")
+    file = Path(temp_file)
+    file.write_bytes(b"\xe4\na\n1")
 
-        with tm.assert_produces_warning(None):
-            # should not trigger a ResourceWarning
-            with pytest.raises(err, match=msg):
-                parser.read_csv(file, sep=None, encoding_errors="replace")
+    with tm.assert_produces_warning(None):
+        # should not trigger a ResourceWarning
+        with pytest.raises(err, match=msg):
+            parser.read_csv(file, sep=None, encoding_errors="replace")
 
 
 def test_invalid_on_bad_line(all_parsers):
@@ -311,7 +307,6 @@ a,b
     expected_warning = ParserWarning
     if parser.engine == "pyarrow":
         match_msg = "Expected 2 columns, but found 3: a,b,c"
-        expected_warning = (ParserWarning, DeprecationWarning)
 
     with tm.assert_produces_warning(
         expected_warning, match=match_msg, check_stacklevel=False

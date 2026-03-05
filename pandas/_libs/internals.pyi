@@ -1,6 +1,9 @@
-from typing import (
+from collections.abc import (
     Iterator,
     Sequence,
+)
+from typing import (
+    Self,
     final,
     overload,
 )
@@ -10,7 +13,6 @@ import numpy as np
 
 from pandas._typing import (
     ArrayLike,
-    Self,
     npt,
 )
 
@@ -35,6 +37,7 @@ def update_blklocs_and_blknos(
     loc: int,
     nblocks: int,
 ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]: ...
+
 @final
 class BlockPlacement:
     def __init__(self, val: int | slice | np.ndarray) -> None: ...
@@ -55,6 +58,7 @@ class BlockPlacement:
     def __iter__(self) -> Iterator[int]: ...
     def __len__(self) -> int: ...
     def delete(self, loc) -> BlockPlacement: ...
+    def increment_above(self, loc: int) -> BlockPlacement: ...
     def add(self, other) -> BlockPlacement: ...
     def append(self, others: list[BlockPlacement]) -> BlockPlacement: ...
     def tile_for_unstack(self, factor: int) -> npt.NDArray[np.intp]: ...

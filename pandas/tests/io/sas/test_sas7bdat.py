@@ -7,7 +7,10 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from pandas.compat import IS64
+from pandas.compat._constants import (
+    IS64,
+    WASM,
+)
 from pandas.errors import EmptyDataError
 
 import pandas as pd
@@ -27,9 +30,9 @@ def data_test_ix(request, dirpath):
     fname = os.path.join(dirpath, f"test_sas7bdat_{i}.csv")
     df = pd.read_csv(fname)
     epoch = datetime(1960, 1, 1)
-    t1 = pd.to_timedelta(df["Column4"], unit="d")
+    t1 = pd.to_timedelta(df["Column4"], unit="D")
     df["Column4"] = (epoch + t1).astype("M8[s]")
-    t2 = pd.to_timedelta(df["Column12"], unit="d")
+    t2 = pd.to_timedelta(df["Column12"], unit="D")
     df["Column12"] = (epoch + t2).astype("M8[s]")
     for k in range(df.shape[1]):
         col = df.iloc[:, k]
@@ -119,7 +122,7 @@ def test_encoding_options(datapath):
 
     with contextlib.closing(SAS7BDATReader(fname, convert_header_text=False)) as rdr:
         df3 = rdr.read()
-    for x, y in zip(df1.columns, df3.columns):
+    for x, y in zip(df1.columns, df3.columns, strict=True):
         assert x == y.decode()
 
 
@@ -190,7 +193,7 @@ def test_date_time(datapath):
     res = df0["DateTimeHi"].astype("M8[us]").dt.round("ms")
     df0["DateTimeHi"] = res.astype("M8[ms]")
 
-    if not IS64:
+    if not IS64 and not WASM:
         # No good reason for this, just what we get on the CI
         df0.loc[0, "DateTimeHi"] += np.timedelta64(1, "ms")
         df0.loc[[2, 3], "DateTimeHi"] -= np.timedelta64(1, "ms")
@@ -236,11 +239,13 @@ def test_zero_variables(datapath):
         pd.read_sas(fname)
 
 
-def test_zero_rows(datapath):
+@pytest.mark.parametrize("encoding", [None, "utf8"])
+def test_zero_rows(datapath, encoding):
     # GH 18198
     fname = datapath("io", "sas", "data", "zero_rows.sas7bdat")
-    result = pd.read_sas(fname)
-    expected = pd.DataFrame([{"char_field": "a", "num_field": 1.0}]).iloc[:0]
+    result = pd.read_sas(fname, encoding=encoding)
+    str_value = b"a" if encoding is None else "a"
+    expected = pd.DataFrame([{"char_field": str_value, "num_field": 1.0}]).iloc[:0]
     tm.assert_frame_equal(result, expected)
 
 
@@ -254,11 +259,10 @@ def test_corrupt_read(datapath):
 
 
 def test_max_sas_date(datapath):
-    # GH 20927
+    # GH 20927, GH 56014
     # NB. max datetime in SAS dataset is 31DEC9999:23:59:59.999
-    #    but this is read as 29DEC9999:23:59:59.998993 by a buggy
-    #    sas7bdat module
-    # See also GH#56014 for discussion of the correct "expected" results.
+    # SAS uses a modified Gregorian calendar where years divisible by 4000
+    # are not leap years, producing a 2-day offset for dates >= year 4000.
     fname = datapath("io", "sas", "data", "max_sas_date.sas7bdat")
     df = pd.read_sas(fname, encoding="iso-8859-1")
 
@@ -268,7 +272,7 @@ def test_max_sas_date(datapath):
             "dt_as_float": [253717747199.999, 1880323199.999],
             "dt_as_dt": np.array(
                 [
-                    datetime(9999, 12, 29, 23, 59, 59, 999000),
+                    datetime(9999, 12, 31, 23, 59, 59, 999000),
                     datetime(2019, 8, 1, 23, 59, 59, 999000),
                 ],
                 dtype="M8[ms]",
@@ -276,7 +280,7 @@ def test_max_sas_date(datapath):
             "date_as_float": [2936547.0, 21762.0],
             "date_as_date": np.array(
                 [
-                    datetime(9999, 12, 29),
+                    datetime(9999, 12, 31),
                     datetime(2019, 8, 1),
                 ],
                 dtype="M8[s]",
@@ -285,9 +289,10 @@ def test_max_sas_date(datapath):
         columns=["text", "dt_as_float", "dt_as_dt", "date_as_float", "date_as_date"],
     )
 
-    if not IS64:
+    if not IS64 and not WASM:
         # No good reason for this, just what we get on the CI
         expected.loc[:, "dt_as_dt"] -= np.timedelta64(1, "ms")
+        expected.loc[1, "dt_as_dt"] = pd.Timestamp("2019-08-01 23:59:59.998")
 
     tm.assert_frame_equal(df, expected)
 
@@ -310,10 +315,10 @@ def test_max_sas_date_iterator(datapath):
                 "text": ["max"],
                 "dt_as_float": [253717747199.999],
                 "dt_as_dt": np.array(
-                    [datetime(9999, 12, 29, 23, 59, 59, 999000)], dtype="M8[ms]"
+                    [datetime(9999, 12, 31, 23, 59, 59, 999000)], dtype="M8[ms]"
                 ),
                 "date_as_float": [2936547.0],
-                "date_as_date": np.array([datetime(9999, 12, 29)], dtype="M8[s]"),
+                "date_as_date": np.array([datetime(9999, 12, 31)], dtype="M8[s]"),
             },
             columns=col_order,
         ),
@@ -328,10 +333,10 @@ def test_max_sas_date_iterator(datapath):
             columns=col_order,
         ),
     ]
-    if not IS64:
+    if not IS64 and not WASM:
         # No good reason for this, just what we get on the CI
         expected[0].loc[0, "dt_as_dt"] -= np.timedelta64(1, "ms")
-        expected[1].loc[0, "dt_as_dt"] -= np.timedelta64(1, "ms")
+        expected[1].loc[0, "dt_as_dt"] = pd.Timestamp("2019-08-01 23:59:59.998")
 
     tm.assert_frame_equal(results[0], expected[0])
     tm.assert_frame_equal(results[1], expected[1])
@@ -345,21 +350,21 @@ def test_null_date(datapath):
         {
             "datecol": np.array(
                 [
-                    datetime(9999, 12, 29),
+                    datetime(9999, 12, 31),
                     np.datetime64("NaT"),
                 ],
                 dtype="M8[s]",
             ),
             "datetimecol": np.array(
                 [
-                    datetime(9999, 12, 29, 23, 59, 59, 999000),
+                    datetime(9999, 12, 31, 23, 59, 59, 999000),
                     np.datetime64("NaT"),
                 ],
                 dtype="M8[ms]",
             ),
         },
     )
-    if not IS64:
+    if not IS64 and not WASM:
         # No good reason for this, just what we get on the CI
         expected.loc[0, "datetimecol"] -= np.timedelta64(1, "ms")
     tm.assert_frame_equal(df, expected)
@@ -396,7 +401,7 @@ def test_0x40_control_byte(datapath):
     fname = datapath("io", "sas", "data", "0x40controlbyte.sas7bdat")
     df = pd.read_sas(fname, encoding="ascii")
     fname = datapath("io", "sas", "data", "0x40controlbyte.csv")
-    df0 = pd.read_csv(fname, dtype="object")
+    df0 = pd.read_csv(fname, dtype="str")
     tm.assert_frame_equal(df, df0)
 
 

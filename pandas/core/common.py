@@ -3,6 +3,7 @@ Misc tools for implementing data structures
 
 Note: pandas.core.common is *not* part of the public API.
 """
+
 from __future__ import annotations
 
 import builtins
@@ -10,30 +11,22 @@ from collections import (
     abc,
     defaultdict,
 )
-from collections.abc import (
-    Collection,
-    Generator,
-    Hashable,
-    Iterable,
-    Sequence,
-)
 import contextlib
 from functools import partial
 import inspect
+import sys
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
+    Concatenate,
     TypeVar,
     cast,
     overload,
 )
-import warnings
 
 import numpy as np
 
 from pandas._libs import lib
-from pandas.compat.numpy import np_version_gte1p24
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
@@ -44,15 +37,26 @@ from pandas.core.dtypes.generic import (
     ABCExtensionArray,
     ABCIndex,
     ABCMultiIndex,
+    ABCNumpyExtensionArray,
     ABCSeries,
 )
 from pandas.core.dtypes.inference import iterable_not_string
 
+from pandas.core.col import Expression
+
 if TYPE_CHECKING:
+    from collections.abc import (
+        Callable,
+        Collection,
+        Generator,
+        Hashable,
+        Iterable,
+        Sequence,
+    )
+
     from pandas._typing import (
         AnyArrayLike,
         ArrayLike,
-        Concatenate,
         NpDtype,
         P,
         RandomState,
@@ -92,8 +96,10 @@ def consensus_name_attr(objs):
         try:
             if obj.name != name:
                 name = None
+                break
         except ValueError:
             name = None
+            break
     return name
 
 
@@ -126,7 +132,8 @@ def is_bool_indexer(key: Any) -> bool:
         and convert to an ndarray.
     """
     if isinstance(
-        key, (ABCSeries, np.ndarray, ABCIndex, ABCExtensionArray)
+        key,
+        (ABCSeries, np.ndarray, ABCIndex, ABCExtensionArray, ABCNumpyExtensionArray),
     ) and not isinstance(key, ABCMultiIndex):
         if key.dtype == np.object_:
             key_array = np.asarray(key)
@@ -144,7 +151,7 @@ def is_bool_indexer(key: Any) -> bool:
     elif isinstance(key, list):
         # check if np.array(key).dtype would be bool
         if len(key) > 0:
-            if type(key) is not list:  # noqa: E721
+            if type(key) is not list:
                 # GH#42461 cython will raise TypeError if we pass a subclass
                 key = list(key)
             return lib.is_bool_list(key)
@@ -227,8 +234,7 @@ def asarray_tuplesafe(
 
 
 @overload
-def asarray_tuplesafe(values: Iterable, dtype: NpDtype | None = ...) -> ArrayLike:
-    ...
+def asarray_tuplesafe(values: Iterable, dtype: NpDtype | None = ...) -> ArrayLike: ...
 
 
 def asarray_tuplesafe(values: Iterable, dtype: NpDtype | None = None) -> ArrayLike:
@@ -243,11 +249,7 @@ def asarray_tuplesafe(values: Iterable, dtype: NpDtype | None = None) -> ArrayLi
         return construct_1d_object_array_from_listlike(values)
 
     try:
-        with warnings.catch_warnings():
-            # Can remove warning filter once NumPy 1.24 is min version
-            if not np_version_gte1p24:
-                warnings.simplefilter("ignore", np.VisibleDeprecationWarning)
-            result = np.asarray(values, dtype=dtype)
+        result = np.asarray(values, dtype=dtype)
     except ValueError:
         # Using try/except since it's more performant than checking is_list_like
         # over each element
@@ -290,9 +292,9 @@ def index_labels_to_array(
         except TypeError:  # non-iterable
             labels = [labels]
 
-    labels = asarray_tuplesafe(labels, dtype=dtype)
+    rlabels = asarray_tuplesafe(labels, dtype=dtype)
 
-    return labels
+    return rlabels
 
 
 def maybe_make_list(obj):
@@ -307,7 +309,7 @@ def maybe_iterable_to_list(obj: Iterable[T] | T) -> Collection[T] | T:
     """
     if isinstance(obj, abc.Iterable) and not isinstance(obj, abc.Sized):
         return list(obj)
-    obj = cast(Collection, obj)
+    obj = cast("Collection", obj)
     return obj
 
 
@@ -335,11 +337,12 @@ def is_empty_slice(obj) -> bool:
     )
 
 
-def is_true_slices(line) -> list[bool]:
+def is_true_slices(line: abc.Iterable) -> abc.Generator[bool, None, None]:
     """
-    Find non-trivial slices in "line": return a list of booleans with same length.
+    Find non-trivial slices in "line": yields a bool.
     """
-    return [isinstance(k, slice) and not is_null_slice(k) for k in line]
+    for k in line:
+        yield isinstance(k, slice) and not is_null_slice(k)
 
 
 # TODO: used only once in indexing; belongs elsewhere?
@@ -358,7 +361,7 @@ def is_full_slice(obj, line: int) -> bool:
 def get_callable_name(obj):
     # typical case has name
     if hasattr(obj, "__name__"):
-        return getattr(obj, "__name__")
+        return obj.__name__
     # some objects don't; could recurse
     if isinstance(obj, partial):
         return get_callable_name(obj.func)
@@ -383,7 +386,9 @@ def apply_if_callable(maybe_callable, obj, **kwargs):
     obj : NDFrame
     **kwargs
     """
-    if callable(maybe_callable):
+    if isinstance(maybe_callable, Expression):
+        return maybe_callable._eval_expression(obj, **kwargs)
+    elif callable(maybe_callable):
         return maybe_callable(obj, **kwargs)
 
     return maybe_callable
@@ -422,15 +427,13 @@ def standardize_mapping(into):
 
 
 @overload
-def random_state(state: np.random.Generator) -> np.random.Generator:
-    ...
+def random_state(state: np.random.Generator) -> np.random.Generator: ...
 
 
 @overload
 def random_state(
     state: int | np.ndarray | np.random.BitGenerator | np.random.RandomState | None,
-) -> np.random.RandomState:
-    ...
+) -> np.random.RandomState: ...
 
 
 def random_state(state: RandomState | None = None):
@@ -477,8 +480,7 @@ def pipe(
     func: Callable[Concatenate[_T, P], T],
     *args: P.args,
     **kwargs: P.kwargs,
-) -> T:
-    ...
+) -> T: ...
 
 
 @overload
@@ -487,8 +489,7 @@ def pipe(
     func: tuple[Callable[..., T], str],
     *args: Any,
     **kwargs: Any,
-) -> T:
-    ...
+) -> T: ...
 
 
 def pipe(
@@ -563,9 +564,7 @@ def convert_to_list_like(
 
 
 @contextlib.contextmanager
-def temp_setattr(
-    obj, attr: str, value, condition: bool = True
-) -> Generator[None, None, None]:
+def temp_setattr(obj, attr: str, value, condition: bool = True) -> Generator[None]:
     """
     Temporarily set attribute on an object.
 
@@ -648,8 +647,6 @@ def fill_missing_names(names: Sequence[Hashable | None]) -> list[Hashable]:
     """
     If a name is missing then replace it by level_n, where n is the count
 
-    .. versionadded:: 1.4.0
-
     Parameters
     ----------
     names : list-like
@@ -661,3 +658,29 @@ def fill_missing_names(names: Sequence[Hashable | None]) -> list[Hashable]:
         list of column names with the None values replaced.
     """
     return [f"level_{i}" if name is None else name for i, name in enumerate(names)]
+
+
+def is_local_in_caller_frame(obj):
+    """
+    Helper function used in detecting chained assignment.
+
+    If the pandas object (DataFrame/Series) is a local variable
+    in the caller's frame, it should not be a case of chained
+    assignment or method call.
+
+    For example:
+
+    def test():
+        df = pd.DataFrame(...)
+        df["a"] = 1  # not chained assignment
+
+    Inside ``df.__setitem__``, we call this function to check whether `df`
+    (`self`) is a local variable in `test` frame (the frame calling setitem). If
+    so, we know it is not a case of chained assignment (even when the refcount
+    of `df` is below the threshold due to optimization of local variables).
+    """
+    frame = sys._getframe(2)
+    for v in frame.f_locals.values():
+        if v is obj:
+            return True
+    return False

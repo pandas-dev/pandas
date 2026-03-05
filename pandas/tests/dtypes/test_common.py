@@ -3,6 +3,8 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
+from pandas.compat import HAS_PYARROW
+from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.astype import astype_array
@@ -21,6 +23,7 @@ import pandas as pd
 import pandas._testing as tm
 from pandas.api.types import pandas_dtype
 from pandas.arrays import SparseArray
+from pandas.util.version import Version
 
 
 # EA & Actual Dtypes
@@ -115,7 +118,7 @@ dtypes = {
     "float": np.dtype(np.float64),
     "object": np.dtype(object),
     "category": com.pandas_dtype("category"),
-    "string": pd.StringDtype(),
+    "string": pd.StringDtype("python"),
 }
 
 
@@ -182,7 +185,7 @@ def test_get_dtype_error_catch(func):
         or func is com.is_categorical_dtype
         or func is com.is_period_dtype
     ):
-        warn = DeprecationWarning
+        warn = Pandas4Warning
 
     with tm.assert_produces_warning(warn, match=msg):
         assert not func(None)
@@ -202,7 +205,7 @@ def test_is_object():
 )
 def test_is_sparse(check_scipy):
     msg = "is_sparse is deprecated"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
         assert com.is_sparse(SparseArray([1, 2, 3]))
 
         assert not com.is_sparse(np.array([1, 2, 3]))
@@ -232,7 +235,7 @@ def test_is_datetime64_dtype():
 
 def test_is_datetime64tz_dtype():
     msg = "is_datetime64tz_dtype is deprecated"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
         assert not com.is_datetime64tz_dtype(object)
         assert not com.is_datetime64tz_dtype([1, 2, 3])
         assert not com.is_datetime64tz_dtype(pd.DatetimeIndex([1, 2, 3]))
@@ -248,7 +251,7 @@ def test_custom_ea_kind_M_not_datetime64tz():
 
     not_tz_dtype = NotTZDtype()
     msg = "is_datetime64tz_dtype is deprecated"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
         assert not com.is_datetime64tz_dtype(not_tz_dtype)
         assert not com.needs_i8_conversion(not_tz_dtype)
 
@@ -340,12 +343,14 @@ integer_dtypes: list = []
 
 @pytest.mark.parametrize(
     "dtype",
-    integer_dtypes
-    + [pd.Series([1, 2])]
-    + tm.ALL_INT_NUMPY_DTYPES
-    + to_numpy_dtypes(tm.ALL_INT_NUMPY_DTYPES)
-    + tm.ALL_INT_EA_DTYPES
-    + to_ea_dtypes(tm.ALL_INT_EA_DTYPES),
+    [
+        *integer_dtypes,
+        pd.Series([1, 2]),
+        *tm.ALL_INT_NUMPY_DTYPES,
+        *to_numpy_dtypes(tm.ALL_INT_NUMPY_DTYPES),
+        *tm.ALL_INT_EA_DTYPES,
+        *to_ea_dtypes(tm.ALL_INT_EA_DTYPES),
+    ],
 )
 def test_is_integer_dtype(dtype):
     assert com.is_integer_dtype(dtype)
@@ -372,12 +377,14 @@ signed_integer_dtypes: list = []
 
 @pytest.mark.parametrize(
     "dtype",
-    signed_integer_dtypes
-    + [pd.Series([1, 2])]
-    + tm.SIGNED_INT_NUMPY_DTYPES
-    + to_numpy_dtypes(tm.SIGNED_INT_NUMPY_DTYPES)
-    + tm.SIGNED_INT_EA_DTYPES
-    + to_ea_dtypes(tm.SIGNED_INT_EA_DTYPES),
+    [
+        *signed_integer_dtypes,
+        pd.Series([1, 2]),
+        *tm.SIGNED_INT_NUMPY_DTYPES,
+        *to_numpy_dtypes(tm.SIGNED_INT_NUMPY_DTYPES),
+        *tm.SIGNED_INT_EA_DTYPES,
+        *to_ea_dtypes(tm.SIGNED_INT_EA_DTYPES),
+    ],
 )
 def test_is_signed_integer_dtype(dtype):
     assert com.is_integer_dtype(dtype)
@@ -393,11 +400,11 @@ def test_is_signed_integer_dtype(dtype):
         pd.Index([1, 2.0]),
         np.array(["a", "b"]),
         np.array([], dtype=np.timedelta64),
-    ]
-    + tm.UNSIGNED_INT_NUMPY_DTYPES
-    + to_numpy_dtypes(tm.UNSIGNED_INT_NUMPY_DTYPES)
-    + tm.UNSIGNED_INT_EA_DTYPES
-    + to_ea_dtypes(tm.UNSIGNED_INT_EA_DTYPES),
+        *tm.UNSIGNED_INT_NUMPY_DTYPES,
+        *to_numpy_dtypes(tm.UNSIGNED_INT_NUMPY_DTYPES),
+        *tm.UNSIGNED_INT_EA_DTYPES,
+        *to_ea_dtypes(tm.UNSIGNED_INT_EA_DTYPES),
+    ],
 )
 def test_is_not_signed_integer_dtype(dtype):
     assert not com.is_signed_integer_dtype(dtype)
@@ -408,12 +415,14 @@ unsigned_integer_dtypes: list = []
 
 @pytest.mark.parametrize(
     "dtype",
-    unsigned_integer_dtypes
-    + [pd.Series([1, 2], dtype=np.uint32)]
-    + tm.UNSIGNED_INT_NUMPY_DTYPES
-    + to_numpy_dtypes(tm.UNSIGNED_INT_NUMPY_DTYPES)
-    + tm.UNSIGNED_INT_EA_DTYPES
-    + to_ea_dtypes(tm.UNSIGNED_INT_EA_DTYPES),
+    [
+        *unsigned_integer_dtypes,
+        pd.Series([1, 2], dtype=np.uint32),
+        *tm.UNSIGNED_INT_NUMPY_DTYPES,
+        *to_numpy_dtypes(tm.UNSIGNED_INT_NUMPY_DTYPES),
+        *tm.UNSIGNED_INT_EA_DTYPES,
+        *to_ea_dtypes(tm.UNSIGNED_INT_EA_DTYPES),
+    ],
 )
 def test_is_unsigned_integer_dtype(dtype):
     assert com.is_unsigned_integer_dtype(dtype)
@@ -429,11 +438,11 @@ def test_is_unsigned_integer_dtype(dtype):
         pd.Index([1, 2.0]),
         np.array(["a", "b"]),
         np.array([], dtype=np.timedelta64),
-    ]
-    + tm.SIGNED_INT_NUMPY_DTYPES
-    + to_numpy_dtypes(tm.SIGNED_INT_NUMPY_DTYPES)
-    + tm.SIGNED_INT_EA_DTYPES
-    + to_ea_dtypes(tm.SIGNED_INT_EA_DTYPES),
+        *tm.SIGNED_INT_NUMPY_DTYPES,
+        *to_numpy_dtypes(tm.SIGNED_INT_NUMPY_DTYPES),
+        *tm.SIGNED_INT_EA_DTYPES,
+        *to_ea_dtypes(tm.SIGNED_INT_EA_DTYPES),
+    ],
 )
 def test_is_not_unsigned_integer_dtype(dtype):
     assert not com.is_unsigned_integer_dtype(dtype)
@@ -574,8 +583,7 @@ def test_is_numeric_dtype():
         def name(self):
             raise NotImplementedError
 
-        @classmethod
-        def construct_array_type(cls):
+        def construct_array_type(self):
             raise NotImplementedError
 
         def _is_numeric(self) -> bool:
@@ -709,6 +717,10 @@ def test_get_dtype(input_param, result):
         # numpy dev changed from double-quotes to single quotes
         ("random string", "data type [\"']random string[\"'] not understood"),
         (pd.DataFrame([1, 2]), "data type not understood"),
+        (
+            np.typing.NDArray[np.float32],
+            "data type not understood|Cannot interpret.*numpy.*as a data type",
+        ),
     ],
 )
 def test_get_dtype_fails(input_param, expected_error_message):
@@ -787,15 +799,84 @@ def test_validate_allhashable():
 
 def test_pandas_dtype_numpy_warning():
     # GH#51523
-    with tm.assert_produces_warning(
-        DeprecationWarning,
-        check_stacklevel=False,
-        match="Converting `np.integer` or `np.signedinteger` to a dtype is deprecated",
-    ):
+    if Version(np.__version__) < Version("2.3.0.dev0"):
+        ctx = tm.assert_produces_warning(
+            DeprecationWarning,
+            check_stacklevel=False,
+            match=(
+                "Converting `np.integer` or `np.signedinteger` to a dtype is deprecated"
+            ),
+        )
+    else:
+        ctx = tm.external_error_raised(TypeError)
+
+    with ctx:
         pandas_dtype(np.integer)
 
 
 def test_pandas_dtype_ea_not_instance():
     # GH 31356 GH 54592
-    with tm.assert_produces_warning(UserWarning):
+    with tm.assert_produces_warning(UserWarning, match="without any arguments"):
         assert pandas_dtype(CategoricalDtype) == CategoricalDtype()
+
+
+def test_pandas_dtype_string_dtypes(string_storage):
+    with pd.option_context("future.infer_string", True):
+        # with the default string_storage setting
+        result = pandas_dtype("str")
+    assert result == pd.StringDtype(
+        "pyarrow" if HAS_PYARROW else "python", na_value=np.nan
+    )
+
+    with pd.option_context("future.infer_string", True):
+        # with the default string_storage setting
+        result = pandas_dtype(str)
+    assert result == pd.StringDtype(
+        "pyarrow" if HAS_PYARROW else "python", na_value=np.nan
+    )
+
+    with pd.option_context("future.infer_string", True):
+        with pd.option_context("string_storage", string_storage):
+            result = pandas_dtype("str")
+    assert result == pd.StringDtype(string_storage, na_value=np.nan)
+
+    with pd.option_context("future.infer_string", True):
+        with pd.option_context("string_storage", string_storage):
+            result = pandas_dtype(str)
+    assert result == pd.StringDtype(string_storage, na_value=np.nan)
+
+    with pd.option_context("future.infer_string", False):
+        with pd.option_context("string_storage", string_storage):
+            result = pandas_dtype("str")
+    assert result == np.dtype("U")
+
+    with pd.option_context("string_storage", string_storage):
+        result = pandas_dtype("string")
+    assert result == pd.StringDtype(string_storage, na_value=pd.NA)
+
+
+def test_pandas_dtype_string_dtype_alias_with_storage():
+    with pytest.raises(TypeError, match="not understood"):
+        pandas_dtype("str[python]")
+
+    with pytest.raises(TypeError, match="not understood"):
+        pandas_dtype("str[pyarrow]")
+
+    result = pandas_dtype("string[python]")
+    assert result == pd.StringDtype("python", na_value=pd.NA)
+
+    if HAS_PYARROW:
+        result = pandas_dtype("string[pyarrow]")
+        assert result == pd.StringDtype("pyarrow", na_value=pd.NA)
+    else:
+        with pytest.raises(
+            ImportError, match="required for PyArrow backed StringArray"
+        ):
+            pandas_dtype("string[pyarrow]")
+
+
+@td.skip_if_installed("pyarrow")
+def test_construct_from_string_without_pyarrow_installed():
+    # GH 57928
+    with pytest.raises(ImportError, match="pyarrow>=.* is required"):
+        pd.Series([-1.5, 0.2, None], dtype="float32[pyarrow]")

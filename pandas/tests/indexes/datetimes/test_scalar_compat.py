@@ -11,6 +11,8 @@ from datetime import (
 import locale
 import unicodedata
 
+from hypothesis import given
+import hypothesis.strategies as st
 import numpy as np
 import pytest
 
@@ -133,10 +135,9 @@ class TestDatetimeIndexOps:
         tm.assert_index_equal(dr.hour, expected)
 
     # GH#12806
-    # error: Unsupported operand types for + ("List[None]" and "List[str]")
     @pytest.mark.parametrize(
         "time_locale",
-        [None] + tm.get_locales(),  # type: ignore[operator]
+        [None, *tm.get_locales()],
     )
     def test_day_name_month_name(self, time_locale):
         # Test Monday -> Sunday and January -> December, in that sequence
@@ -182,7 +183,9 @@ class TestDatetimeIndexOps:
             "Saturday",
             "Sunday",
         ]
-        for day, name, eng_name in zip(range(4, 11), expected_days, english_days):
+        for day, name, eng_name in zip(
+            range(4, 11), expected_days, english_days, strict=True
+        ):
             name = name.capitalize()
             assert dti.day_name(locale=time_locale)[day] == name
             assert dti.day_name(locale=None)[day] == eng_name
@@ -204,7 +207,7 @@ class TestDatetimeIndexOps:
 
         tm.assert_index_equal(result, expected)
 
-        for item, expected in zip(dti, expected_months):
+        for item, expected in zip(dti, expected_months, strict=True):
             result = item.month_name(locale=time_locale)
             expected = expected.capitalize()
 
@@ -227,7 +230,9 @@ class TestDatetimeIndexOps:
     @pytest.mark.parametrize("tz", [None, "US/Eastern"])
     def test_dti_fields(self, tz):
         # GH#13303
-        dti = date_range(freq="D", start=datetime(1998, 1, 1), periods=365, tz=tz)
+        dti = date_range(
+            freq="D", start=datetime(1998, 1, 1), periods=365, tz=tz, unit="ns"
+        )
         assert dti.year[0] == 1998
         assert dti.month[0] == 1
         assert dti.day[0] == 1
@@ -328,3 +333,129 @@ class TestDatetimeIndexOps:
         msg = "Custom business days is not supported by is_month_start"
         with pytest.raises(ValueError, match=msg):
             dti.is_month_start
+
+    @pytest.mark.parametrize(
+        "timestamp, freq, periods, expected_values",
+        [
+            ("2017-12-01", "MS", 3, np.array([False, True, False])),
+            ("2017-12-01", "QS", 3, np.array([True, False, False])),
+            ("2017-12-01", "YS", 3, np.array([True, True, True])),
+        ],
+    )
+    def test_dti_dr_is_year_start(self, timestamp, freq, periods, expected_values):
+        # GH57377
+        result = date_range(timestamp, freq=freq, periods=periods).is_year_start
+        tm.assert_numpy_array_equal(result, expected_values)
+
+    @pytest.mark.parametrize(
+        "timestamp, freq, periods, expected_values",
+        [
+            ("2017-12-01", "ME", 3, np.array([True, False, False])),
+            ("2017-12-01", "QE", 3, np.array([True, False, False])),
+            ("2017-12-01", "YE", 3, np.array([True, True, True])),
+        ],
+    )
+    def test_dti_dr_is_year_end(self, timestamp, freq, periods, expected_values):
+        # GH57377
+        result = date_range(timestamp, freq=freq, periods=periods).is_year_end
+        tm.assert_numpy_array_equal(result, expected_values)
+
+    @pytest.mark.parametrize(
+        "timestamp, freq, periods, expected_values",
+        [
+            ("2017-12-01", "MS", 3, np.array([False, True, False])),
+            ("2017-12-01", "QS", 3, np.array([True, True, True])),
+            ("2017-12-01", "YS", 3, np.array([True, True, True])),
+        ],
+    )
+    def test_dti_dr_is_quarter_start(self, timestamp, freq, periods, expected_values):
+        # GH57377
+        result = date_range(timestamp, freq=freq, periods=periods).is_quarter_start
+        tm.assert_numpy_array_equal(result, expected_values)
+
+    @pytest.mark.parametrize(
+        "timestamp, freq, periods, expected_values",
+        [
+            ("2017-12-01", "ME", 3, np.array([True, False, False])),
+            ("2017-12-01", "QE", 3, np.array([True, True, True])),
+            ("2017-12-01", "YE", 3, np.array([True, True, True])),
+        ],
+    )
+    def test_dti_dr_is_quarter_end(self, timestamp, freq, periods, expected_values):
+        # GH57377
+        result = date_range(timestamp, freq=freq, periods=periods).is_quarter_end
+        tm.assert_numpy_array_equal(result, expected_values)
+
+    @pytest.mark.parametrize(
+        "timestamp, freq, periods, expected_values",
+        [
+            ("2017-12-01", "MS", 3, np.array([True, True, True])),
+            ("2017-12-01", "QS", 3, np.array([True, True, True])),
+            ("2017-12-01", "YS", 3, np.array([True, True, True])),
+        ],
+    )
+    def test_dti_dr_is_month_start(self, timestamp, freq, periods, expected_values):
+        # GH57377
+        result = date_range(timestamp, freq=freq, periods=periods).is_month_start
+        tm.assert_numpy_array_equal(result, expected_values)
+
+    @pytest.mark.parametrize(
+        "timestamp, freq, periods, expected_values",
+        [
+            ("2017-12-01", "ME", 3, np.array([True, True, True])),
+            ("2017-12-01", "QE", 3, np.array([True, True, True])),
+            ("2017-12-01", "YE", 3, np.array([True, True, True])),
+        ],
+    )
+    def test_dti_dr_is_month_end(self, timestamp, freq, periods, expected_values):
+        # GH57377
+        result = date_range(timestamp, freq=freq, periods=periods).is_month_end
+        tm.assert_numpy_array_equal(result, expected_values)
+
+    def test_dti_is_year_quarter_start_doubledigit_freq(self):
+        # GH#58523
+        dr = date_range("2017-01-01", periods=2, freq="10YS")
+        assert all(dr.is_year_start)
+
+        dr = date_range("2017-01-01", periods=2, freq="10QS")
+        assert all(dr.is_quarter_start)
+
+    def test_dti_is_year_start_freq_custom_business_day_with_digit(self):
+        # GH#58664
+        dr = date_range("2020-01-01", periods=2, freq="2C")
+        msg = "Custom business days is not supported by is_year_start"
+        with pytest.raises(ValueError, match=msg):
+            dr.is_year_start
+
+    @pytest.mark.parametrize("freq", ["3BMS", offsets.BusinessMonthBegin(3)])
+    def test_dti_is_year_quarter_start_freq_business_month_begin(self, freq):
+        # GH#58729
+        dr = date_range("2020-01-01", periods=5, freq=freq)
+        result = [x.is_year_start for x in dr]
+        assert result == [True, False, False, False, True]
+
+        dr = date_range("2020-01-01", periods=4, freq=freq)
+        result = [x.is_quarter_start for x in dr]
+        assert all(dr.is_quarter_start)
+
+    def test_dti_is_year_start_freq_two_business_days(self):
+        # GH#58524
+        dr = date_range("2017-01-01", periods=2, freq="2B")
+        result = dr.is_year_start
+        expected = np.array([True, False])
+        tm.assert_numpy_array_equal(result, expected)
+
+
+@given(
+    dt=st.datetimes(min_value=datetime(1960, 1, 1), max_value=datetime(1980, 1, 1)),
+    n=st.integers(min_value=1, max_value=10),
+    freq=st.sampled_from(["MS", "QS", "YS"]),
+)
+@pytest.mark.slow
+def test_against_scalar_parametric(freq, dt, n):
+    # https://github.com/pandas-dev/pandas/issues/49606
+    freq = f"{n}{freq}"
+    d = date_range(dt, periods=3, freq=freq)
+    result = list(d.is_year_start)
+    expected = [x.is_year_start for x in d]
+    assert result == expected

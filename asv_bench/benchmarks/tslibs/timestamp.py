@@ -1,7 +1,10 @@
-from datetime import datetime
+from datetime import (
+    datetime,
+    timezone,
+)
+import zoneinfo
 
 import numpy as np
-import pytz
 
 from pandas import Timestamp
 
@@ -12,7 +15,7 @@ class TimestampConstruction:
     def setup(self):
         self.npdatetime64 = np.datetime64("2020-01-01 00:00:00")
         self.dttime_unaware = datetime(2020, 1, 1, 0, 0, 0)
-        self.dttime_aware = datetime(2020, 1, 1, 0, 0, 0, 0, pytz.UTC)
+        self.dttime_aware = datetime(2020, 1, 1, 0, 0, 0, 0, timezone.utc)
         self.ts = Timestamp("2020-01-01 00:00:00")
 
     def time_parse_iso8601_no_tz(self):
@@ -113,7 +116,7 @@ class TimestampOps:
         self.ts = Timestamp("2017-08-25 08:16:14", tz=tz)
 
     def time_replace_tz(self, tz):
-        self.ts.replace(tzinfo=pytz.timezone("US/Eastern"))
+        self.ts.replace(tzinfo=zoneinfo.ZoneInfo("US/Eastern"))
 
     def time_replace_None(self, tz):
         self.ts.replace(tzinfo=None)
@@ -144,8 +147,8 @@ class TimestampOps:
 
 class TimestampAcrossDst:
     def setup(self):
-        dt = datetime(2016, 3, 27, 1)
-        self.tzinfo = pytz.timezone("CET").localize(dt, is_dst=False).tzinfo
+        dt = datetime(2016, 3, 27, 1, fold=0)
+        self.tzinfo = dt.astimezone(zoneinfo.ZoneInfo("Europe/Berlin")).tzinfo
         self.ts2 = Timestamp(dt)
 
     def time_replace_across_dst(self):

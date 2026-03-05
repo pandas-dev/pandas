@@ -2,6 +2,7 @@
 Timedelta benchmarks that rely only on tslibs. See benchmarks.timedeltas for
 Timedelta benchmarks that rely on other parts of pandas.
 """
+
 import datetime
 
 import numpy as np
@@ -19,7 +20,7 @@ class TimedeltaConstructor:
         Timedelta(123456789)
 
     def time_from_unit(self):
-        Timedelta(1, unit="d")
+        Timedelta(1, unit="D")
 
     def time_from_components(self):
         Timedelta(

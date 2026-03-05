@@ -1,4 +1,5 @@
-""" manage PyTables query interface via Expressions """
+"""manage PyTables query interface via Expressions"""
+
 from __future__ import annotations
 
 import ast
@@ -11,10 +12,13 @@ from typing import (
     TYPE_CHECKING,
     Any,
     ClassVar,
+    Self,
+    cast,
 )
 
 import numpy as np
 
+from pandas._libs import lib
 from pandas._libs.tslibs import (
     Timedelta,
     Timestamp,
@@ -42,7 +46,7 @@ from pandas.io.formats.printing import (
 
 if TYPE_CHECKING:
     from pandas._typing import (
-        Self,
+        TimeUnit,
         npt,
     )
 
@@ -153,11 +157,11 @@ class BinOp(ops.BinOp):
         left, right = self.lhs, self.rhs
 
         if is_term(left) and is_term(right):
-            res = pr(left.value, right.value)
+            res = pr(left, right)
         elif not is_term(left) and is_term(right):
-            res = pr(left.prune(klass), right.value)
+            res = pr(left.prune(klass), right)
         elif is_term(left) and not is_term(right):
-            res = pr(left.value, right.prune(klass))
+            res = pr(left, right.prune(klass))
         elif not (is_term(left) or is_term(right)):
             res = pr(left.prune(klass), right.prune(klass))
 
@@ -165,6 +169,7 @@ class BinOp(ops.BinOp):
 
     def conform(self, rhs):
         """inplace conform rhs"""
+        rhs = rhs.value
         if not is_list_like(rhs):
             rhs = [rhs]
         if isinstance(rhs, np.ndarray):
@@ -174,7 +179,7 @@ class BinOp(ops.BinOp):
     @property
     def is_valid(self) -> bool:
         """return True if this is a valid field"""
-        return self.lhs in self.queryables
+        return self.lhs.value in self.queryables
 
     @property
     def is_in_table(self) -> bool:
@@ -182,29 +187,29 @@ class BinOp(ops.BinOp):
         return True if this is a valid column name for generation (e.g. an
         actual column in the table)
         """
-        return self.queryables.get(self.lhs) is not None
+        return self.queryables.get(self.lhs.value) is not None
 
     @property
     def kind(self):
         """the kind of my field"""
-        return getattr(self.queryables.get(self.lhs), "kind", None)
+        return getattr(self.queryables.get(self.lhs.value), "kind", None)
 
     @property
     def meta(self):
         """the meta of my field"""
-        return getattr(self.queryables.get(self.lhs), "meta", None)
+        return getattr(self.queryables.get(self.lhs.value), "meta", None)
 
     @property
     def metadata(self):
         """the metadata of my field"""
-        return getattr(self.queryables.get(self.lhs), "metadata", None)
+        return getattr(self.queryables.get(self.lhs.value), "metadata", None)
 
     def generate(self, v) -> str:
         """create and return the op string for this TermValue"""
         val = v.tostring(self.encoding)
-        return f"({self.lhs} {self.op} {val})"
+        return f"({self.lhs.value} {self.op} {val})"
 
-    def convert_value(self, v) -> TermValue:
+    def convert_value(self, conv_val) -> TermValue:
         """
         convert the expression that is in the term to something that is
         accepted by pytables
@@ -218,44 +223,54 @@ class BinOp(ops.BinOp):
         kind = ensure_decoded(self.kind)
         meta = ensure_decoded(self.meta)
         if kind == "datetime" or (kind and kind.startswith("datetime64")):
-            if isinstance(v, (int, float)):
-                v = stringify(v)
-            v = ensure_decoded(v)
-            v = Timestamp(v).as_unit("ns")
-            if v.tz is not None:
-                v = v.tz_convert("UTC")
-            return TermValue(v, v._value, kind)
-        elif kind in ("timedelta64", "timedelta"):
-            if isinstance(v, str):
-                v = Timedelta(v)
+            if isinstance(conv_val, (int, float)):
+                conv_val = stringify(conv_val)
+            conv_val = ensure_decoded(conv_val)
+            unit: TimeUnit = "ns"
+            if "[" in kind:
+                unit = cast("TimeUnit", kind.split("[")[-1][:-1])
+            conv_val = Timestamp(conv_val).as_unit(unit)
+            if conv_val.tz is not None:
+                conv_val = conv_val.tz_convert("UTC")
+            return TermValue(conv_val, conv_val._value, kind)
+        elif kind.startswith("timedelta"):
+            unit = "ns"
+            if "[" in kind:
+                unit = cast("TimeUnit", kind.split("[")[-1][:-1])
+            if isinstance(conv_val, str):
+                conv_val = Timedelta(conv_val)
+            elif lib.is_integer(conv_val) or lib.is_float(conv_val):
+                conv_val = Timedelta(conv_val, unit="s")
             else:
-                v = Timedelta(v, unit="s")
-            v = v.as_unit("ns")._value
-            return TermValue(int(v), v, kind)
+                conv_val = Timedelta(conv_val)
+            conv_val = conv_val.as_unit(unit)._value
+            return TermValue(int(conv_val), conv_val, kind)
+
         elif meta == "category":
             metadata = extract_array(self.metadata, extract_numpy=True)
             result: npt.NDArray[np.intp] | np.intp | int
-            if v not in metadata:
+            if conv_val not in metadata:
                 result = -1
             else:
-                result = metadata.searchsorted(v, side="left")
+                # Find the index of the first match of conv_val in metadata
+                result = np.flatnonzero(metadata == conv_val)[0]
             return TermValue(result, result, "integer")
         elif kind == "integer":
             try:
-                v_dec = Decimal(v)
+                v_dec = Decimal(conv_val)
             except InvalidOperation:
                 # GH 54186
                 # convert v to float to raise float's ValueError
-                float(v)
+                float(conv_val)
             else:
-                v = int(v_dec.to_integral_exact(rounding="ROUND_HALF_EVEN"))
-            return TermValue(v, v, kind)
+                conv_val = int(v_dec.to_integral_exact(rounding="ROUND_HALF_EVEN"))
+            return TermValue(conv_val, conv_val, kind)
         elif kind == "float":
-            v = float(v)
-            return TermValue(v, v, kind)
+            conv_val = float(conv_val)
+            return TermValue(conv_val, conv_val, kind)
         elif kind == "bool":
-            if isinstance(v, str):
-                v = v.strip().lower() not in [
+            if isinstance(conv_val, str):
+                conv_val = conv_val.strip().lower() not in [
                     "false",
                     "f",
                     "no",
@@ -267,13 +282,15 @@ class BinOp(ops.BinOp):
                     "",
                 ]
             else:
-                v = bool(v)
-            return TermValue(v, v, kind)
-        elif isinstance(v, str):
+                conv_val = bool(conv_val)
+            return TermValue(conv_val, conv_val, kind)
+        elif isinstance(conv_val, str):
             # string quoting
-            return TermValue(v, stringify(v), "string")
+            return TermValue(conv_val, stringify(conv_val), "string")
         else:
-            raise TypeError(f"Cannot compare {v} of type {type(v)} to {kind} column")
+            raise TypeError(
+                f"Cannot compare {conv_val} of type {type(conv_val)} to {kind} column"
+            )
 
     def convert_values(self) -> None:
         pass
@@ -309,25 +326,17 @@ class FilterBinOp(BinOp):
         rhs = self.conform(self.rhs)
         values = list(rhs)
 
-        if self.is_in_table:
-            # if too many values to create the expression, use a filter instead
-            if self.op in ["==", "!="] and len(values) > self._max_selectors:
-                filter_op = self.generate_filter_op()
-                self.filter = (self.lhs, filter_op, Index(values))
-
-                return self
+        if self.op not in ["==", "!="]:
+            if not self.is_in_table:
+                raise TypeError(
+                    f"passing a filterable condition to a non-table indexer [{self}]"
+                )
             return None
 
-        # equality conditions
-        if self.op in ["==", "!="]:
-            filter_op = self.generate_filter_op()
-            self.filter = (self.lhs, filter_op, Index(values))
-
-        else:
-            raise TypeError(
-                f"passing a filterable condition to a non-table indexer [{self}]"
-            )
-
+        if self.is_in_table and len(values) <= self._max_selectors:
+            return None
+        filter_op = self.generate_filter_op()
+        self.filter = (self.lhs.value, filter_op, Index(values))
         return self
 
     def generate_filter_op(self, invert: bool = False):
@@ -407,11 +416,12 @@ class UnaryOp(ops.UnaryOp):
         operand = operand.prune(klass)
 
         if operand is not None and (
-            issubclass(klass, ConditionBinOp)
-            and operand.condition is not None
-            or not issubclass(klass, ConditionBinOp)
-            and issubclass(klass, FilterBinOp)
-            and operand.filter is not None
+            (issubclass(klass, ConditionBinOp) and operand.condition is not None)
+            or (
+                not issubclass(klass, ConditionBinOp)
+                and issubclass(klass, FilterBinOp)
+                and operand.filter is not None
+            )
         ):
             return operand.invert()
         return None

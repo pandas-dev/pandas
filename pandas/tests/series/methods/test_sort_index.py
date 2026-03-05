@@ -186,7 +186,7 @@ class TestSeriesSortIndex:
             ["one", "two", "one", "two", "one", "two", "one", "two"],
             [4, 3, 2, 1, 4, 3, 2, 1],
         ]
-        tuples = zip(*arrays)
+        tuples = zip(*arrays, strict=True)
         mi = MultiIndex.from_tuples(tuples, names=["first", "second", "third"])
         ser = Series(range(8), index=mi)
 

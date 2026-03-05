@@ -102,7 +102,8 @@ def test_ewma_with_times_equal_spacing(halflife_with_times, times, min_periods):
     tm.assert_frame_equal(result, expected)
 
 
-def test_ewma_with_times_variable_spacing(tz_aware_fixture, unit):
+def test_ewma_with_times_variable_spacing(tz_aware_fixture, unit, adjust):
+    # GH 54328
     tz = tz_aware_fixture
     halflife = "23 days"
     times = (
@@ -112,8 +113,11 @@ def test_ewma_with_times_variable_spacing(tz_aware_fixture, unit):
     )
     data = np.arange(3)
     df = DataFrame(data)
-    result = df.ewm(halflife=halflife, times=times).mean()
-    expected = DataFrame([0.0, 0.5674161888241773, 1.545239952073459])
+    result = df.ewm(halflife=halflife, times=times, adjust=adjust).mean()
+    if adjust:
+        expected = DataFrame([0.0, 0.5674161888241773, 1.545239952073459])
+    else:
+        expected = DataFrame([0.0, 0.23762518642226227, 1.534926369128742])
     tm.assert_frame_equal(result, expected)
 
 
@@ -148,13 +152,56 @@ def test_ewm_getitem_attributes_retained(arg, adjust, ignore_na):
     assert result == expected
 
 
-def test_ewma_times_adjust_false_raises():
-    # GH 40098
+def test_ewma_times_adjust_false_with_disallowed_com():
+    # GH 54328
     with pytest.raises(
-        NotImplementedError, match="times is not supported with adjust=False."
+        NotImplementedError,
+        match=(
+            "None of com, span, or alpha can be specified "
+            "if times is provided and adjust=False"
+        ),
     ):
         Series(range(1)).ewm(
-            0.1, adjust=False, times=date_range("2000", freq="D", periods=1)
+            0.1,
+            adjust=False,
+            times=date_range("2000", freq="D", periods=1),
+            halflife="1D",
+        )
+
+
+def test_ewma_times_adjust_false_with_disallowed_alpha():
+    # GH 54328
+    with pytest.raises(
+        NotImplementedError,
+        match=(
+            "None of com, span, or alpha can be specified "
+            "if times is provided and adjust=False"
+        ),
+    ):
+        Series(range(1)).ewm(
+            0.1,
+            adjust=False,
+            times=date_range("2000", freq="D", periods=1),
+            alpha=0.5,
+            halflife="1D",
+        )
+
+
+def test_ewma_times_adjust_false_with_disallowed_span():
+    # GH 54328
+    with pytest.raises(
+        NotImplementedError,
+        match=(
+            "None of com, span, or alpha can be specified "
+            "if times is provided and adjust=False"
+        ),
+    ):
+        Series(range(1)).ewm(
+            0.1,
+            adjust=False,
+            times=date_range("2000", freq="D", periods=1),
+            span=10,
+            halflife="1D",
         )
 
 

@@ -14,36 +14,8 @@ from pandas import (
 )
 import pandas._testing as tm
 
-msg = "A value is trying to be set on a copy of a slice from a DataFrame"
-
-
-def random_text(nobs=100):
-    # Construct a DataFrame where each row is a random slice from 'letters'
-    idxs = np.random.default_rng(2).integers(len(ascii_letters), size=(nobs, 2))
-    idxs.sort(axis=1)
-    strings = [ascii_letters[x[0] : x[1]] for x in idxs]
-
-    return DataFrame(strings, columns=["letters"])
-
 
 class TestCaching:
-    def test_slice_consolidate_invalidate_item_cache(self):
-        # this is chained assignment, but will 'work'
-        with option_context("chained_assignment", None):
-            # #3970
-            df = DataFrame({"aa": np.arange(5), "bb": [2.2] * 5})
-
-            # Creates a second float block
-            df["cc"] = 0.0
-
-            # caches a reference to the 'bb' series
-            df["bb"]
-
-            # Assignment to wrong series
-            with tm.raises_chained_assignment_error():
-                df["bb"].iloc[0] = 0.17
-            tm.assert_almost_equal(df["bb"][0], 2.2)
-
     @pytest.mark.parametrize("do_ref", [True, False])
     def test_setitem_cache_updating(self, do_ref):
         # GH 5424
@@ -97,18 +69,6 @@ class TestCaching:
 
         tm.assert_frame_equal(out, expected)
         tm.assert_series_equal(out["A"], expected["A"])
-
-    def test_altering_series_clears_parent_cache(self):
-        # GH #33675
-        df = DataFrame([[1, 2], [3, 4]], index=["a", "b"], columns=["A", "B"])
-        ser = df["A"]
-
-        # Adding a new entry to ser swaps in a new array, so "A" needs to
-        #  be removed from df._item_cache
-        ser["c"] = 5
-        assert len(ser) == 3
-        assert df["A"] is not ser
-        assert len(df["A"]) == 2
 
 
 class TestChaining:
@@ -233,7 +193,11 @@ class TestChaining:
 
     @pytest.mark.arm_slow
     def test_detect_chained_assignment_str(self):
-        df = random_text(100000)
+        idxs = np.random.default_rng(2).integers(len(ascii_letters), size=(100, 2))
+        idxs.sort(axis=1)
+        strings = [ascii_letters[x[0] : x[1]] for x in idxs]
+
+        df = DataFrame(strings, columns=["letters"])
         indexer = df.letters.apply(lambda x: len(x) > 10)
         df.loc[indexer, "letters"] = df.loc[indexer, "letters"].apply(str.lower)
 
@@ -289,9 +253,10 @@ class TestChaining:
         with tm.raises_chained_assignment_error():
             df.loc[2]["C"] = "foo"
         tm.assert_frame_equal(df, df_original)
-        with tm.raises_chained_assignment_error(extra_warnings=(FutureWarning,)):
-            df["C"][2] = "foo"
-        tm.assert_frame_equal(df, df_original)
+        # TODO: Use tm.raises_chained_assignment_error() when PDEP-6 is enforced
+        with pytest.raises(TypeError, match="Invalid value"):
+            with tm.raises_chained_assignment_error():
+                df["C"][2] = "foo"
 
     def test_setting_with_copy_bug(self):
         # operating on a copy

@@ -93,12 +93,12 @@ class TestRangeIndexSetOps:
         # GH 17296: intersect two decreasing RangeIndexes
         first = RangeIndex(10, -2, -2)
         other = RangeIndex(5, -4, -1)
-        expected = first.astype(int).intersection(other.astype(int), sort=sort)
-        result = first.intersection(other, sort=sort).astype(int)
+        expected = RangeIndex(start=4, stop=-2, step=-2)
+        result = first.intersection(other, sort=sort)
         tm.assert_index_equal(result, expected)
 
         # reversed
-        result = other.intersection(first, sort=sort).astype(int)
+        result = other.intersection(first, sort=sort)
         tm.assert_index_equal(result, expected)
 
         index = RangeIndex(5, name="foo")
@@ -210,13 +210,13 @@ class TestRangeIndexSetOps:
                 RangeIndex(0, -100, -5),
                 RangeIndex(5, -100, -20),
                 RangeIndex(-95, 10, 5),
-                Index(list(range(0, -100, -5)) + [5]),
+                Index([*list(range(0, -100, -5)), 5]),
             ),
             (
                 RangeIndex(0, -11, -1),
                 RangeIndex(1, -12, -4),
                 RangeIndex(-11, 2, 1),
-                Index(list(range(0, -11, -1)) + [1, -11]),
+                Index([*list(range(0, -11, -1)), 1, -11]),
             ),
             (RangeIndex(0), RangeIndex(0), RangeIndex(0), RangeIndex(0)),
             (
@@ -235,7 +235,7 @@ class TestRangeIndexSetOps:
                 RangeIndex(0, -100, -2),
                 RangeIndex(-100, 50, 102),
                 RangeIndex(-100, 4, 2),
-                Index(list(range(0, -100, -2)) + [-100, 2]),
+                Index([*list(range(0, -100, -2)), -100, 2]),
             ),
             (
                 RangeIndex(0, -100, -1),
@@ -414,12 +414,12 @@ class TestRangeIndexSetOps:
         obj = Index(range(20))
         other = obj[:10:2]
         result = obj.difference(other)
-        expected = Index([1, 3, 5, 7, 9] + list(range(10, 20)))
+        expected = Index([1, 3, 5, 7, 9, *list(range(10, 20))])
         tm.assert_index_equal(result, expected, exact=True)
 
         other = obj[1:11:2]
         result = obj.difference(other)
-        expected = Index([0, 2, 4, 6, 8, 10] + list(range(11, 20)))
+        expected = Index([0, 2, 4, 6, 8, 10, *list(range(11, 20))])
         tm.assert_index_equal(result, expected, exact=True)
 
     def test_symmetric_difference(self):
@@ -459,6 +459,7 @@ def assert_range_or_not_is_rangelike(index):
         assert not (diff == diff[0]).all()
 
 
+@pytest.mark.slow
 @given(
     st.integers(-20, 20),
     st.integers(-20, 20),

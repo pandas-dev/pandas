@@ -1,6 +1,7 @@
 """
 config for datetime formatting
 """
+
 from __future__ import annotations
 
 from pandas._config import config as cf

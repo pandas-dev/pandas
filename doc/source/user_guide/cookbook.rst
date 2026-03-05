@@ -35,7 +35,7 @@ These are some neat pandas ``idioms``
    )
    df
 
-if-then...
+If-then...
 **********
 
 An if-then on one column
@@ -176,7 +176,7 @@ One could hard code:
 Selection
 ---------
 
-Dataframes
+DataFrames
 **********
 
 The :ref:`indexing <indexing>` docs.
@@ -459,7 +459,7 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
    df
 
    # List the size of the animals with the highest weight.
-   df.groupby("animal").apply(lambda subf: subf["size"][subf["weight"].idxmax()], include_groups=False)
+   df.groupby("animal").apply(lambda subf: subf["size"][subf["weight"].idxmax()])
 
 `Using get_group
 <https://stackoverflow.com/questions/14734533/how-to-access-pandas-groupby-dataframe-by-key>`__
@@ -482,7 +482,7 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
        return pd.Series(["L", avg_weight, True], index=["size", "weight", "adult"])
 
 
-   expected_df = gb.apply(GrowUp, include_groups=False)
+   expected_df = gb.apply(GrowUp)
    expected_df
 
 `Expanding apply
@@ -861,6 +861,48 @@ Rolling Apply to multiple columns where function returns a Scalar (Volume Weight
 Timeseries
 ----------
 
+Time-distance weighted rolling aggregations
+*******************************************
+
+A decay-weighted aggregation can be applied inside a time-based rolling window.
+The weight depends on how far each observation is from the most recent timestamp in the window.
+This is useful when more recent values should contribute more to rolling statistics than older
+ones, particularly where observations are not evenly spaced in time.
+
+This approach relies on ``rolling.apply`` and recomputes weights for each window, so it
+may be slow for large datasets.
+
+.. code-block:: python
+
+   df = pd.DataFrame(
+       {
+           "timestamp": [
+               "2024-01-01 01:00",
+               "2024-01-01 02:00",
+               "2024-01-01 05:00",
+               "2024-01-01 05:00",
+               "2024-01-01 07:00",
+               "2024-01-01 08:00",
+           ],
+           "value": [12, 13, 20, 26, 24, 27],
+       }
+   )
+
+   df["timestamp"] = pd.to_datetime(df["timestamp"])
+   df = df.set_index("timestamp")
+
+   def decay_weighted_mean(values, alpha=0.1):
+       timestamps = values.index
+       age_hours = (timestamps.max() - timestamps).total_seconds() / 3600
+       weights = np.exp(-alpha * age_hours)
+       return (weights * values).sum() / weights.sum()
+
+   result = (
+       df["value"]
+       .rolling("7h")
+       .apply(decay_weighted_mean)
+   )
+
 `Between times
 <https://stackoverflow.com/questions/14539992/pandas-drop-rows-outside-of-time-range>`__
 
@@ -874,7 +916,7 @@ Timeseries
 <https://stackoverflow.com/questions/13893227/vectorized-look-up-of-values-in-pandas-dataframe>`__
 
 `Aggregation and plotting time series
-<https://nipunbatra.github.io/blog/visualisation/2013/05/01/aggregation-timeseries.html>`__
+<https://nipunbatra.github.io/blog/posts/2013-05-01-aggregation-timeseries.html>`__
 
 Turn a matrix with hours in columns and days in rows into a continuous row sequence in the form of a time series.
 `How to rearrange a Python pandas DataFrame?
@@ -914,7 +956,7 @@ Using TimeGrouper and another grouping to create subgroups, then apply a custom 
 <https://stackoverflow.com/questions/15408156/resampling-with-custom-periods>`__
 
 `Resample intraday frame without adding new days
-<https://stackoverflow.com/questions/14898574/resample-intrday-pandas-dataframe-without-add-new-days>`__
+<https://stackoverflow.com/questions/14898574/resample-intraday-pandas-dataframe-without-add-new-days>`__
 
 `Resample minute data
 <https://stackoverflow.com/questions/14861023/resampling-minute-data>`__
@@ -1043,7 +1085,7 @@ CSV
 
 The :ref:`CSV <io.read_csv_table>` docs
 
-`read_csv in action <https://wesmckinney.com/blog/update-on-upcoming-pandas-v0-10-new-file-parser-other-performance-wins/>`__
+`read_csv in action <https://www.datacamp.com/tutorial/pandas-read-csv>`__
 
 `appending to a csv
 <https://stackoverflow.com/questions/17134942/pandas-dataframe-output-end-of-csv>`__
@@ -1245,16 +1287,16 @@ csv file and creating a store by chunks, with date parsing as well.
 `Reading in a sequence of files, then providing a global unique index to a store while appending
 <https://stackoverflow.com/questions/16997048/how-does-one-append-large-amounts-of-data-to-a-pandas-hdfstore-and-get-a-natural>`__
 
-`Groupby on a HDFStore with low group density
+`Groupby on an HDFStore with low group density
 <https://stackoverflow.com/questions/15798209/pandas-group-by-query-on-large-data-in-hdfstore>`__
 
-`Groupby on a HDFStore with high group density
+`Groupby on an HDFStore with high group density
 <https://stackoverflow.com/questions/25459982/trouble-with-grouby-on-millions-of-keys-on-a-chunked-file-in-python-pandas/25471765#25471765>`__
 
-`Hierarchical queries on a HDFStore
+`Hierarchical queries on an HDFStore
 <https://stackoverflow.com/questions/22777284/improve-query-performance-from-a-large-hdfstore-table-with-pandas/22820780#22820780>`__
 
-`Counting with a HDFStore
+`Counting with an HDFStore
 <https://stackoverflow.com/questions/20497897/converting-dict-of-dicts-into-pandas-dataframe-memory-issues>`__
 
 `Troubleshoot HDFStore exceptions
@@ -1284,7 +1326,7 @@ Storing Attributes to a group node
    store.close()
    os.remove("test.h5")
 
-You can create or load a HDFStore in-memory  by passing the ``driver``
+You can create or load an HDFStore in-memory by passing the ``driver``
 parameter to PyTables. Changes are only written to disk when the HDFStore
 is closed.
 
@@ -1489,7 +1531,7 @@ of the data values:
    )
    df
 
-Constant series
+Constant Series
 ---------------
 
 To assess if a series has a constant value, we can check if ``series.nunique() <= 1``.

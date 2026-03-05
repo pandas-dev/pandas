@@ -3,20 +3,19 @@ from __future__ import annotations
 __docformat__ = "restructuredtext"
 
 # Let users know if they're missing any of our hard dependencies
-_hard_dependencies = ("numpy", "pytz", "dateutil")
-_missing_dependencies = []
+# except tzdata (see https://github.com/pandas-dev/pandas/issues/63264)
+_hard_dependencies = ("numpy", "dateutil")
 
 for _dependency in _hard_dependencies:
     try:
         __import__(_dependency)
     except ImportError as _e:  # pragma: no cover
-        _missing_dependencies.append(f"{_dependency}: {_e}")
+        raise ImportError(
+            f"Unable to import required dependency {_dependency}. "
+            "Please see the traceback for details."
+        ) from _e
 
-if _missing_dependencies:  # pragma: no cover
-    raise ImportError(
-        "Unable to import required dependencies:\n" + "\n".join(_missing_dependencies)
-    )
-del _hard_dependencies, _dependency, _missing_dependencies
+del _hard_dependencies, _dependency
 
 try:
     # numpy compat
@@ -28,7 +27,8 @@ except ImportError as _err:  # pragma: no cover
     raise ImportError(
         f"C extension: {_module} not built. If you want to import "
         "pandas from the source directory, you may need to run "
-        "'python setup.py build_ext' to build the C extensions first."
+        "'python -m pip install -ve . --no-build-isolation -Ceditable-verbose=true' "
+        "to build the C extensions first."
     ) from _err
 
 from pandas._config import (
@@ -106,6 +106,7 @@ from pandas.core.api import (
     Series,
     DataFrame,
 )
+from pandas.core.col import col
 
 from pandas.core.dtypes.dtypes import SparseDtype
 
@@ -165,6 +166,7 @@ from pandas.io.api import (
     read_stata,
     read_sas,
     read_spss,
+    read_iceberg,
 )
 
 from pandas.io.json._normalize import json_normalize
@@ -172,21 +174,10 @@ from pandas.io.json._normalize import json_normalize
 from pandas.util._tester import test
 
 # use the closest tagged version if possible
-_built_with_meson = False
-try:
-    from pandas._version_meson import (  # pyright: ignore [reportMissingImports]
-        __version__,
-        __git_version__,
-    )
-
-    _built_with_meson = True
-except ImportError:
-    from pandas._version import get_versions
-
-    v = get_versions()
-    __version__ = v.get("closest-tag", v["version"])
-    __git_version__ = v.get("full-revisionid")
-    del get_versions, v
+from pandas._version_meson import (  # pyright: ignore [reportMissingImports]
+    __version__,
+    __git_version__,
+)
 
 
 # module level doc-string
@@ -234,6 +225,7 @@ Here are just a few of the things that pandas does well:
 # Pandas is not (yet) a py.typed library: the public API is determined
 # based on the documentation.
 __all__ = [
+    "NA",
     "ArrowDtype",
     "BooleanDtype",
     "Categorical",
@@ -252,15 +244,14 @@ __all__ = [
     "HDFStore",
     "Index",
     "IndexSlice",
+    "Int8Dtype",
     "Int16Dtype",
     "Int32Dtype",
     "Int64Dtype",
-    "Int8Dtype",
     "Interval",
     "IntervalDtype",
     "IntervalIndex",
     "MultiIndex",
-    "NA",
     "NaT",
     "NamedAgg",
     "Period",
@@ -273,14 +264,17 @@ __all__ = [
     "Timedelta",
     "TimedeltaIndex",
     "Timestamp",
+    "UInt8Dtype",
     "UInt16Dtype",
     "UInt32Dtype",
     "UInt64Dtype",
-    "UInt8Dtype",
+    "__git_version__",
+    "__version__",
     "api",
     "array",
     "arrays",
     "bdate_range",
+    "col",
     "concat",
     "crosstab",
     "cut",
@@ -289,8 +283,8 @@ __all__ = [
     "errors",
     "eval",
     "factorize",
-    "get_dummies",
     "from_dummies",
+    "get_dummies",
     "get_option",
     "infer_freq",
     "interval_range",
@@ -320,6 +314,7 @@ __all__ = [
     "read_fwf",
     "read_hdf",
     "read_html",
+    "read_iceberg",
     "read_json",
     "read_orc",
     "read_parquet",

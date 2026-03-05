@@ -326,8 +326,6 @@ The ``by`` keyword can be specified to plot grouped histograms:
 
 In addition, the ``by`` keyword can also be specified in :meth:`DataFrame.plot.hist`.
 
-.. versionchanged:: 1.4.0
-
 .. ipython:: python
 
    data = pd.DataFrame(
@@ -479,8 +477,6 @@ columns:
     plt.close("all")
 
 You could also create groupings with :meth:`DataFrame.plot.box`, for instance:
-
-.. versionchanged:: 1.4.0
 
 .. ipython:: python
    :suppress:
@@ -648,8 +644,6 @@ each point:
    plt.close("all")
 
 If a categorical column is passed to ``c``, then a discrete colorbar will be produced:
-
-.. versionadded:: 1.3.0
 
 .. ipython:: python
 
@@ -1211,11 +1205,6 @@ for x and y axis. By default, pandas will pick up index name as xlabel, while le
 it empty for ylabel.
 
 .. ipython:: python
-   :suppress:
-
-   plt.figure();
-
-.. ipython:: python
 
    df.plot();
 
@@ -1504,7 +1493,7 @@ Plotting with error bars
 
 Plotting with error bars is supported in :meth:`DataFrame.plot` and :meth:`Series.plot`.
 
-Horizontal and vertical error bars can be supplied to the ``xerr`` and ``yerr`` keyword arguments to :meth:`~DataFrame.plot()`. The error values can be specified using a variety of formats:
+Horizontal and vertical error bars can be supplied to the ``xerr`` and ``yerr`` keyword arguments to :meth:`~DataFrame.plot`. The error values can be specified using a variety of formats:
 
 * As a :class:`DataFrame` or ``dict`` of errors with column names matching the ``columns`` attribute of the plotting :class:`DataFrame` or matching the ``name`` attribute of the :class:`Series`.
 * As a ``str`` indicating which of the columns of plotting :class:`DataFrame` contain the error values.

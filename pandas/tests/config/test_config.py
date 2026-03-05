@@ -3,6 +3,8 @@ import pytest
 from pandas._config import config as cf
 from pandas._config.config import OptionError
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -75,14 +77,14 @@ class TestConfig:
     def test_describe_option(self):
         cf.register_option("a", 1, "doc")
         cf.register_option("b", 1, "doc2")
-        cf.deprecate_option("b")
+        cf.deprecate_option("b", FutureWarning)
 
         cf.register_option("c.d.e1", 1, "doc3")
         cf.register_option("c.d.e2", 1, "doc4")
         cf.register_option("f", 1)
         cf.register_option("g.h", 1)
         cf.register_option("k", 2)
-        cf.deprecate_option("g.h", rkey="k")
+        cf.deprecate_option("g.h", FutureWarning, rkey="k")
         cf.register_option("l", "foo")
 
         # non-existent keys raise KeyError
@@ -111,7 +113,8 @@ class TestConfig:
         cf.set_option("l", "bar")
         assert "bar" in cf.describe_option("l", _print_desc=False)
 
-    def test_case_insensitive(self):
+    @pytest.mark.parametrize("category", [DeprecationWarning, FutureWarning])
+    def test_case_insensitive(self, category):
         cf.register_option("KanBAN", 1, "doc")
 
         assert "doc" in cf.describe_option("kanbaN", _print_desc=False)
@@ -123,9 +126,11 @@ class TestConfig:
         msg = r"No such keys\(s\): 'no_such_option'"
         with pytest.raises(OptionError, match=msg):
             cf.get_option("no_such_option")
-        cf.deprecate_option("KanBan")
 
-        assert cf._is_deprecated("kAnBaN")
+        cf.deprecate_option("KanBan", category)
+        msg = "'kanban' is deprecated, please refrain from using it."
+        with tm.assert_produces_warning(category, match=msg):
+            cf.get_option("kAnBaN")
 
     def test_get_option(self):
         cf.register_option("a", 1, "doc")
@@ -193,6 +198,24 @@ class TestConfig:
         assert cf.get_option("b.c") is None
         assert cf.get_option("b.b") == 10.0
 
+    def test_set_option_dict(self):
+        # GH 61093
+
+        cf.register_option("a", 1, "doc")
+        cf.register_option("b.c", "hullo", "doc2")
+        cf.register_option("b.b", None, "doc2")
+
+        assert cf.get_option("a") == 1
+        assert cf.get_option("b.c") == "hullo"
+        assert cf.get_option("b.b") is None
+
+        options_dict = {"a": "2", "b.c": None, "b.b": 10.0}
+        cf.set_option(options_dict)
+
+        assert cf.get_option("a") == "2"
+        assert cf.get_option("b.c") is None
+        assert cf.get_option("b.b") == 10.0
+
     def test_validation(self):
         cf.register_option("a", 1, "doc", validator=cf.is_int)
         cf.register_option("d", 1, "doc", validator=cf.is_nonnegative_int)
@@ -225,7 +248,6 @@ class TestConfig:
 
         validator = cf.is_one_of_factory([None, cf.is_callable])
         cf.register_option("b", lambda: None, "doc", validator=validator)
-        # pylint: disable-next=consider-using-f-string
         cf.set_option("b", "%.1f".format)  # Formatter is callable
         cf.set_option("b", None)  # Formatter is none (default)
         with pytest.raises(ValueError, match="Value must be a callable"):
@@ -266,9 +288,8 @@ class TestConfig:
 
     def test_deprecate_option(self):
         # we can deprecate non-existent options
-        cf.deprecate_option("foo")
+        cf.deprecate_option("foo", FutureWarning)
 
-        assert cf._is_deprecated("foo")
         with tm.assert_produces_warning(FutureWarning, match="deprecated"):
             with pytest.raises(KeyError, match="No such keys.s.: 'foo'"):
                 cf.get_option("foo")
@@ -277,15 +298,15 @@ class TestConfig:
         cf.register_option("b.c", "hullo", "doc2")
         cf.register_option("foo", "hullo", "doc2")
 
-        cf.deprecate_option("a", removal_ver="nifty_ver")
+        cf.deprecate_option("a", FutureWarning, removal_ver="nifty_ver")
         with tm.assert_produces_warning(FutureWarning, match="eprecated.*nifty_ver"):
             cf.get_option("a")
 
             msg = "Option 'a' has already been defined as deprecated"
             with pytest.raises(OptionError, match=msg):
-                cf.deprecate_option("a")
+                cf.deprecate_option("a", FutureWarning)
 
-        cf.deprecate_option("b.c", "zounds!")
+        cf.deprecate_option("b.c", FutureWarning, "zounds!")
         with tm.assert_produces_warning(FutureWarning, match="zounds!"):
             cf.get_option("b.c")
 
@@ -295,7 +316,7 @@ class TestConfig:
         assert cf.get_option("d.a") == "foo"
         assert cf.get_option("d.dep") == "bar"
 
-        cf.deprecate_option("d.dep", rkey="d.a")  # reroute d.dep to d.a
+        cf.deprecate_option("d.dep", FutureWarning, rkey="d.a")  # reroute d.dep to d.a
         with tm.assert_produces_warning(FutureWarning, match="eprecated"):
             assert cf.get_option("d.dep") == "foo"
 
@@ -377,6 +398,33 @@ class TestConfig:
 
         f()
 
+    def test_set_ContextManager_dict(self):
+        def eq(val):
+            assert cf.get_option("a") == val
+            assert cf.get_option("b.c") == val
+
+        cf.register_option("a", 0)
+        cf.register_option("b.c", 0)
+
+        eq(0)
+        with cf.option_context({"a": 15, "b.c": 15}):
+            eq(15)
+            with cf.option_context({"a": 25, "b.c": 25}):
+                eq(25)
+            eq(15)
+        eq(0)
+
+        cf.set_option("a", 17)
+        cf.set_option("b.c", 17)
+        eq(17)
+
+        # Test that option_context can be used as a decorator too
+        @cf.option_context({"a": 123, "b.c": 123})
+        def f():
+            eq(123)
+
+        f()
+
     def test_attribute_access(self):
         holder = []
 
@@ -395,7 +443,7 @@ class TestConfig:
         assert cf.get_option("a") == 500
 
         cf.reset_option("a")
-        assert options.a == cf.get_option("a", 0)
+        assert options.a == cf.get_option("a")
 
         msg = "You can only set the value of existing options"
         with pytest.raises(OptionError, match=msg):
@@ -435,3 +483,17 @@ class TestConfig:
         with pytest.raises(OptionError, match="No such option"):
             options.bananas
         assert not hasattr(options, "bananas")
+
+
+def test_no_silent_downcasting_deprecated():
+    # GH#59502
+    with tm.assert_produces_warning(Pandas4Warning, match="is deprecated"):
+        cf.get_option("future.no_silent_downcasting")
+    with tm.assert_produces_warning(Pandas4Warning, match="is deprecated"):
+        cf.set_option("future.no_silent_downcasting", True)
+
+
+def test_option_context_invalid_option():
+    with pytest.raises(OptionError, match="No such keys"):
+        with cf.option_context("invalid", True):
+            pass

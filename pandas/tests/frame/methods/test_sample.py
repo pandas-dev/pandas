@@ -113,9 +113,6 @@ class TestSample:
         with pytest.raises(ValueError, match=msg):
             obj.sample(n=3, weights=[0.5] * 11)
 
-        with pytest.raises(ValueError, match="Fewer non-zero entries in p than size"):
-            obj.sample(n=4, weights=Series([0, 0, 0.2]))
-
     def test_sample_negative_weights(self, obj):
         # Check won't accept negative weights
         bad_weights = [-0.1] * 10
@@ -136,6 +133,33 @@ class TestSample:
         weights_with_ninf[0] = -np.inf
         with pytest.raises(ValueError, match=msg):
             obj.sample(n=3, weights=weights_with_ninf)
+
+    def test_sample_unit_probabilities_raises(self, obj):
+        # GH#61516
+        high_variance_weights = [1] * 10
+        high_variance_weights[0] = 100
+        msg = (
+            "Weighted sampling cannot be achieved with replace=False. Either "
+            "set replace=True or use smaller weights. See the docstring of "
+            "sample for details."
+        )
+        with pytest.raises(ValueError, match=msg):
+            obj.sample(n=2, weights=high_variance_weights, replace=False)
+
+    def test_sample_unit_probabilities_edge_case_do_not_raise(self, obj):
+        # GH#61516
+        # edge case, n*max(weights)/sum(weights) == 1
+        edge_variance_weights = [1] * 10
+        edge_variance_weights[0] = 9
+        # should not raise
+        obj.sample(n=2, weights=edge_variance_weights, replace=False)
+
+    def test_sample_unit_normal_probabilities_do_not_raise(self, obj):
+        # GH#61516
+        low_variance_weights = [1] * 10
+        low_variance_weights[0] = 8
+        # should not raise
+        obj.sample(n=2, weights=low_variance_weights, replace=False)
 
     def test_sample_zero_weights(self, obj):
         # All zeros raises errors
@@ -198,8 +222,7 @@ class TestSample:
         obj = tm.get_obj(obj, frame_or_series)
 
         msg = (
-            "Replace has to be set to `True` when "
-            "upsampling the population `frac` > 1."
+            "Replace has to be set to `True` when upsampling the population `frac` > 1."
         )
         with pytest.raises(ValueError, match=msg):
             obj.sample(frac=2, replace=False)

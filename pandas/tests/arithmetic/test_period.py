@@ -42,8 +42,8 @@ _common_mismatch = [
         Timedelta(minutes=30).to_pytimedelta(),
         np.timedelta64(30, "s"),
         Timedelta(seconds=30),
+        *_common_mismatch,
     ]
-    + _common_mismatch
 )
 def not_hourly(request):
     """
@@ -58,8 +58,8 @@ def not_hourly(request):
         np.timedelta64(365, "D"),
         Timedelta(days=365).to_pytimedelta(),
         Timedelta(days=365),
+        *_common_mismatch,
     ]
-    + _common_mismatch
 )
 def mismatched_freq(request):
     """
@@ -962,11 +962,11 @@ class TestPeriodIndexArithmetic:
         pi = period_range("2016-01-01", periods=10, freq="2D")
         arr = np.arange(10)
         result = pi + arr
-        expected = pd.Index([x + y for x, y in zip(pi, arr)])
+        expected = pd.Index([x + y for x, y in zip(pi, arr, strict=True)])
         tm.assert_index_equal(result, expected)
 
         result = pi - arr
-        expected = pd.Index([x - y for x, y in zip(pi, arr)])
+        expected = pd.Index([x - y for x, y in zip(pi, arr, strict=True)])
         tm.assert_index_equal(result, expected)
 
     def test_pi_sub_isub_offset(self):
@@ -1086,7 +1086,7 @@ class TestPeriodIndexArithmetic:
         with pytest.raises(TypeError, match=msg):
             other - rng
 
-    @pytest.mark.parametrize("freqstr", ["5ns", "5us", "5ms", "5s", "5min", "5h", "5d"])
+    @pytest.mark.parametrize("freqstr", ["5ns", "5us", "5ms", "5s", "5min", "5h", "5D"])
     def test_parr_add_timedeltalike_tick_gt1(self, three_days, freqstr, box_with_array):
         # GH#23031 adding a time-delta-like offset to a PeriodArray that has
         # tick-like frequency with n != 1
@@ -1361,6 +1361,7 @@ class TestPeriodIndexArithmetic:
             arr + ts
         with pytest.raises(TypeError, match=msg):
             ts + arr
+
         msg = "cannot add PeriodArray and DatetimeArray"
         with pytest.raises(TypeError, match=msg):
             arr + Series([ts])
@@ -1636,7 +1637,9 @@ class TestPeriodIndexSeriesMethods:
         result = np.subtract(Period("2012-01", freq="M"), idx)
         tm.assert_index_equal(result, exp)
 
-        exp = TimedeltaIndex([np.nan, np.nan, np.nan, np.nan], name="idx")
+        exp = TimedeltaIndex(
+            [np.nan, np.nan, np.nan, np.nan], name="idx", dtype="m8[ns]"
+        )
         result = idx - Period("NaT", freq="M")
         tm.assert_index_equal(result, exp)
         assert result.freq == exp.freq
@@ -1650,7 +1653,7 @@ class TestPeriodIndexSeriesMethods:
         idx = PeriodIndex(
             ["2011-01", "2011-02", "NaT", "2011-04"], freq="M", name="idx"
         )
-        exp = TimedeltaIndex([pd.NaT] * 4, name="idx")
+        exp = TimedeltaIndex([pd.NaT] * 4, name="idx", dtype="m8[ns]")
         tm.assert_index_equal(pd.NaT - idx, exp)
         tm.assert_index_equal(idx - pd.NaT, exp)
 
@@ -1669,6 +1672,8 @@ class TestPeriodIndexSeriesMethods:
         exp = pd.Index([12 * off, pd.NaT, 10 * off, 9 * off], name="idx")
         tm.assert_index_equal(result, exp)
 
-        exp = TimedeltaIndex([np.nan, np.nan, np.nan, np.nan], name="idx")
+        exp = TimedeltaIndex(
+            [np.nan, np.nan, np.nan, np.nan], name="idx", dtype="m8[ns]"
+        )
         tm.assert_index_equal(idx - Period("NaT", freq="M"), exp)
         tm.assert_index_equal(Period("NaT", freq="M") - idx, exp)

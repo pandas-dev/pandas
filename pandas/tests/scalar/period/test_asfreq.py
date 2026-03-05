@@ -1,7 +1,6 @@
 import pytest
 
 from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
-from pandas.errors import OutOfBoundsDatetime
 
 from pandas import (
     Period,
@@ -42,10 +41,8 @@ class TestFreqConversion:
         # GH#19643, used to incorrectly give Timestamp in 1754
         with tm.assert_produces_warning(FutureWarning, match=bday_msg):
             per = Period("0001-01-01", freq="B")
-        msg = "Out of bounds nanosecond timestamp"
-        with pytest.raises(OutOfBoundsDatetime, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match=bday_msg):
-                per.to_timestamp()
+        with tm.assert_produces_warning(FutureWarning, match=bday_msg):
+            per.to_timestamp()
 
     def test_asfreq_corner(self):
         val = Period(freq="Y", year=2007)
@@ -59,6 +56,7 @@ class TestFreqConversion:
 
     def test_conv_annual(self):
         # frequency conversion tests: from Annual Frequency
+        msg = INVALID_FREQ_ERR_MSG
 
         ival_A = Period(freq="Y", year=2007)
 
@@ -110,18 +108,14 @@ class TestFreqConversion:
             assert ival_A.asfreq("B", "E") == ival_A_to_B_end
         assert ival_A.asfreq("D", "s") == ival_A_to_D_start
         assert ival_A.asfreq("D", "E") == ival_A_to_D_end
-        msg = "'H' is deprecated and will be removed in a future version."
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with pytest.raises(ValueError, match=msg):
             assert ival_A.asfreq("H", "s") == ival_A_to_H_start
             assert ival_A.asfreq("H", "E") == ival_A_to_H_end
         assert ival_A.asfreq("min", "s") == ival_A_to_T_start
         assert ival_A.asfreq("min", "E") == ival_A_to_T_end
-        msg = "'T' is deprecated and will be removed in a future version."
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with pytest.raises(ValueError, match=msg):
             assert ival_A.asfreq("T", "s") == ival_A_to_T_start
             assert ival_A.asfreq("T", "E") == ival_A_to_T_end
-        msg = "'S' is deprecated and will be removed in a future version."
-        with tm.assert_produces_warning(FutureWarning, match=msg):
             assert ival_A.asfreq("S", "S") == ival_A_to_S_start
             assert ival_A.asfreq("S", "E") == ival_A_to_S_end
 
@@ -697,14 +691,7 @@ class TestFreqConversion:
         start = per.start_time
         expected = Timestamp("2020-01-30 15:57:27.576166")
         assert start == expected
-        assert start._value == per.ordinal * 1000
-
-        per2 = Period("2300-01-01", "us")
-        msg = "2300-01-01"
-        with pytest.raises(OutOfBoundsDatetime, match=msg):
-            per2.start_time
-        with pytest.raises(OutOfBoundsDatetime, match=msg):
-            per2.end_time
+        assert start._value == per.ordinal
 
     def test_asfreq_mult(self):
         # normal freq to mult freq
@@ -783,7 +770,7 @@ class TestFreqConversion:
 
         # ordinal will not change
         expected = Period("2007", freq="25h")
-        for freq, how in zip(["1D1h", "1h1D"], ["E", "S"]):
+        for freq, how in zip(["1D1h", "1h1D"], ["E", "S"], strict=True):
             result = p.asfreq(freq, how=how)
             assert result == expected
             assert result.ordinal == expected.ordinal
@@ -820,7 +807,7 @@ class TestFreqConversion:
 
         assert initial.asfreq(freq="M", how="S") == Period("2013-01", "M")
 
-        msg = "MS is not supported as period frequency"
+        msg = INVALID_FREQ_ERR_MSG
         with pytest.raises(ValueError, match=msg):
             initial.asfreq(freq="MS", how="S")
 

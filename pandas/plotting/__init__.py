@@ -55,6 +55,7 @@ https://github.com/pyviz/hvplot as a reference on how to write a backend.
 For the discussion about the API see
 https://github.com/pandas-dev/pandas/issues/26747.
 """
+
 from pandas.plotting._core import (
     PlotAccessor,
     boxplot,
@@ -79,20 +80,20 @@ from pandas.plotting._misc import (
 
 __all__ = [
     "PlotAccessor",
+    "andrews_curves",
+    "autocorrelation_plot",
+    "bootstrap_plot",
     "boxplot",
     "boxplot_frame",
     "boxplot_frame_groupby",
+    "deregister_matplotlib_converters",
     "hist_frame",
     "hist_series",
-    "scatter_matrix",
-    "radviz",
-    "andrews_curves",
-    "bootstrap_plot",
-    "parallel_coordinates",
     "lag_plot",
-    "autocorrelation_plot",
-    "table",
+    "parallel_coordinates",
     "plot_params",
+    "radviz",
     "register_matplotlib_converters",
-    "deregister_matplotlib_converters",
+    "scatter_matrix",
+    "table",
 ]

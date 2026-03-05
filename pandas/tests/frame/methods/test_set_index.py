@@ -10,6 +10,8 @@ from datetime import (
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas import (
     Categorical,
     CategoricalIndex,
@@ -148,7 +150,7 @@ class TestSetIndex:
 
     def test_set_index(self, float_string_frame):
         df = float_string_frame
-        idx = Index(np.arange(len(df))[::-1])
+        idx = Index(np.arange(len(df) - 1, -1, -1, dtype=np.int64))
 
         df = df.set_index(idx)
         tm.assert_index_equal(df.index, idx)
@@ -163,7 +165,7 @@ class TestSetIndex:
         )
         df.index.name = "name"
 
-        assert df.set_index(df.index).index.names == ("name",)
+        assert df.set_index(df.index).index.names == ["name"]
 
         mi = MultiIndex.from_arrays(df[["A", "B"]].T.values, names=["A", "B"])
         mi2 = MultiIndex.from_arrays(
@@ -172,7 +174,7 @@ class TestSetIndex:
 
         df = df.set_index(["A", "B"])
 
-        assert df.set_index(df.index).index.names == ("A", "B")
+        assert df.set_index(df.index).index.names == ["A", "B"]
 
         # Check that set_index isn't converting a MultiIndex into an Index
         assert isinstance(df.set_index(df.index).index, MultiIndex)
@@ -220,7 +222,7 @@ class TestSetIndex:
 
         keys = keys if isinstance(keys, list) else [keys]
         idx = MultiIndex.from_arrays(
-            [df.index] + [df[x] for x in keys], names=[None] + keys
+            [df.index] + [df[x] for x in keys], names=[None, *keys]
         )
         expected = df.drop(keys, axis=1) if drop else df.copy()
         expected.index = idx
@@ -237,7 +239,7 @@ class TestSetIndex:
         df = frame_of_index_cols.set_index(["D"], drop=drop, append=True)
 
         keys = keys if isinstance(keys, list) else [keys]
-        expected = frame_of_index_cols.set_index(["D"] + keys, drop=drop, append=True)
+        expected = frame_of_index_cols.set_index(["D", *keys], drop=drop, append=True)
 
         result = df.set_index(keys, drop=drop, append=True)
 
@@ -292,7 +294,7 @@ class TestSetIndex:
             # only valid column keys are dropped
             # since B is always passed as array above, nothing is dropped
             expected = df.set_index(["B"], drop=False, append=append)
-            expected.index.names = [index_name] + list(name) if append else name
+            expected.index.names = [index_name, *name] if append else name
 
             tm.assert_frame_equal(result, expected)
 
@@ -322,7 +324,7 @@ class TestSetIndex:
         # since B is always passed as array above, only A is dropped, if at all
         expected = df.set_index(["A", "B"], drop=False, append=append)
         expected = expected.drop("A", axis=1) if drop else expected
-        expected.index.names = [index_name] + names if append else names
+        expected.index.names = [index_name, *names] if append else names
 
         tm.assert_frame_equal(result, expected)
 
@@ -464,12 +466,12 @@ class TestSetIndex:
         df = df.set_index("label", append=True)
         tm.assert_index_equal(df.index.levels[0], expected)
         tm.assert_index_equal(df.index.levels[1], Index(["a", "b"], name="label"))
-        assert df.index.names == ("datetime", "label")
+        assert df.index.names == ["datetime", "label"]
 
         df = df.swaplevel(0, 1)
         tm.assert_index_equal(df.index.levels[0], Index(["a", "b"], name="label"))
         tm.assert_index_equal(df.index.levels[1], expected)
-        assert df.index.names == ("label", "datetime")
+        assert df.index.names == ["label", "datetime"]
 
         df = DataFrame(np.random.default_rng(2).random(6))
         idx1 = DatetimeIndex(
@@ -547,11 +549,14 @@ class TestSetIndexInvalid:
     def test_set_index_verify_integrity(self, frame_of_index_cols):
         df = frame_of_index_cols
 
+        msg = "The 'verify_integrity' keyword in DataFrame.set_index"
         with pytest.raises(ValueError, match="Index has duplicate keys"):
-            df.set_index("A", verify_integrity=True)
+            with tm.assert_produces_warning(Pandas4Warning, match=msg):
+                df.set_index("A", verify_integrity=True)
         # with MultiIndex
         with pytest.raises(ValueError, match="Index has duplicate keys"):
-            df.set_index([df["A"], df["A"]], verify_integrity=True)
+            with tm.assert_produces_warning(Pandas4Warning, match=msg):
+                df.set_index([df["A"], df["A"]], verify_integrity=True)
 
     @pytest.mark.parametrize("append", [True, False])
     @pytest.mark.parametrize("drop", [True, False])
