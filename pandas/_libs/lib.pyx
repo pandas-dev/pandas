@@ -1,5 +1,8 @@
 from collections import abc
-from decimal import Decimal
+from decimal import (
+    Decimal,
+    InvalidOperation,
+)
 from enum import Enum
 from sys import getsizeof
 from types import GenericAlias
@@ -1256,6 +1259,53 @@ def is_complex(obj: object) -> bool:
 
 cpdef bint is_decimal(object obj):
     return isinstance(obj, Decimal)
+
+
+def maybe_convert_lossy_decimal_ints(ndarray[object] arr) -> ndarray:
+    """
+    Convert large integral Decimal values to Python int to avoid precision loss.
+
+    When coerce_float=True, Decimal values would be cast to float64, losing
+    precision for integers beyond 2**53. This function converts such values to
+    Python int before that coercion happens.
+
+    Parameters
+    ----------
+    arr : ndarray[object]
+        Array of objects, potentially containing decimal.Decimal values.
+
+    Returns
+    -------
+    ndarray[object]
+    """
+    # GH#61667
+    cdef:
+        Py_ssize_t i, n = len(arr)
+        object val
+        object out = None
+
+    for i in range(n):
+        val = arr[i]
+        if val is not None:
+            if not is_decimal(val):
+                return arr
+            break
+
+    for i in range(n):
+        val = arr[i]
+        if not is_decimal(val):
+            continue
+        try:
+            if val == val.to_integral_value() and abs(val) > 2**53:
+                if out is None:
+                    out = arr.copy()
+                out[i] = int(val)
+        except (InvalidOperation, OverflowError):
+            pass
+
+    if out is None:
+        return arr
+    return out
 
 
 @set_module("pandas.api.types")

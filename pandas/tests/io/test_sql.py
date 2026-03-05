@@ -3924,8 +3924,8 @@ def test_read_sql_query_decimal_coerce_float_large_integral_preserves_value(
     df = sql.read_sql_query("SELECT longID FROM t_gh61667_int", conn, coerce_float=True)
     v = df.loc[0, "longID"]
 
-    assert str(v) == "305184080441754059"
-    assert not isinstance(v, (float, np.floating))
+    assert isinstance(v, np.integer)
+    assert v == 305184080441754059
 
 
 def test_read_sql_query_decimal_coerce_float_fractional_still_float(
@@ -3939,7 +3939,7 @@ def test_read_sql_query_decimal_coerce_float_fractional_still_float(
     df = sql.read_sql_query("SELECT x FROM t_gh61667_frac", conn, coerce_float=True)
     v = df.loc[0, "x"]
 
-    assert isinstance(v, (float, np.floating))
+    assert isinstance(v, np.floating)
     assert v == 1.25
 
 

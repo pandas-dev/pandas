@@ -18,7 +18,6 @@ from datetime import (
     datetime,
     time,
 )
-from decimal import Decimal
 from functools import partial
 import re
 from typing import (
@@ -158,28 +157,6 @@ def _parse_date_columns(data_frame: DataFrame, parse_dates) -> DataFrame:
     return data_frame
 
 
-def _maybe_convert_lossy_decimal_ints(arr: np.ndarray, /) -> np.ndarray:
-    """Prevent precision loss when coercing large integral Decimals to float."""
-    # GH#61667
-    if arr.dtype != np.dtype("O"):
-        return arr
-    for i, x in enumerate(arr):
-        if isinstance(x, Decimal):
-            out = arr.copy()
-            for j in range(i, len(out)):
-                y = out[j]
-                if not isinstance(y, Decimal):
-                    continue
-                try:
-                    if y == y.to_integral_value():
-                        if abs(y) > 2**53:
-                            out[j] = int(y)
-                except Exception:
-                    pass
-            return out
-    return arr
-
-
 def _convert_arrays_to_dataframe(
     data,
     columns,
@@ -191,7 +168,7 @@ def _convert_arrays_to_dataframe(
 
     content_t = list(content.T)
     if coerce_float:
-        content_t = [_maybe_convert_lossy_decimal_ints(col) for col in content_t]
+        content_t = [lib.maybe_convert_lossy_decimal_ints(col) for col in content_t]
 
     arrays = convert_object_array(
         content_t,
