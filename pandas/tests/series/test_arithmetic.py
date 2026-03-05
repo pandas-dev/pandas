@@ -26,6 +26,7 @@ from pandas import (
     date_range,
     isna,
 )
+from pandas.errors import Pandas4Warning
 import pandas._testing as tm
 from pandas.core import ops
 from pandas.core.computation import expressions as expr
@@ -199,18 +200,50 @@ class TestSeriesFlexArithmetic:
             ser.add(df, axis=0)
 
     @pytest.mark.parametrize(
-        "opname", ["truediv", "rtruediv", "floordiv", "rfloordiv", "pow", "rpow"]
+        "opname",
+        [
+            "truediv",
+            "rtruediv",
+            "floordiv",
+            "rfloordiv",
+            "pow",
+            "rpow",
+            "divmod",
+            "rdivmod",
+        ],
     )
-    def test_flex_method_bool_dtype_raises(self, opname):
-        # GH#63250 - flex methods should raise NotImplementedError for bool dtypes
-        # consistent with their dunder counterparts
+    def test_flex_method_bool_dtype_deprecated(self, opname):
+        # GH#63250 - deprecate flex methods for bool dtypes (will raise to match
+        # their dunder counterparts)
         ser = Series([True, False, True])
         other = Series([False, True, True])
 
         op = getattr(Series, opname)
         msg = f"operator '{opname.removeprefix('r')}' not implemented for bool dtypes"
-        with pytest.raises(NotImplementedError, match=msg):
-            op(ser, other)
+        base_opname = opname.lstrip("r")
+
+        if base_opname == "divmod":
+            func = divmod
+        else:
+            func = getattr(operator, base_opname)
+
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = op(ser, other)
+
+        with np.errstate(all="ignore"):
+            if opname.startswith("r"):
+                expected = func(other.to_numpy(), ser.to_numpy())
+            else:
+                expected = func(ser.to_numpy(), other.to_numpy())
+
+        if base_opname == "divmod":
+            expected0 = Series(expected[0], index=ser.index)
+            expected1 = Series(expected[1], index=ser.index)
+            tm.assert_series_equal(result[0], expected0)
+            tm.assert_series_equal(result[1], expected1)
+        else:
+            expected_ser = Series(expected, index=ser.index)
+            tm.assert_series_equal(result, expected_ser)
 
 
 class TestSeriesArithmetic:
