@@ -46,23 +46,27 @@ jobs:
 
     steps:
     - name: Set pandas version
+      env:
+        INPUT_VERSION: ${{ github.event.inputs.version }}
+        EVENT_NAME: ${{ github.event_name }}
+        INPUT_PUBLISH_PROD: ${{ github.event.inputs.publish_prod }}
       run: |
         # tags include a `v` prefix.
         tag_version_pat="^v[0-9]+\.[0-9]+\.[0-9]+(rc[0-9]+)?$"
         version_pat="^[0-9]+\.[0-9]+\.[0-9]+(rc[0-9]+)?$"
 
-        if [[ -n "${{ github.event.inputs.version }}" ]]; then
-          PANDAS_VERSION="${{ github.event.inputs.version }}"
-        elif [[ "${{ github.event_name }}" == "push" && "$GITHUB_REF_NAME" =~ $tag_version_pat ]]; then
+        if [[ -n "$INPUT_VERSION" ]]; then
+          PANDAS_VERSION="$INPUT_VERSION"
+        elif [[ "$EVENT_NAME" == "push" && "$GITHUB_REF_NAME" =~ $tag_version_pat ]]; then
           PANDAS_VERSION="${GITHUB_REF_NAME:1}"
         else
           PANDAS_VERSION=""
         fi
         echo "PANDAS_VERSION=$PANDAS_VERSION" >> "$GITHUB_ENV"
 
-        if [[ "${{ github.event_name }}" == "push" && -n "$PANDAS_VERSION" ]]; then
+        if [[ "$EVENT_NAME" == "push" && -n "$PANDAS_VERSION" ]]; then
           PUBLISH_PROD="true"
-        elif [[ "${{ github.event.inputs.publish_prod }}" == "true" ]]; then
+        elif [[ "$INPUT_PUBLISH_PROD" == "true" ]]; then
           PUBLISH_PROD="true"
         else
           PUBLISH_PROD="false"
