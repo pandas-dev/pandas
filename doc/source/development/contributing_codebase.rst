@@ -907,8 +907,7 @@ will only run the ``GroupByMethods`` benchmark defined in ``groupby.py``.
 
 You can also run the benchmark suite using the version of ``pandas``
 already installed in your current Python environment. This can be
-useful if you do not have virtualenv or conda, or are using the
-``setup.py develop`` approach discussed above; for the in-place build
+useful if you do not have virtualenv or conda; for the in-place build
 you need to set ``PYTHONPATH``, e.g.
 ``PYTHONPATH="$PWD/.." asv [remaining arguments]``.
 You can run benchmarks using an existing Python

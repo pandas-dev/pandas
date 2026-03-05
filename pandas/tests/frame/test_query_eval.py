@@ -997,7 +997,7 @@ class TestDataFrameQueryStrings:
             ops = 2 * ([eq, ne])
             msg = r"'(Not)?In' nodes are not implemented"
 
-            for lh, op_, rh in zip(lhs, ops, rhs):
+            for lh, op_, rh in zip(lhs, ops, rhs, strict=True):
                 ex = f"{lh} {op_} {rh}"
                 with pytest.raises(NotImplementedError, match=msg):
                     df.query(
@@ -1038,7 +1038,7 @@ class TestDataFrameQueryStrings:
             ops = 2 * ([eq, ne])
             msg = r"'(Not)?In' nodes are not implemented"
 
-            for lh, ops_, rh in zip(lhs, ops, rhs):
+            for lh, ops_, rh in zip(lhs, ops, rhs, strict=True):
                 ex = f"{lh} {ops_} {rh}"
                 with pytest.raises(NotImplementedError, match=msg):
                     df.query(ex, engine=engine, parser=parser)

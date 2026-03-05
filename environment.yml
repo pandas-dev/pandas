@@ -8,7 +8,7 @@ dependencies:
 
   # build dependencies
   - versioneer
-  - cython<4.0.0a0
+  - cython>=3.1.0,<4.0.0a0
   - meson>=1.2.1,<2
   - meson-python>=0.17.1,<1
 
@@ -76,7 +76,6 @@ dependencies:
   - cxx-compiler
 
   # code checks
-  - flake8=7.1.0  # run in subprocess over docstring examples
   - mypy=1.17.1  # pre-commit uses locally installed mypy
   - tokenize-rt  # scripts/check_for_inconsistent_pandas_namespace.py
   - pre-commit>=4.2.0
@@ -88,7 +87,6 @@ dependencies:
   - numpydoc
   # temporary installed with pip with custom patch until released
   # - pydata-sphinx-theme=0.16
-  - pytest-cython  # doctest
   - sphinx
   - sphinx-design
   - sphinx-copybutton
@@ -99,7 +97,6 @@ dependencies:
   - types-PyMySQL
   - types-pytz
   - types-PyYAML
-  - types-setuptools
 
   # documentation (jupyter notebooks)
   - nbconvert>=7.11.0
@@ -128,3 +125,4 @@ dependencies:
   - pip:
       - tzdata>=2023.3
       - https://github.com/jorisvandenbossche/pydata-sphinx-theme/archive/refs/heads/v0.16.1+dismissable-announcement-banner.zip
+      - pytest-cython==0.4.0rc1  # doctest

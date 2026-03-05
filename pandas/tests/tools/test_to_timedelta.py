@@ -107,6 +107,14 @@ class TestTimedeltas:
         expected = to_timedelta([0, 10], unit="s").as_unit("ns")
         tm.assert_index_equal(result, expected)
 
+    def test_to_timedelta_mixed_dtype(self):
+        # https://github.com/pandas-dev/pandas/issues/64044
+        result = to_timedelta(np.array([0.5, 2]), unit="m")
+        expected = TimedeltaIndex(
+            ["0 days 00:00:30", "0 days 00:02:00"], dtype="timedelta64[ns]", freq=None
+        )
+        tm.assert_index_equal(result, expected)
+
     @pytest.mark.parametrize(
         "dtype, unit",
         [
