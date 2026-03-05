@@ -778,3 +778,26 @@ def test_parsed_unit():
     # 7 digits after the decimal
     td = Timedelta("1 Day 2:03:04.0123450")
     assert td.unit == "ns"
+
+
+def test_timedelta_resolution_consistency():
+    # GH#33992
+    # Ensure Timedelta resolution is consistent regardless of how arguments are passed
+    
+    # Using value and unit arguments
+    td1 = Timedelta(1 / 128, "seconds")
+    
+    # Using keyword argument
+    td2 = Timedelta(seconds=1 / 128)
+    
+    # Both should have the same resolution
+    assert td1.resolution_string == td2.resolution_string
+    
+    # Both should represent the same time value
+    assert td1 == td2
+    
+    # Additional test with different units
+    td3 = Timedelta(1 / 1000, "milliseconds")
+    td4 = Timedelta(milliseconds=1 / 1000)
+    assert td3.resolution_string == td4.resolution_string
+    assert td3 == td4
