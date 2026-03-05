@@ -501,12 +501,39 @@ def _to_datetime_with_unit(arg, unit, name, utc: bool, errors: str) -> Index:
         if arg.dtype.kind in "iu":
             # Note we can't do "f" here because that could induce unwanted
             #  rounding GH#14156, GH#20445
-            # GH#60677: Check bounds before astype to catch overflow
-            # astype can wrap around for uint64, so check explicitly
-            arr_for_check = arg.astype(f"datetime64[{unit}]", copy=False)
-            dtype = get_supported_dtype(arr_for_check.dtype)
+            
+            # GH#60677: For integer inputs, check bounds before conversion
+            # NumPy's astype can wraparound on overflow (e.g., uint64_max -> 1969)
+            # Calculate allowed integer range for this unit
+            from pandas import Timestamp
+            
+            # unit -> nanoseconds multiplier
+            multipliers = {
+                "D": 86400_000_000_000, "h": 3_600_000_000_000, 
+                "m": 60_000_000_000, "s": 1_000_000_000,
+                "ms": 1_000_000, "us": 1_000, "ns": 1
+            }
+            mult = multipliers.get(unit, 1)
+            
+            # Compute min/max allowed integers for this unit
+            ts_min = Timestamp.min.value // mult
+            ts_max = Timestamp.max.value // mult
+            
+            # Check bounds
+            if np.any(arg < ts_min) or np.any(arg > ts_max):
+                if errors == "raise":
+                    raise OutOfBoundsDatetime(
+                        f"cannot convert input with unit '{unit}'"
+                    )
+                # Coerce to NaT
+                arg = arg.astype(object)
+                return _to_datetime_with_unit(arg, unit, name, utc, errors)
+            
+            # Now safe to convert
+            arr = arg.astype(f"datetime64[{unit}]", copy=False)
+            dtype = get_supported_dtype(arr.dtype)
             try:
-                arr = astype_overflowsafe(arr_for_check, dtype, copy=False)
+                arr = astype_overflowsafe(arr, dtype, copy=False)
             except OutOfBoundsDatetime:
                 if errors == "raise":
                     raise
