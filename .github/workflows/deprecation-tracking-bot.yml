@@ -10,12 +10,12 @@ on:
       - main
 
 
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
   deprecation_update:
     permissions:
+      contents: read
       issues: write
     runs-on: ubuntu-24.04
     env:

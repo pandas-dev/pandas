@@ -26,13 +26,14 @@ env:
   ENV_FILE: environment.yml
   PANDAS_CI: 1
 
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
   web_and_docs:
     name: Doc Build and Upload
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
 
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7

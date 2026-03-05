@@ -3,14 +3,15 @@ on:
   issue_comment:
     types: created
 
-permissions:
-  contents: read
-  issues: write
-  pull-requests: write
+permissions: {}
 
 jobs:
   preview_docs:
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
     if: github.event.issue.pull_request && github.event.comment.body == '/preview'
     concurrency:
       group: ${{ github.actor }}-preview-docs

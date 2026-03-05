@@ -13,8 +13,7 @@ on:
       - "doc/**"
       - "web/**"
 
-permissions:
-  contents: read
+permissions: {}
 
 defaults:
   run:
@@ -23,6 +22,8 @@ defaults:
 jobs:
   ubuntu:
     runs-on: ${{ matrix.platform }}
+    permissions:
+      contents: read
     timeout-minutes: 90
     strategy:
       matrix:
@@ -186,6 +187,8 @@ jobs:
       if: ${{ matrix.pattern == '' && (always() && steps.build.outcome == 'success')}}
 
   macos-windows:
+    permissions:
+      contents: read
     timeout-minutes: 90
     strategy:
       matrix:
@@ -223,6 +226,8 @@ jobs:
 
   Linux-32-bit:
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
     container:
       image: quay.io/pypa/manylinux_2_28_i686
       options: --platform linux/386
@@ -259,6 +264,8 @@ jobs:
 
   Linux-Musl:
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
     container:
       image: quay.io/pypa/musllinux_1_2_x86_64
     steps:
@@ -319,6 +326,8 @@ jobs:
     #    to the corresponding posix/windows-macos/sdist etc. workflows.
     # Feel free to modify this comment as necessary.
     if: false
+    permissions:
+      contents: read
     defaults:
       run:
         shell: bash -eou pipefail {0}
@@ -373,6 +382,8 @@ jobs:
     # https://pyodide.org/en/stable/usage/index.html#node-js
     name: Pyodide build
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
       group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-wasm

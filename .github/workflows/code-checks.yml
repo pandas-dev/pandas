@@ -14,14 +14,15 @@ env:
   ENV_FILE: environment.yml
   PANDAS_CI: 1
 
-permissions:
-  contents: read
+permissions: {}
 
 # pre-commit run by https://pre-commit.ci/
 jobs:
   docstring_typing_manual_hooks:
     name: Docstring validation, typing, and other manual pre-commit hooks
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
     defaults:
       run:
         shell: bash -el {0}
@@ -89,6 +90,8 @@ jobs:
   asv-benchmarks:
     name: ASV Benchmarks
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
     defaults:
       run:
         shell: bash -el {0}
@@ -120,6 +123,8 @@ jobs:
   requirements-dev-text-installable:
     name: Test install requirements-dev.txt
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
 
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
