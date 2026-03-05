@@ -166,7 +166,7 @@ Missing
 
 MultiIndex
 ^^^^^^^^^^
--
+- Bug in :class:`DataFrame` arithmetic operations with :class:`Series` now works with ``fill_value`` parameter (:issue:`61581`)
 -
 
 I/O
