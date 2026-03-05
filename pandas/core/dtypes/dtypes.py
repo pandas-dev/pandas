@@ -2482,8 +2482,3 @@ class ArrowDtype(StorageExtensionDtype):
         return array_class(arr)
 
 
-class UUIDDtype(ExtensionDtype):
-    type = uuid.UUID
-    name = "UUID"
-
-    ## def __contains__() here or something
