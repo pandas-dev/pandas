@@ -1498,3 +1498,26 @@ def test_setitem_partial_row_multiple_columns():
         }
     )
     tm.assert_frame_equal(df, expected)
+
+
+def test_enlarge_frame_with_tz_aware_datetime():
+    # GH#55423
+    # Ensure that enlarging a DataFrame by adding a new column with a tz-aware
+    # datetime scalar results in datetime64[ns, UTC] dtype, not object dtype
+    import datetime as dt
+    
+    df = DataFrame([{"id": 1}, {"id": 2}, {"id": 3}])
+    _time = dt.datetime.utcfromtimestamp(1695887042)
+    _time = _time.replace(tzinfo=dt.timezone.utc)
+    
+    df.loc[df.id >= 2, "time"] = _time
+    
+    # Check that the dtype is datetime64[ns, UTC], not object
+    expected_dtype = DatetimeTZDtype(tz="UTC")
+    assert isinstance(df["time"].dtype, DatetimeTZDtype)
+    assert df["time"].dtype == expected_dtype
+    
+    # Check values
+    assert pd.isna(df.loc[0, "time"])
+    assert df.loc[1, "time"] == Timestamp("2023-09-28 07:44:02", tz="UTC")
+    assert df.loc[2, "time"] == Timestamp("2023-09-28 07:44:02", tz="UTC")
