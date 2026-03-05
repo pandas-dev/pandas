@@ -19,6 +19,7 @@ from typing import (
 )
 import unicodedata
 import warnings
+import uuid
 
 import numpy as np
 
@@ -243,6 +244,7 @@ def to_pyarrow_type(
         except pa.ArrowNotImplementedError:
             pass
     return None
+
 
 
 @set_module("pandas.arrays")
@@ -1124,7 +1126,9 @@ class ArrowExtensionArray(
             # e.g. date or timestamp types we do not allow None here to match pd.NA
             return False
             # TODO: maybe complex? object?
-
+        if isinstance(key, uuid.UUID):
+            #GH#63511 uuid.UUID not hashable, convert to bytes for the check
+            key = key.bytes
         return bool(super().__contains__(key))
 
     @property
@@ -2400,7 +2404,7 @@ class ArrowExtensionArray(
 
         elif is_integer(key):
             # fast path
-            key = cast("int", key)
+            key = cast(int, key)
             n = len(self)
             if key < 0:
                 key += n
