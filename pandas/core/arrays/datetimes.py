@@ -827,9 +827,15 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             if off is not None:
                 offset_td = Timedelta(off)
                 if offset_td.value != 0:
-                    offset_unit = getattr(off, "unit", None)
-                    if offset_unit not in units:
-                        offset_unit = offset_td.resolution_string
+                    offset_unit = offset_td.resolution_string
+                    off_unit = getattr(off, "unit", None)
+                    if off_unit in units:
+                        if not (
+                            off_unit == "ns"
+                            and offset_unit in units
+                            and offset_unit != "ns"
+                        ):
+                            offset_unit = off_unit
                     if offset_unit in units:
                         idx_self = units.index(self.unit)
                         idx_offset = units.index(offset_unit)
@@ -849,9 +855,15 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             if off is not None:
                 offset_td = Timedelta(off)
                 if offset_td.value != 0:
-                    offset_unit = getattr(off, "unit", None)
-                    if offset_unit not in units:
-                        offset_unit = offset_td.resolution_string
+                    offset_unit = offset_td.resolution_string
+                    off_unit = getattr(off, "unit", None)
+                    if off_unit in units:
+                        if not (
+                            off_unit == "ns"
+                            and offset_unit in units
+                            and offset_unit != "ns"
+                        ):
+                            offset_unit = off_unit
                     if offset_unit in units:
                         idx_self = units.index(self.unit)
                         idx_offset = units.index(offset_unit)
