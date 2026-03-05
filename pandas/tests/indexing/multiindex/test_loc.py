@@ -1010,3 +1010,49 @@ def test_multindex_series_loc_with_tuple_label():
     ser = Series([1, 2], index=mi)
     result = ser.loc[(3, (4, 5))]
     assert result == 2
+
+
+def test_loc_multiindex_datetime_type_matching():
+    # GH#55969
+    # When using MultiIndex with datetime.date as first level,
+    # accessing with np.datetime64 should either raise error or work correctly,
+    # not return incorrect rows
+    import datetime as dt
+    
+    # Use fixed seed to ensure reproducibility (issue behavior was random-dependent)
+    np.random.seed(1)
+    
+    dates = [
+        dt.datetime(2023, 11, 1).date(),
+        dt.datetime(2023, 11, 1).date(),
+        dt.datetime(2023, 11, 2).date(),
+    ]
+    t1 = ["A", "B", "C"]
+    t2 = ["C", "D", "E"]
+    vals = np.random.uniform(size=len(dates))
+    
+    df = DataFrame(
+        data=np.array([dates, t1, t2, vals]).T,
+        columns=["dates", "t1", "t2", "vals"],
+    )
+    df.set_index(["dates", "t1", "t2"], inplace=True)
+    
+    date = np.datetime64("2023-11-01")
+    
+    # Test with partial indexing (first two levels)
+    # Should return only rows matching both first and second level
+    result_a = df.loc[(date, "A")]
+    assert len(result_a) == 1  # Should get only the first row
+    
+    result_b = df.loc[(date, "B")]
+    assert len(result_b) == 1  # Should get only the second row
+    
+    # Accessing (date, 'C') should either raise KeyError or return only matching rows
+    # (third row has different date, so should not match)
+    try:
+        result_c = df.loc[(date, "C")]
+        # If it doesn't raise, it should return 0 rows (no match)
+        assert len(result_c) == 0
+    except KeyError:
+        # Also acceptable behavior
+        pass
