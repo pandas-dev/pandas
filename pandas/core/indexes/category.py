@@ -13,7 +13,6 @@ import numpy as np
 from pandas._libs import index as libindex
 from pandas.util._decorators import (
     cache_readonly,
-    doc,
     set_module,
 )
 
@@ -244,7 +243,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         """
         if isinstance(other.dtype, CategoricalDtype):
             cat = extract_array(other)
-            cat = cast(Categorical, cat)
+            cat = cast("Categorical", cat)
             if not cat._categories_match_up_to_permutation(self._values):
                 raise TypeError(
                     "categories must match existing categories when appending"
@@ -372,8 +371,41 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
     def inferred_type(self) -> str:
         return "categorical"
 
-    @doc(Index.__contains__)
     def __contains__(self, key: Any) -> bool:
+        """
+        Return a boolean indicating whether the provided key is in the index.
+
+        Parameters
+        ----------
+        key : label
+            The key to check if it is present in the index.
+
+        Returns
+        -------
+        bool
+            Whether the key search is in the index.
+
+        Raises
+        ------
+        TypeError
+            If the key is not hashable.
+
+        See Also
+        --------
+        Index.isin : Returns an ndarray of boolean dtype indicating whether the
+            list-like key is in the index.
+
+        Examples
+        --------
+        >>> idx = pd.Index([1, 2, 3, 4])
+        >>> idx
+        Index([1, 2, 3, 4], dtype='int64')
+
+        >>> 2 in idx
+        True
+        >>> 6 in idx
+        False
+        """
         # if key is a NaN, check if any NaN is in self.
         if is_valid_na_for_dtype(key, self.categories.dtype):
             return self.hasnans
@@ -508,13 +540,13 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         If the mapping is not one-to-one an :class:`~pandas.Index` is returned:
 
         >>> idx.map({"a": "first", "b": "second", "c": "first"})
-        Index(['first', 'second', 'first'], dtype='object')
+        Index(['first', 'second', 'first'], dtype='str')
 
         If a `dict` is used, all unmapped categories are mapped to `NaN` and
         the result is an :class:`~pandas.Index`:
 
         >>> idx.map({"a": "first", "b": "second"})
-        Index(['first', 'second', nan], dtype='object')
+        Index(['first', 'second', nan], dtype='str')
         """
         mapped = self._values.map(mapper, na_action=na_action)
-        return Index(mapped, name=self.name)
+        return Index(mapped, name=self.name, copy=False)

@@ -1,7 +1,13 @@
+from collections.abc import Callable
+import copy
 from datetime import datetime
+import operator
+import re
 
 import numpy as np
 import pytest
+
+from pandas._libs.properties import cache_readonly
 
 import pandas as pd
 import pandas._testing as tm
@@ -13,37 +19,142 @@ from pandas.tests.test_register_accessor import ensure_removed
     ("expr", "expected_values", "expected_str"),
     [
         (pd.col("a"), [1, 2], "col('a')"),
-        (pd.col("a") * 2, [2, 4], "(col('a') * 2)"),
+        (pd.col("a") * 2, [2, 4], "col('a') * 2"),
         (pd.col("a").sum(), [3, 3], "col('a').sum()"),
-        (pd.col("a") + 1, [2, 3], "(col('a') + 1)"),
-        (1 + pd.col("a"), [2, 3], "(1 + col('a'))"),
-        (pd.col("a") - 1, [0, 1], "(col('a') - 1)"),
-        (1 - pd.col("a"), [0, -1], "(1 - col('a'))"),
-        (pd.col("a") * 1, [1, 2], "(col('a') * 1)"),
-        (1 * pd.col("a"), [1, 2], "(1 * col('a'))"),
-        (pd.col("a") / 1, [1.0, 2.0], "(col('a') / 1)"),
-        (1 / pd.col("a"), [1.0, 0.5], "(1 / col('a'))"),
-        (pd.col("a") // 1, [1, 2], "(col('a') // 1)"),
-        (1 // pd.col("a"), [1, 0], "(1 // col('a'))"),
-        (pd.col("a") % 1, [0, 0], "(col('a') % 1)"),
-        (1 % pd.col("a"), [0, 1], "(1 % col('a'))"),
-        (pd.col("a") > 1, [False, True], "(col('a') > 1)"),
-        (pd.col("a") >= 1, [True, True], "(col('a') >= 1)"),
-        (pd.col("a") < 1, [False, False], "(col('a') < 1)"),
-        (pd.col("a") <= 1, [True, False], "(col('a') <= 1)"),
-        (pd.col("a") == 1, [True, False], "(col('a') == 1)"),
+        (pd.col("a") + 1, [2, 3], "col('a') + 1"),
+        (1 + pd.col("a"), [2, 3], "1 + col('a')"),
+        (pd.col("a") - 1, [0, 1], "col('a') - 1"),
+        (1 - pd.col("a"), [0, -1], "1 - col('a')"),
+        (pd.col("a") * 1, [1, 2], "col('a') * 1"),
+        (1 * pd.col("a"), [1, 2], "1 * col('a')"),
+        (2 ** pd.col("a"), [2, 4], "2 ** col('a')"),
+        (pd.col("a") ** 2, [1, 4], "col('a') ** 2"),
+        (pd.col("a") / 1, [1.0, 2.0], "col('a') / 1"),
+        (1 / pd.col("a"), [1.0, 0.5], "1 / col('a')"),
+        (pd.col("a") // 1, [1, 2], "col('a') // 1"),
+        (1 // pd.col("a"), [1, 0], "1 // col('a')"),
+        (pd.col("a") % 1, [0, 0], "col('a') % 1"),
+        (1 % pd.col("a"), [0, 1], "1 % col('a')"),
+        (pd.col("a") > 1, [False, True], "col('a') > 1"),
+        (pd.col("a") >= 1, [True, True], "col('a') >= 1"),
+        (pd.col("a") < 1, [False, False], "col('a') < 1"),
+        (pd.col("a") <= 1, [True, False], "col('a') <= 1"),
+        (pd.col("a") == 1, [True, False], "col('a') == 1"),
         (np.power(pd.col("a"), 2), [1, 4], "power(col('a'), 2)"),
         (np.divide(pd.col("a"), pd.col("a")), [1.0, 1.0], "divide(col('a'), col('a'))"),
+        (
+            (pd.col("a") + 1) * (pd.col("b") + 2),
+            [10, 18],
+            "(col('a') + 1) * (col('b') + 2)",
+        ),
+        (
+            (pd.col("a") - 1).astype("bool"),
+            [False, True],
+            "(col('a') - 1).astype('bool')",
+        ),
+        # Unary operators
+        (-pd.col("a"), [-1, -2], "-col('a')"),
+        (+pd.col("a"), [1, 2], "+col('a')"),
+        (-(pd.col("a") + 1), [-2, -3], "-(col('a') + 1)"),
+        (-pd.col("a") * 2, [-2, -4], "(-col('a')) * 2"),
+        (abs(pd.col("a")), [1, 2], "abs(col('a'))"),
+        (abs(pd.col("a") - 2), [1, 0], "abs(col('a') - 2)"),
     ],
 )
 def test_col_simple(
     expr: Expression, expected_values: list[object], expected_str: str
 ) -> None:
+    # https://github.com/pandas-dev/pandas/pull/64267
     df = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
     result = df.assign(c=expr)
     expected = pd.DataFrame({"a": [1, 2], "b": [3, 4], "c": expected_values})
     tm.assert_frame_equal(result, expected)
     assert str(expr) == expected_str
+
+
+@pytest.mark.parametrize(
+    ("op", "expected_values", "expected_str"),
+    [
+        (operator.iadd, [3, 4], "col('a') + 2"),
+        (operator.iand, [0, 2], "col('a') & 2"),
+        (operator.ifloordiv, [0, 1], "col('a') // 2"),
+        (operator.imod, [1, 0], "col('a') % 2"),
+        (operator.imul, [2, 4], "col('a') * 2"),
+        (operator.ior, [3, 2], "col('a') | 2"),
+        (operator.ipow, [1, 4], "col('a') ** 2"),
+        (operator.isub, [-1, 0], "col('a') - 2"),
+        (operator.itruediv, [0.5, 1.0], "col('a') / 2"),
+        (operator.ixor, [3, 0], "col('a') ^ 2"),
+    ],
+)
+def test_inplace_ops(
+    op: Callable, expected_values: list[object], expected_str: str
+) -> None:
+    # https://github.com/pandas-dev/pandas/pull/64267
+    df = pd.DataFrame({"a": [1, 2]})
+    expr = pd.col("a")
+    expr = op(expr, 2)
+    result = df.assign(c=expr)
+    expected = pd.DataFrame({"a": [1, 2], "c": expected_values})
+    tm.assert_frame_equal(result, expected)
+    assert str(expr) == expected_str
+
+
+def test_matmul():
+    # https://github.com/pandas-dev/pandas/pull/64267
+    df = pd.DataFrame({"a": [1, 2]})
+
+    expr = pd.col("a") @ [3, 4]
+    result = df.assign(c=expr)
+    expected = pd.DataFrame({"a": [1, 2], "c": [11, 11]})
+    tm.assert_frame_equal(result, expected)
+    assert str(expr) == "col('a') @ [3, 4]"
+
+    expr = [3, 4] @ pd.col("a")
+    result = df.assign(c=expr)
+    expected = pd.DataFrame({"a": [1, 2], "c": [11, 11]})
+    tm.assert_frame_equal(result, expected)
+    assert str(expr) == "[3, 4] @ col('a')"
+
+
+def test_frame_getitem() -> None:
+    # https://github.com/pandas-dev/pandas/pull/63439
+    df = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
+    expr = pd.col("a") == 2
+    result = df[expr]
+    expected = df.iloc[[1]]
+    tm.assert_frame_equal(result, expected)
+
+
+def test_frame_setitem() -> None:
+    # https://github.com/pandas-dev/pandas/pull/63439
+    df = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
+    expr = pd.col("a") == 2
+
+    result = df.copy()
+    result[expr] = 100
+    expected = pd.DataFrame({"a": [1, 100], "b": [3, 100]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_frame_loc() -> None:
+    # https://github.com/pandas-dev/pandas/pull/63439
+    df = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
+    expr = pd.col("a") == 2
+    result = df.copy()
+    result.loc[expr, "b"] = 100
+    expected = pd.DataFrame({"a": [1, 2], "b": [3, 100]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_frame_iloc() -> None:
+    # https://github.com/pandas-dev/pandas/pull/63439
+    df = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
+    expr = pd.col("a") == 2
+    result = df.copy()
+    result.iloc[expr, 1] = 100
+    expected = pd.DataFrame({"a": [1, 2], "b": [3, 100]})
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize(
@@ -105,37 +216,37 @@ def test_custom_accessor() -> None:
         (
             pd.col("a") & pd.col("b"),
             [False, False, True, False],
-            "(col('a') & col('b'))",
+            "col('a') & col('b')",
         ),
         (
             pd.col("a") & True,
             [True, False, True, False],
-            "(col('a') & True)",
+            "col('a') & True",
         ),
         (
             pd.col("a") | pd.col("b"),
             [True, True, True, True],
-            "(col('a') | col('b'))",
+            "col('a') | col('b')",
         ),
         (
             pd.col("a") | False,
             [True, False, True, False],
-            "(col('a') | False)",
+            "col('a') | False",
         ),
         (
             pd.col("a") ^ pd.col("b"),
             [True, True, False, True],
-            "(col('a') ^ col('b'))",
+            "col('a') ^ col('b')",
         ),
         (
             pd.col("a") ^ True,
             [False, True, False, True],
-            "(col('a') ^ True)",
+            "col('a') ^ True",
         ),
         (
             ~pd.col("a"),
             [False, True, False, True],
-            "(~col('a'))",
+            "~col('a')",
         ),
     ],
 )
@@ -159,3 +270,123 @@ def test_col_logical_ops(
     result = df.loc[expr]
     expected = df[expected_values]
     tm.assert_frame_equal(result, expected)
+
+
+def test_expression_getitem() -> None:
+    # https://github.com/pandas-dev/pandas/pull/63439
+    df = pd.DataFrame({"a": [1, 2, 3]})
+    expr = pd.col("a")[1]
+    expected_str = "col('a')[1]"
+
+    assert str(expr) == expected_str
+
+    result = df.assign(b=expr)
+    expected = pd.DataFrame({"a": [1, 2, 3], "b": [2, 2, 2]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_property() -> None:
+    # https://github.com/pandas-dev/pandas/pull/63439
+    df = pd.DataFrame({"a": [1, 2, 3]})
+    expr = pd.col("a").index
+    expected_str = "col('a').index"
+
+    assert str(expr) == expected_str
+
+    result = df.assign(b=expr)
+    expected = pd.DataFrame({"a": [1, 2, 3], "b": [0, 1, 2]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_cached_property() -> None:
+    # https://github.com/pandas-dev/pandas/pull/63439
+    # Ensure test is valid
+    assert isinstance(pd.Index.dtype, cache_readonly)
+
+    df = pd.DataFrame({"a": [1, 2, 3]})
+    expr = pd.col("a").index.dtype
+    expected_str = "col('a').index.dtype"
+    assert str(expr) == expected_str
+
+    result = df.assign(b=expr)
+    expected = pd.DataFrame({"a": [1, 2, 3], "b": np.int64})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_qcut() -> None:
+    # https://github.com/pandas-dev/pandas/pull/63439
+    df = pd.DataFrame({"a": [1, 2, 3]})
+    expr = pd.qcut(pd.col("a"), 3)
+    expected_str = "qcut(x=col('a'), q=3, labels=None, retbins=False, precision=3)"
+    assert str(expr) == expected_str, str(expr)
+
+    result = df.assign(b=expr)
+    expected = pd.DataFrame({"a": [1, 2, 3], "b": pd.qcut(df["a"], 3)})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_where() -> None:
+    # https://github.com/pandas-dev/pandas/pull/63439
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    expr = pd.col("a").where(pd.col("b") == 5, 100)
+    expected_str = "col('a').where(col('b') == 5, 100)"
+    assert str(expr) == expected_str, str(expr)
+
+    result = df.assign(c=expr)
+    expected = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [100, 2, 100]})
+    tm.assert_frame_equal(result, expected)
+
+    expr = pd.col("a").where(pd.col("b") == 5, pd.col("a") + 1)
+    expected_str = "col('a').where(col('b') == 5, col('a') + 1)"
+    assert str(expr) == expected_str, str(expr)
+
+    result = df.assign(c=expr)
+    expected = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [2, 2, 4]})
+    tm.assert_frame_equal(result, expected)
+
+
+# Unsupported ops
+def test_bool():
+    with pytest.raises(TypeError, match="boolean value of an expression is ambiguous"):
+        bool(pd.col("a"))
+
+
+def test_iter():
+    with pytest.raises(TypeError, match="Expression objects are not iterable"):
+        iter(pd.col("a"))
+
+
+def test_contains():
+    # Python 3.14 changes the message from "is not iterable" to
+    # "is not a container or iterable"
+    with pytest.raises(
+        TypeError, match="argument of type 'Expression' is not .*iterable"
+    ):
+        1 in pd.col("a")
+
+
+def test_copy():
+    with pytest.raises(TypeError, match="Expression objects are not copiable"):
+        copy.copy(pd.col("a"))
+
+
+def test_deepcopy():
+    with pytest.raises(TypeError, match="Expression objects are not copiable"):
+        copy.deepcopy(pd.col("a"))
+
+
+def test_divmod():
+    msg = re.escape("unsupported operand type(s) for divmod(): 'Expression' and 'int'")
+    with pytest.raises(TypeError, match=msg):
+        divmod(pd.col("a"), 2)
+
+
+def test_len():
+    with pytest.raises(TypeError, match="object of type 'Expression' has no len()"):
+        len(pd.col("a"))
+
+
+def test_round():
+    msg = "type Expression doesn't define __round__ method"
+    with pytest.raises(TypeError, match=msg):
+        round(pd.col("a"), 2)

@@ -433,10 +433,13 @@ def test_np_matmul():
 
 
 @pytest.mark.parametrize("box", [pd.Index, pd.Series])
-def test_np_matmul_1D(box):
+def test_np_matmul_1D(box, using_python_scalars):
     result = np.matmul(box([1, 2]), box([2, 3]))
     assert result == 8
-    assert isinstance(result, np.int64)
+    if using_python_scalars:
+        assert type(result) == int, type(result)
+    else:
+        assert type(result) == np.int64, type(result)
 
 
 def test_array_ufuncs_for_many_arguments():

@@ -152,12 +152,11 @@ class ObjectStringArrayMixin:
             pat = re.compile(pat, flags=flags)
 
             f = lambda x: pat.search(x) is not None
+        elif case:
+            f = lambda x: pat in x
         else:
-            if case:
-                f = lambda x: pat in x
-            else:
-                upper_pat = pat.upper()
-                f = lambda x: upper_pat in x.upper()
+            upper_pat = pat.upper()
+            f = lambda x: upper_pat in x.upper()
         return self._str_map(f, na, dtype=np.dtype("bool"))
 
     def _str_startswith(self, pat, na=lib.no_default):
@@ -198,7 +197,7 @@ class ObjectStringArrayMixin:
 
     def _str_repeat(self, repeats: int | Sequence[int]):
         if lib.is_integer(repeats):
-            rint = cast(int, repeats)
+            rint = cast("int", repeats)
 
             def scalar_rep(x):
                 try:
@@ -307,17 +306,11 @@ class ObjectStringArrayMixin:
         return self._str_map(f)
 
     def _str_index(self, sub, start: int = 0, end=None):
-        if end:
-            f = lambda x: x.index(sub, start, end)
-        else:
-            f = lambda x: x.index(sub, start, end)
+        f = lambda x: x.index(sub, start, end)
         return self._str_map(f, dtype="int64")
 
     def _str_rindex(self, sub, start: int = 0, end=None):
-        if end:
-            f = lambda x: x.rindex(sub, start, end)
-        else:
-            f = lambda x: x.rindex(sub, start, end)
+        f = lambda x: x.rindex(sub, start, end)
         return self._str_map(f, dtype="int64")
 
     def _str_join(self, sep: str):
@@ -374,11 +367,10 @@ class ObjectStringArrayMixin:
             elif regex is False:
                 new_pat = pat
             # regex is None so link to old behavior #43563
+            elif len(pat) == 1:
+                new_pat = pat
             else:
-                if len(pat) == 1:
-                    new_pat = pat
-                else:
-                    new_pat = re.compile(pat)
+                new_pat = re.compile(pat)
 
             if isinstance(new_pat, re.Pattern):
                 if n is None or n == -1:

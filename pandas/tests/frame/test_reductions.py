@@ -802,8 +802,7 @@ class TestDataFrameAnalytics:
         if not skipna or all(value is pd.NaT for value in values):
             expected = Series({"a": pd.NaT}, dtype=f"timedelta64[{unit}]")
         else:
-            # 86400000000000ns == 1 day
-            expected = Series({"a": 86400000000000}, dtype=f"timedelta64[{unit}]")
+            expected = Series({"a": "1 days"}, dtype=f"timedelta64[{unit}]")
         tm.assert_series_equal(result, expected)
 
     def test_sum_corner(self):

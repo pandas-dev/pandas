@@ -533,13 +533,12 @@ def _sanitize_mixed_ndim(
                     if name is None:
                         name = 0
                         rename_columns = True
-                else:
-                    # doing a column-wise concatenation so need series
-                    # to have unique names
-                    if name is None:
-                        rename_columns = True
-                        name = current_column
-                        current_column += 1
+                # doing a column-wise concatenation so need series
+                # to have unique names
+                elif name is None:
+                    rename_columns = True
+                    name = current_column
+                    current_column += 1
                 obj = sample._constructor(obj, copy=False)
                 if isinstance(obj, ABCDataFrame) and rename_columns:
                     obj.columns = range(name, name + 1, 1)

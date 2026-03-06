@@ -167,10 +167,10 @@ def to_timedelta(
     >>> pd.to_timedelta(np.arange(5), unit="s")
     TimedeltaIndex(['0 days 00:00:00', '0 days 00:00:01', '0 days 00:00:02',
                     '0 days 00:00:03', '0 days 00:00:04'],
-                   dtype='timedelta64[ns]', freq=None)
+                   dtype='timedelta64[s]', freq=None)
     >>> pd.to_timedelta(np.arange(5), unit="D")
     TimedeltaIndex(['0 days', '1 days', '2 days', '3 days', '4 days'],
-                   dtype='timedelta64[ns]', freq=None)
+                   dtype='timedelta64[s]', freq=None)
     """
     if unit is not None:
         unit = parse_timedelta_unit(unit)
@@ -241,5 +241,6 @@ def _convert_listlike(
 
     from pandas import TimedeltaIndex
 
-    value = TimedeltaIndex(td64arr, name=name)
+    copy = td64arr is arg or np.may_share_memory(arg, td64arr)
+    value = TimedeltaIndex(td64arr, name=name, copy=copy)
     return value

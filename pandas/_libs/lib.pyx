@@ -134,7 +134,7 @@ except ImportError:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def memory_usage_of_objects(arr: object[:]) -> int64_t:
+def memory_usage_of_objects(ndarray[object, ndim=1] arr) -> int64_t:
     """
     Return the memory usage of an object array in bytes.
 
@@ -158,6 +158,10 @@ def memory_usage_of_objects(arr: object[:]) -> int64_t:
 def is_scalar(val: object) -> bool:
     """
     Return True if given object is scalar.
+
+    This function determines whether a given Python object is a scalar
+    value rather than a collection. Scalars include numeric types,
+    strings, bytes, dates, timedeltas, intervals, periods, and ``None``.
 
     Parameters
     ----------
@@ -317,7 +321,7 @@ def item_from_zerodim(val: object) -> object:
     >>> item_from_zerodim('foobar')
     'foobar'
     >>> item_from_zerodim(np.array(1))
-    1
+    np.int64(1)
     >>> item_from_zerodim(np.array([1]))
     array([1])
     """
@@ -630,7 +634,7 @@ def array_equivalent_object(ndarray left, ndarray right) -> bool:
                 # Check if non-scalars have the same type
                 return False
             elif check_na_tuples_nonequal(x, y):
-                # We have tuples where one Side has a NA and the other side does not
+                # We have tuples where one Side has an NA and the other side does not
                 # Only condition we may end up with a TypeError
                 return False
             raise
@@ -1185,6 +1189,10 @@ def is_bool(obj: object) -> bool:
     """
     Return True if given object is boolean.
 
+    This function checks whether ``obj`` is an instance of Python's built-in
+    ``bool`` type. It does not return True for numeric values like ``0``
+    or ``1`` that can evaluate as booleans.
+
     Parameters
     ----------
     obj : object
@@ -1215,6 +1223,9 @@ def is_bool(obj: object) -> bool:
 def is_complex(obj: object) -> bool:
     """
     Return True if given object is complex.
+
+    This function checks whether ``obj`` is an instance of Python's built-in
+    ``complex`` type or numpy's complex type (e.g., ``numpy.complex128``).
 
     Parameters
     ----------
@@ -3190,7 +3201,9 @@ def to_object_array_tuples(rows: object) -> np.ndarray:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def fast_multiget(dict mapping, object[:] keys, default=np.nan) -> "ArrayLike":
+def fast_multiget(
+    dict mapping, ndarray[object, ndim=1] keys, default=np.nan
+) -> "ArrayLike":
     cdef:
         Py_ssize_t i, n = len(keys)
         object val

@@ -716,7 +716,7 @@ cdef datetime dateutil_parse(
             # e.g. "1994 Jan 15 05:16 FOO" where FOO is not recognized
             # GH#18702, # GH 50235 enforced in 3.0
             raise ValueError(
-                f'Parsed string "{timestr}" included an un-recognized timezone '
+                f'Parsed string "{timestr}" included an unrecognized timezone '
                 f'"{res.tzname}".'
             )
 
@@ -728,7 +728,7 @@ cdef object _reso_pattern = re.compile(r"\d:\d{2}:\d{2}\.(?P<frac>\d+)")
 
 cdef _find_subsecond_reso(str timestr, int64_t* nanos):
     # GH#55737
-    # Check for trailing zeros in a H:M:S.f pattern
+    # Check for trailing zeros in an H:M:S.f pattern
     match = _reso_pattern.search(timestr)
     if not match:
         reso = "second"

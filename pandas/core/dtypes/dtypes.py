@@ -350,7 +350,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             # ordered=None.
             dtype = CategoricalDtype(categories, ordered)
 
-        return cast(CategoricalDtype, dtype)
+        return cast("CategoricalDtype", dtype)
 
     @classmethod
     def construct_from_string(cls, string: str_type) -> CategoricalDtype:
@@ -617,7 +617,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             )
         else:
             # from here on, dtype is a CategoricalDtype
-            dtype = cast(CategoricalDtype, dtype)
+            dtype = cast("CategoricalDtype", dtype)
 
         # update categories/ordered unless they've been explicitly passed as None
         if (
@@ -971,7 +971,9 @@ class DatetimeTZDtype(PandasExtensionDtype):
 
     def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
         if all(isinstance(t, DatetimeTZDtype) and t.tz == self.tz for t in dtypes):
-            np_dtype = np.max([cast(DatetimeTZDtype, t).base for t in [self, *dtypes]])
+            np_dtype = np.max(
+                [cast("DatetimeTZDtype", t).base for t in [self, *dtypes]]
+            )
             unit = np.datetime_data(np_dtype)[0]
             unit = cast("TimeUnit", unit)
             return type(self)(unit=unit, tz=self.tz)
@@ -1046,6 +1048,9 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
         """
         if isinstance(freq, PeriodDtype):
             return freq
+
+        elif isinstance(freq, PeriodDtypeBase):
+            freq = to_offset(freq, is_period=True)
 
         if not isinstance(freq, BaseOffset):
             freq = cls._parse_dtype_strict(freq)
@@ -1601,6 +1606,17 @@ class NumpyEADtype(ExtensionDtype):
         """
         return self._dtype.itemsize
 
+    def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
+        from pandas.core.dtypes.cast import find_common_type
+
+        dtypes = [x.numpy_dtype if isinstance(x, NumpyEADtype) else x for x in dtypes]
+        if not all(isinstance(x, np.dtype) for x in dtypes):
+            return None
+
+        common_dtype = find_common_type(dtypes)
+        # error: Argument 1 to "NumpyEADtype" has incompatible type
+        return NumpyEADtype(common_dtype)  # type: ignore[arg-type]
+
 
 class BaseMaskedDtype(ExtensionDtype):
     """
@@ -2052,7 +2068,7 @@ class SparseDtype(ExtensionDtype):
         Examples
         --------
         >>> SparseDtype(int, 0).update_dtype(float)
-        Sparse[float64, 0.0]
+        Sparse[float64, np.float64(0.0)]
 
         >>> SparseDtype(int, 1).update_dtype(SparseDtype(float, np.nan))
         Sparse[float64, nan]

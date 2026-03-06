@@ -928,3 +928,12 @@ def test_multi_quantile_numeric_only_retains_columns():
     tm.assert_frame_equal(
         result, expected, check_index_type=True, check_column_type=True
     )
+
+
+@pytest.mark.parametrize("typ", ["datetime64", "timedelta64"])
+def test_quantile_empty_datetimelike(typ, unit):
+    dtype = f"{typ}[{unit}]"
+    df = DataFrame(np.array([], dtype=dtype))
+    result = df.quantile()
+    expected = Series([pd.NaT], name=0.5, dtype=dtype)
+    tm.assert_series_equal(result, expected)

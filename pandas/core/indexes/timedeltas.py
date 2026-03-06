@@ -48,8 +48,16 @@ if TYPE_CHECKING:
 
 
 @inherit_names(
-    ["__neg__", "__pos__", "__abs__", "total_seconds", "round", "floor", "ceil"]
-    + TimedeltaArray._field_ops,
+    [
+        "__neg__",
+        "__pos__",
+        "__abs__",
+        "total_seconds",
+        "round",
+        "floor",
+        "ceil",
+        *TimedeltaArray._field_ops,
+    ],
     TimedeltaArray,
     wrap=True,
 )
@@ -81,8 +89,13 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
     dtype : numpy.dtype or str, default None
         Valid ``numpy`` dtypes are ``timedelta64[ns]``, ``timedelta64[us]``,
         ``timedelta64[ms]``, and ``timedelta64[s]``.
-    copy : bool
-        Make a copy of input array.
+    copy : bool, default None
+        Whether to copy input data, only relevant for array, Series, and Index
+        inputs (for other input, e.g. a list, a new array is created anyway).
+        Defaults to True for array input and False for Index/Series.
+        Set to False to avoid copying array input at your own risk (if you
+        know the input data won't be modified elsewhere).
+        Set to True to force copying Series/Index input up front.
     name : object
         Name to be stored in the index.
 
@@ -158,10 +171,13 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         data=None,
         freq=lib.no_default,
         dtype=None,
-        copy: bool = False,
+        copy: bool | None = None,
         name=None,
     ):
         name = maybe_extract_name(name, data, cls)
+
+        # GH#63388
+        data, copy = cls._maybe_copy_array_input(data, copy, dtype)
 
         if is_scalar(data):
             cls._raise_scalar_data_error(data)
@@ -274,6 +290,9 @@ def timedelta_range(
     """
     Return a fixed frequency TimedeltaIndex with day as the default.
 
+    This function generates a sequence of evenly spaced timedelta values
+    between the specified bounds, using day as the default frequency.
+
     Parameters
     ----------
     start : str or timedelta-like, default None
@@ -372,19 +391,19 @@ def timedelta_range(
         if start is not None and end is not None:
             start = Timedelta(start)
             end = Timedelta(end)
-            start = cast(Timedelta, start)
-            end = cast(Timedelta, end)
+            start = cast("Timedelta", start)
+            end = cast("Timedelta", end)
             if abbrev_to_npy_unit(start.unit) > abbrev_to_npy_unit(end.unit):
                 unit = cast("TimeUnit", start.unit)
             else:
                 unit = cast("TimeUnit", end.unit)
         elif start is not None:
             start = Timedelta(start)
-            start = cast(Timedelta, start)
+            start = cast("Timedelta", start)
             unit = cast("TimeUnit", start.unit)
         else:
             end = Timedelta(end)
-            end = cast(Timedelta, end)
+            end = cast("Timedelta", end)
             unit = cast("TimeUnit", end.unit)
 
         # Last we need to watch out for cases where the 'freq' implies a higher
