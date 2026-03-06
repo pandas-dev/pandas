@@ -19,6 +19,7 @@ from pandas._libs.tslibs import Timestamp
 from pandas.core.dtypes.common import (
     is_list_like,
     is_scalar,
+    is_string_dtype,
 )
 
 import pandas.core.common as com
@@ -272,6 +273,8 @@ def _in(x, y):
                 return y.isin(x)
             except AttributeError:
                 pass
+        if isinstance(x, str) and hasattr(y, "str") and is_string_dtype(y.dtype):
+            return y.str.contains(x, regex=False)
         return x in y
 
 
@@ -288,6 +291,8 @@ def _not_in(x, y):
                 return ~y.isin(x)
             except AttributeError:
                 pass
+        if isinstance(x, str) and hasattr(y, "str") and is_string_dtype(y.dtype):
+            return ~y.str.contains(x, regex=False)
         return x not in y
 
 

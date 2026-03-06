@@ -1311,6 +1311,23 @@ class TestOperations:
         expected = Series([True], name="a")
         tm.assert_series_equal(result, expected)
 
+    def test_string_containment(self, engine):
+        # GH 64391
+        df = DataFrame({"value": ["foobar", "foobaz", "bar", "baz"]})
+
+        result = df.eval('"foo" in value', engine=engine)
+        expected = Series([True, True, False, False], name="value")
+        tm.assert_series_equal(result, expected)
+
+        result = df.eval('"foo" not in value', engine=engine)
+        expected = Series([False, False, True, True], name="value")
+        tm.assert_series_equal(result, expected)
+
+        df2 = DataFrame({"a": ["foo", "bar", "baz"]})
+        result = df2.eval('a in ["foo", "baz"]', engine=engine)
+        expected = Series([True, False, True], name="a")
+        tm.assert_series_equal(result, expected)
+
     def test_assignment_not_inplace(self):
         # see gh-9297
         df = DataFrame(

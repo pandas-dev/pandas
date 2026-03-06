@@ -444,13 +444,14 @@ class BaseExprVisitor(ast.NodeVisitor):
 
             # pop the string variable out of locals and replace it with a list
             # of one string, kind of a hack
-            if right_str:
-                name = self.env.add_tmp([right.value])
-                right = self.term_type(name, self.env)
+            if op_type in (ast.Eq, ast.NotEq):
+                if right_str:
+                    name = self.env.add_tmp([right.value])
+                    right = self.term_type(name, self.env)
 
-            if left_str:
-                name = self.env.add_tmp([left.value])
-                left = self.term_type(name, self.env)
+                if left_str:
+                    name = self.env.add_tmp([left.value])
+                    left = self.term_type(name, self.env)
 
         op = self.visit(op_instance)
         return op, op_instance, left, right
