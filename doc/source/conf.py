@@ -699,7 +699,7 @@ def linkcode_resolve(domain, info) -> str | None:
     else:
         return (
             f"https://github.com/pandas-dev/pandas/blob/"
-            f"v{pandas.__version__}/pandas/{fn}{linespec}"
+            f"v{version}/pandas/{fn}{linespec}"
         )
 
 
