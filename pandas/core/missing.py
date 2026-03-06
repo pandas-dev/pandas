@@ -1075,7 +1075,7 @@ def _interp_limit(
     assume_unique = True
 
     def inner(invalid, limit: int):
-        limit = min(limit, N)
+        limit = min(limit, N - 1)
         windowed = np.lib.stride_tricks.sliding_window_view(invalid, limit + 1).all(1)
         idx = np.union1d(
             np.where(windowed)[0] + limit,
