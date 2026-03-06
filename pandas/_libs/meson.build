@@ -86,7 +86,13 @@ libs_sources = {
         'sources': ['join.pyx', _khash_primitive_helper],
         'deps': _khash_primitive_helper_dep,
     },
-    'lib': {'sources': ['lib.pyx', 'src/parser/tokenizer.cpp']},
+    'lib': {
+        'sources': [
+            'lib.pyx',
+            'src/parser/tokenizer.c',
+            'src/parser/fast_float_strtod.cpp',
+        ],
+    },
     'missing': {'sources': ['missing.pyx']},
     'pandas_datetime': {
         'sources': [
@@ -98,7 +104,8 @@ libs_sources = {
     },
     'pandas_parser': {
         'sources': [
-            'src/parser/tokenizer.cpp',
+            'src/parser/tokenizer.c',
+            'src/parser/fast_float_strtod.cpp',
             'src/parser/io.c',
             'src/parser/pd_parser.c',
         ],
@@ -106,7 +113,8 @@ libs_sources = {
     'parsers': {
         'sources': [
             'parsers.pyx',
-            'src/parser/tokenizer.cpp',
+            'src/parser/tokenizer.c',
+            'src/parser/fast_float_strtod.cpp',
             'src/parser/io.c',
         ],
         'deps': _khash_primitive_helper_dep,

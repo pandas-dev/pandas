@@ -1407,165 +1407,61 @@ int to_boolean(const char *item, uint8_t *val) {
 // SUCH DAMAGE.
 //
 // -----------------------------------------------------------------------
-// Modifications by Warren Weckesser, March 2011:
-// * Rename strtod() to xstrtod().
-// * Added decimal and sci arguments.
-// * Skip trailing spaces.
-// * Commented out the other functions.
-// Modifications by Richard T Guy, August 2013:
-// * Add tsep argument for thousands separator
-//
 
-double xstrtod(const char *str, char **endptr, char decimal, char sci,
-               char tsep, int skip_trailing, int *error, int *maybe_int) {
-  const char *p = str;
-  if (maybe_int != NULL)
-    *maybe_int = 1;
-  // Skip leading whitespace.
-  while (isspace_ascii(*p))
-    p++;
-
-  // Handle optional sign.
-  int negative = 0;
-  switch (*p) {
-  case '-':
-    negative = 1;
-    PD_FALLTHROUGH; // Fall through to increment position.
-  case '+':
-    p++;
-    break;
-  }
-
-  int exponent = 0;
-  int num_digits = 0;
-  int num_decimals = 0;
-
-  // pessimistic but quick assessment,
-  // assuming that each decimal digit requires 4 bits to store
-  // TODO: C23 has UINT64_WIDTH macro that can be used at compile time
-  const int max_int_decimal_digits = (sizeof(unsigned int) * 8) / 4;
-
-  // Process string of digits.
-  unsigned int i_number = 0;
-  while (isdigit_ascii(*p) && num_digits <= max_int_decimal_digits) {
-    i_number = i_number * 10 + (*p - '0');
-    p++;
-    num_digits++;
-
-    p += (tsep != '\0' && *p == tsep);
-  }
-  double number = i_number;
-
-  if (num_digits > max_int_decimal_digits) {
-    // process what's left as double
-    while (isdigit_ascii(*p)) {
-      number = number * 10. + (*p - '0');
-      p++;
-      num_digits++;
-
-      p += (tsep != '\0' && *p == tsep);
-    }
-  }
-
-  // Process decimal part.
-  if (*p == decimal) {
-    if (maybe_int != NULL)
-      *maybe_int = 0;
-    p++;
-
-    while (isdigit_ascii(*p)) {
-      number = number * 10. + (*p - '0');
-      p++;
-      num_digits++;
-      num_decimals++;
-    }
-
-    exponent -= num_decimals;
-  }
-
-  if (num_digits == 0) {
-    *error = ERANGE;
-    return 0.0;
-  }
-
-  // Correct for sign.
-  if (negative)
-    number = -number;
-
-  // Process an exponent string.
-  if (toupper_ascii(*p) == toupper_ascii(sci)) {
-    if (maybe_int != NULL)
-      *maybe_int = 0;
-
-    // Handle optional sign.
-    negative = 0;
-    switch (*++p) {
-    case '-':
-      negative = 1;
-      PD_FALLTHROUGH; // Fall through to increment position.
-    case '+':
-      p++;
-      break;
-    }
-
-    // Process string of digits.
-    num_digits = 0;
-    int n = 0;
-    while (isdigit_ascii(*p)) {
-      n = n * 10 + (*p - '0');
-      num_digits++;
-      p++;
-    }
-
-    if (negative)
-      exponent -= n;
-    else
-      exponent += n;
-
-    // If no digits, after the 'e'/'E', un-consume it
-    if (num_digits == 0)
-      p--;
-  }
-
-  if (exponent < DBL_MIN_EXP || exponent > DBL_MAX_EXP) {
-    *error = ERANGE;
-    return HUGE_VAL;
-  }
-
-  // Scale the result.
-  double p10 = 10.;
-  int n = exponent;
-  if (n < 0)
-    n = -n;
-  while (n) {
-    if (n & 1) {
-      if (exponent < 0)
-        number /= p10;
-      else
-        number *= p10;
-    }
-    n >>= 1;
-    p10 *= p10;
-  }
-
-  if (number == HUGE_VAL) {
-    *error = ERANGE;
-  }
-
-  if (skip_trailing) {
-    // Skip trailing whitespace.
-    while (isspace_ascii(*p))
-      p++;
-  }
-
-  if (endptr)
-    *endptr = (char *)p;
-  return number;
-}
+// Defined in fast_float_strtod.cpp — provides IEEE 754 correctly-rounded
+// float parsing via the fast_float library.
+int fast_float_strtod(const char *start, const char *end, double *value,
+                      const char **endptr);
 
 double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
                        char tsep, int skip_trailing, int *error,
                        int *maybe_int) {
+  // Use fast_float for standard format (decimal='.', no tsep, sci='e'/'E').
+  // fast_float provides IEEE 754 correctly-rounded parsing.
+  if (decimal == '.' && tsep == '\0' && (sci == 'e' || sci == 'E')) {
+    const char *p = str;
+    while (isspace_ascii(*p))
+      p++;
+
+    // Only try fast_float for numeric-looking input (digit, sign+digit,
+    // or decimal point). This avoids fast_float parsing "nan"/"inf" which
+    // the original precise_xstrtod did not handle.
+    const char *q = p;
+    if (*q == '-' || *q == '+')
+      q++;
+    if (!isdigit_ascii(*q) && !(*q == '.' && isdigit_ascii(*(q + 1))))
+      goto fallback;
+
+    // Find end of token (next whitespace or NUL).
+    const char *end = p;
+    while (*end && !isspace_ascii(*end))
+      end++;
+
+    double value;
+    const char *parsed_end;
+    if (fast_float_strtod(p, end, &value, &parsed_end) == 0) {
+      // Determine maybe_int by checking if we saw '.' or 'e'/'E'.
+      if (maybe_int != NULL) {
+        *maybe_int = 1;
+        for (const char *c = p; c < parsed_end; c++) {
+          if (*c == '.' || *c == 'e' || *c == 'E') {
+            *maybe_int = 0;
+            break;
+          }
+        }
+      }
+      if (skip_trailing)
+        while (isspace_ascii(*parsed_end))
+          parsed_end++;
+      if (endptr)
+        *endptr = (char *)parsed_end;
+      return value;
+    }
+  }
+
+fallback:
+    // Fallback for non-standard formats (custom decimal, tsep, or sci char).
+    ;
   const char *p = str;
   const int max_digits = 17;
 
@@ -1722,98 +1618,6 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
   if (endptr)
     *endptr = (char *)p;
   return number;
-}
-
-/* copy a decimal number string with `decimal`, `tsep` as decimal point
-   and thousands separator to an equivalent c-locale decimal string (striping
-   `tsep`, replacing `decimal` with '.'). The returned memory should be free-d
-   with a call to `free`.
-*/
-
-static char *_str_copy_decimal_str_c(const char *s, char **endpos, char decimal,
-                                     char tsep) {
-  const char *p = s;
-  const size_t length = strlen(s);
-  char *s_copy = malloc(length + 1);
-  char *dst = s_copy;
-  // Skip leading whitespace.
-  while (isspace_ascii(*p))
-    p++;
-  // Copy Leading sign
-  if (*p == '+' || *p == '-') {
-    *dst++ = *p++;
-  }
-  // Copy integer part dropping `tsep`
-  while (isdigit_ascii(*p)) {
-    *dst++ = *p++;
-    p += (tsep != '\0' && *p == tsep);
-  }
-  // Replace `decimal` with '.'
-  if (*p == decimal) {
-    *dst++ = '.';
-    p++;
-  }
-  // Copy fractional part after decimal (if any)
-  while (isdigit_ascii(*p)) {
-    *dst++ = *p++;
-  }
-  // Copy exponent if any
-  if (toupper_ascii(*p) == toupper_ascii('E')) {
-    *dst++ = *p++;
-    // Copy leading exponent sign (if any)
-    if (*p == '+' || *p == '-') {
-      *dst++ = *p++;
-    }
-    // Copy exponent digits
-    while (isdigit_ascii(*p)) {
-      *dst++ = *p++;
-    }
-  }
-  *dst++ = '\0'; // terminate
-  if (endpos != NULL)
-    *endpos = (char *)p;
-  return s_copy;
-}
-
-double round_trip(const char *p, char **q, char decimal, char Py_UNUSED(sci),
-                  char tsep, int skip_trailing, int *error, int *maybe_int) {
-  // 'normalize' representation to C-locale; replace decimal with '.' and
-  // remove thousands separator.
-  char *endptr;
-  char *pc = _str_copy_decimal_str_c(p, &endptr, decimal, tsep);
-  // This is called from a nogil block in parsers.pyx
-  // so need to explicitly get GIL before Python calls
-  PyGILState_STATE gstate = PyGILState_Ensure();
-  char *endpc;
-  const double r = PyOS_string_to_double(pc, &endpc, 0);
-  // PyOS_string_to_double needs to consume the whole string
-  if (endpc == pc + strlen(pc)) {
-    if (q != NULL) {
-      // report endptr from source string (p)
-      *q = endptr;
-    }
-  } else {
-    *error = -1;
-    if (q != NULL) {
-      // p and pc are different len due to tsep removal. Can't report
-      // how much it has consumed of p. Just rewind to beginning.
-      *q = (char *)p; // TODO(willayd): this could be undefined behavior
-    }
-  }
-  if (maybe_int != NULL)
-    *maybe_int = 0;
-  if (PyErr_Occurred() != NULL)
-    *error = -1;
-  PyErr_Clear();
-
-  PyGILState_Release(gstate);
-  free(pc);
-  if (skip_trailing && q != NULL && *q != p) {
-    while (isspace_ascii(**q)) {
-      (*q)++;
-    }
-  }
-  return r;
 }
 
 // End of xstrtod code
