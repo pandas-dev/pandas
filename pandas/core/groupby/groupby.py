@@ -1968,7 +1968,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-              ``{{'nopython': True, 'nogil': False, 'parallel': False}}``
+              ``{'nopython': True, 'nogil': False, 'parallel': False}``
 
         Returns
         -------
@@ -2168,7 +2168,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-              ``{{'nopython': True, 'nogil': False, 'parallel': False}}``
+              ``{'nopython': True, 'nogil': False, 'parallel': False}``
 
         numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
@@ -2283,7 +2283,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-              ``{{'nopython': True, 'nogil': False, 'parallel': False}}``
+              ``{'nopython': True, 'nogil': False, 'parallel': False}``
 
         numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
