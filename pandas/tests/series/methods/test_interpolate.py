@@ -540,6 +540,22 @@ class TestSeriesInterpolateData:
         result = s.interpolate(method="linear", limit=1, limit_direction="both")
         tm.assert_series_equal(result, expected)
 
+    def test_interp_limit_direction_limit_exceeds_length(self):
+        # GH#64322
+        s = Series([np.nan, 1, 1, 1, 1, np.nan])
+        result = s.interpolate(limit_direction="both", limit=10)
+        expected = Series([1.0, 1.0, 1.0, 1.0, 1.0, 1.0])
+        tm.assert_series_equal(result, expected)
+
+        s2 = Series([1, np.nan, np.nan, 4])
+        result_fwd = s2.interpolate(limit_direction="forward", limit=100)
+        expected_fwd = Series([1.0, 2.0, 3.0, 4.0])
+        tm.assert_series_equal(result_fwd, expected_fwd)
+
+        result_bwd = s2.interpolate(limit_direction="backward", limit=100)
+        expected_bwd = Series([1.0, 2.0, 3.0, 4.0])
+        tm.assert_series_equal(result_bwd, expected_bwd)
+
     def test_interp_limit_to_ends(self):
         # These test are for issue #10420 -- flow back to beginning.
         s = Series([np.nan, np.nan, 5, 7, 9, np.nan])
