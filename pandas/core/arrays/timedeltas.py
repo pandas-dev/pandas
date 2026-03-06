@@ -1160,7 +1160,8 @@ def sequence_to_td64ns(
         if unit is not None and unit != "ns":
             # if all non-NaN entries are round, treat these like ints and give
             #  back the requested unit (or closest-supported)
-            int_data = data.astype(np.int64)
+            with np.errstate(invalid="ignore"):
+                int_data = data.astype(np.int64)
             all_round = (mask | (data == int_data)).all()
             if all_round:
                 result, _ = sequence_to_td64ns(
