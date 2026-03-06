@@ -409,3 +409,18 @@ def test_array_repr(any_numpy_array):
     expected = f"<NumpyExtensionArray>\n{values}\nLength: 2, dtype: {nparray.dtype}"
     result = repr(arr)
     assert result == expected, f"{result} vs {expected}"
+
+
+def test_array_str_dtype_with_none():
+    # GH#57702: pd.array and pd.Series should handle dtype=str consistently
+    # when None values are present. Both should preserve None/NA values
+    # instead of converting to string 'None'.
+    arr_result = pd.array([1, None], dtype=str)
+    series_result = pd.Series([1, None], dtype=str).array
+
+    # Both should have object dtype (to preserve None)
+    assert arr_result.dtype.numpy_dtype == np.dtype("object")
+    assert series_result.dtype.numpy_dtype == np.dtype("object")
+
+    # Both should have the same values
+    tm.assert_extension_array_equal(arr_result, series_result)
