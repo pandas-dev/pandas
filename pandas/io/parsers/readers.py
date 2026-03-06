@@ -800,7 +800,7 @@ def read_csv(
 
     Column types are inferred but can be explicitly specified using the dtype argument.
 
-    >>> pd.read_csv("data.csv", dtype={{"Value": float}})  # doctest: +SKIP
+    >>> pd.read_csv("data.csv", dtype={"Value": float})  # doctest: +SKIP
        Name  Value
     0   foo    1.0
     1   bar    2.0
@@ -1363,7 +1363,7 @@ def read_table(
 
     Column types are inferred but can be explicitly specified using the dtype argument.
 
-    >>> pd.read_table("data.csv", dtype={{"Value": float}})  # doctest: +SKIP
+    >>> pd.read_table("data.csv", dtype={"Value": float})  # doctest: +SKIP
        Name  Value
     0   foo    1.0
     1   bar    2.0
