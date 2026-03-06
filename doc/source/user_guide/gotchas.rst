@@ -80,6 +80,34 @@ representation; i.e. 1KB = 1024 bytes).
 
 See also :ref:`Categorical Memory Usage <categorical.memory>`.
 
+Storing lists and arrays in ``DataFrame`` cells
+-----------------------------------------------
+
+pandas can store Python objects (including ``list`` or ``numpy.ndarray``) in columns with
+``dtype=object``, but this is usually a poor fit for vectorized operations.
+
+Using nested Python containers in cells can have several downsides:
+
+- higher memory overhead (each element is a separate Python object)
+- slower operations (many methods cannot use fast, contiguous array paths)
+- awkward semantics for filtering, exploding, and serialization
+
+.. ipython:: python
+
+    df = pd.DataFrame({"values": [[1, 2], [3], [4, 5, 6]]})
+    df
+
+For analysis, it is usually better to reshape data into a tabular form where each value
+occupies its own row/column:
+
+.. ipython:: python
+
+    df.explode("values")
+
+If your workflow is primarily about manipulating nested Python objects, consider using core
+Python data structures first (e.g. ``list``/``dict``), and convert to pandas once the data is in
+an analysis-friendly tabular layout.
+
 .. _gotchas.truth:
 
 Using if/truth statements with pandas
