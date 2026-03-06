@@ -13043,28 +13043,22 @@ class DataFrame(NDFrame, OpsMixin):
             all missing values.
 
             .. deprecated:: 3.0
-               This parameter is deprecated and no longer has any effect.
-               It will be removed in a future version.
+               This parameter is deprecated and will be removed in a future
+               version of pandas.
         sort : bool, default True
             Whether to sort the index after stacking.
 
             .. deprecated:: 3.0
-               This parameter is deprecated and no longer has any effect.
-               It will be removed in a future version.
+               This parameter is deprecated and will be removed in a future
+               version of pandas.
         future_stack : bool, default False
             Whether to use the future stacking behavior, where only existing
             combinations of column levels are included in the result. When False,
             missing combinations may be generated in the stacked output.
 
             .. deprecated:: 3.0
-               This parameter is deprecated and no longer has any effect.
-               It will be removed in a future version.
-            Whether to sort the levels of the resulting MultiIndex.
-        future_stack : bool, default True
-            Whether to use the new stack implementation. This is the default
-            as of pandas 3.0. When True, dropna and sort have no impact
-            on the result and must remain unspecified. See :ref:`pandas 2.1.0 Release
-            notes <whatsnew_210.enhancements.new_stack>` for more details.
+               This parameter is deprecated and will be removed in a future
+               version of pandas.
 
         Returns
         -------
@@ -13082,10 +13076,10 @@ class DataFrame(NDFrame, OpsMixin):
 
         Notes
         -----
-        Starting from pandas 3.0, ``stack`` always uses the new implementation
-        that previously required ``future_stack=True``. The parameters ``dropna``,
-        ``sort``, and ``future_stack`` are deprecated and no longer have any effect.
-        They will be removed in a future version of pandas.
+        Starting from pandas 3.0, ``stack`` uses the new implementation
+        by default. The parameters ``dropna``, ``sort``, and ``future_stack``
+        are deprecated. Specifying them will raise a ``Pandas4Warning`` and
+        they will be removed in a future version of pandas.
 
         The function is named by analogy with a collection of books being
         reorganized from lying side-by-side horizontally (the columns of the
@@ -13144,12 +13138,6 @@ class DataFrame(NDFrame, OpsMixin):
         >>> df_multi_level_cols2 = pd.DataFrame(
         ...     [[1.0, 2.0], [3.0, 4.0]], index=["cat", "dog"], columns=multicol2
         ... )
-
-        When stacking a DataFrame with multi-level columns, the new
-        implementation does not generate rows of missing values. The
-        result includes only combinations that exist in the original
-        data.
-
         >>> df_multi_level_cols2
             weight height
                 kg      m
