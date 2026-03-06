@@ -41,9 +41,13 @@ The ``+`` symbol indicates that the true memory usage could be higher, because
 pandas does not count the memory used by values in columns with
 ``dtype=object``.
 
-Passing ``memory_usage='deep'`` will enable a more accurate memory usage report,
-accounting for the full usage of the contained objects. This is optional
-as it can be expensive to do this deeper introspection.
+Passing ``memory_usage='deep'`` will enable a more accurate memory usage report.
+For ``object`` dtype, this uses :func:`sys.getsizeof` on each element and so
+includes the immediate memory cost of each object. This is optional as it can
+be expensive to do this deeper introspection.
+
+For nested objects, this value is still a lower bound and does not include the
+memory consumed by objects those elements reference.
 
 .. ipython:: python
 
