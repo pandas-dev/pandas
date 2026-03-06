@@ -83,8 +83,8 @@ class _XMLFrameParser:
         Column names for :class:`~pandas.DataFrame` of parsed XML data.
 
     dtype : dict
-        Data type for data or columns. E.g. {{'a': np.float64,
-        'b': np.int32, 'c': 'Int64'}}
+        Data type for data or columns. E.g. {'a': np.float64,
+        'b': np.int32, 'c': 'Int64'}
 
     converters : dict, optional
         Dict of functions for converting values in certain columns. Keys can
@@ -898,8 +898,8 @@ def read_xml(
         attributes.
 
     dtype : Type name or dict of column -> type, optional
-        Data type for data or columns. E.g. {{'a': np.float64, 'b': np.int32,
-        'c': 'Int64'}}
+        Data type for data or columns. E.g. {'a': np.float64, 'b': np.int32,
+        'c': 'Int64'}
         Use `str` or `object` together with suitable `na_values` settings
         to preserve and not interpret dtype.
         If converters are specified, they will be applied INSTEAD
@@ -917,13 +917,13 @@ def read_xml(
           each as a separate date column.
         * list of lists. e.g.  If [[1, 3]] -> combine columns 1 and 3 and parse as
           a single date column.
-        * dict, e.g. {{'foo' : [1, 3]}} -> parse columns 1, 3 as date and call
+        * dict, e.g. {'foo' : [1, 3]} -> parse columns 1, 3 as date and call
           result 'foo'
 
     encoding : str, optional, default 'utf-8'
         Encoding of XML document.
 
-    parser : {{'lxml','etree'}}, default 'lxml'
+    parser : {'lxml','etree'}, default 'lxml'
         Parser module to use for retrieval of data. Only 'lxml' and
         'etree' are supported. With 'lxml' more complex ``XPath`` searches
         and ability to use XSLT stylesheet are supported.
@@ -945,7 +945,7 @@ def read_xml(
         and unlike ``xpath``, descendants do not need to relate to each other but can
         exist any where in document under the repeating element. This memory-
         efficient method should be used for very large XML files (500MB, 1GB, or 5GB+).
-        For example, ``{{"row_element": ["child_elem", "attr", "grandchild_elem"]}}``.
+        For example, ``{"row_element": ["child_elem", "attr", "grandchild_elem"]}``.
 
     compression : str or dict, default 'infer'
         For on-the-fly decompression of on-disk data. If 'infer' and
@@ -974,7 +974,7 @@ def read_xml(
         user_guide/io.html?highlight=storage_options#reading-writing-remote-
         files>`_.
 
-    dtype_backend : {{'numpy_nullable', 'pyarrow'}}
+    dtype_backend : {'numpy_nullable', 'pyarrow'}
         Back-end data type applied to the resultant :class:`DataFrame`
         (still experimental). If not specified, the default behavior
         is to not use nullable data types. If specified, the behavior
