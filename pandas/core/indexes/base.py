@@ -6451,12 +6451,6 @@ class Index(IndexOpsMixin, PandasObject):
                     pa.types.is_string(pa_dtype) or pa.types.is_large_string(pa_dtype)
                 ):
                     return True
-                if self.dtype.kind == "b" and pa.types.is_boolean(pa_dtype):
-                    return True
-                if is_numeric_dtype(self.dtype) and (
-                    pa.types.is_integer(pa_dtype) or pa.types.is_floating(pa_dtype)
-                ):
-                    return True
                 if is_object_dtype(self.dtype):
                     return True
                 return False
