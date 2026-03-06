@@ -2950,7 +2950,18 @@ def _get_timestamp_range_edges(
         last = last.normalize()
 
         if closed == "left":
-            first = Timestamp(freq.rollback(first))
+            if freq.n != 1:
+                # GH#29576 for non-unitary anchored offsets (e.g. 2QS/2MS),
+                # DateOffset.rollback uses a unit step and can align to the
+                # wrong boundary. Resolve the most recent valid boundary from
+                # the full frequency instead.
+                boundaries = date_range(end=first, periods=2, freq=freq, unit=unit)
+                if len(boundaries):
+                    first = boundaries[-1]
+                else:
+                    first = Timestamp(first - freq)
+            else:
+                first = Timestamp(freq.rollback(first))
         else:
             first = Timestamp(first - freq)
 
