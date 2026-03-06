@@ -1,6 +1,6 @@
 from io import StringIO
 from string import ascii_uppercase
-from sys import getsizeof
+import sys
 import textwrap
 
 import numpy as np
@@ -140,11 +140,19 @@ def test_info_memory_usage_deep_not_pypy():
 
 
 @pytest.mark.xfail(PYPY, reason="on PyPy deep=True doesn't change result")
-def test_info_memory_usage_deep_non_recursive():
-    ser = Series([{"a": [1, 2, 3]}])
+@pytest.mark.parametrize(
+    "values",
+    [
+        [{"a": [1, 2, 3]}],
+        [{"a": [1]}, None, {"b": {"c": [1, 2]}}],
+        [],
+    ],
+)
+def test_memory_usage_deep_object_non_recursive(values):
+    ser = Series(values, dtype=object)
 
     result = ser.memory_usage(index=False, deep=True)
-    expected = ser.values.nbytes + getsizeof(ser.iloc[0])
+    expected = ser.values.nbytes + sum(sys.getsizeof(val) for val in ser.values)
     assert result == expected
 
 
