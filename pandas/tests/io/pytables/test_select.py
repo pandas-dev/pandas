@@ -18,6 +18,7 @@ from pandas import (
     isna,
     read_hdf,
 )
+from pandas.io import pytables as pytables_module
 
 from pandas.io.pytables import Term
 
@@ -172,6 +173,26 @@ def test_select(temp_hdfstore):
     result = temp_hdfstore.select("df", ["A > 0"], columns=["C", "D"])
     expected = df[df.A > 0].reindex(columns=["C", "D"])
     tm.assert_frame_equal(expected, result)
+
+
+def test_select_uses_single_selection(temp_hdfstore, monkeypatch):
+    # GH 22082
+    df = DataFrame(np.random.default_rng(2).standard_normal((10, 2)), columns=["A", "B"])
+    temp_hdfstore.append("df", df)
+
+    count = 0
+    original_init = pytables_module.Selection.__init__
+
+    def counting_init(self, *args, **kwargs):
+        nonlocal count
+        count += 1
+        original_init(self, *args, **kwargs)
+
+    monkeypatch.setattr(pytables_module.Selection, "__init__", counting_init)
+
+    result = temp_hdfstore.select("df")
+    tm.assert_frame_equal(result, df)
+    assert count == 1
 
 
 def test_select_dtypes_timestamp(temp_hdfstore):

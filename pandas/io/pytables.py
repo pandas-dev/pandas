@@ -3968,7 +3968,7 @@ class Table(Fixed):
                 )
 
     def _read_axes(
-        self, where, start: int | None = None, stop: int | None = None
+        self, selection: Selection
     ) -> list[tuple[np.ndarray, np.ndarray] | tuple[Index, Index]]:
         """
         Create the axes sniffed from the table.
@@ -3983,8 +3983,6 @@ class Table(Fixed):
         -------
         List[Tuple[index_values, column_values]]
         """
-        # create the selection
-        selection = Selection(self, where=where, start=start, stop=stop)
         values = selection.select()
 
         results = []
@@ -4796,7 +4794,8 @@ class AppendableFrameTable(AppendableTable):
         if not self.infer_axes():
             return None
 
-        result = self._read_axes(where=where, start=start, stop=stop)
+        selection = Selection(self, where=where, start=start, stop=stop)
+        result = self._read_axes(selection=selection)
 
         info = (
             self.info.get(self.non_index_axes[0][0], {})
@@ -4879,7 +4878,6 @@ class AppendableFrameTable(AppendableTable):
         else:
             df = concat(frames, axis=1)
 
-        selection = Selection(self, where=where, start=start, stop=stop)
         # apply the selection filters & axis orderings
         df = self.process_axes(df, selection=selection, columns=columns)
         return df
