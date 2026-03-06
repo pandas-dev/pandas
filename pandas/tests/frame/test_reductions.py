@@ -849,7 +849,7 @@ class TestDataFrameAnalytics:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("method, unit", [("sum", 0), ("prod", 1)])
-    @pytest.mark.parametrize("numeric_only", [None, True, False])
+    @pytest.mark.parametrize("numeric_only", [True, False])
     def test_sum_prod_nanops(self, method, unit, numeric_only):
         idx = ["a", "b", "c"]
         df = DataFrame({"a": [unit, unit], "b": [unit, np.nan], "c": [np.nan, np.nan]})
@@ -1745,6 +1745,25 @@ class TestDataFrameReductions:
         with pytest.raises(ValueError, match=msg):
             getattr(obj, all_reductions)(skipna=None)
 
+    @pytest.mark.parametrize(
+        "method",
+        ["sum", "prod", "min", "max", "mean", "median", "std", "var", "sem"],
+    )
+    @pytest.mark.parametrize(
+        "numeric_only, expected_type",
+        [(None, "NoneType"), ("True", "str"), (1, "int")],
+    )
+    def test_reductions_numeric_only_non_bool_raises(
+        self, frame_or_series, method, numeric_only, expected_type
+    ):
+        obj = frame_or_series([1, 2, 3])
+        msg = (
+            f'For argument "numeric_only" expected type bool, '
+            f"received type {expected_type}."
+        )
+        with pytest.raises(ValueError, match=re.escape(msg)):
+            getattr(obj, method)(numeric_only=numeric_only)
+
     def test_reduction_timestamp_smallest_unit(self):
         # GH#52524
         df = DataFrame(
@@ -2027,7 +2046,7 @@ def test_mixed_frame_with_integer_sum():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("numeric_only", [True, False, None])
+@pytest.mark.parametrize("numeric_only", [True, False])
 @pytest.mark.parametrize("method", ["min", "max"])
 def test_minmax_extensionarray(method, numeric_only):
     # https://github.com/pandas-dev/pandas/issues/32651
