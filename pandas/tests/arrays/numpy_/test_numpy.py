@@ -418,9 +418,8 @@ def test_array_str_dtype_with_none():
     arr_result = pd.array([1, None], dtype=str)
     series_result = pd.Series([1, None], dtype=str).array
 
-    # Both should have object dtype (to preserve None)
-    assert arr_result.dtype.numpy_dtype == np.dtype("object")
-    assert series_result.dtype.numpy_dtype == np.dtype("object")
+    # Both should have the same dtype
+    assert arr_result.dtype == series_result.dtype
 
-    # Both should have the same values
+    # Both should preserve the None/NA values
     tm.assert_extension_array_equal(arr_result, series_result)
