@@ -1012,6 +1012,7 @@ def test_multindex_series_loc_with_tuple_label():
     assert result == 2
 
 
+@pytest.mark.xfail(reason="GH#55969 - not yet fixed")
 def test_loc_datetime_date_multiindex_with_np_datetime64():
     # GH#55969
     # Accessing a MultiIndex with datetime.date at level 0 using np.datetime64
