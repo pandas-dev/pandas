@@ -2479,7 +2479,7 @@ class DataFrame(NDFrame, OpsMixin):
         variable_labels : dict
             Dictionary containing columns as keys and variable labels as
             values. Each label must be 80 characters or smaller.
-        version : {{114, 117, 118, 119, None}}, default 114
+        version : {114, 117, 118, 119, None}, default 114
             Version to use in the output dta file. Set to None to let pandas
             decide between 118 or 119 formats depending on the number of
             columns in the frame. Version 114 can be read by Stata 10 and
@@ -2822,7 +2822,7 @@ class DataFrame(NDFrame, OpsMixin):
             object implementing a binary ``write()`` function. If None, the result is
             returned as bytes. If a string or path, it will be used as Root Directory
             path when writing a partitioned dataset.
-        engine : {{'auto', 'pyarrow', 'fastparquet'}}, default 'auto'
+        engine : {'auto', 'pyarrow', 'fastparquet'}, default 'auto'
             Parquet library to use. If 'auto', then the option
             ``io.parquet.engine`` is used. The default ``io.parquet.engine``
             behavior is to try 'pyarrow', falling back to 'fastparquet' if
@@ -3428,7 +3428,7 @@ class DataFrame(NDFrame, OpsMixin):
             Default namespaces should be given empty string key. For
             example, ::
 
-                namespaces = {{"": "https://example.com"}}
+                namespaces = {"": "https://example.com"}
 
         prefix : str, optional
             Namespace prefix to be used for every element and/or attribute
@@ -3441,7 +3441,7 @@ class DataFrame(NDFrame, OpsMixin):
         pretty_print : bool, default True
             Whether output should be pretty printed with indentation and
             line breaks.
-        parser : {{'lxml','etree'}}, default 'lxml'
+        parser : {'lxml','etree'}, default 'lxml'
             Parser module to use for building of tree. Only 'lxml' and
             'etree' are supported. With 'lxml', the ability to use XSLT
             stylesheet is supported.
@@ -3529,7 +3529,7 @@ class DataFrame(NDFrame, OpsMixin):
         </data>
 
         >>> df.to_xml(
-        ...     namespaces={{"doc": "https://example.com"}}, prefix="doc"
+        ...     namespaces={"doc": "https://example.com"}, prefix="doc"
         ... )  # doctest: +SKIP
         <?xml version='1.0' encoding='utf-8'?>
         <doc:data xmlns:doc="https://example.com">
@@ -17734,7 +17734,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        axis : {{0 or 'index', 1 or 'columns'}}, default 0
+        axis : {0 or 'index', 1 or 'columns'}, default 0
             The axis to use. 0 or 'index' for row-wise, 1 or 'columns' for column-wise.
         skipna : bool, default True
             Exclude NA/null values. If the entire DataFrame is NA,
@@ -17835,7 +17835,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        axis : {{0 or 'index', 1 or 'columns'}}, default 0
+        axis : {0 or 'index', 1 or 'columns'}, default 0
             The axis to use. 0 or 'index' for row-wise, 1 or 'columns' for column-wise.
         skipna : bool, default True
             Exclude NA/null values. If the entire DataFrame is NA,
