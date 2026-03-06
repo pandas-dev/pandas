@@ -2174,7 +2174,7 @@ class MultiIndex(Index):
                 "Cannot create duplicate column labels if allow_duplicates is False"
             )
 
-        # Guarantee resulting column order - PY36+ dict maintains insertion order
+        # Guarantee resulting column order - dict maintains insertion order
         result = DataFrame(
             {level: self._get_level_values(level) for level in range(len(self.levels))},
             copy=False,

@@ -26,10 +26,12 @@ from pandas._libs.tslibs.offsets import (
     to_offset,
 )
 from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
+from pandas.errors import Pandas4Warning
 
 from pandas import (
     DataFrame,
     DatetimeIndex,
+    PeriodDtype,
     Series,
     date_range,
 )
@@ -944,10 +946,25 @@ def test_valid_month_attributes(kwd, month_classes):
 
 
 def test_month_offset_name(month_classes):
-    # GH#33757 off.name with n != 1 should not raise AttributeError
+    # GH#33757 off.rule_code with n != 1 should not raise AttributeError
     obj = month_classes(1)
     obj2 = month_classes(2)
-    assert obj2.name == obj.name
+    assert obj2.rule_code == obj.rule_code
+
+
+def test_offset_name_deprecated():
+    # GH#64207
+    offset = Day(1)
+    with tm.assert_produces_warning(
+        Pandas4Warning, match="name.*deprecated.*rule_code"
+    ):
+        result = offset.name
+    assert result == "D"
+
+    # rule_code should not raise a warning
+    with tm.assert_produces_warning(None):
+        result = offset.rule_code
+    assert result == "D"
 
 
 @pytest.mark.parametrize("kwd", sorted(liboffsets._relativedelta_kwds))
@@ -1221,3 +1238,35 @@ def test_is_yqm_start_end():
 def test_multiply_dateoffset_typeerror(left, right):
     with pytest.raises(TypeError, match="Cannot multiply"):
         left * right
+
+
+@pytest.mark.parametrize("n", [1, 2])
+@pytest.mark.parametrize(
+    "unit",
+    [
+        "ns",
+        "us",
+        "ms",
+        "s",
+        "min",
+        "h",
+        "D",
+        "W-SUN",
+        "W-MON",
+        "M",
+        "Q-DEC",
+        "Q-NOV",
+        "Y-DEC",
+        "Y-NOV",
+    ],
+)
+def test_to_offset_period_dtype_roundtrip(unit, n):
+    # Test that period_dtype_to_offset correctly maps Dtypes back to offsets
+    off = to_offset(unit, is_period=True) * n
+
+    dtype = PeriodDtype(off)
+    assert dtype.freq == off
+
+    round_trip = to_offset(dtype)
+
+    assert round_trip == off

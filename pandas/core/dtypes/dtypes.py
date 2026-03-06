@@ -1049,6 +1049,9 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
         if isinstance(freq, PeriodDtype):
             return freq
 
+        elif isinstance(freq, PeriodDtypeBase):
+            freq = to_offset(freq, is_period=True)
+
         if not isinstance(freq, BaseOffset):
             freq = cls._parse_dtype_strict(freq)
 
@@ -1602,6 +1605,17 @@ class NumpyEADtype(ExtensionDtype):
         The element size of this data-type object.
         """
         return self._dtype.itemsize
+
+    def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
+        from pandas.core.dtypes.cast import find_common_type
+
+        dtypes = [x.numpy_dtype if isinstance(x, NumpyEADtype) else x for x in dtypes]
+        if not all(isinstance(x, np.dtype) for x in dtypes):
+            return None
+
+        common_dtype = find_common_type(dtypes)
+        # error: Argument 1 to "NumpyEADtype" has incompatible type
+        return NumpyEADtype(common_dtype)  # type: ignore[arg-type]
 
 
 class BaseMaskedDtype(ExtensionDtype):

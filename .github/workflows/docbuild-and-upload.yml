@@ -25,15 +25,15 @@ on:
 env:
   ENV_FILE: environment.yml
   PANDAS_CI: 1
-  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
   web_and_docs:
     name: Doc Build and Upload
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
 
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
@@ -46,23 +46,27 @@ jobs:
 
     steps:
     - name: Set pandas version
+      env:
+        INPUT_VERSION: ${{ github.event.inputs.version }}
+        EVENT_NAME: ${{ github.event_name }}
+        INPUT_PUBLISH_PROD: ${{ github.event.inputs.publish_prod }}
       run: |
         # tags include a `v` prefix.
-        tag_version_pat="^v\d+\.\d+\.\d+(rc\d+)?$"
-        version_pat="^\d+\.\d+\.\d+(rc\d+)?$"
+        tag_version_pat="^v[0-9]+\.[0-9]+\.[0-9]+(rc[0-9]+)?$"
+        version_pat="^[0-9]+\.[0-9]+\.[0-9]+(rc[0-9]+)?$"
 
-        if [[ -n "${{ github.event.inputs.version }}" ]]; then
-          PANDAS_VERSION="${{ github.event.inputs.version }}"
-        elif [[ "${{ github.event_name }}" == "push" && "$GITHUB_REF_NAME" =~ $tag_version_pat ]]; then
+        if [[ -n "$INPUT_VERSION" ]]; then
+          PANDAS_VERSION="$INPUT_VERSION"
+        elif [[ "$EVENT_NAME" == "push" && "$GITHUB_REF_NAME" =~ $tag_version_pat ]]; then
           PANDAS_VERSION="${GITHUB_REF_NAME:1}"
         else
           PANDAS_VERSION=""
         fi
         echo "PANDAS_VERSION=$PANDAS_VERSION" >> "$GITHUB_ENV"
 
-        if [[ "${{ github.event_name }}" == "push" && -n "$PANDAS_VERSION" ]]; then
+        if [[ "$EVENT_NAME" == "push" && -n "$PANDAS_VERSION" ]]; then
           PUBLISH_PROD="true"
-        elif [[ "${{ github.event.inputs.publish_prod }}" == "true" ]]; then
+        elif [[ "$INPUT_PUBLISH_PROD" == "true" ]]; then
           PUBLISH_PROD="true"
         else
           PUBLISH_PROD="false"
@@ -77,7 +81,7 @@ jobs:
         fi
 
     - name: Checkout
-      uses: actions/checkout@v6
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       with:
         fetch-depth: 0
 
@@ -96,6 +100,8 @@ jobs:
 
     - name: Build website
       run: python web/pandas_web.py web/pandas --target-path=web/build
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Build documentation
       run: doc/make.py --warnings-are-errors
@@ -134,7 +140,7 @@ jobs:
       run: mv doc/build/html web/build/docs
 
     - name: Save website as an artifact
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
       with:
         name: website
         path: web/build

@@ -182,7 +182,7 @@ def test_put_compression_blosc(temp_hdfstore):
     tm.assert_frame_equal(temp_hdfstore["c"], df)
 
 
-def test_put_datetime_ser(temp_hdfstore, performance_warning, using_infer_string):
+def test_put_datetime_ser(temp_hdfstore, performance_warning):
     # https://github.com/pandas-dev/pandas/pull/60663
     ser = Series(3 * [Timestamp("20010102").as_unit("ns")])
     temp_hdfstore.put("ser", ser)
@@ -266,7 +266,7 @@ def test_store_index_types(temp_hdfstore, format, index):
     tm.assert_frame_equal(df, temp_hdfstore["df"])
 
 
-def test_column_multiindex(temp_hdfstore, using_infer_string):
+def test_column_multiindex(temp_hdfstore):
     # GH 4710
     # recreate multi-indexes properly
 
@@ -294,7 +294,7 @@ def test_column_multiindex(temp_hdfstore, using_infer_string):
         temp_hdfstore.put("df3", df, format="table", data_columns=True)
 
 
-def test_column_multiindex_existing(temp_hdfstore, using_infer_string):
+def test_column_multiindex_existing(temp_hdfstore):
     # appending multi-column on existing table (see GH 6167)
 
     index = MultiIndex.from_tuples(
@@ -307,7 +307,7 @@ def test_column_multiindex_existing(temp_hdfstore, using_infer_string):
     tm.assert_frame_equal(temp_hdfstore["df2"], concat((df, df)))
 
 
-def test_column_multiindex_non_index_axes(temp_hdfstore, using_infer_string):
+def test_column_multiindex_non_index_axes(temp_hdfstore):
     df = DataFrame(np.arange(12).reshape(3, 4), columns=Index(list("ABCD"), name="foo"))
     expected = df.set_axis(df.index.to_numpy())
 

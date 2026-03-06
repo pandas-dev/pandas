@@ -625,7 +625,7 @@ def na_value_for_dtype(dtype: DtypeObj, compat: bool = True):
     >>> na_value_for_dtype(np.dtype("bool"))
     False
     >>> na_value_for_dtype(np.dtype("datetime64[ns]"))
-    np.datetime64('NaT')
+    np.datetime64('NaT','ns')
     """
 
     if isinstance(dtype, ExtensionDtype):

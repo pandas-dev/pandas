@@ -5810,8 +5810,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             )
             sampled_indices.append(grp_indices[grp_sample])
 
-        sampled_indices = np.concatenate(sampled_indices)
-        return self._selected_obj.take(sampled_indices, axis=0)
+        concatenated_sampled_indices = np.concatenate(sampled_indices)
+        return self._selected_obj.take(concatenated_sampled_indices, axis=0)
 
     def _idxmax_idxmin(
         self,

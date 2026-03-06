@@ -1348,9 +1348,7 @@ class FrameColumnApply(FrameApply):
 
     @property
     def series_generator(self) -> Generator[Series]:
-        values = self.values
-        values = ensure_wrapped_if_datetimelike(values)
-        assert len(values) > 0
+        assert len(self.obj) > 0
 
         # We create one Series object, and will swap out the data inside
         #  of it.  Kids: don't do this at home.
@@ -1367,6 +1365,9 @@ class FrameColumnApply(FrameApply):
                 yield obj._ixs(i, axis=0)
 
         else:
+            values = self.values
+            values = ensure_wrapped_if_datetimelike(values)
+
             for arr, name in zip(values, self.index, strict=True):
                 # GH#35462 re-pin mgr in case setitem changed it
                 ser._mgr = mgr

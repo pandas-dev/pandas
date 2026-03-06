@@ -323,11 +323,11 @@ def union_categoricals(
         if sort_categories:
             categories = categories.sort_values()
 
-        new_codes = [
+        all_codes = [
             recode_for_categories(c.codes, c.categories, categories, copy=False)
             for c in to_union
         ]
-        new_codes = np.concatenate(new_codes)
+        new_codes = np.concatenate(all_codes)
     else:
         # ordered - to show a proper error message
         if all(c.ordered for c in to_union):

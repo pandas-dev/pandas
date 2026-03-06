@@ -14,14 +14,15 @@ env:
   ENV_FILE: environment.yml
   PANDAS_CI: 1
 
-permissions:
-  contents: read
+permissions: {}
 
 # pre-commit run by https://pre-commit.ci/
 jobs:
   docstring_typing_manual_hooks:
     name: Docstring validation, typing, and other manual pre-commit hooks
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
     defaults:
       run:
         shell: bash -el {0}
@@ -33,7 +34,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v6
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       with:
         fetch-depth: 0
 
@@ -77,7 +78,7 @@ jobs:
       if: ${{ steps.build.outcome == 'success' && always() }}
 
     - name: Typing
-      uses: pre-commit/action@v3.0.1
+      uses: pre-commit/action@2c7b3805fd2a0fd8c1884dcaebf91fc102a13ecd # v3.0.1
       with:
         extra_args: --verbose --hook-stage manual --all-files
       if: ${{ steps.build.outcome == 'success' && always() }}
@@ -89,6 +90,8 @@ jobs:
   asv-benchmarks:
     name: ASV Benchmarks
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
     defaults:
       run:
         shell: bash -el {0}
@@ -100,7 +103,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v6
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       with:
         fetch-depth: 0
 
@@ -120,6 +123,8 @@ jobs:
   requirements-dev-text-installable:
     name: Test install requirements-dev.txt
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
 
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
@@ -128,13 +133,13 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           fetch-depth: 0
 
       - name: Setup Python
         id: setup_python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
           python-version: '3.11'
           cache: 'pip'

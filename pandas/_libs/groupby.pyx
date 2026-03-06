@@ -1443,18 +1443,21 @@ def group_quantile(
     -----
     Rather than explicitly returning a value, this function modifies the
     provided `out` parameter.
+
+    Uses kth_smallest_c (an O(n) quickselect) rather than a full O(n log n)
+    argsort. NAs are pre-filtered into a temporary buffer so datetimelike
+    NaT-ordering and float NaN comparisons are never an issue.
     """
     cdef:
-        Py_ssize_t i, N=len(labels), ngroups, non_na_sz, k, nqs
-        Py_ssize_t idx=0
+        Py_ssize_t i, N = len(labels), ngroups, non_na_sz, k, nqs
+        Py_ssize_t idx = 0
         Py_ssize_t grp_size
         InterpolationEnumType interp
         float64_t q_val, q_idx, frac, val, next_val
         bint uses_result_mask = result_mask is not None
         Py_ssize_t start, end
-        ndarray[numeric_t] grp
-        intp_t[::1] sort_indexer
-        const uint8_t[:] sub_mask
+        numeric_t* tmp
+        Py_ssize_t j
 
     assert values.shape[0] == N
     assert starts is not None
@@ -1479,66 +1482,84 @@ def group_quantile(
     nqs = len(qs)
     ngroups = len(out)
 
-    # TODO: get cnp.PyArray_ArgSort to work with nogil so we can restore the rest
-    #  of this function as being `with nogil:`
-    for i in range(ngroups):
-        start = starts[i]
-        end = ends[i]
+    with nogil:
+        for i in range(ngroups):
+            start = starts[i]
+            end = ends[i]
 
-        grp = values[start:end]
+            # Count non-NA elements in this group using direct indexing
+            # (avoids memoryview slicing, which is not nogil-safe).
+            grp_size = end - start
+            non_na_sz = 0
+            for j in range(grp_size):
+                if mask[start + j] == 0:
+                    non_na_sz += 1
 
-        # Figure out how many group elements there are
-        sub_mask = mask[start:end]
-        grp_size = sub_mask.size
-        non_na_sz = 0
-        for k in range(grp_size):
-            if sub_mask[k] == 0:
-                non_na_sz += 1
+            if non_na_sz == 0:
+                for k in range(nqs):
+                    if uses_result_mask:
+                        result_mask[i, k] = 1
+                    else:
+                        out[i, k] = NaN
+            else:
+                # Copy non-NA values into a temporary mutable buffer.
+                # Pre-filtering NAs means kth_smallest_c's comparisons are
+                # always valid (no NaN/NaT values), so is_datetimelike needs
+                # no special handling here.
+                tmp = <numeric_t*>malloc(non_na_sz * sizeof(numeric_t))
+                if tmp is NULL:
+                    raise MemoryError()
 
-        # equiv: sort_indexer = grp.argsort()
-        if is_datetimelike:
-            # We need the argsort to put NaTs at the end, not the beginning
-            sort_indexer = cnp.PyArray_ArgSort(grp.view("M8[ns]"), 0, cnp.NPY_QUICKSORT)
-        else:
-            sort_indexer = cnp.PyArray_ArgSort(grp, 0, cnp.NPY_QUICKSORT)
+                j = 0
+                for k in range(grp_size):
+                    if mask[start + k] == 0:
+                        tmp[j] = values[start + k]
+                        j += 1
 
-        if non_na_sz == 0:
-            for k in range(nqs):
-                if uses_result_mask:
-                    result_mask[i, k] = 1
-                else:
-                    out[i, k] = NaN
-        else:
-            for k in range(nqs):
-                q_val = qs[k]
+                for k in range(nqs):
+                    q_val = qs[k]
 
-                # Calculate where to retrieve the desired value
-                # Casting to int will intentionally truncate result
-                idx = <int64_t>(q_val * <float64_t>(non_na_sz - 1))
+                    # Calculate where to retrieve the desired value.
+                    # Casting to int will intentionally truncate result.
+                    idx = <int64_t>(q_val * <float64_t>(non_na_sz - 1))
 
-                val = grp[sort_indexer[idx]]
-                # If requested quantile falls evenly on a particular index
-                # then write that index's value out. Otherwise interpolate
-                q_idx = q_val * (non_na_sz - 1)
-                frac = q_idx % 1
+                    # kth_smallest_c is an in-place O(n) quickselect: it
+                    # rearranges tmp so that tmp[idx] holds the idx-th
+                    # smallest element. Calling it again for a different
+                    # index on the same (now partially-sorted) buffer is
+                    # always correct because quickselect is correct on any
+                    # permutation of the values.
+                    val = kth_smallest_c(tmp, idx, non_na_sz)
 
-                if frac == 0.0 or interp == INTERPOLATION_LOWER:
-                    out[i, k] = val
-                else:
-                    next_val = grp[sort_indexer[idx + 1]]
-                    if interp == INTERPOLATION_LINEAR:
-                        out[i, k] = val + (next_val - val) * frac
-                    elif interp == INTERPOLATION_HIGHER:
-                        out[i, k] = next_val
-                    elif interp == INTERPOLATION_MIDPOINT:
-                        out[i, k] = (val + next_val) / 2.0
-                    elif interp == INTERPOLATION_NEAREST:
-                        if frac > .5 or (frac == .5 and idx % 2 == 1):
-                            # If quantile lies in the middle of two indexes,
-                            # take the even index, as np.quantile.
+                    # If requested quantile falls evenly on a particular
+                    # index then write that index's value out. Otherwise
+                    # interpolate.
+                    q_idx = q_val * (non_na_sz - 1)
+                    frac = q_idx % 1
+
+                    if frac == 0.0 or interp == INTERPOLATION_LOWER:
+                        out[i, k] = val
+                    else:
+                        # After the previous partition,
+                        # tmp[idx+1..non_na_sz-1] are all >= tmp[idx], so
+                        # kth_smallest_c correctly finds their minimum (the
+                        # (idx+1)-th order statistic).
+                        next_val = kth_smallest_c(tmp, idx + 1, non_na_sz)
+                        if interp == INTERPOLATION_LINEAR:
+                            out[i, k] = val + (next_val - val) * frac
+                        elif interp == INTERPOLATION_HIGHER:
                             out[i, k] = next_val
-                        else:
-                            out[i, k] = val
+                        elif interp == INTERPOLATION_MIDPOINT:
+                            out[i, k] = (val + next_val) / 2.0
+                        elif interp == INTERPOLATION_NEAREST:
+                            if frac > .5 or (frac == .5 and idx % 2 == 1):
+                                # If quantile lies in the middle of two
+                                # indexes, take the even index, as np.quantile
+                                out[i, k] = next_val
+                            else:
+                                out[i, k] = val
+
+                free(tmp)
 
 
 # ----------------------------------------------------------------------

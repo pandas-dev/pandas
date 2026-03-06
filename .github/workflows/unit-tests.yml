@@ -13,8 +13,7 @@ on:
       - "doc/**"
       - "web/**"
 
-permissions:
-  contents: read
+permissions: {}
 
 defaults:
   run:
@@ -23,6 +22,8 @@ defaults:
 jobs:
   ubuntu:
     runs-on: ${{ matrix.platform }}
+    permissions:
+      contents: read
     timeout-minutes: 90
     strategy:
       matrix:
@@ -145,7 +146,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v6
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       with:
         fetch-depth: 0
 
@@ -186,6 +187,8 @@ jobs:
       if: ${{ matrix.pattern == '' && (always() && steps.build.outcome == 'success')}}
 
   macos-windows:
+    permissions:
+      contents: read
     timeout-minutes: 90
     strategy:
       matrix:
@@ -206,7 +209,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           fetch-depth: 0
 
@@ -223,6 +226,8 @@ jobs:
 
   Linux-32-bit:
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
     container:
       image: quay.io/pypa/manylinux_2_28_i686
       options: --platform linux/386
@@ -259,6 +264,8 @@ jobs:
 
   Linux-Musl:
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
     container:
       image: quay.io/pypa/musllinux_1_2_x86_64
     steps:
@@ -319,6 +326,8 @@ jobs:
     #    to the corresponding posix/windows-macos/sdist etc. workflows.
     # Feel free to modify this comment as necessary.
     if: false
+    permissions:
+      contents: read
     defaults:
       run:
         shell: bash -eou pipefail {0}
@@ -342,12 +351,12 @@ jobs:
       PYTEST_TARGET: pandas
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           fetch-depth: 0
 
       - name: Set up Python Dev Version
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
           python-version: '3.15-dev'
 
@@ -373,24 +382,26 @@ jobs:
     # https://pyodide.org/en/stable/usage/index.html#node-js
     name: Pyodide build
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
       group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-wasm
       cancel-in-progress: true
     steps:
       - name: Checkout pandas Repo
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           fetch-depth: 0
 
       - name: Set up Python for pyodide-build
         id: setup-python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
           python-version: '3.12'
 
       - name: Set up Emscripten toolchain
-        uses: mymindstorm/setup-emsdk@v14
+        uses: mymindstorm/setup-emsdk@6ab9eb1bda2574c4ddb79809fc9247783eaf9021 # v14
         with:
           version: '3.1.58'
           actions-cache-folder: emsdk-cache
@@ -403,7 +414,7 @@ jobs:
           pyodide build
 
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
         with:
           node-version: '20'
 

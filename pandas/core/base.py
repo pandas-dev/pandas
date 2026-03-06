@@ -1231,6 +1231,9 @@ class IndexOpsMixin(OpsMixin):
         """
         Return True if values in the object are unique.
 
+        This property checks whether all values in the Series or Index are
+        distinct, including missing values.
+
         Returns
         -------
         bool
@@ -1257,6 +1260,10 @@ class IndexOpsMixin(OpsMixin):
     def is_monotonic_increasing(self) -> bool:
         """
         Return True if values in the object are monotonically increasing.
+
+        This property checks whether each element is greater than or equal to
+        the previous element. Equal consecutive values are considered
+        monotonically increasing.
 
         Returns
         -------
@@ -1285,6 +1292,10 @@ class IndexOpsMixin(OpsMixin):
     def is_monotonic_decreasing(self) -> bool:
         """
         Return True if values in the object are monotonically decreasing.
+
+        This property checks whether each element is less than or equal to
+        the previous element. Equal consecutive values are considered
+        monotonically decreasing.
 
         Returns
         -------
