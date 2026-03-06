@@ -6,7 +6,6 @@ from itertools import chain
 import numpy as np
 import pytest
 
-from pandas.compat import is_platform_linux
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -284,24 +283,18 @@ class TestSeriesPlots:
         label2 = ax2.get_xlabel()
         assert label2 == ""
 
-    @pytest.mark.xfail(
-        is_platform_linux(),
-        reason="Weird rounding problems",
-        strict=False,
-    )
     @pytest.mark.parametrize("axis, meth", [("yaxis", "bar"), ("xaxis", "barh")])
     def test_bar_log(self, axis, meth):
         expected = np.array([1e-1, 1e0, 1e1, 1e2, 1e3, 1e4])
 
         _, ax = mpl.pyplot.subplots()
         ax = getattr(Series([200, 500]).plot, meth)(log=True, ax=ax)
-        tm.assert_numpy_array_equal(getattr(ax, axis).get_ticklocs(), expected)
+        result = getattr(ax, axis).get_ticklocs()
+        # GH#64317 on some linux builds this is flaky with a tiny difference.
+        #  Rather than xfail this test, we allow a small
+        #  tolerance, as it isn't really user-visible.
+        tm.assert_almost_equal(result, expected, atol=1e-15)
 
-    @pytest.mark.xfail(
-        is_platform_linux(),
-        reason="Weird rounding problems",
-        strict=False,
-    )
     @pytest.mark.parametrize(
         "axis, kind, res_meth",
         [["yaxis", "bar", "get_ylim"], ["xaxis", "barh", "get_xlim"]],
@@ -317,7 +310,12 @@ class TestSeriesPlots:
         res = getattr(ax, res_meth)()
         tm.assert_almost_equal(res[0], ymin)
         tm.assert_almost_equal(res[1], ymax)
-        tm.assert_numpy_array_equal(getattr(ax, axis).get_ticklocs(), expected)
+
+        result = getattr(ax, axis).get_ticklocs()
+        # GH#64317 on some linux builds this is flaky with the first entry being
+        #  off by -1.69e-21. Rather than xfail this test, we allow a small
+        #  tolerance, as it isn't really user-visible.
+        tm.assert_almost_equal(result, expected, atol=1e-15)
 
     def test_bar_ignore_index(self):
         df = Series([1, 2, 3, 4], index=["a", "b", "c", "d"])

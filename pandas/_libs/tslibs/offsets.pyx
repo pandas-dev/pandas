@@ -7203,6 +7203,10 @@ cpdef to_offset(freq, bint is_period=False):
     """
     Return DateOffset object from string or datetime.timedelta object.
 
+    This function converts a frequency string (e.g. ``"5min"``, ``"1D1h"``,
+    ``"2W"``) or a ``datetime.timedelta`` into a pandas ``DateOffset`` subclass.
+    It can also pass through existing ``BaseOffset`` instances unchanged.
+
     Parameters
     ----------
     freq : str, datetime.timedelta, BaseOffset or None

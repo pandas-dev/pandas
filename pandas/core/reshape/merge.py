@@ -2923,12 +2923,22 @@ def _factorize_keys(
         lk_data, rk_data = lk, rk  # type: ignore[assignment]
         lk_mask, rk_mask = None, None
 
-    hash_join_available = how == "inner" and not sort and lk.dtype.kind in "iufb"
+    hash_join_available = (
+        how in ("inner", "left") and not sort and lk.dtype.kind in "iufb"
+    )
     if hash_join_available:
         rlab = rizer.factorize(rk_data, mask=rk_mask)
         if rizer.get_count() == len(rlab):
             ridx, lidx = rizer.hash_inner_join(lk_data, lk_mask)
-            return lidx, ridx, -1
+            if how == "inner":
+                return lidx, ridx, -1
+            # left-outer hash join with unique right side.
+            # Preserve original left-row order: one output row per left row,
+            # ridx=-1 for unmatched rows.
+            n_left = len(lk_data)
+            ridx_full = np.full(n_left, -1, dtype=np.intp)
+            ridx_full[lidx] = ridx
+            return np.arange(n_left, dtype=np.intp), ridx_full, -1
         else:
             llab = rizer.factorize(lk_data, mask=lk_mask)
     else:

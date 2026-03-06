@@ -69,34 +69,17 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
     MSG='Validate Docstrings' ; echo "$MSG"
     python "$BASE_DIR"/scripts/validate_docstrings.py \
         --format=actions \
-        -i "pandas.tseries.frequencies.to_offset ES01" \
-        -i "pandas.testing.assert_series_equal ES01" \
-        -i "pandas.testing.assert_index_equal ES01" \
         -i "pandas.CategoricalDtype.categories ES01" \
         -i "pandas.CategoricalDtype.ordered ES01" \
         -i "pandas.DatetimeTZDtype.unit ES01" \
         -i "pandas.DatetimeTZDtype.tz ES01" \
         -i "pandas.IntervalDtype.subtype ES01" \
         -i "pandas.api.extensions.ExtensionArray.item ES01" \
-        -i "pandas.api.types.is_timedelta64_dtype ES01" \
-        -i "pandas.api.types.is_dict_like ES01" \
-        -i "pandas.api.types.is_named_tuple ES01" \
-        -i "pandas.api.types.is_bool ES01" \
-        -i "pandas.api.types.is_complex ES01" \
-        -i "pandas.api.types.is_re ES01" \
-        -i "pandas.api.types.is_re_compilable ES01" \
-        -i "pandas.api.types.is_scalar ES01" \
         -i "pandas.read_html ES01" \
-        -i "pandas.DataFrame.to_html ES01" \
-        -i "pandas.io.formats.style.Styler.to_html ES01" \
         -i "pandas.read_xml ES01" \
-        -i "pandas.DataFrame.to_xml ES01" \
-        -i "pandas.io.formats.style.Styler.to_latex ES01" \
         -i "pandas.HDFStore.get ES01" \
         -i "pandas.HDFStore.info ES01" \
         -i "pandas.HDFStore.keys ES01" \
-        -i "pandas.DataFrame.to_feather ES01" \
-        -i "pandas.DataFrame.to_orc ES01" \
         -i "pandas.Index.putmask ES01" \
         -i "pandas.Index.fillna ES01" \
         -i "pandas.Index.dropna ES01" \
@@ -110,10 +93,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Index.get_loc ES01" \
         -i "pandas.Index.slice_locs ES01" \
         -i "pandas.CategoricalIndex.append ES01" \
-        -i "pandas.IntervalIndex ES01" \
-        -i "pandas.IntervalIndex.from_arrays ES01" \
-        -i "pandas.IntervalIndex.from_tuples ES01" \
-        -i "pandas.IntervalIndex.from_breaks ES01" \
         -i "pandas.IndexSlice ES01" \
         -i "pandas.TimedeltaIndex.to_pytimedelta ES01" \
         -i "pandas.PeriodIndex.day ES01" \
@@ -225,21 +204,9 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.api.typing.SeriesGroupBy.value_counts ES01" \
         -i "pandas.api.typing.DataFrameGroupBy.boxplot ES01" \
         -i "pandas.api.typing.SeriesGroupBy.hist ES01" \
-        -i "pandas.io.formats.style.Styler.set_uuid ES01" \
-        -i "pandas.io.formats.style.Styler.pipe ES01" \
-        -i "pandas.io.formats.style.Styler.highlight_null ES01" \
-        -i "pandas.io.formats.style.Styler.highlight_max ES01" \
-        -i "pandas.io.formats.style.Styler.highlight_min ES01" \
-        -i "pandas.io.formats.style.Styler.highlight_between ES01" \
-        -i "pandas.io.formats.style.Styler.highlight_quantile ES01" \
-        -i "pandas.io.formats.style.Styler.bar ES01" \
-        -i "pandas.io.formats.style.Styler.to_string ES01" \
         -i "pandas.api.extensions.register_dataframe_accessor ES01" \
         -i "pandas.api.extensions.register_series_accessor ES01" \
-        -i "pandas.api.extensions.register_index_accessor ES01" \
-        -i "pandas.DataFrame.round ES01" \
-        -i "pandas.DataFrame.value_counts ES01" \
-        -i "pandas.DataFrame.to_markdown ES01" # no backslash in the last line
+        -i "pandas.api.extensions.register_index_accessor ES01" # no backslash in the last line
 
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
