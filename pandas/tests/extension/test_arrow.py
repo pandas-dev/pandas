@@ -3378,6 +3378,28 @@ def test_groupby_count_return_arrow_dtype(data_missing):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("op_name", ["var", "std", "sem", "mean"])
+@pytest.mark.parametrize("dtype", ["int64[pyarrow]", "float64[pyarrow]"])
+def test_groupby_cython_agg_pyarrow_dtype_retention(op_name, dtype):
+    # GH#54627
+    arr = pd.array([1, 2, 3, 4], dtype=dtype)
+    df = pd.DataFrame({"key": ["a", "a", "b", "b"], "col": arr})
+    grouped = df.groupby("key")
+    expected_dtype = ArrowDtype(pa.float64())
+
+    result = getattr(grouped, op_name)()
+    assert result["col"].dtype == expected_dtype
+
+    result = grouped.aggregate(op_name)
+    assert result["col"].dtype == expected_dtype
+
+    result = getattr(grouped["col"], op_name)()
+    assert result.dtype == expected_dtype
+
+    result = grouped["col"].aggregate(op_name)
+    assert result.dtype == expected_dtype
+
+
 def test_fixed_size_list():
     # GH#55000
     ser = pd.Series(
