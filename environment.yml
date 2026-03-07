@@ -97,7 +97,6 @@ dependencies:
   - types-PyMySQL
   - types-pytz
   - types-PyYAML
-  - types-setuptools
 
   # documentation (jupyter notebooks)
   - nbconvert>=7.11.0

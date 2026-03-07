@@ -631,6 +631,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Return the dtype object of the underlying data.
 
+        This is the dtype of the array backing the Series (or the single dtype
+        for a DataFrame column). For extension types, it returns the
+        corresponding extension dtype.
+
         See Also
         --------
         Series.dtypes : Return the dtype object of the underlying data.
@@ -650,6 +654,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def dtypes(self) -> DtypeObj:
         """
         Return the dtype object of the underlying data.
+
+        Unlike ``DataFrame.dtypes``, which returns a Series of dtypes for each
+        column, ``Series.dtypes`` returns a single dtype object representing
+        the type of all elements in the Series.
 
         See Also
         --------
@@ -1542,6 +1550,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Render a string representation of the Series.
 
+        Produces a human-readable text format of the Series, including
+        optional display of the index, data types, name, and length.
+        The output can be written to a buffer or returned as a string.
+
         Parameters
         ----------
         buf : StringIO-like, optional
@@ -1663,6 +1675,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Print Series in Markdown-friendly format.
 
+        Converts the Series to a Markdown table representation using the
+        `tabulate <https://pypi.org/project/tabulate>`_ package. The output
+        can be written to a buffer or returned as a string.
+
         Parameters
         ----------
         buf : str, Path or StringIO-like, optional, default None
@@ -1768,6 +1784,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Return alias for index.
 
+        This method provides dictionary-like compatibility by returning the
+        index of the Series, analogous to the keys of a dictionary.
+
         Returns
         -------
         Index
@@ -1802,6 +1821,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> MutableMappingT:
         """
         Convert Series to {label -> value} dict or dict-like object.
+
+        The resulting dict-like object maps each index label to its
+        corresponding value. A custom ``MutableMapping`` subclass can
+        be specified via the ``into`` parameter.
 
         Parameters
         ----------
@@ -1847,6 +1870,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def to_frame(self, name: Hashable = lib.no_default) -> DataFrame:
         """
         Convert Series to DataFrame.
+
+        The resulting DataFrame contains a single column. The name of the
+        column can be set using the ``name`` parameter; otherwise it
+        defaults to the Series' name.
 
         Parameters
         ----------
@@ -2212,6 +2239,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Return number of non-NA/null observations in the Series.
 
+        This method counts the number of elements that are not missing
+        (i.e., not NaN or None) in the Series.
+
         Returns
         -------
         int
@@ -2394,6 +2424,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> Series | None:
         """
         Return Series with duplicate values removed.
+
+        This method identifies and removes duplicate values from the Series,
+        keeping the first, last, or none of the duplicate occurrences based
+        on the ``keep`` parameter.
 
         Parameters
         ----------
@@ -2688,6 +2722,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Round each value in a Series to the given number of decimals.
 
+        This method returns a new Series with each element rounded to the
+        specified number of decimal places using the round-half-to-even
+        strategy.
+
         Parameters
         ----------
         decimals : int, default 0
@@ -2768,6 +2806,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> float | Series:
         """
         Return value at the given quantile.
+
+        This method computes the value below which a given fraction of the
+        data falls. When multiple quantiles are requested, a Series indexed
+        by the quantile values is returned.
 
         Parameters
         ----------
@@ -3100,7 +3142,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         >>> s.autocorr()
         nan
         """
-        return self.corr(cast(Series, self.shift(lag)))
+        return self.corr(cast("Series", self.shift(lag)))
 
     def dot(self, other: AnyArrayLike | DataFrame) -> Series | np.ndarray:
         """
@@ -3308,12 +3350,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Compare to another Series and show the differences.
 
+        This method aligns two Series and highlights only the values that
+        differ between them. Equal values are shown as NaN by default.
+
         Parameters
         ----------
         other : Series
             Object to compare with.
 
-        align_axis : {{0 or 'index', 1 or 'columns'}}, default 1
+        align_axis : {0 or 'index', 1 or 'columns'}, default 1
             Determine which axis to align the comparison on.
 
             * 0, or 'index' : Resulting differences are stacked vertically
@@ -3860,7 +3905,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         More complicated user-defined functions can be used,
         as long as they expect a Series and return an array-like
 
-        >>> s.sort_values(key=lambda x: (np.tan(x.cumsum())))
+        >>> s.sort_values(key=lambda x: np.tan(x.cumsum()))
         0   -4
         3    2
         4    4
@@ -3873,7 +3918,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         self._get_axis_number(axis)
 
         if is_list_like(ascending):
-            ascending = cast(Sequence[bool], ascending)
+            ascending = cast("Sequence[bool]", ascending)
             if len(ascending) != 1:
                 raise ValueError(
                     f"Length of ascending ({len(ascending)}) must be 1 for Series"
@@ -3887,7 +3932,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         # GH 35922. Make sorting stable by leveraging nargsort
         if key:
-            values_to_sort = cast(Series, ensure_key_mapped(self, key))._values
+            values_to_sort = cast("Series", ensure_key_mapped(self, key))._values
         else:
             values_to_sort = self._values
         sorted_index = nargsort(values_to_sort, kind, bool(ascending), na_position)
@@ -4160,6 +4205,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Return the largest `n` elements.
 
+        This method is optimized for performance compared to sorting the
+        entire Series when only a few of the top values are needed.
+
         Parameters
         ----------
         n : int, default 5
@@ -4266,6 +4314,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> Series:
         """
         Return the smallest `n` elements.
+
+        This method is optimized for performance compared to sorting the
+        entire Series when only a few of the bottom values are needed.
 
         Parameters
         ----------
@@ -4517,6 +4568,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Transform each element of a list-like to a row.
 
+        This method expands list-like elements so that each item in the list
+        gets its own row, while non-list-like elements remain unchanged.
+        The index is duplicated for the expanded rows.
+
         Parameters
         ----------
         ignore_index : bool, default False
@@ -4589,6 +4644,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> DataFrame:
         """
         Unstack, also known as pivot, Series with MultiIndex to produce DataFrame.
+
+        This method pivots a level of the MultiIndex labels, reshaping the
+        Series into a DataFrame where the unstacked level becomes the columns.
 
         Parameters
         ----------
@@ -4834,6 +4892,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Aggregate using one or more operations over the specified axis.
 
+        This method applies one or more aggregation functions to the Series
+        and returns a scalar, Series, or DataFrame depending on the
+        function(s) provided.
+
         Parameters
         ----------
         func : function, str, list or dict
@@ -4923,6 +4985,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> DataFrame | Series:
         """
         Call ``func`` on self producing a Series with the same axis shape as self.
+
+        Unlike ``agg``, which can return a scalar or a smaller result,
+        ``transform`` must return a result that is the same size as the input.
+        This makes it suitable for element-wise operations.
 
         Parameters
         ----------
@@ -5430,7 +5496,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             apply to that axis' values.
         axis : {0 or 'index'}, default 0
             The axis to rename. For `Series` this parameter is unused and defaults to 0.
-        method : {{None, 'backfill'/'bfill', 'pad'/'ffill', 'nearest'}}
+        method : {None, 'backfill'/'bfill', 'pad'/'ffill', 'nearest'}
             Method to use for filling holes in reindexed DataFrame.
             Please note: this is only applicable to DataFrames/Series with a
             monotonically increasing/decreasing index.
@@ -5489,7 +5555,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ``DataFrame.reindex`` supports two calling conventions
 
         * ``(index=index_labels, columns=column_labels, ...)``
-        * ``(labels, axis={{'index', 'columns'}}, ...)``
+        * ``(labels, axis={'index', 'columns'}, ...)``
 
         We *highly* recommend using keyword arguments to clarify your
         intent.
@@ -5684,6 +5750,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> Self | None:
         """
         Set the name of the axis for the index.
+
+        This method sets or changes the name of the index (axis) of the
+        Series. It can accept a scalar, list-like, or function to rename
+        the axis.
 
         Parameters
         ----------
@@ -5898,6 +5968,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def pop(self, item: Hashable) -> Any:
         """
         Return item and drops from series. Raise KeyError if not found.
+
+        The Series is modified in place, and the value corresponding to the
+        given label is removed and returned.
 
         Parameters
         ----------
@@ -6789,6 +6862,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Convert Series from DatetimeIndex to PeriodIndex.
 
+        This method converts the DatetimeIndex of the Series into a
+        PeriodIndex with a specified frequency, which is useful when
+        period-based indexing is preferred over exact timestamps.
+
         Parameters
         ----------
         freq : str, default None
@@ -6994,7 +7071,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         name = ops.get_op_result_name(self, other)
 
         out = this._construct_result(result, name, other)
-        return cast(Series, out)
+        return cast("Series", out)
 
     def _construct_result(
         self,
@@ -7050,6 +7127,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         elif (isinstance(other, np.ndarray) and other.ndim > 0) or isinstance(
             other, (list, tuple, ExtensionArray)
         ):
+            if isinstance(other, tuple):
+                op_name = op.__name__.strip("_")
+                warnings.warn(
+                    f"Series.{op_name} with a tuple is deprecated and will be "
+                    "treated as scalar-like in a future version. "
+                    "Explicitly wrap in a numpy array instead.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
             if len(other) != len(self):
                 raise ValueError("Lengths must be equal")
             other = self._constructor(other, self.index, copy=False)
@@ -9156,6 +9242,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Return the mean of the values over the requested axis.
 
+        This method computes the arithmetic mean of the Series values,
+        optionally skipping missing values.
+
         Parameters
         ----------
         axis : {index (0)}
@@ -9211,6 +9300,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> Any:
         """
         Return the median of the values over the requested axis.
+
+        This method computes the median (middle value) of the Series values,
+        optionally skipping missing values.
 
         Parameters
         ----------

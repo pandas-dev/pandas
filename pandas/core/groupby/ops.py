@@ -103,6 +103,13 @@ def extract_result(res, warn: bool):
         # Preserve EA
         values = res._values
         if values.ndim == 1 and len(values) == 1:
+            warnings.warn(
+                "Converting a Series or array of length 1 into a scalar is "
+                "deprecated and will be removed in a future version. If you wish "
+                "to preserve the current behavior, have ``func`` return scalars.",
+                category=Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
             # see test_agg_lambda_with_timezone, test_resampler_grouper.py::test_apply
             if warn:
                 warnings.warn(

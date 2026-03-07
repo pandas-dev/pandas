@@ -269,6 +269,9 @@ class TestPeriodIndex:
         tm.assert_index_equal(result, idx)
         assert result.freq == "ME"
 
+    def test_constructor_fromarraylike_freq_data_mismatch_converts2(self):
+        idx = period_range("2007-01", periods=20, freq="M")
+
         result = PeriodIndex(idx, freq="2M")
         tm.assert_index_equal(result, idx.asfreq("2M"))
         assert result.freq == "2ME"
@@ -280,6 +283,19 @@ class TestPeriodIndex:
         result = PeriodIndex(idx, freq="D")
         exp = idx.asfreq("D", "e")
         tm.assert_index_equal(result, exp)
+
+        # Same for PeriodArray
+        result = PeriodArray._from_sequence(idx, dtype="period[2M]")
+        tm.assert_period_array_equal(result, idx.asfreq("2M").array)
+        assert result.freq == "2ME"
+
+        result = PeriodArray._from_sequence(idx, dtype=PeriodDtype(offsets.MonthEnd(2)))
+        tm.assert_period_array_equal(result, idx.asfreq("2M").array)
+        assert result.freq == "2ME"
+
+        result = PeriodArray._from_sequence(idx, dtype="period[D]")
+        exp = idx.asfreq("D", "e").array
+        tm.assert_period_array_equal(result, exp)
 
     def test_constructor_datetime64arr(self):
         vals = np.arange(100000, 100000 + 10000, 100, dtype=np.int64)
@@ -317,6 +333,7 @@ class TestPeriodIndex:
         tm.assert_index_equal(idx, exp)
         assert idx.dtype == "period[3D]"
 
+    def test_constructor_freq_data_mismatch_converts(self):
         # if we already have a freq and its not the same, then asfreq
         # (not changed)
         idx = PeriodIndex(["2013-01-01", "2013-01-02"], freq="D")
@@ -330,6 +347,11 @@ class TestPeriodIndex:
         tm.assert_index_equal(res, exp)
         assert res.dtype == "period[M]"
 
+        # Same thing with PeriodArray._from_sequence
+        res = PeriodArray._from_sequence(idx, dtype="period[M]")
+        tm.assert_period_array_equal(res, exp.array)
+
+    def test_constructor_mismatched_freq_vs_dtype(self):
         msg = "specified freq and dtype are different"
         with pytest.raises(IncompatibleFrequency, match=msg):
             PeriodIndex(["2011-01"], freq="M", dtype="period[D]")
@@ -422,9 +444,18 @@ class TestPeriodIndex:
 
     @pytest.mark.parametrize("floats", [[1.1, 2.1], np.array([1.1, 2.1])])
     def test_constructor_floats(self, floats):
-        msg = "PeriodIndex does not allow floating point in construction"
+        msg = "PeriodArray does not allow floating point in construction"
         with pytest.raises(TypeError, match=msg):
             PeriodIndex(floats)
+        with pytest.raises(TypeError, match=msg):
+            PeriodArray._from_sequence(floats)
+
+        # But if they are all-NaN we allow it
+
+        pi = PeriodIndex([np.nan], freq="D")
+        assert pi.isna().all()
+        parr = PeriodArray._from_sequence([np.nan], dtype="period[D]")
+        assert parr.isna().all()
 
     def test_constructor_year_and_quarter(self):
         year = Series([2001, 2002, 2003])

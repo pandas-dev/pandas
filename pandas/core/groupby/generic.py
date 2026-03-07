@@ -24,7 +24,6 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import Interval
 from pandas._libs.hashtable import duplicated
 from pandas.errors import (
     Pandas4Warning,
@@ -84,6 +83,7 @@ if TYPE_CHECKING:
         Sequence,
     )
 
+    from pandas._libs import Interval
     from pandas._typing import (
         ArrayLike,
         BlockManager,
@@ -1192,7 +1192,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
         if isinstance(lab.dtype, IntervalDtype):
             # TODO: should we do this inside II?
-            lab_interval = cast(Interval, lab)
+            lab_interval = cast("Interval", lab)
 
             sorter = np.lexsort((lab_interval.left, lab_interval.right, ids))
         else:
@@ -2265,9 +2265,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         elif relabeling:
             # this should be the only (non-raising) case with relabeling
             # used reordered index of columns
-            result = cast(DataFrame, result)
+            result = cast("DataFrame", result)
             result = result.iloc[:, order]
-            result = cast(DataFrame, result)
+            result = cast("DataFrame", result)
             # error: Incompatible types in assignment (expression has type
             # "Optional[List[str]]", variable has type
             # "Union[Union[Union[ExtensionArray, ndarray[Any, Any]],
@@ -2286,7 +2286,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 return self._aggregate_with_numba(
                     func, *args, engine_kwargs=engine_kwargs, **kwargs
                 )
-            # grouper specific aggregations
             result = self._python_agg_general(func, *args, **kwargs)
 
         if not self.as_index:

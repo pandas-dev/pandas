@@ -88,11 +88,16 @@ if TYPE_CHECKING:
         WriteBuffer,
     )
 
+# Error shown when a version number was parsed but is not supported.
+# Wording intentionally mentions “either not a valid Stata dataset or
+# an unsupported version” to avoid confusing users when input is not a
+#  real .dta.
 _version_error = (
-    "Version of given Stata file is {version}. pandas supports importing "
-    "versions 102, 103, 104, 105, 108, 110 (Stata 7), 111 (Stata 7SE),  "
-    "113 (Stata 8/9), 114 (Stata 10/11), 115 (Stata 12), 117 (Stata 13), "
-    "118 (Stata 14/15/16), and 119 (Stata 15/16, over 32,767 variables)."
+    "This is either not a valid Stata dataset or a Stata dataset from a "
+    "version pandas does not support (detected: {version}). pandas "
+    "supports importing versions 105, 108, 111 (Stata 7SE), 113 (Stata "
+    "8/9), 114 (Stata 10/11), 115 (Stata 12), 117 (Stata 13), 118 (Stata "
+    "14/15/16), and 119 (Stata 15/16, over 32,767 variables)."
 )
 
 
@@ -1443,7 +1448,7 @@ class StataReader(StataParser, abc.Iterator):
         dtypes = []  # Convert struct data types to numpy data type
         for i, typ in enumerate(self._typlist):
             if typ in self.NUMPY_TYPE_MAP:
-                typ = cast(str, typ)  # only strs in NUMPY_TYPE_MAP
+                typ = cast("str", typ)  # only strs in NUMPY_TYPE_MAP
                 dtypes.append((f"s{i}", f"{self._byteorder}{self.NUMPY_TYPE_MAP[typ]}"))
             else:
                 dtypes.append((f"s{i}", f"S{typ}"))
@@ -1803,13 +1808,13 @@ the string values returned are correct."""
                 if fmt not in self.OLD_VALID_RANGE:
                     continue
 
-                fmt = cast(str, fmt)  # only strs in OLD_VALID_RANGE
+                fmt = cast("str", fmt)  # only strs in OLD_VALID_RANGE
                 nmin, nmax = self.OLD_VALID_RANGE[fmt]
             else:
                 if fmt not in self.VALID_RANGE:
                     continue
 
-                fmt = cast(str, fmt)  # only strs in VALID_RANGE
+                fmt = cast("str", fmt)  # only strs in VALID_RANGE
                 nmin, nmax = self.VALID_RANGE[fmt]
             series = data.iloc[:, i]
 
@@ -2113,6 +2118,10 @@ def read_stata(
 ) -> DataFrame | StataReader:
     """
     Read Stata file into DataFrame.
+
+    This function reads ``.dta`` files produced by Stata, with support for
+    converting date variables, categorical data, and missing value
+    representations.
 
     Parameters
     ----------

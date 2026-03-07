@@ -210,8 +210,6 @@ def test_with_na_groups(any_real_numpy_dtype):
 
     tm.assert_series_equal(agged, expected, check_dtype=False)
 
-    # assert issubclass(agged.dtype.type, np.integer)
-
     # explicitly return a float from my function
     def f(x):
         return float(len(x))
@@ -1302,7 +1300,7 @@ class TestLambdaMangling:
 
     def test_unused_kwargs(self):
         # https://github.com/pandas-dev/pandas/issues/39169
-        # agg behavior should not change in the presence of usused args.
+        # agg behavior should not change in the presence of unused args.
         func = lambda data, **kwargs: np.sum(np.sum(data))
 
         df = DataFrame([[1, 2], [3, 4]])
@@ -1402,7 +1400,7 @@ class TestLambdaMangling:
 
     @pytest.mark.parametrize("use_kwargs", [True, False])
     def test_multiple_udf_with_args(self, use_kwargs):
-        # GH#26611
+        # https://github.com/pandas-dev/pandas/issues/26611
         def func(x, y):
             return x.sum() + y
 

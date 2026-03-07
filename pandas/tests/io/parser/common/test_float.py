@@ -60,17 +60,9 @@ def test_scientific_no_exponent(all_parsers_all_precisions):
         ("-50060e8007123400", -np.inf),
     ],
 )
-def test_large_exponent(request, all_parsers_all_precisions, value, expected_value):
+def test_large_exponent(all_parsers_all_precisions, value, expected_value):
     # GH#38753; GH#38794; GH#62740
     parser, precision = all_parsers_all_precisions
-
-    if (
-        parser.engine == "pyarrow"
-        and precision is None
-        and value[:2] not in ["0E", "-0"]
-    ):
-        reason = "https://github.com/apache/arrow/issues/49003"
-        request.applymarker(pytest.mark.xfail(reason=reason, raises=AssertionError))
 
     data = f"data\n{value}"
     result = parser.read_csv(StringIO(data), float_precision=precision)
@@ -103,6 +95,36 @@ def test_small_int_followed_by_float(
     expected = DataFrame({"data": [42.0, expected_value]})
 
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "90071992547409930.0",
+        "90071992547409931.0",
+        "90071992547409935.0",
+        "90071992547409938.0",
+    ],
+)
+def test_precise_xstrtod_large_mantissa(c_parser_only, value):
+    # GH#XXXXX
+    # When a 17-digit mantissa's 16-digit prefix crosses 2^53
+    # (= 9007199254740992), the old per-digit FP accumulation
+    #   number = number * 10. + digit
+    # introduced a rounding error at step 16 that shifted the final result
+    # by one ULP.  Specifically, the 16-digit prefix 9007199254740993
+    # (= 2^53 + 1) was not representable as a double and rounded down to
+    # 9007199254740992, causing subsequent arithmetic to produce a value
+    # ~10 units below the true mantissa.  With ULP = 16 near 9e16, this
+    # 10-unit error was enough to round to the wrong double.
+    #
+    # The fix accumulates mantissa digits in uint64_t and converts to
+    # double once, so there is at most one rounding instead of up to
+    # max_digits=17.
+    parser = c_parser_only
+    data = f"val\n{value}"
+    result = parser.read_csv(StringIO(data), float_precision="high")["val"][0]
+    assert result == float(value)
 
 
 @pytest.mark.parametrize(

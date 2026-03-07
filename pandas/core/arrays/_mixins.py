@@ -15,26 +15,13 @@ import numpy as np
 from pandas._libs import lib
 from pandas._libs.arrays import NDArrayBacked
 from pandas._libs.tslibs import is_supported_dtype
-from pandas._typing import (
-    ArrayLike,
-    AxisInt,
-    Dtype,
-    F,
-    FillnaOptions,
-    PositionalIndexer2D,
-    PositionalIndexerTuple,
-    ScalarIndexer,
-    SequenceIndexer,
-    Shape,
-    TakeIndexer,
-    npt,
-)
 from pandas.errors import AbstractMethodError
 from pandas.util._validators import (
     validate_bool_kwarg,
     validate_insert_loc,
 )
 
+from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
@@ -63,8 +50,20 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from pandas._typing import (
+        ArrayLike,
+        AxisInt,
+        Dtype,
+        F,
+        FillnaOptions,
         NumpySorter,
         NumpyValueArrayLike,
+        PositionalIndexer2D,
+        PositionalIndexerTuple,
+        ScalarIndexer,
+        SequenceIndexer,
+        Shape,
+        TakeIndexer,
+        npt,
     )
 
     from pandas import Series
@@ -87,7 +86,7 @@ def ravel_compat(meth: F) -> F:
         order = "F" if flags.f_contiguous else "C"
         return result.reshape(self.shape, order=order)
 
-    return cast(F, method)
+    return cast("F", method)
 
 
 class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
@@ -208,7 +207,8 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         )
 
     def _cast_pointwise_result(self, values: ArrayLike) -> ArrayLike:
-        values = np.asarray(values, dtype=object)
+        if not (isinstance(values, np.ndarray) and values.dtype == object):
+            values = construct_1d_object_array_from_listlike(values)  # type: ignore[arg-type]
         return lib.maybe_convert_objects(values, convert_non_numeric=True)
 
     # Signature of "argmin" incompatible with supertype "ExtensionArray"
