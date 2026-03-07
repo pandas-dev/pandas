@@ -40,6 +40,10 @@ from pandas._libs.tslibs.timedeltas import (
     truediv_object_array,
 )
 from pandas.compat.numpy import function as nv
+from pandas.errors import (
+    OutOfBoundsDatetime,
+    OutOfBoundsTimedelta,
+)
 from pandas.util._decorators import set_module
 from pandas.util._validators import validate_endpoints
 
@@ -1186,7 +1190,12 @@ def sequence_to_td64ns(
                 result[mask] = iNaT
                 return result, inferred_freq
 
-        data = cast_from_unit_vectorized(data, unit or "ns")
+        # If we have float32, cast to float64
+        data = data.astype(np.float64, copy=False)
+        try:
+            data = cast_from_unit_vectorized(data, unit or "ns")
+        except OutOfBoundsDatetime as err:
+            raise OutOfBoundsTimedelta(*err.args) from err
         data[mask] = iNaT
         data = data.view("m8[ns]")
         copy = False
