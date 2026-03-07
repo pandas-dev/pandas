@@ -74,6 +74,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DatetimeTZDtype.unit ES01" \
         -i "pandas.DatetimeTZDtype.tz ES01" \
         -i "pandas.IntervalDtype.subtype ES01" \
+        -i "pandas.api.extensions.ExtensionArray.count ES01" \
         -i "pandas.api.extensions.ExtensionArray.item ES01" \
         -i "pandas.read_html ES01" \
         -i "pandas.read_xml ES01" \
@@ -114,7 +115,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.PeriodIndex.year ES01" \
         -i "pandas.PeriodIndex.from_fields ES01" \
         -i "pandas.PeriodIndex.from_ordinals ES01" \
-        -i "pandas.Series.count ES01" \
         -i "pandas.api.typing.Window.mean ES01" \
         -i "pandas.api.typing.Window.sum ES01" \
         -i "pandas.api.typing.Window.var ES01" \
