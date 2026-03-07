@@ -74,7 +74,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.DatetimeTZDtype.unit ES01" \
         -i "pandas.DatetimeTZDtype.tz ES01" \
         -i "pandas.IntervalDtype.subtype ES01" \
-        -i "pandas.api.extensions.ExtensionArray.item ES01" \
         -i "pandas.read_html ES01" \
         -i "pandas.read_xml ES01" \
         -i "pandas.HDFStore.get ES01" \
@@ -203,10 +202,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.api.typing.SeriesGroupBy.sum ES01" \
         -i "pandas.api.typing.SeriesGroupBy.value_counts ES01" \
         -i "pandas.api.typing.DataFrameGroupBy.boxplot ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.hist ES01" \
-        -i "pandas.api.extensions.register_dataframe_accessor ES01" \
-        -i "pandas.api.extensions.register_series_accessor ES01" \
-        -i "pandas.api.extensions.register_index_accessor ES01" # no backslash in the last line
+        -i "pandas.api.typing.SeriesGroupBy.hist ES01" # no backslash in the last line
 
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
