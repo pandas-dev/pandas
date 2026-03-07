@@ -59,34 +59,42 @@ class TestGetIndexerNonUnique:
 
 
 class TestGetIndexer:
-    def test_get_indexer_above_size_cutoff_doesnt_populate_mapping(self, monkeypatch):
-        size_cutoff = 10
-        size = 100
-        vals = np.arange(size) * 2
+    MONKEYPATCH_SIZE_CUTOFF = 10
+    SAMPLE_INDEX_SIZE = 100
+
+    @pytest.mark.parametrize(
+        "target, expected",
+        [
+            ([0], np.array([0], dtype=np.intp)),
+            ([1], np.array([-1], dtype=np.intp)),
+        ],
+    )
+    def test_get_indexer_above_size_cutoff_doesnt_populate_mapping(
+        self, monkeypatch, target, expected
+    ):
+        vals = np.arange(self.SAMPLE_INDEX_SIZE) * 2
         with monkeypatch.context():
-            monkeypatch.setattr(libindex, "_SIZE_CUTOFF", size_cutoff)
+            monkeypatch.setattr(libindex, "_SIZE_CUTOFF", self.MONKEYPATCH_SIZE_CUTOFF)
             idx = Index(vals)
 
-            result = idx.get_indexer([0])
+            result = idx.get_indexer(target)
 
-        tm.assert_numpy_array_equal(
-            result, np.array([0], dtype=np.intp)
-        )
+        tm.assert_numpy_array_equal(result, expected)
         assert not idx._engine.is_mapping_populated
 
     def test_get_indexer_above_size_cutoff_populates_mapping_for_large_target(
         self, monkeypatch
     ):
-        size_cutoff = 10
-        size = 100
-        vals = np.arange(size) * 2
+        vals = np.arange(self.SAMPLE_INDEX_SIZE) * 2
         with monkeypatch.context():
-            monkeypatch.setattr(libindex, "_SIZE_CUTOFF", size_cutoff)
+            monkeypatch.setattr(libindex, "_SIZE_CUTOFF", self.MONKEYPATCH_SIZE_CUTOFF)
             idx = Index(vals)
 
             result = idx.get_indexer(vals + 1)
 
-        tm.assert_numpy_array_equal(result, np.full(size, -1, dtype=np.intp))
+        tm.assert_numpy_array_equal(
+            result, np.full(self.SAMPLE_INDEX_SIZE, -1, dtype=np.intp)
+        )
         assert idx._engine.is_mapping_populated
 
 

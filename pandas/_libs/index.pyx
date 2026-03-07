@@ -113,6 +113,9 @@ cdef _maybe_resize_array(ndarray values, Py_ssize_t loc, Py_ssize_t max_length):
 
 # Don't populate hash tables in monotonic indexes larger than this
 _SIZE_CUTOFF = 1_000_000
+# For hashtable-free get_indexer path, only use binary-search loop when
+# target size is relatively small compared to index size.
+_GET_INDEXER_TARGET_RATIO = 6
 
 
 cdef _unpack_bool_indexer(ndarray[uint8_t, ndim=1, cast=True] indexer, object val):
@@ -371,27 +374,26 @@ cdef class IndexEngine:
 
     def get_indexer(self, ndarray values) -> np.ndarray:
         cdef:
-            Py_ssize_t i, N = len(values), n
+            Py_ssize_t i, N = len(values), n, threshold
             object val
 
-        n = len(self.values)
-        if (
-            self.over_size_threshold
-            and self.is_monotonic_increasing
-            and self.is_unique
-            and N < (n / (6 * n.bit_length()))
-        ):
-            result = np.empty(N, dtype=np.intp)
+        if self.over_size_threshold and self.is_monotonic_increasing and self.is_unique:
+            n = len(self.values)
+            # bit_length() approximates log2(n), so threshold scales roughly with
+            # n / log2(n)
+            threshold = max(1, n // (_GET_INDEXER_TARGET_RATIO * n.bit_length()))
+            if N < threshold:
+                result = np.empty(N, dtype=np.intp)
 
-            for i in range(N):
-                val = values[i]
-                try:
-                    loc = self.get_loc(val)
-                except KeyError:
-                    loc = -1
-                result[i] = loc
+                for i in range(N):
+                    val = values[i]
+                    try:
+                        loc = self.get_loc(val)
+                    except KeyError:
+                        loc = -1
+                    result[i] = loc
 
-            return result
+                return result
 
         self._ensure_mapping_populated()
         return self.mapping.lookup(values)
