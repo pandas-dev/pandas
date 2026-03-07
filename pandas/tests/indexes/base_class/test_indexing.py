@@ -61,16 +61,33 @@ class TestGetIndexerNonUnique:
 class TestGetIndexer:
     def test_get_indexer_above_size_cutoff_doesnt_populate_mapping(self, monkeypatch):
         size_cutoff = 10
+        size = 100
+        vals = np.arange(size) * 2
         with monkeypatch.context():
             monkeypatch.setattr(libindex, "_SIZE_CUTOFF", size_cutoff)
-            idx = Index(np.arange(size_cutoff + 1))
+            idx = Index(vals)
 
-            result = idx.get_indexer([0, size_cutoff, -1])
+            result = idx.get_indexer([0])
 
         tm.assert_numpy_array_equal(
-            result, np.array([0, size_cutoff, -1], dtype=np.intp)
+            result, np.array([0], dtype=np.intp)
         )
         assert not idx._engine.is_mapping_populated
+
+    def test_get_indexer_above_size_cutoff_populates_mapping_for_large_target(
+        self, monkeypatch
+    ):
+        size_cutoff = 10
+        size = 100
+        vals = np.arange(size) * 2
+        with monkeypatch.context():
+            monkeypatch.setattr(libindex, "_SIZE_CUTOFF", size_cutoff)
+            idx = Index(vals)
+
+            result = idx.get_indexer(vals + 1)
+
+        tm.assert_numpy_array_equal(result, np.full(size, -1, dtype=np.intp))
+        assert idx._engine.is_mapping_populated
 
 
 class TestGetLoc:

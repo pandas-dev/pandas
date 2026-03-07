@@ -371,10 +371,16 @@ cdef class IndexEngine:
 
     def get_indexer(self, ndarray values) -> np.ndarray:
         cdef:
-            Py_ssize_t i, N = len(values)
+            Py_ssize_t i, N = len(values), n
             object val
 
-        if self.over_size_threshold and self.is_monotonic_increasing and self.is_unique:
+        n = len(self.values)
+        if (
+            self.over_size_threshold
+            and self.is_monotonic_increasing
+            and self.is_unique
+            and N < (n / (6 * n.bit_length()))
+        ):
             result = np.empty(N, dtype=np.intp)
 
             for i in range(N):
