@@ -13076,11 +13076,6 @@ class DataFrame(NDFrame, OpsMixin):
 
         Notes
         -----
-        Starting from pandas 3.0, ``stack`` uses the new implementation
-        by default. The parameters ``dropna``, ``sort``, and ``future_stack``
-        are deprecated. Specifying them will raise a ``Pandas4Warning`` and
-        they will be removed in a future version of pandas.
-
         The function is named by analogy with a collection of books being
         reorganized from lying side-by-side horizontally (the columns of the
         DataFrame) to being stacked vertically on top of each other (in the
@@ -13138,6 +13133,12 @@ class DataFrame(NDFrame, OpsMixin):
         >>> df_multi_level_cols2 = pd.DataFrame(
         ...     [[1.0, 2.0], [3.0, 4.0]], index=["cat", "dog"], columns=multicol2
         ... )
+
+        It is common to have missing values when stacking a dataframe
+        with multi-level columns, as the stacked dataframe typically
+        has more values than the original dataframe. Missing values
+        are filled with NaNs:
+
         >>> df_multi_level_cols2
             weight height
                 kg      m
