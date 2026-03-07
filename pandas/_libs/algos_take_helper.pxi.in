@@ -128,7 +128,7 @@ def take_2d_axis0_{{name}}_{{dest}}(ndarray[{{c_type_in}}, ndim=2] values,
         # GH#3130
         if (values.strides[1] == out.strides[1] and
             values.strides[1] == sizeof({{c_type_out}}) and
-            sizeof({{c_type_out}}) * n >= 256):
+            sizeof({{c_type_out}}) * k >= 256):
 
             for i in range(n):
                 idx = indexer[i]
@@ -138,7 +138,7 @@ def take_2d_axis0_{{name}}_{{dest}}(ndarray[{{c_type_in}}, ndim=2] values,
                 else:
                     v = &values[idx, 0]
                     o = &out[i, 0]
-                    memmove(o, v, <size_t>(sizeof({{c_type_out}}) * k))
+                    memcpy(o, v, <size_t>(sizeof({{c_type_out}}) * k))
         else:
             for i in range(n):
                 idx = indexer[i]
