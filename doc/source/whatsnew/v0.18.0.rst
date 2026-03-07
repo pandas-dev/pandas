@@ -818,8 +818,8 @@ Upsampling
 .. currentmodule:: pandas.tseries.resample
 
 Upsampling operations take you from a lower frequency to a higher frequency. These are now
-performed with the ``Resampler`` objects with :meth:`~pandas.core.resample.Resampler.bfill`,
-:meth:`~pandas.core.resample.Resampler.ffill`, ``fillna`` and :meth:`~pandas.core.resample.Resampler.asfreq` methods.
+performed with the ``Resampler`` objects with :meth:`~pandas.api.typing.Resampler.bfill`,
+:meth:`~pandas.api.typing.Resampler.ffill`, ``fillna`` and :meth:`~pandas.api.typing.Resampler.asfreq` methods.
 
 .. code-block:: ipython
 
