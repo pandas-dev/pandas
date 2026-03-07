@@ -433,7 +433,7 @@ doctest_optionflags = [
   "ELLIPSIS",
 ]
 filterwarnings = [
-  "error:::pandas",
+  "error",
   "error::ResourceWarning",
   "error::pytest.PytestUnraisableExceptionWarning",
   "error::pytest.PytestWarning",
