@@ -1627,7 +1627,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         if self.obj.ndim == 1:
             # i.e. SeriesGroupBy
-            out = algorithms.take_nd(result._values, ids)
+            out = algorithms.take_nd(
+                result._values, ids, allow_fill=self._grouper.has_dropped_na
+            )
             output = obj._constructor(out, index=obj.index, name=obj.name)
         else:
             # `.size()` gives Series output on DataFrame input, need axis 0
