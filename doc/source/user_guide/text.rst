@@ -99,9 +99,11 @@ Depending on the configuration and installed dependencies,
 string data may be stored using either a Python object-based
 implementation or a pyarrow-backed implementation.
 
-In general, the pyarrow-backed string storage is recommended
-for most users, as it provides better performance and a more
-compact memory representation.
+In general, a PyArrow-backed string storage can offer performance or memory
+benefits for certain workloads, particularly when working with large string
+arrays. However, the performance and memory characteristics depend on the data
+and operations being performed, and Python-backed string storage may be more
+efficient in some cases.
 
 **pyarrow-backed string storage**
 
