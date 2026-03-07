@@ -911,7 +911,7 @@ class ExtensionArray:
         else:
             return np.array(self, dtype=dtype, copy=copy)
 
-    def isna(self) -> np.ndarray | ExtensionArraySupportsAnyAll:
+    def isna(self) -> np.ndarray | ExtensionArrayNaResult:
         """
         A 1-D array indicating if each value is missing.
 
@@ -1432,8 +1432,8 @@ class ExtensionArray:
         [1, 2]
         Length: 2, dtype: Int64
         """
-        # error: Unsupported operand type for ~ ("ExtensionArray")
-        return self[~self.isna()]  # type: ignore[operator]
+        # isna can return an ExtensionArrayNaResult
+        return self[~self.isna()]  # type: ignore[index]
 
     def duplicated(
         self, keep: Literal["first", "last", False] = "first"
@@ -2921,7 +2921,7 @@ class ExtensionArray:
             raise NotImplementedError
 
 
-class ExtensionArraySupportsAnyAll(ExtensionArray):
+class ExtensionArrayNaResult(ExtensionArray):
     @overload
     def any(self, *, skipna: Literal[True] = ...) -> bool: ...
 
@@ -2938,6 +2938,19 @@ class ExtensionArraySupportsAnyAll(ExtensionArray):
     def all(self, *, skipna: bool) -> bool | NAType: ...
 
     def all(self, *, skipna: bool = True) -> bool | NAType:
+        raise AbstractMethodError(self)
+
+    def sum(
+        self,
+        *,
+        axis: AxisInt | None = None,
+        skipna: bool = True,
+        min_count: int = 0,
+        **kwargs,
+    ) -> np.int64:
+        raise AbstractMethodError(self)
+
+    def __invert__(self) -> Self:
         raise AbstractMethodError(self)
 
 

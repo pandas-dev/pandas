@@ -437,17 +437,14 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         """
         mask = self.isna()
         if limit is not None and limit < len(self):
-            # mypy doesn't like that mask can be an EA which need not have `cumsum`
-            modify = mask.cumsum() > limit  # type: ignore[union-attr]
+            modify = mask.cumsum() > limit
             if modify.any():
                 # Only copy mask if necessary
                 mask = mask.copy()
                 mask[modify] = False
-        # error: Argument 2 to "check_value_size" has incompatible type
-        # "ExtensionArray"; expected "ndarray"
         value = missing.check_value_size(
             value,
-            mask,  # type: ignore[arg-type]
+            mask,
             len(self),
         )
 
@@ -579,8 +576,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         )
 
         if dropna:
-            # error: Unsupported operand type for ~ ("ExtensionArray")
-            values = self[~self.isna()]._ndarray  # type: ignore[operator]
+            values = self[~self.isna()]._ndarray
         else:
             values = self._ndarray
 
