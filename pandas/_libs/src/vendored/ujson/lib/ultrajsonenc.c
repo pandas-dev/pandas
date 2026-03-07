@@ -73,22 +73,6 @@ The extra 2 bytes are for the quotes around the string
 */
 #define RESERVE_STRING(_len) (2 + ((_len) * 6))
 
-static const double g_pow10[] = {1,
-                                 10,
-                                 100,
-                                 1000,
-                                 10000,
-                                 100000,
-                                 1000000,
-                                 10000000,
-                                 100000000,
-                                 1000000000,
-                                 10000000000,
-                                 100000000000,
-                                 1000000000000,
-                                 10000000000000,
-                                 100000000000000,
-                                 1000000000000000};
 static const char g_hexChars[] = "0123456789abcdef";
 static const char g_escapeChars[] = "0123456789\\b\\t\\n\\f\\r\\\"\\\\\\/";
 
@@ -780,19 +764,9 @@ void Buffer_AppendLongUnchecked(JSONObjectEncoder *enc, JSINT64 value) {
 
 int Buffer_AppendDoubleUnchecked(JSOBJ obj, JSONObjectEncoder *enc,
                                  double value) {
-  /* if input is beyond the thresholds, revert to exponential */
-  const double thres_max = (double)1e16 - 1;
-  const double thres_min = (double)1e-15;
   char precision_str[20];
-  int count;
-  double diff = 0.0;
   char *str = enc->offset;
-  char *wstr = str;
-  unsigned long long whole;
-  double tmp;
-  unsigned long long frac;
   int neg;
-  double pow10;
 
   if (value == HUGE_VAL || value == -HUGE_VAL) {
     SetError(obj, enc, "Invalid Inf value when encoding double");
@@ -812,100 +786,21 @@ int Buffer_AppendDoubleUnchecked(JSOBJ obj, JSONObjectEncoder *enc,
     value = -value;
   }
 
-  /*
-  for very large or small numbers switch back to native sprintf for
-  exponentials.  anyone want to write code to replace this? */
-  if (value > thres_max || (value != 0.0 && fabs(value) < thres_min)) {
-    precision_str[0] = '%';
-    precision_str[1] = '.';
+  /* Always use sprintf, regardless of float size
+   * to preserve precision*/
+  precision_str[0] = '%';
+  precision_str[1] = '.';
 #if defined(_WIN32) && defined(_MSC_VER)
-    sprintf_s(precision_str + 2, sizeof(precision_str) - 2, "%ug",
-              enc->doublePrecision);
-    enc->offset += sprintf_s(str, enc->end - enc->offset, precision_str,
-                             neg ? -value : value);
+  sprintf_s(precision_str + 2, sizeof(precision_str) - 2, "%ue",
+            enc->doublePrecision);
+  enc->offset += sprintf_s(str, enc->end - enc->offset, precision_str,
+                           neg ? -value : value);
 #else
-    snprintf(precision_str + 2, sizeof(precision_str) - 2, "%ug",
-             enc->doublePrecision);
-    enc->offset += snprintf(str, enc->end - enc->offset, precision_str,
-                            neg ? -value : value);
+  snprintf(precision_str + 2, sizeof(precision_str) - 2, "%ue",
+           enc->doublePrecision);
+  enc->offset += snprintf(str, enc->end - enc->offset, precision_str,
+                          neg ? -value : value);
 #endif
-    return TRUE;
-  }
-
-  pow10 = g_pow10[enc->doublePrecision];
-
-  whole = (unsigned long long)value;
-  tmp = (value - whole) * pow10;
-  frac = (unsigned long long)(tmp);
-  diff = tmp - frac;
-
-  if (diff > 0.5) {
-    ++frac;
-  } else if (diff == 0.5 && ((frac == 0) || (frac & 1))) {
-    /* if halfway, round up if odd, OR
-    if last digit is 0.  That last part is strange */
-    ++frac;
-  }
-
-  // handle rollover, e.g.
-  // case 0.99 with prec 1 is 1.0 and case 0.95 with prec is 1.0 as well
-  if (frac >= pow10) {
-    frac = 0;
-    ++whole;
-  }
-
-  if (enc->doublePrecision == 0) {
-    diff = value - whole;
-
-    if (diff > 0.5) {
-      /* greater than 0.5, round up, e.g. 1.6 -> 2 */
-      ++whole;
-    } else if (diff == 0.5 && (whole & 1)) {
-      /* exactly 0.5 and ODD, then round up */
-      /* 1.5 -> 2, but 2.5 -> 2 */
-      ++whole;
-    }
-
-    // vvvvvvvvvvvvvvvvvvv  Diff from modp_dto2
-  } else if (frac) {
-    count = enc->doublePrecision;
-    // now do fractional part, as an unsigned number
-    // we know it is not 0 but we can have leading zeros, these
-    // should be removed
-    while (!(frac % 10)) {
-      --count;
-      frac /= 10;
-    }
-    //^^^^^^^^^^^^^^^^^^^  Diff from modp_dto2
-
-    // now do fractional part, as an unsigned number
-    do {
-      --count;
-      *wstr++ = (char)(48 + (frac % 10));
-    } while (frac /= 10);
-    // add extra 0s
-    while (count-- > 0) {
-      *wstr++ = '0';
-    }
-    // add decimal
-    *wstr++ = '.';
-  } else {
-    *wstr++ = '0';
-    *wstr++ = '.';
-  }
-
-  // Do whole part. Take care of sign
-  // conversion. Number is reversed.
-  do {
-    *wstr++ = (char)(48 + (whole % 10));
-  } while (whole /= 10);
-
-  if (neg) {
-    *wstr++ = '-';
-  }
-  strreverse(str, wstr - 1);
-  enc->offset += (wstr - (enc->offset));
-
   return TRUE;
 }
 
