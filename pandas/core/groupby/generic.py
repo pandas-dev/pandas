@@ -3521,6 +3521,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         """
         Compute pairwise correlation of columns, excluding NA/null values.
 
+        Computes a correlation matrix for each group, measuring the linear
+        or rank-based relationship between columns.
+
         Parameters
         ----------
         method : {'pearson', 'kendall', 'spearman'} or callable

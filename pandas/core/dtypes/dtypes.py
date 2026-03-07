@@ -639,6 +639,10 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         """
         An ``Index`` containing the unique categories allowed.
 
+        If no categories were explicitly provided at construction time, this
+        will be ``None`` until the ``CategoricalDtype`` is attached to actual
+        data.
+
         See Also
         --------
         ordered : Whether the categories have an ordered relationship.
@@ -655,6 +659,9 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     def ordered(self) -> Ordered:
         """
         Whether the categories have an ordered relationship.
+
+        When ``True``, comparison operations on the resulting Categorical
+        are valid and sort in the order of the categories.
 
         See Also
         --------

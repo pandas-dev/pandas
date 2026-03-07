@@ -1000,6 +1000,9 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return a view on self.
 
+        Since Index objects are one-dimensional, this simply returns a view
+        of the original Index unchanged.
+
         Parameters
         ----------
         order : {'K', 'A', 'C', 'F'}, default 'C'
@@ -2713,6 +2716,9 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Fill NA/NaN values with the specified value.
 
+        Returns a new Index with all NA/NaN entries replaced by the given
+        scalar value.
+
         Parameters
         ----------
         value : scalar
@@ -2749,6 +2755,9 @@ class Index(IndexOpsMixin, PandasObject):
     def dropna(self, how: AnyAll = "any") -> Self:
         """
         Return Index without NA/NaN values.
+
+        Removes missing values from the Index, returning a shorter Index
+        containing only non-NA entries.
 
         Parameters
         ----------
@@ -5498,6 +5507,9 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return a new Index of the values set with the mask.
 
+        Replaces elements of the Index where the corresponding mask entry is
+        ``True``, returning a new Index rather than modifying in place.
+
         Parameters
         ----------
         mask : array-like of bool
@@ -6511,6 +6523,9 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Map values using an input mapping or function.
 
+        Applies a function, dict, or Series to each element of the Index,
+        returning a new Index (or MultiIndex if tuples are returned).
+
         Parameters
         ----------
         mapper : function, dict, or Series
@@ -7210,6 +7225,9 @@ class Index(IndexOpsMixin, PandasObject):
     def infer_objects(self, copy: bool = True) -> Index:
         """
         If we have an object dtype, try to infer a non-object dtype.
+
+        For an Index with ``object`` dtype, this attempts to determine a
+        more specific dtype (e.g., ``int64`` or ``float64``) from the values.
 
         Parameters
         ----------
