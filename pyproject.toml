@@ -460,6 +460,8 @@ filterwarnings = [
   "ignore:Bitwise inversion:DeprecationWarning",
   "ignore:datetime.datetime.utcnow() is deprecated:DeprecationWarning:botocore",
   "ignore:Plugin file tracers (Cython.Coverage.Plugin) aren't supported with SysMonitor",
+  "ignore:make_block is deprecated and will be removed in a future version:Pandas4Warning:pyarrow",
+  "ignore:DatetimeTZBlock is deprecated and will be removed in a future version:Pandas4Warning:pyarrow",
 ]
 junit_family = "xunit2"
 markers = [
