@@ -164,6 +164,8 @@ def get_date_name_field(
         else:
             names = np.array(_get_locale_names("f_weekday", locale),
                              dtype=np.object_)
+        for i in range(len(names)):
+            names[i] = names[i].capitalize()
         for i in range(count):
             if dtindex[i] == NPY_NAT:
                 out[i] = np.nan
@@ -171,7 +173,7 @@ def get_date_name_field(
 
             pandas_datetime_to_datetimestruct(dtindex[i], reso, &dts)
             dow = dayofweek(dts.year, dts.month, dts.day)
-            out[i] = names[dow].capitalize()
+            out[i] = names[dow]
 
     elif field == "month_name":
         if locale is None:
@@ -179,13 +181,15 @@ def get_date_name_field(
         else:
             names = np.array(_get_locale_names("f_month", locale),
                              dtype=np.object_)
+        for i in range(len(names)):
+            names[i] = names[i].capitalize()
         for i in range(count):
             if dtindex[i] == NPY_NAT:
                 out[i] = np.nan
                 continue
 
             pandas_datetime_to_datetimestruct(dtindex[i], reso, &dts)
-            out[i] = names[dts.month].capitalize()
+            out[i] = names[dts.month]
 
     else:
         raise ValueError(f"Field {field} not supported")
@@ -274,52 +278,56 @@ def get_start_end_field(
 
     if field in ["is_month_start", "is_quarter_start", "is_year_start"]:
         if is_business:
-            for i in range(count):
-                if dtindex[i] == NPY_NAT:
-                    out[i] = 0
-                    continue
+            with nogil:
+                for i in range(count):
+                    if dtindex[i] == NPY_NAT:
+                        out[i] = 0
+                        continue
 
-                pandas_datetime_to_datetimestruct(dtindex[i], reso, &dts)
+                    pandas_datetime_to_datetimestruct(dtindex[i], reso, &dts)
 
-                if _is_on_month(dts.month, compare_month, modby) and (
-                        dts.day == get_firstbday(dts.year, dts.month)):
-                    out[i] = 1
+                    if _is_on_month(dts.month, compare_month, modby) and (
+                            dts.day == get_firstbday(dts.year, dts.month)):
+                        out[i] = 1
 
         else:
-            for i in range(count):
-                if dtindex[i] == NPY_NAT:
-                    out[i] = 0
-                    continue
+            with nogil:
+                for i in range(count):
+                    if dtindex[i] == NPY_NAT:
+                        out[i] = 0
+                        continue
 
-                pandas_datetime_to_datetimestruct(dtindex[i], reso, &dts)
+                    pandas_datetime_to_datetimestruct(dtindex[i], reso, &dts)
 
-                if _is_on_month(dts.month, compare_month, modby) and dts.day == 1:
-                    out[i] = 1
+                    if _is_on_month(dts.month, compare_month, modby) and dts.day == 1:
+                        out[i] = 1
 
     elif field in ["is_month_end", "is_quarter_end", "is_year_end"]:
         if is_business:
-            for i in range(count):
-                if dtindex[i] == NPY_NAT:
-                    out[i] = 0
-                    continue
+            with nogil:
+                for i in range(count):
+                    if dtindex[i] == NPY_NAT:
+                        out[i] = 0
+                        continue
 
-                pandas_datetime_to_datetimestruct(dtindex[i], reso, &dts)
+                    pandas_datetime_to_datetimestruct(dtindex[i], reso, &dts)
 
-                if _is_on_month(dts.month, compare_month, modby) and (
-                        dts.day == get_lastbday(dts.year, dts.month)):
-                    out[i] = 1
+                    if _is_on_month(dts.month, compare_month, modby) and (
+                            dts.day == get_lastbday(dts.year, dts.month)):
+                        out[i] = 1
 
         else:
-            for i in range(count):
-                if dtindex[i] == NPY_NAT:
-                    out[i] = 0
-                    continue
+            with nogil:
+                for i in range(count):
+                    if dtindex[i] == NPY_NAT:
+                        out[i] = 0
+                        continue
 
-                pandas_datetime_to_datetimestruct(dtindex[i], reso, &dts)
+                    pandas_datetime_to_datetimestruct(dtindex[i], reso, &dts)
 
-                if _is_on_month(dts.month, compare_month, modby) and (
-                        dts.day == get_days_in_month(dts.year, dts.month)):
-                    out[i] = 1
+                    if _is_on_month(dts.month, compare_month, modby) and (
+                            dts.day == get_days_in_month(dts.year, dts.month)):
+                        out[i] = 1
 
     else:
         raise ValueError(f"Field {field} not supported")
@@ -745,7 +753,7 @@ cdef ndarray[int64_t] _ceil_int64(const int64_t[:] values, int64_t unit):
     return result
 
 
-cdef ndarray[int64_t] _rounddown_int64(values, int64_t unit):
+cdef ndarray[int64_t] _rounddown_int64(const int64_t[:] values, int64_t unit):
     cdef:
         Py_ssize_t i, n = len(values)
         ndarray[int64_t] result = np.empty(n, dtype="i8")
@@ -792,7 +800,8 @@ cdef ndarray[int64_t] _round_nearest_int64(const int64_t[:] values, int64_t unit
             if value == NPY_NAT:
                 res = NPY_NAT
             else:
-                quotient, remainder = divmod(value, unit)
+                remainder = value % unit
+                quotient = value // unit
                 if remainder > half:
                     res = value + (unit - remainder)
                 elif remainder == half and quotient % 2:
