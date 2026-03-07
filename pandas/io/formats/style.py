@@ -2137,7 +2137,7 @@ class Styler(StylerRenderer):
         ----------
         func : function
             ``func`` should take a Series and return a string array of the same length.
-        axis : {{0, 1, "index", "columns"}}
+        axis : {0, 1, "index", "columns"}
             The headers over which to apply the function.
         level : int, str, list, optional
             If index is MultiIndex the level(s) over which to apply the function.
@@ -2214,7 +2214,7 @@ class Styler(StylerRenderer):
         ----------
         func : function
             ``func`` should take a scalar and return a string.
-        axis : {{0, 1, "index", "columns"}}
+        axis : {0, 1, "index", "columns"}
             The headers over which to apply the function.
         level : int, str, list, optional
             If index is MultiIndex the level(s) over which to apply the function.
@@ -3139,7 +3139,7 @@ class Styler(StylerRenderer):
             Compress the color range at the high end. This is a multiple of the data
             range to extend above the maximum; good values usually in [0, 1],
             defaults to 0.
-        axis : {{0, 1, "index", "columns", None}}, default 0
+        axis : {0, 1, "index", "columns", None}, default 0
             Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
             with ``axis=None``.
@@ -3296,7 +3296,7 @@ class Styler(StylerRenderer):
             Compress the color range at the high end. This is a multiple of the data
             range to extend above the maximum; good values usually in [0, 1],
             defaults to 0.
-        axis : {{0, 1, "index", "columns", None}}, default 0
+        axis : {0, 1, "index", "columns", None}, default 0
             Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
             with ``axis=None``.

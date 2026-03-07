@@ -1300,6 +1300,10 @@ class Window(BaseWindow):
         """
         Calculate the rolling weighted window sum.
 
+        The window type is determined by the ``win_type`` parameter specified
+        in :meth:`DataFrame.rolling` or :meth:`Series.rolling`. Additional
+        keyword arguments are passed to the SciPy window function.
+
         Parameters
         ----------
         numeric_only : bool, default False
@@ -1358,6 +1362,10 @@ class Window(BaseWindow):
         """
         Calculate the rolling weighted window mean.
 
+        The window type is determined by the ``win_type`` parameter specified
+        in :meth:`DataFrame.rolling` or :meth:`Series.rolling`. Additional
+        keyword arguments are passed to the SciPy window function.
+
         Parameters
         ----------
         numeric_only : bool, default False
@@ -1415,6 +1423,10 @@ class Window(BaseWindow):
         """
         Calculate the rolling weighted window variance.
 
+        The window type is determined by the ``win_type`` parameter specified
+        in :meth:`DataFrame.rolling` or :meth:`Series.rolling`. Additional
+        keyword arguments are passed to the SciPy window function.
+
         Parameters
         ----------
         ddof : int, default 1
@@ -1467,6 +1479,10 @@ class Window(BaseWindow):
     def std(self, ddof: int = 1, numeric_only: bool = False, **kwargs):
         """
         Calculate the rolling weighted window standard deviation.
+
+        The window type is determined by the ``win_type`` parameter specified
+        in :meth:`DataFrame.rolling` or :meth:`Series.rolling`. Additional
+        keyword arguments are passed to the SciPy window function.
 
         Parameters
         ----------
