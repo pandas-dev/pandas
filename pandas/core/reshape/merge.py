@@ -2277,7 +2277,7 @@ class _CrossMergeOperation(_MergeOperation):
                 f"{_right.columns.nlevels} on the right)"
             )
 
-    def _get_join_indexers(  # type: ignore[override]
+    def _get_join_indexers(
         self,
     ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
         n_left = len(self.left)
