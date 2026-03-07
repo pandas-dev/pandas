@@ -2940,7 +2940,6 @@ def test_groupby_dropna_with_nunique_unique():
     # GH#42016
     df = [[1, 1, 1, "A"], [1, None, 1, "A"], [1, None, 2, "A"], [1, None, 3, "A"]]
     df_dropna = DataFrame(df, columns=["a", "b", "c", "partner"])
-
     result = df_dropna.groupby(["a", "b", "c"], dropna=False).agg(
         {"partner": ["nunique", "unique"]}
     )
