@@ -94,7 +94,7 @@ def check_result_array(obj, dtype) -> None:
             raise ValueError("Must produce aggregated value")
 
 
-def extract_result(res, warn: bool):
+def extract_result(res, is_resample: bool):
     """
     Extract the result object, it might be a 0-dim ndarray
     or a len-1 0-dim, or a scalar
@@ -111,16 +111,8 @@ def extract_result(res, warn: bool):
                 stacklevel=find_stack_level(),
             )
             # see test_agg_lambda_with_timezone, test_resampler_grouper.py::test_apply
-            if warn:
-                warnings.warn(
-                    "Converting a Series or array of length 1 into a scalar is "
-                    "deprecated and will be removed in a future version. If you wish "
-                    "to preserve the current behavior, have ``func`` return scalars.",
-                    category=Pandas4Warning,
-                    stacklevel=find_stack_level(),
-                )
             res = values[0]
-        elif not warn:
+        elif is_resample:
             res = values
     return res
 
@@ -1022,7 +1014,7 @@ class BaseGrouper:
 
         for i, group in enumerate(splitter):
             res = func(group)
-            res = extract_result(res, warn=not self._is_resample)
+            res = extract_result(res, is_resample=self._is_resample)
 
             if self._is_resample and not initialized:
                 # We only do this validation on the first iteration
