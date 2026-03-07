@@ -11,6 +11,7 @@ import pytest
 
 from pandas._libs import lib
 from pandas._libs.tslibs import IncompatibleFrequency
+from pandas.compat._optional import import_optional_dependency
 
 import pandas as pd
 from pandas import (
@@ -26,7 +27,7 @@ from pandas import (
 import pandas._testing as tm
 from pandas.core import ops
 from pandas.core.computation import expressions as expr
-from pandas.core.computation.check import NUMEXPR_INSTALLED
+from pandas.util.version import Version
 
 
 @pytest.fixture(autouse=True, params=[0, 1000000], ids=["numexpr", "python"])
@@ -353,9 +354,12 @@ class TestSeriesArithmetic:
 
     def test_add_list_to_masked_array_boolean(self, request):
         # GH#22962
+        ne = import_optional_dependency("numexpr", errors="ignore")
         warning = (
             UserWarning
-            if request.node.callspec.id == "numexpr" and NUMEXPR_INSTALLED
+            if request.node.callspec.id == "numexpr"
+            and ne
+            and Version(ne.__version__) < Version("2.13.1")
             else None
         )
         ser = Series([True, None, False], dtype="boolean")

@@ -12,6 +12,7 @@ import numpy as np
 import pytest
 
 from pandas.compat import HAS_PYARROW
+from pandas.compat._optional import import_optional_dependency
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -27,6 +28,7 @@ from pandas.tests.frame.common import (
     _check_mixed_float,
     _check_mixed_int,
 )
+from pandas.util.version import Version
 
 
 @pytest.fixture
@@ -1092,6 +1094,8 @@ class TestFrameArithmetic:
             (operator.mod, "complex128"),
         }
 
+        ne = import_optional_dependency("numexpr", errors="ignore")
+        ne_warns_on_op = ne is not None and Version(ne.__version__) < Version("2.13.1")
         if (op, dtype) in invalid:
             warn = None
             if (dtype == "<M8[ns]" and op == operator.add) or (
@@ -1120,7 +1124,11 @@ class TestFrameArithmetic:
 
         elif (op, dtype) in skip:
             if op in [operator.add, operator.mul]:
-                if expr.USE_NUMEXPR and switch_numexpr_min_elements == 0:
+                if (
+                    expr.USE_NUMEXPR
+                    and switch_numexpr_min_elements == 0
+                    and ne_warns_on_op
+                ):
                     # "evaluating in Python space because ..."
                     warn = UserWarning
                 else:
