@@ -114,6 +114,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.PeriodIndex.year ES01" \
         -i "pandas.PeriodIndex.from_fields ES01" \
         -i "pandas.PeriodIndex.from_ordinals ES01" \
+        -i "pandas.Series.count ES01" \
         -i "pandas.api.typing.Window.mean ES01" \
         -i "pandas.api.typing.Window.sum ES01" \
         -i "pandas.api.typing.Window.var ES01" \
