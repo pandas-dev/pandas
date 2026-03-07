@@ -1714,6 +1714,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         Return True if any value in the group is truthful, else False.
 
+        This is equivalent to calling ``bool`` on each value in the group and
+        returning ``True`` if at least one is truthful.
+
         Parameters
         ----------
         skipna : bool, default True
@@ -1773,6 +1776,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def all(self, skipna: bool = True) -> NDFrameT:
         """
         Return True if all values in the group are truthful, else False.
+
+        This is equivalent to calling ``bool`` on each value in the group and
+        returning ``True`` only if all are truthful.
 
         Parameters
         ----------
@@ -1834,6 +1840,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def count(self) -> NDFrameT:
         """
         Compute count of group, excluding missing values.
+
+        Returns the number of non-NA/null observations per group.
 
         Returns
         -------
@@ -4300,6 +4308,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         Backward fill the values.
 
+        Fill missing values within each group by propagating the next
+        valid observation backward.
+
         Parameters
         ----------
         limit : int, optional
@@ -5103,6 +5114,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     ) -> NDFrameT:
         """
         Cumulative min for each group.
+
+        Returns a same-sized object where each value is replaced by the
+        minimum of all preceding values in its group.
 
         Parameters
         ----------
