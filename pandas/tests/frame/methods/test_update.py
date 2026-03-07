@@ -256,6 +256,6 @@ class TestDataFrameUpdate:
         other["date"] = None
 
         other.update(df)
-        expected = DataFrame({"date": [pd.Timestamp("2026-02-05")]})
+        expected = DataFrame({"date": [pd.Timestamp("2026-02-05")]}, dtype=object)
 
-        tm.assert_frame_equal(other, expected, check_dtype=False)
+        tm.assert_frame_equal(other, expected)
