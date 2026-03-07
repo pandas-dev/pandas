@@ -622,6 +622,9 @@ class ExtensionArray:
         """
         Return the array element at the specified position as a Python scalar.
 
+        Analogous to :meth:`numpy.ndarray.item`, this converts a single
+        element to a native Python object.
+
         Parameters
         ----------
         index : int, optional

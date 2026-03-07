@@ -985,7 +985,7 @@ class ExcelWriter(Generic[_WorkbookT]):
     datetime_format : str, default None
         Format string for datetime objects written into Excel files.
         (e.g. 'YYYY-MM-DD HH:MM:SS').
-    mode : {{'w', 'a'}}, default 'w'
+    mode : {'w', 'a'}, default 'w'
         File mode to use (write or append). Append does not work with fsspec URLs.
     storage_options : dict, optional
         Extra options that make sense for a particular storage connection, e.g.
@@ -997,7 +997,7 @@ class ExcelWriter(Generic[_WorkbookT]):
         <https://pandas.pydata.org/docs/user_guide/io.html?
         highlight=storage_options#reading-writing-remote-files>`_.
 
-    if_sheet_exists : {{'error', 'new', 'replace', 'overlay'}}, default 'error'
+    if_sheet_exists : {'error', 'new', 'replace', 'overlay'}, default 'error'
         How to behave when trying to write to a sheet that already
         exists (append mode only).
 
@@ -1111,7 +1111,7 @@ class ExcelWriter(Generic[_WorkbookT]):
     >>> with pd.ExcelWriter(
     ...     "path_to_file.xlsx",
     ...     engine="xlsxwriter",
-    ...     engine_kwargs={{"options": {{"nan_inf_to_errors": True}}}},
+    ...     engine_kwargs={"options": {"nan_inf_to_errors": True}},
     ... ) as writer:
     ...     df.to_excel(writer)  # doctest: +SKIP
 
@@ -1122,7 +1122,7 @@ class ExcelWriter(Generic[_WorkbookT]):
     ...     "path_to_file.xlsx",
     ...     engine="openpyxl",
     ...     mode="a",
-    ...     engine_kwargs={{"keep_vba": True}},
+    ...     engine_kwargs={"keep_vba": True},
     ... ) as writer:
     ...     df.to_excel(writer, sheet_name="Sheet2")  # doctest: +SKIP
     """
@@ -1724,7 +1724,7 @@ class ExcelFile:
               each as a separate date column.
             * ``list`` of lists. e.g.  If [[1, 3]] -> combine columns 1 and 3 and
               parse as a single date column.
-            * ``dict``, e.g. {{'foo' : [1, 3]}} -> parse columns 1, 3 as date and call
+            * ``dict``, e.g. {'foo' : [1, 3]} -> parse columns 1, 3 as date and call
               result 'foo'
 
             If a column or index contains an unparsable date, the entire column or
@@ -1749,7 +1749,7 @@ class ExcelFile:
             comment string and the end of the current line is ignored.
         skipfooter : int, default 0
             Rows at the end to skip (0-indexed).
-        dtype_backend : {{'numpy_nullable', 'pyarrow'}}
+        dtype_backend : {'numpy_nullable', 'pyarrow'}
             Back-end data type applied to the resultant :class:`DataFrame`
             (still experimental). If not specified, the default behavior
             is to not use nullable data types. If specified, the behavior

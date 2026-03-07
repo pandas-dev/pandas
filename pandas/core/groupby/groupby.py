@@ -1714,6 +1714,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         Return True if any value in the group is truthful, else False.
 
+        This is equivalent to calling ``bool`` on each value in the group and
+        returning ``True`` if at least one is truthful.
+
         Parameters
         ----------
         skipna : bool, default True
@@ -1773,6 +1776,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def all(self, skipna: bool = True) -> NDFrameT:
         """
         Return True if all values in the group are truthful, else False.
+
+        This is equivalent to calling ``bool`` on each value in the group and
+        returning ``True`` only if all are truthful.
 
         Parameters
         ----------
@@ -1834,6 +1840,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def count(self) -> NDFrameT:
         """
         Compute count of group, excluding missing values.
+
+        Returns the number of non-NA/null observations per group.
 
         Returns
         -------
@@ -1968,7 +1976,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-              ``{{'nopython': True, 'nogil': False, 'parallel': False}}``
+              ``{'nopython': True, 'nogil': False, 'parallel': False}``
 
         Returns
         -------
@@ -2168,7 +2176,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-              ``{{'nopython': True, 'nogil': False, 'parallel': False}}``
+              ``{'nopython': True, 'nogil': False, 'parallel': False}``
 
         numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
@@ -2283,7 +2291,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-              ``{{'nopython': True, 'nogil': False, 'parallel': False}}``
+              ``{'nopython': True, 'nogil': False, 'parallel': False}``
 
         numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
@@ -4300,6 +4308,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         Backward fill the values.
 
+        Fill missing values within each group by propagating the next
+        valid observation backward.
+
         Parameters
         ----------
         limit : int, optional
@@ -5104,6 +5115,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         Cumulative min for each group.
 
+        Returns a same-sized object where each value is replaced by the
+        minimum of all preceding values in its group.
+
         Parameters
         ----------
         numeric_only : bool, default False
@@ -5810,8 +5824,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             )
             sampled_indices.append(grp_indices[grp_sample])
 
-        sampled_indices = np.concatenate(sampled_indices)
-        return self._selected_obj.take(sampled_indices, axis=0)
+        concatenated_sampled_indices = np.concatenate(sampled_indices)
+        return self._selected_obj.take(concatenated_sampled_indices, axis=0)
 
     def _idxmax_idxmin(
         self,
