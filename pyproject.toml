@@ -457,7 +457,9 @@ filterwarnings = [
   # https://github.com/PyTables/PyTables/issues/822
   "ignore:a closed node found in the registry:UserWarning:tables",
   "ignore:BuiltinImporter.module_repr() is deprecated and slated for removal in Python 3.12:DeprecationWarning",
-
+  "ignore:Bitwise inversion:DeprecationWarning",
+  "ignore:datetime.datetime.utcnow() is deprecated:DeprecationWarning:botocore",
+  "ignore:Plugin file tracers (Cython.Coverage.Plugin) aren't supported with SysMonitor",
 ]
 junit_family = "xunit2"
 markers = [
