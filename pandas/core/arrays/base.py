@@ -2436,7 +2436,7 @@ class ExtensionArray:
         Returns
         -------
         scalar
-            Number of non-null values in the Series.
+            Number of non-NA values in the Series.
 
         See Also
         --------
