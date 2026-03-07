@@ -93,7 +93,7 @@ def to_pickle(
     Examples
     --------
     >>> original_df = pd.DataFrame(
-    ...     {{"foo": range(5), "bar": range(5, 10)}}
+    ...     {"foo": range(5), "bar": range(5, 10)}
     ... )  # doctest: +SKIP
     >>> original_df  # doctest: +SKIP
        foo  bar
@@ -195,7 +195,7 @@ def read_pickle(
     Examples
     --------
     >>> original_df = pd.DataFrame(
-    ...     {{"foo": range(5), "bar": range(5, 10)}}
+    ...     {"foo": range(5), "bar": range(5, 10)}
     ... )  # doctest: +SKIP
     >>> original_df  # doctest: +SKIP
        foo  bar

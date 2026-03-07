@@ -465,7 +465,7 @@ def _unstack_multiple(
     # NOTE: This doesn't deal with hierarchical columns yet
 
     index = data.index
-    index = cast(MultiIndex, index)  # caller is responsible for checking
+    index = cast("MultiIndex", index)  # caller is responsible for checking
 
     # GH 19966 Make sure if MultiIndexed index has tuple name, they will be
     # recognised as a whole
@@ -839,7 +839,7 @@ def _stack_multi_columns(
         this = this.sort_index(level=level_to_sort, axis=1)
         mi_cols = this.columns
 
-    mi_cols = cast(MultiIndex, mi_cols)
+    mi_cols = cast("MultiIndex", mi_cols)
     new_columns = _stack_multi_column_index(mi_cols)
 
     # time to ravel the values

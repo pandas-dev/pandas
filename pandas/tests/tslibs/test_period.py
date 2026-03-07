@@ -5,6 +5,7 @@ from pandas._libs.tslibs import (
     iNaT,
     to_offset,
 )
+from pandas._libs.tslibs.dtypes import PeriodDtypeBase
 from pandas._libs.tslibs.period import (
     extract_ordinals,
     get_period_field_arr,
@@ -104,16 +105,18 @@ class TestExtractOrdinals:
         # with non-object, make sure we raise TypeError, not segfault
         arr = np.arange(5)
         freq = to_offset("D")
+        dtype = PeriodDtypeBase(freq._period_dtype_code, 1)
         with pytest.raises(TypeError, match="values must be object-dtype"):
-            extract_ordinals(arr, freq)
+            extract_ordinals(arr, dtype)
 
     def test_extract_ordinals_2d(self):
         freq = to_offset("D")
+        dtype = PeriodDtypeBase(freq._period_dtype_code, 1)
         arr = np.empty(10, dtype=object)
         arr[:] = iNaT
 
-        res = extract_ordinals(arr, freq)
-        res2 = extract_ordinals(arr.reshape(5, 2), freq)
+        res = extract_ordinals(arr, dtype)
+        res2 = extract_ordinals(arr.reshape(5, 2), dtype)
         tm.assert_numpy_array_equal(res, res2.reshape(-1))
 
 
