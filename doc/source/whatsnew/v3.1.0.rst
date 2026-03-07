@@ -192,8 +192,6 @@ Groupby/resample/rolling
 - Bug in :meth:`.DataFrameGroupBy.agg` returning the underlying array when ``func`` returned a Series (:issue:`39169`)
 - Bug in :meth:`.DataFrameGroupBy.agg` when there are no groups, multiple keys, and ``group_keys=False`` (:issue:`51445`)
 - Bug in :meth:`.DataFrameGroupBy.agg` would operate on the group as a whole when ``args`` or ``kwargs`` are supplied for the provided ``func``; now this method only operates on each Series of the group (:issue:`39169`)
-- Bug in :meth:`.DataFrameGroupBy.agg` would raise if the provided ``func`` returned a non-object dtype NumPy array; this is now allowed (:issue:`63957`)
-
 
 Reshaping
 ^^^^^^^^^
