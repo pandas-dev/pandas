@@ -1199,6 +1199,15 @@ class TestFrameArithmetic:
         expected = DataFrame([[-1, 1], [-1, 1]], columns=midx)
         tm.assert_frame_equal(result, expected)
 
+    def test_div_axis_level_multiindex_columns(self):
+        x = DataFrame(
+            np.arange(30).reshape(5, 6),
+            columns=MultiIndex.from_product((list("XY"), list("ABC"))),
+        )
+        y = DataFrame(np.arange(15).reshape(5, 3), columns=list("ABC"))
+        result = x.div(y, axis=1, level=1)
+        assert result.notna().any().any()
+
 
 def test_frame_with_zero_len_series_corner_cases():
     # GH#28600
