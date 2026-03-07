@@ -1150,6 +1150,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return self._simple_new(data, mask)
 
     def view(self, dtype: Dtype | None = None) -> Self:
+        if dtype is not None:
+            return super().view(dtype)
         result = self._simple_new(self._data[:], self._mask[:])
         result._readonly = self._readonly
         return result
