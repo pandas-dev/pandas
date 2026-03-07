@@ -131,6 +131,7 @@ class ExtensionArray:
     argsort
     astype
     copy
+    count
     dropna
     duplicated
     factorize
@@ -937,7 +938,8 @@ class ExtensionArray:
         * ``na_values._is_boolean`` should be True
         * ``na_values`` should implement :func:`ExtensionArray._reduce`
         * ``na_values`` should implement :func:`ExtensionArray._accumulate`
-        * ``na_values.any`` and ``na_values.all`` should be implemented
+        * ``na_values.any``, ``na_values.all``, ``na_values.sum``, and
+          ``na_values.__invert__`` should be implemented
 
         Examples
         --------
