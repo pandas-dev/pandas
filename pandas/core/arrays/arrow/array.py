@@ -1348,6 +1348,9 @@ class ArrowExtensionArray(
         """
         return self._from_pyarrow_array(self._pa_array)
 
+    def count(self) -> int:
+        return len(self) - self._pa_array.null_count
+
     def dropna(self) -> Self:
         """
         Return ArrowExtensionArray without NA values.

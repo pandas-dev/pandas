@@ -2429,7 +2429,7 @@ class ExtensionArray:
 
         return result
 
-    def count(self) -> np.int64:
+    def count(self):
         """
         Count the number of non-NA values in the array.
 
@@ -2947,7 +2947,7 @@ class ExtensionArrayNaResult(ExtensionArray):
         skipna: bool = True,
         min_count: int = 0,
         **kwargs,
-    ) -> np.int64:
+    ):
         raise AbstractMethodError(self)
 
     def __invert__(self) -> Self:
