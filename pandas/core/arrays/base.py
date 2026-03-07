@@ -2428,6 +2428,24 @@ class ExtensionArray:
         return result
 
     def count(self) -> np.int64:
+        """
+        Count the number of non-NA values in the array.
+
+        Returns
+        -------
+        int
+            Number of non-null values in the Series.
+
+        See Also
+        --------
+        Series.count : Count the number of non-NA values in a Series.
+
+        Examples
+        --------
+        >>> s = pd.array([1, pd.NA, 3])
+        >>> s.count()
+        np.int64(2)
+        """
         return (~self.isna()).sum()
 
     # https://github.com/python/typeshed/issues/2148#issuecomment-520783318
