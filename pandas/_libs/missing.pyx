@@ -254,6 +254,9 @@ cpdef ndarray[uint8_t] isna_string(ndarray arr):
         if val is C_NA:
             # Dereference pointer (set value)
             (<uint8_t *>(cnp.PyArray_ITER_DATA(it2)))[0] = <uint8_t>1
+        elif util.is_nan(val):
+            # 'str' dtype with NaN as its sentinel
+            (<uint8_t *>(cnp.PyArray_ITER_DATA(it2)))[0] = <uint8_t>1
         elif not isinstance(val, str):
             # this should never be reached, but for safety
             # (and doesn't give much overhead)
