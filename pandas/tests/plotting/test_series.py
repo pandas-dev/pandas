@@ -694,6 +694,9 @@ class TestSeriesPlots:
         _check_has_errorbars(ax, xerr=1, yerr=0)
 
     @pytest.mark.slow
+    @pytest.mark.filterwarnings(
+        "ignore:invalid value encountered in dot:RuntimeWarning"
+    )
     @pytest.mark.parametrize(
         "yerr",
         [
