@@ -745,7 +745,7 @@ class TestiLocBaseIndependent:
     def test_setitem_ragged_list_of_lists_raises(self, indexer):
         # GH#64229
         df = DataFrame({"a": [0.0, 0.0], "b": [0, 0], "c": [0.0, 0.0]})
-        with pytest.raises(ValueError, match="inhomogeneous shape"):
+        with pytest.raises(ValueError, match="Must have equal len keys"):
             if indexer == "loc":
                 df.loc[:, ["a", "c"]] = [[1], [2, 3]]
             else:

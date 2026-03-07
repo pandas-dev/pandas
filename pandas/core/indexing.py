@@ -2569,26 +2569,20 @@ class _iLocIndexer(_LocationIndexer):
                 self._setitem_single_column(loc, value, pi)
 
     def _setitem_with_indexer_2d_value(self, indexer, value) -> None:
-        # We get here with 2D value, excluding DataFrame,
-        #  which goes through _setitem_with_indexer_frame_value
         pi = indexer[0]
-
         ilocs = self._ensure_iterable_column_indexer(indexer[1])
 
-        is_list = isinstance(value, list)
-        if is_list:
-            ncols = len(value[0])
-        else:
-            if not is_array_like(value):
-                value = np.asarray(value)
-            ncols = value.shape[1]
+        if not isinstance(value, list) and not is_array_like(value):
+            value = np.asarray(value)
 
+        ncols = len(value[0]) if isinstance(value, list) else value.shape[1]
         if len(ilocs) != ncols:
             raise ValueError(
                 "Must have equal len keys and value when setting with an ndarray"
             )
+
         for i, loc in enumerate(ilocs):
-            if is_list:
+            if isinstance(value, list):
                 value_col = [row[i] for row in value]
             else:
                 value_col = value[:, i]
@@ -3242,30 +3236,9 @@ class _iAtIndexer(_ScalarAccessIndexer):
 
 
 def _is_2d_value(value) -> bool:
-    """
-    Check if *value* is 2-dimensional without converting lists to an ndarray.
-
-    ``np.ndim`` tries the ``.ndim`` attribute first, but for objects that
-    lack it (e.g. plain lists) it falls back to ``np.asarray(a).ndim``,
-    which materialises an ndarray just to check dimensionality.  When the
-    caller subsequently extracts columns directly from the list (avoiding
-    array construction altogether), that conversion is pure overhead.
-
-    This helper short-circuits for homogeneous list-of-lists with a cheap
-    structural check (O(R) row-length scan, no array allocation) and
-    delegates to ``np.ndim`` for everything else.  Ragged lists
-    intentionally fall through so that ``np.ndim`` raises the standard
-    ``ValueError`` for inhomogeneous shapes.
-    """
-    if (
-        isinstance(value, list)
-        and len(value) > 0
-        and isinstance(value[0], (list, tuple))
-    ):
-        first_len = len(value[0])
-        if all(len(row) == first_len for row in value[1:]):
-            return True
-        # Ragged: fall through to np.ndim which raises ValueError
+    """Check if value is 2-dimensional, avoiding np.asarray for plain lists."""
+    if isinstance(value, list):
+        return len(value) > 0 and isinstance(value[0], (list, tuple))
     return np.ndim(value) == 2
 
 
