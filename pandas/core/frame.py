@@ -13077,7 +13077,7 @@ class DataFrame(NDFrame, OpsMixin):
         Notes
         -----
         The function is named by analogy with a collection of books being
-        reorganized from lying side-by-side horizontally (the columns of the
+        reorganized from being side-by-side horizontally (the columns of the
         DataFrame) to being stacked vertically on top of each other (in the
         index of the DataFrame).
 
