@@ -2416,7 +2416,9 @@ class ExtensionArray:
                 f"'{type(self).__name__}' with dtype {self.dtype} "
                 f"does not support operation '{name}'"
             )
-        result = meth(skipna=skipna, **kwargs)
+        if name != "count":
+            kwargs["skipna"] = skipna
+        result = meth(**kwargs)
         if keepdims:
             if name in ["min", "max"]:
                 result = self._from_sequence([result], dtype=self.dtype)
@@ -2424,6 +2426,9 @@ class ExtensionArray:
                 result = np.array([result])
 
         return result
+
+    def count(self) -> np.int64:
+        return (~self.isna()).sum()
 
     # https://github.com/python/typeshed/issues/2148#issuecomment-520783318
     # Incompatible types in assignment (expression has type "None", base class
