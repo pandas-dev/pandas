@@ -177,8 +177,15 @@ class TestUltraJSONTests:
             output = ujson.ujson_dumps(double_input, double_precision=double_precision)
             rounded_input = float(f"%.{double_precision}e" % double_input)
 
-            assert math.isclose(rounded_input, json.loads(output))
+            assert rounded_input == json.loads(output)
             assert math.isclose(rounded_input, ujson.ujson_loads(output))
+
+    def test_double_magnitude(self):
+        for i in range(-20, 20):
+            double_input = float(f"1.234567890123456e{i}")
+            output = ujson.ujson_dumps(double_input, double_precision=15)
+            assert double_input == json.loads(output)
+            assert math.isclose(double_input, ujson.ujson_loads(output))
 
     @pytest.mark.parametrize(
         "invalid_val",
