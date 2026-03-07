@@ -14,7 +14,7 @@ Highlights include:
 - :func:`merge_asof` for asof-style time-series joining, see :ref:`here <whatsnew_0190.enhancements.asof_merge>`
 - ``.rolling()`` is now time-series aware, see :ref:`here <whatsnew_0190.enhancements.rolling_ts>`
 - :func:`read_csv` now supports parsing ``Categorical`` data, see :ref:`here <whatsnew_0190.enhancements.read_csv_categorical>`
-- A function :func:`union_categorical` has been added for combining categoricals, see :ref:`here <whatsnew_0190.enhancements.union_categoricals>`
+- A function ``union_categorical`` has been added for combining categoricals, see :ref:`here <whatsnew_0190.enhancements.union_categoricals>`
 - ``PeriodIndex`` now has its own ``period`` dtype, and changed to be more consistent with other ``Index`` classes. See :ref:`here <whatsnew_0190.api.period>`
 - Sparse data structures gained enhanced support of ``int`` and ``bool`` dtypes, see :ref:`here <whatsnew_0190.sparse>`
 - Comparison operations with ``Series`` no longer ignores the index, see :ref:`here <whatsnew_0190.api.series_ops>` for an overview of the API changes.
@@ -284,7 +284,7 @@ Individual columns can be parsed as a ``Categorical`` using a dict specification
 Categorical concatenation
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-- A function :func:`union_categoricals` has been added for combining categoricals, see :ref:`Unioning Categoricals<categorical.union>` (:issue:`13361`, :issue:`13763`, :issue:`13846`, :issue:`14173`)
+- A function :func:`pandas.api.types.union_categoricals` has been added for combining categoricals, see :ref:`Unioning Categoricals<categorical.union>` (:issue:`13361`, :issue:`13763`, :issue:`13846`, :issue:`14173`)
 
   .. ipython:: python
 
@@ -401,8 +401,8 @@ For ``MultiIndex``, values are dropped if any level is missing by default. Speci
 Google BigQuery enhancements
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-- The :func:`read_gbq` method has gained the ``dialect`` argument to allow users to specify whether to use BigQuery's legacy SQL or BigQuery's standard SQL. See the `docs <https://pandas-gbq.readthedocs.io/en/latest/reading.html>`__ for more details (:issue:`13615`).
-- The :func:`~DataFrame.to_gbq` method now allows the DataFrame column order to differ from the destination table schema (:issue:`11359`).
+- The ``read_gbq`` method has gained the ``dialect`` argument to allow users to specify whether to use BigQuery's legacy SQL or BigQuery's standard SQL. See the `docs <https://pandas-gbq.readthedocs.io/en/latest/reading.html>`__ for more details (:issue:`13615`).
+- The ``to_gbq`` method now allows the DataFrame column order to differ from the destination table schema (:issue:`11359`).
 
 .. _whatsnew_0190.errstate:
 
@@ -482,7 +482,7 @@ The following are now part of this API:
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
-- ``Timestamp`` can now accept positional and keyword parameters similar to :func:`datetime.datetime` (:issue:`10758`, :issue:`11630`)
+- ``Timestamp`` can now accept positional and keyword parameters similar to :class:`python:datetime.datetime` (:issue:`10758`, :issue:`11630`)
 
   .. ipython:: python
 
@@ -1414,7 +1414,7 @@ Deprecations
 - ``Timestamp.offset`` property (and named arg in the constructor), has been deprecated in favor of ``freq`` (:issue:`12160`)
 - ``pd.tseries.util.pivot_annual`` is deprecated. Use ``pivot_table`` as alternative, an example is :ref:`here <cookbook.pivot>` (:issue:`736`)
 - ``pd.tseries.util.isleapyear`` has been deprecated and will be removed in a subsequent release. Datetime-likes now have a ``.is_leap_year`` property (:issue:`13727`)
-- ``Panel4D`` and ``PanelND`` constructors are deprecated and will be removed in a future version. The recommended way to represent these types of n-dimensional data are with the `xarray package <http://xarray.pydata.org/en/stable/>`__. pandas provides a :meth:`~Panel4D.to_xarray` method to automate this conversion (:issue:`13564`).
+- ``Panel4D`` and ``PanelND`` constructors are deprecated and will be removed in a future version. The recommended way to represent these types of n-dimensional data are with the `xarray package <http://xarray.pydata.org/en/stable/>`__. pandas provides a ``to_xarray`` method to automate this conversion (:issue:`13564`).
 - ``pandas.tseries.frequencies.get_standard_freq`` is deprecated. Use  ``pandas.tseries.frequencies.to_offset(freq).rule_code`` instead (:issue:`13874`)
 - ``pandas.tseries.frequencies.to_offset``'s ``freqstr`` keyword is deprecated in favor of ``freq`` (:issue:`13874`)
 - ``Categorical.from_array`` has been deprecated and will be removed in a future version (:issue:`13854`)

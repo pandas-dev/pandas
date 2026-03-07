@@ -250,7 +250,7 @@ You can use the multiplied freq in ``PeriodIndex`` and ``period_range``.
 Support for SAS XPORT files
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-:meth:`~pandas.io.read_sas` provides support for reading *SAS XPORT* format files. (:issue:`4052`).
+:func:`pandas.read_sas` provides support for reading *SAS XPORT* format files. (:issue:`4052`).
 
 .. code-block:: python
 
@@ -339,8 +339,8 @@ has been changed to make this keyword unnecessary - the change is shown below.
 
 Google BigQuery enhancements
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-- Added ability to automatically create a table/dataset using the :func:`pandas.io.gbq.to_gbq` function if the destination table/dataset does not exist. (:issue:`8325`, :issue:`11121`).
-- Added ability to replace an existing table and schema when calling the :func:`pandas.io.gbq.to_gbq` function via the ``if_exists`` argument. See the `docs <https://pandas-gbq.readthedocs.io/en/latest/writing.html>`__ for more details (:issue:`8325`).
+- Added ability to automatically create a table/dataset using the ``pandas.io.gbq.to_gbq`` function if the destination table/dataset does not exist. (:issue:`8325`, :issue:`11121`).
+- Added ability to replace an existing table and schema when calling the ``pandas.io.gbq.to_gbq`` function via the ``if_exists`` argument. See the `docs <https://pandas-gbq.readthedocs.io/en/latest/writing.html>`__ for more details (:issue:`8325`).
 - ``InvalidColumnOrder`` and ``InvalidPageToken`` in the gbq module will raise ``ValueError`` instead of ``IOError``.
 - The ``generate_bq_schema()`` function is now deprecated and will be removed in a future version (:issue:`11121`)
 - The gbq module will now support Python 3 (:issue:`11094`).

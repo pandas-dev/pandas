@@ -68,7 +68,7 @@ Enhancements
 
 - ``DatetimeIndex`` now supports conversion to strings with ``astype(str)`` (:issue:`10442`)
 - Support for ``compression`` (gzip/bz2) in :meth:`pandas.DataFrame.to_csv` (:issue:`7615`)
-- ``pd.read_*`` functions can now also accept :class:`python:pathlib.Path`, or :class:`py:py._path.local.LocalPath`
+- ``pd.read_*`` functions can now also accept :class:`python:pathlib.Path`, or ``py.path.local``
   objects for the ``filepath_or_buffer`` argument. (:issue:`11033`)
   - The ``DataFrame`` and ``Series`` functions ``.to_csv()``, ``.to_html()`` and ``.to_latex()`` can now handle paths beginning with tildes (e.g. ``~/Documents/``) (:issue:`11438`)
 - ``DataFrame`` now uses the fields of a ``namedtuple`` as columns, if columns are not supplied (:issue:`11181`)
@@ -109,7 +109,7 @@ Enhancements
 - Implement export of ``datetime64[ns, tz]`` dtypes with a fixed HDF5 store (:issue:`11411`)
 - Pretty printing sets (e.g. in DataFrame cells) now uses set literal syntax (``{x, y}``) instead of
   Legacy Python syntax (``set([x, y])``) (:issue:`11215`)
-- Improve the error message in :func:`pandas.io.gbq.to_gbq` when a streaming insert fails (:issue:`11285`)
+- Improve the error message in ``pandas.io.gbq.to_gbq`` when a streaming insert fails (:issue:`11285`)
   and when the DataFrame does not match the schema of the destination table (:issue:`11359`)
 
 .. _whatsnew_0171.api:
