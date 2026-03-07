@@ -1149,7 +1149,13 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         mask = self._mask.copy()
         return self._simple_new(data, mask)
 
-    def view(self, dtype: Dtype | None = None) -> Self:
+    @overload
+    def view(self) -> Self: ...
+
+    @overload
+    def view(self, dtype: Dtype | None = ...) -> ArrayLike: ...
+
+    def view(self, dtype: Dtype | None = None) -> ArrayLike:
         if dtype is not None:
             return super().view(dtype)
         result = self._simple_new(self._data[:], self._mask[:])
