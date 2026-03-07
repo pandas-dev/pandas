@@ -58,6 +58,21 @@ class TestGetIndexerNonUnique:
         tm.assert_numpy_array_equal(np.array([], dtype=np.intp), missing)
 
 
+class TestGetIndexer:
+    def test_get_indexer_above_size_cutoff_doesnt_populate_mapping(self, monkeypatch):
+        size_cutoff = 10
+        with monkeypatch.context():
+            monkeypatch.setattr(libindex, "_SIZE_CUTOFF", size_cutoff)
+            idx = Index(np.arange(size_cutoff + 1))
+
+            result = idx.get_indexer([0, size_cutoff, -1])
+
+        tm.assert_numpy_array_equal(
+            result, np.array([0, size_cutoff, -1], dtype=np.intp)
+        )
+        assert not idx._engine.is_mapping_populated
+
+
 class TestGetLoc:
     @pytest.mark.slow  # to_flat_index takes a while
     def test_get_loc_tuple_monotonic_above_size_cutoff(self, monkeypatch):
