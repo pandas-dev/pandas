@@ -367,7 +367,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     # ops, which raise
     __array_priority__ = 1000
     # tolist is not actually deprecated, just suppressed in the __dir__
-    _hidden_attrs = PandasObject._hidden_attrs | frozenset(["tolist"])
+    _hidden_attrs = PandasObject._hidden_attrs | frozenset(
+        ["tolist", "reshape", "swapaxes", "transpose"]
+    )
     _typ = "categorical"
 
     _dtype: CategoricalDtype
