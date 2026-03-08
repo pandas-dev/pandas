@@ -99,7 +99,7 @@ class TestUltraJSONTests:
         helper(html_encoded, encode_html_chars=True)
 
     @pytest.mark.parametrize(
-        "long_number", [-434296973418351, -12345678901234.5, -528656961.439938]
+        "long_number", [-4342969734183514, -12345678901234.56789012, -528656961.4399388]
     )
     def test_double_long_numbers(self, long_number):
         sut = {"a": long_number}
@@ -148,9 +148,9 @@ class TestUltraJSONTests:
 
     def test_encode_with_decimal(self):
         decimal_input = 1.0
-        output = ujson.ujson_dumps(decimal_input, double_precision=3)
+        output = ujson.ujson_dumps(decimal_input)
 
-        assert output == "1.000e+00"
+        assert output == "1.0"
 
     def test_encode_array_of_nested_arrays(self):
         nested_input = [[[[]]]] * 20
@@ -167,7 +167,7 @@ class TestUltraJSONTests:
         assert doubles_input == ujson.ujson_loads(output)
 
     def test_double_precision(self):
-        double_input = 30.01234567890123
+        double_input = 30.012345678901234
         output = ujson.ujson_dumps(double_input, double_precision=15)
 
         assert double_input == json.loads(output)
@@ -175,15 +175,17 @@ class TestUltraJSONTests:
 
         for double_precision in (3, 9):
             output = ujson.ujson_dumps(double_input, double_precision=double_precision)
-            rounded_input = float(f"%.{double_precision}e" % double_input)
+            rounded_input = round(double_input, double_precision)
 
             assert rounded_input == json.loads(output)
-            assert math.isclose(rounded_input, ujson.ujson_loads(output))
+            assert rounded_input == ujson.ujson_loads(output)
 
-    def test_double_magnitude(self):
-        for i in range(-20, 20):
+    def test_scientific_double_range(self):
+        for i in range(-100, 100):
             double_input = float(f"1.234567890123456e{i}")
-            output = ujson.ujson_dumps(double_input, double_precision=15)
+            output = ujson.ujson_dumps(
+                double_input, double_precision=15, force_scientific_notation=True
+            )
             assert double_input == json.loads(output)
             assert math.isclose(double_input, ujson.ujson_loads(output))
 

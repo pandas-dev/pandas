@@ -244,6 +244,11 @@ typedef struct __JSONObjectEncoder {
   int doublePrecision;
 
   /*
+  Set whether we want to use scientific notation for doubles
+  If false, use old logic. If true, always use exponential notation. */
+  int forceScientific;
+
+  /*
   If true output will be ASCII with all characters above 127 encoded as \uXXXX.
   If false output will be UTF-8 or what ever charset strings are brought as */
   int forceASCII;

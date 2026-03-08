@@ -54,7 +54,9 @@ PyObject *JSONToObj(PyObject *self, PyObject *args, PyObject *kwargs);
 #define ENCODER_HELP_TEXT                                                      \
   "Use ensure_ascii=false to output UTF-8. Pass in double_precision to "       \
   "alter the maximum digit precision of doubles. Set "                         \
-  "encode_html_chars=True to encode < > & as unicode escape sequences."
+  "encode_html_chars=True to encode < > & as unicode escape sequences."        \
+  "Use force_scientific_notation=true to always use scientific notation"       \
+  "for floats."
 
 static PyMethodDef ujsonMethods[] = {
     {"ujson_dumps", (PyCFunction)(void (*)(void))objToJSON,

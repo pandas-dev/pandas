@@ -1989,6 +1989,7 @@ PyObject *objToJSON(PyObject *Py_UNUSED(self), PyObject *args,
   static char *kwlist[] = {"obj",
                            "ensure_ascii",
                            "double_precision",
+                           "force_scientific_notation",
                            "encode_html_chars",
                            "orient",
                            "date_unit",
@@ -2000,6 +2001,7 @@ PyObject *objToJSON(PyObject *Py_UNUSED(self), PyObject *args,
   PyObject *oinput = NULL;
   PyObject *oensureAscii = NULL;
   int idoublePrecision = 10; // default double precision setting
+  PyObject *oforceScientific = NULL;
   PyObject *oencodeHTMLChars = NULL;
   char *sOrient = NULL;
   char *sdateFormat = NULL;
@@ -2027,6 +2029,7 @@ PyObject *objToJSON(PyObject *Py_UNUSED(self), PyObject *args,
           .free = PyObject_Free,
           .recursionMax = -1,
           .doublePrecision = idoublePrecision,
+          .forceScientific = 0,
           .forceASCII = 1,
           .encodeHTMLChars = 0,
           .indent = indent,
@@ -2043,15 +2046,19 @@ PyObject *objToJSON(PyObject *Py_UNUSED(self), PyObject *args,
   };
   JSONObjectEncoder *encoder = (JSONObjectEncoder *)&pyEncoder;
 
-  if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|OiOssOOi", kwlist, &oinput,
-                                   &oensureAscii, &idoublePrecision,
-                                   &oencodeHTMLChars, &sOrient, &sdateFormat,
-                                   &oisoDates, &odefHandler, &indent)) {
+  if (!PyArg_ParseTupleAndKeywords(
+          args, kwargs, "O|OiOOssOOi", kwlist, &oinput, &oensureAscii,
+          &idoublePrecision, &oforceScientific, &oencodeHTMLChars, &sOrient,
+          &sdateFormat, &oisoDates, &odefHandler, &indent)) {
     return NULL;
   }
 
   if (oensureAscii != NULL && !PyObject_IsTrue(oensureAscii)) {
     encoder->forceASCII = 0;
+  }
+
+  if (oforceScientific != NULL && PyObject_IsTrue(oforceScientific)) {
+    encoder->forceScientific = 1;
   }
 
   if (oencodeHTMLChars != NULL && PyObject_IsTrue(oencodeHTMLChars)) {

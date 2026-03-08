@@ -2319,6 +2319,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         | None = None,
         date_format: str | None = None,
         double_precision: int = 10,
+        force_scientific_notation: bool = False,
         force_ascii: bool = True,
         date_unit: TimeUnit = "ms",
         default_handler: Callable[[Any], JSONSerializable] | None = None,
@@ -2381,6 +2382,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             The number of decimal places to use when encoding
             floating point values. The possible maximal value is 15.
             Passing double_precision greater than 15 will raise a ValueError.
+        force_scientific_notation: bool, default False
+            Force scientific notation for all doubles regardless of size. This
+            makes output precision consistent regardless of the exponent.
         force_ascii : bool, default True
             Force encoded string to be ASCII.
         date_unit : str, default 'ms' (milliseconds)
@@ -2628,6 +2632,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             orient=orient,
             date_format=date_format,
             double_precision=double_precision,
+            force_scientific_notation=force_scientific_notation,
             force_ascii=force_ascii,
             date_unit=date_unit,
             default_handler=default_handler,

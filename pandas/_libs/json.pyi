@@ -7,6 +7,7 @@ def ujson_dumps(
     obj: Any,
     ensure_ascii: bool = ...,
     double_precision: int = ...,
+    force_scientific_notation: bool = ...,
     indent: int = ...,
     orient: str = ...,
     date_unit: str = ...,

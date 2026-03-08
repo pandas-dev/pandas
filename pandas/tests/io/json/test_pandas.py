@@ -425,13 +425,12 @@ class TestPandasContainer:
     @pytest.mark.parametrize(
         "value,precision,expected_val",
         [
-            (0.95, 1, "9.5e-01"),
-            (0.9951, 1, "1.0e+00"),
-            (1.96, 1, "2.0e+00"),
-            (-1.96, 1, "-2.0e+00"),
-            (0.9996, 2, "1.00e+00"),
-            (0.99996, 3, "1.000e+00"),
-            (0.999999999999999644, 14, "1.00000000000000e+00"),
+            (0.95, 1, 1.0),
+            (1.95, 1, 2.0),
+            (-1.95, 1, -2.0),
+            (0.995, 2, 1.0),
+            (0.9995, 3, 1.0),
+            (0.99999999999999944, 15, 1.0),
         ],
     )
     def test_frame_to_json_float_precision(self, value, precision, expected_val):
@@ -1312,13 +1311,10 @@ class TestPandasContainer:
         ]
         expected = (
             '[9,[[1,null],["STR",null],[[["mathjs","Complex"],'
-            '["re",4.000e+00],["im",-5.000e+00]],"N\\/A"]]]'
+            '["re",4.0],["im",-5.0]],"N\\/A"]]]'
         )
         assert (
-            ujson_dumps(
-                df_list, default_handler=default, double_precision=3, orient="values"
-            )
-            == expected
+            ujson_dumps(df_list, default_handler=default, orient="values") == expected
         )
 
     def test_default_handler_numpy_unsupported_dtype(self):
@@ -2162,37 +2158,37 @@ class TestPandasContainer:
         [
             (
                 Series({0: -6 + 8j, 1: 0 + 1j, 2: 9 - 5j}),
-                '{"0":{"imag":8.00e+00,"real":-6.00e+00},'
-                '"1":{"imag":1.00e+00,"real":0.00e+00},'
-                '"2":{"imag":-5.00e+00,"real":9.00e+00}}',
+                '{"0":{"imag":8.0,"real":-6.0},'
+                '"1":{"imag":1.0,"real":0.0},'
+                '"2":{"imag":-5.0,"real":9.0}}',
             ),
             (
                 Series({0: -9.39 + 0.66j, 1: 3.95 + 9.32j, 2: 4.03 - 0.17j}),
-                '{"0":{"imag":6.60e-01,"real":-9.39e+00},'
-                '"1":{"imag":9.32e+00,"real":3.95e+00},'
-                '"2":{"imag":-1.70e-01,"real":4.03e+00}}',
+                '{"0":{"imag":0.66,"real":-9.39},'
+                '"1":{"imag":9.32,"real":3.95},'
+                '"2":{"imag":-0.17,"real":4.03}}',
             ),
             (
                 DataFrame([[-2 + 3j, -1 - 0j], [4 - 3j, -0 - 10j]]),
-                '{"0":{"0":{"imag":3.00e+00,"real":-2.00e+00},'
-                '"1":{"imag":-3.00e+00,"real":4.00e+00}},'
-                '"1":{"0":{"imag":0.00e+00,"real":-1.00e+00},'
-                '"1":{"imag":-1.00e+01,"real":0.00e+00}}}',
+                '{"0":{"0":{"imag":3.0,"real":-2.0},'
+                '"1":{"imag":-3.0,"real":4.0}},'
+                '"1":{"0":{"imag":0.0,"real":-1.0},'
+                '"1":{"imag":-10.0,"real":0.0}}}',
             ),
             (
                 DataFrame(
                     [[-0.28 + 0.34j, -1.08 - 0.39j], [0.41 - 0.34j, -0.78 - 1.35j]]
                 ),
-                '{"0":{"0":{"imag":3.40e-01,"real":-2.80e-01},'
-                '"1":{"imag":-3.40e-01,"real":4.10e-01}},'
-                '"1":{"0":{"imag":-3.90e-01,"real":-1.08e+00},'
-                '"1":{"imag":-1.35e+00,"real":-7.80e-01}}}',
+                '{"0":{"0":{"imag":0.34,"real":-0.28},'
+                '"1":{"imag":-0.34,"real":0.41}},'
+                '"1":{"0":{"imag":-0.39,"real":-1.08},'
+                '"1":{"imag":-1.35,"real":-0.78}}}',
             ),
         ],
     )
     def test_complex_data_tojson(self, data, expected):
         # GH41174
-        result = data.to_json(double_precision=2)
+        result = data.to_json()
         assert result == expected
 
     def test_json_uint64(self):
