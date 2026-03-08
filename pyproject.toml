@@ -459,7 +459,7 @@ filterwarnings = [
   "ignore:BuiltinImporter.module_repr() is deprecated and slated for removal in Python 3.12:DeprecationWarning",
   "ignore:Bitwise inversion:DeprecationWarning",
   "ignore:datetime.datetime.utcnow() is deprecated:DeprecationWarning:botocore",
-  "ignore:Plugin file tracers (Cython.Coverage.Plugin) aren't supported with SysMonitor",
+  "ignore:Plugin file tracers:coverage.exceptions.CoverageWarning",
   "ignore:make_block is deprecated and will be removed in a future version:pandas.errors.Pandas4Warning:pyarrow",
   "ignore:DatetimeTZBlock is deprecated and will be removed in a future version:pandas.errors.Pandas4Warning:pyarrow",
 ]
