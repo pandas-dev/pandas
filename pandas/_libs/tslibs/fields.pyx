@@ -97,9 +97,12 @@ def build_field_sarray(const int64_t[:] dtindex, NPY_DATETIMEUNIT reso):
     return out
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def month_position_check(fields, weekdays) -> str | None:
     cdef:
-        int32_t daysinmonth, y, m, d
+        Py_ssize_t i, count
+        int32_t daysinmonth, y, m, d, wd
         bint calendar_end = True
         bint business_end = True
         bint calendar_start = True
@@ -108,8 +111,16 @@ def month_position_check(fields, weekdays) -> str | None:
         int32_t[:] years = fields["Y"]
         int32_t[:] months = fields["M"]
         int32_t[:] days = fields["D"]
+        int32_t[:] wdays = np.asarray(weekdays, dtype=np.int32)
 
-    for y, m, d, wd in zip(years, months, days, weekdays, strict=True):
+    count = len(years)
+
+    for i in range(count):
+        y = years[i]
+        m = months[i]
+        d = days[i]
+        wd = wdays[i]
+
         if calendar_start:
             calendar_start &= d == 1
         if business_start:
