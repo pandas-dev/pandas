@@ -89,29 +89,30 @@ from pandas._libs.tslibs.tzconversion cimport tz_localize_to_utc_single
 cnp.import_array()
 
 
+_iso_format_re = re.compile(
+    r"""
+    ^                     # start of string
+    %Y                    # Year
+    (?:([-/ \\.]?)%m      # month with or without separators
+    (?: \1%d              # day with same separator as for year-month
+    (?:[ T]%H             # hour with separator
+    (?:\:%M               # minute with separator
+    (?:\:%S               # second with separator
+    (?:%z|\.%f(?:%z)?     # timezone or fractional second
+    )?)?)?)?)?)?          # optional
+    $                     # end of string
+    """,
+    re.VERBOSE,
+)
+
+
 cdef bint format_is_iso(f: str):
     """
     Does format match the iso8601 set that can be handled by the C parser?
     Generally of form YYYY-MM-DDTHH:MM:SS - date separator can be different
     but must be consistent.  Leading 0s in dates and times are optional.
     """
-    iso_regex = re.compile(
-        r"""
-        ^                     # start of string
-        %Y                    # Year
-        (?:([-/ \\.]?)%m      # month with or without separators
-        (?: \1%d              # day with same separator as for year-month
-        (?:[ T]%H             # hour with separator
-        (?:\:%M               # minute with separator
-        (?:\:%S               # second with separator
-        (?:%z|\.%f(?:%z)?     # timezone or fractional second
-        )?)?)?)?)?)?          # optional
-        $                     # end of string
-        """,
-        re.VERBOSE,
-    )
-    excluded_formats = ["%Y%m"]
-    return re.match(iso_regex, f) is not None and f not in excluded_formats
+    return _iso_format_re.match(f) is not None and f != "%Y%m"
 
 
 def _test_format_is_iso(f: str) -> bool:
@@ -389,6 +390,20 @@ def array_strptime(
     _validate_fmt(fmt)
     format_regex, locale_time = _get_format_regex(fmt)
 
+    cdef:
+        dict f_month_lookup = {
+            name: idx for idx, name in enumerate(locale_time.f_month)
+        }
+        dict a_month_lookup = {
+            name: idx for idx, name in enumerate(locale_time.a_month)
+        }
+        dict f_weekday_lookup = {
+            name: idx for idx, name in enumerate(locale_time.f_weekday)
+        }
+        dict a_weekday_lookup = {
+            name: idx for idx, name in enumerate(locale_time.a_weekday)
+        }
+
     if infer_reso:
         abbrev = "ns"
     else:
@@ -509,7 +524,10 @@ def array_strptime(
                 raise ValueError(f"Time data {val} is not ISO8601 format")
 
             tz = _parse_with_format(
-                val, fmt, exact, format_regex, locale_time, &dts, &item_reso
+                val, fmt, exact, format_regex, locale_time,
+                f_month_lookup, a_month_lookup,
+                f_weekday_lookup, a_weekday_lookup,
+                &dts, &item_reso
             )
 
             if item_reso < NPY_DATETIMEUNIT.NPY_FR_us:
@@ -596,19 +614,23 @@ cdef tzinfo _parse_with_format(
     bint exact,
     format_regex,
     locale_time,
+    dict f_month_lookup,
+    dict a_month_lookup,
+    dict f_weekday_lookup,
+    dict a_weekday_lookup,
     npy_datetimestruct* dts,
     NPY_DATETIMEUNIT* item_reso,
 ):
     # Based on https://github.com/python/cpython/blob/main/Lib/_strptime.py#L293
     cdef:
         int year, month, day, minute, hour, second, weekday, julian
-        int week_of_year, week_of_year_start, parse_code, ordinal
+        int week_of_year, week_of_year_start, parse_code
         int iso_week, iso_year
         int64_t us, ns
         object found
         tzinfo tz
         dict found_dict
-        str group_key, ampm
+        str group_key, group_val, ampm
 
     if exact:
         # exact matching
@@ -646,7 +668,7 @@ cdef tzinfo _parse_with_format(
     # values
     weekday = julian = -1
     found_dict = found.groupdict()
-    for group_key in found_dict.iterkeys():
+    for group_key, group_val in found_dict.iteritems():
         # Directives not explicitly handled below:
         #   c, x, X
         #      handled by making out of other directives
@@ -655,7 +677,7 @@ cdef tzinfo _parse_with_format(
         parse_code = _parse_code_table[group_key]
 
         if parse_code == 0:
-            year = int(found_dict["y"])
+            year = int(group_val)
             # Open Group specification for strptime() states that a %y
             # value in the range of [00, 68] is in the century 2000, while
             # [69,99] is in the century 1900
@@ -667,28 +689,28 @@ cdef tzinfo _parse_with_format(
                 # TODO: not reached in tests 2023-10-28
         elif parse_code == 1:
             # e.g. val='17-10-2010 07:15:30'; fmt='%d-%m-%Y %H:%M:%S'
-            year = int(found_dict["Y"])
+            year = int(group_val)
         elif parse_code == 2:
             # e.g. val='17-10-2010 07:15:30'; fmt='%d-%m-%Y %H:%M:%S'
-            month = int(found_dict["m"])
+            month = int(group_val)
         # elif group_key == 'B':
         elif parse_code == 3:
             # e.g. val='30/December/2011'; fmt='%d/%B/%Y'
-            month = locale_time.f_month.index(found_dict["B"].lower())
+            month = f_month_lookup[group_val.lower()]
         # elif group_key == 'b':
         elif parse_code == 4:
             # e.g. val='30/Dec/2011 00:00:00'; fmt='%d/%b/%Y %H:%M:%S'
-            month = locale_time.a_month.index(found_dict["b"].lower())
+            month = a_month_lookup[group_val.lower()]
         # elif group_key == 'd':
         elif parse_code == 5:
             # e.g. val='17-10-2010 07:15:30'; fmt='%d-%m-%Y %H:%M:%S'
-            day = int(found_dict["d"])
+            day = int(group_val)
         # elif group_key == 'H':
         elif parse_code == 6:
             # e.g. val='17-10-2010 07:15:30'; fmt='%d-%m-%Y %H:%M:%S'
-            hour = int(found_dict["H"])
+            hour = int(group_val)
         elif parse_code == 7:
-            hour = int(found_dict["I"])
+            hour = int(group_val)
             ampm = found_dict.get("p", "").lower()
             # If there was no AM/PM indicator, we'll treat this like AM
             if ampm in ("", locale_time.am_pm[0]):
@@ -712,13 +734,13 @@ cdef tzinfo _parse_with_format(
             # TODO: the implicit `else` branch is not reached 2023-10-28; possible?
         elif parse_code == 8:
             # e.g. val='17-10-2010 07:15:30'; fmt='%d-%m-%Y %H:%M:%S'
-            minute = int(found_dict["M"])
+            minute = int(group_val)
         elif parse_code == 9:
             # e.g. val='17-10-2010 07:15:30'; fmt='%d-%m-%Y %H:%M:%S'
-            second = int(found_dict["S"])
+            second = int(group_val)
         elif parse_code == 10:
             # e.g. val='10:10:10.100'; fmt='%H:%M:%S.%f'
-            s = found_dict["f"]
+            s = group_val
             if len(s) <= 3:
                 item_reso[0] = NPY_DATETIMEUNIT.NPY_FR_ms
             elif len(s) <= 6:
@@ -732,12 +754,12 @@ cdef tzinfo _parse_with_format(
             us = us // 1000
         elif parse_code == 11:
             # e.g val='Tuesday 24 Aug 2021 01:30:48 AM'; fmt='%A %d %b %Y %I:%M:%S %p'
-            weekday = locale_time.f_weekday.index(found_dict["A"].lower())
+            weekday = f_weekday_lookup[group_val.lower()]
         elif parse_code == 12:
             # e.g. val='Tue 24 Aug 2021 01:30:48 AM'; fmt='%a %d %b %Y %I:%M:%S %p'
-            weekday = locale_time.a_weekday.index(found_dict["a"].lower())
+            weekday = a_weekday_lookup[group_val.lower()]
         elif parse_code == 13:
-            weekday = int(found_dict["w"])
+            weekday = int(group_val)
             if weekday == 0:
                 # e.g. val='2013020'; fmt='%Y%U%w'
                 weekday = 6
@@ -746,9 +768,9 @@ cdef tzinfo _parse_with_format(
                 weekday -= 1
         elif parse_code == 14:
             # e.g. val='2009164202000'; fmt='%Y%j%H%M%S'
-            julian = int(found_dict["j"])
+            julian = int(group_val)
         elif parse_code == 15 or parse_code == 16:
-            week_of_year = int(found_dict[group_key])
+            week_of_year = int(group_val)
             if group_key == "U":
                 # e.g. val='2013020'; fmt='%Y%U%w'
                 # U starts week on Sunday.
@@ -759,19 +781,19 @@ cdef tzinfo _parse_with_format(
                 week_of_year_start = 0
         elif parse_code == 17:
             # e.g. val='2011-12-30T00:00:00.000000UTC'; fmt='%Y-%m-%dT%H:%M:%S.%f%Z'
-            tz = zoneinfo.ZoneInfo(found_dict["Z"])
+            tz = zoneinfo.ZoneInfo(group_val)
         elif parse_code == 19:
             # e.g. val='March 1, 2018 12:00:00+0400'; fmt='%B %d, %Y %H:%M:%S%z'
-            tz = parse_timezone_directive(found_dict["z"])
+            tz = parse_timezone_directive(group_val)
         elif parse_code == 20:
             # e.g. val='2015-1-7'; fmt='%G-%V-%u'
-            iso_year = int(found_dict["G"])
+            iso_year = int(group_val)
         elif parse_code == 21:
             # e.g. val='2015-1-7'; fmt='%G-%V-%u'
-            iso_week = int(found_dict["V"])
+            iso_week = int(group_val)
         elif parse_code == 22:
             # e.g. val='2015-1-7'; fmt='%G-%V-%u'
-            weekday = int(found_dict["u"])
+            weekday = int(group_val)
             weekday -= 1
 
     # If we know the wk of the year and what day of that wk, we can figure
@@ -794,12 +816,8 @@ cdef tzinfo _parse_with_format(
     # calculation and thus could have different value for the day of the wk
     # calculation.
     if julian == -1:
-        # Need to add 1 to result since first day of the year is 1, not
-        # 0.
-        # We don't actually need ordinal/julian here, but need to raise
-        #  on e.g. val='2015-04-31'; fmt='%Y-%m-%d'
-        ordinal = date(year, month, day).toordinal()
-        julian = ordinal - date(year, 1, 1).toordinal() + 1
+        # Validate the date; will raise on e.g. val='2015-04-31'; fmt='%Y-%m-%d'
+        date(year, month, day)
     else:
         # Assume that if they bothered to include Julian day it will
         # be accurate.
@@ -808,11 +826,6 @@ cdef tzinfo _parse_with_format(
         year = datetime_result.year
         month = datetime_result.month
         day = datetime_result.day
-    if weekday == -1:
-        # We don't actually use weekday here, but need to do this in order to
-        #  raise on y/m/d combinations
-        # TODO: not reached in tests 2023-10-28; necessary?
-        weekday = date(year, month, day).weekday()
 
     dts.year = year
     dts.month = month
