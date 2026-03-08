@@ -13039,22 +13039,26 @@ class DataFrame(NDFrame, OpsMixin):
             axis, defined as one index or label, or a list of indices
             or labels.
         dropna : bool, default True
-            Whether to drop rows in the resulting stacked output that contain
-            all missing values.
+            Whether to drop rows in the resulting Frame/Series with
+            missing values. Stacking a column level onto the index
+            axis can create combinations of index and column values
+            that are missing from the original dataframe. See Examples
+            section.
 
             .. deprecated:: 3.0
                This parameter is deprecated and will be removed in a future
                version of pandas.
         sort : bool, default True
-            Whether to sort the index after stacking.
+            Whether to sort the levels of the resulting MultiIndex.
 
             .. deprecated:: 3.0
                This parameter is deprecated and will be removed in a future
                version of pandas.
-        future_stack : bool, default False
-            Whether to use the future stacking behavior, where only existing
-            combinations of column levels are included in the result. When False,
-            missing combinations may be generated in the stacked output.
+        future_stack : bool, default True
+            Whether to use the new stack implementation. This is the default
+            as of pandas 3.0. When True, dropna and sort have no impact
+            on the result and must remain unspecified. See :ref:`pandas 2.1.0 Release
+            notes <whatsnew_210.enhancements.new_stack>` for more details.
 
             .. deprecated:: 3.0
                This parameter is deprecated and will be removed in a future
