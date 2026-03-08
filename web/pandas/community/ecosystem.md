@@ -34,6 +34,7 @@ authors to coordinate on the namespace.
   | [gurobipy-pandas](https://github.com/Gurobi/gurobipy-pandas)         | `gppd`     | `Series`, `DataFrame` |
   | [staircase](https://www.staircase.dev/)                              | `sc`       | `Series`, `DataFrame` |
   | [woodwork](https://github.com/alteryx/woodwork)                      | `slice`    | `Series`, `DataFrame` |
+  | [raffalib-python](https://github.com/raffaem/raffalib-python)        | `raffa`    | `Series`, `DataFrame` |
 
 ### Data types
 
