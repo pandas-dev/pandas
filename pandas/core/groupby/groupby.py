@@ -3968,6 +3968,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         Return an expanding grouper, providing expanding functionality per group.
 
+        Each group's expanding window includes all prior rows within that
+        group up to and including the current row.
+
         Parameters
         ----------
         min_periods : int, default 1
@@ -4044,6 +4047,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     ) -> ExponentialMovingWindowGroupby:
         """
         Return an ewm grouper, providing ewm functionality per group.
+
+        The decay can be specified in terms of center of mass, span,
+        half-life, or smoothing factor alpha.
 
         Parameters
         ----------
@@ -4215,6 +4221,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def ffill(self, limit: int | None = None):
         """
         Forward fill the values.
+
+        Propagates the last valid observation forward within each group
+        to fill missing values.
 
         Parameters
         ----------
@@ -4983,6 +4992,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         Cumulative product for each group.
 
+        Returns a Series or DataFrame of the same size with the cumulative
+        product computed within each group.
+
         Parameters
         ----------
         numeric_only : bool, default False
@@ -5046,6 +5058,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def cumsum(self, numeric_only: bool = False, *args, **kwargs) -> NDFrameT:
         """
         Cumulative sum for each group.
+
+        Returns a Series or DataFrame of the same size with the cumulative
+        sum computed within each group.
 
         Parameters
         ----------
