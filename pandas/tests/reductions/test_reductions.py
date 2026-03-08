@@ -782,7 +782,7 @@ class TestSeriesReductions:
         assert result == result_numpy_dtype
         assert result == exp
 
-    @pytest.mark.filterwarning(
+    @pytest.mark.filterwarnings(
         "ignore:Casting complex values to real discards:numpy.exceptions.ComplexWarning"
     )
     def test_var_complex_array(self):
