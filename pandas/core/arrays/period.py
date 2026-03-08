@@ -512,6 +512,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         """
         The days of the period.
 
+        Returns the day-of-month component for each period in the index.
+
         See Also
         --------
         PeriodIndex.day_of_week : The day of the week with Monday=0, Sunday=6.
@@ -533,6 +535,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         "hour",
         """
         The hour of the period.
+
+        Returns the hour component for each period in the index.
 
         See Also
         --------
@@ -611,6 +615,9 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         """
         The day of the week with Monday=0, Sunday=6.
 
+        Returns the day-of-week component for each period, following the
+        Python convention where Monday is 0 and Sunday is 6.
+
         See Also
         --------
         PeriodIndex.day : The days of the period.
@@ -635,6 +642,9 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         "day_of_year",
         """
         The ordinal day of the year.
+
+        Returns the day-of-year component for each period, ranging from
+        1 (January 1st) to 365 or 366 for leap years.
 
         See Also
         --------
@@ -726,6 +736,9 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         """
         The number of days in the month.
 
+        Returns the total number of days in the month of each period,
+        accounting for leap years.
+
         See Also
         --------
         PeriodIndex.day : The days of the period.
@@ -763,6 +776,9 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
     def is_leap_year(self) -> npt.NDArray[np.bool_]:
         """
         Logical indicating if the date belongs to a leap year.
+
+        Returns a boolean array where ``True`` indicates the period's year
+        is a leap year.
 
         See Also
         --------
@@ -865,7 +881,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         dta = DatetimeArray._from_sequence(new_data, dtype=new_data.dtype)
         assert dta.unit == unit
 
-        if self.freq.name == "B":
+        if self.freq.rule_code == "B":
             # See if we can retain BDay instead of Day in cases where
             #  len(self) is too small for infer_freq to distinguish between them
             diffs = libalgos.unique_deltas(self.asi8)
