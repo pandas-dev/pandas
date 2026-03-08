@@ -1463,4 +1463,3 @@ class TestParquetFastParquet(Base):
         df.to_parquet(temp_file)
         with pytest.raises(ValueError, match=msg):
             read_parquet(temp_file, dtype_backend="numpy")
- 
