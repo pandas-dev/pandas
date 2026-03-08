@@ -2382,7 +2382,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             The number of decimal places to use when encoding
             floating point values. The possible maximal value is 15.
             Passing double_precision greater than 15 will raise a ValueError.
-        force_scientific_notation: bool, default False
+        force_scientific_notation : bool, default False
             Force scientific notation for all doubles regardless of size. This
             makes output precision consistent regardless of the exponent.
         force_ascii : bool, default True

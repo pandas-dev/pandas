@@ -438,6 +438,26 @@ class TestPandasContainer:
         encoded = df.to_json(double_precision=precision)
         assert encoded == f'{{"a_float":{{"0":{expected_val}}}}}'
 
+    @pytest.mark.skipif(not IS64, reason="not compliant on 32-bit, xref #15865")
+    @pytest.mark.parametrize(
+        "value,precision,expected_val",
+        [
+            (0.95, 1, "9.5e-01"),
+            (0.9951, 1, "1.0e+00"),
+            (1.96, 1, "2.0e+00"),
+            (-1.96, 1, "-2.0e+00"),
+            (0.9996, 2, "1.00e+00"),
+            (0.99996, 3, "1.000e+00"),
+            (0.999999999999999644, 14, "1.00000000000000e+00"),
+        ],
+    )
+    def test_frame_to_json_float_scientific_precision(
+        self, value, precision, expected_val
+    ):
+        df = DataFrame([{"a_float": value}])
+        encoded = df.to_json(double_precision=precision, force_scientific_notation=True)
+        assert encoded == f'{{"a_float":{{"0":{expected_val}}}}}'
+
     def test_frame_to_json_except(self):
         df = DataFrame([1, 2, 3])
         msg = "Invalid value 'garbage' for option 'orient'"
