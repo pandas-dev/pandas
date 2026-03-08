@@ -458,7 +458,6 @@ filterwarnings = [
   "ignore:a closed node found in the registry:UserWarning:tables",
   "ignore:BuiltinImporter.module_repr() is deprecated and slated for removal in Python 3.12:DeprecationWarning",
   "ignore:Bitwise inversion:DeprecationWarning",
-  "ignore:datetime.datetime.utcnow() is deprecated:DeprecationWarning:botocore",
   # Raised by coverage in PY3.14+
   "ignore:Plugin file tracers:coverage.exceptions.CoverageWarning",
   # Remove 2 below when pyarrow version > ??
