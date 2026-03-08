@@ -20,16 +20,9 @@ Python recipe (https://rhettinger.wordpress.com/2010/02/06/lost-knowledge/)
 #include <stdlib.h>
 #include <string.h>
 
-static inline float __skiplist_nanf(void) {
-  const union {
-    int __i;
-    float __f;
-  } __bint = {0x7fc00000UL};
-  return __bint.__f;
-}
-#define PANDAS_NAN ((double)__skiplist_nanf())
+#define PANDAS_NAN ((double)NAN)
 
-static inline double Log2(double val) { return log(val) / log(2.); }
+static inline double Log2(double val) { return log2(val); }
 
 typedef struct node_t node_t;
 
