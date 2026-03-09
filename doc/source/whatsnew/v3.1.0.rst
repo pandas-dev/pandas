@@ -123,7 +123,7 @@ Categorical
 
 Datetimelike
 ^^^^^^^^^^^^
--
+- Fixed a bug in :func:`to_datetime` when parameter ``origin`` have high resolution while parameter ``unit`` have low resolution, now the higher resolution will be preserved instead of truncated (:issue:`63419`)
 -
 
 Timedelta

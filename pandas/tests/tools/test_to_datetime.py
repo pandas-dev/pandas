@@ -3369,6 +3369,19 @@ class TestOrigin:
         expected = to_datetime([exp]).as_unit("us")
         tm.assert_index_equal(result, expected)
 
+    def test_datetime_with_low_reso_unit_and_high_reso_origin(self):
+        # GH 63419
+        ts = Timestamp("2016-01-01 00:00:00.000001")
+        result = to_datetime([1, 2, 3], unit="D", origin=ts)
+        expected = DatetimeIndex(
+            [
+                "2016-01-02 00:00:00.000001",
+                "2016-01-03 00:00:00.000001",
+                "2016-01-04 00:00:00.000001",
+            ]
+        )
+        tm.assert_index_equal(result, expected)
+
 
 class TestShouldCache:
     @pytest.mark.parametrize(
