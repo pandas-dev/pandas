@@ -6,6 +6,7 @@ from cpython.pyport cimport PY_SSIZE_T_MAX
 from cpython.slice cimport PySlice_GetIndicesEx
 from cpython.weakref cimport PyWeakref_NewRef
 from cython cimport Py_ssize_t
+from libc.string cimport memcpy
 
 import numpy as np
 
@@ -99,13 +100,10 @@ cdef class BlockPlacement:
         return str(self)
 
     def __len__(self) -> int:
-        cdef:
-            slice s = self._ensure_has_slice()
-
-        if s is not None:
-            return slice_len(s)
+        if self._has_array:
+            return self._as_array.shape[0]
         else:
-            return len(self._as_array)
+            return slice_len(self._as_slice)
 
     def __iter__(self):
         cdef:
@@ -390,8 +388,7 @@ cdef slice_getitem(slice slc, ind):
 
         if ind_step > 0 and ind_len == s_len:
             # short-cut for no-op slice
-            if ind_len == s_len:
-                return slc
+            return slc
 
         if ind_step < 0:
             s_start = s_stop - s_step
@@ -607,8 +604,8 @@ def get_blkno_placements(blknos, group: bool = True):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cpdef update_blklocs_and_blknos(
-    const intp_t[:] blklocs,
-    const intp_t[:] blknos,
+    const intp_t[::1] blklocs,
+    const intp_t[::1] blknos,
     Py_ssize_t loc,
     intp_t nblocks,
 ):
@@ -616,24 +613,24 @@ cpdef update_blklocs_and_blknos(
     Update blklocs and blknos when a new column is inserted at 'loc'.
     """
     cdef:
-        Py_ssize_t i
         cnp.npy_intp length = blklocs.shape[0] + 1
+        Py_ssize_t tail_len = length - 1 - loc
         ndarray[intp_t, ndim=1] new_blklocs, new_blknos
 
     # equiv: new_blklocs = np.empty(length, dtype=np.intp)
     new_blklocs = cnp.PyArray_EMPTY(1, &length, cnp.NPY_INTP, 0)
     new_blknos = cnp.PyArray_EMPTY(1, &length, cnp.NPY_INTP, 0)
 
-    for i in range(loc):
-        new_blklocs[i] = blklocs[i]
-        new_blknos[i] = blknos[i]
+    if loc > 0:
+        memcpy(&new_blklocs[0], &blklocs[0], loc * sizeof(intp_t))
+        memcpy(&new_blknos[0], &blknos[0], loc * sizeof(intp_t))
 
     new_blklocs[loc] = 0
     new_blknos[loc] = nblocks
 
-    for i in range(loc, length - 1):
-        new_blklocs[i + 1] = blklocs[i]
-        new_blknos[i + 1] = blknos[i]
+    if tail_len > 0:
+        memcpy(&new_blklocs[loc + 1], &blklocs[loc], tail_len * sizeof(intp_t))
+        memcpy(&new_blknos[loc + 1], &blknos[loc], tail_len * sizeof(intp_t))
 
     return new_blklocs, new_blknos
 
@@ -784,6 +781,8 @@ cdef class BlockManager:
     def _blklocs(self, ndarray val):
         self.__blklocs = val
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     @cython.critical_section
     @cython.wraparound(False)
     @cython.boundscheck(False)
@@ -797,6 +796,8 @@ cdef class BlockManager:
             Block blk
             BlockPlacement bp
             ndarray[intp_t, ndim=1] new_blknos, new_blklocs
+            Py_ssize_t start, stop, step
+            intp_t[:] bp_arr
 
         # equiv: np.empty(length, dtype=np.intp)
         new_blknos = cnp.PyArray_EMPTY(1, &length, cnp.NPY_INTP, 0)
@@ -805,14 +806,24 @@ cdef class BlockManager:
         cnp.PyArray_FILLWBYTE(new_blknos, -1)
         cnp.PyArray_FILLWBYTE(new_blklocs, -1)
 
-        for blkno, blk in enumerate(self.blocks):
+        for blkno in range(len(self.blocks)):
+            blk = <Block>self.blocks[blkno]
             bp = blk._mgr_locs
-            # Iterating over `bp` is a faster equivalent to
-            #  new_blknos[bp.indexer] = blkno
-            #  new_blklocs[bp.indexer] = np.arange(len(bp))
-            for i, j in enumerate(bp):
-                new_blknos[j] = blkno
-                new_blklocs[j] = i
+            # Directly access the underlying slice or array to avoid
+            # Python-level iteration overhead from enumerate(bp)
+            if bp._has_array:
+                bp_arr = bp._as_array
+                for i in range(bp_arr.shape[0]):
+                    j = bp_arr[i]
+                    new_blknos[j] = blkno
+                    new_blklocs[j] = i
+            else:
+                start, stop, step, _ = slice_get_indices_ex(bp._as_slice)
+                i = 0
+                for j in range(start, stop, step):
+                    new_blknos[j] = blkno
+                    new_blklocs[j] = i
+                    i += 1
 
         for i in range(length):
             # faster than `for blkno in new_blknos`
