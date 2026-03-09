@@ -74,6 +74,33 @@ class TestObjectComparisons:
         expected = Series([True, True, True])
         tm.assert_series_equal(result, expected)
 
+    def test_comp_nat_object_dtype(self):
+        # Comparisons on object-dtype Index containing Period objects and NaT
+        left = pd.PeriodIndex(
+            [pd.Period("2011-01-01"), pd.NaT, pd.Period("2011-01-03")]
+        ).astype(object)
+        right = pd.PeriodIndex([pd.NaT, pd.NaT, pd.Period("2011-01-03")]).astype(object)
+
+        result = left == right
+        expected = np.array([False, False, True])
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = left != right
+        expected = np.array([True, True, False])
+        tm.assert_numpy_array_equal(result, expected)
+
+        expected = np.array([False, False, False])
+        tm.assert_numpy_array_equal(left == pd.NaT, expected)
+        tm.assert_numpy_array_equal(pd.NaT == right, expected)
+
+        expected = np.array([True, True, True])
+        tm.assert_numpy_array_equal(left != pd.NaT, expected)
+        tm.assert_numpy_array_equal(pd.NaT != left, expected)
+
+        expected = np.array([False, False, False])
+        tm.assert_numpy_array_equal(left < pd.NaT, expected)
+        tm.assert_numpy_array_equal(pd.NaT > left, expected)
+
 
 # ------------------------------------------------------------------
 # Arithmetic

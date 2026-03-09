@@ -358,6 +358,8 @@ Time/date components
    DatetimeIndex.is_year_end
    DatetimeIndex.is_leap_year
    DatetimeIndex.inferred_freq
+   DatetimeIndex.asi8
+   DatetimeIndex.unit
 
 Selecting
 ~~~~~~~~~
@@ -423,6 +425,8 @@ Components
    TimedeltaIndex.nanoseconds
    TimedeltaIndex.components
    TimedeltaIndex.inferred_freq
+   TimedeltaIndex.asi8
+   TimedeltaIndex.unit
 
 Conversion
 ~~~~~~~~~~
@@ -481,6 +485,7 @@ Properties
     PeriodIndex.weekday
     PeriodIndex.weekofyear
     PeriodIndex.year
+    PeriodIndex.asi8
 
 Methods
 ~~~~~~~

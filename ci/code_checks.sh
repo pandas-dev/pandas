@@ -69,14 +69,10 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
     MSG='Validate Docstrings' ; echo "$MSG"
     python "$BASE_DIR"/scripts/validate_docstrings.py \
         --format=actions \
-        -i "pandas.DatetimeTZDtype.unit ES01" \
-        -i "pandas.DatetimeTZDtype.tz ES01" \
         -i "pandas.IntervalDtype.subtype ES01" \
+        -i "pandas.api.extensions.ExtensionArray.count ES01" \
         -i "pandas.read_html ES01" \
         -i "pandas.read_xml ES01" \
-        -i "pandas.HDFStore.get ES01" \
-        -i "pandas.HDFStore.info ES01" \
-        -i "pandas.HDFStore.keys ES01" \
         -i "pandas.Index.argsort ES01" \
         -i "pandas.Index.append ES01" \
         -i "pandas.Index.join ES01" \
@@ -86,15 +82,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.CategoricalIndex.append ES01" \
         -i "pandas.IndexSlice ES01" \
         -i "pandas.TimedeltaIndex.to_pytimedelta ES01" \
-        -i "pandas.PeriodIndex.minute ES01" \
-        -i "pandas.PeriodIndex.month ES01" \
-        -i "pandas.PeriodIndex.quarter ES01" \
-        -i "pandas.PeriodIndex.second ES01" \
-        -i "pandas.PeriodIndex.week ES01" \
-        -i "pandas.PeriodIndex.weekofyear ES01" \
-        -i "pandas.PeriodIndex.year ES01" \
-        -i "pandas.PeriodIndex.from_fields ES01" \
-        -i "pandas.PeriodIndex.from_ordinals ES01" \
         -i "pandas.api.typing.Expanding.count ES01" \
         -i "pandas.api.typing.Expanding.sum ES01" \
         -i "pandas.api.typing.Expanding.mean ES01" \
@@ -105,24 +92,10 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.api.typing.Expanding.max ES01" \
         -i "pandas.api.typing.Expanding.first ES01" \
         -i "pandas.api.typing.Expanding.last ES01" \
-        -i "pandas.api.typing.Expanding.corr ES01" \
-        -i "pandas.api.typing.Expanding.cov ES01" \
-        -i "pandas.api.typing.Expanding.skew ES01" \
-        -i "pandas.api.typing.Expanding.kurt ES01" \
-        -i "pandas.api.typing.Expanding.apply ES01" \
-        -i "pandas.api.typing.Expanding.aggregate ES01" \
-        -i "pandas.api.typing.Expanding.quantile ES01" \
-        -i "pandas.api.typing.Expanding.sem ES01" \
-        -i "pandas.api.typing.Expanding.rank ES01" \
         -i "pandas.api.indexers.BaseIndexer ES01" \
         -i "pandas.api.indexers.FixedForwardWindowIndexer ES01" \
         -i "pandas.api.indexers.VariableOffsetWindowIndexer ES01" \
         -i "pandas.NamedAgg ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.cumprod ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.cumsum ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.ewm ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.expanding ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.ffill ES01" \
         -i "pandas.api.typing.DataFrameGroupBy.idxmax ES01" \
         -i "pandas.api.typing.DataFrameGroupBy.idxmin ES01" \
         -i "pandas.api.typing.DataFrameGroupBy.max ES01" \
@@ -140,11 +113,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.api.typing.DataFrameGroupBy.value_counts ES01" \
         -i "pandas.api.typing.SeriesGroupBy.corr ES01" \
         -i "pandas.api.typing.SeriesGroupBy.cov ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.cumprod ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.cumsum ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.ewm ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.expanding ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.ffill ES01" \
         -i "pandas.api.typing.SeriesGroupBy.is_monotonic_increasing ES01" \
         -i "pandas.api.typing.SeriesGroupBy.is_monotonic_decreasing ES01" \
         -i "pandas.api.typing.SeriesGroupBy.max ES01" \
@@ -164,9 +132,13 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.api.typing.SeriesGroupBy.value_counts ES01" \
         -i "pandas.api.typing.DataFrameGroupBy.boxplot ES01" \
         -i "pandas.api.typing.SeriesGroupBy.hist ES01" \
-        -i "pandas.Timestamp.fromisocalendar GL01,GL02,SS02,SA01,EX01" \
         -i "pandas.Timestamp.fromisoformat SS02,SS03,ES01,SA01,EX01" \
-        -i "pandas.Timedelta.resolution_string SA01" # no backslash in the last line
+        -i "pandas.Timedelta.resolution_string SA01" \
+        -i "pandas.DatetimeIndex.asi8 GL08" \
+        -i "pandas.PeriodIndex.asi8 GL08" \
+        -i "pandas.TimedeltaIndex.asi8 GL08" \
+        -i "pandas.DatetimeIndex.unit GL08" \
+        -i "pandas.TimedeltaIndex.unit GL08" # no backslash in the last line
 
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 

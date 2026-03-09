@@ -1973,10 +1973,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
-            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+            * For ``'numba'`` engine, the engine can accept  ``nogil``
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-              ``{'nopython': True, 'nogil': False, 'parallel': False}``
+              ``{'nogil': False, 'parallel': False}``
 
         Returns
         -------
@@ -2173,10 +2173,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
-            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+            * For ``'numba'`` engine, the engine can accept  ``nogil``
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-              ``{'nopython': True, 'nogil': False, 'parallel': False}``
+              ``{'nogil': False, 'parallel': False}``
 
         numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
@@ -2288,10 +2288,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
-            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+            * For ``'numba'`` engine, the engine can accept  ``nogil``
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-              ``{'nopython': True, 'nogil': False, 'parallel': False}``
+              ``{'nogil': False, 'parallel': False}``
 
         numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
@@ -2743,10 +2743,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         engine_kwargs : dict, default None None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
-            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+            * For ``'numba'`` engine, the engine can accept  ``nogil``
                 and ``parallel`` dictionary keys. The values must either be ``True`` or
                 ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-                ``{'nopython': True, 'nogil': False, 'parallel': False}`` and will be
+                ``{'nogil': False, 'parallel': False}`` and will be
                 applied to both the ``func`` and the ``apply`` groupby aggregation.
 
         Returns
@@ -2945,10 +2945,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         engine_kwargs : dict, default None None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
-            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+            * For ``'numba'`` engine, the engine can accept  ``nogil``
                 and ``parallel`` dictionary keys. The values must either be ``True`` or
                 ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-                ``{'nopython': True, 'nogil': False, 'parallel': False}`` and will be
+                ``{'nogil': False, 'parallel': False}`` and will be
                 applied to both the ``func`` and the ``apply`` groupby aggregation.
 
         Returns
@@ -3062,10 +3062,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         engine_kwargs : dict, default None None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
-            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+            * For ``'numba'`` engine, the engine can accept  ``nogil``
                 and ``parallel`` dictionary keys. The values must either be ``True`` or
                 ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-                ``{'nopython': True, 'nogil': False, 'parallel': False}`` and will be
+                ``{'nogil': False, 'parallel': False}`` and will be
                 applied to both the ``func`` and the ``apply`` groupby aggregation.
 
         Returns
@@ -3968,6 +3968,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         Return an expanding grouper, providing expanding functionality per group.
 
+        Each group's expanding window includes all prior rows within that
+        group up to and including the current row.
+
         Parameters
         ----------
         min_periods : int, default 1
@@ -4044,6 +4047,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     ) -> ExponentialMovingWindowGroupby:
         """
         Return an ewm grouper, providing ewm functionality per group.
+
+        The decay can be specified in terms of center of mass, span,
+        half-life, or smoothing factor alpha.
 
         Parameters
         ----------
@@ -4215,6 +4221,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def ffill(self, limit: int | None = None):
         """
         Forward fill the values.
+
+        Propagates the last valid observation forward within each group
+        to fill missing values.
 
         Parameters
         ----------
@@ -4983,6 +4992,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         Cumulative product for each group.
 
+        Returns a Series or DataFrame of the same size with the cumulative
+        product computed within each group.
+
         Parameters
         ----------
         numeric_only : bool, default False
@@ -5046,6 +5058,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def cumsum(self, numeric_only: bool = False, *args, **kwargs) -> NDFrameT:
         """
         Cumulative sum for each group.
+
+        Returns a Series or DataFrame of the same size with the cumulative
+        sum computed within each group.
 
         Parameters
         ----------

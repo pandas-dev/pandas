@@ -687,6 +687,7 @@ cdef class _Timestamp(ABCTimestamp):
             val = self._value
         return val
 
+    @cython.wraparound(False)
     @cython.boundscheck(False)
     cdef bint _get_start_end_field(self, str field, freq):
         cdef:
@@ -883,6 +884,7 @@ cdef class _Timestamp(ABCTimestamp):
         """
         return self.month == 12 and self.day == 31
 
+    @cython.wraparound(False)
     @cython.boundscheck(False)
     cdef _get_date_name_field(self, str field, object locale):
         cdef:
@@ -1975,6 +1977,42 @@ class Timestamp(_Timestamp):
         Timestamp('2020-01-01 00:00:00+0000', tz='UTC')
         """
         return cls(datetime.fromordinal(ordinal), tz=tz)
+
+    @classmethod
+    def fromisocalendar(cls, year, week, day):
+        """
+        Construct a Timestamp from an ISO year, week number, and weekday.
+
+        This is the inverse of :meth:`Timestamp.isocalendar`, constructing a
+        Timestamp from the ISO 8601 year, week number, and weekday.
+
+        Parameters
+        ----------
+        year : int
+            ISO year.
+        week : int
+            ISO week number, ranging from 1 to 52 or 53.
+        day : int
+            ISO weekday, where Monday is 1 and Sunday is 7.
+
+        Returns
+        -------
+        Timestamp
+            A `Timestamp` object corresponding to the given ISO calendar date.
+
+        See Also
+        --------
+        Timestamp.isocalendar : Return a named tuple with ISO year, week, and
+            weekday.
+        Timestamp.fromordinal : Construct a Timestamp from a proleptic Gregorian
+            ordinal.
+
+        Examples
+        --------
+        >>> pd.Timestamp.fromisocalendar(2023, 1, 1)
+        Timestamp('2023-01-02 00:00:00')
+        """
+        return cls(datetime.fromisocalendar(year, week, day))
 
     @classmethod
     def now(cls, tz=None):

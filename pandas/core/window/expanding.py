@@ -133,6 +133,9 @@ class Expanding(RollingAndExpandingMixin):
         """
         Aggregate using one or more operations over the specified axis.
 
+        Accepts a function, string name, list, or dict of functions and
+        applies them cumulatively over all data points seen so far.
+
         Parameters
         ----------
         func : function, str, list or dict
@@ -256,6 +259,8 @@ class Expanding(RollingAndExpandingMixin):
         """
         Calculate the expanding custom aggregation function.
 
+        Applies a user-defined function over all data points seen so far.
+
         Parameters
         ----------
         func : function
@@ -280,10 +285,10 @@ class Expanding(RollingAndExpandingMixin):
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
-            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+            * For ``'numba'`` engine, the engine can accept  ``nogil``
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-              ``{'nopython': True, 'nogil': False, 'parallel': False}`` and will be
+              ``{'nogil': False, 'parallel': False}`` and will be
               applied to both the ``func`` and the ``apply`` rolling aggregation.
 
         args : tuple, default None
@@ -447,10 +452,10 @@ class Expanding(RollingAndExpandingMixin):
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
-            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+            * For ``'numba'`` engine, the engine can accept  ``nogil``
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-              ``{'nopython': True, 'nogil': False, 'parallel': False}``
+              ``{'nogil': False, 'parallel': False}``
 
         Returns
         -------
@@ -507,10 +512,10 @@ class Expanding(RollingAndExpandingMixin):
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
-            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+            * For ``'numba'`` engine, the engine can accept  ``nogil``
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-              ``{'nopython': True, 'nogil': False, 'parallel': False}``
+              ``{'nogil': False, 'parallel': False}``
 
         Returns
         -------
@@ -567,10 +572,10 @@ class Expanding(RollingAndExpandingMixin):
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
-            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+            * For ``'numba'`` engine, the engine can accept  ``nogil``
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-              ``{'nopython': True, 'nogil': False, 'parallel': False}``
+              ``{'nogil': False, 'parallel': False}``
 
         Returns
         -------
@@ -627,10 +632,10 @@ class Expanding(RollingAndExpandingMixin):
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
-            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+            * For ``'numba'`` engine, the engine can accept  ``nogil``
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-              ``{'nopython': True, 'nogil': False, 'parallel': False}``
+              ``{'nogil': False, 'parallel': False}``
 
         Returns
         -------
@@ -687,10 +692,10 @@ class Expanding(RollingAndExpandingMixin):
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
-            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+            * For ``'numba'`` engine, the engine can accept  ``nogil``
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-              ``{'nopython': True, 'nogil': False, 'parallel': False}``
+              ``{'nogil': False, 'parallel': False}``
 
         Returns
         -------
@@ -752,10 +757,10 @@ class Expanding(RollingAndExpandingMixin):
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
-            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+            * For ``'numba'`` engine, the engine can accept  ``nogil``
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-              ``{'nopython': True, 'nogil': False, 'parallel': False}``
+              ``{'nogil': False, 'parallel': False}``
 
         Returns
         -------
@@ -825,10 +830,10 @@ class Expanding(RollingAndExpandingMixin):
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
-            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+            * For ``'numba'`` engine, the engine can accept  ``nogil``
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-              ``{'nopython': True, 'nogil': False, 'parallel': False}``
+              ``{'nogil': False, 'parallel': False}``
 
         Returns
         -------
@@ -875,6 +880,9 @@ class Expanding(RollingAndExpandingMixin):
         """
         Calculate the expanding standard error of mean.
 
+        The standard error is computed as ``std / sqrt(N)`` over all data
+        points seen so far, where ``N`` is the number of observations.
+
         Parameters
         ----------
         ddof : int, default 1
@@ -917,6 +925,9 @@ class Expanding(RollingAndExpandingMixin):
         """
         Calculate the expanding unbiased skewness.
 
+        Computes the third standardized moment over all data points seen
+        so far, measuring the asymmetry of the distribution.
+
         Parameters
         ----------
         numeric_only : bool, default False
@@ -955,6 +966,9 @@ class Expanding(RollingAndExpandingMixin):
     def kurt(self, numeric_only: bool = False):
         """
         Calculate the expanding Fisher's definition of kurtosis without bias.
+
+        Measures the tailedness of the distribution over all data points
+        seen so far. A minimum of four periods is required.
 
         Parameters
         ----------
@@ -1079,6 +1093,10 @@ class Expanding(RollingAndExpandingMixin):
         """
         Calculate the expanding quantile.
 
+        At each step the specified quantile is computed from all prior
+        observations, using the given interpolation method for values
+        between data points.
+
         Parameters
         ----------
         q : float
@@ -1137,6 +1155,9 @@ class Expanding(RollingAndExpandingMixin):
     ):
         """
         Calculate the expanding rank.
+
+        Each value is ranked relative to all prior observations, with
+        configurable tie-breaking and optional percentile normalization.
 
         Parameters
         ----------
@@ -1256,6 +1277,10 @@ class Expanding(RollingAndExpandingMixin):
         """
         Calculate the expanding sample covariance.
 
+        When ``other`` is provided, computes pairwise covariance between
+        ``self`` and ``other``; otherwise computes all pairwise covariances
+        of the columns.
+
         Parameters
         ----------
         other : Series or DataFrame, optional
@@ -1313,6 +1338,8 @@ class Expanding(RollingAndExpandingMixin):
     ):
         """
         Calculate the expanding correlation.
+
+        Uses Pearson's correlation over all data points seen so far.
 
         Parameters
         ----------

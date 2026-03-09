@@ -474,7 +474,7 @@ def parallel(request):
     return request.param
 
 
-# Can parameterize nogil & nopython over True | False, but limiting per
+# Can parameterize nogil over True | False, but limiting per
 # https://github.com/pandas-dev/pandas/pull/41971#issuecomment-860607472
 
 
@@ -482,14 +482,6 @@ def parallel(request):
 def nogil(request):
     """
     Fixture for nogil keyword argument for numba.jit.
-    """
-    return request.param
-
-
-@pytest.fixture(params=[True])
-def nopython(request):
-    """
-    Fixture for nopython keyword argument for numba.jit.
     """
     return request.param
 
