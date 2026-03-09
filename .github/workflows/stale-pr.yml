@@ -4,8 +4,7 @@ on:
   # * is a special character in YAML so you have to quote this string
   - cron: "0 0 * * *"
 
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
   stale:
@@ -14,7 +13,7 @@ jobs:
     if: github.repository_owner == 'pandas-dev'
     runs-on: ubuntu-24.04
     steps:
-    - uses: actions/stale@v10
+    - uses: actions/stale@b5d41d4e1d5dceea10e7104786b73624c18a190f # v10
       with:
         repo-token: ${{ secrets.GITHUB_TOKEN }}
         stale-pr-message: "This pull request is stale because it has been open for thirty days with no activity. Please [update](https://pandas.pydata.org/pandas-docs/stable/development/contributing.html#updating-your-pull-request) and respond to this comment if you're still interested in working on this."
