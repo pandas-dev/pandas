@@ -139,7 +139,7 @@ Timezones
 Numeric
 ^^^^^^^
 - Fixed bug in :meth:`Series.clip` where passing a scalar numpy array (e.g. ``np.array(0)``) would raise a ``TypeError`` (:issue:`59053`)
--
+- Fixed bug when comparing between ``pd.NA`` in object dtype :class:`Series` with other values, now return ``pd.NA`` instead of ``False`` (:issue:`63328`)
 
 Conversion
 ^^^^^^^^^^
