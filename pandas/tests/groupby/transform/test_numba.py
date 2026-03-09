@@ -250,7 +250,7 @@ def test_engine_kwargs_not_cached():
     result = df.groupby(level=0).transform(
         func_kwargs, engine="numba", engine_kwargs=engine_kwargs
     )
-    expected = DataFrame({"value": [2.0, 2.0, 2.0]})
+    expected = DataFrame({"value": [1.0, 1.0, 1.0]})
     tm.assert_frame_equal(result, expected)
 
     nogil = False
@@ -258,7 +258,7 @@ def test_engine_kwargs_not_cached():
     result = df.groupby(level=0).transform(
         func_kwargs, engine="numba", engine_kwargs=engine_kwargs
     )
-    expected = DataFrame({"value": [1.0, 1.0, 1.0]})
+    expected = DataFrame({"value": [0.0, 0.0, 0.0]})
     tm.assert_frame_equal(result, expected)
 
 

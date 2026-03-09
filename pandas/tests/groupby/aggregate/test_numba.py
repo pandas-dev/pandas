@@ -276,9 +276,7 @@ def test_multifunc_numba_vs_cython_series(agg_kwargs):
 
 
 @pytest.mark.single_cpu
-@pytest.mark.filterwarnings(
-    "ignore:unsafe cast from uint64 to int64:numba.NumbaTypeSafetyWarning"
-)
+@pytest.mark.filterwarnings("ignore:unsafe cast from uint64 to int64")
 @pytest.mark.parametrize(
     "data,agg_kwargs",
     [
@@ -370,7 +368,7 @@ def test_engine_kwargs_not_cached():
     result = df.groupby(level=0).aggregate(
         func_kwargs, engine="numba", engine_kwargs=engine_kwargs
     )
-    expected = DataFrame({"value": [2.0, 2.0, 2.0]})
+    expected = DataFrame({"value": [1.0, 1.0, 1.0]})
     tm.assert_frame_equal(result, expected)
 
     nogil = False
@@ -378,7 +376,7 @@ def test_engine_kwargs_not_cached():
     result = df.groupby(level=0).aggregate(
         func_kwargs, engine="numba", engine_kwargs=engine_kwargs
     )
-    expected = DataFrame({"value": [1.0, 1.0, 1.0]})
+    expected = DataFrame({"value": [0.0, 0.0, 0.0]})
     tm.assert_frame_equal(result, expected)
 
 

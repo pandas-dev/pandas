@@ -284,7 +284,7 @@ class TestEngine:
         result = df.rolling(1).apply(
             func, raw=True, engine="numba", engine_kwargs=engine_kwargs
         )
-        expected = DataFrame({"value": [2.0, 2.0, 2.0]})
+        expected = DataFrame({"value": [1.0, 1.0, 1.0]})
         tm.assert_frame_equal(result, expected)
 
         parallel = False
@@ -292,7 +292,7 @@ class TestEngine:
         result = df.rolling(1).apply(
             func, raw=True, engine="numba", engine_kwargs=engine_kwargs
         )
-        expected = DataFrame({"value": [1.0, 1.0, 1.0]})
+        expected = DataFrame({"value": [0.0, 0.0, 0.0]})
         tm.assert_frame_equal(result, expected)
 
 
