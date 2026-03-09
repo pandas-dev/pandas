@@ -1384,23 +1384,13 @@ def assert_equal(left, right, **kwargs) -> None:
     __tracebackhide__ = True
 
     if isinstance(left, Index):
-        exact = kwargs.pop("exact", True)
-        assert_index_equal(left, right, exact=exact, **kwargs)
+        assert_index_equal(left, right, **kwargs)
         if isinstance(left, (DatetimeIndex, TimedeltaIndex)):
             assert left.freq == right.freq, (left.freq, right.freq)
     elif isinstance(left, Series):
-        check_index_type = kwargs.pop("check_index_type", True)
-        assert_series_equal(left, right, check_index_type=check_index_type, **kwargs)
+        assert_series_equal(left, right, **kwargs)
     elif isinstance(left, DataFrame):
-        check_index_type = kwargs.pop("check_index_type", True)
-        check_column_type = kwargs.pop("check_column_type", True)
-        assert_frame_equal(
-            left,
-            right,
-            check_index_type=check_index_type,
-            check_column_type=check_column_type,
-            **kwargs,
-        )
+        assert_frame_equal(left, right, **kwargs)
     elif isinstance(left, IntervalArray):
         assert_interval_array_equal(left, right, **kwargs)
     elif isinstance(left, PeriodArray):
