@@ -166,7 +166,12 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.api.typing.SeriesGroupBy.hist ES01" \
         -i "pandas.Timestamp.fromisocalendar GL01,GL02,SS02,SA01,EX01" \
         -i "pandas.Timestamp.fromisoformat SS02,SS03,ES01,SA01,EX01" \
-        -i "pandas.Timedelta.resolution_string SA01" # no backslash in the last line
+        -i "pandas.Timedelta.resolution_string SA01" \
+        -i "pandas.DatetimeIndex.asi8 GL08" \
+        -i "pandas.PeriodIndex.asi8 GL08" \
+        -i "pandas.TimedeltaIndex.asi8 GL08" \
+        -i "pandas.DatetimeIndex.unit GL08" \
+        -i "pandas.TimedeltaIndex.unit GL08" # no backslash in the last line
 
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
