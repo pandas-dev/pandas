@@ -164,7 +164,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.api.typing.SeriesGroupBy.value_counts ES01" \
         -i "pandas.api.typing.DataFrameGroupBy.boxplot ES01" \
         -i "pandas.api.typing.SeriesGroupBy.hist ES01" \
-        -i "pandas.Timestamp.fromisocalendar GL01,GL02,SS02,SA01,EX01" \
         -i "pandas.Timestamp.fromisoformat SS02,SS03,ES01,SA01,EX01" \
         -i "pandas.Timedelta.resolution_string SA01" \
         -i "pandas.DatetimeIndex.asi8 GL08" \
