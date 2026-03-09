@@ -44,6 +44,8 @@ from pandas.errors import (
     ChainedAssignmentError,
     InvalidIndexError,
     Pandas4Warning,
+    PandasDeprecationWarning,
+    PandasFutureWarning,
 )
 from pandas.errors.cow import (
     _chained_assignment_method_update_msg,
@@ -4147,9 +4149,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def argsort(
         self,
         axis: Axis = 0,
-        kind: SortKind = "quicksort",
-        order: None = None,
-        stable: None = None,
+        kind: SortKind | None = None,
+        order: str | list[str] | None = None,
+        _stable: None = None,
+        *,
+        stable: bool | None = None,
     ) -> Series:
         """
         Return the integer indices that would sort the Series values.
@@ -4161,13 +4165,26 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ----------
         axis : {0 or 'index'}
             Unused. Parameter needed for compatibility with DataFrame.
-        kind : {'mergesort', 'quicksort', 'heapsort', 'stable'}, default 'quicksort'
+        kind : {'mergesort', 'quicksort', 'heapsort', 'stable'}, optional, default None
             Choice of sorting algorithm. See :func:`numpy.sort` for more
             information. 'mergesort' and 'stable' are the only stable algorithms.
-        order : None
-            Has no effect but is accepted for compatibility with numpy.
-        stable : None
-            Has no effect but is accepted for compatibility with numpy.
+        order : str or list of str, optional
+            Must match series name if given, accepted only for compatibility with numpy.
+        _stable : Unused
+
+            .. deprecated:: 3.1.0
+
+                This argument is present for API backwards compatibility. It should
+                never be used as a keyword argument.
+                Previous versions accepted a positional or keyword argument named
+                ``stable`` that did nothing.
+                For compatibility with ``numpy.argsort``, ``stable`` is now a
+                keyword-only argument that does something, while ``_stable`` is a
+                placeholder for the old positional argument and still does nothing.
+
+        stable : bool, optional, default None
+            If ``True``, perform a stable sort. Equivalent to ``kind=stable``, and
+            cannot be used together with ``kind``.
 
         Returns
         -------
@@ -4191,6 +4208,36 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if axis != -1:
             # GH#54257 We allow -1 here so that np.argsort(series) works
             self._get_axis_number(axis)
+
+        if _stable is not None:
+            warnings.warn(
+                "`_stable` does nothing and should never be used",
+                PandasDeprecationWarning,
+                stacklevel=find_stack_level(),
+            )
+
+        if kind is None:
+            if stable is True:
+                kind = "stable"
+            else:
+                # GH#64255 this is the previous default behaviour
+                kind = "quicksort"
+        else:  # noqa: PLR5501
+            if stable is not None:
+                warnings.warn(
+                    "`kind` and `stable` can't be provided at the same time. "
+                    "`stable` will be ignored.",
+                    PandasFutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+
+        if order is not None:
+            if order not in (self.name, [self.name]):
+                warnings.warn(
+                    "`order` should match Series.name if specified",
+                    PandasFutureWarning,
+                    stacklevel=find_stack_level(),
+                )
 
         result = self.array.argsort(kind=kind)
 

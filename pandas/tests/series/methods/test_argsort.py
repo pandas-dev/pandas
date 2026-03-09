@@ -10,6 +10,10 @@ import pandas._testing as tm
 
 
 class TestSeriesArgsort:
+    @pytest.fixture
+    def argsort_stability_series(self):
+        return Series(np.random.default_rng(2).integers(0, 100, size=10000))
+
     def test_argsort_axis(self):
         # GH#54257
         ser = Series(range(3))
@@ -54,8 +58,8 @@ class TestSeriesArgsort:
         expected = Series([*list(range(4)), 4], dtype=np.intp)
         tm.assert_series_equal(result, expected)
 
-    def test_argsort_stable(self):
-        ser = Series(np.random.default_rng(2).integers(0, 100, size=10000))
+    def test_argsort_kind_stability(self, argsort_stability_series):
+        ser = argsort_stability_series
         mindexer = ser.argsort(kind="mergesort")
         qindexer = ser.argsort()
 
@@ -70,6 +74,106 @@ class TestSeriesArgsort:
         )
         with pytest.raises(AssertionError, match=msg):
             tm.assert_numpy_array_equal(qindexer, mindexer)
+
+    def test_argsort_stable(self, argsort_stability_series):
+        ser = argsort_stability_series
+        true_indexer = ser.argsort(stable=True)
+        false_indexer = ser.argsort(stable=False)
+
+        true_expected = np.argsort(ser.values, stable=True)
+        false_expected = np.argsort(ser.values, stable=False)
+
+        tm.assert_numpy_array_equal(false_indexer.values, false_expected)
+        tm.assert_numpy_array_equal(true_indexer.values, true_expected)
+
+    def test_argsort_pos_arg_stable(self, argsort_stability_series):
+        ser = argsort_stability_series
+        true_indexer = ser.argsort(0, None, None, True)
+        false_indexer = ser.argsort(0, None, None, False)
+
+        true_expected = false_expected = np.argsort(ser.values, stable=False)
+        tm.assert_numpy_array_equal(false_indexer.values, false_expected)
+        tm.assert_numpy_array_equal(true_indexer.values, true_expected)
+
+    def test_argsort_numpy_stable(self, argsort_stability_series):
+        ser = argsort_stability_series
+        result = np.argsort(ser)
+        expected = np.argsort(ser.values)
+        tm.assert_numpy_array_equal(result.values, expected)
+
+    @pytest.mark.parametrize(
+        "kind, stable",
+        [
+            ("quicksort", True),
+            ("quicksort", False),
+            ("mergesort", True),
+            ("mergesort", False),
+        ],
+    )
+    def test_argsort_kind_and_stable(
+        self,
+        argsort_stability_series,
+        kind,
+        stable,
+    ):
+        ser = argsort_stability_series
+        match = "`kind` and keyword parameters can't be provided at the same time."
+        with tm.assert_produces_warning(
+            FutureWarning, match=match, check_stacklevel=False
+        ):
+            np.argsort(ser, kind=kind, stable=stable)
+
+    @pytest.mark.parametrize(
+        "kind, stable",
+        [
+            ("quicksort", True),
+            ("quicksort", False),
+            ("mergesort", True),
+            ("mergesort", False),
+        ],
+    )
+    def test_argsort_numpy_kind_and_stable(
+        self,
+        argsort_stability_series,
+        kind,
+        stable,
+    ):
+        ser = argsort_stability_series
+        match = "`kind` and `stable` can't be provided at the same time."
+        with tm.assert_produces_warning(
+            FutureWarning, match=match, check_stacklevel=False
+        ):
+            np.argsort(ser, kind=kind, stable=stable)
+
+    def test_argsort_order(self, datetime_series):
+        ser = datetime_series
+
+        with tm.assert_produces_warning(False):
+            ser.argsort(order="ts")
+            ser.argsort(order=["ts"])
+
+        with tm.assert_produces_warning(
+            FutureWarning,
+            check_stacklevel=False,
+            match="`order` should match Series.name if specified",
+        ):
+            ser.argsort(order="something else")
+            ser.argsort(order=["something else"])
+
+    def test_argsort_numpy_order(self, datetime_series):
+        ser = datetime_series
+
+        with tm.assert_produces_warning(False):
+            np.argsort(ser, order="ts")
+            np.argsort(ser, order=["ts"])
+
+        with tm.assert_produces_warning(
+            FutureWarning,
+            check_stacklevel=False,
+            match="`order` should match Series.name if specified",
+        ):
+            np.argsort(ser, order="something else")
+            np.argsort(ser, order=["something else"])
 
     def test_argsort_preserve_name(self, datetime_series):
         result = datetime_series.argsort()
