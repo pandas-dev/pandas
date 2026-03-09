@@ -1979,6 +1979,42 @@ class Timestamp(_Timestamp):
         return cls(datetime.fromordinal(ordinal), tz=tz)
 
     @classmethod
+    def fromisocalendar(cls, year, week, day):
+        """
+        Construct a Timestamp from an ISO year, week number, and weekday.
+
+        This is the inverse of :meth:`Timestamp.isocalendar`, constructing a
+        Timestamp from the ISO 8601 year, week number, and weekday.
+
+        Parameters
+        ----------
+        year : int
+            ISO year.
+        week : int
+            ISO week number, ranging from 1 to 52 or 53.
+        day : int
+            ISO weekday, where Monday is 1 and Sunday is 7.
+
+        Returns
+        -------
+        Timestamp
+            A `Timestamp` object corresponding to the given ISO calendar date.
+
+        See Also
+        --------
+        Timestamp.isocalendar : Return a named tuple with ISO year, week, and
+            weekday.
+        Timestamp.fromordinal : Construct a Timestamp from a proleptic Gregorian
+            ordinal.
+
+        Examples
+        --------
+        >>> pd.Timestamp.fromisocalendar(2023, 1, 1)
+        Timestamp('2023-01-02 00:00:00')
+        """
+        return cls(datetime.fromisocalendar(year, week, day))
+
+    @classmethod
     def now(cls, tz=None):
         """
         Return new Timestamp object representing current time local to tz.
