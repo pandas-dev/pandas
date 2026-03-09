@@ -2376,13 +2376,12 @@ class TestLocSetitemWithExpansion:
         # Set a tz-aware datetime on a subset of rows, expanding with a new col
         df.loc[df["id"] >= 2, "time"] = _time
 
-        # The 'time' column must be datetime64 (tz-aware), not object dtype
-        assert df["time"].dtype != object, (
-            f"Expected datetime64[tz] dtype, got {df['time'].dtype}"
+        # The 'time' column must be tz-aware datetime64 with UTC timezone, not object
+        dtype = df["time"].dtype
+        assert isinstance(dtype, pd.DatetimeTZDtype), (
+            f"Expected DatetimeTZDtype, got {dtype}"
         )
-        assert pd.api.types.is_datetime64_any_dtype(df["time"]), (
-            f"Expected datetime64 dtype, got {df['time'].dtype}"
-        )
+        assert dtype.tz is dt.timezone.utc, f"Expected UTC timezone, got {dtype.tz}"
 
         # Row 0 (not matched) should be NaT; rows 1 & 2 should hold _time
         assert pd.isna(df.loc[0, "time"])
@@ -2396,9 +2395,11 @@ class TestLocSetitemWithExpansion:
 
         df.loc[df["id"] > 10, "created_at"] = ts
 
-        assert pd.api.types.is_datetime64_any_dtype(df["created_at"]), (
-            f"Expected datetime64 dtype, got {df['created_at'].dtype}"
+        dtype = df["created_at"].dtype
+        assert isinstance(dtype, pd.DatetimeTZDtype), (
+            f"Expected tz-aware datetime64 dtype, got {dtype}"
         )
+        assert dtype.tz is ts.tz, f"Expected timezone {ts.tz}, got {dtype.tz}"
         assert pd.isna(df.loc[0, "created_at"])
         assert df.loc[1, "created_at"] == ts
         assert df.loc[2, "created_at"] == ts
