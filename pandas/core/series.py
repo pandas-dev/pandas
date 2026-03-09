@@ -3358,7 +3358,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         other : Series
             Object to compare with.
 
-        align_axis : {{0 or 'index', 1 or 'columns'}}, default 1
+        align_axis : {0 or 'index', 1 or 'columns'}, default 1
             Determine which axis to align the comparison on.
 
             * 0, or 'index' : Resulting differences are stacked vertically
@@ -5496,7 +5496,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             apply to that axis' values.
         axis : {0 or 'index'}, default 0
             The axis to rename. For `Series` this parameter is unused and defaults to 0.
-        method : {{None, 'backfill'/'bfill', 'pad'/'ffill', 'nearest'}}
+        method : {None, 'backfill'/'bfill', 'pad'/'ffill', 'nearest'}
             Method to use for filling holes in reindexed DataFrame.
             Please note: this is only applicable to DataFrames/Series with a
             monotonically increasing/decreasing index.
@@ -5555,7 +5555,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ``DataFrame.reindex`` supports two calling conventions
 
         * ``(index=index_labels, columns=column_labels, ...)``
-        * ``(labels, axis={{'index', 'columns'}}, ...)``
+        * ``(labels, axis={'index', 'columns'}, ...)``
 
         We *highly* recommend using keyword arguments to clarify your
         intent.

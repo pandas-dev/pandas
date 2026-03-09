@@ -290,6 +290,8 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         """
         The hour of the period.
 
+        Returns the hour component for each period in the index.
+
         See Also
         --------
         PeriodIndex.minute : The minute of the period.

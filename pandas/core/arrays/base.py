@@ -622,6 +622,9 @@ class ExtensionArray:
         """
         Return the array element at the specified position as a Python scalar.
 
+        Analogous to :meth:`numpy.ndarray.item`, this converts a single
+        element to a native Python object.
+
         Parameters
         ----------
         index : int, optional
@@ -2038,7 +2041,7 @@ class ExtensionArray:
         raise AbstractMethodError(self)
 
     @overload
-    def view(self) -> Self: ...
+    def view(self, dtype: None = ...) -> Self: ...
 
     @overload
     def view(self, dtype: Dtype | None = ...) -> ArrayLike: ...
