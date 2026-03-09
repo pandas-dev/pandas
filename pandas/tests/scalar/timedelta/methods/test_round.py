@@ -185,3 +185,106 @@ class TestTimedeltaRound:
         res = td.ceil("min")
         assert res == Timedelta("1 days 02:35:00")
         assert res._creso == td._creso
+
+    @pytest.mark.parametrize(
+        "timedelta, freq_td, expected",
+        [
+            (Timedelta("1001ms"), Timedelta("1s"), Timedelta("1s")),
+            (Timedelta("1001ms"), Timedelta("1ms"), Timedelta("1001ms")),
+            (
+                Timedelta("1 days 2 min 3 us 42 ns"),
+                Timedelta("1s"),
+                Timedelta("1 days 2 min"),
+            ),
+            (
+                Timedelta("5 hours 9 minutes 15.13 seconds"),
+                Timedelta("1 hour"),
+                Timedelta("5 hours"),
+            ),
+            (
+                Timedelta("5 hours 9 minutes 15.13 seconds"),
+                Timedelta("1 hour 30 min"),
+                Timedelta("4 hours 30 minutes"),
+            ),
+        ],
+    )
+    def test_round_timedelta_freq(self, timedelta, freq_td, expected):
+        # GH#63687 - Timedelta.round accepts Timedelta arguments
+        result = timedelta.round(freq_td)
+        assert result == expected
+
+    @pytest.mark.parametrize(
+        "timedelta, freq_td, expected",
+        [
+            (Timedelta("1001ms"), Timedelta("1s"), Timedelta("1s")),
+            (Timedelta("1001ms"), Timedelta("1ms"), Timedelta("1001ms")),
+            (
+                Timedelta("1 days 2 min 3 us 42 ns"),
+                Timedelta("1s"),
+                Timedelta("1 days 2 min"),
+            ),
+            (
+                Timedelta("5 hours 9 minutes 15.13 seconds"),
+                Timedelta("1 hour"),
+                Timedelta("5 hours"),
+            ),
+            (
+                Timedelta("5 hours 9 minutes 15.13 seconds"),
+                Timedelta("1 hour 30 min"),
+                Timedelta("4 hours 30 minutes"),
+            ),
+            # Edge cases
+            (
+                Timedelta("1 days 45 seconds"),
+                Timedelta("15s"),
+                Timedelta("1 days 45 seconds"),
+            ),
+            (
+                Timedelta("1 days 45.000000012 seconds"),
+                Timedelta("10ns"),
+                Timedelta("1 days 45.000000010 seconds"),
+            ),
+        ],
+    )
+    def test_floor_timedelta_freq(self, timedelta, freq_td, expected):
+        # GH#63687 - Timedelta.floor accepts Timedelta arguments (including edge cases)
+        result = timedelta.floor(freq_td)
+        assert result == expected
+
+    @pytest.mark.parametrize(
+        "timedelta, freq_td, expected",
+        [
+            (Timedelta("1001ms"), Timedelta("1s"), Timedelta("2s")),
+            (Timedelta("1001ms"), Timedelta("1ms"), Timedelta("1001ms")),
+            (
+                Timedelta("1 days 2 min 3 us 42 ns"),
+                Timedelta("1s"),
+                Timedelta("1 days 2 min 1s"),
+            ),
+            (
+                Timedelta("5 hours 9 minutes 15.13 seconds"),
+                Timedelta("1 hour"),
+                Timedelta("6 hours"),
+            ),
+            (
+                Timedelta("5 hours 9 minutes 15.13 seconds"),
+                Timedelta("1 hour 30 min"),
+                Timedelta("6 hours"),
+            ),
+            # Edge cases
+            (
+                Timedelta("1 days 45 seconds"),
+                Timedelta("15s"),
+                Timedelta("1 days 45 seconds"),
+            ),
+            (
+                Timedelta("1 days 1.000000012 seconds"),
+                Timedelta("10ns"),
+                Timedelta("1 days 1.000000020 seconds"),
+            ),
+        ],
+    )
+    def test_ceil_timedelta_freq(self, timedelta, freq_td, expected):
+        # GH#63687 - Timedelta.ceil accepts Timedelta arguments (including edge cases)
+        result = timedelta.ceil(freq_td)
+        assert result == expected

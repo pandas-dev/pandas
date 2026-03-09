@@ -91,6 +91,96 @@ class TestTimestampRound:
             stamp.round("foo")
 
     @pytest.mark.parametrize(
+        "timestamp, freq_td, expected",
+        [
+            ("20130101 09:10:11", Timedelta("1 day"), "20130101"),
+            ("20130101 19:10:11", Timedelta("1 day"), "20130102"),
+            ("2000-01-05 05:09:15.13", Timedelta("1 day"), "2000-01-05 00:00:00"),
+            ("2000-01-05 05:09:15.13", Timedelta("1 hour"), "2000-01-05 05:00:00"),
+            ("2000-01-05 05:09:15.13", Timedelta("1 second"), "2000-01-05 05:09:15"),
+            (
+                "2000-01-05 05:09:15.13",
+                Timedelta("1 hour 30 min"),
+                "2000-01-05 04:30:00",
+            ),
+        ],
+    )
+    def test_round_timedelta_freq(self, timestamp, freq_td, expected):
+        # GH#63687 - Timestamp.round accepts Timedelta arguments
+        dt = Timestamp(timestamp)
+        result = dt.round(freq_td)
+        expected = Timestamp(expected)
+        assert result == expected
+
+    @pytest.mark.parametrize(
+        "timestamp, freq_td, expected",
+        [
+            ("20130101 09:10:11", Timedelta("1 day"), "20130101"),
+            ("20130101 19:10:11", Timedelta("1 day"), "20130101"),
+            ("2000-01-05 05:09:15.13", Timedelta("1 day"), "2000-01-05 00:00:00"),
+            ("2000-01-05 05:09:15.13", Timedelta("1 hour"), "2000-01-05 05:00:00"),
+            ("2000-01-05 05:09:15.13", Timedelta("1 second"), "2000-01-05 05:09:15"),
+            (
+                "2000-01-05 05:09:15.13",
+                Timedelta("1 hour 30 min"),
+                "2000-01-05 04:30:00",
+            ),
+            # Edge cases
+            ("2117-01-01 00:00:45", Timedelta("15s"), "2117-01-01 00:00:45"),
+            (
+                "2117-01-01 00:00:45.000000012",
+                Timedelta("10ns"),
+                "2117-01-01 00:00:45.000000010",
+            ),
+            ("1823-01-01 00:00:01", Timedelta("1s"), "1823-01-01 00:00:01"),
+            ("NaT", Timedelta("1s"), "NaT"),
+        ],
+    )
+    def test_floor_timedelta_freq(self, timestamp, freq_td, expected):
+        # GH#63687 - Timestamp.floor accepts Timedelta arguments (including edge cases)
+        dt = Timestamp(timestamp)
+        if dt is NaT:
+            assert dt.floor(freq_td) is NaT
+        else:
+            result = dt.floor(freq_td)
+            expected = Timestamp(expected)
+            assert result == expected
+
+    @pytest.mark.parametrize(
+        "timestamp, freq_td, expected",
+        [
+            ("20130101 09:10:11", Timedelta("1 day"), "20130102"),
+            ("20130101 19:10:11", Timedelta("1 day"), "20130102"),
+            ("2000-01-05 05:09:15.13", Timedelta("1 day"), "2000-01-06 00:00:00"),
+            ("2000-01-05 05:09:15.13", Timedelta("1 hour"), "2000-01-05 06:00:00"),
+            ("2000-01-05 05:09:15.13", Timedelta("1 second"), "2000-01-05 05:09:16"),
+            (
+                "2000-01-05 05:09:15.13",
+                Timedelta("1 hour 30 min"),
+                "2000-01-05 06:00:00",
+            ),
+            # Edge cases
+            ("2117-01-01 00:00:45", Timedelta("15s"), "2117-01-01 00:00:45"),
+            (
+                "1823-01-01 00:00:01.000000012",
+                Timedelta("10ns"),
+                "1823-01-01 00:00:01.000000020",
+            ),
+            ("1823-01-01 00:00:01", Timedelta("1s"), "1823-01-01 00:00:01"),
+            ("NaT", Timedelta("1s"), "NaT"),
+        ],
+    )
+    def test_ceil_timedelta_freq(self, timestamp, freq_td, expected):
+        # GH#63687 - Timestamp.ceil accepts Timedelta arguments (including edge cases)
+        dt = Timestamp(timestamp)
+        if dt is NaT:
+            assert dt.ceil(freq_td) is NaT
+        else:
+            result = dt.ceil(freq_td)
+            expected = Timestamp(expected)
+            assert result == expected
+
+    @pytest.mark.parametrize(
         "test_input, rounder, freq, expected",
         [
             ("2117-01-01 00:00:45", "floor", "15s", "2117-01-01 00:00:45"),

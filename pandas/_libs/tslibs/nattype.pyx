@@ -1352,8 +1352,8 @@ class NaTType(_NaT):
 
         Parameters
         ----------
-        freq : str
-            Frequency string indicating the rounding resolution.
+        freq : str or timedelta
+            Frequency string or timedelta value indicating the rounding resolution.
         ambiguous : bool or {'raise', 'NaT'}, default 'raise'
             The behavior is as follows:
 
@@ -1429,6 +1429,11 @@ timedelta}, default 'raise'
         >>> ts.round(freq='1h30min')
         Timestamp('2020-03-14 15:00:00')
 
+        ``freq`` can also be a timedelta value:
+
+        >>> ts.round(freq=pd.Timedelta('1h30min'))
+        Timestamp('2020-03-14 15:00:00')
+
         Analogous for ``pd.NaT``:
 
         >>> pd.NaT.round()
@@ -1457,8 +1462,8 @@ timedelta}, default 'raise'
 
         Parameters
         ----------
-        freq : str
-            Frequency string indicating the flooring resolution.
+        freq : str or timedelta
+            Frequency string or timedelta value indicating the flooring resolution.
         ambiguous : bool or {'raise', 'NaT'}, default 'raise'
             The behavior is as follows:
 
@@ -1528,6 +1533,11 @@ timedelta}, default 'raise'
         >>> ts.floor(freq='1h30min')
         Timestamp('2020-03-14 15:00:00')
 
+        ``freq`` can also be a timedelta value:
+
+        >>> ts.floor(freq=pd.Timedelta('1h30min'))
+        Timestamp('2020-03-14 15:00:00')
+
         Analogous for ``pd.NaT``:
 
         >>> pd.NaT.floor()
@@ -1556,8 +1566,8 @@ timedelta}, default 'raise'
 
         Parameters
         ----------
-        freq : str
-            Frequency string indicating the ceiling resolution.
+        freq : str or timedelta
+            Frequency string or timedelta value indicating the ceiling resolution.
         ambiguous : bool or {'raise', 'NaT'}, default 'raise'
             The behavior is as follows:
 
@@ -1625,6 +1635,11 @@ timedelta}, default 'raise'
         or a combination of multiple units, like '1h30min' (i.e. 1 hour and 30 minutes):
 
         >>> ts.ceil(freq='1h30min')
+        Timestamp('2020-03-14 16:30:00')
+
+        ``freq`` can also be a timedelta value:
+
+        >>> ts.ceil(freq=pd.Timedelta('1h30min'))
         Timestamp('2020-03-14 16:30:00')
 
         Analogous for ``pd.NaT``:
