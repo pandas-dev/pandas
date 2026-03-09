@@ -443,17 +443,10 @@ filterwarnings = [
   # Ignore 3rd party EncodingWarning but raise on pandas'
   "ignore:.*encoding.* argument not specified:EncodingWarning",
   "error:.*encoding.* argument not specified:EncodingWarning:pandas",
-  #"ignore:.*ssl.SSLSocket:pytest.PytestUnraisableExceptionWarning",
-  #"ignore:.*ssl.SSLSocket:ResourceWarning",
-  ## GH#44844 - 3rd party libraries not closing file handles
-  #"ignore:.*FileIO:pytest.PytestUnraisableExceptionWarning",
-  #"ignore::ResourceWarning:asyncio",
+  # From fastparquet - test_read_filters_fastparquet
+  "ignore:.*FileIO:pytest.PytestUnraisableExceptionWarning",
   # From plotting doctests
   "ignore:More than 20 figures have been opened:RuntimeWarning",
-  #"ignore:.*urllib3:DeprecationWarning:botocore",
-  #"ignore:Setuptools is replacing distutils.:UserWarning:_distutils_hack",
-  # https://github.com/PyTables/PyTables/issues/822
-  #"ignore:a closed node found in the registry:UserWarning:tables",
   "ignore:BuiltinImporter.module_repr() is deprecated and slated for removal in Python 3.12:DeprecationWarning",
   "ignore:Bitwise inversion:DeprecationWarning",
   # Raised by coverage in PY3.14+
