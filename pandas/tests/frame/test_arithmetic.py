@@ -1200,13 +1200,18 @@ class TestFrameArithmetic:
         tm.assert_frame_equal(result, expected)
 
     def test_div_axis_level_multiindex_columns(self):
+        # GH#64428
         x = DataFrame(
-            np.arange(30).reshape(5, 6),
-            columns=MultiIndex.from_product((list("XY"), list("ABC"))),
+            [[1, 2, 3, 4], [5, 6, 7, 8]],
+            columns=MultiIndex.from_product((["X", "Y"], ["A", "B"])),
         )
-        y = DataFrame(np.arange(15).reshape(5, 3), columns=list("ABC"))
+        y = DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
         result = x.div(y, axis=1, level=1)
-        assert result.notna().any().any()
+        expected = DataFrame(
+            [[1 / 1, 2 / 2, 3 / 1, 4 / 2], [5 / 3, 6 / 4, 7 / 3, 8 / 4]],
+            columns=MultiIndex.from_product((["X", "Y"], ["A", "B"])),
+        )
+        tm.assert_frame_equal(result, expected)
 
 
 def test_frame_with_zero_len_series_corner_cases():
