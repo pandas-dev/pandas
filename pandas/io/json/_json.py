@@ -105,6 +105,7 @@ def to_json(
     orient: str | None = ...,
     date_format: str = ...,
     double_precision: int = ...,
+    force_scientific_notation: bool = ...,
     force_ascii: bool = ...,
     date_unit: str = ...,
     default_handler: Callable[[Any], JSONSerializable] | None = ...,
@@ -124,6 +125,7 @@ def to_json(
     orient: str | None = ...,
     date_format: str = ...,
     double_precision: int = ...,
+    force_scientific_notation: bool = ...,
     force_ascii: bool = ...,
     date_unit: str = ...,
     default_handler: Callable[[Any], JSONSerializable] | None = ...,
@@ -142,6 +144,7 @@ def to_json(
     orient: str | None = None,
     date_format: str = "epoch",
     double_precision: int = 10,
+    force_scientific_notation: bool = False,
     force_ascii: bool = True,
     date_unit: str = "ms",
     default_handler: Callable[[Any], JSONSerializable] | None = None,
@@ -233,6 +236,7 @@ def to_json(
         orient=orient,
         date_format=date_format,
         double_precision=double_precision,
+        force_scientific_notation=force_scientific_notation,
         ensure_ascii=force_ascii,
         date_unit=date_unit,
         default_handler=default_handler,
@@ -263,6 +267,7 @@ class Writer(ABC):
         orient: str | None,
         date_format: str,
         double_precision: int,
+        force_scientific_notation: bool,
         ensure_ascii: bool,
         date_unit: str,
         index: bool,
@@ -277,6 +282,7 @@ class Writer(ABC):
         self.orient = orient
         self.date_format = date_format
         self.double_precision = double_precision
+        self.force_scientific_notation = force_scientific_notation
         self.ensure_ascii = ensure_ascii
         self.date_unit = date_unit
         self.default_handler = default_handler
@@ -293,6 +299,7 @@ class Writer(ABC):
             self.obj_to_write,
             orient=self.orient,
             double_precision=self.double_precision,
+            force_scientific_notation=self.force_scientific_notation,
             ensure_ascii=self.ensure_ascii,
             date_unit=self.date_unit,
             iso_dates=iso_dates,
@@ -360,6 +367,7 @@ class JSONTableWriter(FrameWriter):
         orient: str | None,
         date_format: str,
         double_precision: int,
+        force_scientific_notation: bool,
         ensure_ascii: bool,
         date_unit: str,
         index: bool,
@@ -377,6 +385,7 @@ class JSONTableWriter(FrameWriter):
             orient,
             date_format,
             double_precision,
+            force_scientific_notation,
             ensure_ascii,
             date_unit,
             index,

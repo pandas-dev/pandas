@@ -804,6 +804,22 @@ int Buffer_AppendDoubleUnchecked(JSOBJ obj, JSONObjectEncoder *enc,
     return FALSE;
   }
 
+  /* Check if forced scientific notation is required */
+  if (enc->forceScientific) {
+    precision_str[0] = '%';
+    precision_str[1] = '.';
+#if defined(_WIN32) && defined(_MSC_VER)
+    sprintf_s(precision_str + 2, sizeof(precision_str) - 2, "%ue",
+              enc->doublePrecision);
+    enc->offset += sprintf_s(str, enc->end - enc->offset, precision_str, value);
+#else
+    snprintf(precision_str + 2, sizeof(precision_str) - 2, "%ue",
+             enc->doublePrecision);
+    enc->offset += snprintf(str, enc->end - enc->offset, precision_str, value);
+#endif
+    return TRUE;
+  }
+
   /* we'll work in positive values and deal with the
   negative sign issue later */
   neg = 0;

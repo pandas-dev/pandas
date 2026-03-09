@@ -180,6 +180,15 @@ class TestUltraJSONTests:
             assert rounded_input == json.loads(output)
             assert rounded_input == ujson.ujson_loads(output)
 
+    def test_scientific_double_range(self):
+        for i in range(-100, 100):
+            double_input = float(f"1.234567890123456e{i}")
+            output = ujson.ujson_dumps(
+                double_input, double_precision=15, force_scientific_notation=True
+            )
+            assert double_input == json.loads(output)
+            assert math.isclose(double_input, ujson.ujson_loads(output))
+
     @pytest.mark.parametrize(
         "invalid_val",
         [
