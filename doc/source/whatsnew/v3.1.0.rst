@@ -29,6 +29,7 @@ enhancement2
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 - :meth:`.DataFrameGroupBy.agg` now allows for the provided ``func`` to return a NumPy array (:issue:`63957`)
+- Added :meth:`ExtensionArray.count` (:issue:`64450`)
 - Display formatting for float sequences in DataFrame cells now respects the ``display.precision`` option (:issue:`60503`).
 
 .. ---------------------------------------------------------------------------
@@ -105,6 +106,7 @@ Performance improvements
 - Performance improvement in :meth:`DataFrame.__getitem__` when selecting a
   single column by label on a :class:`DataFrame` with duplicate column names.
   (:issue:`64126`).
+- Performance improvement in :func:`infer_freq` (:issue:`64463`)
 - Performance improvement in :func:`merge` with ``how="left"`` (:issue:`64370`)
 - Performance improvement in :meth:`GroupBy.quantile` (:issue:`64330`)
 
@@ -122,7 +124,7 @@ Categorical
 
 Datetimelike
 ^^^^^^^^^^^^
--
+- Bug in :class:`Timestamp` constructor, :class:`Timedelta` constructor, :func:`to_datetime`, and :func:`to_timedelta` with non-round ``float`` input and ``unit`` failing to raise when the value is just outside the representable bounds (:issue:`57366`)
 -
 
 Timedelta
@@ -137,8 +139,8 @@ Timezones
 
 Numeric
 ^^^^^^^
+- Fixed bug in :func:`read_excel` where having a column with mixture of numeric and boolean values will typecast the values based on the first appearance data type since 1==True and 0==False (:issue:`60088`)
 - Fixed bug in :meth:`Series.clip` where passing a scalar numpy array (e.g. ``np.array(0)``) would raise a ``TypeError`` (:issue:`59053`)
--
 
 Conversion
 ^^^^^^^^^^
