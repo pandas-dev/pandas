@@ -2490,8 +2490,13 @@ def maybe_convert_numeric(
                 if isinstance(val, str):
                     try:
                         as_int = int(val)
-                        maybe_int = 1
-                        fval = <float64_t>as_int
+
+                        if oINT64_MIN <= as_int <= oINT64_MAX:
+                            maybe_int = 1
+                            fval = <float64_t>as_int
+                        else:
+                            floatify(val, &fval, &maybe_int)
+
                     except (TypeError, ValueError):
                         floatify(val, &fval, &maybe_int)
                 else:
