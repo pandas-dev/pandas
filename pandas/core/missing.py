@@ -104,7 +104,7 @@ def mask_missing(arr: ArrayLike, value) -> npt.NDArray[np.bool_]:
             # GH#55127
             if isinstance(arr.dtype, BaseMaskedDtype):
                 # error: "ExtensionArray" has no attribute "_data"  [attr-defined]
-                mask = np.isnan(arr._data) & ~arr.isna()  # type: ignore[attr-defined,operator]
+                mask = np.isnan(arr._data) & ~arr.isna()  # type: ignore[attr-defined]
                 return mask
             else:
                 # error: "ExtensionArray" has no attribute "_pa_array"  [attr-defined]
