@@ -426,10 +426,10 @@ class ExponentialMovingWindow(BaseWindow):
         engine_kwargs : dict, default None
             Applies to all supported aggregation methods.
 
-            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+            * For ``'numba'`` engine, the engine can accept  ``nogil``
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-              ``{'nopython': True, 'nogil': False, 'parallel': False}`` and will be
+              ``{'nogil': False, 'parallel': False}`` and will be
               applied to the function
 
         Returns
@@ -551,10 +551,10 @@ class ExponentialMovingWindow(BaseWindow):
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
-            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+            * For ``'numba'`` engine, the engine can accept  ``nogil``
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-              ``{'nopython': True, 'nogil': False, 'parallel': False}``
+              ``{'nogil': False, 'parallel': False}``
 
         Returns
         -------
@@ -638,10 +638,10 @@ class ExponentialMovingWindow(BaseWindow):
               ``compute.use_numba``
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
-            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+            * For ``'numba'`` engine, the engine can accept  ``nogil``
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-              ``{'nopython': True, 'nogil': False, 'parallel': False}``
+              ``{'nogil': False, 'parallel': False}``
 
         Returns
         -------
