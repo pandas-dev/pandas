@@ -812,6 +812,54 @@ class TestMergeMulti:
         tm.assert_frame_equal(result, expected)
 
 
+class TestMergeMultiIndexNaN:
+    def test_merge_multiindex_nan_right_index(self):
+        # GH#XXXXX - merge with right MultiIndex containing NaN used
+        # lev.take(codes) which mapped -1 codes to the last level value
+        # instead of NaN
+        left = DataFrame(
+            {"key1": [1.0, np.nan, 3.0], "key2": ["a", "b", "c"], "val": [10, 20, 30]}
+        )
+        right = DataFrame(
+            {"data": [100, 200, 300]},
+            index=MultiIndex.from_arrays(
+                [[1.0, np.nan, 3.0], ["a", "b", "c"]], names=["key1", "key2"]
+            ),
+        )
+        result = merge(left, right, left_on=["key1", "key2"], right_index=True)
+        expected = DataFrame(
+            {
+                "key1": [1.0, np.nan, 3.0],
+                "key2": ["a", "b", "c"],
+                "val": [10, 20, 30],
+                "data": [100, 200, 300],
+            },
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_merge_multiindex_nan_left_index(self):
+        # Same bug but for the left_index=True, right_on=... code path
+        left = DataFrame(
+            {"data": [100, 200, 300]},
+            index=MultiIndex.from_arrays(
+                [[1.0, np.nan, 3.0], ["a", "b", "c"]], names=["key1", "key2"]
+            ),
+        )
+        right = DataFrame(
+            {"key1": [1.0, np.nan, 3.0], "key2": ["a", "b", "c"], "val": [10, 20, 30]}
+        )
+        result = merge(left, right, left_index=True, right_on=["key1", "key2"])
+        expected = DataFrame(
+            {
+                "data": [100, 200, 300],
+                "key1": [1.0, np.nan, 3.0],
+                "key2": ["a", "b", "c"],
+                "val": [10, 20, 30],
+            },
+        )
+        tm.assert_frame_equal(result, expected)
+
+
 class TestJoinMultiMulti:
     def test_join_multi_multi(self, left_multi, right_multi, join_type, on_cols_multi):
         left_names = left_multi.index.names
