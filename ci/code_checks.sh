@@ -74,9 +74,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.IntervalDtype.subtype ES01" \
         -i "pandas.read_html ES01" \
         -i "pandas.read_xml ES01" \
-        -i "pandas.HDFStore.get ES01" \
-        -i "pandas.HDFStore.info ES01" \
-        -i "pandas.HDFStore.keys ES01" \
         -i "pandas.Index.argsort ES01" \
         -i "pandas.Index.append ES01" \
         -i "pandas.Index.join ES01" \
