@@ -234,7 +234,7 @@ class TestCrosstab:
             [("one", "dull"), ("one", "shiny"), ("two", "dull"), ("two", "shiny")],
             names=["b", "c"],
         )
-        tm.assert_index_equal(res.columns, m)
+        tm.assert_index_equal(res.columns, m, exact=True)
 
     def test_crosstab_no_overlap(self):
         # GS 10291

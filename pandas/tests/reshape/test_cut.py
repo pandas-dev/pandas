@@ -88,10 +88,10 @@ def test_bins_from_interval_index_doc_example():
     ages = np.array([10, 15, 13, 12, 23, 25, 28, 59, 60])
     c = cut(ages, bins=[0, 18, 35, 70])
     expected = IntervalIndex.from_tuples([(0, 18), (18, 35), (35, 70)])
-    tm.assert_index_equal(c.categories, expected)
+    tm.assert_index_equal(c.categories, expected, exact=True)
 
     result = cut([25, 20, 50], bins=c.categories)
-    tm.assert_index_equal(result.categories, expected)
+    tm.assert_index_equal(result.categories, expected, exact=True)
     tm.assert_numpy_array_equal(result.codes, np.array([1, 1, 2], dtype="int8"))
 
 
@@ -165,7 +165,7 @@ def test_bins_not_monotonic():
 def test_bins_monotonic_not_overflowing(x, bins, expected):
     # GH 26045
     result = cut(x, bins)
-    tm.assert_index_equal(result.categories, expected)
+    tm.assert_index_equal(result.categories, expected, exact=True)
 
 
 def test_wrong_num_labels():
@@ -234,7 +234,7 @@ def test_labels(right, breaks, closed):
 
     result, bins = cut(arr, 4, retbins=True, right=right)
     ex_levels = IntervalIndex.from_breaks(breaks, closed=closed)
-    tm.assert_index_equal(result.categories, ex_levels)
+    tm.assert_index_equal(result.categories, ex_levels, exact=True)
 
 
 def test_cut_pass_series_name_to_factor():
@@ -250,7 +250,7 @@ def test_label_precision():
     result = cut(arr, 4, precision=2)
 
     ex_levels = IntervalIndex.from_breaks([-0.00072, 0.18, 0.36, 0.54, 0.72])
-    tm.assert_index_equal(result.categories, ex_levels)
+    tm.assert_index_equal(result.categories, ex_levels, exact=True)
 
 
 @pytest.mark.parametrize("labels", [None, False])
@@ -274,7 +274,7 @@ def test_inf_handling():
     result_ser = cut(data_ser, bins)
 
     ex_uniques = IntervalIndex.from_breaks(bins)
-    tm.assert_index_equal(result.categories, ex_uniques)
+    tm.assert_index_equal(result.categories, ex_uniques, exact=True)
 
     assert result[5] == Interval(4, np.inf)
     assert result[0] == Interval(-np.inf, 2)
@@ -620,7 +620,7 @@ def test_datetime_cut_roundtrip(tz, unit):
             dtype=f"M8[{unit}]",
         )
     expected_bins = expected_bins.tz_localize(tz)
-    tm.assert_index_equal(result_bins, expected_bins)
+    tm.assert_index_equal(result_bins, expected_bins, exact=True)
 
 
 def test_timedelta_cut_roundtrip():
@@ -634,7 +634,7 @@ def test_timedelta_cut_roundtrip():
     expected_bins = TimedeltaIndex(
         ["0 days 23:57:07.200000", "2 days 00:00:00", "3 days 00:00:00"]
     )
-    tm.assert_index_equal(result_bins, expected_bins)
+    tm.assert_index_equal(result_bins, expected_bins, exact=True)
 
 
 @pytest.mark.parametrize("bins", [6, 7])

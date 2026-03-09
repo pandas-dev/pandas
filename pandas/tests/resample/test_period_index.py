@@ -367,7 +367,7 @@ class TestPeriodIndex:
             nonexistent="shift_forward",
             inclusive="left",
         )
-        tm.assert_index_equal(result.index, expected)
+        tm.assert_index_equal(result.index, expected, exact=True)
 
     def test_resample_ambiguous_time_bin_edge(self):
         # GH 10117
@@ -589,7 +589,7 @@ class TestPeriodIndex:
 
         ex_index = date_range(start="1/1/2012 9:30", freq="10min", periods=3)
 
-        tm.assert_index_equal(result.index, ex_index)
+        tm.assert_index_equal(result.index, ex_index, exact=True)
         tm.assert_series_equal(result, exp)
 
     def test_quarterly_resampling(self):

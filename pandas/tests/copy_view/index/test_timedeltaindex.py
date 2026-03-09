@@ -25,7 +25,7 @@ def test_timedeltaindex(cons):
     idx = cons(ser)
     expected = idx.copy(deep=True)
     ser.iloc[0] = Timedelta("5 days")
-    tm.assert_index_equal(idx, expected)
+    tm.assert_index_equal(idx, expected, exact=True)
 
 
 def test_constructor_copy_input_timedelta_ndarray_default():

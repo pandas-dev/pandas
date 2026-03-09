@@ -183,7 +183,7 @@ class TestCategoricalConcat:
 
         result = pd.concat([df1, df2])
         expected = DataFrame(
-            {"x": Series([datetime(2021, 1, 1), datetime(2021, 1, 2)])}
+            {"x": Series([datetime(2021, 1, 1), datetime(2021, 1, 2)])}, index=[0, 1]
         )
 
         tm.assert_equal(result, expected)
@@ -213,11 +213,17 @@ class TestCategoricalConcat:
         df1 = df[0:3]
         df2 = df[3:]
 
-        tm.assert_index_equal(df["grade"].cat.categories, df1["grade"].cat.categories)
-        tm.assert_index_equal(df["grade"].cat.categories, df2["grade"].cat.categories)
+        tm.assert_index_equal(
+            df["grade"].cat.categories, df1["grade"].cat.categories, exact=True
+        )
+        tm.assert_index_equal(
+            df["grade"].cat.categories, df2["grade"].cat.categories, exact=True
+        )
 
         dfx = pd.concat([df1, df2])
-        tm.assert_index_equal(df["grade"].cat.categories, dfx["grade"].cat.categories)
+        tm.assert_index_equal(
+            df["grade"].cat.categories, dfx["grade"].cat.categories, exact=True
+        )
 
     def test_categorical_index_upcast(self):
         # GH 17629

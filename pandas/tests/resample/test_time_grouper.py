@@ -79,7 +79,7 @@ def test_apply_iteration():
 
     # it works!
     result = grouped.apply(f)
-    tm.assert_index_equal(result.index, df.index)
+    tm.assert_index_equal(result.index, df.index, exact=True)
 
 
 @pytest.mark.parametrize(

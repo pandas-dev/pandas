@@ -19,7 +19,7 @@ def test_datetimeindex(box):
     idx = box(DatetimeIndex(ser))
     expected = idx.copy(deep=True)
     ser.iloc[0] = Timestamp("2020-12-31")
-    tm.assert_index_equal(idx, expected)
+    tm.assert_index_equal(idx, expected, exact=True)
 
 
 def test_datetimeindex_tz_convert():
@@ -28,7 +28,7 @@ def test_datetimeindex_tz_convert():
     idx = DatetimeIndex(ser).tz_convert("US/Eastern")
     expected = idx.copy(deep=True)
     ser.iloc[0] = Timestamp("2020-12-31", tz="Europe/Berlin")
-    tm.assert_index_equal(idx, expected)
+    tm.assert_index_equal(idx, expected, exact=True)
 
 
 def test_datetimeindex_tz_localize():
@@ -37,7 +37,7 @@ def test_datetimeindex_tz_localize():
     idx = DatetimeIndex(ser).tz_localize("Europe/Berlin")
     expected = idx.copy(deep=True)
     ser.iloc[0] = Timestamp("2020-12-31")
-    tm.assert_index_equal(idx, expected)
+    tm.assert_index_equal(idx, expected, exact=True)
 
 
 def test_datetimeindex_isocalendar():
@@ -46,7 +46,7 @@ def test_datetimeindex_isocalendar():
     df = DatetimeIndex(ser).isocalendar()
     expected = df.index.copy(deep=True)
     ser.iloc[0] = Timestamp("2020-12-31")
-    tm.assert_index_equal(df.index, expected)
+    tm.assert_index_equal(df.index, expected, exact=True)
 
 
 def test_index_values():

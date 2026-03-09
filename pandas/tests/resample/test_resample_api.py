@@ -143,17 +143,21 @@ def test_pipe(test_frame, _test_series):
 
 def test_getitem(test_frame):
     r = test_frame.resample("h")
-    tm.assert_index_equal(r._selected_obj.columns, test_frame.columns)
+    tm.assert_index_equal(r._selected_obj.columns, test_frame.columns, exact=True)
 
     r = test_frame.resample("h")["B"]
     assert r._selected_obj.name == test_frame.columns[1]
 
     # technically this is allowed
     r = test_frame.resample("h")["A", "B"]
-    tm.assert_index_equal(r._selected_obj.columns, test_frame.columns[[0, 1]])
+    tm.assert_index_equal(
+        r._selected_obj.columns, test_frame.columns[[0, 1]], exact=True
+    )
 
     r = test_frame.resample("h")["A", "B"]
-    tm.assert_index_equal(r._selected_obj.columns, test_frame.columns[[0, 1]])
+    tm.assert_index_equal(
+        r._selected_obj.columns, test_frame.columns[[0, 1]], exact=True
+    )
 
 
 @pytest.mark.parametrize("key", [["D"], ["A", "D"]])

@@ -42,7 +42,7 @@ class TestDataFrameIndexing:
         # Column access
         for _, series in sl.items():
             assert len(series.index) == 20
-            tm.assert_index_equal(series.index, sl.index)
+            tm.assert_index_equal(series.index, sl.index, exact=True)
 
         for key, _ in float_frame._series.items():
             assert float_frame[key] is not None
@@ -124,7 +124,7 @@ class TestDataFrameIndexing:
         subindex = datetime_frame.index[indexer]
         subframe = datetime_frame[indexer]
 
-        tm.assert_index_equal(subindex, subframe.index)
+        tm.assert_index_equal(subindex, subframe.index, exact=True)
         with pytest.raises(ValueError, match="Item wrong length"):
             datetime_frame[indexer[:-1]]
 

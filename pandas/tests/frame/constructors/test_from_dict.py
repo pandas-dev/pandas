@@ -173,7 +173,7 @@ class TestFromDict:
         # GH#16769
         df = DataFrame.from_dict(data_dict, orient)
         result = df.columns
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
     def test_frame_dict_constructor_empty_series(self):
         s1 = Series(

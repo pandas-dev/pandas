@@ -166,4 +166,4 @@ class BaseGroupbyTests:
             with pytest.raises(TypeError, match=msg):
                 df.groupby("A").sum()
             result = df.groupby("A").sum(numeric_only=True).columns
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)

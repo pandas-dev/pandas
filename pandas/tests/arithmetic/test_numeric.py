@@ -386,7 +386,7 @@ class TestDivisionByZero:
         expected2 = adjust_negative_zero(zero, expected)
 
         result = idx / zero
-        tm.assert_index_equal(result, expected2)
+        tm.assert_index_equal(result, expected2, exact=True)
         ser_compat = Series(idx).astype("i8") / np.array(zero).astype("i8")
         tm.assert_series_equal(ser_compat, Series(expected))
 
@@ -399,7 +399,7 @@ class TestDivisionByZero:
         expected2 = adjust_negative_zero(zero, expected)
 
         result = idx // zero
-        tm.assert_index_equal(result, expected2)
+        tm.assert_index_equal(result, expected2, exact=True)
         ser_compat = Series(idx).astype("i8") // np.array(zero).astype("i8")
         tm.assert_series_equal(ser_compat, Series(expected))
 
@@ -408,7 +408,7 @@ class TestDivisionByZero:
 
         expected = Index([np.nan, np.nan, np.nan, np.nan, np.nan], dtype=np.float64)
         result = idx % zero
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
         ser_compat = Series(idx).astype("i8") % np.array(zero).astype("i8")
         tm.assert_series_equal(ser_compat, Series(result))
 
@@ -420,8 +420,8 @@ class TestDivisionByZero:
         exleft = adjust_negative_zero(zero, exleft)
 
         result = divmod(idx, zero)
-        tm.assert_index_equal(result[0], exleft)
-        tm.assert_index_equal(result[1], exright)
+        tm.assert_index_equal(result[0], exleft, exact=True)
+        tm.assert_index_equal(result[1], exright, exact=True)
 
     @pytest.mark.parametrize("op", [operator.truediv, operator.floordiv])
     def test_div_negative_zero(self, zero, numeric_idx, op):
@@ -434,7 +434,7 @@ class TestDivisionByZero:
         expected = adjust_negative_zero(zero, expected)
 
         result = op(idx, zero)
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
     # ------------------------------------------------------------------
 
@@ -693,11 +693,11 @@ class TestMultiplicationDivision:
         idx = numeric_idx
         result = idx / 1
         expected = idx.astype("float64")
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
         result = idx / 2
         expected = Index(idx.values / 2)
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
     @pytest.mark.parametrize("op", [operator.mul, ops.rmul, operator.floordiv])
     def test_mul_int_identity(self, op, numeric_idx, box_with_array):
@@ -712,11 +712,11 @@ class TestMultiplicationDivision:
         didx = idx * idx
 
         result = idx * np.array(5, dtype="int64")
-        tm.assert_index_equal(result, idx * 5)
+        tm.assert_index_equal(result, idx * 5, exact=True)
 
         arr_dtype = "uint64" if idx.dtype == np.uint64 else "int64"
         result = idx * np.arange(5, dtype=arr_dtype)
-        tm.assert_index_equal(result, didx)
+        tm.assert_index_equal(result, didx, exact=True)
 
     def test_mul_int_series(self, numeric_idx):
         idx = numeric_idx
@@ -738,7 +738,7 @@ class TestMultiplicationDivision:
         idx = numeric_idx
 
         result = idx * idx
-        tm.assert_index_equal(result, idx**2)
+        tm.assert_index_equal(result, idx**2, exact=True)
 
     def test_mul_datelike_raises(self, numeric_idx):
         idx = numeric_idx
@@ -788,7 +788,7 @@ class TestMultiplicationDivision:
 
         expected = Index(div), Index(mod)
         for r, e in zip(result, expected, strict=True):
-            tm.assert_index_equal(r, e)
+            tm.assert_index_equal(r, e, exact=True)
 
     def test_divmod_ndarray(self, numeric_idx):
         idx = numeric_idx
@@ -800,7 +800,7 @@ class TestMultiplicationDivision:
 
         expected = Index(div), Index(mod)
         for r, e in zip(result, expected, strict=True):
-            tm.assert_index_equal(r, e)
+            tm.assert_index_equal(r, e, exact=True)
 
     def test_divmod_series(self, numeric_idx):
         idx = numeric_idx
@@ -1114,7 +1114,9 @@ class TestAdditionSubtraction:
             tm.assert_almost_equal(np.asarray(result), expected)
 
             assert result.name == series.name
-            tm.assert_index_equal(result.index, series.index._with_freq(None))
+            tm.assert_index_equal(
+                result.index, series.index._with_freq(None), exact=True
+            )
 
     def test_series_divmod_zero(self):
         # Check that divmod uses pandas convention for division by zero,
@@ -1456,15 +1458,15 @@ class TestNumericArithmeticUnsorted:
         index = Index([10, 11, 12], dtype=dtype)
         result = index + delta
         expected = Index(index.values + delta, dtype=dtype)
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
         # this subtraction used to fail
         result = index - delta
         expected = Index(index.values - delta, dtype=dtype)
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
-        tm.assert_index_equal(index + index, 2 * index)
-        tm.assert_index_equal(index - index, 0 * index)
+        tm.assert_index_equal(index + index, 2 * index, exact=True)
+        tm.assert_index_equal(index - index, 0 * index, exact=True)
         assert not (index - index).empty
 
     def test_pow_nan_with_zero(self, box_with_array):

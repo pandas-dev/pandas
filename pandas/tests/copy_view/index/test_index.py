@@ -25,7 +25,7 @@ def test_set_index_update_column():
     df = df.set_index("a", drop=False)
     expected = df.index.copy(deep=True)
     df.iloc[0, 0] = 100
-    tm.assert_index_equal(df.index, expected)
+    tm.assert_index_equal(df.index, expected, exact=True)
 
 
 def test_set_index_drop_update_column():
@@ -34,7 +34,7 @@ def test_set_index_drop_update_column():
     df = df.set_index("a", drop=True)
     expected = df.index.copy(deep=True)
     view.iloc[0, 0] = 100
-    tm.assert_index_equal(df.index, expected)
+    tm.assert_index_equal(df.index, expected, exact=True)
 
 
 def test_set_index_series():
@@ -43,7 +43,7 @@ def test_set_index_series():
     df = df.set_index(ser)
     expected = df.index.copy(deep=True)
     ser.iloc[0] = 100
-    tm.assert_index_equal(df.index, expected)
+    tm.assert_index_equal(df.index, expected, exact=True)
 
 
 def test_assign_index_as_series():
@@ -52,7 +52,7 @@ def test_assign_index_as_series():
     df.index = ser
     expected = df.index.copy(deep=True)
     ser.iloc[0] = 100
-    tm.assert_index_equal(df.index, expected)
+    tm.assert_index_equal(df.index, expected, exact=True)
 
 
 def test_assign_index_as_index():
@@ -63,7 +63,7 @@ def test_assign_index_as_index():
     rhs_index = None  # overwrite to clear reference
     expected = df.index.copy(deep=True)
     ser.iloc[0] = 100
-    tm.assert_index_equal(df.index, expected)
+    tm.assert_index_equal(df.index, expected, exact=True)
 
 
 def test_index_from_series():
@@ -71,7 +71,7 @@ def test_index_from_series():
     idx = Index(ser)
     expected = idx.copy(deep=True)
     ser.iloc[0] = 100
-    tm.assert_index_equal(idx, expected)
+    tm.assert_index_equal(idx, expected, exact=True)
 
 
 def test_index_from_series_copy():
@@ -88,7 +88,7 @@ def test_index_from_index():
     idx = Index(idx)
     expected = idx.copy(deep=True)
     ser.iloc[0] = 100
-    tm.assert_index_equal(idx, expected)
+    tm.assert_index_equal(idx, expected, exact=True)
 
 
 @pytest.mark.parametrize(
@@ -123,9 +123,11 @@ def test_index_ops(func, request):
     expected = idx.copy(deep=True)
     if "astype" in request.node.callspec.id:
         expected = expected.astype("Int64")
+    if "repeat" in request.node.callspec.id:
+        expected = expected.repeat([1, 1])
     idx = func(idx)
     view_.iloc[0, 0] = 100
-    tm.assert_index_equal(idx, expected, check_names=False)
+    tm.assert_index_equal(idx, expected, exact=True, check_names=False)
 
 
 def test_infer_objects():
@@ -133,7 +135,7 @@ def test_infer_objects():
     expected = idx.copy(deep=True)
     idx = idx.infer_objects(copy=False)
     view_.iloc[0, 0] = "aaaa"
-    tm.assert_index_equal(idx, expected, check_names=False)
+    tm.assert_index_equal(idx, expected, exact=True, check_names=False)
 
 
 def test_index_to_frame():
@@ -144,7 +146,7 @@ def test_index_to_frame():
     assert not df._mgr._has_no_reference(0)
 
     df.iloc[0, 0] = 100
-    tm.assert_index_equal(idx, expected)
+    tm.assert_index_equal(idx, expected, exact=True)
 
 
 def test_index_values():

@@ -92,8 +92,8 @@ def test_resample_offset_with_timedeltaindex():
     exp_without_base = timedelta_range(start="0s", end="25s", freq="2s")
     exp_with_base = timedelta_range(start="5s", end="29s", freq="2s")
 
-    tm.assert_index_equal(without_base.index, exp_without_base)
-    tm.assert_index_equal(with_base.index, exp_with_base)
+    tm.assert_index_equal(without_base.index, exp_without_base, exact=True)
+    tm.assert_index_equal(with_base.index, exp_with_base, exact=True)
 
 
 def test_resample_categorical_data_with_timedeltaindex():
@@ -149,7 +149,7 @@ def test_resample_timedelta_edge_case(start, end, freq, resample_freq):
     s = Series(np.arange(len(idx)), index=idx)
     result = s.resample(resample_freq).min()
     expected_index = timedelta_range(freq=resample_freq, start=start, end=end)
-    tm.assert_index_equal(result.index, expected_index)
+    tm.assert_index_equal(result.index, expected_index, exact=True)
     assert result.index.freq == expected_index.freq
     assert not np.isnan(result.iloc[-1])
 

@@ -126,8 +126,12 @@ class TestConcatenate:
             names=["group_key"],
         )
 
-        tm.assert_index_equal(result.columns.levels[0], Index(level, name="group_key"))
-        tm.assert_index_equal(result.columns.levels[1], Index([0, 1, 2, 3]))
+        tm.assert_index_equal(
+            result.columns.levels[0], Index(level, name="group_key"), exact=True
+        )
+        tm.assert_index_equal(
+            result.columns.levels[1], RangeIndex(start=0, stop=4, step=1), exact=True
+        )
 
         assert result.columns.names == ["group_key", None]
 
@@ -196,7 +200,7 @@ class TestConcatenate:
         )
         assert result.index.names == ("first", "second", None)
         tm.assert_index_equal(
-            result.index.levels[0], Index(["baz", "foo"], name="first")
+            result.index.levels[0], Index(["baz", "foo"], name="first"), exact=True
         )
 
     def test_concat_keys_levels_no_overlap(self):
@@ -517,7 +521,7 @@ class TestConcatenate:
 
         result = concat(dfs, sort=True).columns
         expected = Index([1, "a", None])
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
     def test_concat_different_extension_dtypes_upcasts(self):
         a = Series(pd.array([1, 2], dtype="Int64"))

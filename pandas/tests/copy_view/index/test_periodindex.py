@@ -19,7 +19,7 @@ def test_periodindex(box):
     idx = box(PeriodIndex(ser))
     expected = idx.copy(deep=True)
     ser.iloc[0] = Period("2020-12-31")
-    tm.assert_index_equal(idx, expected)
+    tm.assert_index_equal(idx, expected, exact=True)
 
 
 def test_constructor_copy_input_period_ea_default():

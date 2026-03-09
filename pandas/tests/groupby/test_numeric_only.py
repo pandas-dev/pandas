@@ -194,7 +194,7 @@ class TestNumericOnly:
                 getattr(gb, method)()
         else:
             result = getattr(gb, method)()
-            tm.assert_index_equal(result.columns, expected_columns_numeric)
+            tm.assert_index_equal(result.columns, expected_columns_numeric, exact=True)
 
         if method not in ("first", "last"):
             msg = "|".join(
@@ -212,7 +212,7 @@ class TestNumericOnly:
                 getattr(gb, method)(numeric_only=False)
         else:
             result = getattr(gb, method)(numeric_only=False)
-            tm.assert_index_equal(result.columns, expected_columns)
+            tm.assert_index_equal(result.columns, expected_columns, exact=True)
 
 
 @pytest.mark.parametrize(

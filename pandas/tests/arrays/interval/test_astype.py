@@ -25,4 +25,4 @@ class TestAstype:
         # test IntervalIndex.astype while we're at it.
         result = index.astype(dtype)
         expected = Index(expected)
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)

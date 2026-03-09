@@ -259,13 +259,13 @@ class TestCategoricalAnalytics:
         exp = Categorical([3, 1, 2], dtype=dtype)
         tm.assert_categorical_equal(c.unique(), exp)
 
-        tm.assert_index_equal(Index(c).unique(), Index(exp))
+        tm.assert_index_equal(Index(c).unique(), Index(exp), exact=True)
         tm.assert_categorical_equal(Series(c).unique(), exp)
 
         c = Categorical([1, 1, 2, 2], dtype=dtype)
         exp = Categorical([1, 2], dtype=dtype)
         tm.assert_categorical_equal(c.unique(), exp)
-        tm.assert_index_equal(Index(c).unique(), Index(exp))
+        tm.assert_index_equal(Index(c).unique(), Index(exp), exact=True)
         tm.assert_categorical_equal(Series(c).unique(), exp)
 
     def test_shift(self):
@@ -329,7 +329,9 @@ class TestCategoricalAnalytics:
 
         result = c.map(lambda x: 1, na_action=None)
         # GH 12766: Return an index not an array
-        tm.assert_index_equal(result, Index(np.array([1] * 5, dtype=np.int64)))
+        tm.assert_index_equal(
+            result, Index(np.array([1] * 5, dtype=np.int64)), exact=True
+        )
 
     @pytest.mark.parametrize("value", [1, "True", [1, 2, 3], 5.0])
     def test_validate_inplace_raises(self, value):

@@ -85,7 +85,9 @@ class TestSeriesConcat:
 
         s2.name = None
         result = concat([s, s2], axis=1)
-        tm.assert_index_equal(result.columns, Index(["A", 0], dtype="object"))
+        tm.assert_index_equal(
+            result.columns, Index(["A", 0], dtype="object"), exact=True
+        )
 
     def test_concat_series_axis1_with_reindex(self, sort):
         # must reindex, #2603

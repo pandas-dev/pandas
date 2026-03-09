@@ -658,10 +658,10 @@ class TestPeriodIndexArithmetic:
         off = rng.freq
         expected = pd.Index([-5 * off] * 5)
         result = rng - other
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
         rng -= other
-        tm.assert_index_equal(rng, expected)
+        tm.assert_index_equal(rng, expected, exact=True)
 
     def test_pi_sub_pi_with_nat(self):
         rng = period_range("1/1/2000", freq="D", periods=5)
@@ -671,7 +671,7 @@ class TestPeriodIndexArithmetic:
         result = rng - other
         off = rng.freq
         expected = pd.Index([pd.NaT, 0 * off, 0 * off, 0 * off, 0 * off])
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
     def test_parr_sub_pi_mismatched_freq(self, box_with_array, box_with_array2):
         rng = period_range("1/1/2000", freq="D", periods=5)
@@ -695,7 +695,7 @@ class TestPeriodIndexArithmetic:
             [p1_d], freq=p1.freq.base
         )
 
-        tm.assert_index_equal((p2 - p1), expected)
+        tm.assert_index_equal((p2 - p1), expected, exact=True)
 
     @pytest.mark.parametrize("n", [1, 2, 3, 4])
     @pytest.mark.parametrize(
@@ -721,7 +721,7 @@ class TestPeriodIndexArithmetic:
             [p1_d], freq=freq.base
         )
 
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
     # -------------------------------------------------------------
     # Invalid Operations
@@ -795,20 +795,20 @@ class TestPeriodIndexArithmetic:
 
         expected = period_range("12/31/1999", freq="90D", periods=3)
         result = rng + tdi
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
         result = rng + tdarr
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
         result = tdi + rng
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
         result = tdarr + rng
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
         expected = period_range("1/2/2000", freq="90D", periods=3)
 
         result = rng - tdi
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
         result = rng - tdarr
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
         msg = r"cannot subtract .* from .*"
         with pytest.raises(TypeError, match=msg):
@@ -880,11 +880,11 @@ class TestPeriodIndexArithmetic:
 
         with tm.assert_produces_warning(performance_warning):
             res = pi + offs
-        tm.assert_index_equal(res, expected)
+        tm.assert_index_equal(res, expected, exact=True)
 
         with tm.assert_produces_warning(performance_warning):
             res2 = offs + pi
-        tm.assert_index_equal(res2, expected)
+        tm.assert_index_equal(res2, expected, exact=True)
 
         unanchored = np.array([pd.offsets.Hour(n=1), pd.offsets.Minute(n=-2)])
         # addition/subtraction ops with incompatible offsets should issue
@@ -913,7 +913,7 @@ class TestPeriodIndexArithmetic:
 
         with tm.assert_produces_warning(performance_warning):
             res = pi - other
-        tm.assert_index_equal(res, expected)
+        tm.assert_index_equal(res, expected, exact=True)
 
         anchored = box([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)])
 
@@ -932,9 +932,9 @@ class TestPeriodIndexArithmetic:
         rng = period_range("2000-01-01 09:00", freq="h", periods=10)
         result = rng + one
         expected = period_range("2000-01-01 10:00", freq="h", periods=10)
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
         rng += one
-        tm.assert_index_equal(rng, expected)
+        tm.assert_index_equal(rng, expected, exact=True)
 
     def test_pi_sub_isub_int(self, one):
         """
@@ -944,9 +944,9 @@ class TestPeriodIndexArithmetic:
         rng = period_range("2000-01-01 09:00", freq="h", periods=10)
         result = rng - one
         expected = period_range("2000-01-01 08:00", freq="h", periods=10)
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
         rng -= one
-        tm.assert_index_equal(rng, expected)
+        tm.assert_index_equal(rng, expected, exact=True)
 
     @pytest.mark.parametrize("five", [5, np.array(5, dtype=np.int64)])
     def test_pi_sub_intlike(self, five):
@@ -954,7 +954,7 @@ class TestPeriodIndexArithmetic:
 
         result = rng - five
         exp = rng + (-five)
-        tm.assert_index_equal(result, exp)
+        tm.assert_index_equal(result, exp, exact=True)
 
     def test_pi_add_sub_int_array_freqn_gt1(self):
         # GH#47209 test adding array of ints when freq.n > 1 matches
@@ -963,11 +963,11 @@ class TestPeriodIndexArithmetic:
         arr = np.arange(10)
         result = pi + arr
         expected = pd.Index([x + y for x, y in zip(pi, arr, strict=True)])
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
         result = pi - arr
         expected = pd.Index([x - y for x, y in zip(pi, arr, strict=True)])
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
     def test_pi_sub_isub_offset(self):
         # offset
@@ -975,17 +975,17 @@ class TestPeriodIndexArithmetic:
         rng = period_range("2014", "2024", freq="Y")
         result = rng - pd.offsets.YearEnd(5)
         expected = period_range("2009", "2019", freq="Y")
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
         rng -= pd.offsets.YearEnd(5)
-        tm.assert_index_equal(rng, expected)
+        tm.assert_index_equal(rng, expected, exact=True)
 
         rng = period_range("2014-01", "2016-12", freq="M")
         result = rng - pd.offsets.MonthEnd(5)
         expected = period_range("2013-08", "2016-07", freq="M")
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
         rng -= pd.offsets.MonthEnd(5)
-        tm.assert_index_equal(rng, expected)
+        tm.assert_index_equal(rng, expected, exact=True)
 
     @pytest.mark.parametrize("transpose", [True, False])
     def test_pi_add_offset_n_gt1(self, box_with_array, transpose):
@@ -1033,7 +1033,7 @@ class TestPeriodIndexArithmetic:
 
         result = op(pi, other)
         expected = PeriodIndex([Period("2016Q1"), Period("NaT")])
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
     @pytest.mark.parametrize("int_holder", [np.array, pd.Index])
     def test_pi_sub_intarray(self, int_holder):
@@ -1043,7 +1043,7 @@ class TestPeriodIndexArithmetic:
 
         result = pi - other
         expected = PeriodIndex([Period("2014Q1"), Period("NaT")])
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
         msg = r"bad operand type for unary -: 'PeriodArray'"
         with pytest.raises(TypeError, match=msg):
@@ -1125,10 +1125,10 @@ class TestPeriodIndexArithmetic:
         expected = period_range("2014-05-04", "2014-05-18", freq="D")
 
         result = rng + other
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
         rng += other
-        tm.assert_index_equal(rng, expected)
+        tm.assert_index_equal(rng, expected, exact=True)
 
     def test_pi_sub_isub_timedeltalike_daily(self, three_days):
         # Tick-like 3 Days
@@ -1137,10 +1137,10 @@ class TestPeriodIndexArithmetic:
         expected = period_range("2014-04-28", "2014-05-12", freq="D")
 
         result = rng - other
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
         rng -= other
-        tm.assert_index_equal(rng, expected)
+        tm.assert_index_equal(rng, expected, exact=True)
 
     def test_parr_add_sub_timedeltalike_freq_mismatch_daily(
         self, not_daily, box_with_array
@@ -1173,10 +1173,10 @@ class TestPeriodIndexArithmetic:
         expected = period_range("2014-01-01 12:00", "2014-01-05 12:00", freq="h")
 
         result = rng + other
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
         rng += other
-        tm.assert_index_equal(rng, expected)
+        tm.assert_index_equal(rng, expected, exact=True)
 
     def test_parr_add_timedeltalike_mismatched_freq_hourly(
         self, not_hourly, box_with_array
@@ -1206,10 +1206,10 @@ class TestPeriodIndexArithmetic:
         expected = period_range("2014-01-01 08:00", "2014-01-05 08:00", freq="h")
 
         result = rng - other
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
         rng -= other
-        tm.assert_index_equal(rng, expected)
+        tm.assert_index_equal(rng, expected, exact=True)
 
     def test_add_iadd_timedeltalike_annual(self):
         # offset
@@ -1217,9 +1217,9 @@ class TestPeriodIndexArithmetic:
         rng = period_range("2014", "2024", freq="Y")
         result = rng + pd.offsets.YearEnd(5)
         expected = period_range("2019", "2029", freq="Y")
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
         rng += pd.offsets.YearEnd(5)
-        tm.assert_index_equal(rng, expected)
+        tm.assert_index_equal(rng, expected, exact=True)
 
     def test_pi_add_sub_timedeltalike_freq_mismatch_annual(self, mismatched_freq):
         other = mismatched_freq
@@ -1239,10 +1239,10 @@ class TestPeriodIndexArithmetic:
         expected = period_range("2014-06", "2017-05", freq="M")
 
         result = rng + pd.offsets.MonthEnd(5)
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
         rng += pd.offsets.MonthEnd(5)
-        tm.assert_index_equal(rng, expected)
+        tm.assert_index_equal(rng, expected, exact=True)
 
     def test_pi_add_sub_timedeltalike_freq_mismatch_monthly(self, mismatched_freq):
         other = mismatched_freq
@@ -1326,7 +1326,7 @@ class TestPeriodIndexArithmetic:
 
         result = parr - pi
         expected = pi - pi
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
     def test_parr_add_sub_object_array(self, performance_warning):
         pi = period_range("2000-12-31", periods=3, freq="D")
@@ -1469,11 +1469,11 @@ class TestPeriodIndexSeriesMethods:
         result = idx - Period("2011-01", freq="M")
         off = idx.freq
         exp = pd.Index([0 * off, 1 * off, 2 * off, 3 * off], name="idx")
-        tm.assert_index_equal(result, exp)
+        tm.assert_index_equal(result, exp, exact=True)
 
         result = Period("2011-01", freq="M") - idx
         exp = pd.Index([0 * off, -1 * off, -2 * off, -3 * off], name="idx")
-        tm.assert_index_equal(result, exp)
+        tm.assert_index_equal(result, exp, exact=True)
 
     @pytest.mark.parametrize("ng", ["str", 1.5])
     @pytest.mark.parametrize(
@@ -1625,27 +1625,27 @@ class TestPeriodIndexSeriesMethods:
         result = idx - Period("2012-01", freq="M")
         off = idx.freq
         exp = pd.Index([-12 * off, -11 * off, -10 * off, -9 * off], name="idx")
-        tm.assert_index_equal(result, exp)
+        tm.assert_index_equal(result, exp, exact=True)
 
         result = np.subtract(idx, Period("2012-01", freq="M"))
-        tm.assert_index_equal(result, exp)
+        tm.assert_index_equal(result, exp, exact=True)
 
         result = Period("2012-01", freq="M") - idx
         exp = pd.Index([12 * off, 11 * off, 10 * off, 9 * off], name="idx")
-        tm.assert_index_equal(result, exp)
+        tm.assert_index_equal(result, exp, exact=True)
 
         result = np.subtract(Period("2012-01", freq="M"), idx)
-        tm.assert_index_equal(result, exp)
+        tm.assert_index_equal(result, exp, exact=True)
 
         exp = TimedeltaIndex(
             [np.nan, np.nan, np.nan, np.nan], name="idx", dtype="m8[ns]"
         )
         result = idx - Period("NaT", freq="M")
-        tm.assert_index_equal(result, exp)
+        tm.assert_index_equal(result, exp, exact=True)
         assert result.freq == exp.freq
 
         result = Period("NaT", freq="M") - idx
-        tm.assert_index_equal(result, exp)
+        tm.assert_index_equal(result, exp, exact=True)
         assert result.freq == exp.freq
 
     def test_pi_sub_pdnat(self):
@@ -1654,8 +1654,8 @@ class TestPeriodIndexSeriesMethods:
             ["2011-01", "2011-02", "NaT", "2011-04"], freq="M", name="idx"
         )
         exp = TimedeltaIndex([pd.NaT] * 4, name="idx", dtype="m8[ns]")
-        tm.assert_index_equal(pd.NaT - idx, exp)
-        tm.assert_index_equal(idx - pd.NaT, exp)
+        tm.assert_index_equal(pd.NaT - idx, exp, exact=True)
+        tm.assert_index_equal(idx - pd.NaT, exp, exact=True)
 
     def test_pi_sub_period_nat(self):
         # GH#13071
@@ -1666,14 +1666,14 @@ class TestPeriodIndexSeriesMethods:
         result = idx - Period("2012-01", freq="M")
         off = idx.freq
         exp = pd.Index([-12 * off, pd.NaT, -10 * off, -9 * off], name="idx")
-        tm.assert_index_equal(result, exp)
+        tm.assert_index_equal(result, exp, exact=True)
 
         result = Period("2012-01", freq="M") - idx
         exp = pd.Index([12 * off, pd.NaT, 10 * off, 9 * off], name="idx")
-        tm.assert_index_equal(result, exp)
+        tm.assert_index_equal(result, exp, exact=True)
 
         exp = TimedeltaIndex(
             [np.nan, np.nan, np.nan, np.nan], name="idx", dtype="m8[ns]"
         )
-        tm.assert_index_equal(idx - Period("NaT", freq="M"), exp)
-        tm.assert_index_equal(Period("NaT", freq="M") - idx, exp)
+        tm.assert_index_equal(idx - Period("NaT", freq="M"), exp, exact=True)
+        tm.assert_index_equal(Period("NaT", freq="M") - idx, exp, exact=True)

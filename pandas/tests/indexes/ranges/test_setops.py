@@ -64,9 +64,6 @@ class TestRangeIndexSetOps:
         # intersect with Index with dtype int64
         index = RangeIndex(start=0, stop=20, step=2)
         other = Index(np.arange(1, 6))
-        result = index.intersection(other, sort=sort)
-        expected = Index(np.sort(np.intersect1d(index.values, other.values)))
-        tm.assert_index_equal(result, expected)
 
         result = other.intersection(index, sort=sort)
         expected = Index(

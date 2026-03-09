@@ -42,7 +42,7 @@ def test_map(na_action):
     # GH 12766: Return an index not an array
     result = cat.map(lambda x: 1, na_action=na_action)
     exp = Index(np.array([1] * 5, dtype=np.int64))
-    tm.assert_index_equal(result, exp)
+    tm.assert_index_equal(result, exp, exact=True)
 
     # change categories dtype
     cat = Categorical(list("ABABC"), categories=list("BAC"), ordered=False)
@@ -87,7 +87,7 @@ def test_map_with_nan_none(data, f, expected):  # GH 24241
     if isinstance(expected, Categorical):
         tm.assert_categorical_equal(result, expected)
     else:
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
 
 @pytest.mark.parametrize(
@@ -115,7 +115,7 @@ def test_map_with_nan_ignore(data, f, expected):  # GH 24241
     if data[1] == 1:
         tm.assert_categorical_equal(result, expected)
     else:
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
 
 def test_map_with_dict_or_series(na_action):

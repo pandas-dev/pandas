@@ -72,7 +72,7 @@ def test_construct_index(all_data, dropna):
     expected = pd.Index(other, dtype=all_data.dtype)
     assert all_data.dtype == expected.dtype  # dont coerce to object
 
-    tm.assert_index_equal(result, expected)
+    tm.assert_index_equal(result, expected, exact=True)
 
 
 def test_astype_index(all_data, dropna):
@@ -90,7 +90,7 @@ def test_astype_index(all_data, dropna):
 
     result = idx.astype(dtype)
     expected = idx.astype(object).astype(dtype)
-    tm.assert_index_equal(result, expected)
+    tm.assert_index_equal(result, expected, exact=True)
 
 
 def test_astype(all_data):

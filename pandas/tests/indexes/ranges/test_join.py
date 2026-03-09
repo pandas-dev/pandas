@@ -62,7 +62,7 @@ class TestJoin:
         lidx = lidx.take(ind)
         ridx = ridx.take(ind)
 
-        eres = Index([16, 18])
+        eres = RangeIndex(start=16, stop=20, step=2)
         elidx = np.array([8, 9], dtype=np.intp)
         eridx = np.array([9, 7], dtype=np.intp)
 

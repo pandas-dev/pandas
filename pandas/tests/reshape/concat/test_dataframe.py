@@ -212,7 +212,9 @@ class TestDataFrameConcat:
         mi = pd.MultiIndex.from_product([["A"], index], names=["ID", "date"])
         expected = DataFrame(data=data, index=mi)
         tm.assert_frame_equal(result, expected)
-        tm.assert_index_equal(result.index.levels[1], Index([1, 3], name="date"))
+        tm.assert_index_equal(
+            result.index.levels[1], Index([1, 3], name="date"), exact=True
+        )
 
     def test_outer_sort_columns(self):
         # GH#47127

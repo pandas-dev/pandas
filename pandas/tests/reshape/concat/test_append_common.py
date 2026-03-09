@@ -92,26 +92,26 @@ class TestConcatAppendCommon:
         # index.append
         res = Index(vals1).append(Index(vals2))
         exp = Index(exp_data)
-        tm.assert_index_equal(res, exp)
+        tm.assert_index_equal(res, exp, exact=True)
 
         # 3 elements
         res = Index(vals1).append([Index(vals2), Index(vals3)])
         exp = Index(exp_data3)
-        tm.assert_index_equal(res, exp)
+        tm.assert_index_equal(res, exp, exact=True)
 
         # index.append name mismatch
         i1 = Index(vals1, name="x")
         i2 = Index(vals2, name="y")
         res = i1.append(i2)
         exp = Index(exp_data)
-        tm.assert_index_equal(res, exp)
+        tm.assert_index_equal(res, exp, exact=True)
 
         # index.append name match
         i1 = Index(vals1, name="x")
         i2 = Index(vals2, name="x")
         res = i1.append(i2)
         exp = Index(exp_data, name="x")
-        tm.assert_index_equal(res, exp)
+        tm.assert_index_equal(res, exp, exact=True)
 
         # cannot append non-index
         with pytest.raises(TypeError, match="all inputs must be Index"):
@@ -213,12 +213,12 @@ class TestConcatAppendCommon:
         # GH#39817
         res = Index(vals1).append(Index(vals2))
         exp = Index(exp_data, dtype=exp_index_dtype)
-        tm.assert_index_equal(res, exp)
+        tm.assert_index_equal(res, exp, exact=True)
 
         # 3 elements
         res = Index(vals1).append([Index(vals2), Index(vals3)])
         exp = Index(exp_data3, dtype=exp_index_dtype)
-        tm.assert_index_equal(res, exp)
+        tm.assert_index_equal(res, exp, exact=True)
 
         # ----- Series ----- #
 
@@ -258,7 +258,7 @@ class TestConcatAppendCommon:
         )
 
         res = dti.append(tdi)
-        tm.assert_index_equal(res, exp)
+        tm.assert_index_equal(res, exp, exact=True)
         assert isinstance(res[0], pd.Timestamp)
         assert isinstance(res[-1], pd.Timedelta)
 
@@ -285,7 +285,7 @@ class TestConcatAppendCommon:
         )
 
         res = dti1.append(dti2)
-        tm.assert_index_equal(res, exp)
+        tm.assert_index_equal(res, exp, exact=True)
 
         dts1 = Series(dti1)
         dts2 = Series(dti2)
@@ -332,7 +332,7 @@ class TestConcatAppendCommon:
         )
 
         res = dti1.append(dti2)
-        tm.assert_index_equal(res, exp)
+        tm.assert_index_equal(res, exp, exact=True)
 
         dts1 = Series(dti1)
         dts2 = Series(dti2)
@@ -357,7 +357,7 @@ class TestConcatAppendCommon:
         )
 
         res = dti1.append(dti3)
-        tm.assert_index_equal(res, exp)
+        tm.assert_index_equal(res, exp, exact=True)
 
         dts1 = Series(dti1)
         dts3 = Series(dti3)
@@ -375,7 +375,7 @@ class TestConcatAppendCommon:
         exp = pd.PeriodIndex(["2011-01", "2011-02", "2012-01", "2012-02"], freq="M")
 
         res = pi1.append(pi2)
-        tm.assert_index_equal(res, exp)
+        tm.assert_index_equal(res, exp, exact=True)
 
         ps1 = Series(pi1)
         ps2 = Series(pi2)
@@ -401,7 +401,7 @@ class TestConcatAppendCommon:
         )
 
         res = pi1.append(pi2)
-        tm.assert_index_equal(res, exp)
+        tm.assert_index_equal(res, exp, exact=True)
 
         ps1 = Series(pi1)
         ps2 = Series(pi2)
@@ -427,7 +427,7 @@ class TestConcatAppendCommon:
         )
 
         res = pi1.append(tdi)
-        tm.assert_index_equal(res, exp)
+        tm.assert_index_equal(res, exp, exact=True)
 
         ps1 = Series(pi1)
         tds = Series(tdi)
@@ -449,7 +449,7 @@ class TestConcatAppendCommon:
         )
 
         res = tdi.append(pi1)
-        tm.assert_index_equal(res, exp)
+        tm.assert_index_equal(res, exp, exact=True)
 
         ps1 = Series(pi1)
         tds = Series(tdi)

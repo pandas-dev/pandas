@@ -36,7 +36,7 @@ def test_multiindex_group_all_columns_when_empty(groupby_func):
     with tm.assert_produces_warning(warn, match=warn_msg):
         result = method(*args).index
     expected = df.index
-    tm.assert_index_equal(result, expected)
+    tm.assert_index_equal(result, expected, exact=True)
 
 
 def test_duplicate_columns(request, groupby_func, as_index):
@@ -83,7 +83,7 @@ def test_dup_labels_output_shape(groupby_func, idx):
         result = getattr(grp_by, groupby_func)(*args)
 
     assert result.shape == (1, 2)
-    tm.assert_index_equal(result.columns, idx)
+    tm.assert_index_equal(result.columns, idx, exact=True)
 
 
 def test_not_c_contiguous_mask(groupby_func):
@@ -91,7 +91,7 @@ def test_not_c_contiguous_mask(groupby_func):
     if groupby_func == "corrwith":
         # corrwith is deprecated
         return
-    df = DataFrame({"a": [1, 1, 2], "b": [3, 4, 5]}, dtype="Int64")
+    df = DataFrame({"a": [1, 1, 2], "b": [3, 4, 5]}, dtype="Int64", index=[0, 1, 2])
     reversed = DataFrame(
         {"a": [2, 1, 1], "b": [5, 4, 3]}, dtype="Int64", index=[2, 1, 0]
     )[::-1]

@@ -19,7 +19,7 @@ def test_groupby_column_index_name_lost_fill_funcs(func):
     df_grouped = df.groupby(["type"])[["a", "b"]]
     result = getattr(df_grouped, func)().columns
     expected = Index(["a", "b"], name="idx")
-    tm.assert_index_equal(result, expected)
+    tm.assert_index_equal(result, expected, exact=True)
 
 
 @pytest.mark.parametrize("func", ["ffill", "bfill"])
