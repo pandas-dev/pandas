@@ -10,10 +10,12 @@ from collections import (
     abc,
     defaultdict,
 )
+from concurrent.futures import ThreadPoolExecutor
 import csv
 import io
 import os
 import sys
+import threading
 from typing import (
     IO,
     TYPE_CHECKING,
@@ -312,9 +314,7 @@ def _read(
             try:
                 _filepath = stringify_path(filepath_or_buffer)
                 assert isinstance(_filepath, str)  # guaranteed by _can_parallelize_csv
-                _result = _read_csv_parallel(_filepath, kwds, _n_workers)
-                if _result is not None:
-                    return _result
+                return _read_csv_parallel(_filepath, kwds, _n_workers)
             except ParserError:
                 # A chunk boundary landed inside a quoted field containing an
                 # embedded newline.  Fall through to the serial path, which
@@ -421,9 +421,21 @@ def _can_parallelize_csv(filepath_or_buffer, kwds: dict) -> bool:
 
     # Only bother for files large enough to amortise the threading overhead.
     try:
-        if os.path.getsize(filepath) < _PARALLEL_READ_MIN_BYTES:
+        file_size = os.path.getsize(filepath)
+        if file_size < _PARALLEL_READ_MIN_BYTES:
             return False
     except OSError:
+        return False
+
+    # Check that the *data section* (after header/skiprows preamble) is large
+    # enough to split into at least 2 chunks.  Without this, _read_csv_parallel
+    # would have to return None for files whose preamble eats most of the bytes.
+    _header = kwds.get("header", "infer")
+    if _header == "infer":
+        _header = 0 if kwds.get("names") is None else None
+    _skiprows = int(kwds.get("skiprows") or 0)
+    data_start = _find_data_start_offset(filepath, _header, _skiprows)
+    if file_size - data_start < _PARALLEL_READ_MIN_BYTES:
         return False
 
     return True
@@ -448,11 +460,11 @@ def _find_data_start_offset(
         header_lines = int(header) + 1  # header=0 → 1 header line
 
     preamble_lines = int(skiprows) + header_lines
-    with open(filepath, "rb") as f:
+    with open(filepath, "rb") as fd:
         for _ in range(preamble_lines):
-            if not f.readline():
+            if not fd.readline():
                 break
-        return f.tell()
+        return fd.tell()
 
 
 def _find_chunk_byte_offsets(
@@ -476,14 +488,14 @@ def _find_chunk_byte_offsets(
         return offsets
 
     chunk_target = data_size // n_chunks
-    with open(filepath, "rb") as f:
+    with open(filepath, "rb") as fd:
         for i in range(1, n_chunks):
             target = data_start + i * chunk_target
             if target >= file_size:
                 break
-            f.seek(target)
-            f.readline()  # advance past the partial line at the split point
-            pos = f.tell()
+            fd.seek(target)
+            fd.readline()  # advance past the partial line at the split point
+            pos = fd.tell()
             if pos >= file_size or pos == offsets[-1]:
                 break
             offsets.append(pos)
@@ -496,7 +508,7 @@ def _read_csv_parallel(
     filepath: str,
     kwds: dict,
     n_workers: int,
-) -> DataFrame | None:
+) -> DataFrame:
     """
     Read a large CSV file in parallel using *n_workers* threads.
 
@@ -508,16 +520,14 @@ def _read_csv_parallel(
     are wrapped in ``with nogil:`` blocks, threads achieve real CPU-level
     parallelism.
 
-    Returns ``None`` when the file is too small to produce more than one
-    chunk; the caller should then fall back to the serial path.
+    The caller must ensure the file is eligible via :func:`_can_parallelize_csv`
+    before calling this function.
 
     .. warning::
         Splitting is done at raw ``\\n`` boundaries.  CSV files with newlines
         embedded inside quoted fields may produce a parse error or silently
         wrong data.
     """
-    from concurrent.futures import ThreadPoolExecutor
-
     # Resolve the effective header value (mirrors TextFileReader.__init__).
     header = kwds.get("header", "infer")
     if header == "infer":
@@ -531,13 +541,11 @@ def _read_csv_parallel(
     # Split the data section into up to n_workers chunks.
     offsets = _find_chunk_byte_offsets(filepath, n_workers, data_start)
     n_chunks = len(offsets) - 1
+    assert n_chunks > 1, "_can_parallelize_csv should guarantee splittable data"
 
-    if n_chunks <= 1:
-        # File is too small to benefit from splitting.
-        return None
-
-    # Options passed to every TextFileReader.  Strip I/O-layer kwargs that
-    # only make sense for file paths; we are handing each reader a BytesIO.
+    # ------------------------------------------------------------------
+    # Infer column names from the preamble + one data line (very fast).
+    # ------------------------------------------------------------------
     base_kwds: dict = {
         **kwds,
         "compression": None,
@@ -545,32 +553,24 @@ def _read_csv_parallel(
         "storage_options": None,
     }
 
-    # ------------------------------------------------------------------
-    # First chunk - read preamble + first data slice to infer column names.
-    # Done serially so we know col_names before dispatching workers.
-    # ------------------------------------------------------------------
-    with open(filepath, "rb") as f:
-        preamble = f.read(data_start)
-        first_chunk_bytes = f.read(offsets[1] - offsets[0])
+    with open(filepath, "rb") as fd:
+        preamble = fd.read(data_start)
+        first_line = fd.readline()
 
-    first_buf = io.BytesIO(preamble + first_chunk_bytes)
-    first_reader = TextFileReader(first_buf, **base_kwds)
-    first_df = first_reader.read()
-    assert first_reader._engine.orig_names is not None
-    col_names: list = list(first_reader._engine.orig_names)
-    first_reader.close()
-    del first_chunk_bytes
-
-    if n_chunks == 1:
-        return first_df
+    name_buf = io.BytesIO(preamble + first_line)
+    name_reader = TextFileReader(name_buf, **base_kwds)
+    assert name_reader._engine.orig_names is not None
+    col_names: list = list(name_reader._engine.orig_names)
+    name_reader.close()
 
     # ------------------------------------------------------------------
-    # Remaining chunks - each worker reads its own byte slice from disk,
-    # then calls load_buffer() so tokenisation is fully GIL-free.
-    # Reading inside the thread (rather than pre-loading everything here)
-    # caps peak RAM to one chunk per thread instead of the whole file.
+    # Dispatch all chunks in parallel.  Each worker reads its own byte
+    # slice from disk, then calls load_buffer() so tokenisation is fully
+    # GIL-free.  Reading inside the thread (rather than pre-loading
+    # everything here) caps peak RAM to one chunk per thread instead of
+    # the whole file.
     # ------------------------------------------------------------------
-    rest_kwds: dict = {
+    chunk_kwds: dict = {
         **base_kwds,
         "header": None,
         "names": col_names,
@@ -584,8 +584,6 @@ def _read_csv_parallel(
     # 20M-row files it gave 3.73x vs 4.09x unlimited — a minor cache hit cost
     # for a large protection against thrashing.  Parsing (GIL-free) proceeds
     # on all threads as soon as each finishes its read.
-    import threading
-
     _io_sem = threading.Semaphore(4)
 
     def _process_chunk(start: int, end: int) -> DataFrame:
@@ -593,9 +591,7 @@ def _read_csv_parallel(
             with open(filepath, "rb") as cf:
                 cf.seek(start)
                 data = cf.read(end - start)
-        reader = TextFileReader(io.BytesIO(b""), **rest_kwds)
-        from pandas.io.parsers.c_parser_wrapper import CParserWrapper
-
+        reader = TextFileReader(io.BytesIO(b""), **chunk_kwds)
         assert isinstance(reader._engine, CParserWrapper)
         reader._engine._reader.load_buffer(data)
         try:
@@ -603,16 +599,16 @@ def _read_csv_parallel(
         finally:
             reader.close()
 
-    with ThreadPoolExecutor(max_workers=n_workers - 1) as pool:
+    with ThreadPoolExecutor(max_workers=n_workers) as pool:
         futures = [
             pool.submit(_process_chunk, offsets[i], offsets[i + 1])
-            for i in range(1, n_chunks)
+            for i in range(n_chunks)
         ]
-        rest_dfs = [fut.result() for fut in futures]
+        dfs = [fut.result() for fut in futures]
 
     from pandas import concat
 
-    return concat([first_df, *rest_dfs], ignore_index=True)
+    return concat(dfs, ignore_index=True)
 
 
 @overload
