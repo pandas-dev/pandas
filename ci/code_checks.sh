@@ -70,6 +70,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
     python "$BASE_DIR"/scripts/validate_docstrings.py \
         --format=actions \
         -i "pandas.IntervalDtype.subtype ES01" \
+        -i "pandas.api.extensions.ExtensionArray.count ES01" \
         -i "pandas.read_html ES01" \
         -i "pandas.read_xml ES01" \
         -i "pandas.Index.argsort ES01" \
