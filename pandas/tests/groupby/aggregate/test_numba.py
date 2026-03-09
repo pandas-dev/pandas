@@ -87,7 +87,7 @@ def test_check_nopython_kwargs():
 @pytest.mark.filterwarnings("ignore")
 # Filter warnings when parallel=True and the function can't be parallelized by Numba
 @pytest.mark.parametrize("jit", [True, False])
-def test_numba_vs_cython(jit, frame_or_series, nogil, parallel, nopython, as_index):
+def test_numba_vs_cython(jit, frame_or_series, nogil, parallel, as_index):
     pytest.importorskip("numba")
 
     def func_numba(values, index):
@@ -102,7 +102,10 @@ def test_numba_vs_cython(jit, frame_or_series, nogil, parallel, nopython, as_ind
     data = DataFrame(
         {0: ["a", "a", "b", "b", "a"], 1: [1.0, 2.0, 3.0, 4.0, 5.0]}, columns=[0, 1]
     )
-    engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
+    engine_kwargs = {
+        "nogil": nogil,
+        "parallel": parallel,
+    }
     grouped = data.groupby(0, as_index=as_index)
     if frame_or_series is Series:
         grouped = grouped[1]
@@ -116,7 +119,7 @@ def test_numba_vs_cython(jit, frame_or_series, nogil, parallel, nopython, as_ind
 @pytest.mark.filterwarnings("ignore")
 # Filter warnings when parallel=True and the function can't be parallelized by Numba
 @pytest.mark.parametrize("jit", [True, False])
-def test_cache(jit, frame_or_series, nogil, parallel, nopython):
+def test_cache(jit, frame_or_series, nogil, parallel):
     # Test that the functions are cached correctly if we switch functions
     pytest.importorskip("numba")
 
@@ -135,7 +138,10 @@ def test_cache(jit, frame_or_series, nogil, parallel, nopython):
     data = DataFrame(
         {0: ["a", "a", "b", "b", "a"], 1: [1.0, 2.0, 3.0, 4.0, 5.0]}, columns=[0, 1]
     )
-    engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
+    engine_kwargs = {
+        "nogil": nogil,
+        "parallel": parallel,
+    }
     grouped = data.groupby(0)
     if frame_or_series is Series:
         grouped = grouped[1]
@@ -270,6 +276,7 @@ def test_multifunc_numba_vs_cython_series(agg_kwargs):
 
 
 @pytest.mark.single_cpu
+@pytest.mark.filterwarnings("ignore:unsafe cast from uint64 to int64")
 @pytest.mark.parametrize(
     "data,agg_kwargs",
     [
@@ -352,37 +359,36 @@ def test_engine_kwargs_not_cached():
     pytest.importorskip("numba")
     nogil = True
     parallel = False
-    nopython = True
 
     def func_kwargs(values, index):
-        return nogil + parallel + nopython
+        return nogil + parallel
 
-    engine_kwargs = {"nopython": nopython, "nogil": nogil, "parallel": parallel}
+    engine_kwargs = {"nogil": nogil, "parallel": parallel}
     df = DataFrame({"value": [0, 0, 0]})
-    result = df.groupby(level=0).aggregate(
-        func_kwargs, engine="numba", engine_kwargs=engine_kwargs
-    )
-    expected = DataFrame({"value": [2.0, 2.0, 2.0]})
-    tm.assert_frame_equal(result, expected)
-
-    nogil = False
-    engine_kwargs = {"nopython": nopython, "nogil": nogil, "parallel": parallel}
     result = df.groupby(level=0).aggregate(
         func_kwargs, engine="numba", engine_kwargs=engine_kwargs
     )
     expected = DataFrame({"value": [1.0, 1.0, 1.0]})
     tm.assert_frame_equal(result, expected)
 
+    nogil = False
+    engine_kwargs = {"nogil": nogil, "parallel": parallel}
+    result = df.groupby(level=0).aggregate(
+        func_kwargs, engine="numba", engine_kwargs=engine_kwargs
+    )
+    expected = DataFrame({"value": [0.0, 0.0, 0.0]})
+    tm.assert_frame_equal(result, expected)
+
 
 @pytest.mark.filterwarnings("ignore")
-def test_multiindex_one_key(nogil, parallel, nopython):
+def test_multiindex_one_key(nogil, parallel):
     pytest.importorskip("numba")
 
     def numba_func(values, index):
         return 1
 
     df = DataFrame([{"A": 1, "B": 2, "C": 3}]).set_index(["A", "B"])
-    engine_kwargs = {"nopython": nopython, "nogil": nogil, "parallel": parallel}
+    engine_kwargs = {"nogil": nogil, "parallel": parallel}
     result = df.groupby("A").agg(
         numba_func, engine="numba", engine_kwargs=engine_kwargs
     )
@@ -390,14 +396,14 @@ def test_multiindex_one_key(nogil, parallel, nopython):
     tm.assert_frame_equal(result, expected)
 
 
-def test_multiindex_multi_key_not_supported(nogil, parallel, nopython):
+def test_multiindex_multi_key_not_supported(nogil, parallel):
     pytest.importorskip("numba")
 
     def numba_func(values, index):
         return 1
 
     df = DataFrame([{"A": 1, "B": 2, "C": 3}]).set_index(["A", "B"])
-    engine_kwargs = {"nopython": nopython, "nogil": nogil, "parallel": parallel}
+    engine_kwargs = {"nogil": nogil, "parallel": parallel}
     with pytest.raises(NotImplementedError, match="more than 1 grouping labels"):
         df.groupby(["A", "B"]).agg(
             numba_func, engine="numba", engine_kwargs=engine_kwargs
