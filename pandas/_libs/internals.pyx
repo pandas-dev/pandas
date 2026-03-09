@@ -785,6 +785,8 @@ cdef class BlockManager:
         self.__blklocs = val
 
     @cython.critical_section
+    @cython.wraparound(False)
+    @cython.boundscheck(False)
     cpdef _rebuild_blknos_and_blklocs(self):
         """
         Update mgr._blknos / mgr._blklocs.

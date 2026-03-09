@@ -687,6 +687,7 @@ cdef class _Timestamp(ABCTimestamp):
             val = self._value
         return val
 
+    @cython.wraparound(False)
     @cython.boundscheck(False)
     cdef bint _get_start_end_field(self, str field, freq):
         cdef:
@@ -883,6 +884,7 @@ cdef class _Timestamp(ABCTimestamp):
         """
         return self.month == 12 and self.day == 31
 
+    @cython.wraparound(False)
     @cython.boundscheck(False)
     cdef _get_date_name_field(self, str field, object locale):
         cdef:
