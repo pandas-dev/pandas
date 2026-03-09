@@ -639,6 +639,10 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         """
         An ``Index`` containing the unique categories allowed.
 
+        If no categories were explicitly provided at construction time, this
+        will be ``None`` until the ``CategoricalDtype`` is attached to actual
+        data.
+
         See Also
         --------
         ordered : Whether the categories have an ordered relationship.
@@ -655,6 +659,9 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     def ordered(self) -> Ordered:
         """
         Whether the categories have an ordered relationship.
+
+        When ``True``, comparison operations on the resulting Categorical
+        are valid and sort in the order of the categories.
 
         See Also
         --------
@@ -825,6 +832,9 @@ class DatetimeTZDtype(PandasExtensionDtype):
         """
         The precision of the datetime data.
 
+        Returns the time resolution as one of ``'s'``, ``'ms'``, ``'us'``,
+        or ``'ns'``.
+
         See Also
         --------
         DatetimeTZDtype.tz : Retrieves the timezone.
@@ -842,6 +852,9 @@ class DatetimeTZDtype(PandasExtensionDtype):
     def tz(self) -> tzinfo:
         """
         The timezone.
+
+        Returns the :class:`datetime.tzinfo` object associated with this
+        dtype, representing the timezone used for localization.
 
         See Also
         --------
@@ -1048,6 +1061,9 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
         """
         if isinstance(freq, PeriodDtype):
             return freq
+
+        elif isinstance(freq, PeriodDtypeBase):
+            freq = to_offset(freq, is_period=True)
 
         if not isinstance(freq, BaseOffset):
             freq = cls._parse_dtype_strict(freq)

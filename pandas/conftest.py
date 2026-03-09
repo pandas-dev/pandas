@@ -194,6 +194,7 @@ def pytest_collection_modifyitems(items, config) -> None:
         ),
         ("read_parquet", "Passing a BlockManager to DataFrame is deprecated"),
         ("Timestamp.utcfromtimestamp", "Timestamp.utcfromtimestamp is deprecated"),
+        ("BaseOffset.name.__get__", "The 'name' property is deprecated"),
     ]
 
     if is_doctest:
@@ -470,7 +471,7 @@ def parallel(request):
     return request.param
 
 
-# Can parameterize nogil & nopython over True | False, but limiting per
+# Can parameterize nogil over True | False, but limiting per
 # https://github.com/pandas-dev/pandas/pull/41971#issuecomment-860607472
 
 
@@ -478,14 +479,6 @@ def parallel(request):
 def nogil(request):
     """
     Fixture for nogil keyword argument for numba.jit.
-    """
-    return request.param
-
-
-@pytest.fixture(params=[True])
-def nopython(request):
-    """
-    Fixture for nopython keyword argument for numba.jit.
     """
     return request.param
 

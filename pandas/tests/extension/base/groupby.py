@@ -13,9 +13,6 @@ import pandas as pd
 import pandas._testing as tm
 
 
-@pytest.mark.filterwarnings(
-    "ignore:The default of observed=False is deprecated:FutureWarning"
-)
 class BaseGroupbyTests:
     """Groupby-specific tests."""
 

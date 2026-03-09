@@ -200,6 +200,10 @@ def assert_index_equal(
     """
     Check that left and right Index are equal.
 
+    This function compares two Index objects and raises an ``AssertionError``
+    if they are not equal. It provides fine-grained control over which
+    attributes to check, including dtype, names, and categorical properties.
+
     Parameters
     ----------
     left : Index
@@ -879,6 +883,10 @@ def assert_series_equal(
 ) -> None:
     """
     Check that left and right Series are equal.
+
+    This function compares two Series and raises an ``AssertionError`` if they
+    are not equal. It provides fine-grained control over which attributes to
+    check, including dtype, index, names, and categorical properties.
 
     Parameters
     ----------
