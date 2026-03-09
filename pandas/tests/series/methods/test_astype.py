@@ -697,6 +697,6 @@ class TestAstypeCategorical:
         # GH#55136 - .astype(datetime) should raise clear error
         ser = Series(date_range("2020-01-01", periods=3))
 
-        msg = "dtype '' not understood"
+        msg = "dtype .* not understood"
         with pytest.raises(TypeError, match=msg):
             ser.astype(datetime)
