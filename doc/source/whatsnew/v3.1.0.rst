@@ -138,8 +138,8 @@ Timezones
 
 Numeric
 ^^^^^^^
+- Fixed bug in :func:`read_excel` where having a column with mixture of numeric and boolean values will typecast the values based on the first appearance data type since 1==True and 0==False (:issue:`60088`)
 - Fixed bug in :meth:`Series.clip` where passing a scalar numpy array (e.g. ``np.array(0)``) would raise a ``TypeError`` (:issue:`59053`)
--
 
 Conversion
 ^^^^^^^^^^
