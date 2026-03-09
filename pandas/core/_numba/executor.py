@@ -67,7 +67,7 @@ def make_looper(func, result_dtype, is_grouped_kernel, nogil: bool, parallel: bo
     if is_grouped_kernel:
 
         @numba.jit(nogil=nogil, parallel=parallel)
-        def column_looper(
+        def column_looper(  # pyright: ignore[reportRedeclaration]
             values: np.ndarray,
             labels: np.ndarray,
             ngroups: int,
@@ -216,11 +216,19 @@ def generate_shared_aggregator(
         # Need to unpack kwargs since numba only supports *args
         if is_grouped_kernel:
             result, na_positions = column_looper(
-                values, labels, ngroups, min_periods, *kwargs.values()
+                values,
+                labels,  # pyright: ignore[reportArgumentType]
+                ngroups,  # pyright: ignore[reportArgumentType]
+                min_periods,
+                *kwargs.values(),
             )
         else:
             result, na_positions = column_looper(
-                values, start, end, min_periods, *kwargs.values()
+                values,
+                start,  # pyright: ignore[reportArgumentType]
+                end,  # pyright: ignore[reportArgumentType]
+                min_periods,
+                *kwargs.values(),
             )
         if result.dtype.kind == "i":
             # Look if na_positions is not empty
