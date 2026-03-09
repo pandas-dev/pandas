@@ -150,12 +150,14 @@ def test_case_when_callable():
 
 
 def test_case_when_expression_condition(df):
+    # GH 64070
     result = df.assign(out=col("a").case_when([(col("a") > 1, 10), (col("a") <= 1, 5)]))
     expected = df.assign(out=Series([5, 10, 10], index=df.index))
     tm.assert_frame_equal(result, expected)
 
 
 def test_case_when_expression_replacement(df):
+    # GH 64070
     result = df.assign(
         out=col("a").case_when(
             [(df["a"] > 1, col("a") + 100), (df["a"] <= 1, col("a") + 1)]
@@ -166,6 +168,7 @@ def test_case_when_expression_replacement(df):
 
 
 def test_case_when_expression_in_assign():
+    # GH 64070
     df = DataFrame({"age": [65, 30], "name": ["Jason", "Anna"]})
     result = df.assign(elderly=col("age").case_when([(col("name").eq("Jason"), 1)]))
     expected = df.assign(elderly=Series([1, 30], index=df.index))
@@ -173,6 +176,7 @@ def test_case_when_expression_in_assign():
 
 
 def test_case_when_expression_mixed_args_in_assign():
+    # GH 64070
     df = DataFrame({"name": ["Jason", "Amy", "Bob"], "age": [42, 10, 5]})
     caselist = [
         (lambda s: s < 10, col("age") + 100),
@@ -184,6 +188,7 @@ def test_case_when_expression_mixed_args_in_assign():
 
 
 def test_case_when_expression_math_condition_in_assign():
+    # GH 64070
     df = DataFrame({"a": [-1, 1, 2], "b": [0, -2, 1]})
     caselist = [(col("a") + col("b") > 0, 99)]
     result = df.assign(flag=col("a").case_when(caselist=caselist))
@@ -192,6 +197,7 @@ def test_case_when_expression_math_condition_in_assign():
 
 
 def test_case_when_expression_missing_values_in_assign():
+    # GH 64070
     df = DataFrame({"age": [np.nan, 5.0, 20.0]})
     caselist = [
         (col("age").isna(), "missing"),
