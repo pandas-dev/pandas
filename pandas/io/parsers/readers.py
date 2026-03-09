@@ -15,7 +15,6 @@ import csv
 import io
 import os
 import sys
-import threading
 from typing import (
     IO,
     TYPE_CHECKING,
@@ -577,20 +576,10 @@ def _read_csv_parallel(
         "skiprows": None,
     }
 
-    # Limit concurrent file reads to avoid saturating I/O bandwidth when many
-    # threads compete for the same drive.  4 concurrent readers was empirically
-    # optimal across small (page-cached) and large (exceeds RAM) files on an
-    # Apple M3 Pro: for 40M-row files it gave 2.45x vs 1.83x unlimited; for
-    # 20M-row files it gave 3.73x vs 4.09x unlimited — a minor cache hit cost
-    # for a large protection against thrashing.  Parsing (GIL-free) proceeds
-    # on all threads as soon as each finishes its read.
-    _io_sem = threading.Semaphore(4)
-
     def _process_chunk(start: int, end: int) -> DataFrame:
-        with _io_sem:
-            with open(filepath, "rb") as cf:
-                cf.seek(start)
-                data = cf.read(end - start)
+        with open(filepath, "rb") as cf:
+            cf.seek(start)
+            data = cf.read(end - start)
         reader = TextFileReader(io.BytesIO(b""), **chunk_kwds)
         assert isinstance(reader._engine, CParserWrapper)
         reader._engine._reader.load_buffer(data)
