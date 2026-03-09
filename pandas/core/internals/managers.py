@@ -1070,7 +1070,6 @@ class BaseBlockManager(PandasObject):
             new_axis=new_labels,
             indexer=indexer,
             axis=axis,
-            fill_value=lib.no_default,
             allow_dups=True,
         )
 
