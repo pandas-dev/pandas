@@ -787,7 +787,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         return self.sp_index.npoints
 
     # error: Return type "SparseArray" of "isna" incompatible with return type
-    # "ndarray[Any, Any] | ExtensionArraySupportsAnyAll" in supertype "ExtensionArray"
+    # "ndarray[Any, Any] | ExtensionArrayNaResult" in supertype "ExtensionArray"
     def isna(self) -> Self:  # type: ignore[override]
         # If null fill value, we want SparseDtype[bool, true]
         # to preserve the same memory usage.

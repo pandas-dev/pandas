@@ -832,6 +832,9 @@ class DatetimeTZDtype(PandasExtensionDtype):
         """
         The precision of the datetime data.
 
+        Returns the time resolution as one of ``'s'``, ``'ms'``, ``'us'``,
+        or ``'ns'``.
+
         See Also
         --------
         DatetimeTZDtype.tz : Retrieves the timezone.
@@ -849,6 +852,9 @@ class DatetimeTZDtype(PandasExtensionDtype):
     def tz(self) -> tzinfo:
         """
         The timezone.
+
+        Returns the :class:`datetime.tzinfo` object associated with this
+        dtype, representing the timezone used for localization.
 
         See Also
         --------

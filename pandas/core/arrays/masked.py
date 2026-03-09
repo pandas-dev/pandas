@@ -1730,6 +1730,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         )
         return self._wrap_reduction_result("max", result, skipna=skipna, axis=axis)
 
+    def count(self) -> np.int64:
+        return (~self._mask).sum()
+
     def map(self, mapper, na_action: Literal["ignore"] | None = None):
         result = map_array(
             self.to_numpy(dtype=object, na_value=libmissing.NA),
