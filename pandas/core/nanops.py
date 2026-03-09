@@ -317,6 +317,8 @@ def _get_values(
                     np.putmask(values, mask, fill_value)
                 else:
                     # np.where will promote if needed
+                    result_dtype = np.result_type(values.dtype, type(fill_value))
+                    values = values.astype(result_dtype, copy=False)
                     values = np.where(~mask, values, fill_value)
 
     return values, mask
