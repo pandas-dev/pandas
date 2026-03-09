@@ -52,13 +52,16 @@ def test_div(dtype):
 
 
 @pytest.mark.parametrize("zero, negative", [(0, False), (0.0, False), (-0.0, True)])
-def test_divide_by_zero(zero, negative):
+def test_divide_by_zero(zero, negative, using_nan_is_na):
     # https://github.com/pandas-dev/pandas/issues/27398, GH#22793
     a = pd.array([0, 1, -1, None], dtype="Int64")
     result = a / zero
+    exp_mask = np.array([False, False, False, True])
+    if using_nan_is_na:
+        exp_mask[0] = True
     expected = FloatingArray(
         np.array([np.nan, np.inf, -np.inf, 1], dtype="float64"),
-        np.array([False, False, False, True]),
+        exp_mask,
     )
     if negative:
         expected *= -1
@@ -99,7 +102,7 @@ def test_mod(dtype):
     tm.assert_extension_array_equal(result, expected)
 
 
-def test_pow_scalar():
+def test_pow_scalar(using_nan_is_na):
     a = pd.array([-1, 0, 1, None, 2], dtype="Int64")
     result = a**0
     expected = pd.array([1, 1, 1, 1, 1], dtype="Int64")
@@ -114,10 +117,13 @@ def test_pow_scalar():
     tm.assert_extension_array_equal(result, expected)
 
     result = a**np.nan
-    expected = FloatingArray(
-        np.array([np.nan, np.nan, 1, np.nan, np.nan], dtype="float64"),
-        np.array([False, False, False, True, False]),
-    )
+    if using_nan_is_na:
+        expected = expected.astype("Float64")
+    else:
+        expected = FloatingArray(
+            np.array([np.nan, np.nan, 1, np.nan, np.nan], dtype="float64"),
+            np.array([False, False, False, True, False]),
+        )
     tm.assert_extension_array_equal(result, expected)
 
     # reversed
@@ -136,10 +142,13 @@ def test_pow_scalar():
     tm.assert_extension_array_equal(result, expected)
 
     result = np.nan**a
-    expected = FloatingArray(
-        np.array([1, np.nan, np.nan, np.nan], dtype="float64"),
-        np.array([False, False, True, False]),
-    )
+    if using_nan_is_na:
+        expected = expected.astype("Float64")
+    else:
+        expected = FloatingArray(
+            np.array([1, np.nan, np.nan, np.nan], dtype="float64"),
+            np.array([False, False, True, False]),
+        )
     tm.assert_extension_array_equal(result, expected)
 
 
@@ -192,10 +201,6 @@ def test_error_invalid_values(data, all_arithmetic_operators):
     ]:  # (data[~data.isna()] >= 0).all():
         res = ops(str_ser)
         expected = pd.Series(["foo" * x for x in data], index=s.index)
-        expected = expected.fillna(np.nan)
-        # TODO: doing this fillna to keep tests passing as we make
-        #  assert_almost_equal stricter, but the expected with pd.NA seems
-        #  more-correct than np.nan here.
         tm.assert_series_equal(res, expected)
     else:
         with tm.external_error_raised(TypeError):
@@ -212,7 +217,7 @@ def test_error_invalid_values(data, all_arithmetic_operators):
 # TODO test unsigned overflow
 
 
-def test_arith_coerce_scalar(data, all_arithmetic_operators):
+def test_arith_coerce_scalar(data, all_arithmetic_operators, using_nan_is_na):
     op = tm.get_op_from_name(all_arithmetic_operators)
     s = pd.Series(data)
     other = 0.01
@@ -220,9 +225,11 @@ def test_arith_coerce_scalar(data, all_arithmetic_operators):
     result = op(s, other)
     expected = op(s.astype(float), other)
     expected = expected.astype("Float64")
+    if not using_nan_is_na:
+        expected[s.isna()] = pd.NA
 
     # rmod results in NaN that wasn't NA in original nullable Series -> unmask it
-    if all_arithmetic_operators == "__rmod__":
+    if all_arithmetic_operators == "__rmod__" and not using_nan_is_na:
         mask = (s == 0).fillna(False).to_numpy(bool)
         expected.array._mask[mask] = False
 
@@ -263,7 +270,7 @@ def test_cross_type_arithmetic():
 
 
 @pytest.mark.parametrize("op", ["mean"])
-def test_reduce_to_float(op):
+def test_reduce_to_float(op, using_python_scalars):
     # some reduce ops always return float, even if the result
     # is a rounded number
     df = pd.DataFrame(
@@ -276,7 +283,10 @@ def test_reduce_to_float(op):
 
     # op
     result = getattr(df.C, op)()
-    assert isinstance(result, float)
+    if using_python_scalars:
+        assert type(result) == float
+    else:
+        assert isinstance(result, np.float64)
 
     # groupby
     result = getattr(df.groupby("A"), op)()

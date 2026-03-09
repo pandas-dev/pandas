@@ -248,7 +248,7 @@ cdef class _NaT(datetime):
         >>> ts
         Timestamp('2023-01-01 10:00:15')
         >>> ts.to_datetime64()
-        numpy.datetime64('2023-01-01T10:00:15.000000')
+        np.datetime64('2023-01-01T10:00:15.000000')
         """
         return np.datetime64("NaT", "ns")
 
@@ -281,12 +281,12 @@ cdef class _NaT(datetime):
         --------
         >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
         >>> ts.to_numpy()
-        numpy.datetime64('2020-03-14T15:32:52.192548651')
+        np.datetime64('2020-03-14T15:32:52.192548651')
 
         Analogous for ``pd.NaT``:
 
         >>> pd.NaT.to_numpy()
-        numpy.datetime64('NaT')
+        np.datetime64('NaT','ns')
         """
         if dtype is not None:
             # GH#44460
@@ -371,6 +371,8 @@ class NaTType(_NaT):
     0  2023-01-01
     1         NaT
     """
+
+    __module__ = "pandas.api.typing"
 
     def __new__(cls):
         cdef _NaT base
@@ -557,6 +559,10 @@ class NaTType(_NaT):
         """
         Return the day name of the Timestamp with specified locale.
 
+        This method returns the full name of the day of the week (e.g.,
+        'Monday', 'Tuesday') for the given Timestamp. The locale can be
+        specified to return the name in a particular language.
+
         Parameters
         ----------
         locale : str, default None (English locale)
@@ -595,6 +601,11 @@ class NaTType(_NaT):
         "isocalendar",
         """
         Return a named tuple containing ISO year, week number, and weekday.
+
+        The ISO 8601 calendar is a widely used international standard. The
+        returned named tuple has three components: ``year``, ``week``, and
+        ``weekday``. The ISO year may differ from the Gregorian year for dates
+        near the start or end of a calendar year.
 
         See Also
         --------
@@ -819,7 +830,7 @@ class NaTType(_NaT):
         >>> ts
         Timestamp('2023-01-01 10:00:00+0100', tz='Europe/Brussels')
         >>> ts.timetz()
-        datetime.time(10, 0, tzinfo=<DstTzInfo 'Europe/Brussels' CET+1:00:00 STD>)
+        datetime.time(10, 0, tzinfo=zoneinfo.ZoneInfo(key='Europe/Brussels'))
         """
         )
     toordinal = _make_error_func(
@@ -884,6 +895,10 @@ class NaTType(_NaT):
         "strftime",
         """
         Return a formatted string of the Timestamp.
+
+        This method converts a Timestamp to a string according to the given
+        format string, using the same directives as the standard library's
+        :meth:`datetime.datetime.strftime`.
 
         Parameters
         ----------
@@ -1056,6 +1071,10 @@ class NaTType(_NaT):
 
         Return a new Timestamp representing UTC day and time.
 
+        .. deprecated:: 3.0.0
+            ``Timestamp.utcnow`` is deprecated and will be removed in a future
+            version. Use ``Timestamp.now('UTC')`` instead.
+
         See Also
         --------
         Timestamp : Constructs an arbitrary datetime.
@@ -1166,7 +1185,7 @@ class NaTType(_NaT):
     fromordinal = _make_error_func(
         "fromordinal",
         """
-        Construct a timestamp from a a proleptic Gregorian ordinal.
+        Construct a timestamp from a proleptic Gregorian ordinal.
 
         This method creates a `Timestamp` object corresponding to the given
         proleptic Gregorian ordinal, which is a count of days from January 1,
@@ -1258,7 +1277,9 @@ class NaTType(_NaT):
         Return new Timestamp object representing current time local to tz.
 
         This method returns a new `Timestamp` object that represents the current time.
-        If a timezone is provided, the current time will be localized to that timezone.
+        If a timezone is provided, either through a timezone object or an IANA
+        standard timezone identifier, the current time will be localized to that
+        timezone.
         Otherwise, it returns the current local time.
 
         Parameters
@@ -1276,6 +1297,11 @@ class NaTType(_NaT):
         --------
         >>> pd.Timestamp.now()  # doctest: +SKIP
         Timestamp('2020-11-16 22:06:16.378782')
+
+        If you want a specific timezone, in this case 'Brazil/East':
+
+        >>> pd.Timestamp.now('Brazil/East')  # doctest: +SKIP
+        Timestamp('2025-11-11 22:17:59.609943-03:00)
 
         Analogous for ``pd.NaT``:
 
@@ -1425,6 +1451,10 @@ timedelta}, default 'raise'
         """
         Return a new Timestamp floored to this resolution.
 
+        This method rounds the Timestamp down to the nearest boundary of the
+        given frequency. The result will never be later than the original
+        Timestamp.
+
         Parameters
         ----------
         freq : str
@@ -1519,6 +1549,10 @@ timedelta}, default 'raise'
         "ceil",
         """
         Return a new Timestamp ceiled to this resolution.
+
+        This method rounds the Timestamp up to the nearest boundary of the
+        given frequency. The result will never be earlier than the original
+        Timestamp.
 
         Parameters
         ----------
@@ -1833,6 +1867,11 @@ default 'raise'
         """
         Convert the underlying int64 representation to the given unit.
 
+        This method changes the resolution of the Timestamp's internal
+        representation. When converting to a coarser resolution (e.g.,
+        nanoseconds to seconds), precision may be lost through rounding
+        unless ``round_ok`` is set to False.
+
         Parameters
         ----------
         unit : {"ns", "us", "ms", "s"}
@@ -1857,7 +1896,7 @@ default 'raise'
         >>> ts
         Timestamp('2023-01-01 00:00:00.010000')
         >>> ts.unit
-        'ms'
+        'us'
         >>> ts = ts.as_unit('s')
         >>> ts
         Timestamp('2023-01-01 00:00:00')
@@ -1869,6 +1908,7 @@ default 'raise'
 
 c_NaT = NaTType()  # C-visible
 NaT = c_NaT        # Python-visible
+NaT.__module__ = "pandas"
 
 
 # ----------------------------------------------------------------------
@@ -1882,7 +1922,7 @@ cdef bint checknull_with_nat(object val):
 
 cdef bint is_dt64nat(object val):
     """
-    Is this a np.datetime64 object np.datetime64("NaT").
+    Is this an np.datetime64 object np.datetime64("NaT").
     """
     if cnp.is_datetime64_object(val):
         return cnp.get_datetime64_value(val) == NPY_NAT
@@ -1891,7 +1931,7 @@ cdef bint is_dt64nat(object val):
 
 cdef bint is_td64nat(object val):
     """
-    Is this a np.timedelta64 object np.timedelta64("NaT").
+    Is this an np.timedelta64 object np.timedelta64("NaT").
     """
     if cnp.is_timedelta64_object(val):
         return cnp.get_timedelta64_value(val) == NPY_NAT

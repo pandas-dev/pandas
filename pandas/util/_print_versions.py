@@ -8,6 +8,8 @@ import struct
 import sys
 from typing import TYPE_CHECKING
 
+from pandas.util._decorators import set_module
+
 if TYPE_CHECKING:
     from pandas._typing import JSONSerializable
 
@@ -23,17 +25,11 @@ def _get_commit_hash() -> str | None:
     Use vendored versioneer code to get git hash, which handles
     git worktree correctly.
     """
-    try:
-        from pandas._version_meson import (  # pyright: ignore [reportMissingImports]
-            __git_version__,
-        )
+    from pandas._version_meson import (  # pyright: ignore [reportMissingImports]
+        __git_version__,
+    )
 
-        return __git_version__
-    except ImportError:
-        from pandas._version import get_versions
-
-        versions = get_versions()  # type: ignore[no-untyped-call]
-        return versions["full-revisionid"]
+    return __git_version__
 
 
 def _get_sys_info() -> dict[str, JSONSerializable]:
@@ -90,6 +86,7 @@ def _get_dependency_info() -> dict[str, JSONSerializable]:
     return result
 
 
+@set_module("pandas")
 def show_versions(as_json: str | bool = False) -> None:
     """
     Provide useful information, important for bug reports.

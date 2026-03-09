@@ -455,7 +455,7 @@ by evaluate arithmetic and boolean expression all at once for large :class:`~pan
    :func:`~pandas.eval` is many orders of magnitude slower for
    smaller expressions or objects than plain Python. A good rule of thumb is
    to only use :func:`~pandas.eval` when you have a
-   :class:`~pandas.core.frame.DataFrame` with more than 10,000 rows.
+   :class:`~pandas.DataFrame` with more than 10,000 rows.
 
 Supported syntax
 ~~~~~~~~~~~~~~~~

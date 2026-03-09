@@ -12,11 +12,11 @@ Usage:
     generated with this script:
     $ python scripts/generate_pip_deps_from_conda.py --compare
 """
+
 import argparse
 import pathlib
 import re
 import sys
-import tomllib
 
 import yaml
 
@@ -107,14 +107,6 @@ def generate_pip_from_conda(
         "# See that file for comments about the need/usage of each dependency.\n\n"
     )
     pip_content = header + "\n".join(pip_deps) + "\n"
-
-    # add setuptools to requirements-dev.txt
-    with open(pathlib.Path(conda_path.parent, "pyproject.toml"), "rb") as fd:
-        meta = tomllib.load(fd)
-    for requirement in meta["build-system"]["requires"]:
-        if "setuptools" in requirement:
-            pip_content += requirement
-            pip_content += "\n"
 
     if compare:
         with pip_path.open() as file:

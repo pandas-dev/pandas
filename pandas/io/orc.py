@@ -11,6 +11,7 @@ from typing import (
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
+from pandas.util._decorators import set_module
 from pandas.util._validators import check_dtype_backend
 
 from pandas.core.indexes.api import default_index
@@ -35,6 +36,7 @@ if TYPE_CHECKING:
     from pandas.core.frame import DataFrame
 
 
+@set_module("pandas")
 def read_orc(
     path: FilePath | ReadBuffer[bytes],
     columns: list[str] | None = None,
@@ -144,8 +146,6 @@ def to_orc(
 ) -> bytes | None:
     """
     Write a DataFrame to the ORC format.
-
-    .. versionadded:: 1.5.0
 
     Parameters
     ----------

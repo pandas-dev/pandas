@@ -182,6 +182,7 @@ class TestSeriesConvertDtypes:
         expected_other,
         params,
         using_infer_string,
+        using_nan_is_na,
     ):
         if (
             hasattr(data, "dtype")
@@ -208,11 +209,14 @@ class TestSeriesConvertDtypes:
             "convert_boolean",
             "convert_floating",
         ]
-        params_dict = dict(zip(param_names, params))
+        params_dict = dict(zip(param_names, params, strict=True))
 
         expected_dtype = expected_default
         for spec, dtype in expected_other.items():
-            if all(params_dict[key] is val for key, val in zip(spec[::2], spec[1::2])):
+            if all(
+                params_dict[key] is val
+                for key, val in zip(spec[::2], spec[1::2], strict=False)
+            ):
                 expected_dtype = dtype
         if (
             using_infer_string
@@ -224,6 +228,16 @@ class TestSeriesConvertDtypes:
             # If convert_string=False and infer_objects=True, we end up with the
             # default string dtype instead of preserving object for string data
             expected_dtype = pd.StringDtype(na_value=np.nan)
+        if (
+            not using_nan_is_na
+            and expected_dtype == "Int64"
+            and isinstance(data[1], float)
+            and np.isnan(data[1])
+        ):
+            if params_dict["convert_floating"]:
+                expected_dtype = "Float64"
+            else:
+                expected_dtype = "float64"
 
         expected = pd.Series(data, dtype=expected_dtype)
         tm.assert_series_equal(result, expected)
@@ -235,7 +249,7 @@ class TestSeriesConvertDtypes:
             with pytest.raises(TypeError, match="Invalid value"):
                 result[result.notna()] = np.nan
         else:
-            result[result.notna()] = np.nan
+            result[result.notna()] = pd.NA
 
         # Make sure original not changed
         tm.assert_series_equal(series, copy)
@@ -318,3 +332,9 @@ class TestSeriesConvertDtypes:
         result = ser.convert_dtypes(dtype_backend="pyarrow")
         expected = ser.copy()
         tm.assert_series_equal(result, expected)
+
+    def test_convert_dtypes_complex(self):
+        # GH 60129
+        ser = pd.Series([1.5 + 3.0j, 1.5 - 3.0j])
+        result = ser.convert_dtypes()
+        tm.assert_series_equal(result, ser)

@@ -13,6 +13,7 @@ from pandas._libs.tslibs.ccalendar import (
 from pandas._libs.tslibs.offsets import _get_offset
 from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
 from pandas.compat import is_platform_windows
+import pandas.util._test_decorators as td
 
 from pandas import (
     DatetimeIndex,
@@ -151,10 +152,7 @@ def test_fifth_week_of_month():
     # see gh-9425
     #
     # Only supports freq up to WOM-4.
-    msg = (
-        "Of the four parameters: start, end, periods, "
-        "and freq, exactly three must be specified"
-    )
+    msg = "Invalid frequency: WOM-5MON"
 
     with pytest.raises(ValueError, match=msg):
         date_range("2014-01-01", freq="WOM-5MON")
@@ -542,3 +540,32 @@ def test_infer_freq_non_nano_tzaware(tz_aware_fixture):
 
     res = frequencies.infer_freq(dta)
     assert res == "B"
+
+
+@td.skip_if_no("pyarrow")
+def test_infer_freq_pyarrow():
+    # GH#58403
+    data = ["2022-01-01T10:00:00", "2022-01-01T10:00:30", "2022-01-01T10:01:00"]
+    pd_series = Series(data).astype("timestamp[s][pyarrow]")
+    pd_index = Index(data).astype("timestamp[s][pyarrow]")
+
+    assert frequencies.infer_freq(pd_index.values) == "30s"
+    assert frequencies.infer_freq(pd_series.values) == "30s"
+    assert frequencies.infer_freq(pd_index) == "30s"
+    assert frequencies.infer_freq(pd_series) == "30s"
+
+
+def test_infer_freq_no_stateful_behavior():
+    # GH#55794 infer_freq should not have stateful behavior
+    # calling infer_freq on a full index with duplicates should not
+    # affect the result of calling it on a slice without duplicates
+    times = to_datetime(["2019-01-01", "2019-01-02", "2019-01-03", "2019-01-03"])
+
+    # Before calling infer_freq on full index
+    assert frequencies.infer_freq(times[:3]) == "D"
+
+    # Call on full index (which has duplicates, so returns None)
+    assert frequencies.infer_freq(times) is None
+
+    # After calling on full index, slice should still return "D"
+    assert frequencies.infer_freq(times[:3]) == "D"

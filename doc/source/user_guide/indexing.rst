@@ -431,6 +431,36 @@ an error will be raised. For instance, in the above example, ``s.loc[2:5]`` woul
 For more information about duplicate labels, see
 :ref:`Duplicate Labels <duplicates>`.
 
+When using a slice with a step, such as ``.loc[start:stop:step]``, note that
+*start* and *stop* are interpreted as **labels**, while *step* is applied over
+the **positional index** within that label range. This means a stepped slice
+will behave differently than using the labels ``range(start, stop, step)`` when
+the index is not contiguous integers.
+
+For example, in a ``Series`` with a non-contiguous integer index:
+
+.. ipython:: python
+
+    s = pd.Series(range(10), index=[0, 5, 10, 15, 20, 25, 30, 35, 40, 45])
+    s.loc[10:50:5]              # (10), then skip 5 positions → 35 only
+    s.loc[[10, 15, 20, 25]]     # explicit label selection
+
+The first applies *step* across **positional locations** between the start/stop
+labels. The second selects each label directly.
+
+Similarly, with a string-based index, the behavior is identical:
+
+.. ipython:: python
+
+    s = pd.Series(range(10), index=['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j'])
+    s.loc['b':'i':2]            # Start at 'b' (position 1), stop at 'i' (position 8), step 2 positions → 'b', 'd', 'f', 'h'
+    s.loc[['b', 'd', 'f', 'h']] # explicit label selection
+
+In both cases, *start* and *stop* determine the label boundaries (inclusive),
+while *step* skips positions within that range, regardless of the index type.
+
+
+
 .. _indexing.integer:
 
 Selection by position

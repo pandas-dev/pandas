@@ -395,29 +395,6 @@ def test_join_list_series(float_frame):
     tm.assert_frame_equal(result, float_frame)
 
 
-def test_suppress_future_warning_with_sort_kw(sort):
-    sort_kw = sort
-    a = DataFrame({"col1": [1, 2]}, index=["c", "a"])
-
-    b = DataFrame({"col2": [4, 5]}, index=["b", "a"])
-
-    c = DataFrame({"col3": [7, 8]}, index=["a", "b"])
-
-    expected = DataFrame(
-        {
-            "col1": {"a": 2.0, "b": float("nan"), "c": 1.0},
-            "col2": {"a": 5.0, "b": 4.0, "c": float("nan")},
-            "col3": {"a": 7.0, "b": 8.0, "c": float("nan")},
-        }
-    )
-    if sort_kw is False:
-        expected = expected.reindex(index=["c", "a", "b"])
-
-    with tm.assert_produces_warning(None):
-        result = a.join([b, c], how="outer", sort=sort_kw)
-    tm.assert_frame_equal(result, expected)
-
-
 class TestDataFrameJoin:
     def test_join(self, multiindex_dataframe_random_data):
         frame = multiindex_dataframe_random_data
@@ -575,3 +552,27 @@ class TestDataFrameJoin:
 
         tm.assert_index_equal(result.index, expected)
         assert result.index.tz.key == "US/Central"
+
+    def test_frame_join_categorical_index(self):
+        # GH 61675
+        cat_data = pd.Categorical(
+            [3, 4],
+            categories=pd.Series([2, 3, 4, 5], dtype="Int64"),
+            ordered=True,
+        )
+        values1 = "a b".split()
+        values2 = "foo bar".split()
+        df1 = DataFrame({"hr": cat_data, "values1": values1}).set_index("hr")
+        df2 = DataFrame({"hr": cat_data, "values2": values2}).set_index("hr")
+        df1.columns = pd.CategoricalIndex([4], dtype=cat_data.dtype, name="other_hr")
+        df2.columns = pd.CategoricalIndex([3], dtype=cat_data.dtype, name="other_hr")
+
+        df_joined = df1.join(df2)
+        expected = DataFrame(
+            {"hr": cat_data, "values1": values1, "values2": values2}
+        ).set_index("hr")
+        expected.columns = pd.CategoricalIndex(
+            [4, 3], dtype=cat_data.dtype, name="other_hr"
+        )
+
+        tm.assert_frame_equal(df_joined, expected)

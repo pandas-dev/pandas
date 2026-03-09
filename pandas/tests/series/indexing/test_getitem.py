@@ -16,6 +16,7 @@ from pandas._libs.tslibs import (
     timezones,
 )
 from pandas.compat.numpy import np_version_gt2
+from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.common import is_scalar
 
@@ -314,7 +315,9 @@ class TestSeriesGetitemSlices:
             [0, 1, 2],
             DatetimeIndex(["2019-01-01", "2019-01-01T06:00:00", "2019-01-02"]),
         )
-        result = ser[slc]
+        msg = "Slicing with a datetime.date object is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = ser[slc]
         expected = ser.take(positions)
         tm.assert_series_equal(result, expected)
 

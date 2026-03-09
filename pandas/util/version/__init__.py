@@ -129,6 +129,8 @@ class InvalidVersion(ValueError):
     InvalidVersion: Invalid version: '1.'
     """
 
+    __module__ = "pandas.errors"
+
 
 class _BaseVersion:
     _key: tuple[Any, ...]

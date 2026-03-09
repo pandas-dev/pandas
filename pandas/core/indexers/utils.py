@@ -12,6 +12,7 @@ from typing import (
 import numpy as np
 
 from pandas._libs import lib
+from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.common import (
     is_array_like,
@@ -125,7 +126,7 @@ def check_setitem_lengths(indexer, value, values) -> bool:
     """
     Validate that value and indexer are the same length.
 
-    An special-case is allowed for when the indexer is a boolean array
+    A special-case is allowed for when the indexer is a boolean array
     and the number of true values equals the length of ``value``. In
     this case, no exception is raised.
 
@@ -324,7 +325,18 @@ def length_of_indexer(indexer, target=None) -> int:
             return indexer.sum()
         return len(indexer)
     elif isinstance(indexer, range):
-        return (indexer.stop - indexer.start) // indexer.step
+        try:
+            return len(indexer)
+        except OverflowError:
+            step = indexer.step
+            if step > 0:
+                low, high = indexer.start, indexer.stop
+            else:
+                low, high = indexer.stop, indexer.start
+                step = -step
+            if low >= high:
+                return 0
+            return (high - low - 1) // step + 1
     elif not is_list_like_indexer(indexer):
         return 1
     raise AssertionError("cannot find the length of the indexer")
@@ -389,10 +401,9 @@ def check_key_length(columns: Index, key, value: DataFrame) -> None:
     if columns.is_unique:
         if len(value.columns) != len(key):
             raise ValueError("Columns must be same length as key")
-    else:
-        # Missing keys in columns are represented as -1
-        if len(columns.get_indexer_non_unique(key)[0]) != len(value.columns):
-            raise ValueError("Columns must be same length as key")
+    # Missing keys in columns are represented as -1
+    elif len(columns.get_indexer_non_unique(key)[0]) != len(value.columns):
+        raise ValueError("Columns must be same length as key")
 
 
 def unpack_tuple_and_ellipses(item: tuple):
@@ -413,10 +424,32 @@ def unpack_tuple_and_ellipses(item: tuple):
     return item
 
 
+def getitem_returns_view(arr, key) -> bool:
+    """
+    Check if an ``arr.__getitem__`` call with given ``key`` would return a view
+    or not.
+    """
+    if not isinstance(key, tuple):
+        key = (key,)
+
+    # filter out Ellipsis and np.newaxis
+    key = tuple(k for k in key if k is not Ellipsis and k is not np.newaxis)
+    if not key:
+        return True
+    # single integer gives view if selecting subset of 2D array
+    if arr.ndim == 2 and lib.is_integer(key[0]):
+        return True
+    # slices always give views
+    if all(isinstance(k, slice) for k in key):
+        return True
+    return False
+
+
 # -----------------------------------------------------------
 # Public indexer validation
 
 
+@set_module("pandas.api.indexers")
 def check_array_indexer(array: AnyArrayLike, indexer: Any) -> Any:
     """
     Check if `indexer` is a valid array indexer for `array`.
@@ -434,10 +467,11 @@ def check_array_indexer(array: AnyArrayLike, indexer: Any) -> Any:
     ----------
     array : array-like
         The array that is being indexed (only used for the length).
-    indexer : array-like or list-like
-        The array-like that's used to index. List-like input that is not yet
-        a numpy array or an ExtensionArray is converted to one. Other input
-        types are passed through as is.
+    indexer : array-like, list-like, int, slice, or other indexer
+        The indexer used for indexing. Array-like and list-like inputs that
+        are not yet a numpy array or an ExtensionArray are converted to one.
+        Non-array indexers (int, slice, Ellipsis, tuples, etc.) are passed
+        through as is.
 
     Returns
     -------
@@ -485,6 +519,13 @@ def check_array_indexer(array: AnyArrayLike, indexer: Any) -> Any:
     >>> mask = np.array([True, False])
     >>> pd.api.indexers.check_array_indexer(arr, mask)
     array([ True, False])
+
+    Integer and slice indexers are passed through as is:
+
+    >>> pd.api.indexers.check_array_indexer(arr, 1)
+    1
+    >>> pd.api.indexers.check_array_indexer(arr, slice(0, 1, 1))
+    slice(0, 1, 1)
 
     Similarly for integer indexers, an integer ndarray is returned when it is
     a valid indexer, otherwise an error is  (for integer indexers, a matching

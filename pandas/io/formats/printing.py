@@ -19,9 +19,16 @@ from typing import (
 )
 from unicodedata import east_asian_width
 
+import numpy as np
+
 from pandas._config import get_option
 
-from pandas.core.dtypes.inference import is_sequence
+from pandas.core.dtypes.inference import (
+    is_float,
+    is_scalar,
+    is_sequence,
+)
+from pandas.core.dtypes.missing import notna
 
 from pandas.io.formats.console import get_console_size
 
@@ -60,7 +67,7 @@ def adjoin(space: int, *lists: list[str], **kwargs: Any) -> str:
         nl = justfunc(lst, lengths[i], mode="left")
         nl = ([" " * lengths[i]] * (maxLen - len(lst))) + nl
         newLists.append(nl)
-    toJoin = zip(*newLists)
+    toJoin = zip(*newLists, strict=True)
     return "\n".join("".join(lines) for lines in toJoin)
 
 
@@ -129,6 +136,12 @@ def _pprint_seq(
         if (max_items is not None) and (i >= max_items):
             max_items_reached = True
             break
+        if is_float(item) and notna(item):
+            # GH#60503
+            from pandas.io.formats.format import _trim_zeros_single_float
+
+            precision = get_option("display.precision")
+            item = _trim_zeros_single_float(f"{item:.{precision}f}")
         r.append(pprint_thing(item, _nest_lvl + 1, max_seq_items=max_seq_items, **kwds))
     body = ", ".join(r)
 
@@ -202,25 +215,13 @@ def pprint_thing(
     str
     """
 
-    def as_escaped_string(
-        thing: Any, escape_chars: EscapeChars | None = escape_chars
-    ) -> str:
-        translate = {"\t": r"\t", "\n": r"\n", "\r": r"\r", "'": r"\'"}
-        if isinstance(escape_chars, Mapping):
-            if default_escapes:
-                translate.update(escape_chars)
-            else:
-                translate = escape_chars  # type: ignore[assignment]
-            escape_chars = list(escape_chars.keys())
-        else:
-            escape_chars = escape_chars or ()
-
-        result = str(thing)
-        for c in escape_chars:
-            result = result.replace(c, translate[c])
-        return result
-
-    if hasattr(thing, "__next__"):
+    # TODO: should is_scalar exclude np.record?
+    if is_scalar(thing) and not isinstance(thing, np.record):
+        # GH#58285 put this check before Mapping check for performance
+        result = _as_escaped_string(thing, escape_chars, default_escapes)
+        if quote_strings and isinstance(thing, str):
+            result = f"'{result}'"
+    elif hasattr(thing, "__next__"):
         return str(thing)
     elif isinstance(thing, Mapping) and _nest_lvl < get_option(
         "display.pprint_nest_depth"
@@ -239,18 +240,35 @@ def pprint_thing(
             quote_strings=quote_strings,
             max_seq_items=max_seq_items,
         )
-    elif isinstance(thing, str) and quote_strings:
-        result = f"'{as_escaped_string(thing)}'"
     else:
-        result = as_escaped_string(thing)
+        result = _as_escaped_string(thing, escape_chars, default_escapes)
 
     return result
 
 
+def _as_escaped_string(
+    thing: Any, escape_chars: EscapeChars | None, default_escapes: bool
+) -> str:
+    translate = {"\t": r"\t", "\n": r"\n", "\r": r"\r", "'": r"\'"}
+    if isinstance(escape_chars, Mapping):
+        if default_escapes:
+            translate.update(escape_chars)
+        else:
+            translate = escape_chars  # type: ignore[assignment]
+        escape_chars = list(escape_chars.keys())
+    else:
+        escape_chars = escape_chars or ()
+
+    result = str(thing)
+    for c in escape_chars:
+        result = result.replace(c, translate[c])
+    return result
+
+
 def pprint_thing_encoded(
-    object: object, encoding: str = "utf-8", errors: str = "replace"
+    thing: object, encoding: str = "utf-8", errors: str = "replace"
 ) -> bytes:
-    value = pprint_thing(object)  # get unicode representation of object
+    value = pprint_thing(thing)  # get unicode representation of thing
     return value.encode(encoding, errors)
 
 
@@ -497,14 +515,16 @@ def _justify(
     max_length = [0] * len(combined[0])
     for inner_seq in combined:
         length = [len(item) for item in inner_seq]
-        max_length = [max(x, y) for x, y in zip(max_length, length)]
+        max_length = [max(x, y) for x, y in zip(max_length, length, strict=True)]
 
     # justify each item in each list-like in head and tail using max_length
     head_tuples = [
-        tuple(x.rjust(max_len) for x, max_len in zip(seq, max_length)) for seq in head
+        tuple(x.rjust(max_len) for x, max_len in zip(seq, max_length, strict=True))
+        for seq in head
     ]
     tail_tuples = [
-        tuple(x.rjust(max_len) for x, max_len in zip(seq, max_length)) for seq in tail
+        tuple(x.rjust(max_len) for x, max_len in zip(seq, max_length, strict=True))
+        for seq in tail
     ]
     return head_tuples, tail_tuples
 

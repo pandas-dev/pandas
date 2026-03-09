@@ -111,7 +111,7 @@ def test_transform_fast2():
         {
             "grouping": [0, 1, 1, 3],
             "f": [1.1, 2.1, 3.1, 4.5],
-            "d": date_range("2014-1-1", "2014-1-4"),
+            "d": date_range("2014-1-1", "2014-1-4", unit="ns"),
             "i": [1, 2, 3, 4],
         },
         columns=["grouping", "f", "i", "d"],
@@ -187,7 +187,7 @@ def test_transform_axis_ts(tsframe):
     tm.assert_frame_equal(result, expected)
 
     # non-monotonic
-    ts = tso.iloc[[1, 0] + list(range(2, len(base)))]
+    ts = tso.iloc[[1, 0, *list(range(2, len(base)))]]
     grouped = ts.groupby(lambda x: x.weekday(), group_keys=False)
     result = ts - grouped.transform("mean")
     expected = grouped.apply(lambda x: x - x.mean(axis=0))
@@ -401,7 +401,10 @@ def test_transform_function_aliases(df):
 def test_series_fast_transform_date():
     # GH 13191
     df = DataFrame(
-        {"grouping": [np.nan, 1, 1, 3], "d": date_range("2014-1-1", "2014-1-4")}
+        {
+            "grouping": [np.nan, 1, 1, 3],
+            "d": date_range("2014-1-1", "2014-1-4", unit="ns"),
+        }
     )
     result = df.groupby("grouping")["d"].transform("first")
     dates = [
@@ -950,7 +953,7 @@ def test_ffill_bfill_non_unique_multilevel(func, expected_status):
     result = getattr(df.groupby("symbol")["status"], func)()
 
     index = MultiIndex.from_tuples(
-        tuples=list(zip(*[date, symbol])), names=["date", "symbol"]
+        tuples=list(zip(*[date, symbol], strict=True)), names=["date", "symbol"]
     )
     expected = Series(expected_status, index=index, name="status")
 
@@ -1010,7 +1013,7 @@ def test_groupby_transform_timezone_column(func):
 )
 def test_groupby_transform_with_datetimes(func, values):
     # GH 15306
-    dates = date_range("1/1/2011", periods=10, freq="D")
+    dates = date_range("1/1/2011", periods=10, freq="D", unit="ns")
 
     stocks = DataFrame({"price": np.arange(10.0)}, index=dates)
     stocks["week_id"] = dates.isocalendar().week

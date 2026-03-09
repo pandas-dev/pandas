@@ -19,10 +19,10 @@ class BaseInterfaceTests:
     # ------------------------------------------------------------------------
 
     def test_len(self, data):
-        assert len(data) == 100
+        assert len(data) == 10
 
     def test_size(self, data):
-        assert data.size == 100
+        assert data.size == 10
 
     def test_ndim(self, data):
         assert data.ndim == 1
@@ -31,7 +31,7 @@ class BaseInterfaceTests:
         # GH-20761
         assert data._can_hold_na is True
 
-    def test_contains(self, data, data_missing):
+    def test_contains(self, data, data_missing, using_nan_is_na):
         # GH-37867
         # Tests for membership checks. Membership checks for nan-likes is tricky and
         # the settled on rule is: `nan_like in arr` is True if nan_like is
@@ -55,7 +55,21 @@ class BaseInterfaceTests:
                 # type check for e.g. two instances of Decimal("NAN")
                 continue
             assert na_value_obj not in data
-            assert na_value_obj not in data_missing
+            if (
+                using_nan_is_na
+                and isinstance(na_value_obj, float)
+                and isinstance(
+                    data,
+                    (
+                        pd.core.arrays.BaseMaskedArray,
+                        pd.core.arrays.ArrowExtensionArray,
+                    ),
+                )
+            ):
+                # TODO: wrong place for this override
+                assert na_value_obj in data_missing
+            else:
+                assert na_value_obj not in data_missing
 
     def test_memory_usage(self, data):
         s = pd.Series(data)

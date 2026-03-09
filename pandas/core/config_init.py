@@ -28,6 +28,8 @@ from pandas._config.config import (
     is_text,
 )
 
+from pandas.errors import Pandas4Warning
+
 # compute
 
 use_bottleneck_doc = """
@@ -406,12 +408,11 @@ with cf.config_prefix("mode"):
     cf.register_option("sim_interactive", False, tc_sim_interactive_doc)
 
 
-# TODO better name?
 copy_on_write_doc = """
 : bool
-    Use new copy-view behaviour using Copy-on-Write. Defaults to False,
-    unless overridden by the 'PANDAS_COPY_ON_WRITE' environment variable
-    (if set to "1" for True, needs to be set before pandas is imported).
+    Use new copy-view behaviour using Copy-on-Write. No longer used,
+    pandas now always uses Copy-on-Write behavior. This option will
+    be removed in pandas 4.0.
 """
 
 
@@ -422,7 +423,7 @@ with cf.config_prefix("mode"):
         # to False. This environment variable can be set for testing.
         "warn"
         if os.environ.get("PANDAS_COPY_ON_WRITE", "0") == "warn"
-        else os.environ.get("PANDAS_COPY_ON_WRITE", "0") == "1",
+        else os.environ.get("PANDAS_COPY_ON_WRITE", "1") == "1",
         copy_on_write_doc,
         validator=is_one_of_factory([True, False, "warn"]),
     )
@@ -467,12 +468,6 @@ def is_valid_string_storage(value: Any) -> None:
     legal_values = ["auto", "python", "pyarrow"]
     if value not in legal_values:
         msg = "Value must be one of python|pyarrow"
-        if value == "pyarrow_numpy":
-            # TODO: we can remove extra message after 3.0
-            msg += (
-                ". 'pyarrow_numpy' was specified, but this option should be "
-                "enabled using pandas.options.future.infer_string instead"
-            )
         raise ValueError(msg)
 
 
@@ -505,7 +500,7 @@ with cf.config_prefix("io.excel.xls"):
         "reader",
         "auto",
         reader_engine_doc.format(ext="xls", others=", ".join(_xls_options)),
-        validator=is_one_of_factory(_xls_options + ["auto"]),
+        validator=is_one_of_factory([*_xls_options, "auto"]),
     )
 
 with cf.config_prefix("io.excel.xlsm"):
@@ -513,7 +508,7 @@ with cf.config_prefix("io.excel.xlsm"):
         "reader",
         "auto",
         reader_engine_doc.format(ext="xlsm", others=", ".join(_xlsm_options)),
-        validator=is_one_of_factory(_xlsm_options + ["auto"]),
+        validator=is_one_of_factory([*_xlsm_options, "auto"]),
     )
 
 
@@ -522,7 +517,7 @@ with cf.config_prefix("io.excel.xlsx"):
         "reader",
         "auto",
         reader_engine_doc.format(ext="xlsx", others=", ".join(_xlsx_options)),
-        validator=is_one_of_factory(_xlsx_options + ["auto"]),
+        validator=is_one_of_factory([*_xlsx_options, "auto"]),
     )
 
 
@@ -531,7 +526,7 @@ with cf.config_prefix("io.excel.ods"):
         "reader",
         "auto",
         reader_engine_doc.format(ext="ods", others=", ".join(_ods_options)),
-        validator=is_one_of_factory(_ods_options + ["auto"]),
+        validator=is_one_of_factory([*_ods_options, "auto"]),
     )
 
 with cf.config_prefix("io.excel.xlsb"):
@@ -539,7 +534,7 @@ with cf.config_prefix("io.excel.xlsb"):
         "reader",
         "auto",
         reader_engine_doc.format(ext="xlsb", others=", ".join(_xlsb_options)),
-        validator=is_one_of_factory(_xlsb_options + ["auto"]),
+        validator=is_one_of_factory([*_xlsb_options, "auto"]),
     )
 
 # Set up the io.excel specific writer configuration.
@@ -890,10 +885,39 @@ with cf.config_prefix("future"):
     cf.register_option(
         "no_silent_downcasting",
         False,
-        "Whether to opt-in to the future behavior which will *not* silently "
-        "downcast results from Series and DataFrame `where`, `mask`, and `clip` "
-        "methods. "
-        "Silent downcasting will be removed in pandas 3.0 "
-        "(at which point this option will be deprecated).",
+        "This option is deprecated and will be removed in a future version. "
+        "It has no effect.",
         validator=is_one_of_factory([True, False]),
     )
+
+    cf.register_option(
+        "distinguish_nan_and_na",
+        os.environ.get("PANDAS_FUTURE_DISTINGUISH_NAN_AND_NA", "0") == "1",
+        "Whether to treat NaN entries as distinct from pd.NA in "
+        "numpy-nullable and pyarrow float dtypes. By default treats both "
+        "interchangeable as missing values (NaN will be coerced to NA). "
+        "See discussion in "
+        "https://github.com/pandas-dev/pandas/issues/32265",
+        validator=is_one_of_factory([True, False]),
+    )
+
+    cf.register_option(
+        "python_scalars",
+        False if os.environ.get("PANDAS_FUTURE_PYTHON_SCALARS", "0") == "0" else True,
+        "Whether to return Python scalars instead of NumPy or PyArrow scalars. "
+        "Currently experimental, setting to True is not recommended for end users.",
+        validator=is_one_of_factory([True, False]),
+    )
+
+
+# GH#59502
+cf.deprecate_option("future.no_silent_downcasting", Pandas4Warning)
+cf.deprecate_option(
+    "mode.copy_on_write",
+    Pandas4Warning,
+    msg=(
+        "The 'mode.copy_on_write' option is deprecated. Copy-on-Write can no longer "
+        "be disabled (it is always enabled with pandas >= 3.0), and setting the option "
+        "has no impact. This option will be removed in pandas 4.0."
+    ),
+)

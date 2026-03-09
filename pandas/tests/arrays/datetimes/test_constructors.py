@@ -47,7 +47,7 @@ class TestDatetimeArrayConstructor:
 
         result = DatetimeArray._from_sequence(arr, dtype="M8[ns]")._with_freq("infer")
 
-        expected = pd.date_range("1970-01-01", periods=5, freq="h")._data
+        expected = pd.date_range("1970-01-01", periods=5, freq="h", unit="ns")._data
         tm.assert_datetime_array_equal(result, expected)
 
     def test_bool_dtype_raises(self):

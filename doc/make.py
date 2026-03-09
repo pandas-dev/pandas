@@ -105,7 +105,7 @@ class DocBuilder:
     @staticmethod
     def _run_os(*args) -> None:
         """
-        Execute a command as a OS terminal.
+        Execute a command as an OS terminal.
 
         Parameters
         ----------

@@ -43,7 +43,7 @@ def dtype(request):
 
 @pytest.fixture
 def data(dtype):
-    return PeriodArray(np.arange(1970, 2070), dtype=dtype)
+    return PeriodArray(np.arange(1970, 1980), dtype=dtype)
 
 
 @pytest.fixture
@@ -91,10 +91,10 @@ class TestPeriodArray(base.ExtensionTests):
             exp_op = getattr(alt, op_name)
             result = res_op(skipna=skipna)
             expected = exp_op(skipna=skipna)
-            # error: Item "dtype[Any]" of "dtype[Any] | ExtensionDtype" has no
-            # attribute "freq"
-            freq = ser.dtype.freq  # type: ignore[union-attr]
-            expected = Period._from_ordinal(int(expected), freq=freq)
+            expected = Period._from_ordinal(
+                int(expected),
+                dtype=ser.dtype,  # type: ignore[arg-type]
+            )
             tm.assert_almost_equal(result, expected)
 
         else:

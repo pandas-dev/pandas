@@ -35,7 +35,7 @@ def vals(n):
         np.random.default_rng(2).choice(list("ZYXWVUTSRQ"), n),
         np.random.default_rng(2).standard_normal(n),
     ]
-    vals = list(map(tuple, zip(*vals)))
+    vals = list(map(tuple, zip(*vals, strict=True)))
     return vals
 
 
@@ -50,7 +50,7 @@ def keys(n, m, vals):
         ),
         np.random.default_rng(2).choice(list("ZYXWVUTSRQP"), m),
     ]
-    keys = list(map(tuple, zip(*keys)))
+    keys = list(map(tuple, zip(*keys, strict=True)))
     keys += [t[:-1] for t in vals[:: n // m]]
     return keys
 
@@ -71,6 +71,7 @@ def b(df, cols):
     return df.drop_duplicates(subset=cols[:-1])
 
 
+@pytest.mark.slow
 @pytest.mark.filterwarnings("ignore::pandas.errors.PerformanceWarning")
 @pytest.mark.parametrize("lexsort_depth", list(range(5)))
 @pytest.mark.parametrize("frame_fixture", ["a", "b"])

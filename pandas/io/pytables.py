@@ -51,7 +51,10 @@ from pandas.errors import (
     PerformanceWarning,
     PossibleDataLossError,
 )
-from pandas.util._decorators import cache_readonly
+from pandas.util._decorators import (
+    cache_readonly,
+    set_module,
+)
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
@@ -114,7 +117,10 @@ if TYPE_CHECKING:
         Iterator,
         Sequence,
     )
-    from types import TracebackType
+    from types import (
+        ModuleType,
+        TracebackType,
+    )
 
     from tables import (
         Col,
@@ -128,7 +134,7 @@ if TYPE_CHECKING:
         AxisInt,
         DtypeArg,
         FilePath,
-        Shape,
+        TimeUnit,
         npt,
     )
 
@@ -228,7 +234,7 @@ with config.config_prefix("io.hdf"):
     )
 
 # oh the troubles to reduce import time
-_table_mod = None
+_table_mod: ModuleType | None = None
 _table_file_open_policy_is_strict = False
 
 
@@ -310,6 +316,7 @@ def to_hdf(
             f(store)
 
 
+@set_module("pandas")
 def read_hdf(
     path_or_buf: FilePath | HDFStore,
     key=None,
@@ -380,7 +387,7 @@ def read_hdf(
 
     See Also
     --------
-    DataFrame.to_hdf : Write a HDF file from a DataFrame.
+    DataFrame.to_hdf : Write an HDF file from a DataFrame.
     HDFStore : Low-level access to HDF files.
 
     Notes
@@ -486,6 +493,7 @@ def _is_metadata_of(group: Node, parent_group: Node) -> bool:
     return False
 
 
+@set_module("pandas")
 class HDFStore:
     """
     Dict-like IO interface for storing pandas objects in PyTables.
@@ -1072,7 +1080,7 @@ class HDFStore:
 
         # validate rows
         nrows = None
-        for t, k in itertools.chain([(s, selector)], zip(tbls, keys)):
+        for t, k in itertools.chain([(s, selector)], zip(tbls, keys, strict=True)):
             if t is None:
                 raise KeyError(f"Invalid table [{k}]")
             if not t.is_table:
@@ -2205,7 +2213,9 @@ class IndexCol:
         return ",".join(
             [
                 f"{key}->{value}"
-                for key, value in zip(["name", "cname", "axis", "pos", "kind"], temp)
+                for key, value in zip(
+                    ["name", "cname", "axis", "pos", "kind"], temp, strict=True
+                )
             ]
         )
 
@@ -2269,7 +2279,7 @@ class IndexCol:
         except UnicodeEncodeError as err:
             if (
                 errors == "surrogatepass"
-                and get_option("future.infer_string")
+                and using_string_dtype()
                 and str(err).endswith("surrogates not allowed")
                 and HAS_PYARROW
             ):
@@ -2530,7 +2540,9 @@ class DataCol(IndexCol):
         return ",".join(
             [
                 f"{key}->{value}"
-                for key, value in zip(["name", "cname", "dtype", "kind", "shape"], temp)
+                for key, value in zip(
+                    ["name", "cname", "dtype", "kind", "shape"], temp, strict=True
+                )
             ]
         )
 
@@ -2688,10 +2700,16 @@ class DataCol(IndexCol):
         # reverse converts
         if dtype.startswith("datetime64"):
             # recreate with tz if indicated
+            if dtype == "datetime64":
+                dtype = "datetime64[ns]"
             converted = _set_tz(converted, tz, dtype)
 
-        elif dtype == "timedelta64":
-            converted = np.asarray(converted, dtype="m8[ns]")
+        elif dtype.startswith("timedelta64"):
+            if dtype == "timedelta64":
+                # from before we started storing timedelta64 unit
+                converted = np.asarray(converted, dtype="m8[ns]")
+            else:
+                converted = np.asarray(converted, dtype=dtype)
         elif dtype == "date":
             try:
                 converted = np.asarray(
@@ -2825,7 +2843,7 @@ class Fixed:
         if isinstance(version, str):
             version_tup = tuple(int(x) for x in version.split("."))
             if len(version_tup) == 2:
-                version_tup = version_tup + (0,)
+                version_tup = (*version_tup, 0)
             assert len(version_tup) == 3  # needed for mypy
             return version_tup
         else:
@@ -2974,6 +2992,7 @@ class GenericFixed(Fixed):
 
         factory: Callable
 
+        kwargs = {}
         if index_class == DatetimeIndex:
 
             def f(values, freq=None, tz=None):
@@ -2997,8 +3016,8 @@ class GenericFixed(Fixed):
             factory = f
         else:
             factory = index_class
+            kwargs["copy"] = False
 
-        kwargs = {}
         if "freq" in attrs:
             kwargs["freq"] = attrs["freq"]
             if index_class is Index:
@@ -3071,11 +3090,18 @@ class GenericFixed(Fixed):
 
             if dtype and dtype.startswith("datetime64"):
                 # reconstruct a timezone if indicated
+                if dtype == "datetime64":
+                    dtype = "datetime64[ns]"
                 tz = getattr(attrs, "tz", None)
                 ret = _set_tz(ret, tz, dtype)
 
-            elif dtype == "timedelta64":
-                ret = np.asarray(ret, dtype="m8[ns]")
+            elif dtype and dtype.startswith("timedelta64"):
+                if dtype == "timedelta64":
+                    # This was written back before we started writing
+                    # timedelta64 units
+                    ret = np.asarray(ret, dtype="m8[ns]")
+                else:
+                    ret = np.asarray(ret, dtype=dtype)
 
         if transposed:
             return ret.T
@@ -3123,10 +3149,12 @@ class GenericFixed(Fixed):
         setattr(self.attrs, f"{key}_nlevels", index.nlevels)
 
         for i, (lev, level_codes, name) in enumerate(
-            zip(index.levels, index.codes, index.names)
+            zip(index.levels, index.codes, index.names, strict=True)
         ):
             # write the level
-            if isinstance(lev.dtype, ExtensionDtype):
+            if isinstance(lev.dtype, ExtensionDtype) and not isinstance(
+                lev.dtype, StringDtype
+            ):
                 raise NotImplementedError(
                     "Saving a MultiIndex with an extension dtype is not supported."
                 )
@@ -3203,7 +3231,7 @@ class GenericFixed(Fixed):
             except UnicodeEncodeError as err:
                 if (
                     self.errors == "surrogatepass"
-                    and get_option("future.infer_string")
+                    and using_string_dtype()
                     and str(err).endswith("surrogates not allowed")
                     and HAS_PYARROW
                 ):
@@ -3248,7 +3276,7 @@ class GenericFixed(Fixed):
 
         if isinstance(value.dtype, CategoricalDtype):
             raise NotImplementedError(
-                "Cannot store a category dtype in a HDF5 dataset that uses format="
+                "Cannot store a category dtype in an HDF5 dataset that uses format="
                 '"fixed". Use format="table".'
             )
         if not empty_array:
@@ -3299,22 +3327,20 @@ class GenericFixed(Fixed):
             # store as UTC
             # with a zone
 
-            # error: Item "ExtensionArray" of "Union[Any, ExtensionArray]" has no
-            # attribute "asi8"
+            # error: "ExtensionArray" has no attribute "asi8"
             self._handle.create_array(
                 self.group,
                 key,
-                value.asi8,  # type: ignore[union-attr]
+                value.asi8,  # type: ignore[attr-defined]
             )
 
             node = getattr(self.group, key)
-            # error: Item "ExtensionArray" of "Union[Any, ExtensionArray]" has no
-            # attribute "tz"
-            node._v_attrs.tz = _get_tz(value.tz)  # type: ignore[union-attr]
+            # error: "ExtensionArray" has no attribute "tz"
+            node._v_attrs.tz = _get_tz(value.tz)  # type: ignore[attr-defined]
             node._v_attrs.value_type = f"datetime64[{value.dtype.unit}]"
         elif lib.is_np_dtype(value.dtype, "m"):
             self._handle.create_array(self.group, key, value.view("i8"))
-            getattr(self.group, key)._v_attrs.value_type = "timedelta64"
+            getattr(self.group, key)._v_attrs.value_type = str(value.dtype)
         elif isinstance(value, BaseStringArray):
             vlarr = self._handle.create_vlarray(self.group, key, _tables().ObjectAtom())
             vlarr.append(value.to_numpy())
@@ -3356,7 +3382,7 @@ class SeriesFixed(GenericFixed):
         except UnicodeEncodeError as err:
             if (
                 self.errors == "surrogatepass"
-                and get_option("future.infer_string")
+                and using_string_dtype()
                 and str(err).endswith("surrogates not allowed")
                 and HAS_PYARROW
             ):
@@ -3384,7 +3410,7 @@ class BlockManagerFixed(GenericFixed):
     nblocks: int
 
     @property
-    def shape(self) -> Shape | None:
+    def shape(self) -> list[int] | None:
         try:
             ndim = self.ndim
 
@@ -4158,7 +4184,7 @@ class Table(Fixed):
 
         # add my values
         vaxes = []
-        for i, (blk, b_items) in enumerate(zip(blocks, blk_items)):
+        for i, (blk, b_items) in enumerate(zip(blocks, blk_items, strict=True)):
             # shape of the data column are the indexable axes
             klass = DataCol
             name = None
@@ -4299,7 +4325,7 @@ class Table(Fixed):
         if table_exists:
             by_items = {
                 tuple(b_items.tolist()): (b, b_items)
-                for b, b_items in zip(blocks, blk_items)
+                for b, b_items in zip(blocks, blk_items, strict=True)
             }
             new_blocks: list[Block] = []
             new_blk_items = []
@@ -4430,7 +4456,7 @@ class Table(Fixed):
                 )
                 coords = coords[op(data.iloc[coords - coords.min()], filt).values]
 
-        return Index(coords)
+        return Index(coords, copy=False)
 
     def read_column(
         self,
@@ -4610,7 +4636,7 @@ class AppendableTable(Table):
         values = [v.transpose(np.roll(np.arange(v.ndim), v.ndim - 1)) for v in values]
         bvalues = []
         for i, v in enumerate(values):
-            new_shape = (nrows,) + self.dtype[names[nindexes + i]].shape
+            new_shape = (nrows, *self.dtype[names[nindexes + i]].shape)
             bvalues.append(v.reshape(new_shape))
 
         # write the chunks
@@ -4820,7 +4846,7 @@ class AppendableFrameTable(AppendableTable):
                 except UnicodeEncodeError as err:
                     if (
                         self.errors == "surrogatepass"
-                        and get_option("future.infer_string")
+                        and using_string_dtype()
                         and str(err).endswith("surrogates not allowed")
                         and HAS_PYARROW
                     ):
@@ -4990,7 +5016,7 @@ class GenericTable(AppendableFrameTable):
 
     # error: Signature of "write" incompatible with supertype "AppendableTable"
     def write(self, **kwargs) -> None:  # type: ignore[override]
-        raise NotImplementedError("cannot write on an generic table")
+        raise NotImplementedError("cannot write on a generic table")
 
 
 class AppendableMultiFrameTable(AppendableFrameTable):
@@ -5084,6 +5110,9 @@ def _set_tz(
     # Argument "tz" to "tz_to_dtype" has incompatible type "str | tzinfo | None";
     # expected "tzinfo"
     unit, _ = np.datetime_data(datetime64_dtype)  # parsing dtype: unit, count
+    unit = cast("TimeUnit", unit)
+    # error: Argument "tz" to "tz_to_dtype" has incompatible type
+    #  "str | tzinfo | None"; expected "tzinfo"
     dtype = tz_to_dtype(tz=tz, unit=unit)  # type: ignore[arg-type]
     dta = DatetimeArray._from_sequence(values, dtype=dtype)
     return dta
@@ -5159,11 +5188,15 @@ def _unconvert_index(data, kind: str, encoding: str, errors: str) -> np.ndarray 
     if kind.startswith("datetime64"):
         if kind == "datetime64":
             # created before we stored resolution information
-            index = DatetimeIndex(data)
+            index = DatetimeIndex(data, copy=False)
         else:
-            index = DatetimeIndex(data.view(kind))
-    elif kind == "timedelta64":
-        index = TimedeltaIndex(data)
+            index = DatetimeIndex(data.view(kind), copy=False)
+    elif kind.startswith("timedelta64"):
+        if kind == "timedelta64":
+            # created before we stored resolution information
+            index = TimedeltaIndex(data, copy=False)
+        else:
+            index = TimedeltaIndex(data.view(kind), copy=False)
     elif kind == "date":
         try:
             index = np.asarray([date.fromordinal(v) for v in data], dtype=object)
@@ -5193,12 +5226,11 @@ def _maybe_convert_for_string_atom(
     columns: list[str],
 ):
     if isinstance(bvalues.dtype, StringDtype):
-        # "ndarray[Any, Any]" has no attribute "to_numpy"
-        bvalues = bvalues.to_numpy()  # type: ignore[union-attr]
+        bvalues = bvalues.to_numpy()
     if bvalues.dtype != object:
         return bvalues
 
-    bvalues = cast(np.ndarray, bvalues)
+    bvalues = cast("np.ndarray", bvalues)
 
     dtype_name = bvalues.dtype.name
     inferred_type = lib.infer_dtype(bvalues, skipna=False)
@@ -5363,7 +5395,7 @@ def _need_convert(kind: str) -> bool:
 
 def _maybe_adjust_name(name: str, version: Sequence[int]) -> str:
     """
-    Prior to 0.10.1, we named values blocks like: values_block_0 an the
+    Prior to 0.10.1, we named values blocks like: values_block_0 and the
     name values_0, adjust the given name if necessary.
 
     Parameters
@@ -5401,7 +5433,7 @@ def _dtype_to_kind(dtype_str: str) -> str:
     elif dtype_str.startswith("datetime64"):
         kind = dtype_str
     elif dtype_str.startswith("timedelta"):
-        kind = "timedelta64"
+        kind = dtype_str
     elif dtype_str.startswith("bool"):
         kind = "bool"
     elif dtype_str.startswith("category"):

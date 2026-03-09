@@ -186,7 +186,7 @@ class TestAsFreq:
         tm.assert_series_equal(expected_series, actual_series)
 
     def test_asfreq_with_date_object_index(self, frame_or_series):
-        rng = date_range("1/1/2000", periods=20)
+        rng = date_range("1/1/2000", periods=20, unit="ns")
         ts = frame_or_series(np.random.default_rng(2).standard_normal(20), index=rng)
 
         ts2 = ts.copy()

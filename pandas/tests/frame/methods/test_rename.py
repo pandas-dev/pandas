@@ -8,6 +8,7 @@ from pandas import (
     DataFrame,
     Index,
     MultiIndex,
+    Series,
     merge,
 )
 import pandas._testing as tm
@@ -409,3 +410,33 @@ class TestRename:
             index=["foo", "bar", "bah"],
         )
         tm.assert_frame_equal(res, exp)
+
+    def test_rename_non_unique_index_series(self):
+        # GH#58621
+        df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
+        orig = df.copy(deep=True)
+
+        rename_series = Series(["X", "Y", "Z", "W"], index=["A", "B", "B", "C"])
+
+        msg = "Cannot rename with a Series with non-unique index"
+        with pytest.raises(ValueError, match=msg):
+            df.rename(rename_series)
+        with pytest.raises(ValueError, match=msg):
+            df.rename(columns=rename_series)
+        with pytest.raises(ValueError, match=msg):
+            df.rename(columns=rename_series, inplace=True)
+
+        # check we didn't corrupt the original
+        tm.assert_frame_equal(df, orig)
+
+        # Check the Series method while we're here
+        ser = df.iloc[0]
+        with pytest.raises(ValueError, match=msg):
+            ser.rename(rename_series)
+        with pytest.raises(ValueError, match=msg):
+            ser.rename(index=rename_series)
+        with pytest.raises(ValueError, match=msg):
+            ser.rename(index=rename_series, inplace=True)
+
+        # check we didn't corrupt the original
+        tm.assert_series_equal(ser, orig.iloc[0])

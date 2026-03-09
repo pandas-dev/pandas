@@ -1,7 +1,7 @@
 # cython: boundscheck=False, wraparound=False, cdivision=True
 
 from libc.math cimport (
-    round,
+    fabs,
     signbit,
     sqrt,
 )
@@ -60,6 +60,12 @@ cdef:
     float64_t MAXfloat64 = np.inf
 
     float64_t NaN = <float64_t>np.nan
+    float64_t EpsF64 = np.finfo(np.float64).eps
+
+    # Consider an operation ill-conditioned if
+    # it will only have up to 3 significant digits in base 10 remaining.
+    # https://en.wikipedia.org/wiki/Condition_number
+    float64_t InvCondTol = EpsF64 * 1e3
 
 cdef bint is_monotonic_increasing_start_end_bounds(
     ndarray[int64_t, ndim=1] start, ndarray[int64_t, ndim=1] end
@@ -325,19 +331,13 @@ cdef float64_t calc_var(
     int ddof,
     float64_t nobs,
     float64_t ssqdm_x,
-    int64_t num_consecutive_same_value
 ) noexcept nogil:
     cdef:
         float64_t result
 
     # Variance is unchanged if no observation is added or removed
     if (nobs >= minp) and (nobs > ddof):
-
-        # pathological case & repeatedly same values case
-        if nobs == 1 or num_consecutive_same_value >= nobs:
-            result = 0
-        else:
-            result = ssqdm_x / (nobs - <float64_t>ddof)
+        result = ssqdm_x / (nobs - <float64_t>ddof)
     else:
         result = NaN
 
@@ -350,26 +350,18 @@ cdef void add_var(
     float64_t *mean_x,
     float64_t *ssqdm_x,
     float64_t *compensation,
-    int64_t *num_consecutive_same_value,
-    float64_t *prev_value,
+    bint *numerically_unstable,
 ) noexcept nogil:
     """ add a value from the var calc """
     cdef:
         float64_t delta, prev_mean, y, t
+        float64_t prev_m2 = ssqdm_x[0]
 
     # GH#21813, if msvc 2017 bug is resolved, we should be OK with != instead of `isnan`
     if val != val:
         return
 
     nobs[0] = nobs[0] + 1
-
-    # GH#42064, record num of same values to remove floating point artifacts
-    if val == prev_value[0]:
-        num_consecutive_same_value[0] += 1
-    else:
-        # reset to 1 (include current value itself)
-        num_consecutive_same_value[0] = 1
-    prev_value[0] = val
 
     # Welford's method for the online variance-calculation
     # using Kahan summation
@@ -385,17 +377,23 @@ cdef void add_var(
         mean_x[0] = 0
     ssqdm_x[0] = ssqdm_x[0] + (val - prev_mean) * (val - mean_x[0])
 
+    if prev_m2 * InvCondTol > ssqdm_x[0]:
+        # possible catastrophic cancellation
+        numerically_unstable[0] = True
+
 
 cdef void remove_var(
     float64_t val,
     float64_t *nobs,
     float64_t *mean_x,
     float64_t *ssqdm_x,
-    float64_t *compensation
+    float64_t *compensation,
+    bint *numerically_unstable,
 ) noexcept nogil:
     """ remove a value from the var calc """
     cdef:
         float64_t delta, prev_mean, y, t
+        float64_t prev_m2 = ssqdm_x[0]
     if val == val:
         nobs[0] = nobs[0] - 1
         if nobs[0]:
@@ -409,9 +407,14 @@ cdef void remove_var(
             delta = t
             mean_x[0] = mean_x[0] - delta / nobs[0]
             ssqdm_x[0] = ssqdm_x[0] - (val - prev_mean) * (val - mean_x[0])
+
+            if prev_m2 * InvCondTol > ssqdm_x[0]:
+                # possible catastrophic cancellation
+                numerically_unstable[0] = True
         else:
             mean_x[0] = 0
             ssqdm_x[0] = 0
+            numerically_unstable[0] = False
 
 
 def roll_var(const float64_t[:] values, ndarray[int64_t] start,
@@ -421,11 +424,12 @@ def roll_var(const float64_t[:] values, ndarray[int64_t] start,
     """
     cdef:
         float64_t mean_x, ssqdm_x, nobs, compensation_add,
-        float64_t compensation_remove, prev_value
-        int64_t s, e, num_consecutive_same_value
+        float64_t compensation_remove
+        int64_t s, e
         Py_ssize_t i, j, N = len(start)
         ndarray[float64_t] output
         bint is_monotonic_increasing_bounds
+        bint requires_recompute, numerically_unstable
 
     minp = max(minp, 1)
     is_monotonic_increasing_bounds = is_monotonic_increasing_start_end_bounds(
@@ -442,32 +446,35 @@ def roll_var(const float64_t[:] values, ndarray[int64_t] start,
 
             # Over the first window, observations can only be added
             # never removed
-            if i == 0 or not is_monotonic_increasing_bounds or s >= end[i - 1]:
+            requires_recompute = (
+                i == 0
+                or not is_monotonic_increasing_bounds
+                or s >= end[i - 1]
+            )
 
-                prev_value = values[s]
-                num_consecutive_same_value = 0
-
-                mean_x = ssqdm_x = nobs = compensation_add = compensation_remove = 0
-                for j in range(s, e):
-                    add_var(values[j], &nobs, &mean_x, &ssqdm_x, &compensation_add,
-                            &num_consecutive_same_value, &prev_value)
-
-            else:
-
+            if not requires_recompute:
                 # After the first window, observations can both be added
                 # and removed
 
                 # calculate deletes
                 for j in range(start[i - 1], s):
                     remove_var(values[j], &nobs, &mean_x, &ssqdm_x,
-                               &compensation_remove)
+                               &compensation_remove, &numerically_unstable)
 
                 # calculate adds
                 for j in range(end[i - 1], e):
                     add_var(values[j], &nobs, &mean_x, &ssqdm_x, &compensation_add,
-                            &num_consecutive_same_value, &prev_value)
+                            &numerically_unstable)
 
-            output[i] = calc_var(minp, ddof, nobs, ssqdm_x, num_consecutive_same_value)
+            if requires_recompute or numerically_unstable:
+
+                mean_x = ssqdm_x = nobs = compensation_add = compensation_remove = 0
+                for j in range(s, e):
+                    add_var(values[j], &nobs, &mean_x, &ssqdm_x, &compensation_add,
+                            &numerically_unstable)
+                numerically_unstable = False
+
+            output[i] = calc_var(minp, ddof, nobs, ssqdm_x)
 
             if not is_monotonic_increasing_bounds:
                 nobs = 0.0
@@ -482,18 +489,15 @@ def roll_var(const float64_t[:] values, ndarray[int64_t] start,
 
 
 cdef float64_t calc_skew(int64_t minp, int64_t nobs,
-                         float64_t x, float64_t xx, float64_t xxx,
+                         float64_t mean, float64_t m2, float64_t m3,
                          int64_t num_consecutive_same_value
                          ) noexcept nogil:
     cdef:
         float64_t result, dnobs
-        float64_t A, B, C, R
+        float64_t moments_ratio, correction
 
     if nobs >= minp:
         dnobs = <float64_t>nobs
-        A = x / dnobs
-        B = xx / dnobs - A * A
-        C = xxx / dnobs - A * A * A - 3 * A * B
 
         if nobs < 3:
             result = NaN
@@ -501,21 +505,21 @@ cdef float64_t calc_skew(int64_t minp, int64_t nobs,
         # uniform case, force result to be 0
         elif num_consecutive_same_value >= nobs:
             result = 0.0
-        # #18044: with uniform distribution, floating issue will
-        #         cause B != 0. and cause the result is a very
+        # #18044: with degenerate distribution, floating issue will
+        #         cause m2 != 0. and cause the result is a very
         #         large number.
         #
         #         in core/nanops.py nanskew/nankurt call the function
         #         _zero_out_fperr(m2) to fix floating error.
         #         if the variance is less than 1e-14, it could be
         #         treat as zero, here we follow the original
-        #         skew/kurt behaviour to check B <= 1e-14
-        elif B <= 1e-14:
+        #         skew/kurt behaviour to check m2 <= n * 1e-14
+        elif m2 <= dnobs * 1e-14:
             result = NaN
         else:
-            R = sqrt(B)
-            result = ((sqrt(dnobs * (dnobs - 1.)) * C) /
-                      ((dnobs - 2) * R * R * R))
+            moments_ratio = m3 / (m2 * sqrt(m2))
+            correction = dnobs * sqrt((dnobs - 1)) / (dnobs - 2)
+            result = moments_ratio * correction
     else:
         result = NaN
 
@@ -523,34 +527,36 @@ cdef float64_t calc_skew(int64_t minp, int64_t nobs,
 
 
 cdef void add_skew(float64_t val, int64_t *nobs,
-                   float64_t *x, float64_t *xx,
-                   float64_t *xxx,
-                   float64_t *compensation_x,
-                   float64_t *compensation_xx,
-                   float64_t *compensation_xxx,
+                   float64_t *mean, float64_t *m2,
+                   float64_t *m3,
+                   bint *numerically_unstable,
                    int64_t *num_consecutive_same_value,
                    float64_t *prev_value,
                    ) noexcept nogil:
     """ add a value from the skew calc """
     cdef:
-        float64_t y, t
+        float64_t n, delta, delta_n, term1, m3_update, new_m3
+
+    # Formulas adapted from
+    # https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Higher-order_statistics
 
     # Not NaN
     if val == val:
-        nobs[0] = nobs[0] + 1
+        nobs[0] += 1
+        n = <float64_t>(nobs[0])
+        delta = val - mean[0]
+        delta_n = delta / n
+        term1 = delta * delta_n * (n - 1.0)
 
-        y = val - compensation_x[0]
-        t = x[0] + y
-        compensation_x[0] = t - x[0] - y
-        x[0] = t
-        y = val * val - compensation_xx[0]
-        t = xx[0] + y
-        compensation_xx[0] = t - xx[0] - y
-        xx[0] = t
-        y = val * val * val - compensation_xxx[0]
-        t = xxx[0] + y
-        compensation_xxx[0] = t - xxx[0] - y
-        xxx[0] = t
+        m3_update = delta_n * (term1 * (n - 2.0) - 3.0 * m2[0])
+        new_m3 = m3[0] + m3_update
+        if (fabs(m3_update) + fabs(m3[0])) * InvCondTol > fabs(new_m3):
+            # possible catastrophic cancellation
+            numerically_unstable[0] = True
+
+        m3[0] = new_m3
+        m2[0] += term1
+        mean[0] += delta_n
 
         # GH#42064, record num of same values to remove floating point artifacts
         if val == prev_value[0]:
@@ -562,69 +568,63 @@ cdef void add_skew(float64_t val, int64_t *nobs,
 
 
 cdef void remove_skew(float64_t val, int64_t *nobs,
-                      float64_t *x, float64_t *xx,
-                      float64_t *xxx,
-                      float64_t *compensation_x,
-                      float64_t *compensation_xx,
-                      float64_t *compensation_xxx) noexcept nogil:
+                      float64_t *mean, float64_t *m2,
+                      float64_t *m3,
+                      bint *numerically_unstable) noexcept nogil:
     """ remove a value from the skew calc """
     cdef:
-        float64_t y, t
+        float64_t n, delta, delta_n, term1, m3_update, new_m3
+
+    # This is the online update for the central moments
+    # when we remove an observation.
+    #
+    # δ = x - m_{n+1}
+    # m_{n} = m_{n+1} - (δ / n)
+    # m²_n = Σ_{i=1}^{n+1}(x_i - m_{n})² - (x - m_{n})² # uses new mean
+    #      = m²_{n+1} - (δ²/n)*(n+1)
+    # m³_n = Σ_{i=1}^{n+1}(x_i - m_{n})³ - (x - m_{n})³ # uses new mean
+    #      = m³_{n+1} - (δ³/n²)*(n+1)*(n+2) + 3 * m²_{n+1}*(δ/n)
 
     # Not NaN
     if val == val:
-        nobs[0] = nobs[0] - 1
+        nobs[0] -= 1
+        n = <float64_t>(nobs[0])
+        delta = val - mean[0]
+        delta_n = delta / n
+        term1 = delta_n * delta * (n + 1.0)
 
-        y = - val - compensation_x[0]
-        t = x[0] + y
-        compensation_x[0] = t - x[0] - y
-        x[0] = t
-        y = - val * val - compensation_xx[0]
-        t = xx[0] + y
-        compensation_xx[0] = t - xx[0] - y
-        xx[0] = t
-        y = - val * val * val - compensation_xxx[0]
-        t = xxx[0] + y
-        compensation_xxx[0] = t - xxx[0] - y
-        xxx[0] = t
+        m3_update = delta_n * (term1 * (n + 2.0) - 3.0 * m2[0])
+        new_m3 = m3[0] - m3_update
+
+        if (fabs(m3_update) + fabs(m3[0])) * InvCondTol > fabs(new_m3):
+            # possible catastrophic cancellation
+            numerically_unstable[0] = True
+
+        m3[0] = new_m3
+        m2[0] -= term1
+        mean[0] -= delta_n
 
 
-def roll_skew(ndarray[float64_t] values, ndarray[int64_t] start,
+def roll_skew(const float64_t[:] values, ndarray[int64_t] start,
               ndarray[int64_t] end, int64_t minp) -> np.ndarray:
     cdef:
         Py_ssize_t i, j
-        float64_t val, min_val, mean_val, sum_val = 0
-        float64_t compensation_xxx_add, compensation_xxx_remove
-        float64_t compensation_xx_add, compensation_xx_remove
-        float64_t compensation_x_add, compensation_x_remove
-        float64_t x, xx, xxx
+        float64_t val
+        float64_t mean, m2, m3
         float64_t prev_value
-        int64_t nobs = 0, N = len(start), V = len(values), nobs_mean = 0
+        int64_t nobs = 0, N = len(start)
         int64_t s, e, num_consecutive_same_value
-        ndarray[float64_t] output, values_copy
+        ndarray[float64_t] output
         bint is_monotonic_increasing_bounds
+        bint requires_recompute, numerically_unstable = False
 
     minp = max(minp, 3)
     is_monotonic_increasing_bounds = is_monotonic_increasing_start_end_bounds(
         start, end
     )
     output = np.empty(N, dtype=np.float64)
-    min_val = np.nanmin(values)
-    values_copy = np.copy(values)
 
     with nogil:
-        for i in range(0, V):
-            val = values_copy[i]
-            if val == val:
-                nobs_mean += 1
-                sum_val += val
-        mean_val = sum_val / nobs_mean
-        # Other cases would lead to imprecision for smallest values
-        if min_val - mean_val > -1e5:
-            mean_val = round(mean_val)
-            for i in range(0, V):
-                values_copy[i] = values_copy[i] - mean_val
-
         for i in range(0, N):
 
             s = start[i]
@@ -632,46 +632,48 @@ def roll_skew(ndarray[float64_t] values, ndarray[int64_t] start,
 
             # Over the first window, observations can only be added
             # never removed
-            if i == 0 or not is_monotonic_increasing_bounds or s >= end[i - 1]:
+            requires_recompute = (
+                i == 0
+                or not is_monotonic_increasing_bounds
+                or s >= end[i - 1]
+            )
 
-                prev_value = values[s]
-                num_consecutive_same_value = 0
-
-                compensation_xxx_add = compensation_xxx_remove = 0
-                compensation_xx_add = compensation_xx_remove = 0
-                compensation_x_add = compensation_x_remove = 0
-                x = xx = xxx = 0
-                nobs = 0
-                for j in range(s, e):
-                    val = values_copy[j]
-                    add_skew(val, &nobs, &x, &xx, &xxx, &compensation_x_add,
-                             &compensation_xx_add, &compensation_xxx_add,
-                             &num_consecutive_same_value, &prev_value)
-
-            else:
-
+            if not requires_recompute:
                 # After the first window, observations can both be added
                 # and removed
                 # calculate deletes
                 for j in range(start[i - 1], s):
-                    val = values_copy[j]
-                    remove_skew(val, &nobs, &x, &xx, &xxx, &compensation_x_remove,
-                                &compensation_xx_remove, &compensation_xxx_remove)
+                    val = values[j]
+                    remove_skew(val, &nobs, &mean, &m2, &m3, &numerically_unstable)
 
                 # calculate adds
                 for j in range(end[i - 1], e):
-                    val = values_copy[j]
-                    add_skew(val, &nobs, &x, &xx, &xxx, &compensation_x_add,
-                             &compensation_xx_add, &compensation_xxx_add,
+                    val = values[j]
+                    add_skew(val, &nobs, &mean, &m2, &m3, &numerically_unstable,
                              &num_consecutive_same_value, &prev_value)
 
-            output[i] = calc_skew(minp, nobs, x, xx, xxx, num_consecutive_same_value)
+            if requires_recompute or numerically_unstable:
+
+                prev_value = values[s]
+                num_consecutive_same_value = 0
+
+                mean = m2 = m3 = 0.0
+                nobs = 0
+
+                for j in range(s, e):
+                    val = values[j]
+                    add_skew(val, &nobs, &mean, &m2, &m3, &numerically_unstable,
+                             &num_consecutive_same_value, &prev_value)
+
+                numerically_unstable = False
+
+            output[i] = calc_skew(minp, nobs, mean, m2, m3, num_consecutive_same_value)
 
             if not is_monotonic_increasing_bounds:
                 nobs = 0
-                x = 0.0
-                xx = 0.0
-                xxx = 0.0
+                mean = 0.0
+                m2 = 0.0
+                m3 = 0.0
 
     return output
 
@@ -680,30 +682,22 @@ def roll_skew(ndarray[float64_t] values, ndarray[int64_t] start,
 
 
 cdef float64_t calc_kurt(int64_t minp, int64_t nobs,
-                         float64_t x, float64_t xx,
-                         float64_t xxx, float64_t xxxx,
+                         float64_t m2, float64_t m4,
                          int64_t num_consecutive_same_value,
                          ) noexcept nogil:
     cdef:
-        float64_t result, dnobs
-        float64_t A, B, C, D, R, K
+        float64_t result, dnobs, term1, term2, inner, correction
+        float64_t moments_ratio
 
     if nobs >= minp:
         if nobs < 4:
             result = NaN
         # GH 42064 46431
-        # uniform case, force result to be -3.
+        # degenerate case, force result to be -3.
         elif num_consecutive_same_value >= nobs:
             result = -3.
         else:
             dnobs = <float64_t>nobs
-            A = x / dnobs
-            R = A * A
-            B = xx / dnobs - R
-            R = R * A
-            C = xxx / dnobs - R - 3 * A * B
-            R = R * A
-            D = xxxx / dnobs - R - 6 * B * A * A - 4 * C * A
 
             # #18044: with uniform distribution, floating issue will
             #         cause B != 0. and cause the result is a very
@@ -713,12 +707,17 @@ cdef float64_t calc_kurt(int64_t minp, int64_t nobs,
             #         _zero_out_fperr(m2) to fix floating error.
             #         if the variance is less than 1e-14, it could be
             #         treat as zero, here we follow the original
-            #         skew/kurt behaviour to check B <= 1e-14
-            if B <= 1e-14:
+            #         skew/kurt behaviour to check m2 <= n * 1e-14
+            if m2 <= dnobs * 1e-14:
                 result = NaN
             else:
-                K = (dnobs * dnobs - 1.) * D / (B * B) - 3 * ((dnobs - 1.) ** 2)
-                result = K / ((dnobs - 2.) * (dnobs - 3.))
+                moments_ratio = m4 / (m2 * m2)
+                term1 = dnobs * (dnobs + 1.0) * moments_ratio
+                term2 = 3.0 * (dnobs - 1.0)
+                inner = term1 - term2
+
+                correction = (dnobs - 1.0) / ((dnobs - 2.0) * (dnobs - 3.0))
+                result = correction * inner
     else:
         result = NaN
 
@@ -726,39 +725,43 @@ cdef float64_t calc_kurt(int64_t minp, int64_t nobs,
 
 
 cdef void add_kurt(float64_t val, int64_t *nobs,
-                   float64_t *x, float64_t *xx,
-                   float64_t *xxx, float64_t *xxxx,
-                   float64_t *compensation_x,
-                   float64_t *compensation_xx,
-                   float64_t *compensation_xxx,
-                   float64_t *compensation_xxxx,
+                   float64_t *mean, float64_t *m2,
+                   float64_t *m3, float64_t *m4,
+                   bint *numerically_unstable,
                    int64_t *num_consecutive_same_value,
                    float64_t *prev_value
                    ) noexcept nogil:
     """ add a value from the kurotic calc """
     cdef:
-        float64_t y, t
+        float64_t n, delta, delta_n, term1, m4_update, new_m4
+
+    # Formulas adapted from
+    # https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Higher-order_statistics
 
     # Not NaN
     if val == val:
-        nobs[0] = nobs[0] + 1
+        nobs[0] += 1
+        n = <float64_t>(nobs[0])
+        delta = val - mean[0]
+        delta_n = delta / n
+        term1 = delta * delta_n * (n - 1.0)
 
-        y = val - compensation_x[0]
-        t = x[0] + y
-        compensation_x[0] = t - x[0] - y
-        x[0] = t
-        y = val * val - compensation_xx[0]
-        t = xx[0] + y
-        compensation_xx[0] = t - xx[0] - y
-        xx[0] = t
-        y = val * val * val - compensation_xxx[0]
-        t = xxx[0] + y
-        compensation_xxx[0] = t - xxx[0] - y
-        xxx[0] = t
-        y = val * val * val * val - compensation_xxxx[0]
-        t = xxxx[0] + y
-        compensation_xxxx[0] = t - xxxx[0] - y
-        xxxx[0] = t
+        m4_update = delta_n * (
+                -4.0 * m3[0]
+                + delta_n * (
+                    6 * m2[0] + term1 * (n * n - 3.0 * n + 3.0)
+                    )
+                )
+        new_m4 = m4[0] + m4_update
+
+        if (fabs(m4_update) + fabs(m4[0])) * InvCondTol > fabs(new_m4):
+            # possible catastrophic cancellation
+            numerically_unstable[0] = True
+
+        m4[0] = new_m4
+        m3[0] += delta_n * (term1 * (n - 2.0) - 3.0 * m2[0])
+        m2[0] += term1
+        mean[0] += delta_n
 
         # GH#42064, record num of same values to remove floating point artifacts
         if val == prev_value[0]:
@@ -770,75 +773,60 @@ cdef void add_kurt(float64_t val, int64_t *nobs,
 
 
 cdef void remove_kurt(float64_t val, int64_t *nobs,
-                      float64_t *x, float64_t *xx,
-                      float64_t *xxx, float64_t *xxxx,
-                      float64_t *compensation_x,
-                      float64_t *compensation_xx,
-                      float64_t *compensation_xxx,
-                      float64_t *compensation_xxxx) noexcept nogil:
+                      float64_t *mean, float64_t *m2,
+                      float64_t *m3, float64_t *m4,
+                      bint *numerically_unstable,
+                      ) noexcept nogil:
     """ remove a value from the kurotic calc """
     cdef:
-        float64_t y, t
+        float64_t n, delta, delta_n, term1, m4_update, new_m4
 
     # Not NaN
     if val == val:
-        nobs[0] = nobs[0] - 1
+        nobs[0] -= 1
+        n = <float64_t>(nobs[0])
+        delta = val - mean[0]
+        delta_n = delta / n
+        term1 = delta_n * delta * (n + 1.0)
 
-        y = - val - compensation_x[0]
-        t = x[0] + y
-        compensation_x[0] = t - x[0] - y
-        x[0] = t
-        y = - val * val - compensation_xx[0]
-        t = xx[0] + y
-        compensation_xx[0] = t - xx[0] - y
-        xx[0] = t
-        y = - val * val * val - compensation_xxx[0]
-        t = xxx[0] + y
-        compensation_xxx[0] = t - xxx[0] - y
-        xxx[0] = t
-        y = - val * val * val * val - compensation_xxxx[0]
-        t = xxxx[0] + y
-        compensation_xxxx[0] = t - xxxx[0] - y
-        xxxx[0] = t
+        m4_update = delta_n * (
+                4.0 * m3[0]
+                + delta_n * (
+                    6.0 * m2[0]
+                    - term1 * (n * n + 3.0 * n + 3.0)
+                    )
+                )
+        new_m4 = m4[0] + m4_update
+
+        if (fabs(m4_update) + fabs(m4[0])) * InvCondTol > fabs(new_m4):
+            # possible catastrophic cancellation
+            numerically_unstable[0] = True
+
+        m4[0] = new_m4
+        m3[0] -= delta_n * (term1 * (n + 2.0) - 3.0 * m2[0])
+        m2[0] -= term1
+        mean[0] -= delta_n
 
 
-def roll_kurt(ndarray[float64_t] values, ndarray[int64_t] start,
+def roll_kurt(const float64_t[:] values, ndarray[int64_t] start,
               ndarray[int64_t] end, int64_t minp) -> np.ndarray:
     cdef:
         Py_ssize_t i, j
-        float64_t val, mean_val, min_val, sum_val = 0
-        float64_t compensation_xxxx_add, compensation_xxxx_remove
-        float64_t compensation_xxx_remove, compensation_xxx_add
-        float64_t compensation_xx_remove, compensation_xx_add
-        float64_t compensation_x_remove, compensation_x_add
-        float64_t x, xx, xxx, xxxx
+        float64_t mean, m2, m3, m4
         float64_t prev_value
         int64_t nobs, s, e, num_consecutive_same_value
-        int64_t N = len(start), V = len(values), nobs_mean = 0
-        ndarray[float64_t] output, values_copy
+        int64_t N = len(start)
+        ndarray[float64_t] output
         bint is_monotonic_increasing_bounds
+        bint requires_recompute, numerically_unstable = False
 
     minp = max(minp, 4)
     is_monotonic_increasing_bounds = is_monotonic_increasing_start_end_bounds(
         start, end
     )
     output = np.empty(N, dtype=np.float64)
-    values_copy = np.copy(values)
-    min_val = np.nanmin(values)
 
     with nogil:
-        for i in range(0, V):
-            val = values_copy[i]
-            if val == val:
-                nobs_mean += 1
-                sum_val += val
-        mean_val = sum_val / nobs_mean
-        # Other cases would lead to imprecision for smallest values
-        if min_val - mean_val > -1e4:
-            mean_val = round(mean_val)
-            for i in range(0, V):
-                values_copy[i] = values_copy[i] - mean_val
-
         for i in range(0, N):
 
             s = start[i]
@@ -846,49 +834,48 @@ def roll_kurt(ndarray[float64_t] values, ndarray[int64_t] start,
 
             # Over the first window, observations can only be added
             # never removed
-            if i == 0 or not is_monotonic_increasing_bounds or s >= end[i - 1]:
+            requires_recompute = (
+                i == 0
+                or not is_monotonic_increasing_bounds
+                or s >= end[i - 1]
+            )
 
-                prev_value = values[s]
-                num_consecutive_same_value = 0
-
-                compensation_xxxx_add = compensation_xxxx_remove = 0
-                compensation_xxx_remove = compensation_xxx_add = 0
-                compensation_xx_remove = compensation_xx_add = 0
-                compensation_x_remove = compensation_x_add = 0
-                x = xx = xxx = xxxx = 0
-                nobs = 0
-                for j in range(s, e):
-                    add_kurt(values_copy[j], &nobs, &x, &xx, &xxx, &xxxx,
-                             &compensation_x_add, &compensation_xx_add,
-                             &compensation_xxx_add, &compensation_xxxx_add,
-                             &num_consecutive_same_value, &prev_value)
-
-            else:
+            if not requires_recompute:
 
                 # After the first window, observations can both be added
                 # and removed
                 # calculate deletes
                 for j in range(start[i - 1], s):
-                    remove_kurt(values_copy[j], &nobs, &x, &xx, &xxx, &xxxx,
-                                &compensation_x_remove, &compensation_xx_remove,
-                                &compensation_xxx_remove, &compensation_xxxx_remove)
+                    remove_kurt(values[j], &nobs, &mean, &m2, &m3, &m4,
+                                &numerically_unstable)
 
                 # calculate adds
                 for j in range(end[i - 1], e):
-                    add_kurt(values_copy[j], &nobs, &x, &xx, &xxx, &xxxx,
-                             &compensation_x_add, &compensation_xx_add,
-                             &compensation_xxx_add, &compensation_xxxx_add,
+                    add_kurt(values[j], &nobs, &mean, &m2, &m3, &m4,
+                             &numerically_unstable,
                              &num_consecutive_same_value, &prev_value)
 
-            output[i] = calc_kurt(minp, nobs, x, xx, xxx, xxxx,
+            if requires_recompute or numerically_unstable:
+
+                prev_value = values[s]
+                num_consecutive_same_value = 0
+
+                mean = m2 = m3 = m4 = 0.0
+                nobs = 0
+                for j in range(s, e):
+                    add_kurt(values[j], &nobs, &mean, &m2, &m3, &m4,
+                             &numerically_unstable,
+                             &num_consecutive_same_value, &prev_value)
+
+            output[i] = calc_kurt(minp, nobs, m2, m4,
                                   num_consecutive_same_value)
 
             if not is_monotonic_increasing_bounds:
                 nobs = 0
-                x = 0.0
-                xx = 0.0
-                xxx = 0.0
-                xxxx = 0.0
+                mean = 0.0
+                m2 = 0.0
+                m3 = 0.0
+                m4 = 0.0
 
     return output
 

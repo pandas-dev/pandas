@@ -9,24 +9,33 @@ from pandas.core.arrays import FloatingArray
 @pytest.mark.parametrize("ufunc", [np.abs, np.sign])
 # np.sign emits a warning with nans, <https://github.com/numpy/numpy/issues/15127>
 @pytest.mark.filterwarnings("ignore:invalid value encountered in sign:RuntimeWarning")
-def test_ufuncs_single_int(ufunc):
+def test_ufuncs_single_int(ufunc, using_nan_is_na):
     a = pd.array([1, 2, -3, pd.NA], dtype="Int64")
     result = ufunc(a)
-    expected = pd.array(ufunc(a.astype(float)), dtype="Int64")
+    np_res = ufunc(a.astype(float))
+    np_res = np_res.astype(object)
+    np_res[-1] = pd.NA
+    expected = pd.array(np_res, dtype="Int64")
     tm.assert_extension_array_equal(result, expected)
 
     s = pd.Series(a)
     result = ufunc(s)
-    expected = pd.Series(pd.array(ufunc(a.astype(float)), dtype="Int64"))
+    np_res = ufunc(a.astype(float))
+    np_res = np_res.astype(object)
+    np_res[-1] = pd.NA
+    expected = pd.Series(pd.array(np_res, dtype="Int64"))
     tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize("ufunc", [np.log, np.exp, np.sin, np.cos, np.sqrt])
-def test_ufuncs_single_float(ufunc):
+def test_ufuncs_single_float(ufunc, using_nan_is_na):
     a = pd.array([1, 2, -3, pd.NA], dtype="Int64")
     with np.errstate(invalid="ignore"):
         result = ufunc(a)
-        expected = FloatingArray(ufunc(a.astype(float)), mask=a._mask)
+        if using_nan_is_na:
+            expected = pd.array(ufunc(a.astype(float)), dtype="Float64")
+        else:
+            expected = FloatingArray(ufunc(a.astype(float)), mask=a._mask)
     tm.assert_extension_array_equal(result, expected)
 
     s = pd.Series(a)
@@ -41,39 +50,61 @@ def test_ufuncs_binary_int(ufunc):
     # two IntegerArrays
     a = pd.array([1, 2, -3, pd.NA], dtype="Int64")
     result = ufunc(a, a)
-    expected = pd.array(ufunc(a.astype(float), a.astype(float)), dtype="Int64")
+    np_res = ufunc(a.astype(float), a.astype(float))
+    np_res = np_res.astype(object)
+    np_res[a.isna()] = pd.NA
+    expected = pd.array(np_res, dtype="Int64")
     tm.assert_extension_array_equal(result, expected)
 
     # IntegerArray with numpy array
     arr = np.array([1, 2, 3, 4])
     result = ufunc(a, arr)
-    expected = pd.array(ufunc(a.astype(float), arr), dtype="Int64")
+    np_res = ufunc(a.astype(float), arr)
+    np_res = np_res.astype(object)
+    np_res[a.isna()] = pd.NA
+    expected = pd.array(np_res, dtype="Int64")
     tm.assert_extension_array_equal(result, expected)
 
     result = ufunc(arr, a)
-    expected = pd.array(ufunc(arr, a.astype(float)), dtype="Int64")
+    np_res = ufunc(arr, a.astype(float))
+    np_res = np_res.astype(object)
+    np_res[a.isna()] = pd.NA
+    expected = pd.array(np_res, dtype="Int64")
     tm.assert_extension_array_equal(result, expected)
 
     # IntegerArray with scalar
     result = ufunc(a, 1)
-    expected = pd.array(ufunc(a.astype(float), 1), dtype="Int64")
+    np_res = ufunc(a.astype(float), 1)
+    np_res = np_res.astype(object)
+    np_res[a.isna()] = pd.NA
+    expected = pd.array(np_res, dtype="Int64")
     tm.assert_extension_array_equal(result, expected)
 
     result = ufunc(1, a)
-    expected = pd.array(ufunc(1, a.astype(float)), dtype="Int64")
+    np_res = ufunc(1, a.astype(float))
+    np_res = np_res.astype(object)
+    np_res[a.isna()] = pd.NA
+    expected = pd.array(np_res, dtype="Int64")
     tm.assert_extension_array_equal(result, expected)
 
 
-def test_ufunc_binary_output():
-    a = pd.array([1, 2, np.nan])
+def test_ufunc_binary_output(using_nan_is_na):
+    a = pd.array([1, 2, pd.NA], dtype="Int64")
     result = np.modf(a)
-    expected = np.modf(a.to_numpy(na_value=np.nan, dtype="float"))
-    expected = (pd.array(expected[0]), pd.array(expected[1]))
+    np_res = np.modf(a.to_numpy(na_value=np.nan, dtype="float"))
+
+    np_res = list(np_res)
+    np_res[0] = np_res[0].astype(object)
+    np_res[1] = np_res[1].astype(object)
+    np_res[0][-1] = pd.NA
+    np_res[1][-1] = pd.NA
+
+    expected = (pd.array(np_res[0]), pd.array(np_res[1]))
 
     assert isinstance(result, tuple)
     assert len(result) == 2
 
-    for x, y in zip(result, expected):
+    for x, y in zip(result, expected, strict=True):
         tm.assert_extension_array_equal(x, y)
 
 

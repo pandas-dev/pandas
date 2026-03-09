@@ -6,6 +6,7 @@ import pytest
 from scripts import validate_docstrings
 
 
+# fmt: off
 class BadDocstrings:
     """Everything here has a bad docstring"""
 
@@ -45,37 +46,6 @@ class BadDocstrings:
         Series([], dtype: bool)
         """
 
-    def unused_import(self) -> None:
-        """
-        Examples
-        --------
-        >>> import pandas as pdf
-        >>> df = pd.DataFrame(np.ones((3, 3)), columns=('a', 'b', 'c'))
-        """
-
-    def missing_whitespace_around_arithmetic_operator(self) -> None:
-        """
-        Examples
-        --------
-        >>> 2+5
-        7
-        """
-
-    def indentation_is_not_a_multiple_of_four(self) -> None:
-        """
-        Examples
-        --------
-        >>> if 2 + 5:
-        ...   pass
-        """
-
-    def missing_whitespace_after_comma(self) -> None:
-        """
-        Examples
-        --------
-        >>> df = pd.DataFrame(np.ones((3,3)),columns=('a','b', 'c'))
-        """
-
     def write_array_like_with_hyphen_not_underscore(self) -> None:
         """
         In docstrings, use array-like over array_like
@@ -88,6 +58,7 @@ class BadDocstrings:
         >>> import pathlib
         >>> pathlib.Path("foo.txt").touch()
         """
+# fmt: on
 
 
 class TestValidator:
@@ -156,37 +127,6 @@ class TestValidator:
             ),
             (
                 "BadDocstrings",
-                "unused_import",
-                (
-                    "flake8 error: line 1, col 1: F401 'pandas as pdf' "
-                    "imported but unused",
-                ),
-            ),
-            (
-                "BadDocstrings",
-                "missing_whitespace_around_arithmetic_operator",
-                (
-                    "flake8 error: line 1, col 2: "
-                    "E226 missing whitespace around arithmetic operator",
-                ),
-            ),
-            (
-                "BadDocstrings",
-                "indentation_is_not_a_multiple_of_four",
-                # with flake8 3.9.0, the message ends with four spaces,
-                #  whereas in earlier versions, it ended with "four"
-                (
-                    "flake8 error: line 2, col 3: E111 indentation is not a "
-                    "multiple of 4",
-                ),
-            ),
-            (
-                "BadDocstrings",
-                "missing_whitespace_after_comma",
-                ("flake8 error: line 1, col 33: E231 missing whitespace after ','",),
-            ),
-            (
-                "BadDocstrings",
                 "write_array_like_with_hyphen_not_underscore",
                 ("Use 'array-like' rather than 'array_like' in docstrings",),
             ),
@@ -227,13 +167,13 @@ class TestValidator:
                 "errors": [
                     ("ER01", "err desc"),
                     ("ER02", "err desc"),
-                    ("ER03", "err desc")
+                    ("ER03", "err desc"),
                 ],
                 "warnings": [],
                 "examples_errors": "",
                 "deprecated": True,
                 "file": "file1",
-                "file_line": "file_line1"
+                "file_line": "file_line1",
             },
         )
         monkeypatch.setattr(
@@ -272,12 +212,11 @@ class TestValidator:
                 None: {"ER03"},
                 "pandas.DataFrame.align": {"ER01"},
                 # ignoring an error that is not requested should be of no effect
-                "pandas.Index.all": {"ER03"}
-            }
+                "pandas.Index.all": {"ER03"},
+            },
         )
         # two functions * two not global ignored errors - one function ignored error
         assert exit_status == 2 * 2 - 1
-
 
 
 class TestApiItems:
@@ -366,17 +305,6 @@ class TestApiItems:
     def test_item_subsection(self, idx, subsection) -> None:
         result = list(validate_docstrings.get_api_items(self.api_doc))
         assert result[idx][3] == subsection
-
-
-class TestPandasDocstringClass:
-    @pytest.mark.parametrize(
-        "name", ["pandas.Series.str.isdecimal", "pandas.Series.str.islower"]
-    )
-    def test_encode_content_write_to_file(self, name) -> None:
-        # GH25466
-        docstr = validate_docstrings.PandasDocstring(name).validate_pep8()
-        # the list of pep8 errors should be empty
-        assert not list(docstr)
 
 
 class TestMainFunction:

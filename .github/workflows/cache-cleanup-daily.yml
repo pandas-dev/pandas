@@ -4,9 +4,11 @@ on:
     # 4:10 UTC daily
     - cron: "10 4 * * *"
 
+permissions: {}
+
 jobs:
   cleanup:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: github.repository_owner == 'pandas-dev'
     permissions:
       actions: write

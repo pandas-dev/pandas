@@ -7,7 +7,6 @@ from io import (
 import json
 import os
 import sys
-import time
 import uuid
 
 import numpy as np
@@ -76,7 +75,7 @@ class TestPandasContainer:
         #  since that doesn't round-trip, see GH#33711
         ser = Series(
             1.1 * np.arange(10, dtype=np.float64),
-            index=date_range("2020-01-01", periods=10),
+            index=date_range("2020-01-01", periods=10, unit="ns"),
             name="ts",
         )
         ser.index = ser.index._with_freq(None)
@@ -89,7 +88,7 @@ class TestPandasContainer:
         df = DataFrame(
             np.random.default_rng(2).standard_normal((30, 4)),
             columns=Index(list("ABCD")),
-            index=date_range("2000-01-01", periods=30, freq="B"),
+            index=date_range("2000-01-01", periods=30, freq="B", unit="ns"),
         )
         df.index = df.index._with_freq(None)
         return df
@@ -129,16 +128,13 @@ class TestPandasContainer:
             [["a", "b"], ["c", "d"]],
             [[1.5, 2.5], [3.5, 4.5]],
             [[1, 2.5], [3, 4.5]],
-            [[Timestamp("20130101"), 3.5], [Timestamp("20130102"), 4.5]],
+            [
+                [Timestamp("20130101").as_unit("s"), 3.5],
+                [Timestamp("20130102").as_unit("s"), 4.5],
+            ],
         ],
     )
     def test_frame_non_unique_columns(self, orient, data, request):
-        if isinstance(data[0][0], Timestamp) and orient == "split":
-            mark = pytest.mark.xfail(
-                reason="GH#55827 non-nanosecond dt64 fails to round-trip"
-            )
-            request.applymarker(mark)
-
         df = DataFrame(data, index=[1, 2], columns=["x", "x"])
 
         expected_warning = None
@@ -157,13 +153,15 @@ class TestPandasContainer:
             expected = DataFrame(data)
             if expected.iloc[:, 0].dtype == "datetime64[s]":
                 # orient == "values" by default will write Timestamp objects out
-                # in milliseconds; these are internally stored in nanosecond,
-                # so divide to get where we need
+                # in milliseconds;
                 # TODO: a to_epoch method would also solve; see GH 14772
-                expected.isetitem(0, expected.iloc[:, 0].astype(np.int64) // 1000000)
+                dta = expected.iloc[:, 0]._values
+                expected.isetitem(0, dta.as_unit("ms").astype(np.int64))
         elif orient == "split":
             expected = df
             expected.columns = ["x", "x.1"]
+            if expected["x"].dtype.kind == "M":
+                expected["x"] = expected["x"].astype("M8[ms]")
 
         tm.assert_frame_equal(result, expected)
 
@@ -273,12 +271,21 @@ class TestPandasContainer:
 
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "dtype_backend", [None, pytest.param("pyarrow", marks=td.skip_if_no("pyarrow"))]
+    )
     @pytest.mark.parametrize("convert_axes", [True, False])
-    def test_roundtrip_timestamp(self, orient, convert_axes, datetime_frame):
+    def test_roundtrip_timestamp(
+        self, orient, convert_axes, dtype_backend, datetime_frame
+    ):
         # TODO: improve coverage with date_format parameter
+        expected = datetime_frame.copy()
+        if dtype_backend is not None:
+            datetime_frame.index = Series(datetime_frame.index).convert_dtypes(
+                dtype_backend=dtype_backend
+            )
         data = StringIO(datetime_frame.to_json(orient=orient))
         result = read_json(data, orient=orient, convert_axes=convert_axes)
-        expected = datetime_frame.copy()
 
         if not convert_axes:  # one off for ts handling
             # DTI gets converted to epoch values
@@ -287,6 +294,8 @@ class TestPandasContainer:
                 idx = idx.astype(str)
 
             expected.index = idx
+        else:
+            expected.index = expected.index.as_unit("ms")
 
         assert_json_roundtrip_equal(result, expected, orient)
 
@@ -493,7 +502,7 @@ class TestPandasContainer:
         tm.assert_frame_equal(left, right)
 
     def test_v12_compat(self, datapath):
-        dti = date_range("2000-01-03", "2000-01-07")
+        dti = date_range("2000-01-03", "2000-01-07", unit="ns")
         # freq doesn't roundtrip
         dti = DatetimeIndex(np.asarray(dti), freq=None)
         df = DataFrame(
@@ -514,16 +523,22 @@ class TestPandasContainer:
 
         dirpath = datapath("io", "json", "data")
         v12_json = os.path.join(dirpath, "tsframe_v012.json")
-        df_unser = read_json(v12_json)
-        tm.assert_frame_equal(df, df_unser)
+        result = read_json(v12_json)
+        expected = df.copy()
+        expected["date"] = expected["date"].dt.as_unit("ns")
+        expected["modified"] = expected["modified"].dt.as_unit("ns")
+        expected.index = expected.index.as_unit("ns")
+        tm.assert_frame_equal(result, expected)
 
-        df_iso = df.drop(["modified"], axis=1)
         v12_iso_json = os.path.join(dirpath, "tsframe_iso_v012.json")
-        df_unser_iso = read_json(v12_iso_json)
-        tm.assert_frame_equal(df_iso, df_unser_iso, check_column_type=False)
+        result_iso = read_json(v12_iso_json)
+        expected_iso = df.drop(["modified"], axis=1)
+        expected_iso["date"] = expected_iso["date"].dt.as_unit("us")
+        expected_iso.index = expected_iso.index.as_unit("us")
+        tm.assert_frame_equal(result_iso, expected_iso, check_column_type=False)
 
     def test_blocks_compat_GH9037(self, using_infer_string):
-        index = date_range("20000101", periods=10, freq="h")
+        index = date_range("20000101", periods=10, freq="h", unit="ns")
         # freq doesn't round-trip
         index = DatetimeIndex(list(index), freq=None)
 
@@ -611,6 +626,7 @@ class TestPandasContainer:
         )
         data = StringIO(df_mixed.to_json(orient="split"))
         df_roundtrip = read_json(data, orient="split")
+        df_mixed.index = df_mixed.index.as_unit("ms")
         tm.assert_frame_equal(
             df_mixed,
             df_roundtrip,
@@ -727,13 +743,23 @@ class TestPandasContainer:
 
         tm.assert_series_equal(result, expected)
 
-    def test_series_roundtrip_timeseries(self, orient, datetime_series):
+    @pytest.mark.parametrize(
+        "dtype_backend", [None, pytest.param("pyarrow", marks=td.skip_if_no("pyarrow"))]
+    )
+    def test_series_roundtrip_timeseries(self, dtype_backend, orient, datetime_series):
+        expected = datetime_series.copy()
+        if dtype_backend is not None:
+            datetime_series.index = Series(datetime_series.index).convert_dtypes(
+                dtype_backend=dtype_backend
+            )
+
         data = StringIO(datetime_series.to_json(orient=orient))
         result = read_json(data, typ="series", orient=orient)
 
-        expected = datetime_series
         if orient in ("values", "records"):
             expected = expected.reset_index(drop=True)
+        else:
+            expected.index = expected.index.as_unit("ms")
         if orient != "split":
             expected.name = None
 
@@ -770,14 +796,19 @@ class TestPandasContainer:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
+        "dtype_backend", [None, pytest.param("pyarrow", marks=td.skip_if_no("pyarrow"))]
+    )
+    @pytest.mark.parametrize(
         "dtype,expected",
         [
-            (True, Series(["2000-01-01"], dtype="datetime64[ns]")),
+            (True, Series(["2000-01-01"], dtype="datetime64[ms]")),
             (False, Series([946684800000])),
         ],
     )
-    def test_series_with_dtype_datetime(self, dtype, expected):
+    def test_series_with_dtype_datetime(self, dtype, expected, dtype_backend):
         s = Series(["2000-01-01"], dtype="datetime64[ns]")
+        if dtype_backend is not None:
+            s = s.convert_dtypes(dtype_backend=dtype_backend)
         msg = (
             "The default 'epoch' date format is deprecated and will be removed "
             "in a future version, please use 'iso' date format instead."
@@ -806,22 +837,25 @@ class TestPandasContainer:
         result = read_json(StringIO(df.to_json()))
         tm.assert_frame_equal(result, df)
 
-    def test_path(self, float_frame, int_frame, datetime_frame):
-        with tm.ensure_clean("test.json") as path:
-            for df in [float_frame, int_frame, datetime_frame]:
-                df.to_json(path)
-                read_json(path)
+    def test_path(self, float_frame, int_frame, datetime_frame, temp_file):
+        for df in [float_frame, int_frame, datetime_frame]:
+            df.to_json(temp_file)
+            read_json(temp_file)
 
     def test_axis_dates(self, datetime_series, datetime_frame):
         # frame
         json = StringIO(datetime_frame.to_json())
         result = read_json(json)
-        tm.assert_frame_equal(result, datetime_frame)
+        expected = datetime_frame.copy()
+        expected.index = expected.index.as_unit("ms")
+        tm.assert_frame_equal(result, expected)
 
         # series
         json = StringIO(datetime_series.to_json())
         result = read_json(json, typ="series")
-        tm.assert_series_equal(result, datetime_series, check_names=False)
+        expected = datetime_series.copy()
+        expected.index = expected.index.as_unit("ms")
+        tm.assert_series_equal(result, expected, check_names=False)
         assert result.name is None
 
     def test_convert_dates(self, datetime_series, datetime_frame):
@@ -836,7 +870,10 @@ class TestPandasContainer:
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             json = StringIO(df.to_json())
         result = read_json(json)
-        tm.assert_frame_equal(result, df)
+        expected = df.copy()
+        expected["date"] = expected["date"].dt.as_unit("ms")
+        expected.index = expected.index.as_unit("ms")
+        tm.assert_frame_equal(result, expected)
 
         df["foo"] = 1.0
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
@@ -853,7 +890,9 @@ class TestPandasContainer:
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             json = StringIO(ts.to_json())
         result = read_json(json, typ="series")
-        tm.assert_series_equal(result, ts)
+        expected = ts.dt.as_unit("ms")
+        expected.index = expected.index.as_unit("ms")
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("date_format", ["epoch", "iso"])
     @pytest.mark.parametrize("as_object", [True, False])
@@ -909,7 +948,7 @@ class TestPandasContainer:
         expected = DataFrame(
             [[1, Timestamp("2002-11-08")], [2, pd.NaT]], columns=["id", infer_word]
         )
-        expected[infer_word] = expected[infer_word].astype("M8[ns]")
+        expected[infer_word] = expected[infer_word].astype("M8[ms]")
 
         result = read_json(StringIO(ujson_dumps(data)))[["id", infer_word]]
         tm.assert_frame_equal(result, expected)
@@ -937,6 +976,9 @@ class TestPandasContainer:
 
         result = read_json(StringIO(json))
         expected = df.copy()
+        if date_unit != "ns":
+            expected["date"] = expected["date"].dt.as_unit("us")
+            expected.index = expected.index.as_unit("us")
         tm.assert_frame_equal(result, expected)
 
     def test_date_format_frame_raises(self, datetime_frame):
@@ -956,7 +998,7 @@ class TestPandasContainer:
         ],
     )
     def test_date_format_series(self, date, date_unit, datetime_series):
-        ts = Series(Timestamp(date).as_unit("ns"), index=datetime_series.index)
+        ts = Series(Timestamp(date), index=datetime_series.index)
         ts.iloc[1] = pd.NaT
         ts.iloc[5] = pd.NaT
         if date_unit:
@@ -966,6 +1008,8 @@ class TestPandasContainer:
 
         result = read_json(StringIO(json), typ="series")
         expected = ts.copy()
+        if date_unit != "ns":
+            expected.index = expected.index.as_unit("us")
         tm.assert_series_equal(result, expected)
 
     def test_date_format_series_raises(self, datetime_series):
@@ -990,12 +1034,15 @@ class TestPandasContainer:
             json = df.to_json(date_format="epoch", date_unit=unit)
 
         # force date unit
-        result = read_json(StringIO(json), date_unit=unit)
-        tm.assert_frame_equal(result, df)
+        # result = read_json(StringIO(json), date_unit=unit)
+        expected = df.copy()
+        expected["date"] = expected["date"].dt.as_unit(unit)
+        expected.index = expected.index.as_unit(unit)
+        # tm.assert_frame_equal(result, expected)
 
         # detect date unit
         result = read_json(StringIO(json), date_unit=None)
-        tm.assert_frame_equal(result, df)
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
         "df, warn",
@@ -1025,8 +1072,11 @@ class TestPandasContainer:
         with tm.assert_produces_warning(warn, match=msg):
             df.to_json()
 
+    @pytest.mark.parametrize(
+        "dtype_backend", [None, pytest.param("pyarrow", marks=td.skip_if_no("pyarrow"))]
+    )
     @pytest.mark.parametrize("unit", ["s", "ms", "us"])
-    def test_iso_non_nano_datetimes(self, unit):
+    def test_iso_non_nano_datetimes(self, dtype_backend, unit):
         # Test that numpy datetimes
         # in an Index or a column with non-nano resolution can be serialized
         # correctly
@@ -1049,20 +1099,17 @@ class TestPandasContainer:
                 ),
             },
         )
+        expected = df.copy()
+        expected.index = expected.index.as_unit("us")
+        expected["date"] = expected["date"].dt.as_unit("us")
+        expected["date_obj"] = expected["date_obj"].astype("datetime64[us]")
 
-        buf = StringIO()
-        df.to_json(buf, date_format="iso", date_unit=unit)
-        buf.seek(0)
+        if dtype_backend is not None:
+            df = df.convert_dtypes(dtype_backend=dtype_backend)
 
-        # read_json always reads datetimes in nanosecond resolution
-        # TODO: check_dtype/check_index_type should be removable
-        # once read_json gets non-nano support
-        tm.assert_frame_equal(
-            read_json(buf, convert_dates=["date", "date_obj"]),
-            df,
-            check_index_type=False,
-            check_dtype=False,
-        )
+        json = df.to_json(date_format="iso", date_unit=unit)
+        result = read_json(StringIO(json), convert_dates=["date", "date_obj"])
+        tm.assert_frame_equal(result, expected)
 
     def test_weird_nested_json(self):
         # this used to core dump the parser
@@ -1092,7 +1139,7 @@ class TestPandasContainer:
         dfj2["date"] = Timestamp("20130101")
         dfj2["ints"] = range(5)
         dfj2["bools"] = True
-        dfj2.index = date_range("20130101", periods=5)
+        dfj2.index = date_range("20130101", periods=5, unit="ns")
 
         msg = (
             "The default 'epoch' date format is deprecated and will be removed "
@@ -1116,25 +1163,22 @@ class TestPandasContainer:
 
     @pytest.mark.network
     @pytest.mark.single_cpu
-    @pytest.mark.parametrize(
-        "field,dtype",
-        [
-            ["created_at", pd.DatetimeTZDtype(tz="UTC")],
-            ["closed_at", "datetime64[ns]"],
-            ["updated_at", pd.DatetimeTZDtype(tz="UTC")],
-        ],
-    )
-    def test_url(self, field, dtype, httpserver):
+    def test_url(self, httpserver):
         data = '{"created_at": ["2023-06-23T18:21:36Z"], "closed_at": ["2023-06-23T18:21:36"], "updated_at": ["2023-06-23T18:21:36Z"]}\n'  # noqa: E501
         httpserver.serve_content(content=data)
         result = read_json(httpserver.url, convert_dates=True)
-        assert result[field].dtype == dtype
+        for field, dtype in [
+            ["created_at", pd.DatetimeTZDtype("us", tz="UTC")],
+            ["closed_at", "datetime64[us]"],
+            ["updated_at", pd.DatetimeTZDtype("us", tz="UTC")],
+        ]:
+            assert result[field].dtype == dtype
 
-    def test_timedelta(self):
+    def test_timedelta(self, unit):
         converter = lambda x: pd.to_timedelta(x, unit="ms")
 
-        ser = Series([timedelta(23), timedelta(seconds=5)])
-        assert ser.dtype == "timedelta64[ns]"
+        ser = Series([timedelta(23), timedelta(seconds=5)], dtype=f"m8[{unit}]")
+        assert ser.dtype == f"timedelta64[{unit}]"
 
         msg = (
             "The default 'epoch' date format is deprecated and will be removed "
@@ -1142,29 +1186,33 @@ class TestPandasContainer:
         )
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             result = read_json(StringIO(ser.to_json()), typ="series").apply(converter)
-        tm.assert_series_equal(result, ser)
+        tm.assert_series_equal(result, ser.astype("m8[ms]"))
 
-        ser = Series([timedelta(23), timedelta(seconds=5)], index=Index([0, 1]))
+        ser = Series(
+            [timedelta(23), timedelta(seconds=5)], index=Index([0, 1]), dtype="m8[ns]"
+        )
         assert ser.dtype == "timedelta64[ns]"
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             result = read_json(StringIO(ser.to_json()), typ="series").apply(converter)
-        tm.assert_series_equal(result, ser)
+        tm.assert_series_equal(result, ser.astype("m8[ms]"))
 
-        frame = DataFrame([timedelta(23), timedelta(seconds=5)])
+        frame = DataFrame([timedelta(23), timedelta(seconds=5)], dtype="m8[ns]")
         assert frame[0].dtype == "timedelta64[ns]"
 
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             json = frame.to_json()
-        tm.assert_frame_equal(frame, read_json(StringIO(json)).apply(converter))
+        result = read_json(StringIO(json)).apply(converter)
+        tm.assert_frame_equal(frame.astype("m8[ms]"), result)
 
     def test_timedelta2(self):
         frame = DataFrame(
             {
                 "a": [timedelta(days=23), timedelta(seconds=5)],
                 "b": [1, 2],
-                "c": date_range(start="20130101", periods=2),
+                "c": date_range(start="20130101", periods=2, unit="ns"),
             }
         )
+        frame["a"] = frame["a"].astype("m8[ns]")
         msg = (
             "The default 'epoch' date format is deprecated and will be removed "
             "in a future version, please use 'iso' date format instead."
@@ -1198,6 +1246,9 @@ class TestPandasContainer:
             data.append("a")
 
         ser = Series(data, index=data)
+        if not as_object:
+            ser = ser.astype("m8[ns]")
+            ser.index = ser.index.astype("m8[ns]")
         expected_warning = None
         if date_format == "iso":
             expected = (
@@ -1222,7 +1273,8 @@ class TestPandasContainer:
     @pytest.mark.parametrize("timedelta_typ", [pd.Timedelta, timedelta])
     def test_timedelta_to_json_fractional_precision(self, as_object, timedelta_typ):
         data = [timedelta_typ(milliseconds=42)]
-        ser = Series(data, index=data)
+        ser = Series(data, index=data).astype("m8[ns]")
+        ser.index = ser.index.astype("m8[ns]")
         warn = Pandas4Warning
         if as_object:
             ser = ser.astype(object)
@@ -1306,10 +1358,12 @@ class TestPandasContainer:
 
     def test_datetime_tz(self):
         # GH4377 df.to_json segfaults with non-ndarray blocks
-        tz_range = date_range("20130101", periods=3, tz="US/Eastern")
+        tz_range = date_range("20130101", periods=3, tz="US/Eastern", unit="ns")
         tz_naive = tz_range.tz_convert("utc").tz_localize(None)
 
-        df = DataFrame({"A": tz_range, "B": date_range("20130101", periods=3)})
+        df = DataFrame(
+            {"A": tz_range, "B": date_range("20130101", periods=3, unit="ns")}
+        )
 
         df_naive = df.copy()
         df_naive["A"] = tz_naive
@@ -1368,9 +1422,9 @@ class TestPandasContainer:
     @pytest.mark.parametrize(
         "tz_range",
         [
-            date_range("2013-01-01 05:00:00Z", periods=2),
-            date_range("2013-01-01 00:00:00", periods=2, tz="US/Eastern"),
-            date_range("2013-01-01 00:00:00-0500", periods=2),
+            date_range("2013-01-01 05:00:00Z", periods=2, unit="ns"),
+            date_range("2013-01-01 00:00:00", periods=2, tz="US/Eastern", unit="ns"),
+            date_range("2013-01-01 00:00:00-0500", periods=2, unit="ns"),
         ],
     )
     def test_tz_range_is_utc(self, tz_range):
@@ -1389,7 +1443,7 @@ class TestPandasContainer:
         assert ujson_dumps(df.astype({"DT": object}), iso_dates=True)
 
     def test_tz_range_is_naive(self):
-        dti = date_range("2013-01-01 05:00:00", periods=2)
+        dti = date_range("2013-01-01 05:00:00", periods=2, unit="ns")
 
         exp = '["2013-01-01T05:00:00.000","2013-01-02T05:00:00.000"]'
         dfexp = '{"DT":{"0":"2013-01-01T05:00:00.000","1":"2013-01-02T05:00:00.000"}}'
@@ -1423,14 +1477,13 @@ class TestPandasContainer:
         expected = DataFrame([[1, 2], [1, 2]], columns=["a", "b"])
         tm.assert_frame_equal(result, expected)
 
-    def test_read_local_jsonl(self):
+    def test_read_local_jsonl(self, temp_file):
         # GH17200
-        with tm.ensure_clean("tmp_items.json") as path:
-            with open(path, "w", encoding="utf-8") as infile:
-                infile.write('{"a": 1, "b": 2}\n{"b":2, "a" :1}\n')
-            result = read_json(path, lines=True)
-            expected = DataFrame([[1, 2], [1, 2]], columns=["a", "b"])
-            tm.assert_frame_equal(result, expected)
+        with open(temp_file, "w", encoding="utf-8") as infile:
+            infile.write('{"a": 1, "b": 2}\n{"b":2, "a" :1}\n')
+        result = read_json(temp_file, lines=True)
+        expected = DataFrame([[1, 2], [1, 2]], columns=["a", "b"])
+        tm.assert_frame_equal(result, expected)
 
     def test_read_jsonl_unicode_chars(self):
         # GH15132: non-ascii unicode characters
@@ -1526,17 +1579,16 @@ class TestPandasContainer:
         ],
     )
     @pytest.mark.parametrize("dtype", ["category", object])
-    def test_latin_encoding(self, dtype, val):
+    def test_latin_encoding(self, dtype, val, temp_file):
         # GH 13774
         ser = Series(
             [x.decode("latin-1") if isinstance(x, bytes) else x for x in val],
             dtype=dtype,
         )
         encoding = "latin-1"
-        with tm.ensure_clean("test.json") as path:
-            ser.to_json(path, encoding=encoding)
-            retr = read_json(StringIO(path), encoding=encoding)
-            tm.assert_series_equal(ser, retr, check_categorical=False)
+        ser.to_json(temp_file, encoding=encoding)
+        retr = read_json(StringIO(temp_file), encoding=encoding)
+        tm.assert_series_equal(ser, retr, check_categorical=False)
 
     def test_data_frame_size_after_to_json(self):
         # GH15344
@@ -1578,7 +1630,7 @@ class TestPandasContainer:
                 "Bool": Series([True, False, True], dtype="bool"),
                 "Category": Series(["a", "b", None], dtype="category"),
                 "Datetime": Series(
-                    ["2020-01-01", None, "2020-01-03"], dtype="datetime64[ns]"
+                    ["2020-01-01", None, "2020-01-03"], dtype="datetime64[ms]"
                 ),
             }
         )
@@ -1750,7 +1802,7 @@ class TestPandasContainer:
         result = read_json(
             StringIO('{"2019-01-01T11:00:00.000Z":88}'), typ="series", orient="index"
         )
-        exp_dti = DatetimeIndex(["2019-01-01 11:00:00"], dtype="M8[ns, UTC]")
+        exp_dti = DatetimeIndex(["2019-01-01 11:00:00"], dtype="M8[us, UTC]")
         expected = Series([88], index=exp_dti)
         tm.assert_series_equal(result, expected)
 
@@ -1785,10 +1837,32 @@ class TestPandasContainer:
             read_json(long_json_path)
 
     @pytest.mark.parametrize(
+        "date_format,key", [("epoch", 86400000), ("iso", "1970-01-02T00:00:00.000")]
+    )
+    def test_datetime_as_label(self, date_format, key, unit):
+        df = DataFrame(
+            [[1]], columns=[(Timestamp(0) + pd.Timedelta("1D")).as_unit(unit)]
+        )
+        expected = f'{{"{key}":{{"0":1}}}}'
+
+        expected_warning = None
+        if date_format == "epoch":
+            expected_warning = Pandas4Warning
+
+        msg = (
+            "'epoch' date format is deprecated and will be removed in a future "
+            "version, please use 'iso' date format instead."
+        )
+        with tm.assert_produces_warning(expected_warning, match=msg):
+            result = df.to_json(date_format=date_format)
+
+        assert result == expected
+
+    @pytest.mark.parametrize(
         "date_format,key", [("epoch", 86400000), ("iso", "P1DT0H0M0S")]
     )
-    def test_timedelta_as_label(self, date_format, key):
-        df = DataFrame([[1]], columns=[pd.Timedelta("1D")])
+    def test_timedelta_as_label(self, date_format, key, unit):
+        df = DataFrame([[1]], columns=[pd.Timedelta("1D").as_unit(unit)])
         expected = f'{{"{key}":{{"0":1}}}}'
 
         expected_warning = None
@@ -2019,14 +2093,10 @@ class TestPandasContainer:
         mock_bucket_name = s3_bucket_public.name
         target_file = f"{uuid.uuid4()}.json"
         df = DataFrame({"x": [1, 2, 3], "y": [2, 4, 6]})
-        df.to_json(f"s3://{mock_bucket_name}/{target_file}", storage_options=s3so)
-        timeout = 5
-        while True:
-            if target_file in (obj.key for obj in s3_bucket_public.objects.all()):
-                break
-            time.sleep(0.1)
-            timeout -= 0.1
-            assert timeout > 0, "Timed out waiting for file to appear on moto"
+        uri = f"s3://{mock_bucket_name}/{target_file}"
+        df.to_json(uri, storage_options=s3so)
+        result = read_json(uri, storage_options=s3so)
+        tm.assert_frame_equal(result, df)
 
     def test_json_pandas_nulls(self, nulls_fixture):
         # GH 31615
@@ -2052,7 +2122,7 @@ class TestPandasContainer:
         # GH 15273
         df = DataFrame(
             True,
-            index=date_range("2017-01-20", "2017-01-23"),
+            index=date_range("2017-01-20", "2017-01-23", unit="ns"),
             columns=["foo", "bar"],
         ).stack()
         result = df.to_json()

@@ -21,7 +21,6 @@ from typing import (
 import numpy as np
 
 from pandas._libs import writers as libwriters
-from pandas._typing import SequenceNotStr
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.generic import (
@@ -42,6 +41,7 @@ if TYPE_CHECKING:
         FilePath,
         FloatFormatType,
         IndexLabel,
+        SequenceNotStr,
         StorageOptions,
         WriteBuffer,
         npt,
@@ -228,7 +228,7 @@ class CSVFormatter:
         else:
             # self.cols is an ndarray derived from Index._get_values_for_csv,
             #  so its entries are strings, i.e. hashable
-            return cast(SequenceNotStr[Hashable], self.cols)
+            return cast("SequenceNotStr[Hashable]", self.cols)
 
     @property
     def encoded_labels(self) -> list[Hashable]:
@@ -257,11 +257,13 @@ class CSVFormatter:
             storage_options=self.storage_options,
         ) as handles:
             # Note: self.encoding is irrelevant here
+            # error: Argument "quoting" to "writer" has incompatible type "int";
+            # expected "Literal[0, 1, 2, 3]"
             self.writer = csvlib.writer(
                 handles.handle,
                 lineterminator=self.lineterminator,
                 delimiter=self.sep,
-                quoting=self.quoting,
+                quoting=self.quoting,  # type: ignore[arg-type]
                 doublequote=self.doublequote,
                 escapechar=self.escapechar,
                 quotechar=self.quotechar,

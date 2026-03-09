@@ -79,7 +79,7 @@ class TestCategoricalIndex:
         tm.assert_frame_equal(df2, expected)
 
     def test_loc_setitem_with_expansion_non_category(self, df):
-        # Setting-with-expansion with a new key "d" that is not among caegories
+        # Setting-with-expansion with a new key "d" that is not among categories
         df.loc["a"] = 20
 
         # Setting a new row on an existing column
@@ -88,21 +88,27 @@ class TestCategoricalIndex:
         bidx3 = Index(list("aabbcad"), name="B")
         expected3 = DataFrame(
             {
-                "A": [20, 20, 2, 3, 4, 20, 10.0],
+                "A": [20, 20, 2, 3, 4, 20, 10],
             },
             index=Index(bidx3),
         )
         tm.assert_frame_equal(df3, expected3)
 
+    def test_loc_setitem_with_expansion_non_category_new_column(self, df):
+        # Setting-with-expansion with a new key "d" that is not among categories
         # Setting a new row _and_ new column
+        df.loc["a"] = 20
+
         df4 = df.copy()
         df4.loc["d", "C"] = 10
+
+        bidx3 = Index(list("aabbcad"), name="B")
         expected3 = DataFrame(
             {
                 "A": [20, 20, 2, 3, 4, 20, np.nan],
                 "C": [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, 10],
             },
-            index=Index(bidx3),
+            index=bidx3,
         )
         tm.assert_frame_equal(df4, expected3)
 
@@ -571,3 +577,25 @@ class TestCategoricalIndex:
         df = DataFrame(ser)
         assert df.loc[np.nan, 0] == 2
         assert df.loc[np.nan][0] == 2
+
+    def test_getitem_row_categorical_with_nan(self):
+        # GH#58954
+        df = DataFrame({"a": [1, 2], "b": CategoricalIndex([1, None])})
+
+        res = df.iloc[1]
+        expected = Series([2, np.nan], index=df.columns, name=1)
+        tm.assert_series_equal(res, expected)
+
+        res = df.loc[1]
+        tm.assert_series_equal(res, expected)
+
+    def test_getitem_row_categorical_with_nan_bool(self):
+        # GH#58954
+        df = DataFrame({"a": [True, False], "b": CategoricalIndex([False, None])})
+
+        res = df.iloc[1]
+        expected = Series([False, np.nan], index=df.columns, dtype=object, name=1)
+        tm.assert_series_equal(res, expected)
+
+        res = df.loc[1]
+        tm.assert_series_equal(res, expected)

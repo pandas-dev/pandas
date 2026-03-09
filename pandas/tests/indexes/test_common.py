@@ -14,6 +14,7 @@ import numpy as np
 import pytest
 
 from pandas.compat import IS64
+from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.common import (
     is_integer_dtype,
@@ -230,7 +231,7 @@ class TestCommon:
         if not index._can_hold_na:
             pytest.skip("Skip na-check if index cannot hold na")
 
-        vals = index._values[[0] * 5]
+        vals = index._values.copy()[[0] * 5]
         vals[0] = np.nan
 
         vals_unique = vals[:2]
@@ -523,3 +524,13 @@ def test_to_frame_name_tuple_multiindex():
     result = idx.to_frame(name=(1, 2))
     expected = pd.DataFrame([1], columns=MultiIndex.from_arrays([[1], [2]]), index=idx)
     tm.assert_frame_equal(result, expected)
+
+
+def test_join_series_deprecated():
+    # GH#62897
+    idx = pd.Index([1, 2])
+    ser = pd.Series([1, 2, 2])
+    with tm.assert_produces_warning(
+        Pandas4Warning, match="Passing .* to .* is deprecated"
+    ):
+        idx.join(ser)

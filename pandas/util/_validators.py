@@ -17,6 +17,7 @@ from typing import (
 import numpy as np
 
 from pandas._libs import lib
+from pandas._libs.missing import NA
 
 from pandas.core.dtypes.common import (
     is_bool,
@@ -122,7 +123,7 @@ def validate_args(fname, args, max_fname_arg_count, compat_args) -> None:
     # We do this so that we can provide a more informative
     # error message about the parameters that we are not
     # supporting in the pandas implementation of 'fname'
-    kwargs = dict(zip(compat_args, args))
+    kwargs = dict(zip(compat_args, args, strict=False))
     _check_for_default_values(fname, kwargs, compat_args)
 
 
@@ -212,7 +213,7 @@ def validate_args_and_kwargs(
 
     # Check there is no overlap with the positional and keyword
     # arguments, similar to what is done in actual Python functions
-    args_dict = dict(zip(compat_args, args))
+    args_dict = dict(zip(compat_args, args, strict=False))
 
     for key in args_dict:
         if key in kwargs:
@@ -267,6 +268,33 @@ def validate_bool_kwarg(
             f"type {type(value).__name__}."
         )
     return value
+
+
+def validate_na_arg(value, name: str):
+    """
+    Validate na arguments.
+
+    Parameters
+    ----------
+    value : object
+        Value to validate.
+    name : str
+        Name of the argument, used to raise an informative error message.
+
+    Raises
+    ______
+    ValueError
+        When ``value`` is determined to be invalid.
+    """
+    if (
+        value is lib.no_default
+        or isinstance(value, bool)
+        or value is None
+        or value is NA
+        or (lib.is_float(value) and np.isnan(value))
+    ):
+        return
+    raise ValueError(f"{name} must be None, pd.NA, np.nan, True, or False; got {value}")
 
 
 def validate_fillna_kwargs(value, method, validate_scalar_dict_value: bool = True):

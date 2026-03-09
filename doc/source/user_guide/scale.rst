@@ -164,35 +164,35 @@ files. Each file in the directory represents a different year of the entire data
 .. ipython:: python
    :okwarning:
 
-   import pathlib
+   import glob
+   import tempfile
 
    N = 12
    starts = [f"20{i:>02d}-01-01" for i in range(N)]
    ends = [f"20{i:>02d}-12-13" for i in range(N)]
 
-   pathlib.Path("data/timeseries").mkdir(exist_ok=True)
+   tmpdir = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
 
    for i, (start, end) in enumerate(zip(starts, ends)):
        ts = make_timeseries(start=start, end=end, freq="1min", seed=i)
-       ts.to_parquet(f"data/timeseries/ts-{i:0>2d}.parquet")
+       ts.to_parquet(f"{tmpdir.name}/ts-{i:0>2d}.parquet")
 
 
 ::
 
-   data
-   └── timeseries
-       ├── ts-00.parquet
-       ├── ts-01.parquet
-       ├── ts-02.parquet
-       ├── ts-03.parquet
-       ├── ts-04.parquet
-       ├── ts-05.parquet
-       ├── ts-06.parquet
-       ├── ts-07.parquet
-       ├── ts-08.parquet
-       ├── ts-09.parquet
-       ├── ts-10.parquet
-       └── ts-11.parquet
+   tmpdir
+   ├── ts-00.parquet
+   ├── ts-01.parquet
+   ├── ts-02.parquet
+   ├── ts-03.parquet
+   ├── ts-04.parquet
+   ├── ts-05.parquet
+   ├── ts-06.parquet
+   ├── ts-07.parquet
+   ├── ts-08.parquet
+   ├── ts-09.parquet
+   ├── ts-10.parquet
+   └── ts-11.parquet
 
 Now we'll implement an out-of-core :meth:`pandas.Series.value_counts`. The peak memory usage of this
 workflow is the single largest chunk, plus a small series storing the unique value
@@ -202,12 +202,17 @@ work for arbitrary-sized datasets.
 .. ipython:: python
 
    %%time
-   files = pathlib.Path("data/timeseries/").glob("ts*.parquet")
+   files = glob.iglob(f"{tmpdir.name}/ts*.parquet")
    counts = pd.Series(dtype=int)
    for path in files:
        df = pd.read_parquet(path)
        counts = counts.add(df["name"].value_counts(), fill_value=0)
    counts.astype(int)
+
+.. ipython:: python
+   :suppress:
+
+   tmpdir.cleanup()
 
 Some readers, like :meth:`pandas.read_csv`, offer parameters to control the
 ``chunksize`` when reading a single file.

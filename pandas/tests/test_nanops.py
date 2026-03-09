@@ -304,7 +304,7 @@ class TestnanopsDataFrame:
         empty_targfunc=None,
         **kwargs,
     ):
-        for axis in list(range(targarval.ndim)) + [None]:
+        for axis in [*list(range(targarval.ndim)), None]:
             targartempval = targarval if skipna else testarval
             if skipna and empty_targfunc and isna(targartempval).all():
                 targ = empty_targfunc(targartempval, axis=axis, **kwargs)
@@ -1051,6 +1051,23 @@ class TestNanskewFixedValues:
         skew = nanops.nanskew(samples, skipna=True)
         tm.assert_almost_equal(skew, actual_skew)
 
+    @pytest.mark.parametrize(
+        "initial_data, nobs",
+        [
+            ([-2.05191341e-05, -4.10391103e-05], 27),
+            ([-2.05191341e-10, -4.10391103e-10], 27),
+            ([-2.05191341e-05, -4.10391103e-05], 10_000),
+            ([-2.05191341e-10, -4.10391103e-10], 10_000),
+        ],
+    )
+    def test_low_variance(self, initial_data, nobs):
+        st = pytest.importorskip("scipy.stats")
+        data = np.zeros((nobs,), dtype=np.float64)
+        data[: len(initial_data)] = initial_data
+        skew = nanops.nanskew(data)
+        expected = st.skew(data, bias=False)
+        tm.assert_almost_equal(skew, expected)
+
     @property
     def prng(self):
         return np.random.default_rng(2)
@@ -1072,7 +1089,7 @@ class TestNankurtFixedValues:
         # xref GH 11974
         data = val * np.ones(300)
         kurt = nanops.nankurt(data)
-        assert kurt == 0.0
+        tm.assert_equal(kurt, 0.0)
 
     def test_all_finite(self):
         alpha, beta = 0.3, 0.1
@@ -1101,6 +1118,24 @@ class TestNankurtFixedValues:
         samples = np.hstack([samples, np.nan])
         kurt = nanops.nankurt(samples, skipna=True)
         tm.assert_almost_equal(kurt, actual_kurt)
+
+    @pytest.mark.parametrize(
+        "initial_data, nobs",
+        [
+            ([-2.05191341e-05, -4.10391103e-05], 27),
+            ([-2.05191341e-10, -4.10391103e-10], 27),
+            ([-2.05191341e-05, -4.10391103e-05], 10_000),
+            ([-2.05191341e-10, -4.10391103e-10], 10_000),
+        ],
+    )
+    def test_low_variance(self, initial_data, nobs):
+        # GH#57972
+        st = pytest.importorskip("scipy.stats")
+        data = np.zeros((nobs,), dtype=np.float64)
+        data[: len(initial_data)] = initial_data
+        kurt = nanops.nankurt(data)
+        expected = st.kurtosis(data, bias=False)
+        tm.assert_almost_equal(kurt, expected)
 
     @property
     def prng(self):
@@ -1239,17 +1274,20 @@ def test_check_bottleneck_disallow(any_real_numpy_dtype, func):
 
 
 @pytest.mark.parametrize("val", [2**55, -(2**55), 20150515061816532])
-def test_nanmean_overflow(disable_bottleneck, val):
+def test_nanmean_overflow(disable_bottleneck, val, using_python_scalars):
     # GH 10155
     # In the previous implementation mean can overflow for int dtypes, it
     # is now consistent with numpy
 
     ser = Series(val, index=range(500), dtype=np.int64)
     result = ser.mean()
-    np_result = ser.values.mean()
     assert result == val
-    assert result == np_result
-    assert result.dtype == np.float64
+    if using_python_scalars:
+        assert type(result) == float
+    else:
+        np_result = ser.values.mean()
+        assert result == np_result
+        assert result.dtype == np.float64
 
 
 @pytest.mark.parametrize(
@@ -1264,13 +1302,18 @@ def test_nanmean_overflow(disable_bottleneck, val):
     ],
 )
 @pytest.mark.parametrize("method", ["mean", "std", "var", "skew", "kurt", "min", "max"])
-def test_returned_dtype(disable_bottleneck, dtype, method):
+def test_returned_dtype(disable_bottleneck, dtype, method, using_python_scalars):
     if dtype is None:
         pytest.skip("np.float128 not available")
 
     ser = Series(range(10), dtype=dtype)
     result = getattr(ser, method)()
-    if is_integer_dtype(dtype) and method not in ["min", "max"]:
+    if using_python_scalars:
+        if is_integer_dtype(dtype) and method in ["min", "max"]:
+            assert isinstance(result, int)
+        else:
+            assert type(result) == float
+    elif is_integer_dtype(dtype) and method not in ["min", "max"]:
         assert result.dtype == np.float64
     else:
         assert result.dtype == dtype

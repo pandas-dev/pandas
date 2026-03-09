@@ -110,7 +110,9 @@ def assert_produces_warning(
                         if isinstance(match, tuple)
                         else (match,) * len(expected_warning)
                     )
-                    for warning_type, warning_match in zip(expected_warning, match):
+                    for warning_type, warning_match in zip(
+                        expected_warning, match, strict=True
+                    ):
                         _assert_caught_expected_warnings(
                             caught_warnings=w,
                             expected_warning=warning_type,
@@ -119,7 +121,7 @@ def assert_produces_warning(
                         )
                 else:
                     expected_warning = cast(
-                        Union[type[Warning], tuple[type[Warning], ...]],
+                        "Union[type[Warning], tuple[type[Warning], ...]]",
                         expected_warning,
                     )
                     match = (
@@ -239,7 +241,7 @@ def _is_unexpected_warning(
     """Check if the actual warning issued is unexpected."""
     if actual_warning and not expected_warning:
         return True
-    expected_warning = cast(type[Warning], expected_warning)
+    expected_warning = cast("type[Warning]", expected_warning)
     return bool(not issubclass(actual_warning.category, expected_warning))
 
 

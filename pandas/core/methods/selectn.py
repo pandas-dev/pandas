@@ -4,10 +4,6 @@ Implementation of nlargest and nsmallest.
 
 from __future__ import annotations
 
-from collections.abc import (
-    Hashable,
-    Sequence,
-)
 from typing import (
     TYPE_CHECKING,
     Generic,
@@ -33,6 +29,11 @@ from pandas.core.dtypes.dtypes import BaseMaskedDtype
 from pandas.core.indexes.api import default_index
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Sequence,
+    )
+
     from pandas._typing import (
         DtypeObj,
         IndexLabel,
@@ -176,11 +177,10 @@ class SelectNSeries(SelectN[Series]):
         if self.keep != "all":
             inds = inds[:n]
             findex = nbase
+        elif len(inds) < nbase <= len(nan_index) + len(inds):
+            findex = len(nan_index) + len(inds)
         else:
-            if len(inds) < nbase <= len(nan_index) + len(inds):
-                findex = len(nan_index) + len(inds)
-            else:
-                findex = len(inds)
+            findex = len(inds)
 
         if self.keep == "last":
             # reverse indices
@@ -218,7 +218,7 @@ class SelectNFrame(SelectN[DataFrame]):
         if not is_list_like(columns) or isinstance(columns, tuple):
             columns = [columns]
 
-        columns = cast(Sequence[Hashable], columns)
+        columns = cast("Sequence[Hashable]", columns)
         columns = list(columns)
         self.columns = columns
 

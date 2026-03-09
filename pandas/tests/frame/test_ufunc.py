@@ -44,7 +44,7 @@ def test_unary_binary(request, dtype):
     assert len(result_pandas) == 2
     expected_numpy = np.modf(values)
 
-    for result, b in zip(result_pandas, expected_numpy):
+    for result, b in zip(result_pandas, expected_numpy, strict=True):
         expected = pd.DataFrame(b, index=df.index, columns=df.columns)
         tm.assert_frame_equal(result, expected)
 
@@ -66,14 +66,14 @@ def test_binary_input_dispatch_binop(dtype):
     [
         (np.add, 1, [2, 3, 4, 5]),
         (
-            partial(np.add, where=[[False, True], [True, False]]),  # type: ignore[misc]
+            partial(np.add, where=[[False, True], [True, False]]),
             np.array([[1, 1], [1, 1]]),
             [0, 3, 4, 0],
         ),
         (np.power, np.array([[1, 1], [2, 2]]), [1, 2, 9, 16]),
         (np.subtract, 2, [-1, 0, 1, 2]),
         (
-            partial(np.negative, where=np.array([[False, True], [True, False]])),  # type: ignore[misc]
+            partial(np.negative, where=np.array([[False, True], [True, False]])),
             None,
             [0, -2, -3, 0],
         ),

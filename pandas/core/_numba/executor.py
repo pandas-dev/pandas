@@ -38,7 +38,8 @@ def generate_apply_looper(func, nopython=True, nogil=True, parallel=False):
         res0 = nb_compat_func(first_elem, *args)
         # Use np.asarray to get shape for
         # https://github.com/numba/numba/issues/4202#issuecomment-1185981507
-        buf_shape = (dim0,) + np.atleast_1d(np.asarray(res0)).shape
+        # Use tuple concatenation; numba doesn't support tuple unpacking syntax
+        buf_shape = (dim0,) + np.atleast_1d(np.asarray(res0)).shape  # noqa: RUF005
         if axis == 0:
             buf_shape = buf_shape[::-1]
         buff = np.empty(buf_shape)
@@ -87,7 +88,11 @@ def make_looper(func, result_dtype, is_grouped_kernel, nopython, nogil, parallel
     else:
 
         @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
-        def column_looper(
+        # error: Incompatible redefinition (redefinition with type
+        # "Callable[[ndarray[Any, Any], ndarray[Any, Any], ndarray[Any, Any],
+        # int, VarArg(Any)], Any]", original type "Callable[[ndarray[Any, Any],
+        # ndarray[Any, Any], int, int, VarArg(Any)], Any]")
+        def column_looper(  # type: ignore[misc]
             values: np.ndarray,
             start: np.ndarray,
             end: np.ndarray,

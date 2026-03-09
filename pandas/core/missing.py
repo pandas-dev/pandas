@@ -15,17 +15,12 @@ from typing import (
 
 import numpy as np
 
+from pandas._config import is_nan_na
+
 from pandas._libs import (
     NaT,
     algos,
     lib,
-)
-from pandas._typing import (
-    ArrayLike,
-    AxisInt,
-    F,
-    ReindexMethod,
-    npt,
 )
 from pandas.compat._optional import import_optional_dependency
 
@@ -37,7 +32,11 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     needs_i8_conversion,
 )
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
+    BaseMaskedDtype,
+    DatetimeTZDtype,
+)
 from pandas.core.dtypes.missing import (
     is_valid_na_for_dtype,
     isna,
@@ -45,7 +44,20 @@ from pandas.core.dtypes.missing import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+    from typing import TypeAlias
+
+    from pandas._typing import (
+        ArrayLike,
+        AxisInt,
+        F,
+        ReindexMethod,
+        npt,
+    )
+
     from pandas import Index
+
+    _CubicBC: TypeAlias = Literal["not-a-knot", "clamped", "natural", "periodic"]
 
 
 def check_value_size(value, mask: npt.NDArray[np.bool_], length: int):
@@ -80,6 +92,31 @@ def mask_missing(arr: ArrayLike, value) -> npt.NDArray[np.bool_]:
     np.ndarray[bool]
     """
     dtype, value = infer_dtype_from(value)
+
+    if (
+        isinstance(arr.dtype, (BaseMaskedDtype, ArrowDtype))
+        and lib.is_float(value)
+        and np.isnan(value)
+        and not is_nan_na()
+    ):
+        # TODO: this should be done in an EA method?
+        if arr.dtype.kind == "f":
+            # GH#55127
+            if isinstance(arr.dtype, BaseMaskedDtype):
+                # error: "ExtensionArray" has no attribute "_data"  [attr-defined]
+                mask = np.isnan(arr._data) & ~arr.isna()  # type: ignore[attr-defined,operator]
+                return mask
+            else:
+                # error: "ExtensionArray" has no attribute "_pa_array"  [attr-defined]
+                import pyarrow.compute as pc
+
+                mask = pc.is_nan(arr._pa_array).fill_null(False).to_numpy()  # type: ignore[attr-defined]
+                return mask
+
+        elif arr.dtype.kind in "iu":
+            # GH#51237
+            mask = np.zeros(arr.shape, dtype=bool)
+            return mask
 
     if isna(value):
         return isna(arr)
@@ -399,7 +436,7 @@ def _index_to_interp_indices(index: Index, method: str) -> np.ndarray:
 
     if method == "linear":
         inds = xarr
-        inds = cast(np.ndarray, inds)
+        inds = cast("np.ndarray", inds)
     else:
         inds = np.asarray(xarr)
 
@@ -544,7 +581,7 @@ def _interpolate_scipy_wrapper(
     new_x = np.asarray(new_x)
 
     # ignores some kwargs that could be passed along.
-    alt_methods = {
+    alt_methods: dict[str, Callable[..., np.ndarray]] = {
         "barycentric": interpolate.barycentric_interpolate,
         "krogh": interpolate.krogh_interpolate,
         "from_derivatives": _from_derivatives,
@@ -562,6 +599,7 @@ def _interpolate_scipy_wrapper(
         "cubic",
         "polynomial",
     ]
+    terp: Callable[..., np.ndarray] | None
     if method in interp1d_methods:
         if method == "polynomial":
             kind = order
@@ -652,7 +690,7 @@ def _akima_interpolate(
     xi: np.ndarray,
     yi: np.ndarray,
     x: np.ndarray,
-    der: int | list[int] | None = 0,
+    der: int = 0,
     axis: AxisInt = 0,
 ):
     """
@@ -673,10 +711,8 @@ def _akima_interpolate(
     x : np.ndarray
         Of length M.
     der : int, optional
-        How many derivatives to extract; None for all potentially
-        nonzero derivatives (that is a number equal to the number
-        of points), or a list of derivatives to extract. This number
-        includes the function value as 0th derivative.
+        How many derivatives to extract. This number includes the function
+        value as 0th derivative.
     axis : int, optional
         Axis in the yi array corresponding to the x-coordinate values.
 
@@ -702,9 +738,9 @@ def _cubicspline_interpolate(
     yi: np.ndarray,
     x: np.ndarray,
     axis: AxisInt = 0,
-    bc_type: str | tuple[Any, Any] = "not-a-knot",
-    extrapolate=None,
-):
+    bc_type: _CubicBC | tuple[Any, Any] = "not-a-knot",
+    extrapolate: Literal["periodic"] | bool | None = None,
+) -> np.ndarray:
     """
     Convenience function for cubic spline data interpolator.
 
@@ -816,8 +852,8 @@ def pad_or_backfill_inplace(
     # reshape a 1 dim if needed
     if values.ndim == 1:
         if axis != 0:  # pragma: no cover
-            raise AssertionError("cannot interpolate on a ndim == 1 with axis != 0")
-        values = values.reshape(tuple((1,) + values.shape))
+            raise AssertionError("cannot interpolate on an ndim == 1 with axis != 0")
+        values = values.reshape((1, *values.shape))
 
     method = clean_fill_method(method)
     tvalues = transf(values)
@@ -862,7 +898,7 @@ def _datetimelike_compat(func: F) -> F:
 
         return func(values, limit=limit, limit_area=limit_area, mask=mask)
 
-    return cast(F, new_func)
+    return cast("F", new_func)
 
 
 @_datetimelike_compat
@@ -1040,7 +1076,7 @@ def _interp_limit(
     assume_unique = True
 
     def inner(invalid, limit: int):
-        limit = min(limit, N)
+        limit = min(limit, N - 1)
         windowed = np.lib.stride_tricks.sliding_window_view(invalid, limit + 1).all(1)
         idx = np.union1d(
             np.where(windowed)[0] + limit,

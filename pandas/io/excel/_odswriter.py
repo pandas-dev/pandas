@@ -99,10 +99,15 @@ class ODSWriter(ExcelWriter):
         startrow: int = 0,
         startcol: int = 0,
         freeze_panes: tuple[int, int] | None = None,
+        autofilter_range: str | None = None,
     ) -> None:
         """
         Write the frame cells using odf
         """
+
+        if autofilter_range:
+            raise ValueError("Autofilter is not supported with odf!")
+
         from odf.table import (
             Table,
             TableCell,
@@ -120,7 +125,7 @@ class ODSWriter(ExcelWriter):
             self.book.spreadsheet.addElement(wks)
 
         if validate_freeze_panes(freeze_panes):
-            freeze_panes = cast(tuple[int, int], freeze_panes)
+            freeze_panes = cast("tuple[int, int]", freeze_panes)
             self._create_freeze_panes(sheet_name, freeze_panes)
 
         for _ in range(startrow):
@@ -246,7 +251,7 @@ class ODSWriter(ExcelWriter):
     def _process_style(self, style: None) -> None: ...
 
     def _process_style(self, style: dict[str, Any] | None) -> str | None:
-        """Convert a style dictionary to a OpenDocument style sheet
+        """Convert a style dictionary to an OpenDocument style sheet
 
         Parameters
         ----------

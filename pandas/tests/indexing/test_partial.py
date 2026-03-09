@@ -235,44 +235,31 @@ class TestEmptyFrameSetitemExpansion:
 
 
 class TestPartialSetting:
-    def test_partial_setting(self):
+    # Prior to GH#62523, the 5.0 case was cast to float, which did not match the
+    #  behavior when setting 5.0 in non-expansion cases
+    @pytest.mark.parametrize("item", [5, 5.0])
+    def test_partial_setting(self, indexer_sl, item):
         # GH2578, allow ix and friends to partially set
 
         # series
-        s_orig = Series([1, 2, 3])
-
-        s = s_orig.copy()
-        s[5] = 5
+        ser = Series([1, 2, 3])
         expected = Series([1, 2, 3, 5], index=[0, 1, 2, 5])
-        tm.assert_series_equal(s, expected)
 
-        s = s_orig.copy()
-        s.loc[5] = 5
-        expected = Series([1, 2, 3, 5], index=[0, 1, 2, 5])
-        tm.assert_series_equal(s, expected)
+        indexer_sl(ser)[5] = item
+        tm.assert_series_equal(ser, expected)
 
-        s = s_orig.copy()
-        s[5] = 5.0
-        expected = Series([1, 2, 3, 5.0], index=[0, 1, 2, 5])
-        tm.assert_series_equal(s, expected)
-
-        s = s_orig.copy()
-        s.loc[5] = 5.0
-        expected = Series([1, 2, 3, 5.0], index=[0, 1, 2, 5])
-        tm.assert_series_equal(s, expected)
-
+    def test_cannot_expand_with_iloc_iat(self):
         # iloc/iat raise
-        s = s_orig.copy()
+        ser = Series([1, 2, 3])
 
         msg = "iloc cannot enlarge its target object"
         with pytest.raises(IndexError, match=msg):
-            s.iloc[3] = 5.0
+            ser.iloc[3] = 5.0
 
         msg = "index 3 is out of bounds for axis 0 with size 3"
         with pytest.raises(IndexError, match=msg):
-            s.iat[3] = 5.0
+            ser.iat[3] = 5.0
 
-    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
     def test_partial_setting_frame(self):
         df_orig = DataFrame(
             np.arange(6).reshape(3, 2), columns=["A", "B"], dtype="int64"
@@ -536,7 +523,7 @@ class TestPartialSetting:
         df = orig.copy()
 
         df.loc[key, :] = df.iloc[0]
-        ex_index = Index(list(orig.index) + [key], dtype=object, name=orig.index.name)
+        ex_index = Index([*list(orig.index), key], dtype=object, name=orig.index.name)
         ex_data = np.concatenate([orig.values, df.iloc[[0]].values], axis=0)
         expected = DataFrame(ex_data, index=ex_index, columns=orig.columns)
 
@@ -558,7 +545,7 @@ class TestPartialSetting:
         ser = Series(df.iloc[0], name="a")
         exp = pd.concat([orig, DataFrame(ser).T.infer_objects()])
         tm.assert_frame_equal(df, exp)
-        tm.assert_index_equal(df.index, Index(orig.index.tolist() + ["a"]))
+        tm.assert_index_equal(df.index, Index([*orig.index.tolist(), "a"]))
         assert df.index.dtype == "object"
 
     @pytest.mark.parametrize(
@@ -577,9 +564,9 @@ class TestPartialSetting:
                 date_range(start="2000", periods=20, freq="D", unit="s"),
                 ["2000-01-04", "2000-01-08", "2000-01-12"],
                 [
-                    Timestamp("2000-01-04"),
-                    Timestamp("2000-01-08"),
-                    Timestamp("2000-01-12"),
+                    Timestamp("2000-01-04").as_unit("s"),
+                    Timestamp("2000-01-08").as_unit("s"),
+                    Timestamp("2000-01-12").as_unit("s"),
                 ],
             ),
             (

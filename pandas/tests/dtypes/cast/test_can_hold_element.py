@@ -2,6 +2,8 @@ import numpy as np
 
 from pandas.core.dtypes.cast import can_hold_element
 
+from pandas import Categorical
+
 
 def test_can_hold_element_range(any_int_numpy_dtype):
     # GH#44261
@@ -96,3 +98,11 @@ def test_can_hold_element_bool():
     assert not can_hold_element(arr, element)
     assert not can_hold_element(arr, np.array([element]))
     assert not can_hold_element(arr, np.array([element], dtype=object))
+
+
+def test_can_hold_element_categorical():
+    # GH#56376
+    arr = np.array([], dtype=np.float64)
+    cat = Categorical([1, 2, None])
+
+    assert can_hold_element(arr, cat)

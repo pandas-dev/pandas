@@ -51,7 +51,7 @@ def test_arrow_array():
         pa.array(intervals, type=ArrowIntervalType(pa.float64(), "left"))
 
 
-def test_arrow_array_missing():
+def test_arrow_array_missing(using_nan_is_na):
     pa = pytest.importorskip("pyarrow")
 
     from pandas.core.arrays.arrow.extension_types import ArrowIntervalType

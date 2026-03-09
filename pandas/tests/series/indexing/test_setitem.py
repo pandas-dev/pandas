@@ -8,6 +8,7 @@ from decimal import Decimal
 import numpy as np
 import pytest
 
+from pandas.compat import HAS_PYARROW
 from pandas.compat.numpy import np_version_gt2
 from pandas.errors import IndexingError
 
@@ -42,7 +43,7 @@ from pandas.tseries.offsets import BDay
 
 class TestSetitemDT64Values:
     def test_setitem_none_nan(self):
-        series = Series(date_range("1/1/2000", periods=10))
+        series = Series(date_range("1/1/2000", periods=10, unit="ns"))
         series[3] = None
         assert series[3] is NaT
 
@@ -73,7 +74,7 @@ class TestSetitemDT64Values:
 
     def test_setitem_tuple_with_datetimetz_values(self):
         # GH#20441
-        arr = date_range("2017", periods=4, tz="US/Eastern")
+        arr = date_range("2017", periods=4, tz="US/Eastern", unit="ns")
         index = [(0, 1), (0, 2), (0, 3), (0, 4)]
         result = Series(arr, index=index)
         expected = result.copy()
@@ -83,7 +84,7 @@ class TestSetitemDT64Values:
 
     @pytest.mark.parametrize("tz", ["US/Eastern", "UTC", "Asia/Tokyo"])
     def test_setitem_with_tz(self, tz, indexer_sli):
-        orig = Series(date_range("2016-01-01", freq="h", periods=3, tz=tz))
+        orig = Series(date_range("2016-01-01", freq="h", periods=3, tz=tz, unit="ns"))
         assert orig.dtype == f"datetime64[ns, {tz}]"
 
         exp = Series(
@@ -124,7 +125,7 @@ class TestSetitemDT64Values:
     def test_setitem_with_tz_dst(self, indexer_sli):
         # GH#14146 trouble setting values near DST boundary
         tz = "US/Eastern"
-        orig = Series(date_range("2016-11-06", freq="h", periods=3, tz=tz))
+        orig = Series(date_range("2016-11-06", freq="h", periods=3, tz=tz, unit="ns"))
         assert orig.dtype == f"datetime64[ns, {tz}]"
 
         exp = Series(
@@ -515,10 +516,6 @@ class TestSetitemWithExpansion:
     )
     def test_append_timedelta_does_not_cast(self, td, using_infer_string, request):
         # GH#22717 inserting a Timedelta should _not_ cast to int64
-        if using_infer_string and not isinstance(td, Timedelta):
-            # TODO: GH#56010
-            request.applymarker(pytest.mark.xfail(reason="inferred as string"))
-
         expected = Series(["x", td], index=[0, "td"], dtype=object)
 
         ser = Series(["x"])
@@ -592,17 +589,22 @@ class TestSetitemWithExpansion:
         # GH#48665
         ser = Series(["a", "b"])
         ser[3] = nulls_fixture
+
         dtype = (
             "str"
-            if using_infer_string and not isinstance(nulls_fixture, Decimal)
+            if using_infer_string
+            and not (isinstance(nulls_fixture, Decimal) and not HAS_PYARROW)
             else object
         )
+
         expected = Series(["a", "b", nulls_fixture], index=[0, 1, 3], dtype=dtype)
         tm.assert_series_equal(ser, expected)
-        if using_infer_string:
+        if dtype == "str":
             ser[3] is np.nan
-        else:
+        elif using_infer_string:
             assert ser[3] is nulls_fixture
+        else:
+            assert type(ser[3]) is type(nulls_fixture)
 
 
 def test_setitem_scalar_into_readonly_backing_data():
@@ -1086,7 +1088,7 @@ class TestSetitemNADatetimeLikeDtype(SetitemCastingEquivalents):
     @pytest.fixture
     def expected(self, obj, val, is_inplace):
         dtype = obj.dtype if is_inplace else object
-        expected = Series([val] + list(obj[1:]), dtype=dtype)
+        expected = Series([val, *list(obj[1:])], dtype=dtype)
         return expected
 
     @pytest.fixture
@@ -1198,7 +1200,7 @@ class TestSetitemFloatIntervalWithIntIntervalValues(SetitemCastingEquivalents):
         """
         Fixture to get a Series [(0.5, 1.5], (1.0, 2.0], (2.0, 3.0]]
         """
-        data = [val] + list(obj[1:])
+        data = [val, *list(obj[1:])]
         idx = IntervalIndex(data, dtype="Interval[float64]")
         return Series(idx)
 
@@ -1483,7 +1485,7 @@ class TestCoercionDatetime64HigherReso(CoercionTest):
     def obj(self, exp_dtype):
         idx = date_range("2011-01-01", freq="D", periods=4, unit="s")
         if exp_dtype == "m8[ms]":
-            idx = idx - Timestamp("1970-01-01")
+            idx = idx - Timestamp("1970-01-01").as_unit("s")
             assert idx.dtype == "m8[s]"
         elif exp_dtype == "M8[ms, UTC]":
             idx = idx.tz_localize("UTC")
@@ -1493,7 +1495,7 @@ class TestCoercionDatetime64HigherReso(CoercionTest):
     def val(self, exp_dtype):
         ts = Timestamp("2011-01-02 03:04:05.678").as_unit("ms")
         if exp_dtype == "m8[ms]":
-            return ts - Timestamp("1970-01-01")
+            return ts - Timestamp("1970-01-01").as_unit("s")
         elif exp_dtype == "M8[ms, UTC]":
             return ts.tz_localize("UTC")
         return ts
@@ -1516,7 +1518,7 @@ class TestCoercionDatetime64(CoercionTest):
 
     @pytest.fixture
     def obj(self):
-        return Series(date_range("2011-01-01", freq="D", periods=4))
+        return Series(date_range("2011-01-01", freq="D", periods=4, unit="ns"))
 
     @pytest.fixture
     def raises(self):
@@ -1538,7 +1540,7 @@ class TestCoercionDatetime64TZ(CoercionTest):
     @pytest.fixture
     def obj(self):
         tz = "US/Eastern"
-        return Series(date_range("2011-01-01", freq="D", periods=4, tz=tz))
+        return Series(date_range("2011-01-01", freq="D", periods=4, tz=tz, unit="ns"))
 
     @pytest.fixture
     def raises(self):
@@ -1548,7 +1550,7 @@ class TestCoercionDatetime64TZ(CoercionTest):
 @pytest.mark.parametrize(
     "val,exp_dtype,raises",
     [
-        (Timedelta("12 day"), "timedelta64[ns]", False),
+        (Timedelta("12 day"), "timedelta64[us]", False),
         (1, object, True),
         ("x", object, True),
     ],

@@ -12,6 +12,7 @@ from typing import (
 import numpy as np
 
 from pandas._libs import lib
+from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.astype import astype_array
 from pandas.core.dtypes.cast import (
@@ -160,6 +161,10 @@ def _get_result_dtype(
                 # coerce to object
                 target_dtype = np.dtype(object)
                 kinds = {"o"}
+    elif "b" in kinds and len(kinds) > 1:
+        # GH#21108, GH#45101
+        target_dtype = np.dtype(object)
+        kinds = {"o"}
     else:
         # error: Argument 1 to "np_find_common_type" has incompatible type
         # "*Set[Union[ExtensionDtype, Any]]"; expected "dtype[Any]"
@@ -168,6 +173,7 @@ def _get_result_dtype(
     return any_ea, kinds, target_dtype
 
 
+@set_module("pandas.api.types")
 def union_categoricals(
     to_union, sort_categories: bool = False, ignore_order: bool = False
 ) -> Categorical:
@@ -317,11 +323,11 @@ def union_categoricals(
         if sort_categories:
             categories = categories.sort_values()
 
-        new_codes = [
+        all_codes = [
             recode_for_categories(c.codes, c.categories, categories, copy=False)
             for c in to_union
         ]
-        new_codes = np.concatenate(new_codes)
+        new_codes = np.concatenate(all_codes)
     else:
         # ordered - to show a proper error message
         if all(c.ordered for c in to_union):

@@ -115,6 +115,17 @@ class TestTake:
         assert (result[:, :, [0, 1, 2, 3]] == data[:, :, indexer]).all()
         assert result.dtype == dtype
 
+    @pytest.mark.parametrize("dtype", [np.uint8, np.uint16, np.uint32, np.uint64])
+    def test_1d_unsigned_int_uses_cython_path(self, dtype):
+        # GH#????? - _take_1d_dict had wrong keys for uint16/uint32/uint64,
+        # causing fallback to the slow object path instead of the fast
+        # Cython path. Verify the optimized function is found.
+        from pandas.core.array_algos.take import _get_take_nd_function_cached
+
+        arr_dtype = np.dtype(dtype)
+        func = _get_take_nd_function_cached(1, arr_dtype, arr_dtype, 0)
+        assert func is not None
+
     def test_1d_other_dtypes(self):
         arr = np.random.default_rng(2).standard_normal(10).astype(np.float32)
 

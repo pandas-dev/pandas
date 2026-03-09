@@ -380,6 +380,19 @@ class TestJSONNormalize:
 
         tm.assert_frame_equal(result, expected)
 
+    def test_record_prefix_no_record_path_series(self):
+        # Ensure record_prefix is applied when record_path is None for Series input
+        s = Series([{"k": f"{i}", "m": "q"} for i in range(3)])
+        result = json_normalize(s, record_prefix="T.")
+        expected = DataFrame(
+            [
+                {"T.k": "0", "T.m": "q"},
+                {"T.k": "1", "T.m": "q"},
+                {"T.k": "2", "T.m": "q"},
+            ]
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_non_ascii_key(self):
         testjson = (
             b'[{"\xc3\x9cnic\xc3\xb8de":0,"sub":{"A":1, "B":2}},'
@@ -497,6 +510,17 @@ class TestJSONNormalize:
         )
         expected_df = DataFrame(data=expected, columns=result.columns.values)
         tm.assert_equal(expected_df, result)
+
+    def test_json_normalize_non_dict_items(self):
+        # gh-62829
+        data_list = [np.nan, {"id": 12}, {"id": 13}]
+        msg = "All items in data must be of type dict, found float"
+
+        with pytest.raises(TypeError, match=msg):
+            json_normalize(data_list, max_level=0)
+
+        with pytest.raises(TypeError, match=msg):
+            json_normalize(data_list)
 
     def test_nested_flattening_consistent(self):
         # see gh-21537
@@ -903,3 +927,14 @@ class TestNestedToRecord:
             index=[1, 2, 3],
         )
         tm.assert_frame_equal(result, expected)
+
+    def test_json_normalize_meta_string_validation(self):
+        # GH 63019
+        data = [{"a": 1, 12: "meta_value", "nested": [{"b": 2}]}]
+
+        # Test non-string meta raises TypeError consistently
+        with pytest.raises(TypeError, match="must be strings"):
+            json_normalize(data, meta=[12])
+
+        with pytest.raises(TypeError, match="must be strings"):
+            json_normalize(data, record_path=["nested"], meta=[12])

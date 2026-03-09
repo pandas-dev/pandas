@@ -76,7 +76,7 @@ class TestDatetimeIndexTimezones:
 
         start = Timestamp("201710290100", tz=tz)
         end = Timestamp("201710290300", tz=tz)
-        index = date_range(start=start, end=end, freq=freq)
+        index = date_range(start=start, end=end, freq=freq, unit="ns")
 
         expected = DatetimeIndex(
             [
@@ -162,7 +162,7 @@ class TestDatetimeIndexTimezones:
         eastern_range = utc_range.tz_convert("US/Eastern")
         berlin_range = utc_range.tz_convert("Europe/Berlin")
 
-        for a, b, c in zip(utc_range, eastern_range, berlin_range):
+        for a, b, c in zip(utc_range, eastern_range, berlin_range, strict=True):
             assert a == b
             assert b == c
             assert a == c

@@ -35,59 +35,61 @@ def parser_and_data(all_parsers, csv1):
 
 
 @pytest.mark.parametrize("compression", ["zip", "infer", "zip2"])
-def test_zip(parser_and_data, compression):
+def test_zip(tmp_path, parser_and_data, compression):
     parser, data, expected = parser_and_data
 
-    with tm.ensure_clean("test_file.zip") as path:
-        with zipfile.ZipFile(path, mode="w") as tmp:
-            tmp.writestr("test_file", data)
+    path = tmp_path / "test_file.zip"
+    with zipfile.ZipFile(path, mode="w") as tmp:
+        tmp.writestr("test_file", data)
 
-        if compression == "zip2":
-            with open(path, "rb") as f:
-                result = parser.read_csv(f, compression="zip")
-        else:
-            result = parser.read_csv(path, compression=compression)
+    if compression == "zip2":
+        with open(path, "rb") as f:
+            result = parser.read_csv(f, compression="zip")
+    else:
+        result = parser.read_csv(path, compression=compression)
 
-        tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("compression", ["zip", "infer"])
-def test_zip_error_multiple_files(parser_and_data, compression):
+def test_zip_error_multiple_files(tmp_path, parser_and_data, compression):
     parser, data, expected = parser_and_data
 
-    with tm.ensure_clean("combined_zip.zip") as path:
-        inner_file_names = ["test_file", "second_file"]
+    path = tmp_path / "combined_zip.zip"
+    inner_file_names = ["test_file", "second_file"]
 
-        with zipfile.ZipFile(path, mode="w") as tmp:
-            for file_name in inner_file_names:
-                tmp.writestr(file_name, data)
+    with zipfile.ZipFile(path, mode="w") as tmp:
+        for file_name in inner_file_names:
+            tmp.writestr(file_name, data)
 
-        with pytest.raises(ValueError, match="Multiple files"):
-            parser.read_csv(path, compression=compression)
+    with pytest.raises(ValueError, match="Multiple files"):
+        parser.read_csv(path, compression=compression)
 
 
-def test_zip_error_no_files(parser_and_data):
+def test_zip_error_no_files(tmp_path, parser_and_data):
     parser, _, _ = parser_and_data
 
-    with tm.ensure_clean() as path:
-        with zipfile.ZipFile(path, mode="w"):
-            pass
+    path = tmp_path / "test_file.zip"
+    with zipfile.ZipFile(path, mode="w"):
+        pass
 
-        with pytest.raises(ValueError, match="Zero files"):
-            parser.read_csv(path, compression="zip")
+    with pytest.raises(ValueError, match="Zero files"):
+        parser.read_csv(path, compression="zip")
 
 
-def test_zip_error_invalid_zip(parser_and_data):
+def test_zip_error_invalid_zip(tmp_path, parser_and_data):
     parser, _, _ = parser_and_data
 
-    with tm.ensure_clean() as path:
-        with open(path, "rb") as f:
-            with pytest.raises(zipfile.BadZipFile, match="File is not a zip file"):
-                parser.read_csv(f, compression="zip")
+    path = tmp_path / "invalid_file.zip"
+    path.touch()
+    with open(path, "rb") as f:
+        with pytest.raises(zipfile.BadZipFile, match="File is not a zip file"):
+            parser.read_csv(f, compression="zip")
 
 
 @pytest.mark.parametrize("filename", [None, "test.{ext}"])
 def test_compression(
+    tmp_path,
     request,
     parser_and_data,
     compression_only,
@@ -108,17 +110,17 @@ def test_compression(
             )
         )
 
-    with tm.ensure_clean(filename=filename) as path:
-        tm.write_to_compressed(compress_type, path, data)
-        compression = "infer" if filename else compress_type
+    path = tmp_path / filename if filename else tmp_path / "test_file"
+    tm.write_to_compressed(compress_type, path, data)
+    compression = "infer" if filename else compress_type
 
-        if buffer:
-            with open(path, "rb") as f:
-                result = parser.read_csv(f, compression=compression)
-        else:
-            result = parser.read_csv(path, compression=compression)
+    if buffer:
+        with open(path, "rb") as f:
+            result = parser.read_csv(f, compression=compression)
+    else:
+        result = parser.read_csv(path, compression=compression)
 
-        tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("ext", [None, "gz", "bz2"])
@@ -175,21 +177,22 @@ def test_compression_tar_archive(all_parsers, csv_dir_path):
     assert list(df.columns) == ["a"]
 
 
-def test_ignore_compression_extension(all_parsers):
+def test_ignore_compression_extension(tmp_path, all_parsers):
     parser = all_parsers
     df = DataFrame({"a": [0, 1]})
-    with tm.ensure_clean("test.csv") as path_csv:
-        with tm.ensure_clean("test.csv.zip") as path_zip:
-            # make sure to create un-compressed file with zip extension
-            df.to_csv(path_csv, index=False)
-            Path(path_zip).write_text(
-                Path(path_csv).read_text(encoding="utf-8"), encoding="utf-8"
-            )
 
-            tm.assert_frame_equal(parser.read_csv(path_zip, compression=None), df)
+    path_csv = tmp_path / "test.csv"
+    path_zip = tmp_path / "test.csv.zip"
+    # make sure to create un-compressed file with zip extension
+    df.to_csv(path_csv, index=False)
+    Path(path_zip).write_text(
+        Path(path_csv).read_text(encoding="utf-8"), encoding="utf-8"
+    )
+
+    tm.assert_frame_equal(parser.read_csv(path_zip, compression=None), df)
 
 
-def test_writes_tar_gz(all_parsers):
+def test_writes_tar_gz(tmp_path, all_parsers):
     parser = all_parsers
     data = DataFrame(
         {
@@ -197,15 +200,15 @@ def test_writes_tar_gz(all_parsers):
             "Twitter": ["Hugo Chávez Frías", "Henrique Capriles R."],
         }
     )
-    with tm.ensure_clean("test.tar.gz") as tar_path:
-        data.to_csv(tar_path, index=False)
+    tar_path = tmp_path / "test.tar.gz"
+    data.to_csv(tar_path, index=False)
 
-        # test that read_csv infers .tar.gz to gzip:
-        tm.assert_frame_equal(parser.read_csv(tar_path), data)
+    # test that read_csv infers .tar.gz to gzip:
+    tm.assert_frame_equal(parser.read_csv(tar_path), data)
 
-        # test that file is indeed gzipped:
-        with tarfile.open(tar_path, "r:gz") as tar:
-            result = parser.read_csv(
-                tar.extractfile(tar.getnames()[0]), compression="infer"
-            )
-            tm.assert_frame_equal(result, data)
+    # test that file is indeed gzipped:
+    with tarfile.open(tar_path, "r:gz") as tar:
+        result = parser.read_csv(
+            tar.extractfile(tar.getnames()[0]), compression="infer"
+        )
+        tm.assert_frame_equal(result, data)

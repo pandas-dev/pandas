@@ -10,6 +10,13 @@
 
 [TOC]
 
+!!! note
+    While this PDEP mentions adding pyarrow as a required dependency in
+    pandas 3.0, this aspect has been delayed until after pandas 3.0 (see the
+    abstract of [PDEP-14](https://pandas.pydata.org/pdeps/0014-string-dtype.html)).
+    Therefore, pandas 3.0 will *not* have a hard requirement on pyarrow but still use
+    pyarrow by default (for the new string dtype) when installed.
+
 ## Abstract
 
 This PDEP proposes that:

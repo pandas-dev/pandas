@@ -6,6 +6,9 @@
 Window
 ======
 
+.. note::
+   For an overview, see :ref:`window`.
+
 :class:`pandas.api.typing.Rolling` instances are returned by ``.rolling`` calls:
 :func:`pandas.DataFrame.rolling` and :func:`pandas.Series.rolling`.
 :class:`pandas.api.typing.Expanding` instances are returned by ``.expanding`` calls:
@@ -17,7 +20,7 @@ calls: :func:`pandas.DataFrame.ewm` and :func:`pandas.Series.ewm`.
 
 Rolling window functions
 ------------------------
-.. currentmodule:: pandas.core.window.rolling
+.. currentmodule:: pandas.api.typing
 
 .. autosummary::
    :toctree: api/
@@ -48,7 +51,8 @@ Rolling window functions
 
 Weighted window functions
 -------------------------
-.. currentmodule:: pandas.core.window.rolling
+.. currentmodule:: pandas.api.typing
+
 
 .. autosummary::
    :toctree: api/
@@ -62,7 +66,8 @@ Weighted window functions
 
 Expanding window functions
 --------------------------
-.. currentmodule:: pandas.core.window.expanding
+.. currentmodule:: pandas.api.typing
+
 
 .. autosummary::
    :toctree: api/
@@ -93,7 +98,8 @@ Expanding window functions
 
 Exponentially-weighted window functions
 ---------------------------------------
-.. currentmodule:: pandas.core.window.ewm
+.. currentmodule:: pandas.api.typing
+
 
 .. autosummary::
    :toctree: api/

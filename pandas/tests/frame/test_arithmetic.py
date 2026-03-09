@@ -11,6 +11,9 @@ import re
 import numpy as np
 import pytest
 
+from pandas.compat._optional import import_optional_dependency
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -24,6 +27,7 @@ from pandas.tests.frame.common import (
     _check_mixed_float,
     _check_mixed_int,
 )
+from pandas.util.version import Version
 
 
 @pytest.fixture
@@ -112,7 +116,7 @@ class TestFrameComparisons:
             [
                 {
                     "a": np.random.default_rng(2).integers(10, size=10),
-                    "b": pd.date_range("20010101", periods=10),
+                    "b": pd.date_range("20010101", periods=10, unit="ns"),
                 },
                 {
                     "a": np.random.default_rng(2).integers(10, size=10),
@@ -126,13 +130,13 @@ class TestFrameComparisons:
                 },
                 {
                     "a": np.random.default_rng(2).integers(10, size=10),
-                    "b": pd.date_range("20010101", periods=10),
+                    "b": pd.date_range("20010101", periods=10, unit="ns"),
                 },
             ],
             [
                 {
-                    "a": pd.date_range("20010101", periods=10),
-                    "b": pd.date_range("20010101", periods=10),
+                    "a": pd.date_range("20010101", periods=10, unit="ns"),
+                    "b": pd.date_range("20010101", periods=10, unit="ns"),
                 },
                 {
                     "a": np.random.default_rng(2).integers(10, size=10),
@@ -142,11 +146,11 @@ class TestFrameComparisons:
             [
                 {
                     "a": np.random.default_rng(2).integers(10, size=10),
-                    "b": pd.date_range("20010101", periods=10),
+                    "b": pd.date_range("20010101", periods=10, unit="ns"),
                 },
                 {
-                    "a": pd.date_range("20010101", periods=10),
-                    "b": pd.date_range("20010101", periods=10),
+                    "a": pd.date_range("20010101", periods=10, unit="ns"),
+                    "b": pd.date_range("20010101", periods=10, unit="ns"),
                 },
             ],
         ],
@@ -270,7 +274,9 @@ class TestFrameComparisons:
 
         expected = DataFrame([[False, False], [True, False], [False, False]])
 
-        result = df == (2, 2)
+        depr_msg = "In a future version these will be treated as scalar-like"
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            result = df == (2, 2)
         tm.assert_frame_equal(result, expected)
 
         result = df == [2, 2]
@@ -304,7 +310,7 @@ class TestFrameFlexComparisons:
         other_data = np.random.default_rng(2).standard_normal((5, 3))
         df = DataFrame(data)
         other = DataFrame(other_data)
-        ndim_5 = np.ones(df.shape + (1, 3))
+        ndim_5 = np.ones((*df.shape, 1, 3))
 
         # DataFrame
         assert df.eq(df).values.all()
@@ -441,7 +447,7 @@ class TestFrameFlexComparisons:
         df = DataFrame([pd.NaT])
 
         result = df == pd.NaT
-        # result.iloc[0, 0] is a np.bool_ object
+        # result.iloc[0, 0] is an np.bool_ object
         assert result.iloc[0, 0].item() is False
 
         result = df.eq(pd.NaT)
@@ -1006,7 +1012,14 @@ class TestFrameArithmetic:
         # GH#17901
         df = DataFrame({"A": [1, 1], "B": [1, 1]})
         expected = DataFrame({"A": [2, 2], "B": [3, 3]})
-        result = df + values
+
+        depr_msg = "In a future version these will be treated as scalar-like"
+        warn = None
+        if isinstance(values, (range, deque, tuple)):
+            warn = Pandas4Warning
+
+        with tm.assert_produces_warning(warn, match=depr_msg):
+            result = df + values
         tm.assert_frame_equal(result, expected)
 
     def test_arith_non_pandas_object(self):
@@ -1114,6 +1127,8 @@ class TestFrameArithmetic:
             (operator.mod, "complex128"),
         }
 
+        ne = import_optional_dependency("numexpr", errors="ignore")
+        ne_warns_on_op = ne is not None and Version(ne.__version__) < Version("2.13.1")
         if (op, dtype) in invalid:
             warn = None
             if (dtype == "<M8[ns]" and op == operator.add) or (
@@ -1142,7 +1157,11 @@ class TestFrameArithmetic:
 
         elif (op, dtype) in skip:
             if op in [operator.add, operator.mul]:
-                if expr.USE_NUMEXPR and switch_numexpr_min_elements == 0:
+                if (
+                    expr.USE_NUMEXPR
+                    and switch_numexpr_min_elements == 0
+                    and ne_warns_on_op
+                ):
                     warn = UserWarning
                 else:
                     warn = None
@@ -1550,7 +1569,7 @@ class TestFrameArithmeticUnsorted:
         df2 = df1.copy()
 
         row = simple_frame.xs("a")
-        ndim_5 = np.ones(df1.shape + (1, 1, 1))
+        ndim_5 = np.ones((*df1.shape, 1, 1, 1))
 
         result = func(df1, df2)
         tm.assert_numpy_array_equal(result.values, func(df1.values, df2.values))
@@ -1630,9 +1649,11 @@ class TestFrameArithmeticUnsorted:
             # wrong shape
             df > lst
 
+        depr_msg = "In a future version these will be treated as scalar-like"
         with pytest.raises(ValueError, match=msg1d):
             # wrong shape
-            df > tup
+            with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+                df > tup
 
         # broadcasts like ndarray (GH#23000)
         result = df > b_r
@@ -1656,7 +1677,8 @@ class TestFrameArithmeticUnsorted:
             df == lst
 
         with pytest.raises(ValueError, match=msg1d):
-            df == tup
+            with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+                df == tup
 
         # broadcasts like ndarray (GH#23000)
         result = df == b_r
@@ -1681,7 +1703,8 @@ class TestFrameArithmeticUnsorted:
             df == lst
 
         with pytest.raises(ValueError, match=msg1d):
-            df == tup
+            with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+                df == tup
 
     def test_inplace_ops_alignment(self):
         # inplace ops / ops alignment
@@ -1850,13 +1873,22 @@ class TestFrameArithmeticUnsorted:
 
         align = DataFrame._align_for_op
 
+        depr_msg = "In a future version these will be treated as scalar-like"
+        warn = None
+        if isinstance(val, (tuple, range)):
+            warn = Pandas4Warning
+
+        with tm.assert_produces_warning(warn, match=depr_msg):
+            result = align(df, val, axis=0)[1]
         expected = DataFrame({"X": val, "Y": val, "Z": val}, index=df.index)
-        tm.assert_frame_equal(align(df, val, axis=0)[1], expected)
+        tm.assert_frame_equal(result, expected)
 
         expected = DataFrame(
             {"X": [1, 1, 1], "Y": [2, 2, 2], "Z": [3, 3, 3]}, index=df.index
         )
-        tm.assert_frame_equal(align(df, val, axis=1)[1], expected)
+        with tm.assert_produces_warning(warn, match=depr_msg):
+            result = align(df, val, axis=1)[1]
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("val", [[1, 2], (1, 2), np.array([1, 2]), range(1, 3)])
     def test_alignment_non_pandas_length_mismatch(self, val):
@@ -1868,14 +1900,21 @@ class TestFrameArithmeticUnsorted:
             columns=columns,
         )
 
+        depr_msg = "In a future version these will be treated as scalar-like"
+        warn = None
+        if isinstance(val, (tuple, range)):
+            warn = Pandas4Warning
+
         align = DataFrame._align_for_op
         # length mismatch
         msg = "Unable to coerce to Series, length must be 3: given 2"
         with pytest.raises(ValueError, match=msg):
-            align(df, val, axis=0)
+            with tm.assert_produces_warning(warn, match=depr_msg):
+                align(df, val, axis=0)
 
         with pytest.raises(ValueError, match=msg):
-            align(df, val, axis=1)
+            with tm.assert_produces_warning(warn, match=depr_msg):
+                align(df, val, axis=1)
 
     def test_alignment_non_pandas_index_columns(self):
         index = ["A", "B", "C"]

@@ -11,6 +11,7 @@ As pre-commit hook (recommended):
 From the command-line:
     python scripts/validate_rst_title_capitalization.py <rst file>
 """
+
 from __future__ import annotations
 
 import argparse
@@ -53,7 +54,6 @@ CAPITALIZATION_EXCEPTIONS = {
     "MultiIndex",
     "NumFOCUS",
     "sklearn",
-    "Docker",
     "PeriodIndex",
     "NA",
     "NaN",
@@ -160,10 +160,10 @@ CAPITALIZATION_EXCEPTIONS = {
     "Numba",
     "Timestamp",
     "PyArrow",
-    "Gitpod",
     "Liveserve",
     "I",
     "VSCode",
+    "MacOS",
 }
 
 CAP_EXCEPTIONS_DICT = {word.lower(): word for word in CAPITALIZATION_EXCEPTIONS}
@@ -271,7 +271,8 @@ def main(source_paths: list[str]) -> int:
             if title != correct_title_capitalization(title):
                 print(
                     f"""{filename}:{line_number}:{err_msg} "{title}" to "{
-                    correct_title_capitalization(title)}" """
+                        correct_title_capitalization(title)
+                    }" """
                 )
                 number_of_errors += 1
 

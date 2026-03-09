@@ -97,9 +97,12 @@ def build_field_sarray(const int64_t[:] dtindex, NPY_DATETIMEUNIT reso):
     return out
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def month_position_check(fields, weekdays) -> str | None:
     cdef:
-        int32_t daysinmonth, y, m, d
+        Py_ssize_t i, count
+        int32_t daysinmonth, y, m, d, wd
         bint calendar_end = True
         bint business_end = True
         bint calendar_start = True
@@ -108,8 +111,16 @@ def month_position_check(fields, weekdays) -> str | None:
         int32_t[:] years = fields["Y"]
         int32_t[:] months = fields["M"]
         int32_t[:] days = fields["D"]
+        int32_t[:] wdays = np.asarray(weekdays, dtype=np.int32)
 
-    for y, m, d, wd in zip(years, months, days, weekdays):
+    count = len(years)
+
+    for i in range(count):
+        y = years[i]
+        m = months[i]
+        d = days[i]
+        wd = wdays[i]
+
         if calendar_start:
             calendar_start &= d == 1
         if business_start:
@@ -146,7 +157,7 @@ def get_date_name_field(
     NPY_DATETIMEUNIT reso=NPY_FR_ns,
 ):
     """
-    Given a int64-based datetime index, return array of strings of date
+    Given an int64-based datetime index, return array of strings of date
     name based on requested field (e.g. day_name)
     """
     cdef:
@@ -164,6 +175,8 @@ def get_date_name_field(
         else:
             names = np.array(_get_locale_names("f_weekday", locale),
                              dtype=np.object_)
+        for i in range(len(names)):
+            names[i] = names[i].capitalize()
         for i in range(count):
             if dtindex[i] == NPY_NAT:
                 out[i] = np.nan
@@ -171,7 +184,7 @@ def get_date_name_field(
 
             pandas_datetime_to_datetimestruct(dtindex[i], reso, &dts)
             dow = dayofweek(dts.year, dts.month, dts.day)
-            out[i] = names[dow].capitalize()
+            out[i] = names[dow]
 
     elif field == "month_name":
         if locale is None:
@@ -179,13 +192,15 @@ def get_date_name_field(
         else:
             names = np.array(_get_locale_names("f_month", locale),
                              dtype=np.object_)
+        for i in range(len(names)):
+            names[i] = names[i].capitalize()
         for i in range(count):
             if dtindex[i] == NPY_NAT:
                 out[i] = np.nan
                 continue
 
             pandas_datetime_to_datetimestruct(dtindex[i], reso, &dts)
-            out[i] = names[dts.month].capitalize()
+            out[i] = names[dts.month]
 
     else:
         raise ValueError(f"Field {field} not supported")
@@ -274,52 +289,56 @@ def get_start_end_field(
 
     if field in ["is_month_start", "is_quarter_start", "is_year_start"]:
         if is_business:
-            for i in range(count):
-                if dtindex[i] == NPY_NAT:
-                    out[i] = 0
-                    continue
+            with nogil:
+                for i in range(count):
+                    if dtindex[i] == NPY_NAT:
+                        out[i] = 0
+                        continue
 
-                pandas_datetime_to_datetimestruct(dtindex[i], reso, &dts)
+                    pandas_datetime_to_datetimestruct(dtindex[i], reso, &dts)
 
-                if _is_on_month(dts.month, compare_month, modby) and (
-                        dts.day == get_firstbday(dts.year, dts.month)):
-                    out[i] = 1
+                    if _is_on_month(dts.month, compare_month, modby) and (
+                            dts.day == get_firstbday(dts.year, dts.month)):
+                        out[i] = 1
 
         else:
-            for i in range(count):
-                if dtindex[i] == NPY_NAT:
-                    out[i] = 0
-                    continue
+            with nogil:
+                for i in range(count):
+                    if dtindex[i] == NPY_NAT:
+                        out[i] = 0
+                        continue
 
-                pandas_datetime_to_datetimestruct(dtindex[i], reso, &dts)
+                    pandas_datetime_to_datetimestruct(dtindex[i], reso, &dts)
 
-                if _is_on_month(dts.month, compare_month, modby) and dts.day == 1:
-                    out[i] = 1
+                    if _is_on_month(dts.month, compare_month, modby) and dts.day == 1:
+                        out[i] = 1
 
     elif field in ["is_month_end", "is_quarter_end", "is_year_end"]:
         if is_business:
-            for i in range(count):
-                if dtindex[i] == NPY_NAT:
-                    out[i] = 0
-                    continue
+            with nogil:
+                for i in range(count):
+                    if dtindex[i] == NPY_NAT:
+                        out[i] = 0
+                        continue
 
-                pandas_datetime_to_datetimestruct(dtindex[i], reso, &dts)
+                    pandas_datetime_to_datetimestruct(dtindex[i], reso, &dts)
 
-                if _is_on_month(dts.month, compare_month, modby) and (
-                        dts.day == get_lastbday(dts.year, dts.month)):
-                    out[i] = 1
+                    if _is_on_month(dts.month, compare_month, modby) and (
+                            dts.day == get_lastbday(dts.year, dts.month)):
+                        out[i] = 1
 
         else:
-            for i in range(count):
-                if dtindex[i] == NPY_NAT:
-                    out[i] = 0
-                    continue
+            with nogil:
+                for i in range(count):
+                    if dtindex[i] == NPY_NAT:
+                        out[i] = 0
+                        continue
 
-                pandas_datetime_to_datetimestruct(dtindex[i], reso, &dts)
+                    pandas_datetime_to_datetimestruct(dtindex[i], reso, &dts)
 
-                if _is_on_month(dts.month, compare_month, modby) and (
-                        dts.day == get_days_in_month(dts.year, dts.month)):
-                    out[i] = 1
+                    if _is_on_month(dts.month, compare_month, modby) and (
+                            dts.day == get_days_in_month(dts.year, dts.month)):
+                        out[i] = 1
 
     else:
         raise ValueError(f"Field {field} not supported")
@@ -335,7 +354,7 @@ def get_date_field(
     NPY_DATETIMEUNIT reso=NPY_FR_ns,
 ):
     """
-    Given a int64-based datetime index, extract the year, month, etc.,
+    Given an int64-based datetime index, extract the year, month, etc.,
     field and return an array of these values.
     """
     cdef:
@@ -502,7 +521,7 @@ def get_timedelta_field(
     NPY_DATETIMEUNIT reso=NPY_FR_ns,
 ):
     """
-    Given a int64-based timedelta index, extract the days, hrs, sec.,
+    Given an int64-based timedelta index, extract the days, hrs, sec.,
     field and return an array of these values.
     """
     cdef:
@@ -555,7 +574,7 @@ def get_timedelta_days(
     NPY_DATETIMEUNIT reso=NPY_FR_ns,
 ):
     """
-    Given a int64-based timedelta index, extract the days,
+    Given an int64-based timedelta index, extract the days,
     field and return an array of these values.
     """
     cdef:
@@ -592,7 +611,7 @@ cpdef isleapyear_arr(ndarray years):
 @cython.boundscheck(False)
 def build_isocalendar_sarray(const int64_t[:] dtindex, NPY_DATETIMEUNIT reso):
     """
-    Given a int64-based datetime array, return the ISO 8601 year, week, and day
+    Given an int64-based datetime array, return the ISO 8601 year, week, and day
     as a structured array.
     """
     cdef:
@@ -745,7 +764,7 @@ cdef ndarray[int64_t] _ceil_int64(const int64_t[:] values, int64_t unit):
     return result
 
 
-cdef ndarray[int64_t] _rounddown_int64(values, int64_t unit):
+cdef ndarray[int64_t] _rounddown_int64(const int64_t[:] values, int64_t unit):
     cdef:
         Py_ssize_t i, n = len(values)
         ndarray[int64_t] result = np.empty(n, dtype="i8")
@@ -792,7 +811,8 @@ cdef ndarray[int64_t] _round_nearest_int64(const int64_t[:] values, int64_t unit
             if value == NPY_NAT:
                 res = NPY_NAT
             else:
-                quotient, remainder = divmod(value, unit)
+                remainder = value % unit
+                quotient = value // unit
                 if remainder > half:
                     res = value + (unit - remainder)
                 elif remainder == half and quotient % 2:

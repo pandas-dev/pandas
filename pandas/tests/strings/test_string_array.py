@@ -8,7 +8,6 @@ from pandas import (
     DataFrame,
     Series,
     _testing as tm,
-    option_context,
 )
 
 
@@ -56,8 +55,7 @@ def test_string_array(nullable_string_dtype, any_string_method):
         columns = expected.select_dtypes(include="object").columns
         assert all(result[columns].dtypes == nullable_string_dtype)
         result[columns] = result[columns].astype(object)
-        with option_context("future.no_silent_downcasting", True):
-            expected[columns] = expected[columns].fillna(NA)  # GH#18463
+        expected[columns] = expected[columns].fillna(NA)  # GH#18463
 
     tm.assert_equal(result, expected)
 
@@ -110,3 +108,19 @@ def test_string_array_extract(nullable_string_dtype):
 
     result = result.astype(object)
     tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "values, width, expected",
+    [
+        (["a", "ab", "abc", None], 4, ["000a", "00ab", "0abc", None]),
+        (["1", "-1", "+1", None], 4, ["0001", "-001", "+001", None]),
+        (["1234", "-1234"], 3, ["1234", "-1234"]),
+    ],
+)
+def test_string_array_zfill(nullable_string_dtype, values, width, expected):
+    # GH #61485
+    s = Series(values, dtype=nullable_string_dtype)
+    result = s.str.zfill(width)
+    expected = Series(expected, dtype=nullable_string_dtype)
+    tm.assert_series_equal(result, expected)

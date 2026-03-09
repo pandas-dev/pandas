@@ -10,10 +10,13 @@ import pandas._testing as tm
 @pytest.mark.parametrize("ufunc", [np.abs, np.sign])
 # np.sign emits a warning with nans, <https://github.com/numpy/numpy/issues/15127>
 @pytest.mark.filterwarnings("ignore:invalid value encountered in sign:RuntimeWarning")
-def test_ufuncs_single(ufunc):
+def test_ufuncs_single(ufunc, using_nan_is_na):
     a = pd.array([1, 2, -3, pd.NA], dtype="Float64")
     result = ufunc(a)
-    expected = pd.array(ufunc(a.astype(float)), dtype="Float64")
+    np_res = ufunc(a.astype(float))
+    np_res = np_res.astype(object)
+    np_res[a.isna()] = pd.NA
+    expected = pd.array(np_res, dtype="Float64")
     tm.assert_extension_array_equal(result, expected)
 
     s = pd.Series(a)
@@ -23,45 +26,66 @@ def test_ufuncs_single(ufunc):
 
 
 @pytest.mark.parametrize("ufunc", [np.log, np.exp, np.sin, np.cos, np.sqrt])
-def test_ufuncs_single_float(ufunc):
+def test_ufuncs_single_float(ufunc, using_nan_is_na):
     a = pd.array([1.0, 0.2, 3.0, pd.NA], dtype="Float64")
     with np.errstate(invalid="ignore"):
         result = ufunc(a)
-        expected = pd.array(ufunc(a.astype(float)), dtype="Float64")
+        np_res = ufunc(a.astype(float))
+        np_res = np_res.astype(object)
+        np_res[a.isna()] = pd.NA
+        expected = pd.array(np_res, dtype="Float64")
     tm.assert_extension_array_equal(result, expected)
 
     s = pd.Series(a)
     with np.errstate(invalid="ignore"):
         result = ufunc(s)
-        expected = pd.Series(ufunc(s.astype(float)), dtype="Float64")
+        np_res = ufunc(s.astype(float))
+        np_res = np_res.astype(object)
+        np_res[a.isna()] = pd.NA
+        expected = pd.Series(np_res, dtype="Float64")
     tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize("ufunc", [np.add, np.subtract])
-def test_ufuncs_binary_float(ufunc):
+def test_ufuncs_binary_float(ufunc, using_nan_is_na):
     # two FloatingArrays
     a = pd.array([1, 0.2, -3, pd.NA], dtype="Float64")
     result = ufunc(a, a)
-    expected = pd.array(ufunc(a.astype(float), a.astype(float)), dtype="Float64")
+    np_res = ufunc(a.astype(float), a.astype(float))
+    np_res = np_res.astype(object)
+    np_res[a.isna()] = pd.NA
+    expected = pd.array(np_res, dtype="Float64")
     tm.assert_extension_array_equal(result, expected)
 
     # FloatingArray with numpy array
     arr = np.array([1, 2, 3, 4])
     result = ufunc(a, arr)
-    expected = pd.array(ufunc(a.astype(float), arr), dtype="Float64")
+    np_res = ufunc(a.astype(float), arr)
+    np_res = np_res.astype(object)
+    np_res[a.isna()] = pd.NA
+    expected = pd.array(np_res, dtype="Float64")
     tm.assert_extension_array_equal(result, expected)
 
     result = ufunc(arr, a)
-    expected = pd.array(ufunc(arr, a.astype(float)), dtype="Float64")
+    np_res = ufunc(arr, a.astype(float))
+    np_res = np_res.astype(object)
+    np_res[a.isna()] = pd.NA
+    expected = pd.array(np_res, dtype="Float64")
     tm.assert_extension_array_equal(result, expected)
 
     # FloatingArray with scalar
     result = ufunc(a, 1)
-    expected = pd.array(ufunc(a.astype(float), 1), dtype="Float64")
+    np_res = ufunc(a.astype(float), 1)
+    np_res = np_res.astype(object)
+    np_res[a.isna()] = pd.NA
+    expected = pd.array(np_res, dtype="Float64")
     tm.assert_extension_array_equal(result, expected)
 
     result = ufunc(1, a)
-    expected = pd.array(ufunc(1, a.astype(float)), dtype="Float64")
+    np_res = ufunc(1, a.astype(float))
+    np_res = np_res.astype(object)
+    np_res[a.isna()] = pd.NA
+    expected = pd.array(np_res, dtype="Float64")
     tm.assert_extension_array_equal(result, expected)
 
 
@@ -147,7 +171,7 @@ def test_floating_array_numpy_sum(values, expected):
 
 
 @pytest.mark.parametrize("op", ["sum", "min", "max", "prod"])
-def test_preserve_dtypes(op):
+def test_preserve_dtypes(op, using_python_scalars):
     df = pd.DataFrame(
         {
             "A": ["a", "b", "b"],
@@ -158,7 +182,10 @@ def test_preserve_dtypes(op):
 
     # op
     result = getattr(df.C, op)()
-    assert isinstance(result, np.float64)
+    if using_python_scalars:
+        assert type(result) == float
+    else:
+        assert isinstance(result, np.float64)
 
     # groupby
     result = getattr(df.groupby("A"), op)()

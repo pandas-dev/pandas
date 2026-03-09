@@ -41,7 +41,10 @@ from pandas.api.extensions import (
     ExtensionArray,
     ExtensionDtype,
 )
-from pandas.core.indexers import unpack_tuple_and_ellipses
+from pandas.core.indexers import (
+    getitem_returns_view,
+    unpack_tuple_and_ellipses,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -91,11 +94,14 @@ class JSONArray(ExtensionArray):
         return cls([UserDict(x) for x in values if x != ()])
 
     def _cast_pointwise_result(self, values):
-        result = super()._cast_pointwise_result(values)
         try:
-            return type(self)._from_sequence(result, dtype=self.dtype)
+            return type(self)._from_sequence(values, dtype=self.dtype)
         except (ValueError, TypeError):
-            return result
+            # TODO replace with public function
+            from pandas._libs import lib
+
+            values = np.asarray(values, dtype=object)
+            return lib.maybe_convert_objects(values, convert_non_numeric=True)
 
     def __getitem__(self, item):
         if isinstance(item, tuple):
@@ -105,10 +111,15 @@ class JSONArray(ExtensionArray):
             return self.data[item]
         elif isinstance(item, slice) and item == slice(None):
             # Make sure we get a view
-            return type(self)(self.data)
+            result = type(self)(self.data)
+            result._readonly = self._readonly
+            return result
         elif isinstance(item, slice):
             # slice
-            return type(self)(self.data[item])
+            result = type(self)(self.data[item])
+            if getitem_returns_view(self, item):
+                result._readonly = self._readonly
+            return result
         elif not is_list_like(item):
             # e.g. "foo" or 2.5
             # exception message copied from numpy
@@ -120,12 +131,15 @@ class JSONArray(ExtensionArray):
             item = pd.api.indexers.check_array_indexer(self, item)
             if is_bool_dtype(item.dtype):
                 return type(self)._from_sequence(
-                    [x for x, m in zip(self, item) if m], dtype=self.dtype
+                    [x for x, m in zip(self, item, strict=True) if m], dtype=self.dtype
                 )
             # integer
             return type(self)([self.data[i] for i in item])
 
     def __setitem__(self, key, value) -> None:
+        if self._readonly:
+            raise ValueError("Cannot modify read-only array")
+
         if isinstance(key, numbers.Integral):
             self.data[key] = value
         else:
@@ -135,12 +149,12 @@ class JSONArray(ExtensionArray):
 
             if isinstance(key, np.ndarray) and key.dtype == "bool":
                 # masking
-                for i, (k, v) in enumerate(zip(key, value)):
+                for i, (k, v) in enumerate(zip(key, value, strict=False)):
                     if k:
                         assert isinstance(v, self.dtype.type)
                         self.data[i] = v
             else:
-                for k, v in zip(key, value):
+                for k, v in zip(key, value, strict=False):
                     assert isinstance(v, self.dtype.type)
                     self.data[k] = v
 
@@ -158,7 +172,6 @@ class JSONArray(ExtensionArray):
             raise ValueError(
                 "Unable to avoid copy while creating an array as requested."
             )
-
         if dtype is None:
             dtype = object
         if dtype == object:
@@ -255,7 +268,7 @@ class JSONArray(ExtensionArray):
         return super()._pad_or_backfill(method=method, limit=limit, copy=copy)
 
 
-def make_data():
+def make_data(n: int):
     # TODO: Use a regular dict. See _NDFrameIndexer._setitem_with_indexer
     rng = np.random.default_rng(2)
     return [
@@ -265,5 +278,5 @@ def make_data():
                 for _ in range(rng.integers(0, 10))
             ]
         )
-        for _ in range(100)
+        for _ in range(n)
     ]

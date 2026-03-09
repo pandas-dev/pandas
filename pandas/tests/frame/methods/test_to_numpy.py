@@ -46,7 +46,7 @@ class TestToNumpy:
 
     def test_to_numpy_datetime_with_na(self):
         # GH #53115
-        dti = date_range("2016-01-01", periods=3)
+        dti = date_range("2016-01-01", periods=3, unit="ns")
         df = DataFrame(dti)
         df.iloc[0, 0] = NaT
         expected = np.array([[np.nan], [1.45169280e18], [1.45177920e18]])
@@ -55,11 +55,15 @@ class TestToNumpy:
 
         df = DataFrame(
             {
-                "a": [Timestamp("1970-01-01"), Timestamp("1970-01-02"), NaT],
+                "a": [
+                    Timestamp("1970-01-01").as_unit("s"),
+                    Timestamp("1970-01-02").as_unit("s"),
+                    NaT,
+                ],
                 "b": [
-                    Timestamp("1970-01-01"),
+                    Timestamp("1970-01-01").as_unit("s"),
                     np.nan,
-                    Timestamp("1970-01-02"),
+                    Timestamp("1970-01-02").as_unit("s"),
                 ],
                 "c": [
                     1,

@@ -9,6 +9,7 @@ from pandas._libs import lib
 from pandas._libs.tslibs import Day
 from pandas._typing import DatetimeNaTType
 from pandas.compat import is_platform_windows
+from pandas.compat.pyarrow import pa_version_under22p0
 from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
@@ -169,9 +170,6 @@ def test_resample_basic_grouper(unit):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.filterwarnings(
-    "ignore:The 'convention' keyword in Series.resample:FutureWarning"
-)
 @pytest.mark.parametrize(
     "keyword,value",
     [("label", "righttt"), ("closed", "righttt"), ("convention", "starttt")],
@@ -529,7 +527,7 @@ def test_nearest_upsample_with_limit(tz_aware_fixture, freq, rule, unit):
 
 
 def test_resample_ohlc(unit):
-    index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="Min")
+    index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 2), freq="Min")
     s = Series(range(len(index)), index=index)
     s.index.name = "index"
     s.index = s.index.as_unit(unit)
@@ -1014,10 +1012,7 @@ def test_period_with_agg():
     )
 
     expected = s2.to_timestamp().resample("D").mean().to_period()
-    msg = "Resampling with a PeriodIndex is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        rs = s2.resample("D")
-    result = rs.agg(lambda x: x.mean())
+    result = s2.resample("D").agg(lambda x: x.mean())
     tm.assert_series_equal(result, expected)
 
 
@@ -1118,7 +1113,7 @@ def test_resample_anchored_intraday(unit):
     result = df.resample("ME").mean()
     expected = df.resample("ME").mean().to_period()
     expected = expected.to_timestamp(how="end")
-    expected.index += Timedelta(1, "ns") - Timedelta(1, "D")
+    expected.index += Timedelta(1, unit="us") - Timedelta(1, unit="D")
     expected.index = expected.index.as_unit(unit)._with_freq("infer")
     assert expected.index.freq == "ME"
     tm.assert_frame_equal(result, expected)
@@ -1127,7 +1122,7 @@ def test_resample_anchored_intraday(unit):
     exp = df.shift(1, freq="D").resample("ME").mean().to_period()
     exp = exp.to_timestamp(how="end")
 
-    exp.index = exp.index + Timedelta(1, "ns") - Timedelta(1, "D")
+    exp.index = exp.index + Timedelta(1, unit="us") - Timedelta(1, unit="D")
     exp.index = exp.index.as_unit(unit)._with_freq("infer")
     assert exp.index.freq == "ME"
     tm.assert_frame_equal(result, exp)
@@ -1140,7 +1135,7 @@ def test_resample_anchored_intraday2(unit):
     result = df.resample("QE").mean()
     expected = df.resample("QE").mean().to_period()
     expected = expected.to_timestamp(how="end")
-    expected.index += Timedelta(1, "ns") - Timedelta(1, "D")
+    expected.index += Timedelta(1, unit="us") - Timedelta(1, unit="D")
     expected.index._data.freq = "QE"
     expected.index._freq = lib.no_default
     expected.index = expected.index.as_unit(unit)
@@ -1150,7 +1145,7 @@ def test_resample_anchored_intraday2(unit):
     expected = df.shift(1, freq="D").resample("QE").mean()
     expected = expected.to_period()
     expected = expected.to_timestamp(how="end")
-    expected.index += Timedelta(1, "ns") - Timedelta(1, "D")
+    expected.index += Timedelta(1, unit="us") - Timedelta(1, unit="D")
     expected.index._data.freq = "QE"
     expected.index._freq = lib.no_default
     expected.index = expected.index.as_unit(unit)
@@ -1341,10 +1336,8 @@ dates1: list[DatetimeNaTType] = [
     datetime(2014, 7, 15),
 ]
 
-dates2: list[DatetimeNaTType] = (
-    dates1[:2] + [pd.NaT] + dates1[2:4] + [pd.NaT] + dates1[4:]
-)
-dates3 = [pd.NaT] + dates1 + [pd.NaT]
+dates2: list[DatetimeNaTType] = [*dates1[:2], pd.NaT, *dates1[2:4], pd.NaT, *dates1[4:]]
+dates3 = [pd.NaT, *dates1, pd.NaT]
 
 
 @pytest.mark.parametrize("dates", [dates1, dates2, dates3])
@@ -1848,7 +1841,7 @@ def test_resample_equivalent_offsets(n1, freq1, n2, freq2, k, unit):
     # GH 24127
     n1_ = n1 * k
     n2_ = n2 * k
-    dti = date_range("1991-09-05", "1991-09-12", freq=freq1).as_unit(unit)
+    dti = date_range("1991-09-05", "1991-09-06", freq=freq1).as_unit(unit)
     ser = Series(range(len(dti)), index=dti)
 
     result1 = ser.resample(str(n1_) + freq1).mean()
@@ -2064,7 +2057,7 @@ def test_resample_BM_BQ_raises(freq):
 def test_resample_depr_lowercase_frequency(freq, freq_depr, data):
     msg = f"'{freq_depr[1:]}' is deprecated and will be removed in a future version."
 
-    s = Series(range(5), index=date_range("20130101", freq="h", periods=5))
+    s = Series(range(5), index=date_range("20130101", freq="h", periods=5, unit="ns"))
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
         result = s.resample(freq_depr).mean()
 
@@ -2151,7 +2144,7 @@ def test_resample_b_55282(unit):
         pytest.param(
             "UTC",
             marks=pytest.mark.xfail(
-                condition=is_platform_windows(),
+                condition=is_platform_windows() and pa_version_under22p0,
                 reason="TODO: Set ARROW_TIMEZONE_DATABASE env var in CI",
             ),
         ),
@@ -2174,6 +2167,17 @@ def test_arrow_timestamp_resample_keep_index_name():
     expected = Series(np.arange(5, dtype=np.float64), index=idx)
     expected.index.name = "index_name"
     result = expected.resample("1D").mean()
+    tm.assert_series_equal(result, expected)
+
+
+def test_resample_unit_second_large_years():
+    # GH#57427
+    index = DatetimeIndex(
+        date_range(start=Timestamp("1950-01-01"), periods=10, freq="1000YS", unit="s")
+    )
+    ser = Series(1, index=index)
+    result = ser.resample("2000YS").sum()
+    expected = Series(2, index=index[::2])
     tm.assert_series_equal(result, expected)
 
 

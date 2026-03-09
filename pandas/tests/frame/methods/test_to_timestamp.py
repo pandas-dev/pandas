@@ -37,7 +37,7 @@ class TestToTimestamp:
         obj = tm.get_obj(obj, frame_or_series)
 
         exp_index = date_range("1/1/2001", end="12/31/2009", freq="YE-DEC")
-        exp_index = exp_index + Timedelta(1, "D") - Timedelta(1, "ns")
+        exp_index = exp_index + Timedelta(1, "D") - Timedelta(1, "us")
         result = obj.to_timestamp("D", "end")
         tm.assert_index_equal(result.index, exp_index)
         tm.assert_numpy_array_equal(result.values, obj.values)
@@ -54,19 +54,19 @@ class TestToTimestamp:
         delta = timedelta(hours=23)
         result = obj.to_timestamp("H", "end")
         exp_index = _get_with_delta(delta)
-        exp_index = exp_index + Timedelta(1, "h") - Timedelta(1, "ns")
+        exp_index = exp_index + Timedelta(1, "h") - Timedelta(1, "us")
         tm.assert_index_equal(result.index, exp_index)
 
         delta = timedelta(hours=23, minutes=59)
         result = obj.to_timestamp("T", "end")
         exp_index = _get_with_delta(delta)
-        exp_index = exp_index + Timedelta(1, "m") - Timedelta(1, "ns")
+        exp_index = exp_index + Timedelta(1, "m") - Timedelta(1, "us")
         tm.assert_index_equal(result.index, exp_index)
 
         result = obj.to_timestamp("S", "end")
         delta = timedelta(hours=23, minutes=59, seconds=59)
         exp_index = _get_with_delta(delta)
-        exp_index = exp_index + Timedelta(1, "s") - Timedelta(1, "ns")
+        exp_index = exp_index + Timedelta(1, "s") - Timedelta(1, "us")
         tm.assert_index_equal(result.index, exp_index)
 
     def test_to_timestamp_columns(self):
@@ -83,7 +83,7 @@ class TestToTimestamp:
         df = df.T
 
         exp_index = date_range("1/1/2001", end="12/31/2009", freq="YE-DEC")
-        exp_index = exp_index + Timedelta(1, "D") - Timedelta(1, "ns")
+        exp_index = exp_index + Timedelta(1, "D") - Timedelta(1, "us")
         result = df.to_timestamp("D", "end", axis=1)
         tm.assert_index_equal(result.columns, exp_index)
         tm.assert_numpy_array_equal(result.values, df.values)
@@ -95,19 +95,19 @@ class TestToTimestamp:
         delta = timedelta(hours=23)
         result = df.to_timestamp("H", "end", axis=1)
         exp_index = _get_with_delta(delta)
-        exp_index = exp_index + Timedelta(1, "h") - Timedelta(1, "ns")
+        exp_index = exp_index + Timedelta(1, "h") - Timedelta(1, "us")
         tm.assert_index_equal(result.columns, exp_index)
 
         delta = timedelta(hours=23, minutes=59)
         result = df.to_timestamp("min", "end", axis=1)
         exp_index = _get_with_delta(delta)
-        exp_index = exp_index + Timedelta(1, "m") - Timedelta(1, "ns")
+        exp_index = exp_index + Timedelta(1, "m") - Timedelta(1, "us")
         tm.assert_index_equal(result.columns, exp_index)
 
         result = df.to_timestamp("S", "end", axis=1)
         delta = timedelta(hours=23, minutes=59, seconds=59)
         exp_index = _get_with_delta(delta)
-        exp_index = exp_index + Timedelta(1, "s") - Timedelta(1, "ns")
+        exp_index = exp_index + Timedelta(1, "s") - Timedelta(1, "us")
         tm.assert_index_equal(result.columns, exp_index)
 
         result1 = df.to_timestamp("5min", axis=1)
@@ -139,7 +139,7 @@ class TestToTimestamp:
 
         exp_index = date_range("1/1/2001 00:59:59", end="1/2/2001 00:59:59", freq="h")
         result = obj.to_timestamp(how="end")
-        exp_index = exp_index + Timedelta(1, "s") - Timedelta(1, "ns")
+        exp_index = exp_index + Timedelta(1, "s") - Timedelta(1, "us")
         tm.assert_index_equal(result.index, exp_index)
         if frame_or_series is Series:
             assert result.name == "foo"

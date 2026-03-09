@@ -195,3 +195,17 @@ class TestTimestampReplace:
         ts_replaced = ts.replace(second=1)
 
         assert ts_replaced.fold == fold
+
+    def test_replace_updates_unit(self):
+        # GH#57749
+        ts = Timestamp("2023-07-15 23:08:12.134567123")
+        ts2 = Timestamp("2023-07-15 23:08:12.000000")
+        assert ts2.unit == "us"
+        result = ts2.replace(microsecond=ts.microsecond, nanosecond=ts.nanosecond)
+        assert result.unit == "ns"
+        assert result == ts
+
+        ts3 = Timestamp("2023-07-15 23:08:12").as_unit("s")
+        result = ts3.replace(microsecond=ts2.microsecond)
+        assert result.unit == "us"
+        assert result == ts2

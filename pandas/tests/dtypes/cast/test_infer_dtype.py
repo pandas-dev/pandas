@@ -155,8 +155,8 @@ def test_infer_dtype_from_scalar_errors():
         (1, np.int64),
         (1.5, np.float64),
         (np.datetime64("2016-01-01"), np.dtype("M8[s]")),
-        (Timestamp("20160101"), np.dtype("M8[s]")),
-        (Timestamp("20160101", tz="UTC"), "datetime64[s, UTC]"),
+        (Timestamp("20160101").as_unit("s"), np.dtype("M8[s]")),
+        (Timestamp("20160101", tz="UTC").as_unit("s"), "datetime64[s, UTC]"),
     ],
 )
 def test_infer_dtype_from_scalar(value, expected, using_infer_string):
@@ -178,15 +178,15 @@ def test_infer_dtype_from_scalar(value, expected, using_infer_string):
         (np.array([[1.0, 2.0]]), np.float64),
         (Categorical(list("aabc")), "category"),
         (Categorical([1, 2, 3]), "category"),
-        (date_range("20160101", periods=3), np.dtype("=M8[ns]")),
+        (date_range("20160101", periods=3, unit="ns"), np.dtype("=M8[ns]")),
         (
-            date_range("20160101", periods=3, tz="US/Eastern"),
+            date_range("20160101", periods=3, tz="US/Eastern", unit="ns"),
             "datetime64[ns, US/Eastern]",
         ),
         (Series([1.0, 2, 3]), np.float64),
         (Series(list("abc")), np.object_),
         (
-            Series(date_range("20160101", periods=3, tz="US/Eastern")),
+            Series(date_range("20160101", periods=3, tz="US/Eastern", unit="ns")),
             "datetime64[ns, US/Eastern]",
         ),
     ],

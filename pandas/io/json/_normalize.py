@@ -17,6 +17,7 @@ from typing import (
 import numpy as np
 
 from pandas._libs.writers import convert_json_to_lines
+from pandas.util._decorators import set_module
 
 import pandas as pd
 from pandas import (
@@ -218,7 +219,7 @@ def _simple_json_normalize(
     sep: str = ".",
 ) -> dict | list[dict] | Any:
     """
-    A optimized basic json_normalize
+    An optimized basic json_normalize
 
     Converts a nested dict into a flat dict ("record"), unlike
     json_normalize and nested_to_record it doesn't do anything clever.
@@ -266,6 +267,38 @@ def _simple_json_normalize(
     return normalized_json_object
 
 
+def _validate_meta(meta: str | list[str | list[str]] | None) -> None:
+    """
+    Validate that meta parameter contains only strings or lists of strings.
+    Parameters
+    ----------
+    meta : str or list of str or list of list of str or None
+        The meta parameter to validate.
+    Raises
+    ------
+    TypeError
+        If meta contains elements that are not strings or lists of strings.
+    """
+    if meta is None:
+        return
+    if isinstance(meta, str):
+        return
+    for item in meta:
+        if isinstance(item, list):
+            for subitem in item:
+                if not isinstance(subitem, str):
+                    raise TypeError(
+                        "All elements in nested meta paths must be strings. "
+                        f"Found {type(subitem).__name__}: {subitem!r}"
+                    )
+        elif not isinstance(item, str):
+            raise TypeError(
+                "All elements in 'meta' must be strings or lists of strings. "
+                f"Found {type(item).__name__}: {item!r}"
+            )
+
+
+@set_module("pandas")
 def json_normalize(
     data: dict | list[dict] | Series,
     record_path: str | list | None = None,
@@ -293,10 +326,10 @@ def json_normalize(
     meta : list of paths (str or list of str), default None
         Fields to use as metadata for each record in resulting table.
     meta_prefix : str, default None
-        If True, prefix records with dotted path, e.g. foo.bar.field if
+        String to prefix records with dotted path, e.g. foo.bar.field if
         meta is ['foo', 'bar'].
     record_prefix : str, default None
-        If True, prefix records with dotted path, e.g. foo.bar.field if
+        String to prefix records with dotted path, e.g. foo.bar.field if
         path to records is ['foo', 'bar'].
     errors : {'raise', 'ignore'}, default 'raise'
         Configures error handling.
@@ -435,6 +468,7 @@ def json_normalize(
 
     Returns normalized data with columns prefixed with the given string.
     """
+    _validate_meta(meta)
 
     def _pull_field(
         js: dict[str, Any], spec: list | str, extract_record: bool = False
@@ -499,6 +533,13 @@ def json_normalize(
         # GH35923 Fix pd.json_normalize to not skip the first element of a
         # generator input
         data = list(data)
+        for item in data:
+            if not isinstance(item, dict):
+                msg = (
+                    "All items in data must be of type dict, "
+                    f"found {type(item).__name__}"
+                )
+                raise TypeError(msg)
     else:
         raise NotImplementedError
 
@@ -524,7 +565,10 @@ def json_normalize(
             # TODO: handle record value which are lists, at least error
             #       reasonably
             data = nested_to_record(data, sep=sep, max_level=max_level)
-        return DataFrame(data, index=index)
+        result = DataFrame(data, index=index)
+        if record_prefix is not None:
+            result = result.rename(columns=lambda x: f"{record_prefix}{x}")
+        return result
     elif not isinstance(record_path, list):
         record_path = [record_path]
 
@@ -547,7 +591,7 @@ def json_normalize(
             data = [data]
         if len(path) > 1:
             for obj in data:
-                for val, key in zip(_meta, meta_keys):
+                for val, key in zip(_meta, meta_keys, strict=True):
                     if level + 1 == len(val):
                         seen_meta[key] = _pull_field(obj, val[-1])
 
@@ -564,7 +608,7 @@ def json_normalize(
 
                 # For repeating the metadata later
                 lengths.append(len(recs))
-                for val, key in zip(_meta, meta_keys):
+                for val, key in zip(_meta, meta_keys, strict=True):
                     if level + 1 > len(val):
                         meta_val = seen_meta[key]
                     else:

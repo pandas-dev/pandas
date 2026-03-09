@@ -38,7 +38,7 @@ def pair_different_warnings(request):
 
 
 def f():
-    warnings.warn("f1", FutureWarning)
+    warnings.warn("f1", FutureWarning)  # pdlint: ignore[warning_class]
     warnings.warn("f2", RuntimeWarning)
 
 
@@ -175,7 +175,7 @@ def test_match_multiple_warnings():
     # https://github.com/pandas-dev/pandas/issues/47829
     category = (FutureWarning, UserWarning)
     with tm.assert_produces_warning(category, match=r"^Match this"):
-        warnings.warn("Match this", FutureWarning)
+        warnings.warn("Match this", FutureWarning)  # pdlint: ignore[warning_class]
         warnings.warn("Match this too", UserWarning)
 
 
@@ -185,7 +185,7 @@ def test_must_match_multiple_warnings():
     msg = "Did not see expected warning of class 'UserWarning'"
     with pytest.raises(AssertionError, match=msg):
         with tm.assert_produces_warning(category, match=r"^Match this"):
-            warnings.warn("Match this", FutureWarning)
+            warnings.warn("Match this", FutureWarning)  # pdlint: ignore[warning_class]
 
 
 def test_must_match_multiple_warnings_messages():
@@ -194,7 +194,7 @@ def test_must_match_multiple_warnings_messages():
     msg = r"The emitted warning messages are \[UserWarning\('Not this'\)\]"
     with pytest.raises(AssertionError, match=msg):
         with tm.assert_produces_warning(category, match=r"^Match this"):
-            warnings.warn("Match this", FutureWarning)
+            warnings.warn("Match this", FutureWarning)  # pdlint: ignore[warning_class]
             warnings.warn("Not this", UserWarning)
 
 
@@ -204,7 +204,7 @@ def test_allow_partial_match_for_multiple_warnings():
     with tm.assert_produces_warning(
         category, match=r"^Match this", must_find_all_warnings=False
     ):
-        warnings.warn("Match this", FutureWarning)
+        warnings.warn("Match this", FutureWarning)  # pdlint: ignore[warning_class]
 
 
 def test_allow_partial_match_for_multiple_warnings_messages():
@@ -213,7 +213,7 @@ def test_allow_partial_match_for_multiple_warnings_messages():
     with tm.assert_produces_warning(
         category, match=r"^Match this", must_find_all_warnings=False
     ):
-        warnings.warn("Match this", FutureWarning)
+        warnings.warn("Match this", FutureWarning)  # pdlint: ignore[warning_class]
         warnings.warn("Not this", UserWarning)
 
 
@@ -250,13 +250,17 @@ def test_raises_during_exception():
 
     with pytest.raises(AssertionError, match=msg):
         with tm.assert_produces_warning(UserWarning):
-            warnings.warn("FutureWarning", FutureWarning)
+            warnings.warn(
+                "FutureWarning", FutureWarning
+            )  # pdlint: ignore[warning_class]
             raise IndexError
 
     msg = "Caused unexpected warning"
     with pytest.raises(AssertionError, match=msg):
         with tm.assert_produces_warning(None):
-            warnings.warn("FutureWarning", FutureWarning)
+            warnings.warn(
+                "FutureWarning", FutureWarning
+            )  # pdlint: ignore[warning_class]
             raise SystemError
 
 
@@ -267,5 +271,7 @@ def test_passes_during_exception():
 
     with pytest.raises(ValueError, match="Error"):
         with tm.assert_produces_warning(FutureWarning, match="FutureWarning"):
-            warnings.warn("FutureWarning", FutureWarning)
+            warnings.warn(
+                "FutureWarning", FutureWarning
+            )  # pdlint: ignore[warning_class]
             raise ValueError("Error")
