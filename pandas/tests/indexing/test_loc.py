@@ -2363,6 +2363,46 @@ class TestLocSetitemWithExpansion:
         )
         tm.assert_frame_equal(df, expected)
 
+    def test_loc_setitem_with_expansion_tz_aware_column_retains_dtype(self):
+        # GH#55423 - enlarging a DataFrame by adding an extra column with a
+        # tz-aware datetime scalar should retain datetime64 dtype, not object.
+        import datetime as dt
+
+        df = DataFrame([{"id": 1}, {"id": 2}, {"id": 3}])
+        _time = dt.datetime.utcfromtimestamp(1695887042).replace(
+            tzinfo=dt.timezone.utc
+        )
+
+        # Set a tz-aware datetime on a subset of rows, expanding with a new col
+        df.loc[df["id"] >= 2, "time"] = _time
+
+        # The 'time' column must be datetime64 (tz-aware), not object dtype
+        assert df["time"].dtype != object, (
+            f"Expected datetime64[tz] dtype, got {df['time'].dtype}"
+        )
+        assert pd.api.types.is_datetime64_any_dtype(df["time"]), (
+            f"Expected datetime64 dtype, got {df['time'].dtype}"
+        )
+
+        # Row 0 (not matched) should be NaT; rows 1 & 2 should hold _time
+        assert pd.isna(df.loc[0, "time"])
+        assert df.loc[1, "time"] == Timestamp(_time)
+        assert df.loc[2, "time"] == Timestamp(_time)
+
+    def test_loc_setitem_with_expansion_tz_aware_column_via_timestamp(self):
+        # GH#55423 - same as above but value given as pd.Timestamp
+        ts = Timestamp("2023-09-28 07:44:02", tz="UTC")
+        df = DataFrame({"id": [10, 20, 30]})
+
+        df.loc[df["id"] > 10, "created_at"] = ts
+
+        assert pd.api.types.is_datetime64_any_dtype(df["created_at"]), (
+            f"Expected datetime64 dtype, got {df['created_at'].dtype}"
+        )
+        assert pd.isna(df.loc[0, "created_at"])
+        assert df.loc[1, "created_at"] == ts
+        assert df.loc[2, "created_at"] == ts
+
 
 class TestLocCallable:
     def test_frame_loc_getitem_callable(self):
