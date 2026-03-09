@@ -201,9 +201,12 @@ def _get_fill_value(
             return -np.inf
     elif fill_value_typ == "+inf":
         # need the max int here
-        return lib.i8max
+        # Return as np.int64 so that np.where promotes the dtype
+        # instead of raising OverflowError (numpy 2.5+) when the
+        # value doesn't fit in the array's dtype (e.g. int8).
+        return np.int64(lib.i8max)
     else:
-        return iNaT
+        return np.int64(iNaT)
 
 
 def _maybe_get_mask(
