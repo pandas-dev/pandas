@@ -2700,6 +2700,8 @@ class DataCol(IndexCol):
         # reverse converts
         if dtype.startswith("datetime64"):
             # recreate with tz if indicated
+            if dtype == "datetime64":
+                dtype = "datetime64[ns]"
             converted = _set_tz(converted, tz, dtype)
 
         elif dtype.startswith("timedelta64"):
@@ -2841,7 +2843,7 @@ class Fixed:
         if isinstance(version, str):
             version_tup = tuple(int(x) for x in version.split("."))
             if len(version_tup) == 2:
-                version_tup = version_tup + (0,)
+                version_tup = (*version_tup, 0)
             assert len(version_tup) == 3  # needed for mypy
             return version_tup
         else:
@@ -3088,6 +3090,8 @@ class GenericFixed(Fixed):
 
             if dtype and dtype.startswith("datetime64"):
                 # reconstruct a timezone if indicated
+                if dtype == "datetime64":
+                    dtype = "datetime64[ns]"
                 tz = getattr(attrs, "tz", None)
                 ret = _set_tz(ret, tz, dtype)
 
@@ -4632,7 +4636,7 @@ class AppendableTable(Table):
         values = [v.transpose(np.roll(np.arange(v.ndim), v.ndim - 1)) for v in values]
         bvalues = []
         for i, v in enumerate(values):
-            new_shape = (nrows,) + self.dtype[names[nindexes + i]].shape
+            new_shape = (nrows, *self.dtype[names[nindexes + i]].shape)
             bvalues.append(v.reshape(new_shape))
 
         # write the chunks
@@ -5226,7 +5230,7 @@ def _maybe_convert_for_string_atom(
     if bvalues.dtype != object:
         return bvalues
 
-    bvalues = cast(np.ndarray, bvalues)
+    bvalues = cast("np.ndarray", bvalues)
 
     dtype_name = bvalues.dtype.name
     inferred_type = lib.infer_dtype(bvalues, skipna=False)

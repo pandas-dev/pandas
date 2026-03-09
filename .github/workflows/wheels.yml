@@ -30,12 +30,13 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
   build_sdist:
     name: Build sdist
+    permissions:
+      contents: read
     if: >-
       (github.event_name == 'schedule') ||
       github.event_name == 'workflow_dispatch' ||
@@ -44,19 +45,16 @@ jobs:
       contains(github.event.pull_request.labels.*.name, 'Build')) ||
       (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && ( ! endsWith(github.ref, 'dev0')))
     runs-on: ubuntu-24.04
-    env:
-      IS_PUSH: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
-      IS_SCHEDULE_DISPATCH: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
     outputs:
       sdist_file: ${{ steps.save-path.outputs.sdist_name }}
     steps:
       - name: Checkout pandas
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           fetch-depth: 0
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
           python-version: '3.11'
 
@@ -65,7 +63,7 @@ jobs:
           python -m pip install build
           python -m build --sdist
 
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
         with:
           name: sdist
           path: ./dist/*
@@ -81,6 +79,8 @@ jobs:
 
   build_wheels:
     needs: build_sdist
+    permissions:
+      contents: read
     name: Build wheel for ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
     if: >-
       (github.event_name == 'schedule') ||
@@ -116,19 +116,20 @@ jobs:
         # BackendUnavailable: Cannot import 'mesonpy'
           - buildplat: [windows-11-arm, win_arm64]
             python: ["cp313t", "3.13"]
+    concurrency:
+      # https://github.community/t/concurrecy-not-work-for-push/183068/7
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.buildplat[0] }}-${{ matrix.buildplat[1] }}-${{ matrix.python[0]}}-build-wheels
+      cancel-in-progress: true
 
-    env:
-      IS_PUSH: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
-      IS_SCHEDULE_DISPATCH: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
     steps:
       - name: Checkout pandas
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           fetch-depth: 0
 
       - name: Set up MSVC environment for ARM64
         if: matrix.buildplat[1] == 'win_arm64'
-        uses: ilammy/msvc-dev-cmd@v1
+        uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1
         with:
           arch: arm64
 
@@ -140,7 +141,7 @@ jobs:
       # removes unnecessary files from the release
       - name: Download sdist (not macOS)
         #if: ${{ matrix.buildplat[1] != 'macosx_*' }}
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8
         with:
           name: sdist
           path: ./dist
@@ -163,7 +164,7 @@ jobs:
         run: echo "sdist_name=$(cd ./dist && ls -d */)" >> "$GITHUB_ENV"
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v3.2.1
+        uses: pypa/cibuildwheel@9c00cb4f6b517705a3794b22395aedc36257242c # v3.2.1
         with:
          package-dir: ./dist/${{ startsWith(matrix.buildplat[1], 'macosx') && env.sdist_name || needs.build_sdist.outputs.sdist_file }}
         env:
@@ -176,14 +177,13 @@ jobs:
       - name: Set up Python for validation/upload (non-ARM64 Windows & other OS)
         # micromamba is not available for ARM64 Windows
         if: matrix.buildplat[1] != 'win_arm64'
-        uses: mamba-org/setup-micromamba@v2
+        uses: mamba-org/setup-micromamba@add3a49764cedee8ee24e82dfde87f5bc2914462 # v2
         with:
           environment-name: wheel-env
           # Use a fixed Python, since we might have an unreleased Python not
           # yet present on conda-forge
           create-args: >-
             python=3.11
-            anaconda-client
             wheel
           cache-downloads: true
           cache-environment: true
@@ -192,30 +192,45 @@ jobs:
         # installing wheel here because micromamba step was skipped
         if: matrix.buildplat[1] == 'win_arm64'
         shell: bash -el {0}
-        run: python -m pip install wheel anaconda-client
+        # cryptography pin due to https://github.com/pyca/cryptography/pull/14216
+        run: python -m pip install wheel cryptography==46.0.3
 
       - name: Validate wheel RECORD
         shell: bash -el {0}
         run: for whl in $(ls wheelhouse); do wheel unpack wheelhouse/$whl -d /tmp; done
 
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
         with:
           name: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
           path: ./wheelhouse/*.whl
 
+  upload_nightly:
+    # trigger an upload to https://anaconda.org/scientific-python-nightly-wheels/pandas
+    # for cron jobs or "Run workflow" (restricted to main branch).
+    name: Upload nightly packages to Anaconda
+    permissions:
+      contents: read
+    if: >
+      github.repository == 'pandas-dev/pandas' &&
+      (github.event_name == 'schedule' ||
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'))
+    needs:
+      - build_sdist
+      - build_wheels
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download all artefacts
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8
+        with:
+          path: dist
+          merge-multiple: true
+
       - name: Upload wheels & sdist
-        if: ${{ success() && (env.IS_SCHEDULE_DISPATCH == 'true' || env.IS_PUSH == 'true') }}
-        shell: bash -el {0}
-        env:
-          PANDAS_NIGHTLY_UPLOAD_TOKEN: ${{ secrets.PANDAS_NIGHTLY_UPLOAD_TOKEN }}
-        # trigger an upload to
-        # https://anaconda.org/scientific-python-nightly-wheels/pandas
-        # for cron jobs or "Run workflow" (restricted to main branch).
-        # The tokens were originally generated at anaconda.org
-        run: |
-          source ci/upload_wheels.sh
-          set_upload_vars
-          upload_wheels
+        uses: scientific-python/upload-nightly-action@5748273c71e2d8d3a61f3a11a16421c8954f9ecf # 0.6.3
+        with:
+          artifacts_path: dist
+          anaconda_nightly_upload_token: ${{secrets.PANDAS_NIGHTLY_UPLOAD_TOKEN}}
 
   publish:
     if: >
@@ -237,11 +252,11 @@ jobs:
 
     steps:
       - name: Download all artefacts
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8
         with:
           path: dist          # everything lands in ./dist/**
 
-      # TODO: This step can be probably be achieved by actions/download-artifact@v7
+      # TODO: This step can be probably be achieved by actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8
       # by specifying merge-multiple: true, and a glob pattern
       - name: Collect files
         run: |
@@ -252,7 +267,7 @@ jobs:
           find dist -name '*.tar.gz' -exec mv {} upload/ \;
 
       - name: Publish to **PyPI** (Trusted Publishing)
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e # v1.13.0
         with:
           packages-dir: upload
           skip-existing: true

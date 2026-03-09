@@ -22,13 +22,6 @@ from pandas._libs import (
     algos,
     lib,
 )
-from pandas._typing import (
-    ArrayLike,
-    AxisInt,
-    F,
-    ReindexMethod,
-    npt,
-)
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.cast import infer_dtype_from
@@ -53,6 +46,14 @@ from pandas.core.dtypes.missing import (
 if TYPE_CHECKING:
     from collections.abc import Callable
     from typing import TypeAlias
+
+    from pandas._typing import (
+        ArrayLike,
+        AxisInt,
+        F,
+        ReindexMethod,
+        npt,
+    )
 
     from pandas import Index
 
@@ -435,7 +436,7 @@ def _index_to_interp_indices(index: Index, method: str) -> np.ndarray:
 
     if method == "linear":
         inds = xarr
-        inds = cast(np.ndarray, inds)
+        inds = cast("np.ndarray", inds)
     else:
         inds = np.asarray(xarr)
 
@@ -852,7 +853,7 @@ def pad_or_backfill_inplace(
     if values.ndim == 1:
         if axis != 0:  # pragma: no cover
             raise AssertionError("cannot interpolate on an ndim == 1 with axis != 0")
-        values = values.reshape(tuple((1,) + values.shape))
+        values = values.reshape((1, *values.shape))
 
     method = clean_fill_method(method)
     tvalues = transf(values)
@@ -897,7 +898,7 @@ def _datetimelike_compat(func: F) -> F:
 
         return func(values, limit=limit, limit_area=limit_area, mask=mask)
 
-    return cast(F, new_func)
+    return cast("F", new_func)
 
 
 @_datetimelike_compat
@@ -1075,7 +1076,7 @@ def _interp_limit(
     assume_unique = True
 
     def inner(invalid, limit: int):
-        limit = min(limit, N)
+        limit = min(limit, N - 1)
         windowed = np.lib.stride_tricks.sliding_window_view(invalid, limit + 1).all(1)
         idx = np.union1d(
             np.where(windowed)[0] + limit,

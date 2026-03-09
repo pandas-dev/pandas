@@ -12,7 +12,6 @@ from collections import abc
 from collections.abc import Callable
 import dataclasses
 from functools import partial
-from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -25,16 +24,12 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import Interval
 from pandas._libs.hashtable import duplicated
 from pandas.errors import (
     Pandas4Warning,
     SpecificationError,
 )
-from pandas.util._decorators import (
-    doc,
-    set_module,
-)
+from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
@@ -88,6 +83,7 @@ if TYPE_CHECKING:
         Sequence,
     )
 
+    from pandas._libs import Interval
     from pandas._typing import (
         ArrayLike,
         BlockManager,
@@ -99,7 +95,6 @@ if TYPE_CHECKING:
     )
 
     from pandas import Categorical
-    from pandas.core.generic import NDFrame
 
 # TODO(typing) the return value on this callable should be any *scalar*.
 AggScalar: TypeAlias = str | Callable[..., Any]
@@ -209,54 +204,6 @@ class SeriesGroupBy(GroupBy[Series]):
             )
         return single
 
-    _agg_examples_doc = dedent(
-        """
-    Examples
-    --------
-    >>> s = pd.Series([1, 2, 3, 4])
-
-    >>> s
-    0    1
-    1    2
-    2    3
-    3    4
-    dtype: int64
-
-    >>> s.groupby([1, 1, 2, 2]).min()
-    1    1
-    2    3
-    dtype: int64
-
-    >>> s.groupby([1, 1, 2, 2]).agg('min')
-    1    1
-    2    3
-    dtype: int64
-
-    >>> s.groupby([1, 1, 2, 2]).agg(['min', 'max'])
-       min  max
-    1    1    2
-    2    3    4
-
-    The output column names can be controlled by passing
-    the desired column names and aggregations as keyword arguments.
-
-    >>> s.groupby([1, 1, 2, 2]).agg(
-    ...     minimum='min',
-    ...     maximum='max',
-    ... )
-       minimum  maximum
-    1        1        2
-    2        3        4
-
-    The resulting dtype will reflect the return value of the aggregating function.
-
-    >>> s.groupby([1, 1, 2, 2]).agg(lambda x: x.astype(float).min())
-    1    1.0
-    2    3.0
-    dtype: float64
-    """
-    )
-
     def apply(self, func, *args, **kwargs) -> Series:
         """
         Apply function ``func`` group-wise and combine the results together.
@@ -302,6 +249,8 @@ class SeriesGroupBy(GroupBy[Series]):
 
         Notes
         -----
+        See :ref:`groupby.apply` in the User Guide for more details and examples.
+
         The resulting dtype will reflect the return value of the passed ``func``,
         see the examples below.
 
@@ -433,6 +382,9 @@ class SeriesGroupBy(GroupBy[Series]):
 
         Notes
         -----
+        See :ref:`groupby.aggregate` in the User Guide for more details
+        and examples.
+
         When using ``engine='numba'``, there will be no "fall back" behavior internally.
         The group data and group index will be passed as numpy arrays to the JITed
         user defined function, and no alternative execution attempts will be tried.
@@ -658,47 +610,6 @@ class SeriesGroupBy(GroupBy[Series]):
                 result.index = default_index(len(result))
             return result.__finalize__(self.obj, method="groupby")
 
-    __examples_series_doc = dedent(
-        """
-    >>> ser = pd.Series([390.0, 350.0, 30.0, 20.0],
-    ...                 index=["Falcon", "Falcon", "Parrot", "Parrot"],
-    ...                 name="Max Speed")
-    >>> grouped = ser.groupby([1, 1, 2, 2])
-    >>> grouped.transform(lambda x: (x - x.mean()) / x.std())
-        Falcon    0.707107
-        Falcon   -0.707107
-        Parrot    0.707107
-        Parrot   -0.707107
-        Name: Max Speed, dtype: float64
-
-    Broadcast result of the transformation
-
-    >>> grouped.transform(lambda x: x.max() - x.min())
-    Falcon    40.0
-    Falcon    40.0
-    Parrot    10.0
-    Parrot    10.0
-    Name: Max Speed, dtype: float64
-
-    >>> grouped.transform("mean")
-    Falcon    370.0
-    Falcon    370.0
-    Parrot     25.0
-    Parrot     25.0
-    Name: Max Speed, dtype: float64
-
-    The resulting dtype will reflect the return value of the passed ``func``,
-    for example:
-
-    >>> grouped.transform(lambda x: x.astype(int).max())
-    Falcon    390
-    Falcon    390
-    Parrot     30
-    Parrot     30
-    Name: Max Speed, dtype: int64
-    """
-    )
-
     def transform(self, func, *args, engine=None, engine_kwargs=None, **kwargs):
         """
         Call function producing a same-indexed Series on each group.
@@ -762,6 +673,8 @@ class SeriesGroupBy(GroupBy[Series]):
 
         Notes
         -----
+        See :ref:`groupby.transform` in the User Guide for more details and examples.
+
         Each group is endowed the attribute 'name' in case you need to know
         which group you are working on.
 
@@ -1028,8 +941,112 @@ class SeriesGroupBy(GroupBy[Series]):
             result.index = default_index(len(result))
         return result
 
-    @doc(Series.describe)
     def describe(self, percentiles=None, include=None, exclude=None) -> Series:
+        """
+        Generate descriptive statistics.
+
+        Descriptive statistics include those that summarize the central
+        tendency, dispersion and shape of a
+        dataset's distribution, excluding ``NaN`` values.
+
+        Analyzes both numeric and object series, as well
+        as ``DataFrame`` column sets of mixed data types. The output
+        will vary depending on what is provided. Refer to the notes
+        below for more detail.
+
+        Parameters
+        ----------
+        percentiles : list-like of numbers, optional
+            The percentiles to include in the output. All should
+            fall between 0 and 1. The default, ``None``, will automatically
+            return the 25th, 50th, and 75th percentiles.
+        include : 'all', list-like of dtypes or None (default), optional
+            A white list of data types to include in the result. Ignored
+            for ``Series``. Here are the options:
+
+            - 'all' : All columns of the input will be included in the output.
+            - A list-like of dtypes : Limits the results to the
+              provided data types.
+              To limit the result to numeric types submit
+              ``numpy.number``. To limit it instead to object columns submit
+              the ``numpy.object`` data type. Strings
+              can also be used in the style of
+              ``select_dtypes`` (e.g. ``df.describe(include=['O'])``). To
+              select pandas categorical columns, use ``'category'``
+            - None (default) : The result will include all numeric columns.
+        exclude : list-like of dtypes or None (default), optional,
+            A black list of data types to omit from the result. Ignored
+            for ``Series``. Here are the options:
+
+            - A list-like of dtypes : Excludes the provided data types
+              from the result. To exclude numeric types submit
+              ``numpy.number``. To exclude object columns submit the data
+              type ``numpy.object``. Strings can also be used in the style of
+              ``select_dtypes`` (e.g. ``df.describe(exclude=['O'])``). To
+              exclude pandas categorical columns, use ``'category'``
+            - None (default) : The result will exclude nothing.
+
+        Returns
+        -------
+        Series or DataFrame
+            Summary statistics of the Series or Dataframe provided.
+
+        See Also
+        --------
+        DataFrame.count: Count number of non-NA/null observations.
+        DataFrame.max: Maximum of the values in the object.
+        DataFrame.min: Minimum of the values in the object.
+        DataFrame.mean: Mean of the values.
+        DataFrame.std: Standard deviation of the observations.
+        DataFrame.select_dtypes: Subset of a DataFrame including/excluding
+            columns based on their dtype.
+
+        Notes
+        -----
+        For numeric data, the result's index will include ``count``,
+        ``mean``, ``std``, ``min``, ``max`` as well as lower, ``50`` and
+        upper percentiles. By default the lower percentile is ``25`` and the
+        upper percentile is ``75``. The ``50`` percentile is the
+        same as the median.
+
+        For object data (e.g. strings), the result's index
+        will include ``count``, ``unique``, ``top``, and ``freq``. The ``top``
+        is the most common value. The ``freq`` is the most common value's
+        frequency.
+
+        If multiple object values have the highest count, then the
+        ``count`` and ``top`` results will be arbitrarily chosen from
+        among those with the highest count.
+
+        For mixed data types provided via a ``DataFrame``, the default is to
+        return only an analysis of numeric columns. If the DataFrame consists
+        only of object and categorical data without any numeric columns, the
+        default is to return an analysis of both the object and categorical
+        columns. If ``include='all'`` is provided as an option, the result
+        will include a union of attributes of each type.
+
+        The `include` and `exclude` parameters can be used to limit
+        which columns in a ``DataFrame`` are analyzed for the output.
+        The parameters are ignored when analyzing a ``Series``.
+
+        Examples
+        --------
+        Describing a numeric ``Series``.
+
+        >>> s = pd.Series([1, 2, 3, 4])
+
+        >>> s
+        0    1
+        1    2
+        2    3
+        3    4
+        dtype: int64
+
+        >>> s.groupby([1, 1, 2, 2]).describe()
+           count  mean       std  min   25%  50%   75%  max
+        1    2.0   1.5  0.707107  1.0  1.25  1.5  1.75  2.0
+        2    2.0   3.5  0.707107  3.0  3.25  3.5  3.75  4.0
+        """
         return super().describe(
             percentiles=percentiles, include=include, exclude=exclude
         )
@@ -1134,7 +1151,7 @@ class SeriesGroupBy(GroupBy[Series]):
         ids = self._grouper.ids
         val = self.obj._values
 
-        index_names = self._grouper.names + [self.obj.name]
+        index_names = [*self._grouper.names, self.obj.name]
 
         if isinstance(val.dtype, CategoricalDtype) or (
             bins is not None and not np.iterable(bins)
@@ -1175,7 +1192,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
         if isinstance(lab.dtype, IntervalDtype):
             # TODO: should we do this inside II?
-            lab_interval = cast(Interval, lab)
+            lab_interval = cast("Interval", lab)
 
             sorter = np.lexsort((lab_interval.left, lab_interval.right, ids))
         else:
@@ -1212,7 +1229,7 @@ class SeriesGroupBy(GroupBy[Series]):
                 )[0]
             ]
         codes = [rep(level_codes) for level_codes in codes] + [llab(lab, inc)]
-        levels = self._grouper.levels + [lev]
+        levels = [*self._grouper.levels, lev]
 
         if dropna:
             mask = codes[-1] != -1
@@ -1539,10 +1556,63 @@ class SeriesGroupBy(GroupBy[Series]):
         result = GroupByPlot(self)
         return result
 
-    @doc(Series.nlargest.__doc__)
     def nlargest(
         self, n: int = 5, keep: Literal["first", "last", "all"] = "first"
     ) -> Series:
+        """
+        Return the largest `n` elements.
+
+        Parameters
+        ----------
+        n : int, default 5
+            Return this many descending sorted values.
+        keep : {'first', 'last', 'all'}, default 'first'
+            When there are duplicate values that cannot all fit in a
+            Series of `n` elements:
+
+            - ``first`` : return the first `n` occurrences in order
+              of appearance.
+            - ``last`` : return the last `n` occurrences in reverse
+              order of appearance.
+            - ``all`` : keep all occurrences. This can result in a Series of
+              size larger than `n`.
+
+        Returns
+        -------
+        Series
+            The `n` largest values in the Series, sorted in decreasing order.
+
+        See Also
+        --------
+        Series.nsmallest: Get the `n` smallest elements.
+        Series.sort_values: Sort Series by values.
+        Series.head: Return the first `n` rows.
+
+        Notes
+        -----
+        Faster than ``.sort_values(ascending=False).head(n)`` for small `n`
+        relative to the size of the ``Series`` object.
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3, 4, 5, 6])
+
+        >>> s
+        0    1
+        1    2
+        2    3
+        3    4
+        4    5
+        5    6
+        dtype: int64
+
+        >>> s.groupby([1, 1, 1, 2, 2, 2]).nlargest(n=2)
+        1  2    3
+           1    2
+        2  5    6
+           4    5
+        dtype: int64
+        """
         f = partial(Series.nlargest, n=n, keep=keep)
         data = self._obj_with_exclusions
         # Don't change behavior if result index happens to be the same, i.e.
@@ -1550,10 +1620,63 @@ class SeriesGroupBy(GroupBy[Series]):
         result = self._python_apply_general(f, data, not_indexed_same=True)
         return result
 
-    @doc(Series.nsmallest.__doc__)
     def nsmallest(
         self, n: int = 5, keep: Literal["first", "last", "all"] = "first"
     ) -> Series:
+        """
+        Return the smallest `n` elements.
+
+        Parameters
+        ----------
+        n : int, default 5
+            Return this many ascending sorted values.
+        keep : {'first', 'last', 'all'}, default 'first'
+            When there are duplicate values that cannot all fit in a
+            Series of `n` elements:
+
+            - ``first`` : return the first `n` occurrences in order
+              of appearance.
+            - ``last`` : return the last `n` occurrences in reverse
+              order of appearance.
+            - ``all`` : keep all occurrences. This can result in a Series of
+              size larger than `n`.
+
+        Returns
+        -------
+        Series
+            The `n` smallest values in the Series, sorted in increasing order.
+
+        See Also
+        --------
+        Series.nlargest: Get the `n` largest elements.
+        Series.sort_values: Sort Series by values.
+        Series.head: Return the first `n` rows.
+
+        Notes
+        -----
+        Faster than ``.sort_values().head(n)`` for small `n` relative to
+        the size of the ``Series`` object.
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3, 4, 5, 6])
+
+        >>> s
+        0    1
+        1    2
+        2    3
+        3    4
+        4    5
+        5    6
+        dtype: int64
+
+        >>> s.groupby([1, 1, 1, 2, 2, 2]).nsmallest(n=2)
+        1  0    1
+           1    2
+        2  3    4
+           4    5
+        dtype: int64
+        """
         f = partial(Series.nsmallest, n=n, keep=keep)
         data = self._obj_with_exclusions
         # Don't change behavior if result index happens to be the same, i.e.
@@ -1948,94 +2071,6 @@ class SeriesGroupBy(GroupBy[Series]):
 
 @set_module("pandas.api.typing")
 class DataFrameGroupBy(GroupBy[DataFrame]):
-    _agg_examples_doc = dedent(
-        """
-    Examples
-    --------
-    >>> data = {"A": [1, 1, 2, 2],
-    ...         "B": [1, 2, 3, 4],
-    ...         "C": [0.362838, 0.227877, 1.267767, -0.562860]}
-    >>> df = pd.DataFrame(data)
-    >>> df
-       A  B         C
-    0  1  1  0.362838
-    1  1  2  0.227877
-    2  2  3  1.267767
-    3  2  4 -0.562860
-
-    The aggregation is for each column.
-
-    >>> df.groupby('A').agg('min')
-       B         C
-    A
-    1  1  0.227877
-    2  3 -0.562860
-
-    Multiple aggregations
-
-    >>> df.groupby('A').agg(['min', 'max'])
-        B             C
-      min max       min       max
-    A
-    1   1   2  0.227877  0.362838
-    2   3   4 -0.562860  1.267767
-
-    Select a column for aggregation
-
-    >>> df.groupby('A').B.agg(['min', 'max'])
-       min  max
-    A
-    1    1    2
-    2    3    4
-
-    User-defined function for aggregation
-
-    >>> df.groupby('A').agg(lambda x: sum(x) + 2)
-        B	       C
-    A
-    1	5	2.590715
-    2	9	2.704907
-
-    Different aggregations per column
-
-    >>> df.groupby('A').agg({'B': ['min', 'max'], 'C': 'sum'})
-        B             C
-      min max       sum
-    A
-    1   1   2  0.590715
-    2   3   4  0.704907
-
-    To control the output names with different aggregations per column,
-    pandas supports "named aggregation"
-
-    >>> df.groupby("A").agg(
-    ...     b_min=pd.NamedAgg(column="B", aggfunc="min"),
-    ...     c_sum=pd.NamedAgg(column="C", aggfunc="sum")
-    ... )
-       b_min     c_sum
-    A
-    1      1  0.590715
-    2      3  0.704907
-
-    - The keywords are the *output* column names
-    - The values are tuples whose first element is the column to select
-      and the second element is the aggregation to apply to that column.
-      Pandas provides the ``pandas.NamedAgg`` namedtuple with the fields
-      ``['column', 'aggfunc']`` to make it clearer what the arguments are.
-      As usual, the aggregation can be a callable or a string alias.
-
-    See :ref:`groupby.aggregate.named` for more.
-
-    The resulting dtype will reflect the return value of the aggregating function.
-
-    >>> df.groupby("A")[["B"]].agg(lambda x: x.astype(float).min())
-          B
-    A
-    1   1.0
-    2   3.0
-    """
-    )
-
     def aggregate(self, func=None, *args, engine=None, engine_kwargs=None, **kwargs):
         """
         Aggregate using one or more operations.
@@ -2109,6 +2144,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         Notes
         -----
+        See :ref:`groupby.aggregate` in the User Guide for more details
+        and examples.
+
         When using ``engine='numba'``, there will be no "fall back" behavior internally.
         The group data and group index will be passed as numpy arrays to the JITed
         user defined function, and no alternative execution attempts will be tried.
@@ -2227,9 +2265,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         elif relabeling:
             # this should be the only (non-raising) case with relabeling
             # used reordered index of columns
-            result = cast(DataFrame, result)
+            result = cast("DataFrame", result)
             result = result.iloc[:, order]
-            result = cast(DataFrame, result)
+            result = cast("DataFrame", result)
             # error: Incompatible types in assignment (expression has type
             # "Optional[List[str]]", variable has type
             # "Union[Union[Union[ExtensionArray, ndarray[Any, Any]],
@@ -2248,37 +2286,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 return self._aggregate_with_numba(
                     func, *args, engine_kwargs=engine_kwargs, **kwargs
                 )
-            # grouper specific aggregations
-            if self._grouper.nkeys > 1:
-                # test_groupby_as_index_series_scalar gets here with 'not self.as_index'
-                return self._python_agg_general(func, *args, **kwargs)
-            elif args or kwargs:
-                # test_pass_args_kwargs gets here (with and without as_index)
-                # can't return early
-                result = self._aggregate_frame(func, *args, **kwargs)
-
-            else:
-                # try to treat as if we are passing a list
-                gba = GroupByApply(self, [func], args=(), kwargs={})
-                try:
-                    result = gba.agg()
-
-                except ValueError as err:
-                    if "No objects to concatenate" not in str(err):
-                        raise
-                    # _aggregate_frame can fail with e.g. func=Series.mode,
-                    # where it expects 1D values but would be getting 2D values
-                    # In other tests, using aggregate_frame instead of GroupByApply
-                    #  would give correct values but incorrect dtypes
-                    #  object vs float64 in test_cython_agg_empty_buckets
-                    #  float64 vs int64 in test_category_order_apply
-                    result = self._aggregate_frame(func)
-
-                else:
-                    # GH#32040, GH#35246
-                    # e.g. test_groupby_as_index_select_column_sum_empty_df
-                    result = cast(DataFrame, result)
-                    result.columns = self._obj_with_exclusions.columns.copy()
+            result = self._python_agg_general(func, *args, **kwargs)
 
         if not self.as_index:
             result = self._insert_inaxis_grouper(result)
@@ -2291,42 +2299,21 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def _python_agg_general(self, func, *args, **kwargs):
         f = lambda x: func(x, *args, **kwargs)
 
-        if self.ngroups == 0:
-            # e.g. test_evaluate_with_empty_groups different path gets different
-            #  result dtype in empty case.
-            return self._python_apply_general(f, self._selected_obj, is_agg=True)
-
         obj = self._obj_with_exclusions
 
-        if not len(obj.columns):
-            # e.g. test_margins_no_values_no_cols
-            return self._python_apply_general(f, self._selected_obj)
-
-        output: dict[int, ArrayLike] = {}
-        for idx, (name, ser) in enumerate(obj.items()):
-            result = self._grouper.agg_series(ser, f)
-            output[idx] = result
-
-        res = self.obj._constructor(output)
-        res.columns = obj.columns.copy(deep=False)
+        if self.ngroups == 0 or len(obj.columns) == 0:
+            res_index = self._grouper.result_index
+            res = self.obj._constructor(index=res_index, columns=obj.columns).astype(
+                obj.dtypes
+            )
+        else:
+            output: dict[int, ArrayLike] = {
+                idx: self._grouper.agg_series(ser, f)
+                for idx, (name, ser) in enumerate(obj.items())
+            }
+            res = self.obj._constructor(output)
+            res.columns = obj.columns.copy(deep=False)
         return self._wrap_aggregated_output(res)
-
-    def _aggregate_frame(self, func, *args, **kwargs) -> DataFrame:
-        if self._grouper.nkeys != 1:
-            raise AssertionError("Number of keys must be 1")
-
-        obj = self._obj_with_exclusions
-
-        result: dict[Hashable, NDFrame | np.ndarray] = {}
-        for name, grp_df in self._grouper.get_iterator(obj):
-            fres = func(grp_df, *args, **kwargs)
-            result[name] = fres
-
-        result_index = self._grouper.result_index
-        out = self.obj._constructor(result, index=obj.columns, columns=result_index)
-        out = out.T
-
-        return out
 
     def _wrap_applied_output(
         self,
@@ -2520,58 +2507,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         concatenated = concatenated.reindex(concat_index, axis=1)
         return self._set_result_index_ordered(concatenated)
 
-    __examples_dataframe_doc = dedent(
-        """
-    >>> df = pd.DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
-    ...                           'foo', 'bar'],
-    ...                    'B' : ['one', 'one', 'two', 'three',
-    ...                           'two', 'two'],
-    ...                    'C' : [1, 5, 5, 2, 5, 5],
-    ...                    'D' : [2.0, 5., 8., 1., 2., 9.]})
-    >>> grouped = df.groupby('A')[['C', 'D']]
-    >>> grouped.transform(lambda x: (x - x.mean()) / x.std())
-            C         D
-    0 -1.154701 -0.577350
-    1  0.577350  0.000000
-    2  0.577350  1.154701
-    3 -1.154701 -1.000000
-    4  0.577350 -0.577350
-    5  0.577350  1.000000
-
-    Broadcast result of the transformation
-
-    >>> grouped.transform(lambda x: x.max() - x.min())
-        C    D
-    0  4.0  6.0
-    1  3.0  8.0
-    2  4.0  6.0
-    3  3.0  8.0
-    4  4.0  6.0
-    5  3.0  8.0
-
-    >>> grouped.transform("mean")
-        C    D
-    0  3.666667  4.0
-    1  4.000000  5.0
-    2  3.666667  4.0
-    3  4.000000  5.0
-    4  3.666667  4.0
-    5  4.000000  5.0
-
-    The resulting dtype will reflect the return value of the passed ``func``,
-    for example:
-
-    >>> grouped.transform(lambda x: x.astype(int).max())
-    C  D
-    0  5  8
-    1  5  9
-    2  5  8
-    3  5  9
-    4  5  8
-    5  5  9
-    """
-    )
-
     def transform(self, func, *args, engine=None, engine_kwargs=None, **kwargs):
         """
         Call function producing a same-indexed DataFrame on each group.
@@ -2635,6 +2570,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         Notes
         -----
+        See :ref:`groupby.transform` in the User Guide for more details and examples.
+
         Each group is endowed the attribute 'name' in case you need to know
         which group you are working on.
 
@@ -3575,25 +3512,192 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         result = GroupByPlot(self)
         return result
 
-    @doc(DataFrame.corr.__doc__)
     def corr(
         self,
         method: str | Callable[[np.ndarray, np.ndarray], float] = "pearson",
         min_periods: int = 1,
         numeric_only: bool = False,
     ) -> DataFrame:
+        """
+        Compute pairwise correlation of columns, excluding NA/null values.
+
+        Computes a correlation matrix for each group, measuring the linear
+        or rank-based relationship between columns.
+
+        Parameters
+        ----------
+        method : {'pearson', 'kendall', 'spearman'} or callable
+            Method of correlation:
+
+            * pearson : standard correlation coefficient
+            * kendall : Kendall Tau correlation coefficient
+            * spearman : Spearman rank correlation
+            * callable: callable with input two 1d ndarrays
+                and returning a float. Note that the returned matrix from corr
+                will have 1 along the diagonals and will be symmetric
+                regardless of the callable's behavior.
+        min_periods : int, optional
+            Minimum number of observations required per pair of columns
+            to have a valid result. Currently only available for Pearson
+            and Spearman correlation.
+        numeric_only : bool, default False
+            Include only `float`, `int` or `boolean` data.
+
+            .. versionchanged:: 2.0.0
+                The default value of ``numeric_only`` is now ``False``.
+
+        Returns
+        -------
+        DataFrame
+            Correlation matrix.
+
+        See Also
+        --------
+        DataFrame.corrwith : Compute pairwise correlation with another
+            DataFrame or Series.
+        Series.corr : Compute the correlation between two Series.
+
+        Notes
+        -----
+        Pearson, Kendall and Spearman correlation are currently computed using
+        pairwise complete observations.
+
+        * `Pearson correlation coefficient <https://en.wikipedia.org/wiki/Pearson_correlation_coefficient>`_
+        * `Kendall rank correlation coefficient <https://en.wikipedia.org/wiki/Kendall_rank_correlation_coefficient>`_
+        * `Spearman's rank correlation coefficient <https://en.wikipedia.org/wiki/Spearman%27s_rank_correlation_coefficient>`_
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "age": [2, 3, 4, 6, 6, 1, 2, 1],
+        ...         "weight": [2.1, 3.2, 4.1, 6.5, 3.3, 2.1, 4.1, 1.9],
+        ...         "pet": ["dog", "cat", "dog", "cat", "dog", "cat", "dog", "cat"],
+        ...     }
+        ... )
+        >>> df
+           age  weight  pet
+        0    2     2.1  dog
+        1    3     3.2  cat
+        2    4     4.1  dog
+        3    6     6.5  cat
+        4    6     3.3  dog
+        5    1     2.1  cat
+        6    2     4.1  dog
+        7    1     1.9  cat
+        >>> df.groupby("pet").corr()
+                         age    weight
+        pet
+        cat age     1.000000  0.989321
+            weight  0.989321  1.000000
+        dog age     1.000000  0.184177
+            weight  0.184177  1.000000
+        """
         result = self._op_via_apply(
             "corr", method=method, min_periods=min_periods, numeric_only=numeric_only
         )
         return result
 
-    @doc(DataFrame.cov.__doc__)
     def cov(
         self,
         min_periods: int | None = None,
         ddof: int | None = 1,
         numeric_only: bool = False,
     ) -> DataFrame:
+        """
+        Compute pairwise covariance of columns, excluding NA/null values.
+
+        Compute the pairwise covariance among the series of a DataFrame.
+        The returned data frame is the `covariance matrix
+        <https://en.wikipedia.org/wiki/Covariance_matrix>`__ of the columns
+        of the DataFrame.
+
+        Both NA and null values are automatically excluded from the
+        calculation. (See the note below about bias from missing values.)
+        A threshold can be set for the minimum number of
+        observations for each value created. Comparisons with observations
+        below this threshold will be returned as ``NaN``.
+
+        This method is generally used for the analysis of time series data to
+        understand the relationship between different measures
+        across time.
+
+        Parameters
+        ----------
+        min_periods : int, optional
+            Minimum number of observations required per pair of columns
+            to have a valid result.
+
+        ddof : int, default 1
+            Delta degrees of freedom.  The divisor used in calculations
+            is ``N - ddof``, where ``N`` represents the number of elements.
+            This argument is applicable only when no ``nan`` is in the dataframe.
+
+        numeric_only : bool, default False
+            Include only `float`, `int` or `boolean` data.
+
+            .. versionchanged:: 2.0.0
+                The default value of ``numeric_only`` is now ``False``.
+
+        Returns
+        -------
+        DataFrame
+            The covariance matrix of the series of the DataFrame.
+
+        See Also
+        --------
+        Series.cov : Compute covariance with another Series.
+        core.window.ewm.ExponentialMovingWindow.cov : Exponential weighted sample
+            covariance.
+        core.window.expanding.Expanding.cov : Expanding sample covariance.
+        core.window.rolling.Rolling.cov : Rolling sample covariance.
+
+        Notes
+        -----
+        Returns the covariance matrix of the DataFrame's time series.
+        The covariance is normalized by N-ddof.
+
+        For DataFrames that have Series that are missing data (assuming that
+        data is `missing at random
+        <https://en.wikipedia.org/wiki/Missing_data#Missing_at_random>`__)
+        the returned covariance matrix will be an unbiased estimate
+        of the variance and covariance between the member Series.
+
+        However, for many applications this estimate may not be acceptable
+        because the estimate covariance matrix is not guaranteed to be positive
+        semi-definite. This could lead to estimate correlations having
+        absolute values which are greater than one, and/or a non-invertible
+        covariance matrix. See `Estimation of covariance matrices
+        <https://en.wikipedia.org/w/index.php?title=Estimation_of_covariance_
+        matrices>`__ for more details.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "age": [2, 3, 4, 6, 6, 1, 2, 1],
+        ...         "weight": [2.1, 3.2, 4.1, 6.5, 3.3, 2.1, 4.1, 1.9],
+        ...         "pet": ["dog", "cat", "dog", "cat", "dog", "cat", "dog", "cat"],
+        ...     }
+        ... )
+        >>> df
+           age  weight  pet
+        0    2     2.1  dog
+        1    3     3.2  cat
+        2    4     4.1  dog
+        3    6     6.5  cat
+        4    6     3.3  dog
+        5    1     2.1  cat
+        6    2     4.1  dog
+        7    1     1.9  cat
+        >>> df.groupby("pet").cov()
+                         age    weight
+        pet
+        cat age     5.583333  4.975000
+            weight  4.975000  4.529167
+        dog age     3.666667  0.333333
+            weight  0.333333  0.893333
+        """
         result = self._op_via_apply(
             "cov", min_periods=min_periods, ddof=ddof, numeric_only=numeric_only
         )

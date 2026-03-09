@@ -1076,6 +1076,7 @@ The affected cases are:
    df + arr[[0], :]
 
 .. ipython:: python
+   :okwarning:
 
    # Comparison operations and arithmetic operations both broadcast.
    df == (1, 2)

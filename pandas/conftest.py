@@ -193,6 +193,8 @@ def pytest_collection_modifyitems(items, config) -> None:
             "DataFrameGroupBy.fillna with 'method' is deprecated",
         ),
         ("read_parquet", "Passing a BlockManager to DataFrame is deprecated"),
+        ("Timestamp.utcfromtimestamp", "Timestamp.utcfromtimestamp is deprecated"),
+        ("BaseOffset.name.__get__", "The 'name' property is deprecated"),
     ]
 
     if is_doctest:
@@ -785,8 +787,8 @@ def index_with_missing(request):
     if request.param in ["tuples", "mi-with-dt64tz-level", "multi"]:
         # For setting missing values in the top level of MultiIndex
         vals = ind.tolist()
-        vals[0] = (None,) + vals[0][1:]
-        vals[-1] = (None,) + vals[-1][1:]
+        vals[0] = (None, *vals[0][1:])
+        vals[-1] = (None, *vals[-1][1:])
         return MultiIndex.from_tuples(vals)
     else:
         vals = ind.values.copy()
