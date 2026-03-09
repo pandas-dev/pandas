@@ -663,6 +663,10 @@ class HDFStore:
         """
         Return a list of keys corresponding to objects stored in HDFStore.
 
+        The keys are absolute path-names within the HDF5 file hierarchy.
+        By default only pandas objects are returned, but native HDF5 table
+        objects can be included as well.
+
         Parameters
         ----------
 
@@ -804,6 +808,9 @@ class HDFStore:
     def get(self, key: str):
         """
         Retrieve pandas object stored in file.
+
+        The object is read from the HDF5 file and returned as the
+        same type that was stored (e.g., DataFrame, Series).
 
         Parameters
         ----------
@@ -1747,6 +1754,9 @@ class HDFStore:
     def info(self) -> str:
         """
         Print detailed information on the store.
+
+        The information includes the file path, class name, and a listing
+        of all stored object keys with their types and shapes.
 
         Returns
         -------
