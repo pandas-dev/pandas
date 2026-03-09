@@ -114,26 +114,37 @@ class TestComparison:
             return Series(expected, index=other.index)
         return expected
 
-    def test_compare_scalar_interval(self, op, interval_array):
+    def test_compare_scalar_interval(self, op, interval_array, box_with_array):
+        obj = tm.box_expected(interval_array, box_with_array)
+
         # matches first interval
         other = interval_array[0]
-        result = op(interval_array, other)
+        xbox = get_upcast_box(obj, other, is_cmp=True)
+        result = op(obj, other)
         expected = self.elementwise_comparison(op, interval_array, other)
-        tm.assert_numpy_array_equal(result, expected)
+        expected = tm.box_expected(expected, xbox)
+        tm.assert_equal(result, expected)
 
         # matches on a single endpoint but not both
         other = Interval(interval_array.left[0], interval_array.right[1])
-        result = op(interval_array, other)
+        result = op(obj, other)
         expected = self.elementwise_comparison(op, interval_array, other)
-        tm.assert_numpy_array_equal(result, expected)
+        expected = tm.box_expected(expected, xbox)
+        tm.assert_equal(result, expected)
 
-    def test_compare_scalar_interval_mixed_closed(self, op, closed, other_closed):
+    def test_compare_scalar_interval_mixed_closed(
+        self, op, closed, other_closed, box_with_array
+    ):
         interval_array = IntervalArray.from_arrays(range(2), range(1, 3), closed=closed)
         other = Interval(0, 1, closed=other_closed)
 
-        result = op(interval_array, other)
+        obj = tm.box_expected(interval_array, box_with_array)
+        xbox = get_upcast_box(obj, other, is_cmp=True)
+
+        result = op(obj, other)
         expected = self.elementwise_comparison(op, interval_array, other)
-        tm.assert_numpy_array_equal(result, expected)
+        expected = tm.box_expected(expected, xbox)
+        tm.assert_equal(result, expected)
 
     def test_compare_scalar_na(self, op, interval_array, nulls_fixture, box_with_array):
         box = box_with_array
@@ -170,10 +181,14 @@ class TestComparison:
             Period("2017-01-01", "D"),
         ],
     )
-    def test_compare_scalar_other(self, op, interval_array, other):
-        result = op(interval_array, other)
+    def test_compare_scalar_other(self, op, interval_array, other, box_with_array):
+        obj = tm.box_expected(interval_array, box_with_array)
+        xbox = get_upcast_box(obj, other, is_cmp=True)
+
+        result = op(obj, other)
         expected = self.elementwise_comparison(op, interval_array, other)
-        tm.assert_numpy_array_equal(result, expected)
+        expected = tm.box_expected(expected, xbox)
+        tm.assert_equal(result, expected)
 
     def test_compare_list_like_interval(self, op, interval_array, interval_constructor):
         # same endpoints
@@ -265,44 +280,32 @@ class TestComparison:
         with pytest.raises(ValueError, match="Lengths must match to compare"):
             op(interval_array, other)
 
-    @pytest.mark.parametrize(
-        "constructor, expected_type, assert_func",
-        [
-            (IntervalIndex, np.array, tm.assert_numpy_array_equal),
-            (Series, Series, tm.assert_series_equal),
-        ],
-    )
-    def test_index_series_compat(self, op, constructor, expected_type, assert_func):
-        # IntervalIndex/Series that rely on IntervalArray for comparisons
+    @pytest.mark.parametrize("box", [IntervalIndex, Series])
+    def test_compare_list_like_boxed_lhs(self, op, box):
+        # Ensure IntervalIndex/Series correctly delegate list-like
+        # comparisons to IntervalArray
         breaks = range(4)
-        index = constructor(IntervalIndex.from_breaks(breaks))
+        obj = box(IntervalIndex.from_breaks(breaks))
+        xbox = Series if box is Series else np.array
 
-        # scalar comparisons
-        other = index[0]
-        result = op(index, other)
-        expected = expected_type(self.elementwise_comparison(op, index, other))
-        assert_func(result, expected)
-
-        other = breaks[0]
-        result = op(index, other)
-        expected = expected_type(self.elementwise_comparison(op, index, other))
-        assert_func(result, expected)
-
-        # list-like comparisons
         other = IntervalArray.from_breaks(breaks)
-        result = op(index, other)
-        expected = expected_type(self.elementwise_comparison(op, index, other))
-        assert_func(result, expected)
+        result = op(obj, other)
+        expected = xbox(self.elementwise_comparison(op, obj, other))
+        tm.assert_equal(result, expected)
 
-        other = [index[0], breaks[0], "foo"]
-        result = op(index, other)
-        expected = expected_type(self.elementwise_comparison(op, index, other))
-        assert_func(result, expected)
+        other = [obj[0], breaks[0], "foo"]
+        result = op(obj, other)
+        expected = xbox(self.elementwise_comparison(op, obj, other))
+        tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize("scalars", ["a", False, 1, 1.0, None])
-    def test_comparison_operations(self, scalars):
-        # GH #28981
-        expected = Series([False, False])
-        s = Series([Interval(0, 1), Interval(1, 2)], dtype="interval")
-        result = s == scalars
-        tm.assert_series_equal(result, expected)
+    def test_comparison_operations(self, op, scalars, box_with_array):
+        # GH#28981
+        ser = Series([Interval(0, 1), Interval(1, 2)], dtype="interval")
+        obj = tm.box_expected(ser, box_with_array)
+        xbox = get_upcast_box(obj, scalars, is_cmp=True)
+
+        result = op(obj, scalars)
+        expected = np.array([op is operator.ne] * 2)
+        expected = tm.box_expected(expected, xbox)
+        tm.assert_equal(result, expected)
