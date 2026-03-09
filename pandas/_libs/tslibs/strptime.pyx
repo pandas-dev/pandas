@@ -668,7 +668,7 @@ cdef tzinfo _parse_with_format(
     # values
     weekday = julian = -1
     found_dict = found.groupdict()
-    for group_key, group_val in found_dict.iteritems():
+    for group_key, group_val in found_dict.items():
         # Directives not explicitly handled below:
         #   c, x, X
         #      handled by making out of other directives
