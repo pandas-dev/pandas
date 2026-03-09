@@ -37,13 +37,26 @@ def test_uuid_comparison_eq():
     #standard create uuid, array, then series
     u1 = uuid.UUID("550e8400-e29b-41d4-a716-446655440000")
     u2 = uuid.UUID("550e8400-e29b-41d4-a716-446655440001")
-    arr1 = pa.array([u1.bytes, u2.bytes, None], type=pa.uuid())
-    arr2 = pa.array([u1.bytes, u1.bytes, None], type=pa.uuid())
+    u3 = uuid.UUID("550e8400-e29b-41d4-a716-446655440002")
+    arr1 = pa.array([u1.bytes, u2.bytes, u3.bytes, None], type=pa.uuid())
+    arr2 = pa.array([u1.bytes, u1.bytes, None, None], type=pa.uuid())
     s1 = pd.Series(arr1)
     s2 = pd.Series(arr2)
 
-    out = (s1 == s2).tolist()#compare
-    assert out == [True, False, True]#verify results
+    # cast uuid.UUID to PyArrow type with length of 16 bytes
+    pa_binary16 = pd.ArrowDtype(pa.binary(16))
+
+    out0 = s1[0] == s2[0]
+    out1 = s1[1] == s2[1]
+    out2 = s1[2] == s2[2]
+    out3 = s1[3] == s2[3]
+    out4 = (s1.astype(pa_binary16) == s2.astype(pa_binary16)).tolist()
+
+    assert out0 == True
+    assert out1 == False
+    assert out2 == False
+    assert pd.isna(out3)
+    assert out4 == [True, False, pd.NA, pd.NA]
 
 
 #TEST4: we already test thge entrie array being UUID, now individual elements lets make sure bytes and does iloc[i] work
