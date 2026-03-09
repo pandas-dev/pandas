@@ -15,6 +15,7 @@ FUNCTIONS:
     _getlang -- Figure out what language is being used for the locale
     strptime -- Calculates the time struct represented by the passed-in string
 """
+cimport cython
 from datetime import timezone
 import zoneinfo
 
@@ -349,6 +350,8 @@ cdef class DatetimeParseState:
         return tz_out
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def array_strptime(
     ndarray[object] values,
     str fmt,
