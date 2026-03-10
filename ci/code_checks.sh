@@ -75,9 +75,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.read_xml ES01" \
         -i "pandas.IndexSlice ES01" \
         -i "pandas.TimedeltaIndex.to_pytimedelta ES01" \
-        -i "pandas.api.indexers.BaseIndexer ES01" \
-        -i "pandas.api.indexers.FixedForwardWindowIndexer ES01" \
-        -i "pandas.api.indexers.VariableOffsetWindowIndexer ES01" \
         -i "pandas.NamedAgg ES01" \
         -i "pandas.api.typing.DataFrameGroupBy.rolling ES01" \
         -i "pandas.api.typing.DataFrameGroupBy.size ES01" \
