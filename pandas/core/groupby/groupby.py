@@ -1953,6 +1953,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         Compute mean of groups, excluding missing values.
 
+        Returns the arithmetic mean for each group. Missing values are
+        ignored unless the entire group is NA, in which case the result
+        for that group is NA.
+
         Parameters
         ----------
         numeric_only : bool, default False
@@ -2917,6 +2921,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         Compute min of group values.
 
+        Returns the minimum value for each group. Missing values are
+        excluded by default but this behavior can be controlled with
+        the ``skipna`` parameter.
+
         Parameters
         ----------
         numeric_only : bool, default False
@@ -3033,6 +3041,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     ):
         """
         Compute max of group values.
+
+        Returns the maximum value for each group. Missing values are
+        excluded by default but this behavior can be controlled with
+        the ``skipna`` parameter.
 
         Parameters
         ----------
