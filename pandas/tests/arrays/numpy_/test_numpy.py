@@ -7,6 +7,7 @@ import numpy as np
 import pytest
 
 from pandas.compat.numpy import np_version_gt2
+from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.dtypes import NumpyEADtype
 
@@ -374,7 +375,17 @@ def test_take_assigns_floating_point_dtype(dtype):
     result = array.take([-1], allow_fill=True)
     assert result.dtype.numpy_dtype == expected
 
-    result = array.take([-1], allow_fill=True, fill_value=5.0)
+    # For integer dtypes, we cast round-float fill_value to int, so do not
+    #  get a warning here. This casting is not ideal, but is the lesser evil
+    #  preventing other breakage when doing this deprecation.
+    msg = (
+        "reindexing with a fill_value that cannot be held by the "
+        "original dtype is deprecated"
+    )
+    warn = Pandas4Warning if dtype == np.bool_ else None
+    expected = object if dtype == np.bool_ else array.dtype.numpy_dtype
+    with tm.assert_produces_warning(warn, match=msg):
+        result = array.take([-1], allow_fill=True, fill_value=5.0)
     assert result.dtype.numpy_dtype == expected
 
 
