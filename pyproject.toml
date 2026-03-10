@@ -432,6 +432,8 @@ doctest_optionflags = [
   "IGNORE_EXCEPTION_DETAIL",
   "ELLIPSIS",
 ]
+# https://docs.pytest.org/en/stable/how-to/capture-warnings.html#controlling-warnings
+# > When a warning matches more than one option in the list, the action for the last matching option is performed
 filterwarnings = [
   "error",
   "error::ResourceWarning",
