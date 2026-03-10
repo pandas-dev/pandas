@@ -9285,7 +9285,7 @@ class DataFrame(NDFrame, OpsMixin):
                 right, (np.ndarray, ExtensionArray, Index, list, dict)
             ) and not ops.has_castable_attr(right):
                 warnings.warn(
-                    f"Operation with {type(right).__name__} are deprecated. "
+                    f"Operation with {type(right).__name__} is deprecated. "
                     "In a future version these will be treated as scalar-like. "
                     "To retain the old behavior, explicitly wrap in a Series "
                     "instead.",
