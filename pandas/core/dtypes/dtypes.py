@@ -337,7 +337,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
                     "Cannot specify `categories` or `ordered` together with `dtype`."
                 )
             elif not isinstance(dtype, CategoricalDtype):
-                raise ValueError(f"Cannot not construct CategoricalDtype from {dtype}")
+                raise ValueError(f"Cannot construct CategoricalDtype from {dtype}")
         elif cls.is_dtype(values):
             # If no "dtype" was passed, use the one from "values", but honor
             # the "ordered" and "categories" arguments
