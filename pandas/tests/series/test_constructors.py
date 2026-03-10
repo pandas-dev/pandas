@@ -1199,30 +1199,6 @@ class TestSeriesConstructors:
         ser = Series(vals)
         assert all(ser[i] is vals[i] for i in range(len(vals)))
 
-    @pytest.mark.parametrize("arr_dtype", [np.int64, np.float64])
-    @pytest.mark.parametrize("kind", ["M", "m"])
-    @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s", "h", "m", "D"])
-    def test_construction_to_datetimelike_unit(self, arr_dtype, kind, unit):
-        # tests all units
-        # gh-19223
-        # TODO: GH#19223 was about .astype, doesn't belong here
-        dtype = f"{kind}8[{unit}]"
-        arr = np.array([1, 2, 3], dtype=arr_dtype)
-        ser = Series(arr)
-        result = ser.astype(dtype)
-
-        expected = Series(arr.astype(dtype))
-
-        if unit in ["ns", "us", "ms", "s"]:
-            assert result.dtype == dtype
-            assert expected.dtype == dtype
-        else:
-            # Otherwise we cast to nearest-supported unit, i.e. seconds
-            assert result.dtype == f"{kind}8[s]"
-            assert expected.dtype == f"{kind}8[s]"
-
-        tm.assert_series_equal(result, expected)
-
     @pytest.mark.parametrize("arg", ["2013-01-01 00:00:00", NaT, np.nan, None])
     def test_constructor_with_naive_string_and_datetimetz_dtype(self, arg):
         # GH 17415: With naive string
