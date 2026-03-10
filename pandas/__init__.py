@@ -106,7 +106,10 @@ from pandas.core.api import (
     Series,
     DataFrame,
 )
-from pandas.core.col import col
+from pandas.core.col import (
+    col,
+    index,
+)
 
 from pandas.core.dtypes.dtypes import SparseDtype
 
@@ -286,6 +289,7 @@ __all__ = [
     "from_dummies",
     "get_dummies",
     "get_option",
+    "index",
     "infer_freq",
     "interval_range",
     "io",

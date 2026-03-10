@@ -272,6 +272,29 @@ def test_col_logical_ops(
     tm.assert_frame_equal(result, expected)
 
 
+def test_index_expression() -> None:
+    # https://github.com/pandas-dev/pandas/issues/64308
+    df = pd.DataFrame({"a": [1, 2]}, index=["X", "Y"])
+    expr = pd.index()
+    assert str(expr) == "index"
+
+    result = df.assign(idx=expr)
+    expected = pd.DataFrame({"a": [1, 2], "idx": ["X", "Y"]}, index=["X", "Y"])
+    tm.assert_frame_equal(result, expected)
+
+    # Test with operations
+    expr2 = pd.index() + "_suffix"
+    result = df.assign(idx=expr2)
+    expected = pd.DataFrame({"a": [1, 2], "idx": ["X_suffix", "Y_suffix"]}, index=["X", "Y"])
+    tm.assert_frame_equal(result, expected)
+
+    # Test with .loc
+    df2 = pd.DataFrame({"a": [1, 2, 3]}, index=[10, 20, 30])
+    result = df2.loc[pd.index() > 15]
+    expected = df2.iloc[[1, 2]]
+    tm.assert_frame_equal(result, expected)
+
+
 def test_expression_getitem() -> None:
     # https://github.com/pandas-dev/pandas/pull/63439
     df = pd.DataFrame({"a": [1, 2, 3]})
