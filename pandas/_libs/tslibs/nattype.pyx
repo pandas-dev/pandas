@@ -248,7 +248,7 @@ cdef class _NaT(datetime):
         >>> ts
         Timestamp('2023-01-01 10:00:15')
         >>> ts.to_datetime64()
-        numpy.datetime64('2023-01-01T10:00:15.000000')
+        np.datetime64('2023-01-01T10:00:15.000000')
         """
         return np.datetime64("NaT", "ns")
 
@@ -281,12 +281,12 @@ cdef class _NaT(datetime):
         --------
         >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
         >>> ts.to_numpy()
-        numpy.datetime64('2020-03-14T15:32:52.192548651')
+        np.datetime64('2020-03-14T15:32:52.192548651')
 
         Analogous for ``pd.NaT``:
 
         >>> pd.NaT.to_numpy()
-        numpy.datetime64('NaT')
+        np.datetime64('NaT','ns')
         """
         if dtype is not None:
             # GH#44460
@@ -559,6 +559,10 @@ class NaTType(_NaT):
         """
         Return the day name of the Timestamp with specified locale.
 
+        This method returns the full name of the day of the week (e.g.,
+        'Monday', 'Tuesday') for the given Timestamp. The locale can be
+        specified to return the name in a particular language.
+
         Parameters
         ----------
         locale : str, default None (English locale)
@@ -588,7 +592,41 @@ class NaTType(_NaT):
     # _nat_methods
 
     # "fromisocalendar" was introduced in 3.8
-    fromisocalendar = _make_error_func("fromisocalendar", datetime)
+    fromisocalendar = _make_error_func(
+        "fromisocalendar",
+        """
+        Construct a Timestamp from an ISO year, week number, and weekday.
+
+        This is the inverse of :meth:`Timestamp.isocalendar`, constructing a
+        Timestamp from the ISO 8601 year, week number, and weekday.
+
+        Parameters
+        ----------
+        year : int
+            ISO year.
+        week : int
+            ISO week number, ranging from 1 to 52 or 53.
+        day : int
+            ISO weekday, where Monday is 1 and Sunday is 7.
+
+        Returns
+        -------
+        Timestamp
+            A `Timestamp` object corresponding to the given ISO calendar date.
+
+        See Also
+        --------
+        Timestamp.isocalendar : Return a named tuple with ISO year, week, and
+            weekday.
+        Timestamp.fromordinal : Construct a Timestamp from a proleptic Gregorian
+            ordinal.
+
+        Examples
+        --------
+        >>> pd.Timestamp.fromisocalendar(2023, 1, 1)
+        Timestamp('2023-01-02 00:00:00')
+        """,
+    )
 
     # ----------------------------------------------------------------------
     # The remaining methods have docstrings copy/pasted from the analogous
@@ -597,6 +635,11 @@ class NaTType(_NaT):
         "isocalendar",
         """
         Return a named tuple containing ISO year, week number, and weekday.
+
+        The ISO 8601 calendar is a widely used international standard. The
+        returned named tuple has three components: ``year``, ``week``, and
+        ``weekday``. The ISO year may differ from the Gregorian year for dates
+        near the start or end of a calendar year.
 
         See Also
         --------
@@ -821,7 +864,7 @@ class NaTType(_NaT):
         >>> ts
         Timestamp('2023-01-01 10:00:00+0100', tz='Europe/Brussels')
         >>> ts.timetz()
-        datetime.time(10, 0, tzinfo=<DstTzInfo 'Europe/Brussels' CET+1:00:00 STD>)
+        datetime.time(10, 0, tzinfo=zoneinfo.ZoneInfo(key='Europe/Brussels'))
         """
         )
     toordinal = _make_error_func(
@@ -886,6 +929,10 @@ class NaTType(_NaT):
         "strftime",
         """
         Return a formatted string of the Timestamp.
+
+        This method converts a Timestamp to a string according to the given
+        format string, using the same directives as the standard library's
+        :meth:`datetime.datetime.strftime`.
 
         Parameters
         ----------
@@ -1057,6 +1104,10 @@ class NaTType(_NaT):
         Timestamp.utcnow()
 
         Return a new Timestamp representing UTC day and time.
+
+        .. deprecated:: 3.0.0
+            ``Timestamp.utcnow`` is deprecated and will be removed in a future
+            version. Use ``Timestamp.now('UTC')`` instead.
 
         See Also
         --------
@@ -1434,6 +1485,10 @@ timedelta}, default 'raise'
         """
         Return a new Timestamp floored to this resolution.
 
+        This method rounds the Timestamp down to the nearest boundary of the
+        given frequency. The result will never be later than the original
+        Timestamp.
+
         Parameters
         ----------
         freq : str
@@ -1528,6 +1583,10 @@ timedelta}, default 'raise'
         "ceil",
         """
         Return a new Timestamp ceiled to this resolution.
+
+        This method rounds the Timestamp up to the nearest boundary of the
+        given frequency. The result will never be earlier than the original
+        Timestamp.
 
         Parameters
         ----------
@@ -1842,6 +1901,11 @@ default 'raise'
         """
         Convert the underlying int64 representation to the given unit.
 
+        This method changes the resolution of the Timestamp's internal
+        representation. When converting to a coarser resolution (e.g.,
+        nanoseconds to seconds), precision may be lost through rounding
+        unless ``round_ok`` is set to False.
+
         Parameters
         ----------
         unit : {"ns", "us", "ms", "s"}
@@ -1866,7 +1930,7 @@ default 'raise'
         >>> ts
         Timestamp('2023-01-01 00:00:00.010000')
         >>> ts.unit
-        'ms'
+        'us'
         >>> ts = ts.as_unit('s')
         >>> ts
         Timestamp('2023-01-01 00:00:00')

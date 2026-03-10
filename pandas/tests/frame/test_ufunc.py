@@ -44,7 +44,7 @@ def test_unary_binary(request, dtype):
     assert len(result_pandas) == 2
     expected_numpy = np.modf(values)
 
-    for result, b in zip(result_pandas, expected_numpy):
+    for result, b in zip(result_pandas, expected_numpy, strict=True):
         expected = pd.DataFrame(b, index=df.index, columns=df.columns)
         tm.assert_frame_equal(result, expected)
 

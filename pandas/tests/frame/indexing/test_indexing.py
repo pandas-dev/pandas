@@ -1255,7 +1255,6 @@ class TestDataFrameIndexing:
         # this produces the segfault
         df[[0]]
 
-    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
     @pytest.mark.parametrize(
         "null", [pd.NaT, pd.NaT.to_numpy("M8[ns]"), pd.NaT.to_numpy("m8[ns]")]
     )
@@ -1524,7 +1523,7 @@ class TestDataFrameIndexing:
         # GH#57457
         columns = ["a"]
         data = [np.array([1, 2], dtype=">f8")]
-        df = DataFrame(dict(zip(columns, data)))
+        df = DataFrame(dict(zip(columns, data, strict=True)))
         result = df[df.columns]
         dfexp = DataFrame({"a": [1, 2]}, dtype=">f8")
         expected = dfexp[dfexp.columns]

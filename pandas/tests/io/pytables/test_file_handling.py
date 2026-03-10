@@ -32,10 +32,10 @@ pytestmark = [pytest.mark.single_cpu]
 
 
 @pytest.mark.parametrize("mode", ["r", "r+", "a", "w"])
-def test_mode(temp_h5_path, mode, using_infer_string):
+def test_mode(temp_h5_path, mode):
     df = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(list("ABCD"), dtype=object),
+        columns=Index(list("ABCD")),
         index=date_range("2000-01-01", periods=10, freq="B"),
     )
     msg = r"[\S]* does not exist"
@@ -77,23 +77,19 @@ def test_mode(temp_h5_path, mode, using_infer_string):
             read_hdf(temp_h5_path, "df", mode=mode)
     else:
         result = read_hdf(temp_h5_path, "df", mode=mode)
-        if using_infer_string:
-            df.columns = df.columns.astype("str")
         tm.assert_frame_equal(result, df)
 
 
-def test_default_mode(temp_h5_path, using_infer_string):
+def test_default_mode(temp_h5_path):
     # read_hdf uses default mode
     df = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(list("ABCD"), dtype=object),
+        columns=Index(list("ABCD")),
         index=date_range("2000-01-01", periods=10, freq="B"),
     )
     df.to_hdf(temp_h5_path, key="df", mode="w")
     result = read_hdf(temp_h5_path, "df")
     expected = df.copy()
-    if using_infer_string:
-        expected.columns = expected.columns.astype("str")
     tm.assert_frame_equal(result, expected)
 
 
@@ -151,12 +147,12 @@ def test_reopen_handle(temp_h5_path):
     assert not store.is_open
 
 
-def test_open_args(using_infer_string):
+def test_open_args():
     not_written = f"{uuid.uuid4()}.h5"
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD"), dtype=object),
-        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        columns=Index(list("ABCD")),
+        index=Index([f"i-{i}" for i in range(30)]),
     )
 
     # create an in memory store
@@ -167,10 +163,6 @@ def test_open_args(using_infer_string):
     store.append("df2", df)
 
     expected = df.copy()
-    if using_infer_string:
-        expected.index = expected.index.astype("str")
-        expected.columns = expected.columns.astype("str")
-
     tm.assert_frame_equal(store["df"], expected)
     tm.assert_frame_equal(store["df2"], expected)
 
@@ -187,12 +179,12 @@ def test_flush(temp_h5_path):
         store.flush(fsync=True)
 
 
-def test_complibs_default_settings(temp_h5_path, using_infer_string):
+def test_complibs_default_settings(temp_h5_path):
     # GH15943
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD"), dtype=object),
-        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        columns=Index(list("ABCD")),
+        index=Index([f"i-{i}" for i in range(30)]),
     )
 
     # Set complevel and check if complib is automatically set to
@@ -200,9 +192,6 @@ def test_complibs_default_settings(temp_h5_path, using_infer_string):
     df.to_hdf(temp_h5_path, key="df", complevel=9)
     result = read_hdf(temp_h5_path, "df")
     expected = df.copy()
-    if using_infer_string:
-        expected.index = expected.index.astype("str")
-        expected.columns = expected.columns.astype("str")
     tm.assert_frame_equal(result, expected)
 
     with tables.open_file(temp_h5_path, mode="r") as h5file:
@@ -214,9 +203,6 @@ def test_complibs_default_settings(temp_h5_path, using_infer_string):
     df.to_hdf(temp_h5_path, key="df", complib="zlib")
     result = read_hdf(temp_h5_path, "df")
     expected = df.copy()
-    if using_infer_string:
-        expected.index = expected.index.astype("str")
-        expected.columns = expected.columns.astype("str")
     tm.assert_frame_equal(result, expected)
 
     with tables.open_file(temp_h5_path, mode="r") as h5file:
@@ -228,9 +214,6 @@ def test_complibs_default_settings(temp_h5_path, using_infer_string):
     df.to_hdf(temp_h5_path, key="df")
     result = read_hdf(temp_h5_path, "df")
     expected = df.copy()
-    if using_infer_string:
-        expected.index = expected.index.astype("str")
-        expected.columns = expected.columns.astype("str")
     tm.assert_frame_equal(result, expected)
 
     with tables.open_file(temp_h5_path, mode="r") as h5file:
@@ -243,8 +226,8 @@ def test_complibs_default_settings_override(temp_h5_path):
     # Check if file-defaults can be overridden on a per table basis
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD"), dtype=object),
-        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        columns=Index(list("ABCD")),
+        index=Index([f"i-{i}" for i in range(30)]),
     )
     store = HDFStore(temp_h5_path)
     store.append("dfc", df, complevel=9, complib="blosc")
@@ -268,7 +251,9 @@ def test_complibs(tmp_path, lvl, lib, request):
     if is_platform_linux() and lib == "blosc2" and lvl != 0:
         request.applymarker(pytest.mark.xfail(reason=f"Fails for {lib} on Linux"))
     df = DataFrame(
-        np.ones((30, 4)), columns=list("ABCD"), index=np.arange(30).astype(np.str_)
+        np.ones((30, 4)),
+        columns=list("ABCD"),
+        index=np.arange(30).astype(np.str_),
     )
 
     # Remove lzo if its not available on this platform
@@ -360,8 +345,8 @@ def test_multiple_open_close(temp_h5_path):
 
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD"), dtype=object),
-        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        columns=Index(list("ABCD")),
+        index=Index([f"i-{i}" for i in range(30)]),
     )
     df.to_hdf(temp_h5_path, key="df", mode="w", format="table")
 
@@ -437,8 +422,8 @@ def test_multiple_open_close(temp_h5_path):
     # ops on a closed store
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD"), dtype=object),
-        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        columns=Index(list("ABCD")),
+        index=Index([f"i-{i}" for i in range(30)]),
     )
     df.to_hdf(temp_h5_path, key="df", mode="w", format="table")
 

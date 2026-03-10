@@ -360,7 +360,7 @@ class TestBlock:
             new_block(values[[1]], placement=BlockPlacement([1]), ndim=2),
             new_block(values[[2]], placement=BlockPlacement([6]), ndim=2),
         ]
-        for res, exp in zip(result, expected):
+        for res, exp in zip(result, expected, strict=True):
             assert_block_equal(res, exp)
 
 
@@ -485,7 +485,7 @@ class TestBlockManager:
 
     def test_copy(self, mgr):
         cp = mgr.copy(deep=False)
-        for blk, cp_blk in zip(mgr.blocks, cp.blocks):
+        for blk, cp_blk in zip(mgr.blocks, cp.blocks, strict=True):
             # view assertion
             tm.assert_equal(cp_blk.values, blk.values)
             if isinstance(blk.values, np.ndarray):
@@ -498,7 +498,7 @@ class TestBlockManager:
         #  fail is mgr is not consolidated
         mgr._consolidate_inplace()
         cp = mgr.copy(deep=True)
-        for blk, cp_blk in zip(mgr.blocks, cp.blocks):
+        for blk, cp_blk in zip(mgr.blocks, cp.blocks, strict=True):
             bvals = blk.values
             cpvals = cp_blk.values
 

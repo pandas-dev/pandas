@@ -732,7 +732,7 @@ cdef class TextReader:
                 if self.has_mi_columns:
 
                     # If we have grabbed an extra line, but it's not in our
-                    # format, save in the buffer, and create an blank extra
+                    # format, save in the buffer, and create a blank extra
                     # line for the rest of the parsing code.
                     if hr == prelim_header[-1]:
                         lc = len(this_header)
@@ -1482,6 +1482,8 @@ def _maybe_upcast(
 
 
 # -> tuple[ndarray[object], int]
+@cython.wraparound(False)
+@cython.boundscheck(False)
 cdef _string_box_utf8(parser_t *parser, int64_t col,
                       int64_t line_start, int64_t line_end,
                       bint na_filter, kh_str_starts_t *na_hashset,
@@ -1536,6 +1538,7 @@ cdef _string_box_utf8(parser_t *parser, int64_t col,
     return result, na_count
 
 
+@cython.wraparound(False)
 @cython.boundscheck(False)
 cdef _categorical_convert(parser_t *parser, int64_t col,
                           int64_t line_start, int64_t line_end,
@@ -1747,7 +1750,7 @@ cdef _try_uint64(parser_t *parser, int64_t col,
         Py_ssize_t lines
         coliter_t it
         uint64_t *data
-        ndarray result
+        ndarray[uint64_t] result
         uint_state state
 
     lines = line_end - line_start
@@ -1819,7 +1822,7 @@ cdef _try_int64(parser_t *parser, int64_t col,
         Py_ssize_t lines
         coliter_t it
         int64_t *data
-        ndarray result
+        ndarray[int64_t] result
         int64_t NA = na_values[np.int64]
 
     lines = line_end - line_start
@@ -1875,6 +1878,9 @@ cdef int _try_int64_nogil(parser_t *parser, int64_t col,
 
     return 0
 
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
 cdef _try_pylong(parser_t *parser, Py_ssize_t col,
                  int64_t line_start, int64_t line_end,
                  bint na_filter, kh_str_starts_t *na_hashset):
@@ -1916,7 +1922,7 @@ cdef _try_bool_flex(parser_t *parser, int64_t col,
         int error, na_count = 0
         Py_ssize_t lines
         uint8_t *data
-        ndarray result
+        ndarray[uint8_t] result
         uint8_t NA = na_values[np.bool_]
 
     lines = line_end - line_start
@@ -2119,6 +2125,8 @@ for k in list(na_values):
 
 
 # -> ArrayLike
+@cython.wraparound(False)
+@cython.boundscheck(False)
 cdef _apply_converter(object f, parser_t *parser, int64_t col,
                       int64_t line_start, int64_t line_end):
     cdef:
@@ -2147,6 +2155,8 @@ cdef list _maybe_encode(list values):
     return [x.encode("utf-8") if isinstance(x, str) else x for x in values]
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def sanitize_objects(ndarray[object] values, set na_values) -> int:
     """
     Convert specified values, including the given set na_values to np.nan.
@@ -2168,12 +2178,18 @@ def sanitize_objects(ndarray[object] values, set na_values) -> int:
 
     n = len(values)
     onan = np.nan
+    bool_set = {True, False}
 
     for i in range(n):
         val = values[i]
         if val in na_values:
             values[i] = onan
             na_count += 1
+        elif val in bool_set:
+            # GH60088: Skip memoization
+            # since 1 == 1.0 == True == np.True_
+            # and 0 == 0.0 == False == np.False_
+            values[i] = val
         elif val in memo:
             values[i] = memo[val]
         else:

@@ -66,7 +66,7 @@ class HTMLFormatter:
         self.escape = self.fmt.escape
         self.show_dimensions = self.fmt.show_dimensions
         if border is None or border is True:
-            border = cast(int, get_option("display.html.border"))
+            border = cast("int", get_option("display.html.border"))
         elif not border:
             border = None
 

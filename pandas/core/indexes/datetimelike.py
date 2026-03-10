@@ -61,7 +61,6 @@ from pandas.core.arrays import (
     TimedeltaArray,
 )
 import pandas.core.common as com
-import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
     Index,
 )
@@ -82,8 +81,6 @@ if TYPE_CHECKING:
 
     from pandas import CategoricalIndex
 
-_index_doc_kwargs = dict(ibase._index_doc_kwargs)
-
 
 class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
     """
@@ -96,6 +93,9 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
     def mean(self, *, skipna: bool = True, axis: int | None = 0):
         """
         Return the mean value of the Array.
+
+        This method computes the arithmetic mean of the datetime or timedelta
+        values in the index, optionally skipping NaT values.
 
         Parameters
         ----------
@@ -183,6 +183,10 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
     def freqstr(self) -> str:
         """
         Return the frequency object as a string if it's set, otherwise None.
+
+        This property returns a string representation of the frequency
+        (e.g., ``'D'`` for daily, ``'h'`` for hourly) when one has been set
+        on the index, either explicitly or via inference.
 
         See Also
         --------
@@ -681,6 +685,9 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         """
         Return the inferred frequency of the index.
 
+        Attempts to determine the frequency of the index by analyzing the
+        differences between consecutive values using ``infer_freq``.
+
         Returns
         -------
         str or None
@@ -718,7 +725,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
     def _as_range_index(self) -> RangeIndex:
         # Convert our i8 representations to RangeIndex
         # Caller is responsible for checking isinstance(self.freq, Tick)
-        freq = cast(Tick, self.freq)
+        freq = cast("Tick", self.freq)
         tick = Timedelta(freq).as_unit(self.unit)._value
         rng = range(self[0]._value, self[-1]._value + tick, tick)
         return RangeIndex(rng)

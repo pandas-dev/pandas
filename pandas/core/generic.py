@@ -35,53 +35,6 @@ from pandas._libs.tslibs import (
     Timestamp,
     to_offset,
 )
-from pandas._typing import (
-    AlignJoin,
-    AnyArrayLike,
-    ArrayLike,
-    Axes,
-    Axis,
-    AxisInt,
-    CompressionOptions,
-    DtypeArg,
-    DtypeBackend,
-    DtypeObj,
-    FilePath,
-    FillnaOptions,
-    FloatFormatType,
-    FormattersType,
-    Frequency,
-    IgnoreRaise,
-    IndexKeyFunc,
-    IndexLabel,
-    InterpolateOptions,
-    IntervalClosedType,
-    JSONSerializable,
-    Level,
-    ListLike,
-    Manager,
-    NaPosition,
-    NDFrameT,
-    OpenFileErrors,
-    RandomState,
-    ReindexMethod,
-    Renamer,
-    Scalar,
-    SequenceNotStr,
-    SortKind,
-    StorageOptions,
-    Suffixes,
-    T,
-    TimeAmbiguous,
-    TimedeltaConvertibleTypes,
-    TimeNonexistent,
-    TimestampConvertibleTypes,
-    TimeUnit,
-    ValueKeyFunc,
-    WriteBuffer,
-    WriteExcelBuffer,
-    npt,
-)
 from pandas.compat import CHAINED_WARNING_DISABLED
 from pandas.compat._constants import (
     REF_COUNT_METHOD,
@@ -95,10 +48,7 @@ from pandas.errors import (
     Pandas4Warning,
 )
 from pandas.errors.cow import _chained_assignment_method_msg
-from pandas.util._decorators import (
-    deprecate_kwarg,
-    doc,
-)
+from pandas.util._decorators import deprecate_kwarg
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import (
     check_dtype_backend,
@@ -172,7 +122,6 @@ from pandas.core.missing import (
     find_valid_index,
 )
 from pandas.core.reshape.concat import concat
-from pandas.core.shared_docs import _shared_docs
 from pandas.core.sorting import get_indexer_indexer
 from pandas.core.window import (
     Expanding,
@@ -197,7 +146,54 @@ if TYPE_CHECKING:
     )
 
     from pandas._libs.tslibs import BaseOffset
-    from pandas._typing import P
+    from pandas._typing import (
+        AlignJoin,
+        AnyArrayLike,
+        ArrayLike,
+        Axes,
+        Axis,
+        AxisInt,
+        CompressionOptions,
+        DtypeArg,
+        DtypeBackend,
+        DtypeObj,
+        FilePath,
+        FillnaOptions,
+        FloatFormatType,
+        FormattersType,
+        Frequency,
+        IgnoreRaise,
+        IndexKeyFunc,
+        IndexLabel,
+        InterpolateOptions,
+        IntervalClosedType,
+        JSONSerializable,
+        Level,
+        ListLike,
+        Manager,
+        NaPosition,
+        NDFrameT,
+        OpenFileErrors,
+        P,
+        RandomState,
+        ReindexMethod,
+        Renamer,
+        Scalar,
+        SequenceNotStr,
+        SortKind,
+        StorageOptions,
+        Suffixes,
+        T,
+        TimeAmbiguous,
+        TimedeltaConvertibleTypes,
+        TimeNonexistent,
+        TimestampConvertibleTypes,
+        TimeUnit,
+        ValueKeyFunc,
+        WriteBuffer,
+        WriteExcelBuffer,
+        npt,
+    )
 
     from pandas import (
         DataFrame,
@@ -207,22 +203,6 @@ if TYPE_CHECKING:
     )
     from pandas.core.indexers.objects import BaseIndexer
     from pandas.core.resample import Resampler
-
-
-# goal is to be able to define the docs close to function, while still being
-# able to share
-_shared_docs = {**_shared_docs}
-_shared_doc_kwargs = {
-    "axes": "keywords for axes",
-    "klass": "Series/DataFrame",
-    "axes_single_arg": "{0 or 'index'} for Series, {0 or 'index', 1 or 'columns'} for DataFrame",  # noqa: E501
-    "inplace": """
-    inplace : bool, default False
-        If True, performs operation inplace.""",
-    "optional_by": """
-        by : str or list of str
-            Name or list of names to sort by""",
-}
 
 
 class NDFrame(PandasObject, indexing.IndexingMixin):
@@ -477,7 +457,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             dtype = pandas_dtype(dtype)
 
             # a compound dtype
-            if dtype.kind == "V":
+            if dtype.kind == "V" and not isinstance(dtype, ExtensionDtype):
                 raise NotImplementedError(
                     "compound dtypes are not implemented "
                     f"in the {cls.__name__} constructor"
@@ -770,6 +750,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Return Series/DataFrame with requested index / column level(s) removed.
 
+        This method is useful for simplifying a MultiIndex by removing one or
+        more levels.
+
         Parameters
         ----------
         level : int, str, or list-like
@@ -777,7 +760,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             If list-like, elements must be names or positional indexes
             of levels.
 
-        axis : {{0 or 'index', 1 or 'columns'}}, default 0
+        axis : {0 or 'index', 1 or 'columns'}, default 0
             Axis along which the level(s) is removed:
 
             * 0 or 'index': remove level(s) in column.
@@ -1120,6 +1103,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Set the name of the axis for the index or columns.
 
+        This method is useful for labeling the axes in a MultiIndex or for
+        providing descriptive names to axes.
+
         Parameters
         ----------
         mapper : scalar, list-like, optional
@@ -1459,7 +1445,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         if not (isinstance(other, type(self)) or isinstance(self, type(other))):
             return False
-        other = cast(NDFrame, other)
+        other = cast("NDFrame", other)
         return self._mgr.equals(other._mgr)
 
     # -------------------------------------------------------------------------
@@ -1883,6 +1869,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Iterate over info axis.
 
+        For a DataFrame this yields column names (labels); for a Series
+        it yields the single name. Enables iteration over the object
+        with ``for col in df``.
+
         Returns
         -------
         iterator
@@ -2140,7 +2130,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             data = self.head(config.get_option("display.max_rows"))
 
             as_json = data.to_json(orient="table")
-            as_json = cast(str, as_json)
+            as_json = cast("str", as_json)
             return loads(as_json, object_pairs_hook=collections.OrderedDict)
 
     # ----------------------------------------------------------------------
@@ -2357,27 +2347,27 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             * Series:
 
                 - default is 'index'
-                - allowed values are: {{'split', 'records', 'index', 'table'}}.
+                - allowed values are: {'split', 'records', 'index', 'table'}.
 
             * DataFrame:
 
                 - default is 'columns'
-                - allowed values are: {{'split', 'records', 'index', 'columns',
-                  'values', 'table'}}.
+                - allowed values are: {'split', 'records', 'index', 'columns',
+                  'values', 'table'}.
 
             * The format of the JSON string:
 
-                - 'split' : dict like {{'index' -> [index], 'columns' -> [columns],
-                  'data' -> [values]}}
-                - 'records' : list like [{{column -> value}}, ... , {{column -> value}}]
-                - 'index' : dict like {{index -> {{column -> value}}}}
-                - 'columns' : dict like {{column -> {{index -> value}}}}
+                - 'split' : dict like {'index' -> [index], 'columns' -> [columns],
+                  'data' -> [values]}
+                - 'records' : list like [{column -> value}, ... , {column -> value}]
+                - 'index' : dict like {index -> {column -> value}}
+                - 'columns' : dict like {column -> {index -> value}}
                 - 'values' : just the values array
-                - 'table' : dict like {{'schema': {{schema}}, 'data': {{data}}}}
+                - 'table' : dict like {'schema': {schema}, 'data': {data}}
 
                 Describing the data, where data component is like ``orient='records'``.
 
-        date_format : {{None, 'epoch', 'iso'}}
+        date_format : {None, 'epoch', 'iso'}
             Type of date conversion. 'epoch' = epoch milliseconds,
             'iso' = ISO8601. The default depends on the `orient`. For
             ``orient='table'``, the default is 'iso'. For all other orients,
@@ -2480,7 +2470,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> result = df.to_json(orient="split")
         >>> parsed = loads(result)
         >>> dumps(parsed, indent=4)  # doctest: +SKIP
-        {{
+        {
             "columns": [
                 "col 1",
                 "col 2"
@@ -2499,7 +2489,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     "d"
                 ]
             ]
-        }}
+        }
 
         Encoding/decoding a Dataframe using ``'records'`` formatted JSON.
         Note that index labels are not preserved with this encoding.
@@ -2508,14 +2498,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> parsed = loads(result)
         >>> dumps(parsed, indent=4)  # doctest: +SKIP
         [
-            {{
+            {
                 "col 1": "a",
                 "col 2": "b"
-            }},
-            {{
+            },
+            {
                 "col 1": "c",
                 "col 2": "d"
-            }}
+            }
         ]
 
         Encoding/decoding a Dataframe using ``'index'`` formatted JSON:
@@ -2523,32 +2513,32 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> result = df.to_json(orient="index")
         >>> parsed = loads(result)
         >>> dumps(parsed, indent=4)  # doctest: +SKIP
-        {{
-            "row 1": {{
+        {
+            "row 1": {
                 "col 1": "a",
                 "col 2": "b"
-            }},
-            "row 2": {{
+            },
+            "row 2": {
                 "col 1": "c",
                 "col 2": "d"
-            }}
-        }}
+            }
+        }
 
         Encoding/decoding a Dataframe using ``'columns'`` formatted JSON:
 
         >>> result = df.to_json(orient="columns")
         >>> parsed = loads(result)
         >>> dumps(parsed, indent=4)  # doctest: +SKIP
-        {{
-            "col 1": {{
+        {
+            "col 1": {
                 "row 1": "a",
                 "row 2": "c"
-            }},
-            "col 2": {{
+            },
+            "col 2": {
                 "row 1": "b",
                 "row 2": "d"
-            }}
-        }}
+            }
+        }
 
         Encoding/decoding a Dataframe using ``'values'`` formatted JSON:
 
@@ -2571,40 +2561,40 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> result = df.to_json(orient="table")
         >>> parsed = loads(result)
         >>> dumps(parsed, indent=4)  # doctest: +SKIP
-        {{
-            "schema": {{
+        {
+            "schema": {
                 "fields": [
-                    {{
+                    {
                         "name": "index",
                         "type": "string"
-                    }},
-                    {{
+                    },
+                    {
                         "name": "col 1",
                         "type": "string"
-                    }},
-                    {{
+                    },
+                    {
                         "name": "col 2",
                         "type": "string"
-                    }}
+                    }
                 ],
                 "primaryKey": [
                     "index"
                 ],
                 "pandas_version": "1.4.0"
-            }},
+            },
             "data": [
-                {{
+                {
                     "index": "row 1",
                     "col 1": "a",
                     "col 2": "b"
-                }},
-                {{
+                },
+                {
                     "index": "row 2",
                     "col 1": "c",
                     "col 2": "d"
-                }}
+                }
             ]
-        }}
+        }
         """
         from pandas.io import json
 
@@ -3074,6 +3064,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Pickle (serialize) object to file.
 
+        Uses Python's ``pickle`` module to serialize the object and write
+        it to the specified file path. The resulting file can be loaded
+        back using :func:`pandas.read_pickle`.
+
         Parameters
         ----------
         path : str, path object, or file-like object
@@ -3126,7 +3120,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Examples
         --------
         >>> original_df = pd.DataFrame(
-        ...     {{"foo": range(5), "bar": range(5, 10)}}
+        ...     {"foo": range(5), "bar": range(5, 10)}
         ... )  # doctest: +SKIP
         >>> original_df  # doctest: +SKIP
            foo  bar
@@ -3234,6 +3228,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def to_xarray(self):
         """
         Return an xarray object from the pandas object.
+
+        This method converts a pandas object to an xarray object, which is
+        useful for working with labeled multi-dimensional data.
 
         Returns
         -------
@@ -3821,6 +3818,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         r"""
         Write object to a comma-separated values (csv) file.
 
+        By default, the resulting file includes row index and column headers.
+        Supports customization of delimiter, encoding, compression, and more.
+        The output can be written to a file path, file-like buffer, or
+        returned as a string.
+
         Parameters
         ----------
         path_or_buf : str, path object, file-like object, or None, default None
@@ -3849,7 +3851,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             sequence should be given if the object uses MultiIndex. If
             False do not print fields for index names. Use index_label=False
             for easier importing in R.
-        mode : {{'w', 'x', 'a'}}, default 'w'
+        mode : {'w', 'x', 'a'}, default 'w'
             Forwarded to either `open(mode=)` or `fsspec.open(mode=)` to control
             the file opening. Typical values include:
 
@@ -3972,7 +3974,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Format floats using scientific notation:
 
-        >>> df.to_csv("out2.csv", float_format="{{:.2e}}".format)  # doctest: +SKIP
+        >>> df.to_csv("out2.csv", float_format="{:.2e}".format)  # doctest: +SKIP
         """
         df = self if isinstance(self, ABCDataFrame) else self.to_frame()
 
@@ -5221,7 +5223,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Parameters
         ----------
-        method : {{None, 'backfill'/'bfill', 'pad'/'ffill', 'nearest'}}
+        method : {None, 'backfill'/'bfill', 'pad'/'ffill', 'nearest'}
             Method to use for filling holes in reindexed DataFrame.
             Please note: this is only applicable to DataFrames/Series with a
             monotonically increasing/decreasing index.
@@ -5280,7 +5282,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ``DataFrame.reindex`` supports two calling conventions
 
         * ``(index=index_labels, columns=column_labels, ...)``
-        * ``(labels, axis={{'index', 'columns'}}, ...)``
+        * ``(labels, axis={'index', 'columns'}, ...)``
 
         We *highly* recommend using keyword arguments to clarify your
         intent.
@@ -6031,6 +6033,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         r"""
         Apply chainable functions that expect Series or DataFrames.
 
+        Passes the object as the first argument to each function, so
+        that ``df.pipe(f).pipe(g)`` is equivalent to ``g(f(df))``.
+        Improves readability when chaining several transformations.
+
         Parameters
         ----------
         func : function
@@ -6555,7 +6561,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         result.columns = self.columns
         result = result.__finalize__(self, method="astype")
         # https://github.com/python/mypy/issues/8354
-        return cast(Self, result)
+        return cast("Self", result)
 
     @final
     def copy(self, deep: bool = True) -> Self:
@@ -6601,7 +6607,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         -----
         When ``deep=True``, data is copied but actual Python objects
         will not be copied recursively, only the reference to the object.
-        This is in contrast to `copy.deepcopy` in the Standard Library,
+        This is in contrast to :py:func:`copy.deepcopy` in the Standard Library,
         which recursively copies object data (see examples below).
 
         While ``Index`` objects are copied when ``deep=True``, the underlying
@@ -6752,6 +6758,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Convert columns from numpy dtypes to the best dtypes that support ``pd.NA``.
 
+        This finds the smallest dtype that can hold all values, or uses
+        extension dtypes (e.g. nullable integer, string, boolean) so that
+        missing values are represented by ``pd.NA`` instead of ``np.nan``.
+
         Parameters
         ----------
         infer_objects : bool, default True
@@ -6771,7 +6781,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             :class:`Series` (still experimental). Behaviour is as follows:
 
             * ``"numpy_nullable"``: returns nullable-dtype-backed
-              :class:`DataFrame` or :class:`Serires`.
+              :class:`DataFrame` or :class:`Series`.
             * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
               :class:`DataFrame` or :class:`Series`.
 
@@ -6941,6 +6951,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> Self:
         """
         Fill NA/NaN values with `value`.
+
+        This method replaces missing values with a specified value.
 
         Parameters
         ----------
@@ -7181,6 +7193,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Fill NA/NaN values by propagating the last valid observation to next valid.
 
+        This method fills missing values using forward fill, where the last
+        valid observation is propagated forward to fill the gaps.
+
         Parameters
         ----------
         axis : {0 or 'index'} for Series, {0 or 'index', 1 or 'columns'} for DataFrame
@@ -7197,7 +7212,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             be partially filled. If method is not specified, this is the
             maximum number of entries along the entire axis where NaNs will be
             filled. Must be greater than 0 if not None.
-        limit_area : {{`None`, 'inside', 'outside'}}, default None
+        limit_area : {`None`, 'inside', 'outside'}, default None
             If limit is specified, consecutive NaNs will be filled with this
             restriction.
 
@@ -7303,7 +7318,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             be partially filled. If method is not specified, this is the
             maximum number of entries along the entire axis where NaNs will be
             filled. Must be greater than 0 if not None.
-        limit_area : {{`None`, 'inside', 'outside'}}, default None
+        limit_area : {`None`, 'inside', 'outside'}, default None
             If limit is specified, consecutive NaNs will be filled with this
             restriction.
 
@@ -7909,7 +7924,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             * 'from_derivatives': Refers to
               `scipy.interpolate.BPoly.from_derivatives`.
 
-        axis : {{0 or 'index', 1 or 'columns', None}}, default None
+        axis : {0 or 'index', 1 or 'columns', None}, default None
             Axis to interpolate along. For `Series` this parameter is unused
             and defaults to 0.
         limit : int, optional
@@ -7917,10 +7932,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             0.
         inplace : bool, default False
             Update the data in place if possible.
-        limit_direction : {{'forward', 'backward', 'both'}}, optional, default 'forward'
+        limit_direction : {'forward', 'backward', 'both'}, optional, default 'forward'
             Consecutive NaNs will be filled in this direction.
 
-        limit_area : {{`None`, 'inside', 'outside'}}, default None
+        limit_area : {`None`, 'inside', 'outside'}, default None
             If limit is specified, consecutive NaNs will be filled with this
             restriction.
 
@@ -8629,7 +8644,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Maximum threshold value. All values above this
             threshold will be set to it. A missing
             threshold (e.g `NA`) will not clip the value.
-        axis : {{0 or 'index', 1 or 'columns', None}}, default None
+        axis : {0 or 'index', 1 or 'columns', None}, default None
             Align object with lower and upper along the given axis.
             For `Series` this parameter is unused and defaults to `None`.
         inplace : bool, default False
@@ -8817,14 +8832,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ----------
         freq : DateOffset or str
             Frequency DateOffset or string.
-        method : {{'backfill'/'bfill', 'pad'/'ffill'}}, default None
+        method : {'backfill'/'bfill', 'pad'/'ffill'}, default None
             Method to use for filling holes in reindexed Series (note this
             does not fill NaNs that already were present):
 
             * 'pad' / 'ffill': propagate last valid observation forward to next
               valid based on the order of the index
             * 'backfill' / 'bfill': use NEXT valid observation to fill.
-        how : {{'start', 'end'}}, default end
+        how : {'start', 'end'}, default end
             For PeriodIndex only (see PeriodIndex.asfreq).
         normalize : bool, default False
             Whether to reset output index to midnight.
@@ -8911,6 +8926,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def at_time(self, time, asof: bool = False, axis: Axis | None = None) -> Self:
         """
         Select values at particular time of day (e.g., 9:30AM).
+
+        This method filters rows whose index has a time component matching
+        the specified time. The index must be a DatetimeIndex.
 
         Parameters
         ----------
@@ -9077,15 +9095,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ----------
         rule : DateOffset, Timedelta or str
             The offset string or object representing target conversion.
-        closed : {{'right', 'left'}}, default None
+        closed : {'right', 'left'}, default None
             Which side of bin interval is closed. The default is 'left'
             for all frequency offsets except for 'ME', 'YE', 'QE', 'BME',
             'BA', 'BQE', and 'W' which all have a default of 'right'.
-        label : {{'right', 'left'}}, default None
+        label : {'right', 'left'}, default None
             Which bin edge label to label bucket with. The default is 'left'
             for all frequency offsets except for 'ME', 'YE', 'QE', 'BME',
             'BA', 'BQE', and 'W' which all have a default of 'right'.
-        convention : {{'start', 'end', 's', 'e'}}, default 'start'
+        convention : {'start', 'end', 's', 'e'}, default 'start'
             For `PeriodIndex` only, controls whether to use the start or
             end of `rule`.
         on : str, optional
@@ -9720,7 +9738,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ----------
         other : DataFrame or Series
             The object to align with.
-        join : {{'outer', 'inner', 'left', 'right'}}, default 'outer'
+        join : {'outer', 'inner', 'left', 'right'}, default 'outer'
             Type of alignment to be performed.
 
             * left: use only keys from left frame, preserve key order.
@@ -9851,7 +9869,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         else:  # pragma: no cover
             raise TypeError(f"unsupported type: {type(other)}")
 
-        right = cast(NDFrameT, _right)
+        right = cast("NDFrameT", _right)
         if self.ndim == 1 or axis == 0:
             # If we are aligning timezone-aware DatetimeIndexes and the timezones
             #  do not match, convert both to UTC.
@@ -10333,6 +10351,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Replace values where the condition is True.
 
+        Where ``cond`` is True, the result takes the value from
+        ``other``; where False, it keeps the original value. Inverse of
+        :meth:`where`. Useful for replacing invalid or sentinel values.
+
         Parameters
         ----------
         cond : bool Series/DataFrame, array-like, or callable
@@ -10531,7 +10553,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             If `freq` is specified as "infer" then it will be inferred from
             the freq or inferred_freq attributes of the index. If neither of
             those attributes exist, a ValueError is thrown.
-        axis : {{0 or 'index', 1 or 'columns', None}}, default None
+        axis : {0 or 'index', 1 or 'columns', None}, default None
             Shift direction. For `Series` this parameter is unused and defaults to 0.
         fill_value : object, optional
             The scalar value to use for newly introduced missing values.
@@ -10633,7 +10655,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             return self.to_frame().shift(
                 periods=periods, freq=freq, axis=axis, fill_value=fill_value
             )
-        periods = cast(int, periods)
+        periods = cast("int", periods)
 
         if freq is None:
             # when freq is None, data is shifted, index is not
@@ -10875,12 +10897,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Convert tz-aware axis to target time zone.
 
+        This method converts the timezone of a datetime-based index from one
+        timezone to another.
+
         Parameters
         ----------
         tz : str or tzinfo object or None
             Target time zone. Passing ``None`` will convert to
             UTC and remove the timezone information.
-        axis : {{0 or 'index', 1 or 'columns'}}, default 0
+        axis : {0 or 'index', 1 or 'columns'}, default 0
             The axis to convert
         level : int, str, default None
             If axis is a MultiIndex, convert a specific level. Otherwise
@@ -10984,10 +11009,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         tz : str or tzinfo or None
             Time zone to localize. Passing ``None`` will remove the
             time zone information and preserve local time.
-        axis : {{0 or 'index', 1 or 'columns'}}, default 0
+        axis : {0 or 'index', 1 or 'columns'}, default 0
             The axis to localize
         level : int, str, default None
-            If axis ia a MultiIndex, localize a specific level. Otherwise
+            If axis is a MultiIndex, localize a specific level. Otherwise
             must be None.
         copy : bool, default False
             This keyword is now ignored; changing its value will have no
@@ -11944,6 +11969,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Provide rolling window calculations.
 
+        This method returns a rolling window object, enabling aggregation,
+        transformation, and other operations over a sliding window of a
+        specified size.
+
         Parameters
         ----------
         window : int, timedelta, str, offset, or BaseIndexer subclass
@@ -12291,7 +12320,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return Expanding(self, min_periods=min_periods, method=method)
 
     @final
-    @doc(ExponentialMovingWindow)
     def ewm(
         self,
         com: float | None = None,
@@ -12304,6 +12332,197 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         times: np.ndarray | DataFrame | Series | None = None,
         method: Literal["single", "table"] = "single",
     ) -> ExponentialMovingWindow:
+        r"""
+        Provide exponentially weighted (EW) calculations.
+
+        Exactly one of ``com``, ``span``, ``halflife``, or ``alpha`` must be
+        provided if ``times`` is not provided. If ``times`` is provided and
+        ``adjust=True``, ``halflife`` and one of ``com``, ``span`` or ``alpha``
+        may be provided.
+        If ``times`` is provided and ``adjust=False``, ``halflife``
+        must be the only provided decay-specification parameter.
+
+        Parameters
+        ----------
+        com : float, optional
+            Specify decay in terms of center of mass
+
+            :math:`\alpha = 1 / (1 + com)`, for :math:`com \\geq 0`.
+
+        span : float, optional
+            Specify decay in terms of span
+
+            :math:`\alpha = 2 / (span + 1)`, for :math:`span \\geq 1`.
+
+        halflife : float, str, timedelta, optional
+            Specify decay in terms of half-life
+
+            :math:`\alpha = 1 - \\exp\\left(-\\ln(2) / halflife\right)`,
+            for :math:`halflife > 0`.
+
+            If ``times`` is specified, a timedelta convertible unit over which an
+            observation decays to half its value. Only applicable to ``mean()``,
+            and halflife value will not apply to the other functions.
+
+        alpha : float, optional
+            Specify smoothing factor :math:`\alpha` directly
+
+            :math:`0 < \alpha \\leq 1`.
+
+        min_periods : int, default 0
+            Minimum number of observations in window required to have a value;
+            otherwise, result is ``np.nan``.
+
+        adjust : bool, default True
+            Divide by decaying adjustment factor in beginning periods to account
+            for imbalance in relative weightings (viewing EWMA as a moving average).
+
+            - When ``adjust=True`` (default), the EW function is calculated
+              using weights
+              :math:`w_i = (1 - \alpha)^i`. For example, the EW moving
+              average of the series [:math:`x_0, x_1, ..., x_t`] would be:
+
+            .. math::
+                y_t = \frac{x_t + (1 - \alpha)x_{t-1} + (1 - \alpha)^2 x_{t-2} + ... +
+                (1 - \alpha)^t x_0}{1 + (1 - \alpha) + (1 - \alpha)^2 + ... +
+                (1 - \alpha)^t}
+
+            - When ``adjust=False``, the exponentially weighted function is calculated
+              recursively:
+
+            .. math::
+                \begin{split}
+                    y_0 &= x_0\\
+                    y_t &= (1 - \alpha) y_{t-1} + \alpha x_t,
+                \\end{split}
+
+        ignore_na : bool, default False
+            Ignore missing values when calculating weights.
+
+            - When ``ignore_na=False`` (default), weights are based on absolute
+              positions.
+              For example, the weights of :math:`x_0` and :math:`x_2`
+              used in calculating the final weighted average of
+              [:math:`x_0`, None, :math:`x_2`] are
+              :math:`(1-\alpha)^2` and :math:`1` if ``adjust=True``, and
+              :math:`(1-\alpha)^2` and :math:`\alpha` if ``adjust=False``.
+
+            - When ``ignore_na=True``, weights are based
+              on relative positions. For example, the weights of :math:`x_0` and
+              :math:`x_2` used in calculating the final weighted average of
+              [:math:`x_0`, None, :math:`x_2`] are :math:`1-\alpha` and :math:`1` if
+              ``adjust=True``, and :math:`1-\alpha` and :math:`\alpha`
+              if ``adjust=False``.
+
+        times : np.ndarray, Series, default None
+
+            Only applicable to ``mean()``.
+
+            Times corresponding to the observations. Must be monotonically
+            increasing and ``datetime64[ns]`` dtype.
+
+            If 1-D array like, a sequence with the same shape as the observations.
+
+        method : str {'single', 'table'}, default 'single'
+            Execute the rolling operation per single column or row (``'single'``)
+            or over the entire object (``'table'``).
+
+            This argument is only implemented when specifying ``engine='numba'``
+            in the method call.
+
+            Only applicable to ``mean()``
+
+        Returns
+        -------
+        pandas.api.typing.ExponentialMovingWindow
+            An instance of ExponentialMovingWindow for further exponentially weighted
+            (EW) calculations, e.g. using the ``mean`` method.
+
+        See Also
+        --------
+        rolling : Provides rolling window calculations.
+        expanding : Provides expanding transformations.
+
+        Notes
+        -----
+        See :ref:`Windowing Operations <window.exponentially_weighted>`
+        for further usage details and examples.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]})
+        >>> df
+             B
+        0  0.0
+        1  1.0
+        2  2.0
+        3  NaN
+        4  4.0
+
+        >>> df.ewm(com=0.5).mean()
+                  B
+        0  0.000000
+        1  0.750000
+        2  1.615385
+        3  1.615385
+        4  3.670213
+        >>> df.ewm(alpha=2 / 3).mean()
+                  B
+        0  0.000000
+        1  0.750000
+        2  1.615385
+        3  1.615385
+        4  3.670213
+
+        **adjust**
+
+        >>> df.ewm(com=0.5, adjust=True).mean()
+                  B
+        0  0.000000
+        1  0.750000
+        2  1.615385
+        3  1.615385
+        4  3.670213
+        >>> df.ewm(com=0.5, adjust=False).mean()
+                  B
+        0  0.000000
+        1  0.666667
+        2  1.555556
+        3  1.555556
+        4  3.650794
+
+        **ignore_na**
+
+        >>> df.ewm(com=0.5, ignore_na=True).mean()
+                  B
+        0  0.000000
+        1  0.750000
+        2  1.615385
+        3  1.615385
+        4  3.225000
+        >>> df.ewm(com=0.5, ignore_na=False).mean()
+                  B
+        0  0.000000
+        1  0.750000
+        2  1.615385
+        3  1.615385
+        4  3.670213
+
+        **times**
+
+        Exponentially weighted mean with weights calculated with a
+        timedelta ``halflife`` relative to ``times``.
+
+        >>> times = ['2020-01-01', '2020-01-03', '2020-01-10', '2020-01-15',
+        ...         '2020-01-17']
+        >>> df.ewm(halflife='4 days', times=pd.DatetimeIndex(times)).mean()
+                  B
+        0  0.000000
+        1  0.585786
+        2  1.523889
+        3  1.523889
+        4  3.233686
+        """
         return ExponentialMovingWindow(
             self,
             com=com,
@@ -12583,1187 +12802,3 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         If DataFrame is empty, returns None.
         """
         return self._find_valid_index(how="last")
-
-
-_num_doc = """
-{desc}
-
-Parameters
-----------
-axis : {axis_descr}
-    Axis for the function to be applied on.
-    For `Series` this parameter is unused and defaults to 0.
-
-    For DataFrames, specifying ``axis=None`` will apply the aggregation
-    across both axes.
-
-    .. versionadded:: 2.0.0
-
-skipna : bool, default True
-    Exclude NA/null values when computing the result.
-numeric_only : bool, default False
-    Include only float, int, boolean columns.
-
-{min_count}\
-**kwargs
-    Additional keyword arguments to be passed to the function.
-
-Returns
--------
-{name1} or scalar\
-
-    Value containing the calculation referenced in the description.\
-{see_also}\
-{examples}
-"""
-
-_sum_prod_doc = """
-{desc}
-
-Parameters
-----------
-axis : {axis_descr}
-    Axis for the function to be applied on.
-    For `Series` this parameter is unused and defaults to 0.
-
-    .. warning::
-
-        The behavior of DataFrame.{name} with ``axis=None`` is deprecated,
-        in a future version this will reduce over both axes and return a scalar
-        To retain the old behavior, pass axis=0 (or do not pass axis).
-
-    .. versionadded:: 2.0.0
-
-skipna : bool, default True
-    Exclude NA/null values when computing the result.
-numeric_only : bool, default False
-    Include only float, int, boolean columns. Not implemented for Series.
-
-{min_count}\
-**kwargs
-    Additional keyword arguments to be passed to the function.
-
-Returns
--------
-{name1} or scalar\
-
-    Value containing the calculation referenced in the description.\
-{see_also}\
-{examples}
-"""
-
-_num_ddof_doc = """
-{desc}
-
-Parameters
-----------
-axis : {axis_descr}
-    For `Series` this parameter is unused and defaults to 0.
-
-    .. warning::
-
-        The behavior of DataFrame.{name} with ``axis=None`` is deprecated,
-        in a future version this will reduce over both axes and return a scalar
-        To retain the old behavior, pass axis=0 (or do not pass axis).
-
-skipna : bool, default True
-    Exclude NA/null values. If an entire row/column is NA, the result
-    will be NA.
-ddof : int, default 1
-    Delta Degrees of Freedom. The divisor used in calculations is N - ddof,
-    where N represents the number of elements.
-numeric_only : bool, default False
-    Include only float, int, boolean columns. Not implemented for Series.
-**kwargs :
-    Additional keywords have no effect but might be accepted
-    for compatibility with NumPy.
-
-Returns
--------
-{name1} or {name2} (if level specified)
-    {return_desc}
-
-See Also
---------
-{see_also}\
-{notes}\
-{examples}
-"""
-
-_sem_see_also = """\
-scipy.stats.sem : Compute standard error of the mean.
-{name2}.std : Return sample standard deviation over requested axis.
-{name2}.var : Return unbiased variance over requested axis.
-{name2}.mean : Return the mean of the values over the requested axis.
-{name2}.median : Return the median of the values over the requested axis.
-{name2}.mode : Return the mode(s) of the Series."""
-
-_sem_return_desc = """\
-Unbiased standard error of the mean over requested axis."""
-
-_std_see_also = """\
-numpy.std : Compute the standard deviation along the specified axis.
-{name2}.var : Return unbiased variance over requested axis.
-{name2}.sem : Return unbiased standard error of the mean over requested axis.
-{name2}.mean : Return the mean of the values over the requested axis.
-{name2}.median : Return the median of the values over the requested axis.
-{name2}.mode : Return the mode(s) of the Series."""
-
-_std_return_desc = """\
-Standard deviation over requested axis."""
-
-_std_notes = """
-
-Notes
------
-To have the same behaviour as `numpy.std`, use `ddof=0` (instead of the
-default `ddof=1`)"""
-
-_std_examples = """
-
-Examples
---------
->>> df = pd.DataFrame({'person_id': [0, 1, 2, 3],
-...                    'age': [21, 25, 62, 43],
-...                    'height': [1.61, 1.87, 1.49, 2.01]}
-...                   ).set_index('person_id')
->>> df
-           age  height
-person_id
-0           21    1.61
-1           25    1.87
-2           62    1.49
-3           43    2.01
-
-The standard deviation of the columns can be found as follows:
-
->>> df.std()
-age       18.786076
-height     0.237417
-dtype: float64
-
-Alternatively, `ddof=0` can be set to normalize by N instead of N-1:
-
->>> df.std(ddof=0)
-age       16.269219
-height     0.205609
-dtype: float64"""
-
-_var_examples = """
-
-Examples
---------
->>> df = pd.DataFrame({'person_id': [0, 1, 2, 3],
-...                    'age': [21, 25, 62, 43],
-...                    'height': [1.61, 1.87, 1.49, 2.01]}
-...                   ).set_index('person_id')
->>> df
-           age  height
-person_id
-0           21    1.61
-1           25    1.87
-2           62    1.49
-3           43    2.01
-
->>> df.var()
-age       352.916667
-height      0.056367
-dtype: float64
-
-Alternatively, ``ddof=0`` can be set to normalize by N instead of N-1:
-
->>> df.var(ddof=0)
-age       264.687500
-height      0.042275
-dtype: float64"""
-
-_bool_doc = """
-{desc}
-
-Parameters
-----------
-axis : {{0 or 'index', 1 or 'columns', None}}, default 0
-    Indicate which axis or axes should be reduced. For `Series` this parameter
-    is unused and defaults to 0.
-
-    * 0 / 'index' : reduce the index, return a Series whose index is the
-      original column labels.
-    * 1 / 'columns' : reduce the columns, return a Series whose index is the
-      original index.
-    * None : reduce all axes, return a scalar.
-
-bool_only : bool, default False
-    Include only boolean columns. Not implemented for Series.
-skipna : bool, default True
-    Exclude NA/null values. If the entire row/column is NA and skipna is
-    True, then the result will be {empty_value}, as for an empty row/column.
-    If skipna is False, then NA are treated as True, because these are not
-    equal to zero.
-**kwargs : any, default None
-    Additional keywords have no effect but might be accepted for
-    compatibility with NumPy.
-
-Returns
--------
-{name2} or {name1}
-    If axis=None, then a scalar boolean is returned.
-    Otherwise a Series is returned with index matching the index argument.
-
-{see_also}
-{examples}"""
-
-_all_desc = """\
-Return whether all elements are True, potentially over an axis.
-
-Returns True unless there at least one element within a series or
-along a Dataframe axis that is False or equivalent (e.g. zero or
-empty)."""
-
-_all_examples = """\
-Examples
---------
-**Series**
-
->>> pd.Series([True, True]).all()
-True
->>> pd.Series([True, False]).all()
-False
->>> pd.Series([], dtype="float64").all()
-True
->>> pd.Series([np.nan]).all()
-True
->>> pd.Series([np.nan]).all(skipna=False)
-True
-
-**DataFrames**
-
-Create a DataFrame from a dictionary.
-
->>> df = pd.DataFrame({'col1': [True, True], 'col2': [True, False]})
->>> df
-   col1   col2
-0  True   True
-1  True  False
-
-Default behaviour checks if values in each column all return True.
-
->>> df.all()
-col1     True
-col2    False
-dtype: bool
-
-Specify ``axis='columns'`` to check if values in each row all return True.
-
->>> df.all(axis='columns')
-0     True
-1    False
-dtype: bool
-
-Or ``axis=None`` for whether every value is True.
-
->>> df.all(axis=None)
-False
-"""
-
-_all_see_also = """\
-See Also
---------
-Series.all : Return True if all elements are True.
-DataFrame.any : Return True if one (or more) elements are True.
-"""
-
-_cnum_pd_doc = """
-Return cumulative {desc} over a DataFrame or Series axis.
-
-Returns a DataFrame or Series of the same size containing the cumulative
-{desc}.
-
-Parameters
-----------
-axis : {{0 or 'index', 1 or 'columns'}}, default 0
-    The index or the name of the axis. 0 is equivalent to None or 'index'.
-    For `Series` this parameter is unused and defaults to 0.
-skipna : bool, default True
-    Exclude NA/null values. If an entire row/column is NA, the result
-    will be NA.
-numeric_only : bool, default False
-    Include only float, int, boolean columns.
-*args, **kwargs
-    Additional keywords have no effect but might be accepted for
-    compatibility with NumPy.
-
-Returns
--------
-{name1} or {name2}
-    Return cumulative {desc} of {name1} or {name2}.
-
-See Also
---------
-core.window.expanding.Expanding.{accum_func_name} : Similar functionality
-    but ignores ``NaN`` values.
-{name2}.{accum_func_name} : Return the {desc} over
-    {name2} axis.
-{name2}.cummax : Return cumulative maximum over {name2} axis.
-{name2}.cummin : Return cumulative minimum over {name2} axis.
-{name2}.cumsum : Return cumulative sum over {name2} axis.
-{name2}.cumprod : Return cumulative product over {name2} axis.
-
-{examples}"""
-
-_cnum_series_doc = """
-Return cumulative {desc} over a DataFrame or Series axis.
-
-Returns a DataFrame or Series of the same size containing the cumulative
-{desc}.
-
-Parameters
-----------
-axis : {{0 or 'index', 1 or 'columns'}}, default 0
-    The index or the name of the axis. 0 is equivalent to None or 'index'.
-    For `Series` this parameter is unused and defaults to 0.
-skipna : bool, default True
-    Exclude NA/null values. If an entire row/column is NA, the result
-    will be NA.
-*args, **kwargs
-    Additional keywords have no effect but might be accepted for
-    compatibility with NumPy.
-
-Returns
--------
-{name1} or {name2}
-    Return cumulative {desc} of {name1} or {name2}.
-
-See Also
---------
-core.window.expanding.Expanding.{accum_func_name} : Similar functionality
-    but ignores ``NaN`` values.
-{name2}.{accum_func_name} : Return the {desc} over
-    {name2} axis.
-{name2}.cummax : Return cumulative maximum over {name2} axis.
-{name2}.cummin : Return cumulative minimum over {name2} axis.
-{name2}.cumsum : Return cumulative sum over {name2} axis.
-{name2}.cumprod : Return cumulative product over {name2} axis.
-
-{examples}"""
-
-_cummin_examples = """\
-Examples
---------
-**Series**
-
->>> s = pd.Series([2, np.nan, 5, -1, 0])
->>> s
-0    2.0
-1    NaN
-2    5.0
-3   -1.0
-4    0.0
-dtype: float64
-
-By default, NA values are ignored.
-
->>> s.cummin()
-0    2.0
-1    NaN
-2    2.0
-3   -1.0
-4   -1.0
-dtype: float64
-
-To include NA values in the operation, use ``skipna=False``
-
->>> s.cummin(skipna=False)
-0    2.0
-1    NaN
-2    NaN
-3    NaN
-4    NaN
-dtype: float64
-
-**DataFrame**
-
->>> df = pd.DataFrame([[2.0, 1.0],
-...                    [3.0, np.nan],
-...                    [1.0, 0.0]],
-...                   columns=list('AB'))
->>> df
-     A    B
-0  2.0  1.0
-1  3.0  NaN
-2  1.0  0.0
-
-By default, iterates over rows and finds the minimum
-in each column. This is equivalent to ``axis=None`` or ``axis='index'``.
-
->>> df.cummin()
-     A    B
-0  2.0  1.0
-1  2.0  NaN
-2  1.0  0.0
-
-To iterate over columns and find the minimum in each row,
-use ``axis=1``
-
->>> df.cummin(axis=1)
-     A    B
-0  2.0  1.0
-1  3.0  NaN
-2  1.0  0.0
-"""
-
-_cumsum_examples = """\
-Examples
---------
-**Series**
-
->>> s = pd.Series([2, np.nan, 5, -1, 0])
->>> s
-0    2.0
-1    NaN
-2    5.0
-3   -1.0
-4    0.0
-dtype: float64
-
-By default, NA values are ignored.
-
->>> s.cumsum()
-0    2.0
-1    NaN
-2    7.0
-3    6.0
-4    6.0
-dtype: float64
-
-To include NA values in the operation, use ``skipna=False``
-
->>> s.cumsum(skipna=False)
-0    2.0
-1    NaN
-2    NaN
-3    NaN
-4    NaN
-dtype: float64
-
-**DataFrame**
-
->>> df = pd.DataFrame([[2.0, 1.0],
-...                    [3.0, np.nan],
-...                    [1.0, 0.0]],
-...                   columns=list('AB'))
->>> df
-     A    B
-0  2.0  1.0
-1  3.0  NaN
-2  1.0  0.0
-
-By default, iterates over rows and finds the sum
-in each column. This is equivalent to ``axis=None`` or ``axis='index'``.
-
->>> df.cumsum()
-     A    B
-0  2.0  1.0
-1  5.0  NaN
-2  6.0  1.0
-
-To iterate over columns and find the sum in each row,
-use ``axis=1``
-
->>> df.cumsum(axis=1)
-     A    B
-0  2.0  3.0
-1  3.0  NaN
-2  1.0  1.0
-"""
-
-_cumprod_examples = """\
-Examples
---------
-**Series**
-
->>> s = pd.Series([2, np.nan, 5, -1, 0])
->>> s
-0    2.0
-1    NaN
-2    5.0
-3   -1.0
-4    0.0
-dtype: float64
-
-By default, NA values are ignored.
-
->>> s.cumprod()
-0     2.0
-1     NaN
-2    10.0
-3   -10.0
-4    -0.0
-dtype: float64
-
-To include NA values in the operation, use ``skipna=False``
-
->>> s.cumprod(skipna=False)
-0    2.0
-1    NaN
-2    NaN
-3    NaN
-4    NaN
-dtype: float64
-
-**DataFrame**
-
->>> df = pd.DataFrame([[2.0, 1.0],
-...                    [3.0, np.nan],
-...                    [1.0, 0.0]],
-...                   columns=list('AB'))
->>> df
-     A    B
-0  2.0  1.0
-1  3.0  NaN
-2  1.0  0.0
-
-By default, iterates over rows and finds the product
-in each column. This is equivalent to ``axis=None`` or ``axis='index'``.
-
->>> df.cumprod()
-     A    B
-0  2.0  1.0
-1  6.0  NaN
-2  6.0  0.0
-
-To iterate over columns and find the product in each row,
-use ``axis=1``
-
->>> df.cumprod(axis=1)
-     A    B
-0  2.0  2.0
-1  3.0  NaN
-2  1.0  0.0
-"""
-
-_cummax_examples = """\
-Examples
---------
-**Series**
-
->>> s = pd.Series([2, np.nan, 5, -1, 0])
->>> s
-0    2.0
-1    NaN
-2    5.0
-3   -1.0
-4    0.0
-dtype: float64
-
-By default, NA values are ignored.
-
->>> s.cummax()
-0    2.0
-1    NaN
-2    5.0
-3    5.0
-4    5.0
-dtype: float64
-
-To include NA values in the operation, use ``skipna=False``
-
->>> s.cummax(skipna=False)
-0    2.0
-1    NaN
-2    NaN
-3    NaN
-4    NaN
-dtype: float64
-
-**DataFrame**
-
->>> df = pd.DataFrame([[2.0, 1.0],
-...                    [3.0, np.nan],
-...                    [1.0, 0.0]],
-...                   columns=list('AB'))
->>> df
-     A    B
-0  2.0  1.0
-1  3.0  NaN
-2  1.0  0.0
-
-By default, iterates over rows and finds the maximum
-in each column. This is equivalent to ``axis=None`` or ``axis='index'``.
-
->>> df.cummax()
-     A    B
-0  2.0  1.0
-1  3.0  NaN
-2  3.0  1.0
-
-To iterate over columns and find the maximum in each row,
-use ``axis=1``
-
->>> df.cummax(axis=1)
-     A    B
-0  2.0  2.0
-1  3.0  NaN
-2  1.0  1.0
-"""
-
-_any_see_also = """\
-See Also
---------
-numpy.any : Numpy version of this method.
-Series.any : Return whether any element is True.
-Series.all : Return whether all elements are True.
-DataFrame.any : Return whether any element is True over requested axis.
-DataFrame.all : Return whether all elements are True over requested axis.
-"""
-
-_any_desc = """\
-Return whether any element is True, potentially over an axis.
-
-Returns False unless there is at least one element within a series or
-along a Dataframe axis that is True or equivalent (e.g. non-zero or
-non-empty)."""
-
-_any_examples = """\
-Examples
---------
-**Series**
-
-For Series input, the output is a scalar indicating whether any element
-is True.
-
->>> pd.Series([False, False]).any()
-False
->>> pd.Series([True, False]).any()
-True
->>> pd.Series([], dtype="float64").any()
-False
->>> pd.Series([np.nan]).any()
-False
->>> pd.Series([np.nan]).any(skipna=False)
-True
-
-**DataFrame**
-
-Whether each column contains at least one True element (the default).
-
->>> df = pd.DataFrame({"A": [1, 2], "B": [0, 2], "C": [0, 0]})
->>> df
-   A  B  C
-0  1  0  0
-1  2  2  0
-
->>> df.any()
-A     True
-B     True
-C    False
-dtype: bool
-
-Aggregating over the columns.
-
->>> df = pd.DataFrame({"A": [True, False], "B": [1, 2]})
->>> df
-       A  B
-0   True  1
-1  False  2
-
->>> df.any(axis='columns')
-0    True
-1    True
-dtype: bool
-
->>> df = pd.DataFrame({"A": [True, False], "B": [1, 0]})
->>> df
-       A  B
-0   True  1
-1  False  0
-
->>> df.any(axis='columns')
-0    True
-1    False
-dtype: bool
-
-Aggregating over the entire DataFrame with ``axis=None``.
-
->>> df.any(axis=None)
-True
-
-`any` for an empty DataFrame is an empty Series.
-
->>> pd.DataFrame([]).any()
-Series([], dtype: bool)
-"""
-
-_shared_docs["stat_func_example"] = """
-
-Examples
---------
->>> idx = pd.MultiIndex.from_arrays([
-...     ['warm', 'warm', 'cold', 'cold'],
-...     ['dog', 'falcon', 'fish', 'spider']],
-...     names=['blooded', 'animal'])
->>> s = pd.Series([4, 2, 0, 8], name='legs', index=idx)
->>> s
-blooded  animal
-warm     dog       4
-         falcon    2
-cold     fish      0
-         spider    8
-Name: legs, dtype: int64
-
->>> s.{stat_func}()
-{default_output}"""
-
-_sum_examples = _shared_docs["stat_func_example"].format(
-    stat_func="sum", verb="Sum", default_output=14, level_output_0=6, level_output_1=8
-)
-
-_sum_examples += """
-
-By default, the sum of an empty or all-NA Series is ``0``.
-
->>> pd.Series([], dtype="float64").sum()  # min_count=0 is the default
-0.0
-
-This can be controlled with the ``min_count`` parameter. For example, if
-you'd like the sum of an empty series to be NaN, pass ``min_count=1``.
-
->>> pd.Series([], dtype="float64").sum(min_count=1)
-nan
-
-Thanks to the ``skipna`` parameter, ``min_count`` handles all-NA and
-empty series identically.
-
->>> pd.Series([np.nan]).sum()
-0.0
-
->>> pd.Series([np.nan]).sum(min_count=1)
-nan"""
-
-_max_examples: str = _shared_docs["stat_func_example"].format(
-    stat_func="max", verb="Max", default_output=8, level_output_0=4, level_output_1=8
-)
-
-_min_examples: str = _shared_docs["stat_func_example"].format(
-    stat_func="min", verb="Min", default_output=0, level_output_0=2, level_output_1=0
-)
-
-_skew_see_also = """
-
-See Also
---------
-Series.skew : Return unbiased skew over requested axis.
-Series.var : Return unbiased variance over requested axis.
-Series.std : Return unbiased standard deviation over requested axis."""
-
-_stat_func_see_also = """
-
-See Also
---------
-Series.sum : Return the sum.
-Series.min : Return the minimum.
-Series.max : Return the maximum.
-Series.idxmin : Return the index of the minimum.
-Series.idxmax : Return the index of the maximum.
-DataFrame.sum : Return the sum over the requested axis.
-DataFrame.min : Return the minimum over the requested axis.
-DataFrame.max : Return the maximum over the requested axis.
-DataFrame.idxmin : Return the index of the minimum over the requested axis.
-DataFrame.idxmax : Return the index of the maximum over the requested axis."""
-
-_prod_examples = """
-
-Examples
---------
-By default, the product of an empty or all-NA Series is ``1``
-
->>> pd.Series([], dtype="float64").prod()
-1.0
-
-This can be controlled with the ``min_count`` parameter
-
->>> pd.Series([], dtype="float64").prod(min_count=1)
-nan
-
-Thanks to the ``skipna`` parameter, ``min_count`` handles all-NA and
-empty series identically.
-
->>> pd.Series([np.nan]).prod()
-1.0
-
->>> pd.Series([np.nan]).prod(min_count=1)
-nan"""
-
-_min_count_stub = """\
-min_count : int, default 0
-    The required number of valid values to perform the operation. If fewer than
-    ``min_count`` non-NA values are present the result will be NA.
-"""
-
-
-def make_doc(name: str, ndim: int) -> str:
-    """
-    Generate the docstring for a Series/DataFrame reduction.
-    """
-    if ndim == 1:
-        name1 = "scalar"
-        name2 = "Series"
-        axis_descr = "{index (0)}"
-    else:
-        name1 = "Series"
-        name2 = "DataFrame"
-        axis_descr = "{index (0), columns (1)}"
-
-    if name == "any":
-        base_doc = _bool_doc
-        desc = _any_desc
-        see_also = _any_see_also
-        examples = _any_examples
-        kwargs = {"empty_value": "False"}
-    elif name == "all":
-        base_doc = _bool_doc
-        desc = _all_desc
-        see_also = _all_see_also
-        examples = _all_examples
-        kwargs = {"empty_value": "True"}
-    elif name == "min":
-        base_doc = _num_doc
-        desc = (
-            "Return the minimum of the values over the requested axis.\n\n"
-            "If you want the *index* of the minimum, use ``idxmin``. This is "
-            "the equivalent of the ``numpy.ndarray`` method ``argmin``."
-        )
-        see_also = _stat_func_see_also
-        examples = _min_examples
-        kwargs = {"min_count": ""}
-    elif name == "max":
-        base_doc = _num_doc
-        desc = (
-            "Return the maximum of the values over the requested axis.\n\n"
-            "If you want the *index* of the maximum, use ``idxmax``. This is "
-            "the equivalent of the ``numpy.ndarray`` method ``argmax``."
-        )
-        see_also = _stat_func_see_also
-        examples = _max_examples
-        kwargs = {"min_count": ""}
-
-    elif name == "sum":
-        base_doc = _sum_prod_doc
-        desc = (
-            "Return the sum of the values over the requested axis.\n\n"
-            "This is equivalent to the method ``numpy.sum``."
-        )
-        see_also = _stat_func_see_also
-        examples = _sum_examples
-        kwargs = {"min_count": _min_count_stub}
-
-    elif name == "prod":
-        base_doc = _sum_prod_doc
-        desc = "Return the product of the values over the requested axis."
-        see_also = _stat_func_see_also
-        examples = _prod_examples
-        kwargs = {"min_count": _min_count_stub}
-
-    elif name == "median":
-        base_doc = _num_doc
-        desc = "Return the median of the values over the requested axis."
-        see_also = _stat_func_see_also
-        examples = """
-
-            Examples
-            --------
-            >>> s = pd.Series([1, 2, 3])
-            >>> s.median()
-            2.0
-
-            With a DataFrame
-
-            >>> df = pd.DataFrame({'a': [1, 2], 'b': [2, 3]}, index=['tiger', 'zebra'])
-            >>> df
-                   a   b
-            tiger  1   2
-            zebra  2   3
-            >>> df.median()
-            a   1.5
-            b   2.5
-            dtype: float64
-
-            Using axis=1
-
-            >>> df.median(axis=1)
-            tiger   1.5
-            zebra   2.5
-            dtype: float64
-
-            In this case, `numeric_only` should be set to `True`
-            to avoid getting an error.
-
-            >>> df = pd.DataFrame({'a': [1, 2], 'b': ['T', 'Z']},
-            ...                   index=['tiger', 'zebra'])
-            >>> df.median(numeric_only=True)
-            a   1.5
-            dtype: float64"""
-        kwargs = {"min_count": ""}
-
-    elif name == "mean":
-        base_doc = _num_doc
-        desc = "Return the mean of the values over the requested axis."
-        see_also = _stat_func_see_also
-        examples = """
-
-            Examples
-            --------
-            >>> s = pd.Series([1, 2, 3])
-            >>> s.mean()
-            2.0
-
-            With a DataFrame
-
-            >>> df = pd.DataFrame({'a': [1, 2], 'b': [2, 3]}, index=['tiger', 'zebra'])
-            >>> df
-                   a   b
-            tiger  1   2
-            zebra  2   3
-            >>> df.mean()
-            a   1.5
-            b   2.5
-            dtype: float64
-
-            Using axis=1
-
-            >>> df.mean(axis=1)
-            tiger   1.5
-            zebra   2.5
-            dtype: float64
-
-            In this case, `numeric_only` should be set to `True` to avoid
-            getting an error.
-
-            >>> df = pd.DataFrame({'a': [1, 2], 'b': ['T', 'Z']},
-            ...                   index=['tiger', 'zebra'])
-            >>> df.mean(numeric_only=True)
-            a   1.5
-            dtype: float64"""
-        kwargs = {"min_count": ""}
-
-    elif name == "var":
-        base_doc = _num_ddof_doc
-        desc = (
-            "Return unbiased variance over requested axis.\n\nNormalized by "
-            "N-1 by default. This can be changed using the ddof argument."
-        )
-        examples = _var_examples
-        see_also = ""
-        kwargs = {"notes": ""}
-
-    elif name == "std":
-        base_doc = _num_ddof_doc
-        desc = (
-            "Return sample standard deviation over requested axis."
-            "\n\nNormalized by N-1 by default. This can be changed using the "
-            "ddof argument."
-        )
-        examples = _std_examples
-        see_also = _std_see_also.format(name2=name2)
-        kwargs = {"notes": "", "return_desc": _std_return_desc}
-
-    elif name == "sem":
-        base_doc = _num_ddof_doc
-        desc = (
-            "Return unbiased standard error of the mean over requested "
-            "axis.\n\nNormalized by N-1 by default. This can be changed "
-            "using the ddof argument"
-        )
-        examples = """
-
-            Examples
-            --------
-            >>> s = pd.Series([1, 2, 3])
-            >>> round(s.sem(), 6)
-            0.57735
-
-            With a DataFrame
-
-            >>> df = pd.DataFrame({'a': [1, 2], 'b': [2, 3]}, index=['tiger', 'zebra'])
-            >>> df
-                   a   b
-            tiger  1   2
-            zebra  2   3
-            >>> df.sem()
-            a   0.5
-            b   0.5
-            dtype: float64
-
-            Using axis=1
-
-            >>> df.sem(axis=1)
-            tiger   0.5
-            zebra   0.5
-            dtype: float64
-
-            In this case, `numeric_only` should be set to `True`
-            to avoid getting an error.
-
-            >>> df = pd.DataFrame({'a': [1, 2], 'b': ['T', 'Z']},
-            ...                   index=['tiger', 'zebra'])
-            >>> df.sem(numeric_only=True)
-            a   0.5
-            dtype: float64"""
-        see_also = _sem_see_also.format(name2=name2)
-        kwargs = {"notes": "", "return_desc": _sem_return_desc}
-
-    elif name == "skew":
-        base_doc = _num_doc
-        desc = "Return unbiased skew over requested axis.\n\nNormalized by N-1."
-        see_also = _skew_see_also
-        examples = """
-
-            Examples
-            --------
-            >>> s = pd.Series([1, 2, 3])
-            >>> s.skew()
-            0.0
-
-            With a DataFrame
-
-            >>> df = pd.DataFrame({'a': [1, 2, 3], 'b': [2, 3, 4], 'c': [1, 3, 5]},
-            ...                   index=['tiger', 'zebra', 'cow'])
-            >>> df
-                    a   b   c
-            tiger   1   2   1
-            zebra   2   3   3
-            cow     3   4   5
-            >>> df.skew()
-            a   0.0
-            b   0.0
-            c   0.0
-            dtype: float64
-
-            Using axis=1
-
-            >>> df.skew(axis=1)
-            tiger   1.732051
-            zebra  -1.732051
-            cow     0.000000
-            dtype: float64
-
-            In this case, `numeric_only` should be set to `True` to avoid
-            getting an error.
-
-            >>> df = pd.DataFrame({'a': [1, 2, 3], 'b': ['T', 'Z', 'X']},
-            ...                   index=['tiger', 'zebra', 'cow'])
-            >>> df.skew(numeric_only=True)
-            a   0.0
-            dtype: float64"""
-        kwargs = {"min_count": ""}
-
-    elif name == "kurt":
-        base_doc = _num_doc
-        desc = (
-            "Return unbiased kurtosis over requested axis.\n\n"
-            "Kurtosis obtained using Fisher's definition of\n"
-            "kurtosis (kurtosis of normal == 0.0). Normalized "
-            "by N-1."
-        )
-        see_also = ""
-        examples = """
-
-            Examples
-            --------
-            >>> s = pd.Series([1, 2, 2, 3], index=['cat', 'dog', 'dog', 'mouse'])
-            >>> s
-            cat    1
-            dog    2
-            dog    2
-            mouse  3
-            dtype: int64
-            >>> s.kurt()
-            1.5
-
-            With a DataFrame
-
-            >>> df = pd.DataFrame({'a': [1, 2, 2, 3], 'b': [3, 4, 4, 4]},
-            ...                   index=['cat', 'dog', 'dog', 'mouse'])
-            >>> df
-                   a   b
-              cat  1   3
-              dog  2   4
-              dog  2   4
-            mouse  3   4
-            >>> df.kurt()
-            a   1.5
-            b   4.0
-            dtype: float64
-
-            With axis=None
-
-            >>> df.kurt(axis=None)
-            -0.9886927196984727
-
-            Using axis=1
-
-            >>> df = pd.DataFrame({'a': [1, 2], 'b': [3, 4], 'c': [3, 4], 'd': [1, 2]},
-            ...                   index=['cat', 'dog'])
-            >>> df.kurt(axis=1)
-            cat   -6.0
-            dog   -6.0
-            dtype: float64"""
-        kwargs = {"min_count": ""}
-
-    elif name == "cumsum":
-        if ndim == 1:
-            base_doc = _cnum_series_doc
-        else:
-            base_doc = _cnum_pd_doc
-
-        desc = "sum"
-        see_also = ""
-        examples = _cumsum_examples
-        kwargs = {"accum_func_name": "sum"}
-
-    elif name == "cumprod":
-        if ndim == 1:
-            base_doc = _cnum_series_doc
-        else:
-            base_doc = _cnum_pd_doc
-
-        desc = "product"
-        see_also = ""
-        examples = _cumprod_examples
-        kwargs = {"accum_func_name": "prod"}
-
-    elif name == "cummin":
-        if ndim == 1:
-            base_doc = _cnum_series_doc
-        else:
-            base_doc = _cnum_pd_doc
-
-        desc = "minimum"
-        see_also = ""
-        examples = _cummin_examples
-        kwargs = {"accum_func_name": "min"}
-
-    elif name == "cummax":
-        if ndim == 1:
-            base_doc = _cnum_series_doc
-        else:
-            base_doc = _cnum_pd_doc
-
-        desc = "maximum"
-        see_also = ""
-        examples = _cummax_examples
-        kwargs = {"accum_func_name": "max"}
-
-    else:
-        raise NotImplementedError
-
-    docstr = base_doc.format(
-        desc=desc,
-        name=name,
-        name1=name1,
-        name2=name2,
-        axis_descr=axis_descr,
-        see_also=see_also,
-        examples=examples,
-        **kwargs,
-    )
-    return docstr

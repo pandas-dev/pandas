@@ -11,14 +11,6 @@ from collections import (
     abc,
     defaultdict,
 )
-from collections.abc import (
-    Callable,
-    Collection,
-    Generator,
-    Hashable,
-    Iterable,
-    Sequence,
-)
 import contextlib
 from functools import partial
 import inspect
@@ -53,6 +45,15 @@ from pandas.core.dtypes.inference import iterable_not_string
 from pandas.core.col import Expression
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Callable,
+        Collection,
+        Generator,
+        Hashable,
+        Iterable,
+        Sequence,
+    )
+
     from pandas._typing import (
         AnyArrayLike,
         ArrayLike,
@@ -308,7 +309,7 @@ def maybe_iterable_to_list(obj: Iterable[T] | T) -> Collection[T] | T:
     """
     if isinstance(obj, abc.Iterable) and not isinstance(obj, abc.Sized):
         return list(obj)
-    obj = cast(Collection, obj)
+    obj = cast("Collection", obj)
     return obj
 
 

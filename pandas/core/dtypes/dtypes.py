@@ -350,7 +350,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             # ordered=None.
             dtype = CategoricalDtype(categories, ordered)
 
-        return cast(CategoricalDtype, dtype)
+        return cast("CategoricalDtype", dtype)
 
     @classmethod
     def construct_from_string(cls, string: str_type) -> CategoricalDtype:
@@ -617,7 +617,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             )
         else:
             # from here on, dtype is a CategoricalDtype
-            dtype = cast(CategoricalDtype, dtype)
+            dtype = cast("CategoricalDtype", dtype)
 
         # update categories/ordered unless they've been explicitly passed as None
         if (
@@ -639,6 +639,10 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         """
         An ``Index`` containing the unique categories allowed.
 
+        If no categories were explicitly provided at construction time, this
+        will be ``None`` until the ``CategoricalDtype`` is attached to actual
+        data.
+
         See Also
         --------
         ordered : Whether the categories have an ordered relationship.
@@ -655,6 +659,9 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     def ordered(self) -> Ordered:
         """
         Whether the categories have an ordered relationship.
+
+        When ``True``, comparison operations on the resulting Categorical
+        are valid and sort in the order of the categories.
 
         See Also
         --------
@@ -825,6 +832,9 @@ class DatetimeTZDtype(PandasExtensionDtype):
         """
         The precision of the datetime data.
 
+        Returns the time resolution as one of ``'s'``, ``'ms'``, ``'us'``,
+        or ``'ns'``.
+
         See Also
         --------
         DatetimeTZDtype.tz : Retrieves the timezone.
@@ -842,6 +852,9 @@ class DatetimeTZDtype(PandasExtensionDtype):
     def tz(self) -> tzinfo:
         """
         The timezone.
+
+        Returns the :class:`datetime.tzinfo` object associated with this
+        dtype, representing the timezone used for localization.
 
         See Also
         --------
@@ -971,7 +984,9 @@ class DatetimeTZDtype(PandasExtensionDtype):
 
     def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
         if all(isinstance(t, DatetimeTZDtype) and t.tz == self.tz for t in dtypes):
-            np_dtype = np.max([cast(DatetimeTZDtype, t).base for t in [self, *dtypes]])
+            np_dtype = np.max(
+                [cast("DatetimeTZDtype", t).base for t in [self, *dtypes]]
+            )
             unit = np.datetime_data(np_dtype)[0]
             unit = cast("TimeUnit", unit)
             return type(self)(unit=unit, tz=self.tz)
@@ -1046,6 +1061,9 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
         """
         if isinstance(freq, PeriodDtype):
             return freq
+
+        elif isinstance(freq, PeriodDtypeBase):
+            freq = to_offset(freq, is_period=True)
 
         if not isinstance(freq, BaseOffset):
             freq = cls._parse_dtype_strict(freq)
@@ -1600,6 +1618,17 @@ class NumpyEADtype(ExtensionDtype):
         The element size of this data-type object.
         """
         return self._dtype.itemsize
+
+    def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
+        from pandas.core.dtypes.cast import find_common_type
+
+        dtypes = [x.numpy_dtype if isinstance(x, NumpyEADtype) else x for x in dtypes]
+        if not all(isinstance(x, np.dtype) for x in dtypes):
+            return None
+
+        common_dtype = find_common_type(dtypes)
+        # error: Argument 1 to "NumpyEADtype" has incompatible type
+        return NumpyEADtype(common_dtype)  # type: ignore[arg-type]
 
 
 class BaseMaskedDtype(ExtensionDtype):

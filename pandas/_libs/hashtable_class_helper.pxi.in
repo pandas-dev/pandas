@@ -510,6 +510,7 @@ cdef class {{name}}HashTable(HashTable):
     {{if dtype == "int64" }}
     # We only use this for int64, can reduce build size and make .pyi
     #  more accurate by only implementing it for int64
+    @cython.wraparound(False)
     @cython.boundscheck(False)
     def map_keys_to_values(
         self, const {{dtype}}_t[:] keys, const int64_t[:] values
@@ -527,6 +528,7 @@ cdef class {{name}}HashTable(HashTable):
                 self.table.vals[k] = <Py_ssize_t>values[i]
     {{endif}}
 
+    @cython.wraparound(False)
     @cython.boundscheck(False)
     def map_locations(self, const {{dtype}}_t[:] values, const uint8_t[:] mask = None) -> None:
         # Used in libindex, safe_sort
@@ -599,6 +601,7 @@ cdef class {{name}}HashTable(HashTable):
 
         return self_locs.to_array(), locs.to_array()
 
+    @cython.wraparound(False)
     @cython.boundscheck(False)
     def lookup(self, const {{dtype}}_t[:] values, const uint8_t[:] mask = None) -> ndarray:
         # -> np.ndarray[np.intp]
@@ -868,6 +871,7 @@ cdef class {{name}}HashTable(HashTable):
         return labels
 
     {{if dtype == 'int64'}}
+    @cython.wraparound(False)
     @cython.boundscheck(False)
     def get_labels_groupby(
         self, const {{dtype}}_t[:] values
@@ -1019,6 +1023,7 @@ cdef class StringHashTable(HashTable):
         else:
             raise KeyError(key)
 
+    @cython.wraparound(False)
     @cython.boundscheck(False)
     def get_indexer(self, ndarray[object] values) -> ndarray:
         # -> np.ndarray[np.intp]
@@ -1050,6 +1055,7 @@ cdef class StringHashTable(HashTable):
         free(vecs)
         return labels
 
+    @cython.wraparound(False)
     @cython.boundscheck(False)
     def lookup(self, ndarray[object] values, object mask = None) -> ndarray:
         # -> np.ndarray[np.intp]
@@ -1089,6 +1095,7 @@ cdef class StringHashTable(HashTable):
         free(vecs)
         return np.asarray(locs)
 
+    @cython.wraparound(False)
     @cython.boundscheck(False)
     def map_locations(self, ndarray[object] values, object mask = None) -> None:
         # mask not yet implemented
@@ -1376,6 +1383,8 @@ cdef class PyObjectHashTable(HashTable):
         else:
             raise KeyError(key)
 
+    @cython.wraparound(False)
+    @cython.boundscheck(False)
     def map_locations(self, ndarray[object] values, object mask = None) -> None:
         # mask not yet implemented
         cdef:
@@ -1391,6 +1400,8 @@ cdef class PyObjectHashTable(HashTable):
             k = kh_put_pymap(self.table, <PyObject*>val, &ret)
             self.table.vals[k] = i
 
+    @cython.wraparound(False)
+    @cython.boundscheck(False)
     def lookup(self, ndarray[object] values, object mask = None) -> ndarray:
         # -> np.ndarray[np.intp]
         # mask not yet implemented
