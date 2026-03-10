@@ -876,6 +876,9 @@ class SeriesGroupBy(GroupBy[Series]):
         """
         Return number of unique elements in the group.
 
+        This method counts the number of distinct values within each group,
+        optionally excluding NaN values.
+
         Parameters
         ----------
         dropna : bool, default True
@@ -2894,6 +2897,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def nunique(self, dropna: bool = True) -> DataFrame:
         """
         Return DataFrame with counts of unique elements in each position.
+
+        This method counts the number of distinct values for each column
+        within each group, optionally excluding NaN values.
 
         Parameters
         ----------
