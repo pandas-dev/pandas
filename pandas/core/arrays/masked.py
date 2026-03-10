@@ -1920,9 +1920,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             return self._maybe_mask_result(result, mask)
 
         if skipna:
-            return result  # type: ignore[return-value]
+            return result
         elif not result or len(self) == 0 or not self._mask.any():
-            return result  # type: ignore[return-value]
+            return result
         else:
             return self.dtype.na_value
 
