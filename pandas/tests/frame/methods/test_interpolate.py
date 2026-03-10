@@ -474,3 +474,19 @@ class TestDataFrameInterpolate:
         result = df.interpolate(limit=2)
         expected = DataFrame({"a": [1, 1.5, 2.0, None, 3]}, dtype="float64[pyarrow]")
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            "Int64",
+            "Float64",
+        ],
+    )
+    def test_interpolate_time_nullable_int_float(self, dtype):
+        # GH#40252
+        idx = date_range("1970-01-02", periods=3, freq="D")
+
+        df = DataFrame({"a": [1, None, 2]}, index=idx, dtype=dtype)
+        result = df.interpolate(method="time")
+        expected = DataFrame({"a": [1.0, 1.5, 2.0]}, index=idx, dtype="Float64")
+        tm.assert_frame_equal(result, expected)

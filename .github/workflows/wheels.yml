@@ -34,12 +34,13 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
   build_sdist:
     name: Build sdist
+    permissions:
+      contents: read
     if: >-
       github.event_name == 'schedule' ||
       github.event_name == 'workflow_dispatch' ||
@@ -50,12 +51,12 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout pandas
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           fetch-depth: 0
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
           python-version: '3.14'
           pip-install: build
@@ -66,13 +67,15 @@ jobs:
       - name: Check sdist
         run: ls -l --human-readable ./dist
 
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
         with:
           name: sdist
           path: ./dist/*
 
   build_wheels:
     needs: build_sdist
+    permissions:
+      contents: read
     name: Build wheel for ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
     if: >-
       github.event_name == 'schedule' ||
@@ -106,18 +109,18 @@ jobs:
 
     steps:
       - name: Checkout pandas
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           fetch-depth: 1
 
       - name: Set up MSVC environment for Windows ARM64
         if: matrix.buildplat[1] == 'win_arm64'
-        uses: ilammy/msvc-dev-cmd@v1
+        uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1
         with:
           arch: arm64
 
       - name: Download sdist
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8
         with:
           name: sdist
           path: ./dist
@@ -126,7 +129,7 @@ jobs:
         run: echo "sdist_name=$(ls ./dist)" >> "$GITHUB_ENV"
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v3.2.1
+        uses: pypa/cibuildwheel@ee02a1537ce3071a004a6b08c41e72f0fdc42d9a # v3.4.0
         with:
          package-dir: ./dist/${{ env.sdist_name }}
         env:
@@ -136,7 +139,7 @@ jobs:
           CIBW_ARCHS: ${{ matrix.buildplat[1] == 'win_arm64' && 'ARM64' || 'auto' }}
 
       - name: Set up Python for validation
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
           python-version: '3.14'
           # cryptography pin due to https://github.com/pyca/cryptography/pull/14216
@@ -145,7 +148,7 @@ jobs:
       - name: Validate wheel RECORD
         run: for whl in $(ls wheelhouse); do wheel unpack wheelhouse/$whl -d /tmp; done
 
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
         with:
           name: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
           path: ./wheelhouse/*.whl
@@ -154,6 +157,8 @@ jobs:
     # trigger an upload to https://anaconda.org/scientific-python-nightly-wheels/pandas
     # for cron jobs or "Run workflow" (restricted to main branch).
     name: Upload nightly packages to Anaconda
+    permissions:
+      contents: read
     if: >
       github.repository == 'pandas-dev/pandas' &&
       (github.event_name == 'schedule' ||
@@ -165,7 +170,7 @@ jobs:
 
     steps:
       - name: Download all artifacts
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8
         with:
           path: dist
           merge-multiple: true
@@ -196,11 +201,11 @@ jobs:
 
     steps:
       - name: Download all artifacts
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8
         with:
           path: dist          # everything lands in ./dist/**
 
-      # TODO: This step can be probably be achieved by actions/download-artifact@v7
+      # TODO: This step can be probably be achieved by actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8
       # by specifying merge-multiple: true, and a glob pattern
       - name: Collect files
         run: |
@@ -211,7 +216,7 @@ jobs:
           find dist -name '*.tar.gz' -exec mv {} upload/ \;
 
       - name: Publish to **PyPI** (Trusted Publishing)
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e # v1.13.0
         with:
           packages-dir: upload
           skip-existing: true

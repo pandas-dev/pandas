@@ -1550,6 +1550,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Render a string representation of the Series.
 
+        Produces a human-readable text format of the Series, including
+        optional display of the index, data types, name, and length.
+        The output can be written to a buffer or returned as a string.
+
         Parameters
         ----------
         buf : StringIO-like, optional
@@ -1670,6 +1674,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> str | None:
         """
         Print Series in Markdown-friendly format.
+
+        Converts the Series to a Markdown table representation using the
+        `tabulate <https://pypi.org/project/tabulate>`_ package. The output
+        can be written to a buffer or returned as a string.
 
         Parameters
         ----------
@@ -1814,6 +1822,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Convert Series to {label -> value} dict or dict-like object.
 
+        The resulting dict-like object maps each index label to its
+        corresponding value. A custom ``MutableMapping`` subclass can
+        be specified via the ``into`` parameter.
+
         Parameters
         ----------
         into : class, default dict
@@ -1858,6 +1870,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def to_frame(self, name: Hashable = lib.no_default) -> DataFrame:
         """
         Convert Series to DataFrame.
+
+        The resulting DataFrame contains a single column. The name of the
+        column can be set using the ``name`` parameter; otherwise it
+        defaults to the Series' name.
 
         Parameters
         ----------
@@ -3342,7 +3358,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         other : Series
             Object to compare with.
 
-        align_axis : {{0 or 'index', 1 or 'columns'}}, default 1
+        align_axis : {0 or 'index', 1 or 'columns'}, default 1
             Determine which axis to align the comparison on.
 
             * 0, or 'index' : Resulting differences are stacked vertically
@@ -3889,7 +3905,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         More complicated user-defined functions can be used,
         as long as they expect a Series and return an array-like
 
-        >>> s.sort_values(key=lambda x: (np.tan(x.cumsum())))
+        >>> s.sort_values(key=lambda x: np.tan(x.cumsum()))
         0   -4
         3    2
         4    4
@@ -5480,7 +5496,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             apply to that axis' values.
         axis : {0 or 'index'}, default 0
             The axis to rename. For `Series` this parameter is unused and defaults to 0.
-        method : {{None, 'backfill'/'bfill', 'pad'/'ffill', 'nearest'}}
+        method : {None, 'backfill'/'bfill', 'pad'/'ffill', 'nearest'}
             Method to use for filling holes in reindexed DataFrame.
             Please note: this is only applicable to DataFrames/Series with a
             monotonically increasing/decreasing index.
@@ -5539,7 +5555,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ``DataFrame.reindex`` supports two calling conventions
 
         * ``(index=index_labels, columns=column_labels, ...)``
-        * ``(labels, axis={{'index', 'columns'}}, ...)``
+        * ``(labels, axis={'index', 'columns'}, ...)``
 
         We *highly* recommend using keyword arguments to clarify your
         intent.
@@ -7111,6 +7127,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         elif (isinstance(other, np.ndarray) and other.ndim > 0) or isinstance(
             other, (list, tuple, ExtensionArray)
         ):
+            if isinstance(other, tuple):
+                op_name = op.__name__.strip("_")
+                warnings.warn(
+                    f"Series.{op_name} with a tuple is deprecated and will be "
+                    "treated as scalar-like in a future version. "
+                    "Explicitly wrap in a numpy array instead.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
             if len(other) != len(self):
                 raise ValueError("Lengths must be equal")
             other = self._constructor(other, self.index, copy=False)

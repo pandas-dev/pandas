@@ -7,7 +7,7 @@ from libc.stdlib cimport (
     free,
     malloc,
 )
-from libc.string cimport memmove
+from libc.string cimport memcpy
 
 import numpy as np
 
@@ -1223,6 +1223,8 @@ cdef void rank_sorted_1d(
                 out[i] = out[i] / grp_sizes[i]
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def rank_2d(
     ndarray[numeric_object_t, ndim=2] in_arr,
     int axis=0,

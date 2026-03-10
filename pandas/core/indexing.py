@@ -955,14 +955,14 @@ class _LocationIndexer(NDFrameIndexerBase):
                     self.obj._mgr = new_ser._mgr
             elif orig_obj.shape[1] == self.obj.shape[1]:
                 # We added rows but not columns
-                for i in range(orig_obj.shape[1]):
-                    new_dtype = self.obj.dtypes.iloc[i]
-                    orig_dtype = orig_obj.dtypes.iloc[i]
-                    if new_dtype != orig_dtype:
-                        new_arr = infer_and_maybe_downcast(
-                            orig_obj.iloc[:, i].array, self.obj.iloc[:, i]._values
-                        )
-                        self.obj.isetitem(i, new_arr)
+                changed_dtypes = (
+                    self.obj._mgr.get_dtypes() != orig_obj._mgr.get_dtypes()
+                )
+                for i in np.flatnonzero(changed_dtypes):
+                    new_arr = infer_and_maybe_downcast(
+                        orig_obj.iloc[:, i].array, self.obj.iloc[:, i]._values
+                    )
+                    self.obj.isetitem(i, new_arr)
 
             elif orig_obj.columns.is_unique and self.obj.columns.is_unique:
                 for col in orig_obj.columns:
