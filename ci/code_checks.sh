@@ -108,9 +108,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.api.typing.DataFrameGroupBy.boxplot ES01" \
         -i "pandas.api.typing.SeriesGroupBy.hist ES01" \
         -i "pandas.Timedelta.resolution_string SA01" \
-        -i "pandas.DatetimeIndex.asi8 GL08" \
-        -i "pandas.PeriodIndex.asi8 GL08" \
-        -i "pandas.TimedeltaIndex.asi8 GL08" \
         -i "pandas.DatetimeIndex.unit GL08" \
         -i "pandas.TimedeltaIndex.unit GL08" # no backslash in the last line
 
