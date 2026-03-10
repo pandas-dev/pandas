@@ -474,6 +474,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         """
         The year of the period.
 
+        Returns the year component for each period in the index.
+
         See Also
         --------
         PeriodIndex.day_of_year : The ordinal day of the year.
@@ -494,6 +496,9 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         "month",
         """
         The month as January=1, December=12.
+
+        Returns the month component for each period in the index as an
+        integer, where January is 1 and December is 12.
 
         See Also
         --------
@@ -556,6 +561,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         """
         The minute of the period.
 
+        Returns the minute component for each period in the index.
+
         See Also
         --------
         PeriodIndex.hour : The hour of the period.
@@ -575,6 +582,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         """
         The second of the period.
 
+        Returns the second component for each period in the index.
+
         See Also
         --------
         PeriodIndex.hour : The hour of the period.
@@ -593,6 +602,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         "week",
         """
         The week ordinal of the year.
+
+        Returns the week number (1 through 53) for each period in the index.
 
         See Also
         --------
@@ -674,6 +685,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         "quarter",
         """
         The quarter of the date.
+
+        Returns the quarter (1 through 4) for each period in the index.
 
         See Also
         --------
