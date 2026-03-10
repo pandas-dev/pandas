@@ -410,7 +410,7 @@ def index() -> Expression:
     :meth:`DataFrame.assign` or :meth:`DataFrame.loc`, can also accept
     ``pd.index()``.
 
-    .. versionadded:: 3.0.0
+    .. versionadded:: 3.1.0
 
     Returns
     -------

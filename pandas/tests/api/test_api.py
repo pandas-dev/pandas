@@ -118,6 +118,7 @@ class TestPDApi(Base):
         "crosstab",
         "cut",
         "date_range",
+        "index",
         "interval_range",
         "eval",
         "factorize",

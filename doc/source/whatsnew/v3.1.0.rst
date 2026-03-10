@@ -28,6 +28,7 @@ enhancement2
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
+- Added :func:`index` which returns a deferred expression for accessing a :class:`DataFrame`'s index (:issue:`64308`)
 - :meth:`.DataFrameGroupBy.agg` now allows for the provided ``func`` to return a NumPy array (:issue:`63957`)
 - Display formatting for float sequences in DataFrame cells now respects the ``display.precision`` option (:issue:`60503`).
 
