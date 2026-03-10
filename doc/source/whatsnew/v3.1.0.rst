@@ -109,6 +109,7 @@ Performance improvements
 - Performance improvement in :func:`infer_freq` (:issue:`64463`)
 - Performance improvement in :func:`merge` with ``how="left"`` (:issue:`64370`)
 - Performance improvement in :meth:`GroupBy.quantile` (:issue:`64330`)
+- Performance improvement in datetime/timedelta unit conversion (e.g. ``datetime64[s]`` to ``datetime64[ns]``) (:issue:`35025`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_310.bug_fixes:
