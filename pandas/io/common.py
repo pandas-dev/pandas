@@ -367,7 +367,7 @@ def _get_filepath_or_buffer(
         and encoding in ["utf-16", "utf-32"]
     ):
         warnings.warn(
-            f"{compression} will not write the byte order mark for {encoding}",
+            f"{compression_method} will not write the byte order mark for {encoding}",
             UnicodeWarning,
             stacklevel=find_stack_level(),
         )
