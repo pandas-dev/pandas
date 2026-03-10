@@ -1834,6 +1834,7 @@ def test_empty_groupby(columns, keys, values, method, op, dropna, using_infer_st
     if override_dtype is not None:
         expected = expected.astype(override_dtype)
     if len(keys) == 1:
+        expected.index = Index([], dtype=df[keys[0]].dtype, name=keys[0])
         expected.index.name = keys[0]
     tm.assert_equal(result, expected)
 
