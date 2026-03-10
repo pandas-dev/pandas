@@ -177,6 +177,9 @@ def pytest_collection_modifyitems(items, config) -> None:
         ("SeriesGroupBy.idxmax", "The behavior of Series.idxmax"),
         ("to_pytimedelta", "The behavior of TimedeltaProperties.to_pytimedelta"),
         ("NDFrame.reindex_like", "keyword argument 'method' is deprecated"),
+        # Docstring divides by zero to show nan result
+        ("Series.autocorr", "invalid value encountered in divide"),
+        ("Series.corr", "invalid value encountered in divide"),
         # Docstring divides by zero to show behavior difference
         ("missing.mask_zero_div_zero", "divide by zero encountered"),
         (

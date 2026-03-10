@@ -2838,6 +2838,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         Compute prod of group values.
 
+        This method computes the product of all values within each group,
+        returning a result for each group.
+
         Parameters
         ----------
         numeric_only : bool, default False
@@ -4562,6 +4565,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         Return group values at the given quantile, a la numpy.percentile.
 
+        This method returns the value at the given quantile for each group,
+        using the specified interpolation method when the desired quantile
+        falls between two data points.
+
         Parameters
         ----------
         q : float or array-like, default 0.5 (50% quantile)
@@ -4921,6 +4928,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     ) -> NDFrameT:
         """
         Provide the rank of values within each group.
+
+        This method assigns ranks to values within each group, with options
+        for handling duplicate values, NaN values, and computing percentage ranks.
 
         Parameters
         ----------
@@ -5534,6 +5544,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     ):
         """
         Calculate pct_change of each value to previous entry in group.
+
+        This method calculates the percentage change between the current and
+        a prior element within each group, useful for computing growth rates.
 
         Parameters
         ----------

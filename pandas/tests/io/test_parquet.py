@@ -1261,7 +1261,11 @@ class TestParquetFastParquet(Base):
         msg = "Cannot create parquet dataset with duplicate column names"
         self.check_error_on_write(df, fp, ValueError, msg, temp_file)
 
-    def test_bool_with_none(self, fp, request, temp_file):
+    # astype(copy=False) usage in fastparquet/writer.py
+    @pytest.mark.filterwarnings(
+        "ignore:The copy keyword is deprecated and will:pandas.errors.Pandas4Warning"
+    )
+    def test_bool_with_none(self, fp, temp_file):
         df = pd.DataFrame({"a": [True, None, False]})
         expected = pd.DataFrame({"a": [1.0, np.nan, 0.0]}, dtype="float16")
         # Fastparquet bug in 0.7.1 makes it so that this dtype becomes

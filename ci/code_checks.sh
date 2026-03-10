@@ -75,15 +75,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.read_xml ES01" \
         -i "pandas.IndexSlice ES01" \
         -i "pandas.TimedeltaIndex.to_pytimedelta ES01" \
-        -i "pandas.api.indexers.BaseIndexer ES01" \
-        -i "pandas.api.indexers.FixedForwardWindowIndexer ES01" \
-        -i "pandas.api.indexers.VariableOffsetWindowIndexer ES01" \
         -i "pandas.NamedAgg ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.nunique ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.pct_change ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.prod ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.quantile ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.rank ES01" \
         -i "pandas.api.typing.DataFrameGroupBy.rolling ES01" \
         -i "pandas.api.typing.DataFrameGroupBy.size ES01" \
         -i "pandas.api.typing.DataFrameGroupBy.kurt ES01" \
@@ -95,11 +87,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.api.typing.SeriesGroupBy.is_monotonic_decreasing ES01" \
         -i "pandas.api.typing.SeriesGroupBy.nlargest ES01" \
         -i "pandas.api.typing.SeriesGroupBy.nsmallest ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.nunique ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.pct_change ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.prod ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.quantile ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.rank ES01" \
         -i "pandas.api.typing.SeriesGroupBy.rolling ES01" \
         -i "pandas.api.typing.SeriesGroupBy.size ES01" \
         -i "pandas.api.typing.SeriesGroupBy.kurt ES01" \
@@ -108,9 +95,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.api.typing.DataFrameGroupBy.boxplot ES01" \
         -i "pandas.api.typing.SeriesGroupBy.hist ES01" \
         -i "pandas.Timedelta.resolution_string SA01" \
-        -i "pandas.DatetimeIndex.asi8 GL08" \
-        -i "pandas.PeriodIndex.asi8 GL08" \
-        -i "pandas.TimedeltaIndex.asi8 GL08" \
         -i "pandas.DatetimeIndex.unit GL08" \
         -i "pandas.TimedeltaIndex.unit GL08" # no backslash in the last line
 
