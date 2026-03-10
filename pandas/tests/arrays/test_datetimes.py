@@ -306,7 +306,7 @@ class TestDatetimeArrayComparisons:
             tuple(right),
             right.astype(object),
         ]:
-            depr_msg = "Operation with tuple are deprecated."
+            depr_msg = "Operation with tuple is deprecated."
             warn = None
             if isinstance(other, tuple):
                 warn = Pandas4Warning

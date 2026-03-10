@@ -2953,6 +2953,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         """
         Return index of first occurrence of maximum in each group.
 
+        For each group and each column, identifies the row label where the
+        maximum value first occurs. NA values are excluded by default.
+
         Parameters
         ----------
         skipna : bool, default True
@@ -3024,6 +3027,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     ) -> DataFrame:
         """
         Return index of first occurrence of minimum in each group.
+
+        For each group and each column, identifies the row label where the
+        minimum value first occurs. NA values are excluded by default.
 
         Parameters
         ----------

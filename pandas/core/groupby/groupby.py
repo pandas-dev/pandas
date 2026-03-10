@@ -1627,7 +1627,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         if self.obj.ndim == 1:
             # i.e. SeriesGroupBy
-            out = algorithms.take_nd(result._values, ids)
+            out = algorithms.take_nd(
+                result._values, ids, allow_fill=self._grouper.has_dropped_na
+            )
             output = obj._constructor(out, index=obj.index, name=obj.name)
         else:
             # `.size()` gives Series output on DataFrame input, need axis 0
@@ -1952,6 +1954,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     ):
         """
         Compute mean of groups, excluding missing values.
+
+        Returns the arithmetic mean for each group. Missing values are
+        ignored unless the entire group is NA, in which case the result
+        for that group is NA.
 
         Parameters
         ----------
@@ -2917,6 +2923,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         Compute min of group values.
 
+        Returns the minimum value for each group. Missing values are
+        excluded by default but this behavior can be controlled with
+        the ``skipna`` parameter.
+
         Parameters
         ----------
         numeric_only : bool, default False
@@ -3033,6 +3043,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     ):
         """
         Compute max of group values.
+
+        Returns the maximum value for each group. Missing values are
+        excluded by default but this behavior can be controlled with
+        the ``skipna`` parameter.
 
         Parameters
         ----------
