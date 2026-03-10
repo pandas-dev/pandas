@@ -919,7 +919,7 @@ class FrameApply(NDFrameApply):
     @functools.cache
     @abc.abstractmethod
     def generate_numba_apply_func(
-        func, nogil=True, nopython=True, parallel=False
+        func, nogil: bool = True, parallel: bool = False
     ) -> Callable[[npt.NDArray, Index, Index], dict[int, Any]]:
         pass
 
@@ -1244,7 +1244,7 @@ class FrameRowApply(FrameApply):
     @staticmethod
     @functools.cache
     def generate_numba_apply_func(
-        func, nogil=True, nopython=True, parallel=False
+        func, nogil: bool = True, parallel: bool = False
     ) -> Callable[[npt.NDArray, Index, Index], dict[int, Any]]:
         numba = import_optional_dependency("numba")
         from pandas import Series
@@ -1257,7 +1257,7 @@ class FrameRowApply(FrameApply):
 
         # Currently the parallel argument doesn't get passed through here
         # (it's disabled) since the dicts in numba aren't thread-safe.
-        @numba.jit(nogil=nogil, nopython=nopython, parallel=parallel)
+        @numba.jit(nogil=nogil, parallel=parallel)
         def numba_func(values, col_names, df_index, *args):
             results = {}
             for j in range(values.shape[1]):
@@ -1348,9 +1348,7 @@ class FrameColumnApply(FrameApply):
 
     @property
     def series_generator(self) -> Generator[Series]:
-        values = self.values
-        values = ensure_wrapped_if_datetimelike(values)
-        assert len(values) > 0
+        assert len(self.obj) > 0
 
         # We create one Series object, and will swap out the data inside
         #  of it.  Kids: don't do this at home.
@@ -1367,6 +1365,9 @@ class FrameColumnApply(FrameApply):
                 yield obj._ixs(i, axis=0)
 
         else:
+            values = self.values
+            values = ensure_wrapped_if_datetimelike(values)
+
             for arr, name in zip(values, self.index, strict=True):
                 # GH#35462 re-pin mgr in case setitem changed it
                 ser._mgr = mgr
@@ -1385,7 +1386,7 @@ class FrameColumnApply(FrameApply):
     @staticmethod
     @functools.cache
     def generate_numba_apply_func(
-        func, nogil=True, nopython=True, parallel=False
+        func, nogil: bool = True, parallel: bool = False
     ) -> Callable[[npt.NDArray, Index, Index], dict[int, Any]]:
         numba = import_optional_dependency("numba")
         from pandas import Series
@@ -1393,7 +1394,7 @@ class FrameColumnApply(FrameApply):
 
         jitted_udf = numba.extending.register_jitable(func)
 
-        @numba.jit(nogil=nogil, nopython=nopython, parallel=parallel)
+        @numba.jit(nogil=nogil, parallel=parallel)
         def numba_func(values, col_names_index, index, *args):
             results = {}
             # Currently the parallel argument doesn't get passed through here

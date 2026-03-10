@@ -40,6 +40,10 @@ from pandas._libs.tslibs.timedeltas import (
     truediv_object_array,
 )
 from pandas.compat.numpy import function as nv
+from pandas.errors import (
+    OutOfBoundsDatetime,
+    OutOfBoundsTimedelta,
+)
 from pandas.util._decorators import set_module
 from pandas.util._validators import validate_endpoints
 
@@ -125,7 +129,8 @@ class TimedeltaArray(dtl.TimelikeOps):
     data : array-like
         The timedelta data.
     dtype : numpy.dtype
-        Currently, only ``numpy.dtype("timedelta64[ns]")`` is accepted.
+        Valid ``numpy`` dtypes are ``timedelta64[ns]``, ``timedelta64[us]``,
+        ``timedelta64[ms]``, and ``timedelta64[s]``.
     freq : Offset, optional
         Frequency of the data.
     copy : bool, default False
@@ -1008,7 +1013,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     See Also
     --------
     Series.dt.seconds : Return number of seconds for each element.
-    Series.dt.microseconds : Return number of nanoseconds for each element.
+    Series.dt.microseconds : Return number of microseconds for each element.
 
     Examples
     --------
@@ -1176,7 +1181,8 @@ def sequence_to_td64ns(
         if unit is not None and unit != "ns":
             # if all non-NaN entries are round, treat these like ints and give
             #  back the requested unit (or closest-supported)
-            int_data = data.astype(np.int64)
+            with np.errstate(invalid="ignore"):
+                int_data = data.astype(np.int64)
             all_round = (mask | (data == int_data)).all()
             if all_round:
                 result, _ = sequence_to_td64ns(
@@ -1185,7 +1191,12 @@ def sequence_to_td64ns(
                 result[mask] = iNaT
                 return result, inferred_freq
 
-        data = cast_from_unit_vectorized(data, unit or "ns")
+        # If we have float32, cast to float64
+        data = data.astype(np.float64, copy=False)
+        try:
+            data = cast_from_unit_vectorized(data, unit or "ns")
+        except OutOfBoundsDatetime as err:
+            raise OutOfBoundsTimedelta(*err.args) from err
         data[mask] = iNaT
         data = data.view("m8[ns]")
         copy = False

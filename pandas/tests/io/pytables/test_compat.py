@@ -86,12 +86,6 @@ _legacy_files = list(Path(__file__).parent.parent.glob("data/legacy_hdf/*/*.h5")
 @pytest.mark.parametrize("legacy_file", _legacy_files, ids=lambda x: x.name)
 def test_legacy_files(datapath, legacy_file, using_infer_string, request):
     legacy_version = Version(legacy_file.parent.name)
-    if legacy_version < Version("2.2.0"):
-        request.node.add_marker(
-            pytest.mark.xfail(
-                reason="HDF5 files from pandas < 2.2 with datetime64 columns"
-            )
-        )
     legacy_file = datapath(legacy_file)
 
     if not np_version_gt2 and legacy_file.endswith("fixed.h5"):
