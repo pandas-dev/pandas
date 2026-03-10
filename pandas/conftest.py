@@ -1961,11 +1961,14 @@ def ip():
     pytest.importorskip("IPython", minversion="6.0.0")
     from IPython.core.interactiveshell import InteractiveShell
 
-    # GH#35711 make sure sqlite history file handle is not leaked
+    # GH#35711 make sure sqlite history file handle is not leaked.
+    # Using :memory: avoids leaking a file on disk; disabling the history
+    # manager entirely avoids leaking the underlying sqlite3.Connection.
     from traitlets.config import Config  # isort:skip
 
     c = Config()
     c.HistoryManager.hist_file = ":memory:"
+    c.HistoryManager.enabled = False
 
     return InteractiveShell(config=c)
 
