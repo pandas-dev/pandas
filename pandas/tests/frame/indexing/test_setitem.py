@@ -1498,3 +1498,27 @@ def test_setitem_partial_row_multiple_columns():
         }
     )
     tm.assert_frame_equal(df, expected)
+
+
+def test_setitem_expansion_tz_aware_datetime():
+    # GH#55423: Ensure tz-aware datetime dtype is preserved when adding a new column
+    # via setitem with expansion (loc with mask that selects subset of rows).
+    import datetime
+
+    df = DataFrame([{"id": 1}, {"id": 2}, {"id": 3}])
+    _time = datetime.datetime.utcfromtimestamp(1695887042)
+    _time = _time.replace(tzinfo=datetime.UTC)
+
+    df.loc[df.id >= 2, "time"] = _time
+
+    # Check that the 'time' column has the correct dtype (not object)
+    assert df["time"].dtype == "datetime64[ns, UTC]"
+
+    # Check values are correct
+    expected = DataFrame(
+        {
+            "id": [1, 2, 3],
+            "time": Series([NaT, _time, _time], dtype="datetime64[ns, UTC]"),
+        }
+    )
+    tm.assert_frame_equal(df, expected)

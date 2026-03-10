@@ -150,7 +150,9 @@ Conversion
 
 Strings
 ^^^^^^^
--
+- Bug in :func:`pandas.array` where ``None`` values were incorrectly converted to
+  the string ``"None"`` when using ``dtype=str``, inconsistent with
+  :class:`pandas.Series` construction (:issue:`57702`)
 -
 
 Interval

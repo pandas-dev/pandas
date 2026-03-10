@@ -345,6 +345,23 @@ def test_array_string_nd(data):
     tm.assert_equal(result, expected)
 
 
+@pytest.mark.parametrize("na_value", [None, np.nan, pd.NA])
+def test_array_str_dtype_preserves_na(na_value):
+    # GH#57702: pd.array should not convert NA values to the string 'None'/'nan'
+    # when dtype=str, consistent with pd.Series behavior.
+    result = pd.array([1, na_value], dtype=str)
+    assert result[0] == "1"
+    assert pd.isna(result[1])
+
+
+def test_array_str_dtype_consistent_with_series():
+    # GH#57702: pd.array and pd.Series should give consistent results
+    # when constructing string arrays with NA values.
+    result_array = pd.array([1, None], dtype=str)
+    result_series = pd.Series([1, None], dtype=str).array
+    tm.assert_extension_array_equal(result_array, result_series)
+
+
 @pytest.mark.parametrize(
     "data, expected",
     [

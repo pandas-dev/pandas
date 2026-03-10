@@ -684,3 +684,19 @@ class TestAstypeCategorical:
         result = ser.astype("string[pyarrow]")
         expected = Series(["12", NA], dtype="string[pyarrow]")
         tm.assert_series_equal(result, expected)
+
+    def test_dt_to_pydatetime_returns_object_dtype(self):
+        # GH#55136 - .dt.to_pydatetime() should return object dtype
+        ser = Series(date_range("2020-01-01", periods=3))
+        result = ser.dt.to_pydatetime()
+
+        assert result.dtype == object
+        assert all(isinstance(x, datetime) for x in result)
+
+    def test_astype_datetime_raises_typeerror(self):
+        # GH#55136 - .astype(datetime) should raise clear error
+        ser = Series(date_range("2020-01-01", periods=3))
+
+        msg = "dtype .* not understood"
+        with pytest.raises(TypeError, match=msg):
+            ser.astype(datetime)
