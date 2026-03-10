@@ -687,6 +687,8 @@ static int tokenize_bytes(parser_t *self, size_t line_limit,
       (self->commentchar != '\0') ? self->commentchar : 1000;
   const int escape_symbol =
       (self->escapechar != '\0') ? self->escapechar : 1000;
+  const int has_skip = (self->skipfunc != NULL || self->skipset != NULL ||
+                        self->skip_first_N_rows >= 0);
 
   if (make_stream_space(self, self->datalen - self->datapos) < 0) {
     const size_t bufsize = 100;
@@ -817,7 +819,8 @@ static int tokenize_bytes(parser_t *self, size_t line_limit,
 
     case START_RECORD: {
       // start of record
-      const int should_skip = skip_this_line(self, self->file_lines);
+      const int should_skip =
+          has_skip ? skip_this_line(self, self->file_lines) : 0;
 
       if (should_skip == -1) {
         goto parsingerror;
