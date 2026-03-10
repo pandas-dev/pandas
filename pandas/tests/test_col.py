@@ -279,9 +279,7 @@ def test_index_expression() -> None:
     assert str(expr) == "index"
 
     result = df.assign(idx=expr)
-    expected = pd.DataFrame(
-        {"a": [1, 2], "idx": ["X", "Y"]}, index=["X", "Y"]
-    )
+    expected = pd.DataFrame({"a": [1, 2], "idx": ["X", "Y"]}, index=["X", "Y"])
     tm.assert_frame_equal(result, expected)
 
     # Test with operations
