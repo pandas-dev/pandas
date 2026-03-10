@@ -7,6 +7,9 @@ Series
 ======
 .. currentmodule:: pandas
 
+.. note::
+   For an introduction to using Series, see :ref:`basics`.
+
 Constructor
 -----------
 .. autosummary::

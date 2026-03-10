@@ -442,7 +442,7 @@ For example, in a ``Series`` with a non-contiguous integer index:
 .. ipython:: python
 
     s = pd.Series(range(10), index=[0, 5, 10, 15, 20, 25, 30, 35, 40, 45])
-    s.loc[10:50:5]              # (10), then skip 3 positions → 35 only
+    s.loc[10:50:5]              # (10), then skip 5 positions → 35 only
     s.loc[[10, 15, 20, 25]]     # explicit label selection
 
 The first applies *step* across **positional locations** between the start/stop

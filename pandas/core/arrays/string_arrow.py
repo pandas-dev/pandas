@@ -372,16 +372,31 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         )
 
     @staticmethod
-    def _preprocess_re_pattern(pat: re.Pattern, case: bool) -> tuple[str, bool, int]:
-        pattern = pat.pattern
-        flags = pat.flags
-        # flags is not supported by pyarrow, but `case` is -> extract and remove
-        if flags & re.IGNORECASE:
-            case = False
-            flags = flags & ~re.IGNORECASE
-        # when creating a pattern with re.compile and a string, it automatically
-        # gets a UNICODE flag, while pyarrow assumes unicode for strings anyway
-        flags = flags & ~re.UNICODE
+    def _preprocess_re_pattern(
+        pat: str | re.Pattern, case: bool, flags: int
+    ) -> tuple[str, bool, int]:
+        if isinstance(pat, re.Pattern):
+            pattern = pat.pattern
+            # TODO flags passed separately by user are ignored
+            flags = pat.flags
+            # flags is not supported by pyarrow, but `case` is -> extract and remove
+            if flags & re.IGNORECASE:
+                case = False
+                flags = flags & ~re.IGNORECASE
+            # when creating a pattern with re.compile and a string, it automatically
+            # gets a UNICODE flag, while pyarrow assumes unicode for strings anyway
+            flags = flags & ~re.UNICODE
+        else:
+            pattern = pat
+
+        if (
+            pattern.endswith("\\Z")
+            # Second condition counts the number of `\` that patterns ends with
+            # prior to Z -> needs to be odd to end with an unescaped \Z
+            and (len(pattern) - len(pattern[:-1].rstrip("\\")) + 1) % 2 == 1
+        ):
+            pattern = pattern[:-2] + "\\z"
+
         return pattern, case, flags
 
     def _str_contains(
@@ -395,13 +410,11 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         if (
             flags
             or self._is_re_pattern_with_flags(pat)
-            or (regex and self._has_regex_lookaround(pat))
+            or (regex and self._has_unsupported_regex(pat))
         ):
             return super()._str_contains(pat, case, flags, na, regex)
-        if isinstance(pat, re.Pattern):
-            # TODO flags passed separately by user are ignored
-            pat, case, flags = self._preprocess_re_pattern(pat, case)
 
+        pat, case, flags = self._preprocess_re_pattern(pat, case, flags)
         return ArrowStringArrayMixin._str_contains(self, pat, case, flags, na, regex)
 
     def _str_match(
@@ -414,12 +427,11 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         if (
             flags
             or self._is_re_pattern_with_flags(pat)
-            or self._has_regex_lookaround(pat)
+            or self._has_unsupported_regex(pat)
         ):
             return super()._str_match(pat, case, flags, na)
-        if isinstance(pat, re.Pattern):
-            pat, case, flags = self._preprocess_re_pattern(pat, case)
 
+        pat, case, flags = self._preprocess_re_pattern(pat, case, flags)
         return ArrowStringArrayMixin._str_match(self, pat, case, flags, na)
 
     def _str_fullmatch(
@@ -429,11 +441,14 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         flags: int = 0,
         na: Scalar | lib.NoDefault = lib.no_default,
     ):
-        if flags or self._is_re_pattern_with_flags(pat):
+        if (
+            flags
+            or self._is_re_pattern_with_flags(pat)
+            or self._has_unsupported_regex(pat)
+        ):
             return super()._str_fullmatch(pat, case, flags, na)
-        if isinstance(pat, re.Pattern):
-            pat, case, flags = self._preprocess_re_pattern(pat, case)
 
+        pat, case, flags = self._preprocess_re_pattern(pat, case, flags)
         return ArrowStringArrayMixin._str_fullmatch(self, pat, case, flags, na)
 
     def _str_replace(
@@ -454,9 +469,12 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
                 # https://docs.python.org/3/library/re.html
                 isinstance(repl, str) and r"\g<" in repl
             )
-            or (regex and self._has_regex_lookaround(pat))
+            or (regex and self._has_unsupported_regex(pat))
         ):
             return super()._str_replace(pat, repl, n, case, flags, regex)
+
+        if regex:
+            pat, case, flags = self._preprocess_re_pattern(pat, case, flags)
 
         return ArrowStringArrayMixin._str_replace(
             self, pat, repl, n, case, flags, regex
@@ -469,8 +487,10 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             return ArrowExtensionArray._str_repeat(self, repeats=repeats)
 
     def _str_count(self, pat: str, flags: int = 0):
-        if flags or self._has_regex_lookaround(pat):
+        if flags or self._has_unsupported_regex(pat):
             return super()._str_count(pat, flags)
+
+        pat, _, _ = self._preprocess_re_pattern(pat, True, 0)
         result = pc.count_substring_regex(self._pa_array, pat)
         return self._convert_int_result(result)
 
