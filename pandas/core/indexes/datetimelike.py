@@ -198,17 +198,17 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
 
         Examples
         --------
-        For :class:`DatetimeIndex`:
+        For :class:`DatetimeIndex` with default microsecond resolution:
 
-        >>> idx = pd.DatetimeIndex(["2023-01-01", "2023-01-02"])
+        >>> idx = pd.DatetimeIndex(["2023-01-01", "2023-01-02"], dtype="datetime64[us]")
         >>> idx.asi8
         array([1672531200000000, 1672617600000000])
 
-        For :class:`TimedeltaIndex`:
+        For :class:`TimedeltaIndex` with millisecond resolution:
 
-        >>> idx = pd.TimedeltaIndex(["1 day", "2 days"])
+        >>> idx = pd.TimedeltaIndex(["1 day", "2 days"], dtype="timedelta64[ms]")
         >>> idx.asi8
-        array([ 86400000000, 172800000000])
+        array([ 86400000, 172800000])
 
         For :class:`PeriodIndex`:
 
