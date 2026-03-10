@@ -290,6 +290,8 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         """
         The hour of the period.
 
+        Returns the hour component for each period in the index.
+
         See Also
         --------
         PeriodIndex.minute : The minute of the period.
@@ -308,6 +310,8 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     def minute(self) -> Index:
         """
         The minute of the period.
+
+        Returns the minute component for each period in the index.
 
         See Also
         --------
@@ -329,6 +333,8 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     def second(self) -> Index:
         """
         The second of the period.
+
+        Returns the second component for each period in the index.
 
         See Also
         --------
@@ -398,6 +404,10 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         """
         Construct a PeriodIndex from fields (year, month, day, etc.).
 
+        Each field (year, quarter, month, day, hour, minute, second) can be
+        specified as a scalar or array-like. The frequency is inferred from
+        the fields provided or can be given explicitly.
+
         Parameters
         ----------
         year : int, array, or Series, default None
@@ -449,6 +459,9 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     def from_ordinals(cls, ordinals, *, freq, name=None) -> Self:
         """
         Construct a PeriodIndex from ordinals.
+
+        Ordinals are integer offsets from the proleptic Gregorian epoch,
+        interpreted according to the given frequency.
 
         Parameters
         ----------

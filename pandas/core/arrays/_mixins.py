@@ -115,7 +115,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
     # ------------------------------------------------------------------------
 
     @overload
-    def view(self) -> Self: ...
+    def view(self, dtype: None = ...) -> Self: ...
 
     @overload
     def view(self, dtype: Dtype | None = ...) -> ArrayLike: ...
@@ -579,8 +579,8 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         )
 
         if dropna:
-            # error: Unsupported operand type for ~ ("ExtensionArray")
-            values = self[~self.isna()]._ndarray  # type: ignore[operator]
+            # error: Invalid index type
+            values = self[~self.isna()]._ndarray  # type: ignore[index]
         else:
             values = self._ndarray
 

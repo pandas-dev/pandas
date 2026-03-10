@@ -101,6 +101,7 @@ if TYPE_CHECKING:
     from pandas import Series
     from pandas.core.arrays import BooleanArray
     from pandas._typing import (
+        Dtype,
         NumpySorter,
         NumpyValueArrayLike,
         ArrayLike,
@@ -840,7 +841,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             and not ops.has_castable_attr(other)
         ):
             warnings.warn(
-                f"Operation with {type(other).__name__} are deprecated. "
+                f"Operation with {type(other).__name__} is deprecated. "
                 "In a future version these will be treated as scalar-like. "
                 "To retain the old behavior, explicitly wrap in a Series "
                 "instead.",
@@ -964,7 +965,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 other, (list, np.ndarray, ExtensionArray)
             ) and not ops.has_castable_attr(other):
                 warnings.warn(
-                    f"Operation with {type(other).__name__} are deprecated. "
+                    f"Operation with {type(other).__name__} is deprecated. "
                     "In a future version these will be treated as scalar-like. "
                     "To retain the old behavior, explicitly wrap in a Series "
                     "instead.",
@@ -1147,6 +1148,19 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         data = self._data.copy()
         mask = self._mask.copy()
         return self._simple_new(data, mask)
+
+    @overload
+    def view(self, dtype: None = ...) -> Self: ...
+
+    @overload
+    def view(self, dtype: Dtype | None = ...) -> ArrayLike: ...
+
+    def view(self, dtype: Dtype | None = None) -> ArrayLike:
+        if dtype is not None:
+            return super().view(dtype)
+        result = self._simple_new(self._data[:], self._mask[:])
+        result._readonly = self._readonly
+        return result
 
     def _rank(
         self,
@@ -1715,6 +1729,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             axis=axis,
         )
         return self._wrap_reduction_result("max", result, skipna=skipna, axis=axis)
+
+    def count(self) -> np.int64:
+        return (~self._mask).sum()
 
     def map(self, mapper, na_action: Literal["ignore"] | None = None):
         result = map_array(
