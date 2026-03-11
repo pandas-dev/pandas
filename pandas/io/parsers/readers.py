@@ -13,6 +13,7 @@ from collections import (
 from concurrent.futures import ThreadPoolExecutor
 import csv
 import io
+import mmap
 import os
 import sys
 from typing import (
@@ -576,10 +577,14 @@ def _read_csv_parallel(
         "skiprows": None,
     }
 
+    # mmap the file once and pass zero-copy memoryview slices to each thread
+    # instead of having each thread open/seek/read its own copy.
+    fh = open(filepath, "rb")
+    mm = mmap.mmap(fh.fileno(), 0, access=mmap.ACCESS_READ)
+    mv = memoryview(mm)
+
     def _process_chunk(start: int, end: int) -> DataFrame:
-        with open(filepath, "rb") as cf:
-            cf.seek(start)
-            data = cf.read(end - start)
+        data = mv[start:end]
         reader = TextFileReader(io.BytesIO(b""), **chunk_kwds)
         assert isinstance(reader._engine, CParserWrapper)
         reader._engine._reader.load_buffer(data)
@@ -588,12 +593,17 @@ def _read_csv_parallel(
         finally:
             reader.close()
 
-    with ThreadPoolExecutor(max_workers=n_workers) as pool:
-        futures = [
-            pool.submit(_process_chunk, offsets[i], offsets[i + 1])
-            for i in range(n_chunks)
-        ]
-        dfs = [fut.result() for fut in futures]
+    try:
+        with ThreadPoolExecutor(max_workers=n_workers) as pool:
+            futures = [
+                pool.submit(_process_chunk, offsets[i], offsets[i + 1])
+                for i in range(n_chunks)
+            ]
+            dfs = [fut.result() for fut in futures]
+    finally:
+        mv.release()
+        mm.close()
+        fh.close()
 
     from pandas import concat
 
