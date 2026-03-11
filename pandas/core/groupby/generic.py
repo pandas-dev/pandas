@@ -3114,6 +3114,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         """
         Return a Series or DataFrame containing counts of unique rows.
 
+        The resulting object will be in descending order so that the
+        first element in each group is the most frequently-occurring row.
+
         Parameters
         ----------
         subset : list-like, optional
@@ -3399,6 +3402,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     ) -> DataFrame:
         """
         Return unbiased kurtosis within groups.
+
+        Kurtosis obtained using Fisher's definition (kurtosis of normal == 0.0),
+        normalized by N-1. Values are computed for each numeric column
+        within each group.
 
         Parameters
         ----------
