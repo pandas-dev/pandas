@@ -25,6 +25,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
     pandas_dtype,
 )
+from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays._arrow_string_mixins import ArrowStringArrayMixin
@@ -285,15 +286,20 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
                     f"Invalid value '{value}' for dtype 'str'. Value should be a "
                     f"string or missing value, got '{type(value).__name__}' instead."
                 )
+        elif isinstance(value, type(self)):
+            pass
         else:
-            value = np.array(value, dtype=object, copy=True)
-            value[isna(value)] = None
-            for v in value:
-                if not (v is None or isinstance(v, str)):
-                    raise TypeError(
-                        "Invalid value for dtype 'str'. Value should be a "
-                        "string or missing value (or array of those)."
-                    )
+            if not is_array_like(value):
+                value = np.asarray(value, dtype=object)
+            else:
+                value = np.asarray(value)
+            if len(value) and (
+                not lib.is_string_array(value, skipna=True) or value.ndim > 1
+            ):
+                raise TypeError(
+                    "Invalid value for dtype 'str'. Value should be a "
+                    "string or missing value (or array of those)."
+                )
         return super()._maybe_convert_setitem_value(value)
 
     def isin(self, values: ArrayLike) -> npt.NDArray[np.bool_]:
