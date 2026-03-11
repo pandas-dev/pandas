@@ -30,7 +30,10 @@ from pandas._libs.sparse import (
 )
 from pandas._libs.tslibs import NaT
 from pandas.compat.numpy import function as nv
-from pandas.errors import PerformanceWarning
+from pandas.errors import (
+    Pandas4Warning,
+    PerformanceWarning,
+)
 from pandas.util._decorators import (
     set_module,
 )
@@ -67,7 +70,10 @@ from pandas.core.dtypes.missing import (
     notna,
 )
 
-from pandas.core import arraylike
+from pandas.core import (
+    arraylike,
+    ops,
+)
 import pandas.core.algorithms as algos
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import ExtensionArray
@@ -91,7 +97,6 @@ if TYPE_CHECKING:
         Callable,
         Sequence,
     )
-    from types import EllipsisType
     from typing import (
         Protocol,
         type_check_only,
@@ -736,6 +741,10 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         """
         The percent of non- ``fill_value`` points, as decimal.
 
+        This is calculated as the number of non-fill-value points divided by
+        the total length of the array. A density of 1.0 means no values are
+        the fill value, while 0.0 means all values are the fill value.
+
         See Also
         --------
         DataFrame.sparse.from_spmatrix : Create a new DataFrame from a
@@ -777,7 +786,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         return self.sp_index.npoints
 
     # error: Return type "SparseArray" of "isna" incompatible with return type
-    # "ndarray[Any, Any] | ExtensionArraySupportsAnyAll" in supertype "ExtensionArray"
+    # "ndarray[Any, Any] | ExtensionArrayNaResult" in supertype "ExtensionArray"
     def isna(self) -> Self:  # type: ignore[override]
         # If null fill value, we want SparseDtype[bool, true]
         # to preserve the same memory usage.
@@ -997,15 +1006,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     def __getitem__(self, key: ScalarIndexer) -> Any: ...
 
     @overload
-    def __getitem__(
-        self,
-        key: SequenceIndexer | tuple[int | EllipsisType, ...],
-    ) -> Self: ...
+    def __getitem__(self, key: SequenceIndexer) -> Self: ...
 
-    def __getitem__(
-        self,
-        key: PositionalIndexer | tuple[int | EllipsisType, ...],
-    ) -> Self | Any:
+    def __getitem__(self, key: PositionalIndexer) -> Self | Any:
         if isinstance(key, tuple):
             key = unpack_tuple_and_ellipses(key)
             if key is ...:
@@ -1835,6 +1838,18 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             return _wrap_result(op_name, result, self.sp_index, fill)
 
         else:
+            if not isinstance(
+                other, (list, np.ndarray, ExtensionArray)
+            ) and not ops.has_castable_attr(other):
+                warnings.warn(
+                    f"Operation with {type(other).__name__} is deprecated. "
+                    "In a future version these will be treated as scalar-like. "
+                    "To retain the old behavior, explicitly wrap in a Series "
+                    "instead.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
+
             other = np.asarray(other)
             with np.errstate(all="ignore"):
                 if len(self) != len(other):
@@ -1847,6 +1862,19 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 return _sparse_array_op(self, other, op, op_name)
 
     def _cmp_method(self, other, op) -> SparseArray:
+        if (
+            is_list_like(other)
+            and not isinstance(other, (list, np.ndarray, ExtensionArray))
+            and not ops.has_castable_attr(other)
+        ):
+            warnings.warn(
+                f"Operation with {type(other).__name__} is deprecated. "
+                "In a future version these will be treated as scalar-like. "
+                "To retain the old behavior, explicitly wrap in a Series "
+                "instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
         if not is_scalar(other) and not isinstance(other, type(self)):
             # convert list-like to ndarray
             other = np.asarray(other)

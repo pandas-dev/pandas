@@ -1782,6 +1782,14 @@ def test_str_contains_flags_unsupported():
         ser.str.contains("a", flags=1)
 
 
+def test_str_contains_re2_unicode_escape():
+    # GH 63901
+    ser = pd.Series(["a", "\u0e01", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.contains(r"[\x{0e00}-\x{0e7f}]")
+    expected = pd.Series([False, True, None], dtype=ArrowDtype(pa.bool_()))
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "side, pat, na, exp",
     [
@@ -1836,6 +1844,13 @@ def test_str_replace(pat, repl, n, regex, exp):
     ser = pd.Series(["abac", None], dtype=ArrowDtype(pa.string()))
     result = ser.str.replace(pat, repl, n=n, regex=regex)
     expected = pd.Series(exp, dtype=ArrowDtype(pa.string()))
+    tm.assert_series_equal(result, expected)
+
+
+def test_str_replace_re2_unicode_property():
+    ser = pd.Series(["Jan", "Feb", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.replace(r"\p{Lu}", "U", regex=True)
+    expected = pd.Series(["Uan", "Ueb", None], dtype=ArrowDtype(pa.string()))
     tm.assert_series_equal(result, expected)
 
 
@@ -3096,6 +3111,22 @@ def test_setitem_boolean_replace_with_mask_segfault():
     assert arr._pa_array == expected._pa_array
 
 
+def test_setitem_na_chunked_string_if_else():
+    # GH#64320
+    df = pd.concat(
+        [
+            pd.DataFrame({"a": ["x"] * 5, "b": ["x"] * 5}),
+            pd.DataFrame({"a": ["x"] * 5, "b": ["x"] * 5}),
+        ],
+        ignore_index=True,
+    )
+    for _ in range(5):
+        df.loc[[0], "a"] = pd.NA
+    assert pd.isna(df["a"].iloc[0])
+    assert (df["a"].iloc[1:] == "x").all()
+    assert (df["b"] == "x").all()
+
+
 @pytest.mark.parametrize(
     "data, arrow_dtype",
     [
@@ -3361,6 +3392,28 @@ def test_groupby_count_return_arrow_dtype(data_missing):
         dtype="int64[pyarrow]",
     )
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("op_name", ["var", "std", "sem", "mean"])
+@pytest.mark.parametrize("dtype", ["int64[pyarrow]", "float64[pyarrow]"])
+def test_groupby_cython_agg_pyarrow_dtype_retention(op_name, dtype):
+    # GH#54627
+    arr = pd.array([1, 2, 3, 4], dtype=dtype)
+    df = pd.DataFrame({"key": ["a", "a", "b", "b"], "col": arr})
+    grouped = df.groupby("key")
+    expected_dtype = ArrowDtype(pa.float64())
+
+    result = getattr(grouped, op_name)()
+    assert result["col"].dtype == expected_dtype
+
+    result = grouped.aggregate(op_name)
+    assert result["col"].dtype == expected_dtype
+
+    result = getattr(grouped["col"], op_name)()
+    assert result.dtype == expected_dtype
+
+    result = grouped["col"].aggregate(op_name)
+    assert result.dtype == expected_dtype
 
 
 def test_fixed_size_list():

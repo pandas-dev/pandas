@@ -355,10 +355,10 @@ class SeriesGroupBy(GroupBy[Series]):
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
-            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+            * For ``'numba'`` engine, the engine can accept ``nogil``
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-              ``{'nopython': True, 'nogil': False, 'parallel': False}`` and will be
+              ``{'nogil': False, 'parallel': False}`` and will be
               applied to the function
 
         **kwargs
@@ -648,10 +648,10 @@ class SeriesGroupBy(GroupBy[Series]):
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
-            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+            * For ``'numba'`` engine, the engine can accept  ``nogil``
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-              ``{'nopython': True, 'nogil': False, 'parallel': False}`` and will be
+              ``{'nogil': False, 'parallel': False}`` and will be
               applied to the function
 
         **kwargs
@@ -875,6 +875,9 @@ class SeriesGroupBy(GroupBy[Series]):
     def nunique(self, dropna: bool = True) -> Series | DataFrame:
         """
         Return number of unique elements in the group.
+
+        This method counts the number of distinct values within each group,
+        optionally excluding NaN values.
 
         Parameters
         ----------
@@ -2117,10 +2120,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
-            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+            * For ``'numba'`` engine, the engine can accept  ``nogil``
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-              ``{'nopython': True, 'nogil': False, 'parallel': False}`` and will be
+              ``{'nogil': False, 'parallel': False}`` and will be
               applied to the function
 
         **kwargs
@@ -2545,10 +2548,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
-            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+            * For ``'numba'`` engine, the engine can accept  ``nogil``
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-              ``{'nopython': True, 'nogil': False, 'parallel': False}`` and will be
+              ``{'nogil': False, 'parallel': False}`` and will be
               applied to the function
 
         **kwargs
@@ -2895,6 +2898,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         """
         Return DataFrame with counts of unique elements in each position.
 
+        This method counts the number of distinct values for each column
+        within each group, optionally excluding NaN values.
+
         Parameters
         ----------
         dropna : bool, default True
@@ -2952,6 +2958,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     ) -> DataFrame:
         """
         Return index of first occurrence of maximum in each group.
+
+        For each group and each column, identifies the row label where the
+        maximum value first occurs. NA values are excluded by default.
 
         Parameters
         ----------
@@ -3024,6 +3033,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     ) -> DataFrame:
         """
         Return index of first occurrence of minimum in each group.
+
+        For each group and each column, identifies the row label where the
+        minimum value first occurs. NA values are excluded by default.
 
         Parameters
         ----------
@@ -3520,6 +3532,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     ) -> DataFrame:
         """
         Compute pairwise correlation of columns, excluding NA/null values.
+
+        Computes a correlation matrix for each group, measuring the linear
+        or rank-based relationship between columns.
 
         Parameters
         ----------

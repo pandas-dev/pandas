@@ -157,6 +157,7 @@ from pandas.core.indexes.multi import (
 from pandas.core.indexing import (
     check_bool_indexer,
     check_dict_or_set_indexers,
+    infer_and_maybe_downcast,
 )
 from pandas.core.internals import BlockManager
 from pandas.core.internals.construction import (
@@ -2478,7 +2479,7 @@ class DataFrame(NDFrame, OpsMixin):
         variable_labels : dict
             Dictionary containing columns as keys and variable labels as
             values. Each label must be 80 characters or smaller.
-        version : {{114, 117, 118, 119, None}}, default 114
+        version : {114, 117, 118, 119, None}, default 114
             Version to use in the output dta file. Set to None to let pandas
             decide between 118 or 119 formats depending on the number of
             columns in the frame. Version 114 can be read by Stata 10 and
@@ -2603,6 +2604,10 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Write a DataFrame to the binary Feather format.
 
+        The Feather format is a lightweight, language-agnostic columnar file
+        format based on Apache Arrow, designed for efficient read and write
+        performance. This method requires the ``pyarrow`` library.
+
         Parameters
         ----------
         path : str, path object, file-like object
@@ -2684,6 +2689,10 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> str | None:
         """
         Print DataFrame in Markdown-friendly format.
+
+        Generates a Markdown table representation of the
+        DataFrame using the ``tabulate`` library. The result can be written
+        to a file or returned as a string for embedding in Markdown documents.
 
         Parameters
         ----------
@@ -2813,7 +2822,7 @@ class DataFrame(NDFrame, OpsMixin):
             object implementing a binary ``write()`` function. If None, the result is
             returned as bytes. If a string or path, it will be used as Root Directory
             path when writing a partitioned dataset.
-        engine : {{'auto', 'pyarrow', 'fastparquet'}}, default 'auto'
+        engine : {'auto', 'pyarrow', 'fastparquet'}, default 'auto'
             Parquet library to use. If 'auto', then the option
             ``io.parquet.engine`` is used. The default ``io.parquet.engine``
             behavior is to try 'pyarrow', falling back to 'fastparquet' if
@@ -2953,6 +2962,11 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> bytes | None:
         """
         Write a DataFrame to the Optimized Row Columnar (ORC) format.
+
+        ORC is a self-describing, type-aware columnar file format designed
+        for Hadoop workloads. It provides efficient compression and encoding
+        schemes, making it well-suited for large-scale data storage and
+        analytics. This method requires the ``pyarrow`` library.
 
         Parameters
         ----------
@@ -3119,6 +3133,10 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> str | None:
         """
         Render a DataFrame as an HTML table.
+
+        Converts the DataFrame into an HTML ``<table>`` element. The resulting
+        HTML can be written to a file or returned as a string. This is useful
+        for embedding tabular data in web pages or HTML-based reports.
 
         Parameters
         ----------
@@ -3376,6 +3394,11 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Render a DataFrame to an XML document.
 
+        Produces an XML representation of the DataFrame where each row becomes
+        an XML element. Column values can be mapped to either XML element text
+        or attributes, and the output supports namespaces, XSLT stylesheets,
+        and custom root/row element names.
+
         Parameters
         ----------
         path_or_buffer : str, path object, file-like object, or None, default None
@@ -3405,7 +3428,7 @@ class DataFrame(NDFrame, OpsMixin):
             Default namespaces should be given empty string key. For
             example, ::
 
-                namespaces = {{"": "https://example.com"}}
+                namespaces = {"": "https://example.com"}
 
         prefix : str, optional
             Namespace prefix to be used for every element and/or attribute
@@ -3418,7 +3441,7 @@ class DataFrame(NDFrame, OpsMixin):
         pretty_print : bool, default True
             Whether output should be pretty printed with indentation and
             line breaks.
-        parser : {{'lxml','etree'}}, default 'lxml'
+        parser : {'lxml','etree'}, default 'lxml'
             Parser module to use for building of tree. Only 'lxml' and
             'etree' are supported. With 'lxml', the ability to use XSLT
             stylesheet is supported.
@@ -3506,7 +3529,7 @@ class DataFrame(NDFrame, OpsMixin):
         </data>
 
         >>> df.to_xml(
-        ...     namespaces={{"doc": "https://example.com"}}, prefix="doc"
+        ...     namespaces={"doc": "https://example.com"}, prefix="doc"
         ... )  # doctest: +SKIP
         <?xml version='1.0' encoding='utf-8'?>
         <doc:data xmlns:doc="https://example.com">
@@ -8391,6 +8414,11 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Return a Series containing the frequency of each distinct row in the DataFrame.
 
+        The resulting Series is indexed by the unique row combinations found
+        in the DataFrame (or the specified subset of columns). By default the
+        counts are sorted in descending order, and rows with ``NaN`` values
+        in any column are excluded.
+
         Parameters
         ----------
         subset : Hashable or a sequence of the previous, optional
@@ -9015,7 +9043,6 @@ class DataFrame(NDFrame, OpsMixin):
             #  fails in cases with empty columns reached via
             #  _frame_arith_method_with_reindex
 
-            # TODO operate_blockwise expects a manager of the same type
             bm = self._mgr.operate_blockwise(
                 right._mgr,
                 array_op,
@@ -9254,6 +9281,18 @@ class DataFrame(NDFrame, OpsMixin):
                 )
 
         elif is_list_like(right) and not isinstance(right, (Series, DataFrame)):
+            if not isinstance(
+                right, (np.ndarray, ExtensionArray, Index, list, dict)
+            ) and not ops.has_castable_attr(right):
+                warnings.warn(
+                    f"Operation with {type(right).__name__} is deprecated. "
+                    "In a future version these will be treated as scalar-like. "
+                    "To retain the old behavior, explicitly wrap in a Series "
+                    "instead.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
+
             # GH#36702. Raise when attempting arithmetic with list of array-like.
             if any(is_array_like(el) for el in right):
                 raise ValueError(
@@ -13005,13 +13044,25 @@ class DataFrame(NDFrame, OpsMixin):
             axis can create combinations of index and column values
             that are missing from the original dataframe. See Examples
             section.
+
+            .. deprecated:: 3.0
+               This parameter is deprecated and will be removed in a future
+               version of pandas.
         sort : bool, default True
             Whether to sort the levels of the resulting MultiIndex.
+
+            .. deprecated:: 3.0
+               This parameter is deprecated and will be removed in a future
+               version of pandas.
         future_stack : bool, default True
-            Whether to use the new implementation that will replace the current
-            implementation in pandas 3.0. When True, dropna and sort have no impact
+            Whether to use the new stack implementation. This is the default
+            as of pandas 3.0. When True, dropna and sort have no impact
             on the result and must remain unspecified. See :ref:`pandas 2.1.0 Release
             notes <whatsnew_210.enhancements.new_stack>` for more details.
+
+            .. deprecated:: 3.0
+               This parameter is deprecated and will be removed in a future
+               version of pandas.
 
         Returns
         -------
@@ -13029,11 +13080,10 @@ class DataFrame(NDFrame, OpsMixin):
 
         Notes
         -----
-        The function is named by analogy with a collection of books
-        being reorganized from being side by side on a horizontal
-        position (the columns of the dataframe) to being stacked
-        vertically on top of each other (in the index of the
-        dataframe).
+        The function is named by analogy with a collection of books being
+        reorganized from being side-by-side horizontally (the columns of the
+        DataFrame) to being stacked vertically on top of each other (in the
+        index of the DataFrame).
 
         Reference :ref:`the user guide <reshaping.stacking>` for more examples.
 
@@ -13677,12 +13727,17 @@ class DataFrame(NDFrame, OpsMixin):
         elif subset.ndim == 1:  # is Series
             return subset
 
-        # TODO: _shallow_copy(subset)?
         return subset[key]
 
     def aggregate(self, func=None, axis: Axis = 0, *args, **kwargs):
         """
         Aggregate using one or more operations over the specified axis.
+
+        This method allows combining multiple aggregation functions at once,
+        such as ``sum``, ``mean``, and ``min``, and can apply them either
+        per-column or per-row. It accepts functions as strings, callables,
+        lists, or dictionaries mapping column labels to the desired
+        aggregation(s).
 
         Parameters
         ----------
@@ -13800,6 +13855,10 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> DataFrame:
         """
         Call ``func`` on self producing a DataFrame with the same axis shape as self.
+
+        Unlike aggregation, transformation preserves the shape of the input.
+        The provided function must return a result that is the same size as
+        the input along the specified axis, raising a ``ValueError`` otherwise.
 
         Parameters
         ----------
@@ -14364,6 +14423,15 @@ class DataFrame(NDFrame, OpsMixin):
         #  test_append_empty_frame_to_series_with_dateutil_tz
         row_df = row_df.infer_objects().rename_axis(index.names)
 
+        if len(row_df.columns) == len(self.columns):
+            # Try to retain our original dtype when doing the concat, GH#62523
+            for i in range(len(self.columns)):
+                arr = self.iloc[:, i].array
+
+                casted = infer_and_maybe_downcast(arr, row_df.iloc[:, i]._values)
+
+                row_df.isetitem(i, casted)
+
         from pandas.core.reshape.concat import concat
 
         result = concat(
@@ -14872,6 +14940,10 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Round numeric columns in a DataFrame to a variable number of decimal places.
 
+        Each column can be rounded to a different number of decimal places by
+        passing a dict or Series mapping column names to the desired precision.
+        Non-numeric columns are left unchanged.
+
         Parameters
         ----------
         decimals : int, dict, Series
@@ -15017,6 +15089,11 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> DataFrame:
         """
         Compute pairwise correlation of columns, excluding NA/null values.
+
+        The result is a symmetric DataFrame where each element represents
+        the correlation coefficient between two columns. By default, the
+        Pearson correlation is computed, but Kendall and Spearman methods
+        as well as arbitrary callables are also supported.
 
         Parameters
         ----------
@@ -16241,6 +16318,11 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Return the product of the values over the requested axis.
 
+        This multiplies all values in each column (or row when
+        ``axis=1``) together, skipping missing values by default.
+        An empty or all-NA column returns ``1`` unless ``min_count``
+        is specified.
+
         Parameters
         ----------
         axis : {index (0), columns (1)}
@@ -16357,6 +16439,9 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> Series | Any:
         """
         Return the mean of the values over the requested axis.
+
+        This computes the arithmetic mean of the values in each column
+        (or row when ``axis=1``), skipping missing values by default.
 
         Parameters
         ----------
@@ -16478,6 +16563,9 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> Series | Any:
         """
         Return the median of the values over the requested axis.
+
+        This computes the median of the values in each column (or row
+        when ``axis=1``), skipping missing values by default.
 
         Parameters
         ----------
@@ -16991,7 +17079,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         See Also
         --------
-        Dataframe.kurt : Returns unbiased kurtosis over requested axis.
+        DataFrame.kurt : Returns unbiased kurtosis over requested axis.
 
         Examples
         --------
@@ -17112,7 +17200,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         See Also
         --------
-        Dataframe.kurtosis : Returns unbiased kurtosis over requested axis.
+        DataFrame.kurtosis : Returns unbiased kurtosis over requested axis.
 
         Examples
         --------
@@ -17657,7 +17745,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        axis : {{0 or 'index', 1 or 'columns'}}, default 0
+        axis : {0 or 'index', 1 or 'columns'}, default 0
             The axis to use. 0 or 'index' for row-wise, 1 or 'columns' for column-wise.
         skipna : bool, default True
             Exclude NA/null values. If the entire DataFrame is NA,
@@ -17758,7 +17846,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        axis : {{0 or 'index', 1 or 'columns'}}, default 0
+        axis : {0 or 'index', 1 or 'columns'}, default 0
             The axis to use. 0 or 'index' for row-wise, 1 or 'columns' for column-wise.
         skipna : bool, default True
             Exclude NA/null values. If the entire DataFrame is NA,
@@ -17996,6 +18084,10 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> Series | DataFrame:
         """
         Return values at the given quantile over requested axis.
+
+        This method computes the value below which a given proportion of
+        observations fall. By default, it computes quantiles column-wise,
+        but row-wise computation is also supported via ``axis=1``.
 
         Parameters
         ----------
