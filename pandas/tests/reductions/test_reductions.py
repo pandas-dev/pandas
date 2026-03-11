@@ -782,6 +782,9 @@ class TestSeriesReductions:
         assert result == result_numpy_dtype
         assert result == exp
 
+    @pytest.mark.filterwarnings(
+        "ignore:Casting complex values to real discards:numpy.exceptions.ComplexWarning"
+    )
     def test_var_complex_array(self):
         # GH#61645
         ser = Series([-1j, 0j, 1j], dtype=complex)
@@ -1370,7 +1373,7 @@ class TestCategoricalSeriesReductions:
         [
             (list("abc"), list("abc")),
             (list("abc"), list("cba")),
-            (list("abc") + [np.nan], list("cba")),
+            ([*list("abc"), np.nan], list("cba")),
             ([1, 2, 3], [3, 2, 1]),
             ([1, 2, 3, np.nan], [3, 2, 1]),
         ],

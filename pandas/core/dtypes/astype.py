@@ -129,7 +129,7 @@ def _astype_nansafe(
         )
         raise ValueError(msg)
 
-    if copy or arr.dtype == object or dtype == object:
+    if copy or object in (arr.dtype, dtype):
         # Explicit copy, or required since NumPy can't view from / to object.
         return arr.astype(dtype, copy=True)
 
@@ -277,6 +277,15 @@ def astype_is_view(dtype: DtypeObj, new_dtype: DtypeObj) -> bool:
         return False
 
     elif is_string_dtype(dtype) and is_string_dtype(new_dtype):
+        from pandas.core.arrays.string_ import StringDtype
+
+        if (
+            isinstance(dtype, StringDtype)
+            and dtype.storage == "pyarrow"
+            and new_dtype == "object"
+        ):
+            # for conversion of pyarrow array to numpy object array -> always a copy
+            return False
         # Potentially! a view when converting from object to string
         return True
 

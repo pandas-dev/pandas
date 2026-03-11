@@ -532,11 +532,10 @@ def _bins_to_cuts(
                 "labels must be unique if ordered=True; pass ordered=False "
                 "for duplicate labels"
             )
-        else:
-            if len(labels) != len(bins) - 1:
-                raise ValueError(
-                    "Bin labels must be one fewer than the number of bin edges"
-                )
+        elif len(labels) != len(bins) - 1:
+            raise ValueError(
+                "Bin labels must be one fewer than the number of bin edges"
+            )
 
         if not isinstance(getattr(labels, "dtype", None), CategoricalDtype):
             labels = Categorical(
@@ -582,7 +581,7 @@ def _coerce_to_type(x: Index) -> tuple[Index, DtypeObj | None]:
 
 
 def _is_dt_or_td(dtype: DtypeObj) -> bool:
-    # Note: the dtype here comes from an Index.dtype, so we know that that any
+    # Note: the dtype here comes from an Index.dtype, so we know that any
     #  dt64/td64 dtype is of a supported unit.
     return isinstance(dtype, DatetimeTZDtype) or lib.is_np_dtype(dtype, "mM")
 

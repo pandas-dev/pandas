@@ -130,7 +130,7 @@ nan 2
     ],
     ids=["dt64-0", "dt64-1", "td64", f"{tm.ENDIAN}U8"],
 )
-def test_unsupported_dtype(c_parser_only, match, kwargs, tmp_path):
+def test_unsupported_dtype(c_parser_only, match, kwargs, temp_file):
     parser = c_parser_only
     df = DataFrame(
         np.random.default_rng(2).random((5, 2)),
@@ -138,11 +138,10 @@ def test_unsupported_dtype(c_parser_only, match, kwargs, tmp_path):
         index=["1A", "1B", "1C", "1D", "1E"],
     )
 
-    path = tmp_path / "__unsupported_dtype__.csv"
-    df.to_csv(path)
+    df.to_csv(temp_file)
 
     with pytest.raises(TypeError, match=match):
-        parser.read_csv(path, index_col=0, **kwargs)
+        parser.read_csv(temp_file, index_col=0, **kwargs)
 
 
 @td.skip_if_32bit

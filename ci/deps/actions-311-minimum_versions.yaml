@@ -10,7 +10,7 @@ dependencies:
   - versioneer
   - cython<4.0.0a0
   - meson=1.2.1
-  - meson-python=0.13.1
+  - meson-python=0.17.1
 
   # test dependencies
   - pytest>=8.3.4
@@ -18,7 +18,7 @@ dependencies:
   - pytest-xdist>=3.6.1
   - pytest-localserver>=0.9.0
   - pytest-qt>=4.4.0
-  - boto3=1.37.3
+  - boto3=1.40.46
 
   # required dependencies
   - python-dateutil=2.8.2

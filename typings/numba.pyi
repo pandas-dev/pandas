@@ -24,7 +24,6 @@ def jit(
     pipeline_class: numba.compiler.CompilerBase = ...,
     boundscheck: bool | None = ...,
     *,
-    nopython: bool = ...,
     forceobj: bool = ...,
     looplift: bool = ...,
     error_model: Literal["python", "numpy"] = ...,

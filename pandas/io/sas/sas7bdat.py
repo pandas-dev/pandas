@@ -59,6 +59,30 @@ if TYPE_CHECKING:
 _unix_origin = Timestamp("1970-01-01")
 _sas_origin = Timestamp("1960-01-01")
 
+# SAS uses a modified Gregorian calendar where years divisible by 4000 are
+# not leap years (unlike proleptic Gregorian). These are the SAS day counts
+# for the first day affected by each 4000-year boundary.
+# See https://communities.sas.com/t5/SAS-Programming/Leap-Years-divisible-by-4000/td-p/663467
+_SAS_MARCH1_4000 = 745154  # SAS day count for March 1, 4000
+_SAS_MARCH1_8000 = 2206123  # SAS day count for March 1, 8000
+
+
+def _sas_to_gregorian_correction(values: np.ndarray, unit: str) -> np.ndarray:
+    """
+    Compute the additive correction (in `unit`) to convert SAS day/second counts
+    to proleptic Gregorian day/second counts.
+
+    SAS omits Feb 29 for years divisible by 4000 (unlike proleptic Gregorian);
+    this adds back the missing days. `unit` must be "d" (days) or "s" (seconds).
+    """
+    scale = 86400 if unit == "s" else 1
+    thresholds = np.array([_SAS_MARCH1_4000, _SAS_MARCH1_8000], dtype=np.int64) * scale
+    correction = np.zeros(len(values), dtype=np.float64)
+    valid = ~np.isnan(values)
+    for threshold in thresholds:
+        correction[valid] += (values[valid] >= threshold).astype(np.float64) * scale
+    return correction
+
 
 def _convert_datetimes(sas_datetimes: pd.Series, unit: str) -> pd.Series:
     """
@@ -80,13 +104,17 @@ def _convert_datetimes(sas_datetimes: pd.Series, unit: str) -> pd.Series:
     """
     td = (_sas_origin - _unix_origin).as_unit("s")
     if unit == "s":
-        millis = cast_from_unit_vectorized(
-            sas_datetimes._values, unit="s", out_unit="ms"
+        corrected = sas_datetimes._values + _sas_to_gregorian_correction(
+            sas_datetimes._values, unit="s"
         )
+        millis = cast_from_unit_vectorized(corrected, unit="s", out_unit="ms")
         dt64ms = millis.view("M8[ms]") + td
         return pd.Series(dt64ms, index=sas_datetimes.index, copy=False)
     else:
-        vals = np.array(sas_datetimes, dtype="M8[D]") + td
+        corrected = sas_datetimes._values + _sas_to_gregorian_correction(
+            sas_datetimes._values, unit="d"
+        )
+        vals = np.array(corrected, dtype="M8[D]") + td
         return pd.Series(vals, dtype="M8[s]", index=sas_datetimes.index, copy=False)
 
 
@@ -362,7 +390,7 @@ class SAS7BDATReader(SASReader):
 
     def _process_page_meta(self) -> bool:
         self._read_page_header()
-        pt = const.page_meta_types + [const.page_amd_type, const.page_mix_type]
+        pt = [*const.page_meta_types, const.page_amd_type, const.page_mix_type]
         if self._current_page_type in pt:
             self._process_page_metadata()
         is_data_page = self._current_page_type == const.page_data_type
@@ -684,7 +712,8 @@ class SAS7BDATReader(SASReader):
         if self._current_page_type in const.page_meta_types:
             self._process_page_metadata()
 
-        if self._current_page_type not in const.page_meta_types + [
+        if self._current_page_type not in [
+            *const.page_meta_types,
             const.page_data_type,
             const.page_mix_type,
         ]:

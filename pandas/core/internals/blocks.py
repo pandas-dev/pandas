@@ -645,17 +645,17 @@ class Block(PandasObject, libinternals.Block):
             values = values.copy()
             refs = None
         else:
+            values = values.view()
             refs = self.refs
         return type(self)(values, placement=self._mgr_locs, ndim=self.ndim, refs=refs)
 
     # ---------------------------------------------------------------------
     # Copy-on-Write Helpers
 
-    def _maybe_copy(self, inplace: bool) -> Self:
-        if inplace:
-            deep = self.refs.has_reference()
-            return self.copy(deep=deep)
-        return self.copy(deep=True)
+    def _maybe_copy(self, inplace: bool, deep: bool = True) -> Self:
+        if inplace and not self.refs.has_reference():
+            return self
+        return self.copy(deep=deep)
 
     @final
     def _get_refs_and_copy(self, inplace: bool):
@@ -695,14 +695,14 @@ class Block(PandasObject, libinternals.Block):
             #  replacing it is a no-op.
             # Note: If to_replace were a list, NDFrame.replace would call
             #  replace_list instead of replace.
-            return [self.copy(deep=False)]
+            return [self._maybe_copy(inplace, deep=False)]
 
         if mask is None:
             mask = missing.mask_missing(values, to_replace)
         if not mask.any():
             # Note: we get here with test_replace_extension_other incorrectly
             #  bc _can_hold_element is incorrect.
-            return [self.copy(deep=False)]
+            return [self._maybe_copy(inplace, deep=False)]
 
         elif self._can_hold_element(value) or (self.dtype == "string" and is_re(value)):
             # TODO(CoW): Maybe split here as well into columns where mask has True
@@ -867,7 +867,7 @@ class Block(PandasObject, libinternals.Block):
                     for b in result:
                         if b.refs is self.refs:
                             # We are still sharing memory with self
-                            if id(b) in self_blk_ids:
+                            if id(b) in self_blk_ids and b is not self:
                                 # Remove ourselves from the refs; we are temporary
                                 self.refs.referenced_blocks.pop(self_blk_ids[id(b)])
                         else:
@@ -1048,33 +1048,19 @@ class Block(PandasObject, libinternals.Block):
         fill_value : int
             Only used in ExtensionBlock._unstack
         new_placement : np.ndarray[np.intp]
-        allow_fill : bool
         needs_masking : np.ndarray[bool]
+            Only used in ExtensionBlock._unstack
 
         Returns
         -------
         blocks : list of Block
             New blocks of unstacked values.
-        mask : array-like of bool
-            The mask of columns of `blocks` we should keep.
         """
-        new_values, mask = unstacker.get_new_values(
-            self.values.T, fill_value=fill_value
-        )
-
-        mask = mask.any(0)
-        # TODO: in all tests we have mask.all(); can we rely on that?
-
-        # Note: these next two lines ensure that
-        #  mask.sum() == sum(len(nb.mgr_locs) for nb in blocks)
-        #  which the calling function needs in order to pass verify_integrity=False
-        #  to the BlockManager constructor
-        new_values = new_values.T[mask]
-        new_placement = new_placement[mask]
+        new_values = unstacker.get_new_values(self.values.T, fill_value=fill_value)
 
         bp = BlockPlacement(new_placement)
-        blocks = [new_block_2d(new_values, placement=bp)]
-        return blocks, mask
+        blocks = [new_block_2d(new_values.T, placement=bp)]
+        return blocks
 
     # ---------------------------------------------------------------------
 
@@ -1101,7 +1087,7 @@ class Block(PandasObject, libinternals.Block):
 
         value = self._standardize_fill_value(value)
 
-        values = cast(np.ndarray, self.values)
+        values = cast("np.ndarray", self.values)
         if self.ndim == 2:
             values = values.T
 
@@ -1127,7 +1113,7 @@ class Block(PandasObject, libinternals.Block):
                     casted = setitem_datetimelike_compat(values, len(vi), casted)
 
             self = self._maybe_copy(inplace=True)
-            values = cast(np.ndarray, self.values.T)
+            values = cast("np.ndarray", self.values.T)
             if isinstance(casted, np.ndarray) and casted.ndim == 1 and len(casted) == 1:
                 # NumPy 1.25 deprecation: https://github.com/numpy/numpy/pull/10615
                 casted = casted[0, ...]
@@ -1158,7 +1144,7 @@ class Block(PandasObject, libinternals.Block):
         List[Block]
         """
         orig_mask = mask
-        values = cast(np.ndarray, self.values)
+        values = cast("np.ndarray", self.values)
         mask, noop = validate_putmask(values.T, mask)
         assert not isinstance(new, (ABCIndex, ABCSeries, ABCDataFrame))
 
@@ -1175,7 +1161,7 @@ class Block(PandasObject, libinternals.Block):
             casted = np_can_hold_element(values.dtype, new)
 
             self = self._maybe_copy(inplace=True)
-            values = cast(np.ndarray, self.values)
+            values = cast("np.ndarray", self.values)
 
             putmask_without_repeat(values.T, mask, casted)
             return [self]
@@ -1229,7 +1215,7 @@ class Block(PandasObject, libinternals.Block):
         cond = extract_bool_array(cond)
 
         # EABlocks override where
-        values = cast(np.ndarray, self.values)
+        values = cast("np.ndarray", self.values)
         orig_other = other
         if transpose:
             values = values.T
@@ -1360,7 +1346,7 @@ class Block(PandasObject, libinternals.Block):
 
         # Dispatch to the NumpyExtensionArray method.
         # We know self.array_values is a NumpyExtensionArray bc EABlock overrides
-        vals = cast(NumpyExtensionArray, self.array_values)
+        vals = cast("NumpyExtensionArray", self.array_values)
         new_values = vals.T._pad_or_backfill(
             method=method,
             limit=limit,
@@ -1464,7 +1450,7 @@ class Block(PandasObject, libinternals.Block):
             return nb.shift(periods, fill_value=fill_value)
 
         else:
-            values = cast(np.ndarray, self.values)
+            values = cast("np.ndarray", self.values)
             new_values = shift(values, periods, axis, casted)
             return [self.make_block_same_class(new_values)]
 
@@ -1549,7 +1535,7 @@ class Block(PandasObject, libinternals.Block):
             loc = [loc]
 
         if self.ndim == 1:
-            values = cast(np.ndarray, self.values)
+            values = cast("np.ndarray", self.values)
             values = np.delete(values, loc)
             mgr_locs = self._mgr_locs.delete(loc)
             return [type(self)(values, placement=mgr_locs, ndim=self.ndim)]
@@ -2103,14 +2089,7 @@ class ExtensionBlock(EABackedBlock):
         # a `take` on the actual values.
 
         # Caller is responsible for ensuring self.shape[-1] == len(unstacker.index)
-        new_values, mask = unstacker.arange_result
-
-        # Note: these next two lines ensure that
-        #  mask.sum() == sum(len(nb.mgr_locs) for nb in blocks)
-        #  which the calling function needs in order to pass verify_integrity=False
-        #  to the BlockManager constructor
-        new_values = new_values.T[mask]
-        new_placement = new_placement[mask]
+        new_values = unstacker.arange_result
 
         # needs_masking[i] calculated once in BlockManager.unstack tells
         #  us if there are any -1s in the relevant indices.  When False,
@@ -2126,10 +2105,10 @@ class ExtensionBlock(EABackedBlock):
                 ndim=2,
             )
             for i, (indices, place) in enumerate(
-                zip(new_values, new_placement, strict=True)
+                zip(new_values.T, new_placement, strict=True)
             )
         ]
-        return blocks, mask
+        return blocks
 
 
 class NumpyBlock(Block):

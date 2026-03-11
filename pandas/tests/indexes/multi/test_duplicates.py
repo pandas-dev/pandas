@@ -235,7 +235,7 @@ def test_has_duplicates_overflow(nlevels, with_nulls):
         mi = MultiIndex(levels=levels, codes=codes)
     else:
         values = mi.values.tolist()
-        mi = MultiIndex.from_tuples(values + [values[0]])
+        mi = MultiIndex.from_tuples([*values, values[0]])
 
     assert mi.has_duplicates
 

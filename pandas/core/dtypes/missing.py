@@ -240,7 +240,7 @@ def _isna_array(values: ArrayLike) -> npt.NDArray[np.bool_] | NDFrame:
     if not isinstance(values, np.ndarray):
         # i.e. ExtensionArray
         # error: Incompatible types in assignment (expression has type
-        # "Union[ndarray[Any, Any], ExtensionArraySupportsAnyAll]", variable has
+        # "Union[ndarray[Any, Any], ExtensionArrayNaResult]", variable has
         # type "ndarray[Any, dtype[bool_]]")
         result = values.isna()  # type: ignore[assignment]
     elif isinstance(values, np.rec.recarray):
@@ -263,13 +263,12 @@ def _isna_string_dtype(values: np.ndarray) -> npt.NDArray[np.bool_]:
 
     if dtype.kind in ("S", "U"):
         result = np.zeros(values.shape, dtype=bool)
+    elif values.ndim in {1, 2}:
+        result = libmissing.isnaobj(values)
     else:
-        if values.ndim in {1, 2}:
-            result = libmissing.isnaobj(values)
-        else:
-            # 0-D, reached via e.g. mask_missing
-            result = libmissing.isnaobj(values.ravel())
-            result = result.reshape(values.shape)
+        # 0-D, reached via e.g. mask_missing
+        result = libmissing.isnaobj(values.ravel())
+        result = result.reshape(values.shape)
 
     return result
 
@@ -626,7 +625,7 @@ def na_value_for_dtype(dtype: DtypeObj, compat: bool = True):
     >>> na_value_for_dtype(np.dtype("bool"))
     False
     >>> na_value_for_dtype(np.dtype("datetime64[ns]"))
-    np.datetime64('NaT')
+    np.datetime64('NaT','ns')
     """
 
     if isinstance(dtype, ExtensionDtype):

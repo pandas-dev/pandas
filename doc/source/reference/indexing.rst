@@ -10,6 +10,9 @@ Index
 -----
 .. currentmodule:: pandas
 
+.. note::
+   For an overview, see :ref:`indexing.class`.
+
 **Many of these methods or variants thereof are available on the objects
 that contain an index (Series/DataFrame) and those should most likely be
 used before calling these methods directly.**
@@ -355,6 +358,8 @@ Time/date components
    DatetimeIndex.is_year_end
    DatetimeIndex.is_leap_year
    DatetimeIndex.inferred_freq
+   DatetimeIndex.asi8
+   DatetimeIndex.unit
 
 Selecting
 ~~~~~~~~~
@@ -420,6 +425,8 @@ Components
    TimedeltaIndex.nanoseconds
    TimedeltaIndex.components
    TimedeltaIndex.inferred_freq
+   TimedeltaIndex.asi8
+   TimedeltaIndex.unit
 
 Conversion
 ~~~~~~~~~~
@@ -478,6 +485,7 @@ Properties
     PeriodIndex.weekday
     PeriodIndex.weekofyear
     PeriodIndex.year
+    PeriodIndex.asi8
 
 Methods
 ~~~~~~~
