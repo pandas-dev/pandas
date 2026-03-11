@@ -591,11 +591,11 @@ cdef class TextReader:
     def close(self):
         _close(self)
 
-    def load_buffer(self, bytes data):
+    def load_buffer(self, const unsigned char[::1] data):
         """Pre-load all chunk bytes into the parser's internal buffer.
 
         After this call the tokeniser reads directly from the supplied *data*
-        bytes object rather than calling back into Python via the ``cb_io``
+        buffer rather than calling back into Python via the ``cb_io``
         I/O callback.  Because ``_tokenize_helper`` in ``tokenizer.c`` checks
         ``self->source == NULL`` before invoking ``parser_buffer_bytes``, the
         GIL is **never** re-acquired during tokenisation — enabling true CPU
@@ -606,11 +606,10 @@ cdef class TextReader:
 
         Parameters
         ----------
-        data : bytes
-            Raw CSV bytes for one chunk (no header line).
+        data : contiguous buffer
+            Raw CSV bytes for one chunk (no header line).  Accepts any object
+            implementing the buffer protocol (bytes, memoryview, mmap, etc.).
         """
-        cdef const char *buf
-
         # Release the rd_source that was allocated for the dummy source passed
         # to __cinit__, balancing the Py_INCREF done by new_rd_source.
         if self.parser.cb_cleanup != NULL:
@@ -621,12 +620,11 @@ cdef class TextReader:
         # Python I/O callback once the pre-loaded buffer is exhausted.
         self.parser.source = NULL
 
-        # Keep the bytes object alive for the full duration of the parse so
-        # that parser.data (which points into it) remains valid.
-        self._buffer_ref = data
-        buf = data
-        self.parser.data = <char *>buf
-        self.parser.datalen = len(data)
+        # Keep the underlying Python object alive for the full duration of the
+        # parse so that parser.data (which points into it) remains valid.
+        self._buffer_ref = data.base
+        self.parser.data = <char *>&data[0]
+        self.parser.datalen = data.shape[0]
         self.parser.datapos = 0
 
         # _get_header may have set state=FINISHED when it probed the empty
