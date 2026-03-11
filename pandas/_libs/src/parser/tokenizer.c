@@ -30,6 +30,20 @@ GitHub. See Python Software Foundation License and BSD licenses for these.
 #elif defined(__SSE2__) || defined(__SSE2) || defined(_M_X64) ||               \
     defined(_M_IX86)
 #  include <immintrin.h>
+#  ifdef _MSC_VER
+#    include <intrin.h>
+#  endif
+#endif
+
+// Portable count-trailing-zeros for use in SSE2 path
+#ifdef _MSC_VER
+static __inline int _pandas_ctz(unsigned int mask) {
+  unsigned long index;
+  _BitScanForward(&index, mask);
+  return (int)index;
+}
+#elif defined(__SSE2__) || defined(__SSE2)
+#  define _pandas_ctz(x) __builtin_ctz(x)
 #endif
 
 #include "pandas/portable.h"
@@ -746,7 +760,7 @@ static inline size_t fast_scan_sse(const char *data, size_t len, __m128i vdelim,
 
     int mask = _mm_movemask_epi8(m);
     if (mask)
-      return i + __builtin_ctz(mask);
+      return i + _pandas_ctz(mask);
   }
   return i;
 }
@@ -761,7 +775,7 @@ static inline size_t fast_scan_quoted_sse(const char *data, size_t len,
 
     int mask = _mm_movemask_epi8(m);
     if (mask)
-      return i + __builtin_ctz(mask);
+      return i + _pandas_ctz(mask);
   }
   return i;
 }
