@@ -115,7 +115,6 @@ Performance improvements
 Bug fixes
 ~~~~~~~~~
 - Fix bug in :func:`to_datetime` that could give an unnecessary ``RuntimeWarning`` when converting DataFrame containing missing values (:issue:`64141`)
-- Fixed bug where ``DataFrame.div`` ignored the ``axis`` argument when used with ``level`` for MultiIndex columns (:issue:`64428`)
 
 Categorical
 ^^^^^^^^^^^
