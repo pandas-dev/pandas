@@ -1000,6 +1000,9 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return a view on self.
 
+        Since Index objects are one-dimensional, this simply returns a view
+        of the original Index unchanged.
+
         Parameters
         ----------
         order : {'K', 'A', 'C', 'F'}, default 'C'
@@ -2713,6 +2716,9 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Fill NA/NaN values with the specified value.
 
+        Returns a new Index with all NA/NaN entries replaced by the given
+        scalar value.
+
         Parameters
         ----------
         value : scalar
@@ -2749,6 +2755,9 @@ class Index(IndexOpsMixin, PandasObject):
     def dropna(self, how: AnyAll = "any") -> Self:
         """
         Return Index without NA/NaN values.
+
+        Removes missing values from the Index, returning a shorter Index
+        containing only non-NA entries.
 
         Parameters
         ----------
@@ -3465,6 +3474,10 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Compute the symmetric difference of two Index objects.
 
+        The result contains elements that are in either of the two Index
+        objects but not in their intersection. This is the set-theoretic
+        symmetric difference, analogous to the ``^`` operator on Python sets.
+
         Parameters
         ----------
         other : Index or array-like
@@ -3573,6 +3586,11 @@ class Index(IndexOpsMixin, PandasObject):
     def get_loc(self, key):
         """
         Get integer location, slice or boolean mask for requested label.
+
+        The return type depends on the characteristics of the index: an
+        integer for a unique index, a slice for a monotonic index with
+        duplicate entries, or a boolean mask for a non-monotonic index
+        with duplicates.
 
         Parameters
         ----------
@@ -4365,6 +4383,10 @@ class Index(IndexOpsMixin, PandasObject):
     ) -> Index | tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
         """
         Compute join_index and indexers to conform data structures to the new index.
+
+        This method computes the result of a join between two Index objects
+        using the specified join type, and optionally returns integer indexers
+        that map each original index to the new joined index.
 
         Parameters
         ----------
@@ -5444,6 +5466,9 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Append a collection of Index options together.
 
+        This method concatenates one or more Index objects to the current
+        index, returning a new Index containing all elements in order.
+
         Parameters
         ----------
         other : Index or list/tuple of indices
@@ -5497,6 +5522,9 @@ class Index(IndexOpsMixin, PandasObject):
     def putmask(self, mask, value) -> Index:
         """
         Return a new Index of the values set with the mask.
+
+        Replaces elements of the Index where the corresponding mask entry is
+        ``True``, returning a new Index rather than modifying in place.
 
         Parameters
         ----------
@@ -6035,6 +6063,10 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return the integer indices that would sort the index.
 
+        This method returns an array of indices that indicate the order in
+        which elements of the index should be arranged to produce a sorted
+        index. It delegates to the underlying array's ``argsort`` method.
+
         Parameters
         ----------
         *args
@@ -6511,6 +6543,9 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Map values using an input mapping or function.
 
+        Applies a function, dict, or Series to each element of the Index,
+        returning a new Index (or MultiIndex if tuples are returned).
+
         Parameters
         ----------
         mapper : function, dict, or Series
@@ -6936,6 +6971,10 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Compute slice locations for input labels.
 
+        This method determines the integer start and end positions for a
+        label-based slice, which is useful for translating label-based
+        slicing into positional slicing on the underlying data.
+
         Parameters
         ----------
         start : label, default None
@@ -7210,6 +7249,9 @@ class Index(IndexOpsMixin, PandasObject):
     def infer_objects(self, copy: bool = True) -> Index:
         """
         If we have an object dtype, try to infer a non-object dtype.
+
+        For an Index with ``object`` dtype, this attempts to determine a
+        more specific dtype (e.g., ``int64`` or ``float64``) from the values.
 
         Parameters
         ----------

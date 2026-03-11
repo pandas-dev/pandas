@@ -22,6 +22,10 @@ class BaseIndexer:
     """
     Base class for window bounds calculations.
 
+    Subclasses should implement ``get_window_bounds`` to define custom
+    windowing logic for use with :meth:`DataFrame.rolling` or
+    :meth:`Series.rolling`.
+
     Parameters
     ----------
     index_array : np.ndarray, default None
@@ -219,6 +223,10 @@ class VariableWindowIndexer(BaseIndexer):
 class VariableOffsetWindowIndexer(BaseIndexer):
     """
     Calculate window boundaries based on a non-fixed offset such as a BusinessDay.
+
+    Unlike the default fixed-size window, this indexer uses a
+    :class:`DateOffset` to determine variable-width window boundaries
+    based on the datetime index of the data.
 
     Parameters
     ----------
@@ -441,6 +449,10 @@ class ExpandingIndexer(BaseIndexer):
 class FixedForwardWindowIndexer(BaseIndexer):
     """
     Creates window boundaries for fixed-length windows that include the current row.
+
+    This indexer produces forward-looking windows, where each window starts at
+    the current row and extends ``window_size`` rows ahead, unlike the default
+    backward-looking behavior of :meth:`DataFrame.rolling`.
 
     Parameters
     ----------
