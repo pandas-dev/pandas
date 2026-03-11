@@ -6430,7 +6430,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     "a condition and replacement; "
                     f"instead got length {len(entry)}."
                 )
-
         caselist = [
             (
                 com.apply_if_callable(condition, self),
