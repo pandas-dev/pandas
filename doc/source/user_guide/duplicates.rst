@@ -131,7 +131,7 @@ This applies to both row and column labels for a :class:`~pandas.DataFrame`
        allows_duplicate_labels=False
    )
 
-This attribute can be checked or set with :attr:`~pandas.DataFrame.flags.allows_duplicate_labels`,
+This attribute can be checked or set with ``allows_duplicate_labels``,
 which indicates whether that object can have duplicate labels.
 
 .. ipython:: python
