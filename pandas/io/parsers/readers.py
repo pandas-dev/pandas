@@ -32,6 +32,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config import get_option
+
 from pandas._libs import lib
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas.errors import (
@@ -360,6 +362,10 @@ def _can_parallelize_csv(filepath_or_buffer, kwds: dict) -> bool:
         error or silently incorrect data.  This is the same caveat that applies
         to any newline-based chunking scheme.
     """
+    # Respect the global opt-out for internal parallelism.
+    if not get_option("mode.use_threads"):
+        return False
+
     # Must be a local file path, not a URL or file-like object.
     if is_file_like(filepath_or_buffer):
         return False
