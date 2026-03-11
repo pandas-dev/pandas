@@ -240,7 +240,7 @@ def _isna_array(values: ArrayLike) -> npt.NDArray[np.bool_] | NDFrame:
     if not isinstance(values, np.ndarray):
         # i.e. ExtensionArray
         # error: Incompatible types in assignment (expression has type
-        # "Union[ndarray[Any, Any], ExtensionArraySupportsAnyAll]", variable has
+        # "Union[ndarray[Any, Any], ExtensionArrayNaResult]", variable has
         # type "ndarray[Any, dtype[bool_]]")
         result = values.isna()  # type: ignore[assignment]
     elif isinstance(values, np.rec.recarray):
@@ -625,7 +625,7 @@ def na_value_for_dtype(dtype: DtypeObj, compat: bool = True):
     >>> na_value_for_dtype(np.dtype("bool"))
     False
     >>> na_value_for_dtype(np.dtype("datetime64[ns]"))
-    np.datetime64('NaT')
+    np.datetime64('NaT','ns')
     """
 
     if isinstance(dtype, ExtensionDtype):

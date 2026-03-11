@@ -298,7 +298,7 @@ def pop_header_name(
     header_name = row[i]
     header_name = None if header_name == "" else header_name
 
-    return header_name, row[:i] + [""] + row[i + 1 :]
+    return header_name, [*row[:i], "", *row[i + 1 :]]
 
 
 def combine_kwargs(engine_kwargs: dict[str, Any] | None, kwargs: dict) -> dict:

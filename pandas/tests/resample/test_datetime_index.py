@@ -9,6 +9,7 @@ from pandas._libs import lib
 from pandas._libs.tslibs import Day
 from pandas._typing import DatetimeNaTType
 from pandas.compat import is_platform_windows
+from pandas.compat.pyarrow import pa_version_under22p0
 from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
@@ -1112,7 +1113,7 @@ def test_resample_anchored_intraday(unit):
     result = df.resample("ME").mean()
     expected = df.resample("ME").mean().to_period()
     expected = expected.to_timestamp(how="end")
-    expected.index += Timedelta(1, "ns") - Timedelta(1, "D")
+    expected.index += Timedelta(1, unit="us") - Timedelta(1, unit="D")
     expected.index = expected.index.as_unit(unit)._with_freq("infer")
     assert expected.index.freq == "ME"
     tm.assert_frame_equal(result, expected)
@@ -1121,7 +1122,7 @@ def test_resample_anchored_intraday(unit):
     exp = df.shift(1, freq="D").resample("ME").mean().to_period()
     exp = exp.to_timestamp(how="end")
 
-    exp.index = exp.index + Timedelta(1, "ns") - Timedelta(1, "D")
+    exp.index = exp.index + Timedelta(1, unit="us") - Timedelta(1, unit="D")
     exp.index = exp.index.as_unit(unit)._with_freq("infer")
     assert exp.index.freq == "ME"
     tm.assert_frame_equal(result, exp)
@@ -1134,7 +1135,7 @@ def test_resample_anchored_intraday2(unit):
     result = df.resample("QE").mean()
     expected = df.resample("QE").mean().to_period()
     expected = expected.to_timestamp(how="end")
-    expected.index += Timedelta(1, "ns") - Timedelta(1, "D")
+    expected.index += Timedelta(1, unit="us") - Timedelta(1, unit="D")
     expected.index._data.freq = "QE"
     expected.index._freq = lib.no_default
     expected.index = expected.index.as_unit(unit)
@@ -1144,7 +1145,7 @@ def test_resample_anchored_intraday2(unit):
     expected = df.shift(1, freq="D").resample("QE").mean()
     expected = expected.to_period()
     expected = expected.to_timestamp(how="end")
-    expected.index += Timedelta(1, "ns") - Timedelta(1, "D")
+    expected.index += Timedelta(1, unit="us") - Timedelta(1, unit="D")
     expected.index._data.freq = "QE"
     expected.index._freq = lib.no_default
     expected.index = expected.index.as_unit(unit)
@@ -1335,10 +1336,8 @@ dates1: list[DatetimeNaTType] = [
     datetime(2014, 7, 15),
 ]
 
-dates2: list[DatetimeNaTType] = (
-    dates1[:2] + [pd.NaT] + dates1[2:4] + [pd.NaT] + dates1[4:]
-)
-dates3 = [pd.NaT] + dates1 + [pd.NaT]
+dates2: list[DatetimeNaTType] = [*dates1[:2], pd.NaT, *dates1[2:4], pd.NaT, *dates1[4:]]
+dates3 = [pd.NaT, *dates1, pd.NaT]
 
 
 @pytest.mark.parametrize("dates", [dates1, dates2, dates3])
@@ -2145,7 +2144,7 @@ def test_resample_b_55282(unit):
         pytest.param(
             "UTC",
             marks=pytest.mark.xfail(
-                condition=is_platform_windows(),
+                condition=is_platform_windows() and pa_version_under22p0,
                 reason="TODO: Set ARROW_TIMEZONE_DATABASE env var in CI",
             ),
         ),

@@ -156,6 +156,9 @@ def is_re(obj: object) -> TypeGuard[Pattern]:
     """
     Check if the object is a regex pattern instance.
 
+    This function tests whether ``obj`` is an instance of a compiled
+    regular expression pattern, as created by :func:`re.compile`.
+
     Parameters
     ----------
     obj : object
@@ -192,6 +195,9 @@ def is_re(obj: object) -> TypeGuard[Pattern]:
 def is_re_compilable(obj: object) -> bool:
     """
     Check if the object can be compiled into a regex pattern instance.
+
+    This function attempts to compile ``obj`` as a regular expression
+    using :func:`re.compile` and returns whether the compilation succeeds.
 
     Parameters
     ----------
@@ -308,6 +314,9 @@ def is_dict_like(obj: object) -> bool:
     """
     Check if the object is dict-like.
 
+    An object is considered dict-like if it has the ``__getitem__``,
+    ``keys``, and ``__contains__`` attributes but is not a type itself.
+
     Parameters
     ----------
     obj : object
@@ -350,6 +359,9 @@ def is_dict_like(obj: object) -> bool:
 def is_named_tuple(obj: object) -> bool:
     """
     Check if the object is a named tuple.
+
+    A named tuple is a subclass of :class:`tuple` that has named fields,
+    as created by :func:`collections.namedtuple`.
 
     Parameters
     ----------

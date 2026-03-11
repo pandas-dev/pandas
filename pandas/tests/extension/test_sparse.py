@@ -217,6 +217,11 @@ class TestSparseArray(base.ExtensionTests):
             assert ser.get(4) == ser.iloc[2]
         assert ser.get(2) == ser.iloc[1]
 
+    def test_array_item_with_index(self, data, request):
+        # TODO https://github.com/pandas-dev/pandas/pull/64183
+        request.node.add_marker(pytest.mark.xfail(reason="SparseArray getitem buggy"))
+        super().test_array_item_with_index(data)
+
     def test_reindex(self, data, na_value):
         self._check_unsupported(data)
         super().test_reindex(data, na_value)

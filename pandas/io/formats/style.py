@@ -258,6 +258,11 @@ class Styler(StylerRenderer):
         """
         Append another Styler to combine the output into a single table.
 
+        This method enables combining multiple styled DataFrames into a single
+        HTML, LaTeX, or string output by appending additional summary rows or
+        related data beneath the original table. Styles, formatting, and CSS
+        classes applied to each Styler are preserved in the concatenated result.
+
         Parameters
         ----------
         other : Styler
@@ -743,6 +748,11 @@ class Styler(StylerRenderer):
         r"""
         Write Styler to a file, buffer or string in LaTeX format.
 
+        Output includes a ``\\begin{tabular}`` tag or, when using
+        ``environment`` parameter, can include table/longtable tags. Various
+        LaTeX packages (e.g. booktabs, siunitx, multirow) can be leveraged for
+        enhanced formatting through the method's parameters.
+
         Parameters
         ----------
         buf : str, path object, file-like object, or None, default None
@@ -1046,7 +1056,7 @@ class Styler(StylerRenderer):
                            | rgb(25%,255,50%)                 | [rgb]{0.25,1,0.5}
         ================== ==================== ============= ==========================
 
-        It is also possible to add user-defined LaTeX only styles to a HTML-CSS Styler
+        It is also possible to add user-defined LaTeX only styles to an HTML-CSS Styler
         using the ``--latex`` flag, and to add LaTeX parsing options that the
         converter will detect within a CSS-comment.
 
@@ -1449,6 +1459,10 @@ class Styler(StylerRenderer):
         """
         Write Styler to a file, buffer or string in HTML-CSS format.
 
+        The output includes ``<style>`` and ``<table>`` HTML elements with inline
+        CSS, suitable for embedding in web pages or Jupyter notebooks. Use
+        ``doctype_html=True`` to produce a fully structured HTML document.
+
         Parameters
         ----------
         buf : str, path object, file-like object, optional
@@ -1605,6 +1619,10 @@ class Styler(StylerRenderer):
         """
         Write Styler to a file, buffer or string in text format.
 
+        Produces a plain text representation of the styled DataFrame, without
+        any HTML or CSS formatting. This is useful for console output or
+        writing to text files.
+
         Parameters
         ----------
         buf : str, path object, file-like object, optional
@@ -1671,6 +1689,12 @@ class Styler(StylerRenderer):
     def set_td_classes(self, classes: DataFrame) -> Styler:
         """
         Set the ``class`` attribute of ``<td>`` HTML elements.
+
+        This method accepts a DataFrame of CSS class names and maps them to
+        the corresponding ``<td>`` elements in the rendered HTML table using
+        matching index and column keys. It can be used in combination with
+        ``Styler.set_table_styles`` to build a self-contained CSS styling
+        solution.
 
         Parameters
         ----------
@@ -2113,7 +2137,7 @@ class Styler(StylerRenderer):
         ----------
         func : function
             ``func`` should take a Series and return a string array of the same length.
-        axis : {{0, 1, "index", "columns"}}
+        axis : {0, 1, "index", "columns"}
             The headers over which to apply the function.
         level : int, str, list, optional
             If index is MultiIndex the level(s) over which to apply the function.
@@ -2190,7 +2214,7 @@ class Styler(StylerRenderer):
         ----------
         func : function
             ``func`` should take a scalar and return a string.
-        axis : {{0, 1, "index", "columns"}}
+        axis : {0, 1, "index", "columns"}
             The headers over which to apply the function.
         level : int, str, list, optional
             If index is MultiIndex the level(s) over which to apply the function.
@@ -2481,6 +2505,10 @@ class Styler(StylerRenderer):
         """
         Set the uuid applied to ``id`` attributes of HTML elements.
 
+        Useful for controlling the HTML ``id`` attributes when embedding
+        multiple styled DataFrames in the same HTML page, ensuring there are
+        no CSS conflicts between them.
+
         Parameters
         ----------
         uuid : str
@@ -2526,6 +2554,11 @@ class Styler(StylerRenderer):
     def set_caption(self, caption: str | tuple | list) -> Styler:
         """
         Set the text added to a ``<caption>`` HTML element.
+
+        This method sets the table caption that is rendered as a ``<caption>``
+        element in HTML output or as a ``\\caption`` command in LaTeX output.
+        For LaTeX, a tuple of two strings can be provided to specify both a
+        full caption and a short caption.
 
         Parameters
         ----------
@@ -2575,6 +2608,11 @@ class Styler(StylerRenderer):
     ) -> Styler:
         """
         Add CSS to permanently display the index or column headers in a scrolling frame.
+
+        This method applies CSS ``position: sticky`` rules so that the index
+        or column headers remain visible while scrolling through large tables.
+        It supports both regular and MultiIndex axes, with configurable pixel
+        sizes for header cell dimensions.
 
         Parameters
         ----------
@@ -2868,6 +2906,12 @@ class Styler(StylerRenderer):
         """
         Hide the entire index / column headers, or specific rows / columns from display.
 
+        This method controls the visibility of rows, columns, and axis headers
+        in the rendered output. It can hide the entire index or column headers,
+        specific levels of a MultiIndex, individual data rows or columns, or
+        just the axis-level names, depending on the combination of arguments
+        provided.
+
         Parameters
         ----------
         subset : label, array-like, IndexSlice, optional
@@ -3095,7 +3139,7 @@ class Styler(StylerRenderer):
             Compress the color range at the high end. This is a multiple of the data
             range to extend above the maximum; good values usually in [0, 1],
             defaults to 0.
-        axis : {{0, 1, "index", "columns", None}}, default 0
+        axis : {0, 1, "index", "columns", None}, default 0
             Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
             with ``axis=None``.
@@ -3252,7 +3296,7 @@ class Styler(StylerRenderer):
             Compress the color range at the high end. This is a multiple of the data
             range to extend above the maximum; good values usually in [0, 1],
             defaults to 0.
-        axis : {{0, 1, "index", "columns", None}}, default 0
+        axis : {0, 1, "index", "columns", None}, default 0
             Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
             with ``axis=None``.
@@ -3374,6 +3418,11 @@ class Styler(StylerRenderer):
         """
         Set defined CSS-properties to each ``<td>`` HTML element for the given subset.
 
+        This is a convenience method that applies one or more CSS property-value
+        pairs uniformly to every ``<td>`` element in the specified subset. It
+        wraps :meth:`Styler.map` with a function that returns the given CSS
+        properties regardless of the cell data.
+
         Parameters
         ----------
         subset : label, array-like, IndexSlice, optional
@@ -3427,6 +3476,10 @@ class Styler(StylerRenderer):
     ) -> Styler:
         """
         Draw bar chart in the cell backgrounds.
+
+        Renders horizontal bars as CSS gradients within table cells,
+        proportional to the underlying cell values. Colors can be customized
+        with a single color, a positive/negative pair, or a colormap.
 
         Parameters
         ----------
@@ -3547,6 +3600,9 @@ class Styler(StylerRenderer):
         """
         Highlight missing values with a style.
 
+        Applies a background color or custom CSS properties to cells
+        containing missing (NaN) values in the DataFrame.
+
         Parameters
         ----------
         color : str, default 'red'
@@ -3596,6 +3652,9 @@ class Styler(StylerRenderer):
     ) -> Styler:
         """
         Highlight the maximum with a style.
+
+        Applies a background color or custom CSS properties to cells
+        containing the maximum value along the specified axis.
 
         Parameters
         ----------
@@ -3652,6 +3711,9 @@ class Styler(StylerRenderer):
     ) -> Styler:
         """
         Highlight the minimum with a style.
+
+        Applies a background color or custom CSS properties to cells
+        containing the minimum value along the specified axis.
 
         Parameters
         ----------
@@ -3711,6 +3773,9 @@ class Styler(StylerRenderer):
     ) -> Styler:
         """
         Highlight a defined range with a style.
+
+        Applies a background color or custom CSS properties to cells whose
+        values fall within the range defined by ``left`` and ``right`` bounds.
 
         Parameters
         ----------
@@ -3828,6 +3893,10 @@ class Styler(StylerRenderer):
     ) -> Styler:
         """
         Highlight values defined by a quantile with a style.
+
+        Applies a background color or custom CSS properties to cells whose
+        values fall within the quantile range specified by ``q_left`` and
+        ``q_right``.
 
         Parameters
         ----------
@@ -4011,6 +4080,9 @@ class Styler(StylerRenderer):
     ) -> T:
         """
         Apply ``func(self, *args, **kwargs)``, and return the result.
+
+        This is useful for chaining multiple user-defined styling operations
+        in a readable manner, rather than nesting function calls.
 
         Parameters
         ----------

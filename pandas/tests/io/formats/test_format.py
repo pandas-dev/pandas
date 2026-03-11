@@ -109,7 +109,7 @@ class TestDataFrameFormatting:
 
             adj = printing.get_adjustment()
 
-            for line, value in zip(r.split("\n"), df["B"]):
+            for line, value in zip(r.split("\n"), df["B"], strict=True):
                 if adj.len(value) + 1 > max_len:
                     assert "..." in line
                 else:
@@ -1742,7 +1742,7 @@ class TestSeriesFormatting:
             ["bar", "bar", "baz", "baz", "foo", "foo", "qux", "qux"],
             ["one", "two", "one", "two", "one", "two", "one", "two"],
         ]
-        tuples = list(zip(*arrays))
+        tuples = list(zip(*arrays, strict=True))
         index = MultiIndex.from_tuples(tuples, names=["first", "second"])
         s = Series(np.random.default_rng(2).standard_normal(8), index=index)
 
@@ -2054,7 +2054,7 @@ class TestFloatArrayFormatter:
 
 class TestTimedelta64Formatter:
     def test_days(self):
-        x = pd.to_timedelta(list(range(5)) + [NaT], unit="D")._values
+        x = pd.to_timedelta([*list(range(5)), NaT], unit="D")._values
         result = fmt._Timedelta64Formatter(x).get_result()
         assert result[0].strip() == "0 days"
         assert result[1].strip() == "1 days"
@@ -2070,25 +2070,25 @@ class TestTimedelta64Formatter:
         assert result[0].strip() == "1 days"
 
     def test_days_neg(self):
-        x = pd.to_timedelta(list(range(5)) + [NaT], unit="D")._values
+        x = pd.to_timedelta([*list(range(5)), NaT], unit="D")._values
         result = fmt._Timedelta64Formatter(-x).get_result()
         assert result[0].strip() == "0 days"
         assert result[1].strip() == "-1 days"
 
     def test_subdays(self):
-        y = pd.to_timedelta(list(range(5)) + [NaT], unit="s")._values
+        y = pd.to_timedelta([*list(range(5)), NaT], unit="s")._values
         result = fmt._Timedelta64Formatter(y).get_result()
         assert result[0].strip() == "0 days 00:00:00"
         assert result[1].strip() == "0 days 00:00:01"
 
     def test_subdays_neg(self):
-        y = pd.to_timedelta(list(range(5)) + [NaT], unit="s")._values
+        y = pd.to_timedelta([*list(range(5)), NaT], unit="s")._values
         result = fmt._Timedelta64Formatter(-y).get_result()
         assert result[0].strip() == "0 days 00:00:00"
         assert result[1].strip() == "-1 days +23:59:59"
 
     def test_zero(self):
-        x = pd.to_timedelta(list(range(1)) + [NaT], unit="D")._values
+        x = pd.to_timedelta([*list(range(1)), NaT], unit="D")._values
         result = fmt._Timedelta64Formatter(x).get_result()
         assert result[0].strip() == "0 days"
 

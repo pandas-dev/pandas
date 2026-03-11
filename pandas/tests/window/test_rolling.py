@@ -1627,7 +1627,8 @@ def test_rolling_mean_all_nan_window_floating_artifacts(start, exp_values):
         ]
     )
 
-    values = exp_values + [
+    values = [
+        *exp_values,
         0.00366666,
         0.005,
         0.005,
