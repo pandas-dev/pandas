@@ -2721,7 +2721,6 @@ class ArrowExtensionArray(
         -------
         pa.Array
         """
-
         # TODO: Remove this part when pa.if_else is fixed (GH#64320)
         def _maybe_combine(arr):
             if not isinstance(arr, pa.ChunkedArray) or not (
