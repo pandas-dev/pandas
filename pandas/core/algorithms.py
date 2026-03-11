@@ -1091,7 +1091,7 @@ def rank(
             pct=pct,
         )
     else:
-        raise TypeError("Array with ndim > 2 are not supported.")
+        raise TypeError("Array with ndim > 2 is not supported.")
 
     return ranks
 
