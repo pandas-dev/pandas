@@ -1653,7 +1653,7 @@ class _MergeOperation:
                     join_names.append(k)
             if isinstance(self.right.index, MultiIndex):
                 right_keys = [
-                    self.right.index.get_level_values(i)._values
+                    self.right.index._get_level_values(i)._values
                     for i in range(self.right.index.nlevels)
                 ]
             else:
@@ -1673,7 +1673,7 @@ class _MergeOperation:
                     join_names.append(k)
             if isinstance(self.left.index, MultiIndex):
                 left_keys = [
-                    self.left.index.get_level_values(i)._values
+                    self.left.index._get_level_values(i)._values
                     for i in range(self.left.index.nlevels)
                 ]
             else:
