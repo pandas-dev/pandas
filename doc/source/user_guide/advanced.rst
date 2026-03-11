@@ -865,7 +865,7 @@ For example:
 IntervalIndex
 ~~~~~~~~~~~~~
 
-:class:`IntervalIndex` together with its own dtype, :class:`~pandas.api.types.IntervalDtype`
+:class:`IntervalIndex` together with its own dtype, :class:`~pandas.IntervalDtype`
 as well as the :class:`Interval` scalar type,  allow first-class support in pandas
 for interval notation.
 

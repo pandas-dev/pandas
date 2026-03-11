@@ -1916,7 +1916,7 @@ natural and functions similarly to :py:func:`itertools.groupby`:
        print("-" * 27)
        print(group, end="\n\n")
 
-See :ref:`groupby.iterating-label` or :meth:`pandas.core.resample.Resampler.__iter__` for more.
+See :ref:`groupby.iterating-label` or :meth:`pandas.api.typing.Resampler.__iter__` for more.
 
 .. _timeseries.adjust-the-start-of-the-bins:
 

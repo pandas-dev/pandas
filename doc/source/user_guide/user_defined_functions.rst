@@ -196,8 +196,8 @@ In the example, the function ``hotter`` will be called 3 times, once for each ro
 call will receive the whole row as the argument, allowing computations that require more than
 one value in the row.
 
-``apply`` is also available for :meth:`pandas.core.groupby.SeriesGroupBy.apply`, :meth:`pandas.core.groupby.DataFrameGroupBy.apply`,
-:meth:`pandas.core.window.rolling.Rolling.apply`, :meth:`pandas.core.window.expanding.Expanding.apply` and :meth:`pandas.core.resample.Resampler.apply`. You can read more
+``apply`` is also available for :meth:`pandas.api.typing.SeriesGroupBy.apply`, :meth:`pandas.api.typing.DataFrameGroupBy.apply`,
+:meth:`pandas.api.typing.Rolling.apply`, :meth:`pandas.api.typing.Expanding.apply` and :meth:`pandas.api.typing.Resampler.apply`. You can read more
 about ``apply`` in groupby operations :ref:`groupby.apply`.
 
 When to use: ``apply`` is suitable when no alternative vectorized method or UDF method is available,
@@ -256,8 +256,8 @@ calling multiple functions.
                                      .pipe(divide_by_5)
                                      .pipe(add_32))
 
-``pipe`` is also available for :meth:`pandas.core.groupby.SeriesGroupBy.pipe`, :meth:`pandas.core.groupby.DataFrameGroupBy.pipe` and
-:meth:`pandas.core.resample.Resampler.pipe`. You can read more about ``pipe`` in groupby operations in :ref:`groupby.pipe`.
+``pipe`` is also available for :meth:`pandas.api.typing.SeriesGroupBy.pipe`, :meth:`pandas.api.typing.DataFrameGroupBy.pipe` and
+:meth:`pandas.api.typing.Resampler.pipe`. You can read more about ``pipe`` in groupby operations in :ref:`groupby.pipe`.
 
 When to use: Use ``pipe`` when you need to create a pipeline of operations and want to keep the code readable and maintainable.
 
@@ -268,7 +268,7 @@ When to use: Use ``pipe`` when you need to create a pipeline of operations and w
 
 The ``filter`` method is used to select a subset of rows that match certain criteria.
 :meth:`pandas.Series.filter` and :meth:`pandas.DataFrame.filter` do not support user defined functions,
-but :meth:`pandas.core.groupby.SeriesGroupBy.filter` and :meth:`pandas.core.groupby.DataFrameGroupBy.filter` do. You can read more
+but :meth:`pandas.api.typing.SeriesGroupBy.filter` and :meth:`pandas.api.typing.DataFrameGroupBy.filter` do. You can read more
 about ``filter`` in groupby operations in :ref:`groupby.filter`.
 
 .. _udf.agg:
@@ -321,8 +321,8 @@ In the example, the ``warm_up_all_days`` function computes the ``max`` like an a
 of returning just the maximum value, it returns a ``DataFrame`` with the same shape as the original one
 with the values of each day replaced by the maximum temperature of the city.
 
-``transform`` is also available for :meth:`pandas.core.groupby.SeriesGroupBy.transform`, :meth:`pandas.core.groupby.DataFrameGroupBy.transform` and
-:meth:`pandas.core.resample.Resampler.transform`, where it's more common. You can read more about ``transform`` in groupby
+``transform`` is also available for :meth:`pandas.api.typing.SeriesGroupBy.transform`, :meth:`pandas.api.typing.DataFrameGroupBy.transform` and
+:meth:`pandas.api.typing.Resampler.transform`, where it's more common. You can read more about ``transform`` in groupby
 operations in :ref:`groupby.transform`.
 
 When to use: When you need to perform an aggregation that will be returned in the original structure of

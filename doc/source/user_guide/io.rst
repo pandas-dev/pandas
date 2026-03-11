@@ -473,7 +473,7 @@ specification:
 Specifying ``dtype='category'`` will result in an unordered ``Categorical``
 whose ``categories`` are the unique values observed in the data. For more
 control on the categories and order, create a
-:class:`~pandas.api.types.CategoricalDtype` ahead of time, and pass that for
+:class:`~pandas.CategoricalDtype` ahead of time, and pass that for
 that column's ``dtype``.
 
 .. ipython:: python
@@ -6094,7 +6094,7 @@ Reading from Stata format
 '''''''''''''''''''''''''
 
 The top-level function ``read_stata`` will read a dta file and return
-either a ``DataFrame`` or a :class:`pandas.api.typing.StataReader` that can
+either a ``DataFrame`` or a ``StataReader`` that can
 be used to read the file incrementally.
 
 .. ipython:: python
@@ -6102,7 +6102,7 @@ be used to read the file incrementally.
    pd.read_stata("stata.dta")
 
 Specifying a ``chunksize`` yields a
-:class:`pandas.api.typing.StataReader` instance that can be used to
+``StataReader`` instance that can be used to
 read ``chunksize`` lines from the file at a time.  The ``StataReader``
 object can be used as an iterator.
 
@@ -6138,7 +6138,7 @@ values will have ``object`` data type.
 .. note::
 
    :func:`~pandas.read_stata` and
-   :class:`~pandas.api.typing.StataReader` support .dta formats 113-115
+   ``StataReader`` support .dta formats 113-115
    (Stata 10-12), 117 (Stata 13), and 118 (Stata 14).
 
 .. note::
@@ -6149,7 +6149,7 @@ values will have ``object`` data type.
 
 .. note::
 
-   All :class:`~pandas.api.typing.StataReader` objects, whether created by :func:`~pandas.read_stata`
+   All ``StataReader`` objects, whether created by :func:`~pandas.read_stata`
    (when using ``iterator=True`` or ``chunksize``) or instantiated by hand, must be used as context
    managers (e.g. the ``with`` statement).
    While the ``close`` method is available, its use is unsupported.

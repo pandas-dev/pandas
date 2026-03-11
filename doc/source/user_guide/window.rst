@@ -85,7 +85,7 @@ operation. The ``method='table'`` option can only be used if ``engine='numba'`` 
 in the corresponding method call.
 
 For example, a `weighted mean <https://en.wikipedia.org/wiki/Weighted_arithmetic_mean>`__ calculation can
-be calculated with :meth:`~pandas.core.window.rolling.Rolling.apply` by specifying a separate column of weights.
+be calculated with :meth:`~pandas.api.typing.Rolling.apply` by specifying a separate column of weights.
 
 .. ipython:: python
    :okwarning:
@@ -326,7 +326,7 @@ We can also achieve this by using slicing, applying rolling aggregation, and the
 Rolling apply
 ~~~~~~~~~~~~~
 
-The :meth:`~pandas.core.window.rolling.Rolling.apply` function takes an extra ``func`` argument and performs
+The :meth:`~pandas.api.typing.Rolling.apply` function takes an extra ``func`` argument and performs
 generic rolling computations. The ``func`` argument should be a single function
 that produces a single value from an ndarray input. ``raw`` specifies whether
 the windows are cast as :class:`Series` objects (``raw=False``) or ndarray objects (``raw=True``).
@@ -344,7 +344,7 @@ the windows are cast as :class:`Series` objects (``raw=False``) or ndarray objec
 Numba engine
 ~~~~~~~~~~~~
 
-Additionally, :meth:`~pandas.core.window.rolling.Rolling.apply` can leverage `Numba <https://numba.pydata.org/>`__
+Additionally, :meth:`~pandas.api.typing.Rolling.apply` can leverage `Numba <https://numba.pydata.org/>`__
 if installed as an optional dependency. The apply aggregation can be executed using Numba by specifying
 ``engine='numba'`` and ``engine_kwargs`` arguments (``raw`` must also be set to ``True``).
 See :ref:`enhancing performance with Numba <enhancingperf.numba>` for general usage of the arguments and performance considerations.
@@ -366,7 +366,7 @@ and the apply for loop over each window.
 Binary window functions
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-:meth:`~pandas.core.window.rolling.Rolling.cov` and :meth:`~pandas.core.window.rolling.Rolling.corr` can compute moving window statistics about
+:meth:`~pandas.api.typing.Rolling.cov` and :meth:`~pandas.api.typing.Rolling.corr` can compute moving window statistics about
 two :class:`Series` or any combination of :class:`DataFrame`/:class:`Series` or
 :class:`DataFrame`/:class:`DataFrame`. Here is the behavior in each case:
 
@@ -612,7 +612,7 @@ Whereas if ``ignore_na=True``, the weighted average would be calculated as
 
         \frac{(1-\alpha) \cdot 3 + 1 \cdot 5}{(1-\alpha) + 1}.
 
-The :meth:`~pandas.core.window.ewm.ExponentialMovingWindow.var`, :meth:`~pandas.core.window.ewm.ExponentialMovingWindow.std`, and :meth:`~pandas.core.window.ewm.ExponentialMovingWindow.cov` functions have a ``bias`` argument,
+The :meth:`~pandas.api.typing.ExponentialMovingWindow.var`, :meth:`~pandas.api.typing.ExponentialMovingWindow.std`, and :meth:`~pandas.api.typing.ExponentialMovingWindow.cov` functions have a ``bias`` argument,
 specifying whether the result should contain biased or unbiased statistics.
 For example, if ``bias=True``, ``ewmvar(x)`` is calculated as
 ``ewmvar(x) = ewma(x**2) - ewma(x)**2``;

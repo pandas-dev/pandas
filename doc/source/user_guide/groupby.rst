@@ -652,7 +652,7 @@ Applying multiple functions at once
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 On a grouped ``Series``, you can pass a list or dict of functions to
-:meth:`pandas.core.groupby.SeriesGroupBy.agg`, outputting a DataFrame:
+:meth:`pandas.api.typing.SeriesGroupBy.agg`, outputting a DataFrame:
 
 .. ipython:: python
 
@@ -660,7 +660,7 @@ On a grouped ``Series``, you can pass a list or dict of functions to
    grouped["C"].agg(["sum", "mean", "std"])
 
 On a grouped ``DataFrame``, you can pass a list of functions to
-:meth:`pandas.core.groupby.DataFrameGroupBy.agg` to aggregate each
+:meth:`pandas.api.typing.DataFrameGroupBy.agg` to aggregate each
 column, which produces an aggregated result with a hierarchical column index:
 
 .. ipython:: python
@@ -1141,7 +1141,7 @@ more than 90% of the total volume within each group.
     significant_products = product_volumes[cumpct <= 0.9]
     significant_products.sort_values(["group", "product"])
 
-The :meth:`~pandas.core.groupby.DataFrameGroupBy.filter` method
+The :meth:`~pandas.api.typing.DataFrameGroupBy.filter` method
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. note::
