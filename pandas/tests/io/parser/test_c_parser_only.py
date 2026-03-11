@@ -20,7 +20,6 @@ import pytest
 
 from pandas.compat import WASM
 from pandas.errors import (
-    ParserError,
     ParserWarning,
 )
 import pandas.util._test_decorators as td
@@ -33,18 +32,33 @@ import pandas._testing as tm
 
 
 @pytest.mark.parametrize(
-    "malformed",
-    ["1\r1\r1\r 1\r 1\r", "1\r1\r1\r 1\r 1\r11\r", "1\r1\r1\r 1\r 1\r11\r1\r"],
+    "malformed,expected_data",
+    [
+        ("1\r1\r1\r 1\r 1\r", [[1], [1], [1], [1], [1]]),
+        ("1\r1\r1\r 1\r 1\r11\r", [[1], [1], [1], [1], [1], [11]]),
+        ("1\r1\r1\r 1\r 1\r11\r1\r", [[1], [1], [1], [1], [1], [11], [1]]),
+    ],
     ids=["words pointer", "stream pointer", "lines pointer"],
 )
-def test_buffer_overflow(c_parser_only, malformed):
-    # see gh-9205: test certain malformed input files that cause
-    # buffer overflows in tokenizer.c
-    msg = "Buffer overflow caught - possible malformed input file."
+def test_buffer_overflow(c_parser_only, malformed, expected_data):
+    # see gh-9205, gh-51141: test certain malformed input files that
+    # previously caused buffer overflows in tokenizer.c due to
+    # \r characters being treated as line terminators, then triggering
+    # an infinite re-parsing loop in the WHITESPACE_LINE state.
     parser = c_parser_only
+    result = parser.read_csv(StringIO(malformed), header=None)
+    expected = DataFrame(expected_data)
+    tm.assert_frame_equal(result, expected)
 
-    with pytest.raises(ParserError, match=msg):
-        parser.read_csv(StringIO(malformed))
+
+def test_cr_in_field_with_trailing_space(c_parser_only):
+    # GH#51141 - embedded \r followed by space in unquoted field
+    # should not cause infinite re-parsing or buffer overflow
+    parser = c_parser_only
+    data = "a,b,c\n1,2,3\n4,5\r X,6\n"
+    result = parser.read_csv(StringIO(data))
+    assert len(result) == 3
+    assert result.shape == (3, 3)
 
 
 def test_delim_whitespace_custom_terminator(c_parser_only):
