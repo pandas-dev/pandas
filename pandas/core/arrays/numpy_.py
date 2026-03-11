@@ -151,6 +151,13 @@ class NumpyExtensionArray(
             # e.g. list-of-tuples
             result = construct_1d_object_array_from_listlike(scalars)
 
+        if result.ndim > 1 and result.dtype.kind not in "SU":
+            # Keep the established behavior for dtype="str", see GH#64138.
+            raise ValueError(
+                "Data must be 1-dimensional, "
+                f"got ndarray of shape {result.shape} instead"
+            )
+
         if copy and result is scalars:
             result = result.copy()
         return cls(result)

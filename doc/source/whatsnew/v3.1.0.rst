@@ -146,6 +146,9 @@ Numeric
 Conversion
 ^^^^^^^^^^
 - Fixed :func:`pandas.array` to preserve mask information when converting NumPy masked arrays, converting masked values to missing values (:issue:`63879`).
+- Fixed bug in :func:`pandas.array` where passing multidimensional input with some
+  dtypes incorrectly returned a 2-dimensional array instead of raising a
+  ``ValueError`` (:issue:`64280`).
 -
 
 Strings
