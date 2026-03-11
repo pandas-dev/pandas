@@ -69,12 +69,9 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
     MSG='Validate Docstrings' ; echo "$MSG"
     python "$BASE_DIR"/scripts/validate_docstrings.py \
         --format=actions \
-        -i "pandas.IntervalDtype.subtype ES01" \
-        -i "pandas.api.extensions.ExtensionArray.count ES01" \
         -i "pandas.read_html ES01" \
         -i "pandas.read_xml ES01" \
         -i "pandas.IndexSlice ES01" \
-        -i "pandas.TimedeltaIndex.to_pytimedelta ES01" \
         -i "pandas.NamedAgg ES01" \
         -i "pandas.api.typing.DataFrameGroupBy.rolling ES01" \
         -i "pandas.api.typing.DataFrameGroupBy.size ES01" \
