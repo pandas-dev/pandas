@@ -1264,7 +1264,7 @@ cdef class Tick(SingleConstructorOffset):
         if normalize:
             # GH#21427
             raise ValueError(
-                "Tick offset with `normalize=True` are not allowed."
+                "Tick offset with `normalize=True` is not allowed."
             )
 
     # Note: Without making this cpdef, we get AttributeError when calling
@@ -1501,7 +1501,7 @@ cdef class Day(SingleConstructorOffset):
         if normalize:
             # GH#21427
             raise ValueError(
-                "Day offset with `normalize=True` are not allowed."
+                "Day offset with `normalize=True` is not allowed."
             )
 
     def is_on_offset(self, dt) -> bool:

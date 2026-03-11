@@ -2616,6 +2616,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         Compute group sizes.
 
+        Returns the number of rows in each group. This is useful for
+        understanding the distribution of data across groups.
+
         Returns
         -------
         DataFrame or Series
@@ -2720,6 +2723,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     ):
         """
         Compute sum of group values.
+
+        Computes the sum for each group. Null values are excluded by
+        default unless ``skipna`` is set to ``False``.
 
         Parameters
         ----------
@@ -3830,6 +3836,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     ) -> RollingGroupby:
         """
         Return a rolling grouper, providing rolling functionality per group.
+
+        Allows the application of rolling window operations
+        (e.g., moving averages) independently within each group defined
+        by the groupby keys.
 
         Parameters
         ----------
