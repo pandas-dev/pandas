@@ -28,6 +28,10 @@ from pandas._libs.tslibs.dtypes import (
     periods_per_day,
 )
 
+from pandas.core.dtypes.base import (
+    ExtensionDtype,
+    _registry as _ea_dtypes_registry,
+)
 from pandas.core.dtypes.common import (
     is_float,
     is_float_dtype,
@@ -69,7 +73,25 @@ if TYPE_CHECKING:
 _mpl_units: dict = {}  # Cache for units overwritten by us
 
 
-def get_pairs() -> list[tuple[type, type[mdates.DateConverter]]]:
+def plotable_ea_dtypes() -> list[ExtensionDtype]:
+    """Return a list of plotable ExtensionDtypes."""
+    return [dtype for dtype in _ea_dtypes_registry.dtypes if dtype._is_plotable]
+
+
+def plotable_types() -> list[type | str | ExtensionDtype]:
+    """Return a list of plotable types."""
+    types: list[type | str | ExtensionDtype] = [
+        np.number,
+        "datetime",
+        "datetimetz",
+        "timedelta",
+    ]
+    types.extend(plotable_ea_dtypes())
+    return types
+
+
+def get_pairs() -> list[tuple[type, type[munits.ConversionInterface]]]:
+    """Return a list of (type, converter) pairs for the matplotlib units registry."""
     pairs = [
         (Timestamp, DatetimeConverter),
         (Period, PeriodConverter),
@@ -78,6 +100,7 @@ def get_pairs() -> list[tuple[type, type[mdates.DateConverter]]]:
         (pydt.time, TimeConverter),
         (np.datetime64, DatetimeConverter),
     ]
+    pairs.extend([dtype._get_plot_converter() for dtype in plotable_ea_dtypes()])
     return pairs
 
 

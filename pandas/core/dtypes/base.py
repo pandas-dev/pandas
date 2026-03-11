@@ -72,6 +72,7 @@ class ExtensionDtype:
 
     * _is_numeric
     * _is_boolean
+    * _is_plotable
     * _get_common_dtype
 
     The `na_value` class attribute can be used to set the default NA value
@@ -449,6 +450,28 @@ class ExtensionDtype:
         Only relevant for cases where _supports_2d is True.
         """
         return False
+
+    _is_plotable: bool = False
+    """
+    Whether this dtype should be considered plotable.
+
+    By default only numeric ExtensionDtypes are assumed to be plotable.
+    For non-numeric ExtensionDtypes, set _is_plotable to True and implement
+    _get_plot_converter.
+    """
+
+    @classmethod
+    def _get_plot_converter(
+        cls,
+    ) -> tuple[type, matplotlib.units.ConversionInterface]:
+        """
+        Return the type and converter to use for plotting this dtype.
+
+        This is only relevant if _is_plotable is True. The returned type is likely
+        the same as ``cls._type``. The returned converter should be a subclass
+        of matplotlib.units.ConversionInterface.
+        """
+        raise AbstractMethodError(cls)
 
 
 class StorageExtensionDtype(ExtensionDtype):
