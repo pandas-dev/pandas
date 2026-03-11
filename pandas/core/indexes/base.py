@@ -2152,7 +2152,7 @@ class Index(IndexOpsMixin, PandasObject):
             )
 
         if is_integer(level):
-            if not is_name_na and is_integer(self.name) and level == self.name:
+            if is_integer(self.name) and level == self.name:
                 return
             if level < 0 and level != -1:
                 raise IndexError(
