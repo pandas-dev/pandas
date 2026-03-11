@@ -69,34 +69,20 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
     MSG='Validate Docstrings' ; echo "$MSG"
     python "$BASE_DIR"/scripts/validate_docstrings.py \
         --format=actions \
-        -i "pandas.IntervalDtype.subtype ES01" \
-        -i "pandas.api.extensions.ExtensionArray.count ES01" \
         -i "pandas.read_html ES01" \
         -i "pandas.read_xml ES01" \
         -i "pandas.IndexSlice ES01" \
-        -i "pandas.TimedeltaIndex.to_pytimedelta ES01" \
         -i "pandas.NamedAgg ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.rolling ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.size ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.kurt ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.sum ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.value_counts ES01" \
         -i "pandas.api.typing.SeriesGroupBy.corr ES01" \
         -i "pandas.api.typing.SeriesGroupBy.cov ES01" \
         -i "pandas.api.typing.SeriesGroupBy.is_monotonic_increasing ES01" \
         -i "pandas.api.typing.SeriesGroupBy.is_monotonic_decreasing ES01" \
         -i "pandas.api.typing.SeriesGroupBy.nlargest ES01" \
         -i "pandas.api.typing.SeriesGroupBy.nsmallest ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.rolling ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.size ES01" \
         -i "pandas.api.typing.SeriesGroupBy.kurt ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.sum ES01" \
         -i "pandas.api.typing.SeriesGroupBy.value_counts ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.boxplot ES01" \
         -i "pandas.api.typing.SeriesGroupBy.hist ES01" \
-        -i "pandas.Timedelta.resolution_string SA01" \
-        -i "pandas.DatetimeIndex.unit GL08" \
-        -i "pandas.TimedeltaIndex.unit GL08" # no backslash in the last line
+        -i "pandas.Timedelta.resolution_string SA01" # no backslash in the last line
 
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 

@@ -1048,33 +1048,19 @@ class Block(PandasObject, libinternals.Block):
         fill_value : int
             Only used in ExtensionBlock._unstack
         new_placement : np.ndarray[np.intp]
-        allow_fill : bool
         needs_masking : np.ndarray[bool]
+            Only used in ExtensionBlock._unstack
 
         Returns
         -------
         blocks : list of Block
             New blocks of unstacked values.
-        mask : array-like of bool
-            The mask of columns of `blocks` we should keep.
         """
-        new_values, mask = unstacker.get_new_values(
-            self.values.T, fill_value=fill_value
-        )
-
-        mask = mask.any(0)
-        # TODO: in all tests we have mask.all(); can we rely on that?
-
-        # Note: these next two lines ensure that
-        #  mask.sum() == sum(len(nb.mgr_locs) for nb in blocks)
-        #  which the calling function needs in order to pass verify_integrity=False
-        #  to the BlockManager constructor
-        new_values = new_values.T[mask]
-        new_placement = new_placement[mask]
+        new_values = unstacker.get_new_values(self.values.T, fill_value=fill_value)
 
         bp = BlockPlacement(new_placement)
-        blocks = [new_block_2d(new_values, placement=bp)]
-        return blocks, mask
+        blocks = [new_block_2d(new_values.T, placement=bp)]
+        return blocks
 
     # ---------------------------------------------------------------------
 
@@ -2103,14 +2089,7 @@ class ExtensionBlock(EABackedBlock):
         # a `take` on the actual values.
 
         # Caller is responsible for ensuring self.shape[-1] == len(unstacker.index)
-        new_values, mask = unstacker.arange_result
-
-        # Note: these next two lines ensure that
-        #  mask.sum() == sum(len(nb.mgr_locs) for nb in blocks)
-        #  which the calling function needs in order to pass verify_integrity=False
-        #  to the BlockManager constructor
-        new_values = new_values.T[mask]
-        new_placement = new_placement[mask]
+        new_values = unstacker.arange_result
 
         # needs_masking[i] calculated once in BlockManager.unstack tells
         #  us if there are any -1s in the relevant indices.  When False,
@@ -2126,10 +2105,10 @@ class ExtensionBlock(EABackedBlock):
                 ndim=2,
             )
             for i, (indices, place) in enumerate(
-                zip(new_values, new_placement, strict=True)
+                zip(new_values.T, new_placement, strict=True)
             )
         ]
-        return blocks, mask
+        return blocks
 
 
 class NumpyBlock(Block):

@@ -1369,6 +1369,9 @@ class IntervalDtype(PandasExtensionDtype):
         """
         The dtype of the Interval bounds.
 
+        Each interval in an :class:`~pandas.arrays.IntervalArray` has the same
+        data type for its left and right bounds. ``subtype`` returns that dtype.
+
         See Also
         --------
         IntervalDtype: An ExtensionDtype for Interval data.
