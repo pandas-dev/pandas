@@ -85,9 +85,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.api.typing.SeriesGroupBy.kurt ES01" \
         -i "pandas.api.typing.SeriesGroupBy.value_counts ES01" \
         -i "pandas.api.typing.SeriesGroupBy.hist ES01" \
-        -i "pandas.Timedelta.resolution_string SA01" \
-        -i "pandas.DatetimeIndex.unit GL08" \
-        -i "pandas.TimedeltaIndex.unit GL08" # no backslash in the last line
+        -i "pandas.Timedelta.resolution_string SA01" # no backslash in the last line
 
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
