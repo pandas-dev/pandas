@@ -88,9 +88,9 @@ User-Defined Functions can be applied across various pandas methods:
 +-------------------------------+------------------------+--------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
 | :ref:`udf.agg`                | Series or DataFrame    | Scalar or Series         | Aggregate and summarize values, e.g., sum or custom reducer                                                                                  |
 +-------------------------------+------------------------+--------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
-| :ref:`udf.transform` (axis=0) | Column (Series)        | Column (Series)          | Same as ``apply`` with (axis=0), but it raises an exception if the function changes the shape of the data                                |
+| :ref:`udf.transform` (axis=0) | Column (Series)        | Column (Series)          | Same as ``apply`` with (axis=0), but it raises an exception if the function changes the shape of the data                                    |
 +-------------------------------+------------------------+--------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
-| :ref:`udf.transform` (axis=1) | Row (Series)           | Row (Series)             | Same as ``apply`` with (axis=1), but it raises an exception if the function changes the shape of the data                                |
+| :ref:`udf.transform` (axis=1) | Row (Series)           | Row (Series)             | Same as ``apply`` with (axis=1), but it raises an exception if the function changes the shape of the data                                    |
 +-------------------------------+------------------------+--------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
 
 When applying UDFs in pandas, it is essential to select the appropriate method based
@@ -107,7 +107,7 @@ decisions, ensuring more efficient and maintainable code.
 .. _udf.map:
 
 :meth:`pandas.Series.map` and :meth:`pandas.DataFrame.map`
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The ``map`` method is used specifically to apply element-wise UDFs. This means the function
 will be called for each element in the ``Series`` or ``DataFrame``, with the individual value or
@@ -138,7 +138,7 @@ When to use: Use ``map`` for applying element-wise UDFs to DataFrames or Series.
 .. _udf.apply:
 
 :meth:`pandas.Series.apply` and :meth:`pandas.DataFrame.apply`
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The ``apply`` method allows you to apply UDFs for a whole column or row. This is different
 from ``map`` in that the function will be called for each column (or row), not for each individual value.
@@ -206,7 +206,7 @@ but consider optimizing performance with vectorized operations wherever possible
 .. _udf.pipe:
 
 :meth:`pandas.Series.pipe` and :meth:`pandas.DataFrame.pipe`
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The ``pipe`` method is similar to ``map`` and ``apply``, but the function receives the whole ``Series``
 or ``DataFrame`` it is called on.
@@ -264,7 +264,7 @@ When to use: Use ``pipe`` when you need to create a pipeline of operations and w
 .. _udf.filter:
 
 :meth:`pandas.Series.filter` and :meth:`pandas.DataFrame.filter`
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The ``filter`` method is used to select a subset of rows that match certain criteria.
 :meth:`pandas.Series.filter` and :meth:`pandas.DataFrame.filter` do not support user defined functions,
@@ -274,7 +274,7 @@ about ``filter`` in groupby operations in :ref:`groupby.filter`.
 .. _udf.agg:
 
 :meth:`pandas.Series.agg` and :meth:`pandas.DataFrame.agg`
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The ``agg`` method is used to aggregate a set of data points into a single one.
 The most common aggregation functions such as ``min``, ``max``, ``mean``, ``sum``, etc.
@@ -300,7 +300,7 @@ a scalar value on each input.
 .. _udf.transform:
 
 :meth:`pandas.Series.transform` and :meth:`pandas.DataFrame.transform`
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The ``transform`` method is similar to an aggregation, with the difference that the result is broadcasted
 to the original data.
@@ -387,7 +387,7 @@ especially for computationally heavy tasks.
     for a more detailed guide to using **Numba**.
 
 Using :meth:`pandas.DataFrame.pipe` for Composable Logic
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Another useful pattern for improving readability and composability, especially when mixing
 vectorized logic with UDFs, is to use the :meth:`pandas.DataFrame.pipe` method.

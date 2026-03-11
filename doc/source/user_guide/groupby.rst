@@ -1142,7 +1142,7 @@ more than 90% of the total volume within each group.
     significant_products.sort_values(["group", "product"])
 
 The :meth:`~pandas.api.typing.DataFrameGroupBy.filter` method
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. note::
 
