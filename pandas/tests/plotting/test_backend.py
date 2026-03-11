@@ -7,6 +7,8 @@ import pandas.util._test_decorators as td
 
 import pandas
 
+pytestmark = pytest.mark.single_cpu
+
 
 @pytest.fixture
 def dummy_backend():

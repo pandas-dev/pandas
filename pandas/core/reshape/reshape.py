@@ -207,7 +207,7 @@ class _Unstacker:
 
     def _make_sorted_values(self, values: np.ndarray) -> np.ndarray:
         indexer, _ = self._indexer_and_to_sort
-        sorted_values = algos.take_nd(values, indexer, axis=0)
+        sorted_values = algos.take_nd(values, indexer, axis=0, allow_fill=False)
         return sorted_values
 
     def _make_selectors(self) -> None:
@@ -386,8 +386,8 @@ class _Unstacker:
         new_levels: FrozenList | list[Index]
 
         if isinstance(value_columns, MultiIndex):
-            new_levels = value_columns.levels + (self.removed_level_full,)  # pyright: ignore[reportOperatorIssue]
-            new_names = value_columns.names + (self.removed_name,)
+            new_levels = value_columns.levels + (self.removed_level_full,)  # pyright: ignore[reportOperatorIssue] # noqa: RUF005
+            new_names = value_columns.names + (self.removed_name,)  # noqa: RUF005
 
             new_codes = [lab.take(propagator) for lab in value_columns.codes]
         else:
@@ -465,7 +465,7 @@ def _unstack_multiple(
     # NOTE: This doesn't deal with hierarchical columns yet
 
     index = data.index
-    index = cast(MultiIndex, index)  # caller is responsible for checking
+    index = cast("MultiIndex", index)  # caller is responsible for checking
 
     # GH 19966 Make sure if MultiIndexed index has tuple name, they will be
     # recognised as a whole
@@ -493,9 +493,9 @@ def _unstack_multiple(
         dummy_index = Index(obs_ids, name="__placeholder__", copy=False)
     else:
         dummy_index = MultiIndex(
-            levels=rlevels + [obs_ids],
-            codes=rcodes + [comp_ids],
-            names=rnames + ["__placeholder__"],
+            levels=[*rlevels, obs_ids],
+            codes=[*rcodes, comp_ids],
+            names=[*rnames, "__placeholder__"],
             verify_integrity=False,
         )
 
@@ -535,8 +535,8 @@ def _unstack_multiple(
         else:
             unstcols = unstacked.columns
         assert isinstance(unstcols, MultiIndex)  # for mypy
-        new_levels = [unstcols.levels[0]] + clevels
-        new_names = [data.columns.name] + cnames
+        new_levels = [unstcols.levels[0], *clevels]
+        new_names = [data.columns.name, *cnames]
 
         new_codes = [unstcols.codes[0]]
         new_codes.extend(rec.take(unstcols.codes[-1]) for rec in recons_codes)
@@ -839,7 +839,7 @@ def _stack_multi_columns(
         this = this.sort_index(level=level_to_sort, axis=1)
         mi_cols = this.columns
 
-    mi_cols = cast(MultiIndex, mi_cols)
+    mi_cols = cast("MultiIndex", mi_cols)
     new_columns = _stack_multi_column_index(mi_cols)
 
     # time to ravel the values

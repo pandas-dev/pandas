@@ -4,17 +4,16 @@ on:
   push:
     branches:
       - main
-      - 2.3.x
+      - 3.0.x
   pull_request:
     branches:
       - main
-      - 2.3.x
+      - 3.0.x
     paths-ignore:
       - "doc/**"
       - "web/**"
 
-permissions:
-  contents: read
+permissions: {}
 
 defaults:
   run:
@@ -23,11 +22,13 @@ defaults:
 jobs:
   ubuntu:
     runs-on: ${{ matrix.platform }}
+    permissions:
+      contents: read
     timeout-minutes: 90
     strategy:
       matrix:
         platform: [ubuntu-24.04, ubuntu-24.04-arm]
-        env_file: [actions-311.yaml, actions-312.yaml, actions-313.yaml]
+        env_file: [actions-311.yaml, actions-312.yaml, actions-313.yaml, actions-314.yaml]
         # Prevent the include jobs from overriding other jobs
         pattern: [""]
         pandas_future_infer_string: ["1"]
@@ -83,7 +84,6 @@ jobs:
           - name: "Numpy Dev"
             env_file: actions-313-numpydev.yaml
             pattern: "not slow and not network and not single_cpu"
-            test_args: "-W error::DeprecationWarning -W error::FutureWarning"
             platform: ubuntu-24.04
           - name: "Pyarrow Nightly"
             env_file: actions-313-pyarrownightly.yaml
@@ -98,7 +98,6 @@ jobs:
       PANDAS_CI: '1'
       PANDAS_FUTURE_INFER_STRING: ${{ matrix.pandas_future_infer_string || '1' }}
       PANDAS_FUTURE_PYTHON_SCALARS: ${{ matrix.pandas_future_python_scalars || '0' }}
-      TEST_ARGS: ${{ matrix.test_args || '' }}
       PYTEST_WORKERS: 'auto'
       PYTEST_TARGET: ${{ matrix.pytest_target || 'pandas' }}
       # Clipboard tests
@@ -145,7 +144,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v6
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       with:
         fetch-depth: 0
 
@@ -167,7 +166,9 @@ jobs:
       id: build
       uses: ./.github/actions/build_pandas
       with:
-        # xref https://github.com/cython/cython/issues/6870
+        # python3.14t/cpython/pyatomic_gcc.h:63:10:
+        #   error: ‘__atomic_fetch_add_8’
+        #   writing 8 bytes into a region of size 0 overflows the destination [-Werror=stringop-overflow=]
         werror: ${{ matrix.name != 'Freethreading' }}
 
     - name: Test (not single_cpu)
@@ -184,11 +185,13 @@ jobs:
       if: ${{ matrix.pattern == '' && (always() && steps.build.outcome == 'success')}}
 
   macos-windows:
+    permissions:
+      contents: read
     timeout-minutes: 90
     strategy:
       matrix:
         os: [macos-15-intel, macos-15, windows-2025]
-        env_file: [actions-311.yaml, actions-312.yaml, actions-313.yaml]
+        env_file: [actions-311.yaml, actions-312.yaml, actions-313.yaml, actions-314.yaml]
       fail-fast: false
     runs-on: ${{ matrix.os }}
     name: ${{ format('{0} {1}', matrix.os, matrix.env_file) }}
@@ -204,7 +207,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           fetch-depth: 0
 
@@ -221,6 +224,8 @@ jobs:
 
   Linux-32-bit:
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
     container:
       image: quay.io/pypa/manylinux_2_28_i686
       options: --platform linux/386
@@ -241,14 +246,12 @@ jobs:
           fi
       - name: Build environment and Run Tests
         # https://github.com/numpy/numpy/issues/24703#issuecomment-1722379388
-        # Note: Pinned to Cython 3.0.10 to avoid numerical instability in 32-bit environments
-        # https://github.com/pandas-dev/pandas/pull/61423
         run: |
           /opt/python/cp313-cp313/bin/python -m venv ~/virtualenvs/pandas-dev
           . ~/virtualenvs/pandas-dev/bin/activate
-          python -m pip install --no-cache-dir -U pip wheel setuptools meson[ninja]==1.2.1 meson-python==0.13.1
+          python -m pip install --no-cache-dir -U pip wheel meson[ninja]==1.2.1 meson-python==0.13.1
           python -m pip install numpy -Csetup-args="-Dallow-noblas=true"
-          python -m pip install --no-cache-dir versioneer[toml] cython==3.0.10 python-dateutil pytest>=8.3.4 pytest-xdist>=3.6.1 hypothesis>=6.116.0
+          python -m pip install --no-cache-dir versioneer[toml] cython python-dateutil pytest>=8.3.4 pytest-xdist>=3.6.1 hypothesis>=6.116.0 pytest-cov
           python -m pip install --no-cache-dir --no-build-isolation -e . -Csetup-args="--werror"
           python -m pip list --no-cache-dir
           PANDAS_CI=1 python -m pytest -m 'not slow and not network and not clipboard and not single_cpu' pandas --junitxml=test-data.xml
@@ -259,6 +262,8 @@ jobs:
 
   Linux-Musl:
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
     container:
       image: quay.io/pypa/musllinux_1_2_x86_64
     steps:
@@ -284,8 +289,8 @@ jobs:
         run: |
           /opt/python/cp313-cp313/bin/python -m venv ~/virtualenvs/pandas-dev
           . ~/virtualenvs/pandas-dev/bin/activate
-          python -m pip install --no-cache-dir -U pip wheel setuptools meson-python==0.13.1 meson[ninja]==1.2.1
-          python -m pip install --no-cache-dir versioneer[toml] cython numpy python-dateutil pytest>=8.3.4 pytest-xdist>=3.6.1 hypothesis>=6.116.0
+          python -m pip install --no-cache-dir -U pip wheel meson-python==0.13.1 meson[ninja]==1.2.1
+          python -m pip install --no-cache-dir versioneer[toml] cython numpy python-dateutil pytest>=8.3.4 pytest-xdist>=3.6.1 hypothesis>=6.116.0 pytest-cov
           python -m pip install --no-cache-dir --no-build-isolation -e . -Csetup-args="--werror"
           python -m pip list --no-cache-dir
 
@@ -318,7 +323,9 @@ jobs:
     #    To freeze this file, uncomment out the ``if: false`` condition, and migrate the jobs
     #    to the corresponding posix/windows-macos/sdist etc. workflows.
     # Feel free to modify this comment as necessary.
-    # if: false
+    if: false
+    permissions:
+      contents: read
     defaults:
       run:
         shell: bash -eou pipefail {0}
@@ -342,19 +349,19 @@ jobs:
       PYTEST_TARGET: pandas
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           fetch-depth: 0
 
       - name: Set up Python Dev Version
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
-          python-version: '3.14-dev'
+          python-version: '3.15-dev'
 
       - name: Build Environment
         run: |
           python --version
-          python -m pip install --upgrade pip setuptools wheel meson[ninja]==1.2.1 meson-python==0.13.1
+          python -m pip install --upgrade pip wheel meson[ninja]==1.2.1 meson-python==0.13.1
           python -m pip install --pre --extra-index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple numpy
           python -m pip install versioneer[toml] python-dateutil tzdata cython hypothesis>=6.116.0 pytest>=8.3.4 pytest-xdist>=3.6.1 pytest-cov
           python -m pip install -ve . --no-build-isolation --no-index --no-deps -Csetup-args="--werror"
@@ -373,24 +380,26 @@ jobs:
     # https://pyodide.org/en/stable/usage/index.html#node-js
     name: Pyodide build
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
       group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-wasm
       cancel-in-progress: true
     steps:
       - name: Checkout pandas Repo
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           fetch-depth: 0
 
       - name: Set up Python for pyodide-build
         id: setup-python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
           python-version: '3.12'
 
       - name: Set up Emscripten toolchain
-        uses: mymindstorm/setup-emsdk@v14
+        uses: mymindstorm/setup-emsdk@6ab9eb1bda2574c4ddb79809fc9247783eaf9021 # v14
         with:
           version: '3.1.58'
           actions-cache-folder: emsdk-cache
@@ -403,7 +412,7 @@ jobs:
           pyodide build
 
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
         with:
           node-version: '20'
 
@@ -421,7 +430,7 @@ jobs:
           PANDAS_CI: 1
         run: |
           source .venv-pyodide/bin/activate
-          pip install pytest hypothesis
+          pip install pytest hypothesis pytest-cov
           # do not import pandas from the checked out repo
           cd ..
           python -c 'import pandas as pd; pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db"])'

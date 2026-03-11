@@ -73,8 +73,7 @@ def test_apply(float_frame, engine, request):
 
 @pytest.mark.parametrize("axis", [0, 1])
 @pytest.mark.parametrize("raw", [True, False])
-@pytest.mark.parametrize("nopython", [True, False])
-def test_apply_args(float_frame, axis, raw, engine, nopython):
+def test_apply_args(float_frame, axis, raw, engine):
     numba = pytest.importorskip("numba")
     if (
         engine == "numba"
@@ -82,14 +81,12 @@ def test_apply_args(float_frame, axis, raw, engine, nopython):
         and is_platform_arm()
     ):
         pytest.skip(f"Segfaults on ARM platforms with numba {numba.__version__}")
-    engine_kwargs = {"nopython": nopython}
     result = float_frame.apply(
         lambda x, y: x + y,
         axis,
         args=(1,),
         raw=raw,
         engine=engine,
-        engine_kwargs=engine_kwargs,
     )
     expected = float_frame + 1
     tm.assert_frame_equal(result, expected)
@@ -101,7 +98,6 @@ def test_apply_args(float_frame, axis, raw, engine, nopython):
         b=2,
         raw=raw,
         engine=engine,
-        engine_kwargs=engine_kwargs,
     )
     expected = float_frame + 3
     tm.assert_frame_equal(result, expected)
@@ -114,7 +110,6 @@ def test_apply_args(float_frame, axis, raw, engine, nopython):
                 b=2,
                 raw=raw,
                 engine=engine,
-                engine_kwargs=engine_kwargs,
             )
 
         # keyword-only arguments are not supported in numba
@@ -128,7 +123,6 @@ def test_apply_args(float_frame, axis, raw, engine, nopython):
                 b=2,
                 raw=raw,
                 engine=engine,
-                engine_kwargs=engine_kwargs,
             )
 
         with pytest.raises(
@@ -141,7 +135,6 @@ def test_apply_args(float_frame, axis, raw, engine, nopython):
                 b=2,
                 raw=raw,
                 engine=engine,
-                engine_kwargs=engine_kwargs,
             )
 
 
@@ -1837,6 +1830,23 @@ def test_agg_std():
 
     result = df.agg([np.std], ddof=1)
     expected = DataFrame({"A": 2.0, "B": 2.0}, index=["std"])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_agg_np_size():
+    # GH#42203, GH#48328
+    df = DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]], columns=["A", "B", "C"])
+
+    result = df.agg({"A": [np.size]})
+    expected = DataFrame({"A": [3]}, index=["size"])
+    tm.assert_frame_equal(result, expected)
+
+    result = df.agg({"A": np.size})
+    expected = Series({"A": 3})
+    tm.assert_series_equal(result, expected)
+
+    result = df.agg({"A": [np.mean, np.size]})
+    expected = DataFrame({"A": [4.0, 3.0]}, index=["mean", "size"])
     tm.assert_frame_equal(result, expected)
 
 

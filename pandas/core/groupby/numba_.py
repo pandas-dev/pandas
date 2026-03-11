@@ -66,7 +66,6 @@ def validate_udf(func: Callable) -> None:
 @functools.cache
 def generate_numba_agg_func(
     func: Callable[..., Scalar],
-    nopython: bool,
     nogil: bool,
     parallel: bool,
 ) -> Callable[[np.ndarray, np.ndarray, np.ndarray, np.ndarray, int, Any], np.ndarray]:
@@ -83,8 +82,6 @@ def generate_numba_agg_func(
     ----------
     func : function
         function to be applied to each group and will be JITed
-    nopython : bool
-        nopython to be passed into numba.jit
     nogil : bool
         nogil to be passed into numba.jit
     parallel : bool
@@ -100,7 +97,7 @@ def generate_numba_agg_func(
     else:
         numba = import_optional_dependency("numba")
 
-    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
+    @numba.jit(nogil=nogil, parallel=parallel)
     def group_agg(
         values: np.ndarray,
         index: np.ndarray,
@@ -126,7 +123,6 @@ def generate_numba_agg_func(
 @functools.cache
 def generate_numba_transform_func(
     func: Callable[..., np.ndarray],
-    nopython: bool,
     nogil: bool,
     parallel: bool,
 ) -> Callable[[np.ndarray, np.ndarray, np.ndarray, np.ndarray, int, Any], np.ndarray]:
@@ -143,8 +139,6 @@ def generate_numba_transform_func(
     ----------
     func : function
         function to be applied to each window and will be JITed
-    nopython : bool
-        nopython to be passed into numba.jit
     nogil : bool
         nogil to be passed into numba.jit
     parallel : bool
@@ -160,7 +154,7 @@ def generate_numba_transform_func(
     else:
         numba = import_optional_dependency("numba")
 
-    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
+    @numba.jit(nogil=nogil, parallel=parallel)
     def group_transform(
         values: np.ndarray,
         index: np.ndarray,

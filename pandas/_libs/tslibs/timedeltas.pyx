@@ -509,6 +509,7 @@ def array_to_timedelta64(
                     ival = _numeric_to_td64ns(item, parsed_unit, NPY_FR_ns)
 
                     item_reso = NPY_FR_ns
+                    int_reso = NPY_FR_ns
                     state.update_creso(item_reso)
                     if infer_reso:
                         creso = state.creso
@@ -1267,7 +1268,7 @@ cdef class _Timedelta(timedelta):
 
         Examples
         --------
-        >>> td = pd.Timedelta(1, "d")
+        >>> td = pd.Timedelta(1, "D")
         >>> td.days
         1
 
@@ -1402,7 +1403,8 @@ cdef class _Timedelta(timedelta):
         Examples
         --------
         >>> td = pd.Timedelta(42, unit='us')
-        'ns'
+        >>> td.unit
+        'us'
         """
         return npy_unit_to_abbrev(self._creso)
 
@@ -1518,6 +1520,7 @@ cdef class _Timedelta(timedelta):
         self._ensure_components()
         return -999999999 <= self._d and self._d <= 999999999
 
+    @cython.critical_section
     cdef _ensure_components(_Timedelta self):
         """
         compute the components
@@ -1529,6 +1532,8 @@ cdef class _Timedelta(timedelta):
             pandas_timedeltastruct tds
 
         pandas_timedelta_to_timedeltastruct(self._value, self._creso, &tds)
+        if self._is_populated:
+            return
         self._d = tds.days
         self._h = tds.hrs
         self._m = tds.min
@@ -1602,7 +1607,7 @@ cdef class _Timedelta(timedelta):
         >>> td
         Timedelta('3 days 00:00:00')
         >>> td.to_timedelta64()
-        numpy.timedelta64(259200000000000,'ns')
+        np.timedelta64(259200000000,'us')
         """
         cdef:
             str abbrev = npy_unit_to_abbrev(self._creso)
@@ -1639,7 +1644,7 @@ cdef class _Timedelta(timedelta):
         >>> td
         Timedelta('3 days 00:00:00')
         >>> td.to_numpy()
-        numpy.timedelta64(259200000000000,'ns')
+        np.timedelta64(259200000000,'us')
         """
         if dtype is not None or copy is not False:
             raise ValueError(
@@ -1678,7 +1683,7 @@ cdef class _Timedelta(timedelta):
         >>> td
         Timedelta('3 days 00:00:00')
         >>> td.view(int)
-        259200000000000
+        np.int64(259200000000)
         """
         return np.timedelta64(self._value).view(dtype)
 
@@ -1735,19 +1740,19 @@ cdef class _Timedelta(timedelta):
         --------
         >>> td = pd.Timedelta('1 days 2 min 3 us 42 ns')
         >>> td.asm8
-        numpy.timedelta64(86520000003042,'ns')
+        np.timedelta64(86520000003042,'ns')
 
         >>> td = pd.Timedelta('2 min 3 s')
         >>> td.asm8
-        numpy.timedelta64(123000000000,'ns')
+        np.timedelta64(123000000,'us')
 
         >>> td = pd.Timedelta('3 ms 5 us')
         >>> td.asm8
-        numpy.timedelta64(3005000,'ns')
+        np.timedelta64(3005,'us')
 
         >>> td = pd.Timedelta(42, unit='ns')
         >>> td.asm8
-        numpy.timedelta64(42,'ns')
+        np.timedelta64(42,'ns')
         """
         return self.to_timedelta64()
 
@@ -1813,6 +1818,11 @@ cdef class _Timedelta(timedelta):
     def nanoseconds(self):
         """
         Return the number of nanoseconds (n), where 0 <= n < 1 microsecond.
+
+        This is the nanoseconds component of the Timedelta, which represents
+        the residual nanoseconds that are not captured by higher-order components
+        such as days, seconds, or microseconds. The value is always in the range
+        [0, 999].
 
         Returns
         -------
@@ -1967,6 +1977,10 @@ cdef class _Timedelta(timedelta):
         """
         Convert the underlying int64 representation to the given unit.
 
+        Converts the Timedelta to a new resolution specified by ``unit``.
+        If the conversion would require rounding (loss of precision), this
+        is allowed by default. Set ``round_ok=False`` to raise an error instead.
+
         Parameters
         ----------
         unit : {"ns", "us", "ms", "s"}
@@ -2061,7 +2075,7 @@ class Timedelta(_Timedelta):
 
     **kwargs
         Available kwargs: {days, seconds, microseconds,
-        milliseconds, minutes, hours, weeks}.
+        milliseconds, minutes, nanoseconds, hours, weeks}.
         Values for construction in compat with datetime.timedelta.
         Numpy ints and floats will be coerced to python ints and floats.
 
@@ -2278,7 +2292,7 @@ class Timedelta(_Timedelta):
         elif is_float_object(value):
             int_item = int(value)
             if value == int_item:
-                # round float -> treat like a int, try to preserve unit
+                # round float -> treat like an int, try to preserve unit
                 return cls(int_item, unit=unit)
 
             # unit=None is de-facto 'ns'
@@ -2335,6 +2349,9 @@ class Timedelta(_Timedelta):
         """
         Round the Timedelta to the specified resolution.
 
+        Rounds the Timedelta value to the nearest multiple of the given
+        frequency using half-even rounding.
+
         Parameters
         ----------
         freq : str
@@ -2369,6 +2386,9 @@ class Timedelta(_Timedelta):
         """
         Return a new Timedelta floored to this resolution.
 
+        Truncates the Timedelta to the nearest multiple of the given
+        frequency, rounding toward negative infinity.
+
         Parameters
         ----------
         freq : str
@@ -2398,6 +2418,9 @@ class Timedelta(_Timedelta):
     def ceil(self, freq):
         """
         Return a new Timedelta ceiled to this resolution.
+
+        Rounds the Timedelta up to the nearest multiple of the given
+        frequency, rounding toward positive infinity.
 
         Parameters
         ----------
@@ -2642,6 +2665,8 @@ class Timedelta(_Timedelta):
         return div, other - div * self
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def truediv_object_array(ndarray left, ndarray right):
     cdef:
         ndarray[object] result = np.empty((<object>left).shape, dtype=object)
@@ -2672,6 +2697,8 @@ def truediv_object_array(ndarray left, ndarray right):
     return result
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def floordiv_object_array(ndarray left, ndarray right):
     cdef:
         ndarray[object] result = np.empty((<object>left).shape, dtype=object)

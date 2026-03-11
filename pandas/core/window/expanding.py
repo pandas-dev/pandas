@@ -133,6 +133,9 @@ class Expanding(RollingAndExpandingMixin):
         """
         Aggregate using one or more operations over the specified axis.
 
+        Accepts a function, string name, list, or dict of functions and
+        applies them cumulatively over all data points seen so far.
+
         Parameters
         ----------
         func : function, str, list or dict
@@ -195,11 +198,17 @@ class Expanding(RollingAndExpandingMixin):
         1  2  5  8
         2  3  6  9
 
-        >>> df.ewm(alpha=0.5).mean()
-                  A         B         C
-        0  1.000000  4.000000  7.000000
-        1  1.666667  4.666667  7.666667
-        2  2.428571  5.428571  8.428571
+        >>> df.expanding(2).sum()
+             A     B     C
+        0  NaN   NaN   NaN
+        1  3.0   9.0  15.0
+        2  6.0  15.0  24.0
+
+        >>> df.expanding(2).agg({"A": "sum", "B": "min"})
+             A    B
+        0  NaN  NaN
+        1  3.0  4.0
+        2  6.0  4.0
         """
         return super().aggregate(func, *args, **kwargs)
 
@@ -208,6 +217,10 @@ class Expanding(RollingAndExpandingMixin):
     def count(self, numeric_only: bool = False):
         """
         Calculate the expanding count of non NaN observations.
+
+        At each point in time, returns the number of non-NaN values seen
+        so far. This is useful for tracking data availability across an
+        expanding window.
 
         Parameters
         ----------
@@ -250,6 +263,8 @@ class Expanding(RollingAndExpandingMixin):
         """
         Calculate the expanding custom aggregation function.
 
+        Applies a user-defined function over all data points seen so far.
+
         Parameters
         ----------
         func : function
@@ -274,10 +289,10 @@ class Expanding(RollingAndExpandingMixin):
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
-            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+            * For ``'numba'`` engine, the engine can accept  ``nogil``
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-              ``{'nopython': True, 'nogil': False, 'parallel': False}`` and will be
+              ``{'nogil': False, 'parallel': False}`` and will be
               applied to both the ``func`` and the ``apply`` rolling aggregation.
 
         args : tuple, default None
@@ -428,6 +443,9 @@ class Expanding(RollingAndExpandingMixin):
         """
         Calculate the expanding sum.
 
+        At each point in time, returns the cumulative sum of all values
+        observed up to that point, respecting the ``min_periods`` threshold.
+
         Parameters
         ----------
         numeric_only : bool, default False
@@ -441,10 +459,10 @@ class Expanding(RollingAndExpandingMixin):
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
-            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+            * For ``'numba'`` engine, the engine can accept  ``nogil``
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-              ``{'nopython': True, 'nogil': False, 'parallel': False}``
+              ``{'nogil': False, 'parallel': False}``
 
         Returns
         -------
@@ -488,6 +506,9 @@ class Expanding(RollingAndExpandingMixin):
         """
         Calculate the expanding maximum.
 
+        At each point in time, returns the maximum value observed up to
+        that point, respecting the ``min_periods`` threshold.
+
         Parameters
         ----------
         numeric_only : bool, default False
@@ -501,10 +522,10 @@ class Expanding(RollingAndExpandingMixin):
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
-            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+            * For ``'numba'`` engine, the engine can accept  ``nogil``
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-              ``{'nopython': True, 'nogil': False, 'parallel': False}``
+              ``{'nogil': False, 'parallel': False}``
 
         Returns
         -------
@@ -548,6 +569,9 @@ class Expanding(RollingAndExpandingMixin):
         """
         Calculate the expanding minimum.
 
+        At each point in time, returns the minimum value observed up to
+        that point, respecting the ``min_periods`` threshold.
+
         Parameters
         ----------
         numeric_only : bool, default False
@@ -561,10 +585,10 @@ class Expanding(RollingAndExpandingMixin):
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
-            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+            * For ``'numba'`` engine, the engine can accept  ``nogil``
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-              ``{'nopython': True, 'nogil': False, 'parallel': False}``
+              ``{'nogil': False, 'parallel': False}``
 
         Returns
         -------
@@ -608,6 +632,9 @@ class Expanding(RollingAndExpandingMixin):
         """
         Calculate the expanding mean.
 
+        At each point in time, returns the arithmetic mean of all values
+        observed up to that point, respecting the ``min_periods`` threshold.
+
         Parameters
         ----------
         numeric_only : bool, default False
@@ -621,10 +648,10 @@ class Expanding(RollingAndExpandingMixin):
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
-            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+            * For ``'numba'`` engine, the engine can accept  ``nogil``
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-              ``{'nopython': True, 'nogil': False, 'parallel': False}``
+              ``{'nogil': False, 'parallel': False}``
 
         Returns
         -------
@@ -668,6 +695,9 @@ class Expanding(RollingAndExpandingMixin):
         """
         Calculate the expanding median.
 
+        At each point in time, returns the median of all values observed
+        up to that point, respecting the ``min_periods`` threshold.
+
         Parameters
         ----------
         numeric_only : bool, default False
@@ -681,10 +711,10 @@ class Expanding(RollingAndExpandingMixin):
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
-            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+            * For ``'numba'`` engine, the engine can accept  ``nogil``
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-              ``{'nopython': True, 'nogil': False, 'parallel': False}``
+              ``{'nogil': False, 'parallel': False}``
 
         Returns
         -------
@@ -729,6 +759,10 @@ class Expanding(RollingAndExpandingMixin):
         """
         Calculate the expanding standard deviation.
 
+        At each point in time, returns the sample standard deviation of all
+        values observed up to that point, using ``ddof`` degrees of freedom
+        correction.
+
         Parameters
         ----------
         ddof : int, default 1
@@ -746,10 +780,10 @@ class Expanding(RollingAndExpandingMixin):
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
-            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+            * For ``'numba'`` engine, the engine can accept  ``nogil``
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-              ``{'nopython': True, 'nogil': False, 'parallel': False}``
+              ``{'nogil': False, 'parallel': False}``
 
         Returns
         -------
@@ -802,6 +836,10 @@ class Expanding(RollingAndExpandingMixin):
         """
         Calculate the expanding variance.
 
+        At each point in time, returns the sample variance of all values
+        observed up to that point, using ``ddof`` degrees of freedom
+        correction.
+
         Parameters
         ----------
         ddof : int, default 1
@@ -819,10 +857,10 @@ class Expanding(RollingAndExpandingMixin):
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
-            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+            * For ``'numba'`` engine, the engine can accept  ``nogil``
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-              ``{'nopython': True, 'nogil': False, 'parallel': False}``
+              ``{'nogil': False, 'parallel': False}``
 
         Returns
         -------
@@ -869,6 +907,9 @@ class Expanding(RollingAndExpandingMixin):
         """
         Calculate the expanding standard error of mean.
 
+        The standard error is computed as ``std / sqrt(N)`` over all data
+        points seen so far, where ``N`` is the number of observations.
+
         Parameters
         ----------
         ddof : int, default 1
@@ -911,6 +952,9 @@ class Expanding(RollingAndExpandingMixin):
         """
         Calculate the expanding unbiased skewness.
 
+        Computes the third standardized moment over all data points seen
+        so far, measuring the asymmetry of the distribution.
+
         Parameters
         ----------
         numeric_only : bool, default False
@@ -949,6 +993,9 @@ class Expanding(RollingAndExpandingMixin):
     def kurt(self, numeric_only: bool = False):
         """
         Calculate the expanding Fisher's definition of kurtosis without bias.
+
+        Measures the tailedness of the distribution over all data points
+        seen so far. A minimum of four periods is required.
 
         Parameters
         ----------
@@ -998,6 +1045,9 @@ class Expanding(RollingAndExpandingMixin):
         """
         Calculate the expanding First (left-most) element of the window.
 
+        At each point in time, returns the first value in the expanding
+        window, which is the earliest observation in the data.
+
         Parameters
         ----------
         numeric_only : bool, default False
@@ -1032,6 +1082,9 @@ class Expanding(RollingAndExpandingMixin):
     def last(self, numeric_only: bool = False):
         """
         Calculate the expanding Last (right-most) element of the window.
+
+        At each point in time, returns the last value in the expanding
+        window, which is the most recent observation in the data.
 
         Parameters
         ----------
@@ -1072,6 +1125,10 @@ class Expanding(RollingAndExpandingMixin):
     ):
         """
         Calculate the expanding quantile.
+
+        At each step the specified quantile is computed from all prior
+        observations, using the given interpolation method for values
+        between data points.
 
         Parameters
         ----------
@@ -1131,6 +1188,9 @@ class Expanding(RollingAndExpandingMixin):
     ):
         """
         Calculate the expanding rank.
+
+        Each value is ranked relative to all prior observations, with
+        configurable tie-breaking and optional percentile normalization.
 
         Parameters
         ----------
@@ -1250,6 +1310,10 @@ class Expanding(RollingAndExpandingMixin):
         """
         Calculate the expanding sample covariance.
 
+        When ``other`` is provided, computes pairwise covariance between
+        ``self`` and ``other``; otherwise computes all pairwise covariances
+        of the columns.
+
         Parameters
         ----------
         other : Series or DataFrame, optional
@@ -1307,6 +1371,8 @@ class Expanding(RollingAndExpandingMixin):
     ):
         """
         Calculate the expanding correlation.
+
+        Uses Pearson's correlation over all data points seen so far.
 
         Parameters
         ----------

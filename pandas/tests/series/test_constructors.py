@@ -47,7 +47,6 @@ import pandas._testing as tm
 from pandas.core.arrays import (
     IntegerArray,
     IntervalArray,
-    period_array,
 )
 from pandas.core.internals.blocks import NumpyBlock
 
@@ -992,7 +991,7 @@ class TestSeriesConstructors:
         expected = Series(
             [NaT, datetime(2013, 1, 2), datetime(2013, 1, 3)], dtype="datetime64[ns]"
         )
-        result = Series([np.nan] + dates[1:], dtype="datetime64[ns]")
+        result = Series([np.nan, *dates[1:]], dtype="datetime64[ns]")
         tm.assert_series_equal(result, expected)
 
     def test_constructor_dtype_datetime64_11(self):
@@ -1200,30 +1199,6 @@ class TestSeriesConstructors:
         ser = Series(vals)
         assert all(ser[i] is vals[i] for i in range(len(vals)))
 
-    @pytest.mark.parametrize("arr_dtype", [np.int64, np.float64])
-    @pytest.mark.parametrize("kind", ["M", "m"])
-    @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s", "h", "m", "D"])
-    def test_construction_to_datetimelike_unit(self, arr_dtype, kind, unit):
-        # tests all units
-        # gh-19223
-        # TODO: GH#19223 was about .astype, doesn't belong here
-        dtype = f"{kind}8[{unit}]"
-        arr = np.array([1, 2, 3], dtype=arr_dtype)
-        ser = Series(arr)
-        result = ser.astype(dtype)
-
-        expected = Series(arr.astype(dtype))
-
-        if unit in ["ns", "us", "ms", "s"]:
-            assert result.dtype == dtype
-            assert expected.dtype == dtype
-        else:
-            # Otherwise we cast to nearest-supported unit, i.e. seconds
-            assert result.dtype == f"{kind}8[s]"
-            assert expected.dtype == f"{kind}8[s]"
-
-        tm.assert_series_equal(result, expected)
-
     @pytest.mark.parametrize("arg", ["2013-01-01 00:00:00", NaT, np.nan, None])
     def test_constructor_with_naive_string_and_datetimetz_dtype(self, arg):
         # GH 17415: With naive string
@@ -1304,11 +1279,10 @@ class TestSeriesConstructors:
     def test_constructor_infer_period(self, data_constructor):
         data = [Period("2000", "D"), Period("2001", "D"), None]
         result = Series(data_constructor(data))
-        expected = Series(period_array(data))
+        expected = Series(pd.PeriodIndex(data))
         tm.assert_series_equal(result, expected)
         assert result.dtype == "Period[D]"
 
-    @pytest.mark.xfail(reason="PeriodDtype Series not supported yet")
     def test_construct_from_ints_including_iNaT_scalar_period_dtype(self):
         series = Series([0, 1000, 2000, pd._libs.iNaT], dtype="period[D]")
 
@@ -1401,7 +1375,9 @@ class TestSeriesConstructors:
         values = [42544017.198965244, 1234565, 40512335.181958228, -1]
 
         def create_data(constructor):
-            return dict(zip((constructor(x) for x in dates_as_str), values))
+            return dict(
+                zip((constructor(x) for x in dates_as_str), values, strict=True)
+            )
 
         data_datetime64 = create_data(np.datetime64)
         data_datetime = create_data(lambda x: datetime.strptime(x, "%Y-%m-%d"))
@@ -1978,26 +1954,10 @@ class TestSeriesConstructors:
 
     def test_constructor_dtype_timedelta_alternative_construct(self):
         # GH#35465
-        result = Series([1000000, 200000, 3000000], dtype="timedelta64[ns]")
-        expected = Series(pd.to_timedelta([1000000, 200000, 3000000], unit="ns"))
+        result = Series([1000000, 200000, 3000000], dtype="timedelta64[us]")
+        expected = Series(pd.to_timedelta([1000000, 200000, 3000000], unit="us"))
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.xfail(
-        reason="Not clear what the correct expected behavior should be with "
-        "integers now that we support non-nano. ATM (2022-10-08) we treat ints "
-        "as nanoseconds, then cast to the requested dtype. xref #48312"
-    )
-    def test_constructor_dtype_timedelta_ns_s(self):
-        # GH#35465
-        result = Series([1000000, 200000, 3000000], dtype="timedelta64[ns]")
-        expected = Series([1000000, 200000, 3000000], dtype="timedelta64[s]")
-        tm.assert_series_equal(result, expected)
-
-    @pytest.mark.xfail(
-        reason="Not clear what the correct expected behavior should be with "
-        "integers now that we support non-nano. ATM (2022-10-08) we treat ints "
-        "as nanoseconds, then cast to the requested dtype. xref #48312"
-    )
     def test_constructor_dtype_timedelta_ns_s_astype_int64(self):
         # GH#35465
         result = Series([1000000, 200000, 3000000], dtype="timedelta64[ns]").astype(
@@ -2028,7 +1988,7 @@ class TestSeriesConstructors:
             ]
         )
 
-        for null in tm.NP_NAT_OBJECTS + [NaT]:
+        for null in [*tm.NP_NAT_OBJECTS, NaT]:
             with pytest.raises(TypeError, match=msg):
                 func([null, 1.0, 3.0], dtype=any_numeric_ea_dtype)
 
