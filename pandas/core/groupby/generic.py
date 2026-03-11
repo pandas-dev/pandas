@@ -110,6 +110,12 @@ class NamedAgg:
     """
     Helper for column specific aggregation with control over output column names.
 
+    Subclass of ``namedtuple`` used with :meth:`DataFrame.groupby().agg()
+    <pandas.core.groupby.DataFrameGroupBy.aggregate>` to specify an
+    aggregation on a particular column and assign a custom name to the
+    resulting column. Additional positional and keyword arguments can be
+    forwarded to the aggregation function.
+
     Parameters
     ----------
     column : Hashable
