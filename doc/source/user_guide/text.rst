@@ -712,7 +712,7 @@ Differences in behavior will be primarily due to the kind of NA value.
    available because the underlying array can only contain
    strings, not bytes.
 3. Comparison operations will return a NumPy array with dtype bool. Missing
-   values will always compare as unequal just as :attr:`np.nan` does.
+   values will always compare as unequal just as ``np.nan`` does.
 
 ``StringDtype`` with ``pd.NA`` NA values
 ----------------------------------------
@@ -741,7 +741,7 @@ Differences in behavior will be primarily due to the kind of NA value.
 3. Comparison operations will return an object with :class:`BooleanDtype`,
    rather than a ``bool`` dtype object. Missing values will propagate
    in comparison operations, rather than always comparing
-   unequal like :attr:`numpy.nan`.
+   unequal like ``numpy.nan``.
 
 
 .. important::

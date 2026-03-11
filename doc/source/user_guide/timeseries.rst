@@ -933,7 +933,7 @@ into ``freq`` keyword arguments. The available date offsets and associated frequ
     :class:`~pandas.tseries.offsets.Micro`, ``'us'``, "one microsecond"
     :class:`~pandas.tseries.offsets.Nano`, ``'ns'``, "one nanosecond"
 
-``DateOffsets`` additionally have :meth:`rollforward` and :meth:`rollback`
+``DateOffsets`` additionally have ``rollforward`` and ``rollback``
 methods for moving a date forward or backward respectively to a valid offset
 date relative to the offset. For example, business offsets will roll dates
 that land on the weekends (Saturday and Sunday) forward to Monday since
@@ -951,7 +951,7 @@ business offsets operate on the weekdays.
    ts + offset
 
 These operations preserve time (hour, minute, etc) information by default.
-To reset time to midnight, use :meth:`normalize` before or after applying
+To reset time to midnight, use ``normalize`` before or after applying
 the operation (depending on whether you want the time information included
 in the operation).
 
@@ -1916,7 +1916,7 @@ natural and functions similarly to :py:func:`itertools.groupby`:
        print("-" * 27)
        print(group, end="\n\n")
 
-See :ref:`groupby.iterating-label` or :class:`Resampler.__iter__` for more.
+See :ref:`groupby.iterating-label` or :meth:`pandas.core.resample.Resampler.__iter__` for more.
 
 .. _timeseries.adjust-the-start-of-the-bins:
 

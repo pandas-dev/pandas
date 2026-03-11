@@ -88,9 +88,9 @@ User-Defined Functions can be applied across various pandas methods:
 +-------------------------------+------------------------+--------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
 | :ref:`udf.agg`                | Series or DataFrame    | Scalar or Series         | Aggregate and summarize values, e.g., sum or custom reducer                                                                                  |
 +-------------------------------+------------------------+--------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
-| :ref:`udf.transform` (axis=0) | Column (Series)        | Column (Series)          | Same as :meth:`apply` with (axis=0), but it raises an exception if the function changes the shape of the data                                |
+| :ref:`udf.transform` (axis=0) | Column (Series)        | Column (Series)          | Same as ``apply`` with (axis=0), but it raises an exception if the function changes the shape of the data                                |
 +-------------------------------+------------------------+--------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
-| :ref:`udf.transform` (axis=1) | Row (Series)           | Row (Series)             | Same as :meth:`apply` with (axis=1), but it raises an exception if the function changes the shape of the data                                |
+| :ref:`udf.transform` (axis=1) | Row (Series)           | Row (Series)             | Same as ``apply`` with (axis=1), but it raises an exception if the function changes the shape of the data                                |
 +-------------------------------+------------------------+--------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
 
 When applying UDFs in pandas, it is essential to select the appropriate method based
@@ -106,10 +106,10 @@ decisions, ensuring more efficient and maintainable code.
 
 .. _udf.map:
 
-:meth:`Series.map` and :meth:`DataFrame.map`
+:meth:`pandas.Series.map` and :meth:`pandas.DataFrame.map`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The :meth:`map` method is used specifically to apply element-wise UDFs. This means the function
+The ``map`` method is used specifically to apply element-wise UDFs. This means the function
 will be called for each element in the ``Series`` or ``DataFrame``, with the individual value or
 the cell as the function argument.
 
@@ -133,15 +133,15 @@ In general, ``map`` will be slow, as it will not make use of vectorization. Inst
 function call for each value will be required, which will slow down things significantly if
 working with medium or large data.
 
-When to use: Use :meth:`map` for applying element-wise UDFs to DataFrames or Series.
+When to use: Use ``map`` for applying element-wise UDFs to DataFrames or Series.
 
 .. _udf.apply:
 
-:meth:`Series.apply` and :meth:`DataFrame.apply`
+:meth:`pandas.Series.apply` and :meth:`pandas.DataFrame.apply`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The :meth:`apply` method allows you to apply UDFs for a whole column or row. This is different
-from :meth:`map` in that the function will be called for each column (or row), not for each individual value.
+The ``apply`` method allows you to apply UDFs for a whole column or row. This is different
+from ``map`` in that the function will be called for each column (or row), not for each individual value.
 
 .. ipython:: python
 
@@ -155,12 +155,12 @@ from :meth:`map` in that the function will be called for each column (or row), n
 
     temperature_celsius.apply(to_fahrenheit)
 
-In the example, ``to_fahrenheit`` will be called only twice, as opposed to the 6 times with :meth:`map`.
-This will be faster than using :meth:`map`, since the operations for each column are vectorized, and the
+In the example, ``to_fahrenheit`` will be called only twice, as opposed to the 6 times with ``map``.
+This will be faster than using ``map``, since the operations for each column are vectorized, and the
 overhead of iterating over data in Python and calling Python functions is significantly reduced.
 
-In some cases, the function may require all the data to be able to compute the result. So :meth:`apply`
-is needed, since with :meth:`map` the function can only access one element at a time.
+In some cases, the function may require all the data to be able to compute the result. So ``apply``
+is needed, since with ``map`` the function can only access one element at a time.
 
 .. ipython:: python
 
@@ -178,7 +178,7 @@ In the example, the ``normalize`` function needs to compute the mean of the whol
 to divide each element by it. So, we cannot call the function for each element, but we need the
 function to receive the whole column.
 
-:meth:`apply` can also execute a function by row, by specifying ``axis=1``.
+``apply`` can also execute a function by row, by specifying ``axis=1``.
 
 .. ipython:: python
 
@@ -196,16 +196,16 @@ In the example, the function ``hotter`` will be called 3 times, once for each ro
 call will receive the whole row as the argument, allowing computations that require more than
 one value in the row.
 
-``apply`` is also available for :meth:`SeriesGroupBy.apply`, :meth:`DataFrameGroupBy.apply`,
-:meth:`Rolling.apply`, :meth:`Expanding.apply` and :meth:`Resampler.apply`. You can read more
+``apply`` is also available for :meth:`pandas.core.groupby.SeriesGroupBy.apply`, :meth:`pandas.core.groupby.DataFrameGroupBy.apply`,
+:meth:`pandas.core.window.rolling.Rolling.apply`, :meth:`pandas.core.window.expanding.Expanding.apply` and :meth:`pandas.core.resample.Resampler.apply`. You can read more
 about ``apply`` in groupby operations :ref:`groupby.apply`.
 
-When to use: :meth:`apply` is suitable when no alternative vectorized method or UDF method is available,
+When to use: ``apply`` is suitable when no alternative vectorized method or UDF method is available,
 but consider optimizing performance with vectorized operations wherever possible.
 
 .. _udf.pipe:
 
-:meth:`Series.pipe` and :meth:`DataFrame.pipe`
+:meth:`pandas.Series.pipe` and :meth:`pandas.DataFrame.pipe`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The ``pipe`` method is similar to ``map`` and ``apply``, but the function receives the whole ``Series``
@@ -256,24 +256,24 @@ calling multiple functions.
                                      .pipe(divide_by_5)
                                      .pipe(add_32))
 
-``pipe`` is also available for :meth:`SeriesGroupBy.pipe`, :meth:`DataFrameGroupBy.pipe` and
-:meth:`Resampler.pipe`. You can read more about ``pipe`` in groupby operations in :ref:`groupby.pipe`.
+``pipe`` is also available for :meth:`pandas.core.groupby.SeriesGroupBy.pipe`, :meth:`pandas.core.groupby.DataFrameGroupBy.pipe` and
+:meth:`pandas.core.resample.Resampler.pipe`. You can read more about ``pipe`` in groupby operations in :ref:`groupby.pipe`.
 
-When to use: Use :meth:`pipe` when you need to create a pipeline of operations and want to keep the code readable and maintainable.
+When to use: Use ``pipe`` when you need to create a pipeline of operations and want to keep the code readable and maintainable.
 
 .. _udf.filter:
 
-:meth:`Series.filter` and :meth:`DataFrame.filter`
+:meth:`pandas.Series.filter` and :meth:`pandas.DataFrame.filter`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The ``filter`` method is used to select a subset of rows that match certain criteria.
-:meth:`Series.filter` and :meth:`DataFrame.filter` do not support user defined functions,
-but :meth:`SeriesGroupBy.filter` and :meth:`DataFrameGroupBy.filter` do. You can read more
+:meth:`pandas.Series.filter` and :meth:`pandas.DataFrame.filter` do not support user defined functions,
+but :meth:`pandas.core.groupby.SeriesGroupBy.filter` and :meth:`pandas.core.groupby.DataFrameGroupBy.filter` do. You can read more
 about ``filter`` in groupby operations in :ref:`groupby.filter`.
 
 .. _udf.agg:
 
-:meth:`Series.agg` and :meth:`DataFrame.agg`
+:meth:`pandas.Series.agg` and :meth:`pandas.DataFrame.agg`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The ``agg`` method is used to aggregate a set of data points into a single one.
@@ -294,12 +294,12 @@ functions.
     temperature.agg(highest_jump)
 
 
-When to use: Use :meth:`agg` for performing custom aggregations, where the operation returns
+When to use: Use ``agg`` for performing custom aggregations, where the operation returns
 a scalar value on each input.
 
 .. _udf.transform:
 
-:meth:`Series.transform` and :meth:`DataFrame.transform`
+:meth:`pandas.Series.transform` and :meth:`pandas.DataFrame.transform`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The ``transform`` method is similar to an aggregation, with the difference that the result is broadcasted
@@ -321,8 +321,8 @@ In the example, the ``warm_up_all_days`` function computes the ``max`` like an a
 of returning just the maximum value, it returns a ``DataFrame`` with the same shape as the original one
 with the values of each day replaced by the maximum temperature of the city.
 
-``transform`` is also available for :meth:`SeriesGroupBy.transform`, :meth:`DataFrameGroupBy.transform` and
-:meth:`Resampler.transform`, where it's more common. You can read more about ``transform`` in groupby
+``transform`` is also available for :meth:`pandas.core.groupby.SeriesGroupBy.transform`, :meth:`pandas.core.groupby.DataFrameGroupBy.transform` and
+:meth:`pandas.core.resample.Resampler.transform`, where it's more common. You can read more about ``transform`` in groupby
 operations in :ref:`groupby.transform`.
 
 When to use: When you need to perform an aggregation that will be returned in the original structure of
@@ -364,7 +364,7 @@ Measuring how long each operation takes:
     User-defined function:  5.6435 secs
     Vectorized:             0.0043 secs
 
-Vectorized operations in pandas are significantly faster than using :meth:`DataFrame.apply`
+Vectorized operations in pandas are significantly faster than using :meth:`pandas.DataFrame.apply`
 with UDFs because they leverage highly optimized C functions
 via ``NumPy`` to process entire arrays at once. This approach avoids the overhead of looping
 through rows in Python and making separate function calls for each row, which is slow and
@@ -386,13 +386,13 @@ especially for computationally heavy tasks.
     You may also refer to the user guide on `Enhancing performance <https://pandas.pydata.org/pandas-docs/dev/user_guide/enhancingperf.html#numba-jit-compilation>`_
     for a more detailed guide to using **Numba**.
 
-Using :meth:`DataFrame.pipe` for Composable Logic
+Using :meth:`pandas.DataFrame.pipe` for Composable Logic
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Another useful pattern for improving readability and composability, especially when mixing
-vectorized logic with UDFs, is to use the :meth:`DataFrame.pipe` method.
+vectorized logic with UDFs, is to use the :meth:`pandas.DataFrame.pipe` method.
 
-:meth:`DataFrame.pipe` doesn't improve performance directly, but it enables cleaner
+:meth:`pandas.DataFrame.pipe` doesn't improve performance directly, but it enables cleaner
 method chaining by passing the entire object into a function. This is especially helpful
 when chaining custom transformations:
 
@@ -410,10 +410,10 @@ when chaining custom transformations:
     )
 
 This is functionally equivalent to calling ``add_ratio_column(df)``, but keeps your code
-clean and composable. The function you pass to :meth:`DataFrame.pipe` can use vectorized operations,
-row-wise UDFs, or any other logic; :meth:`DataFrame.pipe` is agnostic.
+clean and composable. The function you pass to :meth:`pandas.DataFrame.pipe` can use vectorized operations,
+row-wise UDFs, or any other logic; :meth:`pandas.DataFrame.pipe` is agnostic.
 
 .. note::
-    While :meth:`DataFrame.pipe` does not improve performance on its own,
+    While :meth:`pandas.DataFrame.pipe` does not improve performance on its own,
     it promotes clean, modular design and allows both vectorized and UDF-based logic
     to be composed in method chains.

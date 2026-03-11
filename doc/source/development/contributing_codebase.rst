@@ -604,7 +604,7 @@ with the specific exception subclass (i.e. never use :py:class:`Exception`) and 
 Testing involving files
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-The ``temp_file`` pytest fixture creates a temporary file :py:class:`Pathlib` object for testing:
+The ``temp_file`` pytest fixture creates a temporary file :class:`pathlib.Path` object for testing:
 
 .. code-block:: python
 

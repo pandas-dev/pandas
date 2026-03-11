@@ -1119,7 +1119,7 @@ Reading multiple files to create a single DataFrame
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The best way to combine multiple files into a single DataFrame is to read the individual frames one by one, put all
-of the individual frames into a list, and then combine the frames in the list using :func:`pd.concat`:
+of the individual frames into a list, and then combine the frames in the list using :func:`pandas.concat`:
 
 .. ipython:: python
 
