@@ -72,7 +72,8 @@ def take_1d_{{name}}_{{dest}}(ndarray[{{c_type_in}}, ndim=1] values,
 {{endif}}
                               const intp_t[:] indexer,
                               {{c_type_out}}[:] out,
-                              fill_value=np.nan):
+                              fill_value=np.nan,
+                              bint allow_fill=True):
 
     cdef:
         Py_ssize_t i, n, idx
@@ -84,9 +85,18 @@ def take_1d_{{name}}_{{dest}}(ndarray[{{c_type_in}}, ndim=1] values,
 
     {{if c_type_out != "object"}}
     with nogil:
+        if allow_fill:
+            for i in range(n):
+                idx = indexer[i]
+                if idx == -1:
+                    out[i] = fv
+                else:
+                    out[i] = values[idx]
+        else:
+            for i in range(n):
+                out[i] = values[indexer[i]]
     {{else}}
-    if True:
-    {{endif}}
+    if allow_fill:
         for i in range(n):
             idx = indexer[i]
             if idx == -1:
@@ -97,6 +107,14 @@ def take_1d_{{name}}_{{dest}}(ndarray[{{c_type_in}}, ndim=1] values,
                 {{else}}
                 out[i] = values[idx]
                 {{endif}}
+    else:
+        for i in range(n):
+            {{if c_type_in == "uint8_t" and c_type_out == "object"}}
+            out[i] = True if values[indexer[i]] > 0 else False
+            {{else}}
+            out[i] = values[indexer[i]]
+            {{endif}}
+    {{endif}}
 
 
 @cython.wraparound(False)
@@ -108,7 +126,8 @@ def take_2d_axis0_{{name}}_{{dest}}(ndarray[{{c_type_in}}, ndim=2] values,
 {{endif}}
                                     ndarray[intp_t, ndim=1] indexer,
                                     {{c_type_out}}[:, :] out,
-                                    fill_value=np.nan):
+                                    fill_value=np.nan,
+                                    bint allow_fill=True):
     cdef:
         Py_ssize_t i, j, k, n, idx
         {{c_type_out}} fv
@@ -122,23 +141,45 @@ def take_2d_axis0_{{name}}_{{dest}}(ndarray[{{c_type_in}}, ndim=2] values,
 
     fv = fill_value
 
-    {{if c_type_in == c_type_out != "object"}}
-    # GH#3130
+    {{if c_type_in != "object" and c_type_out != "object"}}
     with nogil:
+        {{if c_type_in == c_type_out}}
+        # GH#3130
         if (values.strides[1] == out.strides[1] and
             values.strides[1] == sizeof({{c_type_out}}) and
-            sizeof({{c_type_out}}) * n >= 256):
+            sizeof({{c_type_out}}) * k >= 256):
 
-            for i in range(n):
-                idx = indexer[i]
-                if idx == -1:
-                    for j in range(k):
-                        out[i, j] = fv
-                else:
-                    v = &values[idx, 0]
+            if allow_fill:
+                for i in range(n):
+                    idx = indexer[i]
+                    if idx == -1:
+                        for j in range(k):
+                            out[i, j] = fv
+                    else:
+                        v = &values[idx, 0]
+                        o = &out[i, 0]
+                        memcpy(o, v, <size_t>(sizeof({{c_type_out}}) * k))
+            else:
+                for i in range(n):
+                    v = &values[indexer[i], 0]
                     o = &out[i, 0]
-                    memmove(o, v, <size_t>(sizeof({{c_type_out}}) * k))
+                    memcpy(o, v, <size_t>(sizeof({{c_type_out}}) * k))
         else:
+            if allow_fill:
+                for i in range(n):
+                    idx = indexer[i]
+                    if idx == -1:
+                        for j in range(k):
+                            out[i, j] = fv
+                    else:
+                        for j in range(k):
+                            out[i, j] = values[idx, j]
+            else:
+                for i in range(n):
+                    for j in range(k):
+                        out[i, j] = values[indexer[i], j]
+        {{else}}
+        if allow_fill:
             for i in range(n):
                 idx = indexer[i]
                 if idx == -1:
@@ -147,19 +188,33 @@ def take_2d_axis0_{{name}}_{{dest}}(ndarray[{{c_type_in}}, ndim=2] values,
                 else:
                     for j in range(k):
                         out[i, j] = values[idx, j]
+        else:
+            for i in range(n):
+                for j in range(k):
+                    out[i, j] = values[indexer[i], j]
+        {{endif}}
     {{else}}
 
-    for i in range(n):
-        idx = indexer[i]
-        if idx == -1:
-            for j in range(k):
-                out[i, j] = fv
-        else:
+    if allow_fill:
+        for i in range(n):
+            idx = indexer[i]
+            if idx == -1:
+                for j in range(k):
+                    out[i, j] = fv
+            else:
+                for j in range(k):
+                    {{if c_type_in == "uint8_t" and c_type_out == "object"}}
+                    out[i, j] = True if values[idx, j] > 0 else False
+                    {{else}}
+                    out[i, j] = values[idx, j]
+                    {{endif}}
+    else:
+        for i in range(n):
             for j in range(k):
                 {{if c_type_in == "uint8_t" and c_type_out == "object"}}
-                out[i, j] = True if values[idx, j] > 0 else False
+                out[i, j] = True if values[indexer[i], j] > 0 else False
                 {{else}}
-                out[i, j] = values[idx, j]
+                out[i, j] = values[indexer[i], j]
                 {{endif}}
     {{endif}}
 
@@ -173,7 +228,8 @@ def take_2d_axis1_{{name}}_{{dest}}(ndarray[{{c_type_in}}, ndim=2] values,
 {{endif}}
                                     ndarray[intp_t, ndim=1] indexer,
                                     {{c_type_out}}[:, :] out,
-                                    fill_value=np.nan):
+                                    fill_value=np.nan,
+                                    bint allow_fill=True):
 
     cdef:
         Py_ssize_t i, j, k, n, idx
@@ -187,27 +243,41 @@ def take_2d_axis1_{{name}}_{{dest}}(ndarray[{{c_type_in}}, ndim=2] values,
 
     fv = fill_value
 
-    {{if c_type_in == c_type_out != "object"}}
+    {{if c_type_in != "object" and c_type_out != "object"}}
     with nogil:
+        if allow_fill:
+            for i in range(n):
+                for j in range(k):
+                    idx = indexer[j]
+                    if idx == -1:
+                        out[i, j] = fv
+                    else:
+                        out[i, j] = values[i, idx]
+        else:
+            for i in range(n):
+                for j in range(k):
+                    out[i, j] = values[i, indexer[j]]
+
+    {{else}}
+    if allow_fill:
         for i in range(n):
             for j in range(k):
                 idx = indexer[j]
                 if idx == -1:
                     out[i, j] = fv
                 else:
+                    {{if c_type_in == "uint8_t" and c_type_out == "object"}}
+                    out[i, j] = True if values[i, idx] > 0 else False
+                    {{else}}
                     out[i, j] = values[i, idx]
-
-    {{else}}
-    for i in range(n):
-        for j in range(k):
-            idx = indexer[j]
-            if idx == -1:
-                out[i, j] = fv
-            else:
+                    {{endif}}
+    else:
+        for i in range(n):
+            for j in range(k):
                 {{if c_type_in == "uint8_t" and c_type_out == "object"}}
-                out[i, j] = True if values[i, idx] > 0 else False
+                out[i, j] = True if values[i, indexer[j]] > 0 else False
                 {{else}}
-                out[i, j] = values[i, idx]
+                out[i, j] = values[i, indexer[j]]
                 {{endif}}
     {{endif}}
 
@@ -217,7 +287,8 @@ def take_2d_axis1_{{name}}_{{dest}}(ndarray[{{c_type_in}}, ndim=2] values,
 def take_2d_multi_{{name}}_{{dest}}(ndarray[{{c_type_in}}, ndim=2] values,
                                     indexer,
                                     ndarray[{{c_type_out}}, ndim=2] out,
-                                    fill_value=np.nan):
+                                    fill_value=np.nan,
+                                    bint allow_fill=True):
     cdef:
         Py_ssize_t i, j, k, n, idx
         ndarray[intp_t, ndim=1] idx0 = indexer[0]
@@ -228,20 +299,49 @@ def take_2d_multi_{{name}}_{{dest}}(ndarray[{{c_type_in}}, ndim=2] values,
     k = len(idx1)
 
     fv = fill_value
-    for i in range(n):
-        idx = idx0[i]
-        if idx == -1:
-            for j in range(k):
-                out[i, j] = fv
-        else:
-            for j in range(k):
-                if idx1[j] == -1:
-                    out[i, j] = fv
+    {{if c_type_in != "object" and c_type_out != "object"}}
+    with nogil:
+        if allow_fill:
+            for i in range(n):
+                idx = idx0[i]
+                if idx == -1:
+                    for j in range(k):
+                        out[i, j] = fv
                 else:
-                    {{if c_type_in == "uint8_t" and c_type_out == "object"}}
-                    out[i, j] = True if values[idx, idx1[j]] > 0 else False
-                    {{else}}
-                    out[i, j] = values[idx, idx1[j]]
-                    {{endif}}
+                    for j in range(k):
+                        if idx1[j] == -1:
+                            out[i, j] = fv
+                        else:
+                            out[i, j] = values[idx, idx1[j]]
+        else:
+            for i in range(n):
+                for j in range(k):
+                    out[i, j] = values[idx0[i], idx1[j]]
+    {{else}}
+    if allow_fill:
+        for i in range(n):
+            idx = idx0[i]
+            if idx == -1:
+                for j in range(k):
+                    out[i, j] = fv
+            else:
+                for j in range(k):
+                    if idx1[j] == -1:
+                        out[i, j] = fv
+                    else:
+                        {{if c_type_in == "uint8_t" and c_type_out == "object"}}
+                        out[i, j] = True if values[idx, idx1[j]] > 0 else False
+                        {{else}}
+                        out[i, j] = values[idx, idx1[j]]
+                        {{endif}}
+    else:
+        for i in range(n):
+            for j in range(k):
+                {{if c_type_in == "uint8_t" and c_type_out == "object"}}
+                out[i, j] = True if values[idx0[i], idx1[j]] > 0 else False
+                {{else}}
+                out[i, j] = values[idx0[i], idx1[j]]
+                {{endif}}
+    {{endif}}
 
 {{endfor}}

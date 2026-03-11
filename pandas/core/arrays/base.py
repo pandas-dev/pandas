@@ -41,6 +41,7 @@ from pandas.util._validators import (
 )
 
 from pandas.core.dtypes.astype import astype_is_view
+from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
     is_integer,
     is_list_like,
@@ -130,6 +131,7 @@ class ExtensionArray:
     argsort
     astype
     copy
+    count
     dropna
     duplicated
     factorize
@@ -457,7 +459,8 @@ class ExtensionArray:
         try:
             return type(self)._from_scalars(values, dtype=self.dtype)
         except (ValueError, TypeError):
-            values = np.asarray(values, dtype=object)
+            if not (isinstance(values, np.ndarray) and values.dtype == object):
+                values = construct_1d_object_array_from_listlike(values)
             return lib.maybe_convert_objects(values, convert_non_numeric=True)
 
     # ------------------------------------------------------------------------
@@ -619,6 +622,9 @@ class ExtensionArray:
     def item(self, index: int | None = None):
         """
         Return the array element at the specified position as a Python scalar.
+
+        Analogous to :meth:`numpy.ndarray.item`, this converts a single
+        element to a native Python object.
 
         Parameters
         ----------
@@ -908,7 +914,7 @@ class ExtensionArray:
         else:
             return np.array(self, dtype=dtype, copy=copy)
 
-    def isna(self) -> np.ndarray | ExtensionArraySupportsAnyAll:
+    def isna(self) -> np.ndarray | ExtensionArrayNaResult:
         """
         A 1-D array indicating if each value is missing.
 
@@ -935,7 +941,8 @@ class ExtensionArray:
         * ``na_values._is_boolean`` should be True
         * ``na_values`` should implement :func:`ExtensionArray._reduce`
         * ``na_values`` should implement :func:`ExtensionArray._accumulate`
-        * ``na_values.any`` and ``na_values.all`` should be implemented
+        * ``na_values.any``, ``na_values.all``, ``na_values.sum``, and
+          ``na_values.__invert__`` should be implemented
 
         Examples
         --------
@@ -1428,8 +1435,8 @@ class ExtensionArray:
         [1, 2]
         Length: 2, dtype: Int64
         """
-        # error: Unsupported operand type for ~ ("ExtensionArray")
-        return self[~self.isna()]  # type: ignore[operator]
+        # isna can return an ExtensionArrayNaResult
+        return self[~self.isna()]  # type: ignore[index]
 
     def duplicated(
         self, keep: Literal["first", "last", False] = "first"
@@ -2036,7 +2043,7 @@ class ExtensionArray:
         raise AbstractMethodError(self)
 
     @overload
-    def view(self) -> Self: ...
+    def view(self, dtype: None = ...) -> Self: ...
 
     @overload
     def view(self, dtype: Dtype | None = ...) -> ArrayLike: ...
@@ -2414,7 +2421,9 @@ class ExtensionArray:
                 f"'{type(self).__name__}' with dtype {self.dtype} "
                 f"does not support operation '{name}'"
             )
-        result = meth(skipna=skipna, **kwargs)
+        if name != "count":
+            kwargs["skipna"] = skipna
+        result = meth(**kwargs)
         if keepdims:
             if name in ["min", "max"]:
                 result = self._from_sequence([result], dtype=self.dtype)
@@ -2422,6 +2431,27 @@ class ExtensionArray:
                 result = np.array([result])
 
         return result
+
+    def count(self):
+        """
+        Count the number of non-NA values in the array.
+
+        Returns
+        -------
+        scalar
+            Number of non-NA values in the Series.
+
+        See Also
+        --------
+        Series.count : Count the number of non-NA values in a Series.
+
+        Examples
+        --------
+        >>> s = pd.array([1, pd.NA, 3])
+        >>> s.count()
+        np.int64(2)
+        """
+        return (~self.isna()).sum()
 
     # https://github.com/python/typeshed/issues/2148#issuecomment-520783318
     # Incompatible types in assignment (expression has type "None", base class
@@ -2552,7 +2582,7 @@ class ExtensionArray:
             return [x.tolist() for x in self]
         return list(self)
 
-    def delete(self, loc: PositionalIndexer) -> Self:
+    def delete(self, loc: ScalarIndexer | slice | list[int] | np.ndarray) -> Self:
         indexer = np.delete(np.arange(len(self)), loc)
         return self.take(indexer)
 
@@ -2901,7 +2931,7 @@ class ExtensionArray:
             raise NotImplementedError
 
 
-class ExtensionArraySupportsAnyAll(ExtensionArray):
+class ExtensionArrayNaResult(ExtensionArray):
     @overload
     def any(self, *, skipna: Literal[True] = ...) -> bool: ...
 
@@ -2918,6 +2948,19 @@ class ExtensionArraySupportsAnyAll(ExtensionArray):
     def all(self, *, skipna: bool) -> bool | NAType: ...
 
     def all(self, *, skipna: bool = True) -> bool | NAType:
+        raise AbstractMethodError(self)
+
+    def sum(
+        self,
+        *,
+        axis: AxisInt | None = None,
+        skipna: bool = True,
+        min_count: int = 0,
+        **kwargs,
+    ):
+        raise AbstractMethodError(self)
+
+    def __invert__(self) -> Self:
         raise AbstractMethodError(self)
 
 

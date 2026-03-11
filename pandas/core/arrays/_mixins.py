@@ -21,6 +21,7 @@ from pandas.util._validators import (
     validate_insert_loc,
 )
 
+from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
@@ -114,7 +115,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
     # ------------------------------------------------------------------------
 
     @overload
-    def view(self) -> Self: ...
+    def view(self, dtype: None = ...) -> Self: ...
 
     @overload
     def view(self, dtype: Dtype | None = ...) -> ArrayLike: ...
@@ -206,7 +207,8 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         )
 
     def _cast_pointwise_result(self, values: ArrayLike) -> ArrayLike:
-        values = np.asarray(values, dtype=object)
+        if not (isinstance(values, np.ndarray) and values.dtype == object):
+            values = construct_1d_object_array_from_listlike(values)  # type: ignore[arg-type]
         return lib.maybe_convert_objects(values, convert_non_numeric=True)
 
     # Signature of "argmin" incompatible with supertype "ExtensionArray"
@@ -577,8 +579,8 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         )
 
         if dropna:
-            # error: Unsupported operand type for ~ ("ExtensionArray")
-            values = self[~self.isna()]._ndarray  # type: ignore[operator]
+            # error: Invalid index type
+            values = self[~self.isna()]._ndarray  # type: ignore[index]
         else:
             values = self._ndarray
 
