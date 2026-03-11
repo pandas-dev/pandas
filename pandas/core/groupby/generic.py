@@ -1966,6 +1966,9 @@ class SeriesGroupBy(GroupBy[Series]):
         """
         Draw histogram for each group's values using :meth:`Series.hist` API.
 
+        A separate histogram subplot is generated for each group, making it
+        easy to visually compare the distribution of values across groups.
+
         Parameters
         ----------
         by : object, optional
