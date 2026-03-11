@@ -181,7 +181,7 @@ build-verbosity = 1
 # OSError: [Errno 138] emscripten does not support processes
 test-command = """
   python -c 'import pandas as pd; \
-  pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db", "--no-strict-data-files"]); \
+  pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db", "--no-strict-data-files"]);' \
   """
 
 [tool.ruff]
