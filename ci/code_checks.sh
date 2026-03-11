@@ -77,10 +77,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.api.typing.SeriesGroupBy.cov ES01" \
         -i "pandas.api.typing.SeriesGroupBy.is_monotonic_increasing ES01" \
         -i "pandas.api.typing.SeriesGroupBy.is_monotonic_decreasing ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.nlargest ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.nsmallest ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.kurt ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.value_counts ES01" \
         -i "pandas.api.typing.SeriesGroupBy.hist ES01" \
         -i "pandas.Timedelta.resolution_string SA01" # no backslash in the last line
 
