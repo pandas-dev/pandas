@@ -251,12 +251,10 @@ Ambiguity arises when an index consists of integers with a non-zero start or non
     })
 
     window_size = 5
-    max_start = len(df) - window_size
 
     start_idx = np.random.randint(0, len(df) - window_size + 1)
 
     df.iloc[start_idx:start_idx+window_size]
-    df
 
 New columns
 ***********
