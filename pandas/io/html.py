@@ -636,16 +636,16 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
         return row.find_all(("td", "th"), recursive=False)
 
     def _parse_thead_tr(self, table):
-        return table.select("thead tr")
+        return table.select(":scope thead tr")
 
     def _parse_tbody_tr(self, table):
-        from_tbody = table.select("tbody tr")
+        from_tbody = table.select(":scope tbody tr")
         from_root = table.find_all("tr", recursive=False)
         # HTML spec: at most one of these lists has content
         return from_tbody + from_root
 
     def _parse_tfoot_tr(self, table):
-        return table.select("tfoot tr")
+        return table.select(":scope tfoot tr")
 
     def _setup_build_doc(self):
         raw_text = _read(self.io, self.encoding, self.storage_options)

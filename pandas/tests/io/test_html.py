@@ -617,7 +617,6 @@ class TestReadHtml:
 
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(reason="Known issue: GH-64524", strict=False)
     def test_nested_table(self, flavor_read_html):
         """
         Make sure that read_html parses nested tables correctly. A web page can have a
