@@ -1109,7 +1109,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         if self._is_nested_tuple_indexer(tup):
             return self._getitem_nested_tuple(tup)
 
-        # we maybe be using a tuple to represent multiple dimensions here
+        # we may be using a tuple to represent multiple dimensions here
         ax0 = self.obj._get_axis(0)
         # ...but iloc should handle the tuple as simple integer-location
         # instead of checking it as multiindex representation (GH 13797)
