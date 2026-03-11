@@ -458,6 +458,24 @@ with cf.config_prefix("mode"):
     )
 
 
+use_threads_doc = """
+: boolean
+    Whether to use threads for parallel execution where supported.
+    If ``False``, operations that would normally use threads for parallelism
+    (e.g. ``read_csv`` for large files) will run single-threaded.
+    This is useful when pandas is being called from a framework that
+    already manages parallelism at a higher level, such as Dask.
+"""
+
+with cf.config_prefix("mode"):
+    cf.register_option(
+        "use_threads",
+        True,
+        use_threads_doc,
+        validator=is_bool,
+    )
+
+
 string_storage_doc = """
 : string
     The default storage for StringDtype.
