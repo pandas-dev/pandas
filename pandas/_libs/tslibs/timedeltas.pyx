@@ -517,7 +517,7 @@ def array_to_timedelta64(
                     int_reso = NPY_FR_ns
                     state.update_creso(item_reso)
                     if infer_reso:
-                        creso = state.cres
+                        creso = state.creso
 
             elif isinstance(item, Day):
                 # GH#64240: support Day offsets in list-like conversion
