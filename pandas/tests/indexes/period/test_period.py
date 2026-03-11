@@ -102,7 +102,7 @@ class TestPeriodIndex:
 
         field_idx = getattr(periodindex, field)
         assert len(periodindex) == len(field_idx)
-        for x, val in zip(periods, field_idx):
+        for x, val in zip(periods, field_idx, strict=True):
             assert getattr(x, field) == val
 
         if len(ser) == 0:
@@ -110,7 +110,7 @@ class TestPeriodIndex:
 
         field_s = getattr(ser.dt, field)
         assert len(periodindex) == len(field_s)
-        for x, val in zip(periods, field_s):
+        for x, val in zip(periods, field_s, strict=True):
             assert getattr(x, field) == val
 
     def test_is_(self):

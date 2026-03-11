@@ -61,7 +61,6 @@ from pandas.core.arrays import (
     TimedeltaArray,
 )
 import pandas.core.common as com
-import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
     Index,
 )
@@ -82,8 +81,6 @@ if TYPE_CHECKING:
 
     from pandas import CategoricalIndex
 
-_index_doc_kwargs = dict(ibase._index_doc_kwargs)
-
 
 class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
     """
@@ -96,6 +93,9 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
     def mean(self, *, skipna: bool = True, axis: int | None = 0):
         """
         Return the mean value of the Array.
+
+        This method computes the arithmetic mean of the datetime or timedelta
+        values in the index, optionally skipping NaT values.
 
         Parameters
         ----------
@@ -177,12 +177,55 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
 
     @property
     def asi8(self) -> npt.NDArray[np.int64]:
+        """
+        Return Integer representation of the values.
+
+        For :class:`DatetimeIndex` and :class:`TimedeltaIndex`, the
+        values are the number of time units (determined by the index
+        resolution) since the epoch. For :class:`PeriodIndex`, the
+        values are ordinals.
+
+        Returns
+        -------
+        numpy.ndarray
+            An ndarray with int64 dtype.
+
+        See Also
+        --------
+        Index.values : Return an array representing the data in the Index,
+            using native types (datetime64, timedelta64) rather than int64.
+        Index.to_numpy : Return a NumPy ndarray of the index values.
+
+        Examples
+        --------
+        For :class:`DatetimeIndex` with default microsecond resolution:
+
+        >>> idx = pd.DatetimeIndex(["2023-01-01", "2023-01-02"], dtype="datetime64[us]")
+        >>> idx.asi8
+        array([1672531200000000, 1672617600000000])
+
+        For :class:`TimedeltaIndex` with millisecond resolution:
+
+        >>> idx = pd.TimedeltaIndex(["1 day", "2 days"], dtype="timedelta64[ms]")
+        >>> idx.asi8
+        array([ 86400000, 172800000])
+
+        For :class:`PeriodIndex`:
+
+        >>> idx = pd.PeriodIndex(["2023-01", "2023-02", "2023-03"], freq="M")
+        >>> idx.asi8
+        array([636, 637, 638])
+        """
         return self._data.asi8
 
     @property
     def freqstr(self) -> str:
         """
         Return the frequency object as a string if it's set, otherwise None.
+
+        This property returns a string representation of the frequency
+        (e.g., ``'D'`` for daily, ``'h'`` for hourly) when one has been set
+        on the index, either explicitly or via inference.
 
         See Also
         --------
@@ -565,6 +608,44 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
 
     @property
     def unit(self) -> TimeUnit:
+        """
+        The precision unit of the datetime data.
+
+        Returns the precision unit for the dtype of the index. This is the
+        smallest time frame that can be stored within this dtype.
+
+        Returns
+        -------
+        str
+            Unit string representation (e.g. ``"ns"``).
+
+        See Also
+        --------
+        DatetimeIndex.as_unit : Convert to the given unit.
+        TimedeltaIndex.as_unit : Convert to the given unit.
+
+        Examples
+        --------
+        For a DatetimeIndex:
+
+        >>> idx = pd.DatetimeIndex(["2020-01-02 01:02:03.004005006"])
+        >>> idx.unit
+        'ns'
+
+        >>> idx_s = pd.DatetimeIndex(["2020-01-02 01:02:03"], dtype="datetime64[s]")
+        >>> idx_s.unit
+        's'
+
+        For a TimedeltaIndex:
+
+        >>> tdidx = pd.TimedeltaIndex(["1 day 3 min 2 us 42 ns"])
+        >>> tdidx.unit
+        'ns'
+
+        >>> tdidx_s = pd.TimedeltaIndex(["1 day 3 min"], dtype="timedelta64[s]")
+        >>> tdidx_s.unit
+        's'
+        """
         return self._data.unit
 
     def as_unit(self, unit: TimeUnit) -> Self:
@@ -681,6 +762,9 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         """
         Return the inferred frequency of the index.
 
+        Attempts to determine the frequency of the index by analyzing the
+        differences between consecutive values using ``infer_freq``.
+
         Returns
         -------
         str or None
@@ -718,7 +802,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
     def _as_range_index(self) -> RangeIndex:
         # Convert our i8 representations to RangeIndex
         # Caller is responsible for checking isinstance(self.freq, Tick)
-        freq = cast(Tick, self.freq)
+        freq = cast("Tick", self.freq)
         tick = Timedelta(freq).as_unit(self.unit)._value
         rng = range(self[0]._value, self[-1]._value + tick, tick)
         return RangeIndex(rng)

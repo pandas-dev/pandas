@@ -174,9 +174,7 @@ copyright = f"{datetime.now().year},"
 import pandas  # isort:skip
 
 # version = '%s r%s' % (pandas.__version__, svn_version())
-version = str(pandas.__version__)
-if version_override := os.environ.get("PANDAS_VERSION_OVERRIDE"):
-    version = version_override
+version = os.environ.get("PANDAS_VERSION", str(pandas.__version__))
 
 # The full version, including alpha/beta/rc tags.
 release = version
@@ -567,7 +565,7 @@ class AccessorLevelDocumenter(Documenter):
                 else:
                     modname = self.env.temp_data.get("py:module")
             # ... else, it stays None, which means invalid
-        return modname, parents + [base]
+        return modname, [*parents, base]
 
 
 class AccessorAttributeDocumenter(AccessorLevelDocumenter, AttributeDocumenter):
@@ -696,12 +694,12 @@ def linkcode_resolve(domain, info) -> str | None:
 
     fn = os.path.relpath(fn, start=os.path.dirname(pandas.__file__))
 
-    if "+" in pandas.__version__:
+    if "+" in version:
         return f"https://github.com/pandas-dev/pandas/blob/main/pandas/{fn}{linespec}"
     else:
         return (
             f"https://github.com/pandas-dev/pandas/blob/"
-            f"v{pandas.__version__}/pandas/{fn}{linespec}"
+            f"v{version}/pandas/{fn}{linespec}"
         )
 
 

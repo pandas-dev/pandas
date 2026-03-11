@@ -3,7 +3,7 @@
 
 pip
 versioneer[toml]
-cython<4.0.0a0
+cython>=3.1.0,<4.0.0a0
 meson[ninja]>=1.2.1,<2
 meson-python>=0.17.1,<1
 pytest>=8.3.4
@@ -53,7 +53,6 @@ seaborn
 ipython
 moto
 asv>=0.6.1
-flake8==7.1.0
 mypy==1.17.1
 tokenize-rt
 pre-commit>=4.2.0
@@ -61,7 +60,6 @@ gitpython
 natsort
 pickleshare
 numpydoc
-pytest-cython
 sphinx
 sphinx-design
 sphinx-copybutton
@@ -70,7 +68,6 @@ types-python-dateutil
 types-PyMySQL
 types-pytz
 types-PyYAML
-types-setuptools
 nbconvert>=7.11.0
 nbsphinx
 pandoc
@@ -87,3 +84,4 @@ jupyterlite-core
 jupyterlite-pyodide-kernel
 tzdata>=2023.3
 https://github.com/jorisvandenbossche/pydata-sphinx-theme/archive/refs/heads/v0.16.1+dismissable-announcement-banner.zip
+pytest-cython==0.4.0rc1

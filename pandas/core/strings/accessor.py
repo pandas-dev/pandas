@@ -15,13 +15,6 @@ import numpy as np
 from pandas._config import using_string_dtype
 
 from pandas._libs import lib
-from pandas._typing import (
-    AlignJoin,
-    DtypeObj,
-    F,
-    Scalar,
-    npt,
-)
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
@@ -58,7 +51,14 @@ if TYPE_CHECKING:
         Iterator,
     )
 
-    from pandas._typing import NpDtype
+    from pandas._typing import (
+        AlignJoin,
+        DtypeObj,
+        F,
+        NpDtype,
+        Scalar,
+        npt,
+    )
 
     from pandas import (
         DataFrame,
@@ -75,7 +75,7 @@ _cpython_optimized_encoders = (
     "mbcs",
     "ascii",
 )
-_cpython_optimized_decoders = _cpython_optimized_encoders + ("utf-16", "utf-32")
+_cpython_optimized_decoders = (*_cpython_optimized_encoders, "utf-16", "utf-32")
 
 
 def forbid_nonstring_types(
@@ -142,7 +142,7 @@ def forbid_nonstring_types(
             return func(self, *args, **kwargs)
 
         wrapper.__name__ = func_name
-        return cast(F, wrapper)
+        return cast("F", wrapper)
 
     return _forbid_nonstring_types
 
@@ -655,7 +655,7 @@ class StringMethods(NoNewAttributesMixin):
             data, others = data.align(others, join=join)
             others = [others[x] for x in others]  # again list of Series
 
-        all_cols = [ensure_object(x) for x in [data] + others]
+        all_cols = [ensure_object(x) for x in [data, *others]]
         na_masks = np.array([isna(x) for x in all_cols])
         union_mask = np.logical_or.reduce(na_masks, axis=0)
 
@@ -1480,13 +1480,18 @@ class StringMethods(NoNewAttributesMixin):
         4    False
         dtype: bool
         """
-        if regex and re.compile(pat).groups:
-            warnings.warn(
-                "This pattern is interpreted as a regular expression, and has "
-                "match groups. To actually get the groups, use str.extract.",
-                UserWarning,
-                stacklevel=find_stack_level(),
-            )
+        if regex:
+            try:
+                has_groups = re.compile(pat).groups
+            except re.error:
+                has_groups = False
+            if has_groups:
+                warnings.warn(
+                    "This pattern is interpreted as a regular expression, and has "
+                    "match groups. To actually get the groups, use str.extract.",
+                    UserWarning,
+                    stacklevel=find_stack_level(),
+                )
 
         result = self._data.array._str_contains(pat, case, flags, na, regex)
         return self._wrap_result(result, fill_value=na, returns_string=False)
@@ -4863,12 +4868,12 @@ def str_extractall(arr, pat, flags: int = 0) -> DataFrame:
                     match_tuple = (match_tuple,)
                 na_tuple = [np.nan if group == "" else group for group in match_tuple]
                 match_list.append(na_tuple)
-                result_key = tuple(subject_key + (match_i,))
+                result_key = (*subject_key, match_i)
                 index_list.append(result_key)
 
     from pandas import MultiIndex
 
-    index = MultiIndex.from_tuples(index_list, names=arr.index.names + ["match"])
+    index = MultiIndex.from_tuples(index_list, names=[*arr.index.names, "match"])
     dtype = _result_dtype(arr)
 
     result = arr._constructor_expanddim(

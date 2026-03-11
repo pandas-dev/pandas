@@ -44,7 +44,7 @@ from pandas.core.series import Series
 
 # Helper function to hack around fact that Index casts numpy string dtype to object
 #
-# Idea is to set an attribute on a Index called _numba_data
+# Idea is to set an attribute on an Index called _numba_data
 # that is the original data, or the object data casted to numpy string dtype,
 # with a context manager that is unset afterwards
 @contextmanager
@@ -287,7 +287,7 @@ def maybe_cast_str_impl(x):
 @unbox(IndexType)
 def unbox_index(typ, obj, c):
     """
-    Convert a Index object to a native structure.
+    Convert an Index object to a native structure.
 
     Note: Object dtype is not allowed here
     """
@@ -342,12 +342,12 @@ def unbox_series(typ, obj, c):
 @box(IndexType)
 def box_index(typ, val, c):
     """
-    Convert a native index structure to a Index object.
+    Convert a native index structure to an Index object.
 
     If our native index is of a numpy string dtype, we'll cast it to
     object.
     """
-    # First build a Numpy array object, then wrap it in a Index
+    # First build a Numpy array object, then wrap it in an Index
     index = cgutils.create_struct_proxy(typ)(c.context, c.builder, value=val)
 
     res = cgutils.alloca_once_value(c.builder, index.parent)

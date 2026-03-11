@@ -8,6 +8,7 @@ from decimal import Decimal
 import numpy as np
 import pytest
 
+from pandas.compat import HAS_PYARROW
 from pandas.compat.numpy import np_version_gt2
 from pandas.errors import IndexingError
 
@@ -515,10 +516,6 @@ class TestSetitemWithExpansion:
     )
     def test_append_timedelta_does_not_cast(self, td, using_infer_string, request):
         # GH#22717 inserting a Timedelta should _not_ cast to int64
-        if using_infer_string and not isinstance(td, Timedelta):
-            # TODO: GH#56010
-            request.applymarker(pytest.mark.xfail(reason="inferred as string"))
-
         expected = Series(["x", td], index=[0, "td"], dtype=object)
 
         ser = Series(["x"])
@@ -592,17 +589,22 @@ class TestSetitemWithExpansion:
         # GH#48665
         ser = Series(["a", "b"])
         ser[3] = nulls_fixture
+
         dtype = (
             "str"
-            if using_infer_string and not isinstance(nulls_fixture, Decimal)
+            if using_infer_string
+            and not (isinstance(nulls_fixture, Decimal) and not HAS_PYARROW)
             else object
         )
+
         expected = Series(["a", "b", nulls_fixture], index=[0, 1, 3], dtype=dtype)
         tm.assert_series_equal(ser, expected)
-        if using_infer_string:
+        if dtype == "str":
             ser[3] is np.nan
-        else:
+        elif using_infer_string:
             assert ser[3] is nulls_fixture
+        else:
+            assert type(ser[3]) is type(nulls_fixture)
 
 
 def test_setitem_scalar_into_readonly_backing_data():
@@ -1086,7 +1088,7 @@ class TestSetitemNADatetimeLikeDtype(SetitemCastingEquivalents):
     @pytest.fixture
     def expected(self, obj, val, is_inplace):
         dtype = obj.dtype if is_inplace else object
-        expected = Series([val] + list(obj[1:]), dtype=dtype)
+        expected = Series([val, *list(obj[1:])], dtype=dtype)
         return expected
 
     @pytest.fixture
@@ -1198,7 +1200,7 @@ class TestSetitemFloatIntervalWithIntIntervalValues(SetitemCastingEquivalents):
         """
         Fixture to get a Series [(0.5, 1.5], (1.0, 2.0], (2.0, 3.0]]
         """
-        data = [val] + list(obj[1:])
+        data = [val, *list(obj[1:])]
         idx = IntervalIndex(data, dtype="Interval[float64]")
         return Series(idx)
 
