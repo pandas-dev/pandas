@@ -65,7 +65,7 @@ funding = 'https://opencollective.com/pandas'
 matplotlib = "pandas:plotting._matplotlib"
 
 [project.optional-dependencies]
-test = ['hypothesis>=6.116.0', 'pytest>=8.3.4', 'pytest-xdist>=3.6.1', 'pytest-cov>=7.0.0']
+test = ['hypothesis>=6.116.0', 'pytest>=8.3.4', 'pytest-xdist>=3.6.1']
 pyarrow = ['pyarrow>=13.0.0']
 performance = ['bottleneck>=1.4.2', 'numba>=0.60.0', 'numexpr>=2.10.2']
 computation = ['scipy>=1.14.1', 'xarray>=2024.10.0']
