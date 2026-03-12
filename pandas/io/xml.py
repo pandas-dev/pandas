@@ -872,6 +872,10 @@ def read_xml(
     r"""
     Read XML document into a :class:`~pandas.DataFrame` object.
 
+    This function parses an XML document from a file path, URL, or string buffer,
+    and returns the content as a DataFrame. Nodes are selected using an XPath
+    expression, and their child elements and attributes are mapped to columns.
+
     Parameters
     ----------
     path_or_buffer : str, path object, or file-like object
