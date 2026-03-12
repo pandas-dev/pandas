@@ -91,8 +91,6 @@ from pandas.core.indexers import (
 )
 from pandas.core.nanops import check_below_min_count
 
-from pandas.io.formats import printing
-
 if TYPE_CHECKING:
     from collections.abc import (
         Callable,
@@ -370,10 +368,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     >>> from pandas.arrays import SparseArray
     >>> arr = SparseArray([0, 0, 1, 2])
     >>> arr
+    <SparseArray>
     [0, 0, 1, 2]
-    Fill: 0
-    IntIndex
-    Indices: array([2, 3], dtype=int32)
+    Length: 4, dtype: Sparse[int64, 0]
     """
 
     _subtyp = "sparse_array"  # register ABCSparseArray
@@ -541,10 +538,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         >>> import scipy.sparse
         >>> mat = scipy.sparse.coo_matrix((4, 1))
         >>> pd.arrays.SparseArray.from_spmatrix(mat)
+        <SparseArray>
         [0.0, 0.0, 0.0, 0.0]
-        Fill: 0.0
-        IntIndex
-        Indices: array([], dtype=int32)
+        Length: 4, dtype: Sparse[float64, 0.0]
         """
         length, ncol = data.shape
 
@@ -1312,35 +1308,29 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         --------
         >>> arr = pd.arrays.SparseArray([0, 0, 1, 2])
         >>> arr
+        <SparseArray>
         [0, 0, 1, 2]
-        Fill: 0
-        IntIndex
-        Indices: array([2, 3], dtype=int32)
+        Length: 4, dtype: Sparse[int64, 0]
 
         >>> arr.astype(pd.SparseDtype(np.dtype("int32")))
+        <SparseArray>
         [0, 0, 1, 2]
-        Fill: 0
-        IntIndex
-        Indices: array([2, 3], dtype=int32)
+        Length: 4, dtype: Sparse[int32, 0]
 
         Using a NumPy dtype with a different kind (e.g. float) will coerce
         just ``self.sp_values``.
 
         >>> arr.astype(pd.SparseDtype(np.dtype("float64")))
-        ... # doctest: +NORMALIZE_WHITESPACE
+        <SparseArray>
         [nan, nan, 1.0, 2.0]
-        Fill: nan
-        IntIndex
-        Indices: array([2, 3], dtype=int32)
+        Length: 4, dtype: Sparse[float64, nan]
 
         Using a SparseDtype, you can also change the fill value as well.
 
         >>> arr.astype(pd.SparseDtype("float64", fill_value=0.0))
-        ... # doctest: +NORMALIZE_WHITESPACE
+        <SparseArray>
         [0.0, 0.0, 1.0, 2.0]
-        Fill: 0.0
-        IntIndex
-        Indices: array([2, 3], dtype=int32)
+        Length: 4, dtype: Sparse[float64, 0.0]
         """
         if dtype == self._dtype:
             if not copy:
@@ -1387,22 +1377,19 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         --------
         >>> arr = pd.arrays.SparseArray([0, 1, 2])
         >>> arr.map(lambda x: x + 10)
+        <SparseArray>
         [10, 11, 12]
-        Fill: 10
-        IntIndex
-        Indices: array([1, 2], dtype=int32)
+        Length: 3, dtype: Sparse[int64, 10]
 
         >>> arr.map({0: 10, 1: 11, 2: 12})
+        <SparseArray>
         [10, 11, 12]
-        Fill: 10
-        IntIndex
-        Indices: array([1, 2], dtype=int32)
+        Length: 3, dtype: Sparse[int64, 10]
 
         >>> arr.map(pd.Series([10, 11, 12], index=[0, 1, 2]))
+        <SparseArray>
         [10, 11, 12]
-        Fill: 10
-        IntIndex
-        Indices: array([1, 2], dtype=int32)
+        Length: 3, dtype: Sparse[int64, np.int64(10)]
         """
         is_map = isinstance(mapper, (abc.Mapping, ABCSeries))
 
@@ -1925,18 +1912,14 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     # ----------
     # Formatting
     # -----------
-    def __repr__(self) -> str:
-        pp_str = printing.pprint_thing(self)
-        pp_fill = printing.pprint_thing(self.fill_value)
-        pp_index = printing.pprint_thing(self.sp_index)
-        return f"{pp_str}\nFill: {pp_fill}\n{pp_index}"
+    # PandasObject (via OpsMixin) comes before ExtensionArray in the MRO,
+    # and PandasObject.__repr__ falls back to object.__repr__. Explicitly
+    # resolve to the ExtensionArray version.
+    __repr__ = ExtensionArray.__repr__
 
-    # error: Return type "None" of "_formatter" incompatible with return
-    # type "Callable[[Any], str | None]" in supertype "ExtensionArray"
-    def _formatter(self, boxed: bool = False) -> None:  # type: ignore[override]
-        # Defer to the formatter from the GenericArrayFormatter calling us.
-        # This will infer the correct formatter from the dtype of the values.
-        return None
+    def _formatter(self, boxed: bool = False) -> Callable:
+        # Use str to avoid np.int64(...) wrapping in repr output.
+        return str
 
 
 def _make_sparse(
