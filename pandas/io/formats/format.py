@@ -1837,15 +1837,20 @@ def _trim_zeros_float(
     while True:
         # Check if all decimal numbers end in "0"
         if not all(
-            trimmed[i].endswith("0") for i in range(len(trimmed)) if is_number[i]
+            x.endswith("0")
+            for x, is_num in zip(trimmed, is_number, strict=True)
+            if is_num
         ):
             break
-        trimmed = [x[:-1] if is_number[i] else x for i, x in enumerate(trimmed)]
+        trimmed = [
+            x[:-1] if is_num else x
+            for x, is_num in zip(trimmed, is_number, strict=True)
+        ]
 
     # Leave one 0 after the decimal point if needed
     result = [
-        x + "0" if is_number[i] and x.endswith(decimal) else x
-        for i, x in enumerate(trimmed)
+        x + "0" if is_num and x.endswith(decimal) else x
+        for x, is_num in zip(trimmed, is_number, strict=True)
     ]
     return result
 
