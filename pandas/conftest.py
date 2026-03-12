@@ -177,6 +177,9 @@ def pytest_collection_modifyitems(items, config) -> None:
         ("SeriesGroupBy.idxmax", "The behavior of Series.idxmax"),
         ("to_pytimedelta", "The behavior of TimedeltaProperties.to_pytimedelta"),
         ("NDFrame.reindex_like", "keyword argument 'method' is deprecated"),
+        # Docstring divides by zero to show nan result
+        ("Series.autocorr", "invalid value encountered in divide"),
+        ("Series.corr", "invalid value encountered in divide"),
         # Docstring divides by zero to show behavior difference
         ("missing.mask_zero_div_zero", "divide by zero encountered"),
         (
@@ -1961,11 +1964,14 @@ def ip():
     pytest.importorskip("IPython", minversion="6.0.0")
     from IPython.core.interactiveshell import InteractiveShell
 
-    # GH#35711 make sure sqlite history file handle is not leaked
+    # GH#35711 make sure sqlite history file handle is not leaked.
+    # Using :memory: avoids leaking a file on disk; disabling the history
+    # manager entirely avoids leaking the underlying sqlite3.Connection.
     from traitlets.config import Config  # isort:skip
 
     c = Config()
     c.HistoryManager.hist_file = ":memory:"
+    c.HistoryManager.enabled = False
 
     return InteractiveShell(config=c)
 

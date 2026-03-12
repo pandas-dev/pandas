@@ -876,6 +876,9 @@ class SeriesGroupBy(GroupBy[Series]):
         """
         Return number of unique elements in the group.
 
+        This method counts the number of distinct values within each group,
+        optionally excluding NaN values.
+
         Parameters
         ----------
         dropna : bool, default True
@@ -1061,6 +1064,10 @@ class SeriesGroupBy(GroupBy[Series]):
     ) -> Series | DataFrame:
         """
         Return a Series or DataFrame containing counts of unique rows.
+
+        The resulting object will be in descending order by default so that
+        the first element in each group is the most frequently-occurring
+        value. NA values are excluded from the result by default.
 
         Parameters
         ----------
@@ -1461,6 +1468,10 @@ class SeriesGroupBy(GroupBy[Series]):
         """
         Return unbiased kurtosis within groups.
 
+        Kurtosis measures the tailedness of a distribution. This method
+        computes Fisher's definition of kurtosis (normal distribution has
+        a kurtosis of zero) for each group, using the unbiased estimator.
+
         Parameters
         ----------
         skipna : bool, default True
@@ -1562,6 +1573,10 @@ class SeriesGroupBy(GroupBy[Series]):
         """
         Return the largest `n` elements.
 
+        Within each group, returns the `n` largest values sorted in
+        descending order. The ``keep`` parameter controls how ties are
+        handled when there are duplicate values at the boundary.
+
         Parameters
         ----------
         n : int, default 5
@@ -1625,6 +1640,10 @@ class SeriesGroupBy(GroupBy[Series]):
     ) -> Series:
         """
         Return the smallest `n` elements.
+
+        Within each group, returns the `n` smallest values sorted in
+        ascending order. The ``keep`` parameter controls how ties are
+        handled when there are duplicate values at the boundary.
 
         Parameters
         ----------
@@ -1946,6 +1965,9 @@ class SeriesGroupBy(GroupBy[Series]):
     ):
         """
         Draw histogram for each group's values using :meth:`Series.hist` API.
+
+        A separate histogram subplot is generated for each group, making it
+        easy to visually compare the distribution of values across groups.
 
         Parameters
         ----------
@@ -2895,6 +2917,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         """
         Return DataFrame with counts of unique elements in each position.
 
+        This method counts the number of distinct values for each column
+        within each group, optionally excluding NaN values.
+
         Parameters
         ----------
         dropna : bool, default True
@@ -2952,6 +2977,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     ) -> DataFrame:
         """
         Return index of first occurrence of maximum in each group.
+
+        For each group and each column, identifies the row label where the
+        maximum value first occurs. NA values are excluded by default.
 
         Parameters
         ----------
@@ -3024,6 +3052,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     ) -> DataFrame:
         """
         Return index of first occurrence of minimum in each group.
+
+        For each group and each column, identifies the row label where the
+        minimum value first occurs. NA values are excluded by default.
 
         Parameters
         ----------
@@ -3101,6 +3132,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     ) -> DataFrame | Series:
         """
         Return a Series or DataFrame containing counts of unique rows.
+
+        The resulting object will be in descending order so that the
+        first element in each group is the most frequently-occurring row.
 
         Parameters
         ----------
@@ -3387,6 +3421,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     ) -> DataFrame:
         """
         Return unbiased kurtosis within groups.
+
+        Kurtosis obtained using Fisher's definition (kurtosis of normal == 0.0),
+        normalized by N-1. Values are computed for each numeric column
+        within each group.
 
         Parameters
         ----------

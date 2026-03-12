@@ -994,7 +994,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 other, (list, np.ndarray, ExtensionArray)
             ) and not ops.has_castable_attr(other):
                 warnings.warn(
-                    f"Operation with {type(other).__name__} are deprecated. "
+                    f"Operation with {type(other).__name__} is deprecated. "
                     "In a future version these will be treated as scalar-like. "
                     "To retain the old behavior, explicitly wrap in a Series "
                     "instead.",

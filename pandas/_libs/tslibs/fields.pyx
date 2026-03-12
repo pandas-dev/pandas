@@ -175,8 +175,8 @@ def get_date_name_field(
         else:
             names = np.array(_get_locale_names("f_weekday", locale),
                              dtype=np.object_)
-        for i in range(len(names)):
-            names[i] = names[i].capitalize()
+            for i in range(len(names)):
+                names[i] = names[i].capitalize()
         for i in range(count):
             if dtindex[i] == NPY_NAT:
                 out[i] = np.nan
@@ -192,8 +192,8 @@ def get_date_name_field(
         else:
             names = np.array(_get_locale_names("f_month", locale),
                              dtype=np.object_)
-        for i in range(len(names)):
-            names[i] = names[i].capitalize()
+            for i in range(len(names)):
+                names[i] = names[i].capitalize()
         for i in range(count):
             if dtindex[i] == NPY_NAT:
                 out[i] = np.nan
