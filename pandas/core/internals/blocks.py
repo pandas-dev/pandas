@@ -1412,7 +1412,6 @@ class Block(PandasObject, libinternals.Block):
         """shift the block by periods, possibly upcast"""
         # convert integer to float if necessary. need to do a lot more than
         # that, handle boolean etc also
-        axis = self.ndim - 1
 
         # Note: periods is never 0 here, as that is handled at the top of
         #  NDFrame.shift.  If that ever changes, we can do a check for periods=0
@@ -1451,7 +1450,7 @@ class Block(PandasObject, libinternals.Block):
 
         else:
             values = cast("np.ndarray", self.values)
-            new_values = shift(values, periods, axis, casted)
+            new_values = shift(values, periods, casted)
             return [self.make_block_same_class(new_values)]
 
     @final
@@ -1607,9 +1606,7 @@ class EABackedBlock(Block):
         Dispatches to underlying ExtensionArray and re-boxes in an
         ExtensionBlock.
         """
-        # Transpose since EA.shift is always along axis=0, while we want to shift
-        #  along rows.
-        new_values = self.values.T.shift(periods=periods, fill_value=fill_value).T
+        new_values = self.values.shift(periods=periods, fill_value=fill_value)
         return [self.make_block_same_class(new_values)]
 
     @final
