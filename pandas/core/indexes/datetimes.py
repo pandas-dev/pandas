@@ -277,6 +277,33 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     _values: DatetimeArray
     tz: dt.tzinfo | None
 
+    # Declare _field_ops inherited dynamically via @inherit_names for mypy
+    year: Index
+    month: Index
+    day: Index
+    hour: Index
+    minute: Index
+    second: Index
+    weekday: Index
+    dayofweek: Index
+    day_of_week: Index
+    dayofyear: Index
+    day_of_year: Index
+    quarter: Index
+    days_in_month: Index
+    daysinmonth: Index
+    microsecond: Index
+    nanosecond: Index
+
+    # Declare _bool_ops inherited dynamically via @inherit_names for mypy
+    is_month_start: npt.NDArray[np.bool_]
+    is_month_end: npt.NDArray[np.bool_]
+    is_quarter_start: npt.NDArray[np.bool_]
+    is_quarter_end: npt.NDArray[np.bool_]
+    is_year_start: npt.NDArray[np.bool_]
+    is_year_end: npt.NDArray[np.bool_]
+    is_leap_year: npt.NDArray[np.bool_]
+
     # --------------------------------------------------------------------
     # methods that dispatch to DatetimeArray and wrap result
 
