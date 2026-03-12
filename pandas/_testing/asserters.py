@@ -216,7 +216,7 @@ def assert_index_equal(
         are identical. If 'equiv', then RangeIndex can be substituted for
         Index with an int64 dtype as well.
 
-    .. deprecated:: 3.1.0
+        .. deprecated:: 3.1.0
             The default value of 'equiv' has been deprecated and will be changed to
             True in the future.
 
