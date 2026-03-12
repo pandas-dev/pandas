@@ -1809,6 +1809,9 @@ def _trim_zeros_single_float(str_float: str) -> str:
     return str_float
 
 
+_NUMBER_WITH_DECIMAL_RE = re.compile(r"^\s*[+-]?[0-9]+\.[0-9]*$")
+
+
 def _trim_zeros_float(
     str_floats: ArrayLike | list[str], decimal: str = "."
 ) -> list[str]:
@@ -1817,30 +1820,32 @@ def _trim_zeros_float(
     all numbers containing decimals, leaving just one if
     necessary.
     """
-    trimmed = str_floats
-    number_regex = re.compile(rf"^\s*[\+-]?[0-9]+\{decimal}[0-9]*$")
+    if decimal != ".":
+        number_regex = re.compile(rf"^\s*[+-]?[0-9]+\{decimal}[0-9]*$")
+    else:
+        number_regex = _NUMBER_WITH_DECIMAL_RE
 
-    def is_number_with_decimal(x) -> bool:
-        return re.match(number_regex, x) is not None
+    # Identify which elements are decimal numbers once, up front
+    is_number = [number_regex.match(x) is not None for x in str_floats]
 
-    def should_trim(values: ArrayLike | list[str]) -> bool:
-        """
-        Determine if an array of strings should be trimmed.
+    if not any(is_number):
+        return list(str_floats)
 
-        Returns True if all numbers containing decimals (defined by the
-        above regular expression) within the array end in a zero, otherwise
-        returns False.
-        """
-        numbers = [x for x in values if is_number_with_decimal(x)]
-        return len(numbers) > 0 and all(x.endswith("0") for x in numbers)
+    trimmed = list(str_floats)
 
-    while should_trim(trimmed):
-        trimmed = [x[:-1] if is_number_with_decimal(x) else x for x in trimmed]
+    # Trim trailing zeros from all decimal numbers equally
+    while True:
+        # Check if all decimal numbers end in "0"
+        if not all(
+            trimmed[i].endswith("0") for i in range(len(trimmed)) if is_number[i]
+        ):
+            break
+        trimmed = [x[:-1] if is_number[i] else x for i, x in enumerate(trimmed)]
 
-    # leave one 0 after the decimal points if need be.
+    # Leave one 0 after the decimal point if needed
     result = [
-        x + "0" if is_number_with_decimal(x) and x.endswith(decimal) else x
-        for x in trimmed
+        x + "0" if is_number[i] and x.endswith(decimal) else x
+        for i, x in enumerate(trimmed)
     ]
     return result
 
