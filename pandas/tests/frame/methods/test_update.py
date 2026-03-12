@@ -249,7 +249,7 @@ class TestDataFrameUpdate:
 
     def test_update_raises_without_intersection_differing_index_types(self):
         # GH#19905
-        # update should raise ValueError when indices are of differing types
+        # update should do nothing when indices are of differing types
         # (e.g. integer vs string) resulting in no intersection
         df_int = DataFrame(
             {"col": ["foo", "bar", np.nan]},
@@ -259,5 +259,7 @@ class TestDataFrameUpdate:
             {"col": [np.nan, np.nan, "baz"]},
             index=["1", "2", "3"],
         )
-        with pytest.raises(ValueError, match="no intersection"):
-            df_int.update(df_obj)
+        expected = df_int.copy()
+        df_int.update(df_obj)
+        tm.assert_frame_equal(df_int, expected)
+    
