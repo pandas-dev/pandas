@@ -216,7 +216,7 @@ class TestStringArray(base.ExtensionTests):
         return None
 
     def _supports_reduction(self, ser: pd.Series, op_name: str) -> bool:
-        return op_name in ["min", "max", "sum"] or (
+        return op_name in ["min", "max", "sum", "count"] or (
             ser.dtype.na_value is np.nan  # type: ignore[union-attr]
             and op_name in ("any", "all")
         )
@@ -239,10 +239,6 @@ class TestStringArray(base.ExtensionTests):
         else:
             cast_to = "boolean"  # type: ignore[assignment]
         return pointwise_result.astype(cast_to)
-
-    def test_compare_scalar(self, data, comparison_op):
-        ser = pd.Series(data)
-        self._compare_other(ser, data, comparison_op, "abc")
 
     def test_groupby_extension_apply(self, data_for_grouping, groupby_apply_op):
         super().test_groupby_extension_apply(data_for_grouping, groupby_apply_op)

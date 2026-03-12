@@ -164,7 +164,7 @@ jobs:
         run: echo "sdist_name=$(cd ./dist && ls -d */)" >> "$GITHUB_ENV"
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@9c00cb4f6b517705a3794b22395aedc36257242c # v3.2.1
+        uses: pypa/cibuildwheel@ee02a1537ce3071a004a6b08c41e72f0fdc42d9a # v3.4.0
         with:
          package-dir: ./dist/${{ startsWith(matrix.buildplat[1], 'macosx') && env.sdist_name || needs.build_sdist.outputs.sdist_file }}
         env:
