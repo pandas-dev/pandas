@@ -262,4 +262,3 @@ class TestDataFrameUpdate:
         expected = df_int.copy()
         df_int.update(df_obj)
         tm.assert_frame_equal(df_int, expected)
-    
