@@ -108,6 +108,10 @@ class _IndexSlice:
     """
     Create an object to more easily perform multi-index slicing.
 
+    ``IndexSlice`` is a convenience object that allows the use of natural
+    slice syntax (``start:stop``) when selecting from a :class:`MultiIndex`,
+    rather than requiring explicit ``slice()`` calls.
+
     See Also
     --------
     MultiIndex.remove_unused_levels : New MultiIndex with no unused levels.
@@ -955,14 +959,14 @@ class _LocationIndexer(NDFrameIndexerBase):
                     self.obj._mgr = new_ser._mgr
             elif orig_obj.shape[1] == self.obj.shape[1]:
                 # We added rows but not columns
-                for i in range(orig_obj.shape[1]):
-                    new_dtype = self.obj.dtypes.iloc[i]
-                    orig_dtype = orig_obj.dtypes.iloc[i]
-                    if new_dtype != orig_dtype:
-                        new_arr = infer_and_maybe_downcast(
-                            orig_obj.iloc[:, i].array, self.obj.iloc[:, i]._values
-                        )
-                        self.obj.isetitem(i, new_arr)
+                changed_dtypes = (
+                    self.obj._mgr.get_dtypes() != orig_obj._mgr.get_dtypes()
+                )
+                for i in np.flatnonzero(changed_dtypes):
+                    new_arr = infer_and_maybe_downcast(
+                        orig_obj.iloc[:, i].array, self.obj.iloc[:, i]._values
+                    )
+                    self.obj.isetitem(i, new_arr)
 
             elif orig_obj.columns.is_unique and self.obj.columns.is_unique:
                 for col in orig_obj.columns:
@@ -1109,7 +1113,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         if self._is_nested_tuple_indexer(tup):
             return self._getitem_nested_tuple(tup)
 
-        # we maybe be using a tuple to represent multiple dimensions here
+        # we may be using a tuple to represent multiple dimensions here
         ax0 = self.obj._get_axis(0)
         # ...but iloc should handle the tuple as simple integer-location
         # instead of checking it as multiindex representation (GH 13797)

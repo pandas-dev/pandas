@@ -257,7 +257,7 @@ class XlsxWriter(ExcelWriter):
         style_dict = {"null": None}
 
         if validate_freeze_panes(freeze_panes):
-            wks.freeze_panes(*(freeze_panes))
+            wks.freeze_panes(*(freeze_panes))  # pyright: ignore[reportOptionalIterable]
 
         for cell in cells:
             val, fmt = self._value_with_fmt(cell.val)

@@ -684,6 +684,8 @@ def outer_join_indexer(ndarray[numeric_object_t] left, ndarray[numeric_object_t]
 from pandas._libs.hashtable cimport Int64HashTable
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def asof_join_backward_on_X_by_Y(const numeric_t[:] left_values,
                                  const numeric_t[:] right_values,
                                  const int64_t[:] left_by_values,
@@ -755,6 +757,8 @@ def asof_join_backward_on_X_by_Y(const numeric_t[:] left_values,
     return left_indexer, right_indexer
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def asof_join_forward_on_X_by_Y(const numeric_t[:] left_values,
                                 const numeric_t[:] right_values,
                                 const int64_t[:] left_by_values,
@@ -827,6 +831,8 @@ def asof_join_forward_on_X_by_Y(const numeric_t[:] left_values,
     return left_indexer, right_indexer
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def asof_join_nearest_on_X_by_Y(const numeric_t[:] left_values,
                                 const numeric_t[:] right_values,
                                 const int64_t[:] left_by_values,

@@ -810,8 +810,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         if self.dtype.kind in "mM":
             self = cast("DatetimeArray | TimedeltaArray", self)
-            # error: "DatetimeLikeArrayMixin" has no attribute "as_unit"
-            values = values.as_unit(self.unit)  # type: ignore[attr-defined]
+            # Cast to the higher resolution to avoid silently truncating
+            #  finer-resolution values, which could lead to false matches.
+            self, values = self._ensure_matching_resos(values)
 
         try:
             # error: Argument 1 to "_check_compatible_with" of "DatetimeLikeArrayMixin"
@@ -994,7 +995,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 other, (list, np.ndarray, ExtensionArray)
             ) and not ops.has_castable_attr(other):
                 warnings.warn(
-                    f"Operation with {type(other).__name__} are deprecated. "
+                    f"Operation with {type(other).__name__} is deprecated. "
                     "In a future version these will be treated as scalar-like. "
                     "To retain the old behavior, explicitly wrap in a Series "
                     "instead.",

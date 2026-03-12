@@ -110,6 +110,8 @@ class ToDatetimeFromIntsFloats:
         self.ts_sec = Series(range(1521080307, 1521685107), dtype="int64")
         self.ts_sec_uint = Series(range(1521080307, 1521685107), dtype="uint64")
         self.ts_sec_float = self.ts_sec.astype("float64")
+        # Non-round floats exercise cast_from_unit_vectorized (GH#57366)
+        self.ts_sec_float_fractional = self.ts_sec_float + 0.5
 
         self.ts_nanosec = 1_000_000 * self.ts_sec
         self.ts_nanosec_uint = 1_000_000 * self.ts_sec_uint
@@ -134,6 +136,9 @@ class ToDatetimeFromIntsFloats:
 
     def time_sec_float64(self):
         to_datetime(self.ts_sec_float, input_unit="s")
+
+    def time_sec_float64_fractional(self):
+        to_datetime(self.ts_sec_float_fractional, unit="s")
 
 
 class ToDatetimeYYYYMMDD:

@@ -892,16 +892,16 @@ class Resampler(BaseGroupBy, PandasObject):
             * 'from_derivatives': Refers to
               `scipy.interpolate.BPoly.from_derivatives`.
 
-        axis : {{0 or 'index', 1 or 'columns', None}}, default None
+        axis : {0 or 'index', 1 or 'columns', None}, default None
             Axis to interpolate along. For `Series` this parameter is unused
             and defaults to 0.
         limit : int, optional
             Maximum number of consecutive NaNs to fill. Must be greater than
             0.
-        limit_direction : {{'forward', 'backward', 'both'}}, Optional
+        limit_direction : {'forward', 'backward', 'both'}, Optional
             Consecutive NaNs will be filled in this direction.
 
-        limit_area : {{`None`, 'inside', 'outside'}}, default None
+        limit_area : {`None`, 'inside', 'outside'}, default None
             If limit is specified, consecutive NaNs will be filled with this
             restriction.
 

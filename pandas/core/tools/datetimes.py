@@ -525,6 +525,9 @@ def _to_datetime_with_unit(arg, input_unit, name, utc: bool, errors: str) -> Ind
                 )
                 result._data[mask] = NaT
                 return result
+
+            # if we have float32, cast to float64
+            arg = arg.astype("float64", copy=False)
             with np.errstate(over="raise"):
                 try:
                     arr = cast_from_unit_vectorized(arg, unit=input_unit)

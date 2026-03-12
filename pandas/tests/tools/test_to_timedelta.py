@@ -6,10 +6,6 @@ from datetime import (
 import numpy as np
 import pytest
 
-from pandas.compat import (
-    IS64,
-    WASM,
-)
 from pandas.errors import (
     OutOfBoundsTimedelta,
     Pandas4Warning,
@@ -274,8 +270,6 @@ class TestTimedeltas:
         actual = to_timedelta([val])
         assert actual[0]._value == np.timedelta64("NaT").astype("int64")
 
-    @pytest.mark.skipif(WASM, reason="No fp exception support in WASM")
-    @pytest.mark.xfail(not IS64, reason="Floating point error")
     def test_to_timedelta_float(self):
         # https://github.com/pandas-dev/pandas/issues/25077
         arr = np.arange(0, 1, 1e-6)[-10:]
@@ -366,6 +360,32 @@ class TestTimedeltas:
         arr2 = arr.astype(np.float64)
         result2 = to_timedelta(arr2, input_unit="s")
         assert result2.unit == "ns"
+
+    def test_float_to_timedelta_raise_near_bounds(self):
+        # GH#57366
+        oneday_in_ns = 1e9 * 60 * 60 * 24
+        tdmax_in_days = 2**63 / oneday_in_ns
+
+        # just in bounds
+        should_succeed = Series([0, tdmax_in_days - 0.005, -tdmax_in_days + 0.005])
+        for val in should_succeed:
+            pd.Timedelta(val, unit="D")
+        to_timedelta(should_succeed, unit="D")
+
+        # just out of bounds
+        should_fail1 = Series([0, tdmax_in_days + 0.005])
+        should_fail2 = Series([0, -tdmax_in_days - 0.005])
+        arr_msg = "cannot convert input"
+        scalar_msg1 = str(tdmax_in_days + 0.005)
+        scalar_msg2 = str(-tdmax_in_days - 0.005)
+        with pytest.raises(OutOfBoundsTimedelta, match=arr_msg):
+            to_timedelta(should_fail1, input_unit="D")
+        with pytest.raises(OutOfBoundsTimedelta, match=scalar_msg1):
+            pd.Timedelta(should_fail1[1], input_unit="D")
+        with pytest.raises(OutOfBoundsTimedelta, match=arr_msg):
+            to_timedelta(should_fail2, input_unit="D")
+        with pytest.raises(OutOfBoundsTimedelta, match=scalar_msg2):
+            pd.Timedelta(should_fail2[1], input_unit="D")
 
 
 def test_from_numeric_arrow_dtype(any_numeric_ea_dtype):

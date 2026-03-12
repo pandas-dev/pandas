@@ -17,7 +17,6 @@ from typing import (
     cast,
     overload,
 )
-import unicodedata
 import warnings
 
 import numpy as np
@@ -73,7 +72,7 @@ from pandas.core.arrays._arrow_string_mixins import ArrowStringArrayMixin
 from pandas.core.arrays._utils import to_numpy_dtype_inference
 from pandas.core.arrays.base import (
     ExtensionArray,
-    ExtensionArraySupportsAnyAll,
+    ExtensionArrayNaResult,
 )
 from pandas.core.arrays.masked import BaseMaskedArray
 from pandas.core.arrays.string_ import StringDtype
@@ -250,7 +249,7 @@ def to_pyarrow_type(
 @set_module("pandas.arrays")
 class ArrowExtensionArray(
     OpsMixin,
-    ExtensionArraySupportsAnyAll,
+    ExtensionArrayNaResult,
     ArrowStringArrayMixin,
 ):
     """
@@ -995,7 +994,7 @@ class ArrowExtensionArray(
             and not ops.has_castable_attr(other)
         ):
             warnings.warn(
-                f"Operation with {type(other).__name__} are deprecated. "
+                f"Operation with {type(other).__name__} is deprecated. "
                 "In a future version these will be treated as scalar-like. "
                 "To retain the old behavior, explicitly wrap in a Series "
                 "instead.",
@@ -1362,6 +1361,9 @@ class ArrowExtensionArray(
         type(self)
         """
         return self._from_pyarrow_array(self._pa_array)
+
+    def count(self) -> int:
+        return len(self) - self._pa_array.null_count
 
     def dropna(self) -> Self:
         """
@@ -2217,7 +2219,7 @@ class ArrowExtensionArray(
 
         if name == "sem":
 
-            def pyarrow_meth(data, skip_nulls, **kwargs):
+            def pyarrow_meth(data, skip_nulls, **kwargs):  # pyright: ignore[reportRedeclaration]
                 numerator = pc.stddev(data, skip_nulls=skip_nulls, **kwargs)
                 denominator = pc.sqrt_checked(pc.count(self._pa_array))
                 return pc.divide_checked(numerator, denominator)
@@ -2445,7 +2447,14 @@ class ArrowExtensionArray(
 
         if com.is_null_slice(key):
             # fast path (GH50248)
-            data = self._if_else(True, value, self._pa_array)
+            if (
+                isinstance(value, (pa.Array, pa.ChunkedArray))
+                and value.type == self._pa_array.type
+                and len(value) == len(self)
+            ):
+                data = value
+            else:
+                data = self._if_else(True, value, self._pa_array)
 
         elif is_integer(key):
             # fast path
@@ -2755,10 +2764,30 @@ class ArrowExtensionArray(
         -------
         pa.Array
         """
-        try:
-            return pc.if_else(cond, left, right)
-        except pa.ArrowNotImplementedError:
-            pass
+
+        # TODO: Remove this part when pa.if_else is fixed (GH#64320)
+        def _maybe_combine(arr):
+            if not isinstance(arr, pa.ChunkedArray) or not (
+                pa.types.is_string(arr.type) or pa.types.is_large_string(arr.type)
+            ):
+                return arr
+            if not any(c.offset != 0 for c in arr.chunks):
+                return arr
+            try:
+                return arr.combine_chunks()
+            except (pa.ArrowInvalid, pa.ArrowCapacityError, MemoryError):
+                return None
+
+        left_c, right_c = _maybe_combine(left), _maybe_combine(right)
+        if left_c is not None and right_c is not None:
+            try:
+                return pc.if_else(cond, left_c, right_c)
+            except pa.ArrowNotImplementedError:
+                pass
+        if left_c is not None:
+            left = left_c
+        if right_c is not None:
+            right = right_c
 
         def _to_numpy_and_type(value) -> tuple[np.ndarray, pa.DataType | None]:
             if isinstance(value, (pa.Array, pa.ChunkedArray)):
@@ -3031,9 +3060,7 @@ class ArrowExtensionArray(
         return self._from_pyarrow_array(pa.chunked_array(result))
 
     def _str_normalize(self, form: Literal["NFC", "NFD", "NFKC", "NFKD"]) -> Self:
-        predicate = lambda val: unicodedata.normalize(form, val)
-        result = self._apply_elementwise(predicate)
-        return self._from_pyarrow_array(pa.chunked_array(result))
+        return self._from_pyarrow_array(pc.utf8_normalize(self._pa_array, form=form))
 
     def _str_rfind(self, sub: str, start: int = 0, end=None) -> Self:
         predicate = lambda val: val.rfind(sub, start, end)

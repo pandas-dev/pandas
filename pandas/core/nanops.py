@@ -138,7 +138,7 @@ class bottleneck_switch:
                     # `mask` is not recognised by bottleneck, would raise
                     #  TypeError if called
                     kwds.pop("mask", None)
-                    result = bn_func(values, axis=axis, **kwds)
+                    result = bn_func(values, axis=axis, **kwds)  # pyright: ignore[reportOptionalCall]
 
                     # prefer to treat inf/-inf as NA, but must compute the func
                     # twice :(
@@ -202,9 +202,12 @@ def _get_fill_value(
             return -np.inf
     elif fill_value_typ == "+inf":
         # need the max int here
-        return lib.i8max
+        # Return as np.int64 so that np.where promotes the dtype
+        # instead of raising OverflowError (numpy 2.5+) when the
+        # value doesn't fit in the array's dtype (e.g. int8).
+        return np.int64(lib.i8max)
     else:
-        return iNaT
+        return np.int64(iNaT)
 
 
 def _maybe_get_mask(
@@ -1651,14 +1654,14 @@ def get_corr_func(
     if method == "kendall":
         from scipy.stats import kendalltau
 
-        def func(a, b):
+        def func(a, b):  # pyright: ignore[reportRedeclaration]
             return kendalltau(a, b)[0]
 
         return func
     elif method == "spearman":
         from scipy.stats import spearmanr
 
-        def func(a, b):
+        def func(a, b):  # pyright: ignore[reportRedeclaration]
             return spearmanr(a, b)[0]
 
         return func

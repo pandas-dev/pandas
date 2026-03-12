@@ -503,6 +503,15 @@ class TestFromRecords:
         expected = DataFrame([], index=[0, 1], columns=["col_1", "Col_2"])
         tm.assert_frame_equal(result, expected)
 
+    def test_from_records_empty_iterator_applies_exclude(self):
+        # GH#63774
+        rows = []
+        result = DataFrame.from_records(
+            iter(rows), columns=["a", "b", "c"], exclude=["b"], nrows=0
+        )
+        expected = DataFrame([], columns=["a", "c"])
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize("missing_value", [None, np.nan, pd.NA])
     def test_from_records_missing_value_key(self, missing_value, using_infer_string):
         # https://github.com/pandas-dev/pandas/issues/63889

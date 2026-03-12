@@ -586,6 +586,7 @@ def test_is_numeric_dtype():
         def construct_array_type(self):
             raise NotImplementedError
 
+        @property
         def _is_numeric(self) -> bool:
             return True
 

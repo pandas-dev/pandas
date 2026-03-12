@@ -29,11 +29,13 @@ def one(request):
 
 
 zeros = [
-    box_cls([0] * 5, dtype=dtype)
+    box_cls([0] * 5, dtype=dtype)  # type: ignore[operator]
     for box_cls in [Index, np.array, pd.array]
     for dtype in [np.int64, np.uint64, np.float64]
 ]
-zeros.extend([box_cls([-0.0] * 5, dtype=np.float64) for box_cls in [Index, np.array]])
+zeros.extend(
+    [box_cls([-0.0] * 5, dtype=np.float64) for box_cls in [Index, np.array]]  # type: ignore[operator]
+)
 zeros.extend([np.array(0, dtype=dtype) for dtype in [np.int64, np.uint64, np.float64]])
 zeros.extend([np.array(-0.0, dtype=np.float64)])
 zeros.extend([0, 0.0, -0.0])
