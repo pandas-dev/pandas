@@ -110,6 +110,12 @@ class NamedAgg:
     """
     Helper for column specific aggregation with control over output column names.
 
+    A dataclass used with :meth:`DataFrame.groupby().agg()
+    <pandas.core.groupby.DataFrameGroupBy.aggregate>` to specify an
+    aggregation on a particular column and assign a custom name to the
+    resulting column. Additional positional and keyword arguments can be
+    forwarded to the aggregation function.
+
     Parameters
     ----------
     column : Hashable
@@ -311,7 +317,9 @@ class SeriesGroupBy(GroupBy[Series]):
         """
         return super().apply(func, *args, **kwargs)
 
-    def aggregate(self, func=None, *args, engine=None, engine_kwargs=None, **kwargs):
+    def aggregate(
+        self, func=None, *args, engine=None, engine_kwargs=None, **kwargs
+    ) -> Series | DataFrame:
         """
         Aggregate using one or more operations.
 
@@ -826,7 +834,7 @@ class SeriesGroupBy(GroupBy[Series]):
         See Also
         --------
         Series.filter: Filter elements of ungrouped Series.
-        DataFrameGroupBy.filter : Filter elements from groups base on criterion.
+        DataFrameGroupBy.filter : Filter elements from groups based on criterion.
 
         Notes
         -----
@@ -2093,7 +2101,9 @@ class SeriesGroupBy(GroupBy[Series]):
 
 @set_module("pandas.api.typing")
 class DataFrameGroupBy(GroupBy[DataFrame]):
-    def aggregate(self, func=None, *args, engine=None, engine_kwargs=None, **kwargs):
+    def aggregate(
+        self, func=None, *args, engine=None, engine_kwargs=None, **kwargs
+    ) -> DataFrame:
         """
         Aggregate using one or more operations.
 
@@ -2283,7 +2293,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             if not self.as_index and is_list_like(func):
                 return result.reset_index()
             else:
-                return result
+                return cast("DataFrame", result)
         elif relabeling:
             # this should be the only (non-raising) case with relabeling
             # used reordered index of columns
@@ -2314,7 +2324,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             result = self._insert_inaxis_grouper(result)
             result.index = default_index(len(result))
 
-        return result
+        return cast("DataFrame", result)
 
     agg = aggregate
 
@@ -2757,7 +2767,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         See Also
         --------
         DataFrame.filter: Filter elements of ungrouped DataFrame.
-        SeriesGroupBy.filter : Filter elements from groups base on criterion.
+        SeriesGroupBy.filter : Filter elements from groups based on criterion.
 
         Notes
         -----

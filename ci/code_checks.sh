@@ -69,15 +69,10 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
     MSG='Validate Docstrings' ; echo "$MSG"
     python "$BASE_DIR"/scripts/validate_docstrings.py \
         --format=actions \
-        -i "pandas.read_html ES01" \
-        -i "pandas.read_xml ES01" \
-        -i "pandas.IndexSlice ES01" \
-        -i "pandas.NamedAgg ES01" \
         -i "pandas.api.typing.SeriesGroupBy.corr ES01" \
         -i "pandas.api.typing.SeriesGroupBy.cov ES01" \
         -i "pandas.api.typing.SeriesGroupBy.is_monotonic_increasing ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.is_monotonic_decreasing ES01" \
-        -i "pandas.Timedelta.resolution_string SA01" # no backslash in the last line
+        -i "pandas.api.typing.SeriesGroupBy.is_monotonic_decreasing ES01" # no backslash in the last line
 
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
