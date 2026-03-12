@@ -2125,6 +2125,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         if is_iterator(data):
             if nrows == 0:
+                if columns is not None and exclude is not None:
+                    columns = columns.drop(exclude)
                 return cls(index=index, columns=columns)
 
             try:
@@ -9285,7 +9287,7 @@ class DataFrame(NDFrame, OpsMixin):
                 right, (np.ndarray, ExtensionArray, Index, list, dict)
             ) and not ops.has_castable_attr(right):
                 warnings.warn(
-                    f"Operation with {type(right).__name__} are deprecated. "
+                    f"Operation with {type(right).__name__} is deprecated. "
                     "In a future version these will be treated as scalar-like. "
                     "To retain the old behavior, explicitly wrap in a Series "
                     "instead.",
@@ -13044,13 +13046,25 @@ class DataFrame(NDFrame, OpsMixin):
             axis can create combinations of index and column values
             that are missing from the original dataframe. See Examples
             section.
+
+            .. deprecated:: 3.0
+               This parameter is deprecated and will be removed in a future
+               version of pandas.
         sort : bool, default True
             Whether to sort the levels of the resulting MultiIndex.
+
+            .. deprecated:: 3.0
+               This parameter is deprecated and will be removed in a future
+               version of pandas.
         future_stack : bool, default True
             Whether to use the new stack implementation. This is the default
             as of pandas 3.0. When True, dropna and sort have no impact
             on the result and must remain unspecified. See :ref:`pandas 2.1.0 Release
             notes <whatsnew_210.enhancements.new_stack>` for more details.
+
+            .. deprecated:: 3.0
+               This parameter is deprecated and will be removed in a future
+               version of pandas.
 
         Returns
         -------
@@ -13068,11 +13082,10 @@ class DataFrame(NDFrame, OpsMixin):
 
         Notes
         -----
-        The function is named by analogy with a collection of books
-        being reorganized from being side by side on a horizontal
-        position (the columns of the dataframe) to being stacked
-        vertically on top of each other (in the index of the
-        dataframe).
+        The function is named by analogy with a collection of books being
+        reorganized from being side-by-side horizontally (the columns of the
+        DataFrame) to being stacked vertically on top of each other (in the
+        index of the DataFrame).
 
         Reference :ref:`the user guide <reshaping.stacking>` for more examples.
 

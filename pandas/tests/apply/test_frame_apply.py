@@ -73,8 +73,7 @@ def test_apply(float_frame, engine, request):
 
 @pytest.mark.parametrize("axis", [0, 1])
 @pytest.mark.parametrize("raw", [True, False])
-@pytest.mark.parametrize("nopython", [True, False])
-def test_apply_args(float_frame, axis, raw, engine, nopython):
+def test_apply_args(float_frame, axis, raw, engine):
     numba = pytest.importorskip("numba")
     if (
         engine == "numba"
@@ -82,14 +81,12 @@ def test_apply_args(float_frame, axis, raw, engine, nopython):
         and is_platform_arm()
     ):
         pytest.skip(f"Segfaults on ARM platforms with numba {numba.__version__}")
-    engine_kwargs = {"nopython": nopython}
     result = float_frame.apply(
         lambda x, y: x + y,
         axis,
         args=(1,),
         raw=raw,
         engine=engine,
-        engine_kwargs=engine_kwargs,
     )
     expected = float_frame + 1
     tm.assert_frame_equal(result, expected)
@@ -101,7 +98,6 @@ def test_apply_args(float_frame, axis, raw, engine, nopython):
         b=2,
         raw=raw,
         engine=engine,
-        engine_kwargs=engine_kwargs,
     )
     expected = float_frame + 3
     tm.assert_frame_equal(result, expected)
@@ -114,7 +110,6 @@ def test_apply_args(float_frame, axis, raw, engine, nopython):
                 b=2,
                 raw=raw,
                 engine=engine,
-                engine_kwargs=engine_kwargs,
             )
 
         # keyword-only arguments are not supported in numba
@@ -128,7 +123,6 @@ def test_apply_args(float_frame, axis, raw, engine, nopython):
                 b=2,
                 raw=raw,
                 engine=engine,
-                engine_kwargs=engine_kwargs,
             )
 
         with pytest.raises(
@@ -141,7 +135,6 @@ def test_apply_args(float_frame, axis, raw, engine, nopython):
                 b=2,
                 raw=raw,
                 engine=engine,
-                engine_kwargs=engine_kwargs,
             )
 
 

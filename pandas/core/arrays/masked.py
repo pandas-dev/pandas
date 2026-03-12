@@ -841,7 +841,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             and not ops.has_castable_attr(other)
         ):
             warnings.warn(
-                f"Operation with {type(other).__name__} are deprecated. "
+                f"Operation with {type(other).__name__} is deprecated. "
                 "In a future version these will be treated as scalar-like. "
                 "To retain the old behavior, explicitly wrap in a Series "
                 "instead.",
@@ -965,7 +965,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 other, (list, np.ndarray, ExtensionArray)
             ) and not ops.has_castable_attr(other):
                 warnings.warn(
-                    f"Operation with {type(other).__name__} are deprecated. "
+                    f"Operation with {type(other).__name__} is deprecated. "
                     "In a future version these will be treated as scalar-like. "
                     "To retain the old behavior, explicitly wrap in a Series "
                     "instead.",
@@ -1729,6 +1729,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             axis=axis,
         )
         return self._wrap_reduction_result("max", result, skipna=skipna, axis=axis)
+
+    def count(self) -> np.int64:
+        return (~self._mask).sum()
 
     def map(self, mapper, na_action: Literal["ignore"] | None = None):
         result = map_array(

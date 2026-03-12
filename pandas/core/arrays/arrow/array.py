@@ -72,7 +72,7 @@ from pandas.core.arrays._arrow_string_mixins import ArrowStringArrayMixin
 from pandas.core.arrays._utils import to_numpy_dtype_inference
 from pandas.core.arrays.base import (
     ExtensionArray,
-    ExtensionArraySupportsAnyAll,
+    ExtensionArrayNaResult,
 )
 from pandas.core.arrays.masked import BaseMaskedArray
 from pandas.core.arrays.string_ import StringDtype
@@ -249,7 +249,7 @@ def to_pyarrow_type(
 @set_module("pandas.arrays")
 class ArrowExtensionArray(
     OpsMixin,
-    ExtensionArraySupportsAnyAll,
+    ExtensionArrayNaResult,
     ArrowStringArrayMixin,
 ):
     """
@@ -980,7 +980,7 @@ class ArrowExtensionArray(
             and not ops.has_castable_attr(other)
         ):
             warnings.warn(
-                f"Operation with {type(other).__name__} are deprecated. "
+                f"Operation with {type(other).__name__} is deprecated. "
                 "In a future version these will be treated as scalar-like. "
                 "To retain the old behavior, explicitly wrap in a Series "
                 "instead.",
@@ -1347,6 +1347,9 @@ class ArrowExtensionArray(
         type(self)
         """
         return self._from_pyarrow_array(self._pa_array)
+
+    def count(self) -> int:
+        return len(self) - self._pa_array.null_count
 
     def dropna(self) -> Self:
         """
@@ -2721,10 +2724,30 @@ class ArrowExtensionArray(
         -------
         pa.Array
         """
-        try:
-            return pc.if_else(cond, left, right)
-        except pa.ArrowNotImplementedError:
-            pass
+
+        # TODO: Remove this part when pa.if_else is fixed (GH#64320)
+        def _maybe_combine(arr):
+            if not isinstance(arr, pa.ChunkedArray) or not (
+                pa.types.is_string(arr.type) or pa.types.is_large_string(arr.type)
+            ):
+                return arr
+            if not any(c.offset != 0 for c in arr.chunks):
+                return arr
+            try:
+                return arr.combine_chunks()
+            except (pa.ArrowInvalid, pa.ArrowCapacityError, MemoryError):
+                return None
+
+        left_c, right_c = _maybe_combine(left), _maybe_combine(right)
+        if left_c is not None and right_c is not None:
+            try:
+                return pc.if_else(cond, left_c, right_c)
+            except pa.ArrowNotImplementedError:
+                pass
+        if left_c is not None:
+            left = left_c
+        if right_c is not None:
+            right = right_c
 
         def _to_numpy_and_type(value) -> tuple[np.ndarray, pa.DataType | None]:
             if isinstance(value, (pa.Array, pa.ChunkedArray)):
