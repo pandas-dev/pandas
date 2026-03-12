@@ -1750,19 +1750,35 @@ class TestDataFrameReductions:
         ["sum", "prod", "min", "max", "mean", "median", "std", "var", "sem"],
     )
     @pytest.mark.parametrize(
-        "numeric_only, expected_type",
-        [(None, "NoneType"), ("True", "str"), (1, "int")],
+        "numeric_only",
+        [None, "True", 1],
     )
-    def test_reductions_numeric_only_non_bool_raises(
-        self, frame_or_series, method, numeric_only, expected_type
+    def test_reductions_numeric_only_non_bool_deprecated(
+        self, frame_or_series, method, numeric_only
     ):
         obj = frame_or_series([1, 2, 3])
+        expected = getattr(obj, method)(numeric_only=bool(numeric_only))
         msg = (
-            f'For argument "numeric_only" expected type bool, '
-            f"received type {expected_type}."
+            "Passing non-bool values for numeric_only is deprecated and will "
+            "raise in a future version. Pass True or False instead."
         )
-        with pytest.raises(ValueError, match=re.escape(msg)):
-            getattr(obj, method)(numeric_only=numeric_only)
+        with tm.assert_produces_warning(FutureWarning, match=re.escape(msg)):
+            result = getattr(obj, method)(numeric_only=numeric_only)
+        tm.assert_equal(result, expected)
+
+    @pytest.mark.parametrize("numeric_only", [None, "True", 1])
+    def test_reductions_numeric_only_non_bool_preserves_current_sum_behavior(
+        self, numeric_only
+    ):
+        df = DataFrame({"a": [1, 2], "b": ["x", "y"]})
+        expected = df.sum(numeric_only=bool(numeric_only))
+        msg = (
+            "Passing non-bool values for numeric_only is deprecated and will "
+            "raise in a future version. Pass True or False instead."
+        )
+        with tm.assert_produces_warning(FutureWarning, match=re.escape(msg)):
+            result = df.sum(numeric_only=numeric_only)
+        tm.assert_series_equal(result, expected)
 
     def test_reduction_timestamp_smallest_unit(self):
         # GH#52524
