@@ -246,6 +246,7 @@ class TestDataFrameUpdate:
 
         df.update(other)
         tm.assert_frame_equal(df, expected)
+
     def test_update_raises_without_intersection_differing_index_types(self):
         # GH#19905
         # update should raise ValueError when indices are of differing types
