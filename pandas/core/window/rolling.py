@@ -1290,7 +1290,7 @@ class Window(BaseWindow):
         result = ResamplerWindowApply(self, func, args=args, kwargs=kwargs).agg()
         if result is None:
             # these must apply directly
-            result = func(self)
+            result = func(self)  # pyright: ignore[reportOptionalCall]
 
         return result
 
