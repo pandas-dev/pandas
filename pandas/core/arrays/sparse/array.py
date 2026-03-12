@@ -1097,7 +1097,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         return type(self)(data_slice, kind=self.kind)
 
-    def _get_val_at(self, loc: int | np.integer):
+    def _get_val_at(self, loc):
         n = len(self)
         if loc < 0:
             loc += n
