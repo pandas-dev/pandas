@@ -814,7 +814,7 @@ class TestMergeMulti:
 
 class TestMergeMultiIndexNaN:
     def test_merge_multiindex_nan_right_index(self):
-        # GH#XXXXX - merge with right MultiIndex containing NaN used
+        # GH#64492 - merge with right MultiIndex containing NaN used
         # lev.take(codes) which mapped -1 codes to the last level value
         # instead of NaN
         left = DataFrame(
