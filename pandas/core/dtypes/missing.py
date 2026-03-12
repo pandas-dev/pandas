@@ -240,7 +240,7 @@ def _isna_array(values: ArrayLike) -> npt.NDArray[np.bool_] | NDFrame:
     if not isinstance(values, np.ndarray):
         # i.e. ExtensionArray
         # error: Incompatible types in assignment (expression has type
-        # "Union[ndarray[Any, Any], ExtensionArraySupportsAnyAll]", variable has
+        # "Union[ndarray[Any, Any], ExtensionArrayNaResult]", variable has
         # type "ndarray[Any, dtype[bool_]]")
         result = values.isna()  # type: ignore[assignment]
     elif isinstance(values, np.rec.recarray):

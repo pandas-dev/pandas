@@ -367,7 +367,7 @@ def _get_filepath_or_buffer(
         and encoding in ["utf-16", "utf-32"]
     ):
         warnings.warn(
-            f"{compression} will not write the byte order mark for {encoding}",
+            f"{compression_method} will not write the byte order mark for {encoding}",
             UnicodeWarning,
             stacklevel=find_stack_level(),
         )
@@ -1117,7 +1117,7 @@ class _IOWrapper:
     # and writable. If we have a read-only buffer, we shouldn't need writable and vice
     # versa. Some buffers, are seek/read/writ-able but they do not have the "-able"
     # methods, e.g., tempfile.SpooledTemporaryFile.
-    # If a buffer does not have the above "-able" methods, we simple assume they are
+    # If a buffer does not have the above "-able" methods, we simply assume they are
     # seek/read/writ-able.
     def __init__(self, buffer: BaseBuffer) -> None:
         self.buffer = buffer
@@ -1243,7 +1243,7 @@ def _is_binary_mode(handle: FilePath | BaseBuffer, mode: str) -> bool:
 
 @functools.lru_cache
 def _get_binary_io_classes() -> tuple[type, ...]:
-    """IO classes that that expect bytes"""
+    """IO classes that expect bytes"""
     binary_classes: tuple[type, ...] = (BufferedIOBase, RawIOBase)
 
     # python-zstandard doesn't use any of the builtin base classes; instead we
