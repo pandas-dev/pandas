@@ -1353,8 +1353,6 @@ def diff(arr, n: int | float | np.integer | np.floating, axis: AxisInt = 0):
     if not isinstance(arr, np.ndarray):
         # i.e ExtensionArray
         if hasattr(arr, f"__{op.__name__}__"):
-            if axis != 0:
-                raise ValueError(f"cannot diff {type(arr).__name__} on axis={axis}")
             return op(arr, arr.shift(n))
         else:
             raise TypeError(

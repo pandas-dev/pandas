@@ -1404,8 +1404,7 @@ class Block(PandasObject, libinternals.Block):
     def diff(self, n: int) -> list[Block]:
         """return block for the diff of the values"""
         # only reached with ndim == 2
-        # TODO(EA2D): transpose will be unnecessary with 2D EAs
-        new_values = algos.diff(self.values.T, n, axis=0).T
+        new_values = algos.diff(self.values, n, axis=self.ndim - 1)
         return [self.make_block(values=new_values)]
 
     def shift(self, periods: int, fill_value: Any = None) -> list[Block]:
