@@ -11861,8 +11861,13 @@ class DataFrame(NDFrame, OpsMixin):
         DataFrame
             DataFrame that shows the differences stacked side by side.
 
-            The resulting index will be a MultiIndex with 'self' and 'other'
-            stacked alternately at the inner level.
+            If align_axis is 0 or 'index', the resulting row index will be a
+            MultiIndex with 'self' and 'other' stacked alternately at the
+            inner level.
+
+            If align_axis is 1 or 'columns' (the default), the resulting
+            columns will be a MultiIndex with 'self' and 'other' stacked
+            alternately at the inner level.
 
         Raises
         ------
