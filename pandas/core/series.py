@@ -4888,7 +4888,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         return self
 
-    def aggregate(self, func=None, axis: Axis = 0, *args, **kwargs):
+    def aggregate(
+        self, func=None, axis: Axis = 0, *args, **kwargs
+    ) -> DataFrame | Series:
         """
         Aggregate using one or more operations over the specified axis.
 
@@ -6986,7 +6988,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     # ----------------------------------------------------------------------
     # Template-Based Arithmetic/Comparison Methods
 
-    def _cmp_method(self, other, op):
+    def _cmp_method(self, other, op) -> Series:
         res_name = ops.get_op_result_name(self, other)
 
         if isinstance(other, Series) and not self._indexed_same(other):
@@ -6999,7 +7001,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         return self._construct_result(res_values, name=res_name, other=other)
 
-    def _logical_method(self, other, op):
+    def _logical_method(self, other, op) -> Series:
         res_name = ops.get_op_result_name(self, other)
         self, other = self._align_for_op(other, align_asobject=True)
 
@@ -7009,7 +7011,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         res_values = ops.logical_op(lvalues, rvalues, op)
         return self._construct_result(res_values, name=res_name, other=other)
 
-    def _arith_method(self, other, op):
+    def _arith_method(self, other, op) -> Series:
         self, other = self._align_for_op(other)
         return base.IndexOpsMixin._arith_method(self, other, op)
 
@@ -7073,6 +7075,22 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         out = this._construct_result(result, name, other)
         return cast("Series", out)
 
+    @overload
+    def _construct_result(
+        self,
+        result: ArrayLike,
+        name: Hashable,
+        other: AnyArrayLike | DataFrame,
+    ) -> Series: ...
+
+    @overload
+    def _construct_result(
+        self,
+        result: tuple[ArrayLike, ArrayLike],
+        name: Hashable,
+        other: AnyArrayLike | DataFrame,
+    ) -> tuple[Series, Series]: ...
+
     def _construct_result(
         self,
         result: ArrayLike | tuple[ArrayLike, ArrayLike],
@@ -7116,7 +7134,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         out.name = name
         return out
 
-    def _flex_method(self, other, op, *, level=None, fill_value=None, axis: Axis = 0):
+    def _flex_method(
+        self, other, op, *, level=None, fill_value=None, axis: Axis = 0
+    ) -> Series:
         if axis is not None:
             self._get_axis_number(axis)
 

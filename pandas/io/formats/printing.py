@@ -276,7 +276,7 @@ def enable_data_resource_formatter(enable: bool) -> None:
     if "IPython" not in sys.modules:
         # definitely not in IPython
         return
-    from IPython import get_ipython
+    from IPython import get_ipython  # pyright: ignore[reportPrivateImportUsage]
 
     # error: Call to untyped function "get_ipython" in typed context
     ip = get_ipython()  # type: ignore[no-untyped-call]

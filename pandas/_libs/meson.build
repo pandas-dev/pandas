@@ -52,19 +52,6 @@ _khash_primitive_helper_dep = declare_dependency(
 
 m_dep = cc.find_library('m', required: false)
 
-cdata = configuration_data()
-if cy.version().version_compare('>=3.1.0')
-    cdata.set('freethreading_compatible', '1')
-else
-    cdata.set('freethreading_compatible', '0')
-endif
-_free_threading_config = configure_file(
-    input: 'free_threading_config.pxi.in',
-    output: 'free_threading_config.pxi',
-    configuration: cdata,
-    install: false,
-)
-
 subdir('tslibs')
 
 libs_sources = {

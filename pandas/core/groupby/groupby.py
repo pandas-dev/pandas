@@ -4189,8 +4189,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         See Also
         --------
-        pad : Returns Series with minimum number of char in object.
-        backfill : Backward fill the missing values in the dataset.
+        pad : Forward fill values within each group.
+        backfill : Backward fill values within each group.
         """
         # Need int value for Cython
         if limit is None:
@@ -4264,8 +4264,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         See Also
         --------
-        Series.ffill: Returns Series with minimum number of char in object.
-        DataFrame.ffill: Object with missing values filled or None if inplace=True.
+        Series.ffill : Forward fill missing values in a Series.
+        DataFrame.ffill : Forward fill missing values in a DataFrame.
         Series.fillna: Fill NaN values of a Series.
         DataFrame.fillna: Fill NaN values of a DataFrame.
 
