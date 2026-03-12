@@ -1091,7 +1091,7 @@ def rank(
             pct=pct,
         )
     else:
-        raise TypeError("Array with ndim > 2 are not supported.")
+        raise TypeError("Array with ndim > 2 is not supported.")
 
     return ranks
 
@@ -1353,7 +1353,7 @@ def diff(arr, n: int | float | np.integer | np.floating, axis: AxisInt = 0):
     if not isinstance(arr, np.ndarray):
         # i.e ExtensionArray
         if hasattr(arr, f"__{op.__name__}__"):
-            if axis != 0:
+            if axis >= arr.ndim:
                 raise ValueError(f"cannot diff {type(arr).__name__} on axis={axis}")
             return op(arr, arr.shift(n))
         else:

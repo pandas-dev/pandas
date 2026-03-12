@@ -1,3 +1,4 @@
+cimport cython
 from datetime import (
     timedelta,
     timezone,
@@ -256,6 +257,8 @@ cdef object _get_utc_trans_times_from_dateutil_tz(tzinfo tz):
     return new_trans
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 cdef int64_t[::1] unbox_utcoffsets(object transinfo):
     cdef:
         Py_ssize_t i

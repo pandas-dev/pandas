@@ -1220,7 +1220,7 @@ class TestExcelWriter:
             write_frame.to_excel(tmp_excel, sheet_name="test1", columns=["B", "C"])
 
         with pytest.raises(
-            KeyError, match="'passes columns are not ALL present dataframe'"
+            KeyError, match="Passed columns are not all present in the dataframe"
         ):
             write_frame.to_excel(tmp_excel, sheet_name="test1", columns=["C", "D"])
 

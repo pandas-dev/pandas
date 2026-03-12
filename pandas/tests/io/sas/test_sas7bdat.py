@@ -7,10 +7,6 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from pandas.compat._constants import (
-    IS64,
-    WASM,
-)
 from pandas.errors import EmptyDataError
 
 import pandas as pd
@@ -193,10 +189,6 @@ def test_date_time(datapath):
     res = df0["DateTimeHi"].astype("M8[us]").dt.round("ms")
     df0["DateTimeHi"] = res.astype("M8[ms]")
 
-    if not IS64 and not WASM:
-        # No good reason for this, just what we get on the CI
-        df0.loc[0, "DateTimeHi"] += np.timedelta64(1, "ms")
-        df0.loc[[2, 3], "DateTimeHi"] -= np.timedelta64(1, "ms")
     tm.assert_frame_equal(df, df0)
 
 
@@ -288,12 +280,6 @@ def test_max_sas_date(datapath):
         },
         columns=["text", "dt_as_float", "dt_as_dt", "date_as_float", "date_as_date"],
     )
-
-    if not IS64 and not WASM:
-        # No good reason for this, just what we get on the CI
-        expected.loc[:, "dt_as_dt"] -= np.timedelta64(1, "ms")
-        expected.loc[1, "dt_as_dt"] = pd.Timestamp("2019-08-01 23:59:59.998")
-
     tm.assert_frame_equal(df, expected)
 
 
@@ -333,10 +319,6 @@ def test_max_sas_date_iterator(datapath):
             columns=col_order,
         ),
     ]
-    if not IS64 and not WASM:
-        # No good reason for this, just what we get on the CI
-        expected[0].loc[0, "dt_as_dt"] -= np.timedelta64(1, "ms")
-        expected[1].loc[0, "dt_as_dt"] = pd.Timestamp("2019-08-01 23:59:59.998")
 
     tm.assert_frame_equal(results[0], expected[0])
     tm.assert_frame_equal(results[1], expected[1])
@@ -364,9 +346,6 @@ def test_null_date(datapath):
             ),
         },
     )
-    if not IS64 and not WASM:
-        # No good reason for this, just what we get on the CI
-        expected.loc[0, "datetimecol"] -= np.timedelta64(1, "ms")
     tm.assert_frame_equal(df, expected)
 
 
@@ -408,5 +387,6 @@ def test_0x40_control_byte(datapath):
 def test_0x00_control_byte(datapath):
     # GH 47099
     fname = datapath("io", "sas", "data", "0x00controlbyte.sas7bdat.bz2")
-    df = next(pd.read_sas(fname, chunksize=11_000))
+    with pd.read_sas(fname, chunksize=11_000) as reader:
+        df = next(reader)
     assert df.shape == (11_000, 20)

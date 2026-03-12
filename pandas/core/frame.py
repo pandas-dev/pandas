@@ -2125,6 +2125,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         if is_iterator(data):
             if nrows == 0:
+                if columns is not None and exclude is not None:
+                    columns = columns.drop(exclude)
                 return cls(index=index, columns=columns)
 
             try:
@@ -8982,7 +8984,7 @@ class DataFrame(NDFrame, OpsMixin):
     # ----------------------------------------------------------------------
     # Arithmetic Methods
 
-    def _cmp_method(self, other, op):
+    def _cmp_method(self, other, op) -> DataFrame:
         axis: Literal[1] = 1  # only relevant for Series other case
 
         self, other = self._align_for_op(other, axis, flex=False, level=None)
@@ -8991,7 +8993,7 @@ class DataFrame(NDFrame, OpsMixin):
         new_data = self._dispatch_frame_op(other, op, axis=axis)
         return self._construct_result(new_data, other=other)
 
-    def _arith_method(self, other, op):
+    def _arith_method(self, other, op) -> DataFrame:
         if self._should_reindex_frame_op(other, op, 1, None, None):
             return self._arith_method_with_reindex(other, op)
 
@@ -9166,7 +9168,7 @@ class DataFrame(NDFrame, OpsMixin):
             and not self.columns.equals(right.columns)
             and fill_value is None
         ):
-            # GH#60498 Reindex if MultiIndexe columns are not matching
+            # GH#60498 Reindex if MultiIndex columns are not matching
             # GH#60903 Don't reindex if fill_value is provided
             return True
 
@@ -9285,7 +9287,7 @@ class DataFrame(NDFrame, OpsMixin):
                 right, (np.ndarray, ExtensionArray, Index, list, dict)
             ) and not ops.has_castable_attr(right):
                 warnings.warn(
-                    f"Operation with {type(right).__name__} are deprecated. "
+                    f"Operation with {type(right).__name__} is deprecated. "
                     "In a future version these will be treated as scalar-like. "
                     "To retain the old behavior, explicitly wrap in a Series "
                     "instead.",
@@ -9423,7 +9425,9 @@ class DataFrame(NDFrame, OpsMixin):
         mod = other - div * self
         return div, mod
 
-    def _flex_cmp_method(self, other, op, *, axis: Axis = "columns", level=None):
+    def _flex_cmp_method(
+        self, other, op, *, axis: Axis = "columns", level=None
+    ) -> DataFrame:
         axis = self._get_axis_number(axis) if axis is not None else 1
 
         self, other = self._align_for_op(other, axis, flex=True, level=level)
@@ -13044,13 +13048,25 @@ class DataFrame(NDFrame, OpsMixin):
             axis can create combinations of index and column values
             that are missing from the original dataframe. See Examples
             section.
+
+            .. deprecated:: 3.0
+               This parameter is deprecated and will be removed in a future
+               version of pandas.
         sort : bool, default True
             Whether to sort the levels of the resulting MultiIndex.
+
+            .. deprecated:: 3.0
+               This parameter is deprecated and will be removed in a future
+               version of pandas.
         future_stack : bool, default True
             Whether to use the new stack implementation. This is the default
             as of pandas 3.0. When True, dropna and sort have no impact
             on the result and must remain unspecified. See :ref:`pandas 2.1.0 Release
             notes <whatsnew_210.enhancements.new_stack>` for more details.
+
+            .. deprecated:: 3.0
+               This parameter is deprecated and will be removed in a future
+               version of pandas.
 
         Returns
         -------
@@ -13068,11 +13084,10 @@ class DataFrame(NDFrame, OpsMixin):
 
         Notes
         -----
-        The function is named by analogy with a collection of books
-        being reorganized from being side by side on a horizontal
-        position (the columns of the dataframe) to being stacked
-        vertically on top of each other (in the index of the
-        dataframe).
+        The function is named by analogy with a collection of books being
+        reorganized from being side-by-side horizontally (the columns of the
+        DataFrame) to being stacked vertically on top of each other (in the
+        index of the DataFrame).
 
         Reference :ref:`the user guide <reshaping.stacking>` for more examples.
 
@@ -13718,7 +13733,9 @@ class DataFrame(NDFrame, OpsMixin):
 
         return subset[key]
 
-    def aggregate(self, func=None, axis: Axis = 0, *args, **kwargs):
+    def aggregate(
+        self, func=None, axis: Axis = 0, *args, **kwargs
+    ) -> DataFrame | Series:
         """
         Aggregate using one or more operations over the specified axis.
 

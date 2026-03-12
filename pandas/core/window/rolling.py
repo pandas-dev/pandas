@@ -344,7 +344,7 @@ class BaseWindow(SelectionMixin):
         if needs_i8_conversion(values.dtype):
             raise NotImplementedError(
                 f"ops for {type(self).__name__} for this "
-                f"dtype {values.dtype} are not implemented"
+                f"dtype {values.dtype} is not implemented"
             )
         # GH #12373 : rolling functions error on float32 data
         # make sure the data is coerced to float64
@@ -2227,12 +2227,12 @@ class Rolling(RollingAndExpandingMixin):
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
-            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+            * For ``'numba'`` engine, the engine can accept  ``nogil``
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``.
 
             The default ``engine_kwargs`` for the ``'numba'`` engine is
-            ``{'nopython': True, 'nogil': False, 'parallel': False}`` and will be
+            ``{'nogil': False, 'parallel': False}`` and will be
             applied to both the ``func`` and the ``apply`` rolling aggregation.
 
         args : tuple, default None
@@ -2400,10 +2400,10 @@ class Rolling(RollingAndExpandingMixin):
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
-            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+            * For ``'numba'`` engine, the engine can accept  ``nogil``
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-              ``{'nopython': True, 'nogil': False, 'parallel': False}``.
+              ``{'nogil': False, 'parallel': False}``.
 
         Returns
         -------
@@ -2504,12 +2504,12 @@ class Rolling(RollingAndExpandingMixin):
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
-            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+            * For ``'numba'`` engine, the engine can accept  ``nogil``
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``.
 
             The default ``engine_kwargs`` for the ``'numba'`` engine is
-            ``{'nopython': True, 'nogil': False, 'parallel': False}``.
+            ``{'nogil': False, 'parallel': False}``.
 
         **kwargs : mapping, optional
             A dictionary of keyword arguments passed into ``func``.
@@ -2572,12 +2572,12 @@ class Rolling(RollingAndExpandingMixin):
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
-            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+            * For ``'numba'`` engine, the engine can accept  ``nogil``
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``.
 
             The default ``engine_kwargs`` for the ``'numba'`` engine is
-            ``{'nopython': True, 'nogil': False, 'parallel': False}``.
+            ``{'nogil': False, 'parallel': False}``.
 
         Returns
         -------
@@ -2640,12 +2640,12 @@ class Rolling(RollingAndExpandingMixin):
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
-            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+            * For ``'numba'`` engine, the engine can accept  ``nogil``
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``.
 
             The default ``engine_kwargs`` for the ``'numba'`` engine is
-            ``{'nopython': True, 'nogil': False, 'parallel': False}``.
+            ``{'nogil': False, 'parallel': False}``.
 
         Returns
         -------
@@ -2716,12 +2716,12 @@ class Rolling(RollingAndExpandingMixin):
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
-            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+            * For ``'numba'`` engine, the engine can accept  ``nogil``
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``.
 
             The default ``engine_kwargs`` for the ``'numba'`` engine is
-            ``{'nopython': True, 'nogil': False, 'parallel': False}``.
+            ``{'nogil': False, 'parallel': False}``.
 
         Returns
         -------
@@ -2790,12 +2790,12 @@ class Rolling(RollingAndExpandingMixin):
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
-            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+            * For ``'numba'`` engine, the engine can accept  ``nogil``
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``.
 
             The default ``engine_kwargs`` for the ``'numba'`` engine is
-            ``{'nopython': True, 'nogil': False, 'parallel': False}``.
+            ``{'nogil': False, 'parallel': False}``.
 
         Returns
         -------
@@ -2867,12 +2867,12 @@ class Rolling(RollingAndExpandingMixin):
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
-            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+            * For ``'numba'`` engine, the engine can accept  ``nogil``
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``.
 
             The default ``engine_kwargs`` for the ``'numba'`` engine is
-            ``{'nopython': True, 'nogil': False, 'parallel': False}``.
+            ``{'nogil': False, 'parallel': False}``.
 
         Returns
         -------

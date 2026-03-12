@@ -332,10 +332,9 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         len(self) is returned, with all values filled with
         ``self.dtype.na_value``.
         """
-        # NB: shift is always along axis=0
-        axis = 0
+        # NB: shift is always along axis=self.ndim-1
         fill_value = self._validate_scalar(fill_value)
-        new_values = shift(self._ndarray, periods, axis, fill_value)
+        new_values = shift(self._ndarray, periods, fill_value)
 
         return self._from_backing_data(new_values)
 
@@ -579,8 +578,8 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         )
 
         if dropna:
-            # error: Unsupported operand type for ~ ("ExtensionArray")
-            values = self[~self.isna()]._ndarray  # type: ignore[operator]
+            # error: Invalid index type
+            values = self[~self.isna()]._ndarray  # type: ignore[index]
         else:
             values = self._ndarray
 

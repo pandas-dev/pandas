@@ -481,7 +481,9 @@ def test_dropna(fill_value):
     tm.assert_sp_array_equal(arr.dropna(), exp)
 
     df = pd.DataFrame({"a": [0, 1], "b": arr})
-    expected_df = pd.DataFrame({"a": [1], "b": exp}, index=pd.Index([1]))
+    expected_df = pd.DataFrame(
+        {"a": [1], "b": exp}, index=pd.RangeIndex(start=1, stop=2, step=1)
+    )
     tm.assert_equal(df.dropna(), expected_df)
 
 
