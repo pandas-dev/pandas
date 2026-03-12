@@ -1842,6 +1842,10 @@ class SeriesGroupBy(GroupBy[Series]):
         """
         Compute correlation between each group and another Series.
 
+        This method computes the pairwise correlation between each group's
+        values and the corresponding values in ``other``, using the specified
+        correlation method.
+
         Parameters
         ----------
         other : Series
@@ -1878,6 +1882,9 @@ class SeriesGroupBy(GroupBy[Series]):
         """
         Compute covariance between each group and another Series.
 
+        This method computes the sample covariance between each group's
+        values and the corresponding values in ``other``.
+
         Parameters
         ----------
         other : Series
@@ -1913,6 +1920,9 @@ class SeriesGroupBy(GroupBy[Series]):
         """
         Return whether each group's values are monotonically increasing.
 
+        A group is considered monotonically increasing if each successive
+        element is greater than or equal to the previous one.
+
         Returns
         -------
         Series
@@ -1936,6 +1946,9 @@ class SeriesGroupBy(GroupBy[Series]):
     def is_monotonic_decreasing(self) -> Series:
         """
         Return whether each group's values are monotonically decreasing.
+
+        A group is considered monotonically decreasing if each successive
+        element is less than or equal to the previous one.
 
         Returns
         -------
