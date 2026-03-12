@@ -16,7 +16,7 @@ import warnings
 from pandas._config import option_context
 
 from pandas._libs import lib
-from pandas._libs.json import ujson_loads
+from pandas._libs._ujson import ujson_loads
 from pandas._libs.tslibs import timezones
 from pandas.util._exceptions import find_stack_level
 

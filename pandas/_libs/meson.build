@@ -120,7 +120,7 @@ libs_sources = {
         'sources': ['parsers.pyx', 'src/parser/tokenizer.c', 'src/parser/io.c'],
         'deps': _khash_primitive_helper_dep,
     },
-    'json': {
+    '_ujson': {
         'sources': [
             'src/vendored/ujson/python/ujson.c',
             'src/vendored/ujson/python/objToJSON.c',
@@ -183,7 +183,7 @@ sources_to_install = [
     'internals.pyi',
     'interval.pyi',
     'join.pyi',
-    'json.pyi',
+    '_ujson.pyi',
     'lib.pyi',
     'missing.pyi',
     'ops.pyi',
