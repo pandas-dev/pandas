@@ -838,6 +838,9 @@ class TimedeltaArray(dtl.TimelikeOps):
         """
         Return an ndarray of datetime.timedelta objects.
 
+        Each element of the :class:`TimedeltaIndex` is converted to the
+        corresponding native Python :class:`datetime.timedelta` object.
+
         Returns
         -------
         numpy.ndarray

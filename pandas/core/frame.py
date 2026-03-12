@@ -2125,6 +2125,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         if is_iterator(data):
             if nrows == 0:
+                if columns is not None and exclude is not None:
+                    columns = columns.drop(exclude)
                 return cls(index=index, columns=columns)
 
             try:
@@ -8982,7 +8984,7 @@ class DataFrame(NDFrame, OpsMixin):
     # ----------------------------------------------------------------------
     # Arithmetic Methods
 
-    def _cmp_method(self, other, op):
+    def _cmp_method(self, other, op) -> DataFrame:
         axis: Literal[1] = 1  # only relevant for Series other case
 
         self, other = self._align_for_op(other, axis, flex=False, level=None)
@@ -8991,7 +8993,7 @@ class DataFrame(NDFrame, OpsMixin):
         new_data = self._dispatch_frame_op(other, op, axis=axis)
         return self._construct_result(new_data, other=other)
 
-    def _arith_method(self, other, op):
+    def _arith_method(self, other, op) -> DataFrame:
         if self._should_reindex_frame_op(other, op, 1, None, None):
             return self._arith_method_with_reindex(other, op)
 
@@ -9166,7 +9168,7 @@ class DataFrame(NDFrame, OpsMixin):
             and not self.columns.equals(right.columns)
             and fill_value is None
         ):
-            # GH#60498 Reindex if MultiIndexe columns are not matching
+            # GH#60498 Reindex if MultiIndex columns are not matching
             # GH#60903 Don't reindex if fill_value is provided
             return True
 
@@ -9423,7 +9425,9 @@ class DataFrame(NDFrame, OpsMixin):
         mod = other - div * self
         return div, mod
 
-    def _flex_cmp_method(self, other, op, *, axis: Axis = "columns", level=None):
+    def _flex_cmp_method(
+        self, other, op, *, axis: Axis = "columns", level=None
+    ) -> DataFrame:
         axis = self._get_axis_number(axis) if axis is not None else 1
 
         self, other = self._align_for_op(other, axis, flex=True, level=level)
@@ -13729,7 +13733,9 @@ class DataFrame(NDFrame, OpsMixin):
 
         return subset[key]
 
-    def aggregate(self, func=None, axis: Axis = 0, *args, **kwargs):
+    def aggregate(
+        self, func=None, axis: Axis = 0, *args, **kwargs
+    ) -> DataFrame | Series:
         """
         Aggregate using one or more operations over the specified axis.
 

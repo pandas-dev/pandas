@@ -110,6 +110,12 @@ class NamedAgg:
     """
     Helper for column specific aggregation with control over output column names.
 
+    A dataclass used with :meth:`DataFrame.groupby().agg()
+    <pandas.core.groupby.DataFrameGroupBy.aggregate>` to specify an
+    aggregation on a particular column and assign a custom name to the
+    resulting column. Additional positional and keyword arguments can be
+    forwarded to the aggregation function.
+
     Parameters
     ----------
     column : Hashable
@@ -311,7 +317,9 @@ class SeriesGroupBy(GroupBy[Series]):
         """
         return super().apply(func, *args, **kwargs)
 
-    def aggregate(self, func=None, *args, engine=None, engine_kwargs=None, **kwargs):
+    def aggregate(
+        self, func=None, *args, engine=None, engine_kwargs=None, **kwargs
+    ) -> Series | DataFrame:
         """
         Aggregate using one or more operations.
 
@@ -826,7 +834,7 @@ class SeriesGroupBy(GroupBy[Series]):
         See Also
         --------
         Series.filter: Filter elements of ungrouped Series.
-        DataFrameGroupBy.filter : Filter elements from groups base on criterion.
+        DataFrameGroupBy.filter : Filter elements from groups based on criterion.
 
         Notes
         -----
@@ -1064,6 +1072,10 @@ class SeriesGroupBy(GroupBy[Series]):
     ) -> Series | DataFrame:
         """
         Return a Series or DataFrame containing counts of unique rows.
+
+        The resulting object will be in descending order by default so that
+        the first element in each group is the most frequently-occurring
+        value. NA values are excluded from the result by default.
 
         Parameters
         ----------
@@ -1464,6 +1476,10 @@ class SeriesGroupBy(GroupBy[Series]):
         """
         Return unbiased kurtosis within groups.
 
+        Kurtosis measures the tailedness of a distribution. This method
+        computes Fisher's definition of kurtosis (normal distribution has
+        a kurtosis of zero) for each group, using the unbiased estimator.
+
         Parameters
         ----------
         skipna : bool, default True
@@ -1565,6 +1581,10 @@ class SeriesGroupBy(GroupBy[Series]):
         """
         Return the largest `n` elements.
 
+        Within each group, returns the `n` largest values sorted in
+        descending order. The ``keep`` parameter controls how ties are
+        handled when there are duplicate values at the boundary.
+
         Parameters
         ----------
         n : int, default 5
@@ -1628,6 +1648,10 @@ class SeriesGroupBy(GroupBy[Series]):
     ) -> Series:
         """
         Return the smallest `n` elements.
+
+        Within each group, returns the `n` smallest values sorted in
+        ascending order. The ``keep`` parameter controls how ties are
+        handled when there are duplicate values at the boundary.
 
         Parameters
         ----------
@@ -1950,6 +1974,9 @@ class SeriesGroupBy(GroupBy[Series]):
         """
         Draw histogram for each group's values using :meth:`Series.hist` API.
 
+        A separate histogram subplot is generated for each group, making it
+        easy to visually compare the distribution of values across groups.
+
         Parameters
         ----------
         by : object, optional
@@ -2074,7 +2101,9 @@ class SeriesGroupBy(GroupBy[Series]):
 
 @set_module("pandas.api.typing")
 class DataFrameGroupBy(GroupBy[DataFrame]):
-    def aggregate(self, func=None, *args, engine=None, engine_kwargs=None, **kwargs):
+    def aggregate(
+        self, func=None, *args, engine=None, engine_kwargs=None, **kwargs
+    ) -> DataFrame:
         """
         Aggregate using one or more operations.
 
@@ -2264,7 +2293,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             if not self.as_index and is_list_like(func):
                 return result.reset_index()
             else:
-                return result
+                return cast("DataFrame", result)
         elif relabeling:
             # this should be the only (non-raising) case with relabeling
             # used reordered index of columns
@@ -2295,7 +2324,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             result = self._insert_inaxis_grouper(result)
             result.index = default_index(len(result))
 
-        return result
+        return cast("DataFrame", result)
 
     agg = aggregate
 
@@ -2738,7 +2767,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         See Also
         --------
         DataFrame.filter: Filter elements of ungrouped DataFrame.
-        SeriesGroupBy.filter : Filter elements from groups base on criterion.
+        SeriesGroupBy.filter : Filter elements from groups based on criterion.
 
         Notes
         -----
@@ -3114,6 +3143,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         """
         Return a Series or DataFrame containing counts of unique rows.
 
+        The resulting object will be in descending order so that the
+        first element in each group is the most frequently-occurring row.
+
         Parameters
         ----------
         subset : list-like, optional
@@ -3399,6 +3431,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     ) -> DataFrame:
         """
         Return unbiased kurtosis within groups.
+
+        Kurtosis obtained using Fisher's definition (kurtosis of normal == 0.0),
+        normalized by N-1. Values are computed for each numeric column
+        within each group.
 
         Parameters
         ----------
