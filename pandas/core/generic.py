@@ -1254,7 +1254,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 else:
                     f = common.get_rename_function(v)
                     curnames = self._get_axis(axis).names
-                    newnames = [f(name) for name in curnames]
+                    newnames = [f(name) for name in curnames]  # pyright: ignore[reportOptionalCall]
                 result._set_axis_name(newnames, axis=axis, inplace=True)
             if not inplace:
                 return result
@@ -7791,7 +7791,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     # Note: Checking below for `in foo.keys()` instead of
                     #  `in foo` is needed for when we have a Series and not dict
                     mapping = {
-                        col: (to_replace[col], value[col])
+                        col: (to_replace[col], value[col])  # pyright: ignore[reportOptionalSubscript]
                         for col in to_replace.keys()
                         if col in value.keys() and col in self
                     }

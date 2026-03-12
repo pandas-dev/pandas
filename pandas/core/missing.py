@@ -608,15 +608,15 @@ def _interpolate_scipy_wrapper(
         terp = interpolate.interp1d(
             x, y, kind=kind, fill_value=fill_value, bounds_error=bounds_error
         )
-        new_y = terp(new_x)
+        new_y = terp(new_x)  # pyright: ignore[reportOptionalCall]
     elif method == "spline":
         # GH #10633, #24014
-        if isna(order) or (order <= 0):
+        if isna(order) or (order <= 0):  # pyright: ignore[reportOptionalOperand]
             raise ValueError(
                 f"order needs to be specified and greater than 0; got order: {order}"
             )
         terp = interpolate.UnivariateSpline(x, y, k=order, **kwargs)
-        new_y = terp(new_x)
+        new_y = terp(new_x)  # pyright: ignore[reportOptionalCall]
     else:
         # GH 7295: need to be able to write for some reason
         # in some circumstances: check all three
