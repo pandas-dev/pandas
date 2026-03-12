@@ -132,7 +132,7 @@ if TYPE_CHECKING:
         comment: str | None
         encoding: str | None
         encoding_errors: str | None
-        dialect: str | csv.Dialect | None
+        dialect: str | csv.Dialect | type[csv.Dialect] | None
         on_bad_lines: str
         low_memory: bool
         memory_map: bool
@@ -394,7 +394,7 @@ def read_csv(
     comment: str | None = None,
     encoding: str | None = None,
     encoding_errors: str | None = "strict",
-    dialect: str | csv.Dialect | None = None,
+    dialect: str | csv.Dialect | type[csv.Dialect] | None = None,
     # Error Handling
     on_bad_lines: str = "error",
     # Internal
@@ -961,7 +961,7 @@ def read_table(
     comment: str | None = None,
     encoding: str | None = None,
     encoding_errors: str | None = "strict",
-    dialect: str | csv.Dialect | None = None,
+    dialect: str | csv.Dialect | type[csv.Dialect] | None = None,
     # Error Handling
     on_bad_lines: str = "error",
     # Internal
@@ -2033,7 +2033,7 @@ def TextParser(*args, **kwds) -> TextFileReader:
     ----------
     data : file-like object or list
     delimiter : separator character to use
-    dialect : str or csv.Dialect instance, optional
+    dialect : str or csv.Dialect class / instance, optional
         Ignored if delimiter is longer than 1 character
     names : sequence, default
     header : int, default 0
@@ -2154,7 +2154,7 @@ def _stringify_na_values(na_values, floatify: bool) -> set[str | float]:
 
 
 def _refine_defaults_read(
-    dialect: str | csv.Dialect | None,
+    dialect: str | csv.Dialect | type[csv.Dialect] | None,
     delimiter: str | None | lib.NoDefault,
     engine: CSVEngine | None,
     sep: str | None | lib.NoDefault,
@@ -2266,7 +2266,9 @@ def _refine_defaults_read(
     return kwds
 
 
-def _extract_dialect(kwds: dict[str, str | csv.Dialect]) -> csv.Dialect | None:
+def _extract_dialect(
+    kwds: dict[str, str | csv.Dialect | type[csv.Dialect]],
+) -> csv.Dialect | type[csv.Dialect] | None:
     """
     Extract concrete csv dialect instance.
 
@@ -2300,7 +2302,7 @@ MANDATORY_DIALECT_ATTRS = (
 )
 
 
-def _validate_dialect(dialect: csv.Dialect | str) -> None:
+def _validate_dialect(dialect: csv.Dialect | type[csv.Dialect] | str) -> None:
     """
     Validate csv dialect instance.
 
@@ -2315,7 +2317,7 @@ def _validate_dialect(dialect: csv.Dialect | str) -> None:
 
 
 def _merge_with_dialect_properties(
-    dialect: csv.Dialect,
+    dialect: csv.Dialect | type[csv.Dialect],
     defaults: dict[str, Any],
 ) -> dict[str, Any]:
     """
