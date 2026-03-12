@@ -7075,6 +7075,22 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         out = this._construct_result(result, name, other)
         return cast("Series", out)
 
+    @overload
+    def _construct_result(
+        self,
+        result: ArrayLike,
+        name: Hashable,
+        other: AnyArrayLike | DataFrame,
+    ) -> Series: ...
+
+    @overload
+    def _construct_result(
+        self,
+        result: tuple[ArrayLike, ArrayLike],
+        name: Hashable,
+        other: AnyArrayLike | DataFrame,
+    ) -> tuple[Series, Series]: ...
+
     def _construct_result(
         self,
         result: ArrayLike | tuple[ArrayLike, ArrayLike],
