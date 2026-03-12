@@ -117,6 +117,7 @@ Performance improvements
 Bug fixes
 ~~~~~~~~~
 - Fix bug in :func:`to_datetime` that could give an unnecessary ``RuntimeWarning`` when converting DataFrame containing missing values (:issue:`64141`)
+- Bug in :func:`Series` constructor where passing ``dtype=str`` silently converted to ``object`` dtype instead of preserving the requested string dtype, inconsistent with :func:`array` (:issue:`57702`)
 
 Categorical
 ^^^^^^^^^^^

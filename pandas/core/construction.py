@@ -782,7 +782,7 @@ def _sanitize_ndim(
 
 def _sanitize_str_dtypes(
     result: np.ndarray, data, dtype: np.dtype | None, copy: bool
-) -> np.ndarray:
+) -> ArrayLike:
     """
     Ensure we have a dtype that is supported by pandas.
     """
@@ -796,7 +796,13 @@ def _sanitize_str_dtypes(
         if not lib.is_scalar(data):
             if not np.all(isna(data)):
                 data = np.asarray(data, dtype=dtype)
-            if not copy:
+            # If user explicitly requested a string dtype (kind == 'U'),
+            # preserve it instead of converting to object
+            if dtype is not None and dtype.kind == "U":
+                result = np.array(data, dtype=dtype, copy=copy)
+                from pandas.core.arrays import NumpyExtensionArray
+                return NumpyExtensionArray(result)
+            elif not copy:
                 result = np.asarray(data, dtype=object)
             else:
                 result = np.array(data, dtype=object, copy=copy)
@@ -851,9 +857,9 @@ def _try_cast(
                 arr = arr.ravel()
         else:
             shape = (len(arr),)
-        return lib.ensure_string_array(arr, convert_na_value=False, copy=copy).reshape(
-            shape
-        )
+        return lib.ensure_string_array(
+            arr, convert_na_value=False, copy=copy, dtype=dtype
+        ).reshape(shape)
 
     elif dtype.kind in "mM":
         if is_ndarray:

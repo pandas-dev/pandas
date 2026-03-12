@@ -741,15 +741,16 @@ def convert_nans_to_NA(ndarr_object arr) -> ndarray:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cpdef ndarray[object] ensure_string_array(
+cpdef ndarray ensure_string_array(
         arr,
         object na_value=np.nan,
         bint convert_na_value=True,
         bint copy=True,
         bint skipna=True,
+        dtype=None,
 ):
     """
-    Returns a new numpy array with object dtype and only strings and na values.
+    Returns a new numpy array with only strings and na values.
 
     Parameters
     ----------
@@ -766,10 +767,12 @@ cpdef ndarray[object] ensure_string_array(
     skipna : bool, default True
         Whether or not to coerce nulls to their stringified form
         (e.g. if False, NaN becomes 'nan').
+    dtype : np.dtype, optional
+        The dtype for the resulting array. If not specified, defaults to object.
 
     Returns
     -------
-    np.ndarray[object]
+    np.ndarray
         An array with the input array's elements casted to str or nan-like.
     """
     cdef:
@@ -867,6 +870,9 @@ cpdef ndarray[object] ensure_string_array(
                 result[i] = val
             else:
                 result[i] = f"{val}"
+
+    if dtype is not None:
+        result = result.astype(dtype, copy=False)
 
     return result
 

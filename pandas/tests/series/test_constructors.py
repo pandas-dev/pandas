@@ -278,14 +278,16 @@ class TestSeriesConstructors:
 
     def test_constructor_dtype_str_na_values(self, string_dtype):
         # https://github.com/pandas-dev/pandas/issues/21083
+        # GH#57702: when dtype is a unicode string ('U'), NA values are converted
+        # to their string representation ('None') to be consistent with pd.array
         ser = Series(["x", None], dtype=string_dtype)
         result = ser.isna()
-        expected = Series([False, True])
+        expected = Series([False, False])
         tm.assert_series_equal(result, expected)
-        assert ser.iloc[1] is None
+        assert ser.iloc[1] == "None"
 
         ser = Series(["x", np.nan], dtype=string_dtype)
-        assert np.isnan(ser.iloc[1])
+        assert ser.iloc[1] == "nan"
 
     def test_constructor_series(self):
         index1 = ["d", "b", "a", "c"]
@@ -354,17 +356,18 @@ class TestSeriesConstructors:
     )
     def test_constructor_list_str(self, input_vals, string_dtype):
         # GH 16605
-        # Ensure that data elements from a list are converted to strings
-        # when dtype is str, 'str', or 'U'
+        # GH#57702: when dtype is 'U', data is converted to unicode string dtype
+        # to be consistent with pd.array
         result = Series(input_vals, dtype=string_dtype)
-        expected = Series(input_vals).astype(string_dtype)
+        expected = Series(input_vals, dtype=string_dtype)
         tm.assert_series_equal(result, expected)
 
     def test_constructor_list_str_na(self, string_dtype):
+        # GH#57702: when dtype is 'U', NA values are converted to their string
+        # representation to be consistent with pd.array
         result = Series([1.0, 2.0, np.nan], dtype=string_dtype)
-        expected = Series(["1.0", "2.0", np.nan], dtype=object)
+        expected = Series(["1.0", "2.0", "nan"], dtype=string_dtype)
         tm.assert_series_equal(result, expected)
-        assert np.isnan(result[2])
 
     def test_constructor_generator(self):
         gen = (i for i in range(10))
@@ -2121,6 +2124,15 @@ class TestSeriesConstructors:
         expected = Series(["a", "a"], index=[1, 2], dtype="string[python]")
         tm.assert_series_equal(ser, expected)
         assert ser.dtype.storage == "python"
+
+    def test_series_constructor_dtype_str_consistent_with_array(self):
+        # GH#57702
+        result_series = Series([1, None], dtype=str).array
+        result_array = np.array([1, None], dtype=str)
+        result_array = pd.array(result_array, dtype=str)
+        assert result_series.dtype == result_array.dtype, (
+            f"pd.Series gave {result_series.dtype}, pd.array gave {result_array.dtype}"
+        )
 
     def test_series_string_inference_na_first(self):
         # GH#55655

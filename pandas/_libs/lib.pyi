@@ -143,7 +143,8 @@ def ensure_string_array(
     convert_na_value: bool = ...,
     copy: bool = ...,
     skipna: bool = ...,
-) -> npt.NDArray[np.object_]: ...
+    dtype: np.dtype | None = ...,
+) -> np.ndarray: ...
 def convert_nans_to_NA(
     arr: npt.NDArray[np.object_],
 ) -> npt.NDArray[np.object_]: ...
