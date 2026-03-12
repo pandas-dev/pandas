@@ -2442,7 +2442,7 @@ class _AsOfMerge(_OrderedMerge):
                 raise MergeError("left_by and right_by must be the same length")
 
             left_on = self.left_by + list(left_on)
-            right_on = self.right_by + list(right_on)
+            right_on = self.right_by + list(right_on)  # pyright: ignore[reportOptionalOperand]
 
         return left_on, right_on
 
@@ -2631,7 +2631,7 @@ class _AsOfMerge(_OrderedMerge):
 
             # choose appropriate function by type
             func = _asof_by_function(self.direction)
-            return func(
+            return func(  # pyright: ignore[reportOptionalCall]
                 left_values,
                 right_values,
                 left_by_values,
@@ -2642,7 +2642,7 @@ class _AsOfMerge(_OrderedMerge):
         else:
             # choose appropriate function by type
             func = _asof_by_function(self.direction)
-            return func(
+            return func(  # pyright: ignore[reportOptionalCall]
                 left_values,
                 right_values,
                 None,

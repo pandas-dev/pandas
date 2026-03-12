@@ -138,7 +138,7 @@ class bottleneck_switch:
                     # `mask` is not recognised by bottleneck, would raise
                     #  TypeError if called
                     kwds.pop("mask", None)
-                    result = bn_func(values, axis=axis, **kwds)
+                    result = bn_func(values, axis=axis, **kwds)  # pyright: ignore[reportOptionalCall]
 
                     # prefer to treat inf/-inf as NA, but must compute the func
                     # twice :(

@@ -1313,7 +1313,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         # categorical/sparse/datetimetz
         if value_is_extension_type:
 
-            def value_getitem(placement):
+            def value_getitem(placement):  # pyright: ignore[reportRedeclaration]
                 return value
 
         else:

@@ -1303,7 +1303,7 @@ class FloatArrayFormatter(_GenericArrayFormatter):
         # because str(0.0) = '0.0' while '%g' % 0.0 = '0'
         if float_format:
 
-            def base_formatter(v):
+            def base_formatter(v):  # pyright: ignore[reportRedeclaration]
                 assert float_format is not None  # for mypy
                 # error: "str" not callable
                 # error: Unexpected keyword argument "value" for "__call__" of
