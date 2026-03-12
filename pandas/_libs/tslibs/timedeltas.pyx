@@ -521,9 +521,8 @@ def array_to_timedelta64(
 
             elif isinstance(item, Day):
                 # GH#64240: support Day offsets in list-like conversion
-
-                ival = delta_to_nanoseconds(timedelta(days=item.n), reso=NPY_FR_ns)
-                item_reso = NPY_FR_ns
+                ival = item.n * 86400 * 1000000
+                item_reso = NPY_DATETIMEUNIT.NPY_FR_us
                 state.update_creso(item_reso)
                 if infer_reso:
                     creso = state.creso
