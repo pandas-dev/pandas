@@ -451,8 +451,8 @@ filterwarnings = [
   "ignore:More than 20 figures have been opened:RuntimeWarning",
   "ignore:BuiltinImporter.module_repr() is deprecated and slated for removal in Python 3.12:DeprecationWarning",
   "ignore:Bitwise inversion:DeprecationWarning",
-  # Raised by coverage in PY3.14+
-  "ignore:Plugin file tracers:coverage.exceptions.CoverageWarning",
+  # Raised by coverage in PY3.14+ (coverage.exceptions.CoverageWarning)
+  "ignore:Plugin file tracers",
   # Remove 2 below when pyarrow version > ??
   "ignore:make_block is deprecated and will be removed in a future version:pandas.errors.Pandas4Warning:pyarrow",
   "ignore:DatetimeTZBlock is deprecated and will be removed in a future version:pandas.errors.Pandas4Warning:pyarrow",
