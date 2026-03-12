@@ -282,9 +282,9 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
                 v = np.vectorize(f)
                 d["delta"] = v(delta) // 1_000  # convert back to ms
             if year:
-                year_month = dates.apply(lambda x: 100 * x.year + x.month)
-                d["year"] = year_month._values // 100
-                d["month"] = year_month._values - d["year"] * 100
+                date_index = DatetimeIndex(dates)
+                d["year"] = date_index._data.year
+                d["month"] = date_index._data.month
             if days:
 
                 def g(x: datetime) -> int:

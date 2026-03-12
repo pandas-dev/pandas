@@ -3,6 +3,7 @@ import numpy as np
 from pandas import (
     DataFrame,
     Index,
+    Series,
     date_range,
     read_stata,
 )
@@ -51,6 +52,24 @@ class StataMissing(Stata):
             missing_data = np.random.randn(self.N)
             missing_data[missing_data < 0] = np.nan
             self.df[f"missing_{i}"] = missing_data
+        self.df.to_stata(self.fname, convert_dates=self.convert_dates)
+
+
+class StataObjectDatetime(BaseIO):
+    params = ["tm", "tq", "th", "ty"]
+    param_names = ["convert_dates"]
+
+    def setup(self, convert_dates):
+        from datetime import datetime
+
+        self.fname = "__test__.dta"
+        N = 1_000_000
+        dates = [datetime(2000 + i % 25, (i % 12) + 1, (i % 28) + 1) for i in range(N)]
+        self.df = DataFrame({"dates": Series(dates, dtype=object)})
+        self.df.index.name = "index"
+        self.convert_dates = {"dates": convert_dates}
+
+    def time_write_stata_object_datetime(self, convert_dates):
         self.df.to_stata(self.fname, convert_dates=self.convert_dates)
 
 
