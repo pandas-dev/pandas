@@ -259,7 +259,7 @@ def assert_index_equal(
         if not exact:
             return
 
-        assert_class_equal(left, right, exact=exact, obj=obj)
+        assert_class_equal(left, right, exact=exact, obj=obj)  # type: ignore[arg-type]
         assert_attr_equal("inferred_type", left, right, obj=obj)
 
         # Skip exact dtype checking when `check_categorical` is False

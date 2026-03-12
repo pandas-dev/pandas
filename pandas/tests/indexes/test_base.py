@@ -9,7 +9,10 @@ import numpy as np
 import pytest
 
 from pandas.compat import IS64
-from pandas.errors import InvalidIndexError
+from pandas.errors import (
+    InvalidIndexError,
+    Pandas4Warning,
+)
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import (
@@ -1357,6 +1360,15 @@ class TestIndex:
         expected = Index(expected_results)
 
         tm.assert_index_equal(result, expected)
+
+    def test_assert_index_equal_exact_equiv_default_deprecated(self):
+        # GH#57436
+        result = Index([0, 1, 2, 3], dtype=np.int64)
+        expected = RangeIndex(0, 4)
+        msg = "The default value of 'equiv' for the `exact` parameter is deprecated "
+
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            tm.assert_index_equal(result, expected)
 
 
 class TestMixedIntIndex:
