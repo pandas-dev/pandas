@@ -627,23 +627,6 @@ module = [
 ]
 check_untyped_defs = false
 
-[[tool.mypy.overrides]]
-module = [
-  "pandas.tests.apply.test_series_apply",
-  "pandas.tests.arithmetic.conftest",
-  "pandas.tests.arrays.sparse.test_combine_concat",
-  "pandas.tests.dtypes.test_common",
-  "pandas.tests.frame.methods.test_to_records",
-  "pandas.tests.groupby.test_rank",
-  "pandas.tests.groupby.transform.test_transform",
-  "pandas.tests.indexes.interval.test_interval",
-  "pandas.tests.indexing.test_categorical",
-  "pandas.tests.io.excel.test_writers",
-  "pandas.tests.reductions.test_reductions",
-  "pandas.tests.test_expressions",
-]
-ignore_errors = true
-
 # To be kept consistent with "Import Formatting" section in contributing.rst
 [tool.isort]
 known_pre_libs = "pandas._config"
@@ -684,15 +667,8 @@ reportGeneralTypeIssues = false
 reportIndexIssue = false
 reportMissingModuleSource = false
 reportOperatorIssue = false
-reportOptionalCall = false
-reportOptionalIterable = false
 reportOptionalMemberAccess = false
-reportOptionalOperand = false
-reportOptionalSubscript = false
-reportPrivateImportUsage = false
-reportRedeclaration = false
 reportReturnType = false
-reportUnboundVariable = false
 
 [tool.coverage.run]
 branch = true
