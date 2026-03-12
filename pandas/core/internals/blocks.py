@@ -1404,7 +1404,7 @@ class Block(PandasObject, libinternals.Block):
     def diff(self, n: int) -> list[Block]:
         """return block for the diff of the values"""
         # only reached with ndim == 2
-        new_values = algos.diff(self.values, n, axis=self.ndim - 1)
+        new_values = algos.diff(self.values, n, axis=self.values.ndim - 1)
         return [self.make_block(values=new_values)]
 
     def shift(self, periods: int, fill_value: Any = None) -> list[Block]:
