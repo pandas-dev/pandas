@@ -1654,14 +1654,14 @@ def get_corr_func(
     if method == "kendall":
         from scipy.stats import kendalltau
 
-        def func(a, b):
+        def func(a, b):  # pyright: ignore[reportRedeclaration]
             return kendalltau(a, b)[0]
 
         return func
     elif method == "spearman":
         from scipy.stats import spearmanr
 
-        def func(a, b):
+        def func(a, b):  # pyright: ignore[reportRedeclaration]
             return spearmanr(a, b)[0]
 
         return func
