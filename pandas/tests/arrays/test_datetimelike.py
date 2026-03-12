@@ -1388,3 +1388,40 @@ def test_from_pandas_array(dtype):
     result = idx_cls(arr)
     expected = idx_cls(data)
     tm.assert_index_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "self_unit,val_unit",
+    [("s", "ns"), ("ms", "us"), ("us", "ns"), ("ns", "s")],
+)
+@pytest.mark.parametrize("dtype_kind", ["M", "m"])
+def test_isin_mismatched_reso(dtype_kind, self_unit, val_unit):
+    # GH#????? - isin should not silently truncate finer-resolution values
+    #  when converting to self's resolution, which leads to false matches.
+    if dtype_kind == "M":
+        # DatetimeArray
+        arr = DatetimeArray._from_sequence(
+            np.array([0, 1], dtype=f"M8[{self_unit}]"),
+            dtype=np.dtype(f"M8[{self_unit}]"),
+        )
+        vals = DatetimeArray._from_sequence(
+            np.array([1], dtype=f"M8[{val_unit}]"),
+            dtype=np.dtype(f"M8[{val_unit}]"),
+        )
+    else:
+        # TimedeltaArray
+        arr = TimedeltaArray._from_sequence(
+            np.array([0, 1], dtype=f"m8[{self_unit}]"),
+            dtype=np.dtype(f"m8[{self_unit}]"),
+        )
+        vals = TimedeltaArray._from_sequence(
+            np.array([1], dtype=f"m8[{val_unit}]"),
+            dtype=np.dtype(f"m8[{val_unit}]"),
+        )
+
+    result = arr.isin(vals)
+
+    # 1 in self_unit != 1 in val_unit (unless they happen to be the same
+    # unit, which our parametrization avoids), so isin should be [False, False].
+    expected = np.array([False, False])
+    tm.assert_numpy_array_equal(result, expected)
