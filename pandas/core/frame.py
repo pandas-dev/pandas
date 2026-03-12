@@ -2362,9 +2362,9 @@ class DataFrame(NDFrame, OpsMixin):
             # columns, whichever is applicable.
             if is_dict_like(dtype_mapping):
                 if name in dtype_mapping:
-                    dtype_mapping = dtype_mapping[name]
+                    dtype_mapping = dtype_mapping[name]  # pyright: ignore[reportOptionalSubscript]
                 elif index_int in dtype_mapping:
-                    dtype_mapping = dtype_mapping[index_int]
+                    dtype_mapping = dtype_mapping[index_int]  # pyright: ignore[reportOptionalSubscript]
                 else:
                     dtype_mapping = None
 
