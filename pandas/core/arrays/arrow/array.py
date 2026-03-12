@@ -2205,7 +2205,7 @@ class ArrowExtensionArray(
 
         if name == "sem":
 
-            def pyarrow_meth(data, skip_nulls, **kwargs):
+            def pyarrow_meth(data, skip_nulls, **kwargs):  # pyright: ignore[reportRedeclaration]
                 numerator = pc.stddev(data, skip_nulls=skip_nulls, **kwargs)
                 denominator = pc.sqrt_checked(pc.count(self._pa_array))
                 return pc.divide_checked(numerator, denominator)
@@ -2420,7 +2420,14 @@ class ArrowExtensionArray(
 
         if com.is_null_slice(key):
             # fast path (GH50248)
-            data = self._if_else(True, value, self._pa_array)
+            if (
+                isinstance(value, (pa.Array, pa.ChunkedArray))
+                and value.type == self._pa_array.type
+                and len(value) == len(self)
+            ):
+                data = value
+            else:
+                data = self._if_else(True, value, self._pa_array)
 
         elif is_integer(key):
             # fast path

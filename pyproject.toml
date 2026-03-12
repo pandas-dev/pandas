@@ -446,8 +446,8 @@ filterwarnings = [
   "ignore:More than 20 figures have been opened:RuntimeWarning",
   "ignore:BuiltinImporter.module_repr() is deprecated and slated for removal in Python 3.12:DeprecationWarning",
   "ignore:Bitwise inversion:DeprecationWarning",
-  # Raised by coverage in PY3.14+
-  "ignore:Plugin file tracers:coverage.exceptions.CoverageWarning",
+  # Raised by coverage in PY3.14+ (coverage.exceptions.CoverageWarning)
+  "ignore:Plugin file tracers",
   # Remove 2 below when pyarrow version > ??
   "ignore:make_block is deprecated and will be removed in a future version:pandas.errors.Pandas4Warning:pyarrow",
   "ignore:DatetimeTZBlock is deprecated and will be removed in a future version:pandas.errors.Pandas4Warning:pyarrow",
@@ -618,23 +618,6 @@ module = [
 ]
 check_untyped_defs = false
 
-[[tool.mypy.overrides]]
-module = [
-  "pandas.tests.apply.test_series_apply",
-  "pandas.tests.arithmetic.conftest",
-  "pandas.tests.arrays.sparse.test_combine_concat",
-  "pandas.tests.dtypes.test_common",
-  "pandas.tests.frame.methods.test_to_records",
-  "pandas.tests.groupby.test_rank",
-  "pandas.tests.groupby.transform.test_transform",
-  "pandas.tests.indexes.interval.test_interval",
-  "pandas.tests.indexing.test_categorical",
-  "pandas.tests.io.excel.test_writers",
-  "pandas.tests.reductions.test_reductions",
-  "pandas.tests.test_expressions",
-]
-ignore_errors = true
-
 # To be kept consistent with "Import Formatting" section in contributing.rst
 [tool.isort]
 known_pre_libs = "pandas._config"
@@ -675,15 +658,8 @@ reportGeneralTypeIssues = false
 reportIndexIssue = false
 reportMissingModuleSource = false
 reportOperatorIssue = false
-reportOptionalCall = false
-reportOptionalIterable = false
 reportOptionalMemberAccess = false
-reportOptionalOperand = false
-reportOptionalSubscript = false
-reportPrivateImportUsage = false
-reportRedeclaration = false
 reportReturnType = false
-reportUnboundVariable = false
 
 [tool.coverage.run]
 branch = true

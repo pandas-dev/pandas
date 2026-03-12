@@ -470,7 +470,7 @@ class MPLPlot(ABC):
 
         if self.style is not None:
             if isinstance(self.style, dict):
-                styles = [self.style[col] for col in self.columns if col in self.style]
+                styles = [self.style[col] for col in self.columns if col in self.style]  # pyright: ignore[reportOptionalIterable]
             elif is_list_like(self.style):
                 styles = self.style
             else:
@@ -1380,7 +1380,7 @@ class ScatterPlot(PlanePlot):
         create_colors = not self._are_valid_colors(c_values)
         if create_colors:
             color_mapping = self._get_color_mapping(c_values)
-            c_values = [color_mapping[s] for s in c_values]
+            c_values = [color_mapping[s] for s in c_values]  # pyright: ignore[reportOptionalIterable]
 
             # build legend for labeling custom colors
             ax.legend(

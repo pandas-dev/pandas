@@ -1092,7 +1092,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         hasnans = self._hasna
         if hasnans:
 
-            def f(x):
+            def f(x):  # pyright: ignore[reportRedeclaration]
                 if isna(x):
                     return [np.nan] * len(columns)
                 return x.components
