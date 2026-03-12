@@ -703,7 +703,7 @@ class DataFrameFormatter:
         if not is_list_like(self.header) and not self.header:
             for i, c in enumerate(self.tr_frame):
                 fmt_values = self.format_col(i)
-                fmt_values = _make_fixed_width(
+                fmt_values, _ = _make_fixed_width(
                     strings=fmt_values,
                     justify=self.justify,
                     minimum=int(self.col_space.get(c, 0)),
@@ -734,11 +734,10 @@ class DataFrameFormatter:
                 int(self.col_space.get(c, 0)), *(self.adj.len(x) for x in cheader)
             )
             fmt_values = self.format_col(i)
-            fmt_values = _make_fixed_width(
+            fmt_values, max_len = _make_fixed_width(
                 fmt_values, self.justify, minimum=header_colwidth, adj=self.adj
             )
-
-            max_len = max(*(self.adj.len(x) for x in fmt_values), header_colwidth)
+            max_len = max(max_len, header_colwidth)
             cheader = self.adj.justify(cheader, max_len, mode=self.justify)
             strcols.append(cheader + fmt_values)
 
@@ -817,7 +816,7 @@ class DataFrameFormatter:
             tuple(
                 _make_fixed_width(
                     list(x), justify="left", minimum=col_space.get("", 0), adj=self.adj
-                )
+                )[0]
             )
             for x in fmt_index
         ]
@@ -1199,7 +1198,8 @@ class _GenericArrayFormatter:
 
     def get_result(self) -> list[str]:
         fmt_values = self._format_strings()
-        return _make_fixed_width(fmt_values, self.justify)
+        result, _ = _make_fixed_width(fmt_values, self.justify)
+        return result
 
     def _format_strings(self) -> list[str]:
         if self.float_format is None:
@@ -1735,14 +1735,15 @@ def _make_fixed_width(
     justify: str = "right",
     minimum: int | None = None,
     adj: printing._TextAdjustment | None = None,
-) -> list[str]:
-    if len(strings) == 0 or justify == "all":
-        return strings
-
+) -> tuple[list[str], int]:
     if adj is None:
         adjustment = printing.get_adjustment()
     else:
         adjustment = adj
+
+    if len(strings) == 0 or justify == "all":
+        max_len = max(adjustment.len(x) for x in strings) if strings else 0
+        return strings, max_len
 
     max_len = max(adjustment.len(x) for x in strings)
 
@@ -1753,15 +1754,14 @@ def _make_fixed_width(
     if conf_max is not None and max_len > conf_max:
         max_len = conf_max
 
-    def just(x: str) -> str:
-        if conf_max is not None:
-            if (conf_max > 3) & (adjustment.len(x) > max_len):
-                x = x[: max_len - 3] + "..."
-        return x
+    if conf_max is not None and conf_max > 3:
+        strings = [
+            x[: max_len - 3] + "..." if adjustment.len(x) > max_len else x
+            for x in strings
+        ]
 
-    strings = [just(x) for x in strings]
     result = adjustment.justify(strings, max_len, mode=justify)
-    return result
+    return result, max_len
 
 
 def _trim_zeros_complex(str_complexes: ArrayLike, decimal: str = ".") -> list[str]:
