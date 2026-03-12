@@ -13,7 +13,6 @@ from typing import (
     cast,
     final,
 )
-import uuid
 import warnings
 
 import numpy as np
@@ -430,28 +429,12 @@ def _cross_merge(
             "left_index=True"
         )
 
-    cross_col = f"_cross_{uuid.uuid4()}"
-    left = left.assign(**{cross_col: 1})
-    right = right.assign(**{cross_col: 1})
-
-    left_on = right_on = [cross_col]
-
-    res = merge(
+    return _CrossMergeOperation(
         left,
         right,
-        how="inner",
-        on=on,
-        left_on=left_on,
-        right_on=right_on,
-        left_index=left_index,
-        right_index=right_index,
-        sort=sort,
         suffixes=suffixes,
         indicator=indicator,
-        validate=validate,
-    )
-    del res[cross_col]
-    return res
+    ).get_result()
 
 
 def _groupby_and_merge(
@@ -1278,8 +1261,14 @@ class _MergeOperation:
         left_indexer: npt.NDArray[np.intp] | None,
         right_indexer: npt.NDArray[np.intp] | None,
     ) -> None:
-        left_has_missing = None
-        right_has_missing = None
+        # Inner joins never produce -1 (missing) in the indexers, so we can
+        # skip the potentially expensive (indexer == -1).any() scans.
+        if self.how == "inner":
+            left_has_missing = False
+            right_has_missing = False
+        else:
+            left_has_missing = None
+            right_has_missing = None
 
         assert all(isinstance(x, _known) for x in self.left_join_keys)
 
@@ -2245,6 +2234,57 @@ def restore_dropped_levels_multijoin(
         join_names = join_names + [dropped_level_name]  # noqa: RUF005
 
     return join_levels, join_codes, join_names
+
+
+class _CrossMergeOperation(_MergeOperation):
+    """
+    Fast-path for cross (Cartesian product) merges.
+
+    Bypasses key extraction, factorisation, and the hash-join by computing
+    positional indexers directly with np.repeat / np.tile.
+    """
+
+    def __init__(
+        self,
+        left: DataFrame | Series,
+        right: DataFrame | Series,
+        suffixes: Suffixes = ("_x", "_y"),
+        indicator: str | bool = False,
+    ) -> None:
+        _left = _validate_operand(left)
+        _right = _validate_operand(right)
+        self.left = self.orig_left = _left
+        self.right = self.orig_right = _right
+        self.how: JoinHow = "inner"
+        self.on = None
+        self.suffixes = suffixes
+        self.sort = False
+        self.left_index = False
+        self.right_index = False
+        self.indicator = indicator
+        self.anti_join = False
+        self.left_on: list = []
+        self.right_on: list = []
+        self.left_join_keys: list[ArrayLike] = []
+        self.right_join_keys: list[ArrayLike] = []
+        self.join_names: list[Hashable] = []
+
+        # GH#40993: raise when merging between different levels
+        if _left.columns.nlevels != _right.columns.nlevels:
+            raise MergeError(
+                "Not allowed to merge between different levels. "
+                f"({_left.columns.nlevels} levels on the left, "
+                f"{_right.columns.nlevels} on the right)"
+            )
+
+    def _get_join_indexers(
+        self,
+    ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
+        n_left = len(self.left)
+        n_right = len(self.right)
+        left_indexer = np.repeat(np.arange(n_left, dtype=np.intp), n_right)
+        right_indexer = np.tile(np.arange(n_right, dtype=np.intp), n_left)
+        return left_indexer, right_indexer
 
 
 class _OrderedMerge(_MergeOperation):
