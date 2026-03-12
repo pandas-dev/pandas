@@ -1396,7 +1396,7 @@ def test_from_pandas_array(dtype):
 )
 @pytest.mark.parametrize("dtype_kind", ["M", "m"])
 def test_isin_mismatched_reso(dtype_kind, self_unit, val_unit):
-    # GH#????? - isin should not silently truncate finer-resolution values
+    # GH64545 - isin should not silently truncate finer-resolution values
     #  when converting to self's resolution, which leads to false matches.
     if dtype_kind == "M":
         # DatetimeArray
