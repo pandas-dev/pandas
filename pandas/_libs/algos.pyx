@@ -1566,10 +1566,10 @@ def axis_skew(
     cdef:
         Py_ssize_t i
         Py_ssize_t nouter = values.shape[1] if axis == 0 else values.shape[0]
-        int64_t[:] nobs = np.zeros(nouter, dtype=np.int64)
-        float64_t[:] mean = np.zeros(nouter)
-        float64_t[:] m2 = np.zeros(nouter)
-        float64_t[:] m3 = np.zeros(nouter)
+        int64_t[::1] nobs = np.zeros(nouter, dtype=np.int64)
+        float64_t[::1] mean = np.zeros(nouter)
+        float64_t[::1] m2 = np.zeros(nouter)
+        float64_t[::1] m3 = np.zeros(nouter)
         ndarray result_arr = np.empty(nouter, dtype=np.float64)
         float64_t[:] result = result_arr
 
@@ -1592,11 +1592,11 @@ def axis_kurt(
     cdef:
         Py_ssize_t i
         Py_ssize_t nouter = values.shape[1] if axis == 0 else values.shape[0]
-        int64_t[:] nobs = np.zeros(nouter, dtype=np.int64)
-        float64_t[:] mean = np.zeros(nouter)
-        float64_t[:] m2 = np.zeros(nouter)
-        float64_t[:] m3 = np.zeros(nouter)
-        float64_t[:] m4 = np.zeros(nouter)
+        int64_t[::1] nobs = np.zeros(nouter, dtype=np.int64)
+        float64_t[::1] mean = np.zeros(nouter)
+        float64_t[::1] m2 = np.zeros(nouter)
+        float64_t[::1] m3 = np.zeros(nouter)
+        float64_t[::1] m4 = np.zeros(nouter)
         ndarray result_arr = np.empty(nouter, dtype=np.float64)
         float64_t[:] result = result_arr
 
