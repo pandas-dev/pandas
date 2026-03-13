@@ -2434,7 +2434,7 @@ class _AsOfMerge(_OrderedMerge):
 
         # GH#29130 Check that merge keys do not have dtype object
         if not self.left_index:
-            left_on_0 = left_on[0]
+            left_on_0 = left_on[0]  # pyright: ignore[reportOptionalSubscript]
             if isinstance(left_on_0, _known):
                 lo_dtype = left_on_0.dtype
             else:
@@ -2447,7 +2447,7 @@ class _AsOfMerge(_OrderedMerge):
             lo_dtype = self.left.index.dtype
 
         if not self.right_index:
-            right_on_0 = right_on[0]
+            right_on_0 = right_on[0]  # pyright: ignore[reportOptionalSubscript]
             if isinstance(right_on_0, _known):
                 ro_dtype = right_on_0.dtype
             else:

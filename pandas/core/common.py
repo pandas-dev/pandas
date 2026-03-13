@@ -366,7 +366,7 @@ def is_full_slice(obj: object, line: int) -> bool:
 def get_callable_name(obj: object) -> str | None:
     # typical case has name
     if hasattr(obj, "__name__"):
-        return obj.__name__
+        return obj.__name__  # pyright: ignore[reportAttributeAccessIssue]
     # some objects don't; could recurse
     if isinstance(obj, partial):
         return get_callable_name(obj.func)
