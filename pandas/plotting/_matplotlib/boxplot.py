@@ -296,7 +296,7 @@ def _grouped_plot_by_column(
     if return_type is None:
         result = axes
 
-    byline = by[0] if len(by) == 1 else by
+    byline = by[0] if len(by) == 1 else by  # pyright: ignore[reportOptionalSubscript]
     fig.suptitle(f"Boxplot grouped by {byline}")
     maybe_adjust_figure(fig, bottom=0.15, top=0.9, left=0.1, right=0.9, wspace=0.2)
 
