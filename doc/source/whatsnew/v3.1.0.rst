@@ -28,6 +28,7 @@ enhancement2
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
+- :class:`Index` and :class:`Series` now support runtime subscript syntax (e.g. ``Index[np.int64]``, ``Series[np.float64]``) for use in type annotations without requiring ``from __future__ import annotations`` (:issue:`36708`)
 - :meth:`.DataFrameGroupBy.agg` now allows for the provided ``func`` to return a NumPy array (:issue:`63957`)
 - Added :meth:`ExtensionArray.count` (:issue:`64450`)
 - Display formatting for float sequences in DataFrame cells now respects the ``display.precision`` option (:issue:`60503`).

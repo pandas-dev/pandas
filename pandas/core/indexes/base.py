@@ -322,6 +322,9 @@ class Index(IndexOpsMixin, PandasObject):
        Index can hold all numpy numeric dtypes (except float16). Previously only
        int64/uint64/float64 dtypes were accepted.
 
+    This class is generic and can be parameterized in type annotations,
+    e.g. ``Index[np.int64]``.
+
     Parameters
     ----------
     data : array-like (1-dimensional)
@@ -373,6 +376,12 @@ class Index(IndexOpsMixin, PandasObject):
     # similar to __array_priority__, positions Index after Series and DataFrame
     #  but before ExtensionArray.  Should NOT be overridden by subclasses.
     __pandas_priority__ = 2000
+
+    @classmethod
+    def __class_getitem__(cls, item: Any) -> type:
+        # Allow subscript syntax (e.g. Index[np.int64]) for type annotations
+        # without requiring quoting or `from __future__ import annotations`.
+        return cls
 
     # Cython methods; see github.com/cython/cython/issues/2647
     #  for why we need to wrap these instead of making them class attributes

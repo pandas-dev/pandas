@@ -218,6 +218,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     methods from ndarray have been overridden to automatically exclude
     missing data (currently represented as NaN).
 
+    This class is generic and can be parameterized in type annotations,
+    e.g. ``Series[np.int64]``.
+
     Operations between Series (+, -, /, \\*, \\*\\*) align values based on their
     associated index values-- they need not be the same length. The result
     index will be the sorted union of the two indexes.
@@ -322,6 +325,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     _name: Hashable
     _metadata: list[str] = ["_name"]
+
+    @classmethod
+    def __class_getitem__(cls, item: Any) -> type:
+        # Allow subscript syntax (e.g. Series[np.int64]) for type annotations
+        # without requiring quoting or `from __future__ import annotations`.
+        return cls
+
     _internal_names_set = {"index", "name"} | NDFrame._internal_names_set
     _accessors = {"dt", "cat", "str", "sparse"}
     _hidden_attrs = (
