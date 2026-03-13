@@ -1033,9 +1033,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             # GH 13473
             if not callable(replacements):
                 if ax._is_multi and level is not None:
-                    indexer = ax.get_level_values(level).get_indexer_for(replacements)
+                    indexer = ax.get_level_values(level).get_indexer_for(replacements)  # type: ignore[arg-type]
                 else:
-                    indexer = ax.get_indexer_for(replacements)
+                    indexer = ax.get_indexer_for(replacements)  # type: ignore[arg-type]
 
                 if errors == "raise" and len(indexer[indexer == -1]):
                     missing_labels = [

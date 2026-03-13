@@ -422,7 +422,7 @@ class MPLPlot(ABC):
                     "When subplots is an iterable, each entry "
                     "should be a list/tuple of column names."
                 )
-            idx_locs = columns.get_indexer_for(group)
+            idx_locs = columns.get_indexer_for(group)  # type: ignore[arg-type]
             if (idx_locs == -1).any():
                 bad_labels = np.extract(idx_locs == -1, group)
                 raise ValueError(
@@ -438,7 +438,7 @@ class MPLPlot(ABC):
             seen_columns = seen_columns.union(unique_columns)
             out.append(tuple(idx_locs))
 
-        unseen_columns = columns.difference(seen_columns)
+        unseen_columns = columns.difference(seen_columns)  # type: ignore[arg-type]
         for column in unseen_columns:
             idx_loc = columns.get_loc(column)
             out.append((idx_loc,))

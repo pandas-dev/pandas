@@ -91,6 +91,7 @@ if TYPE_CHECKING:
     from collections.abc import Hashable
 
     from pandas._typing import (
+        Axes,
         Dtype,
         DtypeObj,
         IntervalClosedType,
@@ -868,7 +869,7 @@ class IntervalIndex(ExtensionIndex):
         return ensure_platform_int(indexer)
 
     def get_indexer_non_unique(
-        self, target: Index
+        self, target: Axes
     ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
         """
         Compute indexer and mask for new index given the current index.
@@ -945,7 +946,7 @@ class IntervalIndex(ExtensionIndex):
             # Note: this case behaves differently from other Index subclasses
             #  because IntervalIndex does partial-int indexing
             target = self._maybe_convert_i8(target)
-            indexer, missing = self._engine.get_indexer_non_unique(target.values)
+            indexer, missing = self._engine.get_indexer_non_unique(target.values)  # type: ignore[union-attr]
 
         return ensure_platform_int(indexer), ensure_platform_int(missing)
 

@@ -407,7 +407,7 @@ def _nbins_to_bins(x_idx: Index, nbins: int, right: bool) -> Index:
     rng = (x_idx.min(), x_idx.max())
     mn, mx = rng
 
-    if is_numeric_dtype(x_idx.dtype) and (np.isinf(mn) or np.isinf(mx)):
+    if is_numeric_dtype(x_idx.dtype) and (np.isinf(mn) or np.isinf(mx)):  # type: ignore[call-overload]
         # GH#24314
         raise ValueError(
             "cannot specify integer `bins` when input data contains infinity"
@@ -424,11 +424,15 @@ def _nbins_to_bins(x_idx: Index, nbins: int, right: bool) -> Index:
             # error: Item "ExtensionArray" of "ExtensionArray | ndarray[Any, Any]"
             # has no attribute "_generate_range"
             bins = x_idx._values._generate_range(  # type: ignore[union-attr]
-                start=mn - td, end=mx + td, periods=nbins + 1, freq=None, unit=unit
+                start=mn - td,
+                end=mx + td,
+                periods=nbins + 1,
+                freq=None,
+                unit=unit,  # type: ignore[operator]
             )
         else:
-            mn -= 0.001 * abs(mn) if mn != 0 else 0.001
-            mx += 0.001 * abs(mx) if mx != 0 else 0.001
+            mn -= 0.001 * abs(mn) if mn != 0 else 0.001  # type: ignore[operator, arg-type]
+            mx += 0.001 * abs(mx) if mx != 0 else 0.001  # type: ignore[operator, arg-type]
 
             bins = np.linspace(mn, mx, nbins + 1, endpoint=True)
     else:  # adjust end points after binning
@@ -444,8 +448,8 @@ def _nbins_to_bins(x_idx: Index, nbins: int, right: bool) -> Index:
                 start=mn, end=mx, periods=nbins + 1, freq=None, unit=unit
             )
         else:
-            bins = np.linspace(mn, mx, nbins + 1, endpoint=True)
-        adj = (mx - mn) * 0.001  # 0.1% of the range
+            bins = np.linspace(mn, mx, nbins + 1, endpoint=True)  # type: ignore[call-overload]
+        adj = (mx - mn) * 0.001  # type: ignore[operator]  # 0.1% of the range
         if right:
             bins[0] -= adj
         else:

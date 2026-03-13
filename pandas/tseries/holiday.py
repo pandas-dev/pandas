@@ -422,7 +422,7 @@ class Holiday:
                 # ignore the PerformanceWarnings:
                 with warnings.catch_warnings():
                     warnings.simplefilter("ignore", PerformanceWarning)
-                    dates += offset
+                    dates += offset  # type: ignore[misc]
         return dates
 
 

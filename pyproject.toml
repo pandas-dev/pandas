@@ -546,7 +546,18 @@ module = [
   "pandas.core.groupby.groupby", # TODO
   "pandas.core.groupby.ops", # TODO
   "pandas.core.indexers.*", # TODO
-  "pandas.core.indexes.*", # TODO
+  "pandas.core.indexes.accessors", # TODO
+  "pandas.core.indexes.api", # TODO
+  "pandas.core.indexes.category", # TODO
+  "pandas.core.indexes.datetimelike", # TODO
+  "pandas.core.indexes.datetimes", # TODO
+  "pandas.core.indexes.extension", # TODO
+  "pandas.core.indexes.frozen", # TODO
+  "pandas.core.indexes.interval", # TODO
+  "pandas.core.indexes.multi", # TODO
+  "pandas.core.indexes.period", # TODO
+  "pandas.core.indexes.range", # TODO
+  "pandas.core.indexes.timedeltas", # TODO
   "pandas.core.interchange.column", # TODO
   "pandas.core.interchange.dataframe_protocol", # TODO
   "pandas.core.interchange.from_dataframe", # TODO

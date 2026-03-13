@@ -1896,7 +1896,7 @@ def normalize_keyword_aggregation(
     uniquified_aggspec = _make_unique_kwarg_list(aggspec_order)
 
     # get the new index of columns by comparison
-    col_idx_order = Index(uniquified_aggspec).get_indexer(uniquified_order)
+    col_idx_order = Index(uniquified_aggspec).get_indexer(uniquified_order)  # type: ignore[arg-type]
     return aggspec, columns, col_idx_order
 
 

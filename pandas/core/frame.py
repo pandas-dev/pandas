@@ -4233,7 +4233,7 @@ class DataFrame(NDFrame, OpsMixin):
                 return self._getitem_multilevel(key)
             indexer = self.columns.get_loc(key)
             if is_integer(indexer):
-                indexer = [indexer]
+                indexer = [indexer]  # type: ignore[assignment]
         else:
             if is_iterator(key):
                 key = list(key)
@@ -4241,7 +4241,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         # take() does not accept boolean indexers
         if getattr(indexer, "dtype", None) == bool:
-            indexer = np.where(indexer)[0]
+            indexer = np.where(indexer)[0]  # type: ignore[arg-type, assignment]
 
         if isinstance(indexer, slice):
             return self._slice(indexer, axis=1)
@@ -4673,7 +4673,7 @@ class DataFrame(NDFrame, OpsMixin):
             elif is_scalar(loc):
                 locs = [loc]
             else:
-                locs = loc.nonzero()[0]
+                locs = loc.nonzero()[0]  # type: ignore[union-attr]
 
             return self.isetitem(locs, value)
 
@@ -4763,7 +4763,7 @@ class DataFrame(NDFrame, OpsMixin):
                 iindex = cast("int", index)
             else:
                 icol = self.columns.get_loc(col)
-                iindex = self.index.get_loc(index)
+                iindex = self.index.get_loc(index)  # type: ignore[assignment]
             self._mgr.column_setitem(icol, iindex, value, inplace_only=True)
 
         except (KeyError, TypeError, ValueError, LossySetitemError):
@@ -4821,7 +4821,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     def _get_item(self, item: Hashable) -> Series:
         loc = self.columns.get_loc(item)
-        return self._ixs(loc, axis=1)
+        return self._ixs(loc, axis=1)  # type: ignore[arg-type]
 
     # ----------------------------------------------------------------------
     # Unsorted
@@ -7130,13 +7130,13 @@ class DataFrame(NDFrame, OpsMixin):
                 level = [level]
             level = [self.index._get_level_number(lev) for lev in level]
             if len(level) < self.index.nlevels:
-                new_index = self.index.droplevel(level)
+                new_index = self.index.droplevel(level)  # type: ignore[assignment]
 
         if not drop:
             to_insert: Iterable[tuple[Any, Any | None]]
 
             default = "index" if "index" not in self else "level_0"
-            names = self.index._get_default_index_names(names, default)
+            names = self.index._get_default_index_names(names, default)  # type: ignore[arg-type]
 
             if isinstance(self.index, MultiIndex):
                 to_insert = zip(
@@ -7642,7 +7642,7 @@ class DataFrame(NDFrame, OpsMixin):
             if not is_list_like(subset):
                 subset = [cast("Hashable", subset)]
             ax = self._get_axis(agg_axis)
-            indices = ax.get_indexer_for(subset)
+            indices = ax.get_indexer_for(subset)  # type: ignore[arg-type]
             check = indices == -1
             if check.any():
                 raise KeyError(np.array(subset)[check].tolist())
@@ -13366,7 +13366,7 @@ class DataFrame(NDFrame, OpsMixin):
         if ignore_index:
             result.index = default_index(len(result))
         else:
-            result.index = self.index.take(result.index)
+            result.index = self.index.take(result.index)  # type: ignore[arg-type]
         result = result.reindex(columns=self.columns)
 
         return result.__finalize__(self, method="explode")
@@ -17265,8 +17265,7 @@ class DataFrame(NDFrame, OpsMixin):
             result = result.__finalize__(self, method="kurt")
         return result
 
-    # error: Incompatible types in assignment
-    kurtosis = kurt  # type: ignore[assignment]
+    kurtosis = kurt
     product = prod
 
     def cummin(
