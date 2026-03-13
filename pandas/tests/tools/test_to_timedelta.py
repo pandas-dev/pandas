@@ -369,7 +369,7 @@ class TestTimedeltas:
         # just in bounds
         should_succeed = Series([0, tdmax_in_days - 0.005, -tdmax_in_days + 0.005])
         for val in should_succeed:
-            pd.Timedelta(val, unit="D")
+            pd.Timedelta(val, input_unit="D")
         to_timedelta(should_succeed, unit="D")
 
         # just out of bounds
