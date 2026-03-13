@@ -957,10 +957,10 @@ class Index(IndexOpsMixin, PandasObject):
             return tuple(self.__array_wrap__(x) for x in result)
         elif method == "reduce":
             result = lib.item_from_zerodim(result)
-            return maybe_unbox_numpy_scalar(result)  # type: ignore[no-untyped-call]
+            return maybe_unbox_numpy_scalar(result)
         elif is_scalar(result):
             # e.g. matmul
-            return maybe_unbox_numpy_scalar(result)  # type: ignore[no-untyped-call]
+            return maybe_unbox_numpy_scalar(result)
 
         if result.dtype == np.float16:
             result = result.astype(np.float32)
@@ -5501,7 +5501,7 @@ class Index(IndexOpsMixin, PandasObject):
         key = lib.item_from_zerodim(key)
         if is_integer(key) or is_float(key):
             # GH#44051 exclude bool, which would return a 2d ndarray
-            key = com.cast_scalar_indexer(key)  # type: ignore[no-untyped-call]
+            key = com.cast_scalar_indexer(key)
             return getitem(key)  # pyright: ignore[reportReturnType]
 
         if isinstance(key, slice):
@@ -6986,7 +6986,7 @@ class Index(IndexOpsMixin, PandasObject):
                 label,  # pyright: ignore[reportArgumentType]
                 side="right" if side == "left" else "left",
             )
-            return maybe_unbox_numpy_scalar(len(self) - pos)  # type: ignore[no-untyped-call]
+            return maybe_unbox_numpy_scalar(len(self) - pos)
 
         raise ValueError("index must be monotonic increasing or decreasing")
 
@@ -7179,8 +7179,8 @@ class Index(IndexOpsMixin, PandasObject):
             if start_slice == -1:
                 start_slice -= len(self)
 
-        start_slice = maybe_unbox_numpy_scalar(start_slice)  # type: ignore[no-untyped-call]
-        end_slice = maybe_unbox_numpy_scalar(end_slice)  # type: ignore[no-untyped-call]
+        start_slice = maybe_unbox_numpy_scalar(start_slice)
+        end_slice = maybe_unbox_numpy_scalar(end_slice)
         return start_slice, end_slice
 
     def delete(
@@ -7603,7 +7603,7 @@ class Index(IndexOpsMixin, PandasObject):
             # i.e. EA, call _reduce instead of "any" to get TypeError instead
             #  of AttributeError
             return vals._reduce("any")
-        return maybe_unbox_numpy_scalar(np.any(vals))  # type: ignore[no-untyped-call]
+        return maybe_unbox_numpy_scalar(np.any(vals))
 
     def all(self, *args: Any, **kwargs: Any) -> Any:
         """
@@ -7654,7 +7654,7 @@ class Index(IndexOpsMixin, PandasObject):
             # i.e. EA, call _reduce instead of "all" to get TypeError instead
             #  of AttributeError
             return vals._reduce("all")
-        return maybe_unbox_numpy_scalar(np.all(vals))  # type: ignore[no-untyped-call]
+        return maybe_unbox_numpy_scalar(np.all(vals))
 
     @final
     def _maybe_disable_logical_methods(self, opname: str_t) -> None:
@@ -7850,7 +7850,7 @@ class Index(IndexOpsMixin, PandasObject):
             # quick check
             first = self[0]
             if not isna(first):
-                return maybe_unbox_numpy_scalar(first)  # type: ignore[no-untyped-call]
+                return maybe_unbox_numpy_scalar(first)
 
         if not self._is_multi and self.hasnans:
             # Take advantage of cache
@@ -7861,7 +7861,7 @@ class Index(IndexOpsMixin, PandasObject):
         if not self._is_multi and not isinstance(self._values, np.ndarray):
             return self._values._reduce(name="min", skipna=skipna)
 
-        return maybe_unbox_numpy_scalar(nanops.nanmin(self._values, skipna=skipna))  # type: ignore[no-untyped-call]
+        return maybe_unbox_numpy_scalar(nanops.nanmin(self._values, skipna=skipna))
 
     def max(
         self,
@@ -7923,18 +7923,18 @@ class Index(IndexOpsMixin, PandasObject):
             # quick check
             last = self[-1]
             if not isna(last):
-                return maybe_unbox_numpy_scalar(last)  # type: ignore[no-untyped-call]
+                return maybe_unbox_numpy_scalar(last)
 
         if not self._is_multi and self.hasnans:
             # Take advantage of cache
             mask = self._isnan
             if not skipna or mask.all():
-                return maybe_unbox_numpy_scalar(self._na_value)  # type: ignore[no-untyped-call]
+                return maybe_unbox_numpy_scalar(self._na_value)
 
         if not self._is_multi and not isinstance(self._values, np.ndarray):
             return self._values._reduce(name="max", skipna=skipna)
 
-        return maybe_unbox_numpy_scalar(nanops.nanmax(self._values, skipna=skipna))  # type: ignore[no-untyped-call]
+        return maybe_unbox_numpy_scalar(nanops.nanmax(self._values, skipna=skipna))
 
     # --------------------------------------------------------------------
 
