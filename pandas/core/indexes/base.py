@@ -2607,7 +2607,7 @@ class Index(IndexOpsMixin, PandasObject):
     # Null Handling Methods
 
     @cache_readonly
-    def _na_value(self) -> object:
+    def _na_value(self) -> Hashable:
         """The expected NA value to use with this index."""
         dtype = self.dtype
         if isinstance(dtype, np.dtype):
