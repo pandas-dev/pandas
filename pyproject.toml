@@ -536,7 +536,6 @@ module = [
   "pandas.core.arrays.*", # TODO
   "pandas.core.computation.*", # TODO
   "pandas.core.dtypes.astype", # TODO
-  "pandas.core.dtypes.cast", # TODO
   "pandas.core.dtypes.common", # TODO
   "pandas.core.dtypes.concat", # TODO
   "pandas.core.dtypes.dtypes", # TODO
@@ -569,7 +568,6 @@ module = [
   "pandas.core.apply", # TODO
   "pandas.core.arraylike", # TODO
   "pandas.core.base", # TODO
-  "pandas.core.common", # TODO
   "pandas.core.construction", # TODO
   "pandas.core.flags", # TODO
   "pandas.core.frame", # TODO

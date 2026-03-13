@@ -444,7 +444,7 @@ class Apply(metaclass=abc.ABCMeta):
         obj = self.obj
 
         results = []
-        keys = []
+        keys: list[Hashable] = []
 
         # degenerate case
         if selected_obj.ndim == 1:
@@ -1987,7 +1987,8 @@ def relabel_result(
         # mean  1.5
         if reorder_mask:
             fun = [
-                com.get_callable_name(f) if not isinstance(f, str) else f for f in fun
+                com.get_callable_name(f) if not isinstance(f, str) else f  # type: ignore[misc]
+                for f in fun
             ]
             col_idx_order = Index(s.index, copy=False).get_indexer(fun)
             valid_idx = col_idx_order != -1
