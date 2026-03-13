@@ -7,6 +7,7 @@ import pytest
 
 from pandas.compat import (
     is_ci_environment,
+    is_platform_android,
     is_platform_arm,
     is_platform_mac,
     is_platform_windows,
@@ -66,7 +67,12 @@ def s3_base(worker_id, monkeypatch):
     monkeypatch.setenv("AWS_ACCESS_KEY_ID", "foobar_key")
     monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "foobar_secret")
     if is_ci_environment():
-        if is_platform_arm() or is_platform_mac() or is_platform_windows():
+        if (
+            is_platform_arm()
+            or is_platform_mac()
+            or is_platform_windows()
+            or is_platform_android()
+        ):
             # NOT RUN on Windows/macOS, only Ubuntu
             # - subprocess in CI can cause timeouts
             # - GitHub Actions do not support
