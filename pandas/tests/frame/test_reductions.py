@@ -11,6 +11,7 @@ from pandas.compat import (
     is_platform_windows,
 )
 from pandas.compat.numpy import np_version_gt2
+from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -1762,7 +1763,7 @@ class TestDataFrameReductions:
             "Passing non-bool values for numeric_only is deprecated and will "
             "raise in a future version. Pass True or False instead."
         )
-        with tm.assert_produces_warning(FutureWarning, match=re.escape(msg)):
+        with tm.assert_produces_warning(Pandas4Warning, match=re.escape(msg)):
             result = getattr(obj, method)(numeric_only=numeric_only)
         tm.assert_equal(result, expected)
 
@@ -1776,7 +1777,7 @@ class TestDataFrameReductions:
             "Passing non-bool values for numeric_only is deprecated and will "
             "raise in a future version. Pass True or False instead."
         )
-        with tm.assert_produces_warning(FutureWarning, match=re.escape(msg)):
+        with tm.assert_produces_warning(Pandas4Warning, match=re.escape(msg)):
             result = df.sum(numeric_only=numeric_only)
         tm.assert_series_equal(result, expected)
 

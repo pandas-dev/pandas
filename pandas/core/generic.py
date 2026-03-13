@@ -11743,7 +11743,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         warnings.warn(
             "Passing non-bool values for numeric_only is deprecated and will "
             "raise in a future version. Pass True or False instead.",
-            FutureWarning,
+            Pandas4Warning,
             stacklevel=find_stack_level(),
         )
         return bool(numeric_only)
