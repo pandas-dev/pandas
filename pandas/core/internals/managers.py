@@ -2488,9 +2488,7 @@ def _merge_blocks(
         if isinstance(blocks[0].dtype, np.dtype):
             # Use np.concatenate directly instead of np.vstack to avoid the
             # overhead of atleast_2d calls (block values are always 2D)
-            new_values = np.concatenate(  # type: ignore[misc]
-                [b.values for b in blocks], axis=0
-            )
+            new_values = np.concatenate([b.values for b in blocks], axis=0)
         else:
             bvals = [blk.values for blk in blocks]
             bvals2 = cast("Sequence[NDArrayBackedExtensionArray]", bvals)
