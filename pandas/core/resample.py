@@ -2738,13 +2738,13 @@ class TimeGrouper(Grouper):
 
         end_stamps = labels
         if self.closed == "left":
-            end_stamps += self.freq  # type: ignore[misc]
+            end_stamps += self.freq
 
         bins = ax.searchsorted(end_stamps, side=self.closed)
 
         if self.offset:
             # GH 10530 & 31809
-            labels += self.offset  # type: ignore[misc]
+            labels += self.offset
 
         return binner, bins, labels
 

@@ -4302,10 +4302,10 @@ class Index(IndexOpsMixin, PandasObject):
             # TODO: tests where passing `keep_order=not self._is_multi`
             #  makes a difference for non-MultiIndex case
             target, indexer, _ = self._join_level(
-                target,
+                target,  # type: ignore[arg-type]
                 level,
                 how="right",
-                keep_order=not self._is_multi,  # type: ignore[arg-type]
+                keep_order=not self._is_multi,
             )
 
         elif self.equals(target):

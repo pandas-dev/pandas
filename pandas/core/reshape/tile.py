@@ -424,11 +424,11 @@ def _nbins_to_bins(x_idx: Index, nbins: int, right: bool) -> Index:
             # error: Item "ExtensionArray" of "ExtensionArray | ndarray[Any, Any]"
             # has no attribute "_generate_range"
             bins = x_idx._values._generate_range(  # type: ignore[union-attr]
-                start=mn - td,
-                end=mx + td,
+                start=mn - td,  # type: ignore[operator]
+                end=mx + td,  # type: ignore[operator]
                 periods=nbins + 1,
                 freq=None,
-                unit=unit,  # type: ignore[operator]
+                unit=unit,
             )
         else:
             mn -= 0.001 * abs(mn) if mn != 0 else 0.001  # type: ignore[operator, arg-type]

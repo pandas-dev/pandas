@@ -410,7 +410,7 @@ class Holiday:
             return dates.copy()
 
         if self.observance is not None:
-            return dates.map(lambda d: self.observance(d))  # pyright: ignore[reportOptionalCall]
+            return dates.map(lambda d: self.observance(d))  # type: ignore[return-value, misc]  # pyright: ignore[reportOptionalCall]
 
         if self.offset is not None:
             if not isinstance(self.offset, list):
@@ -422,7 +422,7 @@ class Holiday:
                 # ignore the PerformanceWarnings:
                 with warnings.catch_warnings():
                     warnings.simplefilter("ignore", PerformanceWarning)
-                    dates += offset  # type: ignore[misc]
+                    dates += offset
         return dates
 
 
