@@ -51,7 +51,23 @@ cdef class PeriodDtypeBase:
         return Resolution.from_attrname(attrname)
 
     @property
-    def _freqstr(self) -> str:
+    def unit(self) -> str:
+        """
+        The unit string of this PeriodDtype.
+
+        The unit string represents the span of time that elements of this
+        PeriodDtype cover, e.g. "D", "M", "h", "m", "s".
+
+        See Also
+        --------
+        DatetimeTZDtype.unit : Analogous property for DatetimeTZDtype.
+
+        Examples
+        --------
+        >>> dtype = pd.PeriodDtype("D")
+        >>> dtype.unit
+        'D'
+        """
         # Will be passed to to_offset in Period._maybe_convert_freq
         out = _period_code_to_abbrev.get(self._dtype_code)
         if self._n == 1:
