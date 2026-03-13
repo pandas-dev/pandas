@@ -6983,8 +6983,8 @@ class Index(IndexOpsMixin, PandasObject):
             # everything for it to work (element ordering, search side and
             # resulting value).
             pos = self[::-1].searchsorted(  # type: ignore[call-overload]
-                label,
-                side="right" if side == "left" else "left",  # pyright: ignore[reportArgumentType]
+                label,  # pyright: ignore[reportArgumentType]
+                side="right" if side == "left" else "left",
             )
             return maybe_unbox_numpy_scalar(len(self) - pos)  # type: ignore[no-untyped-call]
 
