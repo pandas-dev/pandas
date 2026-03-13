@@ -470,7 +470,7 @@ class MPLPlot(ABC):
 
         if self.style is not None:
             if isinstance(self.style, dict):
-                styles = [self.style[col] for col in self.columns if col in self.style]  # pyright: ignore[reportOptionalIterable]
+                styles = [self.style[col] for col in self.columns if col in self.style]  # type: ignore[union-attr]  # pyright: ignore[reportOptionalIterable]
             elif is_list_like(self.style):
                 styles = self.style
             else:
@@ -504,7 +504,7 @@ class MPLPlot(ABC):
         elif self.by is not None and self._kind == "hist":
             return len(self._grouped)
         elif self.by is not None and self._kind == "box":
-            return len(self.columns)
+            return len(self.columns)  # type: ignore[arg-type]
         else:
             return data.shape[1]
 
@@ -677,7 +677,7 @@ class MPLPlot(ABC):
             else:
                 data = data.to_frame(name=label)
         elif self._kind in ("hist", "box"):
-            cols = self.columns if self.by is None else self.columns + self.by
+            cols = self.columns if self.by is None else self.columns + self.by  # type: ignore[operator]
             data = data.loc[:, cols]
         return data
 
