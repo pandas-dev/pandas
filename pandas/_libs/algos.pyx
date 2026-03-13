@@ -1494,8 +1494,8 @@ cdef void accumulate_moments_axis(
         Py_ssize_t nouter, ninner
         bint uses_mask = mask is not None
         float64_t val
-        float64_t* m3_ptr
-        float64_t* m4_ptr
+        float64_t* m3_ptr = NULL
+        float64_t* m4_ptr = NULL
 
     if axis == 0:
         # Assumes F-contiguous
