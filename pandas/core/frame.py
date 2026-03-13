@@ -17265,8 +17265,7 @@ class DataFrame(NDFrame, OpsMixin):
             result = result.__finalize__(self, method="kurt")
         return result
 
-    # error: Incompatible types in assignment
-    kurtosis = kurt  # type: ignore[assignment]
+    kurtosis = kurt
     product = prod
 
     def cummin(

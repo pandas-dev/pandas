@@ -964,7 +964,7 @@ class _MergeOperation:
         self.right = self.orig_right = _right
         self.how, self.anti_join = self._validate_how(how)
 
-        self.on = com.maybe_make_list(on)
+        self.on = com.maybe_make_list(on)  # type: ignore[assignment]
 
         self.suffixes = suffixes
         self.sort = sort or how == "outer"
