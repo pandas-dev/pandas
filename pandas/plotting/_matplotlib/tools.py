@@ -1,745 +1,484 @@
-""" Test cases for .boxplot method """
+# being a bit too dynamic
+from __future__ import annotations
 
-import itertools
-import string
+from math import ceil
+from typing import TYPE_CHECKING
+import warnings
 
+from matplotlib import ticker
+import matplotlib.table
 import numpy as np
-import pytest
 
-from pandas import (
-    DataFrame,
-    MultiIndex,
-    Series,
-    date_range,
-    plotting,
-    timedelta_range,
-)
-import pandas._testing as tm
-from pandas.tests.plotting.common import (
-    _check_axes_shape,
-    _check_box_return_type,
-    _check_plot_works,
-    _check_ticks_props,
-    _check_visible,
+from pandas.util._exceptions import find_stack_level
+
+from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCIndex,
+    ABCSeries,
 )
 
-from pandas.io.formats.printing import pprint_thing
-
-mpl = pytest.importorskip("matplotlib")
-plt = pytest.importorskip("matplotlib.pyplot")
-
-
-def _check_ax_limits(col, ax):
-    y_min, y_max = ax.get_ylim()
-    assert y_min <= col.min()
-    assert y_max >= col.max()
-
-
-class TestDataFramePlots:
-    def test_stacked_boxplot_set_axis(self):
-        # GH2980
-        import matplotlib.pyplot as plt
-
-        n = 80
-        df = DataFrame(
-            {
-                "Clinical": np.random.default_rng(2).choice([0, 1, 2, 3], n),
-                "Confirmed": np.random.default_rng(2).choice([0, 1, 2, 3], n),
-                "Discarded": np.random.default_rng(2).choice([0, 1, 2, 3], n),
-            },
-            index=np.arange(0, n),
-        )
-        ax = df.plot(kind="bar", stacked=True)
-        assert [int(x.get_text()) for x in ax.get_xticklabels()] == df.index.to_list()
-        ax.set_xticks(np.arange(0, 80, 10))
-        plt.draw()  # Update changes
-        assert [int(x.get_text()) for x in ax.get_xticklabels()] == list(
-            np.arange(0, 80, 10)
-        )
-
-    @pytest.mark.slow
-    @pytest.mark.parametrize(
-        "kwargs, warn",
-        [
-            [{"return_type": "dict"}, None],
-            [{"column": ["one", "two"]}, None],
-            [{"column": ["one", "two"], "by": "indic"}, UserWarning],
-            [{"column": ["one"], "by": ["indic", "indic2"]}, None],
-            [{"by": "indic"}, UserWarning],
-            [{"by": ["indic", "indic2"]}, UserWarning],
-            [{"notch": 1}, None],
-            [{"by": "indic", "notch": 1}, UserWarning],
-        ],
+if TYPE_CHECKING:
+    from collections.abc import (
+        Iterable,
+        Sequence,
     )
-    def test_boxplot_legacy1(self, kwargs, warn):
-        df = DataFrame(
-            np.random.default_rng(2).standard_normal((6, 4)),
-            index=list(string.ascii_letters[:6]),
-            columns=["one", "two", "three", "four"],
-        )
-        df["indic"] = ["foo", "bar"] * 3
-        df["indic2"] = ["foo", "bar", "foo"] * 2
 
-        # _check_plot_works can add an ax so catch warning. see GH #13188
-        with tm.assert_produces_warning(warn, check_stacklevel=False):
-            _check_plot_works(df.boxplot, **kwargs)
+    from matplotlib.axes import Axes
+    from matplotlib.axis import Axis
+    from matplotlib.figure import Figure
+    from matplotlib.lines import Line2D
+    from matplotlib.table import Table
 
-    def test_boxplot_legacy1_series(self):
-        ser = Series(np.random.default_rng(2).standard_normal(6))
-        _check_plot_works(plotting._core.boxplot, data=ser, return_type="dict")
-
-    def test_boxplot_legacy2(self):
-        df = DataFrame(
-            np.random.default_rng(2).random((10, 2)), columns=["Col1", "Col2"]
-        )
-        df["X"] = Series(["A", "A", "A", "A", "A", "B", "B", "B", "B", "B"])
-        df["Y"] = Series(["A"] * 10)
-        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
-            _check_plot_works(df.boxplot, by="X")
-
-    def test_boxplot_legacy2_with_ax(self):
-        df = DataFrame(
-            np.random.default_rng(2).random((10, 2)), columns=["Col1", "Col2"]
-        )
-        df["X"] = Series(["A", "A", "A", "A", "A", "B", "B", "B", "B", "B"])
-        df["Y"] = Series(["A"] * 10)
-        # When ax is supplied and required number of axes is 1,
-        # passed ax should be used:
-        _, ax = mpl.pyplot.subplots()
-        axes = df.boxplot("Col1", by="X", ax=ax)
-        ax_axes = ax.axes
-        assert ax_axes is axes
-
-    def test_boxplot_legacy2_with_ax_return_type(self):
-        df = DataFrame(
-            np.random.default_rng(2).random((10, 2)), columns=["Col1", "Col2"]
-        )
-        df["X"] = Series(["A", "A", "A", "A", "A", "B", "B", "B", "B", "B"])
-        df["Y"] = Series(["A"] * 10)
-        fig, ax = mpl.pyplot.subplots()
-        axes = df.groupby("Y").boxplot(ax=ax, return_type="axes")
-        ax_axes = ax.axes
-        assert ax_axes is axes["A"]
-
-    def test_boxplot_legacy2_with_multi_col(self):
-        df = DataFrame(
-            np.random.default_rng(2).random((10, 2)), columns=["Col1", "Col2"]
-        )
-        df["X"] = Series(["A", "A", "A", "A", "A", "B", "B", "B", "B", "B"])
-        df["Y"] = Series(["A"] * 10)
-        # Multiple columns with an ax argument should use same figure
-        fig, ax = mpl.pyplot.subplots()
-        with tm.assert_produces_warning(UserWarning):
-            axes = df.boxplot(
-                column=["Col1", "Col2"], by="X", ax=ax, return_type="axes"
-            )
-        assert axes["Col1"].get_figure() is fig
-
-    def test_boxplot_legacy2_by_none(self):
-        df = DataFrame(
-            np.random.default_rng(2).random((10, 2)), columns=["Col1", "Col2"]
-        )
-        df["X"] = Series(["A", "A", "A", "A", "A", "B", "B", "B", "B", "B"])
-        df["Y"] = Series(["A"] * 10)
-        # When by is None, check that all relevant lines are present in the
-        # dict
-        _, ax = mpl.pyplot.subplots()
-        d = df.boxplot(ax=ax, return_type="dict")
-        lines = list(itertools.chain.from_iterable(d.values()))
-        assert len(ax.get_lines()) == len(lines)
-
-    def test_boxplot_return_type_none(self, hist_df):
-        # GH 12216; return_type=None & by=None -> axes
-        result = hist_df.boxplot()
-        assert isinstance(result, mpl.pyplot.Axes)
-
-    def test_boxplot_return_type_legacy(self):
-        # API change in https://github.com/pandas-dev/pandas/pull/7096
-
-        df = DataFrame(
-            np.random.default_rng(2).standard_normal((6, 4)),
-            index=list(string.ascii_letters[:6]),
-            columns=["one", "two", "three", "four"],
-        )
-        msg = "return_type must be {'axes', 'dict', 'both'}"
-        with pytest.raises(ValueError, match=msg):
-            df.boxplot(return_type="NOT_A_TYPE")
-
-        result = df.boxplot()
-        _check_box_return_type(result, "axes")
-
-    @pytest.mark.parametrize("return_type", ["dict", "axes", "both"])
-    def test_boxplot_return_type_legacy_return_type(self, return_type):
-        # API change in https://github.com/pandas-dev/pandas/pull/7096
-
-        df = DataFrame(
-            np.random.default_rng(2).standard_normal((6, 4)),
-            index=list(string.ascii_letters[:6]),
-            columns=["one", "two", "three", "four"],
-        )
-        with tm.assert_produces_warning(False):
-            result = df.boxplot(return_type=return_type)
-        _check_box_return_type(result, return_type)
-
-    def test_boxplot_axis_limits(self, hist_df):
-        df = hist_df.copy()
-        df["age"] = np.random.default_rng(2).integers(1, 20, df.shape[0])
-        # One full row
-        height_ax, weight_ax = df.boxplot(["height", "weight"], by="category")
-        _check_ax_limits(df["height"], height_ax)
-        _check_ax_limits(df["weight"], weight_ax)
-        assert weight_ax._sharey == height_ax
-
-    def test_boxplot_axis_limits_two_rows(self, hist_df):
-        df = hist_df.copy()
-        df["age"] = np.random.default_rng(2).integers(1, 20, df.shape[0])
-        # Two rows, one partial
-        p = df.boxplot(["height", "weight", "age"], by="category")
-        height_ax, weight_ax, age_ax = p[0, 0], p[0, 1], p[1, 0]
-        dummy_ax = p[1, 1]
-
-        _check_ax_limits(df["height"], height_ax)
-        _check_ax_limits(df["weight"], weight_ax)
-        _check_ax_limits(df["age"], age_ax)
-        assert weight_ax._sharey == height_ax
-        assert age_ax._sharey == height_ax
-        assert dummy_ax._sharey is None
-
-    def test_boxplot_empty_column(self):
-        df = DataFrame(np.random.default_rng(2).standard_normal((20, 4)))
-        df.loc[:, 0] = np.nan
-        _check_plot_works(df.boxplot, return_type="axes")
-
-    def test_figsize(self):
-        df = DataFrame(
-            np.random.default_rng(2).random((10, 5)), columns=["A", "B", "C", "D", "E"]
-        )
-        result = df.boxplot(return_type="axes", figsize=(12, 8))
-        assert result.figure.bbox_inches.width == 12
-        assert result.figure.bbox_inches.height == 8
-
-    def test_fontsize(self):
-        df = DataFrame({"a": [1, 2, 3, 4, 5, 6]})
-        _check_ticks_props(df.boxplot("a", fontsize=16), xlabelsize=16, ylabelsize=16)
-
-    def test_boxplot_numeric_data(self):
-        # GH 22799
-        df = DataFrame(
-            {
-                "a": date_range("2012-01-01", periods=100),
-                "b": np.random.default_rng(2).standard_normal(100),
-                "c": np.random.default_rng(2).standard_normal(100) + 2,
-                "d": date_range("2012-01-01", periods=100).astype(str),
-                "e": date_range("2012-01-01", periods=100, tz="UTC"),
-                "f": timedelta_range("1 days", periods=100),
-            }
-        )
-        ax = df.plot(kind="box")
-        assert [x.get_text() for x in ax.get_xticklabels()] == ["b", "c"]
-
-    @pytest.mark.parametrize(
-        "colors_kwd, expected",
-        [
-            (
-                {"boxes": "r", "whiskers": "b", "medians": "g", "caps": "c"},
-                {"boxes": "r", "whiskers": "b", "medians": "g", "caps": "c"},
-            ),
-            ({"boxes": "r"}, {"boxes": "r"}),
-            ("r", {"boxes": "r", "whiskers": "r", "medians": "r", "caps": "r"}),
-        ],
+    from pandas import (
+        DataFrame,
+        Series,
     )
-    def test_color_kwd(self, colors_kwd, expected):
-        # GH: 26214
-        df = DataFrame(np.random.default_rng(2).random((10, 2)))
-        result = df.boxplot(color=colors_kwd, return_type="dict")
-        for k, v in expected.items():
-            assert result[k][0].get_color() == v
 
-    @pytest.mark.parametrize(
-        "scheme,expected",
-        [
-            (
-                "dark_background",
-                {
-                    "boxes": "#8dd3c7",
-                    "whiskers": "#8dd3c7",
-                    "medians": "#bfbbd9",
-                    "caps": "#8dd3c7",
-                },
-            ),
-            (
-                "default",
-                {
-                    "boxes": "#1f77b4",
-                    "whiskers": "#1f77b4",
-                    "medians": "#2ca02c",
-                    "caps": "#1f77b4",
-                },
-            ),
-        ],
+
+def do_adjust_figure(fig: Figure) -> bool:
+    """Whether fig has constrained_layout enabled."""
+    if not hasattr(fig, "get_constrained_layout"):
+        return False
+    return not fig.get_constrained_layout()
+
+
+def maybe_adjust_figure(fig: Figure, *args, **kwargs) -> None:
+    """Call fig.subplots_adjust unless fig has constrained_layout enabled."""
+    if do_adjust_figure(fig):
+        fig.subplots_adjust(*args, **kwargs)
+
+
+def format_date_labels(ax: Axes, rot) -> None:
+    # mini version of autofmt_xdate
+    for label in ax.get_xticklabels():
+        label.set_ha("right")
+        label.set_rotation(rot)
+    fig = ax.get_figure()
+    maybe_adjust_figure(fig, bottom=0.2)
+
+
+def table(
+    ax, data: DataFrame | Series, rowLabels=None, colLabels=None, **kwargs
+) -> Table:
+    if isinstance(data, ABCSeries):
+        data = data.to_frame()
+    elif isinstance(data, ABCDataFrame):
+        pass
+    else:
+        raise ValueError("Input data must be DataFrame or Series")
+
+    if rowLabels is None:
+        rowLabels = data.index
+
+    if colLabels is None:
+        colLabels = data.columns
+
+    cellText = data.values
+
+    return matplotlib.table.table(
+        ax, cellText=cellText, rowLabels=rowLabels, colLabels=colLabels, **kwargs
     )
-    def test_colors_in_theme(self, scheme, expected):
-        # GH: 40769
-        df = DataFrame(np.random.default_rng(2).random((10, 2)))
-        import matplotlib.pyplot as plt
-
-        plt.style.use(scheme)
-        result = df.plot.box(return_type="dict")
-        for k, v in expected.items():
-            assert result[k][0].get_color() == v
-
-    @pytest.mark.parametrize(
-        "dict_colors, msg",
-        [({"boxes": "r", "invalid_key": "r"}, "invalid key 'invalid_key'")],
-    )
-    def test_color_kwd_errors(self, dict_colors, msg):
-        # GH: 26214
-        df = DataFrame(np.random.default_rng(2).random((10, 2)))
-        with pytest.raises(ValueError, match=msg):
-            df.boxplot(color=dict_colors, return_type="dict")
-
-    @pytest.mark.parametrize(
-        "props, expected",
-        [
-            ("boxprops", "boxes"),
-            ("whiskerprops", "whiskers"),
-            ("capprops", "caps"),
-            ("medianprops", "medians"),
-        ],
-    )
-    def test_specified_props_kwd(self, props, expected):
-        # GH 30346
-        df = DataFrame({k: np.random.default_rng(2).random(10) for k in "ABC"})
-        kwd = {props: {"color": "C1"}}
-        result = df.boxplot(return_type="dict", **kwd)
-
-        assert result[expected][0].get_color() == "C1"
-
-    @pytest.mark.parametrize("vert", [True, False])
-    def test_plot_xlabel_ylabel(self, vert):
-        df = DataFrame(
-            {
-                "a": np.random.default_rng(2).standard_normal(10),
-                "b": np.random.default_rng(2).standard_normal(10),
-                "group": np.random.default_rng(2).choice(["group1", "group2"], 10),
-            }
-        )
-        xlabel, ylabel = "x", "y"
-        ax = df.plot(kind="box", vert=vert, xlabel=xlabel, ylabel=ylabel)
-        assert ax.get_xlabel() == xlabel
-        assert ax.get_ylabel() == ylabel
-
-    @pytest.mark.parametrize("vert", [True, False])
-    def test_boxplot_xlabel_ylabel(self, vert):
-        df = DataFrame(
-            {
-                "a": np.random.default_rng(2).standard_normal(10),
-                "b": np.random.default_rng(2).standard_normal(10),
-                "group": np.random.default_rng(2).choice(["group1", "group2"], 10),
-            }
-        )
-        xlabel, ylabel = "x", "y"
-        ax = df.boxplot(vert=vert, xlabel=xlabel, ylabel=ylabel)
-        assert ax.get_xlabel() == xlabel
-        assert ax.get_ylabel() == ylabel
-
-    @pytest.mark.parametrize("vert", [True, False])
-    def test_boxplot_group_xlabel_ylabel(self, vert):
-        df = DataFrame(
-            {
-                "a": np.random.default_rng(2).standard_normal(10),
-                "b": np.random.default_rng(2).standard_normal(10),
-                "group": np.random.default_rng(2).choice(["group1", "group2"], 10),
-            }
-        )
-        xlabel, ylabel = "x", "y"
-        ax = df.boxplot(by="group", vert=vert, xlabel=xlabel, ylabel=ylabel)
-        for subplot in ax:
-            assert subplot.get_xlabel() == xlabel
-            assert subplot.get_ylabel() == ylabel
-        mpl.pyplot.close()
-
-    @pytest.mark.parametrize("vert", [True, False])
-    def test_boxplot_group_no_xlabel_ylabel(self, vert):
-        df = DataFrame(
-            {
-                "a": np.random.default_rng(2).standard_normal(10),
-                "b": np.random.default_rng(2).standard_normal(10),
-                "group": np.random.default_rng(2).choice(["group1", "group2"], 10),
-            }
-        )
-        ax = df.boxplot(by="group", vert=vert)
-        for subplot in ax:
-            target_label = subplot.get_xlabel() if vert else subplot.get_ylabel()
-            assert target_label == pprint_thing(["group"])
-        mpl.pyplot.close()
 
 
-class TestDataFrameGroupByPlots:
-    def test_boxplot_legacy1(self, hist_df):
-        grouped = hist_df.groupby(by="gender")
-        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
-            axes = _check_plot_works(grouped.boxplot, return_type="axes")
-        _check_axes_shape(list(axes.values), axes_num=2, layout=(1, 2))
+def _get_layout(
+    nplots: int,
+    layout: tuple[int, int] | None = None,
+    layout_type: str = "box",
+) -> tuple[int, int]:
+    if layout is not None:
+        if not isinstance(layout, (tuple, list)) or len(layout) != 2:
+            raise ValueError("Layout must be a tuple of (rows, columns)")
 
-    def test_boxplot_legacy1_return_type(self, hist_df):
-        grouped = hist_df.groupby(by="gender")
-        axes = _check_plot_works(grouped.boxplot, subplots=False, return_type="axes")
-        _check_axes_shape(axes, axes_num=1, layout=(1, 1))
+        nrows, ncols = layout
 
-    @pytest.mark.slow
-    def test_boxplot_legacy2(self):
-        tuples = zip(string.ascii_letters[:10], range(10))
-        df = DataFrame(
-            np.random.default_rng(2).random((10, 3)),
-            index=MultiIndex.from_tuples(tuples),
-        )
-        grouped = df.groupby(level=1)
-        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
-            axes = _check_plot_works(grouped.boxplot, return_type="axes")
-        _check_axes_shape(list(axes.values), axes_num=10, layout=(4, 3))
+        if nrows == -1 and ncols > 0:
+            layout = nrows, ncols = (ceil(nplots / ncols), ncols)
+        elif ncols == -1 and nrows > 0:
+            layout = nrows, ncols = (nrows, ceil(nplots / nrows))
+        elif ncols <= 0 and nrows <= 0:
+            msg = "At least one dimension of layout must be positive"
+            raise ValueError(msg)
 
-    @pytest.mark.slow
-    def test_boxplot_legacy2_return_type(self):
-        tuples = zip(string.ascii_letters[:10], range(10))
-        df = DataFrame(
-            np.random.default_rng(2).random((10, 3)),
-            index=MultiIndex.from_tuples(tuples),
-        )
-        grouped = df.groupby(level=1)
-        axes = _check_plot_works(grouped.boxplot, subplots=False, return_type="axes")
-        _check_axes_shape(axes, axes_num=1, layout=(1, 1))
-
-    @pytest.mark.parametrize(
-        "subplots, warn, axes_num, layout",
-        [[True, UserWarning, 3, (2, 2)], [False, None, 1, (1, 1)]],
-    )
-    def test_boxplot_legacy3(self, subplots, warn, axes_num, layout):
-        tuples = zip(string.ascii_letters[:10], range(10))
-        df = DataFrame(
-            np.random.default_rng(2).random((10, 3)),
-            index=MultiIndex.from_tuples(tuples),
-        )
-        msg = "DataFrame.groupby with axis=1 is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            grouped = df.unstack(level=1).groupby(level=0, axis=1)
-        with tm.assert_produces_warning(warn, check_stacklevel=False):
-            axes = _check_plot_works(
-                grouped.boxplot, subplots=subplots, return_type="axes"
-            )
-        _check_axes_shape(axes, axes_num=axes_num, layout=layout)
-
-    def test_grouped_plot_fignums(self):
-        n = 10
-        weight = Series(np.random.default_rng(2).normal(166, 20, size=n))
-        height = Series(np.random.default_rng(2).normal(60, 10, size=n))
-        gender = np.random.default_rng(2).choice(["male", "female"], size=n)
-        df = DataFrame({"height": height, "weight": weight, "gender": gender})
-        gb = df.groupby("gender")
-
-        res = gb.plot()
-        assert len(mpl.pyplot.get_fignums()) == 2
-        assert len(res) == 2
-        plt.close("all")
-
-        res = gb.boxplot(return_type="axes")
-        assert len(mpl.pyplot.get_fignums()) == 1
-        assert len(res) == 2
-
-    def test_grouped_plot_fignums_excluded_col(self):
-        n = 10
-        weight = Series(np.random.default_rng(2).normal(166, 20, size=n))
-        height = Series(np.random.default_rng(2).normal(60, 10, size=n))
-        gender = np.random.default_rng(2).choice(["male", "female"], size=n)
-        df = DataFrame({"height": height, "weight": weight, "gender": gender})
-        # now works with GH 5610 as gender is excluded
-        df.groupby("gender").hist()
-
-    @pytest.mark.slow
-    def test_grouped_box_return_type(self, hist_df):
-        df = hist_df
-
-        # old style: return_type=None
-        result = df.boxplot(by="gender")
-        assert isinstance(result, np.ndarray)
-        _check_box_return_type(
-            result, None, expected_keys=["height", "weight", "category"]
-        )
-
-    @pytest.mark.slow
-    def test_grouped_box_return_type_groupby(self, hist_df):
-        df = hist_df
-        # now for groupby
-        result = df.groupby("gender").boxplot(return_type="dict")
-        _check_box_return_type(result, "dict", expected_keys=["Male", "Female"])
-
-    @pytest.mark.slow
-    @pytest.mark.parametrize("return_type", ["dict", "axes", "both"])
-    def test_grouped_box_return_type_arg(self, hist_df, return_type):
-        df = hist_df
-
-        returned = df.groupby("classroom").boxplot(return_type=return_type)
-        _check_box_return_type(returned, return_type, expected_keys=["A", "B", "C"])
-
-        returned = df.boxplot(by="classroom", return_type=return_type)
-        _check_box_return_type(
-            returned, return_type, expected_keys=["height", "weight", "category"]
-        )
-
-    @pytest.mark.slow
-    @pytest.mark.parametrize("return_type", ["dict", "axes", "both"])
-    def test_grouped_box_return_type_arg_duplcate_cats(self, return_type):
-        columns2 = "X B C D A".split()
-        df2 = DataFrame(
-            np.random.default_rng(2).standard_normal((6, 5)), columns=columns2
-        )
-        categories2 = "A B".split()
-        df2["category"] = categories2 * 3
-
-        returned = df2.groupby("category").boxplot(return_type=return_type)
-        _check_box_return_type(returned, return_type, expected_keys=categories2)
-
-        returned = df2.boxplot(by="category", return_type=return_type)
-        _check_box_return_type(returned, return_type, expected_keys=columns2)
-
-    @pytest.mark.slow
-    def test_grouped_box_layout_too_small(self, hist_df):
-        df = hist_df
-
-        msg = "Layout of 1x1 must be larger than required size 2"
-        with pytest.raises(ValueError, match=msg):
-            df.boxplot(column=["weight", "height"], by=df.gender, layout=(1, 1))
-
-    @pytest.mark.slow
-    def test_grouped_box_layout_needs_by(self, hist_df):
-        df = hist_df
-        msg = "The 'layout' keyword is not supported when 'by' is None"
-        with pytest.raises(ValueError, match=msg):
-            df.boxplot(
-                column=["height", "weight", "category"],
-                layout=(2, 1),
-                return_type="dict",
+        if nrows * ncols < nplots:
+            raise ValueError(
+                f"Layout of {nrows}x{ncols} must be larger than required size {nplots}"
             )
 
-    @pytest.mark.slow
-    def test_grouped_box_layout_positive_layout(self, hist_df):
-        df = hist_df
-        msg = "At least one dimension of layout must be positive"
-        with pytest.raises(ValueError, match=msg):
-            df.boxplot(column=["weight", "height"], by=df.gender, layout=(-1, -1))
+        return layout
 
-    @pytest.mark.slow
-    @pytest.mark.parametrize(
-        "gb_key, axes_num, rows",
-        [["gender", 2, 1], ["category", 4, 2], ["classroom", 3, 2]],
-    )
-    def test_grouped_box_layout_positive_layout_axes(
-        self, hist_df, gb_key, axes_num, rows
-    ):
-        df = hist_df
-        # _check_plot_works adds an ax so catch warning. see GH #13188 GH 6769
-        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
-            _check_plot_works(
-                df.groupby(gb_key).boxplot, column="height", return_type="dict"
+    if layout_type == "single":
+        return (1, 1)
+    elif layout_type == "horizontal":
+        return (1, nplots)
+    elif layout_type == "vertical":
+        return (nplots, 1)
+
+    layouts = {1: (1, 1), 2: (1, 2), 3: (2, 2), 4: (2, 2)}
+    try:
+        return layouts[nplots]
+    except KeyError:
+        k = 1
+        while k**2 < nplots:
+            k += 1
+
+        if (k - 1) * k >= nplots:
+            return k, (k - 1)
+        else:
+            return k, k
+
+
+# copied from matplotlib/pyplot.py and modified for pandas.plotting
+
+
+def create_subplots(
+    naxes: int,
+    sharex: bool = False,
+    sharey: bool = False,
+    squeeze: bool = True,
+    subplot_kw=None,
+    ax=None,
+    layout=None,
+    layout_type: str = "box",
+    **fig_kw,
+):
+    """
+    Create a figure with a set of subplots already made.
+
+    This utility wrapper makes it convenient to create common layouts of
+    subplots, including the enclosing figure object, in a single call.
+
+    Parameters
+    ----------
+    naxes : int
+      Number of required axes. Exceeded axes are set invisible. Default is
+      nrows * ncols.
+
+    sharex : bool
+      If True, the X axis will be shared amongst all subplots.
+
+    sharey : bool
+      If True, the Y axis will be shared amongst all subplots.
+
+    squeeze : bool
+
+      If True, extra dimensions are squeezed out from the returned axis object:
+        - if only one subplot is constructed (nrows=ncols=1), the resulting
+        single Axis object is returned as a scalar.
+        - for Nx1 or 1xN subplots, the returned object is a 1-d numpy object
+        array of Axis objects are returned as numpy 1-d arrays.
+        - for NxM subplots with N>1 and M>1 are returned as a 2d array.
+
+      If False, no squeezing is done: the returned axis object is always
+      a 2-d array containing Axis instances, even if it ends up being 1x1.
+
+    subplot_kw : dict
+      Dict with keywords passed to the add_subplot() call used to create each
+      subplots.
+
+    ax : Matplotlib axis object, optional
+
+    layout : tuple
+      Number of rows and columns of the subplot grid.
+      If not specified, calculated from naxes and layout_type
+
+    layout_type : {'box', 'horizontal', 'vertical'}, default 'box'
+      Specify how to layout the subplot grid.
+
+    fig_kw : Other keyword arguments to be passed to the figure() call.
+        Note that all keywords not recognized above will be
+        automatically included here.
+
+    Returns
+    -------
+    fig, ax : tuple
+      - fig is the Matplotlib Figure object
+      - ax can be either a single axis object or an array of axis objects if
+      more than one subplot was created.  The dimensions of the resulting array
+      can be controlled with the squeeze keyword, see above.
+
+    Examples
+    --------
+    x = np.linspace(0, 2*np.pi, 400)
+    y = np.sin(x**2)
+
+    # Just a figure and one subplot
+    f, ax = plt.subplots()
+    ax.plot(x, y)
+    ax.set_title('Simple plot')
+
+    # Two subplots, unpack the output array immediately
+    f, (ax1, ax2) = plt.subplots(1, 2, sharey=True)
+    ax1.plot(x, y)
+    ax1.set_title('Sharing Y axis')
+    ax2.scatter(x, y)
+
+    # Four polar axes
+    plt.subplots(2, 2, subplot_kw=dict(polar=True))
+    """
+    import matplotlib.pyplot as plt
+
+    if subplot_kw is None:
+        subplot_kw = {}
+
+    if ax is None:
+        fig = plt.figure(**fig_kw)
+    else:
+        if is_list_like(ax):
+            if squeeze:
+                ax = flatten_axes(ax)
+            if layout is not None:
+                warnings.warn(
+                    "When passing multiple axes, layout keyword is ignored.",
+                    UserWarning,
+                    stacklevel=find_stack_level(),
+                )
+            if sharex or sharey:
+                warnings.warn(
+                    "When passing multiple axes, sharex and sharey "
+                    "are ignored. These settings must be specified when creating axes.",
+                    UserWarning,
+                    stacklevel=find_stack_level(),
+                )
+            if ax.size == naxes:
+                fig = ax.flat[0].get_figure()
+                return fig, ax
+            else:
+                raise ValueError(
+                    f"The number of passed axes must be {naxes}, the "
+                    "same as the output plot"
+                )
+
+        fig = ax.get_figure()
+        # if ax is passed and a number of subplots is 1, return ax as it is
+        if naxes == 1:
+            if squeeze:
+                return fig, ax
+            else:
+                return fig, flatten_axes(ax)
+        else:
+            warnings.warn(
+                "To output multiple subplots, the figure containing "
+                "the passed axes is being cleared.",
+                UserWarning,
+                stacklevel=find_stack_level(),
             )
-        _check_axes_shape(mpl.pyplot.gcf().axes, axes_num=axes_num, layout=(rows, 2))
+            fig.clear()
 
-    @pytest.mark.slow
-    @pytest.mark.parametrize(
-        "col, visible", [["height", False], ["weight", True], ["category", True]]
-    )
-    def test_grouped_box_layout_visible(self, hist_df, col, visible):
-        df = hist_df
-        # GH 5897
-        axes = df.boxplot(
-            column=["height", "weight", "category"], by="gender", return_type="axes"
-        )
-        _check_axes_shape(mpl.pyplot.gcf().axes, axes_num=3, layout=(2, 2))
-        ax = axes[col]
-        _check_visible(ax.get_xticklabels(), visible=visible)
-        _check_visible([ax.xaxis.get_label()], visible=visible)
+    nrows, ncols = _get_layout(naxes, layout=layout, layout_type=layout_type)
+    nplots = nrows * ncols
 
-    @pytest.mark.slow
-    def test_grouped_box_layout_shape(self, hist_df):
-        df = hist_df
-        df.groupby("classroom").boxplot(
-            column=["height", "weight", "category"], return_type="dict"
-        )
-        _check_axes_shape(mpl.pyplot.gcf().axes, axes_num=3, layout=(2, 2))
+    # Create empty object array to hold all axes.  It's easiest to make it 1-d
+    # so we can just append subplots upon creation, and then
+    axarr = np.empty(nplots, dtype=object)
 
-    @pytest.mark.slow
-    @pytest.mark.parametrize("cols", [2, -1])
-    def test_grouped_box_layout_works(self, hist_df, cols):
-        df = hist_df
-        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
-            _check_plot_works(
-                df.groupby("category").boxplot,
-                column="height",
-                layout=(3, cols),
-                return_type="dict",
-            )
-        _check_axes_shape(mpl.pyplot.gcf().axes, axes_num=4, layout=(3, 2))
+    # Create first subplot separately, so we can share it if requested
+    ax0 = fig.add_subplot(nrows, ncols, 1, **subplot_kw)
 
-    @pytest.mark.slow
-    @pytest.mark.parametrize("rows, res", [[4, 4], [-1, 3]])
-    def test_grouped_box_layout_axes_shape_rows(self, hist_df, rows, res):
-        df = hist_df
-        df.boxplot(
-            column=["height", "weight", "category"], by="gender", layout=(rows, 1)
-        )
-        _check_axes_shape(mpl.pyplot.gcf().axes, axes_num=3, layout=(res, 1))
+    if sharex:
+        subplot_kw["sharex"] = ax0
+    if sharey:
+        subplot_kw["sharey"] = ax0
+    axarr[0] = ax0
 
-    @pytest.mark.slow
-    @pytest.mark.parametrize("cols, res", [[4, 4], [-1, 3]])
-    def test_grouped_box_layout_axes_shape_cols_groupby(self, hist_df, cols, res):
-        df = hist_df
-        df.groupby("classroom").boxplot(
-            column=["height", "weight", "category"],
-            layout=(1, cols),
-            return_type="dict",
-        )
-        _check_axes_shape(mpl.pyplot.gcf().axes, axes_num=3, layout=(1, res))
+    # Note off-by-one counting because add_subplot uses the MATLAB 1-based
+    # convention.
+    for i in range(1, nplots):
+        kwds = subplot_kw.copy()
+        # Set sharex and sharey to None for blank/dummy axes, these can
+        # interfere with proper axis limits on the visible axes if
+        # they share axes e.g. issue #7528
+        if i >= naxes:
+            kwds["sharex"] = None
+            kwds["sharey"] = None
+        ax = fig.add_subplot(nrows, ncols, i + 1, **kwds)
+        axarr[i] = ax
 
-    @pytest.mark.slow
-    def test_grouped_box_multiple_axes(self, hist_df):
-        # GH 6970, GH 7069
-        df = hist_df
+    if naxes != nplots:
+        for ax in axarr[naxes:]:
+            ax.set_visible(False)
 
-        # check warning to ignore sharex / sharey
-        # this check should be done in the first function which
-        # passes multiple axes to plot, hist or boxplot
-        # location should be changed if other test is added
-        # which has earlier alphabetical order
-        with tm.assert_produces_warning(UserWarning):
-            _, axes = mpl.pyplot.subplots(2, 2)
-            df.groupby("category").boxplot(column="height", return_type="axes", ax=axes)
-            _check_axes_shape(mpl.pyplot.gcf().axes, axes_num=4, layout=(2, 2))
+    handle_shared_axes(axarr, nplots, naxes, nrows, ncols, sharex, sharey)
 
-    @pytest.mark.slow
-    def test_grouped_box_multiple_axes_on_fig(self, hist_df):
-        # GH 6970, GH 7069
-        df = hist_df
-        fig, axes = mpl.pyplot.subplots(2, 3)
-        with tm.assert_produces_warning(UserWarning):
-            returned = df.boxplot(
-                column=["height", "weight", "category"],
-                by="gender",
-                return_type="axes",
-                ax=axes[0],
-            )
-        returned = np.array(list(returned.values))
-        _check_axes_shape(returned, axes_num=3, layout=(1, 3))
-        tm.assert_numpy_array_equal(returned, axes[0])
-        assert returned[0].figure is fig
+    if squeeze:
+        # Reshape the array to have the final desired dimension (nrow,ncol),
+        # though discarding unneeded dimensions that equal 1.  If we only have
+        # one subplot, just return it instead of a 1-element array.
+        if nplots == 1:
+            axes = axarr[0]
+        else:
+            axes = axarr.reshape(nrows, ncols).squeeze()
+    else:
+        # returned axis array will be always 2-d, even if nrows=ncols=1
+        axes = axarr.reshape(nrows, ncols)
 
-        # draw on second row
-        with tm.assert_produces_warning(UserWarning):
-            returned = df.groupby("classroom").boxplot(
-                column=["height", "weight", "category"], return_type="axes", ax=axes[1]
-            )
-        returned = np.array(list(returned.values))
-        _check_axes_shape(returned, axes_num=3, layout=(1, 3))
-        tm.assert_numpy_array_equal(returned, axes[1])
-        assert returned[0].figure is fig
+    return fig, axes
 
-    @pytest.mark.slow
-    def test_grouped_box_multiple_axes_ax_error(self, hist_df):
-        # GH 6970, GH 7069
-        df = hist_df
-        msg = "The number of passed axes must be 3, the same as the output plot"
-        with pytest.raises(ValueError, match=msg):
-            fig, axes = mpl.pyplot.subplots(2, 3)
-            # pass different number of axes from required
-            with tm.assert_produces_warning(UserWarning):
-                axes = df.groupby("classroom").boxplot(ax=axes)
 
-    def test_fontsize(self):
-        df = DataFrame({"a": [1, 2, 3, 4, 5, 6], "b": [0, 0, 0, 1, 1, 1]})
-        _check_ticks_props(
-            df.boxplot("a", by="b", fontsize=16), xlabelsize=16, ylabelsize=16
+def _remove_labels_from_axis(axis: Axis) -> None:
+    for t in axis.get_majorticklabels():
+        t.set_visible(False)
+
+    # set_visible will not be effective if
+    # minor axis has NullLocator and NullFormatter (default)
+    if isinstance(axis.get_minor_locator(), ticker.NullLocator):
+        axis.set_minor_locator(ticker.AutoLocator())
+    if isinstance(axis.get_minor_formatter(), ticker.NullFormatter):
+        axis.set_minor_formatter(ticker.FormatStrFormatter(""))
+    for t in axis.get_minorticklabels():
+        t.set_visible(False)
+
+    axis.get_label().set_visible(False)
+
+
+def _has_externally_shared_axis(ax1: Axes, compare_axis: str) -> bool:
+    """
+    Return whether an axis is externally shared.
+
+    Parameters
+    ----------
+    ax1 : matplotlib.axes.Axes
+        Axis to query.
+    compare_axis : str
+        `"x"` or `"y"` according to whether the X-axis or Y-axis is being
+        compared.
+
+    Returns
+    -------
+    bool
+        `True` if the axis is externally shared. Otherwise `False`.
+
+    Notes
+    -----
+    If two axes with different positions are sharing an axis, they can be
+    referred to as *externally* sharing the common axis.
+
+    If two axes sharing an axis also have the same position, they can be
+    referred to as *internally* sharing the common axis (a.k.a twinning).
+
+    _handle_shared_axes() is only interested in axes externally sharing an
+    axis, regardless of whether either of the axes is also internally sharing
+    with a third axis.
+    """
+    if compare_axis == "x":
+        axes = ax1.get_shared_x_axes()
+    elif compare_axis == "y":
+        axes = ax1.get_shared_y_axes()
+    else:
+        raise ValueError(
+            "_has_externally_shared_axis() needs 'x' or 'y' as a second parameter"
         )
 
-    @pytest.mark.parametrize(
-        "col, expected_xticklabel",
-        [
-            ("v", ["(a, v)", "(b, v)", "(c, v)", "(d, v)", "(e, v)"]),
-            (["v"], ["(a, v)", "(b, v)", "(c, v)", "(d, v)", "(e, v)"]),
-            ("v1", ["(a, v1)", "(b, v1)", "(c, v1)", "(d, v1)", "(e, v1)"]),
-            (
-                ["v", "v1"],
-                [
-                    "(a, v)",
-                    "(a, v1)",
-                    "(b, v)",
-                    "(b, v1)",
-                    "(c, v)",
-                    "(c, v1)",
-                    "(d, v)",
-                    "(d, v1)",
-                    "(e, v)",
-                    "(e, v1)",
-                ],
-            ),
-            (
-                None,
-                [
-                    "(a, v)",
-                    "(a, v1)",
-                    "(b, v)",
-                    "(b, v1)",
-                    "(c, v)",
-                    "(c, v1)",
-                    "(d, v)",
-                    "(d, v1)",
-                    "(e, v)",
-                    "(e, v1)",
-                ],
-            ),
-        ],
-    )
-    def test_groupby_boxplot_subplots_false(self, col, expected_xticklabel):
-        # GH 16748
-        df = DataFrame(
-            {
-                "cat": np.random.default_rng(2).choice(list("abcde"), 100),
-                "v": np.random.default_rng(2).random(100),
-                "v1": np.random.default_rng(2).random(100),
-            }
-        )
-        grouped = df.groupby("cat")
+    axes = axes.get_siblings(ax1)
 
-        axes = _check_plot_works(
-            grouped.boxplot, subplots=False, column=col, return_type="axes"
-        )
+    # Retain ax1 and any of its siblings which aren't in the same position as it
+    ax1_points = ax1.get_position().get_points()
 
-        result_xticklabel = [x.get_text() for x in axes.get_xticklabels()]
-        assert expected_xticklabel == result_xticklabel
+    for ax2 in axes:
+        if not np.array_equal(ax1_points, ax2.get_position().get_points()):
+            return True
 
-    def test_groupby_boxplot_object(self, hist_df):
-        # GH 43480
-        df = hist_df.astype("object")
-        grouped = df.groupby("gender")
-        msg = "boxplot method requires numerical columns, nothing to plot"
-        with pytest.raises(ValueError, match=msg):
-            _check_plot_works(grouped.boxplot, subplots=False)
+    return False
 
-    def test_boxplot_multiindex_column(self):
-        # GH 16748
-        arrays = [
-            ["bar", "bar", "baz", "baz", "foo", "foo", "qux", "qux"],
-            ["one", "two", "one", "two", "one", "two", "one", "two"],
-        ]
-        tuples = list(zip(*arrays))
-        index = MultiIndex.from_tuples(tuples, names=["first", "second"])
-        df = DataFrame(
-            np.random.default_rng(2).standard_normal((3, 8)),
-            index=["A", "B", "C"],
-            columns=index,
-        )
 
-        col = [("bar", "one"), ("bar", "two")]
-        axes = _check_plot_works(df.boxplot, column=col, return_type="axes")
+def handle_shared_axes(
+    axarr: Iterable[Axes],
+    nplots: int,
+    naxes: int,
+    nrows: int,
+    ncols: int,
+    sharex: bool,
+    sharey: bool,
+) -> None:
+    if nplots > 1:
+        row_num = lambda x: x.get_subplotspec().rowspan.start
+        col_num = lambda x: x.get_subplotspec().colspan.start
 
-        expected_xticklabel = ["(bar, one)", "(bar, two)"]
-        result_xticklabel = [x.get_text() for x in axes.get_xticklabels()]
-        assert expected_xticklabel == result_xticklabel
+        is_first_col = lambda x: x.get_subplotspec().is_first_col()
+
+        if nrows > 1:
+            try:
+                # first find out the ax layout,
+                # so that we can correctly handle 'gaps"
+                layout = np.zeros((nrows + 1, ncols + 1), dtype=np.bool_)
+                for ax in axarr:
+                    layout[row_num(ax), col_num(ax)] = ax.get_visible()
+
+                for ax in axarr:
+                    # only the last row of subplots should get x labels -> all
+                    # other off layout handles the case that the subplot is
+                    # the last in the column, because below is no subplot/gap.
+                    if not layout[row_num(ax) + 1, col_num(ax)]:
+                        continue
+                    if sharex or _has_externally_shared_axis(ax, "x"):
+                        _remove_labels_from_axis(ax.xaxis)
+
+            except IndexError:
+                # if gridspec is used, ax.rowNum and ax.colNum may different
+                # from layout shape. in this case, use last_row logic
+                is_last_row = lambda x: x.get_subplotspec().is_last_row()
+                for ax in axarr:
+                    if is_last_row(ax):
+                        continue
+                    if sharex or _has_externally_shared_axis(ax, "x"):
+                        _remove_labels_from_axis(ax.xaxis)
+
+        if ncols > 1:
+            for ax in axarr:
+                # only the first column should get y labels -> set all other to
+                # off as we only have labels in the first column and we always
+                # have a subplot there, we can skip the layout test
+                if is_first_col(ax):
+                    continue
+                if sharey or _has_externally_shared_axis(ax, "y"):
+                    _remove_labels_from_axis(ax.yaxis)
+
+
+def flatten_axes(axes: Axes | Sequence[Axes]) -> np.ndarray:
+    if not is_list_like(axes):
+        return np.array([axes])
+    elif isinstance(axes, (np.ndarray, ABCIndex)):
+        return np.asarray(axes).ravel()
+    return np.array(axes)
+
+
+def set_ticks_props(
+    axes: Axes | Sequence[Axes],
+    xlabelsize: int | None = None,
+    xrot=None,
+    ylabelsize: int | None = None,
+    yrot=None,
+):
+    import matplotlib.pyplot as plt
+
+    for ax in flatten_axes(axes):
+        if xlabelsize is not None:
+            plt.setp(ax.get_xticklabels(), fontsize=xlabelsize)
+        if xrot is not None:
+            plt.setp(ax.get_xticklabels(), rotation=xrot)
+        if ylabelsize is not None:
+            plt.setp(ax.get_yticklabels(), fontsize=ylabelsize)
+        if yrot is not None:
+            plt.setp(ax.get_yticklabels(), rotation=yrot)
+    return axes
+
+
+def get_all_lines(ax: Axes) -> list[Line2D]:
+    lines = ax.get_lines()
+
+    if hasattr(ax, "right_ax"):
+        lines += ax.right_ax.get_lines()
+
+    if hasattr(ax, "left_ax"):
+        lines += ax.left_ax.get_lines()
+
+    return lines
+
+
+def get_xlim(lines: Iterable[Line2D]) -> tuple[float, float]:
+    left, right = np.inf, -np.inf
+    for line in lines:
+        x = line.get_xdata(orig=False)
+        left = min(np.nanmin(x), left)
+        right = max(np.nanmax(x), right)
+    return left, right
