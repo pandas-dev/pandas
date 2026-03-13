@@ -292,10 +292,6 @@ class TestArrowArray(base.ExtensionTests):
                 dtype=dtype,
             )
 
-    def test_compare_scalar(self, data, comparison_op):
-        ser = pd.Series(data)
-        self._compare_other(ser, data, comparison_op, data[0])
-
     def test_compare_range_len(self, data, comparison_op):
         # GH#63429
         ser = pd.Series(data)

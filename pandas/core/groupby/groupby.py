@@ -2616,6 +2616,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         Compute group sizes.
 
+        Returns the number of rows in each group. This is useful for
+        understanding the distribution of data across groups.
+
         Returns
         -------
         DataFrame or Series
@@ -2720,6 +2723,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     ):
         """
         Compute sum of group values.
+
+        Computes the sum for each group. Null values are excluded by
+        default unless ``skipna`` is set to ``False``.
 
         Parameters
         ----------
@@ -3831,6 +3837,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         Return a rolling grouper, providing rolling functionality per group.
 
+        Allows the application of rolling window operations
+        (e.g., moving averages) independently within each group defined
+        by the groupby keys.
+
         Parameters
         ----------
         window : int, timedelta, str, offset, or BaseIndexer subclass
@@ -4179,8 +4189,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         See Also
         --------
-        pad : Returns Series with minimum number of char in object.
-        backfill : Backward fill the missing values in the dataset.
+        pad : Forward fill values within each group.
+        backfill : Backward fill values within each group.
         """
         # Need int value for Cython
         if limit is None:
@@ -4254,8 +4264,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         See Also
         --------
-        Series.ffill: Returns Series with minimum number of char in object.
-        DataFrame.ffill: Object with missing values filled or None if inplace=True.
+        Series.ffill : Forward fill missing values in a Series.
+        DataFrame.ffill : Forward fill missing values in a DataFrame.
         Series.fillna: Fill NaN values of a Series.
         DataFrame.fillna: Fill NaN values of a DataFrame.
 

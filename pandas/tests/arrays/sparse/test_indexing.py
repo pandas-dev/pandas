@@ -124,7 +124,7 @@ class TestGetitem:
         assert zarr[2] == 1
         assert zarr[7] == 5
 
-        errmsg = "must be an integer between -10 and 10"
+        errmsg = "index is out of bounds: must be an integer between -10 and 9"
 
         with pytest.raises(IndexError, match=errmsg):
             arr[11]
