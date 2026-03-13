@@ -218,6 +218,10 @@ class Expanding(RollingAndExpandingMixin):
         """
         Calculate the expanding count of non NaN observations.
 
+        At each point in time, returns the number of non-NaN values seen
+        so far. This is useful for tracking data availability across an
+        expanding window.
+
         Parameters
         ----------
         numeric_only : bool, default False
@@ -285,10 +289,10 @@ class Expanding(RollingAndExpandingMixin):
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
-            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+            * For ``'numba'`` engine, the engine can accept  ``nogil``
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-              ``{'nopython': True, 'nogil': False, 'parallel': False}`` and will be
+              ``{'nogil': False, 'parallel': False}`` and will be
               applied to both the ``func`` and the ``apply`` rolling aggregation.
 
         args : tuple, default None
@@ -439,6 +443,9 @@ class Expanding(RollingAndExpandingMixin):
         """
         Calculate the expanding sum.
 
+        At each point in time, returns the cumulative sum of all values
+        observed up to that point, respecting the ``min_periods`` threshold.
+
         Parameters
         ----------
         numeric_only : bool, default False
@@ -452,10 +459,10 @@ class Expanding(RollingAndExpandingMixin):
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
-            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+            * For ``'numba'`` engine, the engine can accept  ``nogil``
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-              ``{'nopython': True, 'nogil': False, 'parallel': False}``
+              ``{'nogil': False, 'parallel': False}``
 
         Returns
         -------
@@ -499,6 +506,9 @@ class Expanding(RollingAndExpandingMixin):
         """
         Calculate the expanding maximum.
 
+        At each point in time, returns the maximum value observed up to
+        that point, respecting the ``min_periods`` threshold.
+
         Parameters
         ----------
         numeric_only : bool, default False
@@ -512,10 +522,10 @@ class Expanding(RollingAndExpandingMixin):
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
-            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+            * For ``'numba'`` engine, the engine can accept  ``nogil``
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-              ``{'nopython': True, 'nogil': False, 'parallel': False}``
+              ``{'nogil': False, 'parallel': False}``
 
         Returns
         -------
@@ -559,6 +569,9 @@ class Expanding(RollingAndExpandingMixin):
         """
         Calculate the expanding minimum.
 
+        At each point in time, returns the minimum value observed up to
+        that point, respecting the ``min_periods`` threshold.
+
         Parameters
         ----------
         numeric_only : bool, default False
@@ -572,10 +585,10 @@ class Expanding(RollingAndExpandingMixin):
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
-            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+            * For ``'numba'`` engine, the engine can accept  ``nogil``
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-              ``{'nopython': True, 'nogil': False, 'parallel': False}``
+              ``{'nogil': False, 'parallel': False}``
 
         Returns
         -------
@@ -619,6 +632,9 @@ class Expanding(RollingAndExpandingMixin):
         """
         Calculate the expanding mean.
 
+        At each point in time, returns the arithmetic mean of all values
+        observed up to that point, respecting the ``min_periods`` threshold.
+
         Parameters
         ----------
         numeric_only : bool, default False
@@ -632,10 +648,10 @@ class Expanding(RollingAndExpandingMixin):
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
-            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+            * For ``'numba'`` engine, the engine can accept  ``nogil``
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-              ``{'nopython': True, 'nogil': False, 'parallel': False}``
+              ``{'nogil': False, 'parallel': False}``
 
         Returns
         -------
@@ -679,6 +695,9 @@ class Expanding(RollingAndExpandingMixin):
         """
         Calculate the expanding median.
 
+        At each point in time, returns the median of all values observed
+        up to that point, respecting the ``min_periods`` threshold.
+
         Parameters
         ----------
         numeric_only : bool, default False
@@ -692,10 +711,10 @@ class Expanding(RollingAndExpandingMixin):
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
-            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+            * For ``'numba'`` engine, the engine can accept  ``nogil``
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-              ``{'nopython': True, 'nogil': False, 'parallel': False}``
+              ``{'nogil': False, 'parallel': False}``
 
         Returns
         -------
@@ -740,6 +759,10 @@ class Expanding(RollingAndExpandingMixin):
         """
         Calculate the expanding standard deviation.
 
+        At each point in time, returns the sample standard deviation of all
+        values observed up to that point, using ``ddof`` degrees of freedom
+        correction.
+
         Parameters
         ----------
         ddof : int, default 1
@@ -757,10 +780,10 @@ class Expanding(RollingAndExpandingMixin):
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
-            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+            * For ``'numba'`` engine, the engine can accept  ``nogil``
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-              ``{'nopython': True, 'nogil': False, 'parallel': False}``
+              ``{'nogil': False, 'parallel': False}``
 
         Returns
         -------
@@ -813,6 +836,10 @@ class Expanding(RollingAndExpandingMixin):
         """
         Calculate the expanding variance.
 
+        At each point in time, returns the sample variance of all values
+        observed up to that point, using ``ddof`` degrees of freedom
+        correction.
+
         Parameters
         ----------
         ddof : int, default 1
@@ -830,10 +857,10 @@ class Expanding(RollingAndExpandingMixin):
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
-            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+            * For ``'numba'`` engine, the engine can accept  ``nogil``
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-              ``{'nopython': True, 'nogil': False, 'parallel': False}``
+              ``{'nogil': False, 'parallel': False}``
 
         Returns
         -------
@@ -1018,6 +1045,9 @@ class Expanding(RollingAndExpandingMixin):
         """
         Calculate the expanding First (left-most) element of the window.
 
+        At each point in time, returns the first value in the expanding
+        window, which is the earliest observation in the data.
+
         Parameters
         ----------
         numeric_only : bool, default False
@@ -1052,6 +1082,9 @@ class Expanding(RollingAndExpandingMixin):
     def last(self, numeric_only: bool = False):
         """
         Calculate the expanding Last (right-most) element of the window.
+
+        At each point in time, returns the last value in the expanding
+        window, which is the most recent observation in the data.
 
         Parameters
         ----------

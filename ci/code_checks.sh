@@ -68,77 +68,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
     MSG='Validate Docstrings' ; echo "$MSG"
     python "$BASE_DIR"/scripts/validate_docstrings.py \
-        --format=actions \
-        -i "pandas.IntervalDtype.subtype ES01" \
-        -i "pandas.api.extensions.ExtensionArray.count ES01" \
-        -i "pandas.read_html ES01" \
-        -i "pandas.read_xml ES01" \
-        -i "pandas.Index.argsort ES01" \
-        -i "pandas.Index.append ES01" \
-        -i "pandas.Index.join ES01" \
-        -i "pandas.Index.symmetric_difference ES01" \
-        -i "pandas.Index.get_loc ES01" \
-        -i "pandas.Index.slice_locs ES01" \
-        -i "pandas.CategoricalIndex.append ES01" \
-        -i "pandas.IndexSlice ES01" \
-        -i "pandas.TimedeltaIndex.to_pytimedelta ES01" \
-        -i "pandas.api.typing.Expanding.count ES01" \
-        -i "pandas.api.typing.Expanding.sum ES01" \
-        -i "pandas.api.typing.Expanding.mean ES01" \
-        -i "pandas.api.typing.Expanding.median ES01" \
-        -i "pandas.api.typing.Expanding.var ES01" \
-        -i "pandas.api.typing.Expanding.std ES01" \
-        -i "pandas.api.typing.Expanding.min ES01" \
-        -i "pandas.api.typing.Expanding.max ES01" \
-        -i "pandas.api.typing.Expanding.first ES01" \
-        -i "pandas.api.typing.Expanding.last ES01" \
-        -i "pandas.api.indexers.BaseIndexer ES01" \
-        -i "pandas.api.indexers.FixedForwardWindowIndexer ES01" \
-        -i "pandas.api.indexers.VariableOffsetWindowIndexer ES01" \
-        -i "pandas.NamedAgg ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.idxmax ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.idxmin ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.max ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.mean ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.min ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.nunique ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.pct_change ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.prod ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.quantile ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.rank ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.rolling ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.size ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.kurt ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.sum ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.value_counts ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.corr ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.cov ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.is_monotonic_increasing ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.is_monotonic_decreasing ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.max ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.mean ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.min ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.nlargest ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.nsmallest ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.nunique ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.pct_change ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.prod ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.quantile ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.rank ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.rolling ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.size ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.kurt ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.sum ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.value_counts ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.boxplot ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.hist ES01" \
-        -i "pandas.Timestamp.fromisoformat SS02,SS03,ES01,SA01,EX01" \
-        -i "pandas.Timedelta.resolution_string SA01" \
-        -i "pandas.DatetimeIndex.asi8 GL08" \
-        -i "pandas.PeriodIndex.asi8 GL08" \
-        -i "pandas.TimedeltaIndex.asi8 GL08" \
-        -i "pandas.DatetimeIndex.unit GL08" \
-        -i "pandas.TimedeltaIndex.unit GL08" # no backslash in the last line
+        --format=actions
 
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 

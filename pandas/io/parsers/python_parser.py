@@ -830,7 +830,7 @@ class PythonParser(ParserBase):
         the name, not the middle of it.
         """
         # first_row will be a list, so we need to check
-        # that that list is not empty before proceeding.
+        # that the list is not empty before proceeding.
         if not first_row:
             return first_row
 

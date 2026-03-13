@@ -175,8 +175,8 @@ def get_date_name_field(
         else:
             names = np.array(_get_locale_names("f_weekday", locale),
                              dtype=np.object_)
-        for i in range(len(names)):
-            names[i] = names[i].capitalize()
+            for i in range(len(names)):
+                names[i] = names[i].capitalize()
         for i in range(count):
             if dtindex[i] == NPY_NAT:
                 out[i] = np.nan
@@ -192,8 +192,8 @@ def get_date_name_field(
         else:
             names = np.array(_get_locale_names("f_month", locale),
                              dtype=np.object_)
-        for i in range(len(names)):
-            names[i] = names[i].capitalize()
+            for i in range(len(names)):
+                names[i] = names[i].capitalize()
         for i in range(count):
             if dtindex[i] == NPY_NAT:
                 out[i] = np.nan
@@ -722,6 +722,8 @@ class RoundTo:
         return 4
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 cdef ndarray[int64_t] _floor_int64(const int64_t[:] values, int64_t unit):
     cdef:
         Py_ssize_t i, n = len(values)
@@ -740,6 +742,8 @@ cdef ndarray[int64_t] _floor_int64(const int64_t[:] values, int64_t unit):
     return result
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 cdef ndarray[int64_t] _ceil_int64(const int64_t[:] values, int64_t unit):
     cdef:
         Py_ssize_t i, n = len(values)
@@ -764,6 +768,8 @@ cdef ndarray[int64_t] _ceil_int64(const int64_t[:] values, int64_t unit):
     return result
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 cdef ndarray[int64_t] _rounddown_int64(const int64_t[:] values, int64_t unit):
     cdef:
         Py_ssize_t i, n = len(values)
@@ -796,6 +802,8 @@ cdef ndarray[int64_t] _roundup_int64(values, int64_t unit):
     return _floor_int64(values + unit // 2, unit)
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 cdef ndarray[int64_t] _round_nearest_int64(const int64_t[:] values, int64_t unit):
     cdef:
         Py_ssize_t i, n = len(values)

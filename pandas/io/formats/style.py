@@ -2870,7 +2870,7 @@ class Styler(StylerRenderer):
         elif isinstance(table_styles, dict):
             axis = self.data._get_axis_number(axis)
             obj = self.data.index if axis == 1 else self.data.columns
-            idf = f".{self.css['row']}" if axis == 1 else f".{self.css['col']}"
+            idf = f".{self.css['row']}" if axis == 1 else f".{self.css['col']}"  # pyright: ignore[reportOptionalSubscript]
 
             table_styles = [
                 {

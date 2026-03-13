@@ -687,6 +687,7 @@ cdef class _Timestamp(ABCTimestamp):
             val = self._value
         return val
 
+    @cython.wraparound(False)
     @cython.boundscheck(False)
     cdef bint _get_start_end_field(self, str field, freq):
         cdef:
@@ -883,6 +884,7 @@ cdef class _Timestamp(ABCTimestamp):
         """
         return self.month == 12 and self.day == 31
 
+    @cython.wraparound(False)
     @cython.boundscheck(False)
     cdef _get_date_name_field(self, str field, object locale):
         cdef:
@@ -2212,6 +2214,41 @@ class Timestamp(_Timestamp):
         """
         tz = maybe_get_tz(tz)
         return cls(datetime.fromtimestamp(ts, tz))
+
+    @classmethod
+    def fromisoformat(cls, date_string):
+        """
+        Construct a Timestamp from a string in ISO 8601 format.
+
+        This classmethod wraps :meth:`datetime.datetime.fromisoformat`,
+        returning a :class:`Timestamp` instead of a :class:`datetime.datetime`.
+
+        Parameters
+        ----------
+        date_string : str
+            A date-time string in one of the ISO 8601 formats supported by
+            :meth:`datetime.datetime.fromisoformat`.
+
+        Returns
+        -------
+        Timestamp
+            A Timestamp corresponding to the parsed date-time string.
+
+        See Also
+        --------
+        Timestamp : Represents a single timestamp, similar to ``datetime``.
+        to_datetime : Convert argument to datetime.
+        datetime.datetime.fromisoformat : The standard library counterpart.
+
+        Examples
+        --------
+        >>> pd.Timestamp.fromisoformat("2023-01-15")
+        Timestamp('2023-01-15 00:00:00')
+
+        >>> pd.Timestamp.fromisoformat("2023-01-15T10:30:00")
+        Timestamp('2023-01-15 10:30:00')
+        """
+        return cls(datetime.fromisoformat(date_string))
 
     def strftime(self, format):
         """
