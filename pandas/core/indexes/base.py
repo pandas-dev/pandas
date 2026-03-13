@@ -1814,7 +1814,7 @@ class Index(IndexOpsMixin, PandasObject):
             )
 
         # All items in 'new_names' need to be hashable
-        validate_all_hashable(*new_names, error_name=f"{type(self).__name__}.name")  # pyright: ignore[reportOptionalIterable]
+        validate_all_hashable(*new_names, error_name=f"{type(self).__name__}.name")  # pyright: ignore[reportOptionalIterable, reportGeneralTypeIssues]
 
         return new_names  # pyright: ignore[reportReturnType]
 
@@ -4953,7 +4953,7 @@ class Index(IndexOpsMixin, PandasObject):
                 join_array, lidx, ridx = self._left_indexer(other)  # pyright: ignore[reportArgumentType]
                 join_index, lidx, ridx = self._wrap_join_result(
                     join_array,
-                    other,
+                    other,  # pyright: ignore[reportArgumentType]
                     lidx,
                     ridx,
                     how,  # pyright: ignore[reportArgumentType]
@@ -4968,7 +4968,7 @@ class Index(IndexOpsMixin, PandasObject):
                 join_array, ridx, lidx = other._left_indexer(self)
                 join_index, lidx, ridx = self._wrap_join_result(
                     join_array,
-                    other,
+                    other,  # pyright: ignore[reportArgumentType]
                     lidx,
                     ridx,
                     how,  # pyright: ignore[reportArgumentType]
@@ -4977,7 +4977,7 @@ class Index(IndexOpsMixin, PandasObject):
             join_array, lidx, ridx = self._inner_indexer(other)  # pyright: ignore[reportArgumentType]
             join_index, lidx, ridx = self._wrap_join_result(
                 join_array,
-                other,
+                other,  # pyright: ignore[reportArgumentType]
                 lidx,
                 ridx,
                 how,  # pyright: ignore[reportArgumentType]
@@ -4986,7 +4986,7 @@ class Index(IndexOpsMixin, PandasObject):
             join_array, lidx, ridx = self._outer_indexer(other)  # pyright: ignore[reportArgumentType]
             join_index, lidx, ridx = self._wrap_join_result(
                 join_array,
-                other,
+                other,  # pyright: ignore[reportArgumentType]
                 lidx,
                 ridx,
                 how,  # pyright: ignore[reportArgumentType]
@@ -5914,7 +5914,7 @@ class Index(IndexOpsMixin, PandasObject):
             if isinstance(loc, slice):
                 return self[loc][-1]
 
-        return self[loc]
+        return self[loc]  # pyright: ignore[reportReturnType]
 
     def asof_locs(
         self, where: Index, mask: npt.NDArray[np.bool_]
@@ -6983,7 +6983,8 @@ class Index(IndexOpsMixin, PandasObject):
             # everything for it to work (element ordering, search side and
             # resulting value).
             pos = self[::-1].searchsorted(  # type: ignore[call-overload]
-                label, side="right" if side == "left" else "left"
+                label,
+                side="right" if side == "left" else "left",  # pyright: ignore[reportArgumentType]
             )
             return maybe_unbox_numpy_scalar(len(self) - pos)  # type: ignore[no-untyped-call]
 
