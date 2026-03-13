@@ -1187,8 +1187,8 @@ class HDFStore:
             A value of 0 or None disables compression.
         min_itemsize : int, dict, or None
             Minimum number of bytes reserved for object columns.
-            If int, every object column reserves at least 'min_itemsize' bytes per stored value.
-            If dict, specific object columns reserve at least 'min_itemsize' bytes per stored value.
+            If int, all columns reserve 'min_itemsize' bytes per stored value.
+            If dict, specific columns reserve 'min_itemsize' bytes per stored value.
             Strings are stored as encoded bytes. Since some characters require multiple
             bytes, required size may be larger than string length.
         nan_rep : str
@@ -1351,8 +1351,8 @@ class HDFStore:
             This parameter is currently not accepted, try data_columns.
         min_itemsize : int, dict, or None
             Minimum number of bytes reserved for object columns.
-            If int, every object column reserves at least 'min_itemsize' bytes per stored value.
-            If dict, specific object columns reserve at least 'min_itemsize' bytes per stored value.
+            If int, all columns reserve 'min_itemsize' bytes per stored value.
+            If dict, specific columns reserve 'min_itemsize' bytes per stored value.
             Strings are stored as encoded bytes. Since some characters require multiple
             bytes, required size may be larger than string length.
         nan_rep : str
