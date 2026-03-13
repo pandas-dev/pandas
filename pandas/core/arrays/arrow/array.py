@@ -660,7 +660,7 @@ class ArrowExtensionArray(
             mask = None
             if is_nan_na():
                 try:
-                    arr_value = np.asarray(value)
+                    arr_value = np.asarray(value, dtype=object)
                     if arr_value.ndim > 1:
                         # e.g. test_fixed_size_list we have list data.  ndim > 1
                         #  means there were no scalar (NA) entries.

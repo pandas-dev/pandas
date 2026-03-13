@@ -3983,3 +3983,27 @@ def test_timestamp_reduction_consistency(unit, method):
         f"{method} for {unit} returned {type(result)}"
     )
     assert result.unit == unit
+
+
+def test_arrow_string_with_nan():
+    # GH#64578
+    # Constructing a string ArrowExtensionArray with NaN values should
+    # treat NaN as missing (null) rather than raising ArrowTypeError.
+    result = pd.array(["a", np.nan], dtype=pd.ArrowDtype(pa.string()))
+    expected = pd.array(["a", pd.NA], dtype=pd.ArrowDtype(pa.string()))
+    tm.assert_extension_array_equal(result, expected)
+
+    # Multiple NaN values
+    result = pd.array(["a", np.nan, "b", np.nan], dtype=pd.ArrowDtype(pa.string()))
+    expected = pd.array(["a", pd.NA, "b", pd.NA], dtype=pd.ArrowDtype(pa.string()))
+    tm.assert_extension_array_equal(result, expected)
+
+    # All NaN
+    result = pd.array([np.nan, np.nan], dtype=pd.ArrowDtype(pa.string()))
+    expected = pd.array([pd.NA, pd.NA], dtype=pd.ArrowDtype(pa.string()))
+    tm.assert_extension_array_equal(result, expected)
+
+    # Also works for large_string
+    result = pd.array(["a", np.nan], dtype=pd.ArrowDtype(pa.large_string()))
+    expected = pd.array(["a", pd.NA], dtype=pd.ArrowDtype(pa.large_string()))
+    tm.assert_extension_array_equal(result, expected)
