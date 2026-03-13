@@ -550,6 +550,24 @@ class SetitemObjectDtype:
         self.df.loc[0, 1] = 1.0
 
 
+class SeriesSetitem:
+    params = ["str"]
+    param_names = ["dtype"]
+
+    def setup(self, dtype):
+        N = 500_000
+        self.s = Series(np.random.rand(N), dtype=dtype)
+        self.arr = self.s.array
+        self.arr_obj = np.asarray(self.s.array, dtype=object)
+
+    def time_setitem_slice_array(self, dtype):
+        # https://github.com/pandas-dev/pandas/pull/64530
+        self.s[:] = self.arr
+
+    def time_setitem_slice_array_infer(self, dtype):
+        self.s[:] = self.arr_obj
+
+
 class ChainIndexing:
     params = [None, "warn"]
     param_names = ["mode"]
