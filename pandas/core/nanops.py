@@ -1251,7 +1251,7 @@ def nanskew(
     dtype = values.dtype
     values = ensure_float64(values)
 
-    result: npt.DTypeLike
+    result: npt.NDArray[np.floating] | np.floating
     if axis is None or (values.ndim == 1 and axis == 0):
         result_float = libalgos.scalar_skew(
             values.ravel(), skipna, mask.ravel() if mask is not None else None
@@ -1308,7 +1308,7 @@ def nankurt(
     dtype = values.dtype
     values = ensure_float64(values)
 
-    result: npt.DTypeLike
+    result: npt.NDArray[np.floating] | np.floating
     if axis is None or (values.ndim == 1 and axis == 0):
         result_float = libalgos.scalar_kurt(
             values.ravel(), skipna, mask.ravel() if mask is not None else None
