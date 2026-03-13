@@ -1,4 +1,5 @@
 from collections import namedtuple
+import datetime
 from datetime import timedelta
 import re
 
@@ -1029,3 +1030,46 @@ def test_get_loc_namedtuple_behaves_like_tuple():
         assert idx.get_loc(("i1", "i2")) == 0
         assert idx.get_loc(("i3", "i4")) == 1
         assert idx.get_loc(("i5", "i6")) == 2
+
+
+def test_loc_datetime_date_index_with_np_datetime64():
+    # GH#55969 - accessing a datetime.date MultiIndex level with np.datetime64
+    # should respect subsequent key levels, not return all rows for the date.
+    dates = [
+        datetime.date(2023, 11, 1),
+        datetime.date(2023, 11, 1),
+        datetime.date(2023, 11, 2),
+    ]
+    t1 = ["A", "B", "C"]
+    t2 = ["C", "D", "E"]
+    vals = [0.1, 0.2, 0.3]
+
+    df = DataFrame({"dates": dates, "t1": t1, "t2": t2, "vals": vals})
+    df.set_index(["dates", "t1", "t2"], inplace=True)
+
+    np_date = np.datetime64("2023-11-01")
+    py_date = datetime.date(2023, 11, 1)
+
+    # Both np.datetime64 and datetime.date keys should return the same single row
+    result_np_A = df.loc[(np_date, "A")]
+    result_py_A = df.loc[(py_date, "A")]
+    tm.assert_frame_equal(result_np_A, result_py_A)
+    assert len(result_np_A) == 1
+
+    result_np_B = df.loc[(np_date, "B")]
+    result_py_B = df.loc[(py_date, "B")]
+    tm.assert_frame_equal(result_np_B, result_py_B)
+    assert len(result_np_B) == 1
+
+    # Ensure different second-level keys return different rows
+    assert not result_np_A.equals(result_np_B)
+
+    # Indexing for a date with only one matching row should also work
+    np_date2 = np.datetime64("2023-11-02")
+    result_np_C = df.loc[(np_date2, "C")]
+    assert len(result_np_C) == 1
+
+    # slice_locs should also be correct
+    mi = df.index
+    assert mi.slice_locs((np_date, "A"), (np_date, "A")) == (0, 1)
+    assert mi.slice_locs((np_date, "B"), (np_date, "B")) == (1, 2)

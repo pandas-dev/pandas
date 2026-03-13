@@ -8,6 +8,7 @@ from collections.abc import (
     Iterable,
     Sequence,
 )
+import datetime
 from functools import wraps
 from itertools import zip_longest
 from sys import getsizeof
@@ -3428,6 +3429,29 @@ class MultiIndex(Index):
             section = level_codes[start:end]
 
             loc: npt.NDArray[np.intp] | np.intp | int
+            # GH#55969: if the key is np.datetime64 and the level is an object-dtype
+            # Index containing datetime.date values, the hashtable-based ``in`` check
+            # will return False (no type coercion), causing the short-circuit branch
+            # below to be taken and subsequent key levels to be ignored.  Convert the
+            # key to its Python-scalar equivalent so that the normal lookup path is
+            # used instead.
+            if isinstance(lab, np.datetime64) and is_object_dtype(lev.dtype):
+                # GH#55969: np.datetime64 with day (or coarser) resolution converts
+                # to datetime.date; finer resolutions keep datetime.datetime.
+                py_val: datetime.datetime | datetime.date = lab.astype(
+                    "datetime64[us]"
+                ).item()
+                if (
+                    isinstance(py_val, datetime.datetime)
+                    and py_val.hour == 0
+                    and py_val.minute == 0
+                    and py_val.second == 0
+                    and py_val.microsecond == 0
+                ):
+                    py_val = py_val.date()
+                if py_val in lev:
+                    lab = py_val
+
             if lab not in lev and not isna(lab):
                 # short circuit
                 try:
@@ -3487,8 +3511,25 @@ class MultiIndex(Index):
         if is_scalar(key) and isna(key):
             # TODO: need is_valid_na_for_dtype(key, level_index.dtype)
             return -1
-        else:
-            return level_index.get_loc(key)
+        # GH#55969: np.datetime64 is not found by the hashtable lookup when the
+        # level is an object-dtype Index whose values are datetime.date objects.
+        # Convert to the matching Python scalar type before calling get_loc so
+        # that the lookup succeeds.
+        if isinstance(key, np.datetime64) and is_object_dtype(level_index.dtype):
+            py_val: datetime.datetime | datetime.date = key.astype(
+                "datetime64[us]"
+            ).item()
+            if (
+                isinstance(py_val, datetime.datetime)
+                and py_val.hour == 0
+                and py_val.minute == 0
+                and py_val.second == 0
+                and py_val.microsecond == 0
+            ):
+                py_val = py_val.date()
+            if py_val in level_index:
+                key = py_val
+        return level_index.get_loc(key)
 
     def get_loc(self, key):
         """
