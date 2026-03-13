@@ -269,7 +269,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         if freq is None:
             return freq  # type: ignore[return-value]
         if isinstance(self._data, PeriodArray):
-            return PeriodDtype(freq)._freqstr
+            return PeriodDtype(freq).unit
         return freq.freqstr
 
     @cache_readonly
