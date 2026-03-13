@@ -12,15 +12,6 @@ on:
       - main
       - 3.0.x
   workflow_dispatch:
-    inputs:
-      version:
-        description: 'The pandas version to override'
-        required: false
-        type: string
-      publish_prod:
-        description: 'Publish to production'
-        type: boolean
-        default: false
 
 env:
   ENV_FILE: environment.yml
@@ -29,11 +20,14 @@ env:
 permissions: {}
 
 jobs:
-  web_and_docs:
-    name: Doc Build and Upload
+  build:
+    name: Build Docs and Website
     runs-on: ubuntu-24.04
     permissions:
       contents: read
+
+    outputs:
+      pandas_version: ${{ steps.version.outputs.pandas_version }}
 
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
@@ -46,44 +40,25 @@ jobs:
 
     steps:
     - name: Set pandas version
-      env:
-        INPUT_VERSION: ${{ github.event.inputs.version }}
-        EVENT_NAME: ${{ github.event_name }}
-        INPUT_PUBLISH_PROD: ${{ github.event.inputs.publish_prod }}
+      id: version
       run: |
-        # tags include a `v` prefix.
         tag_version_pat="^v[0-9]+\.[0-9]+\.[0-9]+(rc[0-9]+)?$"
-        version_pat="^[0-9]+\.[0-9]+\.[0-9]+(rc[0-9]+)?$"
-
-        if [[ -n "$INPUT_VERSION" ]]; then
-          PANDAS_VERSION="$INPUT_VERSION"
-        elif [[ "$EVENT_NAME" == "push" && "$GITHUB_REF_NAME" =~ $tag_version_pat ]]; then
+        if [[ "${{ github.event_name }}" == "push" && "$GITHUB_REF_NAME" =~ $tag_version_pat ]]; then
           PANDAS_VERSION="${GITHUB_REF_NAME:1}"
         else
           PANDAS_VERSION=""
         fi
-        echo "PANDAS_VERSION=$PANDAS_VERSION" >> "$GITHUB_ENV"
-
-        if [[ "$EVENT_NAME" == "push" && -n "$PANDAS_VERSION" ]]; then
-          PUBLISH_PROD="true"
-        elif [[ "$INPUT_PUBLISH_PROD" == "true" ]]; then
-          PUBLISH_PROD="true"
-        else
-          PUBLISH_PROD="false"
-        fi
-        echo "PUBLISH_PROD=$PUBLISH_PROD" >> "$GITHUB_ENV"
-
-        if [[ "$PUBLISH_PROD" == "true" ]] &&
-           [[ ! "$PANDAS_VERSION" =~ $version_pat ]]
-        then
-          echo "Invalid version $PANDAS_VERSION for publishing to prod."
-          exit 1
-        fi
+        echo "pandas_version=$PANDAS_VERSION" >> "$GITHUB_OUTPUT"
 
     - name: Checkout
       uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       with:
         fetch-depth: 0
+        fetch-tags: true
+
+    - name: Fetch upstream tags
+      run: git fetch --tags https://github.com/pandas-dev/pandas.git
+      if: github.repository != 'pandas-dev/pandas'
 
     - name: Set up Conda
       uses: ./.github/actions/setup-conda
@@ -113,35 +88,149 @@ jobs:
     - name: Build documentation zip
       run: doc/make.py zip_html
 
-    - name: Install ssh key
-      run: |
-        mkdir -m 700 -p ~/.ssh
-        echo "${{ secrets.server_ssh_key }}" > ~/.ssh/id_rsa
-        chmod 600 ~/.ssh/id_rsa
-        echo "${{ secrets.server_ip }} ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBFjYkJBk7sos+r7yATODogQc3jUdW1aascGpyOD4bohj8dWjzwLJv/OJ/fyOQ5lmj81WKDk67tGtqNJYGL9acII=" > ~/.ssh/known_hosts
-      if: (github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))) || github.event_name == 'workflow_dispatch'
-
     - name: Copy cheatsheets into site directory
       run: cp doc/cheatsheet/Pandas_Cheat_Sheet* web/build/
 
-    - name: Upload web
-      run: rsync -az --delete --exclude='pandas-docs' --exclude='docs' --exclude='benchmarks' web/build/ web@${{ secrets.server_ip }}:/var/www/html
-      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-
-    - name: Upload dev docs
-      run: rsync -az --delete doc/build/html/ web@${{ secrets.server_ip }}:/var/www/html/pandas-docs/dev
-      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-
-    - name: Upload prod docs
-      run: rsync -az --delete doc/build/html/ web@${{ secrets.server_ip }}:/var/www/html/pandas-docs/version/${{ env.PANDAS_VERSION }}
-      if: ${{ env.PUBLISH_PROD == 'true' }}
-
-    - name: Move docs into site directory
-      run: mv doc/build/html web/build/docs
-
-    - name: Save website as an artifact
+    - name: Upload website
       uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
       with:
         name: website
         path: web/build
         retention-days: 14
+
+    - name: Upload docs
+      uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
+      with:
+        name: docs
+        path: doc/build/html
+        retention-days: 1
+      if: |
+        (github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))) ||
+        github.event_name == 'workflow_dispatch'
+
+  assemble:
+    name: Assemble Site
+    needs: build
+    if: |
+      (github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))) ||
+      github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    # Serialized — only one assemble at a time to prevent gh-pages race conditions
+    concurrency:
+      group: assemble-site
+      cancel-in-progress: false
+
+    env:
+      PANDAS_VERSION: ${{ needs.build.outputs.pandas_version }}
+
+    steps:
+    - name: Download website
+      uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+      with:
+        name: website
+        path: _website
+
+    - name: Download docs
+      uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+      with:
+        name: docs
+        path: _docs
+
+    - name: Check if gh-pages branch exists
+      id: check_gh_pages
+      run: |
+        if git ls-remote --exit-code --heads origin gh-pages > /dev/null 2>&1; then
+          echo "exists=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "exists=false" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Checkout gh-pages branch
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      with:
+        ref: gh-pages
+        path: _site
+      if: steps.check_gh_pages.outputs.exists == 'true'
+
+    - name: Checkout and initialize gh-pages branch
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      with:
+        path: _site
+        fetch-depth: 1
+      if: steps.check_gh_pages.outputs.exists != 'true'
+
+    - name: Create orphan gh-pages branch
+      run: |
+        cd _site
+        git checkout --orphan gh-pages
+        git rm -rf .
+        git -c user.name="github-actions[bot]" \
+            -c user.email="github-actions[bot]@users.noreply.github.com" \
+            commit --allow-empty -m "Initialize gh-pages"
+      if: steps.check_gh_pages.outputs.exists != 'true'
+
+    - name: Assemble site
+      run: |
+
+        # Update website root, preserving accumulated docs directories
+        rsync -a --delete --exclude='.git' --exclude='docs' --exclude='pandas-docs' _website/ _site/
+
+        # Update dev docs on pushes to main
+        if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+          rm -rf _site/docs/dev
+          mkdir -p _site/docs/dev
+          cp -r _docs/. _site/docs/dev/
+        fi
+
+        # Update versioned and stable docs on tag pushes
+        if [[ -n "$PANDAS_VERSION" ]]; then
+          MINOR_VERSION=$(echo "$PANDAS_VERSION" | cut -d. -f1,2)
+
+          rm -rf "_site/pandas-docs/version/$MINOR_VERSION"
+          mkdir -p "_site/pandas-docs/version/$MINOR_VERSION"
+          cp -r _docs/. "_site/pandas-docs/version/$MINOR_VERSION/"
+
+          # Update stable docs at docs/ root, preserving docs/dev/
+          rsync -a --delete --exclude='dev' _docs/ _site/docs/
+        fi
+
+        touch _site/.nojekyll
+
+    - name: Update gh-pages branch
+      run: |
+        cd _site
+        git add -A
+        git -c user.name="github-actions[bot]" \
+            -c user.email="github-actions[bot]@users.noreply.github.com" \
+            commit -m "Update site from ${{ github.sha }}" --allow-empty
+        git push origin gh-pages
+
+    - name: Upload Pages artifact
+      uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4
+      with:
+        path: _site
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: assemble
+    permissions:
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    runs-on: ubuntu-latest
+
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+
+    steps:
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4

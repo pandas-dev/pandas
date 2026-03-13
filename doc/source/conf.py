@@ -251,8 +251,9 @@ html_theme_options = {
     "logo": {"image_dark": "https://pandas.pydata.org/static/img/pandas_white.svg"},
     "navbar_align": "left",
     "navbar_end": ["version-switcher", "theme-switcher", "navbar-icon-links"],
+    "check_switcher": False,
     "switcher": {
-        "json_url": "https://pandas.pydata.org/versions.json",
+        "json_url": "/versions.json",
         "version_match": switcher_version,
     },
     # This shows a warning for patch releases since the
