@@ -350,7 +350,10 @@ class BaseMethodsTests:
         result = s1.combine(s2, lambda x1, x2: x1 <= x2)
         expected = pd.Series(
             pd.array(
-                [a <= b for (a, b) in zip(list(orig_data1), list(orig_data2))],
+                [
+                    a <= b
+                    for (a, b) in zip(list(orig_data1), list(orig_data2), strict=True)
+                ],
                 dtype=self._combine_le_expected_dtype,
             )
         )
@@ -369,7 +372,7 @@ class BaseMethodsTests:
     def _construct_for_combine_add(self, left, right):
         if isinstance(right, type(left)):
             return left._from_sequence(
-                [a + b for (a, b) in zip(list(left), list(right))],
+                [a + b for (a, b) in zip(list(left), list(right), strict=True)],
                 dtype=left.dtype,
             )
         else:
@@ -627,7 +630,7 @@ class BaseMethodsTests:
         result = np.repeat(arr, repeats) if use_numpy else arr.repeat(repeats)
 
         repeats = [repeats] * 3 if isinstance(repeats, int) else repeats
-        expected = [x for x, n in zip(arr, repeats) for _ in range(n)]
+        expected = [x for x, n in zip(arr, repeats, strict=True) for _ in range(n)]
         expected = type(data)._from_sequence(expected, dtype=data.dtype)
         if as_series:
             expected = pd.Series(expected, index=arr.index.repeat(repeats))

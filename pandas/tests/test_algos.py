@@ -1482,7 +1482,7 @@ class TestDuplicated:
 
         keys = np.empty(8, dtype=object)
         for i, t in enumerate(
-            zip([0, 0, np.nan, np.nan] * 2, [0, np.nan, 0, np.nan] * 2)
+            zip([0, 0, np.nan, np.nan] * 2, [0, np.nan, 0, np.nan] * 2, strict=True)
         ):
             keys[i] = t
 
@@ -1846,7 +1846,7 @@ class TestRank:
 
     def test_too_many_ndims(self):
         arr = np.array([[[1, 2, 3], [4, 5, 6], [7, 8, 9]]])
-        msg = "Array with ndim > 2 are not supported"
+        msg = "Array with ndim > 2 is not supported"
 
         with pytest.raises(TypeError, match=msg):
             algos.rank(arr)

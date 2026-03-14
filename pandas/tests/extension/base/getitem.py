@@ -137,12 +137,17 @@ class BaseGetitemTests:
             [
                 "list index out of range",  # json
                 "index out of bounds",  # pyarrow
-                "Out of bounds access",  # Sparse
-                f"loc must be an integer between -{ub} and {ub}",  # Sparse
+                (
+                    "index is out of bounds: must be an integer "
+                    f"between -{ub} and {ub - 1}"
+                ),  # Sparse
+                f"index {ub} is out of bounds for axis 0 with size {ub}",
                 f"index {ub + 1} is out of bounds for axis 0 with size {ub}",
                 f"index -{ub + 1} is out of bounds for axis 0 with size {ub}",
             ]
         )
+        with pytest.raises(IndexError, match=msg):
+            data[ub]
         with pytest.raises(IndexError, match=msg):
             data[ub + 1]
         with pytest.raises(IndexError, match=msg):
@@ -467,6 +472,29 @@ class BaseGetitemTests:
 
         with pytest.raises(ValueError, match=msg):
             s.item()
+
+    def test_array_item(self, data):
+        # GH#63876, GH#64129
+        arr = data[:1]
+        assert arr.item() == data[0]
+
+        msg = "can only convert an array of size 1 to a Python scalar"
+        with pytest.raises(ValueError, match=msg):
+            data[:2].item()
+        with pytest.raises(ValueError, match=msg):
+            data[:0].item()
+
+    def test_array_item_with_index(self, data):
+        # GH#63876, GH#64129
+        assert data.item(0) == data[0]
+        assert data.item(-1) == data[-1]
+
+        with tm.external_error_raised(IndexError):
+            data.item(len(data))
+
+        msg = "index must be an integer"
+        with pytest.raises(TypeError, match=msg):
+            data.item([0])
 
     def test_getitem_propagates_readonly_property(self, data):
         # ensure read-only propagates if getitem returns view

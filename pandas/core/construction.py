@@ -29,6 +29,7 @@ from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
     construct_1d_object_array_from_listlike,
+    ensure_dtype_can_hold_na,
     maybe_cast_to_datetime,
     maybe_cast_to_integer_array,
     maybe_convert_platform,
@@ -190,6 +191,14 @@ def array(
     ['a', 'b']
     Length: 2, dtype: str32
 
+    pandas converts entries of a multidimensional sequence (excluding NumPy arrays)
+    to its string representation if the ``dtype`` is a string data type.
+
+    >>> pd.array([[1], [2], [3]], dtype="str")
+    <ArrowStringArray>
+    ['[1]', '[2]', '[3]']
+    Length: 3, dtype: str
+
     Finally, Pandas has arrays that mostly overlap with NumPy
 
       * :class:`arrays.DatetimeArray`
@@ -311,6 +320,23 @@ def array(
 
     data = extract_array(data, extract_numpy=True)
 
+    # Handle numpy masked arrays: convert masked values to NA
+    # GH#63879
+    if isinstance(data, ma.MaskedArray):
+        if data.dtype.names is not None:
+            raise ValueError(
+                "Cannot construct an array from an ndarray with compound dtype. "
+                "Use DataFrame instead."
+            )
+        elif data.mask is not np.False_ and ma.getmaskarray(data).any():
+            na_dtype = ensure_dtype_can_hold_na(data.dtype)
+            if na_dtype.char in "SU":
+                na_dtype = np.dtype("object")
+            data = cast("ma.MaskedArray", data.astype(na_dtype)).filled(np.nan)
+        else:
+            # No mask, convert to regular array
+            data = np.asarray(data)
+
     # this returns None for not-found dtypes.
     if dtype is not None:
         dtype = pandas_dtype(dtype)
@@ -334,7 +360,7 @@ def array(
                 ensure_object(data),
                 convert_non_numeric=True,
                 convert_to_nullable_dtype=True,
-                dtype_if_all_nat=None,
+                dtype_if_all_nat=np.dtype("M8[s]"),
             )
             result = ensure_wrapped_if_datetimelike(result)
             if isinstance(result, np.ndarray):
@@ -348,7 +374,7 @@ def array(
                 return result.copy()
             return result
 
-        data = cast(np.ndarray, data)
+        data = cast("np.ndarray", data)
         result = ensure_wrapped_if_datetimelike(data)
         if result is not data:
             result = cast("DatetimeArray | TimedeltaArray", result)
@@ -519,7 +545,6 @@ def sanitize_masked_array(data: ma.MaskedArray) -> np.ndarray:
     mask = ma.getmaskarray(data)
     if mask.any():
         dtype, fill_value = maybe_promote(data.dtype, np.nan)
-        dtype = cast(np.dtype, dtype)
         data = ma.asarray(data.astype(dtype, copy=True))
         data.soften_mask()  # set hardmask False if it was True
         data[mask] = fill_value
@@ -667,7 +692,7 @@ def sanitize_array(
         else:
             subarr = maybe_convert_platform(data)
             if subarr.dtype == object:
-                subarr = cast(np.ndarray, subarr)
+                subarr = cast("np.ndarray", subarr)
                 subarr = lib.maybe_convert_objects(
                     subarr,
                     # Here we do not convert numeric dtypes, as if we wanted that,
@@ -682,7 +707,7 @@ def sanitize_array(
 
     if isinstance(subarr, np.ndarray):
         # at this point we should have dtype be None or subarr.dtype == dtype
-        dtype = cast(np.dtype, dtype)
+        dtype = cast("np.dtype", dtype)
         subarr = _sanitize_str_dtypes(subarr, data, dtype, copy)
 
     return subarr
@@ -819,7 +844,7 @@ def _try_cast(
     elif dtype.kind == "U":
         # TODO: test cases with arr.dtype.kind in "mM"
         if is_ndarray:
-            arr = cast(np.ndarray, arr)
+            arr = cast("np.ndarray", arr)
             shape = arr.shape
             if arr.ndim > 1:
                 arr = arr.ravel()
@@ -831,7 +856,7 @@ def _try_cast(
 
     elif dtype.kind in "mM":
         if is_ndarray:
-            arr = cast(np.ndarray, arr)
+            arr = cast("np.ndarray", arr)
             if arr.ndim == 2 and arr.shape[1] == 1:
                 # GH#60081: DataFrame Constructor converts 1D data to array of
                 # shape (N, 1), but maybe_cast_to_datetime assumes 1D input

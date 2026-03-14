@@ -304,7 +304,7 @@ class TestnanopsDataFrame:
         empty_targfunc=None,
         **kwargs,
     ):
-        for axis in list(range(targarval.ndim)) + [None]:
+        for axis in [*list(range(targarval.ndim)), None]:
             targartempval = targarval if skipna else testarval
             if skipna and empty_targfunc and isna(targartempval).all():
                 targ = empty_targfunc(targartempval, axis=axis, **kwargs)
@@ -557,12 +557,6 @@ class TestnanopsDataFrame:
         if not isinstance(values.dtype.type, np.floating):
             values = values.astype("f8")
         result = func(values, axis=axis, bias=False)
-        # fix for handling cases where all elements in an axis are the same
-        if isinstance(result, np.ndarray):
-            result[np.max(values, axis=axis) == np.min(values, axis=axis)] = 0
-            return result
-        elif np.max(values) == np.min(values):
-            return 0.0
         return result
 
     def test_nanskew(self, skipna):
@@ -1018,10 +1012,10 @@ class TestNanskewFixedValues:
 
     @pytest.mark.parametrize("val", [3075.2, 3075.3, 3075.5])
     def test_constant_series(self, val):
-        # xref GH 11974
+        # xref GH 11974, 62864
         data = val * np.ones(300)
         skew = nanops.nanskew(data)
-        assert skew == 0.0
+        assert np.isnan(skew)
 
     def test_all_finite(self):
         alpha, beta = 0.3, 0.1
@@ -1086,10 +1080,10 @@ class TestNankurtFixedValues:
 
     @pytest.mark.parametrize("val", [3075.2, 3075.3, 3075.5])
     def test_constant_series(self, val):
-        # xref GH 11974
+        # xref GH 11974, 62864
         data = val * np.ones(300)
         kurt = nanops.nankurt(data)
-        tm.assert_equal(kurt, 0.0)
+        tm.assert_equal(kurt, np.nan)
 
     def test_all_finite(self):
         alpha, beta = 0.3, 0.1
@@ -1234,7 +1228,7 @@ def test_nanops_independent_of_mask_param(operation):
     ser = Series([1, 2, np.nan, 3, np.nan, 4])
     mask = ser.isna()
     median_expected = operation(ser._values)
-    median_result = operation(ser._values, mask=mask)
+    median_result = operation(ser._values, mask=mask._values)
     assert median_expected == median_result
 
 
@@ -1274,17 +1268,20 @@ def test_check_bottleneck_disallow(any_real_numpy_dtype, func):
 
 
 @pytest.mark.parametrize("val", [2**55, -(2**55), 20150515061816532])
-def test_nanmean_overflow(disable_bottleneck, val):
+def test_nanmean_overflow(disable_bottleneck, val, using_python_scalars):
     # GH 10155
     # In the previous implementation mean can overflow for int dtypes, it
     # is now consistent with numpy
 
     ser = Series(val, index=range(500), dtype=np.int64)
     result = ser.mean()
-    np_result = ser.values.mean()
     assert result == val
-    assert result == np_result
-    assert result.dtype == np.float64
+    if using_python_scalars:
+        assert type(result) == float
+    else:
+        np_result = ser.values.mean()
+        assert result == np_result
+        assert result.dtype == np.float64
 
 
 @pytest.mark.parametrize(
@@ -1299,13 +1296,18 @@ def test_nanmean_overflow(disable_bottleneck, val):
     ],
 )
 @pytest.mark.parametrize("method", ["mean", "std", "var", "skew", "kurt", "min", "max"])
-def test_returned_dtype(disable_bottleneck, dtype, method):
+def test_returned_dtype(disable_bottleneck, dtype, method, using_python_scalars):
     if dtype is None:
         pytest.skip("np.float128 not available")
 
     ser = Series(range(10), dtype=dtype)
     result = getattr(ser, method)()
-    if is_integer_dtype(dtype) and method not in ["min", "max"]:
+    if using_python_scalars:
+        if is_integer_dtype(dtype) and method in ["min", "max"]:
+            assert isinstance(result, int)
+        else:
+            assert type(result) == float
+    elif is_integer_dtype(dtype) and method not in ["min", "max"]:
         assert result.dtype == np.float64
     else:
         assert result.dtype == dtype

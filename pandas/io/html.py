@@ -24,10 +24,7 @@ from pandas.errors import (
     AbstractMethodError,
     EmptyDataError,
 )
-from pandas.util._decorators import (
-    doc,
-    set_module,
-)
+from pandas.util._decorators import set_module
 from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.common import is_list_like
@@ -36,7 +33,6 @@ from pandas import isna
 from pandas.core.indexes.base import Index
 from pandas.core.indexes.multi import MultiIndex
 from pandas.core.series import Series
-from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.common import (
     get_handle,
@@ -263,7 +259,7 @@ class _HtmlFrameParser:
 
     def _href_getter(self, obj) -> str | None:
         """
-        Return a href if the DOM node contains a child <a> or None.
+        Return an href if the DOM node contains a child <a> or None.
 
         Parameters
         ----------
@@ -890,7 +886,7 @@ def _parser_dispatch(flavor: HTMLFlavors | None) -> type[_HtmlFrameParser]:
 
     Parameters
     ----------
-    flavor : {{"lxml", "html5lib", "bs4"}} or None
+    flavor : {"lxml", "html5lib", "bs4"} or None
         The type of parser to use. This must be a valid backend.
 
     Returns
@@ -1024,7 +1020,6 @@ def _parse(
 
 
 @set_module("pandas")
-@doc(storage_options=_shared_docs["storage_options"])
 def read_html(
     io: FilePath | ReadBuffer[str],
     *,
@@ -1049,18 +1044,19 @@ def read_html(
     r"""
     Read HTML tables into a ``list`` of ``DataFrame`` objects.
 
+    This function searches for ``<table>`` elements within an HTML document
+    and parses their rows and columns into DataFrames. It can read from a URL,
+    a file path, or a raw HTML string, and supports filtering tables by
+    matching text content via a regular expression.
+
     Parameters
     ----------
     io : str, path object, or file-like object
-        String, path object (implementing ``os.PathLike[str]``), or file-like
+        String path, path object (implementing ``os.PathLike[str]``), or file-like
         object implementing a string ``read()`` function.
         The string can represent a URL. Note that
         lxml only accepts the http, ftp and file url protocols. If you have a
         URL that starts with ``'https'`` you might try removing the ``'s'``.
-
-        .. deprecated:: 2.1.0
-            Passing html literal strings is deprecated.
-            Wrap literal string/bytes input in ``io.StringIO``/``io.BytesIO`` instead.
 
     match : str or compiled regular expression, optional
         The set of tables containing text matching this regex or string will be
@@ -1070,7 +1066,7 @@ def read_html(
         This value is converted to a regular expression so that there is
         consistent behavior between Beautiful Soup and lxml.
 
-    flavor : {{"lxml", "html5lib", "bs4"}} or list-like, optional
+    flavor : {"lxml", "html5lib", "bs4"} or list-like, optional
         The parsing engine (or list of parsing engines) to use. 'bs4' and
         'html5lib' are synonymous with each other, they are both there for
         backwards compatibility. The default of ``None`` tries to use ``lxml``
@@ -1095,13 +1091,13 @@ def read_html(
         passed to lxml or Beautiful Soup. However, these attributes must be
         valid HTML table attributes to work correctly. For example, ::
 
-            attrs = {{"id": "table"}}
+            attrs = {"id": "table"}
 
         is a valid attribute dictionary because the 'id' HTML tag attribute is
         a valid HTML attribute for *any* HTML tag as per `this document
         <https://html.spec.whatwg.org/multipage/dom.html#global-attributes>`__. ::
 
-            attrs = {{"asdf": "table"}}
+            attrs = {"asdf": "table"}
 
         is *not* a valid attribute dictionary because 'asdf' is not a valid
         HTML attribute even if it is a valid XML attribute.  Valid HTML 4.01
@@ -1143,11 +1139,11 @@ def read_html(
     displayed_only : bool, default True
         Whether elements with "display: none" should be parsed.
 
-    extract_links : {{None, "all", "header", "body", "footer"}}
+    extract_links : {None, "all", "header", "body", "footer"}
         Table elements in the specified section(s) with <a> tags will have their
         href extracted.
 
-    dtype_backend : {{'numpy_nullable', 'pyarrow'}}
+    dtype_backend : {'numpy_nullable', 'pyarrow'}
         Back-end data type applied to the resultant :class:`DataFrame`
         (still experimental). If not specified, the default behavior
         is to not use nullable data types. If specified, the behavior
@@ -1159,7 +1155,15 @@ def read_html(
 
         .. versionadded:: 2.0
 
-    {storage_options}
+    storage_options : dict, optional
+        Extra options that make sense for a particular storage connection, e.g.
+        host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
+        are forwarded to ``urllib.request.Request`` as header options. For other
+        URLs (e.g. starting with "s3://", and "gcs://") the key-value pairs are
+        forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more
+        details, and for more examples on storage options refer `here
+        <https://pandas.pydata.org/docs/user_guide/io.html?
+        highlight=storage_options#reading-writing-remote-files>`_.
 
         .. versionadded:: 2.1.0
 

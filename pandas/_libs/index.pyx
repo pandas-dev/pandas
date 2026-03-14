@@ -56,6 +56,8 @@ cdef bint is_definitely_invalid_key(object val):
     return False
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 cdef ndarray _get_bool_indexer(ndarray values, object val, ndarray mask = None):
     """
     Return an ndarray[bool] of locations where val matches self.values.
@@ -115,6 +117,8 @@ cdef _maybe_resize_array(ndarray values, Py_ssize_t loc, Py_ssize_t max_length):
 _SIZE_CUTOFF = 1_000_000
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 cdef _unpack_bool_indexer(ndarray[uint8_t, ndim=1, cast=True] indexer, object val):
     """
     Possibly unpack a boolean mask to a single indexer.
@@ -272,6 +276,7 @@ cdef class IndexEngine:
                 self.monotonic_dec = 1
 
     @property
+    @cython.critical_section
     def is_unique(self) -> bool:
         # for why we check is_monotonic_increasing here, see
         # https://github.com/pandas-dev/pandas/pull/55342#discussion_r1361405781
@@ -286,6 +291,7 @@ cdef class IndexEngine:
         self._ensure_mapping_populated()
 
     @property
+    @cython.critical_section
     def is_monotonic_increasing(self) -> bool:
         if self.need_monotonic_check:
             self._do_monotonic_check()
@@ -293,6 +299,7 @@ cdef class IndexEngine:
         return self.monotonic_inc == 1
 
     @property
+    @cython.critical_section
     def is_monotonic_decreasing(self) -> bool:
         if self.need_monotonic_check:
             self._do_monotonic_check()
@@ -336,24 +343,26 @@ cdef class IndexEngine:
         return val
 
     @property
+    @cython.critical_section
     def is_mapping_populated(self) -> bool:
         return self.mapping is not None
 
+    @cython.critical_section
     cdef _ensure_mapping_populated(self):
         # this populates the mapping
         # if its not already populated
         # also satisfies the need_unique_check
-
         if not self.is_mapping_populated:
-
             values = self.values
-            self.mapping = self._make_hash_table(len(values))
-            self.mapping.map_locations(values, self.mask)
-
-            if len(self.mapping) == len(values):
-                self.unique = 1
-
-        self.need_unique_check = 0
+            mapping = self._make_hash_table(len(values))
+            mapping.map_locations(values, self.mask)
+            unique = len(mapping) == len(values)
+        # check again after creating the mapping
+        # which could have released the critical_section
+        if not self.is_mapping_populated:
+            self.mapping = mapping
+            self.unique = unique
+            self.need_unique_check = 0
 
     def clear_mapping(self):
         self.mapping = None
@@ -368,6 +377,8 @@ cdef class IndexEngine:
         self._ensure_mapping_populated()
         return self.mapping.lookup(values)
 
+    @cython.wraparound(False)
+    @cython.boundscheck(False)
     def get_indexer_non_unique(self, ndarray targets):
         """
         Return an indexer suitable for taking from a non unique index
@@ -1205,6 +1216,8 @@ cdef class MaskedIndexEngine(IndexEngine):
         self._ensure_mapping_populated()
         return self.mapping.lookup(self._get_data(values), self._get_mask(values))
 
+    @cython.wraparound(False)
+    @cython.boundscheck(False)
     def get_indexer_non_unique(self, object targets):
         """
         Return an indexer suitable for taking from a non unique index

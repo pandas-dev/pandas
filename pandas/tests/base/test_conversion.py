@@ -114,7 +114,7 @@ class TestToIterable:
         assert isinstance(result, rdtype)
 
     @pytest.mark.parametrize(
-        "dtype, rdtype", dtypes + [("object", int), ("category", int)]
+        "dtype, rdtype", [*dtypes, ("object", int), ("category", int)]
     )
     def test_iterable_map(self, index_or_series, dtype, rdtype):
         # gh-13236
@@ -150,7 +150,7 @@ class TestToIterable:
         vals = [Timestamp("2011-01-01"), Timestamp("2011-01-02")]
         ser = Series(vals).dt.as_unit(unit)
         assert ser.dtype == f"datetime64[{unit}]"
-        for res, exp in zip(ser, vals):
+        for res, exp in zip(ser, vals, strict=True):
             assert isinstance(res, Timestamp)
             assert res.tz is None
             assert res == exp
@@ -164,7 +164,7 @@ class TestToIterable:
         ser = Series(vals).dt.as_unit(unit)
 
         assert ser.dtype == f"datetime64[{unit}, US/Eastern]"
-        for res, exp in zip(ser, vals):
+        for res, exp in zip(ser, vals, strict=True):
             assert isinstance(res, Timestamp)
             assert res.tz == exp.tz
             assert res == exp
@@ -175,7 +175,7 @@ class TestToIterable:
         vals = [Timedelta("1 days"), Timedelta("2 days")]
         ser = Series(vals).dt.as_unit(unit)
         assert ser.dtype == f"timedelta64[{unit}]"
-        for res, exp in zip(ser, vals):
+        for res, exp in zip(ser, vals, strict=True):
             assert isinstance(res, Timedelta)
             assert res == exp
             assert res.unit == unit
@@ -185,7 +185,7 @@ class TestToIterable:
         vals = [pd.Period("2011-01-01", freq="M"), pd.Period("2011-01-02", freq="M")]
         s = Series(vals)
         assert s.dtype == "Period[M]"
-        for res, exp in zip(s, vals):
+        for res, exp in zip(s, vals, strict=True):
             assert isinstance(res, pd.Period)
             assert res.freq == "ME"
             assert res == exp
@@ -299,7 +299,7 @@ def test_array_multiindex_raises():
         (np.array([1, 2], dtype=np.int64), np.array([1, 2], dtype=np.int64), True),
         (pd.Categorical(["a", "b"]), np.array(["a", "b"], dtype=object), False),
         (
-            pd.core.arrays.period_array(["2000", "2001"], freq="D"),
+            pd.PeriodIndex(["2000", "2001"], freq="D").array,
             np.array([pd.Period("2000", freq="D"), pd.Period("2001", freq="D")]),
             False,
         ),

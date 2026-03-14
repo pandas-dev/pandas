@@ -17,11 +17,12 @@ def bar_grad(a=None, b=None, c=None, d=None):
     ret = [("width", "10em")]
     if all(x is None for x in [a, b, c, d]):
         return ret
-    return ret + [
+    return [
+        *ret,
         (
             "background",
             f"linear-gradient(90deg,{','.join([x for x in [a, b, c, d] if x])})",
-        )
+        ),
     ]
 
 

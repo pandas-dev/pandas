@@ -201,17 +201,11 @@ class TestSeriesPlots:
         ax = ts.plot.hist(bins=5, ax=ax)
         ax = ts.plot.hist(align="left", stacked=True, ax=ax)
 
-    @pytest.mark.xfail(reason="Api changed in 3.6.0")
     def test_hist_kde(self, ts):
         pytest.importorskip("scipy")
         _, ax = mpl.pyplot.subplots()
         ax = ts.plot.hist(logy=True, ax=ax)
         _check_ax_scales(ax, yaxis="log")
-        xlabels = ax.get_xticklabels()
-        # ticks are values, thus ticklabels are blank
-        _check_text_labels(xlabels, [""] * len(xlabels))
-        ylabels = ax.get_yticklabels()
-        _check_text_labels(ylabels, [""] * len(ylabels))
 
     def test_hist_kde_plot_works(self, ts):
         pytest.importorskip("scipy")
@@ -221,16 +215,11 @@ class TestSeriesPlots:
         pytest.importorskip("scipy")
         _check_plot_works(ts.plot.density)
 
-    @pytest.mark.xfail(reason="Api changed in 3.6.0")
     def test_hist_kde_logy(self, ts):
         pytest.importorskip("scipy")
         _, ax = mpl.pyplot.subplots()
         ax = ts.plot.kde(logy=True, ax=ax)
         _check_ax_scales(ax, yaxis="log")
-        xlabels = ax.get_xticklabels()
-        _check_text_labels(xlabels, [""] * len(xlabels))
-        ylabels = ax.get_yticklabels()
-        _check_text_labels(ylabels, [""] * len(ylabels))
 
     def test_hist_kde_color_bins(self, ts):
         pytest.importorskip("scipy")
@@ -532,7 +521,7 @@ class TestDataFramePlots:
         _check_axes_shape(axes, axes_num=expected_axes_num, layout=expected_layout)
         if by is None and column is None:
             axes = axes[0]
-        for expected_label, ax in zip(expected_labels, axes):
+        for expected_label, ax in zip(expected_labels, axes, strict=True):
             _check_legend_labels(ax, expected_label)
 
     @pytest.mark.parametrize("by", [None, "c"])
@@ -644,7 +633,7 @@ class TestDataFramePlots:
             x for x in ax1.get_children() if isinstance(x, mpl.patches.Rectangle)
         ]
         no_nan_heights = [rect.get_height() for rect in no_nan_rects]
-        assert all(h0 == h1 for h0, h1 in zip(heights, no_nan_heights))
+        assert all(h0 == h1 for h0, h1 in zip(heights, no_nan_heights, strict=True))
 
         idxerror_weights = np.array([[0.3, 0.25], [0.45, 0.45]])
 

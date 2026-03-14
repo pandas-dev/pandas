@@ -151,7 +151,7 @@ def test_numpy_ufuncs_other(index, func):
 
 
 @pytest.mark.parametrize("func", [np.maximum, np.minimum])
-def test_numpy_ufuncs_reductions(index, func, request):
+def test_numpy_ufuncs_reductions(index, func):
     # TODO: overlap with tests.series.test_ufunc.test_reductions
     if len(index) == 0:
         pytest.skip("Test doesn't make sense for empty index.")

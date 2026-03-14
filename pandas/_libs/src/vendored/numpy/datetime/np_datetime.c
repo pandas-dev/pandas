@@ -17,7 +17,7 @@ This file is derived from NumPy 1.7. See NUMPY_LICENSE.txt
 // Licence at LICENSES/NUMPY_LICENSE
 
 #ifndef NPY_NO_DEPRECATED_API
-#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
+#  define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #endif // NPY_NO_DEPRECATED_API
 
 #include "pandas/vendored/numpy/datetime/np_datetime.h"
@@ -348,19 +348,6 @@ static inline int scaleMinutesToSeconds(int64_t minutes, int64_t *result) {
   return checked_mul(minutes, 60, result);
 }
 
-static inline int scaleSecondsToMilliseconds(int64_t seconds, int64_t *result) {
-  return checked_mul(seconds, 1000, result);
-}
-
-static inline int scaleSecondsToMicroseconds(int64_t seconds, int64_t *result) {
-  return checked_mul(seconds, 1000000, result);
-}
-
-static inline int scaleMicrosecondsToNanoseconds(int64_t microseconds,
-                                                 int64_t *result) {
-  return checked_mul(microseconds, 1000, result);
-}
-
 static inline int scaleMicrosecondsToPicoseconds(int64_t microseconds,
                                                  int64_t *result) {
   return checked_mul(microseconds, 1000000, result);
@@ -374,6 +361,31 @@ static inline int64_t scalePicosecondsToFemtoseconds(int64_t picoseconds,
 static inline int64_t scalePicosecondsToAttoseconds(int64_t picoseconds,
                                                     int64_t *result) {
   return checked_mul(picoseconds, 1000000, result);
+}
+
+/*
+ * Handle underflow when scaling time to a smaller unit.
+ * Splits the operation to avoid underflow, if necessary,
+ * in the following manner:
+ * y = a * x + b = a * (x + k - k) + b = a * (x + k) + (b - a * k)
+ *
+ * Returns false on success, true on failure (from checked_* functions).
+ */
+static bool scale_time_with_underflow_check(int64_t time, int64_t scale_factor,
+                                            int64_t fractional_part,
+                                            int64_t *result) {
+  const int64_t min_scalable_time = NPY_MIN_INT64 / scale_factor;
+
+  if (time < min_scalable_time) {
+    const int64_t amount_below_threshold = time - min_scalable_time;
+    const int64_t scaled_time = scale_factor * (time - amount_below_threshold);
+    return checked_mul(scale_factor, amount_below_threshold, result) ||
+           checked_add(*result, fractional_part, result) ||
+           checked_add(scaled_time, *result, result);
+  }
+
+  return checked_mul(time, scale_factor, result) ||
+         checked_add(fractional_part, *result, result);
 }
 
 /*
@@ -448,15 +460,16 @@ npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT base,
 
   if (base == NPY_FR_ms) {
     int64_t milliseconds;
-    PD_CHECK_OVERFLOW(scaleSecondsToMilliseconds(seconds, &milliseconds));
-    PD_CHECK_OVERFLOW(checked_add(milliseconds, dts->us / 1000, &milliseconds));
-
+    const int64_t ms_per_second = 1000L;
+    PD_CHECK_OVERFLOW(scale_time_with_underflow_check(
+        seconds, ms_per_second, dts->us / 1000L, &milliseconds));
     return milliseconds;
   }
 
   int64_t microseconds;
-  PD_CHECK_OVERFLOW(scaleSecondsToMicroseconds(seconds, &microseconds));
-  PD_CHECK_OVERFLOW(checked_add(microseconds, dts->us, &microseconds));
+  const int64_t us_per_second = 1000000L;
+  PD_CHECK_OVERFLOW(scale_time_with_underflow_check(seconds, us_per_second,
+                                                    dts->us, &microseconds));
 
   if (base == NPY_FR_us) {
     return microseconds;
@@ -464,19 +477,9 @@ npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT base,
 
   if (base == NPY_FR_ns) {
     int64_t nanoseconds;
-
-    // Minimum valid timestamp in nanoseconds (1677-09-21 00:12:43.145224193).
-    const int64_t min_nanoseconds = NPY_MIN_INT64 + 1;
-    if (microseconds == min_nanoseconds / 1000 - 1) {
-      // For values within one microsecond of min_nanoseconds, use it as base
-      // and offset it with nanosecond delta to avoid overflow during scaling.
-      PD_CHECK_OVERFLOW(checked_add(
-          min_nanoseconds, (dts->ps - _NS_MIN_DTS.ps) / 1000, &nanoseconds));
-    } else {
-      PD_CHECK_OVERFLOW(
-          scaleMicrosecondsToNanoseconds(microseconds, &nanoseconds));
-      PD_CHECK_OVERFLOW(checked_add(nanoseconds, dts->ps / 1000, &nanoseconds));
-    }
+    const int64_t ns_per_us = 1000L;
+    PD_CHECK_OVERFLOW(scale_time_with_underflow_check(
+        microseconds, ns_per_us, dts->ps / 1000, &nanoseconds));
 
     return nanoseconds;
   }
@@ -818,7 +821,7 @@ void pandas_timedelta_to_timedeltastruct(npy_timedelta td,
 PyArray_DatetimeMetaData
 get_datetime_metadata_from_dtype(PyArray_Descr *dtype) {
 #if NPY_ABI_VERSION < 0x02000000
-#define PyDataType_C_METADATA(dtype) ((dtype)->c_metadata)
+#  define PyDataType_C_METADATA(dtype) ((dtype)->c_metadata)
 #endif
   return ((PyArray_DatetimeDTypeMetaData *)PyDataType_C_METADATA(dtype))->meta;
 }

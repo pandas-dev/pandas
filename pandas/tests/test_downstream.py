@@ -190,9 +190,9 @@ def test_yaml_dump(df):
     tm.assert_frame_equal(df, loaded2)
 
 
-@pytest.mark.parametrize("dependency", ["numpy", "dateutil", "tzdata"])
+@pytest.mark.parametrize("dependency", ["numpy", "dateutil"])
 def test_missing_required_dependency(monkeypatch, dependency):
-    # GH#61030, GH61273
+    # GH#61030
     original_import = __import__
     mock_error = ImportError(f"Mock error for {dependency}")
 
@@ -252,6 +252,11 @@ def test_pandas_priority():
     assert right + left is left
 
 
+# https://github.com/dask/dask/pull/5043
+# to_timedelta calls np.may_share_memory on a Dask array. They may need to implement?
+@pytest.mark.filterwarnings(
+    "ignore:The `numpy.may_share_memory` function is not implemented:FutureWarning"
+)
 @pytest.mark.parametrize("dtype", ["M8[ns]", "m8[ns]"])
 @pytest.mark.parametrize(
     "box", [memoryview, partial(array.array, "i"), "dask", "xarray"]

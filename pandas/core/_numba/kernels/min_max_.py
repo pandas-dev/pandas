@@ -35,7 +35,7 @@ def bisect_left(a: list[Any], x: Any, lo: int = 0, hi: int = -1) -> int:
     return lo
 
 
-@numba.jit(nopython=True, nogil=True, parallel=False)
+@numba.jit(nogil=True, parallel=False)
 def sliding_min_max(
     values: np.ndarray,
     result_dtype: np.dtype,
@@ -129,7 +129,7 @@ def sliding_min_max(
     return output, na_pos
 
 
-@numba.jit(nopython=True, nogil=True, parallel=False)
+@numba.jit(nogil=True, parallel=False)
 def grouped_min_max(
     values: np.ndarray,
     result_dtype: np.dtype,
@@ -167,9 +167,8 @@ def grouped_min_max(
         if is_max:
             if val > output[lab]:
                 output[lab] = val
-        else:
-            if val < output[lab]:
-                output[lab] = val
+        elif val < output[lab]:
+            output[lab] = val
 
     # Set labels that don't satisfy min_periods as np.nan
     for lab, count in enumerate(nobs):

@@ -37,7 +37,7 @@ def test_not_all_none(i, _fname):
     kwarg_keys = ("foo", "bar", "baz")
     kwarg_vals = (2, "s", None)
 
-    kwargs = dict(zip(kwarg_keys[:i], kwarg_vals[:i]))
+    kwargs = dict(zip(kwarg_keys[:i], kwarg_vals[:i], strict=True))
 
     with pytest.raises(ValueError, match=msg):
         validate_kwargs(_fname, kwargs, compat_args)

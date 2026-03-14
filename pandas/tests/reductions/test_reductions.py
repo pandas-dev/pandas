@@ -782,6 +782,9 @@ class TestSeriesReductions:
         assert result == result_numpy_dtype
         assert result == exp
 
+    @pytest.mark.filterwarnings(
+        "ignore:Casting complex values to real discards:numpy.exceptions.ComplexWarning"
+    )
     def test_var_complex_array(self):
         # GH#61645
         ser = Series([-1j, 0j, 1j], dtype=complex)
@@ -1269,11 +1272,15 @@ class TestSeriesReductions:
         expected = np.uint64(10000000000000000000)
         tm.assert_almost_equal(result, expected)
 
-    def test_signedness_preserved_after_sum(self):
+    def test_signedness_preserved_after_sum(self, using_python_scalars):
         # GH 37491
         ser = Series([1, 2, 3, 4])
 
-        assert ser.astype("uint8").sum().dtype == "uint64"
+        result = ser.astype("uint8").sum()
+        if using_python_scalars:
+            assert isinstance(result, int)
+        else:
+            assert isinstance(result, np.uint64)
 
 
 class TestDatetime64SeriesReductions:
@@ -1366,7 +1373,7 @@ class TestCategoricalSeriesReductions:
         [
             (list("abc"), list("abc")),
             (list("abc"), list("cba")),
-            (list("abc") + [np.nan], list("cba")),
+            ([*list("abc"), np.nan], list("cba")),
             ([1, 2, 3], [3, 2, 1]),
             ([1, 2, 3, np.nan], [3, 2, 1]),
         ],

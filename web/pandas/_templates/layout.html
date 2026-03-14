@@ -56,9 +56,11 @@
             </nav>
         </header>
         <main role="main">
-            <div class="container">
+            {% block body_container %}
+            <div class="container container-main">
                 {% block body %}{% endblock %}
             </div>
+            {% endblock %}
         </main>
         <footer class="container pt-4 pt-md-5 border-top">
             <ul class="list-inline social-buttons float-end">

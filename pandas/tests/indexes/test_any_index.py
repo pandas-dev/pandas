@@ -48,7 +48,7 @@ def test_map_identity_mapping(index, request, using_infer_string):
         request.applymarker(mark)
 
     result = index.map(lambda x: x)
-    if index.dtype == object and (result.dtype == bool or result.dtype == "string"):
+    if index.dtype == object and (result.dtype in (bool, "string")):
         assert (index == result).all()
         # TODO: could work that into the 'exact="equiv"'?
         return  # FIXME: doesn't belong in this file anymore!
@@ -102,16 +102,16 @@ class TestConversion:
 
 
 class TestRoundTrips:
-    def test_pickle_roundtrip(self, index):
-        result = tm.round_trip_pickle(index)
+    def test_pickle_roundtrip(self, index, temp_file):
+        result = tm.round_trip_pickle(index, temp_file)
         tm.assert_index_equal(result, index, exact=True)
         if result.nlevels > 1:
             # GH#8367 round-trip with timezone
             assert index.equal_levels(result)
 
-    def test_pickle_preserves_name(self, index):
+    def test_pickle_preserves_name(self, index, temp_file):
         original_name, index.name = index.name, "foo"
-        unpickled = tm.round_trip_pickle(index)
+        unpickled = tm.round_trip_pickle(index, temp_file)
         assert index.equals(unpickled)
         index.name = original_name
 

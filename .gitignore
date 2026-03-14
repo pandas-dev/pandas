@@ -45,11 +45,11 @@ debug
 
 # Python files #
 ################
-# setup.py working directory
+# meson working directory
 build
 # sphinx build directory
 doc/_build
-# setup.py dist directory
+# dist directory
 dist
 # Egg metadata
 *.egg-info

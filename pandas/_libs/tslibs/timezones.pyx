@@ -1,3 +1,4 @@
+cimport cython
 from datetime import (
     timedelta,
     timezone,
@@ -59,9 +60,6 @@ cdef bint is_utc_zoneinfo(tzinfo tz):
             utc_zoneinfo = zoneinfo.ZoneInfo("UTC")
         except zoneinfo.ZoneInfoNotFoundError:
             return False
-        # Warn if tzdata is too old, even if there is a system tzdata to alert
-        # users about the mismatch between local/system tzdata
-        import_optional_dependency("tzdata", errors="warn", min_version="2022.7")
 
     return tz is utc_zoneinfo
 
@@ -259,6 +257,8 @@ cdef object _get_utc_trans_times_from_dateutil_tz(tzinfo tz):
     return new_trans
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 cdef int64_t[::1] unbox_utcoffsets(object transinfo):
     cdef:
         Py_ssize_t i

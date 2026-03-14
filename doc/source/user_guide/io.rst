@@ -787,7 +787,7 @@ The simplest case is to just pass in ``parse_dates=True``:
    df.index
 
 It is often the case that we may want to store date and time data separately,
-or store various date fields separately. the ``parse_dates`` keyword can be
+or store various date fields separately. The ``parse_dates`` keyword can be
 used to specify columns to parse the dates and/or times.
 
 
@@ -813,9 +813,9 @@ Performance-wise, you should try these methods of parsing dates in order:
 1. If you know the format, use ``date_format``, e.g.:
    ``date_format="%d/%m/%Y"`` or ``date_format={column_name: "%d/%m/%Y"}``.
 
-2. If you different formats for different columns, or want to pass any extra options (such
-   as ``utc``) to ``to_datetime``, then you should read in your data as ``object`` dtype, and
-   then use ``to_datetime``.
+2. If the source CSV uses different formats for different columns, or you want to pass
+   any extra options (such as ``utc``) to ``to_datetime``, then you should read in your
+   data as ``object`` dtype, and then use ``to_datetime``.
 
 
 .. _io.csv.mixed_timezones:
@@ -4308,7 +4308,7 @@ storing/selecting from homogeneous index ``DataFrames``.
    store.select("df_mi", "foo=bar")
 
 .. note::
-   The ``index`` keyword is reserved and cannot be use as a level name.
+   The ``index`` keyword is reserved and cannot be used as a level name.
 
 .. _io.hdf5-query:
 
@@ -6175,7 +6175,7 @@ is lost when exporting.
 
     *Stata* only supports string value labels, and so ``str`` is called on the
     categories when exporting data.  Exporting ``Categorical`` variables with
-    non-string categories produces a warning, and can result a loss of
+    non-string categories produces a warning, and can result in a loss of
     information if the ``str`` representations of the categories are not unique.
 
 Labeled data can similarly be imported from *Stata* data files as ``Categorical``

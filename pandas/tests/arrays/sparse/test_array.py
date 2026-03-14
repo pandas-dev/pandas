@@ -120,9 +120,9 @@ class TestSparseArray:
         tm.assert_numpy_array_equal(res, vals)
 
     @pytest.mark.parametrize("fix", ["arr", "zarr"])
-    def test_pickle(self, fix, request):
+    def test_pickle(self, fix, request, temp_file):
         obj = request.getfixturevalue(fix)
-        unpickled = tm.round_trip_pickle(obj)
+        unpickled = tm.round_trip_pickle(obj, temp_file)
         tm.assert_sp_array_equal(unpickled, obj)
 
     def test_generator_warnings(self):
@@ -481,7 +481,9 @@ def test_dropna(fill_value):
     tm.assert_sp_array_equal(arr.dropna(), exp)
 
     df = pd.DataFrame({"a": [0, 1], "b": arr})
-    expected_df = pd.DataFrame({"a": [1], "b": exp}, index=pd.Index([1]))
+    expected_df = pd.DataFrame(
+        {"a": [1], "b": exp}, index=pd.RangeIndex(start=1, stop=2, step=1)
+    )
     tm.assert_equal(df.dropna(), expected_df)
 
 

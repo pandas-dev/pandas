@@ -50,18 +50,7 @@ _khash_primitive_helper_dep = declare_dependency(
     sources: _khash_primitive_helper,
 )
 
-cdata = configuration_data()
-if cy.version().version_compare('>=3.1.0')
-    cdata.set('freethreading_compatible', '1')
-else
-    cdata.set('freethreading_compatible', '0')
-endif
-_free_threading_config = configure_file(
-    input: 'free_threading_config.pxi.in',
-    output: 'free_threading_config.pxi',
-    configuration: cdata,
-    install: false,
-)
+m_dep = cc.find_library('m', required: false)
 
 subdir('tslibs')
 
@@ -70,10 +59,10 @@ libs_sources = {
     # numpy include dir is implicitly included
     'algos': {
         'sources': ['algos.pyx', _algos_common_helper, _algos_take_helper],
-        'deps': _khash_primitive_helper_dep,
+        'deps': [_khash_primitive_helper_dep, m_dep],
     },
     'arrays': {'sources': ['arrays.pyx']},
-    'groupby': {'sources': ['groupby.pyx']},
+    'groupby': {'sources': ['groupby.pyx'], 'deps': [m_dep]},
     'hashing': {'sources': ['hashing.pyx']},
     'hashtable': {
         'sources': [
@@ -118,7 +107,7 @@ libs_sources = {
         'sources': ['parsers.pyx', 'src/parser/tokenizer.c', 'src/parser/io.c'],
         'deps': _khash_primitive_helper_dep,
     },
-    'json': {
+    '_ujson': {
         'sources': [
             'src/vendored/ujson/python/ujson.c',
             'src/vendored/ujson/python/objToJSON.c',
@@ -126,6 +115,7 @@ libs_sources = {
             'src/vendored/ujson/lib/ultrajsonenc.c',
             'src/vendored/ujson/lib/ultrajsondec.c',
         ],
+        'deps': [m_dep],
     },
     'ops': {'sources': ['ops.pyx']},
     'ops_dispatch': {'sources': ['ops_dispatch.pyx']},
@@ -133,7 +123,7 @@ libs_sources = {
     'reshape': {'sources': ['reshape.pyx']},
     'sas': {'sources': ['sas.pyx']},
     'byteswap': {'sources': ['byteswap.pyx']},
-    'sparse': {'sources': ['sparse.pyx', _sparse_op_helper]},
+    'sparse': {'sources': ['sparse.pyx', _sparse_op_helper], 'deps': [m_dep]},
     'tslib': {'sources': ['tslib.pyx']},
     'testing': {'sources': ['testing.pyx']},
     'writers': {'sources': ['writers.pyx']},
@@ -160,7 +150,7 @@ foreach ext_name, ext_dict : libs_sources
         ext_dict.get('sources'),
         cython_args: cython_args,
         include_directories: [inc_np, inc_pd],
-        dependencies: ext_dict.get('deps', ''),
+        dependencies: ext_dict.get('deps', []),
         subdir: 'pandas/_libs',
         install: true,
     )
@@ -180,7 +170,7 @@ sources_to_install = [
     'internals.pyi',
     'interval.pyi',
     'join.pyi',
-    'json.pyi',
+    '_ujson.pyi',
     'lib.pyi',
     'missing.pyi',
     'ops.pyi',
