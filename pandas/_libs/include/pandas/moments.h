@@ -56,35 +56,31 @@ static inline Moments moments_merge(Moments a, Moments b, int max_moment) {
     return a;
   }
 
-  Moments out;
+  Moments result;
 
-  out.n = a.n + b.n;
+  result.n = a.n + b.n;
   double n_a = (double)a.n;
   double n_b = (double)b.n;
   double delta = b.mean - a.mean;
-  double n = (double)out.n;
-  double delta_n = delta / n;
+  double delta_n = delta / (double)result.n;
   double term1 = delta * delta_n * n_a * n_b;
 
   if (max_moment >= 4) {
-    out.m4 =
+    result.m4 =
         a.m4 + b.m4 +
         delta_n * (4.0 * (n_a * b.m3 - n_b * a.m3) +
                    delta_n * (6.0 * (n_a * n_a * b.m2 + n_b * n_b * a.m2) +
                               term1 * (n_a * n_a - n_a * n_b + n_b * n_b)));
-  } else {
-    out.m4 = 0.0;
   }
   if (max_moment >= 3) {
-    out.m3 = a.m3 + b.m3 +
-             delta_n * (3.0 * (n_a * b.m2 - n_b * a.m2) + term1 * (n_a - n_b));
-  } else {
-    out.m3 = 0.0;
+    result.m3 =
+        a.m3 + b.m3 +
+        delta_n * (3.0 * (n_a * b.m2 - n_b * a.m2) + term1 * (n_a - n_b));
   }
-  out.m2 = a.m2 + b.m2 + term1;
-  out.mean = a.mean + delta_n * n_b;
+  result.m2 = a.m2 + b.m2 + term1;
+  result.mean = a.mean + delta_n * n_b;
 
-  return out;
+  return result;
 }
 
 /// Compute central moments until `max_moment` using `n` elements from `values`.
