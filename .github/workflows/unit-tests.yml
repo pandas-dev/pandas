@@ -44,7 +44,7 @@ jobs:
             pytest_marker_expression: "not slow and not network and not single_cpu"
             platform: ubuntu-24.04
           - name: "Freethreading"
-            environment: freethreading
+            environment: py313-freethreading
             pytest_marker_expression: "not slow and not network and not single_cpu"
             platform: ubuntu-24.04
           - name: "Without PyArrow"
