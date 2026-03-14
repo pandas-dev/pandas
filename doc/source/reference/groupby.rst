@@ -185,3 +185,7 @@ Plotting and visualization
    SeriesGroupBy.hist
    DataFrameGroupBy.plot
    SeriesGroupBy.plot
+
+See also
+--------
+For detailed explanations, examples, and advanced usage, refer to the :ref:`groupby` section of the User Guide.
