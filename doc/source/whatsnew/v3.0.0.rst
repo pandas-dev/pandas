@@ -1521,6 +1521,7 @@ Other
 - Bug in printing a :class:`DataFrame` with a :class:`DataFrame` stored in :attr:`DataFrame.attrs` raised a ``ValueError`` (:issue:`60455`)
 - Bug in printing a :class:`Series` with a :class:`DataFrame` stored in :attr:`Series.attrs` raised a ``ValueError`` (:issue:`60568`)
 - Bug when calling :py:func:`copy.copy` on a :class:`DataFrame` or :class:`Series` which would return a deep copy instead of a shallow copy (:issue:`62971`)
+- Fixed bug in :func:`read_csv` where ``on_bad_lines="skip"`` would not skip rows that failed dtype conversion (:issue:`63168`)
 - Fixed bug in the :meth:`Series.rank` with object dtype and extremely small float values (:issue:`62036`)
 - Fixed bug where the :class:`DataFrame` constructor misclassified array-like objects with a ``.name`` attribute as :class:`Series` or :class:`Index` (:issue:`61443`)
 - Accessing the underlying NumPy array of a DataFrame or Series will return a read-only
