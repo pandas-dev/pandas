@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -33,9 +35,8 @@ def test_simple():
     tm.assert_numpy_array_equal(result, expected, check_dtype=False)
 
 
-@pytest.mark.parametrize("func", [list, np.array])
-def test_bins(func):
-    data = func([0.2, 1.4, 2.5, 6.2, 9.7, 2.1])
+def test_bins():
+    data = np.array([0.2, 1.4, 2.5, 6.2, 9.7, 2.1])
     result, bins = cut(data, 3, retbins=True)
 
     intervals = IntervalIndex.from_breaks(bins.round(3))
@@ -71,15 +72,15 @@ def test_no_right():
 
 
 def test_bins_from_interval_index():
-    c = cut(range(5), 3)
+    c = cut(np.arange(5), 3)
     expected = c
-    result = cut(range(5), bins=expected.categories)
+    result = cut(np.arange(5), bins=expected.categories)
     tm.assert_categorical_equal(result, expected)
 
     expected = Categorical.from_codes(
         np.append(c.codes, -1), categories=c.categories, ordered=True
     )
-    result = cut(range(6), bins=expected.categories)
+    result = cut(np.arange(6), bins=expected.categories)
     tm.assert_categorical_equal(result, expected)
 
 
@@ -90,7 +91,7 @@ def test_bins_from_interval_index_doc_example():
     expected = IntervalIndex.from_tuples([(0, 18), (18, 35), (35, 70)])
     tm.assert_index_equal(c.categories, expected)
 
-    result = cut([25, 20, 50], bins=c.categories)
+    result = cut(np.array([25, 20, 50]), bins=c.categories)
     tm.assert_index_equal(result.categories, expected)
     tm.assert_numpy_array_equal(result.codes, np.array([1, 1, 2], dtype="int8"))
 
@@ -101,12 +102,12 @@ def test_bins_not_overlapping_from_interval_index():
     ii = IntervalIndex.from_tuples([(0, 10), (2, 12), (4, 14)])
 
     with pytest.raises(ValueError, match=msg):
-        cut([5, 6], bins=ii)
+        cut(np.array([5, 6]), bins=ii)
 
 
 def test_bins_not_monotonic():
     msg = "bins must increase monotonically"
-    data = [0.2, 1.4, 2.5, 6.2, 9.7, 2.1]
+    data = np.array([0.2, 1.4, 2.5, 6.2, 9.7, 2.1])
 
     with pytest.raises(ValueError, match=msg):
         cut(data, [0.1, 1.5, 1, 10])
@@ -126,7 +127,7 @@ def test_bins_not_monotonic():
             ),
         ),
         (
-            [-1, 0, 1],
+            np.array([-1, 0, 1]),
             np.array(
                 [np.iinfo(np.int64).min, 0, np.iinfo(np.int64).max], dtype="int64"
             ),
@@ -135,11 +136,13 @@ def test_bins_not_monotonic():
             ),
         ),
         (
-            [
-                np.timedelta64(-1, "ns"),
-                np.timedelta64(0, "ns"),
-                np.timedelta64(1, "ns"),
-            ],
+            np.array(
+                [
+                    np.timedelta64(-1, "ns"),
+                    np.timedelta64(0, "ns"),
+                    np.timedelta64(1, "ns"),
+                ]
+            ),
             np.array(
                 [
                     np.timedelta64(-np.iinfo(np.int64).max, "ns"),
@@ -170,7 +173,7 @@ def test_bins_monotonic_not_overflowing(x, bins, expected):
 
 def test_wrong_num_labels():
     msg = "Bin labels must be one fewer than the number of bin edges"
-    data = [0.2, 1.4, 2.5, 6.2, 9.7, 2.1]
+    data = np.array([0.2, 1.4, 2.5, 6.2, 9.7, 2.1])
 
     with pytest.raises(ValueError, match=msg):
         cut(data, [0, 1, 10], labels=["foo", "bar", "baz"])
@@ -179,8 +182,8 @@ def test_wrong_num_labels():
 @pytest.mark.parametrize(
     "x,bins,msg",
     [
-        ([], 2, "Cannot cut empty array"),
-        ([1, 2, 3], 0.5, "`bins` should be a positive integer"),
+        (np.array([]), 2, "Cannot cut empty array"),
+        (np.array([1, 2, 3]), 0.5, "`bins` should be a positive integer"),
     ],
 )
 def test_cut_corner(x, bins, msg):
@@ -188,6 +191,7 @@ def test_cut_corner(x, bins, msg):
         cut(x, bins)
 
 
+@pytest.mark.filterwarnings("ignore:Passing an object:DeprecationWarning")
 @pytest.mark.parametrize("arg", [2, np.eye(2), DataFrame(np.eye(2))])
 @pytest.mark.parametrize("cut_func", [cut, qcut])
 def test_cut_not_1d_arg(arg, cut_func):
@@ -199,9 +203,9 @@ def test_cut_not_1d_arg(arg, cut_func):
 @pytest.mark.parametrize(
     "data",
     [
-        [0, 1, 2, 3, 4, np.inf],
-        [-np.inf, 0, 1, 2, 3, 4],
-        [-np.inf, 0, 1, 2, 3, 4, np.inf],
+        np.array([0, 1, 2, 3, 4, np.inf]),
+        np.array([-np.inf, 0, 1, 2, 3, 4]),
+        np.array([-np.inf, 0, 1, 2, 3, 4, np.inf]),
     ],
 )
 def test_int_bins_with_inf(data):
@@ -310,7 +314,7 @@ def test_cut_out_of_bounds():
 )
 def test_cut_pass_labels(get_labels, get_expected):
     bins = [0, 25, 50, 100]
-    arr = [50, 5, 10, 15, 20, 30, 70]
+    arr = np.array([50, 5, 10, 15, 20, 30, 70])
     labels = ["Small", "Medium", "Large"]
 
     result = cut(arr, bins, labels=get_labels(labels))
@@ -319,7 +323,7 @@ def test_cut_pass_labels(get_labels, get_expected):
 
 def test_cut_pass_labels_compat():
     # see gh-16459
-    arr = [50, 5, 10, 15, 20, 30, 70]
+    arr = np.array([50, 5, 10, 15, 20, 30, 70])
     labels = ["Good", "Medium", "Bad"]
 
     result = cut(arr, 3, labels=labels)
@@ -411,9 +415,9 @@ def test_single_bin(data, length):
 @pytest.mark.parametrize(
     "values,threshold",
     [
-        ([0.1, 0.1, 0.1], 0.001),  # small positive values
-        ([-0.1, -0.1, -0.1], 0.001),  # negative values
-        ([0.01, 0.01, 0.01], 0.0001),  # very small values
+        (np.array([0.1, 0.1, 0.1]), 0.001),  # small positive values
+        (np.array([-0.1, -0.1, -0.1]), 0.001),  # negative values
+        (np.array([0.01, 0.01, 0.01]), 0.0001),  # very small values
     ],
 )
 def test_single_bin_edge_adjustment(values, threshold):
@@ -451,7 +455,7 @@ def test_cut_read_only(array_1_writeable, array_2_writeable):
     ],
 )
 def test_datetime_bin(conv):
-    data = [np.datetime64("2012-12-13"), np.datetime64("2012-12-15")]
+    data = np.array([np.datetime64("2012-12-13"), np.datetime64("2012-12-15")])
     bin_data = ["2012-12-12", "2012-12-14", "2012-12-16"]
 
     expected = Series(
@@ -474,7 +478,7 @@ def test_datetime_bin(conv):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("box", [Series, Index, np.array, list])
+@pytest.mark.parametrize("box", [Series, Index, np.array])
 def test_datetime_cut(unit, box):
     # see gh-14714
     #
@@ -643,7 +647,6 @@ def test_timedelta_cut_roundtrip():
     [
         (Series, tm.assert_series_equal),
         (np.array, tm.assert_categorical_equal),
-        (list, tm.assert_equal),
     ],
 )
 def test_cut_bool_coercion_to_int(bins, box, compare):
@@ -658,7 +661,7 @@ def test_cut_bool_coercion_to_int(bins, box, compare):
 @pytest.mark.parametrize("labels", ["foo", 1, True])
 def test_cut_incorrect_labels(labels):
     # GH 13318
-    values = range(5)
+    values = np.arange(5)
     msg = "Bin labels must either be False, None or passed in as a list-like argument"
     with pytest.raises(ValueError, match=msg):
         cut(values, 4, labels=labels)
@@ -673,7 +676,10 @@ def test_cut_nullable_integer(bins, right, include_lowest):
     b = a.astype(object)
     b[::2] = pd.NA
     result = cut(
-        pd.array(b, dtype="Int64"), bins, right=right, include_lowest=include_lowest
+        Index(pd.array(b, dtype="Int64")),
+        bins,
+        right=right,
+        include_lowest=include_lowest,
     )
     expected = cut(a, bins, right=right, include_lowest=include_lowest)
     tm.assert_categorical_equal(result, expected)
@@ -682,8 +688,20 @@ def test_cut_nullable_integer(bins, right, include_lowest):
 @pytest.mark.parametrize(
     "data, bins, labels, expected_codes, expected_labels",
     [
-        ([15, 17, 19], [14, 16, 18, 20], ["A", "B", "A"], [0, 1, 0], ["A", "B"]),
-        ([1, 3, 5], [0, 2, 4, 6, 8], [2, 0, 1, 2], [2, 0, 1], [0, 1, 2]),
+        (
+            np.array([15, 17, 19]),
+            [14, 16, 18, 20],
+            ["A", "B", "A"],
+            [0, 1, 0],
+            ["A", "B"],
+        ),
+        (
+            np.array([1, 3, 5]),
+            [0, 2, 4, 6, 8],
+            [2, 0, 1, 2],
+            [2, 0, 1],
+            [0, 1, 2],
+        ),
     ],
 )
 def test_cut_non_unique_labels(data, bins, labels, expected_codes, expected_labels):
@@ -698,8 +716,20 @@ def test_cut_non_unique_labels(data, bins, labels, expected_codes, expected_labe
 @pytest.mark.parametrize(
     "data, bins, labels, expected_codes, expected_labels",
     [
-        ([15, 17, 19], [14, 16, 18, 20], ["C", "B", "A"], [0, 1, 2], ["C", "B", "A"]),
-        ([1, 3, 5], [0, 2, 4, 6, 8], [3, 0, 1, 2], [0, 1, 2], [3, 0, 1, 2]),
+        (
+            np.array([15, 17, 19]),
+            [14, 16, 18, 20],
+            ["C", "B", "A"],
+            [0, 1, 2],
+            ["C", "B", "A"],
+        ),
+        (
+            np.array([1, 3, 5]),
+            [0, 2, 4, 6, 8],
+            [3, 0, 1, 2],
+            [0, 1, 2],
+            [3, 0, 1, 2],
+        ),
     ],
 )
 def test_cut_unordered_labels(data, bins, labels, expected_codes, expected_labels):
@@ -715,7 +745,7 @@ def test_cut_unordered_with_missing_labels_raises_error():
     # GH 33141
     msg = "'labels' must be provided if 'ordered = False'"
     with pytest.raises(ValueError, match=msg):
-        cut([0.5, 3], bins=[0, 1, 2], ordered=False)
+        cut(np.array([0.5, 3]), bins=[0, 1, 2], ordered=False)
 
 
 def test_cut_unordered_with_series_labels():
@@ -784,7 +814,7 @@ def test_cut_with_nonexact_categorical_indices():
 def test_cut_with_timestamp_tuple_labels():
     # GH 40661
     labels = [(Timestamp(10),), (Timestamp(20),), (Timestamp(30),)]
-    result = cut([2, 4, 6], bins=[1, 3, 5, 7], labels=labels)
+    result = cut(np.array([2, 4, 6]), bins=[1, 3, 5, 7], labels=labels)
 
     expected = Categorical.from_codes([0, 1, 2], labels, ordered=True)
     tm.assert_categorical_equal(result, expected)
@@ -818,7 +848,7 @@ def test_cut_datetime_array_no_attributeerror():
     # GH 55431
     ser = Series(to_datetime(["2023-10-06 12:00:00+0000", "2023-10-07 12:00:00+0000"]))
 
-    result = cut(ser.array, bins=2)
+    result = cut(Index(ser.array), bins=2)
 
     categories = result.categories
     expected = Categorical.from_codes([0, 1], categories=categories, ordered=True)
@@ -826,3 +856,11 @@ def test_cut_datetime_array_no_attributeerror():
     tm.assert_categorical_equal(
         result, expected, check_dtype=True, check_category_order=True
     )
+
+
+@pytest.mark.parametrize("x", [[1, 2, 3], range(5), (1, 2, 3)])
+@pytest.mark.parametrize("func", [cut, qcut])
+def test_cut_qcut_x_type_deprecation(x, func):
+    msg = "Passing an object of type"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        func(x, 3)
