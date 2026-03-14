@@ -16,4 +16,4 @@ runs:
         environments: ${{ inputs.environment }}
         # TODO: A pixi.lock is required to cache
         cache: false
-        cache-write: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
+        cache-write: false #${{ github.event_name == 'push' && github.ref_name == 'main' }}
