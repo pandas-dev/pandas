@@ -445,6 +445,8 @@ filterwarnings = [
   # Ignore 3rd party EncodingWarning but raise on pandas'
   "ignore:.*encoding.* argument not specified:EncodingWarning",
   "error:.*encoding.* argument not specified:EncodingWarning:pandas",
+  # From pyiceberg w/ Python >=3.13: https://github.com/apache/iceberg-python/issues/2530#issuecomment-3712112040
+  "ignore:unclosed database in <sqlite3.Connection object*:ResourceWarning",
   # From fastparquet - test_read_filters_fastparquet
   "ignore:.*FileIO:pytest.PytestUnraisableExceptionWarning",
   # From plotting doctests
