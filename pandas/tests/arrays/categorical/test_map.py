@@ -118,6 +118,20 @@ def test_map_with_nan_ignore(data, f, expected):  # GH 24241
         tm.assert_index_equal(result, expected)
 
 
+def test_map_nan_identity_preserves_categorical():
+    cat = Categorical(["a", "b", np.nan])
+
+    def mapper(x):
+        if pd.isna(x):
+            return np.nan
+        return x.upper()
+
+    result = cat.map(mapper, na_action=None)
+
+    expected = Categorical(["A", "B", np.nan], categories=["A", "B"])
+    tm.assert_categorical_equal(result, expected)
+
+
 def test_map_with_dict_or_series(na_action):
     orig_values = ["a", "B", 1, "a"]
     new_values = ["one", 2, 3.0, "one"]
