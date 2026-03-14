@@ -161,9 +161,10 @@ class TestTimedeltaConstructorUnitKeyword:
     def test_unit_parser(self, unit, np_unit, wrapper):
         # validate all units, GH 6855, GH 21762
         # array-likes
+        exp_unit = np_unit if np_unit not in ["W", "D", "m"] else "s"
         expected = TimedeltaIndex(
             [np.timedelta64(i, np_unit) for i in np.arange(5).tolist()],
-            dtype="m8[ns]",
+            dtype=f"m8[{exp_unit}]",
         )
 
         result = to_timedelta(wrapper(range(5)), unit=unit)
@@ -200,6 +201,27 @@ class TestTimedeltaConstructorUnitKeyword:
         with pytest.raises(ValueError, match=msg):
             to_timedelta([1, 2], unit)
 
+    def test_unit_round_float(self):
+        # When the float is round, we give the requested unit
+        #  (or nearest-supported) like we do with integers
+        td = Timedelta(45.0, unit="s")
+        assert td.unit == "s"
+        assert td == Timedelta(45, unit="s")
+
+        td = to_timedelta(45.0, unit="s")
+        assert td.unit == "s"
+        assert td == Timedelta(45, unit="s")
+
+    def test_unit_non_round_float(self):
+        # With non-round floats, we have to give nanosecond
+        td = Timedelta(45.5, unit="s")
+        assert td.unit == "ns"
+        assert td == Timedelta(45_500, unit="ms")
+
+        td = to_timedelta(45.5, unit="s")
+        assert td.unit == "ns"
+        assert td == Timedelta(45_500, unit="ms")
+
 
 def test_construct_from_kwargs_overflow():
     # GH#55503
@@ -217,7 +239,7 @@ def test_construct_with_weeks_unit_overflow():
     with pytest.raises(OutOfBoundsTimedelta, match=msg):
         Timedelta(1000000000000000000, unit="W")
 
-    with pytest.raises(OutOfBoundsTimedelta, match="without overflow"):
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
         Timedelta(1000000000000000000.0, unit="W")
 
 
@@ -303,7 +325,7 @@ def test_from_tick_reso():
 def test_construction():
     expected = np.timedelta64(10, "D").astype("m8[ns]").view("i8")
     assert Timedelta(10, unit="D")._value == expected // 10**9
-    assert Timedelta(10.0, unit="D")._value == expected
+    assert Timedelta(10.0, unit="D")._value == expected // 10**9
     assert Timedelta("10 days")._value == expected // 1000
     assert Timedelta(days=10)._value == expected // 1000
     assert Timedelta(days=10.0)._value == expected // 1000

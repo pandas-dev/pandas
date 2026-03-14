@@ -114,8 +114,8 @@ class TestGetitemListLike:
             iter,
             Index,
             set,
-            lambda keys: dict(zip(keys, range(len(keys)))),
-            lambda keys: dict(zip(keys, range(len(keys)))).keys(),
+            lambda keys: dict(zip(keys, range(len(keys)), strict=True)),
+            lambda keys: dict(zip(keys, range(len(keys)), strict=True)).keys(),
         ],
         ids=["list", "iter", "Index", "set", "dict", "dict_keys"],
     )
@@ -153,7 +153,7 @@ class TestGetitemListLike:
 
         tm.assert_frame_equal(result, expected)
 
-        idx = idx_type(keys + [missing])
+        idx = idx_type([*keys, missing])
         with pytest.raises(KeyError, match="not in index"):
             frame[idx]
 

@@ -306,6 +306,53 @@ def test_split_to_multiindex_expand_unequal_splits():
         idx.str.split("_", expand="not_a_boolean")
 
 
+@pytest.mark.parametrize(
+    "pat, expected_data",
+    [
+        (r"a(?=b)", [["aa"], ["", "b"], ["ba"], ["bb"]]),
+        (r"(?<=a)b", [["aa"], ["a", ""], ["ba"], ["bb"]]),
+        (r"a(?!b)", [["", "", ""], ["ab"], ["b", ""], ["bb"]]),
+        (r"(?<!b)a", [["", "", ""], ["", "b"], ["ba"], ["bb"]]),
+        ("ab", [["aa"], ["", ""], ["ba"], ["bb"]]),
+    ],
+)
+def test_split_lookarounds(any_string_dtype, pat, expected_data):
+    # https://github.com/pandas-dev/pandas/issues/60833
+    ser = Series(["aa", "ab", "ba", "bb", None], dtype=any_string_dtype)
+    result = ser.str.split(pat, regex=True)
+    if any_string_dtype == "object":
+        null_result = None
+    elif any_string_dtype == "str":
+        null_result = np.nan
+    elif any_string_dtype == "string":
+        null_result = pd.NA
+    else:
+        raise ValueError(f"Unrecognized dtype: {any_string_dtype}")
+    expected = Series([*expected_data, null_result])
+    tm.assert_series_equal(result, expected)
+
+
+def test_split_regex_end_of_string(any_string_dtype):
+    # https://github.com/pandas-dev/pandas/pull/63613
+    ser = Series(["baz", "bar", "bars", "bar\n"], dtype=any_string_dtype)
+
+    # with dollar sign
+    result = ser.str.split("r$", regex=True)
+    expected = Series([["baz"], ["ba", ""], ["bars"], ["ba", "\n"]], dtype=object)
+    tm.assert_series_equal(result, expected)
+
+    # with \Z (ensure this is translated to \z for pyarrow)
+    result = ser.str.split(r"r\Z", regex=True)
+    expected = Series([["baz"], ["ba", ""], ["bars"], ["bar\n"]], dtype=object)
+    tm.assert_series_equal(result, expected)
+
+    # ensure finding a literal \Z still works
+    ser = Series([r"bar\Z", "bar", r"bar\Zs", "bar\n"], dtype=any_string_dtype)
+    result = ser.str.split(r"r\\Z", regex=True)
+    expected = Series([["ba", ""], ["bar"], ["ba", "s"], ["bar\n"]], dtype=object)
+    tm.assert_series_equal(result, expected)
+
+
 def test_rsplit_to_dataframe_expand_no_splits(any_string_dtype):
     s = Series(["nosplit", "alsonosplit"], dtype=any_string_dtype)
     result = s.str.rsplit("_", expand=True)

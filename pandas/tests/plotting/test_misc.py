@@ -397,7 +397,7 @@ class TestDataFramePlots:
             "using `title` of type `list` and `subplots=True`"
         )
         with pytest.raises(ValueError, match=msg):
-            df.plot(subplots=True, title=title + ["kittens > puppies"])
+            df.plot(subplots=True, title=[*title, "kittens > puppies"])
 
     def test_subplot_titles_too_little(self, iris):
         df = iris.drop("Name", axis=1).head()
@@ -432,7 +432,7 @@ class TestDataFramePlots:
             subplots=True, layout=(2, 2), title=title[:-1]
         )
         title_list = [ax.get_title() for sublist in plot for ax in sublist]
-        assert title_list == title[:3] + [""]
+        assert title_list == [*title[:3], ""]
 
     def test_get_standard_colors_random_seed(self):
         # GH17525

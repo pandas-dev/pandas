@@ -91,9 +91,13 @@ def hash_pandas_object(
     """
     Return a data hash of the Index/Series/DataFrame.
 
+    The hash is computed element-wise using the underlying data values,
+    and optionally includes the index when hashing a Series or DataFrame.
+
     Parameters
     ----------
     obj : Index, Series, or DataFrame
+        The pandas object to hash.
     index : bool, default True
         Include the index in the hash (if Series/DataFrame).
     encoding : str, default 'utf8'
@@ -108,6 +112,11 @@ def hash_pandas_object(
     -------
     Series of uint64
         Same length as the object.
+
+    See Also
+    --------
+    util.hash_array : Return a hash of the given array.
+    util.hash_tuples : Hash a MultiIndex or listlike-of-tuples efficiently.
 
     Examples
     --------
@@ -240,6 +249,10 @@ def hash_array(
 ) -> npt.NDArray[np.uint64]:
     """
     Given a 1d array, return an array of deterministic integers.
+
+    This function applies a hash function to each element of the input
+    array, producing a fixed set of uint64 values suitable for use in
+    hashing-based algorithms.
 
     Parameters
     ----------

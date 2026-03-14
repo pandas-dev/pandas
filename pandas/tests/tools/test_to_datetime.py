@@ -1175,7 +1175,7 @@ class TestToDatetime:
         tm.assert_index_equal(result, expected)
 
         # A list of datetimes where the last one is out of bounds
-        dts_with_oob = dts + [np.datetime64("9999-01-01")]
+        dts_with_oob = [*dts, np.datetime64("9999-01-01")]
 
         # As of GH#51978 we do not raise in this case
         to_datetime(dts_with_oob, errors="raise")
@@ -1782,7 +1782,7 @@ class TestToDatetimeUnit:
     def test_to_datetime_month_or_year_unit_int(self, cache, unit, item, request):
         # GH#50870 Note we have separate tests that pd.Timestamp gets these right
         ts = Timestamp(item, unit=unit)
-        dtype = "M8[ns]" if isinstance(item, float) else "M8[s]"
+        dtype = "M8[s]"
         expected = DatetimeIndex([ts], dtype=dtype)
 
         result = to_datetime([item], unit=unit, cache=cache)
@@ -1797,7 +1797,7 @@ class TestToDatetimeUnit:
         # with a nan!
         result = to_datetime(np.array([item, np.nan]), unit=unit, cache=cache)
         assert result.isna()[1]
-        tm.assert_index_equal(result[:1], expected.astype("M8[ns]"))
+        tm.assert_index_equal(result[:1], expected.astype("M8[s]"))
 
     @pytest.mark.parametrize("unit", ["Y", "M"])
     def test_to_datetime_month_or_year_unit_non_round_float(self, cache, unit):
@@ -1824,9 +1824,10 @@ class TestToDatetimeUnit:
         expected = to_datetime([NaT])
         tm.assert_index_equal(res, expected)
 
-        # round floats are OK
+        # round floats are OK; treated like integers to give
+        #  closest-to-supported unit
         res = to_datetime([1.0], unit=unit)
-        expected = to_datetime([1], unit=unit).as_unit("ns")
+        expected = to_datetime([1], unit=unit).as_unit("s")
         tm.assert_index_equal(res, expected)
 
     def test_unit(self, cache):
@@ -1842,7 +1843,7 @@ class TestToDatetimeUnit:
         result = to_datetime(values, unit="D", errors="coerce", cache=cache)
         expected = DatetimeIndex(
             ["NaT", "1970-01-02", "1970-01-02", "NaT", "NaT", "NaT", "NaT", "NaT"],
-            dtype="M8[ns]",
+            dtype="M8[s]",
         )
         tm.assert_index_equal(result, expected)
 
@@ -1951,7 +1952,7 @@ class TestToDatetimeUnit:
         epoch = 1370745748
         ser = Series([epoch + t for t in range(20)]).astype(dtype)
         result = to_datetime(ser, unit="s")
-        unit = "s" if dtype is int else "ns"
+        unit = "s"
         expected = Series(
             [
                 Timestamp("2013-06-09 02:42:28") + timedelta(seconds=t)
@@ -1968,7 +1969,7 @@ class TestToDatetimeUnit:
         result = to_datetime(ser, unit="s")
         # With np.nan, the list gets cast to a float64 array, which always
         #  gets ns unit.
-        unit = "ns" if null is np.nan else "s"
+        unit = "s"
         expected = Series(
             [Timestamp("2013-06-09 02:42:28") + timedelta(seconds=t) for t in range(20)]
             + [NaT],
@@ -2039,13 +2040,25 @@ class TestToDatetimeUnit:
                 expected.astype(np.float64),
                 rtol=1e-10,
             )
+
         # just out of bounds
         should_fail1 = Series([0, tsmax_in_days + 0.005], dtype=float)
         should_fail2 = Series([0, -tsmax_in_days - 0.005], dtype=float)
+        msg2 = "cannot convert input 106751.99616730065 with the unit 'D'"
+        msg3 = "cannot convert input -106751.99616730065 with the unit 'D'"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             to_datetime(should_fail1, unit="D", errors="raise")
         with pytest.raises(OutOfBoundsDatetime, match=msg):
+            to_datetime(should_fail1[1], unit="D", errors="raise")
+        with pytest.raises(OutOfBoundsDatetime, match=msg2):
+            Timestamp(should_fail1[1], unit="D")
+
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
             to_datetime(should_fail2, unit="D", errors="raise")
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            to_datetime(should_fail2[1], unit="D", errors="raise")
+        with pytest.raises(OutOfBoundsDatetime, match=msg3):
+            Timestamp(should_fail2[1], unit="D")
 
 
 class TestToDatetimeDataFrame:
@@ -2116,7 +2129,7 @@ class TestToDatetimeDataFrame:
         result = to_datetime(df[list(unit.keys())].rename(columns=unit), cache=cache)
         expected = Series(
             [Timestamp("20150204 06:58:10"), Timestamp("20160305 07:59:11")],
-            dtype="M8[ns]",
+            dtype="M8[us]",
         )
         tm.assert_series_equal(result, expected)
 
@@ -2568,7 +2581,7 @@ class TestToDatetimeMisc:
         ser = Series([np.nan] * 1000 + [1712219033.0], dtype=np.float64)
         result = to_datetime(ser, unit="s", errors="coerce")
         expected = Series(
-            [NaT] * 1000 + [Timestamp("2024-04-04 08:23:53")], dtype="datetime64[ns]"
+            [NaT] * 1000 + [Timestamp("2024-04-04 08:23:53")], dtype="datetime64[s]"
         )
         tm.assert_series_equal(result, expected)
 
@@ -3610,7 +3623,7 @@ def test_to_datetime_iso8601_utc_mixed_both_offsets():
 def test_unknown_tz_raises():
     # GH#18702, GH#51476
     dtstr = "2014 Jan 9 05:15 FAKE"
-    msg = '.*un-recognized timezone "FAKE".'
+    msg = '.*unrecognized timezone "FAKE".'
     with pytest.raises(ValueError, match=msg):
         Timestamp(dtstr)
 
@@ -3826,3 +3839,19 @@ def test_to_datetime_lxml_elementunicoderesult_with_format(cache):
 
     out = to_datetime(Series([val]), format="%Y-%m-%d %H:%M:%S", cache=cache)
     assert out.iloc[0] == Timestamp(s)
+
+
+def test_to_datetime_missing_component_no_runtime_warning():
+    df = DataFrame(
+        {
+            "year": [2023, 2023],
+            "month": [12, 2],
+            "day": [1, 2],
+            "hour": [2, np.nan],
+        }
+    )
+
+    with tm.assert_produces_warning(None):
+        result = to_datetime(df)
+
+    assert result.iloc[1] is NaT

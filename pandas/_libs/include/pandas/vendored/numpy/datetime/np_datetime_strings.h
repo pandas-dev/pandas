@@ -22,7 +22,7 @@ This file implements string parsing and creation for NumPy datetime.
 #pragma once
 
 #ifndef NPY_NO_DEPRECATED_API
-#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
+#  define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #endif // NPY_NO_DEPRECATED_API
 
 /* 'format_requirement' can be one of three values:
@@ -89,7 +89,7 @@ int make_iso_8601_datetime(npy_datetimestruct *dts, char *outstr, size_t outlen,
                            int utc, NPY_DATETIMEUNIT base);
 
 /*
- * Converts an pandas_timedeltastruct to an ISO 8601 string.
+ * Converts a pandas_timedeltastruct to an ISO 8601 string.
  *
  * Mutates outlen to provide size of (non-NULL terminated) string.
  *

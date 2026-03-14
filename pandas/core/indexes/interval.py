@@ -160,6 +160,12 @@ class IntervalIndex(ExtensionIndex):
     """
     Immutable index of intervals that are closed on the same side.
 
+    An ``IntervalIndex`` stores an array of :class:`Interval` objects, all
+    sharing the same ``closed`` value, enabling vectorized operations such as
+    overlap checks, containment tests, and set-like comparisons on intervals.
+    It is commonly produced by :func:`cut`, :func:`qcut`, or
+    :func:`interval_range`.
+
     Parameters
     ----------
     data : array-like (1-dimensional)
@@ -290,6 +296,10 @@ class IntervalIndex(ExtensionIndex):
         """
         Construct an IntervalIndex from an array of splits.
 
+        The *breaks* array of length *N* is converted into *N-1* adjacent,
+        non-overlapping intervals whose endpoints are consecutive pairs of
+        break values.
+
         Parameters
         ----------
         breaks : array-like (1-dimensional)
@@ -338,6 +348,10 @@ class IntervalIndex(ExtensionIndex):
     ) -> IntervalIndex:
         """
         Construct from two arrays defining the left and right bounds.
+
+        Each interval is formed by pairing the corresponding elements of
+        *left* and *right*, producing an :class:`IntervalIndex` of the same
+        length as the input arrays.
 
         Parameters
         ----------
@@ -405,6 +419,9 @@ class IntervalIndex(ExtensionIndex):
     ) -> IntervalIndex:
         """
         Construct an IntervalIndex from an array-like of tuples.
+
+        Each tuple in *data* should contain exactly two elements representing
+        the left and right bounds of an interval.
 
         Parameters
         ----------
@@ -973,8 +990,8 @@ class IntervalIndex(ExtensionIndex):
 
             indexer.append(locs)
 
-        indexer = np.concatenate(indexer)
-        return ensure_platform_int(indexer), ensure_platform_int(missing)
+        concatenated_indexer = np.concatenate(indexer)
+        return ensure_platform_int(concatenated_indexer), ensure_platform_int(missing)
 
     @cache_readonly
     def _index_as_unique(self) -> bool:
@@ -1295,6 +1312,10 @@ def interval_range(
     """
     Return a fixed frequency IntervalIndex.
 
+    This function generates a sequence of evenly spaced intervals over a
+    specified range, supporting numeric, datetime-like, and timedelta
+    endpoints.
+
     Parameters
     ----------
     start : numeric or datetime-like, default None
@@ -1456,12 +1477,11 @@ def interval_range(
         if all(is_integer(x) for x in com.not_none(start, end, freq)):
             # np.linspace always produces float output
             breaks = maybe_downcast_numeric(breaks, dtype)
+    # delegate to the appropriate range function
+    elif isinstance(endpoint, Timestamp):
+        breaks = date_range(start=start, end=end, periods=periods, freq=freq)
     else:
-        # delegate to the appropriate range function
-        if isinstance(endpoint, Timestamp):
-            breaks = date_range(start=start, end=end, periods=periods, freq=freq)
-        else:
-            breaks = timedelta_range(start=start, end=end, periods=periods, freq=freq)
+        breaks = timedelta_range(start=start, end=end, periods=periods, freq=freq)
 
     return IntervalIndex.from_breaks(
         breaks,

@@ -187,7 +187,7 @@ def test_transform_axis_ts(tsframe):
     tm.assert_frame_equal(result, expected)
 
     # non-monotonic
-    ts = tso.iloc[[1, 0] + list(range(2, len(base)))]
+    ts = tso.iloc[[1, 0, *list(range(2, len(base)))]]
     grouped = ts.groupby(lambda x: x.weekday(), group_keys=False)
     result = ts - grouped.transform("mean")
     expected = grouped.apply(lambda x: x - x.mean(axis=0))
@@ -1123,7 +1123,11 @@ def test_transform_agg_by_name(request, reduction_func, frame_or_series):
         tm.assert_index_equal(result.columns, obj.columns)
 
     # verify that values were broadcasted across each group
-    assert len(set(DataFrame(result).iloc[-4:, -1])) == 1
+    second_group_values = DataFrame(result).iloc[-4:, -1]
+    expected = Series([second_group_values.iloc[0]] * 4)
+    tm.assert_series_equal(
+        second_group_values, expected, check_index=False, check_names=False
+    )
 
 
 def test_transform_lambda_with_datetimetz():

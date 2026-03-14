@@ -142,7 +142,7 @@ def test_groupby_quantile_with_arraylike_q_and_int_columns(frame_size, groupby, 
         list(range(len(q))) * min(nrow, 4)
     ]
     expected_index = pd.MultiIndex(
-        levels=idx_levels, codes=idx_codes, names=groupby + [None]
+        levels=idx_levels, codes=idx_codes, names=[*groupby, None]
     )
     expected_values = [
         [float(x)] * (ncol - len(groupby)) for x in range(min(nrow, 4)) for _ in q
@@ -363,15 +363,14 @@ def test_groupby_quantile_allNA_column(dtype):
 
 def test_groupby_timedelta_quantile():
     # GH: 29485
-    df = DataFrame(
-        {"value": pd.to_timedelta(np.arange(4), unit="s"), "group": [1, 1, 2, 2]}
-    )
+    tdi = pd.to_timedelta(np.arange(4), unit="s").as_unit("us")
+    df = DataFrame({"value": tdi, "group": [1, 1, 2, 2]})
     result = df.groupby("group").quantile(0.99)
     expected = DataFrame(
         {
             "value": [
-                pd.Timedelta("0 days 00:00:00.990000").as_unit("ns"),
-                pd.Timedelta("0 days 00:00:02.990000").as_unit("ns"),
+                pd.Timedelta("0 days 00:00:00.990000"),
+                pd.Timedelta("0 days 00:00:02.990000"),
             ]
         },
         index=Index([1, 2], name="group"),

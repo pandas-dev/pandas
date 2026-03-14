@@ -6,10 +6,6 @@ from datetime import (
 import numpy as np
 import pytest
 
-from pandas.compat import (
-    IS64,
-    WASM,
-)
 from pandas.errors import (
     OutOfBoundsTimedelta,
     Pandas4Warning,
@@ -104,7 +100,15 @@ class TestTimedeltas:
         result = TimedeltaIndex(
             [np.timedelta64(0, "ns"), np.timedelta64(10, "s").astype("m8[ns]")]
         )
-        expected = to_timedelta([0, 10], unit="s")
+        expected = to_timedelta([0, 10], unit="s").as_unit("ns")
+        tm.assert_index_equal(result, expected)
+
+    def test_to_timedelta_mixed_dtype(self):
+        # https://github.com/pandas-dev/pandas/issues/64044
+        result = to_timedelta(np.array([0.5, 2]), unit="m")
+        expected = TimedeltaIndex(
+            ["0 days 00:00:30", "0 days 00:02:00"], dtype="timedelta64[ns]", freq=None
+        )
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -121,7 +125,7 @@ class TestTimedeltas:
         # arrays of various dtypes
         arr = np.array([1] * 5, dtype=dtype)
         result = to_timedelta(arr, unit=unit)
-        exp_dtype = "m8[ns]" if dtype == "int64" else "m8[s]"
+        exp_dtype = "m8[s]"
         expected = TimedeltaIndex([np.timedelta64(1, unit)] * 5, dtype=exp_dtype)
         tm.assert_index_equal(result, expected)
 
@@ -257,8 +261,6 @@ class TestTimedeltas:
         actual = to_timedelta([val])
         assert actual[0]._value == np.timedelta64("NaT").astype("int64")
 
-    @pytest.mark.skipif(WASM, reason="No fp exception support in WASM")
-    @pytest.mark.xfail(not IS64, reason="Floating point error")
     def test_to_timedelta_float(self):
         # https://github.com/pandas-dev/pandas/issues/25077
         arr = np.arange(0, 1, 1e-6)[-10:]
@@ -277,7 +279,7 @@ class TestTimedeltas:
     )
     def test_to_timedelta_nullable_int64_dtype(self, expected_val, result_val):
         # GH 35574
-        expected = Series([timedelta(days=1), expected_val], dtype="m8[ns]")
+        expected = Series([timedelta(days=1), expected_val], dtype="m8[s]")
         result = to_timedelta(Series([1, result_val], dtype="Int64"), unit="days")
 
         tm.assert_series_equal(result, expected)
@@ -327,6 +329,54 @@ class TestTimedeltas:
         result = to_timedelta(1.0 / 3, unit="h")
         expected = pd.Timedelta("0 days 00:19:59.999999998")
         assert result == expected
+
+    def test_to_timedelta_unit_round_floats(self):
+        # When the float is round, we give the requested unit
+        #  (or nearest-supported) like we do with integers
+        arr = np.array([45.0], dtype=object)
+        result = to_timedelta(arr, unit="s")
+        expected = to_timedelta([45], unit="s")
+        tm.assert_index_equal(result, expected)
+
+        arr2 = arr.astype(np.float64)
+        result2 = to_timedelta(arr2, unit="s")
+        tm.assert_index_equal(result2, expected)
+
+    def test_to_timedelta_unit_non_round_floats(self):
+        # With non-round floats, we have to give nanosecond
+        arr = np.array([45.5], dtype=object)
+        result = to_timedelta(arr, unit="s")
+        assert result.unit == "ns"
+
+        arr2 = arr.astype(np.float64)
+        result2 = to_timedelta(arr2, unit="s")
+        assert result2.unit == "ns"
+
+    def test_float_to_timedelta_raise_near_bounds(self):
+        # GH#57366
+        oneday_in_ns = 1e9 * 60 * 60 * 24
+        tdmax_in_days = 2**63 / oneday_in_ns
+
+        # just in bounds
+        should_succeed = Series([0, tdmax_in_days - 0.005, -tdmax_in_days + 0.005])
+        for val in should_succeed:
+            pd.Timedelta(val, unit="D")
+        to_timedelta(should_succeed, unit="D")
+
+        # just out of bounds
+        should_fail1 = Series([0, tdmax_in_days + 0.005])
+        should_fail2 = Series([0, -tdmax_in_days - 0.005])
+        arr_msg = "cannot convert input"
+        scalar_msg1 = str(tdmax_in_days + 0.005)
+        scalar_msg2 = str(-tdmax_in_days - 0.005)
+        with pytest.raises(OutOfBoundsTimedelta, match=arr_msg):
+            to_timedelta(should_fail1, unit="D")
+        with pytest.raises(OutOfBoundsTimedelta, match=scalar_msg1):
+            pd.Timedelta(should_fail1[1], unit="D")
+        with pytest.raises(OutOfBoundsTimedelta, match=arr_msg):
+            to_timedelta(should_fail2, unit="D")
+        with pytest.raises(OutOfBoundsTimedelta, match=scalar_msg2):
+            pd.Timedelta(should_fail2[1], unit="D")
 
 
 def test_from_numeric_arrow_dtype(any_numeric_ea_dtype):

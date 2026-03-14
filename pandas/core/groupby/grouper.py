@@ -5,6 +5,7 @@ split-apply-combine paradigm.
 
 from __future__ import annotations
 
+from itertools import pairwise
 from typing import (
     TYPE_CHECKING,
     final,
@@ -381,9 +382,8 @@ class Grouper:
                     level = ax._get_level_number(level)
                     ax = Index(ax._get_level_values(level), name=ax.names[level])
 
-                else:
-                    if level not in (0, ax.name):
-                        raise ValueError(f"The level {level} is not valid")
+                elif level not in (0, ax.name):
+                    raise ValueError(f"The level {level} is not valid")
 
         # possibly sort
         indexer: npt.NDArray[np.intp] | None = None
@@ -690,7 +690,7 @@ class Grouping:
 
         r, counts = libalgos.groupsort_indexer(ensure_platform_int(codes), len(uniques))
         counts = ensure_int64(counts).cumsum()
-        _result = (r[start:end] for start, end in zip(counts, counts[1:], strict=False))
+        _result = (r[start:end] for start, end in pairwise(counts))
         # map to the label
         result = {k: self._index.take(v) for k, v in zip(uniques, _result, strict=True)}
 

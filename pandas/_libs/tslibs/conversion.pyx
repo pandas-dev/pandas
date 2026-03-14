@@ -6,7 +6,6 @@ cimport numpy as cnp
 from libc.math cimport log10
 from numpy cimport (
     PyDatetimeScalarObject,
-    float64_t,
     int32_t,
     int64_t,
 )
@@ -79,7 +78,6 @@ from pandas._libs.tslibs.tzconversion cimport (
 from pandas._libs.tslibs.util cimport (
     is_float_object,
     is_integer_object,
-    is_nan,
 )
 
 # ----------------------------------------------------------------------
@@ -92,9 +90,6 @@ TD64NS_DTYPE = np.dtype("m8[ns]")
 # ----------------------------------------------------------------------
 # Unit Conversion Helpers
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.overflowcheck(True)
 def cast_from_unit_vectorized(
     ndarray values,
     str unit,
@@ -107,7 +102,6 @@ def cast_from_unit_vectorized(
         int64_t m
         int p
         NPY_DATETIMEUNIT in_reso, out_reso
-        Py_ssize_t i
 
     assert values.dtype.kind == "f"
 
@@ -131,40 +125,43 @@ def cast_from_unit_vectorized(
     out_reso = abbrev_to_npy_unit(out_unit)
     m, p = precision_from_unit(in_reso, out_reso)
 
-    cdef:
-        ndarray[int64_t] base, out
-        ndarray[float64_t] frac
-        tuple shape = (<object>values).shape
+    nan_mask = np.isnan(values)
+    # Replace NaN with 0.0 for safe int casting; NaN positions set to NPY_NAT below
+    safe = np.where(nan_mask, 0.0, values)
 
-    out = np.empty(shape, dtype="i8")
-    base = np.empty(shape, dtype="i8")
-    frac = np.zeros(shape, dtype="f8")
+    # Split into integer and fractional parts separately to avoid precision loss
+    # from a direct float * m multiplication (GH#56037)
+    base = safe.astype("i8")
+    frac = safe - base.astype("f8")
 
-    for i in range(len(values)):
-        if is_nan(values[i]):
-            base[i] = NPY_NAT
-        else:
-            base[i] = <int64_t>values[i]
-            frac[i] = values[i] - base[i]
+    # float(iNaT) == float(INT64_MIN) == -2**63, which truncates to INT64_MIN.
+    # The original loop treated base == NPY_NAT as NaT; replicate that here.
+    nan_mask = nan_mask | (base == NPY_NAT)
+    base[nan_mask] = 0
 
     if p:
         frac = np.round(frac, p)
 
-    for i in range(len(values)):
-        try:
-            if base[i] == NPY_NAT:
-                out[i] = NPY_NAT
-            else:
-                out[i] = <int64_t>(base[i] * m) + <int64_t>(frac[i] * m)
-        except (OverflowError, FloatingPointError) as err:
-            # FloatingPointError can be issued if we have float dtype and have
-            #  set np.errstate(over="raise")
+    # Overflow check: 2**63 and -(2**63) are exactly representable in float64
+    # so this comparison is exact at the boundary. The actual integer result
+    # base * m + int64(frac * m) cannot exceed the float result (truncation
+    # toward zero), so if the float result is in bounds, the int result is too.
+    if m != 1:
+        result_f = base.astype("f8") * m + frac * m
+        oob = (result_f >= 2**63) | (result_f < -(2**63))
+        non_nat = ~nan_mask
+        if (oob & non_nat).any():
+            bad_idx = int(np.where(oob & non_nat)[0][0])
             raise OutOfBoundsDatetime(
-                f"cannot convert input {values[i]} with the unit '{unit}'"
-            ) from err
+                f"cannot convert input {values[bad_idx]} with the unit '{unit}'"
+            )
+
+    out = base * np.int64(m) + (frac * m).astype("i8")
+    out[nan_mask] = NPY_NAT
     return out
 
 
+@cython.overflowcheck(True)
 cdef int64_t cast_from_unit(
     object ts,
     str unit,
@@ -227,7 +224,7 @@ cdef int64_t cast_from_unit(
         frac = round(frac, p)
 
     try:
-        return <int64_t>(base * m) + <int64_t>(frac * m)
+        return base * m + <int64_t>(frac * m)
     except OverflowError as err:
         raise OutOfBoundsDatetime(
             f"cannot convert input {ts} with the unit '{unit}'"
@@ -386,7 +383,7 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
                 obj.value = tz_localize_to_utc_single(
                     obj.value, tz, ambiguous="raise", nonexistent=None, creso=reso
                 )
-    elif is_integer_object(ts):
+    elif is_integer_object(ts) or (is_float_object(ts) and ts.is_integer()):
         try:
             ts = <int64_t>ts
         except OverflowError:

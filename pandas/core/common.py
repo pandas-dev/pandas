@@ -11,14 +11,6 @@ from collections import (
     abc,
     defaultdict,
 )
-from collections.abc import (
-    Callable,
-    Collection,
-    Generator,
-    Hashable,
-    Iterable,
-    Sequence,
-)
 import contextlib
 from functools import partial
 import inspect
@@ -53,6 +45,15 @@ from pandas.core.dtypes.inference import iterable_not_string
 from pandas.core.col import Expression
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Callable,
+        Collection,
+        Generator,
+        Hashable,
+        Iterable,
+        Sequence,
+    )
+
     from pandas._typing import (
         AnyArrayLike,
         ArrayLike,
@@ -62,10 +63,15 @@ if TYPE_CHECKING:
         T,
     )
 
-    from pandas import Index
+    from pandas import (
+        DataFrame,
+        Index,
+        Series,
+    )
+    from pandas.core.generic import NDFrame
 
 
-def flatten(line):
+def flatten(line: Iterable) -> Generator[Any]:
     """
     Flatten an arbitrarily nested sequence.
 
@@ -89,7 +95,7 @@ def flatten(line):
             yield element
 
 
-def consensus_name_attr(objs):
+def consensus_name_attr(objs: list[Series | DataFrame]) -> Hashable | None:
     name = objs[0].name
     for obj in objs[1:]:
         try:
@@ -158,7 +164,7 @@ def is_bool_indexer(key: Any) -> bool:
     return False
 
 
-def cast_scalar_indexer(val):
+def cast_scalar_indexer(val: Any) -> Any:
     """
     Disallow indexing with a float key, even if that key is a round number.
 
@@ -180,42 +186,42 @@ def cast_scalar_indexer(val):
     return val
 
 
-def not_none(*args):
+def not_none(*args: object) -> Generator[object]:
     """
     Returns a generator consisting of the arguments that are not None.
     """
     return (arg for arg in args if arg is not None)
 
 
-def any_none(*args) -> bool:
+def any_none(*args: object) -> bool:
     """
     Returns a boolean indicating if any argument is None.
     """
     return any(arg is None for arg in args)
 
 
-def all_none(*args) -> bool:
+def all_none(*args: object) -> bool:
     """
     Returns a boolean indicating if all arguments are None.
     """
     return all(arg is None for arg in args)
 
 
-def any_not_none(*args) -> bool:
+def any_not_none(*args: object) -> bool:
     """
     Returns a boolean indicating if any argument is not None.
     """
     return any(arg is not None for arg in args)
 
 
-def all_not_none(*args) -> bool:
+def all_not_none(*args: object) -> bool:
     """
     Returns a boolean indicating if all arguments are not None.
     """
     return all(arg is not None for arg in args)
 
 
-def count_not_none(*args) -> int:
+def count_not_none(*args: object) -> int:
     """
     Returns the count of arguments that are not None.
     """
@@ -296,7 +302,7 @@ def index_labels_to_array(
     return rlabels
 
 
-def maybe_make_list(obj):
+def maybe_make_list(obj: Any) -> list | tuple | None:
     if obj is not None and not isinstance(obj, (tuple, list)):
         return [obj]
     return obj
@@ -308,11 +314,11 @@ def maybe_iterable_to_list(obj: Iterable[T] | T) -> Collection[T] | T:
     """
     if isinstance(obj, abc.Iterable) and not isinstance(obj, abc.Sized):
         return list(obj)
-    obj = cast(Collection, obj)
+    obj = cast("Collection", obj)
     return obj
 
 
-def is_null_slice(obj) -> bool:
+def is_null_slice(obj: object) -> bool:
     """
     We have a null slice.
     """
@@ -324,7 +330,7 @@ def is_null_slice(obj) -> bool:
     )
 
 
-def is_empty_slice(obj) -> bool:
+def is_empty_slice(obj: object) -> bool:
     """
     We have an empty slice, e.g. no values are selected.
     """
@@ -345,7 +351,7 @@ def is_true_slices(line: abc.Iterable) -> abc.Generator[bool, None, None]:
 
 
 # TODO: used only once in indexing; belongs elsewhere?
-def is_full_slice(obj, line: int) -> bool:
+def is_full_slice(obj: object, line: int) -> bool:
     """
     We have a full length slice.
     """
@@ -357,10 +363,10 @@ def is_full_slice(obj, line: int) -> bool:
     )
 
 
-def get_callable_name(obj):
+def get_callable_name(obj: object) -> str | None:
     # typical case has name
     if hasattr(obj, "__name__"):
-        return obj.__name__
+        return obj.__name__  # pyright: ignore[reportAttributeAccessIssue]
     # some objects don't; could recurse
     if isinstance(obj, partial):
         return get_callable_name(obj.func)
@@ -374,7 +380,7 @@ def get_callable_name(obj):
     return None
 
 
-def apply_if_callable(maybe_callable, obj, **kwargs):
+def apply_if_callable(maybe_callable: Any, obj: Any, **kwargs: Any) -> Any:
     """
     Evaluate possibly callable input using obj and kwargs if it is callable,
     otherwise return as it is.
@@ -393,7 +399,7 @@ def apply_if_callable(maybe_callable, obj, **kwargs):
     return maybe_callable
 
 
-def standardize_mapping(into):
+def standardize_mapping(into: type | abc.Mapping) -> type | partial:
     """
     Helper function to standardize a supplied mapping.
 
@@ -435,7 +441,9 @@ def random_state(
 ) -> np.random.RandomState: ...
 
 
-def random_state(state: RandomState | None = None):
+def random_state(
+    state: RandomState | None = None,
+) -> np.random.RandomState | np.random.Generator:
     """
     Helper function for processing random_state arguments.
 
@@ -462,7 +470,7 @@ def random_state(state: RandomState | None = None):
     elif isinstance(state, np.random.Generator):
         return state
     elif state is None:
-        return np.random
+        return np.random  # type: ignore[return-value]
     else:
         raise ValueError(
             "random_state must be an integer, array-like, a BitGenerator, Generator, "
@@ -532,13 +540,13 @@ def pipe(
         return func(obj, *args, **kwargs)
 
 
-def get_rename_function(mapper):
+def get_rename_function(mapper: Any) -> Callable:
     """
     Returns a function that will map names/labels, dependent if mapper
     is a dict, Series or just a function.
     """
 
-    def f(x):
+    def f(x: Hashable) -> Any:
         if x in mapper:
             return mapper[x]
         else:
@@ -563,7 +571,9 @@ def convert_to_list_like(
 
 
 @contextlib.contextmanager
-def temp_setattr(obj, attr: str, value, condition: bool = True) -> Generator[None]:
+def temp_setattr(
+    obj: Any, attr: str, value: Any, condition: bool = True
+) -> Generator[Any]:
     """
     Temporarily set attribute on an object.
 
@@ -593,7 +603,7 @@ def temp_setattr(obj, attr: str, value, condition: bool = True) -> Generator[Non
             setattr(obj, attr, old_value)
 
 
-def require_length_match(data, index: Index) -> None:
+def require_length_match(data: Any, index: Index) -> None:
     """
     Check the length of data matches the length of the index.
     """
@@ -659,7 +669,7 @@ def fill_missing_names(names: Sequence[Hashable | None]) -> list[Hashable]:
     return [f"level_{i}" if name is None else name for i, name in enumerate(names)]
 
 
-def is_local_in_caller_frame(obj):
+def is_local_in_caller_frame(obj: NDFrame) -> bool:
     """
     Helper function used in detecting chained assignment.
 

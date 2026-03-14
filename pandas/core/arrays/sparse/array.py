@@ -30,15 +30,16 @@ from pandas._libs.sparse import (
 )
 from pandas._libs.tslibs import NaT
 from pandas.compat.numpy import function as nv
-from pandas.errors import PerformanceWarning
+from pandas.errors import (
+    Pandas4Warning,
+    PerformanceWarning,
+)
 from pandas.util._decorators import (
-    doc,
     set_module,
 )
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import (
     validate_bool_kwarg,
-    validate_insert_loc,
 )
 
 from pandas.core.dtypes.astype import astype_array
@@ -69,7 +70,10 @@ from pandas.core.dtypes.missing import (
     notna,
 )
 
-from pandas.core import arraylike
+from pandas.core import (
+    arraylike,
+    ops,
+)
 import pandas.core.algorithms as algos
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import ExtensionArray
@@ -86,14 +90,11 @@ from pandas.core.indexers import (
 )
 from pandas.core.nanops import check_below_min_count
 
-from pandas.io.formats import printing
-
 if TYPE_CHECKING:
     from collections.abc import (
         Callable,
         Sequence,
     )
-    from types import EllipsisType
     from typing import (
         Protocol,
         type_check_only,
@@ -133,8 +134,6 @@ if TYPE_CHECKING:
 
 # ----------------------------------------------------------------------------
 # Array
-
-_sparray_doc_kwargs = {"klass": "SparseArray"}
 
 
 def _get_fill(arr: SparseArray) -> np.ndarray:
@@ -368,10 +367,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     >>> from pandas.arrays import SparseArray
     >>> arr = SparseArray([0, 0, 1, 2])
     >>> arr
+    <SparseArray>
     [0, 0, 1, 2]
-    Fill: 0
-    IntIndex
-    Indices: array([2, 3], dtype=int32)
+    Length: 4, dtype: Sparse[int64, 0]
     """
 
     _subtyp = "sparse_array"  # register ABCSparseArray
@@ -539,10 +537,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         >>> import scipy.sparse
         >>> mat = scipy.sparse.coo_matrix((4, 1))
         >>> pd.arrays.SparseArray.from_spmatrix(mat)
+        <SparseArray>
         [0.0, 0.0, 0.0, 0.0]
-        Fill: 0.0
-        IntIndex
-        Indices: array([], dtype=int32)
+        Length: 4, dtype: Sparse[float64, 0.0]
         """
         length, ncol = data.shape
 
@@ -740,6 +737,10 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         """
         The percent of non- ``fill_value`` points, as decimal.
 
+        This is calculated as the number of non-fill-value points divided by
+        the total length of the array. A density of 1.0 means no values are
+        the fill value, while 0.0 means all values are the fill value.
+
         See Also
         --------
         DataFrame.sparse.from_spmatrix : Create a new DataFrame from a
@@ -781,7 +782,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         return self.sp_index.npoints
 
     # error: Return type "SparseArray" of "isna" incompatible with return type
-    # "ndarray[Any, Any] | ExtensionArraySupportsAnyAll" in supertype "ExtensionArray"
+    # "ndarray[Any, Any] | ExtensionArrayNaResult" in supertype "ExtensionArray"
     def isna(self) -> Self:  # type: ignore[override]
         # If null fill value, we want SparseDtype[bool, true]
         # to preserve the same memory usage.
@@ -885,10 +886,38 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         diff = np.r_[np.diff(indices), 2]
         return indices[(diff > 1).argmax()] + 1
 
-    @doc(ExtensionArray.duplicated)
     def duplicated(
         self, keep: Literal["first", "last", False] = "first"
     ) -> npt.NDArray[np.bool_]:
+        """
+        Return boolean ndarray denoting duplicate values.
+
+        Parameters
+        ----------
+        keep : {'first', 'last', False}, default 'first'
+            - ``first`` : Mark duplicates as ``True`` except for the first occurrence.
+            - ``last`` : Mark duplicates as ``True`` except for the last occurrence.
+            - False : Mark all duplicates as ``True``.
+
+        Returns
+        -------
+        ndarray[bool]
+            With true in indices where elements are duplicated and false otherwise.
+
+        See Also
+        --------
+        DataFrame.duplicated : Return boolean Series denoting
+            duplicate rows.
+        Series.duplicated : Indicate duplicate Series values.
+        api.extensions.ExtensionArray.unique : Compute the ExtensionArray
+            of unique values.
+
+        Examples
+        --------
+        >>> pd.array([1, 1, 2, 3, 3], dtype=pd.SparseDtype(np.int64)).duplicated()
+        array([False,  True, False, False,  True])
+        """
+
         values = np.asarray(self)
         mask = np.asarray(self.isna())
         return algos.duplicated(values, keep=keep, mask=mask)
@@ -973,15 +1002,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     def __getitem__(self, key: ScalarIndexer) -> Any: ...
 
     @overload
-    def __getitem__(
-        self,
-        key: SequenceIndexer | tuple[int | EllipsisType, ...],
-    ) -> Self: ...
+    def __getitem__(self, key: SequenceIndexer) -> Self: ...
 
-    def __getitem__(
-        self,
-        key: PositionalIndexer | tuple[int | EllipsisType, ...],
-    ) -> Self | Any:
+    def __getitem__(self, key: PositionalIndexer) -> Self | Any:
         if isinstance(key, tuple):
             key = unpack_tuple_and_ellipses(key)
             if key is ...:
@@ -1061,7 +1084,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
             if com.is_bool_indexer(key):
                 # mypy doesn't know we have an array here
-                key = cast(np.ndarray, key)
+                key = cast("np.ndarray", key)
                 return self.take(np.arange(len(key), dtype=np.int32)[key])
             elif hasattr(key, "__len__"):
                 return self.take(key)
@@ -1071,7 +1094,14 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         return type(self)(data_slice, kind=self.kind)
 
     def _get_val_at(self, loc):
-        loc = validate_insert_loc(loc, len(self))
+        n = len(self)
+        if loc < 0:
+            loc += n
+
+        if loc >= n or loc < 0:
+            raise IndexError(
+                f"index is out of bounds: must be an integer between -{n} and {n - 1}"
+            )
 
         sp_loc = self.sp_index.lookup(loc)
         if sp_loc == -1:
@@ -1284,35 +1314,29 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         --------
         >>> arr = pd.arrays.SparseArray([0, 0, 1, 2])
         >>> arr
+        <SparseArray>
         [0, 0, 1, 2]
-        Fill: 0
-        IntIndex
-        Indices: array([2, 3], dtype=int32)
+        Length: 4, dtype: Sparse[int64, 0]
 
-        >>> arr.astype(SparseDtype(np.dtype("int32")))
+        >>> arr.astype(pd.SparseDtype(np.dtype("int32")))
+        <SparseArray>
         [0, 0, 1, 2]
-        Fill: 0
-        IntIndex
-        Indices: array([2, 3], dtype=int32)
+        Length: 4, dtype: Sparse[int32, 0]
 
         Using a NumPy dtype with a different kind (e.g. float) will coerce
         just ``self.sp_values``.
 
-        >>> arr.astype(SparseDtype(np.dtype("float64")))
-        ... # doctest: +NORMALIZE_WHITESPACE
+        >>> arr.astype(pd.SparseDtype(np.dtype("float64")))
+        <SparseArray>
         [nan, nan, 1.0, 2.0]
-        Fill: nan
-        IntIndex
-        Indices: array([2, 3], dtype=int32)
+        Length: 4, dtype: Sparse[float64, nan]
 
         Using a SparseDtype, you can also change the fill value as well.
 
-        >>> arr.astype(SparseDtype("float64", fill_value=0.0))
-        ... # doctest: +NORMALIZE_WHITESPACE
+        >>> arr.astype(pd.SparseDtype("float64", fill_value=0.0))
+        <SparseArray>
         [0.0, 0.0, 1.0, 2.0]
-        Fill: 0.0
-        IntIndex
-        Indices: array([2, 3], dtype=int32)
+        Length: 4, dtype: Sparse[float64, 0.0]
         """
         if dtype == self._dtype:
             if not copy:
@@ -1329,7 +1353,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         dtype = self.dtype.update_dtype(dtype)
         subtype = pandas_dtype(dtype._subtype_with_str)
-        subtype = cast(np.dtype, subtype)  # ensured by update_dtype
+        subtype = cast("np.dtype", subtype)  # ensured by update_dtype
         values = ensure_wrapped_if_datetimelike(self.sp_values)
         sp_values = astype_array(values, subtype, copy=copy)
         sp_values = np.asarray(sp_values)
@@ -1359,22 +1383,19 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         --------
         >>> arr = pd.arrays.SparseArray([0, 1, 2])
         >>> arr.map(lambda x: x + 10)
+        <SparseArray>
         [10, 11, 12]
-        Fill: 10
-        IntIndex
-        Indices: array([1, 2], dtype=int32)
+        Length: 3, dtype: Sparse[int64, 10]
 
         >>> arr.map({0: 10, 1: 11, 2: 12})
+        <SparseArray>
         [10, 11, 12]
-        Fill: 10
-        IntIndex
-        Indices: array([1, 2], dtype=int32)
+        Length: 3, dtype: Sparse[int64, 10]
 
         >>> arr.map(pd.Series([10, 11, 12], index=[0, 1, 2]))
+        <SparseArray>
         [10, 11, 12]
-        Fill: 10
-        IntIndex
-        Indices: array([1, 2], dtype=int32)
+        Length: 3, dtype: Sparse[int64, np.int64(10)]
         """
         is_map = isinstance(mapper, (abc.Mapping, ABCSeries))
 
@@ -1716,7 +1737,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         out = kwargs.get("out", ())
 
         for x in inputs + out:
-            if not isinstance(x, self._HANDLED_TYPES + (SparseArray,)):
+            if not isinstance(x, (*self._HANDLED_TYPES, SparseArray)):
                 return NotImplemented
 
         # for binary ops, use our custom dunder methods
@@ -1804,6 +1825,18 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             return _wrap_result(op_name, result, self.sp_index, fill)
 
         else:
+            if not isinstance(
+                other, (list, np.ndarray, ExtensionArray)
+            ) and not ops.has_castable_attr(other):
+                warnings.warn(
+                    f"Operation with {type(other).__name__} is deprecated. "
+                    "In a future version these will be treated as scalar-like. "
+                    "To retain the old behavior, explicitly wrap in a Series "
+                    "instead.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
+
             other = np.asarray(other)
             with np.errstate(all="ignore"):
                 if len(self) != len(other):
@@ -1816,6 +1849,19 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 return _sparse_array_op(self, other, op, op_name)
 
     def _cmp_method(self, other, op) -> SparseArray:
+        if (
+            is_list_like(other)
+            and not isinstance(other, (list, np.ndarray, ExtensionArray))
+            and not ops.has_castable_attr(other)
+        ):
+            warnings.warn(
+                f"Operation with {type(other).__name__} is deprecated. "
+                "In a future version these will be treated as scalar-like. "
+                "To retain the old behavior, explicitly wrap in a Series "
+                "instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
         if not is_scalar(other) and not isinstance(other, type(self)):
             # convert list-like to ndarray
             other = np.asarray(other)
@@ -1872,18 +1918,14 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     # ----------
     # Formatting
     # -----------
-    def __repr__(self) -> str:
-        pp_str = printing.pprint_thing(self)
-        pp_fill = printing.pprint_thing(self.fill_value)
-        pp_index = printing.pprint_thing(self.sp_index)
-        return f"{pp_str}\nFill: {pp_fill}\n{pp_index}"
+    # PandasObject (via OpsMixin) comes before ExtensionArray in the MRO,
+    # and PandasObject.__repr__ falls back to object.__repr__. Explicitly
+    # resolve to the ExtensionArray version.
+    __repr__ = ExtensionArray.__repr__
 
-    # error: Return type "None" of "_formatter" incompatible with return
-    # type "Callable[[Any], str | None]" in supertype "ExtensionArray"
-    def _formatter(self, boxed: bool = False) -> None:  # type: ignore[override]
-        # Defer to the formatter from the GenericArrayFormatter calling us.
-        # This will infer the correct formatter from the dtype of the values.
-        return None
+    def _formatter(self, boxed: bool = False) -> Callable:
+        # Use str to avoid np.int64(...) wrapping in repr output.
+        return str
 
 
 def _make_sparse(
