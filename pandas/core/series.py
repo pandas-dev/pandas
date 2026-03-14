@@ -6363,6 +6363,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         caselist : A list of tuples of conditions and expected replacements
             Takes the form:  ``(condition0, replacement0)``,
             ``(condition1, replacement1)``, ... .
+            Entries are evaluated in order. For each element, the first
+            matching condition in ``caselist`` is used, and later conditions
+            are ignored for that element.
+            Elements that do not match any condition retain their original
+            value.
             ``condition`` should be a 1-D boolean array-like object
             or a callable. If ``condition`` is a callable,
             it is computed on the Series
@@ -6392,8 +6397,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         >>> c.case_when(
         ...     caselist=[
-        ...         (a.gt(0), a),  # condition, replacement
-        ...         (b.gt(0), b),
+        ...         (a.gt(0), a),  # first matching condition wins
+        ...         (b.gt(0), b),  # used only where a.gt(0) is False
         ...     ]
         ... )
         0    6
