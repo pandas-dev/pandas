@@ -1106,6 +1106,25 @@ def assert_series_equal(
             index_values=left.index,
             obj=str(obj),
         )
+    elif not check_dtype and (
+    isinstance(left.dtype, ExtensionDtype)
+    or isinstance(right.dtype, ExtensionDtype)
+    ):
+    # GH#61473 - when check_dtype=False, allow comparing
+    # ExtensionDtype (e.g. Int32 with pd.NA) against object dtype
+        lv = left._values
+        rv = right._values
+        if isinstance(lv, ExtensionArray):
+            lv = lv.to_numpy(dtype=object, na_value=pd.NA)
+        if isinstance(rv, ExtensionArray):
+            rv = rv.to_numpy(dtype=object, na_value=pd.NA)
+        assert_numpy_array_equal(
+            lv,
+            rv,
+            check_dtype=False,
+            obj=str(obj),
+            index_values=left.index,
+        )
     elif is_extension_array_dtype_and_needs_i8_conversion(
         left.dtype, right.dtype
     ) or is_extension_array_dtype_and_needs_i8_conversion(right.dtype, left.dtype):
