@@ -233,7 +233,7 @@ class TestTSPlot:
         # frequency (`frqncy`) rule code. tests resolution of issue #14763
         idx = period_range("12/31/1999", freq=frqncy, periods=10)
         s = Series(np.random.default_rng(2).standard_normal(len(idx)), idx)
-        _check_plot_works(s.plot, s.index.freq.rule_code)
+        _check_plot_works(s.plot, s.index.freq)
 
     @pytest.mark.parametrize(
         "freq", ["s", "min", "h", "D", "W", "ME", "QE-DEC", "YE", "1B30Min"]
@@ -266,7 +266,7 @@ class TestTSPlot:
             index=idx,
             columns=["A", "B", "C"],
         )
-        freq = df.index.freq.rule_code
+        freq = df.index.freq
         _check_plot_works(df.plot, freq)
 
     @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
@@ -1147,7 +1147,7 @@ class TestTSPlot:
         low.plot(ax=ax)
         assert len(ax.get_lines()) == 2
         for line in ax.get_lines():
-            assert PeriodIndex(data=line.get_xdata()).freq == "ms"
+            assert PeriodIndex(data=line.get_xdata()).freq == "100ms"
 
     def test_mixed_freq_second_millisecond_low_to_high(self):
         # GH 7772, GH 7760
@@ -1161,7 +1161,7 @@ class TestTSPlot:
         high.plot(ax=ax)
         assert len(ax.get_lines()) == 2
         for line in ax.get_lines():
-            assert PeriodIndex(data=line.get_xdata()).freq == "ms"
+            assert PeriodIndex(data=line.get_xdata()).freq == "100ms"
 
     def test_irreg_dtypes(self):
         # date
@@ -1754,7 +1754,7 @@ def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
     if series is not None:
         dfreq = series.index.freq
         if isinstance(dfreq, BaseOffset):
-            dfreq = dfreq.rule_code
+            dfreq = dfreq.freqstr
         if orig_axfreq is None:
             assert ax.freq == dfreq
 
