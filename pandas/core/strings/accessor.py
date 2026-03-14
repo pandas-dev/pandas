@@ -1021,9 +1021,6 @@ class StringMethods(NoNewAttributesMixin):
         1  https://docs.python.org/3/tutorial  index.html
         2                                 NaN         NaN
         """
-        if pat is not None and not isinstance(pat, str):
-            msg = f"expected a string object, not {type(pat).__name__}"
-            raise TypeError(msg)
         result = self._data.array._str_rsplit(pat, n=n)
         dtype = object if self._data.dtype == object else None
         return self._wrap_result(

@@ -3040,6 +3040,9 @@ class ArrowExtensionArray(
         return self._from_pyarrow_array(split_func(self._pa_array, max_splits=n))
 
     def _str_rsplit(self, pat: str | None = None, n: int | None = -1) -> Self:
+        if pat is not None and not isinstance(pat, str):
+            msg = f"expected a string object, not {type(pat).__name__}"
+            raise TypeError(msg)
         if n in {-1, 0}:
             n = None
         if pat is None:

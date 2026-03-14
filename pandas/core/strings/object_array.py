@@ -383,6 +383,9 @@ class ObjectStringArrayMixin:
         return self._str_map(f, dtype=object)
 
     def _str_rsplit(self, pat=None, n=-1):
+        if pat is not None and not isinstance(pat, str):
+            msg = f"expected a string object, not {type(pat).__name__}"
+            raise TypeError(msg)
         if n is None or n == 0:
             n = -1
         f = lambda x: x.rsplit(pat, n)

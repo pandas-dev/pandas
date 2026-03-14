@@ -128,7 +128,10 @@ def test_rsplit(any_string_dtype):
     exp = _convert_na_value(values, exp)
     tm.assert_series_equal(result, exp)
 
+
+def test_rsplit_with_regex(any_string_dtype):
     # regex split is not supported by rsplit
+    values = Series(["a,b_c", "c_d,e", np.nan, "f,g,h"], dtype=any_string_dtype)
     with pytest.raises(TypeError, match="expected a string object, not Pattern"):
         values.str.rsplit(re.compile("[,_]"))
 
