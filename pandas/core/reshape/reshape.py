@@ -864,7 +864,7 @@ def _stack_multi_columns(
         # but if unsorted can get a boolean
         # indexer
         if not isinstance(loc, slice):
-            slice_len = len(loc)
+            slice_len = len(loc)  # type: ignore[arg-type]  # pyright: ignore[reportArgumentType]
         else:
             slice_len = loc.stop - loc.start
 
@@ -1012,7 +1012,7 @@ def stack_v3(frame: DataFrame, level: list[int]) -> Series | DataFrame:
         assert isinstance(stack_cols, MultiIndex)
         ordered_stack_cols = stack_cols._reorder_ilevels(sorter)
     else:
-        ordered_stack_cols = stack_cols
+        ordered_stack_cols = stack_cols  # type: ignore[assignment]
     ordered_stack_cols_unique = ordered_stack_cols.unique()
     if isinstance(ordered_stack_cols, MultiIndex):
         column_levels = ordered_stack_cols.levels
@@ -1111,7 +1111,7 @@ def stack_reshape(
             # concat column order may be different from dropping the levels
             new_columns = frame.columns._drop_level_numbers(drop_levnums).unique()
         else:
-            new_columns = [0]
+            new_columns = [0]  # type: ignore[assignment]
         result = DataFrame(columns=new_columns, dtype=frame._values.dtype)
 
     if len(level) < frame.columns.nlevels:
