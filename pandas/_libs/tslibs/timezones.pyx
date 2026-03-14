@@ -208,6 +208,8 @@ cdef object tz_cache_key(tzinfo tz):
                              "of passing a timezone object. See "
                              "https://github.com/pandas-dev/pandas/pull/7362")
         return "dateutil" + tz._filename
+    elif is_zoneinfo(tz):
+        return "zoneinfo/" + tz.key
     else:
         return None
 
@@ -340,6 +342,13 @@ cdef object get_dst_info(tzinfo tz):
                 # (under the just-deleted code that returned empty arrays)
                 raise AssertionError("dateutil tzinfo is not a FixedOffset "
                                      "and has an empty `_trans_list`.", tz)
+        elif is_zoneinfo(tz):
+            # Reuse dateutil's transition data for the same IANA key.
+            # dateutil reads the same underlying TZif files as ZoneInfo,
+            # so we avoid re-implementing TZif parsing.
+            du_tz = dateutil_gettz(tz.key)
+            trans, deltas, typ = get_dst_info(du_tz)
+
         else:
             # static tzinfo, we can get here with pytz.StaticTZInfo
             #  which are not caught by treat_tz_as_pytz

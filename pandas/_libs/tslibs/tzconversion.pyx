@@ -83,7 +83,7 @@ cdef class Localizer:
         if is_utc(tz) or tz is None:
             self.use_utc = True
 
-        elif is_tzlocal(tz) or is_zoneinfo(tz):
+        elif is_tzlocal(tz):
             self.use_tzlocal = True
 
         else:
@@ -290,7 +290,7 @@ timedelta-like}
 
     result = cnp.PyArray_EMPTY(vals.ndim, vals.shape, cnp.NPY_INT64, 0)
 
-    if info.use_tzlocal and not is_zoneinfo(tz):
+    if info.use_tzlocal:
         for i in range(n):
             v = vals[i]
             if v == NPY_NAT:
