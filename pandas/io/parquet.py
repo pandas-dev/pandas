@@ -34,6 +34,7 @@ from pandas.io.common import (
     IOHandles,
     get_handle,
     is_fsspec_url,
+    is_pathlib_abc_path,
     is_url,
     stringify_path,
 )
@@ -93,7 +94,12 @@ def _get_path_or_handle(
     FilePath | ReadBuffer[bytes] | WriteBuffer[bytes], IOHandles[bytes] | None, Any
 ]:
     """File handling for PyArrow."""
-    path_or_handle = stringify_path(path)
+    if is_pathlib_abc_path(path):
+        from pathlib_abc import vfsopen
+
+        path_or_handle = vfsopen(path, mode)
+    else:
+        path_or_handle = stringify_path(path)
     if fs is not None:
         pa_fs = import_optional_dependency("pyarrow.fs", errors="ignore")
         fsspec = import_optional_dependency("fsspec", errors="ignore")
