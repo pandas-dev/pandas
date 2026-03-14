@@ -718,7 +718,9 @@ def test_reset_index_multiindex_nat():
 def test_reset_index_interval_columns_object_cast():
     # GH 19136
     df = DataFrame(
-        np.eye(2), index=Index([1, 2], name="Year"), columns=cut([1, 2], [0, 1, 2])
+        np.eye(2),
+        index=Index([1, 2], name="Year"),
+        columns=cut(np.array([1, 2]), [0, 1, 2]),
     )
     result = df.reset_index()
     expected = DataFrame(
