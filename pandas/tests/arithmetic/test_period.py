@@ -1228,7 +1228,6 @@ class TestPeriodIndexArithmetic:
             arr + ts
         with pytest.raises(TypeError, match=msg):
             ts + arr
-
         msg = "cannot add PeriodArray and DatetimeArray"
         with pytest.raises(TypeError, match=msg):
             arr + Series([ts])
@@ -1239,16 +1238,9 @@ class TestPeriodIndexArithmetic:
         with pytest.raises(TypeError, match=msg):
             pd.Index([ts]) + arr
 
-        if box_with_array is pd.DataFrame:
-            msg = "cannot add PeriodArray and DatetimeArray"
-        else:
-            msg = r"unsupported operand type\(s\) for \+: 'Period' and 'DatetimeArray"
+        msg = "cannot add PeriodArray and DatetimeArray"
         with pytest.raises(TypeError, match=msg):
             arr + pd.DataFrame([ts])
-        if box_with_array is pd.DataFrame:
-            msg = "cannot add PeriodArray and DatetimeArray"
-        else:
-            msg = r"unsupported operand type\(s\) for \+: 'DatetimeArray' and 'Period'"
         with pytest.raises(TypeError, match=msg):
             pd.DataFrame([ts]) + arr
 

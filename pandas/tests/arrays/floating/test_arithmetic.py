@@ -160,8 +160,9 @@ def test_error_invalid_values(data, all_arithmetic_operators):
         ops(pd.Timestamp("20180101"))
 
     # invalid array-likes
+    str_ser = pd.Series("foo", index=s.index)
     with pytest.raises(TypeError, match=msg):
-        ops(pd.Series("foo", index=s.index))
+        ops(str_ser)
 
     msg = "|".join(
         [
