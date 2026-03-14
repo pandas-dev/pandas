@@ -41,7 +41,8 @@ def test_apply_with_string_funcs(float_frame, func, kwds, how):
 def test_with_string_args(datetime_series, all_numeric_reductions):
     result = datetime_series.apply(all_numeric_reductions)
     expected = getattr(datetime_series, all_numeric_reductions)()
-    assert result == expected
+    # reductions computed in parallel may yield different results
+    tm.assert_almost_equal(result, expected)
 
 
 @pytest.mark.parametrize("op", ["mean", "median", "std", "var"])
