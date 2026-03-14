@@ -9,10 +9,12 @@ The full license is in the LICENSE file, distributed with this software.
 
 #include "pandas/moments.h"
 #include <math.h>
+#include <stdint.h>
 
 Moments accumulate_moments_scalar(const double *values, int64_t n, int skipna,
                                   const uint8_t *mask, int max_moment) {
   Moments result = {0};
+  int64_t i;
 
 #ifdef _OPENMP
 #  pragma omp parallel
@@ -23,7 +25,7 @@ Moments accumulate_moments_scalar(const double *values, int64_t n, int skipna,
 #ifdef _OPENMP
 #  pragma omp for nowait
 #endif
-    for (int64_t i = 0; i < n; i++) {
+    for (i = 0; i < n; i++) {
       double val = values[i];
       if (mask && mask[i]) {
         val = NAN;
