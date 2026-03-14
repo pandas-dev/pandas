@@ -57,7 +57,7 @@ if TYPE_CHECKING:
 
 def get_indexer_indexer(
     target: Index,
-    level: Level | list[Level] | None,
+    level: Level | list[Level] | None,  # can level actually be a list here?
     ascending: list[bool] | bool,
     kind: SortKind,
     na_position: NaPosition,
@@ -531,7 +531,6 @@ def _ensure_key_mapped_multiindex(
             level_iter = [level]
         else:
             level_iter = level
-
         sort_levels: range | set = {index._get_level_number(lev) for lev in level_iter}
     else:
         sort_levels = range(index.nlevels)
@@ -581,7 +580,10 @@ def ensure_key_mapped(
         if isinstance(
             values, Index
         ):  # convert to a new Index subclass, not necessarily the same
-            result = Index(result, tupleize_cols=False)
+            # preserve the original name when creating the new Index
+            result = Index(
+                result, tupleize_cols=False, name=getattr(values, "name", None)
+            )
         else:
             # try to revert to original type otherwise
             type_of_values = type(values)
