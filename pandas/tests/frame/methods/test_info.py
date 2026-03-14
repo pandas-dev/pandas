@@ -584,3 +584,21 @@ def test_info_show_counts(row, columns, show_counts, result):
         with StringIO() as buf:
             df.info(buf=buf, show_counts=show_counts)
             assert ("non-null" in buf.getvalue()) is result
+
+
+def test_info_after_to_pydatetime():
+    # GH#55136
+    df = DataFrame({"datetime": date_range("2020-01-01", periods=5), "value": range(5)})
+
+    # Convert datetime64 to Python datetime objects
+    df["datetime"] = df["datetime"].dt.to_pydatetime()
+
+    # Check that info() shows dtype as object, not datetime64
+    buf = StringIO()
+    df.info(buf=buf)
+    result = buf.getvalue()
+
+    # The dtype should be 'object', not 'datetime64[ns]'
+    assert "object" in result
+    assert "datetime64" not in result
+    assert df["datetime"].dtype == object

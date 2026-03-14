@@ -150,6 +150,7 @@ Conversion
 ^^^^^^^^^^
 - Fixed :func:`pandas.array` to preserve mask information when converting NumPy masked arrays, converting masked values to missing values (:issue:`63879`).
 - Fixed bug in :meth:`DataFrame.from_records` where ``exclude`` was ignored when ``data`` was an iterator and ``nrows=0`` (:issue:`63774`)
+- Fixed bug in :meth:`DataFrame.__setitem__` where assigning an object array (e.g., from :meth:`.dt.to_pydatetime`) would incorrectly infer the dtype and convert Python datetime objects back to ``datetime64[ns]`` instead of preserving the ``object`` dtype (:issue:`55136`)
 -
 
 Strings

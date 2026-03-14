@@ -5596,6 +5596,14 @@ class DataFrame(NDFrame, OpsMixin):
 
         if is_list_like(value):
             com.require_length_match(value, self.index)
+
+        # GH#55136: preserve dtype for object arrays to prevent unwanted inference
+        # e.g., converting Python datetime objects back to datetime64[ns]
+        dtype = getattr(value, "dtype", None) if hasattr(value, "dtype") else None
+        if dtype is not None and dtype == np.dtype("object"):
+            # Explicitly pass dtype=object to prevent inference in sanitize_array
+            return sanitize_array(value, self.index, dtype=dtype, copy=True, allow_2d=True), None
+
         return sanitize_array(value, self.index, copy=True, allow_2d=True), None
 
     @property
