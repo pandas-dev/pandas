@@ -66,6 +66,7 @@ Guides
     basics
     io
     pyarrow
+    arrow_fallbacks
     indexing
     advanced
     merging
