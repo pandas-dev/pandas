@@ -437,7 +437,7 @@ New behavior:
 
 .. ipython:: python
 
-   c = pd.cut(range(4), bins=2)
+   c = pd.cut(np.arange(4), bins=2)
    c
    c.categories
 
@@ -446,14 +446,14 @@ value similar to other dtypes.
 
 .. ipython:: python
 
-   pd.cut([0, 3, 5, 1], bins=c.categories)
+   pd.cut(np.array([0, 3, 5, 1]), bins=c.categories)
 
 An ``IntervalIndex`` can also be used in ``Series`` and ``DataFrame`` as the index.
 
 .. ipython:: python
 
    df = pd.DataFrame({'A': range(4),
-                      'B': pd.cut([0, 3, 1, 1], bins=c.categories)
+                      'B': pd.cut(np.array([0, 3, 1, 1]), bins=c.categories)
                       }).set_index('B')
    df
 
