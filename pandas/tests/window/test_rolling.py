@@ -947,6 +947,44 @@ def test_rolling_positional_argument(grouping, _index, raw):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("sort, group_order", [(True, [1, 2]), (False, [2, 1])])
+def test_groupby_rolling_apply_index_alignment(sort, group_order):
+    dates_1 = date_range("2024-01-01", periods=5, freq="D", name="date", unit="ns")
+    dates_2 = date_range("2024-02-01", periods=5, freq="D", name="date", unit="ns")
+    # Ensure Id=2 appears before Id=1 in the input.
+    index = dates_2.append(dates_1)
+    df = DataFrame(
+        {
+            "Id": [2] * len(dates_2) + [1] * len(dates_1),
+            "value": np.arange(len(index)),
+        },
+        index=index,
+    )
+
+    result = (
+        df["value"]
+        .groupby(df["Id"], sort=sort)
+        .rolling(5, min_periods=1)
+        .apply(lambda x: x.index[-1].value, raw=False)
+    )
+
+    group_dates = {1: dates_1, 2: dates_2}
+    expected_index = MultiIndex.from_arrays(
+        [
+            [group_order[0]] * len(group_dates[group_order[0]])
+            + [group_order[1]] * len(group_dates[group_order[1]]),
+            list(group_dates[group_order[0]]) + list(group_dates[group_order[1]]),
+        ],
+        names=["Id", "date"],
+    )
+    expected_values = np.concatenate(
+        [group_dates[group_order[0]].asi8, group_dates[group_order[1]].asi8]
+    ).astype("float64", copy=False)
+    expected = Series(expected_values, index=expected_index, name="value")
+
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize("add", [0.0, 2.0])
 def test_rolling_numerical_accuracy_kahan_mean(add, unit):
     # GH: 36031 implementing kahan summation
