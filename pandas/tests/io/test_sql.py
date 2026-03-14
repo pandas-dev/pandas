@@ -12,7 +12,10 @@ from decimal import Decimal
 from io import StringIO
 from pathlib import Path
 import sqlite3
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 import uuid
 
 import numpy as np
@@ -4396,3 +4399,31 @@ def test_xsqlite_if_exists(sqlite_buildin):
         (5, "E"),
     ]
     drop_table(table_name, sqlite_buildin)
+
+
+@pytest.mark.parametrize("conn", ["sqlite_buildin"])
+def test_read_sql_query_dictcursor(conn, request):
+    # GH#53028
+    conn = request.getfixturevalue(conn)
+
+    def sqlite3_factory(cursor: Any, row: Any) -> Any:
+        d = {}
+        for idx, col in enumerate(cursor.description):
+            d[col[0]] = row[idx]
+        return d
+
+    conn.row_factory = sqlite3_factory
+
+    df_input = DataFrame(
+        {"id": [117, 163], "value": ["ABCDEF", "DEFRDC"], "state_id": [5, 5]}
+    )
+
+    df_input.to_sql(name="example", con=conn, if_exists="replace", index=False)
+
+    result = read_sql_query("SELECT * FROM example", conn)
+
+    expected = DataFrame(
+        {"id": [117, 163], "value": ["ABCDEF", "DEFRDC"], "state_id": [5, 5]}
+    )
+
+    tm.assert_frame_equal(result, expected)
