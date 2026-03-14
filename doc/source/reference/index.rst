@@ -56,6 +56,8 @@ to be stable.
    testing
    missing_value
    aliases
+   api.typing.Expression
+
 
 .. This is to prevent warnings in the doc build. We don't want to encourage
 .. these methods.
