@@ -148,6 +148,10 @@ test-command = """
   """
 enable = ["cpython-freethreading"]
 before-build = "PACKAGE_DIR={package} bash {package}/scripts/cibw_before_build.sh"
+manylinux-x86_64-image = "manylinux_2_28"
+manylinux-aarch64-image = "manylinux_2_28"
+musllinux-x86_64-image = "musllinux_1_2"
+musllinux-aarch64-image = "musllinux_1_2"
 
 [tool.cibuildwheel.windows]
 environment = {}
