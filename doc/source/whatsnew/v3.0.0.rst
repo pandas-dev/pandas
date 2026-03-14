@@ -1523,6 +1523,7 @@ Other
 - Bug when calling :py:func:`copy.copy` on a :class:`DataFrame` or :class:`Series` which would return a deep copy instead of a shallow copy (:issue:`62971`)
 - Fixed bug in the :meth:`Series.rank` with object dtype and extremely small float values (:issue:`62036`)
 - Fixed bug where the :class:`DataFrame` constructor misclassified array-like objects with a ``.name`` attribute as :class:`Series` or :class:`Index` (:issue:`61443`)
+- Fixed regression in :func:`is_list_like` where custom sequence objects (implementing ``__getitem__`` and ``__len__`` but not ``__iter__``) were incorrectly identified as not list-like (:issue:`42549`)
 - Accessing the underlying NumPy array of a DataFrame or Series will return a read-only
   array if the array shares data with the original DataFrame or Series (:ref:`copy_on_write_read_only_na`).
   This logic is expanded to accessing the underlying pandas ExtensionArray
