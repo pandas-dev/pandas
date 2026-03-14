@@ -87,6 +87,7 @@ See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for mor
 Other API changes
 ^^^^^^^^^^^^^^^^^
 - APIs that accept an ``engine="numba"`` parameter with ``engine_kwargs`` will no longer pass through a ``nopython`` argument to ``numba.jit``. This argument has had no effect since numba 0.59.0 (:issue:`64483`).
+- Reduction methods (:meth:`DataFrame.sum`, :meth:`DataFrame.prod`, :meth:`DataFrame.mean`, :meth:`DataFrame.median`, :meth:`DataFrame.min`, :meth:`DataFrame.max`, :meth:`DataFrame.std`, :meth:`DataFrame.var`, :meth:`DataFrame.sem`, :meth:`DataFrame.skew`) now raise a ``ValueError`` when ``numeric_only`` is not a bool (e.g. ``None``) (:issue:`53098`).
 -
 
 .. ---------------------------------------------------------------------------
