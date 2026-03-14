@@ -21,7 +21,6 @@ if TYPE_CHECKING:
 @functools.cache
 def generate_numba_apply_func(
     func: Callable[..., Scalar],
-    nopython: bool,
     nogil: bool,
     parallel: bool,
 ):
@@ -38,8 +37,6 @@ def generate_numba_apply_func(
     ----------
     func : function
         function to be applied to each window and will be JITed
-    nopython : bool
-        nopython to be passed into numba.jit
     nogil : bool
         nogil to be passed into numba.jit
     parallel : bool
@@ -55,7 +52,7 @@ def generate_numba_apply_func(
     else:
         numba = import_optional_dependency("numba")
 
-    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
+    @numba.jit(nogil=nogil, parallel=parallel)
     def roll_apply(
         values: np.ndarray,
         begin: np.ndarray,
@@ -80,7 +77,6 @@ def generate_numba_apply_func(
 
 @functools.cache
 def generate_numba_ewm_func(
-    nopython: bool,
     nogil: bool,
     parallel: bool,
     com: float,
@@ -95,8 +91,6 @@ def generate_numba_ewm_func(
 
     Parameters
     ----------
-    nopython : bool
-        nopython to be passed into numba.jit
     nogil : bool
         nogil to be passed into numba.jit
     parallel : bool
@@ -116,7 +110,7 @@ def generate_numba_ewm_func(
     else:
         numba = import_optional_dependency("numba")
 
-    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
+    @numba.jit(nogil=nogil, parallel=parallel)
     def ewm(
         values: np.ndarray,
         begin: np.ndarray,
@@ -182,7 +176,6 @@ def generate_numba_ewm_func(
 @functools.cache
 def generate_numba_table_func(
     func: Callable[..., np.ndarray],
-    nopython: bool,
     nogil: bool,
     parallel: bool,
 ):
@@ -199,8 +192,6 @@ def generate_numba_table_func(
     ----------
     func : function
         function to be applied to each window and will be JITed
-    nopython : bool
-        nopython to be passed into numba.jit
     nogil : bool
         nogil to be passed into numba.jit
     parallel : bool
@@ -216,7 +207,7 @@ def generate_numba_table_func(
     else:
         numba = import_optional_dependency("numba")
 
-    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
+    @numba.jit(nogil=nogil, parallel=parallel)
     def roll_table(
         values: np.ndarray,
         begin: np.ndarray,
@@ -251,7 +242,7 @@ def generate_manual_numpy_nan_agg_with_axis(nan_func):
     else:
         numba = import_optional_dependency("numba")
 
-    @numba.jit(nopython=True, nogil=True, parallel=True)
+    @numba.jit(nogil=True, parallel=True)
     def nan_agg_with_axis(table):
         result = np.empty(table.shape[1])
         for i in numba.prange(table.shape[1]):
@@ -264,7 +255,6 @@ def generate_manual_numpy_nan_agg_with_axis(nan_func):
 
 @functools.cache
 def generate_numba_ewm_table_func(
-    nopython: bool,
     nogil: bool,
     parallel: bool,
     com: float,
@@ -279,8 +269,6 @@ def generate_numba_ewm_table_func(
 
     Parameters
     ----------
-    nopython : bool
-        nopython to be passed into numba.jit
     nogil : bool
         nogil to be passed into numba.jit
     parallel : bool
@@ -300,7 +288,7 @@ def generate_numba_ewm_table_func(
     else:
         numba = import_optional_dependency("numba")
 
-    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
+    @numba.jit(nogil=nogil, parallel=parallel)
     def ewm_table(
         values: np.ndarray,
         begin: np.ndarray,

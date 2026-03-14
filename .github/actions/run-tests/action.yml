@@ -7,9 +7,6 @@ inputs:
   numprocesses:
     description: pytest-xdist numprocesses value
     required: true
-  extra_pytest_args:
-    description: Additional pytest commandline arguments
-    required: true
   pytest_marker_expression:
     description: pytest marker expression to pass to -m.
     required: true
@@ -37,9 +34,9 @@ runs:
         QT_QPA_PLATFORM: offscreen
       run: |
         pixi run \
-          --environment ${{ matrix.environment }} \
+          --environment ${{ inputs.environment }} \
           ci-test-pandas \
-          '-m ${{ inputs.pytest_marker_expression }} ${{ extra_pytest_args }}' \
+          '-m ${{ inputs.pytest_marker_expression }}' \
           ${{ inputs.numprocesses }} \
           ${{ inputs.pytest_target }}
       shell: bash -euox pipefail {0}
