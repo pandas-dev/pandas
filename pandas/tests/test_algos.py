@@ -1221,7 +1221,7 @@ class TestValueCounts:
         tm.assert_series_equal(result.sort_index(), expected.sort_index())
 
     def test_value_counts_bins(self):
-        s = [1, 2, 3, 4]
+        s = np.array([1, 2, 3, 4])
         result = algos.value_counts_internal(s, bins=1)
         expected = Series(
             [4], index=IntervalIndex.from_tuples([(0.996, 4.0)]), name="count"
