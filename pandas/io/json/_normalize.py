@@ -533,10 +533,15 @@ def json_normalize(
         # GH35923 Fix pd.json_normalize to not skip the first element of a
         # generator input
         data = list(data)
-        for item in data:
-            if not isinstance(item, dict):
+        for i, item in enumerate(data):
+            if isinstance(item, dict):
+                continue
+
+            if not isinstance(item, abc.Iterable) and pd.isna(item):
+                data[i] = {}
+            else:
                 msg = (
-                    "All items in data must be of type dict, "
+                    "All items in data must be of type dict or null, "
                     f"found {type(item).__name__}"
                 )
                 raise TypeError(msg)

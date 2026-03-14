@@ -361,7 +361,7 @@ A ``where`` operation with setting:
 Missing data
 ------------
 
-For NumPy data types, ``np.nan`` represents missing data. It is by
+For NumPy data types, ``np.nan`` represents missing data. It is. by
 default not included in computations. See the :ref:`Missing Data section
 <missing_data>`.
 
@@ -434,8 +434,8 @@ that reduces or broadcasts its result respectively.
 
 .. ipython:: python
 
-   df.agg(lambda x: np.mean(x) * 5.6)
-   df.transform(lambda x: x * 101.2)
+   df.agg(lambda x: np.mean(x) * 5.6) // compute the mean and multiply by 5.6
+   df.transform(lambda x: x * 101.2) // multiply each value by 101.2
 
 Value Counts
 ~~~~~~~~~~~~~
@@ -444,7 +444,7 @@ See more at :ref:`Histogramming and Discretization <basics.discretization>`.
 
 .. ipython:: python
 
-   s = pd.Series(np.random.randint(0, 7, size=10))
+   s = pd.Series(np.random.randint(0, 7, size=10)) // create a Series of 10 random integer
    s
    s.value_counts()
 
@@ -458,8 +458,8 @@ code snippet below. See more at :ref:`Vectorized String Methods
 
 .. ipython:: python
 
-   s = pd.Series(["A", "B", "C", "Aaba", "Baca", np.nan, "CABA", "dog", "cat"])
-   s.str.lower()
+   s = pd.Series(["A", "B", "C", "Aaba", "Baca", np.nan, "CABA", "dog", "cat"]) // create a Series of strings
+   s.str.lower() // convert to lower case
 
 Merge
 -----
@@ -482,7 +482,7 @@ Concatenating pandas objects together row-wise with :func:`concat`:
    df
 
    # break it into pieces
-   pieces = [df[:3], df[3:7], df[7:]]
+   pieces = [df[:3], df[3:7], df[7:]] // create list of pieces
 
    pd.concat(pieces)
 
@@ -500,11 +500,11 @@ Join
 
 .. ipython:: python
 
-   left = pd.DataFrame({"key": ["foo", "foo"], "lval": [1, 2]})
-   right = pd.DataFrame({"key": ["foo", "foo"], "rval": [4, 5]})
+   left = pd.DataFrame({"key": ["foo", "foo"], "lval": [1, 2]}) // create left dataframe 
+   right = pd.DataFrame({"key": ["foo", "foo"], "rval": [4, 5]}) // create right dataframe
    left
    right
-   pd.merge(left, right, on="key")
+   pd.merge(left, right, on="key") // merge dataframes on key column
 
 :func:`merge` on unique keys:
 
@@ -546,7 +546,7 @@ groups:
 
 .. ipython:: python
 
-   df.groupby("A")[["C", "D"]].sum()
+   df.groupby("A")[["C", "D"]].sum() // group by column A, sum columns C and D
 
 Grouping by multiple columns label forms :class:`MultiIndex`.
 
@@ -566,8 +566,8 @@ Stack
 .. ipython:: python
 
    arrays = [
-      ["bar", "bar", "baz", "baz", "foo", "foo", "qux", "qux"],
-      ["one", "two", "one", "two", "one", "two", "one", "two"],
+      ["bar", "bar", "baz", "baz", "foo", "foo", "qux", "qux"], // first level
+      ["one", "two", "one", "two", "one", "two", "one", "two"], // second level
    ]
    index = pd.MultiIndex.from_arrays(arrays, names=["first", "second"])
    df = pd.DataFrame(np.random.randn(8, 2), index=index, columns=["A", "B"])
@@ -745,7 +745,7 @@ The ``plt.close`` method is used to `close <https://matplotlib.org/stable/api/_a
    @savefig frame_plot_basic.png
    plt.legend(loc='best');
 
-Importing and exporting data
+Importing and exporting Data
 ----------------------------
 
 See the :ref:`IO Tools <io>` section.
@@ -793,7 +793,7 @@ Reading from a Parquet file Store using :func:`read_parquet`:
 
    os.remove("foo.parquet")
 
-Excel
+Excel in format
 ~~~~~
 
 Reading and writing to :ref:`Excel <io.excel>`.
@@ -813,7 +813,8 @@ Reading from an excel file using :func:`read_excel`:
 .. ipython:: python
    :suppress:
 
-   os.remove("foo.xlsx")
+ // If OS module is already imported, no need to import again
+   os.remove("foo.xlsx")  // delete the excel file
 
 Gotchas
 -------
@@ -824,7 +825,7 @@ you might see an exception like:
 .. ipython:: python
    :okexcept:
 
-    if pd.Series([False, True, False]):
-        print("I was true")
+    if pd.Series([False, True, False]): 
+        print("I was true")               // raises value erroe
 
 See :ref:`Comparisons<basics.compare>` and :ref:`Gotchas<gotchas>` for an explanation and what to do.
