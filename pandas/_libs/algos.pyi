@@ -121,6 +121,33 @@ def diff_2d(
     axis: int,
     datetimelike: bool = ...,
 ) -> None: ...
+
+# ----------------------------------------------------------------------
+# Moments stats (skew, kurt)
+# ----------------------------------------------------------------------
+
+def scalar_skew(
+    values: np.ndarray,  # const float64_t[:]
+    skipna: bool,  # bint
+    mask: npt.NDArray[np.bool_] | None,  # const uint8_t[:]
+) -> float: ...
+def scalar_kurt(
+    values: np.ndarray,  # const float64_t[:]
+    skipna: bool,  # bint
+    mask: npt.NDArray[np.bool_] | None,  # const uint8_t[:]
+) -> float: ...
+def axis_skew(
+    values: np.ndarray,  # const float64_t[:, :]
+    axis: int,
+    skipna: bool,  # bint
+    mask: npt.NDArray[np.bool_] | None,  # const uint8_t[:, :]
+) -> np.ndarray: ...
+def axis_kurt(
+    values: np.ndarray,  # const float64_t[:, :]
+    axis: int,
+    skipna: bool,  # bint
+    mask: npt.NDArray[np.bool_] | None,  # const uint8_t[:, :]
+) -> np.ndarray: ...
 def ensure_platform_int(arr: object) -> npt.NDArray[np.intp]: ...
 def ensure_object(arr: object) -> npt.NDArray[np.object_]: ...
 def ensure_float64(arr: object) -> npt.NDArray[np.float64]: ...

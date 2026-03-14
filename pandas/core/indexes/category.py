@@ -329,7 +329,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         >>> ci_ordered.equals(ci2_ordered)
         False
         """
-        if self.is_(other):
+        if self.is_(other):  # type: ignore[arg-type]
             return True
 
         if not isinstance(other, Index):

@@ -1044,6 +1044,11 @@ def read_html(
     r"""
     Read HTML tables into a ``list`` of ``DataFrame`` objects.
 
+    This function searches for ``<table>`` elements within an HTML document
+    and parses their rows and columns into DataFrames. It can read from a URL,
+    a file path, or a raw HTML string, and supports filtering tables by
+    matching text content via a regular expression.
+
     Parameters
     ----------
     io : str, path object, or file-like object
