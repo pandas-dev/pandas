@@ -838,7 +838,8 @@ class TestMergeMultiIndexNaN:
         tm.assert_frame_equal(result, expected)
 
     def test_merge_multiindex_nan_left_index(self):
-        # Same bug but for the left_index=True, right_on=... code path
+        # GH#64492 - same bug as test_merge_multiindex_nan_right_index
+        # but for the left_index=True, right_on=... code path
         left = DataFrame(
             {"data": [100, 200, 300]},
             index=MultiIndex.from_arrays(
