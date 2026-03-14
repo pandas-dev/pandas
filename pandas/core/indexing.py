@@ -625,7 +625,8 @@ class IndexingMixin:
         **Assignment with Series**
 
         When assigning a Series to .loc[row_indexer, col_indexer], pandas aligns
-        the Series by index labels, not by order or position.
+        the Series by index labels, not by order or position. The same alignment
+        behavior applies to ``df[col] = series``.
 
         Series assignment with .loc and index alignment:
 
@@ -637,6 +638,17 @@ class IndexingMixin:
         0  1  20.0
         1  2  10.0
         2  3 NaN
+
+        This label-based alignment also applies when setting a subset of rows.
+
+        >>> df = pd.DataFrame({"A": [1, 2, 3]}, index=[0, 1, 2])
+        >>> s = pd.Series([100, 200], index=[2, 1])
+        >>> df.loc[[0, 2], "C"] = s
+        >>> df
+           A      C
+        0  1    NaN
+        1  2    NaN
+        2  3  100.0
         """
         return _LocIndexer("loc", self)
 
@@ -1586,7 +1598,8 @@ class _LocIndexer(_LocationIndexer):
     **Assignment with Series**
 
     When assigning a Series to .loc[row_indexer, col_indexer], pandas aligns
-    the Series by index labels, not by order or position.
+    the Series by index labels, not by order or position. The same alignment
+    behavior applies to ``df[col] = series``.
 
     Series assignment with .loc and index alignment:
 
@@ -1598,6 +1611,17 @@ class _LocIndexer(_LocationIndexer):
     0  1  20.0
     1  2  10.0
     2  3 NaN
+
+    This label-based alignment also applies when setting a subset of rows.
+
+    >>> df = pd.DataFrame({"A": [1, 2, 3]}, index=[0, 1, 2])
+    >>> s = pd.Series([100, 200], index=[2, 1])
+    >>> df.loc[[0, 2], "C"] = s
+    >>> df
+       A      C
+    0  1    NaN
+    1  2    NaN
+    2  3  100.0
     """
 
     _takeable: bool = False
