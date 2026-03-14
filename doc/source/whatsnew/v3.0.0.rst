@@ -1440,6 +1440,7 @@ Reshaping
 - Bug in :meth:`DataFrame.merge` where merging on a column containing only ``NaN`` values resulted in an out-of-bounds array access (:issue:`59421`)
 - Bug in :meth:`Series.combine_first` incorrectly replacing ``None`` entries with ``NaN`` (:issue:`58977`)
 - Bug in :meth:`DataFrame.unstack` producing incorrect results when ``sort=False`` (:issue:`54987`, :issue:`55516`)
+- Bug in :meth:`DataFrame.unstack` and :meth:`Series.unstack` where ``sort=False`` was incorrectly reordering row index in addition to columns (:issue:`62816`)
 - Bug in :meth:`DataFrame.unstack` raising an error with indexes containing ``NaN`` with ``sort=False`` (:issue:`61221`)
 - Bug in :meth:`DataFrame.merge` when merging two :class:`DataFrame` on ``intc`` or ``uintc`` types on Windows (:issue:`60091`, :issue:`58713`)
 - Bug in :meth:`DataFrame.pivot_table` incorrectly subaggregating results when called without an ``index`` argument (:issue:`58722`)
