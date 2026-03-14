@@ -256,6 +256,18 @@ class PyArrowImpl(BaseImpl):
             storage_options=storage_options,
             mode="rb",
         )
+        if (
+            isinstance(path_or_handle, io.BufferedReader)
+            and hasattr(path_or_handle, "name")
+            and isinstance(path_or_handle.name, (str, bytes))
+        ):
+            # Unwrap the Python file handle back to a string path so that
+            # PyArrow can use memory-mapped and multithreaded C++ I/O
+            # instead of going through the Python I/O layer. GH#47702
+            if isinstance(path_or_handle.name, bytes):
+                path_or_handle = path_or_handle.name.decode()
+            else:
+                path_or_handle = path_or_handle.name
         try:
             pa_table = self.api.parquet.read_table(
                 path_or_handle,
