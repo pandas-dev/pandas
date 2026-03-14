@@ -40,18 +40,3 @@ runs:
           ${{ inputs.numprocesses }} \
           ${{ inputs.pytest_target }}
       shell: bash -euox pipefail {0}
-
-    - name: Publish test results
-      uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
-      with:
-        name: Test results
-        path: test-data.xml
-      if: failure()
-
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5
-      with:
-        flags: unittests
-        name: codecov-pandas
-        fail_ci_if_error: false
-      if: failure()
