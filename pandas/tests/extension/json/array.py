@@ -25,6 +25,7 @@ import sys
 from typing import (
     TYPE_CHECKING,
     Any,
+    Literal,
 )
 
 import numpy as np
@@ -41,6 +42,7 @@ from pandas.api.extensions import (
     ExtensionArray,
     ExtensionDtype,
 )
+from pandas.core.algorithms import duplicated
 from pandas.core.indexers import (
     getitem_returns_view,
     unpack_tuple_and_ellipses,
@@ -49,7 +51,10 @@ from pandas.core.indexers import (
 if TYPE_CHECKING:
     from collections.abc import Mapping
 
-    from pandas._typing import type_t
+    from pandas._typing import (
+        npt,
+        type_t,
+    )
 
 
 class JSONDtype(ExtensionDtype):
@@ -266,6 +271,17 @@ class JSONArray(ExtensionArray):
     def _pad_or_backfill(self, *, method, limit=None, copy=True):
         # GH#56616 - test EA method without limit_area argument
         return super()._pad_or_backfill(method=method, limit=limit, copy=copy)
+
+    def duplicated(
+        self, keep: Literal["first", "last", False] = "first"
+    ) -> npt.NDArray[np.bool_]:
+        # pd.core.algorithms.duplicated is implemented with a hash table that
+        # does not support UserDict values.
+        # However, dict values are always hashed as 0 for backwards compatibility,
+        # see GH 57052
+        mask = self.isna().astype(np.bool_, copy=False)
+        values = np.array([dict(x) for x in self], dtype="object")
+        return duplicated(values=values, keep=keep, mask=mask)
 
 
 def make_data(n: int):
