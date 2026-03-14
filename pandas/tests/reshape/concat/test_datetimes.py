@@ -296,6 +296,25 @@ class TestDatetimeConcat:
         result = concat([first, second], ignore_index=True)
         tm.assert_series_equal(result, expected)
 
+    def test_concat_datetime64_different_resolutions(self, unit, unit2):
+        # GH#53307
+        # Concatenating datetime64 columns with different resolutions
+        # should return the finest resolution, not object dtype
+        df = DataFrame(
+            {
+                "ints": range(2),
+                "dates": date_range("2000", periods=2, freq="min", unit=unit),
+            },
+        )
+        df2 = df.copy()
+        df2["dates"] = df.dates.astype(f"M8[{unit2}]")
+
+        result = concat([df, df2])
+
+        exp_unit = tm.get_finest_unit(unit, unit2)
+        assert pd.api.types.is_datetime64_any_dtype(result.dates.dtype)
+        assert result.dates.dtype == np.dtype(f"datetime64[{exp_unit}]")
+
 
 class TestTimezoneConcat:
     def test_concat_tz_series(self):
@@ -563,6 +582,28 @@ def test_concat_timedelta64_block():
     result = concat([df, df])
     tm.assert_frame_equal(result.iloc[:10], df, check_index_type=False)
     tm.assert_frame_equal(result.iloc[10:], df, check_index_type=False)
+
+
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+@pytest.mark.parametrize("unit2", ["s", "ms", "us", "ns"])
+def test_concat_timedelta64_different_resolutions(unit, unit2):
+    # GH#53307
+    # Concatenating timedelta64 columns with different resolutions
+    # should return the finest resolution, not object dtype
+    df = DataFrame(
+        {
+            "ints": range(2),
+            "deltas": to_timedelta(np.arange(2), unit=unit),
+        },
+    )
+    df2 = df.copy()
+    df2["deltas"] = df.deltas.astype(f"m8[{unit2}]")
+
+    result = concat([df, df2])
+
+    exp_unit = tm.get_finest_unit(unit, unit2)
+    assert pd.api.types.is_timedelta64_dtype(result.deltas.dtype)
+    assert result.deltas.dtype == np.dtype(f"timedelta64[{exp_unit}]")
 
 
 def test_concat_multiindex_datetime_nat():

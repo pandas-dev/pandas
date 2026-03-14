@@ -166,9 +166,24 @@ def _get_result_dtype(
         target_dtype = np.dtype(object)
         kinds = {"o"}
     else:
-        # error: Argument 1 to "np_find_common_type" has incompatible type
-        # "*Set[Union[ExtensionDtype, Any]]"; expected "dtype[Any]"
-        target_dtype = np_find_common_type(*dtypes)  # type: ignore[arg-type]
+        # GH#53307: Handle datetime64 and timedelta64 with different resolutions
+        np_dtypes = [dt for dt in dtypes if isinstance(dt, np.dtype)]
+        if len(np_dtypes) == len(dtypes):
+            # All are numpy dtypes
+            if all(lib.is_np_dtype(t, "M") for t in np_dtypes):
+                # All datetime64, take finest resolution
+                target_dtype = np.dtype(max(np_dtypes))
+            elif all(lib.is_np_dtype(t, "m") for t in np_dtypes):
+                # All timedelta64, take finest resolution
+                target_dtype = np.dtype(max(np_dtypes))
+            else:
+                # error: Argument 1 to "np_find_common_type" has incompatible type
+                # "*Set[Union[ExtensionDtype, Any]]"; expected "dtype[Any]"
+                target_dtype = np_find_common_type(*dtypes)  # type: ignore[arg-type]
+        else:
+            # error: Argument 1 to "np_find_common_type" has incompatible type
+            # "*Set[Union[ExtensionDtype, Any]]"; expected "dtype[Any]"
+            target_dtype = np_find_common_type(*dtypes)  # type: ignore[arg-type]
 
     return any_ea, kinds, target_dtype
 
