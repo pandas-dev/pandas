@@ -78,7 +78,11 @@ from pandas.tseries.frequencies import (
     is_superperiod,
 )
 from pandas.tseries.offsets import (
+    BQuarterBegin,
+    BQuarterEnd,
     Day,
+    QuarterBegin,
+    QuarterEnd,
     Tick,
 )
 
@@ -2950,7 +2954,19 @@ def _get_timestamp_range_edges(
         last = last.normalize()
 
         if closed == "left":
-            first = Timestamp(freq.rollback(first))
+            if freq.n != 1 and isinstance(
+                freq, (QuarterBegin, QuarterEnd, BQuarterBegin, BQuarterEnd)
+            ):
+                # GH#29576: non-unitary quarter offsets can ignore the full stride
+                # in rollback/rollforward. Resolve the nearest valid boundary using
+                # the actual frequency to preserve startingMonth alignment.
+                boundaries = date_range(end=first, periods=2, freq=freq, unit=unit)
+                if len(boundaries):
+                    first = boundaries[-1]
+                else:
+                    first = Timestamp(first - freq)
+            else:
+                first = Timestamp(freq.rollback(first))
         else:
             first = Timestamp(first - freq)
 

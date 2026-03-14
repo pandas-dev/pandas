@@ -1166,6 +1166,21 @@ def test_resample_anchored_monthstart(simple_date_range_series, freq, unit):
     ts.resample(freq).mean()
 
 
+def test_resample_non_unitary_quarter_starting_month():
+    # GH#29576
+    ser = Series(
+        np.zeros(365),
+        index=date_range("1950-01-01", "1950-12-31", freq="D"),
+    )
+    result = ser.resample("2QS-MAR").mean()
+
+    expected = Series(
+        0.0,
+        index=date_range("1949-09-01", periods=3, freq="2QS-MAR"),
+    )
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize("label, sec", [[None, 2.0], ["right", "4.2"]])
 def test_resample_anchored_multiday(label, sec):
     # When resampling a range spanning multiple days, ensure that the
