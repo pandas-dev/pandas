@@ -51,12 +51,12 @@ def test_agg_regression1(tsframe):
 
 
 def test_agg_must_agg(df):
-    # https://github.com/pandas-dev/pandas/pull/63957
+    # https://github.com/pandas-dev/pandas/pull/64014
     grouped = df.groupby("A")["C"]
     expected = Series(
         {
-            "bar": df[df.A == "bar"]["C"].describe().tolist(),
-            "foo": df[df.A == "foo"]["C"].describe().tolist(),
+            "bar": df[df.A == "bar"]["C"].describe(),
+            "foo": df[df.A == "foo"]["C"].describe(),
         },
         index=Index(["bar", "foo"], name="A"),
         name="C",
@@ -1405,7 +1405,7 @@ class TestLambdaMangling:
             return x.sum() + y
 
         df = DataFrame({"A": [1, 2]})
-        expected = DataFrame({"A": [13]}, index=Index([0], dtype="intp"))
+        expected = DataFrame({"A": [13]})
         gb = df.groupby([0, 0])
         if use_kwargs:
             args, kwargs = (), {"y": 10}

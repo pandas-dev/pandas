@@ -94,15 +94,15 @@ def check_result_array(obj, dtype) -> None:
             raise ValueError("Must produce aggregated value")
 
 
-def extract_result(res):
+def extract_result(res, is_resample: bool):
     """
     Extract the result object, it might be a 0-dim ndarray
     or a len-1 0-dim, or a scalar
     """
     if hasattr(res, "_values"):
         # Preserve EA
-        res = res._values
-        if res.ndim == 1 and len(res) == 1:
+        values = res._values
+        if values.ndim == 1 and len(values) == 1:
             warnings.warn(
                 "Converting a Series or array of length 1 into a scalar is "
                 "deprecated and will be removed in a future version. If you wish "
@@ -111,7 +111,9 @@ def extract_result(res):
                 stacklevel=find_stack_level(),
             )
             # see test_agg_lambda_with_timezone, test_resampler_grouper.py::test_apply
-            res = res[0]
+            res = values[0]
+        elif is_resample:
+            res = values
     return res
 
 
@@ -1012,7 +1014,7 @@ class BaseGrouper:
 
         for i, group in enumerate(splitter):
             res = func(group)
-            res = extract_result(res)
+            res = extract_result(res, is_resample=self._is_resample)
 
             if self._is_resample and not initialized:
                 # We only do this validation on the first iteration
