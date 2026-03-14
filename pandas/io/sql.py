@@ -165,8 +165,13 @@ def _convert_arrays_to_dataframe(
 ) -> DataFrame:
     content = lib.to_object_array_tuples(data)
     idx_len = content.shape[0]
+
+    content_t = list(content.T)
+    if coerce_float:
+        content_t = [lib.maybe_convert_lossy_decimal_ints(col) for col in content_t]
+
     arrays = convert_object_array(
-        list(content.T),
+        content_t,
         dtype=None,
         coerce_float=coerce_float,
         dtype_backend=dtype_backend,
