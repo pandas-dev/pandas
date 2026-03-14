@@ -197,7 +197,8 @@ jobs:
         name: codecov-pandas-${{ matrix.name }}
         fail_ci_if_error: false
         disable_telem: true
-      # single_cpu + not single_cpu jobs provide most hollistic coverage report
+      # coverage report appended for single_cpu + not single_cpu steps
+      # provide most hollistic coverage report
       if: ${{ steps.test-not-single-cpu.outcome == 'success' && steps.test-single-cpu.outcome == 'success' }}
 
   macos-windows:
