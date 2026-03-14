@@ -203,10 +203,11 @@ Look,a snake,🐍"""
             rf"\[Errno 2\] File o directory non esistente: '.+does_not_exist\.{fn_ext}'"
         )
         msg8 = rf"Failed to open local file.+does_not_exist\.{fn_ext}"
+        msg9 = rf"No such file or directory: '.+does_not_exist\.{fn_ext}'"
 
         with pytest.raises(
             error_class,
-            match=rf"({msg1}|{msg2}|{msg3}|{msg4}|{msg5}|{msg6}|{msg7}|{msg8})",
+            match=rf"({msg1}|{msg2}|{msg3}|{msg4}|{msg5}|{msg6}|{msg7}|{msg8}|{msg9})",
         ):
             reader(path)
 
@@ -274,10 +275,11 @@ Look,a snake,🐍"""
             rf"\[Errno 2\] File o directory non esistente: '.+does_not_exist\.{fn_ext}'"
         )
         msg8 = rf"Failed to open local file.+does_not_exist\.{fn_ext}"
+        msg9 = rf"No such file or directory: '.+does_not_exist\.{fn_ext}'"
 
         with pytest.raises(
             error_class,
-            match=rf"({msg1}|{msg2}|{msg3}|{msg4}|{msg5}|{msg6}|{msg7}|{msg8})",
+            match=rf"({msg1}|{msg2}|{msg3}|{msg4}|{msg5}|{msg6}|{msg7}|{msg8}|{msg9})",
         ):
             reader(path)
 
@@ -618,8 +620,10 @@ def test_bad_encdoing_errors(temp_file):
 @pytest.mark.skipif(WASM, reason="limited file system access on WASM")
 def test_errno_attribute():
     # GH 13872
-    with pytest.raises(FileNotFoundError, match="\\[Errno 2\\]") as err:
-        pd.read_csv("doesnt_exist")
+    non_existent_file = "doesnt_exist"
+    msg = rf"No such file or directory: '{non_existent_file}'"
+    with pytest.raises(FileNotFoundError, match=msg) as err:
+        pd.read_csv(non_existent_file)
         assert err.errno == errno.ENOENT
 
 
@@ -686,3 +690,40 @@ def test_pyarrow_read_csv_datetime_dtype():
     expect = pd.DataFrame({"date": expect_data})
 
     tm.assert_frame_equal(expect, result)
+
+
+def test_iterdir_local(local_csv_directory):
+    for file in icom.iterdir(local_csv_directory):
+        assert file.is_file()
+        assert file.suffix == ".csv"
+
+
+def test_iterdir_local_passthrough(local_csv_file):
+    result = icom.iterdir(local_csv_file)
+    assert isinstance(result, list)
+    assert len(result) == 1
+    file = result[0]
+    assert file.exists()
+    assert file.is_file()
+
+
+def test_remote_csv_directory(remote_csv_directory):
+    import fsspec
+    from fsspec.implementations.memory import MemoryFileSystem
+
+    fs, _ = fsspec.core.url_to_fs(remote_csv_directory)
+    assert isinstance(fs, MemoryFileSystem)
+
+    assert fs.exists("remote-bucket")
+    assert fs.isdir("remote-bucket")
+
+    files = fs.ls("remote-bucket", detail=True)
+
+    file_names = sorted(f["name"] for f in files if f["type"] == "file")
+    assert file_names == ["/remote-bucket/a.csv", "/remote-bucket/b.csv"]
+
+    dir_names = [f["name"] for f in files if f["type"] == "directory"]
+    assert "/remote-bucket/nested" in dir_names
+
+    nested_files = fs.ls("remote-bucket/nested", detail=True)
+    assert nested_files[0]["name"] == "/remote-bucket/nested/ignored.csv"
