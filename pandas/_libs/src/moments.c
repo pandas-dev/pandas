@@ -14,11 +14,15 @@ Moments accumulate_moments_scalar(const double *values, int64_t n, int skipna,
                                   const uint8_t *mask, int max_moment) {
   Moments result = {0};
 
-#pragma omp parallel
+#ifdef _OPENMP
+#  pragma omp parallel
+#endif
   {
     Moments moments_local = {0};
 
-#pragma omp for nowait
+#ifdef _OPENMP
+#  pragma omp for nowait
+#endif
     for (int64_t i = 0; i < n; i++) {
       double val = values[i];
       if (mask && mask[i]) {
@@ -30,7 +34,9 @@ Moments accumulate_moments_scalar(const double *values, int64_t n, int skipna,
       moments_add_value(&moments_local, val, max_moment);
     }
 
-#pragma omp critical
+#ifdef _OPENMP
+#  pragma omp critical
+#endif
     {
       result = moments_merge(result, moments_local, max_moment);
     }
