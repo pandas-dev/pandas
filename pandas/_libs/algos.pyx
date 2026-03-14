@@ -5,6 +5,7 @@ from libc.math cimport (
     sqrt,
 )
 from libc.stdlib cimport (
+    calloc,
     free,
     malloc,
 )
@@ -1450,42 +1451,11 @@ def diff_2d(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef void accumulate_moments_scalar(
-    const float64_t[:] values,
-    bint skipna,
-    const uint8_t[:] mask,
-    int64_t* nobs,
-    float64_t* mean,
-    float64_t* m2,
-    float64_t* m3,
-    float64_t* m4,
-    int max_moment,
-) noexcept nogil:
-    cdef:
-        Py_ssize_t i, n = len(values)
-        bint uses_mask = mask is not None
-        float64_t val
-
-    for i in range(n):
-        val = values[i]
-        if uses_mask and mask[i]:
-            val = NaN
-        if skipna and isnan(val):
-            continue
-        moments_add_value(val, nobs, mean, m2, m3, m4, max_moment)
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
 cdef void accumulate_moments_axis(
     const float64_t[:, :] values,
     bint skipna,
     const uint8_t[:, :] mask,
-    int64_t[:] nobs,
-    float64_t[:] mean,
-    float64_t[:] m2,
-    float64_t[:] m3,
-    float64_t[:] m4,
+    Moments *moments,
     int axis,
     int max_moment,
 ) noexcept nogil:
@@ -1494,8 +1464,6 @@ cdef void accumulate_moments_axis(
         Py_ssize_t nouter, ninner
         bint uses_mask = mask is not None
         float64_t val
-        float64_t* m3_ptr = NULL
-        float64_t* m4_ptr = NULL
 
     if axis == 0:
         # Assumes F-contiguous
@@ -1507,52 +1475,51 @@ cdef void accumulate_moments_axis(
         ninner = ncols
 
     for i in range(nouter):
-        if max_moment >= 3:
-            m3_ptr = &m3[i]
-        if max_moment >= 4:
-            m4_ptr = &m4[i]
         for j in range(ninner):
             val = values[j, i] if axis == 0 else values[i, j]
             if uses_mask and (mask[j, i] if axis == 0 else mask[i, j]):
                 val = NaN
             if skipna and isnan(val):
                 continue
-            moments_add_value(val, &nobs[i], &mean[i], &m2[i], m3_ptr, m4_ptr,
-                              max_moment)
+            moments_add_value(&moments[i], val, max_moment)
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def scalar_skew(
-    const float64_t[:] values,
+    const float64_t[::1] values,
     bint skipna,
-    const uint8_t[:] mask,
+    const uint8_t[::1] mask,
 ) -> float:
     cdef:
-        int64_t nobs = 0
-        float64_t mean = 0.0, m2 = 0.0, m3 = 0.0
+        Moments moments
+        Py_ssize_t n = values.shape[0]
+        const float64_t* p_values = &values[0]
+        const uint8_t* p_mask = &mask[0] if mask is not None else NULL
 
     with nogil:
-        accumulate_moments_scalar(values, skipna, mask, &nobs, &mean, &m2, &m3, NULL, 3)
+        moments = accumulate_moments_scalar(p_values, n, skipna, p_mask, 3)
 
-    return calc_skew(nobs, m2, m3)
+    return calc_skew(moments)
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def scalar_kurt(
-    const float64_t[:] values,
+    const float64_t[::1] values,
     bint skipna,
-    const uint8_t[:] mask,
+    const uint8_t[::1] mask,
 ) -> float:
     cdef:
-        int64_t nobs = 0
-        float64_t mean = 0.0, m2 = 0.0, m3 = 0.0, m4 = 0.0
+        Moments moments
+        Py_ssize_t n = values.shape[0]
+        const float64_t* p_values = &values[0]
+        const uint8_t* p_mask = &mask[0] if mask is not None else NULL
 
     with nogil:
-        accumulate_moments_scalar(values, skipna, mask, &nobs, &mean, &m2, &m3, &m4, 4)
+        moments = accumulate_moments_scalar(p_values, n, skipna, p_mask, 4)
 
-    return calc_kurt(nobs, m2, m4)
+    return calc_kurt(moments)
 
 
 @cython.boundscheck(False)
@@ -1566,18 +1533,19 @@ def axis_skew(
     cdef:
         Py_ssize_t i
         Py_ssize_t nouter = values.shape[1] if axis == 0 else values.shape[0]
-        int64_t[::1] nobs = np.zeros(nouter, dtype=np.int64)
-        float64_t[::1] mean = np.zeros(nouter)
-        float64_t[::1] m2 = np.zeros(nouter)
-        float64_t[::1] m3 = np.zeros(nouter)
+        Moments *moments = <Moments *>calloc(nouter, sizeof(Moments))
         ndarray result_arr = np.empty(nouter, dtype=np.float64)
         float64_t[:] result = result_arr
 
-    with nogil:
-        accumulate_moments_axis(values, skipna, mask, nobs, mean, m2, m3, None, axis, 3)
-        for i in range(nouter):
-            result[i] = calc_skew(nobs[i], m2[i], m3[i])
+    if moments == NULL:
+        raise MemoryError()
 
+    with nogil:
+        accumulate_moments_axis(values, skipna, mask, moments, axis, 3)
+        for i in range(nouter):
+            result[i] = calc_skew(moments[i])
+
+    free(moments)
     return result_arr
 
 
@@ -1592,19 +1560,19 @@ def axis_kurt(
     cdef:
         Py_ssize_t i
         Py_ssize_t nouter = values.shape[1] if axis == 0 else values.shape[0]
-        int64_t[::1] nobs = np.zeros(nouter, dtype=np.int64)
-        float64_t[::1] mean = np.zeros(nouter)
-        float64_t[::1] m2 = np.zeros(nouter)
-        float64_t[::1] m3 = np.zeros(nouter)
-        float64_t[::1] m4 = np.zeros(nouter)
+        Moments *moments = <Moments *>calloc(nouter, sizeof(Moments))
         ndarray result_arr = np.empty(nouter, dtype=np.float64)
         float64_t[:] result = result_arr
 
-    with nogil:
-        accumulate_moments_axis(values, skipna, mask, nobs, mean, m2, m3, m4, axis, 4)
-        for i in range(nouter):
-            result[i] = calc_kurt(nobs[i], m2[i], m4[i])
+    if moments == NULL:
+        raise MemoryError()
 
+    with nogil:
+        accumulate_moments_axis(values, skipna, mask, moments, axis, 4)
+        for i in range(nouter):
+            result[i] = calc_kurt(moments[i])
+
+    free(moments)
     return result_arr
 
 
