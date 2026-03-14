@@ -860,6 +860,9 @@ def value_counts_internal(
         if isinstance(values, Series):
             values = values._values
 
+        if not isinstance(values, (np.ndarray, Index)):
+            values = Index(values)
+
         try:
             ii = cut(values, bins, include_lowest=True)
         except TypeError as err:
