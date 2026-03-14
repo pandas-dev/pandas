@@ -10,6 +10,7 @@ from typing import (
     Literal,
     cast,
 )
+import warnings
 
 import numpy as np
 
@@ -18,7 +19,9 @@ from pandas._libs import (
     Timestamp,
     lib,
 )
+from pandas.errors import Pandas4Warning
 from pandas.util._decorators import set_module
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_platform_int,
@@ -78,8 +81,13 @@ def cut(
 
     Parameters
     ----------
-    x : 1d ndarray or Series
+    x : 1d ndarray, Series, or Index
         The input array to be binned. Must be 1-dimensional.
+
+        .. deprecated:: 3.1.0
+            Passing objects other than ndarray, Series, or Index (e.g. lists)
+            is deprecated and will raise in a future version.
+
     bins : int, sequence of scalars, or IntervalIndex
         The criteria to bin by.
 
@@ -191,7 +199,7 @@ def cut(
 
     ``labels=False`` implies you just want the bins back.
 
-    >>> pd.cut([0, 1, 1, 2], bins=4, labels=False)
+    >>> pd.cut(np.array([0, 1, 1, 2]), bins=4, labels=False)
     array([0, 1, 1, 3])
 
     Passing a Series as an input returns a Series with categorical dtype:
@@ -246,7 +254,7 @@ def cut(
     falls between two bins.
 
     >>> bins = pd.IntervalIndex.from_tuples([(0, 1), (2, 3), (4, 5)])
-    >>> pd.cut([0, 0.5, 1.5, 2.5, 4.5], bins)
+    >>> pd.cut(np.array([0, 0.5, 1.5, 2.5, 4.5]), bins)
     [NaN, (0.0, 1.0], NaN, (2.0, 3.0], (4.0, 5.0]]
     Categories (3, interval[int64, right]): [(0, 1] < (2, 3] < (4, 5]]
 
@@ -310,8 +318,13 @@ def qcut(
 
     Parameters
     ----------
-    x : 1d ndarray or Series
+    x : 1d ndarray, Series, or Index
         Input Numpy array or pandas Series object to be discretized.
+
+        .. deprecated:: 3.1.0
+            Passing objects other than ndarray, Series, or Index (e.g. lists)
+            is deprecated and will raise in a future version.
+
     q : int or list-like of float
         Number of quantiles. 10 for deciles, 4 for quartiles, etc. Alternately
         array of quantiles, e.g. [0, .25, .5, .75, 1.] for quartiles.
@@ -347,17 +360,17 @@ def qcut(
 
     Examples
     --------
-    >>> pd.qcut(range(5), 4)
+    >>> pd.qcut(np.arange(5), 4)
     ... # doctest: +ELLIPSIS
     [(-0.001, 1.0], (-0.001, 1.0], (1.0, 2.0], (2.0, 3.0], (3.0, 4.0]]
     Categories (4, interval[float64, right]): [(-0.001, 1.0] < (1.0, 2.0] ...
 
-    >>> pd.qcut(range(5), 3, labels=["good", "medium", "bad"])
+    >>> pd.qcut(np.arange(5), 3, labels=["good", "medium", "bad"])
     ... # doctest: +SKIP
     [good, good, medium, bad, bad]
     Categories (3, str): [good < medium < bad]
 
-    >>> pd.qcut(range(5), 4, labels=False)
+    >>> pd.qcut(np.arange(5), 4, labels=False)
     array([0, 0, 1, 2, 3])
     """
     if isinstance(x, Expression):
@@ -631,6 +644,14 @@ def _preprocess_for_cut(x) -> Index:
     input to array, strip the index information and store it
     separately
     """
+    if not isinstance(x, (np.ndarray, ABCSeries, Index)):
+        warnings.warn(
+            f"Passing an object of type {type(x).__name__} to cut or qcut is "
+            "deprecated and will raise in a future version. "
+            "Pass a numpy array, pandas Series, or pandas Index instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
     # Check that the passed array is a Pandas or Numpy object
     # We don't want to strip away a Pandas data-type here (e.g. datetimetz)
     ndim = getattr(x, "ndim", None)
