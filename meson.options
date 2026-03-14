@@ -1,0 +1,5 @@
+option(
+    'simd',
+    type: 'feature',
+    description: 'Compile with SIMD instructions',
+)

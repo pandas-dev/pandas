@@ -6,6 +6,7 @@ from libc.math cimport (
 from numpy cimport (
     float64_t,
     int64_t,
+    uint8_t,
 )
 
 from pandas._libs.dtypes cimport (
@@ -48,6 +49,22 @@ cdef inline void moments_add_value(
         m3[0] += delta_n * (term1 * (n - 2.0) - 3.0 * m2[0])
     m2[0] += term1
     mean[0] += delta_n
+
+
+cdef extern from "pandas/moments.h":
+    ctypedef struct Moments:
+        int64_t n
+        float64_t mean
+        float64_t m2
+        float64_t m3
+        float64_t m4
+
+    Moments moments_reduce(
+            size_t n,
+            const double *values,
+            bint skipna,
+            const uint8_t *mask,
+            int max_moment) noexcept nogil
 
 
 @cython.cdivision(True)

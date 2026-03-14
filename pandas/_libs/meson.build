@@ -56,11 +56,26 @@ fast_float_dep = fast_float.get_variable('fast_float_dep')
 
 subdir('tslibs')
 
+moments_impl = 'src/moments_scalar.c'
+if get_option('simd').allowed()
+    if host_machine.cpu_family() == 'x86_64'
+        moments_impl = 'src/moments_sse2.c'
+    elif host_machine.cpu_family() == 'aarch64'
+        moments_impl = 'src/moments_neon.c'
+    endif
+endif
+
 libs_sources = {
     # Dict of extension name -> dict of {sources, include_dirs, and deps}
     # numpy include dir is implicitly included
     'algos': {
-        'sources': ['algos.pyx', _algos_common_helper, _algos_take_helper],
+        'sources': [
+            'algos.pyx',
+            'src/moments.c',
+            moments_impl,
+            _algos_common_helper,
+            _algos_take_helper,
+        ],
         'deps': [_khash_primitive_helper_dep, m_dep],
     },
     'arrays': {'sources': ['arrays.pyx']},
