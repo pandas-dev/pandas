@@ -127,8 +127,8 @@ class BaseReduceTests:
 
         self.check_reduce_frame(ser, op_name, skipna)
 
-    def test_reduce_array(self, data, all_numeric_reductions, skipna: bool):
-        op_name = all_numeric_reductions
+    def test_reduce_array(self, data, all_reductions, skipna: bool):
+        op_name = all_reductions
         ser = pd.Series(data)
 
         kwargs = {}
@@ -175,9 +175,6 @@ class BaseReduceTests:
             return
 
         res_op = getattr(ser.array, op_name)
-        try:
-            expected = ser.array._reduce(op_name, **kwargs)
-        except (NotImplementedError, AttributeError):
-            return
+        expected = ser.array._reduce(op_name, **kwargs)
         result = res_op(**kwargs)
         tm.assert_almost_equal(result, expected)

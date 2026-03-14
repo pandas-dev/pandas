@@ -216,9 +216,9 @@ class TestStringArray(base.ExtensionTests):
         return None
 
     def _supports_reduction(self, ser: pd.Series, op_name: str) -> bool:
+        # Item "dtype[Any]" of "dtype[Any] | ExtensionDtype" has no attribute "na_value"
         return op_name in ["min", "max", "sum", "count"] or (
-            ser.dtype.na_value is np.nan  # type: ignore[union-attr]
-            and op_name in ("any", "all")
+            op_name in ("any", "all") and ser.dtype.na_value is np.nan  # type: ignore[union-attr]
         )
 
     def _supports_accumulation(self, ser: pd.Series, op_name: str) -> bool:

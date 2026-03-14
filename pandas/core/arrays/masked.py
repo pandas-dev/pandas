@@ -1568,7 +1568,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def _reduce(
         self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
     ):
-        if name in {"any", "all", "min", "max", "sum", "prod", "mean", "var", "std"}:
+        result: Any
+        if name == "count":
+            result = self.count()
+        elif name in {"any", "all", "min", "max", "sum", "prod", "mean", "var", "std"}:
             result = getattr(self, name)(skipna=skipna, **kwargs)
         else:
             # median, skew, kurt, sem
@@ -1577,11 +1580,6 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             op = getattr(nanops, f"nan{name}")
             axis = kwargs.pop("axis", None)
             result = op(data, axis=axis, skipna=skipna, mask=mask, **kwargs)
-            if self.ndim > 1:
-                # Remainder of method assumes scalar result; other ops above
-                # do not respect `axis` argument and so always return a scalar.
-                # TODO: What happens when ndim > 1 on main?
-                return result
 
         if keepdims:
             if isna(result):

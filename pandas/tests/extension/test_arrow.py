@@ -460,11 +460,21 @@ class TestArrowArray(base.ExtensionTests):
                 pass
             else:
                 return False
-        elif pa.types.is_binary(pa_dtype) and op_name in ["sum", "skew"]:
+        elif pa.types.is_binary(pa_dtype) and op_name in ["sum", "skew", "any", "all"]:
             return False
         elif (
             pa.types.is_string(pa_dtype) or pa.types.is_binary(pa_dtype)
-        ) and op_name in ["mean", "median", "prod", "std", "sem", "var", "skew"]:
+        ) and op_name in [
+            "mean",
+            "median",
+            "prod",
+            "std",
+            "sem",
+            "var",
+            "skew",
+            "any",
+            "all",
+        ]:
             return False
 
         if (
@@ -509,25 +519,6 @@ class TestArrowArray(base.ExtensionTests):
             result = getattr(ser, op_name)(skipna=skipna)
             expected = getattr(alt, op_name)(skipna=skipna)
         tm.assert_almost_equal(result, expected)
-
-    @pytest.mark.parametrize("skipna", [True, False])
-    def test_reduce_series_boolean(
-        self, data, all_boolean_reductions, skipna, na_value, request
-    ):
-        pa_dtype = data.dtype.pyarrow_dtype
-        xfail_mark = pytest.mark.xfail(
-            raises=TypeError,
-            reason=(
-                f"{all_boolean_reductions} is not implemented in "
-                f"pyarrow={pa.__version__} for {pa_dtype}"
-            ),
-        )
-        if pa.types.is_string(pa_dtype) or pa.types.is_binary(pa_dtype):
-            # We *might* want to make this behave like the non-pyarrow cases,
-            #  but have not yet decided.
-            request.applymarker(xfail_mark)
-
-        return super().test_reduce_series_boolean(data, all_boolean_reductions, skipna)
 
     def _get_expected_reduction_dtype(self, arr, op_name: str, skipna: bool):
         pa_type = arr._pa_array.type
