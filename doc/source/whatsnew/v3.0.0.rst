@@ -1247,6 +1247,7 @@ Numeric
 - Bug in :meth:`DataFrame.quantile` where the column type was not preserved when ``numeric_only=True`` with a list-like ``q`` produced an empty result (:issue:`59035`)
 - Bug in :meth:`Series.dot` returning ``object`` dtype for :class:`ArrowDtype` and nullable-dtype data (:issue:`61375`)
 - Bug in :meth:`Series.std` and :meth:`Series.var` when using complex-valued data (:issue:`61645`)
+- Bug in :meth:`Series.var` incorrectly computing variance for complex arrays by discarding the imaginary part during mean calculation (:issue:`62421`)
 - Bug in ``np.matmul`` with :class:`Index` inputs raising a ``TypeError`` (:issue:`57079`)
 - Bug in arithmetic operations between objects with numpy-nullable dtype and :class:`ArrowDtype` incorrectly raising (:issue:`58602`)
 
