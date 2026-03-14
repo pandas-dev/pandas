@@ -26,16 +26,6 @@ Catalog = collections.namedtuple("Catalog", ["name", "uri", "warehouse"])
 
 
 @pytest.fixture
-def xfail_with_no_future_infer_string(request, using_infer_string):
-    request.applymarker(
-        pytest.mark.xfail(
-            condition=not using_infer_string,
-            reason="TODO: Test fails with PANDAS_FUTURE_INFER_STRING=0",
-        )
-    )
-
-
-@pytest.fixture
 def catalog(request, tmp_path):
     # the catalog stores the full path of data files, so the catalog needs to be
     # created dynamically, and not saved in pandas/tests/io/data as other formats
@@ -75,7 +65,7 @@ catalog:
 
 
 class TestIceberg:
-    def test_read(self, catalog, xfail_with_no_future_infer_string):
+    def test_read(self, catalog):
         expected = pd.DataFrame(
             {
                 "A": [1, 2, 3],
@@ -89,7 +79,7 @@ class TestIceberg:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("catalog", ["default", "pandas_tests"], indirect=True)
-    def test_read_by_catalog_name(self, catalog, xfail_with_no_future_infer_string):
+    def test_read_by_catalog_name(self, catalog):
         expected = pd.DataFrame(
             {
                 "A": [1, 2, 3],
@@ -102,7 +92,7 @@ class TestIceberg:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_read_with_row_filter(self, catalog, xfail_with_no_future_infer_string):
+    def test_read_with_row_filter(self, catalog):
         expected = pd.DataFrame(
             {
                 "A": [2, 3],
@@ -138,7 +128,7 @@ class TestIceberg:
                 case_sensitive=True,
             )
 
-    def test_read_with_limit(self, catalog, xfail_with_no_future_infer_string):
+    def test_read_with_limit(self, catalog):
         expected = pd.DataFrame(
             {
                 "A": [1, 2],
@@ -155,7 +145,7 @@ class TestIceberg:
     @pytest.mark.filterwarnings(
         "ignore:Delete operation did not match any records:UserWarning"
     )
-    def test_write(self, catalog, xfail_with_no_future_infer_string):
+    def test_write(self, catalog):
         df = pd.DataFrame(
             {
                 "A": [1, 2, 3],
@@ -177,7 +167,7 @@ class TestIceberg:
         "ignore:Delete operation did not match any records:UserWarning"
     )
     @pytest.mark.parametrize("catalog", ["default", "pandas_tests"], indirect=True)
-    def test_write_by_catalog_name(self, catalog, xfail_with_no_future_infer_string):
+    def test_write_by_catalog_name(self, catalog):
         df = pd.DataFrame(
             {
                 "A": [1, 2, 3],
@@ -194,9 +184,7 @@ class TestIceberg:
         )
         tm.assert_frame_equal(result, df)
 
-    def test_write_existing_table_with_append_true(
-        self, catalog, xfail_with_no_future_infer_string
-    ):
+    def test_write_existing_table_with_append_true(self, catalog):
         original = read_iceberg(
             "ns.my_table",
             catalog_properties={"uri": catalog.uri},
@@ -220,9 +208,7 @@ class TestIceberg:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_write_existing_table_with_append_false(
-        self, catalog, xfail_with_no_future_infer_string
-    ):
+    def test_write_existing_table_with_append_false(self, catalog):
         df = pd.DataFrame(
             {
                 "A": [1, 2, 3],
