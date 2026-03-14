@@ -39,6 +39,12 @@ from pandas.core.dtypes.missing import (
     notna,
 )
 
+from pandas.core.util.numba_ import GLOBAL_USE_NUMBA
+
+if GLOBAL_USE_NUMBA:
+    from pandas.core import nanops_numba
+
+
 if TYPE_CHECKING:
     from collections.abc import Callable
 
@@ -98,6 +104,38 @@ class disallow:
                 raise
 
         return cast("F", _f)
+
+
+class numba_switch:
+    def __init__(self, name=None, **kwargs) -> None:
+        self.name = name
+        self.kwargs = kwargs
+
+    def __call__(self, alt: F) -> F:
+        nb_name = self.name or alt.__name__
+
+        try:
+            nb_func = getattr(nanops_numba, nb_name)
+        except (AttributeError, NameError):  # pragma: no cover
+            return alt
+
+        @functools.wraps(alt)
+        def f(
+            values: np.ndarray,
+            *,
+            axis: AxisInt | None = None,
+            skipna: bool = True,
+            **kwds,
+        ):
+            disallowed = values.dtype == "O"
+            if not disallowed:
+                result = nb_func(values, skipna=skipna, axis=axis, **kwds)
+            else:
+                result = alt(values, axis=axis, skipna=skipna, **kwds)
+
+            return result
+
+        return cast(F, f)
 
 
 class bottleneck_switch:
@@ -596,6 +634,7 @@ def nanall(
     return values.all(axis)  # type: ignore[return-value]
 
 
+@numba_switch()
 @disallow("M8")
 @_datetimelike_compat
 @maybe_operate_rowwise
@@ -660,7 +699,7 @@ def _mask_datetimelike_result(
     return result
 
 
-@bottleneck_switch()
+@numba_switch()
 @_datetimelike_compat
 def nanmean(
     values: np.ndarray,
@@ -910,7 +949,7 @@ def _get_counts_nanvar(
     return count, d
 
 
-@bottleneck_switch(ddof=1)
+@numba_switch(ddof=1)
 def nanstd(
     values,
     *,
@@ -944,7 +983,7 @@ def nanstd(
     >>> from pandas.core import nanops
     >>> s = pd.Series([1, np.nan, 2, 3])
     >>> nanops.nanstd(s.values)
-    1.0
+    np.float64(1.0)
     """
     if values.dtype.kind == "M":
         unit = np.datetime_data(values.dtype)[0]
@@ -958,7 +997,7 @@ def nanstd(
 
 
 @disallow("M8", "m8")
-@bottleneck_switch(ddof=1)
+@numba_switch(ddof=1)
 def nanvar(
     values: np.ndarray,
     *,
@@ -992,7 +1031,7 @@ def nanvar(
     >>> from pandas.core import nanops
     >>> s = pd.Series([1, np.nan, 2, 3])
     >>> nanops.nanvar(s.values)
-    1.0
+    np.float64(1.0)
     """
     dtype = values.dtype
     mask = _maybe_get_mask(values, skipna, mask)
@@ -1036,6 +1075,7 @@ def nanvar(
     return result
 
 
+@numba_switch()
 @disallow("M8", "m8")
 def nansem(
     values: np.ndarray,
@@ -1090,7 +1130,7 @@ def nansem(
 
 
 def _nanminmax(meth, fill_value_typ):
-    @bottleneck_switch(name=f"nan{meth}")
+    @numba_switch(name=f"nan{meth}")
     @_datetimelike_compat
     def reduction(
         values: np.ndarray,
