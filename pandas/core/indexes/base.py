@@ -8090,11 +8090,12 @@ def get_values_for_csv(
     csv.writer.writerows.
     """
     if isinstance(values, Categorical) and values.categories.dtype.kind in "Mm":
-        # GH#40754 Convert categorical datetimes to datetime array
+        # GH#40754 Convert categorical datetimes to datetime array.
+        # Fill missing with NaT (not na_rep) to avoid dtype promotion (GH#53910);
+        # downstream _format_native_types handles NaT -> na_rep.
         values = algos.take_nd(
             values.categories._values,
             ensure_platform_int(values._codes),
-            fill_value=na_rep,
         )
 
     values = ensure_wrapped_if_datetimelike(values)
