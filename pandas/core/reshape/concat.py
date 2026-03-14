@@ -440,6 +440,12 @@ def concat(
     # select an object to be our result reference
     sample, objs = _get_sample_object(objs, ndims, keys, names, levels, intersect)
 
+    # Ensure input objects with MultiIndex have consistent level order.
+    # Only reorder when all inputs share the same set of index level names.
+    # Inputs with missing or extra index levels are intentionally not coerced.
+    if axis == 0 and all(isinstance(obj.index, MultiIndex) for obj in objs):
+        objs = _match_index_levels(objs)
+
     # Standardize axis parameter to int
     if sample.ndim == 1:
         from pandas import DataFrame
@@ -872,6 +878,31 @@ def _get_sample_object(
             return non_empties[0], non_empties
 
     return objs[0], objs
+
+
+def _match_index_levels(objs: list[Series | DataFrame]) -> list[Series | DataFrame]:
+    """Make MultiIndex objects with consistent level order.
+
+    If all inputs have the same set of level names, but in different order,
+    reorder each index to match the first object's level order.
+    """
+    index_names = [obj.index.names for obj in objs]
+    first_names = index_names[0]
+
+    # detect same set of names but different order
+    if all(set(names) == set(first_names) for names in index_names) and any(
+        names != first_names for names in index_names
+    ):
+        # reorder indexes to match first
+        new_objs = []
+        for obj in objs:
+            idx = obj.index
+            if isinstance(idx, MultiIndex) and obj.index.names != first_names:
+                obj = obj.copy()  # don't mutate any original
+                obj.index = idx.reorder_levels(first_names)
+            new_objs.append(obj)
+        objs = new_objs
+    return objs
 
 
 def _concat_indexes(indexes) -> Index:
