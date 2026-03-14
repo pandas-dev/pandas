@@ -1780,6 +1780,9 @@ Key Points:
 * Missing index labels result in NaN values
 * This behavior is consistent across df[col] = series and df.loc[:, col] = series
 
+You can think of this as reindexing the Series to the DataFrame index before
+assignment (for example, ``df[col] = series.reindex(df.index)``).
+
 Examples:
 .. ipython:: python
 
