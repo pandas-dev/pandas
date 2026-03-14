@@ -371,6 +371,66 @@ class TestRoundTrip:
 
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "index_type, columns_type",
+        [
+            ("multi", "multi"),
+            ("single", "multi"),
+            ("multi", "single"),
+        ],
+    )
+    def test_multiindex_no_empty_row_variations(
+        self, tmp_excel, index_type, columns_type
+    ):
+        # GH 27772
+        # Setup row index
+        if index_type == "multi":
+            row_mi = MultiIndex.from_tuples([("R1", 1), ("R1", 2)], names=[None, None])
+        else:
+            row_mi = ["R1", "R2"]
+
+        # Setup column index
+        if columns_type == "multi":
+            col_mi = MultiIndex.from_tuples(
+                [("C1", "A"), ("C1", "B")], names=[None, None]
+            )
+        else:
+            col_mi = ["C1", "C2"]
+
+        df = DataFrame([[10, 20], [30, 40]], index=row_mi, columns=col_mi)
+        df.to_excel(tmp_excel)
+
+        # Read the raw grid
+        result = pd.read_excel(tmp_excel, header=None, index_col=None)
+        result = result.map(
+            lambda x: np.nan if (pd.isna(x) or str(x).startswith("Unnamed:")) else x
+        )
+
+        # Dynamically build expected physical layout
+        if index_type == "multi" and columns_type == "multi":
+            expected_data = [
+                [np.nan, np.nan, "C1", np.nan],
+                [np.nan, np.nan, "A", "B"],
+                ["R1", 1, 10, 20],
+                [np.nan, 2, 30, 40],
+            ]
+        elif index_type == "single" and columns_type == "multi":
+            expected_data = [
+                [np.nan, "C1", np.nan],
+                [np.nan, "A", "B"],
+                ["R1", 10, 20],
+                ["R2", 30, 40],
+            ]
+        else:  # multi index, single column
+            expected_data = [
+                [np.nan, np.nan, "C1", "C2"],
+                ["R1", 1, 10, 20],
+                [np.nan, 2, 30, 40],
+            ]
+
+        expected = DataFrame(expected_data)
+        tm.assert_frame_equal(result, expected)
+
 
 @pytest.mark.parametrize(
     "engine,ext",
