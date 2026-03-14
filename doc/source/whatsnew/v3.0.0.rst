@@ -1470,6 +1470,7 @@ ExtensionArray
 - Bug in Arrow-backed duration and timestamp reductions (e.g. ``sum``, ``min``, ``max``, ``median``, ``mean``) incorrectly returning stdlib ``datetime`` objects instead of :class:`Timedelta` and :class:`Timestamp` for resolutions other than nanoseconds (:issue:`63170`)
 - Bug in comparison between object with :class:`ArrowDtype` and incompatible-dtyped (e.g. string vs bool) incorrectly raising instead of returning all-``False`` (for ``==``) or all-``True`` (for ``!=``) (:issue:`59505`)
 - Bug in constructing pandas data structures when passing into ``dtype`` a string of the type followed by ``[pyarrow]`` while PyArrow is not installed would raise ``NameError`` rather than ``ImportError`` (:issue:`57928`)
+- Bug in dtype inference when roundtripping nested arrow dtypes like ``list``, ``struct``, ``map`` through pyarrow tables or parquet (:issue:`61529`)
 - Bug in various :class:`DataFrame` reductions for pyarrow temporal dtypes returning incorrect dtype when result was null (:issue:`59234`)
 - Fixed flex arithmetic with :class:`.ExtensionArray` operands raising when ``fill_value`` was passed. (:issue:`62467`)
 
