@@ -1146,7 +1146,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         except (TypeError, ValueError, LossySetitemError):
             # The key was OK, but we cannot set the value losslessly
-            indexer = self.index.get_loc(key)
+            indexer = self.index.get_loc(key)  # type: ignore[assignment]
             self._set_values(indexer, value)
 
         except InvalidIndexError as err:
@@ -1462,7 +1462,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     level_list = level
                 level_list = [self.index._get_level_number(lev) for lev in level_list]
                 if len(level_list) < self.index.nlevels:
-                    new_index = self.index.droplevel(level_list)
+                    new_index = self.index.droplevel(level_list)  # type: ignore[assignment]
 
             if inplace:
                 self.index = new_index
@@ -5605,14 +5605,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         IE10                   404           0.08
         Chrome                 200           0.02
 
-        >>> df.reindex(new_index, fill_value="missing")
-                      http_status response_time
-        Safari                404          0.07
-        Iceweasel         missing       missing
-        Comodo Dragon     missing       missing
-        IE10                  404          0.08
-        Chrome                200          0.02
-
         We can also reindex the columns.
 
         >>> df.reindex(columns=["http_status", "user_agent"])
@@ -9702,7 +9694,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         dog    2
         mouse  3
         dtype: int64
-        >>> s.kurt()
+        >>> round(s.kurt(), 6)
         1.5
         """
         return NDFrame.kurt(

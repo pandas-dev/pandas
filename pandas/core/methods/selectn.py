@@ -127,7 +127,7 @@ class SelectNSeries(SelectN[Series]):
             result = default_index.sort_values(ascending=ascending, kind="stable").head(
                 n
             )
-            result.index = original_index.take(result.index)
+            result.index = original_index.take(result.index)  # type: ignore[arg-type]
             return result
 
         # Fast method used in the general case
@@ -290,7 +290,7 @@ class SelectNFrame(SelectN[DataFrame]):
         frame = frame.take(indexer)
 
         # Restore the index on frame
-        frame.index = original_index.take(indexer)
+        frame.index = original_index.take(indexer)  # type: ignore[arg-type]
 
         # If there is only one column, the frame is already sorted.
         if len(columns) == 1:

@@ -964,7 +964,7 @@ class _MergeOperation:
         self.right = self.orig_right = _right
         self.how, self.anti_join = self._validate_how(how)
 
-        self.on = com.maybe_make_list(on)
+        self.on = com.maybe_make_list(on)  # type: ignore[assignment]
 
         self.suffixes = suffixes
         self.sort = sort or how == "outer"
@@ -1642,10 +1642,8 @@ class _MergeOperation:
                     join_names.append(k)
             if isinstance(self.right.index, MultiIndex):
                 right_keys = [
-                    lev._values.take(lev_codes)
-                    for lev, lev_codes in zip(
-                        self.right.index.levels, self.right.index.codes, strict=True
-                    )
+                    self.right.index._get_level_values(i)._values
+                    for i in range(self.right.index.nlevels)
                 ]
             else:
                 right_keys = [self.right.index._values]
@@ -1664,10 +1662,8 @@ class _MergeOperation:
                     join_names.append(k)
             if isinstance(self.left.index, MultiIndex):
                 left_keys = [
-                    lev._values.take(lev_codes)
-                    for lev, lev_codes in zip(
-                        self.left.index.levels, self.left.index.codes, strict=True
-                    )
+                    self.left.index._get_level_values(i)._values
+                    for i in range(self.left.index.nlevels)
                 ]
             else:
                 left_keys = [self.left.index._values]
@@ -2434,7 +2430,7 @@ class _AsOfMerge(_OrderedMerge):
 
         # GH#29130 Check that merge keys do not have dtype object
         if not self.left_index:
-            left_on_0 = left_on[0]
+            left_on_0 = left_on[0]  # pyright: ignore[reportOptionalSubscript]
             if isinstance(left_on_0, _known):
                 lo_dtype = left_on_0.dtype
             else:
@@ -2447,7 +2443,7 @@ class _AsOfMerge(_OrderedMerge):
             lo_dtype = self.left.index.dtype
 
         if not self.right_index:
-            right_on_0 = right_on[0]
+            right_on_0 = right_on[0]  # pyright: ignore[reportOptionalSubscript]
             if isinstance(right_on_0, _known):
                 ro_dtype = right_on_0.dtype
             else:

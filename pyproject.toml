@@ -2,8 +2,8 @@
 # Minimum requirements for the build system to execute.
 # See https://github.com/scipy/scipy/pull/12940 for the AIX issue.
 requires = [
-    "meson-python>=0.17.1,<1",
-    "meson>=1.6.0,<2",
+    "meson-python>=0.19.0,<1",
+    "meson>=1.10.1,<2",
     "wheel",
     "Cython>3.1.0,<4.0.0a0",  # Note: sync with environment.yml and asv.conf.json
     # Force numpy higher than 2.0, so that built wheels are compatible
@@ -418,7 +418,7 @@ docstring-code-format = true
 [tool.pytest.ini_options]
 # sync minversion with pyproject.toml & install.rst
 minversion = "8.3.4"
-addopts = "--strict-markers --strict-config --capture=no --durations=30 --junitxml=test-data.xml"
+addopts = "--strict-markers --strict-config --capture=no --durations=30"
 empty_parameter_set_mark = "fail_at_collect"
 xfail_strict = true
 testpaths = "pandas"
@@ -440,6 +440,8 @@ filterwarnings = [
   # Ignore 3rd party EncodingWarning but raise on pandas'
   "ignore:.*encoding.* argument not specified:EncodingWarning",
   "error:.*encoding.* argument not specified:EncodingWarning:pandas",
+  # From pyiceberg w/ Python >=3.13: https://github.com/apache/iceberg-python/issues/2530#issuecomment-3712112040
+  "ignore:unclosed database in <sqlite3.Connection object*:ResourceWarning",
   # From fastparquet - test_read_filters_fastparquet
   "ignore:.*FileIO:pytest.PytestUnraisableExceptionWarning",
   # From plotting doctests
@@ -520,16 +522,11 @@ module = [
   "pandas.compat.numpy.function", # TODO
   "pandas.core._numba.executor", # TODO
   "pandas.core.array_algos.masked_reductions", # TODO
-  "pandas.core.array_algos.putmask", # TODO
-  "pandas.core.array_algos.quantile", # TODO
   "pandas.core.array_algos.replace", # TODO
   "pandas.core.array_algos.take", # TODO
   "pandas.core.arrays.*", # TODO
   "pandas.core.computation.*", # TODO
-  "pandas.core.dtypes.astype", # TODO
-  "pandas.core.dtypes.cast", # TODO
   "pandas.core.dtypes.common", # TODO
-  "pandas.core.dtypes.concat", # TODO
   "pandas.core.dtypes.dtypes", # TODO
   "pandas.core.dtypes.generic", # TODO
   "pandas.core.dtypes.missing", # TODO
@@ -538,7 +535,16 @@ module = [
   "pandas.core.groupby.groupby", # TODO
   "pandas.core.groupby.ops", # TODO
   "pandas.core.indexers.*", # TODO
-  "pandas.core.indexes.*", # TODO
+  "pandas.core.indexes.accessors", # TODO
+  "pandas.core.indexes.api", # TODO
+  "pandas.core.indexes.category", # TODO
+  "pandas.core.indexes.datetimelike", # TODO
+  "pandas.core.indexes.datetimes", # TODO
+  "pandas.core.indexes.extension", # TODO
+  "pandas.core.indexes.interval", # TODO
+  "pandas.core.indexes.multi", # TODO
+  "pandas.core.indexes.period", # TODO
+  "pandas.core.indexes.timedeltas", # TODO
   "pandas.core.interchange.column", # TODO
   "pandas.core.interchange.dataframe_protocol", # TODO
   "pandas.core.interchange.from_dataframe", # TODO
@@ -560,9 +566,7 @@ module = [
   "pandas.core.apply", # TODO
   "pandas.core.arraylike", # TODO
   "pandas.core.base", # TODO
-  "pandas.core.common", # TODO
   "pandas.core.construction", # TODO
-  "pandas.core.flags", # TODO
   "pandas.core.frame", # TODO
   "pandas.core.generic", # TODO
   "pandas.core.indexing", # TODO
@@ -573,7 +577,6 @@ module = [
   "pandas.core.sample", # TODO
   "pandas.core.series", # TODO
   "pandas.core.sorting", # TODO
-  "pandas.errors", # TODO
   "pandas.io.clipboard", # TODO
   "pandas.io.excel._base", # TODO
   "pandas.io.excel._odfreader", # TODO
@@ -601,7 +604,6 @@ module = [
   "pandas.tseries.holiday", # TODO
   "pandas.util._decorators", # TODO
   "pandas.util._doctools", # TODO
-  "pandas.util._test_decorators", # TODO
   "pandas.util._validators", # TODO
   "pandas.util", # TODO
   "pandas.conftest",

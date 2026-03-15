@@ -29,8 +29,8 @@ rng = pd.Index(range(3))
 @pytest.fixture(
     params=[
         dti,
-        dti.tz_localize("UTC"),
-        dti.to_period("W"),
+        dti.tz_localize("UTC"),  # type: ignore[attr-defined]
+        dti.to_period("W"),  # type: ignore[attr-defined]
         dti - dti[0],
         rng,
         pd.Index([1, 2, 3]),

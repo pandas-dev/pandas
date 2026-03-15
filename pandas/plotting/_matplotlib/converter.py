@@ -787,7 +787,7 @@ def _daily_finder(vmin: float, vmax: float, freq: BaseOffset) -> np.ndarray:
         info_min[month_start] = True
         info_min[year_start] = False
 
-        month_break = dates_[month_start].month
+        month_break = dates_[month_start].month  # pyright: ignore[reportAttributeAccessIssue]
         jan_or_jul = month_start[(month_break == 1) | (month_break == 7)]
         info_fmt[jan_or_jul] = "%b"
         info_fmt[year_start] = "%b\n%Y"
@@ -802,7 +802,7 @@ def _daily_finder(vmin: float, vmax: float, freq: BaseOffset) -> np.ndarray:
     # Case 6. More than 12 years ................
     else:
         year_start = _period_break(dates_, "year")
-        year_break = dates_[year_start].year
+        year_break = dates_[year_start].year  # pyright: ignore[reportAttributeAccessIssue]
         nyears = span / periodsperyear
         (min_anndef, maj_anndef) = _get_default_annual_spacing(nyears)
         major_idx = year_start[(year_break % maj_anndef == 0)]

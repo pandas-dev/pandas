@@ -1802,7 +1802,7 @@ class Styler(StylerRenderer):
                     continue
                 css_list = maybe_convert_css_to_tuples(c)
                 i = self.index.get_loc(rn)
-                self.ctx[(i, j)].extend(css_list)
+                self.ctx[(i, j)].extend(css_list)  # type: ignore[index]
 
     def _update_ctx_header(self, attrs: DataFrame, axis: AxisInt) -> None:
         """
@@ -3106,7 +3106,7 @@ class Styler(StylerRenderer):
         # Returns a boolean mask indicating where `self.data` has numerical columns.
         # Choosing a mask as opposed to the column names also works for
         # boolean column labels (GH47838).
-        return self.data.columns.isin(self.data.select_dtypes(include=np.number))
+        return self.data.columns.isin(self.data.select_dtypes(include=np.number))  # type: ignore[arg-type]
 
     def background_gradient(
         self,

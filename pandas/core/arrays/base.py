@@ -25,6 +25,7 @@ import numpy as np
 
 from pandas._libs import (
     algos as libalgos,
+    groupby as libgroupby,
     lib,
 )
 from pandas.compat import set_function_name
@@ -2860,6 +2861,15 @@ class ExtensionArray:
         -------
         np.ndarray or ExtensionArray
         """
+        if how in ["first", "last"]:
+            return self._groupby_first_last(
+                how=how,
+                min_count=min_count,
+                ngroups=ngroups,
+                ids=ids,
+                skipna=kwargs.get("skipna", True),
+            )
+
         from pandas.core.arrays.string_ import StringDtype
         from pandas.core.groupby.ops import WrappedCythonOp
 
@@ -2925,6 +2935,49 @@ class ExtensionArray:
 
         else:
             raise NotImplementedError
+
+    def _groupby_first_last(
+        self,
+        *,
+        how: str,
+        min_count: int,
+        ngroups: int,
+        ids: npt.NDArray[np.intp],
+        skipna: bool = True,
+    ) -> Self:
+        """
+        Optimized implementation of groupby first/last for ExtensionArrays.
+
+        Uses an index-based approach: computes the index of the first/last
+        non-NA element per group, then gathers results via take(). This avoids
+        any dtype conversion and works for all EA types.
+        """
+        if self.ndim != 1:
+            raise NotImplementedError(
+                "groupby first/last only supports 1D ExtensionArrays"
+            )
+        isna_mask = np.asarray(self.isna(), dtype=np.uint8)
+
+        result_indices, result_mask = libgroupby.group_first_last_indexer(
+            labels=ids,
+            mask=isna_mask,
+            ngroups=ngroups,
+            skipna=skipna,
+            is_last=(how == "last"),
+        )
+
+        # Apply min_count: require at least min_count non-NA observations.
+        # For first/last, the natural minimum is 1 (need at least one value).
+        if min_count > 1:
+            nobs = np.zeros(ngroups, dtype=np.int64)
+            non_na_indices = np.where((~isna_mask.view(bool)) & (ids >= 0))[0]
+            np.add.at(nobs, ids[non_na_indices], 1)
+            below = nobs < min_count
+            result_mask[below] = 1
+            result_indices[below] = -1
+
+        # take() with allow_fill=True treats -1 as "fill with NA"
+        return self.take(result_indices, allow_fill=True)
 
 
 class ExtensionArrayNaResult(ExtensionArray):

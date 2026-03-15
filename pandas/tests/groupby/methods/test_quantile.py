@@ -31,7 +31,7 @@ import pandas._testing as tm
         ),
         (
             pd.date_range("1/1/18", freq="D", periods=5).as_unit("s"),
-            pd.date_range("1/1/18", freq="D", periods=5)[::-1].as_unit("s"),
+            pd.date_range("1/1/18", freq="D", periods=5)[::-1].as_unit("s"),  # type: ignore[attr-defined]
         ),
         # All NA
         ([np.nan] * 5, [np.nan] * 5),

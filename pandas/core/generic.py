@@ -1033,9 +1033,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             # GH 13473
             if not callable(replacements):
                 if ax._is_multi and level is not None:
-                    indexer = ax.get_level_values(level).get_indexer_for(replacements)
+                    indexer = ax.get_level_values(level).get_indexer_for(replacements)  # type: ignore[arg-type]
                 else:
-                    indexer = ax.get_indexer_for(replacements)
+                    indexer = ax.get_indexer_for(replacements)  # type: ignore[arg-type]
 
                 if errors == "raise" and len(indexer[indexer == -1]):
                     missing_labels = [
@@ -1813,7 +1813,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # Validate keys
         keys = common.maybe_make_list(keys)
         invalid_keys = [
-            k for k in keys if not self._is_label_or_level_reference(k, axis=axis)
+            k
+            for k in keys  # pyright: ignore[reportOptionalIterable]
+            if not self._is_label_or_level_reference(k, axis=axis)
         ]
 
         if invalid_keys:
@@ -1823,9 +1825,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             )
 
         # Compute levels and labels to drop
-        levels_to_drop = [k for k in keys if self._is_level_reference(k, axis=axis)]
+        levels_to_drop = [
+            k
+            for k in keys  # pyright: ignore[reportOptionalIterable]
+            if self._is_level_reference(k, axis=axis)
+        ]
 
-        labels_to_drop = [k for k in keys if not self._is_level_reference(k, axis=axis)]
+        labels_to_drop = [
+            k
+            for k in keys  # pyright: ignore[reportOptionalIterable]
+            if not self._is_level_reference(k, axis=axis)
+        ]
 
         # Perform copy upfront and then use inplace operations below.
         # This ensures that we always perform exactly one copy.
@@ -5329,14 +5339,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Comodo Dragon            0           0.00
         IE10                   404           0.08
         Chrome                 200           0.02
-
-        >>> df.reindex(new_index, fill_value="missing")
-                      http_status response_time
-        Safari                404          0.07
-        Iceweasel         missing       missing
-        Comodo Dragon     missing       missing
-        IE10                  404          0.08
-        Chrome                200          0.02
 
         We can also reindex the columns.
 

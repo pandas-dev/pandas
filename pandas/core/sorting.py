@@ -92,7 +92,7 @@ def get_indexer_indexer(
 
     if level is not None:
         _, indexer = target.sortlevel(
-            level,
+            level,  # type: ignore[arg-type]
             ascending=ascending,
             sort_remaining=sort_remaining,
             na_position=na_position,
