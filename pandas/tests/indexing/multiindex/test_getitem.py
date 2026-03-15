@@ -412,3 +412,29 @@ def test_loc_empty_multiindex():
     result = df
     expected = DataFrame([1, 2, 3, 4], index=index, columns=["value"])
     tm.assert_frame_equal(result, expected)
+
+def test_multiindex_datetime_date_slicing_with_numpy_datetime64():
+    import numpy as np
+    import datetime as dt
+    from pandas import DataFrame, MultiIndex
+    import pandas._testing as tm
+
+    # Regression test for GH#55969
+    dates = [dt.datetime(2023, 11, 1).date(), 
+             dt.datetime(2023, 11, 1).date(), 
+             dt.datetime(2023, 11, 2).date()]
+    t1 = ["A", "B", "C"]
+    t2 = ["C", "D", "E"]
+    vals = [0.1, 0.2, 0.3]
+
+    df = DataFrame(
+        {"vals": vals}, 
+        index=MultiIndex.from_arrays([dates, t1, t2], names=["dates", "t1", "t2"])
+    )
+
+    date_query = np.datetime64("2023-11-01")
+
+    # The bug: it erroneously returned two rows for 'A'
+    result = df.loc[(date_query, "A")]
+    expected = df.iloc[[0]].droplevel(["dates", "t1"])
+    tm.assert_frame_equal(result, expected)
