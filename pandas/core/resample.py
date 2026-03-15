@@ -25,7 +25,6 @@ from pandas._libs.tslibs import (
     Timestamp,
     to_offset,
 )
-from pandas._typing import NDFrameT
 from pandas.errors import (
     AbstractMethodError,
     Pandas4Warning,
@@ -44,7 +43,6 @@ from pandas.core.dtypes.generic import (
 
 import pandas.core.algorithms as algos
 from pandas.core.apply import ResamplerWindowApply
-from pandas.core.arrays import ArrowExtensionArray
 from pandas.core.base import (
     PandasObject,
     SelectionMixin,
@@ -98,6 +96,7 @@ if TYPE_CHECKING:
         Frequency,
         IndexLabel,
         InterpolateOptions,
+        NDFrameT,
         P,
         T,
         TimedeltaConvertibleTypes,
@@ -111,6 +110,7 @@ if TYPE_CHECKING:
         DataFrame,
         Series,
     )
+    from pandas.core.arrays import ArrowExtensionArray
     from pandas.core.generic import NDFrame
 
 
@@ -243,6 +243,7 @@ class Resampler(BaseGroupBy, PandasObject):
         if self._timegrouper._arrow_dtype is not None:
             binlabels = binlabels.astype(self._timegrouper._arrow_dtype)
         bin_grouper = BinGrouper(bins, binlabels, indexer=self._indexer)
+        bin_grouper._is_resample = True
         return binner, bin_grouper
 
     @overload
@@ -891,16 +892,16 @@ class Resampler(BaseGroupBy, PandasObject):
             * 'from_derivatives': Refers to
               `scipy.interpolate.BPoly.from_derivatives`.
 
-        axis : {{0 or 'index', 1 or 'columns', None}}, default None
+        axis : {0 or 'index', 1 or 'columns', None}, default None
             Axis to interpolate along. For `Series` this parameter is unused
             and defaults to 0.
         limit : int, optional
             Maximum number of consecutive NaNs to fill. Must be greater than
             0.
-        limit_direction : {{'forward', 'backward', 'both'}}, Optional
+        limit_direction : {'forward', 'backward', 'both'}, Optional
             Consecutive NaNs will be filled in this direction.
 
-        limit_area : {{`None`, 'inside', 'outside'}}, default None
+        limit_area : {`None`, 'inside', 'outside'}, default None
             If limit is specified, consecutive NaNs will be filled with this
             restriction.
 
@@ -2097,7 +2098,7 @@ class _GroupByMixin(PandasObject, SelectionMixin):
 
         new_rs = type(self)(
             groupby=groupby,
-            parent=cast(Resampler, self),
+            parent=cast("Resampler", self),
             selection=selection,
         )
         return new_rs
@@ -2601,7 +2602,7 @@ class TimeGrouper(Grouper):
         """
         # create the resampler and return our binner
         r = self._get_resampler(obj)
-        return r._grouper, cast(NDFrameT, r.obj)
+        return r._grouper, cast("NDFrameT", r.obj)
 
     def _get_time_bins(self, ax: DatetimeIndex):
         if not isinstance(ax, DatetimeIndex):
@@ -2617,8 +2618,8 @@ class TimeGrouper(Grouper):
             return binner, [], labels
 
         first, last = _get_timestamp_range_edges(
-            ax.min(),
-            ax.max(),
+            ax.min(),  # type: ignore[arg-type]
+            ax.max(),  # type: ignore[arg-type]
             self.freq,
             unit=ax.unit,
             closed=self.closed,
@@ -2654,9 +2655,9 @@ class TimeGrouper(Grouper):
         if self.closed == "right":
             labels = binner
             if self.label == "right":
-                labels = labels[1:]
+                labels = labels[1:]  # type: ignore[assignment]
         elif self.label == "right":
-            labels = labels[1:]
+            labels = labels[1:]  # type: ignore[assignment]
 
         if ax.hasnans:
             binner = binner.insert(0, NaT)
@@ -2666,7 +2667,7 @@ class TimeGrouper(Grouper):
         # adjust the labels
         # GH4076
         if len(bins) < len(labels):
-            labels = labels[: len(bins)]
+            labels = labels[: len(bins)]  # type: ignore[assignment]
 
         return binner, bins, labels
 
@@ -2675,7 +2676,9 @@ class TimeGrouper(Grouper):
     ) -> tuple[DatetimeIndex, npt.NDArray[np.int64]]:
         # Some hacks for > daily data, see #1471, #1458, #1483
 
-        if self.freq.name in ("BME", "ME", "W") or self.freq.name.split("-")[0] in (
+        if self.freq.rule_code in ("BME", "ME", "W") or self.freq.rule_code.split("-")[
+            0
+        ] in (
             "BQE",
             "BYE",
             "QE",
@@ -2701,7 +2704,7 @@ class TimeGrouper(Grouper):
             # intraday values on last day
             if bin_edges[-2] > ax_values.max():
                 bin_edges = bin_edges[:-1]
-                binner = binner[:-1]
+                binner = binner[:-1]  # type: ignore[assignment]
         else:
             bin_edges = binner.asi8
         return binner, bin_edges
@@ -2727,7 +2730,7 @@ class TimeGrouper(Grouper):
         start, end = ax.min(), ax.max()
 
         if self.closed == "right":
-            end += self.freq
+            end += self.freq  # type: ignore[operator]
 
         labels = binner = timedelta_range(
             start=start, end=end, freq=self.freq, name=ax.name
@@ -2797,8 +2800,8 @@ class TimeGrouper(Grouper):
 
         freq_mult = self.freq.n
 
-        start = ax.min().asfreq(self.freq, how=self.convention)
-        end = ax.max().asfreq(self.freq, how="end")
+        start = ax.min().asfreq(self.freq, how=self.convention)  # type: ignore[attr-defined]
+        end = ax.max().asfreq(self.freq, how="end")  # type: ignore[attr-defined]
         bin_shift = 0
 
         if isinstance(self.freq, Tick):
@@ -2851,7 +2854,7 @@ class TimeGrouper(Grouper):
         if isinstance(ax.dtype, ArrowDtype) and ax.dtype.kind in "Mm":
             self._arrow_dtype = ax.dtype
             ax = Index(
-                cast(ArrowExtensionArray, ax.array)._maybe_convert_datelike_array()
+                cast("ArrowExtensionArray", ax.array)._maybe_convert_datelike_array()
             )
         return obj, ax, indexer
 

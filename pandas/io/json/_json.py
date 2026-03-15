@@ -23,7 +23,7 @@ import numpy as np
 from pandas._config import option_context
 
 from pandas._libs import lib
-from pandas._libs.json import (
+from pandas._libs._ujson import (
     ujson_dumps,
     ujson_loads,
 )
@@ -584,34 +584,34 @@ def read_json(
         The set of possible orients is:
 
         - ``'split'`` : dict like
-          ``{{index -> [index], columns -> [columns], data -> [values]}}``
+          ``{index -> [index], columns -> [columns], data -> [values]}``
         - ``'records'`` : list like
-          ``[{{column -> value}}, ... , {{column -> value}}]``
-        - ``'index'`` : dict like ``{{index -> {{column -> value}}}}``
-        - ``'columns'`` : dict like ``{{column -> {{index -> value}}}}``
+          ``[{column -> value}, ... , {column -> value}]``
+        - ``'index'`` : dict like ``{index -> {column -> value}}``
+        - ``'columns'`` : dict like ``{column -> {index -> value}}``
         - ``'values'`` : just the values array
-        - ``'table'`` : dict like ``{{'schema': {{schema}}, 'data': {{data}}}}``
+        - ``'table'`` : dict like ``{'schema': {schema}, 'data': {data}}``
 
         The allowed and default values depend on the value
         of the `typ` parameter.
 
         * when ``typ == 'series'``,
 
-          - allowed orients are ``{{'split','records','index'}}``
+          - allowed orients are ``{'split','records','index'}``
           - default is ``'index'``
           - The Series index must be unique for orient ``'index'``.
 
         * when ``typ == 'frame'``,
 
-          - allowed orients are ``{{'split','records','index',
-            'columns','values', 'table'}}``
+          - allowed orients are ``{'split','records','index',
+            'columns','values', 'table'}``
           - default is ``'columns'``
           - The DataFrame index must be unique for orients ``'index'`` and
             ``'columns'``.
           - The DataFrame columns must be unique for orients ``'index'``,
             ``'columns'``, and ``'records'``.
 
-    typ : {{'frame', 'series'}}, default 'frame'
+    typ : {'frame', 'series'}, default 'frame'
         The type of object to recover.
 
     dtype : bool or dict, default None
@@ -710,7 +710,7 @@ def read_json(
         <https://pandas.pydata.org/docs/user_guide/io.html?
         highlight=storage_options#reading-writing-remote-files>`_.
 
-    dtype_backend : {{'numpy_nullable', 'pyarrow'}}
+    dtype_backend : {'numpy_nullable', 'pyarrow'}
         Back-end data type applied to the resultant :class:`DataFrame`
         (still experimental). If not specified, the default behavior
         is to not use nullable data types. If specified, the behavior
@@ -722,7 +722,7 @@ def read_json(
 
         .. versionadded:: 2.0
 
-    engine : {{"ujson", "pyarrow"}}, default "ujson"
+    engine : {"ujson", "pyarrow"}, default "ujson"
         Parser engine to use. The ``"pyarrow"`` engine is only available when
         ``lines=True``.
 
@@ -920,6 +920,10 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
             self.nrows = validate_integer("nrows", self.nrows, 0)
             if not self.lines:
                 raise ValueError("nrows can only be passed if lines=True")
+            if self.engine == "pyarrow":
+                raise NotImplementedError(
+                    "currently pyarrow engine doesn't support nrows parameter"
+                )
         if self.engine == "pyarrow":
             if not self.lines:
                 raise ValueError(
@@ -931,7 +935,7 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
             data = self._get_data_from_filepath(filepath_or_buffer)
             # If self.chunksize, we prepare the data for the `__next__` method.
             # Otherwise, we read it into memory for the `read` method.
-            if not (self.chunksize or self.nrows):
+            if self.chunksize is None and self.nrows is None:
                 with self:
                     self.data = data.read()
             else:
@@ -1022,8 +1026,12 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         obj: DataFrame | Series
         if self.lines:
             if self.chunksize:
-                obj = concat(self)
-            elif self.nrows:
+                chunks = list(self)
+                if chunks:
+                    obj = concat(chunks)
+                else:
+                    obj = self._get_object_parser(self._combine_lines([]))
+            elif self.nrows is not None:
                 lines = list(islice(self.data, self.nrows))
                 lines_json = self._combine_lines(lines)
                 obj = self._get_object_parser(lines_json)
@@ -1091,11 +1099,20 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
     ) -> DataFrame | Series: ...
 
     def __next__(self) -> DataFrame | Series:
-        if self.nrows and self.nrows_seen >= self.nrows:
-            self.close()
-            raise StopIteration
+        chunk_size: int | None
+        if self.nrows is not None:
+            remaining = self.nrows - self.nrows_seen
+            if remaining <= 0:
+                self.close()
+                raise StopIteration
+            if self.chunksize is None:
+                chunk_size = remaining
+            else:
+                chunk_size = min(self.chunksize, remaining)
+        else:
+            chunk_size = self.chunksize
 
-        lines = list(islice(self.data, self.chunksize))
+        lines = list(islice(self.data, chunk_size))
         if not lines:
             self.close()
             raise StopIteration

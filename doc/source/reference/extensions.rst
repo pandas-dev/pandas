@@ -47,6 +47,7 @@ objects.
       api.extensions.ExtensionArray.argsort
       api.extensions.ExtensionArray.astype
       api.extensions.ExtensionArray.copy
+      api.extensions.ExtensionArray.count
       api.extensions.ExtensionArray.view
       api.extensions.ExtensionArray.dropna
       api.extensions.ExtensionArray.duplicated
@@ -57,6 +58,7 @@ objects.
       api.extensions.ExtensionArray.interpolate
       api.extensions.ExtensionArray.isin
       api.extensions.ExtensionArray.isna
+      api.extensions.ExtensionArray.item
       api.extensions.ExtensionArray.ravel
       api.extensions.ExtensionArray.repeat
       api.extensions.ExtensionArray.searchsorted

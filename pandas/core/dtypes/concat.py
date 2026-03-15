@@ -35,6 +35,10 @@ if TYPE_CHECKING:
         DtypeObj,
     )
 
+    from pandas import (
+        CategoricalIndex,
+        Series,
+    )
     from pandas.core.arrays import (
         Categorical,
         ExtensionArray,
@@ -175,7 +179,9 @@ def _get_result_dtype(
 
 @set_module("pandas.api.types")
 def union_categoricals(
-    to_union, sort_categories: bool = False, ignore_order: bool = False
+    to_union: Sequence[CategoricalIndex | Series | Categorical],
+    sort_categories: bool = False,
+    ignore_order: bool = False,
 ) -> Categorical:
     """
     Combine list-like of Categorical-like, unioning categories.
@@ -283,7 +289,9 @@ def union_categoricals(
     if len(to_union) == 0:
         raise ValueError("No Categoricals to union")
 
-    def _maybe_unwrap(x):
+    def _maybe_unwrap(
+        x: CategoricalIndex | Series | Categorical,
+    ) -> Categorical:
         if isinstance(x, (ABCCategoricalIndex, ABCSeries)):
             return x._values
         elif isinstance(x, Categorical):
@@ -291,13 +299,13 @@ def union_categoricals(
         else:
             raise TypeError("all components to combine must be Categorical")
 
-    to_union = [_maybe_unwrap(x) for x in to_union]
+    to_union = cast("list[Categorical]", [_maybe_unwrap(x) for x in to_union])
     first = to_union[0]
 
     if not lib.dtypes_all_equal([obj.categories.dtype for obj in to_union]):
         raise TypeError("dtype of categories must be the same")
 
-    ordered = False
+    ordered: bool | None = False
     if all(first._categories_match_up_to_permutation(other) for other in to_union[1:]):
         # identical categories - fastpath
         categories = first.categories
@@ -323,11 +331,11 @@ def union_categoricals(
         if sort_categories:
             categories = categories.sort_values()
 
-        new_codes = [
+        all_codes = [
             recode_for_categories(c.codes, c.categories, categories, copy=False)
             for c in to_union
         ]
-        new_codes = np.concatenate(new_codes)
+        new_codes = np.concatenate(all_codes)
     else:
         # ordered - to show a proper error message
         if all(c.ordered for c in to_union):

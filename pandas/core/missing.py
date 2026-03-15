@@ -22,13 +22,6 @@ from pandas._libs import (
     algos,
     lib,
 )
-from pandas._typing import (
-    ArrayLike,
-    AxisInt,
-    F,
-    ReindexMethod,
-    npt,
-)
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.cast import infer_dtype_from
@@ -53,6 +46,14 @@ from pandas.core.dtypes.missing import (
 if TYPE_CHECKING:
     from collections.abc import Callable
     from typing import TypeAlias
+
+    from pandas._typing import (
+        ArrayLike,
+        AxisInt,
+        F,
+        ReindexMethod,
+        npt,
+    )
 
     from pandas import Index
 
@@ -103,7 +104,7 @@ def mask_missing(arr: ArrayLike, value) -> npt.NDArray[np.bool_]:
             # GH#55127
             if isinstance(arr.dtype, BaseMaskedDtype):
                 # error: "ExtensionArray" has no attribute "_data"  [attr-defined]
-                mask = np.isnan(arr._data) & ~arr.isna()  # type: ignore[attr-defined,operator]
+                mask = np.isnan(arr._data) & ~arr.isna()  # type: ignore[attr-defined]
                 return mask
             else:
                 # error: "ExtensionArray" has no attribute "_pa_array"  [attr-defined]
@@ -435,7 +436,7 @@ def _index_to_interp_indices(index: Index, method: str) -> np.ndarray:
 
     if method == "linear":
         inds = xarr
-        inds = cast(np.ndarray, inds)
+        inds = cast("np.ndarray", inds)
     else:
         inds = np.asarray(xarr)
 
@@ -607,15 +608,15 @@ def _interpolate_scipy_wrapper(
         terp = interpolate.interp1d(
             x, y, kind=kind, fill_value=fill_value, bounds_error=bounds_error
         )
-        new_y = terp(new_x)
+        new_y = terp(new_x)  # pyright: ignore[reportOptionalCall]
     elif method == "spline":
         # GH #10633, #24014
-        if isna(order) or (order <= 0):
+        if isna(order) or (order <= 0):  # pyright: ignore[reportOptionalOperand]
             raise ValueError(
                 f"order needs to be specified and greater than 0; got order: {order}"
             )
         terp = interpolate.UnivariateSpline(x, y, k=order, **kwargs)
-        new_y = terp(new_x)
+        new_y = terp(new_x)  # pyright: ignore[reportOptionalCall]
     else:
         # GH 7295: need to be able to write for some reason
         # in some circumstances: check all three
@@ -897,7 +898,7 @@ def _datetimelike_compat(func: F) -> F:
 
         return func(values, limit=limit, limit_area=limit_area, mask=mask)
 
-    return cast(F, new_func)
+    return cast("F", new_func)
 
 
 @_datetimelike_compat
@@ -1075,7 +1076,7 @@ def _interp_limit(
     assume_unique = True
 
     def inner(invalid, limit: int):
-        limit = min(limit, N)
+        limit = min(limit, N - 1)
         windowed = np.lib.stride_tricks.sliding_window_view(invalid, limit + 1).all(1)
         idx = np.union1d(
             np.where(windowed)[0] + limit,

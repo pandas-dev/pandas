@@ -886,8 +886,7 @@ def test_select_as_multiple(temp_hdfstore):
     )
     expected = concat([df1, df2], axis=1)
     expected = expected[(expected.A > 0) & (expected.B > 0)]
-    tm.assert_frame_equal(result, expected, check_freq=False)
-    # FIXME: 2021-01-20 this is failing with freq None vs 4B on some builds
+    tm.assert_frame_equal(result, expected)
 
     # multiple (diff selector)
     result = temp_hdfstore.select_as_multiple(
@@ -1036,3 +1035,18 @@ def test_select_large_integer(temp_hdfstore):
     expected = df["y"][0]
 
     assert expected == result
+
+
+@pytest.mark.parametrize("unit", ["us", "ns", "ms", "s"])
+def test_select_where_datetime_index_with_non_ns_resolution(temp_hdfstore, unit):
+    # GH#64310
+    idx = date_range("2020-01-01", periods=10, freq="h", unit=unit)
+    df = DataFrame({"value": range(10)}, index=idx)
+
+    temp_hdfstore.append("df", df)
+
+    result = temp_hdfstore.select(
+        "df", where="index >= '2020-01-02' & index <= '2020-01-03'"
+    )
+    expected = df[(df.index >= "2020-01-02") & (df.index <= "2020-01-03")]
+    tm.assert_frame_equal(result, expected)

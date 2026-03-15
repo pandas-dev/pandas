@@ -1780,6 +1780,13 @@ cdef class _Timedelta(timedelta):
         str
             Timedelta resolution.
 
+        See Also
+        --------
+        Timedelta.components : Return all components of the Timedelta as a
+            namedtuple-like.
+        Timedelta.resolution : Return the smallest possible difference between
+            non-equal Timedelta objects.
+
         Examples
         --------
         >>> td = pd.Timedelta('1 days 2 min 3 us 42 ns')
@@ -1818,6 +1825,11 @@ cdef class _Timedelta(timedelta):
     def nanoseconds(self):
         """
         Return the number of nanoseconds (n), where 0 <= n < 1 microsecond.
+
+        This is the nanoseconds component of the Timedelta, which represents
+        the residual nanoseconds that are not captured by higher-order components
+        such as days, seconds, or microseconds. The value is always in the range
+        [0, 999].
 
         Returns
         -------
@@ -1972,6 +1984,10 @@ cdef class _Timedelta(timedelta):
         """
         Convert the underlying int64 representation to the given unit.
 
+        Converts the Timedelta to a new resolution specified by ``unit``.
+        If the conversion would require rounding (loss of precision), this
+        is allowed by default. Set ``round_ok=False`` to raise an error instead.
+
         Parameters
         ----------
         unit : {"ns", "us", "ms", "s"}
@@ -2066,7 +2082,7 @@ class Timedelta(_Timedelta):
 
     **kwargs
         Available kwargs: {days, seconds, microseconds,
-        milliseconds, minutes, hours, weeks}.
+        milliseconds, minutes, nanoseconds, hours, weeks}.
         Values for construction in compat with datetime.timedelta.
         Numpy ints and floats will be coerced to python ints and floats.
 
@@ -2340,6 +2356,9 @@ class Timedelta(_Timedelta):
         """
         Round the Timedelta to the specified resolution.
 
+        Rounds the Timedelta value to the nearest multiple of the given
+        frequency using half-even rounding.
+
         Parameters
         ----------
         freq : str
@@ -2374,6 +2393,9 @@ class Timedelta(_Timedelta):
         """
         Return a new Timedelta floored to this resolution.
 
+        Truncates the Timedelta to the nearest multiple of the given
+        frequency, rounding toward negative infinity.
+
         Parameters
         ----------
         freq : str
@@ -2403,6 +2425,9 @@ class Timedelta(_Timedelta):
     def ceil(self, freq):
         """
         Return a new Timedelta ceiled to this resolution.
+
+        Rounds the Timedelta up to the nearest multiple of the given
+        frequency, rounding toward positive infinity.
 
         Parameters
         ----------
@@ -2647,6 +2672,8 @@ class Timedelta(_Timedelta):
         return div, other - div * self
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def truediv_object_array(ndarray left, ndarray right):
     cdef:
         ndarray[object] result = np.empty((<object>left).shape, dtype=object)
@@ -2677,6 +2704,8 @@ def truediv_object_array(ndarray left, ndarray right):
     return result
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def floordiv_object_array(ndarray left, ndarray right):
     cdef:
         ndarray[object] result = np.empty((<object>left).shape, dtype=object)

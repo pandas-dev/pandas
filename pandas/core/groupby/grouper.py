@@ -363,9 +363,9 @@ class Grouper:
                 if self._indexer is not None:
                     reverse_indexer = self._indexer.argsort()
                     unsorted_ax = self._grouper.take(reverse_indexer)
-                    ax = unsorted_ax.take(obj.index)
+                    ax = unsorted_ax.take(obj.index)  # type: ignore[arg-type]
                 else:
-                    ax = self._grouper.take(obj.index)
+                    ax = self._grouper.take(obj.index)  # type: ignore[arg-type]
             else:
                 if key not in obj._info_axis:
                     raise KeyError(f"The grouper name {key} is not found")
@@ -686,7 +686,7 @@ class Grouping:
     @cache_readonly
     def groups(self) -> dict[Hashable, Index]:
         codes, uniques = self._codes_and_uniques
-        uniques = Index._with_infer(uniques, name=self.name, copy=False)
+        uniques = Index._with_infer(uniques, name=self.name, copy=False)  # type: ignore[assignment]
 
         r, counts = libalgos.groupsort_indexer(ensure_platform_int(codes), len(uniques))
         counts = ensure_int64(counts).cumsum()
