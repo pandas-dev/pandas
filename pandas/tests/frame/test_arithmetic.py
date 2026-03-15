@@ -2173,7 +2173,6 @@ def test_arithmetic_multiindex_add_with_mixed_string_datetime_index():
     assert result.loc[("Z", datetime(2019, 5, 31)), "A"] == 20
 
 
-
 def test_bool_frame_mult_float():
     # GH 18549
     df = DataFrame(True, list("ab"), list("cd"))
