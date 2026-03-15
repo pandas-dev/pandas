@@ -60,6 +60,7 @@ from pandas.io.formats.printing import pprint_thing
 from pandas.plotting._matplotlib import tools
 from pandas.plotting._matplotlib.converter import (
     PeriodConverter,
+    plotable_types,
     register_pandas_matplotlib_converters,
 )
 from pandas.plotting._matplotlib.groupby import reconstruct_data_with_by
@@ -693,7 +694,7 @@ class MPLPlot(ABC):
         # GH16953, infer_objects is needed as fallback, for ``Series``
         # with ``dtype == object``
         data = data.infer_objects()
-        include_type = [np.number, "datetime", "datetimetz", "timedelta"]
+        include_type = plotable_types()
 
         # GH23719, allow plotting boolean
         if self.include_bool is True:
