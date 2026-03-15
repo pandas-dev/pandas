@@ -429,4 +429,38 @@ def col(col_name: Hashable) -> Expression:
     return Expression(func, f"col({col_name!r})")
 
 
-__all__ = ["Expression", "col"]
+@set_module("pandas")
+def index() -> Expression:
+    """
+    Generate deferred object representing the index of a DataFrame.
+
+    Any place which accepts ``lambda df: df.index``, such as
+    :meth:`DataFrame.assign` or :meth:`DataFrame.loc`, can also accept
+    ``pd.index()``.
+
+    .. versionadded:: 3.1.0
+
+    Returns
+    -------
+    `pandas.api.typing.Expression`
+        A deferred object representing the index of a DataFrame.
+
+    See Also
+    --------
+    col : Generate deferred object representing a column of a DataFrame.
+
+    Examples
+    --------
+
+    You can use `index` in `assign`.
+
+    >>> df = pd.DataFrame({"a": [1, 2], "b": [3, 4]}, index=["X", "Y"])
+    >>> df.assign(idx=pd.index())
+       a  b idx
+    X  1  3   X
+    Y  2  4   Y
+    """
+    return Expression(lambda df: df.index, "index")
+
+
+__all__ = ["Expression", "col", "index"]
