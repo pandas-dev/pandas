@@ -531,7 +531,6 @@ module = [
   "pandas.compat.numpy.function", # TODO
   "pandas.core._numba.executor", # TODO
   "pandas.core.array_algos.masked_reductions", # TODO
-  "pandas.core.array_algos.putmask", # TODO
   "pandas.core.array_algos.quantile", # TODO
   "pandas.core.array_algos.replace", # TODO
   "pandas.core.array_algos.take", # TODO
