@@ -255,24 +255,6 @@ def assert_index_equal(
     if obj is None:
         obj = "MultiIndex" if isinstance(left, MultiIndex) else "Index"
 
-    def _check_types(left, right, obj: str = "Index") -> None:
-        if not exact:
-            return
-
-        assert_class_equal(left, right, exact=exact, obj=obj)  # type: ignore[arg-type]
-        assert_attr_equal("inferred_type", left, right, obj=obj)
-
-        # Skip exact dtype checking when `check_categorical` is False
-        if isinstance(left.dtype, CategoricalDtype) and isinstance(
-            right.dtype, CategoricalDtype
-        ):
-            if check_categorical:
-                assert_attr_equal("dtype", left, right, obj=obj)
-                assert_index_equal(left.categories, right.categories, exact=exact)
-            return
-
-        assert_attr_equal("dtype", left, right, obj=obj)
-
     def _check_rangeindex_index_int(left, right) -> bool:
         return (
             isinstance(left, RangeIndex)
@@ -296,6 +278,24 @@ def assert_index_equal(
                 stacklevel=find_stack_level(),
             )
         exact = "equiv"
+
+    def _check_types(left, right, obj: str = "Index") -> None:
+        if not exact:
+            return
+
+        assert_class_equal(left, right, exact=exact, obj=obj)
+        assert_attr_equal("inferred_type", left, right, obj=obj)
+
+        # Skip exact dtype checking when `check_categorical` is False
+        if isinstance(left.dtype, CategoricalDtype) and isinstance(
+            right.dtype, CategoricalDtype
+        ):
+            if check_categorical:
+                assert_attr_equal("dtype", left, right, obj=obj)
+                assert_index_equal(left.categories, right.categories, exact=exact)
+            return
+
+        assert_attr_equal("dtype", left, right, obj=obj)
 
     # instance validation
     _check_isinstance(left, right, Index)
