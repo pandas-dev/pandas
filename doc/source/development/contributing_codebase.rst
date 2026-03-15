@@ -21,10 +21,12 @@ Thus, good style is a requirement for submitting code to pandas.
 There are a couple of tools in pandas to help contributors verify their changes
 before contributing to the project
 
-- ``./ci/code_checks.sh``: a script validates the doctests, formatting in docstrings,
-  and imported modules. It is possible to run the checks independently by using the
-  parameters ``docstrings``, ``code``, and ``doctests``
-  (e.g. ``./ci/code_checks.sh doctests``);
+- ``./ci/code_checks.sh``: a script validates the doctests, pandas-specific docstring
+  conventions, and imported modules. It is possible to run the checks independently by
+  using the parameters ``docstrings``, ``code``, and ``doctests``
+  (e.g. ``./ci/code_checks.sh doctests``). Standard numpydoc docstring validation is
+  enforced during the Sphinx build via ``numpydoc_validation_checks`` in
+  ``doc/source/conf.py``;
 - ``pre-commit``, which we go into detail on in the next section.
 
 In addition, because a lot of people use our library, it is important that we

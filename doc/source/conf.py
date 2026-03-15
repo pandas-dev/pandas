@@ -10,6 +10,7 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 from datetime import datetime
+import doctest as _doctest
 import importlib
 import inspect
 import logging
@@ -20,9 +21,86 @@ import warnings
 
 import jinja2
 from numpydoc.docscrape import NumpyDocString
+import numpydoc.validate as _numpydoc_validate
 from sphinx.ext.autosummary import _import_by_name
 
 logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Monkey-patch numpydoc validation to include pandas-specific checks.
+#
+# numpydoc has no plugin system, so we inject four custom error codes into its
+# ERROR_MSGS dict and wrap the ``validate`` function.  Because conf.py executes
+# before Sphinx loads extensions, the later
+# ``from .validate import validate`` inside numpydoc.numpydoc picks up the
+# patched version automatically.
+# ---------------------------------------------------------------------------
+_PANDAS_PRIVATE_CLASSES = ["NDFrame", "IndexOpsMixin"]
+
+_numpydoc_validate.ERROR_MSGS.update(
+    {
+        "GL04": "Private classes ({mentioned_private_classes}) should not be "
+        "mentioned in public docstrings",
+        "PD01": "Use 'array-like' rather than 'array_like' in docstrings.",
+        "SA05": "{reference_name} in `See Also` section does not need `pandas` "
+        "prefix, use {right_reference} instead.",
+        "EX04": "Do not import {imported_library}, as it is imported "
+        "automatically for the examples (numpy as np, pandas as pd)",
+    }
+)
+
+_original_numpydoc_validate = _numpydoc_validate.validate
+
+
+def _pandas_validate(obj_name, validator_cls=None, **validator_kwargs):
+    result = _original_numpydoc_validate(
+        obj_name, validator_cls=validator_cls, **validator_kwargs
+    )
+
+    docstring = result.get("docstring", "")
+    if not docstring:
+        return result
+
+    errors = result["errors"]
+
+    # GL04: private classes mentioned in public docstrings
+    mentioned = [klass for klass in _PANDAS_PRIVATE_CLASSES if klass in docstring]
+    if mentioned:
+        errors.append(
+            _numpydoc_validate.error(
+                "GL04", mentioned_private_classes=", ".join(mentioned)
+            )
+        )
+
+    # PD01: array_like instead of array-like
+    if "array_like" in docstring:
+        errors.append(_numpydoc_validate.error("PD01"))
+
+    # SA05: See Also references with unnecessary pandas. prefix
+    doc = NumpyDocString(docstring)
+    for ref_group in doc["See Also"]:
+        for ref_name, _ in ref_group[0]:
+            if ref_name.startswith("pandas."):
+                errors.append(
+                    _numpydoc_validate.error(
+                        "SA05",
+                        reference_name=ref_name,
+                        right_reference=ref_name[len("pandas.") :],
+                    )
+                )
+
+    # EX04: redundant numpy/pandas imports in examples
+    examples_source = "".join(
+        line.source for line in _doctest.DocTestParser().get_examples(docstring)
+    )
+    for lib in ("numpy", "pandas"):
+        if f"import {lib}" in examples_source:
+            errors.append(_numpydoc_validate.error("EX04", imported_library=lib))
+
+    return result
+
+
+_numpydoc_validate.validate = _pandas_validate
 
 # https://github.com/sphinx-doc/sphinx/pull/2325/files
 # Workaround for sphinx-build recursion limit overflow:
@@ -116,7 +194,10 @@ if pattern:
                 elif single_doc and rel_fname != pattern:
                     if "\\" in rel_fname:
                         rel_fname = rel_fname.replace("\\", "/")
-                    exclude_patterns.append(rel_fname)
+                    # Keep the autosummary stub needed by the single-doc build.
+                    api_stub = os.path.join("reference", "api", f"pandas.{pattern}.rst")
+                    if rel_fname != api_stub:
+                        exclude_patterns.append(rel_fname)
 
 with open(os.path.join(source_path, "index.rst.template"), encoding="utf-8") as f:
     t = jinja2.Template(f.read())
@@ -134,6 +215,196 @@ autodoc_typehints = "none"
 numpydoc_show_class_members = False
 numpydoc_show_inherited_class_members = False
 numpydoc_attributes_as_param_list = False
+numpydoc_validation_checks = {"all"}
+numpydoc_validation_exclude = {
+    # Jinja2 Styler template attributes (docstrings not owned by pandas)
+    r"pandas\.io\.formats\.style\.Styler\.env$",
+    r"pandas\.io\.formats\.style\.Styler\.template_html$",
+    r"pandas\.io\.formats\.style\.Styler\.template_html_style$",
+    r"pandas\.io\.formats\.style\.Styler\.template_html_table$",
+    r"pandas\.io\.formats\.style\.Styler\.template_latex$",
+    r"pandas\.io\.formats\.style\.Styler\.template_typst$",
+    r"pandas\.io\.formats\.style\.Styler\.template_string$",
+    r"pandas\.io\.formats\.style\.Styler\.loader$",
+    # Error/warning classes with no numpydoc-style docstrings
+    r"pandas\.errors\.InvalidComparison$",
+    r"pandas\.errors\.LossySetitemError$",
+    r"pandas\.errors\.NoBufferPresent$",
+    r"pandas\.errors\.IncompatibilityWarning$",
+    r"pandas\.errors\.PyperclipException$",
+    r"pandas\.errors\.PyperclipWindowsException$",
+    # Offset .base properties
+    r"pandas\.tseries\.offsets\.DateOffset\.base$",
+    r"pandas\.tseries\.offsets\.BusinessDay\.base$",
+    r"pandas\.tseries\.offsets\.BusinessHour\.base$",
+    r"pandas\.tseries\.offsets\.CustomBusinessDay\.base$",
+    r"pandas\.tseries\.offsets\.CustomBusinessHour\.base$",
+    r"pandas\.tseries\.offsets\.MonthEnd\.base$",
+    r"pandas\.tseries\.offsets\.MonthBegin\.base$",
+    r"pandas\.tseries\.offsets\.BusinessMonthEnd\.base$",
+    r"pandas\.tseries\.offsets\.BusinessMonthBegin\.base$",
+    r"pandas\.tseries\.offsets\.CustomBusinessMonthEnd\.base$",
+    r"pandas\.tseries\.offsets\.CustomBusinessMonthBegin\.base$",
+    r"pandas\.tseries\.offsets\.SemiMonthEnd\.base$",
+    r"pandas\.tseries\.offsets\.SemiMonthBegin\.base$",
+    r"pandas\.tseries\.offsets\.Week\.base$",
+    r"pandas\.tseries\.offsets\.WeekOfMonth\.base$",
+    r"pandas\.tseries\.offsets\.LastWeekOfMonth\.base$",
+    r"pandas\.tseries\.offsets\.BQuarterEnd\.base$",
+    r"pandas\.tseries\.offsets\.BQuarterBegin\.base$",
+    r"pandas\.tseries\.offsets\.QuarterEnd\.base$",
+    r"pandas\.tseries\.offsets\.QuarterBegin\.base$",
+    r"pandas\.tseries\.offsets\.BHalfYearEnd\.base$",
+    r"pandas\.tseries\.offsets\.BHalfYearBegin\.base$",
+    r"pandas\.tseries\.offsets\.HalfYearEnd\.base$",
+    r"pandas\.tseries\.offsets\.HalfYearBegin\.base$",
+    r"pandas\.tseries\.offsets\.BYearEnd\.base$",
+    r"pandas\.tseries\.offsets\.BYearBegin\.base$",
+    r"pandas\.tseries\.offsets\.YearEnd\.base$",
+    r"pandas\.tseries\.offsets\.YearBegin\.base$",
+    r"pandas\.tseries\.offsets\.FY5253\.base$",
+    r"pandas\.tseries\.offsets\.FY5253Quarter\.base$",
+    r"pandas\.tseries\.offsets\.Easter\.base$",
+    r"pandas\.tseries\.offsets\.Tick\.base$",
+    r"pandas\.tseries\.offsets\.Day\.base$",
+    r"pandas\.tseries\.offsets\.Hour\.base$",
+    r"pandas\.tseries\.offsets\.Minute\.base$",
+    r"pandas\.tseries\.offsets\.Second\.base$",
+    r"pandas\.tseries\.offsets\.Milli\.base$",
+    r"pandas\.tseries\.offsets\.Micro\.base$",
+    r"pandas\.tseries\.offsets\.Nano\.base$",
+    # Offset rollback methods
+    r"pandas\.tseries\.offsets\.DateOffset\.rollback$",
+    r"pandas\.tseries\.offsets\.BusinessDay\.rollback$",
+    r"pandas\.tseries\.offsets\.BusinessHour\.rollback$",
+    r"pandas\.tseries\.offsets\.CustomBusinessDay\.rollback$",
+    r"pandas\.tseries\.offsets\.CustomBusinessHour\.rollback$",
+    r"pandas\.tseries\.offsets\.MonthEnd\.rollback$",
+    r"pandas\.tseries\.offsets\.MonthBegin\.rollback$",
+    r"pandas\.tseries\.offsets\.BusinessMonthEnd\.rollback$",
+    r"pandas\.tseries\.offsets\.BusinessMonthBegin\.rollback$",
+    r"pandas\.tseries\.offsets\.CustomBusinessMonthEnd\.rollback$",
+    r"pandas\.tseries\.offsets\.CustomBusinessMonthBegin\.rollback$",
+    r"pandas\.tseries\.offsets\.SemiMonthEnd\.rollback$",
+    r"pandas\.tseries\.offsets\.SemiMonthBegin\.rollback$",
+    r"pandas\.tseries\.offsets\.Week\.rollback$",
+    r"pandas\.tseries\.offsets\.WeekOfMonth\.rollback$",
+    r"pandas\.tseries\.offsets\.LastWeekOfMonth\.rollback$",
+    r"pandas\.tseries\.offsets\.BQuarterEnd\.rollback$",
+    r"pandas\.tseries\.offsets\.BQuarterBegin\.rollback$",
+    r"pandas\.tseries\.offsets\.QuarterEnd\.rollback$",
+    r"pandas\.tseries\.offsets\.QuarterBegin\.rollback$",
+    r"pandas\.tseries\.offsets\.BHalfYearEnd\.rollback$",
+    r"pandas\.tseries\.offsets\.BHalfYearBegin\.rollback$",
+    r"pandas\.tseries\.offsets\.HalfYearEnd\.rollback$",
+    r"pandas\.tseries\.offsets\.HalfYearBegin\.rollback$",
+    r"pandas\.tseries\.offsets\.BYearEnd\.rollback$",
+    r"pandas\.tseries\.offsets\.BYearBegin\.rollback$",
+    r"pandas\.tseries\.offsets\.YearEnd\.rollback$",
+    r"pandas\.tseries\.offsets\.YearBegin\.rollback$",
+    r"pandas\.tseries\.offsets\.FY5253\.rollback$",
+    r"pandas\.tseries\.offsets\.FY5253Quarter\.rollback$",
+    r"pandas\.tseries\.offsets\.Easter\.rollback$",
+    r"pandas\.tseries\.offsets\.Tick\.rollback$",
+    r"pandas\.tseries\.offsets\.Day\.rollback$",
+    r"pandas\.tseries\.offsets\.Hour\.rollback$",
+    r"pandas\.tseries\.offsets\.Minute\.rollback$",
+    r"pandas\.tseries\.offsets\.Second\.rollback$",
+    r"pandas\.tseries\.offsets\.Milli\.rollback$",
+    r"pandas\.tseries\.offsets\.Micro\.rollback$",
+    r"pandas\.tseries\.offsets\.Nano\.rollback$",
+    # Offset rollforward methods
+    r"pandas\.tseries\.offsets\.DateOffset\.rollforward$",
+    r"pandas\.tseries\.offsets\.BusinessDay\.rollforward$",
+    r"pandas\.tseries\.offsets\.BusinessHour\.rollforward$",
+    r"pandas\.tseries\.offsets\.CustomBusinessDay\.rollforward$",
+    r"pandas\.tseries\.offsets\.CustomBusinessHour\.rollforward$",
+    r"pandas\.tseries\.offsets\.MonthEnd\.rollforward$",
+    r"pandas\.tseries\.offsets\.MonthBegin\.rollforward$",
+    r"pandas\.tseries\.offsets\.BusinessMonthEnd\.rollforward$",
+    r"pandas\.tseries\.offsets\.BusinessMonthBegin\.rollforward$",
+    r"pandas\.tseries\.offsets\.CustomBusinessMonthEnd\.rollforward$",
+    r"pandas\.tseries\.offsets\.CustomBusinessMonthBegin\.rollforward$",
+    r"pandas\.tseries\.offsets\.SemiMonthEnd\.rollforward$",
+    r"pandas\.tseries\.offsets\.SemiMonthBegin\.rollforward$",
+    r"pandas\.tseries\.offsets\.Week\.rollforward$",
+    r"pandas\.tseries\.offsets\.WeekOfMonth\.rollforward$",
+    r"pandas\.tseries\.offsets\.LastWeekOfMonth\.rollforward$",
+    r"pandas\.tseries\.offsets\.BQuarterEnd\.rollforward$",
+    r"pandas\.tseries\.offsets\.BQuarterBegin\.rollforward$",
+    r"pandas\.tseries\.offsets\.QuarterEnd\.rollforward$",
+    r"pandas\.tseries\.offsets\.QuarterBegin\.rollforward$",
+    r"pandas\.tseries\.offsets\.BHalfYearEnd\.rollforward$",
+    r"pandas\.tseries\.offsets\.BHalfYearBegin\.rollforward$",
+    r"pandas\.tseries\.offsets\.HalfYearEnd\.rollforward$",
+    r"pandas\.tseries\.offsets\.HalfYearBegin\.rollforward$",
+    r"pandas\.tseries\.offsets\.BYearEnd\.rollforward$",
+    r"pandas\.tseries\.offsets\.BYearBegin\.rollforward$",
+    r"pandas\.tseries\.offsets\.YearEnd\.rollforward$",
+    r"pandas\.tseries\.offsets\.YearBegin\.rollforward$",
+    r"pandas\.tseries\.offsets\.FY5253\.rollforward$",
+    r"pandas\.tseries\.offsets\.FY5253Quarter\.rollforward$",
+    r"pandas\.tseries\.offsets\.Easter\.rollforward$",
+    r"pandas\.tseries\.offsets\.Tick\.rollforward$",
+    r"pandas\.tseries\.offsets\.Day\.rollforward$",
+    r"pandas\.tseries\.offsets\.Hour\.rollforward$",
+    r"pandas\.tseries\.offsets\.Minute\.rollforward$",
+    r"pandas\.tseries\.offsets\.Second\.rollforward$",
+    r"pandas\.tseries\.offsets\.Milli\.rollforward$",
+    r"pandas\.tseries\.offsets\.Micro\.rollforward$",
+    r"pandas\.tseries\.offsets\.Nano\.rollforward$",
+    # Offset next_bday (BusinessHour and CustomBusinessHour only)
+    r"pandas\.tseries\.offsets\.BusinessHour\.next_bday$",
+    r"pandas\.tseries\.offsets\.CustomBusinessHour\.next_bday$",
+    # Easter.method
+    r"pandas\.tseries\.offsets\.Easter\.method$",
+    # CustomBusinessMonth helper methods
+    r"pandas\.tseries\.offsets\.CustomBusinessMonthEnd\.cbday_roll$",
+    r"pandas\.tseries\.offsets\.CustomBusinessMonthEnd\.month_roll$",
+    r"pandas\.tseries\.offsets\.CustomBusinessMonthBegin\.cbday_roll$",
+    r"pandas\.tseries\.offsets\.CustomBusinessMonthBegin\.month_roll$",
+    # ExtensionDtype base class stubs
+    r"pandas\.api\.extensions\.ExtensionDtype\.construct_array_type$",
+    r"pandas\.api\.extensions\.ExtensionDtype\.construct_from_string$",
+    r"pandas\.api\.extensions\.ExtensionDtype\.empty$",
+    r"pandas\.api\.extensions\.ExtensionDtype\.index_class$",
+    r"pandas\.api\.extensions\.ExtensionDtype\.is_dtype$",
+    r"pandas\.api\.extensions\.ExtensionDtype\.kind$",
+    r"pandas\.api\.extensions\.ExtensionDtype\.na_value$",
+    r"pandas\.api\.extensions\.ExtensionDtype\.name$",
+    r"pandas\.api\.extensions\.ExtensionDtype\.names$",
+    r"pandas\.api\.extensions\.ExtensionDtype\.type$",
+    # Window indexer get_window_bounds
+    r"pandas\.api\.indexers\.BaseIndexer\.get_window_bounds$",
+    r"pandas\.api\.indexers\.FixedForwardWindowIndexer\.get_window_bounds$",
+    r"pandas\.api\.indexers\.VariableOffsetWindowIndexer\.get_window_bounds$",
+    # ExcelWriter properties and methods
+    r"pandas\.ExcelWriter\.book$",
+    r"pandas\.ExcelWriter\.check_extension$",
+    r"pandas\.ExcelWriter\.close$",
+    r"pandas\.ExcelWriter\.date_format$",
+    r"pandas\.ExcelWriter\.datetime_format$",
+    r"pandas\.ExcelWriter\.engine$",
+    r"pandas\.ExcelWriter\.if_sheet_exists$",
+    r"pandas\.ExcelWriter\.sheets$",
+    r"pandas\.ExcelWriter\.supported_extensions$",
+    # ExcelFile
+    r"pandas\.ExcelFile\.close$",
+    # plot.__call__ (PlotAccessor)
+    r"pandas\.DataFrame\.plot\.__call__$",
+    r"pandas\.Series\.plot\.__call__$",
+    # Index attributes and methods processed by autodoc but not in api.rst
+    r"pandas\.Index\.nlevels$",
+    r"pandas\.Index\.diff$",
+    r"pandas\.Index\.groupby$",
+    r"pandas\.Index\.round$",
+    r"pandas\.Index\.sortlevel$",
+    r"pandas\.Index\.to_flat_index$",
+    r"pandas\.Index\.transpose$",
+    # Series attributes processed by autodoc but not in api.rst
+    r"pandas\.Series\.axes$",
+    r"pandas\.Series\.transpose$",
+}
 
 # matplotlib plot directive
 plot_include_source = True
