@@ -46,8 +46,6 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
 )
 
-from pandas.core.algorithms import unique
-
 if TYPE_CHECKING:
     from pandas._typing import npt
 
@@ -284,12 +282,12 @@ class _FrequencyInferer:
     @cache_readonly
     def day_deltas(self) -> list[int]:
         ppd = periods_per_day(self._creso)
-        return [x / ppd for x in self.deltas]
+        return [x // ppd for x in self.deltas]
 
     @cache_readonly
     def hour_deltas(self) -> list[int]:
         pph = periods_per_day(self._creso) // 24
-        return [x / pph for x in self.deltas]
+        return [x // pph for x in self.deltas]
 
     @cache_readonly
     def fields(self) -> np.ndarray:  # structured array of fields
@@ -358,7 +356,7 @@ class _FrequencyInferer:
         if len(self.ydiffs) > 1:
             return None
 
-        if len(unique(self.fields["M"])) > 1:
+        if len(np.unique(self.fields["M"])) > 1:
             return None
 
         pos_check = self.month_position_check()
@@ -412,11 +410,11 @@ class _FrequencyInferer:
         )
 
     def _get_wom_rule(self) -> str | None:
-        weekdays = unique(self.index.weekday)
+        weekdays = np.unique(self.index.weekday)
         if len(weekdays) > 1:
             return None
 
-        week_of_months = unique((self.index.day - 1) // 7)
+        week_of_months = np.unique((self.index.day - 1) // 7)
         # Only attempt to infer up to WOM-4. See #9425
         week_of_months = week_of_months[week_of_months < 4]
         if len(week_of_months) == 0 or len(week_of_months) > 1:
