@@ -154,9 +154,9 @@ class RangeIndex(Index):
 
     def __new__(
         cls,
-        start: int | range | RangeIndex | None = None,
-        stop: int | None = None,
-        step: int | None = None,
+        start: int | np.integer | range | RangeIndex | None = None,
+        stop: int | np.integer | None = None,
+        step: int | np.integer | None = None,
         dtype: Dtype | None = None,
         copy: bool = False,
         name: Hashable | None = None,
