@@ -3770,6 +3770,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         decimal: str = ...,
         errors: OpenFileErrors = ...,
         storage_options: StorageOptions = ...,
+        engine: str = "python",
     ) -> str: ...
 
     @overload
@@ -3797,6 +3798,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         decimal: str = ...,
         errors: OpenFileErrors = ...,
         storage_options: StorageOptions = ...,
+        engine: str = "python",
     ) -> None: ...
 
     @final
@@ -3811,7 +3813,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         header: bool | list[str] = True,
         index: bool = True,
         index_label: IndexLabel | None = None,
-        mode: str = "w",
+        mode: str | None = None,
         encoding: str | None = None,
         compression: CompressionOptions = "infer",
         quoting: int | None = None,
@@ -3824,6 +3826,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         decimal: str = ".",
         errors: OpenFileErrors = "strict",
         storage_options: StorageOptions | None = None,
+        engine: str = "python",
     ) -> str | None:
         r"""
         Write object to a comma-separated values (csv) file.
@@ -3861,13 +3864,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             sequence should be given if the object uses MultiIndex. If
             False do not print fields for index names. Use index_label=False
             for easier importing in R.
-        mode : {'w', 'x', 'a'}, default 'w'
+        mode : {'w', 'x', 'a'}, default 'w' (Python engine) or 'wb' (Pyarrow engine)
             Forwarded to either `open(mode=)` or `fsspec.open(mode=)` to control
             the file opening. Typical values include:
 
             - 'w', truncate the file first.
             - 'x', exclusive creation, failing if the file already exists.
             - 'a', append to the end of file if it exists.
+
+            .. note::
+                The pyarrow engine can only handle binary buffers.
 
         encoding : str, optional
             A string representing the encoding to use in the output file,
@@ -3934,6 +3940,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             <https://pandas.pydata.org/docs/user_guide/io.html?
             highlight=storage_options#reading-writing-remote-files>`_.
 
+        engine : str, default 'python'
+            The engine to use. Available options are "pyarrow" or "python".
+            The pyarrow engine requires the pyarrow library to be installed
+            and is generally faster than the python engine.
+
+            However, the python engine may be more feature complete than the
+            pyarrow engine.
+
+            .. versionadded:: 3.1.0
+
         Returns
         -------
         None or str
@@ -3997,8 +4013,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             decimal=decimal,
         )
 
+        if mode is None:
+            mode = "w"
+            if engine == "pyarrow":
+                mode += "b"
+
         return DataFrameRenderer(formatter).to_csv(
             path_or_buf,
+            engine=engine,
             lineterminator=lineterminator,
             sep=sep,
             encoding=encoding,
