@@ -9145,6 +9145,10 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Check if this is an operation between DataFrames that will need to reindex.
         """
+
+        if level is not None:
+            return False
+
         if op is operator.pow or op is roperator.rpow:
             # GH#32685 pow has special semantics for operating with null values
             return False
