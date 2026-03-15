@@ -313,13 +313,10 @@ def test_from_tick_reso():
     assert Timedelta(tick)._creso == NpyDatetimeUnit.NPY_FR_s.value
 
     tick = offsets.Day()
-    msg = (
-        "Value must be Timedelta, string, integer, float, timedelta "
-        "or convertible, not Day"
-    )
-    with pytest.raises(ValueError, match=msg):
-        # GH#41943 Day is no longer a Tick
-        Timedelta(tick)
+    td = Timedelta(tick)
+
+    assert td == Timedelta(days=1)
+    assert td._creso == NpyDatetimeUnit.NPY_FR_ns.value
 
 
 def test_construction():

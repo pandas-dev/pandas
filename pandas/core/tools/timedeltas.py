@@ -193,8 +193,10 @@ def to_timedelta(
         # Tuple[Any, ...], Union[Union[ExtensionArray, ndarray[Any, Any]], Index,
         # Series]]")  [assignment]
         arg = lib.item_from_zerodim(arg)  # type: ignore[assignment]
+
     elif is_list_like(arg) and getattr(arg, "ndim", 1) == 1:
         return _convert_listlike(arg, unit=unit, errors=errors)
+
     elif getattr(arg, "ndim", 1) > 1:
         raise TypeError(
             "arg must be a string, timedelta, list, tuple, 1-d array, or Series"
