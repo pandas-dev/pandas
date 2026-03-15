@@ -904,6 +904,16 @@ def test_coerce_pyarrow_backend():
     tm.assert_series_equal(result, expected)
 
 
+def test_to_numeric_leading_zero_precision_loss():
+    # GH-64184
+    # Ensure integer-like strings with leading zeros do not lose precision
+    # when mixed with floats.
+
+    ser = Series(["000000000010084566", 1.2])
+
+    result = to_numeric(ser)
+
+    assert result.iloc[0] == 10084566.0
 def test_large_exponent_coerce():
     # GH#63650 - exponent overflow in precise_xstrtod should not segfault
     ser = Series(["1E3000000000"])
