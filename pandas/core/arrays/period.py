@@ -50,10 +50,12 @@ from pandas._libs.tslibs.period import (
     get_period_field_arr,
     period_asfreq_arr,
 )
+from pandas.errors import Pandas4Warning
 from pandas.util._decorators import (
     cache_readonly,
     set_module,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_object,
@@ -334,7 +336,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         PeriodArray[freq]
         """
         if isinstance(freq, BaseOffset):
-            freq = PeriodDtype(freq)._freqstr
+            freq = PeriodDtype(freq).unit
         data, freq = dt64arr_to_periodarr(data, freq, tz)
         dtype = PeriodDtype(freq)
         return cls(data, dtype=dtype)
@@ -388,11 +390,11 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         if other is NaT:
             return
         elif isinstance(other, Period):
-            self._require_matching_unit(other._dtype._freqstr)
+            self._require_matching_unit(other._dtype.unit)
         else:
             # error: Item "NaTType" of "NaTType | PeriodArray" has no
             # attribute "freq"
-            self._require_matching_unit(other.dtype._freqstr)  # type: ignore[union-attr]
+            self._require_matching_unit(other.dtype.unit)  # type: ignore[union-attr]
 
     # --------------------------------------------------------------------
     # Data / Attributes
@@ -400,6 +402,14 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
     @cache_readonly
     def dtype(self) -> PeriodDtype:
         return self._dtype
+
+    @cache_readonly
+    def unit(self) -> str:
+        """
+        Return the unit string describing the resolution of each Period in
+        the array.
+        """
+        return self.dtype.unit
 
     # error: Cannot override writeable attribute with read-only property
     @property
@@ -411,7 +421,14 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
 
     @property
     def freqstr(self) -> str:
-        return PeriodDtype(self.freq)._freqstr
+        warnings.warn(
+            # GH#64157
+            "PeriodArray.freqstr is deprecated and will be removed in a "
+            "future version. Use obj.unit instead",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self.unit
 
     def __array__(
         self, dtype: NpDtype | None = None, copy: bool | None = None
@@ -452,17 +469,17 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
                 return pyarrow.array(self._ndarray, mask=self.isna(), type=type)
             elif isinstance(type, ArrowPeriodType):
                 # ensure we have the same freq
-                if self.freqstr != type.freq:
+                if self.unit != type.freq:
                     raise TypeError(
                         "Not supported to convert PeriodArray to array with different "
-                        f"'freq' ({self.freqstr} vs {type.freq})"
+                        f"'freq' ({self.unit} vs {type.freq})"
                     )
             else:
                 raise TypeError(
                     f"Not supported to convert PeriodArray to '{type}' type"
                 )
 
-        period_type = ArrowPeriodType(self.freqstr)
+        period_type = ArrowPeriodType(self.unit)
         storage_array = pyarrow.array(self._ndarray, mask=self.isna(), type="int64")
         return pyarrow.ExtensionArray.from_storage(period_type, storage_array)
 
@@ -882,7 +899,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         if freq is None:
             freq_code = self._dtype._get_to_timestamp_base()
             dtype = PeriodDtypeBase(freq_code, 1)
-            freq = dtype._freqstr
+            freq = dtype.unit
             base = freq_code
         else:
             freq = Period._maybe_convert_freq(freq)
@@ -970,7 +987,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         """
         how = libperiod.validate_end_alias(how)
         if isinstance(freq, BaseOffset) and hasattr(freq, "_period_dtype_code"):
-            freq = PeriodDtype(freq)._freqstr
+            freq = PeriodDtype(freq).unit
         freq = Period._maybe_convert_freq(freq)
 
         base1 = self._dtype._dtype_code
@@ -1233,13 +1250,13 @@ def raise_on_incompatible(left, right) -> IncompatibleFrequency:
             warnings.filterwarnings(
                 "ignore", r"PeriodDtype\[B\] is deprecated", category=FutureWarning
             )
-            other_freq = PeriodDtype(right)._freqstr
+            other_freq = PeriodDtype(right).unit
     elif isinstance(right, (ABCPeriodIndex, PeriodArray, Period)):
-        other_freq = right.freqstr
+        other_freq = right.unit
     else:
         other_freq = delta_to_tick(Timedelta(right)).freqstr
 
-    own_freq = PeriodDtype(left.freq)._freqstr
+    own_freq = PeriodDtype(left.freq).unit
     msg = DIFFERENT_FREQ.format(
         cls=type(left).__name__, own_freq=own_freq, other_freq=other_freq
     )
