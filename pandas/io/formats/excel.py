@@ -4,13 +4,6 @@ Utilities for conversion to writer-agnostic Excel representation.
 
 from __future__ import annotations
 
-from collections.abc import (
-    Callable,
-    Hashable,
-    Iterable,
-    Mapping,
-    Sequence,
-)
 import functools
 import itertools
 import re
@@ -49,6 +42,14 @@ from pandas.io.formats.css import (
 from pandas.io.formats.format import get_level_lengths
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Callable,
+        Hashable,
+        Iterable,
+        Mapping,
+        Sequence,
+    )
+
     from pandas._typing import (
         ExcelWriterMergeCells,
         FilePath,
@@ -567,7 +568,7 @@ class ExcelFormatter:
         if cols is not None:
             # all missing, raise
             if not len(Index(cols).intersection(df.columns)):
-                raise KeyError("passes columns are not ALL present dataframe")
+                raise KeyError("Passed columns are not all present in the dataframe")
 
             if len(Index(cols).intersection(df.columns)) != len(set(cols)):
                 # Deprecated in GH#17295, enforced in 1.0.0
@@ -667,7 +668,7 @@ class ExcelFormatter:
 
             colnames = self.columns
             if self._has_aliases:
-                self.header = cast(Sequence, self.header)
+                self.header = cast("Sequence", self.header)
                 if len(self.header) != len(self.columns):
                     raise ValueError(
                         f"Writing {len(self.columns)} cols "

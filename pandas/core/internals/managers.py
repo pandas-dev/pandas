@@ -1,10 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import (
-    Callable,
-    Hashable,
-    Sequence,
-)
 import itertools
 from typing import (
     TYPE_CHECKING,
@@ -66,7 +61,6 @@ from pandas.core.dtypes.missing import (
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays import DatetimeArray
-from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.base import PandasObject
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
@@ -94,7 +88,12 @@ from pandas.core.internals.ops import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Generator
+    from collections.abc import (
+        Callable,
+        Generator,
+        Hashable,
+        Sequence,
+    )
 
     from pandas._typing import (
         ArrayLike,
@@ -106,6 +105,7 @@ if TYPE_CHECKING:
     )
 
     from pandas.api.extensions import ExtensionArray
+    from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 
 
 def interleaved_dtype(dtypes: list[DtypeObj]) -> DtypeObj | None:
@@ -132,7 +132,7 @@ def ensure_np_dtype(dtype: DtypeObj) -> np.dtype:
     # Give EAs some input on what happens here. Sparse needs this.
     if isinstance(dtype, SparseDtype):
         dtype = dtype.subtype
-        dtype = cast(np.dtype, dtype)
+        dtype = cast("np.dtype", dtype)
     elif isinstance(dtype, ExtensionDtype):
         dtype = np.dtype("object")
     elif dtype == np.dtype(str):
@@ -845,16 +845,24 @@ class BaseBlockManager(PandasObject):
                 )
             )
         else:
-            new_blocks = [
-                blk.take_nd(
-                    indexer,
-                    axis=1,
-                    fill_value=(
-                        fill_value if fill_value is not None else blk.fill_value
-                    ),
-                )
-                for blk in self.blocks
-            ]
+            new_blocks = []
+            for blk in self.blocks:
+                if blk.dtype == np.void:
+                    # GH#58316: np.void placeholders cast to b'' when
+                    # reindexed; preserve np.void so _setitem_single_column
+                    # can later infer the correct dtype
+                    vals = np.empty((blk.values.shape[0], len(indexer)), dtype=np.void)
+                    new_blocks.append(NumpyBlock(vals, blk.mgr_locs, ndim=2))
+                else:
+                    new_blocks.append(
+                        blk.take_nd(
+                            indexer,
+                            axis=1,
+                            fill_value=(
+                                fill_value if fill_value is not None else blk.fill_value
+                            ),
+                        )
+                    )
 
         new_axes = list(self.axes)
         new_axes[axis] = new_axis
@@ -956,11 +964,20 @@ class BaseBlockManager(PandasObject):
             if blkno == -1:
                 # If we've got here, fill_value was not lib.no_default
 
-                yield self._make_na_block(
-                    placement=mgr_locs,
-                    fill_value=fill_value,
-                    use_na_proxy=use_na_proxy,
-                )
+                dtype, _ = infer_dtype_from_scalar(fill_value)
+                if is_1d_only_ea_dtype(dtype) and len(mgr_locs) > 1:
+                    # Handle 1D-only extension dtypes by creating separate blocks
+                    # (GH#63993)
+                    placements = [BlockPlacement(col_idx) for col_idx in mgr_locs]
+                else:
+                    placements = [mgr_locs]
+
+                for placement in placements:
+                    yield self._make_na_block(
+                        placement=placement,
+                        fill_value=fill_value,
+                        use_na_proxy=use_na_proxy,
+                    )
             else:
                 blk = self.blocks[blkno]
 
@@ -1275,7 +1292,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             #  containing (self._blknos[loc], BlockPlacement(slice(0, 1, 1)))
 
             # Check if we can use _iset_single fastpath
-            loc = cast(int, loc)
+            loc = cast("int", loc)
             blkno = self.blknos[loc]
             blk = self.blocks[blkno]
             if len(blk._mgr_locs) == 1:  # TODO: fastest way to check this?
@@ -1296,7 +1313,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         # categorical/sparse/datetimetz
         if value_is_extension_type:
 
-            def value_getitem(placement):
+            def value_getitem(placement):  # pyright: ignore[reportRedeclaration]
                 return value
 
         else:
@@ -1724,17 +1741,16 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         new_columns = unstacker.get_new_columns(self.items)
         new_index = unstacker.new_index
 
-        allow_fill = not unstacker.mask_all
-        if allow_fill:
-            # calculating the full mask once and passing it to Block._unstack is
-            #  faster than letting calculating it in each repeated call
+        if not unstacker.mask_all:
+            # calculating the full mask once and passing it to
+            #  ExtensionBlock._unstack is faster than calculating
+            #  it in each repeated call
             new_mask2D = (~unstacker.mask).reshape(*unstacker.full_shape)
             needs_masking = new_mask2D.any(axis=0)
         else:
             needs_masking = np.zeros(unstacker.full_shape[1], dtype=bool)
 
         new_blocks: list[Block] = []
-        columns_mask: list[np.ndarray] = []
 
         if len(self.items) == 0:
             factor = 1
@@ -1747,7 +1763,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             mgr_locs = blk.mgr_locs
             new_placement = mgr_locs.tile_for_unstack(factor)
 
-            blocks, mask = blk._unstack(
+            blocks = blk._unstack(
                 unstacker,
                 fill_value,
                 new_placement=new_placement,
@@ -1755,15 +1771,6 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             )
 
             new_blocks.extend(blocks)
-            columns_mask.extend(mask)
-
-            # Block._unstack should ensure this holds,
-            assert mask.sum() == sum(len(nb._mgr_locs) for nb in blocks)
-            # In turn this ensures that in the BlockManager call below
-            #  we have len(new_columns) == sum(x.shape[0] for x in new_blocks)
-            #  which suffices to allow us to pass verify_inegrity=False
-
-        new_columns = new_columns[columns_mask]
 
         bm = BlockManager(new_blocks, [new_columns, new_index], verify_integrity=False)
         return bm
@@ -2467,7 +2474,7 @@ def _merge_blocks(
             new_values = np.vstack([b.values for b in blocks])  # type: ignore[misc]
         else:
             bvals = [blk.values for blk in blocks]
-            bvals2 = cast(Sequence[NDArrayBackedExtensionArray], bvals)
+            bvals2 = cast("Sequence[NDArrayBackedExtensionArray]", bvals)
             new_values = bvals2[0]._concat_same_type(bvals2, axis=0)
 
         argsort = np.argsort(new_mgr_locs)
@@ -2513,7 +2520,7 @@ def make_na_array(dtype: DtypeObj, shape: Shape, fill_value) -> ArrayLike:
         return DatetimeArray._simple_new(dt64values, dtype=dtype)
 
     elif is_1d_only_ea_dtype(dtype):
-        dtype = cast(ExtensionDtype, dtype)
+        dtype = cast("ExtensionDtype", dtype)
         cls = dtype.construct_array_type()
 
         missing_arr = cls._from_sequence([], dtype=dtype)

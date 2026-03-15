@@ -2,10 +2,10 @@
 # Minimum requirements for the build system to execute.
 # See https://github.com/scipy/scipy/pull/12940 for the AIX issue.
 requires = [
-    "meson-python>=0.17.1,<1",
-    "meson>=1.2.1,<2",
+    "meson-python>=0.19.0,<1",
+    "meson>=1.10.1,<2",
     "wheel",
-    "Cython<4.0.0a0",  # Note: sync with setup.py, environment.yml and asv.conf.json
+    "Cython>3.1.0,<4.0.0a0",  # Note: sync with environment.yml and asv.conf.json
     # Force numpy higher than 2.0, so that built wheels are compatible
     # with both numpy 1 and 2
     "numpy>=2.0.0",
@@ -121,17 +121,6 @@ all = ['adbc-driver-postgresql>=1.2.0',
        'xlrd>=2.0.1',
        'xlsxwriter>=3.2.0',
        'zstandard>=0.23.0']
-
-# TODO: Remove after setuptools support is dropped.
-[tool.setuptools]
-include-package-data = true
-
-[tool.setuptools.packages.find]
-include = ["pandas", "pandas.*"]
-namespaces = false
-
-[tool.setuptools.exclude-package-data]
-"*" = ["*.c", "*.h"]
 
 # See the docstring in versioneer.py for instructions. Note that you must
 # re-run 'versioneer.py setup' after changing this section, and commit the
@@ -381,8 +370,6 @@ ignore = [
   "PLW0108",
   # global-statement
   "PLW0603",
-  # runtime-cast-value
-  "TC006",
   # unused-unpacked-variable
   "RUF059",
   # pytest-raises-ambiguous-pattern
@@ -445,30 +432,32 @@ doctest_optionflags = [
   "IGNORE_EXCEPTION_DETAIL",
   "ELLIPSIS",
 ]
+# https://docs.pytest.org/en/stable/how-to/capture-warnings.html#controlling-warnings
+# > When a warning matches more than one option in the list, the action for the last matching option is performed
 filterwarnings = [
-  "error:::pandas",
+  "error",
   "error::ResourceWarning",
   "error::pytest.PytestUnraisableExceptionWarning",
   "error::pytest.PytestWarning",
   # e.g. Module already imported so cannot be rewritten; _hypothesis_globals
   "ignore::pytest.PytestAssertRewriteWarning",
   "ignore::pytest.PytestCacheWarning",
-  # TODO(PY311-minimum): Specify EncodingWarning
   # Ignore 3rd party EncodingWarning but raise on pandas'
-  "ignore:.*encoding.* argument not specified",
-  "error:.*encoding.* argument not specified::pandas",
-  "ignore:.*ssl.SSLSocket:pytest.PytestUnraisableExceptionWarning",
-  "ignore:.*ssl.SSLSocket:ResourceWarning",
-  # GH 44844: Can remove once minimum matplotlib version >= 3.7
+  "ignore:.*encoding.* argument not specified:EncodingWarning",
+  "error:.*encoding.* argument not specified:EncodingWarning:pandas",
+  # From pyiceberg w/ Python >=3.13: https://github.com/apache/iceberg-python/issues/2530#issuecomment-3712112040
+  "ignore:unclosed database in <sqlite3.Connection object*:ResourceWarning",
+  # From fastparquet - test_read_filters_fastparquet
   "ignore:.*FileIO:pytest.PytestUnraisableExceptionWarning",
-  "ignore:.*BufferedRandom:ResourceWarning",
-  "ignore::ResourceWarning:asyncio",
   # From plotting doctests
   "ignore:More than 20 figures have been opened:RuntimeWarning",
-  "ignore:.*urllib3:DeprecationWarning:botocore",
-  "ignore:Setuptools is replacing distutils.:UserWarning:_distutils_hack",
-  # https://github.com/PyTables/PyTables/issues/822
-  "ignore:a closed node found in the registry:UserWarning:tables",
+  "ignore:BuiltinImporter.module_repr() is deprecated and slated for removal in Python 3.12:DeprecationWarning",
+  "ignore:Bitwise inversion:DeprecationWarning",
+  # Raised by coverage in PY3.14+ (coverage.exceptions.CoverageWarning)
+  "ignore:Plugin file tracers",
+  # Remove 2 below when pyarrow version > ??
+  "ignore:make_block is deprecated and will be removed in a future version:pandas.errors.Pandas4Warning:pyarrow",
+  "ignore:DatetimeTZBlock is deprecated and will be removed in a future version:pandas.errors.Pandas4Warning:pyarrow",
 ]
 junit_family = "xunit2"
 markers = [
@@ -549,7 +538,6 @@ module = [
   "pandas.core.arrays.*", # TODO
   "pandas.core.computation.*", # TODO
   "pandas.core.dtypes.astype", # TODO
-  "pandas.core.dtypes.cast", # TODO
   "pandas.core.dtypes.common", # TODO
   "pandas.core.dtypes.concat", # TODO
   "pandas.core.dtypes.dtypes", # TODO
@@ -560,7 +548,18 @@ module = [
   "pandas.core.groupby.groupby", # TODO
   "pandas.core.groupby.ops", # TODO
   "pandas.core.indexers.*", # TODO
-  "pandas.core.indexes.*", # TODO
+  "pandas.core.indexes.accessors", # TODO
+  "pandas.core.indexes.api", # TODO
+  "pandas.core.indexes.category", # TODO
+  "pandas.core.indexes.datetimelike", # TODO
+  "pandas.core.indexes.datetimes", # TODO
+  "pandas.core.indexes.extension", # TODO
+  "pandas.core.indexes.frozen", # TODO
+  "pandas.core.indexes.interval", # TODO
+  "pandas.core.indexes.multi", # TODO
+  "pandas.core.indexes.period", # TODO
+  "pandas.core.indexes.range", # TODO
+  "pandas.core.indexes.timedeltas", # TODO
   "pandas.core.interchange.column", # TODO
   "pandas.core.interchange.dataframe_protocol", # TODO
   "pandas.core.interchange.from_dataframe", # TODO
@@ -582,7 +581,6 @@ module = [
   "pandas.core.apply", # TODO
   "pandas.core.arraylike", # TODO
   "pandas.core.base", # TODO
-  "pandas.core.common", # TODO
   "pandas.core.construction", # TODO
   "pandas.core.flags", # TODO
   "pandas.core.frame", # TODO
@@ -617,7 +615,6 @@ module = [
   "pandas.io.parquet", # TODO
   "pandas.io.pytables", # TODO
   "pandas.io.sql", # TODO
-  "pandas.io.xml", # TODO
   "pandas.plotting.*", # TODO
   "pandas.tests.*",
   "pandas.tseries.frequencies", # TODO
@@ -627,7 +624,6 @@ module = [
   "pandas.util._test_decorators", # TODO
   "pandas.util._validators", # TODO
   "pandas.util", # TODO
-  "pandas._version",
   "pandas.conftest",
   "pandas"
 ]
@@ -638,27 +634,9 @@ disallow_incomplete_defs = false
 [[tool.mypy.overrides]]
 module = [
   "pandas.tests.*",
-  "pandas._version",
   "pandas.io.clipboard",
 ]
 check_untyped_defs = false
-
-[[tool.mypy.overrides]]
-module = [
-  "pandas.tests.apply.test_series_apply",
-  "pandas.tests.arithmetic.conftest",
-  "pandas.tests.arrays.sparse.test_combine_concat",
-  "pandas.tests.dtypes.test_common",
-  "pandas.tests.frame.methods.test_to_records",
-  "pandas.tests.groupby.test_rank",
-  "pandas.tests.groupby.transform.test_transform",
-  "pandas.tests.indexes.interval.test_interval",
-  "pandas.tests.indexing.test_categorical",
-  "pandas.tests.io.excel.test_writers",
-  "pandas.tests.reductions.test_reductions",
-  "pandas.tests.test_expressions",
-]
-ignore_errors = true
 
 # To be kept consistent with "Import Formatting" section in contributing.rst
 [tool.isort]
@@ -700,26 +678,18 @@ reportGeneralTypeIssues = false
 reportIndexIssue = false
 reportMissingModuleSource = false
 reportOperatorIssue = false
-reportOptionalCall = false
-reportOptionalIterable = false
 reportOptionalMemberAccess = false
-reportOptionalOperand = false
-reportOptionalSubscript = false
-reportPrivateImportUsage = false
-reportRedeclaration = false
 reportReturnType = false
-reportUnboundVariable = false
 
 [tool.coverage.run]
 branch = true
-omit = ["pandas/_typing.py", "pandas/_version.py"]
+omit = ["pandas/_typing.py"]
 plugins = ["Cython.Coverage"]
 source = ["pandas"]
 
 [tool.coverage.report]
 ignore_errors = false
 show_missing = true
-omit = ["pandas/_version.py"]
 exclude_lines = [
   # Have to re-enable the standard pragma
   "pragma: no cover",

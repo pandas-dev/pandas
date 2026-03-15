@@ -177,6 +177,9 @@ def pytest_collection_modifyitems(items, config) -> None:
         ("SeriesGroupBy.idxmax", "The behavior of Series.idxmax"),
         ("to_pytimedelta", "The behavior of TimedeltaProperties.to_pytimedelta"),
         ("NDFrame.reindex_like", "keyword argument 'method' is deprecated"),
+        # Docstring divides by zero to show nan result
+        ("Series.autocorr", "invalid value encountered in divide"),
+        ("Series.corr", "invalid value encountered in divide"),
         # Docstring divides by zero to show behavior difference
         ("missing.mask_zero_div_zero", "divide by zero encountered"),
         (
@@ -193,6 +196,8 @@ def pytest_collection_modifyitems(items, config) -> None:
             "DataFrameGroupBy.fillna with 'method' is deprecated",
         ),
         ("read_parquet", "Passing a BlockManager to DataFrame is deprecated"),
+        ("Timestamp.utcfromtimestamp", "Timestamp.utcfromtimestamp is deprecated"),
+        ("BaseOffset.name.__get__", "The 'name' property is deprecated"),
     ]
 
     if is_doctest:
@@ -469,7 +474,7 @@ def parallel(request):
     return request.param
 
 
-# Can parameterize nogil & nopython over True | False, but limiting per
+# Can parameterize nogil over True | False, but limiting per
 # https://github.com/pandas-dev/pandas/pull/41971#issuecomment-860607472
 
 
@@ -477,14 +482,6 @@ def parallel(request):
 def nogil(request):
     """
     Fixture for nogil keyword argument for numba.jit.
-    """
-    return request.param
-
-
-@pytest.fixture(params=[True])
-def nopython(request):
-    """
-    Fixture for nopython keyword argument for numba.jit.
     """
     return request.param
 
@@ -1967,11 +1964,14 @@ def ip():
     pytest.importorskip("IPython", minversion="6.0.0")
     from IPython.core.interactiveshell import InteractiveShell
 
-    # GH#35711 make sure sqlite history file handle is not leaked
+    # GH#35711 make sure sqlite history file handle is not leaked.
+    # Using :memory: avoids leaking a file on disk; disabling the history
+    # manager entirely avoids leaking the underlying sqlite3.Connection.
     from traitlets.config import Config  # isort:skip
 
     c = Config()
     c.HistoryManager.hist_file = ":memory:"
+    c.HistoryManager.enabled = False
 
     return InteractiveShell(config=c)
 

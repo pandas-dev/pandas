@@ -1123,7 +1123,11 @@ def test_transform_agg_by_name(request, reduction_func, frame_or_series):
         tm.assert_index_equal(result.columns, obj.columns)
 
     # verify that values were broadcasted across each group
-    assert len(set(DataFrame(result).iloc[-4:, -1])) == 1
+    second_group_values = DataFrame(result).iloc[-4:, -1]
+    expected = Series([second_group_values.iloc[0]] * 4)
+    tm.assert_series_equal(
+        second_group_values, expected, check_index=False, check_names=False
+    )
 
 
 def test_transform_lambda_with_datetimetz():

@@ -694,12 +694,12 @@ def linkcode_resolve(domain, info) -> str | None:
 
     fn = os.path.relpath(fn, start=os.path.dirname(pandas.__file__))
 
-    if "+" in pandas.__version__:
+    if "+" in version:
         return f"https://github.com/pandas-dev/pandas/blob/main/pandas/{fn}{linespec}"
     else:
         return (
             f"https://github.com/pandas-dev/pandas/blob/"
-            f"v{pandas.__version__}/pandas/{fn}{linespec}"
+            f"v{version}/pandas/{fn}{linespec}"
         )
 
 

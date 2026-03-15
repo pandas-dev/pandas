@@ -17,6 +17,7 @@ from cpython.datetime cimport (
 
 from datetime import timezone
 
+cimport cython
 from cpython.unicode cimport PyUnicode_AsUTF8AndSize
 from cython cimport Py_ssize_t
 from libc.string cimport strchr
@@ -716,7 +717,7 @@ cdef datetime dateutil_parse(
             # e.g. "1994 Jan 15 05:16 FOO" where FOO is not recognized
             # GH#18702, # GH 50235 enforced in 3.0
             raise ValueError(
-                f'Parsed string "{timestr}" included an un-recognized timezone '
+                f'Parsed string "{timestr}" included an unrecognized timezone '
                 f'"{res.tzname}".'
             )
 
@@ -760,6 +761,8 @@ cdef _find_subsecond_reso(str timestr, int64_t* nanos):
 # Parsing for type-inference
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def try_parse_dates(object[:] values, parser) -> np.ndarray:
     cdef:
         Py_ssize_t i, n

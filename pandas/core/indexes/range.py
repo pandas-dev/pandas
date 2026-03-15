@@ -1000,7 +1000,7 @@ class RangeIndex(Index):
 
         first = self._range[::-1] if self.step < 0 else self._range
         overlap = self.intersection(other)
-        if overlap.step < 0:
+        if overlap.step < 0:  # type: ignore[attr-defined]
             overlap = overlap[::-1]
 
         if len(overlap) == 0:
@@ -1027,14 +1027,14 @@ class RangeIndex(Index):
             # e.g. range(-8, 20, 7) and range(13, -9, -3)
             return self[1:-1]
 
-        if overlap.step == first.step:
+        if overlap.step == first.step:  # type: ignore[attr-defined]
             if overlap[0] == first.start:
                 # The difference is everything after the intersection
                 new_rng = range(overlap[-1] + first.step, first.stop, first.step)
             elif overlap[-1] == first[-1]:
                 # The difference is everything before the intersection
                 new_rng = range(first.start, overlap[0], first.step)
-            elif overlap._range == first[1:-1]:
+            elif overlap._range == first[1:-1]:  # type: ignore[attr-defined]
                 # e.g. range(4) and range(1, 3)
                 step = len(first) - 1
                 new_rng = first[::step]
@@ -1048,7 +1048,7 @@ class RangeIndex(Index):
             #  len(overlap) == 0 and len(overlap) == len(self)
             assert len(self) > 1
 
-            if overlap.step == first.step * 2:
+            if overlap.step == first.step * 2:  # type: ignore[attr-defined]
                 if overlap[0] == first[0] and overlap[-1] in (first[-1], first[-2]):
                     # e.g. range(1, 10, 1) and range(1, 10, 2)
                     new_rng = first[1::2]
@@ -1115,11 +1115,11 @@ class RangeIndex(Index):
             lidx = self.get_indexer(join_index)
             ridx = None
         elif how == "inner":
-            join_index = self.intersection(other)
+            join_index = self.intersection(other)  # type: ignore[assignment]
             lidx = self.get_indexer(join_index)
             ridx = other.get_indexer(join_index)
         elif how == "outer":
-            join_index = self.union(other)
+            join_index = self.union(other)  # type: ignore[assignment]
             lidx = self.get_indexer(join_index)
             ridx = other.get_indexer(join_index)
 
@@ -1196,7 +1196,7 @@ class RangeIndex(Index):
         elif len(indexes) == 1:
             return indexes[0]
 
-        rng_indexes = cast(list[RangeIndex], indexes)
+        rng_indexes = cast("list[RangeIndex]", indexes)
 
         start = step = next_ = None
 
@@ -1451,7 +1451,7 @@ class RangeIndex(Index):
             # even if we can represent as a RangeIndex, return
             # as a float64 Index if we have float-like descriptors
             if not all(is_integer(x) for x in [rstart, rstop, rstep]):
-                result = result.astype("float64")
+                result = result.astype("float64")  # type: ignore[assignment]
 
             return result
 

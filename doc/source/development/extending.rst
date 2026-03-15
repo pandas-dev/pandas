@@ -471,19 +471,12 @@ to generate the plots.
 
 Libraries implementing the plotting backend should use `entry points <https://setuptools.pypa.io/en/latest/userguide/entry_point.html>`__
 to make their backend discoverable to pandas. The key is ``"pandas_plotting_backends"``. For example, pandas
-registers the default "matplotlib" backend as follows.
+registers the default "matplotlib" backend in ``pyproject.toml``.
 
-.. code-block:: python
+.. code-block:: toml
 
-   # in setup.py
-   setup(  # noqa: F821
-       ...,
-       entry_points={
-           "pandas_plotting_backends": [
-               "matplotlib = pandas:plotting._matplotlib",
-           ],
-       },
-   )
+    [project.entry-points."pandas_plotting_backends"]
+    matplotlib = "pandas:plotting._matplotlib"
 
 
 More information on how to implement a third-party plotting backend can be found at

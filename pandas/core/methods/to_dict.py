@@ -152,8 +152,7 @@ def to_dict(
             stacklevel=find_stack_level(),
         )
     # GH16122
-    # error: Call to untyped function "standardize_mapping" in typed context
-    into_c = com.standardize_mapping(into)  # type: ignore[no-untyped-call]
+    into_c = com.standardize_mapping(into)
 
     #  error: Incompatible types in assignment (expression has type "str",
     # variable has type "Literal['dict', 'list', 'series', 'split', 'tight',

@@ -65,6 +65,10 @@ def hist_series(
     """
     Draw histogram of the input series using matplotlib.
 
+    The histogram is computed over the fixed or variable width bins,
+    and drawn using the matplotlib library. This is useful for
+    visualizing the distribution of the data.
+
     Parameters
     ----------
     by : object, optional
@@ -683,6 +687,10 @@ def boxplot_frame_groupby(
 ):
     """
     Make box plots from DataFrameGroupBy data.
+
+    Creates one or more box-and-whisker plots based on data that has been
+    grouped using :meth:`DataFrame.groupby`. Each group can be rendered as
+    a separate subplot or combined into a single figure.
 
     Parameters
     ----------

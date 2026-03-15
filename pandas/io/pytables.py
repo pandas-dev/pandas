@@ -663,6 +663,10 @@ class HDFStore:
         """
         Return a list of keys corresponding to objects stored in HDFStore.
 
+        The keys are absolute path-names within the HDF5 file hierarchy.
+        By default only pandas objects are returned, but native HDF5 table
+        objects can be included as well.
+
         Parameters
         ----------
 
@@ -804,6 +808,9 @@ class HDFStore:
     def get(self, key: str):
         """
         Retrieve pandas object stored in file.
+
+        The object is read from the HDF5 file and returned as the
+        same type that was stored (e.g., DataFrame, Series).
 
         Parameters
         ----------
@@ -1747,6 +1754,9 @@ class HDFStore:
     def info(self) -> str:
         """
         Print detailed information on the store.
+
+        The information includes the file path, class name, and a listing
+        of all stored object keys with their types and shapes.
 
         Returns
         -------
@@ -2700,6 +2710,8 @@ class DataCol(IndexCol):
         # reverse converts
         if dtype.startswith("datetime64"):
             # recreate with tz if indicated
+            if dtype == "datetime64":
+                dtype = "datetime64[ns]"
             converted = _set_tz(converted, tz, dtype)
 
         elif dtype.startswith("timedelta64"):
@@ -2993,7 +3005,7 @@ class GenericFixed(Fixed):
         kwargs = {}
         if index_class == DatetimeIndex:
 
-            def f(values, freq=None, tz=None):
+            def f(values, freq=None, tz=None):  # pyright: ignore[reportRedeclaration]
                 # data are already in UTC, localize and convert if tz present
                 dta = DatetimeArray._simple_new(
                     values.values, dtype=values.dtype, freq=freq
@@ -3088,6 +3100,8 @@ class GenericFixed(Fixed):
 
             if dtype and dtype.startswith("datetime64"):
                 # reconstruct a timezone if indicated
+                if dtype == "datetime64":
+                    dtype = "datetime64[ns]"
                 tz = getattr(attrs, "tz", None)
                 ret = _set_tz(ret, tz, dtype)
 
@@ -3526,7 +3540,7 @@ class Table(Fixed):
     pandas_kind = "wide_table"
     format_type: str = "table"  # GH#30962 needed by dask
     table_type: str
-    levels: int | list[Hashable] = 1
+    levels: int | list[Hashable] = 1  # pyright: ignore[reportRedeclaration]
     is_table = True
 
     metadata: list
@@ -3765,7 +3779,7 @@ class Table(Fixed):
         self.nan_rep = getattr(self.attrs, "nan_rep", None)
         self.encoding = _ensure_encoding(getattr(self.attrs, "encoding", None))
         self.errors = getattr(self.attrs, "errors", "strict")
-        self.levels: list[Hashable] = getattr(self.attrs, "levels", None) or []
+        self.levels: list[Hashable] = getattr(self.attrs, "levels", None) or []  # pyright: ignore[reportRedeclaration]
         self.index_axes = [a for a in self.indexables if a.is_an_indexable]
         self.values_axes = [a for a in self.indexables if not a.is_an_indexable]
 
@@ -4649,7 +4663,7 @@ class AppendableTable(Table):
 
             self.write_data_chunk(
                 rows,
-                indexes=[a[start_i:end_i] for a in indexes],
+                indexes=[a[start_i:end_i] for a in indexes],  # pyright: ignore[reportOptionalSubscript]
                 mask=mask[start_i:end_i] if mask is not None else None,
                 values=[v[start_i:end_i] for v in bvalues],
             )
@@ -5226,7 +5240,7 @@ def _maybe_convert_for_string_atom(
     if bvalues.dtype != object:
         return bvalues
 
-    bvalues = cast(np.ndarray, bvalues)
+    bvalues = cast("np.ndarray", bvalues)
 
     dtype_name = bvalues.dtype.name
     inferred_type = lib.infer_dtype(bvalues, skipna=False)
