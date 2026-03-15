@@ -137,12 +137,17 @@ class NumpyExtensionArray(
         if isinstance(dtype, NumpyEADtype):
             dtype = dtype._dtype
 
-        # error: Argument "dtype" to "asarray" has incompatible type
-        # "Union[ExtensionDtype, str, dtype[Any], dtype[floating[_64Bit]], Type[object],
-        # None]"; expected "Union[dtype[Any], None, type, _SupportsDType, str,
-        # Union[Tuple[Any, int], Tuple[Any, Union[int, Sequence[int]]], List[Any],
-        # _DTypeDict, Tuple[Any, Any]]]"
-        result = np.asarray(scalars, dtype=dtype)  # type: ignore[arg-type]
+        # GH#57702: Handle string dtypes specially to preserve None values
+        # Use lib.ensure_string_array to match behavior of pd.Series construction
+        if dtype is not None and getattr(dtype, "kind", None) == "U":
+            result = lib.ensure_string_array(scalars, convert_na_value=False, copy=copy)
+        else:
+            # error: Argument "dtype" to "asarray" has incompatible type
+            # "Union[ExtensionDtype, str, dtype[Any], dtype[floating[_64Bit]], Type[object],
+            # None]"; expected "Union[dtype[Any], None, type, _SupportsDType, str,
+            # Union[Tuple[Any, int], Tuple[Any, Union[int, Sequence[int]]], List[Any],
+            # _DTypeDict, Tuple[Any, Any]]]"
+            result = np.asarray(scalars, dtype=dtype)  # type: ignore[arg-type]
         if (
             result.ndim > 1
             and not hasattr(scalars, "dtype")
