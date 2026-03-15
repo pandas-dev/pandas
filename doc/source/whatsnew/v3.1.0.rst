@@ -33,9 +33,9 @@ Other enhancements
 - :meth:`Timestamp.round`, :meth:`Timestamp.floor`, and :meth:`Timestamp.ceil` now officially accept :class:`Timedelta` arguments (:issue:`63687`)
 - :meth:`ExtensionArray.map` now calls :meth:`ExtensionArray._cast_pointwise_result` to retain the dtype backend, e.g. Arrow-backed arrays now preserve their Arrow dtype through ``map`` (:issue:`57189`, :issue:`62164`)
 - :func:`read_csv` now supports ``dtype="complex64"`` and ``dtype="complex128"`` with the C engine, enabling round-tripping of complex-number columns written by :meth:`DataFrame.to_csv` (:issue:`9379`)
+- Added :attr:`PeriodDtype.unit`, :attr:`Period.unit`, :attr:`PeriodArray.unit`, :attr:`PeriodIndex.unit` string describing the object's resolution, analogous to :attr:`Timestamp.unit` and :attr:`DatetimeIndex.unit` (:issue:`64155`)
 - Added :meth:`ExtensionArray.count` (:issue:`64450`)
 - Added :meth:`Index.replace` method to support value replacement functionality similar to :meth:`Series.replace` (:issue:`19495`)
-- Added :attr:`PeriodDtype.unit`, :attr:`Period.unit`, :attr:`PeriodArray.unit`, :attr:`PeriodIndex.unit` string describing the object's resolution, analogous to :attr:`Timestamp.unit` and :attr:`DatetimeIndex.unit` (:issue:`64155`)
 - Display formatting for float sequences in DataFrame cells now respects the ``display.precision`` option (:issue:`60503`).
 - Improved the precision of float parsing in :func:`read_csv` (:issue:`64395`)
 - Improved the string ``repr`` of :class:`pd.core.arrays.SparseArray` (:issue:`64547`)
