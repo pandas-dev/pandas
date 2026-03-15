@@ -2868,6 +2868,15 @@ class ArrowExtensionArray(
                 **kwargs,
             )
 
+        if how in ["first", "last"]:
+            return self._groupby_first_last(
+                how=how,
+                min_count=min_count,
+                ngroups=ngroups,
+                ids=ids,
+                skipna=kwargs.get("skipna", True),
+            )
+
         # maybe convert to a compatible dtype optimized for groupby
         values: ExtensionArray
         pa_type = self._pa_array.type
