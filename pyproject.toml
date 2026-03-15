@@ -142,7 +142,7 @@ build-verbosity = 3
 environment = {LDFLAGS="-Wl,--strip-all"}
 test-extras = "test"
 test-command = """
-  PANDAS_CI='1' python -c 'import pandas as pd; \
+  python -c 'import pandas as pd; \
   pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db", "-n 2", "--no-strict-data-files"]); \
   pd.test(extra_args=["-m not clipboard and single_cpu and not slow and not network and not db", "--no-strict-data-files"]);' \
   """
@@ -153,7 +153,6 @@ before-build = "PACKAGE_DIR={package} bash {package}/scripts/cibw_before_build.s
 environment = {}
 before-build = "pip install delvewheel"
 test-command = """
-  set PANDAS_CI='1' && \
   python -c "import pandas as pd; \
   pd.test(extra_args=['--no-strict-data-files', '-m not clipboard and not single_cpu and not slow and not network and not db']);" \
   """
@@ -162,7 +161,7 @@ repair-wheel-command = "delvewheel repair -w {dest_dir} {wheel}"
 [[tool.cibuildwheel.overrides]]
 select = "*-manylinux_aarch64*"
 test-command = """
-  PANDAS_CI='1' python -c 'import pandas as pd; \
+  python -c 'import pandas as pd; \
   pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db and not fails_arm_wheels", "-n 2", "--no-strict-data-files"]); \
   pd.test(extra_args=["-m not clipboard and single_cpu and not slow and not network and not db", "--no-strict-data-files"]);' \
   """
@@ -186,7 +185,7 @@ repair-wheel-command = ""
 # https://github.com/pyodide/pyodide/issues/5805
 build-verbosity = 1
 test-command = """
-  PANDAS_CI='1' python -c 'import pandas as pd; \
+  python -c 'import pandas as pd; \
   pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db", "--no-strict-data-files"]);' \
   """
 
