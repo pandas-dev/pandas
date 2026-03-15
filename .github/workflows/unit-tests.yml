@@ -194,7 +194,7 @@ jobs:
       uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5
       with:
         flags: unittests
-        name: codecov-pandas-${{ matrix.name }}
+        name: codecov-pandas-${{ matrix.name || format('{0} {1}', matrix.platform, matrix.environment) }}
         fail_ci_if_error: false
         disable_telem: true
       # coverage report appended for single_cpu + not single_cpu steps
