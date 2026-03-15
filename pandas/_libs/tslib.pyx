@@ -1,4 +1,5 @@
 cimport cython
+from libc.stdio cimport snprintf as c_snprintf
 
 from datetime import timezone
 
@@ -83,7 +84,10 @@ from pandas._libs.tslibs.timestamps import Timestamp
 # Note: this is the only non-tslibs intra-pandas dependency here
 
 from pandas._libs.missing cimport checknull_with_nat_and_na
-from pandas._libs.tslibs.tzconversion cimport tz_localize_to_utc_single
+from pandas._libs.tslibs.tzconversion cimport (
+    Localizer,
+    tz_localize_to_utc_single,
+)
 
 
 def _test_parse_iso8601(ts: str):
@@ -109,6 +113,77 @@ def _test_parse_iso8601(ts: str):
         return Timestamp(obj.value, tz=obj.tzinfo)
     else:
         return Timestamp(obj.value)
+
+
+cdef bint _check_posix_snprintf():
+    """Check if C snprintf supports POSIX positional specifiers (%n$)."""
+    cdef char buf[8]
+    cdef int n = c_snprintf(buf, sizeof(buf), b"%2$d%1$d", 1, 2)
+    return n == 2 and buf[0] == ord("2") and buf[1] == ord("1")
+
+
+_POSIX_SNPRINTF = _check_posix_snprintf()
+
+# Maps strftime directives to npy_datetimestruct field references.
+# Used by both the snprintf and str.format() template converters.
+_STRFTIME_SNPRINTF_MAP = {
+    "%Y": "%1$ld",
+    "%m": "%2$02ld",
+    "%d": "%3$02ld",
+    "%H": "%4$02ld",
+    "%M": "%5$02ld",
+    "%S": "%6$02ld",
+    "%f": "%7$06ld",
+    "%%": "%%",
+}
+_STRFTIME_FORMAT_MAP = {
+    "%Y": "{0}",
+    "%m": "{1:02d}",
+    "%d": "{2:02d}",
+    "%H": "{3:02d}",
+    "%M": "{4:02d}",
+    "%S": "{5:02d}",
+    "%f": "{6:06d}",
+    "%%": "%",
+}
+
+
+def _convert_strftime_format(str fmt):
+    """
+    Convert a strftime format string to a fast template for formatting
+    npy_datetimestruct fields directly (avoiding per-element Timestamp
+    creation).
+
+    On POSIX (macOS/Linux): returns bytes for C snprintf with positional args.
+    On Windows: returns str for Python str.format() with positional args.
+    Returns None if the format contains unsupported directives.
+    """
+    directive_map = _STRFTIME_SNPRINTF_MAP if _POSIX_SNPRINTF else _STRFTIME_FORMAT_MAP
+
+    result: list[str] = []
+    cdef Py_ssize_t i = 0
+    cdef Py_ssize_t n = len(fmt)
+
+    while i < n:
+        if fmt[i] == "%" and i + 1 < n:
+            directive = fmt[i:i + 2]
+            replacement = directive_map.get(directive)
+            if replacement is None:
+                return None
+            result.append(replacement)
+            i += 2
+        elif not _POSIX_SNPRINTF and fmt[i] in ("{", "}"):
+            # Escape braces for str.format()
+            result.append(fmt[i] * 2)
+            i += 1
+        else:
+            result.append(fmt[i])
+            i += 1
+
+    template = "".join(result)
+    if _POSIX_SNPRINTF:
+        return template.encode("ascii")
+    return template
 
 
 @cython.wraparound(False)
@@ -144,6 +219,10 @@ def format_array_from_datetime(
         _Timestamp ts
         object res
         npy_datetimestruct dts
+        char snprintf_buf[128]
+        int snprintf_written
+        const char* snprintf_fmt_ptr = NULL
+        Py_ssize_t pos
 
         # Note that `result` (and thus `result_flat`) is C-order and
         #  `it` iterates C-order as well, so the iteration matches
@@ -152,6 +231,17 @@ def format_array_from_datetime(
         ndarray result = cnp.PyArray_EMPTY(values.ndim, values.shape, cnp.NPY_OBJECT, 0)
         object[::1] res_flat = result.ravel()     # should NOT be a copy
         cnp.flatiter it = cnp.PyArray_IterNew(values)
+
+    # Try to convert the format string to a fast template that uses
+    # npy_datetimestruct fields directly, avoiding per-element Timestamp
+    # creation. For tz-aware data, the UTC value is first converted to
+    # local time via a Localizer (this works because _convert_strftime_format
+    # returns None for formats containing %z/%Z).
+    # On POSIX: uses C snprintf (bytes template).
+    # On Windows: uses str.format() (str template).
+    fmt_template = None
+    use_snprintf = False
+    localizer = None
 
     if tz is None:
         # if we don't have a format nor tz, then choose
@@ -176,6 +266,15 @@ def format_array_from_datetime(
         elif format == "%Y-%m-%d":
             # Default format for dates
             basic_format_day = True
+
+    if format is not None and not basic_format and not basic_format_day:
+        fmt_template = _convert_strftime_format(format)
+        if fmt_template is not None:
+            use_snprintf = _POSIX_SNPRINTF
+            if use_snprintf:
+                snprintf_fmt_ptr = fmt_template
+            if tz is not None:
+                localizer = Localizer.__new__(Localizer, tz, reso)
 
     assert not (basic_format_day and basic_format)
 
@@ -203,6 +302,33 @@ def format_array_from_datetime(
                 res += f".{dts.us:06d}"
             elif show_ms:
                 res += f".{dts.us // 1000:03d}"
+
+        elif use_snprintf:
+
+            if localizer is not None:
+                val = (<Localizer>localizer).utc_val_to_local_val(
+                    val, &pos
+                )
+            pandas_datetime_to_datetimestruct(val, reso, &dts)
+            snprintf_written = c_snprintf(
+                snprintf_buf, sizeof(snprintf_buf), snprintf_fmt_ptr,
+                <long>dts.year, <long>dts.month, <long>dts.day,
+                <long>dts.hour, <long>dts.min, <long>dts.sec,
+                <long>dts.us,
+            )
+            res = snprintf_buf[:snprintf_written].decode("ascii")
+
+        elif fmt_template is not None:
+
+            if localizer is not None:
+                val = (<Localizer>localizer).utc_val_to_local_val(
+                    val, &pos
+                )
+            pandas_datetime_to_datetimestruct(val, reso, &dts)
+            res = fmt_template.format(
+                dts.year, dts.month, dts.day,
+                dts.hour, dts.min, dts.sec, dts.us,
+            )
 
         else:
 
