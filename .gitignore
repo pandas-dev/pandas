@@ -84,6 +84,12 @@ monkeytype.sqlite3
 # meson editable install folder
 .mesonpy
 
+### Meson files ###
+# subproject directories
+/subprojects/*
+!/subprojects/*.wrap
+!/subprojects/packagefiles
+
 
 # OS generated files #
 ######################

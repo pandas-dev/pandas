@@ -15,6 +15,7 @@ tslibs_sources = {
             '../src/parser/tokenizer.c',
             '../src/parser/fast_float_strtod.cpp',
         ],
+        'deps': [fast_float_dep],
     },
     'period': {'sources': ['period.pyx']},
     'strptime': {'sources': ['strptime.pyx']},

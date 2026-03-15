@@ -2,7 +2,7 @@
 Thin C++ wrapper exposing fast_float::from_chars with C linkage.
 fast_float provides IEEE 754 round-to-even (i.e. correctly rounded) parsing.
 */
-#include "pandas/vendored/fast_float.h"
+#include "fast_float/fast_float.h"
 
 #include <system_error>
 
