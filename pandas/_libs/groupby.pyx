@@ -6,6 +6,7 @@ from cython cimport (
 from libc.math cimport (
     NAN,
     isfinite,
+    isnan,
     sqrt,
 )
 from libc.stdlib cimport (
@@ -33,8 +34,11 @@ cnp.import_array()
 
 from pandas._libs cimport util
 from pandas._libs.algos cimport (
+    calc_kurt,
+    calc_skew,
     get_rank_nan_fill_val,
     kth_smallest_c,
+    moments_add_value,
 )
 
 from pandas._libs.algos import (
@@ -1008,8 +1012,6 @@ def group_var(
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-@cython.cdivision(True)
-@cython.cpow(True)
 def group_skew(
     float64_t[:, ::1] out,
     int64_t[::1] counts,
@@ -1023,19 +1025,17 @@ def group_skew(
         Py_ssize_t i, j, N, K, lab, ngroups = len(counts)
         int64_t[:, ::1] nobs
         Py_ssize_t len_values = len(values), len_labels = len(labels)
-        bint isna_entry, uses_mask = mask is not None
-        float64_t[:, ::1] M1, M2, M3
-        float64_t delta, delta_n, term1, val
-        int64_t n1, n
-        float64_t ct
+        bint uses_mask = mask is not None
+        float64_t[:, ::1] mean, M2, M3
+        float64_t val
 
     if len_values != len_labels:
         raise ValueError("len(index) != len(labels)")
 
     nobs = np.zeros((<object>out).shape, dtype=np.int64)
 
-    # M1, M2, and M3 correspond to 1st, 2nd, and third Moments
-    M1 = np.zeros((<object>out).shape, dtype=np.float64)
+    mean = np.zeros((<object>out).shape, dtype=np.float64)
+    # M2, and M3 correspond to 2nd and 3rd central moments
     M2 = np.zeros((<object>out).shape, dtype=np.float64)
     M3 = np.zeros((<object>out).shape, dtype=np.float64)
 
@@ -1054,44 +1054,20 @@ def group_skew(
             for j in range(K):
                 val = values[i, j]
 
-                if uses_mask:
-                    isna_entry = mask[i, j]
-                else:
-                    isna_entry = _treat_as_na(val, False)
+                if uses_mask and mask[i, j]:
+                    val = NaN
 
-                if not isna_entry:
-                    # Running stats update based on RunningStats::Push from
-                    #  https://www.johndcook.com/blog/skewness_kurtosis/
-                    n1 = nobs[lab, j]
-                    n = n1 + 1
+                if skipna and (isnan(val) or _treat_as_na(val, False)):
+                    continue
 
-                    nobs[lab, j] = n
-                    delta = val - M1[lab, j]
-                    delta_n = delta / n
-                    term1 = delta * delta_n * n1
-
-                    M1[lab, j] += delta_n
-                    M3[lab, j] += term1 * delta_n * (n - 2) - 3 * delta_n * M2[lab, j]
-                    M2[lab, j] += term1
-                elif not skipna:
-                    M1[lab, j] = NaN
-                    M2[lab, j] = NaN
-                    M3[lab, j] = NaN
+                moments_add_value(val, &nobs[lab, j], &mean[lab, j], &M2[lab, j],
+                                  &M3[lab, j], NULL, 3)
 
         for i in range(ngroups):
             for j in range(K):
-                ct = <float64_t>nobs[i, j]
-                if ct < 3:
-                    if result_mask is not None:
-                        result_mask[i, j] = 1
-                    out[i, j] = NaN
-                elif M2[i, j] == 0:
-                    out[i, j] = 0
-                else:
-                    out[i, j] = (
-                        (ct * (ct - 1) ** 0.5 / (ct - 2))
-                        * (M3[i, j] / M2[i, j] ** 1.5)
-                    )
+                out[i, j] = calc_skew(nobs[i, j], M2[i, j], M3[i, j])
+                if result_mask is not None and isnan(out[i, j]):
+                    result_mask[i, j] = 1
 
 
 @cython.wraparound(False)
@@ -1111,19 +1087,17 @@ def group_kurt(
         Py_ssize_t i, j, N, K, lab, ngroups = len(counts)
         int64_t[:, ::1] nobs
         Py_ssize_t len_values = len(values), len_labels = len(labels)
-        bint isna_entry, uses_mask = mask is not None
-        float64_t[:, ::1] M1, M2, M3, M4
-        float64_t delta, delta_n, delta_n2, term1, val
-        int64_t n1, n
-        float64_t ct, num, den, adj
+        bint uses_mask = mask is not None
+        float64_t[:, ::1] mean, M2, M3, M4
+        float64_t val
 
     if len_values != len_labels:
         raise ValueError("len(index) != len(labels)")
 
     nobs = np.zeros((<object>out).shape, dtype=np.int64)
 
-    # M1, M2, M3 and M4 correspond to 1st, 2nd, 3rd and 4th Moments
-    M1 = np.zeros((<object>out).shape, dtype=np.float64)
+    mean = np.zeros((<object>out).shape, dtype=np.float64)
+    # M2, M3 and M4 correspond to 2nd, 3rd and 4th Central Moments
     M2 = np.zeros((<object>out).shape, dtype=np.float64)
     M3 = np.zeros((<object>out).shape, dtype=np.float64)
     M4 = np.zeros((<object>out).shape, dtype=np.float64)
@@ -1143,49 +1117,20 @@ def group_kurt(
             for j in range(K):
                 val = values[i, j]
 
-                if uses_mask:
-                    isna_entry = mask[i, j]
-                else:
-                    isna_entry = _treat_as_na(val, False)
+                if uses_mask and mask[i, j]:
+                    val = NaN
 
-                if not isna_entry:
-                    # Running stats update based on RunningStats::Push from
-                    #  https://www.johndcook.com/blog/skewness_kurtosis/
-                    n1 = nobs[lab, j]
-                    n = n1 + 1
+                if skipna and (isnan(val) or _treat_as_na(val, False)):
+                    continue
 
-                    nobs[lab, j] = n
-                    delta = val - M1[lab, j]
-                    delta_n = delta / n
-                    delta_n2 = delta_n * delta_n
-                    term1 = delta * delta_n * n1
-
-                    M1[lab, j] += delta_n
-                    M4[lab, j] += (term1 * delta_n2 * (n*n - 3*n + 3)
-                                   + 6 * delta_n2 * M2[lab, j]
-                                   - 4 * delta_n * M3[lab, j])
-                    M3[lab, j] += term1 * delta_n * (n - 2) - 3 * delta_n * M2[lab, j]
-                    M2[lab, j] += term1
-                elif not skipna:
-                    M1[lab, j] = NaN
-                    M2[lab, j] = NaN
-                    M3[lab, j] = NaN
-                    M4[lab, j] = NaN
+                moments_add_value(val, &nobs[lab, j], &mean[lab, j], &M2[lab, j],
+                                  &M3[lab, j], &M4[lab, j], 4)
 
         for i in range(ngroups):
             for j in range(K):
-                ct = <float64_t>nobs[i, j]
-                if ct < 4:
-                    if result_mask is not None:
-                        result_mask[i, j] = 1
-                    out[i, j] = NaN
-                elif M2[i, j] == 0:
-                    out[i, j] = 0
-                else:
-                    num = ct * (ct + 1) * (ct - 1) * M4[i, j]
-                    den = (ct - 2) * (ct - 3) * M2[i, j] ** 2
-                    adj = 3.0 * (ct - 1) ** 2 / ((ct - 2) * (ct - 3))
-                    out[i, j] = num / den - adj
+                out[i, j] = calc_kurt(nobs[i, j], M2[i, j], M4[i, j])
+                if result_mask is not None and isnan(out[i, j]):
+                    result_mask[i, j] = 1
 
 
 @cython.wraparound(False)

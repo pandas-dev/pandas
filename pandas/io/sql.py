@@ -1305,6 +1305,7 @@ class SQLTable(PandasObject):
         """
         parse_dates = _process_parse_dates_argument(parse_dates)
 
+        assert self.frame is not None  # caller always sets frame before this
         for sql_col in self.table.columns:
             col_name = sql_col.name
             try:

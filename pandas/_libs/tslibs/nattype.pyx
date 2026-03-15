@@ -1063,6 +1063,40 @@ class NaTType(_NaT):
         Timestamp('2020-03-14 15:32:52+0000', tz='UTC')
         """,
     )
+    fromisoformat = _make_error_func(
+        "fromisoformat",
+        """
+        Construct a Timestamp from a string in ISO 8601 format.
+
+        This classmethod wraps :meth:`datetime.datetime.fromisoformat`,
+        returning a :class:`Timestamp` instead of a :class:`datetime.datetime`.
+
+        Parameters
+        ----------
+        date_string : str
+            A date-time string in one of the ISO 8601 formats supported by
+            :meth:`datetime.datetime.fromisoformat`.
+
+        Returns
+        -------
+        Timestamp
+            A Timestamp corresponding to the parsed date-time string.
+
+        See Also
+        --------
+        Timestamp : Represents a single timestamp, similar to ``datetime``.
+        to_datetime : Convert argument to datetime.
+        datetime.datetime.fromisoformat : The standard library counterpart.
+
+        Examples
+        --------
+        >>> pd.Timestamp.fromisoformat("2023-01-15")
+        Timestamp('2023-01-15 00:00:00')
+
+        >>> pd.Timestamp.fromisoformat("2023-01-15T10:30:00")
+        Timestamp('2023-01-15 10:30:00')
+        """,
+    )
     combine = _make_error_func(
         "combine",
         """

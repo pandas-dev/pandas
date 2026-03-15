@@ -444,7 +444,7 @@ class Apply(metaclass=abc.ABCMeta):
         obj = self.obj
 
         results = []
-        keys = []
+        keys: list[Hashable] = []
 
         # degenerate case
         if selected_obj.ndim == 1:
@@ -1896,7 +1896,7 @@ def normalize_keyword_aggregation(
     uniquified_aggspec = _make_unique_kwarg_list(aggspec_order)
 
     # get the new index of columns by comparison
-    col_idx_order = Index(uniquified_aggspec).get_indexer(uniquified_order)
+    col_idx_order = Index(uniquified_aggspec).get_indexer(uniquified_order)  # type: ignore[arg-type]
     return aggspec, columns, col_idx_order
 
 
@@ -1987,7 +1987,8 @@ def relabel_result(
         # mean  1.5
         if reorder_mask:
             fun = [
-                com.get_callable_name(f) if not isinstance(f, str) else f for f in fun
+                com.get_callable_name(f) if not isinstance(f, str) else f  # type: ignore[misc]
+                for f in fun
             ]
             col_idx_order = Index(s.index, copy=False).get_indexer(fun)
             valid_idx = col_idx_order != -1

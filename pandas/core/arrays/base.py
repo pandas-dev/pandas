@@ -2436,6 +2436,9 @@ class ExtensionArray:
         """
         Count the number of non-NA values in the array.
 
+        This method returns the number of elements in the
+        :class:`ExtensionArray` that are not missing (i.e., not NA/null).
+
         Returns
         -------
         scalar

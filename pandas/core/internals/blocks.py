@@ -1048,33 +1048,19 @@ class Block(PandasObject, libinternals.Block):
         fill_value : int
             Only used in ExtensionBlock._unstack
         new_placement : np.ndarray[np.intp]
-        allow_fill : bool
         needs_masking : np.ndarray[bool]
+            Only used in ExtensionBlock._unstack
 
         Returns
         -------
         blocks : list of Block
             New blocks of unstacked values.
-        mask : array-like of bool
-            The mask of columns of `blocks` we should keep.
         """
-        new_values, mask = unstacker.get_new_values(
-            self.values.T, fill_value=fill_value
-        )
-
-        mask = mask.any(0)
-        # TODO: in all tests we have mask.all(); can we rely on that?
-
-        # Note: these next two lines ensure that
-        #  mask.sum() == sum(len(nb.mgr_locs) for nb in blocks)
-        #  which the calling function needs in order to pass verify_integrity=False
-        #  to the BlockManager constructor
-        new_values = new_values.T[mask]
-        new_placement = new_placement[mask]
+        new_values = unstacker.get_new_values(self.values.T, fill_value=fill_value)
 
         bp = BlockPlacement(new_placement)
-        blocks = [new_block_2d(new_values, placement=bp)]
-        return blocks, mask
+        blocks = [new_block_2d(new_values.T, placement=bp)]
+        return blocks
 
     # ---------------------------------------------------------------------
 
@@ -1418,15 +1404,13 @@ class Block(PandasObject, libinternals.Block):
     def diff(self, n: int) -> list[Block]:
         """return block for the diff of the values"""
         # only reached with ndim == 2
-        # TODO(EA2D): transpose will be unnecessary with 2D EAs
-        new_values = algos.diff(self.values.T, n, axis=0).T
+        new_values = algos.diff(self.values, n, axis=self.values.ndim - 1)
         return [self.make_block(values=new_values)]
 
     def shift(self, periods: int, fill_value: Any = None) -> list[Block]:
         """shift the block by periods, possibly upcast"""
         # convert integer to float if necessary. need to do a lot more than
         # that, handle boolean etc also
-        axis = self.ndim - 1
 
         # Note: periods is never 0 here, as that is handled at the top of
         #  NDFrame.shift.  If that ever changes, we can do a check for periods=0
@@ -1465,7 +1449,7 @@ class Block(PandasObject, libinternals.Block):
 
         else:
             values = cast("np.ndarray", self.values)
-            new_values = shift(values, periods, axis, casted)
+            new_values = shift(values, periods, casted)
             return [self.make_block_same_class(new_values)]
 
     @final
@@ -1621,9 +1605,7 @@ class EABackedBlock(Block):
         Dispatches to underlying ExtensionArray and re-boxes in an
         ExtensionBlock.
         """
-        # Transpose since EA.shift is always along axis=0, while we want to shift
-        #  along rows.
-        new_values = self.values.T.shift(periods=periods, fill_value=fill_value).T
+        new_values = self.values.shift(periods=periods, fill_value=fill_value)
         return [self.make_block_same_class(new_values)]
 
     @final
@@ -2103,14 +2085,7 @@ class ExtensionBlock(EABackedBlock):
         # a `take` on the actual values.
 
         # Caller is responsible for ensuring self.shape[-1] == len(unstacker.index)
-        new_values, mask = unstacker.arange_result
-
-        # Note: these next two lines ensure that
-        #  mask.sum() == sum(len(nb.mgr_locs) for nb in blocks)
-        #  which the calling function needs in order to pass verify_integrity=False
-        #  to the BlockManager constructor
-        new_values = new_values.T[mask]
-        new_placement = new_placement[mask]
+        new_values = unstacker.arange_result
 
         # needs_masking[i] calculated once in BlockManager.unstack tells
         #  us if there are any -1s in the relevant indices.  When False,
@@ -2126,10 +2101,10 @@ class ExtensionBlock(EABackedBlock):
                 ndim=2,
             )
             for i, (indices, place) in enumerate(
-                zip(new_values, new_placement, strict=True)
+                zip(new_values.T, new_placement, strict=True)
             )
         ]
-        return blocks, mask
+        return blocks
 
 
 class NumpyBlock(Block):
