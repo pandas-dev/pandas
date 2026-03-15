@@ -53,13 +53,19 @@ _khash_primitive_helper_dep = declare_dependency(
 m_dep = cc.find_library('m', required: false)
 
 subdir('tslibs')
+openmp_dep = dependency('OpenMP', required: false)
 
 libs_sources = {
     # Dict of extension name -> dict of {sources, include_dirs, and deps}
     # numpy include dir is implicitly included
     'algos': {
-        'sources': ['algos.pyx', _algos_common_helper, _algos_take_helper],
-        'deps': [_khash_primitive_helper_dep, m_dep],
+        'sources': [
+            'algos.pyx',
+            'src/moments.c',
+            _algos_common_helper,
+            _algos_take_helper,
+        ],
+        'deps': [_khash_primitive_helper_dep, m_dep, openmp_dep],
     },
     'arrays': {'sources': ['arrays.pyx']},
     'groupby': {'sources': ['groupby.pyx'], 'deps': [m_dep]},

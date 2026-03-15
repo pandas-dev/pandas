@@ -1229,7 +1229,8 @@ def test_nanops_independent_of_mask_param(operation):
     mask = ser.isna()
     median_expected = operation(ser._values)
     median_result = operation(ser._values, mask=mask._values)
-    assert median_expected == median_result
+    # reductions computed in parallel may yield different results
+    tm.assert_almost_equal(median_result, median_expected)
 
 
 @pytest.mark.parametrize("min_count", [-1, 0])
