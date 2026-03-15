@@ -2914,14 +2914,21 @@ class ArrowExtensionArray(
         else:
             # DatetimeArray, TimedeltaArray — convert via underlying ndarray
             # to avoid pyarrow calling Series.values (deprecated for tz-aware)
+            from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
+
+            assert isinstance(result, DatetimeLikeArrayMixin)
             pa_result = pa.array(result._ndarray, from_pandas=True)
-            if hasattr(result.dtype, "tz") and result.dtype.tz is not None:
+            dtype = result.dtype
+            if hasattr(dtype, "tz") and dtype.tz is not None:
                 pa_result = pa_result.cast(
-                    pa.timestamp(result.dtype.unit, tz=str(result.dtype.tz))
+                    pa.timestamp(
+                        dtype.unit,  # type: ignore[attr-defined]
+                        tz=str(dtype.tz),
+                    )
                 )
-            elif hasattr(result.dtype, "unit"):
+            elif hasattr(dtype, "unit"):
                 # TimedeltaArray
-                pa_result = pa_result.cast(pa.duration(result.dtype.unit))
+                pa_result = pa_result.cast(pa.duration(dtype.unit))
             return self._from_pyarrow_array(pa_result)
 
     def _apply_elementwise(self, func: Callable) -> list[list[Any]]:
