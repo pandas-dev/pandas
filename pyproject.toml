@@ -552,7 +552,6 @@ module = [
   "pandas.core.indexes.interval", # TODO
   "pandas.core.indexes.multi", # TODO
   "pandas.core.indexes.period", # TODO
-  "pandas.core.indexes.range", # TODO
   "pandas.core.indexes.timedeltas", # TODO
   "pandas.core.interchange.column", # TODO
   "pandas.core.interchange.dataframe_protocol", # TODO
