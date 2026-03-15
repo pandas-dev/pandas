@@ -113,6 +113,9 @@ Performance improvements
 - Performance improvement in :func:`merge` with ``how="left"`` (:issue:`64370`)
 - Performance improvement in :meth:`GroupBy.quantile` (:issue:`64330`)
 - Performance improvement in datetime/timedelta unit conversion (e.g. ``datetime64[s]`` to ``datetime64[ns]``) (:issue:`35025`)
+- Performance improvement in :meth:`DataFrame.loc` and :meth:`DataFrame.iloc`
+  setitem with a 2D list-of-lists value by avoiding a wasteful round-trip
+  through an intermediate object array (:issue:`64229`).
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_310.bug_fixes:
