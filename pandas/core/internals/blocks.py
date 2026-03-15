@@ -1640,9 +1640,14 @@ class EABackedBlock(Block):
 
         values = self.values
         if values.ndim == 2:
-            # TODO(GH#45419): string[pyarrow] tests break if we transpose
-            #  unconditionally
-            values = values.T
+            # GH#45419 Adapt indexer/value to storage layout (nblocks, nrows)
+            #  instead of transposing values, since EA.T may not be a view.
+            if not isinstance(indexer, tuple):
+                indexer = (indexer, slice(None))
+            if len(indexer) == 2:
+                indexer = indexer[::-1]
+            if isinstance(value, np.ndarray) and value.ndim == 2:
+                value = value.T
         check_setitem_lengths(indexer, value, values)
 
         try:
@@ -1749,7 +1754,9 @@ class EABackedBlock(Block):
         self = self._maybe_copy(inplace=True)
         values = self.values
         if values.ndim == 2:
-            values = values.T
+            # GH#45419 Transpose the mask to storage layout instead of
+            #  transposing values, since EA.T may not be a view.
+            mask = mask.T
 
         try:
             # Caller is responsible for ensuring matching lengths
