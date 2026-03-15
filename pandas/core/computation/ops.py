@@ -147,7 +147,7 @@ class Term:
     def type(self):
         try:
             # potentially very slow for large, mixed dtype frames
-            return self._value.values.dtype
+            return self._value._values.dtype
         except AttributeError:
             try:
                 # ndarray

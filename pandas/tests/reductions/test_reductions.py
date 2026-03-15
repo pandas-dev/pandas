@@ -61,20 +61,15 @@ class TestReductions:
     def test_ops(self, opname, obj):
         result = getattr(obj, opname)()
         if not isinstance(obj, PeriodIndex):
-            if isinstance(obj.values, ArrowStringArray):
+            if isinstance(obj._values, ArrowStringArray):
                 # max not on the interface
-                expected = getattr(np.array(obj.values), opname)()
+                expected = getattr(np.array(obj._values), opname)()
             else:
-                expected = getattr(obj.values, opname)()
+                expected = getattr(obj._values, opname)()
         else:
             expected = Period(ordinal=getattr(obj.asi8, opname)(), freq=obj.freq)
 
-        if getattr(obj, "tz", None) is not None:
-            # We need to de-localize before comparing to the numpy-produced result
-            expected = expected.astype("M8[ns]").astype("int64")
-            assert result._value == expected
-        else:
-            assert result == expected
+        assert result == expected
 
     @pytest.mark.parametrize("opname", ["max", "min"])
     @pytest.mark.parametrize(

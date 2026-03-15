@@ -13,7 +13,7 @@ def test_unique(index_or_series_obj):
     result = obj.unique()
 
     # dict.fromkeys preserves the order
-    unique_values = list(dict.fromkeys(obj.values))
+    unique_values = list(dict.fromkeys(obj._values))
     if isinstance(obj, pd.MultiIndex):
         expected = pd.MultiIndex.from_tuples(unique_values)
         expected.names = obj.names
@@ -55,7 +55,7 @@ def test_unique_null(null_obj, index_or_series_obj, using_nan_is_na):
     obj = klass(repeated_values, dtype=obj.dtype)
     result = obj.unique()
 
-    unique_values_raw = dict.fromkeys(obj.values)
+    unique_values_raw = dict.fromkeys(obj._values)
     # because np.nan == np.nan is False, but None == None is True
     # np.nan would be duplicated, whereas None wouldn't
     unique_values_not_null = [val for val in unique_values_raw if not pd.isnull(val)]

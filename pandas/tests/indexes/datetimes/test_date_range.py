@@ -875,7 +875,7 @@ class TestDateRangeTZ:
         tm.assert_index_equal(rng, rng2)
 
         rng3 = date_range("3/11/2012 05:00:00+07:00", "6/11/2012 05:00:00+07:00")
-        assert (rng.values == rng3.values).all()
+        assert (rng._values == rng3._values).all()
 
     def test_date_range_with_fixedoffset_noname(self):
         off = fixed_off_no_name

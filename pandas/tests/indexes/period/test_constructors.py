@@ -243,8 +243,9 @@ class TestPeriodIndex:
         idx = period_range("2007-01", periods=20, freq="M")
 
         # values is an array of Period, thus can retrieve freq
-        tm.assert_index_equal(PeriodIndex(idx.values), idx)
-        tm.assert_index_equal(PeriodIndex(list(idx.values)), idx)
+        vals = np.asarray(idx, dtype=object)
+        tm.assert_index_equal(PeriodIndex(vals), idx)
+        tm.assert_index_equal(PeriodIndex(list(vals)), idx)
 
         msg = "freq not specified and cannot be inferred"
         with pytest.raises(ValueError, match=msg):
@@ -625,7 +626,7 @@ class TestPeriodIndex:
     @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_recreate_from_data(self, freq):
         org = period_range(start="2001/04/01", freq=freq, periods=1)
-        idx = PeriodIndex(org.values, freq=freq)
+        idx = PeriodIndex(np.asarray(org, dtype=object), freq=freq)
         tm.assert_index_equal(idx, org)
 
     def test_map_with_string_constructor(self):

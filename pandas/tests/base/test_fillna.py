@@ -22,7 +22,7 @@ def test_fillna(index_or_series_obj):
         return
 
     # values will not be changed
-    fill_value = obj.values[0] if len(obj) > 0 else 0
+    fill_value = obj._values[0] if len(obj) > 0 else 0
     result = obj.fillna(fill_value)
 
     tm.assert_equal(obj, result)

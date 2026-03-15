@@ -8,6 +8,7 @@ from typing import (
     TYPE_CHECKING,
     Self,
 )
+import warnings
 
 import numpy as np
 
@@ -22,10 +23,12 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 from pandas._libs.tslibs.dtypes import OFFSET_TO_PERIOD_FREQSTR
+from pandas.errors import Pandas4Warning
 from pandas.util._decorators import (
     cache_readonly,
     set_module,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_integer,
@@ -498,6 +501,15 @@ class PeriodIndex(DatetimeIndexOpsMixin):
 
     @property
     def values(self) -> npt.NDArray[np.object_]:
+        warnings.warn(
+            "PeriodIndex.values returning an object-dtype ndarray is "
+            "deprecated. In a future version, this will return the "
+            "underlying PeriodArray instead. Use 'PeriodIndex.to_numpy()' "
+            "to get a NumPy array, or 'PeriodIndex.array' to get the "
+            "ExtensionArray.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
         return np.asarray(self, dtype=object)
 
     def _maybe_convert_timedelta(self, other) -> int | npt.NDArray[np.int64]:
