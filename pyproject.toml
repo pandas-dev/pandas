@@ -592,7 +592,6 @@ module = [
   "pandas.core.sample", # TODO
   "pandas.core.series", # TODO
   "pandas.core.sorting", # TODO
-  "pandas.errors", # TODO
   "pandas.io.clipboard", # TODO
   "pandas.io.excel._base", # TODO
   "pandas.io.excel._odfreader", # TODO
