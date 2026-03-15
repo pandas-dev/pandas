@@ -446,7 +446,7 @@ class HTMLFormatter:
                 index_values = self.fmt.tr_frame.index.map(fmt)
             else:
                 # only reached with non-Multi index
-                index_values = self.fmt.tr_frame.index._format_flat(include_name=False)
+                index_values = self.fmt.tr_frame.index._format_flat(include_name=False)  # type: ignore[assignment]
 
         row: list[str] = []
         for i in range(nrows):
@@ -462,7 +462,7 @@ class HTMLFormatter:
 
             row = []
             if self.fmt.index:
-                row.append(index_values[i])
+                row.append(index_values[i])  # pyright: ignore[reportArgumentType]
             # see gh-22579
             # Column misalignment also occurs for
             # a standard index when the columns index is named.

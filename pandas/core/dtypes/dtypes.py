@@ -337,7 +337,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
                     "Cannot specify `categories` or `ordered` together with `dtype`."
                 )
             elif not isinstance(dtype, CategoricalDtype):
-                raise ValueError(f"Cannot not construct CategoricalDtype from {dtype}")
+                raise ValueError(f"Cannot construct CategoricalDtype from {dtype}")
         elif cls.is_dtype(values):
             # If no "dtype" was passed, use the one from "values", but honor
             # the "ordered" and "categories" arguments
@@ -832,6 +832,9 @@ class DatetimeTZDtype(PandasExtensionDtype):
         """
         The precision of the datetime data.
 
+        Returns the time resolution as one of ``'s'``, ``'ms'``, ``'us'``,
+        or ``'ns'``.
+
         See Also
         --------
         DatetimeTZDtype.tz : Retrieves the timezone.
@@ -849,6 +852,9 @@ class DatetimeTZDtype(PandasExtensionDtype):
     def tz(self) -> tzinfo:
         """
         The timezone.
+
+        Returns the :class:`datetime.tzinfo` object associated with this
+        dtype, representing the timezone used for localization.
 
         See Also
         --------
@@ -1362,6 +1368,9 @@ class IntervalDtype(PandasExtensionDtype):
     def subtype(self):
         """
         The dtype of the Interval bounds.
+
+        Each interval in an :class:`~pandas.arrays.IntervalArray` has the same
+        data type for its left and right bounds. ``subtype`` returns that dtype.
 
         See Also
         --------

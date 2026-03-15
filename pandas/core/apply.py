@@ -444,7 +444,7 @@ class Apply(metaclass=abc.ABCMeta):
         obj = self.obj
 
         results = []
-        keys = []
+        keys: list[Hashable] = []
 
         # degenerate case
         if selected_obj.ndim == 1:
@@ -919,7 +919,7 @@ class FrameApply(NDFrameApply):
     @functools.cache
     @abc.abstractmethod
     def generate_numba_apply_func(
-        func, nogil=True, nopython=True, parallel=False
+        func, nogil: bool = True, parallel: bool = False
     ) -> Callable[[npt.NDArray, Index, Index], dict[int, Any]]:
         pass
 
@@ -1244,7 +1244,7 @@ class FrameRowApply(FrameApply):
     @staticmethod
     @functools.cache
     def generate_numba_apply_func(
-        func, nogil=True, nopython=True, parallel=False
+        func, nogil: bool = True, parallel: bool = False
     ) -> Callable[[npt.NDArray, Index, Index], dict[int, Any]]:
         numba = import_optional_dependency("numba")
         from pandas import Series
@@ -1257,7 +1257,7 @@ class FrameRowApply(FrameApply):
 
         # Currently the parallel argument doesn't get passed through here
         # (it's disabled) since the dicts in numba aren't thread-safe.
-        @numba.jit(nogil=nogil, nopython=nopython, parallel=parallel)
+        @numba.jit(nogil=nogil, parallel=parallel)
         def numba_func(values, col_names, df_index, *args):
             results = {}
             for j in range(values.shape[1]):
@@ -1386,7 +1386,7 @@ class FrameColumnApply(FrameApply):
     @staticmethod
     @functools.cache
     def generate_numba_apply_func(
-        func, nogil=True, nopython=True, parallel=False
+        func, nogil: bool = True, parallel: bool = False
     ) -> Callable[[npt.NDArray, Index, Index], dict[int, Any]]:
         numba = import_optional_dependency("numba")
         from pandas import Series
@@ -1394,7 +1394,7 @@ class FrameColumnApply(FrameApply):
 
         jitted_udf = numba.extending.register_jitable(func)
 
-        @numba.jit(nogil=nogil, nopython=nopython, parallel=parallel)
+        @numba.jit(nogil=nogil, parallel=parallel)
         def numba_func(values, col_names_index, index, *args):
             results = {}
             # Currently the parallel argument doesn't get passed through here
@@ -1896,7 +1896,7 @@ def normalize_keyword_aggregation(
     uniquified_aggspec = _make_unique_kwarg_list(aggspec_order)
 
     # get the new index of columns by comparison
-    col_idx_order = Index(uniquified_aggspec).get_indexer(uniquified_order)
+    col_idx_order = Index(uniquified_aggspec).get_indexer(uniquified_order)  # type: ignore[arg-type]
     return aggspec, columns, col_idx_order
 
 
@@ -1987,7 +1987,8 @@ def relabel_result(
         # mean  1.5
         if reorder_mask:
             fun = [
-                com.get_callable_name(f) if not isinstance(f, str) else f for f in fun
+                com.get_callable_name(f) if not isinstance(f, str) else f  # type: ignore[misc]
+                for f in fun
             ]
             col_idx_order = Index(s.index, copy=False).get_indexer(fun)
             valid_idx = col_idx_order != -1

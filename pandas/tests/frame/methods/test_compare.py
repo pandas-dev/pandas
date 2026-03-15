@@ -26,6 +26,8 @@ def test_compare_axis(align_axis):
             index=indices,
             columns=columns,
         )
+        assert isinstance(result.columns, pd.MultiIndex)
+        assert not isinstance(result.index, pd.MultiIndex)
     else:
         indices = pd.MultiIndex.from_product([range(0, 4, 2), ["self", "other"]])
         columns = pd.Index(["col1", "col3"])
@@ -34,6 +36,8 @@ def test_compare_axis(align_axis):
             index=indices,
             columns=columns,
         )
+        assert isinstance(result.index, pd.MultiIndex)
+        assert not isinstance(result.columns, pd.MultiIndex)
     tm.assert_frame_equal(result, expected)
 
 

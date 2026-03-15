@@ -262,3 +262,10 @@ class TestReductions:
             res = arr_na.max(**kws)
             assert res == MAX
             assert type(res) == type(MAX)
+
+
+def test_fillna_non_scalar_raises():
+    arr = IntervalArray.from_tuples([None, (0, 1)])
+    msg = "can only insert Interval objects and NA into an IntervalArray"
+    with pytest.raises(TypeError, match=msg):
+        arr.fillna([1, 1])
