@@ -494,7 +494,7 @@ class MPLPlot(ABC):
             # This was originally written to use values.values before EAs
             #  were implemented; adding np.asarray(...) to keep consistent
             #  typing.
-            yield col, np.asarray(values.values)
+            yield col, np.asarray(values._values)
 
     def _get_nseries(self, data: Series | DataFrame) -> int:
         # When `by` is explicitly assigned, grouped data size will be defined, and
@@ -1162,7 +1162,7 @@ class MPLPlot(ABC):
 
         # errors are a column in the dataframe
         elif isinstance(err, str):
-            evalues = data[err].values
+            evalues = data[err]._values
             data = data[data.columns.drop(err)]
             err = np.atleast_2d(evalues)
             err = np.tile(err, (nseries, 1))
@@ -1391,8 +1391,8 @@ class ScatterPlot(PlanePlot):
             )
 
         scatter = ax.scatter(
-            x_data.values,
-            data[y].values,
+            x_data._values,
+            data[y]._values,
             c=c_values,
             label=label,
             cmap=cmap,
@@ -1422,7 +1422,7 @@ class ScatterPlot(PlanePlot):
         if len(errors_x) > 0 or len(errors_y) > 0:
             err_kwds = dict(errors_x, **errors_y)
             err_kwds["ecolor"] = scatter.get_facecolor()[0]
-            ax.errorbar(data[x].values, data[y].values, linestyle="none", **err_kwds)
+            ax.errorbar(data[x]._values, data[y]._values, linestyle="none", **err_kwds)
 
     def _get_c_values(self, color, color_by_categorical: bool, c_is_column: bool):
         c = self.c
@@ -1435,7 +1435,7 @@ class ScatterPlot(PlanePlot):
         elif color_by_categorical:
             c_values = self.data[c].cat.codes
         elif c_is_column:
-            c_values = self.data[c].values
+            c_values = self.data[c]._values
         else:
             c_values = c
         return c_values
@@ -1529,9 +1529,9 @@ class HexBinPlot(PlanePlot):
         if C is None:
             c_values = None
         else:
-            c_values = data[C].values
+            c_values = data[C]._values
 
-        ax.hexbin(data[x].values, data[y].values, C=c_values, cmap=cmap, **self.kwds)
+        ax.hexbin(data[x]._values, data[y]._values, C=c_values, cmap=cmap, **self.kwds)
         if cb:
             self._plot_colorbar(ax, fig=fig)
 
