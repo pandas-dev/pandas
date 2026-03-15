@@ -11,6 +11,7 @@ from pandas.compat import (
     is_platform_windows,
 )
 from pandas.compat.numpy import np_version_gt2
+from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -848,7 +849,7 @@ class TestDataFrameAnalytics:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("method, unit", [("sum", 0), ("prod", 1)])
-    @pytest.mark.parametrize("numeric_only", [None, True, False])
+    @pytest.mark.parametrize("numeric_only", [True, False])
     def test_sum_prod_nanops(self, method, unit, numeric_only):
         idx = ["a", "b", "c"]
         df = DataFrame({"a": [unit, unit], "b": [unit, np.nan], "c": [np.nan, np.nan]})
@@ -1744,6 +1745,41 @@ class TestDataFrameReductions:
         with pytest.raises(ValueError, match=msg):
             getattr(obj, all_reductions)(skipna=None)
 
+    @pytest.mark.parametrize(
+        "method",
+        ["sum", "prod", "min", "max", "mean", "median", "std", "var", "sem"],
+    )
+    @pytest.mark.parametrize(
+        "numeric_only",
+        [None, "True", 1],
+    )
+    def test_reductions_numeric_only_non_bool_deprecated(
+        self, frame_or_series, method, numeric_only
+    ):
+        obj = frame_or_series([1, 2, 3])
+        expected = getattr(obj, method)(numeric_only=bool(numeric_only))
+        msg = (
+            "Passing non-bool values for numeric_only is deprecated and will "
+            "raise in a future version. Pass True or False instead."
+        )
+        with tm.assert_produces_warning(Pandas4Warning, match=re.escape(msg)):
+            result = getattr(obj, method)(numeric_only=numeric_only)
+        tm.assert_equal(result, expected)
+
+    @pytest.mark.parametrize("numeric_only", [None, "True", 1])
+    def test_reductions_numeric_only_non_bool_preserves_current_sum_behavior(
+        self, numeric_only
+    ):
+        df = DataFrame({"a": [1, 2], "b": ["x", "y"]})
+        expected = df.sum(numeric_only=bool(numeric_only))
+        msg = (
+            "Passing non-bool values for numeric_only is deprecated and will "
+            "raise in a future version. Pass True or False instead."
+        )
+        with tm.assert_produces_warning(Pandas4Warning, match=re.escape(msg)):
+            result = df.sum(numeric_only=numeric_only)
+        tm.assert_series_equal(result, expected)
+
     def test_reduction_timestamp_smallest_unit(self):
         # GH#52524
         df = DataFrame(
@@ -2026,7 +2062,7 @@ def test_mixed_frame_with_integer_sum():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("numeric_only", [True, False, None])
+@pytest.mark.parametrize("numeric_only", [True, False])
 @pytest.mark.parametrize("method", ["min", "max"])
 def test_minmax_extensionarray(method, numeric_only):
     # https://github.com/pandas-dev/pandas/issues/32651
