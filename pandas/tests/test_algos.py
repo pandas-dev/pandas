@@ -573,7 +573,7 @@ class TestUnique:
         result = algos.unique(index)
 
         # dict.fromkeys preserves the order
-        unique_values = list(dict.fromkeys(index.values))
+        unique_values = list(dict.fromkeys(index._values))
         if isinstance(index, MultiIndex):
             expected = MultiIndex.from_tuples(unique_values, names=index.names)
         else:
