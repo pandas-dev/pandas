@@ -187,6 +187,8 @@ class MPLPlot(ABC):
         # while column is not, only need `columns` in hist/box plot when it's DF
         # TODO: Might deprecate `column` argument in future PR (#28373)
         if isinstance(data, ABCDataFrame):
+            if self._kind in ("hist", "box") and not data.columns.is_unique:
+                raise ValueError("plotting requires unique column names")
             if column:
                 self.columns = com.maybe_make_list(column)
             elif self.by is None:
