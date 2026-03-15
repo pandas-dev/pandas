@@ -482,6 +482,51 @@ class TestMMapWrapper:
             pd.read_csv(temp_file, compression=compression_, encoding=encoding)
 
 
+def test_urlopen_timeout_from_storage_options(monkeypatch):
+    import pandas.io.common as icom
+
+    called = {}
+
+    class DummyResponse:
+        def __init__(self, data: bytes):
+            self._data = data
+            # pandas checks req.headers.get("Content-Encoding", None)
+            self.headers: dict[str, str] = {}
+
+        def read(self) -> bytes:
+            return self._data
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+    def fake_urlopen(req, **kwargs):
+        # capture timeout passed down into urlopen()
+        called["timeout"] = kwargs.get("timeout", None)
+
+        # req is a urllib.request.Request; its headers are normalized internally
+        # Ensure our reserved key was NOT forwarded as an HTTP header.
+        assert not any(k.lower() == "urlopen_timeout" for k in req.headers)
+
+        return DummyResponse(b"a,b\n1,2\n")
+
+    # Patch the wrapper used by pandas.io.common._get_filepath_or_buffer
+    monkeypatch.setattr(icom, "urlopen", fake_urlopen)
+
+    opts = {"urlopen_timeout": 5, "User-Agent": "foo"}
+
+    ioargs = icom._get_filepath_or_buffer(
+        "http://example.com/test.csv",
+        storage_options=opts,
+    )
+
+    assert called["timeout"] == 5
+    assert opts == {"urlopen_timeout": 5, "User-Agent": "foo"}  # not mutated
+    assert ioargs.filepath_or_buffer.getvalue() == b"a,b\n1,2\n"
+
+
 def test_is_fsspec_url():
     assert icom.is_fsspec_url("gcs://pandas/somethingelse.com")
     assert icom.is_fsspec_url("gs://pandas/somethingelse.com")

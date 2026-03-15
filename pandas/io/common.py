@@ -332,7 +332,9 @@ def _get_filepath_or_buffer(
     storage_options : dict, optional
         Extra options that make sense for a particular storage connection, e.g.
         host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
-        are forwarded to ``urllib.request.Request`` as header options. For other
+        are forwarded to ``urllib.request.Request`` as header options except for
+        the reserved key ``urlopen_timeout`` which is passed as the ``timeout``
+        argument to ``urllib.request.urlopen`` (socket timeout, in seconds). For other
         URLs (e.g. starting with "s3://", and "gcs://") the key-value pairs are
         forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more
         details, and for more examples on storage options refer `here
@@ -393,7 +395,13 @@ def _get_filepath_or_buffer(
         # TODO: fsspec can also handle HTTP via requests, but leaving this
         # unchanged. using fsspec appears to break the ability to infer if the
         # server responded with gzipped data
-        storage_options = storage_options or {}
+
+        # don't mutate user input
+        storage_options = dict(storage_options or {})
+
+        # Reserve "urlopen_timeout" for urllib, don't forward it as an HTTP header
+        timeout = storage_options.pop("urlopen_timeout", None)
+        urlopen_kwargs = {} if timeout is None else {"timeout": timeout}
 
         # waiting until now for importing to match intended lazy logic of
         # urlopen function defined elsewhere in this module
@@ -401,7 +409,7 @@ def _get_filepath_or_buffer(
 
         # assuming storage_options is to be interpreted as headers
         req_info = urllib.request.Request(filepath_or_buffer, headers=storage_options)
-        with urlopen(req_info) as req:
+        with urlopen(req_info, **urlopen_kwargs) as req:
             content_encoding = req.headers.get("Content-Encoding", None)
             if content_encoding == "gzip":
                 # Override compression based on Content-Encoding header
