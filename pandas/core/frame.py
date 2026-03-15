@@ -7510,32 +7510,6 @@ class DataFrame(NDFrame, OpsMixin):
         ignore_index: bool = ...,
     ) -> None: ...
 
-    @staticmethod
-    def _dropna_mask(agg_obj: DataFrame, agg_axis: int, how: str) -> Series:
-        """
-        Compute boolean mask for dropna by iterating over the minor axis.
-
-        This avoids the slow axis=1 reduction path that goes through groupby
-        for ExtensionArray-backed columns (e.g. SparseArray). See GH#60179.
-        """
-        if agg_axis == 1:
-            # Reducing across columns for each row
-            if how == "any":
-                mask = np.ones(len(agg_obj), dtype=bool)
-                for arr in agg_obj._iter_column_arrays():
-                    mask &= ~np.asarray(isna(arr), dtype=bool)
-            else:
-                mask = np.zeros(len(agg_obj), dtype=bool)
-                for arr in agg_obj._iter_column_arrays():
-                    mask |= ~np.asarray(isna(arr), dtype=bool)
-            return Series(mask, index=agg_obj.index)
-
-        # agg_axis == 0: reducing across rows for each column
-        # The standard path is efficient here (BlockManager.reduce)
-        if how == "any":
-            return notna(agg_obj).all(axis=0, bool_only=False)
-        return notna(agg_obj).any(axis=0, bool_only=False)
-
     def dropna(
         self,
         *,
@@ -7679,10 +7653,11 @@ class DataFrame(NDFrame, OpsMixin):
             mask = count >= thresh
         elif how == "any":
             # faster equivalent to 'agg_obj.count(agg_axis) == self.shape[agg_axis]'
-            mask = self._dropna_mask(agg_obj, agg_axis, how="any")
+            # Cast to bool dtype to avoid slow EA axis=1 groupby path (GH#60179)
+            mask = notna(agg_obj).astype(bool).all(axis=agg_axis, bool_only=False)
         elif how == "all":
             # faster equivalent to 'agg_obj.count(agg_axis) > 0'
-            mask = self._dropna_mask(agg_obj, agg_axis, how="all")
+            mask = notna(agg_obj).astype(bool).any(axis=agg_axis, bool_only=False)
         else:
             raise ValueError(f"invalid how option: {how}")
 
