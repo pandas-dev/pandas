@@ -801,8 +801,8 @@ This is like an ``append`` operation on the ``DataFrame``.
 Column assignment and index alignment
 --------------------------------------
 
-When assigning a :class:`Series` to a ``DataFrame`` column — whether via
-``df[col] = series`` or ``df.loc[:, col] = series`` — pandas **aligns** the
+When assigning a :class:`Series` to a ``DataFrame`` column -- whether via
+``df[col] = series`` or ``df.loc[:, col] = series`` -- pandas **aligns** the
 Series to the DataFrame's index before inserting the values. This means:
 
 * Values are placed according to their **index label**, not their position in
