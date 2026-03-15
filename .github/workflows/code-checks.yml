@@ -62,10 +62,6 @@ jobs:
       run: ci/code_checks.sh code
       if: ${{ steps.build.outcome == 'success' && always() }}
 
-    - name: Run docstring validation
-      run: ci/code_checks.sh docstrings
-      if: ${{ steps.build.outcome == 'success' && always() }}
-
     - name: Run check of documentation notebooks
       run: ci/code_checks.sh notebooks
       if: ${{ steps.build.outcome == 'success' && always() }}
