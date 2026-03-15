@@ -2252,6 +2252,27 @@ class TestLocSetitemWithExpansion:
         )
         tm.assert_frame_equal(df, expected)
 
+    def test_loc_setitem_with_expansion_preserves_tzaware_datetime_dtype(self):
+        df = DataFrame([{"id": 1}, {"id": 2}, {"id": 3}])
+
+        ts = Timestamp("2023-09-28 07:44:02+00:00")
+        df.loc[df["id"] >= 2, "time"] = ts
+
+        expected = DataFrame(
+            {
+                "id": [1, 2, 3],
+                "time": [
+                    pd.NaT,
+                    Timestamp("2023-09-28 07:44:02+00:00"),
+                    Timestamp("2023-09-28 07:44:02+00:00"),
+                ],
+            }
+        )
+
+        tm.assert_frame_equal(df, expected)
+        assert isinstance(df["time"].dtype, pd.DatetimeTZDtype)
+        assert str(df["time"].dtype).endswith(", UTC]")
+
     def test_loc_setitem_with_expansion_dtype_retention(self):
         # GH#6485
         df = DataFrame({"a": range(10)}, dtype="i4")
