@@ -112,7 +112,7 @@ strings (``object``).
 My colleague requested the Titanic data as a spreadsheet.
 
 .. note::
-    If you want to use :func:`~pandas.to_excel` and :func:`~pandas.read_excel`,
+    If you want to use :meth:`~pandas.DataFrame.to_excel` and :func:`~pandas.read_excel`,
     you need to install an Excel reader as outlined in the
     :ref:`Excel files <install.excel_dependencies>` section of the
     installation documentation.
@@ -122,7 +122,7 @@ My colleague requested the Titanic data as a spreadsheet.
     titanic.to_excel("titanic.xlsx", sheet_name="passengers", index=False)
 
 Whereas ``read_*`` functions are used to read data to pandas, the
-``to_*`` methods are used to store data. The :meth:`~DataFrame.to_excel` method stores
+``to_*`` methods are used to store data. The :meth:`~pandas.DataFrame.to_excel` method stores
 the data as an excel file. In the example here, the ``sheet_name`` is
 named *passengers* instead of the default *Sheet1*. By setting
 ``index=False`` the row index labels are not saved in the spreadsheet.
@@ -132,7 +132,7 @@ named *passengers* instead of the default *Sheet1*. By setting
         </li>
     </ul>
 
-The equivalent read function :meth:`~DataFrame.read_excel` will reload the data to a
+The equivalent read function :func:`~pandas.read_excel` will reload the data to a
 ``DataFrame``:
 
 .. ipython:: python

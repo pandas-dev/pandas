@@ -4,7 +4,7 @@
 Duplicate Labels
 ****************
 
-:class:`Index` objects are not required to be unique; you can have duplicate row
+:class:`~pandas.Index` objects are not required to be unique; you can have duplicate row
 or column labels. This may be a bit confusing at first. If you're familiar with
 SQL, you know that row labels are similar to a primary key on a table, and you
 would never want duplicates in a SQL table. But one of pandas' roles is to clean
@@ -23,7 +23,7 @@ detect them if they do.
 Consequences of Duplicate Labels
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Some pandas methods (:meth:`Series.reindex` for example) just don't work with
+Some pandas methods (:meth:`~pandas.Series.reindex` for example) just don't work with
 duplicates present. The output can't be determined, and so pandas raises.
 
 .. ipython:: python
@@ -68,8 +68,8 @@ This applies to row labels as well
 Duplicate Label Detection
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You can check whether an :class:`Index` (storing the row or column labels) is
-unique with :attr:`Index.is_unique`:
+You can check whether an :class:`~pandas.Index` (storing the row or column labels) is
+unique with :attr:`~pandas.Index.is_unique`:
 
 .. ipython:: python
 
@@ -82,7 +82,7 @@ unique with :attr:`Index.is_unique`:
    Checking whether an index is unique is somewhat expensive for large datasets.
    pandas does cache this result, so re-checking on the same index is very fast.
 
-:meth:`Index.duplicated` will return a boolean ndarray indicating whether a
+:meth:`~pandas.Index.duplicated` will return a boolean ndarray indicating whether a
 label is repeated.
 
 .. ipython:: python
@@ -96,7 +96,7 @@ Which can be used as a boolean filter to drop duplicate rows.
    df2.loc[~df2.index.duplicated(), :]
 
 If you need additional logic to handle duplicate labels, rather than just
-dropping the repeats, using :meth:`~DataFrame.groupby` on the index is a common
+dropping the repeats, using :meth:`~pandas.DataFrame.groupby` on the index is a common
 trick. For example, we'll resolve duplicates by taking the average of all rows
 with the same label.
 
@@ -112,7 +112,7 @@ Disallowing Duplicate Labels
 As noted above, handling duplicates is an important feature when reading in raw
 data. That said, you may want to avoid introducing duplicates as part of a data
 processing pipeline (from methods like :meth:`pandas.concat`,
-:meth:`~DataFrame.rename`, etc.). Both :class:`Series` and :class:`DataFrame`
+:meth:`~pandas.DataFrame.rename`, etc.). Both :class:`~pandas.Series` and :class:`~pandas.DataFrame`
 *disallow* duplicate labels by calling ``.set_flags(allows_duplicate_labels=False)``.
 (the default is to allow them). If there are duplicate labels, an exception
 will be raised.
@@ -122,7 +122,7 @@ will be raised.
 
    pd.Series([0, 1, 2], index=["a", "b", "b"]).set_flags(allows_duplicate_labels=False)
 
-This applies to both row and column labels for a :class:`DataFrame`
+This applies to both row and column labels for a :class:`~pandas.DataFrame`
 
 .. ipython:: python
    :okexcept:
@@ -131,7 +131,7 @@ This applies to both row and column labels for a :class:`DataFrame`
        allows_duplicate_labels=False
    )
 
-This attribute can be checked or set with :attr:`~DataFrame.flags.allows_duplicate_labels`,
+This attribute can be checked or set with ``allows_duplicate_labels``,
 which indicates whether that object can have duplicate labels.
 
 .. ipython:: python
@@ -142,7 +142,7 @@ which indicates whether that object can have duplicate labels.
    df
    df.flags.allows_duplicate_labels
 
-:meth:`DataFrame.set_flags` can be used to return a new ``DataFrame`` with attributes
+:meth:`~pandas.DataFrame.set_flags` can be used to return a new ``DataFrame`` with attributes
 like ``allows_duplicate_labels`` set to some value
 
 .. ipython:: python
@@ -173,7 +173,7 @@ going forward, to ensure that your data pipeline doesn't introduce duplicates.
 Setting ``allows_duplicate_labels=False`` on a ``Series`` or ``DataFrame`` with duplicate
 labels or performing an operation that introduces duplicate labels on a ``Series`` or
 ``DataFrame`` that disallows duplicates will raise an
-:class:`errors.DuplicateLabelError`.
+:class:`pandas.errors.DuplicateLabelError`.
 
 .. ipython:: python
    :okexcept:

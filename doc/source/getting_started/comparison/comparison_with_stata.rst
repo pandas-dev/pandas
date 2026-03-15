@@ -274,8 +274,8 @@ String processing
 Finding length of string
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-Stata determines the length of a character string with the :func:`strlen` and
-:func:`ustrlen` functions for ASCII and Unicode strings, respectively.
+Stata determines the length of a character string with the ``strlen`` and
+``ustrlen`` functions for ASCII and Unicode strings, respectively.
 
 .. code-block:: stata
 
@@ -288,7 +288,7 @@ Stata determines the length of a character string with the :func:`strlen` and
 Finding position of substring
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Stata determines the position of a character in a string with the :func:`strpos` function.
+Stata determines the position of a character in a string with the ``strpos`` function.
 This takes the string defined by the first argument and searches for the
 first position of the substring you supply as the second argument.
 
@@ -302,7 +302,7 @@ first position of the substring you supply as the second argument.
 Extracting substring by position
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Stata extracts a substring from a string based on its position with the :func:`substr` function.
+Stata extracts a substring from a string based on its position with the ``substr`` function.
 
 .. code-block:: stata
 
@@ -314,7 +314,7 @@ Stata extracts a substring from a string based on its position with the :func:`s
 Extracting nth word
 ~~~~~~~~~~~~~~~~~~~
 
-The Stata :func:`word` function returns the nth word from a string.
+The Stata ``word`` function returns the nth word from a string.
 The first argument is the string you want to parse and the
 second argument specifies which word you want to extract.
 
@@ -335,8 +335,8 @@ second argument specifies which word you want to extract.
 Changing case
 ~~~~~~~~~~~~~
 
-The Stata :func:`strupper`, :func:`strlower`, :func:`strproper`,
-:func:`ustrupper`, :func:`ustrlower`, and :func:`ustrtitle` functions
+The Stata ``strupper``, ``strlower``, ``strproper``,
+``ustrupper``, ``ustrlower``, and ``ustrtitle`` functions
 change the case of ASCII and Unicode strings, respectively.
 
 .. code-block:: stata
@@ -457,7 +457,7 @@ Transformation
 ~~~~~~~~~~~~~~
 
 In Stata, if the group aggregations need to be used with the
-original data set, one would usually use ``bysort`` with :func:`egen`.
+original data set, one would usually use ``bysort`` with ``egen``.
 For example, to subtract the mean for each observation by smoker group.
 
 .. code-block:: stata

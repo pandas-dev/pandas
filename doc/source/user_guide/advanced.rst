@@ -632,7 +632,7 @@ Furthermore, if you try to index something that is not fully lexsorted, this can
 
    dfm.loc[(0, 'y'):(1, 'z')]
 
-The :meth:`~MultiIndex.is_monotonic_increasing` method on a ``MultiIndex`` shows if the
+The :attr:`~pandas.MultiIndex.is_monotonic_increasing` attribute on a ``MultiIndex`` shows if the
 index is sorted:
 
 .. ipython:: python
@@ -865,7 +865,7 @@ For example:
 IntervalIndex
 ~~~~~~~~~~~~~
 
-:class:`IntervalIndex` together with its own dtype, :class:`~pandas.api.types.IntervalDtype`
+:class:`IntervalIndex` together with its own dtype, :class:`~pandas.IntervalDtype`
 as well as the :class:`Interval` scalar type,  allow first-class support in pandas
 for interval notation.
 

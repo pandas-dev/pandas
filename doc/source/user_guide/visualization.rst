@@ -560,7 +560,7 @@ Area plot
 You can create area plots with :meth:`Series.plot.area` and :meth:`DataFrame.plot.area`.
 Area plots are stacked by default. To produce stacked area plot, each column must be either all positive or all negative values.
 
-When input data contains ``NaN``, it will be automatically filled by 0. If you want to drop or fill by different values, use :func:`dataframe.dropna` or :func:`dataframe.fillna` before calling ``plot``.
+When input data contains ``NaN``, it will be automatically filled by 0. If you want to drop or fill by different values, use :meth:`pandas.DataFrame.dropna` or :meth:`pandas.DataFrame.fillna` before calling ``plot``.
 
 .. ipython:: python
    :suppress:
@@ -1371,7 +1371,7 @@ Automatic date tick adjustment
 tick locator methods, it is useful to call the automatic
 date tick adjustment from matplotlib for figures whose ticklabels overlap.
 
-See the :meth:`autofmt_xdate <matplotlib.figure.autofmt_xdate>` method and the
+See the :meth:`autofmt_xdate <matplotlib.figure.Figure.autofmt_xdate>` method and the
 `matplotlib documentation <https://matplotlib.org/2.0.2/users/recipes.html#fixing-common-date-annoyances>`__ for more.
 
 Subplots

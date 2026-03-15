@@ -23,7 +23,7 @@ General terminology translation
     column, variable
     row, case
     groupby, split file
-    :class:`NaN`, system-missing
+    ``NaN``, system-missing
 
 :class:`DataFrame`
 ~~~~~~~~~~~~~~~~~~

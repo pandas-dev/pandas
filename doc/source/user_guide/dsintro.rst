@@ -721,7 +721,7 @@ When multiple :class:`Series` are passed to a ufunc, they are aligned before
 performing the operation.
 
 Like other parts of the library, pandas will automatically align labeled inputs
-as part of a ufunc with multiple inputs. For example, using :meth:`numpy.remainder`
+as part of a ufunc with multiple inputs. For example, using :func:`numpy.remainder`
 on two :class:`Series` with differently ordered labels will align before the operation.
 
 .. ipython:: python

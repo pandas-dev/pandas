@@ -1100,7 +1100,7 @@ Mask
 
 .. _indexing.np_where:
 
-Setting with enlargement conditionally using :func:`numpy`
+Setting with enlargement conditionally using ``numpy``
 ----------------------------------------------------------
 
 An alternative to :meth:`~pandas.DataFrame.where` is to use :func:`numpy.where`.

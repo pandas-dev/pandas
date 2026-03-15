@@ -473,7 +473,7 @@ specification:
 Specifying ``dtype='category'`` will result in an unordered ``Categorical``
 whose ``categories`` are the unique values observed in the data. For more
 control on the categories and order, create a
-:class:`~pandas.api.types.CategoricalDtype` ahead of time, and pass that for
+:class:`~pandas.CategoricalDtype` ahead of time, and pass that for
 that column's ``dtype``.
 
 .. ipython:: python
@@ -2306,7 +2306,7 @@ Reading HTML content
    We **highly encourage** you to read the :ref:`HTML Table Parsing gotchas <io.html.gotchas>`
    below regarding the issues surrounding the BeautifulSoup4/html5lib/lxml parsers.
 
-The top-level :func:`~pandas.io.html.read_html` function can accept an HTML
+The top-level :func:`~pandas.read_html` function can accept an HTML
 string/file/URL and will parse HTML tables into list of pandas ``DataFrames``.
 Let's look at a few examples.
 
@@ -2529,7 +2529,7 @@ in the method ``to_string`` described above.
 .. note::
 
    Not all of the possible options for ``DataFrame.to_html`` are shown here for
-   brevity's sake. See :func:`.DataFrame.to_html` for the
+   brevity's sake. See :meth:`~pandas.DataFrame.to_html` for the
    full set of options.
 
 .. note::
@@ -2744,7 +2744,7 @@ XML
 Reading XML
 '''''''''''
 
-The top-level :func:`~pandas.io.xml.read_xml` function can accept an XML
+The top-level :func:`~pandas.read_xml` function can accept an XML
 string/file/URL and will parse nodes and attributes into a pandas ``DataFrame``.
 
 .. note::
@@ -3303,15 +3303,15 @@ When using the ``engine_kwargs`` parameter, pandas will pass these arguments to 
 engine. For this, it is important to know which function pandas is
 using internally.
 
-* For the engine openpyxl, pandas is using :func:`openpyxl.load_workbook` to read in (``.xlsx``) and (``.xlsm``) files.
+* For the engine openpyxl, pandas is using ``openpyxl.load_workbook`` to read in (``.xlsx``) and (``.xlsm``) files.
 
-* For the engine xlrd, pandas is using :func:`xlrd.open_workbook` to read in (``.xls``) files.
+* For the engine xlrd, pandas is using ``xlrd.open_workbook`` to read in (``.xls``) files.
 
-* For the engine pyxlsb, pandas is using :func:`pyxlsb.open_workbook` to read in (``.xlsb``) files.
+* For the engine pyxlsb, pandas is using ``pyxlsb.open_workbook`` to read in (``.xlsb``) files.
 
-* For the engine odf, pandas is using :func:`odf.opendocument.load` to read in (``.ods``) files.
+* For the engine odf, pandas is using ``odf.opendocument.load`` to read in (``.ods``) files.
 
-* For the engine calamine, pandas is using :func:`python_calamine.load_workbook`
+* For the engine calamine, pandas is using ``python_calamine.load_workbook``
   to read in (``.xlsx``), (``.xlsm``), (``.xls``), (``.xlsb``), (``.ods``) files.
 
 .. code-block:: python
@@ -3616,7 +3616,7 @@ row instead of the first. You can place it in the first row by setting the
    df.to_excel("path_to_file.xlsx", index_label="label", merge_cells=False)
 
 In order to write separate ``DataFrames`` to separate sheets in a single Excel file,
-one can pass an :class:`~pandas.io.excel.ExcelWriter`.
+one can pass an :class:`~pandas.ExcelWriter`.
 
 .. code-block:: python
 
@@ -3629,17 +3629,17 @@ one can pass an :class:`~pandas.io.excel.ExcelWriter`.
 When using the ``engine_kwargs`` parameter, pandas will pass these arguments to the
 engine. For this, it is important to know which function pandas is using internally.
 
-* For the engine openpyxl, pandas is using :func:`openpyxl.Workbook` to create a new sheet and :func:`openpyxl.load_workbook` to append data to an existing sheet. The openpyxl engine writes to (``.xlsx``) and (``.xlsm``) files.
+* For the engine openpyxl, pandas is using ``openpyxl.Workbook`` to create a new sheet and ``openpyxl.load_workbook`` to append data to an existing sheet. The openpyxl engine writes to (``.xlsx``) and (``.xlsm``) files.
 
-* For the engine xlsxwriter, pandas is using :func:`xlsxwriter.Workbook` to write to (``.xlsx``) files.
+* For the engine xlsxwriter, pandas is using ``xlsxwriter.Workbook`` to write to (``.xlsx``) files.
 
-* For the engine odf, pandas is using :func:`odf.opendocument.OpenDocumentSpreadsheet` to write to (``.ods``) files.
+* For the engine odf, pandas is using ``odf.opendocument.OpenDocumentSpreadsheet`` to write to (``.ods``) files.
 
 Writing Excel files to memory
 +++++++++++++++++++++++++++++
 
 pandas supports writing Excel files to buffer-like objects such as ``StringIO`` or
-``BytesIO`` using :class:`~pandas.io.excel.ExcelWriter`.
+``BytesIO`` using :class:`~pandas.ExcelWriter`.
 
 .. code-block:: python
 
@@ -3723,7 +3723,7 @@ The look and feel of Excel worksheets created from pandas can be modified using 
 
     As of pandas 3.0, by default spreadsheets created with the ``to_excel`` method
     will not contain any styling. Users wishing to bold text, add bordered styles,
-    etc in a worksheet output by ``to_excel`` can do so by using :meth:`Styler.to_excel`
+    etc in a worksheet output by ``to_excel`` can do so by using :meth:`pandas.io.formats.style.Styler.to_excel`
     to create styled excel files. For documentation on styling spreadsheets, see
     `here <https://pandas.pydata.org/docs/user_guide/style.html#Export-to-Excel>`__.
 
@@ -3754,7 +3754,7 @@ The :func:`~pandas.read_excel` method can read OpenDocument spreadsheets
    # Returns a DataFrame
    pd.read_excel("path_to_file.ods", engine="odf")
 
-Similarly, the :func:`~pandas.to_excel` method can write OpenDocument spreadsheets
+Similarly, the :meth:`~pandas.DataFrame.to_excel` method can write OpenDocument spreadsheets
 
 .. code-block:: python
 
@@ -3803,7 +3803,7 @@ and is faster than other engines in most cases. The optional dependency 'python-
 Clipboard
 ---------
 
-A handy way to grab data is to use the :meth:`~DataFrame.read_clipboard` method,
+A handy way to grab data is to use the :func:`~pandas.read_clipboard` method,
 which takes the contents of the clipboard buffer and passes them to the
 ``read_csv`` method. For instance, you can copy the following text to the
 clipboard (CTRL-C on many operating systems):
@@ -5506,7 +5506,7 @@ Read only certain columns of an orc file.
 SQL queries
 -----------
 
-The :mod:`pandas.io.sql` module provides a collection of query wrappers to both
+The ``pandas.io.sql`` module provides a collection of query wrappers to both
 facilitate data retrieval and to reduce dependency on DB-specific API.
 
 Where available, users may first want to opt for `Apache Arrow ADBC
@@ -5568,10 +5568,10 @@ to connect to your database.
    with sqlite_dbapi.connect("sqlite:///:memory:") as conn:
         df = pd.read_sql_table("data", conn)
 
-To connect with SQLAlchemy you use the :func:`create_engine` function to create an engine
+To connect with SQLAlchemy you use the ``create_engine`` function to create an engine
 object from database URI. You only need to create the engine once per database you are
 connecting to.
-For more information on :func:`create_engine` and the URI formatting, see the examples
+For more information on ``create_engine`` and the URI formatting, see the examples
 below and the SQLAlchemy `documentation <https://docs.sqlalchemy.org/en/latest/core/engines.html>`__
 
 .. ipython:: python
@@ -5883,7 +5883,7 @@ to pass to :func:`pandas.to_datetime`:
    )
 
 
-You can check if a table exists using :func:`~pandas.io.sql.has_table`
+You can check if a table exists using ``pandas.io.sql.has_table``
 
 Schema support
 ''''''''''''''
@@ -5933,7 +5933,7 @@ Specifying this will return an iterator through chunks of the query result:
 Engine connection examples
 ''''''''''''''''''''''''''
 
-To connect with SQLAlchemy you use the :func:`create_engine` function to create an engine
+To connect with SQLAlchemy you use the ``create_engine`` function to create an engine
 object from database URI. You only need to create the engine once per database you are
 connecting to.
 
@@ -5964,7 +5964,7 @@ Advanced SQLAlchemy queries
 
 You can use SQLAlchemy constructs to describe your query.
 
-Use :func:`sqlalchemy.text` to specify query parameters in a backend-neutral way
+Use ``sqlalchemy.text`` to specify query parameters in a backend-neutral way
 
 .. ipython:: python
 
@@ -5991,7 +5991,7 @@ If you have an SQLAlchemy description of your database you can express where con
 
    pd.read_sql(sa.select(data_table).where(data_table.c.Col_3 is True), engine)
 
-You can combine SQLAlchemy expressions with parameters passed to :func:`read_sql` using :func:`sqlalchemy.bindparam`
+You can combine SQLAlchemy expressions with parameters passed to :func:`read_sql` using ``sqlalchemy.bindparam``
 
 .. ipython:: python
 
@@ -6043,7 +6043,7 @@ STATA format
 Writing to stata format
 '''''''''''''''''''''''
 
-The method :func:`.DataFrame.to_stata` will write a DataFrame
+The method :meth:`~pandas.DataFrame.to_stata` will write a DataFrame
 into a .dta file. The format version of this file is always 115 (Stata 12).
 
 .. ipython:: python
@@ -6082,8 +6082,8 @@ outside of this range, the variable is cast to ``int16``.
 
 .. warning::
 
-  :class:`~pandas.io.stata.StataWriter` and
-  :func:`.DataFrame.to_stata` only support fixed width
+  ``pandas.io.stata.StataWriter`` and
+  :meth:`~pandas.DataFrame.to_stata` only support fixed width
   strings containing up to 244 characters, a limitation imposed by the version
   115 dta file format. Attempting to write *Stata* dta files with strings
   longer than 244 characters raises a ``ValueError``.
@@ -6094,7 +6094,7 @@ Reading from Stata format
 '''''''''''''''''''''''''
 
 The top-level function ``read_stata`` will read a dta file and return
-either a ``DataFrame`` or a :class:`pandas.api.typing.StataReader` that can
+either a ``DataFrame`` or a ``StataReader`` that can
 be used to read the file incrementally.
 
 .. ipython:: python
@@ -6102,7 +6102,7 @@ be used to read the file incrementally.
    pd.read_stata("stata.dta")
 
 Specifying a ``chunksize`` yields a
-:class:`pandas.api.typing.StataReader` instance that can be used to
+``StataReader`` instance that can be used to
 read ``chunksize`` lines from the file at a time.  The ``StataReader``
 object can be used as an iterator.
 
@@ -6114,7 +6114,7 @@ object can be used as an iterator.
 
 For more fine-grained control, use ``iterator=True`` and specify
 ``chunksize`` with each call to
-:func:`~pandas.io.stata.StataReader.read`.
+``pandas.io.stata.StataReader.read``.
 
 .. ipython:: python
 
@@ -6126,7 +6126,7 @@ Currently the ``index`` is retrieved as a column.
 
 The parameter ``convert_categoricals`` indicates whether value labels should be
 read and used to create a ``Categorical`` variable from them. Value labels can
-also be retrieved by the function ``value_labels``, which requires :func:`~pandas.io.stata.StataReader.read`
+also be retrieved by the function ``value_labels``, which requires ``pandas.io.stata.StataReader.read``
 to be called before use.
 
 The parameter ``convert_missing`` indicates whether missing value
@@ -6138,7 +6138,7 @@ values will have ``object`` data type.
 .. note::
 
    :func:`~pandas.read_stata` and
-   :class:`~pandas.io.stata.StataReader` support .dta formats 113-115
+   ``StataReader`` support .dta formats 113-115
    (Stata 10-12), 117 (Stata 13), and 118 (Stata 14).
 
 .. note::
@@ -6149,10 +6149,10 @@ values will have ``object`` data type.
 
 .. note::
 
-   All :class:`~pandas.io.stata.StataReader` objects, whether created by :func:`~pandas.read_stata`
+   All ``StataReader`` objects, whether created by :func:`~pandas.read_stata`
    (when using ``iterator=True`` or ``chunksize``) or instantiated by hand, must be used as context
    managers (e.g. the ``with`` statement).
-   While the :meth:`~pandas.io.stata.StataReader.close` method is available, its use is unsupported.
+   While the ``close`` method is available, its use is unsupported.
    It is not part of the public API and will be removed in with future without warning.
 
 .. ipython:: python

@@ -33,7 +33,7 @@ There are functions that make the creation of a regular index easy:
 
 .. warning::
 
-   Custom :class:`Index` subclasses are not supported, custom behavior should be implemented using the :class:`ExtensionArray` interface instead.
+   Custom :class:`Index` subclasses are not supported, custom behavior should be implemented using the :class:`~pandas.api.extensions.ExtensionArray` interface instead.
 
 MultiIndex
 ~~~~~~~~~~

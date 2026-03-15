@@ -64,7 +64,7 @@ only values distinct from the ``fill_value``:
    sparr = pd.arrays.SparseArray(arr)
    sparr
 
-A sparse array can be converted to a regular (dense) ndarray with :meth:`numpy.asarray`
+A sparse array can be converted to a regular (dense) ndarray with :func:`numpy.asarray`
 
 .. ipython:: python
 
@@ -76,7 +76,7 @@ A sparse array can be converted to a regular (dense) ndarray with :meth:`numpy.a
 SparseDtype
 -----------
 
-The :attr:`SparseArray.dtype` property stores two pieces of information
+The :attr:`pandas.arrays.SparseArray.dtype` property stores two pieces of information
 
 1. The dtype of the non-sparse values
 2. The scalar fill value

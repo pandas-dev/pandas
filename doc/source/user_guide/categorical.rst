@@ -139,7 +139,7 @@ behavior:
 2. Categories are unordered.
 
 To control those behaviors, instead of passing ``'category'``, use an instance
-of :class:`~pandas.api.types.CategoricalDtype`.
+of :class:`~pandas.CategoricalDtype`.
 
 .. ipython:: python
 
@@ -214,7 +214,7 @@ A categorical's type is fully described by
 1. ``categories``: a sequence of unique values and no missing values
 2. ``ordered``: a boolean
 
-This information can be stored in a :class:`~pandas.api.types.CategoricalDtype`.
+This information can be stored in a :class:`~pandas.CategoricalDtype`.
 The ``categories`` argument is optional, which implies that the actual categories
 should be inferred from whatever is present in the data when the
 :class:`pandas.Categorical` is created. The categories are assumed to be unordered
@@ -228,14 +228,14 @@ by default.
    CategoricalDtype(["a", "b", "c"], ordered=True)
    CategoricalDtype()
 
-A :class:`~pandas.api.types.CategoricalDtype` can be used in any place pandas
+A :class:`~pandas.CategoricalDtype` can be used in any place pandas
 expects a ``dtype``. For example :func:`pandas.read_csv`,
 :func:`pandas.DataFrame.astype`, or in the ``Series`` constructor.
 
 .. note::
 
     As a convenience, you can use the string ``'category'`` in place of a
-    :class:`~pandas.api.types.CategoricalDtype` when you want the default behavior of
+    :class:`~pandas.CategoricalDtype` when you want the default behavior of
     the categories being unordered, and equal to the set values present in the
     array. In other words, ``dtype='category'`` is equivalent to
     ``dtype=CategoricalDtype()``.
@@ -243,7 +243,7 @@ expects a ``dtype``. For example :func:`pandas.read_csv`,
 Equality semantics
 ~~~~~~~~~~~~~~~~~~
 
-Two instances of :class:`~pandas.api.types.CategoricalDtype` compare equal
+Two instances of :class:`~pandas.CategoricalDtype` compare equal
 whenever they have the same categories and order. When comparing two
 unordered categoricals, the order of the ``categories`` is not considered. Note
 that categories with different dtypes are not the same.
