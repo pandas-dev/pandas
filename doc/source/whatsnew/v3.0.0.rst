@@ -429,6 +429,7 @@ For example, the following would always have given nanosecond resolution previou
 but now infer:
 
 .. ipython:: python
+   :okwarning:
 
     # parsing strings
     print(pd.to_datetime(["2024-03-22 11:36"]).dtype)

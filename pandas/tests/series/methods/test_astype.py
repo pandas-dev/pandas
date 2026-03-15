@@ -126,7 +126,7 @@ class TestAstype:
         pointwise = [
             vals[0].tz_localize(tz),
             Timestamp(vals[1], tz=tz),
-            to_datetime(vals[2], unit="us", utc=True).tz_convert(tz),
+            to_datetime(vals[2], input_unit="us", utc=True).tz_convert(tz),
         ]
         exp_vals = [x.as_unit("us").asm8 for x in pointwise]
         exp_arr = np.array(exp_vals, dtype="M8[us]")
@@ -305,7 +305,7 @@ class TestAstype:
     def test_astype_str_cast_td64(self):
         # see GH#9757
 
-        td = Series([Timedelta(1, unit="D")])
+        td = Series([Timedelta(1, input_unit="D")])
         ser = td.astype(str)
 
         expected = Series(["1 days"], dtype="str")

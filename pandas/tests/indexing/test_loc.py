@@ -721,7 +721,9 @@ class TestLocBaseIndependent:
             {"date": [1485264372711, 1485265925110, 1540215845888, 1540282121025]}
         )
 
-        df["date_dt"] = to_datetime(df["date"], unit="ms", cache=True).dt.as_unit("us")
+        df["date_dt"] = to_datetime(df["date"], input_unit="ms", cache=True).dt.as_unit(
+            "us"
+        )
 
         df.loc[:, "date_dt_cp"] = df.loc[:, "date_dt"]
         df.loc[[2, 3], "date_dt_cp"] = df.loc[[2, 3], "date_dt"]
@@ -1416,7 +1418,7 @@ class TestLocBaseIndependent:
     )
     def test_loc_setitem_listlike_with_timedelta64index(self, indexer, expected):
         # GH#16637
-        tdi = to_timedelta(range(10), unit="s")
+        tdi = to_timedelta(range(10), input_unit="s")
         df = DataFrame({"x": range(10)}, dtype="int64", index=tdi)
 
         df.loc[df.index[indexer], "x"] = 20
@@ -2526,7 +2528,7 @@ class TestPartialStringSlicing:
 
     def test_loc_getitem_str_timedeltaindex(self):
         # GH#16896
-        df = DataFrame({"x": range(3)}, index=to_timedelta(range(3), unit="days"))
+        df = DataFrame({"x": range(3)}, index=to_timedelta(range(3), input_unit="days"))
         expected = df.iloc[0]
         sliced = df.loc["0 days"]
         tm.assert_series_equal(sliced, expected)
@@ -2733,7 +2735,7 @@ class TestLocBooleanMask:
     def test_loc_setitem_bool_mask_timedeltaindex(self):
         # GH#14946
         df = DataFrame({"x": range(10)})
-        df.index = to_timedelta(range(10), unit="s")
+        df.index = to_timedelta(range(10), input_unit="s")
         conditions = [df["x"] > 3, df["x"] == 3, df["x"] < 3]
         expected_data = [
             [0, 1, 2, 3, 10, 10, 10, 10, 10, 10],
@@ -2746,7 +2748,7 @@ class TestLocBooleanMask:
 
             expected = DataFrame(
                 data,
-                index=to_timedelta(range(10), unit="s"),
+                index=to_timedelta(range(10), input_unit="s"),
                 columns=["x"],
                 dtype="int64",
             )
@@ -3460,10 +3462,12 @@ class TestLocSeries:
     def test_loc_setitem_dict_timedelta_multiple_set(self):
         # GH 16309
         result = DataFrame(columns=["time", "value"])
-        result.loc[1] = {"time": Timedelta(6, unit="s"), "value": "foo"}
-        result.loc[1] = {"time": Timedelta(6, unit="s"), "value": "foo"}
+        result.loc[1] = {"time": Timedelta(6, input_unit="s"), "value": "foo"}
+        result.loc[1] = {"time": Timedelta(6, input_unit="s"), "value": "foo"}
         expected = DataFrame(
-            [[Timedelta(6, unit="s"), "foo"]], columns=["time", "value"], index=[1]
+            [[Timedelta(6, input_unit="s"), "foo"]],
+            columns=["time", "value"],
+            index=[1],
         )
         tm.assert_frame_equal(result, expected)
 

@@ -1382,7 +1382,7 @@ class Parser:
                     # based on the first unit for which the parsed dates fit
                     # within the nanoseconds bounds
                     # -> do as_unit cast to ensure OutOfBounds error
-                    data = to_datetime(new_data, errors="raise", unit=date_unit)
+                    data = to_datetime(new_data, errors="raise", input_unit=date_unit)
                     _ = data.dt.as_unit("ns")
                     break
                 except OutOfBoundsDatetime:

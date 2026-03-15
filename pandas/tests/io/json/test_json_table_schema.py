@@ -646,7 +646,7 @@ class TestTableOrient:
 
     def test_timestamp_in_columns(self):
         df = DataFrame(
-            [[1, 2]], columns=[pd.Timestamp("2016"), pd.Timedelta(10, unit="s")]
+            [[1, 2]], columns=[pd.Timestamp("2016"), pd.Timedelta(10, input_unit="s")]
         )
         result = df.to_json(orient="table")
         js = json.loads(result)

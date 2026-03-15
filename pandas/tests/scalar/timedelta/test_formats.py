@@ -6,10 +6,10 @@ from pandas import Timedelta
 @pytest.mark.parametrize(
     "td, expected_repr",
     [
-        (Timedelta(10, unit="D"), "Timedelta('10 days 00:00:00')"),
-        (Timedelta(10, unit="s"), "Timedelta('0 days 00:00:10')"),
-        (Timedelta(10, unit="ms"), "Timedelta('0 days 00:00:00.010000')"),
-        (Timedelta(-10, unit="ms"), "Timedelta('-1 days +23:59:59.990000')"),
+        (Timedelta(10, input_unit="D"), "Timedelta('10 days 00:00:00')"),
+        (Timedelta(10, input_unit="s"), "Timedelta('0 days 00:00:10')"),
+        (Timedelta(10, input_unit="ms"), "Timedelta('0 days 00:00:00.010000')"),
+        (Timedelta(-10, input_unit="ms"), "Timedelta('-1 days +23:59:59.990000')"),
     ],
 )
 def test_repr(td, expected_repr):
@@ -46,10 +46,10 @@ def test_isoformat(td, expected_iso):
 
 class TestReprBase:
     def test_none(self):
-        delta_1d = Timedelta(1, unit="D")
-        delta_0d = Timedelta(0, unit="D")
-        delta_1s = Timedelta(1, unit="s")
-        delta_500ms = Timedelta(500, unit="ms")
+        delta_1d = Timedelta(1, input_unit="D")
+        delta_0d = Timedelta(0, input_unit="D")
+        delta_1s = Timedelta(1, input_unit="s")
+        delta_500ms = Timedelta(500, input_unit="ms")
 
         drepr = lambda x: x._repr_base()
         assert drepr(delta_1d) == "1 days"
@@ -63,10 +63,10 @@ class TestReprBase:
         assert drepr(-delta_1d + delta_500ms) == "-1 days +00:00:00.500000"
 
     def test_sub_day(self):
-        delta_1d = Timedelta(1, unit="D")
-        delta_0d = Timedelta(0, unit="D")
-        delta_1s = Timedelta(1, unit="s")
-        delta_500ms = Timedelta(500, unit="ms")
+        delta_1d = Timedelta(1, input_unit="D")
+        delta_0d = Timedelta(0, input_unit="D")
+        delta_1s = Timedelta(1, input_unit="s")
+        delta_500ms = Timedelta(500, input_unit="ms")
 
         drepr = lambda x: x._repr_base(format="sub_day")
         assert drepr(delta_1d) == "1 days"
@@ -80,10 +80,10 @@ class TestReprBase:
         assert drepr(-delta_1d + delta_500ms) == "-1 days +00:00:00.500000"
 
     def test_long(self):
-        delta_1d = Timedelta(1, unit="D")
-        delta_0d = Timedelta(0, unit="D")
-        delta_1s = Timedelta(1, unit="s")
-        delta_500ms = Timedelta(500, unit="ms")
+        delta_1d = Timedelta(1, input_unit="D")
+        delta_0d = Timedelta(0, input_unit="D")
+        delta_1s = Timedelta(1, input_unit="s")
+        delta_500ms = Timedelta(500, input_unit="ms")
 
         drepr = lambda x: x._repr_base(format="long")
         assert drepr(delta_1d) == "1 days 00:00:00"
@@ -97,9 +97,9 @@ class TestReprBase:
         assert drepr(-delta_1d + delta_500ms) == "-1 days +00:00:00.500000"
 
     def test_all(self):
-        delta_1d = Timedelta(1, unit="D")
-        delta_0d = Timedelta(0, unit="D")
-        delta_1ns = Timedelta(1, unit="ns")
+        delta_1d = Timedelta(1, input_unit="D")
+        delta_0d = Timedelta(0, input_unit="D")
+        delta_1ns = Timedelta(1, input_unit="ns")
 
         drepr = lambda x: x._repr_base(format="all")
         assert drepr(delta_1d) == "1 days 00:00:00.000000000"
