@@ -2350,11 +2350,30 @@ def external_values(values: ArrayLike) -> ArrayLike:
     proper extension array).
     """
     if isinstance(values, (PeriodArray, IntervalArray)):
+        warnings.warn(
+            f"Series.values returning an object-dtype ndarray for "
+            f"{type(values.dtype).__name__} dtype is deprecated. "
+            f"In a future version, this will return the underlying "
+            f"ExtensionArray instead. Use 'Series.to_numpy()' to get a "
+            f"NumPy array, or 'Series.array' to get the ExtensionArray.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
         return values.astype(object)
     elif isinstance(values, (DatetimeArray, TimedeltaArray)):
         # NB: for datetime64tz this is different from np.asarray(values), since
         #  that returns an object-dtype ndarray of Timestamps.
         # Avoid raising in .astype in casting from dt64tz to dt64
+        if isinstance(values.dtype, DatetimeTZDtype):
+            warnings.warn(
+                "Series.values returning an ndarray that drops timezone "
+                "information for DatetimeTZDtype is deprecated. "
+                "In a future version, this will return the underlying "
+                "DatetimeArray instead. Use 'Series.to_numpy()' to get a "
+                "NumPy array, or 'Series.array' to get the ExtensionArray.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
         values = values._ndarray
 
     if isinstance(values, np.ndarray):

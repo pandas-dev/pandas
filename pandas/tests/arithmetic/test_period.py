@@ -209,11 +209,12 @@ class TestPeriodIndexComparisons:
         per = idx[10]
 
         result = idx < per
-        exp = idx.values < idx.values[10]
+        idx_vals = np.asarray(idx, dtype=object)
+        exp = idx_vals < idx_vals[10]
         tm.assert_numpy_array_equal(result, exp)
 
         # Tests Period.__richcmp__ against ndarray[object, ndim=2]
-        result = idx.values.reshape(10, 2) < per
+        result = idx_vals.reshape(10, 2) < per
         tm.assert_numpy_array_equal(result, exp.reshape(10, 2))
 
         # Tests Period.__richcmp__ against ndarray[object, ndim=0]

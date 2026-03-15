@@ -1119,7 +1119,9 @@ class TestSeriesConstructors:
         assert "datetime64[ns, US/Eastern]" in str(s)
 
         # export
-        result = s.values
+        depr_msg = "Series.values returning an ndarray that drops timezone information"
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            result = s.values
         assert isinstance(result, np.ndarray)
         assert result.dtype == "datetime64[ns]"
 
@@ -1222,7 +1224,9 @@ class TestSeriesConstructors:
         intervals = interval_constructor.from_breaks(np.arange(3), closed="right")
         result = Series(intervals)
         assert result.dtype == "interval[int64, right]"
-        tm.assert_index_equal(Index(result.values), Index(intervals))
+        msg = "Series.values returning an object-dtype ndarray for IntervalDtype"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            tm.assert_index_equal(Index(result.values), Index(intervals))
 
     @pytest.mark.parametrize(
         "data_constructor", [list, np.array], ids=["list", "ndarray[object]"]
@@ -1256,19 +1260,23 @@ class TestSeriesConstructors:
         result = Series(ser.dt.tz_convert("UTC"), dtype=ser.dtype)
         tm.assert_series_equal(result, ser)
 
+        depr_msg = "Series.values returning an ndarray that drops timezone information"
+
         # Pre-2.0 dt64 values were treated as utc, which was inconsistent
         #  with DatetimeIndex, which treats them as wall times, see GH#33401
-        result = Series(ser.values, dtype=ser.dtype)
-        expected = Series(ser.values).dt.tz_localize(ser.dtype.tz)
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            result = Series(ser.values, dtype=ser.dtype)
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            expected = Series(ser.values).dt.tz_localize(ser.dtype.tz)
         tm.assert_series_equal(result, expected)
 
-        with tm.assert_produces_warning(None):
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
             # one suggested alternative to the deprecated (changed in 2.0) usage
             middle = Series(ser.values).dt.tz_localize("UTC")
             result = middle.dt.tz_convert(ser.dtype.tz)
         tm.assert_series_equal(result, ser)
 
-        with tm.assert_produces_warning(None):
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
             # the other suggested alternative to the deprecated usage
             result = Series(ser.values.view("int64"), dtype=ser.dtype)
         tm.assert_series_equal(result, ser)

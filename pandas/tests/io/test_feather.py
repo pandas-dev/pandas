@@ -65,6 +65,9 @@ class TestFeather:
         ]:
             self.check_error_on_write(obj, ValueError, msg, temp_file)
 
+    @pytest.mark.filterwarnings(
+        "ignore:.*values returning.*:pandas.errors.Pandas4Warning"
+    )
     def test_basic(self, temp_file):
         tz = zoneinfo.ZoneInfo("US/Eastern")
         df = pd.DataFrame(

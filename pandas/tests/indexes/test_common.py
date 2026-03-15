@@ -314,7 +314,7 @@ class TestCommon:
         # make duplicated index
         n = len(unique_idx)
         duplicated_selection = np.random.default_rng(2).choice(n, int(n * 1.5))
-        idx = holder(unique_idx.values[duplicated_selection])
+        idx = holder(unique_idx._values[duplicated_selection])
 
         # Series.duplicated is tested separately
         expected_duplicated = (
@@ -456,7 +456,7 @@ def test_sort_values_with_missing(index_with_missing, na_position, request):
         )
 
     missing_count = np.sum(index_with_missing.isna())
-    not_na_vals = index_with_missing[index_with_missing.notna()].values
+    not_na_vals = index_with_missing[index_with_missing.notna()]._values
     sorted_values = np.sort(not_na_vals)
     if na_position == "first":
         sorted_values = np.concatenate([[None] * missing_count, sorted_values])
@@ -488,7 +488,7 @@ def test_ndarray_compat_properties(index):
     assert idx.T.equals(idx)
     assert idx.transpose().equals(idx)
 
-    values = idx.values
+    values = idx._values
 
     assert idx.shape == values.shape
     assert idx.ndim == values.ndim
@@ -500,7 +500,7 @@ def test_ndarray_compat_properties(index):
 
     # test for validity
     idx.nbytes
-    idx.values.nbytes
+    idx._values.nbytes
 
 
 def test_compare_read_only_array():

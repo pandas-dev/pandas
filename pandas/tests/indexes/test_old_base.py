@@ -19,7 +19,6 @@ import pandas as pd
 from pandas import (
     CategoricalIndex,
     DatetimeIndex,
-    DatetimeTZDtype,
     Index,
     IntervalIndex,
     MultiIndex,
@@ -261,23 +260,21 @@ class TestBase:
             init_kwargs["dtype"] = index.dtype
 
         index_type = type(index)
-        result = index_type(index.values, copy=True, **init_kwargs)
-        if isinstance(index.dtype, DatetimeTZDtype):
-            result = result.tz_localize("UTC").tz_convert(index.tz)
+        result = index_type(index._values, copy=True, **init_kwargs)
         if isinstance(index, (DatetimeIndex, TimedeltaIndex)):
             index = index._with_freq(None)
 
         tm.assert_index_equal(index, result)
 
         if isinstance(index, PeriodIndex):
-            # .values an object array of Period, thus copied
+            # ._values is a PeriodArray, thus copied
             result = index_type.from_ordinals(ordinals=index.asi8, **init_kwargs)
             tm.assert_numpy_array_equal(index.asi8, result.asi8, check_same="same")
         elif isinstance(index, IntervalIndex):
             # checked in test_interval.py
             pass
         elif type(index) is Index and not isinstance(index.dtype, np.dtype):
-            result = index_type(index.values, copy=False, **init_kwargs)
+            result = index_type(index._values, copy=False, **init_kwargs)
             tm.assert_index_equal(result, index)
 
             if isinstance(index._values, BaseMaskedArray):
@@ -304,8 +301,21 @@ class TestBase:
             else:
                 raise NotImplementedError(index.dtype)
         else:
-            result = index_type(index.values, copy=False, **init_kwargs)
-            tm.assert_numpy_array_equal(index.values, result.values, check_same="same")
+            result = index_type(index._values, copy=False, **init_kwargs)
+            if isinstance(index, (DatetimeIndex, TimedeltaIndex)):
+                # ._values returns DatetimeArray/TimedeltaArray; check
+                # underlying ndarray is shared
+                tm.assert_numpy_array_equal(
+                    index._values._ndarray,
+                    result._values._ndarray,
+                    check_same="same",
+                )
+            elif isinstance(index.dtype, np.dtype):
+                tm.assert_numpy_array_equal(
+                    index._values, result._values, check_same="same"
+                )
+            else:
+                assert result._values is index._values
 
     def test_memory_usage(self, index):
         index._engine.clear_mapping()
@@ -392,12 +402,12 @@ class TestBase:
         rep = 2
         idx = simple_index.copy()
         new_index_cls = idx._constructor
-        expected = new_index_cls(idx.values.repeat(rep), name=idx.name)
+        expected = new_index_cls(idx._values.repeat(rep), name=idx.name)
         tm.assert_index_equal(idx.repeat(rep), expected)
 
         idx = simple_index
         rep = np.arange(len(idx))
-        expected = new_index_cls(idx.values.repeat(rep), name=idx.name)
+        expected = new_index_cls(idx._values.repeat(rep), name=idx.name)
         tm.assert_index_equal(idx.repeat(rep), expected)
 
     def test_numpy_repeat(self, simple_index):
@@ -821,9 +831,12 @@ class TestBase:
                 datetime(2011, 11, 1),
             ],
             tz="UTC",
-        ).values
+        )._values
 
-        ex_keys = [Timestamp("2011-11-01"), Timestamp("2011-12-01")]
+        ex_keys = [
+            Timestamp("2011-11-01", tz="UTC"),
+            Timestamp("2011-12-01", tz="UTC"),
+        ]
         expected = {ex_keys[0]: idx[[0, 4]], ex_keys[1]: idx[[1, 3]]}
         tm.assert_dict_equal(idx.groupby(to_groupby), expected)
 

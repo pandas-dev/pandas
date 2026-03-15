@@ -437,6 +437,17 @@ class ArrowExtensionArray(
                 values = np.asarray(values, dtype=object)
                 mask = is_pdna_or_none(values)
                 arr = pa.array(values, mask=mask)
+            elif hasattr(values, "__arrow_array__"):
+                arr = values.__arrow_array__()
+            elif hasattr(values, "_ndarray"):
+                # DatetimeArray, TimedeltaArray: pass underlying ndarray
+                # to avoid pyarrow calling Series.values (which is deprecated
+                # for tz-aware datetimes)
+                arr = pa.array(values._ndarray, from_pandas=True)
+                if hasattr(values.dtype, "tz") and values.dtype.tz is not None:
+                    arr = arr.cast(
+                        pa.timestamp(values.dtype.unit, tz=str(values.dtype.tz))
+                    )
             else:
                 arr = pa.array(values, from_pandas=True)
         except (ValueError, TypeError):
@@ -2901,8 +2912,16 @@ class ArrowExtensionArray(
             pa_result = result.__arrow_array__()
             return self._from_pyarrow_array(pa_result)
         else:
-            # DatetimeArray, TimedeltaArray
-            pa_result = pa.array(result)
+            # DatetimeArray, TimedeltaArray — convert via underlying ndarray
+            # to avoid pyarrow calling Series.values (deprecated for tz-aware)
+            pa_result = pa.array(result._ndarray, from_pandas=True)
+            if hasattr(result.dtype, "tz") and result.dtype.tz is not None:
+                pa_result = pa_result.cast(
+                    pa.timestamp(result.dtype.unit, tz=str(result.dtype.tz))
+                )
+            elif hasattr(result.dtype, "unit"):
+                # TimedeltaArray
+                pa_result = pa_result.cast(pa.duration(result.dtype.unit))
             return self._from_pyarrow_array(pa_result)
 
     def _apply_elementwise(self, func: Callable) -> list[list[Any]]:

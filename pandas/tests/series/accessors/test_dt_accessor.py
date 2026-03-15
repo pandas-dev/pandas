@@ -163,7 +163,9 @@ class TestSeriesDatetimeValues:
         tz_result = result.dt.tz
         assert str(tz_result) == "CET"
         freq_result = ser.dt.freq
-        assert freq_result == DatetimeIndex(ser.values, freq="infer").freq
+        msg = "Series.values returning an ndarray that drops timezone information"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            assert freq_result == DatetimeIndex(ser.values, freq="infer").freq
 
     def test_dt_namespace_accessor_timedelta(self):
         # GH#7207, GH#11128
@@ -223,7 +225,9 @@ class TestSeriesDatetimeValues:
             getattr(ser.dt, prop)
 
         freq_result = ser.dt.freq
-        assert freq_result == PeriodIndex(ser.values).freq
+        msg = "Series.values returning an object-dtype ndarray for PeriodDtype"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            assert freq_result == PeriodIndex(ser.values).freq
 
     def test_dt_namespace_accessor_index_and_values(self):
         # both

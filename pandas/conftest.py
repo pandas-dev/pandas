@@ -786,7 +786,7 @@ def index_with_missing(request):
         vals[-1] = (None, *vals[-1][1:])
         return MultiIndex.from_tuples(vals)
     else:
-        vals = ind.values.copy()
+        vals = ind._values.copy()
         vals[0] = None
         vals[-1] = None
         return type(ind)(vals, copy=False)

@@ -5199,16 +5199,19 @@ class Index(IndexOpsMixin, PandasObject):
 
         ``_values`` are consistent between ``Series`` and ``Index``.
 
-        It may differ from the public '.values' method.
+        It may differ from the public '.values' method, though this
+        difference is deprecated and will be removed in a future version.
 
         index             | values          | _values       |
         ----------------- | --------------- | ------------- |
         Index             | ndarray         | ndarray       |
         CategoricalIndex  | Categorical     | Categorical   |
         DatetimeIndex     | ndarray[M8ns]   | DatetimeArray |
-        DatetimeIndex[tz] | ndarray[M8ns]   | DatetimeArray |
-        PeriodIndex       | ndarray[object] | PeriodArray   |
+        DatetimeIndex[tz] | ndarray[M8ns]*  | DatetimeArray |
+        PeriodIndex       | ndarray[object]*| PeriodArray   |
         IntervalIndex     | IntervalArray   | IntervalArray |
+
+        * Will return the ExtensionArray in a future version (deprecated).
 
         See Also
         --------
