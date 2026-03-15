@@ -221,7 +221,7 @@ def format_array_from_datetime(
         npy_datetimestruct dts
         char snprintf_buf[128]
         int snprintf_written
-        const char* snprintf_fmt_ptr
+        const char* snprintf_fmt_ptr = NULL
         Py_ssize_t pos
 
         # Note that `result` (and thus `result_flat`) is C-order and
