@@ -524,3 +524,9 @@ class ObjectStringArrayMixin:
 
     def _str_zfill(self, width: int):
         return self._str_map(lambda x: x.zfill(width))
+
+    def _str_splitlines(self, keepends: bool = False):
+        return self._str_map(lambda x: x.splitlines(keepends), dtype=object)
+
+    def _str_expandtabs(self, tabsize: int = 8):
+        return self._str_map(lambda x: x.expandtabs(tabsize))

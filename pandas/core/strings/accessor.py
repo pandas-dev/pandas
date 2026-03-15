@@ -2214,6 +2214,90 @@ class StringMethods(NoNewAttributesMixin):
         result = self._data.array._str_zfill(width)
         return self._wrap_result(result)
 
+    @forbid_nonstring_types(["bytes"])
+    def splitlines(self, keepends: bool = False):
+        """
+        Split strings in the Series/Index at line boundaries.
+
+        Equivalent to :meth:`str.splitlines`. Splits at the following line
+        boundaries: ``\\n``, ``\\r\\n``, ``\\r``, ``\\v`` or ``\\x0b``,
+        ``\\f`` or ``\\x0c``, ``\\x1c``, ``\\x1d``, ``\\x1e``.
+
+        Parameters
+        ----------
+        keepends : bool, default False
+            If True, line breaks are included in the resulting list.
+
+        Returns
+        -------
+        Series/Index of lists
+            Each element is a list of lines resulting from the split.
+
+        See Also
+        --------
+        Series.str.split : Split strings around given separator/delimiter.
+        Series.str.rsplit : Split strings around given separator from the right.
+
+        Examples
+        --------
+        >>> s = pd.Series(["line1\\nline2", "line1\\r\\nline2", np.nan])
+        >>> s.str.splitlines()
+        0    [line1, line2]
+        1    [line1, line2]
+        2             NaN
+        dtype: object
+
+        >>> s.str.splitlines(keepends=True)
+        0    [line1\\n, line2]
+        1    [line1\\r\\n, line2]
+        2                 NaN
+        dtype: object
+        """
+        result = self._data.array._str_splitlines(keepends)
+        return self._wrap_result(result, dtype=object)
+
+    @forbid_nonstring_types(["bytes"])
+    def expandtabs(self, tabsize: int = 8):
+        """
+        Replace tab characters in the Series/Index with spaces.
+
+        Equivalent to :meth:`str.expandtabs`. Each tab character is replaced
+        with one or more spaces depending on the current column and the
+        given tab size.
+
+        Parameters
+        ----------
+        tabsize : int, default 8
+            Number of characters between tab stops. Replaces each tab
+            character with one or more spaces such that the next character
+            is aligned to a column that is a multiple of `tabsize`.
+
+        Returns
+        -------
+        Series/Index
+            Series or Index with tab characters expanded to spaces.
+
+        See Also
+        --------
+        Series.str.wrap : Wrap strings at specified line width.
+
+        Examples
+        --------
+        >>> s = pd.Series(["1\\t2", "a\\tb", np.nan], dtype=object)
+        >>> s.str.expandtabs(4)
+        0    1   2
+        1    a   b
+        2    NaN
+        dtype: object
+        """
+        if not is_integer(tabsize):
+            msg = f"tabsize must be of integer type, not {type(tabsize).__name__}"
+            raise TypeError(msg)
+        if tabsize < 0:
+            raise ValueError("tabsize must be >= 0")
+        result = self._data.array._str_expandtabs(tabsize)
+        return self._wrap_result(result)
+
     def slice(self, start=None, stop=None, step=None):
         """
         Slice substrings from each element in the Series or Index.
