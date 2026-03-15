@@ -61,7 +61,7 @@ def test_qcut_specify_quantiles():
 
 def test_qcut_all_bins_same():
     with pytest.raises(ValueError, match="edges.*unique"):
-        qcut([0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 3)
+        qcut(np.zeros(10), 3)
 
 
 def test_qcut_include_lowest():
@@ -88,7 +88,7 @@ def test_qcut_nas():
 
 
 def test_qcut_index():
-    result = qcut([0, 2], 2)
+    result = qcut(np.array([0, 2]), 2)
     intervals = [Interval(-0.001, 1), Interval(1, 2)]
 
     expected = Categorical(intervals, ordered=True)
@@ -123,7 +123,7 @@ def test_qcut_return_intervals():
 @pytest.mark.parametrize("labels", ["foo", 1, True])
 def test_qcut_incorrect_labels(labels):
     # GH 13318
-    values = range(5)
+    values = np.arange(5)
     msg = "Bin labels must either be False, None or passed in as a list-like argument"
     with pytest.raises(ValueError, match=msg):
         qcut(values, 4, labels=labels)
@@ -132,7 +132,7 @@ def test_qcut_incorrect_labels(labels):
 @pytest.mark.parametrize("labels", [["a", "b", "c"], list(range(3))])
 def test_qcut_wrong_length_labels(labels):
     # GH 13318
-    values = range(10)
+    values = np.arange(10)
     msg = "Bin labels must be one fewer than the number of bin edges"
     with pytest.raises(ValueError, match=msg):
         qcut(values, 4, labels=labels)
@@ -147,7 +147,7 @@ def test_qcut_wrong_length_labels(labels):
 )
 def test_qcut_list_like_labels(labels, expected):
     # GH 13318
-    values = range(3)
+    values = np.arange(3)
     result = qcut(values, 3, labels=labels)
     expected = Categorical(expected, ordered=True)
     tm.assert_categorical_equal(result, expected)
@@ -164,7 +164,7 @@ def test_qcut_list_like_labels(labels, expected):
 )
 def test_qcut_duplicates_bin(kwargs, msg):
     # see gh-7751
-    values = [0, 0, 0, 0, 1, 2, 3]
+    values = np.array([0, 0, 0, 0, 1, 2, 3])
 
     if msg is not None:
         with pytest.raises(ValueError, match=msg):
@@ -273,7 +273,6 @@ def test_date_like_qcut_bins(arg, expected_bins, unit):
     [
         (Series, tm.assert_series_equal),
         (np.array, tm.assert_categorical_equal),
-        (list, tm.assert_equal),
     ],
 )
 def test_qcut_bool_coercion_to_int(bins, box, compare):
@@ -290,8 +289,8 @@ def test_qcut_nullable_integer(q, any_numeric_ea_dtype):
     arr = pd.array(np.arange(100), dtype=any_numeric_ea_dtype)
     arr[::2] = pd.NA
 
-    result = qcut(arr, q)
-    expected = qcut(arr.astype(float), q)
+    result = qcut(pd.Index(arr), q)
+    expected = qcut(pd.Index(arr.astype(float)), q)
 
     tm.assert_categorical_equal(result, expected)
 

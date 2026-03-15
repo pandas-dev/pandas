@@ -929,7 +929,7 @@ create are stored as an ``IntervalIndex`` in its ``.categories`` attribute.
 
 .. ipython:: python
 
-   c = pd.cut(range(4), bins=2)
+   c = pd.cut(np.arange(4), bins=2)
    c
    c.categories
 
@@ -941,7 +941,7 @@ binned into the same bins.
 
 .. ipython:: python
 
-   pd.cut([0, 3, 5, 1], bins=c.categories)
+   pd.cut(np.array([0, 3, 5, 1]), bins=c.categories)
 
 Any value which falls outside all bins will be assigned a ``NaN`` value.
 
