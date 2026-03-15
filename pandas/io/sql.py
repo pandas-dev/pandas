@@ -2526,16 +2526,32 @@ class SQLiteTable(SQLTable):
         adapt_date_iso = lambda val: val.isoformat()
         adapt_datetime_iso = lambda val: val.isoformat(" ")
 
-        sqlite3.register_adapter(time, _adapt_time)
+        # Only register adapter if not already registered
+        try:
+            sqlite3.register_adapter(time, _adapt_time)
+        except sqlite3.ProgrammingError:
+            pass  # Already registered by user
 
-        sqlite3.register_adapter(date, adapt_date_iso)
-        sqlite3.register_adapter(datetime, adapt_datetime_iso)
+        try:
+            sqlite3.register_adapter(date, adapt_date_iso)
+        except sqlite3.ProgrammingError:
+            pass
 
-        convert_date = lambda val: date.fromisoformat(val.decode())
-        convert_timestamp = lambda val: datetime.fromisoformat(val.decode())
+        try:
+            sqlite3.register_adapter(datetime, adapt_datetime_iso)
+        except sqlite3.ProgrammingError:
+            pass
 
-        sqlite3.register_converter("date", convert_date)
-        sqlite3.register_converter("timestamp", convert_timestamp)
+        # preserve original converters if user already set them
+        if not hasattr(self, "_user_date_converter_registered"):
+            convert_date = lambda val: date.fromisoformat(val.decode())
+            convert_timestamp = lambda val: datetime.fromisoformat(val.decode())
+
+            sqlite3.register_converter("date", convert_date)
+            sqlite3.register_converter("timestamp", convert_timestamp)
+
+            # flag to indicate we've registered defaults
+            self._user_date_converter_registered = True
 
     def sql_schema(self) -> str:
         return str(";\n".join(self.table))
