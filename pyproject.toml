@@ -580,7 +580,6 @@ module = [
   "pandas.core.arraylike", # TODO
   "pandas.core.base", # TODO
   "pandas.core.construction", # TODO
-  "pandas.core.flags", # TODO
   "pandas.core.frame", # TODO
   "pandas.core.generic", # TODO
   "pandas.core.indexing", # TODO
