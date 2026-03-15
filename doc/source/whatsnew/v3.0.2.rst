@@ -20,6 +20,7 @@ Enhancements
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
+- Fixed performance regression in assigning into a string column with string data (:issue:`64530`)
 - Fixed regression in :meth:`HDFStore.select` where the ``where`` clause on a datetime index silently returned empty results when the index had non-nanosecond resolution (:issue:`64310`)
 - Fixed regression in :meth:`Series.interpolate` where ``limit_direction="both"`` with ``limit`` greater than the Series length raised ``ValueError`` (:issue:`64322`)
 
