@@ -748,12 +748,12 @@ class StringMethods(NoNewAttributesMixin):
 
         See Also
         --------
-        Series.str.split : Split strings around given separator/delimiter.
         Series.str.rsplit : Splits string around given separator/delimiter,
             starting from the right.
         Series.str.join : Join lists contained as elements in the Series/Index
             with passed delimiter.
-        str.split : Standard library version for split.
+        re.split : Standard library version for split with ``regex=True``.
+        str.split : Standard library version for split with ``regex=False``.
         str.rsplit : Standard library version for rsplit.
 
         Notes
@@ -909,7 +909,7 @@ class StringMethods(NoNewAttributesMixin):
         Parameters
         ----------
         pat : str, optional
-            String to split on.
+            String to split on. Does not support regex
             If not specified, split on whitespace.
         n : int, default -1 (all)
             Limit number of splits in output.
@@ -927,12 +927,12 @@ class StringMethods(NoNewAttributesMixin):
 
         See Also
         --------
-        Series.str.split : Split strings around given separator/delimiter.
-        Series.str.rsplit : Splits string around given separator/delimiter,
-            starting from the right.
+        Series.str.split : Split strings around given separator/delimiter or
+            regular expression.
         Series.str.join : Join lists contained as elements in the Series/Index
             with passed delimiter.
-        str.split : Standard library version for split.
+        re.split : Standard library version for split with ``regex=True``.
+        str.split : Standard library version for split with ``regex=False``.
         str.rsplit : Standard library version for rsplit.
 
         Notes
