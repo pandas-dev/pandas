@@ -528,7 +528,7 @@ def test_is_recompilable_passes(ll):
     assert inference.is_re_compilable(ll)
 
 
-@pytest.mark.parametrize("ll", [1, [], object()])
+@pytest.mark.parametrize("ll", [1, [], object(), "("])
 def test_is_recompilable_fails(ll):
     assert not inference.is_re_compilable(ll)
 
