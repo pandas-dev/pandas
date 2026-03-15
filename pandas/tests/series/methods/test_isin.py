@@ -176,6 +176,26 @@ class TestSeriesIsIn:
         expected = Series([True, False])
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("dtype", ["int64", "Int64"])
+    def test_isin_int64_vs_uint64_precision(self, dtype):
+        ser = Series([1378774140726870442], dtype=dtype)
+        values = [np.uint64(1378774140726870528)]
+
+        result = ser.isin(values)
+        expected_dtype = "boolean" if dtype == "Int64" else "bool"
+        expected = Series([False], dtype=expected_dtype)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("dtype", ["uint64", "UInt64"])
+    def test_isin_uint64_vs_int64_precision(self, dtype):
+        ser = Series([1378774140726870528], dtype=dtype)
+        values = [np.int64(1378774140726870442)]
+
+        result = ser.isin(values)
+        expected_dtype = "boolean" if dtype == "UInt64" else "bool"
+        expected = Series([False], dtype=expected_dtype)
+        tm.assert_series_equal(result, expected)
+
     @pytest.mark.parametrize("dtype", ["boolean", "Int64", "Float64"])
     @pytest.mark.parametrize(
         "data,values,expected",

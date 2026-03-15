@@ -39,7 +39,6 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_complex_dtype,
     is_dict_like,
-    is_dtype_equal,
     is_extension_array_dtype,
     is_float,
     is_float_dtype,
@@ -488,6 +487,72 @@ unique1d = unique
 _MINIMUM_COMP_ARR_LEN = 1_000_000
 
 
+def _isin_ndarray(comps_array: np.ndarray, values: np.ndarray) -> npt.NDArray[np.bool_]:
+    # GH16012
+    # Ensure np.isin doesn't get object types or it *may* throw an exception
+    # Albeit hashmap has O(1) look-up (vs. O(logn) in sorted array),
+    # isin is faster for small sizes
+
+    # GH60678
+    # Ensure values don't contain <NA>, otherwise it throws exception with np.in1d
+    if (
+        len(comps_array) > _MINIMUM_COMP_ARR_LEN
+        and len(values) <= 26
+        and comps_array.dtype != object
+        and not any(v is NA for v in values)
+    ):
+        # If the values include nan we need to check for nan explicitly
+        # since np.nan is not equal to np.nan
+        if isna(values).any():
+
+            def f(c, v):
+                return np.logical_or(np.isin(c, v).ravel(), np.isnan(c))
+
+        else:
+            f = lambda a, b: np.isin(a, b).ravel()
+
+    else:
+        common = np_find_common_type(values.dtype, comps_array.dtype)
+        values = values.astype(common, copy=False)
+        comps_array = comps_array.astype(common, copy=False)
+        f = htable.ismember
+
+    return f(comps_array, values)
+
+
+def _isin_signed_unsigned_with_mask(
+    comps_array: np.ndarray, values: np.ndarray
+) -> npt.NDArray[np.bool_] | None:
+    # GH46485, GH61676
+    if not (is_integer_dtype(comps_array.dtype) and is_integer_dtype(values.dtype)):
+        return None
+
+    if is_signed_integer_dtype(comps_array.dtype) == is_signed_integer_dtype(
+        values.dtype
+    ):
+        return None
+
+    common = np_find_common_type(values.dtype, comps_array.dtype)
+    if common.kind != "f":
+        return None
+
+    if is_signed_integer_dtype(comps_array.dtype):
+        non_negative = comps_array >= 0
+        result = np.zeros(comps_array.shape, dtype=bool)
+
+        if non_negative.any():
+            result[non_negative] = _isin_ndarray(
+                comps_array[non_negative].astype(values.dtype, copy=False), values
+            )
+
+        return result
+
+    non_negative = values >= 0
+    return _isin_ndarray(
+        comps_array, values[non_negative].astype(comps_array.dtype, copy=False)
+    )
+
+
 def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
     """
     Compute the isin boolean array.
@@ -514,18 +579,7 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
         )
 
     if not isinstance(values, (ABCIndex, ABCSeries, ABCExtensionArray, np.ndarray)):
-        orig_values = list(values)
-        values = _ensure_arraylike(orig_values, func_name="isin-targets")
-
-        if (
-            len(values) > 0
-            and values.dtype.kind in "iufcb"
-            and not is_signed_integer_dtype(comps)
-            and not is_dtype_equal(values, comps)
-        ):
-            # GH#46485 Use object to avoid upcast to float64 later
-            # TODO: Share with _find_common_type_compat
-            values = construct_1d_object_array_from_listlike(orig_values)
+        values = _ensure_arraylike(list(values), func_name="isin-targets")
 
     elif isinstance(values, ABCMultiIndex):
         # Avoid raising in extract_array
@@ -552,37 +606,11 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
     elif isinstance(values.dtype, ExtensionDtype):
         return isin(np.asarray(comps_array), np.asarray(values))
 
-    # GH16012
-    # Ensure np.isin doesn't get object types or it *may* throw an exception
-    # Albeit hashmap has O(1) look-up (vs. O(logn) in sorted array),
-    # isin is faster for small sizes
+    result = _isin_signed_unsigned_with_mask(comps_array, values)
+    if result is not None:
+        return result
 
-    # GH60678
-    # Ensure values don't contain <NA>, otherwise it throws exception with np.in1d
-
-    if (
-        len(comps_array) > _MINIMUM_COMP_ARR_LEN
-        and len(values) <= 26
-        and comps_array.dtype != object
-        and not any(v is NA for v in values)
-    ):
-        # If the values include nan we need to check for nan explicitly
-        # since np.nan it not equal to np.nan
-        if isna(values).any():
-
-            def f(c, v):
-                return np.logical_or(np.isin(c, v).ravel(), np.isnan(c))
-
-        else:
-            f = lambda a, b: np.isin(a, b).ravel()
-
-    else:
-        common = np_find_common_type(values.dtype, comps_array.dtype)
-        values = values.astype(common, copy=False)
-        comps_array = comps_array.astype(common, copy=False)
-        f = htable.ismember
-
-    return f(comps_array, values)
+    return _isin_ndarray(comps_array, values)
 
 
 def factorize_array(
