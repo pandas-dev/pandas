@@ -143,6 +143,16 @@ def _get_path_or_handle(
         )
         fs = None
         path_or_handle = handles.handle
+        if hasattr(path_or_handle, "name") and isinstance(
+            path_or_handle.name, (str, bytes)
+        ):
+            # Unwrap the Python file handle back to a string path so that
+            # PyArrow can use memory-mapped and multithreaded C++ I/O
+            # instead of going through the Python I/O layer. GH#47702
+            if isinstance(path_or_handle.name, bytes):
+                path_or_handle = path_or_handle.name.decode()
+            else:
+                path_or_handle = path_or_handle.name
     return path_or_handle, handles, fs
 
 
@@ -203,16 +213,6 @@ class PyArrowImpl(BaseImpl):
             mode="wb",
             is_dir=partition_cols is not None,
         )
-        if (
-            isinstance(path_or_handle, io.BufferedWriter)
-            and hasattr(path_or_handle, "name")
-            and isinstance(path_or_handle.name, (str, bytes))
-        ):
-            if isinstance(path_or_handle.name, bytes):
-                path_or_handle = path_or_handle.name.decode()
-            else:
-                path_or_handle = path_or_handle.name
-
         try:
             if partition_cols is not None:
                 # writes to multiple files under the given path
@@ -256,18 +256,6 @@ class PyArrowImpl(BaseImpl):
             storage_options=storage_options,
             mode="rb",
         )
-        if (
-            isinstance(path_or_handle, io.BufferedReader)
-            and hasattr(path_or_handle, "name")
-            and isinstance(path_or_handle.name, (str, bytes))
-        ):
-            # Unwrap the Python file handle back to a string path so that
-            # PyArrow can use memory-mapped and multithreaded C++ I/O
-            # instead of going through the Python I/O layer. GH#47702
-            if isinstance(path_or_handle.name, bytes):
-                path_or_handle = path_or_handle.name.decode()
-            else:
-                path_or_handle = path_or_handle.name
         try:
             pa_table = self.api.parquet.read_table(
                 path_or_handle,
