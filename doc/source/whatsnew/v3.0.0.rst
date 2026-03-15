@@ -1285,6 +1285,7 @@ Indexing
 - Bug in :meth:`DataFrame.__setitem__` on an empty :class:`DataFrame` with a tuple corrupting the frame (:issue:`54385`)
 - Bug in :meth:`DataFrame.from_records` throwing a ``ValueError`` when passed an empty list in ``index`` (:issue:`58594`)
 - Bug in :meth:`DataFrame.loc` and :meth:`DataFrame.iloc` returning incorrect dtype when selecting from a :class:`DataFrame` with mixed data types. (:issue:`60600`)
+- Bug in :meth:`DataFrame.loc` returning incorrect dtype when the key is ``slice`` (:issue:`63071`)
 - Bug in :meth:`DataFrame.loc` with inconsistent behavior of loc-set with 2 given indexes to Series (:issue:`59933`)
 - Bug in :meth:`Index.equals` when comparing between :class:`Series` with string dtype :class:`Index` (:issue:`61099`)
 - Bug in :meth:`Index.get_indexer` and similar methods when ``NaN`` is located at or after position 128 (:issue:`58924`)
