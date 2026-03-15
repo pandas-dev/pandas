@@ -617,6 +617,52 @@ class TestReadHtml:
 
         tm.assert_frame_equal(result, expected)
 
+    def test_nested_table(self, flavor_read_html):
+        """
+        Make sure that read_html parses nested tables correctly. A web page can have a
+        nested table if the developer decided to use a table for layout instead of CSS.
+        The outer table could be used for layout while the inner table contains
+        actual data.
+
+        GH-64524 describes a bug that causes this test to fail.
+        """
+        result = flavor_read_html(
+            StringIO("""
+                <table>
+                    <thead>
+                        <tr>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>
+                                <table id="descendant">
+                                    <thead>
+                                        <tr>
+                                            <th>A</th>
+                                            <th>B</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>1</td>
+                                            <td>2</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            """),
+            attrs={"id": "descendant"},
+        )[0]
+
+        expected = DataFrame(data=[[1, 2]], columns=["A", "B"])
+
+        tm.assert_frame_equal(result, expected)
+
     def test_header_and_one_column(self, flavor_read_html):
         """
         Don't fail with bs4 when there is a header and only one column
