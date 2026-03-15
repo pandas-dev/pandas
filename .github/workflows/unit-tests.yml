@@ -94,7 +94,6 @@ jobs:
     env:
       LANG: ${{ matrix.lang || 'C.UTF-8' }}
       LC_ALL: ${{ matrix.lc_all || '' }}
-      PANDAS_MOTO_URL: "http://localhost:5000"
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
       group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.environment }}-${{ matrix.pytest_marker_expression }}-${{ matrix.extra_apt || '' }}-${{ matrix.pandas_future_infer_string }}-${{ matrix.platform }}
@@ -170,6 +169,10 @@ jobs:
 
     - name: Test (not single_cpu)
       uses: ./.github/actions/run-tests
+      id: test-not-single-cpu
+      env:
+        # Ensure port matches moto service
+        PANDAS_MOTO_URL: "http://localhost:5000"
       with:
         environment: ${{ matrix.environment }}
         numprocesses: 'auto'
@@ -177,8 +180,13 @@ jobs:
         pytest_target: ${{ matrix.pytest_target || 'pandas' }}
         pandas_future_infer_string: ${{ matrix.pandas_future_infer_string || '1' }}
         pandas_future_python_scalars: ${{ matrix.pandas_future_python_scalars || '0' }}
+
     - name: Test (single_cpu)
+      id: test-single-cpu
       uses: ./.github/actions/run-tests
+      env:
+        # Ensure port matches moto service
+        PANDAS_MOTO_URL: "http://localhost:5000"
       with:
         environment: ${{ matrix.environment }}
         numprocesses: 0
@@ -187,6 +195,17 @@ jobs:
         pandas_future_infer_string: ${{ matrix.pandas_future_infer_string || '1' }}
         pandas_future_python_scalars: ${{ matrix.pandas_future_python_scalars || '0' }}
       if: ${{ matrix.pytest_marker_expression == '' && (always() && steps.build.outcome == 'success')}}
+
+    - name: Upload test coverage to Codecov
+      uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5
+      with:
+        flags: unittests
+        name: codecov-pandas-${{ matrix.name || format('{0} {1}', matrix.platform, matrix.environment) }}
+        fail_ci_if_error: false
+        disable_telem: true
+      # coverage report appended for single_cpu + not single_cpu steps
+      # provide most hollistic coverage report
+      if: ${{ steps.test-not-single-cpu.outcome == 'success' && steps.test-single-cpu.outcome == 'success' }}
 
   macos-windows:
     permissions:
@@ -269,7 +288,7 @@ jobs:
           python -m pip install --no-cache-dir versioneer[toml] cython python-dateutil pytest>=8.3.4 pytest-xdist>=3.6.1 hypothesis>=6.116.0 pytest-cov
           python -m pip install --no-cache-dir --no-build-isolation -e . -Csetup-args="--werror"
           python -m pip list --no-cache-dir
-          python -m pytest -m 'not slow and not network and not clipboard and not single_cpu' pandas --junitxml=test-data.xml
+          python -m pytest -m 'not slow and not network and not clipboard and not single_cpu' pandas
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
       group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-32bit
@@ -312,7 +331,7 @@ jobs:
       - name: Run Tests
         run: |
           . ~/virtualenvs/pandas-dev/bin/activate
-          python -m pytest -m 'not slow and not network and not clipboard and not single_cpu' pandas --junitxml=test-data.xml
+          python -m pytest -m 'not slow and not network and not clipboard and not single_cpu' pandas
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
       group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-musl

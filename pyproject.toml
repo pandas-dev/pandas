@@ -422,7 +422,7 @@ docstring-code-format = true
 [tool.pytest.ini_options]
 # sync minversion with pyproject.toml & install.rst
 minversion = "8.3.4"
-addopts = "--strict-markers --strict-config --capture=no --durations=30 --junitxml=test-data.xml"
+addopts = "--strict-markers --strict-config --capture=no --durations=30"
 empty_parameter_set_mark = "fail_at_collect"
 xfail_strict = true
 testpaths = "pandas"
