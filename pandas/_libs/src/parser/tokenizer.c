@@ -1304,6 +1304,16 @@ static int _tokenize_helper(parser_t *self, size_t nrows, int all,
       break;
 
     if (self->datapos == self->datalen) {
+      if (self->source == NULL) {
+        /* Pre-loaded buffer mode: the entire chunk has been consumed.
+         * Signal EOF without invoking the Python I/O callback so the
+         * GIL is never re-acquired during tokenisation. */
+        self->datalen = 0;
+        status = parser_handle_eof(self);
+        self->state = FINISHED;
+        break;
+      }
+
       status = parser_buffer_bytes(self, self->chunksize, encoding_errors);
 
       if (status == REACHED_EOF) {

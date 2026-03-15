@@ -10,7 +10,11 @@ from collections import (
     abc,
     defaultdict,
 )
+from concurrent.futures import ThreadPoolExecutor
 import csv
+import io
+import mmap
+import os
 import sys
 from typing import (
     IO,
@@ -28,10 +32,13 @@ import warnings
 
 import numpy as np
 
+from pandas._config import get_option
+
 from pandas._libs import lib
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas.errors import (
     AbstractMethodError,
+    ParserError,
     ParserWarning,
 )
 from pandas.util._decorators import (
@@ -168,6 +175,10 @@ class _Fwf_Defaults(TypedDict):
 _fwf_defaults: _Fwf_Defaults = {"colspecs": "infer", "infer_nrows": 100, "widths": None}
 _c_unsupported = {"skipfooter"}
 _python_unsupported = {"low_memory", "float_precision"}
+
+# Minimum file size (bytes) to attempt parallel CSV reading.
+# Below this threshold the overhead of splitting and threading outweighs the benefit.
+_PARALLEL_READ_MIN_BYTES = 50 * 1024 * 1024  # 50 MB
 _pyarrow_unsupported = {
     "skipfooter",
     "float_precision",
@@ -296,6 +307,22 @@ def _read(
     # Check for duplicates in names.
     _validate_names(kwds.get("names", None))
 
+    # For large local uncompressed files with the C engine, attempt parallel reading.
+    # Each worker gets its own file handle and TextReader so the GIL-free tokenisation
+    # and type-conversion code in parsers.pyx runs truly in parallel.
+    if not iterator and chunksize is None and nrows is None:
+        _n_workers = os.cpu_count() or 1
+        if _n_workers > 1 and _can_parallelize_csv(filepath_or_buffer, kwds):
+            try:
+                _filepath = stringify_path(filepath_or_buffer)
+                assert isinstance(_filepath, str)  # guaranteed by _can_parallelize_csv
+                return _read_csv_parallel(_filepath, kwds, _n_workers)
+            except ParserError:
+                # A chunk boundary landed inside a quoted field containing an
+                # embedded newline.  Fall through to the serial path, which
+                # handles embedded newlines correctly.
+                pass
+
     # Create the parser.
     parser = TextFileReader(filepath_or_buffer, **kwds)
 
@@ -304,6 +331,289 @@ def _read(
 
     with parser:
         return parser.read(nrows)
+
+
+def _can_parallelize_csv(filepath_or_buffer, kwds: dict) -> bool:
+    """
+    Return True when a ``read_csv`` call is eligible for parallel execution.
+
+    Parallel reading works by splitting the file's data section into
+    ``os.cpu_count()`` byte-range chunks at newline boundaries and processing
+    them concurrently with threads.  The following conditions must all hold:
+
+    * *filepath_or_buffer* is a local file path (not a URL or file object).
+    * The file is not compressed.
+    * The C engine is selected (``engine='c'``, the default).
+    * The call is not in iterator / chunked mode.
+    * The entire file is being read (no ``nrows`` limit).
+    * ``skiprows`` is a plain integer (or absent) - list/callable forms require
+      tracking absolute line numbers across chunks.
+    * ``header`` is a single integer or ``None`` - multi-level headers complicate
+      the preamble boundary.
+    * ``index_col`` is ``None`` or ``False`` - a column-based index would need its
+      name propagated to non-first chunks.
+    * ``usecols`` is ``None`` - column selection changes the mapping between raw
+      column positions and names in non-first chunks.
+    * The file is at least ``_PARALLEL_READ_MIN_BYTES`` bytes large.
+
+    .. warning::
+        The chunk splitter advances to the next raw ``\\n`` boundary.  CSV files
+        that contain newlines embedded inside quoted fields may produce a parse
+        error or silently incorrect data.  This is the same caveat that applies
+        to any newline-based chunking scheme.
+    """
+    # Respect the global opt-out for internal parallelism.
+    if not get_option("mode.use_threads"):
+        return False
+
+    # Must be a local file path, not a URL or file-like object.
+    if is_file_like(filepath_or_buffer):
+        return False
+    filepath = stringify_path(filepath_or_buffer)
+    if not isinstance(filepath, str):
+        return False
+    if "://" in filepath:
+        return False
+
+    # Uncompressed files only (splitting is only meaningful for raw bytes).
+    compression = kwds.get("compression", "infer")
+    if compression not in ("infer", None):
+        return False
+    if compression == "infer":
+        lower = filepath.lower()
+        if any(lower.endswith(ext) for ext in (".gz", ".bz2", ".zip", ".xz", ".zst")):
+            return False
+
+    # Iterator / chunked mode: caller handles chunking themselves.
+    if kwds.get("iterator", False) or kwds.get("chunksize") is not None:
+        return False
+
+    # Only the C engine benefits; pyarrow has its own parallelism.
+    # engine=None means "use the default", which is "c".
+    if kwds.get("engine") not in ("c", None):
+        return False
+
+    # nrows: we'd need to distribute the row budget across chunks - skip for now.
+    if kwds.get("nrows") is not None:
+        return False
+
+    # The chunk splitter scans for raw \n bytes.  A custom lineterminator
+    # (which the C engine does honour) would misalign chunk boundaries.
+    lineterminator = kwds.get("lineterminator")
+    if lineterminator is not None and lineterminator != "\n":
+        return False
+
+    # Callable / list skiprows require tracking absolute line numbers.
+    skiprows = kwds.get("skiprows")
+    if skiprows is not None and not isinstance(skiprows, (int, np.integer)):
+        return False
+
+    # Multi-level (list) headers span multiple preamble lines - skip for now.
+    if isinstance(kwds.get("header", "infer"), (list, tuple)):
+        return False
+
+    # skipfooter: the C engine doesn't support it anyway, but be explicit.
+    if kwds.get("skipfooter", 0) > 0:
+        return False
+
+    # A column-based index_col would need its name propagated to non-first chunks.
+    index_col = kwds.get("index_col", None)
+    if index_col is not None and index_col is not False:
+        return False
+
+    # usecols changes the column name ↔ position mapping in non-first chunks.
+    if kwds.get("usecols") is not None:
+        return False
+
+    # Only bother for files large enough to amortise the threading overhead.
+    try:
+        file_size = os.path.getsize(filepath)
+        if file_size < _PARALLEL_READ_MIN_BYTES:
+            return False
+    except OSError:
+        return False
+
+    # Check that the *data section* (after header/skiprows preamble) is large
+    # enough to split into at least 2 chunks.  Without this, _read_csv_parallel
+    # would have to return None for files whose preamble eats most of the bytes.
+    _header = kwds.get("header", "infer")
+    if _header == "infer":
+        _header = 0 if kwds.get("names") is None else None
+    _skiprows = int(kwds.get("skiprows") or 0)
+    data_start = _find_data_start_offset(filepath, _header, _skiprows)
+    if file_size - data_start < _PARALLEL_READ_MIN_BYTES:
+        return False
+
+    return True
+
+
+def _find_data_start_offset(
+    filepath: str,
+    header: int | None,
+    skiprows: int,
+) -> int:
+    """
+    Return the byte offset of the first data row in *filepath*.
+
+    Reads ``int(skiprows) + (header + 1 if header is not None else 0)``
+    physical lines from the start of the file and returns the position after
+    the last preamble byte.  This is the byte from which each non-first chunk
+    must begin.
+    """
+    if header is None:
+        header_lines = 0
+    else:
+        header_lines = int(header) + 1  # header=0 → 1 header line
+
+    preamble_lines = int(skiprows) + header_lines
+    with open(filepath, "rb") as fd:
+        for _ in range(preamble_lines):
+            if not fd.readline():
+                break
+        return fd.tell()
+
+
+def _find_chunk_byte_offsets(
+    filepath: str,
+    n_chunks: int,
+    data_start: int,
+) -> list[int]:
+    """
+    Compute byte offsets that partition the data portion of *filepath* into
+    *n_chunks* approximately equal pieces aligned to newline boundaries.
+
+    Returns a list of ``n + 1`` offsets where the byte range
+    ``[offsets[i], offsets[i+1])`` defines chunk *i*.
+    """
+    file_size = os.path.getsize(filepath)
+    data_size = file_size - data_start
+    offsets = [data_start]
+
+    if n_chunks <= 1 or data_size <= 0:
+        offsets.append(file_size)
+        return offsets
+
+    chunk_target = data_size // n_chunks
+    with open(filepath, "rb") as fd:
+        for i in range(1, n_chunks):
+            target = data_start + i * chunk_target
+            if target >= file_size:
+                break
+            fd.seek(target)
+            fd.readline()  # advance past the partial line at the split point
+            pos = fd.tell()
+            if pos >= file_size or pos == offsets[-1]:
+                break
+            offsets.append(pos)
+
+    offsets.append(file_size)
+    return offsets
+
+
+def _read_csv_parallel(
+    filepath: str,
+    kwds: dict,
+    n_workers: int,
+) -> DataFrame:
+    """
+    Read a large CSV file in parallel using *n_workers* threads.
+
+    The file's data section (everything after the header / skiprows preamble)
+    is split into up to *n_workers* byte-range chunks aligned to newline
+    boundaries.  Each chunk is parsed by an independent
+    :class:`TextFileReader` / C-engine instance.  Because the hot paths in
+    ``pandas/_libs/parsers.pyx`` (tokenisation, int/float/bool conversion)
+    are wrapped in ``with nogil:`` blocks, threads achieve real CPU-level
+    parallelism.
+
+    The caller must ensure the file is eligible via :func:`_can_parallelize_csv`
+    before calling this function.
+
+    .. warning::
+        Splitting is done at raw ``\\n`` boundaries.  CSV files with newlines
+        embedded inside quoted fields may produce a parse error or silently
+        wrong data.
+    """
+    # Resolve the effective header value (mirrors TextFileReader.__init__).
+    header = kwds.get("header", "infer")
+    if header == "infer":
+        header = 0 if kwds.get("names") is None else None
+
+    skiprows = int(kwds.get("skiprows") or 0)
+
+    # Byte offset at which real data rows begin.
+    data_start = _find_data_start_offset(filepath, header, skiprows)
+
+    # Split the data section into up to n_workers chunks.
+    offsets = _find_chunk_byte_offsets(filepath, n_workers, data_start)
+    n_chunks = len(offsets) - 1
+    assert n_chunks > 1, "_can_parallelize_csv should guarantee splittable data"
+
+    # ------------------------------------------------------------------
+    # Infer column names from the preamble + one data line (very fast).
+    # ------------------------------------------------------------------
+    base_kwds: dict = {
+        **kwds,
+        "compression": None,
+        "memory_map": False,
+        "storage_options": None,
+    }
+
+    with open(filepath, "rb") as fd:
+        preamble = fd.read(data_start)
+        first_line = fd.readline()
+
+    name_buf = io.BytesIO(preamble + first_line)
+    name_reader = TextFileReader(name_buf, **base_kwds)
+    assert name_reader._engine.orig_names is not None
+    col_names: list = list(name_reader._engine.orig_names)
+    name_reader.close()
+
+    # ------------------------------------------------------------------
+    # Dispatch all chunks in parallel.  Each worker reads its own byte
+    # slice from disk, then calls load_buffer() so tokenisation is fully
+    # GIL-free.  Reading inside the thread (rather than pre-loading
+    # everything here) caps peak RAM to one chunk per thread instead of
+    # the whole file.
+    # ------------------------------------------------------------------
+    chunk_kwds: dict = {
+        **base_kwds,
+        "header": None,
+        "names": col_names,
+        "skiprows": None,
+    }
+
+    # mmap the file once and pass zero-copy memoryview slices to each thread
+    # instead of having each thread open/seek/read its own copy.
+    fh = open(filepath, "rb")
+    mm = mmap.mmap(fh.fileno(), 0, access=mmap.ACCESS_READ)
+    mv = memoryview(mm)
+
+    def _process_chunk(start: int, end: int) -> DataFrame:
+        data = mv[start:end]
+        reader = TextFileReader(io.BytesIO(b""), **chunk_kwds)
+        assert isinstance(reader._engine, CParserWrapper)
+        reader._engine._reader.load_buffer(data)
+        try:
+            return reader.read()
+        finally:
+            reader.close()
+
+    try:
+        with ThreadPoolExecutor(max_workers=n_workers) as pool:
+            futures = [
+                pool.submit(_process_chunk, offsets[i], offsets[i + 1])
+                for i in range(n_chunks)
+            ]
+            dfs = [fut.result() for fut in futures]
+    finally:
+        mv.release()
+        mm.close()
+        fh.close()
+
+    from pandas import concat
+
+    return concat(dfs, ignore_index=True)
 
 
 @overload
