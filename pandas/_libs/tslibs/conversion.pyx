@@ -126,6 +126,19 @@ def cast_from_unit_vectorized(
     m, p = precision_from_unit(in_reso, out_reso)
 
     nan_mask = np.isnan(values)
+    nat_as_float = np.float64(NPY_NAT)
+
+    # Preserve float(iNaT) -> NaT, but reject other values that are already
+    # outside the int64 domain before the integer cast can alias them to NPY_NAT.
+    oob = (~nan_mask) & (values != nat_as_float) & (
+        (values >= np.float64(2**63)) | (values < nat_as_float)
+    )
+    if oob.any():
+        bad_idx = int(np.where(oob)[0][0])
+        raise OutOfBoundsDatetime(
+            f"cannot convert input {values[bad_idx]} with the unit '{unit}'"
+        )
+
     # Replace NaN with 0.0 for safe int casting; NaN positions set to NPY_NAT below
     safe = np.where(nan_mask, 0.0, values)
 
@@ -134,10 +147,9 @@ def cast_from_unit_vectorized(
     base = safe.astype("i8")
     frac = safe - base.astype("f8")
 
-    # float(iNaT) == float(INT64_MIN) == -2**63, which truncates to INT64_MIN.
-    # The original loop treated base == NPY_NAT as NaT; replicate that here.
-    nan_mask = nan_mask | (base == NPY_NAT)
-    base[nan_mask] = 0
+    # float(iNaT) == float(INT64_MIN) == -2**63, which should round-trip to NaT.
+    nat_mask = nan_mask | (safe == nat_as_float)
+    base[nat_mask] = 0
 
     if p:
         frac = np.round(frac, p)
@@ -149,7 +161,7 @@ def cast_from_unit_vectorized(
     if m != 1:
         result_f = base.astype("f8") * m + frac * m
         oob = (result_f >= 2**63) | (result_f < -(2**63))
-        non_nat = ~nan_mask
+        non_nat = ~nat_mask
         if (oob & non_nat).any():
             bad_idx = int(np.where(oob & non_nat)[0][0])
             raise OutOfBoundsDatetime(
@@ -157,7 +169,7 @@ def cast_from_unit_vectorized(
             )
 
     out = base * np.int64(m) + (frac * m).astype("i8")
-    out[nan_mask] = NPY_NAT
+    out[nat_mask] = NPY_NAT
     return out
 
 

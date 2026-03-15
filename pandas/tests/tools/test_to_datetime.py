@@ -2060,6 +2060,20 @@ class TestToDatetimeUnit:
         with pytest.raises(OutOfBoundsDatetime, match=msg3):
             Timestamp(should_fail2[1], unit="D")
 
+    def test_float_to_datetime_raise_oob_ns(self):
+        value = np.float64(2**63)
+        arr = np.array([value], dtype=np.float64)
+
+        msg = "cannot convert input with unit 'ns'"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            to_datetime(arr, unit="ns", errors="raise")
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            to_datetime(value, unit="ns", errors="raise")
+
+        msg = "Out of bounds nanosecond timestamp"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            Timestamp(value, unit="ns")
+
 
 class TestToDatetimeDataFrame:
     @pytest.fixture
