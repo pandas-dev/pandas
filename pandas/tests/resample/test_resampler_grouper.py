@@ -457,9 +457,6 @@ def test_empty(keys):
         .set_index(keys, drop=False)
         .set_index(TimedeltaIndex([]), append=True)[expected_columns]
     )
-    if len(keys) == 1:
-        expected.index.name = keys[0]
-
     tm.assert_frame_equal(result, expected)
 
 
@@ -548,9 +545,6 @@ def test_resample_no_index(keys):
     expected = DataFrame(columns=["a", "b", "date"]).set_index(keys, drop=False)
     expected["date"] = pd.to_datetime(expected["date"])
     expected = expected.set_index("date", append=True, drop=True)[expected_columns]
-    if len(keys) == 1:
-        expected.index.name = keys[0]
-
     tm.assert_frame_equal(result, expected)
 
 

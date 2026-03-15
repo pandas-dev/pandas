@@ -640,7 +640,8 @@ class TestTableOrient:
     def test_warns_non_roundtrippable_names(self, idx):
         # GH 19130
         df = DataFrame(index=idx)
-        df.index.name = "index"
+        if not idx._is_multi:
+            df.index.name = "index"
         with tm.assert_produces_warning(UserWarning, match="not round-trippable"):
             set_default_names(df)
 
