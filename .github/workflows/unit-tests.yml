@@ -94,7 +94,6 @@ jobs:
     env:
       LANG: ${{ matrix.lang || 'C.UTF-8' }}
       LC_ALL: ${{ matrix.lc_all || '' }}
-      PANDAS_MOTO_URL: "http://localhost:5000"
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
       group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.environment }}-${{ matrix.pytest_marker_expression }}-${{ matrix.extra_apt || '' }}-${{ matrix.pandas_future_infer_string }}-${{ matrix.platform }}
@@ -171,6 +170,9 @@ jobs:
     - name: Test (not single_cpu)
       uses: ./.github/actions/run-tests
       id: test-not-single-cpu
+      env:
+        # Ensure port matches moto service
+        PANDAS_MOTO_URL: "http://localhost:5000"
       with:
         environment: ${{ matrix.environment }}
         numprocesses: 'auto'
@@ -182,6 +184,9 @@ jobs:
     - name: Test (single_cpu)
       id: test-single-cpu
       uses: ./.github/actions/run-tests
+      env:
+        # Ensure port matches moto service
+        PANDAS_MOTO_URL: "http://localhost:5000"
       with:
         environment: ${{ matrix.environment }}
         numprocesses: 0
