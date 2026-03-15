@@ -198,7 +198,7 @@ static PyObject *get_values(PyObject *obj) {
       }
       Py_DECREF(tz);
     }
-    values = PyObject_GetAttrString(obj, "values");
+    values = PyObject_GetAttrString(obj, "_values");
     if (values == NULL) {
       // Clear so we can subsequently try another method
       PyErr_Clear();
