@@ -1599,7 +1599,7 @@ cdef int64_t _extract_ordinal(object item, PeriodDtypeBase dtype) except? -1:
 
             if item._dtype != dtype:
                 msg = DIFFERENT_FREQ.format(cls="PeriodIndex",
-                                            own_freq=dtype._freqstr,
+                                            own_freq=dtype.unit,
                                             other_freq=item.freqstr)
                 raise IncompatibleFrequency(msg)
 
