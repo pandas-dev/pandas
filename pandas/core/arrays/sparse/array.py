@@ -1895,13 +1895,22 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     def _unary_method(self, op) -> SparseArray:
         fill_value = op(np.array(self.fill_value)).item()
         dtype = SparseDtype(self.dtype.subtype, fill_value)
-        # NOTE: if fill_value doesn't change
-        # we just have to apply op to sp_values
+        values = op(self.sp_values)
         if isna(self.fill_value) or fill_value == self.fill_value:
-            values = op(self.sp_values)
-            return type(self)._simple_new(values, self.sp_index, self.dtype)
-        # In the other case we have to recalc indexes
-        return type(self)(op(self.to_dense()), dtype=dtype)
+            return type(self)._simple_new(values, self.sp_index, dtype)
+        # Fill value changed — filter out stored values that now equal
+        # the new fill_value to keep the representation canonical.
+        # This avoids O(n) densification. GH#60179
+        if isna(fill_value):
+            keep_mask = ~np.array(isna(values), dtype=bool)
+        else:
+            keep_mask = values != fill_value
+        if keep_mask.all():
+            return type(self)._simple_new(values, self.sp_index, dtype)
+        new_values = values[keep_mask]
+        indices = self.sp_index.indices[keep_mask]
+        new_sp_index = make_sparse_index(len(self), indices, kind=self.kind)
+        return type(self)._simple_new(new_values, new_sp_index, dtype)
 
     def __pos__(self) -> SparseArray:
         return self._unary_method(operator.pos)
