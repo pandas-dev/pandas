@@ -208,6 +208,8 @@ cdef object tz_cache_key(tzinfo tz):
                              "of passing a timezone object. See "
                              "https://github.com/pandas-dev/pandas/pull/7362")
         return "dateutil" + tz._filename
+    elif is_zoneinfo(tz):
+        return "zoneinfo/" + tz.key
     else:
         return None
 
@@ -278,6 +280,73 @@ cdef int64_t[::1] unbox_utcoffsets(object transinfo):
 # Daylight Savings
 
 
+cdef tuple _get_trans_and_deltas_from_dateutil_tz(
+    tzinfo dateutil_tz,
+    int64_t first_offset_seconds
+):
+    """
+    Parameters
+    ----------
+    dateutil_tz : tzinfo
+        A dateutil timezone object with _trans_list and _trans_idx attributes.
+    first_offset_seconds : int64_t
+        The UTC offset in seconds for the period before the first transition.
+
+    Returns
+    -------
+    trans : ndarray[int64_t]
+        Nanosecond UTC times of DST transitions.
+    deltas : ndarray[int64_t]
+        Nanosecond UTC offsets corresponding to DST transitions.
+    """
+    trans_list = _get_utc_trans_times_from_dateutil_tz(dateutil_tz)
+    trans = np.hstack([
+        np.array([0], dtype="M8[s]"),
+        np.array(trans_list, dtype="M8[s]")
+    ]).astype("M8[ns]")
+    trans = trans.view("i8")
+    trans[0] = NPY_NAT + 1
+
+    deltas = np.array(
+        [first_offset_seconds] + [v.offset for v in dateutil_tz._trans_idx],
+        dtype="i8"
+    )
+    deltas *= 1_000_000_000
+    return trans, deltas
+
+
+cdef tuple _get_zoneinfo_trans_and_deltas(tzinfo tz):
+    """
+    Parameters
+    ----------
+    tz : ZoneInfo
+
+    Returns
+    -------
+    trans : ndarray[int64_t]
+        Nanosecond UTC times of DST transitions.
+    deltas : ndarray[int64_t]
+        Nanosecond UTC offsets corresponding to DST transitions.
+    """
+    cdef:
+        int64_t fixed_offset_seconds
+
+    dateutil_tz = dateutil_gettz(tz.key)
+
+    if hasattr(dateutil_tz, "_trans_list") and len(dateutil_tz._trans_list):
+        first_offset_seconds = int(dateutil_tz._ttinfo_before.offset)
+        return _get_trans_and_deltas_from_dateutil_tz(
+            dateutil_tz, first_offset_seconds
+        )
+    else:
+        fixed_offset_seconds = int(
+            tz.utcoffset(datetime(2020, 1, 1)).total_seconds()
+        )
+        trans = np.array([NPY_NAT + 1], dtype=np.int64)
+        deltas = np.array([fixed_offset_seconds], dtype="i8") * 1_000_000_000
+        return trans, deltas
+
+
 cdef object get_dst_info(tzinfo tz):
     """
     Returns
@@ -311,19 +380,9 @@ cdef object get_dst_info(tzinfo tz):
 
         elif treat_tz_as_dateutil(tz):
             if len(tz._trans_list):
-                # get utc trans times
-                trans_list = _get_utc_trans_times_from_dateutil_tz(tz)
-                trans = np.hstack([
-                    np.array([0], dtype="M8[s]"),  # place holder for 1st item
-                    np.array(trans_list, dtype="M8[s]")]).astype(
-                    "M8[ns]")  # all trans listed
-                trans = trans.view("i8")
-                trans[0] = NPY_NAT + 1
-
-                # deltas
-                deltas = np.array([v.offset for v in (
-                    tz._ttinfo_before,) + tz._trans_idx], dtype="i8")
-                deltas *= 1_000_000_000
+                trans, deltas = _get_trans_and_deltas_from_dateutil_tz(
+                    tz, int(tz._ttinfo_before.offset)
+                )
                 typ = "dateutil"
 
             elif is_fixed_offset(tz):
@@ -340,6 +399,11 @@ cdef object get_dst_info(tzinfo tz):
                 # (under the just-deleted code that returned empty arrays)
                 raise AssertionError("dateutil tzinfo is not a FixedOffset "
                                      "and has an empty `_trans_list`.", tz)
+
+        elif is_zoneinfo(tz):
+            trans, deltas = _get_zoneinfo_trans_and_deltas(tz)
+            typ = "zoneinfo"
+
         else:
             # static tzinfo, we can get here with pytz.StaticTZInfo
             #  which are not caught by treat_tz_as_pytz

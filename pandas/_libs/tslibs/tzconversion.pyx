@@ -75,6 +75,7 @@ cdef class Localizer:
         self._creso = creso
         self.use_utc = self.use_tzlocal = self.use_fixed = False
         self.use_dst = self.use_pytz = False
+        self.use_zoneinfo_fallback = False
         self.ntrans = -1  # placeholder
         self.delta = -1  # placeholder
         self.deltas = _deltas_placeholder
@@ -83,7 +84,7 @@ cdef class Localizer:
         if is_utc(tz) or tz is None:
             self.use_utc = True
 
-        elif is_tzlocal(tz) or is_zoneinfo(tz):
+        elif is_tzlocal(tz):
             self.use_tzlocal = True
 
         else:
@@ -109,7 +110,7 @@ cdef class Localizer:
             self.ntrans = self.trans.shape[0]
             self.deltas = deltas
 
-            if typ != "pytz" and typ != "dateutil":
+            if typ != "pytz" and typ != "dateutil" and typ != "zoneinfo":
                 # static/fixed; in this case we know that len(delta) == 1
                 self.use_fixed = True
                 self.delta = deltas[0]
@@ -117,6 +118,8 @@ cdef class Localizer:
                 self.use_dst = True
                 if typ == "pytz":
                     self.use_pytz = True
+                elif typ == "zoneinfo":
+                    self.use_zoneinfo_fallback = True
                 self.tdata = <int64_t*>cnp.PyArray_DATA(trans)
 
     @cython.wraparound(False)
@@ -134,6 +137,14 @@ cdef class Localizer:
             return utc_val + self.delta
         else:
             pos[0] = bisect_right_i8(self.tdata, utc_val, self.ntrans) - 1
+
+            # Fall back to ZoneInfo.utcoffset() for pre-first-transition timestamps,
+            # since ZoneInfo and dateutil may return different offsets in LMT era.
+            if self.use_zoneinfo_fallback and pos[0] == 0:
+                return utc_val + _tz_localize_using_tzinfo_api(
+                    utc_val, self.tz, to_utc=False, creso=self._creso, fold=fold
+                )
+
             if fold is not NULL:
                 fold[0] = _infer_dateutil_fold(
                     utc_val, self.trans, self.deltas, pos[0]
