@@ -6,7 +6,7 @@ project(
     'cython',
     version: run_command(['generate_version.py', '--print'], check: true).stdout().strip(),
     license: 'BSD-3',
-    meson_version: '>=1.2.1',
+    meson_version: '>=1.5.0',
     default_options: ['buildtype=release', 'c_std=c11', 'warning_level=2'],
 )
 
@@ -44,6 +44,12 @@ if cc.get_id() == 'msvc'
         language: ['c', 'cpp'],
     )
 endif
+
+# OpenMP is required for cython.prange parallel loops.
+# On macOS with Apple Clang: brew install libomp
+# Meson >= 1.5.0 auto-detects Homebrew's libomp.
+# If unavailable, prange falls back to sequential range.
+openmp_dep = dependency('OpenMP', language: 'c', required: false)
 
 if fs.exists('_version_meson.py')
     py.install_sources('_version_meson.py', subdir: 'pandas')
