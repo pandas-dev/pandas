@@ -268,3 +268,29 @@ def test_join_index_levels():
     )
     tm.assert_index_equal(result.levels[1], expected.levels[1])
     tm.assert_index_equal(result, expected)
+
+
+def test_join_level_with_nan_in_multiindex():
+    # GH#60908
+    import pandas as pd
+
+    ix1 = MultiIndex.from_arrays(
+        [
+            [np.nan, 81, 81, 82, 82],
+            [np.nan, np.nan, np.nan, np.nan, np.nan],
+            pd.to_datetime(
+                [np.nan, "2018-06-01", "2018-07-01", "2018-07-01", "2018-08-01"]
+            ),
+        ],
+        names=["foo", "bar", "date"],
+    )
+    s1 = Series([np.nan, 25.058969, 22.519751, 20.847981, 21.625236], index=ix1)
+    ix2 = Index([81, 82, 83, 84, 85, 86, 87], name="foo")
+    s2 = Series([28.28, 25.25, 22.22, 16.766, 14.0087, 14.948, 29.29], index=ix2)
+
+    result = s1 - s2
+    expected = Series(
+        [np.nan, -3.221031, -5.760249, -4.402019, -3.624764],
+        index=ix1,
+    )
+    tm.assert_series_equal(result, expected)
