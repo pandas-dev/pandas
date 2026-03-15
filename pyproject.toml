@@ -614,7 +614,6 @@ module = [
   "pandas.tseries.holiday", # TODO
   "pandas.util._decorators", # TODO
   "pandas.util._doctools", # TODO
-  "pandas.util._test_decorators", # TODO
   "pandas.util._validators", # TODO
   "pandas.util", # TODO
   "pandas.conftest",
