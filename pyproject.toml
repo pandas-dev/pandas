@@ -553,7 +553,6 @@ module = [
   "pandas.core.indexes.datetimelike", # TODO
   "pandas.core.indexes.datetimes", # TODO
   "pandas.core.indexes.extension", # TODO
-  "pandas.core.indexes.frozen", # TODO
   "pandas.core.indexes.interval", # TODO
   "pandas.core.indexes.multi", # TODO
   "pandas.core.indexes.period", # TODO
