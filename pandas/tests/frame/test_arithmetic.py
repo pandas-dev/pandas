@@ -2152,6 +2152,28 @@ def test_arithmetic_multiindex_column_align_with_fillvalue():
     tm.assert_frame_equal(result, expected)
 
 
+def test_arithmetic_multiindex_add_with_mixed_string_datetime_index():
+    # GH#26558
+    df1 = DataFrame(
+        data=[10],
+        index=MultiIndex.from_tuples([("Z", "2019-05-31")]),
+        columns=["A"],
+    )
+    df2 = DataFrame(
+        data=[20],
+        index=MultiIndex.from_tuples([("Z", datetime(2019, 5, 31))]),
+        columns=["A"],
+    )
+
+    with tm.assert_produces_warning(RuntimeWarning, match="are unorderable"):
+        result = df1.add(df2, fill_value=0)
+
+    assert len(result) == 2
+    assert result.loc[("Z", "2019-05-31"), "A"] == 10
+    assert result.loc[("Z", datetime(2019, 5, 31)), "A"] == 20
+
+
+
 def test_bool_frame_mult_float():
     # GH 18549
     df = DataFrame(True, list("ab"), list("cd"))
