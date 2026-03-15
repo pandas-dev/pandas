@@ -1,3 +1,7 @@
+from datetime import (
+    datetime,
+    timezone,
+)
 import io
 import os
 import sys
@@ -861,4 +865,41 @@ def test_new_style_with_template():
     df = DataFrame({"A": [1234.56789]})
     result = df.to_csv(float_format="Value: {:,.2f}", lineterminator="\n")
     expected = ',A\n0,"Value: 1,234.57"\n'
+    assert result == expected
+
+
+def test_to_csv_datetime_tz_consistent_format():
+    # GH#62111
+    df = DataFrame(
+        {
+            "timestamp": [
+                datetime(2025, 8, 14, 12, 34, 56, 0, tzinfo=timezone.utc),
+                datetime(2025, 8, 14, 12, 34, 56, 1, tzinfo=timezone.utc),
+            ]
+        }
+    )
+    result = df.to_csv(index=False)
+    expected_rows = [
+        "timestamp",
+        "2025-08-14 12:34:56.000000+00:00",
+        "2025-08-14 12:34:56.000001+00:00",
+    ]
+    expected = tm.convert_rows_list_to_csv_str(expected_rows)
+    assert result == expected
+
+    df = DataFrame(
+        {
+            "timestamp": [
+                datetime(2025, 8, 14, 12, 34, 56, 0, tzinfo=timezone.utc),
+                datetime(2025, 8, 14, 12, 34, 57, 0, tzinfo=timezone.utc),
+            ]
+        }
+    )
+    result = df.to_csv(index=False)
+    expected_rows = [
+        "timestamp",
+        "2025-08-14 12:34:56+00:00",
+        "2025-08-14 12:34:57+00:00",
+    ]
+    expected = tm.convert_rows_list_to_csv_str(expected_rows)
     assert result == expected
