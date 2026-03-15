@@ -1627,6 +1627,12 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
   // Accumulate mantissa digits as an integer to avoid per-digit FP rounding.
   // max_digits=17 decimal digits fit safely in uint64_t (max ~9.9e17 < 2^64).
   uint64_t mantissa = 0;
+  // Skip leading zeros but keep at least one digit
+  bool saw_digit = false;
+  while (*p == '0') {
+    saw_digit = true;
+    p++;
+  }
 
   // Process string of digits.
   while (isdigit_ascii(*p)) {
@@ -1639,6 +1645,10 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
 
     p++;
     p += (tsep != '\0' && *p == tsep);
+  }
+
+  if (saw_digit && num_digits == 0) {
+    num_digits = 1;
   }
 
   // Process decimal part
