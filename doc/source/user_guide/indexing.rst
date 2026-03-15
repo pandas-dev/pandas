@@ -796,6 +796,43 @@ This is like an ``append`` operation on the ``DataFrame``.
    dfi.loc[3] = 5
    dfi
 
+.. _indexing.column_assignment_alignment:
+
+Column assignment and index alignment
+--------------------------------------
+
+When assigning a :class:`Series` to a ``DataFrame`` column -- whether via
+``df[col] = series`` or ``df.loc[:, col] = series`` -- pandas **aligns** the
+Series to the DataFrame's index before inserting the values. This means:
+
+* Values are placed according to their **index label**, not their position in
+  the Series.
+* Index labels present in the DataFrame but **missing** from the Series are
+  filled with ``NaN``.
+* Index labels present in the Series but **not** in the DataFrame are silently
+  dropped.
+
+.. ipython:: python
+
+   df_assign = pd.DataFrame({"a": [1, 2, 3]}, index=[0, 1, 2])
+   s_assign = pd.Series(["foo", "bar"], index=[1, 0])
+   df_assign["b"] = s_assign
+   df_assign
+
+In the example above, ``"bar"`` appears at index ``0`` and ``"foo"`` at index
+``1`` because the Series values are aligned by label, not by order. Index ``2``
+has no matching entry in the Series so it becomes ``NaN``.
+
+.. note::
+
+   This index-alignment behaviour applies only when assigning a :class:`Series`.
+   Assigning a ``list`` or ``ndarray`` uses **positional** order and requires
+   the length to match the DataFrame's index exactly, otherwise a
+   ``ValueError`` is raised.  Assigning a plain ``dict`` broadcasts it as a
+   single scalar value to every row rather than aligning by key.
+
+   See :issue:`39845` for additional context.
+
 .. _indexing.basics.get_value:
 
 Fast scalar value getting and setting
