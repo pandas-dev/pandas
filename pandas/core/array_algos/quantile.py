@@ -36,7 +36,13 @@ def quantile_compat(
     if isinstance(values, np.ndarray):
         fill_value = na_value_for_dtype(values.dtype, compat=False)
         mask = isna(values)
-        return quantile_with_mask(values, mask, fill_value, qs, interpolation)
+        return quantile_with_mask(
+            values,
+            mask,
+            fill_value,  # pyright: ignore[reportArgumentType]
+            qs,
+            interpolation,
+        )
     else:
         return values._quantile(qs, interpolation)
 
