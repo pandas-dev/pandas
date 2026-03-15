@@ -16,15 +16,17 @@ build-backend = "mesonpy"
 
 [project]
 name = 'pandas'
-dynamic = [
-  'version'
-]
+dynamic = ['version']
 description = 'Powerful data structures for data analysis, time series, and statistics'
 readme = 'README.md'
 authors = [
   { name = 'The Pandas Development Team', email='pandas-dev@python.org' },
 ]
-license = {file = 'LICENSE'}
+license = "BSD-3-Clause"
+license-files = [
+  "LICENSE",
+  "LICENSES/*",
+]
 requires-python = '>=3.11'
 dependencies = [
   "numpy>=1.26.0; python_version < '3.14'",
@@ -39,7 +41,6 @@ classifiers = [
     'Development Status :: 5 - Production/Stable',
     'Environment :: Console',
     'Intended Audience :: Science/Research',
-    'License :: OSI Approved :: BSD License',
     'Operating System :: OS Independent',
     'Programming Language :: Cython',
     'Programming Language :: Python',
@@ -54,8 +55,11 @@ classifiers = [
 
 [project.urls]
 homepage = 'https://pandas.pydata.org'
+source = 'https://github.com/pandas-dev/pandas'
+changelog = 'https://pandas.pydata.org/docs/whatsnew/index.html'
 documentation = 'https://pandas.pydata.org/docs/'
-repository = 'https://github.com/pandas-dev/pandas'
+issues = 'https://github.com/pandas-dev/pandas/issues'
+funding = 'https://opencollective.com/pandas'
 
 [project.entry-points."pandas_plotting_backends"]
 matplotlib = "pandas:plotting._matplotlib"
@@ -140,40 +144,31 @@ setup = ['--vsenv'] # For Windows
 skip = ["*_i686", "*_ppc64le", "*_s390x"]
 build-verbosity = 3
 environment = {LDFLAGS="-Wl,--strip-all"}
+test-environment = { PANDAS_CI="1" }
 test-extras = "test"
 test-command = """
   python -c 'import pandas as pd; \
-  pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db", "-n 2", "--no-strict-data-files"]); \
-  pd.test(extra_args=["-m not clipboard and single_cpu and not slow and not network and not db", "--no-strict-data-files"]);' \
+  pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db", "--numprocesses=2", "--dist=worksteal", "--no-strict-data-files"]); \
+  pd.test(extra_args=["-m single_cpu", "--no-strict-data-files"]);' \
   """
 enable = ["cpython-freethreading"]
-before-build = "PACKAGE_DIR={package} bash {package}/scripts/cibw_before_build.sh"
 
 [tool.cibuildwheel.windows]
 environment = {}
-before-build = "pip install delvewheel"
+# powershell needs to swap quotes?
 test-command = """
   python -c "import pandas as pd; \
-  pd.test(extra_args=['--no-strict-data-files', '-m not clipboard and not single_cpu and not slow and not network and not db']);" \
+  pd.test(extra_args=['-m not clipboard and not single_cpu and not slow and not network and not db', '--numprocesses=2', '--dist=worksteal', '--no-strict-data-files']); \
+  pd.test(extra_args=['-m single_cpu', '--no-strict-data-files']);" \
   """
+before-build = "python -m pip install delvewheel"
 repair-wheel-command = "delvewheel repair -w {dest_dir} {wheel}"
-
-[[tool.cibuildwheel.overrides]]
-select = "*-manylinux_aarch64*"
-test-command = """
-  python -c 'import pandas as pd; \
-  pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db and not fails_arm_wheels", "-n 2", "--no-strict-data-files"]); \
-  pd.test(extra_args=["-m not clipboard and single_cpu and not slow and not network and not db", "--no-strict-data-files"]);' \
-  """
 
 [[tool.cibuildwheel.overrides]]
 select = "*-musllinux*"
 before-test = "apk update && apk add musl-locales"
 
 [[tool.cibuildwheel.overrides]]
-# Don't strip wheels on macOS.
-# macOS doesn't support stripping wheels with linker
-# https://github.com/MacPython/numpy-wheels/pull/87#issuecomment-624878264
 select = "*-macosx*"
 environment = {CFLAGS="-g0"}
 
@@ -184,6 +179,7 @@ test-requires = "pytest>=8.3.4 hypothesis>=6.116.0"
 repair-wheel-command = ""
 # https://github.com/pyodide/pyodide/issues/5805
 build-verbosity = 1
+# OSError: [Errno 138] emscripten does not support processes
 test-command = """
   python -c 'import pandas as pd; \
   pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db", "--no-strict-data-files"]);' \
@@ -466,10 +462,6 @@ markers = [
   "db: tests requiring a database (mysql or postgres)",
   "clipboard: mark a pd.read_clipboard test",
   "arm_slow: mark a test as slow for arm64 architecture",
-  # TODO: someone should investigate this ...
-  # these tests only fail in the wheel builder and don't fail in regular
-  # ARM CI
-  "fails_arm_wheels: Tests that fail in the ARM wheel build only",
 ]
 
 [tool.mypy]
