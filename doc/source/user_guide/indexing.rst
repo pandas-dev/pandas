@@ -814,10 +814,10 @@ Series to the DataFrame's index before inserting the values. This means:
 
 .. ipython:: python
 
-   df = pd.DataFrame({"a": [1, 2, 3]}, index=[0, 1, 2])
-   s = pd.Series(["foo", "bar"], index=[1, 0])
-   df["b"] = s
-   df
+   df_assign = pd.DataFrame({"a": [1, 2, 3]}, index=[0, 1, 2])
+   s_assign = pd.Series(["foo", "bar"], index=[1, 0])
+   df_assign["b"] = s_assign
+   df_assign
 
 In the example above, ``"bar"`` appears at index ``0`` and ``"foo"`` at index
 ``1`` because the Series values are aligned by label, not by order. Index ``2``
