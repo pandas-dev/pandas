@@ -563,6 +563,15 @@ def test_setitem_scalar_with_mask_validation(dtype):
         ser[mask] = 1
 
 
+def test_where_listlike_preserves_string_dtype(dtype):
+    # GH#63842
+    ser = pd.Series(["a", "bc", "cde", "fghi"], dtype=dtype)
+    mask = pd.Series([True, False, True, False])
+    result = ser.where(mask, ["cudf"])
+    expected = pd.Series(["a", "cudf", "cde", "cudf"], dtype=dtype)
+    tm.assert_series_equal(result, expected)
+
+
 def test_from_numpy_str(dtype):
     vals = ["a", "b", "c"]
     arr = np.array(vals, dtype=np.str_)

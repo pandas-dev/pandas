@@ -845,6 +845,18 @@ def test_where_string_dtype(frame_or_series):
     tm.assert_equal(result, expected)
 
 
+def test_where_string_dtype_pyarrow_listlike_other_preserves_dtype():
+    # GH#63842
+    pytest.importorskip("pyarrow")
+
+    ser = Series(["a", "b", "c"], dtype="string[pyarrow]")
+    mask = np.array([True, False, True])
+
+    result = ser.where(mask, ["x", "y", "z"])
+    expected = Series(["a", "y", "c"], dtype="string[pyarrow]")
+    tm.assert_series_equal(result, expected)
+
+
 def test_where_bool_comparison():
     # GH 10336
     df_mask = DataFrame(
@@ -1084,3 +1096,22 @@ def test_where_inplace_string_array_consistency():
     df_inplace.where(df_inplace != "", np.nan, inplace=True)
 
     tm.assert_frame_equal(result, df_inplace)
+
+
+@pytest.mark.parametrize(
+    "other, expected",
+    [
+        (["a", "b", "c"], ["x", "b", "z"]),
+        (["cudf"], ["x", "cudf", "z"]),
+        (["a", None, "c"], ["x", None, "z"]),
+    ],
+)
+def test_where_string_listlike_other(any_string_dtype, other, expected):
+    dtype = any_string_dtype
+    df = DataFrame({"A": Series(["x", "y", "z"], dtype=dtype)})
+    cond = Series([True, False, True])
+
+    result = df.where(cond, other)
+    expected = DataFrame({"A": Series(expected, dtype=dtype)})
+
+    tm.assert_frame_equal(result, expected)
