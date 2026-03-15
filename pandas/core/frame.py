@@ -7653,7 +7653,9 @@ class DataFrame(NDFrame, OpsMixin):
             mask = count >= thresh
         elif how == "any":
             # faster equivalent to 'agg_obj.count(agg_axis) == self.shape[agg_axis]'
-            # Cast to bool dtype to avoid slow EA axis=1 groupby path (GH#60179)
+            # GH#60179 - notna may return EA-backed bools (e.g. SparseArray);
+            # casting to numpy bool avoids the axis=1 reduction path in
+            # _reduce that routes EA columns through groupby.
             mask = notna(agg_obj).astype(bool).all(axis=agg_axis, bool_only=False)
         elif how == "all":
             # faster equivalent to 'agg_obj.count(agg_axis) > 0'
