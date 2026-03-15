@@ -409,6 +409,97 @@ def test_first_last_skipna(any_real_nullable_dtype, sort, skipna, how):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("how", ["first", "last"])
+def test_first_last_ea_min_count(any_real_nullable_dtype, how):
+    # GH#57591
+    na_val = na_value_for_dtype(pandas_dtype(any_real_nullable_dtype))
+    df = DataFrame(
+        {
+            "a": [1, 1, 2, 2, 3],
+            "b": pd.array([1, 2, na_val, na_val, 5], dtype=any_real_nullable_dtype),
+        },
+    )
+    gb = df.groupby("a")
+    result = getattr(gb, how)(min_count=2)
+
+    # Group 1 has 2 valid values -> passes min_count=2
+    # Group 2 has 0 valid values -> fails min_count=2
+    # Group 3 has 1 valid value -> fails min_count=2
+    if how == "first":
+        expected_vals = pd.array([1, na_val, na_val], dtype=any_real_nullable_dtype)
+    else:
+        expected_vals = pd.array([2, na_val, na_val], dtype=any_real_nullable_dtype)
+    expected = DataFrame(
+        {"b": expected_vals},
+        index=pd.Index([1, 2, 3], name="a"),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("how", ["first", "last"])
+def test_first_last_ea_all_na_group(how):
+    # GH#57591
+    df = DataFrame(
+        {
+            "a": [1, 1, 2, 2],
+            "b": pd.array([pd.NA, pd.NA, 3, 4], dtype="Int64"),
+        },
+    )
+    result = getattr(df.groupby("a"), how)()
+    if how == "first":
+        expected_vals = pd.array([pd.NA, 3], dtype="Int64")
+    else:
+        expected_vals = pd.array([pd.NA, 4], dtype="Int64")
+    expected = DataFrame(
+        {"b": expected_vals},
+        index=pd.Index([1, 2], name="a"),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("how", ["first", "last"])
+@pytest.mark.parametrize("skipna", [True, False])
+def test_first_last_skipna_ea_types(how, skipna):
+    # GH#57591 - test skipna with various non-numeric EA types
+    intervals = pd.arrays.IntervalArray.from_breaks([0, 1, 2, 3])
+    cat_dtype = pd.CategoricalDtype(categories=["b", "c"])
+    df = DataFrame(
+        {
+            "g": [1, 1, 2],
+            "cat": pd.Categorical([pd.NA, "b", "c"], dtype=cat_dtype),
+            "interval": intervals,
+        },
+    )
+    result = getattr(df.groupby("g"), how)(skipna=skipna)
+
+    if how == "first" and not skipna:
+        # cat column: first element is NA, skipna=False keeps it
+        expected = DataFrame(
+            {
+                "cat": pd.Categorical([pd.NA, "c"], dtype=cat_dtype),
+                "interval": intervals[[0, 2]],
+            },
+            index=pd.Index([1, 2], name="g"),
+        )
+    elif how == "first":
+        expected = DataFrame(
+            {
+                "cat": pd.Categorical(["b", "c"], dtype=cat_dtype),
+                "interval": intervals[[0, 2]],
+            },
+            index=pd.Index([1, 2], name="g"),
+        )
+    elif how == "last":
+        expected = DataFrame(
+            {
+                "cat": pd.Categorical(["b", "c"], dtype=cat_dtype),
+                "interval": intervals[[1, 2]],
+            },
+            index=pd.Index([1, 2], name="g"),
+        )
+    tm.assert_frame_equal(result, expected)
+
+
 def test_groupby_mean_no_overflow():
     # Regression test for (#22487)
     df = DataFrame(

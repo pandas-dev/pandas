@@ -354,7 +354,7 @@ def _concatenate_chunks(
 
         dtype = dtypes.pop()
         if isinstance(dtype, CategoricalDtype):
-            result[name] = union_categoricals(arrs, sort_categories=False)
+            result[name] = union_categoricals(arrs, sort_categories=False)  # type: ignore[arg-type]
         else:
             result[name] = concat_compat(arrs)
             if len(non_cat_dtypes) > 1 and result[name].dtype == np.dtype(object):

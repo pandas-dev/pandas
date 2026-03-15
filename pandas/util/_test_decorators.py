@@ -125,7 +125,7 @@ skip_if_thread_unsafe_warnings = pytest.mark.skipif(
 )
 
 
-def parametrize_fixture_doc(*args) -> Callable[[F], F]:
+def parametrize_fixture_doc(*args: str) -> Callable[[F], F]:
     """
     Intended for use as a decorator for parametrized fixture,
     this function will wrap the decorated function with a pytest
@@ -145,8 +145,9 @@ def parametrize_fixture_doc(*args) -> Callable[[F], F]:
         ``parametrize_fixture_doc`` mark
     """
 
-    def documented_fixture(fixture):
-        fixture.__doc__ = fixture.__doc__.format(*args)
+    def documented_fixture(fixture: F) -> F:
+        if fixture.__doc__:
+            fixture.__doc__ = fixture.__doc__.format(*args)
         return fixture
 
     return documented_fixture

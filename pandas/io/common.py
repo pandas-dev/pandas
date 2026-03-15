@@ -846,7 +846,14 @@ def get_handle(
                 handles.append(handle)
                 zip_names = handle.buffer.namelist()
                 if len(zip_names) == 1:
-                    handle = handle.buffer.open(zip_names.pop())
+                    # Read the entire zip entry into memory rather than
+                    # returning a streaming ZipExtFile via .open(). On
+                    # Python <3.12, ZipExtFile has poor buffering that
+                    # causes O(n²) performance with pickle.load() and
+                    # other consumers that issue many small reads
+                    # (GH#59279). Can be reverted to .open() once the
+                    # minimum Python version is 3.12.
+                    handle = BytesIO(handle.buffer.read(zip_names.pop()))
                 elif not zip_names:
                     raise ValueError(f"Zero files found in ZIP file {path_or_buf}")
                 else:

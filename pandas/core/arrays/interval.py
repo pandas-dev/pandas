@@ -1010,6 +1010,32 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         dtype = self.dtype
         return self._simple_new(left, right, dtype=dtype)
 
+    def _hash_pandas_object(
+        self, *, encoding: str, hash_key: str, categorize: bool
+    ) -> npt.NDArray[np.uint64]:
+        from pandas.core.util.hashing import (
+            combine_hash_arrays,
+            hash_array,
+        )
+
+        left_hash = hash_array(
+            self._left, encoding=encoding, hash_key=hash_key, categorize=categorize
+        )
+        right_hash = hash_array(
+            self._right, encoding=encoding, hash_key=hash_key, categorize=categorize
+        )
+        # Include closed in the hash
+        closed_val = np.uint64(hash(self.closed) % (2**63))
+        closed_hash = hash_array(
+            np.full(len(self), closed_val, dtype=np.uint64),
+            encoding=encoding,
+            hash_key=hash_key,
+            categorize=False,
+        )
+        return combine_hash_arrays(
+            iter([left_hash, right_hash, closed_hash]), num_items=3
+        )
+
     def isna(self) -> np.ndarray:
         return isna(self._left)
 

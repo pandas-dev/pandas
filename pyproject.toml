@@ -142,7 +142,7 @@ build-verbosity = 3
 environment = {LDFLAGS="-Wl,--strip-all"}
 test-extras = "test"
 test-command = """
-  PANDAS_CI='1' python -c 'import pandas as pd; \
+  python -c 'import pandas as pd; \
   pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db", "-n 2", "--no-strict-data-files"]); \
   pd.test(extra_args=["-m not clipboard and single_cpu and not slow and not network and not db", "--no-strict-data-files"]);' \
   """
@@ -153,7 +153,6 @@ before-build = "PACKAGE_DIR={package} bash {package}/scripts/cibw_before_build.s
 environment = {}
 before-build = "pip install delvewheel"
 test-command = """
-  set PANDAS_CI='1' && \
   python -c "import pandas as pd; \
   pd.test(extra_args=['--no-strict-data-files', '-m not clipboard and not single_cpu and not slow and not network and not db']);" \
   """
@@ -162,7 +161,7 @@ repair-wheel-command = "delvewheel repair -w {dest_dir} {wheel}"
 [[tool.cibuildwheel.overrides]]
 select = "*-manylinux_aarch64*"
 test-command = """
-  PANDAS_CI='1' python -c 'import pandas as pd; \
+  python -c 'import pandas as pd; \
   pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db and not fails_arm_wheels", "-n 2", "--no-strict-data-files"]); \
   pd.test(extra_args=["-m not clipboard and single_cpu and not slow and not network and not db", "--no-strict-data-files"]);' \
   """
@@ -186,7 +185,7 @@ repair-wheel-command = ""
 # https://github.com/pyodide/pyodide/issues/5805
 build-verbosity = 1
 test-command = """
-  PANDAS_CI='1' python -c 'import pandas as pd; \
+  python -c 'import pandas as pd; \
   pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db", "--no-strict-data-files"]);' \
   """
 
@@ -531,15 +530,11 @@ module = [
   "pandas.compat.numpy.function", # TODO
   "pandas.core._numba.executor", # TODO
   "pandas.core.array_algos.masked_reductions", # TODO
-  "pandas.core.array_algos.putmask", # TODO
-  "pandas.core.array_algos.quantile", # TODO
   "pandas.core.array_algos.replace", # TODO
   "pandas.core.array_algos.take", # TODO
   "pandas.core.arrays.*", # TODO
   "pandas.core.computation.*", # TODO
-  "pandas.core.dtypes.astype", # TODO
   "pandas.core.dtypes.common", # TODO
-  "pandas.core.dtypes.concat", # TODO
   "pandas.core.dtypes.dtypes", # TODO
   "pandas.core.dtypes.generic", # TODO
   "pandas.core.dtypes.missing", # TODO
@@ -554,11 +549,9 @@ module = [
   "pandas.core.indexes.datetimelike", # TODO
   "pandas.core.indexes.datetimes", # TODO
   "pandas.core.indexes.extension", # TODO
-  "pandas.core.indexes.frozen", # TODO
   "pandas.core.indexes.interval", # TODO
   "pandas.core.indexes.multi", # TODO
   "pandas.core.indexes.period", # TODO
-  "pandas.core.indexes.range", # TODO
   "pandas.core.indexes.timedeltas", # TODO
   "pandas.core.interchange.column", # TODO
   "pandas.core.interchange.dataframe_protocol", # TODO
@@ -582,7 +575,6 @@ module = [
   "pandas.core.arraylike", # TODO
   "pandas.core.base", # TODO
   "pandas.core.construction", # TODO
-  "pandas.core.flags", # TODO
   "pandas.core.frame", # TODO
   "pandas.core.generic", # TODO
   "pandas.core.indexing", # TODO
@@ -593,7 +585,6 @@ module = [
   "pandas.core.sample", # TODO
   "pandas.core.series", # TODO
   "pandas.core.sorting", # TODO
-  "pandas.errors", # TODO
   "pandas.io.clipboard", # TODO
   "pandas.io.excel._base", # TODO
   "pandas.io.excel._odfreader", # TODO
@@ -621,7 +612,6 @@ module = [
   "pandas.tseries.holiday", # TODO
   "pandas.util._decorators", # TODO
   "pandas.util._doctools", # TODO
-  "pandas.util._test_decorators", # TODO
   "pandas.util._validators", # TODO
   "pandas.util", # TODO
   "pandas.conftest",

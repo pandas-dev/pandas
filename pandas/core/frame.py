@@ -7645,10 +7645,17 @@ class DataFrame(NDFrame, OpsMixin):
             mask = count >= thresh
         elif how == "any":
             # faster equivalent to 'agg_obj.count(agg_axis) == self.shape[agg_axis]'
-            mask = notna(agg_obj).all(axis=agg_axis, bool_only=False)
+            notna_obj = notna(agg_obj)
+            if agg_axis == 1:
+                # Cast to bool to avoid slow EA groupby fallback (GH#60179)
+                notna_obj = notna_obj.astype(bool)
+            mask = notna_obj.all(axis=agg_axis, bool_only=False)
         elif how == "all":
             # faster equivalent to 'agg_obj.count(agg_axis) > 0'
-            mask = notna(agg_obj).any(axis=agg_axis, bool_only=False)
+            notna_obj = notna(agg_obj)
+            if agg_axis == 1:
+                notna_obj = notna_obj.astype(bool)
+            mask = notna_obj.any(axis=agg_axis, bool_only=False)
         else:
             raise ValueError(f"invalid how option: {how}")
 
