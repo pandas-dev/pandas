@@ -25,6 +25,27 @@ GitHub. See Python Software Foundation License and BSD licenses for these.
 #include <stdbool.h>
 #include <stdlib.h>
 
+#if defined(__ARM_NEON) || defined(__ARM_NEON__)
+#  include <arm_neon.h>
+#elif defined(__SSE2__) || defined(__SSE2) || defined(_M_X64) ||               \
+    defined(_M_IX86)
+#  include <immintrin.h>
+#  ifdef _MSC_VER
+#    include <intrin.h>
+#  endif
+#endif
+
+// Portable count-trailing-zeros for use in SSE2 path
+#ifdef _MSC_VER
+static __inline int _pandas_ctz(unsigned int mask) {
+  unsigned long index;
+  _BitScanForward(&index, mask);
+  return (int)index;
+}
+#elif defined(__SSE2__) || defined(__SSE2)
+#  define _pandas_ctz(x) __builtin_ctz(x)
+#endif
+
 #include "pandas/portable.h"
 #include "pandas/vendored/klib/khash.h" // for kh_int64_t, kh_destroy_int64
 
@@ -670,6 +691,97 @@ static int skip_this_line(parser_t *self, int64_t rownum) {
   }
 }
 
+#if defined(__ARM_NEON) || defined(__ARM_NEON__)
+
+// Scan data for any special character using NEON.
+// Returns the byte offset of the first special character,
+// or the number of bytes scanned (all clean) if none found.
+static inline size_t fast_scan_neon(const char *data, size_t len,
+                                    uint8x16_t vdelim, uint8x16_t vterm,
+                                    uint8x16_t vcr, uint8x16_t vquote,
+                                    uint8x16_t vescape, uint8x16_t vcomment) {
+  size_t i = 0;
+  for (; i + 15 < len; i += 16) {
+    uint8x16_t chunk = vld1q_u8((const uint8_t *)&data[i]);
+    uint8x16_t m = vceqq_u8(chunk, vdelim);
+    m = vorrq_u8(m, vceqq_u8(chunk, vterm));
+    m = vorrq_u8(m, vceqq_u8(chunk, vcr));
+    m = vorrq_u8(m, vceqq_u8(chunk, vquote));
+    m = vorrq_u8(m, vceqq_u8(chunk, vescape));
+    m = vorrq_u8(m, vceqq_u8(chunk, vcomment));
+
+    // Each matching byte is 0xFF, non-matching is 0x00.
+    // Extract as two u64 lanes and find the first set byte.
+    uint64_t low = vgetq_lane_u64(vreinterpretq_u64_u8(m), 0);
+    if (low)
+      return i + __builtin_ctzll(low) / 8;
+    uint64_t high = vgetq_lane_u64(vreinterpretq_u64_u8(m), 1);
+    if (high)
+      return i + 8 + __builtin_ctzll(high) / 8;
+  }
+  return i;
+}
+
+// Lighter scan for quoted fields: only check quote and escape chars.
+static inline size_t fast_scan_quoted_neon(const char *data, size_t len,
+                                           uint8x16_t vquote,
+                                           uint8x16_t vescape) {
+  size_t i = 0;
+  for (; i + 15 < len; i += 16) {
+    uint8x16_t chunk = vld1q_u8((const uint8_t *)&data[i]);
+    uint8x16_t m = vceqq_u8(chunk, vquote);
+    m = vorrq_u8(m, vceqq_u8(chunk, vescape));
+
+    uint64_t low = vgetq_lane_u64(vreinterpretq_u64_u8(m), 0);
+    if (low)
+      return i + __builtin_ctzll(low) / 8;
+    uint64_t high = vgetq_lane_u64(vreinterpretq_u64_u8(m), 1);
+    if (high)
+      return i + 8 + __builtin_ctzll(high) / 8;
+  }
+  return i;
+}
+
+#elif defined(__SSE2__) || defined(__SSE2) || defined(_M_X64) ||               \
+    defined(_M_IX86)
+
+static inline size_t fast_scan_sse(const char *data, size_t len, __m128i vdelim,
+                                   __m128i vterm, __m128i vcr, __m128i vquote,
+                                   __m128i vescape, __m128i vcomment) {
+  size_t i = 0;
+  for (; i + 15 < len; i += 16) {
+    __m128i chunk = _mm_loadu_si128((const __m128i *)&data[i]);
+    __m128i m = _mm_cmpeq_epi8(chunk, vdelim);
+    m = _mm_or_si128(m, _mm_cmpeq_epi8(chunk, vterm));
+    m = _mm_or_si128(m, _mm_cmpeq_epi8(chunk, vcr));
+    m = _mm_or_si128(m, _mm_cmpeq_epi8(chunk, vquote));
+    m = _mm_or_si128(m, _mm_cmpeq_epi8(chunk, vescape));
+    m = _mm_or_si128(m, _mm_cmpeq_epi8(chunk, vcomment));
+
+    int mask = _mm_movemask_epi8(m);
+    if (mask)
+      return i + _pandas_ctz(mask);
+  }
+  return i;
+}
+
+static inline size_t fast_scan_quoted_sse(const char *data, size_t len,
+                                          __m128i vquote, __m128i vescape) {
+  size_t i = 0;
+  for (; i + 15 < len; i += 16) {
+    __m128i chunk = _mm_loadu_si128((const __m128i *)&data[i]);
+    __m128i m = _mm_cmpeq_epi8(chunk, vquote);
+    m = _mm_or_si128(m, _mm_cmpeq_epi8(chunk, vescape));
+
+    int mask = _mm_movemask_epi8(m);
+    if (mask)
+      return i + _pandas_ctz(mask);
+  }
+  return i;
+}
+
+#endif
+
 static int tokenize_bytes(parser_t *self, size_t line_limit,
                           uint64_t start_lines) {
   char *buf = self->data + self->datapos;
@@ -687,6 +799,37 @@ static int tokenize_bytes(parser_t *self, size_t line_limit,
       (self->commentchar != '\0') ? self->commentchar : 1000;
   const int escape_symbol =
       (self->escapechar != '\0') ? self->escapechar : 1000;
+
+#if defined(__ARM_NEON) || defined(__ARM_NEON__)
+  const uint8x16_t vdelim = vdupq_n_u8((uint8_t)delimiter);
+  const uint8x16_t vterm = vdupq_n_u8((uint8_t)lineterminator);
+  const uint8x16_t vcr =
+      (carriage_symbol < 256) ? vdupq_n_u8((uint8_t)carriage_symbol) : vterm;
+  const uint8x16_t vquote = (self->quoting != QUOTE_NONE)
+                                ? vdupq_n_u8((uint8_t)self->quotechar)
+                                : vterm;
+  const uint8x16_t vescape = (self->escapechar != '\0')
+                                 ? vdupq_n_u8((uint8_t)self->escapechar)
+                                 : vterm;
+  const uint8x16_t vcomment = (self->commentchar != '\0')
+                                  ? vdupq_n_u8((uint8_t)self->commentchar)
+                                  : vterm;
+#elif defined(__SSE2__) || defined(__SSE2) || defined(_M_X64) ||               \
+    defined(_M_IX86)
+  const __m128i vdelim = _mm_set1_epi8((char)delimiter);
+  const __m128i vterm = _mm_set1_epi8((char)lineterminator);
+  const __m128i vcr =
+      (carriage_symbol < 256) ? _mm_set1_epi8((char)carriage_symbol) : vterm;
+  const __m128i vquote = (self->quoting != QUOTE_NONE)
+                             ? _mm_set1_epi8((char)self->quotechar)
+                             : vterm;
+  const __m128i vescape = (self->escapechar != '\0')
+                              ? _mm_set1_epi8((char)self->escapechar)
+                              : vterm;
+  const __m128i vcomment = (self->commentchar != '\0')
+                               ? _mm_set1_epi8((char)self->commentchar)
+                               : vterm;
+#endif
 
   if (make_stream_space(self, self->datalen - self->datapos) < 0) {
     const size_t bufsize = 100;
@@ -944,6 +1087,39 @@ static int tokenize_bytes(parser_t *self, size_t line_limit,
       } else {
         // normal character - save in field
         PUSH_CHAR(c);
+
+#if defined(__ARM_NEON) || defined(__ARM_NEON__)
+        if (!self->delim_whitespace) {
+          size_t remaining = self->datalen - (i + 1);
+          if (remaining >= 16) {
+            size_t skip = fast_scan_neon(buf, remaining, vdelim, vterm, vcr,
+                                         vquote, vescape, vcomment);
+            if (skip > 0) {
+              memcpy(stream, buf, skip);
+              stream += skip;
+              slen += skip;
+              buf += skip;
+              i += skip;
+            }
+          }
+        }
+#elif defined(__SSE2__) || defined(__SSE2) || defined(_M_X64) ||               \
+    defined(_M_IX86)
+        if (!self->delim_whitespace) {
+          size_t remaining = self->datalen - (i + 1);
+          if (remaining >= 16) {
+            size_t skip = fast_scan_sse(buf, remaining, vdelim, vterm, vcr,
+                                        vquote, vescape, vcomment);
+            if (skip > 0) {
+              memcpy(stream, buf, skip);
+              stream += skip;
+              slen += skip;
+              buf += skip;
+              i += skip;
+            }
+          }
+        }
+#endif
       }
       break;
 
@@ -963,6 +1139,40 @@ static int tokenize_bytes(parser_t *self, size_t line_limit,
       } else {
         // normal character - save in field
         PUSH_CHAR(c);
+
+        // Inside a quoted field, only quote and escape are special.
+        // Use a lighter SIMD scan that checks fewer characters.
+#if defined(__ARM_NEON) || defined(__ARM_NEON__)
+        {
+          size_t remaining = self->datalen - (i + 1);
+          if (remaining >= 16) {
+            size_t skip =
+                fast_scan_quoted_neon(buf, remaining, vquote, vescape);
+            if (skip > 0) {
+              memcpy(stream, buf, skip);
+              stream += skip;
+              slen += skip;
+              buf += skip;
+              i += skip;
+            }
+          }
+        }
+#elif defined(__SSE2__) || defined(__SSE2) || defined(_M_X64) ||               \
+    defined(_M_IX86)
+        {
+          size_t remaining = self->datalen - (i + 1);
+          if (remaining >= 16) {
+            size_t skip = fast_scan_quoted_sse(buf, remaining, vquote, vescape);
+            if (skip > 0) {
+              memcpy(stream, buf, skip);
+              stream += skip;
+              slen += skip;
+              buf += skip;
+              i += skip;
+            }
+          }
+        }
+#endif
       }
       break;
 
