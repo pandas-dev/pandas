@@ -124,6 +124,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     qyear
     second
     start_time
+    unit
     week
     weekday
     weekofyear
@@ -175,6 +176,14 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     def _resolution_obj(self) -> Resolution:
         # for compat with DatetimeIndex
         return self.dtype._resolution_obj
+
+    @property
+    def unit(self) -> str:
+        """
+        Return the unit string describing the resolution of each Period in
+        the index.
+        """
+        return self._data.unit
 
     # --------------------------------------------------------------------
     # methods that dispatch to array and wrap result in Index
