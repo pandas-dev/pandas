@@ -732,7 +732,7 @@ Enhancements
 
 - ``DatetimeIndex`` is now in the API documentation, see :ref:`the docs<api.datetimeindex>`
 
-- :meth:`~pandas.io.json.json_normalize` is a new method to allow you to create a flat table
+- :func:`pandas.json_normalize` is a new method to allow you to create a flat table
   from semi-structured JSON data. See :ref:`the docs<io.json_normalize>` (:issue:`1067`)
 
 - Added PySide support for the qtpandas DataFrameModel and DataFrameWidget.
