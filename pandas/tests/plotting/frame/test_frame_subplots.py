@@ -148,7 +148,7 @@ class TestDataFramePlotsSubplots:
 
         ax = testdata.plot(y=col)
         result = ax.get_lines()[0].get_data()[1]
-        expected = testdata[col].values
+        expected = testdata[col]._values
         assert (result == expected).all()
 
     def test_subplots_timeseries_y_text_error(self):
