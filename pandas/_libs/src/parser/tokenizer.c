@@ -783,10 +783,11 @@ static int tokenize_bytes(parser_t *self, size_t line_limit,
           do {
             --buf;
             --i;
-          } while (i + 1 > self->datapos && !IS_TERMINATOR(*buf));
+          } while (i + 1 > self->datapos && !IS_TERMINATOR(*buf) &&
+                   !IS_CARRIAGE(*buf));
 
-          // reached a newline rather than the beginning
-          if (IS_TERMINATOR(*buf)) {
+          // reached a newline/carriage return rather than the beginning
+          if (IS_TERMINATOR(*buf) || IS_CARRIAGE(*buf)) {
             ++buf; // move pointer to first char after newline
             ++i;
           }
