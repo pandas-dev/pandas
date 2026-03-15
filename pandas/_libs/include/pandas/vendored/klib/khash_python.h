@@ -122,11 +122,23 @@ static inline khuint32_t kh_float32_hash_func(float val) {
 
 KHASH_MAP_INIT_FLOAT64(float64, size_t)
 
+#define KHASH_SET_INIT_FLOAT64(name)                                           \
+  KHASH_INIT(name, khfloat64_t, char, 0, kh_float64_hash_func,                 \
+             kh_floats_hash_equal)
+
+KHASH_SET_INIT_FLOAT64(set_float64)
+
 #define KHASH_MAP_INIT_FLOAT32(name, khval_t)                                  \
   KHASH_INIT(name, khfloat32_t, khval_t, 1, kh_float32_hash_func,              \
              kh_floats_hash_equal)
 
 KHASH_MAP_INIT_FLOAT32(float32, size_t)
+
+#define KHASH_SET_INIT_FLOAT32(name)                                           \
+  KHASH_INIT(name, khfloat32_t, char, 0, kh_float32_hash_func,                 \
+             kh_floats_hash_equal)
+
+KHASH_SET_INIT_FLOAT32(set_float32)
 
 static inline khint32_t kh_complex128_hash_func(khcomplex128_t val) {
   return kh_float64_hash_func(val.real) ^ kh_float64_hash_func(val.imag);
@@ -144,14 +156,30 @@ static inline khint32_t kh_complex64_hash_func(khcomplex64_t val) {
 
 KHASH_MAP_INIT_COMPLEX64(complex64, size_t)
 
+#define KHASH_SET_INIT_COMPLEX64(name)                                         \
+  KHASH_INIT(name, khcomplex64_t, char, 0, kh_complex64_hash_func,             \
+             kh_complex_hash_equal)
+
+KHASH_SET_INIT_COMPLEX64(set_complex64)
+
 #define KHASH_MAP_INIT_COMPLEX128(name, khval_t)                               \
   KHASH_INIT(name, khcomplex128_t, khval_t, 1, kh_complex128_hash_func,        \
              kh_complex_hash_equal)
 
 KHASH_MAP_INIT_COMPLEX128(complex128, size_t)
 
+#define KHASH_SET_INIT_COMPLEX128(name)                                        \
+  KHASH_INIT(name, khcomplex128_t, char, 0, kh_complex128_hash_func,           \
+             kh_complex_hash_equal)
+
+KHASH_SET_INIT_COMPLEX128(set_complex128)
+
 #define kh_exist_complex64(h, k) (kh_exist(h, k))
 #define kh_exist_complex128(h, k) (kh_exist(h, k))
+#define kh_exist_set_float64(h, k) (kh_exist(h, k))
+#define kh_exist_set_float32(h, k) (kh_exist(h, k))
+#define kh_exist_set_complex64(h, k) (kh_exist(h, k))
+#define kh_exist_set_complex128(h, k) (kh_exist(h, k))
 
 // NaN-floats should be in the same equivalency class, see GH 22119
 static inline int floatobject_cmp(PyFloatObject *a, PyFloatObject *b) {

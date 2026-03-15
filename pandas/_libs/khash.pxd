@@ -64,7 +64,7 @@ cdef extern from "pandas/vendored/klib/khash_python.h":
         khuint_t n_buckets, size, n_occupied, upper_bound
         uint32_t *flags
         PyObject **keys
-        size_t *vals
+        char *vals
 
     kh_pyset_t* kh_init_pyset()
     void kh_destroy_pyset(kh_pyset_t*)

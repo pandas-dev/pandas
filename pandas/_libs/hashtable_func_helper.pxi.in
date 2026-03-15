@@ -6,26 +6,77 @@ WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 
 {{py:
 
-# name, dtype, ttype, c_type, to_c_type
+# name, dtype, ttype, c_type, to_c_type, set_ttype
 dtypes = [('Complex128', 'complex128', 'complex128',
-                         'khcomplex128_t', 'to_khcomplex128_t'),
+                         'khcomplex128_t', 'to_khcomplex128_t', 'set_complex128'),
           ('Complex64', 'complex64', 'complex64',
-                        'khcomplex64_t', 'to_khcomplex64_t'),
-          ('Float64', 'float64', 'float64', 'float64_t', ''),
-          ('Float32', 'float32', 'float32', 'float32_t', ''),
-          ('UInt64', 'uint64', 'uint64', 'uint64_t', ''),
-          ('UInt32', 'uint32', 'uint32', 'uint32_t', ''),
-          ('UInt16', 'uint16', 'uint16', 'uint16_t', ''),
-          ('UInt8', 'uint8', 'uint8', 'uint8_t', ''),
-          ('Object', 'object', 'pymap', 'object', '<PyObject*>'),
-          ('Int64', 'int64', 'int64', 'int64_t', ''),
-          ('Int32', 'int32', 'int32', 'int32_t', ''),
-          ('Int16', 'int16', 'int16', 'int16_t', ''),
-          ('Int8', 'int8', 'int8', 'int8_t', '')]
+                        'khcomplex64_t', 'to_khcomplex64_t', 'set_complex64'),
+          ('Float64', 'float64', 'float64', 'float64_t', '', 'set_float64'),
+          ('Float32', 'float32', 'float32', 'float32_t', '', 'set_float32'),
+          ('UInt64', 'uint64', 'uint64', 'uint64_t', '', 'set_uint64'),
+          ('UInt32', 'uint32', 'uint32', 'uint32_t', '', 'set_uint32'),
+          ('UInt16', 'uint16', 'uint16', 'uint16_t', '', 'set_uint16'),
+          ('UInt8', 'uint8', 'uint8', 'uint8_t', '', 'set_uint8'),
+          ('Object', 'object', 'pymap', 'object', '<PyObject*>', 'pyset'),
+          ('Int64', 'int64', 'int64', 'int64_t', '', 'set_int64'),
+          ('Int32', 'int32', 'int32', 'int32_t', '', 'set_int32'),
+          ('Int16', 'int16', 'int16', 'int16_t', '', 'set_int16'),
+          ('Int8', 'int8', 'int8', 'int8_t', '', 'set_int8')]
+
+# Primitive set types used by ismember. Declared here (not via cimport) so
+# that their companion functions (kh_init_*, kh_put_*, etc.) are also in
+# scope. kh_pyset_t (object) is handled via khash.pxd / hashtable.pxd.
+# name, c_type
+primitive_set_types_for_ismember = [
+    ('set_complex128', 'khcomplex128_t'),
+    ('set_complex64', 'khcomplex64_t'),
+    ('set_float64', 'float64_t'),
+    ('set_float32', 'float32_t'),
+    ('set_uint64', 'uint64_t'),
+    ('set_uint32', 'uint32_t'),
+    ('set_uint16', 'uint16_t'),
+    ('set_uint8', 'uint8_t'),
+    ('set_int64', 'int64_t'),
+    ('set_int32', 'int32_t'),
+    ('set_int16', 'int16_t'),
+    ('set_int8', 'int8_t'),
+]
 
 }}
 
-{{for name, dtype, ttype, c_type, to_c_type in dtypes}}
+{{for set_name, set_c_type in primitive_set_types_for_ismember}}
+cdef extern from "pandas/vendored/klib/khash_python.h":
+    ctypedef struct kh_{{set_name}}_t:
+        uint32_t n_buckets, size, n_occupied, upper_bound
+        uint32_t *flags
+        {{set_c_type}} *keys
+        char *vals
+
+    kh_{{set_name}}_t* kh_init_{{set_name}}() nogil
+    void kh_destroy_{{set_name}}(kh_{{set_name}}_t*) nogil
+    uint32_t kh_get_{{set_name}}(kh_{{set_name}}_t*, {{set_c_type}}) nogil
+    void kh_resize_{{set_name}}(kh_{{set_name}}_t*, uint32_t) nogil
+    uint32_t kh_put_{{set_name}}(kh_{{set_name}}_t*, {{set_c_type}}, int*) nogil
+
+{{endfor}}
+
+# kh_pyset_t is the set counterpart to kh_pymap_t (object dtype).
+# Redeclared here so kh_init_pyset / kh_put_pyset / kh_get_pyset are in scope.
+from cpython.object cimport PyObject
+cdef extern from "pandas/vendored/klib/khash_python.h":
+    ctypedef struct kh_pyset_t:
+        uint32_t n_buckets, size, n_occupied, upper_bound
+        uint32_t *flags
+        PyObject **keys
+        char *vals
+
+    kh_pyset_t* kh_init_pyset()
+    void kh_destroy_pyset(kh_pyset_t*)
+    uint32_t kh_get_pyset(kh_pyset_t*, PyObject*)
+    void kh_resize_pyset(kh_pyset_t*, uint32_t)
+    uint32_t kh_put_pyset(kh_pyset_t*, PyObject*, int*)
+
+{{for name, dtype, ttype, c_type, to_c_type, set_ttype in dtypes}}
 
 
 @cython.wraparound(False)
@@ -243,11 +294,11 @@ cdef ismember_{{dtype}}(const {{dtype}}_t[:] arr, const {{dtype}}_t[:] values):
         {{c_type}} val
         {{endif}}
 
-        kh_{{ttype}}_t *table = kh_init_{{ttype}}()
+        kh_{{set_ttype}}_t *table = kh_init_{{set_ttype}}()
 
     # construct the table
     n = len(values)
-    kh_resize_{{ttype}}(table, n)
+    kh_resize_{{set_ttype}}(table, n)
 
     {{if dtype == 'object'}}
     if True:
@@ -256,7 +307,7 @@ cdef ismember_{{dtype}}(const {{dtype}}_t[:] arr, const {{dtype}}_t[:] values):
     {{endif}}
         for i in range(n):
             val = {{to_c_type}}(values[i])
-            kh_put_{{ttype}}(table, val, &ret)
+            kh_put_{{set_ttype}}(table, val, &ret)
 
     # test membership
     n = len(arr)
@@ -269,10 +320,10 @@ cdef ismember_{{dtype}}(const {{dtype}}_t[:] arr, const {{dtype}}_t[:] values):
     {{endif}}
         for i in range(n):
             val = {{to_c_type}}(arr[i])
-            k = kh_get_{{ttype}}(table, val)
+            k = kh_get_{{set_ttype}}(table, val)
             result[i] = (k != table.n_buckets)
 
-    kh_destroy_{{ttype}}(table)
+    kh_destroy_{{set_ttype}}(table)
     return result.view(np.bool_)
 
 # ----------------------------------------------------------------------
