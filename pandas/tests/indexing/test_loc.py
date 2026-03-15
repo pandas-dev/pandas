@@ -63,7 +63,7 @@ def test_not_change_nan_loc(series, new_series, expected_ser):
 
 @pytest.mark.parametrize("key", [[1, 2], slice(1, 3)])
 def test_loc_dtype(key):
-    # GH 60600
+    # GH 60600, # GH 63071
     df = DataFrame([["a", 1.0, 2.0], ["b", 3.0, 4.0]])
     result = df.loc[0, key]
     expected = Series([1.0, 2.0], index=[1, 2], dtype=float, name=0)
