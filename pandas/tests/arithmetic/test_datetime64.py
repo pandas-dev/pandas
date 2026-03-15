@@ -11,7 +11,9 @@ from itertools import (
     product,
 )
 import operator
+import sys
 
+from dateutil.tz import tzlocal
 import numpy as np
 import pytest
 
@@ -110,15 +112,30 @@ class TestDatetime64ArrayLikeComparisons:
     ):
         tz = tz_naive_fixture
 
-        dta = date_range("1970-01-01", freq="ns", periods=10, tz=tz)._data
+        dta = date_range("2000-01-01", freq="ns", periods=10, tz=tz)._data
         obj = tm.box_expected(dta, box_with_array)
         assert_invalid_comparison(obj, other, box_with_array)
+
+    def test_date_range_tzlocal_1970_UTC_plus_9(self, request, monkeypatch):
+        # GH#64281
+        UTC9_OFFSET_SECONDS = 32400
+        monkeypatch.setattr("dateutil.tz.time.timezone", -UTC9_OFFSET_SECONDS)
+        if sys.platform == "win32":
+            request.applymarker(
+                pytest.mark.xfail(
+                    reason=(
+                        "GH#64281 - Windows + tzlocal(): time.localtime() "
+                        "raises an error when its argument is negative."
+                    ),
+                )
+            )
+        dta = date_range("1970-01-01", freq="ns", periods=10, tz=tzlocal())._data
+        assert len(dta) == 10
 
     def test_dt64arr_cmp_mixed_invalid(self, tz_naive_fixture):
         tz = tz_naive_fixture
 
-        dta = date_range("1970-01-01", freq="h", periods=5, tz=tz)._data
-
+        dta = date_range("2000-01-01", freq="h", periods=5, tz=tz)._data
         other = np.array([0, 1, 2, dta[3], Timedelta(days=1)])
         result = dta == other
         expected = np.array([False, False, False, True, False])
