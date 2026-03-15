@@ -1266,6 +1266,7 @@ class TestParquetPyArrow(Base):
         )
 
 
+@pytest.mark.filterwarnings("ignore:.*values returning.*:pandas.errors.Pandas4Warning")
 class TestParquetFastParquet(Base):
     def test_basic(self, fp, df_full, request, temp_file):
         if using_string_dtype():
