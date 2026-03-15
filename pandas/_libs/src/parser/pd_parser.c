@@ -126,9 +126,7 @@ static int pandas_parser_exec(PyObject *Py_UNUSED(module)) {
   capi->tokenize_nrows = tokenize_nrows;
   capi->str_to_int64 = str_to_int64;
   capi->str_to_uint64 = str_to_uint64;
-  capi->xstrtod = xstrtod;
   capi->precise_xstrtod = precise_xstrtod;
-  capi->round_trip = round_trip;
   capi->to_boolean = to_boolean;
 
   PyObject *capsule =

@@ -279,15 +279,9 @@ cdef extern from "pandas/parser/pd_parser.h":
     int64_t str_to_int64(char *p_item,  int *error, char tsep) nogil
     uint64_t str_to_uint64(uint_state *state, char *p_item, int *error, char tsep) nogil
 
-    double xstrtod(const char *p, char **q, char decimal,
-                   char sci, char tsep, int skip_trailing,
-                   int *error, int *maybe_int) nogil
     double precise_xstrtod(const char *p, char **q, char decimal,
                            char sci, char tsep, int skip_trailing,
                            int *error, int *maybe_int) nogil
-    double round_trip(const char *p, char **q, char decimal,
-                      char sci, char tsep, int skip_trailing,
-                      int *error, int *maybe_int) nogil
 
     int to_boolean(const char *item, uint8_t *val) nogil
 
@@ -297,22 +291,10 @@ PandasParser_IMPORT
 
 # When not invoked directly but rather assigned as a function,
 # cdef extern'ed declarations seem to leave behind an undefined symbol
-cdef double xstrtod_wrapper(const char *p, char **q, char decimal,
-                            char sci, char tsep, int skip_trailing,
-                            int *error, int *maybe_int) noexcept nogil:
-    return xstrtod(p, q, decimal, sci, tsep, skip_trailing, error, maybe_int)
-
-
 cdef double precise_xstrtod_wrapper(const char *p, char **q, char decimal,
                                     char sci, char tsep, int skip_trailing,
                                     int *error, int *maybe_int) noexcept nogil:
     return precise_xstrtod(p, q, decimal, sci, tsep, skip_trailing, error, maybe_int)
-
-
-cdef double round_trip_wrapper(const char *p, char **q, char decimal,
-                               char sci, char tsep, int skip_trailing,
-                               int *error, int *maybe_int) noexcept nogil:
-    return round_trip(p, q, decimal, sci, tsep, skip_trailing, error, maybe_int)
 
 
 cdef char* buffer_rd_bytes_wrapper(void *source, size_t nbytes,
@@ -503,12 +485,7 @@ cdef class TextReader:
         self.converters = converters
         self.na_filter = na_filter
 
-        if float_precision == "round_trip":
-            # see gh-15140
-            self.parser.double_converter = round_trip_wrapper
-        elif float_precision == "legacy":
-            self.parser.double_converter = xstrtod_wrapper
-        elif float_precision == "high" or float_precision is None:
+        if float_precision in ("round_trip", "legacy", "high", None):
             self.parser.double_converter = precise_xstrtod_wrapper
         else:
             raise ValueError(f"Unrecognized float_precision option: "

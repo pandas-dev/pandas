@@ -84,6 +84,12 @@ monkeytype.sqlite3
 # meson editable install folder
 .mesonpy
 
+### Meson files ###
+# subproject directories
+/subprojects/*
+!/subprojects/*.wrap
+!/subprojects/packagefiles
+
 
 # OS generated files #
 ######################
@@ -109,6 +115,7 @@ scikits
 *.c
 *.cpp
 !pandas/_libs/src/**/*.c
+!pandas/_libs/src/**/*.cpp
 !pandas/_libs/src/**/*.h
 !pandas/_libs/include/**/*.h
 
