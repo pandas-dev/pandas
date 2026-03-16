@@ -324,6 +324,8 @@ cdef tuple _get_zoneinfo_trans_and_deltas(tzinfo tz):
         Nanosecond UTC times of DST transitions.
     deltas : ndarray[int64_t]
         Nanosecond UTC offsets corresponding to DST transitions.
+    is_fixed : bint
+        True if this is a fixed-offset timezone with no transitions.
     """
     cdef:
         int64_t fixed_offset_seconds
@@ -332,16 +334,17 @@ cdef tuple _get_zoneinfo_trans_and_deltas(tzinfo tz):
 
     if hasattr(dateutil_tz, "_trans_list") and len(dateutil_tz._trans_list):
         first_offset_seconds = int(dateutil_tz._ttinfo_before.offset)
-        return _get_trans_and_deltas_from_dateutil_tz(
+        trans, deltas = _get_trans_and_deltas_from_dateutil_tz(
             dateutil_tz, first_offset_seconds
         )
+        return trans, deltas, False
     else:
         fixed_offset_seconds = int(
             tz.utcoffset(datetime(2020, 1, 1)).total_seconds()
         )
         trans = np.array([NPY_NAT + 1], dtype=np.int64)
         deltas = np.array([fixed_offset_seconds], dtype="i8") * 1_000_000_000
-        return trans, deltas
+        return trans, deltas, True
 
 
 cdef object get_dst_info(tzinfo tz):
@@ -398,8 +401,8 @@ cdef object get_dst_info(tzinfo tz):
                                      "and has an empty `_trans_list`.", tz)
 
         elif is_zoneinfo(tz):
-            trans, deltas = _get_zoneinfo_trans_and_deltas(tz)
-            typ = "zoneinfo"
+            trans, deltas, is_fixed = _get_zoneinfo_trans_and_deltas(tz)
+            typ = "fixed" if is_fixed else "zoneinfo"
 
         else:
             # static tzinfo, we can get here with pytz.StaticTZInfo
