@@ -5,10 +5,6 @@
 # This script is intended for both the CI and to check locally that code standards are
 # respected. We run doctests here (currently some files only).
 #
-# Docstring validation (both standard numpydoc and pandas-specific checks GL04,
-# PD01, SA05, EX04) is enforced via the numpydoc extension during the Sphinx build
-# (see doc/source/conf.py).
-#
 # Usage:
 #   $ ./ci/code_checks.sh               # run all checks
 #   $ ./ci/code_checks.sh code          # checks on imported code
