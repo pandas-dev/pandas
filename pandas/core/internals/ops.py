@@ -74,7 +74,7 @@ def operate_blockwise(
             and hasattr(res_values, "reshape")
             and not is_1d_only_ea_dtype(res_values.dtype)
         ):
-            res_values = res_values.reshape(1, -1)
+            res_values = res_values.reshape(1, -1)  # pyright: ignore[reportGeneralTypeIssues]
         nbs = rblk._split_op_result(res_values)
 
         # Assertions are disabled for performance, but should hold:
