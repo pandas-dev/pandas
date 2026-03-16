@@ -93,14 +93,11 @@ Some other important things to know about the docs:
   ``doc/source/reference``, else Sphinx
   will emit a warning.
 
-The utility script ``scripts/validate_docstrings.py`` can be used to get a csv
-summary of the API documentation. And also validate common errors in the docstring
-of a specific class, function or method. The summary also compares the list of
-methods documented in the files in ``doc/source/reference`` (which is used to generate
-the `API Reference <https://pandas.pydata.org/pandas-docs/stable/api.html>`_ page)
-and the actual public methods.
-This will identify methods documented in ``doc/source/reference`` that are not actually
-class methods, and existing methods that are not documented in ``doc/source/reference``.
+Docstring validation — both standard numpydoc checks and pandas-specific conventions
+(e.g. not mentioning private classes, using ``array-like`` instead of ``array_like``,
+avoiding unnecessary ``pandas.`` prefixes in See Also sections, and not importing
+numpy/pandas in docstring examples) — is enforced automatically during the Sphinx
+documentation build via ``numpydoc_validation_checks`` in ``doc/source/conf.py``.
 
 
 Updating a pandas docstring
@@ -108,12 +105,12 @@ Updating a pandas docstring
 
 When improving a single function or method's docstring, it is not necessarily
 needed to build the full documentation (see next section).
-However, there is a script that checks a docstring (for example for the ``DataFrame.mean`` method)::
+You can validate a single docstring — including both standard numpydoc checks and
+pandas-specific conventions (GL04, PD01, SA05, EX04) — by building a single-page
+doc::
 
-    python scripts/validate_docstrings.py pandas.DataFrame.mean
+    python doc/make.py --warnings-are-errors --no-browser --single pandas.DataFrame.mean
 
-This script will indicate some formatting errors if present, and will also
-run and test the examples included in the docstring.
 Check the :ref:`pandas docstring guide <docstring>` for a detailed guide
 on how to format the docstring.
 
