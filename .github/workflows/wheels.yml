@@ -120,7 +120,7 @@ jobs:
           arch: arm64
 
       - name: Download sdist
-        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: sdist
           path: ./dist
@@ -170,7 +170,7 @@ jobs:
 
     steps:
       - name: Download all artifacts
-        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           path: dist
           merge-multiple: true
@@ -201,11 +201,11 @@ jobs:
 
     steps:
       - name: Download all artifacts
-        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           path: dist          # everything lands in ./dist/**
 
-      # TODO: This step can be probably be achieved by actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8
+      # TODO: This step can be probably be achieved by actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
       # by specifying merge-multiple: true, and a glob pattern
       - name: Collect files
         run: |
