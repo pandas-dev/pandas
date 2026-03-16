@@ -3189,6 +3189,23 @@ class TestDataFrameConstructorWithDatetimeTZ:
         assert res["a"].dtype == np.object_
         assert (res["a"] == data["a"]).all()
 
+    def test_2d_ea_with_dtype_cast(self):
+        # Constructing a DataFrame from a 2D tz-aware DatetimeArray with a
+        # different dtype triggers ndarray_to_mgr -> sanitize_array(...,
+        # allow_2d=True). Without the _sanitize_ndim fix, the 2D EA falls
+        # through to asarray_tuplesafe and gets corrupted.
+        dta = pd.array(date_range("2020-01-01", periods=6, tz="UTC"))
+        arr2d = dta.reshape(3, 2)
+
+        result = DataFrame(arr2d, dtype="datetime64[ns, US/Eastern]")
+        expected = DataFrame(
+            {
+                0: arr2d[:, 0].astype("datetime64[ns, US/Eastern]"),
+                1: arr2d[:, 1].astype("datetime64[ns, US/Eastern]"),
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
 
 def get1(obj):  # TODO: make a helper in tm?
     if isinstance(obj, Series):

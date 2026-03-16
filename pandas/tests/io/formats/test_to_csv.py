@@ -322,6 +322,27 @@ $1$,$2$
         )
         assert result == expected
 
+    def test_to_csv_2d_float_ea(self):
+        # get_values_for_csv on a 2D float ExtensionArray should not fail.
+        # Previously, values.astype(str) would route through _from_sequence
+        # which doesn't support 2D.
+        from pandas.core.arrays import FloatingArray
+        from pandas.core.indexes.base import get_values_for_csv
+
+        data = np.array([1.0, np.nan, 3.0, 4.0])
+        mask = np.array([False, True, False, False])
+        arr2d = FloatingArray(data, mask).reshape(2, 2)
+
+        result = get_values_for_csv(
+            arr2d,
+            date_format=None,
+            na_rep="NA",
+            float_format=None,
+            decimal=".",
+        )
+        expected = np.array([["1.0", "NA"], ["3.0", "4.0"]], dtype=object)
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_to_csv_multi_index(self):
         # see gh-6618
         df = DataFrame([1], columns=pd.MultiIndex.from_arrays([[1], [2]]))
