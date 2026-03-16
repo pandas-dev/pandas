@@ -131,12 +131,12 @@ def test_less_precise(data1, data2, any_float_dtype, decimals):
         ),
         # MultiIndex
         (
-            DataFrame.from_records(
-                {"a": [1, 2], "b": [2.1, 1.5], "c": ["l1", "l2"]}, index=["a", "b"]
-            ).c,
-            DataFrame.from_records(
-                {"a": [1.0, 2.0], "b": [2.1, 1.5], "c": ["l1", "l2"]}, index=["a", "b"]
-            ).c,
+            DataFrame({"a": [1, 2], "b": [2.1, 1.5], "c": ["l1", "l2"]}).set_index(
+                ["a", "b"]
+            )["c"],
+            DataFrame({"a": [1.0, 2.0], "b": [2.1, 1.5], "c": ["l1", "l2"]}).set_index(
+                ["a", "b"]
+            )["c"],
             "Series\\.index level \\[0\\] are different",
         ),
     ],
