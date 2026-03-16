@@ -595,7 +595,7 @@ def _get_periods_per_ymd(freq: BaseOffset) -> tuple[int, int, int]:
         ppm = 1
         ppy = 12
     elif freq_group == FreqGroup.FR_QTR:
-        ppm = -1  # placerholder
+        ppm = -1  # placeholder
         ppy = 4
     elif freq_group == FreqGroup.FR_ANN:
         ppm = -1  # placeholder

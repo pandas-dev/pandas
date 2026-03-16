@@ -134,7 +134,7 @@ def _derive_colors(
         When provided, the resulting colors will be derived from the colormap.
     color_type : {"default", "random"}, optional
         Type of colors to derive. Used if provided `color` and `colormap` are None.
-        Ignored if either `color` or `colormap`` are not None.
+        Ignored if either `color` or `colormap` are not None.
     num_colors : int
         Number of colors to be extracted.
 
