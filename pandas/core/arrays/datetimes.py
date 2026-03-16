@@ -127,7 +127,7 @@ def tz_to_dtype(
 
     Returns
     -------
-    np.dtype or Datetime64TZDType
+    np.dtype or DatetimeTZDtype
     """
     if tz is None:
         return np.dtype(f"M8[{unit}]")
@@ -357,7 +357,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         """
 
         # if the user either explicitly passes tz=None or a tz-naive dtype, we
-        #  disallows inferring a tz.
+        #  disallow inferring a tz.
         explicit_tz_none = tz is None
         if tz is lib.no_default:
             tz = None
@@ -602,7 +602,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
 
         Returns
         -------
-        zoneinfo.ZoneInfo,, datetime.tzinfo, pytz.tzinfo.BaseTZInfo, dateutil.tz.tz.tzfile, or None
+        zoneinfo.ZoneInfo, datetime.tzinfo, pytz.tzinfo.BaseTZInfo, dateutil.tz.tz.tzfile, or None
             Returns None when the array is tz-naive.
 
         See Also
@@ -880,7 +880,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         Returns
         -------
         Array or Index
-            Datetme Array/Index with target `tz`.
+            Datetime Array/Index with target `tz`.
 
         Raises
         ------
@@ -967,7 +967,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
 
         Parameters
         ----------
-        tz : str, zoneinfo.ZoneInfo,, pytz.timezone, dateutil.tz.tzfile, datetime.tzinfo or None
+        tz : str, zoneinfo.ZoneInfo, pytz.timezone, dateutil.tz.tzfile, datetime.tzinfo or None
             Time zone to convert timestamps to. Passing ``None`` will
             remove the time zone information preserving local time.
         ambiguous : 'infer', 'NaT', bool array, default 'raise'
@@ -987,7 +987,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             - 'raise' will raise a ValueError if there are ambiguous
               times.
 
-        nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta, \
+        nonexistent : 'shift_forward', 'shift_backward', 'NaT', timedelta, \
 default 'raise'
             A nonexistent time does not exist in a particular timezone
             where clocks moved forward due to DST.
@@ -1075,7 +1075,7 @@ default 'raise'
 
         If the DST transition causes nonexistent times, you can shift these
         dates forward or backwards with a timedelta object or `'shift_forward'`
-        or `'shift_backwards'`.
+        or `'shift_backward'`.
 
         >>> s = pd.to_datetime(pd.Series(['2015-03-29 02:30:00',
         ...                               '2015-03-29 03:30:00'], dtype="M8[ns]"))
