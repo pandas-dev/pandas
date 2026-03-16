@@ -999,6 +999,15 @@ class ArrowExtensionArray(
         ):
             if op in [operator.add, roperator.radd]:
                 sep = pa.scalar("", type=pa_type)
+                if isinstance(other, pa.Scalar) and other.type != pa_type:
+                    if pa.types.is_string(other.type) or pa.types.is_large_string(
+                        other.type
+                    ):
+                        other = other.cast(pa_type)
+                    else:
+                        raise TypeError(
+                            self._op_method_error_message(other_original, op)
+                        )
                 try:
                     if op is operator.add:
                         result = pc.binary_join_element_wise(self._pa_array, other, sep)

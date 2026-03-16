@@ -3972,6 +3972,27 @@ def test_duration_reduction_consistency(unit, method):
     assert result.unit == unit
 
 
+def test_large_string_add_str_scalar():
+    # GH#64393
+    ser = pd.Series(["foo", "bar"], dtype=ArrowDtype(pa.large_string()))
+    result = ser + "-"
+    expected = pd.Series(["foo-", "bar-"], dtype=ArrowDtype(pa.large_string()))
+    tm.assert_series_equal(result, expected)
+
+    result = "-" + ser
+    expected = pd.Series(["-foo", "-bar"], dtype=ArrowDtype(pa.large_string()))
+    tm.assert_series_equal(result, expected)
+
+
+def test_large_string_add_non_string_raises():
+    # GH#64393
+    ser = pd.Series(["foo", "bar"], dtype=ArrowDtype(pa.large_string()))
+    with pytest.raises(TypeError, match="operation 'add' not supported"):
+        ser + 1
+    with pytest.raises(TypeError, match="operation 'radd' not supported"):
+        1 + ser
+
+
 @pytest.mark.parametrize("method", ["min", "max", "median"])
 def test_timestamp_reduction_consistency(unit, method):
     # GH#63170
