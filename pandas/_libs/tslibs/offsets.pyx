@@ -7365,7 +7365,7 @@ cpdef to_offset(freq, bint is_period=False):
                 extra_message=f"Failed to parse with error message: {repr(err)}"
             )
 
-        # TODO(3.0?) once deprecation of "d" is enforced, the check for it here
+        # TODO(4.0) once deprecation of "d" is enforced, the check for it here
         #  can be removed
         if (
                 isinstance(result, Hour)
