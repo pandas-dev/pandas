@@ -1603,6 +1603,7 @@ class ExcelFile:
 
                 if xlrd_version is not None and isinstance(path_or_buffer, xlrd.Book):
                     ext = "xls"
+                    engine = "xlrd"
 
             if ext is None:
                 ext = inspect_excel_format(

@@ -67,8 +67,8 @@ def get_default_engine(ext: str, mode: Literal["reader", "writer"] = "reader") -
     _default_readers = {
         "xlsx": "openpyxl",
         "xlsm": "openpyxl",
-        "xlsb": "pyxlsb",
-        "xls": "xlrd",
+        "xlsb": "calamine",
+        "xls": "calamine",
         "ods": "odf",
     }
     _default_writers = {
