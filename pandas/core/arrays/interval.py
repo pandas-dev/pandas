@@ -130,7 +130,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     Parameters
     ----------
     data : array-like (1-dimensional)
-        Array-like (ndarray, :class:`DateTimeArray`, :class:`TimeDeltaArray`) containing
+        Array-like (ndarray, :class:`DatetimeArray`, :class:`TimedeltaArray`) containing
         Interval objects from which to build the IntervalArray.
     closed : {'left', 'right', 'both', 'neither'}, default 'right'
         Whether the intervals are closed on the left-side, right-side, both or

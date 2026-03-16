@@ -238,7 +238,7 @@ def fill_mi_header(
     """
     Forward fill blank entries in row but only inside the same parent index.
 
-    Used for creating headers in Multiindex.
+    Used for creating headers in MultiIndex.
 
     Parameters
     ----------
