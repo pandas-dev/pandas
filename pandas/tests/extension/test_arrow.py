@@ -1542,6 +1542,13 @@ def test_astype_float_from_non_pyarrow_str():
     tm.assert_series_equal(result, expected)
 
 
+def test_construct_string_arrow_with_nan():
+    # GH#64578
+    result = pd.array(["a", np.nan], dtype=pd.ArrowDtype(pa.string()))
+    expected = pd.array(["a", None], dtype="string[pyarrow]")
+    tm.assert_extension_array_equal(result, expected)
+
+
 def test_astype_errors_ignore():
     # GH 55399
     expected = pd.DataFrame({"col": [17000000]}, dtype="int32[pyarrow]")

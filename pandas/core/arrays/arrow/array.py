@@ -682,6 +682,10 @@ class ArrowExtensionArray(
                 pa_array = pa.array(value, type=pa_type, mask=mask)
             except (pa.ArrowInvalid, pa.ArrowTypeError):
                 # GH50430: let pyarrow infer type, then cast
+                if mask is not None and mask.any():
+                    value = [
+                        None if m else v for v, m in zip(value, mask, strict=False)
+                    ]
                 pa_array = pa.array(value, mask=mask)
 
             if pa_type is None and pa.types.is_duration(pa_array.type):
