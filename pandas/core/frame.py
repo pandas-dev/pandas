@@ -9354,16 +9354,15 @@ class DataFrame(NDFrame, OpsMixin):
             # pass dtype to avoid doing inference
             df = self._constructor(rvalues, dtype=rvalues.dtype)
 
+        # GH#61581
+        elif axis == 0:
+            df = DataFrame(dict.fromkeys(range(self.shape[1]), rvalues))
         else:
-            # GH#61581
-            if axis == 0:
-                df = DataFrame(dict.fromkeys(range(self.shape[1]), rvalues))
-            else:
-                nrows = self.shape[0]
-                df = DataFrame(
-                    {i: rvalues[[i]].repeat(nrows) for i in range(self.shape[1])},
-                    dtype=rvalues.dtype,
-                )
+            nrows = self.shape[0]
+            df = DataFrame(
+                {i: rvalues[[i]].repeat(nrows) for i in range(self.shape[1])},
+                dtype=rvalues.dtype,
+            )
         df.index = self.index
         df.columns = self.columns
         return df.__finalize__(series)
