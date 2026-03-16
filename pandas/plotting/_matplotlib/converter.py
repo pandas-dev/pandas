@@ -664,7 +664,7 @@ def _daily_finder(vmin: float, vmax: float, freq: BaseOffset) -> np.ndarray:
         year_start = _period_break(dates_, "year")
 
         def _hour_finder(label_interval: int, force_year_start: bool) -> None:
-            target = dates_.hour  # type: ignore[union-attr]
+            target = dates_.hour
             mask = _period_break_mask(dates_, "hour")
             info_maj[day_start] = True
             info_min[mask & (target % label_interval == 0)] = True
@@ -675,7 +675,7 @@ def _daily_finder(vmin: float, vmax: float, freq: BaseOffset) -> np.ndarray:
                 info_fmt[first_label(day_start)] = "%H:%M\n%d-%b\n%Y"
 
         def _minute_finder(label_interval: int) -> None:
-            target = dates_.minute  # type: ignore[union-attr]
+            target = dates_.minute
             hour_start = _period_break(dates_, "hour")
             mask = _period_break_mask(dates_, "minute")
             info_maj[hour_start] = True
@@ -685,7 +685,7 @@ def _daily_finder(vmin: float, vmax: float, freq: BaseOffset) -> np.ndarray:
             info_fmt[year_start] = "%H:%M\n%d-%b\n%Y"
 
         def _second_finder(label_interval: int) -> None:
-            target = dates_.second  # type: ignore[union-attr]
+            target = dates_.second
             minute_start = _period_break(dates_, "minute")
             mask = _period_break_mask(dates_, "second")
             info_maj[minute_start] = True

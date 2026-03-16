@@ -80,6 +80,116 @@ if TYPE_CHECKING:
 from pandas._libs.tslibs.dtypes import OFFSET_TO_PERIOD_FREQSTR
 
 
+class _DatetimeFieldOps:
+    """Read-only property declarations for dynamically-inherited field ops.
+
+    Mirrors the pandas-stubs ``_DayLikeFieldOps`` / ``_MiniSeconds`` pattern
+    so that static type-checkers see attributes added by ``@inherit_names``
+    as read-only properties with correct return types.  At runtime the
+    decorator overrides every entry via ``setattr``, so these bodies
+    are never executed.
+    """
+
+    @property
+    def year(self) -> Index:
+        raise NotImplementedError
+
+    @property
+    def month(self) -> Index:
+        raise NotImplementedError
+
+    @property
+    def day(self) -> Index:
+        raise NotImplementedError
+
+    @property
+    def hour(self) -> Index:
+        raise NotImplementedError
+
+    @property
+    def minute(self) -> Index:
+        raise NotImplementedError
+
+    @property
+    def second(self) -> Index:
+        raise NotImplementedError
+
+    @property
+    def weekday(self) -> Index:
+        raise NotImplementedError
+
+    @property
+    def dayofweek(self) -> Index:
+        raise NotImplementedError
+
+    @property
+    def day_of_week(self) -> Index:
+        raise NotImplementedError
+
+    @property
+    def dayofyear(self) -> Index:
+        raise NotImplementedError
+
+    @property
+    def day_of_year(self) -> Index:
+        raise NotImplementedError
+
+    @property
+    def quarter(self) -> Index:
+        raise NotImplementedError
+
+    @property
+    def days_in_month(self) -> Index:
+        raise NotImplementedError
+
+    @property
+    def daysinmonth(self) -> Index:
+        raise NotImplementedError
+
+    @property
+    def microsecond(self) -> Index:
+        raise NotImplementedError
+
+    @property
+    def nanosecond(self) -> Index:
+        raise NotImplementedError
+
+
+class _DatetimeBoolOps:
+    """Read-only property declarations for dynamically-inherited bool ops.
+
+    Same rationale as ``_DatetimeFieldOps``; see its docstring.
+    """
+
+    @property
+    def is_month_start(self) -> npt.NDArray[np.bool_]:
+        raise NotImplementedError
+
+    @property
+    def is_month_end(self) -> npt.NDArray[np.bool_]:
+        raise NotImplementedError
+
+    @property
+    def is_quarter_start(self) -> npt.NDArray[np.bool_]:
+        raise NotImplementedError
+
+    @property
+    def is_quarter_end(self) -> npt.NDArray[np.bool_]:
+        raise NotImplementedError
+
+    @property
+    def is_year_start(self) -> npt.NDArray[np.bool_]:
+        raise NotImplementedError
+
+    @property
+    def is_year_end(self) -> npt.NDArray[np.bool_]:
+        raise NotImplementedError
+
+    @property
+    def is_leap_year(self) -> npt.NDArray[np.bool_]:
+        raise NotImplementedError
+
+
 def _new_DatetimeIndex(cls, d):
     """
     This is called upon unpickling, rather than the default which doesn't
@@ -139,7 +249,7 @@ def _new_DatetimeIndex(cls, d):
     DatetimeArray,
 )
 @set_module("pandas")
-class DatetimeIndex(DatetimeTimedeltaMixin):
+class DatetimeIndex(_DatetimeFieldOps, _DatetimeBoolOps, DatetimeTimedeltaMixin):
     """
     Immutable ndarray-like of datetime64 data.
 
