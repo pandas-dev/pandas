@@ -13,8 +13,7 @@ on:
       - "doc/**"
       - "web/**"
 
-permissions:
-  contents: read
+permissions: {}
 
 defaults:
   run:
@@ -23,36 +22,38 @@ defaults:
 jobs:
   ubuntu:
     runs-on: ${{ matrix.platform }}
+    permissions:
+      contents: read
     timeout-minutes: 90
     strategy:
       matrix:
         platform: [ubuntu-24.04, ubuntu-24.04-arm]
-        env_file: [actions-311.yaml, actions-312.yaml, actions-313.yaml, actions-314.yaml]
+        environment: [py311, py312, py313, py314]
         # Prevent the include jobs from overriding other jobs
-        pattern: [""]
+        pytest_marker_expression: [""]
         pandas_future_infer_string: ["1"]
         pandas_future_python_scalars: ["0"]
         include:
           - name: "Downstream Compat"
-            env_file: actions-313-downstream_compat.yaml
-            pattern: "not slow and not network and not single_cpu"
+            environment: downstream
+            pytest_marker_expression: "not slow and not network and not single_cpu"
             pytest_target: "pandas/tests/test_downstream.py"
             platform: ubuntu-24.04
           - name: "Minimum Versions"
-            env_file: actions-311-minimum_versions.yaml
-            pattern: "not slow and not network and not single_cpu"
+            environment: minimum-versions
+            pytest_marker_expression: "not slow and not network and not single_cpu"
             platform: ubuntu-24.04
           - name: "Freethreading"
-            env_file: actions-313-freethreading.yaml
-            pattern: "not slow and not network and not single_cpu"
+            environment: py313-freethreading
+            pytest_marker_expression: "not slow and not network and not single_cpu"
             platform: ubuntu-24.04
           - name: "Without PyArrow"
-            env_file: actions-312.yaml
-            pattern: "not slow and not network and not single_cpu"
+            environment: no-pyarrow
+            pytest_marker_expression: "not slow and not network and not single_cpu"
             platform: ubuntu-24.04
           - name: "Locale: it_IT"
-            env_file: actions-313.yaml
-            pattern: "not slow and not network and not single_cpu"
+            environment: py313
+            pytest_marker_expression: "not slow and not network and not single_cpu"
             extra_apt: "language-pack-it"
             # Use the utf8 version as the default, it has no bad side-effect.
             lang: "it_IT.utf8"
@@ -62,8 +63,8 @@ jobs:
             extra_loc: "it_IT"
             platform: ubuntu-24.04
           - name: "Locale: zh_CN"
-            env_file: actions-313.yaml
-            pattern: "not slow and not network and not single_cpu"
+            environment: py313
+            pytest_marker_expression: "not slow and not network and not single_cpu"
             extra_apt: "language-pack-zh-hans"
             # Use the utf8 version as the default, it has no bad side-effect.
             lang: "zh_CN.utf8"
@@ -73,40 +74,29 @@ jobs:
             extra_loc: "zh_CN"
             platform: ubuntu-24.04
           - name: "PANDAS_FUTURE_INFER_STRING=0"
-            env_file: actions-313.yaml
+            environment: py313
             pandas_future_infer_string: "0"
             platform: ubuntu-24.04
           - name: "PANDAS_FUTURE_PYTHON_SCALARS=1"
-            env_file: actions-313.yaml
+            environment: py313
             pandas_future_python_scalars: "1"
             platform: ubuntu-24.04
-          - name: "Numpy Dev"
-            env_file: actions-313-numpydev.yaml
-            pattern: "not slow and not network and not single_cpu"
-            test_args: "-W error::DeprecationWarning -W error::FutureWarning"
+          - name: "Numpy Nightly"
+            environment: numpy-nightly
+            pytest_marker_expression: "not slow and not network and not single_cpu"
             platform: ubuntu-24.04
           - name: "Pyarrow Nightly"
-            env_file: actions-313-pyarrownightly.yaml
-            pattern: "not slow and not network and not single_cpu"
+            environment: pyarrow-nightly
+            pytest_marker_expression: "not slow and not network and not single_cpu"
             platform: ubuntu-24.04
       fail-fast: false
-    name: ${{ matrix.name || format('{0} {1}', matrix.platform, matrix.env_file) }}
+    name: ${{ matrix.name || format('{0} {1}', matrix.platform, matrix.environment) }}
     env:
-      PATTERN: ${{ matrix.pattern }}
       LANG: ${{ matrix.lang || 'C.UTF-8' }}
       LC_ALL: ${{ matrix.lc_all || '' }}
-      PANDAS_CI: '1'
-      PANDAS_FUTURE_INFER_STRING: ${{ matrix.pandas_future_infer_string || '1' }}
-      PANDAS_FUTURE_PYTHON_SCALARS: ${{ matrix.pandas_future_python_scalars || '0' }}
-      TEST_ARGS: ${{ matrix.test_args || '' }}
-      PYTEST_WORKERS: 'auto'
-      PYTEST_TARGET: ${{ matrix.pytest_target || 'pandas' }}
-      # Clipboard tests
-      QT_QPA_PLATFORM: offscreen
-      REMOVE_PYARROW: ${{ matrix.name == 'Without PyArrow' && '1' || '0' }}
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
-      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.env_file }}-${{ matrix.pattern }}-${{ matrix.extra_apt || '' }}-${{ matrix.pandas_future_infer_string }}-${{ matrix.platform }}
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.environment }}-${{ matrix.pytest_marker_expression }}-${{ matrix.extra_apt || '' }}-${{ matrix.pandas_future_infer_string }}-${{ matrix.platform }}
       cancel-in-progress: true
 
     services:
@@ -145,7 +135,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v6
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       with:
         fetch-depth: 0
 
@@ -158,71 +148,118 @@ jobs:
       run: sudo locale-gen ${{ matrix.extra_loc }}
       if: ${{ matrix.extra_loc }}
 
-    - name: Set up Conda
-      uses: ./.github/actions/setup-conda
+    - name: Create virtual environment with Pixi
+      uses: ./.github/actions/setup-pixi
       with:
-        environment-file: ci/deps/${{ matrix.env_file }}
+        environment: ${{ matrix.environment }}
 
-    - name: Build Pandas
+    - name: Build pandas
       id: build
-      uses: ./.github/actions/build_pandas
-      with:
-        # python3.14t/cpython/pyatomic_gcc.h:63:10:
-        #   error: ‘__atomic_fetch_add_8’
-        #   writing 8 bytes into a region of size 0 overflows the destination [-Werror=stringop-overflow=]
-        werror: ${{ matrix.name != 'Freethreading' }}
+      # matrix.name == 'Minimum Versions' can be removed once Cython >=3.2
+      # python3.14t/cpython/pyatomic_gcc.h:63:10:
+      #   error: ‘__atomic_fetch_add_8’
+      #   writing 8 bytes into a region of size 0 overflows the destination [-Werror=stringop-overflow=]
+      run: |
+        pixi run \
+          --environment ${{ matrix.environment }} \
+          build-pandas \
+          --editable \
+          ${{ ! (matrix.name == 'Freethreading' || matrix.name == 'Minimum Versions') && '-Csetup-args="--werror"' || '' }}
+      shell: bash -euox pipefail {0}
 
     - name: Test (not single_cpu)
       uses: ./.github/actions/run-tests
+      id: test-not-single-cpu
       env:
-        # Set pattern to not single_cpu if not already set
-        PATTERN: ${{ env.PATTERN == '' && 'not single_cpu' || matrix.pattern }}
+        # Ensure port matches moto service
+        PANDAS_MOTO_URL: "http://localhost:5000"
+      with:
+        environment: ${{ matrix.environment }}
+        numprocesses: 'auto'
+        pytest_marker_expression: ${{ matrix.pytest_marker_expression == '' && 'not single_cpu' || matrix.pytest_marker_expression }}
+        pytest_target: ${{ matrix.pytest_target || 'pandas' }}
+        pandas_future_infer_string: ${{ matrix.pandas_future_infer_string || '1' }}
+        pandas_future_python_scalars: ${{ matrix.pandas_future_python_scalars || '0' }}
 
     - name: Test (single_cpu)
+      id: test-single-cpu
       uses: ./.github/actions/run-tests
       env:
-        PATTERN: 'single_cpu'
-        PYTEST_WORKERS: 0
-      if: ${{ matrix.pattern == '' && (always() && steps.build.outcome == 'success')}}
+        # Ensure port matches moto service
+        PANDAS_MOTO_URL: "http://localhost:5000"
+      with:
+        environment: ${{ matrix.environment }}
+        numprocesses: 0
+        pytest_marker_expression: 'single_cpu'
+        pytest_target: ${{ matrix.pytest_target || 'pandas' }}
+        pandas_future_infer_string: ${{ matrix.pandas_future_infer_string || '1' }}
+        pandas_future_python_scalars: ${{ matrix.pandas_future_python_scalars || '0' }}
+      if: ${{ matrix.pytest_marker_expression == '' && (always() && steps.build.outcome == 'success')}}
+
+    - name: Upload test coverage to Codecov
+      uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5
+      with:
+        flags: unittests
+        name: codecov-pandas-${{ matrix.name || format('{0} {1}', matrix.platform, matrix.environment) }}
+        fail_ci_if_error: false
+        disable_telem: true
+      # coverage report appended for single_cpu + not single_cpu steps
+      # provide most hollistic coverage report
+      if: ${{ steps.test-not-single-cpu.outcome == 'success' && steps.test-single-cpu.outcome == 'success' }}
 
   macos-windows:
+    permissions:
+      contents: read
     timeout-minutes: 90
     strategy:
       matrix:
         os: [macos-15-intel, macos-15, windows-2025]
-        env_file: [actions-311.yaml, actions-312.yaml, actions-313.yaml, actions-314.yaml]
+        environment: [py311, py312, py313, py314]
       fail-fast: false
     runs-on: ${{ matrix.os }}
-    name: ${{ format('{0} {1}', matrix.os, matrix.env_file) }}
+    name: ${{ format('{0} {1}', matrix.os, matrix.environment) }}
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
-      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.env_file }}-${{ matrix.os }}
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.environment }}-${{ matrix.os }}
       cancel-in-progress: true
-    env:
-      PANDAS_CI: 1
-      PYTEST_TARGET: pandas
-      PATTERN: "not slow and not db and not network and not single_cpu"
-      PYTEST_WORKERS: 'auto'
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           fetch-depth: 0
 
-      - name: Set up Conda
-        uses: ./.github/actions/setup-conda
+      - name: Create virtual environment with Pixi
+        uses: ./.github/actions/setup-pixi
         with:
-          environment-file: ci/deps/${{ matrix.env_file }}
+          environment: ${{ matrix.environment }}
 
-      - name: Build Pandas
-        uses: ./.github/actions/build_pandas
+      - name: Remove link.EXE for Windows
+        # https://github.com/Quansight-Labs/uarray/pull/310#issuecomment-3872989816
+        run: rm /c/Program\ Files/Git/usr/bin/link.EXE
+        if: ${{ matrix.os == 'windows-2025' }}
+
+      - name: Build pandas
+        id: build
+        run: |
+          pixi run \
+            --environment ${{ matrix.environment }} \
+            build-pandas \
+            --editable
+        shell: bash -euox pipefail {0}
 
       - name: Test
         uses: ./.github/actions/run-tests
+        with:
+          environment: ${{ matrix.environment }}
+          numprocesses: 'auto'
+          pytest_marker_expression: 'not slow and not db and not network and not single_cpu'
+          pytest_target: 'pandas'
 
   Linux-32-bit:
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
     container:
       image: quay.io/pypa/manylinux_2_28_i686
       options: --platform linux/386
@@ -248,10 +285,10 @@ jobs:
           . ~/virtualenvs/pandas-dev/bin/activate
           python -m pip install --no-cache-dir -U pip wheel meson[ninja]==1.2.1 meson-python==0.13.1
           python -m pip install numpy -Csetup-args="-Dallow-noblas=true"
-          python -m pip install --no-cache-dir versioneer[toml] cython python-dateutil pytest>=8.3.4 pytest-xdist>=3.6.1 hypothesis>=6.116.0
+          python -m pip install --no-cache-dir versioneer[toml] cython python-dateutil pytest>=8.3.4 pytest-xdist>=3.6.1 hypothesis>=6.116.0 pytest-cov
           python -m pip install --no-cache-dir --no-build-isolation -e . -Csetup-args="--werror"
           python -m pip list --no-cache-dir
-          PANDAS_CI=1 python -m pytest -m 'not slow and not network and not clipboard and not single_cpu' pandas --junitxml=test-data.xml
+          python -m pytest -m 'not slow and not network and not clipboard and not single_cpu' pandas
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
       group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-32bit
@@ -259,6 +296,8 @@ jobs:
 
   Linux-Musl:
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
     container:
       image: quay.io/pypa/musllinux_1_2_x86_64
     steps:
@@ -285,14 +324,14 @@ jobs:
           /opt/python/cp313-cp313/bin/python -m venv ~/virtualenvs/pandas-dev
           . ~/virtualenvs/pandas-dev/bin/activate
           python -m pip install --no-cache-dir -U pip wheel meson-python==0.13.1 meson[ninja]==1.2.1
-          python -m pip install --no-cache-dir versioneer[toml] cython numpy python-dateutil pytest>=8.3.4 pytest-xdist>=3.6.1 hypothesis>=6.116.0
+          python -m pip install --no-cache-dir versioneer[toml] cython numpy python-dateutil pytest>=8.3.4 pytest-xdist>=3.6.1 hypothesis>=6.116.0 pytest-cov
           python -m pip install --no-cache-dir --no-build-isolation -e . -Csetup-args="--werror"
           python -m pip list --no-cache-dir
 
       - name: Run Tests
         run: |
           . ~/virtualenvs/pandas-dev/bin/activate
-          PANDAS_CI=1 python -m pytest -m 'not slow and not network and not clipboard and not single_cpu' pandas --junitxml=test-data.xml
+          python -m pytest -m 'not slow and not network and not clipboard and not single_cpu' pandas
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
       group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-musl
@@ -319,6 +358,8 @@ jobs:
     #    to the corresponding posix/windows-macos/sdist etc. workflows.
     # Feel free to modify this comment as necessary.
     if: false
+    permissions:
+      contents: read
     defaults:
       run:
         shell: bash -eou pipefail {0}
@@ -337,17 +378,16 @@ jobs:
 
     env:
       PYTEST_WORKERS: "auto"
-      PANDAS_CI: 1
       PATTERN: "not slow and not network and not clipboard and not single_cpu"
       PYTEST_TARGET: pandas
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           fetch-depth: 0
 
       - name: Set up Python Dev Version
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
           python-version: '3.15-dev'
 
@@ -361,7 +401,7 @@ jobs:
           python -m pip list
 
       - name: Run Tests
-        uses: ./.github/actions/run-tests
+        run: ci/run_tests.sh
 
   # NOTE: this job must be kept in sync with the Pyodide build job in wheels.yml
   emscripten:
@@ -373,24 +413,26 @@ jobs:
     # https://pyodide.org/en/stable/usage/index.html#node-js
     name: Pyodide build
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
       group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-wasm
       cancel-in-progress: true
     steps:
       - name: Checkout pandas Repo
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           fetch-depth: 0
 
       - name: Set up Python for pyodide-build
         id: setup-python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
           python-version: '3.12'
 
       - name: Set up Emscripten toolchain
-        uses: mymindstorm/setup-emsdk@v14
+        uses: mymindstorm/setup-emsdk@6ab9eb1bda2574c4ddb79809fc9247783eaf9021 # v14
         with:
           version: '3.1.58'
           actions-cache-folder: emsdk-cache
@@ -403,7 +445,7 @@ jobs:
           pyodide build
 
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
         with:
           node-version: '20'
 
@@ -417,11 +459,9 @@ jobs:
           pip install dist/*.whl
 
       - name: Test pandas for Pyodide
-        env:
-          PANDAS_CI: 1
         run: |
           source .venv-pyodide/bin/activate
-          pip install pytest hypothesis
+          pip install pytest hypothesis pytest-cov
           # do not import pandas from the checked out repo
           cd ..
           python -c 'import pandas as pd; pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db"])'

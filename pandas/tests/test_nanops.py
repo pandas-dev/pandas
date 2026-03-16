@@ -557,12 +557,6 @@ class TestnanopsDataFrame:
         if not isinstance(values.dtype.type, np.floating):
             values = values.astype("f8")
         result = func(values, axis=axis, bias=False)
-        # fix for handling cases where all elements in an axis are the same
-        if isinstance(result, np.ndarray):
-            result[np.max(values, axis=axis) == np.min(values, axis=axis)] = 0
-            return result
-        elif np.max(values) == np.min(values):
-            return 0.0
         return result
 
     def test_nanskew(self, skipna):
@@ -1018,10 +1012,10 @@ class TestNanskewFixedValues:
 
     @pytest.mark.parametrize("val", [3075.2, 3075.3, 3075.5])
     def test_constant_series(self, val):
-        # xref GH 11974
+        # xref GH 11974, 62864
         data = val * np.ones(300)
         skew = nanops.nanskew(data)
-        assert skew == 0.0
+        assert np.isnan(skew)
 
     def test_all_finite(self):
         alpha, beta = 0.3, 0.1
@@ -1086,10 +1080,10 @@ class TestNankurtFixedValues:
 
     @pytest.mark.parametrize("val", [3075.2, 3075.3, 3075.5])
     def test_constant_series(self, val):
-        # xref GH 11974
+        # xref GH 11974, 62864
         data = val * np.ones(300)
         kurt = nanops.nankurt(data)
-        tm.assert_equal(kurt, 0.0)
+        tm.assert_equal(kurt, np.nan)
 
     def test_all_finite(self):
         alpha, beta = 0.3, 0.1
@@ -1234,7 +1228,7 @@ def test_nanops_independent_of_mask_param(operation):
     ser = Series([1, 2, np.nan, 3, np.nan, 4])
     mask = ser.isna()
     median_expected = operation(ser._values)
-    median_result = operation(ser._values, mask=mask)
+    median_result = operation(ser._values, mask=mask._values)
     assert median_expected == median_result
 
 

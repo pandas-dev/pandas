@@ -11,7 +11,7 @@ import dateutil
 import numpy as np
 import pytest
 
-import pandas._libs.json as ujson
+import pandas._libs._ujson as ujson
 from pandas.compat import IS64
 
 from pandas import (
@@ -660,7 +660,7 @@ class TestUltraJSONTests:
 
     def test_ujson__name__(self):
         # GH 52898
-        assert ujson.__name__ == "pandas._libs.json"
+        assert ujson.__name__ == "pandas._libs._ujson"
 
 
 class TestNumpyJSONTests:

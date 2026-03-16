@@ -121,20 +121,26 @@ cdef class NDArrayBacked:
             raise NotImplementedError(state)  # pragma: no cover
 
     def __len__(self) -> int:
-        return len(self._ndarray)
+        return cnp.PyArray_DIMS(self._ndarray)[0]
 
     @property
     def shape(self):
-        # object cast bc _ndarray.shape is npy_intp*
-        return (<object>(self._ndarray)).shape
+        cdef:
+            int ndim = cnp.PyArray_NDIM(self._ndarray)
+            cnp.npy_intp *dims = cnp.PyArray_DIMS(self._ndarray)
+        if ndim == 1:
+            return (dims[0],)
+        elif ndim == 2:
+            return (dims[0], dims[1])
+        return tuple(dims[idx] for idx in range(ndim))
 
     @property
     def ndim(self) -> int:
-        return self._ndarray.ndim
+        return cnp.PyArray_NDIM(self._ndarray)
 
     @property
     def size(self) -> int:
-        return self._ndarray.size
+        return cnp.PyArray_SIZE(self._ndarray)
 
     @property
     def nbytes(self) -> int:
@@ -176,14 +182,22 @@ cdef class NDArrayBacked:
         return self._from_backing_data(res_values)
 
     def ravel(self, order="C"):
-        # cnp.PyArray_OrderConverter(PyObject* obj, NPY_ORDER* order)
-        # res_values = cnp.PyArray_Ravel(self._ndarray, order)
-        res_values = self._ndarray.ravel(order)
+        cdef:
+            cnp.NPY_ORDER order_code
+            int success
+
+        success = cnp.PyArray_OrderConverter(order, &order_code)
+        if not success:
+            PyErr_Clear()
+            msg = f"order must be one of 'C', 'F', 'A', or 'K' (got '{order}')"
+            raise ValueError(msg)
+
+        res_values = cnp.PyArray_Ravel(self._ndarray, order_code)
         return self._from_backing_data(res_values)
 
     @property
     def T(self):
-        res_values = self._ndarray.T
+        res_values = cnp.PyArray_Transpose(self._ndarray, NULL)
         return self._from_backing_data(res_values)
 
     def transpose(self, *axes):

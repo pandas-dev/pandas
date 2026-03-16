@@ -12,6 +12,7 @@ from typing import (
     TypeAlias,
     overload,
 )
+import warnings
 
 import numpy as np
 
@@ -37,8 +38,12 @@ from pandas._typing import (
     npt,
 )
 from pandas.compat.numpy import function as nv
-from pandas.errors import IntCastingNaNError
+from pandas.errors import (
+    IntCastingNaNError,
+    Pandas4Warning,
+)
 from pandas.util._decorators import set_module
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
     LossySetitemError,
@@ -70,6 +75,7 @@ from pandas.core.dtypes.missing import (
     notna,
 )
 
+from pandas.core import ops
 from pandas.core.algorithms import (
     isin,
     take,
@@ -695,6 +701,17 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def _cmp_method(self, other, op):
         # ensure pandas array for list-like and eliminate non-interval scalars
         if is_list_like(other):
+            if not isinstance(
+                other, (list, np.ndarray, ExtensionArray)
+            ) and not ops.has_castable_attr(other):
+                warnings.warn(
+                    f"Operation with {type(other).__name__} is deprecated. "
+                    "In a future version these will be treated as scalar-like. "
+                    "To retain the old behavior, explicitly wrap in a Series "
+                    "instead.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
             if len(self) != len(other):
                 raise ValueError("Lengths must match to compare")
             other = pd_array(other)
@@ -992,6 +1009,32 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         right = self._right.copy()
         dtype = self.dtype
         return self._simple_new(left, right, dtype=dtype)
+
+    def _hash_pandas_object(
+        self, *, encoding: str, hash_key: str, categorize: bool
+    ) -> npt.NDArray[np.uint64]:
+        from pandas.core.util.hashing import (
+            combine_hash_arrays,
+            hash_array,
+        )
+
+        left_hash = hash_array(
+            self._left, encoding=encoding, hash_key=hash_key, categorize=categorize
+        )
+        right_hash = hash_array(
+            self._right, encoding=encoding, hash_key=hash_key, categorize=categorize
+        )
+        # Include closed in the hash
+        closed_val = np.uint64(hash(self.closed) % (2**63))
+        closed_hash = hash_array(
+            np.full(len(self), closed_val, dtype=np.uint64),
+            encoding=encoding,
+            hash_key=hash_key,
+            categorize=False,
+        )
+        return combine_hash_arrays(
+            iter([left_hash, right_hash, closed_hash]), num_items=3
+        )
 
     def isna(self) -> np.ndarray:
         return isna(self._left)

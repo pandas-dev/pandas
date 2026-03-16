@@ -68,6 +68,7 @@ cdef class Localizer:
     #    int64_t* tdata
 
     @cython.initializedcheck(False)
+    @cython.wraparound(False)
     @cython.boundscheck(False)
     def __cinit__(self, tzinfo tz, NPY_DATETIMEUNIT creso):
         self.tz = tz
@@ -118,6 +119,7 @@ cdef class Localizer:
                     self.use_pytz = True
                 self.tdata = <int64_t*>cnp.PyArray_DATA(trans)
 
+    @cython.wraparound(False)
     @cython.boundscheck(False)
     cdef int64_t utc_val_to_local_val(
         self, int64_t utc_val, Py_ssize_t* pos, bint* fold=NULL
@@ -475,6 +477,8 @@ cdef str _render_tstamp(int64_t val, NPY_DATETIMEUNIT creso):
     return str(ts)
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 cdef _get_utc_bounds(
     ndarray[int64_t] vals,
     const int64_t* tdata,
@@ -530,6 +534,8 @@ cdef _get_utc_bounds(
     return result_a, result_b
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 cdef _get_utc_bounds_zoneinfo(ndarray vals, tz, NPY_DATETIMEUNIT creso):
     """
     For each point in 'vals', find the UTC time that it corresponds to if
@@ -596,6 +602,7 @@ cdef _get_utc_bounds_zoneinfo(ndarray vals, tz, NPY_DATETIMEUNIT creso):
     return result_a, result_b
 
 
+@cython.wraparound(False)
 @cython.boundscheck(False)
 cdef ndarray[int64_t] _get_dst_hours(
     # vals, creso only needed here to potential render an exception message

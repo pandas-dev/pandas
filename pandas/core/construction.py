@@ -191,6 +191,14 @@ def array(
     ['a', 'b']
     Length: 2, dtype: str32
 
+    pandas converts entries of a multidimensional sequence (excluding NumPy arrays)
+    to its string representation if the ``dtype`` is a string data type.
+
+    >>> pd.array([[1], [2], [3]], dtype="str")
+    <ArrowStringArray>
+    ['[1]', '[2]', '[3]']
+    Length: 3, dtype: str
+
     Finally, Pandas has arrays that mostly overlap with NumPy
 
       * :class:`arrays.DatetimeArray`
@@ -537,7 +545,6 @@ def sanitize_masked_array(data: ma.MaskedArray) -> np.ndarray:
     mask = ma.getmaskarray(data)
     if mask.any():
         dtype, fill_value = maybe_promote(data.dtype, np.nan)
-        dtype = cast("np.dtype", dtype)
         data = ma.asarray(data.astype(dtype, copy=True))
         data.soften_mask()  # set hardmask False if it was True
         data[mask] = fill_value

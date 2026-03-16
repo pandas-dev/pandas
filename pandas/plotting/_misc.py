@@ -514,6 +514,11 @@ def parallel_coordinates(
     """
     Parallel coordinates plotting.
 
+    This visualization technique represents each observation as a polyline
+    connecting values across vertical axes, one for each feature. Lines are
+    colored by class membership, making it useful for identifying clusters
+    and separability in multivariate data.
+
     Parameters
     ----------
     frame : DataFrame

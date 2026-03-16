@@ -32,7 +32,6 @@ class TestCopy:
         assert np.isnan(ser2[0])
         assert not np.isnan(ser[0])
 
-    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
     @pytest.mark.parametrize("deep", ["default", None, False, True])
     def test_copy_tzaware(self, deep):
         # GH#11794

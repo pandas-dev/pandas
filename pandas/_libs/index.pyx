@@ -56,6 +56,8 @@ cdef bint is_definitely_invalid_key(object val):
     return False
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 cdef ndarray _get_bool_indexer(ndarray values, object val, ndarray mask = None):
     """
     Return an ndarray[bool] of locations where val matches self.values.
@@ -115,6 +117,8 @@ cdef _maybe_resize_array(ndarray values, Py_ssize_t loc, Py_ssize_t max_length):
 _SIZE_CUTOFF = 1_000_000
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 cdef _unpack_bool_indexer(ndarray[uint8_t, ndim=1, cast=True] indexer, object val):
     """
     Possibly unpack a boolean mask to a single indexer.
@@ -373,6 +377,8 @@ cdef class IndexEngine:
         self._ensure_mapping_populated()
         return self.mapping.lookup(values)
 
+    @cython.wraparound(False)
+    @cython.boundscheck(False)
     def get_indexer_non_unique(self, ndarray targets):
         """
         Return an indexer suitable for taking from a non unique index
@@ -1210,6 +1216,8 @@ cdef class MaskedIndexEngine(IndexEngine):
         self._ensure_mapping_populated()
         return self.mapping.lookup(self._get_data(values), self._get_mask(values))
 
+    @cython.wraparound(False)
+    @cython.boundscheck(False)
     def get_indexer_non_unique(self, object targets):
         """
         Return an indexer suitable for taking from a non unique index

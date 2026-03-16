@@ -314,7 +314,7 @@ def combine_kwargs(engine_kwargs: dict[str, Any] | None, kwargs: dict) -> dict:
     engine_kwargs: dict
         kwargs to be passed through to the engine.
     kwargs: dict
-        kwargs to be psased through to the engine (deprecated)
+        kwargs to be passed through to the engine (deprecated)
 
     Returns
     -------

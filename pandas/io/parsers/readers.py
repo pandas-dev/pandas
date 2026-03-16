@@ -454,9 +454,9 @@ def read_csv(
 
         When inferred from the file contents, headers are kept distinct from
         each other by renaming duplicate names with a numeric suffix of the form
-        ``".{{count}}"`` starting from 1, e.g. ``"foo"`` and ``"foo.1"``.
-        Empty headers are named ``"Unnamed: {{i}}"`` or ``
-        "Unnamed: {{i}}_level_{{level}}"``
+        ``".{count}"`` starting from 1, e.g. ``"foo"`` and ``"foo.1"``.
+        Empty headers are named ``"Unnamed: {i}"`` or ``
+        "Unnamed: {i}_level_{level}"``
         in the case of MultiIndex columns.
     names : Sequence of Hashable, optional
         Sequence of column labels to apply. If the file contains a header row,
@@ -493,9 +493,9 @@ def read_csv(
         example of a valid callable argument would be ``lambda x: x.upper() in
         ['AAA', 'BBB', 'DDD']``. Using this parameter results in much faster
         parsing time and lower memory usage.
-    dtype : dtype or dict of {{Hashable : dtype}}, optional
+    dtype : dtype or dict of {Hashable : dtype}, optional
         Data type(s) to apply to either the whole dataset or individual columns.
-        E.g., ``{{'a': np.float64, 'b': np.int32, 'c': 'Int64'}}``
+        E.g., ``{'a': np.float64, 'b': np.int32, 'c': 'Int64'}``
         Use ``str`` or ``object`` together with suitable ``na_values`` settings
         to preserve and not interpret ``dtype``.
         If ``converters`` are specified, they will be applied INSTEAD
@@ -503,14 +503,14 @@ def read_csv(
         the default determines the ``dtype``
         of the columns which are not explicitly
         listed.
-    engine : {{'c', 'python', 'pyarrow'}}, optional
+    engine : {'c', 'python', 'pyarrow'}, optional
         Parser engine to use. The C and pyarrow engines are faster,
         while the python engine
         is currently more feature-complete. Multithreading
         is currently only supported by
         the pyarrow engine. Some features of the "pyarrow" engine
         are unsupported or may not work correctly.
-    converters : dict of {{Hashable : Callable}}, optional
+    converters : dict of {Hashable : Callable}, optional
         Functions for converting values in specified columns. Keys can either
         be column labels or column indices.
     true_values : list, optional
@@ -546,7 +546,7 @@ def read_csv(
         * To read rows 1,000,000 through 1,999,999:
           ``read_csv(..., skiprows=1000000, nrows=999999)``
 
-    na_values : Hashable, Iterable of Hashable or dict of {{Hashable : Iterable}},
+    na_values : Hashable, Iterable of Hashable or dict of {Hashable : Iterable},
         optional
         Additional strings to recognize as ``NA``/``NaN``. If ``dict``
         passed, specific
@@ -656,8 +656,8 @@ def read_csv(
     quotechar : str (length 1), optional
         Character used to denote the start and end of a quoted item. Quoted
         items can include the ``delimiter`` and it will be ignored.
-    quoting : {{0 or csv.QUOTE_MINIMAL, 1 or csv.QUOTE_ALL,
-        2 or csv.QUOTE_NONNUMERIC, 3 or csv.QUOTE_NONE}}, default csv.QUOTE_MINIMAL
+    quoting : {0 or csv.QUOTE_MINIMAL, 1 or csv.QUOTE_ALL,
+        2 or csv.QUOTE_NONNUMERIC, 3 or csv.QUOTE_NONE}, default csv.QUOTE_MINIMAL
         Control field quoting behavior per ``csv.QUOTE_*`` constants. Default is
         ``csv.QUOTE_MINIMAL`` (i.e., 0) which implies that
         only fields containing special
@@ -694,7 +694,7 @@ def read_csv(
         ``skipinitialspace``, ``quotechar``, and ``quoting``. If it is necessary to
         override values, a ``ParserWarning`` will be issued. See ``csv.Dialect``
         documentation for more details.
-    on_bad_lines : {{'error', 'warn', 'skip'}} or Callable, default 'error'
+    on_bad_lines : {'error', 'warn', 'skip'} or Callable, default 'error'
         Specifies what to do upon encountering a bad line (a line with too many fields).
         Allowed values are:
 
@@ -734,7 +734,7 @@ def read_csv(
         If a filepath is provided for ``filepath_or_buffer``, map the file object
         directly onto memory and access the data directly from there. Using this
         option can improve performance because there is no longer any I/O overhead.
-    float_precision : {{'high', 'legacy', 'round_trip'}}, optional
+    float_precision : {'high', 'legacy', 'round_trip'}, optional
         Specifies which converter the C engine should use for floating-point
         values. The options are ``None`` or ``'high'`` for the ordinary converter,
         ``'legacy'`` for the original lower precision pandas converter, and
@@ -750,7 +750,7 @@ def read_csv(
         <https://pandas.pydata.org/docs/user_guide/io.html?
         highlight=storage_options#reading-writing-remote-files>`_.
 
-    dtype_backend : {{'numpy_nullable', 'pyarrow'}}
+    dtype_backend : {'numpy_nullable', 'pyarrow'}
         Back-end data type applied to the resultant :class:`DataFrame`
         (still experimental). If not specified, the default behavior
         is to not use nullable data types. If specified, the behavior
@@ -800,7 +800,7 @@ def read_csv(
 
     Column types are inferred but can be explicitly specified using the dtype argument.
 
-    >>> pd.read_csv("data.csv", dtype={{"Value": float}})  # doctest: +SKIP
+    >>> pd.read_csv("data.csv", dtype={"Value": float})  # doctest: +SKIP
        Name  Value
     0   foo    1.0
     1   bar    2.0
@@ -844,7 +844,7 @@ def read_csv(
     >>> df = pd.read_csv(
     ...     "tmp.csv",
     ...     parse_dates=[1, 2],
-    ...     date_format={{"col 2": "%d/%m/%Y", "col 3": "%a %d %b %Y"}},
+    ...     date_format={"col 2": "%d/%m/%Y", "col 3": "%a %d %b %Y"},
     ... )  # doctest: +SKIP
 
     >>> df.dtypes  # doctest: +SKIP
@@ -1021,9 +1021,9 @@ def read_table(
 
         When inferred from the file contents, headers are kept distinct from
         each other by renaming duplicate names with a numeric suffix of the form
-        ``".{{count}}"`` starting from 1, e.g. ``"foo"`` and ``"foo.1"``.
+        ``".{count}"`` starting from 1, e.g. ``"foo"`` and ``"foo.1"``.
         Empty headers are named
-        ``"Unnamed: {{i}}"`` or ``"Unnamed: {{i}}_level_{{level}}"``
+        ``"Unnamed: {i}"`` or ``"Unnamed: {i}_level_{level}"``
         in the case of MultiIndex columns.
     names : Sequence of Hashable, optional
         Sequence of column labels to apply. If the file contains a header row,
@@ -1058,23 +1058,23 @@ def read_table(
         example of a valid callable argument would be ``lambda x: x.upper() in
         ['AAA', 'BBB', 'DDD']``. Using this parameter results in much faster
         parsing time and lower memory usage.
-    dtype : dtype or dict of {{Hashable : dtype}}, optional
+    dtype : dtype or dict of {Hashable : dtype}, optional
         Data type(s) to apply to either the whole dataset or individual columns.
-        E.g., ``{{'a': np.float64, 'b': np.int32, 'c': 'Int64'}}``
+        E.g., ``{'a': np.float64, 'b': np.int32, 'c': 'Int64'}``
         Use ``str`` or ``object`` together with suitable ``na_values`` settings
         to preserve and not interpret ``dtype``.
         If ``converters`` are specified, they will be applied INSTEAD
         of ``dtype`` conversion. Specify a ``defaultdict`` as input where
         the default determines the ``dtype`` of the columns which
         are not explicitly listed.
-    engine : {{'c', 'python', 'pyarrow'}}, optional
+    engine : {'c', 'python', 'pyarrow'}, optional
         Parser engine to use. The C and pyarrow engines are faster,
         while the python engine
         is currently more feature-complete. Multithreading is
         currently only supported by
         the pyarrow engine. The 'pyarrow' engine is an *experimental* engine,
         and some features are unsupported, or may not work correctly, with this engine.
-    converters : dict of {{Hashable : Callable}}, optional
+    converters : dict of {Hashable : Callable}, optional
         Functions for converting values in specified columns. Keys can either
         be column labels or column indices.
     true_values : list, optional
@@ -1110,7 +1110,7 @@ def read_table(
         * To read rows 1,000,000 through 1,999,999:
           ``read_csv(..., skiprows=1000000, nrows=999999)``
 
-    na_values : Hashable, Iterable of Hashable or dict of {{Hashable : Iterable}},
+    na_values : Hashable, Iterable of Hashable or dict of {Hashable : Iterable},
         optional
         Additional strings to recognize as ``NA``/``NaN``.
         If ``dict`` passed, specific
@@ -1219,8 +1219,8 @@ def read_table(
     quotechar : str (length 1), optional
         Character used to denote the start and end of a quoted item. Quoted
         items can include the ``delimiter`` and it will be ignored.
-    quoting : {{0 or csv.QUOTE_MINIMAL, 1 or csv.QUOTE_ALL, 2 or
-        csv.QUOTE_NONNUMERIC, 3 or csv.QUOTE_NONE}}, default csv.QUOTE_MINIMAL
+    quoting : {0 or csv.QUOTE_MINIMAL, 1 or csv.QUOTE_ALL, 2 or
+        csv.QUOTE_NONNUMERIC, 3 or csv.QUOTE_NONE}, default csv.QUOTE_MINIMAL
         Control field quoting behavior per ``csv.QUOTE_*`` constants. Default is
         ``csv.QUOTE_MINIMAL`` (i.e., 0) which
         implies that only fields containing special
@@ -1257,7 +1257,7 @@ def read_table(
         ``skipinitialspace``, ``quotechar``, and ``quoting``. If it is necessary to
         override values, a ``ParserWarning`` will be issued. See ``csv.Dialect``
         documentation for more details.
-    on_bad_lines : {{'error', 'warn', 'skip'}} or Callable, default 'error'
+    on_bad_lines : {'error', 'warn', 'skip'} or Callable, default 'error'
         Specifies what to do upon encountering a bad
         line (a line with too many fields).
         Allowed values are:
@@ -1297,7 +1297,7 @@ def read_table(
         If a filepath is provided for ``filepath_or_buffer``, map the file object
         directly onto memory and access the data directly from there. Using this
         option can improve performance because there is no longer any I/O overhead.
-    float_precision : {{'high', 'legacy', 'round_trip'}}, optional
+    float_precision : {'high', 'legacy', 'round_trip'}, optional
         Specifies which converter the C engine should use for floating-point
         values. The options are ``None`` or ``'high'`` for the ordinary converter,
         ``'legacy'`` for the original lower precision pandas converter, and
@@ -1313,7 +1313,7 @@ def read_table(
         <https://pandas.pydata.org/docs/user_guide/io.html?
         highlight=storage_options#reading-writing-remote-files>`_.
 
-    dtype_backend : {{'numpy_nullable', 'pyarrow'}}
+    dtype_backend : {'numpy_nullable', 'pyarrow'}
         Back-end data type applied to the resultant :class:`DataFrame`
         (still experimental). If not specified, the default behavior
         is to not use nullable data types. If specified, the behavior
@@ -1363,7 +1363,7 @@ def read_table(
 
     Column types are inferred but can be explicitly specified using the dtype argument.
 
-    >>> pd.read_table("data.csv", dtype={{"Value": float}})  # doctest: +SKIP
+    >>> pd.read_table("data.csv", dtype={"Value": float})  # doctest: +SKIP
        Name  Value
     0   foo    1.0
     1   bar    2.0
@@ -1407,7 +1407,7 @@ def read_table(
     >>> df = pd.read_table(
     ...     "tmp.csv",
     ...     parse_dates=[1, 2],
-    ...     date_format={{"col 2": "%d/%m/%Y", "col 3": "%a %d %b %Y"}},
+    ...     date_format={"col 2": "%d/%m/%Y", "col 3": "%a %d %b %Y"},
     ... )  # doctest: +SKIP
 
     >>> df.dtypes  # doctest: +SKIP
@@ -2175,7 +2175,7 @@ def _refine_defaults_read(
         documentation for more details.
     delimiter : str or object
         Alias for sep.
-    engine : {{'c', 'python'}}
+    engine : {'c', 'python'}
         Parser engine to use. The C engine is faster while the python engine is
         currently more feature-complete.
     sep : str or object

@@ -288,6 +288,12 @@ class TestJSONArray(base.ExtensionTests):
             request.applymarker(mark)
         super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
 
+    def test_compare_scalar(self, data, comparison_op, request):
+        if comparison_op.__name__ in ["eq", "ne"]:
+            mark = pytest.mark.xfail(reason="Comparison methods not implemented")
+            request.applymarker(mark)
+        super().test_compare_scalar(data, comparison_op)
+
     def test_compare_array(self, data, comparison_op, request):
         if comparison_op.__name__ in ["eq", "ne"]:
             mark = pytest.mark.xfail(reason="Comparison methods not implemented")

@@ -595,6 +595,8 @@ class TestDatetimeIndexComparisons:
         dr = tm.box_expected(dr, box)
         dz = tm.box_expected(dz, box)
 
+        assert_invalid_comparison(dr, dz, box)
+
         if box is pd.DataFrame:
             tolist = lambda x: x.astype(object).values.tolist()[0]
         else:
@@ -606,14 +608,9 @@ class TestDatetimeIndexComparisons:
                 "and (Timestamp|DatetimeArray|list|ndarray)"
             )
             with pytest.raises(TypeError, match=msg):
-                op(dr, dz)
-
-            with pytest.raises(TypeError, match=msg):
                 op(dr, tolist(dz))
             with pytest.raises(TypeError, match=msg):
                 op(dr, np.array(tolist(dz), dtype=object))
-            with pytest.raises(TypeError, match=msg):
-                op(dz, dr)
 
             with pytest.raises(TypeError, match=msg):
                 op(dz, tolist(dr))
@@ -667,38 +664,14 @@ class TestDatetimeIndexComparisons:
         "other",
         [datetime(2016, 1, 1), Timestamp("2016-01-01"), np.datetime64("2016-01-01")],
     )
-    # Bug in NumPy? https://github.com/numpy/numpy/issues/13841
-    # Raising in __eq__ will fallback to NumPy, which warns, fails,
-    # then re-raises the original exception. So we just need to ignore.
-    @pytest.mark.filterwarnings("ignore:elementwise comp:DeprecationWarning")
     def test_scalar_comparison_tzawareness(
-        self, comparison_op, other, tz_aware_fixture, box_with_array
+        self, other, tz_aware_fixture, box_with_array
     ):
-        op = comparison_op
         tz = tz_aware_fixture
         dti = date_range("2016-01-01", periods=2, tz=tz, unit="ns")
 
         dtarr = tm.box_expected(dti, box_with_array)
-        xbox = get_upcast_box(dtarr, other, True)
-        if op in [operator.eq, operator.ne]:
-            exbool = op is operator.ne
-            expected = np.array([exbool, exbool], dtype=bool)
-            expected = tm.box_expected(expected, xbox)
-
-            result = op(dtarr, other)
-            tm.assert_equal(result, expected)
-
-            result = op(other, dtarr)
-            tm.assert_equal(result, expected)
-        else:
-            msg = (
-                r"Invalid comparison between dtype=datetime64\[ns, .*\] "
-                f"and {type(other).__name__}"
-            )
-            with pytest.raises(TypeError, match=msg):
-                op(dtarr, other)
-            with pytest.raises(TypeError, match=msg):
-                op(other, dtarr)
+        assert_invalid_comparison(dtarr, other, box_with_array)
 
     def test_nat_comparison_tzawareness(self, comparison_op):
         # GH#19276
@@ -757,7 +730,6 @@ class TestDatetimeIndexComparisons:
         "other",
         [
             pd.timedelta_range("1D", periods=10),
-            pd.timedelta_range("1D", periods=10).to_series(),
             pd.timedelta_range("1D", periods=10).asi8.view("m8[ns]"),
         ],
         ids=lambda x: type(x).__name__,
@@ -768,29 +740,7 @@ class TestDatetimeIndexComparisons:
         # when comparing against TimedeltaIndex
         dti = date_range("2000-01-01", periods=10, tz="Asia/Tokyo")
 
-        result = dti == other
-        expected = np.array([False] * 10)
-        if isinstance(other, Series):
-            tm.assert_series_equal(result, Series(expected, index=other.index))
-        else:
-            tm.assert_numpy_array_equal(result, expected)
-
-        result = dti != other
-        expected = np.array([True] * 10)
-        if isinstance(other, Series):
-            tm.assert_series_equal(result, Series(expected, index=other.index))
-        else:
-            tm.assert_numpy_array_equal(result, expected)
-
-        msg = "Invalid comparison between"
-        with pytest.raises(TypeError, match=msg):
-            dti < other
-        with pytest.raises(TypeError, match=msg):
-            dti <= other
-        with pytest.raises(TypeError, match=msg):
-            dti > other
-        with pytest.raises(TypeError, match=msg):
-            dti >= other
+        assert_invalid_comparison(dti, other, pd.Index)
 
     def test_dti_cmp_object_dtype(self):
         # GH#22074

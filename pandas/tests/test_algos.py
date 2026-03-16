@@ -1846,7 +1846,7 @@ class TestRank:
 
     def test_too_many_ndims(self):
         arr = np.array([[[1, 2, 3], [4, 5, 6], [7, 8, 9]]])
-        msg = "Array with ndim > 2 are not supported"
+        msg = "Array with ndim > 2 is not supported"
 
         with pytest.raises(TypeError, match=msg):
             algos.rank(arr)

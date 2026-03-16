@@ -410,7 +410,7 @@ class Holiday:
             return dates.copy()
 
         if self.observance is not None:
-            return dates.map(lambda d: self.observance(d))
+            return dates.map(lambda d: self.observance(d))  # type: ignore[return-value, misc]  # pyright: ignore[reportOptionalCall]
 
         if self.offset is not None:
             if not isinstance(self.offset, list):

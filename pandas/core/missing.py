@@ -104,7 +104,7 @@ def mask_missing(arr: ArrayLike, value) -> npt.NDArray[np.bool_]:
             # GH#55127
             if isinstance(arr.dtype, BaseMaskedDtype):
                 # error: "ExtensionArray" has no attribute "_data"  [attr-defined]
-                mask = np.isnan(arr._data) & ~arr.isna()  # type: ignore[attr-defined,operator]
+                mask = np.isnan(arr._data) & ~arr.isna()  # type: ignore[attr-defined]
                 return mask
             else:
                 # error: "ExtensionArray" has no attribute "_pa_array"  [attr-defined]
@@ -608,15 +608,15 @@ def _interpolate_scipy_wrapper(
         terp = interpolate.interp1d(
             x, y, kind=kind, fill_value=fill_value, bounds_error=bounds_error
         )
-        new_y = terp(new_x)
+        new_y = terp(new_x)  # pyright: ignore[reportOptionalCall]
     elif method == "spline":
         # GH #10633, #24014
-        if isna(order) or (order <= 0):
+        if isna(order) or (order <= 0):  # pyright: ignore[reportOptionalOperand]
             raise ValueError(
                 f"order needs to be specified and greater than 0; got order: {order}"
             )
         terp = interpolate.UnivariateSpline(x, y, k=order, **kwargs)
-        new_y = terp(new_x)
+        new_y = terp(new_x)  # pyright: ignore[reportOptionalCall]
     else:
         # GH 7295: need to be able to write for some reason
         # in some circumstances: check all three
@@ -1076,7 +1076,7 @@ def _interp_limit(
     assume_unique = True
 
     def inner(invalid, limit: int):
-        limit = min(limit, N)
+        limit = min(limit, N - 1)
         windowed = np.lib.stride_tricks.sliding_window_view(invalid, limit + 1).all(1)
         idx = np.union1d(
             np.where(windowed)[0] + limit,
