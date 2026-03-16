@@ -94,9 +94,7 @@ Some other important things to know about the docs:
   will emit a warning.
 
 Docstring validation — both standard numpydoc checks and pandas-specific conventions
-(e.g. not mentioning private classes, using ``array-like`` instead of ``array_like``,
-avoiding unnecessary ``pandas.`` prefixes in See Also sections, and not importing
-numpy/pandas in docstring examples) — is enforced automatically during the Sphinx
+— is enforced automatically during the Sphinx
 documentation build via ``numpydoc_validation_checks`` in ``doc/source/conf.py``.
 
 
