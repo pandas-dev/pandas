@@ -10019,6 +10019,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         # align the cond to same shape as myself
         cond = common.apply_if_callable(cond, self)
+        fill_value = bool(inplace)
         if isinstance(cond, NDFrame):
             # CoW: Make sure reference is not kept alive
             if cond.ndim == 1 and self.ndim == 2:
@@ -10027,7 +10028,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     copy=False,
                 )
                 cond.columns = self.columns
-            cond = cond.align(self, join="right")[0]
+            # GH#51547 pass fill_value to avoid extra fillna work later
+            cond = cond.align(self, join="right", fill_value=fill_value)[0]
         else:
             if not hasattr(cond, "shape"):
                 cond = np.asanyarray(cond)
@@ -10036,7 +10038,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             cond = self._constructor(cond, **self._construct_axes_dict(), copy=False)
 
         # make sure we are boolean
-        fill_value = bool(inplace)
         cond = cond.fillna(fill_value)
         cond = cond.infer_objects()
 
