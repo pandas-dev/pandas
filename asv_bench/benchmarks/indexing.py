@@ -550,6 +550,27 @@ class SetitemObjectDtype:
         self.df.loc[0, 1] = 1.0
 
 
+class SetitemObjectDtypeDatetimelike:
+    params = [["bool", "ndarray"]]
+    param_names = ["indexer_kind"]
+
+    def setup(self, indexer_kind):
+        nrows = 1_000_000
+        self.ser = Series(np.empty(nrows, dtype=object))
+
+        if indexer_kind == "bool":
+            indexer = np.zeros(nrows, dtype=bool)
+            indexer[::2] = True
+            self.indexer = indexer
+        else:
+            self.indexer = np.arange(0, nrows, 2, dtype=np.intp)
+
+        self.value = np.datetime64("2020-01-01", "ns")
+
+    def time_iloc_setitem(self, indexer_kind):
+        self.ser.iloc[self.indexer] = self.value
+
+
 class ChainIndexing:
     params = [None, "warn"]
     param_names = ["mode"]

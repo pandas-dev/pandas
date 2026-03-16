@@ -104,7 +104,11 @@ from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
 )
-from pandas.core.indexers import check_setitem_lengths
+from pandas.core.indexers import (
+    check_setitem_lengths,
+    is_scalar_indexer,
+    length_of_indexer,
+)
 from pandas.core.indexes.base import get_values_for_csv
 
 if TYPE_CHECKING:
@@ -1104,13 +1108,14 @@ class Block(PandasObject, libinternals.Block):
             nb = self.coerce_to_target_dtype(value, raise_on_upcast=True)
             return nb.setitem(indexer, value)
         else:
-            if self.dtype == _dtype_obj:
-                # TODO: avoid having to construct values[indexer]
-                vi = values[indexer]
-                if lib.is_list_like(vi):
-                    # checking lib.is_scalar here fails on
-                    #  test_iloc_setitem_custom_object
-                    casted = setitem_datetimelike_compat(values, len(vi), casted)
+            if self.dtype == _dtype_obj and not is_scalar_indexer(indexer, values.ndim):
+                if isinstance(
+                    indexer, (ABCSeries, ABCIndex, np.ndarray, list, range, slice)
+                ):
+                    num_set = length_of_indexer(indexer, values)
+                else:
+                    num_set = len(values[indexer])
+                casted = setitem_datetimelike_compat(values, num_set, casted)
 
             self = self._maybe_copy(inplace=True)
             values = cast("np.ndarray", self.values.T)
