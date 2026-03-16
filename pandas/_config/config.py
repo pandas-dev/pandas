@@ -125,16 +125,16 @@ class OptionError(AttributeError, KeyError):
 # User API
 
 
-def _get_single_key(pat: str) -> str:
+def _get_single_key(pat: str, *, stacklevel: int | None = None) -> str:
     keys = _select_options(pat)
     if len(keys) == 0:
-        _warn_if_deprecated(pat)
+        _warn_if_deprecated(pat, stacklevel=stacklevel)
         raise OptionError(f"No such keys(s): {pat!r}")
     if len(keys) > 1:
         raise OptionError("Pattern matched multiple keys")
     key = keys[0]
 
-    _warn_if_deprecated(key)
+    _warn_if_deprecated(key, stacklevel=stacklevel)
 
     key = _translate_key(key)
 
@@ -508,15 +508,40 @@ def option_context(*args) -> Generator[None]:
         )
 
     ops = tuple(zip(args[::2], args[1::2], strict=True))
-    undo: tuple[tuple[Any, Any], ...] = ()
+    undo: tuple[tuple[str, str, Any], ...] = ()
+    stacklevel_get = 6
+    stacklevel_set = 5
     try:
-        undo = tuple((pat, get_option(pat)) for pat, val in ops)
+        undo = tuple(
+            (
+                pat,
+                key,
+                _get_root(key)[0][_get_root(key)[1]],
+            )
+            for pat, val in ops
+            for key in (_get_single_key(pat, stacklevel=stacklevel_get),)
+        )
         for pat, val in ops:
-            set_option(pat, val)
+            key = _get_single_key(pat, stacklevel=stacklevel_set)
+            opt = _get_registered_option(key)
+            if opt and opt.validator:
+                opt.validator(val)
+
+            root, k_root = _get_root(key)
+            root[k_root] = val
+
+            if opt and opt.cb:
+                opt.cb(key)
         yield
     finally:
-        for pat, val in undo:
-            set_option(pat, val)
+        for pat, key, val in undo:
+            opt = _get_registered_option(key)
+
+            root, k_root = _get_root(key)
+            root[k_root] = val
+
+            if opt and opt.cb:
+                opt.cb(key)
 
 
 def register_option(
@@ -713,9 +738,16 @@ def _translate_key(key: str) -> str:
         return key
 
 
-def _warn_if_deprecated(key: str) -> bool:
+def _warn_if_deprecated(key: str, *, stacklevel: int | None = None) -> bool:
     """
     Checks if `key` is a deprecated option and if so, prints a warning.
+
+    Parameters
+    ----------
+    key : str
+        Option key to check.
+    stacklevel : int, optional
+        Warning stacklevel to use. If not provided, infer it from the call stack.
 
     Returns
     -------
@@ -723,11 +755,12 @@ def _warn_if_deprecated(key: str) -> bool:
     """
     d = _get_deprecated_option(key)
     if d:
+        stacklevel = stacklevel or find_stack_level()
         if d.msg:
             warnings.warn(
                 d.msg,
                 d.category,
-                stacklevel=find_stack_level(),
+                stacklevel=stacklevel,
             )
         else:
             msg = f"'{key}' is deprecated"
@@ -741,7 +774,7 @@ def _warn_if_deprecated(key: str) -> bool:
             warnings.warn(
                 msg,
                 d.category,
-                stacklevel=find_stack_level(),
+                stacklevel=stacklevel,
             )
         return True
     return False

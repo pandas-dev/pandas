@@ -1,3 +1,6 @@
+import inspect
+import warnings
+
 import pytest
 
 from pandas._config import config as cf
@@ -491,6 +494,18 @@ def test_no_silent_downcasting_deprecated():
         cf.get_option("future.no_silent_downcasting")
     with tm.assert_produces_warning(Pandas4Warning, match="is deprecated"):
         cf.set_option("future.no_silent_downcasting", True)
+
+
+def test_option_context_warns_with_user_stacklevel():
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        line = inspect.currentframe().f_lineno + 1
+        with cf.option_context("future.no_silent_downcasting", True):
+            pass
+
+    assert len(w) == 2
+    assert all(record.filename == __file__ for record in w)
+    assert all(record.lineno == line for record in w)
 
 
 def test_option_context_invalid_option():
