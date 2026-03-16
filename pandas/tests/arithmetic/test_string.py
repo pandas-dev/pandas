@@ -270,14 +270,24 @@ def test_add_strings(any_string_dtype, request):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(reason="GH-28527")
-def test_add_frame(any_string_dtype, using_infer_string):
+# This should be a global xfail but is not due to dtype handling issues outlined below
+def test_add_frame(any_string_dtype, request, using_infer_string):
     if not using_infer_string:
         pytest.skip(
             "This doesn't fail on this build, but this build is going away, "
             "so not worth more invasive fix."
         )
+
     dtype = any_string_dtype
+
+    # Inconsistent behavior between different versions of the python engine.
+    # Environments without PyArrow correctly return the value for python storage
+    # Manually xfailing most tests as pytest has no way of reversing a global xfail
+    # Don't want to just skip in case underlying python behavior changes
+    if HAS_PYARROW or getattr(dtype, "storage", None) != "python":
+        marker = pytest.mark.xfail(reason="GH-28527")
+        request.node.add_marker(marker)
+
     arr = pd.array(["a", "b", np.nan, np.nan], dtype=dtype)
     df = pd.DataFrame([["x", np.nan, "y", np.nan]])
     assert arr.__add__(df) is NotImplemented
