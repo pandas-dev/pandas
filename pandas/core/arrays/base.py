@@ -189,7 +189,7 @@ class ExtensionArray:
     * interpolate
 
     A default repr displaying the type, (truncated) data, length,
-    and dtype is provided. It can be customized or replaced by
+    and dtype is provided. It can be customized or replaced
     by overriding:
 
     * __repr__ : A default repr for the ExtensionArray.
@@ -2148,7 +2148,7 @@ class ExtensionArray:
         Parameters
         ----------
         boxed : bool, default False
-            An indicated for whether or not your array is being printed
+            An indicator for whether or not your array is being printed
             within a Series, DataFrame, or Index (True), or just by
             itself (False). This may be useful if you want scalar values
             to appear differently within a Series versus on its own (e.g.
@@ -2253,7 +2253,7 @@ class ExtensionArray:
     @classmethod
     def _concat_same_type(cls, to_concat: Sequence[Self]) -> Self:
         """
-        Concatenate multiple array of this dtype.
+        Concatenate multiple arrays of this dtype.
 
         This method joins a sequence of ExtensionArrays of the same dtype
         into a single ExtensionArray. All arrays in the sequence must
