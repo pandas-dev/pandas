@@ -10,7 +10,7 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 from datetime import datetime
-import doctest as _doctest
+import doctest
 import importlib
 import inspect
 import logging
@@ -21,7 +21,7 @@ import warnings
 
 import jinja2
 from numpydoc.docscrape import NumpyDocString
-import numpydoc.validate as _numpydoc_validate
+import numpydoc.validate
 from sphinx.ext.autosummary import _import_by_name
 
 logger = logging.getLogger(__name__)
@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 _PANDAS_PRIVATE_CLASSES = ["NDFrame", "IndexOpsMixin"]
 
-_numpydoc_validate.ERROR_MSGS.update(
+numpydoc.validate.ERROR_MSGS.update(
     {
         "GL04": "Private classes ({mentioned_private_classes}) should not be "
         "mentioned in public docstrings",
@@ -49,7 +49,7 @@ _numpydoc_validate.ERROR_MSGS.update(
     }
 )
 
-_original_numpydoc_validate = _numpydoc_validate.validate
+_original_numpydoc_validate = numpydoc.validate.validate
 
 
 def _pandas_validate(obj_name, validator_cls=None, **validator_kwargs):
@@ -67,14 +67,14 @@ def _pandas_validate(obj_name, validator_cls=None, **validator_kwargs):
     mentioned = [klass for klass in _PANDAS_PRIVATE_CLASSES if klass in docstring]
     if mentioned:
         errors.append(
-            _numpydoc_validate.error(
+            numpydoc.validate.error(
                 "GL04", mentioned_private_classes=", ".join(mentioned)
             )
         )
 
     # PD01: array_like instead of array-like
     if "array_like" in docstring:
-        errors.append(_numpydoc_validate.error("PD01"))
+        errors.append(numpydoc.validate.error("PD01"))
 
     # SA05: See Also references with unnecessary pandas. prefix
     doc = NumpyDocString(docstring)
@@ -82,7 +82,7 @@ def _pandas_validate(obj_name, validator_cls=None, **validator_kwargs):
         for ref_name, _ in ref_group[0]:
             if ref_name.startswith("pandas."):
                 errors.append(
-                    _numpydoc_validate.error(
+                    numpydoc.validate.error(
                         "SA05",
                         reference_name=ref_name,
                         right_reference=ref_name[len("pandas.") :],
@@ -91,16 +91,16 @@ def _pandas_validate(obj_name, validator_cls=None, **validator_kwargs):
 
     # EX04: redundant numpy/pandas imports in examples
     examples_source = "".join(
-        line.source for line in _doctest.DocTestParser().get_examples(docstring)
+        line.source for line in doctest.DocTestParser().get_examples(docstring)
     )
     for lib in ("numpy", "pandas"):
         if f"import {lib}" in examples_source:
-            errors.append(_numpydoc_validate.error("EX04", imported_library=lib))
+            errors.append(numpydoc.validate.error("EX04", imported_library=lib))
 
     return result
 
 
-_numpydoc_validate.validate = _pandas_validate
+numpydoc.validate.validate = _pandas_validate
 
 # https://github.com/sphinx-doc/sphinx/pull/2325/files
 # Workaround for sphinx-build recursion limit overflow:
