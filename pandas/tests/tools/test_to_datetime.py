@@ -1818,7 +1818,7 @@ class TestToDatetimeUnit:
         expected = Index([NaT], dtype="M8[ns]")
         tm.assert_index_equal(res, expected)
 
-        # In 3.0, the string "1.5" is parsed as as it would be without unit,
+        # In 3.0, the string "1.5" is parsed as it would be without unit,
         #  which fails. With errors="coerce" this becomes NaT.
         res = to_datetime(["1.5"], unit=unit, errors="coerce")
         expected = to_datetime([NaT])
