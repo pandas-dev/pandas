@@ -1180,6 +1180,45 @@ class TestiLocBaseIndependent:
 
         tm.assert_frame_equal(result, df)
 
+    @pytest.mark.parametrize(
+        "indexer, expected",
+        [
+            (
+                (slice(None), 0),
+                DataFrame(
+                    [
+                        [np.datetime64("2020-01-01", "ns"), None],
+                        [np.datetime64("2020-01-01", "ns"), None],
+                        [np.datetime64("2020-01-01", "ns"), None],
+                    ],
+                    dtype=object,
+                ),
+            ),
+            (
+                (1, slice(None)),
+                DataFrame(
+                    [
+                        [None, None],
+                        [
+                            np.datetime64("2020-01-01", "ns"),
+                            np.datetime64("2020-01-01", "ns"),
+                        ],
+                        [None, None],
+                    ],
+                    dtype=object,
+                ),
+            ),
+        ],
+    )
+    def test_iloc_setitem_object_dtype_datetime64_scalar_tuple_indexer(
+        self, indexer, expected
+    ):
+        df = DataFrame(np.full((3, 2), None, dtype=object))
+
+        df.iloc[indexer] = np.datetime64("2020-01-01", "ns")
+
+        tm.assert_frame_equal(df, expected)
+
     def test_iloc_getitem_with_duplicates(self):
         df = DataFrame(
             np.random.default_rng(2).random((3, 3)),
