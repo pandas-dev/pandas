@@ -21,7 +21,7 @@ from pandas.tests.groupby import get_groupby_method_args
 
 
 def cartesian_product_for_groupers(result, args, names, fill_value=np.nan):
-    """Reindex to a cartesian production for the groupers,
+    """Reindex to a cartesian product for the groupers,
     preserving the nature (Categorical) of each grouper
     """
 

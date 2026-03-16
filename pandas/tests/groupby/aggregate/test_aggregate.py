@@ -1088,7 +1088,7 @@ def test_groupby_aggregate_empty_with_multiindex_frame_multi(as_index):
     tm.assert_frame_equal(result, expected)
 
 
-def test_grouby_agg_loses_results_with_as_index_false_relabel():
+def test_groupby_agg_loses_results_with_as_index_false_relabel():
     # GH 32240: When the aggregate function relabels column names and
     # as_index=False is specified, the results are dropped.
 
@@ -1102,7 +1102,7 @@ def test_grouby_agg_loses_results_with_as_index_false_relabel():
     tm.assert_frame_equal(result, expected)
 
 
-def test_grouby_agg_loses_results_with_as_index_false_relabel_multiindex():
+def test_groupby_agg_loses_results_with_as_index_false_relabel_multiindex():
     # GH 32240: When the aggregate function relabels column names and
     # as_index=False is specified, the results are dropped. Check if
     # multiindex is returned in the right order
