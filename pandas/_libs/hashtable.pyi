@@ -256,6 +256,11 @@ def duplicated(
     keep: Literal["last", "first", False] = ...,
     mask: npt.NDArray[np.bool_] | None = ...,
 ) -> npt.NDArray[np.bool_]: ...
+def duplicated_string(
+    values: np.ndarray,
+    keep: Literal["last", "first", False] = ...,
+    mask: npt.NDArray[np.bool_] | None = ...,
+) -> npt.NDArray[np.bool_]: ...
 def mode(
     values: np.ndarray, dropna: bool, mask: npt.NDArray[np.bool_] | None = ...
 ) -> np.ndarray: ...
@@ -264,6 +269,11 @@ def value_count(
     dropna: bool,
     mask: npt.NDArray[np.bool_] | None = ...,
 ) -> tuple[np.ndarray, npt.NDArray[np.int64], int]: ...  # np.ndarray[same-as-values]
+def value_count_string(
+    values: np.ndarray,
+    dropna: bool,
+    mask: npt.NDArray[np.bool_] | None = ...,
+) -> tuple[np.ndarray, npt.NDArray[np.int64], int]: ...
 
 # arr and values should have same dtype
 def ismember(

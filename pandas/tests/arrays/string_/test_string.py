@@ -470,6 +470,41 @@ def test_value_counts_sort_false(dtype):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("keep", ["first", "last", False])
+def test_duplicated_na(dtype, keep):
+    arr = pd.array(["a", pd.NA, "b", "a", pd.NA], dtype=dtype)
+    result = arr.duplicated(keep=keep)
+    if keep == "first":
+        expected = np.array([False, False, False, True, True])
+    elif keep == "last":
+        expected = np.array([True, True, False, False, False])
+    else:
+        expected = np.array([True, True, False, True, True])
+    tm.assert_numpy_array_equal(result, expected)
+
+
+def test_duplicated_all_unique(dtype):
+    arr = pd.array(["a", "b", "c"], dtype=dtype)
+    result = arr.duplicated()
+    expected = np.array([False, False, False])
+    tm.assert_numpy_array_equal(result, expected)
+
+
+def test_value_counts_empty(dtype):
+    if dtype.na_value is np.nan:
+        exp_dtype = "int64"
+    elif dtype.storage == "pyarrow":
+        exp_dtype = "int64[pyarrow]"
+    else:
+        exp_dtype = "Int64"
+    arr = pd.array([], dtype=dtype)
+    result = arr.value_counts()
+    expected = pd.Series(
+        [], index=pd.Index([], dtype=dtype), dtype=exp_dtype, name="count"
+    )
+    tm.assert_series_equal(result, expected)
+
+
 def test_memory_usage(dtype):
     # GH 33963
 

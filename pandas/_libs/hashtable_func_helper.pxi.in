@@ -333,6 +333,168 @@ cdef ismember_{{dtype}}(const {{dtype}}_t[:] arr, const {{dtype}}_t[:] values):
 {{endfor}}
 
 
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cpdef value_count_string(ndarray[object] values, bint dropna, const uint8_t[:] mask=None):
+    cdef:
+        Py_ssize_t i, count = 0, n = len(values)
+        Py_ssize_t na_counter = 0
+        int ret = 0
+        object val
+        const char *v
+        const char **vecs
+        khiter_t k
+        kh_str_t *table
+        int64_t[::1] uindexer
+        bint uses_mask = mask is not None
+
+    result_keys = ObjectVector()
+    table = kh_init_str()
+    kh_resize_str(table, min(kh_needed_n_buckets(n), SIZE_HINT_LIMIT))
+
+    if uses_mask:
+        raise NotImplementedError("uses_mask not implemented with string dtype")
+
+    vecs = <const char **>malloc(n * sizeof(char *))
+    if vecs is NULL:
+        kh_destroy_str(table)
+        raise MemoryError()
+
+    uindexer = np.empty(n, dtype=np.int64)
+
+    for i in range(n):
+        val = values[i]
+        if isinstance(val, str):
+            vecs[i] = PyUnicode_AsUTF8(<str>val)
+        else:
+            vecs[i] = NULL
+
+    with nogil:
+        for i in range(n):
+            v = vecs[i]
+            if v == NULL:
+                if not dropna:
+                    na_counter += 1
+                continue
+
+            k = kh_get_str(table, v)
+            if k != table.n_buckets:
+                table.vals[k] += 1
+            else:
+                k = kh_put_str(table, v, &ret)
+                table.vals[k] = 1
+                uindexer[count] = i
+                count += 1
+
+    cdef Py_ssize_t na_add = 1 if na_counter > 0 else 0
+    cdef int64_t[::1] result_counts = np.empty(count + na_add, dtype=np.int64)
+
+    for i in range(count):
+        result_keys.append(values[uindexer[i]])
+        k = kh_get_str(table, vecs[uindexer[i]])
+        result_counts[i] = table.vals[k]
+
+    free(vecs)
+    kh_destroy_str(table)
+
+    if na_counter > 0:
+        result_counts[count] = na_counter
+        result_keys.append(np.nan)
+
+    return result_keys.to_array(), result_counts.base, na_counter
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cpdef duplicated_string(ndarray[object] values, object keep='first', const uint8_t[:] mask=None):
+    cdef:
+        int ret = 0
+        const char *v
+        const char **vecs
+        Py_ssize_t i, n = len(values), first_na = -1
+        khiter_t k
+        kh_str_t *table = kh_init_str()
+        ndarray[uint8_t, ndim=1, cast=True] out = np.empty(n, dtype='bool')
+        bint seen_na = False, uses_mask = mask is not None
+        bint seen_multiple_na = False
+
+    kh_resize_str(table, min(kh_needed_n_buckets(n), SIZE_HINT_LIMIT))
+
+    vecs = <const char **>malloc(n * sizeof(char *))
+    if vecs is NULL:
+        kh_destroy_str(table)
+        raise MemoryError()
+
+    for i in range(n):
+        if uses_mask and mask[i]:
+            vecs[i] = NULL
+        elif isinstance(values[i], str):
+            vecs[i] = PyUnicode_AsUTF8(<str>values[i])
+        else:
+            vecs[i] = NULL
+
+    if keep not in ('last', 'first', False):
+        free(vecs)
+        kh_destroy_str(table)
+        raise ValueError('keep must be either "first", "last" or False')
+
+    if keep == "last":
+        with nogil:
+            for i in range(n - 1, -1, -1):
+                v = vecs[i]
+                if v == NULL:
+                    if seen_na:
+                        out[i] = True
+                    else:
+                        out[i] = False
+                        seen_na = True
+                else:
+                    kh_put_str(table, v, &ret)
+                    out[i] = ret == 0
+    elif keep == "first":
+        with nogil:
+            for i in range(n):
+                v = vecs[i]
+                if v == NULL:
+                    if seen_na:
+                        out[i] = True
+                    else:
+                        out[i] = False
+                        seen_na = True
+                else:
+                    kh_put_str(table, v, &ret)
+                    out[i] = ret == 0
+    else:
+        with nogil:
+            for i in range(n):
+                v = vecs[i]
+                if v == NULL:
+                    if not seen_na:
+                        first_na = i
+                        seen_na = True
+                        out[i] = 0
+                    elif not seen_multiple_na:
+                        out[i] = 1
+                        out[first_na] = 1
+                        seen_multiple_na = True
+                    else:
+                        out[i] = 1
+                else:
+                    k = kh_get_str(table, v)
+                    if k != table.n_buckets:
+                        out[table.vals[k]] = 1
+                        out[i] = 1
+                    else:
+                        k = kh_put_str(table, v, &ret)
+                        table.vals[k] = i
+                        out[i] = 0
+
+    free(vecs)
+    kh_destroy_str(table)
+    return out
+
+
 ctypedef fused htfunc_t:
     numeric_object_t
     complex128_t

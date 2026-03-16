@@ -18,6 +18,7 @@ from pandas._config import using_string_dtype
 from pandas._config.config import _global_config as config
 
 from pandas._libs import (
+    hashtable as htable,
     lib,
     missing as libmissing,
 )
@@ -1091,11 +1092,31 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         return self._wrap_reduction_result(axis, result)
 
     def value_counts(self, dropna: bool = True) -> Series:
-        result = super().value_counts(dropna=dropna)
+        from pandas import (
+            Index,
+            Series,
+        )
+
+        keys, counts, na_counter = htable.value_count_string(self._ndarray, dropna)
+
+        if na_counter > 0:
+            # value_count_string uses np.nan as the NA placeholder;
+            # replace with the dtype's na_value
+            keys[-1] = self.dtype.na_value
+
+        index_arr = self._from_backing_data(np.asarray(keys))
+        index = Index(index_arr, copy=False)
+        result = Series(counts, index=index, name="count", copy=False)
 
         if self.dtype.na_value is libmissing.NA:
             result = result.astype("Int64")
         return result
+
+    def duplicated(
+        self, keep: Literal["first", "last", False] = "first"
+    ) -> npt.NDArray[np.bool_]:
+        mask = self.isna().astype(np.bool_, copy=False)
+        return htable.duplicated_string(self._ndarray, keep=keep, mask=mask)
 
     def memory_usage(self, deep: bool = False) -> int:
         result = self._ndarray.nbytes
