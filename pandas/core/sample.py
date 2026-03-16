@@ -68,7 +68,7 @@ def preprocess_weights(obj: NDFrame, weights, axis: AxisInt) -> np.ndarray:
         raise ValueError("weight vector may not include `inf` values")
 
     if (weights < 0).any():
-        raise ValueError("weight vector many not include negative values")
+        raise ValueError("weight vector may not include negative values")
 
     missing = np.isnan(weights)
     if missing.any():
