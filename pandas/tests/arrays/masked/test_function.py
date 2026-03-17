@@ -5,7 +5,11 @@ from pandas.core.dtypes.common import is_integer_dtype
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.core.arrays import BaseMaskedArray
+from pandas.core.arrays import (
+    BaseMaskedArray,
+    BooleanArray,
+    IntegerArray,
+)
 
 arrays = [pd.array([1, 2, 3, None], dtype=dtype) for dtype in tm.ALL_INT_EA_DTYPES]
 arrays += [
@@ -82,8 +86,6 @@ class TestAnyAll2D:
     def arr2d(self):
         # [[True,  False],
         #  [True,  <NA> ]]
-        from pandas.core.arrays import BooleanArray
-
         data = np.array([[True, False], [True, True]], dtype=bool)
         mask = np.array([[False, False], [False, True]], dtype=bool)
         return BooleanArray._simple_new(data, mask)
@@ -142,8 +144,6 @@ class TestAnyAll2D:
     @pytest.mark.parametrize("method", ["any", "all"])
     def test_all_na_column(self, method):
         # Column that is all-NA should return falsey/truthy for skipna=True
-        from pandas.core.arrays import IntegerArray
-
         data = np.array([[1, 2], [3, 4]], dtype=np.int64)
         mask = np.array([[False, True], [False, True]], dtype=bool)
         arr = IntegerArray._simple_new(data, mask)
