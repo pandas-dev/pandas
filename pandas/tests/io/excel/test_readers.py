@@ -53,7 +53,13 @@ engine_params = [
     pytest.param(
         None,
         marks=[
-            td.skip_if_no("python_calamine"),
+            td.skip_if_no("xlrd"),
+            pytest.mark.filterwarnings(
+                "ignore:The xlrd engine is deprecated:pandas.errors.Pandas4Warning"
+            ),
+            pytest.mark.filterwarnings(
+                "ignore:The pyxlsb engine is deprecated:pandas.errors.Pandas4Warning"
+            ),
         ],
     ),
     pytest.param(
@@ -252,8 +258,8 @@ class TestReaders:
         expected_defaults = {
             "xlsx": "openpyxl",
             "xlsm": "openpyxl",
-            "xlsb": "calamine",
-            "xls": "calamine",
+            "xlsb": "pyxlsb",
+            "xls": "xlrd",
             "ods": "odf",
         }
 
@@ -1541,8 +1547,8 @@ class TestExcelFileRead:
         expected_defaults = {
             "xlsx": "openpyxl",
             "xlsm": "openpyxl",
-            "xlsb": "calamine",
-            "xls": "calamine",
+            "xlsb": "pyxlsb",
+            "xls": "xlrd",
             "ods": "odf",
         }
 
