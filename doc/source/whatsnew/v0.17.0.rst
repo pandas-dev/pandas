@@ -668,6 +668,7 @@ v0.17.0 can parse them as below. It works on ``DatetimeIndex`` also.
 New behavior:
 
 .. ipython:: python
+   :okwarning:
 
    pd.Timestamp("2012Q2")
    pd.Timestamp("2014")
