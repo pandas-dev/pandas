@@ -10061,6 +10061,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             # GH#21947 we have an empty DataFrame/Series, could be object-dtype
             cond = cond.astype(bool)
 
+        cond_for_ea = cond
         cond = -cond if inplace else cond
         cond = cond.reindex(self._info_axis, axis=self._info_axis_number)
 
@@ -10096,7 +10097,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         if axis == 0:
                             res_cols = [
                                 self.iloc[:, i]._where(
-                                    cond.iloc[:, i],
+                                    cond_for_ea.iloc[:, i],
                                     other,
                                 )
                                 for i in range(self.shape[1])
@@ -10105,7 +10106,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                             # TODO: can we use a zero-copy alternative to "repeat"?
                             res_cols = [
                                 self.iloc[:, i]._where(
-                                    cond.iloc[:, i],
+                                    cond_for_ea.iloc[:, i],
                                     other[i : i + 1].repeat(len(self)),
                                 )
                                 for i in range(self.shape[1])
