@@ -144,7 +144,7 @@ def generate_offset_range(
             ).as_unit(unit)
         else:
             trim_from_end = True
-            start = (end - Timedelta(days=buffer_days)).as_unit(unit)
+            start = (end - Timedelta(days=buffer_days)).as_unit(unit)  # pyright: ignore[reportAssignmentType]
         trim_to = periods
 
     i8values = generate_regular_range(start, end, None, Day(), unit=unit)
