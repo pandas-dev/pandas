@@ -23,6 +23,6 @@ dependencies:
 
   - pip:
     # No free-threaded coveragepy (with the C-extension) on conda-forge yet
-    - pytest-cov
+    - coverage
     - tzdata>=2023.3
     - "--extra-index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple"
