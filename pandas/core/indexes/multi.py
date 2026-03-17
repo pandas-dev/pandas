@@ -1575,12 +1575,14 @@ class MultiIndex(Index):
     # --------------------------------------------------------------------
     # Rendering Methods
 
-    def _formatter_func(self, tup):
+    def _formatter_func(self, tup) -> tuple[str, ...]:  # type: ignore[override]
         """
         Formats each item in tup according to its level's formatter function.
         """
-        formatter_funcs = (level._formatter_func for level in self.levels)
-        return tuple(func(val) for func, val in zip(formatter_funcs, tup, strict=True))
+        return tuple(
+            level._formatter_func(val)
+            for level, val in zip(self.levels, tup, strict=True)
+        )
 
     def _get_values_for_csv(
         self, *, na_rep: str = "nan", **kwargs
