@@ -437,7 +437,7 @@ def na_action(request):
 @pytest.fixture(params=[True, False])
 def ascending(request):
     """
-    Fixture for 'na_action' argument in sort_values/sort_index/rank.
+    Fixture for 'ascending' argument in sort_values/sort_index/rank.
     """
     return request.param
 

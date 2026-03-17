@@ -2620,7 +2620,7 @@ class TestDataFramePlots:
     @pytest.mark.slow
     def test_plot_no_warning(self):
         # GH 55138
-        # TODO(3.0): this can be removed once Period[B] deprecation is enforced
+        # TODO(4.0): this can be removed once Period[B] deprecation is enforced
         df = DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)),
             columns=Index(list("ABCD"), dtype=object),

@@ -1390,9 +1390,6 @@ class ArrowExtensionArray(
                 #   a kernel for duration types.
                 pass
 
-        # TODO: Why do we no longer need the above cases?
-        # TODO(3.0): after EA.fillna 'method' deprecation is enforced, we can remove
-        #  this method entirely.
         return super()._pad_or_backfill(
             method=method, limit=limit, limit_area=limit_area, copy=copy
         )

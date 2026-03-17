@@ -122,6 +122,7 @@ Performance improvements
 
 Bug fixes
 ~~~~~~~~~
+- Bug in object-dtype hash table operations (``factorize``, ``unique``, ``duplicated``, ``isin``, ``value_counts``, ``groupby``, ``Index.get_loc``) not distinguishing between ``int`` and ``bool`` values, e.g. treating ``0`` and ``False`` as equal (:issue:`62888`)
 - Fix bug in :func:`to_datetime` that could give an unnecessary ``RuntimeWarning`` when converting DataFrame containing missing values (:issue:`64141`)
 
 Categorical

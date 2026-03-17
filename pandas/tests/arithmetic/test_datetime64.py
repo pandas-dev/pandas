@@ -512,7 +512,7 @@ class TestDatetimeIndexComparisons:
 
         cases = [(fidx1, fidx2), (didx1, didx2), (didx1, darr)]
 
-        # Check pd.NaT is handles as the same as np.nan
+        # Check pd.NaT is handled the same as np.nan
         with tm.assert_produces_warning(None):
             for idx1, idx2 in cases:
                 result = idx1 < idx2
@@ -559,7 +559,7 @@ class TestDatetimeIndexComparisons:
                 expected = np.array([True, True, True, True, True, True])
                 tm.assert_numpy_array_equal(result, expected)
 
-        # Check pd.NaT is handles as the same as np.nan
+        # Check pd.NaT is handled the same as np.nan
         with tm.assert_produces_warning(None):
             for idx1, val in [(fidx1, 3), (didx1, datetime(2014, 3, 1))]:
                 result = idx1 < val

@@ -793,7 +793,7 @@ class Styler(StylerRenderer):
               - `"all;index"`: as above with lines extending only the width of the
                 index entries.
               - `"skip-last;data"`: a cline is added for each index value except the
-                last level (which is never sparsified), extending the widtn of the
+                last level (which is never sparsified), extending the width of the
                 table.
               - `"skip-last;index"`: as above with lines extending only the width of the
                 index entries.
@@ -1032,7 +1032,7 @@ class Styler(StylerRenderer):
 
         **CSS Conversion**
 
-        This method can convert a Styler constructured with HTML-CSS to LaTeX using
+        This method can convert a Styler constructed with HTML-CSS to LaTeX using
         the following limited conversions.
 
         ================== ==================== ============= ==========================

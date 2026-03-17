@@ -556,7 +556,12 @@ module = [
   "pandas.core.interchange.column", # TODO
   "pandas.core.interchange.dataframe_protocol", # TODO
   "pandas.core.interchange.from_dataframe", # TODO
-  "pandas.core.internals.*", # TODO
+  "pandas.core.internals", # TODO
+  "pandas.core.internals.api", # TODO
+  "pandas.core.internals.blocks", # TODO
+  "pandas.core.internals.concat", # TODO
+  "pandas.core.internals.construction", # TODO
+  "pandas.core.internals.managers", # TODO
   "pandas.core.ops.array_ops", # TODO
   "pandas.core.ops.common", # TODO
   "pandas.core.ops.missing", # TODO
