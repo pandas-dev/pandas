@@ -1339,13 +1339,14 @@ class Block(PandasObject, libinternals.Block):
             in (np.dtype("float64"), np.dtype("float32"), np.dtype("object"))
             and (limit is not None or inplace)
         ):
+            values = cast("np.ndarray", self.values)
             try:
-                casted = np_can_hold_element(self.values.dtype, value)
+                casted = np_can_hold_element(values.dtype, value)
             except (LossySetitemError, NotImplementedError):
                 pass
             else:
                 copy, refs = self._get_refs_and_copy(inplace)
-                new_values = self.values.copy() if copy else self.values
+                new_values = values.copy() if copy else values
 
                 if new_values.ndim == 1:
                     filled = libalgos.scalar_fillna_inplace(
