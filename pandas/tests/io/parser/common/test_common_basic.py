@@ -109,10 +109,11 @@ def test_1000_sep(all_parsers, number_csv, expected_number, request):
     tm.assert_frame_equal(result, expected)
 
 
-def test_1000_sep_not_stripped_after_whitespace(all_parsers):
+@pytest.mark.parametrize("value", ["1 ,", ", 1", ",1"])
+def test_1000_sep_not_stripped_after_whitespace(all_parsers, value):
     parser = all_parsers
-    data = "a\n1 ,\n"
-    expected = DataFrame({"a": ["1 ,"]})
+    data = f"a\n{value}\n"
+    expected = DataFrame({"a": [value]})
 
     if parser.engine == "pyarrow":
         msg = "The 'thousands' option is not supported with the 'pyarrow' engine"

@@ -1837,9 +1837,6 @@ static int copy_number_without_tsep(char output[PROCESSED_WORD_CAPACITY],
   size_t bytes_written = 0;
 
   if (*p == '+' || *p == '-') {
-    if (bytes_written + 1 >= PROCESSED_WORD_CAPACITY) {
-      return -1;
-    }
     output[bytes_written++] = *p++;
   }
 
