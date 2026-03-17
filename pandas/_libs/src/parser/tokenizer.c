@@ -1832,15 +1832,17 @@ int uint64_conflict(uint_state *self) {
 /* Copy a numeric token without `tsep` into `output`.
  */
 static int copy_number_without_tsep(char output[PROCESSED_WORD_CAPACITY],
-                                    const char *str, char **endptr, char tsep) {
+                                    const char *str, char **endptr,
+                                    size_t str_len, char tsep) {
   const char *p = str;
+  const char *end = str + str_len;
   size_t bytes_written = 0;
 
-  if (*p == '+' || *p == '-') {
+  if (p < end && (*p == '+' || *p == '-')) {
     output[bytes_written++] = *p++;
   }
 
-  while (isdigit_ascii(*p) || (tsep != '\0' && *p == tsep)) {
+  while (p < end && (isdigit_ascii(*p) || (tsep != '\0' && *p == tsep))) {
     if (*p != tsep) {
       if (bytes_written + 1 >= PROCESSED_WORD_CAPACITY) {
         return -1;
@@ -1880,7 +1882,8 @@ int64_t str_to_int64(const char *p_item, int *error, char tsep) {
   char buffer[PROCESSED_WORD_CAPACITY];
   const size_t str_len = strlen(p);
   if (tsep != '\0' && memchr(p, tsep, str_len) != NULL) {
-    const int status = copy_number_without_tsep(buffer, p, &number_end, tsep);
+    const int status =
+        copy_number_without_tsep(buffer, p, &number_end, str_len, tsep);
     if (status != 0) {
       // Word is too big, probably will cause an overflow
       *error = ERROR_OVERFLOW;
@@ -1944,7 +1947,8 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int *error,
   char buffer[PROCESSED_WORD_CAPACITY];
   const size_t str_len = strlen(p);
   if (tsep != '\0' && memchr(p, tsep, str_len) != NULL) {
-    const int status = copy_number_without_tsep(buffer, p, &number_end, tsep);
+    const int status =
+        copy_number_without_tsep(buffer, p, &number_end, str_len, tsep);
     if (status != 0) {
       // Word is too big, probably will cause an overflow
       *error = ERROR_OVERFLOW;
