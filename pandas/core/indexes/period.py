@@ -174,6 +174,8 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     _data_cls = PeriodArray
     _supports_partial_string_indexing = True
 
+    _warn_quarter: bool = False
+
     @property
     def _engine_type(self) -> type[libindex.PeriodEngine]:
         return libindex.PeriodEngine

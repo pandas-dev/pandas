@@ -1,5 +1,7 @@
 cimport cython
 
+import warnings
+
 import numpy as np
 
 cimport numpy as cnp
@@ -59,6 +61,7 @@ from pandas._libs.tslibs.np_datetime cimport (
 import_pandas_datetime()
 
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
+from pandas.util._exceptions import find_stack_level
 
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
@@ -610,6 +613,7 @@ cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz,
         int64_t ival, nanos = 0
         NPY_DATETIMEUNIT out_bestunit, reso
         _TSObject obj
+        bint is_quarter = 0
 
     if len(ts) == 0 or ts in nat_strings:
         obj = _TSObject()
@@ -673,7 +677,20 @@ cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz,
             yearfirst=yearfirst,
             out_bestunit=&out_bestunit,
             nanos=&nanos,
+            out_is_quarter=&is_quarter,
         )
+        if is_quarter:
+            # GH#50907
+            from pandas.errors import Pandas4Warning
+
+            warnings.warn(
+                f"Parsing '{ts}' as a quarterly string is "
+                f"deprecated and will be removed in a future version. "
+                f"Use pd.Period('{ts}') or "
+                f"pd.PeriodIndex with to_timestamp() instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
         reso = get_supported_reso(out_bestunit)
         if reso < NPY_FR_us:
             reso = NPY_FR_us
