@@ -510,10 +510,8 @@ class TestTimedelta64ArithmeticUnsorted:
         msg = "Addition/subtraction of integers and integer-arrays"
         with pytest.raises(TypeError, match=msg):
             tdi + Index([1, 2, 3], dtype=np.int64)
-
-        # this is a union!
-        # FIXME: don't leave commented-out
-        # pytest.raises(TypeError, lambda : Index([1,2,3]) + tdi)
+        with pytest.raises(TypeError, match=msg):
+            Index([1, 2, 3]) + tdi
 
         result = tdi + dti  # name will be reset
         expected = DatetimeIndex(["20130102", NaT, "20130105"], dtype="M8[us]")

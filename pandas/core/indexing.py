@@ -2653,7 +2653,6 @@ class _iLocIndexer(_LocationIndexer):
                         tuple(sub_indexer),
                         value[item],
                         multiindex_indexer,
-                        using_cow=True,
                     )
                 else:
                     val = np.nan
@@ -2870,7 +2869,6 @@ class _iLocIndexer(_LocationIndexer):
         indexer,
         ser: Series,
         multiindex_indexer: bool = False,
-        using_cow: bool = False,
     ):
         """
         Parameters
@@ -2949,9 +2947,7 @@ class _iLocIndexer(_LocationIndexer):
                     else:
                         new_ix = Index(new_ix)
                     if not len(new_ix) or ser.index.equals(new_ix):
-                        if using_cow:
-                            return ser
-                        return ser._values.copy()
+                        return ser
 
                     return ser.reindex(new_ix)._values
 
