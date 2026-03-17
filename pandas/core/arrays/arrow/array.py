@@ -588,8 +588,8 @@ class ArrowExtensionArray(
         -------
         pa.Array or pa.ChunkedArray
         """
-        import pyarrow as pa
         import numpy as np
+        import pyarrow as pa
 
         value = extract_array(value, extract_numpy=True)
         if isinstance(value, cls):
