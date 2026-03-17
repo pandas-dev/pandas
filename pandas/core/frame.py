@@ -15679,9 +15679,6 @@ class DataFrame(NDFrame, OpsMixin):
         out = df._constructor_from_mgr(res, axes=res.axes).iloc[0]
         out.name = None
 
-        if self.empty and out.dtype == object:
-            return out
-
         if out_dtype is not None and out.dtype != "boolean":
             out = out.astype(out_dtype)
         elif (df._mgr.get_dtypes() == object).any() and name not in ["any", "all"]:
@@ -15689,7 +15686,11 @@ class DataFrame(NDFrame, OpsMixin):
         elif len(self) == 0 and out.dtype == object and name in ("sum", "prod"):
             # Even if we are object dtype, follow numpy and return
             #  float64, see test_apply_funcs_over_empty
-            out = out.astype(np.float64)
+            try:
+                out = out.astype(np.float64)
+            except ValueError:
+                # Fails using Pyarrow, bypass to maximize compatibility
+                pass
 
         return out
 
