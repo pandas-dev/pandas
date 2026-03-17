@@ -147,8 +147,6 @@ cmd = [
   "run",
   "--append",
   "-m",
-  "python",
-  "-m",
   "pytest",
   "-r",
   "fE",
