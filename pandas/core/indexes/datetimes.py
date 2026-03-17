@@ -68,126 +68,15 @@ if TYPE_CHECKING:
         IntervalClosedType,
         TimeAmbiguous,
         TimeNonexistent,
-        npt,
         TimeUnit,
+        npt,
     )
-
     from pandas.core.api import (
         DataFrame,
         PeriodIndex,
     )
 
 from pandas._libs.tslibs.dtypes import OFFSET_TO_PERIOD_FREQSTR
-
-
-class _DatetimeFieldOps:
-    """Read-only property declarations for dynamically-inherited field ops.
-
-    Mirrors the pandas-stubs ``_DayLikeFieldOps`` / ``_MiniSeconds`` pattern
-    so that static type-checkers see attributes added by ``@inherit_names``
-    as read-only properties with correct return types.  At runtime the
-    decorator overrides every entry via ``setattr``, so these bodies
-    are never executed.
-    """
-
-    @property
-    def year(self) -> Index:
-        raise NotImplementedError
-
-    @property
-    def month(self) -> Index:
-        raise NotImplementedError
-
-    @property
-    def day(self) -> Index:
-        raise NotImplementedError
-
-    @property
-    def hour(self) -> Index:
-        raise NotImplementedError
-
-    @property
-    def minute(self) -> Index:
-        raise NotImplementedError
-
-    @property
-    def second(self) -> Index:
-        raise NotImplementedError
-
-    @property
-    def weekday(self) -> Index:
-        raise NotImplementedError
-
-    @property
-    def dayofweek(self) -> Index:
-        raise NotImplementedError
-
-    @property
-    def day_of_week(self) -> Index:
-        raise NotImplementedError
-
-    @property
-    def dayofyear(self) -> Index:
-        raise NotImplementedError
-
-    @property
-    def day_of_year(self) -> Index:
-        raise NotImplementedError
-
-    @property
-    def quarter(self) -> Index:
-        raise NotImplementedError
-
-    @property
-    def days_in_month(self) -> Index:
-        raise NotImplementedError
-
-    @property
-    def daysinmonth(self) -> Index:
-        raise NotImplementedError
-
-    @property
-    def microsecond(self) -> Index:
-        raise NotImplementedError
-
-    @property
-    def nanosecond(self) -> Index:
-        raise NotImplementedError
-
-
-class _DatetimeBoolOps:
-    """Read-only property declarations for dynamically-inherited bool ops.
-
-    Same rationale as ``_DatetimeFieldOps``; see its docstring.
-    """
-
-    @property
-    def is_month_start(self) -> npt.NDArray[np.bool_]:
-        raise NotImplementedError
-
-    @property
-    def is_month_end(self) -> npt.NDArray[np.bool_]:
-        raise NotImplementedError
-
-    @property
-    def is_quarter_start(self) -> npt.NDArray[np.bool_]:
-        raise NotImplementedError
-
-    @property
-    def is_quarter_end(self) -> npt.NDArray[np.bool_]:
-        raise NotImplementedError
-
-    @property
-    def is_year_start(self) -> npt.NDArray[np.bool_]:
-        raise NotImplementedError
-
-    @property
-    def is_year_end(self) -> npt.NDArray[np.bool_]:
-        raise NotImplementedError
-
-    @property
-    def is_leap_year(self) -> npt.NDArray[np.bool_]:
-        raise NotImplementedError
 
 
 def _new_DatetimeIndex(cls, d):
@@ -224,8 +113,7 @@ def _new_DatetimeIndex(cls, d):
 
 
 @inherit_names(
-    DatetimeArray._field_ops
-    + [
+    [
         method
         for method in DatetimeArray._datetimelike_methods
         if method not in ("tz_localize", "tz_convert", "strftime")
@@ -244,12 +132,11 @@ def _new_DatetimeIndex(cls, d):
         "time",
         "timetz",
         "std",
-        *DatetimeArray._bool_ops,
     ],
     DatetimeArray,
 )
 @set_module("pandas")
-class DatetimeIndex(_DatetimeFieldOps, _DatetimeBoolOps, DatetimeTimedeltaMixin):
+class DatetimeIndex(DatetimeTimedeltaMixin):
     """
     Immutable ndarray-like of datetime64 data.
 
@@ -386,6 +273,106 @@ class DatetimeIndex(_DatetimeFieldOps, _DatetimeBoolOps, DatetimeTimedeltaMixin)
     _data: DatetimeArray
     _values: DatetimeArray
     tz: dt.tzinfo | None
+
+    # field_ops: wrap result in Index
+
+    def _wrap_field(self, name: str) -> Index:
+        result = getattr(self._data, name)
+        return Index(result, name=self.name, dtype=result.dtype, copy=False)
+
+    @property
+    def year(self) -> Index:
+        return self._wrap_field("year")
+
+    @property
+    def month(self) -> Index:
+        return self._wrap_field("month")
+
+    @property
+    def day(self) -> Index:
+        return self._wrap_field("day")
+
+    @property
+    def hour(self) -> Index:
+        return self._wrap_field("hour")
+
+    @property
+    def minute(self) -> Index:
+        return self._wrap_field("minute")
+
+    @property
+    def second(self) -> Index:
+        return self._wrap_field("second")
+
+    @property
+    def weekday(self) -> Index:
+        return self._wrap_field("weekday")
+
+    @property
+    def dayofweek(self) -> Index:
+        return self._wrap_field("dayofweek")
+
+    @property
+    def day_of_week(self) -> Index:
+        return self._wrap_field("day_of_week")
+
+    @property
+    def dayofyear(self) -> Index:
+        return self._wrap_field("dayofyear")
+
+    @property
+    def day_of_year(self) -> Index:
+        return self._wrap_field("day_of_year")
+
+    @property
+    def quarter(self) -> Index:
+        return self._wrap_field("quarter")
+
+    @property
+    def days_in_month(self) -> Index:
+        return self._wrap_field("days_in_month")
+
+    @property
+    def daysinmonth(self) -> Index:
+        return self._wrap_field("daysinmonth")
+
+    @property
+    def microsecond(self) -> Index:
+        return self._wrap_field("microsecond")
+
+    @property
+    def nanosecond(self) -> Index:
+        return self._wrap_field("nanosecond")
+
+    # bool_ops: return raw result
+
+    @property
+    def is_month_start(self) -> npt.NDArray[np.bool_]:
+        return self._data.is_month_start
+
+    @property
+    def is_month_end(self) -> npt.NDArray[np.bool_]:
+        return self._data.is_month_end
+
+    @property
+    def is_quarter_start(self) -> npt.NDArray[np.bool_]:
+        return self._data.is_quarter_start
+
+    @property
+    def is_quarter_end(self) -> npt.NDArray[np.bool_]:
+        return self._data.is_quarter_end
+
+    @property
+    def is_year_start(self) -> npt.NDArray[np.bool_]:
+        return self._data.is_year_start
+
+    @property
+    def is_year_end(self) -> npt.NDArray[np.bool_]:
+        return self._data.is_year_end
+
+    @property
+    def is_leap_year(self) -> npt.NDArray[np.bool_]:
+        return self._data.is_leap_year
 
     # --------------------------------------------------------------------
     # methods that dispatch to DatetimeArray and wrap result
