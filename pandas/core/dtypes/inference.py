@@ -440,13 +440,9 @@ def is_hashable(obj: object, allow_slice: bool = True) -> TypeGuard[Hashable]:
     >>> is_hashable(a)
     False
     """
-    # Unfortunately, we can't use isinstance(obj, collections.abc.Hashable),
-    # which can be faster than calling hash. That is because numpy scalars
-    # fail this test.
-
-    # Reconsider this decision once this numpy bug is fixed:
-    # https://github.com/numpy/numpy/issues/5562
-
+    # We can't use isinstance(obj, collections.abc.Hashable) because it
+    # returns True for tuples containing unhashable elements (e.g. ([],)).
+    # Calling hash() is the only reliable check.
     if allow_slice is False:
         if isinstance(obj, tuple) and any(isinstance(v, slice) for v in obj):
             return False
