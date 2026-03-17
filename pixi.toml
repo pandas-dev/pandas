@@ -155,4 +155,7 @@ cmd = [
   "--dist=worksteal",
   "--capture=no",
   "{{ pytest_target }}",
+  "&&",
+  "coverage",
+  "xml",
 ]
