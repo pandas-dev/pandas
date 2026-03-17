@@ -29,9 +29,10 @@ You will need `Build Tools for Visual Studio 2026
 <https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2026>`_.
 
 .. note::
-   If you encounter an error indicating ``cl.exe``,
-   reopen the installer and also select the optional component
-   **MSVC v142 - VS 2019 C++ x64/x86 build tools** in the right pane for installation.
+   If you encounter ``cl.exe not found``error,
+   install MSVC v143 (Visual Studio 2022 build tools).
+   Older versions like MSVC v142 may not work properly.
+   
 
 Alternatively, you can install the necessary components on the commandline using
 `vs_BuildTools.exe <https://learn.microsoft.com/en-us/visualstudio/install/use-command-line-parameters-to-install-visual-studio?source=recommendations&view=vs-2022>`_
