@@ -679,8 +679,6 @@ reportReturnType = false
 [tool.coverage.run]
 branch = true
 omit = ["pandas/_typing.py"]
-# TODO: This isn't actually installed in CI
-plugins = ["Cython.Coverage"]
 source = ["pandas"]
 
 [tool.codespell]
