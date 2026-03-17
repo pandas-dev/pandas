@@ -913,7 +913,7 @@ def test_resample_origin_with_day_freq_on_dst(unit):
         return Series(
             values,
             index=DatetimeIndex(
-                [Timestamp(t, tz=tz) for t in timestamps], freq=freq, ambiguous=True
+                [Timestamp(t, tz=tz) for t in timestamps], freq=freq
             ).as_unit(unit),
         )
 

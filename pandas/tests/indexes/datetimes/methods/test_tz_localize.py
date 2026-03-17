@@ -10,6 +10,8 @@ from dateutil.tz import gettz
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas import (
     DatetimeIndex,
     Timestamp,
@@ -103,7 +105,9 @@ class TestTZLocalize:
         result = di.tz_localize(tz, ambiguous="infer")
         expected = dr._with_freq(None)
         tm.assert_index_equal(result, expected)
-        result2 = DatetimeIndex(times, tz=tz, ambiguous="infer").as_unit(unit)
+        depr_msg = "The 'ambiguous' keyword in DatetimeIndex is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            result2 = DatetimeIndex(times, tz=tz, ambiguous="infer").as_unit(unit)
         tm.assert_index_equal(result2, expected)
 
     def test_dti_tz_localize_ambiguous_infer3(self, tz):
@@ -272,7 +276,9 @@ class TestTZLocalize:
         expected = dr._with_freq(None)
         tm.assert_index_equal(expected, localized)
 
-        result = DatetimeIndex(times, tz=tz, ambiguous=is_dst).as_unit(unit)
+        depr_msg = "The 'ambiguous' keyword in DatetimeIndex is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            result = DatetimeIndex(times, tz=tz, ambiguous=is_dst).as_unit(unit)
         tm.assert_index_equal(result, expected)
 
         localized = di.tz_localize(tz, ambiguous=np.array(is_dst))
@@ -282,7 +288,8 @@ class TestTZLocalize:
         tm.assert_index_equal(dr, localized)
 
         # Test constructor
-        localized = DatetimeIndex(times, tz=tz, ambiguous=is_dst).as_unit(unit)
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            localized = DatetimeIndex(times, tz=tz, ambiguous=is_dst).as_unit(unit)
         tm.assert_index_equal(dr, localized)
 
         # Test duplicate times where inferring the dst fails

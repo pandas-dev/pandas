@@ -24,6 +24,7 @@ from pandas._libs.tslibs import (
     periods_per_day,
     timezones,
     to_offset,
+    tzconversion,
 )
 from pandas._libs.tslibs.dtypes import abbrev_to_npy_unit
 from pandas._libs.tslibs.offsets import (
@@ -181,10 +182,19 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
           times)
         - 'NaT' will return NaT where there are ambiguous times
         - 'raise' will raise a ValueError if there are ambiguous times.
+
+        .. deprecated:: 3.1.0
+            Use :meth:`DatetimeIndex.tz_localize` instead.
     dayfirst : bool, default False
         If True, parse dates in `data` with the day first order.
+
+        .. deprecated:: 3.1.0
+            Use :func:`to_datetime` instead.
     yearfirst : bool, default False
         If True parse dates in `data` with the year first order.
+
+        .. deprecated:: 3.1.0
+            Use :func:`to_datetime` instead.
     dtype : numpy.dtype or DatetimeTZDtype or str, default None
         Note that the only NumPy dtypes allowed are 'datetime64[ns]',
         'datetime64[us]', 'datetime64[ms]', 'datetime64[s]'.
@@ -885,6 +895,29 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         if is_scalar(data):
             cls._raise_scalar_data_error(data)
 
+        if dayfirst:
+            warnings.warn(
+                f"The 'dayfirst' keyword in {cls.__name__} is deprecated. "
+                "Use pd.to_datetime instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        if yearfirst:
+            warnings.warn(
+                f"The 'yearfirst' keyword in {cls.__name__} is deprecated. "
+                "Use pd.to_datetime instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        if ambiguous != "raise":
+            warnings.warn(
+                f"The 'ambiguous' keyword in {cls.__name__} is deprecated. "
+                "Use obj.tz_localize('UTC') to convert to UTC and "
+                "obj.tz_convert(tz) to convert to a desired timezone instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+
         # - Cases checked above all return/raise before reaching here - #
 
         name = maybe_extract_name(name, data, cls)
@@ -921,7 +954,26 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             refs = data._references
 
         subarr = cls._simple_new(dtarr, name=name, refs=refs)
-        subarr._pin_freq(freq, inferred_freq, {"ambiguous": ambiguous})
+
+        # GH#55499 derive a scalar ambiguous flag from the first element
+        # of the result so that _validate_frequency can regenerate the
+        # range without requiring the user to pass ambiguous to the
+        # DatetimeIndex constructor.
+        validate_kwds: dict = {}
+        if (
+            len(dtarr) > 0
+            and dtarr.tz is not None
+            and not timezones.is_utc(dtarr.tz)
+        ):
+            local_i8 = dtarr[:1]._local_timestamps()
+            dst_i8 = tzconversion.tz_localize_to_utc(
+                local_i8,
+                dtarr.tz,
+                ambiguous=np.array([True]),
+                creso=dtarr._creso,
+            )
+            validate_kwds["ambiguous"] = bool(dtarr.asi8[0] == dst_i8[0])
+        subarr._pin_freq(freq, inferred_freq, validate_kwds)
         return subarr
 
     # --------------------------------------------------------------------

@@ -28,6 +28,7 @@ from pandas.compat import (
 from pandas.errors import (
     OutOfBoundsDatetime,
     OutOfBoundsTimedelta,
+    Pandas4Warning,
 )
 import pandas.util._test_decorators as td
 
@@ -2719,12 +2720,17 @@ class TestToDatetimeMisc:
         expected = DatetimeIndex(
             [datetime(2014, 2, 10), datetime(2014, 2, 11), datetime(2014, 2, 12)]
         )
-        idx1 = DatetimeIndex(arr, dayfirst=True)
-        idx2 = DatetimeIndex(np.array(arr), dayfirst=True)
+        depr_msg = "The 'dayfirst' keyword in DatetimeIndex is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            idx1 = DatetimeIndex(arr, dayfirst=True)
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            idx2 = DatetimeIndex(np.array(arr), dayfirst=True)
         idx3 = to_datetime(arr, dayfirst=True, cache=cache)
         idx4 = to_datetime(np.array(arr), dayfirst=True, cache=cache)
-        idx5 = DatetimeIndex(Index(arr), dayfirst=True)
-        idx6 = DatetimeIndex(Series(arr), dayfirst=True)
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            idx5 = DatetimeIndex(Index(arr), dayfirst=True)
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            idx6 = DatetimeIndex(Series(arr), dayfirst=True)
         tm.assert_index_equal(expected, idx1)
         tm.assert_index_equal(expected, idx2)
         tm.assert_index_equal(expected, idx3)
@@ -3066,10 +3072,14 @@ class TestDatetimeParsingWrappers:
         result4 = to_datetime(
             np.array([date_str], dtype=object), yearfirst=yearfirst, cache=cache
         )
-        result6 = DatetimeIndex([date_str], yearfirst=yearfirst)
+        depr_msg = "keyword in DatetimeIndex is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            result6 = DatetimeIndex([date_str], yearfirst=yearfirst)
         # result7 is used below
-        result8 = DatetimeIndex(Index([date_str]), yearfirst=yearfirst)
-        result9 = DatetimeIndex(Series([date_str]), yearfirst=yearfirst)
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            result8 = DatetimeIndex(Index([date_str]), yearfirst=yearfirst)
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            result9 = DatetimeIndex(Series([date_str]), yearfirst=yearfirst)
 
         for res in [result1, result2]:
             assert res == expected
@@ -3180,7 +3190,12 @@ class TestDatetimeParsingWrappers:
             date_str, dayfirst=dayfirst, yearfirst=yearfirst, cache=cache
         )
 
-        result4 = DatetimeIndex([date_str], dayfirst=dayfirst, yearfirst=yearfirst)[0]
+        depr_msg = "keyword in DatetimeIndex is deprecated"
+        warn = Pandas4Warning if dayfirst or yearfirst else None
+        with tm.assert_produces_warning(warn, match=depr_msg):
+            result4 = DatetimeIndex([date_str], dayfirst=dayfirst, yearfirst=yearfirst)[
+                0
+            ]
 
         assert result1 == expected
         assert result3 == expected

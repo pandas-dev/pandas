@@ -18,6 +18,7 @@ from pandas._libs.tslibs import (
     conversion,
     timezones,
 )
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 from pandas import (
@@ -78,38 +79,28 @@ class TestDatetimeIndexTimezones:
         end = Timestamp("201710290300", tz=tz)
         index = date_range(start=start, end=end, freq=freq, unit="ns")
 
-        expected = DatetimeIndex(
-            [
-                "201710290115",
-                "201710290130",
-                "201710290145",
-                "201710290200",
-                "201710290215",
-                "201710290230",
-                "201710290245",
-                "201710290200",
-                "201710290215",
-                "201710290230",
-                "201710290245",
-                "201710290300",
-            ],
-            dtype="M8[ns, Europe/Brussels]",
-            freq=freq,
-            ambiguous=[
-                True,
-                True,
-                True,
-                True,
-                True,
-                True,
-                True,
-                False,
-                False,
-                False,
-                False,
-                False,
-            ],
-        )
+        is_dst = [True] * 7 + [False] * 5
+        msg = "The 'ambiguous' keyword in DatetimeIndex is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            expected = DatetimeIndex(
+                [
+                    "201710290115",
+                    "201710290130",
+                    "201710290145",
+                    "201710290200",
+                    "201710290215",
+                    "201710290230",
+                    "201710290245",
+                    "201710290200",
+                    "201710290215",
+                    "201710290230",
+                    "201710290245",
+                    "201710290300",
+                ],
+                dtype="M8[ns, Europe/Brussels]",
+                freq=freq,
+                ambiguous=is_dst,
+            )
         result = index.drop(index[0])
         tm.assert_index_equal(result, expected)
 
