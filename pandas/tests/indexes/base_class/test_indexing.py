@@ -97,6 +97,57 @@ class TestGetLoc:
             idx.get_loc(NaT)
 
 
+class TestGetIndexerMonotonicAboveSizeCutoff:
+    """GH#14273 get_indexer should avoid building a hash table for large
+    monotonic indices."""
+
+    def test_get_indexer_monotonic_above_size_cutoff(self, monkeypatch):
+        monkeypatch.setattr(libindex, "_SIZE_CUTOFF", 100)
+        idx = Index(range(200))
+
+        target = Index([10, 50, 150, 999])
+        result = idx.get_indexer(target)
+        expected = np.array([10, 50, 150, -1], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
+        # Verify hash table was NOT built
+        assert not idx._engine.is_mapping_populated
+
+    def test_get_indexer_monotonic_above_size_cutoff_datetime(self, monkeypatch):
+        monkeypatch.setattr(libindex, "_SIZE_CUTOFF", 100)
+        dti = pd.date_range("2000-01-01", periods=200)
+
+        target = dti[[5, 100, 199]]
+        result = dti.get_indexer(target)
+        expected = np.array([5, 100, 199], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
+        assert not dti._engine.is_mapping_populated
+
+    def test_get_indexer_monotonic_above_size_cutoff_not_found(self, monkeypatch):
+        monkeypatch.setattr(libindex, "_SIZE_CUTOFF", 100)
+        idx = Index(range(0, 400, 2))  # even numbers only
+
+        target = Index([1, 3, 5])  # odd numbers, not in index
+        result = idx.get_indexer(target)
+        expected = np.array([-1, -1, -1], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
+        assert not idx._engine.is_mapping_populated
+
+    def test_get_indexer_monotonic_above_size_cutoff_mixed(self, monkeypatch):
+        monkeypatch.setattr(libindex, "_SIZE_CUTOFF", 100)
+        idx = Index(range(0, 400, 2))
+
+        # Mix of found and not found, including values beyond the range
+        target = Index([0, 1, 398, 399, -1, 500])
+        result = idx.get_indexer(target)
+        expected = np.array([0, -1, 199, -1, -1, -1], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
+        assert not idx._engine.is_mapping_populated
+
+
 def test_getitem_boolean_ea_indexer():
     # GH#45806
     ser = pd.Series([True, False, pd.NA], dtype="boolean")
