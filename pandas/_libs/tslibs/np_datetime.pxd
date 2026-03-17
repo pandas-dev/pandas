@@ -46,6 +46,9 @@ cdef extern from "pandas/datetime/pd_datetime.h":
                                            NPY_DATETIMEUNIT fr,
                                            npy_datetimestruct *result) nogil
 
+    void set_datetimestruct_days(int64_t days,
+                                 npy_datetimestruct *result) nogil
+
     npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT fr,
                                                 npy_datetimestruct *d) except? -1 nogil
 
