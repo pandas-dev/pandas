@@ -15678,6 +15678,10 @@ class DataFrame(NDFrame, OpsMixin):
         res = df._mgr.reduce(blk_func)
         out = df._constructor_from_mgr(res, axes=res.axes).iloc[0]
         out.name = None
+
+        if self.empty and out.dtype == object:
+            return out
+
         if out_dtype is not None and out.dtype != "boolean":
             out = out.astype(out_dtype)
         elif (df._mgr.get_dtypes() == object).any() and name not in ["any", "all"]:
