@@ -497,7 +497,10 @@ class TestFromRecords:
         msg = "Passing a 2D numpy array to DataFrame.from_records is deprecated"
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             result = DataFrame.from_records(arr, columns=["a", "b", "c"], index="a")
-        expected = DataFrame(arr, columns=["a", "b", "c"]).set_index("a")
+        expected = DataFrame(
+            {"b": arr[:, 1], "c": arr[:, 2]},
+            index=Index(arr[:, 0], name="a"),
+        )
         tm.assert_frame_equal(result, expected)
 
     def test_from_records_ndarray_2d_with_exclude(self):
