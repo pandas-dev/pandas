@@ -10523,7 +10523,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if not hasattr(cond, "__invert__"):
             cond = np.array(cond)
 
-        # ✅ ADD THIS BLOCK
         if isinstance(cond, NDFrame):
             cond = cond.astype(bool)
         else:
