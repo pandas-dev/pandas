@@ -19,6 +19,7 @@ from pandas.compat import (
     WASM,
     is_platform_windows,
 )
+from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 # Usually we wouldn't want this import in this test file (which is targeted at
@@ -60,8 +61,15 @@ def test_parsing_tzlocal_deprecated():
 
 
 def test_parse_datetime_string_with_reso():
-    (parsed, reso) = parse_datetime_string_with_reso("4Q1984")
-    (parsed_lower, reso_lower) = parse_datetime_string_with_reso("4q1984")
+    # GH#50907
+    with tm.assert_produces_warning(
+        Pandas4Warning, match="quarterly string is deprecated"
+    ):
+        (parsed, reso) = parse_datetime_string_with_reso("4Q1984")
+    with tm.assert_produces_warning(
+        Pandas4Warning, match="quarterly string is deprecated"
+    ):
+        (parsed_lower, reso_lower) = parse_datetime_string_with_reso("4q1984")
 
     assert reso == reso_lower
     assert parsed == parsed_lower
@@ -85,8 +93,15 @@ def test_parse_datetime_string_with_reso_invalid_type():
 )
 def test_parse_time_quarter_with_dash(dashed, normal):
     # see gh-9688
-    (parsed_dash, reso_dash) = parse_datetime_string_with_reso(dashed)
-    (parsed, reso) = parse_datetime_string_with_reso(normal)
+    # GH#50907
+    with tm.assert_produces_warning(
+        Pandas4Warning, match="quarterly string is deprecated"
+    ):
+        (parsed_dash, reso_dash) = parse_datetime_string_with_reso(dashed)
+    with tm.assert_produces_warning(
+        Pandas4Warning, match="quarterly string is deprecated"
+    ):
+        (parsed, reso) = parse_datetime_string_with_reso(normal)
 
     assert parsed_dash == parsed
     assert reso_dash == reso
@@ -153,7 +168,11 @@ def test_parsers_quarterly_with_freq_error(date_str, kwargs, msg):
     ],
 )
 def test_parsers_quarterly_with_freq(date_str, freq, expected):
-    result, _ = parsing.parse_datetime_string_with_reso(date_str, freq=freq)
+    # GH#50907
+    with tm.assert_produces_warning(
+        Pandas4Warning, match="quarterly string is deprecated"
+    ):
+        result, _ = parsing.parse_datetime_string_with_reso(date_str, freq=freq)
     assert result == expected
 
 
