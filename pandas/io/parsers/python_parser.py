@@ -31,7 +31,6 @@ from pandas.core.dtypes.common import (
     is_extension_array_dtype,
     is_integer,
     is_numeric_dtype,
-    is_object_dtype,
     is_string_dtype,
     pandas_dtype,
 )
@@ -502,16 +501,6 @@ class PythonParser(ParserBase):
         converted : ndarray or ExtensionArray
         """
         if isinstance(cast_type, CategoricalDtype):
-            known_cats = cast_type.categories is not None
-
-            if not is_object_dtype(values.dtype) and not known_cats:
-                # TODO: this is for consistency with
-                # c-parser which parses all categories
-                # as strings
-                values = lib.ensure_string_array(
-                    values, skipna=False, convert_na_value=False
-                )
-
             cats = Index(values, copy=False).unique().dropna()
             values = Categorical._from_inferred_categories(
                 cats, cats.get_indexer(values), cast_type, true_values=self.true_values
