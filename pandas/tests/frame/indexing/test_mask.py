@@ -11,6 +11,7 @@ from pandas import (
     Series,
     StringDtype,
     Timedelta,
+    array,
     isna,
 )
 import pandas._testing as tm
@@ -155,3 +156,15 @@ def test_mask_inplace_no_other():
     df.mask(cond, inplace=True)
     expected = DataFrame({"a": [np.nan, 2], "b": ["x", np.nan]})
     tm.assert_frame_equal(df, expected)
+
+
+def test_mask_inplace_externsion_array():
+    # GH#64635
+    df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+    ser = Series(array([7, NA, 9]))
+    mask = np.ones(df.shape, dtype=bool)
+    mask[1, :] = False
+    expected = df.mask(df, ser, axis=0)
+    df2 = df.copy()
+    df2.mask(df, ser, axis=0, inplace=True)
+    tm.assert_frame_equal(df2, expected)

@@ -10094,22 +10094,33 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     else:
                         # GH#38729, GH#62038 avoid lossy casting or object-casting
                         if axis == 0:
-                            res_cols = [
-                                self.iloc[:, i]._where(
-                                    cond.iloc[:, i],
+                            res_cols = []
+                            for i in range(self.shape[1]):
+                                col_cond = cond.iloc[:, i]
+
+                                if inplace:
+                                    col_cond = ~col_cond  # undo earlier negation
+
+                                res = self.iloc[:, i]._where(
+                                    col_cond,
                                     other,
                                 )
-                                for i in range(self.shape[1])
-                            ]
+                                res_cols.append(res)
+
                         elif axis == 1:
                             # TODO: can we use a zero-copy alternative to "repeat"?
-                            res_cols = [
-                                self.iloc[:, i]._where(
-                                    cond.iloc[:, i],
+                            res_cols = []
+                            for i in range(self.shape[1]):
+                                col_cond = cond.iloc[:, i]
+
+                                if inplace:
+                                    col_cond = ~col_cond  # same fix
+
+                                res = self.iloc[:, i]._where(
+                                    col_cond,
                                     other[i : i + 1].repeat(len(self)),
                                 )
-                                for i in range(self.shape[1])
-                            ]
+                                res_cols.append(res)
                         res = self._constructor(dict(enumerate(res_cols)))
                         res.index = self.index
                         res.columns = self.columns
@@ -10511,6 +10522,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # see gh-21891
         if not hasattr(cond, "__invert__"):
             cond = np.array(cond)
+
+        # ✅ ADD THIS BLOCK
+        if isinstance(cond, NDFrame):
+            cond = cond.astype(bool)
+        else:
+            cond = np.asarray(cond).astype(bool)
 
         return self._where(
             ~cond,
