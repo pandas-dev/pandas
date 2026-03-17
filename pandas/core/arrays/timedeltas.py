@@ -374,9 +374,8 @@ class TimedeltaArray(dtl.TimelikeOps):
             if is_supported_dtype(dtype):
                 # unit conversion e.g. timedelta64[s]
                 res_values = astype_overflowsafe(self._ndarray, dtype, copy=False)
-                return type(self)._simple_new(
-                    res_values, dtype=res_values.dtype, freq=self.freq
-                )
+                # freq is pinned by TimedeltaIndex
+                return type(self)._simple_new(res_values, dtype=res_values.dtype)
             else:
                 raise ValueError(
                     f"Cannot convert from {self.dtype} to {dtype}. "

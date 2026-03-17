@@ -145,8 +145,9 @@ class TestTimedeltaIndex:
         tm.assert_index_equal(res, expected)
 
         # check this matches Series and TimedeltaArray
+        # array-level astype does not preserve freq (freq is an Index concern)
         res = tdi._data.astype("m8[s]")
-        tm.assert_equal(res, expected._values)
+        tm.assert_equal(res, expected._values._with_freq(None))
 
         res = tdi.to_series().astype("m8[s]")
         tm.assert_equal(res._values, expected._values._with_freq(None))

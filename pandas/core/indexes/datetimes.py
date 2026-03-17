@@ -326,6 +326,18 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         arr = self._data.strftime(date_format)
         return Index(arr, name=self.name, dtype=arr.dtype, copy=False)
 
+    def astype(self, dtype, copy: bool = True):
+        freq = self._data.freq
+        result = super().astype(dtype, copy=copy)
+        # tz-aware unit conversion preserves freq
+        if (
+            freq is not None
+            and isinstance(result, type(self))
+            and result.tz is not None
+        ):
+            result._data._freq = freq
+        return result
+
     def tz_convert(self, tz) -> Self:
         """
         Convert tz-aware Datetime Array/Index from one time zone to another.

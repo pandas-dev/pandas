@@ -226,6 +226,13 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
             return dtype.kind == "m"
         return lib.is_np_dtype(dtype, "m")  # aka self._data._is_recognized_dtype
 
+    def astype(self, dtype, copy: bool = True):
+        freq = self._data.freq
+        result = super().astype(dtype, copy=copy)
+        if freq is not None and isinstance(result, type(self)):
+            result._data._freq = freq
+        return result
+
     # -------------------------------------------------------------------
     # Indexing Methods
 

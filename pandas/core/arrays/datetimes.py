@@ -730,7 +730,8 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                 # tzaware unit conversion e.g. datetime64[s, UTC]
                 np_dtype = np.dtype(dtype.str)
                 res_values = astype_overflowsafe(self._ndarray, np_dtype, copy=copy)
-                return type(self)._simple_new(res_values, dtype=dtype, freq=self.freq)
+                # freq is pinned by DatetimeIndex
+                return type(self)._simple_new(res_values, dtype=dtype)
 
         elif (
             self.tz is None
