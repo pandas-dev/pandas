@@ -582,11 +582,15 @@ class ArrowExtensionArray(
         ----------
         value : Sequence
         pa_type : pa.DataType | None
+        copy : bool, default False
 
         Returns
         -------
         pa.Array or pa.ChunkedArray
         """
+        import pyarrow as pa
+        import numpy as np
+
         value = extract_array(value, extract_numpy=True)
         if isinstance(value, cls):
             pa_array = value._pa_array
@@ -677,6 +681,19 @@ class ArrowExtensionArray(
                 arr_value = np.asarray(value, dtype=object)
                 # similar to isna(value) but exclude NaN, NaT, nat-like, nan-like
                 mask = is_pdna_or_none(arr_value)
+
+            # --- START OF FIX GH#64578 ---
+            # If we have masked values (like NaNs), PyArrow's type inference
+            # for strings/bytes will fail if it encounters a float-based NaN.
+            # We normalize masked values to 'None' for PyArrow compatibility.
+            if mask is not None and mask.any():
+                if isinstance(value, np.ndarray):
+                    # Efficiently replace NaNs with None for Arrow
+                    value = np.where(mask, None, value).tolist()
+                elif isinstance(value, (list, tuple)):
+                    # Defensive zip; strict=True ensures equal length sequences
+                    value = [None if m else v for v, m in zip(value, mask, strict=True)]
+            # --- END OF FIX ---
 
             try:
                 pa_array = pa.array(value, type=pa_type, mask=mask)
