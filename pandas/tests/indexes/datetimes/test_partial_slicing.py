@@ -5,6 +5,8 @@ from datetime import datetime
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas import (
     DataFrame,
     DatetimeIndex,
@@ -186,18 +188,29 @@ class TestSlicing:
         dti = date_range("2019-12-31 23:59:55.999999999", periods=10, freq="s")
 
         ser = Series(range(10), index=dti)
-        result = ser[partial_dtime]
+        # GH#50907
+        warn = Pandas4Warning if "Q" in partial_dtime else None
+        msg = "quarterly string is deprecated" if warn else ""
+        with tm.assert_produces_warning(warn, match=msg):
+            result = ser[partial_dtime]
         expected = ser.iloc[:5]
         tm.assert_series_equal(result, expected)
 
     def test_slice_quarter(self):
+        # GH#50907
         dti = date_range(freq="D", start=datetime(2000, 6, 1), periods=500)
 
         s = Series(np.arange(len(dti)), index=dti)
-        assert len(s["2001Q1"]) == 90
+        with tm.assert_produces_warning(
+            Pandas4Warning, match="quarterly string is deprecated"
+        ):
+            assert len(s["2001Q1"]) == 90
 
         df = DataFrame(np.random.default_rng(2).random((len(dti), 5)), index=dti)
-        assert len(df.loc["1Q01"]) == 90
+        with tm.assert_produces_warning(
+            Pandas4Warning, match="quarterly string is deprecated"
+        ):
+            assert len(df.loc["1Q01"]) == 90
 
     def test_slice_month(self):
         dti = date_range(freq="D", start=datetime(2005, 1, 1), periods=500)

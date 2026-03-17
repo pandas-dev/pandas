@@ -28,6 +28,7 @@ from pandas.compat import (
 from pandas.errors import (
     OutOfBoundsDatetime,
     OutOfBoundsTimedelta,
+    Pandas4Warning,
 )
 import pandas.util._test_decorators as td
 
@@ -3056,23 +3057,37 @@ class TestDatetimeParsingWrappers:
         # https://github.com/dateutil/dateutil/issues/217
         yearfirst = True
 
-        result1, reso_attrname = parsing.parse_datetime_string_with_reso(
-            date_str, yearfirst=yearfirst
-        )
+        # GH#50907
+        is_quarter = "Q" in date_str.upper()
+        warn = Pandas4Warning if is_quarter else None
+        msg = "quarterly string is deprecated" if is_quarter else ""
+
+        with tm.assert_produces_warning(warn, match=msg):
+            result1, reso_attrname = parsing.parse_datetime_string_with_reso(
+                date_str, yearfirst=yearfirst
+            )
 
         reso = {
             "nanosecond": "ns",
         }.get(reso_attrname, "us")
-        result2 = to_datetime(date_str, yearfirst=yearfirst)
-        result3 = to_datetime([date_str], yearfirst=yearfirst)
+        with tm.assert_produces_warning(warn, match=msg):
+            result2 = to_datetime(date_str, yearfirst=yearfirst)
+        with tm.assert_produces_warning(warn, match=msg):
+            result3 = to_datetime([date_str], yearfirst=yearfirst)
         # result5 is used below
-        result4 = to_datetime(
-            np.array([date_str], dtype=object), yearfirst=yearfirst, cache=cache
-        )
-        result6 = DatetimeIndex([date_str], yearfirst=yearfirst)
+        with tm.assert_produces_warning(warn, match=msg):
+            result4 = to_datetime(
+                np.array([date_str], dtype=object),
+                yearfirst=yearfirst,
+                cache=cache,
+            )
+        with tm.assert_produces_warning(warn, match=msg):
+            result6 = DatetimeIndex([date_str], yearfirst=yearfirst)
         # result7 is used below
-        result8 = DatetimeIndex(Index([date_str]), yearfirst=yearfirst)
-        result9 = DatetimeIndex(Series([date_str]), yearfirst=yearfirst)
+        with tm.assert_produces_warning(warn, match=msg):
+            result8 = DatetimeIndex(Index([date_str]), yearfirst=yearfirst)
+        with tm.assert_produces_warning(warn, match=msg):
+            result9 = DatetimeIndex(Series([date_str]), yearfirst=yearfirst)
 
         for res in [result1, result2]:
             assert res == expected

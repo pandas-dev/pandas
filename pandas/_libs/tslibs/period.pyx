@@ -3163,7 +3163,9 @@ class Period(_Period):
 
             freqstr = freq.rule_code if freq is not None else None
             try:
-                dt, reso = parse_datetime_string_with_reso(value, freqstr)
+                dt, reso = parse_datetime_string_with_reso(
+                    value, freqstr, warn_quarter=False,
+                )
             except ValueError as err:
                 match = re.search(r"^\d{4}-\d{2}-\d{2}/\d{4}-\d{2}-\d{2}", value)
                 if match:

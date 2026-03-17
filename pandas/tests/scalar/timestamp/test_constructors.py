@@ -444,7 +444,11 @@ class TestTimestampResolutionInference:
         assert ts.unit == "us"
 
         # _parse_dateabbr_string path
-        ts = Timestamp("2015Q1")
+        # GH#50907
+        with tm.assert_produces_warning(
+            Pandas4Warning, match="quarterly string is deprecated"
+        ):
+            ts = Timestamp("2015Q1")
         assert ts.unit == "us"
 
         # dateutil_parse path
