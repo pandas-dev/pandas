@@ -2245,3 +2245,9 @@ def test_mixed_col_index_dtype(string_dtype_no_object):
     expected.columns = expected.columns.astype(string_dtype_no_object)
 
     tm.assert_frame_equal(result, expected)
+
+
+def test_add_mixed_empty():
+    empty_df = DataFrame(columns=["col1", "col2"]).astype({"col1": str, "col2": int})
+    expected_output = Series({"col1": "", "col2": 0}, dtype=object)
+    tm.assert_series_equal(empty_df.sum(), expected_output)
