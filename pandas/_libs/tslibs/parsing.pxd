@@ -13,4 +13,5 @@ cdef datetime parse_datetime_string(
     bint yearfirst,
     NPY_DATETIMEUNIT* out_bestunit,
     int64_t* nanos,
+    bint* out_is_quarter=*,
 )
