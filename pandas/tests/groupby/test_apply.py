@@ -181,7 +181,9 @@ def test_group_apply_once_per_group(df, group_names):
     for func in [f_copy, f_nocopy, f_scalar, f_none, f_constant_df]:
         del names[:]
 
-        df.groupby("a").apply(func)
+        msg = "Pinning the group key"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df.groupby("a").apply(func)
         assert names == group_names
 
 
@@ -1449,7 +1451,10 @@ def test_inconsistent_return_type():
             return None
         return grp.iloc[0]
 
-    result = df.groupby("A").apply(f_1)[["B"]]
+    # GH#41090 - name pinning is deprecated
+    msg = "Pinning the group key"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = df.groupby("A").apply(f_1)[["B"]]
     e = expected.copy()
     e.loc["Tiger"] = np.nan
     tm.assert_frame_equal(result, e)
@@ -1459,7 +1464,8 @@ def test_inconsistent_return_type():
             return None
         return grp.iloc[0]
 
-    result = df.groupby("A").apply(f_2)[["B"]]
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = df.groupby("A").apply(f_2)[["B"]]
     e = expected.copy()
     e.loc["Pony"] = np.nan
     tm.assert_frame_equal(result, e)
@@ -1470,7 +1476,8 @@ def test_inconsistent_return_type():
             return None
         return grp.iloc[0]
 
-    result = df.groupby("A").apply(f_3)[["C"]]
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = df.groupby("A").apply(f_3)[["C"]]
     e = df.groupby("A").first()[["C"]]
     e.loc["Pony"] = pd.NaT
     tm.assert_frame_equal(result, e)
@@ -1481,7 +1488,8 @@ def test_inconsistent_return_type():
             return None
         return grp.iloc[0].loc["C"]
 
-    result = df.groupby("A").apply(f_4)
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = df.groupby("A").apply(f_4)
     e = df.groupby("A").first()["C"].copy()
     e.loc["Pony"] = np.nan
     e.name = None

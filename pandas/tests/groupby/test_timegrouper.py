@@ -11,6 +11,7 @@ from datetime import (
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -608,7 +609,12 @@ class TestGroupBy:
 
     def test_groupby_multi_timezone(self):
         # combining multiple / different timezones yields UTC
+<<<<<<< HEAD
         df = pd.DataFrame(
+=======
+        # GH#41090 - name pinning is deprecated
+        df = DataFrame(
+>>>>>>> 92b33ade2fb (DEPR: pinning group key to name attribute in groupby UDFs)
             {
                 "value": range(5),
                 "date": [
@@ -628,9 +634,11 @@ class TestGroupBy:
             }
         )
 
-        result = df.groupby("tz", group_keys=False).date.apply(
-            lambda x: pd.to_datetime(x).dt.tz_localize(x.name)
-        )
+        msg = "Pinning the group key"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = df.groupby("tz", group_keys=False).date.apply(
+                lambda x: pd.to_datetime(x).dt.tz_localize(x.name)
+            )
 
         expected = pd.Series(
             [

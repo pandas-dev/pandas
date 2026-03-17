@@ -1454,12 +1454,15 @@ def test_set_group_name(df, grouper):
 
     grouped = df.groupby(grouper, group_keys=False)
 
-    # make sure all these work
-    grouped.apply(f)
+    # GH#41090 - DataFrame groups trigger deprecation for name pinning
+    msg = "Pinning the group key"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        grouped.apply(f)
     grouped.aggregate(freduce)
     grouped.aggregate({"C": freduce, "D": freduce})
     grouped.transform(f)
 
+    # Series groups - .name already exists (column name), no deprecation warning
     grouped["C"].apply(f)
     grouped["C"].aggregate(freduce)
     grouped["C"].aggregate([freduce, freducex])
@@ -1468,7 +1471,12 @@ def test_set_group_name(df, grouper):
 
 def test_group_name_available_in_inference_pass():
     # gh-15062
+<<<<<<< HEAD
     df = pd.DataFrame({"a": [0, 0, 1, 1, 2, 2], "b": np.arange(6)})
+=======
+    # GH#41090 - name pinning is deprecated
+    df = DataFrame({"a": [0, 0, 1, 1, 2, 2], "b": np.arange(6)})
+>>>>>>> 92b33ade2fb (DEPR: pinning group key to name attribute in groupby UDFs)
 
     names = []
 
@@ -1476,7 +1484,9 @@ def test_group_name_available_in_inference_pass():
         names.append(group.name)
         return group.copy()
 
-    df.groupby("a", sort=False, group_keys=False).apply(f)
+    msg = "Pinning the group key"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        df.groupby("a", sort=False, group_keys=False).apply(f)
     expected_names = [0, 1, 2]
     assert names == expected_names
 
