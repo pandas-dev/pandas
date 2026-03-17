@@ -43,9 +43,13 @@ def test_categorical_dtype(all_parsers, dtype):
 1,a,3.4
 1,a,3.4
 2,b,4.5"""
-    expected = parser.read_csv(StringIO(data))
-    for col in expected.columns:
-        expected[col] = expected[col].astype("category")
+    expected = DataFrame(
+        {
+            "a": Categorical([1, 1, 2]),
+            "b": Categorical(["a", "a", "b"]),
+            "c": Categorical([3.4, 3.4, 4.5]),
+        }
+    )
     actual = parser.read_csv(StringIO(data), dtype=dtype)
     tm.assert_frame_equal(actual, expected)
 
@@ -78,9 +82,13 @@ def test_categorical_dtype_unsorted(all_parsers):
 1,b,3.4
 1,b,3.4
 2,a,4.5"""
-    expected = parser.read_csv(StringIO(data))
-    for col in expected.columns:
-        expected[col] = expected[col].astype("category")
+    expected = DataFrame(
+        {
+            "a": Categorical([1, 1, 2]),
+            "b": Categorical(["b", "b", "a"]),
+            "c": Categorical([3.4, 3.4, 4.5]),
+        }
+    )
     actual = parser.read_csv(StringIO(data), dtype="category")
     tm.assert_frame_equal(actual, expected)
 
@@ -92,9 +100,13 @@ def test_categorical_dtype_missing(all_parsers):
 1,b,3.4
 1,nan,3.4
 2,a,4.5"""
-    expected = parser.read_csv(StringIO(data))
-    for col in expected.columns:
-        expected[col] = expected[col].astype("category")
+    expected = DataFrame(
+        {
+            "a": Categorical([1, 1, 2]),
+            "b": Categorical(["b", np.nan, "a"]),
+            "c": Categorical([3.4, 3.4, 4.5]),
+        }
+    )
     actual = parser.read_csv(StringIO(data), dtype="category")
     tm.assert_frame_equal(actual, expected)
 
@@ -107,12 +119,8 @@ def test_categorical_dtype_high_cardinality_numeric(all_parsers, monkeypatch):
     heuristic = 2**5
     data = np.sort([str(i) for i in range(heuristic + 1)])
     csv_data = "a\n" + "\n".join(data)
-    expected = parser.read_csv(StringIO(csv_data))
-    expected["a"] = (
-        expected["a"]
-        .astype("category")
-        .cat.reorder_categories(np.sort(expected["a"].unique()), ordered=True)
-    )
+    int_data = np.array([int(x) for x in data])
+    expected = DataFrame({"a": Categorical(int_data, ordered=True)})
     with monkeypatch.context() as m:
         m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", heuristic)
         actual = parser.read_csv(StringIO(csv_data), dtype="category")

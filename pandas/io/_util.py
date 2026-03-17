@@ -324,18 +324,16 @@ def _normalize_timezone_dtypes(df: pd.DataFrame) -> pd.DataFrame:
     # GH#56136 IntegerDtype was used to avoid lossy float64 conversion
     # in pyarrow, convert back to numpy now that data is categorical
     if dtype_backend is lib.no_default or dtype_backend == "numpy":
-        cmp_int_dtypes = {
-            pd.Int8Dtype(),
-            pd.Int16Dtype(),
-            pd.Int32Dtype(),
-            pd.Int64Dtype(),
-        }
+        from pandas.core.arrays.integer import IntegerDtype as _IntDtype
+
         for col, col_dtype in zip(df.columns, df.dtypes, strict=True):
             if isinstance(col_dtype, pd.CategoricalDtype):
-                cat_dtype = col_dtype.categories.dtype
-                if cat_dtype in cmp_int_dtypes:
+                cat_arr_dtype = col_dtype.categories.dtype
+                if isinstance(cat_arr_dtype, _IntDtype):
                     new_cat_dtype = pd.CategoricalDtype(
-                        categories=col_dtype.categories.astype(cat_dtype.numpy_dtype),
+                        categories=col_dtype.categories.astype(
+                            cat_arr_dtype.numpy_dtype
+                        ),
                         ordered=col_dtype.ordered,
                     )
                     df[col] = df[col].astype(new_cat_dtype)

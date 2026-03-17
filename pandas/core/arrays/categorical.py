@@ -693,8 +693,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             # GH#56044 - Infer proper types for categories (e.g., "1" -> 1,
             # "3.4" -> 3.4) when categories are not explicitly provided.
             # This ensures consistent behavior across all CSV parser engines.
-            converted = to_numeric(cats, errors="coerce")
-            if not isna(converted).any():
+            try:
+                converted = to_numeric(cats, errors="raise")
+            except (ValueError, TypeError):
+                pass
+            else:
                 cats = Index(converted, copy=False)
 
         if known_categories:
