@@ -685,6 +685,14 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             isinstance(dtype, CategoricalDtype) and dtype.categories is not None
         )
 
+        if not known_categories and cats.dtype.kind == "O":
+            # GH#56044 - Infer proper types for categories (e.g., "1" -> 1,
+            # "3.4" -> 3.4) when categories are not explicitly provided.
+            # This ensures consistent behavior across all CSV parser engines.
+            converted = to_numeric(cats, errors="coerce")
+            if not isna(converted).any():
+                cats = Index(converted, copy=False)
+
         if known_categories:
             # Convert to a specialized type with `dtype` if specified.
             if is_any_real_numeric_dtype(dtype.categories.dtype):
