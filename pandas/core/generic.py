@@ -27,6 +27,7 @@ import warnings
 import numpy as np
 
 from pandas._config import config
+from pandas._config.config import _global_config
 
 from pandas._libs import lib
 from pandas._libs.lib import is_range_indexer
@@ -2125,7 +2126,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Returns a LaTeX representation for a particular object.
         Mainly for use with nbconvert (jupyter notebook conversion to pdf).
         """
-        if config.get_option("styler.render.repr") == "latex":
+        if _global_config["styler"]["render"]["repr"] == "latex":
             return self.to_latex()
         else:
             return None
@@ -2136,8 +2137,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Not a real Jupyter special repr method, but we use the same
         naming convention.
         """
-        if config.get_option("display.html.table_schema"):
-            data = self.head(config.get_option("display.max_rows"))
+        if _global_config["display"]["html"]["table_schema"]:
+            data = self.head(_global_config["display"]["max_rows"])
 
             as_json = data.to_json(orient="table")
             as_json = cast("str", as_json)
@@ -3559,15 +3560,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if self.ndim == 1:
             self = self.to_frame()
         if longtable is None:
-            longtable = config.get_option("styler.latex.environment") == "longtable"
+            longtable = _global_config["styler"]["latex"]["environment"] == "longtable"
         if escape is None:
-            escape = config.get_option("styler.format.escape") == "latex"
+            escape = _global_config["styler"]["format"]["escape"] == "latex"
         if multicolumn is None:
-            multicolumn = config.get_option("styler.sparse.columns")
+            multicolumn = _global_config["styler"]["sparse"]["columns"]
         if multicolumn_format is None:
-            multicolumn_format = config.get_option("styler.latex.multicol_align")
+            multicolumn_format = _global_config["styler"]["latex"]["multicol_align"]
         if multirow is None:
-            multirow = config.get_option("styler.sparse.index")
+            multirow = _global_config["styler"]["sparse"]["index"]
 
         if column_format is not None and not isinstance(column_format, str):
             raise ValueError("`column_format` must be str or unicode")

@@ -17,7 +17,7 @@ import warnings
 import numpy as np
 
 from pandas._config import using_string_dtype
-from pandas._config.config import get_option
+from pandas._config.config import _global_config
 
 from pandas._libs import (
     lib,
@@ -853,7 +853,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                 # expected "dtype[Any] | _HasDType[dtype[Any]]"  [arg-type]
                 res_values = res_values.view(values.dtype)  # type: ignore[arg-type]
         except NotImplementedError:
-            if get_option("performance_warnings"):
+            if _global_config["mode"]["performance_warnings"]:
                 warnings.warn(
                     "Non-vectorized DateOffset being applied to Series or "
                     "DatetimeIndex.",

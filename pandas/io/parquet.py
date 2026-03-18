@@ -15,6 +15,8 @@ from warnings import (
     filterwarnings,
 )
 
+from pandas._config.config import _global_config
+
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import (
@@ -24,10 +26,7 @@ from pandas.errors import (
 from pandas.util._decorators import set_module
 from pandas.util._validators import check_dtype_backend
 
-from pandas import (
-    DataFrame,
-    get_option,
-)
+from pandas import DataFrame
 
 from pandas.io._util import arrow_table_to_pandas
 from pandas.io.common import (
@@ -52,7 +51,7 @@ if TYPE_CHECKING:
 def get_engine(engine: str) -> BaseImpl:
     """return our implementation"""
     if engine == "auto":
-        engine = get_option("io.parquet.engine")
+        engine = _global_config["io"]["parquet"]["engine"]
 
     if engine == "auto":
         # try engines in this order

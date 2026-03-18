@@ -13,10 +13,10 @@ def get_console_size() -> tuple[int | None, int | None]:
 
     Returns (None,None) in non-interactive session.
     """
-    from pandas import get_option
+    from pandas._config.config import _global_config
 
-    display_width = get_option("display.width")
-    display_height = get_option("display.max_rows")
+    display_width = _global_config["display"]["width"]
+    display_height = _global_config["display"]["max_rows"]
 
     # Consider
     # interactive shell terminal, can detect term size
@@ -61,14 +61,16 @@ def in_interactive_session() -> bool:
     bool
         True if running under python/ipython interactive shell.
     """
-    from pandas import get_option
+    from pandas._config.config import _global_config
 
     def check_main() -> bool:
         try:
             import __main__ as main
         except ModuleNotFoundError:
-            return get_option("mode.sim_interactive")
-        return not hasattr(main, "__file__") or get_option("mode.sim_interactive")
+            return _global_config["mode"]["sim_interactive"]
+        return (
+            not hasattr(main, "__file__") or _global_config["mode"]["sim_interactive"]
+        )
 
     try:
         # error: Name '__IPYTHON__' is not defined
