@@ -382,7 +382,7 @@ cdef class IndexEngine:
             self.over_size_threshold
             and self.is_monotonic_increasing
             and self.is_unique
-            and n_values < (n_self / (2 * (<object>n_self).bit_length()))
+            and n_values < (n_self / (2 * n_self.bit_length()))
         ):
             # GH#14273 avoid building a hash table for large monotonic indices;
             # use vectorized binary search instead.  The target count threshold
@@ -1249,7 +1249,7 @@ cdef class MaskedIndexEngine(IndexEngine):
             self.over_size_threshold
             and self.is_monotonic_increasing
             and self.is_unique
-            and n_values < (n_self / (2 * (<object>n_self).bit_length()))
+            and n_values < (n_self / (2 * n_self.bit_length()))
         ):
             # GH#14273 avoid building a hash table for large monotonic indices.
             # NAs in self.mask break monotonicity, so we only get here when
