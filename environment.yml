@@ -14,7 +14,7 @@ dependencies:
 
   # test dependencies
   - pytest>=8.3.4
-  - coverage
+  - pytest-cov
   - pytest-xdist>=3.6.1
   - pytest-qt>=4.4.0
   - pytest-localserver

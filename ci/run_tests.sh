@@ -6,7 +6,9 @@
 PYTHONHASHSEED=$(python -c 'import random; print(random.randint(1, 4294967295))')
 export PYTHONHASHSEED
 
-PYTEST_CMD="MESONPY_EDITABLE_VERBOSE=1 PYTHONDEVMODE=1 PYTHONWARNDEFAULTENCODING=1 pytest -r fE -n $PYTEST_WORKERS --dist=worksteal $PYTEST_TARGET"
+COVERAGE="-s --cov=pandas --cov-report=xml --cov-append --cov-config=pyproject.toml"
+
+PYTEST_CMD="MESONPY_EDITABLE_VERBOSE=1 PYTHONDEVMODE=1 PYTHONWARNDEFAULTENCODING=1 pytest -r fE -n $PYTEST_WORKERS --dist=worksteal $COVERAGE $PYTEST_TARGET"
 
 if [[ "$PATTERN" ]]; then
   PYTEST_CMD="$PYTEST_CMD -m \"$PATTERN\""

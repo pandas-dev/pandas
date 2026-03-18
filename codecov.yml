@@ -9,7 +9,6 @@ coverage:
     project:
       default:
         target: '82'
-        informational: true
     patch:
       default:
         target: '50'
