@@ -441,6 +441,28 @@ class TestFrameFlexComparisons:
         exp = DataFrame({"col": [False, True, False]})
         tm.assert_frame_equal(result, exp)
 
+    def test_bool_flex_frame_none_raises(self):
+        x = Series([None], dtype=object)
+        y = Series([0])
+        X = x.to_frame()
+        Y = y.to_frame()
+
+        msg = r"'>' not supported between instances of 'NoneType' and 'int'"
+        with pytest.raises(TypeError, match=msg):
+            X > Y
+        with pytest.raises(TypeError, match=msg):
+            X.gt(Y)
+        with pytest.raises(TypeError, match=msg):
+            X.gt(y)
+        with pytest.raises(TypeError, match=msg):
+            X.gt(0)
+        with pytest.raises(TypeError, match=msg):
+            X > y
+        with pytest.raises(TypeError, match=msg):
+            X > 0
+        with pytest.raises(TypeError, match=msg):
+            y < X
+
     def test_flex_comparison_nat(self):
         # GH 15697, GH 22163 df.eq(pd.NaT) should behave like df == pd.NaT,
         # and _definitely_ not be NaN

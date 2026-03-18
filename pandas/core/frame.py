@@ -94,6 +94,7 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_iterator,
     is_list_like,
+    is_object_dtype,
     is_scalar,
     is_sequence,
     is_string_dtype,
@@ -8987,6 +8988,7 @@ class DataFrame(NDFrame, OpsMixin):
         axis: Literal[1] = 1  # only relevant for Series other case
 
         self, other = self._align_for_op(other, axis, flex=False, level=None)
+        self._maybe_raise_on_cmp_with_none(other, op, axis=axis)
 
         # See GH#4537 for discussion of scalar op behavior
         new_data = self._dispatch_frame_op(other, op, axis=axis)
@@ -9075,6 +9077,41 @@ class DataFrame(NDFrame, OpsMixin):
         return type(self)._from_arrays(
             arrays, self.columns, self.index, verify_integrity=False
         )
+
+    def _maybe_raise_on_cmp_with_none(
+        self, other, op: Callable, axis: AxisInt | None
+    ) -> None:
+        op_name = op.__name__.strip("_").lstrip("r")
+        if op_name not in {"gt", "ge", "lt", "le"}:
+            return
+
+        if not any(is_object_dtype(left.dtype) for left in self._iter_column_arrays()):
+            return
+
+        for i, left in enumerate(self._iter_column_arrays()):
+            if not is_object_dtype(left.dtype):
+                continue
+
+            for j, val in enumerate(left):
+                if val is not None:
+                    continue
+
+                if isinstance(other, DataFrame):
+                    right = other.iat[j, i]
+                    if isinstance(right, np.generic):
+                        right = right.item()
+                    op(val, right)
+                elif isinstance(other, Series):
+                    right = other.iat[i] if axis == 1 else other.iat[j]
+                    if isinstance(right, np.generic):
+                        right = right.item()
+                    op(val, right)
+                else:
+                    if isna(other):
+                        return
+                    op(val, other)
+
+                return
 
     def _combine_frame(self, other: DataFrame, func, fill_value=None):
         # at this point we have `self._indexed_same(other)`
@@ -9434,6 +9471,7 @@ class DataFrame(NDFrame, OpsMixin):
         axis = self._get_axis_number(axis) if axis is not None else 1
 
         self, other = self._align_for_op(other, axis, flex=True, level=level)
+        self._maybe_raise_on_cmp_with_none(other, op, axis=axis)
 
         new_data = self._dispatch_frame_op(other, op, axis=axis)
         return self._construct_result(new_data, other=other)
