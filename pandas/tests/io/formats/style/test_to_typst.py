@@ -100,8 +100,6 @@ def test_hide_index():
     df = DataFrame({"A": [1, 2], "B": [3, 4]})
     result = Styler(df).hide(axis="index").to_typst()
 
-    print(result)
-
     expected = dedent(
         """\
     #table(
