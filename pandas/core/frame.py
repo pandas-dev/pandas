@@ -15722,16 +15722,27 @@ class DataFrame(NDFrame, OpsMixin):
                     [block.values.dtype for block in df._mgr.blocks]
                 )
                 # GH#51474: block-wise axis=1 reduction avoiding expensive
-                # transpose for numpy-backed blocks.
+                # transpose for numpy-backed and 2D EA blocks.
                 if (
                     name in ("sum", "prod", "min", "max", "any", "all")
                     and len(df._mgr.blocks) > 1
                     and all(
-                        isinstance(bv, np.ndarray) and bv.dtype.kind != "O"
+                        (isinstance(bv, np.ndarray) and bv.dtype.kind != "O")
+                        or (
+                            isinstance(bv, ExtensionArray)
+                            and bv.ndim == 2
+                            and name in ("min", "max")
+                            and skipna
+                        )
                         for bv in (block.values for block in df._mgr.blocks)
                     )
                 ):
-                    return df._reduce_axis1(name, op, skipna=skipna, **kwds)
+                    return df._reduce_axis1(
+                        name,
+                        op,
+                        skipna=skipna,
+                        min_count=kwds.get("min_count", 0),
+                    )
                 if isinstance(dtype, ExtensionDtype):
                     # GH 54341: fastpath for EA-backed axis=1 reductions
                     # This flattens the frame into a single 1D array while keeping
@@ -15769,7 +15780,9 @@ class DataFrame(NDFrame, OpsMixin):
 
         return out
 
-    def _reduce_axis1(self, name: str, func, skipna: bool, **kwargs) -> Series:
+    def _reduce_axis1(
+        self, name: str, func, skipna: bool, min_count: int = 0
+    ) -> Series:
         """
         Special case for _reduce to try to avoid a potentially-expensive transpose.
 
@@ -15802,11 +15815,17 @@ class DataFrame(NDFrame, OpsMixin):
         else:
             raise NotImplementedError(name)
 
-        for blocks in self._mgr.blocks:
-            if name in ("sum", "prod"):
-                middle = func(blocks.values, axis=0, skipna=skipna, min_count=0)
+        for block in self._mgr.blocks:
+            vals = block.values
+            if name in ("min", "max"):
+                middle = ufunc.reduce(vals, axis=0)
+            elif name in ("sum", "prod"):
+                # min_count=0 here so each block produces a result;
+                # the actual min_count threshold is applied across
+                # all blocks after the loop.
+                middle = func(vals, axis=0, skipna=skipna, min_count=0)
             else:
-                middle = func(blocks.values, axis=0, skipna=skipna)
+                middle = func(vals, axis=0, skipna=skipna)
             if result is None:
                 result = middle.copy()
             else:
@@ -15814,7 +15833,6 @@ class DataFrame(NDFrame, OpsMixin):
 
         # Handle min_count for sum/prod
         if name in ("sum", "prod"):
-            min_count = kwargs.get("min_count", 0)
             if min_count > 0 and result is not None:
                 non_null_count = np.zeros(len(self), dtype=np.intp)
                 for block in self._mgr.blocks:
