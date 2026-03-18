@@ -454,6 +454,8 @@ filterwarnings = [
   "ignore:Bitwise inversion:DeprecationWarning",
   # Raised by coverage in PY3.14+ (coverage.exceptions.CoverageWarning)
   "ignore:Plugin file tracers",
+  # Raised by coverage in freethreading
+  "ignore:Couldn't import C tracer",
   # Remove 2 below when pyarrow version > ??
   "ignore:make_block is deprecated and will be removed in a future version:pandas.errors.Pandas4Warning:pyarrow",
   "ignore:DatetimeTZBlock is deprecated and will be removed in a future version:pandas.errors.Pandas4Warning:pyarrow",
