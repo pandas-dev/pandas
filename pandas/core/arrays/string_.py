@@ -1078,7 +1078,11 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
     ) -> Scalar:
         nv.validate_sum((), kwargs)
         result = masked_reductions.sum(
-            values=self._ndarray, mask=self.isna(), skipna=skipna
+            values=self._ndarray,
+            mask=self.isna(),
+            skipna=skipna,
+            min_count=min_count,
+            initial="",
         )
         return self._wrap_reduction_result(axis, result)
 
