@@ -30,9 +30,14 @@ class TestObjectComparisons:
 
         func = comparison_op
 
-        result = func(ser, shifted)
-        expected = func(ser.astype(float), shifted.astype(float))
-        tm.assert_series_equal(result, expected)
+        if func in {operator.eq, operator.ne}:
+            result = func(ser, shifted)
+            expected = func(ser.astype(float), shifted.astype(float))
+            tm.assert_series_equal(result, expected)
+        else:
+            msg = "not supported between instances of"
+            with pytest.raises(TypeError, match=msg):
+                func(ser, shifted)
 
     @pytest.mark.parametrize(
         "infer_string", [False, pytest.param(True, marks=td.skip_if_no("pyarrow"))]
