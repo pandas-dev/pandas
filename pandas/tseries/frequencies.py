@@ -153,16 +153,16 @@ def infer_freq(
     """
     Infer the most likely frequency given the input index.
 
-    This method attempts to deduce the most probable frequency (e.g., 'D' for daily,
-    'H' for hourly) from a sequence of datetime-like objects. It is particularly useful
-    when the frequency of a time series is not explicitly set or known but can be
-    inferred from its values.
-
     .. deprecated:: 3.1.0
         A future version of pandas will return a :class:`BaseOffset` instead of
         a string. Use
         ``pd.set_option('future.infer_freq_returns_offset', True)`` to opt in
         to the future behavior.
+
+    This method attempts to deduce the most probable frequency (e.g., 'D' for daily,
+    'H' for hourly) from a sequence of datetime-like objects. It is particularly useful
+    when the frequency of a time series is not explicitly set or known but can be
+    inferred from its values.
 
     Parameters
     ----------

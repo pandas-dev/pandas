@@ -1058,14 +1058,14 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         """
         Return the inferred frequency of the index.
 
-        Attempts to determine the frequency of the index by analyzing the
-        differences between consecutive values using ``infer_freq``.
-
         .. deprecated:: 3.1.0
             A future version of pandas will return a :class:`BaseOffset` instead of
             a string. Use
             ``pd.set_option('future.infer_freq_returns_offset', True)`` to opt
             in to the future behavior.
+
+        Attempts to determine the frequency of the index by analyzing the
+        differences between consecutive values using ``infer_freq``.
 
         Returns
         -------
