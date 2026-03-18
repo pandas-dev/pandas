@@ -2968,7 +2968,7 @@ def _factorize_keys(
             # GH#38418 Use lookup instead of hash_inner_join for unique right
             # keys. lookup pre-allocates the result array and fills directly,
             # avoiding dynamic vector resizing and scatter.
-            ridx = rizer.table.lookup(lk_data, lk_mask)
+            ridx = rizer.table.lookup(lk_data, lk_mask)  # type: ignore[attr-defined]
             if how == "inner":
                 mask = ridx != -1
                 lidx = mask.nonzero()[0].astype(np.intp, copy=False)

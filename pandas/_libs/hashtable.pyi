@@ -15,7 +15,6 @@ def unique_label_indices(
 
 class Factorizer:
     count: int
-    table: HashTable
     uniques: Any
     def __init__(self, size_hint: int, uses_mask: bool = False) -> None: ...
     def get_count(self) -> int: ...
