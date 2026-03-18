@@ -20,8 +20,6 @@ Python recipe (https://rhettinger.wordpress.com/2010/02/06/lost-knowledge/)
 #include <stdlib.h>
 #include <string.h>
 
-#define PANDAS_NAN ((double)NAN)
-
 typedef struct node_t node_t;
 
 struct node_t {
@@ -114,7 +112,7 @@ static inline skiplist_t *skiplist_init(int expected_size) {
   result->maxlevels = maxlevels;
   result->size = 0;
 
-  head = result->head = node_init(PANDAS_NAN, maxlevels);
+  head = result->head = node_init(NAN, maxlevels);
   NIL = node_init(0.0, 0);
 
   if (!(result->tmp_chain && result->tmp_steps && result->head && NIL)) {
