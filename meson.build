@@ -9,7 +9,7 @@ project(
     meson_version: '>=1.2.1',
     default_options: [
         'buildtype=release',
-        'c_std=c11',
+        'c_std=c17',
         'cpp_std=c++17',
         'warning_level=2',
     ],
