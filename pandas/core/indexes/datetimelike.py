@@ -1054,7 +1054,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         return self._data._inferred_freq_str
 
     @cache_readonly
-    def inferred_freq(self) -> str | None:
+    def inferred_freq(self) -> str | BaseOffset | None:
         """
         Return the inferred frequency of the index.
 
