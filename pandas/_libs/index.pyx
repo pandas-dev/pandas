@@ -375,15 +375,14 @@ cdef class IndexEngine:
 
     def get_indexer(self, ndarray values) -> np.ndarray:
         cdef:
-            Py_ssize_t n_self, n_values
+            Py_ssize_t n_self = len(self.values)
+            Py_ssize_t n_values = len(values)
 
-        n_self = len(self.values)
-        n_values = len(values)
         if (
             self.over_size_threshold
             and self.is_monotonic_increasing
             and self.is_unique
-            and n_values < (n_self / (2 * n_self.bit_length()))
+            and n_values < (n_self / (2 * (<object>n_self).bit_length()))
         ):
             # GH#14273 avoid building a hash table for large monotonic indices;
             # use vectorized binary search instead.  The target count threshold
@@ -1243,15 +1242,14 @@ cdef class MaskedIndexEngine(IndexEngine):
 
     def get_indexer(self, object values) -> np.ndarray:
         cdef:
-            Py_ssize_t n_self, n_values
+            Py_ssize_t n_self = len(self.values)
+            Py_ssize_t n_values = len(values)
 
-        n_self = len(self.values)
-        n_values = len(values)
         if (
             self.over_size_threshold
             and self.is_monotonic_increasing
             and self.is_unique
-            and n_values < (n_self / (2 * n_self.bit_length()))
+            and n_values < (n_self / (2 * (<object>n_self).bit_length()))
         ):
             # GH#14273 avoid building a hash table for large monotonic indices.
             # NAs in self.mask break monotonicity, so we only get here when
