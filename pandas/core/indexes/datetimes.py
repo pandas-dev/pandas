@@ -68,10 +68,9 @@ if TYPE_CHECKING:
         IntervalClosedType,
         TimeAmbiguous,
         TimeNonexistent,
-        npt,
         TimeUnit,
+        npt,
     )
-
     from pandas.core.api import (
         DataFrame,
         PeriodIndex,
@@ -1355,11 +1354,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         mask = join_op(lop(start_micros, time_micros), rop(time_micros, end_micros))
 
         return mask.nonzero()[0]
-
-
-# Copy docstrings from DatetimeArray for inlined field_ops and bool_ops
-for _name in DatetimeArray._field_ops + DatetimeArray._bool_ops:
-    getattr(DatetimeIndex, _name).__doc__ = getattr(DatetimeArray, _name).__doc__
 
 
 @set_module("pandas")
