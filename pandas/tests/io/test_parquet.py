@@ -18,6 +18,7 @@ from pandas.compat.pyarrow import (
     pa_version_under19p0,
     pa_version_under20p0,
 )
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 import pandas._testing as tm
@@ -50,6 +51,15 @@ pytestmark = [
     pytest.mark.filterwarnings("ignore:DataFrame._data is deprecated:FutureWarning"),
     pytest.mark.filterwarnings(
         "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+    ),
+    pytest.mark.filterwarnings(
+        "ignore:The 'fastparquet' engine is deprecated:DeprecationWarning"
+    ),
+    pytest.mark.filterwarnings(
+        "ignore:The 'engine' keyword in pd.read_parquet:DeprecationWarning"
+    ),
+    pytest.mark.filterwarnings(
+        "ignore:The 'io.parquet.engine' option is deprecated:DeprecationWarning"
     ),
 ]
 
@@ -254,6 +264,24 @@ def test_invalid_engine(df_compat, temp_file):
         check_round_trip(df_compat, temp_file, "foo", "bar")
 
 
+def test_engine_keyword_deprecation(df_compat, pa, temp_file):
+    # GH#64597
+    msg = "The 'engine' keyword in pd.read_parquet"
+    path = temp_file
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        df_compat.to_parquet(path, engine="pyarrow")
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        read_parquet(path, engine="pyarrow")
+
+
+def test_io_parquet_engine_option_deprecation():
+    # GH#64597
+    msg = "The 'io.parquet.engine' option is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg, check_stacklevel=False):
+        with pd.option_context("io.parquet.engine", "auto"):
+            pass
+
+
 def test_options_py(df_compat, pa, using_infer_string, temp_file):
     # use the set option
     if using_infer_string and not pa_version_under19p0:
@@ -265,9 +293,10 @@ def test_options_py(df_compat, pa, using_infer_string, temp_file):
 
 def test_options_fp(df_compat, fp, temp_file):
     # use the set option
-
+    msg = "The 'fastparquet' engine is deprecated"
     with pd.option_context("io.parquet.engine", "fastparquet"):
-        check_round_trip(df_compat, temp_file)
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            check_round_trip(df_compat, temp_file)
 
 
 def test_options_auto(df_compat, fp, pa, temp_file):
@@ -278,23 +307,30 @@ def test_options_auto(df_compat, fp, pa, temp_file):
 
 
 def test_options_get_engine(fp, pa):
+    msg = "The 'fastparquet' engine is deprecated"
+
     assert isinstance(get_engine("pyarrow"), PyArrowImpl)
-    assert isinstance(get_engine("fastparquet"), FastParquetImpl)
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        assert isinstance(get_engine("fastparquet"), FastParquetImpl)
 
     with pd.option_context("io.parquet.engine", "pyarrow"):
         assert isinstance(get_engine("auto"), PyArrowImpl)
         assert isinstance(get_engine("pyarrow"), PyArrowImpl)
-        assert isinstance(get_engine("fastparquet"), FastParquetImpl)
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            assert isinstance(get_engine("fastparquet"), FastParquetImpl)
 
     with pd.option_context("io.parquet.engine", "fastparquet"):
-        assert isinstance(get_engine("auto"), FastParquetImpl)
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            assert isinstance(get_engine("auto"), FastParquetImpl)
         assert isinstance(get_engine("pyarrow"), PyArrowImpl)
-        assert isinstance(get_engine("fastparquet"), FastParquetImpl)
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            assert isinstance(get_engine("fastparquet"), FastParquetImpl)
 
     with pd.option_context("io.parquet.engine", "auto"):
         assert isinstance(get_engine("auto"), PyArrowImpl)
         assert isinstance(get_engine("pyarrow"), PyArrowImpl)
-        assert isinstance(get_engine("fastparquet"), FastParquetImpl)
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            assert isinstance(get_engine("fastparquet"), FastParquetImpl)
 
 
 def test_get_engine_auto_error_message():
@@ -342,22 +378,27 @@ def test_get_engine_auto_error_message():
 
 def test_cross_engine_pa_fp(df_cross_compat, pa, fp, temp_file):
     # cross-compat with differing reading/writing engines
+    msg = "The 'fastparquet' engine is deprecated"
 
     df = df_cross_compat
     df.to_parquet(temp_file, engine=pa, compression=None)
 
-    result = read_parquet(temp_file, engine=fp)
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = read_parquet(temp_file, engine=fp)
     tm.assert_frame_equal(result, df)
 
-    result = read_parquet(temp_file, engine=fp, columns=["a", "d"])
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = read_parquet(temp_file, engine=fp, columns=["a", "d"])
     tm.assert_frame_equal(result, df[["a", "d"]])
 
 
 def test_cross_engine_fp_pa(df_cross_compat, pa, fp, temp_file):
     # cross-compat with differing reading/writing engines
+    msg = "The 'fastparquet' engine is deprecated"
     df = df_cross_compat
 
-    df.to_parquet(temp_file, engine=fp, compression=None)
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        df.to_parquet(temp_file, engine=fp, compression=None)
 
     result = read_parquet(temp_file, engine=pa)
     tm.assert_frame_equal(result, df)

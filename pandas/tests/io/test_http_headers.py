@@ -21,6 +21,12 @@ pytestmark = [
     pytest.mark.filterwarnings(
         "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
     ),
+    pytest.mark.filterwarnings(
+        "ignore:The 'fastparquet' engine is deprecated:DeprecationWarning"
+    ),
+    pytest.mark.filterwarnings(
+        "ignore:The 'engine' keyword in pd.read_parquet:DeprecationWarning"
+    ),
 ]
 
 
