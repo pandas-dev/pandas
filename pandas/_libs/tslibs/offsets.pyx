@@ -808,6 +808,17 @@ cdef class BaseOffset:
             "does not have a vectorized implementation"
         )
 
+    @property
+    def _supports_daily_offset_mask(self) -> bool:
+        """
+        Whether this offset supports the fast "daily range + filter" path
+        for date_range generation (GH#16463).
+
+        Subclasses that implement ``_get_daily_offset_mask`` should override
+        this to return True when the optimization is applicable.
+        """
+        return False
+
     def rollback(self, dt) -> datetime:
         """
         Roll provided date backward to next offset only if not on offset.
@@ -2675,6 +2686,16 @@ cdef class BusinessDay(BusinessMixin):
         if self._offset:
             res = res.view(dtarr.dtype) + Timedelta(self._offset)
         return res
+
+    @property
+    def _supports_daily_offset_mask(self) -> bool:
+        return not self._offset
+
+    def _get_daily_offset_mask(self, dt64values: np.ndarray) -> np.ndarray:
+        # datetime64[D] epoch (1970-01-01) is Thursday; (day_number + 3) % 7
+        # gives 0=Mon, 1=Tue, ..., 4=Fri, 5=Sat, 6=Sun
+        day_i8 = dt64values.astype("datetime64[D]").view("int64")
+        return (day_i8 + 3) % 7 < 5
 
     def is_on_offset(self, dt: datetime) -> bool:
         """
@@ -6636,6 +6657,10 @@ cdef class CustomBusinessDay(BusinessDay):
         result = np.is_busday(day64, busdaycal=self._calendar)
         result = maybe_unbox_numpy_scalar(result)
         return result
+
+    def _get_daily_offset_mask(self, dt64values: np.ndarray) -> np.ndarray:
+        days = dt64values.astype("datetime64[D]")
+        return np.is_busday(days, busdaycal=self._calendar)
 
 
 cdef class CustomBusinessHour(BusinessHour):
