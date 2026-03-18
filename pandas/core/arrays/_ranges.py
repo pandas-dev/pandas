@@ -96,7 +96,7 @@ def generate_regular_range(
     return range_to_ndarray(range(b, e, stride))
 
 
-def generate_offset_range(
+def generate_daily_offset_range(
     start: Timestamp | None,
     end: Timestamp | None,
     periods: int | None,
@@ -108,7 +108,7 @@ def generate_offset_range(
     daily grid, by generating a daily range and filtering.
 
     This is a performance optimization (GH#16463) for offsets like BusinessDay
-    that implement ``_get_on_offset_mask``. Instead of iteratively applying
+    that implement ``_get_daily_offset_mask``. Instead of iteratively applying
     the offset, we generate a daily range and filter it vectorized.
 
     Parameters
@@ -117,7 +117,7 @@ def generate_offset_range(
     end : Timestamp or None
     periods : int or None
     freq : BaseOffset
-        Must have ``_supports_on_offset_mask`` and ``n >= 1``
+        Must have ``_supports_daily_offset_mask`` and ``n >= 1``
         (caller ensures both).
     unit : str, default "ns"
 
@@ -149,7 +149,7 @@ def generate_offset_range(
 
     i8values = generate_regular_range(start, end, None, Day(), unit=unit)
     dt64 = i8values.view(f"datetime64[{unit}]")
-    i8values = i8values[freq._get_on_offset_mask(dt64)]  # type: ignore[attr-defined]
+    i8values = i8values[freq._get_daily_offset_mask(dt64)]  # type: ignore[attr-defined]
 
     if abs_n > 1:
         i8values = i8values[::abs_n]

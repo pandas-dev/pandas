@@ -69,7 +69,7 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays._ranges import (
-    generate_offset_range,
+    generate_daily_offset_range,
     generate_regular_range,
 )
 import pandas.core.common as com
@@ -484,11 +484,11 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
 
             if isinstance(freq, (Tick, Day)):
                 i8values = generate_regular_range(start, end, periods, freq, unit=unit)
-            elif freq.n >= 1 and freq._supports_on_offset_mask:
+            elif freq.n >= 1 and freq._supports_daily_offset_mask:
                 # GH#16463: fast "daily range + filter" path for offsets
                 # that support vectorized on-offset checks.
                 try:
-                    i8values = generate_offset_range(
+                    i8values = generate_daily_offset_range(
                         start, end, periods, freq, unit=unit
                     )
                 except (OutOfBoundsDatetime, OutOfBoundsTimedelta, OverflowError):
