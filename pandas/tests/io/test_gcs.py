@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 
 from pandas.compat.pyarrow import pa_version_under17p0
+from pandas.errors import Pandas4Warning
 
 from pandas import (
     DataFrame,
@@ -81,7 +82,8 @@ def test_to_read_gcs(gcs_buffer, format, monkeypatch, capsys, request):
         df2 = read_excel(path, parse_dates=["dt"], index_col=0)
     elif format == "json":
         df1.to_json(path, date_format="iso")
-        df2 = read_json(path, convert_dates=["dt"])
+        with tm.assert_produces_warning(Pandas4Warning, match="convert_dates"):
+            df2 = read_json(path, convert_dates=["dt"])
     elif format == "parquet":
         pytest.importorskip("pyarrow")
         pa_fs = pytest.importorskip("pyarrow.fs")

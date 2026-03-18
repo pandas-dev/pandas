@@ -137,15 +137,8 @@ class TestPandasContainer:
     def test_frame_non_unique_columns(self, orient, data, request):
         df = DataFrame(data, index=[1, 2], columns=["x", "x"])
 
-        expected_warning = None
-        msg = (
-            "The default 'epoch' date format is deprecated and will be removed "
-            "in a future version, please use 'iso' date format instead."
-        )
-        if df.iloc[:, 0].dtype == "datetime64[s]":
-            expected_warning = Pandas4Warning
-
-        with tm.assert_produces_warning(expected_warning, match=msg):
+        depr_msg = "convert_dates.*deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
             result = read_json(
                 StringIO(df.to_json(orient=orient)), orient=orient, convert_dates=["x"]
             )
@@ -879,7 +872,9 @@ class TestPandasContainer:
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             json = StringIO(df.to_json(date_unit="ns"))
 
-        result = read_json(json, convert_dates=False)
+        depr_msg = "convert_dates.*deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            result = read_json(json, convert_dates=False)
         expected = df.copy()
         expected["date"] = expected["date"].values.view("i8")
         expected["foo"] = expected["foo"].astype("int64")
@@ -1108,7 +1103,9 @@ class TestPandasContainer:
             df = df.convert_dtypes(dtype_backend=dtype_backend)
 
         json = df.to_json(date_format="iso", date_unit=unit)
-        result = read_json(StringIO(json), convert_dates=["date", "date_obj"])
+        depr_msg = "convert_dates.*deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            result = read_json(StringIO(json), convert_dates=["date", "date_obj"])
         tm.assert_frame_equal(result, expected)
 
     def test_weird_nested_json(self):
@@ -1166,7 +1163,9 @@ class TestPandasContainer:
     def test_url(self, httpserver):
         data = '{"created_at": ["2023-06-23T18:21:36Z"], "closed_at": ["2023-06-23T18:21:36"], "updated_at": ["2023-06-23T18:21:36Z"]}\n'  # noqa: E501
         httpserver.serve_content(content=data)
-        result = read_json(httpserver.url, convert_dates=True)
+        depr_msg = "convert_dates.*deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            result = read_json(httpserver.url, convert_dates=True)
         for field, dtype in [
             ["created_at", pd.DatetimeTZDtype("us", tz="UTC")],
             ["closed_at", "datetime64[us]"],
@@ -2377,11 +2376,13 @@ def test_read_json_lines_rangeindex():
 
 def test_large_number():
     # GH#20608
-    result = read_json(
-        StringIO('["9999999999999999"]'),
-        orient="values",
-        typ="series",
-        convert_dates=False,
-    )
+    depr_msg = "convert_dates.*deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+        result = read_json(
+            StringIO('["9999999999999999"]'),
+            orient="values",
+            typ="series",
+            convert_dates=False,
+        )
     expected = Series([9999999999999999])
     tm.assert_series_equal(result, expected)

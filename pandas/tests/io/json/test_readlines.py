@@ -243,6 +243,8 @@ def test_readjson_chunks_closes(chunksize, temp_file):
     )
     with reader:
         reader.read()
+    # JsonReader is not a public constructor that goes through read_json,
+    # so no deprecation warning is expected here.
     assert reader.handles.handle.closed, (
         f"didn't close stream with chunksize = {chunksize}"
     )
