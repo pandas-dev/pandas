@@ -2573,6 +2573,8 @@ class _iLocIndexer(_LocationIndexer):
                 self._setitem_single_column(loc, value, pi)
 
     def _setitem_with_indexer_2d_value(self, indexer, value) -> None:
+        # We get here with a 2D value (array-like or list-of-lists),
+        # excluding DataFrame which goes through _setitem_with_indexer_frame_value
         pi = indexer[0]
         ilocs = self._ensure_iterable_column_indexer(indexer[1])
 
