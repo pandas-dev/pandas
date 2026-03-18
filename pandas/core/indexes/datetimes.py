@@ -118,7 +118,7 @@ def _new_DatetimeIndex(cls, d):
     + [
         method
         for method in DatetimeArray._datetimelike_methods
-        if method not in ("tz_localize", "tz_convert", "strftime")
+        if method not in ("tz_localize", "tz_convert", "strftime", "as_unit")
     ],
     DatetimeArray,
     wrap=True,
@@ -409,8 +409,12 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                        '2014-08-01 09:00:00'],
                         dtype='datetime64[us]', freq='h')
         """  # noqa: E501
+        freq = self._data.freq
         arr = self._data.tz_convert(tz)
-        return type(self)._simple_new(arr, name=self.name, refs=self._references)
+        result = type(self)._simple_new(arr, name=self.name, refs=self._references)
+        if isinstance(freq, Tick):
+            result._data._freq = freq
+        return result
 
     def tz_localize(
         self,
@@ -557,8 +561,18 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         1   2015-03-29 03:30:00+02:00
         dtype: datetime64[ns, Europe/Warsaw]
         """  # noqa: E501
+        freq = self._data.freq
         arr = self._data.tz_localize(tz, ambiguous, nonexistent)
-        return type(self)._simple_new(arr, name=self.name)
+        result = type(self)._simple_new(arr, name=self.name)
+        if freq is not None:
+            if timezones.is_utc(arr.tz) or (len(arr) == 1 and arr[0] is not NaT):
+                # we can preserve freq
+                # TODO: Also for fixed-offsets
+                result._data._freq = freq
+            elif tz is None and self.tz is None:
+                # no-op
+                result._data._freq = freq
+        return result
 
     def to_period(self, freq=None) -> PeriodIndex:
         """
@@ -701,6 +715,10 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         name = maybe_extract_name(name, data, cls)
 
+        # Save freq before _maybe_copy_array_input which may copy the array
+        # and lose freq (freq handling is being moved to Index level).
+        data_freq = getattr(data, "freq", None)
+
         # GH#63388
         data, copy = cls._maybe_copy_array_input(data, copy, dtype)
 
@@ -714,6 +732,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             # Note in this particular case we retain non-nano.
             if copy:
                 data = data.copy()
+            data._freq = data_freq
             return cls._simple_new(data, name=name)
 
         dtarr = DatetimeArray._from_sequence_not_strict(

@@ -369,7 +369,10 @@ def _convert_listlike_datetimes(
         if not isinstance(arg, (DatetimeArray, DatetimeIndex)):
             return DatetimeIndex(arg, tz=tz, name=name)
         if utc:
+            freq = arg.freq
             arg = arg.tz_convert(None).tz_localize("utc")
+            if freq is not None:
+                arg._freq = freq
         return arg
 
     elif isinstance(arg_dtype, ArrowDtype) and arg_dtype.type is Timestamp:
@@ -403,7 +406,11 @@ def _convert_listlike_datetimes(
             return DatetimeIndex(arg, tz=tz, name=name)
         elif utc:
             # DatetimeArray, DatetimeIndex
-            return arg.tz_localize("utc")
+            freq = arg.freq
+            result = arg.tz_localize("utc")
+            if freq is not None:
+                result._freq = freq
+            return result
 
         return arg
 

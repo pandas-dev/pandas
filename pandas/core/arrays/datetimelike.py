@@ -1563,7 +1563,11 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             raise TypeError(f"cannot subtract {type(self).__name__} from {other.dtype}")
         elif lib.is_np_dtype(self.dtype, "m"):
             self = cast("TimedeltaArray", self)
-            return (-self) + other
+            freq = self.freq
+            neg = -self
+            if freq is not None:
+                neg._freq = -freq
+            return neg + other
 
         flipped = self - other
         if flipped.dtype.kind == "M":
@@ -1572,7 +1576,11 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 f"cannot subtract {type(self).__name__} from {type(other).__name__}"
             )
         # We get here with e.g. datetime objects
-        return -flipped
+        freq = getattr(flipped, "freq", None)
+        result = -flipped
+        if freq is not None:
+            result._freq = -freq
+        return result
 
     def __iadd__(self, other) -> Self:
         result = self + other
@@ -2077,12 +2085,9 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             tz = cast("DatetimeArray", self).tz
             new_dtype = DatetimeTZDtype(tz=tz, unit=unit)
 
-        # error: Unexpected keyword argument "freq" for "_simple_new" of
-        # "NDArrayBacked"  [call-arg]
         return type(self)._simple_new(
             new_values,
             dtype=new_dtype,
-            freq=self.freq,  # type: ignore[call-arg]
         )
 
     # TODO: annotate other as DatetimeArray | TimedeltaArray | Timestamp | Timedelta
@@ -2091,9 +2096,14 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         if self._creso != other._creso:
             # Just as with Timestamp/Timedelta, we cast to the higher resolution
             if self._creso < other._creso:
+                freq = self.freq
                 self = self.as_unit(other.unit)
+                self._freq = freq
             else:
+                freq = getattr(other, "freq", None)
                 other = other.as_unit(self.unit)
+                if freq is not None:
+                    other._freq = freq
         return self, other
 
     # --------------------------------------------------------------
@@ -2125,7 +2135,9 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         nanos = get_unit_for_round(freq, self._creso)
         if nanos == 0:
             # GH 52761
-            return self.copy()
+            result = self.copy()
+            result._freq = self.freq
+            return result
         result_i8 = round_nsint64(values, mode, nanos)
         result = self._maybe_mask_results(result_i8, fill_value=iNaT)
         result = result.view(self._ndarray.dtype)
@@ -2522,6 +2534,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             else:
                 codes = np.arange(len(self), dtype=np.intp)
                 uniques = self.copy()  # TODO: copy or view?
+                uniques._freq = self.freq
             return codes, uniques
 
         if sort:
@@ -2557,9 +2570,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         return new_obj
 
     def copy(self, order: str = "C") -> Self:
-        new_obj = super().copy(order=order)
-        new_obj._freq = self.freq
-        return new_obj
+        return super().copy(order=order)
 
     def interpolate(
         self,

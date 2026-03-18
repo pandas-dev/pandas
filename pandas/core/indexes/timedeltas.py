@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
+    Self,
     cast,
 )
 
@@ -49,8 +50,6 @@ if TYPE_CHECKING:
 
 @inherit_names(
     [
-        "__neg__",
-        "__pos__",
         "__abs__",
         "total_seconds",
         "round",
@@ -176,6 +175,10 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
     ):
         name = maybe_extract_name(name, data, cls)
 
+        # Save freq before _maybe_copy_array_input which may copy the array
+        # and lose freq (freq handling is being moved to Index level).
+        data_freq = getattr(data, "freq", None)
+
         # GH#63388
         data, copy = cls._maybe_copy_array_input(data, copy, dtype)
 
@@ -192,6 +195,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         ):
             if copy:
                 data = data.copy()
+            data._freq = data_freq
             return cls._simple_new(data, name=name)
 
         if (
@@ -230,6 +234,20 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         freq = self._data.freq
         result = super().astype(dtype, copy=copy)
         if freq is not None and isinstance(result, type(self)):
+            result._data._freq = freq
+        return result
+
+    def __neg__(self) -> Self:
+        freq = self._data.freq
+        result = super().__neg__()
+        if freq is not None:
+            result._data._freq = -freq
+        return result
+
+    def __pos__(self) -> Self:
+        freq = self._data.freq
+        result = super().__pos__()
+        if freq is not None:
             result._data._freq = freq
         return result
 

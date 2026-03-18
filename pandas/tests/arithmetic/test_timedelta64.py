@@ -1066,7 +1066,16 @@ class TestTimedeltaArraylikeAddSubOps:
         expected2 = tm.box_expected(expected2, box_with_array)
 
         tm.assert_equal(ts - tdarr, expected2)
-        tm.assert_equal(ts + (-tdarr), expected2)
+        result = ts + (-tdarr)
+        if box_with_array is pd.array:
+            # bare array __neg__ no longer preserves freq
+            expected2 = tm.box_expected(
+                pd.date_range("2011-12-31", periods=3, freq="-1D", tz=tz),
+                box_with_array,
+            )
+            if hasattr(expected2, "_freq"):
+                expected2._freq = None
+        tm.assert_equal(result, expected2)
 
         msg = "cannot subtract a datelike"
         with pytest.raises(TypeError, match=msg):
@@ -1345,7 +1354,12 @@ class TestTimedeltaArraylikeAddSubOps:
         tm.assert_equal(result, expected)
 
         result = two_hours - rng
-        tm.assert_equal(result, -expected)
+        neg_expected = -expected
+        if box is pd.array and hasattr(expected, "freq") and expected.freq is not None:
+            # bare array __neg__ no longer preserves freq;
+            # scalar-array sub result preserves freq via __rsub__
+            neg_expected._freq = -expected.freq
+        tm.assert_equal(result, neg_expected)
 
     # ------------------------------------------------------------------
     # __add__/__sub__ with DateOffsets and arrays of DateOffsets

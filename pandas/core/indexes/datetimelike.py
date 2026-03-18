@@ -69,7 +69,10 @@ from pandas.core.indexes.range import RangeIndex
 from pandas.core.tools.timedeltas import to_timedelta
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import (
+        Hashable,
+        Sequence,
+    )
     from datetime import datetime
 
     from pandas._typing import (
@@ -692,12 +695,25 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         >>> tdelta_idx.as_unit("s")
         TimedeltaIndex(['1 days 00:03:00'], dtype='timedelta64[s]', freq=None)
         """
+        freq = self._data.freq
         arr = self._data.as_unit(unit)
-        return type(self)._simple_new(arr, name=self.name)
+        result = type(self)._simple_new(arr, name=self.name)
+        result._data._freq = freq
+        return result
 
     def _with_freq(self, freq):
         arr = self._data._with_freq(freq)
         return type(self)._simple_new(arr, name=self._name)
+
+    def copy(
+        self,
+        name: Hashable | None = None,
+        deep: bool = False,
+    ) -> Self:
+        freq = self._data.freq
+        result = super().copy(name=name, deep=deep)
+        result._data._freq = freq
+        return result
 
     @property
     def values(self) -> np.ndarray:

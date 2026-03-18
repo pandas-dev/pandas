@@ -759,15 +759,10 @@ class TimedeltaArray(dtl.TimelikeOps):
         return res1, res2
 
     def __neg__(self) -> TimedeltaArray:
-        freq = None
-        if self.freq is not None:
-            freq = -self.freq
-        return type(self)._simple_new(-self._ndarray, dtype=self.dtype, freq=freq)
+        return type(self)._simple_new(-self._ndarray, dtype=self.dtype)
 
     def __pos__(self) -> TimedeltaArray:
-        return type(self)._simple_new(
-            self._ndarray.copy(), dtype=self.dtype, freq=self.freq
-        )
+        return type(self)._simple_new(self._ndarray.copy(), dtype=self.dtype)
 
     def __abs__(self) -> TimedeltaArray:
         # Note: freq is not preserved

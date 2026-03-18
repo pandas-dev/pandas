@@ -63,7 +63,6 @@ from pandas.core.dtypes.dtypes import (
     ExtensionDtype,
     PeriodDtype,
 )
-from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays._ranges import generate_regular_range
@@ -944,10 +943,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
 
         # No conversion since timestamps are all UTC to begin with
         dtype = tz_to_dtype(tz, unit=self.unit)
-        new_freq = None
-        if isinstance(self.freq, Tick):
-            new_freq = self.freq
-        return self._simple_new(self._ndarray, dtype=dtype, freq=new_freq)
+        return self._simple_new(self._ndarray, dtype=dtype)
 
     @dtl.ravel_compat
     def tz_localize(
@@ -1124,15 +1120,7 @@ default 'raise'
         new_dates_dt64 = new_dates.view(f"M8[{self.unit}]")
         dtype = tz_to_dtype(tz, unit=self.unit)
 
-        freq = None
-        if timezones.is_utc(tz) or (len(self) == 1 and not isna(new_dates_dt64[0])):
-            # we can preserve freq
-            # TODO: Also for fixed-offsets
-            freq = self.freq
-        elif tz is None and self.tz is None:
-            # no-op
-            freq = self.freq
-        return self._simple_new(new_dates_dt64, dtype=dtype, freq=freq)
+        return self._simple_new(new_dates_dt64, dtype=dtype)
 
     # ----------------------------------------------------------------
     # Conversion Methods - Vectorized analogues of Timestamp methods
