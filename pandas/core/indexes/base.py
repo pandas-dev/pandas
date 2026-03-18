@@ -7354,6 +7354,18 @@ class Index(IndexOpsMixin, PandasObject):
             labels = com.index_labels_to_array(labels, dtype=arr_dtype)
 
         indexer = self.get_indexer_for(labels)
+
+        # GH#63304 - handle NA values in labels that get_indexer_for may not
+        # match for Arrow-backed or other ExtensionArray-backed indexes.
+        # When labels contain NA-like values, get_indexer may return -1 even
+        # though the index contains NA entries, because the NA representation
+        # in the labels array (e.g. pd.NA as object) differs from the index's
+        # native NA representation.
+        unmatched_na = isna(labels) & (indexer == -1)
+        if unmatched_na.any() and self.hasnans:
+            nan_indexer = self.isna().nonzero()[0]
+            indexer[unmatched_na] = nan_indexer[0]
+
         mask = indexer == -1
         if mask.any():
             if errors != "ignore":
