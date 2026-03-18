@@ -115,6 +115,7 @@ Performance improvements
 - Performance improvement in :func:`merge` with ``how="left"`` (:issue:`64370`)
 - Performance improvement in :meth:`GroupBy.first` and :meth:`GroupBy.last` for Extension Array dtypes, which no longer fall back to a slow ``apply``-based implementation (:issue:`57591`)
 - Performance improvement in :meth:`GroupBy.quantile` (:issue:`64330`)
+- Performance improvement in :meth:`Index.get_indexer` for large monotonic indexes, which now uses binary search instead of building a hash table when the number of targets is small (:issue:`14273`)
 - Performance improvement in datetime/timedelta unit conversion (e.g. ``datetime64[s]`` to ``datetime64[ns]``) (:issue:`35025`)
 - Performance improvement in indexing a :class:`DataFrame` with a :class:`CategoricalIndex` of :class:`Interval` categories (:issue:`61928`)
 - Performance improvement in reading zip-compressed files (e.g. :func:`read_pickle`, :func:`read_csv`) on Python < 3.12 (:issue:`59279`)
