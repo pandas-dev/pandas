@@ -54,6 +54,9 @@ def _reductions(
         The required number of valid values to perform the operation. If fewer than
         ``min_count`` non-NA values are present the result will be NA.
     axis : int, optional, default None
+    initial : scalar, optional
+        Starting value for the reduction. NumPy has a default value for most
+        data types, but for object-dtype arrays we need to specify it explicitly
     """
     if initial is not lib.no_default:
         kwargs["initial"] = initial
