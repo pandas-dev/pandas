@@ -22,8 +22,6 @@ Python recipe (https://rhettinger.wordpress.com/2010/02/06/lost-knowledge/)
 
 #define PANDAS_NAN ((double)NAN)
 
-static inline double Log2(double val) { return log2(val); }
-
 typedef struct node_t node_t;
 
 struct node_t {
@@ -106,7 +104,7 @@ static inline skiplist_t *skiplist_init(int expected_size) {
   node_t *NIL, *head;
   int maxlevels, i;
 
-  maxlevels = 1 + Log2((double)expected_size);
+  maxlevels = 1 + log2((double)expected_size);
   result = (skiplist_t *)malloc(sizeof(skiplist_t));
   if (!result) {
     return NULL;
@@ -215,7 +213,7 @@ static inline int skiplist_insert(skiplist_t *skp, double value) {
     chain[level] = node;
   }
 
-  size = int_min(skp->maxlevels, 1 - ((int)Log2(urand())));
+  size = int_min(skp->maxlevels, 1 - ((int)log2(urand())));
 
   newnode = node_init(value, size);
   if (!newnode) {

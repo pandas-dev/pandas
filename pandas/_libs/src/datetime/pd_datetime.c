@@ -60,7 +60,7 @@ static int apply_tzinfo_offset(PyObject *obj, npy_datetimestruct *out) {
      * The timedelta should have a function "total_seconds"
      * which contains the value we want.
      */
-    PyObject *tmp = PyObject_CallMethod(offset, "total_seconds", "");
+    PyObject *tmp = PyObject_CallMethod(offset, "total_seconds", NULL);
     Py_DECREF(offset);
     if (tmp == NULL) {
       return -1;
