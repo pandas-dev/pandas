@@ -564,7 +564,7 @@ def assert_period_array_equal(left, right, obj: str = "PeriodArray") -> None:
 
 
 def assert_datetime_array_equal(
-    left, right, obj: str = "DatetimeArray", check_freq: bool = True
+    left, right, obj: str = "DatetimeArray", check_freq: bool = False
 ) -> None:
     __tracebackhide__ = True
     _check_isinstance(left, right, DatetimeArray)
@@ -576,7 +576,7 @@ def assert_datetime_array_equal(
 
 
 def assert_timedelta_array_equal(
-    left, right, obj: str = "TimedeltaArray", check_freq: bool = True
+    left, right, obj: str = "TimedeltaArray", check_freq: bool = False
 ) -> None:
     __tracebackhide__ = True
     _check_isinstance(left, right, TimedeltaArray)
