@@ -730,15 +730,16 @@ class TestDataFrameIndexingWhere:
         result3 = df.copy()
         result3.mask(mask, ser, axis=0, inplace=True)
         expected3 = DataFrame(
-            {"A": pd.array([7, 2, 9], dtype="Int64"),
-             "B": pd.array([7, 5, 9], dtype="Int64")}
+            {
+                "A": pd.array([7, 2, 9], dtype="Int64"),
+                "B": pd.array([7, 5, 9], dtype="Int64"),
+            }
         )
         tm.assert_frame_equal(result3, expected3)
         result4 = df.copy()
         result4.mask(mask, ser2, axis=1, inplace=True)
         expected4 = DataFrame(
-            {"A": [7, 2, 7],
-             "B": pd.array([pd.NA, 5, pd.NA], dtype="Int64")}
+            {"A": [7, 2, 7], "B": pd.array([pd.NA, 5, pd.NA], dtype="Int64")}
         )
         tm.assert_frame_equal(result4, expected4)
 
