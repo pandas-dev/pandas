@@ -95,6 +95,7 @@ def test_concat_chain(styler):
     )
     assert result == expected
 
+
 def test_hide_index():
     df = DataFrame({"A": [1, 2], "B": [3, 4]})
     result = Styler(df).hide(axis="index").to_typst()
@@ -113,5 +114,3 @@ def test_hide_index():
     )
 
     assert result == expected
-
-
