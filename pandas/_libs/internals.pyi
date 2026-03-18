@@ -82,6 +82,7 @@ class BlockManager:
     axes: list[Index]
     _known_consolidated: bool
     _is_consolidated: bool
+    _interleaved_dtype: object
     _blknos: np.ndarray
     _blklocs: np.ndarray
     def __init__(
