@@ -147,7 +147,7 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
   sublen = len;
 
   /* Skip leading whitespace */
-  while (sublen > 0 && isspace(*substr)) {
+  while (sublen > 0 && isspace_ascii(*substr)) {
     ++substr;
     --sublen;
     comparison =
@@ -179,8 +179,8 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
   }
 
   out->year = 0;
-  if (sublen >= 4 && isdigit(substr[0]) && isdigit(substr[1]) &&
-      isdigit(substr[2]) && isdigit(substr[3])) {
+  if (sublen >= 4 && isdigit_ascii(substr[0]) && isdigit_ascii(substr[1]) &&
+      isdigit_ascii(substr[2]) && isdigit_ascii(substr[3])) {
     out->year = 1000 * (substr[0] - '0') + 100 * (substr[1] - '0') +
                 10 * (substr[2] - '0') + (substr[3] - '0');
 
@@ -207,7 +207,7 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     goto finish;
   }
 
-  if (!isdigit(*substr)) {
+  if (!isdigit_ascii(*substr)) {
     for (i = 0; i < valid_ymd_sep_len; ++i) {
       if (*substr == valid_ymd_sep[i]) {
         break;
@@ -229,7 +229,7 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
       goto finish;
     }
     /* Cannot have trailing separator */
-    if (sublen == 0 || !isdigit(*substr)) {
+    if (sublen == 0 || !isdigit_ascii(*substr)) {
       goto parse_error;
     }
   }
@@ -247,7 +247,7 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
   ++substr;
   --sublen;
   /* Second digit optional if there was a separator */
-  if (isdigit(*substr)) {
+  if (isdigit_ascii(*substr)) {
     out->month = 10 * out->month + (*substr - '0');
     ++substr;
     --sublen;
@@ -303,14 +303,14 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     goto finish;
   }
   /* First digit required */
-  if (!isdigit(*substr)) {
+  if (!isdigit_ascii(*substr)) {
     goto parse_error;
   }
   out->day = (*substr - '0');
   ++substr;
   --sublen;
   /* Second digit optional if there was a separator */
-  if (isdigit(*substr)) {
+  if (isdigit_ascii(*substr)) {
     out->day = 10 * out->day + (*substr - '0');
     ++substr;
     --sublen;
@@ -360,7 +360,7 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     goto finish;
   }
   /* First digit required */
-  if (!isdigit(*substr)) {
+  if (!isdigit_ascii(*substr)) {
     goto parse_error;
   }
   out->hour = (*substr - '0');
@@ -368,7 +368,7 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
   ++substr;
   --sublen;
   /* Second digit optional */
-  if (isdigit(*substr)) {
+  if (isdigit_ascii(*substr)) {
     hour_was_2_digits = 1;
     out->hour = 10 * out->hour + (*substr - '0');
     ++substr;
@@ -399,7 +399,7 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     ++substr;
     --sublen;
     /* Cannot have a trailing separator */
-    if (sublen == 0 || !isdigit(*substr)) {
+    if (sublen == 0 || !isdigit_ascii(*substr)) {
       goto parse_error;
     }
     comparison =
@@ -409,7 +409,7 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     } else if (comparison == COMPLETED_PARTIAL_MATCH) {
       goto finish;
     }
-  } else if (!isdigit(*substr)) {
+  } else if (!isdigit_ascii(*substr)) {
     if (!hour_was_2_digits) {
       goto parse_error;
     }
@@ -430,7 +430,7 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
   ++substr;
   --sublen;
   /* Second digit optional if there was a separator */
-  if (isdigit(*substr)) {
+  if (isdigit_ascii(*substr)) {
     out->min = 10 * out->min + (*substr - '0');
     ++substr;
     --sublen;
@@ -466,10 +466,10 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     ++substr;
     --sublen;
     /* Cannot have a trailing ':' */
-    if (sublen == 0 || !isdigit(*substr)) {
+    if (sublen == 0 || !isdigit_ascii(*substr)) {
       goto parse_error;
     }
-  } else if (!has_hms_sep && isdigit(*substr)) {
+  } else if (!has_hms_sep && isdigit_ascii(*substr)) {
   } else {
     goto parse_timezone;
   }
@@ -487,7 +487,7 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
   ++substr;
   --sublen;
   /* Second digit optional if there was a separator */
-  if (isdigit(*substr)) {
+  if (isdigit_ascii(*substr)) {
     out->sec = 10 * out->sec + (*substr - '0');
     ++substr;
     --sublen;
@@ -529,7 +529,7 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
   numdigits = 0;
   for (i = 0; i < 6; ++i) {
     out->us *= 10;
-    if (sublen > 0 && isdigit(*substr)) {
+    if (sublen > 0 && isdigit_ascii(*substr)) {
       out->us += (*substr - '0');
       ++substr;
       --sublen;
@@ -537,7 +537,7 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     }
   }
 
-  if (sublen == 0 || !isdigit(*substr)) {
+  if (sublen == 0 || !isdigit_ascii(*substr)) {
     if (numdigits > 3) {
       bestunit = NPY_FR_us;
     } else {
@@ -550,7 +550,7 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
   numdigits = 0;
   for (i = 0; i < 6; ++i) {
     out->ps *= 10;
-    if (sublen > 0 && isdigit(*substr)) {
+    if (sublen > 0 && isdigit_ascii(*substr)) {
       out->ps += (*substr - '0');
       ++substr;
       --sublen;
@@ -558,7 +558,7 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     }
   }
 
-  if (sublen == 0 || !isdigit(*substr)) {
+  if (sublen == 0 || !isdigit_ascii(*substr)) {
     if (numdigits > 3) {
       bestunit = NPY_FR_ps;
     } else {
@@ -571,7 +571,7 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
   numdigits = 0;
   for (i = 0; i < 6; ++i) {
     out->as *= 10;
-    if (sublen > 0 && isdigit(*substr)) {
+    if (sublen > 0 && isdigit_ascii(*substr)) {
       out->as += (*substr - '0');
       ++substr;
       --sublen;
@@ -587,7 +587,7 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
 
 parse_timezone:
   /* trim any whitespace between time/timezone */
-  while (sublen > 0 && isspace(*substr)) {
+  while (sublen > 0 && isspace_ascii(*substr)) {
     ++substr;
     --sublen;
     comparison =
@@ -657,7 +657,7 @@ parse_timezone:
     --sublen;
 
     /* The hours offset */
-    if (sublen >= 2 && isdigit(substr[0]) && isdigit(substr[1])) {
+    if (sublen >= 2 && isdigit_ascii(substr[0]) && isdigit_ascii(substr[1])) {
       offset_hour = 10 * (substr[0] - '0') + (substr[1] - '0');
       substr += 2;
       sublen -= 2;
@@ -670,7 +670,7 @@ parse_timezone:
         }
         goto error;
       }
-    } else if (sublen >= 1 && isdigit(substr[0])) {
+    } else if (sublen >= 1 && isdigit_ascii(substr[0])) {
       offset_hour = substr[0] - '0';
       ++substr;
       --sublen;
@@ -687,7 +687,7 @@ parse_timezone:
       }
 
       /* The minutes offset (at the end of the string) */
-      if (sublen >= 2 && isdigit(substr[0]) && isdigit(substr[1])) {
+      if (sublen >= 2 && isdigit_ascii(substr[0]) && isdigit_ascii(substr[1])) {
         offset_minute = 10 * (substr[0] - '0') + (substr[1] - '0');
         substr += 2;
         sublen -= 2;
@@ -700,7 +700,7 @@ parse_timezone:
           }
           goto error;
         }
-      } else if (sublen >= 1 && isdigit(substr[0])) {
+      } else if (sublen >= 1 && isdigit_ascii(substr[0])) {
         offset_minute = substr[0] - '0';
         ++substr;
         --sublen;
@@ -722,7 +722,7 @@ parse_timezone:
   }
 
   /* Skip trailing whitespace */
-  while (sublen > 0 && isspace(*substr)) {
+  while (sublen > 0 && isspace_ascii(*substr)) {
     ++substr;
     --sublen;
     comparison =

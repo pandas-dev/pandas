@@ -634,7 +634,8 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes,
 
 // applied when in a field
 #define IS_DELIMITER(c)                                                        \
-  ((!delim_whitespace && c == delimiter) || (delim_whitespace && isblank(c)))
+  ((!delim_whitespace && c == delimiter) ||                                    \
+   (delim_whitespace && isblank_ascii(c)))
 
 #define _TOKEN_CLEANUP()                                                       \
   self->stream_len = slen;                                                     \
@@ -777,7 +778,7 @@ static int tokenize_bytes(parser_t *self, size_t line_limit,
         self->state = EAT_CRNL_NOP;
         break;
       } else if (!self->delim_whitespace) {
-        if (isblank(c) && c != self->delimiter) {
+        if (isblank_ascii(c) && c != self->delimiter) {
         } else { // backtrack
           // use i + 1 because buf has been incremented but not i
           do {
@@ -807,7 +808,7 @@ static int tokenize_bytes(parser_t *self, size_t line_limit,
       } else if (IS_COMMENT_CHAR(c)) {
         self->state = EAT_COMMENT;
         break;
-      } else if (!isblank(c)) {
+      } else if (!isblank_ascii(c)) {
         self->state = START_FIELD;
         PD_FALLTHROUGH; // fall through to subsequent state
       } else {
@@ -851,7 +852,7 @@ static int tokenize_bytes(parser_t *self, size_t line_limit,
       } else if (IS_COMMENT_CHAR(c)) {
         self->state = EAT_LINE_COMMENT;
         break;
-      } else if (isblank(c)) {
+      } else if (isblank_ascii(c)) {
         if (self->delim_whitespace) {
           if (self->skip_empty_lines) {
             self->state = WHITESPACE_LINE;

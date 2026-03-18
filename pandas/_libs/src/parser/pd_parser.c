@@ -47,14 +47,15 @@ static int floatify(PyObject *str, double *result, int *maybe_int) {
 
   if (!status) {
     /* handle inf/-inf infinity/-infinity */
-    if (strlen(data) == 3) {
+    const size_t len = strlen(data);
+    if (len == 3) {
       if (0 == strcasecmp(data, "inf")) {
         *result = HUGE_VAL;
         *maybe_int = 0;
       } else {
         goto parsingerror;
       }
-    } else if (strlen(data) == 4) {
+    } else if (len == 4) {
       if (0 == strcasecmp(data, "-inf")) {
         *result = -HUGE_VAL;
         *maybe_int = 0;
@@ -64,14 +65,14 @@ static int floatify(PyObject *str, double *result, int *maybe_int) {
       } else {
         goto parsingerror;
       }
-    } else if (strlen(data) == 8) {
+    } else if (len == 8) {
       if (0 == strcasecmp(data, "infinity")) {
         *result = HUGE_VAL;
         *maybe_int = 0;
       } else {
         goto parsingerror;
       }
-    } else if (strlen(data) == 9) {
+    } else if (len == 9) {
       if (0 == strcasecmp(data, "-infinity")) {
         *result = -HUGE_VAL;
         *maybe_int = 0;

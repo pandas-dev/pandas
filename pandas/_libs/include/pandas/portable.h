@@ -21,6 +21,7 @@ The full license is in the LICENSE file, distributed with this software.
 #define getdigit_ascii(c, default)                                             \
   (isdigit_ascii(c) ? ((int)((c) - '0')) : default)
 #define isspace_ascii(c) (((c) == ' ') || (((unsigned)(c) - '\t') < 5))
+#define isblank_ascii(c) ((c) == ' ' || (c) == '\t')
 #define toupper_ascii(c) ((((unsigned)(c) - 'a') < 26) ? ((c) & 0x5f) : (c))
 #define tolower_ascii(c) ((((unsigned)(c) - 'A') < 26) ? ((c) | 0x20) : (c))
 
