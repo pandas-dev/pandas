@@ -634,9 +634,9 @@ def test_float_precision_options(c_parser_only):
 
     tm.assert_frame_equal(df, df2)
 
+    # "legacy" now uses the same precise converter as "high"
     df3 = parser.read_csv(StringIO(s), float_precision="legacy")
-
-    assert not df.iloc[0, 0] == df3.iloc[0, 0]
+    tm.assert_frame_equal(df, df3)
 
     msg = "Unrecognized float_precision option: junk"
 

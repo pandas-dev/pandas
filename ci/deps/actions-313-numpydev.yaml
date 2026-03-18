@@ -12,7 +12,7 @@ dependencies:
 
   # test dependencies
   - pytest>=8.3.4
-  - pytest-cov
+  - coverage
   - pytest-xdist>=3.6.1
   - hypothesis>=6.116.0
 
