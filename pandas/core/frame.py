@@ -15721,6 +15721,17 @@ class DataFrame(NDFrame, OpsMixin):
                 dtype = find_common_type(
                     [block.values.dtype for block in df._mgr.blocks]
                 )
+                # GH#51474: block-wise axis=1 reduction avoiding expensive
+                # transpose for numpy-backed blocks.
+                if (
+                    name in ("sum", "prod", "min", "max", "any", "all")
+                    and len(df._mgr.blocks) > 1
+                    and all(
+                        isinstance(bv, np.ndarray) and bv.dtype.kind != "O"
+                        for bv in (block.values for block in df._mgr.blocks)
+                    )
+                ):
+                    return df._reduce_axis1(name, op, skipna=skipna, **kwds)
                 if isinstance(dtype, ExtensionDtype):
                     # GH 54341: fastpath for EA-backed axis=1 reductions
                     # This flattens the frame into a single 1D array while keeping
@@ -15758,7 +15769,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         return out
 
-    def _reduce_axis1(self, name: str, func, skipna: bool) -> Series:
+    def _reduce_axis1(self, name: str, func, skipna: bool, **kwargs) -> Series:
         """
         Special case for _reduce to try to avoid a potentially-expensive transpose.
 
@@ -15776,13 +15787,50 @@ class DataFrame(NDFrame, OpsMixin):
             # "_UFunc_Nin2_Nout1[Literal['logical_and'], Literal[20],
             # Literal[True]]")
             ufunc = np.logical_or  # type: ignore[assignment]
+        elif name == "sum":
+            result = None
+            ufunc = np.add  # type: ignore[assignment]
+        elif name == "prod":
+            result = None
+            ufunc = np.multiply  # type: ignore[assignment]
+        elif name == "min":
+            result = None
+            ufunc = np.fmin if skipna else np.minimum  # type: ignore[assignment]
+        elif name == "max":
+            result = None
+            ufunc = np.fmax if skipna else np.maximum  # type: ignore[assignment]
         else:
             raise NotImplementedError(name)
 
         for blocks in self._mgr.blocks:
-            middle = func(blocks.values, axis=0, skipna=skipna)
-            result = ufunc(result, middle)
+            if name in ("sum", "prod"):
+                middle = func(blocks.values, axis=0, skipna=skipna, min_count=0)
+            else:
+                middle = func(blocks.values, axis=0, skipna=skipna)
+            if result is None:
+                result = middle.copy()
+            else:
+                result = ufunc(result, middle)
 
+        # Handle min_count for sum/prod
+        if name in ("sum", "prod"):
+            min_count = kwargs.get("min_count", 0)
+            if min_count > 0 and result is not None:
+                non_null_count = np.zeros(len(self), dtype=np.intp)
+                for block in self._mgr.blocks:
+                    vals = block.values
+                    if vals.dtype.kind in "biu":
+                        # bool/int/uint cannot have NaN
+                        non_null_count += vals.shape[0]
+                    else:
+                        non_null_count += vals.shape[0] - isna(vals).sum(axis=0)
+                null_mask = non_null_count < min_count
+                if null_mask.any():
+                    if result.dtype.kind not in "fc":
+                        result = result.astype("float64")
+                    result[null_mask] = np.nan
+
+        assert result is not None
         res_ser = self._constructor_sliced(result, index=self.index, copy=False)
         return res_ser
 
