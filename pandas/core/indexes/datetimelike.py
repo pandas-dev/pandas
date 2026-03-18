@@ -715,6 +715,47 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         result._data._freq = freq
         return result
 
+    def _shallow_copy(self, values, name=lib.no_default) -> Self:
+        result = super()._shallow_copy(values, name=name)
+        if result._data.freq is None and len(result) > 2:
+            inferred = result.inferred_freq
+            if inferred is not None:
+                result._data._freq = to_offset(inferred)
+        return result
+
+    def _get_getitem_freq(self, key) -> BaseOffset | None:
+        """
+        Find the `freq` attribute to assign to the result of a __getitem__
+        lookup.
+        """
+        freq = None
+        if isinstance(key, slice):
+            if self.freq is not None and key.step is not None:
+                freq = key.step * self.freq
+            else:
+                freq = self.freq
+        elif key is Ellipsis:
+            # GH#21282 indexing with Ellipsis is similar to a full slice,
+            #  should preserve `freq` attribute
+            freq = self.freq
+        elif com.is_bool_indexer(key):
+            key = np.asarray(key, dtype=bool)
+            new_key = lib.maybe_booleans_to_slice(key.view(np.uint8))
+            if isinstance(new_key, slice):
+                return self._get_getitem_freq(new_key)
+        return freq
+
+    def __getitem__(self, key):
+        result = super().__getitem__(key)
+        if isinstance(result, type(self)):
+            result._data._freq = self._get_getitem_freq(key)
+        return result
+
+    def _getitem_slice(self, slobj: slice) -> Self:
+        result = super()._getitem_slice(slobj)
+        result._data._freq = self._get_getitem_freq(slobj)
+        return result
+
     @property
     def values(self) -> np.ndarray:
         # NB: For Datetime64TZ this is lossy
@@ -905,7 +946,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             result = self[:0]
         else:
             lslice = slice(*left.slice_locs(start, end))
-            result = left._values[lslice]  # type: ignore[assignment]
+            result = left[lslice]
 
         return result
 
@@ -987,9 +1028,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             # The can_fast_union check ensures that the result.freq
             #  should match self.freq
             assert isinstance(dates, type(self._data))
-            # error: Item "ExtensionArray" of "ExtensionArray |
-            # ndarray[Any, Any]" has no attribute "_freq"
-            assert dates._freq == self.freq  # type: ignore[union-attr]
+            dates._freq = self.freq
             result = type(self)._simple_new(dates)
             return result
         else:
@@ -1241,6 +1280,6 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
 
         maybe_slice = lib.maybe_indices_to_slice(indices, len(self))
         if isinstance(maybe_slice, slice):
-            freq = self._data._get_getitem_freq(maybe_slice)
+            freq = self._get_getitem_freq(maybe_slice)
             result._data._freq = freq
         return result

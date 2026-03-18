@@ -132,14 +132,12 @@ from pandas.core.arrays._mixins import (
 from pandas.core.arrays.arrow.array import ArrowExtensionArray
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.arrays.integer import IntegerArray
-import pandas.core.common as com
 from pandas.core.construction import (
     array as pd_array,
     ensure_wrapped_if_datetimelike,
     extract_array,
 )
 from pandas.core.indexers import (
-    check_array_indexer,
     check_setitem_lengths,
 )
 from pandas.core.ops.common import unpack_zerodim_and_defer
@@ -400,35 +398,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             result = cast("Self", result)
         # error: Incompatible types in assignment (expression has type
         # "BaseOffset | None", variable has type "None")
-        result._freq = self._get_getitem_freq(key)  # type: ignore[assignment]
         return result
-
-    def _get_getitem_freq(self, key) -> BaseOffset | None:
-        """
-        Find the `freq` attribute to assign to the result of a __getitem__ lookup.
-        """
-        is_period = isinstance(self.dtype, PeriodDtype)
-        if is_period:
-            freq = self.freq
-        elif self.ndim != 1:
-            freq = None
-        else:
-            key = check_array_indexer(self, key)  # maybe ndarray[bool] -> slice
-            freq = None
-            if isinstance(key, slice):
-                if self.freq is not None and key.step is not None:
-                    freq = key.step * self.freq
-                else:
-                    freq = self.freq
-            elif key is Ellipsis:
-                # GH#21282 indexing with Ellipsis is similar to a full slice,
-                #  should preserve `freq` attribute
-                freq = self.freq
-            elif com.is_bool_indexer(key):
-                new_key = lib.maybe_booleans_to_slice(key.view(np.uint8))
-                if isinstance(new_key, slice):
-                    return self._get_getitem_freq(new_key)
-        return freq
 
     # error: Argument 1 of "__setitem__" is incompatible with supertype
     # "ExtensionArray"; supertype defines the argument type as "Union[int,
@@ -2531,6 +2501,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             if sort and self.freq.n < 0:
                 codes = np.arange(len(self) - 1, -1, -1, dtype=np.intp)
                 uniques = self[::-1]
+                uniques._freq = -self.freq
             else:
                 codes = np.arange(len(self), dtype=np.intp)
                 uniques = self.copy()  # TODO: copy or view?
@@ -2621,13 +2592,6 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         result = super().take(
             indices=indices, allow_fill=allow_fill, fill_value=fill_value, axis=axis
         )
-
-        indices = np.asarray(indices, dtype=np.intp)
-        maybe_slice = lib.maybe_indices_to_slice(indices, len(self))  # type: ignore[arg-type]
-
-        if isinstance(maybe_slice, slice):
-            freq = self._get_getitem_freq(maybe_slice)
-            result._freq = freq  # type: ignore[assignment]
 
         return result
 

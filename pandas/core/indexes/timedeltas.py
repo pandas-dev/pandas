@@ -8,6 +8,8 @@ from typing import (
     cast,
 )
 
+import numpy as np
+
 from pandas._libs import (
     index as libindex,
     lib,
@@ -249,6 +251,44 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         result = super().__pos__()
         if freq is not None:
             result._data._freq = freq
+        return result
+
+    def _arith_method(self, other: object, op) -> Index:
+        freq = self._data.freq
+        result = super()._arith_method(other, op)
+        if (
+            freq is not None
+            and isinstance(result, type(self))
+            and lib.is_scalar(other)
+            and not (lib.is_float(other) and np.isnan(other))
+        ):
+            import operator
+
+            from pandas.core.ops import rmul
+
+            if op in (operator.mul, rmul):
+                new_freq = freq * other
+                if new_freq.n == 0:
+                    # GH#51575 Better to have no freq than an incorrect one
+                    new_freq = None
+                result._data._freq = new_freq
+            elif op in (operator.truediv, operator.floordiv):
+                from pandas._libs.tslibs import Day
+
+                # Note: freq gets division, not floor-division, even if op
+                #  is floordiv.
+                if isinstance(freq, Day):
+                    if freq.n % other == 0:
+                        new_freq = Day(freq.n // other)
+                    else:
+                        new_freq = to_offset(Timedelta(days=freq.n)) / other
+                else:
+                    new_freq = freq / other
+                if new_freq.nanos == 0 and freq.nanos != 0:
+                    # e.g. if freq is Nano(1) then dividing by 2
+                    #  rounds down to zero
+                    new_freq = None
+                result._data._freq = new_freq
         return result
 
     # -------------------------------------------------------------------
