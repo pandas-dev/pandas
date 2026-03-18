@@ -1031,11 +1031,7 @@ class BaseBlockManager(PandasObject):
         if fill_value is None or fill_value is np.nan:
             fill_value = np.nan
             # GH45857 avoid unnecessary upcasting
-            # GH#62263 use cached interleaved_dtype
-            dtype = self._interleaved_dtype
-            if dtype is None:
-                dtype = interleaved_dtype([blk.dtype for blk in self.blocks])
-                self._interleaved_dtype = dtype
+            dtype = interleaved_dtype([blk.dtype for blk in self.blocks])
             if dtype is not None and np.issubdtype(dtype.type, np.floating):
                 fill_value = dtype.type(fill_value)
 
