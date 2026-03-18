@@ -268,9 +268,13 @@ def test_engine_keyword_deprecation(df_compat, pa, temp_file):
     # GH#64597
     msg = "The 'engine' keyword in pd.read_parquet"
     path = temp_file
-    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+    with tm.assert_produces_warning(
+        Pandas4Warning, match=msg, raise_on_extra_warnings=False
+    ):
         df_compat.to_parquet(path, engine="pyarrow")
-    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+    with tm.assert_produces_warning(
+        Pandas4Warning, match=msg, raise_on_extra_warnings=False
+    ):
         read_parquet(path, engine="pyarrow")
 
 

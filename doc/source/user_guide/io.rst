@@ -5249,7 +5249,7 @@ more columns in the output file. For example, this code:
 .. ipython:: python
 
     df = pd.DataFrame({"a": [1, 2], "b": [3, 4]}, index=[1, 2])
-    df.to_parquet("test.parquet", engine="pyarrow")
+    df.to_parquet("test.parquet")
 
 creates a parquet file with *three* columns (``a``, ``b``, and
 ``__index_level_0__`` when using the ``pyarrow`` engine, or ``index``, ``a``,
@@ -5292,7 +5292,7 @@ Parquet supports partitioning of data based on the values of one or more columns
 .. ipython:: python
 
     df = pd.DataFrame({"a": [0, 0, 1, 1], "b": [0, 1, 0, 1]})
-    df.to_parquet(path="test", engine="pyarrow", partition_cols=["a"], compression=None)
+    df.to_parquet(path="test", partition_cols=["a"], compression=None)
 
 The ``path`` specifies the parent directory to which data will be saved.
 The ``partition_cols`` are the column names by which the dataset will be partitioned.

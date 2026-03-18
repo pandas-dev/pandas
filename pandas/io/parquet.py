@@ -97,9 +97,9 @@ def get_engine(engine: str) -> BaseImpl:
     raise ValueError("engine must be one of 'pyarrow', 'fastparquet'")
 
 
-def _warn_if_engine(engine: str) -> None:
+def _warn_if_engine(engine: str | lib.NoDefault) -> None:
     """Warn if the engine keyword was explicitly passed."""
-    if engine != lib.no_default:
+    if engine is not lib.no_default:
         warnings.warn(
             "The 'engine' keyword in pd.read_parquet and "
             "DataFrame.to_parquet is deprecated and will be removed in a "
