@@ -2248,9 +2248,9 @@ def test_mixed_col_index_dtype(string_dtype_no_object):
     tm.assert_frame_equal(result, expected)
 
 
-def test_add_mixed_empty():
+def test_add_mixed_empty(using_infer_string):
     # GH 64657
-    if HAS_PYARROW:
+    if HAS_PYARROW and using_infer_string:
         expected_output = Series({"col1": "", "col2": 0}, dtype=object)
     else:
         # non-pyarrow behaves like Pandas 2 implementation
