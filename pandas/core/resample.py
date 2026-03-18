@@ -2179,7 +2179,7 @@ class DatetimeIndexResampler(Resampler):
         # if index exactly matches target grid (same freq & alignment), use fast path
         if (
             limit is None
-            and to_offset(ax.inferred_freq) == self.freq
+            and to_offset(ax._inferred_freq_str) == self.freq
             and len(obj) == len(res_index)
             and obj.index.equals(res_index)
         ):

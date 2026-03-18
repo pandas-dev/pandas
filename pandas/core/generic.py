@@ -10737,7 +10737,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             freq = getattr(index, "freq", None)
 
             if freq is None:
-                freq = getattr(index, "inferred_freq", None)
+                freq = getattr(index, "_inferred_freq_str", None)
 
             if freq is None:
                 msg = "Freq was not set in the index hence cannot be inferred"
