@@ -99,7 +99,7 @@ Deprecations
 - Deprecated arithmetic operations between pandas objects (:class:`DataFrame`, :class:`Series`, :class:`Index`, and pandas-implemented :class:`ExtensionArray` subclasses) and list-likes other than ``list``, ``np.ndarray``, :class:`ExtensionArray`, :class:`Index`, :class:`Series`, :class:`DataFrame`. For e.g. ``tuple`` or ``range``, explicitly cast these to a supported object instead. In a future version, these will be treated as scalar-like for pointwise operation (:issue:`62423`)
 - Deprecated automatic dtype promotion when reindexing with a ``fill_value`` that cannot be held by the original dtype. Explicitly cast to a common dtype instead (:issue:`53910`)
 - Deprecated the ``.name`` property of offset objects (e.g., :class:`~pandas.tseries.offsets.Day`, :class:`~pandas.tseries.offsets.Hour`). Use ``.rule_code`` instead (:issue:`64207`)
-- Removed the special casing for sequences of Python ``date`` objects in ``DatetimeIndex.get_indexer`` and related indexing logic.Indexing a ``DatetimeIndex`` with Python ``date`` objects now behaves consistently with other types. (:issue:`62158`)
+- Deprecated the special casing for sequences of Python ``date`` objects in ``DatetimeIndex.get_indexer`` and related indexing logic.Indexing a ``DatetimeIndex`` with Python ``date`` objects now behaves consistently with other types. (:issue:`62158`)
 -
 
 .. ---------------------------------------------------------------------------
