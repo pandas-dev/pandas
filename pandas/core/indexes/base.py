@@ -1412,12 +1412,11 @@ class Index(IndexOpsMixin, PandasObject):
 
         return f"{klass_name}({data}{prepr})"
 
-    @property
-    def _formatter_func(self) -> Callable:
+    def _formatter_func(self, val: object) -> str_t:
         """
-        Return the formatter function.
+        Return the formatted value.
         """
-        return default_pprint
+        return default_pprint(val)
 
     @final
     def _format_data(self, name: str_t | None = None) -> str_t:

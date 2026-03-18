@@ -345,9 +345,8 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
     # --------------------------------------------------------------------
     # Rendering Methods
 
-    @property
-    def _formatter_func(self):
-        return self.categories._formatter_func
+    def _formatter_func(self, val) -> str:
+        return self.categories._formatter_func(val)
 
     def _format_attrs(self):
         """

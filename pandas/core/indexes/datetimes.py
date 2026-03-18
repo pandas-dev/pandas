@@ -767,14 +767,16 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     # --------------------------------------------------------------------
     # Rendering Methods
 
-    @cache_readonly
-    def _formatter_func(self):
+    def _formatter_func(self, val) -> str:
         # Note this is equivalent to the DatetimeIndexOpsMixin method but
         #  uses the maybe-cached self._is_dates_only instead of re-computing it.
+        return f"'{self._date_formatter(val)}'"
+
+    @cache_readonly
+    def _date_formatter(self):
         from pandas.io.formats.format import get_format_datetime64
 
-        formatter = get_format_datetime64(is_dates_only=self._is_dates_only)
-        return lambda x: f"'{formatter(x)}'"
+        return get_format_datetime64(is_dates_only=self._is_dates_only)
 
     # --------------------------------------------------------------------
     # Set Operation Methods
