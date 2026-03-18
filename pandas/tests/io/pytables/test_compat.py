@@ -82,7 +82,7 @@ class TestReadPyTablesHDF5:
 
 _skip = pytest.mark.skip(reason="legacy .h5 files not found")
 _legacy_files = list(Path(__file__).parent.parent.glob("data/legacy_hdf/*/*.h5"))
-_params = _legacy_files if _legacy_files else [pytest.param(None, marks=_skip)]
+_params: list = _legacy_files if _legacy_files else [pytest.param(None, marks=_skip)]
 
 
 @pytest.mark.parametrize(
