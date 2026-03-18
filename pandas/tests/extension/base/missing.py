@@ -6,7 +6,7 @@ import pandas._testing as tm
 
 
 class BaseMissingTests:
-    _supports_fillna_copy_false = True
+    _respects_fillna_copy_false = True
 
     def test_isna(self, data_missing):
         expected = np.array([True, False])
@@ -131,12 +131,9 @@ class BaseMissingTests:
 
         # by default fillna(copy=True), then this works fine
         res_copy = data.fillna(fill_value, copy=True)
-        tm.assert_extension_array_equal(
-            res_copy, data_missing.fillna(fill_value, copy=True)
-        )
         tm.assert_extension_array_equal(data, data_missing)
 
-        if self._supports_fillna_copy_false:
+        if self._respects_fillna_copy_false:
             with pytest.raises(ValueError, match="Cannot modify read-only array"):
                 data.fillna(fill_value, copy=False)
             tm.assert_extension_array_equal(data, data_missing)

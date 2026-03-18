@@ -97,7 +97,7 @@ def data_for_compare(request):
 
 
 class TestSparseArray(base.ExtensionTests):
-    _supports_fillna_copy_false = False
+    _respects_fillna_copy_false = False
 
     def _supports_reduction(self, obj, op_name: str) -> bool:
         return True
