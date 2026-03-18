@@ -3427,6 +3427,14 @@ class MultiIndex(Index):
         for k, (lab, lev, level_codes) in enumerate(zipped):
             section = level_codes[start:end]
 
+            # GH#55969: convert np.datetime64 to Python datetime for proper
+            # containment check against object-dtype Index of datetime.date
+            if isinstance(lab, np.datetime64) and lev.dtype == object:
+                try:
+                    lab = lab.item()
+                except (ValueError, OverflowError):
+                    pass
+
             loc: npt.NDArray[np.intp] | np.intp | int
             if lab not in lev and not isna(lab):
                 # short circuit
