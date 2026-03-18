@@ -779,6 +779,18 @@ class TestSeriesComparison:
 
         tm.assert_series_equal(result, expected)
 
+    def test_comparison_operators_none_raises(self):
+        left = Series([None], dtype=object)
+        right = Series([0])
+
+        msg = r"'>' not supported between instances of 'NoneType' and 'int'"
+        with pytest.raises(TypeError, match=msg):
+            left.gt(0)
+        with pytest.raises(TypeError, match=msg):
+            left > 0
+        with pytest.raises(TypeError, match=msg):
+            left > right
+
     def test_ne(self):
         ts = Series([3, 4, 5, 6, 7], [3, 4, 5, 6, 7], dtype=float)
         expected = np.array([True, True, False, True, True])
