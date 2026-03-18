@@ -8,7 +8,9 @@ from abc import (
     ABC,
     abstractmethod,
 )
+from datetime import timedelta
 from itertools import pairwise
+import operator
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -26,6 +28,7 @@ from pandas._libs import (
 )
 from pandas._libs.tslibs import (
     BaseOffset,
+    Day,
     Resolution,
     Tick,
     Timedelta,
@@ -770,6 +773,53 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
                     pairs = pairwise(non_empty)
                     if all(pair[0][-1] + first_freq == pair[1][0] for pair in pairs):
                         result._data._freq = first_freq
+        return result
+
+    def _arith_method(self, other: object, op) -> Index:
+        from pandas.core.ops import (
+            radd,
+            rsub,
+        )
+
+        freq = self._data.freq
+        result = super()._arith_method(other, op)
+
+        if (
+            freq is not None
+            and isinstance(result, DatetimeTimedeltaMixin)
+            and op in (operator.add, radd, operator.sub, rsub)
+        ):
+            # NaT makes everything NaT, no freq
+            if other is NaT:
+                return result
+
+            # Non-Tick/non-Day BaseOffsets go through _add_offset
+            # which applies element-wise and does not preserve freq
+            if isinstance(other, BaseOffset) and not isinstance(other, (Tick, Day)):
+                return result
+
+            # Normalize other to pandas scalar types to match what
+            # _get_arithmetic_result_freq expects
+            import datetime as dt
+
+            arith_other = other
+            if isinstance(other, Day):
+                arith_other = Timedelta(days=other.n)
+            elif isinstance(other, Tick):
+                arith_other = Timedelta(other)
+            elif isinstance(other, np.timedelta64):
+                arith_other = Timedelta(other)
+            elif isinstance(other, timedelta) and not isinstance(other, Timedelta):
+                arith_other = Timedelta(other)
+            elif isinstance(other, np.datetime64):
+                arith_other = Timestamp(other)
+            elif isinstance(other, dt.datetime) and not isinstance(other, Timestamp):
+                arith_other = Timestamp(other)
+
+            new_freq = self._data._get_arithmetic_result_freq(arith_other)
+            if new_freq is not None and op is rsub:
+                new_freq = -new_freq
+            result._data._freq = new_freq
         return result
 
     @property

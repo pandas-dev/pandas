@@ -1131,8 +1131,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         dtype = tz_to_dtype(tz=other.tz, unit=self.unit)
         res_values = result.view(f"M8[{self.unit}]")
-        new_freq = self._get_arithmetic_result_freq(other)
-        return DatetimeArray._simple_new(res_values, dtype=dtype, freq=new_freq)
+        return DatetimeArray._simple_new(res_values, dtype=dtype)
 
     @final
     def _add_datetime_arraylike(self, other: DatetimeArray) -> DatetimeArray:
@@ -1192,9 +1191,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         res_values = add_overflowsafe(self.asi8, np.asarray(-other_i8, dtype="i8"))
         res_m8 = res_values.view(f"timedelta64[{self.unit}]")
 
-        new_freq = self._get_arithmetic_result_freq(other)
-        new_freq = cast("Tick | None", new_freq)
-        return TimedeltaArray._simple_new(res_m8, dtype=res_m8.dtype, freq=new_freq)
+        return TimedeltaArray._simple_new(res_m8, dtype=res_m8.dtype)
 
     @final
     def _add_period(self, other: Period) -> PeriodArray:
@@ -1256,13 +1253,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         new_values = add_overflowsafe(self.asi8, np.asarray(other_i8, dtype="i8"))
         res_values = new_values.view(self._ndarray.dtype)
 
-        new_freq = self._get_arithmetic_result_freq(other)
-
-        # error: Unexpected keyword argument "freq" for "_simple_new" of "NDArrayBacked"
         return type(self)._simple_new(
             res_values,
             dtype=self.dtype,
-            freq=new_freq,  # type: ignore[call-arg]
         )
 
     @final
@@ -1554,19 +1547,11 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     def __iadd__(self, other) -> Self:
         result = self + other
         self[:] = result[:]
-
-        if not isinstance(self.dtype, PeriodDtype):
-            # restore freq, which is invalidated by setitem
-            self._freq = result.freq
         return self
 
     def __isub__(self, other) -> Self:
         result = self - other
         self[:] = result[:]
-
-        if not isinstance(self.dtype, PeriodDtype):
-            # restore freq, which is invalidated by setitem
-            self._freq = result.freq
         return self
 
     # --------------------------------------------------------------
