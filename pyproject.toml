@@ -679,7 +679,6 @@ reportReturnType = false
 [tool.coverage.run]
 branch = true
 omit = ["pandas/_typing.py"]
-plugins = ["Cython.Coverage"]
 source = ["pandas"]
 
 [tool.coverage.report]
@@ -688,21 +687,13 @@ show_missing = true
 exclude_lines = [
   # Have to re-enable the standard pragma
   "pragma: no cover",
-  # Don't complain about missing debug-only code:s
-  "def __repr__",
-  "if self.debug",
   # Don't complain if tests don't hit defensive assertion code:
   "raise AssertionError",
-  "raise NotImplementedError",
   "AbstractMethodError",
   # Don't complain if non-runnable code isn't run:
-  "if 0:",
   "if __name__ == .__main__.:",
   "if TYPE_CHECKING:",
 ]
-
-[tool.coverage.html]
-directory = "coverage_html_report"
 
 [tool.codespell]
 ignore-words-list = "blocs, coo, hist, nd, sav, ser, recuse, nin, timere, expec, expecs, indext, SME, NotIn, tructures, tru, indx, abd, ABD"

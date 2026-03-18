@@ -11,7 +11,7 @@ dependencies:
 
   # test dependencies
   - pytest>=7.3.2
-  - pytest-cov
+  - coverage
   - pytest-xdist>=3.4.0
   - psutil
   - boto3
