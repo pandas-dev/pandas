@@ -8,6 +8,7 @@ from abc import (
     ABC,
     abstractmethod,
 )
+from itertools import pairwise
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -754,6 +755,21 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
     def _getitem_slice(self, slobj: slice) -> Self:
         result = super()._getitem_slice(slobj)
         result._data._freq = self._get_getitem_freq(slobj)
+        return result
+
+    def _concat(self, to_concat: list[Index], name: Hashable) -> Index:
+        result = super()._concat(to_concat, name)
+        # GH#3232: If the concat result is evenly spaced, we can retain freq
+        if isinstance(result, DatetimeTimedeltaMixin):
+            non_empty = [idx for idx in to_concat if len(idx)]
+            if non_empty:
+                first_freq = non_empty[0].freq
+                if first_freq is not None and all(
+                    idx.freq == first_freq for idx in non_empty
+                ):
+                    pairs = pairwise(non_empty)
+                    if all(pair[0][-1] + first_freq == pair[1][0] for pair in pairs):
+                        result._data._freq = first_freq
         return result
 
     @property

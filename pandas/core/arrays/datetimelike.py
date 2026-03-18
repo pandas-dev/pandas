@@ -5,7 +5,6 @@ from datetime import (
     timedelta,
 )
 from functools import wraps
-from itertools import pairwise
 import operator
 from typing import (
     TYPE_CHECKING,
@@ -2526,18 +2525,6 @@ class TimelikeOps(DatetimeLikeArrayMixin):
     ) -> Self:
         new_obj = super()._concat_same_type(to_concat, axis)
 
-        obj = to_concat[0]
-
-        if axis == 0:
-            # GH 3232: If the concat result is evenly spaced, we can retain the
-            # original frequency
-            to_concat = [x for x in to_concat if len(x)]
-
-            if obj.freq is not None and all(x.freq == obj.freq for x in to_concat):
-                pairs = pairwise(to_concat)
-                if all(pair[0][-1] + obj.freq == pair[1][0] for pair in pairs):
-                    new_freq = obj.freq
-                    new_obj._freq = new_freq
         return new_obj
 
     def copy(self, order: str = "C") -> Self:
