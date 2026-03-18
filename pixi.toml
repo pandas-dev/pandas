@@ -46,7 +46,7 @@ python-freethreading = "3.13.*"
 pytest = ">=8.3.4"
 pytest-xdist = ">=3.6.1"
 hypothesis = ">=6.116.0"
-coverage = ">=7.13.5"
+pytest-cov = ">=7.0.0"
 
 [feature.test-network.dependencies]
 pytest-localserver = ">=0.9.0"
@@ -143,9 +143,7 @@ args = [
   { "arg" = "pytest_target", "default" = "pandas" },
 ]
 cmd = [
-  "coverage",
-  "run",
-  "--append",
+  "python",
   "-m",
   "pytest",
   "-r",
@@ -154,8 +152,8 @@ cmd = [
   "--numprocesses={{ numprocesses }}",
   "--dist=worksteal",
   "--capture=no",
+  "--cov=pandas",
+  "--cov-report=xml",
+  "--cov-append",
   "{{ pytest_target }}",
-  "&&",
-  "coverage",
-  "xml",
 ]
