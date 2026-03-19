@@ -131,7 +131,9 @@ class TestSeriesDatetimeValues:
 
         tz_result = result.dt.tz
         assert str(tz_result) == "US/Eastern"
-        freq_result = ser.dt.freq
+        msg = "The behavior of Series.dt.freq is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            freq_result = ser.dt.freq
         assert freq_result == DatetimeIndex(ser.values, freq="infer").freq
 
         # let's localize, then convert
@@ -168,7 +170,9 @@ class TestSeriesDatetimeValues:
 
         tz_result = result.dt.tz
         assert str(tz_result) == "CET"
-        freq_result = ser.dt.freq
+        msg = "The behavior of Series.dt.freq is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            freq_result = ser.dt.freq
         assert freq_result == DatetimeIndex(ser.values, freq="infer").freq
 
     def test_dt_namespace_accessor_timedelta(self):
@@ -209,7 +213,9 @@ class TestSeriesDatetimeValues:
             assert isinstance(result, Series)
             assert result.dtype == "float64"
 
-            freq_result = ser.dt.freq
+            msg = "The behavior of Series.dt.freq is deprecated"
+            with tm.assert_produces_warning(Pandas4Warning, match=msg):
+                freq_result = ser.dt.freq
             assert freq_result == TimedeltaIndex(ser.values, freq="infer").freq
 
     def test_dt_namespace_accessor_period(self):
