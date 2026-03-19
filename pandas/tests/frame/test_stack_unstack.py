@@ -1067,9 +1067,10 @@ class TestDataFrameReshape:
         assert left.notna().values.sum() == 2 * len(df)
 
         for col in ["jim", "joe"]:
-            for _, r in df.iterrows():
-                key = r["1st"], (col, r["2nd"], r["3rd"])
-                assert r[col] == left.loc[key]
+            with tm.assert_produces_warning(Pandas4Warning, match="iterrows"):
+                for _, r in df.iterrows():
+                    key = r["1st"], (col, r["2nd"], r["3rd"])
+                    assert r[col] == left.loc[key]
 
     def test_stack_datetime_column_multiIndex(self, future_stack):
         # GH 8039

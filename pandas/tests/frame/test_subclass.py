@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -207,9 +209,10 @@ class TestDataFrameSubclassing:
     def test_subclass_iterrows(self):
         # GH 13977
         df = tm.SubclassedDataFrame({"a": [1]})
-        for i, row in df.iterrows():
-            assert isinstance(row, tm.SubclassedSeries)
-            tm.assert_series_equal(row, df.loc[i])
+        with tm.assert_produces_warning(Pandas4Warning, match="iterrows"):
+            for i, row in df.iterrows():
+                assert isinstance(row, tm.SubclassedSeries)
+                tm.assert_series_equal(row, df.loc[i])
 
     def test_subclass_stack(self):
         # GH 15564

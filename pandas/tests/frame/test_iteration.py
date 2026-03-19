@@ -7,6 +7,7 @@ from pandas.compat import (
     IS64,
     is_platform_windows,
 )
+from pandas.errors import Pandas4Warning
 
 from pandas import (
     Categorical,
@@ -43,13 +44,15 @@ class TestIteration:
         assert list(float_frame) == list(float_frame.columns)
 
     def test_iterrows(self, float_frame, float_string_frame):
-        for k, v in float_frame.iterrows():
-            exp = float_frame.loc[k]
-            tm.assert_series_equal(v, exp)
+        with tm.assert_produces_warning(Pandas4Warning, match="iterrows"):
+            for k, v in float_frame.iterrows():
+                exp = float_frame.loc[k]
+                tm.assert_series_equal(v, exp)
 
-        for k, v in float_string_frame.iterrows():
-            exp = float_string_frame.loc[k]
-            tm.assert_series_equal(v, exp)
+        with tm.assert_produces_warning(Pandas4Warning, match="iterrows"):
+            for k, v in float_string_frame.iterrows():
+                exp = float_string_frame.loc[k]
+                tm.assert_series_equal(v, exp)
 
     def test_iterrows_iso8601(self):
         # GH#19671
@@ -59,9 +62,10 @@ class TestIteration:
                 "iso8601": date_range("2000-01-01", periods=4, freq="ME"),
             }
         )
-        for k, v in s.iterrows():
-            exp = s.loc[k]
-            tm.assert_series_equal(v, exp)
+        with tm.assert_produces_warning(Pandas4Warning, match="iterrows"):
+            for k, v in s.iterrows():
+                exp = s.loc[k]
+                tm.assert_series_equal(v, exp)
 
     def test_iterrows_no_datetime_coercion(self):
         # GH#26427 - string that looks like a year should not be coerced
@@ -73,10 +77,11 @@ class TestIteration:
             }
         )
         df["a"] = df["a"].astype(object)
-        for idx, row in df.iterrows():
-            assert isinstance(row["a"], str), (
-                f"row {idx}: 'a' was coerced to {type(row['a'])}"
-            )
+        with tm.assert_produces_warning(Pandas4Warning, match="iterrows"):
+            for idx, row in df.iterrows():
+                assert isinstance(row["a"], str), (
+                    f"row {idx}: 'a' was coerced to {type(row['a'])}"
+                )
 
     def test_iterrows_corner(self):
         # GH#12222
@@ -97,7 +102,8 @@ class TestIteration:
             name=0,
             dtype="object",
         )
-        _, result = next(df.iterrows())
+        with tm.assert_produces_warning(Pandas4Warning, match="iterrows"):
+            _, result = next(df.iterrows())
         tm.assert_series_equal(result, expected)
 
     def test_itertuples(self, float_frame):
@@ -168,8 +174,9 @@ class TestIteration:
         for t in df.itertuples(index=False):
             str(t)
 
-        for row, s in df.iterrows():
-            str(s)
+        with tm.assert_produces_warning(Pandas4Warning, match="iterrows"):
+            for row, s in df.iterrows():
+                str(s)
 
         for c, col in df.items():
             str(col)

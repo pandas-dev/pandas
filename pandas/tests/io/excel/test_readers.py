@@ -205,14 +205,15 @@ class TestReaders:
 
         tm.assert_frame_equal(df1, df2)
 
-        for idx, row in df2.iterrows():
-            for col in df2.columns:
-                val = row[col]
-                exp_val = df1.iloc[idx][col]
-                # Check if values match
-                assert val == exp_val, (
-                    f"Mismatch at Row {idx} Column {col}: {val} != {exp_val}"
-                )
+        with tm.assert_produces_warning(Pandas4Warning, match="iterrows"):
+            for idx, row in df2.iterrows():
+                for col in df2.columns:
+                    val = row[col]
+                    exp_val = df1.iloc[idx][col]
+                    # Check if values match
+                    assert val == exp_val, (
+                        f"Mismatch at Row {idx} Column {col}: {val} != {exp_val}"
+                    )
                 # Check if types match
                 assert type(val) == type(exp_val), (
                     f"Type mismatch at Row {idx} Column {col}: "

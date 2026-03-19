@@ -1299,6 +1299,9 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Iterate over DataFrame rows as (index, Series) pairs.
 
+        .. deprecated:: 3.1.0
+            Use :meth:`itertuples` instead.
+
         Each row is yielded as a (index, Series) tuple; the Series has
         the same index as the DataFrame columns. Note that dtypes may
         not be preserved across rows. Prefer :meth:`itertuples` for
@@ -1345,6 +1348,12 @@ class DataFrame(NDFrame, OpsMixin):
         >>> print(df["int"].dtype)
         int64
         """
+        warnings.warn(
+            f"{type(self).__name__}.iterrows is deprecated and "
+            "will be removed in a future version. Use .itertuples instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
         columns = self.columns
         klass = self._constructor_sliced
         for k, v in zip(self.index, self.values, strict=True):

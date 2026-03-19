@@ -11,6 +11,8 @@ import pytest
 
 from pandas._config import using_string_dtype
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 from pandas import (
     ArrowDtype,
@@ -541,8 +543,9 @@ class TestPivotTable:
             pv = pd.pivot(df, index="a", columns="b", values="c")
         assert pv.notna().values.sum() == len(df)
 
-        for _, row in df.iterrows():
-            assert pv.loc[row["a"], row["b"]] == row["c"]
+        with tm.assert_produces_warning(Pandas4Warning, match="iterrows"):
+            for _, row in df.iterrows():
+                assert pv.loc[row["a"], row["b"]] == row["c"]
 
         if method:
             result = df.pivot(index="b", columns="a", values="c")
