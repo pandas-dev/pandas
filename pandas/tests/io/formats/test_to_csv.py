@@ -650,7 +650,7 @@ z
             if engine == "pyarrow":
                 raise_if_pyarrow = pytest.raises(
                     ValueError,
-                    match="The pyarrow engine can only open files in abinary mode.",
+                    match="The pyarrow engine can only open files in binary mode.",
                 )
             else:
                 raise_if_pyarrow = contextlib.nullcontext()
@@ -673,7 +673,7 @@ z
             if engine == "pyarrow":
                 raise_if_pyarrow = pytest.raises(
                     ValueError,
-                    match="The pyarrow engine can only open file in abinary mode.",
+                    match="The pyarrow engine can only open files in binary mode.",
                 )
             else:
                 raise_if_pyarrow = contextlib.nullcontext()
