@@ -58,10 +58,8 @@ def test_context(temp_h5_path):
     Version(tables.hdf5_version) >= Version("2"),
     reason="track_times=False produces non-deterministic files with HDF5 >= 2",
 )
-def test_no_track_times(temp_h5_path):
-    # GH 32682
-    # enables to set track_times (see `pytables` `create_table` documentation)
-
+def test_track_times_default_false(temp_h5_path):
+    # GH#51456 - default changed from True to False
     def checksum(filename, hash_factory=hashlib.md5, chunk_num_blocks=128):
         h = hash_factory()
         with open(filename, "rb") as f:
@@ -69,35 +67,36 @@ def test_no_track_times(temp_h5_path):
                 h.update(chunk)
         return h.digest()
 
-    def create_h5_and_return_checksum(temp_h5_path, track_times):
-        df = DataFrame({"a": [1]})
+    df = DataFrame({"a": [1]})
 
+    with HDFStore(temp_h5_path, mode="w") as hdf:
+        hdf.put("table", df, format="table", data_columns=True, index=None)
+    checksum_0 = checksum(temp_h5_path)
+
+    time.sleep(1)
+
+    with HDFStore(temp_h5_path, mode="w") as hdf:
+        hdf.put("table", df, format="table", data_columns=True, index=None)
+    checksum_1 = checksum(temp_h5_path)
+
+    # default is now False, so checksums should match
+    assert checksum_0 == checksum_1
+
+
+@pytest.mark.parametrize("track_times", [True, False])
+def test_track_times_deprecated(temp_h5_path, track_times):
+    # GH#51456 - track_times keyword is deprecated
+    df = DataFrame({"a": [1]})
+    msg = "The 'track_times' keyword in HDFStore.put is deprecated"
+    with tm.assert_produces_warning(pd.errors.Pandas4Warning, match=msg):
         with HDFStore(temp_h5_path, mode="w") as hdf:
             hdf.put(
                 "table",
                 df,
                 format="table",
                 data_columns=True,
-                index=None,
                 track_times=track_times,
             )
-
-        return checksum(temp_h5_path)
-
-    checksum_0_tt_false = create_h5_and_return_checksum(temp_h5_path, track_times=False)
-    checksum_0_tt_true = create_h5_and_return_checksum(temp_h5_path, track_times=True)
-
-    # sleep is necessary to create h5 with different creation time
-    time.sleep(1)
-
-    checksum_1_tt_false = create_h5_and_return_checksum(temp_h5_path, track_times=False)
-    checksum_1_tt_true = create_h5_and_return_checksum(temp_h5_path, track_times=True)
-
-    # checksums are the same if track_time = False
-    assert checksum_0_tt_false == checksum_1_tt_false
-
-    # checksums are NOT same if track_time = True
-    assert checksum_0_tt_true != checksum_1_tt_true
 
 
 def test_iter_empty(temp_hdfstore):

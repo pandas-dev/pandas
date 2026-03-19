@@ -1157,7 +1157,7 @@ class HDFStore:
         data_columns: Literal[True] | list[str] | None = None,
         encoding=None,
         errors: str = "strict",
-        track_times: bool = True,
+        track_times: bool | lib.NoDefault = lib.no_default,
         dropna: bool | lib.NoDefault = lib.no_default,
     ) -> None:
         """
@@ -1213,10 +1213,15 @@ class HDFStore:
             UnicodeEncodeError.  Other possible values are 'ignore', 'replace' and
             'xmlcharrefreplace' as well as any other name registered with
             codecs.register_error that can handle UnicodeEncodeErrors.
-        track_times : bool, default True
+        track_times : bool, default False
             Parameter is propagated to 'create_table' method of 'PyTables'.
             If set to False it enables to have the same h5 files (same hashes)
             independent on creation time.
+
+            .. deprecated:: 3.1.0
+                The ``track_times`` keyword is deprecated and will be removed
+                in a future version. The creation time is no longer written
+                to HDF5 files.
         dropna : bool, default False, optional
             Remove missing values.
 
@@ -1249,6 +1254,16 @@ class HDFStore:
         if format is None:
             format = _global_config["io"]["hdf"]["default_format"] or "fixed"
         format = self._validate_format(format)
+        if track_times is not lib.no_default:
+            warnings.warn(
+                "The 'track_times' keyword in HDFStore.put is deprecated "
+                "and will be removed in a future version. "
+                "The creation time is no longer written to HDF5 files.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            track_times = False
         self._write_to_group(
             key,
             value,
@@ -2001,7 +2016,7 @@ class HDFStore:
         data_columns=None,
         encoding=None,
         errors: str = "strict",
-        track_times: bool = True,
+        track_times: bool = False,
     ) -> None:
         # we don't want to store a table node at all if our object is 0-len
         # as there are not dtypes
@@ -4629,7 +4644,7 @@ class AppendableTable(Table):
         dropna: bool = False,
         nan_rep=None,
         data_columns=None,
-        track_times: bool = True,
+        track_times: bool = False,
     ) -> None:
         if not append and self.is_exists:
             self._handle.remove_node(self.group, "table")
