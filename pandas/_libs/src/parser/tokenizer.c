@@ -1645,16 +1645,19 @@ static int copy_number_without_tsep(char output[PROCESSED_WORD_CAPACITY],
   const char *p = str;
   const char *end = str + str_len;
   size_t bytes_written = 0;
+  bool prev_was_tsep = false;
 
   if (p < end && (*p == '+' || *p == '-')) {
     output[bytes_written++] = *p++;
   }
 
-  while (p < end && (isdigit_ascii(*p) || (tsep != '\0' && *p == tsep))) {
-    if (*p != tsep) {
-      if (bytes_written + 1 >= PROCESSED_WORD_CAPACITY) {
-        return -1;
-      }
+  while (p < end && (isdigit_ascii(*p) || (*p != '\0' && *p == tsep))) {
+    if (*p == tsep) {
+      if (prev_was_tsep) break;
+      prev_was_tsep = true;
+    } else {
+      prev_was_tsep = false;
+      if (bytes_written + 1>= PROCESSED_WORD_CAPACITY) return -1;
       output[bytes_written++] = *p;
     }
     p++;
