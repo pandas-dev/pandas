@@ -832,6 +832,15 @@ class TestDataFrameSelectReindex:
         expected = DataFrame({"a": [0], "b": ["missing"], "c": ["missing"]})
         tm.assert_frame_equal(result, expected)
 
+    def test_reindex_new_columns_fill_value_with_dtype_promotion(self):
+        # GH#58517 (mutation testing: col_idx == -1 in take.py)
+        # Ensure fill_value is correctly applied to new columns even when
+        # dtype promotion is triggered (int -> float for NaN fill)
+        df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+        result = df.reindex(columns=["a", "b", "c"], fill_value=99)
+        expected = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [99, 99, 99]})
+        tm.assert_frame_equal(result, expected)
+
     def test_reindex_dups(self):
         # GH4746, reindex on duplicate index error messages
         arr = np.random.default_rng(2).standard_normal(10)
