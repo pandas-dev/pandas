@@ -2973,6 +2973,32 @@ cdef class BusinessHour(BusinessMixin):
     def next_bday(self):
         """
         Used for moving to next business day.
+
+        Returns a ``BusinessDay`` or ``CustomBusinessDay`` offset of +1 or -1
+        depending on the sign of ``n``. This is used internally to advance or
+        retreat to the next or previous business day when computing business
+        hour offsets.
+
+        Returns
+        -------
+        BusinessDay or CustomBusinessDay
+            A single-day business day offset in the appropriate direction.
+
+        See Also
+        --------
+        tseries.offsets.BusinessDay : DateOffset subclass representing
+            possibly n business days.
+        tseries.offsets.CustomBusinessDay : DateOffset subclass representing
+            possibly n custom business days.
+
+        Examples
+        --------
+        >>> pd.offsets.CustomBusinessHour(1).next_bday
+        <CustomBusinessDay>
+        >>> pd.offsets.CustomBusinessHour(-2).next_bday
+        <-1 * CustomBusinessDay>
+        >>> pd.offsets.BusinessHour(1).next_bday
+        <BusinessDay>
         """
         if self._n >= 0:
             nb_offset = 1
