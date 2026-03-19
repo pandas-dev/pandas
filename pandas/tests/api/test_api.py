@@ -564,6 +564,8 @@ def test_attributes_module(module_name):
             # Explicit exceptions
             or ("Dtype" in name and obj.__module__ == "pandas")
             or (name == "Categorical" and obj.__module__ == "pandas")
+            # Offset is an alias for BaseOffset (cdef class, can't set __module__)
+            or (name == "Offset")
         )
     ]
     assert len(failures) == 0, "\n".join(str(e) for e in failures)
