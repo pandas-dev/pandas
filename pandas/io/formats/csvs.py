@@ -287,7 +287,7 @@ class CSVFormatter:
             (self.decimal, ".", "decimal"),
             (self.float_format, None, "float_format"),
             (self.na_rep, "", "na_rep"),
-            (self.date_format, None, "date_foramt"),
+            (self.date_format, None, "date_format"),
             (self.lineterminator, os.linesep, "lineterminator"),
             (self.encoding, None, "encoding"),
             (self.errors, "strict", "errors"),
