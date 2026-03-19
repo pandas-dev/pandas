@@ -200,6 +200,10 @@ def assert_index_equal(
     """
     Check that left and right Index are equal.
 
+    This function compares two Index objects and raises an ``AssertionError``
+    if they are not equal. It provides fine-grained control over which
+    attributes to check, including dtype, names, and categorical properties.
+
     Parameters
     ----------
     left : Index
@@ -290,7 +294,7 @@ def assert_index_equal(
 
     # MultiIndex special comparison for little-friendly error messages
     if isinstance(left, MultiIndex):
-        right = cast(MultiIndex, right)
+        right = cast("MultiIndex", right)
 
         for level in range(left.nlevels):
             lobj = f"{obj} level [{level}]"
@@ -788,11 +792,11 @@ def assert_extension_array_equal(
         # GH 52449
         if not check_dtype and left.dtype.kind in "mM":
             if not isinstance(left.dtype, np.dtype):
-                l_unit = cast(DatetimeTZDtype, left.dtype).unit
+                l_unit = cast("DatetimeTZDtype", left.dtype).unit
             else:
                 l_unit = np.datetime_data(left.dtype)[0]
             if not isinstance(right.dtype, np.dtype):
-                r_unit = cast(DatetimeTZDtype, right.dtype).unit
+                r_unit = cast("DatetimeTZDtype", right.dtype).unit
             else:
                 r_unit = np.datetime_data(right.dtype)[0]
             if (
@@ -879,6 +883,10 @@ def assert_series_equal(
 ) -> None:
     """
     Check that left and right Series are equal.
+
+    This function compares two Series and raises an ``AssertionError`` if they
+    are not equal. It provides fine-grained control over which attributes to
+    check, including dtype, index, names, and categorical properties.
 
     Parameters
     ----------

@@ -96,6 +96,9 @@ def read_sas(
     """
     Read SAS files stored as either XPORT or SAS7BDAT format files.
 
+    The file format is inferred from the file extension if not explicitly
+    specified. Supports both full reads and chunked iteration.
+
     Parameters
     ----------
     filepath_or_buffer : str, path object, or file-like object
@@ -104,7 +107,7 @@ def read_sas(
         a URL. Valid URL schemes include http, ftp, s3, and file. For file
         URLs, a host is expected. A local file could be:
         ``file://localhost/path/to/table.sas7bdat``.
-    format : str {{'xport', 'sas7bdat'}} or None
+    format : str {'xport', 'sas7bdat'} or None
         If None, file format is inferred from file extension. If 'xport' or
         'sas7bdat', uses the corresponding format.
     index : identifier of index column, defaults to None

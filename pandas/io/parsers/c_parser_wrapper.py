@@ -191,8 +191,8 @@ class CParserWrapper(ParserBase):
         # error: Cannot determine type of 'names'
 
         # much faster than using orig_names.index(x) xref GH#44106
-        names_dict = {x: i for i, x in enumerate(self.orig_names)}
-        col_indices = [names_dict[x] for x in self.names]
+        names_dict = {x: i for i, x in enumerate(self.orig_names)}  # pyright: ignore[reportOptionalIterable]
+        col_indices = [names_dict[x] for x in self.names]  # pyright: ignore[reportOptionalIterable]
         noconvert_columns = self._set_noconvert_dtype_columns(
             col_indices,
             self.names,
@@ -354,7 +354,7 @@ def _concatenate_chunks(
 
         dtype = dtypes.pop()
         if isinstance(dtype, CategoricalDtype):
-            result[name] = union_categoricals(arrs, sort_categories=False)
+            result[name] = union_categoricals(arrs, sort_categories=False)  # type: ignore[arg-type]
         else:
             result[name] = concat_compat(arrs)
             if len(non_cat_dtypes) > 1 and result[name].dtype == np.dtype(object):

@@ -10,7 +10,6 @@ import pytest
 
 from pandas._libs.tslibs import (
     iNaT,
-    to_offset,
 )
 from pandas._libs.tslibs.ccalendar import (
     DAYS,
@@ -27,6 +26,7 @@ from pandas.errors import (
 from pandas import (
     NaT,
     Period,
+    PeriodDtype,
     Timedelta,
     Timestamp,
     offsets,
@@ -481,7 +481,7 @@ class TestPeriodConstruction:
 
     def test_period_from_ordinal(self):
         p = Period("2011-01", freq="M")
-        res = Period._from_ordinal(p.ordinal, freq=p.freq)
+        res = Period._from_ordinal(p.ordinal, dtype=p._dtype)
         assert p == res
         assert isinstance(res, Period)
 
@@ -928,7 +928,8 @@ class TestPeriodProperties:
         # post-GH#63760 this no longer raises OutOfBoundsDatetime
         getattr(period, period_property)
 
-        per = Period._from_ordinal(bound.value, freq=to_offset("ms"))
+        dtype = PeriodDtype("ms")
+        per = Period._from_ordinal(bound.value, dtype=dtype)
 
         if period_property == "end_time" and offset == 1:
             err = OverflowError

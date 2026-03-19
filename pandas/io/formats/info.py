@@ -5,7 +5,6 @@ from abc import (
     abstractmethod,
 )
 import sys
-from textwrap import dedent
 from typing import TYPE_CHECKING
 
 from pandas._config import get_option
@@ -31,100 +30,6 @@ if TYPE_CHECKING:
         Index,
         Series,
     )
-
-show_counts_sub = dedent(
-    """\
-    show_counts : bool, optional
-        Whether to show the non-null counts. By default, this is shown
-        only if the DataFrame is smaller than
-        ``pandas.options.display.max_info_rows`` and
-        ``pandas.options.display.max_info_columns``. A value of True always
-        shows the counts, and False never shows the counts."""
-)
-
-series_examples_sub = dedent(
-    """\
-    >>> int_values = [1, 2, 3, 4, 5]
-    >>> text_values = ['alpha', 'beta', 'gamma', 'delta', 'epsilon']
-    >>> s = pd.Series(text_values, index=int_values)
-    >>> s.info()
-    <class 'pandas.Series'>
-    Index: 5 entries, 1 to 5
-    Series name: None
-    Non-Null Count  Dtype
-    --------------  -----
-    5 non-null      object
-    dtypes: object(1)
-    memory usage: 80.0+ bytes
-
-    Prints a summary excluding information about its values:
-
-    >>> s.info(verbose=False)
-    <class 'pandas.Series'>
-    Index: 5 entries, 1 to 5
-    dtypes: object(1)
-    memory usage: 80.0+ bytes
-
-    Pipe output of Series.info to buffer instead of sys.stdout, get
-    buffer content and writes to a text file:
-
-    >>> import io
-    >>> buffer = io.StringIO()
-    >>> s.info(buf=buffer)
-    >>> s = buffer.getvalue()
-    >>> with open("df_info.txt", "w",
-    ...           encoding="utf-8") as f:  # doctest: +SKIP
-    ...     f.write(s)
-    260
-
-    The `memory_usage` parameter allows deep introspection mode, specially
-    useful for big Series and fine-tune memory optimization:
-
-    >>> random_strings_array = np.random.choice(['a', 'b', 'c'], 10 ** 6)
-    >>> s = pd.Series(np.random.choice(['a', 'b', 'c'], 10 ** 6))
-    >>> s.info()
-    <class 'pandas.Series'>
-    RangeIndex: 1000000 entries, 0 to 999999
-    Series name: None
-    Non-Null Count    Dtype
-    --------------    -----
-    1000000 non-null  object
-    dtypes: object(1)
-    memory usage: 7.6+ MB
-
-    >>> s.info(memory_usage='deep')
-    <class 'pandas.Series'>
-    RangeIndex: 1000000 entries, 0 to 999999
-    Series name: None
-    Non-Null Count    Dtype
-    --------------    -----
-    1000000 non-null  object
-    dtypes: object(1)
-    memory usage: 55.3 MB"""
-)
-
-
-series_see_also_sub = dedent(
-    """\
-    Series.describe: Generate descriptive statistics of Series.
-    Series.memory_usage: Memory usage of Series."""
-)
-series_max_cols_sub = dedent(
-    """\
-    max_cols : int, optional
-        Unused, exists only for compatibility with DataFrame.info."""
-)
-
-
-series_sub_kwargs = {
-    "klass": "Series",
-    "type_sub": "",
-    "max_cols_sub": series_max_cols_sub,
-    "show_counts_sub": show_counts_sub,
-    "examples_sub": series_examples_sub,
-    "see_also_sub": series_see_also_sub,
-    "version_added_sub": "\n.. versionadded:: 1.4.0\n",
-}
 
 
 def _put_str(s: str | Dtype, space: int) -> str:

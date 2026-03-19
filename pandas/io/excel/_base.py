@@ -84,6 +84,8 @@ if TYPE_CHECKING:
         WriteExcelBuffer,
     )
 
+EXCEL_ROWS_MAX = 1_048_576
+
 
 @overload
 def read_excel(
@@ -608,7 +610,7 @@ class BaseExcelReader(Generic[_WorkbookT]):
         self,
         skiprows: Callable,
         rows_to_use: int,
-    ) -> int:
+    ) -> int | None:
         """
         Determine how many file rows are required to obtain `nrows` data
         rows when `skiprows` is a function.
@@ -631,6 +633,8 @@ class BaseExcelReader(Generic[_WorkbookT]):
             if not skiprows(i):
                 rows_used_so_far += 1
             i += 1
+            if i >= EXCEL_ROWS_MAX:
+                return None
         return i
 
     def _calc_rows(
@@ -665,28 +669,28 @@ class BaseExcelReader(Generic[_WorkbookT]):
         if header is None:
             header_rows = 1
         elif is_integer(header):
-            header = cast(int, header)
+            header = cast("int", header)
             header_rows = 1 + header
         else:
-            header = cast(Sequence, header)
+            header = cast("Sequence", header)
             header_rows = 1 + header[-1]
         # If there is a MultiIndex header and an index then there is also
         # a row containing just the index name(s)
         if is_list_like(header) and index_col is not None:
-            header = cast(Sequence, header)
+            header = cast("Sequence", header)
             if len(header) > 1:
                 header_rows += 1
         if skiprows is None:
             return header_rows + nrows
         if is_integer(skiprows):
-            skiprows = cast(int, skiprows)
+            skiprows = cast("int", skiprows)
             return header_rows + nrows + skiprows
         if is_list_like(skiprows):
 
             def f(skiprows: Sequence, x: int) -> bool:
                 return x in skiprows
 
-            skiprows = cast(Sequence, skiprows)
+            skiprows = cast("Sequence", skiprows)
             return self._check_skiprows_func(partial(f, skiprows), header_rows + nrows)
         if callable(skiprows):
             return self._check_skiprows_func(
@@ -739,7 +743,7 @@ class BaseExcelReader(Generic[_WorkbookT]):
             sheets = [sheet_name]
 
         # handle same-type duplicates.
-        sheets = cast(Union[list[int], list[str]], list(dict.fromkeys(sheets).keys()))
+        sheets = cast("Union[list[int], list[str]]", list(dict.fromkeys(sheets).keys()))
 
         output = {}
 
@@ -830,7 +834,7 @@ class BaseExcelReader(Generic[_WorkbookT]):
                 is_len_one_list_header = True
 
         if is_len_one_list_header:
-            header = cast(Sequence[int], header)[0]
+            header = cast("Sequence[int]", header)[0]
 
         # forward fill and pull out names for MultiIndex column
         header_names = None
@@ -981,7 +985,7 @@ class ExcelWriter(Generic[_WorkbookT]):
     datetime_format : str, default None
         Format string for datetime objects written into Excel files.
         (e.g. 'YYYY-MM-DD HH:MM:SS').
-    mode : {{'w', 'a'}}, default 'w'
+    mode : {'w', 'a'}, default 'w'
         File mode to use (write or append). Append does not work with fsspec URLs.
     storage_options : dict, optional
         Extra options that make sense for a particular storage connection, e.g.
@@ -993,7 +997,7 @@ class ExcelWriter(Generic[_WorkbookT]):
         <https://pandas.pydata.org/docs/user_guide/io.html?
         highlight=storage_options#reading-writing-remote-files>`_.
 
-    if_sheet_exists : {{'error', 'new', 'replace', 'overlay'}}, default 'error'
+    if_sheet_exists : {'error', 'new', 'replace', 'overlay'}, default 'error'
         How to behave when trying to write to a sheet that already
         exists (append mode only).
 
@@ -1107,7 +1111,7 @@ class ExcelWriter(Generic[_WorkbookT]):
     >>> with pd.ExcelWriter(
     ...     "path_to_file.xlsx",
     ...     engine="xlsxwriter",
-    ...     engine_kwargs={{"options": {{"nan_inf_to_errors": True}}}},
+    ...     engine_kwargs={"options": {"nan_inf_to_errors": True}},
     ... ) as writer:
     ...     df.to_excel(writer)  # doctest: +SKIP
 
@@ -1118,7 +1122,7 @@ class ExcelWriter(Generic[_WorkbookT]):
     ...     "path_to_file.xlsx",
     ...     engine="openpyxl",
     ...     mode="a",
-    ...     engine_kwargs={{"keep_vba": True}},
+    ...     engine_kwargs={"keep_vba": True},
     ... ) as writer:
     ...     df.to_excel(writer, sheet_name="Sheet2")  # doctest: +SKIP
     """
@@ -1275,7 +1279,7 @@ class ExcelWriter(Generic[_WorkbookT]):
 
         # cast ExcelWriter to avoid adding 'if self._handles is not None'
         self._handles = IOHandles(
-            cast(IO[bytes], path), compression={"compression": None}
+            cast("IO[bytes]", path), compression={"compression": None}
         )
         if not isinstance(path, ExcelWriter):
             self._handles = get_handle(
@@ -1720,7 +1724,7 @@ class ExcelFile:
               each as a separate date column.
             * ``list`` of lists. e.g.  If [[1, 3]] -> combine columns 1 and 3 and
               parse as a single date column.
-            * ``dict``, e.g. {{'foo' : [1, 3]}} -> parse columns 1, 3 as date and call
+            * ``dict``, e.g. {'foo' : [1, 3]} -> parse columns 1, 3 as date and call
               result 'foo'
 
             If a column or index contains an unparsable date, the entire column or
@@ -1745,7 +1749,7 @@ class ExcelFile:
             comment string and the end of the current line is ignored.
         skipfooter : int, default 0
             Rows at the end to skip (0-indexed).
-        dtype_backend : {{'numpy_nullable', 'pyarrow'}}
+        dtype_backend : {'numpy_nullable', 'pyarrow'}
             Back-end data type applied to the resultant :class:`DataFrame`
             (still experimental). If not specified, the default behavior
             is to not use nullable data types. If specified, the behavior

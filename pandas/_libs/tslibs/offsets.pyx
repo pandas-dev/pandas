@@ -59,6 +59,8 @@ from pandas._libs.tslibs.ccalendar cimport (
 )
 from pandas._libs.tslibs.conversion cimport localize_pydatetime
 from pandas._libs.tslibs.dtypes cimport (
+    PeriodDtypeBase,
+    PeriodDtypeCode,
     c_OFFSET_RENAMED_FREQSTR,
     c_OFFSET_TO_PERIOD_FREQSTR,
     c_PERIOD_AND_OFFSET_DEPR_FREQSTR,
@@ -93,6 +95,32 @@ from .timedeltas import Timedelta
 from .timestamps cimport _Timestamp
 
 from .timestamps import Timestamp
+
+# ---------------------------------------------------------------------
+# day_opt enum: avoids repeated string comparisons in nogil loops
+
+cdef enum _DayOpt:
+    DAY_OPT_START = 0
+    DAY_OPT_END = 1
+    DAY_OPT_BUSINESS_START = 2
+    DAY_OPT_BUSINESS_END = 3
+
+
+cdef _DayOpt _str_to_day_opt(str day_opt) except? DAY_OPT_START:
+    if day_opt == "start":
+        return DAY_OPT_START
+    elif day_opt == "end":
+        return DAY_OPT_END
+    elif day_opt == "business_start":
+        return DAY_OPT_BUSINESS_START
+    elif day_opt == "business_end":
+        return DAY_OPT_BUSINESS_END
+    else:
+        raise ValueError(
+            "day must be 'start', 'end', 'business_start', or "
+            f"'business_end', got {day_opt}"
+        )
+
 
 # ---------------------------------------------------------------------
 # Misc Helpers
@@ -505,9 +533,13 @@ cdef class BaseOffset:
          'variation': 'nearest'}
         """
         # for backwards-compatibility
-        kwds = {name: getattr(self, name, None) for name in self._attributes
-                if name not in ["n", "normalize"]}
-        return {name: kwds[name] for name in kwds if kwds[name] is not None}
+        kwds = {}
+        for name in self._attributes:
+            if name not in ("n", "normalize"):
+                val = getattr(self, name, None)
+                if val is not None:
+                    kwds[name] = val
+        return kwds
 
     @property
     def base(self):
@@ -632,6 +664,9 @@ cdef class BaseOffset:
         """
         Return a string representing the base frequency.
 
+        .. deprecated:: 3.1.0
+            The ``.name`` property is deprecated. Use ``.rule_code`` instead.
+
         This is typically a short string alias (e.g., 'h' for hourly, 'D' for daily)
         used to identify the offset type, regardless of the `n` multiplier.
 
@@ -651,6 +686,14 @@ cdef class BaseOffset:
         >>> pd.offsets.Hour(5).name
         'h'
         """
+        from pandas.errors import Pandas4Warning
+
+        warnings.warn(
+            "The 'name' property is deprecated and will be removed in a future "
+            "version. Use 'rule_code' instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
         return self.rule_code
 
     @property
@@ -739,6 +782,19 @@ cdef class BaseOffset:
     def _offset_str(self) -> str:
         return ""
 
+    @cache_readonly
+    def _period_unit(self) -> str:
+        """
+        For offsets that are associated with a Period, give that period's freqstr.
+        Otherwise our own freqstr.
+
+        This is used when checking whether we can add this offset to a given
+        Period.
+        """
+        if hasattr(self, "_period_dtype_code"):
+            return PeriodDtypeBase(self._period_dtype_code, self.n)._freqstr
+        return self.freqstr
+
     # ------------------------------------------------------------------
 
     def _apply(self, other):
@@ -751,6 +807,17 @@ cdef class BaseOffset:
             f"DateOffset subclass {type(self).__name__} "
             "does not have a vectorized implementation"
         )
+
+    @property
+    def _supports_daily_offset_mask(self) -> bool:
+        """
+        Whether this offset supports the fast "daily range + filter" path
+        for date_range generation (GH#16463).
+
+        Subclasses that implement ``_get_daily_offset_mask`` should override
+        this to return True when the optimization is applicable.
+        """
+        return False
 
     def rollback(self, dt) -> datetime:
         """
@@ -783,7 +850,7 @@ cdef class BaseOffset:
         Timestamp is not on the offset (not a month end), so it rolls backward:
 
         >>> offset.rollback(ts)
-        Timestamp('2024-12-31 00:00:00')
+        Timestamp('2024-12-31 09:00:00')
 
         If the timestamp is already on the offset, it remains unchanged:
 
@@ -831,7 +898,7 @@ cdef class BaseOffset:
         Timestamp is not on the offset (not a month end), so it rolls forward:
 
         >>> offset.rollforward(ts)
-        Timestamp('2025-01-31 00:00:00')
+        Timestamp('2025-01-31 09:00:00')
 
         If the timestamp is already on the offset, it remains unchanged:
 
@@ -850,7 +917,7 @@ cdef class BaseOffset:
         cdef:
             npy_datetimestruct dts
         pydate_to_dtstruct(other, &dts)
-        return get_day_of_month(&dts, self._day_opt)
+        return get_day_of_month(&dts, _str_to_day_opt(self._day_opt))
 
     def is_on_offset(self, dt: datetime) -> bool:
         """
@@ -980,7 +1047,7 @@ cdef class BaseOffset:
 
         Examples
         --------
-        >>> pd.offsets.Week(n=1).nanos
+        >>> pd.offsets.Week(n=1).nanos  # doctest: +SKIP
         ValueError: Week: weekday=None is a non-fixed frequency
         """
         raise ValueError(f"{self} is a non-fixed frequency")
@@ -1208,7 +1275,7 @@ cdef class Tick(SingleConstructorOffset):
         if normalize:
             # GH#21427
             raise ValueError(
-                "Tick offset with `normalize=True` are not allowed."
+                "Tick offset with `normalize=True` is not allowed."
             )
 
     # Note: Without making this cpdef, we get AttributeError when calling
@@ -1445,7 +1512,7 @@ cdef class Day(SingleConstructorOffset):
         if normalize:
             # GH#21427
             raise ValueError(
-                "Day offset with `normalize=True` are not allowed."
+                "Day offset with `normalize=True` is not allowed."
             )
 
     def is_on_offset(self, dt) -> bool:
@@ -1509,7 +1576,7 @@ cdef class Day(SingleConstructorOffset):
 
         Examples
         --------
-        >>> pd.Day(5).freqstr
+        >>> pd.offsets.Day(5).freqstr
         '5D'
 
         >>> pd.offsets.Day(1).freqstr
@@ -2553,39 +2620,40 @@ cdef class BusinessDay(BusinessMixin):
         """
         cdef:
             int periods = self._n
-            Py_ssize_t i, n = i8other.size
+            Py_ssize_t i, count = i8other.size
             ndarray result = cnp.PyArray_EMPTY(
                 i8other.ndim, i8other.shape, cnp.NPY_INT64, 0
             )
             int64_t val, res_val
-            int wday, days
+            int wday, days, weeks
             npy_datetimestruct dts
             int64_t DAY_PERIODS = periods_per_day(reso)
             cnp.broadcast mi = cnp.PyArray_MultiIterNew2(result, i8other)
 
-        for i in range(n):
-            # Analogous to: val = i8other[i]
-            val = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
+        weeks = periods // 5
 
-            if val == NPY_NAT:
-                res_val = NPY_NAT
-            else:
-                # The rest of this is effectively a copy of BusinessDay.apply
-                weeks = periods // 5
-                pandas_datetime_to_datetimestruct(val, reso, &dts)
-                wday = dayofweek(dts.year, dts.month, dts.day)
+        with nogil:
+            for i in range(count):
+                # Analogous to: val = i8other[i]
+                val = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
 
-                days = self._adjust_ndays(wday, weeks)
-                res_val = val + (7 * weeks + days) * DAY_PERIODS
+                if val == NPY_NAT:
+                    res_val = NPY_NAT
+                else:
+                    pandas_datetime_to_datetimestruct(val, reso, &dts)
+                    wday = dayofweek(dts.year, dts.month, dts.day)
 
-            # Analogous to: out[i] = res_val
-            (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = res_val
+                    days = self._adjust_ndays(wday, weeks)
+                    res_val = val + (7 * weeks + days) * DAY_PERIODS
 
-            cnp.PyArray_MultiIter_NEXT(mi)
+                # Analogous to: out[i] = res_val
+                (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = res_val
+
+                cnp.PyArray_MultiIter_NEXT(mi)
 
         return result
 
-    cdef int _adjust_ndays(self, int wday, int weeks):
+    cdef int _adjust_ndays(self, int wday, int weeks) noexcept nogil:
         cdef:
             int n = self._n
             int days
@@ -2618,6 +2686,16 @@ cdef class BusinessDay(BusinessMixin):
         if self._offset:
             res = res.view(dtarr.dtype) + Timedelta(self._offset)
         return res
+
+    @property
+    def _supports_daily_offset_mask(self) -> bool:
+        return not self._offset
+
+    def _get_daily_offset_mask(self, dt64values: np.ndarray) -> np.ndarray:
+        # datetime64[D] epoch (1970-01-01) is Thursday; (day_number + 3) % 7
+        # gives 0=Mon, 1=Tue, ..., 4=Fri, 5=Sat, 6=Sun
+        day_i8 = dt64values.astype("datetime64[D]").view("int64")
+        return (day_i8 + 3) % 7 < 5
 
     def is_on_offset(self, dt: datetime) -> bool:
         """
@@ -2737,7 +2815,7 @@ cdef class BusinessHour(BusinessMixin):
                    '2022-12-12 06:00:00', '2022-12-12 07:00:00',
                    '2022-12-12 10:00:00', '2022-12-12 11:00:00',
                    '2022-12-12 15:00:00', '2022-12-12 16:00:00'],
-                   dtype='datetime64[ns]', freq='bh')
+                   dtype='datetime64[us]', freq='bh')
     """
 
     _prefix = "bh"
@@ -3502,7 +3580,7 @@ cdef class YearOffset(SingleConstructorOffset):
             npy_datetimestruct dts
         pydate_to_dtstruct(other, &dts)
         dts.month = self._month
-        return get_day_of_month(&dts, self._day_opt)
+        return get_day_of_month(&dts, _str_to_day_opt(self._day_opt))
 
     @apply_wraps
     def _apply(self, other: datetime) -> datetime:
@@ -6139,7 +6217,7 @@ cdef class FY5253Quarter(FY5253Mixin):
         >>> offset = pd.offsets.FY5253Quarter(
         ...     weekday=5, startingMonth=12, qtr_with_extra_week=1
         ... )
-        >>> offset.year_has_extra_week(pd.Timestamp("2011-04-02"))
+        >>> offset.year_has_extra_week(pd.Timestamp("2014-04-02"))
         True
         >>> offset.year_has_extra_week(pd.Timestamp("2010-04-02"))
         False
@@ -6425,7 +6503,7 @@ cdef class CustomBusinessDay(BusinessDay):
     Index(['Mon 12 Dec 2022 00:00', 'Wed 14 Dec 2022 00:00',
            'Fri 16 Dec 2022 00:00', 'Mon 19 Dec 2022 00:00',
            'Wed 21 Dec 2022 00:00'],
-           dtype='object')
+           dtype='str')
 
     Using NumPy business day calendar you can define custom holidays.
 
@@ -6435,7 +6513,7 @@ cdef class CustomBusinessDay(BusinessDay):
     >>> pd.date_range(dt.datetime(2022, 12, 10), dt.datetime(2022, 12, 25), freq=freq)
     DatetimeIndex(['2022-12-13', '2022-12-15', '2022-12-16', '2022-12-19',
                    '2022-12-20', '2022-12-21', '2022-12-22', '2022-12-23'],
-                   dtype='datetime64[ns]', freq='C')
+                   dtype='datetime64[us]', freq='C')
 
     If you want to shift the result on n day you can use the parameter ``offset``.
 
@@ -6571,10 +6649,18 @@ cdef class CustomBusinessDay(BusinessDay):
         >>> pd.offsets.CustomBusinessDay(normalize=True).is_on_offset(ts)
         True
         """
+        from pandas.core.dtypes.cast import maybe_unbox_numpy_scalar
+
         if self._normalize and not _is_normalized(dt):
             return False
         day64 = _to_dt64D(dt)
-        return np.is_busday(day64, busdaycal=self._calendar)
+        result = np.is_busday(day64, busdaycal=self._calendar)
+        result = maybe_unbox_numpy_scalar(result)
+        return result
+
+    def _get_daily_offset_mask(self, dt64values: np.ndarray) -> np.ndarray:
+        days = dt64values.astype("datetime64[D]")
+        return np.is_busday(days, busdaycal=self._calendar)
 
 
 cdef class CustomBusinessHour(BusinessHour):
@@ -6645,7 +6731,7 @@ cdef class CustomBusinessHour(BusinessHour):
                    '2022-12-12 06:00:00', '2022-12-12 07:00:00',
                    '2022-12-12 10:00:00', '2022-12-12 11:00:00',
                    '2022-12-12 15:00:00', '2022-12-12 16:00:00'],
-                   dtype='datetime64[ns]', freq='cbh')
+                   dtype='datetime64[us]', freq='cbh')
 
     Business days can be specified by ``weekmask`` parameter. To convert
     the returned datetime object to its string representation
@@ -6661,7 +6747,7 @@ cdef class CustomBusinessHour(BusinessHour):
            'Wed 14 Dec 2022 11:00', 'Wed 14 Dec 2022 12:00',
            'Fri 16 Dec 2022 10:00', 'Fri 16 Dec 2022 11:00',
            'Fri 16 Dec 2022 12:00'],
-           dtype='object')
+           dtype='str')
 
     Using NumPy business day calendar you can define custom holidays.
 
@@ -6674,7 +6760,7 @@ cdef class CustomBusinessHour(BusinessHour):
                    '2022-12-15 11:00:00', '2022-12-15 12:00:00',
                    '2022-12-16 10:00:00', '2022-12-16 11:00:00',
                    '2022-12-16 12:00:00'],
-                   dtype='datetime64[ns]', freq='cbh')
+                   dtype='datetime64[us]', freq='cbh')
     """
 
     _prefix = "cbh"
@@ -6841,7 +6927,7 @@ class CustomBusinessMonthEnd(_CustomBusinessMonthEnd):
     Index(['Thu 28 Jul 2022 00:00', 'Wed 31 Aug 2022 00:00',
            'Thu 29 Sep 2022 00:00', 'Thu 27 Oct 2022 00:00',
            'Wed 30 Nov 2022 00:00'],
-           dtype='object')
+           dtype='str')
 
     Using NumPy business day calendar you can define custom holidays.
 
@@ -6851,7 +6937,7 @@ class CustomBusinessMonthEnd(_CustomBusinessMonthEnd):
     >>> freq = pd.offsets.CustomBusinessMonthEnd(calendar=bdc)
     >>> pd.date_range(dt.datetime(2022, 7, 10), dt.datetime(2022, 11, 10), freq=freq)
     DatetimeIndex(['2022-07-29', '2022-08-31', '2022-09-29', '2022-10-28'],
-                   dtype='datetime64[ns]', freq='CBME')
+                   dtype='datetime64[us]', freq='CBME')
     """
 
     def __init__(
@@ -6922,7 +7008,7 @@ class CustomBusinessMonthBegin(_CustomBusinessMonthBegin):
     Index(['Wed 03 Aug 2022 00:00', 'Thu 01 Sep 2022 00:00',
            'Wed 05 Oct 2022 00:00', 'Wed 02 Nov 2022 00:00',
            'Thu 01 Dec 2022 00:00'],
-           dtype='object')
+           dtype='str')
 
     Using NumPy business day calendar you can define custom holidays.
 
@@ -6932,7 +7018,7 @@ class CustomBusinessMonthBegin(_CustomBusinessMonthBegin):
     >>> freq = pd.offsets.CustomBusinessMonthBegin(calendar=bdc)
     >>> pd.date_range(dt.datetime(2022, 7, 10), dt.datetime(2022, 11, 10), freq=freq)
     DatetimeIndex(['2022-08-02', '2022-09-01', '2022-10-03', '2022-11-02'],
-                   dtype='datetime64[ns]', freq='CBMS')
+                   dtype='datetime64[us]', freq='CBMS')
     """
 
     def __init__(
@@ -7173,6 +7259,10 @@ cpdef to_offset(freq, bint is_period=False):
     """
     Return DateOffset object from string or datetime.timedelta object.
 
+    This function converts a frequency string (e.g. ``"5min"``, ``"1D1h"``,
+    ``"2W"``) or a ``datetime.timedelta`` into a pandas ``DateOffset`` subclass.
+    It can also pass through existing ``BaseOffset`` instances unchanged.
+
     Parameters
     ----------
     freq : str, datetime.timedelta, BaseOffset or None
@@ -7210,7 +7300,7 @@ cpdef to_offset(freq, bint is_period=False):
     <2 * BusinessDays>
 
     >>> to_offset(pd.Timedelta(days=1))
-    <Day>
+    <24 * Hours>
 
     >>> to_offset(pd.offsets.Hour())
     <Hour>
@@ -7239,6 +7329,9 @@ cpdef to_offset(freq, bint is_period=False):
 
     elif PyDelta_Check(freq):
         result = delta_to_tick(freq)
+
+    elif isinstance(freq, PeriodDtypeBase):
+        return period_dtype_to_offset(freq)
 
     elif isinstance(freq, str):
         result = None
@@ -7297,7 +7390,7 @@ cpdef to_offset(freq, bint is_period=False):
                 extra_message=f"Failed to parse with error message: {repr(err)}"
             )
 
-        # TODO(3.0?) once deprecation of "d" is enforced, the check for it here
+        # TODO(4.0) once deprecation of "d" is enforced, the check for it here
         #  can be removed
         if (
                 isinstance(result, Hour)
@@ -7320,11 +7413,52 @@ cpdef to_offset(freq, bint is_period=False):
 
     if is_period and not has_period_dtype_code:
         if isinstance(freq, str):
-            raise ValueError(f"{result.name} is not supported as period frequency")
+            raise ValueError(f"{result.rule_code} is not supported as period frequency")
         else:
             raise ValueError(f"{freq} is not supported as period frequency")
 
     return result
+
+
+def period_dtype_to_offset(PeriodDtypeBase dtype):
+    cdef:
+        PeriodDtypeCode code = dtype._dtype_code
+
+    if code == PeriodDtypeCode.D:
+        return Day(dtype._n)
+    elif code == PeriodDtypeCode.H:
+        return Hour(dtype._n)
+    elif code == PeriodDtypeCode.T:
+        return Minute(dtype._n)
+    elif code == PeriodDtypeCode.S:
+        return Second(dtype._n)
+    elif code == PeriodDtypeCode.L:
+        return Milli(dtype._n)
+    elif code == PeriodDtypeCode.U:
+        return Micro(dtype._n)
+    elif code == PeriodDtypeCode.N:
+        return Nano(dtype._n)
+    elif code == PeriodDtypeCode.B:
+        return BusinessDay(dtype._n)
+    elif code == PeriodDtypeCode.M:
+        return MonthEnd(dtype._n)
+
+    base, anchor = divmod(code, 1000)
+    base = base * 1000
+    if base == PeriodDtypeCode.A:
+        if anchor == 0:
+            anchor = 12
+        return YearEnd(dtype._n, month=anchor)
+    elif base == PeriodDtypeCode.Q_DEC:
+        if anchor == 0:
+            anchor = 12
+        return QuarterEnd(dtype._n, startingMonth=anchor)
+    elif base == PeriodDtypeCode.W_SUN:
+        if anchor == 0:
+            anchor = 7
+        return Week(dtype._n, weekday=anchor - 1)
+    else:
+        raise NotImplementedError(dtype._dtype_code, base, anchor)
 
 
 # ----------------------------------------------------------------------
@@ -7399,10 +7533,6 @@ cdef ndarray shift_quarters(
     -------
     out : ndarray[int64_t]
     """
-    if day_opt not in ["start", "end", "business_start", "business_end"]:
-        raise ValueError("day must be None, 'start', 'end', "
-                         "'business_start', or 'business_end'")
-
     cdef:
         Py_ssize_t count = dtindex.size
         ndarray out = cnp.PyArray_EMPTY(dtindex.ndim, dtindex.shape, cnp.NPY_INT64, 0)
@@ -7411,6 +7541,7 @@ cdef ndarray shift_quarters(
         int months_since, n
         npy_datetimestruct dts
         cnp.broadcast mi = cnp.PyArray_MultiIterNew2(out, dtindex)
+        _DayOpt day_opt_enum = _str_to_day_opt(day_opt)
 
     with nogil:
         for i in range(count):
@@ -7424,11 +7555,11 @@ cdef ndarray shift_quarters(
                 n = quarters
 
                 months_since = (dts.month - q1start_month) % modby
-                n = _roll_qtrday(&dts, n, months_since, day_opt)
+                n = _roll_qtrday(&dts, n, months_since, day_opt_enum)
 
                 dts.year = year_add_months(dts, modby * n - months_since)
                 dts.month = month_add_months(dts, modby * n - months_since)
-                dts.day = get_day_of_month(&dts, day_opt)
+                dts.day = get_day_of_month(&dts, day_opt_enum)
 
                 res_val = npy_datetimestruct_to_datetime(reso, &dts)
 
@@ -7464,14 +7595,9 @@ def shift_months(
         ndarray out = cnp.PyArray_EMPTY(dtindex.ndim, dtindex.shape, cnp.NPY_INT64, 0)
         int months_to_roll
         int64_t val, res_val
+        _DayOpt day_opt_enum
 
         cnp.broadcast mi = cnp.PyArray_MultiIterNew2(out, dtindex)
-
-    if day_opt is not None and day_opt not in {
-            "start", "end", "business_start", "business_end"
-    }:
-        raise ValueError("day must be None, 'start', 'end', "
-                         "'business_start', or 'business_end'")
 
     if day_opt is None:
         # TODO: can we combine this with the non-None case?
@@ -7496,6 +7622,7 @@ def shift_months(
                 cnp.PyArray_MultiIter_NEXT(mi)
 
     else:
+        day_opt_enum = _str_to_day_opt(day_opt)
         with nogil:
             for i in range(count):
 
@@ -7508,11 +7635,13 @@ def shift_months(
                     pandas_datetime_to_datetimestruct(val, reso, &dts)
                     months_to_roll = months
 
-                    months_to_roll = _roll_qtrday(&dts, months_to_roll, 0, day_opt)
+                    months_to_roll = _roll_qtrday(
+                        &dts, months_to_roll, 0, day_opt_enum
+                    )
 
                     dts.year = year_add_months(dts, months_to_roll)
                     dts.month = month_add_months(dts, months_to_roll)
-                    dts.day = get_day_of_month(&dts, day_opt)
+                    dts.day = get_day_of_month(&dts, day_opt_enum)
 
                     res_val = npy_datetimestruct_to_datetime(reso, &dts)
 
@@ -7593,7 +7722,7 @@ def shift_month(stamp: datetime, months: int, day_opt: object = None) -> datetim
     return stamp.replace(year=year, month=month, day=day)
 
 
-cdef int get_day_of_month(npy_datetimestruct* dts, str day_opt) noexcept nogil:
+cdef int get_day_of_month(npy_datetimestruct* dts, _DayOpt day_opt) noexcept nogil:
     """
     Find the day in `other`'s month that satisfies a DateOffset's is_on_offset
     policy, as described by the `day_opt` argument.
@@ -7601,40 +7730,20 @@ cdef int get_day_of_month(npy_datetimestruct* dts, str day_opt) noexcept nogil:
     Parameters
     ----------
     dts : npy_datetimestruct*
-    day_opt : {'start', 'end', 'business_start', 'business_end'}
-        'start': returns 1
-        'end': returns last day of the month
-        'business_start': returns the first business day of the month
-        'business_end': returns the last business day of the month
+    day_opt : _DayOpt enum value
 
     Returns
     -------
     day_of_month : int
-
-    Examples
-    -------
-    >>> other = datetime(2017, 11, 14)
-    >>> get_day_of_month(other, 'start')
-    1
-    >>> get_day_of_month(other, 'end')
-    30
-
-    Notes
-    -----
-    Caller is responsible for ensuring one of the four accepted day_opt values
-    is passed.
     """
-
-    if day_opt == "start":
+    if day_opt == DAY_OPT_START:
         return 1
-    elif day_opt == "end":
+    elif day_opt == DAY_OPT_END:
         return get_days_in_month(dts.year, dts.month)
-    elif day_opt == "business_start":
-        # first business day of month
+    elif day_opt == DAY_OPT_BUSINESS_START:
         return get_firstbday(dts.year, dts.month)
     else:
-        # i.e. day_opt == "business_end":
-        # last business day of month
+        # i.e. day_opt == DAY_OPT_BUSINESS_END
         return get_lastbday(dts.year, dts.month)
 
 
@@ -7689,9 +7798,7 @@ def roll_qtrday(other: datetime, n: int, month: int,
     cdef:
         int months_since
         npy_datetimestruct dts
-
-    if day_opt not in ["start", "end", "business_start", "business_end"]:
-        raise ValueError(day_opt)
+        _DayOpt day_opt_enum = _str_to_day_opt(day_opt)
 
     pydate_to_dtstruct(other, &dts)
 
@@ -7701,13 +7808,13 @@ def roll_qtrday(other: datetime, n: int, month: int,
     else:
         months_since = other.month % modby - month % modby
 
-    return _roll_qtrday(&dts, n, months_since, day_opt)
+    return _roll_qtrday(&dts, n, months_since, day_opt_enum)
 
 
 cdef int _roll_qtrday(npy_datetimestruct* dts,
                       int n,
                       int months_since,
-                      str day_opt) except? -1 nogil:
+                      _DayOpt day_opt) noexcept nogil:
     """
     See roll_qtrday.__doc__
     """

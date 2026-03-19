@@ -8,7 +8,10 @@ from functools import partial
 import numpy as np
 import pytest
 
-from pandas.errors import SpecificationError
+from pandas.errors import (
+    Pandas4Warning,
+    SpecificationError,
+)
 
 import pandas as pd
 from pandas import (
@@ -616,7 +619,9 @@ def test_agg_lambda_with_timezone():
             ],
         }
     )
-    result = df.groupby("tag").agg({"date": lambda e: e.head(1)})
+    msg = "Converting a Series or array of length 1 into a scalar"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = df.groupby("tag").agg({"date": lambda e: e.head(1)})
     expected = DataFrame(
         [pd.Timestamp("2018-01-01", tz="UTC")],
         index=Index([1], name="tag"),
