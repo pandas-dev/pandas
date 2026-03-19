@@ -216,3 +216,15 @@ def test_floating_array_prod(skipna, min_count, dtype):
         assert result == 2
     else:
         assert result is pd.NA
+
+
+def test_floating_array_mean_skipna_with_nan():
+    # GH#59965
+    # FloatingArray containing NaN (from 0/0 division) should still
+    # compute mean correctly when skipna=True
+    s1 = pd.Series({"a": 0.0, "b": 1, "c": 1, "d": 0})
+    s2 = pd.Series({"a": 0.0, "b": 2, "c": 2, "d": 2})
+    result = (s1.convert_dtypes() / s2.convert_dtypes()).mean(skipna=True)
+    expected = (s1 / s2).mean(skipna=True)
+    assert result == expected
+    assert result == pytest.approx(1.0 / 3)
