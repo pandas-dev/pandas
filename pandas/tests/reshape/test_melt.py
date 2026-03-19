@@ -3,6 +3,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -593,11 +595,13 @@ class TestLreshape:
 
         df = DataFrame(data)
 
+        msg = "lreshape is deprecated"
         spec = {
             "visitdt": [f"visitdt{i:d}" for i in range(1, 4)],
             "wt": [f"wt{i:d}" for i in range(1, 4)],
         }
-        result = lreshape(df, spec)
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = lreshape(df, spec)
 
         exp_data = {
             "birthdt": [
@@ -675,7 +679,8 @@ class TestLreshape:
         exp = DataFrame(exp_data, columns=result.columns)
         tm.assert_frame_equal(result, exp)
 
-        result = lreshape(df, spec, dropna=False)
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = lreshape(df, spec, dropna=False)
         exp_data = {
             "birthdt": [
                 "08jan2009",
@@ -787,9 +792,9 @@ class TestLreshape:
             "visitdt": [f"visitdt{i:d}" for i in range(1, 3)],
             "wt": [f"wt{i:d}" for i in range(1, 4)],
         }
-        msg = "All column lists must be same length"
-        with pytest.raises(ValueError, match=msg):
-            lreshape(df, spec)
+        with pytest.raises(ValueError, match="All column lists must be same length"):
+            with tm.assert_produces_warning(Pandas4Warning, match=msg):
+                lreshape(df, spec)
 
 
 class TestWideToLong:

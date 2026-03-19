@@ -2,10 +2,13 @@ from __future__ import annotations
 
 import re
 from typing import TYPE_CHECKING
+import warnings
 
 import numpy as np
 
+from pandas.errors import Pandas4Warning
 from pandas.util._decorators import set_module
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_iterator,
@@ -283,6 +286,10 @@ def lreshape(data: DataFrame, groups: dict, dropna: bool = True) -> DataFrame:
     """
     Reshape wide-format data to long. Generalized inverse of DataFrame.pivot.
 
+    .. deprecated:: 3.1.0
+        lreshape is deprecated and will be removed in a future version of
+        pandas. Use :func:`pandas.melt` instead.
+
     Accepts a dictionary, ``groups``, in which each key is a new column name
     and each value is a list of old column names that will be "melted" under
     the new column name as part of the reshape.
@@ -338,6 +345,12 @@ def lreshape(data: DataFrame, groups: dict, dropna: bool = True) -> DataFrame:
     2  Red Sox  2008  545
     3  Yankees  2008  526
     """
+    warnings.warn(
+        "lreshape is deprecated and will be removed in a future version of "
+        "pandas. Use pandas.melt instead.",
+        Pandas4Warning,
+        stacklevel=find_stack_level(),
+    )
     mdata = {}
     pivot_cols = []
     all_cols: set[Hashable] = set()
