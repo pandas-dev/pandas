@@ -35,6 +35,13 @@ Bug fixes
 - Fixed bug where :meth:`DataFrame.div` ignored the ``axis`` argument when used with ``level`` for MultiIndex columns (:issue:`64428`)
 
 .. ---------------------------------------------------------------------------
+.. _whatsnew_302.packaging:
+
+Packaging
+~~~~~~~~~
+- Increased the minimum macOS deployment target for x86_64 wheels to 14.0 (Sonoma) due to build environment requirements. These wheels might no longer be compatible with older macOS versions (:issue:`64730`)
+
+.. ---------------------------------------------------------------------------
 .. _whatsnew_302.contributors:
 
 Contributors
