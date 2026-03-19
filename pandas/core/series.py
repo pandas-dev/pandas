@@ -1215,6 +1215,24 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if isinstance(key, (Index, Series)):
             key = key._values
 
+        if isinstance(value, Series) and isinstance(key, np.ndarray):
+            # GH#51386 - Series.__setitem__ with array key and Series value
+            # currently assigns positionally (like iloc), but .loc aligns
+            # by index. Deprecate the positional behavior when alignment
+            # would produce different results.
+            target_labels = self.index[key]
+            if not value.index.equals(target_labels):
+                warnings.warn(
+                    "Setting a Series via `ser[key] = value` where `value` is a "
+                    "Series currently does not align by index. In a future "
+                    "version, this will align by index (like "
+                    "`ser.loc[key] = value`). To keep the current positional "
+                    "behavior, use `ser[key] = value.values`. To get the future "
+                    "alignment behavior, use `ser.loc[key] = value`.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
+
         self._mgr = self._mgr.setitem(indexer=key, value=value)
 
     def _set_value(self, label, value, takeable: bool = False) -> None:

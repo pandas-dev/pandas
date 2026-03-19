@@ -10,7 +10,10 @@ import pytest
 
 from pandas.compat import HAS_PYARROW
 from pandas.compat.numpy import np_version_gt2
-from pandas.errors import IndexingError
+from pandas.errors import (
+    IndexingError,
+    Pandas4Warning,
+)
 
 from pandas.core.dtypes.common import is_list_like
 
@@ -207,6 +210,35 @@ class TestSetitemScalarIndexer:
         ser = Series([0, 0])
         ser.loc[0] = Series([42], index=[index])
         expected = Series([exp_value, 0])
+        tm.assert_series_equal(ser, expected)
+
+
+class TestSetitemSeriesValueAlignment:
+    def test_setitem_series_value_deprecation(self):
+        # GH#51386 - __setitem__ with array key and Series value
+        # should warn when the value's index doesn't match the target labels
+        ser = Series(range(10))
+        key = np.array([6, 7])
+        val = Series([12, 14], index=[0, 1])
+
+        msg = "Setting a Series via `ser\\[key\\] = value` where `value` is a Series"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            ser[key] = val
+
+        # current behavior is positional (like iloc)
+        expected = Series([0, 1, 2, 3, 4, 5, 12, 14, 8, 9])
+        tm.assert_series_equal(ser, expected)
+
+    def test_setitem_series_value_no_warning_when_aligned(self):
+        # GH#51386 - no warning when the value's index matches the target labels
+        ser = Series(range(5))
+        key = np.array([2, 3])
+        val = Series([10, 20], index=[2, 3])
+
+        with tm.assert_produces_warning(None):
+            ser[key] = val
+
+        expected = Series([0, 1, 10, 20, 4])
         tm.assert_series_equal(ser, expected)
 
 
