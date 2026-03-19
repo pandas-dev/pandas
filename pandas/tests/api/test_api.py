@@ -67,6 +67,7 @@ class TestPDApi(Base):
         "DataFrame",
         "DateOffset",
         "DatetimeIndex",
+        "Offset",
         "ExcelFile",
         "ExcelWriter",
         "Flags",

@@ -74,7 +74,10 @@ from pandas.core.tools.numeric import to_numeric
 from pandas.core.tools.timedeltas import to_timedelta
 
 from pandas.io.formats.format import set_eng_float_format
-from pandas.tseries.offsets import DateOffset
+from pandas.tseries.offsets import (
+    DateOffset,
+    Offset,
+)
 
 # DataFrame needs to be imported after NamedAgg to avoid a circular import
 from pandas.core.frame import DataFrame  # isort:skip
@@ -106,6 +109,7 @@ __all__ = [
     "MultiIndex",
     "NaT",
     "NamedAgg",
+    "Offset",
     "Period",
     "PeriodDtype",
     "PeriodIndex",

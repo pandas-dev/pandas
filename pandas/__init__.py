@@ -90,6 +90,7 @@ from pandas.core.api import (
     Interval,
     interval_range,
     DateOffset,
+    Offset,
     # conversion
     to_numeric,
     to_datetime,
@@ -254,6 +255,7 @@ __all__ = [
     "MultiIndex",
     "NaT",
     "NamedAgg",
+    "Offset",
     "Period",
     "PeriodDtype",
     "PeriodIndex",
