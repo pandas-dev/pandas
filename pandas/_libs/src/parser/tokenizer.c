@@ -1653,11 +1653,13 @@ static int copy_number_without_tsep(char output[PROCESSED_WORD_CAPACITY],
 
   while (p < end && (isdigit_ascii(*p) || (*p != '\0' && *p == tsep))) {
     if (*p == tsep) {
-      if (prev_was_tsep) break;
+      if (prev_was_tsep)
+        break;
       prev_was_tsep = true;
     } else {
       prev_was_tsep = false;
-      if (bytes_written + 1>= PROCESSED_WORD_CAPACITY) return -1;
+      if (bytes_written + 1 >= PROCESSED_WORD_CAPACITY)
+        return -1;
       output[bytes_written++] = *p;
     }
     p++;
