@@ -178,6 +178,10 @@ select = "*-macosx*"
 environment = {CFLAGS="-g0"}
 
 [[tool.cibuildwheel.overrides]]
+select = "*-macosx_x86_64"
+environment = {CFLAGS="-g0", MACOSX_DEPLOYMENT_TARGET="14.0"}
+
+[[tool.cibuildwheel.overrides]]
 select = "*pyodide*"
 test-requires = "pytest>=8.3.4 hypothesis>=6.116.0"
 # Pyodide repairs wheels on its own, using auditwheel-emscripten
