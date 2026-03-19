@@ -23,16 +23,16 @@ class TestSliceLocs:
     def test_slice_locs_partial(self, idx):
         sorted_idx, _ = idx.sortlevel(0)
 
-        result = sorted_idx.slice_locs(("foo", "two"), ("qux", "one"))
+        result = sorted_idx._slice_locs(("foo", "two"), ("qux", "one"))
         assert result == (1, 5)
 
-        result = sorted_idx.slice_locs(None, ("qux", "one"))
+        result = sorted_idx._slice_locs(None, ("qux", "one"))
         assert result == (0, 5)
 
-        result = sorted_idx.slice_locs(("foo", "two"), None)
+        result = sorted_idx._slice_locs(("foo", "two"), None)
         assert result == (1, len(sorted_idx))
 
-        result = sorted_idx.slice_locs("bar", "baz")
+        result = sorted_idx._slice_locs("bar", "baz")
         assert result == (2, 4)
 
     def test_slice_locs(self):
@@ -44,13 +44,13 @@ class TestSliceLocs:
         stacked = df.stack()
         idx = stacked.index
 
-        slob = slice(*idx.slice_locs(df.index[5], df.index[15]))
+        slob = slice(*idx._slice_locs(df.index[5], df.index[15]))
         sliced = stacked[slob]
         expected = df[5:16].stack()
         tm.assert_almost_equal(sliced.values, expected.values)
 
         slob = slice(
-            *idx.slice_locs(
+            *idx._slice_locs(
                 df.index[5] + timedelta(seconds=30),
                 df.index[15] - timedelta(seconds=30),
             )
@@ -68,9 +68,9 @@ class TestSliceLocs:
         stacked = df.stack()
         idx = stacked.index
         with pytest.raises(TypeError, match="^Level type mismatch"):
-            idx.slice_locs((1, 3))
+            idx._slice_locs((1, 3))
         with pytest.raises(TypeError, match="^Level type mismatch"):
-            idx.slice_locs(df.index[5] + timedelta(seconds=30), (5, 2))
+            idx._slice_locs(df.index[5] + timedelta(seconds=30), (5, 2))
         df = DataFrame(
             np.ones((5, 5)),
             index=Index([f"i-{i}" for i in range(5)], name="a"),
@@ -79,10 +79,10 @@ class TestSliceLocs:
         stacked = df.stack()
         idx = stacked.index
         with pytest.raises(TypeError, match="^Level type mismatch"):
-            idx.slice_locs(timedelta(seconds=30))
+            idx._slice_locs(timedelta(seconds=30))
         # TODO: Try creating a UnicodeDecodeError in exception message
         with pytest.raises(TypeError, match="^Level type mismatch"):
-            idx.slice_locs(df.index[1], (16, "a"))
+            idx._slice_locs(df.index[1], (16, "a"))
 
     def test_slice_locs_not_sorted(self):
         index = MultiIndex(
@@ -95,12 +95,12 @@ class TestSliceLocs:
         )
         msg = "[Kk]ey length.*greater than MultiIndex lexsort depth"
         with pytest.raises(KeyError, match=msg):
-            index.slice_locs((1, 0, 1), (2, 1, 0))
+            index._slice_locs((1, 0, 1), (2, 1, 0))
 
         # works
         sorted_index, _ = index.sortlevel(0)
         # should there be a test case here???
-        sorted_index.slice_locs((1, 0, 1), (2, 1, 0))
+        sorted_index._slice_locs((1, 0, 1), (2, 1, 0))
 
     def test_slice_locs_not_contained(self):
         # some searchsorted action
@@ -110,22 +110,22 @@ class TestSliceLocs:
             codes=[[0, 0, 0, 1, 1, 2, 3, 3, 3], [0, 1, 2, 1, 2, 2, 0, 1, 2]],
         )
 
-        result = index.slice_locs((1, 0), (5, 2))
+        result = index._slice_locs((1, 0), (5, 2))
         assert result == (3, 6)
 
-        result = index.slice_locs(1, 5)
+        result = index._slice_locs(1, 5)
         assert result == (3, 6)
 
-        result = index.slice_locs((2, 2), (5, 2))
+        result = index._slice_locs((2, 2), (5, 2))
         assert result == (3, 6)
 
-        result = index.slice_locs(2, 5)
+        result = index._slice_locs(2, 5)
         assert result == (3, 6)
 
-        result = index.slice_locs((1, 0), (6, 3))
+        result = index._slice_locs((1, 0), (6, 3))
         assert result == (3, 8)
 
-        result = index.slice_locs(-1, 10)
+        result = index._slice_locs(-1, 10)
         assert result == (0, len(index))
 
     @pytest.mark.parametrize(
@@ -144,7 +144,7 @@ class TestSliceLocs:
     ):
         # issue 19132
         idx = MultiIndex.from_arrays(index_arr)
-        result = idx.slice_locs(start=start_idx, end=end_idx)
+        result = idx._slice_locs(start=start_idx, end=end_idx)
         assert result == expected
 
 

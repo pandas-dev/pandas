@@ -304,7 +304,7 @@ class TestMaybeCastSliceBound:
         with pytest.raises(TypeError, match=msg):
             tdi.get_slice_bound("foo", side="left")
         with pytest.raises(TypeError, match=msg):
-            tdi.slice_locs("foo", None, None)
+            tdi._slice_locs("foo", None, None)
 
     def test_slice_invalid_str_with_timedeltaindex(
         self, tdi, frame_or_series, indexer_sl

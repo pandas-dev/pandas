@@ -34,6 +34,7 @@ from pandas._libs.tslibs import Timestamp
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
     InvalidIndexError,
+    Pandas4Warning,
     PerformanceWarning,
     UnsortedIndexError,
 )
@@ -3385,6 +3386,10 @@ class MultiIndex(Index):
         For an ordered MultiIndex, compute the slice locations for input
         labels.
 
+        .. deprecated:: 3.1.0
+            MultiIndex.slice_locs is deprecated. Use
+            MultiIndex.slice_indexer instead.
+
         The input labels can be tuples representing partial levels, e.g. for a
         MultiIndex with 3 levels, you can pass a single value (corresponding to
         the first level), or a 1-, 2-, or 3-tuple.
@@ -3408,6 +3413,12 @@ class MultiIndex(Index):
         if only the first 2 levels of a 3-level MultiIndex are lexsorted,
         you can only pass two levels to ``.slice_locs``.
 
+        See Also
+        --------
+        MultiIndex.get_loc : Get location for a label or a tuple of labels.
+        MultiIndex.get_locs : Get location for a label/slice/list/mask or a
+                              sequence of such.
+
         Examples
         --------
         >>> mi = pd.MultiIndex.from_arrays(
@@ -3417,24 +3428,16 @@ class MultiIndex(Index):
         Get the slice locations from the beginning of 'b' in the first level
         until the end of the multiindex:
 
-        >>> mi.slice_locs(start="b")
+        >>> mi.slice_locs(start="b")  # doctest: +SKIP
         (1, 4)
-
-        Like above, but stop at the end of 'b' in the first level and 'f' in
-        the second level:
-
-        >>> mi.slice_locs(start="b", end=("b", "f"))
-        (1, 3)
-
-        See Also
-        --------
-        MultiIndex.get_loc : Get location for a label or a tuple of labels.
-        MultiIndex.get_locs : Get location for a label/slice/list/mask or a
-                              sequence of such.
         """
-        # This function adds nothing to its parent implementation (the magic
-        # happens in get_slice_bound method), but it adds meaningful doc.
-        return super().slice_locs(start, end, step)
+        warnings.warn(
+            f"{type(self).__name__}.slice_locs is deprecated. "
+            "Use Index.slice_indexer instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return super()._slice_locs(start, end, step)
 
     def _partial_tup_index(self, tup: tuple, side: Literal["left", "right"] = "left"):
         if len(tup) > self._lexsort_depth:
@@ -3621,7 +3624,7 @@ class MultiIndex(Index):
             stop = len(self)
         else:
             try:
-                start, stop = self.slice_locs(lead_key, lead_key)
+                start, stop = self._slice_locs(lead_key, lead_key)
             except TypeError as err:
                 # e.g. test_groupby_example key = ((0, 0, 1, 2), "new_col")
                 #  when self has 5 integer levels
@@ -4255,8 +4258,8 @@ class MultiIndex(Index):
         if after and before and after < before:
             raise ValueError("after < before")
 
-        i, j = self.levels[0].slice_locs(before, after)
-        left, right = self.slice_locs(before, after)
+        i, j = self.levels[0]._slice_locs(before, after)
+        left, right = self._slice_locs(before, after)
 
         new_levels = list(self.levels)
         new_levels[0] = new_levels[0][i:j]

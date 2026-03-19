@@ -50,13 +50,13 @@ class TestGetLoc:
         # representable by slice [0:2:2]
         msg = "'Cannot get left slice bound for non-unique label: nan'"
         with pytest.raises(KeyError, match=msg):
-            idx.slice_locs(np.nan)
+            idx._slice_locs(np.nan)
         # not representable by slice
         idx = Index([np.nan, 1, np.nan, np.nan], dtype=np.float64)
         assert idx.get_loc(1) == 1
         msg = "'Cannot get left slice bound for non-unique label: nan"
         with pytest.raises(KeyError, match=msg):
-            idx.slice_locs(np.nan)
+            idx._slice_locs(np.nan)
 
     def test_get_loc_missing_nan(self):
         # GH#8569
@@ -557,55 +557,55 @@ class TestSliceLocs:
         index = Index(np.array([0, 1, 2, 5, 6, 7, 9, 10], dtype=dtype))
         n = len(index)
 
-        assert index.slice_locs(start=2) == (2, n)
-        assert index.slice_locs(start=3) == (3, n)
-        assert index.slice_locs(3, 8) == (3, 6)
-        assert index.slice_locs(5, 10) == (3, n)
-        assert index.slice_locs(end=8) == (0, 6)
-        assert index.slice_locs(end=9) == (0, 7)
+        assert index._slice_locs(start=2) == (2, n)
+        assert index._slice_locs(start=3) == (3, n)
+        assert index._slice_locs(3, 8) == (3, 6)
+        assert index._slice_locs(5, 10) == (3, n)
+        assert index._slice_locs(end=8) == (0, 6)
+        assert index._slice_locs(end=9) == (0, 7)
 
         # reversed
         index2 = index[::-1]
-        assert index2.slice_locs(8, 2) == (2, 6)
-        assert index2.slice_locs(7, 3) == (2, 5)
+        assert index2._slice_locs(8, 2) == (2, 6)
+        assert index2._slice_locs(7, 3) == (2, 5)
 
     @pytest.mark.parametrize("dtype", [int, float])
     def test_slice_locs_float_locs(self, dtype):
         index = Index(np.array([0, 1, 2, 5, 6, 7, 9, 10], dtype=dtype))
         n = len(index)
-        assert index.slice_locs(5.0, 10.0) == (3, n)
-        assert index.slice_locs(4.5, 10.5) == (3, 8)
+        assert index._slice_locs(5.0, 10.0) == (3, n)
+        assert index._slice_locs(4.5, 10.5) == (3, 8)
 
         index2 = index[::-1]
-        assert index2.slice_locs(8.5, 1.5) == (2, 6)
-        assert index2.slice_locs(10.5, -1) == (0, n)
+        assert index2._slice_locs(8.5, 1.5) == (2, 6)
+        assert index2._slice_locs(10.5, -1) == (0, n)
 
     @pytest.mark.parametrize("dtype", [int, float])
     def test_slice_locs_dup_numeric(self, dtype):
         index = Index(np.array([10, 12, 12, 14], dtype=dtype))
-        assert index.slice_locs(12, 12) == (1, 3)
-        assert index.slice_locs(11, 13) == (1, 3)
+        assert index._slice_locs(12, 12) == (1, 3)
+        assert index._slice_locs(11, 13) == (1, 3)
 
         index2 = index[::-1]
-        assert index2.slice_locs(12, 12) == (1, 3)
-        assert index2.slice_locs(13, 11) == (1, 3)
+        assert index2._slice_locs(12, 12) == (1, 3)
+        assert index2._slice_locs(13, 11) == (1, 3)
 
     def test_slice_locs_na(self):
         index = Index([np.nan, 1, 2])
-        assert index.slice_locs(1) == (1, 3)
-        assert index.slice_locs(np.nan) == (0, 3)
+        assert index._slice_locs(1) == (1, 3)
+        assert index._slice_locs(np.nan) == (0, 3)
 
         index = Index([0, np.nan, np.nan, 1, 2])
-        assert index.slice_locs(np.nan) == (1, 5)
+        assert index._slice_locs(np.nan) == (1, 5)
 
     def test_slice_locs_na_raises(self):
         index = Index([np.nan, 1, 2])
         msg = "non-monotonic index with a missing label 1.5"
         with pytest.raises(KeyError, match=msg):
-            index.slice_locs(start=1.5)
+            index._slice_locs(start=1.5)
 
         with pytest.raises(KeyError, match=msg):
-            index.slice_locs(end=1.5)
+            index._slice_locs(end=1.5)
 
 
 class TestGetSliceBounds:

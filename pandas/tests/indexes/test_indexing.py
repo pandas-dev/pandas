@@ -19,7 +19,10 @@ import numpy as np
 import pytest
 
 from pandas.compat import PY314
-from pandas.errors import InvalidIndexError
+from pandas.errors import (
+    InvalidIndexError,
+    Pandas4Warning,
+)
 
 from pandas.core.dtypes.common import (
     is_float_dtype,
@@ -360,3 +363,17 @@ def test_get_indexer_non_unique_nans_in_object_dtype_target(nulls_fixture):
     result_idx, result_missing = idx.get_indexer_non_unique(target)
     tm.assert_numpy_array_equal(result_idx, np.array([0, -1], dtype=np.intp))
     tm.assert_numpy_array_equal(result_missing, np.array([1], dtype=np.intp))
+
+
+def test_slice_locs_deprecated():
+    # GH#26544
+    idx = Index(list("abcd"))
+    msg = "slice_locs is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = idx.slice_locs(start="b", end="c")
+    assert result == (1, 3)
+
+    mi = MultiIndex.from_arrays([list("abbd"), list("deff")], names=["A", "B"])
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = mi.slice_locs(start="b")
+    assert result == (1, 4)

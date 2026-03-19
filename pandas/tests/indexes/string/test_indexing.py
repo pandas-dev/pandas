@@ -170,7 +170,9 @@ class TestSliceLocs:
     def test_slice_locs_negative_step(self, in_slice, expected, any_string_dtype):
         index = Index(list("bcdxy"), dtype=any_string_dtype)
 
-        s_start, s_stop = index.slice_locs(in_slice.start, in_slice.stop, in_slice.step)
+        s_start, s_stop = index._slice_locs(
+            in_slice.start, in_slice.stop, in_slice.step
+        )
         result = index[s_start : s_stop : in_slice.step]
         expected = Index(list(expected), dtype=any_string_dtype)
         tm.assert_index_equal(result, expected)
@@ -187,13 +189,13 @@ class TestSliceLocs:
 
     def test_slice_locs_dup(self, any_string_dtype):
         index = Index(["a", "a", "b", "c", "d", "d"], dtype=any_string_dtype)
-        assert index.slice_locs("a", "d") == (0, 6)
-        assert index.slice_locs(end="d") == (0, 6)
-        assert index.slice_locs("a", "c") == (0, 4)
-        assert index.slice_locs("b", "d") == (2, 6)
+        assert index._slice_locs("a", "d") == (0, 6)
+        assert index._slice_locs(end="d") == (0, 6)
+        assert index._slice_locs("a", "c") == (0, 4)
+        assert index._slice_locs("b", "d") == (2, 6)
 
         index2 = index[::-1]
-        assert index2.slice_locs("d", "a") == (0, 6)
-        assert index2.slice_locs(end="a") == (0, 6)
-        assert index2.slice_locs("d", "b") == (0, 4)
-        assert index2.slice_locs("c", "a") == (2, 6)
+        assert index2._slice_locs("d", "a") == (0, 6)
+        assert index2._slice_locs(end="a") == (0, 6)
+        assert index2._slice_locs("d", "b") == (0, 4)
+        assert index2._slice_locs("c", "a") == (2, 6)

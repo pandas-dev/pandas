@@ -901,7 +901,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         if end < start:
             result = self[:0]
         else:
-            lslice = slice(*left.slice_locs(start, end))
+            lslice = slice(*left._slice_locs(start, end))
             result = left._values[lslice]  # type: ignore[assignment]
 
         return result

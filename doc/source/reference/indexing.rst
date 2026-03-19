@@ -154,7 +154,6 @@ Selecting
    Index.get_slice_bound
    Index.isin
    Index.slice_indexer
-   Index.slice_locs
 
 .. _api.numericindex:
 

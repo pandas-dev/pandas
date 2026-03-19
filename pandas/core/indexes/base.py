@@ -6905,7 +6905,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.slice_indexer(start="b", end=("c", "g"))
         slice(1, 3, None)
         """
-        start_slice, end_slice = self.slice_locs(start, end, step=step)
+        start_slice, end_slice = self._slice_locs(start, end, step=step)
 
         # return a slice
         if not is_scalar(start_slice):
@@ -7113,9 +7113,8 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Compute slice locations for input labels.
 
-        This method determines the integer start and end positions for a
-        label-based slice, which is useful for translating label-based
-        slicing into positional slicing on the underlying data.
+        .. deprecated:: 3.1.0
+            Index.slice_locs is deprecated. Use Index.slice_indexer instead.
 
         Parameters
         ----------
@@ -7135,6 +7134,7 @@ class Index(IndexOpsMixin, PandasObject):
         See Also
         --------
         Index.get_loc : Get location for a single label.
+        Index.slice_indexer : Return an indexer for a slice.
 
         Notes
         -----
@@ -7143,13 +7143,23 @@ class Index(IndexOpsMixin, PandasObject):
         Examples
         --------
         >>> idx = pd.Index(list("abcd"))
-        >>> idx.slice_locs(start="b", end="c")
+        >>> idx.slice_locs(start="b", end="c")  # doctest: +SKIP
         (1, 3)
-
-        >>> idx = pd.Index(list("bcde"))
-        >>> idx.slice_locs(start="a", end="c")
-        (0, 2)
         """
+        warnings.warn(
+            f"{type(self).__name__}.slice_locs is deprecated. "
+            "Use Index.slice_indexer instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self._slice_locs(start, end, step)
+
+    def _slice_locs(
+        self,
+        start: SliceType = None,
+        end: SliceType = None,
+        step: int | None = None,
+    ) -> tuple[int, int]:
         inc = step is None or step >= 0
 
         if not inc:

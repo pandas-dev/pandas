@@ -528,29 +528,29 @@ class TestSliceLocs:
         # increasing monotonically
         index = IntervalIndex.from_tuples([(0, 2), (1, 3), (2, 4)])
 
-        assert index.slice_locs(start=Interval(0, 2), end=Interval(2, 4)) == (0, 3)
-        assert index.slice_locs(start=Interval(0, 2)) == (0, 3)
-        assert index.slice_locs(end=Interval(2, 4)) == (0, 3)
-        assert index.slice_locs(end=Interval(0, 2)) == (0, 1)
-        assert index.slice_locs(start=Interval(2, 4), end=Interval(0, 2)) == (2, 1)
+        assert index._slice_locs(start=Interval(0, 2), end=Interval(2, 4)) == (0, 3)
+        assert index._slice_locs(start=Interval(0, 2)) == (0, 3)
+        assert index._slice_locs(end=Interval(2, 4)) == (0, 3)
+        assert index._slice_locs(end=Interval(0, 2)) == (0, 1)
+        assert index._slice_locs(start=Interval(2, 4), end=Interval(0, 2)) == (2, 1)
 
         # decreasing monotonically
         index = IntervalIndex.from_tuples([(2, 4), (1, 3), (0, 2)])
 
-        assert index.slice_locs(start=Interval(0, 2), end=Interval(2, 4)) == (2, 1)
-        assert index.slice_locs(start=Interval(0, 2)) == (2, 3)
-        assert index.slice_locs(end=Interval(2, 4)) == (0, 1)
-        assert index.slice_locs(end=Interval(0, 2)) == (0, 3)
-        assert index.slice_locs(start=Interval(2, 4), end=Interval(0, 2)) == (0, 3)
+        assert index._slice_locs(start=Interval(0, 2), end=Interval(2, 4)) == (2, 1)
+        assert index._slice_locs(start=Interval(0, 2)) == (2, 3)
+        assert index._slice_locs(end=Interval(2, 4)) == (0, 1)
+        assert index._slice_locs(end=Interval(0, 2)) == (0, 3)
+        assert index._slice_locs(start=Interval(2, 4), end=Interval(0, 2)) == (0, 3)
 
         # sorted duplicates
         index = IntervalIndex.from_tuples([(0, 2), (0, 2), (2, 4)])
 
-        assert index.slice_locs(start=Interval(0, 2), end=Interval(2, 4)) == (0, 3)
-        assert index.slice_locs(start=Interval(0, 2)) == (0, 3)
-        assert index.slice_locs(end=Interval(2, 4)) == (0, 3)
-        assert index.slice_locs(end=Interval(0, 2)) == (0, 2)
-        assert index.slice_locs(start=Interval(2, 4), end=Interval(0, 2)) == (2, 2)
+        assert index._slice_locs(start=Interval(0, 2), end=Interval(2, 4)) == (0, 3)
+        assert index._slice_locs(start=Interval(0, 2)) == (0, 3)
+        assert index._slice_locs(end=Interval(2, 4)) == (0, 3)
+        assert index._slice_locs(end=Interval(0, 2)) == (0, 2)
+        assert index._slice_locs(start=Interval(2, 4), end=Interval(0, 2)) == (2, 2)
 
         # unsorted duplicates
         index = IntervalIndex.from_tuples([(0, 2), (2, 4), (0, 2)])
@@ -562,7 +562,7 @@ class TestSliceLocs:
                 "Interval(0, 2, closed='right')\""
             ),
         ):
-            index.slice_locs(start=Interval(0, 2), end=Interval(2, 4))
+            index._slice_locs(start=Interval(0, 2), end=Interval(2, 4))
 
         with pytest.raises(
             KeyError,
@@ -571,18 +571,9 @@ class TestSliceLocs:
                 "Interval(0, 2, closed='right')\""
             ),
         ):
-            index.slice_locs(start=Interval(0, 2))
+            index._slice_locs(start=Interval(0, 2))
 
-        assert index.slice_locs(end=Interval(2, 4)) == (0, 2)
-
-        with pytest.raises(
-            KeyError,
-            match=re.escape(
-                '"Cannot get right slice bound for non-unique label: '
-                "Interval(0, 2, closed='right')\""
-            ),
-        ):
-            index.slice_locs(end=Interval(0, 2))
+        assert index._slice_locs(end=Interval(2, 4)) == (0, 2)
 
         with pytest.raises(
             KeyError,
@@ -591,36 +582,45 @@ class TestSliceLocs:
                 "Interval(0, 2, closed='right')\""
             ),
         ):
-            index.slice_locs(start=Interval(2, 4), end=Interval(0, 2))
+            index._slice_locs(end=Interval(0, 2))
+
+        with pytest.raises(
+            KeyError,
+            match=re.escape(
+                '"Cannot get right slice bound for non-unique label: '
+                "Interval(0, 2, closed='right')\""
+            ),
+        ):
+            index._slice_locs(start=Interval(2, 4), end=Interval(0, 2))
 
         # another unsorted duplicates
         index = IntervalIndex.from_tuples([(0, 2), (0, 2), (2, 4), (1, 3)])
 
-        assert index.slice_locs(start=Interval(0, 2), end=Interval(2, 4)) == (0, 3)
-        assert index.slice_locs(start=Interval(0, 2)) == (0, 4)
-        assert index.slice_locs(end=Interval(2, 4)) == (0, 3)
-        assert index.slice_locs(end=Interval(0, 2)) == (0, 2)
-        assert index.slice_locs(start=Interval(2, 4), end=Interval(0, 2)) == (2, 2)
+        assert index._slice_locs(start=Interval(0, 2), end=Interval(2, 4)) == (0, 3)
+        assert index._slice_locs(start=Interval(0, 2)) == (0, 4)
+        assert index._slice_locs(end=Interval(2, 4)) == (0, 3)
+        assert index._slice_locs(end=Interval(0, 2)) == (0, 2)
+        assert index._slice_locs(start=Interval(2, 4), end=Interval(0, 2)) == (2, 2)
 
     def test_slice_locs_with_ints_and_floats_succeeds(self):
         # increasing non-overlapping
         index = IntervalIndex.from_tuples([(0, 1), (1, 2), (3, 4)])
 
-        assert index.slice_locs(0, 1) == (0, 1)
-        assert index.slice_locs(0, 2) == (0, 2)
-        assert index.slice_locs(0, 3) == (0, 2)
-        assert index.slice_locs(3, 1) == (2, 1)
-        assert index.slice_locs(3, 4) == (2, 3)
-        assert index.slice_locs(0, 4) == (0, 3)
+        assert index._slice_locs(0, 1) == (0, 1)
+        assert index._slice_locs(0, 2) == (0, 2)
+        assert index._slice_locs(0, 3) == (0, 2)
+        assert index._slice_locs(3, 1) == (2, 1)
+        assert index._slice_locs(3, 4) == (2, 3)
+        assert index._slice_locs(0, 4) == (0, 3)
 
         # decreasing non-overlapping
         index = IntervalIndex.from_tuples([(3, 4), (1, 2), (0, 1)])
-        assert index.slice_locs(0, 1) == (3, 3)
-        assert index.slice_locs(0, 2) == (3, 2)
-        assert index.slice_locs(0, 3) == (3, 1)
-        assert index.slice_locs(3, 1) == (1, 3)
-        assert index.slice_locs(3, 4) == (1, 1)
-        assert index.slice_locs(0, 4) == (3, 1)
+        assert index._slice_locs(0, 1) == (3, 3)
+        assert index._slice_locs(0, 2) == (3, 2)
+        assert index._slice_locs(0, 3) == (3, 1)
+        assert index._slice_locs(3, 1) == (1, 3)
+        assert index._slice_locs(3, 4) == (1, 1)
+        assert index._slice_locs(0, 4) == (3, 1)
 
     @pytest.mark.parametrize("query", [[0, 1], [0, 2], [0, 3], [0, 4]])
     @pytest.mark.parametrize(
@@ -643,7 +643,7 @@ class TestSliceLocs:
                 "non-overlapping and all monotonic increasing or decreasing'"
             ),
         ):
-            index.slice_locs(start, stop)
+            index._slice_locs(start, stop)
 
 
 class TestPutmask:
