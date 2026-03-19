@@ -350,8 +350,6 @@ numpydoc_validation_exclude = {
     r"pandas\.tseries\.offsets\.Milli\.rollforward$",
     r"pandas\.tseries\.offsets\.Micro\.rollforward$",
     r"pandas\.tseries\.offsets\.Nano\.rollforward$",
-    # Offset next_bday (BusinessHour and CustomBusinessHour only)
-    r"pandas\.tseries\.offsets\.BusinessHour\.next_bday$",
     # Easter.method
     r"pandas\.tseries\.offsets\.Easter\.method$",
     # CustomBusinessMonth helper methods
