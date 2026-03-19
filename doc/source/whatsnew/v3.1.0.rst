@@ -170,7 +170,7 @@ Interval
 Indexing
 ^^^^^^^^
 - Bugs in setitem-with-expansion when adding new rows failing to keep the original dtype in some cases (:issue:`32346`, :issue:`15231`, :issue:`47503`, :issue:`6485`, :issue:`25383`, :issue:`52235`, :issue:`17026`, :issue:`56010`)
--
+- Bug in :meth:`DataFrame.mask` with ``inplace=True`` and an :class:`Series` with :class:`ExtensionArray` values producing incorrect results due to double negation of the condition in ``NDFrame._where`` (:issue:`64635`)
 
 Missing
 ^^^^^^^
