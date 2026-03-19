@@ -312,38 +312,14 @@ cdef tuple _get_trans_and_deltas_from_dateutil_tz(
     return trans, deltas
 
 
-cdef object _load_zoneinfo_data(str key):
-    """
-    Load timezone data directly from zoneinfo internal functions.
-
-    This mimics how zoneinfo itself loads the data, first checking
-    for system tz files, then falling back to the tzdata package.
-
-    Parameters
-    ----------
-    key : str
-        The timezone key (e.g., "Europe/Brussels", "US/Pacific").
-
-    Returns
-    -------
-    tuple
-        (trans_idx, trans_list_utc, utcoff, isdst, abbr, tz_str)
-    """
-    import zoneinfo._common as zcom
-    import zoneinfo._tzpath as tzpath
-
-    file_path = tzpath.find_tzfile(key)
-    if file_path is not None:
-        file_obj = open(file_path, "rb")
-    else:
-        file_obj = zcom.load_tzdata(key)
-
-    with file_obj as f:
-        return zcom.load_data(f)
-
-
 cdef tuple _get_zoneinfo_trans_and_deltas(tzinfo tz):
     """
+    Get transition times and UTC offsets for a ZoneInfo timezone.
+
+    Uses dateutil to get transition data, as zoneinfo's internal data
+    only contains historical transitions without POSIX TZ rules for
+    future DST changes.
+
     Parameters
     ----------
     tz : ZoneInfo
@@ -360,29 +336,22 @@ cdef tuple _get_zoneinfo_trans_and_deltas(tzinfo tz):
     cdef:
         int64_t fixed_offset_seconds
 
-    trans_idx, trans_list_utc, utcoff, _isdst, _abbr, _tz_str = _load_zoneinfo_data(
-        tz.key
-    )
+    dateutil_tz = dateutil_gettz(tz.key)
 
-    if len(trans_list_utc) == 0:
-        # Fixed offset timezone with no transitions
+    if hasattr(dateutil_tz, "_trans_list") and len(dateutil_tz._trans_list):
+        first_offset_seconds = int(dateutil_tz._ttinfo_before.offset)
+        trans, deltas = _get_trans_and_deltas_from_dateutil_tz(
+            dateutil_tz, first_offset_seconds
+        )
+        return trans, deltas, False
+    else:
+        # Fixed offset timezone with no transitions (e.g., Etc/GMT+5)
         fixed_offset_seconds = int(
             tz.utcoffset(datetime(2020, 1, 1)).total_seconds()
         )
         trans = np.array([NPY_NAT + 1], dtype=np.int64)
         deltas = np.array([fixed_offset_seconds], dtype="i8") * 1_000_000_000
         return trans, deltas, True
-
-    trans = np.array(trans_list_utc, dtype="i8") * 1_000_000_000
-    trans = np.hstack([np.array([NPY_NAT + 1], dtype=np.int64), trans])
-
-    first_offset = utcoff[trans_idx[0]] if len(trans_idx) > 0 else utcoff[0]
-    deltas = np.array(
-        [first_offset] + [utcoff[i] for i in trans_idx],
-        dtype="i8"
-    ) * 1_000_000_000
-
-    return trans, deltas, False
 
 
 cdef object get_dst_info(tzinfo tz):
