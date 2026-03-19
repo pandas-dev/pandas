@@ -25,6 +25,7 @@ from typing import (
     Any,
     cast,
 )
+import warnings
 
 import numpy as np
 
@@ -41,7 +42,9 @@ from pandas._libs.tslibs import (
     Timestamp,
 )
 from pandas._libs.tslibs.nattype import NaTType
+from pandas.errors import Pandas4Warning
 from pandas.util._decorators import set_module
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_complex_dtype,
@@ -1945,6 +1948,9 @@ def set_eng_float_format(accuracy: int = 3, use_eng_prefix: bool = False) -> Non
     """
     Format float representation in DataFrame with SI notation.
 
+    .. deprecated:: 3.1.0
+        Use ``pd.set_option("display.float_format", EngFormatter(...))`` instead.
+
     Sets the floating-point display format for ``DataFrame`` objects using engineering
     notation (SI units), allowing easier readability of values across wide ranges.
 
@@ -2006,6 +2012,14 @@ def set_eng_float_format(accuracy: int = 3, use_eng_prefix: bool = False) -> Non
 
     >>> pd.set_option("display.float_format", None)  # unset option
     """
+    warnings.warn(
+        "set_eng_float_format is deprecated and will be removed in a future "
+        "version. Use "
+        "pd.set_option('display.float_format', pd.io.formats.format.EngFormatter("
+        "accuracy, use_eng_prefix)) instead.",
+        Pandas4Warning,
+        stacklevel=find_stack_level(),
+    )
     set_option("display.float_format", EngFormatter(accuracy, use_eng_prefix))
 
 
