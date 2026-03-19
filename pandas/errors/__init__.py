@@ -1057,9 +1057,26 @@ class InvalidComparison(Exception):
     """
     Exception is raised by _validate_comparison_value to indicate an invalid comparison.
 
+    This is an internal pandas error raised during comparison validation
+    of datetime-like arrays (datetime, timedelta, and period) when the
+    operand type is incompatible. It is caught internally and converted
+    into an array of ``False`` values rather than being propagated to the user.
+
+    See Also
+    --------
+    Series.compare : Compare two Series and show differences.
+    DataFrame.compare : Compare two DataFrames and show differences.
+
     Notes
     -----
     This is an internal error.
+
+    Examples
+    --------
+    >>> arr = pd.array(pd.date_range("2020", periods=3))
+    >>> arr._validate_comparison_value(42)
+    Traceback (most recent call last):
+    InvalidComparison: 42
     """
 
 

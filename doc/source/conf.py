@@ -224,7 +224,6 @@ numpydoc_validation_exclude = {
     r"pandas\.io\.formats\.style\.Styler\.template_string$",
     r"pandas\.io\.formats\.style\.Styler\.loader$",
     # Error/warning classes with no numpydoc-style docstrings
-    r"pandas\.errors\.InvalidComparison$",
     r"pandas\.errors\.LossySetitemError$",
     r"pandas\.errors\.NoBufferPresent$",
     r"pandas\.errors\.IncompatibilityWarning$",
