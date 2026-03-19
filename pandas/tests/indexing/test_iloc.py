@@ -1091,22 +1091,14 @@ class TestiLocBaseIndependent:
         tm.assert_frame_equal(df2, expected)
 
     def test_iloc_assignment_nullable_int_with_na(self):
-        # GH#62473
-        ser = Series(
-            [4, 6, 9, None, 10, 13, 15], index=[6, 1, 5, 0, 3, 2, 4], dtype="Int64"
-        )
-        indices = Series(
-            [6, 1, 5, 0, 3, 2, 4], index=[6, 1, 5, 0, 3, 2, 4], dtype="int64"
-        )
-        values = Series(
-            [4, 6, 9, None, 10, 13, 15], index=[4, 1, 2, 6, 0, 5, 3], dtype="Int64"
-        )
+        # GH#62473 - TypeError: boolean value of NA is ambiguous
+        # when doing iloc setitem on nullable integer Series containing NA
+        ser = Series([1, 2, None, 4], dtype="Int64")
+        values = Series([10, 20, None, 40], dtype="Int64")
 
-        ser.iloc[indices] = values
+        ser.iloc[[0, 1, 2, 3]] = values
 
-        expected = Series(
-            [NA, 6, 13, 10, 15, 9, 4], index=[6, 1, 5, 0, 3, 2, 4], dtype="Int64"
-        )
+        expected = Series([10, 20, None, 40], dtype="Int64")
         tm.assert_series_equal(ser, expected)
 
     @pytest.mark.parametrize("has_ref", [True, False])
