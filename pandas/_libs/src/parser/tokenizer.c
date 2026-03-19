@@ -1670,6 +1670,28 @@ static int copy_string_without_char(char output[PROCESSED_WORD_CAPACITY],
   return 0;
 }
 
+/*
+ * Detect malformed thousands separators before stripping them.
+ *
+ * We reject separators that are preceded by whitespace (e.g. "1 ,")
+ * or repeated consecutively (e.g. "1,,0").
+ */
+static int has_invalid_thousands_sep(const char *str, size_t str_len,
+                                     char tsep) {
+  for (size_t i = 0; i < str_len; ++i) {
+    if (str[i] != tsep) {
+      continue;
+    }
+
+    if ((i > 0 && isspace_ascii(str[i - 1])) ||
+        (i + 1 < str_len && str[i + 1] == tsep)) {
+      return 1;
+    }
+  }
+
+  return 0;
+}
+
 int64_t str_to_int64(const char *p_item, int *error, char tsep) {
   const char *p = p_item;
   // Skip leading spaces.
@@ -1692,6 +1714,11 @@ int64_t str_to_int64(const char *p_item, int *error, char tsep) {
   char buffer[PROCESSED_WORD_CAPACITY];
   const size_t str_len = strlen(p);
   if (tsep != '\0' && memchr(p, tsep, str_len) != NULL) {
+    if (has_invalid_thousands_sep(p, str_len, tsep)) {
+      *error = ERROR_INVALID_CHARS;
+      return 0;
+    }
+
     const int status = copy_string_without_char(buffer, p, str_len, tsep);
     if (status != 0) {
       // Word is too big, probably will cause an overflow
@@ -1752,6 +1779,11 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int *error,
   char buffer[PROCESSED_WORD_CAPACITY];
   const size_t str_len = strlen(p);
   if (tsep != '\0' && memchr(p, tsep, str_len) != NULL) {
+    if (has_invalid_thousands_sep(p, str_len, tsep)) {
+      *error = ERROR_INVALID_CHARS;
+      return 0;
+    }
+
     const int status = copy_string_without_char(buffer, p, str_len, tsep);
     if (status != 0) {
       // Word is too big, probably will cause an overflow
