@@ -596,7 +596,9 @@ class StylerRenderer:
         column_blanks: list = []
         visible_col_count: int = 0
         if clabels:
-            last_level = self.columns.nlevels - 1  # use last level since never sparsed
+            last_level = (
+                self.columns.nlevels - 1
+            )  # use last level since never sparsified
             for c, value in enumerate(clabels[last_level]):
                 header_element_visible = _is_visible(c, last_level, col_lengths)
                 if header_element_visible:

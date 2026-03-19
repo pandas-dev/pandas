@@ -1524,11 +1524,18 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         data = self._get_data_to_aggregate(numeric_only=numeric_only, name=how)
 
         def array_func(values: ArrayLike) -> ArrayLike:
+            # GH#37850 For numpy boolean data, any==max and all==min.
+            # The min/max Cython path is faster (fused types, no mask overhead).
+            # Excludes nullable BooleanDtype which needs Kleene logic.
+            if how in ["any", "all"] and values.dtype == np.dtype("bool"):
+                _how = "max" if how == "any" else "min"
+            else:
+                _how = how
             try:
                 result = self._grouper._cython_operation(
                     "aggregate",
                     values,
-                    how,
+                    _how,
                     axis=data.ndim - 1,
                     min_count=min_count,
                     **kwargs,

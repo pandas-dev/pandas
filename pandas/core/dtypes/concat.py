@@ -265,7 +265,7 @@ def union_categoricals(
     TypeError: to union ordered Categoricals, all categories must be the same
 
     Ordered categoricals with different categories or orderings can be
-    combined by using the `ignore_ordered=True` argument.
+    combined by using the `ignore_order=True` argument.
 
     >>> a = pd.Categorical(["a", "b", "c"], ordered=True)
     >>> b = pd.Categorical(["c", "b", "a"], ordered=True)

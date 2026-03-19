@@ -982,7 +982,7 @@ class ExcelFormatter:
                         )
                     else:
                         startrowsoffset = self.columns.nlevels
-                        # multindex columns add a blank row between header and data
+                        # multiindex columns add a blank row between header and data
                         endrowsoffset = self.columns.nlevels + 1
             else:
                 # no index column

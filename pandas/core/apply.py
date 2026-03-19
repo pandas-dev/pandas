@@ -928,7 +928,7 @@ class FrameApply(NDFrameApply):
         pass
 
     def validate_values_for_numba(self) -> None:
-        # Validate column dtyps all OK
+        # Validate column dtypes all OK
         for colname, dtype in self.obj.dtypes.items():
             if not is_numeric_dtype(dtype):
                 raise ValueError(

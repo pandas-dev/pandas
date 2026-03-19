@@ -454,6 +454,8 @@ filterwarnings = [
   "ignore:Bitwise inversion:DeprecationWarning",
   # Raised by coverage in PY3.14+ (coverage.exceptions.CoverageWarning)
   "ignore:Plugin file tracers",
+  # Raised by coverage in freethreading
+  "ignore:Couldn't import C tracer",
   # Remove 2 below when pyarrow version > ??
   "ignore:make_block is deprecated and will be removed in a future version:pandas.errors.Pandas4Warning:pyarrow",
   "ignore:DatetimeTZBlock is deprecated and will be removed in a future version:pandas.errors.Pandas4Warning:pyarrow",
@@ -556,7 +558,12 @@ module = [
   "pandas.core.interchange.column", # TODO
   "pandas.core.interchange.dataframe_protocol", # TODO
   "pandas.core.interchange.from_dataframe", # TODO
-  "pandas.core.internals.*", # TODO
+  "pandas.core.internals", # TODO
+  "pandas.core.internals.api", # TODO
+  "pandas.core.internals.blocks", # TODO
+  "pandas.core.internals.concat", # TODO
+  "pandas.core.internals.construction", # TODO
+  "pandas.core.internals.managers", # TODO
   "pandas.core.ops.array_ops", # TODO
   "pandas.core.ops.common", # TODO
   "pandas.core.ops.missing", # TODO
@@ -672,9 +679,10 @@ reportOptionalMemberAccess = false
 reportReturnType = false
 
 [tool.coverage.run]
+# Reported coverage will be less than expected due to
+# https://github.com/pytest-dev/pytest-cov/issues/455
 branch = true
 omit = ["pandas/_typing.py"]
-plugins = ["Cython.Coverage"]
 source = ["pandas"]
 
 [tool.coverage.report]
@@ -683,21 +691,13 @@ show_missing = true
 exclude_lines = [
   # Have to re-enable the standard pragma
   "pragma: no cover",
-  # Don't complain about missing debug-only code:s
-  "def __repr__",
-  "if self.debug",
   # Don't complain if tests don't hit defensive assertion code:
   "raise AssertionError",
-  "raise NotImplementedError",
   "AbstractMethodError",
   # Don't complain if non-runnable code isn't run:
-  "if 0:",
   "if __name__ == .__main__.:",
   "if TYPE_CHECKING:",
 ]
-
-[tool.coverage.html]
-directory = "coverage_html_report"
 
 [tool.codespell]
 ignore-words-list = "blocs, coo, hist, nd, sav, ser, recuse, nin, timere, expec, expecs, indext, SME, NotIn, tructures, tru, indx, abd, ABD"

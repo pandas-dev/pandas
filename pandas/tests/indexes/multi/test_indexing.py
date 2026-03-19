@@ -680,20 +680,14 @@ class TestGetLoc:
 
     @pytest.mark.parametrize("dtype", [bool, object])
     def test_get_loc_cast_bool(self, dtype):
-        # GH 19086 : int is casted to bool, but not vice-versa (for object dtype)
-        #  With bool dtype, we don't cast in either direction.
+        # GH 19086, GH#62888: int keys should not match bool level values
         levels = [Index([False, True], dtype=dtype), np.arange(2, dtype="int64")]
         idx = MultiIndex.from_product(levels)
 
-        if dtype is bool:
-            with pytest.raises(KeyError, match=r"^\(0, 1\)$"):
-                assert idx.get_loc((0, 1)) == 1
-            with pytest.raises(KeyError, match=r"^\(1, 0\)$"):
-                assert idx.get_loc((1, 0)) == 2
-        else:
-            # We use python object comparisons, which treat 0 == False and 1 == True
-            assert idx.get_loc((0, 1)) == 1
-            assert idx.get_loc((1, 0)) == 2
+        with pytest.raises(KeyError, match=r"^\(0, 1\)$"):
+            idx.get_loc((0, 1))
+        with pytest.raises(KeyError, match=r"^\(1, 0\)$"):
+            idx.get_loc((1, 0))
 
         with pytest.raises(KeyError, match=r"^\(False, True\)$"):
             idx.get_loc((False, True))

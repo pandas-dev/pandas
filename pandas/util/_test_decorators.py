@@ -76,7 +76,7 @@ def skip_if_no(package: str, min_version: str | None = None) -> pytest.MarkDecor
 
     The mark can be used as either a decorator for a test class or to be
     applied to parameters in pytest.mark.parametrize calls or parametrized
-    fixtures. Use pytest.importorskip if an imported moduled is later needed
+    fixtures. Use pytest.importorskip if an imported module is later needed
     or for test functions.
 
     If the import and version check are unsuccessful, then the test function

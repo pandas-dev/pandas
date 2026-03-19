@@ -374,6 +374,34 @@ cdef class IndexEngine:
         self.monotonic_dec = 0
 
     def get_indexer(self, ndarray values) -> np.ndarray:
+        cdef:
+            Py_ssize_t n_self = len(self.values)
+            Py_ssize_t n_values = len(values)
+
+        if (
+            self.over_size_threshold
+            and self.is_monotonic_increasing
+            and self.is_unique
+            and n_values < (n_self / (2 * n_self.bit_length()))
+        ):
+            # GH#14273 avoid building a hash table for large monotonic indices;
+            # use vectorized binary search instead.  The target count threshold
+            # mirrors the heuristic in get_indexer_non_unique: searchsorted is
+            # O(m log n) vs hash table O(n + m), so we only win when m is small
+            # relative to n.
+            try:
+                indexer = self.values.searchsorted(values, side="left")
+            except TypeError:
+                # e.g. searching for strings in an integer index
+                pass
+            else:
+                # searchsorted returns insertion points, not exact matches.
+                # Clip to valid range for comparison, then check matches.
+                clipped = np.clip(indexer, 0, n_self - 1)
+                valid = self.values[clipped] == values
+                result = np.where(valid, clipped, -1)
+                return result.astype(np.intp)
+
         self._ensure_mapping_populated()
         return self.mapping.lookup(values)
 
@@ -1213,6 +1241,31 @@ cdef class MaskedIndexEngine(IndexEngine):
         return values.isna()
 
     def get_indexer(self, object values) -> np.ndarray:
+        cdef:
+            Py_ssize_t n_self = len(self.values)
+            Py_ssize_t n_values = len(values)
+
+        if (
+            self.over_size_threshold
+            and self.is_monotonic_increasing
+            and self.is_unique
+            and n_values < (n_self / (2 * n_self.bit_length()))
+        ):
+            # GH#14273 avoid building a hash table for large monotonic indices.
+            # NAs in self.mask break monotonicity, so we only get here when
+            # the index has no NAs.
+            target_data = self._get_data(values)
+            target_mask = self._get_mask(values)
+            try:
+                indexer = self.values.searchsorted(target_data, side="left")
+            except TypeError:
+                pass
+            else:
+                clipped = np.clip(indexer, 0, n_self - 1)
+                valid = (self.values[clipped] == target_data) & ~target_mask
+                result = np.where(valid, clipped, -1)
+                return result.astype(np.intp)
+
         self._ensure_mapping_populated()
         return self.mapping.lookup(self._get_data(values), self._get_mask(values))
 
@@ -1264,7 +1317,7 @@ cdef class MaskedIndexEngine(IndexEngine):
         # map each starget to its position in the index
         if (
                 stargets and
-                len(stargets) < 5 and
+                len(stargets) < (n / (2 * n.bit_length())) and
                 not np.any(target_mask) and
                 self.is_monotonic_increasing
         ):

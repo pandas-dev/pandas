@@ -68,7 +68,28 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
     MSG='Validate Docstrings' ; echo "$MSG"
     python "$BASE_DIR"/scripts/validate_docstrings.py \
-        --format=actions
+        --format=actions \
+        -i "pandas.DatetimeIndex.year GL08" \
+        -i "pandas.DatetimeIndex.month GL08" \
+        -i "pandas.DatetimeIndex.day GL08" \
+        -i "pandas.DatetimeIndex.hour GL08" \
+        -i "pandas.DatetimeIndex.minute GL08" \
+        -i "pandas.DatetimeIndex.second GL08" \
+        -i "pandas.DatetimeIndex.microsecond GL08" \
+        -i "pandas.DatetimeIndex.nanosecond GL08" \
+        -i "pandas.DatetimeIndex.dayofyear GL08" \
+        -i "pandas.DatetimeIndex.day_of_year GL08" \
+        -i "pandas.DatetimeIndex.dayofweek GL08" \
+        -i "pandas.DatetimeIndex.day_of_week GL08" \
+        -i "pandas.DatetimeIndex.weekday GL08" \
+        -i "pandas.DatetimeIndex.quarter GL08" \
+        -i "pandas.DatetimeIndex.is_month_start GL08" \
+        -i "pandas.DatetimeIndex.is_month_end GL08" \
+        -i "pandas.DatetimeIndex.is_quarter_start GL08" \
+        -i "pandas.DatetimeIndex.is_quarter_end GL08" \
+        -i "pandas.DatetimeIndex.is_year_start GL08" \
+        -i "pandas.DatetimeIndex.is_year_end GL08" \
+        -i "pandas.DatetimeIndex.is_leap_year GL08"
 
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
