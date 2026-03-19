@@ -169,6 +169,16 @@ class TestStringArray(base.ExtensionTests):
         assert result is not data
         tm.assert_extension_array_equal(result, data)
 
+    def test_fillna_readonly(self, data_missing):
+        if data_missing.dtype.storage == "pyarrow":
+            # pyarrow-backed strings are immutable, copy=False is ignored,
+            # always returns a new array without raising.
+            self._respects_fillna_copy_false = False
+        else:
+            # python-backed strings respect copy=False and raise on read-only.
+            self._respects_fillna_copy_false = True
+        super().test_fillna_readonly(data_missing)
+
     def _get_expected_exception(
         self, op_name: str, obj, other
     ) -> type[Exception] | tuple[type[Exception], ...] | None:

@@ -271,6 +271,8 @@ def data_for_twos(data):
 
 
 class TestArrowArray(base.ExtensionTests):
+    _respects_fillna_copy_false = False
+
     def _construct_for_combine_add(self, left, right):
         dtype = left.dtype
 
