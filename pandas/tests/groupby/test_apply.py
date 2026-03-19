@@ -1,3 +1,4 @@
+from contextlib import nullcontext
 from datetime import (
     date,
     datetime,
@@ -281,7 +282,8 @@ def test_apply_with_mixed_dtype():
     df = DataFrame({"c1": [1, 2, 6, 6, 8]})
     df["c2"] = df.c1 / 2.0
     result1 = df.groupby("c2").mean().reset_index()
-    result2 = df.groupby("c2", as_index=False).mean()
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+        result2 = df.groupby("c2", as_index=False).mean()
     tm.assert_frame_equal(result1, result2)
 
 
@@ -294,7 +296,12 @@ def test_groupby_as_index_apply(as_index):
             "time": range(6),
         }
     )
-    gb = df.groupby("user_id", as_index=as_index)
+    with (
+        tm.assert_produces_warning(Pandas4Warning, match="as_index")
+        if not as_index
+        else nullcontext()
+    ):
+        gb = df.groupby("user_id", as_index=as_index)
 
     expected = DataFrame(
         {
@@ -328,7 +335,8 @@ def test_groupby_as_index_apply(as_index):
 def test_groupby_as_index_apply_str():
     ind = Index(list("abcde"))
     df = DataFrame([[1, 2], [2, 3], [1, 4], [1, 5], [2, 6]], index=ind)
-    res = df.groupby(0, as_index=False, group_keys=False).apply(lambda x: x).index
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+        res = df.groupby(0, as_index=False, group_keys=False).apply(lambda x: x).index
     tm.assert_index_equal(res, ind)
 
 
@@ -412,7 +420,8 @@ def test_apply_frame_to_series(df):
 
 def test_apply_frame_not_as_index_column_name(df):
     # GH 35964 - path within _wrap_applied_output not hit by a test
-    grouped = df.groupby(["A", "B"], as_index=False)
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+        grouped = df.groupby(["A", "B"], as_index=False)
     result = grouped.apply(len)
     expected = grouped.count().rename(columns={"C": np.nan}).drop(columns="D")
     # TODO(GH#34306): Use assert_frame_equal when column name is not np.nan
@@ -1032,7 +1041,8 @@ def test_apply_function_with_indexing_return_column():
             "foo2": [1, 2, 4, 4, 5, 6],
         }
     )
-    result = df.groupby("foo1", as_index=False).apply(lambda x: x.mean())
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+        result = df.groupby("foo1", as_index=False).apply(lambda x: x.mean())
     expected = DataFrame(
         {
             "foo1": ["one", "three", "two"],
@@ -1187,7 +1197,12 @@ def test_apply_dropna_with_indexed_same(dropna):
 def test_apply_as_index_constant_lambda(as_index, expected):
     # GH 13217
     df = DataFrame({"a": [1, 1, 2, 2], "b": [1, 1, 2, 2], "c": [1, 1, 1, 1]})
-    result = df.groupby(["a", "b"], as_index=as_index).apply(lambda x: 1)
+    with (
+        tm.assert_produces_warning(Pandas4Warning, match="as_index")
+        if not as_index
+        else nullcontext()
+    ):
+        result = df.groupby(["a", "b"], as_index=as_index).apply(lambda x: 1)
     tm.assert_equal(result, expected)
 
 

@@ -4,6 +4,8 @@ from string import ascii_lowercase
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas import (
     DataFrame,
     Index,
@@ -302,7 +304,8 @@ def test_count_non_nulls():
     )
 
     count_as = df.groupby("A").count()
-    count_not_as = df.groupby("A", as_index=False).count()
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+        count_not_as = df.groupby("A", as_index=False).count()
 
     expected = DataFrame([[1, 2], [0, 0]], columns=["B", "C"], index=[1, 3])
     expected.index.name = "A"

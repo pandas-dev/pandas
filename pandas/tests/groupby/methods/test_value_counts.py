@@ -4,8 +4,12 @@ with different size combinations. This is to ensure stability of the sorting
 and proper parameter handling
 """
 
+from contextlib import nullcontext
+
 import numpy as np
 import pytest
+
+from pandas.errors import Pandas4Warning
 
 from pandas import (
     Categorical,
@@ -296,7 +300,12 @@ def test_against_frame_and_seriesgroupby(
         "function": lambda x: education_df["country"][x] == "US",
     }[groupby]
 
-    gp = education_df.groupby(by=by, as_index=as_index)
+    with (
+        tm.assert_produces_warning(Pandas4Warning, match="as_index")
+        if not as_index
+        else nullcontext()
+    ):
+        gp = education_df.groupby(by=by, as_index=as_index)
     result = gp[["gender", "education"]].value_counts(
         normalize=normalize, sort=sort, ascending=ascending
     )
@@ -374,7 +383,8 @@ def test_compound(
     education_df = education_df.astype(dtype)
     education_df.columns = education_df.columns.astype(dtype)
     # Multiple groupby keys and as_index=False
-    gp = education_df.groupby(["country", "gender"], as_index=False, sort=False)
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+        gp = education_df.groupby(["country", "gender"], as_index=False, sort=False)
     result = gp["education"].value_counts(
         normalize=normalize, sort=sort, ascending=ascending
     )
@@ -560,9 +570,14 @@ def test_categorical_single_grouper_with_only_observed_categories(
     # Test single categorical grouper with only observed grouping categories
     # when non-groupers are also categorical
 
-    gp = education_df.astype("category").groupby(
-        "country", as_index=as_index, observed=observed
-    )
+    with (
+        tm.assert_produces_warning(Pandas4Warning, match="as_index")
+        if not as_index
+        else nullcontext()
+    ):
+        gp = education_df.astype("category").groupby(
+            "country", as_index=as_index, observed=observed
+        )
     result = gp.value_counts(normalize=normalize)
 
     expected_index = MultiIndex.from_tuples(
@@ -611,7 +626,12 @@ def assert_categorical_single_grouper(
     # Add non-observed grouping categories
     education_df["country"] = education_df["country"].cat.add_categories(["ASIA"])
 
-    gp = education_df.groupby("country", as_index=as_index, observed=observed)
+    with (
+        tm.assert_produces_warning(Pandas4Warning, match="as_index")
+        if not as_index
+        else nullcontext()
+    ):
+        gp = education_df.groupby("country", as_index=as_index, observed=observed)
     result = gp.value_counts(normalize=normalize)
 
     expected_series = Series(
@@ -816,9 +836,14 @@ def test_categorical_multiple_groupers(
     education_df["country"] = education_df["country"].astype("category")
     education_df["education"] = education_df["education"].astype("category")
 
-    gp = education_df.groupby(
-        ["country", "education"], as_index=as_index, observed=observed
-    )
+    with (
+        tm.assert_produces_warning(Pandas4Warning, match="as_index")
+        if not as_index
+        else nullcontext()
+    ):
+        gp = education_df.groupby(
+            ["country", "education"], as_index=as_index, observed=observed
+        )
     result = gp.value_counts(normalize=normalize)
 
     expected_series = Series(
@@ -870,7 +895,12 @@ def test_categorical_non_groupers(
     education_df["gender"] = education_df["gender"].astype("category")
     education_df["education"] = education_df["education"].astype("category")
 
-    gp = education_df.groupby("country", as_index=as_index, observed=observed)
+    with (
+        tm.assert_produces_warning(Pandas4Warning, match="as_index")
+        if not as_index
+        else nullcontext()
+    ):
+        gp = education_df.groupby("country", as_index=as_index, observed=observed)
     result = gp.value_counts(normalize=normalize)
 
     expected_index = [
@@ -919,7 +949,8 @@ def test_categorical_non_groupers(
 def test_mixed_groupings(normalize, expected_label, expected_values):
     # Test multiple groupings
     df = DataFrame({"A": [1, 2, 1], "B": [1, 2, 3]})
-    gp = df.groupby([[4, 5, 4], "A", lambda i: 7 if i == 1 else 8], as_index=False)
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+        gp = df.groupby([[4, 5, 4], "A", lambda i: 7 if i == 1 else 8], as_index=False)
     result = gp.value_counts(sort=True, normalize=normalize)
     expected = DataFrame(
         {
@@ -946,7 +977,12 @@ def test_column_label_duplicates(test, columns, expected_names, as_index):
     df = DataFrame([[1, 3, 5, 7, 9], [2, 4, 6, 8, 10]], columns=columns)
     expected_data = [(1, 0, 7, 3, 5, 9), (2, 1, 8, 4, 6, 10)]
     keys = ["a", np.array([0, 1], dtype=np.int64), "d"]
-    result = df.groupby(keys, as_index=as_index).value_counts()
+    with (
+        tm.assert_produces_warning(Pandas4Warning, match="as_index")
+        if not as_index
+        else nullcontext()
+    ):
+        result = df.groupby(keys, as_index=as_index).value_counts()
     if as_index:
         expected = Series(
             data=(1, 1),
@@ -975,9 +1011,10 @@ def test_column_label_duplicates(test, columns, expected_names, as_index):
 )
 def test_result_label_duplicates(normalize, expected_label):
     # Test for result column label duplicating an input column label
-    gb = DataFrame([[1, 2, 3]], columns=["a", "b", expected_label]).groupby(
-        "a", as_index=False
-    )
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+        gb = DataFrame([[1, 2, 3]], columns=["a", "b", expected_label]).groupby(
+            "a", as_index=False
+        )
     msg = f"Column label '{expected_label}' is duplicate of result column"
     with pytest.raises(ValueError, match=msg):
         gb.value_counts(normalize=normalize)
@@ -1077,7 +1114,8 @@ def test_value_counts_time_grouper(utc, unit):
 def test_value_counts_integer_columns():
     # GH#55627
     df = DataFrame({1: ["a", "a", "a"], 2: ["a", "a", "d"], 3: ["a", "b", "c"]})
-    gp = df.groupby([1, 2], as_index=False, sort=False)
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+        gp = df.groupby([1, 2], as_index=False, sort=False)
     result = gp[3].value_counts()
     expected = DataFrame(
         {1: ["a", "a", "a"], 2: ["a", "a", "d"], 3: ["a", "b", "c"], "count": 1}

@@ -665,7 +665,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Return the dataframe interchange object implementing the interchange protocol.
 
-        .. deprecated:: 3.0.0
+        .. deprecated:: 3.1.0
 
             The Dataframe Interchange Protocol is deprecated.
             For dataframe-agnostic code, you may want to look into:
@@ -3953,7 +3953,7 @@ class DataFrame(NDFrame, OpsMixin):
             Note that a copy is always required for mixed dtype DataFrames,
             or for DataFrames with any extension types.
 
-            .. deprecated:: 3.0.0
+            .. deprecated:: 3.1.0
 
                 This keyword is ignored and will be removed in pandas 4.0. Since
                 pandas 3.0, this method always returns a new object using a lazy
@@ -5668,7 +5668,7 @@ class DataFrame(NDFrame, OpsMixin):
             This keyword is now ignored; changing its value will have no
             impact on the method.
 
-            .. deprecated:: 3.0.0
+            .. deprecated:: 3.1.0
 
                 This keyword is ignored and will be removed in pandas 4.0. Since
                 pandas 3.0, this method always returns a new object using a lazy
@@ -5758,7 +5758,7 @@ class DataFrame(NDFrame, OpsMixin):
             This keyword is now ignored; changing its value will have no
             impact on the method.
 
-            .. deprecated:: 3.0.0
+            .. deprecated:: 3.1.0
 
                 This keyword is ignored and will be removed in pandas 4.0. Since
                 pandas 3.0, this method always returns a new object using a lazy
@@ -6238,7 +6238,7 @@ class DataFrame(NDFrame, OpsMixin):
             This keyword is now ignored; changing its value will have no
             impact on the method.
 
-            .. deprecated:: 3.0.0
+            .. deprecated:: 3.1.0
 
                 This keyword is ignored and will be removed in pandas 4.0. Since
                 pandas 3.0, this method always returns a new object using a lazy
@@ -6706,7 +6706,7 @@ class DataFrame(NDFrame, OpsMixin):
             necessary. Setting to False will improve the performance of this
             method.
 
-            .. deprecated:: 3.0.0
+            .. deprecated:: 3.1.0
 
         Returns
         -------
@@ -12472,6 +12472,10 @@ class DataFrame(NDFrame, OpsMixin):
             such as ``head()``, ``tail()``, ``nth()`` and in transformations
             (see the `transformations in the user guide
             <https://pandas.pydata.org/docs/dev/user_guide/groupby.html#transformation>`_).
+
+            .. deprecated:: 3.1.0
+                The ``as_index`` argument is deprecated and will be removed in
+                a future version. Use ``groupby(...).reset_index()`` instead.
         sort : bool, default True
             Sort group keys. Get better performance by turning this off.
             Note this does not influence the order of observations within each
@@ -12650,6 +12654,15 @@ class DataFrame(NDFrame, OpsMixin):
 
         if level is None and by is None:
             raise TypeError("You have to supply one of 'by' and 'level'")
+
+        if not as_index:
+            warnings.warn(
+                "The 'as_index' argument in groupby is deprecated and "
+                "will be removed in a future version. "
+                "Use groupby(...).reset_index() instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
 
         return DataFrameGroupBy(
             obj=self,
@@ -14810,7 +14823,7 @@ class DataFrame(NDFrame, OpsMixin):
             This keyword is now ignored; changing its value will have no
             impact on the method.
 
-            .. deprecated:: 3.0.0
+            .. deprecated:: 3.1.0
 
                 This keyword is ignored and will be removed in pandas 4.0. Since
                 pandas 3.0, this method always returns a new object using a lazy
@@ -18310,7 +18323,7 @@ class DataFrame(NDFrame, OpsMixin):
             This keyword is now ignored; changing its value will have no
             impact on the method.
 
-            .. deprecated:: 3.0.0
+            .. deprecated:: 3.1.0
 
                 This keyword is ignored and will be removed in pandas 4.0. Since
                 pandas 3.0, this method always returns a new object using a lazy
@@ -18396,7 +18409,7 @@ class DataFrame(NDFrame, OpsMixin):
             This keyword is now ignored; changing its value will have no
             impact on the method.
 
-            .. deprecated:: 3.0.0
+            .. deprecated:: 3.1.0
 
                 This keyword is ignored and will be removed in pandas 4.0. Since
                 pandas 3.0, this method always returns a new object using a lazy

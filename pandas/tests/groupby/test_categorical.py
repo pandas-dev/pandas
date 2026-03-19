@@ -1,3 +1,4 @@
+from contextlib import nullcontext
 from datetime import datetime
 
 import numpy as np
@@ -445,8 +446,9 @@ def test_observed_with_as_index(observed):
     df = DataFrame(d)
     cat = pd.cut(df["foo"], np.linspace(0, 10, 3))
     df["range"] = cat
-    groups = df.groupby(["range", "baz"], as_index=False, observed=observed)
-    result = groups.agg("mean")
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+        groups = df.groupby(["range", "baz"], as_index=False, observed=observed)
+        result = groups.agg("mean")
 
     groups2 = df.groupby(["range", "baz"], as_index=True, observed=observed)
     expected = groups2.agg("mean").reset_index()
@@ -809,7 +811,8 @@ def test_as_index():
             "B": [101, 102, 103],
         }
     )
-    result = df.groupby(["cat", "A"], as_index=False, observed=True).sum()
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+        result = df.groupby(["cat", "A"], as_index=False, observed=True).sum()
     expected = DataFrame(
         {
             "cat": Categorical([1, 2], categories=df.cat.cat.categories),
@@ -822,7 +825,8 @@ def test_as_index():
 
     # function grouper
     f = lambda r: df.loc[r, "A"]
-    result = df.groupby(["cat", f], as_index=False, observed=True).sum()
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+        result = df.groupby(["cat", f], as_index=False, observed=True).sum()
     expected = DataFrame(
         {
             "cat": Categorical([1, 2], categories=df.cat.cat.categories),
@@ -835,7 +839,8 @@ def test_as_index():
 
     # another not in-axis grouper (conflicting names in index)
     s = Series(["a", "b", "b"], name="cat")
-    result = df.groupby(["cat", s], as_index=False, observed=True).sum()
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+        result = df.groupby(["cat", s], as_index=False, observed=True).sum()
     expected = DataFrame(
         {
             "cat": ["a", "b"],
@@ -858,7 +863,8 @@ def test_as_index():
 
     for name in [None, "X", "B"]:
         df.index = Index(list("abc"), name=name)
-        result = df.groupby(group_columns, as_index=False, observed=True).sum()
+        with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+            result = df.groupby(group_columns, as_index=False, observed=True).sum()
 
         tm.assert_frame_equal(result, expected)
 
@@ -916,7 +922,10 @@ def test_preserve_categorical_dtype(col):
             "C2": Categorical(list("bac"), categories=list("bac"), ordered=True),
         }
     )
-    result1 = df.groupby(by=col, as_index=False, observed=False).mean(numeric_only=True)
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+        result1 = df.groupby(by=col, as_index=False, observed=False).mean(
+            numeric_only=True
+        )
     result2 = (
         df.groupby(by=col, as_index=True, observed=False)
         .mean(numeric_only=True)
@@ -1224,7 +1233,12 @@ def test_groupby_agg_observed_true_single_column(as_index, expected):
         {"a": Series([1, 1, 2], dtype="category"), "b": [1, 2, 2], "x": [1, 2, 3]}
     )
 
-    result = df.groupby(["a", "b"], as_index=as_index, observed=True)["x"].sum()
+    with (
+        tm.assert_produces_warning(Pandas4Warning, match="as_index")
+        if not as_index
+        else nullcontext()
+    ):
+        result = df.groupby(["a", "b"], as_index=as_index, observed=True)["x"].sum()
 
     tm.assert_equal(result, expected)
 
@@ -1932,7 +1946,12 @@ def test_category_order_reducer(
         df["a2"] = df["a"]
         df = df.set_index(keys)
     args = get_groupby_method_args(reduction_func, df)
-    gb = df.groupby(keys, as_index=as_index, sort=sort, observed=observed)
+    with (
+        tm.assert_produces_warning(Pandas4Warning, match="as_index")
+        if not as_index
+        else nullcontext()
+    ):
+        gb = df.groupby(keys, as_index=as_index, sort=sort, observed=observed)
 
     if not observed and reduction_func in ["idxmin", "idxmax"]:
         # idxmin and idxmax are designed to fail on empty inputs
@@ -1981,7 +2000,12 @@ def test_category_order_transformer(
         df["a2"] = df["a"]
         df = df.set_index(keys)
     args = get_groupby_method_args(transformation_func, df)
-    gb = df.groupby(keys, as_index=as_index, sort=sort, observed=observed)
+    with (
+        tm.assert_produces_warning(Pandas4Warning, match="as_index")
+        if not as_index
+        else nullcontext()
+    ):
+        gb = df.groupby(keys, as_index=as_index, sort=sort, observed=observed)
     op_result = getattr(gb, transformation_func)(*args)
     result = op_result.index.get_level_values("a").categories
     expected = Index([1, 4, 3, 2])
@@ -2014,7 +2038,12 @@ def test_category_order_head_tail(
         keys = ["a", "a2"]
         df["a2"] = df["a"]
         df = df.set_index(keys)
-    gb = df.groupby(keys, as_index=as_index, sort=sort, observed=observed)
+    with (
+        tm.assert_produces_warning(Pandas4Warning, match="as_index")
+        if not as_index
+        else nullcontext()
+    ):
+        gb = df.groupby(keys, as_index=as_index, sort=sort, observed=observed)
     op_result = getattr(gb, method)()
     if index_kind == "range":
         result = op_result["a"].cat.categories
@@ -2052,7 +2081,12 @@ def test_category_order_apply(as_index, sort, observed, method, index_kind, orde
         keys = ["a", "a2"]
         df["a2"] = df["a"]
         df = df.set_index(keys)
-    gb = df.groupby(keys, as_index=as_index, sort=sort, observed=observed)
+    with (
+        tm.assert_produces_warning(Pandas4Warning, match="as_index")
+        if not as_index
+        else nullcontext()
+    ):
+        gb = df.groupby(keys, as_index=as_index, sort=sort, observed=observed)
     op_result = getattr(gb, method)(lambda x: x.sum(numeric_only=True))
     if (method == "transform" or not as_index) and index_kind == "range":
         result = op_result["a"].cat.categories
@@ -2083,7 +2117,12 @@ def test_many_categories(as_index, sort, index_kind, ordered):
         keys = ["a", "a2"]
         df["a2"] = df["a"]
         df = df.set_index(keys)
-    gb = df.groupby(keys, as_index=as_index, sort=sort, observed=True)
+    with (
+        tm.assert_produces_warning(Pandas4Warning, match="as_index")
+        if not as_index
+        else nullcontext()
+    ):
+        gb = df.groupby(keys, as_index=as_index, sort=sort, observed=True)
     result = gb.sum()
 
     # Test is setup so that data and index are the same values
@@ -2121,7 +2160,12 @@ def test_agg_list(request, as_index, observed, reduction_func, test_series, keys
     df = df.astype({"a1": "category", "a2": "category"})
     if "a2" not in keys:
         df = df.drop(columns="a2")
-    gb = df.groupby(by=keys, as_index=as_index, observed=observed)
+    with (
+        tm.assert_produces_warning(Pandas4Warning, match="as_index")
+        if not as_index
+        else nullcontext()
+    ):
+        gb = df.groupby(by=keys, as_index=as_index, observed=observed)
     if test_series:
         gb = gb["b"]
     args = get_groupby_method_args(reduction_func, df)

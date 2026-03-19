@@ -104,7 +104,9 @@ def test_pass_args_kwargs_dataframe(tsframe, as_index):
     def f(x, q=None, axis=0):
         return np.percentile(x, q, axis=axis)
 
-    df_grouped = tsframe.groupby(lambda x: x.month, as_index=as_index)
+    warn = Pandas4Warning if not as_index else None
+    with tm.assert_produces_warning(warn, match="as_index"):
+        df_grouped = tsframe.groupby(lambda x: x.month, as_index=as_index)
     agg_result = df_grouped.agg(np.percentile, 80, axis=0)
     apply_result = df_grouped.apply(DataFrame.quantile, 0.8)
     expected = df_grouped.quantile(0.8)
@@ -316,7 +318,9 @@ def test_frame_set_name_single(df):
     result = grouped.mean(numeric_only=True)
     assert result.index.name == "A"
 
-    result = df.groupby("A", as_index=False).mean(numeric_only=True)
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+        gb = df.groupby("A", as_index=False)
+    result = gb.mean(numeric_only=True)
     assert result.index.name != "A"
 
     result = grouped[["C", "D"]].agg("mean")
@@ -514,13 +518,15 @@ def test_groupby_multiple_columns(df, op):
 def test_as_index_select_column():
     # GH 5764
     df = DataFrame([[1, 2], [1, 4], [5, 6]], columns=["A", "B"])
-    result = df.groupby("A", as_index=False)["B"].get_group(1)
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+        gb = df.groupby("A", as_index=False)
+    result = gb["B"].get_group(1)
     expected = Series([2, 4], name="B")
     tm.assert_series_equal(result, expected)
 
-    result = df.groupby("A", as_index=False, group_keys=True)["B"].apply(
-        lambda x: x.cumsum()
-    )
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+        gb = df.groupby("A", as_index=False, group_keys=True)
+    result = gb["B"].apply(lambda x: x.cumsum())
     expected = Series([2, 6, 6], name="B", index=range(3))
     tm.assert_series_equal(result, expected)
 
@@ -528,7 +534,9 @@ def test_as_index_select_column():
 def test_groupby_as_index_select_column_sum_empty_df():
     # GH 35246
     df = DataFrame(columns=Index(["A", "B", "C"], name="alpha"))
-    left = df.groupby(by="A", as_index=False)["B"].sum(numeric_only=False)
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+        gb = df.groupby(by="A", as_index=False)
+    left = gb["B"].sum(numeric_only=False)
 
     expected = DataFrame(columns=df.columns[:2], index=range(0))
     # GH#50744 - Columns after selection shouldn't retain names
@@ -555,7 +563,8 @@ def test_ops_not_as_index(reduction_func):
         # 32 bit compat -> groupby preserves dtype whereas reset_index casts to int64
         expected["a"] = expected["a"].astype(df["a"].dtype)
 
-    g = df.groupby("a", as_index=False)
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+        g = df.groupby("a", as_index=False)
 
     result = getattr(g, reduction_func)()
     tm.assert_frame_equal(result, expected)
@@ -571,8 +580,10 @@ def test_ops_not_as_index(reduction_func):
 
 
 def test_as_index_series_return_frame(df):
-    grouped = df.groupby("A", as_index=False)
-    grouped2 = df.groupby(["A", "B"], as_index=False)
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+        grouped = df.groupby("A", as_index=False)
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+        grouped2 = df.groupby(["A", "B"], as_index=False)
 
     result = grouped["C"].agg("sum")
     expected = grouped.agg("sum").loc[:, ["A", "C"]]
@@ -597,7 +608,8 @@ def test_as_index_series_return_frame(df):
 
 def test_as_index_series_column_slice_raises(df):
     # GH15072
-    grouped = df.groupby("A", as_index=False)
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+        grouped = df.groupby("A", as_index=False)
     msg = r"Column\(s\) C already selected"
 
     with pytest.raises(IndexError, match=msg):
@@ -608,7 +620,8 @@ def test_groupby_as_index_cython(df):
     data = df
 
     # single-key
-    grouped = data.groupby("A", as_index=False)
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+        grouped = data.groupby("A", as_index=False)
     result = grouped.mean(numeric_only=True)
     expected = data.groupby(["A"]).mean(numeric_only=True)
     expected.insert(0, "A", expected.index)
@@ -616,7 +629,8 @@ def test_groupby_as_index_cython(df):
     tm.assert_frame_equal(result, expected)
 
     # multi-key
-    grouped = data.groupby(["A", "B"], as_index=False)
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+        grouped = data.groupby(["A", "B"], as_index=False)
     result = grouped.mean()
     expected = data.groupby(["A", "B"]).mean()
 
@@ -628,7 +642,8 @@ def test_groupby_as_index_cython(df):
 
 
 def test_groupby_as_index_series_scalar(df):
-    grouped = df.groupby(["A", "B"], as_index=False)
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+        grouped = df.groupby(["A", "B"], as_index=False)
 
     # GH #421
 
@@ -1005,12 +1020,16 @@ def test_groupby_wrong_multi_labels():
 
 def test_groupby_series_with_name(df):
     result = df.groupby(df["A"]).mean(numeric_only=True)
-    result2 = df.groupby(df["A"], as_index=False).mean(numeric_only=True)
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+        gb2 = df.groupby(df["A"], as_index=False)
+    result2 = gb2.mean(numeric_only=True)
     assert result.index.name == "A"
     assert "A" in result2
 
     result = df.groupby([df["A"], df["B"]]).mean()
-    result2 = df.groupby([df["A"], df["B"]], as_index=False).mean()
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+        gb2 = df.groupby([df["A"], df["B"]], as_index=False)
+    result2 = gb2.mean()
     assert result.index.names == ("A", "B")
     assert "A" in result2
     assert "B" in result2
@@ -2196,7 +2215,9 @@ def test_subsetting_columns_keeps_attrs(klass, attr, value):
     if attr != "axis":
         df = df.set_index("a")
 
-    expected = df.groupby("a", **{attr: value})
+    warn = Pandas4Warning if attr == "as_index" else None
+    with tm.assert_produces_warning(warn, match="as_index"):
+        expected = df.groupby("a", **{attr: value})
     result = expected[["b"]] if klass is DataFrame else expected["b"]
     assert getattr(result, attr) == getattr(expected, attr)
 
@@ -2321,7 +2342,9 @@ def test_groupby_all_nan_groups_drop():
 def test_groupby_empty_multi_column(as_index, numeric_only):
     # GH 15106 & GH 41998
     df = DataFrame(data=[], columns=["A", "B", "C"])
-    gb = df.groupby(["A", "B"], as_index=as_index)
+    warn = Pandas4Warning if not as_index else None
+    with tm.assert_produces_warning(warn, match="as_index"):
+        gb = df.groupby(["A", "B"], as_index=as_index)
     result = gb.sum(numeric_only=numeric_only)
     if as_index:
         index = MultiIndex([[], []], [[], []], names=["A", "B"])
@@ -2524,7 +2547,8 @@ def test_groupby_string_dtype():
         }
     )
     expected["str_col"] = expected["str_col"].astype("string")
-    grouped = df.groupby("str_col", as_index=False)
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+        grouped = df.groupby("str_col", as_index=False)
     result = grouped.mean()
     tm.assert_frame_equal(result, expected)
 
@@ -2715,7 +2739,8 @@ def test_groupby_numeric_only_std_no_result(numeric_only):
     # GH 51080
     dicts_non_numeric = [{"a": "foo", "b": "bar"}, {"a": "car", "b": "dar"}]
     df = DataFrame(dicts_non_numeric, dtype=object)
-    dfgb = df.groupby("a", as_index=False, sort=False)
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+        dfgb = df.groupby("a", as_index=False, sort=False)
 
     if numeric_only:
         result = dfgb.std(numeric_only=True)
@@ -2972,7 +2997,9 @@ def test_groupby_agg_namedagg_with_duplicate_columns():
         }
     )
 
-    result = df.groupby(by=["col1", "col1", "col2"], as_index=False).agg(
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+        gb = df.groupby(by=["col1", "col1", "col2"], as_index=False)
+    result = gb.agg(
         new_col=pd.NamedAgg(column="col1", aggfunc="min"),
         new_col1=pd.NamedAgg(column="col1", aggfunc="max"),
         new_col2=pd.NamedAgg(column="col2", aggfunc="count"),

@@ -1,8 +1,13 @@
+from contextlib import nullcontext
+
 import numpy as np
 import pytest
 
 from pandas.compat import is_platform_arm
-from pandas.errors import NumbaUtilError
+from pandas.errors import (
+    NumbaUtilError,
+    Pandas4Warning,
+)
 
 from pandas import (
     DataFrame,
@@ -106,7 +111,12 @@ def test_numba_vs_cython(jit, frame_or_series, nogil, parallel, as_index):
         "nogil": nogil,
         "parallel": parallel,
     }
-    grouped = data.groupby(0, as_index=as_index)
+    with (
+        tm.assert_produces_warning(Pandas4Warning, match="as_index")
+        if not as_index
+        else nullcontext()
+    ):
+        grouped = data.groupby(0, as_index=as_index)
     if frame_or_series is Series:
         grouped = grouped[1]
 

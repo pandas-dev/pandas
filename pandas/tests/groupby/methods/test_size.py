@@ -1,5 +1,9 @@
+from contextlib import nullcontext
+
 import numpy as np
 import pytest
+
+from pandas.errors import Pandas4Warning
 
 from pandas import (
     DataFrame,
@@ -53,7 +57,12 @@ def test_size_period_index():
 def test_size_on_categorical(as_index):
     df = DataFrame([[1, 1], [2, 2]], columns=["A", "B"])
     df["A"] = df["A"].astype("category")
-    result = df.groupby(["A", "B"], as_index=as_index, observed=False).size()
+    with (
+        tm.assert_produces_warning(Pandas4Warning, match="as_index")
+        if not as_index
+        else nullcontext()
+    ):
+        result = df.groupby(["A", "B"], as_index=as_index, observed=False).size()
 
     expected = DataFrame(
         [[1, 1, 1], [1, 2, 0], [2, 1, 0], [2, 2, 1]], columns=["A", "B", "size"]

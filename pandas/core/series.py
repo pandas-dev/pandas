@@ -2037,6 +2037,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             such as ``head()``, ``tail()``, ``nth()`` and in transformations
             (see the `transformations in the user guide
             <https://pandas.pydata.org/docs/dev/user_guide/groupby.html#transformation>`_).
+
+            .. deprecated:: 3.1.0
+                The ``as_index`` argument is deprecated and will be removed in
+                a future version. Use ``groupby(...).reset_index()`` instead.
         sort : bool, default True
             Sort group keys. Get better performance by turning this off.
             Note this does not influence the order of observations within each
@@ -4434,7 +4438,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             This keyword is now ignored; changing its value will have no
             impact on the method.
 
-            .. deprecated:: 3.0.0
+            .. deprecated:: 3.1.0
 
                 This keyword is ignored and will be removed in pandas 4.0. Since
                 pandas 3.0, this method always returns a new object using a lazy
@@ -5341,7 +5345,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             This keyword is now ignored; changing its value will have no
             impact on the method.
 
-            .. deprecated:: 3.0.0
+            .. deprecated:: 3.1.0
 
                 This keyword is ignored and will be removed in pandas 4.0. Since
                 pandas 3.0, this method always returns a new object using a lazy
@@ -5423,7 +5427,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Assign desired index to given axis.
 
-        .. deprecated:: 3.0.0
+        .. deprecated:: 3.1.0
             This keyword is ignored and will be removed in pandas 4.0. Since
             pandas 3.0, this method always returns a new object using a lazy
             copy mechanism that defers copies until necessary
@@ -5513,7 +5517,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             This keyword is now ignored; changing its value will have no
             impact on the method.
 
-            .. deprecated:: 3.0.0
+            .. deprecated:: 3.1.0
 
                 This keyword is ignored and will be removed in pandas 4.0. Since
                 pandas 3.0, this method always returns a new object using a lazy
@@ -5766,7 +5770,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             This keyword is now ignored; changing its value will have no
             impact on the method.
 
-            .. deprecated:: 3.0.0
+            .. deprecated:: 3.1.0
 
                 This keyword is ignored and will be removed in pandas 4.0. Since
                 pandas 3.0, this method always returns a new object using a lazy
@@ -6791,7 +6795,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             This keyword is now ignored; changing its value will have no
             impact on the method.
 
-            .. deprecated:: 3.0.0
+            .. deprecated:: 3.1.0
 
                 This keyword is ignored and will be removed in pandas 4.0. Since
                 pandas 3.0, this method always returns a new object using a lazy
@@ -6868,7 +6872,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             This keyword is now ignored; changing its value will have no
             impact on the method.
 
-            .. deprecated:: 3.0.0
+            .. deprecated:: 3.1.0
 
                 This keyword is ignored and will be removed in pandas 4.0. Since
                 pandas 3.0, this method always returns a new object using a lazy

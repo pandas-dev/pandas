@@ -916,9 +916,9 @@ class TestRolling:
         df = df.set_index(["date"])
 
         gp_by = [getattr(df, attr) for attr in by]
-        result = (
-            df.groupby(gp_by, as_index=False).rolling(window=2, min_periods=1).mean()
-        )
+        with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+            gb = df.groupby(gp_by, as_index=False)
+        result = gb.rolling(window=2, min_periods=1).mean()
 
         expected = {"id": ["A", "A", "B", "B"]}
         expected.update(expected_data)

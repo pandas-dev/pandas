@@ -3,6 +3,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -103,7 +105,8 @@ def test_doc_examples():
         [["a", 1], ["a", 2], ["a", 3], ["b", 4], ["b", 5]], columns=["A", "B"]
     )
 
-    grouped = df.groupby("A", as_index=False)
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+        grouped = df.groupby("A", as_index=False)
 
     result = grouped._positional_selector[1:2]
     expected = pd.DataFrame([["a", 2], ["b", 5]], columns=["A", "B"], index=[1, 4])
@@ -148,7 +151,8 @@ def test_multiindex():
         multiindex_data[date] = levels
 
     df = _make_df_from_data(multiindex_data)
-    result = df.groupby("Date", as_index=False).nth(slice(3, -3))
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+        result = df.groupby("Date", as_index=False).nth(slice(3, -3))
 
     sliced = {date: values[3:-3] for date, values in multiindex_data.items()}
     expected = _make_df_from_data(sliced)
@@ -175,7 +179,8 @@ def test_against_head_and_tail(arg, method, simulated):
         ],
     }
     df = pd.DataFrame(data)
-    grouped = df.groupby("group", as_index=False)
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+        grouped = df.groupby("group", as_index=False)
     size = arg if arg >= 0 else n_rows_per_group + arg
 
     if method == "head":
@@ -223,7 +228,8 @@ def test_against_df_iloc(start, stop, step):
         "value": list(range(n_rows)),
     }
     df = pd.DataFrame(data)
-    grouped = df.groupby("group", as_index=False)
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+        grouped = df.groupby("group", as_index=False)
 
     result = grouped._positional_selector[start:stop:step]
     expected = df.iloc[start:stop:step]
@@ -249,7 +255,8 @@ def test_step(step):
     data += [["z", f"z{i}"] for i in range(3)]
     df = pd.DataFrame(data, columns=["A", "B"])
 
-    grouped = df.groupby("A", as_index=False)
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+        grouped = df.groupby("A", as_index=False)
 
     result = grouped._positional_selector[::step]
 

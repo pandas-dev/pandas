@@ -1,5 +1,9 @@
+from contextlib import nullcontext
+
 import numpy as np
 import pytest
+
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 from pandas import (
@@ -49,7 +53,12 @@ def test_series_describe_as_index(as_index, keys):
             "foo2": [1, 2, 4, 4, 6],
         }
     )
-    gb = df.groupby(keys, as_index=as_index)["foo2"]
+    with (
+        tm.assert_produces_warning(Pandas4Warning, match="as_index")
+        if not as_index
+        else nullcontext()
+    ):
+        gb = df.groupby(keys, as_index=as_index)["foo2"]
     result = gb.describe()
     expected = DataFrame(
         {
@@ -190,7 +199,12 @@ def test_describe_with_duplicate_output_column_names(as_index, keys):
     if not as_index:
         expected = expected.reset_index()
 
-    result = df.groupby(keys, as_index=as_index).describe()
+    with (
+        tm.assert_produces_warning(Pandas4Warning, match="as_index")
+        if not as_index
+        else nullcontext()
+    ):
+        result = df.groupby(keys, as_index=as_index).describe()
 
     tm.assert_frame_equal(result, expected)
 
@@ -240,7 +254,8 @@ def test_describe_non_cython_paths():
     result = gb.describe()
     tm.assert_frame_equal(result, expected)
 
-    gni = df.groupby("A", as_index=False)
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+        gni = df.groupby("A", as_index=False)
     expected = expected.reset_index()
     result = gni.describe()
     tm.assert_frame_equal(result, expected)

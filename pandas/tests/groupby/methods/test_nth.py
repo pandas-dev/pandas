@@ -1,5 +1,9 @@
+from contextlib import nullcontext
+
 import numpy as np
 import pytest
+
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 from pandas import (
@@ -96,7 +100,8 @@ def test_first_last_with_None(method):
     # https://github.com/pandas-dev/pandas/issues/32800
     # None should be preserved as object dtype
     df = DataFrame.from_dict({"id": ["a"], "value": [None]})
-    groups = df.groupby("id", as_index=False)
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+        groups = df.groupby("id", as_index=False)
     result = getattr(groups, method)()
 
     tm.assert_frame_equal(result, df)
@@ -241,11 +246,13 @@ def test_nth2():
         }
     ).set_index(["color", "food"])
 
-    result = df.groupby(level=0, as_index=False).nth(2)
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+        result = df.groupby(level=0, as_index=False).nth(2)
     expected = df.iloc[[-1]]
     tm.assert_frame_equal(result, expected)
 
-    result = df.groupby(level=0, as_index=False).nth(3)
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+        result = df.groupby(level=0, as_index=False).nth(3)
     expected = df.loc[[]]
     tm.assert_frame_equal(result, expected)
 
@@ -302,7 +309,8 @@ def test_nth_bdays(unit):
     df = DataFrame(1, index=business_dates, columns=["a", "b"])
     # get the first, fourth and last two business days for each month
     key = [df.index.year, df.index.month]
-    result = df.groupby(key, as_index=False).nth([0, 3, -2, -1])
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+        result = df.groupby(key, as_index=False).nth([0, 3, -2, -1])
     expected_dates = pd.to_datetime(
         [
             "2014/4/1",
@@ -388,20 +396,24 @@ def test_first_last_tz(data, expected_first, expected_last):
 
     df = DataFrame(data)
 
-    result = df.groupby("id", as_index=False).first()
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+        result = df.groupby("id", as_index=False).first()
     expected = DataFrame(expected_first)
     cols = ["id", "time", "foo"]
     tm.assert_frame_equal(result[cols], expected[cols])
 
-    result = df.groupby("id", as_index=False)["time"].first()
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+        result = df.groupby("id", as_index=False)["time"].first()
     tm.assert_frame_equal(result, expected[["id", "time"]])
 
-    result = df.groupby("id", as_index=False).last()
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+        result = df.groupby("id", as_index=False).last()
     expected = DataFrame(expected_last)
     cols = ["id", "time", "foo"]
     tm.assert_frame_equal(result[cols], expected[cols])
 
-    result = df.groupby("id", as_index=False)["time"].last()
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+        result = df.groupby("id", as_index=False)["time"].last()
     tm.assert_frame_equal(result, expected[["id", "time"]])
 
 
@@ -531,7 +543,12 @@ def test_nth_multi_index_as_expected():
 @pytest.mark.parametrize("columns", [None, [], ["A"], ["B"], ["A", "B"]])
 def test_groupby_head_tail(op, n, expected_rows, columns, as_index):
     df = DataFrame([[1, 2], [1, 4], [5, 6]], columns=["A", "B"])
-    g = df.groupby("A", as_index=as_index)
+    with (
+        tm.assert_produces_warning(Pandas4Warning, match="as_index")
+        if not as_index
+        else nullcontext()
+    ):
+        g = df.groupby("A", as_index=as_index)
     expected = df.iloc[expected_rows]
     if columns is not None:
         g = g[columns]

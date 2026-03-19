@@ -1,3 +1,5 @@
+from contextlib import nullcontext
+
 import numpy as np
 import pytest
 
@@ -452,7 +454,14 @@ def test_no_sort_keep_na(sequence, dtype, test_series, as_index):
             "a": [0, 1, 2, 3],
         }
     )
-    gb = df.groupby("key", dropna=False, sort=False, as_index=as_index, observed=False)
+    with (
+        tm.assert_produces_warning(Pandas4Warning, match="as_index")
+        if not as_index
+        else nullcontext()
+    ):
+        gb = df.groupby(
+            "key", dropna=False, sort=False, as_index=as_index, observed=False
+        )
     if test_series:
         gb = gb["a"]
     result = gb.sum()
@@ -535,9 +544,14 @@ def test_categorical_reducers(reduction_func, observed, sort, as_index, index_ki
         args = (args[0].drop(columns=keys),)
         args_filled = (args_filled[0].drop(columns=keys),)
 
-    gb_keepna = df.groupby(
-        keys, dropna=False, observed=observed, sort=sort, as_index=as_index
-    )
+    with (
+        tm.assert_produces_warning(Pandas4Warning, match="as_index")
+        if not as_index
+        else nullcontext()
+    ):
+        gb_keepna = df.groupby(
+            keys, dropna=False, observed=observed, sort=sort, as_index=as_index
+        )
 
     if not observed and reduction_func in ["idxmin", "idxmax"]:
         with pytest.raises(
@@ -617,9 +631,14 @@ def test_categorical_transformers(transformation_func, observed, sort, as_index)
         null_group_data = getattr(null_group_values, transformation_func)(*args)
     null_group_result = pd.DataFrame({"y": null_group_data})
 
-    gb_keepna = df.groupby(
-        "x", dropna=False, observed=observed, sort=sort, as_index=as_index
-    )
+    with (
+        tm.assert_produces_warning(Pandas4Warning, match="as_index")
+        if not as_index
+        else nullcontext()
+    ):
+        gb_keepna = df.groupby(
+            "x", dropna=False, observed=observed, sort=sort, as_index=as_index
+        )
     gb_dropna = df.groupby("x", dropna=True, observed=observed, sort=sort)
 
     result = getattr(gb_keepna, transformation_func)(*args)
@@ -649,7 +668,14 @@ def test_categorical_head_tail(method, observed, sort, as_index):
     df = pd.DataFrame(
         {"x": pd.Categorical(values, categories=[1, 2, 3]), "y": range(len(values))}
     )
-    gb = df.groupby("x", dropna=False, observed=observed, sort=sort, as_index=as_index)
+    with (
+        tm.assert_produces_warning(Pandas4Warning, match="as_index")
+        if not as_index
+        else nullcontext()
+    ):
+        gb = df.groupby(
+            "x", dropna=False, observed=observed, sort=sort, as_index=as_index
+        )
     result = getattr(gb, method)()
 
     if method == "tail":

@@ -535,8 +535,10 @@ class TestGrouping:
     def test_agg_with_dict_raises(self, df):
         df.columns = np.arange(len(df.columns))
         msg = "nested renamer is not supported"
+        with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+            gb = df.groupby(1, as_index=False)
         with pytest.raises(SpecificationError, match=msg):
-            df.groupby(1, as_index=False)[2].agg({"Q": np.mean})
+            gb[2].agg({"Q": np.mean})
 
     def test_multiindex_columns_empty_level(self):
         lst = [["count", "values"], ["to filter", ""]]
@@ -1195,7 +1197,8 @@ class TestIteration:
 def test_grouping_by_key_is_in_axis():
     # GH#50413 - Groupers specified by key are in-axis
     df = DataFrame({"a": [1, 1, 2], "b": [1, 1, 2], "c": [3, 4, 5]}).set_index("a")
-    gb = df.groupby([Grouper(level="a"), Grouper(key="b")], as_index=False)
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+        gb = df.groupby([Grouper(level="a"), Grouper(key="b")], as_index=False)
     assert not gb._grouper.groupings[0].in_axis
     assert gb._grouper.groupings[1].in_axis
 

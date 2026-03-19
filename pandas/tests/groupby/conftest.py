@@ -1,12 +1,15 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas import (
     DataFrame,
     Index,
     Series,
     date_range,
 )
+import pandas._testing as tm
 from pandas.core.groupby.base import (
     reduction_kernels,
     transformation_kernels,
@@ -110,7 +113,8 @@ def slice_test_df():
 
 @pytest.fixture
 def slice_test_grouped(slice_test_df):
-    return slice_test_df.groupby("Group", as_index=False)
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+        return slice_test_df.groupby("Group", as_index=False)
 
 
 @pytest.fixture(params=sorted(reduction_kernels))

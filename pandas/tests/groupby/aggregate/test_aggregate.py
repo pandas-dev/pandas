@@ -2,6 +2,7 @@
 test .agg behavior / note that .apply is tested generally in test_groupby.py
 """
 
+from contextlib import nullcontext
 import datetime
 import functools
 from functools import partial
@@ -640,7 +641,8 @@ def test_ohlc_ea_dtypes(any_numeric_ea_dtype):
     )
     tm.assert_frame_equal(result, expected)
 
-    gb2 = df.groupby("a", as_index=False)
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+        gb2 = df.groupby("a", as_index=False)
     result2 = gb2.ohlc()
     expected2 = expected.reset_index()
     tm.assert_frame_equal(result2, expected2)
@@ -1063,7 +1065,9 @@ def test_groupby_aggregate_empty_key_empty_return():
 def test_groupby_aggregate_empty_with_multiindex_frame_single(as_index):
     # GH 39178, 51445
     df = DataFrame(columns=["a", "b", "c"])
-    gb = df.groupby(["a", "b"], group_keys=False, as_index=as_index)
+    warn = Pandas4Warning if not as_index else None
+    with tm.assert_produces_warning(warn, match="as_index"):
+        gb = df.groupby(["a", "b"], group_keys=False, as_index=as_index)
     result = gb.agg(lambda x: x.sum())
     expected = DataFrame(
         columns=["c"], index=MultiIndex([[], []], [[], []], names=["a", "b"])
@@ -1076,9 +1080,14 @@ def test_groupby_aggregate_empty_with_multiindex_frame_single(as_index):
 def test_groupby_aggregate_empty_with_multiindex_frame_multi(as_index):
     # GH 39178
     df = DataFrame(columns=["a", "b", "c"])
-    result = df.groupby(["a", "b"], group_keys=False, as_index=as_index).agg(
-        d=("c", list)
-    )
+    with (
+        tm.assert_produces_warning(Pandas4Warning, match="as_index")
+        if not as_index
+        else nullcontext()
+    ):
+        result = df.groupby(["a", "b"], group_keys=False, as_index=as_index).agg(
+            d=("c", list)
+        )
     expected = DataFrame(
         columns=["d"], index=MultiIndex([[], []], [[], []], names=["a", "b"])
     )
@@ -1096,7 +1105,8 @@ def test_groupby_agg_loses_results_with_as_index_false_relabel():
         {"key": ["x", "y", "z", "x", "y", "z"], "val": [1.0, 0.8, 2.0, 3.0, 3.6, 0.75]}
     )
 
-    grouped = df.groupby("key", as_index=False)
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+        grouped = df.groupby("key", as_index=False)
     result = grouped.agg(min_val=pd.NamedAgg(column="val", aggfunc="min"))
     expected = DataFrame({"key": ["x", "y", "z"], "min_val": [1.0, 0.8, 0.75]})
     tm.assert_frame_equal(result, expected)
@@ -1115,7 +1125,8 @@ def test_groupby_agg_loses_results_with_as_index_false_relabel_multiindex():
         }
     )
 
-    grouped = df.groupby(["key", "key1"], as_index=False)
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+        grouped = df.groupby(["key", "key1"], as_index=False)
     result = grouped.agg(min_val=pd.NamedAgg(column="val", aggfunc="min"))
     expected = DataFrame(
         {"key": ["x", "x", "y"], "key1": ["a", "c", "b"], "min_val": [1.0, 0.75, 0.8]}
@@ -1124,7 +1135,8 @@ def test_groupby_agg_loses_results_with_as_index_false_relabel_multiindex():
 
 
 def test_groupby_as_index_agg(df):
-    grouped = df.groupby("A", as_index=False)
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+        grouped = df.groupby("A", as_index=False)
 
     # single-key
 
@@ -1145,7 +1157,8 @@ def test_groupby_as_index_agg(df):
 
     # multi-key
 
-    grouped = df.groupby(["A", "B"], as_index=False)
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+        grouped = df.groupby(["A", "B"], as_index=False)
 
     result = grouped.agg("mean")
     expected = grouped.mean()
@@ -1173,7 +1186,8 @@ def test_groupby_as_index_agg(df):
     gr.nth(0)  # invokes set_selection_from_grouper internally
 
     for attr in ["mean", "max", "count", "idxmax", "cumsum", "all"]:
-        gr = df.groupby(ts, as_index=False)
+        with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+            gr = df.groupby(ts, as_index=False)
         left = getattr(gr, attr)()
 
         gr = df.groupby(ts.values, as_index=True)
@@ -1418,7 +1432,9 @@ class TestLambdaMangling:
 def test_pass_args_kwargs_duplicate_columns(tsframe, as_index):
     # go through _aggregate_frame with self.axis == 0 and duplicate columns
     tsframe.columns = ["A", "B", "A", "C"]
-    gb = tsframe.groupby(lambda x: x.month, as_index=as_index)
+    warn = Pandas4Warning if not as_index else None
+    with tm.assert_produces_warning(warn, match="as_index"):
+        gb = tsframe.groupby(lambda x: x.month, as_index=as_index)
 
     res = gb.agg(np.percentile, 80, axis=0)
 
@@ -1778,7 +1794,8 @@ def test_agg_groupings_selection():
 def test_agg_multiple_with_as_index_false_subset_to_a_single_column():
     # GH#50724
     df = DataFrame({"a": [1, 1, 2], "b": [3, 4, 5]})
-    gb = df.groupby("a", as_index=False)["b"]
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+        gb = df.groupby("a", as_index=False)["b"]
     result = gb.agg(["sum", "mean"])
     expected = DataFrame({"a": [1, 2], "sum": [7, 5], "mean": [3.5, 5.0]})
     tm.assert_frame_equal(result, expected)
@@ -1787,7 +1804,8 @@ def test_agg_multiple_with_as_index_false_subset_to_a_single_column():
 def test_agg_with_as_index_false_with_list():
     # GH#52849
     df = DataFrame({"a1": [0, 0, 1], "a2": [2, 3, 3], "b": [4, 5, 6]})
-    gb = df.groupby(by=["a1", "a2"], as_index=False)
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+        gb = df.groupby(by=["a1", "a2"], as_index=False)
     result = gb.agg(["sum"])
 
     expected = DataFrame(
@@ -2045,7 +2063,8 @@ def test_agg_lambda_pyarrow_struct_to_object_dtype_conversion():
 
 def test_groupby_aggregate_empty_builtin_sum():
     df = DataFrame(columns=["Group", "Data"])
-    result = df.groupby(["Group"], as_index=False)["Data"].agg("sum")
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+        result = df.groupby(["Group"], as_index=False)["Data"].agg("sum")
     expected = DataFrame(columns=["Group", "Data"])
     tm.assert_frame_equal(result, expected)
 
@@ -2055,7 +2074,8 @@ def test_groupby_aggregate_empty_udf():
         return sum(x)
 
     df = DataFrame(columns=["Group", "Data"])
-    result = df.groupby(["Group"], as_index=False)["Data"].agg(func)
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+        result = df.groupby(["Group"], as_index=False)["Data"].agg(func)
     expected = DataFrame(columns=["Group", "Data"])
     tm.assert_frame_equal(result, expected)
 
