@@ -15686,11 +15686,11 @@ class DataFrame(NDFrame, OpsMixin):
         elif len(self) == 0 and out.dtype == object and name in ("sum", "prod"):
             # Even if we are object dtype, follow numpy and return
             #  float64, see test_apply_funcs_over_empty
-            try:
-                out = out.astype(np.float64)
-            except ValueError:
-                # Fails using Pyarrow, bypass to maximize compatibility
+            if self.empty:
+                # Bypasses conversation for mixed-type empty DFs
                 pass
+            else:
+                out = out.astype(np.float64)
 
         return out
 

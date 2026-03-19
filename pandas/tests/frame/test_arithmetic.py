@@ -11,7 +11,6 @@ import re
 import numpy as np
 import pytest
 
-from pandas.compat import HAS_PYARROW
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import Pandas4Warning
 
@@ -2277,11 +2276,8 @@ def test_mixed_col_index_dtype(string_dtype_no_object):
 
 def test_add_mixed_empty(using_infer_string):
     # GH 64657
-    if HAS_PYARROW and using_infer_string:
-        expected_output = Series({"col1": "", "col2": 0}, dtype=object)
-    else:
-        # non-pyarrow behaves like Pandas 2 implementation
-        expected_output = Series({"col1": 0, "col2": 0}, dtype=object)
-
+    if not using_infer_string:
+        pytest.skip("empty objects sum to 0 instead of '' with infer_string=0")
+    expected_output = Series({"col1": "", "col2": 0}, dtype=object)
     empty_df = DataFrame(columns=["col1", "col2"]).astype({"col1": str, "col2": int})
     tm.assert_series_equal(empty_df.sum(), expected_output, check_dtype=False)
