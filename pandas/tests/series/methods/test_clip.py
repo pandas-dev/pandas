@@ -36,6 +36,14 @@ class TestSeriesClip:
 
         for s in sers:
             thresh = s[2]
+            if s.dtype == object and isinstance(thresh, str):
+                msg = "not supported between instances of 'NoneType' and 'str'"
+                with pytest.raises(TypeError, match=msg):
+                    s.clip(lower=thresh)
+                with pytest.raises(TypeError, match=msg):
+                    s.clip(upper=thresh)
+                continue
+
             lower = s.clip(lower=thresh)
             upper = s.clip(upper=thresh)
             assert lower[notna(lower)].min() == thresh
