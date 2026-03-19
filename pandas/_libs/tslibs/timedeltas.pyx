@@ -1780,6 +1780,13 @@ cdef class _Timedelta(timedelta):
         str
             Timedelta resolution.
 
+        See Also
+        --------
+        Timedelta.components : Return all components of the Timedelta as a
+            namedtuple-like.
+        Timedelta.resolution : Return the smallest possible difference between
+            non-equal Timedelta objects.
+
         Examples
         --------
         >>> td = pd.Timedelta('1 days 2 min 3 us 42 ns')

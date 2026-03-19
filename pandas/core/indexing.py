@@ -108,6 +108,10 @@ class _IndexSlice:
     """
     Create an object to more easily perform multi-index slicing.
 
+    ``IndexSlice`` is a convenience object that allows the use of natural
+    slice syntax (``start:stop``) when selecting from a :class:`MultiIndex`,
+    rather than requiring explicit ``slice()`` calls.
+
     See Also
     --------
     MultiIndex.remove_unused_levels : New MultiIndex with no unused levels.
@@ -1109,7 +1113,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         if self._is_nested_tuple_indexer(tup):
             return self._getitem_nested_tuple(tup)
 
-        # we maybe be using a tuple to represent multiple dimensions here
+        # we may be using a tuple to represent multiple dimensions here
         ax0 = self.obj._get_axis(0)
         # ...but iloc should handle the tuple as simple integer-location
         # instead of checking it as multiindex representation (GH 13797)

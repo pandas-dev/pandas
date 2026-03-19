@@ -238,7 +238,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         axis: AxisInt = 0,
     ) -> Self:
         """
-        Concatenate multiple array of this dtype.
+        Concatenate multiple arrays of this dtype.
 
         Parameters
         ----------
@@ -332,10 +332,9 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         len(self) is returned, with all values filled with
         ``self.dtype.na_value``.
         """
-        # NB: shift is always along axis=0
-        axis = 0
+        # NB: shift is always along axis=self.ndim-1
         fill_value = self._validate_scalar(fill_value)
-        new_values = shift(self._ndarray, periods, axis, fill_value)
+        new_values = shift(self._ndarray, periods, fill_value)
 
         return self._from_backing_data(new_values)
 

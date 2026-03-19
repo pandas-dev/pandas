@@ -838,6 +838,9 @@ class TimedeltaArray(dtl.TimelikeOps):
         """
         Return an ndarray of datetime.timedelta objects.
 
+        Each element of the :class:`TimedeltaIndex` is converted to the
+        corresponding native Python :class:`datetime.timedelta` object.
+
         Returns
         -------
         numpy.ndarray
@@ -1089,7 +1092,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         hasnans = self._hasna
         if hasnans:
 
-            def f(x):
+            def f(x):  # pyright: ignore[reportRedeclaration]
                 if isna(x):
                     return [np.nan] * len(columns)
                 return x.components

@@ -285,7 +285,7 @@ timedelta-like}
         shift_delta = delta_to_nanoseconds(nonexistent, reso=creso)
     elif nonexistent not in ("raise", None):
         msg = ("nonexistent must be one of {'NaT', 'raise', 'shift_forward', "
-               "shift_backwards} or a timedelta object")
+               "'shift_backward'} or a timedelta object")
         raise ValueError(msg)
 
     result = cnp.PyArray_EMPTY(vals.ndim, vals.shape, cnp.NPY_INT64, 0)

@@ -258,7 +258,7 @@ pc_chop_threshold_doc = """
 
 pc_max_seq_items = """
 : int or None
-    When pretty-printing a long sequence, no more then `max_seq_items`
+    When pretty-printing a long sequence, no more than `max_seq_items`
     will be printed. If items are omitted, they will be denoted by the
     addition of "..." to the resulting string.
 

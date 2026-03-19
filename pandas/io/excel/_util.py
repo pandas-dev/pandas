@@ -238,7 +238,7 @@ def fill_mi_header(
     """
     Forward fill blank entries in row but only inside the same parent index.
 
-    Used for creating headers in Multiindex.
+    Used for creating headers in MultiIndex.
 
     Parameters
     ----------
@@ -314,7 +314,7 @@ def combine_kwargs(engine_kwargs: dict[str, Any] | None, kwargs: dict) -> dict:
     engine_kwargs: dict
         kwargs to be passed through to the engine.
     kwargs: dict
-        kwargs to be psased through to the engine (deprecated)
+        kwargs to be passed through to the engine (deprecated)
 
     Returns
     -------

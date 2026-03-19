@@ -448,14 +448,13 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return type(self)(data, mask)
 
     def shift(self, periods: int = 1, fill_value=None) -> Self:
-        # NB: shift is always along axis=0
-        axis = 0
+        # NB: shift is always along axis=self.ndim-1
         if fill_value is None:
-            new_data = shift(self._data, periods, axis, 0)
-            new_mask = shift(self._mask, periods, axis, True)
+            new_data = shift(self._data, periods, 0)
+            new_mask = shift(self._mask, periods, True)
         else:
-            new_data = shift(self._data, periods, axis, fill_value)
-            new_mask = shift(self._mask, periods, axis, False)
+            new_data = shift(self._data, periods, fill_value)
+            new_mask = shift(self._mask, periods, False)
         return type(self)(new_data, new_mask)
 
     @property

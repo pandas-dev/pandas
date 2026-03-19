@@ -96,7 +96,7 @@ def assert_stat_op_calc(
     frame : DataFrame
         The object that the tests are executed on
     has_skipna : bool, default True
-        Whether the method "opname" has the kwarg "skip_na"
+        Whether the method "opname" has the kwarg "skipna"
     check_dtype : bool, default True
         Whether the dtypes of the result of "frame.opname()" and
         "alternative(frame)" should be checked.

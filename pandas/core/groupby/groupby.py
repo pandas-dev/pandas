@@ -1524,11 +1524,18 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         data = self._get_data_to_aggregate(numeric_only=numeric_only, name=how)
 
         def array_func(values: ArrayLike) -> ArrayLike:
+            # GH#37850 For numpy boolean data, any==max and all==min.
+            # The min/max Cython path is faster (fused types, no mask overhead).
+            # Excludes nullable BooleanDtype which needs Kleene logic.
+            if how in ["any", "all"] and values.dtype == np.dtype("bool"):
+                _how = "max" if how == "any" else "min"
+            else:
+                _how = how
             try:
                 result = self._grouper._cython_operation(
                     "aggregate",
                     values,
-                    how,
+                    _how,
                     axis=data.ndim - 1,
                     min_count=min_count,
                     **kwargs,
@@ -1627,7 +1634,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         if self.obj.ndim == 1:
             # i.e. SeriesGroupBy
-            out = algorithms.take_nd(result._values, ids)
+            out = algorithms.take_nd(
+                result._values, ids, allow_fill=self._grouper.has_dropped_na
+            )
             output = obj._constructor(out, index=obj.index, name=obj.name)
         else:
             # `.size()` gives Series output on DataFrame input, need axis 0
@@ -2614,6 +2623,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         Compute group sizes.
 
+        Returns the number of rows in each group. This is useful for
+        understanding the distribution of data across groups.
+
         Returns
         -------
         DataFrame or Series
@@ -2718,6 +2730,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     ):
         """
         Compute sum of group values.
+
+        Computes the sum for each group. Null values are excluded by
+        default unless ``skipna`` is set to ``False``.
 
         Parameters
         ----------
@@ -2835,6 +2850,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     ) -> NDFrameT:
         """
         Compute prod of group values.
+
+        This method computes the product of all values within each group,
+        returning a result for each group.
 
         Parameters
         ----------
@@ -3826,6 +3844,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         Return a rolling grouper, providing rolling functionality per group.
 
+        Allows the application of rolling window operations
+        (e.g., moving averages) independently within each group defined
+        by the groupby keys.
+
         Parameters
         ----------
         window : int, timedelta, str, offset, or BaseIndexer subclass
@@ -4174,8 +4196,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         See Also
         --------
-        pad : Returns Series with minimum number of char in object.
-        backfill : Backward fill the missing values in the dataset.
+        pad : Forward fill values within each group.
+        backfill : Backward fill values within each group.
         """
         # Need int value for Cython
         if limit is None:
@@ -4249,8 +4271,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         See Also
         --------
-        Series.ffill: Returns Series with minimum number of char in object.
-        DataFrame.ffill: Object with missing values filled or None if inplace=True.
+        Series.ffill : Forward fill missing values in a Series.
+        DataFrame.ffill : Forward fill missing values in a DataFrame.
         Series.fillna: Fill NaN values of a Series.
         DataFrame.fillna: Fill NaN values of a DataFrame.
 
@@ -4559,6 +4581,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     ):
         """
         Return group values at the given quantile, a la numpy.percentile.
+
+        This method returns the value at the given quantile for each group,
+        using the specified interpolation method when the desired quantile
+        falls between two data points.
 
         Parameters
         ----------
@@ -4919,6 +4945,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     ) -> NDFrameT:
         """
         Provide the rank of values within each group.
+
+        This method assigns ranks to values within each group, with options
+        for handling duplicate values, NaN values, and computing percentage ranks.
 
         Parameters
         ----------
@@ -5532,6 +5561,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     ):
         """
         Calculate pct_change of each value to previous entry in group.
+
+        This method calculates the percentage change between the current and
+        a prior element within each group, useful for computing growth rates.
 
         Parameters
         ----------

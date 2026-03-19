@@ -808,6 +808,17 @@ cdef class BaseOffset:
             "does not have a vectorized implementation"
         )
 
+    @property
+    def _supports_daily_offset_mask(self) -> bool:
+        """
+        Whether this offset supports the fast "daily range + filter" path
+        for date_range generation (GH#16463).
+
+        Subclasses that implement ``_get_daily_offset_mask`` should override
+        this to return True when the optimization is applicable.
+        """
+        return False
+
     def rollback(self, dt) -> datetime:
         """
         Roll provided date backward to next offset only if not on offset.
@@ -1264,7 +1275,7 @@ cdef class Tick(SingleConstructorOffset):
         if normalize:
             # GH#21427
             raise ValueError(
-                "Tick offset with `normalize=True` are not allowed."
+                "Tick offset with `normalize=True` is not allowed."
             )
 
     # Note: Without making this cpdef, we get AttributeError when calling
@@ -1501,7 +1512,7 @@ cdef class Day(SingleConstructorOffset):
         if normalize:
             # GH#21427
             raise ValueError(
-                "Day offset with `normalize=True` are not allowed."
+                "Day offset with `normalize=True` is not allowed."
             )
 
     def is_on_offset(self, dt) -> bool:
@@ -2675,6 +2686,16 @@ cdef class BusinessDay(BusinessMixin):
         if self._offset:
             res = res.view(dtarr.dtype) + Timedelta(self._offset)
         return res
+
+    @property
+    def _supports_daily_offset_mask(self) -> bool:
+        return not self._offset
+
+    def _get_daily_offset_mask(self, dt64values: np.ndarray) -> np.ndarray:
+        # datetime64[D] epoch (1970-01-01) is Thursday; (day_number + 3) % 7
+        # gives 0=Mon, 1=Tue, ..., 4=Fri, 5=Sat, 6=Sun
+        day_i8 = dt64values.astype("datetime64[D]").view("int64")
+        return (day_i8 + 3) % 7 < 5
 
     def is_on_offset(self, dt: datetime) -> bool:
         """
@@ -6637,6 +6658,10 @@ cdef class CustomBusinessDay(BusinessDay):
         result = maybe_unbox_numpy_scalar(result)
         return result
 
+    def _get_daily_offset_mask(self, dt64values: np.ndarray) -> np.ndarray:
+        days = dt64values.astype("datetime64[D]")
+        return np.is_busday(days, busdaycal=self._calendar)
+
 
 cdef class CustomBusinessHour(BusinessHour):
     """
@@ -7365,7 +7390,7 @@ cpdef to_offset(freq, bint is_period=False):
                 extra_message=f"Failed to parse with error message: {repr(err)}"
             )
 
-        # TODO(3.0?) once deprecation of "d" is enforced, the check for it here
+        # TODO(4.0) once deprecation of "d" is enforced, the check for it here
         #  can be removed
         if (
                 isinstance(result, Hour)

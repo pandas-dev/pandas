@@ -276,7 +276,8 @@ def test_multifunc_numba_vs_cython_series(agg_kwargs):
 
 
 @pytest.mark.single_cpu
-@pytest.mark.filterwarnings("ignore:unsafe cast from uint64 to int64")
+# numba.core.errors.NumbaTypeSafetyWarning: unsafe cast from uint64 to int64.
+@pytest.mark.filterwarnings("ignore")
 @pytest.mark.parametrize(
     "data,agg_kwargs",
     [

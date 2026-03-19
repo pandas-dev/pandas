@@ -423,7 +423,7 @@ def __internal_pivot_table(
     if isinstance(table, ABCDataFrame) and dropna:
         table = table.dropna(how="all", axis=1)
 
-    return table
+    return cast("DataFrame", table)
 
 
 def _add_margins(

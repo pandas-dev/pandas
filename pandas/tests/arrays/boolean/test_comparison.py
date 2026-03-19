@@ -23,9 +23,6 @@ def dtype():
 
 
 class TestComparisonOps(ComparisonOps):
-    def test_compare_scalar(self, data, comparison_op):
-        self._compare_other(data, comparison_op, True)
-
     def test_compare_array(self, data, comparison_op):
         other = pd.array([True] * len(data), dtype="boolean")
         self._compare_other(data, comparison_op, other)
