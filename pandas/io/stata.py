@@ -283,8 +283,8 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
                 d["delta"] = v(delta) // 1_000  # convert back to ms
             if year:
                 date_index = DatetimeIndex(dates)
-                d["year"] = date_index._data.year
-                d["month"] = date_index._data.month
+                d["year"] = date_index.year
+                d["month"] = date_index.month
             if days:
 
                 def g(x: datetime) -> int:
