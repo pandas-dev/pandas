@@ -228,7 +228,7 @@ class TestTimedelta64ArrayComparisons:
                 "5 day 00:00:03",
             ]
         )
-        # Check pd.NaT is handles as the same as np.nan
+        # Check pd.NaT is handled the same as np.nan
         result = idx1 < idx2
         expected = np.array([True, False, False, False, True, False])
         tm.assert_numpy_array_equal(result, expected)

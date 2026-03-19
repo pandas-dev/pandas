@@ -13,6 +13,7 @@ import pandas as pd
 from pandas import (
     DataFrame,
     DatetimeIndex,
+    Index,
     Series,
     Timestamp,
     date_range,
@@ -241,7 +242,7 @@ def test_timezones_fixed_format_empty(temp_hdfstore, tz_aware_fixture, frame_or_
 
     dtype = pd.DatetimeTZDtype(tz=tz_aware_fixture)
 
-    obj = Series(dtype=dtype, name="A")
+    obj = Series(dtype=dtype, name="A", index=Index([]))
     if frame_or_series is DataFrame:
         obj = obj.to_frame()
 

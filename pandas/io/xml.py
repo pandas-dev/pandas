@@ -419,7 +419,7 @@ class _XMLFrameParser:
         Raises
         ------
         ValueError
-            * If value is not a list and less then length of nodes.
+            * If value is not a list and less than length of nodes.
         """
         raise AbstractMethodError(self)
 
@@ -872,6 +872,10 @@ def read_xml(
     r"""
     Read XML document into a :class:`~pandas.DataFrame` object.
 
+    This function parses an XML document from a file path, URL, or string buffer,
+    and returns the content as a DataFrame. Nodes are selected using an XPath
+    expression, and their child elements and attributes are mapped to columns.
+
     Parameters
     ----------
     path_or_buffer : str, path object, or file-like object
@@ -955,7 +959,7 @@ def read_xml(
         list of elements or attribute names that are descendants of the repeated
         element. Note: If this option is used, it will replace ``xpath`` parsing
         and unlike ``xpath``, descendants do not need to relate to each other but can
-        exist any where in document under the repeating element. This memory-
+        exist anywhere in document under the repeating element. This memory-
         efficient method should be used for very large XML files (500MB, 1GB, or 5GB+).
         For example, ``{"row_element": ["child_elem", "attr", "grandchild_elem"]}``.
 

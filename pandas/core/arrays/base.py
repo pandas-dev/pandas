@@ -25,6 +25,7 @@ import numpy as np
 
 from pandas._libs import (
     algos as libalgos,
+    groupby as libgroupby,
     lib,
 )
 from pandas.compat import set_function_name
@@ -131,6 +132,7 @@ class ExtensionArray:
     argsort
     astype
     copy
+    count
     dropna
     duplicated
     factorize
@@ -187,7 +189,7 @@ class ExtensionArray:
     * interpolate
 
     A default repr displaying the type, (truncated) data, length,
-    and dtype is provided. It can be customized or replaced by
+    and dtype is provided. It can be customized or replaced
     by overriding:
 
     * __repr__ : A default repr for the ExtensionArray.
@@ -622,6 +624,9 @@ class ExtensionArray:
         """
         Return the array element at the specified position as a Python scalar.
 
+        Analogous to :meth:`numpy.ndarray.item`, this converts a single
+        element to a native Python object.
+
         Parameters
         ----------
         index : int, optional
@@ -910,7 +915,7 @@ class ExtensionArray:
         else:
             return np.array(self, dtype=dtype, copy=copy)
 
-    def isna(self) -> np.ndarray | ExtensionArraySupportsAnyAll:
+    def isna(self) -> np.ndarray | ExtensionArrayNaResult:
         """
         A 1-D array indicating if each value is missing.
 
@@ -937,7 +942,8 @@ class ExtensionArray:
         * ``na_values._is_boolean`` should be True
         * ``na_values`` should implement :func:`ExtensionArray._reduce`
         * ``na_values`` should implement :func:`ExtensionArray._accumulate`
-        * ``na_values.any`` and ``na_values.all`` should be implemented
+        * ``na_values.any``, ``na_values.all``, ``na_values.sum``, and
+          ``na_values.__invert__`` should be implemented
 
         Examples
         --------
@@ -1430,8 +1436,8 @@ class ExtensionArray:
         [1, 2]
         Length: 2, dtype: Int64
         """
-        # error: Unsupported operand type for ~ ("ExtensionArray")
-        return self[~self.isna()]  # type: ignore[operator]
+        # isna can return an ExtensionArrayNaResult
+        return self[~self.isna()]  # type: ignore[index]
 
     def duplicated(
         self, keep: Literal["first", "last", False] = "first"
@@ -2038,7 +2044,7 @@ class ExtensionArray:
         raise AbstractMethodError(self)
 
     @overload
-    def view(self) -> Self: ...
+    def view(self, dtype: None = ...) -> Self: ...
 
     @overload
     def view(self, dtype: Dtype | None = ...) -> ArrayLike: ...
@@ -2142,7 +2148,7 @@ class ExtensionArray:
         Parameters
         ----------
         boxed : bool, default False
-            An indicated for whether or not your array is being printed
+            An indicator for whether or not your array is being printed
             within a Series, DataFrame, or Index (True), or just by
             itself (False). This may be useful if you want scalar values
             to appear differently within a Series versus on its own (e.g.
@@ -2247,7 +2253,7 @@ class ExtensionArray:
     @classmethod
     def _concat_same_type(cls, to_concat: Sequence[Self]) -> Self:
         """
-        Concatenate multiple array of this dtype.
+        Concatenate multiple arrays of this dtype.
 
         This method joins a sequence of ExtensionArrays of the same dtype
         into a single ExtensionArray. All arrays in the sequence must
@@ -2416,7 +2422,9 @@ class ExtensionArray:
                 f"'{type(self).__name__}' with dtype {self.dtype} "
                 f"does not support operation '{name}'"
             )
-        result = meth(skipna=skipna, **kwargs)
+        if name != "count":
+            kwargs["skipna"] = skipna
+        result = meth(**kwargs)
         if keepdims:
             if name in ["min", "max"]:
                 result = self._from_sequence([result], dtype=self.dtype)
@@ -2424,6 +2432,30 @@ class ExtensionArray:
                 result = np.array([result])
 
         return result
+
+    def count(self):
+        """
+        Count the number of non-NA values in the array.
+
+        This method returns the number of elements in the
+        :class:`ExtensionArray` that are not missing (i.e., not NA/null).
+
+        Returns
+        -------
+        scalar
+            Number of non-NA values in the Series.
+
+        See Also
+        --------
+        Series.count : Count the number of non-NA values in a Series.
+
+        Examples
+        --------
+        >>> s = pd.array([1, pd.NA, 3])
+        >>> s.count()
+        np.int64(2)
+        """
+        return (~self.isna()).sum()
 
     # https://github.com/python/typeshed/issues/2148#issuecomment-520783318
     # Incompatible types in assignment (expression has type "None", base class
@@ -2829,6 +2861,15 @@ class ExtensionArray:
         -------
         np.ndarray or ExtensionArray
         """
+        if how in ["first", "last"]:
+            return self._groupby_first_last(
+                how=how,
+                min_count=min_count,
+                ngroups=ngroups,
+                ids=ids,
+                skipna=kwargs.get("skipna", True),
+            )
+
         from pandas.core.arrays.string_ import StringDtype
         from pandas.core.groupby.ops import WrappedCythonOp
 
@@ -2895,8 +2936,51 @@ class ExtensionArray:
         else:
             raise NotImplementedError
 
+    def _groupby_first_last(
+        self,
+        *,
+        how: str,
+        min_count: int,
+        ngroups: int,
+        ids: npt.NDArray[np.intp],
+        skipna: bool = True,
+    ) -> Self:
+        """
+        Optimized implementation of groupby first/last for ExtensionArrays.
 
-class ExtensionArraySupportsAnyAll(ExtensionArray):
+        Uses an index-based approach: computes the index of the first/last
+        non-NA element per group, then gathers results via take(). This avoids
+        any dtype conversion and works for all EA types.
+        """
+        if self.ndim != 1:
+            raise NotImplementedError(
+                "groupby first/last only supports 1D ExtensionArrays"
+            )
+        isna_mask = np.asarray(self.isna(), dtype=np.uint8)
+
+        result_indices, result_mask = libgroupby.group_first_last_indexer(
+            labels=ids,
+            mask=isna_mask,
+            ngroups=ngroups,
+            skipna=skipna,
+            is_last=(how == "last"),
+        )
+
+        # Apply min_count: require at least min_count non-NA observations.
+        # For first/last, the natural minimum is 1 (need at least one value).
+        if min_count > 1:
+            nobs = np.zeros(ngroups, dtype=np.int64)
+            non_na_indices = np.where((~isna_mask.view(bool)) & (ids >= 0))[0]
+            np.add.at(nobs, ids[non_na_indices], 1)
+            below = nobs < min_count
+            result_mask[below] = 1
+            result_indices[below] = -1
+
+        # take() with allow_fill=True treats -1 as "fill with NA"
+        return self.take(result_indices, allow_fill=True)
+
+
+class ExtensionArrayNaResult(ExtensionArray):
     @overload
     def any(self, *, skipna: Literal[True] = ...) -> bool: ...
 
@@ -2913,6 +2997,19 @@ class ExtensionArraySupportsAnyAll(ExtensionArray):
     def all(self, *, skipna: bool) -> bool | NAType: ...
 
     def all(self, *, skipna: bool = True) -> bool | NAType:
+        raise AbstractMethodError(self)
+
+    def sum(
+        self,
+        *,
+        axis: AxisInt | None = None,
+        skipna: bool = True,
+        min_count: int = 0,
+        **kwargs,
+    ):
+        raise AbstractMethodError(self)
+
+    def __invert__(self) -> Self:
         raise AbstractMethodError(self)
 
 

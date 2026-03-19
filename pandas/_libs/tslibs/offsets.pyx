@@ -97,6 +97,32 @@ from .timestamps cimport _Timestamp
 from .timestamps import Timestamp
 
 # ---------------------------------------------------------------------
+# day_opt enum: avoids repeated string comparisons in nogil loops
+
+cdef enum _DayOpt:
+    DAY_OPT_START = 0
+    DAY_OPT_END = 1
+    DAY_OPT_BUSINESS_START = 2
+    DAY_OPT_BUSINESS_END = 3
+
+
+cdef _DayOpt _str_to_day_opt(str day_opt) except? DAY_OPT_START:
+    if day_opt == "start":
+        return DAY_OPT_START
+    elif day_opt == "end":
+        return DAY_OPT_END
+    elif day_opt == "business_start":
+        return DAY_OPT_BUSINESS_START
+    elif day_opt == "business_end":
+        return DAY_OPT_BUSINESS_END
+    else:
+        raise ValueError(
+            "day must be 'start', 'end', 'business_start', or "
+            f"'business_end', got {day_opt}"
+        )
+
+
+# ---------------------------------------------------------------------
 # Misc Helpers
 
 cdef bint is_offset_object(object obj):
@@ -507,9 +533,13 @@ cdef class BaseOffset:
          'variation': 'nearest'}
         """
         # for backwards-compatibility
-        kwds = {name: getattr(self, name, None) for name in self._attributes
-                if name not in ["n", "normalize"]}
-        return {name: kwds[name] for name in kwds if kwds[name] is not None}
+        kwds = {}
+        for name in self._attributes:
+            if name not in ("n", "normalize"):
+                val = getattr(self, name, None)
+                if val is not None:
+                    kwds[name] = val
+        return kwds
 
     @property
     def base(self):
@@ -778,6 +808,17 @@ cdef class BaseOffset:
             "does not have a vectorized implementation"
         )
 
+    @property
+    def _supports_daily_offset_mask(self) -> bool:
+        """
+        Whether this offset supports the fast "daily range + filter" path
+        for date_range generation (GH#16463).
+
+        Subclasses that implement ``_get_daily_offset_mask`` should override
+        this to return True when the optimization is applicable.
+        """
+        return False
+
     def rollback(self, dt) -> datetime:
         """
         Roll provided date backward to next offset only if not on offset.
@@ -876,7 +917,7 @@ cdef class BaseOffset:
         cdef:
             npy_datetimestruct dts
         pydate_to_dtstruct(other, &dts)
-        return get_day_of_month(&dts, self._day_opt)
+        return get_day_of_month(&dts, _str_to_day_opt(self._day_opt))
 
     def is_on_offset(self, dt: datetime) -> bool:
         """
@@ -1234,7 +1275,7 @@ cdef class Tick(SingleConstructorOffset):
         if normalize:
             # GH#21427
             raise ValueError(
-                "Tick offset with `normalize=True` are not allowed."
+                "Tick offset with `normalize=True` is not allowed."
             )
 
     # Note: Without making this cpdef, we get AttributeError when calling
@@ -1471,7 +1512,7 @@ cdef class Day(SingleConstructorOffset):
         if normalize:
             # GH#21427
             raise ValueError(
-                "Day offset with `normalize=True` are not allowed."
+                "Day offset with `normalize=True` is not allowed."
             )
 
     def is_on_offset(self, dt) -> bool:
@@ -2579,39 +2620,40 @@ cdef class BusinessDay(BusinessMixin):
         """
         cdef:
             int periods = self._n
-            Py_ssize_t i, n = i8other.size
+            Py_ssize_t i, count = i8other.size
             ndarray result = cnp.PyArray_EMPTY(
                 i8other.ndim, i8other.shape, cnp.NPY_INT64, 0
             )
             int64_t val, res_val
-            int wday, days
+            int wday, days, weeks
             npy_datetimestruct dts
             int64_t DAY_PERIODS = periods_per_day(reso)
             cnp.broadcast mi = cnp.PyArray_MultiIterNew2(result, i8other)
 
-        for i in range(n):
-            # Analogous to: val = i8other[i]
-            val = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
+        weeks = periods // 5
 
-            if val == NPY_NAT:
-                res_val = NPY_NAT
-            else:
-                # The rest of this is effectively a copy of BusinessDay.apply
-                weeks = periods // 5
-                pandas_datetime_to_datetimestruct(val, reso, &dts)
-                wday = dayofweek(dts.year, dts.month, dts.day)
+        with nogil:
+            for i in range(count):
+                # Analogous to: val = i8other[i]
+                val = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
 
-                days = self._adjust_ndays(wday, weeks)
-                res_val = val + (7 * weeks + days) * DAY_PERIODS
+                if val == NPY_NAT:
+                    res_val = NPY_NAT
+                else:
+                    pandas_datetime_to_datetimestruct(val, reso, &dts)
+                    wday = dayofweek(dts.year, dts.month, dts.day)
 
-            # Analogous to: out[i] = res_val
-            (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = res_val
+                    days = self._adjust_ndays(wday, weeks)
+                    res_val = val + (7 * weeks + days) * DAY_PERIODS
 
-            cnp.PyArray_MultiIter_NEXT(mi)
+                # Analogous to: out[i] = res_val
+                (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = res_val
+
+                cnp.PyArray_MultiIter_NEXT(mi)
 
         return result
 
-    cdef int _adjust_ndays(self, int wday, int weeks):
+    cdef int _adjust_ndays(self, int wday, int weeks) noexcept nogil:
         cdef:
             int n = self._n
             int days
@@ -2644,6 +2686,16 @@ cdef class BusinessDay(BusinessMixin):
         if self._offset:
             res = res.view(dtarr.dtype) + Timedelta(self._offset)
         return res
+
+    @property
+    def _supports_daily_offset_mask(self) -> bool:
+        return not self._offset
+
+    def _get_daily_offset_mask(self, dt64values: np.ndarray) -> np.ndarray:
+        # datetime64[D] epoch (1970-01-01) is Thursday; (day_number + 3) % 7
+        # gives 0=Mon, 1=Tue, ..., 4=Fri, 5=Sat, 6=Sun
+        day_i8 = dt64values.astype("datetime64[D]").view("int64")
+        return (day_i8 + 3) % 7 < 5
 
     def is_on_offset(self, dt: datetime) -> bool:
         """
@@ -3528,7 +3580,7 @@ cdef class YearOffset(SingleConstructorOffset):
             npy_datetimestruct dts
         pydate_to_dtstruct(other, &dts)
         dts.month = self._month
-        return get_day_of_month(&dts, self._day_opt)
+        return get_day_of_month(&dts, _str_to_day_opt(self._day_opt))
 
     @apply_wraps
     def _apply(self, other: datetime) -> datetime:
@@ -6606,6 +6658,10 @@ cdef class CustomBusinessDay(BusinessDay):
         result = maybe_unbox_numpy_scalar(result)
         return result
 
+    def _get_daily_offset_mask(self, dt64values: np.ndarray) -> np.ndarray:
+        days = dt64values.astype("datetime64[D]")
+        return np.is_busday(days, busdaycal=self._calendar)
+
 
 cdef class CustomBusinessHour(BusinessHour):
     """
@@ -7334,7 +7390,7 @@ cpdef to_offset(freq, bint is_period=False):
                 extra_message=f"Failed to parse with error message: {repr(err)}"
             )
 
-        # TODO(3.0?) once deprecation of "d" is enforced, the check for it here
+        # TODO(4.0) once deprecation of "d" is enforced, the check for it here
         #  can be removed
         if (
                 isinstance(result, Hour)
@@ -7477,10 +7533,6 @@ cdef ndarray shift_quarters(
     -------
     out : ndarray[int64_t]
     """
-    if day_opt not in ["start", "end", "business_start", "business_end"]:
-        raise ValueError("day must be None, 'start', 'end', "
-                         "'business_start', or 'business_end'")
-
     cdef:
         Py_ssize_t count = dtindex.size
         ndarray out = cnp.PyArray_EMPTY(dtindex.ndim, dtindex.shape, cnp.NPY_INT64, 0)
@@ -7489,6 +7541,7 @@ cdef ndarray shift_quarters(
         int months_since, n
         npy_datetimestruct dts
         cnp.broadcast mi = cnp.PyArray_MultiIterNew2(out, dtindex)
+        _DayOpt day_opt_enum = _str_to_day_opt(day_opt)
 
     with nogil:
         for i in range(count):
@@ -7502,11 +7555,11 @@ cdef ndarray shift_quarters(
                 n = quarters
 
                 months_since = (dts.month - q1start_month) % modby
-                n = _roll_qtrday(&dts, n, months_since, day_opt)
+                n = _roll_qtrday(&dts, n, months_since, day_opt_enum)
 
                 dts.year = year_add_months(dts, modby * n - months_since)
                 dts.month = month_add_months(dts, modby * n - months_since)
-                dts.day = get_day_of_month(&dts, day_opt)
+                dts.day = get_day_of_month(&dts, day_opt_enum)
 
                 res_val = npy_datetimestruct_to_datetime(reso, &dts)
 
@@ -7542,14 +7595,9 @@ def shift_months(
         ndarray out = cnp.PyArray_EMPTY(dtindex.ndim, dtindex.shape, cnp.NPY_INT64, 0)
         int months_to_roll
         int64_t val, res_val
+        _DayOpt day_opt_enum
 
         cnp.broadcast mi = cnp.PyArray_MultiIterNew2(out, dtindex)
-
-    if day_opt is not None and day_opt not in {
-            "start", "end", "business_start", "business_end"
-    }:
-        raise ValueError("day must be None, 'start', 'end', "
-                         "'business_start', or 'business_end'")
 
     if day_opt is None:
         # TODO: can we combine this with the non-None case?
@@ -7574,6 +7622,7 @@ def shift_months(
                 cnp.PyArray_MultiIter_NEXT(mi)
 
     else:
+        day_opt_enum = _str_to_day_opt(day_opt)
         with nogil:
             for i in range(count):
 
@@ -7586,11 +7635,13 @@ def shift_months(
                     pandas_datetime_to_datetimestruct(val, reso, &dts)
                     months_to_roll = months
 
-                    months_to_roll = _roll_qtrday(&dts, months_to_roll, 0, day_opt)
+                    months_to_roll = _roll_qtrday(
+                        &dts, months_to_roll, 0, day_opt_enum
+                    )
 
                     dts.year = year_add_months(dts, months_to_roll)
                     dts.month = month_add_months(dts, months_to_roll)
-                    dts.day = get_day_of_month(&dts, day_opt)
+                    dts.day = get_day_of_month(&dts, day_opt_enum)
 
                     res_val = npy_datetimestruct_to_datetime(reso, &dts)
 
@@ -7671,7 +7722,7 @@ def shift_month(stamp: datetime, months: int, day_opt: object = None) -> datetim
     return stamp.replace(year=year, month=month, day=day)
 
 
-cdef int get_day_of_month(npy_datetimestruct* dts, str day_opt) noexcept nogil:
+cdef int get_day_of_month(npy_datetimestruct* dts, _DayOpt day_opt) noexcept nogil:
     """
     Find the day in `other`'s month that satisfies a DateOffset's is_on_offset
     policy, as described by the `day_opt` argument.
@@ -7679,40 +7730,20 @@ cdef int get_day_of_month(npy_datetimestruct* dts, str day_opt) noexcept nogil:
     Parameters
     ----------
     dts : npy_datetimestruct*
-    day_opt : {'start', 'end', 'business_start', 'business_end'}
-        'start': returns 1
-        'end': returns last day of the month
-        'business_start': returns the first business day of the month
-        'business_end': returns the last business day of the month
+    day_opt : _DayOpt enum value
 
     Returns
     -------
     day_of_month : int
-
-    Examples
-    -------
-    >>> other = datetime(2017, 11, 14)
-    >>> get_day_of_month(other, 'start')
-    1
-    >>> get_day_of_month(other, 'end')
-    30
-
-    Notes
-    -----
-    Caller is responsible for ensuring one of the four accepted day_opt values
-    is passed.
     """
-
-    if day_opt == "start":
+    if day_opt == DAY_OPT_START:
         return 1
-    elif day_opt == "end":
+    elif day_opt == DAY_OPT_END:
         return get_days_in_month(dts.year, dts.month)
-    elif day_opt == "business_start":
-        # first business day of month
+    elif day_opt == DAY_OPT_BUSINESS_START:
         return get_firstbday(dts.year, dts.month)
     else:
-        # i.e. day_opt == "business_end":
-        # last business day of month
+        # i.e. day_opt == DAY_OPT_BUSINESS_END
         return get_lastbday(dts.year, dts.month)
 
 
@@ -7767,9 +7798,7 @@ def roll_qtrday(other: datetime, n: int, month: int,
     cdef:
         int months_since
         npy_datetimestruct dts
-
-    if day_opt not in ["start", "end", "business_start", "business_end"]:
-        raise ValueError(day_opt)
+        _DayOpt day_opt_enum = _str_to_day_opt(day_opt)
 
     pydate_to_dtstruct(other, &dts)
 
@@ -7779,13 +7808,13 @@ def roll_qtrday(other: datetime, n: int, month: int,
     else:
         months_since = other.month % modby - month % modby
 
-    return _roll_qtrday(&dts, n, months_since, day_opt)
+    return _roll_qtrday(&dts, n, months_since, day_opt_enum)
 
 
 cdef int _roll_qtrday(npy_datetimestruct* dts,
                       int n,
                       int months_since,
-                      str day_opt) except? -1 nogil:
+                      _DayOpt day_opt) noexcept nogil:
     """
     See roll_qtrday.__doc__
     """

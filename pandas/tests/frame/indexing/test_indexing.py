@@ -1255,7 +1255,6 @@ class TestDataFrameIndexing:
         # this produces the segfault
         df[[0]]
 
-    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
     @pytest.mark.parametrize(
         "null", [pd.NaT, pd.NaT.to_numpy("M8[ns]"), pd.NaT.to_numpy("m8[ns]")]
     )

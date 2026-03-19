@@ -254,7 +254,7 @@ def use_dynamic_x(ax: Axes, index: Index) -> bool:
         freq_str = OFFSET_TO_PERIOD_FREQSTR.get(freq_str, freq_str)
         base = to_offset(freq_str, is_period=True)._period_dtype_code  # type: ignore[attr-defined]
         if base <= FreqGroup.FR_DAY.value:
-            return index[:1].is_normalized
+            return index[:1].is_normalized  # type: ignore[attr-defined]
         period = Period(index[0], freq_str)
         assert isinstance(period, Period)
         return period.to_timestamp().tz_localize(index.tz) == index[0]

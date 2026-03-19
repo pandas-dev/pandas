@@ -688,6 +688,10 @@ def boxplot_frame_groupby(
     """
     Make box plots from DataFrameGroupBy data.
 
+    Creates one or more box-and-whisker plots based on data that has been
+    grouped using :meth:`DataFrame.groupby`. Each group can be rendered as
+    a separate subplot or combined into a single figure.
+
     Parameters
     ----------
     grouped : DataFrameGroupBy

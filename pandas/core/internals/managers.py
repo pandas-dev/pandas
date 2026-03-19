@@ -1157,7 +1157,12 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             )
             return SingleBlockManager(block, self.axes[0].view())
 
-        dtype = interleaved_dtype([blk.dtype for blk in self.blocks])
+        # GH#62263 cache interleaved_dtype to avoid recomputing on
+        # repeated fast_xs calls
+        dtype = self._interleaved_dtype
+        if dtype is None:
+            dtype = interleaved_dtype([blk.dtype for blk in self.blocks])
+            self._interleaved_dtype = dtype
 
         n = len(self)
 
@@ -1313,7 +1318,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         # categorical/sparse/datetimetz
         if value_is_extension_type:
 
-            def value_getitem(placement):
+            def value_getitem(placement):  # pyright: ignore[reportRedeclaration]
                 return value
 
         else:
@@ -1401,10 +1406,12 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 self._blknos[unfit_idxr] = len(self.blocks)
                 self._blklocs[unfit_idxr] = np.arange(unfit_count)
 
-            self.blocks += tuple(new_blocks)
-
-            # Newly created block's dtype may already be present.
+            # Invalidate cache before mutating blocks so that a concurrent
+            # reader never sees stale cache + new blocks.
+            self._interleaved_dtype = None
             self._known_consolidated = False
+
+            self.blocks += tuple(new_blocks)
 
     def _iset_split_block(
         self,
@@ -1485,6 +1492,9 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         nb = new_block_2d(value, placement=blk._mgr_locs, refs=refs)
         old_blocks = self.blocks
         new_blocks = (*old_blocks[:blkno], nb, *old_blocks[blkno + 1 :])
+        # Invalidate cache before mutating blocks so that a concurrent
+        # reader never sees stale cache + new blocks.
+        self._interleaved_dtype = None
         self.blocks = new_blocks
         return
 
@@ -1554,9 +1564,11 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             self._insert_update_blklocs_and_blknos(loc)
 
         self.axes[0] = new_axis
-        self.blocks += (block,)
-
+        # Invalidate cache before mutating blocks so that a concurrent
+        # reader never sees stale cache + new blocks.
+        self._interleaved_dtype = None
         self._known_consolidated = False
+        self.blocks += (block,)
 
         if (
             get_option("performance_warnings")
@@ -1741,17 +1753,16 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         new_columns = unstacker.get_new_columns(self.items)
         new_index = unstacker.new_index
 
-        allow_fill = not unstacker.mask_all
-        if allow_fill:
-            # calculating the full mask once and passing it to Block._unstack is
-            #  faster than letting calculating it in each repeated call
+        if not unstacker.mask_all:
+            # calculating the full mask once and passing it to
+            #  ExtensionBlock._unstack is faster than calculating
+            #  it in each repeated call
             new_mask2D = (~unstacker.mask).reshape(*unstacker.full_shape)
             needs_masking = new_mask2D.any(axis=0)
         else:
             needs_masking = np.zeros(unstacker.full_shape[1], dtype=bool)
 
         new_blocks: list[Block] = []
-        columns_mask: list[np.ndarray] = []
 
         if len(self.items) == 0:
             factor = 1
@@ -1764,7 +1775,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             mgr_locs = blk.mgr_locs
             new_placement = mgr_locs.tile_for_unstack(factor)
 
-            blocks, mask = blk._unstack(
+            blocks = blk._unstack(
                 unstacker,
                 fill_value,
                 new_placement=new_placement,
@@ -1772,15 +1783,6 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             )
 
             new_blocks.extend(blocks)
-            columns_mask.extend(mask)
-
-            # Block._unstack should ensure this holds,
-            assert mask.sum() == sum(len(nb._mgr_locs) for nb in blocks)
-            # In turn this ensures that in the BlockManager call below
-            #  we have len(new_columns) == sum(x.shape[0] for x in new_blocks)
-            #  which suffices to allow us to pass verify_inegrity=False
-
-        new_columns = new_columns[columns_mask]
 
         bm = BlockManager(new_blocks, [new_columns, new_index], verify_integrity=False)
         return bm
@@ -1887,9 +1889,13 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             # Incompatible types in assignment (expression has type
             # "Optional[Union[dtype[Any], ExtensionDtype]]", variable has
             # type "Optional[dtype[Any]]")
-            dtype = interleaved_dtype(  # type: ignore[assignment]
-                [blk.dtype for blk in self.blocks]
-            )
+            # GH#62263 use cached interleaved_dtype
+            dtype = self._interleaved_dtype  # type: ignore[assignment]
+            if dtype is None:
+                dtype = interleaved_dtype(  # type: ignore[assignment]
+                    [blk.dtype for blk in self.blocks]
+                )
+                self._interleaved_dtype = dtype
 
         # error: Argument 1 to "ensure_np_dtype" has incompatible type
         # "Optional[dtype[Any]]"; expected "Union[dtype[Any], ExtensionDtype]"

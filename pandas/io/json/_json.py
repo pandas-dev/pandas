@@ -23,7 +23,7 @@ import numpy as np
 from pandas._config import option_context
 
 from pandas._libs import lib
-from pandas._libs.json import (
+from pandas._libs._ujson import (
     ujson_dumps,
     ujson_loads,
 )

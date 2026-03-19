@@ -16,7 +16,7 @@ dependencies:
   - pytest-xdist>=3.6.1
   - pytest-localserver>=0.9.0
   - pytest-qt>=4.4.0
-  - boto3=1.37.3
+  - boto3=1.40.46
 
   # required dependencies
   - python-dateutil
@@ -44,6 +44,8 @@ dependencies:
   - openpyxl>=3.1.5
   - psycopg2>=2.9.10
   - pyarrow>=13.0.0
+  - pydantic<2.12.0  # TMP pin to avoid pyiceberg/pydantic issues
+  - pyiceberg>=0.8.1
   - pymysql>=1.1.1
   - pyreadstat>=1.2.8
   - pytables>=3.10.1
