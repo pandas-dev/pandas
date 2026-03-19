@@ -9,7 +9,7 @@ dependencies:
   # build dependencies
   - versioneer
   - cython<4.0.0a0
-  - meson=1.6.0
+  - meson=1.2.3
   - meson-python=0.18.0
 
   # test dependencies
