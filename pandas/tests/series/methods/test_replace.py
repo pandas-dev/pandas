@@ -724,6 +724,61 @@ class TestSeriesReplace:
         expected = pd.Series([pd.NA, pd.NA])
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("frame", [False, True])
+    @pytest.mark.parametrize(
+        "args, kwargs",
+        [
+            (("(", "X"), {"regex": True}),
+            ((["foo", "("], "X"), {"regex": True}),
+            (({"foo": "X", "(": "Y"},), {"regex": True}),
+            ((), {"regex": ["foo", "("], "value": "X"}),
+            ((), {"regex": {"foo": "X", "(": "Y"}}),
+        ],
+    )
+    def test_replace_invalid_regex_raises(self, frame, args, kwargs):
+        obj = pd.Series(["foo", "bar"])
+        if frame:
+            obj = obj.to_frame("A")
+
+        with pytest.raises(ValueError, match="Invalid regular expression"):
+            obj.replace(*args, **kwargs)
+
+    @pytest.mark.parametrize(
+        "to_replace, value, omit_value",
+        [
+            ("foo", "X", False),
+            (["foo", "bar"], "X", False),
+            ({"foo": "X", "bar": "Y"}, None, True),
+        ],
+    )
+    def test_replace_regex_kwarg_matches_regex_true(
+        self, to_replace, value, omit_value
+    ):
+        ser = pd.Series(["foo", "bar", "baz"])
+
+        if omit_value:
+            result = ser.replace(regex=to_replace)
+            expected = ser.replace(to_replace, regex=True)
+        else:
+            result = ser.replace(regex=to_replace, value=value)
+            expected = ser.replace(to_replace, value, regex=True)
+
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("frame", [False, True])
+    def test_replace_regex_true_with_none_to_replace_raises(self, frame):
+        obj = pd.Series(["foo", "bar"])
+        if frame:
+            obj = obj.to_frame("A")
+
+        msg = (
+            "'regex' must be a string or a compiled regular expression "
+            "or a list or dict of strings or regular expressions, "
+            "you passed a 'bool'"
+        )
+        with pytest.raises(TypeError, match=msg):
+            obj.replace(to_replace=None, value="X", regex=True)
+
     def test_replace_mixed_types_with_none(self):
         # GH#29813
         df = pd.Series([np.nan, 1, "foo"])

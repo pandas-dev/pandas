@@ -405,6 +405,41 @@ class TestDataFrameReplace:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
+        "kwargs",
+        [
+            {"to_replace": {"A": "foo", "B": "("}, "value": "X", "regex": True},
+            {"regex": {"A": "foo", "B": "("}, "value": "X"},
+            {"to_replace": {"A": {"foo": "X"}, "B": {"(": "Y"}}, "regex": True},
+            {"regex": {"A": {"foo": "X"}, "B": {"(": "Y"}}},
+        ],
+    )
+    def test_replace_invalid_regex_columnwise_raises_before_inplace(self, kwargs):
+        df = DataFrame({"A": ["foo", "bar"], "B": ["baz", "qux"]})
+        expected = df.copy()
+
+        with pytest.raises(ValueError, match="Invalid regular expression"):
+            df.replace(inplace=True, **kwargs)
+
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize(
+        "to_replace, value",
+        [
+            ("foo", "X"),
+            ([r"foo", r"ba."], "X"),
+            ({"A": "foo", "B": "qux"}, "X"),
+            (Series({"A": "foo", "B": "qux"}), "X"),
+        ],
+    )
+    def test_replace_regex_kwarg_matches_regex_true(self, to_replace, value):
+        df = DataFrame({"A": ["foo", "bar"], "B": ["baz", "qux"]})
+
+        result = df.replace(regex=to_replace, value=value)
+        expected = df.replace(to_replace, value, regex=True)
+
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
         "data,to_replace,expected",
         [
             (["xax", "xbx"], {"a": "c", "b": "d"}, ["xcx", "xdx"]),

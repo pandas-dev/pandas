@@ -7697,8 +7697,21 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         3  3  d  e
         4  4  e  e
         """
-        if not is_bool(regex) and to_replace is not None:
-            raise ValueError("'to_replace' must be 'None' if 'regex' is not a bool")
+        if not is_bool(regex):
+            if to_replace is not None:
+                raise ValueError("'to_replace' must be 'None' if 'regex' is not a bool")
+
+            if not (
+                is_re_compilable(regex) or is_list_like(regex) or is_dict_like(regex)
+            ):
+                raise TypeError(
+                    f"'regex' must be a string or a compiled regular expression "
+                    f"or a list or dict of strings or regular expressions, "
+                    f"you passed a {type(regex).__name__!r}"
+                )
+
+            to_replace = regex
+            regex = True
 
         if not (
             is_scalar(to_replace)
@@ -7711,33 +7724,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 f"{type(to_replace).__name__!r}"
             )
 
-        if value is lib.no_default and not (
-            is_dict_like(to_replace) or is_dict_like(regex)
-        ):
-            raise ValueError(
-                # GH#33302
-                f"{type(self).__name__}.replace must specify either 'value', "
-                "a dict-like 'to_replace', or dict-like 'regex'."
-            )
-
-        inplace = validate_bool_kwarg(inplace, "inplace")
-        if inplace:
-            if not CHAINED_WARNING_DISABLED:
-                if sys.getrefcount(
-                    self
-                ) <= REF_COUNT_METHOD and not common.is_local_in_caller_frame(self):
-                    warnings.warn(
-                        _chained_assignment_method_msg,
-                        ChainedAssignmentError,
-                        stacklevel=2,
-                    )
-
         if value is lib.no_default:
             if not is_dict_like(to_replace):
                 # In this case we have checked above that
-                #  1) regex is dict-like and 2) to_replace is None
-                to_replace = regex
-                regex = True
+                #  1) regex has already been normalized into to_replace and
+                #  2) only dict-like one-arg calls are valid
+                raise ValueError(
+                    # GH#33302
+                    f"{type(self).__name__}.replace must specify either 'value', "
+                    "a dict-like 'to_replace', or dict-like 'regex'."
+                )
 
             items = list(to_replace.items())
             if items:
@@ -7770,101 +7766,120 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
                 to_replace, value = to_rep_dict, value_dict
             else:
-                to_replace, value = keys, values
+                to_replace, value = list(keys), list(values)
 
-            return self.replace(to_replace, value, inplace=inplace, regex=regex)
-        else:
-            # need a non-zero len on all axes
-            if not self.size:
-                return self if inplace else self.copy(deep=False)
-            if is_dict_like(to_replace):
-                if is_dict_like(value):  # {'A' : NA} -> {'A' : 0}
-                    if isinstance(self, ABCSeries):
-                        raise ValueError(
-                            "to_replace and value cannot be dict-like for "
-                            "Series.replace"
-                        )
-                    # Note: Checking below for `in foo.keys()` instead of
-                    #  `in foo` is needed for when we have a Series and not dict
-                    mapping = {
-                        col: (to_replace[col], value[col])
-                        for col in to_replace.keys()
-                        if col in value.keys() and col in self
-                    }
-                    return self._replace_columnwise(mapping, inplace, regex)
+        if to_replace is None:
+            raise TypeError(
+                f"'regex' must be a string or a compiled regular expression "
+                f"or a list or dict of strings or regular expressions, "
+                f"you passed a {type(regex).__name__!r}"
+            )
 
-                # {'A': NA} -> 0
-                elif not is_list_like(value):
-                    # Operate column-wise
-                    if self.ndim == 1:
-                        raise ValueError(
-                            "Series.replace cannot specify both a dict-like "
-                            "'to_replace' and a 'value'"
-                        )
-                    mapping = {
-                        col: (to_rep, value) for col, to_rep in to_replace.items()
-                    }
-                    return self._replace_columnwise(mapping, inplace, regex)
-                else:
-                    raise TypeError("value argument must be scalar, dict, or Series")
+        if regex:
+            patterns = [to_replace]
+            try:
+                while patterns:
+                    pattern = patterns.pop()
 
-            elif is_list_like(to_replace):
-                if not is_list_like(value):
-                    # e.g. to_replace = [NA, ''] and value is 0,
-                    #  so we replace NA with 0 and then replace '' with 0
-                    value = [value] * len(to_replace)
+                    if is_dict_like(pattern):
+                        patterns.extend(pattern[key] for key in pattern.keys())
+                        continue
 
-                # e.g. we have to_replace = [NA, ''] and value = [0, 'missing']
-                if len(to_replace) != len(value):
+                    if is_list_like(pattern) and not isinstance(pattern, (str, bytes)):
+                        patterns.extend(pattern)
+                        continue
+
+                    if isinstance(pattern, (str, bytes)):
+                        re.compile(pattern)
+            except re.error as err:
+                raise ValueError(f"Invalid regular expression: {err}") from None
+
+        inplace = validate_bool_kwarg(inplace, "inplace")
+        if inplace:
+            if not CHAINED_WARNING_DISABLED:
+                if sys.getrefcount(
+                    self
+                ) <= REF_COUNT_METHOD and not common.is_local_in_caller_frame(self):
+                    warnings.warn(
+                        _chained_assignment_method_msg,
+                        ChainedAssignmentError,
+                        stacklevel=2,
+                    )
+
+        # need a non-zero len on all axes
+        if not self.size:
+            return self if inplace else self.copy(deep=False)
+        if is_dict_like(to_replace):
+            if is_dict_like(value):  # {'A' : NA} -> {'A' : 0}
+                if isinstance(self, ABCSeries):
                     raise ValueError(
-                        f"Replacement lists must match in length. "
-                        f"Expecting {len(to_replace)} got {len(value)} "
+                        "to_replace and value cannot be dict-like for Series.replace"
                     )
-                new_data = self._mgr.replace_list(
-                    src_list=to_replace,
-                    dest_list=value,
-                    inplace=inplace,
-                    regex=regex,
-                )
+                # Note: Checking below for `in foo.keys()` instead of
+                #  `in foo` is needed for when we have a Series and not dict
+                mapping = {
+                    col: (to_replace[col], value[col])
+                    for col in to_replace.keys()
+                    if col in value.keys() and col in self
+                }
+                return self._replace_columnwise(mapping, inplace, regex)
 
-            elif to_replace is None:
-                if not (
-                    is_re_compilable(regex)
-                    or is_list_like(regex)
-                    or is_dict_like(regex)
-                ):
-                    raise TypeError(
-                        f"'regex' must be a string or a compiled regular expression "
-                        f"or a list or dict of strings or regular expressions, "
-                        f"you passed a {type(regex).__name__!r}"
-                    )
-                return self.replace(regex, value, inplace=inplace, regex=True)
-            # dest iterable dict-like
-            elif is_dict_like(value):  # NA -> {'A' : 0, 'B' : -1}
+            # {'A': NA} -> 0
+            elif not is_list_like(value):
                 # Operate column-wise
                 if self.ndim == 1:
                     raise ValueError(
-                        "Series.replace cannot use dict-value and non-None to_replace"
+                        "Series.replace cannot specify both a dict-like "
+                        "'to_replace' and a 'value'"
                     )
-                mapping = {col: (to_replace, val) for col, val in value.items()}
+                mapping = {col: (to_rep, value) for col, to_rep in to_replace.items()}
                 return self._replace_columnwise(mapping, inplace, regex)
-
-            elif not is_list_like(value):  # NA -> 0
-                regex = should_use_regex(regex, to_replace)
-                if regex:
-                    new_data = self._mgr.replace_regex(
-                        to_replace=to_replace,
-                        value=value,
-                        inplace=inplace,
-                    )
-                else:
-                    new_data = self._mgr.replace(
-                        to_replace=to_replace, value=value, inplace=inplace
-                    )
             else:
-                raise TypeError(
-                    f'Invalid "to_replace" type: {type(to_replace).__name__!r}'
+                raise TypeError("value argument must be scalar, dict, or Series")
+
+        elif is_list_like(to_replace):
+            if not is_list_like(value):
+                # e.g. to_replace = [NA, ''] and value is 0,
+                #  so we replace NA with 0 and then replace '' with 0
+                value = [value] * len(to_replace)
+
+            # e.g. we have to_replace = [NA, ''] and value = [0, 'missing']
+            if len(to_replace) != len(value):
+                raise ValueError(
+                    f"Replacement lists must match in length. "
+                    f"Expecting {len(to_replace)} got {len(value)} "
                 )
+            new_data = self._mgr.replace_list(
+                src_list=to_replace,
+                dest_list=value,
+                inplace=inplace,
+                regex=regex,
+            )
+
+        # dest iterable dict-like
+        elif is_dict_like(value):  # NA -> {'A' : 0, 'B' : -1}
+            # Operate column-wise
+            if self.ndim == 1:
+                raise ValueError(
+                    "Series.replace cannot use dict-value and non-None to_replace"
+                )
+            mapping = {col: (to_replace, val) for col, val in value.items()}
+            return self._replace_columnwise(mapping, inplace, regex)
+
+        elif not is_list_like(value):  # NA -> 0
+            regex = should_use_regex(regex, to_replace)
+            if regex:
+                new_data = self._mgr.replace_regex(
+                    to_replace=to_replace,
+                    value=value,
+                    inplace=inplace,
+                )
+            else:
+                new_data = self._mgr.replace(
+                    to_replace=to_replace, value=value, inplace=inplace
+                )
+        else:
+            raise TypeError(f'Invalid "to_replace" type: {type(to_replace).__name__!r}')
 
         result = self._constructor_from_mgr(new_data, axes=new_data.axes)
         if inplace:
