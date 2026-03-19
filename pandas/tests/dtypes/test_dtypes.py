@@ -1085,7 +1085,15 @@ class TestCategoricalDtypeParametrized:
         dtype = CategoricalDtype(original_categories, ordered)
         new_dtype = CategoricalDtype(new_categories, new_ordered)
 
-        result = dtype.update_dtype(new_dtype)
+        # GH#61074
+        warn = (
+            Pandas4Warning
+            if new_categories is None and new_ordered is None and ordered
+            else None
+        )
+        depr_msg = "Specifying dtype='category' on ordered categorical data"
+        with tm.assert_produces_warning(warn, match=depr_msg):
+            result = dtype.update_dtype(new_dtype)
         expected_categories = pd.Index(new_categories or original_categories)
         expected_ordered = new_ordered if new_ordered is not None else dtype.ordered
 
@@ -1096,7 +1104,11 @@ class TestCategoricalDtypeParametrized:
         dtype = CategoricalDtype(list("abc"), ordered)
         expected_categories = dtype.categories
         expected_ordered = dtype.ordered
-        result = dtype.update_dtype("category")
+        # GH#61074
+        warn = Pandas4Warning if ordered else None
+        depr_msg = "Specifying dtype='category' on ordered categorical data"
+        with tm.assert_produces_warning(warn, match=depr_msg):
+            result = dtype.update_dtype("category")
         tm.assert_index_equal(result.categories, expected_categories)
         assert result.ordered is expected_ordered
 

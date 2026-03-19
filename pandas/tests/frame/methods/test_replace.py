@@ -6,6 +6,7 @@ import re
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -1316,15 +1317,20 @@ class TestDataFrameReplace:
         )
 
         # replace values in input dataframe
-        input_df = input_df.apply(
-            lambda x: x.astype("category").cat.rename_categories({"d": "z"})
-        )
-        input_df = input_df.apply(
-            lambda x: x.astype("category").cat.rename_categories({"obj1": "obj9"})
-        )
-        result = input_df.apply(
-            lambda x: x.astype("category").cat.rename_categories({"cat2": "catX"})
-        )
+        # GH#61074
+        depr_msg = "Specifying dtype='category' on ordered categorical data"
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            input_df = input_df.apply(
+                lambda x: x.astype("category").cat.rename_categories({"d": "z"})
+            )
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            input_df = input_df.apply(
+                lambda x: x.astype("category").cat.rename_categories({"obj1": "obj9"})
+            )
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            result = input_df.apply(
+                lambda x: x.astype("category").cat.rename_categories({"cat2": "catX"})
+            )
 
         result = result.astype({"col1": "int64", "col3": "float64", "col5": "str"})
         tm.assert_frame_equal(result, expected)

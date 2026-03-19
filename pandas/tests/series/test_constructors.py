@@ -494,16 +494,20 @@ class TestSeriesConstructors:
 
     def test_constructor_categorical_string(self):
         # GH 26336: the string 'category' maintains existing CategoricalDtype
+        # GH#61074 deprecation for dtype="category" on ordered data
         cdt = CategoricalDtype(categories=list("dabc"), ordered=True)
         expected = Series(list("abcabc"), dtype=cdt)
 
         # Series(Categorical, dtype='category') keeps existing dtype
         cat = Categorical(list("abcabc"), dtype=cdt)
-        result = Series(cat, dtype="category")
+        msg = "Specifying dtype='category' on ordered categorical data"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = Series(cat, dtype="category")
         tm.assert_series_equal(result, expected)
 
         # Series(Series[Categorical], dtype='category') keeps existing dtype
-        result = Series(result, dtype="category")
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = Series(result, dtype="category")
         tm.assert_series_equal(result, expected)
 
     def test_categorical_sideeffects_free(self):

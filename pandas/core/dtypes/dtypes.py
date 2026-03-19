@@ -51,7 +51,10 @@ from pandas.compat import (
     HAS_PYARROW,
     PYARROW_MIN_VERSION,
 )
-from pandas.errors import PerformanceWarning
+from pandas.errors import (
+    Pandas4Warning,
+    PerformanceWarning,
+)
 from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 
@@ -327,6 +330,17 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
                 if dtype == "category":
                     if ordered is None and cls.is_dtype(values):
                         # GH#49309 preserve orderedness
+                        if values.dtype.ordered:
+                            # GH#61074
+                            warnings.warn(
+                                "Specifying dtype='category' on ordered "
+                                "categorical data will set ordered=False in a "
+                                "future version. To retain the ordered behavior, "
+                                "use dtype=pd.CategoricalDtype(ordered=True) "
+                                "instead.",
+                                Pandas4Warning,
+                                stacklevel=find_stack_level(),
+                            )
                         ordered = values.dtype.ordered
 
                     dtype = CategoricalDtype(categories, ordered)
@@ -606,6 +620,16 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         """
         if isinstance(dtype, str) and dtype == "category":
             # dtype='category' should not change anything
+            if self.ordered:
+                # GH#61074
+                warnings.warn(
+                    "Specifying dtype='category' on ordered categorical data "
+                    "will set ordered=False in a future version. To retain the "
+                    "ordered behavior, use "
+                    "dtype=pd.CategoricalDtype(ordered=True) instead.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
             return self
         elif not self.is_dtype(dtype):
             raise ValueError(
@@ -627,6 +651,18 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             dtype.categories if dtype.categories is not None else self.categories
         )
         new_ordered = dtype.ordered if dtype.ordered is not None else self.ordered
+        if dtype.categories is None and dtype.ordered is None and self.ordered:
+            # GH#61074 dtype="category" produces categories=None, ordered=None
+            # via construct_from_string; warn that this will become
+            # ordered=False
+            warnings.warn(
+                "Specifying dtype='category' on ordered categorical data "
+                "will set ordered=False in a future version. To retain the "
+                "ordered behavior, use "
+                "dtype=pd.CategoricalDtype(ordered=True) instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
 
         return CategoricalDtype(new_categories, new_ordered)
 

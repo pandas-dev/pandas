@@ -7,6 +7,8 @@ from decimal import Decimal
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -1603,7 +1605,10 @@ class TestSeriesMode:
             )
         )
         result = s.mode(dropna)
-        expected3 = Series(expected3, dtype="category")
+        # GH#61074
+        msg = "Specifying dtype='category' on ordered categorical data"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            expected3 = Series(expected3, dtype="category")
         tm.assert_series_equal(result, expected3)
 
     @pytest.mark.parametrize(

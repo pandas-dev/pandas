@@ -37,9 +37,12 @@ import pandas._testing as tm
 class TestCategoricalConstructors:
     def test_categorical_from_cat_and_dtype_str_preserve_ordered(self):
         # GH#49309 we should preserve orderedness in `res`
+        # GH#61074 deprecation for dtype="category" on ordered data
         cat = Categorical([3, 1], categories=[3, 2, 1], ordered=True)
 
-        res = Categorical(cat, dtype="category")
+        msg = "Specifying dtype='category' on ordered categorical data"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            res = Categorical(cat, dtype="category")
         assert res.dtype.ordered
 
     def test_categorical_disallows_scalar(self):

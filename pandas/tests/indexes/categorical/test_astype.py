@@ -74,7 +74,11 @@ class TestAstype:
 
         if dtype_ordered is False:
             # dtype='category' can't specify ordered, so only test once
-            result = index.astype("category")
+            # GH#61074
+            warn = Pandas4Warning if index_ordered else None
+            depr_msg = "Specifying dtype='category' on ordered categorical data"
+            with tm.assert_produces_warning(warn, match=depr_msg):
+                result = index.astype("category")
             expected = index
             tm.assert_index_equal(result, expected)
 

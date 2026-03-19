@@ -633,8 +633,12 @@ class TestAstypeCategorical:
 
         if dtype_ordered is False:
             # not specifying ordered, so only test once
+            # GH#61074
+            warn = Pandas4Warning if series_ordered else None
+            depr_msg = "Specifying dtype='category' on ordered categorical data"
             expected = ser
-            result = ser.astype("category")
+            with tm.assert_produces_warning(warn, match=depr_msg):
+                result = ser.astype("category")
             tm.assert_series_equal(result, expected)
 
     def test_astype_bool_missing_to_categorical(self):
