@@ -1317,7 +1317,7 @@ cdef class MaskedIndexEngine(IndexEngine):
         # map each starget to its position in the index
         if (
                 stargets and
-                len(stargets) < 5 and
+                len(stargets) < (n / (2 * n.bit_length())) and
                 not np.any(target_mask) and
                 self.is_monotonic_increasing
         ):
