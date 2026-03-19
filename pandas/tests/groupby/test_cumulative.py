@@ -1,7 +1,10 @@
 import numpy as np
 import pytest
 
-from pandas.errors import UnsupportedFunctionCall
+from pandas.errors import (
+    Pandas4Warning,
+    UnsupportedFunctionCall,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -298,11 +301,45 @@ def test_numpy_compat(func):
     g = df.groupby("A")
 
     msg = "numpy operations are not valid with groupby"
+    depr_msg = "Passing additional arguments to GroupBy"
 
-    with pytest.raises(UnsupportedFunctionCall, match=msg):
-        getattr(g, func)(1, 2, 3)
-    with pytest.raises(UnsupportedFunctionCall, match=msg):
-        getattr(g, func)(foo=1)
+    with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+        with pytest.raises(UnsupportedFunctionCall, match=msg):
+            getattr(g, func)(1, 2, 3)
+    with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+        with pytest.raises(UnsupportedFunctionCall, match=msg):
+            getattr(g, func)(foo=1)
+
+
+@pytest.mark.parametrize("func", ["cummin", "cummax"])
+def test_kwargs_deprecated(func):
+    # GH#50407
+    df = DataFrame({"A": [1, 2, 1], "B": [1, 2, 3]})
+    gb = df.groupby("A")
+
+    msg = "Passing additional arguments to GroupBy"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        getattr(gb, func)(foo=1)
+
+
+@pytest.mark.parametrize(
+    "klass,msg",
+    [
+        ("SeriesGroupBy", "Passing additional arguments to SeriesGroupBy.take"),
+        ("DataFrameGroupBy", "Passing additional arguments to DataFrameGroupBy.take"),
+    ],
+)
+def test_take_kwargs_deprecated(klass, msg):
+    # GH#50407
+    df = DataFrame({"a": [1, 1, 2], "b": [1, 2, 3]})
+    if klass == "SeriesGroupBy":
+        gb = df.groupby("a")["b"]
+    else:
+        gb = df.groupby("a")
+
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        with pytest.raises(TypeError, match="got an unexpected keyword argument"):
+            gb.take([0], foo=1)
 
 
 @td.skip_if_32bit
