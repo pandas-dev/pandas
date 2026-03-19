@@ -24,7 +24,8 @@ readme = 'README.md'
 authors = [
   { name = 'The Pandas Development Team', email='pandas-dev@python.org' },
 ]
-license = {file = 'LICENSE'}
+license = 'BSD-3-Clause'
+license-files = ["LICENSE", "LICENSES/*", "subprojects/**/*LICENSE*"]
 requires-python = '>=3.11'
 dependencies = [
   "numpy>=1.26.0; python_version < '3.14'",
@@ -39,7 +40,6 @@ classifiers = [
     'Development Status :: 5 - Production/Stable',
     'Environment :: Console',
     'Intended Audience :: Science/Research',
-    'License :: OSI Approved :: BSD License',
     'Operating System :: OS Independent',
     'Programming Language :: Cython',
     'Programming Language :: Python',
