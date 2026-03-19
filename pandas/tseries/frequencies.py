@@ -298,7 +298,7 @@ class _FrequencyInferer:
         return Timestamp(self.i8values[0], unit=self.index.unit)
 
     def month_position_check(self) -> str | None:
-        return month_position_check(self.fields, self.index.dayofweek)
+        return month_position_check(self.fields, self.index.day_of_week)
 
     @cache_readonly
     def mdiffs(self) -> npt.NDArray[np.int64]:

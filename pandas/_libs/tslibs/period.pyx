@@ -1835,8 +1835,47 @@ cdef class _Period(PeriodMixin):
     # higher than np.ndarray, np.matrix, np.timedelta64
     __array_priority__ = 100
 
-    dayofweek = _Period.day_of_week
-    dayofyear = _Period.day_of_year
+    @property
+    def dayofweek(self) -> int:
+        """
+        Return day of the week.
+
+        .. deprecated:: 3.1.0
+            Use :attr:`Period.day_of_week` instead.
+        """
+        import warnings
+
+        from pandas.errors import Pandas4Warning
+        from pandas.util._exceptions import find_stack_level
+
+        warnings.warn(
+            "Period.dayofweek is deprecated and will be removed in a "
+            "future version. Use Period.day_of_week instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self.day_of_week
+
+    @property
+    def dayofyear(self) -> int:
+        """
+        Return day of the year.
+
+        .. deprecated:: 3.1.0
+            Use :attr:`Period.day_of_year` instead.
+        """
+        import warnings
+
+        from pandas.errors import Pandas4Warning
+        from pandas.util._exceptions import find_stack_level
+
+        warnings.warn(
+            "Period.dayofyear is deprecated and will be removed in a "
+            "future version. Use Period.day_of_year instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self.day_of_year
 
     def __cinit__(self, int64_t ordinal, PeriodDtypeBase dtype):
         self._ordinal = ordinal
@@ -2521,10 +2560,10 @@ cdef class _Period(PeriodMixin):
         >>> per.end_time.dayofweek
         2
         """
-        # Docstring is a duplicate from dayofweek. Reusing docstrings with
+        # Docstring is a duplicate from day_of_week. Reusing docstrings with
         # Appender doesn't work for properties in Cython files, and setting
         # the __doc__ attribute is also not possible.
-        return self.dayofweek
+        return self.day_of_week
 
     @property
     def day_of_year(self) -> int:
@@ -2671,8 +2710,8 @@ cdef class _Period(PeriodMixin):
         """
         Get the total number of days of the month that this period falls on.
 
-        This value depends on the month and whether the year is a leap year.
-        This is an alias for :attr:`days_in_month`.
+        .. deprecated:: 3.1.0
+            Use :attr:`Period.days_in_month` instead.
 
         Returns
         -------
@@ -2681,7 +2720,7 @@ cdef class _Period(PeriodMixin):
         See Also
         --------
         Period.days_in_month : Return the days of the month.
-        Period.dayofyear : Return the day of the year.
+        Period.day_of_year : Return the day of the year.
 
         Examples
         --------
@@ -2689,6 +2728,17 @@ cdef class _Period(PeriodMixin):
         >>> p.daysinmonth
         31
         """
+        import warnings
+
+        from pandas.errors import Pandas4Warning
+        from pandas.util._exceptions import find_stack_level
+
+        warnings.warn(
+            "Period.daysinmonth is deprecated and will be removed in a "
+            "future version. Use Period.days_in_month instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
         return self.days_in_month
 
     @property

@@ -264,10 +264,10 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         "minute",
         "second",
         "weekday",
-        "dayofweek",
         "day_of_week",
-        "dayofyear",
+        "dayofweek",
         "day_of_year",
+        "dayofyear",
         "quarter",
         "days_in_month",
         "daysinmonth",
@@ -1938,8 +1938,25 @@ default 'raise'
     Freq: D, dtype: int32
     """
     day_of_week = _field_accessor("day_of_week", "dow", _dayofweek_doc)
-    dayofweek = day_of_week
     weekday = day_of_week
+
+    @property
+    def dayofweek(self):
+        """
+        The day of the week with Monday=0, Sunday=6.
+
+        .. deprecated:: 3.1.0
+            Use :attr:`DatetimeIndex.day_of_week` instead.
+        """
+        from pandas.errors import Pandas4Warning
+
+        warnings.warn(
+            "DatetimeArray.dayofweek is deprecated and will be removed in a "
+            "future version. Use DatetimeArray.day_of_week instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self.day_of_week
 
     day_of_year = _field_accessor(
         "dayofyear",
@@ -1978,7 +1995,25 @@ default 'raise'
         Index([1, 32], dtype='int32')
         """,
     )
-    dayofyear = day_of_year
+
+    @property
+    def dayofyear(self):
+        """
+        The ordinal day of the year.
+
+        .. deprecated:: 3.1.0
+            Use :attr:`DatetimeIndex.day_of_year` instead.
+        """
+        from pandas.errors import Pandas4Warning
+
+        warnings.warn(
+            "DatetimeArray.dayofyear is deprecated and will be removed in a "
+            "future version. Use DatetimeArray.day_of_year instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self.day_of_year
+
     quarter = _field_accessor(
         "quarter",
         "q",
@@ -2052,7 +2087,25 @@ default 'raise'
         dtype: int32
         """,
     )
-    daysinmonth = days_in_month
+
+    @property
+    def daysinmonth(self):
+        """
+        The number of days in the month.
+
+        .. deprecated:: 3.1.0
+            Use :attr:`DatetimeIndex.days_in_month` instead.
+        """
+        from pandas.errors import Pandas4Warning
+
+        warnings.warn(
+            "DatetimeArray.daysinmonth is deprecated and will be removed in a "
+            "future version. Use DatetimeArray.days_in_month instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self.days_in_month
+
     _is_month_doc = """
         Indicates whether the date is the {first_or_last} day of the month.
 

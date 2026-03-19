@@ -9,6 +9,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import iNaT
+from pandas.errors import Pandas4Warning
 
 from pandas import (
     DatetimeIndex,
@@ -32,6 +33,23 @@ from pandas.core.arrays import (
 )
 
 
+class TestNaTDeprecations:
+    @pytest.mark.parametrize(
+        "old_attr, new_attr",
+        [
+            ("dayofweek", "day_of_week"),
+            ("dayofyear", "day_of_year"),
+            ("daysinmonth", "days_in_month"),
+        ],
+    )
+    def test_deprecated_day_attrs(self, old_attr, new_attr):
+        # GH#46768
+        msg = f"NaTType.{old_attr} is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = getattr(NaT, old_attr)
+        assert np.isnan(result)
+
+
 class TestNaTFormatting:
     def test_repr(self):
         assert repr(NaT) == "NaT"
@@ -52,10 +70,12 @@ class TestNaTFormatting:
     ],
 )
 def test_nat_fields(nat, idx):
+    # GH#46768 - deprecated aliases tested separately
+    deprecated = {"dayofweek", "dayofyear", "daysinmonth"}
     for field in idx._field_ops:
         # weekday is a property of DTI, but a method
         # on NaT/Timestamp for compat with datetime
-        if field == "weekday":
+        if field == "weekday" or field in deprecated:
             continue
 
         result = getattr(NaT, field)
@@ -75,10 +95,12 @@ def test_nat_fields(nat, idx):
 def test_nat_vector_field_access():
     idx = DatetimeIndex(["1/1/2000", None, None, "1/4/2000"])
 
+    # GH#46768 - deprecated aliases tested separately
+    deprecated = {"dayofweek", "dayofyear", "daysinmonth"}
     for field in DatetimeArray._field_ops:
         # weekday is a property of DTI, but a method
         # on NaT/Timestamp for compat with datetime
-        if field == "weekday":
+        if field == "weekday" or field in deprecated:
             continue
 
         result = getattr(idx, field)
@@ -90,7 +112,7 @@ def test_nat_vector_field_access():
     for field in DatetimeArray._field_ops:
         # weekday is a property of DTI, but a method
         # on NaT/Timestamp for compat with datetime
-        if field == "weekday":
+        if field == "weekday" or field in deprecated:
             continue
 
         result = getattr(ser.dt, field)
