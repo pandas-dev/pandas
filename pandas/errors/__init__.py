@@ -1064,8 +1064,9 @@ class InvalidComparison(Exception):
 
     See Also
     --------
-    Series.compare : Compare two Series and show differences.
-    DataFrame.compare : Compare two DataFrames and show differences.
+    Timestamp : Pandas replacement for python ``datetime.datetime`` object.
+    Timedelta : Represents a duration, the difference between two dates or times.
+    Period : Represents a period of time.
 
     Notes
     -----
