@@ -243,9 +243,7 @@ class TestConvertDtypes:
 
     def test_convert_dtypes_mixed_column_after_slice(self):
         # GH#64702
-        df = pd.DataFrame(
-            data=[[1, "a"], [2, "b"], ["c", 3]], columns=["col1", "col2"]
-        )
+        df = pd.DataFrame(data=[[1, "a"], [2, "b"], ["c", 3]], columns=["col1", "col2"])
         df = df.loc[[0, 1]].copy()
         result = df.convert_dtypes()
         expected = pd.DataFrame(
