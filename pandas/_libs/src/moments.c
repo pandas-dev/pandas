@@ -19,27 +19,25 @@ static inline int omp_get_thread_num() { return 0; }
 static inline int omp_get_num_threads() { return 1; }
 #endif
 
+#ifndef __has_attribute
+#  define __has_attribute(x) 0
+#endif
+
+#if defined(__x86_64__) && __has_attribute(target_clones) && defined(__GLIBC__)
+#  define PANDAS_SIMD_TARGETS __attribute__((target_clones("avx2", "default")))
+#else
+#  define PANDAS_SIMD_TARGETS
+#endif
+
 /* --- SIMD Implementation --- */
 #if defined(__clang__)
 typedef double v4d __attribute__((ext_vector_type(4), aligned(1)));
 typedef long long v4si __attribute__((ext_vector_type(4), aligned(1)));
 #  define PANDAS_HAS_SIMD 1
-#  if defined(__x86_64__)
-#    define PANDAS_SIMD_TARGETS                                                \
-      __attribute__((target_clones("avx2", "default")))
-#  else
-#    define PANDAS_SIMD_TARGETS
-#  endif
 #elif defined(__GNUC__)
 typedef double v4d __attribute__((vector_size(32), aligned(1)));
 typedef long long v4si __attribute__((vector_size(32), aligned(1)));
 #  define PANDAS_HAS_SIMD 1
-#  if defined(__x86_64__)
-#    define PANDAS_SIMD_TARGETS                                                \
-      __attribute__((target_clones("avx2", "default")))
-#  else
-#    define PANDAS_SIMD_TARGETS
-#  endif
 #endif
 
 #ifdef PANDAS_HAS_SIMD
