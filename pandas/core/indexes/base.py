@@ -1528,7 +1528,7 @@ class Index(IndexOpsMixin, PandasObject):
         # passing leading_space=False breaks test_format_missing,
         #  test_index_repr_in_frame_with_nan, but would otherwise make
         #  trim_front unnecessary
-        formatted = format_array(values, None, justify=justify)
+        formatted = format_array(values, None, justify=justify, na_rep=na_rep)
         result = trim_front(formatted)
         return header + result
 
