@@ -1,5 +1,3 @@
-from contextlib import nullcontext
-
 import numpy as np
 import pytest
 
@@ -454,11 +452,7 @@ def test_no_sort_keep_na(sequence, dtype, test_series, as_index):
             "a": [0, 1, 2, 3],
         }
     )
-    with (
-        tm.assert_produces_warning(Pandas4Warning, match="as_index")
-        if not as_index
-        else nullcontext()
-    ):
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
         gb = df.groupby(
             "key", dropna=False, sort=False, as_index=as_index, observed=False
         )
@@ -544,11 +538,7 @@ def test_categorical_reducers(reduction_func, observed, sort, as_index, index_ki
         args = (args[0].drop(columns=keys),)
         args_filled = (args_filled[0].drop(columns=keys),)
 
-    with (
-        tm.assert_produces_warning(Pandas4Warning, match="as_index")
-        if not as_index
-        else nullcontext()
-    ):
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
         gb_keepna = df.groupby(
             keys, dropna=False, observed=observed, sort=sort, as_index=as_index
         )
@@ -560,7 +550,8 @@ def test_categorical_reducers(reduction_func, observed, sort, as_index, index_ki
             getattr(gb_keepna, reduction_func)(*args)
         return
 
-    gb_filled = df_filled.groupby(keys, observed=observed, sort=sort, as_index=True)
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+        gb_filled = df_filled.groupby(keys, observed=observed, sort=sort, as_index=True)
     if reduction_func == "corrwith":
         warn = Pandas4Warning
         msg = "DataFrameGroupBy.corrwith is deprecated"
@@ -631,11 +622,7 @@ def test_categorical_transformers(transformation_func, observed, sort, as_index)
         null_group_data = getattr(null_group_values, transformation_func)(*args)
     null_group_result = pd.DataFrame({"y": null_group_data})
 
-    with (
-        tm.assert_produces_warning(Pandas4Warning, match="as_index")
-        if not as_index
-        else nullcontext()
-    ):
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
         gb_keepna = df.groupby(
             "x", dropna=False, observed=observed, sort=sort, as_index=as_index
         )
@@ -668,11 +655,7 @@ def test_categorical_head_tail(method, observed, sort, as_index):
     df = pd.DataFrame(
         {"x": pd.Categorical(values, categories=[1, 2, 3]), "y": range(len(values))}
     )
-    with (
-        tm.assert_produces_warning(Pandas4Warning, match="as_index")
-        if not as_index
-        else nullcontext()
-    ):
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
         gb = df.groupby(
             "x", dropna=False, observed=observed, sort=sort, as_index=as_index
         )

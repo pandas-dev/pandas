@@ -1,5 +1,3 @@
-from contextlib import nullcontext
-
 import numpy as np
 import pytest
 
@@ -53,11 +51,7 @@ def test_series_describe_as_index(as_index, keys):
             "foo2": [1, 2, 4, 4, 6],
         }
     )
-    with (
-        tm.assert_produces_warning(Pandas4Warning, match="as_index")
-        if not as_index
-        else nullcontext()
-    ):
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
         gb = df.groupby(keys, as_index=as_index)["foo2"]
     result = gb.describe()
     expected = DataFrame(
@@ -199,11 +193,7 @@ def test_describe_with_duplicate_output_column_names(as_index, keys):
     if not as_index:
         expected = expected.reset_index()
 
-    with (
-        tm.assert_produces_warning(Pandas4Warning, match="as_index")
-        if not as_index
-        else nullcontext()
-    ):
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
         result = df.groupby(keys, as_index=as_index).describe()
 
     tm.assert_frame_equal(result, expected)

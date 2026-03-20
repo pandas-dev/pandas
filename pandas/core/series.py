@@ -1998,7 +1998,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         self,
         by=None,
         level: IndexLabel | None = None,
-        as_index: bool = True,
+        as_index: bool | lib.NoDefault = lib.no_default,
         sort: bool = True,
         group_keys: bool = True,
         observed: bool = True,
@@ -2221,8 +2221,18 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         if level is None and by is None:
             raise TypeError("You have to supply one of 'by' and 'level'")
-        if not as_index:
-            raise TypeError("as_index=False only valid with DataFrame")
+        if as_index is not lib.no_default:
+            if not as_index:
+                raise TypeError("as_index=False only valid with DataFrame")
+            warnings.warn(
+                "The 'as_index' argument in groupby is deprecated and "
+                "will be removed in a future version. "
+                "Use groupby(...).reset_index() instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            as_index = True
 
         return SeriesGroupBy(
             obj=self,

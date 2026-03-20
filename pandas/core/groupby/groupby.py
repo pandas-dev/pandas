@@ -4563,7 +4563,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 values = np.where(nulls, NA, grouper)  # type: ignore[call-overload]
                 grouper = Index(values, dtype="Int64", copy=False)
 
-        grb = dropped.groupby(grouper, as_index=self.as_index, sort=self.sort)
+        grb = dropped.groupby(grouper, sort=self.sort)
         return grb.nth(n)
 
     @final

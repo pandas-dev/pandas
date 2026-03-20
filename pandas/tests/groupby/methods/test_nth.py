@@ -1,5 +1,3 @@
-from contextlib import nullcontext
-
 import numpy as np
 import pytest
 
@@ -543,11 +541,7 @@ def test_nth_multi_index_as_expected():
 @pytest.mark.parametrize("columns", [None, [], ["A"], ["B"], ["A", "B"]])
 def test_groupby_head_tail(op, n, expected_rows, columns, as_index):
     df = DataFrame([[1, 2], [1, 4], [5, 6]], columns=["A", "B"])
-    with (
-        tm.assert_produces_warning(Pandas4Warning, match="as_index")
-        if not as_index
-        else nullcontext()
-    ):
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
         g = df.groupby("A", as_index=as_index)
     expected = df.iloc[expected_rows]
     if columns is not None:

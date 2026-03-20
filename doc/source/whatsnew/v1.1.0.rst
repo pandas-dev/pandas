@@ -608,6 +608,7 @@ Using :meth:`DataFrame.groupby` with ``as_index=True`` and the aggregation ``nun
 *New behavior*:
 
 .. ipython:: python
+   :okwarning:
 
    df.groupby("a", as_index=True).nunique()
 

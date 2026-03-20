@@ -4,8 +4,6 @@ with different size combinations. This is to ensure stability of the sorting
 and proper parameter handling
 """
 
-from contextlib import nullcontext
-
 import numpy as np
 import pytest
 
@@ -300,11 +298,7 @@ def test_against_frame_and_seriesgroupby(
         "function": lambda x: education_df["country"][x] == "US",
     }[groupby]
 
-    with (
-        tm.assert_produces_warning(Pandas4Warning, match="as_index")
-        if not as_index
-        else nullcontext()
-    ):
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
         gp = education_df.groupby(by=by, as_index=as_index)
     result = gp[["gender", "education"]].value_counts(
         normalize=normalize, sort=sort, ascending=ascending
@@ -570,11 +564,7 @@ def test_categorical_single_grouper_with_only_observed_categories(
     # Test single categorical grouper with only observed grouping categories
     # when non-groupers are also categorical
 
-    with (
-        tm.assert_produces_warning(Pandas4Warning, match="as_index")
-        if not as_index
-        else nullcontext()
-    ):
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
         gp = education_df.astype("category").groupby(
             "country", as_index=as_index, observed=observed
         )
@@ -626,11 +616,7 @@ def assert_categorical_single_grouper(
     # Add non-observed grouping categories
     education_df["country"] = education_df["country"].cat.add_categories(["ASIA"])
 
-    with (
-        tm.assert_produces_warning(Pandas4Warning, match="as_index")
-        if not as_index
-        else nullcontext()
-    ):
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
         gp = education_df.groupby("country", as_index=as_index, observed=observed)
     result = gp.value_counts(normalize=normalize)
 
@@ -836,11 +822,7 @@ def test_categorical_multiple_groupers(
     education_df["country"] = education_df["country"].astype("category")
     education_df["education"] = education_df["education"].astype("category")
 
-    with (
-        tm.assert_produces_warning(Pandas4Warning, match="as_index")
-        if not as_index
-        else nullcontext()
-    ):
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
         gp = education_df.groupby(
             ["country", "education"], as_index=as_index, observed=observed
         )
@@ -895,11 +877,7 @@ def test_categorical_non_groupers(
     education_df["gender"] = education_df["gender"].astype("category")
     education_df["education"] = education_df["education"].astype("category")
 
-    with (
-        tm.assert_produces_warning(Pandas4Warning, match="as_index")
-        if not as_index
-        else nullcontext()
-    ):
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
         gp = education_df.groupby("country", as_index=as_index, observed=observed)
     result = gp.value_counts(normalize=normalize)
 
@@ -977,11 +955,7 @@ def test_column_label_duplicates(test, columns, expected_names, as_index):
     df = DataFrame([[1, 3, 5, 7, 9], [2, 4, 6, 8, 10]], columns=columns)
     expected_data = [(1, 0, 7, 3, 5, 9), (2, 1, 8, 4, 6, 10)]
     keys = ["a", np.array([0, 1], dtype=np.int64), "d"]
-    with (
-        tm.assert_produces_warning(Pandas4Warning, match="as_index")
-        if not as_index
-        else nullcontext()
-    ):
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
         result = df.groupby(keys, as_index=as_index).value_counts()
     if as_index:
         expected = Series(

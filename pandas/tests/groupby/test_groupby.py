@@ -104,8 +104,7 @@ def test_pass_args_kwargs_dataframe(tsframe, as_index):
     def f(x, q=None, axis=0):
         return np.percentile(x, q, axis=axis)
 
-    warn = Pandas4Warning if not as_index else None
-    with tm.assert_produces_warning(warn, match="as_index"):
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
         df_grouped = tsframe.groupby(lambda x: x.month, as_index=as_index)
     agg_result = df_grouped.agg(np.percentile, 80, axis=0)
     apply_result = df_grouped.apply(DataFrame.quantile, 0.8)
@@ -2342,8 +2341,7 @@ def test_groupby_all_nan_groups_drop():
 def test_groupby_empty_multi_column(as_index, numeric_only):
     # GH 15106 & GH 41998
     df = DataFrame(data=[], columns=["A", "B", "C"])
-    warn = Pandas4Warning if not as_index else None
-    with tm.assert_produces_warning(warn, match="as_index"):
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
         gb = df.groupby(["A", "B"], as_index=as_index)
     result = gb.sum(numeric_only=numeric_only)
     if as_index:

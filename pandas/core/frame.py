@@ -12433,7 +12433,7 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         by=None,
         level: IndexLabel | None = None,
-        as_index: bool = True,
+        as_index: bool | lib.NoDefault = lib.no_default,
         sort: bool = True,
         group_keys: bool = True,
         observed: bool = True,
@@ -12655,7 +12655,7 @@ class DataFrame(NDFrame, OpsMixin):
         if level is None and by is None:
             raise TypeError("You have to supply one of 'by' and 'level'")
 
-        if not as_index:
+        if as_index is not lib.no_default:
             warnings.warn(
                 "The 'as_index' argument in groupby is deprecated and "
                 "will be removed in a future version. "
@@ -12663,6 +12663,8 @@ class DataFrame(NDFrame, OpsMixin):
                 Pandas4Warning,
                 stacklevel=find_stack_level(),
             )
+        else:
+            as_index = True
 
         return DataFrameGroupBy(
             obj=self,

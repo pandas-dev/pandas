@@ -1,4 +1,3 @@
-from contextlib import nullcontext
 from datetime import (
     date,
     datetime,
@@ -296,11 +295,7 @@ def test_groupby_as_index_apply(as_index):
             "time": range(6),
         }
     )
-    with (
-        tm.assert_produces_warning(Pandas4Warning, match="as_index")
-        if not as_index
-        else nullcontext()
-    ):
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
         gb = df.groupby("user_id", as_index=as_index)
 
     expected = DataFrame(
@@ -1197,11 +1192,7 @@ def test_apply_dropna_with_indexed_same(dropna):
 def test_apply_as_index_constant_lambda(as_index, expected):
     # GH 13217
     df = DataFrame({"a": [1, 1, 2, 2], "b": [1, 1, 2, 2], "c": [1, 1, 1, 1]})
-    with (
-        tm.assert_produces_warning(Pandas4Warning, match="as_index")
-        if not as_index
-        else nullcontext()
-    ):
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
         result = df.groupby(["a", "b"], as_index=as_index).apply(lambda x: 1)
     tm.assert_equal(result, expected)
 

@@ -1,5 +1,3 @@
-from contextlib import nullcontext
-
 import numpy as np
 import pytest
 
@@ -106,11 +104,7 @@ def test_numba_vs_cython(jit, frame_or_series, nogil, parallel, as_index):
         {0: ["a", "a", "b", "b", "a"], 1: [1.0, 2.0, 3.0, 4.0, 5.0]}, columns=[0, 1]
     )
     engine_kwargs = {"nogil": nogil, "parallel": parallel}
-    with (
-        tm.assert_produces_warning(Pandas4Warning, match="as_index")
-        if not as_index
-        else nullcontext()
-    ):
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
         grouped = data.groupby(0, as_index=as_index)
     if frame_or_series is Series:
         grouped = grouped[1]

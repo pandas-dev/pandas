@@ -1475,7 +1475,8 @@ def test_as_index_no_change(keys, df, groupby_func):
         # Column B is string dtype; will fail on some ops
         df = df.drop(columns="B")
     args = get_groupby_method_args(groupby_func, df)
-    gb_as_index_true = df.groupby(keys, as_index=True)
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+        gb_as_index_true = df.groupby(keys, as_index=True)
     with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
         gb_as_index_false = df.groupby(keys, as_index=False)
     if groupby_func == "corrwith":

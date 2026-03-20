@@ -2,7 +2,6 @@
 test .agg behavior / note that .apply is tested generally in test_groupby.py
 """
 
-from contextlib import nullcontext
 import datetime
 import functools
 from functools import partial
@@ -1065,8 +1064,7 @@ def test_groupby_aggregate_empty_key_empty_return():
 def test_groupby_aggregate_empty_with_multiindex_frame_single(as_index):
     # GH 39178, 51445
     df = DataFrame(columns=["a", "b", "c"])
-    warn = Pandas4Warning if not as_index else None
-    with tm.assert_produces_warning(warn, match="as_index"):
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
         gb = df.groupby(["a", "b"], group_keys=False, as_index=as_index)
     result = gb.agg(lambda x: x.sum())
     expected = DataFrame(
@@ -1080,11 +1078,7 @@ def test_groupby_aggregate_empty_with_multiindex_frame_single(as_index):
 def test_groupby_aggregate_empty_with_multiindex_frame_multi(as_index):
     # GH 39178
     df = DataFrame(columns=["a", "b", "c"])
-    with (
-        tm.assert_produces_warning(Pandas4Warning, match="as_index")
-        if not as_index
-        else nullcontext()
-    ):
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
         result = df.groupby(["a", "b"], group_keys=False, as_index=as_index).agg(
             d=("c", list)
         )
@@ -1149,7 +1143,8 @@ def test_groupby_as_index_agg(df):
     expected2["D"] = grouped.sum()["D"]
     tm.assert_frame_equal(result2, expected2)
 
-    grouped = df.groupby("A", as_index=True)
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+        grouped = df.groupby("A", as_index=True)
 
     msg = r"nested renamer is not supported"
     with pytest.raises(SpecificationError, match=msg):
@@ -1190,7 +1185,8 @@ def test_groupby_as_index_agg(df):
             gr = df.groupby(ts, as_index=False)
         left = getattr(gr, attr)()
 
-        gr = df.groupby(ts.values, as_index=True)
+        with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
+            gr = df.groupby(ts.values, as_index=True)
         right = getattr(gr, attr)().reset_index(drop=True)
 
         tm.assert_frame_equal(left, right)
@@ -1432,8 +1428,7 @@ class TestLambdaMangling:
 def test_pass_args_kwargs_duplicate_columns(tsframe, as_index):
     # go through _aggregate_frame with self.axis == 0 and duplicate columns
     tsframe.columns = ["A", "B", "A", "C"]
-    warn = Pandas4Warning if not as_index else None
-    with tm.assert_produces_warning(warn, match="as_index"):
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
         gb = tsframe.groupby(lambda x: x.month, as_index=as_index)
 
     res = gb.agg(np.percentile, 80, axis=0)

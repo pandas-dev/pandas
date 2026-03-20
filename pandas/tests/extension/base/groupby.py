@@ -43,8 +43,7 @@ class BaseGroupbyTests:
             #  (see data_for_grouping docstring)
             df = df.iloc[:-1]
 
-        warn = Pandas4Warning if not as_index else None
-        with tm.assert_produces_warning(warn, match="as_index"):
+        with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
             gb = df.groupby("B", as_index=as_index)
         result = gb.A.mean()
         _, uniques = pd.factorize(data_for_grouping, sort=True)

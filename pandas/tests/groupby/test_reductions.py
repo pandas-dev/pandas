@@ -1,5 +1,4 @@
 import builtins
-from contextlib import nullcontext
 import datetime as dt
 from string import ascii_lowercase
 
@@ -1193,19 +1192,11 @@ def test_series_groupby_nunique(sort, dropna, as_index, with_nan, keys):
         df.loc[8::19, "julie"] = None
         df.loc[9::19, "julie"] = None
     original_df = df.copy()
-    with (
-        tm.assert_produces_warning(Pandas4Warning, match="as_index")
-        if not as_index
-        else nullcontext()
-    ):
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
         gr = df.groupby(keys, as_index=as_index, sort=sort)
     left = gr["julie"].nunique(dropna=dropna)
 
-    with (
-        tm.assert_produces_warning(Pandas4Warning, match="as_index")
-        if not as_index
-        else nullcontext()
-    ):
+    with tm.assert_produces_warning(Pandas4Warning, match="as_index"):
         gr = df.groupby(keys, as_index=as_index, sort=sort)
     right = gr["julie"].apply(Series.nunique, dropna=dropna)
     if not as_index:
