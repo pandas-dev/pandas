@@ -1338,14 +1338,14 @@ class DataFrame(NDFrame, OpsMixin):
         --------
 
         >>> df = pd.DataFrame([[1, 1.5]], columns=["int", "float"])
-        >>> row = next(df.iterrows())[1]  # doctest: +SKIP
-        >>> row  # doctest: +SKIP
+        >>> row = next(df.iterrows())[1]
+        >>> row
         int      1.0
         float    1.5
         Name: 0, dtype: float64
-        >>> print(row["int"].dtype)  # doctest: +SKIP
+        >>> print(row["int"].dtype)
         float64
-        >>> print(df["int"].dtype)  # doctest: +SKIP
+        >>> print(df["int"].dtype)
         int64
         """
         warnings.warn(
