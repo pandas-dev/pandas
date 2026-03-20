@@ -802,6 +802,7 @@ Apply
 <https://stackoverflow.com/questions/17349981/converting-pandas-dataframe-with-categorical-values-into-binary-values>`__
 
 .. ipython:: python
+   :okwarning:
 
    df = pd.DataFrame(
        data={

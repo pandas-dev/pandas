@@ -1503,6 +1503,7 @@ To iterate over the rows of a DataFrame, you can use the following methods:
   For example, in the following case setting the value has no effect:
 
   .. ipython:: python
+     :okwarning:
 
     df = pd.DataFrame({"a": [1, 2, 3], "b": ["a", "b", "c"]})
 
@@ -1538,6 +1539,7 @@ DataFrame as Series objects. It returns an iterator yielding each
 index value along with a Series containing the data in each row:
 
 .. ipython:: python
+   :okwarning:
 
    for row_index, row in df.iterrows():
        print(row_index, row, sep="\n")
@@ -1549,6 +1551,7 @@ index value along with a Series containing the data in each row:
    preserved across columns for DataFrames). For example,
 
    .. ipython:: python
+      :okwarning:
 
       df_orig = pd.DataFrame([[1, 1.5]], columns=["int", "float"])
       df_orig.dtypes
@@ -1570,6 +1573,7 @@ index value along with a Series containing the data in each row:
 For instance, a contrived way to transpose the DataFrame would be:
 
 .. ipython:: python
+   :okwarning:
 
    df2 = pd.DataFrame({"x": [1, 2, 3], "y": [4, 5, 6]})
    print(df2)
