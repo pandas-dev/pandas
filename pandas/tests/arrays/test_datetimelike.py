@@ -812,14 +812,7 @@ class TestDatetimeArray(SharedTests):
 
         tm.assert_numpy_array_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "propname",
-        [
-            prop
-            for prop in DatetimeArray._field_ops
-            if prop not in ("dayofweek", "dayofyear", "daysinmonth")
-        ],
-    )
+    @pytest.mark.parametrize("propname", DatetimeArray._field_ops)
     def test_int_properties(self, arr1d, propname):
         dti = self.index_cls(arr1d)
         arr = arr1d
@@ -1147,14 +1140,7 @@ class TestPeriodArray(SharedTests):
 
         tm.assert_numpy_array_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "propname",
-        [
-            prop
-            for prop in PeriodArray._field_ops
-            if prop not in ("dayofweek", "dayofyear", "daysinmonth")
-        ],
-    )
+    @pytest.mark.parametrize("propname", PeriodArray._field_ops)
     def test_int_properties(self, arr1d, propname):
         pi = self.index_cls(arr1d)
         arr = arr1d

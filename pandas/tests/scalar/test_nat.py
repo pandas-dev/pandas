@@ -70,12 +70,10 @@ class TestNaTFormatting:
     ],
 )
 def test_nat_fields(nat, idx):
-    # GH#46768 - deprecated aliases tested separately
-    deprecated = {"dayofweek", "dayofyear", "daysinmonth"}
     for field in idx._field_ops:
         # weekday is a property of DTI, but a method
         # on NaT/Timestamp for compat with datetime
-        if field == "weekday" or field in deprecated:
+        if field == "weekday":
             continue
 
         result = getattr(NaT, field)
@@ -95,12 +93,10 @@ def test_nat_fields(nat, idx):
 def test_nat_vector_field_access():
     idx = DatetimeIndex(["1/1/2000", None, None, "1/4/2000"])
 
-    # GH#46768 - deprecated aliases tested separately
-    deprecated = {"dayofweek", "dayofyear", "daysinmonth"}
     for field in DatetimeArray._field_ops:
         # weekday is a property of DTI, but a method
         # on NaT/Timestamp for compat with datetime
-        if field == "weekday" or field in deprecated:
+        if field == "weekday":
             continue
 
         result = getattr(idx, field)
@@ -112,7 +108,7 @@ def test_nat_vector_field_access():
     for field in DatetimeArray._field_ops:
         # weekday is a property of DTI, but a method
         # on NaT/Timestamp for compat with datetime
-        if field == "weekday" or field in deprecated:
+        if field == "weekday":
             continue
 
         result = getattr(ser.dt, field)

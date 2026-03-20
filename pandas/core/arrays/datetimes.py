@@ -265,12 +265,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         "second",
         "weekday",
         "day_of_week",
-        "dayofweek",
         "day_of_year",
-        "dayofyear",
         "quarter",
         "days_in_month",
-        "daysinmonth",
         "microsecond",
         "nanosecond",
     ]
