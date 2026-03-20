@@ -466,6 +466,7 @@ Previous behavior:
 New behavior:
 
 .. ipython:: python
+   :okwarning:
 
     df.groupby("A", as_index=True)["B"].nth(0)
     df.groupby("A", as_index=False)["B"].nth(0)

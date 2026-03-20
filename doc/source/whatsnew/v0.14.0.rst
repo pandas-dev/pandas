@@ -379,6 +379,7 @@ More consistent behavior for some groupby methods:
   Filtering
 
   .. ipython:: python
+     :okwarning:
 
      gf = df.groupby('A', as_index=False)
      gf.nth(0)
@@ -397,6 +398,7 @@ More consistent behavior for some groupby methods:
 - passing ``as_index`` will leave the grouped column in-place (this is not change in 0.14.0)
 
   .. ipython:: python
+     :okwarning:
 
      df = pd.DataFrame([[1, np.nan], [1, 4], [5, 6], [5, 8]], columns=['A', 'B'])
      g = df.groupby('A', as_index=False)

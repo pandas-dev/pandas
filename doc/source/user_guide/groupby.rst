@@ -489,11 +489,11 @@ column in a group of values.
    animals.groupby("kind").sum()
 
 In the result, the keys of the groups appear in the index by default. They can be
-instead included in the columns by passing ``as_index=False``.
+instead included in the columns by using :meth:`~DataFrame.reset_index`.
 
 .. ipython:: python
 
-   animals.groupby("kind", as_index=False).sum()
+   animals.groupby("kind").sum().reset_index()
 
 .. _groupby.aggregate.builtin:
 
@@ -599,18 +599,13 @@ Any reduction method that pandas implements can be passed as a string to
 The result of the aggregation will have the group names as the
 new index. In the case of multiple keys, the result is a
 :ref:`MultiIndex <advanced.hierarchical>` by default. As mentioned above, this can be
-changed by using the ``as_index`` option:
+changed by using :meth:`~DataFrame.reset_index`:
 
 .. ipython:: python
 
-   grouped = df.groupby(["A", "B"], as_index=False)
-   grouped.agg("sum")
+   df.groupby(["A", "B"]).agg("sum").reset_index()
 
-   df.groupby("A", as_index=False)[["C", "D"]].agg("sum")
-
-Note that you could use the :meth:`DataFrame.reset_index` DataFrame function to achieve
-the same result as the column names are stored in the resulting ``MultiIndex``, although
-this will make an extra copy.
+   df.groupby("A")[["C", "D"]].agg("sum").reset_index()
 
 .. ipython:: python
 

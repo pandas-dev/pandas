@@ -294,7 +294,7 @@ Method 2 : sort then take first of each
 
 .. ipython:: python
 
-   df.sort_values(by="BBB").groupby("AAA", as_index=False).first()
+   df.sort_values(by="BBB").groupby("AAA").first().reset_index()
 
 Notice the same results, with the exception of the index.
 

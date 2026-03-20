@@ -3271,7 +3271,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 medium     FR         0.25
         Name: proportion, dtype: float64
 
-        >>> df.groupby("gender", as_index=False).value_counts()
+        >>> df.groupby("gender").value_counts().reset_index()
            gender education country  count
         0  female      high      US      1
         1  female      high      FR      1
@@ -3279,7 +3279,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         3    male       low      US      1
         4    male    medium      FR      1
 
-        >>> df.groupby("gender", as_index=False).value_counts(normalize=True)
+        >>> df.groupby("gender").value_counts(normalize=True).reset_index()
            gender education country  proportion
         0  female      high      US        0.50
         1  female      high      FR        0.50
