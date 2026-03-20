@@ -2,6 +2,8 @@ import re
 
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_numeric_dtype,
@@ -41,7 +43,10 @@ class BaseGroupbyTests:
             #  (see data_for_grouping docstring)
             df = df.iloc[:-1]
 
-        result = df.groupby("B", as_index=as_index).A.mean()
+        warn = Pandas4Warning if not as_index else None
+        with tm.assert_produces_warning(warn, match="as_index"):
+            gb = df.groupby("B", as_index=as_index)
+        result = gb.A.mean()
         _, uniques = pd.factorize(data_for_grouping, sort=True)
 
         exp_vals = [3.0, 1.0, 4.0]

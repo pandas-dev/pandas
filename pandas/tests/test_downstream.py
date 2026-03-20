@@ -154,6 +154,7 @@ def test_scikit_learn():
     clf.predict(digits.data[-1:])
 
 
+@pytest.mark.filterwarnings("ignore:The 'as_index' argument:DeprecationWarning")
 def test_seaborn(mpl_cleanup):
     seaborn = pytest.importorskip("seaborn")
     tips = DataFrame(
