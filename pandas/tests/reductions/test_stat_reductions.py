@@ -277,6 +277,9 @@ class TestSeriesStatReductions:
 @pytest.mark.parametrize(
     "opname",
     [
+        "std",
+        "sem",
+        "var",
         "skew",
         "kurt",
     ],

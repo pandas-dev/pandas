@@ -36,6 +36,7 @@ from pandas._libs cimport util
 from pandas._libs.algos cimport (
     calc_kurt,
     calc_skew,
+    calc_var,
     get_rank_nan_fill_val,
     kth_smallest_c,
     moments_add_value,
@@ -922,11 +923,11 @@ def group_var(
 ) -> None:
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
-        floating val, ct, oldmean
-        floating[:, ::1] mean
+        float64_t val
+        float64_t[:, ::1] mean, M2
         int64_t[:, ::1] nobs
         Py_ssize_t len_values = len(values), len_labels = len(labels)
-        bint isna_entry, isna_result, uses_mask = mask is not None
+        bint uses_mask = mask is not None
         bint is_std = name == "std"
         bint is_sem = name == "sem"
 
@@ -936,7 +937,8 @@ def group_var(
         raise ValueError("len(index) != len(labels)")
 
     nobs = np.zeros((<object>out).shape, dtype=np.int64)
-    mean = np.zeros((<object>out).shape, dtype=(<object>out).base.dtype)
+    mean = np.zeros((<object>out).shape, dtype=np.float64)
+    M2 = np.zeros((<object>out).shape, dtype=np.float64)
 
     N, K = (<object>values).shape
 
@@ -953,61 +955,26 @@ def group_var(
             for j in range(K):
                 val = values[i, j]
 
-                if uses_mask:
-                    isna_entry = mask[i, j]
-                elif is_datetimelike:
-                    # With group_var, we cannot just use _treat_as_na bc
-                    #  datetimelike dtypes get cast to float64 instead of
-                    #  to int64.
-                    isna_entry = val == NPY_NAT
-                else:
-                    isna_entry = _treat_as_na(val, is_datetimelike)
+                if (uses_mask and mask[i, j]) or (is_datetimelike and val == NPY_NAT):
+                    val = NaN
 
-                if not skipna:
-                    if uses_mask:
-                        isna_result = result_mask[lab, j]
-                    elif is_datetimelike:
-                        # With group_var, we cannot just use _treat_as_na bc
-                        #  datetimelike dtypes get cast to float64 instead of
-                        #  to int64.
-                        isna_result = out[lab, j] == NPY_NAT
-                    else:
-                        isna_result = _treat_as_na(out[lab, j], is_datetimelike)
+                if skipna and isnan(val):
+                    continue
 
-                    if isna_result:
-                        # If aggregate is already NA, don't add to it. This is
-                        # important for datetimelike because adding a value to NPY_NAT
-                        # may not result in a NPY_NAT
-                        continue
-
-                if not isna_entry:
-                    nobs[lab, j] += 1
-                    oldmean = mean[lab, j]
-                    mean[lab, j] += (val - oldmean) / nobs[lab, j]
-                    out[lab, j] += (val - mean[lab, j]) * (val - oldmean)
-                elif not skipna:
-                    nobs[lab, j] = 0
-                    if uses_mask:
-                        result_mask[lab, j] = True
-                    else:
-                        out[lab, j] = NAN
+                moments_add_value(val, &nobs[lab, j], &mean[lab, j], &M2[lab, j],
+                                  NULL, NULL, 2)
 
         for i in range(ncounts):
             for j in range(K):
-                ct = nobs[i, j]
-                if ct <= ddof:
-                    if uses_mask:
-                        result_mask[i, j] = True
-                    else:
-                        out[i, j] = NAN
-                else:
-                    if is_std:
-                        out[i, j] = sqrt(out[i, j] / (ct - ddof))
-                    elif is_sem:
-                        out[i, j] = sqrt(out[i, j] / (ct - ddof) / ct)
-                    else:
-                        # just "var"
-                        out[i, j] /= (ct - ddof)
+                out[i, j] = calc_var(nobs[i, j], M2[i, j], ddof)
+
+                if result_mask is not None and isnan(out[i, j]):
+                    result_mask[i, j] = 1
+
+                if is_std:
+                    out[i, j] = sqrt(out[i, j])
+                elif is_sem:
+                    out[i, j] = sqrt(out[i, j] / <float64_t>nobs[i, j])
 
 
 @cython.wraparound(False)
