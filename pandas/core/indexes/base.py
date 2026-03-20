@@ -6628,7 +6628,8 @@ class Index(IndexOpsMixin, PandasObject):
             if pa.types.is_date(pa_dtype):
                 return False
             if pa.types.is_timestamp(pa_dtype):
-                if (pa_dtype.tz is None) ^ (getattr(self, "tz", None) is None):
+                pa_tz = getattr(pa_dtype, "tz", None)
+                if (pa_tz is None) ^ (getattr(self, "tz", None) is None):
                     return False
             return True
         # TODO: this was written assuming we only get here with object-dtype,
