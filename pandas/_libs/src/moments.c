@@ -32,11 +32,14 @@ static inline int omp_get_num_threads() { return 1; }
 #if defined(__clang__) && __has_attribute(ext_vector_type)
 typedef double v4d __attribute__((ext_vector_type(4), aligned(1)));
 typedef long long v4si __attribute__((ext_vector_type(4), aligned(1)));
+typedef uint8_t v4u8 __attribute__((ext_vector_type(4), aligned(1)));
 #  define PANDAS_HAS_SIMD 1
 #elif defined(__GNUC__) && __has_attribute(vector_size)
 typedef double v4d __attribute__((vector_size(4 * sizeof(double)), aligned(1)));
 typedef long long v4si
     __attribute__((vector_size(4 * sizeof(long long)), aligned(1)));
+typedef uint8_t v4u8
+    __attribute__((vector_size(4 * sizeof(uint8_t)), aligned(1)));
 #  define PANDAS_HAS_SIMD 1
 #endif
 
@@ -71,10 +74,10 @@ PANDAS_SIMD_TARGETS Moments accumulate_moments_simd(const double *values,
     v4d v_val = *(v4d *)(values + i);
 
     if (mask) {
-      v4d v_m_val = {mask[i + 0] ? 1.0 : 0.0, mask[i + 1] ? 1.0 : 0.0,
-                     mask[i + 2] ? 1.0 : 0.0, mask[i + 3] ? 1.0 : 0.0};
+      v4u8 mask_vec = *(v4u8 *)(mask + i);
+      v4si mask_si = __builtin_convertvector(mask_vec, v4si);
       // replace val with NAN where mask is 1.
-      v_val = v_select(v_m_val == v_one, v_nan, v_val);
+      v_val = v_select(mask_si != 0, v_nan, v_val);
     }
 
     // skip_mask is 1.0 if we should skip, 0.0 otherwise
