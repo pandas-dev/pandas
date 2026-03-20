@@ -81,18 +81,18 @@ class TestReadPyTablesHDF5:
 
 
 _legacy_files = list(Path(__file__).parent.parent.glob("data/legacy_hdf/*/*.h5"))
-_skip = pytest.mark.skip(reason="legacy .h5 files not found")
-_params = _legacy_files if _legacy_files else [pytest.param(None, marks=_skip)]  # type: ignore[list-item]
 
 
 @pytest.mark.parametrize(
     "legacy_file",
-    _params,
-    ids=lambda x: x.name if x is not None else "no_files",
+    _legacy_files,
+    ids=lambda x: x.name,
 )
 def test_legacy_files(datapath, legacy_file, using_infer_string, request):
     legacy_version = Version(legacy_file.parent.name)
-    legacy_file = datapath(legacy_file)
+    legacy_file = datapath(
+        "io", "data", "legacy_hdf", legacy_file.parent.name, legacy_file.name
+    )
 
     if not np_version_gt2 and legacy_file.endswith("fixed.h5"):
         # Files created for versions 2.0-3.0 used a numpy version >= 2.0, and
