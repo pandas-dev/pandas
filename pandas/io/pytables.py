@@ -234,6 +234,13 @@ with config.config_prefix("io.hdf"):
         validator=config.is_one_of_factory(["fixed", "table", None]),
     )
 
+config.deprecate_option(
+    "io.hdf.dropna_table",
+    Pandas4Warning,
+    msg="io.hdf.dropna_table option is deprecated. Use DataFrame.dropna "
+    "before writing instead.",
+)
+
 # oh the troubles to reduce import time
 _table_mod: ModuleType | None = None
 _table_file_open_policy_is_strict = False
@@ -1436,19 +1443,9 @@ class HDFStore:
                 Pandas4Warning,
                 stacklevel=find_stack_level(),
             )
-            if dropna is None:
-                dropna = get_option("io.hdf.dropna_table")
+            dropna = bool(dropna) if dropna is not None else False
         else:
-            dropna = get_option("io.hdf.dropna_table")
-            if dropna:
-                warnings.warn(
-                    "The 'io.hdf.dropna_table' option is deprecated and "
-                    "will be removed in a future version. Use "
-                    "DataFrame.dropna before writing instead.",
-                    Pandas4Warning,
-                    stacklevel=find_stack_level(),
-                )
-        dropna = bool(dropna)
+            dropna = False
         if format is None:
             format = _global_config["io"]["hdf"]["default_format"] or "table"
         format = self._validate_format(format)
