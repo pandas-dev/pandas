@@ -1603,6 +1603,7 @@ class ExcelFile:
 
                 if xlrd_version is not None and isinstance(path_or_buffer, xlrd.Book):
                     ext = "xls"
+                    engine = "xlrd"
 
             if ext is None:
                 ext = inspect_excel_format(
@@ -1614,9 +1615,10 @@ class ExcelFile:
                         "an engine manually."
                     )
 
-            engine = config.get_option(f"io.excel.{ext}.reader")
-            if engine == "auto":
-                engine = get_default_engine(ext, mode="reader")
+            if engine is None:
+                engine = config.get_option(f"io.excel.{ext}.reader")
+                if engine == "auto":
+                    engine = get_default_engine(ext, mode="reader")
 
         assert engine is not None
         self.engine = engine

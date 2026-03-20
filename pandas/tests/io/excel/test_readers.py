@@ -17,6 +17,7 @@ from zipfile import BadZipFile
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -38,6 +39,9 @@ engine_params = [
         "xlrd",
         marks=[
             td.skip_if_no("xlrd"),
+            pytest.mark.filterwarnings(
+                "ignore:The xlrd engine is deprecated:pandas.errors.Pandas4Warning"
+            ),
         ],
     ),
     pytest.param(
@@ -50,9 +54,23 @@ engine_params = [
         None,
         marks=[
             td.skip_if_no("xlrd"),
+            pytest.mark.filterwarnings(
+                "ignore:The xlrd engine is deprecated:pandas.errors.Pandas4Warning"
+            ),
+            pytest.mark.filterwarnings(
+                "ignore:The pyxlsb engine is deprecated:pandas.errors.Pandas4Warning"
+            ),
         ],
     ),
-    pytest.param("pyxlsb", marks=td.skip_if_no("pyxlsb")),
+    pytest.param(
+        "pyxlsb",
+        marks=[
+            td.skip_if_no("pyxlsb"),
+            pytest.mark.filterwarnings(
+                "ignore:The pyxlsb engine is deprecated:pandas.errors.Pandas4Warning"
+            ),
+        ],
+    ),
     pytest.param("odf", marks=td.skip_if_no("odf")),
     pytest.param("calamine", marks=td.skip_if_no("python_calamine")),
 ]
@@ -1778,8 +1796,19 @@ class TestExcelFileRead:
             errors = (CalamineError,)
 
         Path(tmp_excel).write_text("corrupt", encoding="utf-8")
-        with tm.assert_produces_warning(False):
+        expected_warning = Pandas4Warning if engine in {"xlrd", "pyxlsb"} else False
+        with tm.assert_produces_warning(expected_warning):
             try:
                 pd.ExcelFile(tmp_excel, engine=engine)
             except errors:
                 pass
+
+
+@td.skip_if_no("pyxlsb")
+def test_pyxlsb_engine_deprecated(datapath):
+    # GH#56542
+    path = datapath("io", "data", "excel", "test1.xlsb")
+    with tm.assert_produces_warning(
+        Pandas4Warning, match="pyxlsb engine is deprecated"
+    ):
+        pd.read_excel(path, engine="pyxlsb")
