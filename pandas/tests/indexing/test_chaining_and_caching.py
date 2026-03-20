@@ -3,8 +3,6 @@ from string import ascii_letters
 import numpy as np
 import pytest
 
-from pandas.errors import Pandas4Warning
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -47,9 +45,8 @@ class TestCaching:
         # loop through df to update out
         six = Timestamp("5/7/2014")
         eix = Timestamp("5/9/2014")
-        with tm.assert_produces_warning(Pandas4Warning, match="iterrows"):
-            for ix, row in df.iterrows():
-                out.loc[six:eix, row["C"]] = out.loc[six:eix, row["C"]] + row["D"]
+        for row in df.itertuples():
+            out.loc[six:eix, row.C] = out.loc[six:eix, row.C] + row.D
 
         tm.assert_frame_equal(out, expected)
         tm.assert_series_equal(out["A"], expected["A"])
@@ -58,19 +55,17 @@ class TestCaching:
         # this actually works
         out = DataFrame({"A": [0, 0, 0]}, index=date_range("5/7/2014", "5/9/2014"))
         out_original = out.copy()
-        with tm.assert_produces_warning(Pandas4Warning, match="iterrows"):
-            for ix, row in df.iterrows():
-                v = out[row["C"]][six:eix] + row["D"]
-                with tm.raises_chained_assignment_error():
-                    out[row["C"]][six:eix] = v
+        for row in df.itertuples():
+            v = out[row.C][six:eix] + row.D
+            with tm.raises_chained_assignment_error():
+                out[row.C][six:eix] = v
 
         tm.assert_frame_equal(out, out_original)
         tm.assert_series_equal(out["A"], out_original["A"])
 
         out = DataFrame({"A": [0, 0, 0]}, index=date_range("5/7/2014", "5/9/2014"))
-        with tm.assert_produces_warning(Pandas4Warning, match="iterrows"):
-            for ix, row in df.iterrows():
-                out.loc[six:eix, row["C"]] += row["D"]
+        for row in df.itertuples():
+            out.loc[six:eix, row.C] += row.D
 
         tm.assert_frame_equal(out, expected)
         tm.assert_series_equal(out["A"], expected["A"])

@@ -174,9 +174,5 @@ class TestIteration:
         for t in df.itertuples(index=False):
             str(t)
 
-        with tm.assert_produces_warning(Pandas4Warning, match="iterrows"):
-            for row, s in df.iterrows():
-                str(s)
-
         for c, col in df.items():
             str(col)

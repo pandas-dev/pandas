@@ -23,7 +23,6 @@ from pandas._config import using_string_dtype
 from pandas._libs import lib
 from pandas.compat import pa_version_under14p1
 from pandas.compat._optional import import_optional_dependency
-from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -4201,10 +4200,9 @@ def test_xsqlite_write_row_by_row(sqlite_buildin):
     cur.execute(create_sql)
 
     ins = "INSERT INTO test VALUES (%s, %s, %s, %s)"
-    with tm.assert_produces_warning(Pandas4Warning, match="iterrows"):
-        for _, row in frame.iterrows():
-            fmt_sql = format_query(ins, *row)
-            tquery(fmt_sql, con=sqlite_buildin)
+    for row in frame.itertuples(index=False):
+        fmt_sql = format_query(ins, *row)
+        tquery(fmt_sql, con=sqlite_buildin)
 
     sqlite_buildin.commit()
 
