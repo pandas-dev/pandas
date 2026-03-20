@@ -12,6 +12,7 @@ from pandas._libs.algos cimport (
     TiebreakEnumType,
     calc_kurt,
     calc_skew,
+    calc_var,
     moments_add_value,
 )
 
@@ -330,27 +331,9 @@ def roll_mean(const float64_t[:] values, ndarray[int64_t] start,
 # Rolling variance
 
 
-cdef float64_t calc_var(
-    int64_t minp,
-    int ddof,
-    float64_t nobs,
-    float64_t ssqdm_x,
-) noexcept nogil:
-    cdef:
-        float64_t result
-
-    # Variance is unchanged if no observation is added or removed
-    if (nobs >= minp) and (nobs > ddof):
-        result = ssqdm_x / (nobs - <float64_t>ddof)
-    else:
-        result = NaN
-
-    return result
-
-
 cdef void add_var(
     float64_t val,
-    float64_t *nobs,
+    int64_t *nobs,
     float64_t *mean_x,
     float64_t *ssqdm_x,
     float64_t *compensation,
@@ -358,29 +341,12 @@ cdef void add_var(
 ) noexcept nogil:
     """ add a value from the var calc """
     cdef:
-        float64_t delta, prev_mean, y, t
         float64_t prev_m2 = ssqdm_x[0]
 
     # GH#21813, if msvc 2017 bug is resolved, we should be OK with != instead of `isnan`
     if val != val:
         return
-
-    nobs[0] = nobs[0] + 1
-
-    # Welford's method for the online variance-calculation
-    # using Kahan summation
-    # https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
-    prev_mean = mean_x[0] - compensation[0]
-    y = val - compensation[0]
-    t = y - mean_x[0]
-    compensation[0] = t + mean_x[0] - y
-    delta = t
-    if nobs[0]:
-        mean_x[0] = mean_x[0] + delta / nobs[0]
-    else:
-        mean_x[0] = 0
-    ssqdm_x[0] = ssqdm_x[0] + (val - prev_mean) * (val - mean_x[0])
-
+    moments_add_value(val, nobs, mean_x, ssqdm_x, NULL, NULL, 2)
     if prev_m2 * InvCondTol > ssqdm_x[0]:
         # possible catastrophic cancellation
         numerically_unstable[0] = True
@@ -388,7 +354,7 @@ cdef void add_var(
 
 cdef void remove_var(
     float64_t val,
-    float64_t *nobs,
+    int64_t *nobs,
     float64_t *mean_x,
     float64_t *ssqdm_x,
     float64_t *compensation,
@@ -427,7 +393,8 @@ def roll_var(const float64_t[:] values, ndarray[int64_t] start,
     Numerically stable implementation using Welford's method.
     """
     cdef:
-        float64_t mean_x, ssqdm_x, nobs, compensation_add,
+        int64_t nobs
+        float64_t mean_x, ssqdm_x, compensation_add,
         float64_t compensation_remove
         int64_t s, e
         Py_ssize_t i, j, N = len(start)
@@ -478,10 +445,10 @@ def roll_var(const float64_t[:] values, ndarray[int64_t] start,
                             &numerically_unstable)
                 numerically_unstable = False
 
-            output[i] = calc_var(minp, ddof, nobs, ssqdm_x)
+            output[i] = NaN if nobs < minp else calc_var(nobs, ssqdm_x, ddof)
 
             if not is_monotonic_increasing_bounds:
-                nobs = 0.0
+                nobs = 0
                 mean_x = 0.0
                 ssqdm_x = 0.0
                 compensation_remove = 0.0

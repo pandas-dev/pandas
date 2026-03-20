@@ -1644,7 +1644,7 @@ def diff_2d(
 
 
 # ----------------------------------------------------------------------
-# Moments stats (skew, kurt)
+# Moments stats (var, skew, kurt)
 # ----------------------------------------------------------------------
 
 
@@ -1793,6 +1793,29 @@ cdef void accumulate_moments_axis(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.cdivision(True)
+def scalar_var(
+    const float64_t[::1] values,
+    bint skipna,
+    int64_t ddof,
+    const uint8_t[::1] mask,
+) -> float:
+    cdef:
+        int64_t nobs = 0
+        float64_t mean = 0.0, m2 = 0.0
+        const float64_t* val_ptr = &values[0]
+        const uint8_t* mask_ptr = &mask[0] if mask is not None else NULL
+        size_t n = <size_t>values.shape[0]
+
+    with nogil:
+        accumulate_moments_scalar(val_ptr, n, skipna, mask_ptr,
+                                  &nobs, &mean, &m2, NULL, NULL, 2)
+
+    return calc_var(nobs, m2, ddof)
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def scalar_skew(
     const float64_t[::1] values,
     bint skipna,
@@ -1831,6 +1854,34 @@ def scalar_kurt(
                                   &nobs, &mean, &m2, &m3, &m4, 4)
 
     return calc_kurt(nobs, m2, m4)
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def axis_var(
+    const float64_t[:, :] values,
+    int axis,
+    bint skipna,
+    int64_t ddof,
+    const uint8_t[:, :] mask,
+) -> ndarray:
+    cdef:
+        Py_ssize_t i
+        Py_ssize_t nouter = values.shape[1] if axis == 0 else values.shape[0]
+        int64_t[::1] nobs = np.zeros(nouter, dtype=np.int64)
+        float64_t[::1] mean = np.zeros(nouter)
+        float64_t[::1] m2 = np.zeros(nouter)
+        ndarray result_arr = np.empty(nouter, dtype=np.float64)
+        float64_t[:] result = result_arr
+
+    with nogil:
+        accumulate_moments_axis(values, skipna, mask,
+                                nobs, mean, m2, None, None, axis, 2)
+        for i in range(nouter):
+            result[i] = calc_var(nobs[i], m2[i], ddof)
+
+    return result_arr
 
 
 @cython.boundscheck(False)

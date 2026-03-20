@@ -589,9 +589,18 @@ class TestDataFrameAnalytics:
         tm.assert_series_equal(expected, result)
 
         # df1 has all numbers, df2 has a letter inside
-        msg = r"unsupported operand type\(s\) for -: 'float' and 'str'"
-        with pytest.raises(TypeError, match=msg):
-            getattr(df1, meth)(axis=1, numeric_only=False)
+
+        # The 100 string in df1 will be converted to its float representation
+        # instead of doing a preemptive search to raise an error.
+        result = getattr(df1, meth)(axis=1, numeric_only=False)
+        df1_float = df1.astype("f8")
+        expected = getattr(df1_float, meth)(axis=1, numeric_only=False)
+
+        # The output of `meth` may be an object
+        # because the first columns is an object.
+        # The conversion happens in DataFrame._reduce
+        tm.assert_series_equal(expected, result, check_dtype=False)
+
         msg = "could not convert string to float: 'a'"
         with pytest.raises(TypeError, match=msg):
             getattr(df2, meth)(axis=1, numeric_only=False)
