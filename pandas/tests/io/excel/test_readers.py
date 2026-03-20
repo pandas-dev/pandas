@@ -248,6 +248,7 @@ class TestReaders:
         monkeypatch.chdir(datapath("io", "data", "excel"))
         monkeypatch.setattr(pd, "read_excel", func)
 
+    @pytest.mark.filterwarnings("ignore::pytest.PytestUnraisableExceptionWarning")
     def test_engine_used(self, read_ext, engine):
         # GH 38884
         expected_defaults = {
@@ -259,8 +260,8 @@ class TestReaders:
         }
 
         with open("test1" + read_ext, "rb") as f:
-            excel_file = pd.ExcelFile(f, engine=engine)
-            result = excel_file.engine
+            with pd.ExcelFile(f, engine=engine) as excel_file:
+                result = excel_file.engine
 
         if engine is not None:
             expected = engine
