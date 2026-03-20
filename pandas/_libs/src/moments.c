@@ -171,9 +171,6 @@ static inline Moments accumulate_moments_dispatch(const double *values,
 #endif
   return accumulate_moments_scalar_block(values, n, skipna, mask, max_moment);
 }
-#undef PANDAS_HAS_SIMD
-#undef PANDAS_SIMD_TARGETS
-#undef v_select
 
 /* --- Public API (Orchestrates OpenMP Parallelism) --- */
 
