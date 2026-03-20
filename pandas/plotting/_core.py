@@ -787,8 +787,10 @@ class PlotAccessor(PandasObject):
 
     Parameters
     ----------
-    data : Series or DataFrame
-        The object for which the method is called.
+    *args
+        Positional arguments to pass to the plotting backend.
+    **kwargs
+        Keyword arguments to pass to the plotting backend.
 
     Attributes
     ----------

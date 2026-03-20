@@ -387,9 +387,6 @@ numpydoc_validation_exclude = {
     r"pandas\.ExcelWriter\.supported_extensions$",
     # ExcelFile
     r"pandas\.ExcelFile\.close$",
-    # plot.__call__ (PlotAccessor)
-    r"pandas\.DataFrame\.plot\.__call__$",
-    r"pandas\.Series\.plot\.__call__$",
     # Index attributes and methods processed by autodoc but not in api.rst
     r"pandas\.Index\.nlevels$",
     r"pandas\.Index\.diff$",
