@@ -1524,6 +1524,7 @@ through key-value pairs:
 For example:
 
 .. ipython:: python
+   :okwarning:
 
    for label, ser in df.items():
        print(label)
