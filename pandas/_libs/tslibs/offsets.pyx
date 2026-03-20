@@ -2970,7 +2970,7 @@ cdef class BusinessHour(BusinessMixin):
         assert False
 
     @cache_readonly
-    def next_bday(self):
+    def _next_bday(self):
         """
         Used for moving to next business day.
 
@@ -2984,21 +2984,6 @@ cdef class BusinessHour(BusinessMixin):
         BusinessDay or CustomBusinessDay
             A single-day business day offset in the appropriate direction.
 
-        See Also
-        --------
-        tseries.offsets.BusinessDay : DateOffset subclass representing
-            possibly n business days.
-        tseries.offsets.CustomBusinessDay : DateOffset subclass representing
-            possibly n custom business days.
-
-        Examples
-        --------
-        >>> pd.offsets.CustomBusinessHour(1).next_bday
-        <CustomBusinessDay>
-        >>> pd.offsets.CustomBusinessHour(-2).next_bday
-        <-1 * CustomBusinessDay>
-        >>> pd.offsets.BusinessHour(1).next_bday
-        <BusinessDay>
         """
         if self._n >= 0:
             nb_offset = 1
@@ -3046,9 +3031,9 @@ cdef class BusinessHour(BusinessMixin):
         else:
             is_same_sign = self._n * sign >= 0
 
-        if not self.next_bday.is_on_offset(other):
+        if not self._next_bday.is_on_offset(other):
             # today is not business day
-            other = other + sign * self.next_bday
+            other = other + sign * self._next_bday
             if is_same_sign:
                 hour, minute = earliest_start.hour, earliest_start.minute
             else:
@@ -3057,7 +3042,7 @@ cdef class BusinessHour(BusinessMixin):
             if is_same_sign:
                 if latest_start < other.time():
                     # current time is after latest starting time in today
-                    other = other + sign * self.next_bday
+                    other = other + sign * self._next_bday
                     hour, minute = earliest_start.hour, earliest_start.minute
                 else:
                     # find earliest starting time no earlier than current time
@@ -3068,7 +3053,7 @@ cdef class BusinessHour(BusinessMixin):
             else:
                 if other.time() < earliest_start:
                     # current time is before earliest starting time in today
-                    other = other + sign * self.next_bday
+                    other = other + sign * self._next_bday
                     hour, minute = latest_start.hour, latest_start.minute
                 else:
                     # find latest starting time no later than current time
@@ -3175,7 +3160,7 @@ cdef class BusinessHour(BusinessMixin):
             else:
                 skip_bd = BusinessDay(n=bd)
             # midnight business hour may not on BusinessDay
-            if not self.next_bday.is_on_offset(other):
+            if not self._next_bday.is_on_offset(other):
                 prev_open = self._prev_opening_time(other)
                 remain = other - prev_open
                 other = prev_open + skip_bd + remain
