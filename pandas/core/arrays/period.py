@@ -207,7 +207,11 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         "qyear",
         "days_in_month",
     ]
-    _datetimelike_ops: list[str] = _field_ops + _object_ops + _bool_ops
+    # GH#46768 - deprecated but still need to be accessible via .dt accessor
+    _deprecated_ops: list[str] = ["dayofweek", "dayofyear", "daysinmonth"]
+    _datetimelike_ops: list[str] = (
+        _field_ops + _object_ops + _bool_ops + _deprecated_ops
+    )
     _datetimelike_methods: list[str] = ["strftime", "to_timestamp", "asfreq"]
 
     _dtype: PeriodDtype

@@ -272,8 +272,10 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         "nanosecond",
     ]
     _other_ops: list[str] = ["date", "time", "timetz"]
+    # GH#46768 - deprecated but still need to be accessible via .dt accessor
+    _deprecated_ops: list[str] = ["dayofweek", "dayofyear", "daysinmonth"]
     _datetimelike_ops: list[str] = (
-        _field_ops + _bool_ops + _other_ops + ["unit", "freq", "tz"]
+        _field_ops + _bool_ops + _other_ops + _deprecated_ops + ["unit", "freq", "tz"]
     )
     _datetimelike_methods: list[str] = [
         "to_period",
