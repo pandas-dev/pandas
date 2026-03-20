@@ -1255,8 +1255,6 @@ class PlotAccessor(PandasObject):
             ``plotting.backend``. For instance, 'matplotlib'. Alternatively, to
             specify the ``plotting.backend`` for the whole session, set
             ``pd.options.plotting.backend``.
-        **kwargs
-            Options to pass to matplotlib plotting method.
 
         Returns
         -------
