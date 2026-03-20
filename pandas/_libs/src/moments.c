@@ -173,15 +173,13 @@ Moments accumulate_moments_dispatch(const double *values, int64_t n, int skipna,
   return accumulate_moments_scalar_block(values, n, skipna, mask, max_moment);
 }
 
-/* --- Public API (Orchestrates OpenMP Parallelism) --- */
+/* --- Moments 1D Accumulator Implementation --- */
 
 Moments accumulate_moments_scalar(const double *values, int64_t n, int skipna,
                                   const uint8_t *mask, int max_moment) {
   Moments result = {0};
 
 #ifdef _OPENMP
-  // parallel threshold chosen based on `perf report` where libgomp wasn't the
-  // overhead
 #  pragma omp parallel if (n > 10000)
 #endif
   {
