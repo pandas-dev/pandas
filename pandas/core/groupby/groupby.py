@@ -5109,6 +5109,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         horse  16  10
         bull    6   9
         """
+        nv.validate_groupby_func("cumprod", args, kwargs, ["skipna"])
         if args or kwargs:
             warnings.warn(
                 "Passing additional arguments to GroupBy.cumprod is deprecated "
@@ -5116,7 +5117,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 Pandas4Warning,
                 stacklevel=find_stack_level(),
             )
-        nv.validate_groupby_func("cumprod", args, kwargs, ["skipna"])
         return self._cython_transform("cumprod", numeric_only, skipna=skipna)
 
     @final
@@ -5200,6 +5200,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         gorilla  10   7
         lion      6   9
         """
+        nv.validate_groupby_func("cumsum", args, kwargs, ["skipna"])
         if args or kwargs:
             warnings.warn(
                 "Passing additional arguments to GroupBy.cumsum is deprecated "
@@ -5207,7 +5208,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 Pandas4Warning,
                 stacklevel=find_stack_level(),
             )
-        nv.validate_groupby_func("cumsum", args, kwargs, ["skipna"])
         return self._cython_transform("cumsum", numeric_only, skipna=skipna)
 
     @final

@@ -301,14 +301,11 @@ def test_numpy_compat(func):
     g = df.groupby("A")
 
     msg = "numpy operations are not valid with groupby"
-    depr_msg = "Passing additional arguments to GroupBy"
 
-    with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
-        with pytest.raises(UnsupportedFunctionCall, match=msg):
-            getattr(g, func)(1, 2, 3)
-    with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
-        with pytest.raises(UnsupportedFunctionCall, match=msg):
-            getattr(g, func)(foo=1)
+    with pytest.raises(UnsupportedFunctionCall, match=msg):
+        getattr(g, func)(1, 2, 3)
+    with pytest.raises(UnsupportedFunctionCall, match=msg):
+        getattr(g, func)(foo=1)
 
 
 @pytest.mark.parametrize("func", ["cummin", "cummax"])
