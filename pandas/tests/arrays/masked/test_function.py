@@ -84,6 +84,7 @@ class TestAnyAll2D:
 
     @pytest.fixture
     def arr2d(self):
+        # GH#64510
         # [[True,  False],
         #  [True,  <NA> ]]
         data = np.array([[True, False], [True, True]], dtype=bool)
