@@ -32,6 +32,7 @@ from pandas._libs import lib
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas.errors import (
     AbstractMethodError,
+    Pandas4Warning,
     ParserWarning,
 )
 from pandas.util._decorators import (
@@ -120,7 +121,7 @@ if TYPE_CHECKING:
         parse_dates: bool | Sequence[Hashable] | None
         date_format: str | dict[Hashable, str] | None
         dayfirst: bool
-        cache_dates: bool
+        cache_dates: bool | lib.NoDefault
         compression: CompressionOptions
         thousands: str | None
         decimal: str
@@ -296,6 +297,17 @@ def _read(
     # Check for duplicates in names.
     _validate_names(kwds.get("names", None))
 
+    # GH#55569 - deprecate cache_dates
+    if kwds.get("cache_dates", lib.no_default) is not lib.no_default:
+        warnings.warn(
+            "The 'cache_dates' keyword is deprecated and "
+            "will be removed in a future version.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+    else:
+        kwds["cache_dates"] = True
+
     # Create the parser.
     parser = TextFileReader(filepath_or_buffer, **kwds)
 
@@ -378,7 +390,7 @@ def read_csv(
     parse_dates: bool | Sequence[Hashable] | None = None,
     date_format: str | dict[Hashable, str] | None = None,
     dayfirst: bool = False,
-    cache_dates: bool = True,
+    cache_dates: bool | lib.NoDefault = lib.no_default,
     # Iteration
     iterator: bool = False,
     chunksize: int | None = None,
@@ -616,6 +628,8 @@ def read_csv(
         conversion. May produce significant speed-up when parsing duplicate
         date strings, especially ones with timezone offsets.
 
+        .. deprecated:: 3.1.0
+            The ``cache_dates`` keyword is deprecated.
     iterator : bool, default False
         Return ``TextFileReader`` object for iteration or getting chunks with
         ``get_chunk()``.
@@ -945,7 +959,7 @@ def read_table(
     parse_dates: bool | Sequence[Hashable] | None = None,
     date_format: str | dict[Hashable, str] | None = None,
     dayfirst: bool = False,
-    cache_dates: bool = True,
+    cache_dates: bool | lib.NoDefault = lib.no_default,
     # Iteration
     iterator: bool = False,
     chunksize: int | None = None,
@@ -1179,6 +1193,8 @@ def read_table(
         conversion. May produce significant speed-up when parsing duplicate
         date strings, especially ones with timezone offsets.
 
+        .. deprecated:: 3.1.0
+            The ``cache_dates`` keyword is deprecated.
     iterator : bool, default False
         Return ``TextFileReader`` object for iteration or getting chunks with
         ``get_chunk()``.

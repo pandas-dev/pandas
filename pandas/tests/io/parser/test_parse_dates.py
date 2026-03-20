@@ -257,13 +257,16 @@ def test_bad_date_parse(all_parsers, cache, value):
     parser = all_parsers
     s = StringIO((f"{value},\n") * (start_caching_at + 1))
 
-    parser.read_csv(
-        s,
-        header=None,
-        names=["foo", "bar"],
-        parse_dates=["foo"],
-        cache_dates=cache,
-    )
+    with tm.assert_produces_warning(
+        Pandas4Warning, match="cache_dates", check_stacklevel=False
+    ):
+        parser.read_csv(
+            s,
+            header=None,
+            names=["foo", "bar"],
+            parse_dates=["foo"],
+            cache_dates=cache,
+        )
 
 
 def test_bad_date_parse_with_warning(all_parsers, cache):
