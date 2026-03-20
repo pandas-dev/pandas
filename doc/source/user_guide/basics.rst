@@ -1465,15 +1465,8 @@ Thus, for example, iterating over a DataFrame gives you the column names:
 pandas objects also have the dict-like :meth:`~DataFrame.items` method to
 iterate over the (key, value) pairs.
 
-To iterate over the rows of a DataFrame, you can use the following methods:
-
-* :meth:`~DataFrame.iterrows`: Iterate over the rows of a DataFrame as (index, Series) pairs.
-  This converts the rows to Series objects, which can change the dtypes and has some
-  performance implications.
-* :meth:`~DataFrame.itertuples`: Iterate over the rows of a DataFrame
-  as namedtuples of the values.  This is a lot faster than
-  :meth:`~DataFrame.iterrows`, and is in most cases preferable to use
-  to iterate over the values of a DataFrame.
+To iterate over the rows of a DataFrame, you can use :meth:`~DataFrame.itertuples`,
+which iterates over the rows as namedtuples of the values.
 
 .. warning::
 
@@ -1500,18 +1493,6 @@ To iterate over the rows of a DataFrame, you can use the following methods:
   data types, the iterator returns a copy and not a view, and writing
   to it will have no effect!
 
-  For example, in the following case setting the value has no effect:
-
-  .. ipython:: python
-     :okwarning:
-
-    df = pd.DataFrame({"a": [1, 2, 3], "b": ["a", "b", "c"]})
-
-    for index, row in df.iterrows():
-        row["a"] = 10
-
-    df
-
 items
 ~~~~~
 
@@ -1524,64 +1505,14 @@ through key-value pairs:
 For example:
 
 .. ipython:: python
-   :okwarning:
+
+   df = pd.DataFrame({"a": [1, 2, 3], "b": ["a", "b", "c"]})
 
    for label, ser in df.items():
        print(label)
        print(ser)
 
 .. _basics.iterrows:
-
-iterrows
-~~~~~~~~
-
-:meth:`~DataFrame.iterrows` allows you to iterate through the rows of a
-DataFrame as Series objects. It returns an iterator yielding each
-index value along with a Series containing the data in each row:
-
-.. ipython:: python
-   :okwarning:
-
-   for row_index, row in df.iterrows():
-       print(row_index, row, sep="\n")
-
-.. note::
-
-   Because :meth:`~DataFrame.iterrows` returns a Series for each row,
-   it does **not** preserve dtypes across the rows (dtypes are
-   preserved across columns for DataFrames). For example,
-
-   .. ipython:: python
-      :okwarning:
-
-      df_orig = pd.DataFrame([[1, 1.5]], columns=["int", "float"])
-      df_orig.dtypes
-      row = next(df_orig.iterrows())[1]
-      row
-
-   All values in ``row``, returned as a Series, are now upcasted
-   to floats, also the original integer value in column ``x``:
-
-   .. ipython:: python
-
-      row["int"].dtype
-      df_orig["int"].dtype
-
-   To preserve dtypes while iterating over the rows, it is better
-   to use :meth:`~DataFrame.itertuples` which returns namedtuples of the values
-   and which is generally much faster than :meth:`~DataFrame.iterrows`.
-
-For instance, a contrived way to transpose the DataFrame would be:
-
-.. ipython:: python
-   :okwarning:
-
-   df2 = pd.DataFrame({"x": [1, 2, 3], "y": [4, 5, 6]})
-   print(df2)
-   print(df2.T)
-
-   df2_t = pd.DataFrame({idx: values for idx, values in df2.iterrows()})
-   print(df2_t)
 
 itertuples
 ~~~~~~~~~~
@@ -1600,8 +1531,7 @@ For instance:
 
 This method does not convert the row to a Series object; it merely
 returns the values inside a namedtuple. Therefore,
-:meth:`~DataFrame.itertuples` preserves the data type of the values
-and is generally faster than :meth:`~DataFrame.iterrows`.
+:meth:`~DataFrame.itertuples` preserves the data type of the values.
 
 .. note::
 

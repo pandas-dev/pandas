@@ -802,7 +802,6 @@ Apply
 <https://stackoverflow.com/questions/17349981/converting-pandas-dataframe-with-categorical-values-into-binary-values>`__
 
 .. ipython:: python
-   :okwarning:
 
    df = pd.DataFrame(
        data={
@@ -815,9 +814,7 @@ Apply
    def SeriesFromSubList(aList):
        return pd.Series(aList)
 
-   df_orgz = pd.concat(
-       {ind: row.apply(SeriesFromSubList) for ind, row in df.iterrows()}
-   )
+   df_orgz = df.stack().apply(SeriesFromSubList)
    df_orgz
 
 `Rolling apply with a DataFrame returning a Series
