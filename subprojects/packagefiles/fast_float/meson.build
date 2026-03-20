@@ -8,3 +8,4 @@ project(
 fast_float_inc = include_directories('include')
 
 fast_float_dep = declare_dependency(include_directories: fast_float_inc)
+meson.override_dependency('fast_float', fast_float_dep)

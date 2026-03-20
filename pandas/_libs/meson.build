@@ -51,8 +51,7 @@ _khash_primitive_helper_dep = declare_dependency(
 )
 
 m_dep = cc.find_library('m', required: false)
-fast_float = subproject('fast_float')
-fast_float_dep = fast_float.get_variable('fast_float_dep')
+fast_float_dep = dependency('fast_float', version: '==8.2.3')
 
 subdir('tslibs')
 
