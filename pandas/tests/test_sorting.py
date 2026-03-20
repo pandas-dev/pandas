@@ -5,8 +5,6 @@ from itertools import product
 import numpy as np
 import pytest
 
-from pandas.errors import Pandas4Warning
-
 from pandas import (
     NA,
     DataFrame,
@@ -279,13 +277,11 @@ class TestMerge:
         # manually compute outer merge
         ldict, rdict = defaultdict(list), defaultdict(list)
 
-        with tm.assert_produces_warning(Pandas4Warning, match="iterrows"):
-            for idx, row in left.set_index(list("ABCDEFG")).iterrows():
-                ldict[idx].append(row["left"])
+        for row in left.set_index(list("ABCDEFG")).itertuples():
+            ldict[row.Index].append(row.left)
 
-        with tm.assert_produces_warning(Pandas4Warning, match="iterrows"):
-            for idx, row in right.set_index(list("ABCDEFG")).iterrows():
-                rdict[idx].append(row["right"])
+        for row in right.set_index(list("ABCDEFG")).itertuples():
+            rdict[row.Index].append(row.right)
 
         vals = []
         for k, lval in ldict.items():
