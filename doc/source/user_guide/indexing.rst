@@ -796,6 +796,42 @@ This is like an ``append`` operation on the ``DataFrame``.
    dfi.loc[3] = 5
    dfi
 
+.. _indexing.series_alignment:
+
+Series alignment on assignment
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When assigning a ``Series`` to a ``DataFrame`` column (via ``[]`` or ``.loc``),
+the ``Series`` values are aligned by **index labels**, not by position. This
+means:
+
+* Values from the ``Series`` are matched to ``DataFrame`` rows by their labels.
+* If a ``Series`` label does not exist in the ``DataFrame`` index, it is ignored.
+* If a ``DataFrame`` label does not exist in the ``Series`` index, ``NaN`` is
+  assigned.
+* The order of values in the resulting ``DataFrame`` follows the ``DataFrame``
+  index, regardless of the ``Series`` order.
+
+.. ipython:: python
+
+   df = pd.DataFrame({"A": [1, 2, 3]}, index=[0, 1, 2])
+   s = pd.Series(["two", "one", "zero"], index=[2, 1, 0])
+   df["B"] = s
+   df
+
+Note that the values in ``B`` follow the ``DataFrame`` index order, not the
+``Series`` order.
+
+When the ``Series`` has only a partial match with the ``DataFrame`` index,
+unmatched labels become ``NaN`` and extra ``Series`` labels are discarded:
+
+.. ipython:: python
+
+   df = pd.DataFrame({"A": [1, 2, 3]}, index=["x", "y", "z"])
+   s = pd.Series([10, 20], index=["y", "w"])
+   df["C"] = s
+   df
+
 .. _indexing.basics.get_value:
 
 Fast scalar value getting and setting

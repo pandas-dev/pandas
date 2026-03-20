@@ -624,19 +624,33 @@ class IndexingMixin:
 
         **Assignment with Series**
 
-        When assigning a Series to .loc[row_indexer, col_indexer], pandas aligns
-        the Series by index labels, not by order or position.
+        When assigning a ``Series`` to a ``DataFrame`` column via ``.loc``,
+        values are aligned by index labels, not by position. Labels in
+        the ``Series`` that do not match the ``DataFrame`` index are ignored,
+        and ``DataFrame`` labels not present in the ``Series`` become ``NaN``.
 
-        Series assignment with .loc and index alignment:
+        Assigning a ``Series`` whose index differs in order from the
+        ``DataFrame`` index:
 
-        >>> df = pd.DataFrame({"A": [1, 2, 3]}, index=[0, 1, 2])
-        >>> s = pd.Series([10, 20], index=[1, 0])  # Note reversed order
-        >>> df.loc[:, "B"] = s  # Aligns by index, not order
+        >>> df = pd.DataFrame({"A": [1, 2, 3]}, index=["x", "y", "z"])
+        >>> s = pd.Series(["z_val", "x_val", "y_val"], index=["z", "x", "y"])
+        >>> df.loc[:, "B"] = s
         >>> df
-           A   B
-        0  1  20.0
-        1  2  10.0
-        2  3 NaN
+           A      B
+        x  1  x_val
+        y  2  y_val
+        z  3  z_val
+
+        Assigning a ``Series`` with only a partial index match.  Missing
+        labels become ``NaN`` and extra labels in the ``Series`` are ignored:
+
+        >>> s2 = pd.Series([10, 20], index=["y", "w"])
+        >>> df.loc[:, "C"] = s2
+        >>> df
+           A      B     C
+        x  1  x_val   NaN
+        y  2  y_val  10.0
+        z  3  z_val   NaN
         """
         return _LocIndexer("loc", self)
 
