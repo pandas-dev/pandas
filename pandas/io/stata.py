@@ -3299,10 +3299,9 @@ class StataStrLWriter:
         selected = gso_df[self.columns]
         col_index = [(col, columns.index(col)) for col in self.columns]
         keys = np.empty(selected.shape, dtype=np.uint64)
-        selected_values = selected.to_numpy(dtype=object, na_value=None)
         for o in range(len(selected)):
             for j, (col, v) in enumerate(col_index):
-                val = selected_values[o, j]
+                val = selected.iloc[o, j]
                 # Allow columns with mixed str and None or pd.NA (GH 23633)
                 val = "" if isna(val) else val
                 key = gso_table.get(val, None)
