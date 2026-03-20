@@ -690,13 +690,13 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         Examples
         --------
         >>> idx = pd.PeriodIndex(["2023-01-10", "2023-02-01", "2023-03-01"], freq="D")
-        >>> idx.dayofyear
+        >>> idx.day_of_year
         Index([10, 32, 60], dtype='int64')
 
         >>> idx = pd.PeriodIndex(["2023", "2024", "2025"], freq="Y")
         >>> idx
         PeriodIndex(['2023', '2024', '2025'], dtype='period[Y-DEC]')
-        >>> idx.dayofyear
+        >>> idx.day_of_year
         Index([365, 366, 365], dtype='int64')
         """,
     )

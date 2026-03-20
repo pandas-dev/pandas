@@ -1918,14 +1918,13 @@ default 'raise'
 
     See Also
     --------
-    Series.dt.dayofweek : Alias.
     Series.dt.weekday : Alias.
     Series.dt.day_name : Returns the name of the day of the week.
 
     Examples
     --------
     >>> s = pd.date_range('2016-12-31', '2017-01-08', freq='D').to_series()
-    >>> s.dt.dayofweek
+    >>> s.dt.day_of_week
     2016-12-31    5
     2017-01-01    6
     2017-01-02    0
@@ -1982,7 +1981,7 @@ default 'raise'
         0   2020-01-01 10:00:00+00:00
         1   2020-02-01 11:00:00+00:00
         dtype: datetime64[us, UTC]
-        >>> s.dt.dayofyear
+        >>> s.dt.day_of_year
         0    1
         1   32
         dtype: int32
@@ -1991,7 +1990,7 @@ default 'raise'
 
         >>> idx = pd.DatetimeIndex(["1/1/2020 10:00:00+00:00",
         ...                         "2/1/2020 11:00:00+00:00"])
-        >>> idx.dayofyear
+        >>> idx.day_of_year
         Index([1, 32], dtype='int32')
         """,
     )
@@ -2081,7 +2080,7 @@ default 'raise'
         0   2020-01-01 10:00:00+00:00
         1   2020-02-01 11:00:00+00:00
         dtype: datetime64[us, UTC]
-        >>> s.dt.daysinmonth
+        >>> s.dt.days_in_month
         0    31
         1    29
         dtype: int32

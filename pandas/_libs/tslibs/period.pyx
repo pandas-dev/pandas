@@ -2532,32 +2532,32 @@ cdef class _Period(PeriodMixin):
         See Also
         --------
         Period.dayofweek : Day of the week the period lies in.
-        Period.weekday : Alias of Period.dayofweek.
+        Period.weekday : Alias of Period.day_of_week.
         Period.day : Day of the month.
-        Period.dayofyear : Day of the year.
+        Period.day_of_year : Day of the year.
 
         Examples
         --------
         >>> per = pd.Period('2017-12-31 22:00', 'h')
-        >>> per.dayofweek
+        >>> per.day_of_week
         6
 
         For periods that span over multiple days, the day at the beginning of
         the period is returned.
 
         >>> per = pd.Period('2017-12-31 22:00', '4h')
-        >>> per.dayofweek
+        >>> per.day_of_week
         6
-        >>> per.start_time.dayofweek
+        >>> per.start_time.day_of_week
         6
 
         For periods with a frequency higher than days, the last day of the
         period is returned.
 
         >>> per = pd.Period('2018-01', 'M')
-        >>> per.dayofweek
+        >>> per.day_of_week
         2
-        >>> per.end_time.dayofweek
+        >>> per.end_time.day_of_week
         2
         """
         # Docstring is a duplicate from day_of_week. Reusing docstrings with
@@ -2725,7 +2725,7 @@ cdef class _Period(PeriodMixin):
         Examples
         --------
         >>> p = pd.Period("2018-03-11", freq='h')
-        >>> p.daysinmonth
+        >>> p.days_in_month
         31
         """
         import warnings
