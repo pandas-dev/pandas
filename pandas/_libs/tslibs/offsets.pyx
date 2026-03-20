@@ -6802,9 +6802,18 @@ cdef class _CustomBusinessMonth(BusinessMixin):
         self._init_custom(weekmask, holidays, calendar)
 
     @cache_readonly
-    def cbday_roll(self):
+    def _cbday_roll(self):
         """
         Define default roll function to be called in apply method.
+
+        Returns ``CustomBusinessDay.rollback`` for month-end offsets and
+        ``CustomBusinessDay.rollforward`` for month-begin offsets.
+
+        Returns
+        -------
+        callable
+            The bound ``rollback`` or ``rollforward`` method of a
+            ``CustomBusinessDay`` instance.
         """
         cbday_kwds = self.kwds.copy()
         cbday_kwds["offset"] = timedelta(0)
@@ -6867,11 +6876,11 @@ cdef class _CustomBusinessMonth(BusinessMixin):
         cur_month_offset_date = self.month_roll(other)
 
         # Find this custom month offset
-        compare_date = self.cbday_roll(cur_month_offset_date)
+        compare_date = self._cbday_roll(cur_month_offset_date)
         n = roll_convention(other.day, self._n, compare_date.day)
 
         new = cur_month_offset_date + n * self.m_offset
-        result = self.cbday_roll(new)
+        result = self._cbday_roll(new)
 
         if self._offset:
             result = result + self._offset
