@@ -40,6 +40,7 @@ from pandas._typing import (
     ArrayLike,
     DateTimeErrorChoices,
 )
+from pandas.errors import Pandas4Warning
 from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 
@@ -348,7 +349,7 @@ def _convert_listlike_datetimes(
     format: str | None,
     name: Hashable | None = None,
     utc: bool = False,
-    unit: str | None = None,
+    input_unit: str | None = None,
     errors: DateTimeErrorChoices = "raise",
     dayfirst: bool | None = None,
     yearfirst: bool | None = None,
@@ -366,7 +367,7 @@ def _convert_listlike_datetimes(
         None or string for the Index name
     utc : bool
         Whether to convert/localize timestamps to UTC.
-    unit : str
+    input_unit : str
         None or string of the frequency of the passed data
     errors : str
         error handing behaviors from to_datetime, 'raise', 'coerce'
@@ -431,10 +432,10 @@ def _convert_listlike_datetimes(
 
         return arg
 
-    elif unit is not None:
+    elif input_unit is not None:
         if format is not None:
-            raise ValueError("cannot specify both format and unit")
-        return _to_datetime_with_unit(arg, unit, name, utc, errors)
+            raise ValueError("cannot specify both format and input_unit")
+        return _to_datetime_with_unit(arg, input_unit, name, utc, errors)
     elif getattr(arg, "ndim", 1) > 1:
         raise TypeError(
             "arg must be a string, datetime, list, tuple, 1-d array, or Series"
@@ -509,16 +510,16 @@ def _array_strptime_with_fallback(
     return Index(result, dtype=result.dtype, name=name, copy=False)
 
 
-def _to_datetime_with_unit(arg, unit, name, utc: bool, errors: str) -> Index:
+def _to_datetime_with_unit(arg, input_unit, name, utc: bool, errors: str) -> Index:
     """
-    to_datetime specalized to the case where a 'unit' is passed.
+    to_datetime specalized to the case where a 'input_unit' is passed.
     """
     arg = extract_array(arg, extract_numpy=True)
 
     # GH#30050 pass an ndarray to tslib.array_to_datetime
     # because it expects an ndarray argument
     if isinstance(arg, IntegerArray):
-        arr = arg.astype(f"datetime64[{unit}]")
+        arr = arg.astype(f"datetime64[{input_unit}]")
         tz_parsed = None
     else:
         arg = np.asarray(arg)
@@ -534,12 +535,14 @@ def _to_datetime_with_unit(arg, unit, name, utc: bool, errors: str) -> Index:
                 if mask.any():
                     if errors == "raise":
                         raise OutOfBoundsDatetime(
-                            f"cannot convert input with unit '{unit}'"
+                            f"cannot convert input with unit '{input_unit}'"
                         )
 
                     arg = arg.astype(object)
-                    return _to_datetime_with_unit(arg, unit, name, utc, errors)
-            arr = arg.astype(f"datetime64[{unit}]", copy=False)
+                    return _to_datetime_with_unit(
+                        arg, input_unit, name, utc, errors
+                    )
+            arr = arg.astype(f"datetime64[{input_unit}]", copy=False)
             dtype = get_supported_dtype(arr.dtype)
             try:
                 arr = astype_overflowsafe(arr, dtype, copy=False)
@@ -547,7 +550,7 @@ def _to_datetime_with_unit(arg, unit, name, utc: bool, errors: str) -> Index:
                 if errors == "raise":
                     raise
                 arg = arg.astype(object)
-                return _to_datetime_with_unit(arg, unit, name, utc, errors)
+                return _to_datetime_with_unit(arg, input_unit, name, utc, errors)
             tz_parsed = None
 
         elif arg.dtype.kind == "f":
@@ -564,7 +567,11 @@ def _to_datetime_with_unit(arg, unit, name, utc: bool, errors: str) -> Index:
                 # With all-round-or-NaN entries, we give the requested unit
                 #  back like with integers
                 result = _to_datetime_with_unit(
-                    int_values, unit=unit, name=name, utc=utc, errors=errors
+                    int_values,
+                    input_unit=input_unit,
+                    name=name,
+                    utc=utc,
+                    errors=errors,
                 )
                 result._data[mask] = NaT
                 return result
@@ -572,14 +579,14 @@ def _to_datetime_with_unit(arg, unit, name, utc: bool, errors: str) -> Index:
             arg = arg.astype("float64", copy=False)
             with np.errstate(over="raise"):
                 try:
-                    arr = cast_from_unit_vectorized(arg, unit=unit)
+                    arr = cast_from_unit_vectorized(arg, unit=input_unit)
                 except OutOfBoundsDatetime as err:
                     if errors != "raise":
                         return _to_datetime_with_unit(
-                            arg.astype(object), unit, name, utc, errors
+                            arg.astype(object), input_unit, name, utc, errors
                         )
                     raise OutOfBoundsDatetime(
-                        f"cannot convert input with unit '{unit}'"
+                        f"cannot convert input with input_unit '{input_unit}'"
                     ) from err
 
             arr = arr.view("M8[ns]")
@@ -590,7 +597,7 @@ def _to_datetime_with_unit(arg, unit, name, utc: bool, errors: str) -> Index:
                 arg,
                 utc=utc,
                 errors=errors,
-                unit_for_numerics=unit,
+                unit_for_numerics=input_unit,
             )
 
     result = DatetimeIndex(arr, name=name)
@@ -610,7 +617,7 @@ def _to_datetime_with_unit(arg, unit, name, utc: bool, errors: str) -> Index:
     return result
 
 
-def _adjust_to_origin(arg, origin, unit):
+def _adjust_to_origin(arg, origin, input_unit):
     """
     Helper function for to_datetime.
     Adjust input argument to the specified origin
@@ -621,8 +628,8 @@ def _adjust_to_origin(arg, origin, unit):
         date to be adjusted
     origin : 'julian' or Timestamp
         origin offset for the arg
-    unit : str
-        passed unit from to_datetime, must be 'D'
+    input_unit : str
+        passed input_unit from to_datetime, must be 'D'
 
     Returns
     -------
@@ -631,7 +638,7 @@ def _adjust_to_origin(arg, origin, unit):
     if origin == "julian":
         original = arg
         j0 = Timestamp(0).to_julian_date()
-        if unit != "D":
+        if input_unit != "D":
             raise ValueError("unit must be 'D' for origin='julian'")
         try:
             arg = arg - j0
@@ -654,13 +661,13 @@ def _adjust_to_origin(arg, origin, unit):
         ):
             raise ValueError(
                 f"'{arg}' is not compatible with origin='{origin}'; "
-                "it must be numeric with a unit specified"
+                "it must be numeric with a input_unit specified"
             )
 
         # we are going to offset back to unix / epoch time
         try:
             if lib.is_integer(origin) or lib.is_float(origin):
-                offset = Timestamp(origin, unit=unit)
+                offset = Timestamp(origin, input_unit=input_unit)
             else:
                 offset = Timestamp(origin)
         except OutOfBoundsDatetime as err:
@@ -672,7 +679,7 @@ def _adjust_to_origin(arg, origin, unit):
 
         if offset.tz is not None:
             raise ValueError(f"origin offset {offset} must be tz-naive")
-        arg = offset + extract_array(to_timedelta(arg, unit=unit))
+        arg = offset + extract_array(to_timedelta(arg, input_unit=input_unit))
     return arg
 
 
@@ -688,6 +695,8 @@ def to_datetime(
     unit: str | None = ...,
     origin=...,
     cache: bool = ...,
+    *,
+    input_unit: str | None = ...,
 ) -> Timestamp: ...
 
 
@@ -703,6 +712,8 @@ def to_datetime(
     unit: str | None = ...,
     origin=...,
     cache: bool = ...,
+    *,
+    input_unit: str | None = ...,
 ) -> Series: ...
 
 
@@ -718,6 +729,8 @@ def to_datetime(
     unit: str | None = ...,
     origin=...,
     cache: bool = ...,
+    *,
+    input_unit: str | None = ...,
 ) -> DatetimeIndex: ...
 
 
@@ -733,6 +746,8 @@ def to_datetime(
     unit: str | None = None,
     origin: str = "unix",
     cache: bool = True,
+    *,
+    input_unit: str | None = None,
 ) -> DatetimeIndex | Series | DatetimeScalar | NaTType:
     """
     Convert argument to datetime.
@@ -827,22 +842,13 @@ def to_datetime(
 
         Cannot be used alongside ``format='ISO8601'`` or ``format='mixed'``.
     unit : str, default 'ns'
-        The unit of the numeric arg (Y, M, W, D, h, m, s, ms, us, ns, ps,
-        fs, as). Specifies the unit of the input values when `arg` is numeric
-        (int or float), interpreted relative to ``origin``.
-        For example, with ``unit='ms'`` and ``origin='unix'``, the input values
-        are treated as millisecond offsets from the Unix epoch (1970-01-01).
+        Use ``input_unit`` instead.
 
-        This does not truncate or round datetime-like inputs to the given unit.
-        To change the resolution of the result, use :meth:`Series.dt.as_unit`.
-        To truncate datetime values, use :meth:`Series.dt.floor` or
-        :meth:`Series.dt.normalize`.
+        .. deprecated:: 3.1.0
 
-        Only applicable to numeric input; has no effect on datetime-like input
-        or when ``format`` is specified.
     origin : scalar, default 'unix'
         Define the reference date. The numeric values would be parsed as number
-        of units (defined by ``unit``) since this reference date.
+        of units (defined by ``input_unit``) since this reference date.
 
         - If :const:`'unix'` (or POSIX) time; origin is set to 1970-01-01.
         - If :const:`'julian'`, unit must be :const:`'D'`, and origin is set to
@@ -851,11 +857,12 @@ def to_datetime(
         - If Timestamp convertible (Timestamp, dt.datetime, np.datetime64 or date
           string), origin is set to Timestamp identified by origin.
         - If a float or integer, origin is the difference
-          (in units determined by the ``unit`` argument) relative to 1970-01-01.
+          (in units determined by the ``input_unit`` argument) relative to
+          1970-01-01.
 
         .. note::
 
-            This parameter only affects numeric input used with ``unit``.
+            This parameter only affects numeric input used with ``input_unit``.
             It does not affect string parsing via ``format``. See the ``format``
             parameter for how defaults are handled during string parsing.
     cache : bool, default True
@@ -865,6 +872,11 @@ def to_datetime(
         is only used when there are at least 50 values. The presence of
         out-of-bounds values will render the cache unusable and may slow down
         parsing.
+    input_unit : str, default 'ns'
+        The unit of the arg (D,s,ms,us,ns) denote the unit, which is an
+        integer or float number. This will be based off the origin.
+        Example, with ``input_unit='ms'`` and ``origin='unix'``, this would
+        calculate the number of milliseconds to the unix epoch start.
 
     Returns
     -------
@@ -963,9 +975,9 @@ def to_datetime(
 
     Using a unix epoch time
 
-    >>> pd.to_datetime(1490195805, unit="s")
+    >>> pd.to_datetime(1490195805, input_unit="s")
     Timestamp('2017-03-22 15:16:45')
-    >>> pd.to_datetime(1490195805433502912, unit="ns")
+    >>> pd.to_datetime(1490195805433502912, input_unit="ns")
     Timestamp('2017-03-22 15:16:45.433502912')
 
     .. warning:: For float arg, precision rounding might happen. To prevent
@@ -973,7 +985,7 @@ def to_datetime(
 
     Using a non-unix epoch origin
 
-    >>> pd.to_datetime([1, 2, 3], unit="D", origin=pd.Timestamp("1960-01-01"))
+    >>> pd.to_datetime([1, 2, 3], input_unit="D", origin=pd.Timestamp("1960-01-01"))
     DatetimeIndex(['1960-01-02', '1960-01-03', '1960-01-04'],
                   dtype='datetime64[us]', freq=None)
 
@@ -1067,6 +1079,16 @@ def to_datetime(
     DatetimeIndex(['2018-10-26 12:00:00+00:00', '2020-01-01 18:00:00+00:00'],
                   dtype='datetime64[us, UTC]', freq=None)
     """
+    if unit is not None:
+        # GH#62097
+        if input_unit is not None:
+            raise ValueError("Specify only 'input_unit', not 'unit'")
+        warnings.warn(
+            "The 'unit' keyword is deprecated. Use 'input_unit' instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        input_unit = unit
     if exact is not lib.no_default and format in {"mixed", "ISO8601"}:
         raise ValueError("Cannot use 'exact' when 'format' is 'mixed' or 'ISO8601'")
     if arg is None:
@@ -1080,7 +1102,7 @@ def to_datetime(
         if isinstance(arg, Series):
             arg_idx = getattr(arg, "index", None)
             is_series = True
-        arg = _adjust_to_origin(arg, origin, unit)
+        arg = _adjust_to_origin(arg, origin, input_unit)
         if origin != "julian":
             # GH#63419 _adjust_to_origin returned the final datetime result
             if utc:
@@ -1100,7 +1122,7 @@ def to_datetime(
     convert_listlike = partial(
         _convert_listlike_datetimes,
         utc=utc,
-        unit=unit,
+        input_unit=input_unit,
         dayfirst=dayfirst,
         yearfirst=yearfirst,
         errors=errors,
@@ -1281,7 +1303,7 @@ def _assemble_from_unit_mappings(
         value = unit_rev.get(u)
         if value is not None and value in arg:
             try:
-                values += to_timedelta(coerce(arg[value]), unit=u, errors=errors)
+                values += to_timedelta(coerce(arg[value]), input_unit=u, errors=errors)
             except (TypeError, ValueError) as err:
                 raise ValueError(
                     f"cannot assemble the datetimes [{value}]: {err}"
