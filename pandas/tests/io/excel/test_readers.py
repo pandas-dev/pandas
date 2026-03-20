@@ -259,7 +259,7 @@ class TestReaders:
         }
 
         with open("test1" + read_ext, "rb") as f:
-            excel_file = pd.ExcelFile(f)
+            excel_file = pd.ExcelFile(f, engine=engine)
             result = excel_file.engine
 
         if engine is not None:
