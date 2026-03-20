@@ -148,10 +148,9 @@ PANDAS_SIMD_TARGETS Moments accumulate_moments_simd(const double *values,
 
 /* --- Scalar Fallback Implementation --- */
 
-static inline Moments accumulate_moments_scalar_block(const double *values,
-                                                      int64_t n, int skipna,
-                                                      const uint8_t *mask,
-                                                      int max_moment) {
+Moments accumulate_moments_scalar_block(const double *values, int64_t n,
+                                        int skipna, const uint8_t *mask,
+                                        int max_moment) {
   Moments moments = {0};
   for (int64_t i = 0; i < n; i++) {
     double val = values[i];
@@ -166,10 +165,8 @@ static inline Moments accumulate_moments_scalar_block(const double *values,
 
 /* --- Accumulation Dispatch (Choose SIMD or Scalar) --- */
 
-static inline Moments accumulate_moments_dispatch(const double *values,
-                                                  int64_t n, int skipna,
-                                                  const uint8_t *mask,
-                                                  int max_moment) {
+Moments accumulate_moments_dispatch(const double *values, int64_t n, int skipna,
+                                    const uint8_t *mask, int max_moment) {
 #if defined(PANDAS_HAS_SIMD)
   return accumulate_moments_simd(values, n, skipna, mask, max_moment);
 #endif
