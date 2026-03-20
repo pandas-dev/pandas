@@ -1190,7 +1190,10 @@ def sequence_to_td64ns(
             # instead of wrapping, which makes the data == int_data
             # check pass incorrectly for OOB values like float(2**63).
             # Exclude values outside the int64 domain from the check.
-            in_int64_range = (data >= np.float64(-(2**63))) & (data < np.float64(2**63))
+            i64 = np.iinfo(np.int64)
+            in_int64_range = (data >= np.float64(i64.min)) & (
+                data < np.float64(i64.max)
+            )
             all_round = (mask | (in_int64_range & (data == int_data))).all()
             if all_round:
                 result, _ = sequence_to_td64ns(

@@ -520,7 +520,8 @@ def _to_datetime_with_unit(arg, unit, name, utc: bool, errors: str) -> Index:
             # instead of wrapping, which makes the arg == int_values
             # check pass incorrectly for OOB values like float(2**63).
             # Exclude values outside the int64 domain from the check.
-            in_int64_range = (arg >= np.float64(-(2**63))) & (arg < np.float64(2**63))
+            i64 = np.iinfo(np.int64)
+            in_int64_range = (arg >= np.float64(i64.min)) & (arg < np.float64(i64.max))
             if (mask | (in_int64_range & (arg == int_values))).all():
                 # With all-round-or-NaN entries, we give the requested unit
                 #  back like with integers
