@@ -45,7 +45,7 @@ typedef long long v4si
 #  if defined(__clang__)
 #    define v_select(mask, a, b) ((mask) ? (a) : (b))
 #  else
-// gcc doesn't have ternary operators when compiling C files.
+// gcc doesn't have vectorized ternary operators when compiling C files.
 #    define v_select(mask, a, b)                                               \
       ((v4d)(((v4si)(mask) & (v4si)(a)) | (~(v4si)(mask) & (v4si)(b))))
 #  endif
@@ -140,6 +140,7 @@ PANDAS_SIMD_TARGETS Moments accumulate_moments_simd(const double *values,
 
   return moments_merge(m_01, m_23, max_moment);
 }
+#  undef v_select
 #endif
 
 /* --- Scalar Fallback Implementation --- */
