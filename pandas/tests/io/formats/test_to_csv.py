@@ -325,9 +325,7 @@ $1$,$2$
         assert result == expected
 
     def test_to_csv_2d_float_ea(self):
-        # get_values_for_csv on a 2D float ExtensionArray should not fail.
-        # Previously, values.astype(str) would route through _from_sequence
-        # which doesn't support 2D.
+        # GH#64634 - get_values_for_csv on a 2D float ExtensionArray should not fail.
         data = np.array([1.0, np.nan, 3.0, 4.0])
         mask = np.array([False, True, False, False])
         arr2d = FloatingArray(data, mask).reshape(2, 2)
