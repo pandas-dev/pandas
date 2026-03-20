@@ -10,7 +10,6 @@ The full license is in the LICENSE file, distributed with this software.
 #include "pandas/moments.h"
 #include <math.h>
 #include <stdint.h>
-#include <string.h>
 
 #ifdef _OPENMP
 #  include <omp.h>
