@@ -6869,9 +6869,18 @@ cdef class _CustomBusinessMonth(BusinessMixin):
         return moff
 
     @cache_readonly
-    def month_roll(self):
+    def _month_roll(self):
         """
         Define default roll function to be called in apply method.
+
+        Returns ``MonthEnd.rollforward`` for month-end offsets and
+        ``MonthBegin.rollback`` for month-begin offsets.
+
+        Returns
+        -------
+        callable
+            The bound ``rollforward`` or ``rollback`` method of the
+            underlying ``m_offset`` instance.
         """
         if self._prefix.endswith("S"):
             # MonthBegin
@@ -6884,7 +6893,7 @@ cdef class _CustomBusinessMonth(BusinessMixin):
     @apply_wraps
     def _apply(self, other: datetime) -> datetime:
         # First move to month offset
-        cur_month_offset_date = self.month_roll(other)
+        cur_month_offset_date = self._month_roll(other)
 
         # Find this custom month offset
         compare_date = self._cbday_roll(cur_month_offset_date)

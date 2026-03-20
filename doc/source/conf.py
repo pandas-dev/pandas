@@ -352,9 +352,6 @@ numpydoc_validation_exclude = {
     r"pandas\.tseries\.offsets\.Nano\.rollforward$",
     # Easter.method
     r"pandas\.tseries\.offsets\.Easter\.method$",
-    # CustomBusinessMonth helper methods
-    r"pandas\.tseries\.offsets\.CustomBusinessMonthEnd\.month_roll$",
-    r"pandas\.tseries\.offsets\.CustomBusinessMonthBegin\.month_roll$",
     # ExtensionDtype base class stubs
     r"pandas\.api\.extensions\.ExtensionDtype\.construct_array_type$",
     r"pandas\.api\.extensions\.ExtensionDtype\.construct_from_string$",
