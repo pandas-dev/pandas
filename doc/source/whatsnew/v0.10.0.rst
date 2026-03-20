@@ -45,17 +45,45 @@ want to broadcast, we are phasing out this special case (Zen of Python:
 *Special cases aren't special enough to break the rules*). Here's what I'm
 talking about:
 
-.. ipython:: python
-   :okwarning:
+.. code-block:: ipython
 
-   import pandas as pd
+   In [1]: import pandas as pd
 
-   df = pd.DataFrame(np.random.randn(6, 4), index=pd.date_range("1/1/2000", periods=6))
-   df
+   In [2]: df = pd.DataFrame(np.random.randn(6, 4), index=pd.date_range("1/1/2000", periods=6))
+
+   In [3]: df
+   Out[3]:
+                      0         1         2         3
+   2000-01-01 -0.204708  0.478943 -0.519439 -0.555730
+   2000-01-02  1.965781  1.393406  0.092908  0.281746
+   2000-01-03  0.769023  1.246435  1.007189 -1.296221
+   2000-01-04  0.274992  0.228913  1.352917  0.886429
+   2000-01-05 -2.001637 -0.371843  1.669025 -0.438570
+   2000-01-06 -0.539741  0.476985  3.248944 -1.021228
+
    # deprecated now
-   df - df[0]
+   In [4]: df - df[0]
+   Out[4]:
+                0   1  ...  2000-01-05 00:00:00  2000-01-06 00:00:00
+   2000-01-01 NaN NaN  ...                  NaN                  NaN
+   2000-01-02 NaN NaN  ...                  NaN                  NaN
+   2000-01-03 NaN NaN  ...                  NaN                  NaN
+   2000-01-04 NaN NaN  ...                  NaN                  NaN
+   2000-01-05 NaN NaN  ...                  NaN                  NaN
+   2000-01-06 NaN NaN  ...                  NaN                  NaN
+
+   [6 rows x 10 columns]
+
    # Change your code to
-   df.sub(df[0], axis=0)  # align on axis 0 (rows)
+   In [5]: df.sub(df[0], axis=0)  # align on axis 0 (rows)
+   Out[5]:
+                 0         1         2         3
+   2000-01-01  0.0  0.683651 -0.314731 -0.351023
+   2000-01-02  0.0 -0.572375 -1.872873 -1.684034
+   2000-01-03  0.0  0.477412  0.238167 -2.065244
+   2000-01-04  0.0 -0.046079  1.077925  0.611438
+   2000-01-05  0.0  1.629795  3.670663  1.563068
+   2000-01-06  0.0  1.016726  3.788685 -0.481486
 
 You will get a deprecation warning in the 0.10.x series, and the deprecated
 functionality will be removed in 0.11 or later.
@@ -275,25 +303,48 @@ labeled the aggregated group with the end of the interval: the next day).
 
 Convenience methods ``ffill`` and  ``bfill`` have been added:
 
-.. ipython:: python
+.. code-block:: ipython
 
-   s = pd.Series([np.nan, 1.0, 2.0, np.nan, 4])
-   s.ffill()
+   In [6]: s = pd.Series([np.nan, 1.0, 2.0, np.nan, 4])
+
+   In [7]: s.ffill()
+   Out[7]:
+   0    NaN
+   1    1.0
+   2    2.0
+   3    2.0
+   4    4.0
+   dtype: float64
 
 
 - ``Series.apply`` will now operate on a returned value from the applied
   function, that is itself a series, and possibly upcast the result to a
   DataFrame
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-      def f(x):
-          return pd.Series([x, x ** 2], index=["x", "x^2"])
+      In [8]: def f(x):
+         ...:     return pd.Series([x, x ** 2], index=["x", "x^2"])
 
+      In [9]: s = pd.Series(np.random.rand(5))
 
-      s = pd.Series(np.random.rand(5))
-      s
-      s.apply(f)
+      In [10]: s
+      Out[10]:
+      0    0.596366
+      1    0.051958
+      2    0.895090
+      3    0.728266
+      4    0.818350
+      dtype: float64
+
+      In [11]: s.apply(f)
+      Out[11]:
+                x       x^2
+      0  0.596366  0.355652
+      1  0.051958  0.002700
+      2  0.895090  0.801185
+      3  0.728266  0.530372
+      4  0.818350  0.669697
 
 - New API functions for working with pandas options (:issue:`2097`):
 
@@ -306,9 +357,10 @@ Convenience methods ``ffill`` and  ``bfill`` have been added:
   Note: ``set_printoptions``/ ``reset_printoptions`` are now deprecated (but
   functioning), the print options now live under "display.XYZ". For example:
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     pd.get_option("display.max_rows")
+     In [12]: pd.get_option("display.max_rows")
+     Out[12]: 60
 
 - to_string() methods now always return unicode strings  (:issue:`2224`).
 
@@ -321,25 +373,48 @@ Wide DataFrame printing
 Instead of printing the summary information, pandas now splits the string
 representation across multiple rows by default:
 
-.. ipython:: python
+.. code-block:: ipython
 
-   wide_frame = pd.DataFrame(np.random.randn(5, 16))
+   In [13]: wide_frame = pd.DataFrame(np.random.randn(5, 16))
 
-   wide_frame
+   In [14]: wide_frame
+   Out[14]:
+            0         1         2         3         4         5         6   \
+   0  1.381918  0.000992 -0.143492 -0.206282 -0.222392 -1.682403  1.811659
+   1  1.037339 -0.364987 -0.215726  0.763525  0.671308 -1.810961 -0.246414
+   2  0.033761  1.840764 -0.731743 -0.787226 -0.024116  1.462648 -1.651593
+   3  0.500286  0.400100 -0.259781  0.650820  0.896758 -1.451045  1.960471
+   4  0.112627  0.340088  2.000781  0.144897  0.796549 -0.019535 -0.787291
+
+            7         8         9         10        11        12        13  \
+   0 -0.351305  0.128317 -1.313554  0.498327 -0.615939  0.174072  0.680701
+   1 -0.205597  0.998181  0.625001  0.410271  0.063753  0.837523  0.289051
+   2  0.221755 -0.838210  1.396553 -1.553775 -0.007680  1.335753 -1.296638
+   3  0.163870  0.388782  0.940880  1.660720  0.642044  0.418988 -0.259232
+   4  0.029221  1.982731  1.161464 -0.122747  0.640365 -0.454907 -0.266160
+
+           14        15
+   0 -0.035408 -1.194063
+   1 -2.202882 -0.068072
+   2  1.067990 -0.743429
+   3 -0.369982 -0.044528
+   4 -2.979359 -1.193508
 
 The old behavior of printing out summary information can be achieved via the
 'expand_frame_repr' print option:
 
-.. ipython:: python
+.. code-block:: ipython
 
-   pd.set_option("expand_frame_repr", False)
+   In [15]: pd.set_option("expand_frame_repr", False)
 
-   wide_frame
-
-.. ipython:: python
-   :suppress:
-
-   pd.reset_option("expand_frame_repr")
+   In [16]: wide_frame
+   Out[16]:
+            0         1         2         3         4         5         6         7         8         9         10        11        12        13        14        15
+   0  1.381918  0.000992 -0.143492 -0.206282 -0.222392 -1.682403  1.811659 -0.351305  0.128317 -1.313554  0.498327 -0.615939  0.174072  0.680701 -0.035408 -1.194063
+   1  1.037339 -0.364987 -0.215726  0.763525  0.671308 -1.810961 -0.246414 -0.205597  0.998181  0.625001  0.410271  0.063753  0.837523  0.289051 -2.202882 -0.068072
+   2  0.033761  1.840764 -0.731743 -0.787226 -0.024116  1.462648 -1.651593  0.221755 -0.838210  1.396553 -1.553775 -0.007680  1.335753 -1.296638  1.067990 -0.743429
+   3  0.500286  0.400100 -0.259781  0.650820  0.896758 -1.451045  1.960471  0.163870  0.388782  0.940880  1.660720  0.642044  0.418988 -0.259232 -0.369982 -0.044528
+   4  0.112627  0.340088  2.000781  0.144897  0.796549 -0.019535 -0.787291  0.029221  1.982731  1.161464 -0.122747  0.640365 -0.454907 -0.266160 -2.979359 -1.193508
 
 The width of each line can be changed via 'line_width' (80 by default):
 

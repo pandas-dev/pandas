@@ -5,12 +5,6 @@ Version 0.22.0 (December 29, 2017)
 
 {{ header }}
 
-.. ipython:: python
-   :suppress:
-
-   from pandas import *  # noqa F401, F403
-
-
 This is a major release from 0.21.1 and includes a single, API-breaking change.
 We recommend that all users upgrade to this version after carefully reading the
 release note (singular!).
@@ -54,11 +48,13 @@ The default sum for empty or all-*NA* ``Series`` is now ``0``.
 
 *pandas 0.22.0*
 
-.. ipython:: python
-   :okwarning:
+.. code-block:: ipython
 
-   pd.Series([]).sum()
-   pd.Series([np.nan]).sum()
+   In [1]: pd.Series([]).sum()
+   Out[1]: 0
+
+   In [2]: pd.Series([np.nan]).sum()
+   Out[2]: np.float64(0.0)
 
 The default behavior is the same as pandas 0.20.3 with bottleneck installed. It
 also matches the behavior of NumPy's ``np.nansum`` on empty and all-*NA* arrays.
@@ -67,18 +63,19 @@ To have the sum of an empty series return ``NaN`` (the default behavior of
 pandas 0.20.3 without bottleneck, or pandas 0.21.x), use the ``min_count``
 keyword.
 
-.. ipython:: python
-   :okwarning:
+.. code-block:: ipython
 
-   pd.Series([]).sum(min_count=1)
+   In [3]: pd.Series([]).sum(min_count=1)
+   Out[3]: nan
 
 Thanks to the ``skipna`` parameter, the ``.sum`` on an all-*NA*
 series is conceptually the same as the ``.sum`` of an empty one with
 ``skipna=True`` (the default).
 
-.. ipython:: python
+.. code-block:: ipython
 
-   pd.Series([np.nan]).sum(min_count=1)  # skipna=True by default
+   In [4]: pd.Series([np.nan]).sum(min_count=1)  # skipna=True by default
+   Out[4]: np.float64(nan)
 
 The ``min_count`` parameter refers to the minimum number of *non-null* values
 required for a non-NA sum or product.
@@ -86,12 +83,16 @@ required for a non-NA sum or product.
 :meth:`Series.prod` has been updated to behave the same as :meth:`Series.sum`,
 returning ``1`` instead.
 
-.. ipython:: python
-   :okwarning:
+.. code-block:: ipython
 
-   pd.Series([]).prod()
-   pd.Series([np.nan]).prod()
-   pd.Series([]).prod(min_count=1)
+   In [5]: pd.Series([]).prod()
+   Out[5]: 1
+
+   In [6]: pd.Series([np.nan]).prod()
+   Out[6]: np.float64(1.0)
+
+   In [7]: pd.Series([]).prod(min_count=1)
+   Out[7]: nan
 
 These changes affect :meth:`DataFrame.sum` and :meth:`DataFrame.prod` as well.
 Finally, a few less obvious places in pandas are affected by this change.
@@ -117,17 +118,26 @@ instead of ``NaN``.
 
 *pandas 0.22*
 
-.. ipython:: python
+.. code-block:: ipython
 
-   grouper = pd.Categorical(["a", "a"], categories=["a", "b"])
-   pd.Series([1, 2]).groupby(grouper, observed=False).sum()
+   In [8]: grouper = pd.Categorical(["a", "a"], categories=["a", "b"])
+
+   In [9]: pd.Series([1, 2]).groupby(grouper, observed=False).sum()
+   Out[9]:
+   a    3
+   b    0
+   dtype: int64
 
 To restore the 0.21 behavior of returning ``NaN`` for unobserved groups,
 use ``min_count>=1``.
 
-.. ipython:: python
+.. code-block:: ipython
 
-   pd.Series([1, 2]).groupby(grouper, observed=False).sum(min_count=1)
+   In [10]: pd.Series([1, 2]).groupby(grouper, observed=False).sum(min_count=1)
+   Out[10]:
+   a    3.0
+   b    NaN
+   dtype: float64
 
 Resample
 ^^^^^^^^
@@ -243,10 +253,15 @@ returns ``0``.
 
 *pandas 0.22.0*
 
-.. ipython:: python
+.. code-block:: ipython
 
-   s = pd.Series([np.nan, np.nan])
-   s.rolling(2, min_periods=0).sum()
+   In [11]: s = pd.Series([np.nan, np.nan])
+
+   In [12]: s.rolling(2, min_periods=0).sum()
+   Out[12]:
+   0    0.0
+   1    0.0
+   dtype: float64
 
 The default behavior of ``min_periods=None``, implying that ``min_periods``
 equals the window size, is unchanged.

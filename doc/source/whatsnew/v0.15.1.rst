@@ -21,11 +21,20 @@ API changes
 
 - ``s.dt.hour`` and other ``.dt`` accessors will now return ``np.nan`` for missing values (rather than previously -1), (:issue:`8689`)
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     s = pd.Series(pd.date_range("20130101", periods=5, freq="D"))
-     s.iloc[2] = np.nan
-     s
+     In [1]: s = pd.Series(pd.date_range("20130101", periods=5, freq="D"))
+
+     In [2]: s.iloc[2] = np.nan
+
+     In [3]: s
+     Out[3]:
+     0   2013-01-01
+     1   2013-01-02
+     2          NaT
+     3   2013-01-04
+     4   2013-01-05
+     dtype: datetime64[us]
 
   previous behavior:
 
@@ -42,20 +51,36 @@ API changes
 
   current behavior:
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     s.dt.hour
+     In [4]: s.dt.hour
+     Out[4]:
+     0    0.0
+     1    0.0
+     2    NaN
+     3    0.0
+     4    0.0
+     dtype: float64
 
 - ``groupby`` with ``as_index=False`` will not add erroneous extra columns to
   result (:issue:`8582`):
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     np.random.seed(2718281)
-     df = pd.DataFrame(np.random.randint(0, 100, (10, 2)), columns=["jim", "joe"])
-     df.head()
+     In [5]: np.random.seed(2718281)
 
-     ts = pd.Series(5 * np.random.randint(0, 3, 10))
+     In [6]: df = pd.DataFrame(np.random.randint(0, 100, (10, 2)), columns=["jim", "joe"])
+
+     In [7]: df.head()
+     Out[7]:
+        jim  joe
+     0   61   81
+     1   96   49
+     2   55   65
+     3   72   51
+     4   77   12
+
+     In [8]: ts = pd.Series(5 * np.random.randint(0, 3, 10))
 
   previous behavior:
 
@@ -82,11 +107,20 @@ API changes
 - ``groupby`` will not erroneously exclude columns if the column name conflicts
   with the grouper name (:issue:`8112`):
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     df = pd.DataFrame({"jim": range(5), "joe": range(5, 10)})
-     df
-     gr = df.groupby(df["jim"] < 2)
+     In [9]: df = pd.DataFrame({"jim": range(5), "joe": range(5, 10)})
+
+     In [10]: df
+     Out[10]:
+        jim  joe
+     0    0    5
+     1    1    6
+     2    2    7
+     3    3    8
+     4    4    9
+
+     In [11]: gr = df.groupby(df["jim"] < 2)
 
   previous behavior (excludes 1st column from output):
 
@@ -101,17 +135,29 @@ API changes
 
   current behavior:
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     gr.apply("sum")
+     In [12]: gr.apply("sum")
+     Out[12]:
+            jim  joe
+     jim
+     False    9   24
+     True     1   11
 
 - Support for slicing with monotonic decreasing indexes, even if ``start`` or ``stop`` is
   not found in the index (:issue:`7860`):
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-    s = pd.Series(["a", "b", "c", "d"], [4, 3, 2, 1])
-    s
+    In [13]: s = pd.Series(["a", "b", "c", "d"], [4, 3, 2, 1])
+
+    In [14]: s
+    Out[14]:
+    4    a
+    3    b
+    2    c
+    1    d
+    dtype: str
 
   previous behavior:
 
@@ -122,9 +168,13 @@ API changes
 
   current behavior:
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     s.loc[3.5:1.5]
+     In [15]: s.loc[3.5:1.5]
+     Out[15]:
+     3    b
+     2    c
+     dtype: str
 
 - ``io.data.Options`` has been fixed for a change in the format of the Yahoo Options page (:issue:`8612`), (:issue:`8741`)
 
@@ -209,12 +259,13 @@ Enhancements
 - ``concat`` permits a wider variety of iterables of pandas objects to be
   passed as the first parameter (:issue:`8645`):
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     from collections import deque
+     In [16]: from collections import deque
 
-     df1 = pd.DataFrame([1, 2, 3])
-     df2 = pd.DataFrame([4, 5, 6])
+     In [17]: df1 = pd.DataFrame([1, 2, 3])
+
+     In [18]: df2 = pd.DataFrame([4, 5, 6])
 
   previous behavior:
 
@@ -225,17 +276,25 @@ Enhancements
 
   current behavior:
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     pd.concat(deque((df1, df2)))
+     In [19]: pd.concat(deque((df1, df2)))
+     Out[19]:
+        0
+     0  1
+     1  2
+     2  3
+     0  4
+     1  5
+     2  6
 
 - Represent ``MultiIndex`` labels with a dtype that utilizes memory based on the level size. In prior versions, the memory usage was a constant 8 bytes per element in each level. In addition, in prior versions, the *reported* memory usage was incorrect as it didn't show the usage for the memory occupied by the underling data array. (:issue:`8456`)
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     dfi = pd.DataFrame(
-         1, index=pd.MultiIndex.from_product([["a"], range(1000)]), columns=["A"]
-     )
+     In [20]: dfi = pd.DataFrame(
+        ....:     1, index=pd.MultiIndex.from_product([["a"], range(1000)]), columns=["A"]
+        ....: )
 
   previous behavior:
 
@@ -251,9 +310,13 @@ Enhancements
 
   current behavior:
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     dfi.memory_usage(index=True)
+     In [21]: dfi.memory_usage(index=True)
+     Out[21]:
+     Index    3174
+     A        8000
+     dtype: int64
 
 - Added Index properties ``is_monotonic_increasing`` and ``is_monotonic_decreasing`` (:issue:`8680`).
 

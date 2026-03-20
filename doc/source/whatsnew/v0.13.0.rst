@@ -174,17 +174,17 @@ API changes
 - Chained assignment will now by default warn if the user is assigning to a copy. This can be changed
   with the option ``mode.chained_assignment``, allowed options are ``raise/warn/None``.
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     dfc = pd.DataFrame({'A': ['aaa', 'bbb', 'ccc'], 'B': [1, 2, 3]})
-     pd.set_option('chained_assignment', 'warn')
+     In [1]: dfc = pd.DataFrame({'A': ['aaa', 'bbb', 'ccc'], 'B': [1, 2, 3]})
+
+     In [2]: pd.set_option('chained_assignment', 'warn')
 
   The following warning / exception will show if this is attempted.
 
-  .. ipython:: python
-     :okwarning:
+  .. code-block:: ipython
 
-     dfc.loc[0]['B'] = 1111
+     In [3]: dfc.loc[0]['B'] = 1111
 
   ::
 
@@ -196,10 +196,16 @@ API changes
 
   Here is the correct method of assignment.
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     dfc.loc[0, 'B'] = 1111
-     dfc
+     In [4]: dfc.loc[0, 'B'] = 1111
+
+     In [5]: dfc
+     Out[5]:
+          A     B
+     0  aaa  1111
+     1  bbb     2
+     2  ccc     3
 
 - ``Panel.reindex`` has the following call signature ``Panel.reindex(items=None, major_axis=None, minor_axis=None, **kwargs)``
    to conform with other ``NDFrame`` objects. See :ref:`Internal Refactoring<whatsnew_0130.refactoring>` for more information.
@@ -246,32 +252,65 @@ was not contained in the index of a particular axis. (:issue:`2578`). See :ref:`
 
 In the ``Series`` case this is effectively an appending operation
 
-.. ipython:: python
+.. code-block:: ipython
 
-   s = pd.Series([1, 2, 3])
-   s
-   s[5] = 5.
-   s
+   In [6]: s = pd.Series([1, 2, 3])
 
-.. ipython:: python
+   In [7]: s
+   Out[7]:
+   0    1
+   1    2
+   2    3
+   dtype: int64
 
-   dfi = pd.DataFrame(np.arange(6).reshape(3, 2),
-                      columns=['A', 'B'])
-   dfi
+   In [8]: s[5] = 5.
+
+   In [9]: s
+   Out[9]:
+   0    1
+   1    2
+   2    3
+   5    5
+   dtype: int64
+
+.. code-block:: ipython
+
+   In [10]: dfi = pd.DataFrame(np.arange(6).reshape(3, 2),
+   ....:                    columns=['A', 'B'])
+
+   In [11]: dfi
+   Out[11]:
+      A  B
+   0  0  1
+   1  2  3
+   2  4  5
 
 This would previously ``KeyError``
 
-.. ipython:: python
+.. code-block:: ipython
 
-   dfi.loc[:, 'C'] = dfi.loc[:, 'A']
-   dfi
+   In [12]: dfi.loc[:, 'C'] = dfi.loc[:, 'A']
+
+   In [13]: dfi
+   Out[13]:
+      A  B  C
+   0  0  1  0
+   1  2  3  2
+   2  4  5  4
 
 This is like an ``append`` operation.
 
-.. ipython:: python
+.. code-block:: ipython
 
-   dfi.loc[3] = 5
-   dfi
+   In [14]: dfi.loc[3] = 5
+
+   In [15]: dfi
+   Out[15]:
+      A  B  C
+   0  0  1  0
+   1  2  3  2
+   2  4  5  4
+   3  5  5  5
 
 A Panel setting operation on an arbitrary axis aligns the input to the Panel
 
@@ -318,42 +357,74 @@ Float64Index API change
 
   Construction is by default for floating type values.
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     index = pd.Index([1.5, 2, 3, 4.5, 5])
-     index
-     s = pd.Series(range(5), index=index)
-     s
+     In [16]: index = pd.Index([1.5, 2, 3, 4.5, 5])
+
+     In [17]: index
+     Out[17]: Index([1.5, 2.0, 3.0, 4.5, 5.0], dtype='float64')
+
+     In [18]: s = pd.Series(range(5), index=index)
+
+     In [19]: s
+     Out[19]:
+     1.5    0
+     2.0    1
+     3.0    2
+     4.5    3
+     5.0    4
+     dtype: int64
 
   Scalar selection for ``[],.ix,.loc`` will always be label based. An integer will match an equal float index (e.g. ``3`` is equivalent to ``3.0``)
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     s[3]
-     s.loc[3]
+     In [20]: s[3]
+     Out[20]: 2
+
+     In [21]: s.loc[3]
+     Out[21]: 2
 
   The only positional indexing is via ``iloc``
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     s.iloc[3]
+     In [22]: s.iloc[3]
+     Out[22]: 3
 
   A scalar index that is not found will raise ``KeyError``
 
   Slicing is ALWAYS on the values of the index, for ``[],ix,loc`` and ALWAYS positional with ``iloc``
 
-  .. ipython:: python
-     :okwarning:
+  .. code-block:: ipython
 
-     s.loc[2:4]
-     s.iloc[2:4]
+     In [23]: s.loc[2:4]
+     Out[23]:
+     2.0    1
+     3.0    2
+     dtype: int64
+
+     In [24]: s.iloc[2:4]
+     Out[24]:
+     3.0    2
+     4.5    3
+     dtype: int64
 
   In float indexes, slicing using floats are allowed
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     s[2.1:4.6]
-     s.loc[2.1:4.6]
+     In [25]: s[2.1:4.6]
+     Out[25]:
+     3.0    2
+     4.5    3
+     dtype: int64
+
+     In [26]: s.loc[2.1:4.6]
+     Out[26]:
+     3.0    2
+     4.5    3
+     dtype: int64
 
 - Indexing on other index types are preserved (and positional fallback for ``[],ix``), with the exception, that floating point slicing
   on indexes on non ``Float64Index`` will now raise a ``TypeError``.
@@ -378,53 +449,69 @@ HDFStore API changes
 
 - Query Format Changes. A much more string-like query format is now supported. See :ref:`the docs<io.hdf5-query>`.
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     path = 'test.h5'
-     dfq = pd.DataFrame(np.random.randn(10, 4),
-                        columns=list('ABCD'),
-                        index=pd.date_range('20130101', periods=10))
-     dfq.to_hdf(path, key='dfq', format='table', data_columns=True)
+     In [27]: path = 'test.h5'
+
+     In [28]: dfq = pd.DataFrame(np.random.randn(10, 4),
+     ....:                    columns=list('ABCD'),
+     ....:                    index=pd.date_range('20130101', periods=10))
+
+     In [29]: dfq.to_hdf(path, key='dfq', format='table', data_columns=True)
 
   Use boolean expressions, with in-line function evaluation.
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     pd.read_hdf(path, 'dfq',
-                 where="index>Timestamp('20130104') & columns=['A', 'B']")
+     In [30]: pd.read_hdf(path, 'dfq',
+     ....:             where="index>Timestamp('20130104') & columns=['A', 'B']")
+     Out[30]:
+                        A         B
+     2013-01-05 -0.868858 -1.303594
+     2013-01-06 -0.767251 -0.672209
+     2013-01-07  0.044894 -1.450230
+     2013-01-08 -1.871323 -0.878480
+     2013-01-09  1.567468  1.184127
+     2013-01-10 -1.625920 -0.007543
 
   Use an inline column reference
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     pd.read_hdf(path, 'dfq',
-                 where="A>0 or C>0")
+     In [31]: pd.read_hdf(path, 'dfq',
+     ....:             where="A>0 or C>0")
+     Out[31]:
+                        A         B         C         D
+     2013-01-01 -0.118800 -0.566795  1.139997  0.314590
+     2013-01-03 -0.582324  1.579638  0.186244 -0.338336
+     2013-01-04  0.736190  0.149402 -0.097204 -0.523315
+     2013-01-07  0.044894 -1.450230  0.600590 -1.023351
+     2013-01-08 -1.871323 -0.878480  2.077369  0.793214
+     2013-01-09  1.567468  1.184127  0.577815 -0.154278
+     2013-01-10 -1.625920 -0.007543  0.240695 -0.493339
 
-  .. ipython:: python
-     :suppress:
-
-     import os
-     os.remove(path)
 
 - the ``format`` keyword now replaces the ``table`` keyword; allowed values are ``fixed(f)`` or ``table(t)``
   the same defaults as prior < 0.13.0 remain, e.g. ``put`` implies ``fixed`` format and ``append`` implies
   ``table`` format. This default format can be set as an option by setting ``io.hdf.default_format``.
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     path = 'test.h5'
-     df = pd.DataFrame(np.random.randn(10, 2))
-     df.to_hdf(path, key='df_table', format='table')
-     df.to_hdf(path, key='df_table2', append=True)
-     df.to_hdf(path, key='df_fixed')
-     with pd.HDFStore(path) as store:
-         print(store)
+     In [32]: path = 'test.h5'
 
-  .. ipython:: python
-     :suppress:
+     In [33]: df = pd.DataFrame(np.random.randn(10, 2))
 
-     import os
-     os.remove(path)
+     In [34]: df.to_hdf(path, key='df_table', format='table')
+
+     In [35]: df.to_hdf(path, key='df_table2', append=True)
+
+     In [36]: df.to_hdf(path, key='df_fixed')
+
+     In [37]: with pd.HDFStore(path) as store:
+     ....:     print(store)
+     <class 'pandas.HDFStore'>
+     File path: test.h5
+
 
 - Significant table writing performance improvements
 - handle a passed ``Series`` in table format (:issue:`4330`)
@@ -439,27 +526,44 @@ HDFStore API changes
   until they themselves are closed. Performing an action on a closed file will raise
   ``ClosedFileError``
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     path = 'test.h5'
-     df = pd.DataFrame(np.random.randn(10, 2))
-     store1 = pd.HDFStore(path)
-     store2 = pd.HDFStore(path)
-     store1.append('df', df)
-     store2.append('df2', df)
+     In [38]: path = 'test.h5'
 
-     store1
-     store2
-     store1.close()
-     store2
-     store2.close()
-     store2
+     In [39]: df = pd.DataFrame(np.random.randn(10, 2))
 
-  .. ipython:: python
-     :suppress:
+     In [40]: store1 = pd.HDFStore(path)
 
-     import os
-     os.remove(path)
+     In [41]: store2 = pd.HDFStore(path)
+
+     In [42]: store1.append('df', df)
+
+     In [43]: store2.append('df2', df)
+
+     In [44]: store1
+     Out[44]:
+     <class 'pandas.HDFStore'>
+     File path: test.h5
+
+     In [45]: store2
+     Out[45]:
+     <class 'pandas.HDFStore'>
+     File path: test.h5
+
+     In [46]: store1.close()
+
+     In [47]: store2
+     Out[47]:
+     <class 'pandas.HDFStore'>
+     File path: test.h5
+
+     In [48]: store2.close()
+
+     In [49]: store2
+     Out[49]:
+     <class 'pandas.HDFStore'>
+     File path: test.h5
+
 
 - removed the ``_quiet`` attribute, replace by a ``DuplicateWarning`` if retrieving
   duplicate rows from a table (:issue:`4367`)
@@ -504,14 +608,24 @@ Enhancements
 
 - ``NaN`` handing in get_dummies (:issue:`4446`) with ``dummy_na``
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     # previously, nan was erroneously counted as 2 here
-     # now it is not counted at all
-     pd.get_dummies([1, 2, np.nan])
+     In [50]: # previously, nan was erroneously counted as 2 here
+     ....: # now it is not counted at all
+     ....: pd.get_dummies([1, 2, np.nan])
+     Out[50]:
+          1.0    2.0
+     0   True  False
+     1  False   True
+     2  False  False
 
-     # unless requested
-     pd.get_dummies([1, 2, np.nan], dummy_na=True)
+     In [51]: # unless requested
+     ....: pd.get_dummies([1, 2, np.nan], dummy_na=True)
+     Out[51]:
+          1.0    2.0    NaN
+     0   True  False  False
+     1  False   True  False
+     2  False  False   True
 
 
 - ``timedelta64[ns]`` operations. See :ref:`the docs<timedeltas.timedeltas_convert>`.
@@ -547,14 +661,24 @@ Enhancements
   ``timedelta64[ns]`` object, or astyped to yield a ``float64`` dtyped Series. This
   is frequency conversion. See :ref:`the docs<timedeltas.timedeltas_convert>` for the docs.
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     import datetime
-     td = pd.Series(pd.date_range('20130101', periods=4)) - pd.Series(
-         pd.date_range('20121201', periods=4))
-     td[2] += np.timedelta64(datetime.timedelta(minutes=5, seconds=3))
-     td[3] = np.nan
-     td
+     In [52]: import datetime
+
+     In [53]: td = pd.Series(pd.date_range('20130101', periods=4)) - pd.Series(
+     ....:     pd.date_range('20121201', periods=4))
+
+     In [54]: td[2] += np.timedelta64(datetime.timedelta(minutes=5, seconds=3))
+
+     In [55]: td[3] = np.nan
+
+     In [56]: td
+     Out[56]:
+     0   31 days 00:00:00
+     1   31 days 00:00:00
+     2   31 days 00:05:03
+     3                NaT
+     dtype: timedelta64[us]
 
   .. code-block:: ipython
 
@@ -594,31 +718,67 @@ Enhancements
 
   Dividing or multiplying a ``timedelta64[ns]`` Series by an integer or integer Series
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     td * -1
-     td * pd.Series([1, 2, 3, 4])
+     In [57]: td * -1
+     Out[57]:
+     0   -31 days +00:00:00
+     1   -31 days +00:00:00
+     2   -32 days +23:54:57
+     3                  NaT
+     dtype: timedelta64[us]
+
+     In [58]: td * pd.Series([1, 2, 3, 4])
+     Out[58]:
+     0   31 days 00:00:00
+     1   62 days 00:00:00
+     2   93 days 00:15:09
+     3                NaT
+     dtype: timedelta64[us]
 
   Absolute ``DateOffset`` objects can act equivalently to ``timedeltas``
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     from pandas import offsets
-     td + offsets.Minute(5) + offsets.Milli(5)
+     In [59]: from pandas import offsets
+
+     In [60]: td + offsets.Minute(5) + offsets.Milli(5)
+     Out[60]:
+     0   31 days 00:05:00.005000
+     1   31 days 00:05:00.005000
+     2   31 days 00:10:03.005000
+     3                       NaT
+     dtype: timedelta64[us]
 
   Fillna is now supported for timedeltas
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     td.fillna(pd.Timedelta(0))
-     td.fillna(datetime.timedelta(days=1, seconds=5))
+     In [61]: td.fillna(pd.Timedelta(0))
+     Out[61]:
+     0   31 days 00:00:00
+     1   31 days 00:00:00
+     2   31 days 00:05:03
+     3    0 days 00:00:00
+     dtype: timedelta64[us]
+
+     In [62]: td.fillna(datetime.timedelta(days=1, seconds=5))
+     Out[62]:
+     0   31 days 00:00:00
+     1   31 days 00:00:00
+     2   31 days 00:05:03
+     3    1 days 00:00:05
+     dtype: timedelta64[us]
 
   You can do numeric reduction operations on timedeltas.
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     td.mean()
-     td.quantile(.1)
+     In [63]: td.mean()
+     Out[63]: Timedelta('31 days 00:01:41')
+
+     In [64]: td.quantile(.1)
+     Out[64]: Timedelta('31 days 00:00:00')
 
 - ``plot(kind='kde')`` now accepts the optional parameters ``bw_method`` and
   ``ind``, passed to scipy.stats.gaussian_kde() (for scipy >= 0.11.0) to set
@@ -630,19 +790,27 @@ Enhancements
 - The new vectorized string method ``extract`` return regular expression
   matches more conveniently.
 
-  .. ipython:: python
-     :okwarning:
+  .. code-block:: ipython
 
-     pd.Series(['a1', 'b2', 'c3']).str.extract('[ab](\\d)')
+     In [65]: pd.Series(['a1', 'b2', 'c3']).str.extract('[ab](\\d)')
+     Out[65]:
+          0
+     0    1
+     1    2
+     2  NaN
 
   Elements that do not match return ``NaN``. Extracting a regular expression
   with more than one group returns a DataFrame with one column per group.
 
 
-  .. ipython:: python
-     :okwarning:
+  .. code-block:: ipython
 
-     pd.Series(['a1', 'b2', 'c3']).str.extract('([ab])(\\d)')
+     In [66]: pd.Series(['a1', 'b2', 'c3']).str.extract('([ab])(\\d)')
+     Out[66]:
+          0    1
+     0    a    1
+     1    b    2
+     2  NaN  NaN
 
   Elements that do not match return a row of ``NaN``.
   Thus, a Series of messy strings can be *converted* into a
@@ -651,19 +819,27 @@ Enhancements
 
   Named groups like
 
-  .. ipython:: python
-     :okwarning:
+  .. code-block:: ipython
 
-     pd.Series(['a1', 'b2', 'c3']).str.extract(
-         '(?P<letter>[ab])(?P<digit>\\d)')
+     In [67]: pd.Series(['a1', 'b2', 'c3']).str.extract(
+     ....:     '(?P<letter>[ab])(?P<digit>\\d)')
+     Out[67]:
+       letter digit
+     0      a     1
+     1      b     2
+     2    NaN   NaN
 
   and optional groups can also be used.
 
-  .. ipython:: python
-     :okwarning:
+  .. code-block:: ipython
 
-      pd.Series(['a1', 'b2', '3']).str.extract(
-          '(?P<letter>[ab])?(?P<digit>\\d)')
+     In [68]: pd.Series(['a1', 'b2', '3']).str.extract(
+     ....:     '(?P<letter>[ab])?(?P<digit>\\d)')
+     Out[68]:
+       letter digit
+     0      a     1
+     1      b     2
+     2    NaN     3
 
 - ``read_stata`` now accepts Stata 13 format (:issue:`4291`)
 
@@ -693,29 +869,59 @@ Enhancements
 
   or with frequency as offset
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     pd.date_range('2013-01-01', periods=5, freq=pd.offsets.Nano(5))
+     In [69]: pd.date_range('2013-01-01', periods=5, freq=pd.offsets.Nano(5))
+     Out[69]:
+     DatetimeIndex([          '2013-01-01 00:00:00',
+                    '2013-01-01 00:00:00.000000005',
+                    '2013-01-01 00:00:00.000000010',
+                    '2013-01-01 00:00:00.000000015',
+                    '2013-01-01 00:00:00.000000020'],
+                   dtype='datetime64[ns]', freq='5ns')
 
   Timestamps can be modified in the nanosecond range
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     t = pd.Timestamp('20130101 09:01:02')
-     t + pd.tseries.offsets.Nano(123)
+     In [70]: t = pd.Timestamp('20130101 09:01:02')
+
+     In [71]: t + pd.tseries.offsets.Nano(123)
+     Out[71]: Timestamp('2013-01-01 09:01:02.000000123')
 
 - A new method, ``isin`` for DataFrames, which plays nicely with boolean indexing. The argument to ``isin``, what we're comparing the DataFrame to, can be a DataFrame, Series, dict, or array of values. See :ref:`the docs<indexing.basics.indexing_isin>` for more.
 
   To get the rows where any of the conditions are met:
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     dfi = pd.DataFrame({'A': [1, 2, 3, 4], 'B': ['a', 'b', 'f', 'n']})
-     dfi
-     other = pd.DataFrame({'A': [1, 3, 3, 7], 'B': ['e', 'f', 'f', 'e']})
-     mask = dfi.isin(other)
-     mask
-     dfi[mask.any(axis=1)]
+     In [72]: dfi = pd.DataFrame({'A': [1, 2, 3, 4], 'B': ['a', 'b', 'f', 'n']})
+
+     In [73]: dfi
+     Out[73]:
+        A  B
+     0  1  a
+     1  2  b
+     2  3  f
+     3  4  n
+
+     In [74]: other = pd.DataFrame({'A': [1, 3, 3, 7], 'B': ['e', 'f', 'f', 'e']})
+
+     In [75]: mask = dfi.isin(other)
+
+     In [76]: mask
+     Out[76]:
+            A      B
+     0   True  False
+     1  False  False
+     2   True   True
+     3  False  False
+
+     In [77]: dfi[mask.any(axis=1)]
+     Out[77]:
+        A  B
+     0  1  a
+     2  3  f
 
 - ``Series`` now supports a ``to_frame`` method to convert it to a single-column DataFrame (:issue:`5164`)
 
@@ -747,11 +953,20 @@ Enhancements
 
 - DataFrame has a new ``interpolate`` method, similar to Series (:issue:`4434`, :issue:`1892`)
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-      df = pd.DataFrame({'A': [1, 2.1, np.nan, 4.7, 5.6, 6.8],
-                        'B': [.25, np.nan, np.nan, 4, 12.2, 14.4]})
-      df.interpolate()
+     In [78]: df = pd.DataFrame({'A': [1, 2.1, np.nan, 4.7, 5.6, 6.8],
+     ....:                   'B': [.25, np.nan, np.nan, 4, 12.2, 14.4]})
+
+     In [79]: df.interpolate()
+     Out[79]:
+          A      B
+     0  1.0   0.25
+     1  2.1   1.50
+     2  3.4   2.75
+     3  4.7   4.00
+     4  5.6  12.20
+     5  6.8  14.40
 
   Additionally, the ``method`` argument to ``interpolate`` has been expanded
   to include ``'nearest', 'zero', 'slinear', 'quadratic', 'cubic',
@@ -762,25 +977,52 @@ Enhancements
   Interpolate now also accepts a ``limit`` keyword argument.
   This works similar to ``fillna``'s limit:
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-    ser = pd.Series([1, 3, np.nan, np.nan, np.nan, 11])
-    ser.interpolate(limit=2)
+     In [80]: ser = pd.Series([1, 3, np.nan, np.nan, np.nan, 11])
+
+     In [81]: ser.interpolate(limit=2)
+     Out[81]:
+     0     1.0
+     1     3.0
+     2     5.0
+     3     7.0
+     4     NaN
+     5    11.0
+     dtype: float64
 
 - Added ``wide_to_long`` panel data convenience function. See :ref:`the docs<reshaping.melt>`.
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-    np.random.seed(123)
-    df = pd.DataFrame({"A1970" : {0 : "a", 1 : "b", 2 : "c"},
-                       "A1980" : {0 : "d", 1 : "e", 2 : "f"},
-                       "B1970" : {0 : 2.5, 1 : 1.2, 2 : .7},
-                       "B1980" : {0 : 3.2, 1 : 1.3, 2 : .1},
-                       "X"     : dict(zip(range(3), np.random.randn(3)))
-                      })
-    df["id"] = df.index
-    df
-    pd.wide_to_long(df, ["A", "B"], i="id", j="year")
+     In [82]: np.random.seed(123)
+
+     In [83]: df = pd.DataFrame({"A1970" : {0 : "a", 1 : "b", 2 : "c"},
+     ....:                    "A1980" : {0 : "d", 1 : "e", 2 : "f"},
+     ....:                    "B1970" : {0 : 2.5, 1 : 1.2, 2 : .7},
+     ....:                    "B1980" : {0 : 3.2, 1 : 1.3, 2 : .1},
+     ....:                    "X"     : dict(zip(range(3), np.random.randn(3)))
+     ....:                   })
+
+     In [84]: df["id"] = df.index
+
+     In [85]: df
+     Out[85]:
+       A1970 A1980  B1970  B1980         X  id
+     0     a     d    2.5    3.2 -1.085631   0
+     1     b     e    1.2    1.3  0.997345   1
+     2     c     f    0.7    0.1  0.282978   2
+
+     In [86]: pd.wide_to_long(df, ["A", "B"], i="id", j="year")
+     Out[86]:
+                     X  A    B
+     id year
+     0  1970 -1.085631  a  2.5
+     1  1970  0.997345  b  1.2
+     2  1970  0.282978  c  0.7
+     0  1980 -1.085631  d  3.2
+     1  1980  0.997345  e  1.3
+     2  1980  0.282978  f  0.1
 
 .. _scipy: http://www.scipy.org
 .. _documentation: http://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation
@@ -801,21 +1043,22 @@ Experimental
   ``numexpr`` behind the scenes. This results in large speedups for
   complicated expressions involving large DataFrames/Series. For example,
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     nrows, ncols = 20000, 100
-     df1, df2, df3, df4 = [pd.DataFrame(np.random.randn(nrows, ncols))
-                           for _ in range(4)]
+     In [87]: nrows, ncols = 20000, 100
 
-  .. ipython:: python
+     In [88]: df1, df2, df3, df4 = [pd.DataFrame(np.random.randn(nrows, ncols))
+     ....:                       for _ in range(4)]
 
-     # eval with NumExpr backend
-     %timeit pd.eval('df1 + df2 + df3 + df4')
+  .. code-block:: ipython
 
-  .. ipython:: python
+     In [89]: # eval with NumExpr backend
+     ....: %timeit pd.eval('df1 + df2 + df3 + df4')
 
-     # pure Python evaluation
-     %timeit df1 + df2 + df3 + df4
+  .. code-block:: ipython
+
+     In [90]: # pure Python evaluation
+     ....: %timeit df1 + df2 + df3 + df4
 
   For more details, see the :ref:`the docs<enhancingperf.eval>`
 
@@ -823,51 +1066,41 @@ Experimental
   ``DataFrame.eval`` method that evaluates an expression in the context of
   the ``DataFrame``. For example,
 
-  .. ipython:: python
-     :suppress:
 
-     try:
-         del a  # noqa: F821
-     except NameError:
-         pass
+  .. code-block:: ipython
 
-     try:
-         del b  # noqa: F821
-     except NameError:
-         pass
+     In [91]: df = pd.DataFrame(np.random.randn(10, 2), columns=['a', 'b'])
 
-  .. ipython:: python
-
-     df = pd.DataFrame(np.random.randn(10, 2), columns=['a', 'b'])
-     df.eval('a + b')
+     In [92]: df.eval('a + b')
+     Out[92]:
+     0   -0.685204
+     1    1.589745
+     2    0.325441
+     3   -1.784153
+     4   -0.432893
+     5    0.171850
+     6    1.895919
+     7    3.065587
+     8   -0.092759
+     9    1.391365
+     dtype: float64
 
 - :meth:`~pandas.DataFrame.query` method has been added that allows
   you to select elements of a ``DataFrame`` using a natural query syntax
   nearly identical to Python syntax. For example,
 
-  .. ipython:: python
-     :suppress:
 
-     try:
-         del a  # noqa: F821
-     except NameError:
-         pass
+  .. code-block:: ipython
 
-     try:
-         del b  # noqa: F821
-     except NameError:
-         pass
+     In [93]: n = 20
 
-     try:
-         del c  # noqa: F821
-     except NameError:
-         pass
+     In [94]: df = pd.DataFrame(np.random.randint(n, size=(n, 3)), columns=['a', 'b', 'c'])
 
-  .. ipython:: python
-
-     n = 20
-     df = pd.DataFrame(np.random.randint(n, size=(n, 3)), columns=['a', 'b', 'c'])
-     df.query('a < b < c')
+     In [95]: df.query('a < b < c')
+     Out[95]:
+         a   b   c
+     11  1   5   8
+     15  8  16  19
 
   selects all the rows of ``df`` where ``a < b < c`` evaluates to ``True``.
   For more details see the :ref:`the docs<indexing.query>`.
@@ -896,11 +1129,6 @@ Experimental
      for o in pd.read_msgpack('foo.msg', iterator=True):
          print(o)
 
-  .. ipython:: python
-     :suppress:
-     :okexcept:
-
-     os.remove('foo.msg')
 
 - ``pandas.io.gbq`` provides a simple way to extract from, and load data into,
   Google's BigQuery Data Sets by way of pandas DataFrames. BigQuery is a high
@@ -982,25 +1210,50 @@ to unify methods and behaviors. Series formerly subclassed directly from
      as an argument. This seems only to affect ``np.ones_like``, ``np.empty_like``,
      ``np.diff`` and ``np.where``. These now return ``ndarrays``.
 
-     .. ipython:: python
+     .. code-block:: ipython
 
-        s = pd.Series([1, 2, 3, 4])
+        In [96]: s = pd.Series([1, 2, 3, 4])
 
      Numpy Usage
 
-     .. ipython:: python
+     .. code-block:: ipython
 
-        np.ones_like(s)
-        np.diff(s)
-        np.where(s > 1, s, np.nan)
+        In [97]: np.ones_like(s)
+        Out[97]: array([1, 1, 1, 1])
+
+        In [98]: np.diff(s)
+        Out[98]: array([1, 1, 1])
+
+        In [99]: np.where(s > 1, s, np.nan)
+        Out[99]: array([nan,  2.,  3.,  4.])
 
      Pandonic Usage
 
-     .. ipython:: python
+     .. code-block:: ipython
 
-        pd.Series(1, index=s.index)
-        s.diff()
-        s.where(s > 1)
+        In [100]: pd.Series(1, index=s.index)
+        Out[100]:
+        0    1
+        1    1
+        2    1
+        3    1
+        dtype: int64
+
+        In [101]: s.diff()
+        Out[101]:
+        0    NaN
+        1    1.0
+        2    1.0
+        3    1.0
+        dtype: float64
+
+        In [102]: s.where(s > 1)
+        Out[102]:
+        0    NaN
+        1    2.0
+        2    3.0
+        3    4.0
+        dtype: float64
 
    - Passing a ``Series`` directly to a cython function expecting an ``ndarray`` type will no
      long work directly, you must pass ``Series.values``, See :ref:`Enhancing Performance<enhancingperf.ndarray>`
@@ -1072,12 +1325,21 @@ to unify methods and behaviors. Series formerly subclassed directly from
 - Refactor of ``_get_numeric_data/_get_bool_data`` to core/generic.py, allowing Series/Panel functionality
 - ``Series`` (for index) / ``Panel`` (for items) now allow attribute access to its elements  (:issue:`1903`)
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     s = pd.Series([1, 2, 3], index=list('abc'))
-     s.b
-     s.a = 5
-     s
+     In [103]: s = pd.Series([1, 2, 3], index=list('abc'))
+
+     In [104]: s.b
+     Out[104]: 2
+
+     In [105]: s.a = 5
+
+     In [106]: s
+     Out[106]:
+     a    5
+     b    2
+     c    3
+     dtype: int64
 
 .. _release.bug_fixes-0.13.0:
 

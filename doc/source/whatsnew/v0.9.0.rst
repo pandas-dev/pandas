@@ -37,17 +37,24 @@ API changes
     functions like ``read_csv`` has changed to be more Pythonic and amenable to
     attribute access:
 
-.. ipython:: python
+.. code-block:: ipython
 
-   import io
+   In [1]: import io
 
-   data = """
-   0,0,1
-   1,1,0
-   0,1,0
-   """
-   df = pd.read_csv(io.StringIO(data), header=None)
-   df
+   In [2]: data = """
+      ...: 0,0,1
+      ...: 1,1,0
+      ...: 0,1,0
+      ...: """
+
+   In [3]: df = pd.read_csv(io.StringIO(data), header=None)
+
+   In [4]: df
+   Out[4]:
+      0  1  2
+   0  0  0  1
+   1  1  1  0
+   2  0  1  0
 
 
 - Creating a Series from another Series, passing an index, will cause reindexing
@@ -56,13 +63,25 @@ API changes
   "by accident" (this was never intended) will lead to all NA Series in some
   cases. To be perfectly clear:
 
-.. ipython:: python
+.. code-block:: ipython
 
-   s1 = pd.Series([1, 2, 3])
-   s1
+   In [5]: s1 = pd.Series([1, 2, 3])
 
-   s2 = pd.Series(s1, index=["foo", "bar", "baz"])
-   s2
+   In [6]: s1
+   Out[6]:
+   0    1
+   1    2
+   2    3
+   dtype: int64
+
+   In [7]: s2 = pd.Series(s1, index=["foo", "bar", "baz"])
+
+   In [8]: s2
+   Out[8]:
+   foo   NaN
+   bar   NaN
+   baz   NaN
+   dtype: float64
 
 - Deprecated ``day_of_year`` API removed from PeriodIndex, use ``dayofyear``
   (:issue:`1723`)

@@ -69,23 +69,54 @@ methods to manipulate. Thanks to Jan Schulz for much of this API/implementation.
 For full docs, see the :ref:`categorical introduction <categorical>` and the
 :ref:`API documentation <api.arrays.categorical>`.
 
-.. ipython:: python
+.. code-block:: ipython
 
-    df = pd.DataFrame({"id": [1, 2, 3, 4, 5, 6],
-                       "raw_grade": ['a', 'b', 'b', 'a', 'a', 'e']})
-
-    df["grade"] = df["raw_grade"].astype("category")
-    df["grade"]
-
+    In [1]: df = pd.DataFrame({"id": [1, 2, 3, 4, 5, 6],
+       ....:                    "raw_grade": ['a', 'b', 'b', 'a', 'a', 'e']})
+    In [2]: df["grade"] = df["raw_grade"].astype("category")
+    In [3]: df["grade"]
+    Out[3]:
+    0    a
+    1    b
+    2    b
+    3    a
+    4    a
+    5    e
+    Name: grade, dtype: category
+    Categories (3, str): ['a', 'b', 'e']
     # Rename the categories
-    df["grade"] = df["grade"].cat.rename_categories(["very good", "good", "very bad"])
-
+    In [4]: df["grade"] = df["grade"].cat.rename_categories(["very good", "good", "very bad"])
     # Reorder the categories and simultaneously add the missing categories
-    df["grade"] = df["grade"].cat.set_categories(["very bad", "bad",
-                                                  "medium", "good", "very good"])
-    df["grade"]
-    df.sort_values("grade")
-    df.groupby("grade", observed=False).size()
+    In [5]: df["grade"] = df["grade"].cat.set_categories(["very bad", "bad",
+       ....:                                               "medium", "good", "very good"])
+    In [6]: df["grade"]
+    Out[6]:
+    0    very good
+    1         good
+    2         good
+    3    very good
+    4    very good
+    5     very bad
+    Name: grade, dtype: category
+    Categories (5, str): ['very bad', 'bad', 'medium', 'good', 'very good']
+    In [7]: df.sort_values("grade")
+    Out[7]:
+       id raw_grade      grade
+    5   6         e   very bad
+    1   2         b       good
+    2   3         b       good
+    0   1         a  very good
+    3   4         a  very good
+    4   5         a  very good
+    In [8]: df.groupby("grade", observed=False).size()
+    Out[8]:
+    grade
+    very bad     1
+    bad          0
+    medium       0
+    good         2
+    very good    3
+    dtype: int64
 
 - ``pandas.core.group_agg`` and ``pandas.core.factor_agg`` were removed. As an alternative, construct
   a dataframe and use ``df.groupby(<group>).agg(<func>)``.
@@ -145,46 +176,52 @@ This type is very similar to how ``Timestamp`` works for ``datetimes``. It is a 
 
 Construct a scalar
 
-.. ipython:: python
+.. code-block:: ipython
 
-   pd.Timedelta('1 days 06:05:01.00003')
-   pd.Timedelta('15.5us')
-   pd.Timedelta('1 hour 15.5us')
-
+   In [9]: pd.Timedelta('1 days 06:05:01.00003')
+   Out[9]: Timedelta('1 days 06:05:01.000030')
+   In [10]: pd.Timedelta('15.5us')
+   Out[10]: Timedelta('0 days 00:00:00.000015500')
+   In [11]: pd.Timedelta('1 hour 15.5us')
+   Out[11]: Timedelta('0 days 01:00:00.000015500')
    # negative Timedeltas have this string repr
    # to be more consistent with datetime.timedelta conventions
-   pd.Timedelta('-1us')
-
+   In [12]: pd.Timedelta('-1us')
+   Out[12]: Timedelta('-1 days +23:59:59.999999')
    # a NaT
-   pd.Timedelta('nan')
+   In [13]: pd.Timedelta('nan')
+   Out[13]: NaT
 
 Access fields for a ``Timedelta``
 
-.. ipython:: python
+.. code-block:: ipython
 
-   td = pd.Timedelta('1 hour 3m 15.5us')
-   td.seconds
-   td.microseconds
-   td.nanoseconds
+   In [14]: td = pd.Timedelta('1 hour 3m 15.5us')
+   In [15]: td.seconds
+   Out[15]: 3780
+   In [16]: td.microseconds
+   Out[16]: 15
+   In [17]: td.nanoseconds
+   Out[17]: 500
 
 Construct a ``TimedeltaIndex``
 
-.. ipython:: python
-   :suppress:
+.. code-block:: ipython
 
-   import datetime
-
-.. ipython:: python
-
-   pd.TimedeltaIndex(['1 days', '1 days, 00:00:05',
-                      np.timedelta64(2, 'D'),
-                      datetime.timedelta(days=2, seconds=2)])
+   In [18]: pd.TimedeltaIndex(['1 days', '1 days, 00:00:05',
+      ....:                     np.timedelta64(2, 'D'),
+      ....:                     datetime.timedelta(days=2, seconds=2)])
+   Out[18]:
+   TimedeltaIndex(['1 days 00:00:00', '1 days 00:00:05', '2 days 00:00:00',
+                   '2 days 00:00:02'],
+                  dtype='timedelta64[us]', freq=None)
 
 Constructing a ``TimedeltaIndex`` with a regular range
 
-.. ipython:: python
+.. code-block:: ipython
 
-   pd.timedelta_range('1 days', periods=5, freq='D')
+   In [19]: pd.timedelta_range('1 days', periods=5, freq='D')
+   Out[19]: TimedeltaIndex(['1 days', '2 days', '3 days', '4 days', '5 days'], dtype='timedelta64[us]', freq='D')
 
 .. code-block:: python
 
@@ -211,30 +248,46 @@ Constructing a ``TimedeltaIndex`` with a regular range
 
 You can now use a ``TimedeltaIndex`` as the index of a pandas object
 
-.. ipython:: python
+.. code-block:: ipython
 
-   s = pd.Series(np.arange(5),
-                 index=pd.timedelta_range('1 days', periods=5, freq='s'))
-   s
+   In [20]: s = pd.Series(np.arange(5),
+      ....:               index=pd.timedelta_range('1 days', periods=5, freq='s'))
+   In [21]: s
+   Out[21]:
+   1 days 00:00:00    0
+   1 days 00:00:01    1
+   1 days 00:00:02    2
+   1 days 00:00:03    3
+   1 days 00:00:04    4
+   Freq: s, dtype: int64
 
 You can select with partial string selections
 
-.. ipython:: python
+.. code-block:: ipython
 
-   s['1 day 00:00:02']
-   s['1 day':'1 day 00:00:02']
+   In [22]: s['1 day 00:00:02']
+   Out[22]: np.int64(2)
+   In [23]: s['1 day':'1 day 00:00:02']
+   Out[23]:
+   1 days 00:00:00    0
+   1 days 00:00:01    1
+   1 days 00:00:02    2
+   Freq: s, dtype: int64
 
 Finally, the combination of ``TimedeltaIndex`` with ``DatetimeIndex`` allow certain combination operations that are ``NaT`` preserving:
 
-.. ipython:: python
+.. code-block:: ipython
 
-   tdi = pd.TimedeltaIndex(['1 days', pd.NaT, '2 days'])
-   tdi.tolist()
-   dti = pd.date_range('20130101', periods=3)
-   dti.tolist()
-
-   (dti + tdi).tolist()
-   (dti - tdi).tolist()
+   In [24]: tdi = pd.TimedeltaIndex(['1 days', pd.NaT, '2 days'])
+   In [25]: tdi.tolist()
+   Out[25]: [Timedelta('1 days 00:00:00'), NaT, Timedelta('2 days 00:00:00')]
+   In [26]: dti = pd.date_range('20130101', periods=3)
+   In [27]: dti.tolist()
+   Out[27]: [Timestamp('2013-01-01 00:00:00'), Timestamp('2013-01-02 00:00:00'), Timestamp('2013-01-03 00:00:00')]
+   In [28]: (dti + tdi).tolist()
+   Out[28]: [Timestamp('2013-01-02 00:00:00'), NaT, Timestamp('2013-01-05 00:00:00')]
+   In [29]: (dti - tdi).tolist()
+   Out[29]: [Timestamp('2012-12-31 00:00:00'), NaT, Timestamp('2013-01-01 00:00:00')]
 
 - iteration of a ``Series`` e.g. ``list(Series(...))`` of ``timedelta64[ns]`` would prior to v0.15.0 return ``np.timedelta64`` for each element. These will now be wrapped in ``Timedelta``.
 
@@ -248,22 +301,47 @@ Implemented methods to find memory usage of a DataFrame. See the :ref:`FAQ <df-m
 
 A new display option ``display.memory_usage`` (see :ref:`options`) sets the default behavior of the ``memory_usage`` argument in the ``df.info()`` method. By default ``display.memory_usage`` is ``True``.
 
-.. ipython:: python
+.. code-block:: ipython
 
-    dtypes = ['int64', 'float64', 'datetime64[ns]', 'timedelta64[ns]',
-              'complex128', 'object', 'bool']
-    n = 5000
-    data = {t: np.random.randint(100, size=n).astype(t) for t in dtypes}
-    df = pd.DataFrame(data)
-    df['categorical'] = df['object'].astype('category')
-
-    df.info()
+    In [30]: dtypes = ['int64', 'float64', 'datetime64[ns]', 'timedelta64[ns]',
+       ....:           'complex128', 'object', 'bool']
+    In [31]: n = 5000
+    In [32]: data = {t: np.random.randint(100, size=n).astype(t) for t in dtypes}
+    In [33]: df = pd.DataFrame(data)
+    In [34]: df['categorical'] = df['object'].astype('category')
+    In [35]: df.info()
+    <class 'pandas.DataFrame'>
+    RangeIndex: 5000 entries, 0 to 4999
+    Data columns (total 8 columns):
+     #   Column           Non-Null Count  Dtype
+    ---  ------           --------------  -----
+     0   int64            5000 non-null   int64
+     1   float64          5000 non-null   float64
+     2   datetime64[ns]   5000 non-null   datetime64[ns]
+     3   timedelta64[ns]  5000 non-null   timedelta64[ns]
+     4   complex128       5000 non-null   complex128
+     5   object           5000 non-null   object
+     6   bool             5000 non-null   bool
+     7   categorical      5000 non-null   category
+    dtypes: bool(1), category(1), complex128(1), datetime64[ns](1), float64(1), int64(1), object(1), timedelta64[ns](1)
+    memory usage: 284.1+ KB
 
 Additionally :meth:`~pandas.DataFrame.memory_usage` is an available method for a dataframe object which returns the memory usage of each column.
 
-.. ipython:: python
+.. code-block:: ipython
 
-    df.memory_usage(index=True)
+    In [36]: df.memory_usage(index=True)
+    Out[36]:
+    Index                132
+    int64              40000
+    float64            40000
+    datetime64[ns]     40000
+    timedelta64[ns]    40000
+    complex128         80000
+    object             40000
+    bool                5000
+    categorical         5800
+    dtype: int64
 
 
 .. _whatsnew_0150.dt:
@@ -274,54 +352,137 @@ Series.dt accessor
 ``Series`` has gained an accessor to succinctly return datetime like properties for the *values* of the Series, if its a datetime/period like Series. (:issue:`7207`)
 This will return a Series, indexed like the existing Series. See the :ref:`docs <basics.dt_accessors>`
 
-.. ipython:: python
+.. code-block:: ipython
 
    # datetime
-   s = pd.Series(pd.date_range('20130101 09:10:12', periods=4))
-   s
-   s.dt.hour
-   s.dt.second
-   s.dt.day
-   s.dt.freq
+   In [37]: s = pd.Series(pd.date_range('20130101 09:10:12', periods=4))
+   In [38]: s
+   Out[38]:
+   0   2013-01-01 09:10:12
+   1   2013-01-02 09:10:12
+   2   2013-01-03 09:10:12
+   3   2013-01-04 09:10:12
+   dtype: datetime64[us]
+   In [39]: s.dt.hour
+   Out[39]:
+   0    9
+   1    9
+   2    9
+   3    9
+   dtype: int32
+   In [40]: s.dt.second
+   Out[40]:
+   0    12
+   1    12
+   2    12
+   3    12
+   dtype: int32
+   In [41]: s.dt.day
+   Out[41]:
+   0    1
+   1    2
+   2    3
+   3    4
+   dtype: int32
+   In [42]: s.dt.freq
+   Out[42]: 'D'
 
 This enables nice expressions like this:
 
-.. ipython:: python
+.. code-block:: ipython
 
-   s[s.dt.day == 2]
+   In [43]: s[s.dt.day == 2]
+   Out[43]:
+   1   2013-01-02 09:10:12
+   dtype: datetime64[us]
 
 You can easily produce tz aware transformations:
 
-.. ipython:: python
+.. code-block:: ipython
 
-   stz = s.dt.tz_localize('US/Eastern')
-   stz
-   stz.dt.tz
+   In [44]: stz = s.dt.tz_localize('US/Eastern')
+   In [45]: stz
+   Out[45]:
+   0   2013-01-01 09:10:12-05:00
+   1   2013-01-02 09:10:12-05:00
+   2   2013-01-03 09:10:12-05:00
+   3   2013-01-04 09:10:12-05:00
+   dtype: datetime64[us, US/Eastern]
+   In [46]: stz.dt.tz
+   Out[46]: zoneinfo.ZoneInfo(key='US/Eastern')
 
 You can also chain these types of operations:
 
-.. ipython:: python
+.. code-block:: ipython
 
-   s.dt.tz_localize('UTC').dt.tz_convert('US/Eastern')
+   In [47]: s.dt.tz_localize('UTC').dt.tz_convert('US/Eastern')
+   Out[47]:
+   0   2013-01-01 04:10:12-05:00
+   1   2013-01-02 04:10:12-05:00
+   2   2013-01-03 04:10:12-05:00
+   3   2013-01-04 04:10:12-05:00
+   dtype: datetime64[us, US/Eastern]
 
 The ``.dt`` accessor works for period and timedelta dtypes.
 
-.. ipython:: python
+.. code-block:: ipython
 
    # period
-   s = pd.Series(pd.period_range('20130101', periods=4, freq='D'))
-   s
-   s.dt.year
-   s.dt.day
+   In [48]: s = pd.Series(pd.period_range('20130101', periods=4, freq='D'))
+   In [49]: s
+   Out[49]:
+   0    2013-01-01
+   1    2013-01-02
+   2    2013-01-03
+   3    2013-01-04
+   dtype: period[D]
+   In [50]: s.dt.year
+   Out[50]:
+   0    2013
+   1    2013
+   2    2013
+   3    2013
+   dtype: int64
+   In [51]: s.dt.day
+   Out[51]:
+   0    1
+   1    2
+   2    3
+   3    4
+   dtype: int64
 
-.. ipython:: python
+.. code-block:: ipython
 
    # timedelta
-   s = pd.Series(pd.timedelta_range('1 day 00:00:05', periods=4, freq='s'))
-   s
-   s.dt.days
-   s.dt.seconds
-   s.dt.components
+   In [52]: s = pd.Series(pd.timedelta_range('1 day 00:00:05', periods=4, freq='s'))
+   In [53]: s
+   Out[53]:
+   0   1 days 00:00:05
+   1   1 days 00:00:06
+   2   1 days 00:00:07
+   3   1 days 00:00:08
+   dtype: timedelta64[us]
+   In [54]: s.dt.days
+   Out[54]:
+   0    1
+   1    1
+   2    1
+   3    1
+   dtype: int64
+   In [55]: s.dt.seconds
+   Out[55]:
+   0    5
+   1    6
+   2    7
+   3    8
+   dtype: int32
+   In [56]: s.dt.components
+   Out[56]:
+      days  hours  minutes  seconds  milliseconds  microseconds  nanoseconds
+   0     1      0        0        5             0             0            0
+   1     1      0        0        6             0             0            0
+   2     1      0        0        7             0             0            0
+   3     1      0        0        8             0             0            0
 
 
 .. _whatsnew_0150.tz:
@@ -389,9 +550,9 @@ Rolling/expanding moments improvements
 
   Prior to 0.15.0
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     s = pd.Series([10, 11, 12, 13])
+     In [57]: s = pd.Series([10, 11, 12, 13])
 
   .. code-block:: ipython
 
@@ -449,9 +610,9 @@ Rolling/expanding moments improvements
   the calculated weighted means (e.g. 'triang', 'gaussian') are distributed about the same means as those
   calculated without weighting (i.e. 'boxcar'). See :ref:`the note on normalization <window.weighted>` for further details. (:issue:`7618`)
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-    s = pd.Series([10.5, 8.8, 11.4, 9.7, 9.3])
+    In [58]: s = pd.Series([10.5, 8.8, 11.4, 9.7, 9.3])
 
   Behavior prior to 0.15.0:
 
@@ -498,9 +659,9 @@ Rolling/expanding moments improvements
   Prior behavior (note values start at index ``2``, which is ``min_periods`` after index ``0``
   (the index of the first non-empty value)):
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-    s  = pd.Series([1, None, None, None, 2, 3])
+    In [59]: s  = pd.Series([1, None, None, None, 2, 3])
 
   .. code-block:: ipython
 
@@ -593,9 +754,9 @@ Rolling/expanding moments improvements
   For example, consider the following pre-0.15.0 results for ``ewmvar(..., bias=False)``,
   and the corresponding debiasing factors:
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     s = pd.Series([1., 2., 0., 4.])
+     In [60]: s = pd.Series([1., 2., 0., 4.])
 
   .. code-block:: ipython
 
@@ -707,10 +868,14 @@ Other notable API changes:
 
 - Consistency when indexing with ``.loc`` and a list-like indexer when no values are found.
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     df = pd.DataFrame([['a'], ['b']], index=[1, 2])
-     df
+     In [61]: df = pd.DataFrame([['a'], ['b']], index=[1, 2])
+     In [62]: df
+     Out[62]:
+        0
+     1  a
+     2  b
 
   In prior versions there was a difference in these two constructs:
 
@@ -769,19 +934,25 @@ Other notable API changes:
 
   Furthermore, ``.loc`` will raise If no values are found in a MultiIndex with a list-like indexer:
 
-  .. ipython:: python
-     :okexcept:
+  .. code-block:: ipython
 
-     s = pd.Series(np.arange(3, dtype='int64'),
-                   index=pd.MultiIndex.from_product([['A'],
-                                                    ['foo', 'bar', 'baz']],
-                                                    names=['one', 'two'])
-                   ).sort_index()
-     s
-     try:
-         s.loc[['D']]
-     except KeyError as e:
-         print("KeyError: " + str(e))
+     In [63]: s = pd.Series(np.arange(3, dtype='int64'),
+        ....:               index=pd.MultiIndex.from_product([['A'],
+        ....:                                                ['foo', 'bar', 'baz']],
+        ....:                                                names=['one', 'two'])
+        ....:               ).sort_index()
+     In [64]: s
+     Out[64]:
+     one  two
+     A    bar    1
+          baz    2
+          foo    0
+     dtype: int64
+     In [65]: try:
+        ....:     s.loc[['D']]
+        ....: except KeyError as e:
+        ....:     print("KeyError: " + str(e))
+     KeyError: "['D'] not in index"
 
 - Assigning values to ``None`` now considers the dtype when choosing an 'empty' value (:issue:`7941`).
 
@@ -789,32 +960,42 @@ Other notable API changes:
   dtype to object (or errored, depending on the call). It now uses
   ``NaN``:
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     s = pd.Series([1., 2., 3.])
-     s.loc[0] = None
-     s
+     In [66]: s = pd.Series([1., 2., 3.])
+     In [67]: s.loc[0] = None
+     In [68]: s
+     Out[68]:
+     0    NaN
+     1    2.0
+     2    3.0
+     dtype: float64
 
   ``NaT`` is now used similarly for datetime containers.
 
   For object containers, we now preserve ``None`` values (previously these
   were converted to ``NaN`` values).
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     s = pd.Series(["a", "b", "c"])
-     s.loc[0] = None
-     s
+     In [69]: s = pd.Series(["a", "b", "c"])
+     In [70]: s.loc[0] = None
+     In [71]: s
+     Out[71]:
+     0    NaN
+     1      b
+     2      c
+     dtype: str
 
   To insert a ``NaN``, you must explicitly use ``np.nan``. See the :ref:`docs <missing.inserting>`.
 
 - In prior versions, updating a pandas object inplace would not reflect in other python references to this object. (:issue:`8511`, :issue:`5104`)
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     s = pd.Series([1, 2, 3])
-     s2 = s
-     s += 1.5
+     In [72]: s = pd.Series([1, 2, 3])
+     In [73]: s2 = s
+     In [74]: s += 1.5
 
   Behavior prior to v0.15.0
 
@@ -840,13 +1021,22 @@ Other notable API changes:
 
   This is now the correct behavior
 
-  .. ipython:: python
+  .. code-block:: ipython
 
      # the original object
-     s
-
+     In [75]: s
+     Out[75]:
+     0    2.5
+     1    3.5
+     2    4.5
+     dtype: float64
      # a reference to the original object
-     s2
+     In [76]: s2
+     Out[76]:
+     0    2.5
+     1    3.5
+     2    4.5
+     dtype: float64
 
 .. _whatsnew_0150.blanklines:
 
@@ -862,13 +1052,25 @@ Other notable API changes:
   In prior versions this would drop the timezone, now it retains the timezone,
   but gives a column of ``object`` dtype:
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-        i = pd.date_range('1/1/2011', periods=3, freq='10s', tz='US/Eastern')
-        i
-        df = pd.DataFrame({'a': i})
-        df
-        df.dtypes
+        In [77]: i = pd.date_range('1/1/2011', periods=3, freq='10s', tz='US/Eastern')
+        In [78]: i
+        Out[78]:
+        DatetimeIndex(['2011-01-01 00:00:00-05:00', '2011-01-01 00:00:10-05:00',
+                       '2011-01-01 00:00:20-05:00'],
+                      dtype='datetime64[us, US/Eastern]', freq='10s')
+        In [79]: df = pd.DataFrame({'a': i})
+        In [80]: df
+        Out[80]:
+                                  a
+        0 2011-01-01 00:00:00-05:00
+        1 2011-01-01 00:00:10-05:00
+        2 2011-01-01 00:00:20-05:00
+        In [81]: df.dtypes
+        Out[81]:
+        a    datetime64[us, US/Eastern]
+        dtype: object
 
   Previously this would have yielded a column of ``datetime64`` dtype, but without timezone info.
 
@@ -901,17 +1103,33 @@ Other notable API changes:
 
 - Previously an enlargement with a mixed-dtype frame would act unlike ``.append`` which will preserve dtypes (related :issue:`2578`, :issue:`8176`):
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     df = pd.DataFrame([[True, 1], [False, 2]],
-                       columns=["female", "fitness"])
-     df
-     df.dtypes
-
+     In [82]: df = pd.DataFrame([[True, 1], [False, 2]],
+        ....:                   columns=["female", "fitness"])
+     In [83]: df
+     Out[83]:
+        female  fitness
+     0    True        1
+     1   False        2
+     In [84]: df.dtypes
+     Out[84]:
+     female      bool
+     fitness    int64
+     dtype: object
      # dtypes are now preserved
-     df.loc[2] = df.loc[1]
-     df
-     df.dtypes
+     In [85]: df.loc[2] = df.loc[1]
+     In [86]: df
+     Out[86]:
+        female  fitness
+     0    True        1
+     1   False        2
+     2   False        2
+     In [87]: df.dtypes
+     Out[87]:
+     female      bool
+     fitness    int64
+     dtype: object
 
 - ``Series.to_csv()`` now returns a string when ``path=None``, matching the behaviour of ``DataFrame.to_csv()`` (:issue:`8215`).
 
@@ -1077,11 +1295,16 @@ Other:
   categorical columns are encoded as 0's and 1's, while other columns are
   left untouched.
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-    df = pd.DataFrame({'A': ['a', 'b', 'a'], 'B': ['c', 'c', 'b'],
-                    'C': [1, 2, 3]})
-    pd.get_dummies(df)
+    In [88]: df = pd.DataFrame({'A': ['a', 'b', 'a'], 'B': ['c', 'c', 'b'],
+       ....:                 'C': [1, 2, 3]})
+    In [89]: pd.get_dummies(df)
+    Out[89]:
+       C    A_a    A_b    B_b    B_c
+    0  1   True  False  False   True
+    1  2  False   True  False   True
+    2  3   True  False   True  False
 
 - ``PeriodIndex`` supports ``resolution`` as the same as ``DatetimeIndex`` (:issue:`7708`)
 - ``pandas.tseries.holiday`` has added support for additional holidays and ways to observe holidays (:issue:`7070`)
@@ -1089,12 +1312,23 @@ Other:
 - ``pandas.tseries.holiday.Holiday`` now supports a days_of_week parameter (:issue:`7070`)
 - ``GroupBy.nth()`` now supports selecting multiple nth values (:issue:`7910`)
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-    business_dates = pd.date_range(start='4/1/2014', end='6/30/2014', freq='B')
-    df = pd.DataFrame(1, index=business_dates, columns=['a', 'b'])
+    In [90]: business_dates = pd.date_range(start='4/1/2014', end='6/30/2014', freq='B')
+    In [91]: df = pd.DataFrame(1, index=business_dates, columns=['a', 'b'])
     # get the first, 4th, and last date index for each month
-    df.groupby([df.index.year, df.index.month]).nth([0, 3, -1])
+    In [92]: df.groupby([df.index.year, df.index.month]).nth([0, 3, -1])
+    Out[92]:
+                a  b
+    2014-04-01  1  1
+    2014-04-04  1  1
+    2014-04-30  1  1
+    2014-05-01  1  1
+    2014-05-06  1  1
+    2014-05-30  1  1
+    2014-06-02  1  1
+    2014-06-05  1  1
+    2014-06-30  1  1
 
 - ``Period`` and ``PeriodIndex`` supports addition/subtraction with ``timedelta``-likes (:issue:`7966`)
 
@@ -1145,14 +1379,58 @@ Other:
 
 - ``set_names``, ``set_labels``, and ``set_levels`` methods now take an optional ``level`` keyword argument to all modification of specific level(s) of a MultiIndex. Additionally ``set_names`` now accepts a scalar string value when operating on an ``Index`` or on a specific level of a ``MultiIndex`` (:issue:`7792`)
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-      idx = pd.MultiIndex.from_product([['a'], range(3), list("pqr")],
-                                       names=['foo', 'bar', 'baz'])
-      idx.set_names('qux', level=0)
-      idx.set_names(['qux', 'corge'], level=[0, 1])
-      idx.set_levels(['a', 'b', 'c'], level='bar')
-      idx.set_levels([['a', 'b', 'c'], [1, 2, 3]], level=[1, 2])
+      In [93]: idx = pd.MultiIndex.from_product([['a'], range(3), list('pqr')],
+         ....:                                  names=['foo', 'bar', 'baz'])
+      In [94]: idx.set_names('qux', level=0)
+      Out[94]:
+      MultiIndex([('a', 0, 'p'),
+                  ('a', 0, 'q'),
+                  ('a', 0, 'r'),
+                  ('a', 1, 'p'),
+                  ('a', 1, 'q'),
+                  ('a', 1, 'r'),
+                  ('a', 2, 'p'),
+                  ('a', 2, 'q'),
+                  ('a', 2, 'r')],
+                 names=['qux', 'bar', 'baz'])
+      In [95]: idx.set_names(['qux', 'corge'], level=[0, 1])
+      Out[95]:
+      MultiIndex([('a', 0, 'p'),
+                  ('a', 0, 'q'),
+                  ('a', 0, 'r'),
+                  ('a', 1, 'p'),
+                  ('a', 1, 'q'),
+                  ('a', 1, 'r'),
+                  ('a', 2, 'p'),
+                  ('a', 2, 'q'),
+                  ('a', 2, 'r')],
+                 names=['qux', 'corge', 'baz'])
+      In [96]: idx.set_levels(['a', 'b', 'c'], level='bar')
+      Out[96]:
+      MultiIndex([('a', 'a', 'p'),
+                  ('a', 'a', 'q'),
+                  ('a', 'a', 'r'),
+                  ('a', 'b', 'p'),
+                  ('a', 'b', 'q'),
+                  ('a', 'b', 'r'),
+                  ('a', 'c', 'p'),
+                  ('a', 'c', 'q'),
+                  ('a', 'c', 'r')],
+                 names=['foo', 'bar', 'baz'])
+      In [97]: idx.set_levels([['a', 'b', 'c'], [1, 2, 3]], level=[1, 2])
+      Out[97]:
+      MultiIndex([('a', 'a', 1),
+                  ('a', 'a', 2),
+                  ('a', 'a', 3),
+                  ('a', 'b', 1),
+                  ('a', 'b', 2),
+                  ('a', 'b', 3),
+                  ('a', 'c', 1),
+                  ('a', 'c', 2),
+                  ('a', 'c', 3)],
+                 names=['foo', 'bar', 'baz'])
 
 - ``Index.isin`` now supports a ``level`` argument to specify which index level
   to use for membership tests (:issue:`7892`, :issue:`7890`)
@@ -1169,12 +1447,15 @@ Other:
 
 - ``Index`` now supports ``duplicated`` and ``drop_duplicates``. (:issue:`4060`)
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     idx = pd.Index([1, 2, 3, 4, 1, 2])
-     idx
-     idx.duplicated()
-     idx.drop_duplicates()
+     In [98]: idx = pd.Index([1, 2, 3, 4, 1, 2])
+     In [99]: idx
+     Out[99]: Index([1, 2, 3, 4, 1, 2], dtype='int64')
+     In [100]: idx.duplicated()
+     Out[100]: array([False, False, False, False,  True,  True])
+     In [101]: idx.drop_duplicates()
+     Out[101]: Index([1, 2, 3, 4], dtype='int64')
 
 - add ``copy=True`` argument to ``pd.concat`` to enable pass through of complete blocks (:issue:`8252`)
 

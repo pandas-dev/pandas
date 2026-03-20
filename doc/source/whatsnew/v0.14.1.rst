@@ -64,18 +64,13 @@ API changes
   Starting from 0.14.1 all offsets preserve time by default. The old
   behaviour can be obtained with ``normalize=True``
 
-  .. ipython:: python
-     :suppress:
+  .. code-block:: ipython
 
-     import pandas.tseries.offsets as offsets
-
-     d = pd.Timestamp("2014-01-01 09:00")
-
-  .. ipython:: python
-
-     # new behaviour
-     d + offsets.MonthEnd()
-     d + offsets.MonthEnd(normalize=True)
+     In [1]: # new behaviour
+     In [2]: d + offsets.MonthEnd()
+     Out[2]: Timestamp('2014-01-31 09:00:00')
+     In [3]: d + offsets.MonthEnd(normalize=True)
+     Out[3]: Timestamp('2014-01-31 00:00:00')
 
   Note that for the other offsets the default behaviour did not change.
 
@@ -122,12 +117,13 @@ Enhancements
 - Support for dateutil timezones, which can now be used in the same way as
   pytz timezones across pandas. (:issue:`4688`)
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     rng = pd.date_range(
-         "3/6/2012 00:00", periods=10, freq="D", tz="dateutil/Europe/London"
-     )
-     rng.tz
+     In [4]: rng = pd.date_range(
+        ...:     "3/6/2012 00:00", periods=10, freq="D", tz="dateutil/Europe/London"
+        ...: )
+     In [5]: rng.tz
+     Out[5]: tzfile('/usr/share/zoneinfo/Europe/London')
 
   See :ref:`the docs <timeseries.timezone>`.
 
