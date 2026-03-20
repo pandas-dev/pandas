@@ -34,8 +34,9 @@ typedef double v4d __attribute__((ext_vector_type(4), aligned(1)));
 typedef long long v4si __attribute__((ext_vector_type(4), aligned(1)));
 #  define PANDAS_HAS_SIMD 1
 #elif defined(__GNUC__) && __has_attribute(vector_size)
-typedef double v4d __attribute__((vector_size(32), aligned(1)));
-typedef long long v4si __attribute__((vector_size(32), aligned(1)));
+typedef double v4d __attribute__((vector_size(4 * sizeof(double)), aligned(1)));
+typedef long long v4si
+    __attribute__((vector_size(4 * sizeof(long long)), aligned(1)));
 #  define PANDAS_HAS_SIMD 1
 #endif
 
