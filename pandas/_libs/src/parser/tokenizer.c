@@ -1427,23 +1427,30 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
     while (isspace_ascii(*p))
       p++;
 
-    // Find end of token (NUL).
-    const char *end = p + strlen(p);
+    // Only try fast_float for numeric-looking input (digit, sign+digit,
+    // or decimal point). This avoids fast_float parsing "nan"/"inf" which
+    // the original precise_xstrtod did not handle.
+    const char *q = p;
+    if (*q == '-' || *q == '+')
+      q++;
+    if (!isdigit_ascii(*q) && !(*q == decimal && isdigit_ascii(*(q + 1))))
+      goto fallback;
+
+    // Find end of token (next whitespace or NUL).
+    const char *end = p;
+    while (*end && !isspace_ascii(*end))
+      end++;
 
     double value;
     const char *parsed_end;
     if (fast_float_strtod(p, end, &value, &parsed_end, decimal) == 0) {
+      // Determine maybe_int by checking if we saw '.' or 'e'/'E'.
       if (maybe_int != NULL) {
         *maybe_int = 1;
-        const char *q = *p == '+' || *p == '-' ? p + 1 : p;
-        if (*q == 'i' || *q == 'I' || *q == 'n' || *q == 'N') {
-          // parsed inf/nan
-          *maybe_int = 0;
-        }
-
-        for (const char *c = p; maybe_int && c < parsed_end; c++) {
+        for (const char *c = p; c < parsed_end; c++) {
           if (*c == '.' || *c == 'e' || *c == 'E') {
             *maybe_int = 0;
+            break;
           }
         }
       }
@@ -1456,6 +1463,9 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
     }
   }
 
+fallback:
+    // Fallback for non-standard formats (custom tsep, or sci char).
+    ;
   const char *p = str;
   const int max_digits = 17;
 
