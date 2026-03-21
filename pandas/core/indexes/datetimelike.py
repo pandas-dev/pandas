@@ -384,9 +384,8 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
             self._get_values_for_csv(na_rep=na_rep, date_format=date_format)
         )
 
-    @property
-    def _formatter_func(self):
-        return self._data._formatter()
+    def _formatter_func(self, val) -> str:
+        return self._data._formatter()(val)
 
     def _format_attrs(self):
         """
@@ -456,7 +455,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         reso = Resolution.from_attrname(reso_str)
         return parsed, reso
 
-    def _get_string_slice(self, key: str) -> slice | npt.NDArray[np.intp]:
+    def _get_string_slice(self, key: str) -> slice | npt.NDArray[np.intp]:  # type: ignore[override]
         # overridden by TimedeltaIndex
         parsed, reso = self._parse_with_reso(key)
         try:
@@ -608,6 +607,44 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
 
     @property
     def unit(self) -> TimeUnit:
+        """
+        The precision unit of the datetime data.
+
+        Returns the precision unit for the dtype of the index. This is the
+        smallest time frame that can be stored within this dtype.
+
+        Returns
+        -------
+        str
+            Unit string representation (e.g. ``"ns"``).
+
+        See Also
+        --------
+        DatetimeIndex.as_unit : Convert to the given unit.
+        TimedeltaIndex.as_unit : Convert to the given unit.
+
+        Examples
+        --------
+        For a DatetimeIndex:
+
+        >>> idx = pd.DatetimeIndex(["2020-01-02 01:02:03.004005006"])
+        >>> idx.unit
+        'ns'
+
+        >>> idx_s = pd.DatetimeIndex(["2020-01-02 01:02:03"], dtype="datetime64[s]")
+        >>> idx_s.unit
+        's'
+
+        For a TimedeltaIndex:
+
+        >>> tdidx = pd.TimedeltaIndex(["1 day 3 min 2 us 42 ns"])
+        >>> tdidx.unit
+        'ns'
+
+        >>> tdidx_s = pd.TimedeltaIndex(["1 day 3 min"], dtype="timedelta64[s]")
+        >>> tdidx_s.unit
+        's'
+        """
         return self._data.unit
 
     def as_unit(self, unit: TimeUnit) -> Self:
@@ -851,7 +888,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             result = self[:0]
         else:
             lslice = slice(*left.slice_locs(start, end))
-            result = left._values[lslice]
+            result = left._values[lslice]  # type: ignore[assignment]
 
         return result
 
@@ -955,7 +992,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             #  that result.freq == self.freq
             return result
         else:
-            return super()._union(other, sort)._with_freq("infer")
+            return super()._union(other, sort)._with_freq("infer")  # type: ignore[union-attr]
 
     # --------------------------------------------------------------------
     # Join Methods

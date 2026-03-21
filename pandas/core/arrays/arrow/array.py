@@ -57,7 +57,10 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
+    DatetimeTZDtype,
+)
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import (
@@ -94,8 +97,6 @@ if HAS_PYARROW:
     import pyarrow.compute as pc
 
     from pandas.compat.pyarrow import _safe_fill_null
-
-    from pandas.core.dtypes.dtypes import ArrowDtype
 
     ARROW_CMP_FUNCS = {
         "eq": pc.equal,
@@ -1390,9 +1391,6 @@ class ArrowExtensionArray(
                 #   a kernel for duration types.
                 pass
 
-        # TODO: Why do we no longer need the above cases?
-        # TODO(3.0): after EA.fillna 'method' deprecation is enforced, we can remove
-        #  this method entirely.
         return super()._pad_or_backfill(
             method=method, limit=limit, limit_area=limit_area, copy=copy
         )
@@ -2205,7 +2203,7 @@ class ArrowExtensionArray(
 
         if name == "sem":
 
-            def pyarrow_meth(data, skip_nulls, **kwargs):
+            def pyarrow_meth(data, skip_nulls, **kwargs):  # pyright: ignore[reportRedeclaration]
                 numerator = pc.stddev(data, skip_nulls=skip_nulls, **kwargs)
                 denominator = pc.sqrt_checked(pc.count(self._pa_array))
                 return pc.divide_checked(numerator, denominator)
@@ -2420,7 +2418,14 @@ class ArrowExtensionArray(
 
         if com.is_null_slice(key):
             # fast path (GH50248)
-            data = self._if_else(True, value, self._pa_array)
+            if (
+                isinstance(value, (pa.Array, pa.ChunkedArray))
+                and value.type == self._pa_array.type
+                and len(value) == len(self)
+            ):
+                data = value
+            else:
+                data = self._if_else(True, value, self._pa_array)
 
         elif is_integer(key):
             # fast path
@@ -2859,6 +2864,15 @@ class ArrowExtensionArray(
                 ngroups=ngroups,
                 ids=ids,
                 **kwargs,
+            )
+
+        if how in ["first", "last"]:
+            return self._groupby_first_last(
+                how=how,
+                min_count=min_count,
+                ngroups=ngroups,
+                ids=ids,
+                skipna=kwargs.get("skipna", True),
             )
 
         # maybe convert to a compatible dtype optimized for groupby

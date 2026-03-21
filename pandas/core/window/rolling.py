@@ -344,7 +344,7 @@ class BaseWindow(SelectionMixin):
         if needs_i8_conversion(values.dtype):
             raise NotImplementedError(
                 f"ops for {type(self).__name__} for this "
-                f"dtype {values.dtype} are not implemented"
+                f"dtype {values.dtype} is not implemented"
             )
         # GH #12373 : rolling functions error on float32 data
         # make sure the data is coerced to float64
@@ -1290,7 +1290,7 @@ class Window(BaseWindow):
         result = ResamplerWindowApply(self, func, args=args, kwargs=kwargs).agg()
         if result is None:
             # these must apply directly
-            result = func(self)
+            result = func(self)  # pyright: ignore[reportOptionalCall]
 
         return result
 

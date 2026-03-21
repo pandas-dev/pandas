@@ -448,14 +448,13 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return type(self)(data, mask)
 
     def shift(self, periods: int = 1, fill_value=None) -> Self:
-        # NB: shift is always along axis=0
-        axis = 0
+        # NB: shift is always along axis=self.ndim-1
         if fill_value is None:
-            new_data = shift(self._data, periods, axis, 0)
-            new_mask = shift(self._mask, periods, axis, True)
+            new_data = shift(self._data, periods, 0)
+            new_mask = shift(self._mask, periods, True)
         else:
-            new_data = shift(self._data, periods, axis, fill_value)
-            new_mask = shift(self._mask, periods, axis, False)
+            new_data = shift(self._data, periods, fill_value)
+            new_mask = shift(self._mask, periods, False)
         return type(self)(new_data, new_mask)
 
     @property
@@ -1818,7 +1817,16 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         values = self._data.copy()
         np.putmask(values, self._mask, self.dtype._falsey_value)
-        result = values.any()
+        result = values.any(axis=axis)
+
+        if isinstance(result, np.ndarray):
+            if skipna:
+                mask = np.zeros(result.shape, dtype=bool)
+            else:
+                # Kleene logic: False | NA = NA, True | NA = True
+                mask = ~result & self._mask.any(axis=axis)
+            return self._maybe_mask_result(result, mask)
+
         if skipna:
             return result
         elif result or len(self) == 0 or not self._mask.any():
@@ -1905,10 +1913,18 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         np.putmask(values, self._mask, self.dtype._truthy_value)
         result = values.all(axis=axis)
 
+        if isinstance(result, np.ndarray):
+            if skipna:
+                mask = np.zeros(result.shape, dtype=bool)
+            else:
+                # Kleene logic: True & NA = NA, False & NA = False
+                mask = result & self._mask.any(axis=axis)
+            return self._maybe_mask_result(result, mask)
+
         if skipna:
-            return result  # type: ignore[return-value]
+            return result
         elif not result or len(self) == 0 or not self._mask.any():
-            return result  # type: ignore[return-value]
+            return result
         else:
             return self.dtype.na_value
 

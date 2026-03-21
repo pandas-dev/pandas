@@ -2618,8 +2618,8 @@ class TimeGrouper(Grouper):
             return binner, [], labels
 
         first, last = _get_timestamp_range_edges(
-            ax.min(),
-            ax.max(),
+            ax.min(),  # type: ignore[arg-type]
+            ax.max(),  # type: ignore[arg-type]
             self.freq,
             unit=ax.unit,
             closed=self.closed,
@@ -2655,9 +2655,9 @@ class TimeGrouper(Grouper):
         if self.closed == "right":
             labels = binner
             if self.label == "right":
-                labels = labels[1:]
+                labels = labels[1:]  # type: ignore[assignment]
         elif self.label == "right":
-            labels = labels[1:]
+            labels = labels[1:]  # type: ignore[assignment]
 
         if ax.hasnans:
             binner = binner.insert(0, NaT)
@@ -2667,7 +2667,7 @@ class TimeGrouper(Grouper):
         # adjust the labels
         # GH4076
         if len(bins) < len(labels):
-            labels = labels[: len(bins)]
+            labels = labels[: len(bins)]  # type: ignore[assignment]
 
         return binner, bins, labels
 
@@ -2704,7 +2704,7 @@ class TimeGrouper(Grouper):
             # intraday values on last day
             if bin_edges[-2] > ax_values.max():
                 bin_edges = bin_edges[:-1]
-                binner = binner[:-1]
+                binner = binner[:-1]  # type: ignore[assignment]
         else:
             bin_edges = binner.asi8
         return binner, bin_edges
@@ -2730,7 +2730,7 @@ class TimeGrouper(Grouper):
         start, end = ax.min(), ax.max()
 
         if self.closed == "right":
-            end += self.freq
+            end += self.freq  # type: ignore[operator]
 
         labels = binner = timedelta_range(
             start=start, end=end, freq=self.freq, name=ax.name
@@ -2800,8 +2800,8 @@ class TimeGrouper(Grouper):
 
         freq_mult = self.freq.n
 
-        start = ax.min().asfreq(self.freq, how=self.convention)
-        end = ax.max().asfreq(self.freq, how="end")
+        start = ax.min().asfreq(self.freq, how=self.convention)  # type: ignore[attr-defined]
+        end = ax.max().asfreq(self.freq, how="end")  # type: ignore[attr-defined]
         bin_shift = 0
 
         if isinstance(self.freq, Tick):

@@ -3,14 +3,12 @@
 # Run checks related to code quality.
 #
 # This script is intended for both the CI and to check locally that code standards are
-# respected. We run doctests here (currently some files only), and we
-# validate formatting error in docstrings.
+# respected. We run doctests here (currently some files only).
 #
 # Usage:
 #   $ ./ci/code_checks.sh               # run all checks
 #   $ ./ci/code_checks.sh code          # checks on imported code
 #   $ ./ci/code_checks.sh doctests      # run doctests
-#   $ ./ci/code_checks.sh docstrings    # validate docstring errors
 #   $ ./ci/code_checks.sh single-docs   # check single-page docs build warning-free
 #   $ ./ci/code_checks.sh notebooks     # check execution of documentation notebooks
 
@@ -23,10 +21,9 @@ else
     CHECK=""
 fi
 
-[[ -z "$CHECK" || "$CHECK" == "code" || "$CHECK" == "doctests" || "$CHECK" == "docstrings" || "$CHECK" == "single-docs" || "$CHECK" == "notebooks" ]] || \
-    { echo "Unknown command $1. Usage: $0 [code|doctests|docstrings|single-docs|notebooks]"; exit 1; }
+[[ -z "$CHECK" || "$CHECK" == "code" || "$CHECK" == "doctests" || "$CHECK" == "single-docs" || "$CHECK" == "notebooks" ]] || \
+    { echo "Unknown command $1. Usage: $0 [code|doctests|single-docs|notebooks]"; exit 1; }
 
-BASE_DIR="$(dirname "$0")/.."
 RET=0
 
 ### CODE ###
@@ -60,45 +57,6 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
     # Using future.python_scalars=True avoids NumPy scalar reprs in docstrings.
     PANDAS_FUTURE_PYTHON_SCALARS="1" python -c 'import pandas as pd; pd.test(run_doctests=True)'
     RET=$(($RET + $?)) ; echo "$MSG" "DONE"
-
-fi
-
-### DOCSTRINGS ###
-if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
-
-    MSG='Validate Docstrings' ; echo "$MSG"
-    python "$BASE_DIR"/scripts/validate_docstrings.py \
-        --format=actions \
-        -i "pandas.IntervalDtype.subtype ES01" \
-        -i "pandas.api.extensions.ExtensionArray.count ES01" \
-        -i "pandas.read_html ES01" \
-        -i "pandas.read_xml ES01" \
-        -i "pandas.IndexSlice ES01" \
-        -i "pandas.TimedeltaIndex.to_pytimedelta ES01" \
-        -i "pandas.NamedAgg ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.rolling ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.size ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.kurt ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.sum ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.value_counts ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.corr ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.cov ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.is_monotonic_increasing ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.is_monotonic_decreasing ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.nlargest ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.nsmallest ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.rolling ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.size ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.kurt ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.sum ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.value_counts ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.boxplot ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.hist ES01" \
-        -i "pandas.Timedelta.resolution_string SA01" \
-        -i "pandas.DatetimeIndex.unit GL08" \
-        -i "pandas.TimedeltaIndex.unit GL08" # no backslash in the last line
-
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi
 

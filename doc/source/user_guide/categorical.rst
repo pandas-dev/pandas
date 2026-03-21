@@ -889,7 +889,7 @@ The below raises ``TypeError`` because the categories are ordered and not identi
    union_categoricals([a, b])
 
 Ordered categoricals with different categories or orderings can be combined by
-using the ``ignore_ordered=True`` argument.
+using the ``ignore_order=True`` argument.
 
 .. ipython:: python
 

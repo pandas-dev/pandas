@@ -1524,11 +1524,18 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         data = self._get_data_to_aggregate(numeric_only=numeric_only, name=how)
 
         def array_func(values: ArrayLike) -> ArrayLike:
+            # GH#37850 For numpy boolean data, any==max and all==min.
+            # The min/max Cython path is faster (fused types, no mask overhead).
+            # Excludes nullable BooleanDtype which needs Kleene logic.
+            if how in ["any", "all"] and values.dtype == np.dtype("bool"):
+                _how = "max" if how == "any" else "min"
+            else:
+                _how = how
             try:
                 result = self._grouper._cython_operation(
                     "aggregate",
                     values,
-                    how,
+                    _how,
                     axis=data.ndim - 1,
                     min_count=min_count,
                     **kwargs,
@@ -2616,6 +2623,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         Compute group sizes.
 
+        Returns the number of rows in each group. This is useful for
+        understanding the distribution of data across groups.
+
         Returns
         -------
         DataFrame or Series
@@ -2720,6 +2730,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     ):
         """
         Compute sum of group values.
+
+        Computes the sum for each group. Null values are excluded by
+        default unless ``skipna`` is set to ``False``.
 
         Parameters
         ----------
@@ -3831,6 +3844,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         Return a rolling grouper, providing rolling functionality per group.
 
+        Allows the application of rolling window operations
+        (e.g., moving averages) independently within each group defined
+        by the groupby keys.
+
         Parameters
         ----------
         window : int, timedelta, str, offset, or BaseIndexer subclass
@@ -4179,8 +4196,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         See Also
         --------
-        pad : Returns Series with minimum number of char in object.
-        backfill : Backward fill the missing values in the dataset.
+        pad : Forward fill values within each group.
+        backfill : Backward fill values within each group.
         """
         # Need int value for Cython
         if limit is None:
@@ -4254,8 +4271,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         See Also
         --------
-        Series.ffill: Returns Series with minimum number of char in object.
-        DataFrame.ffill: Object with missing values filled or None if inplace=True.
+        Series.ffill : Forward fill missing values in a Series.
+        DataFrame.ffill : Forward fill missing values in a DataFrame.
         Series.fillna: Fill NaN values of a Series.
         DataFrame.fillna: Fill NaN values of a DataFrame.
 
@@ -5012,7 +5029,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         )
 
     @final
-    def cumprod(self, numeric_only: bool = False, *args, **kwargs) -> NDFrameT:
+    def cumprod(
+        self,
+        numeric_only: bool = False,
+        skipna: bool = True,
+        *args,
+        **kwargs,
+    ) -> NDFrameT:
         """
         Cumulative product for each group.
 
@@ -5023,11 +5046,22 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ----------
         numeric_only : bool, default False
             Include only float, int, boolean columns.
+        skipna : bool, default True
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be NA.
         *args : tuple
             Positional arguments to be passed to `func`.
+
+            .. deprecated:: 3.1.0
+                Passing ``*args`` to GroupBy.cumprod is deprecated
+                and will be removed in a future version of pandas.
+
         **kwargs : dict
-            Additional/specific keyword arguments to be passed to the function,
-            such as `numeric_only` and `skipna`.
+            Additional keyword arguments to be passed to the function.
+
+            .. deprecated:: 3.1.0
+                Passing ``**kwargs`` to GroupBy.cumprod is deprecated
+                and will be removed in a future version of pandas.
 
         Returns
         -------
@@ -5076,10 +5110,23 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         bull    6   9
         """
         nv.validate_groupby_func("cumprod", args, kwargs, ["skipna"])
-        return self._cython_transform("cumprod", numeric_only, **kwargs)
+        if args or kwargs:
+            warnings.warn(
+                "Passing additional arguments to GroupBy.cumprod is deprecated "
+                "and will be removed in a future version of pandas.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        return self._cython_transform("cumprod", numeric_only, skipna=skipna)
 
     @final
-    def cumsum(self, numeric_only: bool = False, *args, **kwargs) -> NDFrameT:
+    def cumsum(
+        self,
+        numeric_only: bool = False,
+        skipna: bool = True,
+        *args,
+        **kwargs,
+    ) -> NDFrameT:
         """
         Cumulative sum for each group.
 
@@ -5090,11 +5137,22 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ----------
         numeric_only : bool, default False
             Include only float, int, boolean columns.
+        skipna : bool, default True
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be NA.
         *args : tuple
             Positional arguments to be passed to `func`.
+
+            .. deprecated:: 3.1.0
+                Passing ``*args`` to GroupBy.cumsum is deprecated
+                and will be removed in a future version of pandas.
+
         **kwargs : dict
-            Additional/specific keyword arguments to be passed to the function,
-            such as `numeric_only` and `skipna`.
+            Additional keyword arguments to be passed to the function.
+
+            .. deprecated:: 3.1.0
+                Passing ``**kwargs`` to GroupBy.cumsum is deprecated
+                and will be removed in a future version of pandas.
 
         Returns
         -------
@@ -5143,12 +5201,20 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         lion      6   9
         """
         nv.validate_groupby_func("cumsum", args, kwargs, ["skipna"])
-        return self._cython_transform("cumsum", numeric_only, **kwargs)
+        if args or kwargs:
+            warnings.warn(
+                "Passing additional arguments to GroupBy.cumsum is deprecated "
+                "and will be removed in a future version of pandas.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        return self._cython_transform("cumsum", numeric_only, skipna=skipna)
 
     @final
     def cummin(
         self,
         numeric_only: bool = False,
+        skipna: bool = True,
         **kwargs,
     ) -> NDFrameT:
         """
@@ -5161,9 +5227,15 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ----------
         numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
+        skipna : bool, default True
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be NA.
         **kwargs : dict, optional
-            Additional keyword arguments to be passed to the function, such as `skipna`,
-            to control whether NA/null values are ignored.
+            Additional keyword arguments to be passed to the function.
+
+            .. deprecated:: 3.1.0
+                Passing ``**kwargs`` to GroupBy.cummin is deprecated
+                and will be removed in a future version of pandas.
 
         Returns
         -------
@@ -5217,7 +5289,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         rabbit  0   2
         turtle  6   9
         """
-        skipna = kwargs.get("skipna", True)
+        if kwargs:
+            warnings.warn(
+                "Passing additional arguments to GroupBy.cummin is deprecated "
+                "and will be removed in a future version of pandas.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
         return self._cython_transform(
             "cummin", numeric_only=numeric_only, skipna=skipna
         )
@@ -5226,6 +5304,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def cummax(
         self,
         numeric_only: bool = False,
+        skipna: bool = True,
         **kwargs,
     ) -> NDFrameT:
         """
@@ -5239,9 +5318,15 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ----------
         numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
+        skipna : bool, default True
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be NA.
         **kwargs : dict, optional
-            Additional keyword arguments to be passed to the function, such as `skipna`,
-            to control whether NA/null values are ignored.
+            Additional keyword arguments to be passed to the function.
+
+            .. deprecated:: 3.1.0
+                Passing ``**kwargs`` to GroupBy.cummax is deprecated
+                and will be removed in a future version of pandas.
 
         Returns
         -------
@@ -5295,7 +5380,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         horse   8   2
         bull    6   9
         """
-        skipna = kwargs.get("skipna", True)
+        if kwargs:
+            warnings.warn(
+                "Passing additional arguments to GroupBy.cummax is deprecated "
+                "and will be removed in a future version of pandas.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
         return self._cython_transform(
             "cummax", numeric_only=numeric_only, skipna=skipna
         )

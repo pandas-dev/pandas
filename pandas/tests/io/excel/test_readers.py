@@ -17,6 +17,7 @@ from zipfile import BadZipFile
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -38,6 +39,9 @@ engine_params = [
         "xlrd",
         marks=[
             td.skip_if_no("xlrd"),
+            pytest.mark.filterwarnings(
+                "ignore:The xlrd engine is deprecated:pandas.errors.Pandas4Warning"
+            ),
         ],
     ),
     pytest.param(
@@ -50,9 +54,23 @@ engine_params = [
         None,
         marks=[
             td.skip_if_no("xlrd"),
+            pytest.mark.filterwarnings(
+                "ignore:The xlrd engine is deprecated:pandas.errors.Pandas4Warning"
+            ),
+            pytest.mark.filterwarnings(
+                "ignore:The pyxlsb engine is deprecated:pandas.errors.Pandas4Warning"
+            ),
         ],
     ),
-    pytest.param("pyxlsb", marks=td.skip_if_no("pyxlsb")),
+    pytest.param(
+        "pyxlsb",
+        marks=[
+            td.skip_if_no("pyxlsb"),
+            pytest.mark.filterwarnings(
+                "ignore:The pyxlsb engine is deprecated:pandas.errors.Pandas4Warning"
+            ),
+        ],
+    ),
     pytest.param("odf", marks=td.skip_if_no("odf")),
     pytest.param("calamine", marks=td.skip_if_no("python_calamine")),
 ]
@@ -230,13 +248,9 @@ class TestReaders:
         monkeypatch.chdir(datapath("io", "data", "excel"))
         monkeypatch.setattr(pd, "read_excel", func)
 
-    def test_engine_used(self, read_ext, engine, monkeypatch):
+    @pytest.mark.filterwarnings("ignore::pytest.PytestUnraisableExceptionWarning")
+    def test_engine_used(self, read_ext, engine):
         # GH 38884
-        def parser(self, *args, **kwargs):
-            return self.engine
-
-        monkeypatch.setattr(pd.ExcelFile, "parse", parser)
-
         expected_defaults = {
             "xlsx": "openpyxl",
             "xlsm": "openpyxl",
@@ -246,7 +260,8 @@ class TestReaders:
         }
 
         with open("test1" + read_ext, "rb") as f:
-            result = pd.read_excel(f)
+            with pd.ExcelFile(f, engine=engine) as excel_file:
+                result = excel_file.engine
 
         if engine is not None:
             expected = engine
@@ -1618,9 +1633,11 @@ class TestExcelFileRead:
         tm.assert_frame_equal(df1, expected)
         tm.assert_frame_equal(df2, expected)
 
+        depr_msg = "ExcelFile.parse is deprecated"
         with pd.ExcelFile("test1" + read_ext) as excel:
-            df1 = excel.parse(0, index_col=0)
-            df2 = excel.parse(1, skiprows=[1], index_col=0)
+            with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+                df1 = excel.parse(0, index_col=0)
+                df2 = excel.parse(1, skiprows=[1], index_col=0)
         tm.assert_frame_equal(df1, expected)
         tm.assert_frame_equal(df2, expected)
 
@@ -1629,7 +1646,8 @@ class TestExcelFileRead:
         tm.assert_frame_equal(df3, df1.iloc[:-1])
 
         with pd.ExcelFile("test1" + read_ext) as excel:
-            df3 = excel.parse(0, index_col=0, skipfooter=1)
+            with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+                df3 = excel.parse(0, index_col=0, skipfooter=1)
 
         tm.assert_frame_equal(df3, df1.iloc[:-1])
 
@@ -1642,11 +1660,14 @@ class TestExcelFileRead:
         filename = "test1"
         sheet_name = "Sheet1"
 
+        depr_msg = "ExcelFile.parse is deprecated"
         with pd.ExcelFile(filename + read_ext) as excel:
-            df1_parse = excel.parse(sheet_name=sheet_name, index_col=0)  # doc
+            with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+                df1_parse = excel.parse(sheet_name=sheet_name, index_col=0)  # doc
 
         with pd.ExcelFile(filename + read_ext) as excel:
-            df2_parse = excel.parse(index_col=0, sheet_name=sheet_name)
+            with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+                df2_parse = excel.parse(index_col=0, sheet_name=sheet_name)
 
         tm.assert_frame_equal(df1_parse, expected)
         tm.assert_frame_equal(df2_parse, expected)
@@ -1658,9 +1679,11 @@ class TestExcelFileRead:
     def test_bad_sheetname_raises(self, read_ext, sheet_name):
         # GH 39250
         msg = "Worksheet index 3 is invalid|Worksheet named 'Sheet4' not found"
+        depr_msg = "ExcelFile.parse is deprecated"
         with pytest.raises(ValueError, match=msg):
             with pd.ExcelFile("blank" + read_ext) as excel:
-                excel.parse(sheet_name=sheet_name)
+                with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+                    excel.parse(sheet_name=sheet_name)
 
     def test_excel_read_buffer(self, engine, read_ext):
         pth = "test1" + read_ext
@@ -1778,8 +1801,19 @@ class TestExcelFileRead:
             errors = (CalamineError,)
 
         Path(tmp_excel).write_text("corrupt", encoding="utf-8")
-        with tm.assert_produces_warning(False):
+        expected_warning = Pandas4Warning if engine in {"xlrd", "pyxlsb"} else False
+        with tm.assert_produces_warning(expected_warning):
             try:
                 pd.ExcelFile(tmp_excel, engine=engine)
             except errors:
                 pass
+
+
+@td.skip_if_no("pyxlsb")
+def test_pyxlsb_engine_deprecated(datapath):
+    # GH#56542
+    path = datapath("io", "data", "excel", "test1.xlsb")
+    with tm.assert_produces_warning(
+        Pandas4Warning, match="pyxlsb engine is deprecated"
+    ):
+        pd.read_excel(path, engine="pyxlsb")

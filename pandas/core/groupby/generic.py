@@ -110,6 +110,12 @@ class NamedAgg:
     """
     Helper for column specific aggregation with control over output column names.
 
+    A dataclass used with :meth:`DataFrame.groupby().agg()
+    <pandas.core.groupby.DataFrameGroupBy.aggregate>` to specify an
+    aggregation on a particular column and assign a custom name to the
+    resulting column. Additional positional and keyword arguments can be
+    forwarded to the aggregation function.
+
     Parameters
     ----------
     column : Hashable
@@ -311,7 +317,9 @@ class SeriesGroupBy(GroupBy[Series]):
         """
         return super().apply(func, *args, **kwargs)
 
-    def aggregate(self, func=None, *args, engine=None, engine_kwargs=None, **kwargs):
+    def aggregate(
+        self, func=None, *args, engine=None, engine_kwargs=None, **kwargs
+    ) -> Series | DataFrame:
         """
         Aggregate using one or more operations.
 
@@ -826,7 +834,7 @@ class SeriesGroupBy(GroupBy[Series]):
         See Also
         --------
         Series.filter: Filter elements of ungrouped Series.
-        DataFrameGroupBy.filter : Filter elements from groups base on criterion.
+        DataFrameGroupBy.filter : Filter elements from groups based on criterion.
 
         Notes
         -----
@@ -1064,6 +1072,10 @@ class SeriesGroupBy(GroupBy[Series]):
     ) -> Series | DataFrame:
         """
         Return a Series or DataFrame containing counts of unique rows.
+
+        The resulting object will be in descending order by default so that
+        the first element in each group is the most frequently-occurring
+        value. NA values are excluded from the result by default.
 
         Parameters
         ----------
@@ -1329,6 +1341,10 @@ class SeriesGroupBy(GroupBy[Series]):
             For compatibility with :meth:`numpy.take`. Has no effect on the
             output.
 
+            .. deprecated:: 3.1.0
+                Passing ``**kwargs`` to SeriesGroupBy.take is deprecated
+                and will be removed in a future version of pandas.
+
         Returns
         -------
         Series
@@ -1383,6 +1399,13 @@ class SeriesGroupBy(GroupBy[Series]):
            1    monkey
         Name: name, dtype: str
         """
+        if kwargs:
+            warnings.warn(
+                "Passing additional arguments to SeriesGroupBy.take is "
+                "deprecated and will be removed in a future version of pandas.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
         result = self._op_via_apply("take", indices=indices, **kwargs)
         return result
 
@@ -1407,6 +1430,10 @@ class SeriesGroupBy(GroupBy[Series]):
 
         **kwargs
             Additional keyword arguments to be passed to the function.
+
+            .. deprecated:: 3.1.0
+                Passing ``**kwargs`` to SeriesGroupBy.skew is deprecated
+                and will be removed in a future version of pandas.
 
         Returns
         -------
@@ -1450,6 +1477,13 @@ class SeriesGroupBy(GroupBy[Series]):
         Parrot    1.457863
         Name: Max Speed, dtype: float64
         """
+        if kwargs:
+            warnings.warn(
+                "Passing additional arguments to SeriesGroupBy.skew is "
+                "deprecated and will be removed in a future version of pandas.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
 
         return self._cython_agg_general(
             "skew", alt=None, skipna=skipna, numeric_only=numeric_only, **kwargs
@@ -1463,6 +1497,10 @@ class SeriesGroupBy(GroupBy[Series]):
     ) -> Series:
         """
         Return unbiased kurtosis within groups.
+
+        Kurtosis measures the tailedness of a distribution. This method
+        computes Fisher's definition of kurtosis (normal distribution has
+        a kurtosis of zero) for each group, using the unbiased estimator.
 
         Parameters
         ----------
@@ -1565,6 +1603,10 @@ class SeriesGroupBy(GroupBy[Series]):
         """
         Return the largest `n` elements.
 
+        Within each group, returns the `n` largest values sorted in
+        descending order. The ``keep`` parameter controls how ties are
+        handled when there are duplicate values at the boundary.
+
         Parameters
         ----------
         n : int, default 5
@@ -1628,6 +1670,10 @@ class SeriesGroupBy(GroupBy[Series]):
     ) -> Series:
         """
         Return the smallest `n` elements.
+
+        Within each group, returns the `n` smallest values sorted in
+        ascending order. The ``keep`` parameter controls how ties are
+        handled when there are duplicate values at the boundary.
 
         Parameters
         ----------
@@ -1818,6 +1864,10 @@ class SeriesGroupBy(GroupBy[Series]):
         """
         Compute correlation between each group and another Series.
 
+        This method computes the pairwise correlation between each group's
+        values and the corresponding values in ``other``, using the specified
+        correlation method.
+
         Parameters
         ----------
         other : Series
@@ -1854,6 +1904,9 @@ class SeriesGroupBy(GroupBy[Series]):
         """
         Compute covariance between each group and another Series.
 
+        This method computes the sample covariance between each group's
+        values and the corresponding values in ``other``.
+
         Parameters
         ----------
         other : Series
@@ -1889,6 +1942,9 @@ class SeriesGroupBy(GroupBy[Series]):
         """
         Return whether each group's values are monotonically increasing.
 
+        A group is considered monotonically increasing if each successive
+        element is greater than or equal to the previous one.
+
         Returns
         -------
         Series
@@ -1912,6 +1968,9 @@ class SeriesGroupBy(GroupBy[Series]):
     def is_monotonic_decreasing(self) -> Series:
         """
         Return whether each group's values are monotonically decreasing.
+
+        A group is considered monotonically decreasing if each successive
+        element is less than or equal to the previous one.
 
         Returns
         -------
@@ -1949,6 +2008,9 @@ class SeriesGroupBy(GroupBy[Series]):
     ):
         """
         Draw histogram for each group's values using :meth:`Series.hist` API.
+
+        A separate histogram subplot is generated for each group, making it
+        easy to visually compare the distribution of values across groups.
 
         Parameters
         ----------
@@ -2074,7 +2136,9 @@ class SeriesGroupBy(GroupBy[Series]):
 
 @set_module("pandas.api.typing")
 class DataFrameGroupBy(GroupBy[DataFrame]):
-    def aggregate(self, func=None, *args, engine=None, engine_kwargs=None, **kwargs):
+    def aggregate(
+        self, func=None, *args, engine=None, engine_kwargs=None, **kwargs
+    ) -> DataFrame:
         """
         Aggregate using one or more operations.
 
@@ -2264,7 +2328,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             if not self.as_index and is_list_like(func):
                 return result.reset_index()
             else:
-                return result
+                return cast("DataFrame", result)
         elif relabeling:
             # this should be the only (non-raising) case with relabeling
             # used reordered index of columns
@@ -2295,7 +2359,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             result = self._insert_inaxis_grouper(result)
             result.index = default_index(len(result))
 
-        return result
+        return cast("DataFrame", result)
 
     agg = aggregate
 
@@ -2738,7 +2802,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         See Also
         --------
         DataFrame.filter: Filter elements of ungrouped DataFrame.
-        SeriesGroupBy.filter : Filter elements from groups base on criterion.
+        SeriesGroupBy.filter : Filter elements from groups based on criterion.
 
         Notes
         -----
@@ -3114,6 +3178,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         """
         Return a Series or DataFrame containing counts of unique rows.
 
+        The resulting object will be in descending order so that the
+        first element in each group is the most frequently-occurring row.
+
         Parameters
         ----------
         subset : list-like, optional
@@ -3247,6 +3314,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             For compatibility with :meth:`numpy.take`. Has no effect on the
             output.
 
+            .. deprecated:: 3.1.0
+                Passing ``**kwargs`` to DataFrameGroupBy.take is deprecated
+                and will be removed in a future version of pandas.
+
         Returns
         -------
         DataFrame
@@ -3314,6 +3385,13 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         2 0  rabbit  mammal       15.0
           1  monkey  mammal        NaN
         """
+        if kwargs:
+            warnings.warn(
+                "Passing additional arguments to DataFrameGroupBy.take is "
+                "deprecated and will be removed in a future version of pandas.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
         result = self._op_via_apply("take", indices=indices, **kwargs)
         return result
 
@@ -3338,6 +3416,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         **kwargs
             Additional keyword arguments to be passed to the function.
+
+            .. deprecated:: 3.1.0
+                Passing ``**kwargs`` to DataFrameGroupBy.skew is deprecated
+                and will be removed in a future version of pandas.
 
         Returns
         -------
@@ -3381,6 +3463,13 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         bird          NaN
         mammal   1.669046
         """
+        if kwargs:
+            warnings.warn(
+                "Passing additional arguments to DataFrameGroupBy.skew is "
+                "deprecated and will be removed in a future version of pandas.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
 
         def alt(obj):
             # This should not be reached since the cython path should raise
@@ -3399,6 +3488,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     ) -> DataFrame:
         """
         Return unbiased kurtosis within groups.
+
+        Kurtosis obtained using Fisher's definition (kurtosis of normal == 0.0),
+        normalized by N-1. Values are computed for each numeric column
+        within each group.
 
         Parameters
         ----------
