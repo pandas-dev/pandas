@@ -865,7 +865,8 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                 )
             # Handle non-vectorized DateOffsets with both calendar and
             # timedelta parts, preserving time resolution.
-            res_values = self.astype("O") + offset
+            values_ns = values.as_unit("ns") if values.unit != "ns" else values
+            res_values = np.array([ts + offset for ts in values_ns], dtype=object)
 
             res_unit = self.unit
 
@@ -873,7 +874,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             if off is not None:
                 offset_td = Timedelta(off)
                 if offset_td.value != 0:
-                    offset_unit = offset_td.unit
+                    offset_unit = offset_td.resolution_string
                     if offset_unit in units:
                         idx_self = units.index(self.unit)
                         idx_offset = units.index(offset_unit)
@@ -893,7 +894,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             if off is not None:
                 offset_td = Timedelta(off)
                 if offset_td.value != 0:
-                    offset_unit = offset_td.unit
+                    offset_unit = offset_td.resolution_string
                     if offset_unit in units:
                         idx_self = units.index(self.unit)
                         idx_offset = units.index(offset_unit)
