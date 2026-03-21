@@ -1064,9 +1064,8 @@ class InvalidComparison(Exception):
 
     See Also
     --------
-    Timestamp : Pandas replacement for python ``datetime.datetime`` object.
-    Timedelta : Represents a duration, the difference between two dates or times.
-    Period : Represents a period of time.
+    Series.eq : Element-wise equal-to comparison.
+    Series.ne : Element-wise not-equal-to comparison.
 
     Notes
     -----
@@ -1078,6 +1077,15 @@ class InvalidComparison(Exception):
     >>> arr._validate_comparison_value(42)
     Traceback (most recent call last):
     InvalidComparison: 42
+
+    When encountered through public API, the error is caught and
+    comparison returns ``False`` for each element:
+
+    >>> pd.Series(pd.date_range("2020", periods=3)).eq(42)
+    0    False
+    1    False
+    2    False
+    dtype: bool
     """
 
 
