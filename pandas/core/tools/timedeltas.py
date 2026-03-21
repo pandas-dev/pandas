@@ -177,7 +177,7 @@ def to_timedelta(
     TimedeltaIndex(['1 days 06:05:01.000030', '0 days 00:00:00.000015500', NaT],
                    dtype='timedelta64[ns]', freq=None)
 
-    Converting numbers by specifying the `unit` keyword argument:
+    Converting numbers by specifying the `input_unit` keyword argument:
 
     >>> pd.to_timedelta(np.arange(5), input_unit="s")
     TimedeltaIndex(['0 days 00:00:00', '0 days 00:00:01', '0 days 00:00:02',
