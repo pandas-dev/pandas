@@ -57,7 +57,9 @@ class TestPeriodDisallowedFreqs:
         msg = "C is not supported as period frequency"
         with pytest.raises(ValueError, match=msg):
             Period("2023-04-10", freq="C")
-        msg = f"{offsets.CustomBusinessDay().base} is not supported as period frequency"
+        msg = (
+            f"{offsets.CustomBusinessDay()._base} is not supported as period frequency"
+        )
         with pytest.raises(ValueError, match=msg):
             Period("2023-04-10", freq=offsets.CustomBusinessDay())
 
