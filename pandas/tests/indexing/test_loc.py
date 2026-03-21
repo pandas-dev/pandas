@@ -3598,3 +3598,15 @@ class TestLocSeries:
         result = s[["a", "b"]]
         expected = Series([np.nan, np.nan], index=["a", "b"])
         tm.assert_series_equal(result, expected)
+
+
+def test_loc_setitem_extension_array_into_object_series():
+    # GH#42437 - assigning an ExtensionArray with array-like elements
+    # to an object-dtype Series via .loc should not raise
+    pa = pytest.importorskip("pyarrow")
+
+    arr = pd.array([[1, 2], [3, 4], [5, 6]], dtype=pd.ArrowDtype(pa.list_(pa.int64())))
+    ser = Series([None, None, None], dtype=object)
+    ser.loc[:] = arr
+    expected = Series(list(arr), dtype=object)
+    tm.assert_series_equal(ser, expected)
