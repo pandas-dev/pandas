@@ -316,7 +316,7 @@ def test_from_tick_reso():
     td = Timedelta(tick)
 
     assert td == Timedelta(days=1)
-    assert td._creso == NpyDatetimeUnit.NPY_FR_ns.value
+    assert td.unit == "s"
 
 
 def test_construction():

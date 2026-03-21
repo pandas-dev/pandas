@@ -1,5 +1,4 @@
 import collections
-from datetime import timedelta
 import re
 import warnings
 
@@ -334,9 +333,6 @@ cdef class ResoState:
         return False
 
 
-cdef NPY_DATETIMEUNIT item_creso
-
-
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def array_to_timedelta64(
@@ -521,8 +517,8 @@ def array_to_timedelta64(
 
             elif isinstance(item, Day):
                 # GH#64240: support Day offsets in list-like conversion
-                ival = item.n * 86400 * 1000000
-                item_reso = NPY_DATETIMEUNIT.NPY_FR_us
+                ival = item.n * 86400
+                item_reso = NPY_DATETIMEUNIT.NPY_FR_s
                 state.update_creso(item_reso)
                 if infer_reso:
                     creso = state.creso
@@ -2285,10 +2281,8 @@ class Timedelta(_Timedelta):
 
         elif isinstance(value, Day):
             # GH#64240
-            # Allow pandas offsets.Day to convert to Timedelta so that
-            # Timedelta(x), to_timedelta(x), and to_timedelta([x])[0]
-            new_value = value.n * 86400 * 1_000_000_000
-            return cls._from_value_and_reso(new_value, NPY_FR_ns)
+            new_value = value.n * 86400
+            return cls._from_value_and_reso(new_value, NPY_DATETIMEUNIT.NPY_FR_s)
 
         elif is_tick_object(value):
             new_reso = get_supported_reso(value._creso)

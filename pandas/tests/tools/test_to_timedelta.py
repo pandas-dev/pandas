@@ -383,21 +383,16 @@ class TestTimedeltas:
     def test_to_timedelta_day_offset(self):
         # GH#64240
         result = to_timedelta(to_offset("D"))
-        expected = pd.Timedelta(days=1)
+        expected = pd.Timedelta(1, unit="D").as_unit("s")
         assert result == expected
+        assert result.unit == expected.unit
 
     def test_to_timedelta_day_offset_list(self):
         # GH#64240
         offsets = [to_offset("D"), to_offset("2D")]
         result = to_timedelta(offsets)
-        expected = to_timedelta(["1D", "2D"])
+        expected = to_timedelta(["1D", "2D"]).as_unit("s")
         tm.assert_index_equal(result, expected)
-
-    def test_to_Timedelta_constructor_day_offset(self):
-        # GH#64240
-        result = pd.Timedelta(to_offset("D"))
-        expected = pd.Timedelta(days=1)
-        assert result == expected
 
 
 def test_from_numeric_arrow_dtype(any_numeric_ea_dtype):
