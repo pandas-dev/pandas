@@ -14,19 +14,19 @@ The full license is in the LICENSE file, distributed with this software.
 #ifdef _OPENMP
 #  include <omp.h>
 #else
-static inline int omp_get_thread_num() { return 0; }
-static inline int omp_get_num_threads() { return 1; }
-#endif
+static inline int omp_get_thread_num(void) { return 0; }
+static inline int omp_get_num_threads(void) { return 1; }
+#endif // _OPENMP
 
 #ifndef __has_attribute
 #  define __has_attribute(x) 0
-#endif
+#endif // __has_attribute
 
 #if defined(__x86_64__) && __has_attribute(target_clones) && defined(__GLIBC__)
 #  define PANDAS_SIMD_TARGETS __attribute__((target_clones("avx2", "default")))
 #else
 #  define PANDAS_SIMD_TARGETS
-#endif
+#endif // x86_64 + glibc + target_clones
 
 /* --- SIMD Implementation --- */
 #if defined(__clang__) && __has_attribute(ext_vector_type)
@@ -41,7 +41,7 @@ typedef long long v4si
 typedef uint8_t v4u8
     __attribute__((vector_size(4 * sizeof(uint8_t)), aligned(1)));
 #  define PANDAS_HAS_SIMD 1
-#endif
+#endif // __clang__ or __GNUC__ with vector extension
 
 #ifdef PANDAS_HAS_SIMD
 /* Vector select: returns (mask ? a : b) where mask is all-ones or all-zeros */
@@ -51,7 +51,7 @@ typedef uint8_t v4u8
 // gcc doesn't have vectorized ternary operators when compiling C files.
 #    define v_select(mask, a, b)                                               \
       ((v4d)(((v4si)(mask) & (v4si)(a)) | (~(v4si)(mask) & (v4si)(b))))
-#  endif
+#  endif // defined(__clang__)
 
 PANDAS_SIMD_TARGETS Moments accumulate_moments_simd(const double *values,
                                                     int64_t n, int skipna,
@@ -144,7 +144,7 @@ PANDAS_SIMD_TARGETS Moments accumulate_moments_simd(const double *values,
   return moments_merge(m_01, m_23, max_moment);
 }
 #  undef v_select
-#endif
+#endif // PANDAS_HAS_SIMD
 
 /* --- Scalar Fallback Implementation --- */
 
@@ -169,7 +169,7 @@ Moments accumulate_moments_dispatch(const double *values, int64_t n, int skipna,
                                     const uint8_t *mask, int max_moment) {
 #if defined(PANDAS_HAS_SIMD)
   return accumulate_moments_simd(values, n, skipna, mask, max_moment);
-#endif
+#endif // defined(PANDAS_HAS_SIMD)
   return accumulate_moments_scalar_block(values, n, skipna, mask, max_moment);
 }
 
