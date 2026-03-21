@@ -542,7 +542,7 @@ cdef class BaseOffset:
         return kwds
 
     @property
-    def base(self):
+    def _base(self):
         """
         Returns a copy of the calling offset object with n=1 and all other
         attributes equal.
@@ -6545,7 +6545,7 @@ cdef class CustomBusinessDay(BusinessDay):
     @property
     def _period_dtype_code(self):
         # GH#52534
-        raise ValueError(f"{self.base} is not supported as period frequency")
+        raise ValueError(f"{self._base} is not supported as period frequency")
 
     _apply_array = BaseOffset._apply_array
 

@@ -523,7 +523,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
                 delta = self._data._check_timedeltalike_freq_compat(other)
                 return delta
         elif isinstance(other, BaseOffset):
-            if other.base == self.freq.base:
+            if other._base == self.freq._base:
                 return other.n
 
             raise raise_on_incompatible(self, other)

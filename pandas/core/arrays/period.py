@@ -864,7 +864,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
 
         how = libperiod.validate_end_alias(how)
 
-        if self.freq.base == "ns" or freq == "ns":
+        if self.freq._base == "ns" or freq == "ns":
             unit = "ns"
         else:
             unit = "us"
@@ -903,7 +903,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
                 if diff == self.dtype._n:
                     dta._freq = self.freq
                 elif diff == 1:
-                    dta._freq = self.freq.base
+                    dta._freq = self.freq._base
                 # TODO: other cases?
             return dta
         else:

@@ -1586,7 +1586,7 @@ def date_range(
             creso = abbrev_to_npy_unit(unit)
             if isinstance(freq, Tick):
                 if freq._creso > creso:
-                    unit = freq.base.freqstr  # type: ignore[assignment]
+                    unit = freq._base.freqstr  # type: ignore[assignment]
             elif hasattr(freq, "offset") and freq.offset is not None:
                 # e.g. BDay with an offset
                 td = Timedelta(freq.offset)

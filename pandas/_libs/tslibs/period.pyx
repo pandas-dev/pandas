@@ -1973,7 +1973,7 @@ cdef class _Period(PeriodMixin):
         elif is_period_object(other):
             self._require_matching_unit(other._dtype._freqstr)
             # GH 23915 - mul by base freq since __add__ is agnostic of n
-            return (self._ordinal - other._ordinal) * self._freq.base
+            return (self._ordinal - other._ordinal) * self._freq._base
         elif other is NaT:
             return NaT
 

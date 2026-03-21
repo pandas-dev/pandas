@@ -87,8 +87,8 @@ class TestPeriodArithmetic:
         p1 = Period("19910905", freq=tick_classes(n))
         p2 = Period("19920406", freq=tick_classes(n))
 
-        expected = Period(str(p2), freq=p2.freq.base) - Period(
-            str(p1), freq=p1.freq.base
+        expected = Period(str(p2), freq=p2.freq._base) - Period(
+            str(p1), freq=p1.freq._base
         )
 
         assert (p2 - p1) == expected
@@ -112,7 +112,7 @@ class TestPeriodArithmetic:
         p1 = Period(p1_d, freq=offset(n, normalize, **kwds))
         p2 = Period(p2_d, freq=offset(n, normalize, **kwds))
 
-        expected = Period(p2_d, freq=p2.freq.base) - Period(p1_d, freq=p1.freq.base)
+        expected = Period(p2_d, freq=p2.freq._base) - Period(p1_d, freq=p1.freq._base)
 
         assert (p2 - p1) == expected
 

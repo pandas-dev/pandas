@@ -412,7 +412,7 @@ def timedelta_range(
             freq = cast("Tick | Day", freq)
             creso = abbrev_to_npy_unit(unit)
             if freq._creso > creso:  # pyright: ignore[reportAttributeAccessIssue]
-                unit = cast("TimeUnit", freq.base.freqstr)
+                unit = cast("TimeUnit", freq._base.freqstr)
 
     tdarr = TimedeltaArray._generate_range(
         start, end, periods, freq, closed=closed, unit=unit
