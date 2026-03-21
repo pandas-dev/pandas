@@ -2216,6 +2216,15 @@ class TestLocSetitemWithExpansion:
         result.loc[df.index, "data"] = ser._values
         tm.assert_frame_equal(result, df, check_column_type=False)
 
+    def test_loc_setitem_datetimeindex_str_column_name(self):
+        # GH#47006 - string column name that could be parsed as a datetime
+        # should not be interpreted as a row indexer
+        index = DatetimeIndex(["2035-01-01 01:00:00", "2036-01-01 00:00:00"])
+        df = DataFrame(index=index)
+        df.loc[:, "110735"] = 0
+        expected = DataFrame({"110735": [0, 0]}, index=index)
+        tm.assert_frame_equal(df, expected)
+
     def test_loc_setitem_ea_not_full_column(self):
         # GH#39163
         df = DataFrame({"A": range(5)})
