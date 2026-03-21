@@ -902,7 +902,7 @@ def to_datetime(
         When parsing a date from string fails.
     ValueError
         When another datetime conversion error happens. For example when one
-        of 'year', 'month', day' columns is missing in a :class:`DataFrame`, or
+        of 'year', 'month', 'day' columns is missing in a :class:`DataFrame`, or
         when a Timezone-aware :class:`datetime.datetime` is found in an array-like
         of mixed time offsets, and ``utc=False``, or when parsing datetimes
         with mixed time zones unless ``utc=True``. If parsing datetimes with mixed
