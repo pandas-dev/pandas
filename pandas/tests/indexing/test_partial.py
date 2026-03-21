@@ -684,13 +684,13 @@ class TestStringSlicing:
         # GH#13929
         # String-based datetime slicing should match exact boundary,
         # not include extra sub-second rows beyond the endpoint
-        idx = date_range("2013-11-08 10:00:00", periods=72000, freq="50ms")
+        idx = date_range("2013-11-08 10:00:00", periods=100, freq="50ms")
         ser = Series(range(len(idx)), index=idx)
 
-        result_str = ser.loc["2013-11-08 10:15:00.000":"2013-11-08 10:17:00.000"]
+        result_str = ser.loc["2013-11-08 10:00:01.000":"2013-11-08 10:00:02.000"]
         result_dt = ser.loc[
-            "2013-11-08 10:15:00.000" : Timestamp(2013, 11, 8, 10, 17, 0, 0)
+            "2013-11-08 10:00:01.000" : Timestamp(2013, 11, 8, 10, 0, 2, 0)
         ]
-        expected_end = Timestamp("2013-11-08 10:17:00.000")
-        assert result_str.index[-1] <= expected_end
+        expected_end = Timestamp("2013-11-08 10:00:02.000")
+        assert result_str.index[-1] == expected_end
         tm.assert_series_equal(result_str, result_dt)
