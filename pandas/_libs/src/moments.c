@@ -70,7 +70,7 @@ PANDAS_SIMD_TARGETS Moments accumulate_moments_simd(const double *values,
   v4d v_nan = {NAN, NAN, NAN, NAN};
 
   int64_t i = 0;
-  for (; i < n - 4; i += 4) {
+  for (; i < n - 3; i += 4) {
     v4d v_val = *(v4d *)(values + i);
 
     if (mask) {
@@ -123,7 +123,7 @@ PANDAS_SIMD_TARGETS Moments accumulate_moments_simd(const double *values,
 
   Moments moments_arr[4];
   for (int j = 0; j < 4; j++) {
-    moments_arr[j] = (Moments){(int64_t)round(n_arr[j]), mean_arr[j], m2_arr[j],
+    moments_arr[j] = (Moments){(int64_t)n_arr[j], mean_arr[j], m2_arr[j],
                                m3_arr[j], m4_arr[j]};
   }
 
