@@ -27,6 +27,8 @@ from pandas._libs.tslibs import (
     BaseOffset,
     NaT,
     NaTType,
+    OutOfBoundsDatetime,
+    OutOfBoundsTimedelta,
     Resolution,
     Timestamp,
     astype_overflowsafe,
@@ -66,7 +68,10 @@ from pandas.core.dtypes.dtypes import (
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays import datetimelike as dtl
-from pandas.core.arrays._ranges import generate_regular_range
+from pandas.core.arrays._ranges import (
+    generate_daily_offset_range,
+    generate_regular_range,
+)
 import pandas.core.common as com
 
 from pandas.tseries.frequencies import get_period_alias
@@ -127,7 +132,7 @@ def tz_to_dtype(
 
     Returns
     -------
-    np.dtype or Datetime64TZDType
+    np.dtype or DatetimeTZDtype
     """
     if tz is None:
         return np.dtype(f"M8[{unit}]")
@@ -357,7 +362,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         """
 
         # if the user either explicitly passes tz=None or a tz-naive dtype, we
-        #  disallows inferring a tz.
+        #  disallow inferring a tz.
         explicit_tz_none = tz is None
         if tz is lib.no_default:
             tz = None
@@ -479,9 +484,31 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
 
             if isinstance(freq, (Tick, Day)):
                 i8values = generate_regular_range(start, end, periods, freq, unit=unit)
+            elif freq.n >= 1 and freq._supports_daily_offset_mask:
+                # GH#16463: fast "daily range + filter" path for offsets
+                # that support vectorized on-offset checks.
+                try:
+                    i8values = generate_daily_offset_range(
+                        start, end, periods, freq, unit=unit
+                    )
+                except (OutOfBoundsDatetime, OutOfBoundsTimedelta, OverflowError):
+                    # Near Timestamp bounds with periods; the iterative
+                    # path handles this by stopping before overflow.
+                    xdr = _generate_range(
+                        start=start,
+                        end=end,
+                        periods=periods,
+                        offset=freq,
+                        unit=unit,
+                    )
+                    i8values = np.array([x._value for x in xdr], dtype=np.int64)
             else:
                 xdr = _generate_range(
-                    start=start, end=end, periods=periods, offset=freq, unit=unit
+                    start=start,
+                    end=end,
+                    periods=periods,
+                    offset=freq,
+                    unit=unit,
                 )
                 i8values = np.array([x._value for x in xdr], dtype=np.int64)
 
@@ -602,7 +629,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
 
         Returns
         -------
-        zoneinfo.ZoneInfo,, datetime.tzinfo, pytz.tzinfo.BaseTZInfo, dateutil.tz.tz.tzfile, or None
+        zoneinfo.ZoneInfo, datetime.tzinfo, pytz.tzinfo.BaseTZInfo, dateutil.tz.tz.tzfile, or None
             Returns None when the array is tz-naive.
 
         See Also
@@ -880,7 +907,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         Returns
         -------
         Array or Index
-            Datetme Array/Index with target `tz`.
+            Datetime Array/Index with target `tz`.
 
         Raises
         ------
@@ -967,7 +994,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
 
         Parameters
         ----------
-        tz : str, zoneinfo.ZoneInfo,, pytz.timezone, dateutil.tz.tzfile, datetime.tzinfo or None
+        tz : str, zoneinfo.ZoneInfo, pytz.timezone, dateutil.tz.tzfile, datetime.tzinfo or None
             Time zone to convert timestamps to. Passing ``None`` will
             remove the time zone information preserving local time.
         ambiguous : 'infer', 'NaT', bool array, default 'raise'
@@ -987,7 +1014,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             - 'raise' will raise a ValueError if there are ambiguous
               times.
 
-        nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta, \
+        nonexistent : 'shift_forward', 'shift_backward', 'NaT', timedelta, \
 default 'raise'
             A nonexistent time does not exist in a particular timezone
             where clocks moved forward due to DST.
@@ -1075,7 +1102,7 @@ default 'raise'
 
         If the DST transition causes nonexistent times, you can shift these
         dates forward or backwards with a timedelta object or `'shift_forward'`
-        or `'shift_backwards'`.
+        or `'shift_backward'`.
 
         >>> s = pd.to_datetime(pd.Series(['2015-03-29 02:30:00',
         ...                               '2015-03-29 03:30:00'], dtype="M8[ns]"))

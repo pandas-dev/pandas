@@ -23,10 +23,14 @@ import numpy as np
 
 from pandas._config import get_option
 
+from pandas.core.dtypes.generic import (
+    ABCExtensionArray,
+    ABCIndex,
+    ABCNDFrame,
+)
 from pandas.core.dtypes.inference import (
     is_float,
     is_scalar,
-    is_sequence,
 )
 from pandas.core.dtypes.missing import notna
 
@@ -229,7 +233,27 @@ def pprint_thing(
         result = _pprint_dict(
             thing, _nest_lvl, quote_strings=True, max_seq_items=max_seq_items
         )
-    elif is_sequence(thing) and _nest_lvl < get_option("display.pprint_nest_depth"):
+    elif (
+        # GH#61809 Only iterate over types where element-by-element formatting
+        # is appropriate. Third-party array-like objects (e.g. xarray DataArray)
+        # can be extremely expensive to iterate and should use their own repr.
+        isinstance(
+            thing,
+            (
+                np.ndarray,
+                np.void,
+                list,
+                tuple,
+                set,
+                frozenset,
+                range,
+                ABCExtensionArray,
+                ABCIndex,
+                ABCNDFrame,
+            ),
+        )
+        and _nest_lvl < get_option("display.pprint_nest_depth")
+    ):
         result = _pprint_seq(
             # error: Argument 1 to "_pprint_seq" has incompatible type "object";
             # expected "ExtensionArray | ndarray[Any, Any] | Index | Series |

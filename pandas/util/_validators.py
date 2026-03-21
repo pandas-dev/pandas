@@ -282,7 +282,7 @@ def validate_na_arg(value, name: str):
         Name of the argument, used to raise an informative error message.
 
     Raises
-    ______
+    ------
     ValueError
         When ``value`` is determined to be invalid.
     """

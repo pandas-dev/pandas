@@ -487,7 +487,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
                     categories = Index(categories, dtype=object, copy=False)
 
-                # if not preserve_obejct, we're inferring from values
+                # if not preserve_object, we're inferring from values
                 dtype = CategoricalDtype(categories, dtype.ordered)
 
         elif isinstance(values.dtype, CategoricalDtype):

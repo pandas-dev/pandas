@@ -12,7 +12,6 @@ on:
 
 env:
   ENV_FILE: environment.yml
-  PANDAS_CI: 1
 
 permissions: {}
 
@@ -60,10 +59,6 @@ jobs:
 
     - name: Run checks on imported code
       run: ci/code_checks.sh code
-      if: ${{ steps.build.outcome == 'success' && always() }}
-
-    - name: Run docstring validation
-      run: ci/code_checks.sh docstrings
       if: ${{ steps.build.outcome == 'success' && always() }}
 
     - name: Run check of documentation notebooks

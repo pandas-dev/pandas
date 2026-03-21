@@ -514,11 +514,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
                 hashed = hash((tuple(categories), ordered))
                 return hashed
 
-            if DatetimeTZDtype.is_dtype(categories.dtype):
-                # Avoid future warning.
-                categories = categories.view("datetime64[ns]")
-
-            cat_array = hash_array(np.asarray(categories), categorize=False)
+            cat_array = hash_array(categories._values, categorize=False)
         if ordered:
             cat_array = np.vstack(
                 [cat_array, np.arange(len(cat_array), dtype=cat_array.dtype)]

@@ -3,10 +3,13 @@ from __future__ import annotations
 from datetime import time
 import math
 from typing import TYPE_CHECKING
+import warnings
 
 import numpy as np
 
 from pandas.compat._optional import import_optional_dependency
+from pandas.errors import Pandas4Warning
+from pandas.util._exceptions import find_stack_level
 
 from pandas.io.excel._base import BaseExcelReader
 
@@ -48,6 +51,12 @@ class XlrdReader(BaseExcelReader["Book"]):
         """
         err_msg = "Install xlrd >= 2.0.1 for xls Excel support"
         import_optional_dependency("xlrd", extra=err_msg)
+        warnings.warn(
+            "The xlrd engine is deprecated and will be removed in a future version. "
+            "Use the calamine engine instead, by setting engine='calamine'.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
         super().__init__(
             filepath_or_buffer,
             storage_options=storage_options,
