@@ -231,4 +231,4 @@ def test_floating_array_mean_skipna_with_nan(using_nan_is_na):
         tm.assert_almost_equal(result, 1.0 / 3)
     else:
         # NaN is distinct from NA → NaN propagates in mean
-        assert result is pd.NA or np.isnan(result)
+        assert np.isnan(result)
