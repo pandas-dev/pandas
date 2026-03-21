@@ -1016,9 +1016,9 @@ def test_loc_datetime_date_multiindex_with_np_datetime64():
     # GH#55969
     # loc with np.datetime64 key on MultiIndex with datetime.date level
     # should correctly filter on subsequent levels
-    import datetime as dt
+    from datetime import date
 
-    dates = [dt.date(2023, 11, 1), dt.date(2023, 11, 1), dt.date(2023, 11, 2)]
+    dates = [date(2023, 11, 1), date(2023, 11, 1), date(2023, 11, 2)]
     t1 = ["A", "B", "C"]
     t2 = ["C", "D", "E"]
     vals = [0.1, 0.2, 0.3]

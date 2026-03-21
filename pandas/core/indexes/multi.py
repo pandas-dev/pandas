@@ -3427,11 +3427,13 @@ class MultiIndex(Index):
         for k, (lab, lev, level_codes) in enumerate(zipped):
             section = level_codes[start:end]
 
-            # GH#55969: convert np.datetime64 to Python datetime for proper
-            # containment check against object-dtype Index of datetime.date
+            # GH#55969: convert np.datetime64 to Python datetime.date for
+            # proper containment check against object-dtype Index
             if isinstance(lab, np.datetime64) and lev.dtype == object:
+                from pandas import Timestamp
+
                 try:
-                    lab = lab.item()
+                    lab = Timestamp(lab).date()
                 except (ValueError, OverflowError):
                     pass
 
