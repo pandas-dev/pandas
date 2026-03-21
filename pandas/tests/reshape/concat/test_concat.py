@@ -32,6 +32,7 @@ from pandas.tests.extension.decimal import to_decimal
 
 
 class TestConcatenate:
+    @pytest.mark.filterwarnings("ignore:Series\\.to_period:DeprecationWarning")
     def test_append_concat(self):
         # GH#1815
         d1 = date_range("12/31/1990", "12/31/1999", freq="YE-DEC")

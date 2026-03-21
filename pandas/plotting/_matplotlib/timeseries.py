@@ -77,7 +77,7 @@ def maybe_resample(series: Series, ax: Axes, kwargs: dict[str, Any]):
     # For BDay freq this ensures consecutive business days get consecutive
     # ordinals with no weekend gaps (GH#1482).
     if isinstance(series.index, ABCDatetimeIndex):
-        series = series.to_period(freq=freq)
+        series = series.set_axis(series.index.to_period(freq=freq))
 
     if ax_freq is not None and freq != ax_freq:
         if is_superperiod(freq, ax_freq):  # upsample input
@@ -298,7 +298,8 @@ def maybe_convert_index(ax: Axes, data: NDFrameT) -> NDFrameT:
                     dtype=np.int64,
                 )
             else:
-                data = data.tz_localize(None).to_period(freq=freq_str)
+                data = data.tz_localize(None)
+                data = data.set_axis(data.index.to_period(freq=freq_str))
         elif isinstance(data.index, ABCPeriodIndex):
             if freq_str == "B":
                 # Extract the existing Period[B] ordinals as plain int64 to

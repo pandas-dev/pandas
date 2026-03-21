@@ -15,7 +15,10 @@ from pandas._libs.tslibs.ccalendar import (
     MONTHS,
 )
 from pandas._libs.tslibs.period import IncompatibleFrequency
-from pandas.errors import InvalidIndexError
+from pandas.errors import (
+    InvalidIndexError,
+    Pandas4Warning,
+)
 
 import pandas as pd
 from pandas import (
@@ -56,6 +59,12 @@ def simple_period_range_series():
     return _simple_period_range_series
 
 
+@pytest.mark.filterwarnings(
+    "ignore:Series\\.to_period:DeprecationWarning",
+    "ignore:DataFrame\\.to_period:DeprecationWarning",
+    "ignore:Series\\.to_timestamp:DeprecationWarning",
+    "ignore:DataFrame\\.to_timestamp:DeprecationWarning",
+)
 class TestPeriodIndex:
     @pytest.mark.parametrize("freq", ["2D", "1h", "2h"])
     def test_asfreq(self, frame_or_series, freq):
@@ -135,6 +144,8 @@ class TestPeriodIndex:
         msg = r"PeriodDtype\[B\] is deprecated"
         with tm.assert_produces_warning(warn, match=msg):
             result = getattr(ts.resample(period, convention=conv), meth)()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", FutureWarning)
             expected = result.to_timestamp(period, how=conv)
             expected = expected.asfreq(offset, meth).to_period()
         tm.assert_series_equal(result, expected)
@@ -219,6 +230,8 @@ class TestPeriodIndex:
         msg = r"PeriodDtype\[B\] is deprecated"
         with tm.assert_produces_warning(warn, match=msg):
             result = ts.resample(period, convention=convention).ffill()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", FutureWarning)
             expected = result.to_timestamp(period, how=convention)
             expected = expected.asfreq(offset, "ffill").to_period()
         tm.assert_series_equal(result, expected)
@@ -232,6 +245,8 @@ class TestPeriodIndex:
         msg = r"PeriodDtype\[B\] is deprecated"
         with tm.assert_produces_warning(warn, match=msg):
             result = ts.resample(target, convention=convention).ffill()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", FutureWarning)
             expected = result.to_timestamp(target, how=convention)
             expected = expected.asfreq(target, "ffill").to_period()
         tm.assert_series_equal(result, expected)
@@ -311,7 +326,9 @@ class TestPeriodIndex:
         series = Series(1, index=index)
         series = series.tz_convert(local_timezone)
         msg = "Converting to PeriodArray/Index representation will drop timezone"
-        with tm.assert_produces_warning(UserWarning, match=msg):
+        with tm.assert_produces_warning(
+            (UserWarning, Pandas4Warning), match=(msg, "to_period")
+        ):
             result = series.resample("D").mean().to_period()
 
         # Create the expected series
@@ -401,6 +418,8 @@ class TestPeriodIndex:
         msg = r"PeriodDtype\[B\] is deprecated"
         with tm.assert_produces_warning(warn, match=msg):
             result = ts.resample(target, convention=convention).ffill()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", FutureWarning)
             expected = result.to_timestamp(target, how=convention)
             expected = expected.asfreq(target, "ffill").to_period()
         tm.assert_series_equal(result, expected)
@@ -544,7 +563,9 @@ class TestPeriodIndex:
 
         # for good measure
         msg = "Converting to PeriodArray/Index representation will drop timezone "
-        with tm.assert_produces_warning(UserWarning, match=msg):
+        with tm.assert_produces_warning(
+            (UserWarning, Pandas4Warning), match=(msg, "to_period")
+        ):
             result = s.resample("D").mean().to_period()
         ex_index = period_range("2001-09-20", periods=1, freq="D")
         expected = Series([1.5], index=ex_index)

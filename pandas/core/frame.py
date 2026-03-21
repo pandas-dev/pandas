@@ -18280,6 +18280,11 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Cast PeriodIndex to DatetimeIndex of timestamps, at *beginning* of period.
 
+        .. deprecated:: 3.1.0
+            DataFrame.to_timestamp is deprecated. Use
+            ``obj.set_axis(obj.index.to_timestamp(...))`` or
+            ``obj.set_axis(obj.columns.to_timestamp(...), axis=1)`` instead.
+
         This can be changed to the *end* of the period, by specifying `how="e"`.
 
         Parameters
@@ -18345,6 +18350,13 @@ class DataFrame(NDFrame, OpsMixin):
         >>> df2.index
         DatetimeIndex(['2023-01-31', '2024-01-31'], dtype='datetime64[us]', freq=None)
         """
+        warnings.warn(
+            f"{type(self).__name__}.to_timestamp is deprecated. "
+            "Use obj.set_axis(obj.index.to_timestamp(...)) or "
+            "obj.set_axis(obj.columns.to_timestamp(...), axis=1) instead.",
+            Pandas4Warning,
+            stacklevel=2,
+        )
         self._check_copy_deprecation(copy)
         new_obj = self.copy(deep=False)
 
@@ -18366,6 +18378,11 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> DataFrame:
         """
         Convert DataFrame from DatetimeIndex to PeriodIndex.
+
+        .. deprecated:: 3.1.0
+            DataFrame.to_period is deprecated. Use
+            ``obj.set_axis(obj.index.to_period(...))`` or
+            ``obj.set_axis(obj.columns.to_period(...), axis=1)`` instead.
 
         Convert DataFrame from DatetimeIndex to PeriodIndex with desired
         frequency (inferred from index if not passed). Either index of columns can be
@@ -18422,6 +18439,13 @@ class DataFrame(NDFrame, OpsMixin):
         >>> idx.to_period("Y")
         PeriodIndex(['2001', '2002', '2003'], dtype='period[Y-DEC]')
         """
+        warnings.warn(
+            f"{type(self).__name__}.to_period is deprecated. "
+            "Use obj.set_axis(obj.index.to_period(...)) or "
+            "obj.set_axis(obj.columns.to_period(...), axis=1) instead.",
+            Pandas4Warning,
+            stacklevel=2,
+        )
         self._check_copy_deprecation(copy)
         new_obj = self.copy(deep=False)
 

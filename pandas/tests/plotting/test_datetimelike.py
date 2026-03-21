@@ -374,6 +374,7 @@ class TestTSPlot:
         # consecutive business days should produce consecutive ordinals
         assert np.all(np.diff(idx) == 1)
 
+    @pytest.mark.filterwarnings("ignore:Series\\.to_period:DeprecationWarning")
     def test_business_freq_convert(self):
         bts = Series(
             np.arange(50, dtype=np.float64),
@@ -720,6 +721,7 @@ class TestTSPlot:
         assert hasattr(ax2, "left_ax")
         assert not hasattr(ax2, "right_ax")
 
+    @pytest.mark.filterwarnings("ignore:Series\\.to_timestamp:DeprecationWarning")
     def test_secondary_y_ts(self):
         idx = date_range("1/1/2000", periods=10, unit="ns")
         ser = Series(np.random.default_rng(2).standard_normal(10), idx)

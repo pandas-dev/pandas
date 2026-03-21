@@ -598,6 +598,7 @@ def test_chained_methods(method, idx):
     tm.assert_frame_equal(df2.iloc[:, idx:], df_orig)
 
 
+@pytest.mark.filterwarnings("ignore::DeprecationWarning")
 @pytest.mark.parametrize("obj", [Series([1, 2], name="a"), DataFrame({"a": [1, 2]})])
 def test_to_timestamp(obj):
     obj.index = Index([Period("2012-1-1", freq="D"), Period("2012-1-2", freq="D")])
@@ -613,6 +614,7 @@ def test_to_timestamp(obj):
     tm.assert_equal(obj, obj_orig)
 
 
+@pytest.mark.filterwarnings("ignore::DeprecationWarning")
 @pytest.mark.parametrize("obj", [Series([1, 2], name="a"), DataFrame({"a": [1, 2]})])
 def test_to_period(obj):
     obj.index = Index([Timestamp("2019-12-31"), Timestamp("2020-12-31")])

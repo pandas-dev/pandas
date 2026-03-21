@@ -651,6 +651,7 @@ def test_resample_reresample(unit):
         ["ME", {"start": "1990-01", "end": "2000-01", "freq": "M"}],
     ],
 )
+@pytest.mark.filterwarnings("ignore:Series\\.to_period:DeprecationWarning")
 def test_resample_timestamp_to_period(
     simple_date_range_series, freq, expected_kwargs, unit
 ):
@@ -992,6 +993,7 @@ def test_resample_daily_anchored(unit):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:Series\\.to_period:DeprecationWarning")
 def test_resample_to_period_monthly_buglet(unit):
     # GH #1259
 
@@ -1003,6 +1005,10 @@ def test_resample_to_period_monthly_buglet(unit):
     tm.assert_index_equal(result.index, exp_index)
 
 
+@pytest.mark.filterwarnings(
+    "ignore:Series\\.to_period:DeprecationWarning",
+    "ignore:Series\\.to_timestamp:DeprecationWarning",
+)
 def test_period_with_agg():
     # aggregate a period resampler with a lambda
     s2 = Series(
@@ -1104,6 +1110,10 @@ def test_nanosecond_resample_error():
     tm.assert_series_equal(result, exp)
 
 
+@pytest.mark.filterwarnings(
+    "ignore:DataFrame\\.to_period:DeprecationWarning",
+    "ignore:DataFrame\\.to_timestamp:DeprecationWarning",
+)
 def test_resample_anchored_intraday(unit):
     # #1471, #1458
 
@@ -1128,6 +1138,10 @@ def test_resample_anchored_intraday(unit):
     tm.assert_frame_equal(result, exp)
 
 
+@pytest.mark.filterwarnings(
+    "ignore:DataFrame\\.to_period:DeprecationWarning",
+    "ignore:DataFrame\\.to_timestamp:DeprecationWarning",
+)
 def test_resample_anchored_intraday2(unit):
     rng = date_range("1/1/2012", "4/1/2012", freq="100min").as_unit(unit)
     df = DataFrame(rng.month, index=rng)
@@ -1196,6 +1210,7 @@ def test_corner_cases(unit):
     tm.assert_index_equal(result.index, ex_index)
 
 
+@pytest.mark.filterwarnings("ignore:Series\\.to_period:DeprecationWarning")
 def test_corner_cases_date(simple_date_range_series, unit):
     # resample to periods
     ts = simple_date_range_series("2000-04-28", "2000-04-30 11:00", freq="h")

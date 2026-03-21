@@ -6778,6 +6778,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Cast to DatetimeIndex of Timestamps, at *beginning* of period.
 
+        .. deprecated:: 3.1.0
+            Series.to_timestamp is deprecated. Use
+            ``obj.set_axis(obj.index.to_timestamp(...))`` instead.
+
         This can be changed to the *end* of the period, by specifying `how="e"`.
 
         Parameters
@@ -6839,6 +6843,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2025-01-31    3
         Freq: YE-JAN, dtype: int64
         """
+        warnings.warn(
+            f"{type(self).__name__}.to_timestamp is deprecated. "
+            "Use obj.set_axis(obj.index.to_timestamp(...)) instead.",
+            Pandas4Warning,
+            stacklevel=2,
+        )
         self._check_copy_deprecation(copy)
         if not isinstance(self.index, PeriodIndex):
             raise TypeError(f"unsupported Type {type(self.index).__name__}")
@@ -6855,6 +6865,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> Series:
         """
         Convert Series from DatetimeIndex to PeriodIndex.
+
+        .. deprecated:: 3.1.0
+            Series.to_period is deprecated. Use
+            ``obj.set_axis(obj.index.to_period(...))`` instead.
 
         This method converts the DatetimeIndex of the Series into a
         PeriodIndex with a specified frequency, which is useful when
@@ -6903,6 +6917,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         >>> s.index
         PeriodIndex(['2023', '2024', '2025'], dtype='period[Y-DEC]')
         """
+        warnings.warn(
+            f"{type(self).__name__}.to_period is deprecated. "
+            "Use obj.set_axis(obj.index.to_period(...)) instead.",
+            Pandas4Warning,
+            stacklevel=2,
+        )
         self._check_copy_deprecation(copy)
         if not isinstance(self.index, DatetimeIndex):
             raise TypeError(f"unsupported Type {type(self.index).__name__}")
