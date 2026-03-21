@@ -198,6 +198,10 @@ def pytest_collection_modifyitems(items, config) -> None:
         ("read_parquet", "Passing a BlockManager to DataFrame is deprecated"),
         ("Timestamp.utcfromtimestamp", "Timestamp.utcfromtimestamp is deprecated"),
         ("BaseOffset.name.__get__", "The 'name' property is deprecated"),
+        ("DataFrame.to_period", "DataFrame.to_period is deprecated"),
+        ("DataFrame.to_timestamp", "DataFrame.to_timestamp is deprecated"),
+        ("Series.to_period", "Series.to_period is deprecated"),
+        ("Series.to_timestamp", "Series.to_timestamp is deprecated"),
     ]
 
     if is_doctest:
