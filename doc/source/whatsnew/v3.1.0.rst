@@ -107,6 +107,7 @@ Performance improvements
   (:issue:`64126`).
 - Performance improvement in :func:`merge` with ``how="left"`` (:issue:`64370`)
 - Performance improvement in :meth:`GroupBy.quantile` (:issue:`64330`)
+- Performance improvement in plotting :class:`DatetimeIndex` with multiplied frequencies (e.g. ``"1000ms"``, ``"100s"``) (:issue:`50355`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_310.bug_fixes:
