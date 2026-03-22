@@ -76,6 +76,7 @@ class TestFrameAsof:
 
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.filterwarnings("ignore::pandas.errors.Pandas4Warning")
     def test_missing(self, date_range_frame):
         # GH 15118
         # no match found - `where` value before earliest date in index

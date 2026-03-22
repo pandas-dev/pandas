@@ -860,6 +860,7 @@ class TestExcelWriter:
             recons = pd.read_excel(reader, sheet_name="test1", index_col=0)
         tm.assert_frame_equal(expected, recons)
 
+    @pytest.mark.filterwarnings("ignore::pandas.errors.Pandas4Warning")
     def test_to_excel_periodindex(self, tmp_excel):
         # xp has a PeriodIndex
         df = DataFrame(
