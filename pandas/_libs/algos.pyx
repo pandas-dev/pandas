@@ -1626,7 +1626,13 @@ cdef void accumulate_moments_axis(
         nouter = nrows
         ninner = ncols
 
+    # PERF: The outer dimension is embarrassingly parallel
     for i in range(nouter):
+        # PERF: If it's possible to enforce contiguity in the last dimension,
+        # it's possible to use accumulate_moments_scalar with SIMD instructions.
+        # It may create more threads if OMP_NESTED is enabled and the outer loop
+        # is run in parallel.
+        # If it doesn't run in parallel, it will at least use SIMD instructions.
         for j in range(ninner):
             val = values[j, i] if axis == 0 else values[i, j]
             if uses_mask and (mask[j, i] if axis == 0 else mask[i, j]):
