@@ -230,6 +230,8 @@ numpydoc_validation_exclude = {
     r"pandas\.errors\.IncompatibilityWarning$",
     r"pandas\.errors\.PyperclipException$",
     r"pandas\.errors\.PyperclipWindowsException$",
+    # Deprecated startingMonth properties (GL08)
+    r"\.startingMonth$",
     # Offset .base properties
     r"pandas\.tseries\.offsets\.DateOffset\.base$",
     r"pandas\.tseries\.offsets\.BusinessDay\.base$",
