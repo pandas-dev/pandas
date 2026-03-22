@@ -3197,7 +3197,11 @@ class MultiIndex(Index):
         # dtype must contain incomparable types.
         for lev_num in level:
             lev_values = self.levels[lev_num]
-            if lev_values.dtype == object and not lev_values.is_monotonic_increasing:
+            if (
+                lev_values.dtype == object
+                and not lev_values.is_monotonic_increasing
+                and not lev_values.is_monotonic_decreasing
+            ):
                 lev_values.argsort()
 
         codes = [self.codes[lev] for lev in level]
