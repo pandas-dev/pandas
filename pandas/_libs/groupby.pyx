@@ -1761,6 +1761,72 @@ def group_nth(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+def group_first_last_indexer(
+    const intp_t[::1] labels,
+    const uint8_t[::1] mask,
+    Py_ssize_t ngroups,
+    bint skipna,
+    bint is_last,
+):
+    """
+    Compute the index of the first or last (non-NA) element per group.
+
+    Parameters
+    ----------
+    labels : np.ndarray[np.intp]
+        Group labels for each element. Negative values mean the element
+        is not assigned to any group.
+    mask : np.ndarray[np.uint8]
+        Boolean mask where 1 indicates NA.
+    ngroups : int
+        Number of groups.
+    skipna : bool
+        If True, skip NA values when searching for the first/last.
+    is_last : bool
+        If True, find the last valid element; if False, find the first.
+
+    Returns
+    -------
+    result_indices : np.ndarray[np.intp]
+        Index of the first/last element per group. -1 if no valid element found.
+    result_mask : np.ndarray[np.uint8]
+        1 if the group result should be NA, 0 otherwise.
+    """
+    cdef:
+        Py_ssize_t i, N = len(labels)
+        intp_t lab
+        intp_t[::1] result = np.full(ngroups, -1, dtype=np.intp)
+        uint8_t[::1] rmask = np.ones(ngroups, dtype=np.uint8)
+        uint8_t[::1] found = np.zeros(ngroups, dtype=np.uint8)
+
+    with nogil:
+        if is_last:
+            for i in range(N):
+                lab = labels[i]
+                if lab < 0:
+                    continue
+                if skipna and mask[i]:
+                    continue
+                result[lab] = i
+                rmask[lab] = mask[i] if not skipna else 0
+        else:
+            for i in range(N):
+                lab = labels[i]
+                if lab < 0:
+                    continue
+                if found[lab]:
+                    continue
+                if skipna and mask[i]:
+                    continue
+                result[lab] = i
+                found[lab] = 1
+                rmask[lab] = mask[i] if not skipna else 0
+
+    return np.asarray(result), np.asarray(rmask)
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def group_rank(
     float64_t[:, ::1] out,
     ndarray[numeric_object_t, ndim=2] values,

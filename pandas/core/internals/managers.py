@@ -1157,7 +1157,12 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             )
             return SingleBlockManager(block, self.axes[0].view())
 
-        dtype = interleaved_dtype([blk.dtype for blk in self.blocks])
+        # GH#62263 cache interleaved_dtype to avoid recomputing on
+        # repeated fast_xs calls
+        dtype = self._interleaved_dtype
+        if dtype is None:
+            dtype = interleaved_dtype([blk.dtype for blk in self.blocks])
+            self._interleaved_dtype = dtype
 
         n = len(self)
 
@@ -1401,10 +1406,12 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 self._blknos[unfit_idxr] = len(self.blocks)
                 self._blklocs[unfit_idxr] = np.arange(unfit_count)
 
-            self.blocks += tuple(new_blocks)
-
-            # Newly created block's dtype may already be present.
+            # Invalidate cache before mutating blocks so that a concurrent
+            # reader never sees stale cache + new blocks.
+            self._interleaved_dtype = None
             self._known_consolidated = False
+
+            self.blocks += tuple(new_blocks)
 
     def _iset_split_block(
         self,
@@ -1485,6 +1492,9 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         nb = new_block_2d(value, placement=blk._mgr_locs, refs=refs)
         old_blocks = self.blocks
         new_blocks = (*old_blocks[:blkno], nb, *old_blocks[blkno + 1 :])
+        # Invalidate cache before mutating blocks so that a concurrent
+        # reader never sees stale cache + new blocks.
+        self._interleaved_dtype = None
         self.blocks = new_blocks
         return
 
@@ -1554,9 +1564,11 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             self._insert_update_blklocs_and_blknos(loc)
 
         self.axes[0] = new_axis
-        self.blocks += (block,)
-
+        # Invalidate cache before mutating blocks so that a concurrent
+        # reader never sees stale cache + new blocks.
+        self._interleaved_dtype = None
         self._known_consolidated = False
+        self.blocks += (block,)
 
         if (
             get_option("performance_warnings")
@@ -1877,9 +1889,13 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             # Incompatible types in assignment (expression has type
             # "Optional[Union[dtype[Any], ExtensionDtype]]", variable has
             # type "Optional[dtype[Any]]")
-            dtype = interleaved_dtype(  # type: ignore[assignment]
-                [blk.dtype for blk in self.blocks]
-            )
+            # GH#62263 use cached interleaved_dtype
+            dtype = self._interleaved_dtype  # type: ignore[assignment]
+            if dtype is None:
+                dtype = interleaved_dtype(  # type: ignore[assignment]
+                    [blk.dtype for blk in self.blocks]
+                )
+                self._interleaved_dtype = dtype
 
         # error: Argument 1 to "ensure_np_dtype" has incompatible type
         # "Optional[dtype[Any]]"; expected "Union[dtype[Any], ExtensionDtype]"

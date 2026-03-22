@@ -2268,3 +2268,12 @@ def test_dict_keys_rangeindex():
     result = Series({0: 1, 1: 2})
     expected = Series([1, 2], index=RangeIndex(2))
     tm.assert_series_equal(result, expected, check_index_type=True)
+
+
+def test_constructor_from_series_with_incompatible_dtype_raises():
+    # GH#59060
+    # Series(series_with_mixed_types, dtype=int) should raise consistently
+    # whether creating directly or from an existing Series
+    ser = Series([1, 2, "x", 4, 5])
+    with pytest.raises(ValueError, match="invalid literal"):
+        Series(ser, dtype=int)

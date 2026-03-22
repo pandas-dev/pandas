@@ -1341,6 +1341,10 @@ class SeriesGroupBy(GroupBy[Series]):
             For compatibility with :meth:`numpy.take`. Has no effect on the
             output.
 
+            .. deprecated:: 3.1.0
+                Passing ``**kwargs`` to SeriesGroupBy.take is deprecated
+                and will be removed in a future version of pandas.
+
         Returns
         -------
         Series
@@ -1395,6 +1399,13 @@ class SeriesGroupBy(GroupBy[Series]):
            1    monkey
         Name: name, dtype: str
         """
+        if kwargs:
+            warnings.warn(
+                "Passing additional arguments to SeriesGroupBy.take is "
+                "deprecated and will be removed in a future version of pandas.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
         result = self._op_via_apply("take", indices=indices, **kwargs)
         return result
 
@@ -1419,6 +1430,10 @@ class SeriesGroupBy(GroupBy[Series]):
 
         **kwargs
             Additional keyword arguments to be passed to the function.
+
+            .. deprecated:: 3.1.0
+                Passing ``**kwargs`` to SeriesGroupBy.skew is deprecated
+                and will be removed in a future version of pandas.
 
         Returns
         -------
@@ -1462,6 +1477,13 @@ class SeriesGroupBy(GroupBy[Series]):
         Parrot    1.457863
         Name: Max Speed, dtype: float64
         """
+        if kwargs:
+            warnings.warn(
+                "Passing additional arguments to SeriesGroupBy.skew is "
+                "deprecated and will be removed in a future version of pandas.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
 
         return self._cython_agg_general(
             "skew", alt=None, skipna=skipna, numeric_only=numeric_only, **kwargs
@@ -3292,6 +3314,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             For compatibility with :meth:`numpy.take`. Has no effect on the
             output.
 
+            .. deprecated:: 3.1.0
+                Passing ``**kwargs`` to DataFrameGroupBy.take is deprecated
+                and will be removed in a future version of pandas.
+
         Returns
         -------
         DataFrame
@@ -3359,6 +3385,13 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         2 0  rabbit  mammal       15.0
           1  monkey  mammal        NaN
         """
+        if kwargs:
+            warnings.warn(
+                "Passing additional arguments to DataFrameGroupBy.take is "
+                "deprecated and will be removed in a future version of pandas.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
         result = self._op_via_apply("take", indices=indices, **kwargs)
         return result
 
@@ -3383,6 +3416,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         **kwargs
             Additional keyword arguments to be passed to the function.
+
+            .. deprecated:: 3.1.0
+                Passing ``**kwargs`` to DataFrameGroupBy.skew is deprecated
+                and will be removed in a future version of pandas.
 
         Returns
         -------
@@ -3426,6 +3463,13 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         bird          NaN
         mammal   1.669046
         """
+        if kwargs:
+            warnings.warn(
+                "Passing additional arguments to DataFrameGroupBy.skew is "
+                "deprecated and will be removed in a future version of pandas.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
 
         def alt(obj):
             # This should not be reached since the cython path should raise

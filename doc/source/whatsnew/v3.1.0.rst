@@ -31,6 +31,7 @@ Other enhancements
 - :meth:`.DataFrameGroupBy.agg` now allows for the provided ``func`` to return a NumPy array (:issue:`63957`)
 - Added :meth:`ExtensionArray.count` (:issue:`64450`)
 - Display formatting for float sequences in DataFrame cells now respects the ``display.precision`` option (:issue:`60503`).
+- Improved the precision of float parsing in :func:`read_csv` (:issue:`64395`)
 - Improved the string ``repr`` of :class:`pd.core.arrays.SparseArray` (:issue:`64547`)
 
 .. ---------------------------------------------------------------------------
@@ -95,9 +96,13 @@ Other API changes
 Deprecations
 ~~~~~~~~~~~~
 - Deprecated :meth:`.DataFrameGroupBy.agg` and :meth:`.Resampler.agg` unpacking a scalar when the provided ``func`` returns a Series or array of length 1; in the future this will result in the Series or array being in the result. Users should unpack the scalar in ``func`` itself (:issue:`64014`)
+- Deprecated :meth:`ExcelFile.parse`, use :func:`read_excel` instead (:issue:`58247`)
 - Deprecated arithmetic operations between pandas objects (:class:`DataFrame`, :class:`Series`, :class:`Index`, and pandas-implemented :class:`ExtensionArray` subclasses) and list-likes other than ``list``, ``np.ndarray``, :class:`ExtensionArray`, :class:`Index`, :class:`Series`, :class:`DataFrame`. For e.g. ``tuple`` or ``range``, explicitly cast these to a supported object instead. In a future version, these will be treated as scalar-like for pointwise operation (:issue:`62423`)
 - Deprecated automatic dtype promotion when reindexing with a ``fill_value`` that cannot be held by the original dtype. Explicitly cast to a common dtype instead (:issue:`53910`)
+- Deprecated passing unnecessary ``*args`` and ``**kwargs`` to :meth:`.GroupBy.cumsum`, :meth:`.GroupBy.cumprod`, :meth:`.GroupBy.cummin`, :meth:`.GroupBy.cummax`, :meth:`.SeriesGroupBy.skew`, :meth:`.DataFrameGroupBy.skew`, :meth:`.SeriesGroupBy.take`, and :meth:`.DataFrameGroupBy.take`. The ``skipna`` parameter for the cum* methods is now an explicit keyword argument (:issue:`50407`)
 - Deprecated the ``.name`` property of offset objects (e.g., :class:`~pandas.tseries.offsets.Day`, :class:`~pandas.tseries.offsets.Hour`). Use ``.rule_code`` instead (:issue:`64207`)
+- Deprecated the ``xlrd`` and ``pyxlsb`` engines in :func:`read_excel`. Use ``engine="calamine"`` instead (:issue:`56542`)
+- Deprecated the default value of ``exact`` in :func:`assert_index_equal`; in a future version this will default to ``True`` instead of "equiv" (:issue:`57436`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -108,17 +113,28 @@ Performance improvements
 - Performance improvement in :meth:`DataFrame.__getitem__` when selecting a
   single column by label on a :class:`DataFrame` with duplicate column names.
   (:issue:`64126`).
+- Performance improvement in :func:`bdate_range` and :func:`date_range` with ``freq="B"`` or ``freq="C"`` (business day frequencies) (:issue:`16463`)
 - Performance improvement in :func:`infer_freq` (:issue:`64463`)
+- Performance improvement in :func:`merge` and :meth:`DataFrame.join` for many-to-many joins with ``sort=False`` (:issue:`56564`)
 - Performance improvement in :func:`merge` with ``how="cross"`` (:issue:`38082`)
 - Performance improvement in :func:`merge` with ``how="left"`` (:issue:`64370`)
+- Performance improvement in :meth:`DataFrame.loc` with non-unique masked index (:issue:`56759`)
+- Performance improvement in :meth:`DataFrame.to_stata` when writing object-dtype datetime columns with date formats that require year/month extraction (:issue:`64555`)
+- Performance improvement in :meth:`GroupBy.any` and :meth:`GroupBy.all` for boolean-dtype columns (:issue:`37850`)
+- Performance improvement in :meth:`GroupBy.first` and :meth:`GroupBy.last` for Extension Array dtypes, which no longer fall back to a slow ``apply``-based implementation (:issue:`57591`)
 - Performance improvement in :meth:`GroupBy.quantile` (:issue:`64330`)
+- Performance improvement in :meth:`Index.get_indexer` for large monotonic indexes, which now uses binary search instead of building a hash table when the number of targets is small (:issue:`14273`)
 - Performance improvement in datetime/timedelta unit conversion (e.g. ``datetime64[s]`` to ``datetime64[ns]``) (:issue:`35025`)
+- Performance improvement in indexing a :class:`DataFrame` with a :class:`CategoricalIndex` of :class:`Interval` categories (:issue:`61928`)
+- Performance improvement in reading zip-compressed files (e.g. :func:`read_pickle`, :func:`read_csv`) on Python < 3.12 (:issue:`59279`)
+- Performance improvement in repr of :class:`Series` and :class:`DataFrame` containing third-party array-like objects (e.g. xarray ``DataArray``) in object dtype columns (:issue:`61809`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_310.bug_fixes:
 
 Bug fixes
 ~~~~~~~~~
+- Bug in object-dtype hash table operations (``factorize``, ``unique``, ``duplicated``, ``isin``, ``value_counts``, ``groupby``, ``Index.get_loc``) not distinguishing between ``int`` and ``bool`` values, e.g. treating ``0`` and ``False`` as equal (:issue:`62888`)
 - Fix bug in :func:`to_datetime` that could give an unnecessary ``RuntimeWarning`` when converting DataFrame containing missing values (:issue:`64141`)
 
 Categorical
@@ -129,6 +145,7 @@ Categorical
 Datetimelike
 ^^^^^^^^^^^^
 - Bug in :class:`Timestamp` constructor, :class:`Timedelta` constructor, :func:`to_datetime`, and :func:`to_timedelta` with non-round ``float`` input and ``unit`` failing to raise when the value is just outside the representable bounds (:issue:`57366`)
+- Bug in :func:`to_datetime` and :func:`to_timedelta` on ARM platforms where round ``float`` values outside the int64 domain (e.g. ``float(2**63)``) could silently produce incorrect results instead of raising (:issue:`64619`)
 - Bug in :meth:`DatetimeArray.isin` and :meth:`TimedeltaArray.isin` where mismatched resolutions could silently truncate finer-resolution values, leading to false matches (:issue:`64545`)
 
 Timedelta
@@ -150,6 +167,7 @@ Numeric
 Conversion
 ^^^^^^^^^^
 - Fixed :func:`pandas.array` to preserve mask information when converting NumPy masked arrays, converting masked values to missing values (:issue:`63879`).
+- Fixed bug in :meth:`DataFrame.convert_dtypes` where values were dropped from sliced :class:`DataFrame` objects with mixed dtypes when the internal block structure spanned multiple columns (:issue:`64702`)
 - Fixed bug in :meth:`DataFrame.from_records` where ``exclude`` was ignored when ``data`` was an iterator and ``nrows=0`` (:issue:`63774`)
 -
 
@@ -166,7 +184,7 @@ Interval
 Indexing
 ^^^^^^^^
 - Bugs in setitem-with-expansion when adding new rows failing to keep the original dtype in some cases (:issue:`32346`, :issue:`15231`, :issue:`47503`, :issue:`6485`, :issue:`25383`, :issue:`52235`, :issue:`17026`, :issue:`56010`)
--
+- Bug in :meth:`Index.get_level_values` mishandling boolean, NA-like (``np.nan``, ``pd.NA``, ``pd.NaT``) and integer index names (:issue:`62169`)
 
 Missing
 ^^^^^^^
@@ -180,6 +198,7 @@ MultiIndex
 
 I/O
 ^^^
+- Fixed bug in :func:`read_csv` with the ``c`` engine where an embedded ``\r`` followed by a space in an unquoted field could cause an infinite re-parsing loop, producing spurious rows or a buffer overflow (:issue:`51141`)
 - Fixed bug in :func:`read_excel` where usage of ``skiprows`` could lead to an infinite loop (:issue:`64027`)
 - Fixed :func:`read_json` with ``lines=True`` and ``chunksize`` to respect ``nrows``
   when the requested row count is not a multiple of the chunk size (:issue:`64025`)

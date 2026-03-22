@@ -1186,7 +1186,15 @@ def sequence_to_td64ns(
             #  back the requested unit (or closest-supported)
             with np.errstate(invalid="ignore"):
                 int_data = data.astype(np.int64)
-            all_round = (mask | (data == int_data)).all()
+            # On ARM, float-to-int64 overflow saturates to INT64_MAX
+            # instead of wrapping, which makes the data == int_data
+            # check pass incorrectly for OOB values like float(2**63).
+            # Exclude values outside the int64 domain from the check.
+            i64 = np.iinfo(np.int64)
+            in_int64_range = (data >= np.float64(i64.min)) & (
+                data < np.float64(i64.max)
+            )
+            all_round = (mask | (in_int64_range & (data == int_data))).all()
             if all_round:
                 result, _ = sequence_to_td64ns(
                     int_data, copy=False, unit=unit, errors=errors

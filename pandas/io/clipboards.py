@@ -96,7 +96,7 @@ def read_clipboard(
         pass
 
     # Excel copies into clipboard with \t separation
-    # inspect no more then the 10 first lines, if they
+    # inspect no more than the 10 first lines, if they
     # all contain an equal number (>0) of tabs, infer
     # that this came from excel and set 'sep' accordingly
     lines = text[:10000].split("\n")[:-1][:10]  # pyright: ignore[reportOptionalSubscript]

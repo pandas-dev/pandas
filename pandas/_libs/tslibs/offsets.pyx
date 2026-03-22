@@ -808,6 +808,17 @@ cdef class BaseOffset:
             "does not have a vectorized implementation"
         )
 
+    @property
+    def _supports_daily_offset_mask(self) -> bool:
+        """
+        Whether this offset supports the fast "daily range + filter" path
+        for date_range generation (GH#16463).
+
+        Subclasses that implement ``_get_daily_offset_mask`` should override
+        this to return True when the optimization is applicable.
+        """
+        return False
+
     def rollback(self, dt) -> datetime:
         """
         Roll provided date backward to next offset only if not on offset.
@@ -2676,6 +2687,16 @@ cdef class BusinessDay(BusinessMixin):
             res = res.view(dtarr.dtype) + Timedelta(self._offset)
         return res
 
+    @property
+    def _supports_daily_offset_mask(self) -> bool:
+        return not self._offset
+
+    def _get_daily_offset_mask(self, dt64values: np.ndarray) -> np.ndarray:
+        # datetime64[D] epoch (1970-01-01) is Thursday; (day_number + 3) % 7
+        # gives 0=Mon, 1=Tue, ..., 4=Fri, 5=Sat, 6=Sun
+        day_i8 = dt64values.astype("datetime64[D]").view("int64")
+        return (day_i8 + 3) % 7 < 5
+
     def is_on_offset(self, dt: datetime) -> bool:
         """
         Return boolean whether a timestamp intersects with this frequency.
@@ -2949,9 +2970,20 @@ cdef class BusinessHour(BusinessMixin):
         assert False
 
     @cache_readonly
-    def next_bday(self):
+    def _next_bday(self):
         """
         Used for moving to next business day.
+
+        Returns a ``BusinessDay`` or ``CustomBusinessDay`` offset of +1 or -1
+        depending on the sign of ``n``. This is used internally to advance or
+        retreat to the next or previous business day when computing business
+        hour offsets.
+
+        Returns
+        -------
+        BusinessDay or CustomBusinessDay
+            A single-day business day offset in the appropriate direction.
+
         """
         if self._n >= 0:
             nb_offset = 1
@@ -2999,9 +3031,9 @@ cdef class BusinessHour(BusinessMixin):
         else:
             is_same_sign = self._n * sign >= 0
 
-        if not self.next_bday.is_on_offset(other):
+        if not self._next_bday.is_on_offset(other):
             # today is not business day
-            other = other + sign * self.next_bday
+            other = other + sign * self._next_bday
             if is_same_sign:
                 hour, minute = earliest_start.hour, earliest_start.minute
             else:
@@ -3010,7 +3042,7 @@ cdef class BusinessHour(BusinessMixin):
             if is_same_sign:
                 if latest_start < other.time():
                     # current time is after latest starting time in today
-                    other = other + sign * self.next_bday
+                    other = other + sign * self._next_bday
                     hour, minute = earliest_start.hour, earliest_start.minute
                 else:
                     # find earliest starting time no earlier than current time
@@ -3021,7 +3053,7 @@ cdef class BusinessHour(BusinessMixin):
             else:
                 if other.time() < earliest_start:
                     # current time is before earliest starting time in today
-                    other = other + sign * self.next_bday
+                    other = other + sign * self._next_bday
                     hour, minute = latest_start.hour, latest_start.minute
                 else:
                     # find latest starting time no later than current time
@@ -3128,7 +3160,7 @@ cdef class BusinessHour(BusinessMixin):
             else:
                 skip_bd = BusinessDay(n=bd)
             # midnight business hour may not on BusinessDay
-            if not self.next_bday.is_on_offset(other):
+            if not self._next_bday.is_on_offset(other):
                 prev_open = self._prev_opening_time(other)
                 remain = other - prev_open
                 other = prev_open + skip_bd + remain
@@ -6637,6 +6669,10 @@ cdef class CustomBusinessDay(BusinessDay):
         result = maybe_unbox_numpy_scalar(result)
         return result
 
+    def _get_daily_offset_mask(self, dt64values: np.ndarray) -> np.ndarray:
+        days = dt64values.astype("datetime64[D]")
+        return np.is_busday(days, busdaycal=self._calendar)
+
 
 cdef class CustomBusinessHour(BusinessHour):
     """
@@ -6777,9 +6813,18 @@ cdef class _CustomBusinessMonth(BusinessMixin):
         self._init_custom(weekmask, holidays, calendar)
 
     @cache_readonly
-    def cbday_roll(self):
+    def _cbday_roll(self):
         """
         Define default roll function to be called in apply method.
+
+        Returns ``CustomBusinessDay.rollback`` for month-end offsets and
+        ``CustomBusinessDay.rollforward`` for month-begin offsets.
+
+        Returns
+        -------
+        callable
+            The bound ``rollback`` or ``rollforward`` method of a
+            ``CustomBusinessDay`` instance.
         """
         cbday_kwds = self.kwds.copy()
         cbday_kwds["offset"] = timedelta(0)
@@ -6824,9 +6869,18 @@ cdef class _CustomBusinessMonth(BusinessMixin):
         return moff
 
     @cache_readonly
-    def month_roll(self):
+    def _month_roll(self):
         """
         Define default roll function to be called in apply method.
+
+        Returns ``MonthEnd.rollforward`` for month-end offsets and
+        ``MonthBegin.rollback`` for month-begin offsets.
+
+        Returns
+        -------
+        callable
+            The bound ``rollforward`` or ``rollback`` method of the
+            underlying ``m_offset`` instance.
         """
         if self._prefix.endswith("S"):
             # MonthBegin
@@ -6839,14 +6893,14 @@ cdef class _CustomBusinessMonth(BusinessMixin):
     @apply_wraps
     def _apply(self, other: datetime) -> datetime:
         # First move to month offset
-        cur_month_offset_date = self.month_roll(other)
+        cur_month_offset_date = self._month_roll(other)
 
         # Find this custom month offset
-        compare_date = self.cbday_roll(cur_month_offset_date)
+        compare_date = self._cbday_roll(cur_month_offset_date)
         n = roll_convention(other.day, self._n, compare_date.day)
 
         new = cur_month_offset_date + n * self.m_offset
-        result = self.cbday_roll(new)
+        result = self._cbday_roll(new)
 
         if self._offset:
             result = result + self._offset
@@ -7365,7 +7419,7 @@ cpdef to_offset(freq, bint is_period=False):
                 extra_message=f"Failed to parse with error message: {repr(err)}"
             )
 
-        # TODO(3.0?) once deprecation of "d" is enforced, the check for it here
+        # TODO(4.0) once deprecation of "d" is enforced, the check for it here
         #  can be removed
         if (
                 isinstance(result, Hour)
