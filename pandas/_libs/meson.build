@@ -55,7 +55,12 @@ fast_float = subproject('fast_float')
 fast_float_dep = fast_float.get_variable('fast_float_dep')
 
 subdir('tslibs')
-openmp_dep = dependency('OpenMP', required: false)
+
+if get_option('use_openmp')
+    openmp_dep = dependency('OpenMP', required: true)
+else
+    openmp_dep = declare_dependency()
+endif
 
 libs_sources = {
     # Dict of extension name -> dict of {sources, include_dirs, and deps}
