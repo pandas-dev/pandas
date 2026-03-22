@@ -1514,7 +1514,7 @@ class ArrowExtensionArray(
             else:
                 # Concatenate indices from chunks; dictionaries are unified.
                 indices_chunks = [
-                    encoded.chunk(idx).indices for idx in range(encoded.num_chunks)
+                    chunk.indices for chunk in encoded.iterchunks()
                 ]
                 combined_indices = pa.concat_arrays(indices_chunks)
                 encoded_arr = pa.DictionaryArray.from_arrays(
