@@ -14,7 +14,6 @@ from numpy cimport (
     uint64_t,
 )
 
-
 cdef extern from "pandas/vendored/klib/khash_python.h":
     const int KHASH_TRACE_DOMAIN
 
@@ -133,5 +132,7 @@ cdef void kh_resize_pymap_checked(kh_pymap_t*, khuint_t)
 cdef khuint_t kh_put_pymap_checked(kh_pymap_t*, PyObject*, int*)
 cdef void kh_del_pymap_checked(kh_pymap_t*, khuint_t)
 cdef bint kh_exist_pymap_checked(kh_pymap_t*, khiter_t)
+
+cdef public bint pandas_is_NA(object o)
 
 include "khash_for_primitive_helper.pxi"
