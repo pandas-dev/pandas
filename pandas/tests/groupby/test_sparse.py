@@ -26,8 +26,8 @@ def sparse_df(fill_value):
         }
     )
     sparse = dense.copy()
-    sparse["val1"] = sparse["val1"].astype(SparseDtype(int, fill_value))
-    sparse["val2"] = sparse["val2"].astype(SparseDtype(int, fill_value))
+    sparse["val1"] = sparse["val1"].astype(SparseDtype(np.int64, fill_value))
+    sparse["val2"] = sparse["val2"].astype(SparseDtype(np.int64, fill_value))
     return dense, sparse
 
 
@@ -103,7 +103,7 @@ class TestSparseGroupby:
         vals = [1, 0, 0, 3, 0, 5]
         keys = ["a", "a", "b", "b", "a", "b"]
         dense_ser = Series(vals, name="val")
-        sparse_ser = dense_ser.astype(SparseDtype(int, fill_value))
+        sparse_ser = dense_ser.astype(SparseDtype(np.int64, fill_value))
         result = sparse_ser.groupby(keys).mean()
         expected = dense_ser.groupby(keys).mean()
         tm.assert_series_equal(result, expected)
