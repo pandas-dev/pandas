@@ -2541,7 +2541,7 @@ class ArrowExtensionArray(
 
     @property
     def _is_monotonic_increasing(self) -> bool:
-        pa_array = self._pa_array.combine_chunks()
+        pa_array = self._pa_array
         if pa_array.null_count > 0:
             return False
         if len(pa_array) <= 1:
@@ -2550,7 +2550,7 @@ class ArrowExtensionArray(
 
     @property
     def _is_monotonic_decreasing(self) -> bool:
-        pa_array = self._pa_array.combine_chunks()
+        pa_array = self._pa_array
         if pa_array.null_count > 0:
             return False
         if len(pa_array) <= 1:
