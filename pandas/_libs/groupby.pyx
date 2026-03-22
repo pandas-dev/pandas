@@ -1034,7 +1034,7 @@ def group_skew(
         raise ValueError("len(index) != len(labels)")
 
     N, K = (<object>values).shape
-    ms = <Moments *>calloc(ngroups * K, sizeof(Moments))
+    ms = <Moments *>calloc(<size_t>ngroups * <size_t>K, sizeof(Moments))
     if ms is NULL:
         raise MemoryError()
 
@@ -1092,7 +1092,7 @@ def group_kurt(
         raise ValueError("len(index) != len(labels)")
 
     N, K = (<object>values).shape
-    ms = <Moments *>calloc(ngroups * K, sizeof(Moments))
+    ms = <Moments *>calloc(<size_t>ngroups * <size_t>K, sizeof(Moments))
     if ms is NULL:
         raise MemoryError()
 

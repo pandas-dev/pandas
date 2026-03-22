@@ -1685,7 +1685,7 @@ def axis_skew(
     cdef:
         Py_ssize_t i
         Py_ssize_t nouter = values.shape[1] if axis == 0 else values.shape[0]
-        Moments *moments = <Moments *>calloc(nouter, sizeof(Moments))
+        Moments *moments = <Moments *>calloc(<size_t>nouter, sizeof(Moments))
         ndarray result_arr = np.empty(nouter, dtype=np.float64)
         float64_t[:] result = result_arr
 
@@ -1712,7 +1712,7 @@ def axis_kurt(
     cdef:
         Py_ssize_t i
         Py_ssize_t nouter = values.shape[1] if axis == 0 else values.shape[0]
-        Moments *moments = <Moments *>calloc(nouter, sizeof(Moments))
+        Moments *moments = <Moments *>calloc(<size_t>nouter, sizeof(Moments))
         ndarray result_arr = np.empty(nouter, dtype=np.float64)
         float64_t[:] result = result_arr
 
