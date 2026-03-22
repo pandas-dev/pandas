@@ -71,8 +71,9 @@ cdef extern from "pandas/portable.h":
     int getdigit_ascii(char c, int default) nogil
 
 cdef extern from "pandas/parser/tokenizer.h":
-    double xstrtod(const char *p, char **q, char decimal, char sci, char tsep,
-                   int skip_trailing, int *error, int *maybe_int)
+    double precise_xstrtod(const char *p, char **q, char decimal, char sci,
+                           char tsep, int skip_trailing, int *error,
+                           int *maybe_int)
 
 
 # ----------------------------------------------------------------------
@@ -465,14 +466,16 @@ cpdef bint _does_string_look_like_datetime(str py_string):
         elif py_string in _not_datelike_strings:
             return False
         else:
-            # xstrtod with such parameters copies behavior of python `float`
-            # cast; for example, " 35.e-1 " is valid string for this cast so,
-            # for correctly xstrtod call necessary to pass these params:
-            # b'.' - a dot is used as separator, b'e' - an exponential form of
-            # a float number can be used, b'\0' - not to use a thousand
-            # separator, 1 - skip extra spaces before and after,
-            converted_date = xstrtod(buf, &endptr,
-                                     b".", b"e", b"\0", 1, &error, NULL)
+            # precise_xstrtod with such parameters copies behavior of
+            # python `float` cast; for example, " 35.e-1 " is valid string
+            # for this cast so, for correctly calling it necessary to pass
+            # these params: b'.' - a dot is used as separator, b'e' - an
+            # exponential form of a float number can be used, b'\0' - not
+            # to use a thousand separator, 1 - skip extra spaces before and
+            # after,
+            converted_date = precise_xstrtod(buf, &endptr,
+                                             b".", b"e", b"\0", 1,
+                                             &error, NULL)
             # if there were no errors and the whole line was parsed, then ...
             if error == 0 and endptr == buf + length:
                 return converted_date >= 1000

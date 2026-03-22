@@ -389,6 +389,17 @@ class TestTimedeltas:
         with pytest.raises(OutOfBoundsTimedelta, match=msg):
             pd.Timedelta(value, unit="ns")
 
+    def test_float_to_timedelta_raise_oob_non_ns(self):
+        # On ARM, float-to-int64 overflow saturates to INT64_MAX instead
+        # of wrapping. The integer shortcut (for all-round float arrays)
+        # must exclude values outside the int64 domain to avoid silently
+        # producing incorrect results.
+        value = np.float64(2**63)
+        arr = np.array([value], dtype=np.float64)
+
+        with pytest.raises(OutOfBoundsTimedelta, match="cannot convert input"):
+            to_timedelta(arr, unit="s")
+
 
 def test_from_numeric_arrow_dtype(any_numeric_ea_dtype):
     # GH 52425

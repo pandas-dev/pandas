@@ -14,6 +14,8 @@ from pandas import (
     compat,
 )
 import pandas._testing as tm
+from pandas.core.arrays import FloatingArray
+from pandas.core.indexes.base import get_values_for_csv
 
 
 class TestToCSV:
@@ -321,6 +323,22 @@ $1$,$2$
             ["a,b", "1.1,c", "2.02,c", ",c", "6.000006,c"]
         )
         assert result == expected
+
+    def test_to_csv_2d_float_ea(self):
+        # GH#64634 - get_values_for_csv on a 2D float ExtensionArray should not fail.
+        data = np.array([1.0, np.nan, 3.0, 4.0])
+        mask = np.array([False, True, False, False])
+        arr2d = FloatingArray(data, mask).reshape(2, 2)
+
+        result = get_values_for_csv(
+            arr2d,
+            date_format=None,
+            na_rep="NA",
+            float_format=None,
+            decimal=".",
+        )
+        expected = np.array([["1.0", "NA"], ["3.0", "4.0"]], dtype=object)
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_to_csv_multi_index(self):
         # see gh-6618
