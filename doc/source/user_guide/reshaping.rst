@@ -577,11 +577,13 @@ If :func:`~pandas.crosstab` receives only two :class:`Series`, it will provide a
     pd.crosstab(foo, bar)
 
 For :class:`Categorical` data, to include **all** of data categories even if the actual data does
-not contain any instances of a particular category, use ``dropna=False``.
+not contain any instances of a particular category, reindex the result:
 
 .. ipython:: python
 
-    pd.crosstab(foo, bar, dropna=False)
+    result = pd.crosstab(foo, bar)
+    result = result.reindex(index=foo.categories, columns=bar.categories, fill_value=0)
+    result
 
 Normalization
 ~~~~~~~~~~~~~
