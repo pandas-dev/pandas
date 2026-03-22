@@ -80,7 +80,7 @@ class TestGetitem:
         # GH 64749
         list_of_dicts = [{np.True_: 1, np.False_: 0}]
         df = DataFrame(list_of_dicts)
-        
+
         result = df[True]
         expected = Series([1], name=np.True_)
         tm.assert_series_equal(result, expected)

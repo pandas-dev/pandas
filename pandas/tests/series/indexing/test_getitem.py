@@ -56,7 +56,6 @@ class TestSeriesGetitemScalars:
         with pytest.raises(KeyError, match="1"):
             ser[1]
 
-
     def test_getitem_float_keys_tuple_values(self):
         # see GH#13509
 
