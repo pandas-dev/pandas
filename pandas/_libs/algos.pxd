@@ -40,7 +40,7 @@ cdef extern from "pandas/moments.h":
 
     Moments accumulate_moments_scalar(
         const float64_t* values,
-        int64_t n,
+        size_t n,
         bint skipna,
         const uint8_t* mask,
         int max_moment,

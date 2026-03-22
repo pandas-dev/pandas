@@ -54,7 +54,7 @@ typedef uint8_t v4u8
 #  endif // defined(__clang__)
 
 PANDAS_SIMD_TARGETS Moments accumulate_moments_simd(const double *values,
-                                                    int64_t n, int skipna,
+                                                    size_t n, int skipna,
                                                     const uint8_t *mask,
                                                     int max_moment) {
   v4d v_mean = {0.0, 0.0, 0.0, 0.0};
@@ -69,8 +69,8 @@ PANDAS_SIMD_TARGETS Moments accumulate_moments_simd(const double *values,
   v4d v_zero = {0.0, 0.0, 0.0, 0.0};
   v4d v_nan = {NAN, NAN, NAN, NAN};
 
-  int64_t i = 0;
-  for (; i < n - 3; i += 4) {
+  size_t i = 0;
+  for (; i + 3 < n; i += 4) {
     v4d v_val = *(v4d *)(values + i);
 
     if (mask) {
@@ -148,11 +148,11 @@ PANDAS_SIMD_TARGETS Moments accumulate_moments_simd(const double *values,
 
 /* --- Scalar Fallback Implementation --- */
 
-Moments accumulate_moments_scalar_block(const double *values, int64_t n,
+Moments accumulate_moments_scalar_block(const double *values, size_t n,
                                         int skipna, const uint8_t *mask,
                                         int max_moment) {
   Moments moments = {0};
-  for (int64_t i = 0; i < n; i++) {
+  for (size_t i = 0; i < n; i++) {
     double val = values[i];
     if (mask && mask[i])
       val = NAN;
@@ -165,7 +165,7 @@ Moments accumulate_moments_scalar_block(const double *values, int64_t n,
 
 /* --- Accumulation Dispatch (Choose SIMD or Scalar) --- */
 
-Moments accumulate_moments_dispatch(const double *values, int64_t n, int skipna,
+Moments accumulate_moments_dispatch(const double *values, size_t n, int skipna,
                                     const uint8_t *mask, int max_moment) {
 #if defined(PANDAS_HAS_SIMD)
   return accumulate_moments_simd(values, n, skipna, mask, max_moment);
@@ -175,7 +175,7 @@ Moments accumulate_moments_dispatch(const double *values, int64_t n, int skipna,
 
 /* --- Moments 1D Accumulator Implementation --- */
 
-Moments accumulate_moments_scalar(const double *values, int64_t n, int skipna,
+Moments accumulate_moments_scalar(const double *values, size_t n, int skipna,
                                   const uint8_t *mask, int max_moment) {
   Moments result = {0};
 
@@ -183,11 +183,11 @@ Moments accumulate_moments_scalar(const double *values, int64_t n, int skipna,
 #  pragma omp parallel if (n > 10000)
 #endif
   {
-    int tid = omp_get_thread_num();
-    int num_threads = omp_get_num_threads();
+    size_t tid = (size_t)omp_get_thread_num();
+    size_t num_threads = (size_t)omp_get_num_threads();
 
-    int64_t start = (tid * n) / num_threads;
-    int64_t end = tid == num_threads - 1 ? n : ((tid + 1) * n) / num_threads;
+    size_t start = (tid * n) / num_threads;
+    size_t end = tid == num_threads - 1 ? n : ((tid + 1) * n) / num_threads;
 
     Moments moments_local =
         accumulate_moments_dispatch(values + start, end - start, skipna,

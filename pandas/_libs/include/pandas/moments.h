@@ -86,7 +86,7 @@ static inline Moments moments_merge(Moments a, Moments b, int max_moment) {
 /// Compute central moments until `max_moment` using `n` elements from `values`.
 /// The size is represented as signed integer for MSVC compatibility with
 /// OpenMP.
-Moments accumulate_moments_scalar(const double *values, int64_t n, int skipna,
+Moments accumulate_moments_scalar(const double *values, size_t n, int skipna,
                                   const uint8_t *mask, int max_moment);
 
 static inline double calc_skew(Moments moments) {

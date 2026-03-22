@@ -1645,7 +1645,7 @@ def scalar_skew(
 ) -> float:
     cdef:
         Moments moments
-        Py_ssize_t n = values.shape[0]
+        size_t n = <size_t>values.shape[0]
         const float64_t* p_values = &values[0]
         const uint8_t* p_mask = &mask[0] if mask is not None else NULL
 
@@ -1664,7 +1664,7 @@ def scalar_kurt(
 ) -> float:
     cdef:
         Moments moments
-        Py_ssize_t n = values.shape[0]
+        size_t n = <size_t>values.shape[0]
         const float64_t* p_values = &values[0]
         const uint8_t* p_mask = &mask[0] if mask is not None else NULL
 
