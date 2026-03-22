@@ -208,8 +208,18 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             # numerical issues with Float32Dtype
             na_values = scalars._mask
             result = scalars._data
-            result = lib.ensure_string_array(result, copy=copy, convert_na_value=False)
-            pa_arr = pa.array(result, mask=na_values, type=pa.large_string())
+            if result.dtype.kind in "iub":
+                # GH#56505 Use PyArrow's native cast for integer and boolean
+                # types, avoiding the element-wise ensure_string_array loop.
+                pa_arr = pa.array(result, mask=na_values)
+                pa_arr = pc.cast(pa_arr, pa.large_string())
+                if result.dtype.kind == "b":
+                    pa_arr = pc.utf8_capitalize(pa_arr)
+            else:
+                result = lib.ensure_string_array(
+                    result, copy=copy, convert_na_value=False
+                )
+                pa_arr = pa.array(result, mask=na_values, type=pa.large_string())
         elif isinstance(scalars, ArrowExtensionArray):
             pa_type = scalars._pa_array.type
             # Use PyArrow's native cast for integer, string, and boolean types.
@@ -232,6 +242,13 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
                 pa_arr = pa.array(result, type=pa.large_string(), from_pandas=True)
         elif isinstance(scalars, (pa.Array, pa.ChunkedArray)):
             pa_arr = pc.cast(scalars, pa.large_string())
+        elif isinstance(scalars, np.ndarray) and scalars.dtype.kind in "iub":
+            # GH#56505 Use PyArrow's native cast for numpy integer and boolean
+            # arrays, avoiding the element-wise ensure_string_array loop.
+            pa_arr = pa.array(scalars, from_pandas=True)
+            pa_arr = pc.cast(pa_arr, pa.large_string())
+            if scalars.dtype.kind == "b":
+                pa_arr = pc.utf8_capitalize(pa_arr)
         else:
             # convert non-na-likes to str
             result = lib.ensure_string_array(scalars, copy=copy)

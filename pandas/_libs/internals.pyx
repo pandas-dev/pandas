@@ -724,6 +724,7 @@ cdef class BlockManager:
         public tuple blocks
         public list axes
         public bint _known_consolidated, _is_consolidated
+        public object _interleaved_dtype
         ndarray __blknos, __blklocs
 
     def __cinit__(
@@ -747,6 +748,7 @@ cdef class BlockManager:
         # Populate known_consolidated, blknos, and blklocs lazily
         self._known_consolidated = False
         self._is_consolidated = False
+        self._interleaved_dtype = None
         self._blknos = None
         self._blklocs = None
 
@@ -879,6 +881,7 @@ cdef class BlockManager:
     def _post_setstate(self) -> None:
         self._is_consolidated = False
         self._known_consolidated = False
+        self._interleaved_dtype = None
         self._rebuild_blknos_and_blklocs()
 
     # -------------------------------------------------------------------

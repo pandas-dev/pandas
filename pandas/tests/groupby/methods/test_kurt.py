@@ -9,7 +9,7 @@ import pandas._testing as tm
 
 def test_groupby_kurt_equivalence():
     # GH#40139
-    # Test that that groupby kurt method (which uses libgroupby.group_kurt)
+    # Test that the groupby kurt method (which uses libgroupby.group_kurt)
     #  matches the results of operating group-by-group (which uses nanops.nankurt)
     nrows = 1000
     ngroups = 3
