@@ -1416,6 +1416,46 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         return type(self)(sp_values, sparse_index=self.sp_index, fill_value=fill_val)
 
+    def _groupby_op(
+        self,
+        *,
+        how: str,
+        has_dropped_na: bool,
+        min_count: int,
+        ngroups: int,
+        ids: npt.NDArray[np.intp],
+        **kwargs,
+    ):
+        # first/last are handled by the base class to preserve EA type
+        if how in ["first", "last"]:
+            return self._groupby_first_last(
+                how=how,
+                min_count=min_count,
+                ngroups=ngroups,
+                ids=ids,
+                skipna=kwargs.get("skipna", True),
+            )
+
+        from pandas.core.groupby.ops import WrappedCythonOp
+
+        kind = WrappedCythonOp.get_kind_from_how(how)
+        op = WrappedCythonOp(how=how, kind=kind, has_dropped_na=has_dropped_na)
+
+        # Convert to dense for the cython operation.
+        # The cython code handles NaN detection on dense float arrays natively.
+        npvalues = self.to_dense()
+
+        res_values = op._cython_op_ndim_compat(
+            npvalues,
+            min_count=min_count,
+            ngroups=ngroups,
+            comp_ids=ids,
+            mask=None,
+            **kwargs,
+        )
+
+        return res_values
+
     def to_dense(self) -> np.ndarray:
         """
         Convert SparseArray to a NumPy array.
