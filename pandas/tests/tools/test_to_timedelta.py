@@ -410,6 +410,18 @@ def test_from_numeric_arrow_dtype(any_numeric_ea_dtype):
     tm.assert_series_equal(result, expected)
 
 
+def test_to_timedelta_np_str():
+    # GH#48974 np.str_ should not break timedelta parsing
+    result = to_timedelta(np.array(["1 day", "2 days"], dtype=np.str_))
+    expected = TimedeltaIndex(["1 days", "2 days"])
+    tm.assert_index_equal(result, expected)
+
+    # ISO format
+    result = to_timedelta(np.array(["P1DT1H", "P2D"], dtype=np.str_))
+    expected = TimedeltaIndex(["1 days 01:00:00", "2 days"])
+    tm.assert_index_equal(result, expected)
+
+
 @pytest.mark.parametrize("unit", ["ns", "ms"])
 def test_from_timedelta_arrow_dtype(unit):
     # GH 54298
