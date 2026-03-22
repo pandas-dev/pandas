@@ -474,6 +474,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         """
         The year of the period.
 
+        Returns the year component for each period in the index.
+
         See Also
         --------
         PeriodIndex.day_of_year : The ordinal day of the year.
@@ -495,6 +497,9 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         """
         The month as January=1, December=12.
 
+        Returns the month component for each period in the index as an
+        integer, where January is 1 and December is 12.
+
         See Also
         --------
         PeriodIndex.days_in_month : The number of days in the month.
@@ -511,6 +516,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         "day",
         """
         The days of the period.
+
+        Returns the day-of-month component for each period in the index.
 
         See Also
         --------
@@ -534,6 +541,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         """
         The hour of the period.
 
+        Returns the hour component for each period in the index.
+
         See Also
         --------
         PeriodIndex.minute : The minute of the period.
@@ -551,6 +560,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         "minute",
         """
         The minute of the period.
+
+        Returns the minute component for each period in the index.
 
         See Also
         --------
@@ -571,6 +582,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         """
         The second of the period.
 
+        Returns the second component for each period in the index.
+
         See Also
         --------
         PeriodIndex.hour : The hour of the period.
@@ -589,6 +602,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         "week",
         """
         The week ordinal of the year.
+
+        Returns the week number (1 through 53) for each period in the index.
 
         See Also
         --------
@@ -610,6 +625,9 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         "day_of_week",
         """
         The day of the week with Monday=0, Sunday=6.
+
+        Returns the day-of-week component for each period, following the
+        Python convention where Monday is 0 and Sunday is 6.
 
         See Also
         --------
@@ -635,6 +653,9 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         "day_of_year",
         """
         The ordinal day of the year.
+
+        Returns the day-of-year component for each period, ranging from
+        1 (January 1st) to 365 or 366 for leap years.
 
         See Also
         --------
@@ -664,6 +685,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         "quarter",
         """
         The quarter of the date.
+
+        Returns the quarter (1 through 4) for each period in the index.
 
         See Also
         --------
@@ -726,6 +749,9 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         """
         The number of days in the month.
 
+        Returns the total number of days in the month of each period,
+        accounting for leap years.
+
         See Also
         --------
         PeriodIndex.day : The days of the period.
@@ -763,6 +789,9 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
     def is_leap_year(self) -> npt.NDArray[np.bool_]:
         """
         Logical indicating if the date belongs to a leap year.
+
+        Returns a boolean array where ``True`` indicates the period's year
+        is a leap year.
 
         See Also
         --------

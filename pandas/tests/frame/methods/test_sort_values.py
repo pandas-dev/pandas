@@ -285,7 +285,7 @@ class TestDataFrameSortValues:
         )
         tm.assert_frame_equal(sorted_df, expected)
 
-    def test_sort_values_stable_categorial(self):
+    def test_sort_values_stable_categorical(self):
         # GH#16793
         df = DataFrame({"x": Categorical(np.repeat([1, 2, 3, 4], 5), ordered=True)})
         expected = df.copy()

@@ -86,6 +86,7 @@ Binary operator functions
    Series.sub
    Series.mul
    Series.div
+   Series.divmod
    Series.truediv
    Series.floordiv
    Series.mod
@@ -94,6 +95,7 @@ Binary operator functions
    Series.rsub
    Series.rmul
    Series.rdiv
+   Series.rdivmod
    Series.rtruediv
    Series.rfloordiv
    Series.rmod

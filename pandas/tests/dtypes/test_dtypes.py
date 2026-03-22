@@ -156,7 +156,7 @@ class TestCategoricalDtype(Base):
             CategoricalDtype._from_values_or_dtype(values, categories, ordered, dtype)
 
     def test_from_values_or_dtype_invalid_dtype(self):
-        msg = "Cannot not construct CategoricalDtype from <class 'object'>"
+        msg = "Cannot construct CategoricalDtype from <class 'object'>"
         with pytest.raises(ValueError, match=msg):
             CategoricalDtype._from_values_or_dtype(None, None, None, object)
 

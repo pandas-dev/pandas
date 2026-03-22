@@ -1,4 +1,7 @@
-from datetime import datetime
+from datetime import (
+    datetime,
+    timezone,
+)
 
 import numpy as np
 import pytest
@@ -1498,3 +1501,13 @@ def test_setitem_partial_row_multiple_columns():
         }
     )
     tm.assert_frame_equal(df, expected)
+
+
+def test_loc_setitem_tz_aware_column_expansion():
+    # GH#55423
+    # Enlarging a DataFrame with a tz-aware datetime via loc
+    # should preserve datetime64[us, tz] dtype, not fall back to object
+    df = DataFrame([{"id": 1}, {"id": 2}, {"id": 3}])
+    _time = datetime.fromtimestamp(1695887042, timezone.utc)
+    df.loc[df.id >= 2, "time"] = _time
+    assert df["time"].dtype == DatetimeTZDtype(tz="UTC", unit="us")

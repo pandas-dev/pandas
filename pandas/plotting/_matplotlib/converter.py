@@ -595,7 +595,7 @@ def _get_periods_per_ymd(freq: BaseOffset) -> tuple[int, int, int]:
         ppm = 1
         ppy = 12
     elif freq_group == FreqGroup.FR_QTR:
-        ppm = -1  # placerholder
+        ppm = -1  # placeholder
         ppy = 4
     elif freq_group == FreqGroup.FR_ANN:
         ppm = -1  # placeholder
@@ -664,7 +664,7 @@ def _daily_finder(vmin: float, vmax: float, freq: BaseOffset) -> np.ndarray:
         year_start = _period_break(dates_, "year")
 
         def _hour_finder(label_interval: int, force_year_start: bool) -> None:
-            target = dates_.hour  # type: ignore[union-attr]
+            target = dates_.hour
             mask = _period_break_mask(dates_, "hour")
             info_maj[day_start] = True
             info_min[mask & (target % label_interval == 0)] = True
@@ -675,7 +675,7 @@ def _daily_finder(vmin: float, vmax: float, freq: BaseOffset) -> np.ndarray:
                 info_fmt[first_label(day_start)] = "%H:%M\n%d-%b\n%Y"
 
         def _minute_finder(label_interval: int) -> None:
-            target = dates_.minute  # type: ignore[union-attr]
+            target = dates_.minute
             hour_start = _period_break(dates_, "hour")
             mask = _period_break_mask(dates_, "minute")
             info_maj[hour_start] = True
@@ -685,7 +685,7 @@ def _daily_finder(vmin: float, vmax: float, freq: BaseOffset) -> np.ndarray:
             info_fmt[year_start] = "%H:%M\n%d-%b\n%Y"
 
         def _second_finder(label_interval: int) -> None:
-            target = dates_.second  # type: ignore[union-attr]
+            target = dates_.second
             minute_start = _period_break(dates_, "minute")
             mask = _period_break_mask(dates_, "second")
             info_maj[minute_start] = True
@@ -787,7 +787,7 @@ def _daily_finder(vmin: float, vmax: float, freq: BaseOffset) -> np.ndarray:
         info_min[month_start] = True
         info_min[year_start] = False
 
-        month_break = dates_[month_start].month
+        month_break = dates_[month_start].month  # pyright: ignore[reportAttributeAccessIssue]
         jan_or_jul = month_start[(month_break == 1) | (month_break == 7)]
         info_fmt[jan_or_jul] = "%b"
         info_fmt[year_start] = "%b\n%Y"
@@ -802,7 +802,7 @@ def _daily_finder(vmin: float, vmax: float, freq: BaseOffset) -> np.ndarray:
     # Case 6. More than 12 years ................
     else:
         year_start = _period_break(dates_, "year")
-        year_break = dates_[year_start].year
+        year_break = dates_[year_start].year  # pyright: ignore[reportAttributeAccessIssue]
         nyears = span / periodsperyear
         (min_anndef, maj_anndef) = _get_default_annual_spacing(nyears)
         major_idx = year_start[(year_break % maj_anndef == 0)]

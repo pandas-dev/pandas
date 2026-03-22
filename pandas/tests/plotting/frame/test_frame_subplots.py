@@ -427,7 +427,11 @@ class TestDataFramePlotsSubplots:
         # no subplots
         df = DataFrame({"A": [3] * 5, "B": list(range(1, 6))}, index=range(5))
         ax = df.plot.bar(grid=True, log=True)
-        tm.assert_numpy_array_equal(ax.yaxis.get_ticklocs(), expected)
+        result = ax.yaxis.get_ticklocs()
+        # GH#64317 on some linux builds these are flaky with a tiny difference.
+        #  Rather than xfail this test, we allow a small
+        #  tolerance, as it isn't really user-visible.
+        tm.assert_almost_equal(result, expected, atol=1e-15)
 
     def test_bar_log_subplots(self):
         expected = np.array([0.1, 1.0, 10.0, 100.0, 1000.0, 1e4])
@@ -436,8 +440,13 @@ class TestDataFramePlotsSubplots:
             log=True, subplots=True
         )
 
-        tm.assert_numpy_array_equal(ax[0].yaxis.get_ticklocs(), expected)
-        tm.assert_numpy_array_equal(ax[1].yaxis.get_ticklocs(), expected)
+        # GH#64317 on some linux builds these are flaky with a tiny difference.
+        #  Rather than xfail this test, we allow a small
+        #  tolerance, as it isn't really user-visible.
+        result1 = ax[0].yaxis.get_ticklocs()
+        tm.assert_almost_equal(result1, expected, atol=1e-15)
+        result2 = ax[1].yaxis.get_ticklocs()
+        tm.assert_almost_equal(result2, expected, atol=1e-15)
 
     def test_boxplot_subplots_return_type_default(self, hist_df):
         df = hist_df

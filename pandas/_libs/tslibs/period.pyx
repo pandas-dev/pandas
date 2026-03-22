@@ -1330,6 +1330,8 @@ cdef str _period_strftime(int64_t value, int freq, bytes fmt, npy_datetimestruct
     return result
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def period_array_strftime(
     ndarray values, int dtype_code, object na_rep, str date_format
 ):
@@ -1612,6 +1614,8 @@ cdef int64_t _extract_ordinal(object item, PeriodDtypeBase dtype) except? -1:
     return ordinal
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def extract_period_unit(ndarray[object] values) -> PeriodDtypeBase:
     # TODO: Change type to const object[:] when Cython supports that.
 
@@ -3140,7 +3144,7 @@ class Period(_Period):
             # GH#53446
             import warnings
 
-            # TODO: Enforce in 3.0 (#53511)
+            # TODO: Enforce in 4.0 (#53511)
             from pandas.util._exceptions import find_stack_level
             warnings.warn(
                 "Period with BDay freq is deprecated and will be removed "

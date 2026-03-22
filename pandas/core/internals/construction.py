@@ -591,7 +591,7 @@ def _homogenize(
                     val = Series(val).reindex(index)._values
                 else:
                     # Fast path: use lib.fast_multiget for dicts without missing keys
-                    val = lib.fast_multiget(val, oindex._values, default=np.nan)
+                    val = lib.fast_multiget(val, oindex._values, default=np.nan)  # type: ignore[arg-type]
 
             val = sanitize_array(val, index, dtype=dtype, copy=False)
             com.require_length_match(val, index)

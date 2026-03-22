@@ -545,7 +545,6 @@ def sanitize_masked_array(data: ma.MaskedArray) -> np.ndarray:
     mask = ma.getmaskarray(data)
     if mask.any():
         dtype, fill_value = maybe_promote(data.dtype, np.nan)
-        dtype = cast("np.dtype", dtype)
         data = ma.asarray(data.astype(dtype, copy=True))
         data.soften_mask()  # set hardmask False if it was True
         data[mask] = fill_value
@@ -766,6 +765,9 @@ def _sanitize_ndim(
             raise ValueError(
                 f"Data must be 1-dimensional, got ndarray of shape {data.shape} instead"
             )
+        elif allow_2d and isinstance(result, ABCExtensionArray):
+            # e.g. test_2d_ea_with_dtype_cast
+            return result
         if is_object_dtype(dtype) and isinstance(dtype, ExtensionDtype):
             # i.e. NumpyEADtype("O")
 

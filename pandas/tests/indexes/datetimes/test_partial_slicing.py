@@ -489,3 +489,15 @@ class TestSlicing:
         )
         result = df.loc["2000", "A"]
         tm.assert_series_equal(result, expected)
+
+
+def test_string_slice_vs_datetime_slice_consistency():
+    # GH#13929 - slicing with string endpoints at sub-second frequency
+    # should produce the same result as slicing with datetime endpoints
+    index = date_range("2013-01-01 00:00:00", periods=80, freq="50ms")
+    data = DataFrame({"val": range(len(index))}, index=index)
+
+    str_slice = data.loc["2013-01-01 00:00:01.000":"2013-01-01 00:00:02.000"]
+    dt_slice = data.loc["2013-01-01 00:00:01.000" : datetime(2013, 1, 1, 0, 0, 2)]
+
+    tm.assert_frame_equal(str_slice, dt_slice)
