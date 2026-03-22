@@ -219,7 +219,8 @@ static inline int tupleobject_cmp(PyTupleObject *a, PyTupleObject *b) {
   return 1;
 }
 
-// this function is defined in pandas/_libs/khash and will be linked when khash.so builds
+// this function is defined in pandas/_libs/khash and will be linked when
+// khash.so builds
 extern int pandas_is_NA(PyObject *);
 
 static inline int pyobject_cmp(PyObject *a, PyObject *b) {
