@@ -99,7 +99,7 @@ class TestPeriodArithmetic:
         "offset, kwd_name",
         [
             (offsets.YearEnd, "month"),
-            (offsets.QuarterEnd, "startingMonth"),
+            (offsets.QuarterEnd, "starting_month"),
             (offsets.MonthEnd, None),
             (offsets.Week, "weekday"),
         ],
