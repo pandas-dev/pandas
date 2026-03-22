@@ -218,7 +218,7 @@ def test_floating_array_prod(skipna, min_count, dtype):
         assert result is pd.NA
 
 
-def test_floating_array_mean_skipna_with_nan(using_nan_is_na):
+def test_floating_array_mean_skipna_with_nan(request, using_nan_is_na):
     # GH#59965
     # FloatingArray containing NaN (from 0/0 division) should
     # compute mean correctly when skipna=True
@@ -230,6 +230,7 @@ def test_floating_array_mean_skipna_with_nan(using_nan_is_na):
         # NaN treated as NA → skipped, mean of [0.5, 0.5, 0.0]
         tm.assert_almost_equal(result, 1.0 / 3)
     else:
-        # NaN is distinct from NA → NaN propagates in mean
-        # Currently returns pd.NA; should be NaN once nan!=NA is implemented
-        assert result is pd.NA
+        # NaN should propagate in mean, but currently returns pd.NA
+        mark = pytest.mark.xfail(reason="NaN not yet distinguished from NA")
+        request.applymarker(mark)
+        assert np.isnan(result)
