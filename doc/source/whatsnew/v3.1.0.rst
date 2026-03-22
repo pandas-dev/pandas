@@ -185,7 +185,7 @@ Missing
 
 MultiIndex
 ^^^^^^^^^^
--
+- Bug in :meth:`MultiIndex.sortlevel` not raising ``TypeError`` when sorting a level with incomparable types (e.g., ``Timestamp`` and ``str``) (:issue:`21136`)
 -
 
 I/O

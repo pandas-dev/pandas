@@ -3188,6 +3188,18 @@ class MultiIndex(Index):
         ]
         sortorder = None
 
+        # Validate that levels being sorted have comparable types (GH#21136).
+        # Since we sort by integer codes rather than actual values, we need
+        # to ensure the level values are sortable; otherwise the code-based
+        # sort silently produces a meaningless ordering.
+        # After _sort_levels_monotonic (called before sortlevel in the
+        # standard path), a level that is still non-monotonic with object
+        # dtype must contain incomparable types.
+        for lev_num in level:
+            lev_values = self.levels[lev_num]
+            if lev_values.dtype == object and not lev_values.is_monotonic_increasing:
+                lev_values.argsort()
+
         codes = [self.codes[lev] for lev in level]
         # we have a directed ordering via ascending
         if isinstance(ascending, list):
