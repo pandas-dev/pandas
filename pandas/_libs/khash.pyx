@@ -5,6 +5,7 @@ from cpython.exc cimport (
 from cpython.object cimport PyObject
 from cpython.ref cimport Py_XDECREF
 
+from pandas._libs.missing cimport C_NA
 
 cdef inline raise_if_errors():
     cdef:
@@ -76,3 +77,7 @@ cdef bint kh_exist_pymap_checked(kh_pymap_t* table, khiter_t k):
     cdef bint res = kh_exist_pymap(table, k)
     raise_if_errors()
     return res
+
+
+cdef public bint pandas_is_NA(object o):
+    return o is C_NA
