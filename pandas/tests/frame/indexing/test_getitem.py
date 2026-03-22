@@ -76,6 +76,22 @@ class TestGetitem:
         expected = df["A"]
         tm.assert_series_equal(result, expected)
 
+    def test_getitem_numpy_bool_scalar(self):
+        # GH 64749
+        list_of_dicts = [{np.True_: 1, np.False_: 0}]
+        df = DataFrame(list_of_dicts)
+        
+        result = df[True]
+        expected = Series([1], name=np.True_)
+        tm.assert_series_equal(result, expected)
+
+        result_false = df[False]
+        expected_false = Series([0], name=np.False_)
+        tm.assert_series_equal(result_false, expected_false)
+
+        with pytest.raises(KeyError, match="1"):
+            df[1]
+
 
 class TestGetitemListLike:
     def test_getitem_list_missing_key(self):

@@ -192,6 +192,20 @@ static inline int tupleobject_cmp(PyTupleObject *a, PyTupleObject *b) {
   return 1;
 }
 
+static inline int is_bool_like(PyObject *obj) {
+  if (PyBool_Check(obj)) {
+    return 1;
+  }
+  const char *tp_name = Py_TYPE(obj)->tp_name;
+  if (tp_name != NULL) {
+    if ((tp_name[0] == 'n' && strcmp(tp_name, "numpy.bool_") == 0) ||
+        (tp_name[0] == 'b' && strcmp(tp_name, "bool_") == 0)) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
 static inline int pyobject_cmp(PyObject *a, PyObject *b) {
   if (a == b) {
     return 1;
@@ -211,8 +225,9 @@ static inline int pyobject_cmp(PyObject *a, PyObject *b) {
       return tupleobject_cmp((PyTupleObject *)a, (PyTupleObject *)b);
     }
     // frozenset isn't yet supported
-  } else if (PyBool_Check(a) != PyBool_Check(b)) {
+  } else if (is_bool_like(a) != is_bool_like(b)) {
     // GH#62888: distinguish bool from int, e.g. 0 vs False, 1 vs True
+    // GH#64749: np.True_ and True should both be considered bools
     return 0;
   }
 

@@ -45,6 +45,18 @@ class TestSeriesGetitemScalars:
         assert ser["a"] == 1
         assert ser[1.0] == 1
 
+    def test_getitem_numpy_bool_scalar(self):
+        # GH#64749
+        ser = Series([1, 0], index=[np.True_, np.False_])
+        assert ser[True] == 1
+        assert ser[np.True_] == 1
+        assert ser[False] == 0
+        assert ser[np.False_] == 0
+
+        with pytest.raises(KeyError, match="1"):
+            ser[1]
+
+
     def test_getitem_float_keys_tuple_values(self):
         # see GH#13509
 
