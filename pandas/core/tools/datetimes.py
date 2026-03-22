@@ -545,9 +545,7 @@ def _to_datetime_with_unit(arg, input_unit, name, utc: bool, errors: str) -> Ind
                         )
 
                     arg = arg.astype(object)
-                    return _to_datetime_with_unit(
-                        arg, input_unit, name, utc, errors
-                    )
+                    return _to_datetime_with_unit(arg, input_unit, name, utc, errors)
             arr = arg.astype(f"datetime64[{input_unit}]", copy=False)
             dtype = get_supported_dtype(arr.dtype)
             try:
