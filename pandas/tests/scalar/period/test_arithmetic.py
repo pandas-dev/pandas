@@ -116,7 +116,7 @@ class TestPeriodArithmetic:
         "offset, kwd_name",
         [
             (pd.offsets.YearEnd, "month"),
-            (pd.offsets.QuarterEnd, "startingMonth"),
+            (pd.offsets.QuarterEnd, "starting_month"),
             (pd.offsets.MonthEnd, None),
             (pd.offsets.Week, "weekday"),
         ],

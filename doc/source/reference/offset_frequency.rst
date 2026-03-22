@@ -275,10 +275,10 @@ Custom properties:
 .. autosummary::
    :toctree: api/
 
-    BQuarterEnd.startingMonth
-    BQuarterBegin.startingMonth
-    QuarterEnd.startingMonth
-    QuarterBegin.startingMonth
+    BQuarterEnd.starting_month
+    BQuarterBegin.starting_month
+    QuarterEnd.starting_month
+    QuarterBegin.starting_month
 
 HalfYear offsets
 ----------------
@@ -297,10 +297,10 @@ Custom properties:
 .. autosummary::
    :toctree: api/
 
-    BHalfYearEnd.startingMonth
-    BHalfYearBegin.startingMonth
-    HalfYearEnd.startingMonth
-    HalfYearBegin.startingMonth
+    BHalfYearEnd.starting_month
+    BHalfYearBegin.starting_month
+    HalfYearEnd.starting_month
+    HalfYearBegin.starting_month
 
 Year offsets
 ------------
@@ -337,7 +337,7 @@ Custom properties:
 .. autosummary::
    :toctree: api/
 
-    FY5253.startingMonth
+    FY5253.starting_month
     FY5253.variation
     FY5253.weekday
 
@@ -363,7 +363,7 @@ Custom properties:
    :toctree: api/
 
     FY5253Quarter.qtr_with_extra_week
-    FY5253Quarter.startingMonth
+    FY5253Quarter.starting_month
     FY5253Quarter.variation
     FY5253Quarter.weekday
 

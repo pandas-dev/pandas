@@ -2137,7 +2137,7 @@ default 'raise'
         month_kw = 12
         if freq:
             kwds = freq.kwds
-            month_kw = kwds.get("startingMonth", kwds.get("month", month_kw))
+            month_kw = kwds.get("starting_month", kwds.get("month", month_kw))
 
         if freq is not None:
             freq_name = freq.rule_code

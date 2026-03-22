@@ -46,22 +46,22 @@ def test_on_offset(offset, date):
 
 class TestBHalfYearBegin:
     def test_repr(self):
-        expected = "<BusinessHalfYearBegin: startingMonth=1>"
+        expected = "<BusinessHalfYearBegin: starting_month=1>"
         assert repr(BHalfYearBegin()) == expected
-        expected = "<BusinessHalfYearBegin: startingMonth=3>"
-        assert repr(BHalfYearBegin(startingMonth=3)) == expected
-        expected = "<BusinessHalfYearBegin: startingMonth=1>"
-        assert repr(BHalfYearBegin(startingMonth=1)) == expected
+        expected = "<BusinessHalfYearBegin: starting_month=3>"
+        assert repr(BHalfYearBegin(starting_month=3)) == expected
+        expected = "<BusinessHalfYearBegin: starting_month=1>"
+        assert repr(BHalfYearBegin(starting_month=1)) == expected
 
     def test_offset_corner_case(self):
         # corner
-        offset = BHalfYearBegin(n=-1, startingMonth=1)
+        offset = BHalfYearBegin(n=-1, starting_month=1)
         assert datetime(2010, 2, 1) + offset == datetime(2010, 1, 1)
 
     offset_cases = []
     offset_cases.append(
         (
-            BHalfYearBegin(startingMonth=1),
+            BHalfYearBegin(starting_month=1),
             {
                 datetime(2007, 12, 1): datetime(2008, 1, 1),
                 datetime(2008, 1, 1): datetime(2008, 7, 1),
@@ -79,7 +79,7 @@ class TestBHalfYearBegin:
 
     offset_cases.append(
         (
-            BHalfYearBegin(startingMonth=2),
+            BHalfYearBegin(starting_month=2),
             {
                 datetime(2008, 1, 1): datetime(2008, 2, 1),
                 datetime(2008, 1, 31): datetime(2008, 2, 1),
@@ -95,7 +95,7 @@ class TestBHalfYearBegin:
 
     offset_cases.append(
         (
-            BHalfYearBegin(startingMonth=1, n=0),
+            BHalfYearBegin(starting_month=1, n=0),
             {
                 datetime(2008, 1, 1): datetime(2008, 1, 1),
                 datetime(2008, 12, 1): datetime(2009, 1, 1),
@@ -113,7 +113,7 @@ class TestBHalfYearBegin:
 
     offset_cases.append(
         (
-            BHalfYearBegin(startingMonth=1, n=-1),
+            BHalfYearBegin(starting_month=1, n=-1),
             {
                 datetime(2008, 1, 1): datetime(2007, 7, 2),
                 datetime(2008, 1, 31): datetime(2008, 1, 1),
@@ -131,7 +131,7 @@ class TestBHalfYearBegin:
 
     offset_cases.append(
         (
-            BHalfYearBegin(startingMonth=1, n=2),
+            BHalfYearBegin(starting_month=1, n=2),
             {
                 datetime(2008, 1, 1): datetime(2009, 1, 1),
                 datetime(2008, 2, 15): datetime(2009, 1, 1),
@@ -153,31 +153,31 @@ class TestBHalfYearBegin:
             assert_offset_equal(offset, base, expected)
 
     on_offset_cases = [
-        (BHalfYearBegin(1, startingMonth=1), datetime(2008, 1, 1), True),
-        (BHalfYearBegin(1, startingMonth=1), datetime(2007, 12, 1), False),
-        (BHalfYearBegin(1, startingMonth=1), datetime(2008, 2, 1), False),
-        (BHalfYearBegin(1, startingMonth=1), datetime(2007, 3, 1), False),
-        (BHalfYearBegin(1, startingMonth=1), datetime(2008, 4, 1), False),
-        (BHalfYearBegin(1, startingMonth=1), datetime(2008, 5, 1), False),
-        (BHalfYearBegin(1, startingMonth=1), datetime(2007, 6, 1), False),
-        (BHalfYearBegin(1, startingMonth=3), datetime(2008, 1, 1), False),
-        (BHalfYearBegin(1, startingMonth=3), datetime(2007, 12, 1), False),
-        (BHalfYearBegin(1, startingMonth=3), datetime(2008, 2, 1), False),
-        (BHalfYearBegin(1, startingMonth=3), datetime(2007, 3, 1), True),
-        (BHalfYearBegin(1, startingMonth=3), datetime(2008, 4, 1), False),
-        (BHalfYearBegin(1, startingMonth=3), datetime(2008, 5, 1), False),
-        (BHalfYearBegin(1, startingMonth=3), datetime(2008, 5, 2), False),
-        (BHalfYearBegin(1, startingMonth=3), datetime(2007, 6, 1), False),
-        (BHalfYearBegin(1, startingMonth=3), datetime(2007, 6, 2), False),
-        (BHalfYearBegin(1, startingMonth=6), datetime(2008, 1, 1), False),
-        (BHalfYearBegin(1, startingMonth=6), datetime(2007, 12, 3), True),
-        (BHalfYearBegin(1, startingMonth=6), datetime(2008, 2, 1), False),
-        (BHalfYearBegin(1, startingMonth=6), datetime(2007, 3, 1), False),
-        (BHalfYearBegin(1, startingMonth=6), datetime(2007, 3, 2), False),
-        (BHalfYearBegin(1, startingMonth=6), datetime(2008, 4, 1), False),
-        (BHalfYearBegin(1, startingMonth=6), datetime(2008, 5, 1), False),
-        (BHalfYearBegin(1, startingMonth=6), datetime(2008, 5, 2), False),
-        (BHalfYearBegin(1, startingMonth=6), datetime(2007, 6, 1), True),
+        (BHalfYearBegin(1, starting_month=1), datetime(2008, 1, 1), True),
+        (BHalfYearBegin(1, starting_month=1), datetime(2007, 12, 1), False),
+        (BHalfYearBegin(1, starting_month=1), datetime(2008, 2, 1), False),
+        (BHalfYearBegin(1, starting_month=1), datetime(2007, 3, 1), False),
+        (BHalfYearBegin(1, starting_month=1), datetime(2008, 4, 1), False),
+        (BHalfYearBegin(1, starting_month=1), datetime(2008, 5, 1), False),
+        (BHalfYearBegin(1, starting_month=1), datetime(2007, 6, 1), False),
+        (BHalfYearBegin(1, starting_month=3), datetime(2008, 1, 1), False),
+        (BHalfYearBegin(1, starting_month=3), datetime(2007, 12, 1), False),
+        (BHalfYearBegin(1, starting_month=3), datetime(2008, 2, 1), False),
+        (BHalfYearBegin(1, starting_month=3), datetime(2007, 3, 1), True),
+        (BHalfYearBegin(1, starting_month=3), datetime(2008, 4, 1), False),
+        (BHalfYearBegin(1, starting_month=3), datetime(2008, 5, 1), False),
+        (BHalfYearBegin(1, starting_month=3), datetime(2008, 5, 2), False),
+        (BHalfYearBegin(1, starting_month=3), datetime(2007, 6, 1), False),
+        (BHalfYearBegin(1, starting_month=3), datetime(2007, 6, 2), False),
+        (BHalfYearBegin(1, starting_month=6), datetime(2008, 1, 1), False),
+        (BHalfYearBegin(1, starting_month=6), datetime(2007, 12, 3), True),
+        (BHalfYearBegin(1, starting_month=6), datetime(2008, 2, 1), False),
+        (BHalfYearBegin(1, starting_month=6), datetime(2007, 3, 1), False),
+        (BHalfYearBegin(1, starting_month=6), datetime(2007, 3, 2), False),
+        (BHalfYearBegin(1, starting_month=6), datetime(2008, 4, 1), False),
+        (BHalfYearBegin(1, starting_month=6), datetime(2008, 5, 1), False),
+        (BHalfYearBegin(1, starting_month=6), datetime(2008, 5, 2), False),
+        (BHalfYearBegin(1, starting_month=6), datetime(2007, 6, 1), True),
     ]
 
     @pytest.mark.parametrize("case", on_offset_cases)
@@ -188,22 +188,22 @@ class TestBHalfYearBegin:
 
 class TestBHalfYearEnd:
     def test_repr(self):
-        expected = "<BusinessHalfYearEnd: startingMonth=6>"
+        expected = "<BusinessHalfYearEnd: starting_month=6>"
         assert repr(BHalfYearEnd()) == expected
-        expected = "<BusinessHalfYearEnd: startingMonth=3>"
-        assert repr(BHalfYearEnd(startingMonth=3)) == expected
-        expected = "<BusinessHalfYearEnd: startingMonth=1>"
-        assert repr(BHalfYearEnd(startingMonth=1)) == expected
+        expected = "<BusinessHalfYearEnd: starting_month=3>"
+        assert repr(BHalfYearEnd(starting_month=3)) == expected
+        expected = "<BusinessHalfYearEnd: starting_month=1>"
+        assert repr(BHalfYearEnd(starting_month=1)) == expected
 
     def test_offset_corner_case(self):
         # corner
-        offset = BHalfYearEnd(n=-1, startingMonth=1)
+        offset = BHalfYearEnd(n=-1, starting_month=1)
         assert datetime(2010, 1, 30) + offset == datetime(2010, 1, 29)
 
     offset_cases = []
     offset_cases.append(
         (
-            BHalfYearEnd(startingMonth=1),
+            BHalfYearEnd(starting_month=1),
             {
                 datetime(2008, 1, 1): datetime(2008, 1, 31),
                 datetime(2008, 1, 31): datetime(2008, 7, 31),
@@ -219,7 +219,7 @@ class TestBHalfYearEnd:
 
     offset_cases.append(
         (
-            BHalfYearEnd(startingMonth=2),
+            BHalfYearEnd(starting_month=2),
             {
                 datetime(2008, 1, 1): datetime(2008, 2, 29),
                 datetime(2008, 1, 31): datetime(2008, 2, 29),
@@ -236,7 +236,7 @@ class TestBHalfYearEnd:
 
     offset_cases.append(
         (
-            BHalfYearEnd(startingMonth=1, n=0),
+            BHalfYearEnd(starting_month=1, n=0),
             {
                 datetime(2008, 1, 1): datetime(2008, 1, 31),
                 datetime(2008, 1, 31): datetime(2008, 1, 31),
@@ -252,7 +252,7 @@ class TestBHalfYearEnd:
 
     offset_cases.append(
         (
-            BHalfYearEnd(startingMonth=1, n=-1),
+            BHalfYearEnd(starting_month=1, n=-1),
             {
                 datetime(2008, 1, 1): datetime(2007, 7, 31),
                 datetime(2008, 1, 31): datetime(2007, 7, 31),
@@ -270,7 +270,7 @@ class TestBHalfYearEnd:
 
     offset_cases.append(
         (
-            BHalfYearEnd(startingMonth=6, n=2),
+            BHalfYearEnd(starting_month=6, n=2),
             {
                 datetime(2008, 1, 31): datetime(2008, 12, 31),
                 datetime(2008, 2, 15): datetime(2008, 12, 31),
@@ -291,36 +291,36 @@ class TestBHalfYearEnd:
             assert_offset_equal(offset, base, expected)
 
     on_offset_cases = [
-        (BHalfYearEnd(1, startingMonth=1), datetime(2008, 1, 31), True),
-        (BHalfYearEnd(1, startingMonth=1), datetime(2007, 12, 31), False),
-        (BHalfYearEnd(1, startingMonth=1), datetime(2008, 2, 29), False),
-        (BHalfYearEnd(1, startingMonth=1), datetime(2007, 3, 30), False),
-        (BHalfYearEnd(1, startingMonth=1), datetime(2007, 3, 31), False),
-        (BHalfYearEnd(1, startingMonth=1), datetime(2008, 4, 30), False),
-        (BHalfYearEnd(1, startingMonth=1), datetime(2008, 5, 30), False),
-        (BHalfYearEnd(1, startingMonth=1), datetime(2008, 5, 31), False),
-        (BHalfYearEnd(1, startingMonth=1), datetime(2007, 6, 29), False),
-        (BHalfYearEnd(1, startingMonth=1), datetime(2007, 6, 30), False),
-        (BHalfYearEnd(1, startingMonth=3), datetime(2008, 1, 31), False),
-        (BHalfYearEnd(1, startingMonth=3), datetime(2007, 12, 31), False),
-        (BHalfYearEnd(1, startingMonth=3), datetime(2008, 2, 29), False),
-        (BHalfYearEnd(1, startingMonth=3), datetime(2007, 3, 30), True),
-        (BHalfYearEnd(1, startingMonth=3), datetime(2007, 3, 31), False),
-        (BHalfYearEnd(1, startingMonth=3), datetime(2008, 4, 30), False),
-        (BHalfYearEnd(1, startingMonth=3), datetime(2008, 5, 30), False),
-        (BHalfYearEnd(1, startingMonth=3), datetime(2008, 5, 31), False),
-        (BHalfYearEnd(1, startingMonth=3), datetime(2007, 6, 29), False),
-        (BHalfYearEnd(1, startingMonth=3), datetime(2007, 6, 30), False),
-        (BHalfYearEnd(1, startingMonth=6), datetime(2008, 1, 31), False),
-        (BHalfYearEnd(1, startingMonth=6), datetime(2007, 12, 31), True),
-        (BHalfYearEnd(1, startingMonth=6), datetime(2008, 2, 29), False),
-        (BHalfYearEnd(1, startingMonth=6), datetime(2007, 3, 30), False),
-        (BHalfYearEnd(1, startingMonth=6), datetime(2007, 3, 31), False),
-        (BHalfYearEnd(1, startingMonth=6), datetime(2008, 4, 30), False),
-        (BHalfYearEnd(1, startingMonth=6), datetime(2008, 5, 30), False),
-        (BHalfYearEnd(1, startingMonth=6), datetime(2008, 5, 31), False),
-        (BHalfYearEnd(1, startingMonth=6), datetime(2007, 6, 29), True),
-        (BHalfYearEnd(1, startingMonth=6), datetime(2007, 6, 30), False),
+        (BHalfYearEnd(1, starting_month=1), datetime(2008, 1, 31), True),
+        (BHalfYearEnd(1, starting_month=1), datetime(2007, 12, 31), False),
+        (BHalfYearEnd(1, starting_month=1), datetime(2008, 2, 29), False),
+        (BHalfYearEnd(1, starting_month=1), datetime(2007, 3, 30), False),
+        (BHalfYearEnd(1, starting_month=1), datetime(2007, 3, 31), False),
+        (BHalfYearEnd(1, starting_month=1), datetime(2008, 4, 30), False),
+        (BHalfYearEnd(1, starting_month=1), datetime(2008, 5, 30), False),
+        (BHalfYearEnd(1, starting_month=1), datetime(2008, 5, 31), False),
+        (BHalfYearEnd(1, starting_month=1), datetime(2007, 6, 29), False),
+        (BHalfYearEnd(1, starting_month=1), datetime(2007, 6, 30), False),
+        (BHalfYearEnd(1, starting_month=3), datetime(2008, 1, 31), False),
+        (BHalfYearEnd(1, starting_month=3), datetime(2007, 12, 31), False),
+        (BHalfYearEnd(1, starting_month=3), datetime(2008, 2, 29), False),
+        (BHalfYearEnd(1, starting_month=3), datetime(2007, 3, 30), True),
+        (BHalfYearEnd(1, starting_month=3), datetime(2007, 3, 31), False),
+        (BHalfYearEnd(1, starting_month=3), datetime(2008, 4, 30), False),
+        (BHalfYearEnd(1, starting_month=3), datetime(2008, 5, 30), False),
+        (BHalfYearEnd(1, starting_month=3), datetime(2008, 5, 31), False),
+        (BHalfYearEnd(1, starting_month=3), datetime(2007, 6, 29), False),
+        (BHalfYearEnd(1, starting_month=3), datetime(2007, 6, 30), False),
+        (BHalfYearEnd(1, starting_month=6), datetime(2008, 1, 31), False),
+        (BHalfYearEnd(1, starting_month=6), datetime(2007, 12, 31), True),
+        (BHalfYearEnd(1, starting_month=6), datetime(2008, 2, 29), False),
+        (BHalfYearEnd(1, starting_month=6), datetime(2007, 3, 30), False),
+        (BHalfYearEnd(1, starting_month=6), datetime(2007, 3, 31), False),
+        (BHalfYearEnd(1, starting_month=6), datetime(2008, 4, 30), False),
+        (BHalfYearEnd(1, starting_month=6), datetime(2008, 5, 30), False),
+        (BHalfYearEnd(1, starting_month=6), datetime(2008, 5, 31), False),
+        (BHalfYearEnd(1, starting_month=6), datetime(2007, 6, 29), True),
+        (BHalfYearEnd(1, starting_month=6), datetime(2007, 6, 30), False),
     ]
 
     @pytest.mark.parametrize("case", on_offset_cases)
