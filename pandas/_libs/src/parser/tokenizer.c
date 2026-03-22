@@ -1444,11 +1444,11 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
     double value;
     const char *parsed_end;
     if (fast_float_strtod(p, end, &value, &parsed_end, decimal) == 0) {
-      // Determine maybe_int by checking if we saw '.' or 'e'/'E'.
+      // Determine maybe_int by checking if we saw decimal or 'e'/'E'.
       if (maybe_int != NULL) {
         *maybe_int = 1;
         for (const char *c = p; c < parsed_end; c++) {
-          if (*c == '.' || *c == 'e' || *c == 'E') {
+          if (*c == decimal || *c == 'e' || *c == 'E') {
             *maybe_int = 0;
             break;
           }
