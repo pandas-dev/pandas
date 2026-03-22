@@ -1112,8 +1112,8 @@ def crosstab(
     foo    2     2    1     2
 
     Here 'c' and 'f' are not represented in the data and will not be
-    shown in the output because dropna is True by default. Set
-    dropna=False to preserve categories with no data.
+    shown in the output because dropna is True by default. To preserve
+    categories with no data, manually reindex the result.
 
     >>> foo = pd.Categorical(["a", "b"], categories=["a", "b", "c"])
     >>> bar = pd.Categorical(["d", "e"], categories=["d", "e", "f"])
@@ -1122,7 +1122,10 @@ def crosstab(
     row_0
     a      1  0
     b      0  1
-    >>> pd.crosstab(foo, bar, dropna=False)
+    >>> result = pd.crosstab(foo, bar)
+    >>> idx = pd.CategoricalIndex(foo.categories, name=result.index.name)
+    >>> cols = pd.CategoricalIndex(bar.categories, name=result.columns.name)
+    >>> result.reindex(index=idx, columns=cols, fill_value=0)
     col_0  d  e  f
     row_0
     a      1  0  0
