@@ -140,20 +140,22 @@ class _Unstacker:
 
         self.removed_name = self.new_index_names.pop(self.level)
         self.removed_level = self.new_index_levels.pop(self.level)
-        self.removed_level_full = index.levels[self.level]
         self.unique_nan_index: int = -1
-        if not self.sort:
-            self.removed_level_full = self.index.levels[self.level]
-            unique_codes: np.ndarray = unique(self.index.codes[self.level])
-            if self.has_nan:
-                # drop nan codes, because they are not represented in level
-                nan_mask = unique_codes == -1
-
-                unique_codes = unique_codes[~nan_mask]
+        # Keep only observed labels in the unstacked level for both sort modes;
+        # sort controls ordering, not whether unused labels appear.
+        unique_codes: np.ndarray = unique(self.index.codes[self.level])
+        if self.has_nan:
+            # drop nan codes, because they are not represented in level
+            nan_mask = unique_codes == -1
+            unique_codes = unique_codes[~nan_mask]
+            if not self.sort:
                 self.unique_nan_index = np.flatnonzero(nan_mask)[0]
 
-            self.removed_level = self.removed_level.take(unique_codes)
-            self.removed_level_full = self.removed_level_full.take(unique_codes)
+        if self.sort:
+            unique_codes = np.sort(unique_codes)
+
+        self.removed_level = self.removed_level.take(unique_codes)
+        self.removed_level_full = self.removed_level
 
         if get_option("performance_warnings"):
             # Bug fix GH 20601
