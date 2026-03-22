@@ -524,7 +524,7 @@ class OpenpyxlWriter(ExcelWriter):
             wks.freeze_panes = f"{col_letter}{freeze_panes[0] + 1}"
 
         # Buffer all cells indexed by (row, col)
-        rows: dict[int, dict[int, WriteOnlyCell]] = {}
+        rows: dict[int, dict[int, Any]] = {}
         merge_ranges: list[str] = []
         max_col = -1
 
