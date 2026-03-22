@@ -2686,6 +2686,41 @@ class ExtensionArray:
         result[~mask] = val
         return result
 
+    @property
+    def _is_monotonic_increasing(self) -> bool:
+        """
+        Return True if the array values are monotonically increasing.
+
+        Subclasses can override this for performance. The default
+        implementation falls back to computing ranks via ``_rank``.
+        """
+        return self._monotonic_check()[0]
+
+    @property
+    def _is_monotonic_decreasing(self) -> bool:
+        """
+        Return True if the array values are monotonically decreasing.
+
+        Subclasses can override this for performance. The default
+        implementation falls back to computing ranks via ``_rank``.
+        """
+        return self._monotonic_check()[1]
+
+    def _monotonic_check(self) -> tuple[bool, bool]:
+        """
+        Return (is_monotonic_increasing, is_monotonic_decreasing).
+
+        Default implementation using ranks. Subclasses should override
+        ``_is_monotonic_increasing`` and ``_is_monotonic_decreasing``
+        instead of this method.
+        """
+        try:
+            ranks = self._rank()
+        except TypeError:
+            return False, False
+        inc, dec, _ = libalgos.is_monotonic(ranks, timelike=False)
+        return bool(inc), bool(dec)
+
     def _rank(
         self,
         *,
