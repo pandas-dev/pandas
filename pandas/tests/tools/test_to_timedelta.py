@@ -400,6 +400,42 @@ class TestTimedeltas:
         with pytest.raises(OutOfBoundsTimedelta, match="cannot convert input"):
             to_timedelta(arr, unit="s")
 
+    def test_uint64_to_timedelta_raise_oob(self):
+        # GH#60677 uint64 values > int64 max overflow silently
+        uint64_max = np.iinfo(np.uint64).max
+        arr = np.array([uint64_max], dtype=np.uint64)
+
+        msg = "Cannot convert input with unit 'ns'"
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            to_timedelta(arr, unit="ns")
+        # scalar via to_timedelta
+        with pytest.raises(OutOfBoundsTimedelta):
+            to_timedelta(uint64_max, unit="ns")
+        # scalar via Timedelta constructor
+        msg = r"Cannot cast .* from ns to 'ns' without overflow"
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            pd.Timedelta(uint64_max, unit="ns")
+
+    def test_uint64_to_timedelta_coerce(self):
+        # GH#60677
+        uint64_max = np.iinfo(np.uint64).max
+        arr = np.array([uint64_max], dtype=np.uint64)
+
+        result = to_timedelta(arr, unit="ns", errors="coerce")
+        expected = TimedeltaIndex([pd.NaT])
+        tm.assert_index_equal(result, expected)
+
+        # scalar
+        result = to_timedelta(uint64_max, unit="ns", errors="coerce")
+        assert result is pd.NaT
+
+    def test_uint64_to_timedelta_valid(self):
+        # GH#60677 valid uint64 values should still work
+        arr = np.array([1_000_000, 2_000_000], dtype=np.uint64)
+        result = to_timedelta(arr, unit="ns")
+        expected = to_timedelta(arr.astype(np.int64), unit="ns")
+        tm.assert_index_equal(result, expected)
+
 
 def test_from_numeric_arrow_dtype(any_numeric_ea_dtype):
     # GH 52425
