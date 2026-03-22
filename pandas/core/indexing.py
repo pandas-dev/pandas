@@ -2581,8 +2581,12 @@ class _iLocIndexer(_LocationIndexer):
         if not isinstance(value, list) and not is_array_like(value):
             value = np.asarray(value)
 
-        ncols = len(value[0]) if isinstance(value, list) else value.shape[1]
-        if len(ilocs) != ncols:
+        if isinstance(value, list):
+            if any(len(row) != len(ilocs) for row in value):
+                raise ValueError(
+                    "Must have equal len keys and value when setting with an ndarray"
+                )
+        elif value.shape[1] != len(ilocs):
             raise ValueError(
                 "Must have equal len keys and value when setting with an ndarray"
             )
