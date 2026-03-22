@@ -319,6 +319,7 @@ cdef class Parser:
         int current_row_in_chunk_index
         int current_row_in_file_index
         bint blank_missing
+        str encoding
         int header_length
         int row_length
         int bit_offset
@@ -342,6 +343,10 @@ cdef class Parser:
 
         self.parser = parser
         self.blank_missing = parser.blank_missing
+        if parser.convert_text and parser.encoding is not None:
+            self.encoding = parser.encoding or parser.default_encoding
+        else:
+            self.encoding = None
         self.header_length = self.parser.header_length
         self.column_count = parser.column_count
         self.lengths = parser.column_data_lengths()
@@ -552,6 +557,10 @@ cdef class Parser:
                     lngt -= 1
                 if lngt == 0 and self.blank_missing:
                     string_chunk[js, current_row] = np_nan
+                elif self.encoding is not None:
+                    string_chunk[js, current_row] = buf_as_bytes(
+                        source, start, lngt
+                    ).decode(self.encoding)
                 else:
                     string_chunk[js, current_row] = buf_as_bytes(source, start, lngt)
                 js += 1
