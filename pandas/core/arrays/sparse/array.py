@@ -291,6 +291,10 @@ def _wrap_result(
     )
 
 
+_BOOL_SPARSE_DTYPE_FALSE_FILL = SparseDtype(bool, False)
+_BOOL_SPARSE_DTYPE_TRUE_FILL = SparseDtype(bool, True)
+
+
 @set_module("pandas.arrays")
 class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     """
@@ -786,12 +790,23 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     def isna(self) -> Self:  # type: ignore[override]
         # If null fill value, we want SparseDtype[bool, true]
         # to preserve the same memory usage.
-        dtype = SparseDtype(bool, self._null_fill_value)
         if self._null_fill_value:
-            return type(self)._simple_new(isna(self.sp_values), self.sp_index, dtype)
-        mask = np.full(len(self), False, dtype=np.bool_)
-        mask[self.sp_index.indices] = isna(self.sp_values)
-        return type(self)(mask, fill_value=False, dtype=dtype)
+            return type(self)._simple_new(
+                isna(self.sp_values),
+                self.sp_index,
+                _BOOL_SPARSE_DTYPE_TRUE_FILL,
+            )
+        # GH#41023 - avoid densify-then-resparsify round-trip.
+        # The NA positions are exactly the subset of sp_index where sp_values
+        # are NA; we can construct the sparse index directly.
+        sp_mask = isna(self.sp_values)
+        na_indices = self.sp_index.indices[sp_mask]
+        new_sp_index = make_sparse_index(len(self), na_indices, self.kind)
+        return type(self)._simple_new(
+            np.ones(len(na_indices), dtype=bool),
+            new_sp_index,
+            _BOOL_SPARSE_DTYPE_FALSE_FILL,
+        )
 
     def fillna(
         self,
