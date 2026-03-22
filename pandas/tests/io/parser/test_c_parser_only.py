@@ -602,9 +602,8 @@ def test_binary_file_handle_avoids_text_wrapping(c_parser_only):
 
     # Verify the handle was not wrapped in TextIOWrapper
     data = BytesIO(b"a,b\n1,2\n3,4\n")
-    reader = parser.read_csv(data, chunksize=2)
-    assert not isinstance(reader.handles.handle, TextIOWrapper)
-    reader.close()
+    with parser.read_csv(data, chunksize=2) as reader:
+        assert not isinstance(reader.handles.handle, TextIOWrapper)
 
 
 def test_unix_style_breaks(c_parser_only, temp_file):
