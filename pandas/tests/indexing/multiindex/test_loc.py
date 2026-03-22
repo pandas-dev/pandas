@@ -1025,6 +1025,10 @@ def test_loc_datetime_date_multiindex_with_np_datetime64():
     df = DataFrame({"dates": dates, "t1": t1, "t2": t2, "vals": vals})
     df = df.set_index(["dates", "t1", "t2"])
 
+    # Verify the index level stays object dtype with date entries
+    assert df.index.get_level_values("dates").dtype == object
+    assert all(isinstance(v, date) for v in df.index.get_level_values("dates"))
+
     dt_key = np.datetime64("2023-11-01")
 
     # Should return only the row matching (dt_key, "A"), not all rows for dt_key
