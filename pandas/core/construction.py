@@ -765,6 +765,9 @@ def _sanitize_ndim(
             raise ValueError(
                 f"Data must be 1-dimensional, got ndarray of shape {data.shape} instead"
             )
+        elif allow_2d and isinstance(result, ABCExtensionArray):
+            # e.g. test_2d_ea_with_dtype_cast
+            return result
         if is_object_dtype(dtype) and isinstance(dtype, ExtensionDtype):
             # i.e. NumpyEADtype("O")
 

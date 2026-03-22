@@ -40,6 +40,7 @@ from pandas._libs.lib import (
     is_datetime_array,
     no_default,
 )
+from pandas._libs.missing import is_matching_na
 from pandas._libs.tslibs import (
     OutOfBoundsDatetime,
     Timestamp,
@@ -1412,12 +1413,11 @@ class Index(IndexOpsMixin, PandasObject):
 
         return f"{klass_name}({data}{prepr})"
 
-    @property
-    def _formatter_func(self) -> Callable:
+    def _formatter_func(self, val: object) -> str_t:
         """
-        Return the formatter function.
+        Return the formatted value.
         """
-        return default_pprint
+        return default_pprint(val)
 
     @final
     def _format_data(self, name: str_t | None = None) -> str_t:
@@ -2143,7 +2143,22 @@ class Index(IndexOpsMixin, PandasObject):
         verification must be done like in MultiIndex.
 
         """
-        if isinstance(level, int):
+        is_level_na = cast("bool", isna(level))
+        is_name_na = cast("bool", isna(self.name))
+        if is_level_na and is_name_na:
+            if is_matching_na(level, self.name):
+                return
+            raise KeyError(
+                f"Requested level ({level}) does not match index name ({self.name})"
+            )
+        elif is_level_na:
+            raise KeyError(
+                f"Requested level ({level}) does not match index name ({self.name})"
+            )
+
+        if is_integer(level):
+            if is_integer(self.name) and level == self.name:
+                return
             if level < 0 and level != -1:
                 raise IndexError(
                     "Too many levels: Index has only 1 level, "
@@ -2153,6 +2168,7 @@ class Index(IndexOpsMixin, PandasObject):
                 raise IndexError(
                     f"Too many levels: Index has only 1 level, not {level + 1}"
                 )
+            return
         elif level != self.name:
             raise KeyError(
                 f"Requested level ({level}) does not match index name ({self.name})"
@@ -8281,7 +8297,11 @@ def get_values_for_csv(
             mask = isna(values)
 
             if not quoting:
-                values = values.astype(str)
+                if isinstance(values, ExtensionArray) and values.ndim == 2:
+                    # e.g. test_to_csv_2d_float_ea
+                    values = np.asarray(values.to_numpy(), dtype=str)
+                else:
+                    values = values.astype(str)
             else:
                 values = np.array(values, dtype="object")
 

@@ -44,16 +44,91 @@ static void pandas_datetime_destructor(PyObject *op) {
  * Returns -1 on error, 0 on success, and 1 (with no error set)
  * if obj doesn't have the needed date or datetime attributes.
  */
+/*
+ * Helper to apply a timezone offset (from extract_utc_offset) to a
+ * datetimestruct. Returns -1 on error, 0 on success.
+ */
+static int apply_tzinfo_offset(PyObject *obj, npy_datetimestruct *out) {
+  PyObject *offset = extract_utc_offset(obj);
+  /* Apply the time zone offset if datetime obj is tz-aware */
+  if (offset != NULL) {
+    if (offset == Py_None) {
+      Py_DECREF(offset);
+      return 0;
+    }
+    /*
+     * The timedelta should have a function "total_seconds"
+     * which contains the value we want.
+     */
+    PyObject *tmp = PyObject_CallMethod(offset, "total_seconds", NULL);
+    Py_DECREF(offset);
+    if (tmp == NULL) {
+      return -1;
+    }
+    PyObject *tmp_int = PyNumber_Long(tmp);
+    if (tmp_int == NULL) {
+      Py_DECREF(tmp);
+      return -1;
+    }
+    int seconds_offset = PyLong_AsLong(tmp_int);
+    if (seconds_offset == -1 && PyErr_Occurred()) {
+      Py_DECREF(tmp_int);
+      Py_DECREF(tmp);
+      return -1;
+    }
+    Py_DECREF(tmp_int);
+    Py_DECREF(tmp);
+
+    /* Convert to a minutes offset and apply it */
+    add_minutes_to_datetimestruct(out, -(seconds_offset / 60));
+  }
+
+  return 0;
+}
+
 static int convert_pydatetime_to_datetimestruct(PyObject *dtobj,
                                                 npy_datetimestruct *out) {
   // Assumes that obj is a valid datetime object
-  PyObject *tmp;
   PyObject *obj = (PyObject *)dtobj;
 
   /* Initialize the output to all zeros */
   memset(out, 0, sizeof(npy_datetimestruct));
   out->month = 1;
   out->day = 1;
+
+  /*
+   * Fast path: use the PyDateTime C API macros for direct struct access
+   * instead of generic PyObject_GetAttrString lookups. PyDateTime_IMPORT
+   * is called at module init, so the C API is available here.
+   *
+   * Use CheckExact to exclude subclasses (e.g. pd.Timestamp) whose
+   * C-level struct fields may not match their Python-level attributes.
+   */
+  if (PyDateTime_CheckExact(obj)) {
+    out->year = PyDateTime_GET_YEAR(obj);
+    out->month = PyDateTime_GET_MONTH(obj);
+    out->day = PyDateTime_GET_DAY(obj);
+    out->hour = PyDateTime_DATE_GET_HOUR(obj);
+    out->min = PyDateTime_DATE_GET_MINUTE(obj);
+    out->sec = PyDateTime_DATE_GET_SECOND(obj);
+    out->us = PyDateTime_DATE_GET_MICROSECOND(obj);
+
+    PyObject *tzinfo = PyDateTime_DATE_GET_TZINFO(obj);
+    if (tzinfo != Py_None) {
+      return apply_tzinfo_offset(obj, out);
+    }
+    return 0;
+  }
+
+  if (PyDate_CheckExact(obj)) {
+    out->year = PyDateTime_GET_YEAR(obj);
+    out->month = PyDateTime_GET_MONTH(obj);
+    out->day = PyDateTime_GET_DAY(obj);
+    return 0;
+  }
+
+  /* Slow path: fall back to generic attribute lookups for duck-typed objects */
+  PyObject *tmp;
 
   tmp = PyObject_GetAttrString(obj, "year");
   if (tmp == NULL)
@@ -72,9 +147,6 @@ static int convert_pydatetime_to_datetimestruct(PyObject *dtobj,
     return -1;
   out->day = PyLong_AsLong(tmp);
   Py_DECREF(tmp);
-
-  // TODO(anyone): If we can get PyDateTime_IMPORT to work, we could use
-  // PyDateTime_Check here, and less verbose attribute lookups.
 
   /* Check for time attributes (if not there, return success as a date) */
   if (!PyObject_HasAttrString(obj, "hour") ||
@@ -109,43 +181,7 @@ static int convert_pydatetime_to_datetimestruct(PyObject *dtobj,
   Py_DECREF(tmp);
 
   if (PyObject_HasAttrString(obj, "tzinfo")) {
-    PyObject *offset = extract_utc_offset(obj);
-    /* Apply the time zone offset if datetime obj is tz-aware */
-    if (offset != NULL) {
-      if (offset == Py_None) {
-        Py_DECREF(offset);
-        return 0;
-      }
-      PyObject *tmp_int;
-      int seconds_offset, minutes_offset;
-      /*
-       * The timedelta should have a function "total_seconds"
-       * which contains the value we want.
-       */
-      tmp = PyObject_CallMethod(offset, "total_seconds", "");
-      Py_DECREF(offset);
-      if (tmp == NULL) {
-        return -1;
-      }
-      tmp_int = PyNumber_Long(tmp);
-      if (tmp_int == NULL) {
-        Py_DECREF(tmp);
-        return -1;
-      }
-      seconds_offset = PyLong_AsLong(tmp_int);
-      if (seconds_offset == -1 && PyErr_Occurred()) {
-        Py_DECREF(tmp_int);
-        Py_DECREF(tmp);
-        return -1;
-      }
-      Py_DECREF(tmp_int);
-      Py_DECREF(tmp);
-
-      /* Convert to a minutes offset and apply it */
-      minutes_offset = seconds_offset / 60;
-
-      add_minutes_to_datetimestruct(out, -minutes_offset);
-    }
+    return apply_tzinfo_offset(obj, out);
   }
 
   return 0;
