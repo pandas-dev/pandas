@@ -1924,6 +1924,11 @@ class Timestamp(_Timestamp):
 
         .. deprecated:: 3.1.0
 
+    fold : {0, 1}, default None, keyword-only
+        Due to daylight saving time, one wall clock time can occur twice
+        when shifting from summer to winter time; fold describes whether the
+        datetime-like corresponds  to the first (0) or the second time (1)
+        the wall clock hits the ambiguous time.
     input_unit : str
         Unit used for conversion if ts_input is of type int or float. The
         valid values are 'W', 'D', 'h', 'm', 's', 'ms', 'us', and 'ns'. For
@@ -1931,11 +1936,6 @@ class Timestamp(_Timestamp):
 
         For float inputs, the result will be stored in nanoseconds, and
         the unit attribute will be set as ``'ns'``.
-    fold : {0, 1}, default None, keyword-only
-        Due to daylight saving time, one wall clock time can occur twice
-        when shifting from summer to winter time; fold describes whether the
-        datetime-like corresponds  to the first (0) or the second time (1)
-        the wall clock hits the ambiguous time.
 
     See Also
     --------
