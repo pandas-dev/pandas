@@ -55,7 +55,6 @@ from pandas.core.indexes.api import RangeIndex
 from pandas.io.common import (
     IOHandles,
     get_handle,
-    stringify_path,
     validate_header_arg,
 )
 from pandas.io.parsers.arrow_parser_wrapper import ArrowParserWrapper
@@ -1886,21 +1885,14 @@ class TextFileReader(abc.Iterator):
             )
         if not isinstance(f, list):
             # open file here
-            is_text = True
-            mode = "r"
-            if engine == "pyarrow":
-                is_text = False
-                mode = "rb"
-            elif (
+            # The c and pyarrow engines can decode utf-8 bytes natively;
+            # wrapping in TextIOWrapper makes them slower, especially for
+            # memory_map and remote file-like objects (GH#46823).
+            is_text = engine in ("python", "python-fwf") or (
                 engine == "c"
-                and self.options.get("encoding", "utf-8") == "utf-8"
-                and isinstance(stringify_path(f), str)
-            ):
-                # c engine can decode utf-8 bytes, adding TextIOWrapper makes
-                # the c-engine especially for memory_map=True far slower
-                is_text = False
-                if "b" not in mode:
-                    mode += "b"
+                and self.options.get("encoding", "utf-8") not in (None, "utf-8")
+            )
+            mode = "r" if is_text else "rb"
             self.handles = get_handle(
                 f,
                 mode,
