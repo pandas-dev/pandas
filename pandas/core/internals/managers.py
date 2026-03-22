@@ -1572,10 +1572,11 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         # len check is a cheap O(1) short-circuit to avoid the O(n) sum
         # and the get_option overhead on every insert call (GH#57641)
+        warn_threshold = 100
         if (
-            len(self.blocks) > 100
+            len(self.blocks) > warn_threshold
             and get_option("performance_warnings")
-            and sum(not block.is_extension for block in self.blocks) > 100
+            and sum(not block.is_extension for block in self.blocks) > warn_threshold
         ):
             warnings.warn(
                 "DataFrame is highly fragmented.  This is usually the result "
