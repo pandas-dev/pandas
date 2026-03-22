@@ -7,6 +7,7 @@ from cpython.ref cimport Py_XDECREF
 
 from pandas._libs.missing cimport C_NA
 
+
 cdef inline raise_if_errors():
     cdef:
         object exc_type

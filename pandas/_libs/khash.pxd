@@ -14,6 +14,7 @@ from numpy cimport (
     uint64_t,
 )
 
+
 cdef extern from "pandas/vendored/klib/khash_python.h":
     const int KHASH_TRACE_DOMAIN
 
