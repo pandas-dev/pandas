@@ -1,3 +1,5 @@
+from datetime import date
+
 import numpy as np
 import pytest
 
@@ -1016,8 +1018,6 @@ def test_loc_datetime_date_multiindex_with_np_datetime64():
     # GH#55969
     # loc with np.datetime64 key on MultiIndex with datetime.date level
     # should correctly filter on subsequent levels
-    from datetime import date
-
     dates = [date(2023, 11, 1), date(2023, 11, 1), date(2023, 11, 2)]
     t1 = ["A", "B", "C"]
     t2 = ["C", "D", "E"]
@@ -1025,10 +1025,10 @@ def test_loc_datetime_date_multiindex_with_np_datetime64():
     df = DataFrame({"dates": dates, "t1": t1, "t2": t2, "vals": vals})
     df = df.set_index(["dates", "t1", "t2"])
 
-    date = np.datetime64("2023-11-01")
+    dt_key = np.datetime64("2023-11-01")
 
-    # Should return only the row matching (date, "A"), not all rows for date
-    result = df.loc[(date, "A")]
+    # Should return only the row matching (dt_key, "A"), not all rows for dt_key
+    result = df.loc[(dt_key, "A")]
     expected = DataFrame(
         {"vals": [0.1]},
         index=Index(["C"], name="t2"),

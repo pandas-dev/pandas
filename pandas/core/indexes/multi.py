@@ -3427,9 +3427,14 @@ class MultiIndex(Index):
         for k, (lab, lev, level_codes) in enumerate(zipped):
             section = level_codes[start:end]
 
-            # GH#55969: convert np.datetime64 to Python datetime.date for
-            # proper containment check against object-dtype Index
-            if isinstance(lab, np.datetime64) and lev.dtype == object:
+            # GH#55969: convert np.datetime64[D] to Python datetime.date for
+            # proper containment check against object-dtype Index.
+            # Only for day resolution; finer units would lose time info.
+            if (
+                isinstance(lab, np.datetime64)
+                and lev.dtype == object
+                and np.datetime_data(lab.dtype)[0] == "D"
+            ):
                 from pandas import Timestamp
 
                 try:
