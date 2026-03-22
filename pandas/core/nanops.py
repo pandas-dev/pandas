@@ -157,7 +157,7 @@ class bottleneck_switch:
 
 
 def _bn_ok_dtype(dtype: DtypeObj, name: str) -> bool:
-    # Bottleneck chokes on datetime64, PeriodDtype (or and EA)
+    # Bottleneck chokes on datetime64, PeriodDtype (or an EA)
     if dtype != object and not needs_i8_conversion(dtype):
         # GH 42878
         # Bottleneck uses naive summation leading to O(n) loss of precision

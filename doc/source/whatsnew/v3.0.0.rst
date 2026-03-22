@@ -1192,7 +1192,7 @@ Datetimelike
 - Bug in :func:`tseries.api.guess_datetime_format` would fail to infer time format when "%Y" == "%H%M" (:issue:`57452`)
 - Bug in :func:`tseries.frequencies.to_offset` would fail to parse frequency strings starting with "LWOM" (:issue:`59218`)
 - Bug in :meth:`.DateOffset.rollback` (and subclass methods) with ``normalize=True`` rolling back one offset too long (:issue:`32616`)
-- Bug in :meth:`DataFrame.agg` with with missing values resulting in IndexError (:issue:`58810`)
+- Bug in :meth:`DataFrame.agg` with missing values resulting in IndexError (:issue:`58810`)
 - Bug in :meth:`DataFrame.fillna` raising an ``AssertionError`` instead of ``OutOfBoundsDatetime`` when filling a ``datetime64[ns]`` column with an out-of-bounds timestamp. Now correctly raises ``OutOfBoundsDatetime``. (:issue:`61208`)
 - Bug in :meth:`DataFrame.min` and :meth:`DataFrame.max` casting ``datetime64`` and ``timedelta64`` columns to ``float64`` and losing precision (:issue:`60850`)
 - Bug in :meth:`DatetimeIndex.asof` with a string key giving incorrect results (:issue:`50946`)

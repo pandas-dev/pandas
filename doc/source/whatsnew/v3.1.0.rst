@@ -102,6 +102,7 @@ Deprecations
 - Deprecated passing unnecessary ``*args`` and ``**kwargs`` to :meth:`.GroupBy.cumsum`, :meth:`.GroupBy.cumprod`, :meth:`.GroupBy.cummin`, :meth:`.GroupBy.cummax`, :meth:`.SeriesGroupBy.skew`, :meth:`.DataFrameGroupBy.skew`, :meth:`.SeriesGroupBy.take`, and :meth:`.DataFrameGroupBy.take`. The ``skipna`` parameter for the cum* methods is now an explicit keyword argument (:issue:`50407`)
 - Deprecated the ``.name`` property of offset objects (e.g., :class:`~pandas.tseries.offsets.Day`, :class:`~pandas.tseries.offsets.Hour`). Use ``.rule_code`` instead (:issue:`64207`)
 - Deprecated the ``xlrd`` and ``pyxlsb`` engines in :func:`read_excel`. Use ``engine="calamine"`` instead (:issue:`56542`)
+- Deprecated the default value of ``exact`` in :func:`assert_index_equal`; in a future version this will default to ``True`` instead of "equiv" (:issue:`57436`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -109,6 +110,7 @@ Deprecations
 
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
+- Performance improvement in casting integer and boolean dtypes to ``string[pyarrow]`` by using PyArrow's native cast instead of element-wise conversion (:issue:`56505`)
 - Performance improvement in :meth:`DataFrame.__getitem__` when selecting a
   single column by label on a :class:`DataFrame` with duplicate column names.
   (:issue:`64126`).
@@ -123,6 +125,7 @@ Performance improvements
 - Performance improvement in :meth:`GroupBy.first` and :meth:`GroupBy.last` for Extension Array dtypes, which no longer fall back to a slow ``apply``-based implementation (:issue:`57591`)
 - Performance improvement in :meth:`GroupBy.quantile` (:issue:`64330`)
 - Performance improvement in :meth:`Index.get_indexer` for large monotonic indexes, which now uses binary search instead of building a hash table when the number of targets is small (:issue:`14273`)
+- Performance improvement in :meth:`arrays.SparseArray.isna` by avoiding a dense-then-resparsify round-trip (:issue:`41023`)
 - Performance improvement in datetime/timedelta unit conversion (e.g. ``datetime64[s]`` to ``datetime64[ns]``) (:issue:`35025`)
 - Performance improvement in indexing a :class:`DataFrame` with a :class:`CategoricalIndex` of :class:`Interval` categories (:issue:`61928`)
 - Performance improvement in reading zip-compressed files (e.g. :func:`read_pickle`, :func:`read_csv`) on Python < 3.12 (:issue:`59279`)
