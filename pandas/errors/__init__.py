@@ -1053,7 +1053,7 @@ class NoBufferPresent(Exception):
     """
 
 
-class InvalidComparison(Exception):
+class InvalidComparison(Exception):  # numpydoc ignore=SA01
     """
     Exception is raised by _validate_comparison_value to indicate an invalid comparison.
 
@@ -1061,11 +1061,6 @@ class InvalidComparison(Exception):
     of datetime-like arrays (datetime, timedelta, and period) when the
     operand type is incompatible. It is caught internally and converted
     into an array of ``False`` values rather than being propagated to the user.
-
-    See Also
-    --------
-    Series.eq : Element-wise equal-to comparison.
-    Series.ne : Element-wise not-equal-to comparison.
 
     Notes
     -----
