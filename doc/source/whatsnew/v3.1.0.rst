@@ -196,7 +196,7 @@ Missing
 
 MultiIndex
 ^^^^^^^^^^
--
+- Bug in :meth:`MultiIndex.get_loc` where lookups with ``np.datetime64`` keys on a :class:`MultiIndex` containing ``datetime.date`` values in an object-dtype level returned incorrect results, ignoring subsequent index levels (:issue:`55969`)
 -
 
 I/O

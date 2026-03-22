@@ -3490,7 +3490,77 @@ class MultiIndex(Index):
             # TODO: need is_valid_na_for_dtype(key, level_index.dtype)
             return -1
         else:
+            # GH#55969 - normalize key type to match level values
+            key = self._normalize_key_for_level(key, level_index)
             return level_index.get_loc(key)  # type: ignore[return-value]
+
+    @staticmethod
+    def _normalize_key_for_level(key, level_index: Index):
+        """
+        Normalize a single key element to match the type stored in a level
+        Index. This prevents type-mismatch issues during lookups when
+        the key type differs from the stored type but represents the
+        same value (e.g., np.datetime64 vs datetime.date).
+
+        Parameters
+        ----------
+        key : scalar
+            The lookup key for this level.
+        level_index : Index
+            The Index for the level being queried.
+
+        Returns
+        -------
+        scalar
+            The key, possibly converted to match the level's stored type.
+        """
+        import datetime
+
+        if not is_object_dtype(level_index.dtype) or len(level_index) == 0:
+            return key
+        if isinstance(key, slice):
+            return key
+
+        sample = level_index[0]
+
+        # np.datetime64 key vs datetime.date level
+        if isinstance(key, np.datetime64) and isinstance(sample, datetime.date):
+            try:
+                from pandas import Timestamp
+
+                return Timestamp(key).date()
+            except (ValueError, OverflowError):
+                pass
+        # datetime.date key vs np.datetime64 level
+        elif isinstance(key, datetime.date) and isinstance(sample, np.datetime64):
+            try:
+                return np.datetime64(key)
+            except (ValueError, OverflowError):
+                pass
+
+        return key
+
+    def _normalize_key_types(self, key: tuple) -> tuple:
+        """
+        Normalize a tuple key so each element's type matches the corresponding
+        level's stored type. Calls _normalize_key_for_level on each element.
+
+        Parameters
+        ----------
+        key : tuple
+            The lookup key with one element per targeted level.
+
+        Returns
+        -------
+        tuple
+            Key with elements converted to match level types where possible.
+        """
+        normalized = list(key)
+        for i, k in enumerate(key):
+            if i >= self.nlevels:
+                break
+            normalized[i] = self._normalize_key_for_level(k, self.levels[i])
+        return tuple(normalized)
 
     def get_loc(self, key):
         """
@@ -3557,6 +3627,13 @@ class MultiIndex(Index):
         if not isinstance(key, tuple):
             loc = self._get_level_indexer(key, level=0)
             return _maybe_to_slice(loc)
+
+        # GH#55969 - Normalize key elements to match the types stored in
+        # each level's Index, so that comparisons (e.g. in slice_locs)
+        # work correctly. Without this, e.g. np.datetime64 keys fail to
+        # match datetime.date level values during sorted search, causing
+        # incorrect slice boundaries.
+        key = self._normalize_key_types(key)
 
         keylen = len(key)
         if self.nlevels < keylen:
@@ -3731,6 +3808,12 @@ class MultiIndex(Index):
         # kludge for #1796
         if isinstance(key, list):
             key = tuple(key)
+
+        # GH#55969 - Normalize key types for tuple keys so that
+        # comparisons against level values work correctly (e.g.,
+        # np.datetime64 vs datetime.date in object-dtype levels).
+        if isinstance(key, tuple):
+            key = self._normalize_key_types(key)
 
         if isinstance(key, tuple) and level == 0:
             try:
