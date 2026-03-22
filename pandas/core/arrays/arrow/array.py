@@ -1513,9 +1513,7 @@ class ArrowExtensionArray(
                 encoded_arr = encoded.chunk(0)
             else:
                 # Concatenate indices from chunks; dictionaries are unified.
-                indices_chunks = [
-                    chunk.indices for chunk in encoded.iterchunks()
-                ]
+                indices_chunks = [chunk.indices for chunk in encoded.iterchunks()]
                 combined_indices = pa.concat_arrays(indices_chunks)
                 encoded_arr = pa.DictionaryArray.from_arrays(
                     combined_indices, encoded.chunk(0).dictionary
@@ -1528,7 +1526,7 @@ class ArrowExtensionArray(
             # Map indices to hashes, handling nulls
             indices = encoded_arr.indices
             null_mask = indices.is_null().to_numpy(zero_copy_only=False)
-            codes = indices.fill_null(0).to_numpy(zero_copy_only=False)
+            codes = indices.fill_null(0).to_numpy()
 
             if len(hashed):
                 result = hashed.take(codes)
