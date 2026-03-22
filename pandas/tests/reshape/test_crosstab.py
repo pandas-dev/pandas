@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 from pandas import (
     CategoricalDtype,
@@ -229,7 +231,8 @@ class TestCrosstab:
         c = np.array(
             ["dull", "dull", "dull", "dull", "dull", "shiny", "shiny"], dtype=object
         )
-        res = crosstab(a, [b, c], rownames=["a"], colnames=["b", "c"], dropna=False)
+        with tm.assert_produces_warning(Pandas4Warning, match="dropna"):
+            res = crosstab(a, [b, c], rownames=["a"], colnames=["b", "c"], dropna=False)
         m = MultiIndex.from_tuples(
             [("one", "dull"), ("one", "shiny"), ("two", "dull"), ("two", "shiny")],
             names=["b", "c"],
@@ -256,7 +259,8 @@ class TestCrosstab:
         # when margins=true and dropna=true
 
         df = DataFrame({"a": [1, 2, 2, 2, 2, np.nan], "b": [3, 3, 4, 4, 4, 4]})
-        actual = crosstab(df.a, df.b, margins=True, dropna=True)
+        with tm.assert_produces_warning(Pandas4Warning, match="dropna"):
+            actual = crosstab(df.a, df.b, margins=True, dropna=True)
         expected = DataFrame([[1, 0, 1], [1, 3, 4], [2, 3, 5]])
         expected.index = Index([1.0, 2.0, "All"], name="a")
         expected.columns = Index([3, 4, "All"], name="b")
@@ -266,7 +270,8 @@ class TestCrosstab:
         df = DataFrame(
             {"a": [1, np.nan, np.nan, np.nan, 2, np.nan], "b": [3, np.nan, 4, 4, 4, 4]}
         )
-        actual = crosstab(df.a, df.b, margins=True, dropna=True)
+        with tm.assert_produces_warning(Pandas4Warning, match="dropna"):
+            actual = crosstab(df.a, df.b, margins=True, dropna=True)
         expected = DataFrame([[1, 0, 1], [0, 1, 1], [1, 1, 2]])
         expected.index = Index([1.0, 2.0, "All"], name="a")
         expected.columns = Index([3.0, 4.0, "All"], name="b")
@@ -276,7 +281,8 @@ class TestCrosstab:
         df = DataFrame(
             {"a": [1, np.nan, np.nan, np.nan, np.nan, 2], "b": [3, 3, 4, 4, 4, 4]}
         )
-        actual = crosstab(df.a, df.b, margins=True, dropna=True)
+        with tm.assert_produces_warning(Pandas4Warning, match="dropna"):
+            actual = crosstab(df.a, df.b, margins=True, dropna=True)
         expected = DataFrame([[1, 0, 1], [0, 1, 1], [1, 1, 2]])
         expected.index = Index([1.0, 2.0, "All"], name="a")
         expected.columns = Index([3, 4, "All"], name="b")
@@ -288,7 +294,8 @@ class TestCrosstab:
         # when margins=True and dropna=False
         # GH: 10772: Keep np.nan in result with dropna=False
         df = DataFrame({"a": [1, 2, 2, 2, 2, np.nan], "b": [3, 3, 4, 4, 4, 4]})
-        actual = crosstab(df.a, df.b, margins=True, dropna=False)
+        with tm.assert_produces_warning(Pandas4Warning, match="dropna"):
+            actual = crosstab(df.a, df.b, margins=True, dropna=False)
         expected = DataFrame([[1, 0, 1], [1, 3, 4], [0, 1, 1], [2, 4, 6]])
         expected.index = Index([1.0, 2.0, np.nan, "All"], name="a")
         expected.columns = Index([3, 4, "All"], name="b")
@@ -299,7 +306,8 @@ class TestCrosstab:
         df = DataFrame(
             {"a": [1, np.nan, np.nan, np.nan, 2, np.nan], "b": [3, np.nan, 4, 4, 4, 4]}
         )
-        actual = crosstab(df.a, df.b, margins=True, dropna=False)
+        with tm.assert_produces_warning(Pandas4Warning, match="dropna"):
+            actual = crosstab(df.a, df.b, margins=True, dropna=False)
         expected = DataFrame(
             [[1, 0, 0, 1.0], [0, 1, 0, 1.0], [0, 3, 1, 4.0], [1, 4, 1, 6.0]]
         )
@@ -315,9 +323,15 @@ class TestCrosstab:
             ["dull", "dull", "dull", "dull", "dull", "shiny", "shiny"], dtype=object
         )
 
-        actual = crosstab(
-            a, [b, c], rownames=["a"], colnames=["b", "c"], margins=True, dropna=False
-        )
+        with tm.assert_produces_warning(Pandas4Warning, match="dropna"):
+            actual = crosstab(
+                a,
+                [b, c],
+                rownames=["a"],
+                colnames=["b", "c"],
+                margins=True,
+                dropna=False,
+            )
         m = MultiIndex.from_arrays(
             [
                 ["one", "one", "two", "two", np.nan, np.nan, "All"],
@@ -332,9 +346,15 @@ class TestCrosstab:
         expected.index = Index(["bar", "foo", "All"], name="a")
         tm.assert_frame_equal(actual, expected)
 
-        actual = crosstab(
-            [a, b], c, rownames=["a", "b"], colnames=["c"], margins=True, dropna=False
-        )
+        with tm.assert_produces_warning(Pandas4Warning, match="dropna"):
+            actual = crosstab(
+                [a, b],
+                c,
+                rownames=["a", "b"],
+                colnames=["c"],
+                margins=True,
+                dropna=False,
+            )
         m = MultiIndex.from_arrays(
             [
                 ["bar", "bar", "bar", "foo", "foo", "foo", "All"],
@@ -357,9 +377,15 @@ class TestCrosstab:
         expected.columns = Index(["dull", "shiny", "All"], name="c")
         tm.assert_frame_equal(actual, expected)
 
-        actual = crosstab(
-            [a, b], c, rownames=["a", "b"], colnames=["c"], margins=True, dropna=True
-        )
+        with tm.assert_produces_warning(Pandas4Warning, match="dropna"):
+            actual = crosstab(
+                [a, b],
+                c,
+                rownames=["a", "b"],
+                colnames=["c"],
+                margins=True,
+                dropna=True,
+            )
         m = MultiIndex.from_arrays(
             [["bar", "bar", "foo", "foo", "All"], ["one", "two", "one", "two", ""]],
             names=["a", "b"],
@@ -859,7 +885,8 @@ def test_categoricals(a_dtype, b_dtype):
     g = np.random.default_rng(2)
     a = Series(g.integers(0, 3, size=100)).astype(a_dtype)
     b = Series(g.integers(0, 2, size=100)).astype(b_dtype)
-    result = crosstab(a, b, margins=True, dropna=False)
+    with tm.assert_produces_warning(Pandas4Warning, match="dropna"):
+        result = crosstab(a, b, margins=True, dropna=False, observed=False)
     columns = Index([0, 1, "All"], dtype="object", name="col_0")
     index = Index([0, 1, 2, "All"], dtype="object", name="row_0")
     values = [[10, 18, 28], [23, 16, 39], [17, 16, 33], [50, 50, 100]]
@@ -870,7 +897,8 @@ def test_categoricals(a_dtype, b_dtype):
     a.loc[a == 1] = 2
     a_is_cat = isinstance(a.dtype, CategoricalDtype)
     assert not a_is_cat or a.value_counts().loc[1] == 0
-    result = crosstab(a, b, margins=True, dropna=False)
+    with tm.assert_produces_warning(Pandas4Warning, match="dropna"):
+        result = crosstab(a, b, margins=True, dropna=False, observed=False)
     values = [[10, 18, 28], [0, 0, 0], [40, 32, 72], [50, 50, 100]]
     expected = DataFrame(values, index, columns)
     if not a_is_cat:

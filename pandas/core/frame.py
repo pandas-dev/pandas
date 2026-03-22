@@ -12879,7 +12879,7 @@ class DataFrame(NDFrame, OpsMixin):
         aggfunc: AggFuncType = "mean",
         fill_value=None,
         margins: bool = False,
-        dropna: bool = True,
+        dropna: bool | lib.NoDefault = lib.no_default,
         margins_name: Level = "All",
         observed: bool = True,
         sort: bool = True,
@@ -12926,6 +12926,10 @@ class DataFrame(NDFrame, OpsMixin):
               margins,
             * index/column keys containing NA values will be dropped (see ``dropna``
               parameter in :meth:`DataFrame.groupby`).
+
+            .. deprecated:: 3.1.0
+                The dropna keyword is deprecated. Manually handle NA values
+                before and after calling pivot_table.
 
         margins_name : str, default 'All'
             Name of the row / column that will contain the totals

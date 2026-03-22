@@ -11,6 +11,8 @@ import pytest
 
 from pandas._config import using_string_dtype
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 from pandas import (
     ArrowDtype,
@@ -156,12 +158,14 @@ class TestPivotTable:
                 "quantity": {0: 2000000, 1: 500000, 2: 1000000, 3: 1000000},
             }
         )
-        pv_col = df.pivot_table(
-            "quantity", "month", ["customer", "product"], dropna=False
-        )
-        pv_ind = df.pivot_table(
-            "quantity", ["customer", "product"], "month", dropna=False
-        )
+        with tm.assert_produces_warning(Pandas4Warning, match="dropna"):
+            pv_col = df.pivot_table(
+                "quantity", "month", ["customer", "product"], dropna=False
+            )
+        with tm.assert_produces_warning(Pandas4Warning, match="dropna"):
+            pv_ind = df.pivot_table(
+                "quantity", ["customer", "product"], "month", dropna=False
+            )
 
         m = MultiIndex.from_tuples(
             [
@@ -191,9 +195,10 @@ class TestPivotTable:
             ["c", "d", "c", "d"], categories=["c", "d", "y"], ordered=True
         )
         df = DataFrame({"A": cat1, "B": cat2, "values": [1, 2, 3, 4]})
-        result = pivot_table(
-            df, values="values", index=["A", "B"], dropna=True, observed=False
-        )
+        with tm.assert_produces_warning(Pandas4Warning, match="dropna"):
+            result = pivot_table(
+                df, values="values", index=["A", "B"], dropna=True, observed=False
+            )
 
         exp_index = MultiIndex.from_arrays([cat1, cat2], names=["A", "B"])
         expected = DataFrame({"values": [1.0, 2.0, 3.0, 4.0]}, index=exp_index)
@@ -212,9 +217,10 @@ class TestPivotTable:
         )
 
         df["A"] = df["A"].astype(CategoricalDtype(categories, ordered=False))
-        result = df.pivot_table(
-            index="B", columns="A", values="C", dropna=dropna, observed=False
-        )
+        with tm.assert_produces_warning(Pandas4Warning, match="dropna"):
+            result = df.pivot_table(
+                index="B", columns="A", values="C", dropna=dropna, observed=False
+            )
         expected_columns = Series(["a", "b", "c"], name="A")
         expected_columns = expected_columns.astype(
             CategoricalDtype(categories, ordered=False)
@@ -244,7 +250,10 @@ class TestPivotTable:
             }
         )
 
-        result = df.pivot_table(index="A", values="B", dropna=dropna, observed=False)
+        with tm.assert_produces_warning(Pandas4Warning, match="dropna"):
+            result = df.pivot_table(
+                index="A", values="B", dropna=dropna, observed=False
+            )
         if dropna:
             values = [2.0, 3.0]
             codes = [0, 1]
@@ -275,7 +284,10 @@ class TestPivotTable:
             }
         )
 
-        result = df.pivot_table(index="A", values="B", dropna=dropna, observed=False)
+        with tm.assert_produces_warning(Pandas4Warning, match="dropna"):
+            result = df.pivot_table(
+                index="A", values="B", dropna=dropna, observed=False
+            )
         expected = DataFrame(
             {"B": [2.0, 3.0, 0.0]},
             index=Index(
@@ -299,7 +311,10 @@ class TestPivotTable:
         interval_values = Categorical(pd.IntervalIndex.from_arrays(left, right, closed))
         df = DataFrame({"A": interval_values, "B": 1})
 
-        result = df.pivot_table(index="A", values="B", dropna=dropna, observed=False)
+        with tm.assert_produces_warning(Pandas4Warning, match="dropna"):
+            result = df.pivot_table(
+                index="A", values="B", dropna=dropna, observed=False
+            )
         expected = DataFrame(
             {"B": 1.0}, index=Index(interval_values.unique(), name="A")
         )
@@ -1094,7 +1109,8 @@ class TestPivotTable:
                 "C": dti,
             }
         )
-        result = df.pivot_table(index=["B", "C"], dropna=False)
+        with tm.assert_produces_warning(Pandas4Warning, match="dropna"):
+            result = df.pivot_table(index=["B", "C"], dropna=False)
 
         # check tz retention
         assert result.index.levels[1].equals(dti)
@@ -1931,7 +1947,8 @@ class TestPivotTable:
         expected.index = Index([0, 1, "All"], name="y")
         expected.columns = Index([0, 1, "All"], name="z")
 
-        table = df.pivot_table("x", "y", "z", dropna=observed, margins=True)
+        with tm.assert_produces_warning(Pandas4Warning, match="dropna"):
+            table = df.pivot_table("x", "y", "z", dropna=observed, margins=True)
         tm.assert_frame_equal(table, expected)
 
     def test_categorical_margins_category(self, observed):
@@ -1945,9 +1962,10 @@ class TestPivotTable:
 
         df.y = df.y.astype("category")
         df.z = df.z.astype("category")
-        table = df.pivot_table(
-            "x", "y", "z", dropna=observed, margins=True, observed=False
-        )
+        with tm.assert_produces_warning(Pandas4Warning, match="dropna"):
+            table = df.pivot_table(
+                "x", "y", "z", dropna=observed, margins=True, observed=False
+            )
         tm.assert_frame_equal(table, expected)
 
     def test_margins_casted_to_float(self):
@@ -2009,14 +2027,15 @@ class TestPivotTable:
             {"C1": ["A", "B", "C", "C"], "C2": ["a", "a", "b", "b"], "V": [1, 2, 3, 4]}
         )
         df["C1"] = df["C1"].astype("category")
-        result = df.pivot_table(
-            "V",
-            index="C1",
-            columns="C2",
-            dropna=observed,
-            aggfunc="count",
-            observed=False,
-        )
+        with tm.assert_produces_warning(Pandas4Warning, match="dropna"):
+            result = df.pivot_table(
+                "V",
+                index="C1",
+                columns="C2",
+                dropna=observed,
+                aggfunc="count",
+                observed=False,
+            )
 
         expected_index = pd.CategoricalIndex(
             ["A", "B", "C"], categories=["A", "B", "C"], ordered=False, name="C1"
@@ -2293,9 +2312,13 @@ class TestPivotTable:
         def ret_none(x):
             return np.nan
 
-        result = pivot_table(
-            df, columns="fruit", aggfunc=[ret_sum, ret_none, ret_one], dropna=dropna
-        )
+        with tm.assert_produces_warning(Pandas4Warning, match="dropna"):
+            result = pivot_table(
+                df,
+                columns="fruit",
+                aggfunc=[ret_sum, ret_none, ret_one],
+                dropna=dropna,
+            )
 
         data = [[3, 1, np.nan, np.nan, 1, 1], [13, 6, np.nan, np.nan, 1, 1]]
         col = MultiIndex.from_product(
@@ -2315,7 +2338,8 @@ class TestPivotTable:
             {"A": ["one", "two", "one"], "x": [3, np.nan, 2], "y": [1, np.nan, np.nan]}
         )
 
-        result = pivot_table(df, columns="A", aggfunc="mean", dropna=dropna)
+        with tm.assert_produces_warning(Pandas4Warning, match="dropna"):
+            result = pivot_table(df, columns="A", aggfunc="mean", dropna=dropna)
 
         data = [[2.5, np.nan], [1, np.nan]]
         col = Index(["one", "two"], name="A")
@@ -2490,9 +2514,10 @@ class TestPivotTable:
         # GH#47477
         # GH#47971
         df = DataFrame({"x": "a", "y": "b", "age": Series([20, 40], dtype=dtype)})
-        result = df.pivot_table(
-            index="x", columns="y", values="age", aggfunc="mean", dropna=dropna
-        )
+        with tm.assert_produces_warning(Pandas4Warning, match="dropna"):
+            result = df.pivot_table(
+                index="x", columns="y", values="age", aggfunc="mean", dropna=dropna
+            )
         expected = DataFrame(
             [[30]],
             index=Index(["a"], name="x"),
@@ -2640,7 +2665,10 @@ class TestPivotTable:
         # GH#61113
         data = {"row": [None, *range(4)], "col": [*range(4), None], "val": range(5)}
         df = DataFrame(data)
-        result = df.pivot_table(values="val", index="row", columns="col", dropna=dropna)
+        with tm.assert_produces_warning(Pandas4Warning, match="dropna"):
+            result = df.pivot_table(
+                values="val", index="row", columns="col", dropna=dropna
+            )
         e_axis = [*range(4), None]
         nan = np.nan
         e_data = [
@@ -2710,14 +2738,15 @@ class TestPivotTable:
             }
         )
 
-        result = df.pivot_table(
-            index="g1",
-            columns="g2",
-            values="i",
-            aggfunc="count",
-            dropna=False,
-            margins=True,
-        )
+        with tm.assert_produces_warning(Pandas4Warning, match="dropna"):
+            result = df.pivot_table(
+                index="g1",
+                columns="g2",
+                values="i",
+                aggfunc="count",
+                dropna=False,
+                margins=True,
+            )
 
         expected = DataFrame(
             {

@@ -6,11 +6,14 @@ from typing import (
     Literal,
     cast,
 )
+import warnings
 
 import numpy as np
 
 from pandas._libs import lib
+from pandas.errors import Pandas4Warning
 from pandas.util._decorators import set_module
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import (
@@ -64,7 +67,7 @@ def pivot_table(
     aggfunc: AggFuncType = "mean",
     fill_value=None,
     margins: bool = False,
-    dropna: bool = True,
+    dropna: bool | lib.NoDefault = lib.no_default,
     margins_name: Hashable = "All",
     observed: bool = True,
     sort: bool = True,
@@ -112,6 +115,10 @@ def pivot_table(
         * rows with an NA value in any column will be omitted before computing margins,
         * index/column keys containing NA values will be dropped (see ``dropna``
           parameter in :meth:``DataFrame.groupby``).
+
+        .. deprecated:: 3.1.0
+            The dropna keyword is deprecated. Manually handle NA values
+            before and after calling pivot_table.
 
     margins_name : str, default 'All'
         Name of the row / column that will contain the totals
@@ -246,6 +253,17 @@ def pivot_table(
     foo large  2.000000   5  4.500000    4
         small  2.333333   6  4.333333    2
     """
+    if dropna is not lib.no_default:
+        warnings.warn(
+            "The dropna keyword in pivot_table is deprecated and will be "
+            "removed in a future version. Manually handle NA values before "
+            "and after calling pivot_table.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+    else:
+        dropna = True
+
     index = _convert_by(index)
     columns = _convert_by(columns)
 
@@ -407,7 +425,7 @@ def __internal_pivot_table(
             cols=columns,
             aggfunc=aggfunc,
             kwargs=kwargs,
-            observed=dropna,
+            observed=observed,
             margins_name=margins_name,
             fill_value=fill_value,
             dropna=dropna,
@@ -960,8 +978,9 @@ def crosstab(
     aggfunc=None,
     margins: bool = False,
     margins_name: Hashable = "All",
-    dropna: bool = True,
+    dropna: bool | lib.NoDefault = lib.no_default,
     normalize: bool | Literal[0, 1, "all", "index", "columns"] = False,
+    observed: bool = True,
 ) -> DataFrame:
     """
     Compute a simple cross tabulation of two (or more) factors.
@@ -991,6 +1010,11 @@ def crosstab(
         when margins is True.
     dropna : bool, default True
         Do not include columns whose entries are all NaN.
+
+        .. deprecated:: 3.1.0
+            The dropna keyword is deprecated. Manually handle NA values
+            before and after calling crosstab.
+
     normalize : bool, {'all', 'index', 'columns'}, or {0,1}, default False
         Normalize by dividing all values by the sum of values.
 
@@ -998,6 +1022,13 @@ def crosstab(
         - If passed 'index' will normalize over each row.
         - If passed 'columns' will normalize over each column.
         - If margins is `True`, will also normalize margin values.
+
+    observed : bool, default True
+        This only applies if any of the groupers are Categoricals.
+        If True: only show observed values for categorical groupers.
+        If False: show all values for categorical groupers.
+
+        .. versionadded:: 3.1.0
 
     Returns
     -------
@@ -1098,6 +1129,15 @@ def crosstab(
     b      0  1  0
     c      0  0  0
     """
+    if dropna is not lib.no_default:
+        warnings.warn(
+            "The dropna keyword in crosstab is deprecated and will be "
+            "removed in a future version. Manually handle NA values before "
+            "and after calling crosstab.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+
     if values is None and aggfunc is not None:
         raise ValueError("aggfunc cannot be used without values.")
 
@@ -1149,7 +1189,7 @@ def crosstab(
         margins=margins,
         margins_name=margins_name,
         dropna=dropna,
-        observed=dropna,
+        observed=observed,
         **kwargs,  # type: ignore[arg-type]
     )
 
