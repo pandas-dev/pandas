@@ -329,6 +329,10 @@ cdef class Parser:
         Buffer decompressed_buf
         object parser
 
+    def __cinit__(self, object parser):
+        self.decompress = NULL
+        self.decompressed_buf = Buffer(NULL, 0)
+
     @cython.wraparound(False)
     @cython.boundscheck(False)
     def __init__(self, object parser):
@@ -374,8 +378,6 @@ cdef class Parser:
 
         if self.decompress != NULL:
             self.decompressed_buf = buf_new(self.row_length)
-        else:
-            self.decompressed_buf = Buffer(NULL, 0)
 
         # update to current state of the parser
         self.current_row_in_chunk_index = parser._current_row_in_chunk_index
