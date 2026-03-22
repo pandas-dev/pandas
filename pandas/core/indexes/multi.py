@@ -30,6 +30,7 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.hashtable import duplicated
+from pandas._libs.tslibs import Timestamp
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
     InvalidIndexError,
@@ -3437,8 +3438,6 @@ class MultiIndex(Index):
                 and lev.dtype == object
                 and np.datetime_data(lab.dtype)[0] == "D"
             ):
-                from pandas import Timestamp
-
                 try:
                     lab = Timestamp(lab).date()
                 except (ValueError, OverflowError):
