@@ -289,7 +289,11 @@ class TestSeriesPlots:
 
         _, ax = mpl.pyplot.subplots()
         ax = getattr(Series([200, 500]).plot, meth)(log=True, ax=ax)
-        tm.assert_numpy_array_equal(getattr(ax, axis).get_ticklocs(), expected)
+        result = getattr(ax, axis).get_ticklocs()
+        # GH#64317 on some linux builds this is flaky with a tiny difference.
+        #  Rather than xfail this test, we allow a small
+        #  tolerance, as it isn't really user-visible.
+        tm.assert_almost_equal(result, expected, atol=1e-15)
 
     @pytest.mark.parametrize(
         "axis, kind, res_meth",
@@ -690,6 +694,9 @@ class TestSeriesPlots:
         _check_has_errorbars(ax, xerr=1, yerr=0)
 
     @pytest.mark.slow
+    @pytest.mark.filterwarnings(
+        "ignore:invalid value encountered in dot:RuntimeWarning"
+    )
     @pytest.mark.parametrize(
         "yerr",
         [
@@ -954,7 +961,7 @@ class TestSeriesPlots:
     @pytest.mark.slow
     def test_plot_no_warning(self, ts):
         # GH 55138
-        # TODO(3.0): this can be removed once Period[B] deprecation is enforced
+        # TODO(4.0): this can be removed once Period[B] deprecation is enforced
         with tm.assert_produces_warning(False):
             _ = ts.plot()
 

@@ -513,10 +513,16 @@ def _to_datetime_with_unit(arg, unit, name, utc: bool, errors: str) -> Index:
             tz_parsed = None
 
         elif arg.dtype.kind == "f":
+            mask = np.isnan(arg)
             with np.errstate(invalid="ignore"):
                 int_values = arg.astype(np.int64)
-            mask = np.isnan(arg)
-            if (mask | (arg == int_values)).all():
+            # On ARM, float-to-int64 overflow saturates to INT64_MAX
+            # instead of wrapping, which makes the arg == int_values
+            # check pass incorrectly for OOB values like float(2**63).
+            # Exclude values outside the int64 domain from the check.
+            i64 = np.iinfo(np.int64)
+            in_int64_range = (arg >= np.float64(i64.min)) & (arg < np.float64(i64.max))
+            if (mask | (in_int64_range & (arg == int_values))).all():
                 # With all-round-or-NaN entries, we give the requested unit
                 #  back like with integers
                 result = _to_datetime_with_unit(
@@ -524,6 +530,9 @@ def _to_datetime_with_unit(arg, unit, name, utc: bool, errors: str) -> Index:
                 )
                 result._data[mask] = NaT
                 return result
+
+            # if we have float32, cast to float64
+            arg = arg.astype("float64", copy=False)
             with np.errstate(over="raise"):
                 try:
                     arr = cast_from_unit_vectorized(arg, unit=unit)

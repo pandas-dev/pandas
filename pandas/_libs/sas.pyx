@@ -1,5 +1,6 @@
 # cython: language_level=3, initializedcheck=False
 # cython: warn.maybe_uninitialized=True, warn.unused=True
+cimport cython
 from cython cimport Py_ssize_t
 from libc.stddef cimport size_t
 from libc.stdint cimport (
@@ -327,6 +328,8 @@ cdef class Parser:
         int (*decompress)(Buffer, Buffer) except? 0
         object parser
 
+    @cython.wraparound(False)
+    @cython.boundscheck(False)
     def __init__(self, object parser):
         cdef:
             int j
@@ -477,6 +480,8 @@ cdef class Parser:
             else:
                 raise ValueError(f"unknown page type: {self.current_page_type}")
 
+    @cython.wraparound(False)
+    @cython.boundscheck(False)
     cdef void process_byte_array_with_data(self, int offset, int length) except *:
 
         cdef:

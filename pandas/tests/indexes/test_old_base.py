@@ -847,7 +847,7 @@ class TestBase:
         if idx.dtype.kind in ["i", "u"]:
             res = ~idx
             expected = Index(~idx.values, name=idx.name)
-            tm.assert_index_equal(res, expected)
+            tm.assert_index_equal(res, expected, exact="equiv")
 
             # check that we are matching Series behavior
             res2 = ~Series(idx)

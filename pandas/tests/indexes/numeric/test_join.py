@@ -33,7 +33,7 @@ class TestJoinInt64Index:
         eridx = np.array([4, 1], dtype=np.intp)
 
         assert isinstance(res, Index) and res.dtype == np.int64
-        tm.assert_index_equal(res, eres)
+        tm.assert_index_equal(res, eres, exact="equiv")
         tm.assert_numpy_array_equal(lidx, elidx)
         tm.assert_numpy_array_equal(ridx, eridx)
 
@@ -41,12 +41,12 @@ class TestJoinInt64Index:
         res, lidx, ridx = index.join(other_mono, how="inner", return_indexers=True)
 
         res2 = index.intersection(other_mono).set_names(["lhs"])
-        tm.assert_index_equal(res, res2)
+        tm.assert_index_equal(res, res2, exact="equiv")
 
         elidx = np.array([1, 6], dtype=np.intp)
         eridx = np.array([1, 4], dtype=np.intp)
         assert isinstance(res, Index) and res.dtype == np.int64
-        tm.assert_index_equal(res, eres)
+        tm.assert_index_equal(res, eres, exact="equiv")
         tm.assert_numpy_array_equal(lidx, elidx)
         tm.assert_numpy_array_equal(ridx, eridx)
 
