@@ -580,7 +580,8 @@ def _adjust_to_origin(arg, origin, unit):
 
     Returns
     -------
-    ndarray or scalar of adjusted date(s)
+    datetime or date(s) adjusted ndarray or scalar
+        Return type depends on if :param:`origin` is :const:`"julian"`.
     """
     if origin == "julian":
         original = arg
@@ -1011,9 +1012,11 @@ def to_datetime(
         return NaT
 
     if origin != "unix":
-        arg = _adjust_to_origin(arg, origin, unit)
         if origin != "julian":
-            return arg
+            # calculation already done in :func:`_adjust_to_origin`
+            adjusted = _adjust_to_origin(arg, origin, unit)
+            return adjusted
+        arg = _adjust_to_origin(arg, origin, unit)
 
     convert_listlike = partial(
         _convert_listlike_datetimes,
