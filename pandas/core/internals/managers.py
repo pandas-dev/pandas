@@ -1570,8 +1570,11 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         self._known_consolidated = False
         self.blocks += (block,)
 
+        # len check is a cheap O(1) short-circuit to avoid the O(n) sum
+        # and the get_option overhead on every insert call (GH#57641)
         if (
-            get_option("performance_warnings")
+            len(self.blocks) > 100
+            and get_option("performance_warnings")
             and sum(not block.is_extension for block in self.blocks) > 100
         ):
             warnings.warn(
