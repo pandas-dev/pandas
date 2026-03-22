@@ -91,7 +91,6 @@ from pandas.core.indexes.base import (
     get_unanimous_names,
 )
 from pandas.core.indexes.frozen import FrozenList
-from pandas import Timestamp
 from pandas.core.ops.invalid import make_invalid_op
 from pandas.core.sorting import (
     get_group_index,
@@ -3438,6 +3437,8 @@ class MultiIndex(Index):
                 and lev.dtype == object
                 and np.datetime_data(lab.dtype)[0] == "D"
             ):
+                from pandas import Timestamp
+
                 try:
                     lab = Timestamp(lab).date()
                 except (ValueError, OverflowError):
