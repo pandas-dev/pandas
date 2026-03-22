@@ -119,10 +119,14 @@ class TestDatetimeDateMultiIndexLoc:
             date = np.datetime64("2023-11-01")
 
             result_a = df.loc[(date, "A")]
-            assert len(result_a) == 1, f"seed={seed}: (date, 'A') returned {len(result_a)} rows"
+            assert len(result_a) == 1, (
+                f"seed={seed}: (date, 'A') got {len(result_a)}"
+            )
 
             result_b = df.loc[(date, "B")]
-            assert len(result_b) == 1, f"seed={seed}: (date, 'B') returned {len(result_b)} rows"
+            assert len(result_b) == 1, (
+                f"seed={seed}: (date, 'B') got {len(result_b)}"
+            )
 
             with pytest.raises(KeyError):
                 df.loc[(date, "C")]
