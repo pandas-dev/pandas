@@ -32,10 +32,14 @@ from pandas._libs.khash cimport (
     khiter_t,
 )
 from pandas._libs.missing cimport (
+    C_NA,
     checknull,
     is_matching_na,
 )
 
+
+cdef public bint pandas_is_NA(object o):
+    return o is C_NA
 
 def get_hashtable_trace_domain():
     return KHASH_TRACE_DOMAIN

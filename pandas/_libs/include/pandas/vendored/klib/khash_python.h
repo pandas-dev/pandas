@@ -219,11 +219,8 @@ static inline int tupleobject_cmp(PyTupleObject *a, PyTupleObject *b) {
   return 1;
 }
 
-static inline int _is_pandas_NA_type(PyObject *o) {
-  // TODO compare PyTypeObject* C_NA, not strings!
-  PyObject *type_name = PyType_GetName(Py_TYPE(o));
-  return PyUnicode_CompareWithASCIIString(type_name, "NAType") == 0;
-}
+// this function is defined in pandas/_libs/khash and will be linked when khash.so builds
+extern int pandas_is_NA(PyObject *);
 
 static inline int pyobject_cmp(PyObject *a, PyObject *b) {
   if (PyErr_Occurred() != NULL) {
@@ -247,7 +244,7 @@ static inline int pyobject_cmp(PyObject *a, PyObject *b) {
       return tupleobject_cmp((PyTupleObject *)a, (PyTupleObject *)b);
     }
     // frozenset isn't yet supported
-  } else if (_is_pandas_NA_type(a) || _is_pandas_NA_type(b)) {
+  } else if (pandas_is_NA(a) || pandas_is_NA(b)) {
     return 0;
   }
 
