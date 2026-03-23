@@ -647,6 +647,53 @@ class TestSeriesInterpolateData:
         with pytest.raises(ValueError, match=msg):
             ser.interpolate(method="pad")
 
+    @pytest.mark.parametrize("method", ["index", "values"])
+    @pytest.mark.parametrize("year", ["2000", "2001"])
+    def test_interp_datetime_index_float64_precision(self, method, year):
+        # GH#34601 large i8 values (nanosecond timestamps) lose precision
+        # when np.interp converts to float64; result should not depend on year
+        dti = pd.DatetimeIndex(
+            [
+                f"{year}-01-01 00:00:00.000000",
+                f"{year}-01-01 00:00:00.000001",
+                f"{year}-01-01 00:00:00.000003",
+            ]
+        ).as_unit("ns")
+        ser = Series([0, None, 1], index=dti)
+        result = ser.interpolate(method=method)
+        expected = Series([0.0, 1.0 / 3.0, 1.0], index=dti)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("method", ["index", "values"])
+    def test_interp_timedelta_index_float64_precision(self, method):
+        # GH#34601 same precision issue applies to large TimedeltaIndex values
+        tdi = pd.to_timedelta(
+            [
+                1_000_000_000_000_000_000,
+                1_000_000_000_000_001_000,
+                1_000_000_000_000_003_000,
+            ],
+            unit="ns",
+        )
+        ser = Series([0, None, 1], index=tdi)
+        result = ser.interpolate(method=method)
+        expected = Series([0.0, 1.0 / 3.0, 1.0], index=tdi)
+        tm.assert_series_equal(result, expected)
+
+    def test_interp_datetime_index_pre_epoch_float64_precision(self):
+        # GH#34601 pre-epoch timestamps have large negative i8 values
+        dti = pd.DatetimeIndex(
+            [
+                "1950-01-01 00:00:00.000000",
+                "1950-01-01 00:00:00.000001",
+                "1950-01-01 00:00:00.000003",
+            ]
+        ).as_unit("ns")
+        ser = Series([0, None, 1], index=dti)
+        result = ser.interpolate(method="index")
+        expected = Series([0.0, 1.0 / 3.0, 1.0], index=dti)
+        tm.assert_series_equal(result, expected)
+
     def test_interp_limit_no_nans(self):
         # GH 7173
         s = Series([1.0, 2.0, 3.0])

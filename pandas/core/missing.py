@@ -444,6 +444,19 @@ def _index_to_interp_indices(index: Index, method: str) -> np.ndarray:
             if inds.dtype == np.object_:
                 inds = lib.maybe_convert_objects(inds)
 
+    if needs_i8_conversion(index.dtype) and len(inds) > 0:
+        # GH#34601 large i8 values (nanosecond timestamps) lose precision
+        # when np.interp converts to float64. Subtract the minimum to work
+        # with smaller relative offsets that fit precisely in float64.
+        offset = inds.min()
+        if offset < 0 and inds.max() > np.iinfo(np.int64).max + offset:
+            # Data range exceeds int64, so int64 subtraction would overflow.
+            # This only happens for datetime ranges spanning more than ~292
+            # years (ns resolution), where float64 precision is acceptable.
+            inds = inds.astype(np.float64) - np.float64(offset)
+        else:
+            inds = inds - offset
+
     return inds
 
 

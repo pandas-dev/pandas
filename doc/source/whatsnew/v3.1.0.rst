@@ -229,6 +229,7 @@ Indexing
 Missing
 ^^^^^^^
 - Bug in :meth:`DataFrame.fillna` with a dict value raising ``RecursionError`` when columns are a :class:`MultiIndex` with duplicate entries (:issue:`53498`)
+- Bug in :meth:`Series.interpolate` with ``method="index"`` or ``method="values"`` giving incorrect results for :class:`DatetimeIndex` or :class:`TimedeltaIndex` with nanosecond resolution due to float64 precision loss of large i8 values (:issue:`34601`)
 -
 
 MultiIndex
