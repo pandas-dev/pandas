@@ -1407,11 +1407,8 @@ class TestDataFrameIndexing:
         indexer_tuple = namedtuple("Indexer", df.index.names)
         idxr = indexer_tuple(first="A", second=["a", "b"])
         result = df.loc[idxr, :]
-        expected = DataFrame(
-            index=MultiIndex.from_tuples(
-                [("A", "a"), ("A", "b")], names=["first", "second"]
-            )
-        )
+        # GH#18631 scalar-indexed level "first" is dropped
+        expected = DataFrame(index=Index(["a", "b"], name="second"))
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("indexer", [["a"], "a"])
