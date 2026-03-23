@@ -839,7 +839,19 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     def _add_offset(self, offset: BaseOffset) -> Self:
         assert not isinstance(offset, Tick)
 
-        if self.tz is not None:
+        # GH#43784: For non-relativedelta DateOffset (e.g. DateOffset(hours=3)),
+        # the offset is purely timedelta-based. We must add directly to
+        # UTC values (absolute time addition) rather than stripping tz and
+        # adding to wall-clock times, which gives wrong results across DST.
+        from pandas._libs.tslibs.offsets import RelativeDeltaOffset
+
+        use_wall_clock = not (
+            self.tz is not None
+            and isinstance(offset, RelativeDeltaOffset)
+            and not offset._use_relativedelta
+        )
+
+        if use_wall_clock and self.tz is not None:
             values = self.tz_localize(None)
         else:
             values = self
@@ -851,7 +863,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                 # incompatible type
                 # "dtype[datetime64[date | int | None]] | DatetimeTZDtype";
                 # expected "dtype[Any] | _HasDType[dtype[Any]]"  [arg-type]
-                res_values = res_values.view(values.dtype)  # type: ignore[arg-type]
+                res_values = res_values.view(values._ndarray.dtype)  # type: ignore[arg-type]
         except NotImplementedError:
             if get_option("performance_warnings"):
                 warnings.warn(
@@ -864,12 +876,16 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             result = type(self)._from_sequence(res_values, dtype=self.dtype)
 
         else:
-            result = type(self)._simple_new(res_values, dtype=res_values.dtype)
+            if use_wall_clock:
+                result = type(self)._simple_new(res_values, dtype=res_values.dtype)
+            else:
+                # res_values are UTC-based; attach tz via dtype
+                result = type(self)._simple_new(res_values, dtype=self.dtype)
             if offset.normalize:
                 result = result.normalize()
                 result._freq = None
 
-            if self.tz is not None:
+            if use_wall_clock and self.tz is not None:
                 result = result.tz_localize(self.tz)
 
         return result

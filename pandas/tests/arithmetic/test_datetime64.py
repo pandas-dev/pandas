@@ -1598,6 +1598,34 @@ class TestDatetime64DateOffsetArithmetic:
         )
         tm.assert_index_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "offset_kwargs",
+        [
+            {"hours": 3},
+            {"minutes": 150},
+            {"seconds": 10800},
+            {"hours": 1, "minutes": 30},
+        ],
+    )
+    def test_dti_add_sub_dateoffset_consistent_with_timestamp_across_dst(
+        self, offset_kwargs
+    ):
+        # GH#43784 DatetimeIndex and Timestamp should give same result
+        # for sub-daily DateOffset across DST transitions.
+        # 2020-10-25 is DST transition day in Europe/Berlin (CEST -> CET)
+        timestamp = Timestamp("2020-10-25", tz="Europe/Berlin")
+        dti = DatetimeIndex([timestamp])
+        offset = DateOffset(**offset_kwargs)
+
+        ts_result = timestamp + offset
+        dti_result = dti + offset
+        tm.assert_index_equal(dti_result, DatetimeIndex([ts_result]))
+
+        # Also check subtraction
+        ts_sub = timestamp - offset
+        dti_sub = dti - offset
+        tm.assert_index_equal(dti_sub, DatetimeIndex([ts_sub]))
+
 
 class TestDatetime64OverflowHandling:
     # TODO: box + de-duplicate

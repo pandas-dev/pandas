@@ -148,7 +148,7 @@ Timedelta
 
 Timezones
 ^^^^^^^^^
--
+- Bug in :class:`DatetimeIndex` arithmetic with sub-daily :class:`DateOffset` (e.g. ``DateOffset(hours=3)``) giving different results than :class:`Timestamp` arithmetic across DST transitions (:issue:`43784`)
 -
 
 Numeric
