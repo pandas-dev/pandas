@@ -2695,6 +2695,22 @@ class ExtensionArray:
 
         Subclasses can override this for performance. The default
         implementation falls back to computing ranks via ``_rank``.
+
+        Returns
+        -------
+        bool
+            Whether the array values are monotonically increasing.
+
+        See Also
+        --------
+        ExtensionArray._is_monotonic_decreasing : Check for monotonically
+            decreasing values.
+
+        Examples
+        --------
+        >>> arr = pd.array([1, 2, 3])
+        >>> arr._is_monotonic_increasing
+        True
         """
         return self._monotonic_check()[0]
 
@@ -2705,6 +2721,22 @@ class ExtensionArray:
 
         Subclasses can override this for performance. The default
         implementation falls back to computing ranks via ``_rank``.
+
+        Returns
+        -------
+        bool
+            Whether the array values are monotonically decreasing.
+
+        See Also
+        --------
+        ExtensionArray._is_monotonic_increasing : Check for monotonically
+            increasing values.
+
+        Examples
+        --------
+        >>> arr = pd.array([3, 2, 1])
+        >>> arr._is_monotonic_decreasing
+        True
         """
         return self._monotonic_check()[1]
 
