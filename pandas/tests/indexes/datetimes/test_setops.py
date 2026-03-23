@@ -12,6 +12,7 @@ import pandas.util._test_decorators as td
 import pandas as pd
 from pandas import (
     DataFrame,
+    DateOffset,
     DatetimeIndex,
     Index,
     Series,
@@ -20,6 +21,7 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
+from pandas.core.indexes.datetimelike import _base_freq_ordinal_diff
 
 from pandas.tseries.offsets import (
     BMonthEnd,
@@ -137,8 +139,6 @@ class TestDatetimeIndexSetOps:
         tm.assert_index_equal(result, exp)
 
     def test_union_bug_4564(self, sort):
-        from pandas import DateOffset
-
         left = date_range("2013-01-01", "2013-02-01")
         right = left + DateOffset(minutes=15)
 
@@ -383,8 +383,6 @@ class TestDatetimeIndexSetOps:
             assert result.freq == rng.freq
 
     def test_intersection_bug_1708(self):
-        from pandas import DateOffset
-
         index_1 = date_range("1/1/2012", periods=4, freq="12h")
         index_2 = index_1 + DateOffset(hours=1)
 
@@ -773,3 +771,251 @@ def test_union_across_dst_boundary():
     result = index1.union(index2)
     expected = date_range("2025-10-25", "2025-10-28", freq="D", tz="Europe/Helsinki")
     tm.assert_index_equal(result, expected)
+
+
+class TestCanFastIntersect:
+    """Tests for _can_fast_intersect alignment checks (GH#44025).
+
+    _can_fast_intersect must return False when two DatetimeIndexes with
+    matching freq would not "line up", which causes _fast_intersect to
+    produce wrong results.  Three categories of misalignment are covered:
+
+    1. Unanchored offsets (DateOffset / Week(weekday=None))
+    2. Non-normalizing offsets with different time-of-day
+    3. n > 1 phase misalignment
+    """
+
+    # --- Unanchored offsets (always return False) ---
+
+    @pytest.mark.parametrize(
+        "freq",
+        [
+            DateOffset(days=3),
+            DateOffset(months=1),
+            DateOffset(months=1, days=5),
+            DateOffset(weeks=1),
+            DateOffset(years=1),
+        ],
+    )
+    def test_dateoffset_never_fast(self, freq):
+        # GH#44025 DateOffset is unanchored
+        dti1 = date_range("2021-01-01", periods=5, freq=freq)
+        dti2 = date_range("2021-01-02", periods=5, freq=freq)
+        assert not dti1._can_fast_intersect(dti2)
+
+        result = dti1.intersection(dti2)
+        assert len(result) == 0
+
+    def test_week_no_weekday_never_fast(self):
+        # GH#44025 Week(weekday=None) is unanchored
+        freq = pd.offsets.Week()
+        assert freq.weekday is None
+
+        dti1 = date_range("2021-10-04", periods=5, freq=freq)  # Monday
+        dti2 = date_range("2021-10-05", periods=5, freq=freq)  # Tuesday
+        assert not dti1._can_fast_intersect(dti2)
+
+        result = dti1.intersection(dti2)
+        assert len(result) == 0
+
+    def test_week_no_weekday_same_day_never_fast(self):
+        # GH#44025 Even when both start on the same weekday,
+        # Week(weekday=None) is unanchored so we conservatively
+        # return False.
+        freq = pd.offsets.Week()
+        dti1 = date_range("2021-10-04", periods=5, freq=freq)
+        dti2 = date_range("2021-10-18", periods=5, freq=freq)
+        assert not dti1._can_fast_intersect(dti2)
+
+        # Result is still correct via the slow path
+        result = dti1.intersection(dti2)
+        assert set(result) == set(dti1).intersection(set(dti2))
+
+    # --- Non-normalizing offsets with time-of-day mismatch ---
+
+    @pytest.mark.parametrize(
+        "freq",
+        [
+            pd.offsets.CDay(1),
+            pd.offsets.BDay(1),
+            pd.offsets.MonthEnd(1),
+            pd.offsets.Week(weekday=0),
+        ],
+    )
+    def test_different_times(self, freq):
+        # GH#44025
+        ts1 = Timestamp("2021-10-13 09:00")
+        ts2 = Timestamp("2021-10-13 10:00")
+        dti1 = date_range(start=ts1, periods=10, freq=freq)
+        dti2 = date_range(start=ts2, periods=10, freq=freq)
+        assert not dti1._can_fast_intersect(dti2)
+
+        result = dti1.intersection(dti2)
+        assert len(result) == 0
+
+    @pytest.mark.parametrize(
+        "freq",
+        [
+            pd.offsets.CDay(1),
+            pd.offsets.BDay(1),
+            pd.offsets.MonthEnd(1),
+            pd.offsets.Week(weekday=0),
+        ],
+    )
+    def test_same_times_fast_path_preserved(self, freq):
+        # GH#44025 fast path should still be used when times match
+        ts = Timestamp("2021-10-13 09:00")
+        dti1 = date_range(start=ts, periods=10, freq=freq)
+        dti2 = date_range(start=dti1[2], periods=10, freq=freq)
+        assert dti1._can_fast_intersect(dti2)
+
+        result = dti1.intersection(dti2)
+        assert set(result) == set(dti1).intersection(set(dti2))
+        assert len(result) > 0
+
+    def test_normalize_on_offset_does_not_affect_date_range(self):
+        # GH#44025 normalize=True on the offset does not normalize
+        # date_range output, so different start times still misalign.
+        freq = pd.offsets.CDay(1, normalize=True)
+        dti1 = date_range("2021-10-13 09:00", periods=10, freq=freq)
+        dti2 = date_range("2021-10-13 10:00", periods=10, freq=freq)
+        assert not dti1._can_fast_intersect(dti2)
+
+        result = dti1.intersection(dti2)
+        assert len(result) == 0
+
+    # --- n > 1 phase alignment ---
+
+    @pytest.mark.parametrize(
+        "freq_str, base_start, aligned_start, misaligned_start",
+        [
+            ("2ME", "2021-01-31", "2021-03-31", "2021-02-28"),
+            ("2QE", "2021-03-31", "2021-09-30", "2021-06-30"),
+            ("2YE", "2020-12-31", "2022-12-31", "2021-12-31"),
+            ("2W-MON", "2021-10-04", "2021-10-18", "2021-10-11"),
+        ],
+    )
+    def test_phase_alignment(
+        self, freq_str, base_start, aligned_start, misaligned_start
+    ):
+        # GH#44025
+        dti_base = date_range(base_start, periods=6, freq=freq_str)
+        dti_aligned = date_range(aligned_start, periods=6, freq=freq_str)
+        dti_misaligned = date_range(misaligned_start, periods=6, freq=freq_str)
+
+        assert dti_base._can_fast_intersect(dti_aligned)
+        result = dti_base.intersection(dti_aligned)
+        assert set(result) == set(dti_base).intersection(set(dti_aligned))
+        assert len(result) > 0
+
+        assert not dti_base._can_fast_intersect(dti_misaligned)
+        result = dti_base.intersection(dti_misaligned)
+        assert len(result) == 0
+
+    @pytest.mark.parametrize(
+        "n, start1, start2, expect_overlap",
+        [
+            (3, "2021-01-31", "2021-04-30", True),
+            (3, "2021-01-31", "2021-02-28", False),
+            (4, "2021-01-31", "2021-05-31", True),
+            (4, "2021-01-31", "2021-03-31", False),
+        ],
+    )
+    def test_monthend_various_n(self, n, start1, start2, expect_overlap):
+        # GH#44025
+        freq = pd.offsets.MonthEnd(n)
+        dti1 = date_range(start1, periods=6, freq=freq)
+        dti2 = date_range(start2, periods=6, freq=freq)
+
+        expected_set = set(dti1).intersection(set(dti2))
+        assert (len(expected_set) > 0) == expect_overlap
+
+        assert dti1._can_fast_intersect(dti2) == expect_overlap
+        result = dti1.intersection(dti2)
+        assert set(result) == expected_set
+
+    def test_semimonthend_phase(self):
+        # GH#44025
+        freq = pd.offsets.SemiMonthEnd(2)
+        dti1 = date_range("2021-01-15", periods=6, freq=freq)
+        dti2 = date_range("2021-02-15", periods=6, freq=freq)  # aligned
+        dti3 = date_range("2021-01-31", periods=6, freq=freq)  # misaligned
+
+        assert dti1._can_fast_intersect(dti2)
+        assert not dti1._can_fast_intersect(dti3)
+
+        result = dti1.intersection(dti3)
+        assert len(result) == 0
+
+    def test_halfyearend_phase(self):
+        # GH#44025
+        freq = pd.offsets.HalfYearEnd(2)
+        dti1 = date_range("2021-06-30", periods=4, freq=freq)
+        dti2 = date_range("2022-06-30", periods=4, freq=freq)  # aligned
+        dti3 = date_range("2021-12-31", periods=4, freq=freq)  # misaligned
+
+        assert dti1._can_fast_intersect(dti2)
+        assert not dti1._can_fast_intersect(dti3)
+
+        result = dti1.intersection(dti3)
+        assert len(result) == 0
+
+    def test_n_gt1_with_time_mismatch(self):
+        # GH#44025 time mismatch caught before ordinal check
+        freq = pd.offsets.MonthEnd(2)
+        dti1 = date_range("2021-01-31 09:00", periods=5, freq=freq)
+        dti2 = date_range("2021-03-31 10:00", periods=5, freq=freq)
+        assert not dti1._can_fast_intersect(dti2)
+
+        result = dti1.intersection(dti2)
+        assert len(result) == 0
+
+    def test_n_gt1_unsupported_offset_falls_back(self):
+        # GH#44025 BDay doesn't support ordinal computation for n > 1
+        dti1 = date_range("2021-10-04", periods=5, freq="2B")
+        dti2 = date_range("2021-10-06", periods=5, freq="2B")
+        assert not dti1._can_fast_intersect(dti2)
+
+        result = dti1.intersection(dti2)
+        assert set(result) == set(dti1).intersection(set(dti2))
+
+
+class TestBaseFreqOrdinalDiff:
+    """Unit tests for _base_freq_ordinal_diff helper."""
+
+    def test_month_offset(self):
+        ts1 = Timestamp("2021-01-31")
+        ts2 = Timestamp("2021-04-30")
+        assert _base_freq_ordinal_diff(ts1, ts2, pd.offsets.MonthEnd(2)) == -3
+        assert _base_freq_ordinal_diff(ts2, ts1, pd.offsets.MonthEnd(2)) == 3
+
+    def test_quarter_offset(self):
+        ts1 = Timestamp("2021-03-31")
+        ts2 = Timestamp("2021-09-30")
+        assert _base_freq_ordinal_diff(ts1, ts2, pd.offsets.QuarterEnd(2)) == -2
+
+    def test_year_offset(self):
+        ts1 = Timestamp("2020-12-31")
+        ts2 = Timestamp("2023-12-31")
+        assert _base_freq_ordinal_diff(ts1, ts2, pd.offsets.YearEnd(2)) == -3
+
+    def test_week_offset(self):
+        ts1 = Timestamp("2021-10-04")  # Monday
+        ts2 = Timestamp("2021-10-18")  # Monday, 2 weeks later
+        assert _base_freq_ordinal_diff(ts1, ts2, pd.offsets.Week(weekday=0)) == -2
+
+    def test_semimonth_offset(self):
+        ts1 = Timestamp("2021-01-15")
+        ts2 = Timestamp("2021-01-31")
+        assert _base_freq_ordinal_diff(ts1, ts2, pd.offsets.SemiMonthEnd(2)) == -1
+
+    def test_halfyear_offset(self):
+        ts1 = Timestamp("2021-06-30")
+        ts2 = Timestamp("2022-06-30")
+        assert _base_freq_ordinal_diff(ts1, ts2, pd.offsets.HalfYearEnd(2)) == -2
+
+    def test_unsupported_returns_none(self):
+        ts1 = Timestamp("2021-10-04")
+        ts2 = Timestamp("2021-10-06")
+        assert _base_freq_ordinal_diff(ts1, ts2, pd.offsets.BDay(2)) is None
+        assert _base_freq_ordinal_diff(ts1, ts2, pd.offsets.CDay(2)) is None

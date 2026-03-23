@@ -661,6 +661,59 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         return Index(res, dtype=res.dtype)
 
 
+def _base_freq_ordinal_diff(
+    ts_left: Timestamp, ts_right: Timestamp, freq: BaseOffset
+) -> int | None:
+    """
+    Compute the number of base-frequency steps between two on-offset
+    timestamps, using O(1) calendar arithmetic.
+
+    Returns None when the offset type doesn't support this computation
+    (e.g. BusinessDay, CustomBusinessDay, Easter, FY5253).
+
+    Parameters
+    ----------
+    ts_left, ts_right : Timestamp
+        Both must already be on-offset for *freq*.
+    freq : BaseOffset
+        The frequency whose base period defines the ordinal grid.
+    """
+    from pandas._libs.tslibs.offsets import (
+        HalfYearOffset,
+        MonthOffset,
+        QuarterOffset,
+        SemiMonthOffset,
+        Week,
+        YearOffset,
+    )
+
+    if isinstance(freq, MonthOffset):
+        return (ts_left.year * 12 + ts_left.month) - (
+            ts_right.year * 12 + ts_right.month
+        )
+    elif isinstance(freq, QuarterOffset):
+        return (ts_left.year * 4 + (ts_left.month - 1) // 3) - (
+            ts_right.year * 4 + (ts_right.month - 1) // 3
+        )
+    elif isinstance(freq, HalfYearOffset):
+        return (ts_left.year * 2 + (ts_left.month - 1) // 6) - (
+            ts_right.year * 2 + (ts_right.month - 1) // 6
+        )
+    elif isinstance(freq, YearOffset):
+        return ts_left.year - ts_right.year
+    elif isinstance(freq, Week) and freq.weekday is not None:
+        # Both timestamps are on the same weekday, so their toordinal()
+        # difference is a multiple of 7.
+        return (ts_left.toordinal() - ts_right.toordinal()) // 7
+    elif isinstance(freq, SemiMonthOffset):
+        half_left = 1 if ts_left.day > freq.day_of_month else 0
+        half_right = 1 if ts_right.day > freq.day_of_month else 0
+        return (ts_left.year * 24 + (ts_left.month - 1) * 2 + half_left) - (
+            ts_right.year * 24 + (ts_right.month - 1) * 2 + half_right
+        )
+    return None
+
+
 class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
     """
     Mixin class for methods shared by DatetimeIndex and TimedeltaIndex,
@@ -1138,11 +1191,44 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             # Because freq is not None, we must then be monotonic decreasing
             return False
 
-        # this along with matching freqs ensure that we "line up",
-        #  so intersection will preserve freq
-        # Note we are assuming away Ticks, as those go through _range_intersect
-        # GH#42104
-        return self.freq.n == 1
+        # GH#44025 DateOffset (RelativeDeltaOffset) and Week(weekday=None) are
+        #  unanchored: the set of generated dates depends on the starting
+        #  point, so matching freq alone doesn't guarantee alignment.
+        from pandas._libs.tslibs.offsets import (
+            RelativeDeltaOffset,
+            Week,
+        )
+
+        if isinstance(self.freq, RelativeDeltaOffset):
+            return False
+        if isinstance(self.freq, Week) and self.freq.weekday is None:
+            return False
+
+        # Note we are assuming away Ticks, as those go through _range_intersect.
+        freq = self.freq
+
+        # Below here we need actual timestamp values; cache them once
+        #  since __getitem__ is relatively expensive on DatetimeIndex.
+        left_start = self[0]
+        right_start = other[0]
+
+        # GH#44025 For DatetimeIndex, both indices must share the same
+        #  time-of-day to guarantee alignment.  (TimedeltaIndex elements
+        #  are Timedelta, which have no time-of-day concept.)
+        if isinstance(left_start, Timestamp):
+            if left_start - left_start.normalize() != (
+                right_start - right_start.normalize()
+            ):
+                return False
+
+        # GH#42104, GH#44025 For n > 1, verify that both indices are on the
+        #  same phase of the base frequency using O(1) ordinal arithmetic.
+        if freq.n != 1:
+            ord_diff = _base_freq_ordinal_diff(left_start, right_start, freq)
+            if ord_diff is None or ord_diff % freq.n != 0:
+                return False
+
+        return True
 
     def _can_fast_union(self, other: Self) -> bool:
         # Assumes that type(self) == type(other), as per the annotation
