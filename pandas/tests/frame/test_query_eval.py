@@ -233,6 +233,28 @@ class TestDataFrameEval:
         expected = Series([1.5 + 0.5j])
         tm.assert_series_equal(result, expected)
 
+    def test_query_period_dtype(self, engine, parser):
+        # GH#35247
+        df = DataFrame(
+            {
+                "year": pd.period_range("2018", periods=5, freq="Y"),
+                "val": range(5),
+            }
+        )
+        result = df.query("year > '2020'", engine=engine, parser=parser)
+        expected = df[df["year"] > "2020"]
+        tm.assert_frame_equal(result, expected)
+
+    def test_query_interval_dtype(self, engine, parser):
+        # GH#35247
+        skip_if_no_pandas_parser(parser)
+        idx = pd.IntervalIndex.from_breaks(range(6))
+        df = DataFrame({"interval": idx, "val": range(5)})
+        target = idx[2]
+        result = df.query("interval == @target", engine=engine, parser=parser)
+        expected = df[df["interval"] == target]
+        tm.assert_frame_equal(result, expected)
+
 
 class TestDataFrameQueryWithMultiIndex:
     def test_query_with_named_multiindex(self, parser, engine):
