@@ -10,6 +10,7 @@ import pytest
 
 from pandas import (
     DataFrame,
+    Index,
     MultiIndex,
 )
 import pandas._testing as tm
@@ -40,7 +41,7 @@ class TestDatetimeDateMultiIndexLoc:
         result = df.loc[(np.datetime64("2023-11-01"), "A")]
         expected = DataFrame(
             {"vals": [1.0]},
-            index=MultiIndex.from_arrays([["C"]], names=["t2"]),
+            index=Index(["C"], name="t2"),
         )
         tm.assert_frame_equal(result, expected)
 
@@ -50,7 +51,7 @@ class TestDatetimeDateMultiIndexLoc:
         result = df.loc[(np.datetime64("2023-11-01"), "B")]
         expected = DataFrame(
             {"vals": [2.0]},
-            index=MultiIndex.from_arrays([["D"]], names=["t2"]),
+            index=Index(["D"], name="t2"),
         )
         tm.assert_frame_equal(result, expected)
 
