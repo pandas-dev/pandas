@@ -471,3 +471,20 @@ def test_css_excel_cell_cache(styles, cache_hits, cache_misses):
 
     assert cache_info.hits == cache_hits
     assert cache_info.misses == cache_misses
+
+def test_styler_to_excel_preserves_case_in_number_format(tmp_path):
+    # GH#63101
+    import pandas as pd
+    from zipfile import ZipFile
+
+    df = pd.DataFrame({"A": [1000000]})
+
+    styler = df.style.format({"A": '#,,"M"'})
+
+    file = tmp_path / "test.xlsx"
+    styler.to_excel(file)
+
+    with ZipFile(file) as z:
+        styles_xml = z.read("xl/styles.xml").decode()
+
+    assert '#,,"M"' in styles_xml

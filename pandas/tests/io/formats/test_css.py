@@ -286,3 +286,40 @@ def test_css_relative_font_size(size, relative_to, resolved):
     else:
         inherited = {"font-size": relative_to}
     assert_resolves(f"font-size: {size}", {"font-size": resolved}, inherited=inherited)
+
+def test_css_parse_preserves_case_in_quoted_strings():
+    # GH#63101
+    resolve = CSSResolver()
+
+    css = 'number-format: #,,"M"'
+    result = resolve(css)
+
+    assert result["number-format"] == '#,,"M"'
+
+
+def test_css_parse_lowercases_outside_quotes_only():
+    resolve = CSSResolver()
+
+    css = 'color: RED; number-format: "#,,"M" TEXT"'
+    result = resolve(css)
+
+    assert result["color"] == "red"
+    assert result["number-format"] == '"#,,"M" TEXT"'
+
+
+def test_css_parse_multiple_quoted_sections():
+    resolve = CSSResolver()
+
+    css = 'color: RED; number-format: "A" "B" C'
+    result = resolve(css)
+
+    assert result["number-format"] == '"A" "B" c'
+
+
+def test_lowercase_outside_quotes_function():
+    from pandas.io.formats.css import _lowercase_outside_quotes
+
+    value = 'ABC "#,,"M"" DEF'
+    result = _lowercase_outside_quotes(value)
+
+    assert result == 'abc "#,,"M"" def'
