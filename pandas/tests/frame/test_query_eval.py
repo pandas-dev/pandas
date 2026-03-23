@@ -247,13 +247,10 @@ class TestDataFrameEval:
 
     def test_query_interval_dtype(self, engine, parser):
         # GH#35247
-        skip_if_no_pandas_parser(parser)
         idx = pd.IntervalIndex.from_breaks(range(6))
-        df = DataFrame({"interval": idx, "val": range(5)})
-        target = idx[2]
-        result = df.query("interval == @target", engine=engine, parser=parser)
-        expected = df[df["interval"] == target]
-        tm.assert_frame_equal(result, expected)
+        df = DataFrame({"a": idx, "b": idx})
+        result = df.query("a == b", engine=engine, parser=parser)
+        tm.assert_frame_equal(result, df)
 
 
 class TestDataFrameQueryWithMultiIndex:
