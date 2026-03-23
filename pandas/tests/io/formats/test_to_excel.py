@@ -472,10 +472,14 @@ def test_css_excel_cell_cache(styles, cache_hits, cache_misses):
     assert cache_info.hits == cache_hits
     assert cache_info.misses == cache_misses
 
+
 def test_styler_to_excel_preserves_case_in_number_format(tmp_path):
     # GH#63101
-    import pandas as pd
+    import pytest
+    pytest.importorskip("jinja2")
+
     from zipfile import ZipFile
+    import pandas as pd
 
     df = pd.DataFrame({"A": [1000000]})
 
