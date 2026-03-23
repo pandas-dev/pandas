@@ -3284,9 +3284,7 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             result = lvals
 
-        if not self.is_monotonic_increasing or not other.is_monotonic_increasing:
-            # if both are monotonic then result should already be sorted
-            result = _maybe_try_sort(result, sort)
+        result = _maybe_try_sort(result, sort)
 
         return result
 
@@ -4597,16 +4595,31 @@ class Index(IndexOpsMixin, PandasObject):
         if (
             self.is_monotonic_increasing
             and other.is_monotonic_increasing
-            and self._can_use_libjoin
-            and other._can_use_libjoin
             and (self.is_unique or other.is_unique)
         ):
-            try:
-                return self._join_monotonic(other, how=how)
-            except TypeError:
-                # object dtype; non-comparable objects
-                pass
-        elif not self.is_unique or not other.is_unique:
+            if self._can_use_libjoin and other._can_use_libjoin:
+                try:
+                    return self._join_monotonic(other, how=how)
+                except TypeError:
+                    # object dtype; non-comparable objects
+                    pass
+            elif isinstance(self, ABCRangeIndex):
+                # RangeIndex._join_monotonic doesn't use libjoin;
+                #  it uses pure-Python range operations.
+                try:
+                    return self._join_monotonic(other, how=how)
+                except (TypeError, NotImplementedError):
+                    pass
+
+        if (
+            self.equals(other)
+            and (self.is_unique or other.is_unique)
+            and (not sort or self.is_monotonic_increasing)
+        ):
+            ret_index = other if how == "right" else self
+            return ret_index, None, None
+
+        if not self.is_unique or not other.is_unique:
             return self._join_non_unique(other, how=how, sort=sort)
 
         return self._join_via_get_indexer(other, how, sort)
@@ -4967,9 +4980,6 @@ class Index(IndexOpsMixin, PandasObject):
         assert self._can_use_libjoin and other._can_use_libjoin
 
         if self.equals(other):
-            # This is a convenient place for this check, but its correctness
-            #  does not depend on monotonicity, so it could go earlier
-            #  in the calling method.
             ret_index = other if how == "right" else self
             return ret_index, None, None
 
@@ -5087,18 +5097,16 @@ class Index(IndexOpsMixin, PandasObject):
                 )
             )
         # Exclude index types where the conversion to numpy converts to object dtype,
-        #  which negates the performance benefit of libjoin
-        # Subclasses should override to return False if _get_join_target is
-        #  not zero-copy.
-        # TODO: exclude RangeIndex (which allocates memory)?
-        #  Doing so seems to break test_concat_datetime_timezone
+        #  which negates the performance benefit of libjoin.
+        # Also exclude RangeIndex which allocates memory in _get_join_target,
+        #  negating the performance benefit of the fastpath.
         if isinstance(self, ABCCategoricalIndex) and not self.ordered:
             # For unordered CategoricalIndex, dtype equality does not
             # guarantee matching category order across indexes. Since libjoin
             # operates on codes, mismatched category order leads to incorrect
             # results. GH#55335
             return False
-        return not isinstance(self, (ABCIntervalIndex, ABCMultiIndex))
+        return not isinstance(self, (ABCIntervalIndex, ABCMultiIndex, ABCRangeIndex))
 
     # --------------------------------------------------------------------
     # Uncategorized Methods
@@ -5307,7 +5315,6 @@ class Index(IndexOpsMixin, PandasObject):
             # "mM" cases will go through _get_engine_target and cast to i8
             return self._values.to_numpy()
 
-        # TODO: exclude ABCRangeIndex case here as it copies
         target = self._get_engine_target()
         if not isinstance(target, np.ndarray):
             raise ValueError("_can_use_libjoin should return False.")
