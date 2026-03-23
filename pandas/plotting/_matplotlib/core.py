@@ -1287,6 +1287,8 @@ class PlanePlot(MPLPlot, ABC):
         # type "Hashable"; expected "str"
         ax.set_xlabel(xlabel)  # type: ignore[arg-type]
         ax.set_ylabel(ylabel)  # type: ignore[arg-type]
+        ax.xaxis.get_label().set_visible(True)
+        ax.yaxis.get_label().set_visible(True)
 
     @final
     def _plot_colorbar(self, ax: Axes, *, fig: Figure, **kwds):
