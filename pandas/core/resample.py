@@ -2964,14 +2964,20 @@ def _get_timestamp_range_edges(
         )
     else:
         first = first.normalize()
-        last = last.normalize()
+        last_normalized = last.normalize()
 
         if closed == "left":
             first = Timestamp(freq.rollback(first))
         else:
             first = Timestamp(first - freq)
 
-        last = Timestamp(last + freq)
+        if closed == "right" and isinstance(freq, Day) and last == last_normalized:
+            # GH#62200: when closed="right" and last is already on a
+            # Day boundary (midnight), it belongs to the previous bin's
+            # right edge, so we don't need to extend to the next bin.
+            last = last_normalized
+        else:
+            last = Timestamp(last_normalized + freq)
 
     return first, last
 

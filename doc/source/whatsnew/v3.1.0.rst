@@ -282,6 +282,7 @@ Groupby/resample/rolling
 - Bug in :meth:`.Rolling.skew` and :meth:`.Rolling.kurt` returning ``NaN`` for low-variance windows (:issue:`62946`)
 - Bug in :meth:`DataFrame.groupby` with a :class:`Grouper` with ``freq`` raising ``AttributeError`` when all grouping keys are ``NaT`` (:issue:`43486`)
 - Bug in :meth:`Series.resample` and :meth:`DataFrame.resample` where same-frequency resampling with monthly, quarterly, or annual frequencies bypassed aggregation, returning the original values instead of the aggregation result (:issue:`18553`)
+- Bug in :meth:`Series.resample` and :meth:`DataFrame.resample` with ``"D"`` frequency and ``closed="right"`` producing an extra trailing empty bin when the last value falls on a Day boundary (:issue:`62200`)
 
 Reshaping
 ^^^^^^^^^
