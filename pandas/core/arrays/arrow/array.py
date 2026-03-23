@@ -69,7 +69,6 @@ from pandas.core import (
     ops,
     roperator,
 )
-from pandas.core.algorithms import map_array
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays._arrow_string_mixins import ArrowStringArrayMixin
 from pandas.core.arrays._utils import to_numpy_dtype_inference
@@ -433,6 +432,26 @@ class ArrowExtensionArray(
             # Retain our dtype
             return self[:0].copy()
 
+        if isinstance(self.dtype, StringDtype):
+            # Handle StringDtype early: _from_scalars would convert any value
+            # to its string representation, and the type-specific checks below
+            # (duration, timestamp, etc.) would return Arrow types instead of
+            # respecting StringDtype NaN-semantics.
+            try:
+                arr = pa.array(values, from_pandas=True)
+            except (ValueError, TypeError):
+                values = np.asarray(values, dtype=object)
+                return lib.maybe_convert_objects(values, convert_non_numeric=True)
+            if pa.types.is_string(arr.type) or pa.types.is_large_string(arr.type):
+                # ArrowStringArray preserves dtype.na_value
+                return self._from_pyarrow_array(arr)
+            if self.dtype.na_value is np.nan:
+                # ArrowEA has different semantics, so we return numpy-based
+                #  result instead
+                values = np.asarray(values, dtype=object)
+                return lib.maybe_convert_objects(values, convert_non_numeric=True)
+            return ArrowExtensionArray(arr)
+
         try:
             if self.dtype.kind in "iufc" and not is_nan_na():
                 values = np.asarray(values, dtype=object)
@@ -500,16 +519,6 @@ class ArrowExtensionArray(
                 # e.g. test_combine_add if we can't cast
                 pass
 
-        if isinstance(self.dtype, StringDtype):
-            if pa.types.is_string(arr.type) or pa.types.is_large_string(arr.type):
-                # ArrowStringArray preserves dtype.na_value
-                return self._from_pyarrow_array(arr)
-            if self.dtype.na_value is np.nan:
-                # ArrowEA has different semantics, so we return numpy-based
-                #  result instead
-                values = np.asarray(values, dtype=object)
-                return lib.maybe_convert_objects(values, convert_non_numeric=True)
-            return ArrowExtensionArray(arr)
         return self._from_pyarrow_array(arr)
 
     @classmethod
@@ -1958,15 +1967,8 @@ class ArrowExtensionArray(
             result[~mask] = data[~mask]._pa_array.to_numpy()
         return result
 
-    def map(self, mapper, na_action: Literal["ignore"] | None = None):
-        if is_numeric_dtype(self.dtype):
-            return map_array(self.to_numpy(), mapper, na_action=na_action)
-        else:
-            # For "mM" cases, the super() method passes `self` without the
-            #  to_numpy call, which inside map_array casts to ndarray[object].
-            #  Without the to_numpy() call, NA is preserved instead of changed
-            #  to None.
-            return super().map(mapper, na_action)
+    # GH#62164 map is handled by the base class ExtensionArray.map,
+    # which calls _cast_pointwise_result to retain the dtype backend.
 
     def duplicated(
         self, keep: Literal["first", "last", False] = "first"
