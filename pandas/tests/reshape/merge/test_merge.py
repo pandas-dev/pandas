@@ -9,6 +9,7 @@ import numpy as np
 import pytest
 
 from pandas.compat import PY314
+from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.common import (
     is_object_dtype,
@@ -1828,7 +1829,10 @@ class TestMergeDtypes:
             dtype=string_dtype,
         )
         df2_copy = df2.copy()
-        merged = merge(left=df1, right=df2, on=[("lvl0", "lvl1-a")], how=join_type)
+        # GH#32306 - both sides have NA in join key
+        warn = Pandas4Warning if string_dtype == "U" else None
+        with tm.assert_produces_warning(warn, match="NA values"):
+            merged = merge(left=df1, right=df2, on=[("lvl0", "lvl1-a")], how=join_type)
 
         # No change in df1 and df2
         tm.assert_frame_equal(df1, df1_copy)
@@ -2212,7 +2216,9 @@ class TestMergeCategorical:
     def test_merge_on_int_array(self):
         # GH 23020
         df = DataFrame({"A": Series([1, 2, pd.NA], dtype="Int64"), "B": 1})
-        result = merge(df, df, on="A")
+        # GH#32306 - both sides have NA in join key
+        with tm.assert_produces_warning(Pandas4Warning, match="NA values"):
+            result = merge(df, df, on="A")
         expected = DataFrame(
             {"A": Series([1, 2, pd.NA], dtype="Int64"), "B_x": 1, "B_y": 1}
         )
@@ -3166,8 +3172,10 @@ def test_merge_on_all_nan_column():
     # GH#59421
     left = DataFrame({"x": [1, 2, 3], "y": [np.nan, np.nan, np.nan], "z": [4, 5, 6]})
     right = DataFrame({"x": [1, 2, 3], "y": [np.nan, np.nan, np.nan], "zz": [4, 5, 6]})
-    result = left.merge(right, on=["x", "y"], how="outer")
-    # Should not trigger array bounds eerror with bounds checking or asan enabled.
+    # GH#32306 - both sides have NaN in join key "y"
+    with tm.assert_produces_warning(Pandas4Warning, match="NA values"):
+        result = left.merge(right, on=["x", "y"], how="outer")
+    # Should not trigger array bounds error with bounds checking or asan enabled.
     expected = DataFrame(
         {"x": [1, 2, 3], "y": [np.nan, np.nan, np.nan], "z": [4, 5, 6], "zz": [4, 5, 6]}
     )
@@ -3195,6 +3203,51 @@ def test_merge_categorical_key_recursion():
         right.astype("float64"), on="key", how="outer"
     )
     tm.assert_frame_equal(result, expected)
+
+
+class TestMergeNAWarning:
+    """Tests for GH#32306 deprecation of NA matching NA in merge."""
+
+    def test_merge_na_on_both_sides_warns(self):
+        # GH#32306
+        left = DataFrame({"key": [1, 2, np.nan], "val": ["a", "b", "c"]})
+        right = DataFrame({"key": [1, 3, np.nan], "val": ["d", "e", "f"]})
+        msg = "merging on columns containing NA values will no longer"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = merge(left, right, on="key")
+        # During deprecation period, NAs still match
+        assert len(result) == 2  # key=1 match + NaN match
+
+    def test_merge_na_on_one_side_no_warning(self):
+        # GH#32306 - no warning when only one side has NA
+        left = DataFrame({"key": [1, 2, np.nan], "val": ["a", "b", "c"]})
+        right = DataFrame({"key": [1, 2, 3], "val": ["d", "e", "f"]})
+        with tm.assert_produces_warning(None):
+            merge(left, right, on="key")
+
+    def test_merge_no_na_no_warning(self):
+        # GH#32306 - no warning when neither side has NA
+        left = DataFrame({"key": [1, 2, 3], "val": ["a", "b", "c"]})
+        right = DataFrame({"key": [1, 2, 3], "val": ["d", "e", "f"]})
+        with tm.assert_produces_warning(None):
+            merge(left, right, on="key")
+
+    @pytest.mark.parametrize("how", ["inner", "left", "right", "outer"])
+    def test_merge_na_warns_all_join_types(self, how):
+        # GH#32306
+        left = DataFrame({"key": [1.0, np.nan], "val": [1, 2]})
+        right = DataFrame({"key": [1.0, np.nan], "val": [3, 4]})
+        msg = "merging on columns containing NA values will no longer"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            merge(left, right, on="key", how=how)
+
+    def test_merge_na_nullable_dtypes_warns(self):
+        # GH#32306
+        left = DataFrame({"key": pd.array([1, 2, pd.NA], dtype="Int64")})
+        right = DataFrame({"key": pd.array([1, 3, pd.NA], dtype="Int64")})
+        msg = "merging on columns containing NA values will no longer"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            merge(left, right, on="key")
 
 
 def test_merge_pyarrow_datetime_duplicates():

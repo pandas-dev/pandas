@@ -24,7 +24,10 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.lib import is_range_indexer
-from pandas.errors import MergeError
+from pandas.errors import (
+    MergeError,
+    Pandas4Warning,
+)
 from pandas.util._decorators import (
     cache_readonly,
     set_module,
@@ -2906,6 +2909,18 @@ def _factorize_keys(
                 lany = lmask.any()
                 rmask = rlab == -1
                 rany = rmask.any()
+                if lany and rany:
+                    # GH#32306
+                    warnings.warn(
+                        "In a future version of pandas, merging on columns "
+                        "containing NA values will no longer treat NA as a "
+                        "matchable key. The rows with NA keys will not be "
+                        "joined. To suppress this warning and retain the "
+                        "current behavior, filter out NA values before "
+                        "merging.",
+                        Pandas4Warning,
+                        stacklevel=find_stack_level(),
+                    )
                 if lany:
                     np.putmask(llab, lmask, count)
                 if rany:
@@ -2959,8 +2974,24 @@ def _factorize_keys(
         lk_data, rk_data = lk, rk  # type: ignore[assignment]
         lk_mask, rk_mask = None, None
 
+    # GH#32306 - check if both sides have NAs. If so, skip the hash join
+    # path so that the deprecation warning is emitted from the main path below.
+    if lk_mask is not None and rk_mask is not None:
+        _both_have_na = lk_mask.any() and rk_mask.any()
+    elif lk_mask is not None:
+        _both_have_na = False
+    elif rk_mask is not None:
+        _both_have_na = False
+    elif lk.dtype.kind == "f":
+        _both_have_na = np.isnan(lk_data).any() and np.isnan(rk_data).any()
+    else:
+        _both_have_na = False
+
     hash_join_available = (
-        how in ("inner", "left") and not sort and lk.dtype.kind in "iufb"
+        how in ("inner", "left")
+        and not sort
+        and lk.dtype.kind in "iufb"
+        and not _both_have_na
     )
     if hash_join_available:
         rlab = rizer.factorize(rk_data, mask=rk_mask)
@@ -2997,6 +3028,18 @@ def _factorize_keys(
     rany = rmask.any()
 
     if lany or rany:
+        if lany and rany:
+            # GH#32306
+            warnings.warn(
+                "In a future version of pandas, merging on columns "
+                "containing NA values will no longer treat NA as a "
+                "matchable key. The rows with NA keys will not be "
+                "joined. To suppress this warning and retain the "
+                "current behavior, filter out NA values before "
+                "merging.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
         if lany:
             np.putmask(llab, lmask, count)
         if rany:

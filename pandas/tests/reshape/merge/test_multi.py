@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -103,7 +104,7 @@ class TestMergeMulti:
                 f = lambda ts: ts.map(iord) - ord("a")
                 return f(df["1st"]) + f(df["3rd"]) * 1e2 + df["2nd"].fillna(0) * 10
 
-            def run_asserts(left, right, sort):
+            def run_asserts(left, right, sort, merge_warn=None):
                 res = left.join(right, on=icols, how="left", sort=sort)
 
                 assert len(left) < len(res) + 1
@@ -118,7 +119,10 @@ class TestMergeMulti:
                 if sort:
                     tm.assert_frame_equal(res, res.sort_values(icols, kind="mergesort"))
 
-                out = merge(left, right.reset_index(), on=icols, sort=sort, how="left")
+                with tm.assert_produces_warning(merge_warn, match="NA values"):
+                    out = merge(
+                        left, right.reset_index(), on=icols, sort=sort, how="left"
+                    )
 
                 res.index = RangeIndex(len(res))
                 tm.assert_frame_equal(out, res)
@@ -152,7 +156,8 @@ class TestMergeMulti:
             right["5th"] = -bind_cols(right)
             right.set_index(icols, inplace=True)
 
-            run_asserts(left, right, sort)
+            # GH#32306 - both sides have NaN in join keys
+            run_asserts(left, right, sort, merge_warn=Pandas4Warning)
 
     def test_merge_right_vs_left(self, left, right, sort):
         # compare left vs right merge with multikey
@@ -436,7 +441,9 @@ class TestMergeMulti:
         ]
         other = DataFrame(other_data, columns=["year", "panel", "data"])
 
-        result = frame.merge(other, how="outer")
+        # GH#32306 - both sides have NaN in "data" column
+        with tm.assert_produces_warning(Pandas4Warning, match="NA values"):
+            result = frame.merge(other, how="outer")
 
         expected = frame.fillna(-999).merge(other.fillna(-999), how="outer")
         expected = expected.replace(-999, np.nan)
@@ -826,7 +833,9 @@ class TestMergeMultiIndexNaN:
                 [[1.0, np.nan, 3.0], ["a", "b", "c"]], names=["key1", "key2"]
             ),
         )
-        result = merge(left, right, left_on=["key1", "key2"], right_index=True)
+        # GH#32306 - both sides have NaN in key1
+        with tm.assert_produces_warning(Pandas4Warning, match="NA values"):
+            result = merge(left, right, left_on=["key1", "key2"], right_index=True)
         expected = DataFrame(
             {
                 "key1": [1.0, np.nan, 3.0],
@@ -849,7 +858,9 @@ class TestMergeMultiIndexNaN:
         right = DataFrame(
             {"key1": [1.0, np.nan, 3.0], "key2": ["a", "b", "c"], "val": [10, 20, 30]}
         )
-        result = merge(left, right, left_index=True, right_on=["key1", "key2"])
+        # GH#32306 - both sides have NaN in key1
+        with tm.assert_produces_warning(Pandas4Warning, match="NA values"):
+            result = merge(left, right, left_index=True, right_on=["key1", "key2"])
         expected = DataFrame(
             {
                 "data": [100, 200, 300],

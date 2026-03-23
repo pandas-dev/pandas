@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -102,7 +103,9 @@ def test_merge_antijoin_nans():
     right = DataFrame({"A": [3.0, 2.0, np.nan], "D": ["d", "e", "f"]}).astype(
         {"D": object}
     )
-    result = merge(left, right, how="left_anti", on="A")
+    # GH#32306 - both sides have NaN in join key
+    with tm.assert_produces_warning(Pandas4Warning, match="NA values"):
+        result = merge(left, right, how="left_anti", on="A")
     expected = DataFrame({"A": [1.0], "C": ["a"], "D": [np.nan]}).astype(
         {"C": object, "D": object}
     )
@@ -258,11 +261,14 @@ def test_merge_antijoin_with_null_values():
     left = DataFrame({"A": [1.0, 2.0, None, 4.0]})
     right = DataFrame({"B": [2.0, None, 5.0]})
 
-    result = merge(left, right, how="left_anti", left_on="A", right_on="B")
+    # GH#32306 - both sides have NaN in join key
+    with tm.assert_produces_warning(Pandas4Warning, match="NA values"):
+        result = merge(left, right, how="left_anti", left_on="A", right_on="B")
     expected = DataFrame({"A": [1.0, 4.0], "B": [np.nan, np.nan]}, index=[0, 3])
     tm.assert_frame_equal(result, expected)
 
-    result = merge(left, right, how="right_anti", left_on="A", right_on="B")
+    with tm.assert_produces_warning(Pandas4Warning, match="NA values"):
+        result = merge(left, right, how="right_anti", left_on="A", right_on="B")
     expected = DataFrame({"A": [np.nan], "B": [5.0]}, index=[2])
     tm.assert_frame_equal(result, expected)
 

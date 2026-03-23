@@ -3,6 +3,7 @@ import datetime
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -3145,7 +3146,9 @@ class TestAsOfMerge:
             }
         )
 
-        result = merge_asof(left, right, by=["by_col1", "by_col2"], on="on_col")
+        # GH#32306 - both sides have NA in by_col1
+        with tm.assert_produces_warning(Pandas4Warning, match="NA values"):
+            result = merge_asof(left, right, by=["by_col1", "by_col2"], on="on_col")
         expected = pd.DataFrame(
             {
                 "by_col1": arr,
