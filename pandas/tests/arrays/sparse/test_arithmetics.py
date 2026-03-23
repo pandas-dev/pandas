@@ -388,7 +388,11 @@ class TestSparseArrayArithmetics:
         t = SparseArray([True, False, True, False])
         result = s ^ t
         sp_index = pd.core.arrays.sparse.IntIndex(4, np.array([0, 1, 2], dtype="int32"))
-        expected = SparseArray([False, True, True], sparse_index=sp_index)
+        expected = SparseArray._simple_new(
+            np.array([False, True, True]),
+            sp_index,
+            SparseDtype(bool, False),
+        )
         tm.assert_sp_array_equal(result, expected)
 
 

@@ -23,6 +23,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
     CategoricalDtype,
+    SparseDtype,
 )
 
 from pandas.core.arrays import SparseArray
@@ -336,12 +337,10 @@ def _get_dummies_1d(
             sp_indices = sp_indices[1:]
             dummy_cols = dummy_cols[1:]
         for col, ixs in zip(dummy_cols, sp_indices, strict=True):
-            sarr = SparseArray(
-                np.ones(len(ixs), dtype=dtype),
-                sparse_index=IntIndex(N, ixs),
-                fill_value=fill_value,
-                dtype=dtype,
-            )
+            sp_values = np.ones(len(ixs), dtype=dtype)
+            sp_index = IntIndex(N, ixs)
+            sparse_dtype = SparseDtype(dtype, fill_value)
+            sarr = SparseArray._simple_new(sp_values, sp_index, sparse_dtype)
             sparse_series.append(Series(data=sarr, index=index, name=col, copy=False))
 
         return concat(sparse_series, axis=1)

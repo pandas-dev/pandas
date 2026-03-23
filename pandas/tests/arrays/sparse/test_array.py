@@ -279,7 +279,11 @@ class TestSparseArrayAnalytics:
         tm.assert_sp_array_equal(np.abs(sparse), result)
 
         sparse = SparseArray([1, -1, 2, -2], fill_value=1)
-        result = SparseArray([1, 2, 2], sparse_index=sparse.sp_index, fill_value=1)
+        result = SparseArray._simple_new(
+            np.array([1, 2, 2]),
+            sparse.sp_index,
+            SparseDtype(np.int64, 1),
+        )
         tm.assert_sp_array_equal(abs(sparse), result)
         tm.assert_sp_array_equal(np.abs(sparse), result)
 
