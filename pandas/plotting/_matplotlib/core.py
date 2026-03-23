@@ -1408,6 +1408,9 @@ class ScatterPlot(PlanePlot):
                 n_cats = len(self.data[c].cat.categories)
                 cbar.set_ticks(np.linspace(0.5, n_cats - 0.5, n_cats))
                 cbar.ax.set_yticklabels(self.data[c].cat.categories)
+            # GH#36064: Ensure x-axis label remains visible when colorbar is added
+            # by disabling sharex to prevent handle_shared_axes from removing labels
+            self.sharex = False
 
         if label is not None:
             self._append_legend_handles_labels(
@@ -1534,6 +1537,9 @@ class HexBinPlot(PlanePlot):
         ax.hexbin(data[x].values, data[y].values, C=c_values, cmap=cmap, **self.kwds)
         if cb:
             self._plot_colorbar(ax, fig=fig)
+            # GH#36064: Ensure x-axis label remains visible when colorbar is added
+            # by disabling sharex to prevent handle_shared_axes from removing labels
+            self.sharex = False
 
     def _make_legend(self) -> None:
         pass
