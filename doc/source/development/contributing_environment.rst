@@ -175,7 +175,7 @@ Helpful options include:
 * ``-Ceditable-verbose=true``: Print verbose logs during rebuild, even during ``import``.
 * ``-Cbuilddir="your builddir here"``: Specify a different build directory for the C extensions.
 * ``-Csetup-args="-Ddebug=true"``: Compile the C extensions with debug symbols.
-* ``-Csetup-args=-Dopenmp=enabled``: Compile Pandas with parallelization support through OpenMP.
+* ``-Csetup-args=-Dopenmp=disabled``: Compile Pandas without parallelization support through OpenMP.
 
 .. note::
    When pandas is installed in ``--editable`` mode, pandas will automatically rebuild the library upon ``import``,

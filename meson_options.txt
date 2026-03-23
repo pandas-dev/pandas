@@ -1,1 +1,5 @@
-option('openmp', type: 'feature', value: 'disabled', description: 'Parallelization with OpenMP')
+option(
+    'openmp',
+    type: 'feature',
+    description: 'Parallelization with OpenMP',
+)
