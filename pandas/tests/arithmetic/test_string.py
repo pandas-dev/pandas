@@ -152,7 +152,7 @@ def test_mul_bool_invalid(any_string_dtype):
     ser = Series(["a", "b", "c"], dtype=dtype)
 
     if dtype == object:
-        pytest.skip("This is not expect to raise")
+        pytest.skip("This is not expected to raise")
     elif dtype.storage == "python":
         msg = "Cannot multiply StringArray by bools. Explicitly cast to integers"
     else:

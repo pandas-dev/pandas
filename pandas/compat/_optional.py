@@ -79,7 +79,7 @@ def get_version(module: types.ModuleType) -> str:
     if version is None:
         raise ImportError(f"Can't determine version for {module.__name__}")
     if module.__name__ == "psycopg2":
-        # psycopg2 appends " (dt dec pq3 ext lo64)" to it's version
+        # psycopg2 appends " (dt dec pq3 ext lo64)" to its version
         version = version.split()[0]
     return version
 

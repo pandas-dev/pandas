@@ -263,6 +263,69 @@ def test_pickle_roundtrip(na_value):
     tm.assert_series_equal(result_sliced, expected_sliced)
 
 
+@td.skip_if_no("pyarrow")
+class TestFromSequenceIntBool:
+    """Tests for GH#56505 - fast path using PyArrow cast for int/bool."""
+
+    def test_from_sequence_numpy_int(self):
+        # GH#56505
+        arr = np.array([1, 2, 3], dtype=np.int64)
+        result = ArrowStringArray._from_sequence(arr, dtype=StringDtype("pyarrow"))
+        expected = ArrowStringArray._from_sequence(["1", "2", "3"])
+        tm.assert_extension_array_equal(result, expected)
+
+    @pytest.mark.parametrize("dtype", ["int8", "int16", "int32", "uint8", "uint64"])
+    def test_from_sequence_numpy_int_dtypes(self, dtype):
+        # GH#56505
+        arr = np.array([0, 1, 2], dtype=dtype)
+        result = ArrowStringArray._from_sequence(arr, dtype=StringDtype("pyarrow"))
+        expected = ArrowStringArray._from_sequence(["0", "1", "2"])
+        tm.assert_extension_array_equal(result, expected)
+
+    def test_from_sequence_numpy_bool(self):
+        # GH#56505
+        arr = np.array([True, False, True])
+        result = ArrowStringArray._from_sequence(arr, dtype=StringDtype("pyarrow"))
+        expected = ArrowStringArray._from_sequence(["True", "False", "True"])
+        tm.assert_extension_array_equal(result, expected)
+
+    @pytest.mark.parametrize("masked_dtype", ["Int8", "Int64", "UInt16", "UInt64"])
+    def test_from_sequence_masked_int(self, masked_dtype):
+        # GH#56505
+        masked = pd.array([1, 2, None], dtype=masked_dtype)
+        result = ArrowStringArray._from_sequence(masked, dtype=StringDtype("pyarrow"))
+        expected = ArrowStringArray._from_sequence(["1", "2", None])
+        tm.assert_extension_array_equal(result, expected)
+
+    def test_from_sequence_masked_bool(self):
+        # GH#56505
+        masked = pd.array([True, False, None], dtype="boolean")
+        result = ArrowStringArray._from_sequence(masked, dtype=StringDtype("pyarrow"))
+        expected = ArrowStringArray._from_sequence(["True", "False", None])
+        tm.assert_extension_array_equal(result, expected)
+
+    def test_astype_int_series_to_string(self):
+        # GH#56505 - end-to-end through Series.astype
+        ser = pd.Series([1, 2, 3], dtype="int64")
+        result = ser.astype("string")
+        expected = pd.Series(["1", "2", "3"], dtype="string")
+        tm.assert_series_equal(result, expected)
+
+    def test_astype_bool_series_to_string(self):
+        # GH#56505 - end-to-end through Series.astype
+        ser = pd.Series([True, False, True])
+        result = ser.astype("string")
+        expected = pd.Series(["True", "False", "True"], dtype="string")
+        tm.assert_series_equal(result, expected)
+
+    def test_astype_masked_int_to_string(self):
+        # GH#56505 - end-to-end through Series.astype
+        ser = pd.Series([1, 2, None], dtype="Int64")
+        result = ser.astype("string")
+        expected = pd.Series(["1", "2", None], dtype="string")
+        tm.assert_series_equal(result, expected)
+
+
 def test_string_dtype_error_message():
     # GH#55051
     pytest.importorskip("pyarrow")

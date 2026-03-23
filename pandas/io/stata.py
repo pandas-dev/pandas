@@ -88,11 +88,16 @@ if TYPE_CHECKING:
         WriteBuffer,
     )
 
+# Error shown when a version number was parsed but is not supported.
+# Wording intentionally mentions “either not a valid Stata dataset or
+# an unsupported version” to avoid confusing users when input is not a
+#  real .dta.
 _version_error = (
-    "Version of given Stata file is {version}. pandas supports importing "
-    "versions 102, 103, 104, 105, 108, 110 (Stata 7), 111 (Stata 7SE),  "
-    "113 (Stata 8/9), 114 (Stata 10/11), 115 (Stata 12), 117 (Stata 13), "
-    "118 (Stata 14/15/16), and 119 (Stata 15/16, over 32,767 variables)."
+    "This is either not a valid Stata dataset or a Stata dataset from a "
+    "version pandas does not support (detected: {version}). pandas "
+    "supports importing versions 105, 108, 111 (Stata 7SE), 113 (Stata "
+    "8/9), 114 (Stata 10/11), 115 (Stata 12), 117 (Stata 13), 118 (Stata "
+    "14/15/16), and 119 (Stata 15/16, over 32,767 variables)."
 )
 
 
@@ -277,9 +282,9 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
                 v = np.vectorize(f)
                 d["delta"] = v(delta) // 1_000  # convert back to ms
             if year:
-                year_month = dates.apply(lambda x: 100 * x.year + x.month)
-                d["year"] = year_month._values // 100
-                d["month"] = year_month._values - d["year"] * 100
+                date_index = DatetimeIndex(dates)
+                d["year"] = date_index.year
+                d["month"] = date_index.month
             if days:
 
                 def g(x: datetime) -> int:
@@ -1876,16 +1881,16 @@ the string values returned are correct."""
             fmtlist = []
             lbllist = []
             for col in columns:
-                i = data.columns.get_loc(col)  # type: ignore[no-untyped-call]
+                i = data.columns.get_loc(col)
                 dtyplist.append(self._dtyplist[i])
                 typlist.append(self._typlist[i])
                 fmtlist.append(self._fmtlist[i])
                 lbllist.append(self._lbllist[i])
 
-            self._dtyplist = dtyplist
-            self._typlist = typlist
-            self._fmtlist = fmtlist
-            self._lbllist = lbllist
+            self._dtyplist = dtyplist  # type: ignore[assignment]
+            self._typlist = typlist  # type: ignore[assignment]
+            self._fmtlist = fmtlist  # type: ignore[assignment]
+            self._lbllist = lbllist  # type: ignore[assignment]
             self._column_selector_set = True
 
         return data[columns]

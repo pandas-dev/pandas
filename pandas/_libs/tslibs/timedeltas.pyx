@@ -450,6 +450,9 @@ def array_to_timedelta64(
                 ival = delta_to_nanoseconds(item, reso=creso)
 
             elif isinstance(item, str):
+                if type(item) is not str:
+                    # GH#48974 np.str_ object
+                    item = str(item)
                 if (
                     (len(item) > 0 and item[0] == "P")
                     or (len(item) > 1 and item[:2] == "-P")
@@ -1780,6 +1783,13 @@ cdef class _Timedelta(timedelta):
         str
             Timedelta resolution.
 
+        See Also
+        --------
+        Timedelta.components : Return all components of the Timedelta as a
+            namedtuple-like.
+        Timedelta.resolution : Return the smallest possible difference between
+            non-equal Timedelta objects.
+
         Examples
         --------
         >>> td = pd.Timedelta('1 days 2 min 3 us 42 ns')
@@ -2075,7 +2085,7 @@ class Timedelta(_Timedelta):
 
     **kwargs
         Available kwargs: {days, seconds, microseconds,
-        milliseconds, minutes, hours, weeks}.
+        milliseconds, minutes, nanoseconds, hours, weeks}.
         Values for construction in compat with datetime.timedelta.
         Numpy ints and floats will be coerced to python ints and floats.
 
@@ -2665,6 +2675,8 @@ class Timedelta(_Timedelta):
         return div, other - div * self
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def truediv_object_array(ndarray left, ndarray right):
     cdef:
         ndarray[object] result = np.empty((<object>left).shape, dtype=object)
@@ -2695,6 +2707,8 @@ def truediv_object_array(ndarray left, ndarray right):
     return result
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def floordiv_object_array(ndarray left, ndarray right):
     cdef:
         ndarray[object] result = np.empty((<object>left).shape, dtype=object)

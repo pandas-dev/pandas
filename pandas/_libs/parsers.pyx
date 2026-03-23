@@ -279,15 +279,9 @@ cdef extern from "pandas/parser/pd_parser.h":
     int64_t str_to_int64(char *p_item,  int *error, char tsep) nogil
     uint64_t str_to_uint64(uint_state *state, char *p_item, int *error, char tsep) nogil
 
-    double xstrtod(const char *p, char **q, char decimal,
-                   char sci, char tsep, int skip_trailing,
-                   int *error, int *maybe_int) nogil
     double precise_xstrtod(const char *p, char **q, char decimal,
                            char sci, char tsep, int skip_trailing,
                            int *error, int *maybe_int) nogil
-    double round_trip(const char *p, char **q, char decimal,
-                      char sci, char tsep, int skip_trailing,
-                      int *error, int *maybe_int) nogil
 
     int to_boolean(const char *item, uint8_t *val) nogil
 
@@ -297,22 +291,10 @@ PandasParser_IMPORT
 
 # When not invoked directly but rather assigned as a function,
 # cdef extern'ed declarations seem to leave behind an undefined symbol
-cdef double xstrtod_wrapper(const char *p, char **q, char decimal,
-                            char sci, char tsep, int skip_trailing,
-                            int *error, int *maybe_int) noexcept nogil:
-    return xstrtod(p, q, decimal, sci, tsep, skip_trailing, error, maybe_int)
-
-
 cdef double precise_xstrtod_wrapper(const char *p, char **q, char decimal,
                                     char sci, char tsep, int skip_trailing,
                                     int *error, int *maybe_int) noexcept nogil:
     return precise_xstrtod(p, q, decimal, sci, tsep, skip_trailing, error, maybe_int)
-
-
-cdef double round_trip_wrapper(const char *p, char **q, char decimal,
-                               char sci, char tsep, int skip_trailing,
-                               int *error, int *maybe_int) noexcept nogil:
-    return round_trip(p, q, decimal, sci, tsep, skip_trailing, error, maybe_int)
 
 
 cdef char* buffer_rd_bytes_wrapper(void *source, size_t nbytes,
@@ -503,12 +485,7 @@ cdef class TextReader:
         self.converters = converters
         self.na_filter = na_filter
 
-        if float_precision == "round_trip":
-            # see gh-15140
-            self.parser.double_converter = round_trip_wrapper
-        elif float_precision == "legacy":
-            self.parser.double_converter = xstrtod_wrapper
-        elif float_precision == "high" or float_precision is None:
+        if float_precision in ("round_trip", "legacy", "high", None):
             self.parser.double_converter = precise_xstrtod_wrapper
         else:
             raise ValueError(f"Unrecognized float_precision option: "
@@ -1482,6 +1459,8 @@ def _maybe_upcast(
 
 
 # -> tuple[ndarray[object], int]
+@cython.wraparound(False)
+@cython.boundscheck(False)
 cdef _string_box_utf8(parser_t *parser, int64_t col,
                       int64_t line_start, int64_t line_end,
                       bint na_filter, kh_str_starts_t *na_hashset,
@@ -1536,6 +1515,7 @@ cdef _string_box_utf8(parser_t *parser, int64_t col,
     return result, na_count
 
 
+@cython.wraparound(False)
 @cython.boundscheck(False)
 cdef _categorical_convert(parser_t *parser, int64_t col,
                           int64_t line_start, int64_t line_end,
@@ -1875,6 +1855,9 @@ cdef int _try_int64_nogil(parser_t *parser, int64_t col,
 
     return 0
 
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
 cdef _try_pylong(parser_t *parser, Py_ssize_t col,
                  int64_t line_start, int64_t line_end,
                  bint na_filter, kh_str_starts_t *na_hashset):
@@ -2119,6 +2102,8 @@ for k in list(na_values):
 
 
 # -> ArrayLike
+@cython.wraparound(False)
+@cython.boundscheck(False)
 cdef _apply_converter(object f, parser_t *parser, int64_t col,
                       int64_t line_start, int64_t line_end):
     cdef:
@@ -2147,6 +2132,8 @@ cdef list _maybe_encode(list values):
     return [x.encode("utf-8") if isinstance(x, str) else x for x in values]
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def sanitize_objects(ndarray[object] values, set na_values) -> int:
     """
     Convert specified values, including the given set na_values to np.nan.
@@ -2168,12 +2155,18 @@ def sanitize_objects(ndarray[object] values, set na_values) -> int:
 
     n = len(values)
     onan = np.nan
+    bool_set = {True, False}
 
     for i in range(n):
         val = values[i]
         if val in na_values:
             values[i] = onan
             na_count += 1
+        elif val in bool_set:
+            # GH60088: Skip memoization
+            # since 1 == 1.0 == True == np.True_
+            # and 0 == 0.0 == False == np.False_
+            values[i] = val
         elif val in memo:
             values[i] = memo[val]
         else:

@@ -760,7 +760,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             If list-like, elements must be names or positional indexes
             of levels.
 
-        axis : {{0 or 'index', 1 or 'columns'}}, default 0
+        axis : {0 or 'index', 1 or 'columns'}, default 0
             Axis along which the level(s) is removed:
 
             * 0 or 'index': remove level(s) in column.
@@ -1033,9 +1033,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             # GH 13473
             if not callable(replacements):
                 if ax._is_multi and level is not None:
-                    indexer = ax.get_level_values(level).get_indexer_for(replacements)
+                    indexer = ax.get_level_values(level).get_indexer_for(replacements)  # type: ignore[arg-type]
                 else:
-                    indexer = ax.get_indexer_for(replacements)
+                    indexer = ax.get_indexer_for(replacements)  # type: ignore[arg-type]
 
                 if errors == "raise" and len(indexer[indexer == -1]):
                     missing_labels = [
@@ -1254,7 +1254,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 else:
                     f = common.get_rename_function(v)
                     curnames = self._get_axis(axis).names
-                    newnames = [f(name) for name in curnames]
+                    newnames = [f(name) for name in curnames]  # pyright: ignore[reportOptionalCall]
                 result._set_axis_name(newnames, axis=axis, inplace=True)
             if not inplace:
                 return result
@@ -1813,7 +1813,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # Validate keys
         keys = common.maybe_make_list(keys)
         invalid_keys = [
-            k for k in keys if not self._is_label_or_level_reference(k, axis=axis)
+            k
+            for k in keys  # pyright: ignore[reportOptionalIterable]
+            if not self._is_label_or_level_reference(k, axis=axis)
         ]
 
         if invalid_keys:
@@ -1823,9 +1825,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             )
 
         # Compute levels and labels to drop
-        levels_to_drop = [k for k in keys if self._is_level_reference(k, axis=axis)]
+        levels_to_drop = [
+            k
+            for k in keys  # pyright: ignore[reportOptionalIterable]
+            if self._is_level_reference(k, axis=axis)
+        ]
 
-        labels_to_drop = [k for k in keys if not self._is_level_reference(k, axis=axis)]
+        labels_to_drop = [
+            k
+            for k in keys  # pyright: ignore[reportOptionalIterable]
+            if not self._is_level_reference(k, axis=axis)
+        ]
 
         # Perform copy upfront and then use inplace operations below.
         # This ensures that we always perform exactly one copy.
@@ -2347,27 +2357,27 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             * Series:
 
                 - default is 'index'
-                - allowed values are: {{'split', 'records', 'index', 'table'}}.
+                - allowed values are: {'split', 'records', 'index', 'table'}.
 
             * DataFrame:
 
                 - default is 'columns'
-                - allowed values are: {{'split', 'records', 'index', 'columns',
-                  'values', 'table'}}.
+                - allowed values are: {'split', 'records', 'index', 'columns',
+                  'values', 'table'}.
 
             * The format of the JSON string:
 
-                - 'split' : dict like {{'index' -> [index], 'columns' -> [columns],
-                  'data' -> [values]}}
-                - 'records' : list like [{{column -> value}}, ... , {{column -> value}}]
-                - 'index' : dict like {{index -> {{column -> value}}}}
-                - 'columns' : dict like {{column -> {{index -> value}}}}
+                - 'split' : dict like {'index' -> [index], 'columns' -> [columns],
+                  'data' -> [values]}
+                - 'records' : list like [{column -> value}, ... , {column -> value}]
+                - 'index' : dict like {index -> {column -> value}}
+                - 'columns' : dict like {column -> {index -> value}}
                 - 'values' : just the values array
-                - 'table' : dict like {{'schema': {{schema}}, 'data': {{data}}}}
+                - 'table' : dict like {'schema': {schema}, 'data': {data}}
 
                 Describing the data, where data component is like ``orient='records'``.
 
-        date_format : {{None, 'epoch', 'iso'}}
+        date_format : {None, 'epoch', 'iso'}
             Type of date conversion. 'epoch' = epoch milliseconds,
             'iso' = ISO8601. The default depends on the `orient`. For
             ``orient='table'``, the default is 'iso'. For all other orients,
@@ -2470,7 +2480,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> result = df.to_json(orient="split")
         >>> parsed = loads(result)
         >>> dumps(parsed, indent=4)  # doctest: +SKIP
-        {{
+        {
             "columns": [
                 "col 1",
                 "col 2"
@@ -2489,7 +2499,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     "d"
                 ]
             ]
-        }}
+        }
 
         Encoding/decoding a Dataframe using ``'records'`` formatted JSON.
         Note that index labels are not preserved with this encoding.
@@ -2498,14 +2508,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> parsed = loads(result)
         >>> dumps(parsed, indent=4)  # doctest: +SKIP
         [
-            {{
+            {
                 "col 1": "a",
                 "col 2": "b"
-            }},
-            {{
+            },
+            {
                 "col 1": "c",
                 "col 2": "d"
-            }}
+            }
         ]
 
         Encoding/decoding a Dataframe using ``'index'`` formatted JSON:
@@ -2513,32 +2523,32 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> result = df.to_json(orient="index")
         >>> parsed = loads(result)
         >>> dumps(parsed, indent=4)  # doctest: +SKIP
-        {{
-            "row 1": {{
+        {
+            "row 1": {
                 "col 1": "a",
                 "col 2": "b"
-            }},
-            "row 2": {{
+            },
+            "row 2": {
                 "col 1": "c",
                 "col 2": "d"
-            }}
-        }}
+            }
+        }
 
         Encoding/decoding a Dataframe using ``'columns'`` formatted JSON:
 
         >>> result = df.to_json(orient="columns")
         >>> parsed = loads(result)
         >>> dumps(parsed, indent=4)  # doctest: +SKIP
-        {{
-            "col 1": {{
+        {
+            "col 1": {
                 "row 1": "a",
                 "row 2": "c"
-            }},
-            "col 2": {{
+            },
+            "col 2": {
                 "row 1": "b",
                 "row 2": "d"
-            }}
-        }}
+            }
+        }
 
         Encoding/decoding a Dataframe using ``'values'`` formatted JSON:
 
@@ -2561,40 +2571,40 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> result = df.to_json(orient="table")
         >>> parsed = loads(result)
         >>> dumps(parsed, indent=4)  # doctest: +SKIP
-        {{
-            "schema": {{
+        {
+            "schema": {
                 "fields": [
-                    {{
+                    {
                         "name": "index",
                         "type": "string"
-                    }},
-                    {{
+                    },
+                    {
                         "name": "col 1",
                         "type": "string"
-                    }},
-                    {{
+                    },
+                    {
                         "name": "col 2",
                         "type": "string"
-                    }}
+                    }
                 ],
                 "primaryKey": [
                     "index"
                 ],
                 "pandas_version": "1.4.0"
-            }},
+            },
             "data": [
-                {{
+                {
                     "index": "row 1",
                     "col 1": "a",
                     "col 2": "b"
-                }},
-                {{
+                },
+                {
                     "index": "row 2",
                     "col 1": "c",
                     "col 2": "d"
-                }}
+                }
             ]
-        }}
+        }
         """
         from pandas.io import json
 
@@ -3120,7 +3130,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Examples
         --------
         >>> original_df = pd.DataFrame(
-        ...     {{"foo": range(5), "bar": range(5, 10)}}
+        ...     {"foo": range(5), "bar": range(5, 10)}
         ... )  # doctest: +SKIP
         >>> original_df  # doctest: +SKIP
            foo  bar
@@ -3851,7 +3861,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             sequence should be given if the object uses MultiIndex. If
             False do not print fields for index names. Use index_label=False
             for easier importing in R.
-        mode : {{'w', 'x', 'a'}}, default 'w'
+        mode : {'w', 'x', 'a'}, default 'w'
             Forwarded to either `open(mode=)` or `fsspec.open(mode=)` to control
             the file opening. Typical values include:
 
@@ -3974,7 +3984,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Format floats using scientific notation:
 
-        >>> df.to_csv("out2.csv", float_format="{{:.2e}}".format)  # doctest: +SKIP
+        >>> df.to_csv("out2.csv", float_format="{:.2e}".format)  # doctest: +SKIP
         """
         df = self if isinstance(self, ABCDataFrame) else self.to_frame()
 
@@ -5223,7 +5233,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Parameters
         ----------
-        method : {{None, 'backfill'/'bfill', 'pad'/'ffill', 'nearest'}}
+        method : {None, 'backfill'/'bfill', 'pad'/'ffill', 'nearest'}
             Method to use for filling holes in reindexed DataFrame.
             Please note: this is only applicable to DataFrames/Series with a
             monotonically increasing/decreasing index.
@@ -5282,7 +5292,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ``DataFrame.reindex`` supports two calling conventions
 
         * ``(index=index_labels, columns=column_labels, ...)``
-        * ``(labels, axis={{'index', 'columns'}}, ...)``
+        * ``(labels, axis={'index', 'columns'}, ...)``
 
         We *highly* recommend using keyword arguments to clarify your
         intent.
@@ -5329,14 +5339,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Comodo Dragon            0           0.00
         IE10                   404           0.08
         Chrome                 200           0.02
-
-        >>> df.reindex(new_index, fill_value="missing")
-                      http_status response_time
-        Safari                404          0.07
-        Iceweasel         missing       missing
-        Comodo Dragon     missing       missing
-        IE10                  404          0.08
-        Chrome                200          0.02
 
         We can also reindex the columns.
 
@@ -7212,7 +7214,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             be partially filled. If method is not specified, this is the
             maximum number of entries along the entire axis where NaNs will be
             filled. Must be greater than 0 if not None.
-        limit_area : {{`None`, 'inside', 'outside'}}, default None
+        limit_area : {`None`, 'inside', 'outside'}, default None
             If limit is specified, consecutive NaNs will be filled with this
             restriction.
 
@@ -7318,7 +7320,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             be partially filled. If method is not specified, this is the
             maximum number of entries along the entire axis where NaNs will be
             filled. Must be greater than 0 if not None.
-        limit_area : {{`None`, 'inside', 'outside'}}, default None
+        limit_area : {`None`, 'inside', 'outside'}, default None
             If limit is specified, consecutive NaNs will be filled with this
             restriction.
 
@@ -7791,7 +7793,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     # Note: Checking below for `in foo.keys()` instead of
                     #  `in foo` is needed for when we have a Series and not dict
                     mapping = {
-                        col: (to_replace[col], value[col])
+                        col: (to_replace[col], value[col])  # pyright: ignore[reportOptionalSubscript]
                         for col in to_replace.keys()
                         if col in value.keys() and col in self
                     }
@@ -7924,7 +7926,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             * 'from_derivatives': Refers to
               `scipy.interpolate.BPoly.from_derivatives`.
 
-        axis : {{0 or 'index', 1 or 'columns', None}}, default None
+        axis : {0 or 'index', 1 or 'columns', None}, default None
             Axis to interpolate along. For `Series` this parameter is unused
             and defaults to 0.
         limit : int, optional
@@ -7932,10 +7934,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             0.
         inplace : bool, default False
             Update the data in place if possible.
-        limit_direction : {{'forward', 'backward', 'both'}}, optional, default 'forward'
+        limit_direction : {'forward', 'backward', 'both'}, optional, default 'forward'
             Consecutive NaNs will be filled in this direction.
 
-        limit_area : {{`None`, 'inside', 'outside'}}, default None
+        limit_area : {`None`, 'inside', 'outside'}, default None
             If limit is specified, consecutive NaNs will be filled with this
             restriction.
 
@@ -8644,7 +8646,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Maximum threshold value. All values above this
             threshold will be set to it. A missing
             threshold (e.g `NA`) will not clip the value.
-        axis : {{0 or 'index', 1 or 'columns', None}}, default None
+        axis : {0 or 'index', 1 or 'columns', None}, default None
             Align object with lower and upper along the given axis.
             For `Series` this parameter is unused and defaults to `None`.
         inplace : bool, default False
@@ -8832,14 +8834,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ----------
         freq : DateOffset or str
             Frequency DateOffset or string.
-        method : {{'backfill'/'bfill', 'pad'/'ffill'}}, default None
+        method : {'backfill'/'bfill', 'pad'/'ffill'}, default None
             Method to use for filling holes in reindexed Series (note this
             does not fill NaNs that already were present):
 
             * 'pad' / 'ffill': propagate last valid observation forward to next
               valid based on the order of the index
             * 'backfill' / 'bfill': use NEXT valid observation to fill.
-        how : {{'start', 'end'}}, default end
+        how : {'start', 'end'}, default end
             For PeriodIndex only (see PeriodIndex.asfreq).
         normalize : bool, default False
             Whether to reset output index to midnight.
@@ -9095,15 +9097,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ----------
         rule : DateOffset, Timedelta or str
             The offset string or object representing target conversion.
-        closed : {{'right', 'left'}}, default None
+        closed : {'right', 'left'}, default None
             Which side of bin interval is closed. The default is 'left'
             for all frequency offsets except for 'ME', 'YE', 'QE', 'BME',
             'BA', 'BQE', and 'W' which all have a default of 'right'.
-        label : {{'right', 'left'}}, default None
+        label : {'right', 'left'}, default None
             Which bin edge label to label bucket with. The default is 'left'
             for all frequency offsets except for 'ME', 'YE', 'QE', 'BME',
             'BA', 'BQE', and 'W' which all have a default of 'right'.
-        convention : {{'start', 'end', 's', 'e'}}, default 'start'
+        convention : {'start', 'end', 's', 'e'}, default 'start'
             For `PeriodIndex` only, controls whether to use the start or
             end of `rule`.
         on : str, optional
@@ -9127,7 +9129,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             .. note::
 
                 Only takes effect for Tick-frequencies (i.e. fixed frequencies like
-                days, hours, and minutes, rather than months or quarters).
+                hours and minutes, rather than days, months or quarters).
         offset : Timedelta or str, default is None
             An offset timedelta added to the origin.
 
@@ -9738,7 +9740,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ----------
         other : DataFrame or Series
             The object to align with.
-        join : {{'outer', 'inner', 'left', 'right'}}, default 'outer'
+        join : {'outer', 'inner', 'left', 'right'}, default 'outer'
             Type of alignment to be performed.
 
             * left: use only keys from left frame, preserve key order.
@@ -10553,7 +10555,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             If `freq` is specified as "infer" then it will be inferred from
             the freq or inferred_freq attributes of the index. If neither of
             those attributes exist, a ValueError is thrown.
-        axis : {{0 or 'index', 1 or 'columns', None}}, default None
+        axis : {0 or 'index', 1 or 'columns', None}, default None
             Shift direction. For `Series` this parameter is unused and defaults to 0.
         fill_value : object, optional
             The scalar value to use for newly introduced missing values.
@@ -10905,7 +10907,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         tz : str or tzinfo object or None
             Target time zone. Passing ``None`` will convert to
             UTC and remove the timezone information.
-        axis : {{0 or 'index', 1 or 'columns'}}, default 0
+        axis : {0 or 'index', 1 or 'columns'}, default 0
             The axis to convert
         level : int, str, default None
             If axis is a MultiIndex, convert a specific level. Otherwise
@@ -11009,7 +11011,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         tz : str or tzinfo or None
             Time zone to localize. Passing ``None`` will remove the
             time zone information and preserve local time.
-        axis : {{0 or 'index', 1 or 'columns'}}, default 0
+        axis : {0 or 'index', 1 or 'columns'}, default 0
             The axis to localize
         level : int, str, default None
             If axis is a MultiIndex, localize a specific level. Otherwise
