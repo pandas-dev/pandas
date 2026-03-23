@@ -78,6 +78,7 @@ import pandas.core.common as com
 
 from pandas.tseries.frequencies import get_period_alias
 from pandas.tseries.offsets import (
+    BusinessHour,
     Day,
     Tick,
 )
@@ -3133,6 +3134,15 @@ def _generate_range(
             start = offset.rollforward(start)  # type: ignore[assignment]
         else:
             start = offset.rollback(start)  # type: ignore[assignment]
+
+    # GH#35342: For calendar-based offsets (not sub-daily like BusinessHour),
+    # all generated timestamps inherit start's time-of-day. Adjust end to use
+    # the same time so that the boundary comparison doesn't incorrectly exclude
+    # dates that fall on the last offset boundary before end.
+    if start is not None and end is not None and not isinstance(offset, BusinessHour):
+        if (offset.n >= 0 and end >= start) or (offset.n < 0 and end <= start):
+            start_tod = start - start.normalize()
+            end = end.normalize() + start_tod  # type: ignore[assignment]
 
     # Unsupported operand types for < ("Timestamp" and "None")
     if periods is None and end < start and offset.n >= 0:  # type: ignore[operator]
