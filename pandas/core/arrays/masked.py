@@ -1161,6 +1161,24 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         result._readonly = self._readonly
         return result
 
+    @property
+    def _is_monotonic_increasing(self) -> bool:
+        if self._hasna:
+            return False
+        data = self._data
+        if data.dtype.kind == "b":
+            data = data.view("uint8")
+        return libalgos.is_monotonic(data, timelike=False)[0]
+
+    @property
+    def _is_monotonic_decreasing(self) -> bool:
+        if self._hasna:
+            return False
+        data = self._data
+        if data.dtype.kind == "b":
+            data = data.view("uint8")
+        return libalgos.is_monotonic(data, timelike=False)[1]
+
     def _rank(
         self,
         *,
@@ -1817,7 +1835,16 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         values = self._data.copy()
         np.putmask(values, self._mask, self.dtype._falsey_value)
-        result = values.any()
+        result = values.any(axis=axis)
+
+        if isinstance(result, np.ndarray):
+            if skipna:
+                mask = np.zeros(result.shape, dtype=bool)
+            else:
+                # Kleene logic: False | NA = NA, True | NA = True
+                mask = ~result & self._mask.any(axis=axis)
+            return self._maybe_mask_result(result, mask)
+
         if skipna:
             return result
         elif result or len(self) == 0 or not self._mask.any():
@@ -1904,10 +1931,18 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         np.putmask(values, self._mask, self.dtype._truthy_value)
         result = values.all(axis=axis)
 
+        if isinstance(result, np.ndarray):
+            if skipna:
+                mask = np.zeros(result.shape, dtype=bool)
+            else:
+                # Kleene logic: True & NA = NA, False & NA = False
+                mask = result & self._mask.any(axis=axis)
+            return self._maybe_mask_result(result, mask)
+
         if skipna:
-            return result  # type: ignore[return-value]
+            return result
         elif not result or len(self) == 0 or not self._mask.any():
-            return result  # type: ignore[return-value]
+            return result
         else:
             return self.dtype.na_value
 

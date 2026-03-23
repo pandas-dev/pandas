@@ -22,6 +22,7 @@ from pandas import (
     Series,
     date_range,
     option_context,
+    to_datetime,
 )
 import pandas._testing as tm
 from pandas.util.version import Version
@@ -584,3 +585,17 @@ def test_info_show_counts(row, columns, show_counts, result):
         with StringIO() as buf:
             df.info(buf=buf, show_counts=show_counts)
             assert ("non-null" in buf.getvalue()) is result
+
+
+def test_info_dtype_after_datetime_to_pydatetime():
+    # GH#55136
+    # After converting datetime64 column to python datetime objects,
+    # .info() should report dtype as object, not datetime64
+    df = DataFrame({"a": to_datetime(["2023-01-01", "2023-01-02"])})
+    df["a"] = df["a"].dt.to_pydatetime()
+    assert df["a"].dtype == np.dtype("object")
+    with StringIO() as buf:
+        df.info(buf=buf)
+        info_str = buf.getvalue()
+    assert "object" in info_str
+    assert "datetime64" not in info_str

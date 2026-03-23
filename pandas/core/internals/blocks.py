@@ -544,7 +544,7 @@ class Block(PandasObject, libinternals.Block):
         for blk in blks:
             # Determine dtype column by column
             sub_blks = (
-                [blk] if blk.ndim == 1 or self.shape[0] == 1 else list(blk._split())
+                [blk] if blk.ndim == 1 or blk.shape[0] == 1 else list(blk._split())
             )
             dtypes = [
                 convert_dtypes(
@@ -558,7 +558,7 @@ class Block(PandasObject, libinternals.Block):
                 )
                 for b in sub_blks
             ]
-            if all(dtype == self.dtype for dtype in dtypes):
+            if all(dtype == blk.dtype for dtype in dtypes):
                 # Avoid block splitting if no dtype changes
                 rbs.append(blk.copy(deep=False))
                 continue

@@ -9,7 +9,10 @@ import numpy as np
 import pytest
 
 from pandas.compat import IS64
-from pandas.errors import InvalidIndexError
+from pandas.errors import (
+    InvalidIndexError,
+    Pandas4Warning,
+)
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import (
@@ -1358,6 +1361,15 @@ class TestIndex:
 
         tm.assert_index_equal(result, expected)
 
+    def test_assert_index_equal_exact_equiv_default_deprecated(self):
+        # GH#57436
+        result = Index([0, 1, 2, 3], dtype=np.int64)
+        expected = RangeIndex(0, 4)
+        msg = "The default value of 'equiv' for the `exact` parameter is deprecated "
+
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            tm.assert_index_equal(result, expected)
+
 
 class TestMixedIntIndex:
     # Mostly the tests from common.py for which the results differ
@@ -1749,3 +1761,71 @@ def test_index_comparison_different_string_dtype(string_dtype_no_object):
     result = s_str > s_obj
     expected.index = idx.astype(string_dtype_no_object)
     assert_series_equal(result, expected)
+
+
+def test_get_level_values_boolean_names():
+    # GH#62169
+    idx_true = Index(["a", "b"], name=True)
+    result = idx_true.get_level_values(True)
+    tm.assert_index_equal(idx_true, result)
+
+    idx_false = Index(["a", "b"], name=False)
+    result = idx_false.get_level_values(False)
+    tm.assert_index_equal(idx_false, result)
+
+    msg = r"Requested level \(False\) does not match index name \(True\)"
+    with pytest.raises(KeyError, match=msg):
+        idx_true.get_level_values(False)
+
+    result = idx_true.get_level_values(0)
+    tm.assert_index_equal(idx_true, result)
+
+
+def test_get_level_values_na_type_matching():
+    # GH#62169
+    idx_nan = Index(["a", "b"], name=np.nan)
+    result = idx_nan.get_level_values(np.nan)
+    tm.assert_index_equal(idx_nan, result)
+
+    idx_na = Index(["a", "b"], name=pd.NA)
+    result = idx_na.get_level_values(pd.NA)
+    tm.assert_index_equal(idx_na, result)
+
+    idx_nat = Index(["a", "b"], name=pd.NaT)
+    result = idx_nat.get_level_values(pd.NaT)
+    tm.assert_index_equal(idx_nat, result)
+
+    msg = r"Requested level \(.+\) does not match index name \(.+\)"
+    with pytest.raises(KeyError, match=msg):
+        idx_nan.get_level_values(pd.NA)
+
+    with pytest.raises(KeyError, match=msg):
+        idx_na.get_level_values(np.nan)
+
+    with pytest.raises(KeyError, match=msg):
+        idx_nat.get_level_values(np.nan)
+
+
+def test_get_level_values_integer_names():
+    # GH#62169
+    idx_5 = Index(["a", "b"], name=5)
+    result = idx_5.get_level_values(5)
+    tm.assert_index_equal(idx_5, result)
+
+    result = idx_5.get_level_values(0)
+    tm.assert_index_equal(idx_5, result)
+
+    result = idx_5.get_level_values(-1)
+    tm.assert_index_equal(idx_5, result)
+
+    idx_0 = Index(["a", "b"], name=0)
+    result = idx_0.get_level_values(0)
+    tm.assert_index_equal(idx_0, result)
+
+    idx_neg1 = Index(["a", "b"], name=-1)
+    result = idx_neg1.get_level_values(-1)
+    tm.assert_index_equal(idx_neg1, result)
+
+    msg = r"Too many levels: Index has only 1 level"
+    with pytest.raises(IndexError, match=msg):
+        idx_5.get_level_values(1)

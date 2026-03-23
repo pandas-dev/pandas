@@ -1073,6 +1073,7 @@ def test_string_dtype_all_na(
         "idxmax",
         "mean",
         "median",
+        "skew",
         "std",
         "var",
     ]:

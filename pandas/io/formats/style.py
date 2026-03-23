@@ -87,7 +87,8 @@ class Styler(StylerRenderer):
     The styled output can be rendered as HTML or LaTeX, and it supports CSS-based
     styling, allowing users to control colors, font styles, and other visual aspects of
     tabular data. It is particularly useful for presenting DataFrame objects in a
-    Jupyter Notebook environment or when exporting styled tables for reports and
+    Jupyter Notebook environment or when exporting styled tables for reports or
+    other human-readable documents.
 
     Parameters
     ----------

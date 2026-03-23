@@ -1282,7 +1282,7 @@ def np_find_common_type(*dtypes: np.dtype) -> np.dtype:
     try:
         common_dtype = np.result_type(*dtypes)
         if common_dtype.kind in "mMSU":
-            # NumPy promotion currently (1.25) misbehaves for for times and strings,
+            # NumPy promotion currently (1.25) misbehaves for times and strings,
             # so fall back to object (find_common_dtype did unless there
             # was only one dtype)
             common_dtype = np.dtype("O")

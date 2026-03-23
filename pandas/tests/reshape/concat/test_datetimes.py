@@ -628,3 +628,24 @@ def test_concat_datetime64_different_resolutions():
 
     # The result should be a datetime64 dtype, not object
     assert combined.dates.dtype.kind == "M"
+
+
+def test_concat_non_ns_datetime_axis1(unit):
+    # GH#58471 - concat with non-ns datetime unit on axis=1 should
+    # preserve all data, matching the behavior of ns-resolution
+    dti1 = date_range("2024-01-01 00:00", periods=3, freq="5min", unit=unit)
+    dti2 = date_range("2024-01-01 00:15", periods=3, freq="5min", unit=unit)
+    ser1 = Series([1.0, 2.0, 3.0], index=dti1, name="a")
+    ser2 = Series([4.0, 5.0, 6.0], index=dti2, name="b")
+
+    result = concat([ser1, ser2], axis=1)
+
+    expected_index = date_range("2024-01-01 00:00", periods=6, freq="5min", unit=unit)
+    expected = DataFrame(
+        {
+            "a": [1.0, 2.0, 3.0, np.nan, np.nan, np.nan],
+            "b": [np.nan, np.nan, np.nan, 4.0, 5.0, 6.0],
+        },
+        index=expected_index,
+    )
+    tm.assert_frame_equal(result, expected)

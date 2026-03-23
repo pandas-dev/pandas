@@ -778,3 +778,12 @@ def test_parsed_unit():
     # 7 digits after the decimal
     td = Timedelta("1 Day 2:03:04.0123450")
     assert td.unit == "ns"
+
+
+def test_timedelta_resolution_consistent_arg_styles():
+    # GH#33992 - Timedelta resolution should be the same regardless
+    # of whether the value is passed positionally or as a keyword
+    td_positional = Timedelta(1 / 128, "seconds")
+    td_keyword = Timedelta(seconds=1 / 128)
+    assert td_positional == td_keyword
+    assert td_positional.unit == td_keyword.unit

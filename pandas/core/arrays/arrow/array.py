@@ -2539,6 +2539,24 @@ class ArrowExtensionArray(
 
         return result
 
+    @property
+    def _is_monotonic_increasing(self) -> bool:
+        pa_array = self._pa_array
+        if pa_array.null_count > 0:
+            return False
+        if len(pa_array) <= 1:
+            return True
+        return pc.all(pc.greater_equal(pa_array[1:], pa_array[:-1])).as_py()
+
+    @property
+    def _is_monotonic_decreasing(self) -> bool:
+        pa_array = self._pa_array
+        if pa_array.null_count > 0:
+            return False
+        if len(pa_array) <= 1:
+            return True
+        return pc.all(pc.less_equal(pa_array[1:], pa_array[:-1])).as_py()
+
     def _rank(
         self,
         *,

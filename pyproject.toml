@@ -24,7 +24,26 @@ readme = 'README.md'
 authors = [
   { name = 'The Pandas Development Team', email='pandas-dev@python.org' },
 ]
-license = {file = 'LICENSE'}
+license = 'BSD-3-Clause'
+license-files = [
+  "LICENSE", # BSD-3-Clause
+  "LICENSES/BOTTLENECK_LICENCE", # BSD-2-Clause
+  "LICENSES/DATEUTIL_LICENSE", # Apache-2.0
+  "LICENSES/HAVEN_LICENSE", # MIT
+  "LICENSES/HAVEN_MIT", # MIT
+  "LICENSES/KLIB_LICENSE", # MIT
+  "LICENSES/MUSL_LICENSE", # MIT
+  "LICENSES/NUMPY_LICENSE", # BSD-3-Clause
+  "LICENSES/PACKAGING_LICENSE", # Apache-2.0
+  "LICENSES/PSF_LICENSE", #  PSF-2.0
+  "LICENSES/PYPERCLIP_LICENSE", # BSD-3-Clause
+  "LICENSES/PYUPGRADE_LICENSE", # MIT
+  "LICENSES/SAS7BDAT_LICENSE", # MIT
+  "LICENSES/ULTRAJSON_LICENSE", # BSD-3-Clause AND TCL
+  "subprojects/fast_float-*/LICENSE-APACHE", # Apache-2.0
+  "subprojects/fast_float-*/LICENSE-BOOST", # BSL
+  "subprojects/fast_float-*/LICENSE-MIT", # MIT
+]
 requires-python = '>=3.11'
 dependencies = [
   "numpy>=1.26.0; python_version < '3.14'",
@@ -39,7 +58,6 @@ classifiers = [
     'Development Status :: 5 - Production/Stable',
     'Environment :: Console',
     'Intended Audience :: Science/Research',
-    'License :: OSI Approved :: BSD License',
     'Operating System :: OS Independent',
     'Programming Language :: Cython',
     'Programming Language :: Python',
@@ -147,7 +165,6 @@ test-command = """
   pd.test(extra_args=["-m not clipboard and single_cpu and not slow and not network and not db", "--no-strict-data-files"]);' \
   """
 enable = ["cpython-freethreading"]
-before-build = "PACKAGE_DIR={package} bash {package}/scripts/cibw_before_build.sh"
 
 [tool.cibuildwheel.windows]
 environment = {}
