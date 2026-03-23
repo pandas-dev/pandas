@@ -24,17 +24,13 @@ def _lowercase_outside_quotes(value: str) -> str:
     """
     Lowercase CSS value content except for quoted substrings.
 
-    This helper function ensures that CSS identifiers (e.g. keywords, color names)
-    are normalized to lower case while preserving the original case of text inside 
-    double-quoted string literals.
+    This helper function ensures that CSS identifiers (e.g. keywords, color names) are normalized to lower case while preserving the original case of text inside double-quoted string literals.
 
-    This is required for compatibility with Excel number formats when using 
-    ``Styler.to_excel()``, where quoted substrings are case-sensitive. For example:
+    This is required for compatibility with Excel number formats when using ``Styler.to_excel()``, where quoted substrings are case-sensitive. For example:
 
         '#,,"M"' -> must remain '#,,"M"' (not '#,,"m"')
 
-    Without this handling, lowercasing the full value would corrupt Excel
-    number-format strings and may lead to incorrect formatting or invalid XML.
+    Without this handling, lowercasing the full value would corrupt Excel number-format strings and may lead to incorrect formatting or invalid XML.
 
     Parameters
     ----------
