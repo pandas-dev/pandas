@@ -1539,7 +1539,7 @@ class ArrowExtensionArray(
             return result
 
         return hash_array(
-            self._pa_array.to_numpy(zero_copy_only=False),
+            self.to_numpy(),
             encoding,
             hash_key,
             categorize,
