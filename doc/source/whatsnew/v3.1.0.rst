@@ -137,6 +137,7 @@ Performance improvements
 - Performance improvement in :meth:`arrays.SparseArray.isna` by avoiding a dense-then-resparsify round-trip (:issue:`41023`)
 - Performance improvement in datetime/timedelta unit conversion (e.g. ``datetime64[s]`` to ``datetime64[ns]``) (:issue:`35025`)
 - Performance improvement in indexing a :class:`DataFrame` with a :class:`CategoricalIndex` of :class:`Interval` categories (:issue:`61928`)
+- Performance improvement in indexing a :class:`MultiIndex` with a list-like indexer, which now uses a vectorized approach instead of a per-element loop (:issue:`55786`)
 - Performance improvement in partial-string indexing on a monotonic decreasing :class:`DatetimeIndex` or :class:`PeriodIndex` (:issue:`64811`)
 - Performance improvement in plotting :class:`DatetimeIndex` with multiplied frequencies (e.g. ``"1000ms"``, ``"100s"``) (:issue:`50355`)
 - Performance improvement in reading zip-compressed files (e.g. :func:`read_pickle`, :func:`read_csv`) on Python < 3.12 (:issue:`59279`)

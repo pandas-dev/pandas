@@ -4067,22 +4067,32 @@ class MultiIndex(Index):
                     # KeyError it can be ambiguous if this is a label or sequence
                     #  of labels
                     #  github.com/pandas-dev/pandas/issues/39424#issuecomment-871626708
-                    for x in k:
-                        if not is_hashable(x):
-                            # e.g. slice
-                            raise err
-                        # GH 39424: Ignore not founds
-                        # GH 42351: No longer ignore not founds & enforced in 2.0
-                        # TODO: how to handle IntervalIndex level? (no test cases)
-                        item_indexer = self._get_level_indexer(
-                            x, level=i, indexer=indexer
-                        )
-                        if lvl_indexer is None:
-                            lvl_indexer = _to_bool_indexer(item_indexer)
-                        elif isinstance(item_indexer, slice):
-                            lvl_indexer[item_indexer] = True  # type: ignore[index]
-                        else:
-                            lvl_indexer |= item_indexer
+
+                    # GH#55786 Vectorized path: use the level's hashtable to
+                    # map all labels to codes at once, then use algos.isin
+                    # instead of looping with per-element _get_level_indexer.
+                    if any(not is_hashable(x) for x in k):
+                        raise err
+                    level_codes = self.codes[i]
+                    k_codes = self.levels[i].get_indexer(k)
+                    # NaN labels are stored as code -1 and are absent
+                    # from levels, so get_indexer returns -1 for them.
+                    # Separate true missing labels from NaN labels.
+                    has_nan = any(isna(x) for x in k)
+                    missing_mask = k_codes == -1
+                    if has_nan:
+                        na_count = sum(isna(x) for x in k)
+                        if missing_mask.sum() > na_count:
+                            raise KeyError(k) from None
+                        # NaN is in k but must also be present in the data
+                        if not (level_codes == -1).any():
+                            raise KeyError(k) from None
+                    elif missing_mask.any():
+                        raise KeyError(k) from None
+                    k_codes = k_codes[~missing_mask]
+                    lvl_indexer = algos.isin(level_codes, k_codes)
+                    if has_nan:
+                        lvl_indexer = lvl_indexer | (level_codes == -1)
 
                 if lvl_indexer is None:
                     # no matches we are done
