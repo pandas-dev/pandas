@@ -172,7 +172,8 @@ def apply_wraps(func):
 
         result = func(self, other)
 
-        result2 = Timestamp(result).as_unit(other.unit)
+        result = Timestamp(result)
+        result2 = result.as_unit(other.unit)
         if result == result2:
             # i.e. the conversion is non-lossy, not the case for e.g.
             #  test_milliseconds_combination

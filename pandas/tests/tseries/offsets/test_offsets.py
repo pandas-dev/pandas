@@ -600,6 +600,29 @@ class TestCommon:
 
         tm.assert_index_equal(result, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:Non-vectorized DateOffset being applied to Series or DatetimeIndex"
+    )
+    @pytest.mark.parametrize(
+        "offset_class",
+        [
+            CustomBusinessDay,
+            CustomBusinessMonthBegin,
+            CustomBusinessMonthEnd,
+        ],
+    )
+    @pytest.mark.parametrize("unit", ["s", "ms"])
+    def test_add_dt64_non_nano_with_offset_parameter(self, offset_class, unit):
+        # GH#56586 - sub-unit offset parameter should not be truncated
+        off = offset_class(offset=Timedelta(microseconds=500))
+        dti = date_range("2016-01-01", periods=3, freq="D", unit=unit)
+
+        result = dti + off
+
+        expected = DatetimeIndex([x + off for x in dti])
+        tm.assert_index_equal(result, expected)
+        assert result.dtype == expected.dtype
+
 
 class TestDateOffset:
     def setup_method(self):

@@ -30,6 +30,7 @@ from pandas._libs.tslibs import (
     OutOfBoundsDatetime,
     OutOfBoundsTimedelta,
     Resolution,
+    Timedelta,
     Timestamp,
     astype_overflowsafe,
     fields,
@@ -98,10 +99,7 @@ if TYPE_CHECKING:
         npt,
     )
 
-    from pandas import (
-        DataFrame,
-        Timedelta,
-    )
+    from pandas import DataFrame
     from pandas.core.arrays import PeriodArray
 
     _TimestampNoneT1 = TypeVar("_TimestampNoneT1", Timestamp, None)
@@ -861,7 +859,15 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                     stacklevel=find_stack_level(),
                 )
             res_values = self.astype("O") + offset
-            result = type(self)._from_sequence(res_values, dtype=self.dtype)
+            # GH#56586 use the finer resolution between self and offset.offset
+            # to avoid truncating sub-unit precision
+            res_unit = self.unit
+            if hasattr(offset, "offset") and offset.offset:
+                offset_unit = Timedelta(offset.offset).unit
+                if abbrev_to_npy_unit(offset_unit) > abbrev_to_npy_unit(res_unit):
+                    res_unit = offset_unit
+            dtype = tz_to_dtype(self.tz, unit=res_unit)
+            result = type(self)._from_sequence(res_values, dtype=dtype)
 
         else:
             result = type(self)._simple_new(res_values, dtype=res_values.dtype)
