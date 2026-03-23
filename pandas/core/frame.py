@@ -439,7 +439,8 @@ class DataFrame(NDFrame, OpsMixin):
 
     def _constructor_sliced_from_mgr(self, mgr, axes) -> Series:
         ser = Series._from_mgr(mgr, axes)
-        ser._name = None  # caller is responsible for setting real name
+        # Use object.__setattr__ to bypass NDFrame.__setattr__ overhead
+        object.__setattr__(ser, "_name", None)  # caller sets real name
 
         if type(self) is DataFrame:
             # This would also work `if self._constructor_sliced is Series`, but
@@ -4155,7 +4156,7 @@ class DataFrame(NDFrame, OpsMixin):
             new_mgr = self._mgr.fast_xs(i)
 
             result = self._constructor_sliced_from_mgr(new_mgr, axes=new_mgr.axes)
-            result._name = self.index[i]
+            object.__setattr__(result, "_name", self.index[i])
             return result.__finalize__(self)
 
         # icol
@@ -4816,7 +4817,8 @@ class DataFrame(NDFrame, OpsMixin):
         name = self.columns[loc]
         # We get index=self.index bc values is a SingleBlockManager
         obj = self._constructor_sliced_from_mgr(values, axes=values.axes)
-        obj._name = name
+        # Use object.__setattr__ to bypass NDFrame.__setattr__ overhead
+        object.__setattr__(obj, "_name", name)
         return obj.__finalize__(self)
 
     def _get_item(self, item: Hashable) -> Series:
@@ -9356,12 +9358,15 @@ class DataFrame(NDFrame, OpsMixin):
             rvalues = rvalues.reshape(1, -1)
 
         rvalues = np.broadcast_to(rvalues, self.shape)
-        # pass dtype to avoid doing inference
+        # pass dtype to avoid doing inference.
+        # copy=False is safe because this is a temporary DataFrame used only
+        # as the right operand in blockwise arithmetic.
         return self._constructor(
             rvalues,
             index=self.index,
             columns=self.columns,
             dtype=rvalues.dtype,
+            copy=False,
         ).__finalize__(series)
 
     def _flex_arith_method(

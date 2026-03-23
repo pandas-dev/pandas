@@ -6172,10 +6172,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 # One could make the deepcopy unconditionally, but a deepcopy
                 # of an empty dict is 50x more expensive than the empty check.
                 self.attrs = deepcopy(other.attrs)
-            self.flags.allows_duplicate_labels = (
-                self.flags.allows_duplicate_labels
-                and other.flags.allows_duplicate_labels
-            )
+            # Since new objects always start with allows_duplicate_labels=True,
+            # we only need to act when other has it set to False.
+            if not other._flags._allows_duplicate_labels:
+                self.flags.allows_duplicate_labels = False
             # For subclasses using _metadata.
             for name in set(self._metadata) & set(other._metadata):
                 assert isinstance(name, str)
@@ -6191,8 +6191,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 if have_same_attrs:
                     self.attrs = deepcopy(attrs)
 
-            allows_duplicate_labels = all(x.flags.allows_duplicate_labels for x in objs)
-            self.flags.allows_duplicate_labels = allows_duplicate_labels
+            if not all(x._flags._allows_duplicate_labels for x in objs):
+                self.flags.allows_duplicate_labels = False
 
         return self
 
@@ -6363,7 +6363,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         dtype: object
         """
         data = self._mgr.get_dtypes()
-        return self._constructor_sliced(data, index=self._info_axis, dtype=np.object_)
+        # copy=False is safe because get_dtypes() returns a new array
+        return self._constructor_sliced(
+            data, index=self._info_axis, dtype=np.object_, copy=False
+        )
 
     @final
     def astype(
