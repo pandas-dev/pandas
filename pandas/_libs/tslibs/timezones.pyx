@@ -358,23 +358,27 @@ cdef tuple _get_zoneinfo_trans_and_deltas(tzinfo tz):
     if hasattr(tz_py, "_tz_after") and tz_py._tz_after is not None:
         tz_after = tz_py._tz_after
         last_year = datetime.fromtimestamp(trans_utc[-1], timezone.utc).year
+        std_offset = int(tz_after.std.utcoff.total_seconds())
+        dst_offset = int(tz_after.dst.utcoff.total_seconds())
         for year in range(last_year + 1, 2100):
             try:
                 year_trans = tz_after.transitions(year)
                 if year_trans:
-                    start_utc, end_utc = year_trans
+                    start_local, end_local = year_trans
+                    start_utc = start_local - std_offset
+                    end_utc = end_local - dst_offset
                     trans_utc.append(start_utc)
-                    deltas_seconds.append(int(tz_after.dst.utcoff.total_seconds()))
+                    deltas_seconds.append(dst_offset)
                     trans_utc.append(end_utc)
-                    deltas_seconds.append(int(tz_after.std.utcoff.total_seconds()))
+                    deltas_seconds.append(std_offset)
             except Exception:
                 break
 
     trans = np.array(trans_utc, dtype="i8") * 1_000_000_000
     trans = np.hstack([np.array([NPY_NAT + 1], dtype=np.int64), trans])
 
-    first_offset = int(tz_py._ttinfos[0].utcoff.total_seconds())
-    deltas = np.array([first_offset] + deltas_seconds, dtype="i8") * 1_000_000_000
+    deltas = np.array(deltas_seconds, dtype="i8") * 1_000_000_000
+    deltas = np.hstack([deltas[:1], deltas])
 
     return trans, deltas, False
 
