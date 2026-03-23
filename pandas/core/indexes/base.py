@@ -499,6 +499,8 @@ class Index(IndexOpsMixin, PandasObject):
         # GH 63306, GH 63388
         data, copy = cls._maybe_copy_array_input(data, copy, dtype)
 
+        disallow_unhashable = False
+
         # range
         if isinstance(data, (range, RangeIndex)):
             result = RangeIndex(start=data, copy=bool(copy), name=name)
@@ -539,6 +541,7 @@ class Index(IndexOpsMixin, PandasObject):
             raise cls._raise_scalar_data_error(data)
 
         else:
+            disallow_unhashable = True
             if tupleize_cols:
                 # GH21470: convert iterable to list before determining if empty
                 if is_iterator(data):
@@ -576,6 +579,18 @@ class Index(IndexOpsMixin, PandasObject):
             if "Data must be 1-dimensional" in str(err):
                 raise ValueError("Index data must be 1-dimensional") from err
             raise
+
+        if (
+            disallow_unhashable
+            and isinstance(arr, np.ndarray)
+            and arr.dtype == np.object_
+        ):
+            # GH#20285 reject unhashable elements (e.g. list, dict, set)
+            try:
+                lib.check_all_hashable(arr)
+            except TypeError as err:
+                raise ValueError(str(err)) from err
+
         arr = ensure_wrapped_if_datetimelike(arr)  # type: ignore[no-untyped-call]
 
         klass = cls._dtype_to_subclass(arr.dtype)
@@ -591,7 +606,7 @@ class Index(IndexOpsMixin, PandasObject):
         if data.ndim > 1:
             # GH#13601, GH#20285, GH#27125
             raise ValueError("Index data must be 1-dimensional")
-        elif dtype == np.float16:
+        if dtype == np.float16:
             # float16 not supported (no indexing engine)
             raise NotImplementedError("float16 indexes are not supported")
 

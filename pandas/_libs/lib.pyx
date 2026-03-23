@@ -20,6 +20,11 @@ from cpython.datetime cimport (
     time,
     timedelta,
 )
+from cpython.exc cimport (
+    PyErr_Clear,
+    PyErr_ExceptionMatches,
+    PyErr_Occurred,
+)
 from cpython.iterator cimport PyIter_Check
 from cpython.number cimport PyNumber_Check
 from cpython.object cimport (
@@ -2584,6 +2589,43 @@ def maybe_convert_numeric(
     elif seen.uint_:
         return (uints, None)
     return (ints, None)
+
+
+cdef extern from "Python.h":
+    # Declare without exception propagation so we can inspect the error
+    # ourselves. The cpython.object declaration uses `except? -1` which
+    # causes Cython to auto-raise before we can check the error type.
+    Py_hash_t _PyObject_Hash "PyObject_Hash"(object) noexcept
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def check_all_hashable(ndarray[object] values) -> None:
+    """
+    Check that all elements in an object array are hashable.
+
+    Raises
+    ------
+    TypeError
+        If any element is not hashable.
+    """
+    cdef:
+        Py_ssize_t i, n = len(values)
+        object val
+
+    for i in range(n):
+        val = values[i]
+        if is_scalar(val):
+            continue
+        if _PyObject_Hash(val) == -1 and PyErr_Occurred():
+            if PyErr_ExceptionMatches(TypeError):
+                PyErr_Clear()
+                raise TypeError(
+                    f"unhashable type: '{type(val).__name__}'"
+                )
+            # Clear non-TypeError exceptions (e.g. ValueError from
+            # numpy timedelta64 without units)
+            PyErr_Clear()
 
 
 @cython.boundscheck(False)
