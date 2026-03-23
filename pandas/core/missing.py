@@ -537,6 +537,24 @@ def _interpolate_1d(
         yvalues[invalid] = np.interp(
             indices[invalid], indices[valid][indexer], yvalues[valid][indexer]
         )
+    elif method == "nearest":
+        # GH#48236 - use np.searchsorted directly instead of
+        # scipy.interpolate.interp1d(kind="nearest") to avoid
+        # per-slice scipy object creation overhead.
+        indexer = np.argsort(indices[valid])
+        xvalid = indices[valid][indexer]
+        yvalid = yvalues[valid][indexer]
+        xi = indices[invalid]
+        idx = np.searchsorted(xvalid, xi)
+        idx = np.clip(idx, 1, len(xvalid) - 1)
+        left_dist = xi - xvalid[idx - 1]
+        right_dist = xvalid[idx] - xi
+        result = np.where(left_dist <= right_dist, yvalid[idx - 1], yvalid[idx])
+        # Don't extrapolate beyond the valid range, matching
+        # scipy.interpolate.interp1d(bounds_error=False, fill_value=...) behavior
+        extrapolated = (xi < xvalid[0]) | (xi > xvalid[-1])
+        result[extrapolated] = fill_value
+        yvalues[invalid] = result
     else:
         yvalues[invalid] = _interpolate_scipy_wrapper(
             indices[valid],

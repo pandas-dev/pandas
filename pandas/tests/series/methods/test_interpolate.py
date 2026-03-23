@@ -823,6 +823,34 @@ class TestSeriesInterpolateData:
         expected = Series([np.nan, 0, 1, 1, 3, 0])
         tm.assert_series_equal(result, expected)
 
+    def test_interpolate_nearest_extrapolation(self):
+        # GH#48236 - nearest should not extrapolate beyond valid range
+        pytest.importorskip("scipy")
+        ser = Series([np.nan, np.nan, 1, np.nan, 3, np.nan, np.nan])
+        result = ser.interpolate(method="nearest")
+        expected = Series([np.nan, np.nan, 1, 1, 3, np.nan, np.nan])
+        tm.assert_series_equal(result, expected)
+
+    def test_interpolate_nearest_ties(self):
+        # GH#48236 - ties (equidistant) should go to the left neighbor
+        pytest.importorskip("scipy")
+        ser = Series([1, np.nan, np.nan, np.nan, 5.0])
+        result = ser.interpolate(method="nearest")
+        # index 2 is equidistant from index 0 (value 1) and index 4 (value 5)
+        expected = Series([1, 1, 1, 5, 5.0])
+        tm.assert_series_equal(result, expected)
+
+    def test_interpolate_nearest_limit_direction(self):
+        # GH#48236 - nearest with limit_direction and limit_area
+        pytest.importorskip("scipy")
+        ser = Series([np.nan, np.nan, 1, np.nan, 3, np.nan, np.nan])
+        # limit_area="inside" should only fill between valid values
+        result = ser.interpolate(
+            method="nearest", limit_direction="both", limit_area="inside"
+        )
+        expected = Series([np.nan, np.nan, 1, 1, 3, np.nan, np.nan])
+        tm.assert_series_equal(result, expected)
+
     def test_interpolate_int64_linear(self):
         # GH#41565
         ser = Series([1, np.nan, 3], dtype="Int64")

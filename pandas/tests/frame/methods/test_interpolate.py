@@ -228,6 +228,18 @@ class TestDataFrameInterpolate:
         expected.loc[13, "A"] = 5
         tm.assert_frame_equal(result, expected, check_dtype=False)
 
+    def test_interp_nearest_axis1(self):
+        # GH#48236 - nearest with axis=1 on DataFrame
+        pytest.importorskip("scipy")
+        arr = np.full((2, 5), np.nan)
+        arr[:, 1] = 1.0
+        arr[:, 3] = 3.0
+        df = DataFrame(arr)
+        result = df.interpolate(method="nearest", axis=1)
+        expected = df.copy()
+        expected[2] = 1.0
+        tm.assert_frame_equal(result, expected)
+
     def test_interp_alt_scipy(self):
         pytest.importorskip("scipy")
         df = DataFrame(
