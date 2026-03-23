@@ -637,36 +637,19 @@ class TestFrameFlexArithmetic:
         rng = np.random.default_rng(60)
         mask = rng.random(float_frame.shape) < 0.2
         left = float_frame.mask(mask)
-        right = left.iloc[0]
-
+        right = left.iloc[:, 0] if axis == 0 else left.iloc[0]
         result = left.add(right, axis=axis, fill_value=3)
 
-        if axis == 0:  # axis = index, vertical
-            pad_num = abs(result.shape[0] - len(right))
-            mult_num = result.shape[1]
-            right_pad = np.pad(
-                right, (0, pad_num), mode="constant", constant_values=(np.nan)
-            )
-            right_df = DataFrame(
-                [right_pad] * mult_num, columns=result.index, index=result.columns
-            ).T
+        vals = right.values[:, np.newaxis] if axis == 0 else right.values[np.newaxis, :]
+        right_df = DataFrame(
+            np.broadcast_to(vals, left.shape),
+            index=left.index,
+            columns=left.columns,
+        )
 
-            left = left.reindex_like(result)
-
-        else:  # axis = columns, horizontal
-            pad_num = abs(result.shape[1] - len(right))
-            mult_num = result.shape[0]
-            right_pad = np.pad(
-                right, (0, pad_num), mode="constant", constant_values=(np.nan)
-            )
-            right_df = DataFrame(
-                [right_pad] * mult_num, index=result.index, columns=result.columns
-            )
-
-        left_filled = left.fillna(3)
-        right_filled = right_df.fillna(3)
-        expected = right_filled + left_filled
-        expected = expected.mask(expected == 6, pd.NA)
+        both_nan = left.isna() & right_df.isna()
+        expected = left.fillna(3) + right_df.fillna(3)
+        expected[both_nan] = np.nan
 
         tm.assert_frame_equal(result, expected)
 
