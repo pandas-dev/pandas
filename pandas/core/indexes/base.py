@@ -3890,16 +3890,17 @@ class Index(IndexOpsMixin, PandasObject):
             indexer = self._get_fill_indexer(target, method, limit, tolerance)
         elif method == "nearest":
             indexer = self._get_nearest_indexer(target, limit, tolerance)
-        elif target._is_multi and self._is_multi:
-            engine = self._engine
-            # error: Item "IndexEngine" of "Union[IndexEngine, ExtensionEngine]"
-            # has no attribute "_extract_level_codes"
-            tgt_values = engine._extract_level_codes(  # type: ignore[union-attr]
-                target
-            )
-            indexer = self._engine.get_indexer(tgt_values)  # pyright: ignore[reportArgumentType]
         else:
-            tgt_values = target._get_engine_target()
+            if target._is_multi and self._is_multi:
+                engine = self._engine
+                # error: Item "IndexEngine" of "Union[IndexEngine, ExtensionEngine]"
+                # has no attribute "_extract_level_codes"
+                tgt_values = engine._extract_level_codes(  # type: ignore[union-attr]
+                    target
+                )
+            else:
+                tgt_values = target._get_engine_target()
+
             indexer = self._engine.get_indexer(tgt_values)  # pyright: ignore[reportArgumentType]
 
         if method is not None and target._can_hold_na and not target._is_multi:
