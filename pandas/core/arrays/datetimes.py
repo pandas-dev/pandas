@@ -553,8 +553,20 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             if not left_inclusive and not right_inclusive:
                 i8values = i8values[1:-1]
         else:
-            start_i8 = Timestamp(start)._value
-            end_i8 = Timestamp(end)._value
+            start_i8 = (
+                Timestamp(start)._value
+                if start is not None
+                else i8values[0]
+                if len(i8values)
+                else 0
+            )
+            end_i8 = (
+                Timestamp(end)._value
+                if end is not None
+                else i8values[-1]
+                if len(i8values)
+                else 0
+            )
             if not left_inclusive or not right_inclusive:
                 if not left_inclusive and len(i8values) and i8values[0] == start_i8:
                     i8values = i8values[1:]
