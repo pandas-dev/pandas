@@ -623,6 +623,28 @@ class TestGetIndexer:
         expected = np.array(positions, dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
+    @pytest.mark.parametrize("tz", [None, "US/Central"])
+    @pytest.mark.parametrize("method", ["pad", "backfill", "nearest"])
+    def test_get_indexer_nat_target(self, tz, method):
+        # GH#32572 NaT in the target should not be matched
+        dti = date_range("2020-01-01", periods=5, tz=tz)
+        target = DatetimeIndex([pd.NaT], dtype=dti.dtype)
+        result = dti.get_indexer(target, method=method)
+        expected = np.array([-1], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize("tz", [None, "US/Central"])
+    @pytest.mark.parametrize("method", ["pad", "backfill", "nearest"])
+    def test_get_indexer_nat_in_target_mixed(self, tz, method):
+        # GH#32572 NaT entries should get -1, real entries should match normally
+        dti = date_range("2020-01-01", periods=5, tz=tz)
+        target = DatetimeIndex(
+            [pd.NaT, Timestamp("2020-01-03", tz=tz), pd.NaT], dtype=dti.dtype
+        )
+        result = dti.get_indexer(target, method=method)
+        expected = np.array([-1, 2, -1], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_get_indexer_pad_requires_monotonicity(self):
         rng = date_range("1/1/2000", "3/1/2000", freq="B")
 
