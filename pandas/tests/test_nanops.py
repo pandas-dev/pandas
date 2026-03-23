@@ -1267,6 +1267,16 @@ def test_check_bottleneck_disallow(any_real_numpy_dtype, func):
     assert not nanops._bn_ok_dtype(np.dtype(any_real_numpy_dtype).type, func)
 
 
+def test_nanmean_float16_overflow(disable_bottleneck):
+    # GH#43929 float16 sum overflows easily; upcast to float64 like numpy does
+    ser = Series([60000.0, 60000.0], dtype=np.float16)
+    result = ser.mean()
+    assert result == 60000.0
+
+    result = ser.sum()
+    assert result == 120000.0
+
+
 @pytest.mark.parametrize("val", [2**55, -(2**55), 20150515061816532])
 def test_nanmean_overflow(disable_bottleneck, val, using_python_scalars):
     # GH 10155
