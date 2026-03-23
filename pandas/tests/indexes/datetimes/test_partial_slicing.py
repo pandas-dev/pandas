@@ -66,6 +66,42 @@ class TestSlicing:
         expected2 = ser2.iloc[::2]
         tm.assert_series_equal(result2, expected2)
 
+    @pytest.mark.parametrize(
+        "start, freq, key",
+        [
+            ("2005-01-01", "B", "2005-05"),
+            ("2005-01-01", "h", "2005-01-10"),
+            ("2005-01-01 20:00:00", "min", "2005-01-01 22"),
+            ("2005-01-01 23:59:00", "s", "2005-01-01 23:59"),
+        ],
+    )
+    def test_partial_date_slice_decreasing_returns_slice(self, start, freq, key):
+        # monotonic decreasing should use searchsorted fast path
+        #  and return a slice, not an ndarray
+        dti = date_range(start=start, periods=500, freq=freq)
+        ser = Series(np.arange(len(dti)), index=dti)
+
+        expected = ser.loc[key].iloc[::-1]
+
+        ser_desc = ser.iloc[::-1]
+        result = ser_desc.loc[key]
+        tm.assert_series_equal(result, expected)
+
+        # check that the fast path actually returns a slice
+        parsed, reso = ser_desc.index._parse_with_reso(key)
+        indexer = ser_desc.index._partial_date_slice(reso, parsed)
+        assert isinstance(indexer, slice)
+
+    def test_partial_date_slice_decreasing_out_of_range(self):
+        dti = date_range(start="2005-01-01", periods=500, freq="D")
+        ser_desc = Series(np.arange(len(dti)), index=dti[::-1])
+
+        with pytest.raises(KeyError, match=r"^'2004-01-01'$"):
+            ser_desc["2004-01-01"]
+
+        with pytest.raises(KeyError, match=r"^'2007-01-01'$"):
+            ser_desc["2007-01-01"]
+
     def test_return_type_doesnt_depend_on_monotonicity_higher_reso(self):
         # GH#24892 we get Series back regardless of whether our DTI is monotonic
         dti = date_range(start="2015-5-13 23:59:00", freq="min", periods=3)
