@@ -870,7 +870,19 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                 result._freq = None
 
             if self.tz is not None:
-                result = result.tz_localize(self.tz)
+                # For pure-timedelta DateOffset, add to UTC values directly
+                # to avoid nonexistent/ambiguous time errors from
+                # re-localizing wall-time results near DST (GH#28610).
+                from pandas._libs.tslibs.offsets import RelativeDeltaOffset
+
+                if (
+                    isinstance(offset, RelativeDeltaOffset)
+                    and not offset._use_relativedelta
+                ):
+                    res_values = self._ndarray + offset._pd_timedelta
+                    result = type(self)._simple_new(res_values, dtype=self.dtype)
+                else:
+                    result = result.tz_localize(self.tz)
 
         return result
 
