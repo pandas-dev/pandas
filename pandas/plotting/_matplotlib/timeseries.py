@@ -310,6 +310,10 @@ def maybe_convert_index(ax: Axes, data: NDFrameT) -> NDFrameT:
                     dtype=np.int64,
                 )
             else:
+                # GH#64819 - if index is descending, freq is negative (e.g.
+                # "-1D"). Period requires positive freq, so strip the sign.
+                if freq_str.startswith("-"):
+                    freq_str = freq_str.lstrip("-")
                 data = data.tz_localize(None).to_period(freq=freq_str)
         elif isinstance(data.index, ABCPeriodIndex):
             if freq_str == "B":
