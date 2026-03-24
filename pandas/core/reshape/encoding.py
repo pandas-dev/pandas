@@ -339,7 +339,7 @@ def _get_dummies_1d(
         for col, ixs in zip(dummy_cols, sp_indices, strict=True):
             sp_values = np.ones(len(ixs), dtype=dtype)
             sp_index = IntIndex(N, ixs)
-            sparse_dtype = SparseDtype(dtype, fill_value)
+            sparse_dtype = SparseDtype(sp_values.dtype, fill_value)
             sarr = SparseArray._simple_new(sp_values, sp_index, sparse_dtype)
             sparse_series.append(Series(data=sarr, index=index, name=col, copy=False))
 

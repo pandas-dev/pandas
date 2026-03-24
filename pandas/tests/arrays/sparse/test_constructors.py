@@ -158,8 +158,9 @@ class TestConstructors:
         depr_msg = "The 'sparse_index' parameter of SparseArray.__init__ is deprecated"
         msg = "Cannot construct SparseArray from scalar data. Pass a sequence instead"
 
-        with pytest.raises(TypeError, match=msg):
-            SparseArray(data=1, sparse_index=None, dtype=None)
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            with pytest.raises(TypeError, match=msg):
+                SparseArray(data=1, sparse_index=None, dtype=None)
 
         with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
             with pytest.raises(TypeError, match=msg):

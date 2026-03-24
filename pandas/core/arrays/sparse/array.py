@@ -287,7 +287,7 @@ def _wrap_result(
         # fill_value may be np.bool_
         fill_value = bool(fill_value)
     if dtype is not None:
-        data = np.asarray(data, dtype=dtype)
+        data = np.asarray(data, dtype=dtype)  # type: ignore[arg-type]
     else:
         data = np.asarray(data)
     sparse_dtype = SparseDtype(data.dtype, fill_value)
@@ -634,7 +634,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         This avoids materializing a dense array of length 7.
         """
-        sparse_values = np.asarray(data, dtype=dtype)
+        sparse_values = np.asarray(data, dtype=dtype)  # type: ignore[arg-type]
         indices = np.asarray(indices, dtype=np.int32)
 
         if len(sparse_values) != len(indices):
@@ -1516,7 +1516,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 raise ValueError(msg)
             return new_sp_val
 
-        sp_values = sanitize_array([func(x) for x in self.sp_values], index=None)
+        sp_values = np.asarray(
+            sanitize_array([func(x) for x in self.sp_values], index=None)
+        )
 
         sparse_dtype = SparseDtype(sp_values.dtype, fill_val)
         return type(self)._simple_new(sp_values, self.sp_index, sparse_dtype)
