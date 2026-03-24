@@ -688,3 +688,17 @@ def test_map_nullable_integer_precision(dtype):
     result = ser.map(lambda x: x + 2 if pd.notna(x) else x)
     expected = Series([large_int + 2, pd.NA], dtype=dtype)
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        "Int64",
+        pytest.param("int64[pyarrow]", marks=td.skip_if_no("pyarrow")),
+    ],
+)
+def test_map_retains_dtype_with_na(dtype):
+    # GH#57189 - map should not coerce Int64/Arrow int to float64
+    ser = Series([1, 2, 3, pd.NA, 10], dtype=dtype)
+    result = ser.map(lambda x: x)
+    tm.assert_series_equal(result, ser)

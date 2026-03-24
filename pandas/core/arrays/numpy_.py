@@ -217,6 +217,8 @@ class NumpyExtensionArray(
             from pandas import array as pd_array
 
             result = pd_array(result, copy=False)
+        if isinstance(result, np.ndarray):
+            result = type(self)(result)
         return result
 
     # ------------------------------------------------------------------------

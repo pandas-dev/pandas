@@ -433,8 +433,7 @@ class ArrowExtensionArray(
             return self[:0].copy()
 
         if isinstance(self.dtype, StringDtype):
-            # Handle StringDtype early: _from_scalars would convert any value
-            # to its string representation, and the type-specific checks below
+            # Handle StringDtype early: the type-specific checks below
             # (duration, timestamp, etc.) would return Arrow types instead of
             # respecting StringDtype NaN-semantics.
             try:
@@ -1966,9 +1965,6 @@ class ArrowExtensionArray(
             result[mask] = na_value
             result[~mask] = data[~mask]._pa_array.to_numpy()
         return result
-
-    # GH#62164 map is handled by the base class ExtensionArray.map,
-    # which calls _cast_pointwise_result to retain the dtype backend.
 
     def duplicated(
         self, keep: Literal["first", "last", False] = "first"

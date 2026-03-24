@@ -297,12 +297,6 @@ class TestArrowArray(base.ExtensionTests):
         range_test = range(len(ser))
         self._compare_other(ser, range_test, comparison_op, range_test)
 
-    @pytest.mark.parametrize("na_action", [None, "ignore"])
-    def test_map(self, data_missing, na_action):
-        # GH#62164 - _cast_pointwise_result retains Arrow dtype
-        result = data_missing.map(lambda x: x, na_action=na_action)
-        tm.assert_extension_array_equal(result, data_missing)
-
     def test_astype_str(self, data, request, using_infer_string):
         pa_dtype = data.dtype.pyarrow_dtype
         if pa.types.is_binary(pa_dtype):
