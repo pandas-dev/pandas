@@ -217,7 +217,9 @@ class NumpyExtensionArray(
             from pandas import array as pd_array
 
             result = pd_array(result, copy=False)
-        if isinstance(result, np.ndarray):
+        if isinstance(result, np.ndarray) and isinstance(self.dtype, NumpyEADtype):
+            # Subclasses like StringArray have their own validation;
+            # only wrap for plain NumpyEADtype.
             result = type(self)(result)
         return result
 
