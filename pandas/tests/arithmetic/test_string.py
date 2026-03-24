@@ -286,7 +286,7 @@ def test_add_frame(any_string_dtype, request, using_infer_string):
     # Don't want to just skip in case underlying python behavior changes
     if HAS_PYARROW or getattr(dtype, "storage", None) != "python":
         marker = pytest.mark.xfail(reason="GH-28527")
-        request.node.add_marker(marker)
+        request.applymarker(marker)
 
     arr = pd.array(["a", "b", np.nan, np.nan], dtype=dtype)
     df = pd.DataFrame([["x", np.nan, "y", np.nan]])
