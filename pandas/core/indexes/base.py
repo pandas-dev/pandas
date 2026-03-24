@@ -1417,6 +1417,13 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return the formatter function.
         """
+        def formatter(x: Any) -> str:
+            if isinstance(x, float) and np.isnan(x):
+                return "NaN"
+            return default_pprint(x)
+
+        return formatter
+        """
         return default_pprint
 
     @final
