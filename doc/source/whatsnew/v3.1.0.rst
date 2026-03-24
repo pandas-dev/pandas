@@ -197,6 +197,7 @@ Indexing
 - Bugs in setitem-with-expansion when adding new rows failing to keep the original dtype in some cases (:issue:`32346`, :issue:`15231`, :issue:`47503`, :issue:`6485`, :issue:`25383`, :issue:`52235`, :issue:`17026`, :issue:`56010`)
 - Bug in :meth:`Index.get_level_values` mishandling boolean, NA-like (``np.nan``, ``pd.NA``, ``pd.NaT``) and integer index names (:issue:`62169`)
 - Bug in :meth:`MultiIndex.loc` returning incorrect results when indexing with :class:`numpy.datetime64` on a level containing :class:`datetime.date` objects (:issue:`55969`)
+- Bug in :meth:`DataFrame.__getitem__` raising ``KeyError`` when a column was created with a ``numpy`` bool scalar (e.g. ``np.True_``) and accessed with a Python ``bool`` (e.g. ``True``) (:issue:`64749`)
 -
 
 Missing

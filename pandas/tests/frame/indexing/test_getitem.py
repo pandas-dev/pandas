@@ -468,3 +468,37 @@ class TestGetitemDeprecatedIndexers:
         )
         with pytest.raises(TypeError, match="as an indexer is not supported"):
             df[key]
+
+
+class TestGetitemNumpyBool:
+    def test_getitem_nptrue_column_with_true(self):
+        # GH#64749 - np.True_ column key should be accessible via Python True
+        df = DataFrame({True: [4, 5]})
+        result = df[True]
+        expected = Series([4, 5], name=True)
+        tm.assert_series_equal(result, expected)
+
+    def test_getitem_nptrue_column_after_concat(self):
+        # GH#64749 - np.True_ column key accessible with True after concat
+        df = DataFrame({True: [4, 5]})
+        s = Series([7, 8], name="_tmp")
+        df2 = concat([df[True], s], axis=1)
+        result = df2[True]
+        expected = Series([4, 5], name=True)
+        tm.assert_series_equal(result, expected)
+
+    def test_getitem_npfalse_column_with_false(self):
+        # GH#64749 - np.False_ column key should be accessible via Python False
+        df = DataFrame({False: [4, 5]})
+        result = df[False]
+        expected = Series([4, 5], name=False)
+        tm.assert_series_equal(result, expected)
+
+    def test_getitem_bool_int_still_distinct(self):
+        # GH#62888 - Python bool and Python int should remain distinct
+        df = DataFrame({True: [1, 2], 1: [3, 4]})
+        result_bool = df[True]
+        result_int = df[1]
+        # True and 1 must index different columns
+        tm.assert_series_equal(result_bool, Series([1, 2], name=True))
+        tm.assert_series_equal(result_int, Series([3, 4], name=1))

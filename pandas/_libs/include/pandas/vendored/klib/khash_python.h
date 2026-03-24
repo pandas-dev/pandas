@@ -211,8 +211,13 @@ static inline int pyobject_cmp(PyObject *a, PyObject *b) {
       return tupleobject_cmp((PyTupleObject *)a, (PyTupleObject *)b);
     }
     // frozenset isn't yet supported
-  } else if (PyBool_Check(a) != PyBool_Check(b)) {
+  } else if (PyBool_Check(a) != PyBool_Check(b) &&
+             (PyLong_CheckExact(a) || PyLong_CheckExact(b))) {
     // GH#62888: distinguish bool from int, e.g. 0 vs False, 1 vs True
+    // GH#64749: only skip equality when the non-bool side is a Python int;
+    // numpy bool scalars (np.True_/np.False_) are not PyBool but do compare
+    // equal to True/False via PyObject_RichCompareBool, so let them fall
+    // through to the RichCompareBool path below.
     return 0;
   }
 
