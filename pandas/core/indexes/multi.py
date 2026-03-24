@@ -1576,7 +1576,7 @@ class MultiIndex(Index):
     # --------------------------------------------------------------------
     # Rendering Methods
 
-    def _formatter_func(self, tup) -> tuple[str, ...]:  # type: ignore[override]
+    def _formatter_func(self, tup) -> tuple[str, ...]:
         """
         Formats each item in tup according to its level's formatter function.
         """
