@@ -152,3 +152,10 @@ class TestIndexRendering:
         exp2 = repr(arr)
         out2 = "Index([True, False, nan], dtype='object')"
         assert out2 == exp2
+
+    def test_index_nan_repr_consistency(self):
+        # GH#64733 - NaN in Index should display as NaN like Series/DataFrame
+        idx = Index([1, float("nan")])
+        result = repr(idx)
+        assert "NaN" in result
+        assert "nan" not in result.lower().replace("NaN", "")
