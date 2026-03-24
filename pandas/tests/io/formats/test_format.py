@@ -1349,6 +1349,10 @@ class TestDataFrameFormatting:
             (100, 60, 10, 10),  # same
             (60, 60, 10, 60),  # edge case
             (61, 60, 10, 10),  # edge case
+            # GH#64824: min_rows respected when max_rows=None
+            (10, None, 1, 1),
+            (10, None, 2, 2),
+            (10, None, 5, 5),
         ],
     )
     def test_max_rows_fitted(self, length, min_rows, max_rows, expected):

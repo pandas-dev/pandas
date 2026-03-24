@@ -613,7 +613,7 @@ class DataFrameFormatter:
 
         GH #37359
         """
-        if max_rows:
+        if max_rows is not None:
             if (len(self.frame) > max_rows) and self.min_rows:
                 # if truncated, set max_rows showed to min_rows
                 max_rows = min(self.min_rows, max_rows)
