@@ -29,19 +29,19 @@ static inline int omp_get_num_threads(void) { return 1; }
 #endif // x86_64 + glibc + target_clones
 
 /* --- SIMD Implementation --- */
-#if defined(__clang__) && __has_attribute(ext_vector_type)
+#if __has_attribute(ext_vector_type)
 typedef double v4d __attribute__((ext_vector_type(4), aligned(1)));
 typedef long long v4si __attribute__((ext_vector_type(4), aligned(1)));
 typedef uint8_t v4u8 __attribute__((ext_vector_type(4), aligned(1)));
 #  define PANDAS_HAS_SIMD 1
-#elif defined(__GNUC__) && __has_attribute(vector_size)
+#elif __has_attribute(vector_size)
 typedef double v4d __attribute__((vector_size(4 * sizeof(double)), aligned(1)));
 typedef long long v4si
     __attribute__((vector_size(4 * sizeof(long long)), aligned(1)));
 typedef uint8_t v4u8
     __attribute__((vector_size(4 * sizeof(uint8_t)), aligned(1)));
 #  define PANDAS_HAS_SIMD 1
-#endif // __clang__ or __GNUC__ with vector extension
+#endif // __has_attribute(ext_vector_type)
 
 #ifdef PANDAS_HAS_SIMD
 /* Vector select: returns (mask ? a : b) where mask is all-ones or all-zeros */
