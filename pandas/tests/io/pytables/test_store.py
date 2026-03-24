@@ -26,6 +26,7 @@ import pandas._testing as tm
 from pandas.api.types import (
     CategoricalDtype,
 )
+from pandas.util.version import Version
 
 from pandas.io.pytables import (
     HDFStore,
@@ -54,7 +55,7 @@ def test_context(temp_h5_path):
 
 
 @pytest.mark.xfail(
-    tuple(int(x) for x in tables.hdf5_version.split(".")) >= (2,),
+    Version(tables.hdf5_version) >= Version("2"),
     reason="track_times=False produces non-deterministic files with HDF5 >= 2",
 )
 def test_no_track_times(temp_h5_path):
