@@ -3009,7 +3009,7 @@ class ExtensionArray:
         self,
         *,
         qs: npt.NDArray[np.float64],
-        interpolation: str,
+        interpolation: Literal["linear", "lower", "higher", "nearest", "midpoint"],
         ids: npt.NDArray[np.intp],
         ngroups: int,
         starts: npt.NDArray[np.int64],
@@ -3067,7 +3067,7 @@ class ExtensionArray:
         libgroupby.group_quantile(
             out,
             values=vals,
-            mask=mask,
+            mask=mask,  # type: ignore[arg-type]
             labels=ids,
             qs=qs,
             interpolation=interpolation,
@@ -3076,7 +3076,7 @@ class ExtensionArray:
             result_mask=None,
             is_datetimelike=False,
         )
-        out = out.ravel("K")
+        out = out.ravel("K")  # type: ignore[assignment]
 
         if inference is not None and not (
             is_integer_dtype(inference) and interpolation in {"linear", "midpoint"}

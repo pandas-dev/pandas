@@ -2068,7 +2068,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         self,
         *,
         qs: npt.NDArray[np.float64],
-        interpolation: str,
+        interpolation: Literal["linear", "lower", "higher", "nearest", "midpoint"],
         ids: npt.NDArray[np.intp],
         ngroups: int,
         starts: npt.NDArray[np.int64],
@@ -2088,7 +2088,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         libgroupby.group_quantile(
             out,
             values=vals,
-            mask=mask,
+            mask=mask,  # type: ignore[arg-type]
             labels=ids,
             qs=qs,
             interpolation=interpolation,
@@ -2097,8 +2097,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             result_mask=result_mask,
             is_datetimelike=False,
         )
-        out = out.ravel("K")
-        result_mask = result_mask.ravel("K")
+        out = out.ravel("K")  # type: ignore[assignment]
+        result_mask = result_mask.ravel("K")  # type: ignore[assignment]
 
         if not (interpolation in {"linear", "midpoint"} and not is_float_dtype(self)):
             # For non-interpolating methods on non-float dtypes, cast back

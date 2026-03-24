@@ -2987,7 +2987,7 @@ class ArrowExtensionArray(
         self,
         *,
         qs: npt.NDArray[np.float64],
-        interpolation: str,
+        interpolation: Literal["linear", "lower", "higher", "nearest", "midpoint"],
         ids: npt.NDArray[np.intp],
         ngroups: int,
         starts: npt.NDArray[np.int64],

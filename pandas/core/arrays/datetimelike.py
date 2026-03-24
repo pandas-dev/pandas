@@ -1798,7 +1798,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         self,
         *,
         qs: npt.NDArray[np.float64],
-        interpolation: str,
+        interpolation: Literal["linear", "lower", "higher", "nearest", "midpoint"],
         ids: npt.NDArray[np.intp],
         ngroups: int,
         starts: npt.NDArray[np.int64],
@@ -1838,9 +1838,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             )
 
         if self.ndim == 1:
-            out = out.ravel("K")
+            out = out.ravel("K")  # type: ignore[assignment]
         else:
-            out = out.reshape(ncols, ngroups * nqs)
+            out = out.reshape(ncols, ngroups * nqs)  # type: ignore[assignment]
 
         out = out.astype("i8").view(self._ndarray.dtype)
         return self._from_backing_data(out)
