@@ -1739,8 +1739,7 @@ class TextFileReader(abc.Iterator):
                 # wait until regex engine integrated
                 fallback_reason = (
                     f"the '{engine}' engine does not support "
-                    "regex separators (separators > 1 char and "
-                    r"different from '\s+' are interpreted as regex)"
+                    "separators > 1 char, including regex separators"
                 )
                 engine = "python"
         elif sep is not None:
