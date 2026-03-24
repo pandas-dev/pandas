@@ -1670,6 +1670,41 @@ static int copy_string_without_char(char output[PROCESSED_WORD_CAPACITY],
   return 0;
 }
 
+/* Copy a string into `output`, removing only occurrences of `tsep` that
+ * appear between two digit characters (valid thousands separators).
+ * A `tsep` that is not flanked by a digit on both sides (e.g. a trailing
+ * comma in "1 ,") is left in place, causing the caller's end-pointer check
+ * to reject the value as non-numeric.
+ * Returns 0 on success, -1 if the output buffer would overflow.
+ */
+static int copy_string_without_tsep(char output[PROCESSED_WORD_CAPACITY],
+                                    const char *str, size_t str_len,
+                                    char tsep) {
+  const char *end_ptr = str + str_len;
+  size_t bytes_written = 0;
+
+  for (const char *p = str; p < end_ptr; p++) {
+    if (*p == tsep) {
+      // Only treat as thousands separator when the previous output char is a
+      // digit and the next input char is also a digit.
+      const bool prev_is_digit =
+          bytes_written > 0 && isdigit_ascii(output[bytes_written - 1]);
+      const bool next_is_digit = (p + 1 < end_ptr) && isdigit_ascii(*(p + 1));
+      if (prev_is_digit && next_is_digit) {
+        // Skip this tsep character (don't copy it).
+        continue;
+      }
+    }
+    if (bytes_written + 1 >= PROCESSED_WORD_CAPACITY) {
+      return -1;
+    }
+    output[bytes_written++] = *p;
+  }
+
+  output[bytes_written] = '\0';
+  return 0;
+}
+
 int64_t str_to_int64(const char *p_item, int *error, char tsep) {
   const char *p = p_item;
   // Skip leading spaces.
@@ -1692,7 +1727,7 @@ int64_t str_to_int64(const char *p_item, int *error, char tsep) {
   char buffer[PROCESSED_WORD_CAPACITY];
   const size_t str_len = strlen(p);
   if (tsep != '\0' && memchr(p, tsep, str_len) != NULL) {
-    const int status = copy_string_without_char(buffer, p, str_len, tsep);
+    const int status = copy_string_without_tsep(buffer, p, str_len, tsep);
     if (status != 0) {
       // Word is too big, probably will cause an overflow
       *error = ERROR_OVERFLOW;
@@ -1752,7 +1787,7 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int *error,
   char buffer[PROCESSED_WORD_CAPACITY];
   const size_t str_len = strlen(p);
   if (tsep != '\0' && memchr(p, tsep, str_len) != NULL) {
-    const int status = copy_string_without_char(buffer, p, str_len, tsep);
+    const int status = copy_string_without_tsep(buffer, p, str_len, tsep);
     if (status != 0) {
       // Word is too big, probably will cause an overflow
       *error = ERROR_OVERFLOW;

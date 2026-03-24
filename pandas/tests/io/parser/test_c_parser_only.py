@@ -655,6 +655,18 @@ def test_1000_sep_with_decimal(
     tm.assert_frame_equal(result, expected)
 
 
+def test_trailing_thousands_sep_not_converted_to_int(c_parser_only):
+    # GH#64655 - C engine must not strip a trailing thousands separator and
+    # silently cast the value to an integer.  "1 ," has a comma that is NOT
+    # a thousands separator (it comes after a space, not between digits), so
+    # the whole value should be kept as a string, matching the Python engine.
+    parser = c_parser_only
+    txt = "a\n1 ,\n"
+    result = parser.read_csv(StringIO(txt), sep=";", thousands=",", engine="c")
+    expected = DataFrame({"a": ["1 ,"]})
+    tm.assert_frame_equal(result, expected)
+
+
 def test_float_precision_options(c_parser_only):
     # GH 17154, 36228
     parser = c_parser_only
