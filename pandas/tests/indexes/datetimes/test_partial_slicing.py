@@ -418,7 +418,9 @@ class TestSlicing:
         ):
             nonmonotonic["2014-01-10":]
 
-        with pytest.raises(KeyError, match=r"Timestamp\('2014-01-10 00:00:00'\)"):
+        # GH#13090 - improved error message for non-monotonic DatetimeIndex
+        msg = "non-monotonic index with a missing label"
+        with pytest.raises(KeyError, match=msg):
             nonmonotonic[timestamp:]
 
         with pytest.raises(
@@ -426,7 +428,7 @@ class TestSlicing:
         ):
             nonmonotonic.loc["2014-01-10":]
 
-        with pytest.raises(KeyError, match=r"Timestamp\('2014-01-10 00:00:00'\)"):
+        with pytest.raises(KeyError, match=msg):
             nonmonotonic.loc[timestamp:]
 
     def test_loc_datetime_length_one(self):
