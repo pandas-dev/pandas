@@ -150,7 +150,7 @@ class TestIndexRendering:
         # GH32146
         arr = Index([True, False, np.nan], dtype=object)
         exp2 = repr(arr)
-        out2 = "Index([True, False, nan], dtype='object')"
+        out2 = "Index([True, False, NaN], dtype='object')"
         assert out2 == exp2
 
     def test_index_nan_repr_consistency(self):
