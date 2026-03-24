@@ -1610,7 +1610,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         the result is an :class:`~pandas.Index`:
 
         >>> cat.map({"a": "first", "b": "second"}, na_action=None)
-        Index(['first', 'second', nan], dtype='str')
+        Index(['first', 'second', NaN], dtype='str')
 
         The mapping function is applied to categories, not to each value. It is
         therefore only called once per unique category, and the result reused for

@@ -763,7 +763,7 @@ class IndexOpsMixin(OpsMixin):
 
         >>> idx = pd.Index([np.nan, np.nan])
         >>> idx
-        Index([nan, nan], dtype='float64')
+        Index([NaN, NaN], dtype='float64')
         >>> idx.empty
         False
         """

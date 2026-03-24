@@ -545,7 +545,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         the result is an :class:`~pandas.Index`:
 
         >>> idx.map({"a": "first", "b": "second"})
-        Index(['first', 'second', nan], dtype='str')
+        Index(['first', 'second', NaN], dtype='str')
         """
         mapped = self._values.map(mapper, na_action=na_action)
         return Index(mapped, name=self.name, copy=False)

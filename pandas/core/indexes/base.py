@@ -2698,7 +2698,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         >>> idx = pd.Index([5.2, 6.0, np.nan])
         >>> idx
-        Index([5.2, 6.0, nan], dtype='float64')
+        Index([5.2, 6.0, NaN], dtype='float64')
         >>> idx.isna()
         array([False, False,  True])
 
@@ -2707,7 +2707,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         >>> idx = pd.Index(["black", "", "red", None])
         >>> idx
-        Index(['black', '', 'red', nan], dtype='str')
+        Index(['black', '', 'red', NaN], dtype='str')
         >>> idx.isna()
         array([False, False, False,  True])
 
@@ -2755,7 +2755,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         >>> idx = pd.Index([5.2, 6.0, np.nan])
         >>> idx
-        Index([5.2, 6.0, nan], dtype='float64')
+        Index([5.2, 6.0, NaN], dtype='float64')
         >>> idx.notna()
         array([ True,  True, False])
 
@@ -2764,7 +2764,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         >>> idx = pd.Index(["black", "", "red", None])
         >>> idx
-        Index(['black', '', 'red', nan], dtype='str')
+        Index(['black', '', 'red', NaN], dtype='str')
         >>> idx.notna()
         array([ True,  True,  True, False])
         """
@@ -7443,7 +7443,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> import pandas as pd
         >>> idx = pd.Index([10, 20, 30, 40, 50])
         >>> idx.diff()
-        Index([nan, 10.0, 10.0, 10.0, 10.0], dtype='float64')
+        Index([NaN, 10.0, 10.0, 10.0, 10.0], dtype='float64')
 
         """
         return Index(self.to_series().diff(periods))
