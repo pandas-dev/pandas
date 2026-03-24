@@ -79,7 +79,7 @@ char *buffer_rd_bytes(void *source, size_t nbytes, size_t *bytes_read,
     result = tmp;
   }
 
-  const size_t length = PySequence_Length(result);
+  const size_t length = PyBytes_GET_SIZE(result);
 
   if (length == 0)
     *status = REACHED_EOF;

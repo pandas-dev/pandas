@@ -1207,3 +1207,14 @@ def test_negone_ordinals():
     repr(period)
     period = Period(ordinal=-1, freq="W")
     repr(period)
+
+
+def test_period_np_str():
+    # GH#48974 np.str_ should not break Period construction
+    result = Period(np.str_("2023-01"), freq="M")
+    expected = Period("2023-01", freq="M")
+    assert result == expected
+
+    result = Period(np.str_("2023"), freq="Y")
+    expected = Period("2023", freq="Y")
+    assert result == expected

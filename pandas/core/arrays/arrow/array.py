@@ -57,7 +57,10 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
+    DatetimeTZDtype,
+)
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import (
@@ -94,8 +97,6 @@ if HAS_PYARROW:
     import pyarrow.compute as pc
 
     from pandas.compat.pyarrow import _safe_fill_null
-
-    from pandas.core.dtypes.dtypes import ArrowDtype
 
     ARROW_CMP_FUNCS = {
         "eq": pc.equal,
@@ -2537,6 +2538,24 @@ class ArrowExtensionArray(
             result = pc.divide(result, divisor)
 
         return result
+
+    @property
+    def _is_monotonic_increasing(self) -> bool:
+        pa_array = self._pa_array
+        if pa_array.null_count > 0:
+            return False
+        if len(pa_array) <= 1:
+            return True
+        return pc.all(pc.greater_equal(pa_array[1:], pa_array[:-1])).as_py()
+
+    @property
+    def _is_monotonic_decreasing(self) -> bool:
+        pa_array = self._pa_array
+        if pa_array.null_count > 0:
+            return False
+        if len(pa_array) <= 1:
+            return True
+        return pc.all(pc.less_equal(pa_array[1:], pa_array[:-1])).as_py()
 
     def _rank(
         self,

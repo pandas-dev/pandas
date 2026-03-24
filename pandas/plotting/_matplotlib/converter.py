@@ -614,6 +614,20 @@ def _daily_finder(vmin: float, vmax: float, freq: BaseOffset) -> np.ndarray:
 
     periodsperday, periodspermonth, periodsperyear = _get_periods_per_ymd(freq)
 
+    # When the frequency has a multiplier n > 1 (e.g. '1000ms' instead of
+    # '1ms'), the period_range below steps by n, so span is n times smaller
+    # than the raw ordinal count.  Adjust the per-day/month/year counts to
+    # match so that the threshold comparisons remain correct.  GH#50355
+    n = freq.n
+    if n > 1:
+        if periodsperday > 0:
+            periodsperday = max(1, periodsperday // n)
+            periodspermonth = 28 * periodsperday
+            periodsperyear = 365 * periodsperday
+        else:
+            periodspermonth = max(1, periodspermonth // n)
+            periodsperyear = max(1, periodsperyear // n)
+
     # save this for later usage
     vmin_orig = vmin
     (vmin, vmax) = (int(vmin), int(vmax))
@@ -664,7 +678,7 @@ def _daily_finder(vmin: float, vmax: float, freq: BaseOffset) -> np.ndarray:
         year_start = _period_break(dates_, "year")
 
         def _hour_finder(label_interval: int, force_year_start: bool) -> None:
-            target = dates_.hour  # type: ignore[union-attr]
+            target = dates_.hour
             mask = _period_break_mask(dates_, "hour")
             info_maj[day_start] = True
             info_min[mask & (target % label_interval == 0)] = True
@@ -675,7 +689,7 @@ def _daily_finder(vmin: float, vmax: float, freq: BaseOffset) -> np.ndarray:
                 info_fmt[first_label(day_start)] = "%H:%M\n%d-%b\n%Y"
 
         def _minute_finder(label_interval: int) -> None:
-            target = dates_.minute  # type: ignore[union-attr]
+            target = dates_.minute
             hour_start = _period_break(dates_, "hour")
             mask = _period_break_mask(dates_, "minute")
             info_maj[hour_start] = True
@@ -685,7 +699,7 @@ def _daily_finder(vmin: float, vmax: float, freq: BaseOffset) -> np.ndarray:
             info_fmt[year_start] = "%H:%M\n%d-%b\n%Y"
 
         def _second_finder(label_interval: int) -> None:
-            target = dates_.second  # type: ignore[union-attr]
+            target = dates_.second
             minute_start = _period_break(dates_, "minute")
             mask = _period_break_mask(dates_, "second")
             info_maj[minute_start] = True

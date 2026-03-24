@@ -2074,6 +2074,42 @@ class TestToDatetimeUnit:
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             Timestamp(value, unit="ns")
 
+    def test_uint64_to_datetime_raise_oob(self):
+        # GH#60677 uint64 values > int64 max overflow silently
+        uint64_max = np.iinfo(np.uint64).max
+        arr = np.array([uint64_max], dtype=np.uint64)
+
+        msg = "cannot convert input with unit 'ns'"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            to_datetime(arr, unit="ns", errors="raise")
+        # scalar via to_datetime
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            to_datetime(uint64_max, unit="ns", errors="raise")
+        # scalar via Timestamp constructor
+        msg = "Out of bounds nanosecond timestamp"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            Timestamp(uint64_max, unit="ns")
+
+    def test_uint64_to_datetime_coerce(self):
+        # GH#60677
+        uint64_max = np.iinfo(np.uint64).max
+        arr = np.array([uint64_max], dtype=np.uint64)
+
+        result = to_datetime(arr, unit="ns", errors="coerce")
+        expected = DatetimeIndex(["NaT"], dtype="datetime64[ns]")
+        tm.assert_index_equal(result, expected)
+
+        # scalar
+        result = to_datetime(uint64_max, unit="ns", errors="coerce")
+        assert result is NaT
+
+    def test_uint64_to_datetime_valid(self):
+        # GH#60677 valid uint64 values should still work
+        arr = np.array([1_000_000, 2_000_000], dtype=np.uint64)
+        result = to_datetime(arr, unit="ns")
+        expected = to_datetime(arr.astype(np.int64), unit="ns")
+        tm.assert_index_equal(result, expected)
+
 
 class TestToDatetimeDataFrame:
     @pytest.fixture

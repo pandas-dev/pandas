@@ -27,7 +27,6 @@ from pandas._libs.tslibs import (
     Timestamp,
     astype_overflowsafe,
     get_supported_dtype,
-    iNaT,
     is_supported_dtype,
     timezones as libtimezones,
 )
@@ -502,6 +501,19 @@ def _to_datetime_with_unit(arg, unit, name, utc: bool, errors: str) -> Index:
         if arg.dtype.kind in "iu":
             # Note we can't do "f" here because that could induce unwanted
             #  rounding GH#14156, GH#20445
+
+            # GH#60677 unsigned integers > int64 max overflow silently
+            # when cast to datetime64 (which is backed by int64)
+            if arg.dtype == np.dtype("uint64"):
+                mask = arg > np.iinfo(np.int64).max
+                if mask.any():
+                    if errors == "raise":
+                        raise OutOfBoundsDatetime(
+                            f"cannot convert input with unit '{unit}'"
+                        )
+
+                    arg = arg.astype(object)
+                    return _to_datetime_with_unit(arg, unit, name, utc, errors)
             arr = arg.astype(f"datetime64[{unit}]", copy=False)
             dtype = get_supported_dtype(arr.dtype)
             try:
@@ -515,22 +527,15 @@ def _to_datetime_with_unit(arg, unit, name, utc: bool, errors: str) -> Index:
 
         elif arg.dtype.kind == "f":
             mask = np.isnan(arg)
-            nat_as_float = np.float64(iNaT)
-            oob = (
-                (~mask)
-                & (arg != nat_as_float)
-                & ((arg >= np.float64(2**63)) | (arg < nat_as_float))
-            )
-            if oob.any():
-                if errors != "raise":
-                    return _to_datetime_with_unit(
-                        arg.astype(object), unit, name, utc, errors
-                    )
-                raise OutOfBoundsDatetime(f"cannot convert input with unit '{unit}'")
-
             with np.errstate(invalid="ignore"):
                 int_values = arg.astype(np.int64)
-            if (mask | (arg == int_values)).all():
+            # On ARM, float-to-int64 overflow saturates to INT64_MAX
+            # instead of wrapping, which makes the arg == int_values
+            # check pass incorrectly for OOB values like float(2**63).
+            # Exclude values outside the int64 domain from the check.
+            i64 = np.iinfo(np.int64)
+            in_int64_range = (arg >= np.float64(i64.min)) & (arg < np.float64(i64.max))
+            if (mask | (in_int64_range & (arg == int_values))).all():
                 # With all-round-or-NaN entries, we give the requested unit
                 #  back like with integers
                 result = _to_datetime_with_unit(

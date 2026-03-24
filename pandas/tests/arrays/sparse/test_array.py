@@ -349,6 +349,50 @@ class TestSparseArrayAnalytics:
         assert arr.npoints == 1
 
 
+class TestIsna:
+    # GH#41023
+    @pytest.mark.parametrize("kind", ["integer", "block"])
+    def test_isna_non_null_fill_no_nas(self, kind):
+        # Common case: non-null fill value, no NAs in sp_values
+        arr = SparseArray([0, 1, 0, 2, 0], fill_value=0, kind=kind)
+        result = arr.isna()
+        assert result.dtype == SparseDtype(bool, False)
+        expected_dense = np.array([False, False, False, False, False])
+        tm.assert_numpy_array_equal(np.asarray(result), expected_dense)
+        assert result.sp_values.size == 0
+
+    @pytest.mark.parametrize("kind", ["integer", "block"])
+    def test_isna_non_null_fill_with_nas(self, kind):
+        # Non-null fill value, some NAs among sp_values
+        arr = SparseArray([0, np.nan, 0, 2, np.nan], fill_value=0, kind=kind)
+        result = arr.isna()
+        expected_dense = np.array([False, True, False, False, True])
+        tm.assert_numpy_array_equal(np.asarray(result), expected_dense)
+
+    @pytest.mark.parametrize("kind", ["integer", "block"])
+    def test_isna_non_null_fill_all_sp_values_na(self, kind):
+        # Non-null fill value, all sp_values are NA
+        arr = SparseArray([0, np.nan, 0, np.nan], fill_value=0, kind=kind)
+        result = arr.isna()
+        expected_dense = np.array([False, True, False, True])
+        tm.assert_numpy_array_equal(np.asarray(result), expected_dense)
+
+    @pytest.mark.parametrize("kind", ["integer", "block"])
+    def test_isna_null_fill_value(self, kind):
+        # Null fill value
+        arr = SparseArray([np.nan, 1, np.nan, 2], kind=kind)
+        result = arr.isna()
+        expected_dense = np.array([True, False, True, False])
+        tm.assert_numpy_array_equal(np.asarray(result), expected_dense)
+
+    def test_isna_empty_sparse(self):
+        # All fill values, no sp_values at all
+        arr = SparseArray([0, 0, 0], fill_value=0)
+        result = arr.isna()
+        expected_dense = np.array([False, False, False])
+        tm.assert_numpy_array_equal(np.asarray(result), expected_dense)
+
+
 def test_setting_fill_value_fillna_still_works():
     # This is why letting users update fill_value / dtype is bad
     # astype has the same problem.

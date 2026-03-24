@@ -68,10 +68,9 @@ if TYPE_CHECKING:
         IntervalClosedType,
         TimeAmbiguous,
         TimeNonexistent,
-        npt,
         TimeUnit,
+        npt,
     )
-
     from pandas.core.api import (
         DataFrame,
         PeriodIndex,
@@ -114,8 +113,7 @@ def _new_DatetimeIndex(cls, d):
 
 
 @inherit_names(
-    DatetimeArray._field_ops
-    + [
+    [
         method
         for method in DatetimeArray._datetimelike_methods
         if method not in ("tz_localize", "tz_convert", "strftime")
@@ -134,7 +132,6 @@ def _new_DatetimeIndex(cls, d):
         "time",
         "timetz",
         "std",
-        *DatetimeArray._bool_ops,
     ],
     DatetimeArray,
 )
@@ -276,6 +273,106 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     _data: DatetimeArray
     _values: DatetimeArray
     tz: dt.tzinfo | None
+
+    # field_ops: wrap result in Index
+
+    def _wrap_field(self, name: str) -> Index:
+        result = getattr(self._data, name)
+        return Index(result, name=self.name, dtype=result.dtype, copy=False)
+
+    @property
+    def year(self) -> Index:
+        return self._wrap_field("year")
+
+    @property
+    def month(self) -> Index:
+        return self._wrap_field("month")
+
+    @property
+    def day(self) -> Index:
+        return self._wrap_field("day")
+
+    @property
+    def hour(self) -> Index:
+        return self._wrap_field("hour")
+
+    @property
+    def minute(self) -> Index:
+        return self._wrap_field("minute")
+
+    @property
+    def second(self) -> Index:
+        return self._wrap_field("second")
+
+    @property
+    def weekday(self) -> Index:
+        return self._wrap_field("weekday")
+
+    @property
+    def dayofweek(self) -> Index:
+        return self._wrap_field("dayofweek")
+
+    @property
+    def day_of_week(self) -> Index:
+        return self._wrap_field("day_of_week")
+
+    @property
+    def dayofyear(self) -> Index:
+        return self._wrap_field("dayofyear")
+
+    @property
+    def day_of_year(self) -> Index:
+        return self._wrap_field("day_of_year")
+
+    @property
+    def quarter(self) -> Index:
+        return self._wrap_field("quarter")
+
+    @property
+    def days_in_month(self) -> Index:
+        return self._wrap_field("days_in_month")
+
+    @property
+    def daysinmonth(self) -> Index:
+        return self._wrap_field("daysinmonth")
+
+    @property
+    def microsecond(self) -> Index:
+        return self._wrap_field("microsecond")
+
+    @property
+    def nanosecond(self) -> Index:
+        return self._wrap_field("nanosecond")
+
+    # bool_ops: return raw result
+
+    @property
+    def is_month_start(self) -> npt.NDArray[np.bool_]:
+        return self._data.is_month_start
+
+    @property
+    def is_month_end(self) -> npt.NDArray[np.bool_]:
+        return self._data.is_month_end
+
+    @property
+    def is_quarter_start(self) -> npt.NDArray[np.bool_]:
+        return self._data.is_quarter_start
+
+    @property
+    def is_quarter_end(self) -> npt.NDArray[np.bool_]:
+        return self._data.is_quarter_end
+
+    @property
+    def is_year_start(self) -> npt.NDArray[np.bool_]:
+        return self._data.is_year_start
+
+    @property
+    def is_year_end(self) -> npt.NDArray[np.bool_]:
+        return self._data.is_year_end
+
+    @property
+    def is_leap_year(self) -> npt.NDArray[np.bool_]:
+        return self._data.is_leap_year
 
     # --------------------------------------------------------------------
     # methods that dispatch to DatetimeArray and wrap result
@@ -767,14 +864,16 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     # --------------------------------------------------------------------
     # Rendering Methods
 
-    @cache_readonly
-    def _formatter_func(self):
+    def _formatter_func(self, val) -> str:
         # Note this is equivalent to the DatetimeIndexOpsMixin method but
         #  uses the maybe-cached self._is_dates_only instead of re-computing it.
+        return f"'{self._date_formatter(val)}'"
+
+    @cache_readonly
+    def _date_formatter(self):
         from pandas.io.formats.format import get_format_datetime64
 
-        formatter = get_format_datetime64(is_dates_only=self._is_dates_only)
-        return lambda x: f"'{formatter(x)}'"
+        return get_format_datetime64(is_dates_only=self._is_dates_only)
 
     # --------------------------------------------------------------------
     # Set Operation Methods
