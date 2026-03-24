@@ -1169,14 +1169,14 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         ...     ["a", "b", "c", None], categories=["a", "b", "c"], ordered=True
         ... )
         >>> ci
-        CategoricalIndex(['a', 'b', 'c', nan], categories=['a', 'b', 'c'],
+        CategoricalIndex(['a', 'b', 'c', NaN], categories=['a', 'b', 'c'],
                          ordered=True, dtype='category')
 
         >>> ci.set_categories(["A", "b", "c"])
-        CategoricalIndex([nan, 'b', 'c', nan], categories=['A', 'b', 'c'],
+        CategoricalIndex([NaN, 'b', 'c', NaN], categories=['A', 'b', 'c'],
                          ordered=True, dtype='category')
         >>> ci.set_categories(["A", "b", "c"], rename=True)
-        CategoricalIndex(['A', 'b', 'c', nan], categories=['A', 'b', 'c'],
+        CategoricalIndex(['A', 'b', 'c', NaN], categories=['A', 'b', 'c'],
                          ordered=True, dtype='category')
         """
 

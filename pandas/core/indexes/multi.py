@@ -1947,7 +1947,7 @@ class MultiIndex(Index):
         MultiIndex([(2.0, 4.0)],
                    )
         >>> mi.dropna(how="all")
-        MultiIndex([(nan, 3.0),
+        MultiIndex([(NaN, 3.0),
                     (2.0, 4.0)],
                    )
         """
