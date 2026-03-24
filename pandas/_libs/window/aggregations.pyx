@@ -493,22 +493,22 @@ def roll_var(const float64_t[:] values, ndarray[int64_t] start,
 # Rolling skewness
 
 
-cdef void add_skew(float64_t val, Moments *m,
+cdef void add_skew(float64_t val, Moments *moments,
                    bint *numerically_unstable,
                    ) noexcept nogil:
     """ add a value from the skew calc """
     cdef:
-        float64_t old_m3 = m.m3
+        float64_t old_m3 = moments.m3
 
     # Not NaN
     if val == val:
-        moments_add_value(m, val, 3)
-        if fabs(old_m3) * InvCondTol > fabs(m.m3):
+        moments_add_value(moments, val, 3)
+        if fabs(old_m3) * InvCondTol > fabs(moments.m3):
             # possible catastrophic cancellation
             numerically_unstable[0] = True
 
 
-cdef void remove_skew(float64_t val, Moments *m,
+cdef void remove_skew(float64_t val, Moments *moments,
                       bint *numerically_unstable) noexcept nogil:
     """ remove a value from the skew calc """
     cdef:
@@ -526,22 +526,22 @@ cdef void remove_skew(float64_t val, Moments *m,
 
     # Not NaN
     if val == val:
-        m.n -= 1
-        n = <float64_t>(m.n)
-        delta = val - m.mean
+        moments.n -= 1
+        n = <float64_t>(moments.n)
+        delta = val - moments.mean
         delta_n = delta / n
         term1 = delta_n * delta * (n + 1.0)
 
-        m3_update = delta_n * (term1 * (n + 2.0) - 3.0 * m.m2)
-        new_m3 = m.m3 - m3_update
+        m3_update = delta_n * (term1 * (n + 2.0) - 3.0 * moments.m2)
+        new_m3 = moments.m3 - m3_update
 
-        if (fabs(m3_update) + fabs(m.m3)) * InvCondTol > fabs(new_m3):
+        if (fabs(m3_update) + fabs(moments.m3)) * InvCondTol > fabs(new_m3):
             # possible catastrophic cancellation
             numerically_unstable[0] = True
 
-        m.m3 = new_m3
-        m.m2 -= term1
-        m.mean -= delta_n
+        moments.m3 = new_m3
+        moments.m2 -= term1
+        moments.mean -= delta_n
 
 
 def roll_skew(const float64_t[:] values, ndarray[int64_t] start,
@@ -549,7 +549,7 @@ def roll_skew(const float64_t[:] values, ndarray[int64_t] start,
     cdef:
         Py_ssize_t i, j
         float64_t val
-        Moments m
+        Moments moments
         int64_t N = len(start)
         int64_t s, e
         ndarray[float64_t] output
@@ -582,35 +582,35 @@ def roll_skew(const float64_t[:] values, ndarray[int64_t] start,
                 # calculate deletes
                 for j in range(start[i - 1], s):
                     val = values[j]
-                    remove_skew(val, &m, &numerically_unstable)
+                    remove_skew(val, &moments, &numerically_unstable)
 
                 # calculate adds
                 for j in range(end[i - 1], e):
                     val = values[j]
-                    add_skew(val, &m, &numerically_unstable)
+                    add_skew(val, &moments, &numerically_unstable)
 
             if requires_recompute or numerically_unstable:
 
-                m.n = 0
-                m.mean = 0.0
-                m.m2 = 0.0
-                m.m3 = 0.0
-                m.m4 = 0.0
+                moments.n = 0
+                moments.mean = 0.0
+                moments.m2 = 0.0
+                moments.m3 = 0.0
+                moments.m4 = 0.0
 
                 for j in range(s, e):
                     val = values[j]
-                    add_skew(val, &m, &numerically_unstable)
+                    add_skew(val, &moments, &numerically_unstable)
 
                 numerically_unstable = False
 
-            output[i] = NaN if m.n < minp else calc_skew(m)
+            output[i] = NaN if moments.n < minp else calc_skew(moments)
 
             if not is_monotonic_increasing_bounds:
-                m.n = 0
-                m.mean = 0.0
-                m.m2 = 0.0
-                m.m3 = 0.0
-                m.m4 = 0.0
+                moments.n = 0
+                moments.mean = 0.0
+                moments.m2 = 0.0
+                moments.m3 = 0.0
+                moments.m4 = 0.0
 
     return output
 
@@ -618,22 +618,22 @@ def roll_skew(const float64_t[:] values, ndarray[int64_t] start,
 # Rolling kurtosis
 
 
-cdef void add_kurt(float64_t val, Moments *m,
+cdef void add_kurt(float64_t val, Moments *moments,
                    bint *numerically_unstable,
                    ) noexcept nogil:
     """ add a value from the kurotic calc """
     cdef:
-        float64_t old_m4 = m.m4
+        float64_t old_m4 = moments.m4
 
     # Not NaN
     if val == val:
-        moments_add_value(m, val, 4)
-        if fabs(old_m4) * InvCondTol > fabs(m.m4):
+        moments_add_value(moments, val, 4)
+        if fabs(old_m4) * InvCondTol > fabs(moments.m4):
             # possible catastrophic cancellation
             numerically_unstable[0] = True
 
 
-cdef void remove_kurt(float64_t val, Moments *m,
+cdef void remove_kurt(float64_t val, Moments *moments,
                       bint *numerically_unstable,
                       ) noexcept nogil:
     """ remove a value from the kurotic calc """
@@ -642,36 +642,36 @@ cdef void remove_kurt(float64_t val, Moments *m,
 
     # Not NaN
     if val == val:
-        m.n -= 1
-        n = <float64_t>(m.n)
-        delta = val - m.mean
+        moments.n -= 1
+        n = <float64_t>(moments.n)
+        delta = val - moments.mean
         delta_n = delta / n
         term1 = delta_n * delta * (n + 1.0)
 
         m4_update = delta_n * (
-                4.0 * m.m3
+                4.0 * moments.m3
                 + delta_n * (
-                    6.0 * m.m2
+                    6.0 * moments.m2
                     - term1 * (n * n + 3.0 * n + 3.0)
                     )
                 )
-        new_m4 = m.m4 + m4_update
+        new_m4 = moments.m4 + m4_update
 
-        if (fabs(m4_update) + fabs(m.m4)) * InvCondTol > fabs(new_m4):
+        if (fabs(m4_update) + fabs(moments.m4)) * InvCondTol > fabs(new_m4):
             # possible catastrophic cancellation
             numerically_unstable[0] = True
 
-        m.m4 = new_m4
-        m.m3 -= delta_n * (term1 * (n + 2.0) - 3.0 * m.m2)
-        m.m2 -= term1
-        m.mean -= delta_n
+        moments.m4 = new_m4
+        moments.m3 -= delta_n * (term1 * (n + 2.0) - 3.0 * moments.m2)
+        moments.m2 -= term1
+        moments.mean -= delta_n
 
 
 def roll_kurt(const float64_t[:] values, ndarray[int64_t] start,
               ndarray[int64_t] end, int64_t minp) -> np.ndarray:
     cdef:
         Py_ssize_t i, j
-        Moments m
+        Moments moments
         int64_t s, e
         int64_t N = len(start)
         ndarray[float64_t] output
@@ -704,32 +704,32 @@ def roll_kurt(const float64_t[:] values, ndarray[int64_t] start,
                 # and removed
                 # calculate deletes
                 for j in range(start[i - 1], s):
-                    remove_kurt(values[j], &m, &numerically_unstable)
+                    remove_kurt(values[j], &moments, &numerically_unstable)
 
                 # calculate adds
                 for j in range(end[i - 1], e):
-                    add_kurt(values[j], &m, &numerically_unstable)
+                    add_kurt(values[j], &moments, &numerically_unstable)
 
             if requires_recompute or numerically_unstable:
 
-                m.n = 0
-                m.mean = 0.0
-                m.m2 = 0.0
-                m.m3 = 0.0
-                m.m4 = 0.0
+                moments.n = 0
+                moments.mean = 0.0
+                moments.m2 = 0.0
+                moments.m3 = 0.0
+                moments.m4 = 0.0
                 for j in range(s, e):
-                    add_kurt(values[j], &m, &numerically_unstable)
+                    add_kurt(values[j], &moments, &numerically_unstable)
 
                 numerically_unstable = False
 
-            output[i] = NaN if m.n < minp else calc_kurt(m)
+            output[i] = NaN if moments.n < minp else calc_kurt(moments)
 
             if not is_monotonic_increasing_bounds:
-                m.n = 0
-                m.mean = 0.0
-                m.m2 = 0.0
-                m.m3 = 0.0
-                m.m4 = 0.0
+                moments.n = 0
+                moments.mean = 0.0
+                moments.m2 = 0.0
+                moments.m3 = 0.0
+                moments.m4 = 0.0
 
     return output
 
