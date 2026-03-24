@@ -247,7 +247,8 @@ jobs:
             --environment ${{ matrix.environment }} \
             build-pandas \
             --editable \
-            -Csetup-args="--werror"
+            -Csetup-args="--werror" \
+            -Csetup-args="--vsenv"
         shell: bash -euox pipefail {0}
 
       - name: Test
