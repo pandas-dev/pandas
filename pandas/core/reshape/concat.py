@@ -972,7 +972,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
 
     for hlevel, level in zip(zipped, levels, strict=True):
         hlevel_index = ensure_index(hlevel)
-        mapped = level.get_indexer(hlevel_index)
+        mapped = level.get_indexer_for(hlevel_index)
 
         mask = mapped == -1
         if mask.any():
