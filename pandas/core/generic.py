@@ -4282,6 +4282,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 # so just return them (GH 6394)
                 return self._values[loc]
 
+            if not drop_level and isinstance(index, MultiIndex):
+                # GH#6507 - honor drop_level=False for fully specified keys
+                result = self.iloc[loc : loc + 1]
+                result.index = new_index
+                return result
+
             new_mgr = self._mgr.fast_xs(loc)
 
             result = self._constructor_sliced_from_mgr(new_mgr, axes=new_mgr.axes)
