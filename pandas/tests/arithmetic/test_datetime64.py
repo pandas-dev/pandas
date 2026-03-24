@@ -1607,24 +1607,30 @@ class TestDatetime64DateOffsetArithmetic:
             tz="Europe/Berlin",
         ).as_unit(unit)
 
-        result = dti + DateOffset(hours=-2)
+        offset = DateOffset(hours=-2)
+        result = dti + offset
         expected = DatetimeIndex(
             ["2000-03-26 01:00:00+01:00", "2000-03-25 23:00:00+01:00"],
             dtype=f"datetime64[{unit}, Europe/Berlin]",
         )
         tm.assert_index_equal(result, expected)
+        pointwise = DatetimeIndex([x + offset for x in dti])
+        tm.assert_index_equal(result, pointwise)
 
         # Also test the reverse direction (adding into DST)
         dti2 = DatetimeIndex(
             ["2000-03-26 01:00"],
             tz="Europe/Berlin",
         ).as_unit(unit)
-        result2 = dti2 + DateOffset(hours=2)
+        offset2 = DateOffset(hours=2)
+        result2 = dti2 + offset2
         expected2 = DatetimeIndex(
             ["2000-03-26 04:00:00+02:00"],
             dtype=f"datetime64[{unit}, Europe/Berlin]",
         )
         tm.assert_index_equal(result2, expected2)
+        pointwise2 = DatetimeIndex([x + offset2 for x in dti2])
+        tm.assert_index_equal(result2, pointwise2)
 
 
 class TestDatetime64OverflowHandling:

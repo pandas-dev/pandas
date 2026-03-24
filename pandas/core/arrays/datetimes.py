@@ -47,6 +47,7 @@ from pandas._libs.tslibs import (
     tzconversion,
 )
 from pandas._libs.tslibs.dtypes import abbrev_to_npy_unit
+from pandas._libs.tslibs.offsets import RelativeDeltaOffset
 from pandas.errors import PerformanceWarning
 from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
@@ -839,6 +840,21 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     def _add_offset(self, offset: BaseOffset) -> Self:
         assert not isinstance(offset, Tick)
 
+        # For pure-timedelta DateOffset with tz-aware data, add to UTC values
+        # directly to avoid nonexistent/ambiguous time errors from
+        # re-localizing wall-time results near DST (GH#28610).
+        if (
+            self.tz is not None
+            and isinstance(offset, RelativeDeltaOffset)
+            and not offset._use_relativedelta
+        ):
+            res_values = self._ndarray + offset._pd_timedelta
+            result = type(self)._simple_new(res_values, dtype=self.dtype)
+            if offset.normalize:
+                result = result.normalize()
+                result._freq = None
+            return result
+
         if self.tz is not None:
             values = self.tz_localize(None)
         else:
@@ -870,19 +886,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                 result._freq = None
 
             if self.tz is not None:
-                # For pure-timedelta DateOffset, add to UTC values directly
-                # to avoid nonexistent/ambiguous time errors from
-                # re-localizing wall-time results near DST (GH#28610).
-                from pandas._libs.tslibs.offsets import RelativeDeltaOffset
-
-                if (
-                    isinstance(offset, RelativeDeltaOffset)
-                    and not offset._use_relativedelta
-                ):
-                    res_values = self._ndarray + offset._pd_timedelta
-                    result = type(self)._simple_new(res_values, dtype=self.dtype)
-                else:
-                    result = result.tz_localize(self.tz)
+                result = result.tz_localize(self.tz)
 
         return result
 
