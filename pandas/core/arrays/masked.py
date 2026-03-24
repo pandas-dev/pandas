@@ -1161,6 +1161,24 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         result._readonly = self._readonly
         return result
 
+    @property
+    def _is_monotonic_increasing(self) -> bool:
+        if self._hasna:
+            return False
+        data = self._data
+        if data.dtype.kind == "b":
+            data = data.view("uint8")
+        return libalgos.is_monotonic(data, timelike=False)[0]
+
+    @property
+    def _is_monotonic_decreasing(self) -> bool:
+        if self._hasna:
+            return False
+        data = self._data
+        if data.dtype.kind == "b":
+            data = data.view("uint8")
+        return libalgos.is_monotonic(data, timelike=False)[1]
+
     def _rank(
         self,
         *,

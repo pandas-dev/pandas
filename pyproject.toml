@@ -72,8 +72,11 @@ classifiers = [
 
 [project.urls]
 homepage = 'https://pandas.pydata.org'
+source = 'https://github.com/pandas-dev/pandas'
 documentation = 'https://pandas.pydata.org/docs/'
-repository = 'https://github.com/pandas-dev/pandas'
+changelog = 'https://pandas.pydata.org/docs/whatsnew/index.html'
+issues = 'https://github.com/pandas-dev/pandas/issues'
+funding = 'https://opencollective.com/pandas'
 
 [project.entry-points."pandas_plotting_backends"]
 matplotlib = "pandas:plotting._matplotlib"

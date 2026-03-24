@@ -313,6 +313,22 @@ def test_sort_values_incomparable():
         mi.sort_values()
 
 
+def test_sortlevel_incomparable():
+    # GH#21136
+    mi = MultiIndex.from_arrays(
+        [
+            Series(
+                [Timestamp("2011-04-09"), Timestamp("2010-04-09"), "2009/4/9"],
+                dtype=object,
+            ),
+            [2, 1, 3],
+        ],
+        names=["a", "c"],
+    )
+    with pytest.raises(TypeError, match="not supported between instances of"):
+        mi.sortlevel("a")
+
+
 @pytest.mark.parametrize("na_position", ["first", "last"])
 @pytest.mark.parametrize("dtype", ["float64", "Int64", "Float64"])
 def test_sort_values_with_na_na_position(dtype, na_position):

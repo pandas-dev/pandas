@@ -450,6 +450,9 @@ def array_to_timedelta64(
                 ival = delta_to_nanoseconds(item, reso=creso)
 
             elif isinstance(item, str):
+                if type(item) is not str:
+                    # GH#48974 np.str_ object
+                    item = str(item)
                 if (
                     (len(item) > 0 and item[0] == "P")
                     or (len(item) > 1 and item[:2] == "-P")

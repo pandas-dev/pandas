@@ -365,7 +365,7 @@ def format_object_summary(
         align with the name.
     line_break_each_value : bool, default False
         If True, inserts a line break for each value of ``obj``.
-        If False, only break lines when the a line of values gets wider
+        If False, only break lines when a line of values gets wider
         than the display width.
 
     Returns

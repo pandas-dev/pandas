@@ -1415,14 +1415,14 @@ int to_boolean(const char *item, uint8_t *val) {
 // Defined in fast_float_strtod.cpp — provides IEEE 754 correctly-rounded
 // float parsing via the fast_float library.
 int fast_float_strtod(const char *start, const char *end, double *value,
-                      const char **endptr);
+                      const char **endptr, char decimal);
 
 double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
                        char tsep, int skip_trailing, int *error,
                        int *maybe_int) {
-  // Use fast_float for standard format (decimal='.', no tsep, sci='e'/'E').
+  // Use fast_float for standard format (no tsep, sci='e'/'E').
   // fast_float provides IEEE 754 correctly-rounded parsing.
-  if (decimal == '.' && tsep == '\0' && (sci == 'e' || sci == 'E')) {
+  if (tsep == '\0' && (sci == 'e' || sci == 'E')) {
     const char *p = str;
     while (isspace_ascii(*p))
       p++;
@@ -1433,7 +1433,7 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
     const char *q = p;
     if (*q == '-' || *q == '+')
       q++;
-    if (!isdigit_ascii(*q) && !(*q == '.' && isdigit_ascii(*(q + 1))))
+    if (!isdigit_ascii(*q) && !(*q == decimal && isdigit_ascii(*(q + 1))))
       goto fallback;
 
     // Find end of token (next whitespace or NUL).
@@ -1443,12 +1443,12 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
 
     double value;
     const char *parsed_end;
-    if (fast_float_strtod(p, end, &value, &parsed_end) == 0) {
-      // Determine maybe_int by checking if we saw '.' or 'e'/'E'.
+    if (fast_float_strtod(p, end, &value, &parsed_end, decimal) == 0) {
+      // Determine maybe_int by checking if we saw decimal or 'e'/'E'.
       if (maybe_int != NULL) {
         *maybe_int = 1;
         for (const char *c = p; c < parsed_end; c++) {
-          if (*c == '.' || *c == 'e' || *c == 'E') {
+          if (*c == decimal || *c == 'e' || *c == 'E') {
             *maybe_int = 0;
             break;
           }
@@ -1464,7 +1464,7 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
   }
 
 fallback:
-    // Fallback for non-standard formats (custom decimal, tsep, or sci char).
+    // Fallback for non-standard formats (custom tsep, or sci char).
     ;
   const char *p = str;
   const int max_digits = 17;
