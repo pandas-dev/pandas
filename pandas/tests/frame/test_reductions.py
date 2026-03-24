@@ -2231,3 +2231,16 @@ def test_mean_nullable_int_axis_1():
     result = df.mean(axis=1, skipna=False)
     expected = Series([1.0, 2.0, 3.5, pd.NA], dtype="Float64")
     tm.assert_series_equal(result, expected)
+
+
+def test_sum_empty_df_mixed_string_numeric():
+    # GH#64657 - DataFrame.sum() should not crash on an empty DataFrame that
+    # has both string and numeric columns (e.g. Arrow-backed string dtype).
+    df = DataFrame({"col1": ["x", "y", "z"], "col2": [1, 2, 3]})
+    empty_df = df[df["col2"] > 5]
+
+    # Must not raise ValueError: could not convert string to float: ''
+    result = empty_df.sum()
+
+    assert result["col2"] == 0
+    assert result["col1"] == "" or result["col1"] == 0

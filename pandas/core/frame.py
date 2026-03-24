@@ -15684,8 +15684,12 @@ class DataFrame(NDFrame, OpsMixin):
             out = out.astype(object)
         elif len(self) == 0 and out.dtype == object and name in ("sum", "prod"):
             # Even if we are object dtype, follow numpy and return
-            #  float64, see test_apply_funcs_over_empty
-            out = out.astype(np.float64)
+            # float64, see test_apply_funcs_over_empty.
+            # However, skip the cast when the result contains non-numeric values
+            # (e.g. empty-string results from Arrow-backed string columns), as
+            # attempting astype(float64) would raise ValueError. GH#64657
+            if out.apply(lambda x: isinstance(x, (int, float, complex))).all():
+                out = out.astype(np.float64)
 
         return out
 
