@@ -367,6 +367,11 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         #  py38 builds.
         raise TypeError(f"Invalid value '{value!s}' for dtype '{self.dtype}'")
 
+    def insert(self, loc: int, item) -> Self:
+        if not is_valid_na_for_dtype(item, self.dtype):
+            self._validate_setitem_value(item)
+        return super().insert(loc, item)
+
     def __setitem__(self, key, value) -> None:
         if self._readonly:
             raise ValueError("Cannot modify read-only array")
