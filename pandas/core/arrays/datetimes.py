@@ -863,7 +863,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                 # incompatible type
                 # "dtype[datetime64[date | int | None]] | DatetimeTZDtype";
                 # expected "dtype[Any] | _HasDType[dtype[Any]]"  [arg-type]
-                res_values = res_values.view(values._ndarray.dtype)  # type: ignore[arg-type]
+                res_values = res_values.view(values._ndarray.dtype)
         except NotImplementedError:
             if get_option("performance_warnings"):
                 warnings.warn(
