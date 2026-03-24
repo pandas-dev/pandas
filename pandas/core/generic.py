@@ -10022,11 +10022,19 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if isinstance(cond, NDFrame):
             # CoW: Make sure reference is not kept alive
             if cond.ndim == 1 and self.ndim == 2:
-                cond = cond._constructor_expanddim(
-                    dict.fromkeys(range(len(self.columns)), cond),
-                    copy=False,
-                )
-                cond.columns = self.columns
+                if axis == 1:
+                    # GH#58190 broadcast cond along columns
+                    cond = cond._constructor_expanddim(
+                        dict.fromkeys(range(len(self)), cond),
+                        copy=False,
+                    ).T
+                    cond.index = self.index
+                else:
+                    cond = cond._constructor_expanddim(
+                        dict.fromkeys(range(len(self.columns)), cond),
+                        copy=False,
+                    )
+                    cond.columns = self.columns
             cond = cond.align(self, join="right")[0]
         else:
             if not hasattr(cond, "shape"):
@@ -10148,10 +10156,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if axis is None:
             axis = 0
 
-        if self.ndim == getattr(other, "ndim", 0):
+        other_ndim = getattr(other, "ndim", 0)
+        if self.ndim == other_ndim:
             align = True
         else:
-            align = self._get_axis_number(axis) == 1
+            # GH#58190 scalar other (ndim=0) should never be aligned
+            align = other_ndim >= 1 and self._get_axis_number(axis) == 1
 
         if inplace:
             # we may have different type blocks come out of putmask, so
