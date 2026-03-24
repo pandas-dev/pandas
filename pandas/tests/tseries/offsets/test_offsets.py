@@ -619,9 +619,8 @@ class TestCommon:
 
         result = dti + off
 
-        expected = DatetimeIndex([x + off for x in dti])
+        expected = DatetimeIndex([x + off for x in dti], dtype="datetime64[us]")
         tm.assert_index_equal(result, expected)
-        assert result.dtype == expected.dtype
 
 
 class TestDateOffset:
