@@ -2279,6 +2279,6 @@ def test_add_mixed_empty(any_string_dtype):
     # if not using_infer_string:
     #     pytest.skip("empty objects sum to 0 instead of '' with infer_string=0")
     expected = Series({"col1": "", "col2": 0}, dtype=object)
-    empty_df = DataFrame(columns=["col1", "col2"]).astype({"col1": str, "col2": int})
+    empty_df = DataFrame(columns=["col1", "col2"]).astype({"col1": any_string_dtype, "col2": int})
     result = empty_df.sum()
     tm.assert_series_equal(result, expected)
