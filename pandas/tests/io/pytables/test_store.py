@@ -53,6 +53,10 @@ def test_context(temp_h5_path):
         assert type(tbl["a"]) == DataFrame
 
 
+@pytest.mark.xfail(
+    tuple(int(x) for x in tables.hdf5_version.split(".")) >= (2,),
+    reason="track_times=False produces non-deterministic files with HDF5 >= 2",
+)
 def test_no_track_times(temp_h5_path):
     # GH 32682
     # enables to set track_times (see `pytables` `create_table` documentation)
