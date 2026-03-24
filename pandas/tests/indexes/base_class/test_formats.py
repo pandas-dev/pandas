@@ -156,14 +156,6 @@ class TestIndexRendering:
     def test_index_nan_repr_consistency(self):
         # GH#64733 - NaN in Index should display as NaN like Series/DataFrame
         idx = Index([1, float("nan")])
-        ser = Series([1, float("nan")])
-
-        # Extract NaN representation from both
-        index_repr = repr(idx)  # Index([1.0, NaN], dtype='float64')
-        series_repr = repr(ser)  # shows NaN
-
-        # Both should use NaN, not nan
-        assert "nan" not in index_repr  # before fix: Index([1.0, nan], ...)
-        assert "NaN" in index_repr
-        # Consistency check - same as Series
-        assert "NaN" in series_repr
+        result = repr(idx)
+        assert "NaN" in result
+        assert result == "Index([1.0, NaN], dtype='float64')"
