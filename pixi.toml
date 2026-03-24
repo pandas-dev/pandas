@@ -18,6 +18,11 @@ pip = ">=26"
 # Required dependencies
 python-dateutil = ">=2.8.2"
 
+[feature.mingw-compiler]
+platforms = ["win-64"]
+dependencies = { gcc = "*", gxx = "*" }
+activation = { env = { CC = "gcc", CXX = "g++" } }
+
 [feature.numpy.dependencies]
 numpy = ">=1.26.0,<3"
 
@@ -159,6 +164,7 @@ pyarrow-nightly = { features = ["py313", "numpy", "test-base", "pyarrow-nightly"
 downstream = { features = ["py313", "numpy", "test-base", "downstream"] }
 asv = { features = ["py313", "numpy", "pyarrow", "optional-dependencies", "benchmarks" ]}
 docs-and-web = { features = ["py312", "numpy", "pyarrow", "optional-dependencies", "documentation", "website" ]}
+mingw = { features = ["py313", "numpy", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies", "mingw-compiler"] }
 
 
 [tasks]
