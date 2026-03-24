@@ -397,7 +397,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         dtype: Dtype | None = None,
         copy: bool = False,
     ) -> None:
-        if sparse_index is not lib.no_default and sparse_index is not None:
+        if sparse_index is not lib.no_default:
             warnings.warn(
                 "The 'sparse_index' parameter of SparseArray.__init__ is "
                 "deprecated and will be removed in a future version. "
@@ -405,7 +405,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 Pandas4Warning,
                 stacklevel=find_stack_level(),
             )
-        elif sparse_index is lib.no_default:
+        else:
             sparse_index = None
 
         if fill_value is None and isinstance(dtype, SparseDtype):
