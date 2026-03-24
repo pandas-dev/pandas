@@ -3005,6 +3005,86 @@ class ExtensionArray:
         else:
             raise NotImplementedError
 
+    def _groupby_quantile(
+        self,
+        *,
+        qs: npt.NDArray[np.float64],
+        interpolation: str,
+        ids: npt.NDArray[np.intp],
+        ngroups: int,
+        starts: npt.NDArray[np.int64],
+        ends: npt.NDArray[np.int64],
+    ) -> ArrayLike:
+        """
+        Dispatch GroupBy quantile operation.
+
+        Parameters
+        ----------
+        qs : np.ndarray[float64]
+            Quantile(s) to compute.
+        interpolation : {'linear', 'lower', 'higher', 'nearest', 'midpoint'}
+        ids : np.ndarray[np.intp]
+            Group labels.
+        ngroups : int
+        starts : np.ndarray[int64]
+        ends : np.ndarray[int64]
+
+        Returns
+        -------
+        np.ndarray or ExtensionArray
+        """
+        from pandas.core.dtypes.common import (
+            is_bool_dtype,
+            is_float_dtype,
+            is_integer_dtype,
+            is_object_dtype,
+        )
+        from pandas.core.dtypes.missing import isna
+
+        from pandas.core.arrays.string_ import StringDtype
+
+        if isinstance(self.dtype, StringDtype) or is_object_dtype(self.dtype):
+            raise TypeError(
+                f"dtype '{self.dtype}' does not support operation 'quantile'"
+            )
+        if is_bool_dtype(self.dtype):
+            raise TypeError("Cannot use quantile with bool dtype")
+
+        mask = np.asarray(isna(self))
+        nqs = len(qs)
+
+        if is_integer_dtype(self.dtype):
+            vals = self.to_numpy(dtype=float, na_value=np.nan)
+            inference: np.dtype | None = np.dtype(np.int64)
+        elif is_float_dtype(self.dtype):
+            vals = self.to_numpy(dtype=float, na_value=np.nan)
+            inference = np.dtype(np.float64)
+        else:
+            vals = np.asarray(self)
+            inference = None
+
+        out = np.empty((ngroups, nqs), dtype=np.float64)
+        libgroupby.group_quantile(
+            out,
+            values=vals,
+            mask=mask,
+            labels=ids,
+            qs=qs,
+            interpolation=interpolation,
+            starts=starts,
+            ends=ends,
+            result_mask=None,
+            is_datetimelike=False,
+        )
+        out = out.ravel("K")
+
+        if inference is not None and not (
+            is_integer_dtype(inference) and interpolation in {"linear", "midpoint"}
+        ):
+            return out.astype(inference)
+
+        return out
+
     def _groupby_first_last(
         self,
         *,

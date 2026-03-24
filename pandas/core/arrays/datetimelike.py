@@ -1794,6 +1794,57 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         res_values = res_values.view(self._ndarray.dtype)
         return self._from_backing_data(res_values)
 
+    def _groupby_quantile(
+        self,
+        *,
+        qs: npt.NDArray[np.float64],
+        interpolation: str,
+        ids: npt.NDArray[np.intp],
+        ngroups: int,
+        starts: npt.NDArray[np.int64],
+        ends: npt.NDArray[np.int64],
+    ) -> ArrayLike:
+        import pandas._libs.groupby as libgroupby
+
+        nqs = len(qs)
+        mask = self.isna()
+        i8vals = self.asi8
+
+        # Block manager may store DatetimeArray/TimedeltaArray as 2D (1, N)
+        ncols = 1
+        if self.ndim == 2:
+            ncols = self._ndarray.shape[0]
+
+        out = np.empty((ncols, ngroups, nqs), dtype=np.float64)
+        for col in range(ncols):
+            if self.ndim == 2:
+                col_mask = mask[col]
+                col_vals = i8vals[col]
+            else:
+                col_mask = mask
+                col_vals = i8vals
+
+            libgroupby.group_quantile(
+                out[col],
+                values=col_vals,
+                mask=col_mask,
+                labels=ids,
+                qs=qs,
+                interpolation=interpolation,
+                starts=starts,
+                ends=ends,
+                result_mask=None,
+                is_datetimelike=True,
+            )
+
+        if self.ndim == 1:
+            out = out.ravel("K")
+        else:
+            out = out.reshape(ncols, ngroups * nqs)
+
+        out = out.astype("i8").view(self._ndarray.dtype)
+        return self._from_backing_data(out)
+
 
 class DatelikeOps(DatetimeLikeArrayMixin):
     """

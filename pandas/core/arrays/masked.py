@@ -2064,6 +2064,51 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             #  wrap in a MaskedArray
             return self._maybe_mask_result(res_values, result_mask)
 
+    def _groupby_quantile(
+        self,
+        *,
+        qs: npt.NDArray[np.float64],
+        interpolation: str,
+        ids: npt.NDArray[np.intp],
+        ngroups: int,
+        starts: npt.NDArray[np.int64],
+        ends: npt.NDArray[np.int64],
+    ) -> ArrayLike:
+        import pandas._libs.groupby as libgroupby
+
+        from pandas.core.dtypes.common import is_float_dtype
+
+        mask = self._mask
+        nqs = len(qs)
+        result_mask = np.zeros((ngroups, nqs), dtype=np.bool_)
+
+        vals = self.to_numpy(dtype=float, na_value=np.nan)
+
+        out = np.empty((ngroups, nqs), dtype=np.float64)
+        libgroupby.group_quantile(
+            out,
+            values=vals,
+            mask=mask,
+            labels=ids,
+            qs=qs,
+            interpolation=interpolation,
+            starts=starts,
+            ends=ends,
+            result_mask=result_mask,
+            is_datetimelike=False,
+        )
+        out = out.ravel("K")
+        result_mask = result_mask.ravel("K")
+
+        if not (interpolation in {"linear", "midpoint"} and not is_float_dtype(self)):
+            # For non-interpolating methods on non-float dtypes, cast back
+            # to the original numpy dtype (e.g. float64 -> int64).
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=RuntimeWarning)
+                out = out.astype(self.dtype.numpy_dtype)
+
+        return self._maybe_mask_result(out, result_mask)
+
 
 def transpose_homogeneous_masked_arrays(
     masked_arrays: Sequence[BaseMaskedArray],
