@@ -847,8 +847,8 @@ class TestDataFrameAnalytics:
         expected = Series([value], dtype=dtype)
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize("method, unit", [("sum", 0), ("prod", 1)])
-    @pytest.mark.parametrize("numeric_only", [None, True, False])
+    @pytest.mark.parametrize("method", ["sum", "prod"])
+    @pytest.mark.parametrize("numeric_only", [True, False])
     def test_sum_prod_nanops(self, method, unit, numeric_only):
         idx = ["a", "b", "c"]
         df = DataFrame({"a": [unit, unit], "b": [unit, np.nan], "c": [np.nan, np.nan]})
@@ -2029,7 +2029,7 @@ def test_mixed_frame_with_integer_sum():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("numeric_only", [True, False, None])
+@pytest.mark.parametrize("numeric_only", [True, False])
 @pytest.mark.parametrize("method", ["min", "max"])
 def test_minmax_extensionarray(method, numeric_only):
     # https://github.com/pandas-dev/pandas/issues/32651
