@@ -107,9 +107,9 @@ Deprecations
 - Deprecated the ``.name`` property of offset objects (e.g., :class:`~pandas.tseries.offsets.Day`, :class:`~pandas.tseries.offsets.Hour`). Use ``.rule_code`` instead (:issue:`64207`)
 - Deprecated the ``dropna`` keyword in :meth:`DataFrame.to_hdf`, :meth:`HDFStore.put`, :meth:`HDFStore.append`, and :meth:`HDFStore.append_to_multiple`, and the ``io.hdf.dropna_table`` option. Use :meth:`DataFrame.dropna` before writing instead (:issue:`32038`)
 - Deprecated the ``float_precision`` argument in :func:`read_csv`, :func:`read_table`, and :func:`read_fwf`. All float precision modes now use the same converter (:issue:`64395`)
-- Deprecated the ``track_times`` keyword in :meth:`HDFStore.put`. The default has been changed from ``True`` to ``False`` so that HDF5 files are deterministic by default (:issue:`51456`)
 - Deprecated the ``xlrd`` and ``pyxlsb`` engines in :func:`read_excel`. Use ``engine="calamine"`` instead (:issue:`56542`)
 - Deprecated the default value of ``exact`` in :func:`assert_index_equal`; in a future version this will default to ``True`` instead of "equiv" (:issue:`57436`)
+- Deprecated the default value of ``track_times`` in :meth:`HDFStore.put`. In a future version, the default will change from ``True`` to ``False`` so that HDF5 files are deterministic by default (:issue:`51456`)
 -
 
 .. ---------------------------------------------------------------------------

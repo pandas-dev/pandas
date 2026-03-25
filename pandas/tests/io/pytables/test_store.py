@@ -54,12 +54,21 @@ def test_context(temp_h5_path):
         assert type(tbl["a"]) == DataFrame
 
 
+def test_track_times_default_deprecated(temp_h5_path):
+    # GH#51456 - not passing track_times explicitly warns about default change
+    df = DataFrame({"a": [1]})
+    msg = "The default value of 'track_times' in HDFStore.put"
+    with tm.assert_produces_warning(pd.errors.Pandas4Warning, match=msg):
+        with HDFStore(temp_h5_path, mode="w") as hdf:
+            hdf.put("table", df, format="table", data_columns=True)
+
+
 @pytest.mark.xfail(
     Version(tables.hdf5_version) >= Version("2"),
     reason="track_times=False produces non-deterministic files with HDF5 >= 2",
 )
-def test_track_times_default_false(temp_h5_path):
-    # GH#51456 - default changed from True to False
+def test_track_times_false_deterministic(temp_h5_path):
+    # GH#51456 - passing track_times=False explicitly gives deterministic files
     def checksum(filename, hash_factory=hashlib.md5, chunk_num_blocks=128):
         h = hash_factory()
         with open(filename, "rb") as f:
@@ -70,33 +79,30 @@ def test_track_times_default_false(temp_h5_path):
     df = DataFrame({"a": [1]})
 
     with HDFStore(temp_h5_path, mode="w") as hdf:
-        hdf.put("table", df, format="table", data_columns=True, index=None)
+        hdf.put(
+            "table",
+            df,
+            format="table",
+            data_columns=True,
+            index=None,
+            track_times=False,
+        )
     checksum_0 = checksum(temp_h5_path)
 
     time.sleep(1)
 
     with HDFStore(temp_h5_path, mode="w") as hdf:
-        hdf.put("table", df, format="table", data_columns=True, index=None)
+        hdf.put(
+            "table",
+            df,
+            format="table",
+            data_columns=True,
+            index=None,
+            track_times=False,
+        )
     checksum_1 = checksum(temp_h5_path)
 
-    # default is now False, so checksums should match
     assert checksum_0 == checksum_1
-
-
-@pytest.mark.parametrize("track_times", [True, False])
-def test_track_times_deprecated(temp_h5_path, track_times):
-    # GH#51456 - track_times keyword is deprecated
-    df = DataFrame({"a": [1]})
-    msg = "The 'track_times' keyword in HDFStore.put is deprecated"
-    with tm.assert_produces_warning(pd.errors.Pandas4Warning, match=msg):
-        with HDFStore(temp_h5_path, mode="w") as hdf:
-            hdf.put(
-                "table",
-                df,
-                format="table",
-                data_columns=True,
-                track_times=track_times,
-            )
 
 
 def test_iter_empty(temp_hdfstore):
@@ -140,7 +146,7 @@ def test_repr(temp_hdfstore, performance_warning, using_infer_string):
     warning = None if using_infer_string else performance_warning
     msg = "cannot\nmap directly to c-types .* dtype='object'"
     with tm.assert_produces_warning(warning, match=msg):
-        store["df"] = df
+        store.put("df", df, track_times=True)
 
     # make a random group in hdf space
     store._handle.create_group(store._handle.root, "bah")
@@ -189,10 +195,14 @@ def test_contains(temp_hdfstore):
 
     # gh-2694: tables.NaturalNameWarning
     with tm.assert_produces_warning(tables.NaturalNameWarning, check_stacklevel=False):
-        store["node())"] = DataFrame(
-            1.1 * np.arange(120).reshape((30, 4)),
-            columns=Index(list("ABCD")),
-            index=Index([f"i-{i}" for i in range(30)]),
+        store.put(
+            "node())",
+            DataFrame(
+                1.1 * np.arange(120).reshape((30, 4)),
+                columns=Index(list("ABCD")),
+                index=Index([f"i-{i}" for i in range(30)]),
+            ),
+            track_times=True,
         )
     assert "node())" in store
 
