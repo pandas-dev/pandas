@@ -347,7 +347,7 @@ def test_cross_engine_pa_fp(df_cross_compat, pa, fp, temp_file):
 
 
 @pytest.mark.xfail(
-    using_string_dtype() and not _fp_version_lt_2025,
+    using_string_dtype() and _HAVE_PYARROW and not _fp_version_lt_2025,
     reason="fastparquet >= 2025.12.0 can't write ArrowStringArray",
 )
 def test_cross_engine_fp_pa(df_cross_compat, pa, fp, temp_file):
@@ -1307,7 +1307,7 @@ class TestParquetFastParquet(Base):
         self.check_error_on_write(df, fp, ValueError, msg, temp_file)
 
     @pytest.mark.xfail(
-        using_string_dtype() and not _fp_version_lt_2025,
+        using_string_dtype() and _HAVE_PYARROW and not _fp_version_lt_2025,
         reason="fastparquet >= 2025.12.0 can't write ArrowStringArray",
     )
     def test_categorical(self, fp, temp_file):
@@ -1321,6 +1321,10 @@ class TestParquetFastParquet(Base):
         result = read_parquet(temp_file, fp, filters=[("a", "==", 0)])
         assert len(result) == 1
 
+    @pytest.mark.xfail(
+        using_string_dtype() and _HAVE_PYARROW and not _fp_version_lt_2025,
+        reason="fastparquet >= 2025.12.0 can't write ArrowStringArray",
+    )
     @pytest.mark.single_cpu
     def test_s3_roundtrip(self, df_compat, s3_bucket_public, s3so, fp, temp_file):
         # GH #19134
@@ -1334,7 +1338,7 @@ class TestParquetFastParquet(Base):
         )
 
     @pytest.mark.xfail(
-        using_string_dtype() and not _fp_version_lt_2025,
+        using_string_dtype() and _HAVE_PYARROW and not _fp_version_lt_2025,
         reason="fastparquet >= 2025.12.0 can't write ArrowStringArray",
     )
     def test_partition_cols_supported(self, tmp_path, fp, df_full):
@@ -1354,7 +1358,7 @@ class TestParquetFastParquet(Base):
         assert len(actual_partition_cols) == 2
 
     @pytest.mark.xfail(
-        using_string_dtype() and not _fp_version_lt_2025,
+        using_string_dtype() and _HAVE_PYARROW and not _fp_version_lt_2025,
         reason="fastparquet >= 2025.12.0 can't write ArrowStringArray",
     )
     def test_partition_cols_string(self, tmp_path, fp, df_full):
@@ -1374,7 +1378,7 @@ class TestParquetFastParquet(Base):
         assert len(actual_partition_cols) == 1
 
     @pytest.mark.xfail(
-        using_string_dtype() and not _fp_version_lt_2025,
+        using_string_dtype() and _HAVE_PYARROW and not _fp_version_lt_2025,
         reason="fastparquet >= 2025.12.0 can't write ArrowStringArray",
     )
     def test_partition_on_supported(self, tmp_path, fp, df_full):
