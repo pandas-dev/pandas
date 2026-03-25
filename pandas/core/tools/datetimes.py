@@ -1036,7 +1036,7 @@ def to_datetime(
                 elif isinstance(arg, ABCSeries):
                     arg = arg.dt.tz_localize("utc")
                 elif hasattr(arg, "tz_localize"):
-                    arg = arg.tz_localize("utc")
+                    arg = arg.tz_localize("utc")  # type: ignore[union-attr]
             return arg  # type: ignore[return-value]
 
     convert_listlike = partial(
