@@ -49,7 +49,7 @@ the current version, backends are expected to implement the next functions:
   - radviz
   - scatter_matrix
 
-Use the code in pandas/plotting/_matplotib.py and
+Use the code in pandas/plotting/_matplotlib.py and
 https://github.com/pyviz/hvplot as a reference on how to write a backend.
 
 For the discussion about the API see

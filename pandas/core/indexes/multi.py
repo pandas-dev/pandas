@@ -30,6 +30,7 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.hashtable import duplicated
+from pandas._libs.tslibs import Timestamp
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
     InvalidIndexError,
@@ -1317,7 +1318,7 @@ class MultiIndex(Index):
     def _constructor(self) -> Callable[..., MultiIndex]:  # type: ignore[override]
         return type(self).from_tuples
 
-    def _shallow_copy(self, values: np.ndarray, name=lib.no_default) -> MultiIndex:
+    def _shallow_copy(self, values: np.ndarray, name=lib.no_default) -> MultiIndex:  # type: ignore[override]
         """
         Create a new Index with the same class as the caller, don't copy the
         data, use the same object attributes with passed in attributes taking
@@ -1575,12 +1576,14 @@ class MultiIndex(Index):
     # --------------------------------------------------------------------
     # Rendering Methods
 
-    def _formatter_func(self, tup):
+    def _formatter_func(self, tup) -> tuple[str, ...]:  # type: ignore[override]
         """
         Formats each item in tup according to its level's formatter function.
         """
-        formatter_funcs = (level._formatter_func for level in self.levels)
-        return tuple(func(val) for func, val in zip(formatter_funcs, tup, strict=True))
+        return tuple(
+            level._formatter_func(val)
+            for level, val in zip(self.levels, tup, strict=True)
+        )
 
     def _get_values_for_csv(
         self, *, na_rep: str = "nan", **kwargs
@@ -1959,7 +1962,7 @@ class MultiIndex(Index):
         new_codes = [level_codes[~indexer] for level_codes in self.codes]
         return self.set_codes(codes=new_codes)
 
-    def _get_level_values(self, level: int, unique: bool = False) -> Index:
+    def _get_level_values(self, level: int, unique: bool = False) -> Index:  # type: ignore[override]
         """
         Return vector of label values for requested level,
         equal to the length of the index
@@ -2174,7 +2177,7 @@ class MultiIndex(Index):
                 "Cannot create duplicate column labels if allow_duplicates is False"
             )
 
-        # Guarantee resulting column order - PY36+ dict maintains insertion order
+        # Guarantee resulting column order - dict maintains insertion order
         result = DataFrame(
             {level: self._get_level_values(level) for level in range(len(self.levels))},
             copy=False,
@@ -2727,7 +2730,7 @@ class MultiIndex(Index):
         keys = [lev.codes for lev in target._get_codes_for_sorting()]
         return lexsort_indexer(keys, na_position=na_position, codes_given=True)
 
-    def repeat(self, repeats: int, axis=None) -> MultiIndex:
+    def repeat(self, repeats: int, axis=None) -> MultiIndex:  # type: ignore[override]
         """
         Repeat elements of a MultiIndex.
 
@@ -3101,7 +3104,7 @@ class MultiIndex(Index):
         self,
         level: IndexLabel = 0,
         ascending: bool | list[bool] = True,
-        sort_remaining: bool = True,
+        sort_remaining: bool = True,  # type: ignore[override]
         na_position: str = "first",
     ) -> tuple[MultiIndex, npt.NDArray[np.intp]]:
         """
@@ -3185,6 +3188,22 @@ class MultiIndex(Index):
             for lev in level  # type: ignore[union-attr]
         ]
         sortorder = None
+
+        # Validate that levels being sorted have comparable types (GH#21136).
+        # Since we sort by integer codes rather than actual values, we need
+        # to ensure the level values are sortable; otherwise the code-based
+        # sort silently produces a meaningless ordering.
+        # After _sort_levels_monotonic (called before sortlevel in the
+        # standard path), a level that is still non-monotonic with object
+        # dtype must contain incomparable types.
+        for lev_num in level:
+            lev_values = self.levels[lev_num]
+            if (
+                lev_values.dtype == object
+                and not lev_values.is_monotonic_increasing
+                and not lev_values.is_monotonic_decreasing
+            ):
+                lev_values.argsort()
 
         codes = [self.codes[lev] for lev in level]
         # we have a directed ordering via ascending
@@ -3427,6 +3446,19 @@ class MultiIndex(Index):
         for k, (lab, lev, level_codes) in enumerate(zipped):
             section = level_codes[start:end]
 
+            # GH#55969: convert np.datetime64[D] to Python datetime.date for
+            # proper containment check against object-dtype Index.
+            # Only for day resolution; finer units would lose time info.
+            if (
+                isinstance(lab, np.datetime64)
+                and lev.dtype == object
+                and np.datetime_data(lab.dtype)[0] == "D"
+            ):
+                try:
+                    lab = Timestamp(lab).date()
+                except (ValueError, OverflowError):
+                    pass
+
             loc: npt.NDArray[np.intp] | np.intp | int
             if lab not in lev and not isna(lab):
                 # short circuit
@@ -3488,7 +3520,7 @@ class MultiIndex(Index):
             # TODO: need is_valid_na_for_dtype(key, level_index.dtype)
             return -1
         else:
-            return level_index.get_loc(key)
+            return level_index.get_loc(key)  # type: ignore[return-value]
 
     def get_loc(self, key):
         """
@@ -4235,7 +4267,7 @@ class MultiIndex(Index):
         --------
         equal_levels
         """
-        if self.is_(other):
+        if self.is_(other):  # type: ignore[arg-type]
             return True
 
         if not isinstance(other, Index):
@@ -4359,7 +4391,7 @@ class MultiIndex(Index):
         _, result_names = self._convert_can_do_setop(other)
         return result.set_names(result_names)
 
-    def _wrap_difference_result(self, other, result: MultiIndex) -> MultiIndex:
+    def _wrap_difference_result(self, other, result: MultiIndex) -> MultiIndex:  # type: ignore[override]
         _, result_names = self._convert_can_do_setop(other)
 
         if len(result) == 0:
@@ -4459,7 +4491,7 @@ class MultiIndex(Index):
             raise ValueError("Item must have length equal to number of levels.")
         return item
 
-    def putmask(self, mask, value: MultiIndex) -> MultiIndex:
+    def putmask(self, mask, value: MultiIndex) -> MultiIndex:  # type: ignore[override]
         """
         Return a new MultiIndex of the values set with the mask.
 

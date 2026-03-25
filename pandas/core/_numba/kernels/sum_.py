@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 from pandas.core._numba.kernels.shared import is_monotonic_increasing
 
 
-@numba.jit(nopython=True, nogil=True, parallel=False)
+@numba.jit(nogil=True, parallel=False)
 def add_sum(
     val: Any,
     nobs: int,
@@ -49,7 +49,7 @@ def add_sum(
     return nobs, sum_x, compensation, num_consecutive_same_value, prev_value
 
 
-@numba.jit(nopython=True, nogil=True, parallel=False)
+@numba.jit(nogil=True, parallel=False)
 def remove_sum(
     val: Any, nobs: int, sum_x: Any, compensation: Any
 ) -> tuple[int, Any, Any]:
@@ -62,7 +62,7 @@ def remove_sum(
     return nobs, sum_x, compensation
 
 
-@numba.jit(nopython=True, nogil=True, parallel=False)
+@numba.jit(nogil=True, parallel=False)
 def sliding_sum(
     values: np.ndarray,
     result_dtype: np.dtype,
@@ -221,7 +221,7 @@ def grouped_kahan_sum(
     return output, nobs_arr, comp_arr, consecutive_counts, prev_vals
 
 
-@numba.jit(nopython=True, nogil=True, parallel=False)
+@numba.jit(nogil=True, parallel=False)
 def grouped_sum(
     values: np.ndarray,
     result_dtype: np.dtype,

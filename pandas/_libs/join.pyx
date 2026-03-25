@@ -31,6 +31,9 @@ def inner_join(const intp_t[:] left, const intp_t[:] right,
         intp_t lc, rc
         Py_ssize_t left_pos = 0, right_pos = 0, position = 0
         Py_ssize_t offset
+        intp_t[::1] group_of, right_start
+        intp_t group
+        Py_ssize_t p
 
     left_sorter, left_count = groupsort_indexer(left, max_groups)
     right_sorter, right_count = groupsort_indexer(right, max_groups)
@@ -47,42 +50,64 @@ def inner_join(const intp_t[:] left, const intp_t[:] right,
     left_indexer = np.empty(count, dtype=np.intp)
     right_indexer = np.empty(count, dtype=np.intp)
 
-    with nogil:
-        # exclude the NA group
-        left_pos = left_count[0]
-        right_pos = right_count[0]
-        for i in range(1, max_groups + 1):
-            lc = left_count[i]
-            rc = right_count[i]
+    if sort:
+        with nogil:
+            # exclude the NA group
+            left_pos = left_count[0]
+            right_pos = right_count[0]
+            for i in range(1, max_groups + 1):
+                lc = left_count[i]
+                rc = right_count[i]
 
-            if rc > 0 and lc > 0:
-                for j in range(lc):
-                    offset = position + j * rc
-                    for k in range(rc):
-                        left_indexer[offset + k] = left_pos + j
-                        right_indexer[offset + k] = right_pos + k
-                position += lc * rc
-            left_pos += lc
-            right_pos += rc
+                if rc > 0 and lc > 0:
+                    for j in range(lc):
+                        offset = position + j * rc
+                        for k in range(rc):
+                            left_indexer[offset + k] = left_pos + j
+                            right_indexer[offset + k] = right_pos + k
+                    position += lc * rc
+                left_pos += lc
+                right_pos += rc
 
-        # Will overwrite left/right indexer with the result
-        _get_result_indexer(left_sorter, left_indexer)
-        _get_result_indexer(right_sorter, right_indexer)
-
-    if not sort:
-        # if not asked to sort, revert to original order
-        if len(left) == len(left_indexer):
-            # no multiple matches for any row on the left
-            # this is a short-cut to avoid groupsort_indexer
-            # otherwise, the `else` path also works in this case
-            rev = np.empty(len(left), dtype=np.intp)
-            rev.put(np.asarray(left_sorter), np.arange(len(left)))
-        else:
-            rev, _ = groupsort_indexer(left_indexer, len(left))
-
-        return np.asarray(left_indexer).take(rev), np.asarray(right_indexer).take(rev)
+            # Will overwrite left/right indexer with the result
+            _get_result_indexer(left_sorter, left_indexer)
+            _get_result_indexer(right_sorter, right_indexer)
     else:
-        return np.asarray(left_indexer), np.asarray(right_indexer)
+        # For sort=False, generate output directly in original left order
+        # to avoid expensive post-hoc reordering of the (potentially huge)
+        # output arrays.
+        group_of = np.zeros(len(left), dtype=np.intp)
+        right_start = np.empty(max_groups + 1, dtype=np.intp)
+
+        with nogil:
+            # Build group_of: maps original left position -> group number
+            left_pos = left_count[0]
+            for i in range(1, max_groups + 1):
+                lc = left_count[i]
+                for j in range(lc):
+                    group_of[left_sorter[left_pos + j]] = i
+                left_pos += lc
+
+            # Build right_start: starting offset in right_sorter per group
+            right_pos = right_count[0]
+            for i in range(1, max_groups + 1):
+                right_start[i] = right_pos
+                right_pos += right_count[i]
+
+            # Fill output in original left order
+            for p in range(len(left)):
+                group = group_of[p]
+                if group > 0:
+                    rc = right_count[group]
+                    if rc > 0:
+                        for k in range(rc):
+                            left_indexer[position + k] = p
+                            right_indexer[position + k] = (
+                                right_sorter[right_start[group] + k]
+                            )
+                        position += rc
+
+    return np.asarray(left_indexer), np.asarray(right_indexer)
 
 
 @cython.wraparound(False)
@@ -91,13 +116,15 @@ def left_outer_join(const intp_t[:] left, const intp_t[:] right,
                     Py_ssize_t max_groups, bint sort=True):
     cdef:
         Py_ssize_t i, j, k, count = 0
-        ndarray[intp_t] rev
         intp_t[::1] left_count, right_count
         intp_t[::1] left_sorter, right_sorter
         intp_t[::1] left_indexer, right_indexer
         intp_t lc, rc
         Py_ssize_t left_pos = 0, right_pos = 0, position = 0
         Py_ssize_t offset
+        intp_t[::1] group_of, right_start
+        intp_t group
+        Py_ssize_t p
 
     left_sorter, left_count = groupsort_indexer(left, max_groups)
     right_sorter, right_count = groupsort_indexer(right, max_groups)
@@ -116,46 +143,73 @@ def left_outer_join(const intp_t[:] left, const intp_t[:] right,
     left_indexer = np.empty(count, dtype=np.intp)
     right_indexer = np.empty(count, dtype=np.intp)
 
-    with nogil:
-        # exclude the NA group
-        left_pos = left_count[0]
-        right_pos = right_count[0]
-        for i in range(1, max_groups + 1):
-            lc = left_count[i]
-            rc = right_count[i]
+    if sort:
+        with nogil:
+            # exclude the NA group
+            left_pos = left_count[0]
+            right_pos = right_count[0]
+            for i in range(1, max_groups + 1):
+                lc = left_count[i]
+                rc = right_count[i]
 
-            if rc == 0:
-                for j in range(lc):
-                    left_indexer[position + j] = left_pos + j
-                    right_indexer[position + j] = -1
-                position += lc
-            else:
-                for j in range(lc):
-                    offset = position + j * rc
-                    for k in range(rc):
-                        left_indexer[offset + k] = left_pos + j
-                        right_indexer[offset + k] = right_pos + k
-                position += lc * rc
-            left_pos += lc
-            right_pos += rc
+                if rc == 0:
+                    for j in range(lc):
+                        left_indexer[position + j] = left_pos + j
+                        right_indexer[position + j] = -1
+                    position += lc
+                else:
+                    for j in range(lc):
+                        offset = position + j * rc
+                        for k in range(rc):
+                            left_indexer[offset + k] = left_pos + j
+                            right_indexer[offset + k] = right_pos + k
+                    position += lc * rc
+                left_pos += lc
+                right_pos += rc
 
-        # Will overwrite left/right indexer with the result
-        _get_result_indexer(left_sorter, left_indexer)
-        _get_result_indexer(right_sorter, right_indexer)
-
-    if not sort:  # if not asked to sort, revert to original order
-        if len(left) == len(left_indexer):
-            # no multiple matches for any row on the left
-            # this is a short-cut to avoid groupsort_indexer
-            # otherwise, the `else` path also works in this case
-            rev = np.empty(len(left), dtype=np.intp)
-            rev.put(np.asarray(left_sorter), np.arange(len(left)))
-        else:
-            rev, _ = groupsort_indexer(left_indexer, len(left))
-
-        return np.asarray(left_indexer).take(rev), np.asarray(right_indexer).take(rev)
+            # Will overwrite left/right indexer with the result
+            _get_result_indexer(left_sorter, left_indexer)
+            _get_result_indexer(right_sorter, right_indexer)
     else:
-        return np.asarray(left_indexer), np.asarray(right_indexer)
+        # For sort=False, generate output directly in original left order
+        # to avoid expensive post-hoc reordering of the (potentially huge)
+        # output arrays.
+        group_of = np.zeros(len(left), dtype=np.intp)
+        right_start = np.empty(max_groups + 1, dtype=np.intp)
+
+        with nogil:
+            # Build group_of: maps original left position -> group number
+            left_pos = left_count[0]
+            for i in range(1, max_groups + 1):
+                lc = left_count[i]
+                for j in range(lc):
+                    group_of[left_sorter[left_pos + j]] = i
+                left_pos += lc
+
+            # Build right_start: starting offset in right_sorter per group
+            right_pos = right_count[0]
+            for i in range(1, max_groups + 1):
+                right_start[i] = right_pos
+                right_pos += right_count[i]
+
+            # Fill output in original left order
+            for p in range(len(left)):
+                group = group_of[p]
+                if group > 0:
+                    rc = right_count[group]
+                    if rc > 0:
+                        for k in range(rc):
+                            left_indexer[position + k] = p
+                            right_indexer[position + k] = (
+                                right_sorter[right_start[group] + k]
+                            )
+                        position += rc
+                    else:
+                        left_indexer[position] = p
+                        right_indexer[position] = -1
+                        position += 1
+
+    return np.asarray(left_indexer), np.asarray(right_indexer)
 
 
 @cython.wraparound(False)
@@ -684,6 +738,8 @@ def outer_join_indexer(ndarray[numeric_object_t] left, ndarray[numeric_object_t]
 from pandas._libs.hashtable cimport Int64HashTable
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def asof_join_backward_on_X_by_Y(const numeric_t[:] left_values,
                                  const numeric_t[:] right_values,
                                  const int64_t[:] left_by_values,
@@ -755,6 +811,8 @@ def asof_join_backward_on_X_by_Y(const numeric_t[:] left_values,
     return left_indexer, right_indexer
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def asof_join_forward_on_X_by_Y(const numeric_t[:] left_values,
                                 const numeric_t[:] right_values,
                                 const int64_t[:] left_by_values,
@@ -827,6 +885,8 @@ def asof_join_forward_on_X_by_Y(const numeric_t[:] left_values,
     return left_indexer, right_indexer
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def asof_join_nearest_on_X_by_Y(const numeric_t[:] left_values,
                                 const numeric_t[:] right_values,
                                 const int64_t[:] left_by_values,

@@ -1084,3 +1084,16 @@ def test_where_inplace_string_array_consistency():
     df_inplace.where(df_inplace != "", np.nan, inplace=True)
 
     tm.assert_frame_equal(result, df_inplace)
+
+
+def test_where_series_cond_with_axis1():
+    # GH#58190
+    df = DataFrame(
+        [[0.0, 0.5, 0.0], [0.1, 0.0, 0.2], [0.2, 0.0, 0.0]],
+    )
+    cond = Series([True, True, False])
+    result = df.where(cond, axis=1)
+    expected = DataFrame(
+        [[0.0, 0.5, np.nan], [0.1, 0.0, np.nan], [0.2, 0.0, np.nan]],
+    )
+    tm.assert_frame_equal(result, expected)

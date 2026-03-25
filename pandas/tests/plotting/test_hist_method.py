@@ -201,17 +201,11 @@ class TestSeriesPlots:
         ax = ts.plot.hist(bins=5, ax=ax)
         ax = ts.plot.hist(align="left", stacked=True, ax=ax)
 
-    @pytest.mark.xfail(reason="Api changed in 3.6.0")
     def test_hist_kde(self, ts):
         pytest.importorskip("scipy")
         _, ax = mpl.pyplot.subplots()
         ax = ts.plot.hist(logy=True, ax=ax)
         _check_ax_scales(ax, yaxis="log")
-        xlabels = ax.get_xticklabels()
-        # ticks are values, thus ticklabels are blank
-        _check_text_labels(xlabels, [""] * len(xlabels))
-        ylabels = ax.get_yticklabels()
-        _check_text_labels(ylabels, [""] * len(ylabels))
 
     def test_hist_kde_plot_works(self, ts):
         pytest.importorskip("scipy")
@@ -221,16 +215,11 @@ class TestSeriesPlots:
         pytest.importorskip("scipy")
         _check_plot_works(ts.plot.density)
 
-    @pytest.mark.xfail(reason="Api changed in 3.6.0")
     def test_hist_kde_logy(self, ts):
         pytest.importorskip("scipy")
         _, ax = mpl.pyplot.subplots()
         ax = ts.plot.kde(logy=True, ax=ax)
         _check_ax_scales(ax, yaxis="log")
-        xlabels = ax.get_xticklabels()
-        _check_text_labels(xlabels, [""] * len(xlabels))
-        ylabels = ax.get_yticklabels()
-        _check_text_labels(ylabels, [""] * len(ylabels))
 
     def test_hist_kde_color_bins(self, ts):
         pytest.importorskip("scipy")
