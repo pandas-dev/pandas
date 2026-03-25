@@ -39,17 +39,11 @@ from pandas._libs.tslibs.ccalendar cimport (
     get_week_of_year,
     iso_calendar_t,
 )
+from pandas._libs.tslibs.dtypes cimport periods_per_day
 from pandas._libs.tslibs.nattype cimport NPY_NAT
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
-    NPY_FR_D,
-    NPY_FR_h,
-    NPY_FR_m,
-    NPY_FR_ms,
     NPY_FR_ns,
-    NPY_FR_ps,
-    NPY_FR_s,
-    NPY_FR_us,
     import_pandas_datetime,
     npy_datetimestruct,
     pandas_datetime_to_datetimestruct,
@@ -59,33 +53,6 @@ from pandas._libs.tslibs.np_datetime cimport (
 )
 
 import_pandas_datetime()
-
-
-cdef inline int64_t _units_per_day(NPY_DATETIMEUNIT base) noexcept nogil:
-    """Return the number of datetime units per day, or 0 for Y/M/W."""
-    if base == NPY_FR_ns:
-        return 86400000000000
-    elif base == NPY_FR_us:
-        return 86400000000
-    elif base == NPY_FR_ms:
-        return 86400000
-    elif base == NPY_FR_s:
-        return 86400
-    elif base == NPY_FR_m:
-        return 1440
-    elif base == NPY_FR_h:
-        return 24
-    elif base == NPY_FR_D:
-        return 1
-    elif base == NPY_FR_ps:
-        return 86400000000000000
-    else:
-        return 0
-
-
-cdef inline int64_t _floordiv(int64_t a, int64_t b) noexcept nogil:
-    """Floor division (rounds towards negative infinity)."""
-    return a // b
 
 
 @cython.wraparound(False)
@@ -399,7 +366,11 @@ def get_date_field(
         int64_t perday, perhour, permin, persec
 
     out = np.empty(count, dtype="i4")
-    perday = _units_per_day(reso)
+    try:
+        perday = periods_per_day(reso)
+    except ValueError:
+        # Y/M resolutions don't have a fixed number of periods per day
+        perday = 0
 
     # --- Date fields: only need calendar conversion, skip sub-day work ---
 
@@ -411,7 +382,7 @@ def get_date_field(
                     continue
                 if perday > 0:
                     set_datetimestruct_days(
-                        _floordiv(dtindex[i], perday), &dts
+                        dtindex[i] // perday, &dts
                     )
                 else:
                     pandas_datetime_to_datetimestruct(dtindex[i], reso, &dts)
@@ -426,7 +397,7 @@ def get_date_field(
                     continue
                 if perday > 0:
                     set_datetimestruct_days(
-                        _floordiv(dtindex[i], perday), &dts
+                        dtindex[i] // perday, &dts
                     )
                 else:
                     pandas_datetime_to_datetimestruct(dtindex[i], reso, &dts)
@@ -441,7 +412,7 @@ def get_date_field(
                     continue
                 if perday > 0:
                     set_datetimestruct_days(
-                        _floordiv(dtindex[i], perday), &dts
+                        dtindex[i] // perday, &dts
                     )
                 else:
                     pandas_datetime_to_datetimestruct(dtindex[i], reso, &dts)
@@ -456,7 +427,7 @@ def get_date_field(
                     continue
                 if perday > 0:
                     set_datetimestruct_days(
-                        _floordiv(dtindex[i], perday), &dts
+                        dtindex[i] // perday, &dts
                     )
                 else:
                     pandas_datetime_to_datetimestruct(dtindex[i], reso, &dts)
@@ -471,7 +442,7 @@ def get_date_field(
                     continue
                 if perday > 0:
                     set_datetimestruct_days(
-                        _floordiv(dtindex[i], perday), &dts
+                        dtindex[i] // perday, &dts
                     )
                 else:
                     pandas_datetime_to_datetimestruct(dtindex[i], reso, &dts)
@@ -486,7 +457,7 @@ def get_date_field(
                     continue
                 if perday > 0:
                     set_datetimestruct_days(
-                        _floordiv(dtindex[i], perday), &dts
+                        dtindex[i] // perday, &dts
                     )
                 else:
                     pandas_datetime_to_datetimestruct(dtindex[i], reso, &dts)
@@ -501,7 +472,7 @@ def get_date_field(
                     continue
                 if perday > 0:
                     set_datetimestruct_days(
-                        _floordiv(dtindex[i], perday), &dts
+                        dtindex[i] // perday, &dts
                     )
                 else:
                     pandas_datetime_to_datetimestruct(dtindex[i], reso, &dts)
@@ -516,7 +487,7 @@ def get_date_field(
                     continue
                 if perday > 0:
                     set_datetimestruct_days(
-                        _floordiv(dtindex[i], perday), &dts
+                        dtindex[i] // perday, &dts
                     )
                 else:
                     pandas_datetime_to_datetimestruct(dtindex[i], reso, &dts)
