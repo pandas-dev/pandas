@@ -59,17 +59,10 @@ pytestmark = [
     params=[
         pytest.param(
             "fastparquet",
-            marks=[
-                pytest.mark.skipif(
-                    not _HAVE_FASTPARQUET,
-                    reason="fastparquet is not installed",
-                ),
-                pytest.mark.xfail(
-                    using_string_dtype(),
-                    reason="TODO(infer_string) fastparquet",
-                    strict=False,
-                ),
-            ],
+            marks=pytest.mark.skipif(
+                not _HAVE_FASTPARQUET,
+                reason="fastparquet is not installed",
+            ),
         ),
         pytest.param(
             "pyarrow",
@@ -91,13 +84,9 @@ def pa():
 
 
 @pytest.fixture
-def fp(request):
+def fp():
     if not _HAVE_FASTPARQUET:
         pytest.skip("fastparquet is not installed")
-    if using_string_dtype():
-        request.applymarker(
-            pytest.mark.xfail(reason="TODO(infer_string) fastparquet", strict=False)
-        )
     return "fastparquet"
 
 
@@ -263,6 +252,7 @@ def test_options_py(df_compat, pa, using_infer_string, temp_file):
         check_round_trip(df_compat, temp_file)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string) fastparquet")
 def test_options_fp(df_compat, fp, temp_file):
     # use the set option
 
@@ -340,6 +330,7 @@ def test_get_engine_auto_error_message():
                 get_engine("auto")
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string) fastparquet")
 def test_cross_engine_pa_fp(df_cross_compat, pa, fp, temp_file):
     # cross-compat with differing reading/writing engines
 
@@ -353,6 +344,7 @@ def test_cross_engine_pa_fp(df_cross_compat, pa, fp, temp_file):
     tm.assert_frame_equal(result, df[["a", "d"]])
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string) fastparquet")
 def test_cross_engine_fp_pa(df_cross_compat, pa, fp, temp_file):
     # cross-compat with differing reading/writing engines
     df = df_cross_compat
@@ -390,7 +382,11 @@ class TestBasic(Base):
             msg = "to_parquet only supports IO with DataFrames"
             self.check_error_on_write(obj, engine, ValueError, msg, temp_file)
 
-    def test_columns_dtypes(self, engine, temp_file):
+    def test_columns_dtypes(self, engine, request, temp_file):
+        if engine == "fastparquet" and using_string_dtype():
+            request.applymarker(
+                pytest.mark.xfail(reason="TODO(infer_string) fastparquet")
+            )
         df = pd.DataFrame({"string": list("abc"), "int": list(range(1, 4))})
 
         # unicode
@@ -404,7 +400,11 @@ class TestBasic(Base):
             df, temp_file, engine, write_kwargs={"compression": compression}
         )
 
-    def test_read_columns(self, engine, temp_file):
+    def test_read_columns(self, engine, request, temp_file):
+        if engine == "fastparquet" and using_string_dtype():
+            request.applymarker(
+                pytest.mark.xfail(reason="TODO(infer_string) fastparquet")
+            )
         # GH18154
         df = pd.DataFrame({"string": list("abc"), "int": list(range(1, 4))})
 
@@ -491,7 +491,11 @@ class TestBasic(Base):
                 expected=df[["A", "B"]],
             )
 
-    def test_write_ignoring_index(self, engine, temp_file):
+    def test_write_ignoring_index(self, engine, request, temp_file):
+        if engine == "fastparquet" and using_string_dtype():
+            request.applymarker(
+                pytest.mark.xfail(reason="TODO(infer_string) fastparquet")
+            )
         # ENH 20768
         # Ensure index=False omits the index from the written Parquet file.
         df = pd.DataFrame({"a": [1, 2, 3], "b": ["q", "r", "s"]})
@@ -695,7 +699,13 @@ class TestBasic(Base):
 
     @pytest.mark.network
     @pytest.mark.single_cpu
-    def test_parquet_read_from_url(self, httpserver, datapath, df_compat, engine):
+    def test_parquet_read_from_url(
+        self, request, httpserver, datapath, df_compat, engine
+    ):
+        if engine == "fastparquet" and using_string_dtype():
+            request.applymarker(
+                pytest.mark.xfail(reason="TODO(infer_string) fastparquet")
+            )
         if engine != "auto":
             pytest.importorskip(engine)
         with open(datapath("io", "data", "parquet", "simple.parquet"), mode="rb") as f:
@@ -1223,6 +1233,10 @@ class TestParquetPyArrow(Base):
 
 class TestParquetFastParquet(Base):
     def test_basic(self, fp, df_full, request, temp_file):
+        if using_string_dtype():
+            request.applymarker(
+                pytest.mark.xfail(reason="TODO(infer_string) fastparquet")
+            )
         pytz = pytest.importorskip("pytz")
 
         tz = pytz.timezone("US/Eastern")
@@ -1283,6 +1297,7 @@ class TestParquetFastParquet(Base):
         msg = "Can't infer object conversion type"
         self.check_error_on_write(df, fp, ValueError, msg, temp_file)
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string) fastparquet")
     def test_categorical(self, fp, temp_file):
         df = pd.DataFrame({"a": pd.Categorical(list("abc"))})
         check_round_trip(df, temp_file, fp)
@@ -1306,6 +1321,7 @@ class TestParquetFastParquet(Base):
             write_kwargs={"compression": None, "storage_options": s3so},
         )
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string) fastparquet")
     def test_partition_cols_supported(self, tmp_path, fp, df_full):
         # GH #23283
         partition_cols = ["bool", "int"]
@@ -1322,6 +1338,7 @@ class TestParquetFastParquet(Base):
         actual_partition_cols = fastparquet.ParquetFile(str(tmp_path), False).cats
         assert len(actual_partition_cols) == 2
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string) fastparquet")
     def test_partition_cols_string(self, tmp_path, fp, df_full):
         # GH #27117
         partition_cols = "bool"
@@ -1338,6 +1355,7 @@ class TestParquetFastParquet(Base):
         actual_partition_cols = fastparquet.ParquetFile(str(tmp_path), False).cats
         assert len(actual_partition_cols) == 1
 
+    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string) fastparquet")
     def test_partition_on_supported(self, tmp_path, fp, df_full):
         # GH #23283
         partition_cols = ["bool", "int"]
