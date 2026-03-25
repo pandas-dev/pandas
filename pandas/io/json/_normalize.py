@@ -536,7 +536,7 @@ def json_normalize(
         for i, item in enumerate(data):
             if isinstance(item, dict):
                 continue
-            if not isinstance(item, abc.Iterable) and pd.isna(item):
+            if is_scalar(item) and pd.isna(item):
                 data[i] = {}
             else:
                 msg = (
