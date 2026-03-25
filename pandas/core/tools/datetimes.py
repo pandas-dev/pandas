@@ -23,7 +23,6 @@ from pandas._libs import (
 from pandas._libs.tslibs import (
     NaT,
     OutOfBoundsDatetime,
-    Timedelta,
     Timestamp,
     astype_overflowsafe,
     get_supported_dtype,
@@ -648,16 +647,10 @@ def _adjust_to_origin(arg, origin, unit):
 
         if offset.tz is not None:
             raise ValueError(f"origin offset {offset} must be tz-naive")
-        td_offset = offset - Timestamp(0)
 
-        # convert the offset to the unit of the arg
-        # this should be lossless in terms of precision
-        ioffset = td_offset // Timedelta(1, unit=unit)
+        from pandas import to_timedelta
 
-        # scalars & ndarray-like can handle the addition
-        if is_list_like(arg) and not isinstance(arg, (ABCSeries, Index, np.ndarray)):
-            arg = np.asarray(arg)
-        arg = arg + ioffset
+        arg = offset + to_timedelta(arg, unit=unit)
     return arg
 
 
@@ -1035,6 +1028,16 @@ def to_datetime(
 
     if origin != "unix":
         arg = _adjust_to_origin(arg, origin, unit)
+        if origin != "julian":
+            # GH#63419 _adjust_to_origin returned the final datetime result
+            if utc:
+                if isinstance(arg, Timestamp):
+                    arg = arg.tz_localize("utc")
+                elif isinstance(arg, ABCSeries):
+                    arg = arg.dt.tz_localize("utc")
+                elif hasattr(arg, "tz_localize"):
+                    arg = arg.tz_localize("utc")
+            return arg  # type: ignore[return-value]
 
     convert_listlike = partial(
         _convert_listlike_datetimes,

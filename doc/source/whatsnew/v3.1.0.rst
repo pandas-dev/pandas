@@ -161,6 +161,7 @@ Datetimelike
 - Bug in :class:`Timestamp` constructor, :class:`Timedelta` constructor, :func:`to_datetime`, and :func:`to_timedelta` with non-round ``float`` input and ``unit`` failing to raise when the value is just outside the representable bounds (:issue:`57366`)
 - Bug in :func:`to_datetime` and :func:`to_timedelta` on ARM platforms where round ``float`` values outside the int64 domain (e.g. ``float(2**63)``) could silently produce incorrect results instead of raising (:issue:`64619`)
 - Bug in :func:`to_datetime` and :func:`to_timedelta` where ``uint64`` values greater than ``int64`` max silently overflowed instead of raising :class:`OutOfBoundsDatetime` or :class:`OutOfBoundsTimedelta` (:issue:`60677`)
+- Bug in :func:`to_datetime` where sub-unit precision of ``origin`` was silently dropped when using a low-resolution ``unit`` (e.g. ``unit="D"`` with a microsecond-precision origin) (:issue:`63419`)
 - Bug in :meth:`DatetimeArray.isin` and :meth:`TimedeltaArray.isin` where mismatched resolutions could silently truncate finer-resolution values, leading to false matches (:issue:`64545`)
 
 Timedelta
