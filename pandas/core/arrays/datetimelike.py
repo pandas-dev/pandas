@@ -27,6 +27,7 @@ from pandas._config.config import get_option
 
 from pandas._libs import (
     algos,
+    groupby as libgroupby,
     lib,
 )
 from pandas._libs.tslibs import (
@@ -1804,8 +1805,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         starts: npt.NDArray[np.int64],
         ends: npt.NDArray[np.int64],
     ) -> ArrayLike:
-        import pandas._libs.groupby as libgroupby
-
         nqs = len(qs)
         mask = self.isna()
         i8vals = self.asi8

@@ -19,6 +19,7 @@ from pandas._config import (
 
 from pandas._libs import (
     algos as libalgos,
+    groupby as libgroupby,
     lib,
     missing as libmissing,
 )
@@ -40,6 +41,7 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     is_bool,
+    is_float_dtype,
     is_integer_dtype,
     is_list_like,
     is_scalar,
@@ -2074,10 +2076,6 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         starts: npt.NDArray[np.int64],
         ends: npt.NDArray[np.int64],
     ) -> ArrayLike:
-        import pandas._libs.groupby as libgroupby
-
-        from pandas.core.dtypes.common import is_float_dtype
-
         mask = self._mask
         nqs = len(qs)
         result_mask = np.zeros((ngroups, nqs), dtype=np.bool_)

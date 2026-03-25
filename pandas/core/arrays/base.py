@@ -44,8 +44,12 @@ from pandas.util._validators import (
 from pandas.core.dtypes.astype import astype_is_view
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
+    is_bool_dtype,
+    is_float_dtype,
     is_integer,
+    is_integer_dtype,
     is_list_like,
+    is_object_dtype,
     is_scalar,
     pandas_dtype,
 )
@@ -3033,14 +3037,6 @@ class ExtensionArray:
         -------
         np.ndarray or ExtensionArray
         """
-        from pandas.core.dtypes.common import (
-            is_bool_dtype,
-            is_float_dtype,
-            is_integer_dtype,
-            is_object_dtype,
-        )
-        from pandas.core.dtypes.missing import isna
-
         from pandas.core.arrays.string_ import StringDtype
 
         if isinstance(self.dtype, StringDtype) or is_object_dtype(self.dtype):
@@ -3053,15 +3049,14 @@ class ExtensionArray:
         mask = np.asarray(isna(self))
         nqs = len(qs)
 
-        if is_integer_dtype(self.dtype):
+        if is_integer_dtype(self.dtype) or is_float_dtype(self.dtype):
             vals = self.to_numpy(dtype=float, na_value=np.nan)
-            inference: np.dtype | None = np.dtype(np.int64)
-        elif is_float_dtype(self.dtype):
-            vals = self.to_numpy(dtype=float, na_value=np.nan)
-            inference = np.dtype(np.float64)
         else:
             vals = np.asarray(self)
-            inference = None
+
+        inference: np.dtype | None = (
+            np.dtype(np.int64) if is_integer_dtype(self.dtype) else None
+        )
 
         out = np.empty((ngroups, nqs), dtype=np.float64)
         libgroupby.group_quantile(
