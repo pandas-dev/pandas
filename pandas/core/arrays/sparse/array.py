@@ -635,7 +635,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         This avoids materializing a dense array of length 7.
         """
         sparse_values = np.asarray(
-            sanitize_array(data, index=None),
+            sanitize_array(data, index=None),  # type: ignore[arg-type]
             dtype=dtype,  # type: ignore[arg-type]
         )
         indices = np.asarray(indices, dtype=np.int32)
