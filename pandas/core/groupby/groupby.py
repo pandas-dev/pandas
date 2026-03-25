@@ -4689,7 +4689,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     func(
                         out[i],
                         values=vals[i],
-                        mask=mask[i],  # type: ignore[arg-type]
+                        mask=mask[i],
                         result_mask=None,
                         is_datetimelike=False,
                     )
