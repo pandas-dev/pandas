@@ -45,33 +45,29 @@ API changes
     ``np.nan`` or ``np.inf`` as appropriate (:issue:`3590`). This correct a numpy bug that treats ``integer``
     and ``float`` dtypes differently.
 
-    .. code-block:: ipython
+    .. code-block:: pycon
 
-        In [1]: p = pd.DataFrame({"first": [4, 5, 8], "second": [0, 0, 3]})
+        >>> p = pd.DataFrame({"first": [4, 5, 8], "second": [0, 0, 3]})
 
-        In [2]: p % 0
-        Out[2]:
+        >>> p % 0
            first  second
         0    NaN     NaN
         1    NaN     NaN
         2    NaN     NaN
 
-        In [3]: p % p
-        Out[3]:
+        >>> p % p
            first  second
         0    0.0     NaN
         1    0.0     NaN
         2    0.0     0.0
 
-        In [4]: p / p
-        Out[4]:
+        >>> p / p
            first  second
         0    1.0     NaN
         1    1.0     NaN
         2    1.0     1.0
 
-        In [5]: p / 0
-        Out[5]:
+        >>> p / 0
            first  second
         0    inf     NaN
         1    inf     NaN
@@ -117,14 +113,13 @@ API changes
     This case is rarely used, and there are plenty of alternatives. This preserves the
     ``iloc`` API to be *purely* positional based.
 
-    .. code-block:: ipython
+    .. code-block:: pycon
 
-       In [6]: df = pd.DataFrame(range(5), index=list("ABCDE"), columns=["a"])
+       >>> df = pd.DataFrame(range(5), index=list("ABCDE"), columns=["a"])
 
-       In [7]: mask = df.a % 2 == 0
+       >>> mask = df.a % 2 == 0
 
-       In [8]: mask
-       Out[8]:
+       >>> mask
        A     True
        B    False
        C     True
@@ -132,17 +127,17 @@ API changes
        E     True
        Name: a, dtype: bool
 
-       # this is what you should use
-       In [9]: df.loc[mask]
-       Out[9]:
+       >>> # this is what you should use
+
+       >>> df.loc[mask]
           a
        A  0
        C  2
        E  4
 
-       # this will work as well
-       In [10]: df.iloc[mask.values]
-       Out[10]:
+       >>> # this will work as well
+
+       >>> df.iloc[mask.values]
           a
        A  0
        C  2
@@ -243,23 +238,23 @@ IO enhancements
 
     You can use ``pd.read_html()`` to read the output from ``DataFrame.to_html()`` like so
 
-    .. code-block:: ipython
+    .. code-block:: pycon
 
-        In [11]: import io
+        >>> import io
 
-        In [12]: df = pd.DataFrame({"a": range(3), "b": list("abc")})
+        >>> df = pd.DataFrame({"a": range(3), "b": list("abc")})
 
-        In [13]: print(df)
+        >>> print(df)
            a  b
         0  0  a
         1  1  b
         2  2  c
 
-        In [14]: html = df.to_html()
+        >>> html = df.to_html()
 
-        In [15]: alist = pd.read_html(io.StringIO(html), index_col=0)
+        >>> alist = pd.read_html(io.StringIO(html), index_col=0)
 
-        In [16]: print(df == alist[0])
+        >>> print(df == alist[0])
               a     b
         0  True  True
         1  True  True
@@ -304,17 +299,17 @@ IO enhancements
       with ``df.to_csv(..., index=False)``), then any ``names`` on the columns index will
       be *lost*.
 
-      .. code-block:: ipython
+      .. code-block:: pycon
 
-         In [17]: mi_idx = pd.MultiIndex.from_arrays([[1, 2, 3, 4], list("abcd")], names=list("ab"))
+         >>> mi_idx = pd.MultiIndex.from_arrays([[1, 2, 3, 4], list("abcd")], names=list("ab"))
 
-         In [18]: mi_col = pd.MultiIndex.from_arrays([[1, 2], list("ab")], names=list("cd"))
+         >>> mi_col = pd.MultiIndex.from_arrays([[1, 2], list("ab")], names=list("cd"))
 
-         In [19]: df = pd.DataFrame(np.ones((4, 2)), index=mi_idx, columns=mi_col)
+         >>> df = pd.DataFrame(np.ones((4, 2)), index=mi_idx, columns=mi_col)
 
-         In [20]: df.to_csv("mi.csv")
+         >>> df.to_csv("mi.csv")
 
-         In [21]: print(open("mi.csv").read())
+         >>> print(open("mi.csv").read())
          c,,1,2
          d,,a,b
          a,b,,
@@ -323,8 +318,7 @@ IO enhancements
          3,c,1.0,1.0
          4,d,1.0,1.0
 
-         In [22]: pd.read_csv("mi.csv", header=[0, 1, 2, 3], index_col=[0, 1])
-         Out[22]:
+         >>> pd.read_csv("mi.csv", header=[0, 1, 2, 3], index_col=[0, 1])
          c                    1                  2
          d                    a                  b
          a   Unnamed: 2_level_2 Unnamed: 3_level_2
@@ -376,12 +370,11 @@ Other enhancements
 
     For example you can do
 
-    .. code-block:: ipython
+    .. code-block:: pycon
 
-        In [23]: df = pd.DataFrame({"a": list("ab.."), "b": [1, 2, 3, 4]})
+        >>> df = pd.DataFrame({"a": list("ab.."), "b": [1, 2, 3, 4]})
 
-        In [24]: df.replace(regex=r"\s*\.\s*", value=np.nan)
-        Out[24]:
+        >>> df.replace(regex=r"\s*\.\s*", value=np.nan)
              a  b
         0    a  1
         1    b  2
@@ -393,10 +386,9 @@ Other enhancements
 
     Regular string replacement still works as expected. For example, you can do
 
-    .. code-block:: ipython
+    .. code-block:: pycon
 
-        In [25]: df.replace(".", np.nan)
-        Out[25]:
+        >>> df.replace(".", np.nan)
              a  b
         0    a  1
         1    b  2
@@ -433,12 +425,11 @@ Other enhancements
     object. Suppose we want to take only elements that belong to groups with a
     group sum greater than 2.
 
-    .. code-block:: ipython
+    .. code-block:: pycon
 
-       In [26]: sf = pd.Series([1, 1, 2, 3, 3, 3])
+       >>> sf = pd.Series([1, 1, 2, 3, 3, 3])
 
-       In [27]: sf.groupby(sf).filter(lambda x: x.sum() > 2)
-       Out[27]:
+       >>> sf.groupby(sf).filter(lambda x: x.sum() > 2)
        3    3
        4    3
        5    3
@@ -450,12 +441,11 @@ Other enhancements
     Another useful operation is filtering out elements that belong to groups
     with only a couple members.
 
-    .. code-block:: ipython
+    .. code-block:: pycon
 
-       In [28]: dff = pd.DataFrame({"A": np.arange(8), "B": list("aabbbbcc")})
+       >>> dff = pd.DataFrame({"A": np.arange(8), "B": list("aabbbbcc")})
 
-       In [29]: dff.groupby("B").filter(lambda x: len(x) > 2)
-       Out[29]:
+       >>> dff.groupby("B").filter(lambda x: len(x) > 2)
           A  B
        2  2  b
        3  3  b
@@ -466,10 +456,9 @@ Other enhancements
     like-indexed objects where the groups that do not pass the filter are
     filled with NaNs.
 
-    .. code-block:: ipython
+    .. code-block:: pycon
 
-       In [30]: dff.groupby("B").filter(lambda x: len(x) > 2, dropna=False)
-       Out[30]:
+       >>> dff.groupby("B").filter(lambda x: len(x) > 2, dropna=False)
             A    B
        0  NaN  NaN
        1  NaN  NaN
@@ -503,30 +492,34 @@ Experimental features
        This uses the ``numpy.busdaycalendar`` API introduced in Numpy 1.7 and
        therefore requires Numpy 1.7.0 or newer.
 
-    .. code-block:: ipython
+    .. code-block:: pycon
 
-      In [31]: from pandas.tseries.offsets import CustomBusinessDay
+      >>> from pandas.tseries.offsets import CustomBusinessDay
 
-      In [32]: from datetime import datetime
+      >>> from datetime import datetime
 
-      # As an interesting example, let's look at Egypt where
-      # a Friday-Saturday weekend is observed.
-      In [33]: weekmask_egypt = "Sun Mon Tue Wed Thu"
+      >>> # As an interesting example, let's look at Egypt where
 
-      # They also observe International Workers' Day so let's
-      # add that for a couple of years
-      In [34]: holidays = ["2012-05-01", datetime(2013, 5, 1), np.datetime64("2014-05-01")]
+      >>> # a Friday-Saturday weekend is observed.
 
-      In [35]: bday_egypt = CustomBusinessDay(holidays=holidays, weekmask=weekmask_egypt)
+      >>> weekmask_egypt = "Sun Mon Tue Wed Thu"
 
-      In [36]: dt = datetime(2013, 4, 30)
+      >>> # They also observe International Workers' Day so let's
 
-      In [37]: print(dt + 2 * bday_egypt)
+      >>> # add that for a couple of years
+
+      >>> holidays = ["2012-05-01", datetime(2013, 5, 1), np.datetime64("2014-05-01")]
+
+      >>> bday_egypt = CustomBusinessDay(holidays=holidays, weekmask=weekmask_egypt)
+
+      >>> dt = datetime(2013, 4, 30)
+
+      >>> print(dt + 2 * bday_egypt)
       2013-05-05 00:00:00
 
-      In [38]: dts = pd.date_range(dt, periods=5, freq=bday_egypt)
+      >>> dts = pd.date_range(dt, periods=5, freq=bday_egypt)
 
-      In [39]: print(pd.Series(dts.day_of_week, dts).map(pd.Series("Mon Tue Wed Thu Fri Sat Sun".split())))
+      >>> print(pd.Series(dts.day_of_week, dts).map(pd.Series("Mon Tue Wed Thu Fri Sat Sun".split())))
       2013-04-30    Tue
       2013-05-02    Thu
       2013-05-05    Sun

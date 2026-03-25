@@ -5,7 +5,6 @@ Version 0.21.1 (December 12, 2017)
 
 {{ header }}
 
-
 This is a minor bug-fix release in the 0.21.x series and includes some small regression fixes,
 bug fixes and performance improvements.
 We recommend that all users upgrade to this version.

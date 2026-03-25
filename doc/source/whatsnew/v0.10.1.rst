@@ -42,51 +42,50 @@ You may need to upgrade your existing data files. Please visit the
 You can designate (and index) certain columns that you want to be able to
 perform queries on a table, by passing a list to ``data_columns``
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [1]: store = pd.HDFStore("store.h5")
+   >>> store = pd.HDFStore("store.h5")
 
-   In [2]: df = pd.DataFrame(
-      ...:     np.random.randn(8, 3),
-      ...:     index=pd.date_range("1/1/2000", periods=8),
-      ...:     columns=["A", "B", "C"],
-      ...: )
-      ...: df["string"] = "foo"
-      ...: df.loc[df.index[4:6], "string"] = np.nan
-      ...: df.loc[df.index[7:9], "string"] = "bar"
-      ...: df["string2"] = "cool"
+   >>> df = pd.DataFrame(
+   ...     np.random.randn(8, 3),
+   ...     index=pd.date_range("1/1/2000", periods=8),
+   ...     columns=["A", "B", "C"],
+   ... )
 
-   In [3]: df
-   Out[3]:
+   >>> df["string"] = "foo"
+
+   >>> df.loc[df.index[4:6], "string"] = np.nan
+
+   >>> df.loc[df.index[7:9], "string"] = "bar"
+
+   >>> df["string2"] = "cool"
+
+   >>> df
                       A         B         C string string2
-   2000-01-01 -0.204708  0.478943 -0.519439    foo    cool
-   2000-01-02 -0.555730  1.965781  1.393406    foo    cool
-   2000-01-03  0.092908  0.281746  0.769023    foo    cool
-   2000-01-04  1.246435  1.007189 -1.296221    foo    cool
-   2000-01-05  0.274992  0.228913  1.352917    NaN    cool
-   2000-01-06  0.886429 -2.001637 -0.371843    NaN    cool
-   2000-01-07  1.669025 -0.438570 -0.539741    foo    cool
-   2000-01-08  0.476985  3.248944 -1.021228    bar    cool
+   2000-01-01  0.059352 -0.250462  0.025492    foo    cool
+   2000-01-02 -0.025760  0.858617  1.466448    foo    cool
+   2000-01-03 -0.612650  0.027542 -0.002452    foo    cool
+   2000-01-04 -0.218524 -0.382673  0.925313    foo    cool
+   2000-01-05  1.395159 -0.266025  0.138472    NaN    cool
+   2000-01-06 -0.415689  1.259186  0.039093    NaN    cool
+   2000-01-07  1.131594 -2.343376  0.469999    foo    cool
+   2000-01-08 -0.878923  1.071913 -0.103511    bar    cool
 
-   # on-disk operations
-   In [4]: store.append("df", df, data_columns=["B", "C", "string", "string2"])
+   >>> # on-disk operations
 
-   In [5]: store.select("df", "B>0 and string=='foo'")
-   Out[5]:
-                      A         B         C string string2
-   2000-01-01 -0.204708  0.478943 -0.519439    foo    cool
-   2000-01-02 -0.555730  1.965781  1.393406    foo    cool
-   2000-01-03  0.092908  0.281746  0.769023    foo    cool
-   2000-01-04  1.246435  1.007189 -1.296221    foo    cool
+   >>> store.append("df", df, data_columns=["B", "C", "string", "string2"])
 
-   # this is in-memory version of this type of selection
-   In [6]: df[(df.B > 0) & (df.string == "foo")]
-   Out[6]:
-                      A         B         C string string2
-   2000-01-01 -0.204708  0.478943 -0.519439    foo    cool
-   2000-01-02 -0.555730  1.965781  1.393406    foo    cool
-   2000-01-03  0.092908  0.281746  0.769023    foo    cool
-   2000-01-04  1.246435  1.007189 -1.296221    foo    cool
+   >>> store.select("df", "B>0 and string=='foo'")
+                     A         B         C string string2
+   2000-01-02 -0.02576  0.858617  1.466448    foo    cool
+   2000-01-03 -0.61265  0.027542 -0.002452    foo    cool
+
+   >>> # this is in-memory version of this type of selection
+
+   >>> df[(df.B > 0) & (df.string == "foo")]
+                     A         B         C string string2
+   2000-01-02 -0.02576  0.858617  1.466448    foo    cool
+   2000-01-03 -0.61265  0.027542 -0.002452    foo    cool
 
 Retrieving unique values in an indexable or data column.
 
@@ -99,30 +98,30 @@ Retrieving unique values in an indexable or data column.
 
 You can now store ``datetime64`` in data columns
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-    In [1]: df_mixed = df.copy()
-       ...: df_mixed["datetime64"] = pd.Timestamp("20010102")
-       ...: df_mixed.loc[df_mixed.index[3:4], ["A", "B"]] = np.nan
+    >>> df_mixed = df.copy()
 
-    In [2]: store.append("df_mixed", df_mixed)
+    >>> df_mixed["datetime64"] = pd.Timestamp("20010102")
 
-    In [3]: df_mixed1 = store.select("df_mixed")
+    >>> df_mixed.loc[df_mixed.index[3:4], ["A", "B"]] = np.nan
 
-    In [4]: df_mixed1
-    Out[4]:
+    >>> store.append("df_mixed", df_mixed)
+
+    >>> df_mixed1 = store.select("df_mixed")
+
+    >>> df_mixed1
                        A         B         C string string2 datetime64
-    2000-01-01 -0.204708  0.478943 -0.519439    foo    cool 2001-01-02
-    2000-01-02 -0.555730  1.965781  1.393406    foo    cool 2001-01-02
-    2000-01-03  0.092908  0.281746  0.769023    foo    cool 2001-01-02
-    2000-01-04       NaN       NaN -1.296221    foo    cool 2001-01-02
-    2000-01-05  0.274992  0.228913  1.352917    NaN    cool 2001-01-02
-    2000-01-06  0.886429 -2.001637 -0.371843    NaN    cool 2001-01-02
-    2000-01-07  1.669025 -0.438570 -0.539741    foo    cool 2001-01-02
-    2000-01-08  0.476985  3.248944 -1.021228    bar    cool 2001-01-02
+    2000-01-01  0.059352 -0.250462  0.025492    foo    cool 2001-01-02
+    2000-01-02 -0.025760  0.858617  1.466448    foo    cool 2001-01-02
+    2000-01-03 -0.612650  0.027542 -0.002452    foo    cool 2001-01-02
+    2000-01-04       NaN       NaN  0.925313    foo    cool 2001-01-02
+    2000-01-05  1.395159 -0.266025  0.138472    NaN    cool 2001-01-02
+    2000-01-06 -0.415689  1.259186  0.039093    NaN    cool 2001-01-02
+    2000-01-07  1.131594 -2.343376  0.469999    foo    cool 2001-01-02
+    2000-01-08 -0.878923  1.071913 -0.103511    bar    cool 2001-01-02
 
-    In [5]: df_mixed1.dtypes.value_counts()
-    Out[5]:
+    >>> df_mixed1.dtypes.value_counts()
     float64           3
     str               2
     datetime64[us]    1
@@ -132,19 +131,18 @@ You can pass ``columns`` keyword to select to filter a list of the return
 columns, this is equivalent to passing a
 ``Term('columns',list_of_columns_to_filter)``
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [1]: store.select("df", columns=["A", "B"])
-   Out[1]:
+   >>> store.select("df", columns=["A", "B"])
                       A         B
-   2000-01-01 -0.204708  0.478943
-   2000-01-02 -0.555730  1.965781
-   2000-01-03  0.092908  0.281746
-   2000-01-04  1.246435  1.007189
-   2000-01-05  0.274992  0.228913
-   2000-01-06  0.886429 -2.001637
-   2000-01-07  1.669025 -0.438570
-   2000-01-08  0.476985  3.248944
+   2000-01-01  0.059352 -0.250462
+   2000-01-02 -0.025760  0.858617
+   2000-01-03 -0.612650  0.027542
+   2000-01-04 -0.218524 -0.382673
+   2000-01-05  1.395159 -0.266025
+   2000-01-06 -0.415689  1.259186
+   2000-01-07  1.131594 -2.343376
+   2000-01-08 -0.878923  1.071913
 
 ``HDFStore`` now serializes MultiIndex dataframes when appending tables.
 
@@ -205,57 +203,60 @@ Multi-table creation via ``append_to_multiple`` and selection via
 ``select_as_multiple`` can create/select from multiple tables and return a
 combined result, by using ``where`` on a selector table.
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [1]: df_mt = pd.DataFrame(
-      ...:     np.random.randn(8, 6),
-      ...:     index=pd.date_range("1/1/2000", periods=8),
-      ...:     columns=["A", "B", "C", "D", "E", "F"],
-      ...: )
-      ...: df_mt["foo"] = "bar"
+   >>> df_mt = pd.DataFrame(
+   ...     np.random.randn(8, 6),
+   ...     index=pd.date_range("1/1/2000", periods=8),
+   ...     columns=["A", "B", "C", "D", "E", "F"],
+   ... )
 
-   # you can also create the tables individually
-   In [2]: store.append_to_multiple(
-      ...:     {"df1_mt": ["A", "B"], "df2_mt": None}, df_mt, selector="df1_mt"
-      ...: )
+   >>> df_mt["foo"] = "bar"
 
-   In [3]: store
-   Out[3]:
+   >>> # you can also create the tables individually
+
+   >>> store.append_to_multiple(
+   ...     {"df1_mt": ["A", "B"], "df2_mt": None}, df_mt, selector="df1_mt"
+   ... )
+
+   >>> store
    <class 'pandas.HDFStore'>
    File path: store.h5
 
-   # individual tables were created
-   In [4]: store.select("df1_mt")
-   Out[4]:
+
+   >>> # individual tables were created
+
+   >>> store.select("df1_mt")
                       A         B
-   2000-01-01 -0.577087  0.124121
-   2000-01-02 -0.713544 -0.831154
-   2000-01-03 -1.265934  0.119827
-   2000-01-04 -1.541996 -0.970736
-   2000-01-05  0.331286  1.349742
-   2000-01-06  1.327195 -0.919262
-   2000-01-07  0.862580 -0.010032
-   2000-01-08 -0.023493 -2.304234
+   2000-01-01  1.735563  1.002054
+   2000-01-02 -0.484412  0.529661
+   2000-01-03  0.711617 -0.040450
+   2000-01-04 -1.582884 -0.809953
+   2000-01-05  0.684208  1.420647
+   2000-01-06  0.522735 -0.773953
+   2000-01-07  0.167424  0.779249
+   2000-01-08 -1.762368  0.584723
 
-   In [5]: store.select("df2_mt")
-   Out[5]:
+   >>> store.select("df2_mt")
                       C         D         E         F  foo
-   2000-01-01  0.302614  0.523772  0.000940  1.343810  bar
-   2000-01-02 -2.370232 -1.860761 -0.860757  0.560145  bar
-   2000-01-03 -1.063512  0.332883 -2.359419 -0.199543  bar
-   2000-01-04 -1.307030  0.286350  0.377984 -0.753887  bar
-   2000-01-05  0.069877  0.246674 -0.011862  1.004812  bar
-   2000-01-06 -1.549106  0.022185  0.758363 -0.660524  bar
-   2000-01-07  0.050009  0.670216  0.852965 -0.955869  bar
-   2000-01-08 -0.652469 -1.218302 -1.332610  1.074623  bar
+   2000-01-01  0.391645 -0.786296 -1.318156  0.944986  bar
+   2000-01-02  0.626388 -0.154864 -0.380777  0.270570  bar
+   2000-01-03  0.765478 -0.021871  0.049377 -0.111977  bar
+   2000-01-04 -1.339557 -1.067533  0.183276 -0.600090  bar
+   2000-01-05 -0.197675 -1.570147 -0.205925 -0.081474  bar
+   2000-01-06  0.231441 -0.840109  0.294067  0.078833  bar
+   2000-01-07  2.933799 -2.044116  0.603015 -0.664764  bar
+   2000-01-08  0.328891  0.763934  2.369379 -1.735808  bar
 
-   # as a multiple
-   In [6]: store.select_as_multiple(
-      ...:     ["df1_mt", "df2_mt"], where=["A>0", "B>0"], selector="df1_mt"
-      ...: )
-   Out[6]:
+   >>> # as a multiple
+
+   >>> store.select_as_multiple(
+   ...     ["df1_mt", "df2_mt"], where=["A>0", "B>0"], selector="df1_mt"
+   ... )
                       A         B         C         D         E         F  foo
-   2000-01-05  0.331286  1.349742  0.069877  0.246674 -0.011862  1.004812  bar
+   2000-01-01  1.735563  1.002054  0.391645 -0.786296 -1.318156  0.944986  bar
+   2000-01-05  0.684208  1.420647 -0.197675 -1.570147 -0.205925 -0.081474  bar
+   2000-01-07  0.167424  0.779249  2.933799 -2.044116  0.603015 -0.664764  bar
 
 **Enhancements**
 

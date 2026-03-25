@@ -51,56 +51,34 @@ to be inserted (for example, a ``Series`` or NumPy array), or a function
 of one argument to be called on the ``DataFrame``. The new values are inserted,
 and the entire DataFrame (with all original and new columns) is returned.
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [1]: iris = pd.read_csv('data/iris.data')
+   >>> iris = pd.read_csv('data/iris.data')
 
-   In [2]: iris.head()
-   Out[2]:
-      SepalLength  SepalWidth  PetalLength  PetalWidth         Name
-   0          5.1         3.5          1.4         0.2  Iris-setosa
-   1          4.9         3.0          1.4         0.2  Iris-setosa
-   2          4.7         3.2          1.3         0.2  Iris-setosa
-   3          4.6         3.1          1.5         0.2  Iris-setosa
-   4          5.0         3.6          1.4         0.2  Iris-setosa
+   >>> iris.head()
 
-   In [3]: iris.assign(sepal_ratio=iris['SepalWidth'] / iris['SepalLength']).head()
-   Out[3]:
-      SepalLength  SepalWidth  PetalLength  PetalWidth         Name  sepal_ratio
-   0          5.1         3.5          1.4         0.2  Iris-setosa     0.686275
-   1          4.9         3.0          1.4         0.2  Iris-setosa     0.612245
-   2          4.7         3.2          1.3         0.2  Iris-setosa     0.680851
-   3          4.6         3.1          1.5         0.2  Iris-setosa     0.673913
-   4          5.0         3.6          1.4         0.2  Iris-setosa     0.720000
+   >>> iris.assign(sepal_ratio=iris['SepalWidth'] / iris['SepalLength']).head()
 
 Above was an example of inserting a precomputed value. We can also pass in
 a function to be evaluated.
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-    In [4]: iris.assign(sepal_ratio=lambda x: (x['SepalWidth']
-       ...:                                    / x['SepalLength'])).head()
-    Out[4]:
-       SepalLength  SepalWidth  PetalLength  PetalWidth         Name  sepal_ratio
-    0          5.1         3.5          1.4         0.2  Iris-setosa     0.686275
-    1          4.9         3.0          1.4         0.2  Iris-setosa     0.612245
-    2          4.7         3.2          1.3         0.2  Iris-setosa     0.680851
-    3          4.6         3.1          1.5         0.2  Iris-setosa     0.673913
-    4          5.0         3.6          1.4         0.2  Iris-setosa     0.720000
+    >>> iris.assign(sepal_ratio=lambda x: (x['SepalWidth']
+    ...                                    / x['SepalLength'])).head()
 
 The power of ``assign`` comes when used in chains of operations. For example,
 we can limit the DataFrame to just those with a Sepal Length greater than 5,
 calculate the ratio, and plot
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [5]: iris = pd.read_csv('data/iris.data')
+   >>> iris = pd.read_csv('data/iris.data')
 
-   In [6]: (iris.query('SepalLength > 5')
-      ...:      .assign(SepalRatio=lambda x: x.SepalWidth / x.SepalLength,
-      ...:              PetalRatio=lambda x: x.PetalWidth / x.PetalLength)
-      ...:      .plot(kind='scatter', x='SepalRatio', y='PetalRatio'))
-   Out[6]: <Axes: xlabel='SepalRatio', ylabel='PetalRatio'>
+   >>> (iris.query('SepalLength > 5')
+   ...      .assign(SepalRatio=lambda x: x.SepalWidth / x.SepalLength,
+   ...              PetalRatio=lambda x: x.PetalWidth / x.PetalLength)
+   ...      .plot(kind='scatter', x='SepalRatio', y='PetalRatio'))
 
 .. image:: ../_static/whatsnew_assign.png
   :scale: 50 %
@@ -170,57 +148,53 @@ String methods enhancements
   ``find()``     ``rfind()``    ``ljust()``    ``rjust()``        ``zfill()``
   =============  =============  =============  ===============    ===============
 
-  .. code-block:: ipython
+  .. code-block:: pycon
 
-     In [7]: s = pd.Series(['abcd', '3456', 'EFGH'])
+     >>> s = pd.Series(['abcd', '3456', 'EFGH'])
 
-     In [8]: s.str.isalpha()
-     Out[8]:
+     >>> s.str.isalpha()
      0     True
      1    False
      2     True
-     dtype: bool
+     Length: 3, dtype: bool
 
-     In [9]: s.str.find('ab')
-     Out[9]:
+     >>> s.str.find('ab')
      0    0
      1   -1
      2   -1
-     dtype: int64
+     Length: 3, dtype: int64
 
 - :meth:`Series.str.pad` and :meth:`Series.str.center` now accept ``fillchar`` option to specify filling character (:issue:`9352`)
 
-  .. code-block:: ipython
+  .. code-block:: pycon
 
-     In [10]: s = pd.Series(['12', '300', '25'])
+     >>> s = pd.Series(['12', '300', '25'])
 
-     In [11]: s.str.pad(5, fillchar='_')
-     Out[11]:
+     >>> s.str.pad(5, fillchar='_')
      0    ___12
      1    __300
      2    ___25
-     dtype: str
+     Length: 3, dtype: str
 
 - Added :meth:`Series.str.slice_replace`, which previously raised ``NotImplementedError`` (:issue:`8888`)
 
-  .. code-block:: ipython
+  .. code-block:: pycon
 
-     In [12]: s = pd.Series(['ABCD', 'EFGH', 'IJK'])
+     >>> s = pd.Series(['ABCD', 'EFGH', 'IJK'])
 
-     In [13]: s.str.slice_replace(1, 3, 'X')
-     Out[13]:
+     >>> s.str.slice_replace(1, 3, 'X')
      0    AXD
      1    EXH
      2     IX
-     dtype: str
+     Length: 3, dtype: str
 
-     # replaced with empty char
-     In [14]: s.str.slice_replace(0, 1)
-     Out[14]:
+     >>> # replaced with empty char
+
+     >>> s.str.slice_replace(0, 1)
      0    BCD
      1    FGH
      2     JK
-     dtype: str
+     Length: 3, dtype: str
 
 .. _whatsnew_0160.enhancements.other:
 
@@ -229,16 +203,17 @@ Other enhancements
 
 - Reindex now supports ``method='nearest'`` for frames or series with a monotonic increasing or decreasing index (:issue:`9258`):
 
-  .. code-block:: ipython
+  .. code-block:: pycon
 
-     In [15]: df = pd.DataFrame({'x': range(5)})
+     >>> df = pd.DataFrame({'x': range(5)})
 
-     In [16]: df.reindex([0.2, 1.8, 3.5], method='nearest')
-     Out[16]:
+     >>> df.reindex([0.2, 1.8, 3.5], method='nearest')
           x
      0.2  0
      1.8  2
      3.5  4
+
+     [3 rows x 1 columns]
 
   This method is also exposed by the lower level ``Index.get_indexer`` and ``Index.get_loc`` methods.
 
@@ -303,28 +278,28 @@ Previous behavior
 
 New behavior
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [17]: t = pd.Timedelta('1 day, 10:11:12.100123')
+   >>> t = pd.Timedelta('1 day, 10:11:12.100123')
 
-   In [18]: t.days
-   Out[18]: 1
+   >>> t.days
+   1
 
-   In [19]: t.seconds
-   Out[19]: 36672
+   >>> t.seconds
+   36672
 
-   In [20]: t.microseconds
-   Out[20]: 100123
+   >>> t.microseconds
+   100123
 
 Using ``.components`` allows the full component access
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [21]: t.components
-   Out[21]: Components(days=1, hours=10, minutes=11, seconds=12, milliseconds=100, microseconds=123, nanoseconds=0)
+   >>> t.components
+   Components(days=1, hours=10, minutes=11, seconds=12, milliseconds=100, microseconds=123, nanoseconds=0)
 
-   In [22]: t.components.seconds
-   Out[22]: 12
+   >>> t.components.seconds
+   12
 
 .. _whatsnew_0160.api_breaking.indexing:
 
@@ -335,31 +310,31 @@ The behavior of a small sub-set of edge cases for using ``.loc`` have changed (:
 
 - Slicing with ``.loc`` where the start and/or stop bound is not found in the index is now allowed; this previously would raise a ``KeyError``. This makes the behavior the same as ``.ix`` in this case. This change is only for slicing, not when indexing with a single label.
 
-  .. code-block:: ipython
+  .. code-block:: pycon
 
-     In [23]: df = pd.DataFrame(np.random.randn(5, 4),
-        ...:                    columns=list('ABCD'),
-        ...:                    index=pd.date_range('20130101', periods=5))
+     >>> df = pd.DataFrame(np.random.randn(5, 4),
+     ...                   columns=list('ABCD'),
+     ...                   index=pd.date_range('20130101', periods=5))
 
-     In [24]: df
-     Out[24]:
+     >>> df
                         A         B         C         D
-     2013-01-01 -0.204708  0.478943 -0.519439 -0.555730
-     2013-01-02  1.965781  1.393406  0.092908  0.281746
-     2013-01-03  0.769023  1.246435  1.007189 -1.296221
-     2013-01-04  0.274992  0.228913  1.352917  0.886429
-     2013-01-05 -2.001637 -0.371843  1.669025 -0.438570
+     2013-01-01 -0.364970  1.193810 -0.812495 -0.430753
+     2013-01-02  0.196775 -0.858708  0.182296  0.168542
+     2013-01-03 -1.295414  0.781481 -0.028292  0.485222
+     2013-01-04 -1.024658  0.275110 -0.007452  0.044767
+     2013-01-05  0.827741 -1.298262 -0.338087  0.488600
 
-     In [25]: s = pd.Series(range(5), [-2, -1, 1, 2, 3])
+     [5 rows x 4 columns]
 
-     In [26]: s
-     Out[26]:
+     >>> s = pd.Series(range(5), [-2, -1, 1, 2, 3])
+
+     >>> s
      -2    0
      -1    1
       1    2
       2    3
       3    4
-     dtype: int64
+     Length: 5, dtype: int64
 
   Previous behavior
 
@@ -373,24 +348,24 @@ The behavior of a small sub-set of edge cases for using ``.loc`` have changed (:
 
   New behavior
 
-  .. code-block:: ipython
+  .. code-block:: pycon
 
-     In [27]: df.loc['2013-01-02':'2013-01-10']
-     Out[27]:
+     >>> df.loc['2013-01-02':'2013-01-10']
                         A         B         C         D
-     2013-01-02  1.965781  1.393406  0.092908  0.281746
-     2013-01-03  0.769023  1.246435  1.007189 -1.296221
-     2013-01-04  0.274992  0.228913  1.352917  0.886429
-     2013-01-05 -2.001637 -0.371843  1.669025 -0.438570
+     2013-01-02  0.196775 -0.858708  0.182296  0.168542
+     2013-01-03 -1.295414  0.781481 -0.028292  0.485222
+     2013-01-04 -1.024658  0.275110 -0.007452  0.044767
+     2013-01-05  0.827741 -1.298262 -0.338087  0.488600
 
-     In [28]: s.loc[-10:3]
-     Out[28]:
+     [4 rows x 4 columns]
+
+     >>> s.loc[-10:3]
      -2    0
      -1    1
       1    2
       2    3
       3    4
-     dtype: int64
+     Length: 5, dtype: int64
 
 - Allow slicing with float-like values on an integer index for ``.ix``. Previously this was only enabled for ``.loc``:
 
@@ -467,47 +442,45 @@ Previous behavior
 
 New behavior
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [29]: s = pd.Series([0, 1, 2], dtype='category')
+   >>> s = pd.Series([0, 1, 2], dtype='category')
 
-   In [30]: s
-   Out[30]:
+   >>> s
    0    0
    1    1
    2    2
-   dtype: category
+   Length: 3, dtype: category
    Categories (3, int64): [0, 1, 2]
 
-   In [31]: s.cat.ordered
-   Out[31]: False
+   >>> s.cat.ordered
+   False
 
-   In [32]: s = s.cat.as_ordered()
+   >>> s = s.cat.as_ordered()
 
-   In [33]: s
-   Out[33]:
+   >>> s
    0    0
    1    1
    2    2
-   dtype: category
+   Length: 3, dtype: category
    Categories (3, int64): [0 < 1 < 2]
 
-   In [34]: s.cat.ordered
-   Out[34]: True
+   >>> s.cat.ordered
+   True
 
-   # you can set in the constructor of the Categorical
-   In [35]: s = pd.Series(pd.Categorical([0, 1, 2], ordered=True))
+   >>> # you can set in the constructor of the Categorical
 
-   In [36]: s
-   Out[36]:
+   >>> s = pd.Series(pd.Categorical([0, 1, 2], ordered=True))
+
+   >>> s
    0    0
    1    1
    2    2
-   dtype: category
+   Length: 3, dtype: category
    Categories (3, int64): [0 < 1 < 2]
 
-   In [37]: s.cat.ordered
-   Out[37]: True
+   >>> s.cat.ordered
+   True
 
 For ease of creation of series of categorical data, we have added the ability to pass keywords when calling ``.astype()``. These are passed directly to the constructor.
 
@@ -619,21 +592,19 @@ Other API changes
 
   New behavior
 
-  .. code-block:: ipython
+  .. code-block:: pycon
 
-     In [38]: p = pd.Series([0, 1])
+     >>> p = pd.Series([0, 1])
 
-     In [39]: p / 0
-     Out[39]:
+     >>> p / 0
      0    NaN
      1    inf
-     dtype: float64
+     Length: 2, dtype: float64
 
-     In [40]: p // 0
-     Out[40]:
+     >>> p // 0
      0    NaN
      1    inf
-     dtype: float64
+     Length: 2, dtype: float64
 
 - ``Series.values_counts`` and ``Series.describe`` for categorical data will now put ``NaN`` entries at the end. (:issue:`9443`)
 - ``Series.describe`` for categorical data will now give counts and frequencies of 0, not ``NaN``, for unused categories (:issue:`9443`)
@@ -649,10 +620,10 @@ Other API changes
 
   Fixed behavior:
 
-  .. code-block:: ipython
+  .. code-block:: pycon
 
-    In [41]: pd.to_datetime(['2000-01-31', '2000-02-28']).asof('2000-02')
-    Out[41]: Timestamp('2000-02-28 00:00:00')
+    >>> pd.to_datetime(['2000-01-31', '2000-02-28']).asof('2000-02')
+    Timestamp('2000-02-28 00:00:00')
 
   To reproduce the old behavior, simply add more precision to the label (e.g., use ``2000-02-01`` instead of ``2000-02``).
 
@@ -813,15 +784,14 @@ Bug fixes
 
   The following would previously report a ``SettingWithCopy`` Warning.
 
-  .. code-block:: ipython
+  .. code-block:: pycon
 
-     In [42]: df1 = pd.DataFrame({'x': pd.Series(['a', 'b', 'c']),
-        ...:                      'y': pd.Series(['d', 'e', 'f'])})
+     >>> df1 = pd.DataFrame({'x': pd.Series(['a', 'b', 'c']),
+     ...                     'y': pd.Series(['d', 'e', 'f'])})
 
-     In [43]: df2 = df1[['x']]
+     >>> df2 = df1[['x']]
 
-     In [44]: df2['y'] = ['g', 'h', 'i']
-
+     >>> df2['y'] = ['g', 'h', 'i']
 
 .. _whatsnew_0.16.0.contributors:
 

@@ -47,13 +47,13 @@ an instance of :class:`.Styler` with your data attached.
 
 Here's a quick example:
 
-  .. code-block:: ipython
+  .. code-block:: pycon
 
-    In [1]: np.random.seed(123)
+    >>> np.random.seed(123)
 
-    In [2]: df = pd.DataFrame(np.random.randn(10, 5), columns=list("abcde"))
+    >>> df = pd.DataFrame(np.random.randn(10, 5), columns=list("abcde"))
 
-    In [3]: html = df.style.background_gradient(cmap="viridis", low=0.5)
+    >>> html = df.style.background_gradient(cmap="viridis", low=0.5)
 
 We can render the HTML to get the following table.
 
@@ -78,14 +78,15 @@ Enhancements
 - Added ``axvlines_kwds`` to parallel coordinates plot (:issue:`10709`)
 - Option to ``.info()`` and ``.memory_usage()`` to provide for deep introspection of memory consumption. Note that this can be expensive to compute and therefore is an optional parameter. (:issue:`11595`)
 
-  .. code-block:: ipython
+  .. code-block:: pycon
 
-     In [4]: df = pd.DataFrame({"A": ["foo"] * 1000})
+     >>> df = pd.DataFrame({"A": ["foo"] * 1000})  # noqa: F821
 
-     In [5]: df["B"] = df["A"].astype("category")
+     >>> df["B"] = df["A"].astype("category")
 
-     In [6]: # shows the '+' as we have object dtypes
-        ...: df.info()
+     >>> # shows the '+' as we have object dtypes
+
+     >>> df.info()
      <class 'pandas.DataFrame'>
      RangeIndex: 1000 entries, 0 to 999
      Data columns (total 2 columns):
@@ -96,8 +97,9 @@ Enhancements
      dtypes: category(1), str(1)
      memory usage: 11.9 KB
 
-     In [7]: # we have an accurate memory assessment (but can be expensive to compute this)
-        ...: df.info(memory_usage="deep")
+     >>> # we have an accurate memory assessment (but can be expensive to compute this)
+
+     >>> df.info(memory_usage="deep")
      <class 'pandas.DataFrame'>
      RangeIndex: 1000 entries, 0 to 999
      Data columns (total 2 columns):
@@ -110,54 +112,50 @@ Enhancements
 
 - ``Index`` now has a ``fillna`` method (:issue:`10089`)
 
-  .. code-block:: ipython
+  .. code-block:: pycon
 
-     In [8]: pd.Index([1, np.nan, 3]).fillna(2)
-     Out[8]: Index([1.0, 2.0, 3.0], dtype='float64')
+     >>> pd.Index([1, np.nan, 3]).fillna(2)
+     Index([1.0, 2.0, 3.0], dtype='float64')
 
 - Series of type ``category`` now make ``.str.<...>`` and ``.dt.<...>`` accessor methods / properties available, if the categories are of that type. (:issue:`10661`)
 
-  .. code-block:: ipython
+  .. code-block:: pycon
 
-     In [9]: s = pd.Series(list("aabb")).astype("category")
+     >>> s = pd.Series(list("aabb")).astype("category")
 
-     In [10]: s
-     Out[10]:
+     >>> s
      0    a
      1    a
      2    b
      3    b
-     dtype: category
+     Length: 4, dtype: category
      Categories (2, str): ['a', 'b']
 
-     In [11]: s.str.contains("a")
-     Out[11]:
+     >>> s.str.contains("a")
      0     True
      1     True
      2    False
      3    False
-     dtype: bool
+     Length: 4, dtype: bool
 
-     In [12]: date = pd.Series(pd.date_range("1/1/2015", periods=5)).astype("category")
+     >>> date = pd.Series(pd.date_range("1/1/2015", periods=5)).astype("category")
 
-     In [13]: date
-     Out[13]:
+     >>> date
      0   2015-01-01
      1   2015-01-02
      2   2015-01-03
      3   2015-01-04
      4   2015-01-05
-     dtype: category
+     Length: 5, dtype: category
      Categories (5, datetime64[us]): [2015-01-01, 2015-01-02, 2015-01-03, 2015-01-04, 2015-01-05]
 
-     In [14]: date.dt.day
-     Out[14]:
+     >>> date.dt.day
      0    1
      1    2
      2    3
      3    4
      4    5
-     dtype: int32
+     Length: 5, dtype: int32
 
 - ``pivot_table`` now has a ``margins_name`` argument so you can use something other than the default of 'All' (:issue:`3335`)
 - Implement export of ``datetime64[ns, tz]`` dtypes with a fixed HDF5 store (:issue:`11411`)

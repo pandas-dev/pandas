@@ -78,60 +78,53 @@ number rows. See the :ref:`docs <timeseries.timezone_series>` for more details. 
 
 The new implementation allows for having a single-timezone across all rows, with operations in a performant manner.
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [1]: df = pd.DataFrame(
-      ....:     {
-      ....:         "A": pd.date_range("20130101", periods=3),
-      ....:         "B": pd.date_range("20130101", periods=3, tz="US/Eastern"),
-      ....:         "C": pd.date_range("20130101", periods=3, tz="CET"),
-      ....:     }
-      ....: )
+   >>> df = pd.DataFrame(
+   ...     {
+   ...         "A": pd.date_range("20130101", periods=3),
+   ...         "B": pd.date_range("20130101", periods=3, tz="US/Eastern"),
+   ...         "C": pd.date_range("20130101", periods=3, tz="CET"),
+   ...     }
+   ... )
 
-   In [2]: df
+   >>> df
+              A                         B                         C
+   0 2013-01-01 2013-01-01 00:00:00-05:00 2013-01-01 00:00:00+01:00
+   1 2013-01-02 2013-01-02 00:00:00-05:00 2013-01-02 00:00:00+01:00
+   2 2013-01-03 2013-01-03 00:00:00-05:00 2013-01-03 00:00:00+01:00
 
-   Out[2]:            A                         B                         C
-           0 2013-01-01 2013-01-01 00:00:00-05:00 2013-01-01 00:00:00+01:00
-           1 2013-01-02 2013-01-02 00:00:00-05:00 2013-01-02 00:00:00+01:00
-           2 2013-01-03 2013-01-03 00:00:00-05:00 2013-01-03 00:00:00+01:00
+   [3 rows x 3 columns]
 
-   In [3]: df.dtypes
+   >>> df.dtypes
+   A                datetime64[us]
+   B    datetime64[us, US/Eastern]
+   C           datetime64[us, CET]
+   Length: 3, dtype: object
 
-   Out[3]: A                datetime64[us]
-           B    datetime64[us, US/Eastern]
-           C           datetime64[us, CET]
-           dtype: object
+.. code-block:: pycon
 
+   >>> df.B
+   0   2013-01-01 00:00:00-05:00
+   1   2013-01-02 00:00:00-05:00
+   2   2013-01-03 00:00:00-05:00
+   Name: B, Length: 3, dtype: datetime64[us, US/Eastern]
 
-.. code-block:: ipython
-
-   In [4]: df.B
-
-   Out[4]: 0   2013-01-01 00:00:00-05:00
-           1   2013-01-02 00:00:00-05:00
-           2   2013-01-03 00:00:00-05:00
-           Name: B, dtype: datetime64[us, US/Eastern]
-
-   In [5]: df.B.dt.tz_localize(None)
-
-   Out[5]: 0   2013-01-01
-           1   2013-01-02
-           2   2013-01-03
-           Name: B, dtype: datetime64[us]
-
+   >>> df.B.dt.tz_localize(None)
+   0   2013-01-01
+   1   2013-01-02
+   2   2013-01-03
+   Name: B, Length: 3, dtype: datetime64[us]
 
 This uses a new-dtype representation as well, that is very similar in look-and-feel to its numpy cousin ``datetime64[ns]``
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [6]: df["B"].dtype
+   >>> df["B"].dtype
+   datetime64[us, US/Eastern]
 
-   Out[6]: datetime64[us, US/Eastern]
-
-   In [7]: type(df["B"].dtype)
-
-   Out[7]: <class 'pandas.DatetimeTZDtype'>
-
+   >>> type(df["B"].dtype)
+   <class 'pandas.DatetimeTZDtype'>
 
 .. note::
 
@@ -152,18 +145,15 @@ This uses a new-dtype representation as well, that is very similar in look-and-f
 
    New behavior:
 
-   .. code-block:: ipython
+   .. code-block:: pycon
 
-      In [8]: pd.date_range("20130101", periods=3, tz="US/Eastern")
+      >>> pd.date_range("20130101", periods=3, tz="US/Eastern")
+      DatetimeIndex(['2013-01-01 00:00:00-05:00', '2013-01-02 00:00:00-05:00',
+                     '2013-01-03 00:00:00-05:00'],
+                    dtype='datetime64[us, US/Eastern]', freq='D')
 
-      Out[8]: DatetimeIndex(['2013-01-01 00:00:00-05:00', '2013-01-02 00:00:00-05:00',
-                             '2013-01-03 00:00:00-05:00'],
-                            dtype='datetime64[us, US/Eastern]', freq='D')
-
-      In [9]: pd.date_range("20130101", periods=3, tz="US/Eastern").dtype
-
-      Out[9]: datetime64[us, US/Eastern]
-
+      >>> pd.date_range("20130101", periods=3, tz="US/Eastern").dtype
+      datetime64[us, US/Eastern]
 
 .. _whatsnew_0170.gil:
 
@@ -200,23 +190,21 @@ The Series and DataFrame ``.plot()`` method allows for customizing :ref:`plot ty
 
 To alleviate this issue, we have added a new, optional plotting interface, which exposes each kind of plot as a method of the ``.plot`` attribute. Instead of writing ``series.plot(kind=<kind>, ...)``, you can now also use ``series.plot.<kind>(...)``:
 
-.. code-block:: ipython
+.. code-block:: pycon
 
     In [13]: df = pd.DataFrame(np.random.rand(10, 2), columns=['a', 'b'])
 
     In [14]: df.plot.bar()
 
-
 .. image:: ../_static/whatsnew_plot_submethods.png
 
 As a result of this change, these methods are now all discoverable via tab-completion:
 
-.. code-block:: ipython
+.. code-block:: pycon
 
     In [15]: df.plot.<TAB>  # noqa: E225, E999
     df.plot.area     df.plot.barh     df.plot.density  df.plot.hist     df.plot.line     df.plot.scatter
     df.plot.bar      df.plot.box      df.plot.hexbin   df.plot.kde      df.plot.pie
-
 
 Each method signature only includes relevant arguments. Currently, these are limited to required arguments, but in the future these will include optional arguments, as well. For an overview, see the new :ref:`api.dataframe.plotting` API documentation.
 
@@ -230,51 +218,45 @@ Series.dt.strftime
 
 We are now supporting a ``Series.dt.strftime`` method for datetime-likes to generate a formatted string (:issue:`10110`). Examples:
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [10]: # DatetimeIndex
+   >>> # DatetimeIndex
 
-   In [11]: s = pd.Series(pd.date_range("20130101", periods=4))
+   >>> s = pd.Series(pd.date_range("20130101", periods=4))
 
-   In [12]: s
+   >>> s
+   0   2013-01-01
+   1   2013-01-02
+   2   2013-01-03
+   3   2013-01-04
+   Length: 4, dtype: datetime64[us]
 
-   Out[12]: 0   2013-01-01
-            1   2013-01-02
-            2   2013-01-03
-            3   2013-01-04
-            dtype: datetime64[us]
+   >>> s.dt.strftime("%Y/%m/%d")
+   0    2013/01/01
+   1    2013/01/02
+   2    2013/01/03
+   3    2013/01/04
+   Length: 4, dtype: str
 
-   In [13]: s.dt.strftime("%Y/%m/%d")
+.. code-block:: pycon
 
-   Out[13]: 0    2013/01/01
-            1    2013/01/02
-            2    2013/01/03
-            3    2013/01/04
-            dtype: str
+   >>> # PeriodIndex
 
+   >>> s = pd.Series(pd.period_range("20130101", periods=4))
 
-.. code-block:: ipython
+   >>> s
+   0    2013-01-01
+   1    2013-01-02
+   2    2013-01-03
+   3    2013-01-04
+   Length: 4, dtype: period[D]
 
-   In [14]: # PeriodIndex
-
-   In [15]: s = pd.Series(pd.period_range("20130101", periods=4))
-
-   In [16]: s
-
-   Out[16]: 0    2013-01-01
-            1    2013-01-02
-            2    2013-01-03
-            3    2013-01-04
-            dtype: period[D]
-
-   In [17]: s.dt.strftime("%Y/%m/%d")
-
-   Out[17]: 0    2013/01/01
-            1    2013/01/02
-            2    2013/01/03
-            3    2013/01/04
-            dtype: str
-
+   >>> s.dt.strftime("%Y/%m/%d")
+   0    2013/01/01
+   1    2013/01/02
+   2    2013/01/03
+   3    2013/01/04
+   Length: 4, dtype: str
 
 The string format is as the python standard library and details can be found `here <https://docs.python.org/2/library/datetime.html#strftime-and-strptime-behavior>`_
 
@@ -283,28 +265,25 @@ Series.dt.total_seconds
 
 ``pd.Series`` of type ``timedelta64`` has new method ``.dt.total_seconds()`` returning the duration of the timedelta in seconds (:issue:`10817`)
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [18]: # TimedeltaIndex
+   >>> # TimedeltaIndex
 
-   In [19]: s = pd.Series(pd.timedelta_range("1 minutes", periods=4))
+   >>> s = pd.Series(pd.timedelta_range("1 minutes", periods=4))
 
-   In [20]: s
+   >>> s
+   0   0 days 00:01:00
+   1   1 days 00:01:00
+   2   2 days 00:01:00
+   3   3 days 00:01:00
+   Length: 4, dtype: timedelta64[us]
 
-   Out[20]: 0   0 days 00:01:00
-            1   1 days 00:01:00
-            2   2 days 00:01:00
-            3   3 days 00:01:00
-            dtype: timedelta64[us]
-
-   In [21]: s.dt.total_seconds()
-
-   Out[21]: 0        60.0
-            1     86460.0
-            2    172860.0
-            3    259260.0
-            dtype: float64
-
+   >>> s.dt.total_seconds()
+   0        60.0
+   1     86460.0
+   2    172860.0
+   3    259260.0
+   Length: 4, dtype: float64
 
 .. _whatsnew_0170.periodfreq:
 
@@ -315,45 +294,36 @@ Period frequency enhancement
 
 A multiplied freq represents a span of corresponding length. The example below creates a period of 3 days. Addition and subtraction will shift the period by its span.
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [22]: p = pd.Period("2015-08-01", freq="3D")
+   >>> p = pd.Period("2015-08-01", freq="3D")
 
-   In [23]: p
+   >>> p
+   Period('2015-08-01', '3D')
 
-   Out[23]: Period('2015-08-01', '3D')
+   >>> p + 1
+   Period('2015-08-04', '3D')
 
-   In [24]: p + 1
+   >>> p - 2
+   Period('2015-07-26', '3D')
 
-   Out[24]: Period('2015-08-04', '3D')
+   >>> p.to_timestamp()
+   Timestamp('2015-08-01 00:00:00')
 
-   In [25]: p - 2
-
-   Out[25]: Period('2015-07-26', '3D')
-
-   In [26]: p.to_timestamp()
-
-   Out[26]: Timestamp('2015-08-01 00:00:00')
-
-   In [27]: p.to_timestamp(how="E")
-
-   Out[27]: Timestamp('2015-08-03 23:59:59.999999')
-
+   >>> p.to_timestamp(how="E")
+   Timestamp('2015-08-03 23:59:59.999999')
 
 You can use the multiplied freq in ``PeriodIndex`` and ``period_range``.
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [28]: idx = pd.period_range("2015-08-01", periods=4, freq="2D")
+   >>> idx = pd.period_range("2015-08-01", periods=4, freq="2D")
 
-   In [29]: idx
+   >>> idx
+   PeriodIndex(['2015-08-01', '2015-08-03', '2015-08-05', '2015-08-07'], dtype='period[2D]')
 
-   Out[29]: PeriodIndex(['2015-08-01', '2015-08-03', '2015-08-05', '2015-08-07'], dtype='period[2D]')
-
-   In [30]: idx + 1
-
-   Out[30]: PeriodIndex(['2015-08-03', '2015-08-05', '2015-08-07', '2015-08-09'], dtype='period[2D]')
-
+   >>> idx + 1
+   PeriodIndex(['2015-08-03', '2015-08-05', '2015-08-07', '2015-08-09'], dtype='period[2D]')
 
 .. _whatsnew_0170.enhancements.sas_xport:
 
@@ -405,36 +375,37 @@ in the ``header`` and ``index_col`` parameters (:issue:`4679`)
 
 See the :ref:`documentation <io.excel>` for more details.
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [31]: df = pd.DataFrame(
-      ....:     [[1, 2, 3, 4], [5, 6, 7, 8]],
-      ....:     columns=pd.MultiIndex.from_product(
-      ....:         [["foo", "bar"], ["a", "b"]], names=["col1", "col2"]
-      ....:     ),
-      ....:     index=pd.MultiIndex.from_product([["j"], ["l", "k"]], names=["i1", "i2"]),
-      ....: )
+   >>> df = pd.DataFrame(
+   ...     [[1, 2, 3, 4], [5, 6, 7, 8]],
+   ...     columns=pd.MultiIndex.from_product(
+   ...         [["foo", "bar"], ["a", "b"]], names=["col1", "col2"]
+   ...     ),
+   ...     index=pd.MultiIndex.from_product([["j"], ["l", "k"]], names=["i1", "i2"]),
+   ... )
 
-   In [32]: df
+   >>> df
+   col1  foo    bar
+   col2    a  b   a  b
+   i1 i2
+   j  l    1  2   3  4
+      k    5  6   7  8
 
-   Out[32]: col1  foo    bar
-            col2    a  b   a  b
-            i1 i2
-            j  l    1  2   3  4
-               k    5  6   7  8
+   [2 rows x 4 columns]
 
-   In [33]: df.to_excel("test.xlsx")
+   >>> df.to_excel("test.xlsx")
 
-   In [34]: df = pd.read_excel("test.xlsx", header=[0, 1], index_col=[0, 1])
+   >>> df = pd.read_excel("test.xlsx", header=[0, 1], index_col=[0, 1])
 
-   In [35]: df
+   >>> df
+   col1  foo    bar
+   col2    a  b   a  b
+   i1 i2
+   j  l    1  2   3  4
+      k    5  6   7  8
 
-   Out[35]: col1  foo    bar
-            col2    a  b   a  b
-            i1 i2
-            j  l    1  2   3  4
-               k    5  6   7  8
-
+   [2 rows x 4 columns]
 
 Previously, it was necessary to specify the ``has_index_names`` argument in ``read_excel``,
 if the serialized data had index names.  For version 0.17.0 the output format of ``to_excel``
@@ -478,27 +449,27 @@ Some East Asian countries use Unicode characters its width is corresponding to 2
 - ``display.unicode.east_asian_width``: Whether to use the Unicode East Asian Width to calculate the display text width. (:issue:`2612`)
 - ``display.unicode.ambiguous_as_wide``: Whether to handle Unicode characters belong to Ambiguous as Wide. (:issue:`11102`)
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [38]: df = pd.DataFrame({u"国籍": ["UK", u"日本"], u"名前": ["Alice", u"しのぶ"]})
+   >>> df = pd.DataFrame({u"国籍": ["UK", u"日本"], u"名前": ["Alice", u"しのぶ"]})
 
-   In [39]: df
+   >>> df
+      国籍     名前
+   0  UK  Alice
+   1  日本    しのぶ
 
-   Out[39]:    国籍     名前
-            0  UK  Alice
-            1  日本    しのぶ
+   [2 rows x 2 columns]
 
+.. code-block:: pycon
 
-.. code-block:: ipython
+   >>> pd.set_option("display.unicode.east_asian_width", True)
 
-   In [40]: pd.set_option("display.unicode.east_asian_width", True)
+   >>> df
+      国籍    名前
+   0    UK   Alice
+   1  日本  しのぶ
 
-   In [41]: df
-
-   Out[41]:    国籍    名前
-            0    UK   Alice
-            1  日本  しのぶ
-
+   [2 rows x 2 columns]
 
 For further details, see :ref:`here <options.east_asian_width>`
 
@@ -518,20 +489,20 @@ Other enhancements
   Merge key in both frames              ``both``
   ===================================   ================
 
-  .. code-block:: ipython
+  .. code-block:: pycon
 
-     In [43]: df1 = pd.DataFrame({"col1": [0, 1], "col_left": ["a", "b"]})
+    >>> df1 = pd.DataFrame({"col1": [0, 1], "col_left": ["a", "b"]})
 
-     In [44]: df2 = pd.DataFrame({"col1": [1, 2, 2], "col_right": [2, 2, 2]})
+    >>> df2 = pd.DataFrame({"col1": [1, 2, 2], "col_right": [2, 2, 2]})
 
-     In [45]: pd.merge(df1, df2, on="col1", how="outer", indicator=True)
+    >>> pd.merge(df1, df2, on="col1", how="outer", indicator=True)
+       col1 col_left  col_right      _merge
+    0     0        a        NaN   left_only
+    1     1        b        2.0        both
+    2     2      NaN        2.0  right_only
+    3     2      NaN        2.0  right_only
 
-     Out[45]:    col1 col_left  col_right      _merge
-              0     0        a        NaN   left_only
-              1     1        b        2.0        both
-              2     2      NaN        2.0  right_only
-              3     2      NaN        2.0  right_only
-
+    [4 rows x 4 columns]
 
   For more, see the :ref:`updated docs <merging.indicator>`
 
@@ -543,14 +514,13 @@ Other enhancements
 
 - ``pd.concat`` will now use existing Series names if provided (:issue:`10698`).
 
-  .. code-block:: ipython
+  .. code-block:: pycon
 
-     In [46]: foo = pd.Series([1, 2], name="foo")
+     >>> foo = pd.Series([1, 2], name="foo")
 
-     In [47]: bar = pd.Series([1, 2])
+     >>> bar = pd.Series([1, 2])
 
-     In [48]: baz = pd.Series([4, 5])
-
+     >>> baz = pd.Series([4, 5])
 
   Previous behavior:
 
@@ -564,121 +534,117 @@ Other enhancements
 
   New behavior:
 
-  .. code-block:: ipython
+  .. code-block:: pycon
 
-     In [49]: pd.concat([foo, bar, baz], axis=1)
+    >>> pd.concat([foo, bar, baz], axis=1)
+       foo  0  1
+    0    1  1  4
+    1    2  2  5
 
-     Out[49]:    foo  0  1
-              0    1  1  4
-              1    2  2  5
-
+    [2 rows x 3 columns]
 
 - ``DataFrame`` has gained the ``nlargest`` and ``nsmallest`` methods (:issue:`10393`)
 
 - Add a ``limit_direction`` keyword argument that works with ``limit`` to enable ``interpolate`` to fill ``NaN`` values forward, backward, or both (:issue:`9218`, :issue:`10420`, :issue:`11115`)
 
-  .. code-block:: ipython
+  .. code-block:: pycon
 
-     In [50]: ser = pd.Series([np.nan, np.nan, 5, np.nan, np.nan, np.nan, 13])
+     >>> ser = pd.Series([np.nan, np.nan, 5, np.nan, np.nan, np.nan, 13])
 
-     In [51]: ser.interpolate(limit=1, limit_direction="both")
-
-     Out[51]: 0     NaN
-              1     5.0
-              2     5.0
-              3     7.0
-              4     NaN
-              5    11.0
-              6    13.0
-              dtype: float64
-
+     >>> ser.interpolate(limit=1, limit_direction="both")
+     0     NaN
+     1     5.0
+     2     5.0
+     3     7.0
+     4     NaN
+     5    11.0
+     6    13.0
+     Length: 7, dtype: float64
 
 - Added a ``DataFrame.round`` method to round the values to a variable number of decimal places (:issue:`10568`).
 
-  .. code-block:: ipython
+  .. code-block:: pycon
 
-     In [52]: df = pd.DataFrame(
-        ....:     np.random.random([3, 3]),
-        ....:     columns=["A", "B", "C"],
-        ....:     index=["first", "second", "third"],
-        ....: )
+     >>> df = pd.DataFrame(
+     ...     np.random.random([3, 3]),
+     ...     columns=["A", "B", "C"],
+     ...     index=["first", "second", "third"],
+     ... )
 
-     In [53]: df
+     >>> df
+                    A         B         C
+     first   0.519001  0.547578  0.388754
+     second  0.498907  0.866001  0.050603
+     third   0.121907  0.197086  0.766914
 
-     Out[53]:                A         B         C
-              first   0.040275  0.345829  0.603229
-              second  0.224845  0.248715  0.707305
-              third   0.651736  0.600168  0.218025
+     [3 rows x 3 columns]
 
-     In [54]: df.round(2)
+     >>> df.round(2)
+                A     B     C
+     first   0.52  0.55  0.39
+     second  0.50  0.87  0.05
+     third   0.12  0.20  0.77
 
-     Out[54]:            A     B     C
-              first   0.04  0.35  0.60
-              second  0.22  0.25  0.71
-              third   0.65  0.60  0.22
+     [3 rows x 3 columns]
 
-     In [55]: df.round({"A": 0, "C": 2})
+     >>> df.round({"A": 0, "C": 2})
+               A         B     C
+     first   1.0  0.547578  0.39
+     second  0.0  0.866001  0.05
+     third   0.0  0.197086  0.77
 
-     Out[55]:           A         B     C
-              first   0.0  0.345829  0.60
-              second  0.0  0.248715  0.71
-              third   1.0  0.600168  0.22
-
+     [3 rows x 3 columns]
 
 - ``drop_duplicates`` and ``duplicated`` now accept a ``keep`` keyword to target first, last, and all duplicates. The ``take_last`` keyword is deprecated, see :ref:`here <whatsnew_0170.deprecations>` (:issue:`6511`, :issue:`8505`)
 
-  .. code-block:: ipython
+  .. code-block:: pycon
 
-     In [56]: s = pd.Series(["A", "B", "C", "A", "B", "D"])
+     >>> s = pd.Series(["A", "B", "C", "A", "B", "D"])
 
-     In [57]: s.drop_duplicates()
+     >>> s.drop_duplicates()
+     0    A
+     1    B
+     2    C
+     5    D
+     Length: 4, dtype: str
 
-     Out[57]: 0    A
-              1    B
-              2    C
-              5    D
-              dtype: str
+     >>> s.drop_duplicates(keep="last")
+     2    C
+     3    A
+     4    B
+     5    D
+     Length: 4, dtype: str
 
-     In [58]: s.drop_duplicates(keep="last")
-
-     Out[58]: 2    C
-              3    A
-              4    B
-              5    D
-              dtype: str
-
-     In [59]: s.drop_duplicates(keep=False)
-
-     Out[59]: 2    C
-              5    D
-              dtype: str
-
+     >>> s.drop_duplicates(keep=False)
+     2    C
+     5    D
+     Length: 2, dtype: str
 
 - Reindex now has a ``tolerance`` argument that allows for finer control of :ref:`basics.limits_on_reindex_fill` (:issue:`10411`):
 
-  .. code-block:: ipython
+  .. code-block:: pycon
 
-     In [60]: df = pd.DataFrame({"x": range(5), "t": pd.date_range("2000-01-01", periods=5)})
+     >>> df = pd.DataFrame({"x": range(5), "t": pd.date_range("2000-01-01", periods=5)})
 
-     In [61]: df.reindex([0.1, 1.9, 3.5], method="nearest", tolerance=0.2)
+     >>> df.reindex([0.1, 1.9, 3.5], method="nearest", tolerance=0.2)
+            x          t
+     0.1  0.0 2000-01-01
+     1.9  2.0 2000-01-03
+     3.5  NaN        NaT
 
-     Out[61]:        x          t
-              0.1  0.0 2000-01-01
-              1.9  2.0 2000-01-03
-              3.5  NaN        NaT
-
+     [3 rows x 2 columns]
 
   When used on a ``DatetimeIndex``, ``TimedeltaIndex`` or ``PeriodIndex``, ``tolerance`` will coerced into a ``Timedelta`` if possible. This allows you to specify tolerance with a string:
 
-  .. code-block:: ipython
+  .. code-block:: pycon
 
-     In [62]: df = df.set_index("t")
+     >>> df = df.set_index("t")
 
-     In [63]: df.reindex(pd.to_datetime(["1999-12-31"]), method="nearest", tolerance="1 day")
+     >>> df.reindex(pd.to_datetime(["1999-12-31"]), method="nearest", tolerance="1 day")
+                 x
+     1999-12-31  0
 
-     Out[63]:             x
-              1999-12-31  0
-
+     [1 rows x 1 columns]
 
   ``tolerance`` is also exposed by the lower level ``Index.get_indexer`` and ``Index.get_loc`` methods.
 
@@ -830,12 +796,10 @@ New behavior:
 
 Of course you can coerce this as well.
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [64]: pd.to_datetime(["2009-07-31", "asd"], errors="coerce")
-
-   Out[64]: DatetimeIndex(['2009-07-31', 'NaT'], dtype='datetime64[us]', freq=None)
-
+   >>> pd.to_datetime(["2009-07-31", "asd"], errors="coerce")
+   DatetimeIndex(['2009-07-31', 'NaT'], dtype='datetime64[us]', freq=None)
 
 To keep the previous behavior, you can use ``errors='ignore'``:
 
@@ -874,37 +838,30 @@ v0.17.0 can parse them as below. It works on ``DatetimeIndex`` also.
 
 New behavior:
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [65]: pd.Timestamp("2012Q2")
+   >>> pd.Timestamp("2012Q2")
+   Timestamp('2012-04-01 00:00:00')
 
-   Out[65]: Timestamp('2012-04-01 00:00:00')
+   >>> pd.Timestamp("2014")
+   Timestamp('2014-01-01 00:00:00')
 
-   In [66]: pd.Timestamp("2014")
-
-   Out[66]: Timestamp('2014-01-01 00:00:00')
-
-   In [67]: pd.DatetimeIndex(["2012Q2", "2014"])
-
-   Out[67]: DatetimeIndex(['2012-04-01', '2014-01-01'], dtype='datetime64[us]', freq=None)
-
+   >>> pd.DatetimeIndex(["2012Q2", "2014"])
+   DatetimeIndex(['2012-04-01', '2014-01-01'], dtype='datetime64[us]', freq=None)
 
 .. note::
 
    If you want to perform calculations based on today's date, use ``Timestamp.now()`` and ``pandas.tseries.offsets``.
 
-   .. code-block:: ipython
+   .. code-block:: pycon
 
-      In [68]: import pandas.tseries.offsets as offsets
+      >>> import pandas.tseries.offsets as offsets
 
-      In [69]: pd.Timestamp.now()
+      >>> pd.Timestamp.now()
+      Timestamp('2026-03-25 14:50:42.340838')
 
-      Out[69]: Timestamp('2026-03-20 07:38:18.341041')
-
-      In [70]: pd.Timestamp.now() + offsets.DateOffset(years=1)
-
-      Out[70]: Timestamp('2027-03-20 07:38:18.341062')
-
+      >>> pd.Timestamp.now() + offsets.DateOffset(years=1)
+      Timestamp('2027-03-25 14:50:42.340870')
 
 Changes to Index comparisons
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -943,12 +900,10 @@ New behavior:
 Note that this is different from the ``numpy`` behavior where a comparison can
 be broadcast:
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [71]: np.array([1, 2, 3]) == np.array([1])
-
-   Out[71]: array([ True, False, False])
-
+   >>> np.array([1, 2, 3]) == np.array([1])
+   array([ True, False, False])
 
 or it can return False if broadcasting can not be done:
 
@@ -962,19 +917,17 @@ Changes to boolean comparisons vs. None
 
 Boolean comparisons of a ``Series`` vs ``None`` will now be equivalent to comparing with ``np.nan``, rather than raise ``TypeError``. (:issue:`1079`).
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [72]: s = pd.Series(range(3), dtype="float")
+   >>> s = pd.Series(range(3), dtype="float")
 
-   In [73]: s.iloc[1] = None
+   >>> s.iloc[1] = None
 
-   In [74]: s
-
-   Out[74]: 0    0.0
-            1    NaN
-            2    2.0
-            dtype: float64
-
+   >>> s
+   0    0.0
+   1    NaN
+   2    2.0
+   Length: 3, dtype: float64
 
 Previous behavior:
 
@@ -985,43 +938,36 @@ Previous behavior:
 
 New behavior:
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [75]: s == None
-
-   Out[75]: 0    False
-            1    False
-            2    False
-            dtype: bool
-
+   >>> s == None
+   0    False
+   1    False
+   2    False
+   Length: 3, dtype: bool
 
 Usually you simply want to know which values are null.
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [76]: s.isnull()
-
-   Out[76]: 0    False
-            1     True
-            2    False
-            dtype: bool
-
+   >>> s.isnull()
+   0    False
+   1     True
+   2    False
+   Length: 3, dtype: bool
 
 .. warning::
 
    You generally will want to use ``isnull/notnull`` for these types of comparisons, as ``isnull/notnull`` tells you which elements are null. One has to be
    mindful that ``nan's`` don't compare equal, but ``None's`` do. Note that pandas/numpy uses the fact that ``np.nan != np.nan``, and treats ``None`` like ``np.nan``.
 
-   .. code-block:: ipython
+   .. code-block:: pycon
 
-      In [77]: None == None
+      >>> None == None
+      True
 
-      Out[77]: True
-
-      In [78]: np.nan == np.nan
-
-      Out[78]: False
-
+      >>> np.nan == np.nan
+      False
 
 .. _whatsnew_0170.api_breaking.hdf_dropna:
 
@@ -1032,20 +978,19 @@ The default behavior for HDFStore write functions with ``format='table'`` is now
 
 Previous behavior:
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [79]: df_with_missing = pd.DataFrame(
-      ....:     {"col1": [0, np.nan, 2], "col2": [1, np.nan, np.nan]}
-      ....: )
+   >>> df_with_missing = pd.DataFrame(
+   ...     {"col1": [0, np.nan, 2], "col2": [1, np.nan, np.nan]}
+   ... )
 
-   In [80]: df_with_missing
+   >>> df_with_missing
+      col1  col2
+   0   0.0   1.0
+   1   NaN   NaN
+   2   2.0   NaN
 
-   Out[80]:    col1  col2
-            0   0.0   1.0
-            1   NaN   NaN
-            2   2.0   NaN
-
-
+   [3 rows x 2 columns]
 
 .. code-block:: ipython
 
@@ -1065,17 +1010,17 @@ Previous behavior:
 
 New behavior:
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [81]: df_with_missing.to_hdf("file.h5", key="df_with_missing", format="table", mode="w")
+   >>> df_with_missing.to_hdf("file.h5", key="df_with_missing", format="table", mode="w")
 
-   In [82]: pd.read_hdf("file.h5", "df_with_missing")
+   >>> pd.read_hdf("file.h5", "df_with_missing")
+      col1  col2
+   0   0.0   1.0
+   1   NaN   NaN
+   2   2.0   NaN
 
-   Out[82]:    col1  col2
-            0   0.0   1.0
-            1   NaN   NaN
-            2   2.0   NaN
-
+   [3 rows x 2 columns]
 
 See the :ref:`docs <io.hdf5>` for more details.
 
@@ -1104,15 +1049,15 @@ did not work for values with standard formatting. It was also out of step with h
 Going forward the value of ``display.precision`` will directly control the number of places after the decimal, for
 regular formatting as well as scientific notation, similar to how numpy's ``precision`` print option works.
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [85]: pd.set_option("display.precision", 2)
+  >>> pd.set_option("display.precision", 2)
 
-   In [86]: pd.DataFrame({"x": [123.456789]})
+  >>> pd.DataFrame({"x": [123.456789]})
+          x
+  0  123.46
 
-   Out[86]:         x
-            0  123.46
-
+  [1 rows x 1 columns]
 
 To preserve output behavior with prior versions the default value of ``display.precision`` has been reduced to ``6``
 from ``7``.
@@ -1127,32 +1072,27 @@ Changes to ``Categorical.unique``
 - unordered category: values and categories are sorted by appearance order.
 - ordered category: values are sorted by appearance order, categories keep existing order.
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [88]: cat = pd.Categorical(["C", "A", "B", "C"], categories=["A", "B", "C"], ordered=True)
+   >>> cat = pd.Categorical(["C", "A", "B", "C"], categories=["A", "B", "C"], ordered=True)
 
-   In [89]: cat
+   >>> cat
+   ['C', 'A', 'B', 'C']
+   Categories (3, str): ['A' < 'B' < 'C']
 
-   Out[89]: ['C', 'A', 'B', 'C']
-            Categories (3, str): ['A' < 'B' < 'C']
+   >>> cat.unique()
+   ['C', 'A', 'B']
+   Categories (3, str): ['A' < 'B' < 'C']
 
-   In [90]: cat.unique()
+   >>> cat = pd.Categorical(["C", "A", "B", "C"], categories=["A", "B", "C"])
 
-   Out[90]: ['C', 'A', 'B']
-            Categories (3, str): ['A' < 'B' < 'C']
+   >>> cat
+   ['C', 'A', 'B', 'C']
+   Categories (3, str): ['A', 'B', 'C']
 
-   In [91]: cat = pd.Categorical(["C", "A", "B", "C"], categories=["A", "B", "C"])
-
-   In [92]: cat
-
-   Out[92]: ['C', 'A', 'B', 'C']
-            Categories (3, str): ['A', 'B', 'C']
-
-   In [93]: cat.unique()
-
-   Out[93]: ['C', 'A', 'B']
-            Categories (3, str): ['A', 'B', 'C']
-
+   >>> cat.unique()
+   ['C', 'A', 'B']
+   Categories (3, str): ['A', 'B', 'C']
 
 Changes to ``bool`` passed as ``header`` in parsers
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1249,25 +1189,25 @@ Removal of prior version deprecations/changes
 - Removal of ``colSpace`` parameter from ``DataFrame.to_string()``, in favor of ``col_space``, circa 0.8.0 version.
 - Removal of automatic time-series broadcasting (:issue:`2304`)
 
-  .. code-block:: ipython
+  .. code-block:: pycon
 
-     In [94]: np.random.seed(1234)
+     >>> np.random.seed(1234)
 
-     In [95]: df = pd.DataFrame(
-        ....:     np.random.randn(5, 2),
-        ....:     columns=list("AB"),
-        ....:     index=pd.date_range("2013-01-01", periods=5),
-        ....: )
+     >>> df = pd.DataFrame(
+     ...     np.random.randn(5, 2),
+     ...     columns=list("AB"),
+     ...     index=pd.date_range("2013-01-01", periods=5),
+     ... )
 
-     In [96]: df
+     >>> df
+                        A         B
+     2013-01-01  0.471435 -1.190976
+     2013-01-02  1.432707 -0.312652
+     2013-01-03 -0.720589  0.887163
+     2013-01-04  0.859588 -0.636524
+     2013-01-05  0.015696 -2.242685
 
-     Out[96]:                    A         B
-              2013-01-01  0.471435 -1.190976
-              2013-01-02  1.432707 -0.312652
-              2013-01-03 -0.720589  0.887163
-              2013-01-04  0.859588 -0.636524
-              2013-01-05  0.015696 -2.242685
-
+     [5 rows x 2 columns]
 
   Previously
 
@@ -1287,18 +1227,17 @@ Removal of prior version deprecations/changes
 
   Current
 
-  .. code-block:: ipython
+  .. code-block:: pycon
 
-     In [97]: df.add(df.A, axis="index")
+     >>> df.add(df.A, axis="index")
+                        A         B
+     2013-01-01  0.942870 -0.719541
+     2013-01-02  2.865414  1.120055
+     2013-01-03 -1.441177  0.166574
+     2013-01-04  1.719177  0.223065
+     2013-01-05  0.031393 -2.226989
 
-     Out[97]:                    A         B
-              2013-01-01  0.942870 -0.719541
-              2013-01-02  2.865414  1.120055
-              2013-01-03 -1.441177  0.166574
-              2013-01-04  1.719177  0.223065
-              2013-01-05  0.031393 -2.226989
-
-
+     [5 rows x 2 columns]
 
 - Remove ``table`` keyword in ``HDFStore.put/append``, in favor of using ``format=`` (:issue:`4645`)
 - Remove ``kind`` in ``read_excel/ExcelFile`` as its unused (:issue:`4712`)

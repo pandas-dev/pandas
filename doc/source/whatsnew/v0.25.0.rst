@@ -39,45 +39,51 @@ GroupBy aggregation with relabeling
 pandas has added special groupby behavior, known as "named aggregation", for naming the
 output columns when applying multiple aggregation functions to specific columns (:issue:`18366`, :issue:`26512`).
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [1]: animals = pd.DataFrame({'kind': ['cat', 'dog', 'cat', 'dog'],
-     ....:                         'height': [9.1, 6.0, 9.5, 34.0],
-     ....:                         'weight': [7.9, 7.5, 9.9, 198.0]})
+   >>> animals = pd.DataFrame({'kind': ['cat', 'dog', 'cat', 'dog'],
+   ...                         'height': [9.1, 6.0, 9.5, 34.0],
+   ...                         'weight': [7.9, 7.5, 9.9, 198.0]})
 
-   In [2]: animals
-   Out[2]:   kind  height  weight
-           0  cat     9.1     7.9
-           1  dog     6.0     7.5
-           2  cat     9.5     9.9
-           3  dog    34.0   198.0
+   >>> animals
+     kind  height  weight
+   0  cat     9.1     7.9
+   1  dog     6.0     7.5
+   2  cat     9.5     9.9
+   3  dog    34.0   198.0
 
-   In [3]: animals.groupby("kind").agg(
-     ....:     min_height=pd.NamedAgg(column='height', aggfunc='min'),
-     ....:     max_height=pd.NamedAgg(column='height', aggfunc='max'),
-     ....:     average_weight=pd.NamedAgg(column='weight', aggfunc="mean"),
-     ....: )
-   Out[3]:       min_height  max_height  average_weight
-           kind
-           cat          9.1         9.5            8.90
-           dog          6.0        34.0          102.75
+   [4 rows x 3 columns]
+
+   >>> animals.groupby("kind").agg(
+   ...     min_height=pd.NamedAgg(column='height', aggfunc='min'),
+   ...     max_height=pd.NamedAgg(column='height', aggfunc='max'),
+   ...     average_weight=pd.NamedAgg(column='weight', aggfunc="mean"),
+   ... )
+         min_height  max_height  average_weight
+   kind
+   cat          9.1         9.5            8.90
+   dog          6.0        34.0          102.75
+
+   [2 rows x 3 columns]
 
 Pass the desired columns names as the ``**kwargs`` to ``.agg``. The values of ``**kwargs``
 should be tuples where the first element is the column selection, and the second element is the
 aggregation function to apply. pandas provides the ``pandas.NamedAgg`` namedtuple to make it clearer
 what the arguments to the function are, but plain tuples are accepted as well.
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [4]: animals.groupby("kind").agg(
-     ....:     min_height=('height', 'min'),
-     ....:     max_height=('height', 'max'),
-     ....:     average_weight=('weight', 'mean'),
-     ....: )
-   Out[4]:       min_height  max_height  average_weight
-           kind
-           cat          9.1         9.5            8.90
-           dog          6.0        34.0          102.75
+   >>> animals.groupby("kind").agg(
+   ...     min_height=('height', 'min'),
+   ...     max_height=('height', 'max'),
+   ...     average_weight=('weight', 'mean'),
+   ... )
+         min_height  max_height  average_weight
+   kind
+   cat          9.1         9.5            8.90
+   dog          6.0        34.0          102.75
+
+   [2 rows x 3 columns]
 
 Named aggregation is the recommended replacement for the deprecated "dict-of-dicts"
 approach to naming the output of column-specific aggregations (:ref:`whatsnew_0200.api_breaking.deprecate_group_agg_dict`).
@@ -85,17 +91,18 @@ approach to naming the output of column-specific aggregations (:ref:`whatsnew_02
 A similar approach is now available for Series groupby objects as well. Because there's no need for
 column selection, the values can just be the functions to apply
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [5]: animals.groupby("kind").height.agg(
-     ....:     min_height="min",
-     ....:     max_height="max",
-     ....: )
-   Out[5]:       min_height  max_height
-           kind
-           cat          9.1         9.5
-           dog          6.0        34.0
+   >>> animals.groupby("kind").height.agg(
+   ...     min_height="min",
+   ...     max_height="max",
+   ... )
+         min_height  max_height
+   kind
+   cat          9.1         9.5
+   dog          6.0        34.0
 
+   [2 rows x 2 columns]
 
 This type of aggregation is the recommended alternative to the deprecated behavior when passing
 a dict to a Series groupby aggregation (:ref:`whatsnew_0200.api_breaking.deprecate_group_agg_dict`).
@@ -110,25 +117,29 @@ GroupBy aggregation with multiple lambdas
 You can now provide multiple lambda functions to a list-like aggregation in
 :class:`.GroupBy.agg` (:issue:`26430`).
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [6]: animals.groupby('kind').height.agg([
-     ....:     lambda x: x.iloc[0], lambda x: x.iloc[-1]
-     ....: ])
-   Out[6]:       <lambda_0>  <lambda_1>
-           kind
-           cat          9.1         9.5
-           dog          6.0        34.0
+   >>> animals.groupby('kind').height.agg([
+   ...     lambda x: x.iloc[0], lambda x: x.iloc[-1]
+   ... ])
+         <lambda_0>  <lambda_1>
+   kind
+   cat          9.1         9.5
+   dog          6.0        34.0
 
-   In [7]: animals.groupby('kind').agg([
-     ....:     lambda x: x.iloc[0] - x.iloc[1],
-     ....:     lambda x: x.iloc[0] + x.iloc[1]
-     ....: ])
-   Out[7]:          height                weight
-                <lambda_0> <lambda_1> <lambda_0> <lambda_1>
-           kind
-           cat        -0.4       18.6       -2.0       17.8
-           dog       -28.0       40.0     -190.5      205.5
+   [2 rows x 2 columns]
+
+   >>> animals.groupby('kind').agg([
+   ...     lambda x: x.iloc[0] - x.iloc[1],
+   ...     lambda x: x.iloc[0] + x.iloc[1]
+   ... ])
+            height                weight
+        <lambda_0> <lambda_1> <lambda_0> <lambda_1>
+   kind
+   cat        -0.4       18.6       -2.0       17.8
+   dog       -28.0       40.0     -190.5      205.5
+
+   [2 rows x 4 columns]
 
 Previously, these raised a ``SpecificationError``.
 
@@ -143,31 +154,31 @@ the structure of the ``MultiIndex``. (:issue:`13480`):
 
 The repr now looks like this:
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [8]: pd.MultiIndex.from_product([['a', 'abc'], range(500)])
-   Out[8]: MultiIndex([(  'a',   0),
-                       (  'a',   1),
-                       (  'a',   2),
-                       (  'a',   3),
-                       (  'a',   4),
-                       (  'a',   5),
-                       (  'a',   6),
-                       (  'a',   7),
-                       (  'a',   8),
-                       (  'a',   9),
-                       ...
-                       ('abc', 490),
-                       ('abc', 491),
-                       ('abc', 492),
-                       ('abc', 493),
-                       ('abc', 494),
-                       ('abc', 495),
-                       ('abc', 496),
-                       ('abc', 497),
-                       ('abc', 498),
-                       ('abc', 499)],
-                      length=1000)
+   >>> pd.MultiIndex.from_product([['a', 'abc'], range(500)])
+   MultiIndex([(  'a',   0),
+               (  'a',   1),
+               (  'a',   2),
+               (  'a',   3),
+               (  'a',   4),
+               (  'a',   5),
+               (  'a',   6),
+               (  'a',   7),
+               (  'a',   8),
+               (  'a',   9),
+               ...
+               ('abc', 490),
+               ('abc', 491),
+               ('abc', 492),
+               ('abc', 493),
+               ('abc', 494),
+               ('abc', 495),
+               ('abc', 496),
+               ('abc', 497),
+               ('abc', 498),
+               ('abc', 499)],
+              length=1000)
 
 Previously, outputting a :class:`MultiIndex` printed all the ``levels`` and
 ``codes`` of the ``MultiIndex``, which was visually unappealing and made
@@ -242,28 +253,32 @@ Series.explode to split list-like values to rows
 
 Here is a typical usecase. You have comma separated string in a column.
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-    In [9]: df = pd.DataFrame([{'var1': 'a,b,c', 'var2': 1},
-      ....:                    {'var1': 'd,e,f', 'var2': 2}])
+    >>> df = pd.DataFrame([{'var1': 'a,b,c', 'var2': 1},
+    ...                    {'var1': 'd,e,f', 'var2': 2}])
 
-    In [10]: df
-    Out[10]:     var1  var2
-             0  a,b,c     1
-             1  d,e,f     2
+    >>> df
+        var1  var2
+    0  a,b,c     1
+    1  d,e,f     2
+
+    [2 rows x 2 columns]
 
 Creating a long form ``DataFrame`` is now straightforward using chained operations
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-    In [11]: df.assign(var1=df.var1.str.split(',')).explode('var1')
-    Out[11]:   var1  var2
-             0    a     1
-             0    b     1
-             0    c     1
-             1    d     2
-             1    e     2
-             1    f     2
+    >>> df.assign(var1=df.var1.str.split(',')).explode('var1')
+      var1  var2
+    0    a     1
+    0    b     1
+    0    c     1
+    1    d     2
+    1    e     2
+    1    f     2
+
+    [6 rows x 2 columns]
 
 .. _whatsnew_0250.enhancements.other:
 
@@ -312,13 +327,15 @@ Indexing a :class:`DataFrame` or :class:`Series` with a :class:`DatetimeIndex` w
 date string with a UTC offset would previously ignore the UTC offset. Now, the UTC offset
 is respected in indexing. (:issue:`24076`, :issue:`16785`)
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [12]: df = pd.DataFrame([0], index=pd.DatetimeIndex(['2019-01-01'], tz='US/Pacific'))
+    >>> df = pd.DataFrame([0], index=pd.DatetimeIndex(['2019-01-01'], tz='US/Pacific'))
 
-   In [13]: df
-   Out[13]:                            0
-            2019-01-01 00:00:00-08:00  0
+    >>> df
+                               0
+    2019-01-01 00:00:00-08:00  0
+
+    [1 rows x 1 columns]
 
 *Previous behavior*:
 
@@ -331,12 +348,13 @@ is respected in indexing. (:issue:`24076`, :issue:`16785`)
 
 *New behavior*:
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [14]: df['2019-01-01 12:00:00+04:00':'2019-01-01 13:00:00+04:00']
-   Out[14]:                            0
-            2019-01-01 00:00:00-08:00  0
+    >>> df['2019-01-01 12:00:00+04:00':'2019-01-01 13:00:00+04:00']
+                               0
+    2019-01-01 00:00:00-08:00  0
 
+    [1 rows x 1 columns]
 
 .. _whatsnew_0250.api_breaking.multi_indexing:
 
@@ -364,22 +382,19 @@ would be reassigned as -1. (:issue:`19387`)
 
 *New behavior*:
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [15]: pd.MultiIndex(levels=[[np.nan, None, pd.NaT, 128, 2]],
-      ....:               codes=[[0, -1, 1, 2, 3, 4]])
-   Out[15]: MultiIndex([(nan,),
-                        (nan,),
-                        (nan,),
-                        (nan,),
-                        (128,),
-                        (  2,)],
-                       )
+    >>> pd.MultiIndex(levels=[[np.nan, None, pd.NaT, 128, 2]],
+    ...               codes=[[0, -1, 1, 2, 3, 4]])
+    MultiIndex([(nan,),
+                (nan,),
+                (nan,),
+                (nan,),
+                (128,),
+                (  2,)],
+               )
 
-   In [16]: pd.MultiIndex(levels=[[1, 2]], codes=[[0, -2]])
-   Traceback (most recent call last):
-   ValueError: On level 0, code value (-2) < -1
-
+    >>> pd.MultiIndex(levels=[[1, 2]], codes=[[0, -2]])
 
 .. _whatsnew_0250.api_breaking.groupby_apply_first_group_once:
 
@@ -393,18 +408,20 @@ side effects, this was an undesired behavior and may have led to surprises. (:is
 
 Now every group is evaluated only a single time.
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [17]: df = pd.DataFrame({"a": ["x", "y"], "b": [1, 2]})
+    >>> df = pd.DataFrame({"a": ["x", "y"], "b": [1, 2]})
 
-   In [18]: df
-   Out[18]:    a  b
-            0  x  1
-            1  y  2
+    >>> df
+       a  b
+    0  x  1
+    1  y  2
 
-   In [19]: def func(group):
-      ....:     print(group.name)
-      ....:     return group
+    [2 rows x 2 columns]
+
+    >>> def func(group):
+    ...     print(group.name)
+    ...     return group
 
 *Previous behavior*:
 
@@ -437,9 +454,9 @@ Concatenating sparse values
 When passed DataFrames whose values are sparse, :func:`concat` will now return a
 :class:`Series` or :class:`DataFrame` with sparse values, rather than a :class:`SparseDataFrame` (:issue:`25702`).
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [20]: df = pd.DataFrame({"A": pd.arrays.SparseArray([0, 1])})
+   >>> df = pd.DataFrame({"A": pd.arrays.SparseArray([0, 1])})
 
 *Previous behavior*:
 
@@ -450,11 +467,10 @@ When passed DataFrames whose values are sparse, :func:`concat` will now return a
 
 *New behavior*:
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [21]: type(pd.concat([df, df]))
-   Out[21]: <class 'pandas.DataFrame'>
-
+   >>> type(pd.concat([df, df]))
+   <class 'pandas.DataFrame'>
 
 This now matches the existing behavior of :class:`concat` on ``Series`` with sparse values.
 :func:`concat` will continue to return a ``SparseDataFrame`` when all the values
@@ -497,19 +513,17 @@ of ``object`` dtype. :attr:`Series.str` will now infer the dtype data *within* t
 
 *New behavior*:
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [22]: s = pd.Series(np.array(['a', 'ba', 'cba'], 'S'), dtype=object)
+    >>> s = pd.Series(np.array(['a', 'ba', 'cba'], 'S'), dtype=object)
 
-   In [23]: s
-   Out[23]: 0      b'a'
-            1     b'ba'
-            2    b'cba'
-            dtype: object
+    >>> s
+    0      b'a'
+    1     b'ba'
+    2    b'cba'
+    Length: 3, dtype: object
 
-   In [24]: s.str.startswith(b'a')
-   Traceback (most recent call last):
-   TypeError: Cannot use .str.startswith with values of inferred dtype 'bytes'.
+    >>> s.str.startswith(b'a')
 
 .. _whatsnew_0250.api_breaking.groupby_categorical:
 
@@ -518,23 +532,25 @@ Categorical dtypes are preserved during GroupBy
 
 Previously, columns that were categorical, but not the groupby key(s) would be converted to ``object`` dtype during groupby operations. pandas now will preserve these dtypes. (:issue:`18502`)
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [25]: cat = pd.Categorical(["foo", "bar", "bar", "qux"], ordered=True)
+   >>> cat = pd.Categorical(["foo", "bar", "bar", "qux"], ordered=True)
 
-   In [26]: df = pd.DataFrame({'payload': [-1, -2, -1, -2], 'col': cat})
+   >>> df = pd.DataFrame({'payload': [-1, -2, -1, -2], 'col': cat})
 
-   In [27]: df
-   Out[27]:    payload  col
-            0       -1  foo
-            1       -2  bar
-            2       -1  bar
-            3       -2  qux
+   >>> df
+      payload  col
+   0       -1  foo
+   1       -2  bar
+   2       -1  bar
+   3       -2  qux
 
-   In [28]: df.dtypes
-   Out[28]: payload       int64
-            col        category
-            dtype: object
+   [4 rows x 2 columns]
+
+   >>> df.dtypes
+   payload       int64
+   col        category
+   Length: 2, dtype: object
 
 *Previous Behavior*:
 
@@ -545,11 +561,10 @@ Previously, columns that were categorical, but not the groupby key(s) would be c
 
 *New Behavior*:
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [29]: df.groupby('payload').first().col.dtype
-   Out[29]: CategoricalDtype(categories=['bar', 'foo', 'qux'], ordered=True, categories_dtype=str)
-
+   >>> df.groupby('payload').first().col.dtype
+   CategoricalDtype(categories=['bar', 'foo', 'qux'], ordered=True, categories_dtype=str)
 
 .. _whatsnew_0250.api_breaking.incompatible_index_unions:
 
@@ -597,14 +612,16 @@ previously included the group labels in the return value, which was
 inconsistent with other groupby transforms. Now only the filled values
 are returned. (:issue:`21521`)
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [30]: df = pd.DataFrame({"a": ["x", "y"], "b": [1, 2]})
+    >>> df = pd.DataFrame({"a": ["x", "y"], "b": [1, 2]})
 
-   In [31]: df
-   Out[31]:    a  b
-            0  x  1
-            1  y  2
+    >>> df
+       a  b
+    0  x  1
+    1  y  2
+
+    [2 rows x 2 columns]
 
 *Previous behavior*:
 
@@ -618,12 +635,14 @@ are returned. (:issue:`21521`)
 
 *New behavior*:
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-    In [32]: df.groupby("a").ffill()
-    Out[32]:    b
-             0  1
-             1  2
+    >>> df.groupby("a").ffill()
+       b
+    0  1
+    1  2
+
+    [2 rows x 1 columns]
 
 ``DataFrame`` describe on an empty Categorical / object column will return top and freq
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -633,14 +652,16 @@ column, the 'top' and 'freq' columns were previously omitted, which was inconsis
 the output for non-empty columns. Now the 'top' and 'freq' columns will always be included,
 with :attr:`numpy.nan` in the case of an empty :class:`DataFrame` (:issue:`26397`)
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [33]: df = pd.DataFrame({"empty_col": pd.Categorical([])})
+   >>> df = pd.DataFrame({"empty_col": pd.Categorical([])})
 
-   In [34]: df
-   Out[34]: Empty DataFrame
-            Columns: [empty_col]
-            Index: []
+   >>> df
+   Empty DataFrame
+   Columns: [empty_col]
+   Index: []
+
+   [0 rows x 1 columns]
 
 *Previous behavior*:
 
@@ -654,14 +675,16 @@ with :attr:`numpy.nan` in the case of an empty :class:`DataFrame` (:issue:`26397
 
 *New behavior*:
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [35]: df.describe()
-   Out[35]:        empty_col
-            count          0
-            unique         0
-            top          NaN
-            freq         NaN
+   >>> df.describe()
+          empty_col
+   count          0
+   unique         0
+   top          NaN
+   freq         NaN
+
+   [4 rows x 1 columns]
 
 ``__str__`` methods now call ``__repr__`` rather than vice versa
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -686,12 +709,12 @@ Indexing methods for :class:`IntervalIndex` have been modified to require exact 
 ``IntervalIndex`` methods previously matched on any overlapping ``Interval``.  Behavior with scalar points, e.g. querying
 with an integer, is unchanged (:issue:`16316`).
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [36]: ii = pd.IntervalIndex.from_tuples([(0, 4), (1, 5), (5, 8)])
+   >>> ii = pd.IntervalIndex.from_tuples([(0, 4), (1, 5), (5, 8)])
 
-   In [37]: ii
-   Out[37]: IntervalIndex([(0, 4], (1, 5], (5, 8]], dtype='interval[int64, right]')
+   >>> ii
+   IntervalIndex([(0, 4], (1, 5], (5, 8]], dtype='interval[int64, right]')
 
 The ``in`` operator (``__contains__``) now only returns ``True`` for exact matches to ``Intervals`` in the ``IntervalIndex``, whereas
 this would previously return ``True`` for any ``Interval`` overlapping an ``Interval`` in the ``IntervalIndex``.
@@ -708,13 +731,13 @@ this would previously return ``True`` for any ``Interval`` overlapping an ``Inte
 
 *New behavior*:
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [38]: pd.Interval(1, 2, closed='neither') in ii
-   Out[38]: False
+   >>> pd.Interval(1, 2, closed='neither') in ii
+   False
 
-   In [39]: pd.Interval(-10, 10, closed='both') in ii
-   Out[39]: False
+   >>> pd.Interval(-10, 10, closed='both') in ii
+   False
 
 The :meth:`~IntervalIndex.get_loc` method now only returns locations for exact matches to ``Interval`` queries, as opposed to the previous behavior of
 returning locations for overlapping matches.  A ``KeyError`` will be raised if an exact match is not found.
@@ -745,15 +768,15 @@ to ``Interval`` queries, with ``-1`` denoting that an exact match was not found.
 
 These indexing changes extend to querying a :class:`Series` or :class:`DataFrame` with an ``IntervalIndex`` index.
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [40]: s = pd.Series(list('abc'), index=ii)
+   >>> s = pd.Series(list('abc'), index=ii)
 
-   In [41]: s
-   Out[41]: (0, 4]    a
-            (1, 5]    b
-            (5, 8]    c
-            dtype: str
+   >>> s
+   (0, 4]    a
+   (1, 5]    b
+   (5, 8]    c
+   Length: 3, dtype: str
 
 Selecting from a ``Series`` or ``DataFrame`` using ``[]`` (``__getitem__``) or ``loc`` now only returns exact matches for ``Interval`` queries.
 
@@ -775,13 +798,13 @@ Selecting from a ``Series`` or ``DataFrame`` using ``[]`` (``__getitem__``) or `
 
 *New behavior*:
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [42]: s[pd.Interval(1, 5)]
-   Out[42]: 'b'
+   >>> s[pd.Interval(1, 5)]
+   'b'
 
-   In [43]: s.loc[pd.Interval(1, 5)]
-   Out[43]: 'b'
+   >>> s.loc[pd.Interval(1, 5)]
+   'b'
 
 Similarly, a ``KeyError`` will be raised for non-exact matches instead of returning overlapping matches.
 
@@ -818,23 +841,22 @@ previous behavior of returning overlapping matches.
 
 *New behavior*:
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [44]: idxr = s.index.overlaps(pd.Interval(2, 3))
+   >>> idxr = s.index.overlaps(pd.Interval(2, 3))
 
-   In [45]: idxr
-   Out[45]: array([ True,  True, False])
+   >>> idxr
+   array([ True,  True, False])
 
-   In [46]: s[idxr]
-   Out[46]: (0, 4]    a
-            (1, 5]    b
-            dtype: str
+   >>> s[idxr]
+   (0, 4]    a
+   (1, 5]    b
+   Length: 2, dtype: str
 
-   In [47]: s.loc[idxr]
-   Out[47]: (0, 4]    a
-            (1, 5]    b
-            dtype: str
-
+   >>> s.loc[idxr]
+   (0, 4]    a
+   (1, 5]    b
+   Length: 2, dtype: str
 
 .. _whatsnew_0250.api_breaking.ufunc:
 
@@ -844,23 +866,23 @@ Binary ufuncs on Series now align
 Applying a binary ufunc like :func:`numpy.power` now aligns the inputs
 when both are :class:`Series` (:issue:`23293`).
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [48]: s1 = pd.Series([1, 2, 3], index=['a', 'b', 'c'])
+   >>> s1 = pd.Series([1, 2, 3], index=['a', 'b', 'c'])
 
-   In [49]: s2 = pd.Series([3, 4, 5], index=['d', 'c', 'b'])
+   >>> s2 = pd.Series([3, 4, 5], index=['d', 'c', 'b'])
 
-   In [50]: s1
-   Out[50]: a    1
-            b    2
-            c    3
-            dtype: int64
+   >>> s1
+   a    1
+   b    2
+   c    3
+   Length: 3, dtype: int64
 
-   In [51]: s2
-   Out[51]: d    3
-            c    4
-            b    5
-            dtype: int64
+   >>> s2
+   d    3
+   c    4
+   b    5
+   Length: 3, dtype: int64
 
 *Previous behavior*
 
@@ -875,26 +897,26 @@ when both are :class:`Series` (:issue:`23293`).
 
 *New behavior*
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [52]: np.power(s1, s2)
-   Out[52]: a     1.0
-            b    32.0
-            c    81.0
-            d     NaN
-            dtype: float64
+   >>> np.power(s1, s2)
+   a     1.0
+   b    32.0
+   c    81.0
+   d     NaN
+   Length: 4, dtype: float64
 
 This matches the behavior of other binary operations in pandas, like :meth:`Series.add`.
 To retain the previous behavior, convert the other ``Series`` to an array before
 applying the ufunc.
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [53]: np.power(s1, s2.array)
-   Out[53]: a      1
-            b     16
-            c    243
-            dtype: int64
+   >>> np.power(s1, s2.array)
+   a      1
+   b     16
+   c    243
+   Length: 3, dtype: int64
 
 Categorical.argsort now places missing values at the end
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -902,9 +924,9 @@ Categorical.argsort now places missing values at the end
 :meth:`Categorical.argsort` now places missing values at the end of the array, making it
 consistent with NumPy and the rest of pandas (:issue:`21801`).
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [54]: cat = pd.Categorical(['b', None, 'a'], categories=['a', 'b'], ordered=True)
+   >>> cat = pd.Categorical(['b', None, 'a'], categories=['a', 'b'], ordered=True)
 
 *Previous behavior*
 
@@ -922,14 +944,14 @@ consistent with NumPy and the rest of pandas (:issue:`21801`).
 
 *New behavior*
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [55]: cat.argsort()
-   Out[55]: array([2, 0, 1])
+   >>> cat.argsort()
+   array([2, 0, 1])
 
-   In [56]: cat[cat.argsort()]
-   Out[56]: ['a', 'b', NaN]
-            Categories (2, str): ['a' < 'b']
+   >>> cat[cat.argsort()]
+   ['a', 'b', NaN]
+   Categories (2, str): ['a' < 'b']
 
 .. _whatsnew_0250.api_breaking.list_of_dict:
 
@@ -941,13 +963,13 @@ Python 3.6. The :class:`DataFrame` constructor now treats a list of dicts in the
 it does a list of ``OrderedDict``, i.e. preserving the order of the dicts.
 This change applies only when pandas is running on Python>=3.6 (:issue:`27309`).
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [57]: data = [
-      ....:     {'name': 'Joe', 'state': 'NY', 'age': 18},
-      ....:     {'name': 'Jane', 'state': 'KY', 'age': 19, 'hobby': 'Minecraft'},
-      ....:     {'name': 'Jean', 'state': 'OK', 'age': 20, 'finances': 'good'}
-      ....: ]
+   >>> data = [
+   ...     {'name': 'Joe', 'state': 'NY', 'age': 18},
+   ...     {'name': 'Jane', 'state': 'KY', 'age': 19, 'hobby': 'Minecraft'},
+   ...     {'name': 'Jean', 'state': 'OK', 'age': 20, 'finances': 'good'}
+   ... ]
 
 *Previous Behavior*:
 
@@ -968,13 +990,15 @@ The column order now matches the insertion-order of the keys in the ``dict``,
 considering all the records from top to bottom. As a consequence, the column
 order of the resulting DataFrame has changed compared to previous pandas versions.
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [58]: pd.DataFrame(data)
-   Out[58]:    name state  age      hobby finances
-            0   Joe    NY   18        NaN      NaN
-            1  Jane    KY   19  Minecraft      NaN
-            2  Jean    OK   20        NaN     good
+   >>> pd.DataFrame(data)
+      name state  age      hobby finances
+   0   Joe    NY   18        NaN      NaN
+   1  Jane    KY   19  Minecraft      NaN
+   2  Jean    OK   20        NaN     good
+
+   [3 rows x 5 columns]
 
 .. _whatsnew_0250.api_breaking.deps:
 
@@ -1082,13 +1106,13 @@ by a ``Series`` or ``DataFrame`` with sparse values.
 
 **New way**
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [59]: df = pd.DataFrame({"A": pd.arrays.SparseArray([0, 0, 1, 2])})
+   >>> df = pd.DataFrame({"A": pd.arrays.SparseArray([0, 0, 1, 2])})
 
-   In [60]: df.dtypes
-   Out[60]: A    Sparse[int64, 0]
-            dtype: object
+   >>> df.dtypes
+   A    Sparse[int64, 0]
+   Length: 1, dtype: object
 
 The memory usage of the two approaches is identical (:issue:`19239`).
 

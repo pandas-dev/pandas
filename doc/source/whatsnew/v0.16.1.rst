@@ -181,64 +181,64 @@ total number or rows or columns. It also has options for sampling with or withou
 for passing in a column for weights for non-uniform sampling, and for setting seed values to
 facilitate replication. (:issue:`2419`)
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [1]: example_series = pd.Series([0, 1, 2, 3, 4, 5])
+   >>> example_series = pd.Series([0, 1, 2, 3, 4, 5])
 
-   In [2]: # When no arguments are passed, returns 1
-      ...: example_series.sample()
-   Out[2]:
-   5    5
-   dtype: int64
+   >>> # When no arguments are passed, returns 1
 
-   In [3]: # One may specify either a number of rows:
-      ...: example_series.sample(n=3)
-   Out[3]:
-   4    4
-   0    0
+   >>> example_series.sample()
+   2    2
+   Length: 1, dtype: int64
+
+   >>> # One may specify either a number of rows:
+
+   >>> example_series.sample(n=3)
    3    3
-   dtype: int64
-
-   In [4]: # Or a fraction of the rows:
-      ...: example_series.sample(frac=0.5)
-   Out[4]:
-   0    0
    4    4
-   5    5
-   dtype: int64
-
-   In [5]: # weights are accepted.
-      ...: example_weights = [0, 0, 0.2, 0.2, 0.2, 0.4]
-
-   In [6]: example_series.sample(n=2, weights=example_weights)
-   Out[6]:
-   5    5
-   4    4
-   dtype: int64
-
-   In [7]: # weights will also be normalized if they do not sum to one,
-      ...: # and missing values will be treated as zeros.
-      ...: example_weights2 = [0.5, 0, 0, 0, None, np.nan]
-
-   In [8]: example_series.sample(n=1, weights=example_weights2)
-   Out[8]:
    0    0
-   dtype: int64
+   Length: 3, dtype: int64
 
+   >>> # Or a fraction of the rows:
+
+   >>> example_series.sample(frac=0.5)
+   4    4
+   1    1
+   5    5
+   Length: 3, dtype: int64
+
+   >>> # weights are accepted.
+
+   >>> example_weights = [0, 0, 0.2, 0.2, 0.2, 0.4]
+
+   >>> example_series.sample(n=2, weights=example_weights)
+   2    2
+   4    4
+   Length: 2, dtype: int64
+
+   >>> # weights will also be normalized if they do not sum to one,
+
+   >>> # and missing values will be treated as zeros.
+
+   >>> example_weights2 = [0.5, 0, 0, 0, None, np.nan]
+
+   >>> example_series.sample(n=1, weights=example_weights2)
+   0    0
+   Length: 1, dtype: int64
 
 When applied to a DataFrame, one may pass the name of a column to specify sampling weights
 when sampling from rows.
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [9]: df = pd.DataFrame({"col1": [9, 8, 7, 6], "weight_column": [0.5, 0.4, 0.1, 0]})
+   >>> df = pd.DataFrame({"col1": [9, 8, 7, 6], "weight_column": [0.5, 0.4, 0.1, 0]})
 
-   In [10]: df.sample(n=2, weights="weight_column")
-   Out[10]:
+   >>> df.sample(n=2, weights="weight_column")
       col1  weight_column
    0     9            0.5
    1     8            0.4
 
+   [2 rows x 2 columns]
 
 .. _whatsnew_0161.enhancements.string:
 
@@ -253,39 +253,37 @@ enhancements make string operations easier and more consistent with standard pyt
 
   The ``.str`` accessor is now available for both ``Series`` and ``Index``.
 
-  .. code-block:: ipython
+  .. code-block:: pycon
 
-     In [11]: idx = pd.Index([" jack", "jill ", " jesse ", "frank"])
+     >>> idx = pd.Index([" jack", "jill ", " jesse ", "frank"])
 
-     In [12]: idx.str.strip()
-     Out[12]: Index(['jack', 'jill', 'jesse', 'frank'], dtype='str')
+     >>> idx.str.strip()
+     Index(['jack', 'jill', 'jesse', 'frank'], dtype='str')
 
   One special case for the ``.str`` accessor on ``Index`` is that if a string method returns ``bool``, the ``.str`` accessor
   will return a ``np.array`` instead of a boolean ``Index`` (:issue:`8875`). This enables the following expression
   to work naturally:
 
-  .. code-block:: ipython
+  .. code-block:: pycon
 
-     In [13]: idx = pd.Index(["a1", "a2", "b1", "b2"])
+     >>> idx = pd.Index(["a1", "a2", "b1", "b2"])
 
-     In [14]: s = pd.Series(range(4), index=idx)
+     >>> s = pd.Series(range(4), index=idx)
 
-     In [15]: s
-     Out[15]:
+     >>> s
      a1    0
      a2    1
      b1    2
      b2    3
-     dtype: int64
+     Length: 4, dtype: int64
 
-     In [16]: idx.str.startswith("a")
-     Out[16]: array([ True,  True, False, False])
+     >>> idx.str.startswith("a")
+     array([ True,  True, False, False])
 
-     In [17]: s[s.index.str.startswith("a")]
-     Out[17]:
+     >>> s[s.index.str.startswith("a")]
      a1    0
      a2    1
-     dtype: int64
+     Length: 2, dtype: int64
 
 - The following new methods are accessible via ``.str`` accessor to apply the function to each values. (:issue:`9766`, :issue:`9773`, :issue:`10031`, :issue:`10045`, :issue:`10052`)
 
@@ -298,40 +296,42 @@ enhancements make string operations easier and more consistent with standard pyt
 
 - ``split`` now takes ``expand`` keyword to specify whether to expand dimensionality. ``return_type`` is deprecated. (:issue:`9847`)
 
-  .. code-block:: ipython
+  .. code-block:: pycon
 
-     In [18]: s = pd.Series(["a,b", "a,c", "b,c"])
+     >>> s = pd.Series(["a,b", "a,c", "b,c"])
 
-     In [19]: # return Series
-        ...: s.str.split(",")
-     Out[19]:
+     >>> # return Series
+
+     >>> s.str.split(",")
      0    [a, b]
      1    [a, c]
      2    [b, c]
-     dtype: object
+     Length: 3, dtype: object
 
-     In [20]: # return DataFrame
-        ...: s.str.split(",", expand=True)
-     Out[20]:
+     >>> # return DataFrame
+
+     >>> s.str.split(",", expand=True)
         0  1
      0  a  b
      1  a  c
      2  b  c
 
-     In [21]: idx = pd.Index(["a,b", "a,c", "b,c"])
+     [3 rows x 2 columns]
 
-     In [22]: # return Index
-        ...: idx.str.split(",")
-     Out[22]: Index([['a', 'b'], ['a', 'c'], ['b', 'c']], dtype='object')
+     >>> idx = pd.Index(["a,b", "a,c", "b,c"])
 
-     In [23]: # return MultiIndex
-        ...: idx.str.split(",", expand=True)
-     Out[23]:
+     >>> # return Index
+
+     >>> idx.str.split(",")
+     Index([['a', 'b'], ['a', 'c'], ['b', 'c']], dtype='object')
+
+     >>> # return MultiIndex
+
+     >>> idx.str.split(",", expand=True)
      MultiIndex([('a', 'b'),
                  ('a', 'c'),
                  ('b', 'c')],
                 )
-
 
 - Improved ``extract`` and ``get_dummies`` methods for ``Index.str`` (:issue:`9980`)
 
@@ -343,16 +343,16 @@ Other enhancements
 
 - ``BusinessHour`` offset is now supported, which represents business hours starting from 09:00 - 17:00 on ``BusinessDay`` by default. See :ref:`Here <timeseries.businesshour>` for details. (:issue:`7905`)
 
-  .. code-block:: ipython
+  .. code-block:: pycon
 
-     In [24]: pd.Timestamp("2014-08-01 09:00") + pd.tseries.offsets.BusinessHour()
-     Out[24]: Timestamp('2014-08-01 10:00:00')
+     >>> pd.Timestamp("2014-08-01 09:00") + pd.tseries.offsets.BusinessHour()
+     Timestamp('2014-08-01 10:00:00')
 
-     In [25]: pd.Timestamp("2014-08-01 07:00") + pd.tseries.offsets.BusinessHour()
-     Out[25]: Timestamp('2014-08-01 10:00:00')
+     >>> pd.Timestamp("2014-08-01 07:00") + pd.tseries.offsets.BusinessHour()
+     Timestamp('2014-08-01 10:00:00')
 
-     In [26]: pd.Timestamp("2014-08-01 16:30") + pd.tseries.offsets.BusinessHour()
-     Out[26]: Timestamp('2014-08-04 09:30:00')
+     >>> pd.Timestamp("2014-08-01 16:30") + pd.tseries.offsets.BusinessHour()
+     Timestamp('2014-08-04 09:30:00')
 
 - ``DataFrame.diff`` now takes an ``axis`` parameter that determines the direction of differencing (:issue:`9727`)
 
@@ -362,16 +362,17 @@ Other enhancements
 
 - ``drop`` function can now accept ``errors`` keyword to suppress ``ValueError`` raised when any of label does not exist in the target data. (:issue:`6736`)
 
-  .. code-block:: ipython
+  .. code-block:: pycon
 
-    In [27]: df = pd.DataFrame(np.random.randn(3, 3), columns=["A", "B", "C"])
+    >>> df = pd.DataFrame(np.random.randn(3, 3), columns=["A", "B", "C"])
 
-    In [28]: df.drop(["A", "X"], axis=1, errors="ignore")
-    Out[28]:
+    >>> df.drop(["A", "X"], axis=1, errors="ignore")
               B         C
-    0  0.228913  1.352917
-    1 -2.001637 -0.371843
-    2 -0.438570 -0.539741
+    0 -0.783298 -0.437862
+    1  1.359259 -1.009646
+    2 -0.401598 -0.604382
+
+    [3 rows x 2 columns]
 
 - Add support for separating years and quarters using dashes, for
   example 2014-Q1.  (:issue:`9688`)
@@ -450,24 +451,23 @@ Previous behavior
 
 New behavior
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [29]: pd.set_option("display.width", 80)
+   >>> pd.set_option("display.width", 80)
 
-   In [30]: pd.Index(range(4), name="foo")
-   Out[30]: RangeIndex(start=0, stop=4, step=1, name='foo')
+   >>> pd.Index(range(4), name="foo")
+   RangeIndex(start=0, stop=4, step=1, name='foo')
 
-   In [31]: pd.Index(range(30), name="foo")
-   Out[31]: RangeIndex(start=0, stop=30, step=1, name='foo')
+   >>> pd.Index(range(30), name="foo")
+   RangeIndex(start=0, stop=30, step=1, name='foo')
 
-   In [32]: pd.Index(range(104), name="foo")
-   Out[32]: RangeIndex(start=0, stop=104, step=1, name='foo')
+   >>> pd.Index(range(104), name="foo")
+   RangeIndex(start=0, stop=104, step=1, name='foo')
 
-   In [33]: pd.CategoricalIndex(["a", "bb", "ccc", "dddd"], ordered=True, name="foobar")
-   Out[33]: CategoricalIndex(['a', 'bb', 'ccc', 'dddd'], categories=['a', 'bb', 'ccc', 'dddd'], ordered=True, dtype='category', name='foobar')
+   >>> pd.CategoricalIndex(["a", "bb", "ccc", "dddd"], ordered=True, name="foobar")
+   CategoricalIndex(['a', 'bb', 'ccc', 'dddd'], categories=['a', 'bb', 'ccc', 'dddd'], ordered=True, dtype='category', name='foobar')
 
-   In [34]: pd.CategoricalIndex(["a", "bb", "ccc", "dddd"] * 10, ordered=True, name="foobar")
-   Out[34]:
+   >>> pd.CategoricalIndex(["a", "bb", "ccc", "dddd"] * 10, ordered=True, name="foobar")
    CategoricalIndex(['a', 'bb', 'ccc', 'dddd', 'a', 'bb', 'ccc', 'dddd', 'a',
                      'bb', 'ccc', 'dddd', 'a', 'bb', 'ccc', 'dddd', 'a', 'bb',
                      'ccc', 'dddd', 'a', 'bb', 'ccc', 'dddd', 'a', 'bb', 'ccc',
@@ -475,8 +475,7 @@ New behavior
                      'a', 'bb', 'ccc', 'dddd'],
                     categories=['a', 'bb', 'ccc', 'dddd'], ordered=True, dtype='category', name='foobar')
 
-   In [35]: pd.CategoricalIndex(["a", "bb", "ccc", "dddd"] * 100, ordered=True, name="foobar")
-   Out[35]:
+   >>> pd.CategoricalIndex(["a", "bb", "ccc", "dddd"] * 100, ordered=True, name="foobar")
    CategoricalIndex(['a', 'bb', 'ccc', 'dddd', 'a', 'bb', 'ccc', 'dddd', 'a',
                      'bb',
                      ...
@@ -484,14 +483,12 @@ New behavior
                      'dddd'],
                     categories=['a', 'bb', 'ccc', 'dddd'], ordered=True, dtype='category', name='foobar', length=400)
 
-   In [36]: pd.date_range("20130101", periods=4, name="foo", tz="US/Eastern")
-   Out[36]:
+   >>> pd.date_range("20130101", periods=4, name="foo", tz="US/Eastern")
    DatetimeIndex(['2013-01-01 00:00:00-05:00', '2013-01-02 00:00:00-05:00',
                   '2013-01-03 00:00:00-05:00', '2013-01-04 00:00:00-05:00'],
                  dtype='datetime64[us, US/Eastern]', name='foo', freq='D')
 
-   In [37]: pd.date_range("20130101", periods=25, freq="D")
-   Out[37]:
+   >>> pd.date_range("20130101", periods=25, freq="D")
    DatetimeIndex(['2013-01-01', '2013-01-02', '2013-01-03', '2013-01-04',
                   '2013-01-05', '2013-01-06', '2013-01-07', '2013-01-08',
                   '2013-01-09', '2013-01-10', '2013-01-11', '2013-01-12',
@@ -501,8 +498,7 @@ New behavior
                   '2013-01-25'],
                  dtype='datetime64[us]', freq='D')
 
-   In [38]: pd.date_range("20130101", periods=104, name="foo", tz="US/Eastern")
-   Out[38]:
+   >>> pd.date_range("20130101", periods=104, name="foo", tz="US/Eastern")
    DatetimeIndex(['2013-01-01 00:00:00-05:00', '2013-01-02 00:00:00-05:00',
                   '2013-01-03 00:00:00-05:00', '2013-01-04 00:00:00-05:00',
                   '2013-01-05 00:00:00-05:00', '2013-01-06 00:00:00-05:00',
@@ -515,7 +511,6 @@ New behavior
                   '2013-04-11 00:00:00-04:00', '2013-04-12 00:00:00-04:00',
                   '2013-04-13 00:00:00-04:00', '2013-04-14 00:00:00-04:00'],
                  dtype='datetime64[us, US/Eastern]', name='foo', length=104, freq='D')
-
 
 .. _whatsnew_0161.performance:
 

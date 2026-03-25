@@ -1,15 +1,20 @@
 """
 Freeze ipython directives in whatsnew RST files.
 
-Converts ``.. ipython::`` directives to static ``.. code-block:: ipython``
-blocks with captured In/Out output, so that old whatsnew notes no longer
-execute during doc builds. See GH#6856.
+Converts ``.. ipython::`` directives to static ``.. code-block:: pycon``
+blocks with captured ``>>>`` REPL output, so that old whatsnew notes no
+longer execute during doc builds. See GH#6856.
 
 Usage
 -----
     python scripts/freeze_whatsnew.py doc/source/whatsnew/v0.18.0.rst
     python scripts/freeze_whatsnew.py doc/source/whatsnew/v1.*.rst
     python scripts/freeze_whatsnew.py --dry-run doc/source/whatsnew/v2.0.0.rst
+
+To produce output with an older pandas version, run the script with
+the Python whose environment has that version installed::
+
+    /path/to/old-env/bin/python scripts/freeze_whatsnew.py ...
 """
 
 from __future__ import annotations
@@ -244,10 +249,9 @@ def _split_cells(code_text: str) -> list[tuple[str, bool]]:
 
 
 class _Executor:
-    """Thin wrapper around a shared namespace with an In/Out counter."""
+    """Execute code cells and format output with ``>>>`` REPL prompts."""
 
     def __init__(self) -> None:
-        self.counter = 1
         self.namespace: dict = {"__name__": "__main__", "__builtins__": __builtins__}
         self._silent_exec("import numpy as np")
         self._silent_exec("import pandas as pd")
@@ -272,19 +276,16 @@ class _Executor:
         """
         Execute *code* and return ``(formatted_text, success)``.
 
-        *formatted_text* contains the ``In [N]:`` / ``Out[N]:`` block.
+        *formatted_text* uses standard ``>>>`` / ``...`` REPL prompts.
         """
         code = code.rstrip()
         cell_lines = code.split("\n")
         if not cell_lines or (len(cell_lines) == 1 and not cell_lines[0].strip()):
             return "", True
 
-        in_num = self.counter
-        self.counter += 1
-
         # Format the input prompts
-        parts = [f"In [{in_num}]: {cell_lines[0]}"]
-        parts.extend(f"   ...: {continuation}" for continuation in cell_lines[1:])
+        parts = [f">>> {cell_lines[0]}"]
+        parts.extend(f"... {continuation}" for continuation in cell_lines[1:])
         input_text = "\n".join(parts)
 
         old_stdout, old_stderr = sys.stdout, sys.stderr
@@ -326,11 +327,7 @@ class _Executor:
                 if printed:
                     output_parts.append(printed.rstrip())
                 if last_is_expr and result is not None:
-                    repr_str = repr(result)
-                    if "\n" in repr_str:
-                        output_parts.append(f"Out[{in_num}]:\n{repr_str}")
-                    else:
-                        output_parts.append(f"Out[{in_num}]: {repr_str}")
+                    output_parts.append(repr(result))
                 return "\n".join(output_parts), True
 
         except SyntaxError:
@@ -415,12 +412,13 @@ def freeze_file(
             continue
 
         if result["action"] == "verbatim":
-            replacement = [f"{indent}.. code-block:: ipython", ""]
+            replacement = [f"{indent}.. code-block:: pycon", ""]
             for code_line in block["code_lines"]:
                 if code_line == "":
                     replacement.append("")
                 else:
                     replacement.append(f"{ci}{code_line}")
+            replacement.append("")
             new_lines[block["start"] : block["end"]] = replacement
             processed += 1
             continue
@@ -430,15 +428,17 @@ def freeze_file(
         if not output_parts:
             continue
 
-        replacement = [f"{indent}.. code-block:: ipython", ""]
+        replacement = [f"{indent}.. code-block:: pycon", ""]
         for part in output_parts:
             for output_line in part.split("\n"):
                 replacement.append(f"{ci}{output_line}")
             replacement.append("")
 
-        # Strip trailing blank lines inside the block
+        # Strip trailing blank lines, then add exactly one back so
+        # the code-block is separated from the following RST content.
         while replacement and replacement[-1].strip() == "":
             replacement.pop()
+        replacement.append("")
 
         new_lines[block["start"] : block["end"]] = replacement
         processed += 1

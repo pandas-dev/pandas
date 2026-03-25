@@ -36,14 +36,13 @@ Highlights include:
 
    The recommended way to do this type of assignment is:
 
-   .. code-block:: ipython
+   .. code-block:: pycon
 
-      In [1]: df = pd.DataFrame({"A": np.array(["foo", "bar", "bah", "foo", "bar"])})
+      >>> df = pd.DataFrame({"A": np.array(["foo", "bar", "bah", "foo", "bar"])})
 
-      In [2]: df.loc[0, "A"] = np.nan
+      >>> df.loc[0, "A"] = np.nan
 
-      In [3]: df
-      Out[3]:
+      >>> df
            A
       0  NaN
       1  bar
@@ -58,26 +57,27 @@ Output formatting enhancements
 
 - df.info() now honors the option ``max_info_rows``, to disable null counts for large frames (:issue:`5974`)
 
-  .. code-block:: ipython
+  .. code-block:: pycon
 
-     In [4]: max_info_rows = pd.get_option("max_info_rows")
+     >>> max_info_rows = pd.get_option("max_info_rows")
 
-     In [5]: df = pd.DataFrame(
-        ...:     {
-        ...:         "A": np.random.randn(10),
-        ...:         "B": np.random.randn(10),
-        ...:         "C": pd.date_range("20130101", periods=10),
-        ...:     }
-        ...: )
+     >>> df = pd.DataFrame(
+     ...     {
+     ...         "A": np.random.randn(10),
+     ...         "B": np.random.randn(10),
+     ...         "C": pd.date_range("20130101", periods=10),
+     ...     }
+     ... )
 
-     In [6]: df.iloc[3:6, [0, 2]] = np.nan
+     >>> df.iloc[3:6, [0, 2]] = np.nan
 
-  .. code-block:: ipython
+  .. code-block:: pycon
 
-     # set to not display the null counts
-     In [7]: pd.set_option("max_info_rows", 0)
+     >>> # set to not display the null counts
 
-     In [8]: df.info()
+     >>> pd.set_option("max_info_rows", 0)
+
+     >>> df.info()
      <class 'pandas.DataFrame'>
      RangeIndex: 10 entries, 0 to 9
      Data columns (total 3 columns):
@@ -89,12 +89,13 @@ Output formatting enhancements
      dtypes: datetime64[us](1), float64(2)
      memory usage: 372.0 bytes
 
-  .. code-block:: ipython
+  .. code-block:: pycon
 
-     # this is the default (same as in 0.13.0)
-     In [9]: pd.set_option("max_info_rows", max_info_rows)
+     >>> # this is the default (same as in 0.13.0)
 
-     In [10]: df.info()
+     >>> pd.set_option("max_info_rows", max_info_rows)
+
+     >>> df.info()
      <class 'pandas.DataFrame'>
      RangeIndex: 10 entries, 0 to 9
      Data columns (total 3 columns):
@@ -108,22 +109,20 @@ Output formatting enhancements
 
 - Add ``show_dimensions`` display option for the new DataFrame repr to control whether the dimensions print.
 
-  .. code-block:: ipython
+  .. code-block:: pycon
 
-      In [11]: df = pd.DataFrame([[1, 2], [3, 4]])
+      >>> df = pd.DataFrame([[1, 2], [3, 4]])
 
-      In [12]: pd.set_option("show_dimensions", False)
+      >>> pd.set_option("show_dimensions", False)
 
-      In [13]: df
-      Out[13]:
+      >>> df
          0  1
       0  1  2
       1  3  4
 
-      In [14]: pd.set_option("show_dimensions", True)
+      >>> pd.set_option("show_dimensions", True)
 
-      In [15]: df
-      Out[15]:
+      >>> df
          0  1
       0  1  2
       1  3  4
@@ -143,21 +142,22 @@ Output formatting enhancements
 
   Now the output looks like:
 
-  .. code-block:: ipython
+  .. code-block:: pycon
 
-     In [16]: df = pd.DataFrame(
-        ....:     [pd.Timestamp("20010101"), pd.Timestamp("20040601")], columns=["age"]
-        ....: )
+     >>> df = pd.DataFrame(
+     ...     [pd.Timestamp("20010101"), pd.Timestamp("20040601")], columns=["age"]
+     ... )
 
-     In [17]: df["today"] = pd.Timestamp("20130419")
+     >>> df["today"] = pd.Timestamp("20130419")
 
-     In [18]: df["diff"] = df["today"] - df["age"]
+     >>> df["diff"] = df["today"] - df["age"]
 
-     In [19]: df
-     Out[19]:
+     >>> df
               age      today      diff
      0 2001-01-01 2013-04-19 4491 days
      1 2004-06-01 2013-04-19 3244 days
+
+     [2 rows x 3 columns]
 
 API changes
 ~~~~~~~~~~~
@@ -168,17 +168,18 @@ API changes
 - Added ``Series.str.get_dummies`` vectorized string method (:issue:`6021`), to extract
   dummy/indicator variables for separated string columns:
 
-  .. code-block:: ipython
+  .. code-block:: pycon
 
-      In [20]: s = pd.Series(["a", "a|b", np.nan, "a|c"])
+      >>> s = pd.Series(["a", "a|b", np.nan, "a|c"])
 
-      In [21]: s.str.get_dummies(sep="|")
-      Out[21]:
+      >>> s.str.get_dummies(sep="|")
          a  b  c
       0  1  0  0
       1  1  1  0
       2  0  0  0
       3  1  0  1
+
+      [4 rows x 3 columns]
 
 - Added the ``NDFrame.equals()`` method to compare if two NDFrames are
   equal have equal axes, dtypes, and values. Added the
@@ -276,14 +277,13 @@ Enhancements
 - ``MultiIndex.from_product`` convenience function for creating a MultiIndex from
   the cartesian product of a set of iterables (:issue:`6055`):
 
-  .. code-block:: ipython
+  .. code-block:: pycon
 
-      In [22]: shades = ["light", "dark"]
+      >>> shades = ["light", "dark"]
 
-      In [23]: colors = ["red", "green", "blue"]
+      >>> colors = ["red", "green", "blue"]
 
-      In [24]: pd.MultiIndex.from_product([shades, colors], names=["shade", "color"])
-      Out[24]:
+      >>> pd.MultiIndex.from_product([shades, colors], names=["shade", "color"])
       MultiIndex([('light',   'red'),
                   ('light', 'green'),
                   ('light',  'blue'),

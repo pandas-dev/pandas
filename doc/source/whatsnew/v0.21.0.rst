@@ -61,40 +61,39 @@ for more details. (:issue:`11221`)
 This method only performs soft conversions on object columns, converting Python objects
 to native types, but not any coercive conversions. For example:
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [1]: df = pd.DataFrame({'A': [1, 2, 3],
-      ....:                     'B': np.array([1, 2, 3], dtype='object'),
-      ....:                     'C': ['1', '2', '3']})
+   >>> df = pd.DataFrame({'A': [1, 2, 3],
+   ...                    'B': np.array([1, 2, 3], dtype='object'),
+   ...                    'C': ['1', '2', '3']})
 
-   In [2]: df.dtypes
-   Out[2]:
+   >>> df.dtypes
    A     int64
    B    object
    C       str
-   dtype: object
+   Length: 3, dtype: object
 
-   In [3]: df.infer_objects().dtypes
-   Out[3]:
+   >>> df.infer_objects().dtypes
    A    int64
    B    int64
    C      str
-   dtype: object
+   Length: 3, dtype: object
 
 Note that column ``'C'`` was not converted - only scalar numeric types
 will be converted to a new type.  Other types of conversion should be accomplished
 using the :func:`to_numeric` function (or :func:`to_datetime`, :func:`to_timedelta`).
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [4]: df = df.infer_objects()
-      ....: df['C'] = pd.to_numeric(df['C'], errors='coerce')
-      ....: df.dtypes
-   Out[4]:
+   >>> df = df.infer_objects()
+
+   >>> df['C'] = pd.to_numeric(df['C'], errors='coerce')
+
+   >>> df.dtypes
    A    int64
    B    int64
    C    int64
-   dtype: object
+   Length: 3, dtype: object
 
 .. _whatsnew_0210.enhancements.attribute_access:
 
@@ -135,29 +134,33 @@ alternative to specifying the ``axis``. This is similar to the behavior of ``rei
 
 For example:
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-    In [5]: df = pd.DataFrame(np.arange(8).reshape(2, 4),
-       ....:                   columns=['A', 'B', 'C', 'D'])
+    >>> df = pd.DataFrame(np.arange(8).reshape(2, 4),
+    ...                   columns=['A', 'B', 'C', 'D'])
 
-    In [6]: df
-    Out[6]:
+    >>> df
        A  B  C  D
     0  0  1  2  3
     1  4  5  6  7
 
-    In [7]: df.drop(['B', 'C'], axis=1)
-    Out[7]:
+    [2 rows x 4 columns]
+
+    >>> df.drop(['B', 'C'], axis=1)
        A  D
     0  0  3
     1  4  7
 
-    In [8]: # the following is now equivalent
-       ....: df.drop(columns=['B', 'C'])
-    Out[8]:
+    [2 rows x 2 columns]
+
+    >>> # the following is now equivalent
+
+    >>> df.drop(columns=['B', 'C'])
        A  D
     0  0  3
     1  4  7
+
+    [2 rows x 2 columns]
 
 .. _whatsnew_0210.enhancements.rename_reindex_axis:
 
@@ -170,59 +173,65 @@ the ``axis`` keyword to specify the axis to target with the operation
 
 Here's ``rename``:
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [9]: df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+   >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
 
-   In [10]: df.rename(str.lower, axis='columns')
-   Out[10]:
+   >>> df.rename(str.lower, axis='columns')
       a  b
    0  1  4
    1  2  5
    2  3  6
 
-   In [11]: df.rename(id, axis='index')
-   Out[11]:
+   [3 rows x 2 columns]
+
+   >>> df.rename(id, axis='index')
                A  B
-   4353635080  1  4
-   4353635112  2  5
-   4353635144  3  6
+   4326044424  1  4
+   4326044456  2  5
+   4326044488  3  6
+
+   [3 rows x 2 columns]
 
 And ``reindex``:
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [12]: df.reindex(['A', 'B', 'C'], axis='columns')
-   Out[12]:
+   >>> df.reindex(['A', 'B', 'C'], axis='columns')
       A  B   C
    0  1  4 NaN
    1  2  5 NaN
    2  3  6 NaN
 
-   In [13]: df.reindex([0, 1, 3], axis='index')
-   Out[13]:
+   [3 rows x 3 columns]
+
+   >>> df.reindex([0, 1, 3], axis='index')
         A    B
    0  1.0  4.0
    1  2.0  5.0
    3  NaN  NaN
 
+   [3 rows x 2 columns]
+
 The "index, columns" style continues to work as before.
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [14]: df.rename(index=id, columns=str.lower)
-   Out[14]:
+   >>> df.rename(index=id, columns=str.lower)
                a  b
-   4353635080  1  4
-   4353635112  2  5
-   4353635144  3  6
+   4326044424  1  4
+   4326044456  2  5
+   4326044488  3  6
 
-   In [15]: df.reindex(index=[0, 1, 3], columns=['A', 'B', 'C'])
-   Out[15]:
+   [3 rows x 2 columns]
+
+   >>> df.reindex(index=[0, 1, 3], columns=['A', 'B', 'C'])
         A    B   C
    0  1.0  4.0 NaN
    1  2.0  5.0 NaN
    3  NaN  NaN NaN
+
+   [3 rows x 3 columns]
 
 We *highly* encourage using named arguments to avoid confusion when using either
 style.
@@ -239,41 +248,44 @@ orderedness of an array, independent of the data. This can be useful for example
 when converting string data to a ``Categorical`` (:issue:`14711`,
 :issue:`15078`, :issue:`16015`, :issue:`17643`):
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [16]: from pandas.api.types import CategoricalDtype
+   >>> from pandas.api.types import CategoricalDtype
 
-   In [17]: s = pd.Series(['a', 'b', 'c', 'a'])  # strings
-      ....: dtype = CategoricalDtype(categories=['a', 'b', 'c', 'd'], ordered=True)
-      ....: s.astype(dtype)
-   Out[17]:
+   >>> s = pd.Series(['a', 'b', 'c', 'a'])  # strings
+
+   >>> dtype = CategoricalDtype(categories=['a', 'b', 'c', 'd'], ordered=True)
+
+   >>> s.astype(dtype)
    0    a
    1    b
    2    c
    3    a
-   dtype: category
+   Length: 4, dtype: category
    Categories (4, str): ['a' < 'b' < 'c' < 'd']
 
 One place that deserves special mention is in :meth:`read_csv`. Previously, with
 ``dtype={'col': 'category'}``, the returned values and categories would always
 be strings.
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [18]: data = 'A,B\na,1\nb,2\nc,3'
-      ....: pd.read_csv(StringIO(data), dtype={'B': 'category'}).B.cat.categories
-   Out[18]: Index(['1', '2', '3'], dtype='str')
+   >>> data = 'A,B\na,1\nb,2\nc,3'
+
+   >>> pd.read_csv(StringIO(data), dtype={'B': 'category'}).B.cat.categories
+   Index(['1', '2', '3'], dtype='str')
 
 Notice the "object" dtype.
 
 With a ``CategoricalDtype`` of all numerics, datetimes, or
 timedeltas, we can automatically convert to the correct type
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [19]: dtype = {'B': CategoricalDtype([1, 2, 3])}
-      ....: pd.read_csv(StringIO(data), dtype=dtype).B.cat.categories
-   Out[19]: Index([1, 2, 3], dtype='int64')
+   >>> dtype = {'B': CategoricalDtype([1, 2, 3])}
+
+   >>> pd.read_csv(StringIO(data), dtype=dtype).B.cat.categories
+   Index([1, 2, 3], dtype='int64')
 
 The values have been correctly interpreted as integers.
 
@@ -303,36 +315,40 @@ code more readable.
 
 First we set the data:
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [20]: import numpy as np
-      ....: n = 1000
-      ....: df = pd.DataFrame({'Store': np.random.choice(['Store_1', 'Store_2'], n),
-      ....:                     'Product': np.random.choice(['Product_1',
-      ....:                                                  'Product_2',
-      ....:                                                  'Product_3'
-      ....:                                                  ], n),
-      ....:                     'Revenue': (np.random.random(n) * 50 + 10).round(2),
-      ....:                     'Quantity': np.random.randint(1, 10, size=n)})
+   >>> import numpy as np
 
-   In [21]: df.head(2)
-   Out[21]:
+   >>> n = 1000
+
+   >>> df = pd.DataFrame({'Store': np.random.choice(['Store_1', 'Store_2'], n),
+   ...                    'Product': np.random.choice(['Product_1',
+   ...                                                 'Product_2',
+   ...                                                 'Product_3'
+   ...                                                 ], n),
+   ...                    'Revenue': (np.random.random(n) * 50 + 10).round(2),
+   ...                    'Quantity': np.random.randint(1, 10, size=n)})
+
+   >>> df.head(2)
         Store    Product  Revenue  Quantity
-   0  Store_2  Product_2    32.09         7
-   1  Store_1  Product_3    14.20         1
+   0  Store_2  Product_2    44.13         6
+   1  Store_1  Product_3    53.06         1
+
+   [2 rows x 4 columns]
 
 Now, to find prices per store/product, we can simply do:
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [22]: (df.groupby(['Store', 'Product'])
-      ....:    .pipe(lambda grp: grp.Revenue.sum() / grp.Quantity.sum())
-      ....:    .unstack().round(2))
-   Out[22]:
+   >>> (df.groupby(['Store', 'Product'])
+   ...    .pipe(lambda grp: grp.Revenue.sum() / grp.Quantity.sum())
+   ...    .unstack().round(2))
    Product  Product_1  Product_2  Product_3
    Store
-   Store_1       6.73       6.72       7.14
-   Store_2       7.59       6.98       7.23
+   Store_1       7.44       7.10       6.93
+   Store_2       6.45       6.43       7.14
+
+   [2 rows x 3 columns]
 
 See the :ref:`documentation <groupby.pipe>` for more.
 
@@ -347,11 +363,11 @@ See the :ref:`documentation <groupby.pipe>` for more.
 keys and replaced if found. The behavior of missing and extra keys is the same
 as in :meth:`DataFrame.rename`.
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [23]: c = pd.Categorical(['a', 'a', 'b'])
-      ....: c.rename_categories({"a": "eh", "b": "bee"})
-   Out[23]:
+   >>> c = pd.Categorical(['a', 'a', 'b'])
+
+   >>> c.rename_categories({"a": "eh", "b": "bee"})
    ['eh', 'eh', 'bee']
    Categories (2, str): ['eh', 'bee']
 
@@ -471,9 +487,9 @@ whether `bottleneck <https://bottleneck.readthedocs.io>`__ is installed, and ret
 
 Calling ``sum`` or ``prod`` on an empty or all-``NaN`` ``Series``, or columns of a ``DataFrame``, will result in ``NaN``. See the :ref:`docs <missing_data.calculations>`.
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [24]: s = pd.Series([np.nan])
+   >>> s = pd.Series([np.nan])
 
 Previously WITHOUT ``bottleneck`` installed:
 
@@ -491,10 +507,10 @@ Previously WITH ``bottleneck``:
 
 New behavior, without regard to the bottleneck installation:
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [25]: s.sum()
-   Out[25]: np.float64(0.0)
+   >>> s.sum()
+   np.float64(0.0)
 
 Note that this also changes the sum of an empty ``Series``. Previously this always returned 0 regardless of a ``bottleneck`` installation:
 
@@ -520,16 +536,15 @@ This will now show a ``FutureWarning``. In the future this will raise a ``KeyErr
 This warning will trigger on a ``DataFrame`` or a ``Series`` for using ``.loc[]``  or ``[[]]`` when passing a list-of-labels with at least 1 missing label.
 
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [26]: s = pd.Series([1, 2, 3])
+   >>> s = pd.Series([1, 2, 3])
 
-   In [27]: s
-   Out[27]:
+   >>> s
    0    1
    1    2
    2    3
-   dtype: int64
+   Length: 3, dtype: int64
 
 Previous behavior
 
@@ -562,25 +577,22 @@ Current behavior
 
 The idiomatic way to achieve selecting potentially not-found elements is via ``.reindex()``
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [28]: s.reindex([1, 2, 3])
-   Out[28]:
+   >>> s.reindex([1, 2, 3])
    1    2.0
    2    3.0
    3    NaN
-   dtype: float64
+   Length: 3, dtype: float64
 
 Selection with all keys found is unchanged.
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [29]: s.loc[[1, 2]]
-   Out[29]:
+   >>> s.loc[[1, 2]]
    1    2
    2    3
-   dtype: int64
-
+   Length: 2, dtype: int64
 
 .. _whatsnew_0210.api.na_changes:
 
@@ -604,16 +616,15 @@ Iteration of Series/Index will now return Python scalars
 
 Previously, when using certain iteration methods for a ``Series`` with dtype ``int`` or ``float``, you would receive a ``numpy`` scalar, e.g. a ``np.int64``, rather than a Python ``int``. Issue (:issue:`10904`) corrected this for ``Series.tolist()`` and ``list(Series)``. This change makes all iteration methods consistent, in particular, for ``__iter__()`` and ``.map()``; note that this only affects int/float dtypes. (:issue:`13236`, :issue:`13258`, :issue:`14216`).
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [30]: s = pd.Series([1, 2, 3])
+   >>> s = pd.Series([1, 2, 3])
 
-   In [31]: s
-   Out[31]:
+   >>> s
    0    1
    1    2
    2    3
-   dtype: int64
+   Length: 3, dtype: int64
 
 Previously:
 
@@ -624,17 +635,18 @@ Previously:
 
 New behavior:
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [32]: type(list(s)[0])
-   Out[32]: <class 'int'>
+   >>> type(list(s)[0])
+   <class 'int'>
 
 Furthermore this will now correctly box the results of iteration for :func:`DataFrame.to_dict` as well.
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [33]: d = {'a': [1], 'b': ['b']}
-      ....: df = pd.DataFrame(d)
+   >>> d = {'a': [1], 'b': ['b']}
+
+   >>> df = pd.DataFrame(d)
 
 Previously:
 
@@ -645,11 +657,10 @@ Previously:
 
 New behavior:
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [34]: type(df.to_dict()['a'][0])
-   Out[34]: <class 'int'>
-
+   >>> type(df.to_dict()['a'][0])
+   <class 'int'>
 
 .. _whatsnew_0210.api_breaking.loc_with_index:
 
@@ -663,16 +674,15 @@ act like a boolean numpy array indexer. (:issue:`17738`)
 
 Previous behavior:
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [35]: s = pd.Series([1, 2, 3], index=[False, True, False])
+   >>> s = pd.Series([1, 2, 3], index=[False, True, False])
 
-   In [36]: s
-   Out[36]:
+   >>> s
    False    1
    True     2
    False    3
-   dtype: int64
+   Length: 3, dtype: int64
 
 .. code-block:: ipython
 
@@ -686,30 +696,27 @@ Previous behavior:
 
 Current behavior
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [37]: s.loc[pd.Index([True, False, True])]
-   Out[37]:
+   >>> s.loc[pd.Index([True, False, True])]
    False    1
    False    3
-   dtype: int64
-
+   Length: 2, dtype: int64
 
 Furthermore, previously if you had an index that was non-numeric (e.g. strings), then a boolean Index would raise a ``KeyError``.
 This will now be treated as a boolean indexer.
 
 Previously behavior:
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [38]: s = pd.Series([1, 2, 3], index=['a', 'b', 'c'])
+   >>> s = pd.Series([1, 2, 3], index=['a', 'b', 'c'])
 
-   In [39]: s
-   Out[39]:
+   >>> s
    a    1
    b    2
    c    3
-   dtype: int64
+   Length: 3, dtype: int64
 
 .. code-block:: ipython
 
@@ -718,14 +725,12 @@ Previously behavior:
 
 Current behavior
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [40]: s.loc[pd.Index([True, False, True])]
-   Out[40]:
+   >>> s.loc[pd.Index([True, False, True])]
    a    1
    c    3
-   dtype: int64
-
+   Length: 2, dtype: int64
 
 .. _whatsnew_0210.api_breaking.period_index_resampling:
 
@@ -756,22 +761,21 @@ Previous behavior:
 
 New behavior:
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [41]: pi = pd.period_range('2017-01', periods=12, freq='M')
+   >>> pi = pd.period_range('2017-01', periods=12, freq='M')
 
-   In [42]: s = pd.Series(np.arange(12), index=pi)
+   >>> s = pd.Series(np.arange(12), index=pi)
 
-   In [43]: resampled = s.resample('2Q').mean()
+   >>> resampled = s.resample('2Q').mean()
 
-   In [44]: resampled
-   Out[44]:
+   >>> resampled
    2017Q1    2.5
    2017Q3    8.5
-   Freq: 2Q-DEC, dtype: float64
+   Freq: 2Q-DEC, Length: 2, dtype: float64
 
-   In [45]: resampled.index
-   Out[45]: PeriodIndex(['2017Q1', '2017Q3'], dtype='period[2Q-DEC]')
+   >>> resampled.index
+   PeriodIndex(['2017Q1', '2017Q3'], dtype='period[2Q-DEC]')
 
 Upsampling and calling ``.ohlc()`` previously returned a ``Series``, basically identical to calling ``.asfreq()``. OHLC upsampling now returns a DataFrame with columns ``open``, ``high``, ``low`` and ``close`` (:issue:`13083`). This is consistent with downsampling and ``DatetimeIndex`` behavior.
 
@@ -836,9 +840,9 @@ Improved error handling during item assignment in pd.eval
 :func:`eval` will now raise a ``ValueError`` when item assignment malfunctions, or
 inplace operations are specified, but there is no item assignment in the expression (:issue:`16732`)
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [46]: arr = np.array([1, 2, 3])
+   >>> arr = np.array([1, 2, 3])
 
 Previously, if you attempted the following expression, you would get a not very helpful error message:
 
@@ -882,9 +886,9 @@ Dtype conversions
 
 Previously assignments, ``.where()`` and ``.fillna()`` with a ``bool`` assignment, would coerce to same the type (e.g. int / float), or raise for datetimelikes. These will now preserve the bools with ``object`` dtypes. (:issue:`16821`).
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [47]: s = pd.Series([1, 2, 3])
+   >>> s = pd.Series([1, 2, 3])
 
 .. code-block:: python
 
@@ -913,9 +917,9 @@ New behavior
 Previously, as assignment to a datetimelike with a non-datetimelike would coerce the
 non-datetime-like item being assigned (:issue:`14145`).
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [48]: s = pd.Series([pd.Timestamp('2011-01-01'), pd.Timestamp('2012-01-01')])
+   >>> s = pd.Series([pd.Timestamp('2011-01-01'), pd.Timestamp('2012-01-01')])
 
 .. code-block:: python
 
@@ -963,10 +967,9 @@ Length 1 levels are no longer special-cased. They behave exactly as if you had
 length 2+ levels, so a :class:`MultiIndex` is always returned from all of the
 ``MultiIndex`` constructors:
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [49]: pd.MultiIndex.from_tuples([('a',), ('b',)])
-   Out[49]:
+   >>> pd.MultiIndex.from_tuples([('a',), ('b',)])
    MultiIndex([('a',),
                ('b',)],
               )
@@ -980,9 +983,9 @@ Previously, :func:`to_datetime` did not localize datetime ``Series`` data when `
 
 Previous behavior
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [50]: s = pd.Series(['20130101 00:00:00'] * 3)
+   >>> s = pd.Series(['20130101 00:00:00'] * 3)
 
 .. code-block:: ipython
 
@@ -995,14 +998,13 @@ Previous behavior
 
 New behavior
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [51]: pd.to_datetime(s, utc=True)
-   Out[51]:
+   >>> pd.to_datetime(s, utc=True)
    0   2013-01-01 00:00:00+00:00
    1   2013-01-01 00:00:00+00:00
    2   2013-01-01 00:00:00+00:00
-   dtype: datetime64[us, UTC]
+   Length: 3, dtype: datetime64[us, UTC]
 
 Additionally, DataFrames with datetime columns that were parsed by :func:`read_sql_table` and :func:`read_sql_query` will also be localized to UTC only if the original SQL columns were timezone aware datetime columns.
 
@@ -1055,10 +1057,10 @@ Previous behavior:
 
 New behavior:
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [52]: pd.interval_range(start=0, end=4)
-   Out[52]: IntervalIndex([(0, 1], (1, 2], (2, 3], (3, 4]], dtype='interval[int64, right]')
+   >>> pd.interval_range(start=0, end=4)
+   IntervalIndex([(0, 1], (1, 2], (2, 3], (3, 4]], dtype='interval[int64, right]')
 
 .. _whatsnew_0210.api.mpl_converters:
 
@@ -1133,9 +1135,9 @@ Series.select and DataFrame.select
 
 The :meth:`Series.select` and :meth:`DataFrame.select` methods are deprecated in favor of using ``df.loc[labels.map(crit)]`` (:issue:`12401`)
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [53]: df = pd.DataFrame({'A': [1, 2, 3]}, index=['foo', 'bar', 'baz'])
+   >>> df = pd.DataFrame({'A': [1, 2, 3]}, index=['foo', 'bar', 'baz'])
 
 .. code-block:: ipython
 
@@ -1146,14 +1148,14 @@ The :meth:`Series.select` and :meth:`DataFrame.select` methods are deprecated in
    bar  2
    baz  3
 
-.. code-block:: ipython
+.. code-block:: pycon
 
-   In [54]: df.loc[df.index.map(lambda x: x in ['bar', 'baz'])]
-   Out[54]:
+   >>> df.loc[df.index.map(lambda x: x in ['bar', 'baz'])]
         A
    bar  2
    baz  3
 
+   [2 rows x 1 columns]
 
 .. _whatsnew_0210.deprecations.argmin_min:
 
