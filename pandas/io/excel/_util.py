@@ -85,6 +85,12 @@ def get_default_engine(ext: str, mode: Literal["reader", "writer"] = "reader") -
             _default_writers["xlsx"] = "xlsxwriter"
         return _default_writers[ext]
     else:
+        # Fall back to calamine if the deprecated default engine
+        # is not installed (GH#56542)
+        if ext == "xls" and not import_optional_dependency("xlrd", errors="ignore"):
+            _default_readers["xls"] = "calamine"
+        if ext == "xlsb" and not import_optional_dependency("pyxlsb", errors="ignore"):
+            _default_readers["xlsb"] = "calamine"
         return _default_readers[ext]
 
 

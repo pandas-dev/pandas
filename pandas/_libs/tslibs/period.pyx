@@ -3089,6 +3089,9 @@ class Period(_Period):
                     value = "NaT"
 
                 value = str(value)
+            elif type(value) is not str:
+                # GH#48974 np.str_ object
+                value = str(value)
             value = value.upper()
 
             freqstr = freq.rule_code if freq is not None else None

@@ -702,7 +702,7 @@ of length "1".
     df.at["h", "cats"]  # returns a string
 
 .. note::
-    The is in contrast to R's ``factor`` function, where ``factor(c(1,2,3))[1]``
+    This is in contrast to R's ``factor`` function, where ``factor(c(1,2,3))[1]``
     returns a single value ``factor``.
 
 To get a single value ``Series`` of type ``category``, you pass in a list with

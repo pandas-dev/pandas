@@ -30,6 +30,7 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.hashtable import duplicated
+from pandas._libs.tslibs import Timestamp
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
     InvalidIndexError,
@@ -1575,12 +1576,14 @@ class MultiIndex(Index):
     # --------------------------------------------------------------------
     # Rendering Methods
 
-    def _formatter_func(self, tup):
+    def _formatter_func(self, tup) -> tuple[str, ...]:  # type: ignore[override]
         """
         Formats each item in tup according to its level's formatter function.
         """
-        formatter_funcs = (level._formatter_func for level in self.levels)
-        return tuple(func(val) for func, val in zip(formatter_funcs, tup, strict=True))
+        return tuple(
+            level._formatter_func(val)
+            for level, val in zip(self.levels, tup, strict=True)
+        )
 
     def _get_values_for_csv(
         self, *, na_rep: str = "nan", **kwargs
@@ -3186,6 +3189,22 @@ class MultiIndex(Index):
         ]
         sortorder = None
 
+        # Validate that levels being sorted have comparable types (GH#21136).
+        # Since we sort by integer codes rather than actual values, we need
+        # to ensure the level values are sortable; otherwise the code-based
+        # sort silently produces a meaningless ordering.
+        # After _sort_levels_monotonic (called before sortlevel in the
+        # standard path), a level that is still non-monotonic with object
+        # dtype must contain incomparable types.
+        for lev_num in level:
+            lev_values = self.levels[lev_num]
+            if (
+                lev_values.dtype == object
+                and not lev_values.is_monotonic_increasing
+                and not lev_values.is_monotonic_decreasing
+            ):
+                lev_values.argsort()
+
         codes = [self.codes[lev] for lev in level]
         # we have a directed ordering via ascending
         if isinstance(ascending, list):
@@ -3426,6 +3445,19 @@ class MultiIndex(Index):
         zipped = zip(tup, self.levels, self.codes, strict=True)
         for k, (lab, lev, level_codes) in enumerate(zipped):
             section = level_codes[start:end]
+
+            # GH#55969: convert np.datetime64[D] to Python datetime.date for
+            # proper containment check against object-dtype Index.
+            # Only for day resolution; finer units would lose time info.
+            if (
+                isinstance(lab, np.datetime64)
+                and lev.dtype == object
+                and np.datetime_data(lab.dtype)[0] == "D"
+            ):
+                try:
+                    lab = Timestamp(lab).date()
+                except (ValueError, OverflowError):
+                    pass
 
             loc: npt.NDArray[np.intp] | np.intp | int
             if lab not in lev and not isna(lab):

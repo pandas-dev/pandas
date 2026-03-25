@@ -1097,6 +1097,17 @@ def test_non_nano_value():
     assert result == -52_700_112_000 * 10**6
 
 
+def test_timestamp_constructor_np_str():
+    # GH#48974 np.str_ should not break Timestamp construction
+    result = Timestamp(np.str_("2023-01-01"))
+    expected = Timestamp("2023-01-01")
+    assert result == expected
+
+    result = Timestamp(np.str_("2023-01-01 12:34:56"))
+    expected = Timestamp("2023-01-01 12:34:56")
+    assert result == expected
+
+
 @pytest.mark.parametrize("na_value", [None, np.nan, np.datetime64("NaT"), NaT, NA])
 def test_timestamp_constructor_na_value(na_value):
     # GH45481

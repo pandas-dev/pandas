@@ -124,26 +124,6 @@ _dtype_obj = np.dtype(object)
 NumpyArrayT = TypeVar("NumpyArrayT", bound=np.ndarray)
 
 
-def maybe_convert_platform(
-    values: list | tuple | range | np.ndarray | ExtensionArray,
-) -> ArrayLike:
-    """try to do platform conversion, allow ndarray or list here"""
-    arr: ArrayLike
-
-    if isinstance(values, (list, tuple, range)):
-        arr = construct_1d_object_array_from_listlike(values)
-    else:
-        # The caller is responsible for ensuring that we have np.ndarray
-        #  or ExtensionArray here.
-        arr = values
-
-    if arr.dtype == _dtype_obj:
-        arr = cast("np.ndarray", arr)
-        arr = lib.maybe_convert_objects(arr)
-
-    return arr
-
-
 def is_nested_object(obj: object) -> bool:
     """
     return a boolean if we have a nested object, e.g. a Series with 1 or
@@ -1282,7 +1262,7 @@ def np_find_common_type(*dtypes: np.dtype) -> np.dtype:
     try:
         common_dtype = np.result_type(*dtypes)
         if common_dtype.kind in "mMSU":
-            # NumPy promotion currently (1.25) misbehaves for for times and strings,
+            # NumPy promotion currently (1.25) misbehaves for times and strings,
             # so fall back to object (find_common_dtype did unless there
             # was only one dtype)
             common_dtype = np.dtype("O")

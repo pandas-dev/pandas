@@ -373,6 +373,9 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
     obj = _TSObject()
 
     if isinstance(ts, str):
+        if type(ts) is not str:
+            # GH#48974 np.str_ object
+            ts = str(ts)
         return convert_str_to_tsobject(ts, tz, dayfirst, yearfirst)
 
     if checknull_with_nat_and_na(ts):
