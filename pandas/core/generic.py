@@ -11770,9 +11770,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         nv.validate_stat_ddof_func((), kwargs, fname=name)
         validate_bool_kwarg(skipna, "skipna", none_allowed=False)
         if numeric_only is not None:
-             validate_bool_kwarg(numeric_only, "numeric_only", none_allowed=False)
+            validate_bool_kwarg(numeric_only, "numeric_only", none_allowed=False)
         elif numeric_only is None:
-             raise ValueError("numeric_only must be a boolean, got None")
+            raise ValueError("numeric_only must be a boolean, got None")
 
         return self._reduce(
             func, name, axis=axis, numeric_only=numeric_only, skipna=skipna, ddof=ddof
@@ -11832,9 +11832,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         validate_bool_kwarg(skipna, "skipna", none_allowed=False)
         if numeric_only is not None:
-             validate_bool_kwarg(numeric_only, "numeric_only", none_allowed=False)
+            validate_bool_kwarg(numeric_only, "numeric_only", none_allowed=False)
         elif numeric_only is None:
-             raise ValueError("numeric_only must be a boolean, got None")
+            raise ValueError("numeric_only must be a boolean, got None")
 
         return self._reduce(
             func, name=name, axis=axis, skipna=skipna, numeric_only=numeric_only
@@ -11940,9 +11940,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         validate_bool_kwarg(skipna, "skipna", none_allowed=False)
         if numeric_only is not None:
-             validate_bool_kwarg(numeric_only, "numeric_only", none_allowed=False)
+            validate_bool_kwarg(numeric_only, "numeric_only", none_allowed=False)
         elif numeric_only is None:
-             raise ValueError("numeric_only must be a boolean, got None")
+            raise ValueError("numeric_only must be a boolean, got None")
 
         return self._reduce(
             func,

@@ -804,7 +804,7 @@ class TestSeriesReductions:
         with pytest.raises(ValueError, match=msg):
             df.sum(numeric_only=None)
 
-        msg2 = "For argument \"numeric_only\" expected type bool, received type str."
+        msg2 = 'For argument "numeric_only" expected type bool, received type str.'
         with pytest.raises(ValueError, match=msg2):
             df.sum(numeric_only="True")
 
