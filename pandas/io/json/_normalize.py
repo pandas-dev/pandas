@@ -19,6 +19,8 @@ import numpy as np
 from pandas._libs.writers import convert_json_to_lines
 from pandas.util._decorators import set_module
 
+from pandas.core.dtypes.common import is_scalar
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -129,7 +131,7 @@ def nested_to_record(
 
             # flatten if type is dict and
             # current dict level  < maximum level provided and
-            # only dicts get recurse-flattened
+            # only dicts gets recurse-flattened
             # only at level>1 do we rename the rest of the keys
             if not isinstance(v, dict) or (
                 max_level is not None and level >= max_level
