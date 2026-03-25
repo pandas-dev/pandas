@@ -11,9 +11,7 @@ from itertools import (
     product,
 )
 import operator
-import sys
 
-from dateutil.tz import tzlocal
 import numpy as np
 import pytest
 
