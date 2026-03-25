@@ -239,7 +239,12 @@ cpdef inline bint is_fixed_offset(tzinfo tz):
     elif is_zoneinfo(tz):
         from zoneinfo._zoneinfo import ZoneInfo as ZoneInfoPy
         tz_py = ZoneInfoPy(tz.key)
-        if len(tz_py._trans_utc) == 0:
+        has_future_dst = (
+            hasattr(tz_py, "_tz_after")
+            and tz_py._tz_after is not None
+            and hasattr(tz_py._tz_after, "transitions")
+        )
+        if len(tz_py._trans_utc) == 0 and not has_future_dst:
             return 1
         return 0
     # This also implicitly accepts datetime.timezone objects which are
@@ -337,14 +342,21 @@ cdef tuple _get_zoneinfo_trans_and_deltas(tzinfo tz):
         True if this is a fixed-offset timezone with no transitions.
     """
     cdef:
-        int64_t fixed_offset_seconds
-        list trans_utc, deltas_seconds
-        int year, last_year
+        int64_t fixed_offset_seconds, last_hist_ts, start_utc, end_utc
+        list trans_utc, deltas_seconds, future_trans
+        int year, last_year, std_offset, dst_offset
 
     from zoneinfo._zoneinfo import ZoneInfo as ZoneInfoPy
     tz_py = ZoneInfoPy(tz.key)
 
-    if len(tz_py._trans_utc) == 0:
+    has_future_dst = (
+        hasattr(tz_py, "_tz_after")
+        and tz_py._tz_after is not None
+        and hasattr(tz_py._tz_after, "transitions")
+    )
+
+    # Truly fixed offset: no historical transitions and no POSIX DST rules.
+    if len(tz_py._trans_utc) == 0 and not has_future_dst:
         fixed_offset_seconds = int(
             tz.utcoffset(datetime(2020, 1, 1)).total_seconds()
         )
@@ -355,24 +367,42 @@ cdef tuple _get_zoneinfo_trans_and_deltas(tzinfo tz):
     trans_utc = list(tz_py._trans_utc)
     deltas_seconds = [int(info.utcoff.total_seconds()) for info in tz_py._ttinfos]
 
-    if hasattr(tz_py, "_tz_after") and tz_py._tz_after is not None:
+    if has_future_dst:
         tz_after = tz_py._tz_after
-        last_year = datetime.fromtimestamp(trans_utc[-1], timezone.utc).year
         std_offset = int(tz_after.std.utcoff.total_seconds())
         dst_offset = int(tz_after.dst.utcoff.total_seconds())
-        for year in range(last_year + 1, 2100):
+
+        if trans_utc:
+            last_hist_ts = trans_utc[-1]
+            try:
+                last_year = datetime.fromtimestamp(last_hist_ts, timezone.utc).year
+            except (OSError, OverflowError, ValueError):
+                last_year = 1970
+        else:
+            last_hist_ts = 0
+            last_year = 1970
+
+        future_trans = []
+        for year in range(last_year, 2100):
             try:
                 year_trans = tz_after.transitions(year)
-                if year_trans:
-                    start_local, end_local = year_trans
-                    start_utc = start_local - std_offset
-                    end_utc = end_local - dst_offset
-                    trans_utc.append(start_utc)
-                    deltas_seconds.append(dst_offset)
-                    trans_utc.append(end_utc)
-                    deltas_seconds.append(std_offset)
+                if not year_trans:
+                    break
+                start_local, end_local = year_trans
+                start_utc = start_local - std_offset
+                end_utc = end_local - dst_offset
+                if start_utc > last_hist_ts:
+                    future_trans.append((start_utc, dst_offset))
+                if end_utc > last_hist_ts:
+                    future_trans.append((end_utc, std_offset))
             except Exception:
                 break
+
+        future_trans.sort()
+
+        for t, d in future_trans:
+            trans_utc.append(t)
+            deltas_seconds.append(d)
 
     trans = np.array(trans_utc, dtype="i8") * 1_000_000_000
     trans = np.hstack([np.array([NPY_NAT + 1], dtype=np.int64), trans])
