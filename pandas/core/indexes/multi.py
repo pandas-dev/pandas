@@ -4078,10 +4078,10 @@ class MultiIndex(Index):
                     # NaN labels are stored as code -1 and are absent
                     # from levels, so get_indexer returns -1 for them.
                     # Separate true missing labels from NaN labels.
-                    has_nan = any(isna(x) for x in k)
+                    k_isna = isna(k if not isinstance(k, tuple) else list(k))
+                    na_count = k_isna.sum()
                     missing_mask = k_codes == -1
-                    if has_nan:
-                        na_count = sum(isna(x) for x in k)
+                    if na_count:
                         if missing_mask.sum() > na_count:
                             raise KeyError(k) from None
                         # NaN is in k but must also be present in the data
@@ -4091,7 +4091,7 @@ class MultiIndex(Index):
                         raise KeyError(k) from None
                     k_codes = k_codes[~missing_mask]
                     lvl_indexer = algos.isin(level_codes, k_codes)
-                    if has_nan:
+                    if na_count:
                         lvl_indexer = lvl_indexer | (level_codes == -1)
 
                 if lvl_indexer is None:
