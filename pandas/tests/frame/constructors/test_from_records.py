@@ -273,9 +273,7 @@ class TestFromRecords:
 
         # without names, it should go to last ditch
         arr2 = np.zeros((2, 3))
-        dep_msg = "Passing a 2D numpy array to DataFrame.from_records is deprecated"
-        with tm.assert_produces_warning(Pandas4Warning, match=dep_msg):
-            tm.assert_frame_equal(DataFrame.from_records(arr2), DataFrame(arr2))
+        tm.assert_frame_equal(DataFrame.from_records(arr2), DataFrame(arr2))
 
         # wrong length
         msg = "|".join(
@@ -476,27 +474,21 @@ class TestFromRecords:
     def test_from_records_ndarray_2d_dtype_preserved(self, dtype):
         # GH#22025 - 2D ndarray should slice columns directly
         arr = np.array([[1, 2, 3], [4, 5, 6]], dtype=dtype)
-        msg = "Passing a 2D numpy array to DataFrame.from_records is deprecated"
-        with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            result = DataFrame.from_records(arr)
+        result = DataFrame.from_records(arr)
         expected = DataFrame(arr)
         tm.assert_frame_equal(result, expected)
 
     def test_from_records_ndarray_2d_with_columns(self):
         # GH#22025
         arr = np.array([[1, 2, 3], [4, 5, 6]])
-        msg = "Passing a 2D numpy array to DataFrame.from_records is deprecated"
-        with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            result = DataFrame.from_records(arr, columns=["a", "b", "c"])
+        result = DataFrame.from_records(arr, columns=["a", "b", "c"])
         expected = DataFrame(arr, columns=["a", "b", "c"])
         tm.assert_frame_equal(result, expected)
 
     def test_from_records_ndarray_2d_with_index(self):
         # GH#22025
         arr = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
-        msg = "Passing a 2D numpy array to DataFrame.from_records is deprecated"
-        with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            result = DataFrame.from_records(arr, columns=["a", "b", "c"], index="a")
+        result = DataFrame.from_records(arr, columns=["a", "b", "c"], index="a")
         expected = DataFrame(
             {"b": arr[:, 1], "c": arr[:, 2]},
             index=Index(arr[:, 0], name="a"),
@@ -506,36 +498,28 @@ class TestFromRecords:
     def test_from_records_ndarray_2d_with_exclude(self):
         # GH#22025
         arr = np.array([[1, 2, 3], [4, 5, 6]])
-        msg = "Passing a 2D numpy array to DataFrame.from_records is deprecated"
-        with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            result = DataFrame.from_records(arr, columns=["a", "b", "c"], exclude=["b"])
+        result = DataFrame.from_records(arr, columns=["a", "b", "c"], exclude=["b"])
         expected = DataFrame(arr, columns=["a", "b", "c"]).drop(columns=["b"])
         tm.assert_frame_equal(result, expected)
 
     def test_from_records_ndarray_2d_empty(self):
         # GH#22025
         arr = np.empty((0, 3), dtype=np.int64)
-        msg = "Passing a 2D numpy array to DataFrame.from_records is deprecated"
-        with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            result = DataFrame.from_records(arr, columns=["a", "b", "c"])
+        result = DataFrame.from_records(arr, columns=["a", "b", "c"])
         expected = DataFrame(arr, columns=["a", "b", "c"])
         tm.assert_frame_equal(result, expected)
 
     def test_from_records_ndarray_2d_single_row(self):
         # GH#22025
         arr = np.array([[10, 20, 30]])
-        msg = "Passing a 2D numpy array to DataFrame.from_records is deprecated"
-        with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            result = DataFrame.from_records(arr, columns=["x", "y", "z"])
+        result = DataFrame.from_records(arr, columns=["x", "y", "z"])
         expected = DataFrame(arr, columns=["x", "y", "z"])
         tm.assert_frame_equal(result, expected)
 
     def test_from_records_ndarray_2d_single_column(self):
         # GH#22025
         arr = np.array([[1], [2], [3]])
-        msg = "Passing a 2D numpy array to DataFrame.from_records is deprecated"
-        with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            result = DataFrame.from_records(arr, columns=["a"])
+        result = DataFrame.from_records(arr, columns=["a"])
         expected = DataFrame(arr, columns=["a"])
         tm.assert_frame_equal(result, expected)
 

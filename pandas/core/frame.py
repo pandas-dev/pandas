@@ -2045,9 +2045,6 @@ class DataFrame(NDFrame, OpsMixin):
                 Passing a dict is deprecated. Use the DataFrame constructor
                 or :meth:`DataFrame.from_dict` instead.
 
-            .. deprecated:: 3.1.0
-                Passing a 2D numpy array is deprecated. Use the DataFrame
-                constructor instead.
         index : str, list of fields, array-like
             Field of array to use as the index, alternately a specific set of
             input labels to use.
@@ -2125,14 +2122,6 @@ class DataFrame(NDFrame, OpsMixin):
             warnings.warn(
                 "Passing a dict to DataFrame.from_records is deprecated. "
                 "Use the DataFrame constructor or DataFrame.from_dict instead.",
-                Pandas4Warning,
-                stacklevel=find_stack_level(),
-            )
-
-        if isinstance(data, np.ndarray) and data.ndim == 2 and data.dtype.names is None:
-            warnings.warn(
-                "Passing a 2D numpy array to DataFrame.from_records is deprecated. "
-                "Use the DataFrame constructor instead.",
                 Pandas4Warning,
                 stacklevel=find_stack_level(),
             )
