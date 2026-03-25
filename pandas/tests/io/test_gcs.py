@@ -203,9 +203,6 @@ def test_to_csv_compression_encoding_gcs(
 @pytest.mark.filterwarnings(
     "ignore:The 'fastparquet' engine is deprecated:DeprecationWarning"
 )
-@pytest.mark.filterwarnings(
-    "ignore:The 'engine' keyword in pd.read_parquet:DeprecationWarning"
-)
 def test_to_parquet_gcs_new_file(monkeypatch, tmpdir):
     """Regression test for writing to a not-yet-existent GCS Parquet file."""
     pytest.importorskip("fastparquet")

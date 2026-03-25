@@ -2801,8 +2801,7 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         path: FilePath | WriteBuffer[bytes] | None = None,
         *,
-        engine: Literal["auto", "pyarrow", "fastparquet"]
-        | lib.NoDefault = lib.no_default,
+        engine: Literal["auto", "pyarrow", "fastparquet"] = "auto",
         compression: ParquetCompressionOptions = "snappy",
         index: bool | None = None,
         partition_cols: list[str] | None = None,
@@ -2832,8 +2831,8 @@ class DataFrame(NDFrame, OpsMixin):
             'pyarrow' is unavailable.
 
             .. deprecated:: 3.1.0
-                The ``engine`` keyword is deprecated and will be removed in a
-                future version.
+                The ``'fastparquet'`` engine is deprecated. Use ``'pyarrow'``
+                instead.
 
         compression : str or None, default 'snappy'
             Name of the compression to use. Use ``None`` for no compression.

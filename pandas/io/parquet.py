@@ -54,13 +54,7 @@ if TYPE_CHECKING:
 def get_engine(engine: str) -> BaseImpl:
     """return our implementation"""
     if engine == "auto":
-        with warnings.catch_warnings():
-            warnings.filterwarnings(
-                "ignore",
-                "The 'io.parquet.engine' option is deprecated",
-                Pandas4Warning,
-            )
-            engine = get_option("io.parquet.engine")
+        engine = get_option("io.parquet.engine")
 
     if engine == "auto":
         # try engines in this order
@@ -95,18 +89,6 @@ def get_engine(engine: str) -> BaseImpl:
         return FastParquetImpl()
 
     raise ValueError("engine must be one of 'pyarrow', 'fastparquet'")
-
-
-def _warn_if_engine(engine: str | lib.NoDefault) -> None:
-    """Warn if the engine keyword was explicitly passed."""
-    if engine is not lib.no_default:
-        warnings.warn(
-            "The 'engine' keyword in pd.read_parquet and "
-            "DataFrame.to_parquet is deprecated and will be removed in a "
-            "future version.",
-            Pandas4Warning,
-            stacklevel=find_stack_level(),
-        )
 
 
 def _get_path_or_handle(
@@ -435,7 +417,7 @@ class FastParquetImpl(BaseImpl):
 def to_parquet(
     df: DataFrame,
     path: FilePath | WriteBuffer[bytes] | None = None,
-    engine: str | lib.NoDefault = lib.no_default,
+    engine: str = "auto",
     compression: ParquetCompressionOptions = "snappy",
     index: bool | None = None,
     storage_options: StorageOptions | None = None,
@@ -468,8 +450,8 @@ def to_parquet(
         if you wish to use its implementation.
 
         .. deprecated:: 3.1.0
-            The ``engine`` keyword is deprecated and will be removed in a
-            future version.
+            The ``'fastparquet'`` engine is deprecated. Use ``'pyarrow'``
+            instead.
 
     compression : {'snappy', 'gzip', 'brotli', 'lz4', 'zstd', None},
         default 'snappy'. Name of the compression to use. Use ``None``
@@ -514,9 +496,6 @@ def to_parquet(
     """
     if isinstance(partition_cols, str):
         partition_cols = [partition_cols]
-    _warn_if_engine(engine)
-    if engine is lib.no_default:
-        engine = "auto"
     impl = get_engine(engine)
 
     path_or_buf: FilePath | WriteBuffer[bytes] = io.BytesIO() if path is None else path
@@ -542,7 +521,7 @@ def to_parquet(
 @set_module("pandas")
 def read_parquet(
     path: FilePath | ReadBuffer[bytes],
-    engine: str | lib.NoDefault = lib.no_default,
+    engine: str = "auto",
     columns: list[str] | None = None,
     storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
@@ -582,8 +561,8 @@ def read_parquet(
         if you wish to use its implementation.
 
         .. deprecated:: 3.1.0
-            The ``engine`` keyword is deprecated and will be removed in a
-            future version.
+            The ``'fastparquet'`` engine is deprecated. Use ``'pyarrow'``
+            instead.
 
     columns : list, default=None
         If not None, only these columns will be read from the file.
@@ -704,9 +683,6 @@ def read_parquet(
     1    4    9
     """
 
-    _warn_if_engine(engine)
-    if engine is lib.no_default:
-        engine = "auto"
     impl = get_engine(engine)
     check_dtype_backend(dtype_backend)
 

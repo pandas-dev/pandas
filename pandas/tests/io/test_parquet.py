@@ -55,12 +55,6 @@ pytestmark = [
     pytest.mark.filterwarnings(
         "ignore:The 'fastparquet' engine is deprecated:DeprecationWarning"
     ),
-    pytest.mark.filterwarnings(
-        "ignore:The 'engine' keyword in pd.read_parquet:DeprecationWarning"
-    ),
-    pytest.mark.filterwarnings(
-        "ignore:The 'io.parquet.engine' option is deprecated:DeprecationWarning"
-    ),
 ]
 
 
@@ -262,34 +256,6 @@ def test_invalid_engine(df_compat, temp_file):
     msg = "engine must be one of 'pyarrow', 'fastparquet'"
     with pytest.raises(ValueError, match=msg):
         check_round_trip(df_compat, temp_file, "foo", "bar")
-
-
-def test_engine_keyword_deprecation(df_compat, pa, temp_file):
-    # GH#64597
-    msg = "The 'engine' keyword in pd.read_parquet"
-    path = temp_file
-    with tm.assert_produces_warning(
-        Pandas4Warning,
-        match=msg,
-        raise_on_extra_warnings=False,
-        check_stacklevel=False,
-    ):
-        df_compat.to_parquet(path, engine="pyarrow")
-    with tm.assert_produces_warning(
-        Pandas4Warning,
-        match=msg,
-        raise_on_extra_warnings=False,
-        check_stacklevel=False,
-    ):
-        read_parquet(path, engine="pyarrow")
-
-
-def test_io_parquet_engine_option_deprecation():
-    # GH#64597
-    msg = "The 'io.parquet.engine' option is deprecated"
-    with tm.assert_produces_warning(Pandas4Warning, match=msg, check_stacklevel=False):
-        with pd.option_context("io.parquet.engine", "auto"):
-            pass
 
 
 def test_options_py(df_compat, pa, using_infer_string, temp_file):

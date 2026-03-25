@@ -591,15 +591,6 @@ with cf.config_prefix("io.parquet"):
         validator=is_one_of_factory(["auto", "pyarrow", "fastparquet"]),
     )
 
-cf.deprecate_option(
-    "io.parquet.engine",
-    Pandas4Warning,
-    msg=(
-        "The 'io.parquet.engine' option is deprecated and will be removed in a "
-        "future version. PyArrow will be the only supported parquet engine."
-    ),
-)
-
 
 # Set up the io.sql specific configuration.
 sql_engine_doc = """
