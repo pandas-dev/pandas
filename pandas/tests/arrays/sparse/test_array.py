@@ -280,7 +280,7 @@ class TestSparseArrayAnalytics:
 
         sparse = SparseArray([1, -1, 2, -2], fill_value=1)
         result = SparseArray._simple_new(
-            np.array([1, 2, 2]),
+            np.array([1, 2, 2], dtype=np.int64),
             sparse.sp_index,
             SparseDtype(np.int64, 1),
         )
