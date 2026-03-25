@@ -219,9 +219,27 @@ static inline int tupleobject_cmp(PyTupleObject *a, PyTupleObject *b) {
   return 1;
 }
 
-// this function is defined in pandas/_libs/khash and will be linked when
-// khash.so builds
-extern int pandas_is_NA(PyObject *);
+static inline int pandas_is_NA(PyObject *o) {
+  PyObject *module = NULL;
+  PyObject *type_na = NULL;
+  int result = -1;
+
+  if (NULL == (module = PyImport_ImportModule("pandas._libs.missing"))) {
+    goto end;
+  }
+  if (NULL == (type_na = PyObject_GetAttrString(module, "NAType"))) {
+    goto end;
+  }
+  result = PyObject_IsInstance(o, type_na);
+
+end:
+  Py_XDECREF(module);
+  Py_XDECREF(type_na);
+  if (PyErr_Occurred() != NULL) {
+    PyErr_Clear();
+  }
+  return result > 0;
+}
 
 static inline int pyobject_cmp(PyObject *a, PyObject *b) {
   if (PyErr_Occurred() != NULL) {
@@ -246,6 +264,8 @@ static inline int pyobject_cmp(PyObject *a, PyObject *b) {
     }
     // frozenset isn't yet supported
   } else if (pandas_is_NA(a) || pandas_is_NA(b)) {
+    // GH#57052: PyObject_RichCompareBool would raise
+    // because comparing anything to pd.NA returns pd.NA
     return 0;
   }
 
