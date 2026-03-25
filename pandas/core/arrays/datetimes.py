@@ -3142,7 +3142,7 @@ def _generate_range(
     if start is not None and end is not None and not isinstance(offset, BusinessHour):
         if (offset.n >= 0 and end >= start) or (offset.n < 0 and end <= start):
             start_tod = start - start.normalize()
-            end = end.normalize() + start_tod  # type: ignore[assignment]
+            end = end.normalize() + start_tod
 
     # Unsupported operand types for < ("Timestamp" and "None")
     if periods is None and end < start and offset.n >= 0:  # type: ignore[operator]
