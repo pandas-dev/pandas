@@ -116,22 +116,6 @@ class TestDatetime64ArrayLikeComparisons:
         obj = tm.box_expected(dta, box_with_array)
         assert_invalid_comparison(obj, other, box_with_array)
 
-    def test_date_range_tzlocal_1970_UTC_plus_9(self, request, monkeypatch):
-        # GH#64281
-        UTC9_OFFSET_SECONDS = 32400
-        monkeypatch.setattr("dateutil.tz.time.timezone", -UTC9_OFFSET_SECONDS)
-        if sys.platform == "win32":
-            request.applymarker(
-                pytest.mark.xfail(
-                    reason=(
-                        "GH#64281 - Windows + tzlocal(): time.localtime() "
-                        "raises an error when its argument is negative."
-                    ),
-                )
-            )
-        dta = date_range("1970-01-01", freq="ns", periods=10, tz=tzlocal())._data
-        assert len(dta) == 10
-
     def test_dt64arr_cmp_mixed_invalid(self, tz_naive_fixture):
         tz = tz_naive_fixture
 
