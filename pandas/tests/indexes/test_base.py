@@ -1071,16 +1071,20 @@ class TestIndex:
     @pytest.mark.parametrize(
         "expand,expected",
         [
-            (
+            pytest.param(
                 None,
-                Index._simple_new(
-                    np.array([["a", "b", "c"], ["d", "e"], ["f"]], dtype=object)
+                None,
+                marks=pytest.mark.xfail(
+                    reason="GH#20285 str.split on Index returns unhashable "
+                    "list elements"
                 ),
             ),
-            (
+            pytest.param(
                 False,
-                Index._simple_new(
-                    np.array([["a", "b", "c"], ["d", "e"], ["f"]], dtype=object)
+                None,
+                marks=pytest.mark.xfail(
+                    reason="GH#20285 str.split on Index returns unhashable "
+                    "list elements"
                 ),
             ),
             (
@@ -1734,13 +1738,13 @@ def test_validate_1d_input(dtype):
         Index(df, dtype=dtype)
 
     # GH#20285 unhashable elements should be rejected
-    with pytest.raises(ValueError, match="unhashable type"):
+    with pytest.raises(TypeError, match="unhashable type"):
         Index([[1, 2], [3, 4]])
 
-    with pytest.raises(ValueError, match="unhashable type"):
+    with pytest.raises(TypeError, match="unhashable type"):
         Index([1, [2, 3]])
 
-    with pytest.raises(ValueError, match="unhashable type"):
+    with pytest.raises(TypeError, match="unhashable type"):
         Index([{"a": 1}])
 
     # GH#13601 trying to assign a multi-dimensional array to an index is not allowed

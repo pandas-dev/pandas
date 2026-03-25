@@ -2616,6 +2616,9 @@ def check_all_hashable(ndarray[object] values) -> None:
     for i in range(n):
         val = values[i]
         if is_scalar(val):
+            # Scalars are always hashable, so skip the PyObject_Hash call.
+            # This is a fast path to avoid the overhead of hashing every
+            # element in the common case where all values are scalars.
             continue
         if _PyObject_Hash(val) == -1 and PyErr_Occurred():
             if PyErr_ExceptionMatches(TypeError):

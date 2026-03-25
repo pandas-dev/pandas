@@ -69,7 +69,7 @@ class TestDataFrameRepr:
 
         # GH#20285 unhashable elements (list) are now rejected
         index[0] = ["faz", "boo"]
-        with pytest.raises(ValueError, match="unhashable type"):
+        with pytest.raises(TypeError, match="unhashable type"):
             df.index = index
 
     def test_repr_with_mi_nat(self):

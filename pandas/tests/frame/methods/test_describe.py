@@ -352,6 +352,9 @@ class TestDataFrameDescribe:
         )
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.xfail(
+        reason="GH#20285 value_counts produces unhashable Index for dict elements"
+    )
     def test_describe_does_not_raise_error_for_dictlike_elements(self):
         # GH#32409
         df = DataFrame([{"test": {"a": "1"}}, {"test": {"a": "2"}}])

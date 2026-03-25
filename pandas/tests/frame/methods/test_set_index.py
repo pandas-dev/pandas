@@ -720,7 +720,7 @@ class TestSetIndexCustomLabelType:
         # GH#20285 unhashable elements are now rejected at Index construction,
         # so the DataFrame cannot even be created with unhashable columns.
         msg = "unhashable type: 'Thing'"
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             DataFrame([[0, 2], [1, 3]], columns=[thing1, thing2])
 
     def test_set_index_periodindex(self):

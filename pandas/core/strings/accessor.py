@@ -369,7 +369,7 @@ class StringMethods(NoNewAttributesMixin):
                     out = out.get_level_values(0)
                 return out
             else:
-                return Index._simple_new(result, name=name)
+                return Index(result, name=name, dtype=dtype, copy=False)
         else:
             index = self._orig.index
             # This is a mess.
