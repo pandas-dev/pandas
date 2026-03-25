@@ -522,7 +522,7 @@ class TestJSONNormalize:
 
         msg = "All items in data must be of type dict or NA-like, found float"
         with pytest.raises(TypeError, match=msg):
-            json_normalize([1.0, {"id": 12}])
+            json_normalize([1.0, {"id": 12}], max_level=max_level)
 
     def test_nested_flattening_consistent(self):
         # see gh-21537
