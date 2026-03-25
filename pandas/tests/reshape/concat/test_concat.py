@@ -19,6 +19,8 @@ import pandas as pd
 from pandas import (
     DataFrame,
     Index,
+    Interval,
+    IntervalIndex,
     MultiIndex,
     PeriodIndex,
     RangeIndex,
@@ -553,6 +555,35 @@ class TestConcatenate:
         msg = "Reindexing only valid with uniquely valued Index objects"
         with pytest.raises(InvalidIndexError, match=msg):
             concat([df1, df2], axis=1)
+
+    def test_concat_series_with_overlapping_intervalindex_levels(self):
+        # GH #64825
+        value_index = IntervalIndex.from_tuples([(0.0, 1.0), (1.0, 2.0)], name="foo")
+        level_index = IntervalIndex.from_tuples([(0.0, 10.0), (0.0, 20.0)], name="bar")
+        values = [
+            Series(
+                [1.0, 3.0],
+                name=Interval(0.0, 10.0),
+                index=value_index,
+            ),
+            Series(
+                [5.0, 7.0],
+                name=Interval(0.0, 20.0),
+                index=value_index,
+            ),
+        ]
+        result = concat(
+            values,
+            keys=level_index,
+            levels=[level_index],
+            names=["bar"],
+        )
+        expected_index = MultiIndex.from_product([level_index, value_index])
+        expected = Series(
+            [1.0, 3.0, 5.0, 7.0],
+            index=expected_index,
+        )
+        tm.assert_series_equal(result, expected)
 
 
 def test_concat_no_unnecessary_upcast(float_numpy_dtype, frame_or_series):

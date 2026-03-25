@@ -49,6 +49,7 @@ from pandas.core.indexes.api import (
     union_indexes,
 )
 from pandas.core.indexes.datetimes import DatetimeIndex
+from pandas.core.indexes.interval import IntervalIndex
 from pandas.core.internals import concatenate_managers
 
 if TYPE_CHECKING:
@@ -972,7 +973,10 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
 
     for hlevel, level in zip(zipped, levels, strict=True):
         hlevel_index = ensure_index(hlevel)
-        mapped = level.get_indexer(hlevel_index)
+        if isinstance(level, IntervalIndex):
+            mapped, _ = level.get_indexer_non_unique(hlevel_index)
+        else:
+            mapped = level.get_indexer(hlevel_index)
 
         mask = mapped == -1
         if mask.any():
