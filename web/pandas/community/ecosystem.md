@@ -374,7 +374,7 @@ process_data()
 #### [BigQuery DataFrames](https://dataframes.bigquery.dev/)
 
 BigQuery DataFrames compiles pandas-compatible expressions to run on the BigQuery engine.
-It can also compile to Polars for local data, if they hybrid engine is enabled. This allows
+It can also compile to Polars for local data, if the hybrid engine is enabled. This allows
 you to use the pandas API without moving data out of BigQuery, as well as scale your
 local pandas workloads to BigQuery's petabyte-scale engine.
 
