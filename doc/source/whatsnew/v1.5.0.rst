@@ -36,20 +36,45 @@ The ``dtype`` argument can accept a string of a `pyarrow data type <https://arro
 with ``pyarrow`` in brackets e.g. ``"int64[pyarrow]"`` or, for pyarrow data types that take parameters, a :class:`ArrowDtype`
 initialized with a ``pyarrow.DataType``.
 
-.. ipython:: python
+.. code-block:: pycon
 
-    import pyarrow as pa
-    ser_float = pd.Series([1.0, 2.0, None], dtype="float32[pyarrow]")
-    ser_float
+    >>> import pyarrow as pa
 
-    list_of_int_type = pd.ArrowDtype(pa.list_(pa.int64()))
-    ser_list = pd.Series([[1, 2], [3, None]], dtype=list_of_int_type)
-    ser_list
+    >>> ser_float = pd.Series([1.0, 2.0, None], dtype="float32[pyarrow]")
 
-    ser_list.take([1, 0])
-    ser_float * 5
-    ser_float.mean()
-    ser_float.dropna()
+    >>> ser_float
+    0     1.0
+    1     2.0
+    2    <NA>
+    dtype: float[pyarrow]
+
+    >>> list_of_int_type = pd.ArrowDtype(pa.list_(pa.int64()))
+
+    >>> ser_list = pd.Series([[1, 2], [3, None]], dtype=list_of_int_type)
+
+    >>> ser_list
+    0      [1. 2.]
+    1    [ 3. nan]
+    dtype: list<item: int64>[pyarrow]
+
+    >>> ser_list.take([1, 0])
+    1    [ 3. nan]
+    0      [1. 2.]
+    dtype: list<item: int64>[pyarrow]
+
+    >>> ser_float * 5
+    0     5.0
+    1    10.0
+    2    <NA>
+    dtype: float[pyarrow]
+
+    >>> ser_float.mean()
+    1.5
+
+    >>> ser_float.dropna()
+    0    1.0
+    1    2.0
+    dtype: float[pyarrow]
 
 Most operations are supported and have been implemented using `pyarrow compute <https://arrow.apache.org/docs/python/api/compute.html>`__ functions.
 We recommend installing the latest version of PyArrow to access the most recently implemented compute functions.
@@ -173,15 +198,19 @@ from_dummies
 
 Added new function :func:`~pandas.from_dummies` to convert a dummy coded :class:`DataFrame` into a categorical :class:`DataFrame`.
 
-.. ipython:: python
+.. code-block:: pycon
 
-    import pandas as pd
+    >>> import pandas as pd
 
-    df = pd.DataFrame({"col1_a": [1, 0, 1], "col1_b": [0, 1, 0],
-                       "col2_a": [0, 1, 0], "col2_b": [1, 0, 0],
-                       "col2_c": [0, 0, 1]})
+    >>> df = pd.DataFrame({"col1_a": [1, 0, 1], "col1_b": [0, 1, 0],
+    ...                    "col2_a": [0, 1, 0], "col2_b": [1, 0, 0],
+    ...                    "col2_c": [0, 0, 1]})
 
-    pd.from_dummies(df, sep="_")
+    >>> pd.from_dummies(df, sep="_")
+      col1 col2
+    0    a    b
+    1    b    a
+    2    a    c
 
 .. _whatsnew_150.enhancements.orc:
 
@@ -238,40 +267,51 @@ read_xml now supports ``dtype``, ``converters``, and ``parse_dates``
 Similar to other IO methods, :func:`pandas.read_xml` now supports assigning specific dtypes to columns,
 apply converter methods, and parse dates (:issue:`43567`).
 
-.. ipython:: python
+.. code-block:: pycon
 
-    from io import StringIO
-    xml_dates = """<?xml version='1.0' encoding='utf-8'?>
-    <data>
-      <row>
-        <shape>square</shape>
-        <degrees>00360</degrees>
-        <sides>4.0</sides>
-        <date>2020-01-01</date>
-       </row>
-      <row>
-        <shape>circle</shape>
-        <degrees>00360</degrees>
-        <sides/>
-        <date>2021-01-01</date>
-      </row>
-      <row>
-        <shape>triangle</shape>
-        <degrees>00180</degrees>
-        <sides>3.0</sides>
-        <date>2022-01-01</date>
-      </row>
-    </data>"""
+    >>> from io import StringIO
 
-    df = pd.read_xml(
-        StringIO(xml_dates),
-        dtype={'sides': 'Int64'},
-        converters={'degrees': str},
-        parse_dates=['date']
-    )
-    df
-    df.dtypes
+    >>> xml_dates = """<?xml version='1.0' encoding='utf-8'?>
+    ... <data>
+    ...   <row>
+    ...     <shape>square</shape>
+    ...     <degrees>00360</degrees>
+    ...     <sides>4.0</sides>
+    ...     <date>2020-01-01</date>
+    ...    </row>
+    ...   <row>
+    ...     <shape>circle</shape>
+    ...     <degrees>00360</degrees>
+    ...     <sides/>
+    ...     <date>2021-01-01</date>
+    ...   </row>
+    ...   <row>
+    ...     <shape>triangle</shape>
+    ...     <degrees>00180</degrees>
+    ...     <sides>3.0</sides>
+    ...     <date>2022-01-01</date>
+    ...   </row>
+    ... </data>"""
 
+    >>> df = pd.read_xml(
+    ...     StringIO(xml_dates),
+    ...     dtype={'sides': 'Int64'},
+    ...     converters={'degrees': str},
+    ...     parse_dates=['date']
+    ... )
+
+    >>> df
+          shape degrees  sides       date
+    0    square   00360      4 2020-01-01
+    1    circle   00360   <NA> 2021-01-01
+    2  triangle   00180      3 2022-01-01
+
+    >>> df.dtypes
+    shape                 str
+    degrees               str
+    sides               Int64
+    date       datetime64[us]
+    dtype: object
 
 .. _whatsnew_150.enhancements.read_xml_iterparse:
 
@@ -337,22 +377,30 @@ Alternatively, copy on write can be enabled locally through:
 Without copy on write, the parent :class:`DataFrame` is updated when updating a child
 :class:`DataFrame` that was derived from this :class:`DataFrame`.
 
-.. ipython:: python
+.. code-block:: pycon
 
-    df = pd.DataFrame({"foo": [1, 2, 3], "bar": 1})
-    view = df["foo"]
-    view.iloc[0]
-    df
+    >>> df = pd.DataFrame({"foo": [1, 2, 3], "bar": 1})
+
+    >>> view = df["foo"]
+
+    >>> view.iloc[0]
+    np.int64(1)
+
+    >>> df
+       foo  bar
+    0    1    1
+    1    2    1
+    2    3    1
 
 With copy on write enabled, df won't be updated anymore:
 
-.. ipython:: python
+.. code-block:: pycon
 
-    with pd.option_context("mode.copy_on_write", True):
-        df = pd.DataFrame({"foo": [1, 2, 3], "bar": 1})
-        view = df["foo"]
-        view.iloc[0]
-        df
+    >>> with pd.option_context("mode.copy_on_write", True):
+    ...     df = pd.DataFrame({"foo": [1, 2, 3], "bar": 1})
+    ...     view = df["foo"]
+    ...     view.iloc[0]
+    ...     df
 
 A more detailed explanation can be found `here <https://phofl.github.io/cow-introduction.html>`_.
 
@@ -419,9 +467,9 @@ values in the groups and ``dropna=True`` gave incorrect results. Demonstrated by
 examples below, the incorrect results either contained incorrect values, or the result
 did not have the same index as the input.
 
-.. ipython:: python
+.. code-block:: pycon
 
-    df = pd.DataFrame({'a': [1, 1, np.nan], 'b': [2, 3, 4]})
+    >>> df = pd.DataFrame({'a': [1, 1, np.nan], 'b': [2, 3, 4]})
 
 *Old behavior*:
 
@@ -459,12 +507,31 @@ did not have the same index as the input.
 
 *New behavior*:
 
-.. ipython:: python
+.. code-block:: pycon
 
-    df.groupby('a', dropna=True).transform('sum')
-    df.groupby('a', dropna=True).transform(lambda x: x.sum())
-    df.groupby('a', dropna=True).transform('ffill')
-    df.groupby('a', dropna=True).transform(lambda x: x)
+    >>> df.groupby('a', dropna=True).transform('sum')
+         b
+    0  5.0
+    1  5.0
+    2  NaN
+
+    >>> df.groupby('a', dropna=True).transform(lambda x: x.sum())
+         b
+    0  5.0
+    1  5.0
+    2  NaN
+
+    >>> df.groupby('a', dropna=True).transform('ffill')
+         b
+    0  2.0
+    1  3.0
+    2  NaN
+
+    >>> df.groupby('a', dropna=True).transform(lambda x: x)
+         b
+    0  2.0
+    1  3.0
+    2  NaN
 
 .. _whatsnew_150.notable_bug_fixes.to_json_incorrectly_localizing_naive_timestamps:
 
@@ -739,9 +806,9 @@ In a future version, integer slicing on a :class:`Series` with a :class:`Int64In
 
 For example:
 
-.. ipython:: python
+.. code-block:: pycon
 
-   ser = pd.Series([1, 2, 3, 4, 5], index=[2, 3, 5, 7, 11])
+   >>> ser = pd.Series([1, 2, 3, 4, 5], index=[2, 3, 5, 7, 11])
 
 In the old behavior, ``ser[2:4]`` treats the slice as positional:
 
@@ -836,11 +903,13 @@ inplace, only falling back to inserting a new array if necessary. There are
 some cases where this rule is not followed, for example when setting an entire
 column from an array with different dtype:
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df = pd.DataFrame({'price': [11.1, 12.2]}, index=['book1', 'book2'])
-   original_prices = df['price']
-   new_prices = np.array([98, 99])
+   >>> df = pd.DataFrame({'price': [11.1, 12.2]}, index=['book1', 'book2'])
+
+   >>> original_prices = df['price']
+
+   >>> new_prices = np.array([98, 99])
 
 *Old behavior*:
 

@@ -32,13 +32,24 @@ Previously, declaring or converting to :class:`StringDtype` was in general only 
 
 For example, the below now works:
 
-.. ipython:: python
+.. code-block:: pycon
 
-   ser = pd.Series([1, "abc", np.nan], dtype="string")
-   ser
-   ser[0]
-   pd.Series([1, 2, np.nan], dtype="Int64").astype("string")
+   >>> ser = pd.Series([1, "abc", np.nan], dtype="string")
 
+   >>> ser
+   0       1
+   1     abc
+   2    <NA>
+   dtype: string
+
+   >>> ser[0]
+   '1'
+
+   >>> pd.Series([1, 2, np.nan], dtype="Int64").astype("string")
+   0       1
+   1       2
+   2    <NA>
+   dtype: string
 
 .. _whatsnew_110.period_index_partial_string_slicing:
 
@@ -49,20 +60,72 @@ Non-monotonic PeriodIndex partial string slicing
 
 For example:
 
-.. ipython:: python
+.. code-block:: pycon
 
-   dti = pd.date_range("2014-01-01", periods=30, freq="30D")
-   pi = dti.to_period("D")
-   ser_monotonic = pd.Series(np.arange(30), index=pi)
-   shuffler = list(range(0, 30, 2)) + list(range(1, 31, 2))
-   ser = ser_monotonic.iloc[shuffler]
-   ser
+   >>> dti = pd.date_range("2014-01-01", periods=30, freq="30D")
 
-.. ipython:: python
+   >>> pi = dti.to_period("D")
 
-   ser["2014"]
-   ser.loc["May 2015"]
+   >>> ser_monotonic = pd.Series(np.arange(30), index=pi)
 
+   >>> shuffler = list(range(0, 30, 2)) + list(range(1, 31, 2))
+
+   >>> ser = ser_monotonic.iloc[shuffler]
+
+   >>> ser
+   2014-01-01     0
+   2014-03-02     2
+   2014-05-01     4
+   2014-06-30     6
+   2014-08-29     8
+   2014-10-28    10
+   2014-12-27    12
+   2015-02-25    14
+   2015-04-26    16
+   2015-06-25    18
+   2015-08-24    20
+   2015-10-23    22
+   2015-12-22    24
+   2016-02-20    26
+   2016-04-20    28
+   2014-01-31     1
+   2014-04-01     3
+   2014-05-31     5
+   2014-07-30     7
+   2014-09-28     9
+   2014-11-27    11
+   2015-01-26    13
+   2015-03-27    15
+   2015-05-26    17
+   2015-07-25    19
+   2015-09-23    21
+   2015-11-22    23
+   2016-01-21    25
+   2016-03-21    27
+   2016-05-20    29
+   Freq: D, dtype: int64
+
+.. code-block:: pycon
+
+   >>> ser["2014"]
+   2014-01-01     0
+   2014-03-02     2
+   2014-05-01     4
+   2014-06-30     6
+   2014-08-29     8
+   2014-10-28    10
+   2014-12-27    12
+   2014-01-31     1
+   2014-04-01     3
+   2014-05-31     5
+   2014-07-30     7
+   2014-09-28     9
+   2014-11-27    11
+   Freq: D, dtype: int64
+
+   >>> ser.loc["May 2015"]
+   2015-05-26    17
+   Freq: D, dtype: int64
 
 .. _whatsnew_110.dataframe_or_series_comparing:
 
@@ -71,28 +134,48 @@ Comparing two ``DataFrame`` or two ``Series`` and summarizing the differences
 
 We've added :meth:`DataFrame.compare` and :meth:`Series.compare` for comparing two ``DataFrame`` or two ``Series`` (:issue:`30429`)
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df = pd.DataFrame(
-       {
-           "col1": ["a", "a", "b", "b", "a"],
-           "col2": [1.0, 2.0, 3.0, np.nan, 5.0],
-           "col3": [1.0, 2.0, 3.0, 4.0, 5.0]
-       },
-       columns=["col1", "col2", "col3"],
-   )
-   df
+   >>> df = pd.DataFrame(
+   ...     {
+   ...         "col1": ["a", "a", "b", "b", "a"],
+   ...         "col2": [1.0, 2.0, 3.0, np.nan, 5.0],
+   ...         "col3": [1.0, 2.0, 3.0, 4.0, 5.0]
+   ...     },
+   ...     columns=["col1", "col2", "col3"],
+   ... )
 
-.. ipython:: python
+   >>> df
+     col1  col2  col3
+   0    a   1.0   1.0
+   1    a   2.0   2.0
+   2    b   3.0   3.0
+   3    b   NaN   4.0
+   4    a   5.0   5.0
 
-   df2 = df.copy()
-   df2.loc[0, 'col1'] = 'c'
-   df2.loc[2, 'col3'] = 4.0
-   df2
+.. code-block:: pycon
 
-.. ipython:: python
+   >>> df2 = df.copy()
 
-   df.compare(df2)
+   >>> df2.loc[0, 'col1'] = 'c'
+
+   >>> df2.loc[2, 'col3'] = 4.0
+
+   >>> df2
+     col1  col2  col3
+   0    c   1.0   1.0
+   1    a   2.0   2.0
+   2    b   3.0   4.0
+   3    b   NaN   4.0
+   4    a   5.0   5.0
+
+.. code-block:: pycon
+
+   >>> df.compare(df2)
+     col1       col3
+     self other self other
+   0    a     c  NaN   NaN
+   2  NaN   NaN  3.0   4.0
 
 See :ref:`User Guide <merging.compare>` for more details.
 
@@ -107,20 +190,37 @@ allow ``NA`` values in group keys. Users can define ``dropna`` to ``False`` if t
 ``NA`` values in groupby keys. The default is set to ``True`` for ``dropna`` to keep backwards
 compatibility (:issue:`3729`)
 
-.. ipython:: python
+.. code-block:: pycon
 
-    df_list = [[1, 2, 3], [1, None, 4], [2, 1, 3], [1, 2, 2]]
-    df_dropna = pd.DataFrame(df_list, columns=["a", "b", "c"])
+    >>> df_list = [[1, 2, 3], [1, None, 4], [2, 1, 3], [1, 2, 2]]
 
-    df_dropna
+    >>> df_dropna = pd.DataFrame(df_list, columns=["a", "b", "c"])
 
-.. ipython:: python
+    >>> df_dropna
+       a    b  c
+    0  1  2.0  3
+    1  1  NaN  4
+    2  2  1.0  3
+    3  1  2.0  2
 
-    # Default ``dropna`` is set to True, which will exclude NaNs in keys
-    df_dropna.groupby(by=["b"], dropna=True).sum()
+.. code-block:: pycon
 
-    # In order to allow NaN in keys, set ``dropna`` to False
-    df_dropna.groupby(by=["b"], dropna=False).sum()
+    >>> # Default ``dropna`` is set to True, which will exclude NaNs in keys
+
+    >>> df_dropna.groupby(by=["b"], dropna=True).sum()
+         a  c
+    b
+    1.0  2  3
+    2.0  2  5
+
+    >>> # In order to allow NaN in keys, set ``dropna`` to False
+
+    >>> df_dropna.groupby(by=["b"], dropna=False).sum()
+         a  c
+    b
+    1.0  2  3
+    2.0  2  5
+    NaN  1  4
 
 The default setting of ``dropna`` argument is ``True`` which means ``NA`` are not included in group keys.
 
@@ -137,37 +237,62 @@ column-by-column to each column used for sorting, before sorting is performed (:
 See :ref:`sort_values with keys <basics.sort_value_key>` and :ref:`sort_index with keys
 <basics.sort_index_key>` for more information.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   s = pd.Series(['C', 'a', 'B'])
-   s
+   >>> s = pd.Series(['C', 'a', 'B'])
 
-.. ipython:: python
+   >>> s
+   0    C
+   1    a
+   2    B
+   dtype: str
 
-   s.sort_values()
+.. code-block:: pycon
 
+   >>> s.sort_values()
+   2    B
+   0    C
+   1    a
+   dtype: str
 
 Note how this is sorted with capital letters first. If we apply the :meth:`Series.str.lower`
 method, we get
 
-.. ipython:: python
+.. code-block:: pycon
 
-   s.sort_values(key=lambda x: x.str.lower())
-
+   >>> s.sort_values(key=lambda x: x.str.lower())
+   1    a
+   2    B
+   0    C
+   dtype: str
 
 When applied to a ``DataFrame``, they key is applied per-column to all columns or a subset if
 ``by`` is specified, e.g.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df = pd.DataFrame({'a': ['C', 'C', 'a', 'a', 'B', 'B'],
-                      'b': [1, 2, 3, 4, 5, 6]})
-   df
+   >>> df = pd.DataFrame({'a': ['C', 'C', 'a', 'a', 'B', 'B'],
+   ...                    'b': [1, 2, 3, 4, 5, 6]})
 
-.. ipython:: python
+   >>> df
+      a  b
+   0  C  1
+   1  C  2
+   2  a  3
+   3  a  4
+   4  B  5
+   5  B  6
 
-   df.sort_values(by=['a'], key=lambda col: col.str.lower())
+.. code-block:: pycon
 
+   >>> df.sort_values(by=['a'], key=lambda col: col.str.lower())
+      a  b
+   2  a  3
+   3  a  4
+   4  B  5
+   5  B  6
+   0  C  1
+   1  C  2
 
 For more details, see examples and documentation in :meth:`DataFrame.sort_values`,
 :meth:`Series.sort_values`, and :meth:`~DataFrame.sort_index`.
@@ -181,16 +306,20 @@ Fold argument support in Timestamp constructor
 
 For example:
 
-.. ipython:: python
+.. code-block:: pycon
 
-    ts = pd.Timestamp("2019-10-27 01:30:00+00:00")
-    ts.fold
+    >>> ts = pd.Timestamp("2019-10-27 01:30:00+00:00")
 
-.. ipython:: python
+    >>> ts.fold
+    0
 
-    ts = pd.Timestamp(year=2019, month=10, day=27, hour=1, minute=30,
-                      tz="dateutil/Europe/London", fold=1)
-    ts
+.. code-block:: pycon
+
+    >>> ts = pd.Timestamp(year=2019, month=10, day=27, hour=1, minute=30,
+    ...                   tz="dateutil/Europe/London", fold=1)
+
+    >>> ts
+    Timestamp('2019-10-27 01:30:00+0000', tz='dateutil//usr/share/zoneinfo/Europe/London')
 
 For more on working with fold, see :ref:`Fold subsection <timeseries.fold>` in the user guide.
 
@@ -203,11 +332,15 @@ Parsing timezone-aware format with different timezones in to_datetime
 
 For example:
 
-.. ipython:: python
+.. code-block:: pycon
 
-    tz_strs = ["2010-01-01 12:00:00 +0100", "2010-01-01 12:00:00 -0100",
-               "2010-01-01 12:00:00 +0300", "2010-01-01 12:00:00 +0400"]
-    pd.to_datetime(tz_strs, format='%Y-%m-%d %H:%M:%S %z', utc=True)
+    >>> tz_strs = ["2010-01-01 12:00:00 +0100", "2010-01-01 12:00:00 -0100",
+    ...            "2010-01-01 12:00:00 +0300", "2010-01-01 12:00:00 +0400"]
+
+    >>> pd.to_datetime(tz_strs, format='%Y-%m-%d %H:%M:%S %z', utc=True)
+    DatetimeIndex(['2010-01-01 11:00:00+00:00', '2010-01-01 13:00:00+00:00',
+                   '2010-01-01 09:00:00+00:00', '2010-01-01 08:00:00+00:00'],
+                  dtype='datetime64[us, UTC]', freq=None)
 
 .. code-block:: ipython
 
@@ -233,27 +366,66 @@ Two arguments are now deprecated (more information in the documentation of :meth
 
 Small example of the use of ``origin``:
 
-.. ipython:: python
+.. code-block:: pycon
 
-    start, end = '2000-10-01 23:30:00', '2000-10-02 00:30:00'
-    middle = '2000-10-02 00:00:00'
-    rng = pd.date_range(start, end, freq='7min')
-    ts = pd.Series(np.arange(len(rng)) * 3, index=rng)
-    ts
+    >>> start, end = '2000-10-01 23:30:00', '2000-10-02 00:30:00'
+
+    >>> middle = '2000-10-02 00:00:00'
+
+    >>> rng = pd.date_range(start, end, freq='7min')
+
+    >>> ts = pd.Series(np.arange(len(rng)) * 3, index=rng)
+
+    >>> ts
+    2000-10-01 23:30:00     0
+    2000-10-01 23:37:00     3
+    2000-10-01 23:44:00     6
+    2000-10-01 23:51:00     9
+    2000-10-01 23:58:00    12
+    2000-10-02 00:05:00    15
+    2000-10-02 00:12:00    18
+    2000-10-02 00:19:00    21
+    2000-10-02 00:26:00    24
+    Freq: 7min, dtype: int64
 
 Resample with the default behavior ``'start_day'`` (origin is ``2000-10-01 00:00:00``):
 
-.. ipython:: python
+.. code-block:: pycon
 
-    ts.resample('17min').sum()
-    ts.resample('17min', origin='start_day').sum()
+    >>> ts.resample('17min').sum()
+    2000-10-01 23:14:00     0
+    2000-10-01 23:31:00     9
+    2000-10-01 23:48:00    21
+    2000-10-02 00:05:00    54
+    2000-10-02 00:22:00    24
+    Freq: 17min, dtype: int64
+
+    >>> ts.resample('17min', origin='start_day').sum()
+    2000-10-01 23:14:00     0
+    2000-10-01 23:31:00     9
+    2000-10-01 23:48:00    21
+    2000-10-02 00:05:00    54
+    2000-10-02 00:22:00    24
+    Freq: 17min, dtype: int64
 
 Resample using a fixed origin:
 
-.. ipython:: python
+.. code-block:: pycon
 
-    ts.resample('17min', origin='epoch').sum()
-    ts.resample('17min', origin='2000-01-01').sum()
+    >>> ts.resample('17min', origin='epoch').sum()
+    2000-10-01 23:18:00     0
+    2000-10-01 23:35:00    18
+    2000-10-01 23:52:00    27
+    2000-10-02 00:09:00    39
+    2000-10-02 00:26:00    24
+    Freq: 17min, dtype: int64
+
+    >>> ts.resample('17min', origin='2000-01-01').sum()
+    2000-10-01 23:24:00     3
+    2000-10-01 23:41:00    15
+    2000-10-01 23:58:00    45
+    2000-10-02 00:15:00    45
+    Freq: 17min, dtype: int64
 
 If needed you can adjust the bins with the argument ``offset`` (a :class:`Timedelta`) that would be added to the default ``origin``.
 
@@ -365,14 +537,15 @@ This restores the behavior of :meth:`MultiIndex.get_indexer` with ``method='back
 
 As an example of this, given:
 
-.. ipython:: python
+.. code-block:: pycon
 
-        df = pd.DataFrame({
-            'a': [0, 0, 0, 0],
-            'b': [0, 2, 3, 4],
-            'c': ['A', 'B', 'C', 'D'],
-        }).set_index(['a', 'b'])
-        mi_2 = pd.MultiIndex.from_product([[0], [-1, 0, 1, 3, 4, 5]])
+        >>> df = pd.DataFrame({
+        ...     'a': [0, 0, 0, 0],
+        ...     'b': [0, 2, 3, 4],
+        ...     'c': ['A', 'B', 'C', 'D'],
+        ... }).set_index(['a', 'b'])
+
+        >>> mi_2 = pd.MultiIndex.from_product([[0], [-1, 0, 1, 3, 4, 5]])
 
 The differences in reindexing ``df`` with ``mi_2`` and using ``method='backfill'`` can be seen here:
 
@@ -392,9 +565,16 @@ The differences in reindexing ``df`` with ``mi_2`` and using ``method='backfill'
 
 *pandas <0.23, >= 1.1.0*
 
-.. ipython:: python
+.. code-block:: pycon
 
-        df.reindex(mi_2, method='backfill')
+        >>> df.reindex(mi_2, method='backfill')
+                c
+        0 -1    A
+           0    A
+           1    B
+           3    C
+           4    D
+           5  NaN
 
 And the differences in reindexing ``df`` with ``mi_2`` and using ``method='pad'`` can be seen here:
 
@@ -414,9 +594,16 @@ And the differences in reindexing ``df`` with ``mi_2`` and using ``method='pad'`
 
 *pandas < 0.23, >= 1.1.0*
 
-.. ipython:: python
+.. code-block:: pycon
 
-        df.reindex(mi_2, method='pad')
+        >>> df.reindex(mi_2, method='pad')
+                c
+        0 -1  NaN
+           0    A
+           1    A
+           3    C
+           4    D
+           5    D
 
 .. _whatsnew_110.notable_bug_fixes.indexing_raises_key_errors:
 
@@ -427,10 +614,11 @@ Label lookups ``series[key]``, ``series.loc[key]`` and ``frame.loc[key]``
 used to raise either ``KeyError`` or ``TypeError`` depending on the type of
 key and type of :class:`Index`.  These now consistently raise ``KeyError`` (:issue:`31867`)
 
-.. ipython:: python
+.. code-block:: pycon
 
-    ser1 = pd.Series(range(3), index=[0, 1, 2])
-    ser2 = pd.Series(range(3), index=pd.date_range("2020-02-01", periods=3))
+    >>> ser1 = pd.Series(range(3), index=[0, 1, 2])
+
+    >>> ser2 = pd.Series(range(3), index=pd.date_range("2020-02-01", periods=3))
 
 *Previous behavior*:
 
@@ -499,12 +687,15 @@ Indexing with integers with a :class:`MultiIndex` that has an integer-dtype
 first level incorrectly failed to raise ``KeyError`` when one or more of
 those integer keys is not present in the first level of the index (:issue:`33539`)
 
-.. ipython:: python
+.. code-block:: pycon
 
-    idx = pd.Index(range(4))
-    dti = pd.date_range("2000-01-03", periods=3)
-    mi = pd.MultiIndex.from_product([idx, dti])
-    ser = pd.Series(range(len(mi)), index=mi)
+    >>> idx = pd.Index(range(4))
+
+    >>> dti = pd.date_range("2000-01-03", periods=3)
+
+    >>> mi = pd.MultiIndex.from_product([idx, dti])
+
+    >>> ser = pd.Series(range(len(mi)), index=mi)
 
 *Previous behavior*:
 
@@ -525,14 +716,23 @@ those integer keys is not present in the first level of the index (:issue:`33539
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 :meth:`DataFrame.merge` now preserves the right frame's row order when executing a right merge (:issue:`27453`)
 
-.. ipython:: python
+.. code-block:: pycon
 
-    left_df = pd.DataFrame({'animal': ['dog', 'pig'],
-                           'max_speed': [40, 11]})
-    right_df = pd.DataFrame({'animal': ['quetzal', 'pig'],
-                            'max_speed': [80, 11]})
-    left_df
-    right_df
+    >>> left_df = pd.DataFrame({'animal': ['dog', 'pig'],
+    ...                        'max_speed': [40, 11]})
+
+    >>> right_df = pd.DataFrame({'animal': ['quetzal', 'pig'],
+    ...                         'max_speed': [80, 11]})
+
+    >>> left_df
+      animal  max_speed
+    0    dog         40
+    1    pig         11
+
+    >>> right_df
+        animal  max_speed
+    0  quetzal         80
+    1      pig         11
 
 *Previous behavior*:
 
@@ -545,9 +745,12 @@ those integer keys is not present in the first level of the index (:issue:`33539
 
 *New behavior*:
 
-.. ipython:: python
+.. code-block:: pycon
 
-    left_df.merge(right_df, on=['animal', 'max_speed'], how="right")
+    >>> left_df.merge(right_df, on=['animal', 'max_speed'], how="right")
+        animal  max_speed
+    0  quetzal         80
+    1      pig         11
 
 .. ---------------------------------------------------------------------------
 
@@ -558,10 +761,15 @@ Assignment to multiple columns of a DataFrame when some columns do not exist
 
 Assignment to multiple columns of a :class:`DataFrame` when some of the columns do not exist would previously assign the values to the last column. Now, new columns will be constructed with the right values. (:issue:`13658`)
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df = pd.DataFrame({'a': [0, 1, 2], 'b': [3, 4, 5]})
-   df
+   >>> df = pd.DataFrame({'a': [0, 1, 2], 'b': [3, 4, 5]})
+
+   >>> df
+      a  b
+   0  0  3
+   1  1  4
+   2  2  5
 
 *Previous behavior*:
 
@@ -577,10 +785,15 @@ Assignment to multiple columns of a :class:`DataFrame` when some of the columns 
 
 *New behavior*:
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df[['a', 'c']] = 1
-   df
+   >>> df[['a', 'c']] = 1
+
+   >>> df
+      a  b  c
+   0  1  3  1
+   1  1  4  1
+   2  1  5  1
 
 .. _whatsnew_110.notable_bug_fixes.groupby_consistency:
 
@@ -589,10 +802,16 @@ Consistency across groupby reductions
 
 Using :meth:`DataFrame.groupby` with ``as_index=True`` and the aggregation ``nunique`` would include the grouping column(s) in the columns of the result. Now the grouping column(s) only appear in the index, consistent with other reductions. (:issue:`32579`)
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df = pd.DataFrame({"a": ["x", "x", "y", "y"], "b": [1, 1, 2, 3]})
-   df
+   >>> df = pd.DataFrame({"a": ["x", "x", "y", "y"], "b": [1, 1, 2, 3]})
+
+   >>> df
+      a  b
+   0  x  1
+   1  x  1
+   2  y  2
+   3  y  3
 
 *Previous behavior*:
 
@@ -607,9 +826,13 @@ Using :meth:`DataFrame.groupby` with ``as_index=True`` and the aggregation ``nun
 
 *New behavior*:
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df.groupby("a", as_index=True).nunique()
+   >>> df.groupby("a", as_index=True).nunique()
+      b
+   a
+   x  1
+   y  2
 
 Using :meth:`DataFrame.groupby` with ``as_index=False`` and the function ``idxmax``, ``idxmin``, ``mad``, ``nunique``, ``sem``, ``skew``, or ``std`` would modify the grouping column. Now the grouping column remains unchanged, consistent with other reductions. (:issue:`21090`, :issue:`10355`)
 
@@ -625,9 +848,12 @@ Using :meth:`DataFrame.groupby` with ``as_index=False`` and the function ``idxma
 
 *New behavior*:
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df.groupby("a", as_index=False).nunique()
+   >>> df.groupby("a", as_index=False).nunique()
+      a  b
+   0  x  1
+   1  y  2
 
 The method :meth:`.DataFrameGroupBy.size` would previously ignore ``as_index=False``. Now the grouping columns are returned as columns, making the result a :class:`DataFrame` instead of a :class:`Series`. (:issue:`32599`)
 
@@ -644,9 +870,12 @@ The method :meth:`.DataFrameGroupBy.size` would previously ignore ``as_index=Fal
 
 *New behavior*:
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df.groupby("a", as_index=False).size()
+   >>> df.groupby("a", as_index=False).size()
+      a  size
+   0  x     2
+   1  y     2
 
 .. _whatsnew_110.api_breaking.groupby_results_lost_as_index_false:
 
@@ -657,11 +886,19 @@ Previously :meth:`.DataFrameGroupby.agg` lost the result columns, when the ``as_
 set to ``False`` and the result columns were relabeled. In this case the result values were replaced with
 the previous index (:issue:`32240`).
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df = pd.DataFrame({"key": ["x", "y", "z", "x", "y", "z"],
-                      "val": [1.0, 0.8, 2.0, 3.0, 3.6, 0.75]})
-   df
+   >>> df = pd.DataFrame({"key": ["x", "y", "z", "x", "y", "z"],
+   ...                    "val": [1.0, 0.8, 2.0, 3.0, 3.6, 0.75]})
+
+   >>> df
+     key   val
+   0   x  1.00
+   1   y  0.80
+   2   z  2.00
+   3   x  3.00
+   4   y  3.60
+   5   z  0.75
 
 *Previous behavior*:
 
@@ -678,25 +915,30 @@ the previous index (:issue:`32240`).
 
 *New behavior*:
 
-.. ipython:: python
+.. code-block:: pycon
 
-   grouped = df.groupby("key", as_index=False)
-   result = grouped.agg(min_val=pd.NamedAgg(column="val", aggfunc="min"))
-   result
+   >>> grouped = df.groupby("key", as_index=False)
 
+   >>> result = grouped.agg(min_val=pd.NamedAgg(column="val", aggfunc="min"))
+
+   >>> result
+     key  min_val
+   0   x     1.00
+   1   y     0.80
+   2   z     0.75
 
 .. _whatsnew_110.notable_bug_fixes.apply_applymap_first_once:
 
 apply and applymap on ``DataFrame`` evaluates first row/column only once
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. ipython:: python
+.. code-block:: pycon
 
-    df = pd.DataFrame({'a': [1, 2], 'b': [3, 6]})
+    >>> df = pd.DataFrame({'a': [1, 2], 'b': [3, 6]})
 
-    def func(row):
-        print(row)
-        return row
+    >>> def func(row):
+    ...     print(row)
+    ...     return row
 
 *Previous behavior*:
 
@@ -719,9 +961,18 @@ apply and applymap on ``DataFrame`` evaluates first row/column only once
 
 *New behavior*:
 
-.. ipython:: python
+.. code-block:: pycon
 
-    df.apply(func, axis=1)
+    >>> df.apply(func, axis=1)
+    a    1
+    b    3
+    Name: 0, dtype: int64
+    a    2
+    b    6
+    Name: 1, dtype: int64
+       a  b
+    0  1  3
+    1  2  6
 
 .. _whatsnew_110.api_breaking:
 
@@ -1052,22 +1303,35 @@ MultiIndex
 - :meth:`DataFrame.swaplevels` now raises a ``TypeError`` if the axis is not a :class:`MultiIndex`. Previously an ``AttributeError`` was raised (:issue:`31126`)
 - Bug in :meth:`Dataframe.loc` when used with a :class:`MultiIndex`. The returned values were not in the same order as the given inputs (:issue:`22797`)
 
-.. ipython:: python
+.. code-block:: pycon
 
-        df = pd.DataFrame(np.arange(4),
-                          index=[["a", "a", "b", "b"], [1, 2, 1, 2]])
-        # Rows are now ordered as the requested keys
-        df.loc[(['b', 'a'], [2, 1]), :]
+        >>> df = pd.DataFrame(np.arange(4),
+        ...                   index=[["a", "a", "b", "b"], [1, 2, 1, 2]])
+
+        >>> # Rows are now ordered as the requested keys
+
+        >>> df.loc[(['b', 'a'], [2, 1]), :]
+             0
+        b 2  3
+          1  2
+        a 2  1
+          1  0
 
 - Bug in :meth:`MultiIndex.intersection` was not guaranteed to preserve order when ``sort=False``. (:issue:`31325`)
 - Bug in :meth:`DataFrame.truncate` was dropping :class:`MultiIndex` names. (:issue:`34564`)
 
-.. ipython:: python
+.. code-block:: pycon
 
-        left = pd.MultiIndex.from_arrays([["b", "a"], [2, 1]])
-        right = pd.MultiIndex.from_arrays([["a", "b", "c"], [1, 2, 3]])
-        # Common elements are now guaranteed to be ordered by the left side
-        left.intersection(right, sort=False)
+        >>> left = pd.MultiIndex.from_arrays([["b", "a"], [2, 1]])
+
+        >>> right = pd.MultiIndex.from_arrays([["a", "b", "c"], [1, 2, 3]])
+
+        >>> # Common elements are now guaranteed to be ordered by the left side
+
+        >>> left.intersection(right, sort=False)
+        MultiIndex([('b', 2),
+                    ('a', 1)],
+                   )
 
 - Bug when joining two :class:`MultiIndex` without specifying level with different columns. Return-indexers parameter was ignored. (:issue:`34074`)
 

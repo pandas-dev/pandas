@@ -148,18 +148,25 @@ DataFrame constructor honors ``copy=False`` with dict
 When passing a dictionary to :class:`DataFrame` with ``copy=False``,
 a copy will no longer be made (:issue:`32960`).
 
-.. ipython:: python
+.. code-block:: pycon
 
-    arr = np.array([1, 2, 3])
-    df = pd.DataFrame({"A": arr, "B": arr.copy()}, copy=False)
-    df
+    >>> arr = np.array([1, 2, 3])
+
+    >>> df = pd.DataFrame({"A": arr, "B": arr.copy()}, copy=False)
+
+    >>> df
+       A  B
+    0  1  1
+    1  2  2
+    2  3  3
 
 ``df["A"]`` remains a view on ``arr``:
 
-.. ipython:: python
+.. code-block:: pycon
 
-    arr[0] = 0
-    assert df.iloc[0, 0] == 0
+    >>> arr[0] = 0
+
+    >>> assert df.iloc[0, 0] == 0
 
 The default behavior when not passing ``copy`` will remain unchanged, i.e.
 a copy will be made.
@@ -183,38 +190,64 @@ The PyArrow backed StringArray requires pyarrow 1.0.0 or greater to be installed
    ``string[pyarrow]`` is currently considered experimental. The implementation
    and parts of the API may change without warning.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   pd.Series(['abc', None, 'def'], dtype=pd.StringDtype(storage="pyarrow"))
+   >>> pd.Series(['abc', None, 'def'], dtype=pd.StringDtype(storage="pyarrow"))
+   0     abc
+   1    <NA>
+   2     def
+   dtype: string
 
 You can use the alias ``"string[pyarrow]"`` as well.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   s = pd.Series(['abc', None, 'def'], dtype="string[pyarrow]")
-   s
+   >>> s = pd.Series(['abc', None, 'def'], dtype="string[pyarrow]")
+
+   >>> s
+   0     abc
+   1    <NA>
+   2     def
+   dtype: string
 
 You can also create a PyArrow backed string array using pandas options.
 
-.. ipython:: python
+.. code-block:: pycon
 
-    with pd.option_context("string_storage", "pyarrow"):
-        s = pd.Series(['abc', None, 'def'], dtype="string")
-    s
+    >>> with pd.option_context("string_storage", "pyarrow"):
+    ...     s = pd.Series(['abc', None, 'def'], dtype="string")
+
+    >>> s
+    0     abc
+    1    <NA>
+    2     def
+    dtype: string
 
 The usual string accessor methods work. Where appropriate, the return type of the Series
 or columns of a DataFrame will also have string dtype.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   s.str.upper()
-   s.str.split('b', expand=True).dtypes
+   >>> s.str.upper()
+   0     ABC
+   1    <NA>
+   2     DEF
+   dtype: string
+
+   >>> s.str.split('b', expand=True).dtypes
+   0    string
+   1    string
+   dtype: object
 
 String accessor methods returning integers will return a value with :class:`Int64Dtype`
 
-.. ipython:: python
+.. code-block:: pycon
 
-   s.str.count("a")
+   >>> s.str.count("a")
+   0       1
+   1    <NA>
+   2       0
+   dtype: Int64
 
 .. _whatsnew_130.enhancements.centered_datetimelike_rolling_window:
 
@@ -226,14 +259,27 @@ objects with a datetime-like index, a centered datetime-like window can now be
 used (:issue:`38780`).
 For example:
 
-.. ipython:: python
+.. code-block:: pycon
 
-    df = pd.DataFrame(
-        {"A": [0, 1, 2, 3, 4]}, index=pd.date_range("2020", periods=5, freq="1D")
-    )
-    df
-    df.rolling("2D", center=True).mean()
+    >>> df = pd.DataFrame(
+    ...     {"A": [0, 1, 2, 3, 4]}, index=pd.date_range("2020", periods=5, freq="1D")
+    ... )
 
+    >>> df
+                A
+    2020-01-01  0
+    2020-01-02  1
+    2020-01-03  2
+    2020-01-04  3
+    2020-01-05  4
+
+    >>> df.rolling("2D", center=True).mean()
+                  A
+    2020-01-01  0.5
+    2020-01-02  1.5
+    2020-01-03  2.5
+    2020-01-04  3.5
+    2020-01-05  4.0
 
 .. _whatsnew_130.enhancements.other:
 
@@ -300,12 +346,15 @@ original (:issue:`18291`)
 
 As an example of this, given:
 
-.. ipython:: python
+.. code-block:: pycon
 
-        dtype = pd.CategoricalDtype(['bad', 'neutral', 'good'], ordered=True)
-        cat = pd.Categorical(['good', 'good', 'bad', 'bad'], dtype=dtype)
-        original = pd.Series(cat)
-        unique = original.unique()
+        >>> dtype = pd.CategoricalDtype(['bad', 'neutral', 'good'], ordered=True)
+
+        >>> cat = pd.Categorical(['good', 'good', 'bad', 'bad'], dtype=dtype)
+
+        >>> original = pd.Series(cat)
+
+        >>> unique = original.unique()
 
 *Previous behavior*:
 
@@ -319,10 +368,14 @@ As an example of this, given:
 
 *New behavior*:
 
-.. ipython:: python
+.. code-block:: pycon
 
-        unique
-        original.dtype == unique.dtype
+        >>> unique
+        ['good', 'bad']
+        Categories (3, str): ['bad' < 'neutral' < 'good']
+
+        >>> original.dtype == unique.dtype
+        True
 
 .. _whatsnew_130.notable_bug_fixes.combine_first_preserves_dtype:
 
@@ -331,13 +384,25 @@ Preserve dtypes in :meth:`DataFrame.combine_first`
 
 :meth:`DataFrame.combine_first` will now preserve dtypes (:issue:`7509`)
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df1 = pd.DataFrame({"A": [1, 2, 3], "B": [1, 2, 3]}, index=[0, 1, 2])
-   df1
-   df2 = pd.DataFrame({"B": [4, 5, 6], "C": [1, 2, 3]}, index=[2, 3, 4])
-   df2
-   combined = df1.combine_first(df2)
+   >>> df1 = pd.DataFrame({"A": [1, 2, 3], "B": [1, 2, 3]}, index=[0, 1, 2])
+
+   >>> df1
+      A  B
+   0  1  1
+   1  2  2
+   2  3  3
+
+   >>> df2 = pd.DataFrame({"B": [4, 5, 6], "C": [1, 2, 3]}, index=[2, 3, 4])
+
+   >>> df2
+      B  C
+   2  4  1
+   3  5  2
+   4  6  3
+
+   >>> combined = df1.combine_first(df2)
 
 *Previous behavior*:
 
@@ -352,9 +417,13 @@ Preserve dtypes in :meth:`DataFrame.combine_first`
 
 *New behavior*:
 
-.. ipython:: python
+.. code-block:: pycon
 
-   combined.dtypes
+   >>> combined.dtypes
+   A    float64
+   B      int64
+   C    float64
+   dtype: object
 
 .. _whatsnew_130.notable_bug_fixes.groupby_preserves_dtype:
 
@@ -368,10 +437,14 @@ is callable, possibly leading to undesirable results (:issue:`21240`). The cast 
 occur if the result is numeric and casting back to the input dtype does not change any
 values as measured by ``np.allclose``. Now no such casting occurs.
 
-.. ipython:: python
+.. code-block:: pycon
 
-    df = pd.DataFrame({'key': [1, 1], 'a': [True, False], 'b': [True, True]})
-    df
+    >>> df = pd.DataFrame({'key': [1, 1], 'a': [True, False], 'b': [True, True]})
+
+    >>> df
+       key      a     b
+    0    1   True  True
+    1    1  False  True
 
 *Previous behavior*:
 
@@ -385,9 +458,12 @@ values as measured by ``np.allclose``. Now no such casting occurs.
 
 *New behavior*:
 
-.. ipython:: python
+.. code-block:: pycon
 
-    df.groupby('key').agg(lambda x: x.sum())
+    >>> df.groupby('key').agg(lambda x: x.sum())
+         a  b
+    key
+    1    1  2
 
 .. _whatsnew_130.notable_bug_fixes.groupby_reductions_float_result:
 
@@ -397,9 +473,9 @@ values as measured by ``np.allclose``. Now no such casting occurs.
 Previously, these methods could result in different dtypes depending on the input values.
 Now, these methods will always return a float dtype. (:issue:`41137`)
 
-.. ipython:: python
+.. code-block:: pycon
 
-    df = pd.DataFrame({'a': [True], 'b': [1], 'c': [1.0]})
+    >>> df = pd.DataFrame({'a': [True], 'b': [1], 'c': [1.0]})
 
 *Previous behavior*:
 
@@ -412,9 +488,11 @@ Now, these methods will always return a float dtype. (:issue:`41137`)
 
 *New behavior*:
 
-.. ipython:: python
+.. code-block:: pycon
 
-    df.groupby(df.index).mean()
+    >>> df.groupby(df.index).mean()
+         a    b    c
+    0  1.0  1.0  1.0
 
 .. _whatsnew_130.notable_bug_fixes.setitem_column_try_inplace:
 
@@ -424,12 +502,15 @@ Try operating inplace when setting values with ``loc`` and ``iloc``
 When setting an entire column using ``loc`` or ``iloc``, pandas will try to
 insert the values into the existing data rather than create an entirely new array.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df = pd.DataFrame(range(3), columns=["A"], dtype="float64")
-   values = df.values
-   new = np.array([5, 6, 7], dtype="int64")
-   df.loc[[0, 1, 2], "A"] = new
+   >>> df = pd.DataFrame(range(3), columns=["A"], dtype="float64")
+
+   >>> values = df.values
+
+   >>> new = np.array([5, 6, 7], dtype="int64")
+
+   >>> df.loc[[0, 1, 2], "A"] = new
 
 In both the new and old behavior, the data in ``values`` is overwritten, but in
 the old behavior the dtype of ``df["A"]`` changed to ``int64``.
@@ -451,12 +532,17 @@ In pandas 1.3.0, ``df`` continues to share data with ``values``
 
 *New behavior*:
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df.dtypes
-   np.shares_memory(df["A"], new)
-   np.shares_memory(df["A"], values)
+   >>> df.dtypes
+   A    float64
+   dtype: object
 
+   >>> np.shares_memory(df["A"], new)
+   False
+
+   >>> np.shares_memory(df["A"], values)
+   True
 
 .. _whatsnew_130.notable_bug_fixes.setitem_never_inplace:
 
@@ -468,10 +554,11 @@ replace pre-existing arrays for these keys, which will *not* be over-written
 (:issue:`39510`).  As a result, the columns will retain the dtype(s) of ``values``,
 never casting to the dtypes of the existing arrays.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df = pd.DataFrame(range(3), columns=["A"], dtype="float64")
-   df[["A"]] = 5
+   >>> df = pd.DataFrame(range(3), columns=["A"], dtype="float64")
+
+   >>> df[["A"]] = 5
 
 In the old behavior, ``5`` was cast to ``float64`` and inserted into the existing
 array backing ``df``:
@@ -488,10 +575,11 @@ In the new behavior, we get a new array, and retain an integer-dtyped ``5``:
 
 *New behavior*:
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df.dtypes
-
+   >>> df.dtypes
+   A    int64
+   dtype: object
 
 .. _whatsnew_130.notable_bug_fixes.setitem_with_bool_casting:
 
@@ -554,10 +642,16 @@ DataFrameGroupBy.rolling and SeriesGroupBy.rolling no longer return grouped-by c
 The group-by column will now be dropped from the result of a
 ``groupby.rolling`` operation (:issue:`32262`)
 
-.. ipython:: python
+.. code-block:: pycon
 
-    df = pd.DataFrame({"A": [1, 1, 2, 3], "B": [0, 1, 2, 3]})
-    df
+    >>> df = pd.DataFrame({"A": [1, 1, 2, 3], "B": [0, 1, 2, 3]})
+
+    >>> df
+       A  B
+    0  1  0
+    1  1  1
+    2  2  2
+    3  3  3
 
 *Previous behavior*:
 
@@ -574,9 +668,15 @@ The group-by column will now be dropped from the result of a
 
 *New behavior*:
 
-.. ipython:: python
+.. code-block:: pycon
 
-    df.groupby("A").rolling(2).sum()
+    >>> df.groupby("A").rolling(2).sum()
+           B
+    A
+    1 0  NaN
+      1  1.0
+    2 2  NaN
+    3 3  NaN
 
 .. _whatsnew_130.notable_bug_fixes.rolling_var_precision:
 
@@ -589,10 +689,16 @@ zero (:issue:`37051`, :issue:`40448`, :issue:`39872`).
 
 However, floating point artifacts may now exist in the results when rolling over larger values.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   s = pd.Series([7, 5, 5, 5])
-   s.rolling(3).var()
+   >>> s = pd.Series([7, 5, 5, 5])
+
+   >>> s.rolling(3).var()
+   0         NaN
+   1         NaN
+   2    1.333333
+   3    0.000000
+   dtype: float64
 
 .. _whatsnew_130.notable_bug_fixes.rolling_groupby_multiindex:
 
@@ -604,11 +710,16 @@ with a :class:`MultiIndex` in the result. This can lead to a perceived duplicati
 :class:`MultiIndex`, but this change restores the behavior that was present in version 1.1.3 (:issue:`38787`, :issue:`38523`).
 
 
-.. ipython:: python
+.. code-block:: pycon
 
-   index = pd.MultiIndex.from_tuples([('idx1', 'idx2')], names=['label1', 'label2'])
-   df = pd.DataFrame({'a': [1], 'b': [2]}, index=index)
-   df
+   >>> index = pd.MultiIndex.from_tuples([('idx1', 'idx2')], names=['label1', 'label2'])
+
+   >>> df = pd.DataFrame({'a': [1], 'b': [2]}, index=index)
+
+   >>> df
+                  a  b
+   label1 label2
+   idx1   idx2    1  2
 
 *Previous behavior*:
 
@@ -622,10 +733,12 @@ with a :class:`MultiIndex` in the result. This can lead to a perceived duplicati
 
 *New behavior*:
 
-.. ipython:: python
+.. code-block:: pycon
 
-    df.groupby('label1').rolling(1).sum()
-
+    >>> df.groupby('label1').rolling(1).sum()
+                            a    b
+    label1 label1 label2
+    idx1   idx1   idx2    1.0  2.0
 
 .. ---------------------------------------------------------------------------
 
@@ -749,10 +862,16 @@ and users will need to select only valid columns before calling the function.
 
 For example:
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df = pd.DataFrame({"A": [1, 2, 3, 4], "B": pd.date_range("2016-01-01", periods=4)})
-   df
+   >>> df = pd.DataFrame({"A": [1, 2, 3, 4], "B": pd.date_range("2016-01-01", periods=4)})
+
+   >>> df
+      A          B
+   0  1 2016-01-01
+   1  2 2016-01-02
+   2  3 2016-01-03
+   3  4 2016-01-04
 
 *Old behavior*:
 
@@ -788,10 +907,11 @@ the function.
 
 For example:
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df = pd.DataFrame({"A": [1, 2, 3, 4], "B": pd.date_range("2016-01-01", periods=4)})
-   gb = df.groupby([1, 1, 2, 2])
+   >>> df = pd.DataFrame({"A": [1, 2, 3, 4], "B": pd.date_range("2016-01-01", periods=4)})
+
+   >>> gb = df.groupby([1, 1, 2, 2])
 
 *Old behavior*:
 
