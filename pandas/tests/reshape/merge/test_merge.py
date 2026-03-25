@@ -1830,8 +1830,7 @@ class TestMergeDtypes:
         )
         df2_copy = df2.copy()
         # GH#32306 - both sides have NA in join key
-        warn = Pandas4Warning if string_dtype == "U" else None
-        with tm.assert_produces_warning(warn, match="NA values"):
+        with tm.assert_produces_warning(Pandas4Warning, match="NA values"):
             merged = merge(left=df1, right=df2, on=[("lvl0", "lvl1-a")], how=join_type)
 
         # No change in df1 and df2

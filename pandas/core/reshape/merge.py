@@ -2977,13 +2977,13 @@ def _factorize_keys(
     # GH#32306 - check if both sides have NAs. If so, skip the hash join
     # path so that the deprecation warning is emitted from the main path below.
     if lk_mask is not None and rk_mask is not None:
-        _both_have_na = lk_mask.any() and rk_mask.any()
+        _both_have_na = bool(lk_mask.any() and rk_mask.any())
     elif lk_mask is not None:
         _both_have_na = False
     elif rk_mask is not None:
         _both_have_na = False
     elif lk.dtype.kind == "f":
-        _both_have_na = np.isnan(lk_data).any() and np.isnan(rk_data).any()
+        _both_have_na = bool(np.isnan(lk_data).any() and np.isnan(rk_data).any())
     else:
         _both_have_na = False
 
