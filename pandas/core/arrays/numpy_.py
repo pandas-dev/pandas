@@ -211,9 +211,9 @@ class NumpyExtensionArray(
             or (lkind == rkind == "c")
         ):
             result = maybe_downcast_to_dtype(result, self.dtype.numpy_dtype)
-        elif rkind == "M":
+        elif rkind in "Mm":
             # Ensure potential subsequent .astype(object) doesn't incorrectly
-            #  convert Timestamps to ints
+            #  convert Timestamps/Timedeltas to ints
             from pandas import array as pd_array
 
             result = pd_array(result, copy=False)
