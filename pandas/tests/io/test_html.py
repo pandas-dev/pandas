@@ -1667,3 +1667,15 @@ class TestReadHtml:
         result = flavor_read_html(StringIO(data))[0]
         expected = DataFrame(data=[["A1", "B1"], ["A2", "B2"]], columns=["A", "B"])
         tm.assert_frame_equal(result, expected)
+
+    def test_read_html_comma_separated_digit_groups(self, flavor_read_html):
+        # GH#52619 - ensure read_html doesn't suffer from catastrophic
+        # backtracking when cells contain comma-separated digit groups
+        # followed by non-numeric text.
+        data = """<table>
+            <tr><th>Codes</th></tr>
+            <tr><td>41651,65125,17328,02872,49459,79208,ABCDE</td></tr>
+        </table>"""
+        result = flavor_read_html(StringIO(data))[0]
+        expected = DataFrame({"Codes": ["41651,65125,17328,02872,49459,79208,ABCDE"]})
+        tm.assert_frame_equal(result, expected)

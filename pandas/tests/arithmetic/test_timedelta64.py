@@ -2329,3 +2329,15 @@ def test_add_timestamp_to_timedelta():
         ]
     )
     tm.assert_index_equal(result, expected)
+
+
+def test_timedelta_scalar_numeric_series_resolution():
+    # GH#59656 - arithmetic between datetime.timedelta scalar and numeric
+    # Series should produce timedelta64[us], consistent with
+    # pd.Timedelta(datetime.timedelta(...)).unit
+    delta = timedelta(days=1)
+    result = delta * Series([1])
+    assert result.dtype == np.dtype("timedelta64[us]")
+
+    result = Series([1]) * delta
+    assert result.dtype == np.dtype("timedelta64[us]")

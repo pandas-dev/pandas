@@ -4282,6 +4282,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 # so just return them (GH 6394)
                 return self._values[loc]
 
+            if not drop_level and isinstance(index, MultiIndex):
+                # GH#6507 - honor drop_level=False for fully specified keys
+                result = self.iloc[loc : loc + 1]
+                result.index = new_index
+                return result
+
             new_mgr = self._mgr.fast_xs(loc)
 
             result = self._constructor_sliced_from_mgr(new_mgr, axes=new_mgr.axes)
@@ -6172,10 +6178,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 # One could make the deepcopy unconditionally, but a deepcopy
                 # of an empty dict is 50x more expensive than the empty check.
                 self.attrs = deepcopy(other.attrs)
-            self.flags.allows_duplicate_labels = (
-                self.flags.allows_duplicate_labels
-                and other.flags.allows_duplicate_labels
-            )
+            # Since new objects always start with allows_duplicate_labels=True,
+            # we only need to act when other has it set to False.
+            if not other._flags._allows_duplicate_labels:
+                self.flags.allows_duplicate_labels = False
             # For subclasses using _metadata.
             for name in set(self._metadata) & set(other._metadata):
                 assert isinstance(name, str)
@@ -6191,8 +6197,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 if have_same_attrs:
                     self.attrs = deepcopy(attrs)
 
-            allows_duplicate_labels = all(x.flags.allows_duplicate_labels for x in objs)
-            self.flags.allows_duplicate_labels = allows_duplicate_labels
+            if not all(x._flags._allows_duplicate_labels for x in objs):
+                self.flags.allows_duplicate_labels = False
 
         return self
 
@@ -6363,7 +6369,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         dtype: object
         """
         data = self._mgr.get_dtypes()
-        return self._constructor_sliced(data, index=self._info_axis, dtype=np.object_)
+        # copy=False is safe because get_dtypes() returns a new array
+        return self._constructor_sliced(
+            data, index=self._info_axis, dtype=np.object_, copy=False
+        )
 
     @final
     def astype(
@@ -10022,11 +10031,19 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if isinstance(cond, NDFrame):
             # CoW: Make sure reference is not kept alive
             if cond.ndim == 1 and self.ndim == 2:
-                cond = cond._constructor_expanddim(
-                    dict.fromkeys(range(len(self.columns)), cond),
-                    copy=False,
-                )
-                cond.columns = self.columns
+                if axis == 1:
+                    # GH#58190 broadcast cond along columns
+                    cond = cond._constructor_expanddim(
+                        dict.fromkeys(range(len(self)), cond),
+                        copy=False,
+                    ).T
+                    cond.index = self.index
+                else:
+                    cond = cond._constructor_expanddim(
+                        dict.fromkeys(range(len(self.columns)), cond),
+                        copy=False,
+                    )
+                    cond.columns = self.columns
             cond = cond.align(self, join="right")[0]
         else:
             if not hasattr(cond, "shape"):
@@ -10148,10 +10165,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if axis is None:
             axis = 0
 
-        if self.ndim == getattr(other, "ndim", 0):
+        other_ndim = getattr(other, "ndim", 0)
+        if self.ndim == other_ndim:
             align = True
         else:
-            align = self._get_axis_number(axis) == 1
+            # GH#58190 scalar other (ndim=0) should never be aligned
+            align = other_ndim >= 1 and self._get_axis_number(axis) == 1
 
         if inplace:
             # we may have different type blocks come out of putmask, so

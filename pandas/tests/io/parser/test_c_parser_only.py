@@ -590,6 +590,22 @@ def test_file_binary_mode(c_parser_only, temp_file):
         tm.assert_frame_equal(result, expected)
 
 
+def test_binary_file_handle_avoids_text_wrapping(c_parser_only):
+    # GH#46823 - binary file-like objects should not be wrapped in
+    # TextIOWrapper when using the C engine, as the small internal buffer
+    # causes many small reads that are very slow for remote filesystems.
+    parser = c_parser_only
+    data = BytesIO(b"a,b\n1,2\n3,4\n")
+    result = parser.read_csv(data)
+    expected = DataFrame({"a": [1, 3], "b": [2, 4]})
+    tm.assert_frame_equal(result, expected)
+
+    # Verify the handle was not wrapped in TextIOWrapper
+    data = BytesIO(b"a,b\n1,2\n3,4\n")
+    with parser.read_csv(data, chunksize=2) as reader:
+        assert not isinstance(reader.handles.handle, TextIOWrapper)
+
+
 def test_unix_style_breaks(c_parser_only, temp_file):
     # GH 11020
     parser = c_parser_only
