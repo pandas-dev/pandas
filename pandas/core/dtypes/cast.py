@@ -1749,7 +1749,7 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                     if isinstance(element, (ABCIndex, ABCSeries))
                     else element
                 )
-                if arr._hasna:
+                if arr._hasna:  # type: ignore[union-attr]
                     raise LossySetitemError
                 return element
 
@@ -1789,7 +1789,7 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                     if isinstance(element, (ABCIndex, ABCSeries))
                     else element
                 )
-                if arr._hasna:
+                if arr._hasna:  # type: ignore[union-attr]
                     raise LossySetitemError
                 return element
             elif tipo.itemsize > dtype.itemsize or tipo.kind != dtype.kind:
@@ -1834,7 +1834,7 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                         if isinstance(element, (ABCIndex, ABCSeries))
                         else element
                     )
-                    if arr._hasna:
+                    if arr._hasna:  # type: ignore[union-attr]
                         # i.e. there are pd.NA elements
                         raise LossySetitemError
                 return element
