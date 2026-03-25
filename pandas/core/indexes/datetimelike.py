@@ -38,7 +38,16 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 from pandas._libs.tslibs.dtypes import abbrev_to_npy_unit
-from pandas._libs.tslibs.offsets import FY5253Mixin
+from pandas._libs.tslibs.offsets import (
+    FY5253Mixin,
+    HalfYearOffset,
+    MonthOffset,
+    QuarterOffset,
+    RelativeDeltaOffset,
+    SemiMonthOffset,
+    Week,
+    YearOffset,
+)
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
     InvalidIndexError,
@@ -678,15 +687,6 @@ def _base_freq_ordinal_diff(
     freq : BaseOffset
         The frequency whose base period defines the ordinal grid.
     """
-    from pandas._libs.tslibs.offsets import (
-        HalfYearOffset,
-        MonthOffset,
-        QuarterOffset,
-        SemiMonthOffset,
-        Week,
-        YearOffset,
-    )
-
     if isinstance(freq, MonthOffset):
         return (ts_left.year * 12 + ts_left.month) - (
             ts_right.year * 12 + ts_right.month
@@ -701,9 +701,9 @@ def _base_freq_ordinal_diff(
         )
     elif isinstance(freq, YearOffset):
         return ts_left.year - ts_right.year
-    elif isinstance(freq, Week) and freq.weekday is not None:
-        # Both timestamps are on the same weekday, so their toordinal()
-        # difference is a multiple of 7.
+    elif isinstance(freq, Week):
+        # toordinal() difference is always a multiple of 7 when both
+        # timestamps are on the same phase.
         return (ts_left.toordinal() - ts_right.toordinal()) // 7
     elif isinstance(freq, SemiMonthOffset):
         half_left = 1 if ts_left.day > freq.day_of_month else 0
@@ -1191,17 +1191,9 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             # Because freq is not None, we must then be monotonic decreasing
             return False
 
-        # GH#44025 DateOffset (RelativeDeltaOffset) and Week(weekday=None) are
-        #  unanchored: the set of generated dates depends on the starting
-        #  point, so matching freq alone doesn't guarantee alignment.
-        from pandas._libs.tslibs.offsets import (
-            RelativeDeltaOffset,
-            Week,
-        )
-
+        # GH#44025 DateOffset (RelativeDeltaOffset) has no fixed stride,
+        #  so matching freq alone doesn't guarantee alignment.
         if isinstance(self.freq, RelativeDeltaOffset):
-            return False
-        if isinstance(self.freq, Week) and self.freq.weekday is None:
             return False
 
         # Note we are assuming away Ticks, as those go through _range_intersect.
@@ -1219,6 +1211,12 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             if left_start - left_start.normalize() != (
                 right_start - right_start.normalize()
             ):
+                return False
+
+        # GH#44025 Week(weekday=None) generates dates that depend on the
+        #  start date: check that both indexes fall on the same day-of-week.
+        if isinstance(freq, Week) and freq.weekday is None:
+            if (left_start.toordinal() - right_start.toordinal()) % 7 != 0:
                 return False
 
         # GH#42104, GH#44025 For n > 1, verify that both indices are on the

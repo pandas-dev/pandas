@@ -780,12 +780,12 @@ class TestCanFastIntersect:
     matching freq would not "line up", which causes _fast_intersect to
     produce wrong results.  Three categories of misalignment are covered:
 
-    1. Unanchored offsets (DateOffset / Week(weekday=None))
+    1. Variable-stride offsets (DateOffset / Week(weekday=None))
     2. Non-normalizing offsets with different time-of-day
     3. n > 1 phase misalignment
     """
 
-    # --- Unanchored offsets (always return False) ---
+    # --- Variable-stride offsets (always return False) ---
 
     @pytest.mark.parametrize(
         "freq",
@@ -798,7 +798,7 @@ class TestCanFastIntersect:
         ],
     )
     def test_dateoffset_never_fast(self, freq):
-        # GH#44025 DateOffset is unanchored
+        # GH#44025 DateOffset has no fixed stride
         dti1 = date_range("2021-01-01", periods=5, freq=freq)
         dti2 = date_range("2021-01-02", periods=5, freq=freq)
         assert not dti1._can_fast_intersect(dti2)
@@ -806,8 +806,9 @@ class TestCanFastIntersect:
         result = dti1.intersection(dti2)
         assert len(result) == 0
 
-    def test_week_no_weekday_never_fast(self):
-        # GH#44025 Week(weekday=None) is unanchored
+    def test_week_no_weekday_misaligned_not_fast(self):
+        # GH#44025 Week(weekday=None) with different day-of-week means
+        #  the grids don't align so _fast_intersect can't be used.
         freq = pd.offsets.Week()
         assert freq.weekday is None
 
@@ -818,14 +819,12 @@ class TestCanFastIntersect:
         result = dti1.intersection(dti2)
         assert len(result) == 0
 
-    def test_week_no_weekday_same_day_never_fast(self):
-        # GH#44025 Even when both start on the same weekday,
-        # Week(weekday=None) is unanchored so we conservatively
-        # return False.
+    def test_week_no_weekday_aligned_fast(self):
+        # GH#44025 Week(weekday=None) with same day-of-week is fast.
         freq = pd.offsets.Week()
         dti1 = date_range("2021-10-04", periods=5, freq=freq)
         dti2 = date_range("2021-10-18", periods=5, freq=freq)
-        assert not dti1._can_fast_intersect(dti2)
+        assert dti1._can_fast_intersect(dti2)
 
         # Result is still correct via the slow path
         result = dti1.intersection(dti2)
