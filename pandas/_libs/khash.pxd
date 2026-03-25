@@ -134,6 +134,4 @@ cdef khuint_t kh_put_pymap_checked(kh_pymap_t*, PyObject*, int*)
 cdef void kh_del_pymap_checked(kh_pymap_t*, khuint_t)
 cdef bint kh_exist_pymap_checked(kh_pymap_t*, khiter_t)
 
-cdef public bint pandas_is_NA(object o)
-
 include "khash_for_primitive_helper.pxi"
