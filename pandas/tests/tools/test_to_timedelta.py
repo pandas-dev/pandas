@@ -393,6 +393,7 @@ class TestTimedeltas:
         result = to_timedelta(offsets)
         expected = to_timedelta(["1D", "2D"]).as_unit("s")
         tm.assert_index_equal(result, expected)
+        
     def test_float_to_timedelta_raise_oob_ns(self):
         value = np.float64(2**63)
         arr = np.array([value], dtype=np.float64)
