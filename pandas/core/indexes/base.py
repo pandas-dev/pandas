@@ -6603,9 +6603,18 @@ class Index(IndexOpsMixin, PandasObject):
 
         elif self.inferred_type == "date" and isinstance(other, ABCDatetimeIndex):
             try:
-                return type(other)(self), other
+                result = type(other)(self), other
             except OutOfBoundsDatetime:
                 return self, other
+            else:
+                warnings.warn(
+                    # GH#62158 deprecate special-case treatment of date objects
+                    "Indexing a DatetimeIndex with a sequence of datetime.date "
+                    "objects is deprecated. Use Timestamp objects instead.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
+                return result
         elif self.inferred_type == "timedelta" and isinstance(other, ABCTimedeltaIndex):
             # TODO: we dont have tests that get here
             return type(other)(self), other
