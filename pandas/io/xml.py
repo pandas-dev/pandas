@@ -419,7 +419,7 @@ class _XMLFrameParser:
         Raises
         ------
         ValueError
-            * If value is not a list and less then length of nodes.
+            * If value is not a list and less than length of nodes.
         """
         raise AbstractMethodError(self)
 
@@ -959,7 +959,7 @@ def read_xml(
         list of elements or attribute names that are descendants of the repeated
         element. Note: If this option is used, it will replace ``xpath`` parsing
         and unlike ``xpath``, descendants do not need to relate to each other but can
-        exist any where in document under the repeating element. This memory-
+        exist anywhere in document under the repeating element. This memory-
         efficient method should be used for very large XML files (500MB, 1GB, or 5GB+).
         For example, ``{"row_element": ["child_elem", "attr", "grandchild_elem"]}``.
 

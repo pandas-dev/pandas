@@ -282,9 +282,9 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
                 v = np.vectorize(f)
                 d["delta"] = v(delta) // 1_000  # convert back to ms
             if year:
-                year_month = dates.apply(lambda x: 100 * x.year + x.month)
-                d["year"] = year_month._values // 100
-                d["month"] = year_month._values - d["year"] * 100
+                date_index = DatetimeIndex(dates)
+                d["year"] = date_index.year
+                d["month"] = date_index.month
             if days:
 
                 def g(x: datetime) -> int:
@@ -1881,16 +1881,16 @@ the string values returned are correct."""
             fmtlist = []
             lbllist = []
             for col in columns:
-                i = data.columns.get_loc(col)  # type: ignore[no-untyped-call]
+                i = data.columns.get_loc(col)
                 dtyplist.append(self._dtyplist[i])
                 typlist.append(self._typlist[i])
                 fmtlist.append(self._fmtlist[i])
                 lbllist.append(self._lbllist[i])
 
-            self._dtyplist = dtyplist
-            self._typlist = typlist
-            self._fmtlist = fmtlist
-            self._lbllist = lbllist
+            self._dtyplist = dtyplist  # type: ignore[assignment]
+            self._typlist = typlist  # type: ignore[assignment]
+            self._fmtlist = fmtlist  # type: ignore[assignment]
+            self._lbllist = lbllist  # type: ignore[assignment]
             self._column_selector_set = True
 
         return data[columns]

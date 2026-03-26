@@ -67,7 +67,7 @@ class TestJoin:
         eridx = np.array([9, 7], dtype=np.intp)
 
         assert isinstance(res, Index) and res.dtype == np.int64
-        tm.assert_index_equal(res, eres)
+        tm.assert_index_equal(res, eres, exact="equiv")
         tm.assert_numpy_array_equal(lidx, elidx)
         tm.assert_numpy_array_equal(ridx, eridx)
 

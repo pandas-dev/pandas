@@ -9,6 +9,7 @@ from datetime import (
     timedelta,
 )
 
+from dateutil.relativedelta import relativedelta
 import numpy as np
 import pytest
 
@@ -600,6 +601,28 @@ class TestCommon:
 
         tm.assert_index_equal(result, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:Non-vectorized DateOffset being applied to Series or DatetimeIndex"
+    )
+    @pytest.mark.parametrize(
+        "offset_class",
+        [
+            CustomBusinessDay,
+            CustomBusinessMonthBegin,
+            CustomBusinessMonthEnd,
+        ],
+    )
+    @pytest.mark.parametrize("unit", ["s", "ms"])
+    def test_add_dt64_non_nano_with_offset_parameter(self, offset_class, unit):
+        # GH#56586 - sub-unit offset parameter should not be truncated
+        off = offset_class(offset=Timedelta(microseconds=500))
+        dti = date_range("2016-01-01", periods=3, freq="D", unit=unit)
+
+        result = dti + off
+
+        expected = DatetimeIndex([x + off for x in dti], dtype="datetime64[us]")
+        tm.assert_index_equal(result, expected)
+
 
 class TestDateOffset:
     def setup_method(self):
@@ -1101,9 +1124,9 @@ def test_dateoffset_misc():
 
 @pytest.mark.parametrize("n", [-1, 1, 3])
 def test_construct_int_arg_no_kwargs_assumed_days(n):
-    # GH 45890, 45643
+    # GH 45643, 45890, 61862
     offset = DateOffset(n)
-    assert offset._offset == timedelta(1)
+    assert offset._offset == relativedelta(days=1)
     result = Timestamp(2022, 1, 2) + offset
     expected = Timestamp(2022, 1, 2 + n)
     assert result == expected
@@ -1238,6 +1261,15 @@ def test_is_yqm_start_end():
 def test_multiply_dateoffset_typeerror(left, right):
     with pytest.raises(TypeError, match="Cannot multiply"):
         left * right
+
+
+def test_dateoffset_days_vs_n_near_dst_transition():
+    # GH#61862
+    ts = Timestamp("2022-10-30", tz="Europe/Brussels")
+
+    offset_days = ts + offsets.DateOffset(days=1)
+    offset_n = ts + offsets.DateOffset(1)
+    assert offset_days == offset_n
 
 
 @pytest.mark.parametrize("n", [1, 2])

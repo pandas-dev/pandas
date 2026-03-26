@@ -23,7 +23,7 @@ import warnings
 import numpy as np
 
 from pandas._config import using_string_dtype
-from pandas._config.config import get_option
+from pandas._config.config import _global_config
 
 from pandas._libs import (
     algos,
@@ -1386,7 +1386,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             # If both 1D then broadcasting is unambiguous
             return op(self, other[0])
 
-        if get_option("performance_warnings"):
+        if _global_config["mode"]["performance_warnings"]:
             warnings.warn(
                 "Adding/subtracting object-dtype array to "
                 f"{type(self).__name__} not vectorized.",

@@ -2188,3 +2188,17 @@ def test_resample_A_raises(freq):
     s = Series(range(10), index=date_range("20130101", freq="D", periods=10))
     with pytest.raises(ValueError, match=msg):
         s.resample(freq).mean()
+
+
+def test_resample_sum_with_inat_value():
+    # GH#16674 - int64 min value (same as iNaT sentinel) should not
+    # cause incorrect dtype casting during resample aggregation
+    max_int = np.iinfo(np.int64).max
+    min_int = np.iinfo(np.int64).min
+    df = DataFrame(
+        [max_int, min_int],
+        index=[datetime(2013, 1, 1), datetime(2013, 1, 1)],
+    )
+    result = df.resample("MS").apply(np.sum)
+    expected = DataFrame([-1], index=date_range("2013-01-01", periods=1, freq="MS"))
+    tm.assert_frame_equal(result, expected)

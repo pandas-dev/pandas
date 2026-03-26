@@ -3089,6 +3089,9 @@ class Period(_Period):
                     value = "NaT"
 
                 value = str(value)
+            elif type(value) is not str:
+                # GH#48974 np.str_ object
+                value = str(value)
             value = value.upper()
 
             freqstr = freq.rule_code if freq is not None else None
@@ -3144,7 +3147,7 @@ class Period(_Period):
             # GH#53446
             import warnings
 
-            # TODO: Enforce in 3.0 (#53511)
+            # TODO: Enforce in 4.0 (#53511)
             from pandas.util._exceptions import find_stack_level
             warnings.warn(
                 "Period with BDay freq is deprecated and will be removed "

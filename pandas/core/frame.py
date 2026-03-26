@@ -31,7 +31,7 @@ import warnings
 import numpy as np
 from numpy import ma
 
-from pandas._config import get_option
+from pandas._config.config import _global_config
 
 from pandas._libs import (
     algos as libalgos,
@@ -439,7 +439,8 @@ class DataFrame(NDFrame, OpsMixin):
 
     def _constructor_sliced_from_mgr(self, mgr, axes) -> Series:
         ser = Series._from_mgr(mgr, axes)
-        ser._name = None  # caller is responsible for setting real name
+        # Use object.__setattr__ to bypass NDFrame.__setattr__ overhead
+        object.__setattr__(ser, "_name", None)  # caller sets real name
 
         if type(self) is DataFrame:
             # This would also work `if self._constructor_sliced is Series`, but
@@ -883,7 +884,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Check length against max_rows.
         """
-        max_rows = get_option("display.max_rows")
+        max_rows = _global_config["display"]["max_rows"]
         return len(self) <= max_rows
 
     def _repr_fits_horizontal_(self) -> bool:
@@ -892,7 +893,7 @@ class DataFrame(NDFrame, OpsMixin):
         options width and max_columns.
         """
         width, height = console.get_console_size()
-        max_columns = get_option("display.max_columns")
+        max_columns = _global_config["display"]["max_columns"]
         nb_columns = len(self.columns)
 
         # exceed max columns
@@ -906,11 +907,14 @@ class DataFrame(NDFrame, OpsMixin):
         if width is None or not console.in_interactive_session():
             return True
 
-        if get_option("display.width") is not None or console.in_ipython_frontend():
+        if (
+            _global_config["display"]["width"] is not None
+            or console.in_ipython_frontend()
+        ):
             # check at least the column row for excessive width
             max_rows = 1
         else:
-            max_rows = get_option("display.max_rows")
+            max_rows = _global_config["display"]["max_rows"]
 
         # when auto-detecting, so width=None and not in ipython front end
         # check whether repr fits horizontal by actually checking
@@ -937,7 +941,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         True if the repr should show the info view.
         """
-        info_repr_option = get_option("display.large_repr") == "info"
+        info_repr_option = _global_config["display"]["large_repr"] == "info"
         return info_repr_option and not (
             self._repr_fits_horizontal_() and self._repr_fits_vertical_()
         )
@@ -968,12 +972,12 @@ class DataFrame(NDFrame, OpsMixin):
             val = val.replace(">", r"&gt;", 1)
             return f"<pre>{val}</pre>"
 
-        if get_option("display.notebook_repr_html"):
-            max_rows = get_option("display.max_rows")
-            min_rows = get_option("display.min_rows")
-            max_cols = get_option("display.max_columns")
-            show_dimensions = get_option("display.show_dimensions")
-            show_floats = get_option("display.float_format")
+        if _global_config["display"]["notebook_repr_html"]:
+            max_rows = _global_config["display"]["max_rows"]
+            min_rows = _global_config["display"]["min_rows"]
+            max_cols = _global_config["display"]["max_columns"]
+            show_dimensions = _global_config["display"]["show_dimensions"]
+            show_floats = _global_config["display"]["float_format"]
 
             formatter = fmt.DataFrameFormatter(
                 self,
@@ -4155,7 +4159,7 @@ class DataFrame(NDFrame, OpsMixin):
             new_mgr = self._mgr.fast_xs(i)
 
             result = self._constructor_sliced_from_mgr(new_mgr, axes=new_mgr.axes)
-            result._name = self.index[i]
+            object.__setattr__(result, "_name", self.index[i])
             return result.__finalize__(self)
 
         # icol
@@ -4233,7 +4237,7 @@ class DataFrame(NDFrame, OpsMixin):
                 return self._getitem_multilevel(key)
             indexer = self.columns.get_loc(key)
             if is_integer(indexer):
-                indexer = [indexer]
+                indexer = [indexer]  # type: ignore[assignment]
         else:
             if is_iterator(key):
                 key = list(key)
@@ -4241,7 +4245,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         # take() does not accept boolean indexers
         if getattr(indexer, "dtype", None) == bool:
-            indexer = np.where(indexer)[0]
+            indexer = np.where(indexer)[0]  # type: ignore[arg-type, assignment]
 
         if isinstance(indexer, slice):
             return self._slice(indexer, axis=1)
@@ -4673,7 +4677,7 @@ class DataFrame(NDFrame, OpsMixin):
             elif is_scalar(loc):
                 locs = [loc]
             else:
-                locs = loc.nonzero()[0]
+                locs = loc.nonzero()[0]  # type: ignore[union-attr]
 
             return self.isetitem(locs, value)
 
@@ -4763,7 +4767,7 @@ class DataFrame(NDFrame, OpsMixin):
                 iindex = cast("int", index)
             else:
                 icol = self.columns.get_loc(col)
-                iindex = self.index.get_loc(index)
+                iindex = self.index.get_loc(index)  # type: ignore[assignment]
             self._mgr.column_setitem(icol, iindex, value, inplace_only=True)
 
         except (KeyError, TypeError, ValueError, LossySetitemError):
@@ -4816,12 +4820,13 @@ class DataFrame(NDFrame, OpsMixin):
         name = self.columns[loc]
         # We get index=self.index bc values is a SingleBlockManager
         obj = self._constructor_sliced_from_mgr(values, axes=values.axes)
-        obj._name = name
+        # Use object.__setattr__ to bypass NDFrame.__setattr__ overhead
+        object.__setattr__(obj, "_name", name)
         return obj.__finalize__(self)
 
     def _get_item(self, item: Hashable) -> Series:
         loc = self.columns.get_loc(item)
-        return self._ixs(loc, axis=1)
+        return self._ixs(loc, axis=1)  # type: ignore[arg-type]
 
     # ----------------------------------------------------------------------
     # Unsorted
@@ -5837,14 +5842,6 @@ class DataFrame(NDFrame, OpsMixin):
         Comodo Dragon            0           0.00
         IE10                   404           0.08
         Chrome                 200           0.02
-
-        >>> df.reindex(new_index, fill_value="missing")
-                      http_status response_time
-        Safari                404          0.07
-        Iceweasel         missing       missing
-        Comodo Dragon     missing       missing
-        IE10                  404          0.08
-        Chrome                200          0.02
 
         We can also reindex the columns.
 
@@ -7130,13 +7127,13 @@ class DataFrame(NDFrame, OpsMixin):
                 level = [level]
             level = [self.index._get_level_number(lev) for lev in level]
             if len(level) < self.index.nlevels:
-                new_index = self.index.droplevel(level)
+                new_index = self.index.droplevel(level)  # type: ignore[assignment]
 
         if not drop:
             to_insert: Iterable[tuple[Any, Any | None]]
 
             default = "index" if "index" not in self else "level_0"
-            names = self.index._get_default_index_names(names, default)
+            names = self.index._get_default_index_names(names, default)  # type: ignore[arg-type]
 
             if isinstance(self.index, MultiIndex):
                 to_insert = zip(
@@ -7642,7 +7639,7 @@ class DataFrame(NDFrame, OpsMixin):
             if not is_list_like(subset):
                 subset = [cast("Hashable", subset)]
             ax = self._get_axis(agg_axis)
-            indices = ax.get_indexer_for(subset)
+            indices = ax.get_indexer_for(subset)  # type: ignore[arg-type]
             check = indices == -1
             if check.any():
                 raise KeyError(np.array(subset)[check].tolist())
@@ -7653,10 +7650,17 @@ class DataFrame(NDFrame, OpsMixin):
             mask = count >= thresh
         elif how == "any":
             # faster equivalent to 'agg_obj.count(agg_axis) == self.shape[agg_axis]'
-            mask = notna(agg_obj).all(axis=agg_axis, bool_only=False)
+            notna_obj = notna(agg_obj)
+            if agg_axis == 1:
+                # Cast to bool to avoid slow EA groupby fallback (GH#60179)
+                notna_obj = notna_obj.astype(bool)
+            mask = notna_obj.all(axis=agg_axis, bool_only=False)
         elif how == "all":
             # faster equivalent to 'agg_obj.count(agg_axis) > 0'
-            mask = notna(agg_obj).any(axis=agg_axis, bool_only=False)
+            notna_obj = notna(agg_obj)
+            if agg_axis == 1:
+                notna_obj = notna_obj.astype(bool)
+            mask = notna_obj.any(axis=agg_axis, bool_only=False)
         else:
             raise ValueError(f"invalid how option: {how}")
 
@@ -9153,6 +9157,10 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Check if this is an operation between DataFrames that will need to reindex.
         """
+
+        if level is not None:
+            return False
+
         if op is operator.pow or op is roperator.rpow:
             # GH#32685 pow has special semantics for operating with null values
             return False
@@ -9353,12 +9361,15 @@ class DataFrame(NDFrame, OpsMixin):
             rvalues = rvalues.reshape(1, -1)
 
         rvalues = np.broadcast_to(rvalues, self.shape)
-        # pass dtype to avoid doing inference
+        # pass dtype to avoid doing inference.
+        # copy=False is safe because this is a temporary DataFrame used only
+        # as the right operand in blockwise arithmetic.
         return self._constructor(
             rvalues,
             index=self.index,
             columns=self.columns,
             dtype=rvalues.dtype,
+            copy=False,
         ).__finalize__(series)
 
     def _flex_arith_method(
@@ -13366,7 +13377,7 @@ class DataFrame(NDFrame, OpsMixin):
         if ignore_index:
             result.index = default_index(len(result))
         else:
-            result.index = self.index.take(result.index)
+            result.index = self.index.take(result.index)  # type: ignore[arg-type]
         result = result.reindex(columns=self.columns)
 
         return result.__finalize__(self, method="explode")
@@ -17222,7 +17233,7 @@ class DataFrame(NDFrame, OpsMixin):
         dog    2
         mouse  3
         dtype: int64
-        >>> s.kurt()
+        >>> round(s.kurt(), 6)
         1.5
 
         With a DataFrame
@@ -17237,15 +17248,15 @@ class DataFrame(NDFrame, OpsMixin):
           dog  2   4
           dog  2   4
         mouse  3   4
-        >>> df.kurt()
+        >>> round(df.kurt(), 6)
         a   1.5
         b   4.0
         dtype: float64
 
         With axis=None
 
-        >>> df.kurt(axis=None)
-        -0.9886927196984727
+        >>> round(df.kurt(axis=None), 6)
+        -0.988693
 
         Using axis=1
 
