@@ -252,3 +252,24 @@ def test_quantile_empty_datetimelike(typ, unit):
     ser = Series([], dtype=f"{typ}[{unit}]")
     result = ser.quantile()
     assert result is pd.NaT
+
+
+@pytest.mark.parametrize("typ", ["datetime64", "timedelta64"])
+@pytest.mark.parametrize(
+    "interpolation", ["linear", "lower", "higher", "nearest", "midpoint"]
+)
+def test_quantile_datetimelike_ns_precision(typ, interpolation):
+    # GH#49110 - quantile with ns-resolution datetimelike data should not
+    # lose precision due to int64 -> float64 -> int64 round-trip.
+    if typ == "datetime64":
+        values = pd.to_datetime(
+            ["2019-09-05 17:16:30.155681", "2019-09-05 17:16:33.155681"]
+        ).as_unit("ns")
+    else:
+        values = pd.to_timedelta(
+            ["1 days 17:16:30.155681", "1 days 17:16:33.155681"]
+        ).as_unit("ns")
+
+    ser = Series(values)
+    assert ser.quantile(0, interpolation=interpolation) == ser.min()
+    assert ser.quantile(1, interpolation=interpolation) == ser.max()

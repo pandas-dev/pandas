@@ -186,16 +186,32 @@ def _nanquantile(
 
     if values.dtype.kind in "mM":
         # need to cast to integer to avoid rounding errors in numpy
+        i8values = values.view("i8")
+        na_value_i8 = na_value.view("i8")  # type: ignore[union-attr]
+
+        # Subtract the minimum to keep values small enough that float64
+        # can represent them without precision loss (GH#49110).
+        # Without this, ns-resolution values (large i8) lose precision
+        # during the int64 -> float64 -> int64 round-trip in np.quantile.
+        if not mask.all():
+            baseline = np.int64(i8values[~mask].min())
+        else:
+            baseline = np.int64(0)
+
         result = _nanquantile(
-            values.view("i8"),
+            i8values - baseline,
             qs=qs,
-            na_value=na_value.view("i8"),  # type: ignore[union-attr, arg-type]
+            na_value=na_value_i8,  # type: ignore[arg-type]
             mask=mask,
             interpolation=interpolation,
         )
 
-        # Note: we have to do `astype` and not view because in general we
-        #  have float result at this point, not i8
+        # Truncate to int64 before adding the baseline back, so that the
+        # addition stays in integer arithmetic and avoids a second
+        # float64 precision loss.
+        result = result.astype("i8")
+        # Avoid shifting iNaT entries that represent all-masked rows.
+        result = np.where(result == na_value_i8, result, result + baseline)
         return result.astype(values.dtype)
 
     if mask.any():
