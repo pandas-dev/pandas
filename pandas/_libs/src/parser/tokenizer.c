@@ -705,8 +705,15 @@ static int tokenize_bytes(parser_t *self, size_t line_limit,
   // Bit 0 (0x1): breaks scan in an unquoted field.
   // Bit 1 (0x2): breaks scan in a quoted field.
   uint8_t breaks_field_scan[256] = {0};
+  uint8_t index;
 
-  breaks_field_scan[(uint8_t)lineterminator] |= 0x1;
+  // For char-typed values, use memcpy to reinterpret as uint8_t index.
+  // For int-typed sentinels (carriage_symbol, escape_symbol, comment_symbol)
+  // that use 1000 for "disabled", we guard with < 256 and cast instead,
+  // since sizeof(int) != sizeof(uint8_t).
+
+  memcpy(&index, &lineterminator, sizeof(lineterminator));
+  breaks_field_scan[index] |= 0x1;
   if (carriage_symbol < 256) {
     breaks_field_scan[(uint8_t)carriage_symbol] |= 0x1;
   }
@@ -714,19 +721,22 @@ static int tokenize_bytes(parser_t *self, size_t line_limit,
     breaks_field_scan[(uint8_t)escape_symbol] |= 0x1 | 0x2;
   }
   if (!delim_whitespace) {
-    breaks_field_scan[(uint8_t)delimiter] |= 0x1;
+    memcpy(&index, &delimiter, sizeof(delimiter));
+    breaks_field_scan[index] |= 0x1;
   } else {
     // Mirrors IS_DELIMITER's use of isblank(), which matches ' ' and '\t'.
-    breaks_field_scan[(uint8_t)' '] |= 0x1;
-    breaks_field_scan[(uint8_t)'\t'] |= 0x1;
+    char space = ' ', tab = '\t';
+    memcpy(&index, &space, sizeof(space));
+    breaks_field_scan[index] |= 0x1;
+    memcpy(&index, &tab, sizeof(tab));
+    breaks_field_scan[index] |= 0x1;
   }
   if (comment_symbol < 256) {
     breaks_field_scan[(uint8_t)comment_symbol] |= 0x1;
   }
-  // quotechar is a char (always 0-255), unlike the int sentinels above
-  // that use 1000 for "disabled", so no < 256 guard is needed here.
   if (self->quoting != QUOTE_NONE) {
-    breaks_field_scan[(uint8_t)self->quotechar] |= 0x2;
+    memcpy(&index, &self->quotechar, sizeof(self->quotechar));
+    breaks_field_scan[index] |= 0x2;
   }
 
   TRACE(("%s\n", buf));
