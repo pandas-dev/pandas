@@ -31,9 +31,9 @@ import numpy as np
 
 from pandas._config import (
     config,
-    get_option,
     using_string_dtype,
 )
+from pandas._config.config import _global_config
 
 from pandas._libs import (
     lib,
@@ -1224,7 +1224,7 @@ class HDFStore:
         >>> store.put("data", df)  # doctest: +SKIP
         """
         if format is None:
-            format = get_option("io.hdf.default_format") or "fixed"
+            format = _global_config["io"]["hdf"]["default_format"] or "fixed"
         format = self._validate_format(format)
         self._write_to_group(
             key,
@@ -1407,9 +1407,9 @@ class HDFStore:
             )
 
         if dropna is None:
-            dropna = get_option("io.hdf.dropna_table")
+            dropna = _global_config["io"]["hdf"]["dropna_table"]
         if format is None:
-            format = get_option("io.hdf.default_format") or "table"
+            format = _global_config["io"]["hdf"]["default_format"] or "table"
         format = self._validate_format(format)
         self._write_to_group(
             key,
@@ -3331,7 +3331,7 @@ class GenericFixed(Fixed):
                 pass
             elif inferred_type == "string":
                 pass
-            elif get_option("performance_warnings"):
+            elif _global_config["mode"]["performance_warnings"]:
                 ws = performance_doc % (inferred_type, key, items)
                 warnings.warn(ws, PerformanceWarning, stacklevel=find_stack_level())
 

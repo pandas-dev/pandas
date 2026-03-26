@@ -14,10 +14,8 @@ import warnings
 
 import numpy as np
 
-from pandas._config import (
-    get_option,
-    using_string_dtype,
-)
+from pandas._config import using_string_dtype
+from pandas._config.config import _global_config
 
 from pandas._libs import (
     lib,
@@ -201,7 +199,7 @@ class StringDtype(StorageExtensionDtype):
     ) -> None:
         # infer defaults
         if storage is None:
-            storage = get_option("mode.string_storage")
+            storage = _global_config["mode"]["string_storage"]
             if storage == "auto":
                 if HAS_PYARROW:
                     storage = "pyarrow"

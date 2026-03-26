@@ -578,6 +578,28 @@ class TestFancy:
         df.loc[:, "A"] = df["A"].astype(np.int64)
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.parametrize(
+        "dtype, ea_dtype",
+        [
+            ("float64", "Int64"),
+            ("float64", "Float64"),
+            ("bool", "boolean"),
+        ],
+    )
+    @pytest.mark.parametrize("box", [Series, Index])
+    def test_iloc_setitem_ea_dtype_series(self, dtype, ea_dtype, box):
+        # GH#47776
+        if dtype == "bool":
+            df = DataFrame({"A": [True, False, True]})
+            val = box([False, True, False], dtype=ea_dtype)
+        else:
+            df = DataFrame({"A": [1.0, 2.0, 3.0]})
+            val = box([4, 5, 6], dtype=ea_dtype)
+
+        df.iloc[:, 0] = val
+        expected = DataFrame({"A": val.to_numpy(dtype=dtype)})
+        tm.assert_frame_equal(df, expected)
+
     @pytest.mark.parametrize("indexer", [tm.getitem, tm.loc])
     def test_index_type_coercion(self, indexer):
         # GH 11836
