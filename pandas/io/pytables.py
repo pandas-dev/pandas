@@ -3261,10 +3261,6 @@ class GenericFixed(Fixed):
     def write_array(
         self, key: str, obj: AnyArrayLike, items: Index | None = None
     ) -> None:
-        # TODO: we only have a few tests that get here, the only EA
-        #  that gets passed is DatetimeArray, and we never have
-        #  both self._filters and EA
-
         value = extract_array(obj, extract_numpy=True)
 
         if key in self.group:
@@ -3285,71 +3281,79 @@ class GenericFixed(Fixed):
                 value = value.T
                 transposed = True
 
-        atom = None
-        if self._filters is not None:
-            with suppress(ValueError):
-                # get the atom for this datatype
-                atom = _tables().Atom.from_dtype(value.dtype)
-
-        if atom is not None:
-            # We only get here if self._filters is non-None and
-            #  the Atom.from_dtype call succeeded
-
-            # create an empty chunked array and fill it from value
-            if not empty_array:
-                ca = self._handle.create_carray(
-                    self.group, key, atom, value.shape, filters=self._filters
-                )
-                ca[:] = value
-
-            else:
-                self.write_array_empty(key, value)
-
-        elif value.dtype.type == np.object_:
-            # infer the type, warn if we have a non-string type here (for
-            # performance)
-            inferred_type = lib.infer_dtype(value, skipna=False)
-            if empty_array:
-                pass
-            elif inferred_type == "string":
-                pass
-            elif get_option("performance_warnings"):
-                ws = performance_doc % (inferred_type, key, items)
-                warnings.warn(ws, PerformanceWarning, stacklevel=find_stack_level())
-
-            vlarr = self._handle.create_vlarray(self.group, key, _tables().ObjectAtom())
-            vlarr.append(value)
-
-        elif lib.is_np_dtype(value.dtype, "M"):
-            self._handle.create_array(self.group, key, value.view("i8"))
-            getattr(self.group, key)._v_attrs.value_type = str(value.dtype)
-        elif isinstance(value.dtype, DatetimeTZDtype):
-            # store as UTC
-            # with a zone
-
-            # error: "ExtensionArray" has no attribute "asi8"
-            self._handle.create_array(
-                self.group,
-                key,
-                value.asi8,  # type: ignore[attr-defined]
+        if isinstance(value, BaseStringArray):
+            # GH#64180: BaseStringArray must use the VLArray path.
+            # Atom.from_dtype does not handle ExtensionDtype.
+            vlarr = self._handle.create_vlarray(
+                self.group, key, _tables().ObjectAtom(), filters=self._filters
             )
-
-            node = getattr(self.group, key)
-            # error: "ExtensionArray" has no attribute "tz"
-            node._v_attrs.tz = _get_tz(value.tz)  # type: ignore[attr-defined]
-            node._v_attrs.value_type = f"datetime64[{value.dtype.unit}]"
-        elif lib.is_np_dtype(value.dtype, "m"):
-            self._handle.create_array(self.group, key, value.view("i8"))
-            getattr(self.group, key)._v_attrs.value_type = str(value.dtype)
-        elif isinstance(value, BaseStringArray):
-            vlarr = self._handle.create_vlarray(self.group, key, _tables().ObjectAtom())
             vlarr.append(value.to_numpy())
             node = getattr(self.group, key)
             node._v_attrs.value_type = str(value.dtype)
-        elif empty_array:
-            self.write_array_empty(key, value)
+
         else:
-            self._handle.create_array(self.group, key, value)
+            atom = None
+            if self._filters is not None:
+                with suppress(ValueError):
+                    # get the atom for this datatype
+                    atom = _tables().Atom.from_dtype(value.dtype)
+
+            if atom is not None:
+                # We only get here if self._filters is non-None and
+                #  the Atom.from_dtype call succeeded
+
+                # create an empty chunked array and fill it from value
+                if not empty_array:
+                    ca = self._handle.create_carray(
+                        self.group, key, atom, value.shape, filters=self._filters
+                    )
+                    ca[:] = value
+
+                else:
+                    self.write_array_empty(key, value)
+
+            elif value.dtype.type == np.object_:
+                # infer the type, warn if we have a non-string type here
+                # (for performance)
+                inferred_type = lib.infer_dtype(value, skipna=False)
+                if empty_array:
+                    pass
+                elif inferred_type == "string":
+                    pass
+                elif get_option("performance_warnings"):
+                    ws = performance_doc % (inferred_type, key, items)
+                    warnings.warn(ws, PerformanceWarning, stacklevel=find_stack_level())
+
+                vlarr = self._handle.create_vlarray(
+                    self.group, key, _tables().ObjectAtom()
+                )
+                vlarr.append(value)
+
+            elif lib.is_np_dtype(value.dtype, "M"):
+                self._handle.create_array(self.group, key, value.view("i8"))
+                getattr(self.group, key)._v_attrs.value_type = str(value.dtype)
+            elif isinstance(value.dtype, DatetimeTZDtype):
+                # store as UTC
+                # with a zone
+
+                # error: "ExtensionArray" has no attribute "asi8"
+                self._handle.create_array(
+                    self.group,
+                    key,
+                    value.asi8,  # type: ignore[attr-defined]
+                )
+
+                node = getattr(self.group, key)
+                # error: "ExtensionArray" has no attribute "tz"
+                node._v_attrs.tz = _get_tz(value.tz)  # type: ignore[attr-defined]
+                node._v_attrs.value_type = f"datetime64[{value.dtype.unit}]"
+            elif lib.is_np_dtype(value.dtype, "m"):
+                self._handle.create_array(self.group, key, value.view("i8"))
+                getattr(self.group, key)._v_attrs.value_type = str(value.dtype)
+            elif empty_array:
+                self.write_array_empty(key, value)
+            else:
+                self._handle.create_array(self.group, key, value)
 
         getattr(self.group, key)._v_attrs.transposed = transposed
 
