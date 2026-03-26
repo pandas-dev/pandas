@@ -286,17 +286,12 @@ cdef int64_t[::1] unbox_utcoffsets(object transinfo):
 # Daylight Savings
 
 
-cdef tuple _get_trans_and_deltas_from_dateutil_tz(
-    tzinfo dateutil_tz,
-    int64_t first_offset_seconds
-):
+cdef tuple _get_trans_and_deltas_from_dateutil_tz(tzinfo dateutil_tz):
     """
     Parameters
     ----------
     dateutil_tz : tzinfo
         A dateutil timezone object with _trans_list and _trans_idx attributes.
-    first_offset_seconds : int64_t
-        The UTC offset in seconds for the period before the first transition.
 
     Returns
     -------
@@ -305,6 +300,11 @@ cdef tuple _get_trans_and_deltas_from_dateutil_tz(
     deltas : ndarray[int64_t]
         Nanosecond UTC offsets corresponding to DST transitions.
     """
+    cdef:
+        int64_t first_offset_seconds
+
+    first_offset_seconds = int(dateutil_tz._ttinfo_before.offset)
+
     trans_list = _get_utc_trans_times_from_dateutil_tz(dateutil_tz)
     trans = np.hstack([
         np.array([0], dtype="M8[s]"),
@@ -446,9 +446,7 @@ cdef object get_dst_info(tzinfo tz):
 
         elif treat_tz_as_dateutil(tz):
             if len(tz._trans_list):
-                trans, deltas = _get_trans_and_deltas_from_dateutil_tz(
-                    tz, int(tz._ttinfo_before.offset)
-                )
+                trans, deltas = _get_trans_and_deltas_from_dateutil_tz(tz)
                 typ = "dateutil"
 
             elif is_fixed_offset(tz):
