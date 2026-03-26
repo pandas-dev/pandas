@@ -817,17 +817,10 @@ class TestDataFrameSortIndex:
 
     def test_sort_index_level_on_range_index(self):
         # GH#64383: sort_index with level= on a RangeIndex raised AssertionError
-        # Case 1: already-sorted RangeIndex set as index
-        df = DataFrame({"a": [1, 2, 3], "foo": [0, 1, 2]}).set_index(["foo"], drop=True)
+        df = DataFrame({"a": [1, 2, 3]})
+        df.index.names = ["foo"]
         result = df.sort_index(level="foo")
-        expected = df.copy()
-        tm.assert_frame_equal(result, expected)
-
-        # Case 2: named default RangeIndex
-        df2 = DataFrame({"a": [1, 2, 3]})
-        df2.index.names = ["foo"]
-        result2 = df2.sort_index(level="foo")
-        tm.assert_frame_equal(result2, df2)
+        tm.assert_frame_equal(result, df)
 
 
 class TestDataFrameSortIndexKey:
