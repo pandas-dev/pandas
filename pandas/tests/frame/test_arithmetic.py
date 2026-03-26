@@ -2276,9 +2276,8 @@ def test_mixed_col_index_dtype(string_dtype_no_object):
 
 def test_add_mixed_empty(any_string_dtype):
     # GH 64657
-    # if not using_infer_string:
-    #     pytest.skip("empty objects sum to 0 instead of '' with infer_string=0")
-    expected = Series({"col1": "", "col2": 0}, dtype=object)
+    # for actual string dtype, sum gives "", for object dtype we get 0
+    expected = Series({"col1": "" if any_string_dtype == "string" else 0, "col2": 0}, dtype=object)
     empty_df = DataFrame(columns=["col1", "col2"]).astype({"col1": any_string_dtype, "col2": int})
     result = empty_df.sum()
     tm.assert_series_equal(result, expected)
