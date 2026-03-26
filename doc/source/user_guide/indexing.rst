@@ -836,6 +836,21 @@ Boolean indexing
 
 Another common operation is the use of boolean vectors to filter the data.
 The operators are: ``|`` for ``or``, ``&`` for ``and``, and ``~`` for ``not``.
+
+.. rubric:: Series Inversion with ~
+
+The bitwise NOT operator ``~`` can be used to invert boolean Series or Index objects.
+It performs an element-wise logical NOT.
+
+Example:
+
+.. ipython:: python
+
+   s = pd.Series([True, False, True])
+   ~s
+
+This is equivalent to calling the special method :meth:`Series.__invert__`.
+
 These **must** be grouped by using parentheses, since by default Python will
 evaluate an expression such as ``df['A'] > 2 & df['B'] < 3`` as
 ``df['A'] > (2 & df['B']) < 3``, while the desired evaluation order is
@@ -889,8 +904,7 @@ and :ref:`Advanced Indexing <advanced>` you may select along more than one axis 
 .. warning::
 
    While ``loc`` supports two kinds of boolean indexing, ``iloc`` only supports indexing with a
-   boolean array. If the indexer is a boolean ``Series``, an error will be raised. For instance,
-   in the following example, ``df.iloc[s.values, 1]`` is ok. The boolean indexer is an array.
+   boolean array. If the indexer is a boolean ``Series``, an error will be raised. For instance, in the following example, ``df.iloc[s.values, 1]`` is ok. The boolean indexer is an array.
    But ``df.iloc[s, 1]`` would raise ``ValueError``.
 
    .. ipython:: python
