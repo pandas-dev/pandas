@@ -159,6 +159,8 @@ class ExtensionArray:
     _from_sequence
     _from_sequence_of_strings
     _hash_pandas_object
+    _is_monotonic_decreasing
+    _is_monotonic_increasing
     _pad_or_backfill
     _reduce
     _values_for_argsort
@@ -2685,6 +2687,73 @@ class ExtensionArray:
 
         result[~mask] = val
         return result
+
+    @property
+    def _is_monotonic_increasing(self) -> bool:
+        """
+        Return True if the array values are monotonically increasing.
+
+        Subclasses can override this for performance. The default
+        implementation falls back to computing ranks via ``_rank``.
+
+        Returns
+        -------
+        bool
+            Whether the array values are monotonically increasing.
+
+        See Also
+        --------
+        ExtensionArray._is_monotonic_decreasing : Check for monotonically
+            decreasing values.
+
+        Examples
+        --------
+        >>> arr = pd.array([1, 2, 3])
+        >>> arr._is_monotonic_increasing
+        True
+        """
+        return self._monotonic_check()[0]
+
+    @property
+    def _is_monotonic_decreasing(self) -> bool:
+        """
+        Return True if the array values are monotonically decreasing.
+
+        Subclasses can override this for performance. The default
+        implementation falls back to computing ranks via ``_rank``.
+
+        Returns
+        -------
+        bool
+            Whether the array values are monotonically decreasing.
+
+        See Also
+        --------
+        ExtensionArray._is_monotonic_increasing : Check for monotonically
+            increasing values.
+
+        Examples
+        --------
+        >>> arr = pd.array([3, 2, 1])
+        >>> arr._is_monotonic_decreasing
+        True
+        """
+        return self._monotonic_check()[1]
+
+    def _monotonic_check(self) -> tuple[bool, bool]:
+        """
+        Return (is_monotonic_increasing, is_monotonic_decreasing).
+
+        Default implementation using ranks. Subclasses should override
+        ``_is_monotonic_increasing`` and ``_is_monotonic_decreasing``
+        instead of this method.
+        """
+        try:
+            ranks = self._rank()
+        except TypeError:
+            return False, False
+        inc, dec, _ = libalgos.is_monotonic(ranks, timelike=False)
+        return bool(inc), bool(dec)
 
     def _rank(
         self,

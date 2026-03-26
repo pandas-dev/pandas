@@ -10,7 +10,7 @@ import warnings
 
 import numpy as np
 
-from pandas._config.config import get_option
+from pandas._config.config import _global_config
 
 import pandas._libs.reshape as libreshape
 from pandas.errors import (
@@ -158,7 +158,7 @@ class _Unstacker:
             self.removed_level = self.removed_level.take(unique_codes)
             self.removed_level_full = self.removed_level_full.take(unique_codes)
 
-        if get_option("performance_warnings"):
+        if _global_config["mode"]["performance_warnings"]:
             # Bug fix GH 20601
             # If the data frame is too big, the number of unique index combination
             # will cause int32 overflow on windows environments.

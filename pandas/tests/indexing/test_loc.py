@@ -1016,7 +1016,7 @@ class TestLocBaseIndependent:
         # non-unique indexer with loc slice
         # https://groups.google.com/forum/?fromgroups#!topic/pydata/zTm2No0crYs
 
-        # these are going to raise because the we are non monotonic
+        # these are going to raise because we are non monotonic
         df = DataFrame(
             {"A": [1, 2, 3, 4, 5, 6], "B": [3, 4, 5, 6, 7, 8]}, index=[0, 1, 0, 1, 2, 3]
         )

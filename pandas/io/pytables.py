@@ -31,9 +31,9 @@ import numpy as np
 
 from pandas._config import (
     config,
-    get_option,
     using_string_dtype,
 )
+from pandas._config.config import _global_config
 
 from pandas._libs import (
     lib,
@@ -1186,7 +1186,11 @@ class HDFStore:
             Specifies a compression level for data.
             A value of 0 or None disables compression.
         min_itemsize : int, dict, or None
-            Dict of columns that specify minimum str sizes.
+            Minimum number of bytes reserved for object columns.
+            If int, all columns reserve 'min_itemsize' bytes per stored value.
+            If dict, specific columns reserve 'min_itemsize' bytes per stored value.
+            Strings are stored as encoded bytes. Since some characters require multiple
+            bytes, required size may be larger than string length.
         nan_rep : str
             Str to use as str nan representation.
         data_columns : list of columns or True, default None
@@ -1220,7 +1224,7 @@ class HDFStore:
         >>> store.put("data", df)  # doctest: +SKIP
         """
         if format is None:
-            format = get_option("io.hdf.default_format") or "fixed"
+            format = _global_config["io"]["hdf"]["default_format"] or "fixed"
         format = self._validate_format(format)
         self._write_to_group(
             key,
@@ -1346,7 +1350,11 @@ class HDFStore:
         columns : default None
             This parameter is currently not accepted, try data_columns.
         min_itemsize : int, dict, or None
-            Dict of columns that specify minimum str sizes.
+            Minimum number of bytes reserved for object columns.
+            If int, all columns reserve 'min_itemsize' bytes per stored value.
+            If dict, specific columns reserve 'min_itemsize' bytes per stored value.
+            Strings are stored as encoded bytes. Since some characters require multiple
+            bytes, required size may be larger than string length.
         nan_rep : str
             Str to use as str nan representation.
         chunksize : int or None
@@ -1399,9 +1407,9 @@ class HDFStore:
             )
 
         if dropna is None:
-            dropna = get_option("io.hdf.dropna_table")
+            dropna = _global_config["io"]["hdf"]["dropna_table"]
         if format is None:
-            format = get_option("io.hdf.default_format") or "table"
+            format = _global_config["io"]["hdf"]["default_format"] or "table"
         format = self._validate_format(format)
         self._write_to_group(
             key,
@@ -3323,7 +3331,7 @@ class GenericFixed(Fixed):
                 pass
             elif inferred_type == "string":
                 pass
-            elif get_option("performance_warnings"):
+            elif _global_config["mode"]["performance_warnings"]:
                 ws = performance_doc % (inferred_type, key, items)
                 warnings.warn(ws, PerformanceWarning, stacklevel=find_stack_level())
 

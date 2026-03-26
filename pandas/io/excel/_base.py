@@ -26,7 +26,7 @@ from typing import (
 import warnings
 import zipfile
 
-from pandas._config import config
+from pandas._config.config import _global_config
 
 from pandas._libs import lib
 from pandas.compat._optional import (
@@ -1175,7 +1175,7 @@ class ExcelWriter(Generic[_WorkbookT]):
                     ext = "xlsx"
 
                 try:
-                    engine = config.get_option(f"io.excel.{ext}.writer")
+                    engine = _global_config["io"]["excel"][ext]["writer"]
                     if engine == "auto":
                         engine = get_default_engine(ext, mode="writer")
                 except KeyError as err:
@@ -1619,7 +1619,7 @@ class ExcelFile:
                     )
 
             if engine is None:
-                engine = config.get_option(f"io.excel.{ext}.reader")
+                engine = _global_config["io"]["excel"][ext]["reader"]
                 if engine == "auto":
                     engine = get_default_engine(ext, mode="reader")
 

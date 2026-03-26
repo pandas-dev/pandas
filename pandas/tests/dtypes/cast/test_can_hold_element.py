@@ -1,8 +1,13 @@
 import numpy as np
+import pytest
 
 from pandas.core.dtypes.cast import can_hold_element
 
-from pandas import Categorical
+import pandas as pd
+from pandas import (
+    Categorical,
+    Series,
+)
 
 
 def test_can_hold_element_range(any_int_numpy_dtype):
@@ -106,3 +111,44 @@ def test_can_hold_element_categorical():
     cat = Categorical([1, 2, None])
 
     assert can_hold_element(arr, cat)
+
+
+@pytest.mark.parametrize(
+    "dtype, ea_dtype",
+    [
+        (np.dtype("int64"), "Int64"),
+        (np.dtype("uint64"), "UInt64"),
+        (np.dtype("float64"), "Float64"),
+        (np.dtype("float64"), "Int64"),
+        (np.dtype("bool"), "boolean"),
+    ],
+)
+def test_can_hold_element_ea_series_no_na(dtype, ea_dtype):
+    # GH#47776
+    arr = np.array([], dtype=dtype)
+    if dtype.kind == "b":
+        ser = Series([True, False], dtype=ea_dtype)
+    else:
+        ser = Series([1, 2], dtype=ea_dtype)
+
+    assert can_hold_element(arr, ser)
+
+
+@pytest.mark.parametrize(
+    "dtype, ea_dtype",
+    [
+        (np.dtype("int64"), "Int64"),
+        (np.dtype("uint64"), "UInt64"),
+        (np.dtype("float64"), "Float64"),
+        (np.dtype("bool"), "boolean"),
+    ],
+)
+def test_can_hold_element_ea_series_with_na(dtype, ea_dtype):
+    # GH#47776 - Series with NA cannot be held losslessly
+    arr = np.array([], dtype=dtype)
+    if dtype.kind == "b":
+        ser = Series([True, pd.NA], dtype=ea_dtype)
+    else:
+        ser = Series([1, pd.NA], dtype=ea_dtype)
+
+    assert not can_hold_element(arr, ser)
