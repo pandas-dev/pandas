@@ -304,7 +304,7 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
     def fillna(self, value=None, limit=None, copy: bool = True):
         # We intentionally ignore copy and always perform a copy to ensure
         # the original array is not modified.
-        return super().fillna(value=value, limit=limit, copy=True)
+        return super().fillna(value=value, limit=limit, copy=copy)
 
 
 def to_decimal(values, context=None):
