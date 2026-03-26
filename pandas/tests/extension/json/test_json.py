@@ -203,12 +203,6 @@ class TestJSONArray(base.ExtensionTests):
     def test_combine_le(self, data_repeated):
         super().test_combine_le(data_repeated)
 
-    @pytest.mark.xfail(
-        reason="combine for JSONArray not supported - "
-        "may pass depending on random data",
-        strict=False,
-        raises=AssertionError,
-    )
     def test_combine_first(self, data):
         super().test_combine_first(data)
 
