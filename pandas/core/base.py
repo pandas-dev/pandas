@@ -715,8 +715,10 @@ class IndexOpsMixin(OpsMixin):
         result = np.asarray(values, dtype=dtype)
 
         if (copy and not fillna) or not copy:
-            if np.shares_memory(self._values[:2], result[:2]):
-                # Take slices to improve performance of check
+            # Check identity first (O(1)) before the more expensive
+            # shares_memory check. Use the already-fetched `values` to
+            # avoid a second _values property access.
+            if result is values or np.shares_memory(values[:2], result[:2]):
                 if not copy:
                     result = result.view()
                     result.flags.writeable = False
@@ -1261,6 +1263,10 @@ class IndexOpsMixin(OpsMixin):
         """
         Return True if values in the object are monotonically increasing.
 
+        This property checks whether each element is greater than or equal to
+        the previous element. Equal consecutive values are considered
+        monotonically increasing.
+
         Returns
         -------
         bool
@@ -1288,6 +1294,10 @@ class IndexOpsMixin(OpsMixin):
     def is_monotonic_decreasing(self) -> bool:
         """
         Return True if values in the object are monotonically decreasing.
+
+        This property checks whether each element is less than or equal to
+        the previous element. Equal consecutive values are considered
+        monotonically decreasing.
 
         Returns
         -------
@@ -1548,7 +1558,7 @@ class IndexOpsMixin(OpsMixin):
         ----------
         value : array-like or scalar
             Values to insert into `self`.
-        side : {{'left', 'right'}}, optional
+        side : {'left', 'right'}, optional
             If 'left', the index of the first suitable location found is given.
             If 'right', return the last such index.  If there is no suitable
             index, return either 0 or N (where N is the length of `self`).

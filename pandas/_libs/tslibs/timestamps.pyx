@@ -315,6 +315,10 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Return the value of the Timestamp.
 
+        This represents the Timestamp as the number of nanoseconds since the
+        Unix epoch (1970-01-01 00:00:00 UTC). It may overflow for Timestamps
+        far from the epoch.
+
         Returns
         -------
         int
@@ -683,6 +687,7 @@ cdef class _Timestamp(ABCTimestamp):
             val = self._value
         return val
 
+    @cython.wraparound(False)
     @cython.boundscheck(False)
     cdef bint _get_start_end_field(self, str field, freq):
         cdef:
@@ -694,7 +699,7 @@ cdef class _Timestamp(ABCTimestamp):
         if freq:
             kwds = freq.kwds
             month_kw = kwds.get("startingMonth", kwds.get("month", 12))
-            freq_name = freq.name
+            freq_name = freq.rule_code
         else:
             month_kw = 12
             freq_name = None
@@ -709,6 +714,9 @@ cdef class _Timestamp(ABCTimestamp):
     def is_month_start(self) -> bool:
         """
         Check if the date is the first day of the month.
+
+        This is determined by checking whether the ``day`` component of the
+        Timestamp is equal to 1.
 
         Returns
         -------
@@ -736,6 +744,9 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Check if the date is the last day of the month.
 
+        This is determined by comparing the ``day`` component with the total
+        number of days in the month of the Timestamp.
+
         Returns
         -------
         bool
@@ -761,6 +772,9 @@ cdef class _Timestamp(ABCTimestamp):
     def is_quarter_start(self) -> bool:
         """
         Check if the date is the first day of the quarter.
+
+        Quarters start on the first day of January, April, July, and October
+        in the standard calendar.
 
         Returns
         -------
@@ -789,6 +803,9 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Check if date is last day of the quarter.
 
+        Quarters end on the last day of March, June, September, and December
+        in the standard calendar.
+
         Returns
         -------
         bool
@@ -816,6 +833,9 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Return True if date is first day of the year.
 
+        This is determined by checking whether the month and day components
+        are both equal to 1 (i.e., January 1st).
+
         Returns
         -------
         bool
@@ -841,6 +861,9 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Return True if date is last day of the year.
 
+        This is determined by checking whether the month is 12 and the day
+        is 31 (i.e., December 31st).
+
         Returns
         -------
         bool
@@ -861,6 +884,7 @@ cdef class _Timestamp(ABCTimestamp):
         """
         return self.month == 12 and self.day == 31
 
+    @cython.wraparound(False)
     @cython.boundscheck(False)
     cdef _get_date_name_field(self, str field, object locale):
         cdef:
@@ -876,6 +900,10 @@ cdef class _Timestamp(ABCTimestamp):
     def day_name(self, locale=None) -> str:
         """
         Return the day name of the Timestamp with specified locale.
+
+        This method returns the full name of the day of the week (e.g.,
+        'Monday', 'Tuesday') for the given Timestamp. The locale can be
+        specified to return the name in a particular language.
 
         Parameters
         ----------
@@ -1115,6 +1143,8 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Return the year of the Timestamp.
 
+        The year is returned as an integer following the Gregorian calendar.
+
         Returns
         -------
         int
@@ -1137,6 +1167,8 @@ cdef class _Timestamp(ABCTimestamp):
     def month(self) -> int:
         """
         Return the month of the Timestamp.
+
+        Months are numbered from 1 (January) through 12 (December).
 
         Returns
         -------
@@ -1186,6 +1218,8 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Return the minute of the Timestamp.
 
+        Minutes range from 0 through 59.
+
         Returns
         -------
         int
@@ -1208,6 +1242,8 @@ cdef class _Timestamp(ABCTimestamp):
     def second(self) -> int:
         """
         Return the second of the Timestamp.
+
+        Seconds range from 0 to 59.
 
         Returns
         -------
@@ -1232,6 +1268,9 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Return the microsecond of the Timestamp.
 
+        Microseconds range from 0 through 999999 and represent the
+        sub-second component of the Timestamp at microsecond resolution.
+
         Returns
         -------
         int
@@ -1255,6 +1294,10 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Return the nanosecond of the Timestamp.
 
+        This property returns an integer representing the nanosecond component
+        (0-999) of the Timestamp. This is particularly useful when working with
+        high-precision temporal data that requires sub-microsecond resolution.
+
         Returns
         -------
         int
@@ -1277,6 +1320,10 @@ cdef class _Timestamp(ABCTimestamp):
     def week(self) -> int:
         """
         Return the week number of the year.
+
+        Weeks are numbered according to the ISO 8601 standard, where weeks
+        start on Monday and the first week of the year contains the year's
+        first Thursday.
 
         Returns
         -------
@@ -1518,6 +1565,11 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Convert the underlying int64 representation to the given unit.
 
+        This method changes the resolution of the Timestamp's internal
+        representation. When converting to a coarser resolution (e.g.,
+        nanoseconds to seconds), precision may be lost through rounding
+        unless ``round_ok`` is set to False.
+
         Parameters
         ----------
         unit : {"ns", "us", "ms", "s"}
@@ -1722,7 +1774,7 @@ cdef class _Timestamp(ABCTimestamp):
         Analogous for ``pd.NaT``:
 
         >>> pd.NaT.to_numpy()
-        np.datetime64('NaT')
+        np.datetime64('NaT','ns')
         """
         if dtype is not None or copy is not False:
             raise ValueError(
@@ -1927,6 +1979,42 @@ class Timestamp(_Timestamp):
         return cls(datetime.fromordinal(ordinal), tz=tz)
 
     @classmethod
+    def fromisocalendar(cls, year, week, day):
+        """
+        Construct a Timestamp from an ISO year, week number, and weekday.
+
+        This is the inverse of :meth:`Timestamp.isocalendar`, constructing a
+        Timestamp from the ISO 8601 year, week number, and weekday.
+
+        Parameters
+        ----------
+        year : int
+            ISO year.
+        week : int
+            ISO week number, ranging from 1 to 52 or 53.
+        day : int
+            ISO weekday, where Monday is 1 and Sunday is 7.
+
+        Returns
+        -------
+        Timestamp
+            A `Timestamp` object corresponding to the given ISO calendar date.
+
+        See Also
+        --------
+        Timestamp.isocalendar : Return a named tuple with ISO year, week, and
+            weekday.
+        Timestamp.fromordinal : Construct a Timestamp from a proleptic Gregorian
+            ordinal.
+
+        Examples
+        --------
+        >>> pd.Timestamp.fromisocalendar(2023, 1, 1)
+        Timestamp('2023-01-02 00:00:00')
+        """
+        return cls(datetime.fromisocalendar(year, week, day))
+
+    @classmethod
     def now(cls, tz=None):
         """
         Return new Timestamp object representing current time local to tz.
@@ -2004,6 +2092,10 @@ class Timestamp(_Timestamp):
         Timestamp.utcnow()
 
         Return a new Timestamp representing UTC day and time.
+
+        .. deprecated:: 3.0.0
+            ``Timestamp.utcnow`` is deprecated and will be removed in a future
+            version. Use ``Timestamp.now('UTC')`` instead.
 
         See Also
         --------
@@ -2123,9 +2215,48 @@ class Timestamp(_Timestamp):
         tz = maybe_get_tz(tz)
         return cls(datetime.fromtimestamp(ts, tz))
 
+    @classmethod
+    def fromisoformat(cls, date_string):
+        """
+        Construct a Timestamp from a string in ISO 8601 format.
+
+        This classmethod wraps :meth:`datetime.datetime.fromisoformat`,
+        returning a :class:`Timestamp` instead of a :class:`datetime.datetime`.
+
+        Parameters
+        ----------
+        date_string : str
+            A date-time string in one of the ISO 8601 formats supported by
+            :meth:`datetime.datetime.fromisoformat`.
+
+        Returns
+        -------
+        Timestamp
+            A Timestamp corresponding to the parsed date-time string.
+
+        See Also
+        --------
+        Timestamp : Represents a single timestamp, similar to ``datetime``.
+        to_datetime : Convert argument to datetime.
+        datetime.datetime.fromisoformat : The standard library counterpart.
+
+        Examples
+        --------
+        >>> pd.Timestamp.fromisoformat("2023-01-15")
+        Timestamp('2023-01-15 00:00:00')
+
+        >>> pd.Timestamp.fromisoformat("2023-01-15T10:30:00")
+        Timestamp('2023-01-15 10:30:00')
+        """
+        return cls(datetime.fromisoformat(date_string))
+
     def strftime(self, format):
         """
         Return a formatted string of the Timestamp.
+
+        This method converts a Timestamp to a string according to the given
+        format string, using the same directives as the standard library's
+        :meth:`datetime.datetime.strftime`.
 
         Parameters
         ----------
@@ -2263,6 +2394,11 @@ class Timestamp(_Timestamp):
     def isocalendar(self):
         """
         Return a named tuple containing ISO year, week number, and weekday.
+
+        The ISO 8601 calendar is a widely used international standard. The
+        returned named tuple has three components: ``year``, ``week``, and
+        ``weekday``. The ISO year may differ from the Gregorian year for dates
+        near the start or end of a calendar year.
 
         See Also
         --------
@@ -2910,6 +3046,10 @@ timedelta}, default 'raise'
         """
         Return a new Timestamp floored to this resolution.
 
+        This method rounds the Timestamp down to the nearest boundary of the
+        given frequency. The result will never be later than the original
+        Timestamp.
+
         Parameters
         ----------
         freq : str
@@ -3004,6 +3144,10 @@ timedelta}, default 'raise'
     def ceil(self, freq, ambiguous="raise", nonexistent="raise"):
         """
         Return a new Timestamp ceiled to this resolution.
+
+        This method rounds the Timestamp up to the nearest boundary of the
+        given frequency. The result will never be earlier than the original
+        Timestamp.
 
         Parameters
         ----------

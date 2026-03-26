@@ -15,6 +15,8 @@ from warnings import (
     filterwarnings,
 )
 
+from pandas._config.config import _global_config
+
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import (
@@ -24,10 +26,7 @@ from pandas.errors import (
 from pandas.util._decorators import set_module
 from pandas.util._validators import check_dtype_backend
 
-from pandas import (
-    DataFrame,
-    get_option,
-)
+from pandas import DataFrame
 
 from pandas.io._util import arrow_table_to_pandas
 from pandas.io.common import (
@@ -52,7 +51,7 @@ if TYPE_CHECKING:
 def get_engine(engine: str) -> BaseImpl:
     """return our implementation"""
     if engine == "auto":
-        engine = get_option("io.parquet.engine")
+        engine = _global_config["io"]["parquet"]["engine"]
 
     if engine == "auto":
         # try engines in this order
@@ -143,6 +142,16 @@ def _get_path_or_handle(
         )
         fs = None
         path_or_handle = handles.handle
+        if hasattr(path_or_handle, "name") and isinstance(
+            path_or_handle.name, (str, bytes)
+        ):
+            # Unwrap the Python file handle back to a string path so that
+            # PyArrow can use memory-mapped and multithreaded C++ I/O
+            # instead of going through the Python I/O layer. GH#47702
+            if isinstance(path_or_handle.name, bytes):
+                path_or_handle = path_or_handle.name.decode()
+            else:
+                path_or_handle = path_or_handle.name
     return path_or_handle, handles, fs
 
 
@@ -203,16 +212,6 @@ class PyArrowImpl(BaseImpl):
             mode="wb",
             is_dir=partition_cols is not None,
         )
-        if (
-            isinstance(path_or_handle, io.BufferedWriter)
-            and hasattr(path_or_handle, "name")
-            and isinstance(path_or_handle.name, (str, bytes))
-        ):
-            if isinstance(path_or_handle.name, bytes):
-                path_or_handle = path_or_handle.name.decode()
-            else:
-                path_or_handle = path_or_handle.name
-
         try:
             if partition_cols is not None:
                 # writes to multiple files under the given path
@@ -429,7 +428,7 @@ def to_parquet(
         is returned as bytes. If a string, it will be used as Root Directory
         path when writing a partitioned dataset. The engine fastparquet does
         not accept file-like objects.
-    engine : {{'auto', 'pyarrow', 'fastparquet'}}, default 'auto'
+    engine : {'auto', 'pyarrow', 'fastparquet'}, default 'auto'
         Parquet library to use. If 'auto', then the option
         ``io.parquet.engine`` is used. The default ``io.parquet.engine``
         behavior is to try 'pyarrow', falling back to 'fastparquet' if
@@ -440,7 +439,7 @@ def to_parquet(
         (e.g. "s3://"), then the ``pyarrow.fs`` filesystem is attempted first.
         Use the filesystem keyword with an instantiated fsspec filesystem
         if you wish to use its implementation.
-    compression : {{'snappy', 'gzip', 'brotli', 'lz4', 'zstd', None}},
+    compression : {'snappy', 'gzip', 'brotli', 'lz4', 'zstd', None},
         default 'snappy'. Name of the compression to use. Use ``None``
         for no compression.
     index : bool, default None
@@ -535,7 +534,7 @@ def read_parquet(
         partitioned parquet files. Both pyarrow and fastparquet support
         paths to directories as well as file URLs. A directory path could be:
         ``file://localhost/path/to/tables`` or ``s3://bucket/partition_dir``.
-    engine : {{'auto', 'pyarrow', 'fastparquet'}}, default 'auto'
+    engine : {'auto', 'pyarrow', 'fastparquet'}, default 'auto'
         Parquet library to use. If 'auto', then the option
         ``io.parquet.engine`` is used. The default ``io.parquet.engine``
         behavior is to try 'pyarrow', falling back to 'fastparquet' if
@@ -557,7 +556,7 @@ def read_parquet(
         and ``urllib`` for more details, and for more examples on storage
         options refer `here <https://pandas.pydata.org/docs/user_guide/io.html?
         highlight=storage_options#reading-writing-remote-files>`_.
-    dtype_backend : {{'numpy_nullable', 'pyarrow'}}
+    dtype_backend : {'numpy_nullable', 'pyarrow'}
         Back-end data type applied to the resultant :class:`DataFrame`
         (still experimental). If not specified, the default behavior
         is to not use nullable data types. If specified, the behavior

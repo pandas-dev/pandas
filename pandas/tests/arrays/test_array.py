@@ -22,7 +22,6 @@ from pandas.arrays import (
 )
 from pandas.core.arrays import (
     NumpyExtensionArray,
-    period_array,
 )
 from pandas.tests.extension.decimal import (
     DecimalArray,
@@ -90,13 +89,13 @@ def test_dt64_array(dtype_unit):
         (
             [pd.Period("2000", "D"), pd.Period("2001", "D")],
             "Period[D]",
-            period_array(["2000", "2001"], freq="D"),
+            pd.PeriodIndex(["2000", "2001"], freq="D").array,
         ),
         # Period dtype
         (
             [pd.Period("2000", "D")],
             pd.PeriodDtype("D"),
-            period_array(["2000"], freq="D"),
+            pd.PeriodIndex(["2000"], freq="D").array,
         ),
         # Datetime (naive)
         (
@@ -283,7 +282,7 @@ def test_dt64_array(dtype_unit):
         ([decimal.Decimal(0), decimal.Decimal(1)], "decimal", to_decimal([0, 1])),
         # pass an ExtensionArray, but a different dtype
         (
-            period_array(["2000", "2001"], freq="D"),
+            pd.PeriodIndex(["2000", "2001"], freq="D").array,
             "category",
             pd.Categorical([pd.Period("2000", "D"), pd.Period("2001", "D")]),
         ),
@@ -318,12 +317,41 @@ def test_array_copy():
 
 
 @pytest.mark.parametrize(
+    "data",
+    [
+        # string 2D
+        [["a"], ["b"]],
+        # int 2D
+        [[1], [2]],
+        # mixed 2D
+        [[1, 2], ["a", "b"]],
+        # mixed 3D
+        [[[1]], [["a"]], [[3.14]]],
+    ],
+)
+def test_array_string_nd(data):
+    # GH 64138
+    result = pd.array(data, dtype="str")
+
+    if using_string_dtype():
+        expected = (
+            pd.StringDtype(na_value=np.nan)
+            .construct_array_type()
+            ._from_sequence(data, dtype=pd.StringDtype(na_value=np.nan))
+        )
+    else:
+        expected = NumpyExtensionArray(np.array(data, dtype=str))
+
+    tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize(
     "data, expected",
     [
         # period
         (
             [pd.Period("2000", "D"), pd.Period("2001", "D")],
-            period_array(["2000", "2001"], freq="D"),
+            pd.PeriodIndex(["2000", "2001"], freq="D").array,
         ),
         # interval
         ([pd.Interval(0, 1), pd.Interval(1, 2)], IntervalArray.from_breaks([0, 1, 2])),

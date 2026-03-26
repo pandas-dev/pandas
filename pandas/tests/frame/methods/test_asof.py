@@ -5,6 +5,7 @@ from pandas._libs.tslibs import IncompatibleFrequency
 
 from pandas import (
     DataFrame,
+    Index,
     Period,
     Series,
     Timestamp,
@@ -105,7 +106,7 @@ class TestFrameAsof:
         # GH 15713
         # DataFrame/Series is all nans
         result = frame_or_series([np.nan]).asof([0])
-        expected = frame_or_series([np.nan])
+        expected = frame_or_series([np.nan], index=Index([0]))
         tm.assert_equal(result, expected)
 
     def test_all_nans(self, date_range_frame):

@@ -586,8 +586,7 @@ def test_append_with_data_columns(temp_hdfstore):
         & (df_new.A > 0)
         & (df_new.B < 0)
     ]
-    tm.assert_frame_equal(result, expected, check_freq=False)
-    # FIXME: 2020-05-07 freq check randomly fails in the CI
+    tm.assert_frame_equal(result, expected)
 
     # yield an empty frame
     result = temp_hdfstore.select("df", "string='foo' and string2='cool'")
@@ -613,9 +612,7 @@ def test_append_with_data_columns(temp_hdfstore):
 
     result = temp_hdfstore.select("df_dc", ["B > 0", "C > 0", "string == foo"])
     expected = df_dc[(df_dc.B > 0) & (df_dc.C > 0) & (df_dc.string == "foo")]
-    tm.assert_frame_equal(result, expected, check_freq=False)
-    # FIXME: 2020-12-07 intermittent build failures here with freq of
-    #  None instead of BDay(4)
+    tm.assert_frame_equal(result, expected)
 
     # doc example part 2
 

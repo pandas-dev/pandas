@@ -1,3 +1,4 @@
+cimport cython
 from datetime import (
     timedelta,
     timezone,
@@ -256,6 +257,8 @@ cdef object _get_utc_trans_times_from_dateutil_tz(tzinfo tz):
     return new_trans
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 cdef int64_t[::1] unbox_utcoffsets(object transinfo):
     cdef:
         Py_ssize_t i
@@ -403,7 +406,7 @@ cpdef bint tz_compare(tzinfo start, tzinfo end):
 
 def tz_standardize(tz: tzinfo) -> tzinfo:
     """
-    If the passed tz is a pytz timezone object, "normalize" it to the a
+    If the passed tz is a pytz timezone object, "normalize" it to a
     consistent version
 
     Parameters

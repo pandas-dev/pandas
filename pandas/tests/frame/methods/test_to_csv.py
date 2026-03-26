@@ -147,8 +147,8 @@ class TestDataFrameToCSV:
         timezone_frame.to_csv(path)
         result = read_csv(path, index_col=0, parse_dates=["A"])
 
-        converter = (
-            lambda c: to_datetime(result[c])
+        converter = lambda c: (
+            to_datetime(result[c])
             .dt.tz_convert("UTC")
             .dt.tz_convert(timezone_frame[c].dt.tz)
             .dt.as_unit("ns")
