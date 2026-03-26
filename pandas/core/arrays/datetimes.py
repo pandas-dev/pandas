@@ -49,7 +49,10 @@ from pandas._libs.tslibs import (
 )
 from pandas._libs.tslibs.dtypes import abbrev_to_npy_unit
 from pandas._libs.tslibs.offsets import RelativeDeltaOffset
-from pandas.errors import PerformanceWarning
+from pandas.errors import (
+    Pandas4Warning,
+    PerformanceWarning,
+)
 from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_inclusive
@@ -1966,7 +1969,19 @@ default 'raise'
     Freq: D, dtype: int32
     """
     day_of_week = _field_accessor("day_of_week", "dow", _dayofweek_doc)
-    weekday = day_of_week
+    @property
+    def weekday(self):
+        # GH#12816
+        from pandas.errors import Pandas4Warning
+
+        warnings.warn(
+            f"{type(self).__name__}.weekday is deprecated and will be removed "
+            "in a future version. Use DatetimeIndex.day_of_week or "
+            "Series.dt.day_of_week instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self.day_of_week
 
     @property
     def dayofweek(self):

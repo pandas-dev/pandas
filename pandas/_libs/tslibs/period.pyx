@@ -2560,9 +2560,18 @@ cdef class _Period(PeriodMixin):
         >>> per.end_time.day_of_week
         2
         """
-        # Docstring is a duplicate from day_of_week. Reusing docstrings with
-        # Appender doesn't work for properties in Cython files, and setting
-        # the __doc__ attribute is also not possible.
+        # GH#12816
+        import warnings
+
+        from pandas.errors import Pandas4Warning
+        from pandas.util._exceptions import find_stack_level
+
+        warnings.warn(
+            "Period.weekday is deprecated and will be removed "
+            "in a future version. Use Period.day_of_week instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
         return self.day_of_week
 
     @property
