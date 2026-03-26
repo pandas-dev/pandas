@@ -625,7 +625,7 @@ def test_frame_select(temp_hdfstore):
         index=date_range("2000-01-01", periods=10, freq="B", unit="ns"),
     )
     temp_hdfstore.append("df_time", df)
-    msg = "day is out of range for month: 0"
+    msg = "day (is out of range for month|0 must be in range)"
     with pytest.raises(ValueError, match=msg):
         temp_hdfstore.select("df_time", "index>0")
 
