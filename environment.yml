@@ -9,8 +9,8 @@ dependencies:
   # build dependencies
   - versioneer
   - cython>=3.1.0,<4.0.0a0
-  - meson>=1.2.1,<2
-  - meson-python>=0.17.1,<1
+  - meson>=1.2.3,<2
+  - meson-python>=0.18.0,<1
 
   # test dependencies
   - pytest>=8.3.4
@@ -87,6 +87,7 @@ dependencies:
   - numpydoc
   # temporary installed with pip with custom patch until released
   # - pydata-sphinx-theme=0.16
+  - pytest-cython>=0.4.0  # doctest
   - sphinx
   - sphinx-design
   - sphinx-copybutton
@@ -125,4 +126,3 @@ dependencies:
   - pip:
       - tzdata>=2023.3
       - https://github.com/jorisvandenbossche/pydata-sphinx-theme/archive/refs/heads/v0.16.1+dismissable-announcement-banner.zip
-      - pytest-cython==0.4.0rc1  # doctest

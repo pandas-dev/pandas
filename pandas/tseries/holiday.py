@@ -334,8 +334,7 @@ class Holiday:
         if self.days_of_week is not None:
             holiday_dates = holiday_dates[
                 np.isin(
-                    # error: "DatetimeIndex" has no attribute "dayofweek"
-                    holiday_dates.dayofweek,  # type: ignore[attr-defined]
+                    holiday_dates.dayofweek,
                     self.days_of_week,
                 ).ravel()
             ]
@@ -410,7 +409,7 @@ class Holiday:
             return dates.copy()
 
         if self.observance is not None:
-            return dates.map(lambda d: self.observance(d))
+            return dates.map(lambda d: self.observance(d))  # type: ignore[return-value, misc]  # pyright: ignore[reportOptionalCall]
 
         if self.offset is not None:
             if not isinstance(self.offset, list):

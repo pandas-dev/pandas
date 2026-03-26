@@ -20,6 +20,10 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_scalar,
 )
+from pandas.core.dtypes.dtypes import (
+    IntervalDtype,
+    PeriodDtype,
+)
 
 import pandas.core.common as com
 from pandas.core.computation.common import (
@@ -146,15 +150,18 @@ class Term:
     @property
     def type(self):
         try:
-            # potentially very slow for large, mixed dtype frames
-            return self._value.values.dtype
+            # GH#35247 avoid .values which boxes PeriodArray/IntervalArray
+            dtype = self._value.dtype
         except AttributeError:
             try:
-                # ndarray
-                return self._value.dtype
+                return self._value.values.dtype  # DataFrame
             except AttributeError:
-                # scalar
-                return type(self._value)
+                return type(self._value)  # scalar
+
+        # Match .values.dtype behavior for types that external_values boxes
+        if isinstance(dtype, (PeriodDtype, IntervalDtype)):
+            return np.dtype("object")
+        return dtype
 
     return_type = type
 

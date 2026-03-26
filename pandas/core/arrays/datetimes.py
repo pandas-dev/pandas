@@ -17,7 +17,7 @@ import warnings
 import numpy as np
 
 from pandas._config import using_string_dtype
-from pandas._config.config import get_option
+from pandas._config.config import _global_config
 
 from pandas._libs import (
     lib,
@@ -27,7 +27,10 @@ from pandas._libs.tslibs import (
     BaseOffset,
     NaT,
     NaTType,
+    OutOfBoundsDatetime,
+    OutOfBoundsTimedelta,
     Resolution,
+    Timedelta,
     Timestamp,
     astype_overflowsafe,
     fields,
@@ -45,6 +48,7 @@ from pandas._libs.tslibs import (
     tzconversion,
 )
 from pandas._libs.tslibs.dtypes import abbrev_to_npy_unit
+from pandas._libs.tslibs.offsets import RelativeDeltaOffset
 from pandas.errors import PerformanceWarning
 from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
@@ -66,7 +70,10 @@ from pandas.core.dtypes.dtypes import (
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays import datetimelike as dtl
-from pandas.core.arrays._ranges import generate_regular_range
+from pandas.core.arrays._ranges import (
+    generate_daily_offset_range,
+    generate_regular_range,
+)
 import pandas.core.common as com
 
 from pandas.tseries.frequencies import get_period_alias
@@ -93,10 +100,7 @@ if TYPE_CHECKING:
         npt,
     )
 
-    from pandas import (
-        DataFrame,
-        Timedelta,
-    )
+    from pandas import DataFrame
     from pandas.core.arrays import PeriodArray
 
     _TimestampNoneT1 = TypeVar("_TimestampNoneT1", Timestamp, None)
@@ -127,7 +131,7 @@ def tz_to_dtype(
 
     Returns
     -------
-    np.dtype or Datetime64TZDType
+    np.dtype or DatetimeTZDtype
     """
     if tz is None:
         return np.dtype(f"M8[{unit}]")
@@ -150,7 +154,7 @@ def _field_accessor(name: str, field: str, docstring: str | None = None):
                     month_kw = kwds.get("startingMonth", kwds.get("month", month_kw))
 
                 if freq is not None:
-                    freq_name = freq.name
+                    freq_name = freq.rule_code
                 else:
                     freq_name = None
                 result = fields.get_start_end_field(
@@ -228,9 +232,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
 
     _typ = "datetimearray"
     _recognized_scalars = (datetime, np.datetime64)
-    _is_recognized_dtype: Callable[[DtypeObj], bool] = lambda x: lib.is_np_dtype(
-        x, "M"
-    ) or isinstance(x, DatetimeTZDtype)
+    _is_recognized_dtype: Callable[[DtypeObj], bool] = lambda x: (
+        lib.is_np_dtype(x, "M") or isinstance(x, DatetimeTZDtype)
+    )
     _infer_matches = ("datetime", "datetime64", "date")
 
     @property
@@ -357,7 +361,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         """
 
         # if the user either explicitly passes tz=None or a tz-naive dtype, we
-        #  disallows inferring a tz.
+        #  disallow inferring a tz.
         explicit_tz_none = tz is None
         if tz is lib.no_default:
             tz = None
@@ -479,9 +483,31 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
 
             if isinstance(freq, (Tick, Day)):
                 i8values = generate_regular_range(start, end, periods, freq, unit=unit)
+            elif freq.n >= 1 and freq._supports_daily_offset_mask:
+                # GH#16463: fast "daily range + filter" path for offsets
+                # that support vectorized on-offset checks.
+                try:
+                    i8values = generate_daily_offset_range(
+                        start, end, periods, freq, unit=unit
+                    )
+                except (OutOfBoundsDatetime, OutOfBoundsTimedelta, OverflowError):
+                    # Near Timestamp bounds with periods; the iterative
+                    # path handles this by stopping before overflow.
+                    xdr = _generate_range(
+                        start=start,
+                        end=end,
+                        periods=periods,
+                        offset=freq,
+                        unit=unit,
+                    )
+                    i8values = np.array([x._value for x in xdr], dtype=np.int64)
             else:
                 xdr = _generate_range(
-                    start=start, end=end, periods=periods, offset=freq, unit=unit
+                    start=start,
+                    end=end,
+                    periods=periods,
+                    offset=freq,
+                    unit=unit,
                 )
                 i8values = np.array([x._value for x in xdr], dtype=np.int64)
 
@@ -525,8 +551,20 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             if not left_inclusive and not right_inclusive:
                 i8values = i8values[1:-1]
         else:
-            start_i8 = Timestamp(start)._value
-            end_i8 = Timestamp(end)._value
+            start_i8 = (
+                Timestamp(start)._value
+                if start is not None
+                else i8values[0]
+                if len(i8values)
+                else 0
+            )
+            end_i8 = (
+                Timestamp(end)._value
+                if end is not None
+                else i8values[-1]
+                if len(i8values)
+                else 0
+            )
             if not left_inclusive or not right_inclusive:
                 if not left_inclusive and len(i8values) and i8values[0] == start_i8:
                     i8values = i8values[1:]
@@ -602,7 +640,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
 
         Returns
         -------
-        zoneinfo.ZoneInfo,, datetime.tzinfo, pytz.tzinfo.BaseTZInfo, dateutil.tz.tz.tzfile, or None
+        zoneinfo.ZoneInfo, datetime.tzinfo, pytz.tzinfo.BaseTZInfo, dateutil.tz.tz.tzfile, or None
             Returns None when the array is tz-naive.
 
         See Also
@@ -812,6 +850,21 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     def _add_offset(self, offset: BaseOffset) -> Self:
         assert not isinstance(offset, Tick)
 
+        # For pure-timedelta DateOffset with tz-aware data, add to UTC values
+        # directly to avoid nonexistent/ambiguous time errors from
+        # re-localizing wall-time results near DST (GH#28610).
+        if (
+            self.tz is not None
+            and isinstance(offset, RelativeDeltaOffset)
+            and not offset._use_relativedelta
+        ):
+            res_values = self._ndarray + offset._pd_timedelta
+            result = type(self)._simple_new(res_values, dtype=self.dtype)
+            if offset.normalize:
+                result = result.normalize()
+                result._freq = None
+            return result
+
         if self.tz is not None:
             values = self.tz_localize(None)
         else:
@@ -820,13 +873,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         try:
             res_values = offset._apply_array(values._ndarray)
             if res_values.dtype.kind == "i":
-                # error: Argument 1 to "view" of "ndarray" has
-                # incompatible type
-                # "dtype[datetime64[date | int | None]] | DatetimeTZDtype";
-                # expected "dtype[Any] | _HasDType[dtype[Any]]"  [arg-type]
-                res_values = res_values.view(values.dtype)  # type: ignore[arg-type]
+                res_values = res_values.view(values.dtype)
         except NotImplementedError:
-            if get_option("performance_warnings"):
+            if _global_config["mode"]["performance_warnings"]:
                 warnings.warn(
                     "Non-vectorized DateOffset being applied to Series or "
                     "DatetimeIndex.",
@@ -834,7 +883,15 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                     stacklevel=find_stack_level(),
                 )
             res_values = self.astype("O") + offset
-            result = type(self)._from_sequence(res_values, dtype=self.dtype)
+            # GH#56586 use the finer resolution between self and offset.offset
+            # to avoid truncating sub-unit precision
+            res_unit = self.unit
+            if hasattr(offset, "offset") and offset.offset:
+                offset_unit = Timedelta(offset.offset).unit
+                if abbrev_to_npy_unit(offset_unit) > abbrev_to_npy_unit(res_unit):
+                    res_unit = offset_unit
+            dtype = tz_to_dtype(self.tz, unit=res_unit)
+            result = type(self)._from_sequence(res_values, dtype=dtype)
 
         else:
             result = type(self)._simple_new(res_values, dtype=res_values.dtype)
@@ -880,7 +937,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         Returns
         -------
         Array or Index
-            Datetme Array/Index with target `tz`.
+            Datetime Array/Index with target `tz`.
 
         Raises
         ------
@@ -967,7 +1024,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
 
         Parameters
         ----------
-        tz : str, zoneinfo.ZoneInfo,, pytz.timezone, dateutil.tz.tzfile, datetime.tzinfo or None
+        tz : str, zoneinfo.ZoneInfo, pytz.timezone, dateutil.tz.tzfile, datetime.tzinfo or None
             Time zone to convert timestamps to. Passing ``None`` will
             remove the time zone information preserving local time.
         ambiguous : 'infer', 'NaT', bool array, default 'raise'
@@ -987,7 +1044,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             - 'raise' will raise a ValueError if there are ambiguous
               times.
 
-        nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta, \
+        nonexistent : 'shift_forward', 'shift_backward', 'NaT', timedelta, \
 default 'raise'
             A nonexistent time does not exist in a particular timezone
             where clocks moved forward due to DST.
@@ -1075,7 +1132,7 @@ default 'raise'
 
         If the DST transition causes nonexistent times, you can shift these
         dates forward or backwards with a timedelta object or `'shift_forward'`
-        or `'shift_backwards'`.
+        or `'shift_backward'`.
 
         >>> s = pd.to_datetime(pd.Series(['2015-03-29 02:30:00',
         ...                               '2015-03-29 03:30:00'], dtype="M8[ns]"))

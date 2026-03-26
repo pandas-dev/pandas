@@ -16,7 +16,7 @@ import warnings
 
 import numpy as np
 
-from pandas._config import get_option
+from pandas._config.config import _global_config
 
 from pandas._libs import (
     NaT,
@@ -199,7 +199,7 @@ def contains(cat, key, container) -> bool:
     """
     Helper for membership check for ``key`` in ``cat``.
 
-    This is a helper method for :method:`__contains__`
+    This is a helper method for :meth:`__contains__`
     and :class:`CategoricalIndex.__contains__`.
 
     Returns True if ``key`` is in ``cat.categories`` and the
@@ -207,7 +207,7 @@ def contains(cat, key, container) -> bool:
 
     Parameters
     ----------
-    cat : :class:`Categorical`or :class:`categoricalIndex`
+    cat : :class:`Categorical`or :class:`CategoricalIndex`
     key : a hashable object
         The key to check membership for.
     container : Container (e.g. list-like or mapping)
@@ -487,7 +487,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
                     categories = Index(categories, dtype=object, copy=False)
 
-                # if not preserve_obejct, we're inferring from values
+                # if not preserve_object, we're inferring from values
                 dtype = CategoricalDtype(categories, dtype.ordered)
 
         elif isinstance(values.dtype, CategoricalDtype):
@@ -2286,8 +2286,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         max_categories = (
             10
-            if get_option("display.max_categories") == 0
-            else get_option("display.max_categories")
+            if _global_config["display"]["max_categories"] == 0
+            else _global_config["display"]["max_categories"]
         )
         from pandas.io.formats import format as fmt
 
@@ -2322,7 +2322,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         dtype = str(self.categories.dtype)
         levheader = f"Categories ({len(self.categories)}, {dtype}): "
         width, _ = get_terminal_size()
-        max_width = get_option("display.width") or width
+        max_width = _global_config["display"]["width"] or width
         if console.in_ipython_frontend():
             # 0 = no breaks
             max_width = 0

@@ -31,9 +31,9 @@ import numpy as np
 
 from pandas._config import (
     config,
-    get_option,
     using_string_dtype,
 )
+from pandas._config.config import _global_config
 
 from pandas._libs import (
     lib,
@@ -663,6 +663,10 @@ class HDFStore:
         """
         Return a list of keys corresponding to objects stored in HDFStore.
 
+        The keys are absolute path-names within the HDF5 file hierarchy.
+        By default only pandas objects are returned, but native HDF5 table
+        objects can be included as well.
+
         Parameters
         ----------
 
@@ -804,6 +808,9 @@ class HDFStore:
     def get(self, key: str):
         """
         Retrieve pandas object stored in file.
+
+        The object is read from the HDF5 file and returned as the
+        same type that was stored (e.g., DataFrame, Series).
 
         Parameters
         ----------
@@ -1179,7 +1186,11 @@ class HDFStore:
             Specifies a compression level for data.
             A value of 0 or None disables compression.
         min_itemsize : int, dict, or None
-            Dict of columns that specify minimum str sizes.
+            Minimum number of bytes reserved for object columns.
+            If int, all columns reserve 'min_itemsize' bytes per stored value.
+            If dict, specific columns reserve 'min_itemsize' bytes per stored value.
+            Strings are stored as encoded bytes. Since some characters require multiple
+            bytes, required size may be larger than string length.
         nan_rep : str
             Str to use as str nan representation.
         data_columns : list of columns or True, default None
@@ -1213,7 +1224,7 @@ class HDFStore:
         >>> store.put("data", df)  # doctest: +SKIP
         """
         if format is None:
-            format = get_option("io.hdf.default_format") or "fixed"
+            format = _global_config["io"]["hdf"]["default_format"] or "fixed"
         format = self._validate_format(format)
         self._write_to_group(
             key,
@@ -1339,7 +1350,11 @@ class HDFStore:
         columns : default None
             This parameter is currently not accepted, try data_columns.
         min_itemsize : int, dict, or None
-            Dict of columns that specify minimum str sizes.
+            Minimum number of bytes reserved for object columns.
+            If int, all columns reserve 'min_itemsize' bytes per stored value.
+            If dict, specific columns reserve 'min_itemsize' bytes per stored value.
+            Strings are stored as encoded bytes. Since some characters require multiple
+            bytes, required size may be larger than string length.
         nan_rep : str
             Str to use as str nan representation.
         chunksize : int or None
@@ -1392,9 +1407,9 @@ class HDFStore:
             )
 
         if dropna is None:
-            dropna = get_option("io.hdf.dropna_table")
+            dropna = _global_config["io"]["hdf"]["dropna_table"]
         if format is None:
-            format = get_option("io.hdf.default_format") or "table"
+            format = _global_config["io"]["hdf"]["default_format"] or "table"
         format = self._validate_format(format)
         self._write_to_group(
             key,
@@ -1747,6 +1762,9 @@ class HDFStore:
     def info(self) -> str:
         """
         Print detailed information on the store.
+
+        The information includes the file path, class name, and a listing
+        of all stored object keys with their types and shapes.
 
         Returns
         -------
@@ -2995,7 +3013,7 @@ class GenericFixed(Fixed):
         kwargs = {}
         if index_class == DatetimeIndex:
 
-            def f(values, freq=None, tz=None):
+            def f(values, freq=None, tz=None):  # pyright: ignore[reportRedeclaration]
                 # data are already in UTC, localize and convert if tz present
                 dta = DatetimeArray._simple_new(
                     values.values, dtype=values.dtype, freq=freq
@@ -3313,7 +3331,7 @@ class GenericFixed(Fixed):
                 pass
             elif inferred_type == "string":
                 pass
-            elif get_option("performance_warnings"):
+            elif _global_config["mode"]["performance_warnings"]:
                 ws = performance_doc % (inferred_type, key, items)
                 warnings.warn(ws, PerformanceWarning, stacklevel=find_stack_level())
 
@@ -3530,7 +3548,7 @@ class Table(Fixed):
     pandas_kind = "wide_table"
     format_type: str = "table"  # GH#30962 needed by dask
     table_type: str
-    levels: int | list[Hashable] = 1
+    levels: int | list[Hashable] = 1  # pyright: ignore[reportRedeclaration]
     is_table = True
 
     metadata: list
@@ -3769,7 +3787,7 @@ class Table(Fixed):
         self.nan_rep = getattr(self.attrs, "nan_rep", None)
         self.encoding = _ensure_encoding(getattr(self.attrs, "encoding", None))
         self.errors = getattr(self.attrs, "errors", "strict")
-        self.levels: list[Hashable] = getattr(self.attrs, "levels", None) or []
+        self.levels: list[Hashable] = getattr(self.attrs, "levels", None) or []  # pyright: ignore[reportRedeclaration]
         self.index_axes = [a for a in self.indexables if a.is_an_indexable]
         self.values_axes = [a for a in self.indexables if not a.is_an_indexable]
 
@@ -4653,7 +4671,7 @@ class AppendableTable(Table):
 
             self.write_data_chunk(
                 rows,
-                indexes=[a[start_i:end_i] for a in indexes],
+                indexes=[a[start_i:end_i] for a in indexes],  # pyright: ignore[reportOptionalSubscript]
                 mask=mask[start_i:end_i] if mask is not None else None,
                 values=[v[start_i:end_i] for v in bvalues],
             )

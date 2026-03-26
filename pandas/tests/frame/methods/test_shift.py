@@ -175,6 +175,35 @@ class TestDataFrameShift:
         tm.assert_equal(res, exp)
         assert tm.get_dtype(res) == "datetime64[ns, US/Eastern]"
 
+    def test_shift_2d_dta_block(self):
+        # Ensure shift works correctly with a multi-row 2D DatetimeArray block,
+        #  which does not arise via normal consolidation.
+        dta = date_range("2016-01-01", periods=9)._values.reshape(3, 3)
+        df = DataFrame(dta)
+
+        # Verify we actually have a 2D EA block
+        assert df._mgr.blocks[0].values.shape == (3, 3)
+
+        result = df.shift(1)
+        expected = DataFrame(
+            {
+                0: [NaT, dta[0, 0], dta[1, 0]],
+                1: [NaT, dta[0, 1], dta[1, 1]],
+                2: [NaT, dta[0, 2], dta[1, 2]],
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
+        result = df.shift(-2)
+        expected = DataFrame(
+            {
+                0: [dta[2, 0], NaT, NaT],
+                1: [dta[2, 1], NaT, NaT],
+                2: [dta[2, 2], NaT, NaT],
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize("ex", [10, -10, 20, -20])
     def test_shift_dst_beyond(self, frame_or_series, ex):
         # GH#13926
@@ -437,9 +466,11 @@ class TestDataFrameShift:
         # Explicit cast to float to avoid implicit cast when setting nan.
         # Column names aren't unique, so directly calling `expected.astype` won't work.
         expected = expected.pipe(
-            lambda df: df.set_axis(range(df.shape[1]), axis=1)
-            .astype({0: "float", 1: "float"})
-            .set_axis(df.columns, axis=1)
+            lambda df: (
+                df.set_axis(range(df.shape[1]), axis=1)
+                .astype({0: "float", 1: "float"})
+                .set_axis(df.columns, axis=1)
+            )
         )
         expected.iloc[:, :2] = np.nan
         expected.columns = df3.columns
@@ -456,9 +487,11 @@ class TestDataFrameShift:
         # Explicit cast to float to avoid implicit cast when setting nan.
         # Column names aren't unique, so directly calling `expected.astype` won't work.
         expected = expected.pipe(
-            lambda df: df.set_axis(range(df.shape[1]), axis=1)
-            .astype({3: "float", 4: "float"})
-            .set_axis(df.columns, axis=1)
+            lambda df: (
+                df.set_axis(range(df.shape[1]), axis=1)
+                .astype({3: "float", 4: "float"})
+                .set_axis(df.columns, axis=1)
+            )
         )
         expected.iloc[:, -2:] = np.nan
         expected.columns = df3.columns
