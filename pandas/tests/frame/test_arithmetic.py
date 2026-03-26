@@ -2312,7 +2312,6 @@ def test_mixed_col_index_dtype(string_dtype_no_object):
 @pytest.mark.parametrize(
     "dtype, fill_val",
     [
-        (tm.ALL_INT_NUMPY_DTYPES[0], 10),
         (tm.ALL_INT_EA_DTYPES[0], 10),
         (tm.FLOAT_NUMPY_DTYPES[0], 4.9),
         (tm.FLOAT_EA_DTYPES[0], 4.9),
@@ -2320,9 +2319,6 @@ def test_mixed_col_index_dtype(string_dtype_no_object):
 )
 def test_df_mul_array_fill_value(dtype, fill_val, axis, request):
     # GH 61581
-    if dtype == tm.ALL_INT_NUMPY_DTYPES[0]:
-        request.applymarker(pytest.mark.xfail(reason="NumPy int cannot represent NaN"))
-
     df = DataFrame([[np.nan, 1, 2], [3, np.nan, 5]], dtype=dtype)
     if axis == 0:
         mult = pd.array([np.nan, 1.0], dtype=dtype)

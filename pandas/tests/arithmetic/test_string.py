@@ -255,9 +255,10 @@ def test_mul(any_string_dtype):
     tm.assert_extension_array_equal(result, expected)
 
 
-def test_add_strings(any_string_dtype, request):
+def test_add_strings(any_string_dtype, request, using_infer_string):
     dtype = any_string_dtype
-    if dtype == object:
+    if dtype == object and using_infer_string:
+        # Only fails on objects while using infer_string
         mark = pytest.mark.xfail(reason="object addition returns StringDtype")
         request.applymarker(mark)
 
