@@ -80,10 +80,6 @@ def test_read_csv_local(all_parsers, csv1):
         ("2,334", 2334),
         ("-2,334", -2334),
         ("-2,334,", -2334),
-        # Multiple consecutive thousand separators are allowed in C engine,
-        # but it's not necessarily intended behavior and may change in the future.
-        ("2,,,,,,,,,,,,,,,5", 25),
-        ("2,,3,4,,,,,,,,,,,,5", 2345),
     ],
 )
 def test_1000_sep(all_parsers, number_csv, expected_number, request):
@@ -106,6 +102,50 @@ def test_1000_sep(all_parsers, number_csv, expected_number, request):
         request.applymarker(mark)
 
     result = parser.read_csv(StringIO(data), sep="|", thousands=",")
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("value", ["2,,,,,,,,,,,,,,,5", "2,,3,4,,,,,,,,,,,,5"])
+def test_1000_sep_consecutive_mixed_column(all_parsers, value):
+    # GH#62658 - consecutive separators should not be parsed as int
+    parser = all_parsers
+    data = f"A|B|C\n1|{value}|5\n10|13|10.\n"
+    if parser.engine == "pyarrow":
+        msg = "The 'thousands' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), sep="|", thousands=",")
+        return
+    result = parser.read_csv(StringIO(data), sep="|", thousands=",")
+    assert result["B"].iloc[0] == value
+
+
+@pytest.mark.parametrize("value", ["1 ,", ", 1", ",1"])
+def test_1000_sep_not_stripped_after_whitespace(all_parsers, value):
+    parser = all_parsers
+    data = f"a\n{value}\n"
+    expected = DataFrame({"a": [value]})
+
+    if parser.engine == "pyarrow":
+        msg = "The 'thousands' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), sep=";", thousands=",")
+        return
+
+    result = parser.read_csv(StringIO(data), sep=";", thousands=",")
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("value", ["1,,0", "1,,,0", ",,1", "1,,"])
+def test_1000_sep_consecutive(all_parsers, value):
+    parser = all_parsers
+    data = f"a\n{value}\n"
+    expected = DataFrame({"a": [value]})
+    if parser.engine == "pyarrow":
+        msg = "The 'thousands' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), sep=";", thousands=",")
+        return
+    result = parser.read_csv(StringIO(data), sep=";", thousands=",")
     tm.assert_frame_equal(result, expected)
 
 

@@ -153,6 +153,7 @@ Performance improvements
 Bug fixes
 ~~~~~~~~~
 - Fix bug in :func:`to_datetime` that could give an unnecessary ``RuntimeWarning`` when converting DataFrame containing missing values (:issue:`64141`)
+- Fixed bug in :func:`read_csv` with ``engine="c"`` where ``thousands=","`` could incorrectly parse fields with consecutive separators like ``"1,,0"`` as integers instead of strings (:issue:`62658`)
 
 Categorical
 ^^^^^^^^^^^
