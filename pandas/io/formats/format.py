@@ -688,14 +688,16 @@ class DataFrameFormatter:
         """
         assert self.max_rows_fitted is not None
         _len = len(self.tr_frame)
-        
+
         if self.min_rows == 1:
             row_num = 1
             self.tr_frame = self.tr_frame.iloc[:row_num, :]
         else:
             row_num = self.max_rows_fitted // 2
             if row_num >= 1:
-                _slice = np.hstack([np.arange(row_num), np.arange(_len - row_num, _len)])
+                _slice = np.hstack(
+                    [np.arange(row_num), np.arange(_len - row_num, _len)]
+                )
                 self.tr_frame = self.tr_frame.iloc[_slice]
             else:
                 row_num = cast("int", self.max_rows)
