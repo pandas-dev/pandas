@@ -350,6 +350,11 @@ def unique(values):
 
         Return numpy.ndarray, ExtensionArray or NumpyExtensionArray.
 
+    Notes
+    -----
+    Boolean and integer values may not be distinguished, since
+    `True == 1` and `False == 0` in Python.
+
     See Also
     --------
     Index.unique : Return unique values from an Index.
@@ -691,6 +696,8 @@ def factorize(
 
            Even if there's a missing value in `values`, `uniques` will
            *not* contain an entry for it.
+           Boolean and integer values may not be distinguished, since
+    `True == 1` and `False == 0` in Python.
 
     See Also
     --------
