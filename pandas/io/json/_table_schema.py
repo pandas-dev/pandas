@@ -373,9 +373,9 @@ def parse_table_schema(json, precise_float: bool) -> DataFrame:
     """
     table = ujson_loads(json, precise_float=precise_float)
 
-    # Checking if the table fields have anyother type than str and raising an error
+    # Checking if the table fields have any other type than str and raising an error
     table_fields = table["schema"]["fields"]
-    if not all(isinstance(field['name'], str) for field in table_fields):
+    if not all(isinstance(field["name"], str) for field in table_fields):
         raise ValueError("All column names must be strings when using orient='table'.")
 
     col_order = [field["name"] for field in table_fields]
