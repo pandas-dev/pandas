@@ -101,7 +101,6 @@ from pandas.core.arrays import (
     ExtensionArray,
     FloatingArray,
     IntegerArray,
-    SparseArray,
 )
 from pandas.core.arrays.string_ import StringDtype
 from pandas.core.arrays.string_arrow import ArrowStringArray
@@ -1545,10 +1544,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 # and non-applicable functions
                 # try to python agg
                 # TODO: shouldn't min_count matter?
-                # TODO: avoid special casing SparseArray here
-                if how in ["any", "all"] and isinstance(values, SparseArray):
-                    pass
-                elif alt is None or how in ["any", "all", "std", "sem"]:
+                if alt is None or how in ["any", "all", "std", "sem"]:
                     raise  # TODO: re-raise as TypeError?  should not be reached
             else:
                 return result

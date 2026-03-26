@@ -13,7 +13,7 @@ import warnings
 
 import numpy as np
 
-from pandas._config.config import get_option
+from pandas._config.config import _global_config
 
 from pandas.errors import PerformanceWarning
 from pandas.util._exceptions import find_stack_level
@@ -128,7 +128,7 @@ def _align_core(terms):
 
                 ordm = np.log10(max(1, abs(reindexer_size - term_axis_size)))
                 if (
-                    get_option("performance_warnings")
+                    _global_config["mode"]["performance_warnings"]
                     and ordm >= 1
                     and reindexer_size >= 10000
                 ):

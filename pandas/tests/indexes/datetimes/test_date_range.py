@@ -743,6 +743,38 @@ class TestDateRanges:
 
         tm.assert_index_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "inclusive, expected_values",
+        [
+            ("both", ["2020-06-01", "2020-06-02", "2020-06-03", "2020-06-04"]),
+            ("left", ["2020-06-01", "2020-06-02", "2020-06-03"]),
+            ("right", ["2020-06-02", "2020-06-03", "2020-06-04"]),
+            ("neither", ["2020-06-02", "2020-06-03"]),
+        ],
+    )
+    def test_inclusive_with_periods_and_start(self, inclusive, expected_values):
+        # GH#46331 - inclusive should filter endpoints even when
+        # only start+periods is provided (end is not specified)
+        result = date_range(start="2020-06-01", periods=4, inclusive=inclusive)
+        expected = DatetimeIndex(expected_values, freq="D")
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "inclusive, expected_values",
+        [
+            ("both", ["2020-06-01", "2020-06-02", "2020-06-03", "2020-06-04"]),
+            ("left", ["2020-06-01", "2020-06-02", "2020-06-03"]),
+            ("right", ["2020-06-02", "2020-06-03", "2020-06-04"]),
+            ("neither", ["2020-06-02", "2020-06-03"]),
+        ],
+    )
+    def test_inclusive_with_periods_and_end(self, inclusive, expected_values):
+        # GH#46331 - inclusive should filter endpoints even when
+        # only end+periods is provided (start is not specified)
+        result = date_range(end="2020-06-04", periods=4, inclusive=inclusive)
+        expected = DatetimeIndex(expected_values, freq="D")
+        tm.assert_index_equal(result, expected)
+
     def test_freq_dateoffset_with_relateivedelta_nanos(self):
         # GH 46877
         freq = DateOffset(hours=10, days=57, nanoseconds=3)

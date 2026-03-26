@@ -922,7 +922,10 @@ class TestDataFrameAnalytics:
         # GH#46947
         df = DataFrame({"a": [1.0, 2.3, 4.4], "b": [2.2, 3, np.nan]}, dtype=float_type)
         result = df.sum(**kwargs)
-        expected = Series(expected_result).astype(float_type)
+        # GH#43929 float16 upcasts to float64 in nansum to avoid overflow
+        expected = Series(expected_result, dtype=float_type)
+        if float_type == "float16":
+            expected = expected.astype("float64")
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("float_type", ["float16", "float32", "float64"])

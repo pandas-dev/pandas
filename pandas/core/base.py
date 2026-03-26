@@ -715,8 +715,10 @@ class IndexOpsMixin(OpsMixin):
         result = np.asarray(values, dtype=dtype)
 
         if (copy and not fillna) or not copy:
-            if np.shares_memory(self._values[:2], result[:2]):
-                # Take slices to improve performance of check
+            # Check identity first (O(1)) before the more expensive
+            # shares_memory check. Use the already-fetched `values` to
+            # avoid a second _values property access.
+            if result is values or np.shares_memory(values[:2], result[:2]):
                 if not copy:
                     result = result.view()
                     result.flags.writeable = False
