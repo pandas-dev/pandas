@@ -68,9 +68,15 @@ class BaseOpsUtil:
         if isinstance(obj, pd.DataFrame):
             if len(obj.columns) != 1:
                 raise NotImplementedError
-            expected = obj.iloc[:, 0].combine(other, op).to_frame()
+            with tm.assert_produces_warning(
+                None if isinstance(other, pd.Series) else pd.errors.Pandas4Warning
+            ):
+                expected = obj.iloc[:, 0].combine(other, op).to_frame()
         else:
-            expected = obj.combine(other, op)
+            with tm.assert_produces_warning(
+                None if isinstance(other, pd.Series) else pd.errors.Pandas4Warning
+            ):
+                expected = obj.combine(other, op)
         return expected
 
     # see comment on check_opname
@@ -211,10 +217,12 @@ class BaseComparisonOpsTests(BaseOpsUtil):
     """Various Series and DataFrame comparison ops methods."""
 
     def _compare_other(self, ser: pd.Series, data, op, other):
+        warn = None if isinstance(other, pd.Series) else pd.errors.Pandas4Warning
         if op.__name__ in ["eq", "ne"]:
             # comparison should match point-wise comparisons
             result = op(ser, other)
-            expected = ser.combine(other, op)
+            with tm.assert_produces_warning(warn):
+                expected = ser.combine(other, op)
             expected = self._cast_pointwise_result(op.__name__, ser, other, expected)
             tm.assert_series_equal(result, expected)
 
@@ -227,14 +235,16 @@ class BaseComparisonOpsTests(BaseOpsUtil):
 
             if exc is None:
                 # Didn't error, then should match pointwise behavior
-                expected = ser.combine(other, op)
+                with tm.assert_produces_warning(warn):
+                    expected = ser.combine(other, op)
                 expected = self._cast_pointwise_result(
                     op.__name__, ser, other, expected
                 )
                 tm.assert_series_equal(result, expected)
             else:
                 with pytest.raises(type(exc)):
-                    ser.combine(other, op)
+                    with tm.assert_produces_warning(warn):
+                        ser.combine(other, op)
 
     def test_compare_scalar(self, data, comparison_op):
         ser = pd.Series(data)

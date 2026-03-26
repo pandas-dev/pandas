@@ -3532,6 +3532,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     rv = other.get(idx, fill_value)
                     new_values[i] = func(lv, rv)
         else:
+            # GH#62918
+            warnings.warn(
+                "Series.combine with a non-Series argument is deprecated "
+                "and will raise in a future version. "
+                "Use ser.map(lambda x: func(x, other)) instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
             # Assume that other is a scalar, so apply the function for
             # each element in the Series
             new_index = self.index

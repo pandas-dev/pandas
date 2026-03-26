@@ -131,7 +131,9 @@ class TestCategorical(base.ExtensionTests):
         tm.assert_series_equal(result, expected)
 
         val = s1.iloc[0]
-        result = s1.combine(val, lambda x1, x2: x1 + x2)
+        msg = "Series.combine with a non-Series argument is deprecated"
+        with tm.assert_produces_warning(pd.errors.Pandas4Warning, match=msg):
+            result = s1.combine(val, lambda x1, x2: x1 + x2)
         expected = pd.Series([a + val for a in list(orig_data1)])
         tm.assert_series_equal(result, expected)
 

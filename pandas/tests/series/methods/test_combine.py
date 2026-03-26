@@ -1,3 +1,5 @@
+from pandas.errors import Pandas4Warning
+
 from pandas import (
     NA,
     Series,
@@ -6,14 +8,18 @@ import pandas._testing as tm
 
 
 class TestCombine:
-    def test_combine_scalar(self):
-        # GH#21248
+    def test_combine_scalar_deprecated(self):
+        # GH#62918 - combining with a non-Series is deprecated
         ser = Series([i * 10 for i in range(5)])
-        result = ser.combine(3, lambda x, y: x + y)
+
+        msg = "Series.combine with a non-Series argument is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = ser.combine(3, lambda x, y: x + y)
         expected = Series([i * 10 + 3 for i in range(5)])
         tm.assert_series_equal(result, expected)
 
-        result = ser.combine(22, lambda x, y: min(x, y))
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = ser.combine(22, lambda x, y: min(x, y))
         expected = Series([min(i * 10, 22) for i in range(5)])
         tm.assert_series_equal(result, expected)
 
