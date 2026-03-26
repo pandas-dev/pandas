@@ -993,6 +993,20 @@ class TestNanvarFixedValues:
         assert np.isnan(std[3])
 
     @pytest.mark.parametrize("ddof", range(3))
+    @pytest.mark.parametrize("axis", [0, 1, None])
+    @pytest.mark.parametrize("method", ["var", "std", "sem"])
+    def test_complex_nanvar(self, ddof, axis, method):
+        arr = self.prng.standard_normal((5, 4)) + self.prng.standard_normal((5, 4)) * 1j
+        nanops_method = getattr(nanops, f"nan{method}")
+        if method in {"var", "std"}:
+            comparator_method = getattr(np, method)
+        elif method == "sem":
+            comparator_method = pytest.importorskip("scipy.stats").sem
+        result = nanops_method(arr, axis=axis, ddof=ddof)
+        expected = comparator_method(arr, axis=axis, ddof=ddof)
+        tm.assert_almost_equal(result, expected)
+
+    @pytest.mark.parametrize("ddof", range(3))
     def test_nanstd_roundoff(self, ddof):
         # Regression test for GH 10242 (test data taken from GH 10489). Ensure
         # that variance is stable.
