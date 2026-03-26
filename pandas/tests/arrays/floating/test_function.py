@@ -303,7 +303,7 @@ def test_isna_sqrt_negative_float64(using_nan_is_na):
     vectorized_any = df.isna().any().any()
     if using_nan_is_na:
         # NaN from sqrt(-1) folded into mask -> isna detects it
-        assert vectorized_any is np.True_
+        assert vectorized_any
     else:
         # NaN stays as value -> isna doesn't detect it
-        assert vectorized_any is np.False_
+        assert not vectorized_any
