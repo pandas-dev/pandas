@@ -592,7 +592,41 @@ class NaTType(_NaT):
     # _nat_methods
 
     # "fromisocalendar" was introduced in 3.8
-    fromisocalendar = _make_error_func("fromisocalendar", datetime)
+    fromisocalendar = _make_error_func(
+        "fromisocalendar",
+        """
+        Construct a Timestamp from an ISO year, week number, and weekday.
+
+        This is the inverse of :meth:`Timestamp.isocalendar`, constructing a
+        Timestamp from the ISO 8601 year, week number, and weekday.
+
+        Parameters
+        ----------
+        year : int
+            ISO year.
+        week : int
+            ISO week number, ranging from 1 to 52 or 53.
+        day : int
+            ISO weekday, where Monday is 1 and Sunday is 7.
+
+        Returns
+        -------
+        Timestamp
+            A `Timestamp` object corresponding to the given ISO calendar date.
+
+        See Also
+        --------
+        Timestamp.isocalendar : Return a named tuple with ISO year, week, and
+            weekday.
+        Timestamp.fromordinal : Construct a Timestamp from a proleptic Gregorian
+            ordinal.
+
+        Examples
+        --------
+        >>> pd.Timestamp.fromisocalendar(2023, 1, 1)
+        Timestamp('2023-01-02 00:00:00')
+        """,
+    )
 
     # ----------------------------------------------------------------------
     # The remaining methods have docstrings copy/pasted from the analogous
@@ -1027,6 +1061,40 @@ class NaTType(_NaT):
 
         >>> pd.Timestamp.fromtimestamp(1584199972, tz='UTC')  # doctest: +SKIP
         Timestamp('2020-03-14 15:32:52+0000', tz='UTC')
+        """,
+    )
+    fromisoformat = _make_error_func(
+        "fromisoformat",
+        """
+        Construct a Timestamp from a string in ISO 8601 format.
+
+        This classmethod wraps :meth:`datetime.datetime.fromisoformat`,
+        returning a :class:`Timestamp` instead of a :class:`datetime.datetime`.
+
+        Parameters
+        ----------
+        date_string : str
+            A date-time string in one of the ISO 8601 formats supported by
+            :meth:`datetime.datetime.fromisoformat`.
+
+        Returns
+        -------
+        Timestamp
+            A Timestamp corresponding to the parsed date-time string.
+
+        See Also
+        --------
+        Timestamp : Represents a single timestamp, similar to ``datetime``.
+        to_datetime : Convert argument to datetime.
+        datetime.datetime.fromisoformat : The standard library counterpart.
+
+        Examples
+        --------
+        >>> pd.Timestamp.fromisoformat("2023-01-15")
+        Timestamp('2023-01-15 00:00:00')
+
+        >>> pd.Timestamp.fromisoformat("2023-01-15T10:30:00")
+        Timestamp('2023-01-15 10:30:00')
         """,
     )
     combine = _make_error_func(

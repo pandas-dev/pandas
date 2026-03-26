@@ -26,6 +26,7 @@ import pandas._testing as tm
 from pandas.api.types import (
     CategoricalDtype,
 )
+from pandas.util.version import Version
 
 from pandas.io.pytables import (
     HDFStore,
@@ -53,6 +54,10 @@ def test_context(temp_h5_path):
         assert type(tbl["a"]) == DataFrame
 
 
+@pytest.mark.xfail(
+    Version(tables.hdf5_version) >= Version("2"),
+    reason="track_times=False produces non-deterministic files with HDF5 >= 2",
+)
 def test_no_track_times(temp_h5_path):
     # GH 32682
     # enables to set track_times (see `pytables` `create_table` documentation)
@@ -708,9 +713,7 @@ def test_coordinates_multiple_tables(temp_hdfstore):
 
     expected = concat([df1, df2], axis=1)
     expected = expected[(expected.A > 0) & (expected.B > 0)]
-    tm.assert_frame_equal(result, expected, check_freq=False)
-    # FIXME: 2021-01-18 on some (mostly windows) builds we get freq=None
-    #  but expect freq="18B"
+    tm.assert_frame_equal(result, expected)
 
 
 def test_coordinates_array_mask(temp_hdfstore):

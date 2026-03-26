@@ -1734,7 +1734,7 @@ def infer_dtype_from_object(dtype) -> type:
     """
     Get a numpy dtype.type-style object for a dtype object.
 
-    This methods also includes handling of the datetime64[ns] and
+    This method also includes handling of the datetime64[ns] and
     datetime64[ns, TZ] objects.
 
     If no dtype can be found, we return ``object``.
