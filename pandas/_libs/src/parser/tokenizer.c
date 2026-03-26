@@ -700,29 +700,33 @@ static int tokenize_bytes(parser_t *self, size_t line_limit,
   char *stream = self->stream + self->stream_len;
   uint64_t slen = self->stream_len;
 
-  // Lookup table for fast scanning in IN_FIELD and IN_QUOTED_FIELD states.
-  // Bit 0 (0x1): character is special in an unquoted field.
-  // Bit 1 (0x2): character is special in a quoted field.
-  uint8_t is_special[256] = {0};
+  // Lookup table marking characters that force a state-machine transition
+  // during bulk scanning in IN_FIELD and IN_QUOTED_FIELD.
+  // Bit 0 (0x1): breaks scan in an unquoted field.
+  // Bit 1 (0x2): breaks scan in a quoted field.
+  uint8_t breaks_field_scan[256] = {0};
 
-  is_special[(uint8_t)lineterminator] |= 0x1;
+  breaks_field_scan[(uint8_t)lineterminator] |= 0x1;
   if (carriage_symbol < 256) {
-    is_special[(uint8_t)carriage_symbol] |= 0x1;
+    breaks_field_scan[(uint8_t)carriage_symbol] |= 0x1;
   }
   if (escape_symbol < 256) {
-    is_special[(uint8_t)escape_symbol] |= 0x1 | 0x2;
+    breaks_field_scan[(uint8_t)escape_symbol] |= 0x1 | 0x2;
   }
   if (!delim_whitespace) {
-    is_special[(uint8_t)delimiter] |= 0x1;
+    breaks_field_scan[(uint8_t)delimiter] |= 0x1;
   } else {
-    is_special[(uint8_t)' '] |= 0x1;
-    is_special[(uint8_t)'\t'] |= 0x1;
+    // Mirrors IS_DELIMITER's use of isblank(), which matches ' ' and '\t'.
+    breaks_field_scan[(uint8_t)' '] |= 0x1;
+    breaks_field_scan[(uint8_t)'\t'] |= 0x1;
   }
   if (comment_symbol < 256) {
-    is_special[(uint8_t)comment_symbol] |= 0x1;
+    breaks_field_scan[(uint8_t)comment_symbol] |= 0x1;
   }
+  // quotechar is a char (always 0-255), unlike the int sentinels above
+  // that use 1000 for "disabled", so no < 256 guard is needed here.
   if (self->quoting != QUOTE_NONE) {
-    is_special[(uint8_t)self->quotechar] |= 0x2;
+    breaks_field_scan[(uint8_t)self->quotechar] |= 0x2;
   }
 
   TRACE(("%s\n", buf));
@@ -976,7 +980,8 @@ static int tokenize_bytes(parser_t *self, size_t line_limit,
 
         // Bulk scan: copy remaining ordinary characters directly,
         // bypassing the per-char state machine overhead.
-        while (i + 1 < self->datalen && !(is_special[(uint8_t)*buf] & 0x1)) {
+        while (i + 1 < self->datalen &&
+               !(breaks_field_scan[(uint8_t)*buf] & 0x1)) {
           *stream++ = *buf++;
           slen++;
           i++;
@@ -1003,7 +1008,8 @@ static int tokenize_bytes(parser_t *self, size_t line_limit,
 
         // Bulk scan: copy remaining ordinary characters directly,
         // bypassing the per-char state machine overhead.
-        while (i + 1 < self->datalen && !(is_special[(uint8_t)*buf] & 0x2)) {
+        while (i + 1 < self->datalen &&
+               !(breaks_field_scan[(uint8_t)*buf] & 0x2)) {
           *stream++ = *buf++;
           slen++;
           i++;
