@@ -76,6 +76,29 @@ class TestGetitem:
         expected = df["A"]
         tm.assert_series_equal(result, expected)
 
+    def test_getitem_multiindex_columns_slice_in_tuple(self):
+        # GH#26511 - df[:, "t1"] should work for MultiIndex columns
+        data = np.zeros((3, 6), dtype=np.int16)
+        columns = MultiIndex.from_product([["A", "B", "C"], ["t1", "t2"]])
+        df = DataFrame(data, columns=columns)
+
+        # Slice at level 0, label at level 1: selects all "t1" sub-columns
+        result = df[:, "t1"]
+        expected = DataFrame(
+            np.zeros((3, 3), dtype=np.int16),
+            columns=Index(["A", "B", "C"]),
+        )
+        tm.assert_frame_equal(result, expected)
+
+        # Label at level 0, slice at level 1: equivalent to df["A"]
+        result = df["A", :]
+        expected = df["A"]
+        tm.assert_frame_equal(result, expected)
+
+        # Both slices: returns full DataFrame
+        result = df[:, :]
+        tm.assert_frame_equal(result, df)
+
 
 class TestGetitemListLike:
     def test_getitem_list_missing_key(self):

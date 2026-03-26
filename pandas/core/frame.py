@@ -4292,6 +4292,27 @@ class DataFrame(NDFrame, OpsMixin):
 
     def _getitem_multilevel(self, key):
         # self.columns is a MultiIndex
+        if isinstance(key, tuple) and any(isinstance(k, slice) for k in key):
+            # Tuple key contains slices, e.g. df[:, "t1"] which gives
+            # key=(slice(None), "t1"). Use get_locs which handles
+            # per-level slicing (GH#26511)
+            loc = self.columns.get_locs(key)
+            new_columns = self.columns[loc]
+            # Drop levels where a specific label was given (not slices),
+            # consistent with how df["A"] drops the level used for selection
+            levels_to_drop = [
+                idx for idx, k in enumerate(key) if not isinstance(k, slice)
+            ]
+            if levels_to_drop:
+                try:
+                    new_columns = new_columns.droplevel(levels_to_drop)
+                except ValueError:
+                    # Cannot drop; keep original structure
+                    pass
+            result = self.iloc[:, loc]
+            result.columns = new_columns
+            return result
+
         loc = self.columns.get_loc(key)
         if isinstance(loc, (slice, np.ndarray)):
             new_columns = self.columns[loc]
