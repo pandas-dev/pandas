@@ -646,7 +646,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         Examples
         --------
         >>> idx = pd.PeriodIndex(["2023-01-01", "2023-01-02", "2023-01-03"], freq="D")
-        >>> idx.weekday
+        >>> idx.day_of_week
         Index([6, 0, 1], dtype='int64')
         """,
     )
