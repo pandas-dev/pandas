@@ -169,8 +169,6 @@ class _HtmlFrameParser:
         Table elements in the specified section(s) with <a> tags will have their
         href extracted.
 
-        .. versionadded:: 1.5.0
-
     strip_whitespace : bool
         Whether table row values should have all extra whitespaces stripped to
         a single space.
@@ -196,8 +194,6 @@ class _HtmlFrameParser:
     extract_links : {None, "all", "header", "body", "footer"}
         Table elements in the specified section(s) with <a> tags will have their
         href extracted.
-
-        .. versionadded:: 1.5.0
 
     strip_whitespace : bool
         Whether table row values should have all extra whitespaces stripped to
