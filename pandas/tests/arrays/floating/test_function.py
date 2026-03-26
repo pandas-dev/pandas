@@ -234,3 +234,76 @@ def test_floating_array_mean_skipna_with_nan(request, using_nan_is_na):
         mark = pytest.mark.xfail(reason="NaN not yet distinguished from NA")
         request.applymarker(mark)
         assert np.isnan(result)
+
+
+def test_isna_div_by_zero_float64(using_nan_is_na):
+    # GH#60106
+    df = pd.DataFrame({"x": [1, 0], "y": [1, 0]}, dtype="Float64")
+    df["z"] = df["y"] / df["x"]
+    result = df["z"].isna()
+    if using_nan_is_na:
+        expected = pd.Series([False, True], name="z")
+    else:
+        expected = pd.Series([False, False], name="z")
+    tm.assert_series_equal(result, expected)
+
+
+def test_isna_apply_consistent_with_vectorized(using_nan_is_na):
+    # GH#53887
+    df = pd.DataFrame({"a": [1.0, 0.0], "b": [1.0, 0.0]}, dtype=pd.Float64Dtype())
+    df["c"] = df["a"] / df["b"]
+    vectorized = df["c"].isna().sum()
+    if using_nan_is_na:
+        assert vectorized == 1
+    else:
+        assert vectorized == 0
+
+
+def test_fillna_div_by_zero_int64(using_nan_is_na):
+    # GH#39926
+    df = pd.DataFrame({"A": [0], "B": [0]}).astype("Int64")
+    df["C"] = df["A"] / df["B"]
+    result = df.fillna(0)
+    if using_nan_is_na:
+        expected = pd.DataFrame(
+            {
+                "A": pd.array([0], dtype="Int64"),
+                "B": pd.array([0], dtype="Int64"),
+                "C": pd.array([0.0], dtype="Float64"),
+            }
+        )
+    else:
+        expected = pd.DataFrame(
+            {
+                "A": pd.array([0], dtype="Int64"),
+                "B": pd.array([0], dtype="Int64"),
+                "C": pd.array([np.nan], dtype="Float64"),
+            }
+        )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_nunique_div_by_zero(using_nan_is_na):
+    # GH#54876
+    ser = pd.Series([np.nan, 0], dtype="Float64") / 0
+    result = ser.nunique()
+    if using_nan_is_na:
+        # Both values are NA, excluded by default -> 0 unique
+        assert result == 0
+    else:
+        # NaN from 0/0 is a value, not NA -> 1 unique (NaN)
+        assert result == 1
+
+
+@pytest.mark.filterwarnings("ignore:invalid value encountered in sqrt:RuntimeWarning")
+def test_isna_sqrt_negative_float64(using_nan_is_na):
+    # GH#61758
+    df = pd.DataFrame({"a": [-1.0, 2.0], "b": [1.0, 2.0]}, dtype=pd.Float64Dtype())
+    df = np.sqrt(df)
+    vectorized_any = df.isna().any().any()
+    if using_nan_is_na:
+        # NaN from sqrt(-1) folded into mask -> isna detects it
+        assert vectorized_any is np.True_
+    else:
+        # NaN stays as value -> isna doesn't detect it
+        assert vectorized_any is np.False_
