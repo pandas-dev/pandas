@@ -201,7 +201,7 @@ Indexing
 
 Missing
 ^^^^^^^
--
+- Bug in :meth:`DataFrame.fillna` with a dict value raising ``RecursionError`` when columns are a :class:`MultiIndex` with duplicate entries (:issue:`53498`)
 -
 
 MultiIndex
