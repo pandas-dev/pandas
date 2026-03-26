@@ -103,6 +103,9 @@ Performance improvements
 - Performance improvement in :meth:`DataFrame.__getitem__` when selecting a
   single column by label on a :class:`DataFrame` with duplicate column names.
   (:issue:`64126`).
+- Performance improvement in :meth:`Series.iloc` and :meth:`DataFrame.iloc`
+  when setting datetimelike values into object-dtype data with list-like
+  indexers (:issue:`64250`).
 -
 
 .. ---------------------------------------------------------------------------
