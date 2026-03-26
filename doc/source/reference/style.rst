@@ -25,6 +25,8 @@ Styler properties
 .. autosummary::
    :toctree: api/
 
+   Styler.index
+   Styler.columns
    Styler.env
    Styler.template_html
    Styler.template_html_style
