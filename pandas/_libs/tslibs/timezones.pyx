@@ -407,8 +407,9 @@ cdef tuple _get_zoneinfo_trans_and_deltas(tzinfo tz):
     trans = np.array(trans_utc, dtype="i8") * 1_000_000_000
     trans = np.hstack([np.array([NPY_NAT + 1], dtype=np.int64), trans])
 
+    first_offset_seconds = int(tz_py._tti_before.utcoff.total_seconds())
     deltas = np.array(deltas_seconds, dtype="i8") * 1_000_000_000
-    deltas = np.hstack([deltas[:1], deltas])
+    deltas = np.hstack([[first_offset_seconds * 1_000_000_000], deltas])
 
     return trans, deltas, False
 
