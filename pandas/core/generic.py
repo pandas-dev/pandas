@@ -7547,6 +7547,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         * When dict is used as the `to_replace` value, it is like
           key(s) in the dict are the to_replace part and
           value(s) in the dict are the value parameter.
+        * Replacement is based on equality, not identity. Since Python treats
+          ``True == 1`` and ``False == 0``, replacing one will also affect
+          the other when they share a dtype (e.g. ``object``).
 
         Examples
         --------
