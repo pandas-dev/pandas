@@ -123,6 +123,7 @@ Deprecations
   :meth:`DataFrame.prod` (and their :class:`Series` equivalents); this will raise in
   a future version of pandas (:issue:`53098`)
 - Deprecated the inference of ``datetime64`` dtype from data containing ``datetime.date`` objects when used in comparisons or :meth:`Index.equals` with :class:`DatetimeIndex`. Use :func:`pandas.to_datetime` to explicitly convert to ``datetime64`` instead (:issue:`65056`)
+- Deprecated using :attr:`DataFrame.loc` to expand a :class:`DataFrame` with a :class:`MultiIndex` using a non-tuple key (e.g., ``df.loc["x"] = values``). Use a full-length tuple key instead (e.g., ``df.loc[("x", "")] = values``), or call ``df.index = df.index.to_flat_index()`` before expanding (:issue:`17024`)
 -
 
 .. ---------------------------------------------------------------------------

@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -550,3 +552,35 @@ def test_frame_setitem_partial_multiindex():
     expected = df.copy()
     expected["d"] = 8
     tm.assert_frame_equal(result, expected)
+
+
+class TestSetitemScalarKeyOnMultiIndex:
+    """GH#17024 - deprecate .loc expansion with non-tuple key on MultiIndex."""
+
+    def test_loc_scalar_key_expansion_warns(self):
+        # Non-empty DataFrame
+        df = DataFrame(
+            [[1, 2], [3, 4]],
+            index=MultiIndex.from_product([["a", "b"], ["c"]]),
+        )
+        msg = "Setting a new row on a DataFrame with a MultiIndex using a scalar key"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df.loc["all"] = [5, 6]
+
+    def test_loc_scalar_key_expansion_empty_warns(self):
+        # Empty DataFrame
+        df = DataFrame(
+            columns=[0, 1],
+            index=MultiIndex.from_tuples([], names=["x", "y"]),
+        )
+        msg = "Setting a new row on a DataFrame with a MultiIndex using a scalar key"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df.loc["all"] = [5, 6]
+
+    def test_loc_tuple_key_expansion_no_warning(self):
+        # Full-length tuple key should not warn
+        mi = MultiIndex.from_tuples([("a", "b", "c")], names=["x", "y", "z"])
+        df = DataFrame([[1, 2]], index=mi)
+        with tm.assert_produces_warning(None):
+            df.loc[("d", "e", "f")] = [5, 6]
+        assert isinstance(df.index, MultiIndex)
