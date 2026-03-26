@@ -20,22 +20,18 @@ locally before pushing your changes. It's recommended to also install the :ref:`
 Step 1: install a C compiler
 ----------------------------
 
-How to do this will depend on your platform.
+Installing a C compiler will depend on your operating system
 
-**Windows**
+Windows
+~~~~~~~
 
-You will need `Build Tools for Visual Studio 2022
-<https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022>`_.
+You will need `Build Tools for Visual Studio 2026
+<https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2026>`_.
 
 .. note::
-        You DO NOT need to install Visual Studio 2022.
-        You only need "Build Tools for Visual Studio 2022" found by
-        scrolling down to "All downloads" -> "Tools for Visual Studio".
-        In the installer, select the "Desktop development with C++" Workloads.
-
-        If you encounter an error indicating ``cl.exe`` is not found when building with Meson,
-        reopen the installer and also select the optional component
-        **MSVC v142 - VS 2019 C++ x64/x86 build tools** in the right pane for installation.
+   If you encounter an error indicating ``cl.exe``,
+   reopen the installer and also select the optional component
+   **MSVC v142 - VS 2019 C++ x64/x86 build tools** in the right pane for installation.
 
 Alternatively, you can install the necessary components on the commandline using
 `vs_BuildTools.exe <https://learn.microsoft.com/en-us/visualstudio/install/use-command-line-parameters-to-install-visual-studio?source=recommendations&view=vs-2022>`_
@@ -43,22 +39,26 @@ Alternatively, you can install the necessary components on the commandline using
 Alternatively, you could use the `WSL <https://learn.microsoft.com/en-us/windows/wsl/install>`_
 and consult the ``Linux`` instructions below.
 
-**macOS**
+MacOS
+~~~~~
 
 To use the :ref:`conda <contributing.conda>`-based compilers, you will need to install the
 Developer Tools using ``xcode-select --install``.
 
-If you prefer to use a different compiler, general information can be found here:
-https://devguide.python.org/setup/#macos
+If you prefer to use a different compiler, general information can be found in the
+`Python Developer's Guide <https://devguide.python.org/setup/#macos>`_.
 
-**Linux**
+Linux
+~~~~~
 
 For Linux-based :ref:`conda <contributing.conda>` installations, you won't have to install any
 additional components outside of the conda environment. The instructions
 below are only needed if your setup isn't based on conda environments.
 
 Some Linux distributions will come with a pre-installed C compiler. To find out
-which compilers (and versions) are installed on your system::
+which compilers (and versions) are installed on your system
+
+.. code-block:: bash
 
     # for Debian/Ubuntu:
     dpkg --list | grep compiler
@@ -76,12 +76,12 @@ instructions.
 Let us know if you have any difficulties by opening an issue or reaching out on our contributor
 community :ref:`Slack <community.slack>`.
 
-Step 2: create an isolated environment
-----------------------------------------
+Step 2: create a virtual environment
+------------------------------------
 
-Before we begin, please:
+Before proceeding:
 
-* Make sure that you have :any:`cloned the repository <contributing.forking>`
+* Make sure that you have :ref:`cloned the repository <contributing.forking>`
 * ``cd`` to the pandas source directory you just created with the clone command
 
 .. _contributing.conda:
@@ -89,7 +89,7 @@ Before we begin, please:
 Option 1: using conda (recommended)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-* Install miniforge to get `conda <https://github.com/conda-forge/miniforge?tab=readme-ov-file#download>`_
+* Install miniforge to get `conda <https://github.com/conda-forge/miniforge?tab=readme-ov-file#install>`_
 * Create and activate the ``pandas-dev`` conda environment using the following commands:
 
 .. code-block:: bash
@@ -103,7 +103,6 @@ Option 2: using pip
 ~~~~~~~~~~~~~~~~~~~
 
 You'll need to have at least the :ref:`minimum Python version <install.version>` that pandas supports.
-You also need to have ``setuptools`` 51.0.0 or later to build pandas.
 
 **Unix**/**macOS with virtualenv**
 
@@ -122,15 +121,12 @@ You also need to have ``setuptools`` 51.0.0 or later to build pandas.
 
 **Unix**/**macOS with pyenv**
 
-Consult the docs for setting up pyenv `here <https://github.com/pyenv/pyenv>`__.
+Consult the `docs <https://github.com/pyenv/pyenv>`_ for setting up pyenv.
 
 .. code-block:: bash
 
    # Create a virtual environment
    # Use an ENV_DIR of your choice. We'll use ~/Users/<yourname>/.pyenv/versions/pandas-dev
-   pyenv virtualenv <version> <name-to-give-it>
-
-   # For instance:
    pyenv virtualenv 3.11 pandas-dev
 
    # Activate the virtualenv
@@ -164,103 +160,40 @@ should already exist.
 Step 3: build and install pandas
 --------------------------------
 
-There are currently two supported ways of building pandas, pip/meson and setuptools(setup.py).
-Historically, pandas has only supported using setuptools to build pandas. However, this method
-requires a lot of convoluted code in setup.py and also has many issues in compiling pandas in parallel
-due to limitations in setuptools.
+pandas uses the `Meson <https://mesonbuild.com/>`_ build backend via `PEP 517 <https://peps.python.org/pep-0517/>`_
+to build the C extensions and install the library.
 
-The newer build system, invokes the meson backend through pip (via a `PEP 517 <https://peps.python.org/pep-0517/>`_ build).
-It automatically uses all available cores on your CPU, and also avoids the need for manual rebuilds by
-rebuilding automatically whenever pandas is imported (with an editable install).
+To compile and install pandas in editable mode, run:
 
-For these reasons, you should compile pandas with meson.
-Because the meson build system is newer, you may find bugs/minor issues as it matures. You can report these bugs
-`here <https://github.com/pandas-dev/pandas/issues/49683>`_.
+.. code-block:: bash
 
-To compile pandas with meson, run::
+   python -m pip install --verbose --editable . --no-build-isolation
 
-   # Build and install pandas
-   # By default, this will print verbose output
-   # showing the "rebuild" taking place on import (see section below for explanation)
-   # If you do not want to see this, omit everything after --no-build-isolation
-   python -m pip install -ve . --no-build-isolation -Ceditable-verbose=true
+Additional Meson options can be passed to the ``pip install`` command to modify the installation.
+Helpful options include:
+
+* ``-Ceditable-verbose=true``: Print verbose logs during rebuild, even during ``import``.
+* ``-Cbuilddir="your builddir here"``: Specify a different build directory for the C extensions.
+* ``-Csetup-args="-Ddebug=true"``: Compile the C extensions with debug symbols.
 
 .. note::
-   The version number is pulled from the latest repository tag. Be sure to fetch the latest tags from upstream
-   before building::
+   When pandas is installed in ``--editable`` mode, pandas will automatically rebuild the library upon ``import``,
+   and build logs will show if ``-Ceditable-verbose=true`` is passed as well.
 
-      # set the upstream repository, if not done already, and fetch the latest tags
-      git remote add upstream https://github.com/pandas-dev/pandas.git
-      git fetch upstream --tags
+Now, pandas has been installed into your virtual environment, and the version number will
+reflect that it's a development version with a reference to the latest Git hash from which pandas was built.
 
-**Build options**
+.. code-block:: ipython
 
-It is possible to pass options from the pip frontend to the meson backend if you would like to configure your
-install. Occasionally, you'll want to use this to adjust the build directory, and/or toggle debug/optimization levels.
+   In [1]: import pandas
 
-You can pass a build directory to pandas by appending ``-Cbuilddir="your builddir here"`` to your pip command.
-This option allows you to configure where meson stores your built C extensions, and allows for fast rebuilds.
-
-Sometimes, it might be useful to compile pandas with debugging symbols, when debugging C extensions.
-Appending ``-Csetup-args="-Ddebug=true"`` will do the trick.
-
-With pip, it is possible to chain together multiple config settings. For example, specifying both a build directory
-and building with debug symbols would look like
-``-Cbuilddir="your builddir here" -Csetup-args="-Dbuildtype=debug"``.
-
-**Compiling pandas with setup.py**
+   # Your version will be structured similar, but not match, this example.
+   In [2]: print(pandas.__version__)
+   3.0.0.dev0+880.g2b9e661fbb.dirty
 
 .. note::
-   This method of compiling pandas will be deprecated and removed very soon, as the meson backend matures.
-
-To compile pandas with setuptools, run::
-
-   python setup.py develop
-
-.. note::
-   If pandas is already installed (via meson), you have to uninstall it first::
-
-        python -m pip uninstall pandas
-
-This is because python setup.py develop will not uninstall the loader script that ``meson-python``
-uses to import the extension from the build folder, which may cause errors such as an
-``FileNotFoundError`` to be raised.
-
-.. note::
-   You will need to repeat this step each time the C extensions change, for example
-   if you modified any file in ``pandas/_libs`` or if you did a fetch and merge from ``upstream/main``.
-
-**Checking the build**
-
-At this point you should be able to import pandas from your locally built version::
-
-   $ python
-   >>> import pandas
-   >>> print(pandas.__version__)  # note: the exact output may differ
-   2.0.0.dev0+880.g2b9e661fbb.dirty
+   The version number is pulled from the latest repository tag, so ensure tags were fetched when
+   :ref:`cloning the repository <contributing.forking>` from your fork.
 
 
-At this point you may want to try
-`running the test suite <https://pandas.pydata.org/docs/dev/development/contributing_codebase.html#running-the-test-suite>`_.
-
-**Keeping up to date with the latest build**
-
-When building pandas with meson, importing pandas will automatically trigger a rebuild, even when C/Cython files are modified.
-By default, no output will be produced by this rebuild (the import will just take longer). If you would like to see meson's
-output when importing pandas, you can set the environment variable ``MESONPY_EDITABLE_VERBOSE``. For example, this would be::
-
-   # On Linux/macOS
-   MESONPY_EDITABLE_VERBOSE=1 python
-
-   # Windows
-   set MESONPY_EDITABLE_VERBOSE=1 # Only need to set this once per session
-   python
-
-If you would like to see this verbose output every time, you can set the ``editable-verbose`` config setting to ``true`` like so::
-
-   python -m pip install -ve . -Ceditable-verbose=true
-
-.. tip::
-   If you ever find yourself wondering whether setuptools or meson was used to build your pandas,
-   you can check the value of ``pandas._built_with_meson``, which will be true if meson was used
-   to compile pandas.
+Additionally, you can try :ref:`running the test suite <contributing.running_tests>`.

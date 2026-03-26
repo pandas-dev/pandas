@@ -52,7 +52,7 @@ class TestTimestampConstructorUnitKeyword:
         # GH#50870  make sure we get an OutOfBoundsDatetime instead of OverflowError
         val = typ(150000000000000)
 
-        msg = f"cannot convert input {val} with the unit 'D'"
+        msg = f"cannot convert input {int(val)} with the unit 'D'"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             Timestamp(val, unit="D")
 
@@ -1095,6 +1095,17 @@ def test_non_nano_value():
     # check that the suggested workaround actually works
     result = ts.asm8.view("i8")
     assert result == -52_700_112_000 * 10**6
+
+
+def test_timestamp_constructor_np_str():
+    # GH#48974 np.str_ should not break Timestamp construction
+    result = Timestamp(np.str_("2023-01-01"))
+    expected = Timestamp("2023-01-01")
+    assert result == expected
+
+    result = Timestamp(np.str_("2023-01-01 12:34:56"))
+    expected = Timestamp("2023-01-01 12:34:56")
+    assert result == expected
 
 
 @pytest.mark.parametrize("na_value", [None, np.nan, np.datetime64("NaT"), NaT, NA])

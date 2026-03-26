@@ -170,8 +170,8 @@ class TestSetitem:
 
         result[0] = np.nan
 
-        expected_left = Index([left._na_value] + list(left[1:]))
-        expected_right = Index([right._na_value] + list(right[1:]))
+        expected_left = Index([left._na_value, *list(left[1:])])
+        expected_right = Index([right._na_value, *list(right[1:])])
         expected = IntervalArray.from_arrays(expected_left, expected_right)
 
         tm.assert_extension_array_equal(result, expected)
@@ -262,3 +262,10 @@ class TestReductions:
             res = arr_na.max(**kws)
             assert res == MAX
             assert type(res) == type(MAX)
+
+
+def test_fillna_non_scalar_raises():
+    arr = IntervalArray.from_tuples([None, (0, 1)])
+    msg = "can only insert Interval objects and NA into an IntervalArray"
+    with pytest.raises(TypeError, match=msg):
+        arr.fillna([1, 1])

@@ -33,6 +33,7 @@ import warnings
 import numpy as np
 
 from pandas._config import using_string_dtype
+from pandas._config.config import _global_config
 
 from pandas._libs import lib
 from pandas.compat._optional import (
@@ -56,7 +57,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna
 
-from pandas import get_option
 from pandas.core.api import (
     DataFrame,
     Series,
@@ -1327,6 +1327,7 @@ class SQLTable(PandasObject):
         """
         parse_dates = _process_parse_dates_argument(parse_dates)
 
+        assert self.frame is not None  # caller always sets frame before this
         for sql_col in self.table.columns:
             col_name = sql_col.name
             try:
@@ -1372,7 +1373,7 @@ class SQLTable(PandasObject):
     def _sqlalchemy_type(self, col: Index | Series):
         dtype: DtypeArg = self.dtype or {}
         if is_dict_like(dtype):
-            dtype = cast(dict, dtype)
+            dtype = cast("dict", dtype)
             if col.name in dtype:
                 return dtype[col.name]
 
@@ -1605,7 +1606,7 @@ class SQLAlchemyEngine(BaseEngine):
 def get_engine(engine: str) -> BaseEngine:
     """return our implementation"""
     if engine == "auto":
-        engine = get_option("io.sql.engine")
+        engine = _global_config["io"]["sql"]["engine"]
 
     if engine == "auto":
         # try engines in this order
@@ -1930,7 +1931,7 @@ class SQLDatabase(PandasSQL):
                 # dtype[Any], Type[object]]"
                 dtype = dict.fromkeys(frame, dtype)  # type: ignore[arg-type]
             else:
-                dtype = cast(dict, dtype)
+                dtype = cast("dict", dtype)
 
             from sqlalchemy.types import TypeEngine
 
@@ -2656,7 +2657,7 @@ class SQLiteTable(SQLTable):
     def _sql_type_name(self, col):
         dtype: DtypeArg = self.dtype or {}
         if is_dict_like(dtype):
-            dtype = cast(dict, dtype)
+            dtype = cast("dict", dtype)
             if col.name in dtype:
                 return dtype[col.name]
 
@@ -2884,7 +2885,7 @@ class SQLiteDatabase(PandasSQL):
                 # dtype[Any], Type[object]]"
                 dtype = dict.fromkeys(frame, dtype)  # type: ignore[arg-type]
             else:
-                dtype = cast(dict, dtype)
+                dtype = cast("dict", dtype)
 
             for col, my_type in dtype.items():
                 if not isinstance(my_type, str):

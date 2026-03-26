@@ -281,9 +281,9 @@ def test_cache_readonly_preserve_docstrings():
     assert Index.hasnans.__doc__ is not None
 
 
-def test_no_default_pickle():
+def test_no_default_pickle(temp_file):
     # GH#40397
-    obj = tm.round_trip_pickle(lib.no_default)
+    obj = tm.round_trip_pickle(lib.no_default, temp_file)
     assert obj is lib.no_default
 
 

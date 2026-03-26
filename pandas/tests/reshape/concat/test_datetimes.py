@@ -286,6 +286,16 @@ class TestDatetimeConcat:
         result = concat([first, second])
         tm.assert_frame_equal(result, expected)
 
+    def test_concat_compat_on_non_ns_datetime_EA(self):
+        # GH#33331
+        first = Series(np.array([datetime(2010, 1, 1)], dtype="datetime64[D]"))
+        second = Series(pd.array(["a", "b"], dtype="category"))
+
+        expected = Series([Timestamp("2010-01-01 00:00:00"), "a", "b"])
+
+        result = concat([first, second], ignore_index=True)
+        tm.assert_series_equal(result, expected)
+
 
 class TestTimezoneConcat:
     def test_concat_tz_series(self):
@@ -463,7 +473,7 @@ class TestTimezoneConcat:
         b = DataFrame({"A": ts, "B": ts})
         result = concat([a, b], sort=True, ignore_index=True)
         expected = DataFrame(
-            {"A": list(ts) + list(ts), "B": [pd.NaT, pd.NaT] + list(ts)}
+            {"A": list(ts) + list(ts), "B": [pd.NaT, pd.NaT, *list(ts)]}
         )
         tm.assert_frame_equal(result, expected)
 
@@ -598,4 +608,44 @@ def test_concat_float_datetime64():
     )
 
     result = concat([df_time, df_float.iloc[:0]])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_concat_datetime64_different_resolutions():
+    # GH#53307
+    # Concatenating datetime64 columns with different resolutions
+    # should preserve datetime64 dtype (not convert to object)
+    df = DataFrame(
+        {
+            "ints": range(2),
+            "dates": date_range("2000", periods=2, freq="min"),
+        },
+    )
+    df2 = df.copy()
+    df2["dates"] = df.dates.astype("M8[s]")
+
+    combined = concat([df, df2])
+
+    # The result should be a datetime64 dtype, not object
+    assert combined.dates.dtype.kind == "M"
+
+
+def test_concat_non_ns_datetime_axis1(unit):
+    # GH#58471 - concat with non-ns datetime unit on axis=1 should
+    # preserve all data, matching the behavior of ns-resolution
+    dti1 = date_range("2024-01-01 00:00", periods=3, freq="5min", unit=unit)
+    dti2 = date_range("2024-01-01 00:15", periods=3, freq="5min", unit=unit)
+    ser1 = Series([1.0, 2.0, 3.0], index=dti1, name="a")
+    ser2 = Series([4.0, 5.0, 6.0], index=dti2, name="b")
+
+    result = concat([ser1, ser2], axis=1)
+
+    expected_index = date_range("2024-01-01 00:00", periods=6, freq="5min", unit=unit)
+    expected = DataFrame(
+        {
+            "a": [1.0, 2.0, 3.0, np.nan, np.nan, np.nan],
+            "b": [np.nan, np.nan, np.nan, 4.0, 5.0, 6.0],
+        },
+        index=expected_index,
+    )
     tm.assert_frame_equal(result, expected)

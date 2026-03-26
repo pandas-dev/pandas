@@ -7,6 +7,8 @@ ci/                               @mroeschke
 # docs
 doc/cheatsheet                    @Dr-Irv
 doc/source/development            @noatamir
+doc/source/getting_started        @afeld
+doc/source/user_guide             @afeld
 
 # pandas
 pandas/_typing.py                 @Dr-Irv

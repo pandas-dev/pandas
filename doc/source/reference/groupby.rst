@@ -7,6 +7,9 @@ GroupBy
 =======
 .. currentmodule:: pandas.api.typing
 
+.. note::
+   For an overview, see :ref:`groupby`.
+
 :class:`pandas.api.typing.DataFrameGroupBy` and :class:`pandas.api.typing.SeriesGroupBy`
 instances are returned by groupby calls :func:`pandas.DataFrame.groupby` and
 :func:`pandas.Series.groupby` respectively.

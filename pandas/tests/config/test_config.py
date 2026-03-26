@@ -129,7 +129,7 @@ class TestConfig:
 
         cf.deprecate_option("KanBan", category)
         msg = "'kanban' is deprecated, please refrain from using it."
-        with pytest.raises(category, match=msg):
+        with tm.assert_produces_warning(category, match=msg):
             cf.get_option("kAnBaN")
 
     def test_get_option(self):

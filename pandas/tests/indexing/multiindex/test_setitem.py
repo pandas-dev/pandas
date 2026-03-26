@@ -372,7 +372,6 @@ class TestMultiIndexSetItem:
         expected = df.loc[2000, 1, 6][["A", "B", "C"]]
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
     def test_loc_getitem_setitem_slice_integers(self, frame_or_series):
         index = MultiIndex(
             levels=[[0, 1, 2], [0, 2]], codes=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]]
@@ -457,7 +456,7 @@ class TestSetitemWithExpansionMultiIndex:
             ["", "wx", "wy", "", "", ""],
         ]
 
-        tuples = sorted(zip(*arrays))
+        tuples = sorted(zip(*arrays, strict=True))
         index = MultiIndex.from_tuples(tuples)
         df = DataFrame(np.random.default_rng(2).standard_normal((4, 6)), columns=index)
 

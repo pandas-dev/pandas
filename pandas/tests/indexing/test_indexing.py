@@ -339,7 +339,7 @@ class TestFancy:
     def test_multitype_list_index_access(self):
         # GH 10610
         df = DataFrame(
-            np.random.default_rng(2).random((10, 5)), columns=["a"] + [20, 21, 22, 23]
+            np.random.default_rng(2).random((10, 5)), columns=["a", 20, 21, 22, 23]
         )
 
         with pytest.raises(KeyError, match=re.escape("'[26, -8] not in index'")):
@@ -578,6 +578,28 @@ class TestFancy:
         df.loc[:, "A"] = df["A"].astype(np.int64)
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.parametrize(
+        "dtype, ea_dtype",
+        [
+            ("float64", "Int64"),
+            ("float64", "Float64"),
+            ("bool", "boolean"),
+        ],
+    )
+    @pytest.mark.parametrize("box", [Series, Index])
+    def test_iloc_setitem_ea_dtype_series(self, dtype, ea_dtype, box):
+        # GH#47776
+        if dtype == "bool":
+            df = DataFrame({"A": [True, False, True]})
+            val = box([False, True, False], dtype=ea_dtype)
+        else:
+            df = DataFrame({"A": [1.0, 2.0, 3.0]})
+            val = box([4, 5, 6], dtype=ea_dtype)
+
+        df.iloc[:, 0] = val
+        expected = DataFrame({"A": val.to_numpy(dtype=dtype)})
+        tm.assert_frame_equal(df, expected)
+
     @pytest.mark.parametrize("indexer", [tm.getitem, tm.loc])
     def test_index_type_coercion(self, indexer):
         # GH 11836
@@ -599,7 +621,7 @@ class TestFancy:
             indexer(s2)[0.0] = 0
             exp = s.index
             if 0 not in s:
-                exp = Index(s.index.tolist() + [0])
+                exp = Index([*s.index.tolist(), 0])
             tm.assert_index_equal(s2.index, exp)
 
             s2 = s.copy()

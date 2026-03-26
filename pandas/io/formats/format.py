@@ -23,14 +23,13 @@ from shutil import get_terminal_size
 from typing import (
     TYPE_CHECKING,
     Any,
-    Final,
     cast,
 )
 
 import numpy as np
 
 from pandas._config.config import (
-    get_option,
+    _global_config,
     set_option,
 )
 
@@ -107,62 +106,6 @@ if TYPE_CHECKING:
     )
 
 
-common_docstring: Final = """
-        Parameters
-        ----------
-        buf : str, Path or StringIO-like, optional, default None
-            Buffer to write to. If None, the output is returned as a string.
-        columns : array-like, optional, default None
-            The subset of columns to write. Writes all columns by default.
-        col_space : %(col_space_type)s, optional
-            %(col_space)s
-        header : %(header_type)s, optional
-            %(header)s.
-        index : bool, optional, default True
-            Whether to print index (row) labels.
-        na_rep : str, optional, default 'NaN'
-            String representation of ``NaN`` to use.
-        formatters : list, tuple or dict of one-param. functions, optional
-            Formatter functions to apply to columns' elements by position or
-            name.
-            The result of each function must be a unicode string.
-            List/tuple must be of length equal to the number of columns.
-        float_format : one-parameter function, optional, default None
-            Formatter function to apply to columns' elements if they are
-            floats. This function must return a unicode string and will be
-            applied only to the non-``NaN`` elements, with ``NaN`` being
-            handled by ``na_rep``.
-        sparsify : bool, optional, default True
-            Set to False for a DataFrame with a hierarchical index to print
-            every multiindex key at each row.
-        index_names : bool, optional, default True
-            Prints the names of the indexes.
-        justify : str, default None
-            How to justify the column labels. If None uses the option from
-            the print configuration (controlled by set_option), 'right' out
-            of the box. Valid values are
-
-            * left
-            * right
-            * center
-            * justify
-            * justify-all
-            * start
-            * end
-            * inherit
-            * match-parent
-            * initial
-            * unset.
-        max_rows : int, optional
-            Maximum number of rows to display in the console.
-        max_cols : int, optional
-            Maximum number of columns to display in the console.
-        show_dimensions : bool, default False
-            Display DataFrame dimensions (number of rows by number of columns).
-        decimal : str, default '.'
-            Character recognized as decimal separator, e.g. ',' in Europe.
-    """
-
 VALID_JUSTIFY_PARAMETERS = (
     "left",
     "right",
@@ -176,14 +119,6 @@ VALID_JUSTIFY_PARAMETERS = (
     "initial",
     "unset",
 )
-
-return_docstring: Final = """
-        Returns
-        -------
-        str or None
-            If buf is None, returns the result as a string. Otherwise returns
-            None.
-    """
 
 
 class SeriesFormatter:
@@ -217,7 +152,7 @@ class SeriesFormatter:
         self.min_rows = min_rows
 
         if float_format is None:
-            float_format = get_option("display.float_format")
+            float_format = _global_config["display"]["float_format"]
         self.float_format = float_format
         self.dtype = dtype
         self.adj = printing.get_adjustment()
@@ -234,7 +169,7 @@ class SeriesFormatter:
         is_truncated_vertically = max_rows and (len(self.series) > max_rows)
         series = self.series
         if is_truncated_vertically:
-            max_rows = cast(int, max_rows)
+            max_rows = cast("int", max_rows)
             if min_rows:
                 # if min_rows is set (not None or 0), set max_rows to minimum
                 # of both
@@ -326,7 +261,7 @@ class SeriesFormatter:
         if self.is_truncated_vertically:
             n_header_rows = 0
             row_num = self.tr_row_num
-            row_num = cast(int, row_num)
+            row_num = cast("int", row_num)
             width = self.adj.len(fmt_values[row_num - 1])
             if width > 3:
                 dot_str = "..."
@@ -369,16 +304,16 @@ def get_dataframe_repr_params() -> dict[str, Any]:
     """
     from pandas.io.formats import console
 
-    if get_option("display.expand_frame_repr"):
+    if _global_config["display"]["expand_frame_repr"]:
         line_width, _ = console.get_console_size()
     else:
         line_width = None
     return {
-        "max_rows": get_option("display.max_rows"),
-        "min_rows": get_option("display.min_rows"),
-        "max_cols": get_option("display.max_columns"),
-        "max_colwidth": get_option("display.max_colwidth"),
-        "show_dimensions": get_option("display.show_dimensions"),
+        "max_rows": _global_config["display"]["max_rows"],
+        "min_rows": _global_config["display"]["min_rows"],
+        "max_cols": _global_config["display"]["max_columns"],
+        "max_colwidth": _global_config["display"]["max_colwidth"],
+        "show_dimensions": _global_config["display"]["show_dimensions"],
         "line_width": line_width,
     }
 
@@ -399,16 +334,16 @@ def get_series_repr_params() -> dict[str, Any]:
     True
     """
     width, height = get_terminal_size()
-    max_rows_opt = get_option("display.max_rows")
+    max_rows_opt = _global_config["display"]["max_rows"]
     max_rows = height if max_rows_opt == 0 else max_rows_opt
-    min_rows = height if max_rows_opt == 0 else get_option("display.min_rows")
+    min_rows = height if max_rows_opt == 0 else _global_config["display"]["min_rows"]
 
     return {
         "name": True,
         "dtype": True,
         "min_rows": min_rows,
         "max_rows": max_rows,
-        "length": get_option("display.show_dimensions"),
+        "length": _global_config["display"]["show_dimensions"],
     }
 
 
@@ -417,10 +352,71 @@ class DataFrameFormatter:
     Class for processing dataframe formatting options and data.
 
     Used by DataFrame.to_string, which backs DataFrame.__repr__.
-    """
 
-    __doc__ = __doc__ if __doc__ else ""
-    __doc__ += common_docstring + return_docstring
+    Parameters
+    ----------
+    buf : str, Path or StringIO-like, optional, default None
+        Buffer to write to. If None, the output is returned as a string.
+    columns : array-like, optional, default None
+        The subset of columns to write. Writes all columns by default.
+    col_space : int, list or dict of int, optional
+        The minimum width of each column. If a list of ints is given
+        every integers corresponds with one column. If a dict is given,
+        the key references the column, while the value defines the space
+        to use.
+    header : bool or list of str, optional
+        Write out the column names. If a list of columns is given,
+        it is assumed to be aliases for the column names.
+    index : bool, optional, default True
+        Whether to print index (row) labels.
+    na_rep : str, optional, default 'NaN'
+        String representation of ``NaN`` to use.
+    formatters : list, tuple or dict of one-param. functions, optional
+        Formatter functions to apply to columns' elements by position or
+        name.
+        The result of each function must be a unicode string.
+        List/tuple must be of length equal to the number of columns.
+    float_format : one-parameter function, optional, default None
+        Formatter function to apply to columns' elements if they are
+        floats. This function must return a unicode string and will be
+        applied only to the non-``NaN`` elements, with ``NaN`` being
+        handled by ``na_rep``.
+    sparsify : bool, optional, default True
+        Set to False for a DataFrame with a hierarchical index to print
+        every multiindex key at each row.
+    index_names : bool, optional, default True
+        Prints the names of the indexes.
+    justify : str, default None
+        How to justify the column labels. If None uses the option from
+        the print configuration (controlled by set_option), 'right' out
+        of the box. Valid values are
+
+        * left
+        * right
+        * center
+        * justify
+        * justify-all
+        * start
+        * end
+        * inherit
+        * match-parent
+        * initial
+        * unset.
+    max_rows : int, optional
+        Maximum number of rows to display in the console.
+    max_cols : int, optional
+        Maximum number of columns to display in the console.
+    show_dimensions : bool, default False
+        Display DataFrame dimensions (number of rows by number of columns).
+    decimal : str, default '.'
+        Character recognized as decimal separator, e.g. ',' in Europe.
+
+    Returns
+    -------
+    str or None
+        If buf is None, returns the result as a string. Otherwise returns
+        None.
+    """
 
     def __init__(
         self,
@@ -525,7 +521,7 @@ class DataFrameFormatter:
 
     def _initialize_sparsify(self, sparsify: bool | None) -> bool:
         if sparsify is None:
-            return get_option("display.multi_sparse")
+            return _global_config["display"]["multi_sparse"]
         return sparsify
 
     def _initialize_formatters(
@@ -543,7 +539,7 @@ class DataFrameFormatter:
 
     def _initialize_justify(self, justify: str | None) -> str:
         if justify is None:
-            return get_option("display.colheader_justify")
+            return _global_config["display"]["colheader_justify"]
         else:
             return justify
 
@@ -679,7 +675,7 @@ class DataFrameFormatter:
                     *self.formatters[-col_num:],
                 ]
         else:
-            col_num = cast(int, self.max_cols)
+            col_num = cast("int", self.max_cols)
             self.tr_frame = self.tr_frame.iloc[:, :col_num]
         self.tr_col_num: int = col_num
 
@@ -697,7 +693,7 @@ class DataFrameFormatter:
             _slice = np.hstack([np.arange(row_num), np.arange(_len - row_num, _len)])
             self.tr_frame = self.tr_frame.iloc[_slice]
         else:
-            row_num = cast(int, self.max_rows)
+            row_num = cast("int", self.max_rows)
             self.tr_frame = self.tr_frame.iloc[:row_num, :]
         self.tr_row_num = row_num
 
@@ -707,7 +703,7 @@ class DataFrameFormatter:
         if not is_list_like(self.header) and not self.header:
             for i, c in enumerate(self.tr_frame):
                 fmt_values = self.format_col(i)
-                fmt_values = _make_fixed_width(
+                fmt_values, _ = _make_fixed_width(
                     strings=fmt_values,
                     justify=self.justify,
                     minimum=int(self.col_space.get(c, 0)),
@@ -718,7 +714,7 @@ class DataFrameFormatter:
 
         if is_list_like(self.header):
             # cast here since can't be bool if is_list_like
-            self.header = cast(list[str], self.header)
+            self.header = cast("list[str]", self.header)
             if len(self.header) != len(self.columns):
                 raise ValueError(
                     f"Writing {len(self.columns)} cols "
@@ -738,11 +734,10 @@ class DataFrameFormatter:
                 int(self.col_space.get(c, 0)), *(self.adj.len(x) for x in cheader)
             )
             fmt_values = self.format_col(i)
-            fmt_values = _make_fixed_width(
+            fmt_values, max_len = _make_fixed_width(
                 fmt_values, self.justify, minimum=header_colwidth, adj=self.adj
             )
-
-            max_len = max(*(self.adj.len(x) for x in fmt_values), header_colwidth)
+            max_len = max(max_len, header_colwidth)
             cheader = self.adj.justify(cheader, max_len, mode=self.justify)
             strcols.append(cheader + fmt_values)
 
@@ -764,7 +759,7 @@ class DataFrameFormatter:
     def _get_formatter(self, i: str | int) -> Callable | None:
         if isinstance(self.formatters, (list, tuple)):
             if is_integer(i):
-                i = cast(int, i)
+                i = cast("int", i)
                 return self.formatters[i]
             else:
                 return None
@@ -801,7 +796,7 @@ class DataFrameFormatter:
     def _get_formatted_index(self, frame: DataFrame) -> list[str]:
         # Note: this is only used by to_string() and to_latex(), not by
         # to_html(). so safe to cast col_space here.
-        col_space = {k: cast(int, v) for k, v in self.col_space.items()}
+        col_space = {k: cast("int", v) for k, v in self.col_space.items()}
         index = frame.index
         columns = frame.columns
         fmt = self._get_formatter("__index__")
@@ -821,7 +816,7 @@ class DataFrameFormatter:
             tuple(
                 _make_fixed_width(
                     list(x), justify="left", minimum=col_space.get("", 0), adj=self.adj
-                )
+                )[0]
             )
             for x in fmt_index
         ]
@@ -903,7 +898,7 @@ class DataFrameRenderer:
         render_links: bool = False,
     ) -> str | None:
         """
-        Render a DataFrame to a html table.
+        Render a DataFrame to an html table.
 
         Parameters
         ----------
@@ -1130,13 +1125,13 @@ def format_array(
     fmt_klass: type[_GenericArrayFormatter]
     if lib.is_np_dtype(values.dtype, "M"):
         fmt_klass = _Datetime64Formatter
-        values = cast(DatetimeArray, values)
+        values = cast("DatetimeArray", values)
     elif isinstance(values.dtype, DatetimeTZDtype):
         fmt_klass = _Datetime64TZFormatter
-        values = cast(DatetimeArray, values)
+        values = cast("DatetimeArray", values)
     elif lib.is_np_dtype(values.dtype, "m"):
         fmt_klass = _Timedelta64Formatter
-        values = cast(TimedeltaArray, values)
+        values = cast("TimedeltaArray", values)
     elif isinstance(values.dtype, ExtensionDtype):
         fmt_klass = _ExtensionArrayFormatter
     elif lib.is_np_dtype(values.dtype, "fc"):
@@ -1150,10 +1145,10 @@ def format_array(
         space = 12
 
     if float_format is None:
-        float_format = get_option("display.float_format")
+        float_format = _global_config["display"]["float_format"]
 
     if digits is None:
-        digits = get_option("display.precision")
+        digits = _global_config["display"]["precision"]
 
     fmt_obj = fmt_klass(
         values,
@@ -1203,13 +1198,14 @@ class _GenericArrayFormatter:
 
     def get_result(self) -> list[str]:
         fmt_values = self._format_strings()
-        return _make_fixed_width(fmt_values, self.justify)
+        result, _ = _make_fixed_width(fmt_values, self.justify)
+        return result
 
     def _format_strings(self) -> list[str]:
         if self.float_format is None:
-            float_format = get_option("display.float_format")
+            float_format = _global_config["display"]["float_format"]
             if float_format is None:
-                precision = get_option("display.precision")
+                precision = _global_config["display"]["precision"]
                 float_format = lambda x: _trim_zeros_single_float(
                     f"{x: .{precision:d}f}"
                 )
@@ -1307,7 +1303,7 @@ class FloatArrayFormatter(_GenericArrayFormatter):
         # because str(0.0) = '0.0' while '%g' % 0.0 = '0'
         if float_format:
 
-            def base_formatter(v):
+            def base_formatter(v):  # pyright: ignore[reportRedeclaration]
                 assert float_format is not None  # for mypy
                 # error: "str" not callable
                 # error: Unexpected keyword argument "value" for "__call__" of
@@ -1397,7 +1393,7 @@ class FloatArrayFormatter(_GenericArrayFormatter):
             return format_with_na_rep(self.values, self.formatter, self.na_rep)
 
         if self.fixed_width:
-            threshold = get_option("display.chop_threshold")
+            threshold = _global_config["display"]["chop_threshold"]
         else:
             threshold = None
 
@@ -1483,9 +1479,9 @@ class FloatArrayFormatter(_GenericArrayFormatter):
 class _IntArrayFormatter(_GenericArrayFormatter):
     def _format_strings(self) -> list[str]:
         if self.leading_space is False:
-            formatter_str = lambda x: f"{x:d}".format(x=x)
+            formatter_str = lambda x: f"{x:d}"
         else:
-            formatter_str = lambda x: f"{x: d}".format(x=x)
+            formatter_str = lambda x: f"{x: d}"
         formatter = self.formatter or formatter_str
         fmt_values = [formatter(x) for x in self.values]
         return fmt_values
@@ -1739,33 +1735,33 @@ def _make_fixed_width(
     justify: str = "right",
     minimum: int | None = None,
     adj: printing._TextAdjustment | None = None,
-) -> list[str]:
-    if len(strings) == 0 or justify == "all":
-        return strings
-
+) -> tuple[list[str], int]:
     if adj is None:
         adjustment = printing.get_adjustment()
     else:
         adjustment = adj
+
+    if len(strings) == 0 or justify == "all":
+        max_len = max(adjustment.len(x) for x in strings) if strings else 0
+        return strings, max_len
 
     max_len = max(adjustment.len(x) for x in strings)
 
     if minimum is not None:
         max_len = max(minimum, max_len)
 
-    conf_max = get_option("display.max_colwidth")
+    conf_max = _global_config["display"]["max_colwidth"]
     if conf_max is not None and max_len > conf_max:
         max_len = conf_max
 
-    def just(x: str) -> str:
-        if conf_max is not None:
-            if (conf_max > 3) & (adjustment.len(x) > max_len):
-                x = x[: max_len - 3] + "..."
-        return x
+    if conf_max is not None and conf_max > 3:
+        strings = [
+            x[: max_len - 3] + "..." if adjustment.len(x) > max_len else x
+            for x in strings
+        ]
 
-    strings = [just(x) for x in strings]
     result = adjustment.justify(strings, max_len, mode=justify)
-    return result
+    return result, max_len
 
 
 def _trim_zeros_complex(str_complexes: ArrayLike, decimal: str = ".") -> list[str]:
@@ -1813,6 +1809,9 @@ def _trim_zeros_single_float(str_float: str) -> str:
     return str_float
 
 
+_NUMBER_WITH_DECIMAL_RE = re.compile(r"^\s*[+-]?[0-9]+\.[0-9]*$")
+
+
 def _trim_zeros_float(
     str_floats: ArrayLike | list[str], decimal: str = "."
 ) -> list[str]:
@@ -1821,30 +1820,37 @@ def _trim_zeros_float(
     all numbers containing decimals, leaving just one if
     necessary.
     """
-    trimmed = str_floats
-    number_regex = re.compile(rf"^\s*[\+-]?[0-9]+\{decimal}[0-9]*$")
+    if decimal != ".":
+        number_regex = re.compile(rf"^\s*[+-]?[0-9]+\{decimal}[0-9]*$")
+    else:
+        number_regex = _NUMBER_WITH_DECIMAL_RE
 
-    def is_number_with_decimal(x) -> bool:
-        return re.match(number_regex, x) is not None
+    # Identify which elements are decimal numbers once, up front
+    is_number = [number_regex.match(x) is not None for x in str_floats]
 
-    def should_trim(values: ArrayLike | list[str]) -> bool:
-        """
-        Determine if an array of strings should be trimmed.
+    if not any(is_number):
+        return list(str_floats)
 
-        Returns True if all numbers containing decimals (defined by the
-        above regular expression) within the array end in a zero, otherwise
-        returns False.
-        """
-        numbers = [x for x in values if is_number_with_decimal(x)]
-        return len(numbers) > 0 and all(x.endswith("0") for x in numbers)
+    trimmed = list(str_floats)
 
-    while should_trim(trimmed):
-        trimmed = [x[:-1] if is_number_with_decimal(x) else x for x in trimmed]
+    # Trim trailing zeros from all decimal numbers equally
+    while True:
+        # Check if all decimal numbers end in "0"
+        if not all(
+            x.endswith("0")
+            for x, is_num in zip(trimmed, is_number, strict=True)
+            if is_num
+        ):
+            break
+        trimmed = [
+            x[:-1] if is_num else x
+            for x, is_num in zip(trimmed, is_number, strict=True)
+        ]
 
-    # leave one 0 after the decimal points if need be.
+    # Leave one 0 after the decimal point if needed
     result = [
-        x + "0" if is_number_with_decimal(x) and x.endswith(decimal) else x
-        for x in trimmed
+        x + "0" if is_num and x.endswith(decimal) else x
+        for x, is_num in zip(trimmed, is_number, strict=True)
     ]
     return result
 

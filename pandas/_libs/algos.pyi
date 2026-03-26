@@ -121,6 +121,33 @@ def diff_2d(
     axis: int,
     datetimelike: bool = ...,
 ) -> None: ...
+
+# ----------------------------------------------------------------------
+# Moments stats (skew, kurt)
+# ----------------------------------------------------------------------
+
+def scalar_skew(
+    values: np.ndarray,  # const float64_t[:]
+    skipna: bool,  # bint
+    mask: npt.NDArray[np.bool_] | None,  # const uint8_t[:]
+) -> float: ...
+def scalar_kurt(
+    values: np.ndarray,  # const float64_t[:]
+    skipna: bool,  # bint
+    mask: npt.NDArray[np.bool_] | None,  # const uint8_t[:]
+) -> float: ...
+def axis_skew(
+    values: np.ndarray,  # const float64_t[:, :]
+    axis: int,
+    skipna: bool,  # bint
+    mask: npt.NDArray[np.bool_] | None,  # const uint8_t[:, :]
+) -> np.ndarray: ...
+def axis_kurt(
+    values: np.ndarray,  # const float64_t[:, :]
+    axis: int,
+    skipna: bool,  # bint
+    mask: npt.NDArray[np.bool_] | None,  # const uint8_t[:, :]
+) -> np.ndarray: ...
 def ensure_platform_int(arr: object) -> npt.NDArray[np.intp]: ...
 def ensure_object(arr: object) -> npt.NDArray[np.object_]: ...
 def ensure_float64(arr: object) -> npt.NDArray[np.float64]: ...
@@ -130,314 +157,597 @@ def ensure_int32(arr: object) -> npt.NDArray[np.int32]: ...
 def ensure_int64(arr: object) -> npt.NDArray[np.int64]: ...
 def ensure_uint64(arr: object) -> npt.NDArray[np.uint64]: ...
 def take_1d_int8_int8(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_1d_int8_int32(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_1d_int8_int64(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_1d_int8_float64(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_1d_int16_int16(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_1d_int16_int32(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_1d_int16_int64(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_1d_int16_float64(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_1d_int32_int32(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_1d_int32_int64(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_1d_int32_float64(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_1d_int64_int64(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_1d_uint16_uint16(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_1d_uint32_uint32(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_1d_uint64_uint64(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_1d_int64_float64(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_1d_float32_float32(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_1d_float32_float64(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_1d_float64_float64(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_1d_object_object(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_1d_bool_bool(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_1d_bool_object(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_axis0_int8_int8(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_axis0_int8_int32(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_axis0_int8_int64(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_axis0_int8_float64(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_axis0_int16_int16(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_axis0_int16_int32(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_axis0_int16_int64(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_axis0_int16_float64(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_axis0_int32_int32(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_axis0_int32_int64(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_axis0_int32_float64(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_axis0_int64_int64(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_axis0_int64_float64(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_axis0_uint16_uint16(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_axis0_uint32_uint32(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_axis0_uint64_uint64(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_axis0_float32_float32(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_axis0_float32_float64(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_axis0_float64_float64(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_axis0_object_object(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_axis0_bool_bool(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_axis0_bool_object(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_axis1_int8_int8(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_axis1_int8_int32(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_axis1_int8_int64(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_axis1_int8_float64(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_axis1_int16_int16(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_axis1_int16_int32(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_axis1_int16_int64(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_axis1_int16_float64(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_axis1_int32_int32(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_axis1_int32_int64(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_axis1_int32_float64(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_axis1_int64_int64(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_axis1_uint16_uint16(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_axis1_uint32_uint32(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_axis1_uint64_uint64(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_axis1_int64_float64(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_axis1_float32_float32(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_axis1_float32_float64(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_axis1_float64_float64(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_axis1_object_object(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_axis1_bool_bool(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_axis1_bool_object(
-    values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...
+    values: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_multi_int8_int8(
     values: np.ndarray,
     indexer: tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]],
     out: np.ndarray,
     fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_multi_int8_int32(
     values: np.ndarray,
     indexer: tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]],
     out: np.ndarray,
     fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_multi_int8_int64(
     values: np.ndarray,
     indexer: tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]],
     out: np.ndarray,
     fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_multi_int8_float64(
     values: np.ndarray,
     indexer: tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]],
     out: np.ndarray,
     fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_multi_int16_int16(
     values: np.ndarray,
     indexer: tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]],
     out: np.ndarray,
     fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_multi_int16_int32(
     values: np.ndarray,
     indexer: tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]],
     out: np.ndarray,
     fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_multi_int16_int64(
     values: np.ndarray,
     indexer: tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]],
     out: np.ndarray,
     fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_multi_int16_float64(
     values: np.ndarray,
     indexer: tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]],
     out: np.ndarray,
     fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_multi_int32_int32(
     values: np.ndarray,
     indexer: tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]],
     out: np.ndarray,
     fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_multi_int32_int64(
     values: np.ndarray,
     indexer: tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]],
     out: np.ndarray,
     fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_multi_int32_float64(
     values: np.ndarray,
     indexer: tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]],
     out: np.ndarray,
     fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_multi_int64_float64(
     values: np.ndarray,
     indexer: tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]],
     out: np.ndarray,
     fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_multi_float32_float32(
     values: np.ndarray,
     indexer: tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]],
     out: np.ndarray,
     fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_multi_float32_float64(
     values: np.ndarray,
     indexer: tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]],
     out: np.ndarray,
     fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_multi_float64_float64(
     values: np.ndarray,
     indexer: tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]],
     out: np.ndarray,
     fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_multi_object_object(
     values: np.ndarray,
     indexer: tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]],
     out: np.ndarray,
     fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_multi_bool_bool(
     values: np.ndarray,
     indexer: tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]],
     out: np.ndarray,
     fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_multi_bool_object(
     values: np.ndarray,
     indexer: tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]],
     out: np.ndarray,
     fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...
 def take_2d_multi_int64_int64(
     values: np.ndarray,
     indexer: tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]],
     out: np.ndarray,
     fill_value=...,
+    allow_fill: bool = ...,
 ) -> None: ...

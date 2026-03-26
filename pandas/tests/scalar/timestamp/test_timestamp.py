@@ -119,10 +119,9 @@ class TestTimestampProperties:
 
     # GH 12806
     @pytest.mark.parametrize("tz", [None, "EST"])
-    # error: Unsupported operand types for + ("List[None]" and "List[str]")
     @pytest.mark.parametrize(
         "time_locale",
-        [None] + tm.get_locales(),  # type: ignore[operator]
+        [None, *tm.get_locales()],
     )
     def test_names(self, tz, time_locale):
         # GH 17354
@@ -657,11 +656,11 @@ class TestNonNano:
 
         assert other.asm8 < ts
 
-    def test_pickle(self, ts, tz_aware_fixture):
+    def test_pickle(self, ts, tz_aware_fixture, temp_file):
         tz = tz_aware_fixture
         tz = maybe_get_tz(tz)
         ts = Timestamp._from_value_and_reso(ts._value, ts._creso, tz)
-        rt = tm.round_trip_pickle(ts)
+        rt = tm.round_trip_pickle(ts, temp_file)
         assert rt._creso == ts._creso
         assert rt == ts
 

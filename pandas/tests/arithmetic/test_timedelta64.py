@@ -228,7 +228,7 @@ class TestTimedelta64ArrayComparisons:
                 "5 day 00:00:03",
             ]
         )
-        # Check pd.NaT is handles as the same as np.nan
+        # Check pd.NaT is handled the same as np.nan
         result = idx1 < idx2
         expected = np.array([True, False, False, False, True, False])
         tm.assert_numpy_array_equal(result, expected)
@@ -728,17 +728,19 @@ class TestAddSubNaTMasking:
         # See GH#14068
         # preliminary test scalar analogue of vectorized tests below
         # TODO: Make raised error message more informative and test
+        ts = Timestamp("2000").as_unit("ns")
         with pytest.raises(OutOfBoundsDatetime, match="10155196800000000000"):
-            pd.to_timedelta(106580, "D") + Timestamp("2000")
+            pd.to_timedelta(106580, "D") + ts
         with pytest.raises(OutOfBoundsDatetime, match="10155196800000000000"):
-            Timestamp("2000") + pd.to_timedelta(106580, "D")
+            ts + pd.to_timedelta(106580, "D")
 
         _NaT = NaT._value + 1
+        td = pd.to_timedelta([106580], "D").as_unit("ns")
         msg = "Overflow in int64 addition"
         with pytest.raises(OverflowError, match=msg):
-            pd.to_timedelta([106580], "D") + Timestamp("2000")
+            td + Timestamp("2000")
         with pytest.raises(OverflowError, match=msg):
-            Timestamp("2000") + pd.to_timedelta([106580], "D")
+            Timestamp("2000") + td
         with pytest.raises(OverflowError, match=msg):
             pd.to_timedelta([_NaT]) - Timedelta("1 days")
         with pytest.raises(OverflowError, match=msg):
@@ -2327,3 +2329,15 @@ def test_add_timestamp_to_timedelta():
         ]
     )
     tm.assert_index_equal(result, expected)
+
+
+def test_timedelta_scalar_numeric_series_resolution():
+    # GH#59656 - arithmetic between datetime.timedelta scalar and numeric
+    # Series should produce timedelta64[us], consistent with
+    # pd.Timedelta(datetime.timedelta(...)).unit
+    delta = timedelta(days=1)
+    result = delta * Series([1])
+    assert result.dtype == np.dtype("timedelta64[us]")
+
+    result = Series([1]) * delta
+    assert result.dtype == np.dtype("timedelta64[us]")

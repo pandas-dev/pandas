@@ -174,7 +174,7 @@ def test_multi_index_naming(all_parsers, index_names, request):
         request.applymarker(mark)
 
     # We don't want empty index names being replaced with "Unnamed: 0"
-    data = ",".join(index_names + ["col\na,c,1\na,d,2\nb,c,3\nb,d,4"])
+    data = ",".join([*index_names, "col\na,c,1\na,d,2\nb,c,3\nb,d,4"])
     result = parser.read_csv(StringIO(data), index_col=[0, 1])
 
     expected = DataFrame(

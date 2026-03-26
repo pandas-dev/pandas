@@ -1,0 +1,48 @@
+.. _whatsnew_301:
+
+What's new in 3.0.1 (February 17, 2026)
+---------------------------------------
+
+These are the changes in pandas 3.0.1. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_301.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+- Added the :meth:`pandas.api.extensions.ExtensionArray.item` method to fix regression with accessing the item of an array of strings, which now is an ``ExtensionArray`` subclass instead of a numpy ``ndarray`` (:issue:`63876`)
+- Fixed regression in :func:`read_hdf` reading a file written by pandas <= 2.2 with a datetime64 column (:issue:`64006`)
+- Fixed regression in :func:`to_timedelta` when converting a list with float and int (:issue:`64044`)
+- Fixed regression in :meth:`DataFrame.groupby` and :meth:`Series.groupby` when grouping on categorical data with NA values, ``observed=False``, and ``dropna=True`` (:issue:`52445`)
+- Fixed regression in :meth:`DataFrame.loc` when setting new row and new columns simultaneously filling existing columns with ``b''`` instead of ``NaN`` (:issue:`58316`)
+- Fixed regression in :meth:`DataFrame.reindex` when using a string fill value  (:issue:`63993`)
+- Fixed regression in comparing a string column or index with a :py:class:`range` object (:issue:`63429`)
+- Fixed regression in comparison operation with a zero-dimensional subclass of ``np.ndarray`` (:issue:`63205`)
+- Fixed regression in the :class:`DataFrame` and :meth:`DataFrame.from_records` constructor with a list of dicts with a missing value indicator as key (:issue:`63889`)
+- Fixed regression when calling ``numpy.random``'s ``permutation()`` on a (pyarrow-backed) string :class:`Series` (:issue:`63935`)
+- Fixed regression where methods such as :meth:`Series.str.contains` and :meth:`Series.str.replace` on pyarrow-backed strings rejected RE2 unicode escapes like ``\x{...}`` and ``\p{...}`` (:issue:`63901`)
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_301.bugs:
+
+Bug fixes
+^^^^^^^^^
+- Fixed a bug in the :class:`DataFrame` constructor when passed a :class:`Series` or
+  :class:`Index` correctly handling Copy-on-Write (:issue:`63899`)
+- Added additional typing aliases in :py:mod:`pandas.api.typing.aliases` (:issue:`64098`)
+- Allow :class:`.ExtensionArray` to have dtypes involving :class:`numpy.void` (:issue:`54810`)
+- Fixed a bug in :func:`col` where unary operators (``-``, ``+``, ``abs``) were not supported (:issue:`63939`)
+- Fixed bug in :func:`merge` where NaN values in pyarrow-backed string dtype join keys were incorrectly matched with non-NaN values on Windows with pyarrow 21 (:issue:`64060`)
+- Fixed thread safety issues in :class:`DataFrame` internals on the free-threaded build (:issue:`63685`).
+- Prevent buffer overflow in :meth:`Rolling.corr` and :meth:`Rolling.cov` with variable windows when passing ``other`` with a longer index than the original window. This now raises ``ValueError`` (:issue:`62937`)
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_301.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v3.0.0..v3.0.1

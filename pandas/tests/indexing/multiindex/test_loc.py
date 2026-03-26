@@ -1,3 +1,5 @@
+from datetime import date
+
 import numpy as np
 import pytest
 
@@ -341,7 +343,7 @@ class TestMultiIndexLoc:
         # of all the valid types
         indexer = tuple(
             convert_nested_indexer(indexer_type, k)
-            for indexer_type, k in zip(types, keys)
+            for indexer_type, k in zip(types, keys, strict=True)
         )
         if indexer_type_1 is set or indexer_type_2 is set:
             with pytest.raises(TypeError, match="as an indexer is not supported"):
@@ -956,10 +958,10 @@ def test_mi_add_cell_missing_row_non_unique():
     result.loc["d", (1, "A")] = 3
     expected = DataFrame(
         [
-            [1.0, 2.0, 5.0, 6.0],
-            [3.0, 4.0, 7.0, 8.0],
-            [3.0, -1.0, -1, -1],
-            [3.0, np.nan, np.nan, np.nan],
+            [1, 2.0, 5.0, 6.0],
+            [3, 4.0, 7.0, 8.0],
+            [3, -1.0, -1, -1],
+            [3, np.nan, np.nan, np.nan],
         ],
         index=["a", "a", "c", "d"],
         columns=MultiIndex.from_product([[1, 2], ["A", "B"]]),
@@ -1010,3 +1012,29 @@ def test_multindex_series_loc_with_tuple_label():
     ser = Series([1, 2], index=mi)
     result = ser.loc[(3, (4, 5))]
     assert result == 2
+
+
+def test_loc_datetime_date_multiindex_with_np_datetime64():
+    # GH#55969
+    # loc with np.datetime64 key on MultiIndex with datetime.date level
+    # should correctly filter on subsequent levels
+    dates = [date(2023, 11, 1), date(2023, 11, 1), date(2023, 11, 2)]
+    t1 = ["A", "B", "C"]
+    t2 = ["C", "D", "E"]
+    vals = [0.1, 0.2, 0.3]
+    df = DataFrame({"dates": dates, "t1": t1, "t2": t2, "vals": vals})
+    df = df.set_index(["dates", "t1", "t2"])
+
+    # Verify the index level stays object dtype with date entries
+    assert df.index.get_level_values("dates").dtype == object
+    assert all(isinstance(v, date) for v in df.index.get_level_values("dates"))
+
+    dt_key = np.datetime64("2023-11-01")
+
+    # Should return only the row matching (dt_key, "A"), not all rows for dt_key
+    result = df.loc[(dt_key, "A")]
+    expected = DataFrame(
+        {"vals": [0.1]},
+        index=Index(["C"], name="t2"),
+    )
+    tm.assert_frame_equal(result, expected)

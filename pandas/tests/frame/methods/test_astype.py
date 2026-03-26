@@ -561,7 +561,7 @@ class TestAstype:
 
     @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s", "h", "m", "D"])
     def test_astype_to_incorrect_datetimelike(self, unit):
-        # trying to astype a m to a M, or vice-versa
+        # trying to astype an m to an M, or vice-versa
         # GH#19224
         dtype = f"M8[{unit}]"
         other = f"m8[{unit}]"

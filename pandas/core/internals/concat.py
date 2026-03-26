@@ -209,7 +209,7 @@ def _concat_homogeneous_fastpath(
     we avoid [...]
     """
     # assumes
-    #  all(_is_homogeneous_mgr(mgr, first_dtype) for mgr, _ in in mgrs_indexers)
+    #  all(_is_homogeneous_mgr(mgr, first_dtype) for mgr, _ in mgrs_indexers)
 
     if all(not indexers for _, indexers in mgrs_indexers):
         # https://github.com/pandas-dev/pandas/pull/52685#issuecomment-1523287739
@@ -361,7 +361,7 @@ class JoinUnit:
                     # we want to avoid filling with np.nan if we are
                     # using None; we already know that we are all
                     # nulls
-                    values = cast(np.ndarray, self.block.values)
+                    values = cast("np.ndarray", self.block.values)
                     if values.size and values[0, 0] is None:
                         fill_value = None
 

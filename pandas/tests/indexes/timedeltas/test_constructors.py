@@ -267,4 +267,5 @@ class TestTimedeltaIndex:
 
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             tdi = to_timedelta([1, 2], unit=unit_depr)
-        tm.assert_index_equal(tdi, expected.as_unit("ns"))
+        exp_unit = unit if unit in ["s", "ms", "us"] else "s"
+        tm.assert_index_equal(tdi, expected.as_unit(exp_unit))

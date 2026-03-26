@@ -399,7 +399,7 @@ good{sep}bye
         {"0": "foo", "1": "bar"},
         {"0": "good", "1": "bye"},
     ]
-    for i, (result, expected) in enumerate(zip(result_iter, expecteds)):
+    for i, (result, expected) in enumerate(zip(result_iter, expecteds, strict=True)):
         expected = DataFrame(expected, index=range(i, i + 1))
         tm.assert_frame_equal(result, expected)
 
@@ -574,7 +574,7 @@ def test_on_bad_lines_callable_warns_and_truncates_with_index_col(
     data = "id,field_1,field_2\n101,A,B\n102,C,D,E\n103,F,G\n"
 
     def fixer(bad_line):
-        return list(bad_line) + ["EXTRA1", "EXTRA2"]
+        return [*list(bad_line), "EXTRA1", "EXTRA2"]
 
     result = parser.read_csv_check_warnings(
         ParserWarning,

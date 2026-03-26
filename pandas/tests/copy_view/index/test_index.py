@@ -5,6 +5,7 @@ from pandas import (
     DataFrame,
     Index,
     Series,
+    array,
 )
 import pandas._testing as tm
 from pandas.tests.copy_view.util import get_array
@@ -124,7 +125,7 @@ def test_index_ops(func, request):
         expected = expected.astype("Int64")
     idx = func(idx)
     view_.iloc[0, 0] = 100
-    tm.assert_index_equal(idx, expected, check_names=False)
+    tm.assert_index_equal(idx, expected, exact="equiv", check_names=False)
 
 
 def test_infer_objects():
@@ -150,3 +151,27 @@ def test_index_values():
     idx = Index([1, 2, 3])
     result = idx.values
     assert result.flags.writeable is False
+
+
+def test_constructor_copy_input_ndarray_default():
+    arr = np.array([0, 1])
+    idx = Index(arr)
+    assert not np.shares_memory(arr, get_array(idx))
+
+
+def test_constructor_copy_input_ea_default():
+    arr = array([0, 1], dtype="Int64")
+    idx = Index(arr)
+    assert not tm.shares_memory(arr, idx.array)
+
+
+def test_series_from_temporary_index_readonly_data():
+    # GH 63370
+    arr = np.array([0, 1], dtype=np.dtype(np.int8))
+    arr.flags.writeable = False
+    ser = Series(Index(arr))
+    assert not np.shares_memory(arr, get_array(ser))
+    assert ser._mgr._has_no_reference(0)
+    ser[[False, True]] = np.array([0, 2], dtype=np.dtype(np.int8))
+    expected = Series([0, 2], dtype=np.dtype(np.int8))
+    tm.assert_series_equal(ser, expected)

@@ -20,7 +20,7 @@ class TestTableSchemaRepr:
 
         opt = cf.option_context("display.html.table_schema", True)
         last_obj = None
-        for obj, expected in zip(objects, expected_keys):
+        for obj, expected in zip(objects, expected_keys, strict=True):
             last_obj = obj
             with cf.option_context("display.html.table_schema", True):
                 # Can't reuse opt on all systems GH#58055

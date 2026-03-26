@@ -35,7 +35,7 @@ class DummyArray(ExtensionArray):
         self._dtype = dtype
 
     def __array__(self, dtype=None, copy=None):
-        return self.data
+        return np.asarray(self.data, dtype=dtype)
 
     @property
     def dtype(self):
@@ -48,6 +48,9 @@ class DummyArray(ExtensionArray):
         pass
 
     def copy(self):
+        return self
+
+    def view(self):
         return self
 
 

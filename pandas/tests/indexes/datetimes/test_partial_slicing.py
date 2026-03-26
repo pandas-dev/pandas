@@ -14,6 +14,7 @@ from pandas import (
     Timedelta,
     Timestamp,
     date_range,
+    to_datetime,
 )
 import pandas._testing as tm
 
@@ -64,6 +65,42 @@ class TestSlicing:
         result2 = ser2.loc[key]
         expected2 = ser2.iloc[::2]
         tm.assert_series_equal(result2, expected2)
+
+    @pytest.mark.parametrize(
+        "start, freq, key",
+        [
+            ("2005-01-01", "B", "2005-05"),
+            ("2005-01-01", "h", "2005-01-10"),
+            ("2005-01-01 20:00:00", "min", "2005-01-01 22"),
+            ("2005-01-01 23:59:00", "s", "2005-01-01 23:59"),
+        ],
+    )
+    def test_partial_date_slice_decreasing_returns_slice(self, start, freq, key):
+        # monotonic decreasing should use searchsorted fast path
+        #  and return a slice, not an ndarray
+        dti = date_range(start=start, periods=500, freq=freq)
+        ser = Series(np.arange(len(dti)), index=dti)
+
+        expected = ser.loc[key].iloc[::-1]
+
+        ser_desc = ser.iloc[::-1]
+        result = ser_desc.loc[key]
+        tm.assert_series_equal(result, expected)
+
+        # check that the fast path actually returns a slice
+        parsed, reso = ser_desc.index._parse_with_reso(key)
+        indexer = ser_desc.index._partial_date_slice(reso, parsed)
+        assert isinstance(indexer, slice)
+
+    def test_partial_date_slice_decreasing_out_of_range(self):
+        dti = date_range(start="2005-01-01", periods=500, freq="D")
+        ser_desc = Series(np.arange(len(dti)), index=dti[::-1])
+
+        with pytest.raises(KeyError, match=r"^'2004-01-01'$"):
+            ser_desc["2004-01-01"]
+
+        with pytest.raises(KeyError, match=r"^'2007-01-01'$"):
+            ser_desc["2007-01-01"]
 
     def test_return_type_doesnt_depend_on_monotonicity_higher_reso(self):
         # GH#24892 we get Series back regardless of whether our DTI is monotonic
@@ -279,7 +316,7 @@ class TestSlicing:
             # Timestamp with the same resolution as index
             # Should be exact match for Series (return scalar)
             # and raise KeyError for Frame
-            for timestamp, expected in zip(index, values):
+            for timestamp, expected in zip(index, values, strict=True):
                 ts_string = timestamp.strftime(formats[rnum])
                 # make ts_string as precise as index
                 result = df["a"][ts_string]
@@ -319,7 +356,7 @@ class TestSlicing:
 
             # Not compatible with existing key
             # Should raise KeyError
-            for fmt, res in list(zip(formats, resolutions))[rnum + 1 :]:
+            for fmt, res in list(zip(formats, resolutions, strict=True))[rnum + 1 :]:
                 ts = index[1] + Timedelta("1 " + res)
                 ts_string = ts.strftime(fmt)
                 msg = rf"^'{ts_string}'$"
@@ -382,6 +419,30 @@ class TestSlicing:
         result = df2.loc[Timestamp("2000-1-4")]
         tm.assert_frame_equal(result, expected)
 
+    def test_xs_matches_loc_after_sort_multiindex(self):
+        # GH 19451
+        # after sort_index, .xs should
+        # return the same result as .loc
+        df = DataFrame(
+            [
+                ["2017-01-01", "000001", "a", 4, 5],
+                ["2017-01-02", "000001", "b", 4, 5],
+                ["2017-01-01", "000002", "b", 4, 5],
+                ["2017-01-02", "000002", "b", 4, 5],
+                ["2017-02-02", "000001", "b", 4, 5],
+                ["2017-02-03", "000002", "b", 4, 5],
+            ],
+            columns=["date", "code", "c", "d", "e"],
+        )
+        df = (
+            df.assign(date=to_datetime(df.date))
+            .set_index(["date", "code"])
+            .sort_index()
+        )
+        expected = df.loc["2017-01", slice(None)]
+        result = df.xs("2017-01", level=0)
+        tm.assert_frame_equal(result, expected)
+
     def test_partial_slice_requires_monotonicity(self):
         # Disallowed since 2.0 (GH 37819)
         ser = Series(np.arange(10), date_range("2014-01-01", periods=10))
@@ -393,7 +454,9 @@ class TestSlicing:
         ):
             nonmonotonic["2014-01-10":]
 
-        with pytest.raises(KeyError, match=r"Timestamp\('2014-01-10 00:00:00'\)"):
+        # GH#13090 - improved error message for non-monotonic DatetimeIndex
+        msg = "non-monotonic index with a missing label"
+        with pytest.raises(KeyError, match=msg):
             nonmonotonic[timestamp:]
 
         with pytest.raises(
@@ -401,7 +464,7 @@ class TestSlicing:
         ):
             nonmonotonic.loc["2014-01-10":]
 
-        with pytest.raises(KeyError, match=r"Timestamp\('2014-01-10 00:00:00'\)"):
+        with pytest.raises(KeyError, match=msg):
             nonmonotonic.loc[timestamp:]
 
     def test_loc_datetime_length_one(self):
@@ -464,3 +527,15 @@ class TestSlicing:
         )
         result = df.loc["2000", "A"]
         tm.assert_series_equal(result, expected)
+
+
+def test_string_slice_vs_datetime_slice_consistency():
+    # GH#13929 - slicing with string endpoints at sub-second frequency
+    # should produce the same result as slicing with datetime endpoints
+    index = date_range("2013-01-01 00:00:00", periods=80, freq="50ms")
+    data = DataFrame({"val": range(len(index))}, index=index)
+
+    str_slice = data.loc["2013-01-01 00:00:01.000":"2013-01-01 00:00:02.000"]
+    dt_slice = data.loc["2013-01-01 00:00:01.000" : datetime(2013, 1, 1, 0, 0, 2)]
+
+    tm.assert_frame_equal(str_slice, dt_slice)

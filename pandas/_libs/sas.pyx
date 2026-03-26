@@ -1,5 +1,6 @@
 # cython: language_level=3, initializedcheck=False
 # cython: warn.maybe_uninitialized=True, warn.unused=True
+cimport cython
 from cython cimport Py_ssize_t
 from libc.stddef cimport size_t
 from libc.stdint cimport (
@@ -325,8 +326,15 @@ cdef class Parser:
         int current_page_type
         bint is_little_endian
         int (*decompress)(Buffer, Buffer) except? 0
+        Buffer decompressed_buf
         object parser
 
+    def __cinit__(self, object parser):
+        self.decompress = NULL
+        self.decompressed_buf = Buffer(NULL, 0)
+
+    @cython.wraparound(False)
+    @cython.boundscheck(False)
     def __init__(self, object parser):
         cdef:
             int j
@@ -368,10 +376,16 @@ cdef class Parser:
         else:
             self.decompress = NULL
 
+        if self.decompress != NULL:
+            self.decompressed_buf = buf_new(self.row_length)
+
         # update to current state of the parser
         self.current_row_in_chunk_index = parser._current_row_in_chunk_index
         self.current_row_in_file_index = parser._current_row_in_file_index
         self.current_row_on_page_index = parser._current_row_on_page_index
+
+    def __dealloc__(self):
+        buf_free(self.decompressed_buf)
 
     def read(self, int nrows):
         cdef:
@@ -477,13 +491,15 @@ cdef class Parser:
             else:
                 raise ValueError(f"unknown page type: {self.current_page_type}")
 
+    @cython.wraparound(False)
+    @cython.boundscheck(False)
     cdef void process_byte_array_with_data(self, int offset, int length) except *:
 
         cdef:
             Py_ssize_t j
             int s, k, m, jb, js, current_row, rpos
             int64_t lngt, start, ct
-            Buffer source, decompressed_source
+            Buffer source
             int64_t[:] column_types
             int64_t[:] lengths
             int64_t[:] offsets
@@ -496,14 +512,13 @@ cdef class Parser:
 
         compressed = self.decompress != NULL and length < self.row_length
         if compressed:
-            decompressed_source = buf_new(self.row_length)
-            rpos = self.decompress(source, decompressed_source)
+            rpos = self.decompress(source, self.decompressed_buf)
             if rpos != self.row_length:
                 raise ValueError(
                     f"Expected decompressed line of length {self.row_length} bytes "
                     f"but decompressed {rpos} bytes"
                 )
-            source = decompressed_source
+            source = self.decompressed_buf
 
         current_row = self.current_row_in_chunk_index
         column_types = self.column_types
@@ -544,6 +559,3 @@ cdef class Parser:
         self.current_row_on_page_index += 1
         self.current_row_in_chunk_index += 1
         self.current_row_in_file_index += 1
-
-        if compressed:
-            buf_free(decompressed_source)

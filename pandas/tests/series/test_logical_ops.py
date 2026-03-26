@@ -266,7 +266,7 @@ class TestSeriesLogicalOps:
         s[::2] = np.nan
         d = DataFrame({"A": s})
 
-        expected = DataFrame(False, index=range(9), columns=["A"] + list(range(9)))
+        expected = DataFrame(False, index=range(9), columns=["A", *list(range(9))])
 
         result = s & d
         tm.assert_frame_equal(result, expected)

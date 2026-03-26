@@ -14,6 +14,7 @@ from pandas import (
     Timestamp,
     date_range,
     to_datetime,
+    to_numeric,
 )
 import pandas._testing as tm
 from pandas.tests.frame.common import _check_mixed_float
@@ -21,6 +22,7 @@ from pandas.tests.frame.common import _check_mixed_float
 
 class TestFillNA:
     def test_fillna_dict_inplace_nonunique_columns(self):
+        # GH#38966
         df = DataFrame(
             {"A": [np.nan] * 3, "B": [NaT, Timestamp(1), NaT], "C": [np.nan, "foo", 2]}
         )
@@ -256,6 +258,20 @@ class TestFillNA:
         idx = TimedeltaIndex(["1 days", "2 days", "1 days", NaT, NaT])
         df = DataFrame({"a": Categorical(idx)})
         tm.assert_frame_equal(df.fillna(value=NaT), df)
+
+    def test_fillna_with_categorical_series(self):
+        # https://github.com/pandas-dev/pandas/issues/56329
+        df = DataFrame(
+            {"cats": Categorical(["A", "B", "C"]), "ints": [1.0, 2.0, np.nan]}
+        )
+
+        filler = Series(Categorical([10.0, 20.0, 30.0]))
+        result = df.fillna({"ints": filler})
+
+        expected = DataFrame(
+            {"cats": Categorical(["A", "B", "C"]), "ints": [1.0, 2.0, 30.0]}
+        )
+        tm.assert_frame_equal(result, expected)
 
     def test_fillna_no_downcast(self, frame_or_series):
         # GH#45603 preserve object dtype
@@ -840,3 +856,16 @@ def test_fillna_out_of_bounds_datetime():
     msg = "Cannot cast 0001-01-01 00:00:00 to unit='ns' without overflow"
     with pytest.raises(OutOfBoundsDatetime, match=msg):
         df.fillna(Timestamp("0001-01-01"))
+
+
+def test_fillna_dtype_preservation_after_apply():
+    # GH#14407 - fillna after apply should preserve dtypes correctly
+    # (block splitting should occur for mixed-dtype results)
+    df = DataFrame(
+        {"c1": list("ABC"), "c2": list("123"), "c3": [1.5, 2.5, 3.5], "c4": [0, 1, 2]}
+    )
+    result = df.apply(lambda x: to_numeric(x, errors="coerce")).fillna(df)
+    assert result["c1"].dtype == object
+    assert result["c2"].dtype == np.int64
+    assert result["c3"].dtype == np.float64
+    assert result["c4"].dtype == np.int64

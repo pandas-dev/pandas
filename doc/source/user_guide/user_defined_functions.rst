@@ -11,7 +11,7 @@ functionality by allowing users to apply custom computations to their data. Whil
 pandas comes with a set of built-in functions for data manipulation, UDFs offer
 flexibility when built-in methods are not sufficient. These functions can be
 applied at different levels: element-wise, row-wise, column-wise, or group-wise,
-and behave differently, depending on the method used.
+and behave differently depending on the method used.
 
 Here’s a simple example to illustrate a UDF applied to a Series:
 
@@ -82,11 +82,11 @@ User-Defined Functions can be applied across various pandas methods:
 +-------------------------------+------------------------+--------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
 | :ref:`udf.apply` (axis=1)     | Row (Series)           | Row (Series)             | Apply a function to each row                                                                                                                 |
 +-------------------------------+------------------------+--------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
-| :ref:`udf.pipe`               | Series or DataFrame    | Series or DataFrame      | Chain functions together to apply to Series or Dataframe                                                                                     |
+| :ref:`udf.pipe`               | Series or DataFrame    | Series or DataFrame      | Chain functions together to apply to Series or DataFrame                                                                                     |
 +-------------------------------+------------------------+--------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
 | :ref:`udf.filter`             | Series or DataFrame    | Boolean                  | Only accepts UDFs in group by. Function is called for each group, and the group is removed from the result if the function returns ``False`` |
 +-------------------------------+------------------------+--------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
-| :ref:`udf.agg`                | Series or DataFrame    | Scalar or Series         | Aggregate and summarizes values, e.g., sum or custom reducer                                                                                 |
+| :ref:`udf.agg`                | Series or DataFrame    | Scalar or Series         | Aggregate and summarize values, e.g., sum or custom reducer                                                                                  |
 +-------------------------------+------------------------+--------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
 | :ref:`udf.transform` (axis=0) | Column (Series)        | Column (Series)          | Same as :meth:`apply` with (axis=0), but it raises an exception if the function changes the shape of the data                                |
 +-------------------------------+------------------------+--------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
@@ -99,7 +99,7 @@ cases. Understanding the purpose and behavior of each method will help you make 
 decisions, ensuring more efficient and maintainable code.
 
 .. note::
-    Some of these methods are can also be applied to groupby, resample, and various window objects.
+    Some of these methods can also be applied to groupby, resample, and various window objects.
     See :ref:`groupby`, :ref:`resample()<timeseries>`, :ref:`rolling()<window>`, :ref:`expanding()<window>`,
     and :ref:`ewm()<window>` for details.
 
@@ -178,7 +178,7 @@ In the example, the ``normalize`` function needs to compute the mean of the whol
 to divide each element by it. So, we cannot call the function for each element, but we need the
 function to receive the whole column.
 
-:meth:`apply` can also execute function by row, by specifying ``axis=1``.
+:meth:`apply` can also execute a function by row, by specifying ``axis=1``.
 
 .. ipython:: python
 
@@ -302,7 +302,7 @@ a scalar value on each input.
 :meth:`Series.transform` and :meth:`DataFrame.transform`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The ``transform``` method is similar to an aggregation, with the difference that the result is broadcasted
+The ``transform`` method is similar to an aggregation, with the difference that the result is broadcasted
 to the original data.
 
 .. ipython:: python

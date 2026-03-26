@@ -91,19 +91,19 @@ int main() {
 
 // hooks for memory allocator, C-runtime allocator used per default
 #ifndef KHASH_MALLOC
-#define KHASH_MALLOC malloc
+#  define KHASH_MALLOC malloc
 #endif
 
 #ifndef KHASH_REALLOC
-#define KHASH_REALLOC realloc
+#  define KHASH_REALLOC realloc
 #endif
 
 #ifndef KHASH_CALLOC
-#define KHASH_CALLOC calloc
+#  define KHASH_CALLOC calloc
 #endif
 
 #ifndef KHASH_FREE
-#define KHASH_FREE free
+#  define KHASH_FREE free
 #endif
 
 #if UINT_MAX == 0xffffffffu
@@ -227,17 +227,17 @@ static inline khuint32_t murmur2_64to32(khuint64_t k) {
 }
 
 #ifdef KHASH_LINEAR
-#define __ac_inc(k, m) 1
+#  define __ac_inc(k, m) 1
 #else
-#define __ac_inc(k, m) (murmur2_32to32(k) | 1) & (m)
+#  define __ac_inc(k, m) (murmur2_32to32(k) | 1) & (m)
 #endif
 
 #define __ac_fsize(m) ((m) < 32 ? 1 : (m) >> 5)
 
 #ifndef kroundup32
-#define kroundup32(x)                                                          \
-  (--(x), (x) |= (x) >> 1, (x) |= (x) >> 2, (x) |= (x) >> 4, (x) |= (x) >> 8,  \
-   (x) |= (x) >> 16, ++(x))
+#  define kroundup32(x)                                                        \
+    (--(x), (x) |= (x) >> 1, (x) |= (x) >> 2, (x) |= (x) >> 4,                 \
+     (x) |= (x) >> 8, (x) |= (x) >> 16, ++(x))
 #endif
 
 static const double __ac_HASH_UPPER = 0.77;

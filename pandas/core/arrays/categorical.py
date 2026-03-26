@@ -16,7 +16,7 @@ import warnings
 
 import numpy as np
 
-from pandas._config import get_option
+from pandas._config.config import _global_config
 
 from pandas._libs import (
     NaT,
@@ -199,7 +199,7 @@ def contains(cat, key, container) -> bool:
     """
     Helper for membership check for ``key`` in ``cat``.
 
-    This is a helper method for :method:`__contains__`
+    This is a helper method for :meth:`__contains__`
     and :class:`CategoricalIndex.__contains__`.
 
     Returns True if ``key`` is in ``cat.categories`` and the
@@ -207,7 +207,7 @@ def contains(cat, key, container) -> bool:
 
     Parameters
     ----------
-    cat : :class:`Categorical`or :class:`categoricalIndex`
+    cat : :class:`Categorical`or :class:`CategoricalIndex`
     key : a hashable object
         The key to check membership for.
     container : Container (e.g. list-like or mapping)
@@ -487,7 +487,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
                     categories = Index(categories, dtype=object, copy=False)
 
-                # if not preserve_obejct, we're inferring from values
+                # if not preserve_object, we're inferring from values
                 dtype = CategoricalDtype(categories, dtype.ordered)
 
         elif isinstance(values.dtype, CategoricalDtype):
@@ -517,6 +517,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     def dtype(self) -> CategoricalDtype:
         """
         The :class:`~pandas.api.types.CategoricalDtype` for this instance.
+
+        This property returns the CategoricalDtype which contains information
+        about the categories and whether the categorical is ordered.
 
         See Also
         --------
@@ -670,7 +673,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             to_timedelta,
         )
 
-        cats = Index(inferred_categories)
+        cats = Index(inferred_categories, copy=False)
         known_categories = (
             isinstance(dtype, CategoricalDtype) and dtype.categories is not None
         )
@@ -852,6 +855,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         Whether the categories have an ordered relationship.
 
+        This property returns True if the categories are ordered, meaning
+        they have a meaningful order that allows comparison operations.
+
         See Also
         --------
         set_ordered : Set the ordered attribute.
@@ -1009,6 +1015,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         Set the Categorical to be ordered.
 
+        This method returns a new Categorical with the ordered attribute set
+        to True, enabling comparison operations between categories.
+
         Returns
         -------
         Categorical
@@ -1043,6 +1052,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     def as_unordered(self) -> Self:
         """
         Set the Categorical to be unordered.
+
+        This method returns a new Categorical with the ordered attribute set
+        to False, disabling comparison operations between categories.
 
         Returns
         -------
@@ -2274,16 +2286,16 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         max_categories = (
             10
-            if get_option("display.max_categories") == 0
-            else get_option("display.max_categories")
+            if _global_config["display"]["max_categories"] == 0
+            else _global_config["display"]["max_categories"]
         )
         from pandas.io.formats import format as fmt
 
         formatter = None
-        if self.categories.dtype == "str" or self.categories.dtype == "string":
+        if self.categories.dtype == "str" or self.categories.dtype == "string":  # noqa: PLR1714 (repeated-equality-comparison)
             # the extension array formatter defaults to boxed=True in format_array
             # override here to boxed=False to be consistent with QUOTE_NONNUMERIC
-            formatter = cast(ExtensionArray, self.categories._values)._formatter(
+            formatter = cast("ExtensionArray", self.categories._values)._formatter(
                 boxed=False
             )
 
@@ -2294,7 +2306,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             num = max_categories // 2
             head = format_array(self.categories[:num]._values)
             tail = format_array(self.categories[-num:]._values)
-            category_strs = head + ["..."] + tail
+            category_strs = [*head, "...", *tail]
         else:
             category_strs = format_array(self.categories._values)
 
@@ -2310,7 +2322,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         dtype = str(self.categories.dtype)
         levheader = f"Categories ({len(self.categories)}, {dtype}): "
         width, _ = get_terminal_size()
-        max_width = get_option("display.width") or width
+        max_width = _global_config["display"]["width"] or width
         if console.in_ipython_frontend():
             # 0 = no breaks
             max_width = 0
@@ -2397,7 +2409,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         from pandas import Index
 
         # tupleize_cols=False for e.g. test_fillna_iterable_category GH#41914
-        to_add = Index._with_infer(value, tupleize_cols=False).difference(
+        to_add = Index._with_infer(value, tupleize_cols=False, copy=False).difference(
             self.categories
         )
 
@@ -2532,7 +2544,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             mask = self.isna()
 
         res_codes, _ = algorithms.mode(codes, mask=mask)
-        res_codes = cast(np.ndarray, res_codes)
+        res_codes = cast("np.ndarray", res_codes)
         assert res_codes.dtype == codes.dtype
         res = self._from_backing_data(res_codes)
         return res
@@ -2866,6 +2878,10 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     """
     Accessor object for categorical properties of the Series values.
 
+    This accessor provides methods and properties to interact with the
+    underlying categorical data, such as accessing categories, renaming
+    them, reordering, or adding and removing categories.
+
     Parameters
     ----------
     data : Series or CategoricalIndex
@@ -2996,6 +3012,10 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     def codes(self) -> Series:
         """
         Return Series of codes as well as the index.
+
+        The codes are integer indicators for the position of each value in
+        the categories. Uncategorized values (i.e., NaN) are assigned a code
+        of ``-1``.
 
         See Also
         --------

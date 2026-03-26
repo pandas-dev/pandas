@@ -280,7 +280,7 @@ def test_value_counts_datetime64(index_or_series, unit):
 
     # numpy_array_equal cannot compare pd.NaT
     if isinstance(s, Index):
-        exp_idx = DatetimeIndex(expected.tolist() + [pd.NaT]).as_unit(unit)
+        exp_idx = DatetimeIndex([*expected.tolist(), pd.NaT]).as_unit(unit)
         tm.assert_index_equal(unique, exp_idx)
     else:
         tm.assert_extension_array_equal(unique[:3], expected)

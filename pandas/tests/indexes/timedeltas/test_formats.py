@@ -46,7 +46,9 @@ class TestTimedeltaIndexRendering:
 
         with pd.option_context("display.width", 300):
             for idx, expected in zip(
-                [idx1, idx2, idx3, idx4, idx5], [exp1, exp2, exp3, exp4, exp5]
+                [idx1, idx2, idx3, idx4, idx5],
+                [exp1, exp2, exp3, exp4, exp5],
+                strict=True,
             ):
                 result = getattr(idx, method)()
                 assert result == expected
@@ -76,7 +78,9 @@ class TestTimedeltaIndexRendering:
 
         with pd.option_context("display.width", 300):
             for idx, expected in zip(
-                [idx1, idx2, idx3, idx4, idx5], [exp1, exp2, exp3, exp4, exp5]
+                [idx1, idx2, idx3, idx4, idx5],
+                [exp1, exp2, exp3, exp4, exp5],
+                strict=True,
             ):
                 result = repr(Series(idx))
                 assert result == expected
@@ -100,7 +104,7 @@ class TestTimedeltaIndexRendering:
         exp5 = "TimedeltaIndex: 3 entries, 1 days 00:00:01 to 3 days 00:00:00"
 
         for idx, expected in zip(
-            [idx1, idx2, idx3, idx4, idx5], [exp1, exp2, exp3, exp4, exp5]
+            [idx1, idx2, idx3, idx4, idx5], [exp1, exp2, exp3, exp4, exp5], strict=True
         ):
             result = idx._summary()
             assert result == expected

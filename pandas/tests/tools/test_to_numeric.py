@@ -902,3 +902,11 @@ def test_coerce_pyarrow_backend():
     result = to_numeric(ser, errors="coerce", dtype_backend="pyarrow")
     expected = Series([1, 2, None], dtype=ArrowDtype(pa.int64()))
     tm.assert_series_equal(result, expected)
+
+
+def test_large_exponent_coerce():
+    # GH#63650 - exponent overflow in precise_xstrtod should not segfault
+    ser = Series(["1E3000000000"])
+    result = to_numeric(ser, errors="coerce")
+    expected = Series([np.inf])
+    tm.assert_series_equal(result, expected)

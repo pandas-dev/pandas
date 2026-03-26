@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 from decimal import Decimal
 import operator
 import os
 from sys import byteorder
+import threading
 from typing import (
     TYPE_CHECKING,
     ContextManager,
@@ -68,7 +70,6 @@ from pandas._testing.compat import (
 )
 from pandas._testing.contexts import (
     decompress_file,
-    ensure_clean,
     raises_chained_assignment_error,
     set_timezone,
     with_csv_dialect,
@@ -290,7 +291,7 @@ def box_expected(expected, box_cls, transpose: bool = True):
         else:
             expected = pd.array(expected, copy=False)
     elif box_cls is Index:
-        expected = Index(expected)
+        expected = Index(expected, copy=False)
     elif box_cls is Series:
         expected = Series(expected)
     elif box_cls is DataFrame:
@@ -518,7 +519,7 @@ def shares_memory(left, right) -> bool:
             right_buf1 = right_pa_data.chunk(0).buffers()[1]
             return left_buf1.address == right_buf1.address
         else:
-            # if we have one one ArrowExtensionArray and one other array, assume
+            # if we have one ArrowExtensionArray and one other array, assume
             # they can only share memory if they share the same numpy buffer
             return np.shares_memory(left, right)
 
@@ -534,6 +535,36 @@ def shares_memory(left, right) -> bool:
         return shares_memory(arr, right)
 
     raise NotImplementedError(type(left), type(right))
+
+
+def run_multithreaded(closure, max_workers, arguments=None, pass_barrier=False):
+    with ThreadPoolExecutor(max_workers=max_workers) as tpe:
+        if arguments is None:
+            arguments = []
+        else:
+            arguments = list(arguments)
+
+        if pass_barrier:
+            barrier = threading.Barrier(max_workers)
+            arguments.append(barrier)
+
+        try:
+            futures = []
+            for _ in range(max_workers):
+                futures.append(tpe.submit(closure, *arguments))  # noqa: PERF401
+        except RuntimeError as e:
+            import pytest
+
+            pytest.skip(
+                f"Spawning {max_workers} threads failed with "
+                f"error {e!r} (likely due to resource limits on the "
+                "system running the tests)"
+            )
+        finally:
+            if len(futures) < max_workers and pass_barrier:
+                barrier.abort()
+        for f in futures:
+            f.result()
 
 
 __all__ = [
@@ -587,7 +618,6 @@ __all__ = [
     "can_set_locale",
     "convert_rows_list_to_csv_str",
     "decompress_file",
-    "ensure_clean",
     "external_error_raised",
     "get_cython_table_params",
     "get_dtype",
@@ -604,6 +634,7 @@ __all__ = [
     "raises_chained_assignment_error",
     "round_trip_pathlib",
     "round_trip_pickle",
+    "run_multithreaded",
     "set_locale",
     "set_timezone",
     "setitem",

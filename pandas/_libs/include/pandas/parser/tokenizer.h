@@ -38,9 +38,9 @@ See LICENSE for the license
 
 // #define VERBOSE
 #if defined(VERBOSE)
-#define TRACE(X) printf X;
+#  define TRACE(X) printf X;
 #else
-#define TRACE(X)
+#  define TRACE(X)
 #endif // VERBOSE
 
 #define PARSER_OUT_OF_MEMORY -1
@@ -211,13 +211,7 @@ int uint64_conflict(uint_state *self);
 uint64_t str_to_uint64(uint_state *state, const char *p_item, int *error,
                        char tsep);
 int64_t str_to_int64(const char *p_item, int *error, char tsep);
-double xstrtod(const char *p, char **q, char decimal, char sci, char tsep,
-               int skip_trailing, int *error, int *maybe_int);
 double precise_xstrtod(const char *p, char **q, char decimal, char sci,
                        char tsep, int skip_trailing, int *error,
                        int *maybe_int);
-
-// GH-15140 - round_trip requires and acquires the GIL on its own
-double round_trip(const char *p, char **q, char decimal, char sci, char tsep,
-                  int skip_trailing, int *error, int *maybe_int);
 int to_boolean(const char *item, uint8_t *val);

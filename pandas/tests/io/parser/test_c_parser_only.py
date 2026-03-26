@@ -20,7 +20,6 @@ import pytest
 
 from pandas.compat import WASM
 from pandas.errors import (
-    ParserError,
     ParserWarning,
 )
 import pandas.util._test_decorators as td
@@ -33,18 +32,33 @@ import pandas._testing as tm
 
 
 @pytest.mark.parametrize(
-    "malformed",
-    ["1\r1\r1\r 1\r 1\r", "1\r1\r1\r 1\r 1\r11\r", "1\r1\r1\r 1\r 1\r11\r1\r"],
+    "malformed,expected_data",
+    [
+        ("1\r1\r1\r 1\r 1\r", [[1], [1], [1], [1], [1]]),
+        ("1\r1\r1\r 1\r 1\r11\r", [[1], [1], [1], [1], [1], [11]]),
+        ("1\r1\r1\r 1\r 1\r11\r1\r", [[1], [1], [1], [1], [1], [11], [1]]),
+    ],
     ids=["words pointer", "stream pointer", "lines pointer"],
 )
-def test_buffer_overflow(c_parser_only, malformed):
-    # see gh-9205: test certain malformed input files that cause
-    # buffer overflows in tokenizer.c
-    msg = "Buffer overflow caught - possible malformed input file."
+def test_buffer_overflow(c_parser_only, malformed, expected_data):
+    # see gh-9205, gh-51141: test certain malformed input files that
+    # previously caused buffer overflows in tokenizer.c due to
+    # \r characters being treated as line terminators, then triggering
+    # an infinite re-parsing loop in the WHITESPACE_LINE state.
     parser = c_parser_only
+    result = parser.read_csv(StringIO(malformed), header=None)
+    expected = DataFrame(expected_data)
+    tm.assert_frame_equal(result, expected)
 
-    with pytest.raises(ParserError, match=msg):
-        parser.read_csv(StringIO(malformed))
+
+def test_cr_in_field_with_trailing_space(c_parser_only):
+    # GH#51141 - embedded \r followed by space in unquoted field
+    # should not cause infinite re-parsing or buffer overflow
+    parser = c_parser_only
+    data = "a,b,c\n1,2,3\n4,5\r X,6\n"
+    result = parser.read_csv(StringIO(data))
+    assert len(result) == 3
+    assert result.shape == (3, 3)
 
 
 def test_delim_whitespace_custom_terminator(c_parser_only):
@@ -130,7 +144,7 @@ nan 2
     ],
     ids=["dt64-0", "dt64-1", "td64", f"{tm.ENDIAN}U8"],
 )
-def test_unsupported_dtype(c_parser_only, match, kwargs, tmp_path):
+def test_unsupported_dtype(c_parser_only, match, kwargs, temp_file):
     parser = c_parser_only
     df = DataFrame(
         np.random.default_rng(2).random((5, 2)),
@@ -138,11 +152,10 @@ def test_unsupported_dtype(c_parser_only, match, kwargs, tmp_path):
         index=["1A", "1B", "1C", "1D", "1E"],
     )
 
-    path = tmp_path / "__unsupported_dtype__.csv"
-    df.to_csv(path)
+    df.to_csv(temp_file)
 
     with pytest.raises(TypeError, match=match):
-        parser.read_csv(path, index_col=0, **kwargs)
+        parser.read_csv(temp_file, index_col=0, **kwargs)
 
 
 @td.skip_if_32bit
@@ -577,6 +590,22 @@ def test_file_binary_mode(c_parser_only, temp_file):
         tm.assert_frame_equal(result, expected)
 
 
+def test_binary_file_handle_avoids_text_wrapping(c_parser_only):
+    # GH#46823 - binary file-like objects should not be wrapped in
+    # TextIOWrapper when using the C engine, as the small internal buffer
+    # causes many small reads that are very slow for remote filesystems.
+    parser = c_parser_only
+    data = BytesIO(b"a,b\n1,2\n3,4\n")
+    result = parser.read_csv(data)
+    expected = DataFrame({"a": [1, 3], "b": [2, 4]})
+    tm.assert_frame_equal(result, expected)
+
+    # Verify the handle was not wrapped in TextIOWrapper
+    data = BytesIO(b"a,b\n1,2\n3,4\n")
+    with parser.read_csv(data, chunksize=2) as reader:
+        assert not isinstance(reader.handles.handle, TextIOWrapper)
+
+
 def test_unix_style_breaks(c_parser_only, temp_file):
     # GH 11020
     parser = c_parser_only
@@ -635,9 +664,9 @@ def test_float_precision_options(c_parser_only):
 
     tm.assert_frame_equal(df, df2)
 
+    # "legacy" now uses the same precise converter as "high"
     df3 = parser.read_csv(StringIO(s), float_precision="legacy")
-
-    assert not df.iloc[0, 0] == df3.iloc[0, 0]
+    tm.assert_frame_equal(df, df3)
 
     msg = "Unrecognized float_precision option: junk"
 

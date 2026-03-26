@@ -18,7 +18,7 @@ See NUMPY_LICENSE.txt for the license.
 #pragma once
 
 #ifndef NPY_NO_DEPRECATED_API
-#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
+#  define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #endif // NPY_NO_DEPRECATED_API
 
 #include "pandas/datetime/date_conversions.h"
@@ -37,7 +37,7 @@ typedef struct {
   char *(*int64ToIso)(int64_t, NPY_DATETIMEUNIT, NPY_DATETIMEUNIT, size_t *);
   char *(*PyDateTimeToIso)(PyObject *, NPY_DATETIMEUNIT, size_t *);
   npy_datetime (*PyDateTimeToEpoch)(PyObject *, NPY_DATETIMEUNIT);
-  char *(*int64ToIsoDuration)(int64_t, size_t *);
+  char *(*int64ToIsoDuration)(int64_t, NPY_DATETIMEUNIT, size_t *);
   void (*pandas_datetime_to_datetimestruct)(npy_datetime, NPY_DATETIMEUNIT,
                                             npy_datetimestruct *);
   void (*pandas_timedelta_to_timedeltastruct)(npy_datetime, NPY_DATETIMEUNIT,
@@ -63,48 +63,48 @@ typedef struct {
 #ifndef _PANDAS_DATETIME_IMPL
 static PandasDateTime_CAPI *PandasDateTimeAPI = NULL;
 
-#define PandasDateTime_IMPORT                                                  \
-  PandasDateTimeAPI =                                                          \
-      (PandasDateTime_CAPI *)PyCapsule_Import(PandasDateTime_CAPSULE_NAME, 0)
+#  define PandasDateTime_IMPORT                                                \
+    PandasDateTimeAPI = (PandasDateTime_CAPI *)PyCapsule_Import(               \
+        PandasDateTime_CAPSULE_NAME, 0)
 
-#define npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT, npy_datetimestruct)   \
-  PandasDateTimeAPI->npy_datetimestruct_to_datetime((NPY_DATETIMEUNIT),        \
-                                                    (npy_datetimestruct))
-#define scaleNanosecToUnit(value, unit)                                        \
-  PandasDateTimeAPI->scaleNanosecToUnit((value), (unit))
-#define int64ToIso(value, valueUnit, base, len)                                \
-  PandasDateTimeAPI->int64ToIso((value), (valueUnit), (base), (len))
-#define NpyDateTimeToEpoch(dt, base)                                           \
-  PandasDateTimeAPI->NpyDateTimeToEpoch((dt), (base))
-#define PyDateTimeToIso(obj, base, len)                                        \
-  PandasDateTimeAPI->PyDateTimeToIso((obj), (base), (len))
-#define PyDateTimeToEpoch(dt, base)                                            \
-  PandasDateTimeAPI->PyDateTimeToEpoch((dt), (base))
-#define int64ToIsoDuration(value, len)                                         \
-  PandasDateTimeAPI->int64ToIsoDuration((value), (len))
-#define pandas_datetime_to_datetimestruct(dt, base, out)                       \
-  PandasDateTimeAPI->pandas_datetime_to_datetimestruct((dt), (base), (out))
-#define pandas_timedelta_to_timedeltastruct(td, base, out)                     \
-  PandasDateTimeAPI->pandas_timedelta_to_timedeltastruct((td), (base), (out))
-#define convert_pydatetime_to_datetimestruct(dtobj, out)                       \
-  PandasDateTimeAPI->convert_pydatetime_to_datetimestruct((dtobj), (out))
-#define cmp_npy_datetimestruct(a, b)                                           \
-  PandasDateTimeAPI->cmp_npy_datetimestruct((a), (b))
-#define get_datetime_metadata_from_dtype(dtype)                                \
-  PandasDateTimeAPI->get_datetime_metadata_from_dtype((dtype))
-#define parse_iso_8601_datetime(str, len, want_exc, out, out_bestunit,         \
-                                out_local, out_tzoffset, format, format_len,   \
-                                format_requirement)                            \
-  PandasDateTimeAPI->parse_iso_8601_datetime(                                  \
-      (str), (len), (want_exc), (out), (out_bestunit), (out_local),            \
-      (out_tzoffset), (format), (format_len), (format_requirement))
-#define get_datetime_iso_8601_strlen(local, base)                              \
-  PandasDateTimeAPI->get_datetime_iso_8601_strlen((local), (base))
-#define make_iso_8601_datetime(dts, outstr, outlen, utc, base)                 \
-  PandasDateTimeAPI->make_iso_8601_datetime((dts), (outstr), (outlen), (utc),  \
-                                            (base))
-#define make_iso_8601_timedelta(tds, outstr, outlen)                           \
-  PandasDateTimeAPI->make_iso_8601_timedelta((tds), (outstr), (outlen))
+#  define npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT, npy_datetimestruct) \
+    PandasDateTimeAPI->npy_datetimestruct_to_datetime((NPY_DATETIMEUNIT),      \
+                                                      (npy_datetimestruct))
+#  define scaleNanosecToUnit(value, unit)                                      \
+    PandasDateTimeAPI->scaleNanosecToUnit((value), (unit))
+#  define int64ToIso(value, valueUnit, base, len)                              \
+    PandasDateTimeAPI->int64ToIso((value), (valueUnit), (base), (len))
+#  define NpyDateTimeToEpoch(dt, base)                                         \
+    PandasDateTimeAPI->NpyDateTimeToEpoch((dt), (base))
+#  define PyDateTimeToIso(obj, base, len)                                      \
+    PandasDateTimeAPI->PyDateTimeToIso((obj), (base), (len))
+#  define PyDateTimeToEpoch(dt, base)                                          \
+    PandasDateTimeAPI->PyDateTimeToEpoch((dt), (base))
+#  define int64ToIsoDuration(value, valueUnit, len)                            \
+    PandasDateTimeAPI->int64ToIsoDuration((value), (valueUnit), (len))
+#  define pandas_datetime_to_datetimestruct(dt, base, out)                     \
+    PandasDateTimeAPI->pandas_datetime_to_datetimestruct((dt), (base), (out))
+#  define pandas_timedelta_to_timedeltastruct(td, base, out)                   \
+    PandasDateTimeAPI->pandas_timedelta_to_timedeltastruct((td), (base), (out))
+#  define convert_pydatetime_to_datetimestruct(dtobj, out)                     \
+    PandasDateTimeAPI->convert_pydatetime_to_datetimestruct((dtobj), (out))
+#  define cmp_npy_datetimestruct(a, b)                                         \
+    PandasDateTimeAPI->cmp_npy_datetimestruct((a), (b))
+#  define get_datetime_metadata_from_dtype(dtype)                              \
+    PandasDateTimeAPI->get_datetime_metadata_from_dtype((dtype))
+#  define parse_iso_8601_datetime(str, len, want_exc, out, out_bestunit,       \
+                                  out_local, out_tzoffset, format, format_len, \
+                                  format_requirement)                          \
+    PandasDateTimeAPI->parse_iso_8601_datetime(                                \
+        (str), (len), (want_exc), (out), (out_bestunit), (out_local),          \
+        (out_tzoffset), (format), (format_len), (format_requirement))
+#  define get_datetime_iso_8601_strlen(local, base)                            \
+    PandasDateTimeAPI->get_datetime_iso_8601_strlen((local), (base))
+#  define make_iso_8601_datetime(dts, outstr, outlen, utc, base)               \
+    PandasDateTimeAPI->make_iso_8601_datetime((dts), (outstr), (outlen),       \
+                                              (utc), (base))
+#  define make_iso_8601_timedelta(tds, outstr, outlen)                         \
+    PandasDateTimeAPI->make_iso_8601_timedelta((tds), (outstr), (outlen))
 #endif /* !defined(_PANDAS_DATETIME_IMPL) */
 
 #ifdef __cplusplus
