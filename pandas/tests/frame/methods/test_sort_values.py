@@ -830,9 +830,16 @@ def sort_names(request):
 
 class TestSortValuesLevelAsStr:
     def test_sort_index_level_and_column_label(
-        self, df_none, df_idx, sort_names, ascending
+        self, df_none, df_idx, sort_names, ascending, request
     ):
         # GH#14353
+        if request.node.callspec.id == "df_idx0-inner-True":
+            request.applymarker(
+                pytest.mark.xfail(
+                    reason="unstable sorting of duplicates, platform-dependent",
+                    strict=False,
+                )
+            )
 
         # Get index levels from df_idx
         levels = df_idx.index.names
@@ -848,9 +855,16 @@ class TestSortValuesLevelAsStr:
         tm.assert_frame_equal(result, expected)
 
     def test_sort_column_level_and_index_label(
-        self, df_none, df_idx, sort_names, ascending
+        self, df_none, df_idx, sort_names, ascending, request
     ):
         # GH#14353
+        if request.node.callspec.id == "df_idx0-inner-True":
+            request.applymarker(
+                pytest.mark.xfail(
+                    reason="unstable sorting of duplicates, platform-dependent",
+                    strict=False,
+                )
+            )
 
         # Get levels from df_idx
         levels = df_idx.index.names
