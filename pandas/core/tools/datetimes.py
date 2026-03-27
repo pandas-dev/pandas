@@ -639,25 +639,17 @@ def _adjust_to_origin(arg, origin, unit):
             if lib.is_integer(origin) or lib.is_float(origin):
                 offset = Timestamp(origin, unit=unit)
             else:
-                time_units: list[TimeUnit] = ["s", "ms", "us", "ns"]
-                ts_unit: TimeUnit = getattr(origin, "unit", unit)
-                ts_unit = "s" if ts_unit not in time_units else ts_unit
-                offset = Timestamp(origin).as_unit(ts_unit)
-
-                base = Timestamp(0)
-                dt_min, dt_max = base.min, base.max
-                if not dt_min < offset < dt_max:
-                    raise OutOfBoundsDatetime
+                offset = Timestamp(origin)
         except OutOfBoundsDatetime as err:
             raise OutOfBoundsDatetime(f"origin {origin} is Out of Bounds") from err
-        except TypeError as err:
-            raise ValueError(f"origin offset {offset} must be tz-naive") from err
         except ValueError as err:
             raise ValueError(
                 f"origin {origin} cannot be converted to a Timestamp"
             ) from err
 
-        return to_timedelta(arg, unit=unit) + offset
+        if offset.tz is not None:
+            raise ValueError(f"origin offset {offset} must be tz-naive")
+        arg = offset + to_timedelta(arg, unit=unit)
     return arg
 
 
@@ -936,7 +928,7 @@ def to_datetime(
 
     >>> pd.to_datetime([1, 2, 3], unit="D", origin=pd.Timestamp("1960-01-01"))
     DatetimeIndex(['1960-01-02', '1960-01-03', '1960-01-04'],
-                  dtype='datetime64[s]', freq=None)
+                  dtype='datetime64[us]', freq=None)
 
     **Differences with strptime behavior**
 
@@ -1034,11 +1026,10 @@ def to_datetime(
         return NaT
 
     if origin != "unix":
-        if origin != "julian":
-            # calculation already done in :func:`_adjust_to_origin`
-            adjusted = _adjust_to_origin(arg, origin, unit)
-            return adjusted
         arg = _adjust_to_origin(arg, origin, unit)
+        if origin != "julian":
+            # GH#63419 _adjust_to_origin returned the final datetime result
+            return arg  # type: ignore[return-value]
 
     convert_listlike = partial(
         _convert_listlike_datetimes,
