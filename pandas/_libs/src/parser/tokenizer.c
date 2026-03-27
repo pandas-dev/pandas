@@ -26,10 +26,12 @@ GitHub. See Python Software Foundation License and BSD licenses for these.
 #include <stdlib.h>
 
 #if defined(__ARM_NEON) || defined(__ARM_NEON__)
+#  define PANDAS_HAS_NEON
 #  include <arm_neon.h>
-#elif defined(__SSE2__) || defined(__SSE2) || defined(_M_X64) ||               \
-    defined(_M_IX86)
-#  include <immintrin.h>
+#elif defined(__SSE2__) || defined(_M_X64) ||                                  \
+    (defined(_M_IX86_FP) && (_M_IX86_FP >= 2))
+#  define PANDAS_HAS_SSE2
+#  include <emmintrin.h>
 #  ifdef _MSC_VER
 #    include <intrin.h>
 #  endif
@@ -42,7 +44,7 @@ static __inline int _pandas_ctz(unsigned int mask) {
   _BitScanForward(&index, mask);
   return (int)index;
 }
-#elif defined(__SSE2__) || defined(__SSE2)
+#elif defined(PANDAS_HAS_SSE2)
 #  define _pandas_ctz(x) __builtin_ctz(x)
 #endif
 
@@ -635,7 +637,7 @@ static int skip_this_line(parser_t *self, int64_t rownum) {
   }
 }
 
-#if defined(__ARM_NEON) || defined(__ARM_NEON__)
+#ifdef PANDAS_HAS_NEON
 
 // Scan data for any special character using NEON.
 // Returns the byte offset of the first special character,
@@ -686,8 +688,7 @@ static inline size_t fast_scan_quoted_neon(const char *data, size_t len,
   return i;
 }
 
-#elif defined(__SSE2__) || defined(__SSE2) || defined(_M_X64) ||               \
-    defined(_M_IX86)
+#elif defined(PANDAS_HAS_SSE2)
 
 static inline size_t fast_scan_sse(const char *data, size_t len, __m128i vdelim,
                                    __m128i vterm, __m128i vcr, __m128i vquote,
@@ -745,7 +746,7 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
   const bool has_skip = (self->skipfunc != NULL || self->skipset != NULL ||
                          self->skip_first_N_rows >= 0);
 
-#if defined(__ARM_NEON) || defined(__ARM_NEON__)
+#ifdef PANDAS_HAS_NEON
   const uint8x16_t vdelim = vdupq_n_u8((uint8_t)delimiter);
   const uint8x16_t vterm = vdupq_n_u8((uint8_t)lineterminator);
   const uint8x16_t vcr =
@@ -759,8 +760,7 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
   const uint8x16_t vcomment = (self->commentchar != '\0')
                                   ? vdupq_n_u8((uint8_t)self->commentchar)
                                   : vterm;
-#elif defined(__SSE2__) || defined(__SSE2) || defined(_M_X64) ||               \
-    defined(_M_IX86)
+#elif defined(PANDAS_HAS_SSE2)
   const __m128i vdelim = _mm_set1_epi8((char)delimiter);
   const __m128i vterm = _mm_set1_epi8((char)lineterminator);
   const __m128i vcr =
@@ -1065,7 +1065,7 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
         // normal character - save in field
         PUSH_CHAR(c);
 
-#if defined(__ARM_NEON) || defined(__ARM_NEON__)
+#ifdef PANDAS_HAS_NEON
         if (!self->delim_whitespace) {
           size_t remaining = self->datalen - (i + 1);
           if (remaining >= 16) {
@@ -1080,8 +1080,7 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
             }
           }
         }
-#elif defined(__SSE2__) || defined(__SSE2) || defined(_M_X64) ||               \
-    defined(_M_IX86)
+#elif defined(PANDAS_HAS_SSE2)
         if (!self->delim_whitespace) {
           size_t remaining = self->datalen - (i + 1);
           if (remaining >= 16) {
@@ -1127,7 +1126,7 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
 
         // Inside a quoted field, only quote and escape are special.
         // Use a lighter SIMD scan that checks fewer characters.
-#if defined(__ARM_NEON) || defined(__ARM_NEON__)
+#ifdef PANDAS_HAS_NEON
         {
           size_t remaining = self->datalen - (i + 1);
           if (remaining >= 16) {
@@ -1142,8 +1141,7 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
             }
           }
         }
-#elif defined(__SSE2__) || defined(__SSE2) || defined(_M_X64) ||               \
-    defined(_M_IX86)
+#elif defined(PANDAS_HAS_SSE2)
         {
           size_t remaining = self->datalen - (i + 1);
           if (remaining >= 16) {
