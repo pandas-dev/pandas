@@ -10,10 +10,13 @@ from typing import (
     Any,
     Literal,
 )
+import warnings
 from warnings import (
     catch_warnings,
     filterwarnings,
 )
+
+from pandas._config.config import _global_config
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
@@ -22,12 +25,10 @@ from pandas.errors import (
     Pandas4Warning,
 )
 from pandas.util._decorators import set_module
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import check_dtype_backend
 
-from pandas import (
-    DataFrame,
-    get_option,
-)
+from pandas import DataFrame
 
 from pandas.io._util import arrow_table_to_pandas
 from pandas.io.common import (
@@ -52,7 +53,7 @@ if TYPE_CHECKING:
 def get_engine(engine: str) -> BaseImpl:
     """return our implementation"""
     if engine == "auto":
-        engine = get_option("io.parquet.engine")
+        engine = _global_config["io"]["parquet"]["engine"]
 
     if engine == "auto":
         # try engines in this order
@@ -78,6 +79,12 @@ def get_engine(engine: str) -> BaseImpl:
     if engine == "pyarrow":
         return PyArrowImpl()
     elif engine == "fastparquet":
+        warnings.warn(
+            "The 'fastparquet' engine is deprecated and will be removed in a "
+            "future version. Use 'pyarrow' instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
         return FastParquetImpl()
 
     raise ValueError("engine must be one of 'pyarrow', 'fastparquet'")
@@ -409,7 +416,7 @@ class FastParquetImpl(BaseImpl):
 def to_parquet(
     df: DataFrame,
     path: FilePath | WriteBuffer[bytes] | None = None,
-    engine: str = "auto",
+    engine: str | lib.NoDefault = lib.no_default,
     compression: ParquetCompressionOptions = "snappy",
     index: bool | None = None,
     storage_options: StorageOptions | None = None,
@@ -440,6 +447,12 @@ def to_parquet(
         (e.g. "s3://"), then the ``pyarrow.fs`` filesystem is attempted first.
         Use the filesystem keyword with an instantiated fsspec filesystem
         if you wish to use its implementation.
+
+        .. deprecated:: 3.1.0
+            The ``'fastparquet'`` and ``'auto'`` engine options are
+            deprecated. Use ``'pyarrow'`` or do not pass ``engine``
+            to use the default.
+
     compression : {'snappy', 'gzip', 'brotli', 'lz4', 'zstd', None},
         default 'snappy'. Name of the compression to use. Use ``None``
         for no compression.
@@ -483,6 +496,16 @@ def to_parquet(
     """
     if isinstance(partition_cols, str):
         partition_cols = [partition_cols]
+    if engine is not lib.no_default and engine == "auto":
+        warnings.warn(
+            "engine='auto' is deprecated and will be removed in a "
+            "future version. Pass engine='pyarrow' or do not pass "
+            "'engine' to use the default.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+    if engine is lib.no_default:
+        engine = "auto"
     impl = get_engine(engine)
 
     path_or_buf: FilePath | WriteBuffer[bytes] = io.BytesIO() if path is None else path
@@ -508,7 +531,7 @@ def to_parquet(
 @set_module("pandas")
 def read_parquet(
     path: FilePath | ReadBuffer[bytes],
-    engine: str = "auto",
+    engine: str | lib.NoDefault = lib.no_default,
     columns: list[str] | None = None,
     storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
@@ -546,6 +569,12 @@ def read_parquet(
         (e.g. "s3://"), then the ``pyarrow.fs`` filesystem is attempted first.
         Use the filesystem keyword with an instantiated fsspec filesystem
         if you wish to use its implementation.
+
+        .. deprecated:: 3.1.0
+            The ``'fastparquet'`` and ``'auto'`` engine options are
+            deprecated. Use ``'pyarrow'`` or do not pass ``engine``
+            to use the default.
+
     columns : list, default=None
         If not None, only these columns will be read from the file.
     storage_options : dict, optional
@@ -665,6 +694,16 @@ def read_parquet(
     1    4    9
     """
 
+    if engine is not lib.no_default and engine == "auto":
+        warnings.warn(
+            "engine='auto' is deprecated and will be removed in a "
+            "future version. Pass engine='pyarrow' or do not pass "
+            "'engine' to use the default.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+    if engine is lib.no_default:
+        engine = "auto"
     impl = get_engine(engine)
     check_dtype_backend(dtype_backend)
 

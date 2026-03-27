@@ -367,6 +367,11 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         #  py38 builds.
         raise TypeError(f"Invalid value '{value!s}' for dtype '{self.dtype}'")
 
+    def insert(self, loc: int, item) -> Self:
+        if not is_valid_na_for_dtype(item, self.dtype):
+            self._validate_setitem_value(item)
+        return super().insert(loc, item)
+
     def __setitem__(self, key, value) -> None:
         if self._readonly:
             raise ValueError("Cannot modify read-only array")
@@ -1160,6 +1165,24 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         result = self._simple_new(self._data[:], self._mask[:])
         result._readonly = self._readonly
         return result
+
+    @property
+    def _is_monotonic_increasing(self) -> bool:
+        if self._hasna:
+            return False
+        data = self._data
+        if data.dtype.kind == "b":
+            data = data.view("uint8")
+        return libalgos.is_monotonic(data, timelike=False)[0]
+
+    @property
+    def _is_monotonic_decreasing(self) -> bool:
+        if self._hasna:
+            return False
+        data = self._data
+        if data.dtype.kind == "b":
+            data = data.view("uint8")
+        return libalgos.is_monotonic(data, timelike=False)[1]
 
     def _rank(
         self,

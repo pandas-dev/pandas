@@ -172,7 +172,8 @@ def apply_wraps(func):
 
         result = func(self, other)
 
-        result2 = Timestamp(result).as_unit(other.unit)
+        result = Timestamp(result)
+        result2 = result.as_unit(other.unit)
         if result == result2:
             # i.e. the conversion is non-lossy, not the case for e.g.
             #  test_milliseconds_combination
@@ -317,8 +318,11 @@ _relativedelta_kwds = {"years", "months", "weeks", "days", "year", "month",
 
 cdef _determine_offset(kwds):
     if not kwds:
-        # GH 45643/45890: (historically) defaults to 1 day
-        return timedelta(days=1), False
+        # GH 45643, 45890: (historically) defaults to 1 day
+        # GH 61862: changed from timedelta to relativedelta for DST consistency
+        from dateutil.relativedelta import relativedelta
+
+        return relativedelta(days=1), True
 
     if "millisecond" in kwds:
         raise NotImplementedError(

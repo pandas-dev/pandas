@@ -3030,20 +3030,3 @@ def test_groupby_function_tuple_1677():
 
     result = monthly_group.mean()
     assert isinstance(result.index[0], tuple)
-
-
-def test_groupby_bool_int_distinguished():
-    # GH#62888 - groupby on object dtype should distinguish bool from int
-    df = DataFrame(
-        {
-            "key": np.array([0, False, 0, False, 1, True], dtype=object),
-            "val": [1, 2, 3, 4, 5, 6],
-        }
-    )
-    result = df.groupby("key")["val"].sum()
-    expected = Series(
-        [4, 6, 5, 6],
-        index=Index([0, False, 1, True], dtype=object, name="key"),
-        name="val",
-    )
-    tm.assert_series_equal(result, expected)

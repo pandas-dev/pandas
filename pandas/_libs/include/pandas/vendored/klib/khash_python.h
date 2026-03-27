@@ -211,9 +211,6 @@ static inline int pyobject_cmp(PyObject *a, PyObject *b) {
       return tupleobject_cmp((PyTupleObject *)a, (PyTupleObject *)b);
     }
     // frozenset isn't yet supported
-  } else if (PyBool_Check(a) != PyBool_Check(b)) {
-    // GH#62888: distinguish bool from int, e.g. 0 vs False, 1 vs True
-    return 0;
   }
 
   int result = PyObject_RichCompareBool(a, b, Py_EQ);

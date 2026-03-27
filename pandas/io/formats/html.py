@@ -12,7 +12,7 @@ from typing import (
     cast,
 )
 
-from pandas._config import get_option
+from pandas._config.config import _global_config
 
 from pandas._libs import lib
 
@@ -66,7 +66,7 @@ class HTMLFormatter:
         self.escape = self.fmt.escape
         self.show_dimensions = self.fmt.show_dimensions
         if border is None or border is True:
-            border = cast("int", get_option("display.html.border"))
+            border = cast("int", _global_config["display"]["html"]["border"])
         elif not border:
             border = None
 
@@ -238,7 +238,7 @@ class HTMLFormatter:
 
     def _write_table(self, indent: int = 0) -> None:
         _classes = ["dataframe"]  # Default class.
-        use_mathjax = get_option("display.html.use_mathjax")
+        use_mathjax = _global_config["display"]["html"]["use_mathjax"]
         if not use_mathjax:
             _classes.append("tex2jax_ignore")
             _classes.append("mathjax_ignore")

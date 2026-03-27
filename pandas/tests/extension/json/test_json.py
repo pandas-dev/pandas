@@ -220,6 +220,14 @@ class TestJSONArray(base.ExtensionTests):
         super().test_where_series(data, na_value)
 
     @pytest.mark.xfail(reason="Can't compare dicts.")
+    def test_is_monotonic_increasing(self, data_for_sorting):
+        super().test_is_monotonic_increasing(data_for_sorting)
+
+    @pytest.mark.xfail(reason="Can't compare dicts.")
+    def test_is_monotonic_decreasing(self, data_for_sorting):
+        super().test_is_monotonic_decreasing(data_for_sorting)
+
+    @pytest.mark.xfail(reason="Can't compare dicts.")
     def test_searchsorted(self, data_for_sorting):
         super().test_searchsorted(data_for_sorting)
 

@@ -27,6 +27,7 @@ import warnings
 import numpy as np
 
 from pandas._config import config
+from pandas._config.config import _global_config
 
 from pandas._libs import lib
 from pandas._libs.lib import is_range_indexer
@@ -2125,7 +2126,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Returns a LaTeX representation for a particular object.
         Mainly for use with nbconvert (jupyter notebook conversion to pdf).
         """
-        if config.get_option("styler.render.repr") == "latex":
+        if _global_config["styler"]["render"]["repr"] == "latex":
             return self.to_latex()
         else:
             return None
@@ -2136,8 +2137,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Not a real Jupyter special repr method, but we use the same
         naming convention.
         """
-        if config.get_option("display.html.table_schema"):
-            data = self.head(config.get_option("display.max_rows"))
+        if _global_config["display"]["html"]["table_schema"]:
+            data = self.head(_global_config["display"]["max_rows"])
 
             as_json = data.to_json(orient="table")
             as_json = cast("str", as_json)
@@ -3559,15 +3560,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if self.ndim == 1:
             self = self.to_frame()
         if longtable is None:
-            longtable = config.get_option("styler.latex.environment") == "longtable"
+            longtable = _global_config["styler"]["latex"]["environment"] == "longtable"
         if escape is None:
-            escape = config.get_option("styler.format.escape") == "latex"
+            escape = _global_config["styler"]["format"]["escape"] == "latex"
         if multicolumn is None:
-            multicolumn = config.get_option("styler.sparse.columns")
+            multicolumn = _global_config["styler"]["sparse"]["columns"]
         if multicolumn_format is None:
-            multicolumn_format = config.get_option("styler.latex.multicol_align")
+            multicolumn_format = _global_config["styler"]["latex"]["multicol_align"]
         if multirow is None:
-            multirow = config.get_option("styler.sparse.index")
+            multirow = _global_config["styler"]["sparse"]["index"]
 
         if column_format is not None and not isinstance(column_format, str):
             raise ValueError("`column_format` must be str or unicode")
@@ -4281,6 +4282,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 # that means that their are list/ndarrays inside the Series!
                 # so just return them (GH 6394)
                 return self._values[loc]
+
+            if not drop_level and isinstance(index, MultiIndex):
+                # GH#6507 - honor drop_level=False for fully specified keys
+                result = self.iloc[loc : loc + 1]
+                result.index = new_index
+                return result
 
             new_mgr = self._mgr.fast_xs(loc)
 
@@ -6172,10 +6179,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 # One could make the deepcopy unconditionally, but a deepcopy
                 # of an empty dict is 50x more expensive than the empty check.
                 self.attrs = deepcopy(other.attrs)
-            self.flags.allows_duplicate_labels = (
-                self.flags.allows_duplicate_labels
-                and other.flags.allows_duplicate_labels
-            )
+            # Since new objects always start with allows_duplicate_labels=True,
+            # we only need to act when other has it set to False.
+            if not other._flags._allows_duplicate_labels:
+                self.flags.allows_duplicate_labels = False
             # For subclasses using _metadata.
             for name in set(self._metadata) & set(other._metadata):
                 assert isinstance(name, str)
@@ -6191,8 +6198,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 if have_same_attrs:
                     self.attrs = deepcopy(attrs)
 
-            allows_duplicate_labels = all(x.flags.allows_duplicate_labels for x in objs)
-            self.flags.allows_duplicate_labels = allows_duplicate_labels
+            if not all(x._flags._allows_duplicate_labels for x in objs):
+                self.flags.allows_duplicate_labels = False
 
         return self
 
@@ -6363,7 +6370,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         dtype: object
         """
         data = self._mgr.get_dtypes()
-        return self._constructor_sliced(data, index=self._info_axis, dtype=np.object_)
+        # copy=False is safe because get_dtypes() returns a new array
+        return self._constructor_sliced(
+            data, index=self._info_axis, dtype=np.object_, copy=False
+        )
 
     @final
     def astype(
@@ -7537,6 +7547,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         * When dict is used as the `to_replace` value, it is like
           key(s) in the dict are the to_replace part and
           value(s) in the dict are the value parameter.
+        * Replacement is based on equality, not identity. Since Python treats
+          ``True == 1`` and ``False == 0``, replacing one will also affect
+          the other when they share a dtype (e.g. ``object``).
 
         Examples
         --------
@@ -10022,11 +10035,19 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if isinstance(cond, NDFrame):
             # CoW: Make sure reference is not kept alive
             if cond.ndim == 1 and self.ndim == 2:
-                cond = cond._constructor_expanddim(
-                    dict.fromkeys(range(len(self.columns)), cond),
-                    copy=False,
-                )
-                cond.columns = self.columns
+                if axis == 1:
+                    # GH#58190 broadcast cond along columns
+                    cond = cond._constructor_expanddim(
+                        dict.fromkeys(range(len(self)), cond),
+                        copy=False,
+                    ).T
+                    cond.index = self.index
+                else:
+                    cond = cond._constructor_expanddim(
+                        dict.fromkeys(range(len(self.columns)), cond),
+                        copy=False,
+                    )
+                    cond.columns = self.columns
             cond = cond.align(self, join="right")[0]
         else:
             if not hasattr(cond, "shape"):
@@ -10061,6 +10082,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             # GH#21947 we have an empty DataFrame/Series, could be object-dtype
             cond = cond.astype(bool)
 
+        cond_for_ea = cond
         cond = -cond if inplace else cond
         cond = cond.reindex(self._info_axis, axis=self._info_axis_number)
 
@@ -10096,7 +10118,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         if axis == 0:
                             res_cols = [
                                 self.iloc[:, i]._where(
-                                    cond.iloc[:, i],
+                                    cond_for_ea.iloc[:, i],
                                     other,
                                 )
                                 for i in range(self.shape[1])
@@ -10105,7 +10127,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                             # TODO: can we use a zero-copy alternative to "repeat"?
                             res_cols = [
                                 self.iloc[:, i]._where(
-                                    cond.iloc[:, i],
+                                    cond_for_ea.iloc[:, i],
                                     other[i : i + 1].repeat(len(self)),
                                 )
                                 for i in range(self.shape[1])
@@ -10148,10 +10170,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if axis is None:
             axis = 0
 
-        if self.ndim == getattr(other, "ndim", 0):
+        other_ndim = getattr(other, "ndim", 0)
+        if self.ndim == other_ndim:
             align = True
         else:
-            align = self._get_axis_number(axis) == 1
+            # GH#58190 scalar other (ndim=0) should never be aligned
+            align = other_ndim >= 1 and self._get_axis_number(axis) == 1
 
         if inplace:
             # we may have different type blocks come out of putmask, so
