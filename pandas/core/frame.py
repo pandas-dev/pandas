@@ -4670,9 +4670,15 @@ class DataFrame(NDFrame, OpsMixin):
                 if len(cols_droplevel) and not cols_droplevel.equals(value.columns):
                     value = value.reindex(cols_droplevel, axis=1)
 
-                for col, col_droplevel in zip(cols, cols_droplevel, strict=True):
-                    self[col] = value[col_droplevel]
-                return
+                if not cols_droplevel.equals(cols):
+                    # Levels were actually dropped, so we can safely use
+                    # key-based indexing without re-entering this method.
+                    for col, col_droplevel in zip(cols, cols_droplevel, strict=True):
+                        self[col] = value[col_droplevel]
+                    return
+                # If cols_droplevel == cols (key matched all levels),
+                # fall through to positional isetitem to avoid
+                # infinite recursion (GH#53498).
 
             if is_scalar(cols):
                 self[cols] = value[value.columns[0]]
