@@ -428,6 +428,23 @@ class TestDataFrameInterpolate:
         with pytest.raises(ValueError, match=msg):
             df.interpolate(method=method, axis=axis)
 
+    def test_interpolate_limit_behavior_skip_dataframe(self):
+        # GH#NEW_ISSUE: limit_behavior="skip" should work for DataFrames
+        df = DataFrame(
+            {
+                "A": [1.0, np.nan, np.nan, np.nan, 5.0],
+                "B": [2.0, np.nan, 6.0, np.nan, np.nan],
+            }
+        )
+        result = df.interpolate(limit=1, limit_behavior="skip", axis=0)
+        expected = DataFrame(
+            {
+                "A": [1.0, np.nan, np.nan, np.nan, 5.0],  # gap size=3 > limit=1, skip all
+                "B": [2.0, np.nan, 6.0, np.nan, np.nan],  # gap size=2 > limit=1, skip all
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_interpolate_empty_df(self):
         # GH#53199
         df = DataFrame()

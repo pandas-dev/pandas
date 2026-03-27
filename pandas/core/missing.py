@@ -305,6 +305,19 @@ def validate_limit_area(limit_area: str | None) -> Literal["inside", "outside"] 
     return limit_area  # type: ignore[return-value]
 
 
+def validate_limit_behavior(limit_behavior: str) -> Literal["fill", "skip"]:
+    valid_limit_behaviors = ["fill", "skip"]
+    limit_behavior = limit_behavior.lower()
+    if limit_behavior not in valid_limit_behaviors:
+        raise ValueError(
+            f"Invalid limit_behavior: expecting one of {valid_limit_behaviors}, got "
+            f"{limit_behavior}."
+        )
+    # error: Incompatible return value type (got "str", expected
+    # "Literal['fill', 'skip']")
+    return limit_behavior  # type: ignore[return-value]
+
+
 def infer_limit_direction(
     limit_direction: Literal["backward", "forward", "both"] | None, method: str
 ) -> Literal["backward", "forward", "both"]:
@@ -371,6 +384,7 @@ def interpolate_2d_inplace(
     limit_area: str | None = None,
     fill_value: Any | None = None,
     mask=None,
+    limit_behavior: str = "fill",
     **kwargs,
 ) -> None:
     """
@@ -419,6 +433,7 @@ def interpolate_2d_inplace(
             fill_value=fill_value,
             bounds_error=False,
             mask=mask,
+            limit_behavior=limit_behavior,
             **kwargs,
         )
 
@@ -458,6 +473,7 @@ def _interpolate_1d(
     bounds_error: bool = False,
     order: int | None = None,
     mask=None,
+    limit_behavior: str = "fill",
     **kwargs,
 ) -> None:
     """
@@ -548,6 +564,27 @@ def _interpolate_1d(
             order=order,
             **kwargs,
         )
+
+    # If limit_behavior="skip", revert interpolation for gaps exceeding limit
+    if limit_behavior == "skip" and limit is not None:
+        # Find consecutive NaN groups that exceed the limit
+        nan_indices = np.where(invalid)[0]
+        if len(nan_indices) > 0:
+            # Detect gap boundaries by finding non-consecutive NaN indices
+            gap_ends = np.where(np.diff(nan_indices) > 1)[0]
+            gap_starts = np.concatenate(([0], gap_ends + 1))
+            gap_ends = np.concatenate((gap_ends, [len(nan_indices) - 1]))
+
+            revert_indices = []
+            for start, end in zip(gap_starts, gap_ends):
+                gap_size = end - start + 1
+                if gap_size > limit:
+                    # Gap exceeds limit; mark these NaN indices for reverting
+                    revert_indices.extend(nan_indices[start : end + 1])
+
+            if revert_indices:
+                revert_indices = np.array(revert_indices, dtype=np.int64)
+                preserve_nans = np.union1d(preserve_nans, revert_indices)
 
     if mask is not None:
         mask[:] = False
