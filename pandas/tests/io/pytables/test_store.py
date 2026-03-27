@@ -341,11 +341,14 @@ def test_store_dropna(temp_h5_path):
     reloaded = read_hdf(temp_h5_path, "df")
     tm.assert_frame_equal(df_with_missing, reloaded)
 
-    df_with_missing.to_hdf(temp_h5_path, key="df", format="table", dropna=False)
+    msg = "The 'dropna' keyword in HDFStore.put is deprecated"
+    with tm.assert_produces_warning(pd.errors.Pandas4Warning, match=msg):
+        df_with_missing.to_hdf(temp_h5_path, key="df", format="table", dropna=False)
     reloaded = read_hdf(temp_h5_path, "df")
     tm.assert_frame_equal(df_with_missing, reloaded)
 
-    df_with_missing.to_hdf(temp_h5_path, key="df", format="table", dropna=True)
+    with tm.assert_produces_warning(pd.errors.Pandas4Warning, match=msg):
+        df_with_missing.to_hdf(temp_h5_path, key="df", format="table", dropna=True)
     reloaded = read_hdf(temp_h5_path, "df")
     tm.assert_frame_equal(df_without_missing, reloaded)
 

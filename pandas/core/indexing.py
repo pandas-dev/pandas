@@ -26,8 +26,10 @@ from pandas.errors import (
     IndexingError,
     InvalidIndexError,
     LossySetitemError,
+    Pandas4Warning,
 )
 from pandas.errors.cow import _chained_assignment_msg
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
     can_hold_element,
@@ -3146,6 +3148,41 @@ class _AtIndexer(_ScalarAccessIndexer):
 
         return key
 
+    def _warn_if_expanding(self, key) -> None:
+        """
+        GH#48323 - Warn if .at setitem would expand the object.
+        """
+        if self.ndim == 2:
+            if not isinstance(key, tuple) or len(key) != 2:
+                return
+            check_key = key[0]
+        else:
+            check_key = key
+            if isinstance(key, tuple) and len(key) == 1:
+                check_key = key[0]
+
+        # Only check for scalar-like keys (including tuples for MultiIndex).
+        # Slices and list-likes are invalid for .at and will raise elsewhere.
+        if isinstance(check_key, slice) or is_list_like_indexer(check_key):
+            if not isinstance(check_key, tuple):
+                return
+
+        try:
+            is_expanding = check_key not in self.obj.index
+        except (TypeError, InvalidIndexError):
+            return
+
+        if is_expanding:
+            obj_type = "DataFrame" if self.ndim == 2 else "Series"
+            warnings.warn(
+                f"Setting a value on a {obj_type} via .at with a key "
+                "that does not exist in the index is deprecated "
+                "and will raise a KeyError in a future version. "
+                "Use .loc instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+
     @property
     def _axes_are_unique(self) -> bool:
         # Only relevant for self.ndim == 2
@@ -3167,6 +3204,9 @@ class _AtIndexer(_ScalarAccessIndexer):
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
                 )
+
+        # GH#48323 - deprecate .at setitem with expansion
+        self._warn_if_expanding(key)
 
         if self.ndim == 2 and not self._axes_are_unique:
             # GH#33041 fall back to .loc

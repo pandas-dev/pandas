@@ -9,6 +9,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import iNaT
+from pandas.errors import Pandas4Warning
 
 from pandas import (
     DatetimeIndex,
@@ -30,6 +31,23 @@ from pandas.core.arrays import (
     PeriodArray,
     TimedeltaArray,
 )
+
+
+class TestNaTDeprecations:
+    @pytest.mark.parametrize(
+        "old_attr, new_attr",
+        [
+            ("dayofweek", "day_of_week"),
+            ("dayofyear", "day_of_year"),
+            ("daysinmonth", "days_in_month"),
+        ],
+    )
+    def test_deprecated_day_attrs(self, old_attr, new_attr):
+        # GH#46768
+        msg = f"NaTType.{old_attr} is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = getattr(NaT, old_attr)
+        assert np.isnan(result)
 
 
 class TestNaTFormatting:
