@@ -5044,7 +5044,9 @@ cdef class Week(SingleConstructorOffset):
     Weekly offset.
 
     This offset represents a duration of one or more weeks. It can optionally
-    be anchored to a specific day of the week.
+    be anchored to a specific day of the week, which represents the last day
+    of the weekly period. For example, ``W-MON`` produces weekly periods that
+    end on Monday (and start on Tuesday).
 
     Attributes
     ----------
