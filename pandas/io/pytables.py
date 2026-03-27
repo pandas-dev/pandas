@@ -312,6 +312,7 @@ def to_hdf(
             errors=errors,
             encoding=encoding,
             dropna=dropna,
+            track_times=False,
         )
 
     if isinstance(path_or_buf, HDFStore):

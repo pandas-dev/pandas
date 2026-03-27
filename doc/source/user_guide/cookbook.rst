@@ -1331,7 +1331,7 @@ Storing Attributes to a group node
 
    df = pd.DataFrame(np.random.randn(8, 3))
    store = pd.HDFStore("test.h5")
-   store.put("df", df)
+   store.put("df", df, track_times=False)
 
    # you can store an arbitrary Python object via pickle
    store.get_storer("df").attrs.my_attribute = {"A": 10}
@@ -1352,7 +1352,7 @@ is closed.
    store = pd.HDFStore("test.h5", "w", driver="H5FD_CORE")
 
    df = pd.DataFrame(np.random.randn(8, 3))
-   store["test"] = df
+   store.put("test", df, track_times=False)
 
    # only after closing the store, data is written to disk:
    store.close()
