@@ -576,7 +576,7 @@ def _interpolate_1d(
             gap_ends = np.concatenate((gap_ends, [len(nan_indices) - 1]))
 
             revert_indices = []
-            for start, end in zip(gap_starts, gap_ends):
+            for start, end in zip(gap_starts, gap_ends, strict=False):
                 gap_size = end - start + 1
                 if gap_size > limit:
                     # Gap exceeds limit; mark these NaN indices for reverting

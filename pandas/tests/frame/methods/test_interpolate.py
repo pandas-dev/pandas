@@ -439,8 +439,8 @@ class TestDataFrameInterpolate:
         result = df.interpolate(limit=1, limit_behavior="skip", axis=0)
         expected = DataFrame(
             {
-                "A": [1.0, np.nan, np.nan, np.nan, 5.0],  # gap size=3 > limit=1, skip all
-                "B": [2.0, np.nan, 6.0, np.nan, np.nan],  # gap size=2 > limit=1, skip all
+                "A": [1.0, np.nan, np.nan, np.nan, 5.0],  # gap=3 > limit=1
+                "B": [2.0, np.nan, 6.0, np.nan, np.nan],  # gap=2 > limit=1
             }
         )
         tm.assert_frame_equal(result, expected)
