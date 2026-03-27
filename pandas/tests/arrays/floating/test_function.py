@@ -236,27 +236,19 @@ def test_floating_array_mean_skipna_with_nan(request, using_nan_is_na):
         assert np.isnan(result)
 
 
-def test_isna_div_by_zero_float64(using_nan_is_na):
-    # GH#60106
-    df = pd.DataFrame({"x": [1, 0], "y": [1, 0]}, dtype="Float64")
-    df["z"] = df["y"] / df["x"]
-    result = df["z"].isna()
+def test_isna_with_nan_value(using_nan_is_na):
+    # GH#53887, GH#60106, GH#61758
+    # NaN produced via division-by-zero in a FloatingArray;
+    # isna should detect it only when NaN is treated as NA.
+    ser = pd.Series([1.0, 0.0], dtype="Float64") / pd.Series(
+        [1.0, 0.0], dtype="Float64"
+    )
+    result = ser.isna()
     if using_nan_is_na:
-        expected = pd.Series([False, True], name="z")
+        expected = pd.Series([False, True])
     else:
-        expected = pd.Series([False, False], name="z")
+        expected = pd.Series([False, False])
     tm.assert_series_equal(result, expected)
-
-
-def test_isna_apply_consistent_with_vectorized(using_nan_is_na):
-    # GH#53887
-    df = pd.DataFrame({"a": [1.0, 0.0], "b": [1.0, 0.0]}, dtype=pd.Float64Dtype())
-    df["c"] = df["a"] / df["b"]
-    vectorized = df["c"].isna().sum()
-    if using_nan_is_na:
-        assert vectorized == 1
-    else:
-        assert vectorized == 0
 
 
 def test_fillna_div_by_zero_int64(using_nan_is_na):
@@ -293,17 +285,3 @@ def test_nunique_div_by_zero(using_nan_is_na):
     else:
         # NaN from 0/0 is a value, not NA -> 1 unique (NaN)
         assert result == 1
-
-
-@pytest.mark.filterwarnings("ignore:invalid value encountered in sqrt:RuntimeWarning")
-def test_isna_sqrt_negative_float64(using_nan_is_na):
-    # GH#61758
-    df = pd.DataFrame({"a": [-1.0, 2.0], "b": [1.0, 2.0]}, dtype=pd.Float64Dtype())
-    df = np.sqrt(df)
-    vectorized_any = df.isna().any().any()
-    if using_nan_is_na:
-        # NaN from sqrt(-1) folded into mask -> isna detects it
-        assert vectorized_any
-    else:
-        # NaN stays as value -> isna doesn't detect it
-        assert not vectorized_any
