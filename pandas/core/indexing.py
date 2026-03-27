@@ -1836,8 +1836,10 @@ class _LocIndexer(_LocationIndexer):
                 result = self.obj.iloc[tuple(indexer)]
 
                 # GH#18631 Drop levels that were indexed with scalars,
-                # but only when the key has no slices or bool indexers
-                # (e.g., pd.IndexSlice patterns preserve all levels).
+                # but only when the key has no slices or bool indexers.
+                # Dropping scalar levels in the presence of slices would
+                # be correct in principle, but many internal operations
+                # (e.g. stack/unstack) rely on the current behavior.
                 has_slice_or_mask = any(
                     isinstance(k, slice) or com.is_bool_indexer(k) for k in key
                 )
