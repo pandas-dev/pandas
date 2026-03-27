@@ -2511,7 +2511,7 @@ cdef class BusinessDay(BusinessMixin):
     normalize : bool, default False
         Normalize start/end dates to midnight.
     offset : timedelta, default timedelta(0)
-        Time offset to apply.
+        Additional time offset applied after the business day calculation.
 
     See Also
     --------
