@@ -3141,6 +3141,7 @@ def _generate_range(
         start_tod: Timedelta = start - start.normalize()
         if (
             start_tod
+            # Check if the offset preserves start's time-of-day
             and (offset._apply(start) - offset._apply(start).normalize()) == start_tod
         ):
             if (offset.n >= 0 and end >= start) or (offset.n < 0 and end <= start):
