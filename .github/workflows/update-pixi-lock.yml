@@ -1,16 +1,8 @@
 name: Update pixi.lock
 on:
-  # schedule:
-  #   # 4:10 UTC every Sunday
-  #   - cron: "10 4 * * 0"
-  push:
-    branches:
-      - main
-      - 3.0.x
-  pull_request:
-    branches:
-      - main
-      - 3.0.x
+  schedule:
+    # 4:10 UTC every Sunday
+    - cron: "10 4 * * 0"
 
 permissions: {}
 defaults:
@@ -41,4 +33,16 @@ jobs:
 
     - name: Create pull request
       if: steps.check-lock-file.outcome == 'failure'
-      run: echo "test"
+      uses: peter-evans/create-pull-request@c0f553fe549906ede9cf27b5156039d195d2ece0 # v8.1.0
+      with:
+        commit-message: Update pixi.lock
+        # author same as default committer for this action
+        author: "github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>"
+        branch: "ci/update-pixi-lock"
+        delete-branch: true
+        title: "CI: Update pixi.lock"
+        body: |
+          Scheduled update by `.github/workflows/update-pixi-lock.yml`
+
+          If CI jobs fail, modify this pull request as needed.
+        labels: "CI"
