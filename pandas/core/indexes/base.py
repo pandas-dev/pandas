@@ -4598,6 +4598,9 @@ class Index(IndexOpsMixin, PandasObject):
             and (self.is_unique or other.is_unique)
         ):
             if self._can_use_libjoin and other._can_use_libjoin:
+                if self.equals(other):
+                    ret_index = other if how == "right" else self
+                    return ret_index, None, None
                 try:
                     return self._join_monotonic(other, how=how)
                 except TypeError:
@@ -4978,10 +4981,6 @@ class Index(IndexOpsMixin, PandasObject):
         #  3) other.is_unique or self.is_unique
         assert other.dtype == self.dtype
         assert self._can_use_libjoin and other._can_use_libjoin
-
-        if self.equals(other):
-            ret_index = other if how == "right" else self
-            return ret_index, None, None
 
         ridx: npt.NDArray[np.intp] | None
         lidx: npt.NDArray[np.intp] | None
