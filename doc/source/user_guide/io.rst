@@ -4008,10 +4008,10 @@ dict:
    s = pd.Series(np.random.randn(5), index=["a", "b", "c", "d", "e"])
    df = pd.DataFrame(np.random.randn(8, 3), index=index, columns=["A", "B", "C"])
 
-   # store.put('s', s, track_times=False) is an equivalent method
-   store.put("s", s, track_times=False)
+   # store.put('s', s) is an equivalent method
+   store["s"] = s
 
-   store.put("df", df, track_times=False)
+   store["df"] = df
 
    store
 
