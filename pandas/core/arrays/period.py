@@ -650,8 +650,15 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         Index([6, 0, 1], dtype='int64')
         """,
     )
+
     @property
     def weekday(self):
+        """
+        The day of the week with Monday=0, Sunday=6.
+
+        .. deprecated:: 3.1.0
+            Use :attr:`PeriodIndex.day_of_week` instead.
+        """
         # GH#12816
         warnings.warn(
             f"{type(self).__name__}.weekday is deprecated and will be removed "

@@ -1969,6 +1969,12 @@ default 'raise'
 
     @property
     def weekday(self):
+        """
+        The day of the week with Monday=0, Sunday=6.
+
+        .. deprecated:: 3.1.0
+            Use :attr:`DatetimeIndex.day_of_week` instead.
+        """
         # GH#12816
         from pandas.errors import Pandas4Warning
 
