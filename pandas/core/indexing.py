@@ -1842,11 +1842,26 @@ class _LocIndexer(_LocationIndexer):
                     isinstance(k, slice) or com.is_bool_indexer(k) for k in key
                 )
                 if not has_slice_or_mask:
-                    levels_to_drop = [
-                        i for i, k in enumerate(key) if not is_list_like(k)
-                    ]
+                    levels_to_drop = []
+                    for idx, k in enumerate(key):
+                        if not is_list_like(k):
+                            levels_to_drop.append(idx)
+                        elif isinstance(k, tuple):
+                            # GH#27591 A tuple might be a single label
+                            # in this level rather than a sequence of labels
+                            try:
+                                labels.levels[idx].get_loc(k)
+                                levels_to_drop.append(idx)
+                            except KeyError:
+                                pass
                     if levels_to_drop:
-                        result = result.droplevel(levels_to_drop, axis=axis)
+                        if len(levels_to_drop) >= labels.nlevels:
+                            # All levels are scalar-indexed; reduce
+                            # dimensionality instead of droplevel (which
+                            # cannot remove every level).
+                            result = result._ixs(0, axis=axis)
+                        else:
+                            result = result.droplevel(levels_to_drop, axis=axis)
 
                 return result
 

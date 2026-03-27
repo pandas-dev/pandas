@@ -3130,10 +3130,11 @@ def test_loc_getitem_multiindex_tuple_level():
     #  of labels
     result = df.loc[:, (lev1[0], lev2[0], lev3[0])]
 
-    # GH#18631 scalar-indexed levels (x, z) are dropped;
-    # level y is kept because tuple label (0, 1) is list-like
-    expected_loc = df.iloc[:, :1].droplevel(["x", "z"], axis=1)
-    tm.assert_frame_equal(result, expected_loc)
+    # GH#18631 all three levels are scalar-indexed so all are dropped;
+    # the tuple (0, 1) is a scalar label in level y, not a sequence of labels.
+    # df.loc[:, full_key] should match df[full_key]
+    expected_loc = df[(lev1[0], lev2[0], lev3[0])]
+    tm.assert_series_equal(result, expected_loc)
 
     expected_xs = df.iloc[:, :1]
     alt = df.xs((lev1[0], lev2[0], lev3[0]), level=[0, 1, 2], axis=1)
