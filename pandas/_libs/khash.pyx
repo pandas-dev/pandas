@@ -1,9 +1,5 @@
-from cpython.exc cimport (
-    PyErr_Fetch,
-    PyErr_Occurred,
-)
+from cpython.exc cimport PyErr_Occurred
 from cpython.object cimport PyObject
-from cpython.ref cimport Py_XDECREF
 
 
 cdef int raise_if_errors() except -1:
