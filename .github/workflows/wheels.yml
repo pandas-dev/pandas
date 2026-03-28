@@ -119,19 +119,18 @@ jobs:
           arch: arm64
 
       - name: Download sdist
-        id: download
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: sdist
           path: ./dist
 
       - name: Save sdist name to environment variable
-        run: echo "sdist_name=$(ls ${{ steps.download.outputs.download-path }})" >> "$GITHUB_ENV"
+        run: echo "sdist_name=$(ls ./dist)" >> "$GITHUB_ENV"
 
       - name: Build wheels
         uses: pypa/cibuildwheel@ee02a1537ce3071a004a6b08c41e72f0fdc42d9a # v3.4.0
         with:
-          package-dir: ${{ steps.download.outputs.download-path }}/${{ env.sdist_name }}
+          package-dir: ./dist/${{ env.sdist_name }}
         env:
           CIBW_BUILD: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
 
