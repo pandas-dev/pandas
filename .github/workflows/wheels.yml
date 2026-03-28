@@ -89,21 +89,20 @@ jobs:
       fail-fast: false
       matrix:
         buildplat:
-        - [ubuntu-24.04, manylinux_x86_64]
-        - [ubuntu-24.04, musllinux_x86_64]
-        - [ubuntu-24.04-arm, manylinux_aarch64]
-        - [ubuntu-24.04-arm, musllinux_aarch64]
-        - [macos-15-intel, macosx_x86_64]
-        - [macos-15, macosx_arm64]
-        - [windows-2025, win_amd64]
-        - [windows-11-arm, win_arm64]
+          - [ubuntu-24.04, manylinux_x86_64]
+          - [ubuntu-24.04, musllinux_x86_64]
+          - [ubuntu-24.04-arm, manylinux_aarch64]
+          - [ubuntu-24.04-arm, musllinux_aarch64]
+          - [macos-15-intel, macosx_x86_64]
+          - [macos-15, macosx_arm64]
+          - [windows-2025, win_amd64]
+          - [windows-11-arm, win_arm64]
         python: [["cp311", "3.11"], ["cp312", "3.12"], ["cp313", "3.13"], ["cp313t", "3.13"], ["cp314", "3.14"], ["cp314t", "3.14"]]
         include:
-        - buildplat: [ubuntu-24.04, pyodide_wasm32]
-          python: ["cp312", "3.12"]
-          cibw_build_frontend: 'build'
+          - buildplat: [ubuntu-24.04, pyodide_wasm32]
+            python: ["cp312", "3.12"]
         exclude:
-        # BackendUnavailable: Cannot import 'mesonpy'
+          # BackendUnavailable: Cannot import 'mesonpy'
           - buildplat: [windows-11-arm, win_arm64]
             python: ["cp313t", "3.13"]
 
@@ -120,23 +119,21 @@ jobs:
           arch: arm64
 
       - name: Download sdist
+        id: download
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: sdist
           path: ./dist
 
       - name: Save sdist name to environment variable
-        run: echo "sdist_name=$(ls ./dist)" >> "$GITHUB_ENV"
+        run: echo "sdist_name=$(ls ${{ steps.download.outputs.download-path }})" >> "$GITHUB_ENV"
 
       - name: Build wheels
         uses: pypa/cibuildwheel@ee02a1537ce3071a004a6b08c41e72f0fdc42d9a # v3.4.0
         with:
-          package-dir: ./dist/${{ env.sdist_name }}
+          package-dir: ${{ steps.download.outputs.download-path }}/${{ env.sdist_name }}
         env:
           CIBW_BUILD: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
-          CIBW_BUILD_FRONTEND: ${{ matrix.cibw_build_frontend || 'pip' }}
-          CIBW_PLATFORM: ${{ (matrix.buildplat[1] == 'pyodide_wasm32' && 'pyodide') || (matrix.buildplat[1] == 'win_arm64' && 'windows') || 'auto' }}
-          CIBW_ARCHS: ${{ matrix.buildplat[1] == 'win_arm64' && 'ARM64' || 'auto' }}
 
       - name: Set up Python for validation
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
