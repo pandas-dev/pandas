@@ -77,7 +77,9 @@ def to_time(
             if need_ampm_fallback and "%p" in format:
                 _parse = _strptime_ampm_fallback
             else:
-                _parse = lambda elem, fmt: datetime.strptime(elem, fmt).time()
+                _parse = lambda element, time_format: datetime.strptime(
+                    element, time_format
+                ).time()
             for element in arg:
                 try:
                     times.append(_parse(element, format))
