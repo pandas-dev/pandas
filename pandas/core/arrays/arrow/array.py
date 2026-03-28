@@ -2652,6 +2652,7 @@ class ArrowExtensionArray(
         pa_dtype = self._pa_array.type
 
         data = self._pa_array
+        baseline = None
         if pa.types.is_temporal(pa_dtype):
             # https://github.com/apache/arrow/issues/33769 in these cases
             #  we can cast to ints and back
@@ -2660,6 +2661,12 @@ class ArrowExtensionArray(
                 data = data.cast(pa.int32())
             else:
                 data = data.cast(pa.int64())
+
+            # Subtract the minimum to keep values small enough that float64
+            # can represent them without precision loss (GH#49110).
+            if nbits == 64 and pc.any(pc.is_valid(data)).as_py():
+                baseline = pc.min(data, skip_nulls=True).as_py()
+                data = pc.subtract(data, baseline)
 
         result = pc.quantile(data, q=qs, interpolation=interpolation)
 
@@ -2671,6 +2678,8 @@ class ArrowExtensionArray(
                 result = result.cast(pa.int32())
             else:
                 result = result.cast(pa.int64())
+            if baseline is not None:
+                result = pc.add(result, baseline)
             result = result.cast(pa_dtype)
 
         return self._from_pyarrow_array(result)
