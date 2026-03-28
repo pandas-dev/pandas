@@ -282,6 +282,8 @@ to specific data types.
     Series.cat
     Series.dt
     Series.sparse
+    Series.struct
+    Series.list
     DataFrame.sparse
     Index.str
 
@@ -293,6 +295,8 @@ Datetime, Timedelta, Period :ref:`dt <api.series.dt>`
 String                      :ref:`str <api.series.str>`
 Categorical                 :ref:`cat <api.series.cat>`
 Sparse                      :ref:`sparse <api.series.sparse>`
+Struct                      :ref:`struct <api.series.struct>`
+List                        :ref:`list <api.series.list>`
 =========================== =================================
 
 .. _api.series.dt:
