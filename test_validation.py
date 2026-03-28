@@ -1,13 +1,11 @@
 #!/usr/bin/env python
 """Quick validation test for limit_behavior feature"""
-import sys
-
-import numpy as np
 
 # Test 1: Validate function works
 print("=" * 60)
 print("Test 1: Validate function validation")
 print("=" * 60)
+
 
 def validate_limit_behavior(limit_behavior: str):
     valid_limit_behaviors = ["fill", "skip"]
@@ -18,6 +16,7 @@ def validate_limit_behavior(limit_behavior: str):
             f"{limit_behavior}."
         )
     return limit_behavior
+
 
 # Valid values should pass
 try:
@@ -45,7 +44,7 @@ try:
     print("✗ 'invalid' - FAIL: Should have raised ValueError")
 except ValueError as e:
     if "Invalid limit_behavior" in str(e):
-        print(f"✓ 'invalid' raises ValueError - PASS")
+        print("✓ 'invalid' raises ValueError - PASS")
     else:
         print(f"✗ 'invalid' - FAIL: Wrong error message: {e}")
 
@@ -54,7 +53,7 @@ try:
     print("✗ 'random' - FAIL: Should have raised ValueError")
 except ValueError as e:
     if "Invalid limit_behavior" in str(e):
-        print(f"✓ 'random' raises ValueError - PASS")
+        print("✓ 'random' raises ValueError - PASS")
     else:
         print(f"✗ 'random' - FAIL: Wrong error message: {e}")
 
