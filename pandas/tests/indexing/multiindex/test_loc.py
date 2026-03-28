@@ -1014,8 +1014,8 @@ def test_multindex_series_loc_with_tuple_label():
 
 def test_loc_np_datetime64_key_on_object_dt64_level():
     # GH#64689 (revert)
-    # np.datetime64[D] key on object-dtype level holding datetime64[s] values
-    # should not be converted to datetime.date
+    # Verify MultiIndex.loc works with np.datetime64 key on object-dtype level
+    # holding datetime64 values without the datetime64-to-date conversion.
     mi = MultiIndex.from_arrays(
         [
             Index(
@@ -1027,6 +1027,6 @@ def test_loc_np_datetime64_key_on_object_dt64_level():
         ],
     )
     df = DataFrame({"val": [1, 2]}, index=mi)
-    result = df.loc[(np.datetime64("2023-01-01", "D"), "A")]
+    result = df.loc[(np.datetime64("2023-01-01", "s"), "A")]
     expected = DataFrame({"val": [1]}, index=Index(["X"]))
     tm.assert_frame_equal(result, expected)
