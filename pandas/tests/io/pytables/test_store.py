@@ -67,8 +67,10 @@ def test_track_times_default_deprecated(temp_h5_path):
     Version(tables.hdf5_version) >= Version("2"),
     reason="track_times=False produces non-deterministic files with HDF5 >= 2",
 )
-def test_track_times_false_deterministic(temp_h5_path):
-    # GH#51456 - passing track_times=False explicitly gives deterministic files
+def test_no_track_times(temp_h5_path):
+    # GH 32682
+    # enables to set track_times (see `pytables` `create_table` documentation)
+
     def checksum(filename, hash_factory=hashlib.md5, chunk_num_blocks=128):
         h = hash_factory()
         with open(filename, "rb") as f:
@@ -76,33 +78,35 @@ def test_track_times_false_deterministic(temp_h5_path):
                 h.update(chunk)
         return h.digest()
 
-    df = DataFrame({"a": [1]})
+    def create_h5_and_return_checksum(temp_h5_path, track_times):
+        df = DataFrame({"a": [1]})
 
-    with HDFStore(temp_h5_path, mode="w") as hdf:
-        hdf.put(
-            "table",
-            df,
-            format="table",
-            data_columns=True,
-            index=None,
-            track_times=False,
-        )
-    checksum_0 = checksum(temp_h5_path)
+        with HDFStore(temp_h5_path, mode="w") as hdf:
+            hdf.put(
+                "table",
+                df,
+                format="table",
+                data_columns=True,
+                index=None,
+                track_times=track_times,
+            )
 
+        return checksum(temp_h5_path)
+
+    checksum_0_tt_false = create_h5_and_return_checksum(temp_h5_path, track_times=False)
+    checksum_0_tt_true = create_h5_and_return_checksum(temp_h5_path, track_times=True)
+
+    # sleep is necessary to create h5 with different creation time
     time.sleep(1)
 
-    with HDFStore(temp_h5_path, mode="w") as hdf:
-        hdf.put(
-            "table",
-            df,
-            format="table",
-            data_columns=True,
-            index=None,
-            track_times=False,
-        )
-    checksum_1 = checksum(temp_h5_path)
+    checksum_1_tt_false = create_h5_and_return_checksum(temp_h5_path, track_times=False)
+    checksum_1_tt_true = create_h5_and_return_checksum(temp_h5_path, track_times=True)
 
-    assert checksum_0 == checksum_1
+    # checksums are the same if track_time = False
+    assert checksum_0_tt_false == checksum_1_tt_false
+
+    # checksums are NOT same if track_time = True
+    assert checksum_0_tt_true != checksum_1_tt_true
 
 
 def test_iter_empty(temp_hdfstore):
@@ -277,11 +281,11 @@ def test_walk(where, expected, temp_hdfstore):
     }
 
     store = temp_hdfstore
-    store.put("/first_group/df1", objs["df1"])
-    store.put("/first_group/df2", objs["df2"])
-    store.put("/second_group/df3", objs["df3"])
-    store.put("/second_group/s1", objs["s1"])
-    store.put("/second_group/third_group/df4", objs["df4"])
+    store.put("/first_group/df1", objs["df1"], track_times=False)
+    store.put("/first_group/df2", objs["df2"], track_times=False)
+    store.put("/second_group/df3", objs["df3"], track_times=False)
+    store.put("/second_group/s1", objs["s1"], track_times=False)
+    store.put("/second_group/third_group/df4", objs["df4"], track_times=False)
     # Create non-pandas objects
     store._handle.create_array("/first_group", "a1", objs["a1"])
     store._handle.create_table("/first_group", "tb1", obj=objs["tb1"])
@@ -429,7 +433,7 @@ def test_create_table_index(temp_hdfstore):
     assert col("f2", "string2").is_indexed is False
 
     # try to index a non-table
-    store.put("f2", df)
+    store.put("f2", df, track_times=False)
     msg = "cannot create table index on a Fixed format store"
     with pytest.raises(TypeError, match=msg):
         store.create_table_index("f2")
@@ -525,7 +529,7 @@ def test_calendar_roundtrip_issue(temp_hdfstore):
 
     s = Series(dts.weekday, dts).map(Series("Mon Tue Wed Thu Fri Sat Sun".split()))
 
-    temp_hdfstore.put("fixed", s)
+    temp_hdfstore.put("fixed", s, track_times=False)
     result = temp_hdfstore.select("fixed")
     tm.assert_series_equal(result, s)
 
@@ -583,7 +587,7 @@ def test_same_name_scoping(temp_hdfstore):
         np.random.default_rng(2).standard_normal((20, 2)),
         index=date_range("20130101", periods=20, unit="ns"),
     )
-    temp_hdfstore.put("df", df, format="table")
+    temp_hdfstore.put("df", df, format="table", track_times=False)
     expected = df[df.index > Timestamp("20130105")]
 
     result = temp_hdfstore.select("df", "index>datetime.datetime(2013,1,5)")
@@ -832,7 +836,7 @@ def test_start_stop_fixed(temp_hdfstore):
         },
         index=date_range("20130101", periods=20),
     )
-    store.put("df", df)
+    store.put("df", df, track_times=False)
 
     result = store.select("df", start=0, stop=5)
     expected = df.iloc[0:5, :]
@@ -849,7 +853,7 @@ def test_start_stop_fixed(temp_hdfstore):
 
     # series
     s = df.A
-    store.put("s", s)
+    store.put("s", s, track_times=False)
     result = store.select("s", start=0, stop=5)
     expected = s.iloc[0:5]
     tm.assert_series_equal(result, expected)
@@ -873,7 +877,7 @@ def test_select_filter_corner(temp_hdfstore, request):
     df.index = [f"{c:3d}" for c in df.index]
     df.columns = [f"{c:3d}" for c in df.columns]
 
-    temp_hdfstore.put("frame", df, format="table")
+    temp_hdfstore.put("frame", df, format="table", track_times=False)
 
     request.applymarker(
         pytest.mark.xfail(
@@ -1071,7 +1075,7 @@ def test_to_hdf_with_object_column_names_should_run(temp_h5_path, dtype):
 def test_hdfstore_strides(temp_hdfstore):
     # GH22073
     df = DataFrame({"a": [1, 2, 3, 4], "b": [5, 6, 7, 8]})
-    temp_hdfstore.put("df", df)
+    temp_hdfstore.put("df", df, track_times=False)
     assert df["a"].values.strides == temp_hdfstore["df"]["a"].values.strides
 
 

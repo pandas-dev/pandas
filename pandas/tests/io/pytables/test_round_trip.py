@@ -505,7 +505,7 @@ def _check_roundtrip_table(obj, comparator, path, compression=False):
         options["complib"] = "blosc"
 
     with HDFStore(path, "w", **options) as store:
-        store.put("obj", obj, format="table")
+        store.put("obj", obj, format="table", track_times=False)
         retrieved = store["obj"]
 
         comparator(retrieved, obj)
@@ -525,13 +525,13 @@ def test_unicode_longer_encoded(temp_hdfstore):
     # GH 11234
     char = "\u0394"
     df = DataFrame({"A": [char]})
-    temp_hdfstore.put("df", df, format="table", encoding="utf-8")
+    temp_hdfstore.put("df", df, format="table", encoding="utf-8", track_times=False)
     result = temp_hdfstore.get("df")
     tm.assert_frame_equal(result, df)
 
     df = DataFrame({"A": ["a", char], "B": ["b", "b"]})
     temp_hdfstore.remove("df")
-    temp_hdfstore.put("df", df, format="table", encoding="utf-8")
+    temp_hdfstore.put("df", df, format="table", encoding="utf-8", track_times=False)
     result = temp_hdfstore.get("df")
     tm.assert_frame_equal(result, df)
 
