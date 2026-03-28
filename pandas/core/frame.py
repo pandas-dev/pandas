@@ -4292,6 +4292,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     def _getitem_multilevel(self, key):
         # self.columns is a MultiIndex
+        assert isinstance(self.columns, MultiIndex)
         if isinstance(key, tuple) and any(isinstance(k, slice) for k in key):
             # Tuple key contains slices, e.g. df[:, "t1"] which gives
             # key=(slice(None), "t1"). Use get_locs which handles
