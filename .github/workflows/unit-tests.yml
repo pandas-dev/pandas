@@ -434,7 +434,7 @@ jobs:
           python-version: '3.12'
 
       - name: Set up Emscripten toolchain
-        uses: mymindstorm/setup-emsdk@6ab9eb1bda2574c4ddb79809fc9247783eaf9021 # v14
+        uses: mymindstorm/setup-emsdk@v14
         with:
           version: '3.1.58'
           actions-cache-folder: emsdk-cache
@@ -449,7 +449,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
         with:
-          node-version: '20'
+          node-version: '24'
 
       - name: Set up Pyodide virtual environment
         env:
